@@ -1,11 +1,12 @@
 /*
  * \brief  GUID Partition table definitions
  * \author Josef Soentgen
+ * \author Sebastian Sumpf
  * \date   2014-09-19
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,151 +19,170 @@
 #include <base/log.h>
 #include <block_session/client.h>
 #include <util/misc_math.h>
+#include <util/mmio.h>
+#include <util/utf8.h>
 
-#include "driver.h"
 #include "partition_table.h"
 #include "fsprobe.h"
 
-namespace {
+static bool constexpr verbose = false;
 
-static bool const verbose = false;
+namespace Block {
+	class Gpt;
+};
 
-/* simple bitwise CRC32 checking */
-static inline Genode::uint32_t crc32(void const * const buf, Genode::size_t size)
-{
-	Genode::uint8_t const *p = static_cast<Genode::uint8_t const*>(buf);
-	Genode::uint32_t crc = ~0U;
-
-	while (size--) {
-		crc ^= *p++;
-		for (Genode::uint32_t j = 0; j < 8; j++)
-			crc = (-Genode::int32_t(crc & 1) & 0xedb88320) ^ (crc >> 1);
-	}
-
-	return crc ^ ~0U;
-}
-
-} /* anonymous namespace */
-
-
-class Gpt : public Block::Partition_table
+class Block::Gpt : public Block::Partition_table
 {
 	private:
 
 		enum { MAX_PARTITIONS = 128 };
 
-		/* contains pointers to valid partitions or 0 */
-		Block::Partition *_part_list[MAX_PARTITIONS] { 0 };
+		/* contains valid partitions or not constructed */
+		Constructible<Partition> _part_list[MAX_PARTITIONS];
 
 		typedef Block::Partition_table::Sector Sector;
-
 
 		/**
 		 * DCE uuid struct
 		 */
-		struct Uuid
+		struct Uuid : Mmio
 		{
-			enum { UUID_NODE_LEN = 6 };
+			struct Time_low            : Register<0, 32> { };
+			struct Time_mid            : Register<4, 16> { };
+			struct Time_hi_and_version : Register<6, 16> { };
 
-			Genode::uint32_t time_low;
-			Genode::uint16_t time_mid;
-			Genode::uint16_t time_hi_and_version;
-			Genode::uint8_t  clock_seq_hi_and_reserved;
-			Genode::uint8_t  clock_seq_low;
-			Genode::uint8_t  node[UUID_NODE_LEN];
+			struct Clock_seq_hi_and_reserved : Register<8, 8> { };
+			struct Clock_seq_low             : Register<9, 8> { };
 
-			char const *to_string()
+			struct Node : Register_array<10, 8, 6, 8> { };
+
+			Uuid() = delete;
+			Uuid(addr_t base) : Mmio(base) { };
+
+			unsigned time_low() const { return read<Time_low>(); }
+
+			template<typename T> struct Uuid_hex : Genode::Hex {
+				Uuid_hex<T>(T value) : Genode::Hex(value, OMIT_PREFIX, PAD) { } };
+
+			void print(Output &out) const
 			{
-				static char buffer[37 + 1];
+				Genode::print(out, Uuid_hex(read<Time_low>()),
+				              "-", Uuid_hex(read<Time_mid>()),
+				              "-", Uuid_hex(read<Time_hi_and_version>()),
+				              "-", Uuid_hex(read<Clock_seq_hi_and_reserved>()),
+				                   Uuid_hex(read<Clock_seq_low>()),
+				              "-");
 
-				Genode::snprintf(buffer, sizeof(buffer),
-				                 "%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-				                 time_low, time_mid, time_hi_and_version,
-				                 clock_seq_hi_and_reserved, clock_seq_low,
-				                 node[0], node[1], node[2], node[3], node[4], node[5]);
-
-				return buffer;
+				for (unsigned i = 0; i < 6; i++)
+					Genode::print(out, Uuid_hex(read<Node>(i)));
 			}
-
-		} __attribute__((packed));
+			static constexpr size_t size() { return 16; }
+		};
 
 
 		/**
 		 * GUID parition table header
 		 */
-		struct Gpt_hdr
-		{
-			enum { HEADER_LBA = 1 };
+		struct Gpt_hdr : Mmio
 
-			char             _sig[8];         /* identifies GUID Partition Table */
-			Genode::uint32_t _revision;       /* GPT specification revision */
-			Genode::uint32_t _hdr_size;       /* size of GPT header */
-			Genode::uint32_t _hdr_crc;        /* CRC32 of GPT header */
-			Genode::uint32_t _reserved;       /* must be zero */
-			Genode::uint64_t _hdr_lba;        /* LBA that contains this header */
-			Genode::uint64_t _backup_hdr_lba; /* LBA of backup GPT header */
-			Genode::uint64_t _part_lba_start; /* first LBA usable for partitions */
-			Genode::uint64_t _part_lba_end;   /* last LBA usable for partitions */
-			Uuid             _guid;           /* GUID to identify the disk */
-			Genode::uint64_t _gpe_lba;        /* first LBA of GPE array */
-			Genode::uint32_t _entries;        /* number of entries in GPE array */
-			Genode::uint32_t _entry_size;     /* size of each GPE */
-			Genode::uint32_t _gpe_crc;        /* CRC32 of GPE array */
+		{
+			struct Sig      : Register<0, 64> { };  /* identifies GUID Partition Table */
+			struct Revision : Register<8, 32> { };  /* GPT specification revision */
+			struct Hdr_size : Register<12, 32> { }; /* size of GPT header */
+			struct Hdr_crc  : Register<16, 32> { }; /* CRC32 of GPT header */
+			struct Reserved : Register<20,32> { };  /* must be zero */
+			struct Hdr_lba  : Register<24, 64> {
+				enum { LBA = 1 }; };                  /* LBA that contains this header */
+
+			struct Backup_hdr_lba : Register<32, 64> { }; /* LBA of backup GPT header */
+			struct Part_lba_start : Register<40, 64> { }; /* first LBA usable for partitions */
+			struct Part_lba_end   : Register<48, 64> { }; /* last LBA usable for partitions */
+
+			Uuid guid() { return Uuid(base() + 56); } /* GUID to identify the disk */
+
+			struct Gpe_lba    : Register<72, 64> { }; /* first LBA of GPE array */
+			struct Entries    : Register<80, 32> { }; /* number of entries in GPE array */
+			struct Entry_size : Register<84, 32> { }; /* size of each GPE */
+			struct Gpe_crc    : Register<88, 32> { }; /* CRC32 of GPE array */
+
+			Gpt_hdr() = delete;
+			Gpt_hdr(addr_t base) : Mmio(base) { };
+
+			uint64_t part_lba_start() const { return read<Part_lba_start>(); }
+			uint64_t part_lba_end()   const { return read<Part_lba_end>(); }
+			uint64_t gpe_lba()        const { return read<Gpe_lba>(); }
+			uint32_t entries()        const { return read<Entries>(); }
+			uint32_t entry_size()     const { return read<Entry_size>(); }
+
+			uint32_t crc32(addr_t buf, size_t size)
+			{
+				uint8_t const *p = reinterpret_cast<uint8_t const*>(buf);
+				uint32_t crc = ~0U;
+
+				while (size--) {
+					crc ^= *p++;
+					for (uint32_t j = 0; j < 8; j++)
+						crc = (-int32_t(crc & 1) & 0xedb88320) ^ (crc >> 1);
+				}
+
+				return crc ^ ~0U;
+			}
 
 			void dump_hdr(bool check_primary)
 			{
 				if (!verbose) return;
 
-				using namespace Genode;
-
 				log("GPT ", check_primary ? "primary" : "backup", " header:");
-				log(" rev: ", (unsigned) _revision);
-				log(" size: ", (unsigned) _hdr_size);
-				log(" crc: ", Hex(_hdr_crc, Hex::OMIT_PREFIX));
-				log(" reserved: ", (unsigned) _reserved);
-				log(" hdr lba: ", (unsigned long long) _hdr_lba);
-				log(" bak lba: ", (unsigned long long) _backup_hdr_lba);
-				log(" part start lba: ", (unsigned long long) _part_lba_start);
-				log(" part end lba: ", (unsigned long long) _part_lba_end);
-				log(" guid: ", _guid.to_string());
-				log(" gpe lba: ", (unsigned long long) _gpe_lba);
-				log(" entries: ", (unsigned) _entries);
-				log(" entry size: ", (unsigned) _entry_size);
-				log(" gpe crc: ", Hex(_gpe_crc, Hex::OMIT_PREFIX));
+				log(" rev: ",            read<Revision>());
+				log(" size: ",           read<Hdr_size>());
+				log(" crc: ",        Hex(read<Hdr_crc>(), Hex::OMIT_PREFIX));
+				log(" reserved: ",       read<Reserved>());
+				log(" hdr lba: ",        read<Hdr_lba>());
+				log(" bak lba: ",        read<Backup_hdr_lba>());
+				log(" part start lba: ", read<Part_lba_start>());
+				log(" part end lba: ",   read<Part_lba_end>());
+				log(" guid: ",           guid());
+				log(" gpe lba: ",        read<Gpe_lba>());
+				log(" entries: ",        read<Entries>());
+				log(" entry size: ",     read<Entry_size>());
+				log(" gpe crc: ",    Hex(read<Gpe_crc>(), Hex::OMIT_PREFIX));
 			}
 
-			bool valid(Block::Driver &driver, bool check_primary = true)
+			bool valid(Partition_table::Sector_data &data, bool check_primary = true)
 			{
 				dump_hdr(check_primary);
 
 				/* check sig */
-				if (Genode::strcmp(_sig, "EFI PART", 8) != 0)
+				uint64_t const magic = 0x5452415020494645; /* "EFI PART" - ascii */;
+				if (read<Sig>() != magic) {
 					return false;
+				}
 
 				/* check header crc */
-				Genode::uint32_t crc = _hdr_crc;
-				_hdr_crc = 0;
-				if (crc32(this, _hdr_size) != crc) {
-					Genode::error("Wrong GPT header checksum");
+				uint32_t crc = read<Hdr_crc>();
+				write<Hdr_crc>(0);
+				if (crc32(base(), read<Hdr_size>()) != crc) {
+					error("Wrong GPT header checksum");
 					return false;
 				}
 
 				/* check header lba */
 				if (check_primary)
-					if (_hdr_lba != HEADER_LBA)
+					if (read<Hdr_lba>() != Hdr_lba::LBA)
 						return false;
 
 				/* check GPT entry array */
-				Genode::size_t length = _entries * _entry_size;
-				Sector gpe(driver, _gpe_lba, length / driver.blk_size());
-				if (crc32(gpe.addr<void *>(), length) != _gpe_crc)
+				size_t length = entries() * entry_size();
+				Sector gpe(data, gpe_lba(), length / data.block.info().block_size);
+				if (crc32(gpe.addr<addr_t>(), length) != read<Gpe_crc>())
 					return false;
 
 				if (check_primary) {
 					/* check backup gpt header */
-					Sector backup_hdr(driver, _backup_hdr_lba, 1);
-					if (!backup_hdr.addr<Gpt_hdr*>()->valid(driver, false)) {
-						Genode::warning("Backup GPT header is corrupted");
+					Sector backup_hdr(data, read<Backup_hdr_lba>(), 1);
+					Gpt_hdr backup(backup_hdr.addr<addr_t>());
+					if (!backup.valid(data, false)) {
+						warning("Backup GPT header is corrupted");
 					}
 				}
 
@@ -170,60 +190,53 @@ class Gpt : public Block::Partition_table
 			}
 
 			/* the remainder of the LBA must be zero */
-		} __attribute__((packed));
+		};
 
 
 		/**
 		 * GUID partition entry format
 		 */
-		struct Gpt_entry
+		struct Gpt_entry : Mmio
 		{
 			enum { NAME_LEN = 36 };
-			Uuid             _type;           /* partition type GUID */
-			Uuid             _guid;           /* unique partition GUID */
-			Genode::uint64_t _lba_start;      /* start of partition */
-			Genode::uint64_t _lba_end;        /* end of partition */
-			Genode::uint64_t _attr;           /* partition attributes */
-			Genode::uint16_t _name[NAME_LEN]; /* partition name in UNICODE-16 */
+
+			Uuid  type() const { return Uuid(base()); }                /* partition type GUID */
+			Uuid  guid() const { return Uuid(base()+ Uuid::size()); }  /* unique partition GUID */
+
+			struct Lba_start : Register<32, 64> { };                     /* start of partition */
+			struct Lba_end   : Register<40, 64> { };                     /* end of partition */
+			struct Attr      : Register<48, 64> { };                     /* partition attributes */
+			struct Name      : Register_array<56, 16, NAME_LEN, 16> { }; /* partition name in UNICODE-16 */
+
+			Gpt_entry() = delete;
+			Gpt_entry(addr_t base) : Mmio(base) { }
+
+			uint64_t lba_start() const { return read<Lba_start>(); }
+			uint64_t lba_end() const { return read<Lba_end>(); }
 
 			bool valid() const
 			{
-				if (_type.time_low == 0x00000000)
+				if (type().time_low() == 0x00000000)
 					return false;
 
 				return true;
 			}
 
 			/**
-			 * Extract all valid ASCII characters in the name entry
+			 * Extract UTF-8 for name entry
 			 */
-			char const *name()
+			void print(Output &out) const
 			{
-				static char buffer[NAME_LEN + 1];
+				for (unsigned i = 0; i < NAME_LEN; i++) {
+					uint32_t utf16 = read<Name>(i);
 
-				char *p = buffer;
-				Genode::size_t i = 0;
+					if (utf16 == 0) break;
 
-				for (Genode::size_t u = 0; u < NAME_LEN && _name[u] != 0; u++) {
-					Genode::uint32_t utfchar = _name[i++];
-
-					if ((utfchar & 0xf800) == 0xd800) {
-						unsigned int c = _name[i];
-						if ((utfchar & 0x400) != 0 || (c & 0xfc00) != 0xdc00)
-							utfchar = 0xfffd;
-						else
-							i++;
-					}
-
-					*p++ = (utfchar < 0x80) ? utfchar : '.';
+					Codepoint code { utf16 };
+					code.print(out);
 				}
-
-				*p++ = 0;
-
-				return buffer;
 			}
-
-		} __attribute__((packed));
+		};
 
 
 		/**
@@ -236,39 +249,37 @@ class Gpt : public Block::Partition_table
 		 *
 		 * \return the number of free blocks to the next logical entry
 		 */
-		Genode::uint64_t _calculate_gap(Gpt_hdr   const *header,
-		                                Gpt_entry const *entry,
-		                                Gpt_entry const *entries,
-		                                Genode::uint32_t num,
-		                                Genode::uint64_t total_blocks)
+		uint64_t _calculate_gap(Gpt_hdr   const &header,
+		                        Gpt_entry const &entry,
+		                        Gpt_entry const &entries,
+		                        Genode::uint32_t num,
+		                        Genode::uint64_t total_blocks)
 		{
-			using namespace Genode;
-
 			/* add one block => end == start */
-			uint64_t const end_lba = entry->_lba_end + 1;
+			uint64_t const end_lba = entry.lba_end() + 1;
 
 			enum { INVALID_START = ~0ull, };
 			uint64_t next_start_lba = INVALID_START;
 
 			for (uint32_t i = 0; i < num; i++) {
-				Gpt_entry const *e = (entries + i);
+				Gpt_entry const e(entries.base() + i * header.entry_size());
 
-				if (!e->valid() || e == entry) { continue; }
+				if (!e.valid() || e.base() == entry.base()) { continue; }
 
 				/*
 				 * Check if the entry starts afterwards and save the
 				 * entry with the smallest distance.
 				 */
-				if (e->_lba_start >= end_lba) {
-					next_start_lba = min(next_start_lba, e->_lba_start);
+				if (e.lba_start() >= end_lba) {
+					next_start_lba = min(next_start_lba, e.lba_start());
 				}
 			}
 
 			/* sanity check if GPT is broken */
-			if (end_lba > header->_part_lba_end) { return 0; }
+			if (end_lba > header.part_lba_end()) { return 0; }
 
 			/* if the underyling Block device changes we might be able to expand more */
-			Genode::uint64_t const part_end = max(header->_part_lba_end, total_blocks);
+			uint64_t const part_end = max(header.part_lba_end(), total_blocks);
 
 			/*
 			 * Use stored next start LBA or paritions end LBA from header,
@@ -288,20 +299,18 @@ class Gpt : public Block::Partition_table
 		 *
 		 * \return the number of used blocks
 		 */
-		Genode::uint64_t _calculate_used(Gpt_hdr const *,
-		                                 Gpt_entry const *entries,
-		                                 Genode::uint32_t num)
+		uint64_t _calculate_used(Gpt_hdr const &header,
+		                                 Gpt_entry const &entries,
+		                                 uint32_t num)
 		{
-			using namespace Genode;
-
 			uint64_t used = 0;
 
 			for (uint32_t i = 0; i < num; i++) {
-				Gpt_entry const *e = (entries + i);
+				Gpt_entry const e(entries.base() + i * header.entry_size());
 
-				if (!e->valid()) { continue; }
+				if (!e.valid()) { continue; }
 
-				uint64_t const v = (e->_lba_end - e->_lba_start) + 1;
+				uint64_t const v = (e.lba_end() - e.lba_start()) + 1;
 				used += v;
 			}
 
@@ -312,70 +321,76 @@ class Gpt : public Block::Partition_table
 		/**
 		 * Parse the GPT header
 		 */
-		void _parse_gpt(Gpt_hdr *gpt)
+		void _parse_gpt(Gpt_hdr &gpt)
 		{
-			if (!(gpt->valid(driver)))
-				throw Genode::Exception();
+			if (!(gpt.valid(data)))
+				throw Exception();
 
-			Sector entry_array(driver, gpt->_gpe_lba,
-			                   gpt->_entries * gpt->_entry_size / driver.blk_size());
-			Gpt_entry *entries = entry_array.addr<Gpt_entry *>();
+			Sector entry_array(data, gpt.gpe_lba(),
+			                   gpt.entries() * gpt.entry_size() / block.info().block_size);
+			Gpt_entry entries(entry_array.addr<addr_t>());
 
 			for (int i = 0; i < MAX_PARTITIONS; i++) {
-				Gpt_entry *e = (entries + i);
 
-				if (!e->valid())
+				Gpt_entry e(entries.base() + i * gpt.entry_size());
+
+				if (!e.valid())
 					continue;
 
-				Genode::uint64_t start  = e->_lba_start;
-				Genode::uint64_t length = e->_lba_end - e->_lba_start + 1; /* [...) */
+				uint64_t start  = e.lba_start();
+				uint64_t length = e.lba_end() - e.lba_start() + 1; /* [...) */
 
-				_part_list[i] = new (&heap) Block::Partition(start, length);
+				_part_list[i].construct(start, length);
 
-				Genode::log("Partition ", i + 1, ": LBA ", start, " (", length,
-				            " blocks) type: '", e->_type.to_string(),
-				            "' name: '", e->name(), "'");
+				log("Partition ", i + 1, ": LBA ", start, " (", length,
+				    " blocks) type: '", e.type(),
+				    "' name: '", e, "'");
 			}
 
 			/* Report the partitions */
 			if (reporter.enabled())
 			{
-				Genode::Reporter::Xml_generator xml(reporter, [&] () {
+				Reporter::Xml_generator xml(reporter, [&] () {
 					xml.attribute("type", "gpt");
 
-					Genode::uint64_t const total_blocks = driver.blk_cnt();
+					uint64_t const total_blocks = block.info().block_count;
 					xml.attribute("total_blocks", total_blocks);
 
-					Genode::uint64_t const gpt_total =
-						(gpt->_part_lba_end - gpt->_part_lba_start) + 1;
+					uint64_t const gpt_total =
+						(gpt.part_lba_end() - gpt.part_lba_start()) + 1;
 					xml.attribute("gpt_total", gpt_total);
 
-					Genode::uint64_t const gpt_used =
-						_calculate_used(gpt, entries, gpt->_entries);
+					uint64_t const gpt_used =
+						_calculate_used(gpt, entries, gpt.entries());
 					xml.attribute("gpt_used", gpt_used);
 
 					for (int i = 0; i < MAX_PARTITIONS; i++) {
-						Gpt_entry *e = (entries + i);
+						Gpt_entry e(entries.base() + i * gpt.entry_size());
 
-						if (!e->valid()){
+						if (!e.valid()){
 							continue;
 						}
 
 						enum { BYTES = 4096, };
-						Sector fs(driver, e->_lba_start, BYTES / driver.blk_size());
-						Fs::Type fs_type = Fs::probe(fs.addr<Genode::uint8_t*>(), BYTES);
+						Sector fs(data, e.lba_start(), BYTES / block.info().block_size);
+
+						Fs::Type fs_type = Fs::probe(fs.addr<uint8_t*>(), BYTES);
+
+						String<40>                  guid { e.guid() };
+						String<40>                  type { e.type() };
+						String<Gpt_entry::NAME_LEN> name { e };
 
 						xml.node("partition", [&] () {
 							xml.attribute("number", i + 1);
-							xml.attribute("name", e->name());
-							xml.attribute("type", e->_type.to_string());
-							xml.attribute("guid", e->_guid.to_string());
-							xml.attribute("start", e->_lba_start);
-							xml.attribute("length", e->_lba_end - e->_lba_start + 1);
-							xml.attribute("block_size", driver.blk_size());
+							xml.attribute("name", name);
+							xml.attribute("type", type);
+							xml.attribute("guid", guid);;
+							xml.attribute("start", e.lba_start());
+							xml.attribute("length", e.lba_end() - e.lba_start() + 1);
+							xml.attribute("block_size", block.info().block_size);
 
-							Genode::uint64_t const gap = _calculate_gap(gpt, e, entries,
-							                                            gpt->_entries,
+							uint64_t const gap = _calculate_gap(gpt, e, entries,
+							                                            gpt.entries(),
 							                                            total_blocks);
 							if (gap) { xml.attribute("expandable", gap); }
 
@@ -386,23 +401,35 @@ class Gpt : public Block::Partition_table
 					}
 				});
 			}
-
 		}
 
 	public:
 
 		using Partition_table::Partition_table;
 
-		Block::Partition *partition(int num) override {
-			return (num <= MAX_PARTITIONS && num > 0) ? _part_list[num-1] : 0; }
+		Partition &partition(long num) override
+		{
+			num -= 1;
+
+			if (num < 0 || num > MAX_PARTITIONS)
+				throw -1;
+
+			if (!_part_list[num].constructed())
+				throw -1;
+
+			return *_part_list[num];
+		}
 
 		bool parse() override
 		{
-			Sector s(driver, Gpt_hdr::HEADER_LBA, 1);
-			_parse_gpt(s.addr<Gpt_hdr *>());
+			block.sigh(io_sigh);
+
+			Sector s(data, Gpt_hdr::Hdr_lba::LBA, 1);
+			Gpt_hdr hdr(s.addr<addr_t>());
+			_parse_gpt(hdr);
 
 			for (unsigned num = 0; num < MAX_PARTITIONS; num++)
-				if (_part_list[num])
+				if (_part_list[num].constructed())
 					return true;
 			return false;
 		}

@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -20,13 +20,17 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <block_session/client.h>
+#include <util/mmio.h>
 
 #include "partition_table.h"
 #include "fsprobe.h"
 #include "ahdi.h"
 
+namespace Block {
+	struct Mbr_partition_table;
+};
 
-struct Mbr_partition_table : public Block::Partition_table
+struct Block::Mbr_partition_table : public Block::Partition_table
 {
 	public:
 
@@ -39,67 +43,85 @@ struct Mbr_partition_table : public Block::Partition_table
 		/**
 		 * Partition table entry format
 		 */
-		struct Partition_record
+		struct Partition_record : Mmio
 		{
-			enum {
-				INVALID = 0,
-				EXTENTED_CHS = 0x5, EXTENTED_LBA = 0xf, PROTECTIVE = 0xee
+			struct Type : Register<4, 8>
+			{
+				enum {
+					INVALID = 0, EXTENTED_CHS = 0x5, EXTENTED_LBA = 0xf, PROTECTIVE = 0xee
+				};
 			};
-			Genode::uint8_t  _unused[4];
-			Genode::uint8_t  _type;       /* partition type */
-			Genode::uint8_t  _unused2[3];
-			Genode::uint32_t _lba;        /* logical block address */
-			Genode::uint32_t _sectors;    /* number of sectors */
 
-			bool valid()      const { return _type != INVALID; }
-			bool extended()   const { return _type == EXTENTED_CHS
-			                              || _type == EXTENTED_LBA; }
-			bool protective() const { return _type == PROTECTIVE; }
-		} __attribute__((packed));
+			struct Lba     : Register<8, 32>  { }; /* logical block address */
+			struct Sectors : Register<12, 32> { }; /* number of sectors */
 
+			Partition_record() = delete;
+
+			Partition_record(addr_t base)
+			: Mmio(base) { }
+
+			bool valid()       const { return read<Type>() != Type::INVALID; }
+			bool extended()    const { return read<Type>() == Type::EXTENTED_CHS ||
+			                                  read<Type>() == Type::EXTENTED_LBA; }
+			bool protective()  const { return read<Type>() == Type::PROTECTIVE; }
+			uint8_t  type()    const { return read<Type>(); }
+			unsigned lba()     const { return read<Lba>(); }
+			unsigned sectors() const { return read<Sectors>(); }
+
+			static constexpr size_t size() { return 16; }
+		};
 
 		/**
 		 * Master/Extented boot record format
 		 */
-		struct Mbr
+		struct Mbr : Mmio
 		{
-			Genode::uint8_t  _unused[446];
-			Partition_record _records[4];
-			Genode::uint16_t _magic;
+			struct Magic : Register<510, 16>
+			{
+				enum { NUMBER = 0xaa55 };
+			};
+
+			Mbr() = delete;
+
+			Mbr(addr_t base) : Mmio(base) { }
 
 			bool valid() const
 			{
 				/* magic number of partition table */
-				enum { MAGIC = 0xaa55 };
-				return _magic == MAGIC;
+				return read<Magic>() == Magic::NUMBER;
 			}
-		} __attribute__((packed));
+
+			addr_t record(unsigned index) const
+			{
+				return base() + 446 + (index * Partition_record::size());
+			}
+		};
 
 
 		enum { MAX_PARTITIONS = 32 };
 
 		/* contains pointers to valid partitions or 0 */
-		Block::Partition *_part_list[MAX_PARTITIONS];
+		Constructible<Partition> _part_list[MAX_PARTITIONS];
 
 		template <typename FUNC>
 		void _parse_extended(Partition_record const &record, FUNC const &f) const
 		{
-			Partition_record const *r = &record;
-			unsigned lba = r->_lba;
+			Reconstructible<Partition_record const> r(record.base());
+			unsigned lba = r->lba();
 			unsigned last_lba = 0;
 
 			/* first logical partition number */
 			int nr = 5;
 			do {
-				Sector s(driver, lba, 1);
-				Mbr const &ebr = *s.addr<Mbr *>();
+				Sector s(const_cast<Sector_data&>(data), lba, 1);
+				Mbr const ebr(s.addr<addr_t>());
 
 				if (!ebr.valid())
 					return;
 
 				/* The first record is the actual logical partition. The lba of this
 				 * partition is relative to the lba of the current EBR */
-				Partition_record const &logical = ebr._records[0];
+				Partition_record const logical(ebr.record(0));
 				if (logical.valid() && nr < MAX_PARTITIONS) {
 					f(nr++, logical, lba);
 				}
@@ -108,10 +130,11 @@ struct Mbr_partition_table : public Block::Partition_table
 				 * the second record points to the next EBR
 				 * (relative form this EBR)
 				 */
-				r = &(ebr._records[1]);
-				lba += ebr._records[1]._lba - last_lba;
+				r.destruct();
+				r.construct(ebr.record(1));
+				lba += r->lba() - last_lba;
 
-				last_lba = ebr._records[1]._lba;
+				last_lba = r->lba();
 
 			} while (r->valid());
 		}
@@ -120,7 +143,7 @@ struct Mbr_partition_table : public Block::Partition_table
 		void _parse_mbr(Mbr const &mbr, FUNC const &f) const
 		{
 			for (int i = 0; i < 4; i++) {
-				Partition_record const &r = mbr._records[i];
+				Partition_record const r(mbr.record(i));
 
 				if (!r.valid())
 					continue;
@@ -139,59 +162,66 @@ struct Mbr_partition_table : public Block::Partition_table
 
 		using Partition_table::Partition_table;
 
-		Block::Partition *partition(int num) override {
-			return (num < MAX_PARTITIONS) ? _part_list[num] : 0; }
+		Partition &partition(long num) override
+		{
+			if (num < 0 || num > MAX_PARTITIONS)
+				throw -1;
+
+			if (!_part_list[num].constructed())
+				throw -1;
+
+			return *_part_list[num];
+		}
 
 		template <typename FN>
 		void _for_each_valid_partition(FN const &fn) const
 		{
 			for (unsigned i = 0; i < MAX_PARTITIONS; i++)
-				if (_part_list[i])
+				if (_part_list[i].constructed())
 					fn(i);
 		};
 
 		bool parse() override
 		{
-			using namespace Genode;
+			block.sigh(io_sigh);
 
-			Sector s(driver, 0, 1);
+			Sector s(data, 0, 1);
 
 			/* check for MBR */
-			Mbr const &mbr = *s.addr<Mbr *>();
+			Mbr const mbr(s.addr<addr_t>());
 			bool const mbr_valid = mbr.valid();
 			if (mbr_valid) {
 				_parse_mbr(mbr, [&] (int i, Partition_record const &r, unsigned offset) {
 					log("Partition ", i, ": LBA ",
-					    (unsigned int) r._lba + offset, " (",
-					    (unsigned int) r._sectors, " blocks) type: ",
-					    Hex(r._type, Hex::OMIT_PREFIX));
+					    r.lba() + offset, " (",
+					    r.sectors(), " blocks) type: ",
+					    Hex(r.type(), Hex::OMIT_PREFIX));
 					if (!r.extended())
-						_part_list[i] = new (heap)
-							Block::Partition(r._lba + offset, r._sectors);
+						_part_list[i].construct(Partition(r.lba() + offset, r.sectors()));
 				});
 			}
 
 			/* check for AHDI partition table */
 			bool const ahdi_valid = !mbr_valid && Ahdi::valid(s);
 			if (ahdi_valid)
-				Ahdi::for_each_partition(s, [&] (unsigned i, Block::Partition info) {
+				Ahdi::for_each_partition(s, [&] (unsigned i, Partition info) {
 					if (i < MAX_PARTITIONS)
-						_part_list[i] = new (heap)
-							Block::Partition(info.lba, info.sectors); });
+						_part_list[i].construct(
+							Partition(info.lba, info.sectors)); });
 
 			/* no partition table, use whole disc as partition 0 */
 			if (!mbr_valid && !ahdi_valid)
-				_part_list[0] = new (&heap)
-					Block::Partition(0, driver.blk_cnt() - 1);
+				_part_list[0].construct(
+					Partition(0, block.info().block_count - 1));
 
 			/* report the partitions */
 			if (reporter.enabled()) {
 
 				auto gen_partition_attr = [&] (Xml_generator &xml, unsigned i)
 				{
-					Block::Partition const &part = *_part_list[i];
+					Partition const &part = *_part_list[i];
 
-					size_t const block_size = driver.blk_size();
+					size_t const block_size = block.info().block_size;
 
 					xml.attribute("number",     i);
 					xml.attribute("start",      part.lba);
@@ -200,7 +230,7 @@ struct Mbr_partition_table : public Block::Partition_table
 
 					/* probe for known file-system types */
 					enum { PROBE_BYTES = 4096, };
-					Sector fs(driver, part.lba, PROBE_BYTES / block_size);
+					Sector fs(data, part.lba, PROBE_BYTES / block_size);
 					Fs::Type const fs_type =
 						Fs::probe(fs.addr<uint8_t*>(), PROBE_BYTES);
 
@@ -218,12 +248,12 @@ struct Mbr_partition_table : public Block::Partition_table
 						_parse_mbr(mbr, [&] (int i, Partition_record const &r, unsigned) {
 
 							/* nullptr if extended */
-							if (!_part_list[i])
+							if (!_part_list[i].constructed())
 								return;
 
 							xml.node("partition", [&] {
 								gen_partition_attr(xml, i);
-								xml.attribute("type", r._type); });
+								xml.attribute("type", r.type()); });
 						});
 
 					} else if (ahdi_valid) {
