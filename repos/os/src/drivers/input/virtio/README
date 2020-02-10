@@ -1,0 +1,12 @@
+The VirtIO input driver makes it possible to read input events from
+Qemu keyboard, mouse, or tablet devices and feed them to Genode Event
+session.
+
+By default the driver can attach to any supported device type. This
+may be changed by specifying "match_product" configuration key. Allowed
+values for this setting are: keyboard, mouse, tablet, any (default).
+
+For example, to make sure specific instance of this driver attaches only
+to VirtIO keyboard device it can be configured as:
+
+! <config match_product="keyboard" />
