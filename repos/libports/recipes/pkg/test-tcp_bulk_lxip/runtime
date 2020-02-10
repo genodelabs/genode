@@ -128,7 +128,7 @@
 						</default-route>
 						<default caps="256"/>
 
-						<start name="recv_fs" caps="150">
+						<start name="recv_fs" caps="200">
 							<binary name="vfs"/>
 							<resource name="RAM" quantum="32M"/>
 							<provides> <service name="File_system"/> </provides>
@@ -140,7 +140,7 @@
 							</config>
 						</start>
 
-						<start name="send_fs" caps="150">
+						<start name="send_fs" caps="200">
 							<binary name="vfs"/>
 							<resource name="RAM" quantum="32M"/>
 							<provides> <service name="File_system"/> </provides>
