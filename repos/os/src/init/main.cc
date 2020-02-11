@@ -15,6 +15,7 @@
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/sandbox.h>
+#include <os/reporter.h>
 
 namespace Init {
 
@@ -24,11 +25,11 @@ namespace Init {
 }
 
 
-struct Init::Main
+struct Init::Main : Sandbox::State_handler
 {
 	Env &_env;
 
-	Sandbox _sandbox { _env };
+	Sandbox _sandbox { _env, *this };
 
 	Attached_rom_dataspace _config { _env, "config" };
 
@@ -37,14 +38,61 @@ struct Init::Main
 	Signal_handler<Main> _resource_avail_handler {
 		_env.ep(), *this, &Main::_handle_resource_avail };
 
+	Constructible<Reporter> _reporter { };
+
+	size_t _report_buffer_size = 0;
+
 	void _handle_config()
 	{
 		_config.update();
-		_sandbox.apply_config(_config.xml());
+
+		Xml_node const config = _config.xml();
+
+		bool reporter_enabled = false;
+		config.with_sub_node("report", [&] (Xml_node report) {
+
+			reporter_enabled = true;
+
+			/* (re-)construct reporter whenever the buffer size is changed */
+			Number_of_bytes const buffer_size =
+				report.attribute_value("buffer", Number_of_bytes(4096));
+
+			if (buffer_size != _report_buffer_size || !_reporter.constructed()) {
+				_report_buffer_size = buffer_size;
+				_reporter.construct(_env, "state", "state", _report_buffer_size);
+			}
+		});
+
+		if (_reporter.constructed())
+			_reporter->enabled(reporter_enabled);
+
+		_sandbox.apply_config(config);
 	}
 
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
+
+	/**
+	 * Sandbox::State_handler interface
+	 */
+	void handle_sandbox_state() override
+	{
+		try {
+			Reporter::Xml_generator xml(*_reporter, [&] () {
+				_sandbox.generate_state_report(xml); });
+		}
+		catch (Xml_generator::Buffer_exceeded) {
+
+			error("state report exceeds maximum size");
+
+			/* try to reflect the error condition as state report */
+			try {
+				Reporter::Xml_generator xml(*_reporter, [&] () {
+					xml.attribute("error", "report buffer exceeded"); });
+			}
+			catch (...) { }
+		}
+	}
 
 	Main(Env &env) : _env(env)
 	{

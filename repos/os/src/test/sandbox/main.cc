@@ -48,7 +48,13 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Sandbox _sandbox { _env };
+	struct State_handler : Sandbox::State_handler
+	{
+		void handle_sandbox_state() override { }
+
+	} _state_handler { };
+
+	Sandbox _sandbox { _env, _state_handler };
 
 	typedef Sandbox::Local_service<Log_session_component> Log_service;
 

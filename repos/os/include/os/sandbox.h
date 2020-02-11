@@ -32,6 +32,18 @@ class Genode::Sandbox : Noncopyable
 		template <typename>
 		class Local_service;
 
+		/**
+		 * Interface invoked each time an interesting state change occurs
+		 *
+		 * The handler is supposed to inspect the state as provided by
+		 * the 'generate_state_report' method and respond by adjusting
+		 * the sandbox configuration via 'apply_config'.
+		 */
+		struct State_handler : Interface
+		{
+			virtual void handle_sandbox_state() = 0;
+		};
+
 	private:
 
 		friend class Local_service_base;
@@ -46,9 +58,16 @@ class Genode::Sandbox : Noncopyable
 
 	public:
 
-		Sandbox(Env &env);
+		Sandbox(Env &, State_handler &);
 
 		void apply_config(Xml_node const &);
+
+		/**
+		 * Generate state report as configured by the <report> config node
+		 *
+		 * \throw Xml_generator::Buffer_exceeded
+		 */
+		void generate_state_report(Xml_generator &) const;
 };
 
 

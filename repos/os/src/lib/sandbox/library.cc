@@ -145,7 +145,7 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	 */
 	Cap_quota default_caps() override { return _default_caps; }
 
-	State_reporter _state_reporter { _env, *this };
+	State_reporter _state_reporter;
 
 	Heartbeat _heartbeat { _env, _children, _state_reporter };
 
@@ -157,12 +157,19 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 
 	Server _server { _env, _heap, _child_services, _state_reporter };
 
-	Library(Env &env, Heap &heap, Registry<Local_service> &local_services)
+	Library(Env &env, Heap &heap, Registry<Local_service> &local_services,
+	        State_handler &state_handler)
 	:
-		_env(env), _heap(heap), _local_services(local_services)
+		_env(env), _heap(heap), _local_services(local_services),
+		_state_reporter(_env, *this, state_handler)
 	{ }
 
 	void apply_config(Xml_node const &);
+
+	void generate_state_report(Xml_generator &xml) const
+	{
+		_state_reporter.generate(xml);
+	}
 };
 
 
@@ -612,9 +619,15 @@ void Genode::Sandbox::apply_config(Xml_node const &config)
 }
 
 
-Genode::Sandbox::Sandbox(Env &env)
+void Genode::Sandbox::generate_state_report(Xml_generator &xml) const
+{
+	_library.generate_state_report(xml);
+}
+
+
+Genode::Sandbox::Sandbox(Env &env, State_handler &state_handler)
 :
 	_heap(env.ram(), env.rm()),
-	_library(*new (_heap) Library(env, _heap, _local_services))
+	_library(*new (_heap) Library(env, _heap, _local_services, state_handler))
 { }
 

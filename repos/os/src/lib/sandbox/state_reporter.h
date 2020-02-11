@@ -15,13 +15,14 @@
 #define _LIB__SANDBOX__STATE_REPORTER_H_
 
 /* Genode includes */
-#include <os/reporter.h>
 #include <timer_session/connection.h>
+#include <os/sandbox.h>
 
 /* local includes */
 #include "report.h"
 
 namespace Sandbox { class State_reporter; }
+
 
 class Sandbox::State_reporter : public Report_update_trigger
 {
@@ -35,13 +36,11 @@ class Sandbox::State_reporter : public Report_update_trigger
 
 	private:
 
+		using State_handler = Genode::Sandbox::State_handler;
+
 		Env &_env;
 
 		Producer &_producer;
-
-		Constructible<Reporter> _reporter { };
-
-		size_t _buffer_size = 0;
 
 		Reconstructible<Report_detail> _report_detail { };
 
@@ -68,62 +67,43 @@ class Sandbox::State_reporter : public Report_update_trigger
 
 		bool _scheduled = false;
 
+		State_handler &_state_handler;
+
 		void _handle_timer()
 		{
 			_scheduled = false;
 
-			try {
-				Reporter::Xml_generator xml(*_reporter, [&] () {
-
-					if (_version.valid())
-						xml.attribute("version", _version);
-
-					_producer.produce_state_report(xml, *_report_detail);
-				});
-			}
-			catch(Xml_generator::Buffer_exceeded) {
-
-				error("state report exceeds maximum size");
-
-				/* try to reflect the error condition as state report */
-				try {
-					Reporter::Xml_generator xml(*_reporter, [&] () {
-						xml.attribute("error", "report buffer exceeded"); });
-				}
-				catch (...) { }
-			}
+			_state_handler.handle_sandbox_state();
 		}
 
 	public:
 
-		State_reporter(Env &env, Producer &producer)
+		State_reporter(Env &env, Producer &producer, State_handler &state_handler)
 		:
-			_env(env), _producer(producer)
+			_env(env), _producer(producer),
+			_state_handler(state_handler)
 		{ }
+
+		void generate(Xml_generator &xml) const
+		{
+			if (_version.valid())
+				xml.attribute("version", _version);
+
+			if (_report_detail.constructed())
+				_producer.produce_state_report(xml, *_report_detail);
+		}
 
 		void apply_config(Xml_node config)
 		{
 			try {
 				Xml_node report = config.sub_node("report");
 
-				/* (re-)construct reporter whenever the buffer size is changed */
-				Number_of_bytes const buffer_size =
-					report.attribute_value("buffer", Number_of_bytes(4096));
-
-				if (buffer_size != _buffer_size || !_reporter.constructed()) {
-					_buffer_size = buffer_size;
-					_reporter.construct(_env, "state", "state", _buffer_size);
-				}
-
 				_report_detail.construct(report);
 				_report_delay_ms = report.attribute_value("delay_ms", 100UL);
-				_reporter->enabled(true);
 			}
 			catch (Xml_node::Nonexistent_sub_node) {
 				_report_detail.construct();
 				_report_delay_ms = 0;
-				if (_reporter.constructed())
-					_reporter->enabled(false);
 			}
 
 			bool trigger_update = false;
