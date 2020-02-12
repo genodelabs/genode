@@ -74,7 +74,9 @@ struct Sculpt::Nic_target : Noncopyable
 
 	bool nic_router_needed() const { return type() != OFF; }
 
-	bool ready() const { return type() == WIRED || type() == WIFI; }
+	bool ready() const { return type() == WIRED ||
+	                            type() == WIFI  ||
+	                            type() == LOCAL; }
 };
 
 #endif /* _MODEL__NIC_TARGET_H_ */
