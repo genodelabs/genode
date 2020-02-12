@@ -1,6 +1,6 @@
 <runtime ram="64M" caps="2000" binary="pdf_view">
 
-	<requires> <timer/> <nitpicker/> <file-system/> </requires>
+	<requires> <timer/> <nitpicker/> <file_system/> </requires>
 
 	<content>
 		<rom label="ld.lib.so"/>
