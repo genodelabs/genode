@@ -83,3 +83,24 @@ void Arm_cpu::mmu_fault_status(Fsr::access_t fsr, Thread_fault & fault)
 		default:          fault.type = Thread_fault::UNKNOWN;
 	};
 }
+
+
+void Arm_cpu::switch_to(Arm_cpu::Context&, Arm_cpu::Mmu_context & o)
+{
+	if (o.cidr == 0) return;
+
+	Cidr::access_t cidr = Cidr::read();
+	if (cidr != o.cidr) {
+		/**
+		 * First switch to global mappings only to prevent
+		 * that wrong branch predicts result due to ASID
+		 * and Page-Table not being in sync (see ARM RM B 3.10.4)
+		 */
+		Cidr::write(0);
+		Cpu::synchronization_barrier();
+		Ttbr0::write(o.ttbr0);
+		Cpu::synchronization_barrier();
+		Cidr::write(o.cidr);
+		Cpu::synchronization_barrier();
+	}
+}

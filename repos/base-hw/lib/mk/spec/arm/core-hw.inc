@@ -17,7 +17,7 @@ SRC_CC += spec/arm/platform_support.cc
 
 # add assembly sources
 SRC_S += spec/arm/crt0.s
-SRC_S += spec/arm/exception_vector.s
+SRC_S += spec/arm/exception_vector.S
 
 vpath spec/32bit/memory_map.cc $(BASE_DIR)/../base-hw/src/lib/hw
 

@@ -41,6 +41,12 @@ struct Genode::Arm_v7_cpu : Arm_cpu
 			else      Tlbiallis::write(0);
 		} else Arm_cpu::invalidate_tlb(asid);
 	}
+
+	static inline void synchronization_barrier()
+	{
+		asm volatile("dsb sy\n"
+		             "isb sy\n" ::: "memory");
+	}
 };
 
 #endif /* _CORE__SPEC__ARM_V7__CPU_SUPPORT_H_ */

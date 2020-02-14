@@ -286,12 +286,6 @@ struct Hw::Arm_cpu
 	 ** Cache maintainance functions **
 	 **********************************/
 
-	static inline void synchronization_barrier()
-	{
-		asm volatile("dsb\n"
-		             "isb\n");
-	}
-
 	static inline void wait_for_xchg(volatile void * addr,
 	                                 unsigned long new_value,
 	                                 unsigned long expected_value)

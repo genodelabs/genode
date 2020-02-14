@@ -18,6 +18,11 @@
 /* core includes */
 #include <spec/arm/cpu_support.h>
 
-namespace Genode { using Cpu = Arm_cpu; }
+namespace Genode { struct Cpu; }
+
+struct Genode::Cpu : Arm_cpu
+{
+	static inline void synchronization_barrier() {}
+};
 
 #endif /* _CORE__SPEC__ARM_V6__CPU_H_ */

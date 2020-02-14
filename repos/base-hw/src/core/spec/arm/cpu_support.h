@@ -110,16 +110,7 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		else      Tlbiall::write(0);
 	}
 
-	void switch_to(Context&, Mmu_context & o)
-	{
-		if (o.cidr == 0) return;
-
-		Cidr::access_t cidr = Cidr::read();
-		if (cidr != o.cidr) {
-			Cidr::write(o.cidr);
-			Ttbr0::write(o.ttbr0);
-		}
-	}
+	void switch_to(Context&, Mmu_context & o);
 
 	static void mmu_fault(Context & c, Kernel::Thread_fault & fault);
 	static void mmu_fault_status(Fsr::access_t fsr,
