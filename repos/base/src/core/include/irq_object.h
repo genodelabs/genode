@@ -23,8 +23,8 @@ class Genode::Irq_object : public Thread_deprecated<4096> {
 	private:
 
 		Signal_context_capability _sig_cap { };
-		Lock                      _sync_ack;
-		Lock                      _sync_bootup;
+		Blockade                  _sync_ack { };
+		Blockade                  _sync_bootup { };
 		unsigned                  _irq;
 
 		bool _associate();
@@ -37,7 +37,7 @@ class Genode::Irq_object : public Thread_deprecated<4096> {
 		Irq_object(unsigned irq);
 
 		void sigh(Signal_context_capability cap) { _sig_cap = cap; }
-		void ack_irq() { _sync_ack.unlock(); }
+		void ack_irq() { _sync_ack.wakeup(); }
 
 		void start() override;
 };

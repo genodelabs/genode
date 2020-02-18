@@ -46,7 +46,7 @@ void Cap_range::inc(unsigned id)
 {
 	bool failure = false;
 	{
-		Lock::Guard guard(_lock);
+		Mutex::Guard guard(_mutex);
 
 		if (_cap_array[id] + 1 == 0)
 			failure = true;
@@ -65,7 +65,7 @@ void Cap_range::dec(unsigned const id_start, bool revoke, unsigned num_log_2)
 	{
 		unsigned const end = min(id_start + (1U << num_log_2), elements());
 
-		Lock::Guard guard(_lock);
+		Mutex::Guard guard(_mutex);
 
 		for (unsigned id = id_start; id < end; id++) {
 			if (_cap_array[id] == 0) {
@@ -92,7 +92,7 @@ addr_t Cap_range::alloc(size_t const num_log2)
 	addr_t const step = 1UL << num_log2;
 
 	{
-		Lock::Guard guard(_lock);
+		Mutex::Guard guard(_mutex);
 
 		unsigned max  = elements();
 		addr_t   last = _last;

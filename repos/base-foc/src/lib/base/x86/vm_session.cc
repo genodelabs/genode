@@ -227,14 +227,14 @@ struct Vcpu : Genode::Thread
 
 		State _state_request { NONE };
 		State _state_current { NONE };
-		Lock  _remote_lock   { Lock::UNLOCKED };
+		Mutex _remote_mutex  { };
 
 		void entry() override
 		{
 			_wake_up.down();
 
 			{
-				Lock::Guard guard(_remote_lock);
+				Mutex::Guard guard(_remote_mutex);
 
 				/* leave scope for Thread::join() - vCPU setup failed */
 				if (_state_request == TERMINATE)
@@ -319,7 +319,7 @@ struct Vcpu : Genode::Thread
 			while (true) {
 				/* read in requested state from remote threads */
 				{
-					Lock::Guard guard(_remote_lock);
+					Mutex::Guard guard(_remote_mutex);
 					_state_current = _state_request;
 					_state_request = NONE;
 				}
@@ -331,7 +331,7 @@ struct Vcpu : Genode::Thread
 
 				if (_state_current != RUN && _state_current != PAUSE) {
 					Genode::error("unknown vcpu state ", (int)_state_current);
-					while (true) { _remote_lock.lock(); }
+					while (true) { _remote_mutex.acquire(); }
 				}
 
 				/* transfer vCPU state to Fiasco.OC */
@@ -355,7 +355,7 @@ struct Vcpu : Genode::Thread
 						reason = 0xfc; 
 
 					{
-						Lock::Guard guard(_remote_lock);
+						Mutex::Guard guard(_remote_mutex);
 						_state_request = NONE;
 						_state_current = PAUSE;
 
@@ -380,7 +380,7 @@ struct Vcpu : Genode::Thread
 					reason = Fiasco::l4_vm_vmx_read_32(vmcs, Vmcs::EXI_REASON);
 
 					{
-						Lock::Guard guard(_remote_lock);
+						Mutex::Guard guard(_remote_mutex);
 						_state_request = NONE;
 						_state_current = PAUSE;
 
@@ -1207,7 +1207,7 @@ struct Vcpu : Genode::Thread
 
 		void resume()
 		{
-			Lock::Guard guard(_remote_lock);
+			Mutex::Guard guard(_remote_mutex);
 
 			if (_state_request == RUN || _state_request == PAUSE)
 				return;
@@ -1220,7 +1220,7 @@ struct Vcpu : Genode::Thread
 
 		void pause()
 		{
-			Lock::Guard guard(_remote_lock);
+			Mutex::Guard guard(_remote_mutex);
 
 			if (_state_request == PAUSE)
 				return;

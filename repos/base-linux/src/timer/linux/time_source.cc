@@ -28,7 +28,7 @@ inline int lx_gettimeofday(struct timeval *tv, struct timeval *tz) {
 
 Microseconds Timer::Time_source::max_timeout() const
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard mutex_guard(_mutex);
 	return Microseconds(1000 * 1000);
 }
 

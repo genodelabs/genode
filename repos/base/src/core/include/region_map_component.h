@@ -17,7 +17,7 @@
 
 /* Genode includes */
 #include <base/stdint.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/capability.h>
 #include <pager.h>
 #include <base/allocator_avl.h>
@@ -123,7 +123,7 @@ class Genode::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
 	private:
 
 		Pager_object                   &_pager_object;
-		Lock                            _lock { };
+		Mutex                           _mutex { };
 		Weak_ptr<Region_map_component>  _faulting_region_map { };
 		Region_map::State               _fault_state { };
 
@@ -304,7 +304,7 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 		                                                the region map and wait
 		                                                for fault resolution */
 		List<Rm_client>               _clients  { }; /* list of RM clients using this region map */
-		Lock                          _lock     { }; /* lock for map and list */
+		Mutex                         _mutex    { }; /* mutex for map and list */
 		Pager_entrypoint             &_pager_ep;
 		Rm_dataspace_component        _ds;           /* dataspace representation of region map */
 		Dataspace_capability          _ds_cap;
@@ -317,7 +317,7 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 			using Functor = Trait::Functor<decltype(&F::operator())>;
 			using Return_type = typename Functor::Return_type;
 
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard lock_guard(_mutex);
 
 			/* skip further lookup when reaching the recursion limit */
 			if (!level) return f(this, nullptr, 0, 0, dst_region_size);

@@ -29,7 +29,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, add
 
 	using namespace Nova;
 
-	Lock::Guard guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	/* create cap object */
 	Cap_object * pt_cap = new (&_slab) Cap_object(pt_sel);
@@ -64,7 +64,7 @@ void Rpc_cap_factory::free(Native_capability cap)
 {
 	if (!cap.valid()) return;
 
-	Lock::Guard guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	for (Cap_object *obj = _list.first(); obj ; obj = obj->next()) {
 		if (cap.local_name() == (long)obj->_cap_sel) {
@@ -86,7 +86,7 @@ Rpc_cap_factory::Rpc_cap_factory(Allocator &md_alloc)
 
 Rpc_cap_factory::~Rpc_cap_factory()
 {
-	Lock::Guard guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	for (Cap_object *obj; (obj = _list.first()); ) {
 		Nova::revoke(Nova::Obj_crd(obj->_cap_sel, 0));

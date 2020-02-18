@@ -164,13 +164,13 @@ class Genode::Platform : public Platform_generic
 
 		struct Core_sel_alloc : Cap_sel_alloc, private Core_sel_bit_alloc
 		{
-			Lock _lock { };
+			Mutex _mutex { };
 
 			Core_sel_alloc() { _reserve(0, Core_cspace::core_static_sel_end()); }
 
 			Cap_sel alloc() override
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				try {
 					return Cap_sel(Core_sel_bit_alloc::alloc()); }
@@ -180,7 +180,7 @@ class Genode::Platform : public Platform_generic
 
 			void free(Cap_sel sel) override
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				Core_sel_bit_alloc::free(sel.value());
 			}

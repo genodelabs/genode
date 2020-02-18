@@ -62,7 +62,7 @@ namespace {
 	{
 		private:
 
-			Lock _lock { };
+			Mutex _mutex { };
 
 		public:
 
@@ -70,13 +70,13 @@ namespace {
 
 			unsigned alloc()
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 				return Bit_allocator::alloc();
 			}
 
 			void free(unsigned sel)
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 				Bit_allocator::free(sel);
 			}
 	};

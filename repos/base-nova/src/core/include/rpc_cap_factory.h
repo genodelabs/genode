@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/list.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/capability.h>
 #include <base/tslab.h>
 #include <base/log.h>
@@ -40,7 +40,7 @@ class Genode::Rpc_cap_factory
 
 		Tslab<Cap_object, SBS> _slab;
 		List<Cap_object>       _list { };
-		Lock                   _lock { };
+		Mutex                  _mutex { };
 
 	public:
 

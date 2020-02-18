@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <util/list.h>
 #include <util/construct_at.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/tslab.h>
 #include <base/capability.h>
 #include <base/log.h>
@@ -58,7 +58,7 @@ class Genode::Rpc_cap_factory
 		uint8_t       _initial_slab_block[get_page_size()];
 		Slab          _slab;
 		List<Kobject> _list { };
-		Lock          _lock { };
+		Mutex         _mutex { };
 
 	public:
 
@@ -69,7 +69,7 @@ class Genode::Rpc_cap_factory
 
 		~Rpc_cap_factory()
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			while (Kobject * obj = _list.first()) {
 				_list.remove(obj);
@@ -84,7 +84,7 @@ class Genode::Rpc_cap_factory
 		 */
 		Native_capability alloc(Native_capability ep)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			/* allocate kernel object */
 			Kobject * obj;
@@ -106,7 +106,7 @@ class Genode::Rpc_cap_factory
 
 		void free(Native_capability cap)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			for (Kobject * obj = _list.first(); obj; obj = obj->next()) {
 				if (obj->cap.data() == cap.data()) {

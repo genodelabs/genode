@@ -33,7 +33,7 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 		Allocator_guard   _md_alloc;
 		Pager_entrypoint &_pager_ep;
 
-		Lock                       _region_maps_lock { };
+		Mutex                      _region_maps_lock { };
 		List<Region_map_component> _region_maps      { };
 
 	public:
@@ -51,7 +51,7 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 
 		~Rm_session_component()
 		{
-			Lock::Guard guard(_region_maps_lock);
+			Mutex::Guard guard(_region_maps_lock);
 
 			while (Region_map_component *rmc = _region_maps.first()) {
 				_region_maps.remove(rmc);
@@ -71,7 +71,7 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 
 		Capability<Region_map> create(size_t size) override
 		{
-			Lock::Guard guard(_region_maps_lock);
+			Mutex::Guard guard(_region_maps_lock);
 
 			try {
 				Region_map_component *rm =
@@ -88,7 +88,7 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 
 		void destroy(Capability<Region_map> cap) override
 		{
-			Lock::Guard guard(_region_maps_lock);
+			Mutex::Guard guard(_region_maps_lock);
 
 			Region_map_component *rm = nullptr;
 

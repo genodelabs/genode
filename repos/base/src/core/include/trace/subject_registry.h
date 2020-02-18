@@ -22,7 +22,7 @@
 /* Genode includes */
 #include <util/list.h>
 #include <util/string.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/trace/types.h>
 #include <base/env.h>
 #include <base/weak_ptr.h>
@@ -312,7 +312,7 @@ class Genode::Trace::Subject_registry
 		Ram_allocator   &_ram;
 		Source_registry &_sources;
 		unsigned         _id_cnt  { 0 };
-		Lock             _lock    { };
+		Mutex            _mutex   { };
 		Subjects         _entries { };
 
 		/**
@@ -407,7 +407,7 @@ class Genode::Trace::Subject_registry
 		 */
 		~Subject_registry()
 		{
-			Lock guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			while (Subject *s = _entries.first())
 				_unsynchronized_destroy(*s);
@@ -418,7 +418,7 @@ class Genode::Trace::Subject_registry
 		 */
 		void import_new_sources(Source_registry &)
 		{
-			Lock guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			_sources.export_sources(_tester, _inserter);
 		}
@@ -428,7 +428,7 @@ class Genode::Trace::Subject_registry
 		 */
 		size_t subjects(Subject_id *dst, size_t dst_len)
 		{
-			Lock guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			unsigned i = 0;
 			for (Subject *s = _entries.first(); s && i < dst_len; s = s->next())
@@ -446,7 +446,7 @@ class Genode::Trace::Subject_registry
 		 */
 		size_t release(Subject_id subject_id)
 		{
-			Lock guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Subject &subject = _unsynchronized_lookup_by_id(subject_id);
 			return _unsynchronized_destroy(subject);
@@ -454,7 +454,7 @@ class Genode::Trace::Subject_registry
 
 		Subject &lookup_by_id(Subject_id id)
 		{
-			Lock guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			return _unsynchronized_lookup_by_id(id);
 		}

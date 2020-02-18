@@ -192,7 +192,7 @@ Cap_id_allocator::Cap_id_allocator(Allocator &alloc)
 
 unsigned long Cap_id_allocator::alloc()
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard lock_guard(_mutex);
 
 	void *id = nullptr;
 	if (_id_alloc.alloc(CAP_ID_OFFSET, &id))
@@ -203,7 +203,7 @@ unsigned long Cap_id_allocator::alloc()
 
 void Cap_id_allocator::free(unsigned long id)
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard lock_guard(_mutex);
 
 	if (id < CAP_ID_RANGE)
 		_id_alloc.free((void*)(id & CAP_ID_MASK), CAP_ID_OFFSET);

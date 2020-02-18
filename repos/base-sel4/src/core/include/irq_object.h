@@ -25,7 +25,7 @@ class Genode::Irq_object : public Thread_deprecated<4096> {
 	private:
 
 		Signal_context_capability _sig_cap { };
-		Lock                      _sync_bootup;
+		Blockade                  _sync_bootup { };
 		unsigned                  _irq;
 		Cap_sel                   _kernel_irq_sel;
 		Cap_sel                   _kernel_notify_sel;

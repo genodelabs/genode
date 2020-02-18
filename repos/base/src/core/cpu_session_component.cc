@@ -49,7 +49,7 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 		weight = Weight(QUOTA_LIMIT);
 	}
 
-	Lock::Guard thread_list_lock_guard(_thread_list_lock);
+	Mutex::Guard thread_list_lock_guard(_thread_list_lock);
 
 	/*
 	 * Create thread associated with its protection domain
@@ -60,7 +60,7 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 			throw Thread_creation_failed();
 		}
 
-		Lock::Guard slab_lock_guard(_thread_alloc_lock);
+		Mutex::Guard slab_lock_guard(_thread_alloc_lock);
 		thread = new (&_thread_alloc)
 			Cpu_thread_component(
 				cap(), _thread_ep, _pager_ep, *pd, _trace_control_area,
@@ -122,7 +122,7 @@ void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread
 	_decr_weight(thread->weight());
 
 	{
-		Lock::Guard lock_guard(_thread_alloc_lock);
+		Mutex::Guard lock_guard(_thread_alloc_lock);
 		destroy(&_thread_alloc, thread);
 	}
 
@@ -135,7 +135,7 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 	if (!thread_cap.valid())
 		return;
 
-	Lock::Guard lock_guard(_thread_list_lock);
+	Mutex::Guard lock_guard(_thread_list_lock);
 
 	/* check that cap belongs to this session */
 	for (Cpu_thread_component *t = _thread_list.first(); t; t = t->next()) {
@@ -151,7 +151,7 @@ void Cpu_session_component::exception_sigh(Signal_context_capability sigh)
 {
 	_exception_sigh = sigh;
 
-	Lock::Guard lock_guard(_thread_list_lock);
+	Mutex::Guard lock_guard(_thread_list_lock);
 
 	for (Cpu_thread_component *t = _thread_list.first(); t; t = t->next())
 		t->session_exception_sigh(_exception_sigh);
@@ -300,7 +300,7 @@ void Cpu_session_component::_deinit_ref_account()
 {
 	/* rewire child ref accounts to this sessions's ref account */
 	{
-		Lock::Guard lock_guard(_ref_members_lock);
+		Mutex::Guard lock_guard(_ref_members_lock);
 		for (Cpu_session_component * s; (s = _ref_members.first()); ) {
 			_unsync_remove_ref_member(*s);
 			if (_ref)
@@ -320,7 +320,7 @@ void Cpu_session_component::_deinit_ref_account()
 
 void Cpu_session_component::_deinit_threads()
 {
-	Lock::Guard lock_guard(_thread_list_lock);
+	Mutex::Guard lock_guard(_thread_list_lock);
 
 	/*
 	 * We have to keep the '_thread_list_lock' during the whole destructor to
@@ -356,7 +356,7 @@ void Cpu_session_component::_decr_weight(size_t const weight)
 
 void Cpu_session_component::_decr_quota(size_t const quota)
 {
-	Lock::Guard lock_guard(_thread_list_lock);
+	Mutex::Guard lock_guard(_thread_list_lock);
 	_quota -= quota;
 	_update_each_thread_quota();
 }
@@ -364,7 +364,7 @@ void Cpu_session_component::_decr_quota(size_t const quota)
 
 void Cpu_session_component::_incr_quota(size_t const quota)
 {
-	Lock::Guard lock_guard(_thread_list_lock);
+	Mutex::Guard lock_guard(_thread_list_lock);
 	_quota += quota;
 	_update_each_thread_quota();
 }
@@ -391,9 +391,9 @@ size_t Cpu_session_component::_weight_to_quota(size_t const weight) const
 
 unsigned Trace::Source::_alloc_unique_id()
 {
-	static Lock lock;
+	static Mutex lock;
 	static unsigned cnt;
-	Lock::Guard guard(lock);
+	Mutex::Guard guard(lock);
 	return cnt++;
 }
 

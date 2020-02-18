@@ -56,7 +56,7 @@ class Genode::Account
 			return UNIT { _quota_guard.limit().value - _initial_limit.value };
 		}
 
-		Lock mutable _lock { };
+		Mutex mutable _mutex { };
 
 		/*
 		 * Reference account
@@ -112,7 +112,7 @@ class Genode::Account
 		{
 			if (!_ref_account) return;
 
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (_quota_guard.used().value > _initial_used.value) {
 				UNIT const dangling { _quota_guard.used().value - _initial_used.value };
@@ -139,7 +139,7 @@ class Genode::Account
 		void transfer_quota(Account &other, UNIT amount)
 		{
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				/* transfers are permitted only from/to the reference account */
 				if (_ref_account != &other && other._ref_account != this)
@@ -155,25 +155,25 @@ class Genode::Account
 			}
 
 			/* credit to 'other' */
-			Lock::Guard guard(other._lock);
+			Mutex::Guard guard(other._mutex);
 			other._quota_guard.upgrade(amount);
 		}
 
 		UNIT limit() const
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			return _quota_guard.limit();
 		}
 
 		UNIT used() const
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			return _quota_guard.used();
 		}
 
 		UNIT avail() const
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			return _quota_guard.avail();
 		}
 
@@ -186,7 +186,7 @@ class Genode::Account
 		 */
 		void withdraw(UNIT amount)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			_quota_guard.withdraw(amount);
 		}
 
@@ -197,7 +197,7 @@ class Genode::Account
 		 */
 		void replenish(UNIT amount)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			_quota_guard.replenish(amount);
 		}
 

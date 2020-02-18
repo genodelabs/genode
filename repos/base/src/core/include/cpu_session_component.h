@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <util/list.h>
 #include <base/allocator_guard.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/session_label.h>
 #include <base/rpc_server.h>
 #include <cpu_session/cpu_session.h>
@@ -46,9 +46,9 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		Pager_entrypoint          &_pager_ep;
 		Allocator_guard            _md_alloc;               /* guarded meta-data allocator */
 		Cpu_thread_allocator       _thread_alloc;           /* meta-data allocator */
-		Lock                       _thread_alloc_lock { };  /* protect allocator access */
+		Mutex                      _thread_alloc_lock { };  /* protect allocator access */
 		List<Cpu_thread_component> _thread_list       { };
-		Lock                       _thread_list_lock  { };  /* protect thread list */
+		Mutex                      _thread_list_lock  { };  /* protect thread list */
 		unsigned                   _priority;               /* priority of threads
 		                                                       created with this
 		                                                       session */
@@ -65,7 +65,7 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		size_t                      _quota            { 0 };
 		Cpu_session_component *     _ref              { nullptr };
 		List<Cpu_session_component> _ref_members      { };
-		Lock                        _ref_members_lock { };
+		Mutex                       _ref_members_lock { };
 
 		Native_cpu_component        _native_cpu;
 
@@ -87,7 +87,7 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 
 		void _insert_ref_member(Cpu_session_component * const s)
 		{
-			Lock::Guard lock_guard(_ref_members_lock);
+			Mutex::Guard lock_guard(_ref_members_lock);
 			_ref_members.insert(s);
 			s->_ref = this;
 		}
@@ -100,7 +100,7 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 
 		void _remove_ref_member(Cpu_session_component &s)
 		{
-			Lock::Guard lock_guard(_ref_members_lock);
+			Mutex::Guard lock_guard(_ref_members_lock);
 			_unsync_remove_ref_member(s);
 		}
 
@@ -117,7 +117,7 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		 * Raw thread-killing functionality
 		 *
 		 * This function is called from the 'kill_thread' function and
-		 * the destructor. Each these functions grab the list lock
+		 * the destructor. Each these functions grab the list mutex
 		 * by themselves and call this function to perform the actual
 		 * killing.
 		 */

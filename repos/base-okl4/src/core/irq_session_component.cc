@@ -83,7 +83,7 @@ void Irq_object::_wait_for_irq()
 void Irq_object::start()
 {
 	::Thread::start();
-	_sync_bootup.lock();
+	_sync_bootup.block();
 }
 
 
@@ -93,10 +93,10 @@ void Irq_object::entry()
 		error("could not associate with IRQ ", Hex(_irq));
 
 	/* thread is up and ready */
-	_sync_bootup.unlock();
+	_sync_bootup.wakeup();
 
 	/* wait for first ack_irq */
-	_sync_ack.lock();
+	_sync_ack.block();
 
 	while (true) {
 
@@ -110,7 +110,7 @@ void Irq_object::entry()
 
 		Genode::Signal_transmitter(_sig_cap).submit(1);
 
-		_sync_ack.lock();
+		_sync_ack.block();
 	}
 }
 
@@ -118,7 +118,6 @@ void Irq_object::entry()
 Irq_object::Irq_object(unsigned irq)
 :
 	Thread_deprecated<4096>("irq"),
-	_sync_ack(Lock::LOCKED), _sync_bootup(Lock::LOCKED),
 	_irq(irq)
 { }
 

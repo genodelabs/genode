@@ -16,7 +16,7 @@
 #define _CORE__INCLUDE__DATASPACE_COMPONENT_H_
 
 /* Genode includes */
-#include <base/lock_guard.h>
+#include <base/mutex.h>
 #include <base/rpc_server.h>
 #include <util/list.h>
 
@@ -48,7 +48,7 @@ namespace Genode {
 			Cache_attribute const _cache { CACHED };
 
 			List<Rm_region> _regions { }; /* regions this is attached to */
-			Lock            _lock    { };
+			Mutex           _mutex   { };
 
 			/*
 			 * Holds the dataspace owner if a distinction between owner and
