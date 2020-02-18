@@ -821,6 +821,7 @@ timegm T
 timelocal T
 timeoff T
 times T
+timespec_get T
 timezone T
 tmpfile T
 tmpnam T
