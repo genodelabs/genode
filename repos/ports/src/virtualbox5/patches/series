@@ -36,3 +36,4 @@ rem_mem.patch
 vga.patch
 register.patch
 changeset82265.patch
+drvvd.patch

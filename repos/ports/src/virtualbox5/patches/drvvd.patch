@@ -1,0 +1,11 @@
+--- a/src/app/virtualbox/src/VBox/Devices/Storage/DrvVD.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Storage/DrvVD.cpp
+@@ -86,7 +86,7 @@
+  * must be replaced with the correct LUN number of the disk that should
+  * ignore flush requests. The value of the key is a boolean. The default
+  * is to ignore flushes, i.e. true. */
+-#define VBOX_IGNORE_FLUSH
++//#define VBOX_IGNORE_FLUSH
+ 
+ 
+ /*********************************************************************************************************************************

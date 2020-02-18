@@ -4,7 +4,33 @@ diff --git a/src/app/virtualbox/src/VBox/Storage/VMDK.cpp b/src/app/virtualbox/s
 index f749ee4..0c5d49e 100644
 --- a/src/app/virtualbox/src/VBox/Storage/VMDK.cpp
 +++ b/src/app/virtualbox/src/VBox/Storage/VMDK.cpp
-@@ -5771,7 +5771,6 @@ static int vmdkRead(void *pBackendData, uint64_t uOffset, size_t cbToRead,
+@@ -4378,6 +4378,7 @@
+     PVMDKEXTENT pExtent;
+     int rc = VINF_SUCCESS;
+ 
++#if 0
+     /* Update descriptor if changed. */
+     if (pImage->Descriptor.fDirty)
+     {
+@@ -4385,6 +4386,7 @@
+         if (RT_FAILURE(rc))
+             goto out;
+     }
++#endif
+ 
+     for (unsigned i = 0; i < pImage->cExtents; i++)
+     {
+@@ -4440,8 +4442,7 @@
+             case VMDKETYPE_FLAT:
+                 /** @todo implement proper path absolute check. */
+                 if (   pExtent->pFile != NULL
+-                    && !(pImage->uOpenFlags & VD_OPEN_FLAGS_READONLY)
+-                    && !(pExtent->pszBasename[0] == RTPATH_SLASH))
++                    && !(pImage->uOpenFlags & VD_OPEN_FLAGS_READONLY))
+                     rc = vdIfIoIntFileFlush(pImage->pIfIo, pExtent->pFile->pStorage, pIoCtx,
+                                             NULL, NULL);
+                 break;
+@@ -5796,7 +5797,6 @@
                          }
                          pExtent->uGrainSectorAbs = uSectorExtentAbs;
                          pExtent->uGrain = uSectorExtentRel / pExtent->cSectorsPerGrain;
@@ -12,7 +38,7 @@ index f749ee4..0c5d49e 100644
                      }
                      vdIfIoIntIoCtxCopyTo(pImage->pIfIo, pIoCtx,
                                             (uint8_t *)pExtent->pvGrain
-@@ -5920,7 +5919,6 @@ static int vmdkWrite(void *pBackendData, uint64_t uOffset, size_t cbToWrite,
+@@ -5945,7 +5945,6 @@
                       * which is somewhere between expensive and impossible. */
                      rc = VERR_VD_VMDK_INVALID_STATE;
                      pExtent->uGrainSectorAbs = 0;
