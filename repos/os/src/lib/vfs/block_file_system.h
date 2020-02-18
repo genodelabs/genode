@@ -319,6 +319,34 @@ class Vfs::Block_file_system : public Single_file_system
 
 				}
 
+				Sync_result sync() override
+				{
+					/*
+					 * Just in case bail if we cannot submit the packet.
+					 * (Since the plugin operates in a synchronous fashion
+					 * that should not happen.)
+					 */
+					if (!_tx_source->ready_to_submit()) {
+						Genode::error("vfs_block: could not sync blocks");
+						return SYNC_ERR_INVALID;
+					}
+
+					Block::Packet_descriptor p =
+						Block::Session::sync_all_packet_descriptor(
+							_block.info(), Block::Session::Tag { 0 });
+
+					_tx_source->submit_packet(p);
+					p = _tx_source->get_acked_packet();
+					_tx_source->release_packet(p);
+
+					if (!p.succeeded()) {
+						Genode::error("vfs_block: syncing blocks failed");
+						return SYNC_ERR_INVALID;
+					}
+
+					return SYNC_OK;
+				}
+
 				bool read_ready() override { return true; }
 		};
 
