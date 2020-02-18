@@ -27,8 +27,8 @@ class Genode::Irq_object : public Thread_deprecated<4096>
 	private:
 
 		Genode::Signal_context_capability _sig_cap;
-		Genode::Lock _sync_ack;
-		Genode::Lock _sync_bootup;
+		Genode::Blockade _sync_ack { };
+		Genode::Blockade _sync_bootup { };
 		unsigned const _irq;
 		int _fd;
 

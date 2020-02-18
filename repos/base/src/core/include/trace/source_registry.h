@@ -16,7 +16,7 @@
 
 #include <util/list.h>
 #include <util/string.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/trace/types.h>
 #include <base/weak_ptr.h>
 
@@ -152,7 +152,7 @@ class Genode::Trace::Source_registry
 {
 	private:
 
-		Lock         _lock    { };
+		Mutex        _mutex   { };
 		List<Source> _entries { };
 
 	public:
@@ -163,14 +163,14 @@ class Genode::Trace::Source_registry
 
 		void insert(Source *entry)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			_entries.insert(entry);
 		}
 
 		void remove(Source *entry)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			_entries.remove(entry);
 		}
 

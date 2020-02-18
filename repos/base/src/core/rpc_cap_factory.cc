@@ -16,8 +16,8 @@
 
 long Genode::Rpc_cap_factory::_unique_id_cnt;
 
-Genode::Lock &Genode::Rpc_cap_factory::_lock()
+Genode::Mutex &Genode::Rpc_cap_factory::_mutex()
 {
-	static Lock static_lock;
-	return static_lock;
+	static Mutex static_mutex;
+	return static_mutex;
 }

@@ -156,7 +156,7 @@ class Genode::Vm_space
 			return Cnode_index(idx & (LEAF_CNODE_SIZE - 1));
 		}
 
-		Lock _lock { };
+		Mutex _mutex { };
 
 		/**
 		 * Return selector for a capability slot within '_vm_cnodes'
@@ -406,7 +406,7 @@ class Genode::Vm_space
 				return true;
 			};
 
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			bool ok = true;
 
@@ -445,7 +445,7 @@ class Genode::Vm_space
 				return true;
 			};
 
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
@@ -462,7 +462,7 @@ class Genode::Vm_space
 		{
 			bool unmap_success = true;
 
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			for (size_t i = 0; unmap_success && i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
@@ -499,13 +499,13 @@ class Genode::Vm_space
 
 		void alloc_page_tables(addr_t const start, addr_t const size)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			unsynchronized_alloc_page_tables(start, size);
 		}
 
 		void alloc_guest_page_tables(addr_t const start, addr_t const size)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			unsynchronized_alloc_guest_page_tables(start, size);
 		}
 

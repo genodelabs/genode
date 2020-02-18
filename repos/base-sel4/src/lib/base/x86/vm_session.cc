@@ -41,7 +41,7 @@ struct Vcpu : Genode::Thread
 		Semaphore                   _wake_up { 0 };
 		Semaphore                  &_handler_ready;
 		Allocator                  &_alloc;
-		Lock                        _startup { Genode::Lock::LOCKED };
+		Blockade                    _startup { };
 		Vm_session_client::Vcpu_id  _id {};
 		addr_t                      _state { 0 };
 		addr_t                      _recall { 0 };
@@ -62,7 +62,7 @@ struct Vcpu : Genode::Thread
 			PAUSE = 1,
 			RUN = 2
 		}                           _remote { NONE };
-		Lock                        _remote_lock { Lock::UNLOCKED };
+		Mutex                       _remote_mutex { };
 
 		enum {
 			VMEXIT_INVALID = 0x21,
@@ -91,7 +91,7 @@ struct Vcpu : Genode::Thread
 		void entry() override
 		{
 			/* trigger that thread is up */
-			_startup.unlock();
+			_startup.wakeup();
 
 			/* wait until vcpu is assigned to us */
 			_wake_up.down();
@@ -108,7 +108,7 @@ struct Vcpu : Genode::Thread
 			_wake_up.down();
 
 			{
-				Lock::Guard guard(_remote_lock);
+				Mutex::Guard guard(_remote_mutex);
 				_remote = NONE;
 			}
 
@@ -129,7 +129,7 @@ struct Vcpu : Genode::Thread
 			while (true) {
 				/* read in requested state from remote threads */
 				{
-					Lock::Guard guard(_remote_lock);
+					Mutex::Guard guard(_remote_mutex);
 
 					local_state      = _remote;
 					_remote          = NONE;
@@ -173,7 +173,7 @@ struct Vcpu : Genode::Thread
 
 				if (local_state != RUN) {
 					Genode::error("unknown vcpu state ", (int)local_state);
-					while (true) { _remote_lock.lock(); }
+					while (true) { _remote_mutex.acquire(); }
 				}
 
 				_write_sel4_state(service, state);
@@ -195,7 +195,7 @@ struct Vcpu : Genode::Thread
 				_read_sel4_state(service, state);
 
 				if (res != SEL4_VMENTER_RESULT_FAULT) {
-					Lock::Guard guard(_remote_lock);
+					Mutex::Guard guard(_remote_mutex);
 					if (_remote == PAUSE) {
 						_remote = NONE;
 						_wake_up.down();
@@ -724,7 +724,7 @@ struct Vcpu : Genode::Thread
 
 		void start() override {
 			Thread::start();
-			_startup.lock();
+			_startup.block();
 		}
 
 		Genode::Vm_session_client::Vcpu_id id() const  { return _id; }
@@ -740,7 +740,7 @@ struct Vcpu : Genode::Thread
 
 		void resume()
 		{
-			Lock::Guard guard(_remote_lock);
+			Mutex::Guard guard(_remote_mutex);
 
 			if (_remote == RUN || _remote == PAUSE)
 				return;
@@ -751,7 +751,7 @@ struct Vcpu : Genode::Thread
 
 		void pause()
 		{
-			Lock::Guard guard(_remote_lock);
+			Mutex::Guard guard(_remote_mutex);
 
 			if (_remote == PAUSE)
 				return;

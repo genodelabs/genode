@@ -62,14 +62,14 @@ void Irq_object::_wait_for_irq()
 void Irq_object::start()
 {
 	::Thread::start();
-	_sync_bootup.lock();
+	_sync_bootup.block();
 }
 
 
 void Irq_object::entry()
 {
 	/* thread is up and ready */
-	_sync_bootup.unlock();
+	_sync_bootup.wakeup();
 
 	while (true) {
 
@@ -92,7 +92,6 @@ void Irq_object::ack_irq()
 Irq_object::Irq_object(unsigned irq)
 :
 	Thread_deprecated<4096>("irq"),
-	_sync_bootup(Lock::LOCKED),
 	_irq(irq),
 	_kernel_irq_sel(platform_specific().core_sel_alloc().alloc()),
 	_kernel_notify_sel(platform_specific().core_sel_alloc().alloc())

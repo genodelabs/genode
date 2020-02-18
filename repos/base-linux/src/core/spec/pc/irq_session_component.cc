@@ -53,8 +53,6 @@ Genode::Irq_session::Info Genode::Irq_session_component::info()
 Genode::Irq_object::Irq_object(unsigned irq) :
 	Thread_deprecated<4096>("irq"),
 	_sig_cap(Signal_context_capability()),
-	_sync_ack(Lock::LOCKED),
-	_sync_bootup(Lock::LOCKED),
 	_irq(irq),
 	_fd(-1)
 { }
@@ -82,8 +80,8 @@ void Genode::Irq_object::entry()
 		error("failed to register IRQ ", _irq);
 	}
 
-	_sync_bootup.unlock();
-	_sync_ack.lock();
+	_sync_bootup.wakeup();
+	_sync_ack.block();
 
 	while (true) {
 
@@ -97,19 +95,19 @@ void Genode::Irq_object::entry()
 
 		Genode::Signal_transmitter(_sig_cap).submit(1);
 
-		_sync_ack.lock();
+		_sync_ack.block();
 	}
 }
 
 void Genode::Irq_object::ack_irq()
 {
-	_sync_ack.unlock();
+	_sync_ack.wakeup();
 }
 
 void Genode::Irq_object::start()
 {
 	Genode::Thread::start();
-	_sync_bootup.lock();
+	_sync_bootup.block();
 }
 
 void Genode::Irq_object::sigh(Signal_context_capability cap)

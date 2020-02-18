@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/exception.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <synced_range_allocator.h>
 
 namespace Genode {
@@ -35,7 +35,7 @@ namespace Genode {
 
 			Synced_range_allocator<Allocator_avl> _id_alloc;
 
-			Lock _lock { };
+			Mutex _mutex { };
 
 		public:
 

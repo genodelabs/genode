@@ -138,7 +138,7 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 	 * handler thread which may respond via wake_up() (ep thread) before
 	 * we are done here - we have to lock the whole page lookup procedure
 	 */
-	obj._state_lock.lock();
+	obj._state_lock.acquire();
 
 	obj._state.thread.ip     = ipc_pager.fault_ip();
 	obj._state.thread.sp     = 0;
@@ -164,7 +164,7 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 			if (res == Nova::NOVA_PD_OOM) {
 				obj._state.unblock_pause_sm();
 				obj._state.unblock();
-				obj._state_lock.unlock();
+				obj._state_lock.release();
 
 				/* block until revoke is due */
 				ipc_pager.reply_and_wait_for_fault(obj.sel_sm_block_oom());
@@ -178,7 +178,7 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 	if (!error) {
 		obj._state.unblock_pause_sm();
 		obj._state.unblock();
-		obj._state_lock.unlock();
+		obj._state_lock.release();
 		ipc_pager.reply_and_wait_for_fault();
 	}
 
@@ -196,7 +196,7 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 	/* region manager fault - to be handled */
 	log("page fault, ", fault_info, " reason=", error);
 
-	obj._state_lock.unlock();
+	obj._state_lock.release();
 
 	/* block the faulting thread until region manager is done */
 	ipc_pager.reply_and_wait_for_fault(obj.sel_sm_block_pause());
@@ -218,7 +218,7 @@ void Pager_object::exception(uint8_t exit_id)
 	uint8_t res = 0xFF;
 	addr_t  mtd = 0;
 
-	_state_lock.lock();
+	_state_lock.acquire();
 
 	/* remember exception type for Cpu_session::state() calls */
 	_state.thread.trapno = exit_id;
@@ -254,7 +254,7 @@ void Pager_object::exception(uint8_t exit_id)
 		}
 	}
 
-	_state_lock.unlock();
+	_state_lock.release();
 
 	utcb.set_msg_word(0);
 	utcb.mtd = mtd;
@@ -268,7 +268,7 @@ void Pager_object::_recall_handler(Pager_object &obj)
 	Thread &myself = *Thread::myself();
 	Utcb   &utcb   = *reinterpret_cast<Utcb *>(myself.utcb());
 
-	obj._state_lock.lock();
+	obj._state_lock.acquire();
 
 	if (obj._state.modified) {
 		obj._copy_state_to_utcb(utcb);
@@ -299,7 +299,7 @@ void Pager_object::_recall_handler(Pager_object &obj)
 		obj._state.block_pause_sm();
 	}
 
-	obj._state_lock.unlock();
+	obj._state_lock.release();
 
 	utcb.set_msg_word(0);
 	reply(myself.stack_top(), sm);
@@ -429,7 +429,7 @@ void Pager_object::_invoke_handler(Pager_object &obj)
 
 void Pager_object::wake_up()
 {
-	Lock::Guard _state_lock_guard(_state_lock);
+	Mutex::Guard _state_lock_guard(_state_lock);
 
 	if (!_state.blocked())
 		return;
@@ -467,7 +467,7 @@ void Pager_object::client_cancel_blocking()
 
 uint8_t Pager_object::client_recall(bool get_state_and_block)
 {
-	Lock::Guard _state_lock_guard(_state_lock);
+	Mutex::Guard _state_lock_guard(_state_lock);
 	return _unsynchronized_client_recall(get_state_and_block);
 }
 

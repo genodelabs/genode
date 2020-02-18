@@ -20,20 +20,20 @@ using namespace Genode;
 
 void Dataspace_component::attached_to(Rm_region &region)
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard lock_guard(_mutex);
 	_regions.insert(&region);
 }
 
 
 void Dataspace_component::detached_from(Rm_region &region)
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard lock_guard(_mutex);
 	_regions.remove(&region);
 }
 
 void Dataspace_component::detach_from_rm_sessions()
 {
-	_lock.lock();
+	_mutex.acquire();
 
 	/* remove from all regions */
 	while (Rm_region *r = _regions.first()) {
@@ -42,12 +42,12 @@ void Dataspace_component::detach_from_rm_sessions()
 		 * The 'detach' function calls 'Dataspace_component::detached_from'
 		 * and thereby removes the current region from the '_regions' list.
 		 */
-		_lock.unlock();
+		_mutex.release();
 		r->rm().detach((void *)r->base());
-		_lock.lock();
+		_mutex.acquire();
 	}
 
-	_lock.unlock();
+	_mutex.release();
 }
 
 Dataspace_component::~Dataspace_component()

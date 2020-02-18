@@ -15,8 +15,8 @@
 #define _INCLUDE__BASE__INTERNAL__CAPABILITY_SPACE_SEL4_H_
 
 /* base includes */
+#include <base/mutex.h>
 #include <util/avl_tree.h>
-#include <base/lock.h>
 #include <util/construct_at.h>
 
 /* base-internal includes */
@@ -171,7 +171,7 @@ class Genode::Capability_space_sel4
 
 		Tree_managed_data           _caps_data[NUM_CAPS];
 		Avl_tree<Tree_managed_data> _tree { };
-		Lock                mutable _lock { };
+		Mutex               mutable _mutex { };
 
 		/**
 		 * Calculate index into _caps_data for capability data object
@@ -218,7 +218,7 @@ class Genode::Capability_space_sel4
 			ASSERT(sel < NUM_CAPS);
 			ASSERT(!_caps_data[sel].rpc_obj_key().valid());
 
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			construct_at<Tree_managed_data>(&_caps_data[sel], args...);
 
@@ -240,7 +240,7 @@ class Genode::Capability_space_sel4
 
 		void dec_ref(Data &data)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (!_is_core_managed(data) && !data.dec_ref())
 				_remove(data);
@@ -248,7 +248,7 @@ class Genode::Capability_space_sel4
 
 		void inc_ref(Data &data)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (!_is_core_managed(data)) {
 				data.inc_ref();
@@ -272,7 +272,7 @@ class Genode::Capability_space_sel4
 
 		Data *lookup(Rpc_obj_key key) const
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (!_tree.first())
 				return nullptr;

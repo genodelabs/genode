@@ -58,7 +58,7 @@ class Genode::Platform_pd : public Address_space
 		};
 
 		Sel_alloc _sel_alloc { };
-		Lock _sel_alloc_lock { };
+		Mutex _sel_alloc_mutex { };
 
 		Cap_sel alloc_sel();
 		void free_sel(Cap_sel sel);

@@ -45,8 +45,6 @@ Genode::Irq_session::Info Genode::Irq_session_component::info()
 Genode::Irq_object::Irq_object(unsigned irq) :
 	Thread_deprecated<4096>("irq"),
 	_sig_cap(Signal_context_capability()),
-	_sync_ack(Lock::LOCKED),
-	_sync_bootup(Lock::LOCKED),
 	_irq(irq),
 	_fd(-1)
 {

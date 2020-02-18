@@ -251,25 +251,20 @@ namespace Genode {
 		private:
 
 			/**
-			 * Lock with the initial state set to LOCKED
-			 */
-			struct Barrier : Lock { Barrier() : Lock(Lock::LOCKED) { } };
-
-			/**
 			 * Used to block the constructor until the new thread has initialized
 			 * 'id'
 			 */
-			Barrier _construct_lock { };
+			Blockade _construct_lock { };
 
 			/**
 			 * Used to block the new thread until 'start' is called
 			 */
-			Barrier _start_lock { };
+			Blockade _start_lock { };
 
 			/**
 			 * Used to block the 'join()' function until the 'entry()' is done
 			 */
-			Barrier _join_lock { };
+			Blockade _join_lock { };
 
 		public:
 
@@ -278,32 +273,32 @@ namespace Genode {
 
 			void wait_for_construction() override
 			{
-				_construct_lock.lock();
+				_construct_lock.block();
 			}
 
 			void constructed() override
 			{
-				_construct_lock.unlock();
+				_construct_lock.wakeup();
 			}
 
 			void wait_for_start() override
 			{
-				_start_lock.lock();
+				_start_lock.block();
 			}
 
 			void started() override
 			{
-				_start_lock.unlock();
+				_start_lock.wakeup();
 			}
 
 			void wait_for_join() override
 			{
-				_join_lock.lock();
+				_join_lock.block();
 			}
 
 			void joined() override
 			{
-				_join_lock.unlock();
+				_join_lock.wakeup();
 			}
 	};
 

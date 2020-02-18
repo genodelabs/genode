@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/ram_allocator.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 
 namespace Genode { class Synced_ram_allocator; }
 
@@ -25,7 +25,7 @@ class Genode::Synced_ram_allocator : public Ram_allocator
 {
 	private:
 
-		Lock mutable _lock { };
+		Mutex mutable _mutex { };
 
 		Ram_allocator &_alloc;
 
@@ -35,19 +35,19 @@ class Genode::Synced_ram_allocator : public Ram_allocator
 
 		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard mutex_guard(_mutex);
 			return _alloc.alloc(size, cached);
 		}
 
 		void free(Ram_dataspace_capability ds) override
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard mutex_guard(_mutex);
 			_alloc.free(ds);
 		}
 
 		size_t dataspace_size(Ram_dataspace_capability ds) const override
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard mutex_guard(_mutex);
 			return _alloc.dataspace_size(ds);
 		}
 };

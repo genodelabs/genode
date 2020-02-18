@@ -78,7 +78,7 @@ namespace Genode {
 			addr_t _initial_eip = 0;
 			addr_t _client_exc_pt_sel;
 
-			Lock   _state_lock { };
+			Mutex  _state_lock { };
 
 			struct
 			{
@@ -230,7 +230,7 @@ namespace Genode {
 			 */
 			bool copy_thread_state(Thread_state * state_dst)
 			{
-				Lock::Guard _state_lock_guard(_state_lock);
+				Mutex::Guard _state_lock_guard(_state_lock);
 
 				if (!state_dst || !_state.blocked())
 					return false;
@@ -245,7 +245,7 @@ namespace Genode {
 			 */
 			bool copy_thread_state(Thread_state state_src)
 			{
-				Lock::Guard _state_lock_guard(_state_lock);
+				Mutex::Guard _state_lock_guard(_state_lock);
 
 				if (!_state.blocked())
 					return false;
@@ -267,12 +267,12 @@ namespace Genode {
 
 			inline void single_step(bool on)
 			{
-				_state_lock.lock();
+				_state_lock.acquire();
 
 				if (_state.is_dead() || !_state.blocked() ||
 				    (on && (_state._status & _state.SINGLESTEP)) ||
 				    (!on && !(_state._status & _state.SINGLESTEP))) {
-				    _state_lock.unlock();
+				    _state_lock.release();
 					return;
 				}
 
@@ -281,7 +281,7 @@ namespace Genode {
 				else
 					_state._status &= ~_state.SINGLESTEP;
 
-				_state_lock.unlock();
+				_state_lock.release();
 
 				/* force client in exit and thereby apply single_step change */
 				client_recall(false);

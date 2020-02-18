@@ -49,7 +49,7 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 	try {
 		for (;;) {
 			try {
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 				_tt.insert_translation(virt, phys, size, flags, _tt_alloc);
 				return true;
 			} catch(Hw::Out_of_tables &) {
@@ -76,7 +76,7 @@ bool Hw::Address_space::lookup_translation(addr_t const virt, addr_t & phys)
 
 void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 {
-	Lock::Guard guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	try {
 		_tt.remove_translation(virt, size, _tt_alloc);

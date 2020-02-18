@@ -142,7 +142,7 @@ void Platform_pd::assign_parent(Native_capability parent)
 
 Cap_sel Platform_pd::alloc_sel()
 {
-	Lock::Guard guard(_sel_alloc_lock);
+	Mutex::Guard guard(_sel_alloc_mutex);
 
 	return Cap_sel(_sel_alloc.alloc());
 }
@@ -150,7 +150,7 @@ Cap_sel Platform_pd::alloc_sel()
 
 void Platform_pd::free_sel(Cap_sel sel)
 {
-	Lock::Guard guard(_sel_alloc_lock);
+	Mutex::Guard guard(_sel_alloc_mutex);
 
 	_sel_alloc.free(sel.value());
 }

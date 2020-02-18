@@ -24,9 +24,9 @@
 
 
 
-static Genode::Lock *main_wait_lock()
+static Genode::Blockade *main_wait_lock()
 {
-	static Genode::Lock inst(Genode::Lock::LOCKED);
+	static Genode::Blockade inst;
 	return &inst;
 }
 
@@ -46,7 +46,7 @@ static void *pthread_entry(void *)
 
 	Genode::log("second message");
 
-	main_wait_lock()->unlock();
+	main_wait_lock()->wakeup();
 	return 0;
 }
 
@@ -67,7 +67,7 @@ void Component::construct(Genode::Env &env)
 	pthread_create(&pth, 0, pthread_entry, 0);
 
 	/* wait until 'pthread_entry' finished */
-	main_wait_lock()->lock();
+	main_wait_lock()->block();
 
 	Genode::log("--- finished pthread IPC test ---");
 	exit_status = 0;
