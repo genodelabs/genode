@@ -77,6 +77,8 @@ struct Genode::Directory : Noncopyable, Interface
 				Vfs::Directory_service::Dirent_type type() const { return _dirent.type; }
 
 				bool dir() const { return _dirent.type == Dirent_type::DIRECTORY; }
+
+				Vfs::Node_rwx rwx() const { return _dirent.rwx; }
 		};
 
 		enum { MAX_PATH_LEN = 256 };
