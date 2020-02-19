@@ -250,6 +250,13 @@ namespace Ahci {
 			write<Sector0_7::Tag>(slot);
 		}
 
+		void flush_cache_ext()
+		{
+			write<Bits::C>(1);
+			write<Device::Lba>(0);
+			write<Command>(0xea);
+		}
+
 		void atapi()
 		{
 			write<Bits::C>(1);

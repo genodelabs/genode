@@ -275,8 +275,9 @@ struct Ahci::Block_session_component : Rpc_object<Block::Session>,
 
 				Response response = Response::RETRY;
 
-				/* only READ/WRITE requests, others are noops for now */
-				if (Block::Operation::has_payload(request.operation.type) == false) {
+				/* ignored operations */
+				if (request.operation.type == Block::Operation::Type::TRIM ||
+				    request.operation.type == Block::Operation::Type::INVALID) {
 					request.success = true;
 					progress = true;
 					return Response::REJECTED;

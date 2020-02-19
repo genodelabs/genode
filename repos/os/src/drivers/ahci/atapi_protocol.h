@@ -148,8 +148,8 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		Response submit(Port &port, Block::Request const request) override
 		{
-			if (port.sanity_check(request) == false || port.dma_base == 0 ||
-			    request.operation.type != Block::Operation::Type::READ)
+			if (request.operation.type != Block::Operation::Type::READ ||
+			    port.sanity_check(request) == false || port.dma_base == 0)
 				return Response::REJECTED;
 
 			if (_pending.operation.valid())
