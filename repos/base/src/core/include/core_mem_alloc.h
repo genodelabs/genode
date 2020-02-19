@@ -15,8 +15,8 @@
 #ifndef _CORE__INCLUDE__CORE_MEM_ALLOC_H_
 #define _CORE__INCLUDE__CORE_MEM_ALLOC_H_
 
-#include <base/lock.h>
 #include <base/allocator_avl.h>
+#include <base/mutex.h>
 #include <synced_range_allocator.h>
 #include <util.h>
 
@@ -201,10 +201,10 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 	protected:
 
 		/**
-		 * Lock used for synchronization of all operations on the
+		 * Mutex used for synchronization of all operations on the
 		 * embedded allocators.
 		 */
-		Lock _lock { };
+		Mutex _mutex { };
 
 		/**
 		 * Synchronized allocator of physical memory ranges
@@ -227,7 +227,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 *
 		 * This allocator is internally used within this class for
 		 * allocating meta data for the other allocators. It is not
-		 * synchronized to avoid nested locking. The lock-guarded
+		 * synchronized to avoid nested locking. The Mutex-guarded
 		 * access to this allocator from the outer world is
 		 * provided via the 'Allocator' interface implemented by
 		 * 'Core_mem_allocator'. The allocator works at byte
@@ -241,8 +241,8 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 * Constructor
 		 */
 		Core_mem_allocator()
-		: _phys_alloc(_lock, &_mem_alloc),
-		  _virt_alloc(_lock, &_mem_alloc),
+		: _phys_alloc(_mutex, &_mem_alloc),
+		  _virt_alloc(_mutex, &_mem_alloc),
 		  _mem_alloc(_phys_alloc, _virt_alloc) { }
 
 		/**
@@ -283,13 +283,13 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
 		                           addr_t from = 0, addr_t to = ~0UL) override
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard lock_guard(_mutex);
 			return _mem_alloc.alloc_aligned(size, out_addr, align, from, to);
 		}
 
 		void free(void *addr) override
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard lock_guard(_mutex);
 			return _mem_alloc.free(addr);
 		}
 
@@ -307,7 +307,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 
 		void free(void *addr, size_t size) override
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard lock_guard(_mutex);
 			return _mem_alloc.free(addr, size);
 		}
 

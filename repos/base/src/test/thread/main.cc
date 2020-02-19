@@ -349,11 +349,11 @@ static void test_create_as_many_threads(Env &env)
 
 struct Lock_helper : Thread
 {
-	Lock &lock;
-	bool &lock_is_free;
-	bool  unlock;
+	Blockade &lock;
+	bool     &lock_is_free;
+	bool      unlock;
 
-	Lock_helper(Env &env, const char * name, Cpu_session &cpu, Lock &lock,
+	Lock_helper(Env &env, const char * name, Cpu_session &cpu, Blockade &lock,
 	            bool &lock_is_free, bool unlock = false)
 	:
 		Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(),
@@ -366,9 +366,9 @@ struct Lock_helper : Thread
 		log(" thread '", name(), "' started");
 
 		if (unlock)
-			lock.unlock();
+			lock.wakeup();
 
-		lock.lock();
+		lock.block();
 
 		if (!lock_is_free) {
 			log(" thread '", name(), "' got lock but somebody else is within"
@@ -378,13 +378,13 @@ struct Lock_helper : Thread
 
 		log(" thread '", name(), "' done");
 
-		lock.unlock();
+		lock.wakeup();
 	}
 };
 
 static void test_locks(Genode::Env &env)
 {
-	Lock lock         (Lock::LOCKED);
+	Blockade lock;
 
 	bool lock_is_free = true;
 
@@ -403,7 +403,7 @@ static void test_locks(Genode::Env &env)
 	l3.start();
 	l4.start();
 
-	lock.lock();
+	lock.block();
 
 	log(" thread '", Thread::myself()->name(), "' - I'm the lock holder - "
 	    "take lock again");
@@ -421,11 +421,11 @@ static void test_locks(Genode::Env &env)
 	for (unsigned volatile i = 0; i < 8000000; ++i) memory_barrier();
 	log(" spinning done");
 
-	lock.lock();
+	lock.block();
 	log(" I'm the lock holder - still alive");
 	lock_is_free = true;
 
-	lock.unlock();
+	lock.wakeup();
 
 	/* check that really all threads come back ! */
 	l1.join();
@@ -444,13 +444,13 @@ static void test_locks(Genode::Env &env)
 
 struct Cxa_helper : Thread
 {
-	Lock &in_cxa;
-	Lock &sync_startup;
-	int   test;
-	bool  sync;
+	Blockade &in_cxa;
+	Blockade &sync_startup;
+	int       test;
+	bool      sync;
 
-	Cxa_helper(Env &env, const char * name, Cpu_session &cpu, Lock &cxa,
-	           Lock &startup, int test, bool sync = false)
+	Cxa_helper(Env &env, const char * name, Cpu_session &cpu, Blockade &cxa,
+	           Blockade &startup, int test, bool sync = false)
 	:
 		Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(),
 		       cpu),
@@ -462,14 +462,14 @@ struct Cxa_helper : Thread
 		log(" thread '", name(), "' started");
 
 		if (sync)
-			sync_startup.unlock();
+			sync_startup.wakeup();
 
 		struct Contention {
-			Contention(Name name, Lock &in_cxa, Lock &sync_startup)
+			Contention(Name name, Blockade &in_cxa, Blockade &sync_startup)
 			{
 				log(" thread '", name, "' in static constructor");
-				sync_startup.unlock();
-				in_cxa.lock();
+				sync_startup.wakeup();
+				in_cxa.block();
 			}
 		};
 
@@ -501,16 +501,16 @@ static void test_cxa_guards(Env &env)
 	{
 		enum { TEST_1ST = 1 };
 
-		Lock in_cxa       (Lock::LOCKED);
-		Lock sync_startup (Lock::LOCKED);
+		Blockade in_cxa;
+		Blockade sync_startup;
 
 		/* start low priority thread */
 		Cxa_helper cxa_l(env, "cxa_low", cpu_l, in_cxa, sync_startup, TEST_1ST);
 		cxa_l.start();
 
 		/* wait until low priority thread is inside static variable */
-		sync_startup.lock();
-		sync_startup.unlock();
+		sync_startup.block();
+		sync_startup.wakeup();
 
 		/* start high priority threads */
 		Cxa_helper cxa_h1(env, "cxa_high_1", env.cpu(), in_cxa, sync_startup,
@@ -537,10 +537,10 @@ static void test_cxa_guards(Env &env)
 		 * if the middle priority thread manages to sync with current
 		 * (high priority) entrypoint thread
 		 */
-		sync_startup.lock();
+		sync_startup.block();
 
 		/* let's see whether we get all our threads out of the static variable */
-		in_cxa.unlock();
+		in_cxa.wakeup();
 
 		/* eureka ! */
 		cxa_h1.join(); cxa_h2.join(); cxa_h3.join(); cxa_h4.join();
@@ -551,12 +551,12 @@ static void test_cxa_guards(Env &env)
 	{
 		enum { TEST_2ND = 2, TEST_3RD = 3, TEST_4TH = 4 };
 
-		Lock in_cxa_2       (Lock::LOCKED);
-		Lock sync_startup_2 (Lock::LOCKED);
-		Lock in_cxa_3       (Lock::LOCKED);
-		Lock sync_startup_3 (Lock::LOCKED);
-		Lock in_cxa_4       (Lock::LOCKED);
-		Lock sync_startup_4 (Lock::LOCKED);
+		Blockade in_cxa_2;
+		Blockade sync_startup_2;
+		Blockade in_cxa_3;
+		Blockade sync_startup_3;
+		Blockade in_cxa_4;
+		Blockade sync_startup_4;
 
 		/* start low priority threads */
 		Cxa_helper cxa_l_2(env, "cxa_low_2", cpu_l, in_cxa_2, sync_startup_2,
@@ -570,12 +570,12 @@ static void test_cxa_guards(Env &env)
 		cxa_l_4.start();
 
 		/* wait until low priority threads are inside static variables */
-		sync_startup_2.lock();
-		sync_startup_2.unlock();
-		sync_startup_3.lock();
-		sync_startup_3.unlock();
-		sync_startup_4.lock();
-		sync_startup_4.unlock();
+		sync_startup_2.block();
+		sync_startup_2.wakeup();
+		sync_startup_3.block();
+		sync_startup_3.wakeup();
+		sync_startup_4.block();
+		sync_startup_4.wakeup();
 
 		/* start high priority threads */
 		Cxa_helper cxa_h1_2(env, "cxa_high_1_2", env.cpu(), in_cxa_2,
@@ -628,14 +628,14 @@ static void test_cxa_guards(Env &env)
 		 * variables, if the middle priority threads manage to sync with
 		 * current (high priority) entrypoint thread
 		 */
-		sync_startup_2.lock();
-		sync_startup_3.lock();
-		sync_startup_4.lock();
+		sync_startup_2.block();
+		sync_startup_3.block();
+		sync_startup_4.block();
 
 		/* let's see whether we get all our threads out of the static variable */
-		in_cxa_4.unlock();
-		in_cxa_3.unlock();
-		in_cxa_2.unlock();
+		in_cxa_4.wakeup();
+		in_cxa_3.wakeup();
+		in_cxa_2.wakeup();
 
 		cxa_h1_2.join(); cxa_h2_2.join(); cxa_h3_2.join(); cxa_h4_2.join();
 		cxa_m_2.join(); cxa_l_2.join();

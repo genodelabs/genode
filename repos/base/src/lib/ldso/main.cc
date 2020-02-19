@@ -66,10 +66,10 @@ Linker::Region_map::Constructible_region_map &Linker::Region_map::r()
 }
 
 
-Genode::Lock &Linker::lock()
+Genode::Mutex &Linker::mutex()
 {
-	static Lock _lock;
-	return _lock;
+	static Mutex _mutex;
+	return _mutex;
 }
 
 
@@ -296,7 +296,7 @@ struct Linker::Ld : private Dependency, Elf_object
 
 Elf::Addr Ld::jmp_slot(Dependency const &dep, Elf::Size index)
 {
-	Lock::Guard guard(lock());
+	Mutex::Guard guard(mutex());
 
 	if (verbose_relocation)
 		log("LD: SLOT ", &dep.obj(), " ", Hex(index));

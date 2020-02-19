@@ -91,9 +91,9 @@ static List<Tls_tree> &_tls_tree_list()
 }
 
 
-static Lock &_emutls_lock()
+static Mutex &_emutls_mutex()
 {
-	static Lock instance;
+	static Mutex instance;
 	return instance;
 }
 
@@ -103,7 +103,7 @@ static Lock &_emutls_lock()
  */
 void Genode::cxx_free_tls(void *thread)
 {
-	Lock::Guard lock_guard(_emutls_lock());
+	Mutex::Guard lock_guard(_emutls_mutex());
 
 	for (Tls_tree *tls_tree = _tls_tree_list().first();
 		 tls_tree; tls_tree = tls_tree->next()) {
@@ -130,7 +130,7 @@ void Genode::cxx_free_tls(void *thread)
  */
 extern "C" void *__emutls_get_address(void *obj)
 {
-	Lock::Guard lock_guard(_emutls_lock());
+	Mutex::Guard lock_guard(_emutls_mutex());
 
 	__emutls_object *emutls_object = reinterpret_cast<__emutls_object*>(obj);
 

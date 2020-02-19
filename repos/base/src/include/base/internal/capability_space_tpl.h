@@ -23,8 +23,8 @@
 /* base includes */
 #include <util/avl_tree.h>
 #include <util/bit_allocator.h>
-#include <base/lock.h>
 #include <base/log.h>
+#include <base/mutex.h>
 #include <util/construct_at.h>
 
 /* base-internal includes */
@@ -114,7 +114,7 @@ class Genode::Capability_space_tpl
 		Tree_managed_data           _caps_data[NUM_CAPS];
 		Bit_allocator<NUM_CAPS>     _alloc { };
 		Avl_tree<Tree_managed_data> _tree  { };
-		Lock                mutable _lock  { };
+		Mutex               mutable _mutex { };
 
 		/**
 		 * Calculate index into _caps_data for capability data object
@@ -127,7 +127,7 @@ class Genode::Capability_space_tpl
 
 		Data *_lookup(Rpc_obj_key key) const
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (!_tree.first())
 				return nullptr;
@@ -146,7 +146,7 @@ class Genode::Capability_space_tpl
 		template <typename... ARGS>
 		Native_capability::Data &create_capability(ARGS... args)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			addr_t const index = _alloc.alloc();
 
@@ -160,7 +160,7 @@ class Genode::Capability_space_tpl
 
 		void dec_ref(Data &data)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (data.dec_ref() == 0) {
 
@@ -174,7 +174,7 @@ class Genode::Capability_space_tpl
 
 		void inc_ref(Data &data)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (data.inc_ref() == 255)
 				throw Native_capability::Reference_count_overflow();

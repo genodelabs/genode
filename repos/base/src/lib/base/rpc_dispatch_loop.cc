@@ -26,7 +26,7 @@ void Rpc_entrypoint::_entry(Native_context& native_context)
 
 	Ipc_server srv(native_context);
 	_cap = srv;
-	_cap_valid.unlock();
+	_cap_valid.wakeup();
 
 	/*
 	 * Now, the capability of the server activation is initialized
@@ -35,7 +35,7 @@ void Rpc_entrypoint::_entry(Native_context& native_context)
 	 * is completely initialized. Thus, we wait until the activation
 	 * gets explicitly unblocked by calling 'Rpc_entrypoint::activate()'.
 	 */
-	_delay_start.lock();
+	_delay_start.block();
 
 	Rpc_exception_code exc = Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
@@ -65,5 +65,5 @@ void Rpc_entrypoint::_entry(Native_context& native_context)
 	ipc_reply(_caller, Rpc_exception_code(Rpc_exception_code::SUCCESS), snd_buf);
 
 	/* defer the destruction of 'Ipc_server' until '~Rpc_entrypoint' is ready */
-	_delay_exit.lock();
+	_delay_exit.block();
 }

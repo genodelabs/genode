@@ -4,9 +4,9 @@
 		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
 			[init -> test-synced_interface] --- Synced interface test ---
-			[init -> test-synced_interface] lock
+			[init -> test-synced_interface] acquire
 			[init -> test-synced_interface] adding 13 + 14
-			[init -> test-synced_interface] unlock
+			[init -> test-synced_interface] release
 			[init -> test-synced_interface] result is 27
 			[init -> test-synced_interface] --- Synced interface test finished ---
 		</log>

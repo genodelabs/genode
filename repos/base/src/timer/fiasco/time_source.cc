@@ -68,14 +68,14 @@ static l4_timeout_s mus_to_timeout(uint64_t mus)
 
 Microseconds Timer::Time_source::max_timeout() const
 {
-	Genode::Lock::Guard lock_guard(_lock);
+	Genode::Mutex::Guard lock_guard(_mutex);
 	return Microseconds(1000 * 1000 * 100);
 }
 
 
 Duration Timer::Time_source::curr_time()
 {
-	Genode::Lock::Guard lock_guard(_lock);
+	Genode::Mutex::Guard mutex_guard(_mutex);
 	static Genode::Attached_rom_dataspace kip_ds(_env, "l4v2_kip");
 	static Fiasco::l4_kernel_info_t * const kip =
 		kip_ds.local_addr<Fiasco::l4_kernel_info_t>();

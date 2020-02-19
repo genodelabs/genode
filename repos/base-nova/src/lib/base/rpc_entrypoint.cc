@@ -64,7 +64,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 }
 
 static void cleanup_call(Rpc_object_base *obj, Nova::Utcb * ep_utcb,
-                         Native_capability &cap, Genode::Lock &delay_start)
+                         Native_capability &cap, Genode::Blockade &delay_start)
 {
 
 	/* effectively invalidate the capability used before */
@@ -85,7 +85,7 @@ static void cleanup_call(Rpc_object_base *obj, Nova::Utcb * ep_utcb,
 		return;
 
 	/* activate entrypoint now - otherwise cleanup call will block forever */
-	delay_start.unlock();
+	delay_start.wakeup();
 
 	/* make a IPC to ensure that cap() identifier is not used anymore */
 	utcb->msg()[0] = 0xdead;
@@ -159,10 +159,11 @@ void Rpc_entrypoint::_activation_entry()
 		ep._rcv_buf.reset();
 		reply(utcb, exc, ep._snd_buf);
 	}
-	{
-		/* potentially delay start */
-		Lock::Guard lock_guard(ep._delay_start);
-	}
+
+	/* delay start */
+	ep._delay_start.block();
+	/* XXX inadequate usage of Blockade here is planned to be removed, see #3612 */
+	ep._delay_start.wakeup();
 
 	/* atomically lookup and lock referenced object */
 	auto lambda = [&] (Rpc_object_base *obj) {
@@ -207,7 +208,7 @@ void Rpc_entrypoint::activate()
 	 * called, we grab the '_delay_start' lock on construction and release it
 	 * here.
 	 */
-	_delay_start.unlock();
+	_delay_start.wakeup();
 }
 
 
@@ -222,7 +223,6 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                Affinity::Location location)
 :
 	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size, location),
-	_delay_start(Lock::LOCKED),
 	_pd_session(*pd_session)
 {
 	/* set magic value evaluated by thread_nova.cc to start a local thread */

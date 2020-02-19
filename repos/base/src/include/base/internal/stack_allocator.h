@@ -46,7 +46,7 @@ class Genode::Stack_allocator
 			}
 		} _alloc { };
 
-		Lock _threads_lock { };
+		Mutex _threads_mutex { };
 
 	public:
 

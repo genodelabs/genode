@@ -31,9 +31,9 @@ class Timer::Time_source : public Threaded_time_source
 
 		Genode::Env         &_env;
 
-		Genode::Lock mutable _lock { };
-		uint64_t             _curr_time_us = 0;
-		uint64_t             _next_timeout_us = max_timeout().value;
+		Genode::Mutex mutable _mutex { };
+		uint64_t              _curr_time_us = 0;
+		uint64_t              _next_timeout_us = max_timeout().value;
 
 		void _usleep(uint64_t us);
 

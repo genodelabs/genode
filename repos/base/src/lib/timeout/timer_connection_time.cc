@@ -21,7 +21,7 @@ using namespace Genode::Trace;
 
 void Timer::Connection::_update_real_time()
 {
-	Lock_guard<Lock> lock_guard(_real_time_lock);
+	Mutex::Guard guard(_real_time_mutex);
 
 
 	/*
@@ -145,8 +145,8 @@ Duration Timer::Connection::curr_time()
 {
 	_enable_modern_mode();
 
-	Reconstructible<Lock_guard<Lock> > lock_guard(_real_time_lock);
-	Duration                           interpolated_time(_real_time);
+	Reconstructible<Mutex::Guard> mutex_guard(_real_time_mutex);
+	Duration                      interpolated_time(_real_time);
 
 	/*
 	 * Interpolate with timestamps only if the factor value
@@ -158,12 +158,12 @@ Duration Timer::Connection::curr_time()
 	 */
 	if (_interpolation_quality == MAX_INTERPOLATION_QUALITY)
 	{
-		/* buffer interpolation related members and free the lock */
+		/* buffer interpolation related members and free the mutex */
 		Timestamp const ts                    = _ts;
 		uint64_t  const us_to_ts_factor       = _us_to_ts_factor;
 		unsigned  const us_to_ts_factor_shift = _us_to_ts_factor_shift;
 
-		lock_guard.destruct();
+		mutex_guard.destruct();
 
 		/* interpolate time difference since the last real time update */
 		Timestamp  const ts_diff = _timestamp() - ts;
@@ -177,7 +177,7 @@ Duration Timer::Connection::curr_time()
 		/* use remote timer instead of timestamps */
 		interpolated_time.add(Microseconds(elapsed_us() - _us));
 
-		lock_guard.destruct();
+		mutex_guard.destruct();
 	}
 	return _update_interpolated_time(interpolated_time);
 }

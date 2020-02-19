@@ -92,7 +92,7 @@ class Genode::Entrypoint : Noncopyable
 
 		Reconstructible<Signal_receiver> _sig_rec { };
 
-		Lock                                _deferred_signals_mutex { };
+		Mutex                               _deferred_signals_mutex { };
 		List<List_element<Signal_context> > _deferred_signals { };
 
 		void _handle_deferred_signals() { }

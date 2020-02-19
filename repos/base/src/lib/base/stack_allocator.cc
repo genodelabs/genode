@@ -52,7 +52,7 @@ Stack_allocator::alloc(Thread *, bool main_thread)
 		return base_to_stack(stack_area_virtual_base());
 
 	try {
-		Lock::Guard _lock_guard(_threads_lock);
+		Mutex::Guard guard(_threads_mutex);
 		return base_to_stack(idx_to_base(_alloc.alloc()));
 	} catch(Bit_allocator<MAX_THREADS>::Out_of_indices) {
 		return 0;
@@ -64,7 +64,7 @@ void Stack_allocator::free(Stack *stack)
 {
 	addr_t const base = addr_to_base(stack);
 
-	Lock::Guard _lock_guard(_threads_lock);
+	Mutex::Guard guard(_threads_mutex);
 	_alloc.free(base_to_idx(base));
 }
 

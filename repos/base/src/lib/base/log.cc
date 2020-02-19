@@ -19,7 +19,7 @@ using namespace Genode;
 
 void Log::_acquire(Type type)
 {
-	_lock.lock();
+	_mutex.acquire();
 
 	/*
 	 * Mark warnings and errors via distinct colors.
@@ -39,7 +39,7 @@ void Log::_release()
 	 */
 	_output.out_string("\033[0m\n");
 
-	_lock.unlock();
+	_mutex.release();
 }
 
 
@@ -63,7 +63,7 @@ void Raw::_release()
 
 void Trace_output::_acquire()
 {
-	_lock.lock();
+	_mutex.acquire();
 }
 
 
@@ -74,5 +74,5 @@ void Trace_output::_release()
 	 */
 	_output.out_string("\n");
 
-	_lock.unlock();
+	_mutex.release();
 }

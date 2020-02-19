@@ -99,7 +99,7 @@ class Timed_semaphore : public Semaphore
 		 */
 		bool _abort(Element &element)
 		{
-			Genode::Lock::Guard lock_guard(Semaphore::_meta_lock);
+			Genode::Mutex::Guard lock_guard(Semaphore::_meta_lock);
 
 			/* potentially, the queue is empty */
 			if (++Semaphore::_cnt <= 0) {
@@ -119,7 +119,7 @@ class Timed_semaphore : public Semaphore
 					 * Wakeup the thread.
 					 */
 					if (&element == e) {
-						e->wake_up();
+						e->blockade.wakeup();
 						return true;
 					}
 
@@ -198,14 +198,14 @@ class Timed_semaphore : public Semaphore
 		 */
 		Alarm::Time down(Alarm::Time t)
 		{
-			Semaphore::_meta_lock.lock();
+			Semaphore::_meta_lock.acquire();
 
 			if (--Semaphore::_cnt < 0) {
 
 				/* If t==0 we shall not block */
 				if (t == 0) {
 					++_cnt;
-					Semaphore::_meta_lock.unlock();
+					Semaphore::_meta_lock.release();
 					throw Nonblocking_exception();
 				}
 
@@ -215,7 +215,7 @@ class Timed_semaphore : public Semaphore
 				 */
 				Element queue_element;
 				Semaphore::_queue.enqueue(queue_element);
-				Semaphore::_meta_lock.unlock();
+				Semaphore::_meta_lock.release();
 
 				/* Create the timeout */
 				Alarm::Time const curr_time = _timeout_ep.time();
@@ -227,7 +227,7 @@ class Timed_semaphore : public Semaphore
 				 * waiting for getting waked from another thread
 				 * calling 'up()'
 				 * */
-				queue_element.block();
+				queue_element.blockade.block();
 
 				/* Deactivate timeout */
 				_timeout_ep.discard(timeout);
@@ -243,7 +243,7 @@ class Timed_semaphore : public Semaphore
 				return _timeout_ep.time() - timeout.start();
 
 			} else {
-				Semaphore::_meta_lock.unlock();
+				Semaphore::_meta_lock.release();
 			}
 			return 0;
 		}

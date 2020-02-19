@@ -15,7 +15,8 @@
 #ifndef _INCLUDE__BASE__SEMAPHORE_H_
 #define _INCLUDE__BASE__SEMAPHORE_H_
 
-#include <base/lock.h>
+#include <base/blockade.h>
+#include <base/mutex.h>
 #include <util/fifo.h>
 
 namespace Genode { class Semaphore; }
@@ -25,16 +26,10 @@ class Genode::Semaphore
 {
 	protected:
 
-		int  _cnt;
-		Lock _meta_lock { };
+		int   _cnt;
+		Mutex _meta_lock { };
 
-		struct Element : Fifo<Element>::Element
-		{
-			Lock lock { Lock::LOCKED };
-
-			void block()   { lock.lock();   }
-			void wake_up() { lock.unlock(); }
-		};
+		struct Element : Fifo<Element>::Element { Blockade blockade { }; };
 
 		Fifo<Element> _queue { };
 
@@ -50,7 +45,7 @@ class Genode::Semaphore
 		~Semaphore()
 		{
 			/* synchronize destruction with unfinished 'up()' */
-			try { _meta_lock.lock(); } catch (...) { }
+			try { _meta_lock.acquire(); } catch (...) { }
 		}
 
 		/**
@@ -64,7 +59,7 @@ class Genode::Semaphore
 			Element * element = nullptr;
 
 			{
-				Lock::Guard lock_guard(_meta_lock);
+				Mutex::Guard guard(_meta_lock);
 
 				if (++_cnt > 0)
 					return;
@@ -78,7 +73,7 @@ class Genode::Semaphore
 			}
 
 			/* do not hold the lock while unblocking a waiting thread */
-			if (element) element->wake_up();
+			if (element) element->blockade.wakeup();
 		}
 
 		/**
@@ -86,7 +81,7 @@ class Genode::Semaphore
 		 */
 		void down()
 		{
-			_meta_lock.lock();
+			_meta_lock.acquire();
 
 			if (--_cnt < 0) {
 
@@ -96,17 +91,17 @@ class Genode::Semaphore
 				 */
 				Element queue_element;
 				_queue.enqueue(queue_element);
-				_meta_lock.unlock();
+				_meta_lock.release();
 
 				/*
 				 * The thread is going to block on a local lock now,
 				 * waiting for getting waked from another thread
 				 * calling 'up()'
 				 * */
-				queue_element.block();
+				queue_element.blockade.block();
 
 			} else {
-				_meta_lock.unlock();
+				_meta_lock.release();
 			}
 		}
 

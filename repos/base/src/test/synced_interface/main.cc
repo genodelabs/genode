@@ -28,18 +28,18 @@ struct Adder
 };
 
 
-struct Pseudo_lock
+struct Pseudo_mutex
 {
-	void lock()   { log("lock"); }
-	void unlock() { log("unlock"); }
+	void acquire() { log("acquire"); }
+	void release() { log("release"); }
 };
 
 
 struct Main
 {
-	Pseudo_lock                          lock  { };
-	Adder                                adder { };
-	Synced_interface<Adder, Pseudo_lock> synced_adder { lock, &adder };
+	Pseudo_mutex                          mutex { };
+	Adder                                 adder { };
+	Synced_interface<Adder, Pseudo_mutex> synced_adder { mutex, &adder };
 
 	Main(Env &)
 	{

@@ -20,7 +20,7 @@
 #include <base/thread.h>
 #include <base/ipc.h>
 #include <base/object_pool.h>
-#include <base/lock.h>
+#include <base/blockade.h>
 #include <base/log.h>
 #include <base/trace/events.h>
 #include <pd_session/pd_session.h>
@@ -345,9 +345,9 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 	protected:
 
 		Native_capability _caller       { };
-		Lock              _cap_valid    { };  /* thread startup synchronization        */
-		Lock              _delay_start  { };  /* delay start of request dispatching    */
-		Lock              _delay_exit   { };  /* delay destructor until server settled */
+		Blockade          _cap_valid    { };  /* thread startup synchronization        */
+		Blockade          _delay_start  { };  /* delay start of request dispatching    */
+		Blockade          _delay_exit   { };  /* delay destructor until server settled */
 		Pd_session       &_pd_session;        /* for creating capabilities             */
 		Exit_handler      _exit_handler { };
 		Capability<Exit>  _exit_cap     { };

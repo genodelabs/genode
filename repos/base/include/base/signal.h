@@ -208,11 +208,11 @@ class Genode::Signal_context : Interface, Noncopyable
 		 */
 		Signal_receiver *_receiver { nullptr };
 
-		Lock         _lock          { };   /* protect '_curr_signal' */
+		Mutex        _mutex         { };   /* protect '_curr_signal' */
 		Signal::Data _curr_signal   { };   /* most-currently received signal */
 		bool         _pending { false };   /* current signal is valid */
 		unsigned int _ref_cnt     { 0 };   /* number of references to context */
-		Lock         _destroy_lock  { };   /* prevent destruction while the
+		Mutex        _destroy_mutex { };   /* prevent destruction while the
 		                                      context is in use */
 
 		/**
@@ -298,7 +298,7 @@ class Genode::Signal_receiver : Noncopyable
 					if (!context) return;
 
 					do {
-						Lock::Guard lock_guard(context->_lock);
+						Mutex::Guard mutex_guard(context->_mutex);
 						try {
 							functor(*context);
 						} catch (Break_for_each) { return; }
@@ -322,14 +322,14 @@ class Genode::Signal_receiver : Noncopyable
 		/**
 		 * List of associated contexts
 		 */
-		Lock         _contexts_lock { };
-		Context_ring _contexts      { };
+		Mutex        _contexts_mutex { };
+		Context_ring _contexts       { };
 
 		/**
 		 * Helper to dissolve given context
 		 *
 		 * This method prevents duplicated code in '~Signal_receiver'
-		 * and 'dissolve'. Note that '_contexts_lock' must be held when
+		 * and 'dissolve'. Note that '_contexts_mutex' must be held when
 		 * calling this method.
 		 */
 		void _unsynchronized_dissolve(Signal_context *context);

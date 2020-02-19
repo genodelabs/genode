@@ -48,9 +48,9 @@ namespace {
 		Genode::Parent &_parent = *env_deprecated()->parent();
 
 		/**
-		 * Lock for serializing 'session' and 'close'
+		 * Mutex for serializing 'session' and 'close'
 		 */
-		Genode::Lock _lock { };
+		Genode::Mutex _mutex { };
 
 		/**
 		 * Utility to used block for single signal
@@ -121,7 +121,7 @@ namespace {
 		                           Parent::Session_args const &args,
 		                           Affinity             const &affinity) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			/*
 			 * Since we account for the backing store for session meta data on
@@ -189,7 +189,7 @@ namespace {
 
 		void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (_parent.upgrade(id, args) == Parent::UPGRADE_PENDING)
 				_block_for_session();
@@ -197,7 +197,7 @@ namespace {
 
 		void close(Parent::Client::Id id) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (_parent.close(id) == Parent::CLOSE_PENDING)
 				_block_for_session();

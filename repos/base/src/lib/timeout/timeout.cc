@@ -120,7 +120,7 @@ Alarm_timeout_scheduler::Alarm_timeout_scheduler(Time_source  &time_source,
 
 Alarm_timeout_scheduler::~Alarm_timeout_scheduler()
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard mutex_guard(_mutex);
 	while (_active_head) {
 		Alarm *next = _active_head->_next;
 		_active_head->_alarm_reset();
@@ -234,7 +234,7 @@ void Alarm_timeout_scheduler::_alarm_unsynchronized_dequeue(Alarm *alarm)
 
 Timeout::Alarm *Alarm_timeout_scheduler::_alarm_get_pending_alarm()
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard mutex_guard(_mutex);
 
 	if (!_active_head || !_active_head->_raw.is_pending_at(_now, _now_period)) {
 		return nullptr; }
@@ -244,10 +244,10 @@ Timeout::Alarm *Alarm_timeout_scheduler::_alarm_get_pending_alarm()
 	_active_head = _active_head->_next;
 
 	/*
-	 * Acquire dispatch lock to defer destruction until the call of '_on_alarm'
+	 * Acquire dispatch mutex to defer destruction until the call of '_on_alarm'
 	 * is finished
 	 */
-	pending_alarm->_dispatch_lock.lock();
+	pending_alarm->_dispatch_mutex.acquire();
 
 	/* reset alarm object */
 	pending_alarm->_next = nullptr;
@@ -333,12 +333,12 @@ void Alarm_timeout_scheduler::_alarm_handle(Alarm::Time curr_time)
 			curr->_raw.deadline = deadline;
 
 			/* synchronize enqueue operation */
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard mutex_guard(_mutex);
 			_alarm_unsynchronized_enqueue(curr);
 		}
 
 		/* release alarm, resume concurrent destructor operation */
-		curr->_dispatch_lock.unlock();
+		curr->_dispatch_mutex.release();
 	}
 }
 
@@ -362,7 +362,7 @@ void Alarm_timeout_scheduler::_alarm_setup_alarm(Alarm &alarm, Alarm::Time perio
 
 void Alarm_timeout_scheduler::_alarm_schedule_absolute(Alarm *alarm, Alarm::Time duration)
 {
-	Lock::Guard alarm_list_lock_guard(_lock);
+	Mutex::Guard alarm_list_guard(_mutex);
 
 	_alarm_setup_alarm(*alarm, 0, duration);
 }
@@ -370,7 +370,7 @@ void Alarm_timeout_scheduler::_alarm_schedule_absolute(Alarm *alarm, Alarm::Time
 
 void Alarm_timeout_scheduler::_alarm_schedule(Alarm *alarm, Alarm::Time period)
 {
-	Lock::Guard alarm_list_lock_guard(_lock);
+	Mutex::Guard alarm_list_guard(_mutex);
 
 	/*
 	 * Refuse to schedule a periodic timeout of 0 because it would trigger
@@ -392,17 +392,17 @@ void Alarm_timeout_scheduler::_alarm_discard(Alarm *alarm)
 {
 	/*
 	 * Make sure that nobody is inside the '_alarm_get_pending_alarm' when
-	 * grabbing the '_dispatch_lock'. This is important when this function
-	 * is called from the 'Alarm' destructor. Without the '_dispatch_lock',
-	 * we could take the lock and proceed with destruction just before
-	 * '_alarm_get_pending_alarm' tries to grab the lock. When the destructor is
-	 * finished, '_alarm_get_pending_alarm' would proceed with operating on a
-	 * dangling pointer.
+	 * grabbing the '_dispatch_mutex'. This is important when this function
+	 * is called from the 'Alarm' destructor. Without the '_dispatch_mutex',
+	 * we could take the mutex and proceed with destruction just before
+	 * '_alarm_get_pending_alarm' tries to grab the mutex. When the destructor
+	 * is finished, '_alarm_get_pending_alarm' would proceed with operating on
+	 * a dangling pointer.
 	 */
-	Lock::Guard alarm_list_lock_guard(_lock);
+	Mutex::Guard alarm_list_guard(_mutex);
 
 	if (alarm) {
-		Lock::Guard alarm_lock_guard(alarm->_dispatch_lock);
+		Mutex::Guard alarm_guard(alarm->_dispatch_mutex);
 		_alarm_unsynchronized_dequeue(alarm);
 	}
 }
@@ -410,7 +410,7 @@ void Alarm_timeout_scheduler::_alarm_discard(Alarm *alarm)
 
 bool Alarm_timeout_scheduler::_alarm_next_deadline(Alarm::Time *deadline)
 {
-	Lock::Guard alarm_list_lock_guard(_lock);
+	Mutex::Guard alarm_list_guard(_mutex);
 
 	if (!_active_head) return false;
 
