@@ -24,6 +24,7 @@ namespace Fs_query {
 	struct Watched_file;
 	struct Watched_directory;
 	struct Main;
+	using Node_rwx = Vfs::Node_rwx;
 }
 
 
@@ -31,11 +32,13 @@ struct Fs_query::Watched_file
 {
 	File_content::Path const _name;
 
+	Node_rwx const _rwx;
+
 	Watcher _watcher;
 
-	Watched_file(Directory const &dir, File_content::Path name,
+	Watched_file(Directory const &dir, File_content::Path name, Node_rwx rwx,
 	             Vfs::Watch_response_handler &handler)
-	: _name(name), _watcher(dir, name, handler) { }
+	: _name(name), _rwx(rwx), _watcher(dir, name, handler) { }
 
 	virtual ~Watched_file() { }
 
@@ -67,6 +70,9 @@ struct Fs_query::Watched_file
 		try {
 			xml.node("file", [&] () {
 				xml.attribute("name", _name);
+
+				if (_rwx.writeable)
+					xml.attribute("writeable", "yes");
 
 				if (query.attribute_value("content", false))
 					_gen_content(xml, alloc, dir);
@@ -110,7 +116,8 @@ struct Fs_query::Watched_directory
 			               || (entry.type() == Dirent_type::TRANSACTIONAL_FILE);
 			if (file) {
 				try {
-					new (_alloc) Registered<Watched_file>(_files, _dir, entry.name(), handler);
+					new (_alloc) Registered<Watched_file>(_files, _dir, entry.name(),
+					                                      entry.rwx(), handler);
 				} catch (...) { }
 			}
 		});

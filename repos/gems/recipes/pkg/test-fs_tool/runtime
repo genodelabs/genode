@@ -10,7 +10,7 @@
 			[init -> report_rom] report 'test -> fs_query -> listing'
 			[init -> report_rom]   &lt;listing>
 			[init -> report_rom]   	&lt;dir path="/fs/items">
-			[init -> report_rom]   		&lt;file name="1">first&lt;/file>
+			[init -> report_rom]   		&lt;file name="1" writeable="yes">first&lt;/file>
 			[init -> report_rom]   	&lt;/dir>
 			[init -> report_rom]   &lt;/listing>
 		</log>
