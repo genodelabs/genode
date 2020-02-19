@@ -110,6 +110,9 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		_children.for_each([&] (Widget const &child) {
 			child_min_size = child.min_size(); });
 
+		if (!_curr_texture)
+			return child_min_size;
+
 		/* don't get smaller than the background texture */
 		Area const texture_size = _curr_texture->size();
 
@@ -123,7 +126,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 	{
 		static Scratch_surface scratch(_factory.alloc);
 
-		Area const texture_size = _curr_texture->size();
+		Area const texture_size = _curr_texture ? _curr_texture->size() : Area(0, 0);
 		Rect const texture_rect(Point(0, 0), texture_size);
 
 		/*
@@ -132,6 +135,9 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		scratch.reset(texture_size);
 
 		scratch.apply([&] (Surface<Opaque_pixel> &pixel, Surface<Additive_alpha> &alpha) {
+
+			if (!_curr_texture)
+				return;
 
 			if (_prev_texture && animated()) {
 

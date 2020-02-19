@@ -64,11 +64,13 @@ struct Menu_view::Frame_widget : Widget
 	          Surface<Pixel_alpha8> &alpha_surface,
 	          Point at) const override
 	{
-		Icon_painter::paint(pixel_surface, Rect(at, _animated_geometry.area()),
-		                    *texture, 255);
+		if (texture) {
+			Icon_painter::paint(pixel_surface, Rect(at, _animated_geometry.area()),
+			                    *texture, 255);
 
-		Icon_painter::paint(alpha_surface, Rect(at, _animated_geometry.area()),
-		                    *texture, 255);
+			Icon_painter::paint(alpha_surface, Rect(at, _animated_geometry.area()),
+			                    *texture, 255);
+		}
 
 		_draw_children(pixel_surface, alpha_surface, at);
 	}

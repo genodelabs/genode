@@ -78,21 +78,28 @@ class Menu_view::Style_database
 		struct Texture_entry : List<Texture_entry>::Element
 		{
 			Path             const path;
-			::File                 png_file;
+			File_content           png_file;
 			Png_image              png_image;
 			Texture<Pixel_rgb888> &texture;
+
+			void const *_png_data()
+			{
+				void const *result = nullptr;
+				png_file.bytes([&] (char const *ptr, size_t) { result = ptr; });
+				return result;
+			}
 
 			/**
 			 * Constructor
 			 *
 			 * \throw Reading_failed
 			 */
-			Texture_entry(Ram_allocator &ram, Region_map &rm,
-			              Allocator &alloc, Path const &path)
+			Texture_entry(Ram_allocator &ram, Region_map &rm, Allocator &alloc,
+			              Directory const &dir, Path const &path)
 			:
 				path(path),
-				png_file(path.string(), alloc),
-				png_image(ram, rm, alloc, png_file.data<void>()),
+				png_file(alloc, dir, path.string(), File_content::Limit{256*1024}),
+				png_image(ram, rm, alloc, _png_data()),
 				texture(*png_image.texture<Pixel_rgb888>())
 			{ }
 		};
@@ -153,7 +160,7 @@ class Menu_view::Style_database
 			typedef String<64> Style;
 			Style const style = node.attribute_value("style", Style("default"));
 
-			return Path("/styles/", node.type(), "/", style, "/", name, ".png");
+			return Path(node.type(), "/", style, "/", name, ".png");
 		}
 
 		/*
@@ -205,12 +212,12 @@ class Menu_view::Style_database
 			 */
 			try {
 				Texture_entry *e = new (_alloc)
-					Texture_entry(_ram, _rm, _alloc, path.string());
+					Texture_entry(_ram, _rm, _alloc, _styles_dir, path.string());
 
 				_textures.insert(e);
 				return &e->texture;
 
-			} catch (Reading_failed) {
+			} catch (...) {
 				warning("could not read texture data from file \"", path.string(), "\"");
 				return nullptr;
 			}

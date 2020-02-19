@@ -78,7 +78,7 @@ class Png_image
 					_assert_non_null<Read_struct_failed>(
 						png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0));
 
-				Read_struct(void *data) : data((png_bytep)data)
+				Read_struct(void const *data) : data((png_bytep)data)
 				{
 					png_set_read_fn(png_ptr, this, callback);
 				}
@@ -174,7 +174,7 @@ class Png_image
 		 * \throw Info_failed
 		 */
 		Png_image(Genode::Ram_allocator &ram, Genode::Region_map &rm,
-		          Genode::Allocator &alloc, void *data)
+		          Genode::Allocator &alloc, void const *data)
 		:
 			_ram(ram), _rm(rm), _alloc(alloc), _read_struct(data)
 		{ }
