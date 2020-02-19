@@ -24,142 +24,192 @@
 #include <time.h>
 
 /* libc-internal includes */
-#include <internal/monitor.h>
 #include <internal/errno.h>
-#include <internal/types.h>
-#include <internal/time.h>
 #include <internal/init.h>
+#include <internal/kernel.h>
+#include <internal/monitor.h>
+#include <internal/time.h>
+#include <internal/types.h>
 
 using namespace Libc;
 
 
-static Monitor *_monitor_ptr;
+static Timer_accessor *_timer_accessor_ptr;
 
 
-void Libc::init_semaphore_support(Monitor &monitor)
+void Libc::init_semaphore_support(Timer_accessor &timer_accessor)
 {
-	_monitor_ptr = &monitor;
+	_timer_accessor_ptr = &timer_accessor;
 }
 
 
-extern "C" {
+/*
+ * This class is named 'struct sem' because the 'sem_t' type is
+ * defined as 'struct sem*' in 'semaphore.h'
+ */
+struct sem : Genode::Noncopyable
+{
+	private:
 
-	/*
-	 * This class is named 'struct sem' because the 'sem_t' type is
-	 * defined as 'struct sem*' in 'semaphore.h'
-	 */
-	struct sem
-	{
-		int      _count;
-		unsigned _applicants { 0 };
-		Lock     _data_mutex;
-		Lock     _monitor_mutex;
-
-		struct Missing_call_of_init_pthread_support : Exception { };
-
-		struct Applicant
+		struct Applicant : Genode::Noncopyable
 		{
-			sem &s;
+			Applicant *next { nullptr };
 
-			Applicant(sem &s) : s(s)
-			{
-				Lock::Guard lock_guard(s._data_mutex);
-				++s._applicants;
-			}
+			Libc::Blockade &blockade;
 
-			~Applicant()
-			{
-				Lock::Guard lock_guard(s._data_mutex);
-				--s._applicants;
-			}
+			Applicant(Libc::Blockade &blockade) : blockade(blockade) { }
 		};
 
-		Monitor & _monitor()
+		Applicant *_applicants { nullptr };
+		int        _count;
+		Lock       _data_mutex;
+
+		/* _data_mutex must be hold when calling the following methods */
+
+		void _append_applicant(Applicant *applicant)
 		{
-			if (!_monitor_ptr)
-				throw Missing_call_of_init_pthread_support();
-			return *_monitor_ptr;
+			Applicant **tail = &_applicants;
+
+			for (; *tail; tail = &(*tail)->next) ;
+
+			*tail = applicant;
 		}
 
-		sem(int value) : _count(value) { }
-
-		int trydown()
+		void _remove_applicant(Applicant *applicant)
 		{
-			Lock::Guard lock_guard(_data_mutex);
-			
+			Applicant **a = &_applicants;
+
+			for (; *a && *a != applicant; a = &(*a)->next) ;
+
+			*a = applicant->next;
+		}
+
+		void _count_up()
+		{
+			if (Applicant *next = _applicants) {
+				_remove_applicant(next);
+				next->blockade.wakeup();
+			} else {
+				++_count;
+			}
+		}
+
+		bool _applicant_for_semaphore(Libc::Blockade &blockade)
+		{
+			Applicant applicant { blockade };
+
+			_append_applicant(&applicant);
+
+			_data_mutex.unlock();
+
+			blockade.block();
+
+			_data_mutex.lock();
+
+			if (blockade.woken_up()) {
+				return true;
+			} else {
+				_remove_applicant(&applicant);
+				return false;
+			}
+		}
+
+		struct Missing_call_of_init_semaphore_support : Exception { };
+
+		Timer_accessor & _timer_accessor()
+		{
+			if (!_timer_accessor_ptr)
+				throw Missing_call_of_init_semaphore_support();
+			return *_timer_accessor_ptr;
+		}
+
+		/**
+		 * Enqueue current context as applicant for semaphore
+		 *
+		 * Return true if down was successful, false on timeout expiration.
+		 */
+		bool _apply_for_semaphore(Libc::uint64_t timeout_ms)
+		{
+			if (Libc::Kernel::kernel().main_context()) {
+				Main_blockade blockade { timeout_ms };
+				return _applicant_for_semaphore(blockade);
+			} else {
+				Pthread_blockade blockade { _timer_accessor(), timeout_ms };
+				return _applicant_for_semaphore(blockade);
+			}
+		}
+
+		/* unsynchronized try */
+		int _try_down()
+		{
 			if (_count > 0) {
-				_count--;
+				--_count;
 				return 0;
 			}
 
 			return EBUSY;
 		}
 
+	public:
+
+		sem(int value) : _count(value) { }
+
+		int count() const { return _count; }
+
+		int trydown()
+		{
+			Lock::Guard lock_guard(_data_mutex);
+
+			return _try_down();
+		}
+
 		int down()
 		{
-			Lock::Guard monitor_guard(_monitor_mutex);
+			Lock::Guard lock_guard(_data_mutex);
 
-			/* fast path without contention */
-			if (trydown() == 0)
+			/* fast path */
+			if (_try_down() == 0)
 				return 0;
 
-			{
-				Applicant guard { *this };
-
-				auto fn = [&] { return trydown() == 0; };
-
-				(void)_monitor().monitor(_monitor_mutex, fn);
-			}
+			_apply_for_semaphore(0);
 
 			return 0;
 		}
 
 		int down_timed(timespec const &abs_timeout)
 		{
-			Lock::Guard monitor_guard(_monitor_mutex);
+			Lock::Guard lock_guard(_data_mutex);
 
-			/* fast path without wait - does not check abstimeout according to spec */
-			if (trydown() == 0)
+			/* fast path */
+			if (_try_down() == 0)
 				return 0;
 
 			timespec abs_now;
 			clock_gettime(CLOCK_REALTIME, &abs_now);
 
-			uint64_t const timeout_ms = calculate_relative_timeout_ms(abs_now, abs_timeout);
+			Libc::uint64_t const timeout_ms =
+				calculate_relative_timeout_ms(abs_now, abs_timeout);
 			if (!timeout_ms)
 				return ETIMEDOUT;
 
-			{
-				Applicant guard { *this };
-
-				auto fn = [&] { return trydown() == 0; };
-
-				if (_monitor().monitor(_monitor_mutex, fn, timeout_ms))
-					return 0;
-				else
-					return ETIMEDOUT;
-			}
+			if (_apply_for_semaphore(timeout_ms))
+				return 0;
+			else
+				return ETIMEDOUT;
 		}
 
 		int up()
 		{
-			Lock::Guard monitor_guard(_monitor_mutex);
 			Lock::Guard lock_guard(_data_mutex);
 
-			_count++;
-
-			if (_applicants)
-				_monitor().charge_monitors();
+			_count_up();
 
 			return 0;
 		}
+};
 
-		int count()
-		{
-			return _count;
-		}
-	};
 
+extern "C" {
 
 	int sem_close(sem_t *)
 	{

@@ -20,6 +20,27 @@ Libc::Kernel * Libc::Kernel::_kernel_ptr;
 
 
 /**
+ * Blockade for main context
+ */
+
+inline void Libc::Main_blockade::block()
+{
+	Check check { _woken_up };
+
+	do {
+		_timeout_ms = Kernel::kernel().suspend(check, _timeout_ms);
+		_expired    = _timeout_valid && !_timeout_ms;
+	} while (!woken_up() && !expired());
+}
+
+inline void Libc::Main_blockade::wakeup()
+{
+	_woken_up = true;
+	Kernel::kernel().resume_main();
+}
+
+
+/**
  * Main context execution was suspended (on fork)
  *
  * This function is executed in the context of the initial thread.
@@ -376,8 +397,8 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 {
 	atexit(close_file_descriptors_on_exit);
 
-	init_semaphore_support(*this);
-	init_pthread_support(*this, *this, *this);
+	init_semaphore_support(_timer_accessor);
+	init_pthread_support(*this, *this, _timer_accessor);
 
 	_env.ep().register_io_progress_handler(*this);
 

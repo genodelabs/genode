@@ -38,6 +38,7 @@ namespace Libc {
 	struct Watch;
 	struct Signal;
 	struct File_descriptor_allocator;
+	struct Timer_accessor;
 
 	/**
 	 * Support for shared libraries
@@ -107,8 +108,8 @@ namespace Libc {
 	/**
 	 * Pthread/semaphore support
 	 */
-	void init_pthread_support(Monitor &, Suspend &, Resume &);
-	void init_semaphore_support(Monitor &);
+	void init_pthread_support(Suspend &, Resume &, Timer_accessor &);
+	void init_semaphore_support(Timer_accessor &);
 
 	struct Config_accessor : Interface
 	{

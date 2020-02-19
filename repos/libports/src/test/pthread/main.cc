@@ -325,7 +325,7 @@ static void *thread_mutex_func(void *arg)
 	/* unlock normal mutex */
 
 	if (pthread_mutex_unlock(&test_mutex_data->normal_mutex) != 0) {
-		printf("Error: could not lock normal mutex\n");
+		printf("Error: could not unlock normal mutex\n");
 		exit(-1);
 	}
 
@@ -568,14 +568,14 @@ struct Test_mutex_stress
 	Test_mutex_stress()
 	{
 		printf("main thread: start %s stress test\n", mutex.type_string());
+		pthread_mutex_lock(mutex.mutex());
 		for (Thread &t : threads) t.start();
+		pthread_mutex_unlock(mutex.mutex());
 		for (Thread &t : threads) t.join();
 		printf("main thread: finished %s stress test\n", mutex.type_string());
 	}
 };
 
-
-extern "C" void wait_for_continue();
 
 static void test_mutex_stress()
 {
@@ -689,7 +689,7 @@ struct Test_cond
 
 	void signaller()
 	{
-		printf("signaller: started\n");
+		Genode::log("signaller: started");
 
 		unsigned num_events = 0;
 		bool test_done = false;
@@ -708,7 +708,7 @@ struct Test_cond
 				pthread_cond_signal(_cond.cond());
 				break;
 			case State::SHUTDOWN:
-				printf("signaller: shutting down\n");
+				Genode::log("signaller: shutting down");
 				_shared_state = State::END;
 				++num_events;
 				pthread_cond_broadcast(_cond.cond());
@@ -723,7 +723,7 @@ struct Test_cond
 			usleep(1000);
 		}
 
-		printf("signaller: finished after %u state changes\n", num_events);
+		Genode::log("signaller: finished after ", num_events, " state changes");
 	}
 
 	static void *waiter_fn(void *arg)
@@ -736,7 +736,7 @@ struct Test_cond
 	{
 		char const * const note =  main_thread ? "(main thread)" : "";
 
-		printf("waiter%s: started\n", note);
+		Genode::log("waiter", note, ": started");
 
 		unsigned pings = 0, pongs = 0;
 		unsigned long iterations = 0;
@@ -747,7 +747,7 @@ struct Test_cond
 			auto handle_state = [&] {
 				unsigned const num_events = pings + pongs;
 				if (num_events == 2000) {
-					printf("waiter%s: request shutdown\n", note);
+					Genode::log("waiter", note, ": request shutdown");
 					_shared_state = State::SHUTDOWN;
 				} else if (num_events % 2 == 0) {
 					pthread_cond_wait(_cond.cond(), _mutex.mutex());
@@ -777,8 +777,8 @@ struct Test_cond
 			++iterations;
 		}
 
-		printf("waiter%s: finished (pings=%u, pongs=%u, iterations=%lu)\n",
-		       note, pings, pongs, iterations);
+		Genode::log("waiter", note, ": finished (pings=", pings, ", pongs=",
+		            pongs, ", iterations=", iterations, ")");
 	}
 
 	Test_cond()

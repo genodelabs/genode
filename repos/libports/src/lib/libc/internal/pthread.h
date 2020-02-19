@@ -26,11 +26,15 @@
 
 /* libc-internal includes */
 #include <internal/types.h>
+#include <internal/monitor.h>
+#include <internal/timer.h>
 
 namespace Libc {
 
 	struct Pthread;
 	struct Pthread_registry;
+	struct Pthread_blockade;
+	struct Pthread_job;
 }
 
 
@@ -290,6 +294,59 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 struct pthread : Libc::Pthread
 {
 	using Libc::Pthread::Pthread;
+};
+
+
+class Libc::Pthread_blockade : public Blockade, public Timeout_handler
+{
+	private:
+
+		Lock                   _blockade { Lock::LOCKED };
+		Constructible<Timeout> _timeout;
+
+	public:
+
+		Pthread_blockade(Timer_accessor &timer_accessor, uint64_t timeout_ms)
+		{
+			if (timeout_ms) {
+				_timeout.construct(timer_accessor, *this);
+				_timeout->start(timeout_ms);
+			}
+		}
+
+		void block() override { _blockade.lock(); }
+
+		void wakeup() override
+		{
+			_woken_up = true;
+			_blockade.unlock();
+		}
+
+		/**
+		 * Timeout_handler interface
+		 */
+		void handle_timeout() override
+		{
+			_expired = true;
+			_blockade.unlock();
+		}
+};
+
+
+struct Libc::Pthread_job : Monitor::Job
+{
+	private:
+
+		Pthread_blockade _blockade;
+
+	public:
+
+		Pthread_job(Monitor::Function &fn,
+		            Timer_accessor &timer_accessor, uint64_t timeout_ms)
+		:
+			Job(fn, _blockade),
+			_blockade(timer_accessor, timeout_ms)
+		{ }
 };
 
 

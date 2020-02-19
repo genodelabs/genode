@@ -19,8 +19,27 @@
 #include <base/registry.h>
 
 /* libc-internal includes */
-#include <internal/timer.h>
 #include <internal/types.h>
+
+namespace Libc { class Blockade; };
+
+
+class Libc::Blockade
+{
+	protected:
+
+		bool _woken_up { false };
+		bool _expired  { false };
+
+	public:
+
+		bool woken_up() const { return _woken_up; }
+		bool expired()  const { return _expired; }
+
+		virtual void block()  = 0;
+		virtual void wakeup() = 0;
+};
+
 
 namespace Libc { class Monitor; };
 
@@ -32,9 +51,9 @@ class Libc::Monitor : Interface
 		struct Job;
 		struct Pool;
 
-	protected:
-
 		struct Function : Interface { virtual bool execute() = 0; };
+
+	protected:
 
 		virtual bool _monitor(Genode::Lock &, Function &, uint64_t) = 0;
 		virtual void _charge_monitors() = 0;
@@ -70,52 +89,27 @@ class Libc::Monitor : Interface
 };
 
 
-struct Libc::Monitor::Job : Timeout_handler
+struct Libc::Monitor::Job
 {
 	private:
 
 		Monitor::Function &_fn;
-
-	protected:
-
-		bool _completed { false };
-		bool _expired   { false };
-
-		Lock                   _blockade { Lock::LOCKED };
-		Constructible<Timeout> _timeout;
+		Blockade          &_blockade;
 
 	public:
 
-		Job(Monitor::Function &fn,
-		    Timer_accessor &timer_accessor, uint64_t timeout_ms)
-		: _fn(fn)
-		{
-			if (timeout_ms) {
-				_timeout.construct(timer_accessor, *this);
-				_timeout->start(timeout_ms);
-			}
-		}
+		Job(Monitor::Function &fn, Blockade &blockade)
+		: _fn(fn), _blockade(blockade) { }
 
-		bool completed() const { return _completed; }
-		bool expired()   const { return _expired; }
-		bool execute()         { return _fn.execute(); }
+		virtual ~Job() { }
 
-		virtual void wait_for_completion() { _blockade.lock(); }
+		bool execute() { return _fn.execute(); }
 
-		virtual void complete()
-		{
-			_completed = true;
-			_blockade.unlock();
-		}
+		bool completed() const { return _blockade.woken_up(); }
+		bool expired()   const { return _blockade.expired(); }
 
-		/**
-		 * Timeout_handler interface
-		 */
-		void handle_timeout() override
-		{
-			_expired = true;
-			_blockade.unlock();
-		}
+		void wait_for_completion() { _blockade.block(); }
+		void complete()            { _blockade.wakeup(); }
 };
 
 
