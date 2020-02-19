@@ -17,6 +17,7 @@
 /* local includes */
 #include <widget_factory.h>
 #include <text_selection.h>
+#include <animated_color.h>
 
 namespace Menu_view { struct Label_widget; }
 
@@ -28,6 +29,8 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 
 	typedef String<200> Text;
 	Text _text { };
+
+	Animated_color _color;
 
 	int _min_width  = 0;
 	int _min_height = 0;
@@ -41,6 +44,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	Label_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 	:
 		Widget(factory, node, unique_id),
+		_color(factory.animator),
 		_cursor_update_policy(factory, *this),
 		_selection_update_policy(factory.alloc, *this)
 	{ }
@@ -57,6 +61,9 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		_text       = Text("");
 		_min_width  = 0;
 		_min_height = 0;
+
+		_factory.styles.with_label_style(node, [&] (Label_style style) {
+			_color.fade_to(style.color, Animated_color::Steps{80}); });
 
 		if (node.has_attribute("text")) {
 			_text       = node.attribute_value("text", _text);
@@ -100,13 +107,18 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		_selections.for_each([&] (Text_selection const &selection) {
 			selection.draw(pixel_surface, alpha_surface, at, text_size.h()); });
 
-		Text_painter::paint(pixel_surface,
-		                    Text_painter::Position(centered.x(), centered.y()),
-		                    *_font, Color(0, 0, 0), _text.string());
+		Color const color = _color.color();
+		int   const alpha = color.a;
 
-		Text_painter::paint(alpha_surface,
-		                    Text_painter::Position(centered.x(), centered.y()),
-		                    *_font, Color(255, 255, 255), _text.string());
+		if (alpha) {
+			Text_painter::paint(pixel_surface,
+			                    Text_painter::Position(centered.x(), centered.y()),
+			                    *_font, color, _text.string());
+
+			Text_painter::paint(alpha_surface,
+			                    Text_painter::Position(centered.x(), centered.y()),
+			                    *_font, Color(alpha, alpha, alpha, alpha), _text.string());
+		}
 
 		_cursors.for_each([&] (Cursor const &cursor) {
 			cursor.draw(pixel_surface, alpha_surface, at, text_size.h()); });

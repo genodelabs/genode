@@ -23,7 +23,17 @@
 /* local includes */
 #include "types.h"
 
-namespace Menu_view { struct Style_database; }
+namespace Menu_view {
+
+	struct Label_style;
+	struct Style_database;
+}
+
+
+struct Menu_view::Label_style
+{
+	Color color;
+};
 
 
 class Menu_view::Style_database
@@ -35,6 +45,35 @@ class Menu_view::Style_database
 		typedef String<PATH_MAX_LEN> Path;
 
 		typedef ::File::Reading_failed Reading_failed;
+
+		struct Label_style_entry : List<Label_style_entry>::Element, Noncopyable
+		{
+			Path        const path;  /* needed for lookup */
+			Label_style const style;
+
+			static Label_style _init_style(Allocator &alloc,
+			                               Directory const &styles_dir,
+			                               Path const &path)
+			{
+				Label_style result { .color = Color(0, 0, 0) };
+
+				try {
+					File_content const content(alloc, styles_dir, path,
+					                           File_content::Limit{1024});
+					content.xml([&] (Xml_node node) {
+						result.color = node.attribute_value("color", result.color);
+					});
+				} catch (...) { }
+
+				return result;
+			}
+
+			Label_style_entry(Allocator &alloc, Directory const &styles_dir,
+			                  Path const &path)
+			:
+				path(path), style(_init_style(alloc, styles_dir, path))
+			{ }
+		};
 
 		struct Texture_entry : List<Texture_entry>::Element
 		{
@@ -86,13 +125,15 @@ class Menu_view::Style_database
 		Region_map      &_rm;
 		Allocator       &_alloc;
 		Directory const &_fonts_dir;
+		Directory const &_styles_dir;
 
 		/*
-		 * The list is mutable because it is populated as a side effect of
-		 * calling the const lookup function.
+		 * The lists are mutable because they are populated as a side effect of
+		 * calling the const lookup functions.
 		 */
-		List<Texture_entry> mutable _textures { };
-		List<Font_entry>    mutable _fonts    { };
+		List<Texture_entry>     mutable _textures     { };
+		List<Font_entry>        mutable _fonts        { };
+		List<Label_style_entry> mutable _label_styles { };
 
 		template <typename T>
 		T const *_lookup(List<T> &list, char const *path) const
@@ -105,28 +146,56 @@ class Menu_view::Style_database
 		}
 
 		/*
-		 * Assemble path name 'styles/<widget>/<style>/<name>.<extension>'
+		 * Assemble path name 'styles/<widget>/<style>/<name>.png'
 		 */
-		static Path _construct_path(Xml_node node, char const *name,
-		                            char const *extension)
+		static Path _construct_png_path(Xml_node node, char const *name)
 		{
 			typedef String<64> Style;
 			Style const style = node.attribute_value("style", Style("default"));
 
-			return Path("/styles/", node.type(), "/", style, "/", name, ".", extension);
+			return Path("/styles/", node.type(), "/", style, "/", name, ".png");
+		}
+
+		/*
+		 * Assemble path of style file relative to the styles directory
+		 */
+		static Path _widget_style_path(Xml_node const &node)
+		{
+			typedef String<64> Style;
+			Style const style = node.attribute_value("style", Style("default"));
+
+			return Path(node.type(), "/", style, "/", "style");
+		}
+
+		Label_style const &_label_style(Xml_node node) const
+		{
+			Path const path = _widget_style_path(node);
+
+			if (Label_style_entry const *e = _lookup(_label_styles, path.string()))
+				return e->style;
+
+			/*
+			 * Load and remember style
+			 */
+			Label_style_entry &e = *new (_alloc)
+				Label_style_entry(_alloc, _styles_dir, path);
+
+			_label_styles.insert(&e);
+			return e.style;
 		}
 
 	public:
 
 		Style_database(Ram_allocator &ram, Region_map &rm, Allocator &alloc,
-		               Directory const &fonts_dir)
+		               Directory const &fonts_dir, Directory const &styles_dir)
 		:
-			_ram(ram), _rm(rm), _alloc(alloc), _fonts_dir(fonts_dir)
+			_ram(ram), _rm(rm), _alloc(alloc),
+			_fonts_dir(fonts_dir), _styles_dir(styles_dir)
 		{ }
 
 		Texture<Pixel_rgb888> const *texture(Xml_node node, char const *png_name) const
 		{
-			Path const path = _construct_path(node, png_name, "png");
+			Path const path = _construct_png_path(node, png_name);
 
 			if (Texture_entry const *e = _lookup(_textures, path.string()))
 				return &e->texture;
@@ -172,6 +241,12 @@ class Menu_view::Style_database
 			}
 
 			return nullptr;
+		}
+
+		template <typename FN>
+		void with_label_style(Xml_node node, FN const &fn) const
+		{
+			fn(_label_style(node));
 		}
 };
 

@@ -111,10 +111,11 @@ struct Menu_view::Main
 
 	} _vfs_env;
 
-	Directory _root_dir  { _vfs_env };
-	Directory _fonts_dir { _root_dir, "fonts" };
+	Directory _root_dir   { _vfs_env };
+	Directory _fonts_dir  { _root_dir, "fonts" };
+	Directory _styles_dir { _root_dir, "styles" };
 
-	Style_database _styles { _env.ram(), _env.rm(), _heap, _fonts_dir };
+	Style_database _styles { _env.ram(), _env.rm(), _heap, _fonts_dir, _styles_dir };
 
 	Animator _animator { };
 
