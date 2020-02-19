@@ -146,7 +146,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		using Timeout_handler = Genode::Time_source::Timeout_handler;
 		using Timestamp       = Genode::Trace::Timestamp;
 		using Duration        = Genode::Duration;
-		using Lock            = Genode::Lock;
+		using Mutex           = Genode::Mutex;
 		using Microseconds    = Genode::Microseconds;
 		using Milliseconds    = Genode::Milliseconds;
 		using Entrypoint      = Genode::Entrypoint;
@@ -172,7 +172,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		enum Mode { LEGACY, MODERN };
 
 		Mode                    _mode             { LEGACY };
-		Genode::Lock            _lock             { };
+		Mutex                   _mutex            { };
 		Genode::Signal_receiver _sig_rec          { };
 		Genode::Signal_context  _default_sigh_ctx { };
 
@@ -204,7 +204,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		Genode::Io_signal_handler<Connection> _signal_handler;
 
 		Timeout_handler *_handler               { nullptr };
-		Lock             _real_time_lock        { Lock::UNLOCKED };
+		Mutex            _real_time_mutex       { };
 		uint64_t         _us                    { elapsed_us() };
 		Timestamp        _ts                    { _timestamp() };
 		Duration         _real_time             { Microseconds(_us) };
@@ -313,7 +313,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 				return;
 
 			/* serialize sleep calls issued by different threads */
-			Genode::Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			/* temporarily install to the default signal handler */
 			if (_custom_sigh_cap.valid())

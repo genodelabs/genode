@@ -38,7 +38,7 @@ extern "C" int dl_iterate_phdr(int (*callback) (Phdr_info *info, size_t size, vo
 	int err = 0;
 	Phdr_info info;
 
-	Lock::Guard guard(lock());
+	Mutex::Guard guard(mutex());
 
 	for (Object *e = obj_list_head();e; e = e->next_obj()) {
 

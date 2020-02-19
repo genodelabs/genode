@@ -46,9 +46,9 @@ class Genode::Expanding_parent_client : public Parent_client
 		State _state = { UNDEFINED };
 
 		/**
-		 * Lock used to serialize resource requests
+		 * Mutex used to serialize resource requests
 		 */
-		Lock _lock { };
+		Mutex _mutex { };
 
 		struct Io_signal_context : Signal_context
 		{
@@ -156,7 +156,7 @@ class Genode::Expanding_parent_client : public Parent_client
 
 		void resource_avail_sigh(Signal_context_capability sigh) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			/*
 			 * If signal hander gets de-installed, let the next call of
@@ -177,7 +177,7 @@ class Genode::Expanding_parent_client : public Parent_client
 
 		void resource_request(Resource_args const &args) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			/*
 			 * Issue request but don't block if a custom signal handler is

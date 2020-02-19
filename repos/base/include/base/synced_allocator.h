@@ -1,12 +1,12 @@
 /*
- * \brief  Lock-guarded allocator interface
+ * \brief  Mutex-guarded allocator interface
  * \author Norman Feske
  * \author Stefan Kalkowski
  * \date   2008-08-05
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -24,7 +24,7 @@ namespace Genode {
 
 
 /**
- * Lock-guarded allocator
+ * Mutex-guarded allocator
  *
  * This class wraps the complete 'Allocator' interface while
  * preventing concurrent calls to the wrapped allocator implementation.
@@ -36,17 +36,17 @@ class Genode::Synced_allocator : public Allocator
 {
 	private:
 
-		Lock                          _lock { };
-		ALLOC                         _alloc;
-		Synced_interface<ALLOC, Lock> _synced_object;
+		Mutex                          _mutex { };
+		ALLOC                          _alloc;
+		Synced_interface<ALLOC, Mutex> _synced_object;
 
 	public:
 
-		using Guard = typename Synced_interface<ALLOC, Lock>::Guard;
+		using Guard = typename Synced_interface<ALLOC, Mutex>::Guard;
 
 		template <typename... ARGS>
 		Synced_allocator(ARGS &&... args)
-		: _alloc(args...), _synced_object(_lock, &_alloc) { }
+		: _alloc(args...), _synced_object(_mutex, &_alloc) { }
 
 		Guard operator () ()       { return _synced_object(); }
 		Guard operator () () const { return _synced_object(); }

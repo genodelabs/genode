@@ -58,10 +58,10 @@ Signal::~Signal() { _dec_ref_and_unlock(); }
 void Signal::_dec_ref_and_unlock()
 {
 	if (_data.context) {
-		Lock::Guard lock_guard(_data.context->_lock);
+		Mutex::Guard context_guard(_data.context->_mutex);
 		_data.context->_ref_cnt--;
 		if (_data.context->_ref_cnt == 0)
-			_data.context->_destroy_lock.unlock();
+			_data.context->_destroy_mutex.release();
 	}
 }
 
@@ -69,7 +69,7 @@ void Signal::_dec_ref_and_unlock()
 void Signal::_inc_ref()
 {
 	if (_data.context) {
-		Lock::Guard lock_guard(_data.context->_lock);
+		Mutex::Guard context_guard(_data.context->_mutex);
 		_data.context->_ref_cnt++;
 	}
 }
@@ -98,7 +98,7 @@ Signal::Signal(Signal::Data data) : _data(data)
 		 * is in its clear state).
 		 */
 		if (_data.context->_ref_cnt == 1) {
-			_data.context->_destroy_lock.lock();
+			_data.context->_destroy_mutex.acquire();
 		} else {
 
 			/* print warning only once to avoid flooding the log */
@@ -161,7 +161,7 @@ Signal Signal_receiver::wait_for_signal()
 
 Signal_receiver::~Signal_receiver()
 {
-	Lock::Guard contexts_lock_guard(_contexts_lock);
+	Mutex::Guard contexts_guard(_contexts_mutex);
 
 	/* disassociate contexts from the receiver */
 	while (Signal_context *context = _contexts.head()) {
@@ -197,24 +197,24 @@ void Signal_receiver::dissolve(Signal_context *context)
 		/*
 		 * We must adhere to the following lock-taking order:
 		 *
-		 * 1. Taking the lock for the list of contexts ('_contexts_lock')
+		 * 1. Taking the lock for the list of contexts ('_contexts_mutex')
 		 * 2. Taking the context-registry lock (this happens inside
 		 *    '_platform_begin_dissolve' on platforms that use such a
 		 *    registry)
 		 * 3. Taking the lock for an individual signal context
 		 */
-		Lock::Guard contexts_lock_guard(_contexts_lock);
+		Mutex::Guard contexts_guard(_contexts_mutex);
 
 		_platform_begin_dissolve(context);
 
-		Lock::Guard context_lock_guard(context->_lock);
+		Mutex::Guard context_guard(context->_mutex);
 
 		_unsynchronized_dissolve(context);
 	}
 
 	_platform_finish_dissolve(context);
 
-	Lock::Guard context_destroy_lock_guard(context->_destroy_lock);
+	Mutex::Guard context_destroy_guard(context->_destroy_mutex);
 }
 
 

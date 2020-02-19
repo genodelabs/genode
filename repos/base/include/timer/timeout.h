@@ -21,9 +21,9 @@
 
 /* Genode includes */
 #include <util/noncopyable.h>
-#include <base/lock.h>
-#include <base/log.h>
 #include <base/duration.h>
+#include <base/log.h>
+#include <base/mutex.h>
 
 namespace Genode {
 
@@ -169,11 +169,11 @@ class Genode::Timeout : private Noncopyable
 					bool is_pending_at(uint64_t time, bool time_period) const;
 				};
 
-				Lock                     _dispatch_lock { };
-				Raw                      _raw           { };
-				int                      _active        { 0 };
-				Alarm                   *_next          { nullptr };
-				Alarm_timeout_scheduler *_scheduler     { nullptr };
+				Mutex                    _dispatch_mutex { };
+				Raw                      _raw            { };
+				int                      _active         { 0 };
+				Alarm                   *_next           { nullptr };
+				Alarm_timeout_scheduler *_scheduler      { nullptr };
 
 				void _alarm_assign(Time                     period,
 				                   Time                     deadline,
@@ -239,7 +239,7 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 		using Alarm = Timeout::Alarm;
 
 		Time_source     &_time_source;
-		Lock             _lock              { };
+		Mutex            _mutex             { };
 		Alarm           *_active_head       { nullptr };
 		Alarm           *_pending_head      { nullptr };
 		Alarm::Time      _now               { 0UL };

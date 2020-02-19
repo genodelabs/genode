@@ -156,11 +156,11 @@ namespace Affinity_test {
 	{
 		Genode::Affinity::Location const location;
 		Genode::uint64_t volatile        cnt;
-		Genode::Lock                     barrier;
+		Genode::Blockade                 barrier { };
 
 		void entry() override
 		{
-			barrier.unlock();
+			barrier.wakeup();
 			Genode::log("Affinity: thread started on CPU ",
 			            location, " spinning...");
 
@@ -170,7 +170,7 @@ namespace Affinity_test {
 		Spinning_thread(Genode::Env &env, Location location)
 		: Genode::Thread(env, Name("spinning_thread"), STACK_SIZE, location,
 		                 Weight(), env.cpu()),
-		  location(location), cnt(0ULL), barrier(Genode::Lock::LOCKED) {
+		  location(location), cnt(0ULL) {
 			start(); }
 	};
 
@@ -192,7 +192,7 @@ namespace Affinity_test {
 
 		/* wait until all threads are up and running */
 		for (unsigned i = 0; i < cpus.total(); i++)
-			threads[i]->barrier.lock();
+			threads[i]->barrier.block();
 
 		log("Affinity: Threads started on a different CPU each.");
 		log("Affinity: You may inspect them using the kernel debugger - if you have one.");
@@ -254,13 +254,13 @@ namespace Tlb_shootdown_test {
 
 		unsigned            cpu_idx;
 		volatile unsigned * values;
-		Genode::Lock        barrier;
+		Genode::Blockade    barrier { };
 
 		void entry() override
 		{
 			Genode::log("TLB: thread started on CPU ", cpu_idx);
 			values[cpu_idx] = 1;
-			barrier.unlock();
+			barrier.wakeup();
 
 			for (; values[cpu_idx] == 1;) ;
 
@@ -271,7 +271,7 @@ namespace Tlb_shootdown_test {
 		       volatile unsigned * values)
 		: Genode::Thread(env, Name("tlb_thread"), STACK_SIZE, location,
 		                 Weight(), env.cpu()),
-		  cpu_idx(idx), values(values), barrier(Genode::Lock::LOCKED) {
+		  cpu_idx(idx), values(values) {
 			  start(); }
 
 		/*
@@ -302,7 +302,7 @@ namespace Tlb_shootdown_test {
 			                               ram_ds->local_addr<volatile unsigned>());
 
 		/* wait until all threads are up and running */
-		for (unsigned i = 1; i < cpus.total(); i++) threads[i]->barrier.lock();
+		for (unsigned i = 1; i < cpus.total(); i++) threads[i]->barrier.block();
 
 		log("TLB: all threads are up and running...");
 		destroy(heap, ram_ds);

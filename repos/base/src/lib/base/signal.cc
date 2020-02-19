@@ -28,7 +28,7 @@
 
 using namespace Genode;
 
-class Signal_handler_thread : Thread, Lock
+class Signal_handler_thread : Thread, Blockade
 {
 	private:
 
@@ -44,7 +44,7 @@ class Signal_handler_thread : Thread, Lock
 		void entry() override
 		{
 			_signal_source.construct(env_deprecated()->pd_session()->alloc_signal_source());
-			unlock();
+			wakeup();
 			Signal_receiver::dispatch_signals(&(*_signal_source));
 		}
 
@@ -56,7 +56,7 @@ class Signal_handler_thread : Thread, Lock
 		 * Constructor
 		 */
 		Signal_handler_thread(Env &env)
-		: Thread(env, "signal handler", STACK_SIZE), Lock(Lock::LOCKED)
+		: Thread(env, "signal handler", STACK_SIZE)
 		{
 			start();
 
@@ -65,7 +65,7 @@ class Signal_handler_thread : Thread, Lock
 			 * with the use of signals. Otherwise, signals may get lost until
 			 * the construction finished.
 			 */
-			lock();
+			block();
 		}
 
 		~Signal_handler_thread()
@@ -136,34 +136,34 @@ namespace Genode {
 			 * scalability problem, we might introduce a more sophisticated
 			 * associative data structure.
 			 */
-			Lock mutable                        _lock { };
+			Mutex mutable                       _mutex { };
 			List<List_element<Signal_context> > _list { };
 
 		public:
 
 			void insert(List_element<Signal_context> *le)
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 				_list.insert(le);
 			}
 
 			void remove(List_element<Signal_context> *le)
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 				_list.remove(le);
 			}
 
 			bool test_and_lock(Signal_context *context) const
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				/* search list for context */
 				List_element<Signal_context> const *le = _list.first();
 				for ( ; le; le = le->next()) {
 
 					if (context == le->object()) {
-						/* lock object */
-						context->_lock.lock();
+						/* acquire the object */
+						context->_mutex.acquire();
 						return true;
 					}
 				}
@@ -197,7 +197,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 
 	context->_receiver = this;
 
-	Lock::Guard contexts_lock_guard(_contexts_lock);
+	Mutex::Guard contexts_guard(_contexts_mutex);
 
 	/* insert context into context list */
 	_contexts.insert_as_tail(context);
@@ -237,7 +237,7 @@ void Signal_receiver::block_for_signal()
 
 Signal Signal_receiver::pending_signal()
 {
-	Lock::Guard contexts_lock_guard(_contexts_lock);
+	Mutex::Guard contexts_guard(_contexts_mutex);
 	Signal::Data result;
 	_contexts.for_each_locked([&] (Signal_context &context) {
 
@@ -252,7 +252,7 @@ Signal Signal_receiver::pending_signal()
 		throw Context_ring::Break_for_each();
 	});
 	if (result.context) {
-		Lock::Guard lock_guard(result.context->_lock);
+		Mutex::Guard context_guard(result.context->_mutex);
 		if (result.num == 0)
 			warning("returning signal with num == 0");
 
@@ -324,8 +324,8 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 			warning("signal context ", context, " with no receiver in signal dispatcher");
 		}
 
-		/* free context lock that was taken by 'test_and_lock' */
-		context->_lock.unlock();
+		/* free context mutex that was taken by 'test_and_lock' */
+		context->_mutex.release();
 	}
 }
 
@@ -333,8 +333,8 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 void Signal_receiver::_platform_begin_dissolve(Signal_context *context)
 {
 	/*
-	 * Because the 'remove' operation takes the registry lock, the context
-	 * must not be locked when calling this method. See the comment in
+	 * Because the 'remove' operation takes the registry mutex, the context
+	 * must not be acquired when calling this method. See the comment in
 	 * 'Signal_receiver::dissolve'.
 	 */
 	signal_context_registry()->remove(&context->_registry_le);

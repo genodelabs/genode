@@ -15,11 +15,11 @@
 #define _INCLUDE__BASE__SYNCED_INTERFACE_H_
 
 /* Genode includes */
-#include <base/lock.h>
+#include <base/mutex.h>
 
 namespace Genode {
 
-	template <typename, typename LOCK = Genode::Lock> class Synced_interface;
+	template <typename, typename LOCK = Genode::Mutex> class Synced_interface;
 }
 
 
@@ -48,7 +48,7 @@ class Genode::Synced_interface
 				Guard(LOCK &lock, IF *interface)
 				: _lock(lock), _interface(interface)
 				{
-					_lock.lock();
+					_lock.acquire();
 				}
 
 				friend class Synced_interface;
@@ -57,7 +57,7 @@ class Genode::Synced_interface
 
 			public:
 
-				~Guard() { _lock.unlock(); }
+				~Guard() { _lock.release(); }
 
 				Guard(Guard const &other)
 				: _lock(other._lock), _interface(other._interface) { }

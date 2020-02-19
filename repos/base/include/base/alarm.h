@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__BASE__ALARM_H_
 #define _INCLUDE__BASE__ALARM_H_
 
-#include <base/lock.h>
+#include <base/mutex.h>
 
 namespace Genode {
 	class Alarm_scheduler;
@@ -41,11 +41,11 @@ class Genode::Alarm
 			bool is_pending_at(uint64_t time, bool time_period) const;
 		};
 
-		Lock             _dispatch_lock { };          /* taken during handle method   */
-		Raw              _raw           { };
-		int              _active        { 0 };        /* set to one when active       */
-		Alarm           *_next          { nullptr };  /* next alarm in alarm list     */
-		Alarm_scheduler *_scheduler     { nullptr };  /* currently assigned scheduler */
+		Mutex            _dispatch_mutex { };          /* taken during handle method   */
+		Raw              _raw            { };
+		int              _active         { 0 };        /* set to one when active       */
+		Alarm           *_next           { nullptr };  /* next alarm in alarm list     */
+		Alarm_scheduler *_scheduler      { nullptr };  /* currently assigned scheduler */
 
 		void _assign(Time             period,
 		             Time             deadline,
@@ -90,7 +90,7 @@ class Genode::Alarm_scheduler
 {
 	private:
 
-		Lock         _lock       { };         /* protect alarm list                     */
+		Mutex        _mutex      { };         /* protect alarm list                     */
 		Alarm       *_head       { nullptr }; /* head of alarm list                     */
 		Alarm::Time  _now        { 0UL };     /* recent time (updated by handle method) */
 		bool         _now_period { false };

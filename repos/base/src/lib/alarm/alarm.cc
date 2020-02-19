@@ -94,7 +94,7 @@ bool Alarm::Raw::is_pending_at(uint64_t time, bool time_period) const
 
 Alarm *Alarm_scheduler::_get_pending_alarm()
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	if (!_head || !_head->_raw.is_pending_at(_now, _now_period)) {
 		return nullptr; }
@@ -104,10 +104,10 @@ Alarm *Alarm_scheduler::_get_pending_alarm()
 	_head = _head->_next;
 
 	/*
-	 * Acquire dispatch lock to defer destruction until the call of 'on_alarm'
+	 * Acquire dispatch mutex to defer destruction until the call of 'on_alarm'
 	 * is finished
 	 */
-	pending_alarm->_dispatch_lock.lock();
+	pending_alarm->_dispatch_mutex.acquire();
 
 	/* reset alarm object */
 	pending_alarm->_next = nullptr;
@@ -178,12 +178,12 @@ void Alarm_scheduler::handle(Alarm::Time curr_time)
 			curr->_raw.deadline = deadline;
 
 			/* synchronize enqueue operation */
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard guard(_mutex);
 			_unsynchronized_enqueue(curr);
 		}
 
 		/* release alarm, resume concurrent destructor operation */
-		curr->_dispatch_lock.unlock();
+		curr->_dispatch_mutex.release();
 	}
 }
 
@@ -206,7 +206,7 @@ void Alarm_scheduler::_setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time
 
 void Alarm_scheduler::schedule_absolute(Alarm *alarm, Alarm::Time timeout)
 {
-	Lock::Guard alarm_list_lock_guard(_lock);
+	Mutex::Guard alarm_list_guard(_mutex);
 
 	_setup_alarm(*alarm, 0, timeout);
 }
@@ -214,7 +214,7 @@ void Alarm_scheduler::schedule_absolute(Alarm *alarm, Alarm::Time timeout)
 
 void Alarm_scheduler::schedule(Alarm *alarm, Alarm::Time period)
 {
-	Lock::Guard alarm_list_lock_guard(_lock);
+	Mutex::Guard alarm_list_guard(_mutex);
 
 	/*
 	 * Refuse to schedule a periodic timeout of 0 because it would trigger
@@ -236,17 +236,17 @@ void Alarm_scheduler::discard(Alarm *alarm)
 {
 	/*
 	 * Make sure that nobody is inside the '_get_pending_alarm' when
-	 * grabbing the '_dispatch_lock'. This is important when this function
-	 * is called from the 'Alarm' destructor. Without the '_dispatch_lock',
-	 * we could take the lock and proceed with destruction just before
-	 * '_get_pending_alarm' tries to grab the lock. When the destructor is
+	 * grabbing the '_dispatch_mutex'. This is important when this function
+	 * is called from the 'Alarm' destructor. Without the '_dispatch_mutex',
+	 * we could take the mutex and proceed with destruction just before
+	 * '_get_pending_alarm' tries to grab the mutex. When the destructor is
 	 * finished, '_get_pending_alarm' would proceed with operating on a
 	 * dangling pointer.
 	 */
-	Lock::Guard alarm_list_lock_guard(_lock);
+	Mutex::Guard alarm_list_guard(_mutex);
 
 	if (alarm) {
-		Lock::Guard alarm_lock_guard(alarm->_dispatch_lock);
+		Mutex::Guard alarm_guard(alarm->_dispatch_mutex);
 		_unsynchronized_dequeue(alarm);
 	}
 }
@@ -254,7 +254,7 @@ void Alarm_scheduler::discard(Alarm *alarm)
 
 bool Alarm_scheduler::next_deadline(Alarm::Time *deadline)
 {
-	Lock::Guard alarm_list_lock_guard(_lock);
+	Mutex::Guard alarm_list_guard(_mutex);
 
 	if (!_head) return false;
 
@@ -270,7 +270,7 @@ bool Alarm_scheduler::next_deadline(Alarm::Time *deadline)
 
 Alarm_scheduler::~Alarm_scheduler()
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	while (_head) {
 

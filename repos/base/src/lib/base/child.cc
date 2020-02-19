@@ -35,7 +35,7 @@ static Service &parent_service()
 
 void Child::yield(Resource_args const &args)
 {
-	Lock::Guard guard(_yield_request_lock);
+	Mutex::Guard guard(_yield_request_mutex);
 
 	/* buffer yield request arguments to be picked up by the child */
 	_yield_request_args = args;
@@ -685,7 +685,7 @@ void Child::yield_sigh(Signal_context_capability sigh) { _yield_sigh = sigh; }
 
 Parent::Resource_args Child::yield_request()
 {
-	Lock::Guard guard(_yield_request_lock);
+	Mutex::Guard guard(_yield_request_mutex);
 
 	return _yield_request_args;
 }

@@ -17,7 +17,7 @@
 #include <base/rpc_server.h>
 #include <base/heap.h>
 #include <base/service.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/local_connection.h>
 #include <base/quota_guard.h>
 #include <util/arg_string.h>
@@ -296,8 +296,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Signal_context_capability _heartbeat_sigh      { };
 
 		/* arguments fetched by the child in response to a yield signal */
-		Lock          _yield_request_lock { };
-		Resource_args _yield_request_args { };
+		Mutex         _yield_request_mutex { };
+		Resource_args _yield_request_args  { };
 
 		/* number of unanswered heartbeat signals */
 		unsigned _outstanding_heartbeats = 0;

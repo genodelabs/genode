@@ -20,6 +20,7 @@
 #include <file.h>
 #include <util.h>
 #include <config.h>
+#include <base/mutex.h>
 
 /*
  * Mark functions that are used during the linkers self-relocation phase as
@@ -125,9 +126,9 @@ namespace Linker {
 	Dependency *binary_root_dep();
 
 	/**
-	 * Global ELF access lock
+	 * Global ELF access mutex
 	 */
-	Lock &lock();
+	Mutex &mutex();
 }
 
 

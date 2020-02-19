@@ -6,17 +6,17 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <base/blockade.h>
 #include <base/sleep.h>
-#include <base/lock.h>
 
 void Genode::sleep_forever()
 {
-	Lock sleep;
-	while (true) sleep.lock();
+	Blockade sleep;
+	while (true) sleep.block();
 }

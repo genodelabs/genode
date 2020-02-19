@@ -79,11 +79,11 @@ void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 {
 	/**
 	 * Mark the Signal_context as already pending to prevent the receiver
-	 * from taking the lock, and set an invalid context to prevent further
+	 * from taking the mutex, and set an invalid context to prevent further
 	 * processing
 	 */
 	{
-		Lock::Guard context_guard(c->_lock);
+		Mutex::Guard context_guard(c->_mutex);
 		c->_pending     = true;
 		c->_curr_signal = Signal::Data(nullptr, 0);
 	}
@@ -96,8 +96,8 @@ void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
 Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 {
 	/* ensure that the context isn't managed already */
-	Lock::Guard contexts_guard(_contexts_lock);
-	Lock::Guard context_guard(c->_lock);
+	Mutex::Guard contexts_guard(_contexts_mutex);
+	Mutex::Guard context_guard(c->_mutex);
 	if (c->_receiver) { throw Context_already_in_use(); }
 
 	for (;;) {
@@ -137,11 +137,11 @@ void Signal_receiver::block_for_signal()
 
 	/**
 	 * Check for the signal being pending already to prevent a dead-lock
-	 * when the context is in destruction, and its lock is held
+	 * when the context is in destruction, and its mutex is held
 	 */
 	if (!context->_pending) {
 		/* update signal context */
-		Lock::Guard lock_guard(context->_lock);
+		Mutex::Guard context_guard(context->_mutex);
 		unsigned const num    = context->_curr_signal.num + data->num;
 		context->_pending     = true;
 		context->_curr_signal = Signal::Data(context, num);
@@ -154,7 +154,7 @@ void Signal_receiver::block_for_signal()
 
 Signal Signal_receiver::pending_signal()
 {
-	Lock::Guard contexts_lock_guard(_contexts_lock);
+	Mutex::Guard contexts_guard(_contexts_mutex);
 	Signal::Data result;
 	_contexts.for_each_locked([&] (Signal_context &context) {
 
@@ -169,7 +169,7 @@ Signal Signal_receiver::pending_signal()
 		throw Context_ring::Break_for_each();
 	});
 	if (result.context) {
-		Lock::Guard lock_guard(result.context->_lock);
+		Mutex::Guard context_guard(result.context->_mutex);
 		if (result.num == 0)
 			warning("returning signal with num == 0");
 
@@ -188,7 +188,7 @@ Signal Signal_receiver::pending_signal()
 
 	{
 		/* update signal context */
-		Lock::Guard lock_guard(context->_lock);
+		Mutex::Guard context_guard(context->_mutex);
 		context->_pending     = false;
 		context->_curr_signal = Signal::Data(context, data->num);
 		result                = context->_curr_signal;

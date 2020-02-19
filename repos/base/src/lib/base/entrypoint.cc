@@ -86,7 +86,7 @@ void Entrypoint::_defer_signal(Signal &sig)
 {
 	Signal_context *context = sig.context();
 
-	Lock::Guard guard(_deferred_signals_mutex);
+	Mutex::Guard guard(_deferred_signals_mutex);
 	_deferred_signals.remove(context->deferred_le());
 	_deferred_signals.insert(context->deferred_le());
 }
@@ -97,7 +97,7 @@ void Entrypoint::_process_deferred_signals()
 	for (;;) {
 		Signal_context *context = nullptr;
 		{
-			Lock::Guard guard(_deferred_signals_mutex);
+			Mutex::Guard guard(_deferred_signals_mutex);
 			if (!_deferred_signals.first()) return;
 
 			context = _deferred_signals.first()->object();
@@ -118,7 +118,6 @@ void Entrypoint::_process_incoming_signals()
 		do {
 			{
 				/* see documentation in 'wait_and_dispatch_one_io_signal()' */
-
 				Mutex::Guard guard { _block_for_signal_mutex };
 
 				_signal_proxy_delivers_signal = true;
@@ -281,7 +280,7 @@ void Genode::Entrypoint::dissolve(Signal_dispatcher_base &dispatcher)
 
 	/* also remove context from deferred signal list */
 	{
-		Lock::Guard guard(_deferred_signals_mutex);
+		Mutex::Guard guard(_deferred_signals_mutex);
 		_deferred_signals.remove(dispatcher.deferred_le());
 	}
 }

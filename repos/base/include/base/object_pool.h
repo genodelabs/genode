@@ -19,6 +19,7 @@
 #include <util/avl_tree.h>
 #include <util/noncopyable.h>
 #include <base/capability.h>
+#include <base/mutex.h>
 #include <base/weak_ptr.h>
 
 namespace Genode { template <typename> class Object_pool; }
@@ -95,13 +96,13 @@ class Genode::Object_pool : Interface, Noncopyable
 	private:
 
 		Avl_tree<Entry> _tree { };
-		Lock            _lock { };
+		Mutex           _mutex { };
 
 	protected:
 
 		bool empty()
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard lock_guard(_mutex);
 			return _tree.first() == nullptr;
 		}
 
@@ -109,13 +110,13 @@ class Genode::Object_pool : Interface, Noncopyable
 
 		void insert(OBJ_TYPE *obj)
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard lock_guard(_mutex);
 			_tree.insert(obj);
 		}
 
 		void remove(OBJ_TYPE *obj)
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard lock_guard(_mutex);
 			_tree.remove(obj);
 		}
 
@@ -131,7 +132,7 @@ class Genode::Object_pool : Interface, Noncopyable
 			Weak_ptr ptr;
 
 			{
-				Lock::Guard lock_guard(_lock);
+				Mutex::Guard lock_guard(_mutex);
 
 				Entry * entry = _tree.first() ?
 					_tree.first()->find_by_obj_id(capid) : nullptr;
@@ -164,7 +165,7 @@ class Genode::Object_pool : Interface, Noncopyable
 				OBJ_TYPE * obj;
 
 				{
-					Lock::Guard lock_guard(_lock);
+					Mutex::Guard lock_guard(_mutex);
 
 					if (!((obj = (OBJ_TYPE*) _tree.first()))) return;
 

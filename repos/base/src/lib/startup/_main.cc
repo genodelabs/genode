@@ -62,9 +62,9 @@ static struct atexit
 } _atexit;
 
 
-static Genode::Lock &atexit_lock()
+static Genode::Mutex &atexit_mutex()
 {
-	static Genode::Lock _atexit_lock;
+	static Genode::Mutex _atexit_lock;
 	return _atexit_lock;
 }
 
@@ -77,7 +77,7 @@ static void atexit_enable()
 
 static int atexit_register(struct atexit_fn *fn)
 {
-	Genode::Lock::Guard atexit_lock_guard(atexit_lock());
+	Genode::Mutex::Guard atexit_lock_guard(atexit_mutex());
 
 	if (!_atexit.enabled)
 		return 0;
@@ -144,7 +144,7 @@ void genode___cxa_finalize(void *dso)
 	struct atexit_fn fn;
 	int n = 0;
 
-	atexit_lock().lock();
+	atexit_mutex().acquire();
 	for (n = _atexit.index; --n >= 0;) {
 		if (_atexit.fns[n].fn_type == ATEXIT_FN_EMPTY)
 			continue; /* already been called */
@@ -157,7 +157,7 @@ void genode___cxa_finalize(void *dso)
 		 * has already been called.
 		 */
 		_atexit.fns[n].fn_type = ATEXIT_FN_EMPTY;
-		atexit_lock().unlock();
+		atexit_mutex().release();
 
 		/* call the function of correct type */
 		if (fn.fn_type == ATEXIT_FN_CXA)
@@ -165,9 +165,9 @@ void genode___cxa_finalize(void *dso)
 		else if (fn.fn_type == ATEXIT_FN_STD)
 			fn.fn_ptr.std_func();
 
-		atexit_lock().lock();
+		atexit_mutex().acquire();
 	}
-	atexit_lock().unlock();
+	atexit_mutex().release();
 }
 
 

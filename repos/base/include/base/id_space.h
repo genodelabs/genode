@@ -16,7 +16,7 @@
 
 #include <util/noncopyable.h>
 #include <util/meta.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/log.h>
 #include <util/avl_tree.h>
 
@@ -85,7 +85,7 @@ class Genode::Id_space : public Noncopyable
 				:
 					_obj(obj), _id_space(id_space)
 				{
-					Lock::Guard guard(_id_space._lock);
+					Mutex::Guard guard(_id_space._mutex);
 					_id = id_space._unused_id();
 					_id_space._elements.insert(this);
 				}
@@ -99,14 +99,14 @@ class Genode::Id_space : public Noncopyable
 				:
 					_obj(obj), _id_space(id_space), _id(id)
 				{
-					Lock::Guard guard(_id_space._lock);
+					Mutex::Guard guard(_id_space._mutex);
 					_id_space._check_conflict(id);
 					_id_space._elements.insert(this);
 				}
 
 				~Element()
 				{
-					Lock::Guard guard(_id_space._lock);
+					Mutex::Guard guard(_id_space._mutex);
 					_id_space._elements.remove(this);
 				}
 
@@ -122,7 +122,7 @@ class Genode::Id_space : public Noncopyable
 
 	private:
  
-		Lock mutable      _lock     { };   /* protect '_elements' and '_cnt' */
+		Mutex mutable     _mutex    { };   /* protect '_elements' and '_cnt' */
 		Avl_tree<Element> _elements { };
 		unsigned long     _cnt = 0;
 
@@ -175,7 +175,7 @@ class Genode::Id_space : public Noncopyable
 		template <typename ARG, typename FUNC>
 		void for_each(FUNC const &fn) const
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (_elements.first())
 				_elements.first()->template _for_each<ARG>(fn);
@@ -194,7 +194,7 @@ class Genode::Id_space : public Noncopyable
 		{
 			T *obj = nullptr;
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				if (!_elements.first())
 					throw Unknown_id();
@@ -226,7 +226,7 @@ class Genode::Id_space : public Noncopyable
 		{
 			T *obj = nullptr;
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				if (_elements.first())
 					obj = &_elements.first()->_obj;

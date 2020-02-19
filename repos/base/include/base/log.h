@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__LOG_H_
 
 #include <base/output.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <trace/timestamp.h>
 
 namespace Genode {
@@ -46,7 +46,7 @@ class Genode::Log
 
 	private:
 
-		Lock _lock { };
+		Mutex _mutex { };
 
 		Output &_output;
 
@@ -62,9 +62,9 @@ class Genode::Log
 		{
 			/*
 			 * This function is being inlined. Hence, we try to keep it as
-			 * small as possible. For this reason, the lock operations are
+			 * small as possible. For this reason, the mutex operations are
 			 * performed by the '_acquire' and '_release' functions instead of
-			 * using a lock guard.
+			 * using a mutex guard.
 			 */
 			_acquire(type);
 			Output::out_args(_output, args...);
@@ -107,7 +107,7 @@ class Genode::Trace_output
 {
 	private:
 
-		Lock _lock { };
+		Mutex _mutex { };
 
 		Output &_output;
 

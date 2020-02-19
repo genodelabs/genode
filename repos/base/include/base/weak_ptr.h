@@ -14,7 +14,8 @@
 #ifndef _INCLUDE__BASE__WEAK_PTR_H_
 #define _INCLUDE__BASE__WEAK_PTR_H_
 
-#include <base/lock.h>
+#include <base/blockade.h>
+#include <base/mutex.h>
 #include <base/log.h>
 #include <util/list.h>
 
@@ -42,15 +43,15 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 		friend class Weak_object_base;
 		friend class Locked_ptr_base;
 
-		Lock mutable _lock { };
+		Mutex mutable _mutex { };
 
 		Weak_object_base *_obj { nullptr };
 
 		/*
-		 * This lock is used to synchronize destruction of a weak pointer
-		 * and its corresponding weak object that happen simultanously
+		 * This blocakde is used to synchronize destruction of a weak pointer
+		 * and its corresponding weak object that happen simultaneously
 		 */
-		Lock mutable _destruct_lock { Lock::LOCKED };
+		Blockade mutable _destruct { };
 
 		inline void _adopt(Weak_object_base *obj);
 		inline void _disassociate();
@@ -109,8 +110,8 @@ class Genode::Weak_object_base
 		/**
 		 * List of weak pointers currently pointing to the object
 		 */
-		Lock                _list_lock { };
-		List<Weak_ptr_base> _list      { };
+		Mutex               _list_mutex { };
+		List<Weak_ptr_base> _list       { };
 
 		/**
 		 * Buffers dequeued weak pointer that get invalidated currently
@@ -118,9 +119,9 @@ class Genode::Weak_object_base
 		Weak_ptr_base *_ptr_in_destruction = nullptr;
 
 		/**
-		 * Lock to synchronize access to object
+		 * Mutex to synchronize access to object
 		 */
-		Lock _lock { };
+		Mutex _mutex { };
 
 	protected:
 
@@ -152,12 +153,12 @@ class Genode::Weak_object_base
 			if (!ptr) return;
 
 			{
-				Lock::Guard guard(_list_lock);
+				Mutex::Guard guard(_list_mutex);
 
 				/*
 				 * If the weak pointer that tries to disassociate is currently
 				 * removed to invalidate it by the weak object's destructor,
-				 * signal that fact to the pointer, so it can free it's lock,
+				 * signal that fact to the pointer, so it can free it's mutex,
 				 * and block until invalidation is finished.
 				 */
 				if (_ptr_in_destruction == ptr)
@@ -182,11 +183,11 @@ class Genode::Weak_object_base
 
 				/*
 				 * To prevent dead-locks we always have to hold
-				 * the order of lock access, therefore we first
-				 * dequeue one weak pointer and free the list lock again
+				 * the order of mutex access, therefore we first
+				 * dequeue one weak pointer and free the list mutex again
 				 */
 				{
-					Lock::Guard guard(_list_lock);
+					Mutex::Guard guard(_list_mutex);
 					_ptr_in_destruction = _list.first();
 
 					/* if the list is empty we're done */
@@ -195,22 +196,22 @@ class Genode::Weak_object_base
 				}
 
 				{
-					Lock::Guard guard(_ptr_in_destruction->_lock);
+					Mutex::Guard guard(_ptr_in_destruction->_mutex);
 					_ptr_in_destruction->_obj = nullptr;
 
 					/*
 					 * unblock a weak pointer that tried to disassociate
 					 * in the meantime
 					 */
-					_ptr_in_destruction->_destruct_lock.unlock();
+					_ptr_in_destruction->_destruct.wakeup();
 				}
 			}
 
 			/*
-			 * synchronize with locked pointers that already aquired
-			 * the lock before the corresponding weak pointer got invalidated
+			 * synchronize with locked pointers that already acquired
+			 * the mutex before the corresponding weak pointer got invalidated
 			 */
-			_lock.lock();
+			_mutex.acquire();
 		}
 
 		/**
@@ -364,7 +365,7 @@ void Genode::Weak_ptr_base::_adopt(Genode::Weak_object_base *obj)
 
 	if (_obj)
 	{
-		Lock::Guard guard(_obj->_list_lock);
+		Mutex::Guard guard(_obj->_list_mutex);
 		_obj->_list.insert(this);
 	}
 }
@@ -374,11 +375,11 @@ void Genode::Weak_ptr_base::_disassociate()
 {
 	/* defer destruction of object */
 	try {
-		Lock::Guard guard(_lock);
+		Mutex::Guard guard(_mutex);
 
 		if (_obj) _obj->disassociate(this);
 	} catch(Weak_object_base::In_destruction&) {
-		_destruct_lock.lock();
+		_destruct.block();
 	}
 }
 
@@ -398,7 +399,7 @@ Genode::Weak_ptr_base::operator = (Weak_ptr_base const &other)
 
 	_disassociate();
 	{
-		Lock::Guard guard(other._lock);
+		Mutex::Guard guard(other._mutex);
 		_adopt(other._obj);
 	}
 	return *this;
@@ -410,7 +411,7 @@ bool Genode::Weak_ptr_base::operator == (Weak_ptr_base const &other) const
 	if (&other == this)
 		return true;
 
-	Lock::Guard guard_this(_lock), guard_other(other._lock);
+	Mutex::Guard guard_this(_mutex), guard_other(other._mutex);
 
 	return (_obj == other._obj);
 }
@@ -433,19 +434,19 @@ Genode::Weak_ptr<T> Genode::Weak_object_base::_weak_ptr()
 Genode::Locked_ptr_base::Locked_ptr_base(Weak_ptr_base &weak_ptr)
 : curr(nullptr)
 {
-	Lock::Guard guard(weak_ptr._lock);
+	Mutex::Guard guard(weak_ptr._mutex);
 
 	if (!weak_ptr.obj()) return;
 
 	curr = weak_ptr.obj();
-	curr->_lock.lock();
+	curr->_mutex.acquire();
 }
 
 
 Genode::Locked_ptr_base::~Locked_ptr_base()
 {
 	if (curr)
-		curr->_lock.unlock();
+		curr->_mutex.release();
 }
 
 #endif /* _INCLUDE__BASE__WEAK_PTR_H_ */
