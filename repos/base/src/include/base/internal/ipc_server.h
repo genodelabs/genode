@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/stdint.h>
 #include <base/ipc.h>
+#include <base/rpc_server.h>
 
 namespace Genode {
 
@@ -44,17 +45,25 @@ namespace Genode {
 	/**
 	 * Send result of previous RPC request and wait for new one
 	 */
-	Rpc_request ipc_reply_wait(Reply_capability const &caller,
-	                           Rpc_exception_code      reply_exc,
-	                           Msgbuf_base            &reply_msg,
-	                           Msgbuf_base            &request_msg);
+	Rpc_request ipc_reply_wait(Reply_capability const         &caller,
+	                           Rpc_exception_code              reply_exc,
+	                           Msgbuf_base                    &reply_msg,
+	                           Msgbuf_base                    &request_msg,
+	                           Rpc_entrypoint::Native_context &native_context);
 }
 
 
-struct Genode::Ipc_server : Native_capability
+class Genode::Ipc_server : public Native_capability
 {
-	Ipc_server();
-	~Ipc_server();
+	private:
+
+		Rpc_entrypoint::Native_context& _native_context;
+
+	public:
+
+		Ipc_server(Rpc_entrypoint::Native_context& native_context);
+
+		~Ipc_server();
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__IPC_SERVER_H_ */

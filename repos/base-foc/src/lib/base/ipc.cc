@@ -316,10 +316,11 @@ void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
 }
 
 
-Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
-                                           Rpc_exception_code      exc,
-                                           Msgbuf_base            &reply_msg,
-                                           Msgbuf_base            &request_msg)
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const         &,
+                                           Rpc_exception_code              exc,
+                                           Msgbuf_base                    &reply_msg,
+                                           Msgbuf_base                    &request_msg,
+                                           Rpc_entrypoint::Native_context &)
 {
 	Receive_window &rcv_window = Thread::myself()->native_thread().rcv_window;
 
@@ -370,9 +371,10 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 }
 
 
-Ipc_server::Ipc_server()
+Ipc_server::Ipc_server(Rpc_entrypoint::Native_context& native_context)
 :
-	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])
+	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
+	_native_context(native_context)
 {
 	Thread::myself()->native_thread().rcv_window.init();
 }

@@ -359,10 +359,11 @@ void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
 }
 
 
-Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
-                                           Rpc_exception_code      exc,
-                                           Msgbuf_base            &reply_msg,
-                                           Msgbuf_base            &request_msg)
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const         &,
+                                           Rpc_exception_code              exc,
+                                           Msgbuf_base                    &reply_msg,
+                                           Msgbuf_base                    &request_msg,
+                                           Rpc_entrypoint::Native_context &)
 {
 	/* allocate and define receive selector */
 	if (!rcv_sel())
@@ -391,9 +392,10 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 }
 
 
-Ipc_server::Ipc_server()
+Ipc_server::Ipc_server(Rpc_entrypoint::Native_context& _native_context)
 :
-	Native_capability(Capability_space::create_ep_cap(*Thread::myself()))
+	Native_capability(Capability_space::create_ep_cap(*Thread::myself())),
+	_native_context(_native_context)
 { }
 
 

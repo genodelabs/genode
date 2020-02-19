@@ -1,11 +1,13 @@
 /*
  * \brief  Server-side API of the RPC framework
  * \author Norman Feske
+ * \author Stefan Thöni
  * \date   2006-04-28
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2020 Genode Labs GmbH
+ * Copyright (C) 2020 gapfruit AG
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -278,7 +280,6 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
 	}
 };
 
-
 /**
  * RPC entrypoint serving RPC objects
  *
@@ -301,6 +302,10 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 	 */
 	friend class Signal_receiver;
 
+	public:
+
+		class Native_context;
+
 	private:
 
 		/**
@@ -319,6 +324,8 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * This method is only used on NOVA.
 		 */
 		static void _activation_entry();
+
+		static size_t _native_stack_size(size_t stack_size);
 
 		struct Exit : Genode::Interface
 		{
@@ -344,6 +351,7 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		Pd_session       &_pd_session;        /* for creating capabilities             */
 		Exit_handler      _exit_handler { };
 		Capability<Exit>  _exit_cap     { };
+		Native_context   *_native_context { nullptr };
 
 		/**
 		 * Access to kernel-specific part of the PD session interface
@@ -399,6 +407,12 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 */
 		void entry() override;
 
+		/**
+		 * Called by implementation specific entry function
+		 * with created native context
+		 */
+		void _entry(Native_context& native_context);
+
 	public:
 
 		/**
@@ -415,7 +429,11 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		               char const *name, bool start_on_construction = true,
 		               Affinity::Location location = Affinity::Location());
 
+		Rpc_entrypoint(Genode::Rpc_entrypoint const &) = delete;
+
 		~Rpc_entrypoint();
+
+		Genode::Rpc_entrypoint operator=(Genode::Rpc_entrypoint const &) = delete;
 
 		/**
 		 * Associate RPC object with the entry point

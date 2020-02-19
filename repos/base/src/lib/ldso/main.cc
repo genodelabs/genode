@@ -19,6 +19,7 @@
 #include <util/string.h>
 #include <base/thread.h>
 #include <base/heap.h>
+#include <base/platform.h>
 
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
@@ -782,6 +783,8 @@ void Component::construct(Genode::Env &env)
 	Link_map::dump();
 
 	binary_ready_hook_for_gdb();
+
+	binary_ready_hook_for_platform();
 
 	/* start binary */
 	binary_ptr->call_entry_point(env);

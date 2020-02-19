@@ -195,10 +195,11 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 }
 
 
-Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
-                                           Rpc_exception_code      exc,
-                                           Msgbuf_base            &reply_msg,
-                                           Msgbuf_base            &request_msg)
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const         &last_caller,
+                                           Rpc_exception_code              exc,
+                                           Msgbuf_base                    &reply_msg,
+                                           Msgbuf_base                    &request_msg,
+                                           Rpc_entrypoint::Native_context &)
 {
 	L4_MsgTag_t rcv_tag;
 
@@ -237,9 +238,10 @@ static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
 }
 
 
-Ipc_server::Ipc_server()
+Ipc_server::Ipc_server(Rpc_entrypoint::Native_context& _native_context)
 :
-	Native_capability(Capability_space::import(thread_get_my_global_id(), Rpc_obj_key()))
+	Native_capability(Capability_space::import(thread_get_my_global_id(), Rpc_obj_key())),
+	_native_context(_native_context)
 { }
 
 

@@ -185,10 +185,11 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 }
 
 
-Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
-                                           Rpc_exception_code      exc,
-                                           Msgbuf_base            &reply_msg,
-                                           Msgbuf_base            &request_msg)
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const         &last_caller,
+                                           Rpc_exception_code              exc,
+                                           Msgbuf_base                    &reply_msg,
+                                           Msgbuf_base                    &request_msg,
+                                           Rpc_entrypoint::Native_context &)
 {
 	bool need_to_wait = true;
 
@@ -237,9 +238,10 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 }
 
 
-Ipc_server::Ipc_server()
+Ipc_server::Ipc_server(Rpc_entrypoint::Native_context& _native_context)
 :
-	Native_capability(Capability_space::import(Pistachio::L4_Myself(), Rpc_obj_key()))
+	Native_capability(Capability_space::import(Pistachio::L4_Myself(), Rpc_obj_key())),
+	_native_context(_native_context)
 { }
 
 

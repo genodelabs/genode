@@ -20,33 +20,11 @@
 
 using namespace Genode;
 
-
-/***********************
- ** Server entrypoint **
- ***********************/
-
-Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
+void Rpc_entrypoint::_entry(Native_context& native_context)
 {
-	/* don't manage RPC object twice */
-	if (obj->cap().valid()) {
-		warning("attempt to manage RPC object twice");
-		return obj->cap();
-	}
+	_native_context = &native_context;
 
-	Untyped_capability new_obj_cap = _alloc_rpc_cap(_pd_session, _cap);
-
-	/* add server object to object pool */
-	obj->cap(new_obj_cap);
-	insert(obj);
-
-	/* return capability that uses the object id as badge */
-	return new_obj_cap;
-}
-
-
-void Rpc_entrypoint::entry()
-{
-	Ipc_server srv;
+	Ipc_server srv(native_context);
 	_cap = srv;
 	_cap_valid.unlock();
 
@@ -63,7 +41,7 @@ void Rpc_entrypoint::entry()
 
 	while (!_exit_handler.exit) {
 
-		Rpc_request const request = ipc_reply_wait(_caller, exc, _snd_buf, _rcv_buf);
+		Rpc_request const request = ipc_reply_wait(_caller, exc, _snd_buf, _rcv_buf, native_context);
 		_caller = request.caller;
 
 		Ipc_unmarshaller unmarshaller(_rcv_buf);
