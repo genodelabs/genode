@@ -40,6 +40,9 @@ struct Test::Replay : Test_base
 					if (request.attribute_value("type", Type()) == "write")
 						return Block::Operation::Type::WRITE;
 
+					if (request.attribute_value("type", Type()) == "sync")
+						return Block::Operation::Type::SYNC;
+
 					error("operation type not defined: ", request);
 					throw 1;
 				};
