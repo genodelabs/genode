@@ -93,7 +93,7 @@ struct Vfs_ram::Watch_handle final : public  Vfs_watch_handle,
 };
 
 
-class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Lock
+class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Mutex
 {
 	private:
 
@@ -123,8 +123,8 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Lock
 
 	public:
 
-		using Lock::lock;
-		using Lock::unlock;
+		using Mutex::acquire;
+		using Mutex::release;
 
 		unsigned inode;
 
@@ -245,9 +245,9 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Lock
 		{
 			Node &node;
 
-			Guard(Node *guard_node) : node(*guard_node) { node.lock(); }
+			Guard(Node *guard_node) : node(*guard_node) { node.acquire(); }
 
-			~Guard() { node.unlock(); }
+			~Guard() { node.release(); }
 		};
 };
 
@@ -737,9 +737,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				try { link = new (_env.alloc()) Symlink(name); }
 				catch (Out_of_memory) { return OPENLINK_ERR_NO_SPACE; }
 
-				link->lock();
+				link->acquire();
 				parent->adopt(link);
-				link->unlock();
+				link->release();
 				parent->notify();
 			} else {
 
@@ -838,7 +838,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			/* unlock the node so a second guard can be constructed */
 			if (from_dir == to_dir)
-				from_dir->unlock();
+				from_dir->Node::release();
 
 			Node::Guard to_guard(to_dir);
 
@@ -848,7 +848,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			Node *to_node = to_dir->child(new_name);
 			if (to_node) {
-				to_node->lock();
+				to_node->acquire();
 
 				if (Directory *dir = dynamic_cast<Directory*>(to_node))
 					if (dir->length() || (!dynamic_cast<Directory*>(from_node)))
@@ -885,7 +885,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Node *node = parent->child(basename(path));
 			if (!node) return UNLINK_ERR_NO_ENTRY;
 
-			node->lock();
+			node->acquire();
 			parent->release(node);
 			node->notify();
 			parent->notify();

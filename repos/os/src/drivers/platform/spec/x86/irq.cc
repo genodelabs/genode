@@ -141,9 +141,9 @@ class Platform::Irq_component : public Platform::Irq_proxy
 		                                    Genode::Allocator *heap = nullptr)
 		{
 			static Genode::List<Irq_proxy> proxies;
-			static Genode::Lock            proxies_lock;
+			static Genode::Mutex           proxies_mutex;
 
-			Genode::Lock::Guard lock_guard(proxies_lock);
+			Genode::Mutex::Guard mutex_guard(proxies_mutex);
 
 			/* lookup proxy in database */
 			for (Irq_proxy *p = proxies.first(); p; p = p->next())

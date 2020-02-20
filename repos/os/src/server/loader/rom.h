@@ -41,7 +41,7 @@ namespace Genode {
 
 			Signal_context_capability _sigh { };
 
-			Lock _lock { Lock::LOCKED };
+			Blockade _blockade { };
 
 		public:
 
@@ -66,8 +66,8 @@ namespace Genode {
 
 			bool has_name(Name const &name) const { return _name == name; }
 
-			void lock()   { _lock.lock(); }
-			void unlock() { _lock.unlock(); }
+			void lock()   { _blockade.block(); }
+			void unlock() { _blockade.wakeup(); }
 
 			/**
 			 * Return dataspace as handed out to loader session
@@ -155,7 +155,7 @@ namespace Genode {
 
 			Env             &_env;
 			Xml_node   const _config;
-			Lock             _lock { };
+			Mutex            _mutex { };
 			Ram_allocator   &_ram_allocator;
 			Allocator       &_md_alloc;
 			List<Rom_module> _list { };
@@ -184,7 +184,7 @@ namespace Genode {
 
 			~Rom_module_registry()
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				while (_list.first()) {
 					Rom_module *rom = _list.first();
@@ -201,7 +201,7 @@ namespace Genode {
 			 */
 			Rom_module &lookup_and_lock(Rom_module::Name const &name)
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				Rom_module *curr = _list.first();
 				for (; curr; curr = curr->next()) {
@@ -222,7 +222,7 @@ namespace Genode {
 				}
 				catch (Lookup_failed) {
 
-					Lock::Guard guard(_lock);
+					Mutex::Guard guard(_mutex);
 
 					Rom_module *module = new (&_md_alloc)
 						Rom_module(_env, _config, name, _ram_allocator,
@@ -243,7 +243,7 @@ namespace Genode {
 				}
 				catch (Lookup_failed) {
 
-					Lock::Guard guard(_lock);
+					Mutex::Guard guard(_mutex);
 
 					Rom_module *module = new (&_md_alloc)
 						Rom_module(_env, _config, name, _ram_allocator,

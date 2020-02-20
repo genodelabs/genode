@@ -101,7 +101,7 @@ struct Lock_test : Test
 
 	bool                                stop     { false };
 	Microseconds                        us       { 1000 };
-	Lock                                lock     { };
+	Mutex                               mutex    { };
 	Timer::One_shot_timeout<Lock_test>  ot1      { timer, *this, &Lock_test::handle_ot1 };
 	Timer::One_shot_timeout<Lock_test>  ot2      { timer, *this, &Lock_test::handle_ot2 };
 	Timer::One_shot_timeout<Lock_test>  ot3      { timer, *this, &Lock_test::handle_ot3 };
@@ -129,7 +129,7 @@ struct Lock_test : Test
 			stop = true;
 			return;
 		}
-		Lock_guard<Lock> lock_guard(lock);
+		Mutex::Guard mutex_guard(mutex);
 		us.value--;
 		ot.schedule(us);
 	}

@@ -114,7 +114,7 @@ class I8042
 			 */
 			void flush_read()
 			{
-				Genode::Lock::Guard guard(_i8042._lock);
+				Genode::Mutex::Guard guard(_i8042._mutex);
 
 				while (_i8042._output_buffer_full())
 					_i8042._read_and_route();
@@ -143,7 +143,7 @@ class I8042
 
 			void write(unsigned char value) override
 			{
-				Genode::Lock::Guard guard(_i8042._lock);
+				Genode::Mutex::Guard guard(_i8042._mutex);
 
 				if (_aux)
 					_i8042._command(CMD_AUX_WRITE);
@@ -255,9 +255,9 @@ class I8042
 		 * Both serial interfaces may be used by different
 		 * threads, e.g., interrupt handlers. Hence, controller
 		 * transactions (read/write sequences) must be protected
-		 * with a lock.
+		 * with a mutex.
 		 */
-		Genode::Lock _lock { };
+		Genode::Mutex _mutex { };
 
 	public:
 

@@ -279,9 +279,9 @@ class Genode::Packet_descriptor_transmitter
 		/* facility to send ready-to-receive signals */
 		Genode::Signal_transmitter         _rx_ready { };
 
-		Genode::Lock _tx_queue_lock { };
-		TX_QUEUE    *_tx_queue;
-		bool         _tx_wakeup_needed = false;
+		Genode::Mutex  _tx_queue_mutex { };
+		TX_QUEUE      *_tx_queue;
+		bool           _tx_wakeup_needed = false;
 
 		/*
 		 * Noncopyable
@@ -325,13 +325,13 @@ class Genode::Packet_descriptor_transmitter
 
 		bool ready_for_tx()
 		{
-			Genode::Lock::Guard lock_guard(_tx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_tx_queue_mutex);
 			return !_tx_queue->full();
 		}
 
 		void tx(typename TX_QUEUE::Packet_descriptor packet)
 		{
-			Genode::Lock::Guard lock_guard(_tx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_tx_queue_mutex);
 
 			do {
 				/* block for signal if tx queue is full */
@@ -352,7 +352,7 @@ class Genode::Packet_descriptor_transmitter
 
 		bool try_tx(typename TX_QUEUE::Packet_descriptor packet)
 		{
-			Genode::Lock::Guard lock_guard(_tx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_tx_queue_mutex);
 
 			if (_tx_queue->full())
 				return false;
@@ -367,7 +367,7 @@ class Genode::Packet_descriptor_transmitter
 
 		bool tx_wakeup()
 		{
-			Genode::Lock::Guard lock_guard(_tx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_tx_queue_mutex);
 
 			bool signal_submitted = false;
 
@@ -405,9 +405,9 @@ class Genode::Packet_descriptor_receiver
 		/* facility to send ready-to-transmit signals */
 		Genode::Signal_transmitter        _tx_ready { };
 
-		Genode::Lock mutable  _rx_queue_lock { };
-		RX_QUEUE             *_rx_queue;
-		bool                  _rx_wakeup_needed = false;
+		Genode::Mutex mutable  _rx_queue_mutex { };
+		RX_QUEUE              *_rx_queue;
+		bool                   _rx_wakeup_needed = false;
 
 		/*
 		 * Noncopyable
@@ -451,13 +451,13 @@ class Genode::Packet_descriptor_receiver
 
 		bool ready_for_rx()
 		{
-			Genode::Lock::Guard lock_guard(_rx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_rx_queue_mutex);
 			return !_rx_queue->empty();
 		}
 
 		void rx(typename RX_QUEUE::Packet_descriptor *out_packet)
 		{
-			Genode::Lock::Guard lock_guard(_rx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_rx_queue_mutex);
 
 			while (_rx_queue->empty())
 				_rx_ready.wait_for_signal();
@@ -470,7 +470,7 @@ class Genode::Packet_descriptor_receiver
 
 		typename RX_QUEUE::Packet_descriptor try_rx()
 		{
-			Genode::Lock::Guard lock_guard(_rx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_rx_queue_mutex);
 
 			typename RX_QUEUE::Packet_descriptor packet { };
 
@@ -485,7 +485,7 @@ class Genode::Packet_descriptor_receiver
 
 		bool rx_wakeup()
 		{
-			Genode::Lock::Guard lock_guard(_rx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_rx_queue_mutex);
 
 			bool signal_submitted = false;
 
@@ -501,7 +501,7 @@ class Genode::Packet_descriptor_receiver
 
 		typename RX_QUEUE::Packet_descriptor rx_peek() const
 		{
-			Genode::Lock::Guard lock_guard(_rx_queue_lock);
+			Genode::Mutex::Guard mutex_guard(_rx_queue_mutex);
 			return _rx_queue->peek();
 		}
 };

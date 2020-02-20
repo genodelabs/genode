@@ -140,8 +140,8 @@ unique_child_name(Children const &children, Bomb_child::Name const &binary_name,
                   unsigned const generation)
 {
 	/* serialize calls to this function */
-	static Lock lock;
-	Lock::Guard guard(lock);
+	static Mutex mutex;
+	Mutex::Guard guard(mutex);
 
 	for (unsigned cnt = 1; ; cnt++) {
 

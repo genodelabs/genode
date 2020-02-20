@@ -36,15 +36,15 @@ struct Genode::Ring_buffer_unsynchronized
 		void up() { }
 	};
 
-	struct Lock
+	struct Mutex
 	{
-		void lock() { }
-		void unlock() { }
+		void acquire() { }
+		void release() { }
 	};
 
-	struct Lock_guard
+	struct Mutex_guard
 	{
-		Lock_guard(Lock &) { }
+		Mutex_guard(Mutex &) { }
 	};
 };
 
@@ -52,8 +52,8 @@ struct Genode::Ring_buffer_unsynchronized
 struct Genode::Ring_buffer_synchronized
 {
 	typedef Genode::Semaphore Sem;
-	typedef Genode::Lock Lock;
-	typedef Genode::Lock::Guard Lock_guard;
+	typedef Genode::Mutex Mutex;
+	typedef Genode::Mutex::Guard Mutex_guard;
 };
 
 
@@ -77,8 +77,8 @@ class Genode::Ring_buffer
 		int _head = 0;
 		int _tail = 0;
 
-		typename SYNC_POLICY::Sem  _sem       { };  /* element counter */
-		typename SYNC_POLICY::Lock _head_lock { };  /* synchronize add */
+		typename SYNC_POLICY::Sem   _sem       { };  /* element counter */
+		typename SYNC_POLICY::Mutex _head_lock { };  /* synchronize add */
 
 		ET _queue[QUEUE_SIZE] { };
 
@@ -98,7 +98,7 @@ class Genode::Ring_buffer
 		 */
 		void add(ET ev)
 		{
-			typename SYNC_POLICY::Lock_guard lock_guard(_head_lock);
+			typename SYNC_POLICY::Mutex_guard mutex_guard(_head_lock);
 
 			if ((_head + 1)%QUEUE_SIZE != _tail) {
 				_queue[_head] = ev;

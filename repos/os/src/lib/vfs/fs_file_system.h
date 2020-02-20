@@ -29,13 +29,13 @@ class Vfs::Fs_file_system : public File_system
 	private:
 
 		/*
-		 * Lock used to serialize the interaction with the packet stream of the
+		 * Mutex used to serialize the interaction with the packet stream of the
 		 * file-system session.
 		 *
 		 * XXX Once, we change the VFS file-system interface to use
 		 *     asynchronous read/write operations, we can possibly remove it.
 		 */
-		Lock _lock { };
+		Mutex _mutex { };
 
 		Vfs::Env              &_env;
 		Genode::Allocator_avl  _fs_packet_alloc { &_env.alloc() };
@@ -601,12 +601,12 @@ class Vfs::Fs_file_system : public File_system
 					Genode::warning("ack for unknown File_system handle ", id); }
 
 				if (packet.operation() == Packet_descriptor::WRITE) {
-					Lock::Guard guard(_lock);
+					Mutex::Guard guard(_mutex);
 					source.release_packet(packet);
 				}
 
 				if (packet.operation() == Packet_descriptor::WRITE_TIMESTAMP) {
-					Lock::Guard guard(_lock);
+					Mutex::Guard guard(_mutex);
 					source.release_packet(packet);
 				}
 			}
@@ -801,7 +801,7 @@ class Vfs::Fs_file_system : public File_system
 		Open_result open(char const *path, unsigned vfs_mode, Vfs_handle **out_handle,
 		                 Genode::Allocator& alloc) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
@@ -848,7 +848,7 @@ class Vfs::Fs_file_system : public File_system
 		Opendir_result opendir(char const *path, bool create,
 		                       Vfs_handle **out_handle, Allocator &alloc) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Absolute_path dir_path(path);
 
@@ -873,7 +873,7 @@ class Vfs::Fs_file_system : public File_system
 		Openlink_result openlink(char const *path, bool create,
 		                         Vfs_handle **out_handle, Allocator &alloc) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			/*
 			 * Canonicalize path (i.e., path must start with '/')
@@ -914,7 +914,7 @@ class Vfs::Fs_file_system : public File_system
 
 		void close(Vfs_handle *vfs_handle) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Fs_vfs_handle *fs_handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 			if (fs_handle->enqueued())
@@ -976,7 +976,7 @@ class Vfs::Fs_file_system : public File_system
 		Write_result write(Vfs_handle *vfs_handle, char const *buf,
 		                   file_size buf_size, file_size &out_count) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Fs_vfs_handle &handle = static_cast<Fs_vfs_handle &>(*vfs_handle);
 
@@ -986,7 +986,7 @@ class Vfs::Fs_file_system : public File_system
 
 		bool queue_read(Vfs_handle *vfs_handle, file_size count) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
@@ -999,7 +999,7 @@ class Vfs::Fs_file_system : public File_system
 		Read_result complete_read(Vfs_handle *vfs_handle, char *dst, file_size count,
 		                          file_size &out_count) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			out_count = 0;
 
@@ -1064,7 +1064,7 @@ class Vfs::Fs_file_system : public File_system
 
 		bool queue_sync(Vfs_handle *vfs_handle) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
@@ -1073,7 +1073,7 @@ class Vfs::Fs_file_system : public File_system
 
 		Sync_result complete_sync(Vfs_handle *vfs_handle) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
@@ -1082,7 +1082,7 @@ class Vfs::Fs_file_system : public File_system
 
 		bool update_modification_timestamp(Vfs_handle *vfs_handle, Vfs::Timestamp time) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
