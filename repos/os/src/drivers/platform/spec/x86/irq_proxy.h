@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2009-2017 Genode Labs GmbH
+ * Copyright (C) 2009-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -14,6 +14,8 @@
 
 #ifndef _DRIVERS__PLATFORM__SPEC__X86__IRQ_PROXY_H_
 #define _DRIVERS__PLATFORM__SPEC__X86__IRQ_PROXY_H_
+
+#include <base/mutex.h>
 
 namespace Platform {
 	class Irq_sigh;
@@ -52,9 +54,9 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 
 	protected:
 
-		unsigned     _irq_number;
-		Genode::Lock _mutex;             /* protects this object */
-		int          _num_sharers;       /* number of clients sharing this IRQ */
+		unsigned      _irq_number;
+		Genode::Mutex _mutex { };         /* protects this object */
+		int           _num_sharers;       /* number of clients sharing this IRQ */
 
 		Genode::List<Irq_sigh> _sigh_list { };
 
@@ -68,8 +70,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 
 		Irq_proxy(unsigned irq_number)
 		:
-			_irq_number(irq_number),
-			_mutex(Genode::Lock::UNLOCKED), _num_sharers(0),
+			_irq_number(irq_number), _num_sharers(0),
 			_num_acknowledgers(0), _woken_up(false)
 		{ }
 
@@ -80,7 +81,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 		 */
 		virtual bool ack_irq()
 		{
-			Genode::Lock::Guard lock_guard(_mutex);
+			Genode::Mutex::Guard mutex_guard(_mutex);
 
 			_num_acknowledgers++;
 
@@ -100,7 +101,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 		 */
 		void notify_about_irq()
 		{
-			Genode::Lock::Guard lock_guard(_mutex);
+			Genode::Mutex::Guard mutex_guard(_mutex);
 
 			/* reset acknowledger state */
 			_num_acknowledgers = 0;
@@ -115,7 +116,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 
 		virtual bool add_sharer(Irq_sigh *s)
 		{
-			Genode::Lock::Guard lock_guard(_mutex);
+			Genode::Mutex::Guard mutex_guard(_mutex);
 
 			++_num_sharers;
 			_sigh_list.insert(s);
@@ -125,7 +126,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 
 		virtual bool remove_sharer(Irq_sigh *s)
 		{
-			Genode::Lock::Guard lock_guard(_mutex);
+			Genode::Mutex::Guard mutex_guard(_mutex);
 
 			_sigh_list.remove(s);
 			--_num_sharers;

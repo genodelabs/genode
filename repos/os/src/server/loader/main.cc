@@ -43,7 +43,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			Entrypoint                 &_ep;
 			Allocator                  &_md_alloc;
 			Rom_module_registry        &_rom_modules;
-			Lock                        _lock { };
+			Mutex                       _mutex { };
 			List<Rom_session_component> _rom_sessions { };
 
 			void _close(Rom_session_component &rom)
@@ -61,7 +61,7 @@ class Loader::Session_component : public Rpc_object<Session>
 
 			~Local_rom_factory()
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				while (_rom_sessions.first())
 					_close(*_rom_sessions.first());
@@ -71,7 +71,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			{
 				/* try to find ROM module at local ROM service */
 				try {
-					Lock::Guard guard(_lock);
+					Mutex::Guard guard(_mutex);
 
 					Session_label const label = label_from_args(args.string());
 					Session_label const name  = label.last_element();
@@ -94,7 +94,7 @@ class Loader::Session_component : public Rpc_object<Session>
 
 			void destroy(Rom_session_component &session) override
 			{
-				Lock::Guard guard(_lock);
+				Mutex::Guard guard(_mutex);
 
 				_close(session);
 			}

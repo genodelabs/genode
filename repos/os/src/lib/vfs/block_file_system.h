@@ -34,7 +34,7 @@ class Vfs::Block_file_system : public Single_file_system
 		/*
 		 * Serialize access to packet stream of the block session
 		 */
-		Lock _lock { };
+		Mutex _mutex { };
 
 		char                 *_block_buffer;
 		unsigned              _block_buffer_count;
@@ -66,7 +66,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 				Genode::Allocator                 &_alloc;
 				Label                             &_label;
-				Lock                              &_lock;
+				Mutex                             &_mutex;
 				char                              *_block_buffer;
 				unsigned                          &_block_buffer_count;
 				Genode::Allocator_avl             &_tx_block_alloc;
@@ -104,7 +104,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 					while (true) {
 						try {
-							Lock::Guard guard(_lock);
+							Mutex::Guard guard(_mutex);
 
 							packet = _block.alloc_packet(packet_size);
 							break;
@@ -119,7 +119,7 @@ class Vfs::Block_file_system : public Single_file_system
 							}
 						}
 					}
-					Lock::Guard guard(_lock);
+					Mutex::Guard guard(_mutex);
 
 					Block::Packet_descriptor p(packet, op, nr, packet_count);
 
@@ -148,7 +148,7 @@ class Vfs::Block_file_system : public Single_file_system
 				                 File_io_service                   &fs,
 				                 Genode::Allocator                 &alloc,
 				                 Label                             &label,
-				                 Lock                              &lock,
+				                 Mutex                             &mutex,
 				                 char                              *block_buffer,
 				                 unsigned                          &block_buffer_count,
 				                 Genode::Allocator_avl             &tx_block_alloc,
@@ -163,7 +163,7 @@ class Vfs::Block_file_system : public Single_file_system
 				: Single_vfs_handle(ds, fs, alloc, 0),
 				  _alloc(alloc),
 				  _label(label),
-				  _lock(lock),
+				  _mutex(mutex),
 				  _block_buffer(block_buffer),
 				  _block_buffer_count(block_buffer_count),
 				  _tx_block_alloc(tx_block_alloc),
@@ -393,7 +393,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 			try {
 				*out_handle = new (alloc) Block_vfs_handle(*this, *this, alloc,
-				                                           _label, _lock,
+				                                           _label, _mutex,
 				                                           _block_buffer,
 				                                           _block_buffer_count,
 				                                           _tx_block_alloc,

@@ -43,10 +43,10 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 * The ROM module may be written and consumed by different threads,
 		 * e.g., written by the main thread and consumed by the child's
 		 * entrypoint that manages the local ROM service for handing out a
-		 * dynamic config. Hence, the '_lock' is used to synchronize the
+		 * dynamic config. Hence, the '_mutex' is used to synchronize the
 		 * 'load' and 'dataspace' methods.
 		 */
-		Lock _lock { };
+		Mutex _mutex { };
 
 		/*
 		 * We keep two dataspaces around. The foreground ('_fg') dataspace
@@ -111,7 +111,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 */
 		void load(void const *data, size_t data_len)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (!_ram) {
 				Genode::error("no backing store for loading ROM data");
@@ -136,7 +136,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 
 		Rom_dataspace_capability dataspace() override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (!_fg.size() && !_bg_has_pending_data) {
 				Genode::error("no data loaded");

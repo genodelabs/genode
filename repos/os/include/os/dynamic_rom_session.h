@@ -74,7 +74,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		 * Synchronize calls of 'trigger_update' (called locally) with the
 		 * 'Rom_session' methods (invoked via RPC).
 		 */
-		Lock _lock { };
+		Mutex _mutex { };
 
 		Rpc_entrypoint            &_ep;
 		Ram_allocator             &_ram;
@@ -200,7 +200,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		 */
 		void trigger_update()
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			_current_version++;
 			_notify_client();
@@ -213,7 +213,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 		Rom_dataspace_capability dataspace() override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			if (!_ds.constructed())
 				_unsynchronized_update();
@@ -228,14 +228,14 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 		bool update() override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			return _unsynchronized_update();
 		}
 
 		void sigh(Signal_context_capability sigh) override
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			_sigh = sigh;
 			_notify_client();

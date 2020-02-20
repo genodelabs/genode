@@ -189,9 +189,9 @@ class Genode::Slave::Connection_base
 		struct Service : Genode::Service, Session_state::Ready_callback,
 		                                  Session_state::Closed_callback
 		{
-			Policy &_policy;
-			Lock    _lock { Lock::LOCKED };
-			bool    _alive = false;
+			Policy   &_policy;
+			Blockade  _blockade { };
+			bool      _alive = false;
 
 			Service(Policy &policy)
 			:
@@ -240,13 +240,13 @@ class Genode::Slave::Connection_base
 			void session_ready(Session_state &session) override
 			{
 				_alive = session.alive();
-				_lock.unlock();
+				_blockade.wakeup();
 			}
 
 			/**
 			 * Session_state::Closed_callback
 			 */
-			void session_closed(Session_state &s) override { _lock.unlock(); }
+			void session_closed(Session_state &s) override { _blockade.wakeup(); }
 
 			/**
 			 * Service ('Ram_transfer::Account') interface
@@ -290,7 +290,7 @@ class Genode::Slave::Connection_base
 			_connection(_service, _id_space, { 1 }, args, affinity)
 		{
 			_policy.trigger_session_requests();
-			_service._lock.lock();
+			_service._blockade.block();
 			if (!_service._alive)
 				throw Service_denied();
 		}
@@ -298,7 +298,7 @@ class Genode::Slave::Connection_base
 		~Connection_base()
 		{
 			_policy.trigger_session_requests();
-			_service._lock.lock();
+			_service._blockade.block();
 		}
 
 		typedef typename CONNECTION::Session_type SESSION;

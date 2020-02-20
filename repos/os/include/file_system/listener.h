@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <file_system_session/rpc_object.h>
 #include <util/list.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/signal.h>
 
 namespace File_system {
@@ -32,7 +32,7 @@ namespace File_system {
 
 		private:
 
-			Genode::Lock      _lock { };
+			Genode::Mutex     _mutex { };
 			Sink             &_sink;
 			Node_handle const _handle;
 
@@ -57,7 +57,7 @@ namespace File_system {
 			 */
 			void notify(Version curr_version)
 			{
-				Genode::Lock::Guard guard(_lock);
+				Genode::Mutex::Guard guard(_mutex);
 
 				if (curr_version.value == _handed_out_version.value)
 					return;
@@ -77,7 +77,7 @@ namespace File_system {
 			 */
 			void handed_out_version(Version version)
 			{
-				Genode::Lock::Guard guard(_lock);
+				Genode::Mutex::Guard guard(_mutex);
 
 				_handed_out_version = version;
 			}

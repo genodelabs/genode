@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <util/misc_math.h>
 #include <util/string.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <base/rpc_client.h>
 #include <base/attached_dataspace.h>
 
@@ -30,7 +30,7 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 {
 	private:
 
-		Genode::Lock _lock { };
+		Genode::Mutex _mutex { };
 
 		/**
 		 * Shared-memory buffer used for carrying the payload
@@ -52,7 +52,7 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 
 		Genode::size_t read(void *buf, Genode::size_t buf_size) override
 		{
-			Genode::Lock::Guard _guard(_lock);
+			Genode::Mutex::Guard _guard(_mutex);
 
 			/* instruct server to fill the I/O buffer */
 			Genode::size_t num_bytes = call<Rpc_read>(buf_size);
@@ -66,7 +66,7 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 
 		Genode::size_t write(void const *buf, Genode::size_t num_bytes) override
 		{
-			Genode::Lock::Guard _guard(_lock);
+			Genode::Mutex::Guard _guard(_mutex);
 
 			Genode::size_t     written_bytes = 0;
 			char const * const src           = (char const *)buf;

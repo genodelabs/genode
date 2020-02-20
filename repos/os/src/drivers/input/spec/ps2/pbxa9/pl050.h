@@ -66,7 +66,7 @@ class Pl050
 			_Channel(_Channel const &);
 			_Channel &operator = (_Channel const &);
 
-			Genode::Lock                      _lock { };
+			Genode::Mutex                     _mutex { };
 			Genode::Attached_io_mem_dataspace _io_mem;
 			volatile Genode::uint32_t        *_reg_base;
 
@@ -96,7 +96,7 @@ class Pl050
 			 */
 			unsigned char read() override
 			{
-				Genode::Lock::Guard guard(_lock);
+				Genode::Mutex::Guard guard(_mutex);
 
 				while (empty())
 					if (_input_pending())

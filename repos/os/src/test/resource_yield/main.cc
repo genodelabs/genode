@@ -193,8 +193,6 @@ class Test::Parent
 
 		Timer::Connection _timer { _env };
 
-		Lock _yield_blockade { };
-
 		void _print_status()
 		{
 			log("quota: ", _child.pd().ram_quota().value / 1024, " KiB  "
