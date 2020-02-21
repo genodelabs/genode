@@ -20,6 +20,8 @@ Hw::Gicv2::Gicv2()
   _max_irq(_distr.max_irq())
 {
 	static bool distributor_initialized = false;
+	bool use_group_1 = Board::NON_SECURE &&
+	                   _distr.read<Distributor::Typer::Security_extension>();
 
 	if (!distributor_initialized) {
 		distributor_initialized = true;
@@ -29,7 +31,7 @@ Hw::Gicv2::Gicv2()
 
 		/* configure every shared peripheral interrupt */
 		for (unsigned i = min_spi; i <= _max_irq; i++) {
-			if (Board::NON_SECURE) {
+			if (use_group_1) {
 				_distr.write<Distributor::Igroupr::Group_status>(1, i);
 			}
 			_distr.write<Distributor::Icfgr::Edge_triggered>(0, i);
@@ -39,7 +41,7 @@ Hw::Gicv2::Gicv2()
 
 		/* enable device */
 		Distributor::Ctlr::access_t v = 0;
-		if (Board::NON_SECURE) {
+		if (use_group_1) {
 			Distributor::Ctlr::Enable_grp0::set(v, 1);
 			Distributor::Ctlr::Enable_grp1::set(v, 1);
 		} else {
@@ -48,7 +50,7 @@ Hw::Gicv2::Gicv2()
 		_distr.write<Distributor::Ctlr>(v);
 	}
 
-	if (Board::NON_SECURE) {
+	if (use_group_1) {
 		_cpui.write<Cpu_interface::Ctlr>(0);
 
 		/* mark software-generated IRQs as being non-secure */
@@ -64,7 +66,7 @@ Hw::Gicv2::Gicv2()
 
 	/* enable device */
 	Cpu_interface::Ctlr::access_t v = 0;
-	if (Board::NON_SECURE) {
+	if (use_group_1) {
 		Cpu_interface::Ctlr::Enable_grp0::set(v, 1);
 		Cpu_interface::Ctlr::Enable_grp1::set(v, 1);
 		Cpu_interface::Ctlr::Fiq_en::set(v, 1);

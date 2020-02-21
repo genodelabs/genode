@@ -43,8 +43,11 @@ class Hw::Gicv2
 			/**
 			 * Controller type register
 			 */
-			struct Typer : Register<0x004, 32> {
-				struct It_lines_number : Bitfield<0,5> { }; };
+			struct Typer : Register<0x004, 32>
+			{
+				struct It_lines_number    : Bitfield<0,5>  { };
+				struct Security_extension : Bitfield<10,1> { };
+			};
 
 			/**
 			 * Interrupt group register
