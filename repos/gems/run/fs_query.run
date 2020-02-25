@@ -168,7 +168,7 @@ build_boot_image { sequence fs_query }
 
 append qemu_args " -nographic -serial mon:stdio "
 
-run_genode_until {.*child "test" exited with exit value 0.*\n} 30
+run_genode_until {.*child "test" exited with exit value 0.*\n} 50
 
 grep_output {\[init -> report_rom\].*}
 
