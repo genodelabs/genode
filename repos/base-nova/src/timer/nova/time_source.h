@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <trace/timestamp.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/log.h>
 
 /* local includes */
 #include <threaded_time_source.h>
@@ -36,16 +37,24 @@ class Timer::Time_source : public Threaded_time_source
 		/* read the tsc frequency from platform info */
 		static unsigned long _obtain_tsc_khz(Genode::Env &env)
 		{
+			unsigned long result = 0;
 			try {
 				Genode::Attached_rom_dataspace info { env, "platform_info"};
 
-				return info.xml()
-				           .sub_node("hardware")
-				           .sub_node("tsc")
-				           .attribute_value("freq_khz", 0UL);
+				result = info.xml().sub_node("hardware")
+				                   .sub_node("tsc")
+				                   .attribute_value("freq_khz", 0UL);
 			} catch (...) { }
 
-			return 0;
+			if (result)
+				return result;
+
+			/*
+			 * The returned value must never be zero because it is used as
+			 * divisor by '_tsc_to_us'.
+			 */
+			Genode::warning("unable to obtain tsc frequency, asuming 1 GHz");
+			return 1000*1000;
 		}
 
 		Genode::addr_t           _sem        { ~0UL };
