@@ -228,6 +228,7 @@ class Window_layouter::Target_list
 			if (!_rules.constructed())
 				return;
 
+			xml.append("\n");
 			_rules->xml().for_each_sub_node("screen", [&] (Xml_node screen) {
 				if (screen_name.valid()) {
 					Target::Name const name =
@@ -236,6 +237,7 @@ class Window_layouter::Target_list
 					if (screen_name != name)
 						return;
 				}
+				xml.append("\t");
 				screen.with_raw_node([&] (char const *start, size_t length) {
 					xml.append(start, length); });
 				xml.append("\n");
@@ -249,6 +251,7 @@ class Window_layouter::Target_list
 				if (screen_name == name)
 					return;
 
+				xml.append("\t");
 				screen.with_raw_node([&] (char const *start, size_t length) {
 					xml.append(start, length); });
 				xml.append("\n");
