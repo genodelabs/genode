@@ -18,6 +18,9 @@
 /* Genode includes */
 #include <util/xml_node.h>
 
+/* libc includes */
+#include <libc/component.h>
+
 /* Qt includes */
 #include <QMimeData>
 
@@ -65,7 +68,7 @@ QGenodeClipboard::~QGenodeClipboard()
 
 void QGenodeClipboard::_handle_clipboard()
 {
-	emitChanged(QClipboard::Clipboard);
+	Libc::with_libc([&] () { emitChanged(QClipboard::Clipboard); });
 }
 
 

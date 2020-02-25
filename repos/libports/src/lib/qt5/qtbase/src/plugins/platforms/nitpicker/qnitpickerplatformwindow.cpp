@@ -17,6 +17,9 @@
 #include <base/log.h>
 #include <nitpicker_session/client.h>
 
+/* libc includes */
+#include <libc/component.h>
+
 /* Qt includes */
 #include <qpa/qplatformscreen.h>
 #include <QGuiApplication>
@@ -326,80 +329,84 @@ void QNitpickerPlatformWindow::_mouse_button_event(Input::Keycode button, bool p
 
 void QNitpickerPlatformWindow::_handle_input()
 {
-	QList<Input::Event> touch_events;
+	Libc::with_libc([&] () {
+		QList<Input::Event> touch_events;
 
-	_input_session.for_each_event([&] (Input::Event const &event) {
+		_input_session.for_each_event([&] (Input::Event const &event) {
 
-		event.handle_absolute_motion([&] (int x, int y) {
-			_mouse_position = QPoint(x, y);
+			event.handle_absolute_motion([&] (int x, int y) {
+				_mouse_position = QPoint(x, y);
 
-			QWindowSystemInterface::handleMouseEvent(window(),
-			                                         _local_position(),
-			                                         _mouse_position,
-			                                         _mouse_button_state,
-			                                         Qt::NoButton,
-			                                         QEvent::MouseMove,
-			                                         _keyboard_modifiers);
+				QWindowSystemInterface::handleMouseEvent(window(),
+			                                         	 _local_position(),
+			                                         	 _mouse_position,
+			                                         	 _mouse_button_state,
+			                                         	 Qt::NoButton,
+			                                         	 QEvent::MouseMove,
+			                                         	 _keyboard_modifiers);
+			});
+
+			event.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
+				if (key > 0 && key < 0x100)
+					_key_event(key, codepoint, Mapped_key::PRESSED);
+				else if (key >= Input::BTN_LEFT && key <= Input::BTN_TASK)
+					_mouse_button_event(key, true);
+			});
+
+			event.handle_release([&] (Input::Keycode key) {
+				if (key > 0 && key < 0x100)
+					_key_event(key, Codepoint { Codepoint::INVALID }, Mapped_key::RELEASED);
+				else if (key >= Input::BTN_LEFT && key <= Input::BTN_TASK)
+					_mouse_button_event(key, false);
+			});
+
+			event.handle_repeat([&] (Codepoint codepoint) {
+				_key_event(Input::KEY_UNKNOWN, codepoint, Mapped_key::REPEAT);
+			});
+
+			event.handle_wheel([&] (int x, int y) {
+				QWindowSystemInterface::handleWheelEvent(window(),
+			                                         	 _local_position(),
+			                                         	 _local_position(),
+			                                         	 QPoint(),
+			                                         	 QPoint(0, y * 120),
+			                                         	 _keyboard_modifiers); });
+
+			if (event.touch() || event.touch_release())
+				touch_events.push_back(event);
 		});
 
-		event.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
-			if (key > 0 && key < 0x100)
-				_key_event(key, codepoint, Mapped_key::PRESSED);
-			else if (key >= Input::BTN_LEFT && key <= Input::BTN_TASK)
-				_mouse_button_event(key, true);
-		});
-
-		event.handle_release([&] (Input::Keycode key) {
-			if (key > 0 && key < 0x100)
-				_key_event(key, Codepoint { Codepoint::INVALID }, Mapped_key::RELEASED);
-			else if (key >= Input::BTN_LEFT && key <= Input::BTN_TASK)
-				_mouse_button_event(key, false);
-		});
-
-		event.handle_repeat([&] (Codepoint codepoint) {
-			_key_event(Input::KEY_UNKNOWN, codepoint, Mapped_key::REPEAT);
-		});
-
-		event.handle_wheel([&] (int x, int y) {
-			QWindowSystemInterface::handleWheelEvent(window(),
-			                                         _local_position(),
-			                                         _local_position(),
-			                                         QPoint(),
-			                                         QPoint(0, y * 120),
-			                                         _keyboard_modifiers); });
-
-		if (event.touch() || event.touch_release())
-			touch_events.push_back(event);
+		/* process all gathered touch events */
+		_process_touch_events(touch_events);
 	});
-
-	/* process all gathered touch events */
-	_process_touch_events(touch_events);
 }
 
 
 void QNitpickerPlatformWindow::_handle_mode_changed()
 {
-	Framebuffer::Mode mode(_nitpicker_session.mode());
+	Libc::with_libc([&] () {
+		Framebuffer::Mode mode(_nitpicker_session.mode());
 
-	if ((mode.width() == 0) && (mode.height() == 0)) {
-		/* interpret a size of 0x0 as indication to close the window */
-		QWindowSystemInterface::handleCloseEvent(window(), 0);
-		/* don't actually set geometry to 0x0; either close or remain open */
-		return;
-	}
+		if ((mode.width() == 0) && (mode.height() == 0)) {
+			/* interpret a size of 0x0 as indication to close the window */
+			QWindowSystemInterface::handleCloseEvent(window(), 0);
+			/* don't actually set geometry to 0x0; either close or remain open */
+			return;
+		}
 
-	if ((mode.width() != _current_mode.width()) ||
-	    (mode.height() != _current_mode.height()) ||
-	    (mode.format() != _current_mode.format())) {
+		if ((mode.width() != _current_mode.width()) ||
+	    	(mode.height() != _current_mode.height()) ||
+	    	(mode.format() != _current_mode.format())) {
 
-		QRect geo(geometry());
-		geo.setWidth(mode.width());
-		geo.setHeight(mode.height());
+			QRect geo(geometry());
+			geo.setWidth(mode.width());
+			geo.setHeight(mode.height());
 
-		QWindowSystemInterface::handleGeometryChange(window(), geo);
+			QWindowSystemInterface::handleGeometryChange(window(), geo);
 
-		setGeometry(geo);
-	}
+			setGeometry(geo);
+		}
+	});
 }
 
 
