@@ -70,7 +70,6 @@ class Signal_handler_thread : Thread, Lock
 
 		~Signal_handler_thread()
 		{
-			log("~Signal_handler_thread");
 			env_deprecated()->pd_session()->free_signal_source(_signal_source->rpc_cap());
 		}
 };
