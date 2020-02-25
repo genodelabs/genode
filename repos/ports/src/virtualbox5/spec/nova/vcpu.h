@@ -890,6 +890,12 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 		void wake_up()
 		{
+			/*
+			 * Note: the following 'SEMAPHORE_UP' call can cause a
+			 *       'Blocking_canceled' exception in the target thread
+			 *       if it is currently blocking on a Genode lock, because
+			 *       the same NOVA semaphore is used.
+			 */
 			Genode::addr_t sem = native_thread().exc_pt_sel + Nova::SM_SEL_EC;
 			Nova::sm_ctrl(sem, Nova::SEMAPHORE_UP);
 		}
