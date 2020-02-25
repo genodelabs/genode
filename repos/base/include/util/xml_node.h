@@ -760,7 +760,8 @@ class Genode::Xml_node
 		template <typename FN>
 		void with_raw_node(FN const &fn) const
 		{
-			fn(_addr, _tags.end.next_token().start() - _addr);
+			char const *start_ptr = _tags.start.token().start();
+			fn(start_ptr, _tags.end.next_token().start() - start_ptr);
 		}
 
 		/**
