@@ -1662,7 +1662,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("child_ram",  "yes");
 		xml.attribute("child_caps", "yes");
 		xml.attribute("delay_ms",   4*500);
-		xml.attribute("buffer",     "64K");
+		xml.attribute("buffer",     "1M");
 	});
 
 	xml.node("parent-provides", [&] () {
