@@ -1,0 +1,814 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 20.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+This year's [https://genode.org/about/road-map - road map] is all about making
+Genode and Sculpt OS more approachable. It turns out that the first release of
+the year already pays tribute to that goal. First, it equips Sculpt OS with a
+much more logical and welcoming graphical user interface
+(Section [Redesign of the administrative user interface of Sculpt OS]).
+Second, it greatly reduces the friction when hosting existing applications on
+Genode by smoothening several rough edges with respect to POSIX compatibility,
+and by generally improving performance.
+
+Most topics of the release are closely related to Sculpt. The biggest
+break-though is certainly the ability of running Sculpt OS on 64-bit ARM
+hardware (Section [Sculpt OS on 64-bit ARM i.MX8 hardware]) along with our
+custom virtual machine monitor (VMM). On PC hardware, Sculpt users can enjoy
+an updated audio driver and optimizations of the Seoul VMM. Furthermore,
+Sculpt's window manager received the much anticipated ability to use virtual
+desktops.
+
+At the framework-API level, the most significant changes are the introduction
+of dedicated types for inter-thread synchronization patterns
+(Section [Base-framework refinements]) and a new library for
+bringing the benefits of the Genode architecture to the application level
+(Section [New sandbox library based on the init component]).
+
+
+Redesign of the administrative user interface of Sculpt OS
+##########################################################
+
+On our [https://genode.org/about/road-map - road map] for 2020, we stated
+the dwarfing of the barrier of entry as our main concern of the year.
+We highlighted the ease of use of Sculpt OS as one particular work area.
+
+
+Removing Unix from the picture
+------------------------------
+
+Until now, Sculpt's administrative user interface - lyrically called
+Leitzentrale - employed a small Unix runtime and the Vim editor as utility for
+basic file operations and for the tweaking of configurations. Even though this
+was a practical intermediate solution, we have to face the fact that not
+everyone loves the Unix command-line interface as much as we do. Quite the
+opposite, actually. When presenting Sculpt, we can clearly sense that people
+with a non-Unix background are put off by it. The audience generally loves the
+runtime graph, visual cues, and discoverability. Furthermore, command-line
+interfaces are (albeit wrongly) perceived as archaic and impenetrable relics
+by many computer users who are otherwise perfectly happy with the notion of
+files and directories. We identified that file-manipulation tasks performed in
+the Leitzentrale are rare and simple. Relying on Unix for those basic tasks is
+like taking a sledgehammer to crack a nut. On average, the Leitzentrale is
+used in just a few moments a day for basic things like browsing a file-system
+hierarchy, glimpsing at the reports stored on the report file system, deleting
+or copying a file or two, or tweaking a configuration file. With a Unix shell
+presenting one barrier, Vim is certainly an even higher one. Familiarity with
+Vim should definitely not be a prerequisite for using an operating system.
+Following this reasoning, we decided to swap out the command-line interface
+and Vim by a simple GUI-based file browser and a notepad-like editor, which do
+not require any learning curve.
+
+Note that even once the Unix command-line interface is removed from Sculpt's
+Leitzentrale, advanced users will still be able to manipulate Sculpt's config
+file system via a Unix runtime deployed as a regular component, similar to the
+use of the noux-system package we have today.
+
+
+New user-interface layout
+-------------------------
+
+The move away from the command-line interface goes hand in hand with the
+redesign of the overall user-interface layout. A new panel at the top of the
+screen contains two centered tabs for switching between the runtime graph and
+the file-system browser.
+
+[image sculpt_20.02_panel]
+
+The storage-management functionality has been moved from the former storage
+dialog into the respective nodes of the runtime graph. E.g., to format a block
+device, the user can now select a USB or storage node of the graph to get a
+menu of block-device-level operations.
+
+[image sculpt_20.02_storage]
+
+The network-management is now located at a drop-down menu that can be toggled
+via a button at the right side of the panel.
+
+[image sculpt_20.02_network]
+
+A new button on the left side of the panel allows the user to toggle a
+drop-down menu for GUI settings. At the current time, there is only the option
+to adjust the font size. In the future, the dialog will give easy access to
+the screen-resolution options and the keyboard layout.
+
+The log-message view is now hidden in another drop-down menu that can be
+toggled via a panel button. So when starting the system, the user is greeted
+with only the runtime graph, which is a much nicer and cleaner looking
+experience.
+
+Informative or diagnostic messages are displayed in the left-bottom corner of
+the screen.
+
+[image sculpt_20.02_message]
+
+The "Files" tab of the panel switches the main screen area to a simple file
+browser that lists all file systems available. By toggling one of the
+file-system buttons, the directory hierarchy can be browsed. When hovering
+a file, an "Edit" or "View" button appears, which can be used to open
+the file in a text area that appears on the right side of the file browser.
+The editor supports the usual notepad-like motions, operations, and
+shortcuts (control-c for copy, control-v for paste, control-s for save).
+
+[image sculpt_20.02_editor]
+
+
+Half-way there
+--------------
+
+With the current release, one can already accomplish a lot without having to
+resort to a command-line interface: connecting to the network, managing
+storage devices, installing and deploying software, inspecting the system
+state, and tweaking configurations.
+
+There are still a few gaps though. In particular the file browser does
+not yet support file operations like the copying, renaming, or removal of
+files. For these tasks, the current version of Sculpt still features the
+Unix-based inspect window, which can be accessed by toggling the "Inspect"
+button inside the USB or storage dialog. Once selected, the panel presents an
+"Inspect" tab that features the familiar Unix shell and Vim. Note, however,
+that we keep the inspect window only as an interim solution. It will
+eventually be removed. As with every new feature, there are still rough edges
+to be expected in the editor and file browser, e.g., the editing of files with
+long lines or the browsing of directories with many entries is not
+appropriately covered yet.
+
+To see the current new version of Sculpt OS in action, you may find the
+following presentation entertaining.
+
+:Live demonstration of Sculpt OS at FOSDEM 2020:
+
+  [https://fosdem.org/2020/schedule/event/uk_sculpt/]
+
+The new version 20.02 of Sculpt OS is part of this release and can be built
+from source and used right now. Several Genode developers already provide
+ready-to-use packages for the new version. The software depots by alex-ab,
+cnuke, skalk are worth exploring. A downloadable system image along with an
+updated manual will be released shortly.
+
+
+Sculpt OS on 64-bit ARM i.MX8 hardware
+######################################
+
+Within the past two releases, big steps were taken to support ARMv8 hardware in
+the Genode OS framework. After implementing basic support for Raspberry Pi 3,
+and the i.MX 8M Evaluation Kit, the network card was enabled for the latter.
+Moreover, we updated the Linux TCP/IP, and C library ports, as well as
+the Noux environment to support the architecture. Finally, with the latest
+releases, a new ARMv8-compliant virtual-machine monitor for the base-hw kernel
+entered the framework.
+
+The rapid achievements motivated us to strive for a more ambitious scenario to
+run on top of the currently focused ARMv8 hardware platform. So why not using
+Sculpt OS on the i.MX 8M System-on-Chip?
+
+
+Persistent storage
+==================
+
+There were several challenges to cope with initially. First, persistent
+storage was needed. Luckily, the Genode OS framework contained already an
+SD-card driver implementation for the i.MX series. The driver was written for
+Genode from scratch and initially supported the i.MX53 SoC only. From then, it
+got extended repeatedly to drive the SD-card controller of several i.MX6 and
+i.MX7 platforms. Therefore, it was not a big issue to support the new hardware
+too. However, when we later used it in Sculpt, it turned out that the driver
+has some low-latency requirements. If those were not met, it got stuck. This
+was the time where the CPU-quota mechanism came in handy in a real-world
+scenario. It helped to let the interrupt handler of the driver be scheduled in
+time, and thereby let the driver run stable.
+
+Having a working block device is one part, but it is of little use without a
+file system. In Sculpt OS, the NetBSD rump kernel's ext2 file-system is
+typically used to host the depot package system and for keeping configuration
+files persistent. Unfortunately, the version of NetBSD as used in Genode's
+rump kernel port does not contain the ARMv8 architecture. Of course, we could
+have upgraded the rump kernel as a whole. But this software stack is quite
+complex with a lot of threads reproducing a sophisticated state machine. It
+took some time in the past to meet its required semantics. Therefore,
+backporting some header definitions and a few architecture-dependent functions
+seemed more attractive. Luckily, it turned out to be the right decision, and
+after a day of backporting work, the file system could run on ARMv8.
+
+Display engine
+==============
+
+One of the more challenging tasks was certainly the enabling of the Display
+Controller Subsystem (DCSS) of the i.MX 8M SoC. Originally, we hoped to profit
+from our experiences with the Image Processing Unit (IPU), the display engine
+of former i.MX SoCs. But as it turned out, the DCSS is a completely new
+design, and has not much in common with the IPU. When first writing a driver
+for the IPU of the i.MX53, we were surprised by the complexity and flexibility
+of this piece of hardware. Back then, it took months to get something
+meaningful working. To not lose too much time by re-implementing a driver from
+scratch, we decided to take the DDE Linux approach, which worked out pretty
+fast. The resulting driver should provide the same flexibility like the Linux
+original one. However, as the i.MX 8M EVK board provides a HDMI connector
+only, we did not test more than that. The configuration of the driver is
+analogous to the Intel framebuffer driver, and looks like the following:
+
+! <config>
+!   <connector name="HDMI-A-1" width="1920" height="1080" hz="60" enabled="true"/>
+! </config>
+
+Later, when using the driver in practice within the Sculpt OS, we could
+experience a slightly sluggish behaviour, which was due to a missing
+architectural back end of the blitting library of Genode. After tweaking this
+too, the graphical user interface experience was good.
+
+
+USB and Input
+=============
+
+The last missing I/O device to run Sculpt OS on the ARMv8 was something for
+user generated input. Therefore, the existent USB host controller driver for
+the i.MX series got updated. The only roadblock here was the powering of the
+device. As there is no platform driver for the target hardware yet, which
+would manage power and clocks, the hardware either has to be pre-configured
+correctly, or the driver has to enable it on its own. Ethernet card, SD-card,
+and the display engine were all already powered by the bootloader, but not
+USB. In contrast to the first devices, the u-boot bootloader turns off USB
+explicitly as soon as it starts the OS. As an interim solution, we patched
+u-boot to not turn off the USB host controller, and enforced u-boot to
+initialize the powering in our boot scripts. Therefore, if one wants to use
+USB on the i.MX 8M EVK, make sure to take our modified version. As a
+convenient solution, you can use the 'uboot' port within the base repository.
+Just issue the following command in the Genode directory:
+
+! tool/ports/prepare_port uboot
+
+Finally, you have to copy u-boot to the SD-card as root user:
+
+! dd if=`tool/ports/current uboot`/imx8q_evk/imx-mkimage/iMX8M/flash.bin \
+!    of=/dev/sd<?> bs=1k seek=33 conv=fsync
+
+Of course, you have replace 'sd<?>' with the correct device node of your
+attached SD-card.
+
+After enabling the USB host controller driver, we could successfully re-use the
+USB HID client driver to drive keyboard and mouse connected to the board. As a
+nice side-effect, the list of possible storage devices got extended with USB
+mass storage too by adding the USB block client driver.
+
+
+Missing libraries
+=================
+
+Finally, when building the necessary and optional packages for Sculpt OS, we
+stumbled across several libraries that needed to be adapted to compile and
+link for ARMv8 too. Mostly, the inclusion of some other compilation units and
+headers was sufficient. The related libraries are: libssl, libcrypto, libpng,
+and Mesa. With the latter two, it is now even possible to execute Qt5
+components on the target hardware.
+
+Apart from all the new driver components and extended libraries, the Sculpt
+manager had to be slightly modified to execute on the i.MX 8M hardware. In its
+original form it is inherently dependent on x86 drivers, as it for example
+generates configurations for some of those drivers. For the time being, the
+changes to the Sculpt manager are not yet part of the official release.
+Nevertheless, you can produce a Sculpt OS image to be run on an i.MX 8M EVK
+board by using the following
+[https://github.com/skalk/sculpt_20.02_imx8q_evk/ - topic branch].
+
+Alternatively, you can also have a look at Sculpt OS on ARMv8 hardware by
+following the video recordings of the following talk at FOSDEM 2020.
+
+:Live demonstration of Sculpt OS on i.MX 8M EVK at FOSDEM 2020:
+
+  [https://fosdem.org/2020/schedule/event/uk_genode_armv8/]
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+New sandbox library based on the init component
+===============================================
+
+The init component is Genode's canonical mechanism for the composition of
+components. This role was further amplified when init became
+[https://genode.org/documentation/release-notes/17.02#Dynamically_reconfigurable_init_component - dynamically reconfigurable].
+The latter change cleared the ground for system scenarios like Sculpt OS, the
+on-target deployment of packages, and dynamic device discovery. One typical
+pattern found in such scenarios is one dynamically configured instance of init
+accompanied by a controlling component that is usually called "manager". The
+manager would consume reports of the subsystem hosted within the dynamic init,
+and adjust the init configuration according to a domain-specific policy. Such
+a configuration change, in turn, may trigger new reports, which effectively
+turns this setting into a feedback control loop.
+
+Whereas this established pattern is suitable for many scenarios, it is not
+always natural. In particular if the manager does not only need to
+manage a subsystem but also wants to intercept a service used by the
+subsystem, the roles are no longer clear-cut. A practical example is a
+GUI application that employs the menu-view component for the GUI rendering
+while processing keyboard events locally. This application would need to
+intercept the menu-view's GUI session to obtain the stream of user input
+events. For such an application, the most natural approach would be the
+co-location of the init functionality with the application logic into a
+single all-encompassing component.
+
+To accommodate such scenarios where a domain-specific management component is
+tightly coupled with a dynamic subsystem, we extracted the child-management
+functionality from the init component into a new library called "sandbox". The
+library API is located at
+[https://github.com/genodelabs/genode/blob/master/repos/os/include/os/sandbox.h - os/include/os/sandbox.h].
+
+In addition to the hosting of components, the sandbox API also allows for the
+interaction with the sandboxed children by providing locally implemented
+services. The latter mechanism is illustrated by a new test available at
+_os/src/test/sandbox_.
+
+
+POSIX compatibility improvements
+================================
+
+During the release cycle of Genode 20.02, we continued our mission to host
+POSIX software effortlessly as Genode components. In particular, we followed
+up the line of work pursued with the two previous releases
+[https://genode.org/documentation/release-notes/19.08#Consolidation_of_the_C_runtime_and_Noux - 19.08] and
+[https://genode.org/documentation/release-notes/19.11#C_runtime_with_improved_POSIX_compatibility - 19.11]
+with respect to the traditional Unix mechanisms fork, execve, and pipes.
+After covering several edge cases - cloexec, file-descriptor lifetimes,
+line-buffer handling, vfork, just to name a few - as needed by programs like
+make, bash, and tclsh, we eventually reached a state where the website
+generator of [https://genodians.org] works without the need for the now
+deprecated Noux runtime.
+
+For years we have been running complex software stacks like the Qt-based web
+browser on top of our C runtime but not without carefully placed tweaks and
+occasional patches. With the current release, we address the area of
+concurrency and introduce a thorough reimplementation of the synchronization
+primitives namely POSIX mutexes and condition variables as well as semaphores.
+We also reaped the fruit of our labor by replacing our custom Qt thread back
+end by the standard POSIX-thread based implementation. Further, we reduced the
+number of threads in Qt applications by moving the QPA event handling to the
+component entrypoint and removing the timed-semaphore utility from LibC.
+
+Beyond Qt, we also address synchronization issues revealed by running a
+third-party port of [https://grpc.io/ - gRPC] in our network back ends and
+amended thread-local errno in the C runtime. Finally, our POSIX thread
+implementation supports cleanup handlers now.
+
+
+Base-framework refinements
+==========================
+
+Replacing the 'Lock' type by new 'Mutex' and 'Blockade' types
+-------------------------------------------------------------
+
+Up to now, Genode's lock implementation supports mainly two flavour of usage.
+On the one hand, it is used to protect critical sections where the lock is
+initialized as unlocked. In the contention case, the lock holder is supposed
+to release the critical section. On the other hand, the lock is used as
+blockade to synchronize startup between various executions of threads. Here
+the lock is initialized as locked during instantiation whereby the thread that
+releases the lock is not necessarily the same thread as the creator of the
+lock.
+
+We decided to make the two usage pattern more obvious by introducing two
+separate classes, called 'Mutex' and 'Blockade'. The reasons are two fold.
+First, during code review, the usage pattern at hand becomes more obvious.
+Second, by codifying the programmer's intent behind the use of a
+synchronization primitive, Genode becomes able to perform additional checks,
+and diagnose certain dead-lock situations and other usage errors on the spot.
+
+The separation got introduced shortly before this release. Up to now, it is
+only used in 'Genode::Thread', 'Genode::Heap', and 'Genode::Registry'. The
+plan is to cultivate the usage across all Genode sources over the next
+releases and to ultimately remove the 'Genode::Lock' from the public API.
+
+The 'Mutex' class is more restrictive compared to the 'Lock' class.
+
+* At initialisation time, it is always unlocked.
+* To enter and leave a critical section the methods 'acquire()' and
+  'release()' are used.
+* A 'Mutex::Guard' is provided, which will 'acquire()' a mutex at
+  construction time and release it automatically at destruction time of
+  the guard.
+* No thread is permitted to lock twice. The code will generate a warning if
+  a dead-lock is detected.
+* Only the lock holder is permitted to release the mutex. The code will
+  generate a warning and will not release the mutex if this rule is violated.
+
+! Genode::Mutex mutex;
+! mutex.acquire();
+! mutex.release();
+!
+! {
+!   Genode::Mutex::Guard guard(mutex) /* acquire() during construction */
+! }                                   /* release() on guard object destruction */
+!
+! Genode::Mutex::Guard guard(mutex);
+! mutex.acquire();                    /* <-- Will cause a warning about the dead-lock */
+
+The 'Blockade' class is always initialized as locked and provides the methods
+'block()' and 'wakeup()'. Beside the initialization aspect, the 'Blockade'
+behaves up to now like the 'Genode::Lock' implementation.
+
+! Genode::Blockade blockade;
+!
+! /* step */    /* thread A */        /* thread B */
+! 0:            -start thread B-
+! 1:            ...                     -startup-
+! 2:            blockade.block();       ...
+! 3:            -sleep-                 ...
+! 4:            -sleep-                 blockade.wakeup();
+! 5:            ...                     ...
+
+
+Performance optimization of the XML parser
+------------------------------------------
+
+Genode's XML parser used to rely on C++ exceptions while parsing, which is an
+almost historic artifact inherited from the initial implementation. The
+performance penalties of exceptions in the rare use of XML was acceptable
+back when we started. But modern Genode systems like Sculpt OS rely on the
+dynamic processing of XML like a back bone. The overhead became particularly
+apparent when executing [Sculpt OS on 64-bit ARM i.MX8 hardware]. Prompted by
+this observation, we reworked the code such that exceptions are no longer
+thrown in any hot code path. The public interface of 'Xml_node' remains
+unchanged.
+
+
+New polling variant for register framework
+------------------------------------------
+
+Genode's register framework has offered a 'wait_for' method for a long time.
+This function sleeps for a certain amount of microseconds and checks if one or
+more given conditions become true. The number of attempts to sleep and check
+the conditions must also be specified. In case the conditions are not met
+after these attempts, a polling timeout exception is thrown. The function
+simply returns in case of success. With the current Genode release, we have
+added a 'wait_for_any' method with almost the same semantics but instead of
+waiting for all conditions to become true, it returns if any condition is
+meet, and thus, implements a logical OR.
+
+
+Migration to modern block-device API
+====================================
+
+With release 19.02, Genode introduced two new APIs for block-session handling.
+The client side of a block session now uses the job API in order to send block
+requests to the server, which in turn receives those jobs as requests through
+the Request API. These two APIs replace Genode's 'Block::Driver' and
+'Block::Session_component' implementations that used the packet stream API
+directly, which turned out to be error prone for block session implementations.
+Instead, these new APIs wrap the packet stream handling in a controlled
+manner while handling all corner cases and even the overcommit of packets.
+With the current release, we have adapted Genode's AHCI driver and partition
+manager to these new interfaces, with the plan to adjust all block session
+clients/servers to the new APIs with Genode release 20.05.
+
+During this line of work, the AHCI driver received a major cleanup. For
+example, dynamic memory allocations were removed, the whole initialization
+state machine has been removed, ATAPI support for Qemu has been re-enabled,
+and Exynos5 AHCI support is gone - since the platform is outdated and not
+supported by Genode any more.
+
+
+Updated audio driver based on OpenBSD 6.6
+=========================================
+
+In this release, we updated the 3rd-party sources of the audio driver component
+to OpenBSD 6.6 and adapted the emulation glue code. While doing so, we fixed
+a bug regarding the 'delay()' implementation where the function expects
+microseconds but was given milliseconds. This led to a increased start-up
+time of the component. We also fixed the logging back end that accidentally
+was rendered silent and brought in the 'printf' back end from DDE Linux to
+be able to produce better formatted LOG messages in the future.
+
+Until now the component only supported HDA and EAP (ES1370 PCI) devices. The
+first is primarily intended to be used with real hardware wheres the latter
+was used during the initial porting effort in Qemu. That being said, the EAP
+driver apparently also works on hardware according to community feedback.
+
+Since the HDA driver does not work when used in VirtualBox and users expressed
+the desire to also use audio when running in a VM, we enabled another driver,
+for which a device-model in VirtualBox exists: the AC97 ICH. As it turned out,
+using this driver, we can produce audio, albeit the quality is far from
+usable. Nevertheless, with the driver enabled, interested parties are free to
+investigate the cause for the current issues.
+
+All in all, this update is solely a catch up effort to stay more
+update-to-date with the upstream changes and to pull in HDA quirks for more
+recent systems. More interesting changes to the driver component, like
+reworking the OpenBSD kernel emulation layer and bringing support for USB
+audio devices, are scheduled for future releases.
+
+
+Support for unlabeled LOG output
+================================
+
+In situations where a Genode system is remotely controlled and monitored,
+it is useful to allow a special component to produce log output with no
+Genode label applied. This way, such a component can produce log data in
+a format that is immediately suitable for a controller. This feature can be
+enabled for a component by rewriting the label of the component's LOG session
+to "unlabeled".
+
+! <route>
+!   <service name="LOG"> <parent label="unlabeled"/> </service>
+!   ...
+! </route>
+
+
+Libraries and applications
+##########################
+
+Custom virtual machine monitor on ARM
+=====================================
+
+The ARMv8-compliant virtual-machine monitor introduced in the previous release
+19.11 now contains new device models to enable the interaction with a
+virtual-machine via network and terminal services. The new virtual ethernet
+card and console implementations are compliant to the virtualization standard
+VIRTIO 1.1.
+
+Currently, the VMM cannot be configured to contain specific devices. It is
+hard-wired to provide exactly:
+
+* One virtual ethernet card that connects to Genode's "Nic" service,
+* A VIRTIO console that opens up a session to the "Terminal" service using the
+  label "console", and
+* The traditional PL011 serial device model, which connects to a
+  "Terminal" service too but uses the label "earlycon"
+
+
+Seoul VMM
+=========
+
+During the usage of Seoul on Sculpt, it became apparent that the Seoul VMM
+caused a constant CPU load even when the guest VM was idling. After some
+investigation it became clear that having a fixed rate to synchronize the
+guest graphic memory with the Genode GUI service was the main reason for the
+constant load. With this release, we added the feature to dynamically adjust
+the GUI refresh rate depending on the rate of user interactivity.
+Additionally, if all virtual CPUs go to idle state, the GUI refresh is stopped
+completely. With these measures, the overall CPU load could be reduced
+noticeable.
+
+
+TCP terminal
+============
+
+The TCP terminal is a long-living component in the Genode OS framework since
+release 11.11. It can be used, e.g., to connect to a headless Genode system
+via telnet. Until now, it always listened to incoming network connections at
+configured ports. The port had to be configured for each terminal session
+client.
+
+The TCP terminal got extended to either listen to incoming network
+connections, or to directly connect to another network server, dependent on
+the policy defined for the corresponding terminal client. The following
+example configuration illustrates the differences:
+
+! <config>
+!   <policy label="client" ip="10.0.0.5" port="1234"/>
+!   <policy label="another_client"       port="4567"/>
+! </config>
+
+If only a port is described in the policy, the TCP terminal will listen on
+that port for incoming connections. If an IP address is provided additionally,
+it connects to the IP address using the given port.
+
+
+Virtual desktops
+================
+
+Genode's GUI stack enables a high degree of flexibility. Beside the fundamental
+nitpicker component, responsible for basically multiplexing input events and
+framebuffer content, there is the window-manager component, and example
+implementations of a window-layouter, and decorator. The interplay of the
+latter three allows a window management that scales from simple to rich and
+sophisticated without lowering its security properties. For a brief description
+of its architecture, please refer to the release notes of
+[http://genode.org/documentation/release-notes/14.08 - 14.08].
+
+In this architecture, the window layouter is responsible for the arrangement
+of the different windows. It exports a data model of the window layout.
+Although, the example implementation of the window layouter introduced in
+14.08 was simple, it already contained a notion of having different virtual
+screens and screen sections, beside the actual window placements. However,
+until now there was no use-case of switching dynamically in between different
+virtual screens respectively window sets related to them.
+
+While using more and more different graphical components within Sculpt, the
+window layouter in its initial form hit a limit. Although it already allowed to
+switch in-between different windows via configured key-combinations, it became
+inconvenient when having more than a handful windows hiding each other.
+
+Therefore, the window layouter now got extended to allow switching dynamically
+in between several pre-defined virtual screens. For the time being, one has to
+assign a new window to a screen in the rule-set of the window layouter
+initially by hand. Defining the currently visible screen can either be done by
+editing the rule-set, or by using pre-configured key-combinations.
+
+The new default configuration of the window layouter as exported by its
+corresponding depot package looks like the following:
+
+! <config rules="rom">
+!   <rules>
+!     <screen name="screen_1"/>
+!     <screen name="screen_2"/>
+!     <screen name="screen_3"/>
+!     <screen name="screen_4"/>
+!     <screen name="screen_5"/>
+!     <screen name="screen_6"/>
+!     <screen name="screen_7"/>
+!     <screen name="screen_8"/>
+!     <screen name="screen_9"/>
+!     <screen name="screen_0"/>
+!     <assign label_prefix="" target="screen_1" xpos="any" ypos="any"/>
+!   </rules>
+!
+!   <press key="KEY_SCREEN">
+!     <press key="KEY_ENTER" action="toggle_fullscreen"/>
+!     <press key="KEY_1"     action="screen" target="screen_1"/>
+!     <press key="KEY_2"     action="screen" target="screen_2"/>
+!     <press key="KEY_3"     action="screen" target="screen_3"/>
+!     <press key="KEY_4"     action="screen" target="screen_4"/>
+!     <press key="KEY_5"     action="screen" target="screen_5"/>
+!     <press key="KEY_6"     action="screen" target="screen_6"/>
+!     <press key="KEY_7"     action="screen" target="screen_7"/>
+!     <press key="KEY_8"     action="screen" target="screen_8"/>
+!     <press key="KEY_9"     action="screen" target="screen_9"/>
+!     <press key="KEY_0"     action="screen" target="screen_0"/>
+! ...
+
+As can be seen, individual keys are assigned to switch to a specific virtual
+screen. By default ten screens are defined that are accessible via the number
+keys. The first screen definition in the rules configuration marks the
+currently visible screen.
+
+
+Menu-view widget renderer
+=========================
+
+The line of work described in Section
+[Redesign of the administrative user interface of Sculpt OS] called for
+the enhancement of Genode's GUI-rendering component. This component - named
+menu view - was
+[https://genode.org/documentation/release-notes/14.11#New_menu_view_application - originally introduced in Genode 14.11]
+for the rendering of the relatively simple menus of an application launcher.
+Its software design largely deviates from the beaten track of established
+widget toolkits, which come in the form of client-side libraries. The
+menu view is not a complete toolkit but solely a dialog renderer sandboxed
+in a dedicated component. This design reinforces the strict separation of the
+view from the application logic, fosters screen-resolution independence, and -
+most importantly - keeps the complexity of pixel processing out of the
+application program. Because of the latter, it lends itself to the
+implementation of security-sensitive interactive applications.
+
+It would certainly be misguiding to tout our menu-view as feature competitive
+with existing toolkits. We certainly won't recommend using it over Qt in
+general. But Sculpt's custom administrative user interface "Leitzentrale"
+presented us with the perfect playground to explore and grow the potential of
+our novel approach.
+
+In contrast to the previous iteration of the Leitzentrale GUI, which relied on
+a small Unix runtime and Vim for editing text files, the new version ought to
+feature a simple text editor integrated in the GUI. A text editor requires
+a much tighter interplay between the view and the actual program logic
+compared to an application with just a bunch of buttons. Think about cursor
+handling, scrolling text, displaying textual selections, or placing a text
+cursor with the mouse. On the course of the work towards the text-area
+component featured in the new Leitzentrale, the menu view received the
+following improvements:
+
+:Text-cursor support:
+
+  The label widget gained the ability to display one or multiple text cursors,
+  as illustrated by the following example:
+
+  ! <label text="...">
+  !   <cursor at="10"/>
+  ! </label>
+
+  For the display of multiple cursors, each cursor must feature a distinctive
+  'name' attribute.
+
+:Character position featured in the hover report:
+
+  The hovering information provided by the menu view used to be at the
+  granularity of widgets, which is insufficient for placing a text cursor with
+  the mouse. Hence, the information of a hovered label additionally provides
+  the character position within the label now.
+
+:Unquoting label text attribute values:
+
+  The text displayed in label widgets is provided by a 'text' attribute value,
+  which raises the question of how to present '"' characters on the GUI. With
+  the new version, the attribute value can contain XML-quoted characters,
+  specifically "&quot;".
+
+:Support for displaying text selections:
+
+  Similarly to the way of how a <cursor> can be defined for a <label>
+  widget, a selection can now be expressed as follows:
+
+  ! <label ...>
+  !   <selection at="2" length="12"/>
+  ! </label>
+
+:Support of multiple '<float>' widgets within a '<frame>':
+
+  We refined the hover reporting of <float> widgets such that a float widget
+  never responds to hovering unless a child is hovered. This way, it becomes
+  possible to stack multiple float widgets within one frame and still reach
+  all child widgets. This is useful for aligning multiple widgets within one
+  screen area independently from each other. For example, for left-aligning,
+  centering, and right-aligning the elements of a panel.
+
+:Enforcing the minimum size of a label:
+
+  The new '<label min_ex="..">' attribute can be used to enforce a minimum
+  width in the unit of the size of the character 'x'. In the absence of a
+  'text' attribute, the minimum height of a label is implicitly set to 0. The
+  combination of both changes makes the label usable as a horizontal spacer.
+
+:Basic support for styling labels:
+
+  The new version allows for the customization of the text color and alpha
+  value of the label widget by the means of a style-definition file. The
+  mechanism is exemplified with the new "invisible" label style that sets the
+  alpha value to zero.
+
+With these few incremental changes in place, the menu-view widget renderer
+becomes usable as the basis of the simple text editor used in Sculpt's new user
+interface.
+
+
+Self-hosting the tool chain on 64-bit ARM
+=========================================
+
+With our ongoing ARM 64-bit effort, we have successfully updated Genode's tool
+chain with release
+[https://genode.org/documentation/release-notes/19.05#Broadened_CPU_architecture_support_and_updated_tool_chain - 19.05].
+With the current release, we have additionally managed to make Genode's tool
+chain self hosting on ARM 64-bit, which means the tool chain can compile
+source code on ARM 64-bit directly.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+The generic code base of the base-hw kernel underwent several cosmetic changes
+to reduce or eliminate the application of certain problematic constructs like
+too much inheritance, pointers, and dynamic casts. Those changes were
+motivated to ease the translation of several kernel parts to the Ada/SPARK
+language in the context of the Spunky project. For more information regarding
+this experiment to write a Genode kernel in Ada/SPARK, please have a look at
+the recent [https://genodians.org/m-stein/index - genodians.org article series]
+of Martin Stein or listen to his recent
+[https://video.fosdem.org/2020/AW1.125/ada_spunky.mp4 - FOSDEM talk].
+
+Moreover, the IPC path implementation got simplified to lower the overhead
+costs introduced by the transfer of capabilities. Together with the mentioned
+Spunky cleanup efforts, this change measurably improved IPC performance.
+
+The base-hw kernel now exports time consumption of individual threads via
+the trace service analogously to the implementation for NOVA. Thereby, it
+becomes possible to use for instance the top component within the Sculpt OS
+also on this kernel.
+
+Until now, support for the Raspberry Pi 3 was limited to Qemu emulation only.
+Thanks to a contribution of Tomasz Gajewski, it is now possible to execute
+Genode on all four CPUs of the actual hardware concurrently.
+
+
+Execution on Linux
+==================
+
+Traditionally, the Linux version of Genode serves us as very handy development
+vehicle but it was never intended as an actual target platform. On Linux,
+Genode is usually executed as a multi-process application on top of a regular
+GNU/Linux desktop distribution by specifying 'KERNEL=linux' and 'BOARD=linux'
+to the run tool.
+
+However, thanks to the work of Johannes Kliemann, Genode has become able to
+run on a bare-bone Linux kernel without any other user land.
+We blatantly used to refer to this idea as the
+[https://genode.org/about/challenges#Platforms - microkernelization of Linux].
+Johannes picked up the idea, supplemented Genode's core with the services
+needed for user-level device drivers (IRQ, IOMEM, IOPORT) and supplemented
+the tooling for the integration of Genode scenarios into a bootable initrd
+image. This target of execution can be addressed by specifying 'KERNEL=linux'
+and 'BOARD=pc' to the run tool now. If specified, the run tool will produce a
+bootable Linux system image for the given run script and run it in Qemu.
+
+That said, as this line of work is still considered as an experimental
+playground - not for productive use - the work flow is not entirely automated.
+In particular, one needs to prepare a suitable
+[https://github.com/jklmnn/linux/commits/genode - Linux kernel] manually.
+If you are interested in the topic, please refer to the background information
+given in the [https://github.com/genodelabs/genode/pull/2829 - issue tracker].
+
