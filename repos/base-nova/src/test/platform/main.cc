@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -266,8 +266,31 @@ void test_revoke(Genode::Env &env)
 	}
 }
 
+static void portal_entry()
+{
+	Genode::Thread &myself = *Genode::Thread::myself();
+	Nova::Utcb &utcb = *reinterpret_cast<Nova::Utcb *>(myself.utcb());
+
+	Nova::Crd const snd_crd(utcb.msg()[0]);
+
+	enum {
+		HOTSPOT = 0, USER_PD = false, HOST_PGT = false, SOLELY_MAP = false,
+		NO_DMA = false, EVILLY_DONT_WRITE_COMBINE = false
+	};
+
+	utcb.set_msg_word(0);
+	bool ok = utcb.append_item(snd_crd, HOTSPOT, USER_PD, HOST_PGT,
+	                           SOLELY_MAP, NO_DMA, EVILLY_DONT_WRITE_COMBINE);
+	(void)ok;
+
+	Nova::reply(myself.stack_top());
+}
+
 void test_pat(Genode::Env &env)
 {
+	Genode::Thread &myself = *Genode::Thread::myself();
+	Nova::Utcb &utcb = *reinterpret_cast<Nova::Utcb *>(myself.utcb());
+
 	/* read out the tsc frequenzy once */
 	Attached_rom_dataspace const platform_info (env, "platform_info");
 	Xml_node const hardware = platform_info.xml().sub_node("hardware");
@@ -283,10 +306,6 @@ void test_pat(Genode::Env &env)
 
 	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_pat");
 
-	Test::Component  component;
-	Test::Capability session_cap = ep.manage(&component);
-	Test::Client     client(session_cap);
-
 	Genode::Rm_connection rm(env);
 	Genode::Region_map_client rm_free_area(rm.create(1 << (DS_ORDER + PAGE_4K)));
 	addr_t remap_addr = env.rm().attach(rm_free_area.dataspace());
@@ -296,36 +315,32 @@ void test_pat(Genode::Env &env)
 		touch_read(reinterpret_cast<unsigned char *>(map_addr));
 
 	/*
-	 * Manipulate entrypoint
+	 * Establish memory mapping with evilly wrong mapping attributes
 	 */
-	Nova::Rights all(true, true, true);
-	Genode::addr_t  utcb_ep_addr_t = client.leak_utcb_address();
-	Nova::Utcb *utcb_ep = reinterpret_cast<Nova::Utcb *>(utcb_ep_addr_t);
-	/* overwrite receive window of entrypoint */
-	utcb_ep->crd_rcv = Nova::Mem_crd(remap_addr >> PAGE_4K, DS_ORDER, all);
+	Nova_native_pd_client native_pd { env.pd().native_pd() };
+	Thread * thread = reinterpret_cast<Genode::Thread *>(&ep);
+	Native_capability const thread_cap
+		= Capability_space::import(thread->native_thread().ec_sel);
 
-	/*
-	 * Set-up current (client) thread to delegate write-combined memory
-	 */
-	Nova::Mem_crd snd_crd(map_addr >> PAGE_4K, DS_ORDER, all);
+	Untyped_capability const pt =
+		native_pd.alloc_rpc_cap(thread_cap, (addr_t)portal_entry, 0 /* MTD */);
 
-	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
-	enum {
-		HOTSPOT = 0, USER_PD = false, HOST_PGT = false, SOLELY_MAP = false,
-		NO_DMA = false, EVILLY_DONT_WRITE_COMBINE = false
-	};
+	Nova::Rights  const all(true, true, true);
+	Nova::Mem_crd const rcv_crd(remap_addr >> PAGE_4K, DS_ORDER, all);
+	Nova::Mem_crd const snd_crd(map_addr >> PAGE_4K, DS_ORDER, all);
+	Nova::Crd     const old_crd = utcb.crd_rcv;
 
-	Nova::Crd old = utcb->crd_rcv;
+	utcb.crd_rcv = rcv_crd;
+	utcb.set_msg_word(1);
+	utcb.msg()[0] = snd_crd.value();
 
-	utcb->set_msg_word(0);
-	bool ok = utcb->append_item(snd_crd, HOTSPOT, USER_PD, HOST_PGT,
-	                            SOLELY_MAP, NO_DMA, EVILLY_DONT_WRITE_COMBINE);
-	(void)ok;
+	uint8_t const res = Nova::call(pt.local_name());
+	utcb.crd_rcv = old_crd;
 
-	uint8_t res = Nova::call(session_cap.local_name());
-	(void)res;
-
-	utcb->crd_rcv = old;
+	if (res != Nova::NOVA_OK) {
+		Genode::error("establishing memory failed ", res);
+		failed++;
+	}
 
 	/* sanity check - touch re-mapped area */
 	for (addr_t i = remap_addr; i < remap_addr + (1 << (DS_ORDER + PAGE_4K)); i += (1 << PAGE_4K))
@@ -358,11 +373,6 @@ void test_pat(Genode::Env &env)
 	}
 
 	Nova::revoke(Nova::Mem_crd(remap_addr >> PAGE_4K, DS_ORDER, all));
-
-	/*
-	 * note: server entrypoint died because of unexpected receive window
-	 *       state - that is expected
-	 */
 }
 
 void test_server_oom(Genode::Env &env)
