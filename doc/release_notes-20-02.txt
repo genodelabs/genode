@@ -36,7 +36,7 @@ Redesign of the administrative user interface of Sculpt OS
 ##########################################################
 
 On our [https://genode.org/about/road-map - road map] for 2020, we stated
-the dwarfing of the barrier of entry as our main concern of the year.
+the reducing of the barrier of entry as our main concern of the year.
 We highlighted the ease of use of Sculpt OS as one particular work area.
 
 
@@ -248,7 +248,7 @@ Finally, you have to copy u-boot to the SD-card as root user:
 ! dd if=`tool/ports/current uboot`/imx8q_evk/imx-mkimage/iMX8M/flash.bin \
 !    of=/dev/sd<?> bs=1k seek=33 conv=fsync
 
-Of course, you have replace 'sd<?>' with the correct device node of your
+Of course, you have to replace 'sd<?>' with the correct device node of your
 attached SD-card.
 
 After enabling the USB host controller driver, we could successfully re-use the
@@ -362,7 +362,7 @@ Base-framework refinements
 Replacing the 'Lock' type by new 'Mutex' and 'Blockade' types
 -------------------------------------------------------------
 
-Up to now, Genode's lock implementation supports mainly two flavour of usage.
+Up to now, Genode's lock implementation supports mainly two flavours of usage.
 On the one hand, it is used to protect critical sections where the lock is
 initialized as unlocked. In the contention case, the lock holder is supposed
 to release the critical section. On the other hand, the lock is used as
@@ -371,8 +371,8 @@ the lock is initialized as locked during instantiation whereby the thread that
 releases the lock is not necessarily the same thread as the creator of the
 lock.
 
-We decided to make the two usage pattern more obvious by introducing two
-separate classes, called 'Mutex' and 'Blockade'. The reasons are two fold.
+We decided to make the two usage patterns more obvious by introducing two
+separate classes, called 'Mutex' and 'Blockade'. The reasons are twofold.
 First, during code review, the usage pattern at hand becomes more obvious.
 Second, by codifying the programmer's intent behind the use of a
 synchronization primitive, Genode becomes able to perform additional checks,
@@ -385,7 +385,7 @@ releases and to ultimately remove the 'Genode::Lock' from the public API.
 
 The 'Mutex' class is more restrictive compared to the 'Lock' class.
 
-* At initialisation time, it is always unlocked.
+* At initialization time, it is always unlocked.
 * To enter and leave a critical section the methods 'acquire()' and
   'release()' are used.
 * A 'Mutex::Guard' is provided, which will 'acquire()' a mutex at
@@ -447,7 +447,7 @@ after these attempts, a polling timeout exception is thrown. The function
 simply returns in case of success. With the current Genode release, we have
 added a 'wait_for_any' method with almost the same semantics but instead of
 waiting for all conditions to become true, it returns if any condition is
-meet, and thus, implements a logical OR.
+met, and thus, implements a logical OR.
 
 
 Migration to modern block-device API
@@ -484,7 +484,7 @@ was rendered silent and brought in the 'printf' back end from DDE Linux to
 be able to produce better formatted LOG messages in the future.
 
 Until now the component only supported HDA and EAP (ES1370 PCI) devices. The
-first is primarily intended to be used with real hardware wheres the latter
+first is primarily intended to be used with real hardware whereas the latter
 was used during the initial porting effort in Qemu. That being said, the EAP
 driver apparently also works on hardware according to community feedback.
 
@@ -496,7 +496,7 @@ usable. Nevertheless, with the driver enabled, interested parties are free to
 investigate the cause for the current issues.
 
 All in all, this update is solely a catch up effort to stay more
-update-to-date with the upstream changes and to pull in HDA quirks for more
+up-to-date with the upstream changes and to pull in HDA quirks for more
 recent systems. More interesting changes to the driver component, like
 reworking the OpenBSD kernel emulation layer and bringing support for USB
 audio devices, are scheduled for future releases.
@@ -551,7 +551,7 @@ constant load. With this release, we added the feature to dynamically adjust
 the GUI refresh rate depending on the rate of user interactivity.
 Additionally, if all virtual CPUs go to idle state, the GUI refresh is stopped
 completely. With these measures, the overall CPU load could be reduced
-noticeable.
+noticeably.
 
 
 TCP terminal
@@ -595,7 +595,7 @@ of the different windows. It exports a data model of the window layout.
 Although, the example implementation of the window layouter introduced in
 14.08 was simple, it already contained a notion of having different virtual
 screens and screen sections, beside the actual window placements. However,
-until now there was no use-case of switching dynamically in between different
+until now there was no use-case of switching dynamically between different
 virtual screens respectively window sets related to them.
 
 While using more and more different graphical components within Sculpt, the
