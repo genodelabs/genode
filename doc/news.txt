@@ -3,6 +3,42 @@
                                Genode News
                                ===========
 
+
+Genode OS Framework release 20.02 | 2020-02-28
+##############################################
+
+| With version 20.02, Genode makes Sculpt OS fit for running on i.MX 64-bit
+| ARM hardware, optimizes the performance throughout the entire software stack,
+| and takes the next evolutionary step of the user-facing side of Sculpt OS.
+
+Without any doubt, Sculpt OS has been the driving motivation behind most
+working topics featured by the new release. One particularly exciting line
+of work is the enabling of Sculpt on i.MX-based 64-bit ARM hardware, which
+touched the framework on all levels, from the boot loader, over the kernel,
+device drivers, libraries, system management, up to the application level.
+The work goes as far as supporting Sculpt OS as a hypervisor platform for
+hosting Linux in a virtual machine.
+
+As a second Sculpt-related development, we strive to make the user-visible
+side of the operating system better approachable and more logical. With this
+background, the current release comes with a profound redesign of the
+administrative user interface of Sculpt OS. An updated downloadable system
+image will follow soon.
+
+Also related to Sculpt are an updated audio driver based on OpenBSD 6.6,
+the support of virtual desktops, and performance optimization of the
+Seoul virtual machine monitor on x86 hardware.
+
+Regarding the framework API, the release introduces a new library for
+building multi-component applications. It aims to bring the benefits of
+Genode's unique security architecture from the operating-system level to the
+application level.
+
+These topics are only the tip of the iceberg. For the complete picture,
+please consult the
+[https:/documentation/release-notes/20.02 - release documentation of version 20.02...]
+
+
 Road Map for 2020 | 2020-01-20
 ##############################
 
