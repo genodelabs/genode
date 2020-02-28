@@ -78,6 +78,8 @@ vbox5_win7_64
 vbox5_win7_64_multiple
 vbox5_win7_64_raw
 vbox5_win7_64_share
+vm_stress_vbox5-debian32
+vm_stress_vbox5-debian64
 verify
 vfs_import
 vmm_arm

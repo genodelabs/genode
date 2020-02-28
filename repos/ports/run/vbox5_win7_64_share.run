@@ -13,6 +13,8 @@ set use_overlay_from_disk 1
 set overlay_image "overlay_${flavor}.vdi"
 set use_rumpfs 1
 
+set use_serial 0
+
 set use_usb 1
 set use_ps2 [have_spec ps2]
 

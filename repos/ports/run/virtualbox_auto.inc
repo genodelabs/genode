@@ -36,6 +36,7 @@ append build_components {
 	drivers/framebuffer
 }
 
+lappend_if [expr $use_serial] build_components server/log_terminal
 lappend_if [expr $use_rumpfs] build_components lib/vfs/rump
 lappend_if [expr $use_rumpfs] build_components server/vfs
 lappend_if [expr $use_vbox5]  build_components virtualbox5
@@ -56,6 +57,12 @@ proc platform_drv_priority {} { return { priority="-1"} }
 append_platform_drv_build_components
 
 build $build_components
+
+if {$use_rumpfs && !$use_ram_fs} {
+	set rump_writable true
+} else {
+	set rump_writable false
+}
 
 set config {
 <config verbose="yes" prio_levels="4">}
@@ -142,7 +149,7 @@ append_if [expr $use_rumpfs] config {
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
 			<policy label_prefix="overlay_from_disk" root="/ram" writeable="no"/>}
 append_if [expr $use_rumpfs] config {
-			<default-policy root="/" writeable="no"/>
+			<default-policy root="/" writeable="} $rump_writable {"/>
 		</config>
 		<route>
 			<any-service><child name="part_block"/> <parent/><any-child/></any-service>
@@ -350,6 +357,14 @@ append_if [have_spec x86] config {
 		</provides>
 	</start>}
 
+append_if [expr $use_serial] config {
+	<start name="log_terminal" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Terminal"/>
+		</provides>
+	</start>}
+
 append config $config_of_app
 
 append config {
@@ -370,6 +385,7 @@ lappend_if [expr $use_rumpfs] boot_modules rump.lib.so
 lappend_if [expr $use_rumpfs] boot_modules rump_fs.lib.so
 lappend_if [expr $use_rumpfs] boot_modules vfs_rump.lib.so
 lappend_if [expr $use_rumpfs] boot_modules vfs
+lappend_if [expr $use_serial] boot_modules log_terminal
 lappend_if [expr $use_vbox5] boot_modules $virtualbox5_binary
 lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image

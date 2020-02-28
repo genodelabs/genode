@@ -234,6 +234,8 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 				<dir name="dev">
 					<log/> <rtc/>}
 
+	append_if [expr $use_serial] config_of_app { <terminal/> }
+
 	append_if [expr !$use_rumpfs] config_of_app {
 					<block name="sda3" label="raw" block_buffer_count="128" />}
 	append config_of_app {
@@ -280,6 +282,10 @@ source ${genode_dir}/repos/ports/run/virtualbox_auto.inc
 # copy vbox configuration to bin directory
 exec cp ${genode_dir}/repos/ports/run/${vbox_file} bin/.
 
+if {[info exists use_vcpus]} {
+	exec sed -i "s/CPU count=\".*\"/CPU count=\"${use_vcpus}\"/g" bin/${vbox_file}
+}
+
 if {!$use_rumpfs} {
 	exec cp ${genode_dir}/repos/ports/run/${raw_image} bin/.
 }
@@ -292,27 +298,29 @@ build_boot_image $boot_modules
 set wait_timeout 70
 if {[have_spec foc]} { set wait_timeout 120 }
 
-run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: no, hostWindowMapping: no, graphics: no} $wait_timeout
+if {!$use_serial} {
+	run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: no, hostWindowMapping: no, graphics: no} $wait_timeout
 
-# run_genode_until forever 0 [output_spawn_id]
+	# run_genode_until forever 0 [output_spawn_id]
 
-if {$use_rumpfs} {
-	set wait_timeout 170
-	for { set i 1 } { $i <= $use_vms } { incr i } {
-		if { [string match "ubuntu*" $flavor] || [string match "win10*" $flavor] } {
-			run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: no} $wait_timeout [output_spawn_id]
-		} else {
-			run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} $wait_timeout [output_spawn_id]
+	if {$use_rumpfs} {
+		set wait_timeout 170
+		for { set i 1 } { $i <= $use_vms } { incr i } {
+			if { [string match "ubuntu*" $flavor] || [string match "win10*" $flavor] } {
+				run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: no} $wait_timeout [output_spawn_id]
+			} else {
+				run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} $wait_timeout [output_spawn_id]
+			}
 		}
+	} else {
+		run_genode_until {\[init\] child "vbox1" exited with exit value 0} 60 [output_spawn_id]
+		# give block driver bit time to write data to disk
+		sleep 5
 	}
-} else {
-	run_genode_until {\[init\] child "vbox1" exited with exit value 0} 60 [output_spawn_id]
-	# give block driver bit time to write data to disk
-	sleep 5
-}
 
-# cleanup bin directory - remove vbox file
-exec rm bin/${vbox_file}
-if {!$use_rumpfs} {
-	exec rm bin/${raw_image}
+	# cleanup bin directory - remove vbox file
+	exec rm bin/${vbox_file}
+	if {!$use_rumpfs} {
+		exec rm bin/${raw_image}
+	}
 }

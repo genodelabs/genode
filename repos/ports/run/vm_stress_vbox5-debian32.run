@@ -1,0 +1,99 @@
+#
+# Debian 32bit VM cloning Genode git sources, preparing and building pieces
+#
+
+assert_spec x86
+assert_spec nova
+
+set flavor   "stress_32"
+set vm_ram   "1280M"
+
+set use_vbox5 1
+
+set use_rumpfs 1
+set use_ram_fs 1
+set use_overlay_from_disk 1
+
+set use_serial 1
+
+set use_usb 0
+set use_ps2 [have_spec ps2]
+
+set use_vms 1
+set use_cpu_load 0
+
+set output_host ""
+set output_host_extra ""
+set results_expected { }
+set boottime_expected { }
+
+set match_guest_log "\[init -\> log_terminal\]"
+set match_boot_string "\[init -\> vbox.*\].*Using VMX virtualization extension"
+#set match_guest_down
+
+# use generic vbox5 VMM version
+set use_vbox5_nova 0
+set vmm_name "vbox5_gen"
+
+set use_vcpus 1
+lappend results_expected 1 13 41 80
+lappend boottime_expected 21
+source ${genode_dir}/repos/ports/run/vbox_win.inc
+source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+kill_spawned [output_spawn_id]
+
+# set use_vcpus 2
+# lappend results_expected 2 10 42 50
+# lappend boottime_expected 21
+# source ${genode_dir}/repos/ports/run/vbox_win.inc
+# source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+# kill_spawned [output_spawn_id]
+
+if {[have_spec nova]} {
+	# use non-generic vbox5 VMM version
+	set use_vbox5_nova 1
+	set vmm_name "vbox5_nova"
+
+	set use_vcpus 1
+	lappend results_expected 1 13 36 78
+	lappend boottime_expected 26
+	source ${genode_dir}/repos/ports/run/vbox_win.inc
+	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+	kill_spawned [output_spawn_id]
+
+	set use_vcpus 2
+	lappend results_expected 2 11 35 48
+	lappend boottime_expected 25
+	source ${genode_dir}/repos/ports/run/vbox_win.inc
+	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+	kill_spawned [output_spawn_id]
+
+	set use_vcpus 3
+	lappend results_expected 3 9 39 39
+	lappend boottime_expected 26
+	source ${genode_dir}/repos/ports/run/vbox_win.inc
+	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+	kill_spawned [output_spawn_id]
+
+	set use_vcpus 4
+	lappend results_expected 4 10 41 34
+	lappend boottime_expected 27
+	source ${genode_dir}/repos/ports/run/vbox_win.inc
+	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+	kill_spawned [output_spawn_id]
+}
+
+#
+# Dump aggregated output of the several runs above
+#
+grep_output "$match_guest_log.*cpus="
+
+puts $output
+
+set merge_host_output [split $output_host "\n"]
+set merge_host_extra  [split $output_host_extra "\n"]
+for { set i 0 } { $i < [llength $merge_host_output] } { incr i} {
+	puts "[lindex $merge_host_output $i] [lindex $merge_host_extra $i]"
+}
+
+evaluate_stress

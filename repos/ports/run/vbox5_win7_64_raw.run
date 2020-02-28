@@ -15,6 +15,8 @@ set use_rumpfs 0
 set use_ram_fs 0
 set use_overlay_from_disk 0
 
+set use_serial 0
+
 set use_usb 1
 set use_ps2 [have_spec ps2]
 
