@@ -43,7 +43,6 @@ TAR_OPT(libc) += usr/src/sys/x86
 #
 # Check for tools
 #
-$(call check_tool,svn)
 $(call check_tool,flex)
 $(call check_tool,bison)
 $(call check_tool,rpcgen)
