@@ -184,11 +184,11 @@ class Ahci::Driver : Noncopyable
 
 		void report_ports(Reporter &reporter)
 		{
-			auto report = [&](Port const &port, unsigned index, bool atapi) {
+			Reporter::Xml_generator xml(reporter, [&] () {
 
-				Block::Session::Info info = port.info();
-				Reporter::Xml_generator xml(reporter, [&] () {
+				auto report = [&](Port const &port, unsigned index, bool atapi) {
 
+					Block::Session::Info info = port.info();
 					xml.node("port", [&] () {
 						xml.attribute("num", index);
 						xml.attribute("type", atapi ? "ATAPI" : "ATA");
@@ -199,10 +199,10 @@ class Ahci::Driver : Noncopyable
 							xml.attribute("serial", _ata[index]->serial->cstring());
 						}
 					});
-				});
-			};
+				};
 
-			for_each_port(report);
+				for_each_port(report);
+			});
 		}
 };
 
