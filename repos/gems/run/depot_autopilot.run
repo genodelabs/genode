@@ -756,7 +756,7 @@ proc non_executable_supported { } {
 # Whether to skip a test - if undefined for a test, the test is not skipped
 #
 set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
-set skip_test(test-fs_packet)       [expr ![interactive] && [expr [have_include "power_on/qemu"] || [have_spec rpi]]]
+set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]
 set skip_test(test-libc)            [expr [have_spec sel4] || [have_spec rpi] || [expr [have_spec pbxa9] && [have_spec foc]] || [expr [have_spec imx53] && [have_spec trustzone]]]
 set skip_test(test-lx_block)        [expr ![have_spec linux]]
 set skip_test(test-python)          [expr ![have_spec x86]]
