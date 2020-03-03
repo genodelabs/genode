@@ -131,3 +131,17 @@ unsigned Genode::Cpu::executing_id()
 	unsigned const cpu_id = (stack_addr - stack_base) / kernel_stack_size;
 	return cpu_id;
 }
+
+
+void Genode::Cpu::clear_memory_region(Genode::addr_t const addr,
+                                      Genode::size_t const size, bool)
+{
+	if (align_addr(addr, 3) == addr && align_addr(size, 3) == size) {
+		Genode::addr_t start = addr;
+		Genode::size_t count = size / 8;
+		asm volatile ("rep stosq" : "+D" (start), "+c" (count)
+		                          : "a" (0)  : "memory");
+	} else {
+		Genode::memset((void*)addr, 0, size);
+	}
+}

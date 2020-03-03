@@ -727,8 +727,7 @@ void Thread::_call()
 	/* switch over unrestricted kernel calls */
 	unsigned const call_id = user_arg_0();
 	switch (call_id) {
-	case call_id_update_data_region():       _call_update_data_region(); return;
-	case call_id_update_instr_region():      _call_update_instr_region(); return;
+	case call_id_cache_coherent_region():    _call_cache_coherent_region(); return;
 	case call_id_stop_thread():              _call_stop_thread(); return;
 	case call_id_restart_thread():           _call_restart_thread(); return;
 	case call_id_yield_thread():             _call_yield_thread(); return;

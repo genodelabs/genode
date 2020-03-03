@@ -14,6 +14,7 @@
 #ifndef _SRC__LIB__HW__SPEC__X86_64__PAGE_TABLE_H_
 #define _SRC__LIB__HW__SPEC__X86_64__PAGE_TABLE_H_
 
+#include <base/log.h>
 #include <hw/assert.h>
 #include <hw/page_flags.h>
 #include <hw/page_table_allocator.h>
@@ -679,6 +680,12 @@ class Hw::Pml4_table
 		void remove_translation(addr_t vo, size_t size, Allocator & alloc)
 		{
 			_range_op(vo, 0, size, Remove_func(alloc));
+		}
+
+		bool lookup_translation(addr_t const, addr_t &, Allocator &)
+		{
+			Genode::raw(__func__, " not implemented yet");
+			return false;
 		}
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 

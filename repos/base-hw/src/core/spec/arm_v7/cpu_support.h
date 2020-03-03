@@ -44,8 +44,40 @@ struct Genode::Arm_v7_cpu : Arm_cpu
 
 	static inline void synchronization_barrier()
 	{
-		asm volatile("dsb sy\n"
-		             "isb sy\n" ::: "memory");
+		asm volatile("dsb\n"
+		             "isb\n" ::: "memory");
+	}
+
+	static inline size_t data_cache_line_size()
+	{
+		struct Ctr : Genode::Register<32> {
+			struct D_min_line : Bitfield<16,4> {};
+		};
+
+		static size_t data_cache_line_size = 0;
+
+		if (!data_cache_line_size) {
+			data_cache_line_size =
+				(1 << Ctr::D_min_line::get(Arm_cpu::Ctr::read())) * sizeof(addr_t);
+		}
+
+		return data_cache_line_size;
+	}
+
+	static inline size_t instruction_cache_line_size()
+	{
+		struct Ctr : Genode::Register<32> {
+			struct I_min_line : Bitfield<0,4> {};
+		};
+
+		static size_t instruction_cache_line_size = 0;
+
+		if (!instruction_cache_line_size) {
+			instruction_cache_line_size =
+				(1 << Ctr::I_min_line::get(Arm_cpu::Ctr::read())) * sizeof(addr_t);
+		}
+
+		return instruction_cache_line_size;
 	}
 };
 

@@ -27,8 +27,6 @@ namespace Hw::Imx8q_evk_board {
 		UART_BASE  = 0x30860000,
 		UART_SIZE  = 0x1000,
 		UART_CLOCK = 250000000,
-
-		CACHE_LINE_SIZE_LOG2 = 6,
 	};
 
 	namespace Cpu_mmio {

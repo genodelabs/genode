@@ -14,6 +14,7 @@
 #include <board.h>
 #include <cpu.h>
 #include <kernel/thread.h>
+#include <cpu/memory_barrier.h>
 #include <util/bit_allocator.h>
 
 
@@ -73,33 +74,72 @@ Genode::Cpu::Mmu_context::~Mmu_context()
 }
 
 
-static constexpr Genode::addr_t line_size = 1 << Board::CACHE_LINE_SIZE_LOG2;
-static constexpr Genode::addr_t line_align_mask = ~(line_size - 1);
-
-
-void Genode::Cpu::clean_data_cache_by_virt_region(addr_t base, size_t sz)
+Genode::size_t Genode::Cpu::cache_line_size()
 {
-	addr_t const top = base + sz;
-	base &= line_align_mask;
-	for (; base < top; base += line_size) {
-		asm volatile("dc cvau, %0" :: "r" (base)); }
+	static Genode::size_t cache_line_size = 0;
+
+	if (!cache_line_size) {
+		Genode::size_t i = 1 << Ctr_el0::I_min_line::get(Ctr_el0::read());
+		Genode::size_t d = 1 << Ctr_el0::D_min_line::get(Ctr_el0::read());
+		cache_line_size = Genode::min(i,d) * 4; /* word size is fixed in ARM */
+	}
+	return cache_line_size;
 }
 
 
-void Genode::Cpu::clean_invalidate_data_cache_by_virt_region(addr_t base, size_t sz)
+template <typename FUNC>
+static inline void cache_maintainance(Genode::addr_t const base,
+                                      Genode::size_t const size,
+                                      FUNC & func)
 {
-	addr_t const top = base + sz;
-	base &= line_align_mask;
-	for (; base < top; base += line_size) {
-		asm volatile("dc civac, %0" :: "r" (base)); }
+	Genode::addr_t start     = (Genode::addr_t) base;
+	Genode::addr_t const end = base + size;
+	for (; start < end; start += Genode::Cpu::cache_line_size()) func(start);
 }
 
 
-void Genode::Cpu::invalidate_instr_cache_by_virt_region(addr_t base,
-                                                        size_t size)
+void Genode::Cpu::cache_coherent_region(addr_t const base,
+                                size_t const size)
 {
-	addr_t const top = base + size;
-	base &= line_align_mask;
-	for (; base < top; base += line_size) {
-		asm volatile("ic ivau, %0" :: "r" (base)); }
+	Genode::memory_barrier();
+
+	auto lambda = [] (addr_t const base) {
+		asm volatile("dc cvau, %0" :: "r" (base));
+		asm volatile("dsb ish");
+		asm volatile("ic ivau, %0" :: "r" (base));
+		asm volatile("dsb ish");
+		asm volatile("isb");
+	};
+
+	cache_maintainance(base, size, lambda);
+}
+
+
+void Genode::Cpu::clear_memory_region(addr_t const addr,
+                              size_t const size,
+                              bool changed_cache_properties)
+{
+	Genode::memory_barrier();
+
+	/* normal memory is cleared by D-cache zeroing */
+	auto normal = [] (addr_t const base) {
+		asm volatile("dc zva,  %0" :: "r" (base));
+		asm volatile("ic ivau, %0" :: "r" (base));
+	};
+
+	/* DMA memory gets additionally evicted from the D-cache */
+	auto dma = [] (addr_t const base) {
+		asm volatile("dc zva,   %0" :: "r" (base));
+		asm volatile("dc civac, %0" :: "r" (base));
+		asm volatile("ic ivau,  %0" :: "r" (base));
+	};
+
+	if (changed_cache_properties) {
+		cache_maintainance(addr, size, dma);
+	} else {
+		cache_maintainance(addr, size, normal);
+	}
+
+	asm volatile("dsb ish");
+	asm volatile("isb");
 }

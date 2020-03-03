@@ -33,8 +33,6 @@ namespace Hw::Rpi3_board {
 
 		LOCAL_IRQ_CONTROLLER_BASE = 0x40000000,
 		LOCAL_IRQ_CONTROLLER_SIZE = 0x1000,
-
-		CACHE_LINE_SIZE_LOG2 = 6,
 	};
 };
 

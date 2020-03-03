@@ -44,15 +44,9 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 		return;
 	}
 
-	/* clear dataspace */
-	memset(virt_addr, 0, page_rounded_size);
-
-	/* uncached dataspaces need to be flushed from the data cache */
-	if (ds.cacheability() != CACHED)
-		Kernel::update_data_region((addr_t)virt_addr, page_rounded_size);
-
-	/* invalidate the dataspace memory from instruction cache */
-	Kernel::update_instr_region((addr_t)virt_addr, page_rounded_size);
+	/* dependent on the architecture, cache maintainance might be necessary */
+	Cpu::clear_memory_region((addr_t)virt_addr, page_rounded_size,
+	                         ds.cacheability() != CACHED);
 
 	/* unmap dataspace from core */
 	if (!unmap_local((addr_t)virt_addr, num_pages))

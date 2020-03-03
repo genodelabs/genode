@@ -18,18 +18,6 @@
 /* core includes */
 #include <spec/arm_v7/cpu_support.h>
 
-namespace Genode { struct Cpu; }
-
-
-struct Genode::Cpu : Arm_v7_cpu
-{
-	/**
-	 * Post processing after a translation was added to a translation table
-	 *
-	 * \param addr  virtual address of the translation
-	 * \param size  size of the translation
-	 */
-	static void translation_added(addr_t const addr, size_t const size);
-};
+namespace Genode { using Cpu = Arm_v7_cpu; }
 
 #endif /* _CORE__SPEC__CORTEX_A8__CPU_H_ */

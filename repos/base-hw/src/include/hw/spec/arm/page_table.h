@@ -260,6 +260,28 @@ class Hw::Page_table
 				}
 
 				/**
+				 * Lookup translation
+				 *
+				 * \param virt  virtual address offset to look for
+				 * \param phys  physical address to return
+				 * \returns true if lookup was successful, otherwise false
+				 */
+				bool lookup_translation(addr_t const virt, addr_t & phys)
+				{
+					unsigned idx = 0;
+					if (!_index_by_vo(idx, virt)) return false;
+
+					switch (Descriptor::type(_entries[idx])) {
+					case Descriptor::SMALL_PAGE:
+						{
+							phys = Small_page::Pa::masked(_entries[idx]);
+							return true;
+						}
+					default: return false;
+					}
+				}
+
+				/**
 				 * Does this table solely contain invalid entries
 				 */
 				bool empty()
@@ -575,6 +597,42 @@ class Hw::Page_table
 				size = (size > sz) ? size - sz : 0;
 				vo += sz;
 			}
+		}
+
+		/**
+		 * Lookup translation
+		 *
+		 * \param virt  virtual address to look at
+		 * \param phys  physical address to return
+		 * \param alloc second level translation table allocator
+		 * \returns true if a translation was found, otherwise false
+		 */
+		bool lookup_translation(addr_t const virt, addr_t & phys, Allocator & alloc)
+		{
+			unsigned idx = 0;
+			if (!_index_by_vo(idx, virt)) return false;
+
+			switch (Descriptor::type(_entries[idx])) {
+
+			case Descriptor::SECTION:
+				{
+					phys = Section::Pa::masked(_entries[idx]);
+					return true;
+				}
+
+			case Descriptor::PAGE_TABLE:
+				{
+					using Pt  = Page_table_level_2;
+					using Ptd = Page_table_descriptor;
+
+					Pt & pt =
+						alloc.virt_addr<Pt>(Ptd::Pa::masked(_entries[idx]));
+
+					addr_t const offset = virt - Section::Pa::masked(virt);
+					return pt.lookup_translation(offset, phys);
+				}
+			default: return false;
+			};
 		}
 } __attribute__((aligned(1<<Page_table::ALIGNM_LOG2)));
 

@@ -85,10 +85,13 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 	 */
 	static unsigned executing_id() { return Cpu::Mpidr::read() & 0xff; }
 
+	static size_t cache_line_size();
+	static void clear_memory_region(addr_t const addr,
+	                                size_t const size,
+	                                bool changed_cache_properties);
 
-	static void clean_data_cache_by_virt_region(addr_t, size_t);
-	static void clean_invalidate_data_cache_by_virt_region(addr_t, size_t);
-	static void invalidate_instr_cache_by_virt_region(addr_t, size_t);
+	static void cache_coherent_region(addr_t const addr,
+	                                  size_t const size);
 };
 
 #endif /* _CORE__SPEC__ARM_V8__CPU_H_ */

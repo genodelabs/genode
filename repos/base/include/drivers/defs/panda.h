@@ -90,9 +90,6 @@ namespace Panda {
 
 		/* SD card */
 		HSMMC_IRQ = 115,
-
-		/* CPU cache */
-		CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 	};
 };
 

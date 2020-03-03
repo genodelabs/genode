@@ -52,9 +52,6 @@ namespace Imx6 {
 		/* System reset controller */
 		SRC_MMIO_BASE = 0x20d8000,
 
-		/* CPU cache */
-		CACHE_LINE_SIZE_LOG2 = 5,
-
 		/* SD host controller */
 		SDHC_1_IRQ       = 54,
 		SDHC_1_MMIO_BASE = 0x02190000,

@@ -130,6 +130,11 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		 */
 		static void invalidate_tlb() {
 			Genode::Cpu::Cr3::write(Genode::Cpu::Cr3::read()); }
+
+
+		static void clear_memory_region(addr_t const addr,
+		                                size_t const size,
+		                                bool changed_cache_properties);
 };
 
 #endif /* _CORE__SPEC__X86_64__CPU_H_ */

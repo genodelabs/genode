@@ -52,7 +52,6 @@ namespace Zynq {
 		/* CPU cache */
 		PL310_MMIO_BASE      = MMIO_1_BASE + 0xF02000,
 		PL310_MMIO_SIZE      = 0x1000,
-		CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 
 		/* TTC (triple timer counter) */
 		TTC0_MMIO_BASE = MMIO_1_BASE + 0x1000,

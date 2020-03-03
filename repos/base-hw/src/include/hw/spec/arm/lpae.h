@@ -370,6 +370,26 @@ class Hw::Level_3_translation_table :
 					desc = 0; }
 		};
 
+		struct Lookup_func
+		{
+				bool   found { false };
+				addr_t phys  { 0 };
+
+				Lookup_func() { }
+
+				void operator () (addr_t const,
+				                  addr_t const,
+				                  size_t const,
+				                  Descriptor::access_t &desc)
+				{
+					using Base = Long_translation_table<SIZE_LOG2_4KB,
+					                                    SIZE_LOG2_2MB>;
+					using Block_descriptor = typename Stage_trait<Base, STAGE>::Type;
+					phys = Block_descriptor::Output_address::masked(desc);
+					found = true;
+				}
+		};
+
 	public:
 
 		using Allocator = Hw::Page_table_allocator<1 << SIZE_LOG2_4KB>;
@@ -381,8 +401,20 @@ class Hw::Level_3_translation_table :
 		                        Allocator &) {
 			_range_op(vo, pa, size, Insert_func(flags)); }
 
-		void remove_translation(addr_t vo, size_t size, Allocator&) {
-			_range_op(vo, 0, size, Remove_func()); }
+		void remove_translation(addr_t vo, size_t size, Allocator&)
+		{
+			addr_t pa = 0;
+			_range_op(vo, pa, size, Remove_func());
+		}
+
+		bool lookup_translation(addr_t vo, addr_t & pa, Allocator&)
+		{
+			size_t page_size = 1 << SIZE_LOG2_4KB;
+			Lookup_func functor {};
+			_range_op(vo, 0, page_size, functor);
+			pa = functor.phys;
+			return functor.found;
+		}
 };
 
 
@@ -487,6 +519,43 @@ class Hw::Level_x_translation_table :
 			}
 		};
 
+
+		template <typename E>
+		struct Lookup_func
+		{
+			Allocator & alloc;
+			bool        found { false };
+			addr_t      phys  { 0 };
+
+			Lookup_func(Allocator & alloc) : alloc(alloc) { }
+
+			void operator () (addr_t const                   vo,
+			                  addr_t const,
+			                  size_t const,
+			                  typename Descriptor::access_t &desc)
+			{
+				using Nt = typename Table_descriptor::Next_table;
+
+				switch (Descriptor::type(desc)) {
+				case Descriptor::BLOCK:
+					{
+						phys = Block_descriptor::Output_address::masked(desc);
+						found = true;
+						return;
+					};
+				case Descriptor::TABLE:
+					{
+						/* use allocator to retrieve virt address of table */
+						E & table = alloc.virt_addr<E>(Nt::masked(desc));
+						found = table.lookup_translation(vo - (vo & Base::BLOCK_MASK),
+						                                 phys, alloc);
+						return;
+					};
+				case Descriptor::INVALID: return;
+				}
+			}
+		};
+
 	public:
 
 		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
@@ -518,8 +587,28 @@ class Hw::Level_x_translation_table :
 		 * \param alloc  second level translation table allocator
 		 */
 		void remove_translation(addr_t vo, size_t size,
-		                        Allocator & alloc) {
-			this->_range_op(vo, 0, size, Remove_func<ENTRY>(alloc)); }
+		                        Allocator & alloc)
+		{
+			addr_t pa = 0;
+			this->_range_op(vo, pa, size, Remove_func<ENTRY>(alloc));
+		}
+
+		/**
+		 * Lookup translation
+		 *
+		 * \param virt   region offset within the tables virtual region
+		 * \param phys   region size
+		 * \param alloc  second level translation table allocator
+		 */
+		bool lookup_translation(addr_t const virt, addr_t & phys,
+		                        Allocator & alloc)
+		{
+			size_t page_size = 1 << SIZE_LOG2_4KB;
+			Lookup_func<ENTRY> functor(alloc);
+			this->_range_op(virt, phys, page_size, functor);
+			phys = functor.phys;
+			return functor.found;
+		}
 };
 
 

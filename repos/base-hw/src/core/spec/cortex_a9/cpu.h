@@ -27,8 +27,8 @@ struct Genode::Cpu : Arm_v7_cpu
 	 * Clean and invalidate data-cache for virtual region
 	 * 'base' - 'base + size'
 	 */
-	void clean_invalidate_data_cache_by_virt_region(addr_t base,
-	                                                size_t const size)
+	static void clean_invalidate_data_cache_by_virt_region(addr_t const base,
+	                                                       size_t const size)
 	{
 		Arm_cpu::clean_invalidate_data_cache_by_virt_region(base, size);
 		Board::l2_cache().clean_invalidate();

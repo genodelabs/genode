@@ -81,6 +81,10 @@ class Genode::Cpu : public Hw::Riscv_cpu
 		static void mmu_fault(Context & c, Kernel::Thread_fault & f);
 
 		static unsigned executing_id() { return 0; }
+
+		static void clear_memory_region(addr_t const addr,
+		                                size_t const size,
+		                                bool changed_cache_properties);
 };
 
 #endif /* _CORE__SPEC__RISCV__CPU_H_ */

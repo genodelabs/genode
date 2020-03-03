@@ -335,6 +335,12 @@ class Sv39::Level_x_translation_table
 		{
 			_range_op(vo, 0, size, Remove_func<ENTRY>(alloc));
 		}
+
+		bool lookup_translation(addr_t, addr_t &, Allocator &)
+		{
+			Genode::raw(__func__, " not implemented yet");
+			return false;
+		}
 }  __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 namespace Sv39 {

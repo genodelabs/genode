@@ -70,9 +70,6 @@ struct Vea9x4::Board
 		CORTEX_A9_PRIVATE_MEM_BASE  = 0x1e000000,
 		CORTEX_A9_PRIVATE_MEM_SIZE  = 0x2000,
 		CORTEX_A9_PRIVATE_TIMER_CLK = 200010000,
-
-		/* CPU cache */
-		CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 	};
 };
 

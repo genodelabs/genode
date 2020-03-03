@@ -74,3 +74,13 @@ void Genode::Cpu::mmu_fault(Context &, Kernel::Thread_fault & f)
 	f.addr = Genode::Cpu::Sbadaddr::read();
 	f.type = Kernel::Thread_fault::PAGE_MISSING;
 }
+
+
+void Genode::Cpu::clear_memory_region(addr_t const addr,
+                                      size_t const size, bool)
+{
+	memset((void*)addr, 0, size);
+
+	/* FIXME: is this really necessary? */
+	Genode::Cpu::sfence();
+}

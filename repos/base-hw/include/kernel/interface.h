@@ -36,13 +36,12 @@ namespace Kernel
 	constexpr Call_arg call_id_cancel_next_await_signal() { return 10; }
 	constexpr Call_arg call_id_ack_signal()               { return 11; }
 	constexpr Call_arg call_id_print_char()               { return 12; }
-	constexpr Call_arg call_id_update_data_region()       { return 13; }
-	constexpr Call_arg call_id_update_instr_region()      { return 14; }
-	constexpr Call_arg call_id_ack_cap()                  { return 15; }
-	constexpr Call_arg call_id_delete_cap()               { return 16; }
-	constexpr Call_arg call_id_timeout()                  { return 17; }
-	constexpr Call_arg call_id_timeout_max_us()           { return 18; }
-	constexpr Call_arg call_id_time()                     { return 19; }
+	constexpr Call_arg call_id_cache_coherent_region()    { return 13; }
+	constexpr Call_arg call_id_ack_cap()                  { return 14; }
+	constexpr Call_arg call_id_delete_cap()               { return 15; }
+	constexpr Call_arg call_id_timeout()                  { return 16; }
+	constexpr Call_arg call_id_timeout_max_us()           { return 17; }
+	constexpr Call_arg call_id_time()                     { return 18; }
 
 
 	/*****************************************************************
@@ -176,26 +175,16 @@ namespace Kernel
 	}
 
 	/**
-	 * Globally apply writes to a data region in the current domain
+	 * Enforce coherent view (I-/D-Caches) on memory region
 	 *
 	 * \param base  base of the region within the current domain
 	 * \param size  size of the region
 	 */
-	inline void update_data_region(addr_t const base, size_t const size)
+	inline void cache_coherent_region(addr_t const base, size_t const size)
 	{
-		call(call_id_update_data_region(), (Call_arg)base, (Call_arg)size);
+		call(call_id_cache_coherent_region(), (Call_arg)base, (Call_arg)size);
 	}
 
-	/**
-	 * Globally apply writes to an instruction region in the current domain
-	 *
-	 * \param base  base of the region within the current domain
-	 * \param size  size of the region
-	 */
-	inline void update_instr_region(addr_t const base, size_t const size)
-	{
-		call(call_id_update_instr_region(), (Call_arg)base, (Call_arg)size);
-	}
 
 	/**
 	 * Send request message and await receipt of corresponding reply message

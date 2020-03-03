@@ -62,9 +62,6 @@ namespace Rpi {
 		/* USB host controller */
 		DWC_IRQ = 17,
 
-		/* CPU cache */
-		CACHE_LINE_SIZE_LOG2 = 5,
-
 		/* SD card */
 		SDHCI_BASE = MMIO_0_BASE + 0x300000,
 		SDHCI_SIZE = 0x100,

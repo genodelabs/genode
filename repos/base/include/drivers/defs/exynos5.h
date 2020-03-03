@@ -55,9 +55,6 @@ namespace Exynos5 {
 		MCT_IRQ_L0    = 152,
 		MCT_IRQ_L1    = 153,
 
-		/* CPU cache */
-		CACHE_LINE_SIZE_LOG2 = 6,
-
 		/* IRAM */
 		IRAM_BASE = 0x02020000,
 

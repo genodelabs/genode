@@ -106,9 +106,6 @@ namespace Imx53 {
 
 		M4IF_BASE          = 0x63fd8000,
 		M4IF_SIZE          = 0x00001000,
-
-		/* CPU cache */
-		CACHE_LINE_SIZE_LOG2 = 6,
 	};
 };
 

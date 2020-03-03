@@ -11,6 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <platform_pd.h>
+
 #include <kernel/cpu.h>
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
@@ -104,21 +106,33 @@ bool Kernel::Pd::invalidate_tlb(Cpu &, addr_t addr, size_t size)
 }
 
 
-void Kernel::Thread::_call_update_data_region()
+void Kernel::Thread::_call_cache_coherent_region()
 {
-	addr_t const base = (addr_t)user_arg_1();
-	size_t const size = (size_t)user_arg_2();
-	Cpu::clean_invalidate_data_cache_by_virt_region(base, size);
-	Cpu::invalidate_instr_cache_by_virt_region(base, size);
-}
+	addr_t       base = (addr_t) user_arg_1();
+	size_t const size = (size_t) user_arg_2();
 
+	/**
+	 * sanity check that only one small page is affected,
+	 * because we only want to lookup one page in the page tables
+	 * to limit execution time within the kernel
+	 */
+	if (Hw::trunc_page(base) != Hw::trunc_page(base+size-1)) {
+		Genode::raw(*this, " tried to make cross-page region cache coherent ",
+		            (void*)base, " ", size);
+		return;
+	}
 
-void Kernel::Thread::_call_update_instr_region()
-{
-	addr_t const base = (addr_t)user_arg_1();
-	size_t const size = (size_t)user_arg_2();
-	Cpu::clean_data_cache_by_virt_region(base, size);
-	Cpu::invalidate_instr_cache_by_virt_region(base, size);
+	/**
+	 * Lookup whether the page is backed, and if so make the memory coherent
+	 * in between I-, and D-cache
+	 */
+	addr_t phys = 0;
+	if (pd().platform_pd().lookup_translation(base, phys)) {
+		Cpu::cache_coherent_region(base, size);
+	} else {
+		Genode::raw(*this, " tried to make invalid address ",
+		            base, " cache coherent");
+	}
 }
 
 

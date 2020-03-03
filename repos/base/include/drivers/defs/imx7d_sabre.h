@@ -37,8 +37,6 @@ namespace Imx7d_sabre {
 		UART_1_MMIO_SIZE            = 0x10000UL,
 
 		TIMER_CLOCK                 = 1000000000UL,
-
-		CACHE_LINE_SIZE_LOG2        = 6,
 	};
 }
 

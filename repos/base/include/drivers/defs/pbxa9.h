@@ -74,9 +74,6 @@ namespace Pbxa9 {
 		/* SD card */
 		PL180_IRQ_0 = 49,
 		PL180_IRQ_1 = 50,
-
-		/* CPU cache */
-		CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 	};
 };
 

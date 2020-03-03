@@ -51,13 +51,7 @@ void Thread::exception(Cpu & cpu)
 }
 
 
-void Thread::_call_update_data_region()
-{
-	Genode::Cpu::sfence();
-}
-
-
-void Thread::_call_update_instr_region() { }
+void Thread::_call_cache_coherent_region() { }
 
 
 void Kernel::Thread::proceed(Cpu & cpu)

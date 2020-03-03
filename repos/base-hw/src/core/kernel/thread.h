@@ -228,8 +228,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		void _call_send_request_msg();
 		void _call_send_reply_msg();
 		void _call_invalidate_tlb();
-		void _call_update_data_region();
-		void _call_update_instr_region();
+		void _call_cache_coherent_region();
 		void _call_print_char();
 		void _call_await_signal();
 		void _call_pending_signal();

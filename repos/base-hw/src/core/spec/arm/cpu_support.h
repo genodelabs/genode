@@ -69,37 +69,24 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		asm volatile ("mcr p15, 0, %0, c7, c5, 0" :: "r" (0) : ); }
 
 	/**
-	 * Invalidate all branch predictions
+	 * Clean data-cache for virtual region 'base' - 'base + size'
 	 */
-	static void invalidate_branch_predicts() {
-		asm volatile ("mcr p15, 0, r0, c7, c5, 6" ::: "r0"); };
-
-	static constexpr addr_t line_size = 1 << Board::CACHE_LINE_SIZE_LOG2;
-	static constexpr addr_t line_align_mask = ~(line_size - 1);
+	static void clean_data_cache_by_virt_region(addr_t const base,
+	                                            size_t const size);
 
 	/**
 	 * Clean and invalidate data-cache for virtual region
 	 * 'base' - 'base + size'
 	 */
-	static void clean_invalidate_data_cache_by_virt_region(addr_t base,
-	                                                       size_t const size)
-	{
-		addr_t const top = base + size;
-		base &= line_align_mask;
-		for (; base < top; base += line_size) { Dccimvac::write(base); }
-	}
+	static void clean_invalidate_data_cache_by_virt_region(addr_t const base,
+	                                                       size_t const size);
 
-	/**
-	 * Invalidate instruction-cache for virtual region
-	 * 'base' - 'base + size'
-	 */
-	void invalidate_instr_cache_by_virt_region(addr_t base,
-	                                           size_t const size)
-	{
-		addr_t const top = base + size;
-		base &= line_align_mask;
-		for (; base < top; base += line_size) { Icimvau::write(base); }
-	}
+	static void clear_memory_region(addr_t const addr,
+	                                size_t const size,
+	                                bool changed_cache_properties);
+
+	static void cache_coherent_region(addr_t const addr,
+	                                  size_t const size);
 
 	/**
 	 * Invalidate TLB regarding the given address space id

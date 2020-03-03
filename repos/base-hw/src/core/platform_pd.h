@@ -119,6 +119,8 @@ class Hw::Address_space : public Genode::Address_space
 		bool insert_translation(Genode::addr_t virt, Genode::addr_t phys,
 		                        Genode::size_t size, Genode::Page_flags flags);
 
+		bool lookup_translation(Genode::addr_t const virt,
+		                        Genode::addr_t & phys);
 
 		/*****************************
 		 ** Address-space interface **

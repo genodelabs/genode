@@ -31,10 +31,7 @@ void Kernel::Thread::Tlb_invalidation::execute()
 };
 
 
-void Kernel::Thread::_call_update_data_region() { }
-
-
-void Kernel::Thread::_call_update_instr_region() { }
+void Kernel::Thread::_call_cache_coherent_region() { }
 
 
 void Kernel::Thread::proceed(Cpu & cpu)

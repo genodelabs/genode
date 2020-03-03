@@ -60,6 +60,11 @@ struct Hw::Arm_64_cpu
 	SYSTEM_REGISTER(32, Cptr_el2,  cptr_el2,
 		struct Tta : Bitfield<20, 1> {}; );
 
+	SYSTEM_REGISTER(32, Ctr_el0,  ctr_el0,
+		struct I_min_line : Bitfield<0,  4> {};
+		struct D_min_line : Bitfield<16, 4> {};
+	);
+
 	SYSTEM_REGISTER(64, Current_el, currentel,
 		enum Level { EL0, EL1, EL2, EL3 };
 		struct El : Bitfield<2, 2> {};
