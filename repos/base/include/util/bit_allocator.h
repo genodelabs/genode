@@ -57,6 +57,16 @@ class Genode::Bit_allocator
 		Bit_allocator() { _reserve(BITS, BITS_ALIGNED - BITS); }
 		Bit_allocator(const Bit_allocator & o) : _array(o._array) { }
 
+		/**
+		 * Allocate block of bits
+		 *
+		 * \param num_log2  2-based logarithm of size of block
+		 *
+		 * The requested block is allocated at the lowest available index in
+		 * the bit array.
+		 *
+		 * \throw Array::Out_of_indices
+		 */
 		addr_t alloc(size_t const num_log2 = 0)
 		{
 			addr_t const step = 1UL << num_log2;
@@ -106,7 +116,13 @@ class Genode::Bit_allocator
 		void free(addr_t const bit_start, size_t const num_log2 = 0)
 		{
 			_array.clear(bit_start, 1UL << num_log2);
-			_next = bit_start;
+
+			/*
+			 * We only rewind the _next pointer (if needed) to densely allocate
+			 * from the start of the array and avoid gaps.
+			 */
+			if (bit_start < _next)
+				_next = bit_start;
 		}
 };
 
