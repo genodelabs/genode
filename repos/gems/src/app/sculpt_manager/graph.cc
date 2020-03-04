@@ -282,7 +282,9 @@ Dialog::Hover_result Graph::hover(Xml_node hover)
 	if (_add_button_item.hovered("global+")) {
 
 		/* update anchor geometry of popup menu */
-		auto hovered_rect = [] (Xml_node const hover) {
+		auto hovered_rect = [] (Xml_node const dialog)
+		{
+			if (!dialog.has_type("dialog")) return Rect();
 
 			auto point_from_xml = [] (Xml_node node) {
 				return Point(node.attribute_value("xpos", 0L),
@@ -291,9 +293,6 @@ Dialog::Hover_result Graph::hover(Xml_node hover)
 			auto area_from_xml = [] (Xml_node node) {
 				return Area(node.attribute_value("width",  0UL),
 				            node.attribute_value("height", 0UL)); };
-
-			if (!hover.has_sub_node("dialog")) return Rect();
-			Xml_node const dialog = hover.sub_node("dialog");
 
 			if (!dialog.has_sub_node("depgraph")) return Rect();
 			Xml_node const depgraph = dialog.sub_node("depgraph");
