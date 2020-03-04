@@ -151,7 +151,7 @@ class Net::Interface : private Interface_list::Element
 		Link_list                             _dissolved_icmp_links      { };
 		Dhcp_allocation_tree                  _dhcp_allocations          { };
 		Dhcp_allocation_list                  _released_dhcp_allocations { };
-		Dhcp_client                           _dhcp_client               { _alloc, _timer, *this };
+		Genode::Constructible<Dhcp_client>    _dhcp_client               { };
 		Interface_list                       &_interfaces;
 		Genode::Constructible<Update_domain>  _update_domain             { };
 		Interface_link_stats                  _udp_stats                 { };

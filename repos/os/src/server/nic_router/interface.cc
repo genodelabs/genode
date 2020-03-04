@@ -343,9 +343,15 @@ void Interface::_detach_from_domain_raw()
 void Interface::attach_to_domain()
 {
 	try {
-		_attach_to_domain_raw(_config().domains().find_by_name(
-			_policy.determine_domain_name()));
+		Domain &domain =
+			_config().domains().find_by_name(_policy.determine_domain_name());
 
+		_attach_to_domain_raw(domain);
+
+		/* construct DHCP client if the new domain needs it */
+		if (domain.ip_config_dynamic()) {
+			_dhcp_client.construct(_alloc, _timer, *this);
+		}
 		attach_to_domain_finish();
 	}
 	catch (Domain_tree::No_match) { }
@@ -361,7 +367,7 @@ void Interface::attach_to_domain_finish()
 	Domain &domain = _domain();
 	Ipv4_config const &ip_config = domain.ip_config();
 	if (!ip_config.valid) {
-		_dhcp_client.discover();
+		_dhcp_client->discover();
 		return;
 	}
 	attach_to_ip_config(domain, ip_config);
@@ -1101,7 +1107,10 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 					}
 					catch (Pointer<Dhcp_server>::Invalid) { }
 				} else {
-					_dhcp_client.handle_ip(eth, size_guard);
+					if (!_dhcp_client.constructed()) {
+						throw Drop_packet("DHCP client not active");
+					}
+					_dhcp_client->handle_ip(eth, size_guard);
 					return;
 				}
 			}
@@ -1466,7 +1475,12 @@ void Interface::_handle_eth(Ethernet_frame           &eth,
 	} else {
 
 		switch (eth.type()) {
-		case Ethernet_frame::Type::IPV4: _dhcp_client.handle_ip(eth, size_guard); break;
+		case Ethernet_frame::Type::IPV4:
+			if (!_dhcp_client.constructed()) {
+				throw Drop_packet("DHCP client not active");
+			}
+			_dhcp_client->handle_ip(eth, size_guard);
+			break;
 		default: throw Bad_network_protocol(); }
 	}
 }
@@ -1912,31 +1926,68 @@ void Interface::handle_config_2()
 {
 	Domain_name const &new_domain_name = _policy.determine_domain_name();
 	try {
-		/* if the domains differ, detach completely from the domain */
 		Domain &old_domain = domain();
-		Domain &new_domain = _config().domains().find_by_name(new_domain_name);
-		if (old_domain.name() != new_domain_name) {
-			_detach_from_domain();
+		try {
+			Domain &new_domain = _config().domains().find_by_name(new_domain_name);
+
+			/* if the domains differ, detach completely from the domain */
+			if (old_domain.name() != new_domain_name) {
+
+				_detach_from_domain();
+				_attach_to_domain_raw(new_domain);
+
+				/* destruct and construct DHCP client if required */
+				if (old_domain.ip_config_dynamic()) {
+					_dhcp_client.destruct();
+				}
+				if (new_domain.ip_config_dynamic()) {
+					_dhcp_client.construct(_alloc, _timer, *this);
+				}
+				return;
+			}
+			/* move to new domain object without considering any state objects */
+			_detach_from_domain_raw();
 			_attach_to_domain_raw(new_domain);
+
+			/* destruct or construct DHCP client if IP-config type changes */
+			if (old_domain.ip_config_dynamic() &&
+			    !new_domain.ip_config_dynamic())
+			{
+				_dhcp_client.destruct();
+			}
+			if (!old_domain.ip_config_dynamic() &&
+			    new_domain.ip_config_dynamic())
+			{
+				_dhcp_client.construct(_alloc, _timer, *this);
+			}
+
+			/* remember that the interface stays attached to the same domain */
+			_update_domain.construct(old_domain, new_domain);
 			return;
 		}
-		/* move to new domain object without considering any state objects */
-		_detach_from_domain_raw();
-		_attach_to_domain_raw(new_domain);
+		catch (Domain_tree::No_match) {
 
-		/* remember that the interface stays attached to the same domain */
-		_update_domain.construct(old_domain, new_domain);
-		return;
-	}
-	catch (Domain_tree::No_match) {
+			/* the interface no longer has a domain */
+			_detach_from_domain();
 
-		/* the interface no longer has a domain */
-		_detach_from_domain();
+			/* destruct DHCP client if it was constructed */
+			if (old_domain.ip_config_dynamic()) {
+				_dhcp_client.destruct();
+			}
+		}
 	}
 	catch (Pointer<Domain>::Invalid) {
 
 		/* the interface had no domain but now it may get one */
-		try { _attach_to_domain_raw(_config().domains().find_by_name(new_domain_name)); }
+		try {
+			Domain &new_domain = _config().domains().find_by_name(new_domain_name);
+			_attach_to_domain_raw(new_domain);
+
+			/* construct DHCP client if the new domain needs it */
+			if (new_domain.ip_config_dynamic()) {
+				_dhcp_client.construct(_alloc, _timer, *this);
+			}
+		}
 		catch (Domain_tree::No_match) { }
 	}
 }

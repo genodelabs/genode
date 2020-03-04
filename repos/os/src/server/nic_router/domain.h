@@ -224,6 +224,7 @@ class Net::Domain : public Domain_base,
 		Domain_link_stats           &icmp_stats()                { return _icmp_stats; }
 		Domain_object_stats         &arp_stats()                 { return _arp_stats; }
 		Domain_object_stats         &dhcp_stats()                { return _dhcp_stats; }
+		bool                         ip_config_dynamic() const   { return _ip_config_dynamic; };
 };
 
 #endif /* _DOMAIN_H_ */
