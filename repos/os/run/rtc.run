@@ -2,15 +2,20 @@
 
 assert_spec x86
 
+create_boot_directory
+
+set depot_pkgs "[depot_user]/src/[base_src] [depot_user]/src/init [depot_user]/src/report_rom"
+
+if [have_spec linux] {
+	lappend depot_pkgs [depot_user]/src/linux_rtc_drv
+} else {
+	lappend depot_pkgs [depot_user]/src/rtc_drv
+}
+
+import_from_depot $depot_pkgs
+
 # RTC setting tested on Qemu only
 set test_update [have_include power_on/qemu]
-
-set build_components { core init drivers/rtc timer test/rtc }
-append_if $test_update build_components { server/report_rom }
-
-build $build_components
-
-create_boot_directory
 
 set config {
 <config prio_levels="2" verbose="yes">
@@ -63,20 +68,16 @@ append_if $test_update config {
 		<config set_rtc="yes" year="2069" month="12" day="31" hour="23" minute="55" second="0"/>}
 append config {
 	</start>
-</config>}
+</config>
+}
 
 install_config $config
 
-set boot_components {
-	core ld.lib.so init timer test-rtc
-}
+set build_components { test/rtc }
+set boot_modules     { test-rtc }
 
-append_if $test_update boot_components { report_rom }
-
-append_if [have_spec linux]         boot_components { linux_rtc_drv }
-append_if [expr ![have_spec linux]] boot_components { rtc_drv }
-
-build_boot_image $boot_components
+build $build_components
+build_boot_image $boot_modules
 
 append qemu_args " -nographic  "
 
