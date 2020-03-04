@@ -30,6 +30,20 @@ set small_test [expr $is_qemu || [have_spec foc] || [have_spec sel4]]
 set dd [installed_command dd]
 
 #
+# Query writeable for policy
+#
+proc writeable { } {
+
+	global test_write
+
+	if {$test_write} {
+		return yes
+	} else {
+		return no
+	}
+}
+
+#
 # Build
 #
 set build_components {
@@ -84,10 +98,10 @@ append_platform_drv_config
 
 append config {
 	<start name="nvme_drv">
-		<resource name="RAM" quantum="16M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Block"/> </provides>
 		<config>
-			<policy label_prefix="block_tester" writeable="no"/>
+			<policy label_prefix="block_tester" writeable="} [writeable] {"/>
 		</config>
 	</start>
 
@@ -138,6 +152,7 @@ append_if $test_write config {
 					<request type="write" lba="2048" count="1"/>
 					<request type="write" lba="5696" count="1"/>
 					<request type="write" lba="5696" count="1"/>
+					<request type="sync" lba="0" count="1"/>
 					<request type="write" lba="5696" count="1"/>
 					<request type="read" lba="4096" count="1"/>
 					<request type="read" lba="61440" count="16"/>
