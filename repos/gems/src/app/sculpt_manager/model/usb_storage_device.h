@@ -147,6 +147,8 @@ struct Sculpt::Usb_storage_device_update_policy
 	Env       &_env;
 	Allocator &_alloc;
 
+	bool device_added_or_vanished = false;
+
 	Signal_context_capability _sigh;
 
 	Usb_storage_device_update_policy(Env &env, Allocator &alloc,
@@ -157,10 +159,17 @@ struct Sculpt::Usb_storage_device_update_policy
 
 	typedef Usb_storage_device::Label Label;
 
-	void destroy_element(Usb_storage_device &elem) { destroy(_alloc, &elem); }
+	void destroy_element(Usb_storage_device &elem)
+	{
+		device_added_or_vanished = true;
+
+		destroy(_alloc, &elem);
+	}
 
 	Usb_storage_device &create_element(Xml_node node)
 	{
+		device_added_or_vanished = true;
+
 		return *new (_alloc)
 			Usb_storage_device(_env, _alloc, _sigh,
 			                   node.attribute_value("label_suffix", Label()));

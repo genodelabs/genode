@@ -41,6 +41,9 @@ void Sculpt::Storage::handle_storage_devices_update()
 
 		_storage_devices.update_usb_storage_devices_from_xml(policy, raw);
 
+		if (policy.device_added_or_vanished)
+			reconfigure_runtime = true;
+
 		_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
 
 			dev.process_driver_report();
@@ -66,7 +69,12 @@ void Sculpt::Storage::handle_storage_devices_update()
 	 * target to use.
 	 */
 	if (_sculpt_partition.valid()) {
+
 		bool sculpt_partition_exists = false;
+
+		if (_sculpt_partition.ram_fs())
+			sculpt_partition_exists = true;
+
 		_storage_devices.for_each([&] (Storage_device const &device) {
 			device.for_each_partition([&] (Partition const &partition) {
 				if (device.label == _sculpt_partition.device
