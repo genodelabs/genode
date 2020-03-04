@@ -2,14 +2,9 @@
 
 assert_spec x86
 
-if {[expr ![have_include power_on/qemu]]} {
-	puts "Test requires Qemu."
+if {[expr ![have_include power_on/qemu] && ![have_spec linux]]} {
+	puts "Test requires Qemu or Linux."
 	exit 0
-}
-
-set build_components {
-	test/system_rtc
-	test/libc_rtc
 }
 
 create_boot_directory
@@ -17,9 +12,9 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/vfs \
-                  [depot_user]/pkg/drivers_rtc-pc
-
-build $build_components
+                  [depot_user]/src/libc \
+                  [depot_user]/src/posix \
+                  [depot_user]/pkg/system_rtc-[board]
 
 
 set config {
@@ -46,36 +41,21 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<policy label="rtc_drv -> set_rtc"    report="test-system_rtc -> drv_set_rtc"/>
-			<policy label="system_rtc -> set_rtc" report="test-system_rtc -> sys_set_rtc"/>
-		</config>
-	</start>
-
-	<start name="rtc_drv" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Rtc"/></provides>
-		<config allow_setting_rtc="true"/>
+	<start name="system_rtc" caps="400" priority="-1">
+		<resource name="RAM" quantum="6M"/>
+		<binary name="init"/>
+		<provides> <service name="Rtc"/> <service name="Report"/> </provides>
 		<route>
-			<service name="ROM" label="set_rtc">
-				<child name="report_rom"/>
-			</service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="system_rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Rtc"/></provides>
-		<config allow_setting_rtc="true"/>
-		<route>
-			<service name="ROM" label="set_rtc"> <child name="report_rom"/> </service>
-			<service name="Rtc"> <child name="rtc_drv"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
+			<service name="ROM" label="config">  <parent label="system_rtc.config"/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="RM">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
 		</route>
 	</start>
 
@@ -83,9 +63,9 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<config/>
 		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Rtc"> <child name="system_rtc"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Report"> <child name="system_rtc"/> </service>
+			<service name="Rtc">    <child name="system_rtc"/> </service>
+			<service name="Timer">  <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -103,15 +83,15 @@ set config {
 		</route>
 	</start>
 
-</config>}
+</config>
+}
 
 install_config $config
 
-set boot_components {
-	test-system_rtc
-	test-libc_rtc libc.lib.so libm.lib.so posix.lib.so
-}
+set build_components { test/system_rtc test/libc_rtc }
+set boot_components  { test-system_rtc test-libc_rtc }
 
+build            $build_components
 build_boot_image $boot_components
 
 append qemu_args " -nographic  "
