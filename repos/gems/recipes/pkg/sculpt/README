@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 19.07
+                      Sculpt Operating System 20.02
                       =============================
 
 
@@ -58,7 +58,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at
-[https://genode.org/documentation/sculpt-19-07.pdf].
+[https://genode.org/documentation/sculpt-20-02.pdf].
 
 
 Hardware requirements and preparations
@@ -111,33 +111,45 @@ Getting a first impression
 Sculpt is best explored by first booting the prebuilt disk image downloadable
 from [https://genode.org/download/sculpt].
 Right after system boot, Sculpt's system-management user interface
-("Leitzentrale") appears. The menu on the left provides convenient access to
-the connected storage devices and the network configuration. The center
-displays a live graph (runtime view) of components running and their
-relationships. On the right side, diagnostic messages are presented. Consider
-the following steps as a warm-up with Sculpt OS.
+("Leitzentrale") appears.
+The panel at the top of the screen contains two centered tabs for switching
+between the "Components" view and a "Files" view.
+The components view displays a live graph of the software components and their
+relationships. It also provides convenient access to the connected storage
+devices. The "Log" button at the right side of the panel reveals diagnostic
+messages, the "Network" button allows you to configure network connectivity,
+and the "Settings" button on the left gives access to a few user-interface
+tweaks.
+
+[image sculpt_20.02_panel 60%]
+
+Consider the following steps as a warm-up with Sculpt OS.
 
 Select the in-memory file system as *default storage location* by clicking
-on the "ram" item of the "Storage" dialog and pressing the "Use" button.
+on the "ram fs" component in the graph and pressing the "Use" button.
 This way, software will be installed solely into memory without accessing any
 real storage device.
+
+[image sculpt_20.02_use_ram_fs 40%]
 
 Enable *networking* in the "Network" dialog by selecting the "Wired" or
 "Wifi" option. In the latter case, select an access point and enter the
 corresponding passphrase (if needed). A successful network connection is
 indicated by the IP address displayed at the bottom of the network dialog.
 
+[image sculpt_20.02_network 40%]
+
 With a storage location selected and established network connectivity, it is
 time to *install and start* additional components by clicking on the '+'
-button of the runtime view. Select "Depot ..." from the menu.
+button of the components view. Select "Depot ..." from the menu.
 
-[image sculpt_ce_menu 40%]
+[image sculpt_20.02_menu 40%]
 
 The depot contains software packages, which can be obtained by different
 independent software providers. The selection of software providers is
 completely up to the user and can be defined in the "Selection ..." sub menu.
 
-[image sculpt_ce_select 40%]
+[image sculpt_20.02_select 40%]
 
 Select "genodelabs" to download the directory of software officially
 provided by Genode Labs. Note that the other options are not necessarily
@@ -153,7 +165,7 @@ structured menus. As a starter, let's add a desktop background.
 In the "GUI ..." sub menu, a click on the first item named "sticks blue
 backdrop" reveals the option to install the package.
 
-[image sculpt_ce_install_backdrop 40%]
+[image sculpt_20.02_install_backdrop 40%]
 
 A click on the "Install" button triggers the download of the package and its
 dependencies. Once the download is complete, the menu presents a configuration
@@ -161,27 +173,28 @@ dialog that allows you to define the interplay of the new component with the
 system. In this particular case, you have to decide for a GUI service to be
 used by the backdrop.
 
-[image sculpt_ce_backdrop_routes 40%]
+[image sculpt_20.02_backdrop_routes 40%]
 
 The first option "system GUI server" would grant direct access to the system's
 low-level GUI server, which is normally not used by applications but by
-higher-level GUI servers like a window manager. The second option would
+higher-level GUI servers like a window manager. The second option would give
+the component the privilege to act as a lock screen. The third option would
 connect the component to the special "desktop background" GUI session, which
-appears as a layer behind all other applications. The third option "keyboard
+appears as a layer behind all other applications. The fourth option "keyboard
 focus" is preserved for a single component that controls the keyboard focus.
-In our case, "desktop background" is the correct choice. Once the
-configuration is complete, a new button for adding the component to the system
-appears.
+In our case, "desktop background" is the correct choice.
+Once the configuration is complete, a new button for adding the component to
+the system appears.
 
-[image sculpt_ce_add_backdrop 40%]
+[image sculpt_20.02_add_backdrop 40%]
 
 After pressing the button, you should notice a slight visual change. *Press*
 *F12* to toggle between the Leitzentrale and the desktop. Now, the backdrop
-should become visible in full glory. In the runtime graph, the new component
+should become visible in full glory. In the component graph, the new component
 appears connected to the "GUI". A click on the component reveals further
 information along with the option to remove it from the system.
 
-[image sculpt_ce_backdrop_selected 40%]
+[image sculpt_20.02_backdrop_selected 40%]
 
 As a next step, let us add a window system. In the '+' menu, you can find
 a readily packaged window system at _genodelabs_ -> _GUI_ -> _themed wm_.
@@ -199,7 +212,7 @@ window manager the right to change the content of the global clipboard.
 Vice versa, by assigning _ROM (clipboard)_, we permit the window manager
 to obtain clipboard content.
 
-After adding the component, the "themed wm" will appear in the runtime view.
+After adding the component, the "themed wm" will appear in the components view.
 To give the window system a quick try, add the small demo you can find at
 _genodelabs_ -> _Demos_ -> _nano3d_ and assign its _GUI_ to our "themed wm".
 
@@ -256,7 +269,7 @@ in a window.
 
 [image sculpt_ce_noux 60%]
 
-When selecting the "noux-system" component in the runtime view, the
+When selecting the "noux-system" component in the graph, the
 relationship to the other components of the system is presented. This provides
 a convenient way to reveal the _trusted computing base_ of the selected
 component. For example, since there is no connection from _noux-system_ to the
@@ -264,7 +277,7 @@ _nic_router_ we know that this component is isolated from the network. The
 network-related components are outside the trusted computing base of the
 noux instance.
 
-[image sculpt_ce_noux_selected 50%]
+[image sculpt_20.02_noux_selected 50%]
 
 
 Further exploration
@@ -428,17 +441,22 @@ occur in memory only, you are not at risk of permanently bricking your machine.
 The Leitzentrale can be toggled at any time by pressing F12 and will be enabled
 right after boot. It presents itself with a minimalistic GUI for accessing
 the storage devices attached to your machine and for configuring your network
-connectivity. Most importantly, however, it allows the user to spawn an
-interactive shell for manual _config_ and _report_ file systems access. To
-spawn this command-line interface, click on the "ram" item from the menu and
-select "Inspect". While inspecting file systems, the inspect window replaces
-the runtime view.
+connectivity. Most importantly, however, it allows the user to access the
+_config_ and _report_ file systems. Both file systems are readily accessible
+under the "Files" tab of the panel. The file browser allows you to traverse
+directory hierarchies, inspect individual files, and edit files.
+Alternatively to the "Files" tab, Sculpt 20.02 features a command-line
+interface. To spawn this command-line interface, click on the "ram fs"
+component in the graph and select "Inspect". In the panel, a third tab named
+"Inspect" appears, which hosts the command-line interface.
 
-The inspect window hosts a small Unix-like runtime called noux as user
+[image sculpt_20.02_inspect_tab 60%]
+
+The inspect tab hosts a small Unix-like runtime called noux as user
 interface. Don't let the presence of a Unix shell mislead you.
 Sculpt is not a Unix system. It merely uses Unix subsystems in the form of
 noux instances as convenient tools for managing and editing files.
-Within the inspect window, you can interact with both the report and
+Within the inspect tab, you can interact with both the report and
 config file systems using familiar commands such as the bash shell, a
 subset of coreutils, and Vim.
 
@@ -454,17 +472,43 @@ Tweaking and inspecting the system
 ==================================
 
 The Leitzentrale subsystem empowers you to interactively inspect and tweak
-the running system using a command-line interface and the Vim text editor.
+the running system either by using the file browser hosted in the "Files"
+tab or by using the command-line interface and the Vim text editor provided by
+the "Inspect" tab.
 
 
-Vim skills recommended
-----------------------
+Interactive file browser
+------------------------
 
-Sculpt leverages (a subset of) GNU coreutils, bash, and Vim as the user
-interface for sculpting the system. If you are not yet familiar with using
-Vim, you may take Sculpt as a welcome chance to get your toes wet. To
-enjoy the experience, you should be comfortable with the following
-operations:
+The "Files" tab of the panel switches the main screen area to a simple file
+browser that lists all file systems available, in particular the _config_
+and _report_ file systems. By toggling one of the file-system buttons, the
+respective directory hierarchy can be browsed. When hovering a file, an "Edit"
+or "View" button appears, which can be used to open the file in a text area
+that appears on the right side of the file browser. The editor supports the
+usual notepad-like motions, operations, and shortcuts (control-c for copy,
+control-v for paste, control-s for save).
+
+[image sculpt_20.02_files_tab 80%]
+
+_Note that the file browser as the most recent addition to Sculpt does not_
+_yet support file operations like the copying, renaming, or removal of_
+_files. Also the editing of files with long lines or the browsing of_
+_directories with many entries is not appropriately covered yet. As a_
+_fallback when encountering these limitations, the current version of Sculpt_
+_still features the Unix-based inspect tab, which can be activated by_
+_toggling the "Inspect" button inside the USB or storage nodes of the_
+_component graph._
+
+
+Vim skills recommended for using the inspect tab
+------------------------------------------------
+
+With the "Inspect" button toggled for at least one file system, the inspect
+tab leverages (a subset of) GNU coreutils, bash, and Vim as the user interface
+for sculpting the system. If you are not yet familiar with using Vim, you may
+take Sculpt as a welcome chance to get your toes wet. To enjoy the experience,
+you should be comfortable with the following operations:
 
 * Opening and navigating within a text file (moving the cursor,
   using '/' to search),
@@ -536,7 +580,7 @@ Exploring the drivers and Leitzentrale subsystems
 -------------------------------------------------
 
 You can review the construction plan of the drivers subsystem by opening the
-file _/config/drivers_ in Vim. In particular, it is interesting to
+file _drivers_ at the config file system. In particular, it is interesting to
 follow the '<route>' rules to see how the various components are connected.
 But there is more. The configuration is live. It enables you to reconfigure
 individual components on-the-fly. For example, search for the '<start>' node
@@ -558,7 +602,7 @@ _The component-specific configuration options are documented in the README_
 _files accompanying the respective components in the source tree._
 
 Analogously to the drivers subsystem, you can find the construction plan
-for the Leitzentrale subsystem at _/config/leitzentrale_. Try out
+for the Leitzentrale subsystem at the file _leitzentrale_. Try out
 the following tweaks:
 
 * Change the transparency of the Leitzentrale by modifying the 'alpha'
@@ -568,7 +612,7 @@ the following tweaks:
   to "18".
 
 You may also enjoy tinkering with the configuration of the Nitpicker GUI
-server, which is located at _/config/nitpicker_. For example, you
+server, which is located at the file _nitpicker_. For example, you
 may change the background color or the labeling color of the "default"
 domain.
 
@@ -580,7 +624,7 @@ Whenever adding a new component via the '+' menu, one has to define how to
 connect the component with the rest of the system. It is important to know
 what the presented options mean to take educated decisions.
 
-[image sculpt_ce_noux_routing 40%]
+[image sculpt_20.02_noux_routing 40%]
 
 Each choice represents a connection to a system resource of a particular type.
 Initially, the presented options are resources that are built-in into Sculpt's
@@ -592,6 +636,8 @@ as options.
   ----------------------------------------------------------------------------
   ----------------------------------------------------------------------------
    GUI                      | 'Nitpicker'    | keyboard focus
+  ----------------------------------------------------------------------------
+                            |                | desktop lock screen
   ----------------------------------------------------------------------------
                             |                | desktop background
   ----------------------------------------------------------------------------
@@ -618,6 +664,8 @@ as options.
    File system              | 'File_system'  | writeable system configuration
   ----------------------------------------------------------------------------
                             |                | read-only system reports
+  ----------------------------------------------------------------------------
+                            |                | used file system
   ----------------------------------------------------------------------------
    Real-time clock          | 'Rtc'          | system clock
   ----------------------------------------------------------------------------
@@ -685,6 +733,14 @@ The base system provides three different GUI options.
   assigned to only one component, typically a window manager. However,
   in principle, another component like _noux-system_ can be connected
   to it and thereby becomes able to receive keyboard input.
+
+:desktop lock screen: assigns the component the role of a lock screen. Once
+  the component is present at the GUI, it seizes the keyboard focus and is
+  able to cover the entire screen.
+
+  _Note that - with the current version of Sculpt - global keys as defined in_
+  _the nitpicker configuration are not affected by the lock screen, i.e.,_
+  _as is the case with the screen key assigned to the window manager._
 
 :desktop background: allows a component to present its graphical output
   in a dedicated layer behind all other applications. The desktop background
@@ -801,6 +857,13 @@ storage, additional file-system services can be started as regular components
 within the runtime subsystem. Those components, in turn, need to be connected to
 the corresponding block devices.
 
+:used file system: is the file system selected for the use of Sculpt.
+  In principle, the specific file system such as "usb-1-10.3.fs" can be
+  selected directly. But when moving configurations from one device to
+  another, the generic "used file system" option avoids tying the component to
+  a particular physical file-system name. The resulting configuration works
+  regardless of where it is deployed.
+
 
 Block device
 ~~~~~~~~~~~~
@@ -852,7 +915,6 @@ as described in Section
 [Updating the USB boot device from within VirtualBox].
 
 
-
 Real-time clock
 ~~~~~~~~~~~~~~~
 
@@ -866,7 +928,7 @@ The region-map service of the base system gives components a flexible way to
 manage their virtual address spaces manually. This mechanism is used by a few
 advanced components only, most specifically virtual machine monitors. Access
 to the region-map service is not security critical. But as it is rarely
-needed, it is not granted be default to limit the potential (attack) surface
+needed, it is not granted by default to limit the potential (attack) surface
 of the base system as far as possible by default.
 
 
@@ -919,7 +981,7 @@ Terminal, audio input, and audio output
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Terminal services allow for the input and output of streams of text. Examples
-are a graphical terminal, or an UART driver. The base system has no built-in
+are a graphical terminal, or a UART driver. The base system has no built-in
 terminal service.
 
 As the names suggest, audio input and output enable components to record
@@ -935,20 +997,21 @@ Runtime management
 
 In contrast to the drivers subsystem and the Leitzentrale, which have a
 predefined purpose, the runtime subsystem is shaped by the user. The
-components present in the runtime subsystem are displayed by the runtime view.
+components present in the runtime subsystem are displayed by the components view.
 Some of them are managed by the Leitzentrale. For example, while inspecting a
 file system, the corresponding "inspect", "inspect_terminal", and
 "inspect_noux" components appear automatically. Other components correspond to
 subsystems deployed from installed packages, in particular the ones created
-via the runtime view's "+" menu.
+via the "+" menu.
 
-The current configuration of the runtime subsystem is available at
-_/config/managed/runtime_. It is not recommended to modify this file manually.
-However, in some situations, it is useful to take manual control over
-the runtime configuration. This is possible by copying the file to
-_config/runtime_. Note that this will inhibit the management functionality
-of the Leitzentrale. You can yield back the control to the Leitzentrale by
-removing the _/config/runtime_ file.
+The current configuration of the runtime subsystem is available at the
+_config_ file system at _managed/runtime_. It is not recommended to modify
+this file manually. However, in some situations, it is useful to take manual
+control over the runtime configuration. This is possible by copying the file
+to the root of the config file system.
+Note that this will inhibit the management functionality of the Leitzentrale.
+You can yield back the control to the Leitzentrale by removing the _runtime_
+file from the root of the config file system.
 
 As a prerequisite for deploying user-selected components, a default storage
 location must be defined by selecting the "Use" button of a file system
@@ -971,22 +1034,22 @@ can be installed and run. The most convenient way is the interactive use of
 the '+' menu to browse the catalogues of packages provided by software
 providers and to configure new component instances.
 
-Additionally, the deployment can be controlled
-by the _/config/deploy_ file and the so-called launchers located at
-_/config/launcher/_.
+Additionally, the deployment can be controlled by the _deploy_ file of the
+_config_ file system and the so-called launchers located at the _launcher/_
+sub directory.
 The _deploy_ file contains a '<start>' node for each running component.
 Such a <start> node specifies the package, the assigned resources,
 and the rules of how the component is connected with other components.
 
 Alternatively, a <start> node may refer to a launcher that encapsulates
-this policy as a separate file at _/config/launcher/_.
+this policy as a separate file at the _launcher/_ directory.
 By default, the launcher corresponds to the 'name' attribute of the start node.
 It is possible to explicitly refer to a differently named launcher by
 specifying a 'launcher' attribute. This way, one launcher can be instantiated
 multiple times.
-The files at _/config/launcher/_ are monitored by Sculpt and therefore can be
-edited on the fly. This is especially useful for editing '<config>' nodes
-of already running components.
+The files within the _launcher/_ directory are monitored by Sculpt and
+therefore can be edited on the fly. This is especially useful for editing
+'<config>' nodes of already running components.
 A '<config>' node within a launcher - when present - overrides the one
 provided by the package. In turn, a '<config>' node within a node of the
 deploy config overrides any other '<config>' node. Both the launcher and a
@@ -995,7 +1058,7 @@ deploy config overrides any other '<config>' node. Both the launcher and a
 way, the routing of a launcher can be parameterized at the deploy
 configuration.
 
-Each time the _/config/deploy_ file or a launcher file is written, the change
+Each time the _deploy_ file or a launcher file is written, the change
 takes immediate effect. In particular, the Sculpt manager will automatically
 kick off the download of the referenced packages and its dependencies and
 thereby populates the depot. Once the download has completed, the packages are
@@ -1005,11 +1068,11 @@ started.
 Interplay of the deploy configuration and interactive changes
 -------------------------------------------------------------
 
-The content of _/config/deploy_ is taken as the starting point for the
+The content of the _deploy_ file is taken as the starting point for the
 interactive use via the '+' menu. All interactive changes to the deployment
-are reflected in the _/config/managed/deploy_ file.
-Note that any modification of _/config/deploy_ resets _/config/managed/deploy_
-to the state defined in _/config/deploy_.
+are reflected in the _managed/deploy_ file.
+Note that any modification of _deploy_ resets _managed/deploy_ to the state
+defined in the _deploy_ file.
 
 Launchers appear at the top level of the '+' menu. So they are a convenient
 mechanism to quickly add often-used components with specific policies to the
@@ -1022,9 +1085,10 @@ Storage device access and preparation
 Whereas the RAM file system is practical for quick tests, it goes without
 saying that we want to persistently store data, programs, and configuration
 information on a storage device. Sculpt supports SATA disks, NVMe devices,
-and USB-storage devices. The storage dialog lists all devices detected by
-the drivers subsystem. A click on a device reveals possible operations or -
-if a partition table is present - more details about the device structure.
+and USB-storage devices. The storage and USB nodes of the components view list
+all devices detected by the drivers subsystem. A click on a device reveals
+possible operations or - if a partition table is present - more details about
+the device structure.
 
 Depending on the operation selected by the user, the Sculpt manager will
 automatically spawn helper components in the runtime to perform the selected
@@ -1045,8 +1109,8 @@ This clears the way for sculpting a custom live system stored entirely on
 the USB stick.
 
 All file systems supported by Sculpt present an "Inspect" button. By toggling
-this button, the selected file system becomes accessible in the inspect
-window. Note that more than one file system can be inspected at a time.
+this button, the selected file system becomes accessible in the "Inspect"
+tab. Note that more than one file system can be inspected at a time.
 Each file system will appear as a directory at the root of the inspect
 directory tree, named after the corresponding device and partition number.
 This way, the inspect window becomes a convenient tool for copying files
@@ -1058,7 +1122,7 @@ and directories to block-device accesses.
 Making customizations permanent
 ===============================
 
-It is possible to make any customization of the config file system
+It is possible to make any customization of the _config_ file system
 permanent by copying the modified files to a directory named
 _config/<VERSION>_ on a persistent file system where _<VERSION>_ corresponds
 to the Sculpt version number as found in the _/VERSION_ file.
@@ -1110,12 +1174,12 @@ files.
 The Sculpt manager interacts with the rest of the system solely by
 monitoring reports aggregated in the report file system, and writing
 configuration files into the config file system. All files generated
-by the Sculpt manager are located at _/config/managed/_. By manually creating a
-same-named file at _/config/_, one can supply a custom managed configuration
-to the Sculpt manager. A useful practice is taking a snapshot of the
-generated configuration as a starting point for the custom version. For
-example, by copying the NIC router configuration while it is connected to
-a network:
+by the Sculpt manager are located at the _managed/_ sub directory of the
+config file system. By manually creating a same-named file at the root of the
+config file system, one can supply a custom managed configuration to the
+Sculpt manager. A useful practice is taking a snapshot of the generated
+configuration as a starting point for the custom version. For example, by
+copying the NIC router configuration while it is connected to a network:
 
 ! cp /config/managed/nic_router /config
 
@@ -1147,7 +1211,7 @@ Building the boot image
 =======================
 
 The following steps assume that you have the Genode tool chain installed on a
-GNU/Linux system. For reference, Ubuntu 16.04 is known to work well. If you
+GNU/Linux system. For reference, Ubuntu 18.04 is known to work well. If you
 don't know your way around Genode's source tree yet, please consider the
 "Getting started" section of the Genode Foundations book that is available as
 a free download at [https://genode.org].
@@ -1156,18 +1220,18 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-19.07 sculpt-19.07
+  ! git checkout -b sculpt-20.02 sculpt-20.02
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2019-07-08
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2020-02-27
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
 
 # Download all ingredients for the Sculpt boot image
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2019-07-08
+  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2020-03-09
 
 # Create a build directory
 
@@ -1180,6 +1244,10 @@ a free download at [https://genode.org].
   configuration of the 'QEMU_RUN_OPT' variable to 'image/disk' instead of
   'image/iso'. This way, the build process will produce a valid disk image
   with a GPT partition table instead of a legacy ISO image.
+
+# Prepare GRUB 2, which is needed for booting from the disk image
+
+  ! ./tool/ports/prepare_port grub2
 
 # Create the Sculpt boot image (defined by the run script at
   _repos/gems/run/sculpt.run_)
@@ -1211,7 +1279,7 @@ be prepared. The following command prepares all of them at once:
 !      dde_rump drm e2fsprogs expat freetype gnupg \
 !      jitterentropy jpeg libarchive libc libgcrypt \
 !      libiconv libpng libssh mesa ncurses nova openssl \
-!      pcre qemu-usb qoost qt5 stb stdcxx \
+!      qemu-usb qoost qt5 stb stdcxx \
 !      ttf-bitstream-vera vim virtualbox5 x86emu xz \
 !      zlib
 
@@ -1411,6 +1479,18 @@ Applications
 :VirtualBox:
   [https://www.virtualbox.org]
   _(used for hosting virtual machines)_
+
+
+Libraries used for the graphical user interface
+-----------------------------------------------
+
+:libpng:
+  [http://www.libpng.org/pub/png/libpng.html]
+  _(used for decoding PNG images)_
+
+:stb:
+  [https://github.com/nothings/stb]
+  _(used for rasterizing TrueType fonts)_
 
 
 Crucial tools used during development
