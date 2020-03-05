@@ -117,79 +117,55 @@ void Dhcp_client::_handle_timeout(Duration)
 }
 
 
-void Dhcp_client::handle_ip(Ethernet_frame &eth,
-                            Size_guard     &size_guard)
+void Dhcp_client::handle_dhcp_reply(Dhcp_packet &dhcp)
 {
-	if (eth.dst() != _interface.router_mac() &&
-	    eth.dst() != Mac_address(0xff))
-	{
-		throw Drop_packet("DHCP client expects Ethernet targeting the router"); }
+	try {
+		Message_type const msg_type =
+			dhcp.option<Dhcp_packet::Message_type_option>().value();
 
-	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
-	if (ip.protocol() != Ipv4_packet::Protocol::UDP) {
-		throw Drop_packet("DHCP client expects UDP packet"); }
+		switch (_state) {
+		case State::SELECT:
 
-	Udp_packet &udp = ip.data<Udp_packet>(size_guard);
-	if (!Dhcp_packet::is_dhcp(&udp)) {
-		throw Drop_packet("DHCP client expects DHCP packet"); }
+			if (msg_type != Message_type::OFFER) {
+				throw Drop_packet("DHCP client expects an offer");
+			}
+			_set_state(State::REQUEST, _config().dhcp_request_timeout());
+			_send(Message_type::REQUEST, Ipv4_address(),
+			      dhcp.option<Dhcp_packet::Server_ipv4>().value(),
+			      dhcp.yiaddr());
+			break;
 
-	Dhcp_packet &dhcp = udp.data<Dhcp_packet>(size_guard);
-	if (dhcp.op() != Dhcp_packet::REPLY) {
-		throw Drop_packet("DHCP client expects DHCP reply"); }
+		case State::REQUEST:
+			{
+				if (msg_type != Message_type::ACK) {
+					throw Drop_packet("DHCP client expects an acknowledgement");
+				}
+				_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
+				_set_state(State::BOUND, _rerequest_timeout(1));
+				Ipv4_address dns_server;
+				try { dns_server = dhcp.option<Dhcp_packet::Dns_server_ipv4>().value(); }
+				catch (Dhcp_packet::Option_not_found) { }
+				_domain().ip_config(dhcp.yiaddr(),
+				                    dhcp.option<Dhcp_packet::Subnet_mask>().value(),
+				                    dhcp.option<Dhcp_packet::Router_ipv4>().value(),
+				                    dns_server);
+				break;
+			}
+		case State::RENEW:
+		case State::REBIND:
 
-	if (dhcp.client_mac() != _interface.router_mac()) {
-		throw Drop_packet("DHCP client expects DHCP targeting the router"); }
-
-	try { _handle_dhcp_reply(dhcp); }
-	catch (Dhcp_packet::Option_not_found) {
-		throw Drop_packet("DHCP client misses DHCP option"); }
-}
-
-
-void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
-{
-	Message_type const msg_type =
-		dhcp.option<Dhcp_packet::Message_type_option>().value();
-
-	switch (_state) {
-	case State::SELECT:
-
-		if (msg_type != Message_type::OFFER) {
-			throw Drop_packet("DHCP client expects an offer");
-		}
-		_set_state(State::REQUEST, _config().dhcp_request_timeout());
-		_send(Message_type::REQUEST, Ipv4_address(),
-		      dhcp.option<Dhcp_packet::Server_ipv4>().value(),
-		      dhcp.yiaddr());
-		break;
-
-	case State::REQUEST:
-		{
 			if (msg_type != Message_type::ACK) {
 				throw Drop_packet("DHCP client expects an acknowledgement");
 			}
-			_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
 			_set_state(State::BOUND, _rerequest_timeout(1));
-			Ipv4_address dns_server;
-			try { dns_server = dhcp.option<Dhcp_packet::Dns_server_ipv4>().value(); }
-			catch (Dhcp_packet::Option_not_found) { }
-			_domain().ip_config(dhcp.yiaddr(),
-			                    dhcp.option<Dhcp_packet::Subnet_mask>().value(),
-			                    dhcp.option<Dhcp_packet::Router_ipv4>().value(),
-			                    dns_server);
+			_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
 			break;
-		}
-	case State::RENEW:
-	case State::REBIND:
 
-		if (msg_type != Message_type::ACK) {
-			throw Drop_packet("DHCP client expects an acknowledgement");
+		default: throw Drop_packet("DHCP client doesn't expect a packet");
 		}
-		_set_state(State::BOUND, _rerequest_timeout(1));
-		_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
-		break;
-
-	default: throw Drop_packet("DHCP client doesn't expect a packet");
+	}
+	catch (Dhcp_packet::Option_not_found) {
+		throw Drop_packet("DHCP reply misses required option");
 	}
 }
 
