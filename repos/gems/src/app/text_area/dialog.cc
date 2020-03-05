@@ -472,8 +472,10 @@ void Dialog::handle_input_event(Input::Event const &event)
 
 		if (shift_key(key)) {
 			_shift = true;
-			if (!_selection.defined())
+			if (!_selection.defined()) {
 				_selection.start.construct(_cursor);
+				_selection.end.destruct();
+			}
 		}
 
 		if (control_key(key))
