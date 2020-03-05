@@ -1,8 +1,22 @@
-build { core init test/fork }
+<runtime ram="32M" caps="1000" binary="init">
 
-create_boot_directory
+	<requires> <timer/> </requires>
 
-install_config {
+	<events>
+		<timeout meaning="failed" sec="30" />
+		<log meaning="succeeded">--- parent done ---*child*exited*</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs"/>
+		<rom label="test-fork"/>
+	</content>
+
 	<config verbose="yes">
 		<parent-provides>
 			<service name="ROM"/>
@@ -10,7 +24,7 @@ install_config {
 			<service name="CPU"/>
 			<service name="PD"/>
 		</parent-provides>
-		<start name="test-fork" caps="300">
+		<start name="test-fork" caps="500">
 			<resource name="RAM" quantum="1G"/>
 			<config>
 				<arg value="name_of_executeable"/>
@@ -25,13 +39,5 @@ install_config {
 			<route> <any-service> <parent/> </any-service> </route>
 		</start>
 	</config>
-}
 
-build_boot_image {
-	core init ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so test-fork
-}
-
-append qemu_args " -nographic "
-
-run_genode_until "--- parent done ---.*\n" 20
-run_genode_until "child.*exited.*\n" 5 [output_spawn_id]
+</runtime>
