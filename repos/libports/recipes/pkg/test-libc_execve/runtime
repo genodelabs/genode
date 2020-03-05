@@ -1,8 +1,22 @@
-build { core init test/execve }
+<runtime ram="32M" caps="1000" binary="init">
 
-create_boot_directory
+	<requires> <timer/> </requires>
 
-install_config {
+	<events>
+		<timeout meaning="failed" sec="70" />
+		<log meaning="succeeded">child "test-execve" exited with exit value 0</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs"/>
+		<rom label="test-execve"/>
+	</content>
+
 	<config verbose="yes">
 		<parent-provides>
 			<service name="ROM"/>
@@ -25,12 +39,5 @@ install_config {
 			</route>
 		</start>
 	</config>
-}
 
-build_boot_image {
-	core init ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so test-execve
-}
-
-append qemu_args " -nographic "
-
-run_genode_until "child.*exited.*value 0.*\n" 15
+</runtime>
