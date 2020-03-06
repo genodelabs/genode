@@ -2,10 +2,26 @@ assert_spec x86
 
 set use_linux [have_spec linux]
 
+if {[get_cmd_switch --autopilot] && ![have_include "power_on/qemu"]} {
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0
+}
+
+
 #
 # Check used commands
 #
-set dd [installed_command dd]
+set dd     [installed_command dd]
+set sfdisk [installed_command sfdisk]
+set sgdisk [installed_command sgdisk]
+
+set drv0 "ahci_drv"
+set drv1 "ahci_drv"
+
+if { $use_linux } {
+	set drv0 "lx_block0"
+	set drv1 "lx_block1"
+}
 
 #
 # Build
@@ -16,6 +32,8 @@ set build_components {
 	server/ram_block
 	server/lx_block
 	app/block_tester
+	server/part_block
+	test/block/client
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -23,10 +41,20 @@ append_platform_drv_build_components
 
 build $build_components
 
-#
-# Build EXT2-file-system image
-#
-catch { exec $dd if=/dev/zero of=bin/block.raw bs=1M count=0 seek=32768 }
+proc create_disk_image {number} {
+	global dd
+	global sfdisk
+	global sgdisk
+
+	catch { exec $dd if=/dev/zero of=bin/block$number.raw bs=1M count=0 seek=2048 }
+
+	if { $number == 0 } {
+		exec echo -e "2048 2097151 - -\n2099200 2095070 - -" | $sfdisk -f bin/block$number.raw
+	} else {
+		exec $sgdisk --clear bin/block$number.raw
+		exec $sgdisk -n1:2048:2099199 -n2:2099200:4194270 bin/block$number.raw
+	}
+}
 
 create_boot_directory
 
@@ -60,49 +88,116 @@ append config {
 
 append_platform_drv_config
 
+append config {
+	<start name="block_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+}
+
 append_if [expr !$use_linux] config {
 	<start name="ahci_drv">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<config>
-		<!-- CAUTION setting writeable! -->
-		<policy label_prefix="block_tester" device="0" writeable="yes"/>
+			<report ports="yes"/>
+			<!-- CAUTION setting writeable! -->
+			<policy label_prefix="part_block0" device="0" writeable="yes"/>
+			<policy label_prefix="part_block1" device="1" writeable="yes"/>
 		</config>
-	</start>}
+		<route>
+			<service name="Report"><child name="block_report_rom"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+}
 
 append_if $use_linux config {
-	<start name="ahci_drv" ld="no">
+	<start name="lx_block0" ld="no">
 		<binary name="lx_block"/>
 		<resource name="RAM" quantum="2G"/>
 		<provides><service name="Block"/></provides>
-		<config file="block.raw" block_size="512" writeable="yes"/>
-	</start>}
+		<config file="block0.raw" block_size="512" writeable="yes"/>
+	</start>
+	<start name="lx_block1" ld="no">
+		<binary name="lx_block"/>
+		<resource name="RAM" quantum="2G"/>
+		<provides><service name="Block"/></provides>
+		<config file="block1.raw" block_size="512" writeable="yes"/>
+	</start>
+}
 
 append config {
-	<start name="block_tester">
+	<start name="part_block0">
+		<binary name="part_block"/>
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<route>
+			<service name="Report"><child name="block_report_rom"/></service>}
+			append config "
+			<service name=\"Block\"><child name=\"$drv0\"/></service>"
+			append config {
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config io_buffer="2M">
+			<report partitions="yes"/>
+			<policy label="block_tester0 -> " partition="1" writeable="yes"/>
+			<policy label="test-part0 -> " partition="2" writeable="yes" />
+		</config>
+	</start>
+	<start name="part_block1">
+		<binary name="part_block"/>
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<route>
+			<service name="Report"><child name="block_report_rom"/></service>}
+			append config "
+			<service name=\"Block\"><child name=\"$drv1\"/></service>"
+			append config {
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config io_buffer="2M">
+			<report partitions="yes"/>
+			<policy label="block_tester1 -> " partition="1" writeable="yes"/>
+			<policy label="test-part1 -> " partition="2" writeable="yes" />
+		</config>
+	</start>
+}
+
+append config {
+	<start name="test-part0">
+		<binary name="test-block-client" />
+		<resource name="RAM" quantum="32M" />
+		<config test_size="64M" />
+		<route>
+			<service name="Block"><child name="part_block0"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+}
+
+append config {
+	<start name="block_tester0">
+		<binary name="block_tester" />
 		<resource name="RAM" quantum="32M"/>
 		<config verbose="yes" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci_drv -->
-
-				<sequential copy="no" length="128M" size="4K"/>
-				<sequential copy="no" length="128M" size="4K"   batch="32"/>
-				<sequential copy="no" length="128M" size="4K"   batch="1000"/>
+				<sequential copy="no" length="16M" size="4K"/>
+				<sequential copy="no" length="16M" size="4K"   batch="32"/>
+				<sequential copy="no" length="16M" size="4K"   batch="1000"/>
 
 				<sequential copy="no" length="128M" size="8K"/>
 				<sequential copy="no" length="128M" size="8K"   batch="32"/>
-				<sequential copy="no" length="1G"   size="16K"  batch="32"/>
-				<sequential copy="no" length="1G"   size="64K"  batch="32"/>
-				<sequential copy="no" length="1G"   size="128K" batch="32"/>
 
 				<sequential copy="no" length="128M" size="4K"  write="yes"/>
-				<sequential copy="no" length="1G"   size="64K" write="yes"/>
 
 				<random length="128M" size="16K" seed="0xdeadbeef" batch="32"/>
 				<random length="512M" size="512K" seed="0xc0ffee" />
 
 				<ping_pong length="128M" size="16K"/>
-
 				<replay batch="10">
 					<request type="read" lba="0" count="1"/>
 					<request type="read" lba="0" count="1"/>
@@ -149,13 +244,99 @@ append config {
 			</tests>
 		</config>
 		<route>
-			<service name="Block"><child name="ahci_drv"/></service>
+			<service name="Block"><child name="part_block0"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+}
+
+append config {
+	<start name="test-part1">
+		<binary name="test-block-client" />
+		<resource name="RAM" quantum="32M" />
+		<config test_size="64M" />
+		<route>
+			<service name="Block"><child name="part_block1"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+}
+
+append config {
+	<start name="block_tester1">
+		<binary name="block_tester" />
+		<resource name="RAM" quantum="32M"/>
+		<config verbose="yes" report="no" log="yes" stop_on_error="no">
+			<tests>
+				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci_drv -->
+				<sequential copy="no" length="16M" size="4K"/>
+				<sequential copy="no" length="16M" size="4K"   batch="32"/>
+				<sequential copy="no" length="16M" size="4K"   batch="1000"/>
+
+				<sequential copy="no" length="128M" size="8K"/>
+				<sequential copy="no" length="128M" size="8K"   batch="32"/>
+				<sequential copy="no" length="128M" size="4K"  write="yes"/>
+
+				<random length="128M" size="16K" seed="0xdeadbeef" batch="32"/>
+				<random length="512M" size="512K" seed="0xc0ffee" />
+
+				<ping_pong length="128M" size="16K"/>
+				<replay batch="10">
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="4096" count="1"/>
+					<request type="read" lba="51881" count="1"/>
+					<request type="read" lba="51890" count="1"/>
+					<request type="read" lba="114184" count="14"/>
+					<request type="read" lba="114198" count="1"/>
+					<request type="read" lba="114033" count="127"/>
+					<request type="read" lba="114160" count="24"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="read" lba="12288" count="2048"/>
+					<request type="write" lba="4096" count="2048"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="write" lba="2048" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="read" lba="4096" count="1"/>
+					<request type="read" lba="61440" count="16"/>
+					<request type="read" lba="158777" count="127"/>
+					<request type="write" lba="40960" count="2048"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="write" lba="2073" count="1"/>
+					<request type="read" lba="190483" count="64"/>
+					<request type="read" lba="190411" count="53"/>
+					<request type="read" lba="190464" count="11"/>
+					<request type="read" lba="106074" count="64"/>
+					<request type="read" lba="105954" count="56"/>
+					<request type="read" lba="122802" count="24"/>
+					<request type="read" lba="123594" count="64"/>
+					<request type="read" lba="123722" count="64"/>
+				</replay>
+			</tests>
+		</config>
+		<route>
+			<service name="Block"><child name="part_block1"/></service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 </config>}
 
 install_config $config
+
+create_disk_image 0
+create_disk_image 1
 
 #
 # Boot modules
@@ -164,25 +345,27 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer ahci_drv ram_block block_tester
-	ld.lib.so
+	ld.lib.so test-block-client part_block
 }
 
 append_if $use_linux boot_modules {
-	block.raw lx_block
+	block0.raw block1.raw lx_block
 }
 
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-#append qemu_args " -m 256 -nographic"
+append qemu_args " -nographic -m 512 -nographic"
+append qemu_args " -drive id=disk,file=bin/block0.raw,format=raw,if=none \
+                   -drive id=disk2,file=bin/block1.raw,format=raw,if=none \
+                   -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 \
+                   -device ide-hd,drive=disk2,bus=ahci.1 -boot d"
 
-append qemu_args " -nographic -m 512 "
-append qemu_args " -drive id=disk,file=bin/block.raw,format=raw,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -boot d"
-append qemu_args " -drive id=cd,file=[run_dir]/../block_replay.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1"
+run_genode_until {.*--- all tests finished ---.*\n} 360
+set serial_id [output_spawn_id]
+run_genode_until {.*--- all tests finished ---.*\n} 360 $serial_id
+run_genode_until {.*--- all tests finished ---.*\n} 360 $serial_id
+run_genode_until {.*--- all tests finished ---.*\n} 360 $serial_id
 
-
-#run_genode_until {.*child "block_tester" exited.*\n} 360
-run_genode_until forever
-
-exec rm -f bin/block.raw
+exec rm -f bin/block0.raw bin/block1.raw

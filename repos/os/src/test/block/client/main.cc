@@ -428,7 +428,7 @@ void Component::construct(Genode::Env &env)
 		perform<Write_test<Block::Session::TX_QUEUE_SIZE, 8, 16> >(env, heap);
 		perform<Violation_test>(env, heap, 1000);
 
-		log("Tests finished successfully!");
+		log("--- all tests finished ---");
 	}
 	catch (Genode::Service_denied) {
 		error("opening block session was denied!");
