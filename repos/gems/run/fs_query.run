@@ -6,7 +6,7 @@ import_from_depot \
 	[depot_user]/src/bash \
 	[depot_user]/src/init \
 	[depot_user]/src/libc \
-	[depot_user]/src/noux \
+	[depot_user]/src/fs_rom \
 	[depot_user]/src/posix \
 	[depot_user]/src/report_rom \
 	[depot_user]/src/vfs \
@@ -41,10 +41,12 @@ install_config {
 		</start>
 
 		<start name="vfs">
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="10M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
+					<tar name="bash.tar"/>
+					<tar name="coreutils.tar"/>
 					<ram/>
 					<import>
 						<dir name="items">
@@ -59,6 +61,17 @@ install_config {
 			</config>
 		</start>
 
+		<start name="vfs_rom">
+			<resource name="RAM" quantum="10M"/>
+			<binary name="fs_rom"/>
+			<provides> <service name="ROM"/> </provides>
+			<config/>
+			<route>
+				<service name="File_system"> <child name="vfs"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
 		<start name="fs_query">
 			<resource name="RAM" quantum="1M"/>
 			<config>
@@ -69,95 +82,89 @@ install_config {
 
 		<start name="test" caps="700">
 			<binary name="sequence"/>
-			<resource name="RAM" quantum="64M"/>
+			<resource name="RAM" quantum="20M"/>
 			<config>
-				<start name="sleep" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
-							<tar name="coreutils.tar" />
-							<dir name="dev"> <log/> <null/> </dir>
-						</fstab>
-						<start name="/bin/sleep"> <arg value="0.5"/> </start>
+				<start name="/bin/sleep" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+						<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
+						<arg value="/bin/sleep"/>
+						<arg value="0.5"/>
 					</config>
 				</start>
 
-				<start name="remove" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
-							<tar name="coreutils.tar" />
+				<start name="/bin/rm" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+						<vfs>
 							<dir name="fs"> <fs writeable="yes"/> </dir>
 							<dir name="dev"> <log/> <null/> </dir>
-						</fstab>
-						<start name="/bin/rm"> <arg value="/fs/items/2"/> </start>
+						</vfs>
+						<arg value="/bin/rm"/>
+						<arg value="/fs/items/2"/>
 					</config>
 				</start>
 
-				<start name="sleep" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
-							<tar name="coreutils.tar" />
-							<dir name="dev"> <log/> <null/> </dir>
-						</fstab>
-						<start name="/bin/sleep"> <arg value="0.5"/> </start>
+				<start name="/bin/sleep" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+						<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
+						<arg value="/bin/sleep"/>
+						<arg value="0.5"/>
 					</config>
 				</start>
 
-				<start name="add" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
-							<tar name="coreutils.tar" />
+				<start name="/bin/cp" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"/>
+						<vfs>
 							<dir name="fs"> <fs writeable="yes"/> </dir>
 							<dir name="dev"> <log/> <null/> </dir>
-						</fstab>
-						<start name="/bin/cp">
-							<arg value="/fs/4"/>
-							<arg value="/fs/items/"/>
-						</start>
+						</vfs>
+						<arg value="/bin/cp"/>
+						<arg value="/fs/4"/>
+						<arg value="/fs/items/"/>
 					</config>
 				</start>
 
-				<start name="sleep" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
-							<tar name="coreutils.tar" />
-							<dir name="dev"> <log/> <null/> </dir>
-						</fstab>
-						<start name="/bin/sleep"> <arg value="0.5"/> </start>
+				<start name="/bin/sleep" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+						<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
+						<arg value="/bin/sleep"/>
+						<arg value="0.5"/>
 					</config>
 				</start>
 
-				<start name="modify" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
-							<tar name="bash.tar" />
+				<start name="/bin/bash" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"/>
+						<vfs>
 							<dir name="fs"> <fs writeable="yes"/> </dir>
 							<dir name="dev"> <log/> <null/> </dir>
-						</fstab>
-						<start name="/bin/bash">
-							<arg value="-c"/>
-							<arg value="echo updated > /fs/items/3"/>
-						</start>
+						</vfs>
+						<arg value="/bin/bash"/>
+						<arg value="-c"/>
+						<arg value="echo updated > /fs/items/3"/>
 					</config>
 				</start>
 
-				<start name="sleep" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
-							<tar name="coreutils.tar" />
-							<dir name="dev"> <log/> <null/> </dir>
-						</fstab>
-						<start name="/bin/sleep"> <arg value="1"/> </start>
+				<start name="/bin/sleep" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+						<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
+						<arg value="/bin/sleep"/>
+						<arg value="0.5"/>
 					</config>
 				</start>
 
 			</config>
+			<route>
+				<service name="File_system"> <child name="vfs"/> </service>
+				<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+				<service name="ROM" label_prefix="/bin"> <child name="vfs_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
 		</start>
 	</config>
 }
