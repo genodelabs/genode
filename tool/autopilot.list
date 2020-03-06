@@ -1,7 +1,6 @@
 bomb
 cpu_quota
 cpu_sampler
-cpu_sampler_noux
 demo
 depot_autopilot
 depot_download
@@ -40,7 +39,6 @@ nic_router
 nic_router_flood
 nic_router_stress
 nic_router_uplinks
-noux
 noux_tool_chain_auto
 nvme
 ping
