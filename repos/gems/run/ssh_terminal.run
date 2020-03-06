@@ -17,12 +17,12 @@ set build_components {
 	drivers/nic
 	drivers/rtc
 	server/ssh_terminal
-	lib/libc_noux
+	server/fs_rom
+	server/vfs
 	lib/vfs/jitterentropy
 	lib/vfs/lxip
 	test/libports/ncurses
 	test/terminal_echo
-	noux
 	noux-pkg/bash
 }
 
@@ -75,9 +75,9 @@ set config {
 	<start name="ssh_terminal" caps="250">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Terminal"/> </provides>
-		<config port="22" allow_password="yes"
+		<config ld_verbose="yes" port="22" allow_password="yes"
 		        show_password="yes" ed25519_key="/etc/ssh/ed25519_key">
-			<policy label_prefix="noux" user="noux" password="xuon" multi_login="yes" request_terminal="yes"/>
+			<policy label_prefix="/bin/bash" user="genode" password="xuon" multi_login="yes" request_terminal="yes"/>
 			<policy label_prefix="test-terminal_echo" user="charlie" password="echo"/>
 
 			<vfs>
@@ -105,18 +105,46 @@ set config {
 	<start name="test-terminal_echo">
 		<resource name="RAM" quantum="1M"/>
 	</start>
-	<start name="noux" caps="500">
+	<start name="vfs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<vfs> <tar name="bash.tar"/> </vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+	<start name="vfs_rom">
+		<resource name="RAM" quantum="10M"/>
+		<binary name="fs_rom"/>
+		<provides> <service name="ROM"/> </provides>
+		<config/>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="/bin/bash" caps="500">
 		<resource name="RAM" quantum="64M"/>
 		<config verbose="yes">
-			<fstab>
-				<tar name="bash.tar" />
-			</fstab>
-			<start name="/bin/bash">
-				<env name="TERM" value="screen"/>
-				<env name="HOME" value="/"/>
-				<env name="IGNOREEOF" value="3"/>
-			</start>
+			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/terminal"
+			      rtc="/dev/null"/>
+			<vfs>
+				<dir name="dev"> <terminal/> <log/> <null/> </dir>
+				<inline name=".bash_profile">
+					echo Welcome to Genode! > /dev/log
+				</inline>
+			</vfs>
+			<env key="TERM" value="screen"/>
+			<env key="HOME" value="/"/>
+			<env key="IGNOREEOF" value="3"/>
+			<arg value="/bin/bash"/>
+			<arg value="--login"/>
 		</config>
+		<route>
+			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+			<service name="ROM" label_last="/bin/bash"> <child name="vfs_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 }
 
@@ -140,11 +168,11 @@ if {![file exists bin/ed25519_key]} {
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer ipxe_nic_drv rtc_drv report_rom
-	noux test-terminal_echo
+	core ld.lib.so init timer ipxe_nic_drv rtc_drv report_rom vfs fs_rom
+	test-terminal_echo
 
 	libc.lib.so libm.lib.so vfs.lib.so
-	vfs_lxip.lib.so lxip.lib.so libc_pipe.lib.so libc_noux.lib.so
+	vfs_lxip.lib.so lxip.lib.so libc_pipe.lib.so
 	posix.lib.so libcrypto.lib.so libssh.lib.so zlib.lib.so ncurses.lib.so
 	vfs_jitterentropy.lib.so ssh_terminal
 
@@ -187,10 +215,10 @@ if {[get_cmd_switch --autopilot]} {
 	}
 	# wait for ssh_terminal to come up
 	sleep 5
-	spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port
+	spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l genode $host -p $port
 	set ssh_id $spawn_id
 	set spawn_id_list [list $ssh_id $serial_id]
-	run_genode_until "--- noux started ---" 15 $spawn_id_list
+	run_genode_until {.*\[init -> /bin/bash.*\] Welcome to Genode!.*\n} 15 $spawn_id_list
 	puts ""
 	puts ""
 } else {
