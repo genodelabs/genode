@@ -6,8 +6,8 @@ import_from_depot \
 	[depot_user]/src/[base_src] \
 	[depot_user]/src/coreutils \
 	[depot_user]/src/init \
+	[depot_user]/src/fs_rom \
 	[depot_user]/src/libc \
-	[depot_user]/src/noux \
 	[depot_user]/src/posix \
 
 install_config {
@@ -22,10 +22,12 @@ install_config {
 			<service name="IO_MEM"/>
 			<service name="IO_PORT"/>
 		</parent-provides>
+
 		<default-route>
-			<any-service> <any-child/> <parent/> </any-service>
+			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
+
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -35,50 +37,64 @@ install_config {
 			<resource name="RAM" quantum="4M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
-				<vfs> <ram/> </vfs>
+				<vfs>
+					<ram/>
+					<tar name="coreutils.tar" />
+				</vfs>
 				<default-policy root="/" writeable="yes"/>
 			</config>
+		</start>
+
+		<start name="vfs_rom">
+			<resource name="RAM" quantum="10M"/>
+			<binary name="fs_rom"/>
+			<provides> <service name="ROM"/> </provides>
+			<config/>
+			<route>
+				<service name="File_system"> <child name="vfs"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
 		</start>
 
 		<start name="test" caps="500">
 			<binary name="sequence"/>
 			<resource name="RAM" quantum="1G"/>
 			<config>
-				<start name="true" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
+				<start name="/bin/true" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+						<vfs>
 							<dir name="fs"> <fs/> </dir>
 							<dir name="dev"> <log/> <null/> </dir>
 							<ram/>
 							<import overwrite="yes">
-								<tar name="coreutils.tar" />
 								<dir name="fs">
 									<symlink name="link" target="test"/>
 									<inline name="test">Hello world!</inline>
 								</dir>
 							</import>
-						</fstab>
-						<start name="/bin/true"> </start>
+						</vfs>
 					</config>
 				</start>
-
-				<start name="cat" caps="500">
-					<binary name="noux"/>
-					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-						<fstab>
+				<start name="/bin/cat" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+						      rtc="/dev/null"/>
+						<vfs>
 							<dir name="fs"> <fs writeable="no"/> </dir>
 							<dir name="dev"> <log/> <null/> </dir>
-							<ram/>
-							<import>
-								<tar name="coreutils.tar" />
-							</import>
-						</fstab>
-						<start name="/bin/cat"> <arg value="/fs/link"/> </start>
+						</vfs>
+						<arg value="cat"/>
+						<arg value="/fs/link"/>
 					</config>
 				</start>
-
 			</config>
+			<route>
+				<service name="File_system"> <child name="vfs"/> </service>
+				<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+				<service name="ROM" label_prefix="/bin"> <child name="vfs_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
 		</start>
 	</config>
 }
