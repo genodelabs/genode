@@ -16,30 +16,32 @@ if {[have_spec linux]} {
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
+lappend build_components test/exec_terminal
+
 build $build_components
 
 create_boot_directory
 
-import_from_depot [depot_user]/src/[base_src]
-import_from_depot [depot_user]/src/bash
-import_from_depot [depot_user]/src/coreutils-minimal
-import_from_depot [depot_user]/src/exec_terminal
-import_from_depot [depot_user]/src/init
-import_from_depot [depot_user]/src/ipxe_nic_drv
-import_from_depot [depot_user]/src/libc
-import_from_depot [depot_user]/src/libcrypto
-import_from_depot [depot_user]/src/libssh
-import_from_depot [depot_user]/src/noux
-import_from_depot [depot_user]/src/platform_drv
-import_from_depot [depot_user]/src/posix
-import_from_depot [depot_user]/src/ram_fs
-import_from_depot [depot_user]/src/rtc_drv
-import_from_depot [depot_user]/src/ssh_terminal
-import_from_depot [depot_user]/src/vfs
-import_from_depot [depot_user]/src/vfs_jitterentropy
-import_from_depot [depot_user]/src/vfs_lxip
-import_from_depot [depot_user]/src/vim-minimal
-import_from_depot [depot_user]/src/zlib
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/bash \
+                  [depot_user]/src/coreutils-minimal \
+                  [depot_user]/src/exec_terminal \
+                  [depot_user]/src/init \
+                  [depot_user]/src/ipxe_nic_drv \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libcrypto \
+                  [depot_user]/src/libssh \
+                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/ram_fs \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/rtc_drv \
+                  [depot_user]/src/ssh_terminal \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_jitterentropy \
+                  [depot_user]/src/vfs_lxip \
+                  [depot_user]/src/vim-minimal \
+                  [depot_user]/src/zlib
 
 #
 # Generate config
@@ -103,7 +105,7 @@ set config {
 
 		<config port="22" allow_password="yes" show_password="yes" ed25519_key="/etc/ssh/ed25519_key">
 
-			<policy label="dynamic -> noux -> " user="noux" password="xuon" multi_login="yes" request_terminal="yes"/>
+			<policy label_prefix="dynamic" user="noux" password="xuon" multi_login="yes" request_terminal="yes"/>
 			<policy label_prefix="always-running-noux" user="charlie" password="xuon"/>
 
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" rtc="/dev/rtc"/>
@@ -141,7 +143,7 @@ set config {
 			<service name="Report"/>
 			<service name="ROM"/>
 		</provides>
-		<config>
+		<config verbose="no">
 			<policy label="exec_terminal -> exec_terminal.config" report="ssh_terminal -> request_terminal"/>
 			<policy label="dynamic -> config" report="exec_terminal -> config"/>
 		</config>
@@ -170,37 +172,7 @@ set config {
 
 	<start name="dynamic" caps="1000">
 		<binary name="init"/>
-		<resource name="RAM" quantum="32M"/>
-		<route>
-			<service name="File_system"> <child name="ram_fs"/> </service>
-			<service name="ROM" label="config"> <child name="report_rom"/> </service>
-			<service name="ROM" label_last="coreutils-minimal.tar"> <parent label="coreutils-minimal.tar"/> </service>
-			<service name="ROM" label_last="vim-minimal.tar"> <parent label="vim-minimal.tar"/> </service>
-			<service name="Terminal"> <child name="ssh_terminal"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-			<service name="PD"> <parent/> </service>
-			<service name="RM"> <parent/> </service>
-			<service name="ROM"> <parent/> </service>
-		</route>
-	</start>
-
-	<start name="always-running-noux" caps="500">
-		<binary name="noux"/>
-		<resource name="RAM" quantum="64M"/>
-		<config>
-			<fstab>
-				<tar name="bash.tar" />
-				<tar name="coreutils-minimal.tar" />
-				<tar name="vim-minimal.tar" />
-			</fstab>
-			<start name="/bin/bash">
-				<env name="TERM" value="screen"/>
-				<env name="HOME" value="/"/>
-				<env name="IGNOREEOF" value="3"/>
-			</start>
-		</config>
+		<resource name="RAM" quantum="80M"/>
 		<route>
 			<service name="File_system"> <child name="ram_fs"/> </service>
 			<service name="ROM" label="config"> <child name="report_rom"/> </service>
@@ -238,6 +210,7 @@ if {![file exists bin/ed25519_key]} {
 # generic modules
 set boot_modules {
 	ed25519_key
+	exec_terminal
 }
 
 # platform-specific modules
@@ -275,38 +248,35 @@ if {[get_cmd_switch --autopilot]} {
 		set port "22"
 	}
 	# wait for ssh_terminal to come up
-	run_genode_until "--- SSH terminal started ---" 15 $serial_id
+	run_genode_until "--- SSH terminal started ---.*\n" 15 $serial_id
 
-	for {set index 0} {$index < 10} {incr index} {
+	for {set index 0} {$index < 3} {incr index} {
 		puts "test interactive channel"
 		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port
 		set ssh_id $spawn_id
-		run_genode_until "--- noux started ---" 15 $serial_id
+		run_genode_until {/bin/bash] Hello from Genode!.*\n} 15 $serial_id
 		send -i $ssh_id "ls\r"
-		run_genode_until "bin" 5 $ssh_id
+		run_genode_until "bin" 15 $ssh_id
 		send -i $ssh_id "exit\r"
-		run_genode_until "child \"noux\" exited with exit value 0" 15 $serial_id
+		run_genode_until "child \"init\" exited with exit value 0.*\n" 15 $serial_id
 
 		puts "test exec channel echo"
 		set echo_text "The quick brown fox jumps over the lazy dog"
-		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port "echo $echo_text"
+		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port echo "$echo_text"
 		set ssh_id $spawn_id
-		run_genode_until "--- noux started ---" 15 $serial_id
-		run_genode_until $echo_text 5 $ssh_id
-		run_genode_until "child \"noux\" exited with exit value 0" 15 $serial_id
+		run_genode_until ".*$echo_text.*\n" 15 $ssh_id
+		run_genode_until "child \"init\" exited with exit value 0.*\n" 15 $serial_id
 
 		puts "test exec channel ls"
 		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port "ls"
 		set ssh_id $spawn_id
-		run_genode_until "--- noux started ---" 15 $serial_id
-		run_genode_until "bin" 5 $ssh_id
-		run_genode_until "child \"noux\" exited with exit value 0" 15 $serial_id
+		run_genode_until "bin" 15 $ssh_id
+		run_genode_until "child \"init\" exited with exit value 0.*\n" 15 $serial_id
 
 		puts "test exec channel with empty command will not hang"
 		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port " "
 		set ssh_id $spawn_id
-		run_genode_until "--- noux started ---" 15 $serial_id
-		run_genode_until "child \"noux\" exited with exit value" 15 $serial_id
+		run_genode_until "child \"init\" exited with exit value.*\n" 15 $serial_id
 	}
 
 	puts ""

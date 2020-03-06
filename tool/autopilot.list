@@ -48,6 +48,7 @@ rtc
 rump_ext2
 sd_card_bench
 seoul-auto
+ssh_exec_channel
 smartcard
 smbios_decoder
 smp
