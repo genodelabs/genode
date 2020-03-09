@@ -179,6 +179,8 @@ class Net::Domain : public Domain_base,
 
 		void detach_interface(Interface &interface);
 
+		void interface_updates_domain_object(Interface &interface);
+
 		void raise_rx_bytes(Genode::size_t bytes) { _rx_bytes += bytes; }
 
 		void raise_tx_bytes(Genode::size_t bytes) { _tx_bytes += bytes; }

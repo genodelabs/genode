@@ -355,6 +355,13 @@ void Domain::detach_interface(Interface &interface)
 	}
 }
 
+
+void Domain::interface_updates_domain_object(Interface &interface)
+{
+	_interfaces.remove(&interface);
+}
+
+
 void Domain::report(Xml_generator &xml)
 {
 	xml.node("domain", [&] () {

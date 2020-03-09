@@ -332,6 +332,8 @@ class Net::Interface : private Interface_list::Element
 
 		void _destroy_link(Link &link);
 
+		void _update_domain_object(Domain &new_domain);
+
 		void _detach_from_domain_raw();
 
 		void _detach_from_domain();

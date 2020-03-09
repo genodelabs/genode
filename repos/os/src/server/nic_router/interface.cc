@@ -340,6 +340,29 @@ void Interface::_detach_from_domain_raw()
 }
 
 
+void Interface::_update_domain_object(Domain &new_domain) {
+
+	/* detach raw */
+	Domain &old_domain = _domain();
+	old_domain.interface_updates_domain_object(*this);
+	_interfaces.insert(this);
+	_domain = Pointer<Domain>();
+	Signal_transmitter(_session_link_state_sigh).submit();
+
+	old_domain.tcp_stats().dissolve_interface(_tcp_stats);
+	old_domain.udp_stats().dissolve_interface(_udp_stats);
+	old_domain.icmp_stats().dissolve_interface(_icmp_stats);
+	old_domain.arp_stats().dissolve_interface(_arp_stats);
+	old_domain.dhcp_stats().dissolve_interface(_dhcp_stats);
+
+	/* attach raw */
+	_domain = new_domain;
+	Signal_transmitter(_session_link_state_sigh).submit();
+	_interfaces.remove(this);
+	new_domain.attach_interface(*this);
+}
+
+
 void Interface::attach_to_domain()
 {
 	try {
@@ -1992,9 +2015,7 @@ void Interface::handle_config_2()
 				}
 				return;
 			}
-			/* move to new domain object without considering any state objects */
-			_detach_from_domain_raw();
-			_attach_to_domain_raw(new_domain);
+			_update_domain_object(new_domain);
 
 			/* destruct or construct DHCP client if IP-config type changes */
 			if (old_domain.ip_config_dynamic() &&
