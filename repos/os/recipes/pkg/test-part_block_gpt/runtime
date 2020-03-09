@@ -5,8 +5,8 @@
 	<events>
 		<timeout meaning="failed" sec="70" />
 		<log meaning="succeeded">
-			Tests finished successfully!*
-			Tests finished successfully!
+			--- all tests finished ---*
+			--- all tests finished ---
 		</log>
 		<log meaning="failed">Error: </log>
 	</events>

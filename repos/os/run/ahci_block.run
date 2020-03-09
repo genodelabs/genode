@@ -107,7 +107,7 @@ append qemu_args " -nographic -device ahci,id=ahci -boot d "
 append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none             -device ide-hd,drive=disk,bus=ahci.0 "
 append qemu_args " -drive id=cd,file=[run_dir]/../ahci_block.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1 "
 
-run_genode_until "Tests finished successfully!" 100
-run_genode_until "Tests finished successfully!" 100 [output_spawn_id]
+run_genode_until "--- all tests finished ---" 100
+run_genode_until "--- all tests finished ---" 100 [output_spawn_id]
 
 exec rm -f bin/ext2.raw

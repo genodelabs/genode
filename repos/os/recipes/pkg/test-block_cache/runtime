@@ -4,7 +4,7 @@
 
 	<events>
 		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">Tests finished successfully</log>
+		<log meaning="succeeded">--- all tests finished ---</log>
 		<log meaning="failed">test-block-client] Error: </log>
 	</events>
 
