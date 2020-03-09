@@ -32,8 +32,8 @@ proc done_string {} {
 proc nr_of_rounds { test_id } {
 	if {[have_spec sel4]} {
 		switch $test_id {
-			1 { return 19 }
-			2 { return 12 }
+			1 { return 9 }
+			2 { return 7 }
 		}
 	} else {
 		switch $test_id {
