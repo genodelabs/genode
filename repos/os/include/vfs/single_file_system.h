@@ -230,9 +230,12 @@ class Vfs::Single_file_system : public File_system
 				destroy(handle->alloc(), handle);
 		}
 
-		Unlink_result unlink(char const *) override
+		Unlink_result unlink(char const *path) override
 		{
-			return UNLINK_ERR_NO_PERM;
+			if (_single_file(path))
+				return UNLINK_ERR_NO_PERM;
+
+			return UNLINK_ERR_NO_ENTRY;
 		}
 
 		Rename_result rename(char const *from, char const *to) override
