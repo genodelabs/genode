@@ -16,6 +16,7 @@ SRC_CC += main.cpp \
           qnitpickerintegration.cpp \
           qnitpickerplatformwindow.cpp \
           qnitpickerwindowsurface.cpp \
+          moc_qgenodeclipboard.cpp \
           moc_qnitpickerplatformwindow.cpp \
           moc_qnitpickerwindowsurface.cpp \
           moc_qnitpickerintegrationplugin.cpp

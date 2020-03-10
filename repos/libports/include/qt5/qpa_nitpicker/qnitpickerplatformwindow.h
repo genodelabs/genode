@@ -96,8 +96,21 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 		QString _sanitize_label(QString label);
 
+		/*
+		 * Genode signals are handled as Qt signals to avoid blocking in the
+		 * Genode signal handler, which could cause nested signal handler
+		 * execution.
+		 */
+
+	private Q_SLOTS:
+
 		void _handle_input();
 		void _handle_mode_changed();
+		
+	Q_SIGNALS:
+
+		void _input();
+		void _mode_changed();
 
 	public:
 

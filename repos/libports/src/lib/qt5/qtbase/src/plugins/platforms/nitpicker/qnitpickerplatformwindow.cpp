@@ -509,9 +509,9 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *wi
   _decoration(!window->flags().testFlag(Qt::Popup)),
   _egl_surface(EGL_NO_SURFACE),
   _input_signal_handler(_env.ep(), *this,
-                        &QNitpickerPlatformWindow::_handle_input),
+                        &QNitpickerPlatformWindow::_input),
   _mode_changed_signal_handler(_env.ep(), *this,
-                               &QNitpickerPlatformWindow::_handle_mode_changed),
+                               &QNitpickerPlatformWindow::_mode_changed),
   _touch_device(_init_touch_device())
 {
 	if (qnpw_verbose)
@@ -533,6 +533,14 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *wi
 		_nitpicker_session.enqueue<Command::To_front>(_view_handle);
 		_nitpicker_session.execute();
 	}
+
+	connect(this, SIGNAL(_input()),
+	        this, SLOT(_handle_input()),
+	        Qt::QueuedConnection);
+
+	connect(this, SIGNAL(_mode_changed()),
+	        this, SLOT(_handle_mode_changed()),
+	        Qt::QueuedConnection);
 }
 
 QNitpickerPlatformWindow::~QNitpickerPlatformWindow()

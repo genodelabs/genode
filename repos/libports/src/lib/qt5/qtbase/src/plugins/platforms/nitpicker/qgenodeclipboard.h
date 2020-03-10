@@ -28,8 +28,10 @@
 
 QT_BEGIN_NAMESPACE
 
-class QGenodeClipboard : public QPlatformClipboard
+class QGenodeClipboard : public QObject, public QPlatformClipboard
 {
+	Q_OBJECT
+
 	private:
 
 		Genode::Attached_rom_dataspace              *_clipboard_ds = nullptr;
@@ -41,7 +43,19 @@ class QGenodeClipboard : public QPlatformClipboard
 
 		QMember<QMimeData> _mimedata;
 
+		/*
+		 * Genode signals are handled as Qt signals to avoid blocking in the
+		 * Genode signal handler, which could cause nested signal handler
+		 * execution.
+		 */
+
+	private Q_SLOTS:
+
 		void _handle_clipboard();
+
+	Q_SIGNALS:
+
+		void _clipboard_changed();
 
 	public:
 

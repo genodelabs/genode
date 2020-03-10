@@ -28,7 +28,7 @@ static constexpr bool verbose = false;
 
 
 QGenodeClipboard::QGenodeClipboard(Genode::Env &env)
-: _clipboard_signal_handler(env.ep(), *this, &QGenodeClipboard::_handle_clipboard)
+: _clipboard_signal_handler(env.ep(), *this, &QGenodeClipboard::_clipboard_changed)
 {
 	try {
 
@@ -52,6 +52,10 @@ QGenodeClipboard::QGenodeClipboard(Genode::Env &env)
 
 		}
 	} catch (...) { }
+
+	connect(this, SIGNAL(_clipboard_changed()),
+	        this, SLOT(_handle_clipboard()),
+	        Qt::QueuedConnection);
 }
 
 
