@@ -21,6 +21,8 @@ install_config {
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
