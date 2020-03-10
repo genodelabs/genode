@@ -537,7 +537,7 @@ exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/geno
 # Note: the string must be exactly 5 bytes long.
 #
 proc sculpt_version { } {
-	return "20.02" }
+	return "20.03" }
 
 # write file with newline (for producing nice output when using 'cat /VERSION')
 set fd [open [run_dir]/genode/VERSION w]
