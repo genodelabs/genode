@@ -4,6 +4,36 @@
                                ===========
 
 
+Sculpt OS release 20.02 | 2020-03-10
+####################################
+
+| Version 20.02 of the Sculpt operating system revisits the administrative
+| user interface for a more intuitive and logical user experience.
+
+With the release of Sculpt version 20.02, we follow our
+[https://genode.org/about/road-map - roadmap's] mission to make Sculpt OS
+easier to approach. In particular, we
+[https://genodians.org/nfeske/2020-01-06-pending-sculpt-ui - identified] the
+reliance on a command-line interface as a potential barrier of entry. As
+Sculpt OS is not a Unix-like system, it should not require any Unix know-how
+from the user. To relieve users from this burden, Sculpt 20.02 introduces
+a custom graphical file browser and editor that can be used for interactively
+inspecting and tweaking the state of the system. The traditional command-line
+interface is still present as a fallback for advanced tasks though.
+The updated [https://genode.org/documentation/articles/sculpt-20-02 - manual]
+goes into detail about the use of the new system.
+
+Thanks to the work of seasoned Genode developers, many software packages are
+already available for the new version. These include virtual machine monitors
+like VirtualBox, performance-monitoring tools, GUI components, Genode's custom
+Unix runtime, and several applications and games. In particular, the software
+depots offered by alex-ab, cnuke, skalk are worth exploring.
+The ready-to-use system image for version 20.02 can be obtained from the
+[https://genode.org/download/sculpt - Sculpt download page] and is
+accompanied by matching
+[https://genode.org/documentation/articles/sculpt-20-02 - documentation].
+
+
 Genode OS Framework release 20.02 | 2020-02-28
 ##############################################
 
