@@ -51,7 +51,7 @@ QMAKE = $(BUILD_DIR)/qtbase/bin/qmake
 
 $(QMAKE): $(QTBASE_DIR)/configure
 	$(VERBOSE)mkdir -p $(BUILD_DIR)/qtbase
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase && $(QTBASE_DIR)/configure -opensource -confirm-license -no-iconv -no-opengl -prefix $(INSTALL_LOCATION)
+	$(VERBOSE)cd $(BUILD_DIR)/qtbase && $(QTBASE_DIR)/configure -opensource -confirm-license -no-iconv -no-zstd -no-opengl -prefix $(INSTALL_LOCATION)
 
 $(BUILD_DIR)/qtbase/src/Makefile: $(QMAKE)
 	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
