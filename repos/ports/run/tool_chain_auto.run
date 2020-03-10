@@ -1,0 +1,280 @@
+if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
+	puts "\nRunning tool-chain auto test in autopilot on Qemu is not recommended."
+	exit 0
+}
+
+if {[have_spec pistachio] || [have_spec sel4] ||
+    [expr [have_spec foc] && [have_spec imx7d_sabre]] } {
+	puts "Platform is unsupported."
+	exit 0
+}
+
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/bash \
+                  [depot_user]/src/coreutils \
+                  [depot_user]/src/findutils \
+                  [depot_user]/src/grep \
+                  [depot_user]/src/sed \
+                  [depot_user]/src/gnumake \
+                  [depot_user]/src/which \
+                  [depot_user]/src/tclsh \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/pcre \
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/cached_fs_rom
+
+
+#
+# Disable syntax check for config file
+#
+# The syntax check fails because the content of the '.bash_profile' is
+# specified using an '<inline>' node but it is no valid XML. I.e., xmllint
+# complains about the sequence '&&'.
+#
+proc check_xml_with_schema {xml_file} { }
+
+
+set cc_march ""
+set tool_chain_timeout  600
+
+if {[have_spec arm]} {
+	set binutils     "binutils_arm"
+	set gcc          "gcc_arm"
+	set tool_prefix  "genode-arm-"
+	set boot_timeout 350
+	set arch         "arm_v7a"
+}
+
+if {[have_spec arm_64]} {
+	set binutils     "binutils_arm_64"
+	set gcc          "gcc_arm_64"
+	set tool_prefix  "genode-aarch64-" 
+	set boot_timeout 350
+	set arch         "arm_v8a"
+}
+
+if {[have_spec x86]} {
+	set binutils     "binutils_x86"
+	set gcc          "gcc_x86"
+	set tool_prefix  "genode-x86-"
+	set boot_timeout 250
+	set arch         "x86_64"
+}
+
+#
+# Build packages only once
+#
+set pkgs "$binutils $gcc"
+
+foreach pkg $pkgs {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+lappend build_components "lib/vfs/pipe"
+lappend build_components "server/vfs"
+
+build $build_components
+
+# write default .bash_profile file
+set bash_profile_fd [open bin/bash_profile w]
+puts $bash_profile_fd {
+echo 'creating build directory...'
+mkdir -p "/home/build"
+cp -r /genode/depot /home/build
+}
+puts $bash_profile_fd "/genode/tool/depot/create DEPOT_DIR=/home/build/depot \
+      test/bin/$arch/zlib CROSS_DEV_PREFIX=$tool_prefix && exit 234"
+close $bash_profile_fd
+
+
+exec mkdir -p [depot_dir]/test
+exec $genode_dir/tool/depot/create DEPOT_DIR=[depot_dir] test/src/zlib
+exec tar cvf bin/genode.tar -C $genode_dir tool repos/base \
+             repos/libports/recipes/src/zlib \
+             repos/libports/recipes/api
+exec tar rvf bin/genode.tar -C [depot_dir]/.. [file tail [depot_dir]]/test
+exec rm -rf [depot_dir]/test
+
+
+proc mounted_tar_archives { } {
+	global binutils gcc
+
+	set archives "bash coreutils grep sed findutils make which $binutils $gcc tclsh"
+
+	set result {}
+	foreach archive $archives {
+		append result "\t\t\t\t<tar name=\"$archive.tar\" />\n" }
+
+	return $result
+}
+
+
+proc prefixed_nm { } {
+	global tool_prefix
+	return "${tool_prefix}nm"
+}
+
+
+proc fs_rom_binary { } {
+
+	#
+	# The cached_fs_rom server relies on managed dataspaces, which are not
+	# fully available on all kernels.
+	#
+	if {[have_spec linux] || [have_spec fiasco] || [have_spec foc]} {
+		return "fs_rom" }
+
+	return "cached_fs_rom"
+}
+
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+		<service name="IRQ"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="vfs" caps="200">
+		<resource name="RAM" quantum="124M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				} [mounted_tar_archives] {
+				<dir name="dev">
+					<zero/>
+					<log/>
+					<dir name="pipe"> <pipe/> </dir>
+					<inline name="rtc">2030-01-01 00:01</inline>
+				</dir>
+				<dir name="home">
+					<ram/>
+					<rom name=".bash_profile" label="bash_profile" binary="no"/>
+				</dir>
+				<dir name="genode"> <tar name="genode.tar"/> </dir>
+				<dir name="tmp"> <ram/> </dir>
+				<dir name="usr">
+					<dir name="bin">
+						<symlink name="make"  target="/bin/make" />
+						<symlink name="mkdir" target="/bin/mkdir"/>
+						<symlink name="echo"  target="/bin/echo" />
+						<symlink name="tclsh" target="/bin/tclsh"/>
+					</dir>
+				</dir>
+
+				<dir name="bin">
+					<symlink name="nm" target="} [prefixed_nm] {"/>
+					<symlink name="sh" target="bash"/>
+				</dir>
+			</vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="vfs_rom">
+		<resource name="RAM" quantum="60M"/>
+		<binary name="} [fs_rom_binary] {"/>
+		<provides> <service name="ROM"/> </provides>
+		<config/>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="/bin/bash" caps="2000">
+		<resource name="RAM" quantum="300M" />
+		<config ld_verbose="yes">
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+			      rtc="/dev/rtc" pipe="/dev/pipe"/>
+			<vfs>
+				<fs buffer_size="2M"/>
+				<dir name="dev"> <null/> </dir>
+			</vfs>
+			<env key="HOME" value="/home"/>
+			<env key="PATH" value="/bin"/>
+			<arg value="/bin/bash"/>
+			<arg value="--login" />
+		</config>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+			<service name="ROM" label_last="/bin/bash">           <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/genode/tool">      <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/bin">              <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/usr/bin">          <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/libexec">          <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/x86_64-pc-elf">    <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/arm-none-eabi">    <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/aarch64-none-elf"> <child name="vfs_rom"/> </service>
+
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+
+#
+# Boot modules
+#
+
+append  boot_modules { bash_profile genode.tar gmp.lib.so mpfr.lib.so mpc.lib.so }
+lappend boot_modules "$binutils.tar" "$gcc.tar"
+lappend boot_modules libc.lib.so vfs.lib.so vfs_pipe.lib.so vfs
+
+build_boot_image $boot_modules
+
+
+append qemu_args " -nographic -m 768 "
+
+# wait until Noux started
+run_genode_until {.*\[init -> vfs\] creating build directory\.\.\..*\n} $boot_timeout
+set run_id [output_spawn_id]
+
+puts "--- start of time measurement ---"
+set time_start [ clock seconds ]
+
+run_genode_until {.*"/bin/bash".* exited with exit value 234.*\n} $tool_chain_timeout $run_id
+
+puts "--- end of time measurement ---"
+set time_end [ clock seconds ]
+
+# cleanup created tars
+exec rm -f bin/genode.tar
+
+# print infos about run
+set git_info "unknown"
+catch { set git_info [exec git --git-dir=$genode_dir/.git describe ] }
+
+puts "Testing \" [ clock format $time_start -format "%Y-%m-%d %H:%M:%S"], commit: ($git_info)\" in : "
+puts "Testing \"all\" in printf.wv:"
+puts "! PERF: runtime [expr $time_end - $time_start ] seconds ok"
+
+puts "Test succeeded"
+
+# vi: set ft=tcl :

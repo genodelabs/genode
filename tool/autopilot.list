@@ -39,7 +39,7 @@ nic_router
 nic_router_flood
 nic_router_stress
 nic_router_uplinks
-noux_tool_chain_auto
+tool_chain_auto
 nvme
 ping
 ping_nic_router
