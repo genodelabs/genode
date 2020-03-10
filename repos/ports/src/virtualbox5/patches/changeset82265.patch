@@ -1,0 +1,91 @@
+--- a/src/app/virtualbox/src/VBox/Devices/PC/vbox-cpuhotplug.dsl	2020-03-10 13:01:35.606326184 +0100
++++ b/src/app/virtualbox/src/VBox/Devices/PC/vbox-cpuhotplug.dsl	2020-03-10 13:01:22.169523577 +0100
+@@ -42,7 +42,7 @@
+     Scope (\_SB)
+     {
+ 
+-#define GENERATE_CPU_OBJECT(id, sck, sckuid, cpu, cpuuid)<NL>              \
++#define GENERATE_CPU_OBJECT(id, sck, sckuid, cpu)<NL>                      \
+     Device (sck)                                                           \
+     {                                                                      \
+         Name (_HID, "ACPI0004")                                            \
+@@ -56,7 +56,7 @@
+                    )                                                       \
+         {                                                                  \
+             Name (_HID, "ACPI0007")                                        \
+-            Name (_UID, cpuuid)                                            \
++            Name (_UID, id)                                                \
+             Name (_PXM, 0x00)                                              \
+             <NL>                                                           \
+             Method(_MAT, 0, Serialized)                                    \
+@@ -93,38 +93,38 @@
+         }                                                                  \
+     }                                                                      \
+ 
+-        GENERATE_CPU_OBJECT(0x00, SCK0, "SCKCPU0", CPU0, "SCK0-CPU0")
+-        GENERATE_CPU_OBJECT(0x01, SCK1, "SCKCPU1", CPU1, "SCK1-CPU0")
+-        GENERATE_CPU_OBJECT(0x02, SCK2, "SCKCPU2", CPU2, "SCK2-CPU0")
+-        GENERATE_CPU_OBJECT(0x03, SCK3, "SCKCPU3", CPU3, "SCK3-CPU0")
+-        GENERATE_CPU_OBJECT(0x04, SCK4, "SCKCPU4", CPU4, "SCK4-CPU0")
+-        GENERATE_CPU_OBJECT(0x05, SCK5, "SCKCPU5", CPU5, "SCK5-CPU0")
+-        GENERATE_CPU_OBJECT(0x06, SCK6, "SCKCPU6", CPU6, "SCK6-CPU0")
+-        GENERATE_CPU_OBJECT(0x07, SCK7, "SCKCPU7", CPU7, "SCK7-CPU0")
+-        GENERATE_CPU_OBJECT(0x08, SCK8, "SCKCPU8", CPU8, "SCK8-CPU0")
+-        GENERATE_CPU_OBJECT(0x09, SCK9, "SCKCPU9", CPU9, "SCK9-CPU0")
+-        GENERATE_CPU_OBJECT(0x0a, SCKA, "SCKCPUA", CPUA, "SCKA-CPU0")
+-        GENERATE_CPU_OBJECT(0x0b, SCKB, "SCKCPUB", CPUB, "SCKB-CPU0")
+-        GENERATE_CPU_OBJECT(0x0c, SCKC, "SCKCPUC", CPUC, "SCKC-CPU0")
+-        GENERATE_CPU_OBJECT(0x0d, SCKD, "SCKCPUD", CPUD, "SCKD-CPU0")
+-        GENERATE_CPU_OBJECT(0x0e, SCKE, "SCKCPUE", CPUE, "SCKE-CPU0")
+-        GENERATE_CPU_OBJECT(0x0f, SCKF, "SCKCPUF", CPUF, "SCKF-CPU0")
+-        GENERATE_CPU_OBJECT(0x10, SCKG, "SCKCPUG", CPUG, "SCKG-CPU0")
+-        GENERATE_CPU_OBJECT(0x11, SCKH, "SCKCPUH", CPUH, "SCKH-CPU0")
+-        GENERATE_CPU_OBJECT(0x12, SCKI, "SCKCPUI", CPUI, "SCKI-CPU0")
+-        GENERATE_CPU_OBJECT(0x13, SCKJ, "SCKCPUJ", CPUJ, "SCKJ-CPU0")
+-        GENERATE_CPU_OBJECT(0x14, SCKK, "SCKCPUK", CPUK, "SCKK-CPU0")
+-        GENERATE_CPU_OBJECT(0x15, SCKL, "SCKCPUL", CPUL, "SCKL-CPU0")
+-        GENERATE_CPU_OBJECT(0x16, SCKM, "SCKCPUM", CPUM, "SCKM-CPU0")
+-        GENERATE_CPU_OBJECT(0x17, SCKN, "SCKCPUN", CPUN, "SCKN-CPU0")
+-        GENERATE_CPU_OBJECT(0x18, SCKO, "SCKCPUO", CPUO, "SCKO-CPU0")
+-        GENERATE_CPU_OBJECT(0x19, SCKP, "SCKCPUP", CPUP, "SCKP-CPU0")
+-        GENERATE_CPU_OBJECT(0x1a, SCKQ, "SCKCPUQ", CPUQ, "SCKQ-CPU0")
+-        GENERATE_CPU_OBJECT(0x1b, SCKR, "SCKCPUR", CPUR, "SCKR-CPU0")
+-        GENERATE_CPU_OBJECT(0x1c, SCKS, "SCKCPUS", CPUS, "SCKS-CPU0")
+-        GENERATE_CPU_OBJECT(0x1d, SCKT, "SCKCPUT", CPUT, "SCKT-CPU0")
+-        GENERATE_CPU_OBJECT(0x1e, SCKU, "SCKCPUU", CPUU, "SCKU-CPU0")
+-        GENERATE_CPU_OBJECT(0x1f, SCKV, "SCKCPUV", CPUV, "SCKV-CPU0")
++        GENERATE_CPU_OBJECT(0x00, SCK0, "SCKCPU0", CPU0)
++        GENERATE_CPU_OBJECT(0x01, SCK1, "SCKCPU1", CPU1)
++        GENERATE_CPU_OBJECT(0x02, SCK2, "SCKCPU2", CPU2)
++        GENERATE_CPU_OBJECT(0x03, SCK3, "SCKCPU3", CPU3)
++        GENERATE_CPU_OBJECT(0x04, SCK4, "SCKCPU4", CPU4)
++        GENERATE_CPU_OBJECT(0x05, SCK5, "SCKCPU5", CPU5)
++        GENERATE_CPU_OBJECT(0x06, SCK6, "SCKCPU6", CPU6)
++        GENERATE_CPU_OBJECT(0x07, SCK7, "SCKCPU7", CPU7)
++        GENERATE_CPU_OBJECT(0x08, SCK8, "SCKCPU8", CPU8)
++        GENERATE_CPU_OBJECT(0x09, SCK9, "SCKCPU9", CPU9)
++        GENERATE_CPU_OBJECT(0x0a, SCKA, "SCKCPUA", CPUA)
++        GENERATE_CPU_OBJECT(0x0b, SCKB, "SCKCPUB", CPUB)
++        GENERATE_CPU_OBJECT(0x0c, SCKC, "SCKCPUC", CPUC)
++        GENERATE_CPU_OBJECT(0x0d, SCKD, "SCKCPUD", CPUD)
++        GENERATE_CPU_OBJECT(0x0e, SCKE, "SCKCPUE", CPUE)
++        GENERATE_CPU_OBJECT(0x0f, SCKF, "SCKCPUF", CPUF)
++        GENERATE_CPU_OBJECT(0x10, SCKG, "SCKCPUG", CPUG)
++        GENERATE_CPU_OBJECT(0x11, SCKH, "SCKCPUH", CPUH)
++        GENERATE_CPU_OBJECT(0x12, SCKI, "SCKCPUI", CPUI)
++        GENERATE_CPU_OBJECT(0x13, SCKJ, "SCKCPUJ", CPUJ)
++        GENERATE_CPU_OBJECT(0x14, SCKK, "SCKCPUK", CPUK)
++        GENERATE_CPU_OBJECT(0x15, SCKL, "SCKCPUL", CPUL)
++        GENERATE_CPU_OBJECT(0x16, SCKM, "SCKCPUM", CPUM)
++        GENERATE_CPU_OBJECT(0x17, SCKN, "SCKCPUN", CPUN)
++        GENERATE_CPU_OBJECT(0x18, SCKO, "SCKCPUO", CPUO)
++        GENERATE_CPU_OBJECT(0x19, SCKP, "SCKCPUP", CPUP)
++        GENERATE_CPU_OBJECT(0x1a, SCKQ, "SCKCPUQ", CPUQ)
++        GENERATE_CPU_OBJECT(0x1b, SCKR, "SCKCPUR", CPUR)
++        GENERATE_CPU_OBJECT(0x1c, SCKS, "SCKCPUS", CPUS)
++        GENERATE_CPU_OBJECT(0x1d, SCKT, "SCKCPUT", CPUT)
++        GENERATE_CPU_OBJECT(0x1e, SCKU, "SCKCPUU", CPUU)
++        GENERATE_CPU_OBJECT(0x1f, SCKV, "SCKCPUV", CPUV)
+ 
+ #undef GENERATE_CPU_OBJECT
+     }
