@@ -1,0 +1,138 @@
+#
+# \brief  Seoul on Genode - boot from a vdi or raw
+# \author Alexander Boettcher
+# \date   2020-03-12
+#
+
+assert_spec x86
+
+if { [get_cmd_switch --autopilot] && [have_spec x86_32] } {
+	puts "Run script does not support autopilot mode on 32 bit"
+	exit 0
+}
+
+if { [get_cmd_switch --autopilot] && [have_include power_on/qemu] } {
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0
+}
+
+#if {[have_spec foc] || [have_spec sel4] || [have_spec nova]} {
+if {[have_spec nova]} {
+} else {
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0
+}
+
+set use_multiboot     0
+set use_genode_iso    0
+set use_model_ahci    1
+set use_model_ide     0
+
+set use_block_vdi     0
+set use_block_ram     0
+set use_block_sata    1
+
+set use_part_block    [expr ![have_include power_on/qemu]]
+
+set use_nic_session   1
+set use_nic_bridge    0
+
+set use_usb           0
+
+set use_framebuffer   1
+set use_fancy_stuff   0
+set use_top           0
+
+set memory_vmm_vm     "512M"
+
+set vcpus_to_be_used  2
+
+if {[have_include power_on/qemu]} {
+
+	if {![file exists bin/seoul-disc.raw]} {
+		if {![file exists bin/seoul_stress32.vdi]} {
+			puts "Please provide a disk image file to bin/seoul_stress32.vdi"
+			exit 1
+		}
+
+#		if {![file exists bin/seoul_stress32.raw]} {
+#			puts "Please provide a disk image file to bin/seoul_stress32.raw"
+#			exit 1
+#		}
+
+		set mke2fs [installed_command mke2fs]
+		set dd     [installed_command dd]
+
+#		catch { exec $dd if=/dev/zero of=bin/seoul-disc.raw bs=1M count=12000 }
+		catch { exec $dd if=/dev/zero of=bin/seoul-disc.raw bs=1M count=6000 }
+		catch { exec $mke2fs -F bin/seoul-disc.raw }
+
+		exec [installed_command e2cp] bin/seoul_stress32.vdi bin/seoul-disc.raw:seoul_stress32.vdi
+#		exec [installed_command e2cp] bin/seoul_stress32.raw bin/seoul-disc.raw:seoul_stress32.raw
+	}
+
+	append qemu_args " -m 2536 "
+	append qemu_args " -cpu phenom"
+
+	append qemu_args " -drive id=disk,file=bin/seoul-disc.raw,format=raw,if=none"
+	append qemu_args " -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0"
+
+	run_genode_until forever
+	exit
+}
+
+set match_guest_log "\[init -\> seoul\].*VMM: #"
+set match_guest_down "\[init -\> seoul\].*VMM: STANDBY IMMEDIATE"
+set match_boot_string "--- Seoul VMM starting ---"
+set vmm_name "seoul"
+
+set vcpus_to_be_used  1
+set use_vcpus $vcpus_to_be_used
+lappend results_expected 1 10 35 76
+lappend boottime_expected 54
+source ${genode_dir}/repos/ports/run/seoul.inc
+source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+run_genode_until $match_guest_down 20 [output_spawn_id]
+kill_spawned [output_spawn_id]
+
+set vcpus_to_be_used  2
+set use_vcpus $vcpus_to_be_used
+lappend results_expected 2 10 38 47
+lappend boottime_expected 54
+source ${genode_dir}/repos/ports/run/seoul.inc
+source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+run_genode_until $match_guest_down 20 [output_spawn_id]
+kill_spawned [output_spawn_id]
+
+set vcpus_to_be_used  3
+set use_vcpus $vcpus_to_be_used
+lappend results_expected 3 10 39 38
+lappend boottime_expected 54
+source ${genode_dir}/repos/ports/run/seoul.inc
+source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+run_genode_until $match_guest_down 20 [output_spawn_id]
+kill_spawned [output_spawn_id]
+
+set vcpus_to_be_used  4
+set use_vcpus $vcpus_to_be_used
+lappend results_expected 4 10 36 34
+lappend boottime_expected 54
+source ${genode_dir}/repos/ports/run/seoul.inc
+source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
+run_genode_until $match_guest_down 20 [output_spawn_id]
+kill_spawned [output_spawn_id]
+
+#
+# Dump aggregated output of the several runs above
+#
+grep_output "$match_guest_log.*cpus="
+
+puts $output
+
+set merge_host_output [split $output_host "\n"]
+set merge_host_extra  [split $output_host_extra "\n"]
+for { set i 0 } { $i < [llength $merge_host_output] } { incr i} {
+	puts "[lindex $merge_host_output $i] [lindex $merge_host_extra $i]"
+}
+
+evaluate_stress

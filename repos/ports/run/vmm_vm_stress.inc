@@ -9,7 +9,7 @@ if {[get_cmd_switch --autopilot] && $current_date != "Sat" && $current_date != "
 run_genode_until $match_boot_string 40
 
 set t_vm_boot_start    [clock seconds]
-run_genode_until "$match_guest_log.*git clone" 70 [output_spawn_id]
+run_genode_until "$match_guest_log.*git clone" 90 [output_spawn_id]
 set t_vm_git_clone     [clock seconds]
 run_genode_until "$match_guest_log.*prepare ports" 70 [output_spawn_id]
 set t_vm_prepare_ports [clock seconds]

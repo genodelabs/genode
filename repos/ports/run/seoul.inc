@@ -5,11 +5,24 @@
 # \author Alexander Boettcher
 # \date   2011-11-21
 
+set use_fs_rump $use_block_vdi
+set use_drv_ahci [expr $use_block_vdi || $use_block_sata]
+
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/nitpicker
+
+if {$use_fs_rump} {
+	import_from_depot [depot_user]/src/vfs \
+	                  [depot_user]/src/rump
+}
+
+if {$use_part_block} {
+	import_from_depot [depot_user]/src/part_block
+}
+
 #
 # Build
 #
@@ -54,9 +67,10 @@ set build_components {
 
 if {$use_fancy_stuff} { set use_framebuffer 1 }
 
+lappend_if $use_block_vdi       build_components server/vdi_block
 lappend_if $use_usb             build_components drivers/usb
 lappend_if $use_block_ram       build_components server/ram_block
-lappend_if $use_block_sata      build_components drivers/ahci
+lappend_if $use_drv_ahci        build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
 lappend_if $use_nic_bridge      build_components server/nic_bridge
 lappend_if $use_framebuffer     build_components drivers/framebuffer
@@ -162,7 +176,7 @@ close $vm_cfg_fd
 # Generate Genode config
 #
 
-append config {
+set config {
 <config verbose="yes" prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
@@ -202,12 +216,38 @@ append_if [expr !$use_usb] config {
 		<route> <any-service><parent/> <any-child/> </any-service> </route>
 	</start> }
 
-append_if $use_block_sata config {
+append_if $use_drv_ahci config {
 	<start name="ahci_drv" priority="-1">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
+		<config>}
+
+append_if [expr $use_block_sata && !$use_part_block] config {
+			<policy label="seoul -> VirtualDisk 0" device="0" writeable="yes"/>}
+
+append_if [expr $use_block_vdi && !$use_part_block] config {
+			<policy label="rump_fs -> " device="0" writeable="yes"/>}
+
+append_if [expr $use_block_vdi && $use_part_block] config {
+			<policy label="part_block -> " device="0" writeable="yes"/>}
+
+append_if [expr $use_block_sata && $use_part_block] config {
+			<policy label="part_block -> " device="0" writeable="yes"/>}
+
+append_if $use_drv_ahci config {
+		</config>
+	</start>}
+
+append_if $use_part_block config {
+	<start name="part_block" priority="-1">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Block"/></provides>
+		<route>
+			<any-service><child name="ahci_drv"/> <parent/></any-service>
+		</route>
 		<config>
-			<policy label="seoul -> VirtualDisk 0" device="0" writeable="yes"/>
+			<policy label="seoul -> VirtualDisk 0" partition="5" writeable="yes"/>
+			<policy label="rump_fs -> " partition="4" writeable="yes"/>
 		</config>
 	</start>}
 
@@ -216,6 +256,44 @@ append_if $use_block_ram config {
 		<resource name="RAM" quantum="262M" />
 		<provides><service name="Block"/></provides>
 		<config file="seoul-disc.raw" block_size="512"/>
+	</start>}
+
+append_if $use_fs_rump config {
+	<start name="rump_fs" priority="-1" caps="200">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="32M"/>
+		<provides><service name="File_system"/></provides>
+		<config ld_verbose="yes">
+			<vfs>
+				<rump fs="ext2fs" ram="28M"/>
+			</vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+		<route>
+			<service name="Timer"><child name="timer"/></service>}
+
+append_if [expr $use_fs_rump && $use_part_block] config {
+			<service name="Block"><child name="part_block"/></service>}
+append_if [expr $use_fs_rump && !$use_part_block] config {
+			<service name="Block"><child name="ahci_drv"/></service>}
+
+append_if $use_fs_rump config {
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>}
+
+append_if $use_block_vdi config {
+	<start name="vdi_block">
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="Block"/> </provides>
+		<config file="/seoul_stress32.vdi" writeable="yes">
+			<vfs> <fs buffer_size="1M"/> </vfs>
+			<policy label="seoul -> VirtualDisk 0" writeable="yes"/>
+		</config>
+		<route>
+			<service name="File_system"><child name="rump_fs"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
 	</start>}
 
 append_if $use_genode_iso config {
@@ -292,6 +370,10 @@ append_if $use_genode_iso config {
 			<service name="ROM" label="vm_seoul.cfg"> <parent/> </service>
 			<service name="ROM" label="platform_info"> <parent/> </service>
 			<service name="ROM"><child name="iso9660"/></service>}
+append_if $use_block_vdi config {
+			<service name="Block"><child name="vdi_block"/></service>}
+append_if [expr $use_block_sata && $use_part_block] config {
+			<service name="Block"><child name="part_block"/></service>}
 append config {
 			<service name="Rtc"><child name="rtc_drv"/></service>
 			<any-service><parent/><any-child/></any-service>
@@ -437,10 +519,11 @@ set boot_modules {
 	vm_seoul.cfg
 }
 
+lappend_if $use_block_vdi     boot_modules vdi_block
 lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
 lappend_if $use_block_ram     boot_modules ram_block
-lappend_if $use_block_sata    boot_modules ahci_drv
+lappend_if $use_drv_ahci      boot_modules ahci_drv
 lappend_if $use_nic_session   boot_modules ipxe_nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
 lappend_if $use_framebuffer   boot_modules vesa_fb_drv
