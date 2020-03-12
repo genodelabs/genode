@@ -82,6 +82,9 @@ append config {
 				<udp dst="} [good_dst_ip] {/24">
 					<permit port="} [bad_dst_port] {" domain="uplink"/>
 				</udp>
+				<dhcp-server ip_first="10.0.4.2"
+				             ip_last="10.0.4.200"
+				             ip_lease_time_sec="4"/>
 			</domain>
 
 			<domain name="ping_1" interface="10.0.3.1/24">
@@ -106,7 +109,7 @@ append config {
 			<policy label_prefix="ping_2" domain="ping_2"/>
 			<uplink                       domain="uplink"/>
 
-			<domain name="uplink" interface="10.0.4.2/24" gateway="10.0.4.1">
+			<domain name="uplink">
 				<nat domain="ping_2" icmp-ids="100" udp-ports="100"/>
 			</domain>
 
