@@ -13,6 +13,7 @@ __h_errno_set T
 __has_sse D 4
 __inet_addr T
 __inet_aton T
+__inet_net_pton W
 __inet_nsap_ntoa T
 __inet_ntoa T
 __inet_ntop T
