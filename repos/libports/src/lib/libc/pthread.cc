@@ -19,6 +19,9 @@
 #include <util/list.h>
 #include <libc/allocator.h>
 
+/* Genode-internal includes */
+#include <base/internal/unmanaged_singleton.h>
+
 /* libc includes */
 #include <errno.h>
 #include <pthread.h>
@@ -588,13 +591,11 @@ extern "C" {
 		/*
 		 * We create a pthread object associated to the main thread's Thread
 		 * object. We ensure the pthread object does never get deleted by
-		 * allocating it in heap via new(). Otherwise, the static destruction
-		 * of the pthread object would also destruct the 'Thread' of the main
-		 * thread.
+		 * allocating it as unmanaged_singleton. Otherwise, the static
+		 * destruction of the pthread object would also destruct the 'Thread'
+		 * of the main thread.
 		 */
-		Libc::Allocator alloc { };
-		static pthread *main = new (alloc) pthread(*Thread::myself());
-		return main;
+		return unmanaged_singleton<pthread>(*Thread::myself());
 	}
 
 
