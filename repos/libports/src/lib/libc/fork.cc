@@ -496,14 +496,18 @@ struct Libc::Forked_child : Child_policy, Child_ready
 		if (_state == State::STARTING_UP && name == Clone_session::service_name())
 			service_ptr = &_local_clone_service.service;
 
-		if (name == Rom_session::service_name()) {
-
-			/*
-			 * Strip off the originating child name to allow the application of
-			 * routing rules based on the leading path elements, regardless
-			 * of which child in the process hierarchy requests a ROM.
-			 */
+		/*
+		 * Strip off the originating child name regardless of which child in
+		 * the process hierarchy requests the session. This way, we avoid
+		 * overly long labels in the presence of deep fork nesting levels.
+		 *
+		 * We keep the label intact only for the LOG sessions to retain
+		 * unambiguous debug messages.
+		 */
+		if (name != "LOG")
 			rewritten_label = label.last_element();
+
+		if (name == Rom_session::service_name()) {
 
 			try { service_ptr = &_local_rom_services.matching_service(name, label); }
 			catch (...) { }
