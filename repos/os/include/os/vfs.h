@@ -613,7 +613,11 @@ class Genode::Watcher
 			_watch(fs, alloc, rel_path, handler);
 		}
 
-		~Watcher() { _handle->fs().close(_handle); }
+		~Watcher()
+		{
+			if (_handle)
+				_handle->fs().close(_handle);
+		}
 };
 
 
