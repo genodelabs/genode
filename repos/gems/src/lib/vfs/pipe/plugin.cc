@@ -400,8 +400,13 @@ class Vfs_pipe::File_system : public Vfs::File_system
 			Pipe *pipe = nullptr;
 			if (Pipe_handle *handle = dynamic_cast<Pipe_handle*>(vfs_handle)) {
 				pipe = &handle->pipe;
-				if (handle->writer)
+				if (handle->writer) {
 					pipe->num_writers--;
+
+					/* trigger reattempt of read to deliver EOF */
+					if (pipe->num_writers == 0)
+						pipe->submit_signal();
+				}
 			} else
 			if (New_pipe_handle *handle = dynamic_cast<New_pipe_handle*>(vfs_handle))
 				pipe = &handle->pipe;
