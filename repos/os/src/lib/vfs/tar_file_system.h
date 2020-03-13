@@ -610,8 +610,14 @@ class Vfs::Tar_file_system : public File_system
 				return STAT_ERR_NO_ENTRY;
 
 			if (!node_ptr->record) {
-				out.type = Node_type::DIRECTORY;
-				out.rwx  = Node_rwx::rx();
+				out = {
+					.size              = 0,
+					.type              = Node_type::DIRECTORY,
+					.rwx               = Node_rwx::rx(),
+					.inode             = (Genode::addr_t)node_ptr,
+					.device            = (Genode::addr_t)this,
+					.modification_time = { }
+				};
 				return STAT_OK;
 			}
 
