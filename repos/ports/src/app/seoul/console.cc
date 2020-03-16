@@ -242,7 +242,7 @@ void Seoul::Console::_reactivate()
 bool Seoul::Console::receive(MessageMemRegion &msg)
 {
 	/* we had a fault in the text framebuffer */
-	bool reactivate = (msg.page >= PHYS_FRAME_VGA_COLOR &&
+	bool reactivate = (msg.page >= PHYS_FRAME_VGA &&
 	                   msg.page < PHYS_FRAME_VGA_COLOR + FRAME_COUNT_COLOR);
 
 	/* vga memory got changed indirectly by vbios */
@@ -255,7 +255,7 @@ bool Seoul::Console::receive(MessageMemRegion &msg)
 	if (reactivate) {
 		fb_state.vga_revoked = false;
 
-		Logging::printf("Reactivating text buffer loop.\n");
+		//Logging::printf("Reactivating text buffer loop.\n");
 
 		_reactivate();
 	}
@@ -321,7 +321,7 @@ unsigned Seoul::Console::_handle_fb()
 		fb_state.unchanged = 0;
 
 		_framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
-		Logging::printf("Deactivated text buffer loop.\n");
+		//Logging::printf("Deactivated text buffer loop.\n");
 
 		return 0;
 	}
