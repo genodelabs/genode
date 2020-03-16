@@ -140,6 +140,8 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node config)
 				xml.attribute("rtc", node.attribute_value("rtc", Path()));
 			if (node.has_attribute("pipe"))
 				xml.attribute("pipe", node.attribute_value("pipe", Path()));
+			if (node.has_attribute("socket"))
+				xml.attribute("socket", node.attribute_value("socket", Path()));
 		});
 
 		{
