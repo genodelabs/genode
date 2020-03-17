@@ -17,9 +17,16 @@ set env(LC_COLLATE) C
 set lib_path [lindex $argv 0]
 set abi_path [lindex $argv 1]
 
-# obtain symbol information for the shared library via 'nm'
-set lib_content [split [exec nm --format posix --dynamic $lib_path | sort] "\n"]
-set abi_content [split [exec cat $abi_path] "\n"]
+#
+# Obtain symbol information for the shared library via 'nm'
+#
+# The redirection of stderr to /dev/null is solely needed to prevent tclsh from
+# creating a temporary file at /tmp/tcl_XXXX and relying on POSIX's late unlink
+# mechanism. The latter is not available when executing the tool chain on
+# Genode.
+#
+set lib_content [split [exec nm --format posix --dynamic $lib_path 2> /dev/null | sort] "\n"]
+set abi_content [split [exec cat $abi_path 2> /dev/null] "\n"]
 
 set abi_name [lindex [file split $abi_path] end]
 set num_errors 0
