@@ -10,7 +10,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/clipboard \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/libc \
-                  [depot_user]/src/noux \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/fs_rom \
                   [depot_user]/src/posix \
                   [depot_user]/src/ncurses \
                   [depot_user]/src/clipboard \
@@ -152,36 +153,70 @@ install_config {
 		</route>
 	</start>
 
-	<start name="noux" caps="1000">
-		<resource name="RAM" quantum="1G"/>
+	<start name="vfs" caps="120">
+		<resource name="RAM" quantum="5M"/>
+		<provides><service name="File_system"/></provides>
 		<config>
-			<fstab> <tar name="vim.tar" /> </fstab>
-			<start name="/bin/vim">
-				<env name="TERM" value="screen" />
+			<vfs>
+				<tar name="vim.tar" />
+				<dir name="dev">
+					<terminal/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+			</vfs>
 
-				<!-- Deactivate the loading of plugins. Otherwise, vim will
-				     attempt to use a sub shell for pattern matching -->
-				<arg value="--noplugin" />
+			<policy label_prefix="vfs_rom" root="/"/>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
 
-				<!-- Do not use swap file. Any attempt to create of would
-				     fail because we are on a read-only file system -->
-				<arg value="-n" />
+	<start name="vfs_rom">
+		<resource name="RAM" quantum="5M"/>
+		<binary name="fs_rom"/>
+		<provides> <service name="ROM"/> </provides>
+		<config/>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
 
-				<!-- Use the nocompatible mode, which is much nicer than
-				     the plain vi mode -->
-				<arg value="-N" />
+	<start name="/bin/vim" caps="150">
+		<resource name="RAM" quantum="10M"/>
+		<config>
+			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/terminal"
+			      rtc="/dev/rtc"/>
 
-				<!-- Permanently display status bar -->
-				<arg value="--cmd" />
-				<arg value="set laststatus=2" />
+			<vfs> <fs/> </vfs>
 
-				<!-- Enable highlighted search results -->
-				<arg value="--cmd" />
-				<arg value="set hls" />
+			<env key="TERM" value="screen" />
 
-			</start>
+			<arg value="/bin/vim" />
+
+			<!-- Deactivate the loading of plugins. Otherwise, vim will
+			     attempt to use a sub shell for pattern matching -->
+			<arg value="--noplugin" />
+
+			<!-- Do not use swap file. Any attempt to create of would
+			     fail because we are on a read-only file system -->
+			<arg value="-n" />
+
+			<!-- Use the nocompatible mode, which is much nicer than
+			     the plain vi mode -->
+			<arg value="-N" />
+
+			<!-- Permanently display status bar -->
+			<arg value="--cmd" />
+			<arg value="set laststatus=2" />
+
+			<!-- Enable highlighted search results -->
+			<arg value="--cmd" />
+			<arg value="set hls" />
 		</config>
 		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+			<service name="ROM" label_last="/bin/vim"> <child name="vfs_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
