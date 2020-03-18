@@ -1,0 +1,147 @@
+--- a/src/lib/openssl/crypto/aes/asm/aesni-mb-x86_64.pl
++++ b/src/lib/openssl/crypto/aes/asm/aesni-mb-x86_64.pl
+@@ -55,6 +55,8 @@
+ 
+ $avx=0;
+ 
++$avx=2; # force AVX support on Genode
++
+ if (`$ENV{CC} -Wa,-v -c -o /dev/null -x assembler /dev/null 2>&1`
+ 		=~ /GNU assembler version ([2-9]\.[0-9]+)/) {
+ 	$avx = ($1>=2.19) + ($1>=2.22);
+--- a/src/lib/openssl/crypto/aes/asm/aesni-sha1-x86_64.pl
++++ b/src/lib/openssl/crypto/aes/asm/aesni-sha1-x86_64.pl
+@@ -102,6 +102,9 @@
+ $avx=1 if (`$ENV{CC} -Wa,-v -c -o /dev/null -x assembler /dev/null 2>&1`
+ 		=~ /GNU assembler version ([2-9]\.[0-9]+)/ &&
+ 	   $1>=2.19);
++
++$avx=2; # force AVX support on Genode
++
+ $avx=1 if (!$avx && $win64 && ($flavour =~ /nasm/ || $ENV{ASM} =~ /nasm/) &&
+ 	   `nasm -v 2>&1` =~ /NASM version ([2-9]\.[0-9]+)/ &&
+ 	   $1>=2.09);
+--- a/src/lib/openssl/crypto/aes/asm/aesni-sha256-x86_64.pl
++++ b/src/lib/openssl/crypto/aes/asm/aesni-sha256-x86_64.pl
+@@ -77,6 +77,8 @@
+ $shaext=$avx;	### set to zero if compiling for 1.0.1
+ $avx=1		if (!$shaext && $avx);
+ 
++$avx=2; # force AVX support on Genode
++
+ open OUT,"| \"$^X\" \"$xlate\" $flavour \"$output\"";
+ *STDOUT=*OUT;
+ 
+--- a/src/lib/openssl/crypto/armcap.c
++++ b/src/lib/openssl/crypto/armcap.c
+@@ -114,6 +114,10 @@
+         return;
+     }
+ 
++    /* Genode: only NEON for now */
++    //OPENSSL_armcap_P |= ARMV7_NEON;
++    return;
++
+ # if defined(__APPLE__) && !defined(__aarch64__)
+     /*
+      * Capability probing by catching SIGILL appears to be problematic
+--- a/src/lib/openssl/crypto/bn/asm/rsaz-avx2.pl
++++ b/src/lib/openssl/crypto/bn/asm/rsaz-avx2.pl
+@@ -54,6 +54,8 @@
+ 	$addx = ($1>=2.23);
+ }
+ 
++$avx=2; # force AVX support on Genode
++
+ if (!$avx && $win64 && ($flavour =~ /nasm/ || $ENV{ASM} =~ /nasm/) &&
+ 	    `nasm -v 2>&1` =~ /NASM version ([2-9]\.[0-9]+)/) {
+ 	$avx = ($1>=2.09) + ($1>=2.10);
+--- a/src/lib/openssl/crypto/chacha/asm/chacha-x86.pl
++++ b/src/lib/openssl/crypto/chacha/asm/chacha-x86.pl
+@@ -53,6 +53,9 @@
+ 			=~ /GNU assembler version ([2-9]\.[0-9]+)/ &&
+ 		($gasver=$1)>=2.19);	# first version supporting AVX
+ 
++$gasver=2.32; # GAS version since Genode 19.05
++$ymm=1; # force YMM on Genode
++
+ $ymm=1 if ($xmm && !$ymm && $ARGV[0] eq "win32n" &&
+ 		`nasm -v 2>&1` =~ /NASM version ([2-9]\.[0-9]+)/ &&
+ 		$1>=2.03);	# first version supporting AVX
+--- a/src/lib/openssl/crypto/poly1305/asm/poly1305-x86.pl
++++ b/src/lib/openssl/crypto/poly1305/asm/poly1305-x86.pl
+@@ -55,6 +55,8 @@
+ $sse2=$avx=0;
+ for (@ARGV) { $sse2=1 if (/-DOPENSSL_IA32_SSE2/); }
+ 
++$avx=2; # force AVX support on Genode
++
+ if ($sse2) {
+ 	&static_label("const_sse2");
+ 	&static_label("enter_blocks");
+--- a/src/lib/openssl/crypto/sha/asm/sha1-586.pl
++++ b/src/lib/openssl/crypto/sha/asm/sha1-586.pl
+@@ -136,6 +136,8 @@
+ 			=~ /GNU assembler version ([2-9]\.[0-9]+)/ &&
+ 		$1>=2.19);	# first version supporting AVX
+ 
++$ymm=1; # force YMM support on Genode
++
+ $ymm=1 if ($xmm && !$ymm && $ARGV[0] eq "win32n" &&
+ 		`nasm -v 2>&1` =~ /NASM version ([2-9]\.[0-9]+)/ &&
+ 		$1>=2.03);	# first version supporting AVX
+--- a/src/lib/openssl/crypto/sha/asm/sha1-mb-x86_64.pl
++++ b/src/lib/openssl/crypto/sha/asm/sha1-mb-x86_64.pl
+@@ -51,6 +51,8 @@
+ 
+ $avx=0;
+ 
++$avx=2; # force AVX support on Genode
++
+ if (`$ENV{CC} -Wa,-v -c -o /dev/null -x assembler /dev/null 2>&1`
+ 		=~ /GNU assembler version ([2-9]\.[0-9]+)/) {
+ 	$avx = ($1>=2.19) + ($1>=2.22);
+--- a/src/lib/openssl/crypto/sha/asm/sha1-x86_64.pl
++++ b/src/lib/openssl/crypto/sha/asm/sha1-x86_64.pl
+@@ -104,6 +104,8 @@
+ ( $xlate="${dir}../../perlasm/x86_64-xlate.pl" and -f $xlate) or
+ die "can't locate x86_64-xlate.pl";
+ 
++$avx=2; # force AVX support on Genode
++
+ if (`$ENV{CC} -Wa,-v -c -o /dev/null -x assembler /dev/null 2>&1`
+ 		=~ /GNU assembler version ([2-9]\.[0-9]+)/) {
+ 	$avx = ($1>=2.19) + ($1>=2.22);
+--- a/src/lib/openssl/crypto/sha/asm/sha256-586.pl
++++ b/src/lib/openssl/crypto/sha/asm/sha256-586.pl
+@@ -86,6 +86,8 @@
+ 	$avx = ($1>=2.19) + ($1>=2.22);
+ }
+ 
++$avx=2; # force AVX support on Genode
++
+ if ($xmm && !$avx && $ARGV[0] eq "win32n" &&
+ 		`nasm -v 2>&1` =~ /NASM version ([2-9]\.[0-9]+)/) {
+ 	$avx = ($1>=2.03) + ($1>=2.10);
+--- a/src/lib/openssl/crypto/sha/asm/sha256-mb-x86_64.pl
++++ b/src/lib/openssl/crypto/sha/asm/sha256-mb-x86_64.pl
+@@ -52,6 +52,8 @@
+ 
+ $avx=0;
+ 
++$avx=2; # force AVX support on Genode
++
+ if (`$ENV{CC} -Wa,-v -c -o /dev/null -x assembler /dev/null 2>&1`
+ 		=~ /GNU assembler version ([2-9]\.[0-9]+)/) {
+ 	$avx = ($1>=2.19) + ($1>=2.22);
+--- a/src/lib/openssl/crypto/sha/asm/sha512-x86_64.pl
++++ b/src/lib/openssl/crypto/sha/asm/sha512-x86_64.pl
+@@ -120,6 +120,8 @@
+ ( $xlate="${dir}../../perlasm/x86_64-xlate.pl" and -f $xlate) or
+ die "can't locate x86_64-xlate.pl";
+ 
++$avx=2; # force AVX support on Genode
++
+ if (`$ENV{CC} -Wa,-v -c -o /dev/null -x assembler /dev/null 2>&1`
+ 		=~ /GNU assembler version ([2-9]\.[0-9]+)/) {
+ 	$avx = ($1>=2.19) + ($1>=2.22);

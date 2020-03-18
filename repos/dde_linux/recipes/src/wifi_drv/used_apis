@@ -1,8 +1,7 @@
 base
 os
 libc
-libcrypto
-libssl
+openssl
 nic_session
 uplink_session
 nic_driver

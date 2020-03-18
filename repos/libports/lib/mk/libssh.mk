@@ -27,7 +27,6 @@ SRC_C = \
         knownhosts.c \
         legacy.c \
         libcrypto.c \
-        libcrypto-compat.c \
         log.c \
         match.c \
         messages.c \

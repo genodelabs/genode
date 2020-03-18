@@ -1,4 +1,0 @@
-- 'opensslconf.h' was created by running './Configure linux-armv4'
-- modifications:
-  - disabled the definition of OPENSSL_CPUID_OBJ
-  - changed the definition of OPENSSL_NO_DYNAMIC_ENGINE to OPENSSL_NO_STATIC_ENGINE

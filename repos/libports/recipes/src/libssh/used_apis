@@ -1,4 +1,3 @@
 libc
 zlib
-libcrypto
-libssl
+openssl

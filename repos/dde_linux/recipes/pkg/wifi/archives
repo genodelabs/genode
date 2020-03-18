@@ -1,6 +1,5 @@
 _/src/wifi_drv
-_/src/libcrypto
-_/src/libssl
+_/src/openssl
 _/src/vfs
 _/src/vfs_jitterentropy
 _/src/libc

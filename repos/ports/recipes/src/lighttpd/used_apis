@@ -1,5 +1,4 @@
 libc
 posix
-libssl
-libcrypto
+openssl
 zlib

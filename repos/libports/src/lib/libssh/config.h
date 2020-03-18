@@ -18,6 +18,9 @@
 /* Define to 1 if you have the <aprpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
 
+/* Define to 1 if you have the <glob.h> header file. */
+#define HAVE_GLOB_H 1
+
 /* Define to 1 if you have the <pty.h> header file. */
 #define HAVE_PTY_H 1
 
@@ -72,7 +75,28 @@
 /* Define to 1 if you have eliptic curve cryptography */
 #define HAVE_ECC 1
 
+/* Define to 1 if you have DSA */
+#define HAVE_DSA 1
+
+/* Define to 1 if you have gl_flags as a glob_t sturct member */
+#define HAVE_GLOB_GL_FLAGS_MEMBER 1
+
 /*************************** FUNCTIONS ***************************/
+
+/* Define to 1 if you have the `EVP_aes128_ctr' function. */
+#define HAVE_OPENSSL_EVP_AES_CTR 1
+
+/* Define to 1 if you have the `EVP_aes128_cbc' function. */
+#define HAVE_OPENSSL_EVP_AES_CBC 1
+
+/* Define to 1 if you have the `CRYPTO_THREADID_set_callback' function. */
+#define HAVE_OPENSSL_CRYPTO_THREADID_SET_CALLBACK 1
+
+/* Define to 1 if you have the `CRYPTO_ctr128_encrypt' function. */
+#define HAVE_OPENSSL_CRYPTO_CTR128_ENCRYPT 1
+
+/* Define to 1 if you have the `EVP_CIPHER_CTX_new' function. */
+#define HAVE_OPENSSL_EVP_CIPHER_CTX_NEW 1
 
 /* Define to 1 if you have the `snprintf' function. */
 #define HAVE_SNPRINTF 1
@@ -97,6 +121,9 @@
 
 /* Define to 1 if you have the `strncpy' function. */
 #define HAVE_STRNCPY 1
+
+/* Define to 1 if you have the `strndup' function. */
+#define HAVE_STRNDUP 1
 
 /* Define to 1 if you have the `cfmakeraw' function. */
 /* #undef HAVE_CFMAKERAW */

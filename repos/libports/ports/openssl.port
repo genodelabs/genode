@@ -1,92 +1,137 @@
 LICENSE   := OpenSSL
-VERSION   := 1.0.2u
+VERSION   := 1.1.1i
 DOWNLOADS := openssl.archive
 
 URL(openssl) := https://www.openssl.org/source/openssl-$(VERSION).tar.gz
-SHA(openssl) := ecd0c6ffb493dd06707d38b14bb4d8c2288bb7033735606569d8f90f89669d16
+SHA(openssl) := e8be6a35fe41d10603c3cc635e93289ed00bf34b79671a3a4de64fcee00d5242
 DIR(openssl) := src/lib/openssl
 
-DIRS := include/openssl
-DIR_CONTENT(include/openssl) = \
-                               src/lib/openssl/crypto/aes/aes.h  \
-                               src/lib/openssl/crypto/asn1/asn1.h  \
-                               src/lib/openssl/crypto/asn1/asn1_mac.h  \
-                               src/lib/openssl/crypto/asn1/asn1t.h  \
-                               src/lib/openssl/crypto/bf/blowfish.h  \
-                               src/lib/openssl/crypto/bio/bio.h  \
-                               src/lib/openssl/crypto/bn/bn.h  \
-                               src/lib/openssl/crypto/buffer/buffer.h  \
-                               src/lib/openssl/crypto/camellia/camellia.h  \
-                               src/lib/openssl/crypto/cast/cast.h  \
-                               src/lib/openssl/crypto/cmac/cmac.h  \
-                               src/lib/openssl/crypto/cms/cms.h  \
-                               src/lib/openssl/crypto/comp/comp.h  \
-                               src/lib/openssl/crypto/conf/conf.h  \
-                               src/lib/openssl/crypto/conf/conf_api.h  \
-                               src/lib/openssl/crypto/crypto.h  \
-                               src/lib/openssl/crypto/des/des.h  \
-                               src/lib/openssl/crypto/des/des_old.h  \
-                               src/lib/openssl/crypto/dh/dh.h  \
-                               src/lib/openssl/crypto/dsa/dsa.h  \
-                               src/lib/openssl/crypto/dso/dso.h  \
-                               src/lib/openssl/crypto/ebcdic.h  \
-                               src/lib/openssl/crypto/ec/ec.h  \
-                               src/lib/openssl/crypto/ecdh/ecdh.h  \
-                               src/lib/openssl/crypto/ecdsa/ecdsa.h  \
-                               src/lib/openssl/crypto/engine/engine.h  \
-                               src/lib/openssl/crypto/err/err.h  \
-                               src/lib/openssl/crypto/evp/evp.h  \
-                               src/lib/openssl/crypto/hmac/hmac.h  \
-                               src/lib/openssl/crypto/idea/idea.h  \
-                               src/lib/openssl/crypto/krb5/krb5_asn.h  \
-                               src/lib/openssl/crypto/lhash/lhash.h  \
-                               src/lib/openssl/crypto/md2/md2.h \
-                               src/lib/openssl/crypto/md4/md4.h  \
-                               src/lib/openssl/crypto/md5/md5.h  \
-                               src/lib/openssl/crypto/mdc2/mdc2.h  \
-                               src/lib/openssl/crypto/modes/modes.h  \
-                               src/lib/openssl/crypto/objects/obj_mac.h  \
-                               src/lib/openssl/crypto/objects/objects.h  \
-                               src/lib/openssl/crypto/ocsp/ocsp.h  \
-                               src/lib/openssl/crypto/opensslconf.h  \
-                               src/lib/openssl/crypto/opensslv.h  \
-                               src/lib/openssl/crypto/ossl_typ.h  \
-                               src/lib/openssl/crypto/pem/pem.h  \
-                               src/lib/openssl/crypto/pem/pem2.h  \
-                               src/lib/openssl/crypto/pkcs12/pkcs12.h  \
-                               src/lib/openssl/crypto/pkcs7/pkcs7.h  \
-                               src/lib/openssl/crypto/pqueue/pqueue.h  \
-                               src/lib/openssl/crypto/rand/rand.h  \
-                               src/lib/openssl/crypto/rc2/rc2.h  \
-                               src/lib/openssl/crypto/rc4/rc4.h  \
-                               src/lib/openssl/crypto/rc5/rc5.h \
-                               src/lib/openssl/crypto/ripemd/ripemd.h  \
-                               src/lib/openssl/crypto/rsa/rsa.h  \
-                               src/lib/openssl/crypto/seed/seed.h  \
-                               src/lib/openssl/crypto/sha/sha.h  \
-                               src/lib/openssl/crypto/srp/srp.h  \
-                               src/lib/openssl/crypto/stack/safestack.h  \
-                               src/lib/openssl/crypto/stack/stack.h  \
-                               src/lib/openssl/crypto/store/store.h  \
-                               src/lib/openssl/crypto/symhacks.h  \
-                               src/lib/openssl/crypto/ts/ts.h  \
-                               src/lib/openssl/crypto/txt_db/txt_db.h  \
-                               src/lib/openssl/crypto/ui/ui.h  \
-                               src/lib/openssl/crypto/ui/ui_compat.h  \
-                               src/lib/openssl/crypto/whrlpool/whrlpool.h  \
-                               src/lib/openssl/crypto/x509/x509.h  \
-                               src/lib/openssl/crypto/x509/x509_vfy.h  \
-                               src/lib/openssl/e_os.h \
-                               src/lib/openssl/e_os2.h  \
-                               src/lib/openssl/ssl/dtls1.h  \
-                               src/lib/openssl/ssl/kssl.h  \
-                               src/lib/openssl/ssl/srtp.h  \
-                               src/lib/openssl/ssl/ssl.h  \
-                               src/lib/openssl/ssl/ssl2.h  \
-                               src/lib/openssl/ssl/ssl23.h  \
-                               src/lib/openssl/ssl/ssl3.h  \
-                               src/lib/openssl/ssl/tls1.h  \
-                               src/lib/openssl/crypto/x509v3/x509v3.h
+DIRS := include
+DIR_CONTENT(include) = src/lib/openssl/include/openssl
 
-PATCHES   := $(addprefix src/lib/openssl/,rand_unix_c.patch ssl.patch constant_time_locl.patch)
-PATCH_OPT := -p1 -d src/lib/openssl
+#PATCHES   := $(addprefix src/lib/openssl/,rand_unix_c.patch ssl.patch constant_time_locl.patch)
+#PATCH_OPT := -p1 -d src/lib/openssl
+
+PATCHES   := src/lib/openssl/crypto.patch
+PATCH_OPT := -p1
+
+$(call check_tool,perl)
+
+ASM_X86_32 := \
+	src/lib/openssl/crypto/aes/asm/aesni-x86.s \
+	src/lib/openssl/crypto/aes/asm/vpaes-x86.s \
+	src/lib/openssl/crypto/bf/asm/bf-586.s \
+	src/lib/openssl/crypto/bn/asm/bn-586.s \
+	src/lib/openssl/crypto/bn/asm/co-586.s \
+	src/lib/openssl/crypto/bn/asm/x86-gf2m.s \
+	src/lib/openssl/crypto/bn/asm/x86-mont.s \
+	src/lib/openssl/crypto/camellia/asm/cmll-x86.s \
+	src/lib/openssl/crypto/chacha/asm/chacha-x86.s \
+	src/lib/openssl/crypto/des/asm/des-586.s \
+	src/lib/openssl/crypto/ec/asm/ecp_nistz256-x86.s \
+	src/lib/openssl/crypto/md5/asm/md5-586.s \
+	src/lib/openssl/crypto/modes/asm/ghash-x86.s \
+	src/lib/openssl/crypto/poly1305/asm/poly1305-x86.s \
+	src/lib/openssl/crypto/rc4/asm/rc4-586.s \
+	src/lib/openssl/crypto/ripemd/asm/rmd-586.s \
+	src/lib/openssl/crypto/sha/asm/sha1-586.s \
+	src/lib/openssl/crypto/sha/asm/sha256-586.s \
+	src/lib/openssl/crypto/sha/asm/sha512-586.s \
+	src/lib/openssl/crypto/whrlpool/asm/wp-mmx.s \
+	src/lib/openssl/crypto/x86cpuid.s
+ASM_X86_64 := \
+	src/lib/openssl/crypto/aes/asm/aesni-mb-x86_64.s \
+	src/lib/openssl/crypto/aes/asm/aesni-sha1-x86_64.s \
+	src/lib/openssl/crypto/aes/asm/aesni-sha256-x86_64.s \
+	src/lib/openssl/crypto/aes/asm/aesni-x86_64.s \
+	src/lib/openssl/crypto/aes/asm/vpaes-x86_64.s \
+	src/lib/openssl/crypto/bn/asm//rsaz-avx2.s \
+	src/lib/openssl/crypto/bn/asm//rsaz-x86_64.s \
+	src/lib/openssl/crypto/bn/asm//x86_64-gf2m.s \
+	src/lib/openssl/crypto/bn/asm//x86_64-mont.s \
+	src/lib/openssl/crypto/bn/asm//x86_64-mont5.s \
+	src/lib/openssl/crypto/camellia/asm/cmll-x86_64.s \
+	src/lib/openssl/crypto/chacha/asm/chacha-x86_64.s \
+	src/lib/openssl/crypto/ec/asm/ecp_nistz256-x86_64.s \
+	src/lib/openssl/crypto/ec/asm/x25519-x86_64.s \
+	src/lib/openssl/crypto/md5/asm/md5-x86_64.s \
+	src/lib/openssl/crypto/modes/asm/aesni-gcm-x86_64.s \
+	src/lib/openssl/crypto/modes/asm/ghash-x86_64.s \
+	src/lib/openssl/crypto/poly1305/asm/poly1305-x86_64.s \
+	src/lib/openssl/crypto/rc4/asm/rc4-md5-x86_64.s \
+	src/lib/openssl/crypto/rc4/asm/rc4-x86_64.s \
+	src/lib/openssl/crypto/sha/asm/keccak1600-x86_64.s \
+	src/lib/openssl/crypto/sha/asm/sha1-mb-x86_64.s \
+	src/lib/openssl/crypto/sha/asm/sha1-x86_64.s \
+	src/lib/openssl/crypto/sha/asm/sha256-mb-x86_64.s \
+	src/lib/openssl/crypto/sha/asm/sha256-x86_64.s \
+	src/lib/openssl/crypto/sha/asm/sha512-x86_64.s \
+	src/lib/openssl/crypto/whrlpool/asm/wp-x86_64.s \
+	src/lib/openssl/crypto/x86_64cpuid.s
+ASM_ARM_32 := \
+	src/lib/openssl/crypto/aes/asm/aes-armv4.S \
+	src/lib/openssl/crypto/aes/asm/aesv8-arm32.S \
+	src/lib/openssl/crypto/bn/asm/armv4-gf2m.S \
+	src/lib/openssl/crypto/bn/asm/armv4-mont.S \
+	src/lib/openssl/crypto/chacha/asm/chacha-armv4.S \
+	src/lib/openssl/crypto/ec/asm/ecp_nistz256-armv4.S \
+	src/lib/openssl/crypto/modes/asm/ghash-armv4.S \
+	src/lib/openssl/crypto/modes/asm/ghashv8-arm32.S \
+	src/lib/openssl/crypto/poly1305/asm/poly1305-armv4.S \
+	src/lib/openssl/crypto/sha/asm/keccak1600-armv4.S \
+	src/lib/openssl/crypto/sha/asm/sha1-armv4-large.S \
+	src/lib/openssl/crypto/sha/asm/sha256-armv4.S \
+	src/lib/openssl/crypto/sha/asm/sha512-armv4.S \
+	src/lib/openssl/crypto/armv4cpuid.S
+ASM_ARM_64 := $(addprefix src/lib/openssl/crypto/, \
+	aes/asm/aesv8-arm64.S \
+	aes/asm/vpaes-armv8.S \
+	bn/asm/armv8-mont.S \
+	chacha/asm/chacha-armv8.S \
+	ec/asm/ecp_nistz256-armv8.S \
+	modes/asm/ghashv8-arm64.S \
+	poly1305/asm/poly1305-armv8.S \
+	sha/asm/keccak1600-armv8.S \
+	sha/asm/sha1-armv8.S \
+	sha/asm/sha256-armv8.S \
+	sha/asm/sha512-armv8.S \
+	arm64cpuid.S)
+
+$(ASM_X86_32): PERLASM_SCHEME=elf -m32 -fPIC -DOPENSSL_IA32_SSE2 -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM
+$(ASM_X86_64): PERLASM_SCHEME=elf
+$(ASM_ARM_32): PERLASM_SCHEME=linux32
+$(ASM_ARM_64): PERLASM_SCHEME=linux64
+
+%.s: %.pl
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)perl $< $(PERLASM_SCHEME) $@
+
+%.S: %.pl
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)perl $< $(PERLASM_SCHEME) $@
+
+src/lib/openssl/crypto/sha/asm/sha256-x86_64.s: src/lib/openssl/crypto/sha/asm/sha512-x86_64.pl
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)perl $< $(PERLASM_SCHEME) $@
+
+src/lib/openssl/crypto/sha/asm/sha256-armv8.S: src/lib/openssl/crypto/sha/asm/sha512-armv8.pl
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)perl $< $(PERLASM_SCHEME) $@
+
+src/lib/openssl/crypto/aes/asm/aesv8-arm32.S: src/lib/openssl/crypto/aes/asm/aesv8-armx.pl
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)perl $< $(PERLASM_SCHEME) $@
+
+src/lib/openssl/crypto/aes/asm/aesv8-arm64.S: src/lib/openssl/crypto/aes/asm/aesv8-armx.pl
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)perl $< $(PERLASM_SCHEME) $@
+
+src/lib/openssl/crypto/modes/asm/ghashv8-arm32.S: src/lib/openssl/crypto/modes/asm/ghashv8-armx.pl
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)perl $< $(PERLASM_SCHEME) $@
+
+src/lib/openssl/crypto/modes/asm/ghashv8-arm64.S: src/lib/openssl/crypto/modes/asm/ghashv8-armx.pl
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)perl $< $(PERLASM_SCHEME) $@
+
+_dirs: $(ASM_X86_32) $(ASM_X86_64) $(ASM_ARM_32) $(ASM_ARM_64)

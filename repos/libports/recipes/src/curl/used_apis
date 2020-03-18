@@ -1,5 +1,4 @@
 libc
-libcrypto
 zlib
 libssh
-libssl
+openssl

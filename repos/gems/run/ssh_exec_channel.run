@@ -29,7 +29,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/ipxe_nic_drv \
                   [depot_user]/src/libc \
-                  [depot_user]/src/libcrypto \
+                  [depot_user]/src/openssl \
                   [depot_user]/src/libssh \
                   [depot_user]/src/platform_drv \
                   [depot_user]/src/posix \

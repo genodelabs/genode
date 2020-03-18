@@ -7,8 +7,7 @@ _/src/fs_rom
 _/src/fetchurl
 _/src/libc
 _/src/libssh
-_/src/libssl
-_/src/libcrypto
+_/src/openssl
 _/src/vfs
 _/src/zlib
 _/src/curl

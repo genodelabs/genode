@@ -1,200 +1,650 @@
 OPENSSL_PORT_DIR := $(call select_from_ports,openssl)
-LIBCRYPTO_DIR    := $(OPENSSL_PORT_DIR)/src/lib/openssl/crypto
+LIB_SRC_DIR      := $(OPENSSL_PORT_DIR)/src/lib/openssl
 
 SHARED_LIB = yes
 
 LIBS += libc
 
-CC_OPT += -DDSO_DLFCN -DHAVE_DLFCN_H -Wa,--noexecstack -DL_ENDIAN -DTERMIOS \
-          -DOPENSSL_NO_ASM -DGETPID_IS_MEANINGLESS
-CC_OPT += -DRAND_GENODE
+CC_OPT += -Wa,--noexecstack -DL_ENDIAN
+CC_OPT += -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DNDEBUG
+CC_OPT += -DOPENSSLDIR=\"/etc/ssl\" -DENGINESDIR=\"/etc/ssl\"
 
-#
-# crypto base source
-#
-SRC_C = cryptlib.c mem.c mem_dbg.c cversion.c ex_data.c cpt_err.c mem_clr.c \
-        ebcdic.c uid.c o_time.c o_str.c o_dir.c o_fips.c o_init.c fips_ers.c \
-        getenv.c
+SRC_C += \
+	aes/aes_cbc.c \
+	aes/aes_cfb.c \
+	aes/aes_ecb.c \
+	aes/aes_ige.c \
+	aes/aes_misc.c \
+	aes/aes_ofb.c \
+	aes/aes_wrap.c \
+	aria/aria.c \
+	asn1/a_bitstr.c \
+	asn1/a_d2i_fp.c \
+	asn1/a_digest.c \
+	asn1/a_dup.c \
+	asn1/a_gentm.c \
+	asn1/a_i2d_fp.c \
+	asn1/a_int.c \
+	asn1/a_mbstr.c \
+	asn1/a_object.c \
+	asn1/a_octet.c \
+	asn1/a_print.c \
+	asn1/a_sign.c \
+	asn1/a_strex.c \
+	asn1/a_strnid.c \
+	asn1/a_time.c \
+	asn1/a_type.c \
+	asn1/a_utctm.c \
+	asn1/a_utf8.c \
+	asn1/a_verify.c \
+	asn1/ameth_lib.c \
+	asn1/asn1_err.c \
+	asn1/asn1_gen.c \
+	asn1/asn1_item_list.c \
+	asn1/asn1_lib.c \
+	asn1/asn1_par.c \
+	asn1/asn_mime.c \
+	asn1/asn_moid.c \
+	asn1/asn_mstbl.c \
+	asn1/asn_pack.c \
+	asn1/bio_asn1.c \
+	asn1/bio_ndef.c \
+	asn1/d2i_pr.c \
+	asn1/d2i_pu.c \
+	asn1/evp_asn1.c \
+	asn1/f_int.c \
+	asn1/f_string.c \
+	asn1/i2d_pr.c \
+	asn1/i2d_pu.c \
+	asn1/n_pkey.c \
+	asn1/nsseq.c \
+	asn1/p5_pbe.c \
+	asn1/p5_pbev2.c \
+	asn1/p5_scrypt.c \
+	asn1/p8_pkey.c \
+	asn1/t_bitst.c \
+	asn1/t_pkey.c \
+	asn1/t_spki.c \
+	asn1/tasn_dec.c \
+	asn1/tasn_enc.c \
+	asn1/tasn_fre.c \
+	asn1/tasn_new.c \
+	asn1/tasn_prn.c \
+	asn1/tasn_scn.c \
+	asn1/tasn_typ.c \
+	asn1/tasn_utl.c \
+	asn1/x_algor.c \
+	asn1/x_bignum.c \
+	asn1/x_info.c \
+	asn1/x_int64.c \
+	asn1/x_long.c \
+	asn1/x_pkey.c \
+	asn1/x_sig.c \
+	asn1/x_spki.c \
+	asn1/x_val.c \
+	async/arch/async_null.c \
+	async/arch/async_posix.c \
+	async/async.c \
+	async/async_err.c \
+	async/async_wait.c \
+	bf/bf_cfb64.c \
+	bf/bf_ecb.c \
+	bf/bf_ofb64.c \
+	bf/bf_skey.c \
+	bio/b_addr.c \
+	bio/b_dump.c \
+	bio/b_print.c \
+	bio/b_sock.c \
+	bio/b_sock2.c \
+	bio/bf_buff.c \
+	bio/bf_lbuf.c \
+	bio/bf_nbio.c \
+	bio/bf_null.c \
+	bio/bio_cb.c \
+	bio/bio_err.c \
+	bio/bio_lib.c \
+	bio/bio_meth.c \
+	bio/bss_acpt.c \
+	bio/bss_bio.c \
+	bio/bss_conn.c \
+	bio/bss_dgram.c \
+	bio/bss_fd.c \
+	bio/bss_file.c \
+	bio/bss_log.c \
+	bio/bss_mem.c \
+	bio/bss_null.c \
+	bio/bss_sock.c \
+	blake2/blake2b.c \
+	blake2/blake2s.c \
+	blake2/m_blake2b.c \
+	blake2/m_blake2s.c \
+	bn/bn_add.c \
+	bn/bn_blind.c \
+	bn/bn_const.c \
+	bn/bn_ctx.c \
+	bn/bn_depr.c \
+	bn/bn_dh.c \
+	bn/bn_div.c \
+	bn/bn_err.c \
+	bn/bn_exp.c \
+	bn/bn_exp2.c \
+	bn/bn_gcd.c \
+	bn/bn_gf2m.c \
+	bn/bn_intern.c \
+	bn/bn_kron.c \
+	bn/bn_lib.c \
+	bn/bn_mod.c \
+	bn/bn_mont.c \
+	bn/bn_mpi.c \
+	bn/bn_mul.c \
+	bn/bn_nist.c \
+	bn/bn_prime.c \
+	bn/bn_print.c \
+	bn/bn_rand.c \
+	bn/bn_recp.c \
+	bn/bn_shift.c \
+	bn/bn_sqr.c \
+	bn/bn_sqrt.c \
+	bn/bn_srp.c \
+	bn/bn_word.c \
+	bn/bn_x931p.c \
+	bn/rsaz_exp.c \
+	buffer/buf_err.c \
+	buffer/buffer.c \
+	camellia/cmll_cfb.c \
+	camellia/cmll_ctr.c \
+	camellia/cmll_ecb.c \
+	camellia/cmll_ofb.c \
+	cast/c_cfb64.c \
+	cast/c_ecb.c \
+	cast/c_enc.c \
+	cast/c_ofb64.c \
+	cast/c_skey.c \
+	cmac/cm_ameth.c \
+	cmac/cm_pmeth.c \
+	cmac/cmac.c \
+	cms/cms_asn1.c \
+	cms/cms_att.c \
+	cms/cms_cd.c \
+	cms/cms_dd.c \
+	cms/cms_enc.c \
+	cms/cms_env.c \
+	cms/cms_err.c \
+	cms/cms_ess.c \
+	cms/cms_io.c \
+	cms/cms_kari.c \
+	cms/cms_lib.c \
+	cms/cms_pwri.c \
+	cms/cms_sd.c \
+	cms/cms_smime.c \
+	comp/c_zlib.c \
+	comp/comp_err.c \
+	comp/comp_lib.c \
+	conf/conf_api.c \
+	conf/conf_def.c \
+	conf/conf_err.c \
+	conf/conf_lib.c \
+	conf/conf_mall.c \
+	conf/conf_mod.c \
+	conf/conf_sap.c \
+	conf/conf_ssl.c \
+	cpt_err.c \
+	cryptlib.c \
+	ct/ct_b64.c \
+	ct/ct_err.c \
+	ct/ct_log.c \
+	ct/ct_oct.c \
+	ct/ct_policy.c \
+	ct/ct_prn.c \
+	ct/ct_sct.c \
+	ct/ct_sct_ctx.c \
+	ct/ct_vfy.c \
+	ct/ct_x509v3.c \
+	ctype.c \
+	cversion.c \
+	des/cbc_cksm.c \
+	des/cbc_enc.c \
+	des/cfb64ede.c \
+	des/cfb64enc.c \
+	des/cfb_enc.c \
+	des/ecb3_enc.c \
+	des/ecb_enc.c \
+	des/fcrypt.c \
+	des/fcrypt_b.c \
+	des/ofb64ede.c \
+	des/ofb64enc.c \
+	des/ofb_enc.c \
+	des/pcbc_enc.c \
+	des/qud_cksm.c \
+	des/rand_key.c \
+	des/set_key.c \
+	des/str2key.c \
+	des/xcbc_enc.c \
+	dh/dh_ameth.c \
+	dh/dh_asn1.c \
+	dh/dh_check.c \
+	dh/dh_depr.c \
+	dh/dh_err.c \
+	dh/dh_gen.c \
+	dh/dh_kdf.c \
+	dh/dh_key.c \
+	dh/dh_lib.c \
+	dh/dh_meth.c \
+	dh/dh_pmeth.c \
+	dh/dh_prn.c \
+	dh/dh_rfc5114.c \
+	dh/dh_rfc7919.c \
+	dsa/dsa_ameth.c \
+	dsa/dsa_asn1.c \
+	dsa/dsa_depr.c \
+	dsa/dsa_err.c \
+	dsa/dsa_gen.c \
+	dsa/dsa_key.c \
+	dsa/dsa_lib.c \
+	dsa/dsa_meth.c \
+	dsa/dsa_ossl.c \
+	dsa/dsa_pmeth.c \
+	dsa/dsa_prn.c \
+	dsa/dsa_sign.c \
+	dsa/dsa_vrf.c \
+	dso/dso_dl.c \
+	dso/dso_dlfcn.c \
+	dso/dso_err.c \
+	dso/dso_lib.c \
+	dso/dso_openssl.c \
+	ebcdic.c \
+	ec/curve25519.c \
+	ec/curve448/arch_32/f_impl.c \
+	ec/curve448/curve448.c \
+	ec/curve448/curve448_tables.c \
+	ec/curve448/eddsa.c \
+	ec/curve448/f_generic.c \
+	ec/curve448/scalar.c \
+	ec/ec2_oct.c \
+	ec/ec2_smpl.c \
+	ec/ec_ameth.c \
+	ec/ec_asn1.c \
+	ec/ec_check.c \
+	ec/ec_curve.c \
+	ec/ec_cvt.c \
+	ec/ec_err.c \
+	ec/ec_key.c \
+	ec/ec_kmeth.c \
+	ec/ec_lib.c \
+	ec/ec_mult.c \
+	ec/ec_oct.c \
+	ec/ec_pmeth.c \
+	ec/ec_print.c \
+	ec/ecdh_kdf.c \
+	ec/ecdh_ossl.c \
+	ec/ecdsa_ossl.c \
+	ec/ecdsa_sign.c \
+	ec/ecdsa_vrf.c \
+	ec/eck_prn.c \
+	ec/ecp_mont.c \
+	ec/ecp_nist.c \
+	ec/ecp_nistp224.c \
+	ec/ecp_nistp256.c \
+	ec/ecp_nistp521.c \
+	ec/ecp_nistputil.c \
+	ec/ecp_nistz256.c \
+	ec/ecp_oct.c \
+	ec/ecp_smpl.c \
+	ec/ecx_meth.c \
+	engine/eng_all.c \
+	engine/eng_cnf.c \
+	engine/eng_ctrl.c \
+	engine/eng_dyn.c \
+	engine/eng_err.c \
+	engine/eng_fat.c \
+	engine/eng_init.c \
+	engine/eng_lib.c \
+	engine/eng_list.c \
+	engine/eng_openssl.c \
+	engine/eng_pkey.c \
+	engine/eng_rdrand.c \
+	engine/eng_table.c \
+	engine/tb_asnmth.c \
+	engine/tb_cipher.c \
+	engine/tb_dh.c \
+	engine/tb_digest.c \
+	engine/tb_dsa.c \
+	engine/tb_eckey.c \
+	engine/tb_pkmeth.c \
+	engine/tb_rand.c \
+	engine/tb_rsa.c \
+	err/err.c \
+	err/err_all.c \
+	err/err_prn.c \
+	evp/bio_b64.c \
+	evp/bio_enc.c \
+	evp/bio_md.c \
+	evp/bio_ok.c \
+	evp/c_allc.c \
+	evp/c_alld.c \
+	evp/cmeth_lib.c \
+	evp/digest.c \
+	evp/e_aes.c \
+	evp/e_aes_cbc_hmac_sha1.c \
+	evp/e_aes_cbc_hmac_sha256.c \
+	evp/e_aria.c \
+	evp/e_bf.c \
+	evp/e_camellia.c \
+	evp/e_cast.c \
+	evp/e_chacha20_poly1305.c \
+	evp/e_des.c \
+	evp/e_des3.c \
+	evp/e_idea.c \
+	evp/e_null.c \
+	evp/e_old.c \
+	evp/e_rc2.c \
+	evp/e_rc4.c \
+	evp/e_rc4_hmac_md5.c \
+	evp/e_rc5.c \
+	evp/e_seed.c \
+	evp/e_sm4.c \
+	evp/e_xcbc_d.c \
+	evp/encode.c \
+	evp/evp_cnf.c \
+	evp/evp_enc.c \
+	evp/evp_err.c \
+	evp/evp_key.c \
+	evp/evp_lib.c \
+	evp/evp_pbe.c \
+	evp/evp_pkey.c \
+	evp/m_md2.c \
+	evp/m_md4.c \
+	evp/m_md5.c \
+	evp/m_md5_sha1.c \
+	evp/m_mdc2.c \
+	evp/m_null.c \
+	evp/m_ripemd.c \
+	evp/m_sha1.c \
+	evp/m_sha3.c \
+	evp/m_sigver.c \
+	evp/m_wp.c \
+	evp/names.c \
+	evp/p5_crpt.c \
+	evp/p5_crpt2.c \
+	evp/p_dec.c \
+	evp/p_enc.c \
+	evp/p_lib.c \
+	evp/p_open.c \
+	evp/p_seal.c \
+	evp/p_sign.c \
+	evp/p_verify.c \
+	evp/pbe_scrypt.c \
+	evp/pmeth_fn.c \
+	evp/pmeth_gn.c \
+	evp/pmeth_lib.c \
+	ex_data.c \
+	getenv.c \
+	hmac/hm_ameth.c \
+	hmac/hm_pmeth.c \
+	hmac/hmac.c \
+	idea/i_cbc.c \
+	idea/i_cfb64.c \
+	idea/i_ecb.c \
+	idea/i_ofb64.c \
+	idea/i_skey.c \
+	init.c \
+	kdf/hkdf.c \
+	kdf/kdf_err.c \
+	kdf/scrypt.c \
+	kdf/tls1_prf.c \
+	lhash/lh_stats.c \
+	lhash/lhash.c \
+	md4/md4_dgst.c \
+	md4/md4_one.c \
+	md5/md5_dgst.c \
+	md5/md5_one.c \
+	mdc2/mdc2_one.c \
+	mdc2/mdc2dgst.c \
+	mem.c \
+	mem_dbg.c \
+	mem_sec.c \
+	modes/cbc128.c \
+	modes/ccm128.c \
+	modes/cfb128.c \
+	modes/ctr128.c \
+	modes/cts128.c \
+	modes/gcm128.c \
+	modes/ocb128.c \
+	modes/ofb128.c \
+	modes/wrap128.c \
+	modes/xts128.c \
+	o_dir.c \
+	o_fips.c \
+	o_fopen.c \
+	o_init.c \
+	o_str.c \
+	o_time.c \
+	objects/o_names.c \
+	objects/obj_dat.c \
+	objects/obj_err.c \
+	objects/obj_lib.c \
+	objects/obj_xref.c \
+	ocsp/ocsp_asn.c \
+	ocsp/ocsp_cl.c \
+	ocsp/ocsp_err.c \
+	ocsp/ocsp_ext.c \
+	ocsp/ocsp_ht.c \
+	ocsp/ocsp_lib.c \
+	ocsp/ocsp_prn.c \
+	ocsp/ocsp_srv.c \
+	ocsp/ocsp_vfy.c \
+	ocsp/v3_ocsp.c \
+	pem/pem_all.c \
+	pem/pem_err.c \
+	pem/pem_info.c \
+	pem/pem_lib.c \
+	pem/pem_oth.c \
+	pem/pem_pk8.c \
+	pem/pem_pkey.c \
+	pem/pem_sign.c \
+	pem/pem_x509.c \
+	pem/pem_xaux.c \
+	pem/pvkfmt.c \
+	pkcs12/p12_add.c \
+	pkcs12/p12_asn.c \
+	pkcs12/p12_attr.c \
+	pkcs12/p12_crpt.c \
+	pkcs12/p12_crt.c \
+	pkcs12/p12_decr.c \
+	pkcs12/p12_init.c \
+	pkcs12/p12_key.c \
+	pkcs12/p12_kiss.c \
+	pkcs12/p12_mutl.c \
+	pkcs12/p12_npas.c \
+	pkcs12/p12_p8d.c \
+	pkcs12/p12_p8e.c \
+	pkcs12/p12_sbag.c \
+	pkcs12/p12_utl.c \
+	pkcs12/pk12err.c \
+	pkcs7/bio_pk7.c \
+	pkcs7/pk7_asn1.c \
+	pkcs7/pk7_attr.c \
+	pkcs7/pk7_doit.c \
+	pkcs7/pk7_lib.c \
+	pkcs7/pk7_mime.c \
+	pkcs7/pk7_smime.c \
+	pkcs7/pkcs7err.c \
+	poly1305/poly1305.c \
+	poly1305/poly1305_ameth.c \
+	poly1305/poly1305_pmeth.c \
+	rand/drbg_ctr.c \
+	rand/drbg_lib.c \
+	rand/rand_egd.c \
+	rand/rand_err.c \
+	rand/rand_lib.c \
+	rand/rand_unix.c \
+	rand/randfile.c \
+	rc2/rc2_cbc.c \
+	rc2/rc2_ecb.c \
+	rc2/rc2_skey.c \
+	rc2/rc2cfb64.c \
+	rc2/rc2ofb64.c \
+	ripemd/rmd_dgst.c \
+	ripemd/rmd_one.c \
+	rsa/rsa_ameth.c \
+	rsa/rsa_asn1.c \
+	rsa/rsa_chk.c \
+	rsa/rsa_crpt.c \
+	rsa/rsa_depr.c \
+	rsa/rsa_err.c \
+	rsa/rsa_gen.c \
+	rsa/rsa_lib.c \
+	rsa/rsa_meth.c \
+	rsa/rsa_mp.c \
+	rsa/rsa_none.c \
+	rsa/rsa_oaep.c \
+	rsa/rsa_ossl.c \
+	rsa/rsa_pk1.c \
+	rsa/rsa_pmeth.c \
+	rsa/rsa_prn.c \
+	rsa/rsa_pss.c \
+	rsa/rsa_saos.c \
+	rsa/rsa_sign.c \
+	rsa/rsa_ssl.c \
+	rsa/rsa_x931.c \
+	rsa/rsa_x931g.c \
+	seed/seed.c \
+	seed/seed_cbc.c \
+	seed/seed_cfb.c \
+	seed/seed_ecb.c \
+	seed/seed_ofb.c \
+	sha/sha1_one.c \
+	sha/sha1dgst.c \
+	sha/sha256.c \
+	sha/sha512.c \
+	siphash/siphash.c \
+	siphash/siphash_ameth.c \
+	siphash/siphash_pmeth.c \
+	sm2/sm2_crypt.c \
+	sm2/sm2_err.c \
+	sm2/sm2_pmeth.c \
+	sm2/sm2_sign.c \
+	sm3/m_sm3.c \
+	sm3/sm3.c \
+	sm4/sm4.c \
+	srp/srp_lib.c \
+	srp/srp_vfy.c \
+	stack/stack.c \
+	store/loader_file.c \
+	store/store_err.c \
+	store/store_init.c \
+	store/store_lib.c \
+	store/store_register.c \
+	store/store_strings.c \
+	threads_none.c \
+	threads_pthread.c \
+	ts/ts_asn1.c \
+	ts/ts_conf.c \
+	ts/ts_err.c \
+	ts/ts_lib.c \
+	ts/ts_req_print.c \
+	ts/ts_req_utils.c \
+	ts/ts_rsp_print.c \
+	ts/ts_rsp_sign.c \
+	ts/ts_rsp_utils.c \
+	ts/ts_rsp_verify.c \
+	ts/ts_verify_ctx.c \
+	txt_db/txt_db.c \
+	ui/ui_err.c \
+	ui/ui_lib.c \
+	ui/ui_null.c \
+	ui/ui_openssl.c \
+	ui/ui_util.c \
+	uid.c \
+	whrlpool/wp_dgst.c \
+	x509/by_dir.c \
+	x509/by_file.c \
+	x509/t_crl.c \
+	x509/t_req.c \
+	x509/t_x509.c \
+	x509/x509_att.c \
+	x509/x509_cmp.c \
+	x509/x509_d2.c \
+	x509/x509_def.c \
+	x509/x509_err.c \
+	x509/x509_ext.c \
+	x509/x509_lu.c \
+	x509/x509_meth.c \
+	x509/x509_obj.c \
+	x509/x509_r2x.c \
+	x509/x509_req.c \
+	x509/x509_set.c \
+	x509/x509_trs.c \
+	x509/x509_txt.c \
+	x509/x509_v3.c \
+	x509/x509_vfy.c \
+	x509/x509_vpm.c \
+	x509/x509cset.c \
+	x509/x509name.c \
+	x509/x509rset.c \
+	x509/x509spki.c \
+	x509/x509type.c \
+	x509/x_all.c \
+	x509/x_attrib.c \
+	x509/x_crl.c \
+	x509/x_exten.c \
+	x509/x_name.c \
+	x509/x_pubkey.c \
+	x509/x_req.c \
+	x509/x_x509.c \
+	x509/x_x509a.c \
+	x509v3/pcy_cache.c \
+	x509v3/pcy_data.c \
+	x509v3/pcy_lib.c \
+	x509v3/pcy_map.c \
+	x509v3/pcy_node.c \
+	x509v3/pcy_tree.c \
+	x509v3/v3_addr.c \
+	x509v3/v3_admis.c \
+	x509v3/v3_akey.c \
+	x509v3/v3_akeya.c \
+	x509v3/v3_alt.c \
+	x509v3/v3_asid.c \
+	x509v3/v3_bcons.c \
+	x509v3/v3_bitst.c \
+	x509v3/v3_conf.c \
+	x509v3/v3_cpols.c \
+	x509v3/v3_crld.c \
+	x509v3/v3_enum.c \
+	x509v3/v3_extku.c \
+	x509v3/v3_genn.c \
+	x509v3/v3_ia5.c \
+	x509v3/v3_info.c \
+	x509v3/v3_int.c \
+	x509v3/v3_lib.c \
+	x509v3/v3_ncons.c \
+	x509v3/v3_pci.c \
+	x509v3/v3_pcia.c \
+	x509v3/v3_pcons.c \
+	x509v3/v3_pku.c \
+	x509v3/v3_pmaps.c \
+	x509v3/v3_prn.c \
+	x509v3/v3_purp.c \
+	x509v3/v3_skey.c \
+	x509v3/v3_sxnet.c \
+	x509v3/v3_tlsf.c \
+	x509v3/v3_utl.c \
+	x509v3/v3err.c \
+	# end of SRC_C
 
-#
-# Excluded 'aes_x86core.c'
-#
-SRC_C_aes      = aes_core.c aes_misc.c aes_ecb.c aes_cbc.c aes_cfb.c \
-                 aes_ofb.c aes_ctr.c aes_ige.c aes_wrap.c
-SRC_C_asn1     = a_object.c a_bitstr.c a_utctm.c a_gentm.c a_time.c \
-                 a_int.c a_octet.c a_print.c a_type.c a_set.c a_dup.c \
-                 a_d2i_fp.c a_i2d_fp.c a_enum.c a_utf8.c a_sign.c \
-                 a_digest.c a_verify.c a_mbstr.c a_strex.c x_algor.c \
-                 x_val.c x_pubkey.c x_sig.c x_req.c x_attrib.c \
-                 x_bignum.c x_long.c x_name.c x_x509.c x_x509a.c \
-                 x_crl.c x_info.c x_spki.c nsseq.c x_nx509.c d2i_pu.c \
-                 d2i_pr.c i2d_pu.c i2d_pr.c t_req.c t_x509.c \
-                 t_x509a.c t_crl.c t_pkey.c t_spki.c t_bitst.c \
-                 tasn_new.c tasn_fre.c tasn_enc.c tasn_dec.c \
-                 tasn_utl.c tasn_typ.c tasn_prn.c ameth_lib.c f_int.c \
-                 f_string.c n_pkey.c f_enum.c x_pkey.c a_bool.c \
-                 x_exten.c bio_asn1.c bio_ndef.c asn_mime.c \
-                 asn1_gen.c asn1_par.c asn1_lib.c asn1_err.c \
-                 a_bytes.c a_strnid.c evp_asn1.c asn_pack.c p5_pbe.c \
-                 p5_pbev2.c p8_pkey.c asn_moid.c
-SRC_C_bf       = bf_skey.c bf_ecb.c bf_enc.c bf_cfb64.c bf_ofb64.c bf_enc.c
-SRC_C_bio      = bio_lib.c bio_cb.c bio_err.c \
-                 bss_mem.c bss_null.c bss_fd.c \
-                 bss_file.c bss_sock.c bss_conn.c \
-                 bf_null.c bf_buff.c b_print.c b_dump.c \
-                 b_sock.c bss_acpt.c bf_nbio.c bss_log.c bss_bio.c \
-                 bss_dgram.c
-SRC_C_bn       = bn_add.c bn_div.c bn_exp.c bn_lib.c bn_ctx.c bn_mul.c \
-                 bn_mod.c bn_print.c bn_rand.c bn_shift.c bn_word.c \
-                 bn_blind.c bn_kron.c bn_sqrt.c bn_gcd.c bn_prime.c \
-                 bn_err.c bn_sqr.c bn_asm.c bn_recp.c bn_mont.c \
-                 bn_mpi.c bn_exp2.c bn_gf2m.c bn_nist.c bn_depr.c \
-                 bn_const.c bn_x931p.c bn_asm.c
-SRC_C_buffer   = buffer.c buf_err.c buf_str.c
+INC_DIR += $(REP_DIR)/src/lib/openssl
+INC_DIR += $(LIB_SRC_DIR)/crypto/modes
+INC_DIR += $(LIB_SRC_DIR)/crypto
+INC_DIR += $(LIB_SRC_DIR)
+INC_DIR += $(LIB_SRC_DIR)/include
 
-#
-# camellia (x86 only?)
-#
-SRC_C_camellia = camellia.c cmll_misc.c cmll_ecb.c cmll_cbc.c \
-                 cmll_ofb.c cmll_cfb.c cmll_ctr.c cmll_utl.c
-SRC_C_cast     = c_skey.c c_ecb.c c_enc.c c_cfb64.c c_ofb64.c
-SRC_C_cmac     = cm_ameth.c cm_pmeth.c cmac.c
-SRC_C_cms      = cms_lib.c cms_asn1.c cms_att.c cms_io.c cms_smime.c \
-                 cms_err.c cms_sd.c cms_dd.c cms_cd.c cms_env.c \
-                 cms_enc.c cms_ess.c cms_pwri.c cms_kari.c
-SRC_C_comp     = comp_lib.c comp_err.c c_rle.c c_zlib.c
-SRC_C_conf     = conf_err.c conf_lib.c conf_api.c conf_def.c conf_mod.c \
-                 conf_mall.c conf_sap.c
-SRC_C_des      = cbc_cksm.c cbc_enc.c  cfb64enc.c cfb_enc.c \
-                 ecb3_enc.c ecb_enc.c  enc_read.c enc_writ.c fcrypt.c \
-                 ofb64enc.c ofb_enc.c pcbc_enc.c qud_cksm.c rand_key.c \
-                 rpc_enc.c  set_key.c  des_enc.c fcrypt_b.c xcbc_enc.c \
-                 str2key.c  cfb64ede.c ofb64ede.c ede_cbcm_enc.c \
-                 des_old.c des_old2.c read2pwd.c
-SRC_C_dh       = dh_asn1.c dh_gen.c dh_key.c dh_lib.c dh_check.c \
-                 dh_err.c dh_depr.c dh_ameth.c dh_pmeth.c dh_prn.c \
-                 dh_rfc5114.c dh_kdf.c
-SRC_C_dsa      = dsa_gen.c dsa_key.c dsa_lib.c dsa_asn1.c dsa_vrf.c \
-                 dsa_sign.c dsa_err.c dsa_ossl.c dsa_depr.c \
-                 dsa_ameth.c dsa_pmeth.c dsa_prn.c
-SRC_C_dso      = dso_dl.c dso_dlfcn.c dso_err.c dso_lib.c dso_null.c \
-                 dso_openssl.c
-SRC_C_ec       = ec_lib.c ecp_smpl.c ecp_mont.c ecp_nist.c ec_cvt.c \
-                 ec_mult.c ec_err.c ec_curve.c ec_check.c ec_print.c \
-                 ec_asn1.c ec_key.c ec2_smpl.c ec2_mult.c ec_ameth.c \
-                 ec_pmeth.c eck_prn.c ecp_nistp224.c ecp_nistp256.c \
-                 ecp_nistp521.c ecp_nistputil.c ecp_oct.c ec2_oct.c \
-                 ec_oct.c
-SRC_C_ecdh     = ech_lib.c ech_ossl.c ech_key.c ech_err.c ech_kdf.c
-SRC_C_ecdsa    = ecs_lib.c ecs_asn1.c ecs_ossl.c ecs_sign.c \
-                 ecs_vrf.c ecs_err.c
-SRC_C_engine   = eng_err.c eng_lib.c eng_list.c eng_init.c \
-                 eng_ctrl.c eng_table.c eng_pkey.c eng_fat.c \
-                 eng_all.c tb_rsa.c tb_dsa.c tb_ecdsa.c tb_dh.c \
-                 tb_ecdh.c tb_rand.c tb_store.c tb_cipher.c \
-                 tb_digest.c tb_pkmeth.c tb_asnmth.c eng_openssl.c \
-                 eng_cnf.c eng_dyn.c eng_cryptodev.c \
-                 eng_rdrand.c
-SRC_C_err      = err.c err_all.c err_prn.c
-
-#
-# evp (e_camellia.c x86 only?)
-#
-SRC_C_evp      = encode.c digest.c evp_cnf.c evp_enc.c evp_key.c evp_acnf.c \
-                 e_des.c e_bf.c e_idea.c e_des3.c e_camellia.c e_rc4.c \
-                 e_aes.c names.c e_seed.c e_xcbc_d.c e_rc2.c e_cast.c \
-                 m_null.c m_md4.c m_md5.c m_sha.c \
-                 m_sha1.c m_wp.c m_dss.c m_dss1.c m_mdc2.c m_ripemd.c \
-                 m_ecdsa.c p_open.c p_seal.c p_sign.c p_verify.c \
-                 p_lib.c p_enc.c p_dec.c bio_md.c bio_b64.c bio_enc.c \
-                 evp_err.c e_null.c c_all.c c_allc.c c_alld.c \
-                 evp_lib.c bio_ok.c evp_pkey.c evp_pbe.c p5_crpt.c \
-                 p5_crpt2.c e_old.c pmeth_lib.c pmeth_fn.c pmeth_gn.c \
-                 m_sigver.c e_aes_cbc_hmac_sha1.c \
-                 e_rc4_hmac_md5.c e_aes_cbc_hmac_sha256.c
-
-SRC_C_hmac     = hmac.c hm_ameth.c hm_pmeth.c
-SRC_C_idea     = i_cbc.c i_cfb64.c i_ecb.c i_ofb64.c i_skey.c
-SRC_C_krb5     = krb5_asn.c
-SRC_C_lhash    = lhash.c lh_stats.c
-SRC_C_md4      = md4_dgst.c md4_one.c
-SRC_C_md5      = md5_dgst.c md5_one.c
-SRC_C_mdc2     = mdc2_one.c mdc2dgst.c
-SRC_C_objects  = o_names.c obj_dat.c obj_err.c obj_lib.c obj_xref.c
-SRC_C_modes    = cbc128.c ctr128.c cts128.c cfb128.c ofb128.c \
-                 gcm128.c ccm128.c xts128.c wrap128.c
-SRC_C_ocsp     = ocsp_asn.c ocsp_ext.c ocsp_ht.c ocsp_lib.c \
-                 ocsp_cl.c ocsp_srv.c ocsp_prn.c ocsp_vfy.c \
-                 ocsp_err.c
-SRC_C_pem      = pem_sign.c pem_seal.c pem_info.c pem_lib.c \
-                 pem_all.c pem_err.c pem_x509.c pem_xaux.c \
-                 pem_oth.c pem_pk8.c pem_pkey.c pvkfmt.c
-SRC_C_pkcs12   = p12_add.c p12_asn.c p12_attr.c p12_crpt.c \
-                 p12_crt.c p12_decr.c p12_init.c p12_key.c \
-                 p12_kiss.c p12_mutl.c p12_utl.c p12_npas.c \
-                 pk12err.c p12_p8d.c p12_p8e.c
-SRC_C_pkcs7    = pk7_asn1.c pk7_lib.c pkcs7err.c pk7_doit.c \
-                 pk7_smime.c pk7_attr.c pk7_mime.c bio_pk7.c
-SRC_C_pqueue   = pqueue.c
-SRC_C_rand     = md_rand.c randfile.c rand_lib.c rand_err.c \
-                 rand_egd.c rand_win.c rand_unix.c rand_os2.c \
-                 rand_nw.c
-SRC_C_rc2      = rc2_ecb.c rc2_skey.c rc2_cbc.c rc2cfb64.c rc2ofb64.c
-SRC_C_rc4      = rc4_skey.c rc4_enc.c rc4_utl.c
-SRC_C_ripemd   = rmd_dgst.c rmd_one.c
-SRC_C_rsa      = rsa_eay.c rsa_gen.c rsa_lib.c rsa_sign.c rsa_saos.c \
-                 rsa_err.c rsa_pk1.c rsa_ssl.c rsa_none.c rsa_oaep.c \
-                 rsa_chk.c rsa_null.c rsa_pss.c rsa_x931.c rsa_asn1.c \
-                 rsa_depr.c rsa_ameth.c rsa_prn.c rsa_pmeth.c \
-                 rsa_crpt.c
-SRC_C_seed     = seed.c seed_ecb.c seed_cbc.c seed_cfb.c seed_ofb.c
-SRC_C_sha      = sha_dgst.c sha1dgst.c sha_one.c sha1_one.c sha256.c \
-                 sha512.c
-SRC_C_srp      = srp_lib.c srp_vfy.c
-SRC_C_stack    = stack.c
-#SRC_C_threads  = th-lock.c
-SRC_C_ts       = ts_err.c ts_req_utils.c ts_req_print.c ts_rsp_utils.c \
-                 ts_rsp_print.c ts_rsp_sign.c ts_rsp_verify.c \
-                 ts_verify_ctx.c ts_lib.c ts_conf.c ts_asn1.c
-SRC_C_txt_db   = txt_db.c
-SRC_C_ui       = ui_err.c ui_lib.c ui_openssl.c ui_util.c ui_compat.c
-SRC_C_whrlpool = wp_dgst.c wp_block.c
-SRC_C_x509     = x509_def.c x509_d2.c x509_r2x.c x509_cmp.c \
-                 x509_obj.c x509_req.c x509spki.c x509_vfy.c \
-                 x509_set.c x509cset.c x509rset.c x509_err.c \
-                 x509name.c x509_v3.c x509_ext.c x509_att.c \
-                 x509type.c x509_lu.c x_all.c x509_txt.c x509_trs.c \
-                 by_file.c by_dir.c x509_vpm.c
-SRC_C_x509v3   = v3_bcons.c v3_bitst.c v3_conf.c v3_extku.c \
-                 v3_ia5.c v3_lib.c v3_prn.c v3_utl.c v3err.c \
-                 v3_genn.c v3_alt.c v3_skey.c v3_akey.c v3_pku.c \
-                 v3_int.c v3_enum.c v3_sxnet.c v3_cpols.c v3_crld.c \
-                 v3_purp.c v3_info.c v3_ocsp.c v3_akeya.c \
-                 v3_pmaps.c v3_pcons.c v3_ncons.c v3_pcia.c \
-                 v3_pci.c pcy_cache.c pcy_node.c pcy_data.c \
-                 pcy_map.c pcy_tree.c pcy_lib.c v3_asid.c \
-                 v3_addr.c v3_scts.c
-
-SRC_DIR = aes asn1 bf bio bn buffer camellia cast cmac cms comp conf des dh \
-          dsa dso ec ecdh ecdsa engine err evp hmac idea krb5 lhash md2 md4 md5 \
-          mdc2 objects modes ocsp pem pkcs12 pkcs7 pqueue rand rc2 rc4 rc5 \
-          ripemd rsa seed sha srp stack store ts txt_db ui whrlpool x509 x509v3
-
-SRC_C += $(foreach dir,$(SRC_DIR),$(addprefix $(dir)/,$(SRC_C_$(dir))))
-
-#
-# Suppress warning "right-hand operand of comma expression has no effect" for
-# the HOST_c2l(c,l) macro.
-#
-CC_OPT_md5/md5_dgst := -Wno-unused-value
-
-INC_DIR += $(LIBCRYPTO_DIR)/asn1
-INC_DIR += $(LIBCRYPTO_DIR)/evp
-INC_DIR += $(LIBCRYPTO_DIR)/modes
-INC_DIR += $(LIBCRYPTO_DIR)
-INC_DIR += $(LIBCRYPTO_DIR)/../
-INC_DIR += $(OPENSSL_PORT_DIR)/include
-
+CURVE448_INCLUDES := -I$(LIB_SRC_DIR)/crypto/ec/curve448/arch_32 -I$(LIB_SRC_DIR)/crypto/ec/curve448
+CC_OPT_ec/curve448/arch_32/f_impl  += $(CURVE448_INCLUDES)
+CC_OPT_ec/curve448/curve448        += $(CURVE448_INCLUDES)
+CC_OPT_ec/curve448/curve448_tables += $(CURVE448_INCLUDES)
+CC_OPT_ec/curve448/eddsa           += $(CURVE448_INCLUDES)
+CC_OPT_ec/curve448/f_generic       += $(CURVE448_INCLUDES)
+CC_OPT_ec/curve448/scalar          += $(CURVE448_INCLUDES)
 
 #
 # Generate buildinf.h
@@ -203,10 +653,15 @@ $(SRC_C:.c=.o): buildinf.h
 
 # Rules taken from FreeBSDs libcrypto/Makefile
 buildinf.h:
-	$(VERBOSE)( echo "#ifndef MK1MF_BUILD"; \
-	echo "  /* auto-generated by libcrypto.mk for crypto/cversion.c */"; \
-	echo "  #define CFLAGS \"$(CC)\""; \
-	echo "  #define PLATFORM \"FreeBSD-$(TARGET_CPUARCH)\""; \
-	echo "#endif" ) > $@
+	$(VERBOSE)( \
+		echo "#ifndef MK1MF_BUILD"                                          ;\
+		echo "/* auto-generated by libcrypto.mk for crypto/cversion.c */" ;\
+		echo "#define PLATFORM \"Genode-$(TARGET_CPUARCH)\""                ;\
+		echo "#define DATE \"built on: $(shell date --rfc-email)\""         ;\
+		echo "static const char compiler_flags[] = \"<undefined>\";"        ;\
+		echo "#endif"                                                       ;\
+	) > $@
 
-vpath %.c $(LIBCRYPTO_DIR)
+vpath %.c $(LIB_SRC_DIR)/crypto
+
+# vi: set ft=make :

@@ -6,9 +6,8 @@ _/src/coreutils-minimal
 _/src/curl
 _/src/fetchurl
 _/src/init
-_/src/libcrypto
 _/src/libssh
-_/src/libssl
+_/src/openssl
 _/src/ncurses
 _/src/posix
 _/src/report_rom
