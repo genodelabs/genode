@@ -1,9 +1,9 @@
 LICENSE   := OpenSSL
-VERSION   := 1.0.2q
+VERSION   := 1.0.2u
 DOWNLOADS := openssl.archive
 
 URL(openssl) := https://www.openssl.org/source/openssl-$(VERSION).tar.gz
-SHA(openssl) := 5744cfcbcec2b1b48629f7354203bc1e5e9b5466998bbccc5b5fcde3b18eb684
+SHA(openssl) := ecd0c6ffb493dd06707d38b14bb4d8c2288bb7033735606569d8f90f89669d16
 DIR(openssl) := src/lib/openssl
 
 DIRS := include/openssl
