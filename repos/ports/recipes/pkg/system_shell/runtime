@@ -1,4 +1,4 @@
-<runtime ram="76M" caps="1000" binary="init" config="noux-system.config">
+<runtime ram="76M" caps="1000" binary="init" config="system_shell.config">
 
 	<requires>
 		<nitpicker/>
@@ -10,18 +10,20 @@
 		<rom    label="vimrc"/>
 		<rom    label="clipboard"/>
 		<report label="clipboard"/>
+		<rm/>
 	</requires>
 
 	<content>
-		<rom label="noux-system.config"/>
+		<rom label="system_shell.config"/>
 		<rom label="ld.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
 		<rom label="init"/>
 		<rom label="nit_fb"/>
+		<rom label="vfs"/>
+		<rom label="vfs_pipe.lib.so"/>
+		<rom label="cached_fs_rom"/>
 		<rom label="terminal"/>
-		<rom label="noux"/>
-		<rom label="libc_noux.lib.so"/>
 		<rom label="posix.lib.so"/>
 		<rom label="ncurses.lib.so"/>
 		<rom label="bash-minimal.tar"/>

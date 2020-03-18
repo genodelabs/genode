@@ -11,7 +11,7 @@
   </index>
 
   <index name="Tools">
-    <pkg path="noux-system"  info="command-line interface to the system"/>
+    <pkg path="system_shell" info="command-line interface to the system"/>
     <pkg path="qt5_textedit" info="Qt5-based text editor"/>
     <pkg path="report_dump"  info="save periodic snapshots of the report fs"/>
   </index>

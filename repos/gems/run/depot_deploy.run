@@ -88,6 +88,7 @@ install_config {
 			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
 			<policy label="depot_query -> query"      report="depot_deploy -> query"/>
 			<policy label="dynamic -> config"         report="depot_deploy -> init.config"/>
+			<policy label="dynamic -> clipboard"      report="dynamic -> clipboard"/>
 		</config>
 	</start>
 
@@ -111,7 +112,7 @@ install_config {
 	</start>
 
 	<start name="depot_query">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<config query="rom">
 			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
 		</config>
@@ -142,6 +143,7 @@ install_config {
 					<service name="Timer"/>
 					<service name="Nitpicker"/>
 					<service name="File_system"/>
+					<service name="Report"/>
 				</parent-provides>
 			</static>
 			<common_routes>
@@ -209,21 +211,24 @@ install_config {
 				<config shape="cube"/>
 			</start>
 
-<!--
 			<start name="fonts_fs" pkg="} [depot_user]/pkg/[current_pkg fonts_fs] {">
 				<route>
 					<service name="ROM" label="config"> <parent label="fonts.config"/> </service>
 				</route>
 			</start>
 
-			<start name="noux" pkg="} [depot_user]/pkg/[current_pkg noux-system] {">
+			<start name="system_shell" pkg="} [depot_user]/pkg/[current_pkg system_shell] {">
 				<route>
 					<service name="Nitpicker"> <child name="wm"/> </service>
 					<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
 					<service name="File_system"> <parent/> </service>
+					<service name="Report" label="clipboard"> <parent label="clipboard"/> </service>
+					<service name="ROM"    label="clipboard"> <parent label="clipboard"/> </service>
+					<service name="ROM"    label="vimrc">     <parent label="vimrc"/> </service>
+					<service name="ROM" label_last="cached_fs_rom">
+						<parent label="fs_rom"/> </service>
 				</route>
 			</start>
-			-->
 
 			<!-- vbox, nic_router, acpica -->
 
@@ -231,18 +236,22 @@ install_config {
 		<route>
 			<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
 			<service name="Report" label="query"> <child name="report_rom"/> </service>
+			<service name="Report" label="clipboard"> <child name="report_rom"/> </service>
+			<service name="ROM"    label="clipboard"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
 	<start name="dynamic" caps="8000">
-		<resource name="RAM" quantum="160M"/>
+		<resource name="RAM" quantum="180M"/>
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
 			<service name="ROM" label_last="init">      <parent/> </service>
 			<service name="ROM" label="config"> <child name="report_rom"/> </service>
 			<service name="ROM" label_last="fonts.config"> <parent/> </service>
+			<service name="ROM" label_last="vimrc">        <parent/> </service>
+			<service name="ROM" label_last="fs_rom">       <parent/> </service>
 			<service name="ROM">   <child name="fs_rom"/> </service>
 			<service name="Timer"> <child name="timer"/>  </service>
 			<service name="Nitpicker" label_last="backdrop">
@@ -257,6 +266,7 @@ install_config {
 build { app/depot_query app/depot_deploy }
 
 file copy -force [genode_dir]/repos/gems/run/sculpt/fonts.config [run_dir]/genode/
+file copy -force [genode_dir]/repos/ports/recipes/raw/system_shell/system_shell.config [run_dir]/genode/
 
 #
 # Pin the nitpicker focus to the window manager by providing a static focus ROM
@@ -264,6 +274,17 @@ file copy -force [genode_dir]/repos/gems/run/sculpt/fonts.config [run_dir]/genod
 set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"dynamic -> wm -> focus\"/>"
 close $fd
+
+# write default vimrc file
+set vimrc_fd [open [run_dir]/genode/vimrc w]
+puts $vimrc_fd {
+set noloadplugins
+set hls
+set nocompatible
+set laststatus=2
+set noswapfile
+set viminfo=}
+close $vimrc_fd
 
 build_boot_image { depot_query depot_deploy }
 

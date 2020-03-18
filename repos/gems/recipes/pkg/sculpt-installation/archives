@@ -1,4 +1,4 @@
-_/pkg/noux-system
+_/pkg/system_shell
 _/pkg/wifi
 _/pkg/ipxe_nic_drv
 _/pkg/chroot

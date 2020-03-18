@@ -1,4 +1,4 @@
-_/raw/noux-system
+_/raw/system_shell
 _/src/noux
 _/src/bash-minimal
 _/src/vim-minimal
@@ -10,3 +10,5 @@ _/src/nit_fb
 _/src/terminal
 _/src/init
 _/src/vfs
+_/src/vfs_pipe
+_/src/cached_fs_rom
