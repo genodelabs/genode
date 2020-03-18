@@ -85,7 +85,7 @@ install_config {
 				<dir name="socket"> <} [socket_fs_plugin] { dhcp="yes"/> </dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
-			<fetch url="http://genode.org/about/LICENSE" path="/dev/log" retry="3"/>
+			<fetch url="https://genode.org/about/LICENSE" path="/dev/log" retry="3"/>
 		</config>
 	</start>
 </config>
