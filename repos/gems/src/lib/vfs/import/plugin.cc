@@ -119,6 +119,7 @@ class Vfs_import::File_system : public Vfs::File_system
 		                      bool overwrite)
 		{
 			using Genode::Readonly_file;
+			using Genode::size_t;
 
 			Readonly_file src_file(src, path);
 			Vfs_handle *dst_handle = nullptr;
@@ -139,34 +140,53 @@ class Vfs_import::File_system : public Vfs::File_system
 				return;
 			}
 
-			Vfs_handle::Guard guard(dst_handle);
-
+			char              buf[4096];
+			Vfs_handle::Guard guard { dst_handle };
+			Flush_guard       flush { env, *dst_handle };
+			Readonly_file::At at    { };
+			while (true)
 			{
-				char buf[4096];
-				Flush_guard flush(env, *dst_handle);
+				file_size bytes_from_source { src_file.read(at, buf, sizeof(buf)) };
 
-				Readonly_file::At at { };
+				if (!bytes_from_source) break;
 
-				while (true) {
-					file_size wn = 0;
-					file_size rn = src_file.read(at, buf, sizeof(buf));
-					if (!rn) break;
+				bool        stalled         { false };
+				bool        write_error     { false };
+				size_t      remaining_bytes { bytes_from_source };
+				const char *src             { buf };
+				while (remaining_bytes > 0 && !write_error) {
 
-					auto wres = dst_handle->fs().write(dst_handle, buf, rn, wn);
-					switch (wres) {
-					case WRITE_OK:
-					case WRITE_ERR_AGAIN:
-					case WRITE_ERR_WOULD_BLOCK:
-						break;
-					default:
-						Genode::error("failed to write to ", path, ", ", wres);
-						env.root_dir().unlink(path.string());
-						return;
-					}
+					try {
+						Vfs::file_size out_count { 0 };
+						switch (dst_handle->fs().write(dst_handle, src,
+						                               remaining_bytes,
+						                               out_count)) {
+						case WRITE_ERR_AGAIN:
+						case WRITE_ERR_WOULD_BLOCK:
+							stalled = true;
+							break;
+						case Write_result::WRITE_ERR_INVALID:
+						case Write_result::WRITE_ERR_IO:
+						case Write_result::WRITE_ERR_INTERRUPT:
+							env.root_dir().unlink(path.string());
+							write_error = true;
+							break;
+						case WRITE_OK:
+							out_count = min(remaining_bytes, out_count);
+							remaining_bytes -= out_count;
+							src             += out_count;
+							at.value        += out_count;
+							dst_handle->advance_seek(out_count);
+							break;
+						}
+					} catch (Vfs::File_io_service::Insufficient_buffer) {
+						stalled = true; }
 
-					dst_handle->advance_seek(wn);
-					at.value += wn;
+					if (stalled)
+						env.env().ep().wait_and_dispatch_one_io_signal();
 				}
+				if (write_error)
+					break;
 			}
 		}
 
