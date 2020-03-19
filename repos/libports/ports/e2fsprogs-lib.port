@@ -22,16 +22,18 @@ DIR_CONTENT($(INCLUDE_DIR)) := \
 # Generate header files
 #
 
-BLKID_HEADER  := $(INCLUDE_DIR)/blkid/blkid.h
-EXT2FS_HEADER := $(INCLUDE_DIR)/ext2fs/ext2_types.h
-INTL_HEADER   := $(INCLUDE_DIR)/libgnuintl.h
-UUID_HEADER   := $(INCLUDE_DIR)/uuid/uuid.h
+BLKID_HEADER      := $(INCLUDE_DIR)/blkid/blkid.h
+EXT2FS_HEADER     := $(INCLUDE_DIR)/ext2fs/ext2_types.h
+INTL_HEADER       := $(INCLUDE_DIR)/libgnuintl.h
+UUID_HEADER       := $(INCLUDE_DIR)/uuid/uuid.h
+DEFAULT_PROFILE_C := $(addsuffix /misc/default_profile.c, $(E2FSPROGS_DIR))
 
 _dirs: \
 	$(BLKID_HEADER)  \
 	$(EXT2FS_HEADER) \
 	$(INTL_HEADER)   \
-	$(UUID_HEADER)
+	$(UUID_HEADER)   \
+	$(DEFAULT_PROFILE_C)
 
 $(INTL_HEADER):
 	@$(MSG_GENERATE)$(notdir $@)
@@ -88,3 +90,9 @@ $(EXT2FS_HEADER):
 	              < $(E2FSPROGS_DIR)/lib/ext2fs/ext2_types.h.in > $@
 	@echo '#define HAVE_SYS_TYPES_H 1' >> $@
 	@echo '#undef WORDS_BIGENDIAN' >> $@
+
+$(DEFAULT_PROFILE_C):
+	@$(MSG_GENERATE)$(notdir $@)
+	@gawk -f $(E2FSPROGS_DIR)/misc/profile-to-c.awk \
+	      <  $(E2FSPROGS_DIR)/misc/mke2fs.conf.in \
+	      >  $@
