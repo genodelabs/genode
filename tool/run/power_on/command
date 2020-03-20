@@ -11,16 +11,16 @@ proc power_on_command_cmd { } {
 }
 
 
-proc power_on_command_param { } {
-	return [get_cmd_arg_first --power-on-command-param 1]
+proc power_on_command_params { } {
+	return [get_cmd_arg --power-on-command-param 1]
 }
 
 
 proc run_power_on { } {
 	set command [power_on_command_cmd]
-	set param [power_on_command_param]
+	set params [power_on_command_params]
 
-	exec $command $param
+	exec $command {*}$params
 
 	return true
 }
