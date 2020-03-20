@@ -226,7 +226,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		Gpt                     _gpt      { _env, _block, _heap, _reporter };
 		Partition_table        &_partition_table { _table() };
 
-		enum { MAX_SESSIONS = 32 };
+		enum { MAX_SESSIONS = 128 };
 		Session_component   *_sessions[MAX_SESSIONS] { };
 		Job_queue<128>       _job_queue { };
 		Registry<Block::Job> _job_registry { };
