@@ -670,6 +670,42 @@ static Genode::Constructible<Heap> &heap()
 void Genode::init_ldso_phdr(Env &env)
 {
 	/*
+	 * Custom 'Region_map' that is used to place heap allocations of the
+	 * dynamic linker within the linker area, keeping the rest of the
+	 * component's virtual address space unpolluted.
+	 */
+	struct Linker_area_region_map : Region_map
+	{
+		struct Not_implemented : Exception { };
+
+		Local_addr attach(Dataspace_capability ds, size_t, off_t,
+		                  bool, Local_addr, bool, bool) override
+		{
+			size_t const size = Dataspace_client(ds).size();
+
+			Linker::Region_map &linker_area = *Linker::Region_map::r();
+
+			addr_t const at = linker_area.alloc_region_at_end(size);
+
+			(void)linker_area.attach_at(ds, at, size, 0UL);
+
+			return at;
+		}
+
+		void detach(Local_addr) override { throw Not_implemented(); }
+
+		void fault_handler(Signal_context_capability) override { }
+
+		State state() override { throw Not_implemented(); }
+
+		Dataspace_capability dataspace() override { throw Not_implemented(); }
+
+		Linker_area_region_map() { }
+	};
+
+	Linker_area_region_map &ld_rm = *unmanaged_singleton<Linker_area_region_map>();
+
+	/*
 	 * Use a statically allocated initial block to make the first dynamic
 	 * allocations deterministic. This assumption is required by the libc's
 	 * fork mechanism on Linux. Without the initial block, the Linux kernel
@@ -680,7 +716,7 @@ void Genode::init_ldso_phdr(Env &env)
 	 * must reside on the same addresses in the parent and child.
 	 */
 	static char initial_block[8*1024];
-	heap().construct(&env.ram(), &env.rm(), Heap::UNLIMITED,
+	heap().construct(&env.ram(), &ld_rm, Heap::UNLIMITED,
 	                 initial_block, sizeof(initial_block));
 
 	/* load program headers of linker now */
