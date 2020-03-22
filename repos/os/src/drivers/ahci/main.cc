@@ -154,24 +154,33 @@ class Ahci::Driver : Noncopyable
 			/* clear status register */
 			_hba.ack_irq();
 		}
-		Port &port(long device, char const *model_num, char const *serial_num)
+		Port &port(Session_label const &label, Session_policy const &policy)
 		{
+			/* try read device port number attribute */
+			long device = policy.attribute_value("device", -1L);
+
+			/* try read device model and serial number attributes */
+			auto const model  = policy.attribute_value("model",  String<64>());
+			auto const serial = policy.attribute_value("serial", String<64>());
+
 			/* check for model/device */
-			if (model_num && serial_num) {
+			if (model != "" && serial != "") {
 				for (long index = 0; index < MAX_PORTS; index++) {
 					if (!_ata[index].constructed()) continue;
 
 					Ata::Protocol &protocol = *_ata[index];
-					if (*protocol.model == model_num && *protocol.serial == serial_num)
+					if (*protocol.model == model.string() && *protocol.serial == serial.string())
 						return *_ports[index];
 				}
+				warning("No device with model ", model, " and serial ", serial, " found for \"", label, "\"");
 			}
 
 			/* check for device number */
 			if (device >= 0 && device < MAX_PORTS && _ports[device].constructed())
 				return *_ports[device];
 
-			throw -1;
+			warning("No device found on port ", device, " for \"", label, "\"");
+			throw Service_denied();
 		}
 
 		template <typename FN> void for_each_port(FN const &fn)
@@ -353,31 +362,16 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>,
 			throw Insufficient_ram_quota();
 		}
 
-		/* try read device port number attribute */
-		long device = policy.attribute_value("device", -1L);
+		Port &port = driver->port(label, policy);
 
-		/* try read device model and serial number attributes */
-		auto const model     = policy.attribute_value("model",  String<64>());
-		auto const serial    = policy.attribute_value("serial", String<64>());
-		bool const writeable = policy.attribute_value("writeable", false);
-
-		try {
-			Port &port = driver->port(device, model.string(), serial.string());
-
-			if (block_session[port.index].constructed()) {
-				error("Device with number=", port.index, " is already in use");
-				throw Service_denied();
-			}
-
-			port.writeable(writeable);
-			block_session[port.index].construct(env, port, tx_buf_size);
-			return block_session[port.index]->cap();
-		} catch (...) {
-			error("rejecting session request, no matching policy for '", label, "'",
-			      " (model=", model, " serial=", serial, " device index=", device, ")");
+		if (block_session[port.index].constructed()) {
+			error("Device with number=", port.index, " is already in use");
+			throw Service_denied();
 		}
 
-		throw Service_denied();
+		port.writeable(policy.attribute_value("writeable", false));
+		block_session[port.index].construct(env, port, tx_buf_size);
+		return block_session[port.index]->cap();
 	}
 
 	void upgrade(Session_capability, Root::Upgrade_args const&) override { }
