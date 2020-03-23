@@ -9,7 +9,6 @@ proc buffer_size_kib {} {
 	if {[have_spec imx53] &&
 	    ![have_spec foc]}      { return [expr      1024] }
 	if {[have_spec rpi]}       { return [expr  4 * 1024] }
-	if {[have_spec omap4]}     { return [expr  4 * 1024] }
 	if {[have_spec arndale]}   { return [expr      1024] }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
@@ -21,7 +20,6 @@ proc sd_card_drv {} {
 	if {[have_spec imx6q_sabrelite]} { return imx6q_sabrelite_sd_card_drv }
 	if {[have_spec imx53]}           { return imx53_sd_card_drv }
 	if {[have_spec rpi]}             { return rpi_sd_card_drv }
-	if {[have_spec omap4]}           { return omap4_sd_card_drv }
 	if {[have_spec arndale]}         { return arndale_sd_card_drv }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;

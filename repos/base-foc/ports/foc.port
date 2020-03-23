@@ -28,7 +28,6 @@ PATCH_OPT(patches/0001-L4RE-Remove-moe-from-switch_ram_base-target.patch)       
 PATCH_OPT(patches/0002-FOC-change-l4_task_cap_equal-semantic.patch)               := -p3 -d${DIR(foc)}
 PATCH_OPT(patches/0003-Sigma0-raise-sigma0-s-priority-to-maximum.patch)           := -p4 -d${DIR(l4re-core)}
 PATCH_OPT(patches/0005-FOC-Increase-name-buffer-of-JDB-to-32K.patch)              := -p3 -d${DIR(foc)}
-PATCH_OPT(patches/0006-FOC-adjust-panda-timer-to-version-A6.patch)                := -p3 -d${DIR(foc)}
 PATCH_OPT(patches/0007-L4RE-fix-x86-syscall-bindings-to-use-in-C-namespace.patch) := -p4 -d${DIR(l4re-core)}
 PATCH_OPT(patches/0009-Bootstrap-read-out-comport-on-x86-from-BDA-area.patch)     := -p4 -d${DIR(bootstrap)}
 PATCH_OPT(patches/0010-L4RE-get-rid-of-__builtin_strlen-usage.patch)              := -p4 -d${DIR(l4re-core)}
