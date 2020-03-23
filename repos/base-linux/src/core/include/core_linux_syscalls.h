@@ -101,10 +101,12 @@ inline int lx_ioctl_iomem(int fd, unsigned long phys, Genode::size_t offset)
 	return lx_syscall(SYS_ioctl, fd, _IOW('g', 1, void *), &range);
 }
 
+
 inline int lx_ioctl_irq(int fd, int irq)
 {
 	return lx_syscall(SYS_ioctl, fd, _IOW('g', 2, int*), &irq);
 }
+
 
 /**************************************
  ** Process creation and destruction **
@@ -158,6 +160,23 @@ inline int lx_setgid(unsigned int gid)
 inline int lx_pollpid()
 {
 	return lx_syscall(SYS_wait4, -1 /* any PID */, (int *)0, 1 /* WNOHANG */, 0);
+}
+
+
+/**
+ * Disable address-space layout randomization for child processes
+ *
+ * The virtual address space layout is managed by Genode, not the kernel.
+ * Otherwise, the libc's fork mechanism could not work on Linux.
+ */
+inline void lx_disable_aslr()
+{
+	/* defined in linux/personality.h */
+	enum { ADDR_NO_RANDOMIZE = 0x0040000UL };
+
+	unsigned long const orig_flags = lx_syscall(SYS_personality, 0xffffffff);
+
+	(void)lx_syscall(SYS_personality, orig_flags | ADDR_NO_RANDOMIZE);
 }
 
 

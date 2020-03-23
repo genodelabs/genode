@@ -91,6 +91,9 @@ static void sigchld_handler(int)
 Platform::Platform()
 : _core_mem_alloc(nullptr)
 {
+	/* make 'mmap' behave deterministically */
+	lx_disable_aslr();
+
 	/* catch control-c */
 	lx_sigaction(LX_SIGINT, sigint_handler, false);
 
