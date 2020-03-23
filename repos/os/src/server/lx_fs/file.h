@@ -141,6 +141,12 @@ class Lx_fs::File : public Node
 			return ret == -1 ? 0 : ret;
 		}
 
+		bool sync() override
+		{
+			int ret = fsync(_fd);
+			return ret ? false : true;
+		}
+
 		Status status() override
 		{
 			struct stat st { };

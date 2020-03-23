@@ -237,6 +237,12 @@ class Lx_fs::Directory : public Node
 			return 0;
 		}
 
+		bool sync() override
+		{
+			int ret = fsync(dirfd(_fd));
+			return ret ? false : true;
+		}
+
 		Status status() override
 		{
 			struct stat st { };

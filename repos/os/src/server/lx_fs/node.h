@@ -53,6 +53,8 @@ class Lx_fs::Node : public File_system::Node_base
 		virtual size_t read(char *dst, size_t len, seek_off_t) = 0;
 		virtual size_t write(char const *src, size_t len, seek_off_t) = 0;
 
+		virtual bool sync() { return true; }
+
 		virtual Status status() = 0;
 
 		/*
