@@ -43,6 +43,9 @@ static char const *initial_ep_name() { return "ep"; }
 
 void Entrypoint::Signal_proxy_component::signal()
 {
+	/* signal delivered successfully */
+	ep._signal_proxy_delivers_signal = false;
+
 	ep._process_deferred_signals();
 
 	bool io_progress = false;
@@ -113,41 +116,27 @@ void Entrypoint::_process_incoming_signals()
 	for (;;) {
 
 		do {
-			_sig_rec->block_for_signal();
-
-			int success;
 			{
-				Lock::Guard guard(_signal_pending_lock);
-				success = cmpxchg(&_signal_recipient, NONE, SIGNAL_PROXY);
+				/* see documentation in 'wait_and_dispatch_one_io_signal()' */
+
+				Mutex::Guard guard { _block_for_signal_mutex };
+
+				_signal_proxy_delivers_signal = true;
+
+				_sig_rec->block_for_signal();
 			}
 
-			/* common case, entrypoint is not in 'wait_and_dispatch_one_io_signal' */
-			if (success) {
-				/*
-				 * It might happen that we try to forward a signal to the
-				 * entrypoint, while the context of that signal is already
-				 * destroyed. In that case we will get an ipc error exception
-				 * as result, which has to be caught.
-				 */
-				try {
-					retry<Blocking_canceled>(
-						[&] () { _signal_proxy_cap.call<Signal_proxy::Rpc_signal>(); },
-						[]  () { warning("blocking canceled during signal processing"); });
-				} catch (Genode::Ipc_error) { /* ignore - context got destroyed in meantime */ }
-
-				cmpxchg(&_signal_recipient, SIGNAL_PROXY, NONE);
-			} else {
-				/*
-				 * Entrypoint is in 'wait_and_dispatch_one_io_signal', wakup it up and
-				 * block for next signal
-				 */
-				_sig_rec->unblock_signal_waiter(*_rpc_ep);
-
-				/*
-				 * wait for the acknowledgment by the entrypoint
-				 */
-				_signal_pending_ack_lock.lock();
-			}
+			/*
+			 * It might happen that we try to forward a signal to the
+			 * entrypoint, while the context of that signal is already
+			 * destroyed. In that case we will get an ipc error exception
+			 * as result, which has to be caught.
+			 */
+			try {
+				retry<Blocking_canceled>(
+					[&] () { _signal_proxy_cap.call<Signal_proxy::Rpc_signal>(); },
+					[]  () { warning("blocking canceled during signal processing"); });
+			} catch (Genode::Ipc_error) { /* ignore - context got destroyed in meantime */ }
 
 			/* entrypoint destructor requested to stop signal handling */
 			if (_stop_signal_proxy) {
@@ -198,15 +187,7 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 	for (;;) {
 
 		try {
-			_signal_pending_lock.lock();
-
-			cmpxchg(&_signal_recipient, NONE, ENTRYPOINT);
 			Signal sig =_sig_rec->pending_signal();
-			cmpxchg(&_signal_recipient, ENTRYPOINT, NONE);
-
-			_signal_pending_lock.unlock();
-
-			_signal_pending_ack_lock.unlock();
 
 			/* defer application-level signals */
 			if (sig.context()->level() == Signal_context::Level::App) {
@@ -218,13 +199,38 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 			break;
 
 		} catch (Signal_receiver::Signal_not_pending) {
-			_signal_pending_lock.unlock();
-			if (dont_block) {
-				/* indicate that we leave wait_and_dispatch_one_io_signal */
-				cmpxchg(&_signal_recipient, ENTRYPOINT, NONE);
+			if (dont_block)
 				return false;
+
+			{
+				/*
+				 * The signal-proxy thread as well as the entrypoint via
+				 * 'wait_and_dispatch_one_io_signal' never call
+				 * 'block_for_signal()' without the '_block_for_signal_mutex'
+				 * aquired. The signal-proxy thread also flags when it was
+				 * unblocked by an incoming signal and delivers the signal via
+				 * RPC in '_signal_proxy_delivers_signal'.
+				 */
+				Mutex::Guard guard { _block_for_signal_mutex };
+
+				/*
+				 * If the signal proxy is blocked in the signal-delivery
+				 * RPC but the call did not yet arrive in the entrypoint
+				 * (_signal_proxy_delivers_signal == true), we acknowledge the
+				 * delivery here (like in 'Signal_proxy_component::signal()') and
+				 * retry to fetch one pending signal at the beginning of the
+				 * loop above. Otherwise, we block for the next incoming
+				 * signal.
+				 *
+				 * There exist cases were we already processed the signal
+				 * flagged in '_signal_proxy_delivers_signal' and will end
+				 * up here again. In these cases we also 'block_for_signal()'.
+				 */
+				if (_signal_proxy_delivers_signal)
+					_signal_proxy_delivers_signal = false;
+				else
+					_sig_rec->block_for_signal();
 			}
-			_sig_rec->block_for_signal();
 		}
 	}
 
