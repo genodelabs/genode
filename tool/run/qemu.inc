@@ -23,8 +23,7 @@ proc qemu_args { } {
 proc is_qemu_available { } {
 	if {[expr [have_spec linux] && {"[board]"} == {"linux"}]} { return false }
 
-	if {[have_spec panda]
-	 || [have_spec arndale]
+	if {[have_spec arndale]
 	 || [have_spec rpi]} {
 		puts stderr "skipping execution because platform is not supported by qemu"
 		return false

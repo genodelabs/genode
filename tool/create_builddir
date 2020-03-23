@@ -13,7 +13,7 @@ PLATFORM = $(MAKECMDGOALS)
 PLATFORMS = arm_v6 arm_v7a arm_v8a riscv x86_32 x86_64 linux
 
 PLATFORMS_DEPR = arndale imx53_qsb imx53_qsb_tz imx6q_sabrelite imx7d_sabre \
-                 nit6_solox odroid_x2 odroid_xu panda pbxa9 riscv_spike rpi \
+                 nit6_solox odroid_x2 odroid_xu pbxa9 riscv_spike rpi \
                  usb_armory wand_quad zynq_qemu muen
 
 PLATFORM_ALT(arndale)         = arm_v7a
@@ -25,7 +25,6 @@ PLATFORM_ALT(muen)            = x86_64
 PLATFORM_ALT(nit6_solox)      = arm_v7a
 PLATFORM_ALT(odroid_x2)       = arm_v7a
 PLATFORM_ALT(odroid_xu)       = arm_v7a
-PLATFORM_ALT(panda)           = arm_v7a
 PLATFORM_ALT(pbxa9)           = arm_v7a
 PLATFORM_ALT(riscv_spike)     = riscv
 PLATFORM_ALT(rpi)             = arm_v6
@@ -133,7 +132,6 @@ BUILD_CONF(imx7d_sabre)     := $(BUILD_CONF_ARM_V7)
 BUILD_CONF(nit6_solox)      := $(BUILD_CONF_ARM_V7)
 BUILD_CONF(odroid_x2)       := $(BUILD_CONF_ARM_V7)
 BUILD_CONF(odroid_xu)       := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(panda)           := $(BUILD_CONF_ARM_V7)
 BUILD_CONF(pbxa9)           := $(BUILD_CONF_ARM_V7)
 BUILD_CONF(rpi)             := $(BUILD_CONF_ARM_V6)
 BUILD_CONF(usb_armory)      := $(BUILD_CONF_ARM_V7)
@@ -203,7 +201,6 @@ SPECS(imx7d_sabre)     := arm_v7a
 SPECS(nit6_solox)      := arm_v7a
 SPECS(odroid_x2)       := arm_v7a
 SPECS(odroid_xu)       := arm_v7a
-SPECS(panda)           := arm_v7a
 SPECS(pbxa9)           := arm_v7a
 SPECS(usb_armory)      := arm_v7a
 SPECS(wand_quad)       := arm_v7a

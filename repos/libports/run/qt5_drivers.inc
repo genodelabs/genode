@@ -24,7 +24,6 @@ proc use_fb_drv { feature_arg } {
 
 proc fb_drv_binary { } {
 	if {[have_spec exynos5]} { return exynos5_fb_drv }
-	if {[have_spec omap4]}   { return omap4_fb_drv   }
 	if {[have_spec pbxa9]}   { return pbxa9_fb_drv   }
 	if {[have_spec x86]}     { return vesa_fb_drv    }
 	if {[have_spec imx53]}   { return imx53_fb_drv   }
@@ -89,8 +88,7 @@ proc use_usb_input { feature_arg } {
 proc use_usb_nic { feature_arg } {
 	upvar $feature_arg feature
 	return [expr {[info exists feature(Nic)] &&
-	              ([have_spec omap4] ||
-	               [have_spec arndale] ||
+	              ([have_spec arndale] ||
 	               [have_spec rpi])}]
 }
 

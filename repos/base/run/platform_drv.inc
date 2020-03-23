@@ -35,7 +35,6 @@ proc need_usb_hid { } {
 #
 proc usb_host_drv_binary { } {
 	if {[have_spec arndale]}   { return arndale_usb_host_drv   }
-	if {[have_spec panda]}     { return panda_usb_host_drv     }
 	if {[have_spec rpi]}       { return rpi_usb_host_drv       }
 	if {[have_spec imx6q_sabrelite]} { return imx6q_sabrelite_usb_host_drv }
 	if {[have_spec imx8q_evk]} { return imx8q_evk_usb_host_drv }
@@ -67,7 +66,6 @@ proc acpi_drv_name { } {
 #
 proc gpio_drv { } {
 	if {[have_spec rpi]}     { return rpi_gpio_drv     }
-	if {[have_spec omap4]}   { return omap4_gpio_drv   }
 	if {[have_spec imx53]}   { return imx53_gpio_drv   }
 	if {[have_spec imx6]}    { return imx6_gpio_drv    }
 	if {[have_spec exynos4]} { return exynos4_gpio_drv }
