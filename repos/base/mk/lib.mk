@@ -95,6 +95,7 @@ endif
 #
 ifneq ($(SYMBOLS),)
 ABI_SO := $(addsuffix .abi.so,$(LIB))
+ABI_SONAME := $(addsuffix .lib.so,$(LIB))
 
 $(LIB).symbols:
 	$(VERBOSE)ln -sf $(SYMBOLS) $@
@@ -228,7 +229,7 @@ $(LIB_SO): $(STATIC_LIBS) $(OBJECTS) $(wildcard $(LD_SCRIPT_SO)) $(LIB_SO_DEPS)
 
 $(ABI_SO): $(LIB).symbols.o
 	$(MSG_MERGE)$(ABI_SO)
-	$(VERBOSE)$(LD) -o $(ABI_SO) -shared --eh-frame-hdr $(LD_OPT) \
+	$(VERBOSE)$(LD) -o $(ABI_SO) -soname=$(ABI_SONAME) -shared --eh-frame-hdr $(LD_OPT) \
 	                -T $(LD_SCRIPT_SO) \
 	                --whole-archive --start-group \
 	                $(LIB_SO_DEPS) $< \
