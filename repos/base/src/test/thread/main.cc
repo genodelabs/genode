@@ -683,38 +683,6 @@ static void test_successive_create_destroy_threads(Env &env)
 	}
 }
 
-/**
- * Test destruction of entrypoint with yet not dissolved components
- */
-namespace Test {
-	struct Session;
-	struct Server;
-	struct Component;
-}
-
-struct Test::Session : Genode::Session
-{
-	static const char *service_name() { return "EP_TEST"; }
-
-	GENODE_RPC(Rpc_test_untyped, void, test_untyped, unsigned);
-	GENODE_RPC_INTERFACE(Rpc_test_untyped);
-};
-
-struct Test::Component : Genode::Rpc_object<Test::Session, Test::Component>
-{
-	void test_untyped(unsigned) { }
-};
-
-static void test_entrypoint_destruction(Genode::Env &env)
-{
-	Test::Component c;
-
-	{
-		Entrypoint ep(env, 8192 /* STACK*/, "test_ep", Affinity::Location());
-		ep.manage(c);
-	}
-}
-
 /******************************************************
  ** Test destruction of inter-dependent CPU sessions **
  ******************************************************/
@@ -755,7 +723,6 @@ void Component::construct(Env &env)
 
 		test_create_as_many_threads(env);
 		test_successive_create_destroy_threads(env);
-		test_entrypoint_destruction(env);
 	} catch (int error) {
 		Genode::error("error ", error);
 		throw;
