@@ -120,7 +120,14 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::Sctlr::init();
 	Cpu::Cpsr::init();
 	Actlr::disable_smp();
-	Cpu::Diag::write(diag_reg);
+
+	/**
+	 * this is a workaround for platforms with secure firmware
+	 * where it is not allowed to access the diagnostic register from
+	 * the non-secure-world, but we expect that the firmware already
+	 * set it accordingly
+	 */
+	if (Cpu::Diag::read() != diag_reg) Cpu::Diag::write(diag_reg);
 
 	/* locally initialize interrupt controller */
 	::Board::Pic pic { };
