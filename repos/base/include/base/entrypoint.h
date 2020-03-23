@@ -19,6 +19,7 @@
 #include <base/rpc_server.h>
 #include <base/signal.h>
 #include <base/thread.h>
+#include <base/mutex.h>
 
 namespace Genode {
 	class Startup;
@@ -101,13 +102,8 @@ class Genode::Entrypoint : Noncopyable
 		void (*_suspended_callback) () = nullptr;
 		void (*_resumed_callback)   () = nullptr;
 
-		enum Signal_recipient {
-			NONE = 0, ENTRYPOINT = 1, SIGNAL_PROXY = 2
-		};
-
-		int               _signal_recipient   { NONE };
-		Genode::Lock      _signal_pending_lock     { };
-		Genode::Lock      _signal_pending_ack_lock { };
+		bool          _signal_proxy_delivers_signal { false };
+		Genode::Mutex _block_for_signal_mutex       { };
 
 		Io_progress_handler *_io_progress_handler { nullptr };
 
