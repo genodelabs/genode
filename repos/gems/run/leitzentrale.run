@@ -34,6 +34,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vim-minimal \
                   [depot_user]/src/coreutils-minimal \
                   [depot_user]/src/fs_utils \
+                  [depot_user]/src/stdin2out \
                   [depot_user]/src/gpt_write \
                   [depot_user]/src/text_area \
                   [depot_user]/src/sandbox \
