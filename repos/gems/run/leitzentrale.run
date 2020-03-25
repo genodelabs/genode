@@ -22,7 +22,6 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/menu_view \
                   [depot_user]/src/fs_query \
                   [depot_user]/src/rom_filter \
-                  [depot_user]/src/noux \
                   [depot_user]/src/terminal \
                   [depot_user]/src/posix \
                   [depot_user]/src/ram_block \
@@ -34,6 +33,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vim-minimal \
                   [depot_user]/src/coreutils-minimal \
                   [depot_user]/src/fs_utils \
+                  [depot_user]/src/vfs_pipe \
                   [depot_user]/src/stdin2out \
                   [depot_user]/src/gpt_write \
                   [depot_user]/src/text_area \
@@ -274,9 +274,13 @@ install_config {
 				<child name="config_rom"/> </service>
 			<service name="ROM" label_prefix="leitzentrale ->">
 				<child name="leitzentrale"/> </service>
-			<service name="ROM" label="inspect terminal -> clipboard">
+			<service name="ROM" label="inspect -> clipboard">
 				<child name="report_rom" label="clipboard"/> </service>
 			<service name="ROM" label="editor -> clipboard">
+				<child name="report_rom" label="clipboard"/> </service>
+			<service name="ROM" label_last="cached_fs_rom"> <!-- for Linux -->
+				<parent label="fs_rom"/> </service>
+			<service name="Report" label="inspect -> clipboard">
 				<child name="report_rom" label="clipboard"/> </service>
 			<service name="Report" label="editor -> clipboard">
 				<child name="report_rom" label="clipboard"/> </service>

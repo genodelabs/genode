@@ -39,7 +39,7 @@ struct Sculpt::Fs_dialog : Noncopyable, Dialog
 
 	struct Action : Interface
 	{
-		virtual void toggle_file_browser(Storage_target const &) = 0;
+		virtual void toggle_inspect_view(Storage_target const &) = 0;
 
 		virtual void use(Storage_target const &) = 0;
 	};
@@ -70,7 +70,7 @@ struct Sculpt::Fs_dialog : Noncopyable, Dialog
 	Click_result click(Action &action)
 	{
 		if (_inspect_item.hovered("browse"))
-			action.toggle_file_browser(_target);
+			action.toggle_inspect_view(_target);
 
 		else if (_use_item.hovered("use"))
 			action.use((_used_target == _target) ? Storage_target{ } : _target);
