@@ -16,7 +16,6 @@
 #define HAVE_GETEGID 1
 #define HAVE_GETEUID 1
 #define HAVE_GETGID 1
-#define HAVE_GETMNTINFO 1
 #define HAVE_GETOPT_H 1
 #define HAVE_GETPAGESIZE 1
 #define HAVE_GETPWUID_R 1
