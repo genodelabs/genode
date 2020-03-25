@@ -33,7 +33,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/bash-minimal \
                   [depot_user]/src/vim-minimal \
                   [depot_user]/src/coreutils-minimal \
-                  [depot_user]/src/e2fsprogs-minimal \
+                  [depot_user]/src/fs_utils \
                   [depot_user]/src/gpt_write \
                   [depot_user]/src/text_area \
                   [depot_user]/src/sandbox \

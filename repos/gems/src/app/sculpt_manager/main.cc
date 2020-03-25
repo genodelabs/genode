@@ -1486,7 +1486,7 @@ void Sculpt::Main::_handle_runtime_state()
 			Storage_target const target { device.label, partition.number };
 
 			if (partition.check_in_progress) {
-				String<64> name(target.label(), ".fsck.ext2");
+				String<64> name(target.label(), ".e2fsck");
 				Child_exit_state exit_state(state, name);
 
 				if (exit_state.exited) {
@@ -1503,7 +1503,7 @@ void Sculpt::Main::_handle_runtime_state()
 			}
 
 			if (partition.format_in_progress) {
-				String<64> name(target.label(), ".mkfs.ext2");
+				String<64> name(target.label(), ".mke2fs");
 				Child_exit_state exit_state(state, name);
 
 				if (exit_state.exited) {
