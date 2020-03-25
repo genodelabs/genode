@@ -126,6 +126,12 @@
      </xs:complexType>
     </xs:element> <!-- "report" -->
 
+    <xs:element name="heartbeat">
+     <xs:complexType>
+      <xs:attribute name="rate_ms" type="xs:int" />
+     </xs:complexType>
+    </xs:element> <!-- "heartbeat" -->
+
     <xs:element name="resource">
      <xs:complexType>
       <xs:attribute name="name"     type="xs:string" />
@@ -142,6 +148,8 @@
          <xs:attribute name="name" type="xs:string" />
         </xs:complexType>
        </xs:element> <!-- "binary" -->
+
+       <xs:element name="heartbeat" />
 
        <xs:element name="affinity">
         <xs:complexType>
