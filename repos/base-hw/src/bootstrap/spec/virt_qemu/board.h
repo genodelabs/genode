@@ -23,9 +23,9 @@
 namespace Board {
 	using namespace Hw::Virt_qemu_board;
 
-	using Psci = Hw::Psci<Hw::Psci_hvc_functor>;
+	using Psci = Hw::Psci<Hw::Psci_smc_functor>;
 	using Pic = Hw::Gicv2;
-	static constexpr bool NON_SECURE = false;
+	static constexpr bool NON_SECURE = true;
 };
 
 #endif /* _SRC__BOOTSTRAP__SPEC__VIRT__QEMU_H_ */

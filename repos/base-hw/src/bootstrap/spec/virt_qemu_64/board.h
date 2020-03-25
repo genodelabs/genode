@@ -23,7 +23,7 @@
 namespace Board {
 	using namespace Hw::Virt_qemu_board;
 
-	using Psci = Hw::Psci<Hw::Psci_hvc_functor>;
+	using Psci = Hw::Psci<Hw::Psci_smc_functor>;
 
 	struct Cpu : Hw::Arm_64_cpu
 	{

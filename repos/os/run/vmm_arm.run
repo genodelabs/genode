@@ -6,7 +6,7 @@
 
 assert_spec hw
 
-if { ![have_spec imx7d_sabre] && ![have_spec arndale] && ![have_spec imx8q_evk] } {
+if { ![have_spec imx7d_sabre] && ![have_spec arndale] && ![have_spec imx8q_evk]  && ![have_spec virt_qemu]} {
 	puts "Run script is not supported on this platform"
 	exit 0
 }
@@ -190,5 +190,6 @@ build_boot_image $boot_modules
 #
 # Execute test case
 #
+append qemu_args " -nographic "
 run_genode_until "\[init -> vm\] .*sbin.*" 220
 exec rm bin/linux bin/dtb

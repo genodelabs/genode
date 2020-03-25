@@ -110,7 +110,7 @@ proc run_power_on { } {
 	if {[have_spec rpi3]}   { append qemu_args " -M raspi3 -m 512 " }
 
 	if {[have_spec virt_qemu]} {
-		append qemu_args " -M virt"
+		append qemu_args " -M virt,virtualization=true"
 		if {[have_spec arm_v8a]} {
 			append qemu_args ",gic_version=3 -cpu cortex-a53 -smp 4"
 		}
