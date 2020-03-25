@@ -47,6 +47,7 @@ _/src/zlib
 _/src/menu_view
 _/src/gpt_write
 _/src/sculpt_manager
+_/src/stdin2out
 _/src/fs_query
 _/src/fs_tool
 _/src/text_area
