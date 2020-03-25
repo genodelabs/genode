@@ -21,7 +21,6 @@ _/src/file_terminal
 _/src/libc
 _/src/posix
 _/src/ncurses
-_/src/noux
 _/src/bash-minimal
 _/src/vim-minimal
 _/src/coreutils-minimal

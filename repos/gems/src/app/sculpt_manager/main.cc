@@ -592,9 +592,9 @@ struct Sculpt::Main : Input_event_handler,
 	/*
 	 * Fs_dialog::Action interface
 	 */
-	void toggle_file_browser(Storage_target const &target) override
+	void toggle_inspect_view(Storage_target const &target) override
 	{
-		_storage.toggle_file_browser(target);
+		_storage.toggle_inspect_view(target);
 
 		/* refresh visibility to inspect tab */
 		_panel_menu_view.generate();
@@ -1714,8 +1714,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 			gen_prepare_start_content(xml, _prepare_version); });
 
 	if (_storage.any_file_system_inspected())
-		gen_file_browser(xml, _storage._storage_devices, _storage._ram_fs_state,
-		                 _storage._file_browser_version);
+		gen_inspect_view(xml, _storage._storage_devices, _storage._ram_fs_state,
+		                 _storage._inspect_view_version);
 
 	/*
 	 * Spawn chroot instances for accessing '/depot' and '/public'. The

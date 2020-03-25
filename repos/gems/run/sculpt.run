@@ -467,11 +467,11 @@ install_config {
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
-			<service name="Report" label="inspect terminal -> clipboard">
+			<service name="Report" label="inspect -> clipboard">
 				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
 			<service name="Report" label="editor -> clipboard">
 				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
-			<service name="ROM" label="inspect terminal -> clipboard">
+			<service name="ROM" label="inspect -> clipboard">
 				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
 			<service name="ROM" label="editor -> clipboard">
 				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>

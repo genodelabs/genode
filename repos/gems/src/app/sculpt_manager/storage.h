@@ -56,7 +56,7 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 
 	Discovery_state _discovery_state { };
 
-	File_browser_version _file_browser_version { 0 };
+	Inspect_view_version _inspect_view_version { 0 };
 
 	Storage_dialog dialog { _storage_devices, _sculpt_partition };
 
@@ -149,21 +149,21 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 			partition.check_in_progress = true; });
 	}
 
-	void toggle_file_browser(Storage_target const &target) override
+	void toggle_inspect_view(Storage_target const &target) override
 	{
-		File_browser_version const orig_version = _file_browser_version;
+		Inspect_view_version const orig_version = _inspect_view_version;
 
 		if (target.ram_fs()) {
 			_ram_fs_state.inspected = !_ram_fs_state.inspected;
-			_file_browser_version.value++;
+			_inspect_view_version.value++;
 		}
 
 		_apply_partition(target, [&] (Partition &partition) {
 			partition.file_system.inspected = !partition.file_system.inspected;
-			_file_browser_version.value++;
+			_inspect_view_version.value++;
 		});
 
-		if (orig_version.value == _file_browser_version.value)
+		if (orig_version.value == _inspect_view_version.value)
 			return;
 
 		_runtime_config_generator.generate_runtime_config();

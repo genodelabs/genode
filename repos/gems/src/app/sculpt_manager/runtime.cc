@@ -18,7 +18,7 @@
 #include <runtime/depot_query.cc>
 #include <runtime/launcher_query.cc>
 #include <runtime/e2fs.cc>
-#include <runtime/file_browser.cc>
+#include <runtime/inspect_view.cc>
 #include <runtime/file_system.cc>
 #include <runtime/fs_rom.cc>
 #include <runtime/gpt_write.cc>

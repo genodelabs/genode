@@ -48,9 +48,9 @@ namespace Sculpt {
 	void gen_runtime_view_start_content(Xml_generator &, Child_state const &,
 	                                    float font_size);
 
-	struct File_browser_version { unsigned value; };
-	void gen_file_browser(Xml_generator &, Storage_devices const &,
-	                      Ram_fs_state const &, File_browser_version);
+	struct Inspect_view_version { unsigned value; };
+	void gen_inspect_view(Xml_generator &, Storage_devices const &,
+	                      Ram_fs_state const &, Inspect_view_version);
 
 	void gen_runtime_view(Xml_generator &);
 
