@@ -289,9 +289,6 @@ class Vfs::Fs_file_system : public File_system
 					source.submit_packet(p);
 				} catch (::File_system::Session::Tx::Source::Packet_alloc_failed) {
 					return false;
-				} catch (...) {
-					Genode::error("unhandled exception");
-					return false;
 				}
 
 				return true;
