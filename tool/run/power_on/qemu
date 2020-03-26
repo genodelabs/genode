@@ -120,6 +120,16 @@ proc run_power_on { } {
 		append qemu_args " -m 2048"
 	}
 
+	# Force Qemu to expose VirtIO 1.0 compatible devices by default.
+	# Genode does not support legacy VirtIO devices.
+	if {[have_spec virtio]} {
+		if {[have_spec pci]} {
+			append qemu_args " -global virtio-pci.disable-legacy=on"
+		} else {
+			append qemu_args " -global virtio-mmio.force-legacy=false"
+		}
+	}
+
 	# on x86, we support booting via pxe or iso/disk image
 	if {[have_spec x86]} {
 		if {![regexp -- {-m} $qemu_args dummy]} {
