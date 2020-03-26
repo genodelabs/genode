@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := lib/symbols/libc_noux mk/noux.mk mk/gnu_build.mk
+MIRROR_FROM_REP_DIR := mk/noux.mk mk/gnu_build.mk
 
 content:$(MIRROR_FROM_REP_DIR) LICENSE
 
