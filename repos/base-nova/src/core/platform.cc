@@ -337,6 +337,14 @@ Platform::Platform()
 	 */
 
 	/*
+	 * Mark successful boot of hypervisor for automatic tests. This must be
+	 * done before core_log is initialized to prevent unexpected-reboot
+	 * detection.
+	 */
+	log("\nHypervisor ", String<sizeof(hip.signature)+1>((char const *)&hip.signature),
+	    " (API v", hip.api_version, ")");
+
+	/*
 	 * remap main utcb to default utcb address
 	 * we do this that early, because Core_mem_allocator uses
 	 * the main_thread_utcb very early to establish mappings
