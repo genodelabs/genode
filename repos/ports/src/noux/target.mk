@@ -1,6 +1,0 @@
-TARGET   = noux
-LIBS     = base vfs
-SRC_CC   = main.cc syscall.cc
-INC_DIR += $(PRG_DIR)
-
-vpath %.cc $(PRG_DIR)
