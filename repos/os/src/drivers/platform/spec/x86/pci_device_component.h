@@ -152,7 +152,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		/**
 		 * Disable MSI/MSI-X if already enabled.
 		 */
-		unsigned _configure_irq(unsigned const irq, uint16_t const msi_cap,
+		unsigned _configure_irq(unsigned irq, uint16_t const msi_cap,
 		                        uint16_t const msix_cap)
 		{
 			using Genode::uint16_t;
