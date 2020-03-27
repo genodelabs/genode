@@ -105,6 +105,9 @@ struct Window_layouter::Main : Operations,
 		_assign_list.for_each([&] (Assign &assign) {
 			_target_list.for_each([&] (Target const &target) {
 
+				if (target.name() != assign.target_name())
+					return;
+
 				assign.for_each_member([&] (Assign::Member &member) {
 
 					member.window.floating(assign.floating());

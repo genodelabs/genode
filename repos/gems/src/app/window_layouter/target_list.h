@@ -39,7 +39,8 @@ class Window_layouter::Target_list
 		 *
 		 * \param row  true of 'node' is a row, false if 'node' is a column
 		 */
-		void _process_rec(Xml_node node, Rect avail, bool row)
+		void _process_rec(Xml_node node, Rect avail, bool row,
+		                  Target::Visible visible)
 		{
 			unsigned long const avail_px = row ? avail.w() : avail.h();
 
@@ -118,11 +119,11 @@ class Window_layouter::Target_list
 				                          : Rect(Point(avail.x1(), px_pos),
 				                                 Area(avail.w(), px_size));
 
-				_process_rec(child, sub_rect, !row);
+				_process_rec(child, sub_rect, !row, visible);
 
 				if (child.attribute_value("name", Target::Name()).valid())
 					new (_alloc)
-						Registered<Target>(_targets, child, sub_rect);
+						Registered<Target>(_targets, child, sub_rect, visible);
 
 				px_pos += px_size;
 			});
@@ -158,6 +159,9 @@ class Window_layouter::Target_list
 					if (target.layer() != layer)
 						return;
 
+					if (!target.visible())
+						return;
+
 					/* found target area, iterate though all assigned windows */
 					assign.for_each_member([&] (Assign::Member const &member) {
 						member.window.generate(xml); });
@@ -185,18 +189,21 @@ class Window_layouter::Target_list
 
 			_rules.construct(_alloc, rules);
 
-			if (!rules.has_sub_node("screen"))
-				return;
+			/* targets are only visible on first screen */
+			Target::Visible visible = Target::Visible::YES;
 
-			Xml_node const screen = rules.sub_node("screen");
+			rules.for_each_sub_node("screen", [&] (Xml_node const &screen) {
 
-			Rect const avail(Point(0, 0), screen_size);
+				Rect const avail(Point(0, 0), screen_size);
 
-			if (screen.attribute_value("name", Target::Name()).valid())
-				new (_alloc)
-					Registered<Target>(_targets, screen, avail);
+				if (screen.attribute_value("name", Target::Name()).valid())
+					new (_alloc)
+						Registered<Target>(_targets, screen, avail, visible);
 
-			_process_rec(screen, avail, true);
+				_process_rec(screen, avail, true, visible);
+
+				visible = Target::Visible::NO;
+			});
 		}
 
 		void gen_layout(Xml_generator &xml, Assign_list const &assignments) const
