@@ -144,16 +144,18 @@ class Vfs_import::File_system : public Vfs::File_system
 			Vfs_handle::Guard guard { dst_handle };
 			Flush_guard       flush { env, *dst_handle };
 			Readonly_file::At at    { };
-			while (true)
-			{
+
+			while (true) {
+
 				file_size bytes_from_source { src_file.read(at, buf, sizeof(buf)) };
 
 				if (!bytes_from_source) break;
 
-				bool        stalled         { false };
-				bool        write_error     { false };
-				size_t      remaining_bytes { bytes_from_source };
-				const char *src             { buf };
+				bool           stalled         { false };
+				bool           write_error     { false };
+				Vfs::file_size remaining_bytes { bytes_from_source };
+				char const    *src             { buf };
+
 				while (remaining_bytes > 0 && !write_error) {
 
 					try {
