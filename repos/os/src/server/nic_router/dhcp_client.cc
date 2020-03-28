@@ -124,6 +124,28 @@ void Dhcp_client::handle_dhcp_reply(Dhcp_packet &dhcp)
 		Message_type const msg_type =
 			dhcp.option<Dhcp_packet::Message_type_option>().value();
 
+		if (_interface.config().verbose_domain_state()) {
+			if (msg_type == Message_type::OFFER) {
+				Ipv4_address dns_server;
+				Ipv4_address subnet_mask;
+				Ipv4_address router_ip;
+
+				try { dns_server = dhcp.option<Dhcp_packet::Dns_server_ipv4>().value(); }
+				catch (Dhcp_packet::Option_not_found) { }
+				try { subnet_mask = dhcp.option<Dhcp_packet::Subnet_mask>().value(); }
+				catch (Dhcp_packet::Option_not_found) { }
+				try { router_ip = dhcp.option<Dhcp_packet::Router_ipv4>().value(); }
+				catch (Net::Dhcp_packet::Option_not_found) { }
+
+				log("[", _interface.domain(), "] dhcp offer from ",
+				    dhcp.siaddr(),
+				    ", offering ", dhcp.yiaddr(),
+				    ", subnet-mask ", subnet_mask,
+				    ", gateway ", router_ip,
+			        ", DNS server ", dns_server);
+			}
+		}
+
 		switch (_state) {
 		case State::SELECT:
 
