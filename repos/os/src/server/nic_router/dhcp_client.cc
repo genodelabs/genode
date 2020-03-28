@@ -142,12 +142,19 @@ void Dhcp_client::handle_dhcp_reply(Dhcp_packet &dhcp)
 				}
 				_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
 				_set_state(State::BOUND, _rerequest_timeout(1));
+
 				Ipv4_address dns_server;
+				Ipv4_address subnet_mask;
+				Ipv4_address router_ip;
+
 				try { dns_server = dhcp.option<Dhcp_packet::Dns_server_ipv4>().value(); }
 				catch (Dhcp_packet::Option_not_found) { }
-				_domain().ip_config(dhcp.yiaddr(),
-				                    dhcp.option<Dhcp_packet::Subnet_mask>().value(),
-				                    dhcp.option<Dhcp_packet::Router_ipv4>().value(),
+				try { subnet_mask = dhcp.option<Dhcp_packet::Subnet_mask>().value(); }
+				catch (Dhcp_packet::Option_not_found) { }
+				try { router_ip = dhcp.option<Dhcp_packet::Router_ipv4>().value(); }
+				catch (Net::Dhcp_packet::Option_not_found) { }
+
+				_domain().ip_config(dhcp.yiaddr(), subnet_mask, router_ip,
 				                    dns_server);
 				break;
 			}
