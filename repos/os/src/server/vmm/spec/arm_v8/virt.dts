@@ -45,8 +45,8 @@
 	};
 
 	chosen {
-		/* bootargs = "rdinit=/bin/sh console=hvc0 earlycon=pl011,0x9000000"; */
-		bootargs = "init=/sbin/init ip=dhcp console=hvc0";
+		bootargs = "rdinit=/bin/sh console=hvc0 earlycon=pl011,0x9000000";
+		/* bootargs = "init=/sbin/init ip=dhcp console=hvc0"; */
 		linux,initrd-start = <0x42000000>;
 		linux,initrd-end   = <0x420aa539>;
 		stdout-path = "/pl011@9000000";

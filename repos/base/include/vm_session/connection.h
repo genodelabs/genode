@@ -33,7 +33,7 @@ struct Genode::Vm_connection : Connection<Vm_session>, Vm_session_client
 	                                unsigned long affinity)
 	{
 		return session(parent,
-		               "priority=0x%lx, affinity=0x%lx, ram_quota=16K, cap_quota=10, label=\"%s\"",
+		               "priority=0x%lx, affinity=0x%lx, ram_quota=16M, cap_quota=800, label=\"%s\"",
 		               priority, affinity, label);
 	}
 

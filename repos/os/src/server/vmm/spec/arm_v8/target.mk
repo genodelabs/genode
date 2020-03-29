@@ -10,6 +10,7 @@ SRC_CC   += mmio.cc
 SRC_CC   += pl011.cc
 SRC_CC   += virtio_device.cc
 SRC_CC   += vm.cc
+SRC_CC   += tester.cc
 INC_DIR  += $(PRG_DIR)
 
 CC_CXX_WARN_STRICT :=

@@ -21,6 +21,7 @@
 #include <pl011.h>
 #include <virtio_console.h>
 #include <virtio_net.h>
+#include <tester.h>
 
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
@@ -61,8 +62,10 @@ class Vmm::Vm
 		Pl011                          _uart;
 		Virtio_console                 _virtio_console;
 		Virtio_net                     _virtio_net;
+		Tester                         _tester;
 
-		void _load_kernel();
+
+        void _load_kernel();
 		void _load_dtb();
 		void _load_initrd();
 
