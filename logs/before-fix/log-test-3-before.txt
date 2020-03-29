@@ -1,0 +1,398 @@
+À
+U-Boot SPL 2019.04-04771-g4d377539a1-dirty (Mar 05 2020 - 14:57:16 +0100)
+PMIC:  PFUZE100 ID=0x10
+DDRINFO: start DRAM init
+DDRINFO:ddrphy calibration done
+DDRINFO: ddrmix config done
+Normal Boot
+Trying to boot from MMC2
+
+
+U-Boot 2019.04-04771-g4d377539a1-dirty (Mar 05 2020 - 14:13:51 +0100)
+
+CPU:   Freescale i.MX8MQ rev2.1 1500 MHz (running at 1000 MHz)
+CPU:   Commercial temperature grade (0C to 95C) at 37C
+Reset cause: POR
+Model: Freescale i.MX8MQ EVK
+DRAM:  3 GiB
+TCPC:  Vendor ID [0x1fc9], Product ID [0x5110], Addr [I2C0 0x50]
+MMC:   FSL_SDHC: 0, FSL_SDHC: 1
+Loading Environment from MMC... Run CMD11 1.8V switch
+OK
+No panel detected: default to HDMI
+Display: HDMI (1280x720)
+cdn_api_checkalive: keep-alive counter did not increment for 10us...
+HDMI enable failed!
+In:    serial
+Out:   serial
+Err:   serial
+
+ BuildInfo:
+  - ATF 413e93e
+  - U-Boot 2019.04-04771-g4d377539a1-dirty
+
+Run CMD11 1.8V switch
+switch to partitions #0, OK
+mmc1 is current device
+flash target is MMC:1
+Run CMD11 1.8V switch
+Net:   eth0: ethernet@30be0000
+Fastboot: Normal
+Normal Boot
+Hit any key to stop autoboot:  2  1  0 
+ethernet@30be0000 Waiting for PHY auto negotiation to complete.. done
+BOOTP broadcast 1
+BOOTP broadcast 2
+BOOTP broadcast 3
+DHCP client bound to address 192.168.1.11 (1003 ms)
+Using ethernet@30be0000 device
+TFTP from server 192.168.1.1; our IP address is 192.168.1.11
+Filename 'genode'.
+Load address: 0x60000000
+Loading: *#################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 ##############################################################
+	 4.6 MiB/s
+done
+Bytes transferred = 9965609 (981029 hex)
+## Booting kernel from Legacy Image at 60000000 ...
+   Image Name:   
+   Image Type:   AArch64 Linux Kernel Image (gzip compressed)
+   Data Size:    9965545 Bytes = 9.5 MiB
+   Load Address: 40010000
+   Entry Point:  40010000
+   Verifying Checksum ... OK
+   Uncompressing Kernel Image ... OK
+
+Starting kernel ...
+
+
+kernel initialized
+ROM modules:
+ ROM: [0000000040240000,0000000040240710) config
+ ROM: [000000004000d000,000000004000e000) core_log
+ ROM: [0000000040241000,0000000040241665) dtb
+ ROM: [00000000401fe000,000000004023f550) init
+ ROM: [000000004145e000,0000000041508539) initrd
+ ROM: [0000000040138000,00000000401ede80) ld.lib.so
+ ROM: [0000000040273000,000000004143a200) linux
+ ROM: [000000004157f000,000000004158d970) log_terminal
+ ROM: [0000000041509000,000000004157e688) nic_router
+ ROM: [000000004000b000,000000004000c000) platform_info
+ ROM: [00000000401ee000,00000000401fdb48) terminal_crosslink
+ ROM: [000000004144c000,000000004145d770) test-terminal_expect_send
+ ROM: [000000004143b000,000000004144bcd0) timer
+ ROM: [0000000040242000,0000000040272018) vmm
+
+Genode sculpt-20.02-74-gc9ff23eb0 <local changes>
+3047 MiB RAM and 64533 caps assigned to init
+[init] parent provides
+[init]   service "ROM"
+[init]   service "IRQ"
+[init]   service "IO_MEM"
+[init]   service "PD"
+[init]   service "RM"
+[init]   service "CPU"
+[init]   service "LOG"
+[init]   service "VM"
+[init] child "timer"
+[init]   RAM quota:  776K
+[init]   cap quota:  68
+[init]   ELF binary: timer
+[init]   priority:   0
+[init]   provides service Timer
+[init] child "nic_drv"
+[init]   RAM quota:  7944K
+[init]   cap quota:  68
+[init]   ELF binary: nic_router
+[init]   priority:   0
+[init]   provides service Nic
+[init] child "log_terminal"
+[init]   RAM quota:  1800K
+[init]   cap quota:  68
+[init]   ELF binary: log_terminal
+[init]   priority:   0
+[init]   provides service Terminal
+[init] child "terminal_crosslink"
+[init]   RAM quota:  776K
+[init]   cap quota:  68
+[init]   ELF binary: terminal_crosslink
+[init]   priority:   0
+[init]   provides service Terminal
+[init] child "vmm"
+[init]   RAM quota:  261896K
+[init]   cap quota:  168
+[init]   ELF binary: vmm
+[init]   priority:   1
+[init] child "vm"
+[init]   RAM quota:  776K
+[init]   cap quota:  68
+[init]   ELF binary: test-terminal_expect_send
+[init]   priority:   0
+[init] child "log_terminal" announces service "Terminal"
+[init] child "terminal_crosslink" announces service "Terminal"
+[init] child "timer" announces service "Timer"
+[init] child "nic_drv" announces service "Nic"
+[init -> vmm] Start virtual machine ...
+[init -> log_terminal] [    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd034]
+[init -> log_terminal] [    0.000000] Linux version 4.19.53 (cbass@kc87) (gcc version 8.3.0 (GCC)) #1 SMP PREEMPT Wed Jun 19 13:23:18 CEST 2019
+[init -> log_terminal] [    0.000000] Machine model: linux,dummy-virt
+[init -> log_terminal] [    0.000000] earlycon: pl11 at MMIO 0x0000000009000000 (options '')
+[init -> log_terminal] [    0.000000] bootconsole [pl11] enabled
+[init -> log_terminal] [    0.000000] efi: Getting EFI parameters from FDT:
+[init -> log_terminal] [    0.000000] efi: UEFI not found.
+[init -> log_terminal] [    0.000000] cma: Failed to reserve 32 MiB
+[init -> log_terminal] [    0.000000] NUMA: No NUMA configuration found
+[init -> log_terminal] [    0.000000] NUMA: Faking a node at [mem 0x0000000000000000-0x0000000043ffffff]
+[init -> log_terminal] [    0.000000] NUMA: NODE_DATA [mem 0x43ff0b00-0x43ff22bf]
+[init -> log_terminal] [    0.000000] Zone ranges:
+[init -> log_terminal] [    0.000000]   DMA32    [mem 0x0000000040000000-0x0000000043ffffff]
+[init -> log_terminal] [    0.000000]   Normal   empty
+[init -> log_terminal] [    0.000000] Movable zone start for each node
+[init -> log_terminal] [    0.000000] Early memory node ranges
+[init -> log_terminal] [    0.000000]   node   0: [mem 0x0000000040000000-0x0000000043ffffff]
+[init -> log_terminal] [    0.000000] Initmem setup node 0 [mem 0x0000000040000000-0x0000000043ffffff]
+[init -> log_terminal] [    0.000000] random: get_random_bytes called from start_kernel+0x94/0x400 with crng_init=0
+[init -> log_terminal] [    0.000000] percpu: Embedded 23 pages/cpu s56408 r8192 d29608 u94208
+[init -> log_terminal] [    0.000000] Detected VIPT I-cache on CPU0
+[init -> log_terminal] [    0.000000] CPU features: enabling workaround for ARM erratum 843419
+[init -> log_terminal] [    0.000000] CPU features: enabling workaround for ARM erratum 845719
+[init -> log_terminal] [    0.000000] CPU features: detected: Kernel page table isolation (KPTI)
+[init -> log_terminal] [    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 16128
+[init -> log_terminal] [    0.000000] Policy zone: DMA32
+[init -> log_terminal] [    0.000000] Kernel command line: rdinit=/bin/sh console=hvc0 earlycon=pl011,0x9000000
+[init -> log_terminal] [    0.000000] Memory: 29680K/65536K available (10556K kernel code, 1372K rwdata, 4900K rodata, 1344K init, 380K bss, 35856K reserved, 0K cma-reserved)
+[init -> log_terminal] [    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[init -> log_terminal] [    0.000000] rcu: Preemptible hierarchical RCU implementation.
+[init -> log_terminal] [    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=1.
+[init -> log_terminal] [    0.000000] 	Tasks RCU enabled.
+[init -> log_terminal] [    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[init -> log_terminal] [    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+[init -> log_terminal] [    0.000000] GICv3: Distributor has no Range Selector support
+[init -> log_terminal] [    0.000000] GICv3: no VLPI support, no direct LPI support
+[init -> log_terminal] [    0.000000] GICv3: CPU0: found redistributor 0 region 0:0x00000000080a0000
+[init -> vmm] Warning: Invalid write access to register GICR_WAKER address=0x0 width=0x4
+[init -> vmm] Warning: Will ignore invalid bus access (IPA=0x80a0014)
+[init -> vmm] Warning: Invalid write access to register GICR_IGROUPR0 address=0x0 width=0x4
+[init -> vmm] Warning: Will ignore invalid bus access (IPA=0x80b0080)
+[init -> log_terminal] [    0.000000] arch_timer: cp15 timer(s) running at 8.33MHz (virt).
+[init -> log_terminal] [    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x1ec0311ec, max_idle_ns: 440795202152 ns
+[init -> log_terminal] [    0.000005] sched_clock: 56 bits at 8MHz, resolution 120ns, wraps every 2199023255541ns
+[init -> log_terminal] [    0.047719] Console: colour dummy device 80x25
+[init -> log_terminal] [    0.075826] Calibrating delay loop (skipped), value calculated using timer frequency.. 16.66 BogoMIPS (lpj=33333)
+[init -> log_terminal] [    0.136171] pid_max: default: 32768 minimum: 301
+[init -> log_terminal] [    0.166578] Security Framework initialized
+[init -> log_terminal] [    0.192626] Dentry cache hash table entries: 8192 (order: 4, 65536 bytes)
+[init -> log_terminal] [    0.233556] Inode-cache hash table entries: 4096 (order: 3, 32768 bytes)
+[init -> log_terminal] [    0.274533] Mount-cache hash table entries: 512 (order: 0, 4096 bytes)
+[init -> log_terminal] [    0.313986] Mountpoint-cache hash table entries: 512 (order: 0, 4096 bytes)
+[init -> log_terminal] [    0.392451] ASID allocator initialised with 32768 entries
+[init -> log_terminal] [    0.437082] rcu: Hierarchical SRCU implementation.
+[init -> log_terminal] [    0.478662] EFI services will not be available.
+[init -> log_terminal] [    0.518427] smp: Bringing up secondary CPUs ...
+[init -> log_terminal] [    0.546735] smp: Brought up 1 node, 1 CPU
+[init -> log_terminal] [    0.572109] SMP: Total of 1 processors activated.
+[init -> log_terminal] [    0.739502] CPU: All CPU(s) started at EL1
+[init -> log_terminal] [    0.765362] alternatives: patching kernel code
+[init -> log_terminal] [    0.793815] devtmpfs: initialized
+[init -> log_terminal] [    0.822048] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[init -> log_terminal] [    0.879526] futex hash table entries: 256 (order: 2, 16384 bytes)
+[init -> log_terminal] [    0.917146] pinctrl core: initialized pinctrl subsystem
+[init -> log_terminal] [    0.951260] DMI not present or invalid.
+[init -> log_terminal] [    0.977697] NET: Registered protocol family 16
+[init -> log_terminal] [    1.006335] audit: initializing netlink subsys (disabled)
+[init -> log_terminal] [    1.041152] cpuidle: using governor menu
+[init -> log_terminal] [    1.066295] audit: type=2000 audit(0.276:1): state=initialized audit_enabled=0 res=1
+[init -> log_terminal] [    1.114450] vdso: 2 pages (1 code @ (____ptrval____), 1 data @ (____ptrval____))
+[init -> log_terminal] [    1.158991] hw-breakpoint: found 1 breakpoint and 1 watchpoint registers.
+[init -> log_terminal] [    1.200993] DMA: preallocated 256 KiB pool for atomic allocations
+[init -> log_terminal] [    1.240517] Serial: AMBA PL011 UART driver
+[init -> log_terminal] [    1.269667] 9000000.pl011: ttyAMA0 at MMIO 0x9000000 (irq = 5, base_baud = 0) is a PL011 rev1
+[init -> log_terminal] [    1.364971] HugeTLB registered 2.00 MiB page size, pre-allocated 0 pages
+[init -> log_terminal] [    1.412444] cryptd: max_cpu_qlen set to 1000
+[init -> log_terminal] [    1.452556] ACPI: Interpreter disabled.
+[init -> log_terminal] [    1.478611] vgaarb: loaded
+[init -> log_terminal] [    1.497867] SCSI subsystem initialized
+[init -> log_terminal] [    1.528362] usbcore: registered new interface driver usbfs
+[init -> log_terminal] [    1.562848] usbcore: registered new interface driver hub
+[init -> log_terminal] [    1.595635] usbcore: registered new device driver usb
+[init -> log_terminal] [    1.627688] pps_core: LinuxPPS API ver. 1 registered
+[init -> log_terminal] [    1.659031] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[init -> log_terminal] [    1.713178] PTP clock support registered
+[init -> log_terminal] [    1.738411] EDAC MC: Ver: 3.0.0
+[init -> log_terminal] [    1.771948] Advanced Linux Sound Architecture Driver Initialized.
+[init -> log_terminal] [    1.810122] clocksource: Switched to clocksource arch_sys_counter
+[init -> log_terminal] [    1.849570] VFS: Disk quotas dquot_6.6.0
+[init -> log_terminal] [    1.874854] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[init -> log_terminal] [    1.916904] pnp: PnP ACPI: disabled
+[init -> log_terminal] [    1.954945] NET: Registered protocol family 2
+[init -> log_terminal] [    1.984077] tcp_listen_portaddr_hash hash table entries: 256 (order: 0, 4096 bytes)
+[init -> log_terminal] [    2.030011] TCP established hash table entries: 512 (order: 0, 4096 bytes)
+[init -> log_terminal] [    2.071473] TCP bind hash table entries: 512 (order: 1, 8192 bytes)
+[init -> log_terminal] [    2.109470] TCP: Hash tables configured (established 512 bind 512)
+[init -> log_terminal] [    2.147039] UDP hash table entries: 256 (order: 1, 8192 bytes)
+[init -> log_terminal] [    2.182633] UDP-Lite hash table entries: 256 (order: 1, 8192 bytes)
+[init -> log_terminal] [    2.221115] NET: Registered protocol family 1
+[init -> log_terminal] [    2.266765] RPC: Registered named UNIX socket transport module.
+[init -> log_terminal] [    2.302861] RPC: Registered udp transport module.
+[init -> log_terminal] [    2.332122] RPC: Registered tcp transport module.
+[init -> log_terminal] [    2.361385] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[init -> log_terminal] [    2.400893] Unpacking initramfs...
+[init -> log_terminal] [    2.464876] Freeing initrd memory: 680K
+[init -> log_terminal] [    2.489846] kvm [1]: HYP mode not available
+[init -> log_terminal] [    2.519187] Initialise system trusted keyrings
+[init -> log_terminal] [    2.548134] workingset: timestamp_bits=44 max_order=13 bucket_order=0
+[init -> log_terminal] [    2.603319] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[init -> log_terminal] [    2.647739] NFS: Registering the id_resolver key type
+[init -> log_terminal] [    2.679184] Key type id_resolver registered
+[init -> log_terminal] [    2.705592] Key type id_legacy registered
+[init -> log_terminal] [    2.731008] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[init -> log_terminal] [    2.771682] 9p: Installing v9fs 9p2000 file system support
+[init -> log_terminal] [    2.808856] Key type asymmetric registered
+[init -> log_terminal] [    2.834796] Asymmetric key parser 'x509' registered
+[init -> log_terminal] [    2.865192] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 244)
+[init -> log_terminal] [    2.910011] io scheduler noop registered
+[init -> log_terminal] [    2.934948] io scheduler deadline registered
+[init -> log_terminal] [    2.961926] io scheduler cfq registered (default)
+[init -> log_terminal] [    2.991242] io scheduler mq-deadline registered
+[init -> log_terminal] [    3.019566] io scheduler kyber registered
+[init -> log_terminal] [    3.059177] EINJ: ACPI disabled.
+[init -> log_terminal] [    3.099303] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[init -> log_terminal] [    3.141279] SuperH (H)SCI(F) driver initialized
+[init -> log_terminal] [    3.171972] msm_serial: driver initialized
+[init -> log_terminal] [    3.208062] console [hvc0] enabled
+[init -> log_terminal] [    3.230786] bootconsole [pl11] disabled
+[init -> vm] [    3.267488] loop: module loaded
+[init -> vm] [    3.281640] libphy: Fixed MDIO Bus: probed
+[init -> vm] [    3.291111] tun: Universal TUN/TAP device driver, 1.6
+[init -> vmm] Warning: Could not find address=0xfc width=0x4
+[init -> vmm] Warning: Will ignore invalid bus access (IPA=0xa0002fc)
+[init -> vmm] Warning: Could not find address=0xfc width=0x4
+[init -> vmm] Warning: Will ignore invalid bus access (IPA=0xa0002fc)
+[init -> vm] [    3.340308] thunder_xcv, ver 1.0
+[init -> vm] [    3.347446] thunder_bgx, ver 1.0
+[init -> vm] [    3.354045] nicpf, ver 1.0
+[init -> vm] [    3.360188] e1000e: Intel(R) PRO/1000 Network Driver - 3.2.6-k
+[init -> vm] [    3.370420] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[init -> vm] [    3.380256] igb: Intel(R) Gigabit Ethernet Network Driver - version 5.4.0-k
+[init -> vm] [    3.391404] igb: Copyright (c) 2007-2014 Intel Corporation.
+[init -> vm] [    3.400605] igbvf: Intel(R) Gigabit Virtual Function Network Driver - version 2.4.0-k
+[init -> vm] [    3.412554] igbvf: Copyright (c) 2009 - 2012 Intel Corporation.
+[init -> vm] [    3.422597] sky2: driver version 1.30
+[init -> vm] [    3.430705] VFIO - User Level meta-driver version: 0.3
+[init -> vm] [    3.446868] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[init -> vm] [    3.457993] ehci-pci: EHCI PCI platform driver
+[init -> vm] [    3.466067] ehci-platform: EHCI generic platform driver
+[init -> vm] [    3.474956] ehci-orion: EHCI orion driver
+[init -> vm] [    3.482694] ehci-exynos: EHCI EXYNOS driver
+[init -> vm] [    3.490566] ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+[init -> vm] [    3.500614] ohci-pci: OHCI PCI platform driver
+[init -> vm] [    3.508653] ohci-platform: OHCI generic platform driver
+[init -> vm] [    3.517538] ohci-exynos: OHCI EXYNOS driver
+[init -> vm] [    3.525444] usbcore: registered new interface driver usb-storage
+[init -> vm] [    3.538700] i2c /dev entries driver
+[init -> vm] [    3.552041] sdhci: Secure Digital Host Controller Interface driver
+[init -> vm] [    3.565011] sdhci: Copyright(c) Pierre Ossman
+[init -> vm] [    3.573355] Synopsys Designware Multimedia Card Interface Driver
+[init -> vm] [    3.584309] sdhci-pltfm: SDHCI platform and OF driver helper
+[init -> vm] [    3.595467] ledtrig-cpu: registered to indicate activity on CPUs
+[init -> vm] [    3.607786] usbcore: registered new interface driver usbhid
+[init -> vm] [    3.618022] usbhid: USB HID core driver
+[init -> vm] [    3.628458] NET: Registered protocol family 17
+[init -> vm] [    3.637945] 9pnet: Installing 9P2000 support
+[init -> vm] [    3.645906] Key type dns_resolver registered
+[init -> vm] [    3.654825] registered taskstats version 1
+[init -> vm] [    3.662681] Loading compiled-in X.509 certificates
+[init -> vm] [    3.671344] hctosys: unable to open rtc device (rtc0)
+[init -> vm] [    3.680040] ALSA device list:
+[init -> vm] [    3.686569]   No soundcards found.
+[init -> vm] [    3.693976] Freeing unused kernel memory: 1344K
+[init -> vm] [    3.702411] Run /bin/sh as init process
+[init -> vm] /bin/sh: can't access tty; job control turned off
+[init -> vm] / # sleep 1
+[init -> vm] / # 
+[init -> vm] / # sleep 1
+[init -> vm] / # 
+[init -> vm] / # sleep 1
+[init -> vm] / # 
+[init -> vm] / # sleep 1
+[init -> vm] / # 
+[init -> vm] / # sleep 1
+[init -> vmm] Start test 3
+[init -> vmm] individual detach
+[init -> vm] / # 
+[init -> vm] / # sleep 1
+[init -> vm] / # 
+[init -> vm] / # sleep 1
+[init -> vm] / # 
+[init -> vm] / # sleep 1
+À
+U-Boot SPL 2019.04-04771-g4d377539a1-dirty (Mar 05 2020 - 14:57:16 +0100)
+PMIC:  PFUZE100 ID=0x10
+DDRINFO: start DRAM init
+DDRINFO:ddrphy calibration done
+DDRINFO: ddrmix config done
+Normal Boot
+Trying to boot from MMC2
+
+
+U-Boot 2019.04-04771-g4d377539a1-dirty (Mar 05 2020 - 14:13:51 +0100)
+
+CPU:   Freescale i.MX8MQ rev2.1 1500 MHz (running at 1000 MHz)
+CPU:   Commercial temperature grade (0C to 95C) at 37C
+Reset cause: POR
+Model: Freescale i.MX8MQ EVK
+DRAM:  3 GiB
+TCPC:  Vendor ID [0x1fc9], Product ID [0x5110], Addr [I2C0 0x50]
+MMC:   FSL_SDHC: 0, FSL_SDHC: 1
+Loading Environment from MMC... Run CMD11 1.8V switch
+OK
+No panel detected: default to HDMI
+Display: HDMI (1280x720)
+cdn_api_checkalive: keep-alive counter did not increment for 10us...
+HDMI enable failed!
+In:    serial
+Out:   serial
+Err:   serial
+
+ BuildInfo:
+  - ATF 413e93e
+  - U-Boot 2019.04-04771-g4d377539a1-dirty
+
+Run CMD11 1.8V switch
+switch to partitions #0, OK
+mmc1 is current device
+flash target is MMC:1
+Run CMD11 1.8V switch
+Net:   eth0: ethernet@30be0000
+Fastboot: Normal
+Normal Boot
+Hit any key to stop autoboot:  2  0
+u-boot=>        

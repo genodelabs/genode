@@ -73,7 +73,7 @@ install_config {
 	<start name="vm">
 		<binary name="test-terminal_expect_send"/>
 		<resource name="RAM" quantum="1M"/>
-		<config expect="/ #" send="ls" verbose="yes"/>
+		<config expect="/ #" send="sleep 1" verbose="yes"/>
 		<route>
 			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
 			<any-service><parent/><any-child/></any-service>
