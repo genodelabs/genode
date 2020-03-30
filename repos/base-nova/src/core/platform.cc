@@ -341,7 +341,7 @@ Platform::Platform()
 	 * done before core_log is initialized to prevent unexpected-reboot
 	 * detection.
 	 */
-	log("Hypervisor ", String<sizeof(hip.signature)+1>((char const *)&hip.signature),
+	log("\nHypervisor ", String<sizeof(hip.signature)+1>((char const *)&hip.signature),
 	    " (API v", hip.api_version, ")");
 
 	/*
