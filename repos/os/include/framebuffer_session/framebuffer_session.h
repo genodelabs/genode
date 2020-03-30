@@ -47,30 +47,38 @@ struct Framebuffer::Mode
 
 	private:
 
-		int    _width, _height;
-		Format _format;
+		int _width = 0, _height = 0;
+
+		Format _format = INVALID;
+
+		/*
+		 * Helpers for sanitized access. The sanitizing is needed whenever
+		 * a 'Mode' object is transferred via RPC from an untrusted client.
+		 */
+		static Format _sanitized(Format f) { return f == RGB565 ? RGB565 : INVALID; }
+		static int    _sanitized(int v)    { return v >= 0 ? v : 0; }
 
 	public:
 
-		Mode() : _width(0), _height(0), _format(INVALID) { }
+		Mode() { }
 
 		Mode(int width, int height, Format format)
 		: _width(width), _height(height), _format(format) { }
 
-		int    width()  const { return _width; }
-		int    height() const { return _height; }
-		Format format() const { return _format; }
+		int    width()  const { return _sanitized(_width);  }
+		int    height() const { return _sanitized(_height); }
+		Format format() const { return _sanitized(_format); }
 
 		/**
 		 * Return number of bytes per pixel
 		 */
 		Genode::size_t bytes_per_pixel() const {
-			return bytes_per_pixel(_format); }
+			return bytes_per_pixel(format()); }
 
 		void print(Genode::Output &out) const
 		{
-			Genode::print(out, _width, "x", _height, "@");
-			switch (_format) {
+			Genode::print(out, width(), "x", height(), "@");
+			switch (format()) {
 			case RGB565: Genode::print(out, "RGB565");  break;
 			default:     Genode::print(out, "INVALID"); break;
 			}
