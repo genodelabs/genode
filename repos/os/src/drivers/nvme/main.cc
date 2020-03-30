@@ -1744,7 +1744,8 @@ class Nvme::Driver : Genode::Noncopyable
 
 				/* omit first page and write remaining pages to iob */
 				addr_t  npa = request_pa + Nvme::MPS;
-				addr_t *va  = (addr_t*)page.va;
+				using Page_entry = uint64_t;
+				Page_entry *pe  = (Page_entry*)page.va;
 
 				size_t const mps_len = Genode::align_addr(len, Nvme::MPS_LOG2);
 				size_t const num     = (mps_len - Nvme::MPS) / Nvme::MPS;
@@ -1757,7 +1758,7 @@ class Nvme::Driver : Genode::Noncopyable
 					if (_verbose_io) {
 						log("    [", i, "]: ", Hex(npa));
 					}
-					va[i] = npa;
+					pe[i] = npa;
 					npa  += Nvme::MPS;
 				}
 				b.write<Nvme::Sqe::Prp2>(page.pa);
