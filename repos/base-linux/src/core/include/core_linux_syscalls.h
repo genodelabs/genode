@@ -19,6 +19,7 @@
 
 #define size_t __SIZE_TYPE__ /* see comment in 'linux_syscalls.h' */
 #include <sys/stat.h>
+#include <sys/resource.h>
 #include <fcntl.h>
 #undef size_t
 
@@ -71,6 +72,7 @@ inline int lx_stat(const char *path, struct stat64 *buf)
 	return lx_syscall(SYS_stat64, path, buf);
 #endif
 }
+
 
 /***********************************************************
  ** Functions used by core's io port session support code **
@@ -177,6 +179,27 @@ inline void lx_disable_aslr()
 	unsigned long const orig_flags = lx_syscall(SYS_personality, 0xffffffff);
 
 	(void)lx_syscall(SYS_personality, orig_flags | ADDR_NO_RANDOMIZE);
+}
+
+
+/***********************************
+ ** Resource-limit initialization **
+ ***********************************/
+
+inline void lx_boost_rlimit()
+{
+	rlimit rlimit { };
+
+	if (int const res = lx_syscall(SYS_getrlimit, RLIMIT_NOFILE, &rlimit)) {
+		Genode::warning("unable to obtain RLIMIT_NOFILE (", res, "), keeping limit unchanged");
+		return;
+	}
+
+	/* increase soft limit to hard limit */
+	rlimit.rlim_cur = rlimit.rlim_max;
+
+	if (int const res = lx_syscall(SYS_setrlimit, RLIMIT_NOFILE, &rlimit))
+		Genode::warning("unable to boost RLIMIT_NOFILE (", res, "), keeping limit unchanged");
 }
 
 

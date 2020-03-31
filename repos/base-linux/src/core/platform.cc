@@ -94,6 +94,9 @@ Platform::Platform()
 	/* make 'mmap' behave deterministically */
 	lx_disable_aslr();
 
+	/* increase maximum number of open file descriptors to the hard limit */
+	lx_boost_rlimit();
+
 	/* catch control-c */
 	lx_sigaction(LX_SIGINT, sigint_handler, false);
 
