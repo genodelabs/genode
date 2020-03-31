@@ -350,15 +350,5 @@ build { server/lx_block app/menu_view app/sculpt_manager }
 
 build_boot_image { lx_block menu_view sculpt_manager ahci-1.img }
 
-if {[have_spec linux]} {
-	set max_fds [exec bash -c "ulimit -n"]
-	if {$max_fds < 4096} {
-		puts stderr "\nMaximum number of file descriptors is too low for this run script."
-		puts stderr "You may use the following command to increase the limit:\n"
-		puts stderr "  ulimit -n 4096\n"
-		exit 1
-	}
-}
-
 run_genode_until forever
 
