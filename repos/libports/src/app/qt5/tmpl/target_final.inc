@@ -20,7 +20,7 @@ vpath %.qrc $(abspath $(addprefix $(PRG_DIR)/,$(sort $(dir $(RESOURCES)))))
 
 $(addsuffix .o,$(basename $(SRC_CC))): $(addprefix ui_,$(FORMS:.ui=.h))
 
-LIBS += libc base
+LIBS += libc
 
 # QtCore
 ifeq ($(findstring core, $(QT)), core)

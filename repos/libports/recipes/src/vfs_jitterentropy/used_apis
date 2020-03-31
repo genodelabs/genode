@@ -1,6 +1,5 @@
 base
+jitterentropy
 os
 so
-libc
 vfs
-jitterentropy

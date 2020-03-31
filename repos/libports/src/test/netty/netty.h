@@ -18,7 +18,6 @@
 #include <base/log.h>
 #include <base/attached_rom_dataspace.h>
 #include <libc/component.h>
-#include <timer_session/connection.h>
 
 /* Libc includes */
 #include <stdio.h>

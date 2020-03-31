@@ -1,5 +1,3 @@
 base
-os
 posix
 libc
-timer_session

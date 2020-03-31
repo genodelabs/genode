@@ -1,5 +1,3 @@
 base
-so
 libc
-vfs
-os
+so

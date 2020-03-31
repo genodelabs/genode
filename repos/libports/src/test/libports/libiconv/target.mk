@@ -1,5 +1,5 @@
 TARGET = test-libiconv
-LIBS   = base libiconv
+LIBS   = libiconv
 SRC_CC = main.cc
 
 vpath main.cc $(PRG_DIR)/..

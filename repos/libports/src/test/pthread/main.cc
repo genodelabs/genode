@@ -25,7 +25,6 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/sleep.h>
-#include <base/thread.h>
 
 
 struct Thread_args {

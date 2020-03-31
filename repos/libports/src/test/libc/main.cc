@@ -17,9 +17,6 @@
  * Mixing Genode headers and libC to see it they collide...
  */
 
-/* Genode includes */
-#include <base/env.h>
-
 /* libC includes */
 extern "C" {
 #include <stdio.h>

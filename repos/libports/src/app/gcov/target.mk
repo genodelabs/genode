@@ -28,7 +28,7 @@ ifeq ($(filter-out $(SPECS),x86_64),)
 	INC_DIR += $(GCOV_PORT_DIR)/include/x86_64/gcc
 endif
 
-LIBS += base libc posix gmp stdcxx gcov-libcommon gcov-libcpp gcov-libiberty
+LIBS += libc posix gmp stdcxx gcov-libcommon gcov-libcpp gcov-libiberty
 
 vpath %.cc $(GCOV_DIR)/gcc
 

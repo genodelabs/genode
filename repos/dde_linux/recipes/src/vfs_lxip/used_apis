@@ -1,7 +1,6 @@
 base
+nic_session
 os
 so
-libc
-vfs
 timer_session
-nic_session
+vfs

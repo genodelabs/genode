@@ -1,4 +1,3 @@
 libc
-so
-zlib
 liblzma
+zlib
