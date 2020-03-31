@@ -1,3 +1,10 @@
+#
+# Please keep sections of this file sorted via 'LC_COLLATE=C sort'.
+#
+
+#
+# libc
+#
 ___mb_cur_max D 50
 ___runetype T
 ___tolower T
@@ -110,7 +117,6 @@ difftime T
 digittoint T
 dirname T
 div T
-dl_iterate_phdr W
 dladdr T
 dlclose T
 dlerror T
@@ -1062,3 +1068,214 @@ _ZN4Libc6PluginD1Ev T
 _ZN4Libc6PluginD2Ev T
 _ZN4Libc9mem_allocEv T
 _ZTIN4Libc6PluginE D 40
+
+#
+# C++ runtime (implemented in ld.lib.so which is not linked directly to libc components)
+#
+# Keep list in sync with base/lib/symbols/ld!
+#
+_Unwind_Complete T
+_Unwind_DeleteException T
+_Unwind_Resume T
+_ZNK10__cxxabiv117__class_type_info10__do_catchEPKSt9type_infoPPvj T
+_ZNK10__cxxabiv120__si_class_type_info11__do_upcastEPKNS_17__class_type_infoEPKvRNS1_15__upcast_resultE T
+_ZNK10__cxxabiv120__si_class_type_info12__do_dyncastElNS_17__class_type_info10__sub_kindEPKS1_PKvS4_S6_RNS1_16__dyncast_resultE T
+_ZNK10__cxxabiv120__si_class_type_info20__do_find_public_srcElPKvPKNS_17__class_type_infoES2_ T
+_ZNKSt13bad_exception4whatEv T
+_ZNKSt9exception4whatEv T
+_ZNSt13bad_exceptionD0Ev T
+_ZNSt13bad_exceptionD1Ev T
+_ZNSt13bad_exceptionD2Ev T
+_ZNSt9exceptionD0Ev T
+_ZNSt9exceptionD1Ev T
+_ZNSt9exceptionD2Ev T
+_ZSt18uncaught_exceptionv T
+_ZSt19uncaught_exceptionsv T
+_ZSt9terminatev T
+_ZTIDd D 16
+_ZTIDe D 16
+_ZTIDf D 16
+_ZTIDi D 16
+_ZTIDn D 16
+_ZTIDs D 16
+_ZTIN10__cxxabiv115__forced_unwindE D 16
+_ZTIN10__cxxabiv116__enum_type_infoE D 24
+_ZTIN10__cxxabiv117__class_type_infoE D 24
+_ZTIN10__cxxabiv117__pbase_type_infoE D 24
+_ZTIN10__cxxabiv119__foreign_exceptionE D 16
+_ZTIN10__cxxabiv119__pointer_type_infoE D 24
+_ZTIN10__cxxabiv120__function_type_infoE D 24
+_ZTIN10__cxxabiv120__si_class_type_infoE D 24
+_ZTIN10__cxxabiv121__vmi_class_type_infoE D 24
+_ZTIN10__cxxabiv123__fundamental_type_infoE D 24
+_ZTIPDd D 32
+_ZTIPDe D 32
+_ZTIPDf D 32
+_ZTIPDi D 32
+_ZTIPDn D 32
+_ZTIPDs D 32
+_ZTIPKDd D 32
+_ZTIPKDe D 32
+_ZTIPKDf D 32
+_ZTIPKDi D 32
+_ZTIPKDn D 32
+_ZTIPKDs D 32
+_ZTIPKa D 32
+_ZTIPKb D 32
+_ZTIPKc D 32
+_ZTIPKd D 32
+_ZTIPKe D 32
+_ZTIPKf D 32
+_ZTIPKh D 32
+_ZTIPKi D 32
+_ZTIPKj D 32
+_ZTIPKl D 32
+_ZTIPKm D 32
+_ZTIPKs D 32
+_ZTIPKt D 32
+_ZTIPKx D 32
+_ZTIPKy D 32
+_ZTIPVKa D 32
+_ZTIPVKb D 32
+_ZTIPVKc D 32
+_ZTIPVKd D 32
+_ZTIPVKe D 32
+_ZTIPVKf D 32
+_ZTIPVKh D 32
+_ZTIPVKi D 32
+_ZTIPVKj D 32
+_ZTIPVKl D 32
+_ZTIPVKm D 32
+_ZTIPVKs D 32
+_ZTIPVKt D 32
+_ZTIPVKx D 32
+_ZTIPVKy D 32
+_ZTIPVa D 32
+_ZTIPVb D 32
+_ZTIPVc D 32
+_ZTIPVd D 32
+_ZTIPVe D 32
+_ZTIPVf D 32
+_ZTIPVh D 32
+_ZTIPVi D 32
+_ZTIPVj D 32
+_ZTIPVl D 32
+_ZTIPVm D 32
+_ZTIPVs D 32
+_ZTIPVt D 32
+_ZTIPVx D 32
+_ZTIPVy D 32
+_ZTIPa D 32
+_ZTIPb D 32
+_ZTIPc D 32
+_ZTIPd D 32
+_ZTIPe D 32
+_ZTIPf D 32
+_ZTIPh D 32
+_ZTIPi D 32
+_ZTIPj D 32
+_ZTIPl D 32
+_ZTIPm D 32
+_ZTIPs D 32
+_ZTIPt D 32
+_ZTIPx D 32
+_ZTIPy D 32
+_ZTISt10bad_typeid D 24
+_ZTISt13bad_exception D 24
+_ZTISt16bad_array_length D 24
+_ZTISt20bad_array_new_length D 24
+_ZTISt8bad_cast D 24
+_ZTISt9bad_alloc D 24
+_ZTISt9exception D 16
+_ZTISt9type_info D 16
+_ZTIa D 32
+_ZTIb D 32
+_ZTIc D 32
+_ZTId D 32
+_ZTIe D 32
+_ZTIf D 32
+_ZTIh D 32
+_ZTIi D 32
+_ZTIj D 32
+_ZTIl D 32
+_ZTIm D 32
+_ZTIs D 32
+_ZTIt D 32
+_ZTIx D 32
+_ZTIy D 32
+_ZTSN10__cxxabiv115__forced_unwindE R 32
+_ZTSN10__cxxabiv116__enum_type_infoE R 33
+_ZTSN10__cxxabiv117__class_type_infoE R 34
+_ZTSN10__cxxabiv117__pbase_type_infoE R 34
+_ZTSN10__cxxabiv119__foreign_exceptionE R 36
+_ZTSN10__cxxabiv119__pointer_type_infoE R 36
+_ZTSN10__cxxabiv120__function_type_infoE R 37
+_ZTSN10__cxxabiv120__si_class_type_infoE R 37
+_ZTSN10__cxxabiv121__vmi_class_type_infoE R 38
+_ZTSN10__cxxabiv123__fundamental_type_infoE R 40
+_ZTSSt10bad_typeid R 15
+_ZTSSt13bad_exception R 18
+_ZTSSt16bad_array_length R 21
+_ZTSSt20bad_array_new_length R 25
+_ZTSSt8bad_cast R 12
+_ZTSSt9bad_alloc R 13
+_ZTSSt9exception R 13
+_ZTSSt9type_info R 13
+_ZTVN10__cxxabiv115__forced_unwindE D 40
+_ZTVN10__cxxabiv116__enum_type_infoE D 64
+_ZTVN10__cxxabiv117__class_type_infoE D 88
+_ZTVN10__cxxabiv117__pbase_type_infoE D 72
+_ZTVN10__cxxabiv119__foreign_exceptionE D 40
+_ZTVN10__cxxabiv119__pointer_type_infoE D 72
+_ZTVN10__cxxabiv120__function_type_infoE D 64
+_ZTVN10__cxxabiv120__si_class_type_infoE D 88
+_ZTVN10__cxxabiv121__vmi_class_type_infoE D 88
+_ZTVN10__cxxabiv123__fundamental_type_infoE D 64
+_ZTVSt10bad_typeid D 40
+_ZTVSt13bad_exception D 40
+_ZTVSt16bad_array_length D 40
+_ZTVSt20bad_array_new_length D 40
+_ZTVSt8bad_cast D 40
+_ZTVSt9bad_alloc D 40
+_ZTVSt9exception D 40
+_ZTVSt9type_info D 64
+_ZdlPv W
+_ZdlPvm W
+__aeabi_atexit T
+__aeabi_unwind_cpp_pr0 T
+__aeabi_unwind_cpp_pr1 T
+__cxa_allocate_dependent_exception T
+__cxa_allocate_exception T
+__cxa_atexit T
+__cxa_bad_cast T
+__cxa_bad_typeid T
+__cxa_begin_catch T
+__cxa_begin_cleanup T
+__cxa_call_terminate T
+__cxa_call_unexpected T
+__cxa_current_exception_type T
+__cxa_demangle T
+__cxa_end_catch T
+__cxa_end_cleanup T
+__cxa_finalize T
+__cxa_free_dependent_exception T
+__cxa_free_exception T
+__cxa_get_exception_ptr T
+__cxa_get_globals T
+__cxa_get_globals_fast T
+__cxa_guard_abort T
+__cxa_guard_acquire T
+__cxa_guard_release T
+__cxa_pure_virtual T
+__cxa_rethrow T
+__cxa_throw T
+__cxa_throw_bad_array_length T
+__cxa_throw_bad_array_new_length T
+__cxa_type_match T
+__dynamic_cast T
+__emutls_get_address T
+__gxx_personality_v0 T
+__stack_chk_fail W
+__stack_chk_guard B 8
+dl_iterate_phdr T
+dl_unwind_find_exidx T

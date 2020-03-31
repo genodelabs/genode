@@ -28,7 +28,7 @@
 # of the dynamic linker. I.e., there are a few symbols that are specific for a
 # particular kernel or the C++ ABI of a specific architecture.
 #
-# Please keep the file sorted via 'LC_COLLATE=C sort'.
+# Please keep sections of this file sorted via 'LC_COLLATE=C sort'.
 #
 
 #
@@ -38,9 +38,6 @@
 # under the terms of the GNU Affero General Public License version 3.
 #
 
-_Unwind_Complete T
-_Unwind_DeleteException T
-_Unwind_Resume T
 _Z11genode_exiti T
 _Z13genode_atexitPFvvE T
 _Z16main_thread_utcbv T
@@ -52,8 +49,8 @@ _ZN5Timer10Connection18_schedule_periodicERN6Genode7TimeoutENS1_12MicrosecondsE 
 _ZN5Timer10Connection8_discardERN6Genode7TimeoutE T
 _ZN5Timer10Connection9curr_timeEv T
 _ZN5Timer10ConnectionC1ERN6Genode3EnvEPKc T
-_ZN5Timer10ConnectionC2ERN6Genode3EnvEPKc T
 _ZN5Timer10ConnectionC1ERN6Genode3EnvERNS1_10EntrypointEPKc T
+_ZN5Timer10ConnectionC2ERN6Genode3EnvEPKc T
 _ZN5Timer10ConnectionC2ERN6Genode3EnvERNS1_10EntrypointEPKc T
 _ZN6Genode10Entrypoint16_dispatch_signalERNS_6SignalE T
 _ZN6Genode10Entrypoint16schedule_suspendEPFvvES2_ T
@@ -339,10 +336,6 @@ _ZN6Genode8Duration3addENS_12MicrosecondsE T
 _ZN6Genode8Duration3addENS_12MillisecondsE T
 _ZN6Genode8ipc_callENS_17Native_capabilityERNS_11Msgbuf_baseES2_m T
 _ZN6Genode9ipc_replyENS_17Native_capabilityENS_18Rpc_exception_codeERNS_11Msgbuf_baseE T
-_ZNK10__cxxabiv117__class_type_info10__do_catchEPKSt9type_infoPPvj T
-_ZNK10__cxxabiv120__si_class_type_info11__do_upcastEPKNS_17__class_type_infoEPKvRNS1_15__upcast_resultE T
-_ZNK10__cxxabiv120__si_class_type_info12__do_dyncastElNS_17__class_type_info10__sub_kindEPKS1_PKvS4_S6_RNS1_16__dyncast_resultE T
-_ZNK10__cxxabiv120__si_class_type_info20__do_find_public_srcElPKvPKNS_17__class_type_infoES2_ T
 _ZNK6Genode11Sliced_heap8overheadEm T
 _ZNK6Genode13Session_state24generate_session_requestERNS_13Xml_generatorE T
 _ZNK6Genode13Session_state25generate_client_side_infoERNS_13Xml_generatorENS0_6DetailE T
@@ -369,6 +362,109 @@ _ZNK6Genode6Thread9stack_topEv T
 _ZNK6Genode8Duration17trunc_to_plain_msEv T
 _ZNK6Genode8Duration17trunc_to_plain_usEv T
 _ZNK6Genode8Duration9less_thanERKS0_ T
+_ZTIN5Timer10ConnectionE D 88
+_ZTIN6Genode10Vm_sessionE D 24
+_ZTIN6Genode11Sliced_heapE D 24
+_ZTIN6Genode14Rpc_entrypointE D 56
+_ZTIN6Genode14Signal_contextE D 56
+_ZTIN6Genode17Region_map_clientE D 24
+_ZTIN6Genode17Rm_session_clientE D 24
+_ZTIN6Genode18Allocator_avl_baseE D 24
+_ZTIN6Genode23Alarm_timeout_schedulerE D 72
+_ZTIN6Genode4HeapE D 24
+_ZTIN6Genode4SlabE D 24
+_ZTIN6Genode5AlarmE D 16
+_ZTIN6Genode5Child14Initial_threadE D 24
+_ZTIN6Genode5ChildE D 72
+_ZTIN6Genode6OutputE D 24
+_ZTIN6Genode6ThreadE D 16
+_ZTIN6Genode7ConsoleE D 16
+_ZTIN6Genode7Timeout5AlarmE D 16
+_ZTSN5Timer10ConnectionE R 21
+_ZTSN6Genode11Sliced_heapE R 23
+_ZTSN6Genode14Rpc_entrypointE R 26
+_ZTSN6Genode14Signal_contextE R 26
+_ZTSN6Genode17Region_map_clientE R 29
+_ZTSN6Genode17Rm_session_clientE R 29
+_ZTSN6Genode18Allocator_avl_baseE R 30
+_ZTSN6Genode23Alarm_timeout_schedulerE R 35
+_ZTSN6Genode4HeapE R 15
+_ZTSN6Genode4SlabE R 15
+_ZTSN6Genode5AlarmE R 16
+_ZTSN6Genode5Child14Initial_threadE R 32
+_ZTSN6Genode5ChildE R 16
+_ZTSN6Genode6OutputE R 17
+_ZTSN6Genode6ThreadE R 17
+_ZTSN6Genode7ConsoleE R 18
+_ZTSN6Genode7Timeout5AlarmE R 24
+_ZTVN5Timer10ConnectionE D 320
+_ZTVN6Genode10Vm_sessionE D 56
+_ZTVN6Genode11Sliced_heapE D 72
+_ZTVN6Genode14Rpc_entrypointE D 80
+_ZTVN6Genode14Signal_contextE D 32
+_ZTVN6Genode17Region_map_clientE D 72
+_ZTVN6Genode17Rm_session_clientE D 48
+_ZTVN6Genode18Allocator_avl_baseE D 128
+_ZTVN6Genode23Alarm_timeout_schedulerE D 112
+_ZTVN6Genode4HeapE D 72
+_ZTVN6Genode4SlabE D 72
+_ZTVN6Genode5AlarmE D 40
+_ZTVN6Genode5Child14Initial_threadE D 48
+_ZTVN6Genode5ChildE D 440
+_ZTVN6Genode6OutputE D 48
+_ZTVN6Genode6ThreadE D 48
+_ZTVN6Genode7ConsoleE D 48
+_ZTVN6Genode7Timeout5AlarmE D 32
+_ZThn236_N5Timer10Connection16schedule_timeoutEN6Genode12MicrosecondsERNS1_11Time_source15Timeout_handlerE T
+_ZThn236_N5Timer10Connection9curr_timeEv T
+_ZThn240_N5Timer10Connection18_schedule_one_shotERN6Genode7TimeoutENS1_12MicrosecondsE T
+_ZThn240_N5Timer10Connection18_schedule_periodicERN6Genode7TimeoutENS1_12MicrosecondsE T
+_ZThn240_N5Timer10Connection8_discardERN6Genode7TimeoutE T
+_ZThn240_N5Timer10Connection9curr_timeEv T
+_ZThn288_N5Timer10Connection16schedule_timeoutEN6Genode12MicrosecondsERNS1_11Time_source15Timeout_handlerE T
+_ZThn288_N5Timer10Connection9curr_timeEv T
+_ZThn296_N5Timer10Connection18_schedule_one_shotERN6Genode7TimeoutENS1_12MicrosecondsE T
+_ZThn296_N5Timer10Connection18_schedule_periodicERN6Genode7TimeoutENS1_12MicrosecondsE T
+_ZThn296_N5Timer10Connection8_discardERN6Genode7TimeoutE T
+_ZThn296_N5Timer10Connection9curr_timeEv T
+_ZThn4_N6Genode23Alarm_timeout_scheduler14handle_timeoutENS_8DurationE T
+_ZThn8_N6Genode23Alarm_timeout_scheduler14handle_timeoutENS_8DurationE T
+_ZThn8_N6Genode23Alarm_timeout_schedulerD0Ev T
+_ZThn8_N6Genode23Alarm_timeout_schedulerD1Ev T
+_ZdlPvPN6Genode11DeallocatorE T
+_ZdlPvPN6Genode9AllocatorE W
+_ZdlPvRN6Genode11DeallocatorE T
+_ZdlPvRN6Genode9AllocatorE W
+_ZnajPN6Genode9AllocatorE T
+_ZnajRN6Genode9AllocatorE T
+_ZnamPN6Genode9AllocatorE T
+_ZnamRN6Genode9AllocatorE T
+_ZnwjPN6Genode9AllocatorE T
+_ZnwjRN6Genode9AllocatorE T
+_ZnwmPN6Genode9AllocatorE T
+_ZnwmRN6Genode9AllocatorE T
+genode_argc D 4
+genode_argv D 8
+genode_envp B 8
+lx_environ B 8
+memcpy W
+memmove W
+memset W
+stdout_reconnect T
+wait_for_continue T
+
+#
+# C++ runtime
+#
+# Keep list in sync with libports/lib/symbols/libc!
+#
+_Unwind_Complete T
+_Unwind_DeleteException T
+_Unwind_Resume T
+_ZNK10__cxxabiv117__class_type_info10__do_catchEPKSt9type_infoPPvj T
+_ZNK10__cxxabiv120__si_class_type_info11__do_upcastEPKNS_17__class_type_infoEPKvRNS1_15__upcast_resultE T
+_ZNK10__cxxabiv120__si_class_type_info12__do_dyncastElNS_17__class_type_info10__sub_kindEPKS1_PKvS4_S6_RNS1_16__dyncast_resultE T
+_ZNK10__cxxabiv120__si_class_type_info20__do_find_public_srcElPKvPKNS_17__class_type_infoES2_ T
 _ZNKSt13bad_exception4whatEv T
 _ZNKSt9exception4whatEv T
 _ZNSt13bad_exceptionD0Ev T
@@ -396,24 +492,6 @@ _ZTIN10__cxxabiv120__function_type_infoE D 24
 _ZTIN10__cxxabiv120__si_class_type_infoE D 24
 _ZTIN10__cxxabiv121__vmi_class_type_infoE D 24
 _ZTIN10__cxxabiv123__fundamental_type_infoE D 24
-_ZTIN5Timer10ConnectionE D 88
-_ZTIN6Genode10Vm_sessionE D 24
-_ZTIN6Genode11Sliced_heapE D 24
-_ZTIN6Genode14Rpc_entrypointE D 56
-_ZTIN6Genode14Signal_contextE D 56
-_ZTIN6Genode17Region_map_clientE D 24
-_ZTIN6Genode17Rm_session_clientE D 24
-_ZTIN6Genode18Allocator_avl_baseE D 24
-_ZTIN6Genode23Alarm_timeout_schedulerE D 72
-_ZTIN6Genode4HeapE D 24
-_ZTIN6Genode4SlabE D 24
-_ZTIN6Genode5AlarmE D 16
-_ZTIN6Genode5Child14Initial_threadE D 24
-_ZTIN6Genode5ChildE D 72
-_ZTIN6Genode6OutputE D 24
-_ZTIN6Genode6ThreadE D 16
-_ZTIN6Genode7ConsoleE D 16
-_ZTIN6Genode7Timeout5AlarmE D 16
 _ZTIPDd D 32
 _ZTIPDe D 32
 _ZTIPDf D 32
@@ -519,23 +597,6 @@ _ZTSN10__cxxabiv120__function_type_infoE R 37
 _ZTSN10__cxxabiv120__si_class_type_infoE R 37
 _ZTSN10__cxxabiv121__vmi_class_type_infoE R 38
 _ZTSN10__cxxabiv123__fundamental_type_infoE R 40
-_ZTSN5Timer10ConnectionE R 21
-_ZTSN6Genode11Sliced_heapE R 23
-_ZTSN6Genode14Rpc_entrypointE R 26
-_ZTSN6Genode14Signal_contextE R 26
-_ZTSN6Genode17Region_map_clientE R 29
-_ZTSN6Genode17Rm_session_clientE R 29
-_ZTSN6Genode18Allocator_avl_baseE R 30
-_ZTSN6Genode23Alarm_timeout_schedulerE R 35
-_ZTSN6Genode4HeapE R 15
-_ZTSN6Genode4SlabE R 15
-_ZTSN6Genode5AlarmE R 16
-_ZTSN6Genode5Child14Initial_threadE R 32
-_ZTSN6Genode5ChildE R 16
-_ZTSN6Genode6OutputE R 17
-_ZTSN6Genode6ThreadE R 17
-_ZTSN6Genode7ConsoleE R 18
-_ZTSN6Genode7Timeout5AlarmE R 24
 _ZTSSt10bad_typeid R 15
 _ZTSSt13bad_exception R 18
 _ZTSSt16bad_array_length R 21
@@ -554,24 +615,6 @@ _ZTVN10__cxxabiv120__function_type_infoE D 64
 _ZTVN10__cxxabiv120__si_class_type_infoE D 88
 _ZTVN10__cxxabiv121__vmi_class_type_infoE D 88
 _ZTVN10__cxxabiv123__fundamental_type_infoE D 64
-_ZTVN5Timer10ConnectionE D 320
-_ZTVN6Genode10Vm_sessionE D 56
-_ZTVN6Genode11Sliced_heapE D 72
-_ZTVN6Genode14Rpc_entrypointE D 80
-_ZTVN6Genode14Signal_contextE D 32
-_ZTVN6Genode17Region_map_clientE D 72
-_ZTVN6Genode17Rm_session_clientE D 48
-_ZTVN6Genode18Allocator_avl_baseE D 128
-_ZTVN6Genode23Alarm_timeout_schedulerE D 112
-_ZTVN6Genode4HeapE D 72
-_ZTVN6Genode4SlabE D 72
-_ZTVN6Genode5AlarmE D 40
-_ZTVN6Genode5Child14Initial_threadE D 48
-_ZTVN6Genode5ChildE D 440
-_ZTVN6Genode6OutputE D 48
-_ZTVN6Genode6ThreadE D 48
-_ZTVN6Genode7ConsoleE D 48
-_ZTVN6Genode7Timeout5AlarmE D 32
 _ZTVSt10bad_typeid D 40
 _ZTVSt13bad_exception D 40
 _ZTVSt16bad_array_length D 40
@@ -580,36 +623,8 @@ _ZTVSt8bad_cast D 40
 _ZTVSt9bad_alloc D 40
 _ZTVSt9exception D 40
 _ZTVSt9type_info D 64
-_ZThn236_N5Timer10Connection16schedule_timeoutEN6Genode12MicrosecondsERNS1_11Time_source15Timeout_handlerE T
-_ZThn236_N5Timer10Connection9curr_timeEv T
-_ZThn240_N5Timer10Connection18_schedule_one_shotERN6Genode7TimeoutENS1_12MicrosecondsE T
-_ZThn240_N5Timer10Connection18_schedule_periodicERN6Genode7TimeoutENS1_12MicrosecondsE T
-_ZThn240_N5Timer10Connection8_discardERN6Genode7TimeoutE T
-_ZThn240_N5Timer10Connection9curr_timeEv T
-_ZThn288_N5Timer10Connection16schedule_timeoutEN6Genode12MicrosecondsERNS1_11Time_source15Timeout_handlerE T
-_ZThn288_N5Timer10Connection9curr_timeEv T
-_ZThn296_N5Timer10Connection18_schedule_one_shotERN6Genode7TimeoutENS1_12MicrosecondsE T
-_ZThn296_N5Timer10Connection18_schedule_periodicERN6Genode7TimeoutENS1_12MicrosecondsE T
-_ZThn296_N5Timer10Connection8_discardERN6Genode7TimeoutE T
-_ZThn296_N5Timer10Connection9curr_timeEv T
-_ZThn4_N6Genode23Alarm_timeout_scheduler14handle_timeoutENS_8DurationE T
-_ZThn8_N6Genode23Alarm_timeout_scheduler14handle_timeoutENS_8DurationE T
-_ZThn8_N6Genode23Alarm_timeout_schedulerD0Ev T
-_ZThn8_N6Genode23Alarm_timeout_schedulerD1Ev T
 _ZdlPv W
-_ZdlPvPN6Genode11DeallocatorE T
-_ZdlPvPN6Genode9AllocatorE W
-_ZdlPvRN6Genode11DeallocatorE T
-_ZdlPvRN6Genode9AllocatorE W
 _ZdlPvm W
-_ZnajPN6Genode9AllocatorE T
-_ZnajRN6Genode9AllocatorE T
-_ZnamPN6Genode9AllocatorE T
-_ZnamRN6Genode9AllocatorE T
-_ZnwjPN6Genode9AllocatorE T
-_ZnwjRN6Genode9AllocatorE T
-_ZnwmPN6Genode9AllocatorE T
-_ZnwmRN6Genode9AllocatorE T
 __aeabi_atexit T
 __aeabi_unwind_cpp_pr0 T
 __aeabi_unwind_cpp_pr1 T
@@ -648,12 +663,3 @@ __stack_chk_fail W
 __stack_chk_guard B 8
 dl_iterate_phdr T
 dl_unwind_find_exidx T
-genode_argc D 4
-genode_argv D 8
-genode_envp B 8
-lx_environ B 8
-memcpy W
-memmove W
-memset W
-stdout_reconnect T
-wait_for_continue T
