@@ -22,6 +22,7 @@ namespace Genode {
 }
 
 extern "C" size_t max_event_size ();
+extern "C" size_t log_output     (char *dst, char const *log_message, size_t len);
 extern "C" size_t rpc_call       (char *dst, char const *rpc_name, Genode::Msgbuf_base const &);
 extern "C" size_t rpc_returned   (char *dst, char const *rpc_name, Genode::Msgbuf_base const &);
 extern "C" size_t rpc_dispatch   (char *dst, char const *rpc_name);
