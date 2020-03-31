@@ -124,6 +124,10 @@ void Monitor::print(bool activity, bool affinity)
 		memcpy(_curr_entry_data, entry.data(), length);
 		_curr_entry_data[length] = '\0';
 
+		/* avoid output of empty lines due to end of line character at end */
+		if (_curr_entry_data[length - 1] == '\n')
+			_curr_entry_data[length - 1] = '\0';
+
 		/* print copied entry data out to log */
 		if (!printed_buf_entries) {
 			log("   <buffer>");
