@@ -244,10 +244,11 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Mutex
 		struct Guard
 		{
 			Node &node;
+			bool release { true };
 
 			Guard(Node *guard_node) : node(*guard_node) { node.acquire(); }
 
-			~Guard() { node.release(); }
+			~Guard() { if (release) node.release(); }
 		};
 };
 
@@ -837,8 +838,10 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (!to_dir) return RENAME_ERR_NO_ENTRY;
 
 			/* unlock the node so a second guard can be constructed */
-			if (from_dir == to_dir)
+			if (from_dir == to_dir) {
 				from_dir->Node::release();
+				from_guard.release = false;
+			}
 
 			Node::Guard to_guard(to_dir);
 
