@@ -27,7 +27,7 @@
 				<any-service> <parent/> </any-service>
 			</route>
 			<config>
-				<iterations value="1"/>}
+				<iterations value="1"/>
 				<write-read size="1M" buffer_size="8K"/>
 				<vfs>
 					<dir name="tmp"> <ram/> </dir>
