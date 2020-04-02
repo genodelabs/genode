@@ -312,7 +312,9 @@ class Hw::Long_translation_table
 			}
 		}
 
-	public:
+        static inline void _update_cache(addr_t, size_t);
+
+public:
 
 		bool empty()
 		{
@@ -321,6 +323,10 @@ class Hw::Long_translation_table
 					return false;
 			return true;
 		}
+
+
+
+
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 
@@ -355,7 +361,9 @@ class Hw::Level_3_translation_table :
 						| Descriptor::Table::bits(1);
 					if (Descriptor::valid(desc) && desc != blk_desc)
 						throw Double_insertion();
-					desc = blk_desc;
+
+                    desc = blk_desc;
+                    Level_3_translation_table::_update_cache((addr_t) &desc, sizeof(desc));
 				}
 		};
 
@@ -367,7 +375,9 @@ class Hw::Level_3_translation_table :
 				                  addr_t /* pa */,
 				                  size_t /* size */,
 				                  Descriptor::access_t &desc) {
-					desc = 0; }
+					desc = 0;
+                    Level_3_translation_table::_update_cache((addr_t) &desc, sizeof(desc));
+				}
 		};
 
 		struct Lookup_func
@@ -399,7 +409,8 @@ class Hw::Level_3_translation_table :
 		                        size_t size,
 		                        Page_flags const & flags,
 		                        Allocator &) {
-			_range_op(vo, pa, size, Insert_func(flags)); }
+			_range_op(vo, pa, size, Insert_func(flags));
+		}
 
 		void remove_translation(addr_t vo, size_t size, Allocator&)
 		{
@@ -433,11 +444,14 @@ class Hw::Level_x_translation_table :
 		using Table_descriptor = typename Base::Table_descriptor;
 		using Block_descriptor = typename Stage_trait<Base, STAGE>::Type;
 
+
+
 		template <typename E>
 		struct Insert_func
 		{
 			Page_flags const & flags;
 			Allocator        & alloc;
+
 
 			Insert_func(Page_flags const & flags, Allocator & alloc)
 			: flags(flags), alloc(alloc) { }
@@ -457,6 +471,7 @@ class Hw::Level_x_translation_table :
 					if (Descriptor::valid(desc) && desc != blk_desc)
 						throw typename Base::Double_insertion();
 					desc = blk_desc;
+                    Level_x_translation_table::_update_cache((addr_t) &desc, sizeof(desc));
 					return;
 				}
 
@@ -468,15 +483,17 @@ class Hw::Level_x_translation_table :
 						/* create and link next level table */
 						E & table = alloc.construct<E>();
 						desc = Table_descriptor::create((void*)alloc.phys_addr(table));
+						Level_x_translation_table::_update_cache((addr_t) &desc, sizeof(desc));
 					}
 					[[fallthrough]];
 				case Descriptor::TABLE: /* table already available */
 					{
-						/* use allocator to retrieve virt address of table */
+                        /* use allocator to retrieve virt address of table */
 						E & table = alloc.virt_addr<E>(Nt::masked(desc));
 						table.insert_translation(vo - (vo & Base::BLOCK_MASK),
 						                         pa, size, flags, alloc);
-						break;
+                        Level_x_translation_table::_update_cache((addr_t) &table, sizeof(table));
+                        break;
 					}
 
 				case Descriptor::BLOCK: /* there is already a block */
@@ -509,12 +526,16 @@ class Hw::Level_x_translation_table :
 						E & table = alloc.virt_addr<E>(Nt::masked(desc));
 						table.remove_translation(vo - (vo & Base::BLOCK_MASK),
 						                         size, alloc);
+						Level_x_translation_table::_update_cache((addr_t) &table, sizeof(table));
 						if (!table.empty()) break;
 						alloc.destruct<E>(table);
 					} [[fallthrough]];
 				case Descriptor::BLOCK: [[fallthrough]];
 				case Descriptor::INVALID:
-					desc = 0;
+					{
+						desc = 0;
+                        Level_x_translation_table::_update_cache((addr_t) &desc, sizeof(desc));
+					}
 				}
 			}
 		};
@@ -556,7 +577,10 @@ class Hw::Level_x_translation_table :
 			}
 		};
 
-	public:
+
+
+
+public:
 
 		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
 		static constexpr size_t ALIGNM_LOG2        = SIZE_LOG2_16KB;
@@ -577,7 +601,8 @@ class Hw::Level_x_translation_table :
 		                        size_t size,
 		                        Page_flags const & flags,
 		                        Allocator        & alloc) {
-			this->_range_op(vo, pa, size, Insert_func<ENTRY>(flags, alloc)); }
+			this->_range_op(vo, pa, size, Insert_func<ENTRY>(flags, alloc));
+		}
 
 		/**
 		 * Remove translations that overlap with a given virtual region
@@ -609,6 +634,7 @@ class Hw::Level_x_translation_table :
 			phys = functor.phys;
 			return functor.found;
 		}
+
 };
 
 
