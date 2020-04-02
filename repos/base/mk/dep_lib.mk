@@ -81,7 +81,7 @@ include $(BASE_DIR)/mk/base-libs.mk
 include $(LIB_MK)
 
 ifdef SHARED_LIB
-LIBS += ldso-startup
+LIBS += ldso_so_support
 endif
 
 #

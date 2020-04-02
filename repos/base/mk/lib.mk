@@ -181,10 +181,11 @@ $(LIB_A): $(OBJECTS)
 	$(VERBOSE)$(AR) -rcs $@ $(OBJECTS)
 
 #
-# Link ldso-startup library to each shared library
+# Link ldso-support library to each shared library to provide local hook
+# functions for constructors and ARM
 #
 ifdef SHARED_LIB
-override ARCHIVES += ldso-startup.lib.a
+override ARCHIVES += ldso_so_support.lib.a
 endif
 
 #
@@ -207,10 +208,6 @@ STATIC_LIBS_BRIEF := $(subst $(LIB_CACHE_DIR),$$libs,$(STATIC_LIBS))
 # When linking the shared library, we have to link all shared sub libraries
 # (LIB_SO_DEPS) to the library to store the library-dependency information in
 # the generated shared object.
-#
-# The 'ldso-startup/startup.o' object file, which contains the support code for
-# constructing static objects must be specified as object file to prevent the
-# linker from garbage-collecting it.
 #
 
 #

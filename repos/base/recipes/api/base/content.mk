@@ -7,7 +7,7 @@ include:
 	mkdir -p include
 	cp -r $(REP_DIR)/include/* $@/
 
-LIB_MK_FILES := base.mk ld.mk ldso-startup.mk
+LIB_MK_FILES := base.mk ld.mk ldso_so_support.mk
 
 lib:
 	mkdir -p lib/mk lib/symbols
@@ -20,6 +20,11 @@ SPECS := x86_32 x86_64 32bit 64bit
 mk/spec:
 	mkdir -p $@
 	cp $(foreach spec,$(SPECS),$(REP_DIR)/mk/spec/$(spec).mk) $@
+
+content: lib/mk/ldso_so_support.mk src/lib/ldso/so_support.c
+
+lib/mk/ldso_so_support.mk src/lib/ldso/so_support.c:
+	$(mirror_from_rep_dir)
 
 LICENSE:
 	cp $(GENODE_DIR)/LICENSE $@
