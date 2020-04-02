@@ -41,6 +41,11 @@ _host_to_vm:
 
 	msr vttbr_el2, x3   /* stage2 table pointer was arg3 */
 
+    adr x5, .           /* store return adress of _flush_tlb_vm */
+    add x5, x5, #16
+	cmp x4, #1          /* arg4 is invalidation flag of vm tlb */
+	beq _flush_tlb_vm
+
 	add  x0, x0, #31*8  /* skip x0...x30, loaded later */
 
 	ldr  x1,      [x0], #1*8  /* sp         */
@@ -363,7 +368,12 @@ _vm_to_host:
 
 	eret
 
+_flush_tlb_vm:
+    tlbi alle1					/* this should be done respective to the VMID */
+    br x5               /* return to _host_to_vm */
+
 /* host kernel must jump to this point to switch to a vm */
 .global hypervisor_enter_vm
 hypervisor_enter_vm:
 	hvc #0
+

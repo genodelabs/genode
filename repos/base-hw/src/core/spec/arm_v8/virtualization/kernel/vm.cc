@@ -29,7 +29,8 @@ using Kernel::Vm;
 extern "C" void   kernel();
 extern     void * kernel_stack;
 extern "C" void   hypervisor_enter_vm(addr_t vm, addr_t host,
-                                      addr_t pic, addr_t guest_table);
+                                      addr_t pic, addr_t guest_table,
+                                      bool invalidate_tlb_vm);
 
 
 static Genode::Vm_state & host_context()
@@ -204,7 +205,14 @@ void Vm::proceed(Cpu & cpu)
 	addr_t host  = Hw::Mm::el2_addr(&host_context());
 	host_context().sp_el1 = cpu.stack_start();
 
-	hypervisor_enter_vm(guest, host, pic, vttbr_el2);
+	/* check and reset invalidation flag */
+    bool inval_tlb_vm = false;
+	if (_inval_tlb_vm) {
+        inval_tlb_vm = true;
+        _inval_tlb_vm = false;
+	}
+
+	hypervisor_enter_vm(guest, host, pic, vttbr_el2, inval_tlb_vm);
 }
 
 void Vm::inject_irq(unsigned irq)
@@ -212,4 +220,13 @@ void Vm::inject_irq(unsigned irq)
 	_state.irqs.last_irq = irq;
 	pause();
 	_context.submit(1);
+}
+
+bool Vm::_inval_tlb_vm = false;
+
+void Vm::invalidate_tlb_vm() {
+    /*
+     * set invalidation flag; invalidation is done by the hypervisor
+     */
+    _inval_tlb_vm = true;
 }

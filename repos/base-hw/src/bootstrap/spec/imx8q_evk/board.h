@@ -30,4 +30,7 @@ namespace Board {
 	using Hw::Pic;
 };
 
+template <unsigned BLOCK_SIZE_LOG2, unsigned SZ_LOG2>
+void Hw::Long_translation_table<BLOCK_SIZE_LOG2, SZ_LOG2>::_update_cache(unsigned long, unsigned long) { }
+
 #endif /* _BOOTSTRAP__SPEC__IMX8Q_EVK__BOARD_H_ */
