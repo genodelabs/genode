@@ -75,16 +75,8 @@ build_boot_image { tcp_terminal test-terminal_echo libc_pipe.lib.so }
 
 # qemu config
 
-proc qemu_nic_model {} {
-	if [have_spec x86]     { return e1000 }
-	if [have_spec lan9118] { return lan9118 }
-	if [have_spec zynq]    { return cadence_gem }
-	return nic_model_missing
-}
-
 append qemu_args " -nographic "
-append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:8888 "
-append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
+append_qemu_nic_args "hostfwd=tcp::5555-:8888"
 
 run_genode_until forever
 
