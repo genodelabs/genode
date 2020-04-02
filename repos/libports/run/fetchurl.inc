@@ -93,16 +93,8 @@ install_config {
 
 build_boot_image {}
 
-proc qemu_nic_model {} {
-	if [have_spec x86]         { return e1000 }
-	if [have_spec lan9118]     { return lan9118 }
-	if [have_spec zynq]        { return cadence_gem }
-	return nic_model_missing
-}
-
 append qemu_args " -nographic "
-append qemu_args " -netdev user,id=net0 "
-append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
+append_qemu_nic_args
 
 ## Uncomment to dump network traffic to file
 # append qemu_args " -object filter-dump,id=net0,netdev=net0,file=[run_dir].pcap"
