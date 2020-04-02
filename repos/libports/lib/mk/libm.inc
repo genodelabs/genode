@@ -10,8 +10,8 @@ LIBM_SRC_DIR := $(LIBM_PORT_DIR)src/lib/openlibm
 SHARED_LIB = yes
 LIBS += libc
 
-CC_OPT += -fno-gnu89-inline
-CC_OPT += -std=c99 -DASSEMBLER -D__BSD_VISIBLE -Wno-implicit-function-declaration
+CC_C_OPT += -fno-gnu89-inline
+CC_C_OPT += -std=c99 -DASSEMBLER -D__BSD_VISIBLE -Wno-implicit-function-declaration
 
 CC_OPT += -include sys/cdefs.h
 
