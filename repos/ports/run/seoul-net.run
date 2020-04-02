@@ -57,6 +57,6 @@ foreach binary $guest_os_binaries {
 source ${genode_dir}/repos/ports/run/seoul.inc
 
 append qemu_args " -cpu phenom "
-append qemu_args " -net nic,model=e1000 "
+append_qemu_nic_args
 
 run_genode_until forever

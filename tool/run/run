@@ -1026,6 +1026,7 @@ proc build_initrd { modules } {
 }
 
 source [genode_dir]/tool/run/depot.inc
+source [genode_dir]/tool/run/qemu.inc
 
 
 ##

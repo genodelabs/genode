@@ -75,8 +75,8 @@ foreach binary $guest_os_binaries {
 source ${genode_dir}/repos/ports/run/seoul.inc
 
 append qemu_args " -cpu phenom -smp 2 "
-append qemu_args " -net nic,model=e1000 "
 append qemu_args " -nographic "
+append_qemu_nic_args
 
 if { [get_cmd_switch --autopilot] } {
 	run_genode_until {\[init -\> seoul\] VMM: #   Hello Genode world!} 300

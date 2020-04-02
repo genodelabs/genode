@@ -200,15 +200,7 @@ install_config {
 
 build_boot_image { test-net_flood ping nic_router dynamic_rom }
 
-proc qemu_nic_model {} {
-	if [have_spec x86]         { return e1000 }
-	if [have_spec lan9118]     { return lan9118 }
-	if [have_spec zynq]        { return cadence_gem }
-	return nic_model_missing
-}
-
 append qemu_args " -nographic "
-append qemu_args " -netdev user,id=net0 "
-append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
+append_qemu_nic_args
 
 run_genode_until {.*ping\] 64 bytes from 10\.0\.2\.2: icmp_seq=30 .*\n} [test_timeout]

@@ -4,8 +4,6 @@
 # Reset the target machine or rather run the scenario with Qemu
 #
 
-source [genode_dir]/tool/run/qemu.inc
-
 proc check_version {qemu_version qemu_min qemu_max} {
 	set version_min_list [split $qemu_min ".-"]
 	set version_min_list_len [llength $version_min_list]
