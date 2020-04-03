@@ -707,6 +707,7 @@ set default_test_pkgs {
 	test-rm_fault
 	test-rm_fault_no_nox
 	test-rm_nested
+	test-rm_stress
 	test-rom_block
 	test-rom_filter
 	test-rust
