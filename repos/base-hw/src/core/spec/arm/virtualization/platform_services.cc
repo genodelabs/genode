@@ -1,5 +1,5 @@
 /*
- * \brief   Platform specific services for Arndale
+ * \brief   Platform specific services for ARM with virtualization
  * \author  Stefan Kalkowski
  * \date    2014-07-08
  */

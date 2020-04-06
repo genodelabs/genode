@@ -3,10 +3,8 @@ proc have_platform_drv {} {
 		return 0
 	}
 
-	return [expr [have_spec arndale] \
-	          || [have_spec imx53] \
+	return [expr [have_spec imx53] \
 	          || [have_spec rpi] \
-	          || [have_spec odroid_x2] \
 	          || [have_spec x86]]
 }
 
@@ -34,11 +32,9 @@ proc need_usb_hid { } {
 # Return name of the USB driver binary
 #
 proc usb_host_drv_binary { } {
-	if {[have_spec arndale]}   { return arndale_usb_host_drv   }
 	if {[have_spec rpi]}       { return rpi_usb_host_drv       }
 	if {[have_spec imx6q_sabrelite]} { return imx6q_sabrelite_usb_host_drv }
 	if {[have_spec imx8q_evk]} { return imx8q_evk_usb_host_drv }
-	if {[have_spec odroid_x2]} { return odroid_x2_usb_host_drv }
 	if {[have_spec x86]}       { return x86_pc_usb_host_drv    }
 	return no_usb_drv_available
 }
@@ -68,7 +64,6 @@ proc gpio_drv { } {
 	if {[have_spec rpi]}     { return rpi_gpio_drv     }
 	if {[have_spec imx53]}   { return imx53_gpio_drv   }
 	if {[have_spec imx6]}    { return imx6_gpio_drv    }
-	if {[have_spec exynos4]} { return exynos4_gpio_drv }
 	return no_gpio_drv_available
 }
 
@@ -94,9 +89,7 @@ proc append_platform_drv_build_components {} {
 }
 
 proc platform_drv_binary {} {
-	if {[have_spec arndale]  } { return arndale_platform_drv   }
 	if {[have_spec imx53]    } { return imx53_platform_drv     }
-	if {[have_spec odroid_x2]} { return odroid_x2_platform_drv }
 	if {[have_spec rpi]      } { return rpi_platform_drv       }
 	if {[have_spec x86]      } { return platform_drv           }
 	return no_platform_drv_available
