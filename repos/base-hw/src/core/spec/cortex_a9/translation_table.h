@@ -22,6 +22,6 @@ constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
 
 constexpr bool Hw::Page_table::Descriptor_base::_smp() { return true; }
 
-void Hw::Page_table::_translation_added(unsigned long, unsigned long) { }
+void Hw::Page_table::_table_changed(unsigned long, unsigned long) { }
 
 #endif /* _CORE__SPEC__CORTEX_A9__TRANSLATION_TABLE_H_ */

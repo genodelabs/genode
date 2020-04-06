@@ -416,7 +416,7 @@ class Hw::Page_table
 
 		enum { MAX_INDEX = sizeof(_entries) / sizeof(_entries[0]) - 1 };
 
-		static inline void _translation_added(addr_t, size_t);
+		static inline void _table_changed(addr_t, size_t);
 
 		/**
 		 * Try to get entry index in 'i' for virtual offset 'vo!
@@ -457,7 +457,7 @@ class Hw::Page_table
 					/* create and link page table */
 					Pt & pt = alloc.construct<Pt>();
 					_entries[i] = Ptd::create(alloc.phys_addr(pt));
-					_translation_added((addr_t)&_entries[i], sizeof(Ptd));
+					_table_changed((addr_t)&_entries[i], sizeof(Ptd));
 				}
 				[[fallthrough]];
 
@@ -465,7 +465,7 @@ class Hw::Page_table
 				{
 					Pt & pt = alloc.virt_addr<Pt>(Ptd::Pa::masked(_entries[i]));
 					pt.insert_translation(vo - Section::Pa::masked(vo), pa, size, flags);
-					_translation_added((addr_t)&pt, sizeof(Page_table_level_2));
+					_table_changed((addr_t)&pt, sizeof(Page_table_level_2));
 					break;
 				}
 
@@ -532,7 +532,7 @@ class Hw::Page_table
 						_entries[i] = e;
 
 						/* some CPUs need to act on changed translations */
-						_translation_added((addr_t)&_entries[i], sizeof(Section));
+						_table_changed((addr_t)&_entries[i], sizeof(Section));
 						break;
 					}
 
@@ -580,6 +580,7 @@ class Hw::Page_table
 
 						addr_t const pt_vo = vo - Section::Pa::masked(vo);
 						pt.remove_translation(pt_vo, Genode::min(size, end-vo));
+						_table_changed((addr_t)&pt, sizeof(Page_table_level_2));
 
 						if (pt.empty()) {
 							Descriptor::invalidate(_entries[i]);
@@ -588,7 +589,12 @@ class Hw::Page_table
 						break;
 					}
 
-				default: Descriptor::invalidate(_entries[i]); }
+				default:
+					{
+						Descriptor::invalidate(_entries[i]);
+						_table_changed((addr_t)&_entries[i], sizeof(Section));
+					}
+				}
 
 				/* check whether we wrap */
 				if (end < vo) return;

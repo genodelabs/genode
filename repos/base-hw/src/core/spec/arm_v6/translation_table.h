@@ -24,7 +24,7 @@ constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
 
 constexpr bool Hw::Page_table::Descriptor_base::_smp() { return false; }
 
-void Hw::Page_table::_translation_added(unsigned long addr, unsigned long size)
+void Hw::Page_table::_table_changed(unsigned long addr, unsigned long size)
 {
 	Genode::Arm_cpu::clean_data_cache_by_virt_region(addr, size);
 }
