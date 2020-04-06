@@ -49,9 +49,6 @@ class Genode::Registry_base
 
 				Registry_base &_registry;
 
-				/**
-				 * Protect '_reinsert_ptr'
-				 */
 				Mutex _mutex { };
 
 				/*
