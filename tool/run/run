@@ -819,10 +819,7 @@ proc exit {{status 0}} {
 #
 proc terminal { } {
 	global env
-	if {[info exists env(COLORTERM)]} {
-		return $env(COLORTERM)
-	}
-	return $env(TERM)
+	return x-terminal-emulator
 }
 
 
