@@ -173,7 +173,7 @@ build { app/sequence app/fs_query }
 
 build_boot_image { sequence fs_query }
 
-append qemu_args " -nographic -serial mon:stdio "
+append qemu_args " -nographic "
 
 run_genode_until {.*child "test" exited with exit value 0.*\n} 50
 
@@ -183,7 +183,7 @@ set num_listings [regexp -all {report 'fs_query -> listing'} $output dummy]
 
 # we expect at least four intermediate reports
 if {$num_listings < 4} {
-	puts "Error: too few reports generated"
+	puts "Error: Test failed with too few reports generated"
 	exit 1
 }
 

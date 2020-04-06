@@ -34,6 +34,7 @@ set config  {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
+		<default caps="100"/>
 
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
@@ -75,7 +76,7 @@ set boot_modules {
 }
 
 build_boot_image $boot_modules
-append qemu_args " -nographic -serial mon:stdio"
+append qemu_args " -display none -serial stdio"
 append qemu_args " -serial file:/tmp/serial1"
 append qemu_args " -serial file:/tmp/serial2"
 append qemu_args " -serial file:/tmp/serial3"

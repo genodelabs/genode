@@ -105,7 +105,7 @@ set local_port 5555
 append qemu_args "  -nographic "
 
 # connect comport 0 to stdio
-append qemu_args " -serial mon:stdio "
+append qemu_args " -serial stdio "
 
 # connect comport 1 with TCP port $local_port
 append qemu_args " -serial chardev:uart "
@@ -138,7 +138,7 @@ append gdb_cmds {-ex "set interactive-mode auto" }
 
 puts "command: [gdb] debug/ld.lib.so $gdb_cmds"
 
-exec [terminal] -e "[gdb] debug/ld.lib.so $gdb_cmds" &
+exec [terminal] -e "bash -lc \"[gdb] debug/ld.lib.so $gdb_cmds\"" &
 
 interact -i [output_spawn_id]
 

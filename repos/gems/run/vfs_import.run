@@ -101,6 +101,6 @@ install_config {
 
 build_boot_image { vfs_import.lib.so libc.lib.so vfs vfs.lib.so sequence }
 
-append qemu_args " -nographic -serial mon:stdio "
+append qemu_args " -nographic "
 
 run_genode_until {Hello world!} 30

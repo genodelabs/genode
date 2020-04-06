@@ -129,6 +129,6 @@ proc qemu_nic_model {} {
 
 append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:80 "
 append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
-append qemu_args " -nographic -serial mon:stdio "
+append qemu_args " -nographic "
 
 run_genode_until forever

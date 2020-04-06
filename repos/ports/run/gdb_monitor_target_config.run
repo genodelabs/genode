@@ -89,7 +89,7 @@ proc binary_name_gdbserver_platform_lib_so { } {
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so vfs.lib.so libc_pipe.lib.so
+	ld.lib.so libc.lib.so libm.lib.so vfs.lib.so libc_pipe.lib.so stdcxx.lib.so
 	pc_uart_drv
 	gdb_monitor gdbserver_platform.lib.so test-gdb_monitor_target_config
 }
@@ -103,10 +103,10 @@ build_boot_image $boot_modules
 set local_port 5555
 
 # qemu config
-append qemu_args "  -nographic "
+append qemu_args " -display none "
 
 # connect comport 0 to stdio
-append qemu_args " -serial mon:stdio "
+append qemu_args " -serial stdio "
 
 # connect comport 1 with TCP port $local_port
 append qemu_args " -serial chardev:uart "
@@ -137,7 +137,7 @@ append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 # continue execution
 append gdb_cmds {-ex "c" }
 
-exec [terminal] -e "[gdb] debug/ld.lib.so $gdb_cmds" &
+exec [terminal] -e "bash -lc \"[gdb] debug/ld.lib.so $gdb_cmds\"" &
 
 interact -i [output_spawn_id]
 
