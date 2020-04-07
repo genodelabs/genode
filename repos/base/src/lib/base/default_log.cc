@@ -98,7 +98,12 @@ void Genode::init_log(Parent &parent)
 
 	back_end_ptr = unmanaged_singleton<Back_end>(parent);
 
-	struct Write_fn { void operator () (char const *s) { back_end_ptr->write(s); } };
+	struct Write_fn {
+		void operator () (char const *s) {
+			if (Thread::trace_captured(s)) return;
+			back_end_ptr->write(s);
+		}
+	};
 
 	typedef Buffered_output<Log_session::MAX_STRING_LEN, Write_fn>
 	        Buffered_log_output;

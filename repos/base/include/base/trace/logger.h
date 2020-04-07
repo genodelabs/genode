@@ -68,6 +68,13 @@ struct Genode::Trace::Logger
 		void log(char const *, size_t);
 
 		/**
+		 * Log binary data to trace buffer using log_output policy
+		 *
+		 * \return true if log is really put to buffer
+		 */
+		bool log_captured(char const *, size_t);
+
+		/**
 		 * Log event to trace buffer
 		 */
 		template <typename EVENT>

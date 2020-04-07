@@ -157,6 +157,18 @@ void Trace::Logger::log(char const *msg, size_t len)
 }
 
 
+__attribute__((optimize("-fno-delete-null-pointer-checks")))
+bool Trace::Logger::log_captured(char const *msg, size_t len)
+{
+	if (!this || !_evaluate_control()) return false;
+
+	len = policy_module->log_output(buffer->reserve(len), msg, len);
+	buffer->commit(len);
+
+	return len != 0;
+}
+
+
 void Trace::Logger::init(Thread_capability thread, Cpu_session *cpu_session,
                          Trace::Control *attached_control)
 {

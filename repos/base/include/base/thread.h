@@ -418,6 +418,16 @@ class Genode::Thread
 		}
 
 		/**
+		 * Log null-terminated string as trace event using log_output policy
+		 *
+		 * \return true if trace is really put to buffer
+		 */
+		static bool trace_captured(char const *cstring)
+		{
+			return _logger()->log_captured(cstring, strlen(cstring));
+		}
+
+		/**
 		 * Log binary data as trace event
 		 */
 		static void trace(char const *data, size_t len)
