@@ -168,6 +168,12 @@
         </xs:complexType>
        </xs:element> <!-- "resource" -->
 
+       <xs:element name="exit">
+        <xs:complexType>
+         <xs:attribute name="propagate" type="Boolean" />
+        </xs:complexType>
+       </xs:element> <!-- "exit" -->
+
        <xs:element name="configfile">
         <xs:complexType>
          <xs:attribute name="name" type="xs:string" />
