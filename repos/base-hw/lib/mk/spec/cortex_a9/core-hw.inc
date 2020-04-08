@@ -4,8 +4,11 @@
 # \date   2014-09-02
 #
 
+TMP         := $(call select_from_repositories,lib/mk/bootstrap-hw.inc)
+BASE_HW_DIR := $(TMP:%lib/mk/bootstrap-hw.inc=%)
+
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/cortex_a9
+INC_DIR += $(BASE_HW_DIR)/src/core/spec/cortex_a9
 
 # add C++ sources
 SRC_CC += spec/cortex_a9/board.cc
@@ -17,4 +20,4 @@ SRC_CC += kernel/cpu_mp.cc
 SRC_CC += kernel/kernel.cc
 
 # include less specific configuration
-include $(BASE_DIR)/../base-hw/lib/mk/spec/arm_v7/core-hw.inc
+include $(BASE_HW_DIR)/lib/mk/spec/arm_v7/core-hw.inc

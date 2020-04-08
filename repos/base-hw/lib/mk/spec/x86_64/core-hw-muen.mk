@@ -11,7 +11,7 @@ LIBS += sinfo-muen
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/spec/x86_64/muen
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/x86_64
+INC_DIR += $(REP_DIR)/src/core/spec/x86_64
 
 # add assembly sources
 SRC_S += spec/x86_64/crt0.s
@@ -42,7 +42,7 @@ SRC_CC += vm_session_component.cc
 
 SRC_CC += spec/64bit/memory_map.cc
 
-vpath spec/64bit/memory_map.cc $(BASE_DIR)/../base-hw/src/lib/hw
+vpath spec/64bit/memory_map.cc $(REP_DIR)/src/lib/hw
 
 # include less specific configuration
-include $(BASE_DIR)/../base-hw/lib/mk/core-hw.inc
+include $(REP_DIR)/lib/mk/core-hw.inc

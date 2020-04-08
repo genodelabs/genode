@@ -1,4 +1,4 @@
-INC_DIR += $(BASE_DIR)/../base-hw/src/bootstrap/spec/imx8q_evk
+INC_DIR += $(REP_DIR)/src/bootstrap/spec/imx8q_evk
 
 SRC_CC  += bootstrap/spec/arm/gicv3.cc
 SRC_CC  += bootstrap/spec/arm_64/cortex_a53_mmu.cc
@@ -9,6 +9,6 @@ SRC_S   += bootstrap/spec/arm_64/crt0.s
 
 NR_OF_CPUS = 4
 
-vpath spec/64bit/memory_map.cc $(BASE_DIR)/../base-hw/src/lib/hw
+vpath spec/64bit/memory_map.cc $(REP_DIR)/src/lib/hw
 
-include $(BASE_DIR)/../base-hw/lib/mk/bootstrap-hw.inc
+include $(REP_DIR)/lib/mk/bootstrap-hw.inc

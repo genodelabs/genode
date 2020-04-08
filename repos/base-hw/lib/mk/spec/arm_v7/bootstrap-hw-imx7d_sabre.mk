@@ -1,4 +1,4 @@
-INC_DIR += $(BASE_DIR)/../base-hw/src/bootstrap/spec/imx7d_sabre
+INC_DIR += $(REP_DIR)/src/bootstrap/spec/imx7d_sabre
 
 SRC_CC  += bootstrap/spec/arm/cortex_a15_cpu.cc
 SRC_CC  += bootstrap/spec/arm/gicv2.cc

@@ -24,7 +24,7 @@ SRC_S += spec/arm_v8/exception_vector.s
 SRC_S += spec/arm_v8/crt0.s
 SRC_S += spec/arm_v8/virtualization/exception_vector.s
 
-vpath spec/64bit/memory_map.cc $(BASE_DIR)/../base-hw/src/lib/hw
+vpath spec/64bit/memory_map.cc $(REP_DIR)/src/lib/hw
 
 NR_OF_CPUS = 4
 

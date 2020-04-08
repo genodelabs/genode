@@ -4,12 +4,15 @@
 # \date   2011-12-16
 #
 
+TMP         := $(call select_from_repositories,lib/mk/core-hw.inc)
+BASE_HW_DIR := $(TMP:%lib/mk/core-hw.inc=%)
+
 LIBS += base-hw-common cxx
 
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core
+INC_DIR += $(BASE_HW_DIR)/src/core
 INC_DIR += $(BASE_DIR)/src/core/include
-INC_DIR += $(BASE_DIR)/../base-hw/src/include
+INC_DIR += $(BASE_HW_DIR)/src/include
 INC_DIR += $(BASE_DIR)/src/include
 
 # add C++ sources
@@ -73,6 +76,6 @@ NR_OF_CPUS ?= 1
 CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
 
 # declare source locations
-vpath % $(BASE_DIR)/../base-hw/src/core
+vpath % $(BASE_HW_DIR)/src/core
 vpath % $(BASE_DIR)/src/core
 vpath % $(BASE_DIR)/src/lib/startup

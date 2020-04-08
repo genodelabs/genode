@@ -31,4 +31,4 @@ NR_OF_CPUS = 2
 CC_MARCH = -mcpu=cortex-a7 -mfpu=vfpv3 -mfloat-abi=softfp
 
 # include less specific configuration
-include $(BASE_DIR)/../base-hw/lib/mk/spec/cortex_a15/core-hw.inc
+include $(REP_DIR)/lib/mk/spec/cortex_a15/core-hw.inc

@@ -1,4 +1,5 @@
-HW_DIR   = $(BASE_DIR)/../base-hw
+TMP         := $(call select_from_repositories,lib/mk/bootstrap-hw.inc)
+BASE_HW_DIR := $(TMP:%lib/mk/bootstrap-hw.inc=%)
 
 LIBS     = cxx
 
@@ -23,8 +24,8 @@ SRC_CC  += lib/base/sleep.cc
 SRC_CC  += lib/base/sliced_heap.cc
 SRC_CC  += lib/startup/_main.cc
 
-INC_DIR += $(HW_DIR)/src/bootstrap
-INC_DIR += $(HW_DIR)/src/include
+INC_DIR += $(BASE_HW_DIR)/src/bootstrap
+INC_DIR += $(BASE_HW_DIR)/src/include
 INC_DIR += $(BASE_DIR)/src/include
 INC_DIR += $(BASE_DIR)/src/core/include # for boot_modules.h only
 
@@ -32,10 +33,10 @@ INC_DIR += $(BASE_DIR)/src/core/include # for boot_modules.h only
 NR_OF_CPUS ?= 1
 CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
 
-vpath base/%        $(HW_DIR)/src
-vpath bootstrap/%   $(HW_DIR)/src
-vpath hw/%          $(HW_DIR)/src/lib
-vpath lib/base/%    $(HW_DIR)/src
-vpath lib/muen/%    $(HW_DIR)/src
+vpath base/%        $(BASE_HW_DIR)/src
+vpath bootstrap/%   $(BASE_HW_DIR)/src
+vpath hw/%          $(BASE_HW_DIR)/src/lib
+vpath lib/base/%    $(BASE_HW_DIR)/src
+vpath lib/muen/%    $(BASE_HW_DIR)/src
 vpath lib/base/%    $(BASE_DIR)/src
 vpath lib/startup/% $(BASE_DIR)/src

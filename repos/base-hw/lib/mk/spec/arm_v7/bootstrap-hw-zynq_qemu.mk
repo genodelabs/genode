@@ -1,4 +1,4 @@
-INC_DIR += $(BASE_DIR)/../base-hw/src/bootstrap/spec/zynq_qemu
+INC_DIR += $(REP_DIR)/src/bootstrap/spec/zynq_qemu
 
 SRC_S   += bootstrap/spec/arm/crt0.s
 
@@ -11,4 +11,4 @@ SRC_CC  += hw/spec/32bit/memory_map.cc
 
 NR_OF_CPUS = 1
 
-include $(BASE_DIR)/../base-hw/lib/mk/bootstrap-hw.inc
+include $(REP_DIR)/lib/mk/bootstrap-hw.inc

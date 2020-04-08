@@ -4,11 +4,14 @@
 # \date   2014-12-15
 #
 
+TMP := $(call select_from_repositories,lib/mk/core-hw.inc)
+BASE_HW_DIR := $(TMP:%lib/mk/core-hw.inc=%)
+
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/zynq
+INC_DIR += $(BASE_HW_DIR)/src/core/spec/zynq
 
 # add C++ sources
 SRC_CC += platform_services.cc
 
 # include less specific configuration
-include $(BASE_DIR)/../base-hw/lib/mk/spec/cortex_a9/core-hw.inc
+include $(BASE_HW_DIR)/lib/mk/spec/cortex_a9/core-hw.inc
