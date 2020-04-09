@@ -1,11 +1,11 @@
-<runtime ram="90M" caps="1000" binary="init">
+<runtime ram="100M" caps="1000" binary="init">
 
 	<requires> <timer/> </requires>
 
 	<events>
 		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
-			[init -> trace_logger] --- Report * (3/* subjects) ---*
+			[init -> trace_logger] --- Report * (4/* subjects) ---*
 			[init -> trace_logger] &lt;subject label="init -> dynamic -> test-trace_logger -> cpu_burner.*" thread="ep" id="*" state="TRACED">
 			[init -> trace_logger]    &lt;activity total="*" recent="*">
 			[init -> trace_logger]    &lt;affinity xpos="0" ypos="0">
@@ -15,6 +15,12 @@
 			[init -> trace_logger]    &lt;activity total="*" recent="*">
 			[init -> trace_logger]    &lt;affinity xpos="0" ypos="0">
 			[init -> trace_logger]    &lt;buffer />
+			[init -> trace_logger] &lt;/subject>*
+			[init -> trace_logger] &lt;subject label="init -> dynamic -> test-trace_logger -> dynamic_rom" thread="ep" id="*" state="TRACED">
+			[init -> trace_logger]    &lt;activity total="*" recent="*">
+			[init -> trace_logger]    &lt;affinity xpos="0" ypos="0">
+			[init -> trace_logger]    &lt;buffer>*
+			[init -> trace_logger] cpu_burner*.config: change*
 			[init -> trace_logger] &lt;/subject>*
 			[init -> trace_logger] &lt;subject label="init -> dynamic -> test-trace_logger -> test-trace_logger" thread="ep" id="*" state="TRACED">
 			[init -> trace_logger]    &lt;activity total="*" recent="*">
@@ -34,6 +40,7 @@
 		<rom label="trace_logger"/>
 		<rom label="null"/>
 		<rom label="rpc_name"/>
+		<rom label="log_output"/>
 	</content>
 
 	<config>
@@ -73,6 +80,11 @@
 				        thread="ep"
 				        buffer="4K"
 				        policy="rpc_name"/>
+
+				<policy label="init -> dynamic -> test-trace_logger -> dynamic_rom"
+				        thread="ep"
+				        buffer="8K"
+				        policy="log_output"/>
 			</config>
 		</start>
 
