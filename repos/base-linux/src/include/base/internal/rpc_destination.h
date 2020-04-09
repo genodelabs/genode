@@ -15,27 +15,35 @@
 #define _INCLUDE__BASE__INTERNAL__RPC_DESTINATION_H_
 
 #include <base/output.h>
+#include <base/internal/rpc_obj_key.h>
 
-namespace Genode {
+#include <linux_syscalls.h>
 
-	struct Rpc_destination
+
+namespace Genode { struct Rpc_destination; }
+
+
+struct Genode::Rpc_destination
+{
+	Lx_sd socket;
+
+	/*
+	 * Distinction between a capability referring to a locally implemented
+	 * RPC object and a capability referring to an RPC object hosted in
+	 * a different component.
+	 */
+	bool foreign = true;
+
+	Rpc_destination(Lx_sd socket) : socket(socket) { }
+
+	bool valid() const { return socket.valid(); }
+
+	static Rpc_destination invalid() { return Rpc_destination(Lx_sd::invalid()); }
+
+	void print(Output &out) const
 	{
-		int socket = -1;
-
-		explicit Rpc_destination(int socket) : socket(socket) { }
-
-		Rpc_destination() { }
-	};
-
-	static inline Rpc_destination invalid_rpc_destination()
-	{
-		return Rpc_destination();
+		Genode::print(out, "socket=", socket, ",foreign=", foreign);
 	}
-
-	static void print(Output &out, Rpc_destination const &dst)
-	{
-		Genode::print(out, "socket=", dst.socket);
-	}
-}
+};
 
 #endif /* _INCLUDE__BASE__INTERNAL__RPC_DESTINATION_H_ */

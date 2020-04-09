@@ -56,12 +56,7 @@ void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 }
 
 
-void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &ds)
-{
-	int const fd = Capability_space::ipc_cap_data(ds.fd()).dst.socket;
-	if (fd != -1)
-		lx_close(fd);
-}
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &) { }
 
 
 void Ram_dataspace_factory::_clear_ds(Dataspace_component &) { }

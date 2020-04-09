@@ -38,11 +38,11 @@ namespace Genode {
 	{
 		private:
 
-			Filename     _fname { }; /* filename for mmap          */
-			size_t const _size;      /* size of dataspace in bytes */
-			addr_t const _addr;      /* meaningless on linux       */
-			int          _fd { -1 }; /* file descriptor            */
-			bool   const _writable;  /* false if read-only         */
+			Filename          _fname { }; /* filename for mmap            */
+			size_t const      _size;      /* size of dataspace in bytes   */
+			addr_t const      _addr;      /* meaningless on linux         */
+			Native_capability _cap;       /* capability / file descriptor */
+			bool   const      _writable;  /* false if read-only           */
 
 			/* Holds the dataspace owner if a distinction between owner and
 			 * others is necessary on the dataspace, otherwise it is 0 */
@@ -57,6 +57,11 @@ namespace Genode {
 			Dataspace_component(Dataspace_component const &);
 			Dataspace_component &operator = (Dataspace_component const &);
 
+			static Native_capability _fd_to_cap(int const fd)
+			{
+				return Capability_space::import(Rpc_destination(Lx_sd{fd}), Rpc_obj_key());
+			}
+
 		public:
 
 			/**
@@ -65,14 +70,14 @@ namespace Genode {
 			Dataspace_component(size_t size, addr_t addr,
 			                    Cache_attribute, bool writable,
 			                    Dataspace_owner * owner)
-			: _size(size), _addr(addr), _fd(-1), _writable(writable),
+			: _size(size), _addr(addr), _cap(), _writable(writable),
 			  _owner(owner) { }
 
 			/**
 			 * Default constructor returns invalid dataspace
 			 */
 			Dataspace_component()
-			: _size(0), _addr(0), _fd(-1), _writable(false), _owner(nullptr) { }
+			: _size(0), _addr(0), _cap(), _writable(false), _owner(nullptr) { }
 
 			/**
 			 * This constructor is only provided for compatibility
@@ -94,7 +99,7 @@ namespace Genode {
 			 * The file descriptor assigned to the dataspace will be enable
 			 * processes outside of core to mmap the dataspace.
 			 */
-			void fd(int fd) { _fd = fd; }
+			void fd(int fd) { _cap = _fd_to_cap(fd); }
 
 			/**
 			 * Check if dataspace is owned by a specified object
@@ -122,13 +127,7 @@ namespace Genode {
 
 			Filename fname() override { return _fname; }
 
-			Untyped_capability fd() override
-			{
-				Untyped_capability fd_cap =
-					Capability_space::import(Rpc_destination(_fd), Rpc_obj_key());
-
-				return fd_cap;
-			}
+			Untyped_capability fd() override { return _cap; }
 	};
 }
 

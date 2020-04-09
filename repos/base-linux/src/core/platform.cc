@@ -23,7 +23,7 @@
 /* local includes */
 #include "platform.h"
 #include "core_env.h"
-#include "server_socket_pair.h"
+#include "resource_path.h"
 
 /* Linux includes */
 #include <core_linux_syscalls.h>
@@ -155,30 +155,6 @@ void Platform::wait_for_exit()
 }
 
 
-/*****************************
- ** Support for IPC library **
- *****************************/
-
-namespace Genode {
-
-	Socket_pair server_socket_pair()
-	{
-		return create_server_socket_pair(Thread::myself()->native_thread().tid);
-	}
-
-	void destroy_server_socket_pair(Socket_pair socket_pair)
-	{
-		/*
-		 * As entrypoints in core are never destructed, this function is only
-		 * called on IPC-client destruction. In this case, it's a no-op in core
-		 * as well as in Genode processes.
-		 */
-		if (socket_pair.server_sd != -1 || socket_pair.client_sd != -1)
-			error(__func__, " called for IPC server which should never happen");
-	}
-}
-
-
 /****************************************************
  ** Support for Platform_env_base::Region_map_mmap **
  ****************************************************/
@@ -208,7 +184,7 @@ int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 	 * dataspace, the descriptor would unexpectedly be closed again.
 	 */
 	return core_env().entrypoint().apply(lx_ds_cap, [] (Linux_dataspace *ds) {
-		return ds ? lx_dup(Capability_space::ipc_cap_data(ds->fd()).dst.socket) : -1; });
+		return ds ? lx_dup(Capability_space::ipc_cap_data(ds->fd()).dst.socket.value) : -1; });
 }
 
 

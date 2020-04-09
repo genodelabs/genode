@@ -22,9 +22,6 @@
 #include <base/weak_ptr.h>
 #include <cpu_session/cpu_session.h>
 
-/* base-internal includes */
-#include <base/internal/server_socket_pair.h>
-
 /* core includes */
 #include <pager.h>
 
@@ -66,11 +63,6 @@ namespace Genode {
 			unsigned long _tid = -1;
 			unsigned long _pid = -1;
 			char          _name[32] { };
-
-			/**
-			 * Unix-domain socket pair bound to the thread
-			 */
-			Socket_pair _socket_pair { };
 
 			/*
 			 * Dummy pager object that is solely used for storing the
@@ -146,19 +138,6 @@ namespace Genode {
 			 * Register process ID and thread ID of thread
 			 */
 			void thread_id(int pid, int tid) { _pid = pid, _tid = tid; }
-
-			/**
-			 * Return client-side socket descriptor
-			 *
-			 * For more information, please refer to the comments in
-			 * 'linux_cpu_session/linux_cpu_session.h'.
-			 */
-			int client_sd();
-
-			/**
-			 * Return server-side socket descriptor
-			 */
-			int server_sd();
 
 			/**
 			 * Notify Genode::Signal handler about sigchld

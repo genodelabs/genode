@@ -56,8 +56,4 @@ Rom_session_component::Rom_session_component(Rom_fs         &,
 Rom_session_component::~Rom_session_component()
 {
 	_ds_ep.dissolve(&_ds);
-
-	int const fd = Capability_space::ipc_cap_data(_ds.fd()).dst.socket;
-	if (fd != -1)
-		lx_close(fd);
 }

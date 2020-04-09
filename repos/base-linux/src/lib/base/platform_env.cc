@@ -44,7 +44,7 @@ size_t Region_map_mmap::_dataspace_size(Dataspace_capability ds)
 int Region_map_mmap::_dataspace_fd(Dataspace_capability ds)
 {
 	Untyped_capability fd_cap = Linux_dataspace_client(ds).fd();
-	return Capability_space::ipc_cap_data(fd_cap).dst.socket;
+	return lx_dup(Capability_space::ipc_cap_data(fd_cap).dst.socket.value);
 }
 
 
@@ -138,7 +138,7 @@ static Parent_capability obtain_parent_cap()
 	long const local_name = get_env_ulong("parent_local_name");
 
 	Untyped_capability parent_cap =
-		Capability_space::import(Rpc_destination(PARENT_SOCKET_HANDLE),
+		Capability_space::import(Rpc_destination(Lx_sd{PARENT_SOCKET_HANDLE}),
 		                         Rpc_obj_key(local_name));
 
 	return reinterpret_cap_cast<Parent>(parent_cap);
@@ -169,34 +169,3 @@ Platform_env::Platform_env()
 	native_cpu.thread_id(parent()->main_thread_cap(), lx_getpid(), lx_gettid());
 }
 
-
-/*****************************
- ** Support for IPC library **
- *****************************/
-
-namespace Genode {
-
-	Socket_pair server_socket_pair()
-	{
-		Linux_native_cpu_client native_cpu(env_deprecated()->cpu_session()->native_cpu());
-
-		Socket_pair socket_pair;
-
-		Thread *thread = Thread::myself();
-		if (thread) {
-			Untyped_capability server_cap = native_cpu.server_sd(thread->cap());
-			Untyped_capability client_cap = native_cpu.client_sd(thread->cap());
-			socket_pair.server_sd = Capability_space::ipc_cap_data(server_cap).dst.socket;
-			socket_pair.client_sd = Capability_space::ipc_cap_data(client_cap).dst.socket;
-			thread->native_thread().socket_pair = socket_pair;
-		}
-		return socket_pair;
-	}
-
-	void destroy_server_socket_pair(Socket_pair socket_pair)
-	{
-		/* close local file descriptor if it is valid */
-		if (socket_pair.server_sd != -1) lx_close(socket_pair.server_sd);
-		if (socket_pair.client_sd != -1) lx_close(socket_pair.client_sd);
-	}
-}

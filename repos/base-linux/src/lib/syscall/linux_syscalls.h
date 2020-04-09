@@ -1,6 +1,7 @@
 /*
  * \brief  Linux system-call bindings
  * \author Norman Feske
+ * \author Stefan Thöni
  * \date   2008-10-22
  *
  * This file is meant to be internally used by the framework. It is not public
@@ -20,6 +21,7 @@
 
 /*
  * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2019 gapfruit AG
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -36,6 +38,8 @@
 #include <util/string.h>
 #include <base/snprintf.h>
 #include <base/log.h>
+#include <base/sleep.h>
+
 
 /*
  * Resolve ambiguity between 'Genode::size_t' and the host's header's 'size_t'.
@@ -51,7 +55,10 @@
 #include <sys/syscall.h>
 #include <sys/un.h>
 #include <sys/socket.h>
+#include <sys/poll.h>
+#include <sys/epoll.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 
 
 #undef size_t
@@ -85,6 +92,12 @@ extern "C" int  lx_clone(int (*fn)(void *), void *child_stack,
  ** General syscalls used by base-linux **
  *****************************************/
 
+
+inline pid_t lx_getpid() { return lx_syscall(SYS_getpid); }
+inline pid_t lx_gettid() { return lx_syscall(SYS_gettid); }
+inline uid_t lx_getuid() { return lx_syscall(SYS_getuid); }
+
+
 inline int lx_write(int fd, const void *buf, Genode::size_t count)
 {
 	return lx_syscall(SYS_write, fd, buf, count);
@@ -94,6 +107,12 @@ inline int lx_write(int fd, const void *buf, Genode::size_t count)
 inline int lx_close(int fd)
 {
 	return lx_syscall(SYS_close, fd);
+}
+
+
+inline int lx_dup(int fd)
+{
+	return lx_syscall(SYS_dup, fd);
 }
 
 
@@ -108,6 +127,39 @@ inline int lx_dup2(int fd, int to)
  *****************************************/
 
 #include <linux/net.h>
+
+struct Lx_sd
+{
+	int value;
+
+	bool valid() const { return value >= 0; }
+
+	static Lx_sd invalid() { return Lx_sd{-1}; }
+
+	uint64_t inode() const
+	{
+#ifdef __NR_fstat64
+		struct stat64 statbuf { };
+		(void)lx_syscall(SYS_fstat64, value, &statbuf);
+#else
+		struct stat statbuf { };
+		(void)lx_syscall(SYS_fstat, value, &statbuf);
+#endif /* __NR_fstat64 */
+		return statbuf.st_ino;
+	}
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, "socket=", value);
+
+		if (value >= 0)
+			Genode::print(out, ",inode=", inode());
+	}
+};
+
+
+struct Lx_epoll_sd { int value; };
+
 
 #ifdef SYS_socketcall
 
@@ -124,24 +176,17 @@ inline int lx_socketpair(int domain, int type, int protocol, int sd[2])
 }
 
 
-inline int lx_sendmsg(int sockfd, const struct msghdr *msg, int flags)
+inline int lx_sendmsg(Lx_sd sockfd, const struct msghdr *msg, int flags)
 {
-	long args[3] = { sockfd, (long)msg, flags };
+	long args[3] = { sockfd.value, (long)msg, flags };
 	return lx_socketcall(SYS_SENDMSG, args);
 }
 
 
-inline int lx_recvmsg(int sockfd, struct msghdr *msg, int flags)
+inline int lx_recvmsg(Lx_sd sockfd, struct msghdr *msg, int flags)
 {
-	long args[3] = { sockfd, (long)msg, flags };
+	long args[3] = { sockfd.value, (long)msg, flags };
 	return lx_socketcall(SYS_RECVMSG, args);
-}
-
-
-inline int lx_getpeername(int sockfd, struct sockaddr *name, socklen_t *namelen)
-{
-	long args[3] = { sockfd, (long)name, (long)namelen };
-	return lx_socketcall(SYS_GETPEERNAME, args);
 }
 
 #else
@@ -152,26 +197,70 @@ inline int lx_socketpair(int domain, int type, int protocol, int sd[2])
 }
 
 
-inline int lx_sendmsg(int sockfd, const struct msghdr *msg, int flags)
+inline int lx_sendmsg(Lx_sd sockfd, const struct msghdr *msg, int flags)
 {
-	return lx_syscall(SYS_sendmsg, sockfd, msg, flags);
+	return lx_syscall(SYS_sendmsg, sockfd.value, msg, flags);
 }
 
 
-inline int lx_recvmsg(int sockfd, struct msghdr *msg, int flags)
+inline int lx_recvmsg(Lx_sd sockfd, struct msghdr *msg, int flags)
 {
-	return lx_syscall(SYS_recvmsg, sockfd, msg, flags);
-}
-
-
-inline int lx_getpeername(int sockfd, struct sockaddr *name, socklen_t *namelen)
-{
-	return lx_syscall(SYS_getpeername, sockfd, name, namelen);
+	return lx_syscall(SYS_recvmsg, sockfd.value, msg, flags);
 }
 
 /* TODO add missing socket system calls */
 
 #endif /* SYS_socketcall */
+
+
+struct Lx_socketpair
+{
+	Lx_sd local  { -1 };
+	Lx_sd remote { -1 };
+
+	Lx_socketpair()
+	{
+		int sd[2];
+		sd[0] = -1; sd[1] = -1;
+
+		int const ret = lx_socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0, sd);
+		if (ret < 0) {
+			Genode::raw(lx_getpid(), ":", lx_gettid(), " lx_socketpair failed with ", ret);
+			Genode::sleep_forever();
+		}
+
+		local  = Lx_sd { sd[0] };
+		remote = Lx_sd { sd[1] };
+	}
+};
+
+
+inline Lx_epoll_sd lx_epoll_create()
+{
+	int const ret = lx_syscall(SYS_epoll_create, 1);
+	if (ret < 0) {
+		/*
+		 * No recovery possible, just leave a diagnostic message and block
+		 * forever.
+		 */
+		Genode::raw(lx_getpid(), ":", lx_gettid(), " lx_epoll_create failed with ", ret);
+		Genode::sleep_forever();
+	}
+	return Lx_epoll_sd { ret };
+}
+
+
+inline int lx_epoll_ctl(Lx_epoll_sd epoll, int op, Lx_sd fd, epoll_event *event)
+{
+	return lx_syscall(SYS_epoll_ctl, epoll.value, op, fd.value, event);
+}
+
+
+inline int lx_epoll_wait(Lx_epoll_sd epoll, struct epoll_event *events,
+                         int maxevents, int timeout)
+{
+	return lx_syscall(SYS_epoll_wait, epoll.value, events, maxevents, timeout);
+}
 
 
 /*******************************************
@@ -254,6 +343,7 @@ inline int lx_sigemptyset(sigset_t *set)
 extern "C" void lx_restore_rt (void);
 #endif
 
+
 /**
  * Simplified binding for sigaction system call
  */
@@ -324,11 +414,6 @@ inline int lx_create_thread(void (*entry)(), void *stack, void *arg)
 }
 
 
-inline pid_t lx_getpid() { return lx_syscall(SYS_getpid); }
-inline pid_t lx_gettid() { return lx_syscall(SYS_gettid); }
-inline uid_t lx_getuid() { return lx_syscall(SYS_getuid); }
-
-
 /************************************
  ** Functions used by lock library **
  ************************************/
@@ -339,6 +424,7 @@ inline int lx_nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	return lx_syscall(SYS_nanosleep, req, rem);
 }
+
 
 enum {
 	LX_FUTEX_WAIT = FUTEX_WAIT,

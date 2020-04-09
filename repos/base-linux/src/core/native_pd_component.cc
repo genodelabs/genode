@@ -42,12 +42,12 @@ struct Execve_args
 	char         const *filename;
 	char       * const *argv;
 	char       * const *envp;
-	int          const parent_sd;
+	Lx_sd        const parent_sd;
 
 	Execve_args(char   const *filename,
 	            char * const *argv,
 	            char * const *envp,
-	            int           parent_sd)
+	            Lx_sd         parent_sd)
 	:
 		filename(filename), argv(argv), envp(envp), parent_sd(parent_sd)
 	{ }
@@ -59,7 +59,7 @@ struct Execve_args
  */
 static int _exec_child(Execve_args *arg)
 {
-	lx_dup2(arg->parent_sd, PARENT_SOCKET_HANDLE);
+	lx_dup2(arg->parent_sd.value, PARENT_SOCKET_HANDLE);
 
 	return lx_execve(arg->filename, arg->argv, arg->envp);
 }
@@ -118,7 +118,7 @@ void Native_pd_component::_start(Dataspace_component &ds)
 
 		char buf[4096];
 		int num_bytes = 0;
-		int const fd_socket = Capability_space::ipc_cap_data(ds.fd()).dst.socket;
+		int const fd_socket = Capability_space::ipc_cap_data(ds.fd()).dst.socket.value;
 		while ((num_bytes = lx_read(fd_socket, buf, sizeof(buf))) != 0)
 			lx_write(tmp_binary_fd, buf, num_bytes);
 

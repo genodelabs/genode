@@ -18,7 +18,7 @@
 
 /* local includes */
 #include "platform_thread.h"
-#include "server_socket_pair.h"
+#include <linux_syscalls.h>
 
 using namespace Genode;
 
@@ -85,14 +85,6 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned,
 
 Platform_thread::~Platform_thread()
 {
-	ep_sd_registry().disassociate(_socket_pair.client_sd);
-
-	if (_socket_pair.client_sd)
-		lx_close(_socket_pair.client_sd);
-
-	if (_socket_pair.server_sd)
-		lx_close(_socket_pair.server_sd);
-
 	_registry().remove(this);
 }
 
@@ -114,19 +106,3 @@ void Platform_thread::resume()
 	warning(__func__, "not implemented");
 }
 
-
-int Platform_thread::client_sd()
-{
-	/* construct socket pair on first call */
-	if (_socket_pair.client_sd == -1)
-		_socket_pair = create_server_socket_pair(_tid);
-
-	return _socket_pair.client_sd;
-}
-
-
-int Platform_thread::server_sd()
-{
-	client_sd();
-	return _socket_pair.server_sd;
-}

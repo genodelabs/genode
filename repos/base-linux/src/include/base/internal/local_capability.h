@@ -27,7 +27,7 @@ namespace Genode {
 	 */
 	static inline bool local(Untyped_capability const &cap)
 	{
-		return Capability_space::ipc_cap_data(cap).dst.socket == -1;
+		return Capability_space::ipc_cap_data(cap).dst.socket.value == -1;
 	}
 }
 
@@ -54,7 +54,7 @@ class Genode::Local_capability
 		 */
 		static Capability<RPC_INTERFACE> local_cap(RPC_INTERFACE* ptr) {
 			Untyped_capability cap =
-				Capability_space::import(invalid_rpc_destination(),
+				Capability_space::import(Rpc_destination::invalid(),
 				                         Rpc_obj_key((long)ptr));
 			return reinterpret_cap_cast<RPC_INTERFACE>(cap); }
 

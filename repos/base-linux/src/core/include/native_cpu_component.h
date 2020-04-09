@@ -40,8 +40,6 @@ class Genode::Native_cpu_component : public Rpc_object<Linux_native_cpu,
 		~Native_cpu_component();
 
 		void thread_id(Thread_capability, int, int) override;
-		Untyped_capability server_sd(Thread_capability) override;
-		Untyped_capability client_sd(Thread_capability) override;
 };
 
 #endif /* _CORE__INCLUDE__NATIVE_CPU_COMPONENT_H_ */

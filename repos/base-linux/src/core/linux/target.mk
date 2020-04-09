@@ -21,7 +21,7 @@ SRC_CC        = main.cc \
                 native_pd_component.cc \
                 native_cpu_component.cc \
                 capability_space.cc \
-                rpc_cap_factory_l4.cc \
+                rpc_cap_factory_linux.cc \
                 ram_dataspace_factory.cc \
                 core_rpc_cap_alloc.cc \
                 io_mem_session_component.cc \
@@ -63,13 +63,11 @@ vpath cpu_thread_component.cc      $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath pd_session_support.cc        $(GEN_CORE_DIR)
 vpath capability_space.cc          $(GEN_CORE_DIR)
-vpath rpc_cap_factory_l4.cc        $(GEN_CORE_DIR)
 vpath ram_dataspace_factory.cc     $(GEN_CORE_DIR)
 vpath signal_source_component.cc   $(GEN_CORE_DIR)
 vpath signal_transmitter_proxy.cc  $(GEN_CORE_DIR)
 vpath signal_receiver.cc           $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
-vpath core_rpc_cap_alloc.cc        $(GEN_CORE_DIR)
 vpath default_log.cc               $(GEN_CORE_DIR)
 vpath heartbeat.cc                 $(GEN_CORE_DIR)
 vpath io_port_session_support.cc   $(GEN_CORE_DIR)/spec/x86
