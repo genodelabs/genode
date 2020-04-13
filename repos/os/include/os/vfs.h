@@ -526,17 +526,14 @@ class Genode::File_content
 		template <typename STRING, typename FN>
 		void for_each_line(FN const &fn) const
 		{
-			if (_buffer.size == 0)
-				return;
-
 			char const *src           = _buffer.ptr;
 			char const *curr_line     = src;
 			size_t      curr_line_len = 0;
 
 			for (size_t n = 0; ; n++) {
 
-				char const c = *src++;
-				bool const end_of_data = (c == 0 || n == _buffer.size);
+				char const c = (n == _buffer.size) ? 0 : *src++;
+				bool const end_of_data = (c == 0);
 				bool const end_of_line = (c == '\n');
 
 				if (!end_of_data && !end_of_line) {
