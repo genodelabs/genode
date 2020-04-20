@@ -2,7 +2,7 @@
 
 set current_date [clock format [clock seconds] -format %a]
 if {[get_cmd_switch --autopilot] && $current_date != "Sat" && $current_date != "Sun" } {
-	puts "\n Run script is not supported today on this platform. \n";
+	puts "\n Run script is not supported on this platform today. \n";
 	exit 0
 }
 
