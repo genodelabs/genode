@@ -149,23 +149,26 @@ install_config {
 	</start>
 
 	<start name="report_fs">
-		<binary name="ram_fs"/>
+		<binary name="vfs"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<content>
-				<inline name="log">### start ###</inline>
-				<dir name="runtime">
-					<inline name="state"><empty/></inline>
-					<dir name="wifi_drv">
-						<inline name="accesspoints"><empty/></inline>
-						<inline name="state">       <empty/></inline>
+			<vfs>
+				<ram/>
+				<import>
+					<inline name="log">### start ###</inline>
+					<dir name="runtime">
+						<inline name="state"><empty/></inline>
+						<dir name="wifi_drv">
+							<inline name="accesspoints"><empty/></inline>
+							<inline name="state">       <empty/></inline>
+						</dir>
+						<dir name="nic_router"> <inline name="state">    <empty/></inline> </dir>
+						<dir name="update">     <inline name="state">    <empty/></inline> </dir>
+						<dir name="depot_query"><inline name="blueprint"><empty/></inline> </dir>
 					</dir>
-					<dir name="nic_router"> <inline name="state">    <empty/></inline> </dir>
-					<dir name="update">     <inline name="state">    <empty/></inline> </dir>
-					<dir name="depot_query"><inline name="blueprint"><empty/></inline> </dir>
-				</dir>
-			</content>
+				</import>
+			</vfs>
 			<policy label="fs_report -> "     root="/" writeable="yes"/>
 			<policy label="log_terminal -> "  root="/" writeable="yes"/>
 			<policy label="report_fs_rom -> " root="/"/>

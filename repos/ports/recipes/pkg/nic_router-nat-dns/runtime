@@ -84,6 +84,7 @@ listen_addresses:
 		<rom label="stubby"/>
 		<rom label="vfs_jitterentropy.lib.so"/>
 		<rom label="lxip.lib.so"/>
+		<rom label="vfs.lib.so"/>
 		<rom label="vfs_lxip.lib.so"/>
 	</content>
 

@@ -350,8 +350,8 @@ example containing all of these variables:
 ! make run/depot_autopilot \
 ! > TEST_PKGS="test-libc_vfs test-log" \
 ! > TEST_SRCS="test-xml_generator test-xml_node" \
-! > TEST_BUILDS="server/ram_fs test/libc_vfs" \
-! > TEST_MODULES="ram_fs test-libc_vfs vfs.lib.so" \
+! > TEST_BUILDS="server/vfs test/libc_vfs" \
+! > TEST_MODULES="vfs test-libc_vfs vfs.lib.so" \
 ! > TEST_REPEAT="until_failed" \
 ! > KERNEL="nova"
 

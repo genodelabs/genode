@@ -10,11 +10,12 @@
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="ram_fs"/>
+		<rom label="vfs"/>
 		<rom label="fs_report"/>
 		<rom label="fs_rom"/>
 		<rom label="test-fs_report"/>
 		<rom label="vfs.lib.so"/>
+		<rom label="vfs_import.lib.so"/>
 	</content>
 
 	<config>
@@ -34,15 +35,19 @@
 
 		<start name="ram_fs">
 			<resource name="RAM" quantum="4M"/>
+			<binary name="vfs"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
-				<content>
-					<dir name="test-fs_report">
-						<inline name="devices">
-							<devices version="initial"/>
-						</inline>
-					</dir>
-				</content>
+				<vfs>
+					<ram/>
+					<import>
+						<dir name="test-fs_report">
+							<inline name="devices">
+								<devices version="initial"/>
+							</inline>
+						</dir>
+					</import>
+				</vfs>
 				<policy label_prefix="fs_report -> " root="/" writeable="yes"/>
 				<policy label_prefix="fs_rom -> "    root="/test-fs_report"/>
 				<policy label_prefix="test-fs_report -> " root="/test-fs_report" writeable="yes"/>

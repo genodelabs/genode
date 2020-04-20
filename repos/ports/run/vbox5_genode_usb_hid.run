@@ -19,7 +19,7 @@ set build_components {
 	drivers/usb
 	server/log_terminal
 	server/fs_rom
-	server/ram_fs
+	server/vfs lib/vfs/import
 	server/report_rom
 	app/usb_report_filter
 	virtualbox5
@@ -73,26 +73,29 @@ append config {
 	</start>
 
 	<start name="usb_config_fs" priority="-1">
-		<binary name="ram_fs"/>
+		<binary name="vfs"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="File_system"/></provides>
 		<config verbose="yes">
-			<content>
-				<inline name="usb_drv.config">
+			<vfs>
+				<ram/>
+				<import>
+					<inline name="usb_drv.config">
 <config uhci="yes" ehci="yes" xhci="yes">
 	<raw>
 		<report devices="yes"/>
 	</raw>
 </config>
-				</inline>
-				<inline name="usb_report_filter.config">
+					</inline>
+					<inline name="usb_report_filter.config">
 <config>
 	<!-- USB device whitelist -->
 	<client label="virtualbox"/>
 	<device vendor_id="0x03eb" product_id="0x204d"/> <!-- 'Pro Micro' test device -->
 </config>
-				</inline>
-			</content>
+					</inline>
+				</import>
+			</vfs>
 			<policy label_prefix="usb_report_filter" root="/" writeable="yes" />
 			<policy label_prefix="usb_config_rom" root="/"/>
 		</config>
@@ -250,12 +253,12 @@ set boot_modules {
 	usb_drv
 	usb_report_filter
 	fs_rom
-	ram_fs
+	vfs vfs.lib.so vfs_import.lib.so
 	report_rom
 	virtualbox5-nova
 	usb_hid.iso
 	vm_genode_usb_hid.vbox
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so libc_pipe.lib.so
+	ld.lib.so libc.lib.so libm.lib.so libc_pipe.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
 }

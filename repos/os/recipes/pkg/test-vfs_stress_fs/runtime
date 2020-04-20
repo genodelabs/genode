@@ -10,7 +10,7 @@
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="vfs.lib.so"/>
-		<rom label="ram_fs"/>
+		<rom label="vfs"/>
 		<rom label="vfs_stress"/>
 	</content>
 
@@ -36,8 +36,10 @@
 		</start>
 		<start name="ram_fs">
 			<resource name="RAM" quantum="80M"/>
+			<binary name="vfs"/>
 			<provides><service name="File_system"/></provides>
 			<config>
+				<vfs> <ram/> </vfs>
 				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>

@@ -4,7 +4,6 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/fs_rom \
-                  [depot_user]/src/ram_fs \
                   [depot_user]/src/vfs \
                   [depot_user]/src/nitpicker \
                   [depot_user]/src/init \
@@ -125,8 +124,10 @@ install_config {
 
 	<start name="ram_fs">
 		<resource name="RAM" quantum="8M"/>
+		<binary name="vfs"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
+			<vfs> <ram/> </vfs>
 			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>

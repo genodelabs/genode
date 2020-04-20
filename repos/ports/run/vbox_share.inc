@@ -103,9 +103,9 @@ catch { exec dd if=/dev/urandom of=bin/test.bin bs=4096 count=8160 }
 #
 set build_components {
 	server/input_merger
-	server/ram_fs server/report_rom server/fs_rom server/vfs
+	server/report_rom server/fs_rom server/vfs
 	server/tcp_terminal drivers/nic
-	lib/vfs/lwip lib/vfs/pipe
+	lib/vfs/lwip lib/vfs/pipe lib/vfs/import
 }
 
 #
@@ -115,10 +115,10 @@ foreach pkg {bash coreutils} {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
 
 set boot_modules {
-	ram_fs vfs fs_rom
+	vfs fs_rom
 	posix.lib.so bash.tar coreutils.tar
-	tcp_terminal vfs_lwip.lib.so vfs_pipe.lib.so ipxe_nic_drv report_rom
-	input_merger
+	tcp_terminal vfs_lwip.lib.so vfs_pipe.lib.so vfs_import.lib.so
+	ipxe_nic_drv report_rom input_merger
 	test.bin template.bat
 }
 
@@ -145,23 +145,27 @@ set config_of_app {
 	</start>
 
 	<start name="ram_fs_from" priority="-1">
-		<binary name="ram_fs"/>
+		<binary name="vfs"/>
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-			<content>
-				<rom name="test.bin"/>
-				<rom name="template.bat"/>
-			</content>
+			<vfs>
+				<ram/>
+				<import>
+					<rom name="test.bin"/>
+					<rom name="template.bat"/>
+				</import>
+			</vfs>
 			<default-policy root="/" writeable="no"/>
 		</config>
 	</start>
 
 	<start name="ram_fs_to" priority="-1">
-		<binary name="ram_fs"/>
+		<binary name="vfs"/>
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
+			<vfs> <ram/> </vfs>
 			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>

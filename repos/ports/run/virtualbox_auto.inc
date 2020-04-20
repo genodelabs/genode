@@ -44,7 +44,7 @@ lappend_if [expr $use_ps2]    build_components drivers/input
 lappend_if [expr $use_usb]    build_components drivers/usb
 lappend_if [expr $use_usb]    build_components app/usb_report_filter
 lappend_if [have_spec x86]    build_components drivers/rtc
-lappend_if [expr $use_ram_fs || $use_usb] build_components server/ram_fs
+lappend_if [expr $use_ram_fs || $use_usb] build_components lib/vfs/import
 lappend_if [expr $use_cpu_load] build_components app/trace_subject_reporter
 lappend_if [expr $use_cpu_load] build_components app/cpu_load_display
 lappend_if [expr $use_cpu_load] build_components app/top
@@ -157,21 +157,26 @@ append_if [expr $use_rumpfs] config {
 	</start>}
 
 append_if [expr $use_ram_fs] config {
-	<start name="ram_fs" priority="-1" caps="1800">}
+	<start name="ram_fs" priority="-1" caps="1800">
+		<binary name="vfs"/>}
 append_if [expr $use_ram_fs] config "
 		<resource name=\"RAM\" quantum=\"[expr $use_vms * 8 * 128]M\"/>"
 append_if [expr $use_ram_fs] config {
 		<provides><service name="File_system"/></provides>
 		<config>
-			<content>}
+			<vfs>
+				<ram/>
+				<import>}
 for { set i 1} { $i <= ${use_vms} } { incr i} {
 append_if [expr $use_ram_fs] config "
-				<dir name=\"ram${i}\">
-					<rom name=\"${overlay_image}\"/>
-				</dir>"
+					<dir name=\"ram${i}\">
+						<rom name=\"${overlay_image}\"/>
+					</dir>"
 }
 append_if [expr $use_ram_fs] config {
-			</content>
+				</import>
+			</vfs>
+
 			<!-- constrain sessions according to their labels -->}
 for { set i 1} { $i <= ${use_vms} } { incr i} {
 append_if [expr $use_ram_fs] config "
@@ -251,20 +256,22 @@ append_if [expr $use_cpu_load] config {
 
 append_if [expr $use_usb] config {
 	<start name="usb_config_fs" priority="-1">
-		<binary name="ram_fs"/>
-		<resource name="RAM" quantum="1M"/>
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides><service name="File_system"/></provides>
 		<config verbose="yes">
-			<content>
-				<inline name="usb_drv.config">
+			<vfs>
+				<ram/>
+				<import>
+					<inline name="usb_drv.config">
 <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 	<hid/>
 	<raw>
 		<report devices="yes"/>
 	</raw>
 </config>
-				</inline>
-				<inline name="usb_report_filter.config">
+					</inline>
+					<inline name="usb_report_filter.config">
 <config>
 	<!-- USB device whitelist -->
 	<client label="vbox1"/>
@@ -288,8 +295,9 @@ append_if [expr $use_usb] config {
 	<device vendor_id="0x0984" product_id="0x0066"/> <!-- lenovo DVDRW -->
 	<device vendor_id="0x174c" product_id="0x5106"/> <!-- delock SATA -->
 </config>
-				</inline>
-			</content>
+					</inline>
+				</import>
+			</vfs>
 			<policy label_prefix="usb_report_filter" root="/" writeable="yes"/>
 			<policy label_prefix="usb_config_rom" root="/"/>
 		</config>
@@ -374,7 +382,7 @@ append config {
 install_config $config
 
 append boot_modules {
-	part_block ahci_drv fs_rom
+	part_block ahci_drv fs_rom vfs
 	libc.lib.so vfs.lib.so libm.lib.so
 	libc_pipe.lib.so
 	libiconv.lib.so stdcxx.lib.so
@@ -384,10 +392,9 @@ append boot_modules {
 lappend_if [expr $use_rumpfs] boot_modules rump.lib.so
 lappend_if [expr $use_rumpfs] boot_modules rump_fs.lib.so
 lappend_if [expr $use_rumpfs] boot_modules vfs_rump.lib.so
-lappend_if [expr $use_rumpfs] boot_modules vfs
 lappend_if [expr $use_serial] boot_modules log_terminal
 lappend_if [expr $use_vbox5] boot_modules $virtualbox5_binary
-lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs
+lappend_if [expr $use_ram_fs || $use_usb] boot_modules vfs_import.lib.so
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image
 lappend_if [expr $use_cpu_load] boot_modules trace_subject_reporter
 lappend_if [expr $use_cpu_load] boot_modules cpu_load_display

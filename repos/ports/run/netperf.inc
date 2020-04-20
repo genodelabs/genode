@@ -82,8 +82,8 @@ append_if $use_nic_bridge   packages " [depot_user]/src/nic_bridge        "
 append_if $use_nic_router   packages " [depot_user]/src/nic_router        "
 append_if $use_usb_driver   packages " [depot_user]/src/platform_drv      "
 append_if $use_usb_driver   packages " [depot_user]/src/usb_drv           "
-append_if $use_wifi_driver  packages " [depot_user]/src/ram_fs            "
 append_if $use_wifi_driver  packages " [depot_user]/src/fs_rom            "
+append_if $use_wifi_driver  packages " [depot_user]/src/vfs_import        "
 append_if $use_wifi_driver  packages " [depot_user]/src/report_rom        "
 append_if $use_wifi_driver  packages " [depot_user]/src/wifi_drv          "
 append_if $use_wifi_driver  packages " [depot_user]/src/libcrypto         "
@@ -141,18 +141,21 @@ if { $use_wifi_driver } {
 	</start>
 
 	<start name="config_fs">
-		<binary name="ram_fs"/>
+		<binary name="vfs"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<policy label_prefix="config_rom" root="/"/>
-			<content>
-				<inline name="wifi_config">
+			<vfs>
+				<ram/>
+				<import>
+					<inline name="wifi_config">
 <wifi_config connected_scan_interval="0" scan_interval="10" rfkill="no" verbose="no" verbose_state="no">}
 append config "<network ssid=\"$wifi_ssid\" protection=\"WPA2\" passphrase=\"$wifi_psk\"/>"
 append  config { </wifi_config>
-				</inline>
-			</content>
+					</inline>
+				</import>
+			</vfs>
+			<policy label_prefix="config_rom" root="/"/>
 		</config>
 	</start>
 

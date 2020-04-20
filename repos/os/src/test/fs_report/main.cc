@@ -1,5 +1,5 @@
 /*
- * \brief  Test for combining ram_fs, fs_rom, and fs_report
+ * \brief  Test for combining vfs/ram, fs_rom, and fs_report
  * \author Norman Feske
  * \date   2017-06-28
  */

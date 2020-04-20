@@ -8,7 +8,6 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/fs_rom \
                   [depot_user]/src/fs_report \
-                  [depot_user]/src/ram_fs \
                   [depot_user]/src/nitpicker \
                   [depot_user]/src/init \
                   [depot_user]/src/libc \
@@ -34,6 +33,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/coreutils-minimal \
                   [depot_user]/src/fs_utils \
                   [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/vfs_import \
                   [depot_user]/src/stdin2out \
                   [depot_user]/src/gpt_write \
                   [depot_user]/src/text_area \
@@ -118,18 +118,21 @@ install_config {
 	</start>
 
 	<start name="config_fs">
-		<binary name="ram_fs"/>
+		<binary name="vfs"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<content>
-				<dir name="managed">
-					<rom name="fonts.config"         as="fonts"/>
-					<inline name="runtime"><config/></inline>
-					<inline name="depot_query"><query/></inline>
-				</dir>
-				<inline name="deploy"></inline>
-			</content>
+			<vfs>
+				<ram/>
+				<import>
+					<dir name="managed">
+						<rom name="fonts" label="fonts.config"/>
+						<inline name="runtime"><config/></inline>
+						<inline name="depot_query"><query/></inline>
+					</dir>
+					<inline name="deploy"></inline>
+				</import>
+			</vfs>
 			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
@@ -146,11 +149,16 @@ install_config {
 	</start>
 
 	<start name="report_fs">
-		<binary name="ram_fs"/>
+		<binary name="vfs"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<content> <inline name="log">See the core log for messages.</inline> </content>
+			<vfs>
+				<ram/>
+				<import>
+					<inline name="log">See the core log for messages.</inline>
+				</import>
+			</vfs>
 			<policy label="ro" root="/"/>
 			<default-policy root="/" writeable="yes"/>
 		</config>

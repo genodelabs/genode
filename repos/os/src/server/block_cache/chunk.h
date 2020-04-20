@@ -4,7 +4,7 @@
  * \author Stefan Kalkowski
  * \date   2014-01-06
  *
- * Note: originally taken from ram_fs server, and adapted to cache needs
+ * Note: originally taken from vfs/ram, and adapted to cache needs
  */
 
 /*

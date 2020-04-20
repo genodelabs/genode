@@ -7,9 +7,10 @@ set build_components {
 	drivers/framebuffer/intel
 	test/framebuffer
 	server/report_rom
-	server/ram_fs
+	server/vfs
 	server/fs_rom
 	app/top
+	lib/vfs/import
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -96,17 +97,20 @@ append config {
 			</start>
 
 			<start name="config_fs" priority="-1">
-				<binary name="ram_fs"/>
+				<binary name="vfs"/>
 				<resource name="RAM" quantum="8M"/>
 				<provides> <service name="File_system"/> </provides>
 				<config>
-					<content>
-						<inline name="fb_drv.config">
+					<vfs>
+						<ram/>
+						<import>
+							<inline name="fb_drv.config">
 <config ld_verbose="yes">
 	<report connectors="yes"/>
 </config>
-						</inline>
-					</content>
+							</inline>
+						</import>
+					</vfs>
 					<policy label_prefix="config_rom" root="/"/>
 					<policy label_prefix="intel_fb_controller" root="/" writeable="yes"/>
 				</config>
@@ -159,7 +163,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer intel_fb_drv intel_fb_controller
-	test-framebuffer report_rom ram_fs fs_rom
+	test-framebuffer report_rom fs_rom vfs vfs.lib.so vfs_import.lib.so
 	top
 }
 

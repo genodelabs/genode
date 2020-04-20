@@ -3,15 +3,16 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="20" />
-		<log     meaning="succeeded">&lt;config iteration="4" /></log>
+		<timeout meaning="failed" sec="20"/>
+		<log     meaning="succeeded">&lt;config iteration="4"/></log>
 	</events>
 
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="dynamic_rom"/>
 		<rom label="fs_rom"/>
-		<rom label="ram_fs"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
 		<rom label="rom_logger"/>
 		<rom label="rom_to_file"/>
 	</content>
@@ -34,8 +35,10 @@
 		<default caps="100"/>
 		<start name="ram_fs">
 			<resource name="RAM" quantum="10M"/>
+			<binary name="vfs"/>
 			<provides><service name="File_system"/></provides>
 			<config>
+				<vfs> <ram/> </vfs>
 				<policy label_prefix="rom_to_file" root="/" writeable="yes"/>
 				<policy label_prefix="fs_rom" root="/" writeable="no"/>
 			</config>
@@ -46,21 +49,21 @@
 			<config verbose="yes">
 				<rom name="dynamic_rom">
 					<inline description="iteration 1">
-						<config iteration="1" />
+						<config iteration="1"/>
 					</inline>
-					<sleep milliseconds="2000" />
+					<sleep milliseconds="2000"/>
 					<inline description="iteration 2">
-						<config iteration="2" />
+						<config iteration="2"/>
 					</inline>
-					<sleep milliseconds="2000" />
+					<sleep milliseconds="2000"/>
 					<inline description="iteration 3">
-						<config iteration="3" />
+						<config iteration="3"/>
 					</inline>
-					<sleep milliseconds="2000" />
+					<sleep milliseconds="2000"/>
 					<inline description="iteration 4">
-						<config iteration="4" />
+						<config iteration="4"/>
 					</inline>
-					<sleep milliseconds="2000" />
+					<sleep milliseconds="2000"/>
 				</rom>
 			</config>
 		</start>

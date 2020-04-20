@@ -33,7 +33,6 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/libssh \
                   [depot_user]/src/platform_drv \
                   [depot_user]/src/posix \
-                  [depot_user]/src/ram_fs \
                   [depot_user]/src/fs_rom \
                   [depot_user]/src/rtc_drv \
                   [depot_user]/src/ssh_terminal \
@@ -90,8 +89,10 @@ set config {
 
 	<start name="ram_fs">
 		<resource name="RAM" quantum="8M"/>
+		<binary name="vfs"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
+			<vfs> <ram/> </vfs>
 			<default-policy root="/" writeable="yes"/>
 		</config>
 		<route>

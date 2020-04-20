@@ -4,7 +4,7 @@ import_from_depot [depot_user]/src/qt5_component \
                   [depot_user]/src/qt5_printsupport \
                   [depot_user]/src/qt5_textedit \
                   [depot_user]/src/qt5_widgets \
-                  [depot_user]/src/ram_fs
+                  [depot_user]/src/vfs
 
 #
 # Build
@@ -41,8 +41,10 @@ append config [qt5_start_nodes feature]
 append config {
 	<start name="ram_fs">
 		<resource name="RAM" quantum="10M"/>
+		<binary name="vfs"/>
 		<provides><service name="File_system"/></provides>
 		<config>
+			<vfs> <ram/> </vfs>
 			<!-- constrain sessions according to their labels -->
 			<policy label_prefix="textedit" root="/" writeable="yes" />
 			<policy label_prefix="textedit2" root="/" writeable="yes" />

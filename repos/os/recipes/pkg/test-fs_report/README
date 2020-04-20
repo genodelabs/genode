@@ -1,2 +1,2 @@
-Scenario that emulates the report_rom server by combining the ram_fs, fs_rom,
+Scenario that emulates the report_rom server by combining the vfs/ram, fs_rom,
 and fs_report servers

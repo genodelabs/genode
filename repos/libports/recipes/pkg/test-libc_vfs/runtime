@@ -10,7 +10,7 @@
 		<rom label="ld.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="vfs.lib.so"/>
-		<rom label="ram_fs"/>
+		<rom label="vfs"/>
 		<rom label="test-libc_vfs"/>
 	</content>
 
@@ -28,13 +28,17 @@
 		<default caps="100"/>
 		<start name="ram_fs">
 			<resource name="RAM" quantum="12M"/>
+			<binary name="vfs"/>
 			<provides> <service name="File_system"/> </provides>
-			<config> <default-policy root="/" writeable="yes"/> </config>
+			<config>
+				<vfs> <ram/> </vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
 		</start>
 		<start name="test-libc_vfs">
 			<resource name="RAM" quantum="4M"/>
 			<config>
-				<iterations value="1"/>}
+				<iterations value="1"/>
 				<write-read size="1M" buffer_size="8K"/>
 				<vfs>
 					<dir name="tmp"> <fs/> </dir>
