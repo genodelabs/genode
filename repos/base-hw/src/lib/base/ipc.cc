@@ -130,11 +130,10 @@ void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
 }
 
 
-Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const         &,
-                                           Rpc_exception_code              exc,
-                                           Msgbuf_base                    &reply_msg,
-                                           Msgbuf_base                    &request_msg,
-                                           Rpc_entrypoint::Native_context &)
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
+                                           Rpc_exception_code      exc,
+                                           Msgbuf_base            &reply_msg,
+                                           Msgbuf_base            &request_msg)
 {
 	Native_utcb &utcb = *Thread::myself()->utcb();
 
@@ -163,11 +162,10 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const         &,
 }
 
 
-Ipc_server::Ipc_server(Rpc_entrypoint::Native_context& _native_context)
+Ipc_server::Ipc_server()
 :
 	Native_capability(Thread::myself() ? Thread::myself()->native_thread().cap
-	                                   : Hw::_main_thread_cap),
-	_native_context(_native_context)
+	                                   : Hw::_main_thread_cap)
 { }
 
 
