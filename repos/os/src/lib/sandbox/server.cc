@@ -86,7 +86,7 @@ Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 				match = &service; });
 
 		if (!match || match->abandoned())
-			throw Service_denied();
+			throw Service_not_present();
 
 		return Route { *match, target_label };
 	}
