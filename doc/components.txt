@@ -367,9 +367,6 @@ Separate components:
   Provides each file of an ISO9660 file system accessed via a block session as
   separate ROM session.
 
-:'os/src/server/ram_fs':
-  A file-system implementation that keeps all data in memory.
-
 :'dde_rump/src/server/rump_fs':
   A file-system server that contains various file-systems ported from the
   NetBSD kernel.
