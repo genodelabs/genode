@@ -14,9 +14,7 @@
 
 
 /* base-internal includes */
-#include <base/platform.h>
+#include <base/internal/globals.h>
 
-void binary_ready_hook_for_platform()
-{
-}
+void Genode::binary_ready_hook_for_platform() { }
 
