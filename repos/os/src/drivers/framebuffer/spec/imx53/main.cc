@@ -133,7 +133,7 @@ struct Main
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	Framebuffer::Driver _driver { _env };
+	Framebuffer::Driver _driver { _env, _config.xml() };
 
 	Framebuffer::Session_component _fb_session { _env, _driver,
 		config_attribute(_config.xml(), "buffered") };
