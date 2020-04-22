@@ -102,7 +102,7 @@ catch { exec dd if=/dev/urandom of=bin/test.bin bs=4096 count=8160 }
 # Step 1: prepare and start the actual VM
 #
 set build_components {
-	server/input_merger
+	server/input_filter
 	server/report_rom server/fs_rom server/vfs
 	server/tcp_terminal drivers/nic
 	lib/vfs/lwip lib/vfs/pipe lib/vfs/import
@@ -118,7 +118,7 @@ set boot_modules {
 	vfs fs_rom
 	posix.lib.so bash.tar coreutils.tar
 	tcp_terminal vfs_lwip.lib.so vfs_pipe.lib.so vfs_import.lib.so
-	ipxe_nic_drv report_rom input_merger
+	ipxe_nic_drv report_rom input_filter
 	test.bin template.bat
 }
 
@@ -245,17 +245,26 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="input_merger" priority="-1">
+	<start name="input_filter" priority="-1">
 		<resource name="RAM" quantum="1M" />
 		<provides>
 			<service name="Input" />
 		</provides>
 		<config>}
 append_if [expr $use_ps2] config_of_app {
-			<input label="ps2" /> }
+			<input label="ps2"/> }
 append_if [expr $use_usb] config_of_app {
-			<input label="usb_hid" />}
+			<input label="usb_hid"/>}
 append config_of_app {
+			<output>
+				<merge>}
+append_if [expr $use_ps2] config_of_app {
+					<input name="ps2"/>}
+append_if [expr $use_usb] config_of_app {
+					<input name="usb_hid"/>}
+append config_of_app {
+				</merge>
+			</output>
 		</config>
 		<route> }
 append_if [expr $use_ps2] config_of_app {
@@ -272,7 +281,7 @@ append config_of_app {
 		<provides><service name="Nitpicker"/></provides>
 		<route>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>
-			<service name="Input"> <child name="input_merger" /> </service>
+			<service name="Input"> <child name="input_filter" /> </service>
 			<service name="Report"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
@@ -337,7 +346,7 @@ append config_of_app {
 				<child name="ram_fs_to"/>
 			</service>
 			<service name="File_system"> <child name="rump_fs"/> </service>
-			<service name="Input"> <child name="input_merger"/> </service>
+			<service name="Input"> <child name="input_filter"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

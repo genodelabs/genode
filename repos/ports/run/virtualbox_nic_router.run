@@ -25,7 +25,7 @@ append build_components { drivers/input }
 append build_components { drivers/rtc }
 append build_components { drivers/usb }
 append build_components { drivers/nic }
-append build_components { server/input_merger }
+append build_components { server/input_filter }
 
 append_platform_drv_build_components
 
@@ -110,7 +110,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="input_merger" priority="-2">
+	<start name="input_filter" priority="-2">
 		<resource name="RAM" quantum="1M" />
 		<provides>
 			<service name="Input" />
@@ -118,6 +118,12 @@ append config {
 		<config>
 			<input label="ps2" />
 			<input label="usb_hid" />
+			<output>
+				<merge>
+					<input name="ps2"/>
+					<input name="usb_hid"/>
+				</merge>
+			</output>
 		</config>
 		<route>
 			<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>
@@ -339,7 +345,7 @@ append config {
 			</vfs>
 		</config>
 		<route>
-			<service name="Input"><child name="input_merger" /></service>
+			<service name="Input"><child name="input_filter" /></service>
 			<service name="Nic"> <child name="router2"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
@@ -389,7 +395,7 @@ append boot_modules { rtc_drv }
 append boot_modules { usb_drv }
 append boot_modules { vfs.lib.so }
 append boot_modules { ipxe_nic_drv }
-append boot_modules { input_merger }
+append boot_modules { input_filter }
 append boot_modules { log_terminal }
 append_platform_drv_boot_modules
 

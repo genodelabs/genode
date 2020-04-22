@@ -25,7 +25,7 @@ if {[info exists flavor_extension]} {
 }
 
 set build_components {
-	server/input_merger
+	server/input_filter
 	drivers/nic
 	drivers/audio
 	server/report_rom
@@ -33,7 +33,7 @@ set build_components {
 }
 
 set boot_modules {
-	input_merger
+	input_filter
 	ipxe_nic_drv
 	audio_drv
 	report_rom
@@ -45,17 +45,26 @@ if {$use_vbox5_nova} { set virtualbox5_binary "virtualbox5-nova" }
 
 set config_of_app {
 
-	<start name="input_merger">
+	<start name="input_filter">
 		<resource name="RAM" quantum="1M" />
 		<provides>
 			<service name="Input" />
 		</provides>
 		<config>}
 append_if [expr $use_ps2] config_of_app {
-			<input label="ps2" /> }
+			<input label="ps2"/> }
 append_if [expr $use_usb] config_of_app {
-			<input label="usb_hid" />}
+			<input label="usb_hid"/>}
 append config_of_app {
+			<output>
+				<merge>}
+append_if [expr $use_ps2] config_of_app {
+					<input name="ps2"/>}
+append_if [expr $use_usb] config_of_app {
+					<input name="usb_hid"/>}
+append config_of_app {
+				</merge>
+			</output>
 		</config>
 		<route> }
 append_if [expr $use_ps2] config_of_app {
@@ -120,7 +129,7 @@ append config_of_app {
 		<configfile name="nitpicker.config"/>
 		<route>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>
-			<service name="Input"> <child name="input_merger" /> </service>
+			<service name="Input"> <child name="input_filter" /> </service>
 			<service name="Report"> <child name="report_rom" /> </service>
 			<service name="ROM" label="nitpicker.config"> <child name="dynamic-config"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>

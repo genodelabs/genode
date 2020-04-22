@@ -14,7 +14,7 @@ set build_components {
 	drivers/input
 	server/acpi_input
 	server/dynamic_rom
-	server/input_merger
+	server/input_filter
 	server/report_rom
 	app/acpica
 	test/input
@@ -130,12 +130,18 @@ append config {
 		</start>}
 
 append config {
-		<start name="input_merger">
+		<start name="input_filter">
 			<resource name="RAM" quantum="1M" />
 			<provides> <service name="Input" /> </provides>
 			<config>
 				<input label="ps2" />
 				<input label="acpi" />
+				<output>
+					<merge>
+						<input name="ps2"/>
+						<input name="acpi"/>
+					</merge>
+				</output>
 			</config>
 			<route>
 				<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>
@@ -159,7 +165,7 @@ append config {
 		<start name="test-input">
 			<resource name="RAM" quantum="1M"/>
 			<route>
-				<service name="Input"> <child name="input_merger"/> </service>
+				<service name="Input"> <child name="input_filter"/> </service>
 				<service name="Timer"> <child name="timer"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
@@ -205,7 +211,7 @@ set boot_modules {
 	ld.lib.so
 	timer
 	ps2_drv
-	input_merger
+	input_filter
 	report_rom
 	dynamic_rom
 	acpica

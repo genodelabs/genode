@@ -463,9 +463,9 @@ Separate components:
   by providing an encrypted connection to a remote host. It is plugged between
   NIC server (such as a network driver) and NIC client.
 
-:'os/src/server/input_merger':
-  A component that merges input events from multiple sources into a single
-  stream.
+:'os/src/server/input_filter':
+  A component that transforms and merges input events from multiple sources
+  into a single stream.
 
 :'libports/src/server/acpi_input':
   A component that transforms ACPI events into Genode input events.
