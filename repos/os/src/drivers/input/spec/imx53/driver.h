@@ -37,14 +37,13 @@ class Input::Tablet_driver
 			GPIO_BUTTON = 132,
 		};
 
-		Timer::Connection                         _timer;
 		Event_queue                              &_ev_queue;
 		Gpio::Connection                          _gpio_ts;
 		Gpio::Connection                          _gpio_bt;
 		Genode::Irq_session_client                _irq_ts;
 		Genode::Irq_session_client                _irq_bt;
-		Genode::Signal_handler<Tablet_driver>     _ts_dispatcher;
-		Genode::Signal_handler<Tablet_driver>     _bt_dispatcher;
+		Genode::Io_signal_handler<Tablet_driver>  _ts_dispatcher;
+		Genode::Io_signal_handler<Tablet_driver>  _bt_dispatcher;
 		Touchscreen                               _touchscreen;
 		Buttons                                   _buttons;
 
@@ -62,7 +61,6 @@ class Input::Tablet_driver
 
 		Tablet_driver(Genode::Env &env, Event_queue &ev_queue)
 		:
-			_timer(env),
 			_ev_queue(ev_queue),
 			_gpio_ts(env, GPIO_TOUCH),
 			_gpio_bt(env, GPIO_BUTTON),
@@ -70,7 +68,8 @@ class Input::Tablet_driver
 			_irq_bt(_gpio_bt.irq_session(Gpio::Session::FALLING_EDGE)),
 			_ts_dispatcher(env.ep(), *this, &Tablet_driver::_handle_ts),
 			_bt_dispatcher(env.ep(), *this, &Tablet_driver::_handle_bt),
-			_touchscreen(env, _timer), _buttons(env, _timer)
+			_touchscreen(env),
+			_buttons(env)
 		{
 			/* GPIO touchscreen handling */
 			_gpio_ts.direction(Gpio::Session::OUT);

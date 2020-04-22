@@ -207,7 +207,7 @@ class Ipu : Genode::Mmio
 					unsigned dec_sel2 : 1;   /* Decode Address Select bit[2] */
 					unsigned res2     : 9;   /* reserved */
 					Genode::uint32_t res3[3];
-				};
+				} __attribute__((packed));
 
 				Cp_mem() { Genode::memset(this, 0, sizeof(Cp_mem)); }
 		} __attribute__((packed));

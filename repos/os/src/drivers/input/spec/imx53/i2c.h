@@ -64,8 +64,7 @@ class I2c::I2c : Genode::Mmio
 
 		class No_ack : Genode::Exception {};
 
-		Timer::Connection &_timer;
-		Irq_handler       &_irq_handler;
+		Irq_handler & _irq_handler;
 
 		void _busy() { while (!read<Status::Busy>()); }
 
@@ -77,7 +76,7 @@ class I2c::I2c : Genode::Mmio
 			write<Status>(0);
 			write<Control>(Control::Enable::bits(1));
 
-			_timer.msleep(1);
+			while (!read<Control::Enable>()) { ; }
 
 			write<Control::Master_slave_select>(1);
 
@@ -112,9 +111,9 @@ class I2c::I2c : Genode::Mmio
 
 	public:
 
-		I2c(Timer::Connection &timer,
-		    Genode::addr_t const base, Irq_handler &irq_handler)
-		: Mmio(base), _timer(timer), _irq_handler(irq_handler)
+		I2c(Genode::addr_t const base, Irq_handler &irq_handler)
+		: Mmio(base),
+		  _irq_handler(irq_handler)
 		{
 			write<Control>(0);
 			write<Status>(0);
@@ -167,6 +166,7 @@ class I2c::I2c : Genode::Mmio
 						}
 
 						buf[i] = read<Data>();
+						_irq_handler.ack();
 					}
 
 					_stop();

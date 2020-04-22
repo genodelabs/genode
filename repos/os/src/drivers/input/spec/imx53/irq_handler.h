@@ -21,9 +21,9 @@ class Irq_handler
 {
 	private:
 
-		Genode::Env                        &_env;
-		Genode::Irq_connection              _irq;
-		Genode::Signal_handler<Irq_handler> _handler;
+		Genode::Env                           &_env;
+		Genode::Irq_connection                 _irq;
+		Genode::Io_signal_handler<Irq_handler> _handler;
 
 		unsigned _sem_cnt = 1;
 

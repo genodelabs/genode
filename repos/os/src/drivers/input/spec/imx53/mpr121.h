@@ -52,12 +52,11 @@ class Input::Buttons {
 
 	public:
 
-		Buttons(Genode::Env &env, Timer::Connection &timer)
+		Buttons(Genode::Env &env)
 		:
 			_irq_handler(env, Imx53::I2C_2_IRQ),
 			_i2c_ds(env, Imx53::I2C_2_BASE, Imx53::I2C_2_SIZE),
-			_i2c(timer,
-			     (Genode::addr_t)_i2c_ds.local_addr<void>(),
+			_i2c((Genode::addr_t)_i2c_ds.local_addr<void>(),
 			     _irq_handler),
 			_state(0)
 		{

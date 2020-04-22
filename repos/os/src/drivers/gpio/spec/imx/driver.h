@@ -68,7 +68,7 @@ class Imx_driver : public Gpio::Driver
 						Irq_handler &operator = (Irq_handler const &);
 
 						Genode::Irq_connection                  _irq;
-						Genode::Signal_handler<Irq_handler>     _dispatcher;
+						Genode::Io_signal_handler<Irq_handler>  _dispatcher;
 						Gpio_bank                              *_bank;
 
 						void _handle()
