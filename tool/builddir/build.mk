@@ -39,6 +39,15 @@
 ## Define global configuration variables
 ##
 
+#
+# Whenever using the 'run/%' rule and the run tool spawns this Makefile again
+# when encountering a 'build' step, the build.conf is included a second time,
+# with the content taken from the environment variable. We need to reset the
+# 'REPOSITORIES' variable to prevent extending this variable twice.
+# (see https://github.com/genodelabs/genode/issues/3731)
+#
+REPOSITORIES :=
+
 -include etc/build.conf
 
 BUILD_BASE_DIR := $(CURDIR)
