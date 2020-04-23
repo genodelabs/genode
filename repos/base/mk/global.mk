@@ -177,14 +177,6 @@ CC_C_OPT   += $(CC_OPT)
 CC_ADA_OPT += $(filter-out -fno-builtin-cos -fno-builtin-sin -fno-builtin-cosf -fno-builtin-sinf ,$(CC_OPT)) -fexceptions
 
 #
-# Rust-specific arguments
-#
-# Use the correct linker, include dependencies.
-#
-CC_RUSTC_OPT += -C linker=$(LD)
-CC_RUSTC_OPT += $(foreach lib,$(LIBS),-L$(LIB_CACHE_DIR)/$(lib))
-
-#
 # Enable C++11 by default
 #
 # We substitute '.' characters by '_' to allow a source-file-specific

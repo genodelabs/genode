@@ -93,17 +93,6 @@ CUSTOM_ADA_INCLUDE ?= -I- $(INCLUDES)
 	$(VERBOSE)$(ALI2DEP) $(dir $<) $(ALL_INC_DIR) $*.ali
 
 #
-# Compiling Rust sources
-#
-%.rlib: %.rs
-	$(MSG_COMP)$@
-	$(VERBOSE)rustc $(CC_RUSTC_OPT) --crate-type rlib -o $@ $<
-
-%.o: %.rlib
-	$(MSG_CONVERT)$@
-	$(VERBOSE)ar p $< $*.0.o > $@
-
-#
 # Assembler files that must be preprocessed are fed to the C compiler.
 #
 %.o: %.S

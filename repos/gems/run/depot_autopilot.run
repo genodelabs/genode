@@ -710,7 +710,6 @@ set default_test_pkgs {
 	test-rm_stress
 	test-rom_block
 	test-rom_filter
-	test-rust
 	test-sanitizer
 	test-sequence
 	test-signal
@@ -771,7 +770,6 @@ set skip_test(test-solo5)           [expr ![have_spec x86_64]]
 set skip_test(test-spark_exception) [expr [have_spec arm]]
 set skip_test(test-tcp_bulk_lwip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
 set skip_test(test-tcp_bulk_lxip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
-set skip_test(test-rust)            [expr [have_spec arm_v8a]]
 
 #
 # FIXME
