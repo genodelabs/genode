@@ -128,6 +128,7 @@ static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src
 	dst->st_dev     = src.device;
 	long long mtime = src.modification_time.value;
 	dst->st_mtime   = mtime != Vfs::Timestamp::INVALID ? mtime : 0;
+	dst->st_nlink   = 1;
 }
 
 
