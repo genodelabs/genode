@@ -1701,7 +1701,8 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			typedef Genode::Fifo_element<Vfs_handle> Handle_element;
 			typedef Genode::Fifo<Vfs_netif::Handle_element> Handle_queue;
 
-			Handle_queue blocked_handles { };
+			Handle_queue  blocked_handles { };
+			Genode::Mutex blocked_handles_mutex { };
 
 			Vfs_netif(Vfs::Env &vfs_env,
 			          Genode::Xml_node config)
@@ -1719,6 +1720,9 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			{
 				Handle_element *elem = new (handle.alloc())
 					Handle_element(handle);
+
+				Genode::Mutex::Guard guard(blocked_handles_mutex);
+
 				blocked_handles.enqueue(*elem);
 			}
 
@@ -1733,6 +1737,8 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 				nameserver_handles.for_each([&] (Lwip_nameserver_handle &h) {
 					h.io_progress_response(); });
 
+				Genode::Mutex::Guard guard(blocked_handles_mutex);
+
 				blocked_handles.dequeue_all([] (Handle_element &elem) {
 					Vfs_handle &handle = elem.object();
 					destroy(elem.object().alloc(), &elem);
@@ -1742,6 +1748,8 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 
 			void drop(Vfs_handle &handle)
 			{
+				Genode::Mutex::Guard guard(blocked_handles_mutex);
+
 				blocked_handles.for_each([&] (Handle_element &elem) {
 					if (&elem.object() == &handle) {
 						blocked_handles.remove(elem);
