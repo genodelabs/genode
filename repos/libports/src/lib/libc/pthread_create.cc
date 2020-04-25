@@ -145,4 +145,7 @@ extern "C"
 		                            pthread_name.string(), _cpu_session,
 		                            location);
 	}
+
+	typeof(pthread_create) _pthread_create
+		__attribute__((alias("pthread_create")));
 }

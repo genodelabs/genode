@@ -93,9 +93,11 @@ extern "C" {
 			}
 	};
 
+
 	struct pthread_rwlockattr
 	{
 	};
+
 
 	static int rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr)
 	{
@@ -112,10 +114,15 @@ extern "C" {
 		} catch (...) { return ENOMEM; }
 	}
 
+
 	int pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr)
 	{
 		return rwlock_init(rwlock, attr);
 	}
+
+	typeof(pthread_rwlock_init) _pthread_rwlock_init
+		__attribute__((alias("pthread_rwlock_init")));
+
 
 	int pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
 	{
@@ -123,6 +130,10 @@ extern "C" {
 		destroy(alloc, *rwlock);
 		return 0;
 	}
+
+	typeof(pthread_rwlock_destroy) _pthread_rwlock_destroy
+		__attribute__((alias("pthread_rwlock_destroy")));
+
 
 	int pthread_rwlock_rdlock(pthread_rwlock_t * rwlock)
 	{
@@ -137,6 +148,10 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_rwlock_rdlock) _pthread_rwlock_rdlock
+		__attribute__((alias("pthread_rwlock_rdlock")));
+
+
 	int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
 	{
 		if (!rwlock)
@@ -150,10 +165,18 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_rwlock_wrlock) _pthread_rwlock_wrlock
+		__attribute__((alias("pthread_rwlock_wrlock")));
+
+
 	int pthread_rwlock_unlock(pthread_rwlock_t *rwlock)
 	{
 		return (*rwlock)->unlock();
 	}
+
+	typeof(pthread_rwlock_unlock) _pthread_rwlock_unlock
+		__attribute__((alias("pthread_rwlock_unlock")));
+
 
 	int pthread_rwlockattr_init(pthread_rwlockattr_t *attr)
 	{
@@ -162,11 +185,13 @@ extern "C" {
 		return 0;
 	}
 
+
 	int pthread_rwlockattr_getpshared(const pthread_rwlockattr_t *attr, int *pshared)
 	{
 		*pshared = PTHREAD_PROCESS_PRIVATE;
 		return 0;
 	}
+
 
 	int pthread_rwlockattr_setpshared(pthread_rwlockattr_t *attr, int pshared)
 	{
@@ -177,12 +202,14 @@ extern "C" {
 		return 0;
 	}
 
+
 	int pthread_rwlockattr_destroy(pthread_rwlockattr_t *attr)
 	{
 		Libc::Allocator alloc { };
 		destroy(alloc, *attr);
 		return 0;
 	}
+
 
 	/*
 	 * Unimplemented functions:

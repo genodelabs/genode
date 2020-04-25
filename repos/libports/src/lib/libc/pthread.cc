@@ -519,6 +519,9 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_join) _pthread_join
+		__attribute__((alias("pthread_join")));
+
 
 	int pthread_attr_init(pthread_attr_t *attr)
 	{
@@ -530,6 +533,9 @@ extern "C" {
 
 		return 0;
 	}
+
+	typeof(pthread_attr_init) _pthread_attr_init
+		__attribute__((alias("pthread_attr_init")));
 
 
 	int pthread_attr_destroy(pthread_attr_t *attr)
@@ -544,6 +550,9 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_attr_destroy) _pthread_attr_destroy
+		__attribute__((alias("pthread_attr_destroy")));
+
 
 	int pthread_cancel(pthread_t thread)
 	{
@@ -557,6 +566,9 @@ extern "C" {
 		pthread_self()->exit(value_ptr);
 		sleep_forever();
 	}
+
+	typeof(pthread_exit) _pthread_exit
+		__attribute__((alias("pthread_exit")));
 
 
 	/* special non-POSIX function (for example used in libresolv) */
@@ -598,6 +610,9 @@ extern "C" {
 		return unmanaged_singleton<pthread>(*Thread::myself());
 	}
 
+	typeof(pthread_self) _pthread_self
+		__attribute__((alias("pthread_self")));
+
 
 	pthread_t thr_self(void) { return pthread_self(); }
 
@@ -624,6 +639,9 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_attr_setstacksize) _pthread_attr_setstacksize
+		__attribute__((alias("pthread_attr_setstacksize")));
+
 
 	int pthread_attr_getstack(const pthread_attr_t *attr,
 	                          void **stackaddr,
@@ -645,12 +663,18 @@ extern "C" {
 		return pthread_attr_getstack(attr, stackaddr, &stacksize);
 	}
 
+	typeof(pthread_attr_getstackaddr) _pthread_attr_getstackaddr
+		__attribute__((alias("pthread_attr_getstackaddr")));
+
 
 	int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
 	{
 		void *stackaddr;
 		return pthread_attr_getstack(attr, &stackaddr, stacksize);
 	}
+
+	typeof(pthread_attr_getstacksize) _pthread_attr_getstacksize
+		__attribute__((alias("pthread_attr_getstacksize")));
 
 
 	int pthread_attr_get_np(pthread_t pthread, pthread_attr_t *attr)
@@ -669,6 +693,9 @@ extern "C" {
 	{
 		return (t1 == t2);
 	}
+
+	typeof(pthread_equal) _pthread_equal
+		__attribute__((alias("pthread_equal")));
 
 
 	void __pthread_cleanup_push_imp(void (*routine)(void*), void *arg,
@@ -698,6 +725,9 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_mutexattr_init) _pthread_mutexattr_init
+		__attribute__((alias("pthread_mutexattr_init")));
+
 
 	int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
 	{
@@ -711,6 +741,9 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_mutexattr_destroy) _pthread_mutexattr_destroy
+		__attribute__((alias("pthread_mutexattr_destroy")));
+
 
 	int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 	{
@@ -721,6 +754,9 @@ extern "C" {
 
 		return 0;
 	}
+
+	typeof(pthread_mutexattr_settype) _pthread_mutexattr_settype
+		__attribute__((alias("pthread_mutexattr_settype")));
 
 
 	int pthread_mutex_init(pthread_mutex_t *mutex,
@@ -747,6 +783,9 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_mutex_init) _pthread_mutex_init
+		__attribute__((alias("pthread_mutex_init")));
+
 
 	int pthread_mutex_destroy(pthread_mutex_t *mutex)
 	{
@@ -760,6 +799,9 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_mutex_destroy) _pthread_mutex_destroy
+		__attribute__((alias("pthread_mutex_destroy")));
+
 
 	int pthread_mutex_lock(pthread_mutex_t *mutex)
 	{
@@ -772,6 +814,9 @@ extern "C" {
 		return (*mutex)->lock();
 	}
 
+	typeof(pthread_mutex_lock) _pthread_mutex_lock
+		__attribute__((alias("pthread_mutex_lock")));
+
 
 	int pthread_mutex_trylock(pthread_mutex_t *mutex)
 	{
@@ -783,6 +828,9 @@ extern "C" {
 
 		return (*mutex)->trylock();
 	}
+
+	typeof(pthread_mutex_trylock) _pthread_mutex_trylock
+		__attribute__((alias("pthread_mutex_trylock")));
 
 
 	int pthread_mutex_timedlock(pthread_mutex_t *mutex,
@@ -809,6 +857,9 @@ extern "C" {
 
 		return (*mutex)->unlock();
 	}
+
+	typeof(pthread_mutex_unlock) _pthread_mutex_unlock
+		__attribute__((alias("pthread_mutex_unlock")));
 
 
 	/* Condition variable */
@@ -900,6 +951,9 @@ extern "C" {
 		return cond_init(cond, attr);
 	}
 
+	typeof(pthread_cond_init) _pthread_cond_init
+		__attribute__((alias("pthread_cond_init")));
+
 
 	int pthread_cond_destroy(pthread_cond_t *cond)
 	{
@@ -915,6 +969,9 @@ extern "C" {
 
 		return 0;
 	}
+
+	typeof(pthread_cond_destroy) _pthread_cond_destroy
+		__attribute__((alias("pthread_cond_destroy")));
 
 
 	int pthread_cond_timedwait(pthread_cond_t *__restrict cond,
@@ -960,12 +1017,18 @@ extern "C" {
 		return result;
 	}
 
+	typeof(pthread_cond_timedwait) _pthread_cond_timedwait
+		__attribute__((alias("pthread_cond_timedwait")));
+
 
 	int pthread_cond_wait(pthread_cond_t *__restrict cond,
 	                      pthread_mutex_t *__restrict mutex)
 	{
 		return pthread_cond_timedwait(cond, mutex, nullptr);
 	}
+
+	typeof(pthread_cond_wait) _pthread_cond_wait
+		__attribute__((alias("pthread_cond_wait")));
 
 
 	int pthread_cond_signal(pthread_cond_t *cond)
@@ -989,6 +1052,9 @@ extern "C" {
 
 		return 0;
 	}
+
+	typeof(pthread_cond_signal) _pthread_cond_signal
+		__attribute__((alias("pthread_cond_signal")));
 
 
 	int pthread_cond_broadcast(pthread_cond_t *cond)
@@ -1015,6 +1081,10 @@ extern "C" {
 
 		return 0;
 	}
+
+	typeof(pthread_cond_broadcast) _pthread_cond_broadcast
+		__attribute__((alias("pthread_cond_broadcast")));
+
 
 	/* TLS */
 
@@ -1074,6 +1144,9 @@ extern "C" {
 		return EAGAIN;
 	}
 
+	typeof(pthread_key_create) _pthread_key_create
+		__attribute__((alias("pthread_key_create")));
+
 
 	int pthread_key_delete(pthread_key_t key)
 	{
@@ -1090,6 +1163,9 @@ extern "C" {
 
 		return 0;
 	}
+
+	typeof(pthread_key_delete) _pthread_key_delete
+		__attribute__((alias("pthread_key_delete")));
 
 
 	int pthread_setspecific(pthread_key_t key, const void *value)
@@ -1115,6 +1191,9 @@ extern "C" {
 		return 0;
 	}
 
+	typeof(pthread_setspecific) _pthread_setspecific
+		__attribute__((alias("pthread_setspecific")));
+
 
 	void *pthread_getspecific(pthread_key_t key)
 	{
@@ -1132,6 +1211,9 @@ extern "C" {
 
 		return 0;
 	}
+
+	typeof(pthread_getspecific) _pthread_getspecific
+		__attribute__((alias("pthread_getspecific")));
 
 
 	int pthread_once(pthread_once_t *once, void (*init_once)(void))
@@ -1177,4 +1259,7 @@ extern "C" {
 
 		return 0;
 	}
+
+	typeof(pthread_once) _pthread_once
+		__attribute__((alias("pthread_once")));
 }
