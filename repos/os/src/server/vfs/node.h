@@ -285,13 +285,14 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 
 		void _acknowledge_as_failure()
 		{
-			_packet             = Packet_descriptor();
-			_payload_ptr        = Payload_ptr { nullptr };
 			_packet_in_progress = false;
 			_acked_packet_valid = true;
 			_acked_packet       = _packet;
 
 			_acked_packet.succeeded(false);
+
+			_packet             = Packet_descriptor();
+			_payload_ptr        = Payload_ptr { nullptr };
 		}
 
 		/**
