@@ -172,24 +172,28 @@ class Vfs::Fs_file_system : public File_system
 				if (queued_read_state != Handle_state::Queued_state::ACK)
 					return READ_QUEUED;
 
+				::File_system::Session::Tx::Source &source = *_fs.tx();
+
 				/* obtain result packet descriptor with updated status info */
 				::File_system::Packet_descriptor const
 					packet = queued_read_packet;
 
-				file_size const read_num_bytes = min(packet.length(), count);
+				Read_result result = packet.succeeded() ? READ_OK : READ_ERR_IO;
 
-				::File_system::Session::Tx::Source &source = *_fs.tx();
+				if (result == READ_OK) {
+					file_size const read_num_bytes = min(packet.length(), count);
 
-				memcpy(dst, source.packet_content(packet), read_num_bytes);
+					memcpy(dst, source.packet_content(packet), read_num_bytes);
+
+					out_count  = read_num_bytes;
+				}
 
 				queued_read_state  = Handle_state::Queued_state::IDLE;
 				queued_read_packet = ::File_system::Packet_descriptor();
 
-				out_count  = read_num_bytes;
-
 				source.release_packet(packet);
 
-				return READ_OK;
+				return result;
 			}
 
 			Fs_vfs_handle(File_system &fs, Allocator &alloc,
