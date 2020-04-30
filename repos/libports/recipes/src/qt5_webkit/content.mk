@@ -1,20 +1,28 @@
-MIRROR_FROM_REP_DIR := lib/mk/qt5_angle.mk \
+MIRROR_FROM_REP_DIR := lib/mk/qt5_angle.inc \
                        lib/mk/qt5_angle_generated.inc \
                        lib/mk/qt5_jscore.inc \
                        lib/mk/qt5_jscore_generated.inc \
                        lib/mk/qt5_webcore.inc \
                        lib/mk/qt5_webcore_generated.inc \
-                       lib/mk/qt5_webkit.mk \
+                       lib/mk/qt5_webkit.inc \
                        lib/mk/qt5_webkit_generated.inc \
-                       lib/mk/qt5_webkitwidgets.mk \
+                       lib/mk/qt5_webkitwidgets.inc \
                        lib/mk/qt5_webkitwidgets_generated.inc \
-                       lib/mk/qt5_wtf.mk \
+                       lib/mk/qt5_wtf.inc \
                        lib/mk/qt5_wtf_generated.inc \
                        lib/mk/qt5.inc \
+                       lib/mk/spec/32bit/qt5_angle.mk \
                        lib/mk/spec/32bit/qt5_jscore.mk \
                        lib/mk/spec/32bit/qt5_webcore.mk \
+                       lib/mk/spec/32bit/qt5_webkit.mk \
+                       lib/mk/spec/32bit/qt5_webkitwidgets.mk \
+                       lib/mk/spec/32bit/qt5_wtf.mk \
+                       lib/mk/spec/x86_64/qt5_angle.mk \
                        lib/mk/spec/x86_64/qt5_jscore.mk \
-                       lib/mk/spec/x86_64/qt5_webcore.mk
+                       lib/mk/spec/x86_64/qt5_webcore.mk \
+                       lib/mk/spec/x86_64/qt5_webkit.mk \
+                       lib/mk/spec/x86_64/qt5_webkitwidgets.mk \
+                       lib/mk/spec/x86_64/qt5_wtf.mk
 
 content: $(MIRROR_FROM_REP_DIR) \
          src/lib/qt5_angle/target.mk \
