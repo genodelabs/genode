@@ -386,6 +386,7 @@ extern "C" int mkdir(const char *path, mode_t mode)
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(path, resolved_path);
+		resolved_path.remove_trailing('/');
 		FNAME_FUNC_WRAPPER(mkdir, resolved_path.base(), mode);
 	} catch(Symlink_resolve_error) {
 		return -1;
@@ -608,6 +609,10 @@ extern "C" int rename(const char *oldpath, const char *newpath)
 		Absolute_path resolved_oldpath, resolved_newpath;
 		resolve_symlinks_except_last_element(oldpath, resolved_oldpath);
 		resolve_symlinks_except_last_element(newpath, resolved_newpath);
+
+		resolved_oldpath.remove_trailing('/');
+		resolved_newpath.remove_trailing('/');
+
 		FNAME_FUNC_WRAPPER(rename, resolved_oldpath.base(), resolved_newpath.base());
 	} catch(Symlink_resolve_error) {
 		return -1;
@@ -617,19 +622,21 @@ extern "C" int rename(const char *oldpath, const char *newpath)
 
 extern "C" int rmdir(const char *path)
 {
-	struct stat stat_buf;
-
-	if (stat(path, &stat_buf) == -1)
-		return -1;
-	
-	if (!S_ISDIR(stat_buf.st_mode)) {
-		errno = ENOTDIR;
-		return -1;
-	}
-
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(path, resolved_path);
+		resolved_path.remove_trailing('/');
+
+		struct stat stat_buf { };
+
+		if (stat(resolved_path.base(), &stat_buf) == -1)
+			return -1;
+
+		if (!S_ISDIR(stat_buf.st_mode)) {
+			errno = ENOTDIR;
+			return -1;
+		}
+
 		FNAME_FUNC_WRAPPER(rmdir, resolved_path.base());
 	} catch(Symlink_resolve_error) {
 		return -1;

@@ -97,16 +97,18 @@ static void test(Genode::Xml_node node)
 	int ret, fd;
 	ssize_t count;
 
-	char const *dir_name      = "testdir";
-	char const *dir_name2     = "testdir2";
-	char const *file_name     = "test.tst";
-	char const *file_name2    = "test2.tst";
-	char const *file_name3    = "test3.tst";
-	char const *file_name4    = "test4.tst";
-	char const *file_name5    = "test5.tst";
-	char const *pattern       = "a single line of text";
+	char const *trailing_slash_dir_name = "testdir/";
 
-	size_t      pattern_size  = strlen(pattern) + 1;
+	char const *dir_name   = "testdir";
+	char const *dir_name2  = "testdir2";
+	char const *file_name  = "test.tst";
+	char const *file_name2 = "test2.tst";
+	char const *file_name3 = "test3.tst";
+	char const *file_name4 = "test4.tst";
+	char const *file_name5 = "test5.tst";
+	char const *pattern    = "a single line of text";
+
+	size_t const pattern_size = strlen(pattern) + 1;
 
 	unsigned int iterations = 1;
 
@@ -115,6 +117,12 @@ static void test(Genode::Xml_node node)
 	} catch(...) { }
 
 	for (unsigned int i = 0; i < iterations; i++) {
+
+		/* create directory given with a trailing slash */
+		CALL_AND_CHECK(ret, mkdir(trailing_slash_dir_name, 0777), (ret == 0), "dir_name=%s", dir_name);
+
+		/* remove directory given with a trailing slash */
+		CALL_AND_CHECK(ret, rmdir(trailing_slash_dir_name), (ret == 0), "dir_name=%s", dir_name);
 
 		/* create directory (short name) */
 		CALL_AND_CHECK(ret, mkdir(dir_name, 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", dir_name);
