@@ -117,7 +117,7 @@ class Genode::Xml_attribute
 		 * \deprecated
 		 * \noapi
 		 */
-		void type(char *dst, size_t max_len) const
+		void type(char *dst, size_t max_len) const __attribute__((deprecated))
 		{
 			/*
 			 * Limit number of characters by token length, take
@@ -141,10 +141,13 @@ class Genode::Xml_attribute
 		/**
 		 * Return size of value
 		 *
-		 * \deprecated use 'with_raw_node' instead
+		 * \deprecated  use 'with_raw_node' instead
 		 * \noapi
 		 */
-		char const *value_base() const { return _tokens.value.start() + 1; }
+		char const *value_base() const __attribute__((deprecated))
+		{
+			return _tokens.value.start() + 1;
+		}
 
 		/**
 		 * Return size of the value in bytes
@@ -192,7 +195,7 @@ class Genode::Xml_attribute
 		 * \deprecated
 		 * \noapi
 		 */
-		void value(char *dst, size_t max_len) const
+		void value(char *dst, size_t max_len) const __attribute__((deprecated))
 		{
 			with_raw_value([&] (char const *start, size_t length) {
 				Genode::strncpy(dst, start, min(max_len, length + 1)); });
@@ -234,6 +237,7 @@ class Genode::Xml_attribute
 		 * \noapi
 		 */
 		template <size_t N>
+		__attribute__((deprecated))
 		void value(String<N> *out) const
 		{
 			with_raw_value([&] (char const *start, size_t length) {
@@ -247,6 +251,7 @@ class Genode::Xml_attribute
 		 * \noapi
 		 */
 		template <typename T>
+		__attribute__((deprecated))
 		bool value(T *out) const
 		{
 			bool result = false;
@@ -709,8 +714,10 @@ class Genode::Xml_node
 		 *
 		 * \noapi
 		 */
-		void type_name(char *dst, size_t max_len) const {
-			_tags.start.name().string(dst, max_len); }
+		void type_name(char *dst, size_t max_len) const __attribute__((deprecated))
+		{
+			_tags.start.name().string(dst, max_len);
+		}
 
 		/**
 		 * Return size of node including start and end tags in bytes
@@ -723,7 +730,7 @@ class Genode::Xml_node
 		 * \deprecated  use 'with_raw_node' instead
 		 * \noapi
 		 */
-		char const *addr() const { return _addr; }
+		char const *addr() const __attribute__((deprecated)) { return _addr; }
 
 		/**
 		 * Return size of node content
@@ -784,20 +791,25 @@ class Genode::Xml_node
 		/**
 		 * Return pointer to start of content
 		 *
-		 * XXX This method is deprecated. Use 'with_raw_content()' instead.
-		 *
+		 * \deprecated  use 'with_raw_content()' instead
 		 * \noapi
 		 */
-		char *content_addr() const { return _tags.start.next_token().start(); }
+		char *content_addr() const __attribute__((deprecated))
+		{
+			return _tags.start.next_token().start();
+		}
 
 		/**
 		 * Return pointer to start of content
 		 *
-		 * XXX This method is deprecated. Use 'with_raw_content()' instead.
+		 * \deprecated  use 'with_raw_content()' instead
 		 *
 		 * \noapi
 		 */
-		char const *content_base() const { return content_addr(); }
+		char const *content_base() const __attribute__((deprecated))
+		{
+			return _tags.start.next_token().start();
+		}
 
 		/**
 		 * Export decoded node content from XML node
@@ -1022,7 +1034,7 @@ class Genode::Xml_node
 		 * default value.
 		 */
 		template <typename T>
-		inline T attribute_value(char const *type, T const default_value) const
+		T attribute_value(char const *type, T const default_value) const
 		{
 			T result = default_value;
 
@@ -1052,7 +1064,7 @@ class Genode::Xml_node
 		/**
 		 * Return true if attribute of specified type exists
 		 */
-		inline bool has_attribute(char const *type) const
+		bool has_attribute(char const *type) const
 		{
 			if (!_tags.start.has_attribute())
 				return false;
