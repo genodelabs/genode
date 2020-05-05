@@ -40,7 +40,7 @@ namespace {
 		Back_end(Parent &parent)
 		: _client(reinterpret_cap_cast<Log_session>(_cap(parent))) { }
 
-		void write(char const *string) { (void)_client.write(string); }
+		void write(char const *string) { _client.write(string); }
 	};
 }
 

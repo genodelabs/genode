@@ -173,9 +173,9 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 		_read(); _read();
 	}
 
-	Genode::size_t write(String const &string_buf)
+	void write(String const &string_buf) override
 	{
-		if (!(string_buf.valid_string())) { return 0; }
+		if (!(string_buf.valid_string())) { return; }
 
 		strncpy(_buf, string_buf.string(), sizeof(_buf));
 		size_t len = strlen(_buf);
@@ -185,8 +185,6 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 		Genode::log("RPC with \"", Genode::Cstring(_buf), "\"");
 
 		_select();
-
-		return len;
 	}
 };
 

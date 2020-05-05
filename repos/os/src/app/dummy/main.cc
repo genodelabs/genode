@@ -61,7 +61,7 @@ struct Dummy::Log_service
 				log("closing session with label ", _label);
 		}
 
-		size_t write(String const &string) override
+		void write(String const &string) override
 		{
 			/* strip known line delimiter from incoming message */
 			unsigned n = 0;
@@ -71,8 +71,6 @@ struct Dummy::Log_service
 			typedef Genode::String<100> Message;
 			Message const message("[", _label, "] ", Cstring(string.string(), n));
 			log(message);
-
-			return strlen(string.string());
 		}
 	};
 

@@ -31,13 +31,11 @@ struct Test::Log_session_component : Session_object<Log_session>
 	template <typename... ARGS>
 	Log_session_component(ARGS &&... args) : Session_object(args...) { }
 
-	size_t write(String const &msg) override
+	void write(String const &msg) override
 	{
 		/* omit line break and zero termination supplied by 'msg' */
 		if (msg.size() > 1)
 			log("local LOG service: ", Cstring(msg.string(), msg.size() - 2));
-
-		return 0;
 	}
 };
 

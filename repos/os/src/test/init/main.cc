@@ -138,7 +138,7 @@ class Test::Log_session_component : public Rpc_object<Log_session>
 			_label(label), _handler(handler)
 		{ }
 
-		size_t write(String const &string) override
+		void write(String const &string) override
 		{
 			/* strip known line delimiter from incoming message */
 			unsigned n = 0;
@@ -153,8 +153,6 @@ class Test::Log_session_component : public Rpc_object<Log_session>
 				_handler.handle_log_message(message);
 
 			log(message, " (", result, ")");
-
-			return strlen(string.string());
 		}
 };
 

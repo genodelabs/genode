@@ -25,8 +25,7 @@ struct Genode::Log_session_client : Rpc_client<Log_session>
 	explicit Log_session_client(Log_session_capability session)
 	: Rpc_client<Log_session>(session) { }
 
-	size_t write(String const &string) override {
-		return call<Rpc_write>(string); }
+	void write(String const &string) override { call<Rpc_write>(string); }
 };
 
 #endif /* _INCLUDE__LOG_SESSION__CLIENT_H_ */

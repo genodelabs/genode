@@ -46,9 +46,9 @@ class Depot_deploy::Log_session_component : public Rpc_object<Log_session>
 			_child(child)
 		{ }
 
-		size_t write(String const &line) override
+		void write(String const &line) override
 		{
-			return _child.log_session_write(line, _label);
+			_child.log_session_write(line, _label);
 		}
 };
 

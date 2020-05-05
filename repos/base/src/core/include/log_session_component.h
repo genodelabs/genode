@@ -49,15 +49,15 @@ namespace Genode {
 			 ** Log session **
 			 *****************/
 
-			size_t write(String const &string_buf) override
+			void write(String const &string_buf) override
 			{
 				if (!(string_buf.valid_string())) {
 					error("corrupted string");
-					return 0;
+					return;
 				}
 
-				char const *string = string_buf.string();
-				size_t len = strlen(string);
+				char const * const string = string_buf.string();
+				size_t const len = strlen(string);
 
 				unsigned from_i = 0;
 				for (unsigned i = 0; i < len; i++) {
@@ -70,8 +70,6 @@ namespace Genode {
 				/* if last character of string was not a line break, add one */
 				if (from_i < len)
 					log(_label, Cstring(string + from_i));
-
-				return len;
 			}
 	};
 }

@@ -302,15 +302,14 @@ class Nitlog::Session_component : public Rpc_object<Log_session>
 		 ** Log session interface **
 		 ***************************/
 
-		size_t write(String const &log_text) override
+		void write(String const &log_text) override
 		{
 			if (!log_text.valid_string()) {
 				error("corrupted string");
-				return 0;
+				return;
 			}
 
 			_log_window.write(_color, _label.string(), log_text.string(), _id);
-			return strlen(log_text.string());
 		}
 };
 

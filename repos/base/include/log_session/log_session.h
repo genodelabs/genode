@@ -50,17 +50,15 @@ struct Genode::Log_session : Session
 
 	/**
 	 * Output null-terminated string
-	 *
-	 * \return  number of written characters
 	 */
-	virtual size_t write(String const &string) = 0;
+	virtual void write(String const &string) = 0;
 
 
 	/*********************
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_write, size_t, write, String const &);
+	GENODE_RPC(Rpc_write, void, write, String const &);
 	GENODE_RPC_INTERFACE(Rpc_write);
 };
 

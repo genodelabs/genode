@@ -76,13 +76,13 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 		 ** Log session **
 		 *****************/
 
-		Genode::size_t write(Log_session::String const &msg) override
+		void write(Log_session::String const &msg) override
 		{
 			using namespace Genode;
 
 			if (!msg.valid_string()) {
 				Genode::error("received corrupted string");
-				return 0;
+				return;
 			}
 
 			size_t msg_len = strlen(msg.string());
@@ -123,7 +123,6 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 			memcpy(buf, msg.string(), msg_len);
 
 			source.submit_packet(packet);
-			return msg_len;
 		}
 };
 
