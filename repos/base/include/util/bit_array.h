@@ -20,7 +20,7 @@
 #include <base/stdint.h>
 
 namespace Genode {
-	
+
 	class Bit_array_base;
 	template <unsigned> class Bit_array;
 }
@@ -44,9 +44,9 @@ class Genode::Bit_array_base
 
 	private:
 
-		unsigned _bit_cnt;
-		unsigned _word_cnt;
-		addr_t  *_words;
+		unsigned const _bit_cnt;
+		unsigned const _word_cnt = _bit_cnt / BITS_PER_WORD;
+		addr_t * const _words;
 
 		addr_t _word(addr_t index) const {
 			return index / BITS_PER_WORD; }
@@ -76,10 +76,10 @@ class Genode::Bit_array_base
 		{
 			_check_range(index, width);
 
-			addr_t rest, word, mask;
+			addr_t rest;
 			do {
-				word = _word(index);
-				mask = _mask(index, width, rest);
+				addr_t const word = _word(index);
+				addr_t const mask = _mask(index, width, rest);
 
 				if (free) {
 					if ((_words[word] & mask) != mask)
@@ -96,16 +96,27 @@ class Genode::Bit_array_base
 			} while (rest);
 		}
 
+		/*
+		 * Noncopyable
+		 */
+		Bit_array_base(Bit_array_base const &);
+		Bit_array_base &operator = (Bit_array_base const &);
+
 	public:
 
-		Bit_array_base(unsigned bits, addr_t *addr, bool clear)
-		: _bit_cnt(bits),
-		  _word_cnt(_bit_cnt / BITS_PER_WORD),
-		  _words(addr)
+		/**
+		 * Constructor
+		 *
+		 * \param ptr  pointer to array used as backing store for the bits.
+		 *             The array must be initialized with zeros.
+		 *
+		 * \throw Invalid_bit_count
+		 */
+		Bit_array_base(unsigned bits, addr_t *ptr)
+		:
+			_bit_cnt(bits), _words(ptr)
 		{
 			if (!bits || bits % BITS_PER_WORD) throw Invalid_bit_count();
-
-			if (clear) memset(_words, 0, sizeof(addr_t)*_word_cnt);
 		}
 
 		/**
@@ -146,13 +157,16 @@ class Genode::Bit_array : public Bit_array_base
 		static_assert(BITS % BITS_PER_WORD == 0,
 		              "Count of bits need to be word aligned!");
 
-		addr_t _array[_WORDS];
+		struct Array { addr_t values[_WORDS]; } _array { };
 
 	public:
 
-		Bit_array() : Bit_array_base(BITS, _array, true) { }
-		Bit_array(const Bit_array & o) : Bit_array_base(BITS, _array, false) {
-			memcpy(&_array, &o._array, sizeof(_array)); }
+		Bit_array() : Bit_array_base(BITS, _array.values) { }
+
+		Bit_array(Bit_array const &other)
+		:
+			Bit_array_base(BITS, _array.values), _array(other._array)
+		{ }
 };
 
 #endif /* _INCLUDE__UTIL__BIT_ARRAY_H_ */

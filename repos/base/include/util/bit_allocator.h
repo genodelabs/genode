@@ -55,7 +55,7 @@ class Genode::Bit_allocator
 		class Range_conflict : Exception {};
 
 		Bit_allocator() { _reserve(BITS, BITS_ALIGNED - BITS); }
-		Bit_allocator(const Bit_allocator & o) : _array(o._array) { }
+		Bit_allocator(Bit_allocator const &other) : _array(other._array) { }
 
 		/**
 		 * Allocate block of bits

@@ -39,7 +39,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 
 		Allocator      *_md_alloc;         /* meta-data allocator                 */
 		size_t          _block_size;       /* granularity of packet allocations   */
-		void           *_bits  = nullptr;  /* memory chunk containing the bits    */
+		addr_t         *_bits  = nullptr;  /* memory chunk containing the bits    */
 		Bit_array_base *_array = nullptr;  /* bit array managing available blocks */
 		addr_t          _base = 0;         /* allocation base                     */
 		addr_t          _next = 0;         /* next free bit index                 */
@@ -76,11 +76,12 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		{
 			if (_base || _array) return -1;
 
-			_base  = base;
-			_bits  = _md_alloc->alloc(_block_cnt(size)/8);
-			_array = new (_md_alloc) Bit_array_base(_block_cnt(size),
-			                                        (addr_t*)_bits,
-			                                        true);
+			size_t const number_of_bytes = _block_cnt(size)/8;
+			_base = base;
+			_bits = (addr_t *)_md_alloc->alloc(number_of_bytes);
+			memset(_bits, 0, number_of_bytes);
+
+			_array = new (_md_alloc) Bit_array_base(_block_cnt(size), _bits);
 			return 0;
 		}
 
