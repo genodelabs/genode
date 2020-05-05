@@ -1,0 +1,15 @@
+<runtime ram="4M" caps="100" binary="vfs_block">
+
+	<provides> <block/> </provides>
+
+	<requires> <file_system/> </requires>
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_block"/>
+	</content>
+
+</runtime>

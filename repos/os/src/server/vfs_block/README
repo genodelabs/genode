@@ -1,0 +1,71 @@
+The 'vfs_block' component provides access to a VFS file through a Block
+session. It is currently limited to serving just one particular file and
+one pending back end request.
+
+
+Configuration
+~~~~~~~~~~~~~
+
+The following configuration snippet illustrates how to set up the
+component:
+
+! <start name="vfs_block">
+!   <resource name="RAM" quantum="3M"/>
+!    <provides> <service name="Block"/> </provides>
+!      <config>
+!
+!        <vfs>
+!          <fs buffer_size="2M" label="backend"/>
+!        </vfs>
+!
+!        <policy label_prefix="client"
+!                file="/vfs_block.img" block_size="512" writeable="yes"/>
+!      </config>
+!      <route>
+!        <service name="File_system" label="backend>
+!          <child name="fs_provider"/> </service>
+!        <any-service> <parent/> </any-service>
+!      </route>
+! </start>
+
+With this configuration the component will give the component 'client' access
+to the file '/vfs_block.img' specified by the 'file' attribute. This file
+is accessed by using a file system connection to another component
+'fs_provider'.
+Block requests will then be translated to VFS requests operating directly on
+this file. The block size must be specified via the 'block_size' attribute. It
+defaults to 512 bytes. The block count is determined by querying the backing
+file and dividing its size by the block size. Pseudo file systems which do not
+return a proper size in their 'stat' implementation will therefore not work.
+The 'writeable' attribute denotes if the Block session is allowed to perform
+write requests. However, if the underlying file is read-only such requests
+will nonetheless fail. The default value is 'no'.
+
+The component can also be configured to provide access to read-only
+files like ISO images:
+
+! <start name="vfs_block">
+!   <resource name="RAM" quantum="2M"/>
+!    <provides> <service name="Block"/> </provides>
+!      <config>
+!
+!        <vfs>
+!          <rom name="genode.iso"/>
+!        </vfs>
+!
+!        <default-policy file="/genode.iso" block_size="2048"/>
+!      </config>
+!      <route>
+!        <any-service> <parent/> </any-service>
+!      </route>
+! </start>
+
+In this configuration the 'genode.iso' ROM module is provided by the
+parent of the 'vfs_block' component.
+
+
+Example
+~~~~~~~
+
+Please take a look into the 'repos/os/run/vfs_block.run' run script for an
+exemplary integration.
