@@ -252,7 +252,7 @@ int main()
 	static Pager_entrypoint pager_ep(rpc_cap_factory);
 
 	static Rom_root    rom_root    (ep, ep, platform().rom_fs(), sliced_heap);
-	static Rm_root     rm_root     (ep, sliced_heap, pager_ep);
+	static Rm_root     rm_root     (ep, sliced_heap, core_ram_alloc, local_rm, pager_ep);
 	static Cpu_root    cpu_root    (core_ram_alloc, local_rm, ep, ep, pager_ep,
 	                                sliced_heap, Trace::sources());
 	static Pd_root     pd_root     (ep, core_env().signal_ep(), pager_ep,
@@ -300,9 +300,14 @@ int main()
 
 	/* CPU session representing core */
 	static Cpu_session_component
-		core_cpu(core_ram_alloc, local_rm, ep, ep, pager_ep, sliced_heap, Trace::sources(),
-		         "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
-	Cpu_session_capability core_cpu_cap = ep.manage(&core_cpu);
+		core_cpu(ep,
+		         Session::Resources{{Cpu_connection::RAM_QUOTA},
+		                            {Cpu_session::CAP_QUOTA}},
+		         "core", Session::Diag{false},
+		         core_ram_alloc, local_rm, ep, pager_ep, Trace::sources(), "",
+		         Affinity(), Cpu_session::QUOTA_LIMIT);
+
+	Cpu_session_capability core_cpu_cap = core_cpu.cap();
 
 	log("", init_ram_quota.value / (1024*1024), " MiB RAM and ", init_cap_quota, " caps "
 	    "assigned to init");

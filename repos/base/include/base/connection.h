@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__BASE__CONNECTION_H_
 #define _INCLUDE__BASE__CONNECTION_H_
 
+#include <util/retry.h>
 #include <base/env.h>
 #include <base/capability.h>
 #include <base/log.h>
@@ -52,7 +53,6 @@ class Genode::Connection_base : Noncopyable, Interface
 		 */
 		Connection_base();
 
-
 		void upgrade(Session::Resources resources)
 		{
 			String<80> const args("ram_quota=", resources.ram_quota, ", "
@@ -68,6 +68,29 @@ class Genode::Connection_base : Noncopyable, Interface
 		void upgrade_caps(size_t caps)
 		{
 			upgrade(Session::Resources { Ram_quota{0}, Cap_quota{caps} });
+		}
+
+		/**
+		 * Extend session quota on demand while calling an RPC function
+		 *
+		 * \param ram   amount of RAM to upgrade as response to 'Out_of_ram'
+		 * \param caps  amount of caps to upgrade as response to 'Out_of_caps'
+		 *
+		 * \noapi
+		 */
+		template <typename FUNC>
+		auto retry_with_upgrade(Ram_quota ram, Cap_quota caps, FUNC func) -> decltype(func())
+		{
+			enum { UPGRADE_ATTEMPTS = ~0U };
+			return Genode::retry<Out_of_ram>(
+				[&] () {
+					return Genode::retry<Out_of_caps>(
+						[&] () { return func(); },
+						[&] () { upgrade_caps(caps.value); },
+						UPGRADE_ATTEMPTS);
+				},
+				[&] () { upgrade_ram(ram.value); },
+				UPGRADE_ATTEMPTS);
 		}
 };
 

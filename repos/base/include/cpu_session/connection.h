@@ -41,6 +41,16 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 		                                priority, RAM_QUOTA, CAP_QUOTA, label)),
 		Cpu_session_client(cap())
 	{ }
+
+	Thread_capability create_thread(Capability<Pd_session> pd,
+	                                Name const            &name,
+	                                Affinity::Location     affinity,
+	                                Weight                 weight,
+	                                addr_t                 utcb = 0) override
+	{
+		return retry_with_upgrade(Ram_quota{8*1024}, Cap_quota{2}, [&] () {
+			return Cpu_session_client::create_thread(pd, name, affinity, weight, utcb); });
+	}
 };
 
 #endif /* _INCLUDE__CPU_SESSION__CONNECTION_H_ */

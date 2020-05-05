@@ -18,7 +18,6 @@
 
 /* Genode includes */
 #include <util/reconstructible.h>
-#include <base/allocator_guard.h>
 #include <base/session_object.h>
 #include <base/registry.h>
 #include <base/heap.h>

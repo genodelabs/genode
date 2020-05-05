@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/component.h>
+#include <cpu_session/connection.h>
 
 /* VirtualBox includes */
 #include <VBox/vmm/vm.h>
@@ -34,7 +35,7 @@ HRESULT genode_check_memory_config(ComObjPtr<Machine> machine, size_t);
  */
 bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      void *(*start_routine)(void *), void *arg,
-                     Genode::Cpu_session * cpu_session,
+                     Genode::Cpu_connection *,
                      Genode::Affinity::Location location,
                      unsigned int cpu_id,
                      const char * name, long prio);
@@ -43,7 +44,7 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 uint64_t genode_cpu_hz();
 void genode_update_tsc(void (*update_func)(void), Genode::uint64_t update_us);
 
-Genode::Cpu_session * get_vcpu_cpu_session();
+Genode::Cpu_connection * get_vcpu_cpu_connection();
 
 void genode_VMMR0_DO_GVMM_CREATE_VM(PSUPVMMR0REQHDR pReqHdr);
 void genode_VMMR0_DO_GVMM_REGISTER_VMCPU(PVMR0 pVMR0, VMCPUID idCpu);

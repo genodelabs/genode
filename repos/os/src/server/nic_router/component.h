@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/heap.h>
-#include <base/allocator_guard.h>
 #include <root/component.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>

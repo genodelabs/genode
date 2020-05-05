@@ -14,12 +14,10 @@
 #ifndef _PPGTT_ALLOCATOR_H_
 #define _PPGTT_ALLOCATOR_H_
 
-/* Genode includes */
-#include <base/allocator_guard.h>
-
 /* local includes */
 #include <types.h>
 #include <utils.h>
+#include <allocator_guard.h>
 
 
 namespace Igd {

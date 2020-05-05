@@ -160,8 +160,6 @@ class Main
 				}
 				monitors.insert(new (_heap) Monitor(_trace, _env.rm(), id));
 			}
-			catch (Out_of_ram                    ) { warning("Cannot activate tracing: Out_of_ram"             ); return; }
-			catch (Out_of_caps                   ) { warning("Cannot activate tracing: Out_of_caps"            ); return; }
 			catch (Trace::Already_traced         ) { warning("Cannot activate tracing: Already_traced"         ); return; }
 			catch (Trace::Source_is_dead         ) { warning("Cannot activate tracing: Source_is_dead"         ); return; }
 			catch (Trace::Nonexistent_policy     ) { warning("Cannot activate tracing: Nonexistent_policy"     ); return; }

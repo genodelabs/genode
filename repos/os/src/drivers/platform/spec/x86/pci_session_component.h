@@ -14,7 +14,6 @@
 #pragma once
 
 /* base */
-#include <base/allocator_guard.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <base/rpc_server.h>
@@ -30,7 +29,6 @@
 #include <os/reporter.h>
 #include <os/session_policy.h>
 #include <platform_session/platform_session.h>
-#include <base/allocator_guard.h>
 
 /* local */
 #include "device_pd.h"

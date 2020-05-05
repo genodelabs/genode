@@ -759,7 +759,7 @@ extern "C" int sched_yield(void)
 
 bool create_emt_vcpu(pthread_t * thread, ::size_t stack_size,
                      void *(*start_routine)(void *), void *arg,
-                     Genode::Cpu_session * cpu_session,
+                     Genode::Cpu_connection * cpu_connection,
                      Genode::Affinity::Location location,
                      unsigned int cpu_id, const char * name, long prio)
 {
@@ -791,7 +791,7 @@ bool create_emt_vcpu(pthread_t * thread, ::size_t stack_size,
 	vcpu_handler_list().insert(vcpu_handler);
 
 	Libc::pthread_create(thread, start_routine, arg,
-	                     stack_size, name, cpu_session, location);
+	                     stack_size, name, cpu_connection, location);
 
 	return true;
 }

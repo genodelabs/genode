@@ -44,15 +44,19 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 				throw Service_denied();
 
 			return new (md_alloc())
-			       Session_component(_ram, _local_rm, *md_alloc(), ram_quota,
+			       Session_component(*this->ep(),
+			                         session_resources_from_args(args),
+			                         session_label_from_args(args),
+			                         session_diag_from_args(args),
+			                         _ram, _local_rm,
 			                         arg_buffer_size, parent_levels,
-			                         label_from_args(args).string(), _sources, _policies);
+			                         _sources, _policies);
 		}
 
 		void _upgrade_session(Session_component *s, const char *args) override
 		{
-			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			s->upgrade_ram_quota(ram_quota);
+			s->upgrade(ram_quota_from_args(args));
+			s->upgrade(cap_quota_from_args(args));
 		}
 
 	public:

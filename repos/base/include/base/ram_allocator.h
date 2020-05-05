@@ -82,7 +82,7 @@ class Genode::Constrained_ram_allocator : public Ram_allocator
 			_ram_alloc(ram_alloc), _ram_guard(ram_guard), _cap_guard(cap_guard)
 		{ }
 
-		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
+		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = CACHED) override
 		{
 			size_t page_aligned_size = align_addr(size, 12);
 

@@ -31,7 +31,7 @@ void Session_component::_release_buffer()
 
 	destroy(&_session_alloc, const_cast<Chunky_texture<PT> *>(cdt));
 
-	_session_alloc.upgrade(_buffer_size);
+	replenish(Ram_quota{_buffer_size});
 	_buffer_size = 0;
 }
 
@@ -427,8 +427,12 @@ Framebuffer::Mode Session_component::mode()
 void Session_component::buffer(Framebuffer::Mode mode, bool use_alpha)
 {
 	/* check if the session quota suffices for the specified mode */
-	if (_session_alloc.quota() < ram_quota(mode, use_alpha))
+	if (_buffer_size + _ram_quota_guard().avail().value < ram_quota(mode, use_alpha))
 		throw Out_of_ram();
+
+	/* buffer re-allocation may consume new dataspace capability if buffer is new */
+	if (_cap_quota_guard().avail().value < 1)
+		throw Out_of_caps();
 
 	_framebuffer_session_component.notify_mode_change(mode, use_alpha);
 }
@@ -477,7 +481,7 @@ Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha
 
 	/*
 	 * Preserve the content of the original buffer if nitpicker has
-	 * enough lack memory to temporarily keep the original pixels.
+	 * enough slack memory to temporarily keep the original pixels.
 	 */
 	Texture<PT> const *src_texture = nullptr;
 	if (texture()) {
@@ -491,8 +495,22 @@ Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha
 		}
 	}
 
-	Chunky_texture<PT> * const texture = new (&_session_alloc)
-		Chunky_texture<PT>(_env.ram(), _env.rm(), size, use_alpha);
+	Ram_quota const temporary_ram_upgrade = src_texture
+	                                      ? Ram_quota{_buffer_size} : Ram_quota{0};
+
+	_ram_quota_guard().upgrade(temporary_ram_upgrade);
+
+	auto try_alloc_texture = [&] ()
+	{
+		try {
+			return new (&_session_alloc)
+				Chunky_texture<PT>(_env.ram(), _env.rm(), size, use_alpha);
+		} catch (...) {
+			return (Chunky_texture<PT>*)nullptr;
+		}
+	};
+
+	Chunky_texture<PT> * const texture = try_alloc_texture();
 
 	/* copy old buffer content into new buffer and release old buffer */
 	if (src_texture) {
@@ -503,9 +521,14 @@ Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha
 		Texture_painter::paint(surface, *src_texture, Color(), Point(0, 0),
 		                       Texture_painter::SOLID, false);
 		_release_buffer();
+
+		if (!_ram_quota_guard().try_downgrade(temporary_ram_upgrade))
+			warning("accounting error during framebuffer realloc");
+
 	}
 
-	if (!_session_alloc.withdraw(_buffer_size)) {
+	try { withdraw(Ram_quota{_buffer_size}); }
+	catch (...) {
 		destroy(&_session_alloc, texture);
 		_buffer_size = 0;
 		return nullptr;

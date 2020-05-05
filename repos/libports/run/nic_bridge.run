@@ -68,7 +68,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="server_1">
+	<start name="server_1" caps="120">
 		<binary name="test-lwip_httpsrv"/>
 		<resource name="RAM" quantum="32M"/>
 		<route>
@@ -86,7 +86,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="server_2">
+	<start name="server_2" caps="120">
 		<binary name="test-lwip_httpsrv"/>
 		<resource name="RAM" quantum="32M"/>
 		<route>

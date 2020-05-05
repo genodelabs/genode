@@ -196,7 +196,7 @@ append  config { </wifi_config>
 } elseif { $use_usb_driver } {
 	append_platform_drv_config
 	append config {
-	<start name="nic_drv" caps="120">
+	<start name="nic_drv" caps="150">
 		<binary name="usb_drv"/>
 		<resource name="RAM" quantum="18M"/>
 		<provides><service name="Nic"/></provides>
@@ -219,7 +219,7 @@ append  config { </wifi_config>
 }
 
 append_if $use_nic_router config {
-	<start name="nic_router">
+	<start name="nic_router" caps="120">
 		<resource name="RAM" quantum="5M"/>
 		<provides><service name="Nic"/></provides>
 		<config verbose_domain_state="yes">

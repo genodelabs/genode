@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/allocator_guard.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
@@ -34,6 +33,7 @@
 #include <util/xml_node.h>
 
 /* local includes */
+#include <allocator_guard.h>
 #include <mmio.h>
 #include <ppgtt.h>
 #include <ppgtt_allocator.h>

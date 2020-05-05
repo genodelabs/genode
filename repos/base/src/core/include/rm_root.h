@@ -28,22 +28,26 @@ class Genode::Rm_root : public Root_component<Rm_session_component>
 {
 	private:
 
+		Ram_allocator    &_ram_alloc;
+		Region_map       &_local_rm;
 		Pager_entrypoint &_pager_ep;
 
 	protected:
 
 		Rm_session_component *_create_session(const char *args) override
 		{
-			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-
 			return new (md_alloc())
-			       Rm_session_component(*this->ep(), *md_alloc(), _pager_ep, ram_quota);
+			       Rm_session_component(*this->ep(),
+			                            session_resources_from_args(args),
+			                            session_label_from_args(args),
+			                            session_diag_from_args(args),
+			                            _ram_alloc, _local_rm, _pager_ep);
 		}
 
 		void _upgrade_session(Rm_session_component *rm, const char *args) override
 		{
-			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			rm->upgrade_ram_quota(ram_quota);
+			rm->upgrade(ram_quota_from_args(args));
+			rm->upgrade(cap_quota_from_args(args));
 		}
 
 	public:
@@ -52,15 +56,19 @@ class Genode::Rm_root : public Root_component<Rm_session_component>
 		 * Constructor
 		 *
 		 * \param session_ep   entry point for managing RM session objects
-		 * \param md_alloc     meta data allocator to be used by root component
+		 * \param md_alloc     meta data allocator to for session objects
+		 * \param ram_alloc    RAM allocator used for session-internal
+		 *                     allocations
 		 * \param pager_ep     pager entrypoint
 		 */
 		Rm_root(Rpc_entrypoint   &session_ep,
 		        Allocator        &md_alloc,
+		        Ram_allocator    &ram_alloc,
+		        Region_map       &local_rm,
 		        Pager_entrypoint &pager_ep)
 		:
 			Root_component<Rm_session_component>(&session_ep, &md_alloc),
-			_pager_ep(pager_ep)
+			_ram_alloc(ram_alloc), _local_rm(local_rm), _pager_ep(pager_ep)
 		{ }
 };
 

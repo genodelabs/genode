@@ -44,8 +44,12 @@ struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_ses
 	{
 		return retry<Out_of_ram>(
 			[&] () {
-				return Cpu_session_client::create_thread(pd, name, location,
-				                                         weight, utcb); },
+				return retry<Out_of_caps>(
+					[&] () {
+						return Cpu_session_client::create_thread(pd, name, location,
+						                                         weight, utcb); },
+					[&] () { upgrade_caps(2); });
+				},
 			[&] () { upgrade_ram(8*1024); });
 	}
 };

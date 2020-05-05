@@ -16,10 +16,10 @@
 
 /* Genode includes */
 #include <util/list.h>
-#include <base/allocator_guard.h>
+#include <base/ram_allocator.h>
 #include <base/mutex.h>
 #include <base/session_label.h>
-#include <base/rpc_server.h>
+#include <base/session_object.h>
 #include <cpu_session/cpu_session.h>
 
 /* core includes */
@@ -35,16 +35,16 @@
 namespace Genode { class Cpu_session_component; }
 
 
-class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
+class Genode::Cpu_session_component : public  Session_object<Cpu_session>,
                                       private List<Cpu_session_component>::Element
 {
 	private:
 
-		Session_label        const _label;
 		Rpc_entrypoint            &_session_ep;
 		Rpc_entrypoint            &_thread_ep;
 		Pager_entrypoint          &_pager_ep;
-		Allocator_guard            _md_alloc;               /* guarded meta-data allocator */
+		Constrained_ram_allocator  _ram_alloc;
+		Sliced_heap                _md_alloc;               /* guarded meta-data allocator */
 		Cpu_thread_allocator       _thread_alloc;           /* meta-data allocator */
 		Mutex                      _thread_alloc_lock { };  /* protect allocator access */
 		List<Cpu_thread_component> _thread_list       { };
@@ -144,12 +144,14 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		/**
 		 * Constructor
 		 */
-		Cpu_session_component(Ram_allocator          &ram,
+		Cpu_session_component(Rpc_entrypoint         &session_ep,
+		                      Resources        const &resources,
+		                      Label            const &label,
+		                      Diag             const &diag,
+		                      Ram_allocator          &ram_alloc,
 		                      Region_map             &local_rm,
-		                      Rpc_entrypoint         &session_ep,
 		                      Rpc_entrypoint         &thread_ep,
 		                      Pager_entrypoint       &pager_ep,
-		                      Allocator              &md_alloc,
 		                      Trace::Source_registry &trace_sources,
 		                      const char *args, Affinity const &affinity,
 		                      size_t quota);
@@ -158,11 +160,6 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		 * Destructor
 		 */
 		~Cpu_session_component();
-
-		/**
-		 * Register quota donation at allocator guard
-		 */
-		void upgrade_ram_quota(size_t ram_quota) { _md_alloc.upgrade(ram_quota); }
 
 
 		/***************************

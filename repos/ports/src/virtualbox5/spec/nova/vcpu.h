@@ -820,17 +820,17 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 		Vcpu_handler(Genode::Env &env, size_t stack_size,
 		             pthread::start_routine_t start_routine, void *arg,
-		             Genode::Cpu_session * cpu_session,
+		             Genode::Cpu_connection * cpu_connection,
 		             Genode::Affinity::Location location,
 		             unsigned int cpu_id, const char * name,
 		             Genode::Pd_session_capability pd_vcpu)
 		:
-			Vmm::Vcpu_dispatcher<Genode::Thread>(env, stack_size, cpu_session,
+			Vmm::Vcpu_dispatcher<Genode::Thread>(env, stack_size, cpu_connection,
 			                                     location, name),
 			_pthread(*this),
 			_start_routine(start_routine),
 			_start_routine_arg(arg),
-			_vcpu(cpu_session, location, pd_vcpu),
+			_vcpu(cpu_connection, location, pd_vcpu),
 			_ec_sel(Genode::cap_map().insert()),
 			_cpu_id(cpu_id)
 		{ }

@@ -26,7 +26,7 @@ namespace Genode {
 	{
 		private:
 
-			Ram_allocator          &_ram;
+			Ram_allocator          &_ram_alloc;
 			Region_map             &_local_rm;
 			Rpc_entrypoint         &_thread_ep;
 			Pager_entrypoint       &_pager_ep;
@@ -45,17 +45,19 @@ namespace Genode {
 					throw Insufficient_ram_quota();
 
 				return new (md_alloc())
-					Cpu_session_component(
-						_ram, _local_rm,
-						*Root_component<Cpu_session_component>::ep(),
-						_thread_ep, _pager_ep, _md_alloc, _trace_sources,
-						args, affinity, 0);
+					Cpu_session_component(*this->ep(),
+					                      session_resources_from_args(args),
+					                      session_label_from_args(args),
+					                      session_diag_from_args(args),
+					                      _ram_alloc, _local_rm,
+					                      _thread_ep, _pager_ep, _trace_sources,
+					                      args, affinity, 0);
 			}
 
 			void _upgrade_session(Cpu_session_component *cpu, const char *args) override
 			{
-				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-				cpu->upgrade_ram_quota(ram_quota);
+				cpu->upgrade(ram_quota_from_args(args));
+				cpu->upgrade(cap_quota_from_args(args));
 			}
 
 		public:
@@ -67,7 +69,7 @@ namespace Genode {
 			 * \param thread_ep    entry point for managing threads
 			 * \param md_alloc     meta data allocator to be used by root component
 			 */
-			Cpu_root(Ram_allocator          &ram,
+			Cpu_root(Ram_allocator          &ram_alloc,
 			         Region_map             &local_rm,
 			         Rpc_entrypoint         &session_ep,
 			         Rpc_entrypoint         &thread_ep,
@@ -76,7 +78,7 @@ namespace Genode {
 			         Trace::Source_registry &trace_sources)
 			:
 				Root_component<Cpu_session_component>(&session_ep, &md_alloc),
-				_ram(ram), _local_rm(local_rm),
+				_ram_alloc(ram_alloc), _local_rm(local_rm),
 				_thread_ep(thread_ep), _pager_ep(pager_ep),
 				_md_alloc(md_alloc), _trace_sources(trace_sources)
 			{ }

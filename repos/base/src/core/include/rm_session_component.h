@@ -15,9 +15,9 @@
 #define _CORE__INCLUDE__RM_SESSION_COMPONENT_H_
 
 /* Genode includes */
-#include <base/allocator_guard.h>
 #include <base/rpc_server.h>
 #include <rm_session/rm_session.h>
+#include <base/session_object.h>
 
 /* core includes */
 #include <region_map_component.h>
@@ -25,13 +25,14 @@
 namespace Genode { class Rm_session_component; }
 
 
-class Genode::Rm_session_component : public Rpc_object<Rm_session>
+class Genode::Rm_session_component : public Session_object<Rm_session>
 {
 	private:
 
-		Rpc_entrypoint   &_ep;
-		Allocator_guard   _md_alloc;
-		Pager_entrypoint &_pager_ep;
+		Rpc_entrypoint           &_ep;
+		Constrained_ram_allocator _ram_alloc;
+		Sliced_heap               _md_alloc;
+		Pager_entrypoint         &_pager_ep;
 
 		Mutex                      _region_maps_lock { };
 		List<Region_map_component> _region_maps      { };
@@ -42,11 +43,18 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 		 * Constructor
 		 */
 		Rm_session_component(Rpc_entrypoint   &ep,
-		                     Allocator        &md_alloc,
-		                     Pager_entrypoint &pager_ep,
-		                     size_t            ram_quota)
+		                     Resources  const &resources,
+		                     Label      const &label,
+		                     Diag       const &diag,
+		                     Ram_allocator    &ram_alloc,
+		                     Region_map       &local_rm,
+		                     Pager_entrypoint &pager_ep)
 		:
-			_ep(ep), _md_alloc(&md_alloc, ram_quota), _pager_ep(pager_ep)
+			Session_object(ep, resources, label, diag),
+			_ep(ep),
+			_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
+			_md_alloc(_ram_alloc, local_rm),
+			_pager_ep(pager_ep)
 		{ }
 
 		~Rm_session_component()
@@ -58,11 +66,6 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 				Genode::destroy(_md_alloc, rmc);
 			}
 		}
-
-		/**
-		 * Register quota donation at allocator guard
-		 */
-		void upgrade_ram_quota(size_t ram_quota) { _md_alloc.upgrade(ram_quota); }
 
 
 		/**************************

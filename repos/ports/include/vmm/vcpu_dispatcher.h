@@ -70,7 +70,7 @@ class Vmm::Vcpu_dispatcher : public T
 		unsigned int exit_reason = 0;
 
 		Vcpu_dispatcher(Genode::Env &env, Genode::size_t stack_size,
-		                Cpu_session * cpu_session,
+		                Cpu_connection *,
 		                Genode::Affinity::Location location,
 		                const char * name = "vCPU dispatcher")
 		:

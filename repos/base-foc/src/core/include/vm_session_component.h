@@ -15,7 +15,6 @@
 #define _CORE__VM_SESSION_COMPONENT_H_
 
 /* Genode includes */
-#include <base/allocator_guard.h>
 #include <base/rpc_server.h>
 #include <base/heap.h>
 #include <vm_session/vm_session.h>

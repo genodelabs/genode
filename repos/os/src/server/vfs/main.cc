@@ -22,12 +22,9 @@
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
 #include <os/session_policy.h>
-#include <base/allocator_guard.h>
-#include <util/fifo.h>
 #include <vfs/simple_env.h>
 
 /* local includes */
-#include "assert.h"
 #include "node.h"
 
 

@@ -15,7 +15,6 @@
 #include <base/sleep.h>
 #include <base/log.h>
 #include <base/component.h>
-#include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <input/keycodes.h>
 #include <root/component.h>
@@ -87,26 +86,17 @@ class Nitpicker::Root : public Root_component<Session_component>,
 
 		Session_component *_create_session(const char *args) override
 		{
-			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-
-			size_t const required_quota = Input::Session_component::ev_ds_size()
-			                            + align_addr(sizeof(Session::Command_buffer), 12);
-
-			if (ram_quota < required_quota) {
-				warning("Insufficient dontated ram_quota (", ram_quota,
-				        " bytes), require ", required_quota, " bytes");
-				throw Insufficient_ram_quota();
-			}
-
-			size_t const unused_quota = ram_quota - required_quota;
-
 			Session_label const label = label_from_args(args);
+
 			bool const provides_default_bg = (label == "backdrop");
 
 			Session_component *session = new (md_alloc())
-				Session_component(_env, label, _view_stack, _font, _focus_updater,
+				Session_component(_env,
+				                  session_resources_from_args(args), label,
+				                  session_diag_from_args(args),
+				                  _view_stack, _font, _focus_updater,
 				                  _pointer_origin, _builtin_background, _framebuffer,
-				                  provides_default_bg, *md_alloc(), unused_quota,
+				                  provides_default_bg,
 				                  _focus_reporter, *this);
 
 			session->apply_session_policy(_config.xml(), _domain_registry);
@@ -119,8 +109,8 @@ class Nitpicker::Root : public Root_component<Session_component>,
 
 		void _upgrade_session(Session_component *s, const char *args) override
 		{
-			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			s->upgrade_ram_quota(ram_quota);
+			s->upgrade(ram_quota_from_args(args));
+			s->upgrade(cap_quota_from_args(args));
 		}
 
 		void _destroy_session(Session_component *session) override

@@ -104,12 +104,12 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		unsigned int cpu_id = 0;
 		sscanf(rtthread->szName, "EMT-%u", &cpu_id);
 
-		Genode::Cpu_session * cpu_session = cpu_connection(RTTHREADTYPE_EMULATION);
-		Genode::Affinity::Space space = cpu_session->affinity_space();
+		Genode::Cpu_connection * cpu = cpu_connection(RTTHREADTYPE_EMULATION);
+		Genode::Affinity::Space space = cpu->affinity_space();
 		Genode::Affinity::Location location(space.location_of_index(cpu_id));
 
 		if (create_emt_vcpu(thread, stack_size, start_routine, arg,
-		                    cpu_session, location, cpu_id, rtthread->szName,
+		                    cpu, location, cpu_id, rtthread->szName,
 		                    prio_class(rtthread->enmType)))
 			return 0;
 		/*
@@ -124,10 +124,24 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 	 * and 'rtTimerLRThread' (timerlr-generic.cpp)
 	 */
 	bool const rtthread_timer = rtthread->enmType == RTTHREADTYPE_TIMER;
-	return Libc::pthread_create(thread, start_routine, arg,
-	                            stack_size, rtthread->szName,
-	                            rtthread_timer ? nullptr : cpu_connection(rtthread->enmType),
-	                            Genode::Affinity::Location());
+
+	if (rtthread_timer) {
+		return Libc::pthread_create(thread, start_routine, arg,
+		                            stack_size, rtthread->szName, nullptr,
+		                            Genode::Affinity::Location());
+
+	} else {
+		using namespace Genode;
+		Cpu_connection *cpu = cpu_connection(rtthread->enmType);
+		return cpu->retry_with_upgrade(Ram_quota{8*1024}, Cap_quota{2},
+		                               [&] ()
+		{
+			return Libc::pthread_create(thread, start_routine, arg,
+			                            stack_size, rtthread->szName, cpu,
+			                            Genode::Affinity::Location());
+		});
+	}
+
 }
 
 extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
@@ -139,7 +153,8 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	for (unsigned i = 0; i < 2; i++) {
 		using namespace Genode;
 
-		try { return create_thread(thread, attr, start_routine, arg); }
+		try {
+			return create_thread(thread, attr, start_routine, arg); }
 		catch (Out_of_ram) {
 			log("Upgrading memory for creation of "
 			    "thread '", Cstring(rtthread->szName), "'");

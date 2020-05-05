@@ -59,17 +59,22 @@ Policy_id Session_component::alloc_policy(size_t size)
 	 */
 	Policy_id const id(++_policy_cnt);
 
-	if (!_md_alloc.withdraw(size))
-		throw Out_of_ram();
+	Ram_quota const amount { size };
+
+	/*
+	 * \throw Out_of_ram
+	 */
+	withdraw(amount);
 
 	try {
-		Ram_dataspace_capability ds = _ram.alloc(size);
+		Dataspace_capability ds_cap = _ram.alloc(size);
+		_policies.insert(*this, id, _policies_slab, ds_cap, size);
 
-		_policies.insert(*this, id, _policies_slab, ds, size);
 	} catch (...) {
+
 		/* revert withdrawal or quota */
-		_md_alloc.upgrade(size);
-		throw Out_of_ram();
+		replenish(amount);
+		throw;
 	}
 
 	return id;
@@ -91,30 +96,32 @@ void Session_component::unload_policy(Policy_id id)
 void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
                               size_t buffer_size)
 {
-	size_t const  policy_size = _policies.size(*this, policy_id);
-	size_t const required_ram = buffer_size + policy_size;
+	size_t const policy_size  = _policies.size(*this, policy_id);
+
+	Ram_quota const required_ram { buffer_size + policy_size };
 
 	Trace::Subject &subject = _subjects.lookup_by_id(subject_id);
+
 	/* revert quota from previous call to trace */
 	if (subject.allocated_memory()) {
-		_md_alloc.upgrade(subject.allocated_memory());
+		replenish(Ram_quota{subject.allocated_memory()});
 		subject.reset_allocated_memory();
 	}
 
 	/*
 	 * Account RAM needed for trace buffer and policy buffer to the trace
 	 * session.
+	 *
+	 * \throw Out_of_ram
 	 */
-	if (!_md_alloc.withdraw(required_ram)) {
-		throw Out_of_ram();
-	}
+	withdraw(required_ram);
 
 	try {
 		subject.trace(policy_id, _policies.dataspace(*this, policy_id),
 		              policy_size, _ram, _local_rm, buffer_size);
 	} catch (...) {
 		/* revert withdrawal or quota */
-		_md_alloc.upgrade(required_ram);
+		replenish(required_ram);
 		throw;
 	}
 }
@@ -153,29 +160,35 @@ Dataspace_capability Session_component::buffer(Subject_id subject_id)
 
 void Session_component::free(Subject_id subject_id)
 {
-	size_t const released_ram = _subjects.release(subject_id);
-	_md_alloc.upgrade(released_ram);
+	Ram_quota const released_ram { _subjects.release(subject_id) };
+
+	replenish(released_ram);
 }
 
 
-Session_component::Session_component(Ram_allocator &ram, Region_map &local_rm,
-                                     Allocator &md_alloc, size_t ram_quota,
-                                     size_t arg_buffer_size, unsigned parent_levels,
-                                     char const *label, Source_registry &sources,
+Session_component::Session_component(Rpc_entrypoint  &ep,
+                                     Resources const &resources,
+                                     Label     const &label,
+                                     Diag      const &diag,
+                                     Ram_allocator   &ram,
+                                     Region_map      &local_rm,
+                                     size_t           arg_buffer_size,
+                                     unsigned         parent_levels,
+                                     Source_registry &sources,
                                      Policy_registry &policies)
 :
-	_ram(ram), _local_rm(local_rm),
-	_md_alloc(&md_alloc, ram_quota),
+	Session_object(ep, resources, label, diag),
+	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
+	_local_rm(local_rm),
 	_subjects_slab(&_md_alloc),
 	_policies_slab(&_md_alloc),
 	_parent_levels(parent_levels),
-	_label(label),
 	_sources(sources),
 	_policies(policies),
 	_subjects(_subjects_slab, _ram, _sources),
 	_argument_buffer(_ram, local_rm, arg_buffer_size)
 {
-	_md_alloc.withdraw(_argument_buffer.size());
+	withdraw(Ram_quota{_argument_buffer.size()});
 }
 
 

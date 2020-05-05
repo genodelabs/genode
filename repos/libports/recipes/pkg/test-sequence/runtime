@@ -37,7 +37,7 @@
 			<service name="LOG"/>
 		</parent-provides>
 		<default-route> <any-service> <parent/> </any-service> </default-route>
-		<start name="log_1" caps="64">
+		<start name="log_1" caps="100">
 			<binary name="vfs"/>
 			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>
@@ -46,7 +46,7 @@
 				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>
-		<start name="log_2" caps="64">
+		<start name="log_2" caps="100">
 			<binary name="vfs"/>
 			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>
@@ -55,7 +55,7 @@
 				<default-policy writeable="yes"/>
 			</config>
 		</start>
-		<start name="log_3" caps="64">
+		<start name="log_3" caps="100">
 			<binary name="vfs"/>
 			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>

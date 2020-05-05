@@ -72,7 +72,7 @@ install_config {
 			</route>
 		</start>
 
-		<start name="fs_query">
+		<start name="fs_query" caps="120">
 			<resource name="RAM" quantum="1M"/>
 			<config>
 				<vfs> <dir name="fs"> <fs writeable="yes"/> </dir> </vfs>

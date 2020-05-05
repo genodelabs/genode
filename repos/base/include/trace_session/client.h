@@ -77,7 +77,7 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 		 * \throw Out_of_ram
 		 * \throw Out_of_caps
 		 */
-		size_t subjects(Subject_id *dst, size_t dst_len)
+		virtual size_t subjects(Subject_id *dst, size_t dst_len)
 		{
 			size_t const num_subjects = min(call<Rpc_subjects>(), dst_len);
 

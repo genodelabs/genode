@@ -16,12 +16,12 @@
 
 /* Genode includes */
 #include <util/list.h>
-#include <base/rpc_server.h>
+#include <base/session_object.h>
+#include <base/heap.h>
 #include <os/session_policy.h>
 #include <os/reporter.h>
 #include <os/pixel_rgb565.h>
 #include <nitpicker_session/nitpicker_session.h>
-#include <base/allocator_guard.h>
 
 /* local includes */
 #include "canvas.h"
@@ -52,7 +52,7 @@ struct Nitpicker::Visibility_controller : Interface
 };
 
 
-class Nitpicker::Session_component : public  Rpc_object<Session>,
+class Nitpicker::Session_component : public  Session_object<Nitpicker::Session>,
                                      public  View_owner,
                                      public  Buffer_provider,
                                      private Session_list::Element
@@ -60,6 +60,8 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 	private:
 
 		friend class List<Session_component>;
+
+		using Nitpicker::Session::Label;
 
 		/*
 		 * Noncopyable
@@ -69,7 +71,7 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 
 		Env &_env;
 
-		Session_label const _label;
+		Constrained_ram_allocator _ram;
 
 		Domain_registry::Entry const *_domain     = nullptr;
 		Texture_base           const *_texture    = nullptr;
@@ -89,11 +91,14 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 		bool _uses_alpha = false;
 		bool _visible    = true;
 
-		Allocator_guard _session_alloc;
+		Sliced_heap _session_alloc;
 
 		Framebuffer::Session &_framebuffer;
 
 		Framebuffer::Session_component _framebuffer_session_component;
+
+		bool const _input_session_accounted = (
+			withdraw(Ram_quota{Input::Session_component::ev_ds_size()}), true );
 
 		Input::Session_component _input_session_component { _env };
 
@@ -124,6 +129,9 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 
 		Attached_ram_dataspace _command_ds { _env.ram(), _env.rm(),
 		                                     sizeof(Command_buffer) };
+
+		bool const _command_buffer_accounted = (
+			withdraw(Ram_quota{align_addr(sizeof(Session::Command_buffer), 12)}), true );
 
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
@@ -166,7 +174,9 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 	public:
 
 		Session_component(Env                   &env,
-		                  Session_label   const &label,
+		                  Resources       const &resources,
+		                  Label           const &label,
+		                  Diag            const &diag,
 		                  View_stack            &view_stack,
 		                  Font            const &font,
 		                  Focus_updater         &focus_updater,
@@ -174,14 +184,13 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 		                  View_component        &builtin_background,
 		                  Framebuffer::Session  &framebuffer,
 		                  bool                   provides_default_bg,
-		                  Allocator             &session_alloc,
-		                  size_t                 ram_quota,
 		                  Reporter              &focus_reporter,
 		                  Visibility_controller &visibility_controller)
 		:
+			Session_object(env.ep(), resources, label, diag),
 			_env(env),
-			_label(label),
-			_session_alloc(&session_alloc, ram_quota),
+			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
+			_session_alloc(_ram, env.rm()),
 			_framebuffer(framebuffer),
 			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
 			_view_stack(view_stack), _font(font), _focus_updater(focus_updater),
@@ -193,9 +202,7 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 			_view_handle_registry(_session_alloc),
 			_focus_reporter(focus_reporter),
 			_visibility_controller(visibility_controller)
-		{
-			_session_alloc.upgrade(ram_quota);
-		}
+		{ }
 
 		~Session_component()
 		{
@@ -337,8 +344,6 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 			if (_mode_sigh.valid())
 				Signal_transmitter(_mode_sigh).submit();
 		}
-
-		void upgrade_ram_quota(size_t ram_quota) { _session_alloc.upgrade(ram_quota); }
 
 		/**
 		 * Deliver sync signal to the client's virtual frame buffer

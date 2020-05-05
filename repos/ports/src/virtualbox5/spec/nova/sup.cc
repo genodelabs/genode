@@ -779,7 +779,7 @@ void *operator new (__SIZE_TYPE__ size, int log2_align)
 
 bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
                      void *(*start_routine)(void *), void *arg,
-                     Genode::Cpu_session * cpu_session,
+                     Genode::Cpu_connection * cpu_connection,
                      Genode::Affinity::Location location,
                      unsigned int cpu_id, const char * name, long)
 {
@@ -797,13 +797,13 @@ bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
 	if (vmx)
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
 		                                           stack, start_routine,
-		                                           arg, cpu_session, location,
+		                                           arg, cpu_connection, location,
 		                                           cpu_id, name, pd_vcpus.rpc_cap());
 
 	if (svm)
 		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
 		                                           stack, start_routine,
-		                                           arg, cpu_session, location,
+		                                           arg, cpu_connection, location,
 		                                           cpu_id, name, pd_vcpus.rpc_cap());
 
 	Assert(!(reinterpret_cast<unsigned long>(vcpu_handler) & 0xf));

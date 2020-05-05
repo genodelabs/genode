@@ -15,9 +15,9 @@
 #define _CORE__INCLUDE__TRACE__SESSION_COMPONENT_H_
 
 /* Genode includes */
-#include <base/allocator_guard.h>
-#include <base/rpc_server.h>
+#include <base/session_object.h>
 #include <base/tslab.h>
+#include <base/heap.h>
 #include <base/attached_ram_dataspace.h>
 #include <trace_session/trace_session.h>
 
@@ -30,19 +30,18 @@ namespace Genode { namespace Trace { class Session_component; } }
 
 class Genode::Trace::Session_component
 :
-	public Genode::Rpc_object<Genode::Trace::Session,
-	                          Genode::Trace::Session_component>,
-	public Genode::Trace::Policy_owner
+	public Session_object<Trace::Session,
+	                      Trace::Session_component>,
+	public Trace::Policy_owner
 {
 	private:
 
-		Ram_allocator               &_ram;
+		Constrained_ram_allocator    _ram;
 		Region_map                  &_local_rm;
-		Allocator_guard              _md_alloc;
+		Sliced_heap                  _md_alloc { _ram, _local_rm };
 		Tslab<Trace::Subject, 4096>  _subjects_slab;
 		Tslab<Trace::Policy, 4096>   _policies_slab;
 		unsigned               const _parent_levels;
-		Session_label          const _label;
 		Source_registry             &_sources;
 		Policy_registry             &_policies;
 		Subject_registry             _subjects;
@@ -54,18 +53,18 @@ class Genode::Trace::Session_component
 		/**
 		 * Constructor
 		 */
-		Session_component(Ram_allocator &ram, Region_map &local_rm,
-		                  Allocator &md_alloc, size_t ram_quota,
-		                  size_t arg_buffer_size, unsigned parent_levels,
-		                  char const *label, Source_registry &sources,
+		Session_component(Rpc_entrypoint  &ep,
+		                  Resources const &resources,
+		                  Label     const &label,
+		                  Diag      const &diag,
+		                  Ram_allocator   &ram,
+		                  Region_map      &local_rm,
+		                  size_t           arg_buffer_size,
+		                  unsigned         parent_levels,
+		                  Source_registry &sources,
 		                  Policy_registry &policies);
 
 		~Session_component();
-
-		/**
-		 * Register quota donation at allocator guard
-		 */
-		void upgrade_ram_quota(size_t ram_quota) { _md_alloc.upgrade(ram_quota); }
 
 
 		/***********************

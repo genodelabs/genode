@@ -59,7 +59,7 @@ append config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="nic_dump" priority="-1">
+	<start name="nic_dump" priority="-1" caps="120">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
 		<config uplink="bridge"

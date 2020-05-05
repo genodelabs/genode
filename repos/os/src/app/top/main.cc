@@ -312,7 +312,7 @@ struct App::Main
 	Env &_env;
 
 	enum {
-		TRACE_RAM_QUOTA = 10 * 4096,
+		TRACE_RAM_QUOTA = 20 * 4096,
 		ARG_BUFFER_RAM  = 32 * 1024,
 		PARENT_LEVELS   = 0
 	};

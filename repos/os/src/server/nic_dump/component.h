@@ -15,10 +15,10 @@
 #define _COMPONENT_H_
 
 /* Genode includes */
-#include <base/allocator_guard.h>
 #include <root/component.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
+#include <base/heap.h>
 
 /* local includes */
 #include <interface.h>
@@ -52,24 +52,28 @@ class Net::Session_component_base
 {
 	protected:
 
-		Genode::Allocator_guard _guarded_alloc;
-		Nic::Packet_allocator   _range_alloc;
-		Communication_buffer    _tx_buf;
-		Communication_buffer    _rx_buf;
+		Genode::Ram_quota_guard           _ram_quota_guard;
+		Genode::Cap_quota_guard           _cap_quota_guard;
+		Genode::Constrained_ram_allocator _ram;
+		Genode::Sliced_heap               _alloc;
+		Nic::Packet_allocator             _range_alloc;
+		Communication_buffer              _tx_buf;
+		Communication_buffer              _rx_buf;
 
 	public:
 
-		Session_component_base(Genode::Allocator     &guarded_alloc_backing,
-		                       Genode::size_t const   guarded_alloc_amount,
-		                       Genode::Ram_allocator &buf_ram,
-		                       Genode::size_t const   tx_buf_size,
-		                       Genode::size_t const   rx_buf_size);
+		Session_component_base(Genode::Ram_allocator &ram,
+		                       Genode::Region_map    &local_rm,
+		                       Genode::Ram_quota      ram_quota,
+		                       Genode::Cap_quota      cap_quota,
+		                       Genode::size_t   const tx_buf_size,
+		                       Genode::size_t   const rx_buf_size);
 };
 
 
 class Net::Session_component : private Session_component_base,
                                public  ::Nic::Session_rpc_object,
-                               public  Interface
+                               private Interface
 {
 	private:
 
@@ -90,14 +94,14 @@ class Net::Session_component : private Session_component_base,
 
 	public:
 
-		Session_component(Genode::Allocator    &alloc,
-		                  Genode::size_t const  amount,
-		                  Genode::size_t const  tx_buf_size,
-		                  Genode::size_t const  rx_buf_size,
-		                  Genode::Xml_node      config,
-		                  Timer::Connection    &timer,
-		                  Genode::Duration     &curr_time,
-		                  Genode::Env          &env);
+		Session_component(Genode::Ram_quota  ram_quota,
+		                  Genode::Cap_quota  cap_quota,
+		                  Genode::size_t     tx_buf_size,
+		                  Genode::size_t     rx_buf_size,
+		                  Genode::Xml_node   config,
+		                  Timer::Connection &timer,
+		                  Genode::Duration  &curr_time,
+		                  Genode::Env       &env);
 
 
 		/******************

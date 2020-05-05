@@ -15,7 +15,6 @@
 #include <base/heap.h>
 #include <base/slab.h>
 #include <base/log.h>
-#include <base/allocator_guard.h>
 #include <timer_session/connection.h>
 
 
@@ -79,7 +78,36 @@ void Component::construct(Genode::Env & env)
 	static Timer::Connection timer(env);
 
 	enum { SLAB_SIZE = 16, BLOCK_SIZE = 256 };
-	static Genode::Allocator_guard alloc(&heap, ~0UL);
+
+	struct Tracked_alloc : Genode::Allocator
+	{
+		size_t _consumed = 0;
+
+		Allocator &_alloc;
+
+		bool alloc(size_t size, void **out_addr) override
+		{
+			if (_alloc.alloc(size, out_addr)) {
+				_consumed += size;
+				return true;
+			}
+			return false;
+		}
+
+		void free(void *addr, size_t size) override
+		{
+			_alloc.free(addr, size);
+			_consumed -= size;
+		}
+
+		size_t overhead(size_t)      const override { return 0; }
+		size_t consumed()            const override { return _consumed; }
+		bool   need_size_for_free()  const override { return true; }
+
+		Tracked_alloc(Allocator &alloc) : _alloc(alloc) { }
+	};
+
+	Tracked_alloc alloc { heap };
 
 	{
 		Genode::Slab slab(SLAB_SIZE, BLOCK_SIZE, nullptr, &alloc);
