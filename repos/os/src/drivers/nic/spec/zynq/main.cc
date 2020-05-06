@@ -55,21 +55,20 @@ class Server::Gem_session_component : public Cadence_gem
 		{
 			Nic::Mac_address mac_addr;
 
+			/* fall back to fake MAC address (unicast, locally managed) */
+			mac_addr.addr[0] = 0x02;
+			mac_addr.addr[1] = 0x00;
+			mac_addr.addr[2] = 0x00;
+			mac_addr.addr[3] = 0x00;
+			mac_addr.addr[4] = 0x00;
+			mac_addr.addr[5] = 0x01;
+
 			/* try using configured MAC address */
 			try {
 				Genode::Xml_node nic_config = _config_rom.xml().sub_node("nic");
-				nic_config.attribute("mac").value(&mac_addr);
-			} catch (...) {
-				/* fall back to fake MAC address (unicast, locally managed) */
-				mac_addr.addr[0] = 0x02;
-				mac_addr.addr[1] = 0x00;
-				mac_addr.addr[2] = 0x00;
-				mac_addr.addr[3] = 0x00;
-				mac_addr.addr[4] = 0x00;
-				mac_addr.addr[5] = 0x01;
-			}
-
-			Genode::log("Using MAC address ", mac_addr);
+				mac_addr = nic_config.attribute_value("mac", mac_addr);
+				Genode::log("Using configured MAC address ", mac_addr);
+			} catch (...) { }
 
 			/* set mac address */
 			mac_address(mac_addr);

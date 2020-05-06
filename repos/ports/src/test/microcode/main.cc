@@ -120,6 +120,16 @@ static void inline cpuid(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *
   asm volatile ("cpuid" : "+a" (*eax), "+d" (*edx), "+b" (*ebx), "+c"(*ecx) :: "memory");
 }
 
+static unsigned cpu_attribute_value(Genode::Xml_node const &cpu, char const *attribute)
+{
+	if (!cpu.has_attribute(attribute)) {
+		Genode::error("missing cpu attribute ", attribute);
+		throw Genode::Exception();
+	}
+
+	return cpu.attribute_value(attribute, 0U);
+}
+
 void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
@@ -141,15 +151,13 @@ void Component::construct(Genode::Env &env)
 	try {
 		Xml_node const cpus = platform_info.xml().sub_node("hardware").sub_node("cpus");
 		cpus.for_each_sub_node("cpu", [&] (Xml_node cpu) {
-			uint8_t family = 0, model = 0, stepping = 0, platform = 0;
-			unsigned id = 0, patch = 0;
 
-			cpu.attribute("id").value(&id);
-			cpu.attribute("family").value(&family);
-			cpu.attribute("model").value(&model);
-			cpu.attribute("stepping").value(&stepping);
-			cpu.attribute("platform").value(&platform);
-			cpu.attribute("patch").value(&patch);
+			unsigned const id       = cpu_attribute_value(cpu, "id");
+			uint8_t  const family   = cpu_attribute_value(cpu, "family");
+			uint8_t  const model    = cpu_attribute_value(cpu, "model");
+			uint8_t  const stepping = cpu_attribute_value(cpu, "stepping");
+			uint8_t  const platform = cpu_attribute_value(cpu, "platform");
+			unsigned const patch    = cpu_attribute_value(cpu, "patch");
 
 			String<9> name(Hex(family, Hex::OMIT_PREFIX, Hex::PAD), "-",
 			               Hex(model, Hex::OMIT_PREFIX, Hex::PAD), "-",

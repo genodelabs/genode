@@ -1242,18 +1242,18 @@ class Machine : public StaticReceiver<Machine>
 			Xml_node node = machine_node.sub_node();
 			for (;; node = node.next()) {
 
-				enum { MODEL_NAME_MAX_LEN = 32 };
-				char name[MODEL_NAME_MAX_LEN];
-				node.type_name(name, sizeof(name));
+				typedef String<32> Model_name;
+
+				Model_name const name = node.type();
 
 				if (verbose)
-					Genode::log("device: ", (char const *)name);
+					Genode::log("device: ", name);
 
-				Device_model_info *dmi = device_model_registry()->lookup(name);
+				Device_model_info *dmi = device_model_registry()->lookup(name.string());
 
 				if (!dmi) {
 					Genode::error("configuration error: device model '",
-					              (char const *)name, "' does not exist");
+					              name, "' does not exist");
 					throw Config_error();
 				}
 
@@ -1267,15 +1267,11 @@ class Machine : public StaticReceiver<Machine>
 					argv[i] = ~0UL;
 
 				for (int i = 0; dmi->arg_names[i] && (i < MAX_ARGS); i++) {
-
-					try {
-						Xml_node::Attribute arg = node.attribute(dmi->arg_names[i]);
-						arg.value(&argv[i]);
-
+					if (node.has_attribute(dmi->arg_names[i])) {
+						argv[i] = node.attribute_value(dmi->arg_names[i], ~0UL);
 						if (verbose)
 							Genode::log(" arg[", i, "]: ", Genode::Hex(argv[i]));
 					}
-					catch (Xml_node::Nonexistent_attribute) { }
 				}
 
 				/*

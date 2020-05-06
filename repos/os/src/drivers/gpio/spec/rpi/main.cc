@@ -59,49 +59,40 @@ struct Main
 		using namespace Genode;
 		log("--- Raspberry Pi GPIO driver ---");
 
+		Xml_node const config = config_rom.xml();
+
 		/*
 		 * Check configuration for async events detect
 		 */
-		unsigned int async = 0;
-		try {
-			config_rom.xml().attribute("async_events").value(&async);
-		} catch (...) { }
+		unsigned int async = config.attribute_value("async_events", 0U);
 		driver.set_async_events(async>0);
 
 		/*
 		 * Check for common GPIO configuration
 		 */
-		Gpio::process_config(config_rom.xml(), driver);
+		Gpio::process_config(config, driver);
 
 		/*
 		 * Check configuration for specific function
 		 */
-		try {
-			Xml_node gpio_node = config_rom.xml().sub_node("gpio");
+		if (!config.has_sub_node("gpio"))
+			warning("no GPIO config");
 
-			for (;; gpio_node = gpio_node.next("gpio")) {
-				unsigned num     = 0;
-				unsigned function = 0;
+		config_rom.xml().for_each_sub_node("gpio", [&] (Xml_node const &gpio_node) {
 
-				try {
-					gpio_node.attribute("num").value(&num);
-					gpio_node.attribute("function").value(&function);
+			unsigned const num      = gpio_node.attribute_value("num",      0U);
+			unsigned const function = gpio_node.attribute_value("function", 0U);
 
-					switch(function){
-					case 0: driver.set_func(num, Gpio::Reg::FSEL_ALT0); break;
-					case 1: driver.set_func(num, Gpio::Reg::FSEL_ALT1); break;
-					case 2: driver.set_func(num, Gpio::Reg::FSEL_ALT2); break;
-					case 3: driver.set_func(num, Gpio::Reg::FSEL_ALT3); break;
-					case 4: driver.set_func(num, Gpio::Reg::FSEL_ALT4); break;
-					case 5: driver.set_func(num, Gpio::Reg::FSEL_ALT5); break;
-					default: warning("wrong pin function, ignore node");
-					}
-				} catch(Xml_node::Nonexistent_attribute) {
-					warning("missing attribute, ignore node");
-				}
-				if (gpio_node.last("gpio")) break;
+			switch(function){
+			case 0: driver.set_func(num, Gpio::Reg::FSEL_ALT0); break;
+			case 1: driver.set_func(num, Gpio::Reg::FSEL_ALT1); break;
+			case 2: driver.set_func(num, Gpio::Reg::FSEL_ALT2); break;
+			case 3: driver.set_func(num, Gpio::Reg::FSEL_ALT3); break;
+			case 4: driver.set_func(num, Gpio::Reg::FSEL_ALT4); break;
+			case 5: driver.set_func(num, Gpio::Reg::FSEL_ALT5); break;
+			default: warning("wrong pin function, ignore node");
 			}
-		} catch (Xml_node::Nonexistent_sub_node) { warning("no GPIO config"); }
+		});
 
 		/*
 		 * Announce service

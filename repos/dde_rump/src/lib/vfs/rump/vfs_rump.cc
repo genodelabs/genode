@@ -865,15 +865,15 @@ class Rump_factory : public Vfs::File_system_factory
 			rump_io_backend_init();
 
 			/* limit RAM consumption */
-			try {
-				Genode::Number_of_bytes memlimit;
-				config.attribute("ram").value(&memlimit);
-
-				rump_set_memlimit(memlimit);
-			} catch (...) {
+			if (!config.has_attribute("ram")) {
 				Genode::error("mandatory 'ram' attribute missing");
 				throw Genode::Exception();
 			}
+
+			Genode::Number_of_bytes const memlimit =
+				config.attribute_value("ram", Genode::Number_of_bytes(0));
+
+			rump_set_memlimit(memlimit);
 
 			/* start rump kernel */
 			try         { rump_init(); }

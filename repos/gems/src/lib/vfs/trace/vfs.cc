@@ -381,14 +381,11 @@ struct Vfs_trace::Local_factory : File_system_factory
 
 	size_t _config_session_ram(Xml_node config)
 	{
-		try {
-			Genode::Number_of_bytes ram;
-			config.attribute("ram").value(&ram);
-			return ram;
-		} catch (...) {
+		if (!config.has_attribute("ram")) {
 			Genode::error("mandatory 'ram' attribute missing");
 			throw Genode::Exception();
 		}
+		return config.attribute_value("ram", Number_of_bytes(0));
 	}
 
 	Local_factory(Vfs::Env &env, Xml_node config)

@@ -413,52 +413,42 @@ class Lx_fs::Root : public Root_component<Session_component>
 			char const *root_dir  = ".";
 			bool        writeable = false;
 
-			enum { ROOT_MAX_LEN = 256 };
-			char root[ROOT_MAX_LEN];
-			root[0] = 0;
+			Session_label  const label = label_from_args(args);
+			Session_policy const policy(label, _config.xml());
 
-			Session_label const label = label_from_args(args);
-			try {
-				Session_policy policy(label, _config.xml());
-
-				/*
-				 * Determine directory that is used as root directory of
-				 * the session.
-				 */
-				try {
-					policy.attribute("root").value(root, sizeof(root));
-
-					/*
-					 * Make sure the root path is specified with a
-					 * leading path delimiter. For performing the
-					 * lookup, we remove all leading slashes.
-					 */
-					if (root[0] != '/') {
-						Genode::error("Root directory must start with / but is \"",
-						              Genode::Cstring(root), "\"");
-						throw Service_denied();
-					}
-
-					for (root_dir = root; *root_dir == '/'; ++root_dir) ;
-
-					/* sanitize possibly empty root_dir to current directory */
-					if (*root_dir == 0)
-						root_dir = ".";
-				} catch (Xml_node::Nonexistent_attribute) {
-					Genode::error("missing \"root\" attribute in policy definition");
-					throw Service_denied();
-				}
-
-				/*
-				 * Determine if write access is permitted for the session.
-				 */
-				writeable = policy.attribute_value("writeable", false) &&
-				            writeable_from_args(args);
+			if (!policy.has_attribute("root")) {
+				Genode::error("missing \"root\" attribute in policy definition");
+				throw Service_denied();
 			}
-			catch (Session_policy::No_policy_defined) {
-				Genode::error("invalid session request, no matching policy");
-				throw Genode::Service_denied();
+
+			/*
+			 * Determine directory that is used as root directory of
+			 * the session.
+			 */
+			typedef String<256> Root;
+			Root const root = policy.attribute_value("root", Root());
+
+			/*
+			 * Make sure the root path is specified with a
+			 * leading path delimiter. For performing the
+			 * lookup, we remove all leading slashes.
+			 */
+			if (root.string()[0] != '/') {
+				Genode::error("Root directory must start with / but is \"", root, "\"");
+				throw Service_denied();
 			}
+
+			for (root_dir = root.string(); *root_dir == '/'; ++root_dir) ;
+
+			/* sanitize possibly empty root_dir to current directory */
+			if (*root_dir == 0)
+				root_dir = ".";
+
+			/*
+			 * Determine if write access is permitted for the session.
+			 */
+			writeable = policy.attribute_value("writeable", false) &&
+			            writeable_from_args(args);
 
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
@@ -486,7 +476,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 				       Session_component(tx_buf_size, _env, root_dir, writeable, *md_alloc());
 			}
 			catch (Lookup_failed) {
-				Genode::error("session root directory \"", Genode::Cstring(root), "\" "
+				Genode::error("session root directory \"", root, "\" "
 				              "does not exist");
 				throw Service_denied();
 			}

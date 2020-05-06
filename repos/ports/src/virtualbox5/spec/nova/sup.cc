@@ -693,9 +693,12 @@ uint64_t genode_cpu_hz()
 
 	if (!cpu_freq) {
 		try {
-			platform_rom().sub_node("tsc").attribute("freq_khz").value(&cpu_freq);
+			platform_rom().with_sub_node("tsc", [&] (Genode::Xml_node const &tsc) {
+				cpu_freq = tsc.attribute_value("freq_khz", cpu_freq); });
 			cpu_freq *= 1000ULL;
-		} catch (...) {
+		} catch (...) { }
+
+		if (cpu_freq == 0) {
 			Genode::error("could not read out CPU frequency");
 			Genode::Lock lock;
 			lock.lock();

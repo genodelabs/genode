@@ -38,6 +38,8 @@ class Boot_module_provider
 
 		enum { MODULE_NAME_MAX_LEN = 48 };
 
+		typedef Genode::String<MODULE_NAME_MAX_LEN> Name;
+
 	public:
 
 		/**
@@ -83,17 +85,13 @@ class Boot_module_provider
 					 * attribute of the 'rom' node. If no 'label' argument is
 					 * provided, use the 'name' attribute as file name.
 					 */
-					char name[MODULE_NAME_MAX_LEN];
-					try {
-						mod_node.attribute("label").value(name, sizeof(name));
-					} catch (Xml_node::Nonexistent_attribute) {
-						mod_node.attribute("name").value(name, sizeof(name));
-					}
-
+					Name const label = mod_node.has_attribute("label")
+					                 ? mod_node.attribute_value("label", Name())
+					                 : mod_node.attribute_value("name",  Name());
 					/*
 					 * Open ROM session
 					 */
-					Rom_connection rom(env, name);
+					Rom_connection rom(env, label.string());
 					Dataspace_capability ds = rom.dataspace();
 					Genode::size_t const src_len = Dataspace_client(ds).size();
 
@@ -117,18 +115,14 @@ class Boot_module_provider
 					env.rm().detach(src);
 
 					return src_len;
+
 				} else if (mod_node.has_type("inline")) {
-					/*
-					 * Determine ROM file name, which is specified as 'name'
-					 * attribute of the 'rom' node.
-					 */
-					char name[MODULE_NAME_MAX_LEN];
-					mod_node.attribute("name").value(name, sizeof(name));
 
 					/*
 					 * Copy inline content directly to destination buffer
 					 */
-					Genode::memcpy(dst, mod_node.content_addr(), mod_node.content_size());
+					mod_node.with_raw_content([&] (char const *ptr, size_t size) {
+						Genode::memcpy(dst, ptr, size); });
 
 					return mod_node.content_size();
 				}
@@ -177,10 +171,9 @@ class Boot_module_provider
 
 					Genode::size_t cmd_len = 0;
 
-					char name[MODULE_NAME_MAX_LEN];
-					mod_node.attribute("name").value(name, sizeof(name));
+					Name const name = mod_node.attribute_value("name", Name());
 
-					Genode::size_t const name_len = Genode::strlen(name);
+					Genode::size_t const name_len = Genode::strlen(name.string());
 
 					/*
 					 * Check if destination buffer can hold the name including
@@ -190,7 +183,7 @@ class Boot_module_provider
 						return 0;
 
 					/* copy name to command line */
-					strncpy(&dst[cmd_len], name, name_len + 1);
+					strncpy(&dst[cmd_len], name.string(), name_len + 1);
 					cmd_len += name_len;
 
 					/* check if name fills entire destination buffer */
@@ -199,8 +192,10 @@ class Boot_module_provider
 						return cmd_len;
 					}
 
-					try {
-						Xml_node::Attribute cmdline_attr = mod_node.attribute("cmdline");
+					if (mod_node.has_attribute("cmdline")) {
+
+						typedef String<256> Cmdline;
+						Cmdline const cmdline = mod_node.attribute_value("cmdline", Cmdline());
 
 						/* add single space between name and arguments */
 						dst[cmd_len++] = ' ';
@@ -210,7 +205,7 @@ class Boot_module_provider
 						}
 
 						/* copy 'cmdline' attribute to destination buffer */
-						cmdline_attr.value(&dst[cmd_len], dst_len - cmd_len);
+						Genode::strncpy(&dst[cmd_len], cmdline.string(), dst_len - cmd_len);
 
 						/*
 						 * The string returned by the 'value' function is
@@ -219,7 +214,7 @@ class Boot_module_provider
 						 */
 						return Genode::strlen(dst);
 
-					} catch (Xml_node::Nonexistent_attribute) { }
+					}
 
 					return cmd_len;
 				}

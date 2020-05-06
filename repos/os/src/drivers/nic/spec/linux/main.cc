@@ -113,7 +113,11 @@ class Linux_session_component : public Nic::Session_component
 			/* get tap device from config */
 			try {
 				Genode::Xml_node nic_node = _config_rom.xml().sub_node("nic");
-				nic_node.attribute("tap").value(ifr.ifr_name, sizeof(ifr.ifr_name));
+				nic_node.attribute("tap").with_raw_value([&] (char const *ptr, size_t len) {
+					len = Genode::min(len, sizeof(ifr.ifr_name) - 1);
+					Genode::memcpy(ifr.ifr_name, ptr, len);
+					ifr.ifr_name[len] = 0;
+				});
 				Genode::log("using tap device \"", Genode::Cstring(ifr.ifr_name), "\"");
 			} catch (...) {
 				/* use tap0 if no config has been provided */
@@ -212,20 +216,20 @@ class Linux_session_component : public Nic::Session_component
 			_config_rom(env, "config"),
 			_tap_fd(_setup_tap_fd()), _rx_thread(env, _tap_fd, _packet_stream_dispatcher)
 		{
+			/* fall back to fake MAC address (unicast, locally managed) */
+			_mac_addr.addr[0] = 0x02;
+			_mac_addr.addr[1] = 0x00;
+			_mac_addr.addr[2] = 0x00;
+			_mac_addr.addr[3] = 0x00;
+			_mac_addr.addr[4] = 0x00;
+			_mac_addr.addr[5] = 0x01;
+
 			/* try using configured MAC address */
 			try {
 				Genode::Xml_node nic_config = _config_rom.xml().sub_node("nic");
-				nic_config.attribute("mac").value(&_mac_addr);
+				_mac_addr = nic_config.attribute_value("mac", _mac_addr);
 				Genode::log("Using configured MAC address ", _mac_addr);
-			} catch (...) {
-				/* fall back to fake MAC address (unicast, locally managed) */
-				_mac_addr.addr[0] = 0x02;
-				_mac_addr.addr[1] = 0x00;
-				_mac_addr.addr[2] = 0x00;
-				_mac_addr.addr[3] = 0x00;
-				_mac_addr.addr[4] = 0x00;
-				_mac_addr.addr[5] = 0x01;
-			}
+			} catch (...) { }
 
 			_rx_thread.start();
 		}

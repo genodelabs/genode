@@ -68,10 +68,8 @@ struct Main
 			Genode::Attached_rom_dataspace config { env, "config" };
 
 			verbose = config.xml().attribute_value("verbose", false);
-			config.xml().attribute("expect").value(line, sizeof(line));
-			expect = Line(line);
-			config.xml().attribute("send").value(line, sizeof(line));
-			send = Line(line);
+			expect  = config.xml().attribute_value("expect", Line());
+			send    = config.xml().attribute_value("send",   Line());
 		} catch (...) { warning("No config data available"); }
 	}
 };

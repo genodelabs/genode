@@ -276,16 +276,14 @@ struct Audio_out::Main
 
 	Main(Genode::Env &env) : env(env)
 	{
-		char dev[32] = { 'h', 'w', 0 };
-		try {
-			config.xml().attribute("alsa_device").value(dev, sizeof(dev));
-		} catch (...) { }
+		typedef Genode::String<32> Dev;
+		Dev const dev = config.xml().attribute_value("alsa_device", Dev("hw"));
 
 		/* init ALSA */
-		int err = audio_drv_init(dev);
+		int err = audio_drv_init(dev.string());
 		if (err) {
 			if (err == -1) {
-				Genode::error("could not open ALSA device ", Genode::Cstring(dev));
+				Genode::error("could not open ALSA device ", dev);
 			} else {
 				Genode::error("could not initialize driver error ", err);
 			}

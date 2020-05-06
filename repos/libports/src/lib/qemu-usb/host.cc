@@ -930,13 +930,13 @@ struct Usb_devices : List<Usb_host_device>
 
 			Dev_info const dev_info(bus, dev, vendor, product);
 
-			String<128> label;
-			try {
-				node.attribute("label").value(&label);
-			} catch (Xml_attribute::Nonexistent_attribute) {
+			if (!node.has_attribute("label")) {
 				error("no label found for device ", dev_info);
 				return;
 			}
+
+			typedef String<128> Label;
+			Label const label = node.attribute_value("label", Label());
 
 			/* ignore if already created */
 			bool exists = false;

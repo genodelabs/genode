@@ -262,18 +262,25 @@ void Libc::Component::construct(Libc::Env &env)
 	/* make Genode environment accessible via the global 'genode_env()' */
 	genode_env_ptr = &env;
 
-	try {
+	{
 		using namespace Genode;
 
-		Attached_rom_dataspace config(env, "config");
-		Xml_node::Attribute vbox_file = config.xml().attribute("vbox_file");
-		vbox_file.value(c_vbox_file, sizeof(c_vbox_file));
-		Xml_node::Attribute vm_name = config.xml().attribute("vm_name");
-		vm_name.value(c_vbox_vmname, sizeof(c_vbox_vmname));
-	} catch (...) {
-		Genode::error("missing attributes in configuration, minimum requirements: ");
-		Genode::error("  <config vbox_file=\"...\" vm_name=\"...\">" );
-		throw;
+		Attached_rom_dataspace config_ds(env, "config");
+		Xml_node const config = config_ds.xml();
+
+		if (!config.has_attribute("vbox_file") || !config.has_attribute("vm_name")) {
+			error("missing attributes in configuration, minimum requirements: ");
+			error("  <config vbox_file=\"...\" vm_name=\"...\">" );
+			throw Exception();
+		}
+
+		typedef String<128> Name;
+
+		Name const vbox_file = config.attribute_value("vbox_file", Name());
+		Genode::strncpy(c_vbox_file, vbox_file.string(), sizeof(c_vbox_file));
+
+		Name const vm_name = config.attribute_value("vm_name", Name());
+		Genode::strncpy(c_vbox_vmname, vm_name.string(), sizeof(c_vbox_vmname));
 	}
 
 	/* enable stdout/stderr for VBox Log infrastructure */
