@@ -18,3 +18,6 @@ INC_DIR += $(SOLO5_PORT_DIR)/include/solo5
 INC_DIR += $(REP_DIR)/include/solo5
 
 vpath bindings.cc $(SOLO5_PORT_DIR)/src/lib/solo5/bindings/genode
+
+# ignore warning about use of deprecated Xml_node API
+CC_CXX_WARN_STRICT :=
