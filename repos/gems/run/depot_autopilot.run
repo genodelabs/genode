@@ -723,6 +723,7 @@ set default_test_pkgs {
 	test-terminal_crosslink
 	test-timer
 	test-tls
+	test-token
 	test-trace
 	test-trace_logger
 	test-utf8
