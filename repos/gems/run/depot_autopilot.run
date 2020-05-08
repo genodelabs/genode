@@ -694,7 +694,6 @@ set default_test_pkgs {
 	test-nic_loopback
 	test-part_block_gpt
 	test-part_block_mbr
-	test-pipe
 	test-pthread
 	test-ram_fs_chunk
 	test-read_only_rom
