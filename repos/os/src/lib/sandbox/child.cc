@@ -458,29 +458,7 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 			               Session::Diag{false} };
 
 		/*
-		 * \deprecated  the support for the <configfile> tag will
-		 *              be removed
-		 */
-		if (_start_node->xml().has_sub_node("configfile")) {
-
-			typedef String<50> Name;
-			Name const rom =
-				_start_node->xml().sub_node("configfile")
-				                  .attribute_value("name", Name());
-
-			/* prevent infinite recursion */
-			if (rom == "config") {
-				error("configfile must not be named 'config'");
-				throw Service_denied();
-			}
-
-			return resolve_session_request(service_name,
-			                               prefixed_label(name(), rom));
-		}
-
-		/*
-		 * If there is neither an inline '<config>' nor a
-		 * '<configfile>' node present, we apply the regular session
+		 * If there is no inline '<config>', we apply the regular session
 		 * routing to the "config" ROM request.
 		 */
 	}

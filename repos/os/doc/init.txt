@@ -220,14 +220,6 @@ As illustrated by this example, the use of the nested configuration feature
 enables the construction of arbitrarily complex component trees via a single
 configuration file.
 
-Alternatively to specifying all nested configurations in a single config file,
-any sub configuration can be placed in a separate file specified via the
-'configfile' node. For example:
-! <start name="nitpicker">
-!   <resource name="RAM" quantum="1M"/>
-!   <configfile name="nitpicker.config"/>
-! </start>
-
 
 Assigning subsystems to CPUs
 ============================

@@ -174,12 +174,6 @@
         </xs:complexType>
        </xs:element> <!-- "exit" -->
 
-       <xs:element name="configfile">
-        <xs:complexType>
-         <xs:attribute name="name" type="xs:string" />
-        </xs:complexType>
-       </xs:element> <!-- "configfile" -->
-
        <xs:element name="provides">
         <xs:complexType>
          <xs:choice maxOccurs="unbounded">
