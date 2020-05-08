@@ -55,7 +55,7 @@ append config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="ROM"/> <service name="Report"/> </provides>
 		<config>
-			<policy label_prefix="input_filter -> input_filter.config"
+			<policy label_prefix="input_filter -> config"
 			        report="test-input_filter -> input_filter.config"/>
 			<policy label_prefix="input_filter -> chargen_include"
 			        report="test-input_filter -> chargen_include"/>
@@ -69,12 +69,11 @@ append config {
 	<start name="input_filter" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Input"/> </provides>
-		<configfile name="input_filter.config"/>
 		<route>
-			<service name="ROM" label="input_filter.config"> <child name="report_rom"/> </service>
-			<service name="ROM" label="chargen_include">     <child name="report_rom"/> </service>
-			<service name="ROM" label="remap_include">       <child name="report_rom"/> </service>
-			<service name="ROM" label="capslock">            <child name="report_rom"/> </service>
+			<service name="ROM" label="config">          <child name="report_rom"/> </service>
+			<service name="ROM" label="chargen_include"> <child name="report_rom"/> </service>
+			<service name="ROM" label="remap_include">   <child name="report_rom"/> </service>
+			<service name="ROM" label="capslock">        <child name="report_rom"/> </service>
 			<service name="Input"> <child name="test-input_filter"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>

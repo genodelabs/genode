@@ -315,11 +315,10 @@ append_if [expr $use_usb] config {
 
 	<start name="usb_report_filter" priority="-1">
 		<resource name="RAM" quantum="1200K"/>
-		<configfile name="usb_report_filter.config"/>
 		<route>
 			<service name="Report"><child name="report_rom"/></service>
-			<service name="ROM" label="usb_report_filter.config">
-				<child name="usb_config_rom"/>
+			<service name="ROM" label="config">
+				<child name="usb_config_rom" label="usb_report_filter.config"/>
 			</service>
 			<service name="ROM" label="devices">
 				<child name="report_rom"/>
@@ -340,10 +339,10 @@ append_if [expr $use_usb] config {
 			<service name="Input"/>
 			<service name="Usb"/>
 		</provides>
-		<configfile name="usb_drv.config"/>
 		<route>
 			<service name="Report"><child name="report_rom"/></service>
-			<service name="ROM" label="usb_drv.config"><child name="usb_config_rom"/></service>
+			<service name="ROM" label="config">
+				<child name="usb_config_rom" label="usb_drv.config"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>

@@ -52,10 +52,9 @@ const char *config = " \
     </start> \
     <start name=\"init\" caps=\"2000\"> \
         <resource name=\"RAM\" quantum=\"2G\"/> \
-        <configfile name=\"config.plugin\"/> \
         <route> \
-            <service name=\"ROM\" label=\"config.plugin\"> \
-                <child name=\"tar_rom\"/> \
+            <service name=\"ROM\" label=\"config\"> \
+                <child name=\"tar_rom\" label=\"config.plugin\"/> \
             </service> \
             <any-service> <parent /> </any-service> \
         </route> \

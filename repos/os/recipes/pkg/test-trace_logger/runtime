@@ -122,9 +122,9 @@
 		<start name="cpu_burner.1">
 			<binary name="cpu_burner"/>
 			<resource name="RAM" quantum="1M"/>
-			<configfile name="cpu_burner1.config"/>
 			<route>
-				<service name="ROM" label="cpu_burner1.config"> <child name="dynamic_rom"/> </service>
+				<service name="ROM" label="config">
+					<child name="dynamic_rom" label="cpu_burner1.config"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
@@ -132,9 +132,9 @@
 		<start name="cpu_burner.2">
 			<binary name="cpu_burner"/>
 			<resource name="RAM" quantum="1M"/>
-			<configfile name="cpu_burner2.config"/>
 			<route>
-				<service name="ROM" label="cpu_burner2.config"> <child name="dynamic_rom"/> </service>
+				<service name="ROM" label="config">
+					<child name="dynamic_rom" label="cpu_burner2.config"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>

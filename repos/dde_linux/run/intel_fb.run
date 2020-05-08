@@ -129,9 +129,9 @@ append config {
 			<start name="intel_fb_drv" caps="1000">
 				<resource name="RAM" quantum="60M"/>
 				<provides><service name="Framebuffer"/></provides>
-				<configfile name="fb_drv.config"/>
 				<route>
-					<service name="ROM" label="fb_drv.config"> <child name="config_rom"/> </service>
+					<service name="ROM" label="config">
+						<child name="config_rom" label="fb_drv.config"/> </service>
 					<service name="Report"> <child name="report_rom"/> </service>
 					<any-service> <parent/> <any-child /> </any-service>
 				</route>

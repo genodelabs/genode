@@ -120,11 +120,11 @@ append config {
 		<start name="mixer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Audio_out"/></provides>
-			<configfile name="mixer.config"/>
 			<route>
 				<service name="Audio_out"> <child name="audio_drv"/> </service>
 				<service name="Report"> <child name="report_rom"/> </service>
-				<service name="ROM" label="mixer.config"> <child name="dynamic_rom"/> </service>
+				<service name="ROM" label="config">
+					<child name="dynamic_rom" label="mixer.config"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>

@@ -64,9 +64,9 @@ append config {
 		<binary name="vfs"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="File_system"/> </provides>
-		<configfile name="socket_fs.config"/>
 		<route>
-			<service name="ROM" label="socket_fs.config"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="config">
+				<child name="dynamic_rom" label="socket_fs.config"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

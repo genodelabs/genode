@@ -36,10 +36,9 @@
 		</start>
 		<start name="test-dynamic_config" caps="500">
 			<resource name="RAM" quantum="1M"/>
-			<configfile name="config.dynamic" />
 			<route>
-				<service name="ROM" label="config.dynamic">
-					<child name="test-dynamic_config_server"/>
+				<service name="ROM" label="config">
+					<child name="test-dynamic_config_server" label="config.dynamic"/>
 				</service>
 				<any-service> <parent /> </any-service>
 			</route>

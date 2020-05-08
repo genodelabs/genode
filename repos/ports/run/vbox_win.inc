@@ -126,12 +126,12 @@ append config_of_app {
 	<start name="nitpicker" priority="-1" caps="150">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Nitpicker"/></provides>
-		<configfile name="nitpicker.config"/>
 		<route>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>
 			<service name="Input"> <child name="input_filter" /> </service>
 			<service name="Report"> <child name="report_rom" /> </service>
-			<service name="ROM" label="nitpicker.config"> <child name="dynamic-config"/> </service>
+			<service name="ROM" label="config">
+				<child name="dynamic-config" label="nitpicker.config"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>

@@ -150,9 +150,8 @@ install_config {
 	<start name="nitpicker" caps="110">
 		<resource name="RAM" quantum="1216K"/>
 		<provides><service name="Nitpicker"/></provides>
-		<configfile name="nitpicker.config"/>
 		<route>
-			<service name="ROM" label="nitpicker.config">
+			<service name="ROM" label="config">
 				<child name="nitpicker_config"/> </service>
 			<service name="ROM" label="focus">
 				<child name="report_rom"/> </service>

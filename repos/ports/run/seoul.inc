@@ -359,7 +359,9 @@ append config "
 		<resource name=\"RAM\" quantum=\"$memory_vmm_vm\"/>"
 append config {
 		<route>
-			<service name="Timer"><child name="timer"/></service>}
+			<service name="Timer"><child name="timer"/></service>
+			<service name="ROM" label="config">
+				<parent label="vm_seoul.cfg"/> </service>}
 append_if [expr $use_nic_session && $use_nic_bridge] config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>}
 append_if [expr $use_nic_session && !$use_nic_bridge] config {
@@ -367,7 +369,6 @@ append_if [expr $use_nic_session && !$use_nic_bridge] config {
 append_if $use_genode_iso config {
 			<service name="ROM" unscoped_label="seoul"> <parent/> </service>
 			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
-			<service name="ROM" label="vm_seoul.cfg"> <parent/> </service>
 			<service name="ROM" label="platform_info"> <parent/> </service>
 			<service name="ROM"><child name="iso9660"/></service>}
 append_if $use_block_vdi config {
@@ -378,7 +379,6 @@ append config {
 			<service name="Rtc"><child name="rtc_drv"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-		<configfile name="vm_seoul.cfg"/>
 	</start> }
 }
 
@@ -452,9 +452,10 @@ append_if $use_fancy_stuff config {
 	</start>
 	<start name="launchpad" priority="-2" caps="1500">
 		<resource name="RAM" quantum="64000M"/>
-		<configfile name="launchpad-config"/>
 		<route>
-			<service name="Nic"><child name="nic_bridge"/></service>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="ROM" label="config">
+				<parent label="launchpad-config"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>}
@@ -496,9 +497,10 @@ if {$use_fancy_stuff} {
 				<route>
 					<service name="Timer"><parent/></service>
 					<service name="Nic"><parent/></service>
+					<service name="ROM" label="config">
+						<parent label="vm_seoul.cfg"/> </service>
 					<any-service><parent/></any-service>
 				</route>
-				<configfile name="vm_seoul.cfg"/>
 			</start>
 		</config>
 	</launcher>}

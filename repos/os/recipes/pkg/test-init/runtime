@@ -37,7 +37,7 @@
 			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="ROM"/> <service name="Report"/> </provides>
 			<config verbose="no">
-				<policy label="init -> init.config" report="test-init -> init.config"/>
+				<policy label="init -> config" report="test-init -> init.config"/>
 				<policy label="test-init -> state"  report="init -> state"/>
 			</config>
 		</start>
@@ -56,9 +56,8 @@
 		<start name="init" caps="2000" priority="-1">
 			<binary name="init"/>
 			<resource name="RAM" quantum="16M"/>
-			<configfile name="init.config"/>
 			<route>
-				<service name="ROM" label="init.config"> <child name="report_rom"/> </service>
+				<service name="ROM" label="config"> <child name="report_rom"/> </service>
 				<service name="Report"> <child name="report_rom"/> </service>
 				<service name="LOG">    <child name="test-init"/> </service>
 

@@ -80,9 +80,9 @@ append config {
 		<provides> <service name="File_system"/> </provides>}
 
 if {[use_dynamic_rom]} { append config {
-		<configfile name="socket_fs.config"/>
 		<route>
-			<service name="ROM" label="socket_fs.config"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="config">
+				<child name="dynamic_rom" label="socket_fs.config"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>}
 } else { append config {

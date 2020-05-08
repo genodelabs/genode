@@ -101,10 +101,9 @@ append config {
 
 	<start name="nano3d">
 		<resource name="RAM" quantum="8M"/>
-		<configfile name="nano3d.config"/>
 		<route>
-			<service name="ROM" label="nano3d.config">
-				<child name="dynamic_rom" /> </service>
+			<service name="ROM" label="config">
+				<child name="dynamic_rom" label="nano3d.config"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

@@ -93,10 +93,9 @@ install_config {
 	<start name="nit_fader">
 		<resource name="RAM" quantum="5M"/>
 		<provides><service name="Nitpicker"/></provides>
-		<configfile name="nit_fader.config" />
 		<route>
-			<service name="ROM" label="nit_fader.config">
-				<child name="dynamic_rom" />
+			<service name="ROM" label="config">
+				<child name="dynamic_rom" label="nit_fader.config"/>
 			</service>
 			<service name="Nitpicker"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
