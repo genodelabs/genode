@@ -696,7 +696,6 @@ set default_test_pkgs {
 	test-part_block_mbr
 	test-pipe
 	test-pthread
-	test-python
 	test-ram_fs_chunk
 	test-read_only_rom
 	test-reconstructible
@@ -762,7 +761,6 @@ set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fi
 set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]
 set skip_test(test-libc)            [expr [have_spec sel4] || [have_spec rpi] || [expr [have_spec pbxa9] && [have_spec foc]] || [expr [have_spec imx53] && [have_spec trustzone]]]
 set skip_test(test-lx_block)        [expr ![have_spec linux]]
-set skip_test(test-python)          [expr ![have_spec x86]]
 set skip_test(test-rm_fault)        [expr [have_spec linux] || ![non_executable_supported]]
 set skip_test(test-rm_fault_no_nox) [expr [have_spec linux] || ![skip_test test-rm_fault]]
 set skip_test(test-rm_nested)       [expr [have_spec linux]]
