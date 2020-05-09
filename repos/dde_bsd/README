@@ -10,21 +10,86 @@ whereas the ES1370 driver is only used in Qemu. The ICH driver is only
 tested in Virtualbox where it produces audible artifacts.
 
 
-Usage
-=====
+Usage and configuration
+=======================
 
 You have to prepare the contrib sources for this repository by
 executing _./tool/ports/prepare_port dde_bsd_. Also you need to make
 sure to add the 'dde_bsd' repository to the REPOSITORIES variable
 in your 'etc/build.conf'.
 
+Reporting of the mixer state is enabled by adding the 'report_mixer'
+attribute to the drivers configuration and setting its value to 'yes'.
 
-Example
-=======
+The following snippets illustrates the format of the report:
 
-The driver can be tested by executing the run script 'run/audio_out.run'.
-This example plays a sample file in a loop. The file format is header less
+!<mixer_state>
+!  <mixer field="inputs.beep" value="108"/>
+!  <mixer field="outputs.hp_sense" value="plugged"/>
+!  <mixer field="outputs.master" value="128,128"/>
+!  <mixer field="outputs.mic_sense" value="unplugged"/>
+!  <mixer field="outputs.spkr_muters" value="hp,mic"/>
+!</mixer_state>
+
+The mixer state may expose other mixer fields as well, depending on the
+used sound card. The naming scheme of the attributes intentionally
+matches the naming scheme of OpenBSD's mixerctl(1) program.
+
+Each 'mixer' node can be used to configure the audio driver by using it
+in its configuration, e.g.:
+
+!<config report_mixer="yes">
+!  <mixer field="outputs.master" value="255,255"/>
+!</config>
+
+This configuration will set the output volume to the highest possible
+value. Although it is now also possible to update the configuration
+at run-time it should not be done while the driver is currently playing
+or recording because it may provoke the generation of artefacts.
+
+The following configures the driver of playback and recording:
+
+! <start name="audio_out_drv">
+!   <resource name="RAM" quantum="8M"/>
+!   <provides>
+!     <service name="Audio_out"/>
+!     <service name="Audio_in"/>
+!   </provides>
+!   <config>
+!     <mixer field="outputs.master" value="255"/>
+!     <mixer field="record.enable" value="on"/>
+!     <mixer field="record.adc-0:1_source" value="mic3"/>
+!     <mixer field="record.volume" value="128"/>
+!   </config>
+! </start>
+
+It is vital to enable recording by setting 'record.enable' to 'on' as
+otherwise only silence will be delievered to the Audio_in session.
+In addition to selecting the recording source, the playback as well as the
+recording volume are set. When a single value is given the same value is
+used for all channels. Depending on the used HDA device or rather the used
+codec the available fields might differ and a different recording source
+must be set for 'adc-0:1'. For example on a Thinkpad X220 the source must
+be set to 'mic3' to select the internal microphone.
+
+Information about the available mixers and settings in general
+may be obtained by setting the 'verbose' to 'yes' in the config
+node.
+
+
+Examples
+========
+
+Playback can be tested by executing the run script
+'repos/dde_bsd/run/audio_out.run'.
+It will play a raw sample file in a loop. The file format is header less
 two channel float 32 at 44100 Hz. You may use the 'sox' utility to create
-these audio files:
+such an audio file:
 
 ! sox -c 2 -r 44100 foo.wav foo.f32
+
+Recording, on the other hand, can be tested by executing the run script
+'repos/dde_bsd/run/audio_in.run'.
+
+It will use a simply audio monitor test component that records samples
+and plays them back immediately.
