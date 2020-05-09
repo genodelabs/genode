@@ -508,26 +508,16 @@ struct Main
 			return;
 		}
 
-		/* playback */
-		if (config.xml().attribute_value("playback", true)) {
-			static Audio_out::Out out(env);
-			Audio::play_sigh(out.sigh());
-			static Audio_out::Root out_root(env, heap, out.data_avail());
-			env.parent().announce(env.ep().manage(out_root));
+		static Audio_out::Out out(env);
+		Audio::play_sigh(out.sigh());
+		static Audio_out::Root out_root(env, heap, out.data_avail());
+		env.parent().announce(env.ep().manage(out_root));
 
-			Genode::log("--- BSD Audio driver enable playback ---");
-		}
-
-		/* recording */
-		if (config.xml().attribute_value("recording", true)) {
-			static Audio_in::In in(env);
-			Audio::record_sigh(in.sigh());
-			static Audio_in::Root in_root(env, heap,
-			                              Genode::Signal_context_capability());
-			env.parent().announce(env.ep().manage(in_root));
-
-			Genode::log("--- BSD Audio driver enable recording ---");
-		}
+		static Audio_in::In in(env);
+		Audio::record_sigh(in.sigh());
+		static Audio_in::Root in_root(env, heap,
+		                              Genode::Signal_context_capability());
+		env.parent().announce(env.ep().manage(in_root));
 
 		config.sigh(config_update_dispatcher);
 	}
