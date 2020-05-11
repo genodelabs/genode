@@ -269,7 +269,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 
 			Server_args(Session_state const &session)
 			{
-				Genode::strncpy(_buf, session._args.string(), sizeof(_buf));
+				copy_cstring(_buf, session._args.string(), sizeof(_buf));
 				Arg_string::set_arg_string(_buf, sizeof(_buf),
 				                           "label", session._label.string());
 			}

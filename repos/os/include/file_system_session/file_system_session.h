@@ -296,7 +296,7 @@ struct File_system::Directory_entry
 		char buf[MAX_NAME_LEN] { };
 
 		Name() { };
-		Name(char const *name) { Genode::strncpy(buf, name, sizeof(buf)); }
+		Name(char const *name) { Genode::copy_cstring(buf, name, sizeof(buf)); }
 	};
 
 	unsigned long inode;

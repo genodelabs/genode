@@ -153,13 +153,13 @@ int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 
 	/* support one cpu */
 	if (!Genode::strcmp(name, "_RUMPUSER_NCPU")) {
-		Genode::strncpy((char *)buf, "1", 2);
+		Genode::copy_cstring((char *)buf, "1", 2);
 		return 0;
 	}
 
 	/* return out cool host name */
 	if (!Genode::strcmp(name, "_RUMPUSER_HOSTNAME")) {
-		Genode::strncpy((char *)buf, "rump4genode", 12);
+		Genode::copy_cstring((char *)buf, "rump4genode", 12);
 		return 0;
 	}
 

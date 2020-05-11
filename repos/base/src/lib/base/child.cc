@@ -145,7 +145,7 @@ Session_capability Child::session(Parent::Client::Id id,
 
 	char argbuf[Parent::Session_args::MAX_SIZE];
 
-	strncpy(argbuf, args.string(), sizeof(argbuf));
+	copy_cstring(argbuf, args.string(), sizeof(argbuf));
 
 	/* prefix session label */
 	Session_label const label = prefixed_label(_policy.name(), label_from_args(argbuf));

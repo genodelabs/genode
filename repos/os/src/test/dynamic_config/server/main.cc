@@ -53,7 +53,7 @@ class Rom_session_component : public Rpc_object<Rom_session>
 			if (_bg.size() < data_len)
 				_bg.realloc(&_env.ram(), data_len);
 
-			strncpy(_bg.local_addr<char>(), data, data_len);
+			copy_cstring(_bg.local_addr<char>(), data, data_len);
 			_bg_pending_data = true;
 
 			/* inform client about the changed data */

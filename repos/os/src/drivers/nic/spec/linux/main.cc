@@ -121,7 +121,7 @@ class Linux_session_component : public Nic::Session_component
 				Genode::log("using tap device \"", Genode::Cstring(ifr.ifr_name), "\"");
 			} catch (...) {
 				/* use tap0 if no config has been provided */
-				Genode::strncpy(ifr.ifr_name, "tap0", sizeof(ifr.ifr_name));
+				Genode::copy_cstring(ifr.ifr_name, "tap0", sizeof(ifr.ifr_name));
 				Genode::log("no config provided, using tap0");
 			}
 

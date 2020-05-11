@@ -41,7 +41,7 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 		throw Service_denied();
 	}
 
-	strncpy(fname.buf, label.last_element().string(), sizeof(fname.buf));
+	copy_cstring(fname.buf, label.last_element().string(), sizeof(fname.buf));
 
 	/* only files inside the current working directory are allowed */
 	for (const char *c = fname.buf; *c; ++c)

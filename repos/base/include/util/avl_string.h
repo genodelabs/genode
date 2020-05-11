@@ -78,8 +78,7 @@ class Genode::Avl_string : public Avl_string_base
 
 		Avl_string(const char *str) : Avl_string_base(_str_buf)
 		{
-			strncpy(_str_buf, str, sizeof(_str_buf));
-			_str_buf[STR_LEN - 1] = 0;
+			copy_cstring(_str_buf, str, sizeof(_str_buf));
 		}
 };
 

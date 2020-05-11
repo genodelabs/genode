@@ -1016,7 +1016,7 @@ class Lwip::Udp_socket_dir final :
 					return Write_result::WRITE_ERR_INVALID;
 				} else {
 					char buf[ENDPOINT_STRLEN_MAX];
-					Genode::strncpy(buf, src, min(count+1, sizeof(buf)));
+					copy_cstring(buf, src, min(count+1, sizeof(buf)));
 
 					_to_port = remove_port(buf);
 					out_count = count;
@@ -1034,7 +1034,7 @@ class Lwip::Udp_socket_dir final :
 					ip_addr_t addr;
 					u16_t port;
 
-					Genode::strncpy(buf, src, min(count+1, sizeof(buf)));
+					copy_cstring(buf, src, min(count+1, sizeof(buf)));
 					port = remove_port(buf);
 					if (!ipaddr_aton(buf, &addr))
 						break;
@@ -1053,7 +1053,7 @@ class Lwip::Udp_socket_dir final :
 				if (count < ENDPOINT_STRLEN_MAX) {
 					char buf[ENDPOINT_STRLEN_MAX];
 
-					Genode::strncpy(buf, src, min(count+1, sizeof(buf)));
+					copy_cstring(buf, src, min(count+1, sizeof(buf)));
 
 					_to_port = remove_port(buf);
 					if (!ipaddr_aton(buf, &_to_addr))
@@ -1490,7 +1490,7 @@ class Lwip::Tcp_socket_dir final :
 					ip_addr_t addr;
 					u16_t port = 0;
 
-					Genode::strncpy(buf, src, min(count+1, sizeof(buf)));
+					Genode::copy_cstring(buf, src, min(count+1, sizeof(buf)));
 
 					port = remove_port(buf);
 					if (!ipaddr_aton(buf, &addr))
@@ -1511,7 +1511,7 @@ class Lwip::Tcp_socket_dir final :
 					ip_addr_t addr;
 					u16_t port = 0;
 
-					Genode::strncpy(buf, src, min(count+1, sizeof(buf)));
+					copy_cstring(buf, src, min(count+1, sizeof(buf)));
 					port = remove_port(buf);
 					if (!ipaddr_aton(buf, &addr))
 						break;
@@ -1532,7 +1532,7 @@ class Lwip::Tcp_socket_dir final :
 					unsigned long backlog = TCP_DEFAULT_LISTEN_BACKLOG;
 					char buf[8];
 
-					Genode::strncpy(buf, src, min(count+1, sizeof(buf)));
+					copy_cstring(buf, src, min(count+1, sizeof(buf)));
 					Genode::ascii_to_unsigned(buf, backlog, 10);
 
 					/* this replaces the PCB so set the callbacks again */

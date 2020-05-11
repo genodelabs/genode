@@ -241,7 +241,7 @@ struct Libc::String_array : Noncopyable
 			if (_pos + len > _size)
 				return false;
 
-			Genode::strncpy(_base + _pos, s, len);
+			copy_cstring(_base + _pos, s, len);
 			_pos += len;
 			return true;
 		}

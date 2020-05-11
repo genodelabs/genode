@@ -45,7 +45,7 @@ struct Libc::Passwd_fields
 
 		Buffer(Passwd_string const &string)
 		{
-			Genode::strncpy(buf, string.string(), sizeof(buf));
+			copy_cstring(buf, string.string(), sizeof(buf));
 		}
 	};
 

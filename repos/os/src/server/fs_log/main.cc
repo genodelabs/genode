@@ -102,7 +102,7 @@ class Fs_log::Root_component :
 						label_prefix = label_str+i+4;
 						{
 							char tmp[128];
-							strncpy(tmp, label_str, min(sizeof(tmp), i+1));
+							copy_cstring(tmp, label_str, min(sizeof(tmp), i+1));
 							dir_path = path_from_label<Path>(tmp);
 						}
 						break;
@@ -119,11 +119,11 @@ class Fs_log::Root_component :
 				dir_path = path_from_label<Path>(label_str); }
 
 			if (dir_path == "/") {
-				strncpy(file_name, "log", sizeof(file_name));
+				copy_cstring(file_name, "log", sizeof(file_name));
 				label_prefix = label_str;
 			} else {
 				dir_path.append(".log");
-				strncpy(file_name, dir_path.last_element(), sizeof(file_name));
+				copy_cstring(file_name, dir_path.last_element(), sizeof(file_name));
 				dir_path.strip_last_element();
 				dir_path.remove_trailing('/');
 			}

@@ -693,6 +693,6 @@ __SYS_(ssize_t, write, (int libc_fd, const void *buf, ::size_t count),
 
 extern "C" int __getcwd(char *dst, ::size_t dst_size)
 {
-	Genode::strncpy(dst, cwd().base(), dst_size);
+	copy_cstring(dst, cwd().base(), dst_size);
 	return 0;
 }

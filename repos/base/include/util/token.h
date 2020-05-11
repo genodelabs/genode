@@ -85,7 +85,7 @@ class Genode::Token
 		 * Return token as null-terminated string
 		 */
 		void string(char *dst, size_t max_len) const {
-			strncpy(dst, start(), min(len() + 1, max_len)); }
+			copy_cstring(dst, start(), min(len() + 1, max_len)); }
 
 		/**
 		 * Return true if token is valid

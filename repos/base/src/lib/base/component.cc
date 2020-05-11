@@ -132,7 +132,7 @@ namespace {
 
 			/* extract session quota as specified by the 'Connection' */
 			char argbuf[Parent::Session_args::MAX_SIZE];
-			strncpy(argbuf, args.string(), sizeof(argbuf));
+			copy_cstring(argbuf, args.string(), sizeof(argbuf));
 
 			Ram_quota ram_quota = ram_quota_from_args(argbuf);
 			Cap_quota cap_quota = cap_quota_from_args(argbuf);

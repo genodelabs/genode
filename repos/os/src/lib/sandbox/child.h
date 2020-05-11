@@ -296,12 +296,13 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 					/*
 					 * The 'length' is the number of bytes of the config-node
 					 * content, which is not null-terminated. Since
-					 * 'Genode::strncpy' always null-terminates the result, the
-					 * last byte of the source string is not copied. Hence, it
-					 * is safe to add '1' to 'length' and thereby include the
-					 * last actual config-content character in the result.
+					 * 'Genode::copy_cstring' always null-terminates the
+					 * result, the last byte of the source string is not
+					 * copied. Hence, it is safe to add '1' to 'length' and
+					 * thereby include the last actual config-content character
+					 * in the result.
 					 */
-					Genode::strncpy(dst, start, length + 1);
+					copy_cstring(dst, start, length + 1);
 				});
 			}
 

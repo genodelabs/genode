@@ -46,7 +46,7 @@ class Lx_fs::Node : public File_system::Node_base
 		/**
 		 * Assign name
 		 */
-		void name(char const *name) { Genode::strncpy(_name, name, sizeof(_name)); }
+		void name(char const *name) { Genode::copy_cstring(_name, name, sizeof(_name)); }
 
 		virtual void update_modification_time(Timestamp const) = 0;
 

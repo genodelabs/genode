@@ -1017,7 +1017,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 	dirent.d_fileno = dirent_out.fileno;
 	dirent.d_reclen = sizeof(struct dirent);
 
-	Genode::strncpy(dirent.d_name, dirent_out.name.buf, sizeof(dirent.d_name));
+	Genode::copy_cstring(dirent.d_name, dirent_out.name.buf, sizeof(dirent.d_name));
 
 	dirent.d_namlen = Genode::strlen(dirent.d_name);
 

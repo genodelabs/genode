@@ -176,7 +176,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
 	_l4_thread_id(L4_nilthread), _platform_pd(0),
 	_priority(prio), _pager(0)
 {
-	strncpy(_name, name, sizeof(_name));
+	copy_cstring(_name, name, sizeof(_name));
 }
 
 

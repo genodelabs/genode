@@ -182,7 +182,7 @@ struct Vfs::Directory_service : Interface
 			char buf[MAX_LEN] { };
 
 			Name() { };
-			Name(char const *name) { strncpy(buf, name, sizeof(buf)); }
+			Name(char const *name) { copy_cstring(buf, name, sizeof(buf)); }
 		};
 
 		unsigned long fileno;

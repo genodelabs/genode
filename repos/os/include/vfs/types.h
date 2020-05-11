@@ -34,7 +34,7 @@ namespace Vfs {
 	using Genode::Dataspace_client;
 	using Genode::min;
 	using Genode::ascii_to;
-	using Genode::strncpy;
+	using Genode::copy_cstring;
 	using Genode::strcmp;
 	using Genode::strlen;
 	typedef long long file_offset;

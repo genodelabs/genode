@@ -39,6 +39,6 @@ void Component::construct(Genode::Env &)
 	char buf[16];
 	char *p = buf;
 
-	strncpy(p, msg, strlen(msg)+1);
+	copy_cstring(p, msg, strlen(msg)+1);
 	log((char const *)p);
 }

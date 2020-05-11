@@ -124,7 +124,7 @@ class Genode::Xml_attribute
 			 * null-termination into account.
 			 */
 			max_len = min(max_len, _tokens.name.len() + 1);
-			strncpy(dst, _tokens.name.start(), max_len);
+			copy_cstring(dst, _tokens.name.start(), max_len);
 		}
 
 		typedef String<64> Name;
@@ -198,7 +198,7 @@ class Genode::Xml_attribute
 		void value(char *dst, size_t max_len) const __attribute__((deprecated))
 		{
 			with_raw_value([&] (char const *start, size_t length) {
-				Genode::strncpy(dst, start, min(max_len, length + 1)); });
+				copy_cstring(dst, start, min(max_len, length + 1)); });
 		}
 
 		/**

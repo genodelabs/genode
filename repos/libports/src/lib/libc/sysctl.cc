@@ -131,7 +131,7 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 		case CTL_KERN:
 			switch(index_b) {
 			case KERN_OSTYPE:
-				Genode::strncpy(buf, "Genode", *oldlenp);
+				copy_cstring(buf, "Genode", *oldlenp);
 				*oldlenp = Genode::strlen(buf);
 				return 0;
 
@@ -142,7 +142,7 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 				return 0;
 
 			case KERN_HOSTNAME:
-				Genode::strncpy(buf, "localhost", *oldlenp);
+				copy_cstring(buf, "localhost", *oldlenp);
 				*oldlenp = Genode::strlen(buf);
 				return 0;
 

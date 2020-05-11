@@ -155,7 +155,7 @@ struct Chroot::Main
 		enum { ARGS_MAX_LEN = 256 };
 		char new_args[ARGS_MAX_LEN];
 
-		strncpy(new_args, args.string(), ARGS_MAX_LEN);
+		copy_cstring(new_args, args.string(), ARGS_MAX_LEN);
 
 		/* sacrifice the label to make space for the root argument */
 		Arg_string::remove_arg(new_args, "label");

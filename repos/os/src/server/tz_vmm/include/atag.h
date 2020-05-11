@@ -187,7 +187,7 @@ class Atag {
 
 			_params->hdr.tag  = ATAG_CMDLINE;
 			_params->hdr.size = (sizeof(struct atag_header) + len + 1 + 4) >> 2;
-			Genode::strncpy(_params->u.cmdline.cmdline, line, len + 1);
+			Genode::copy_cstring(_params->u.cmdline.cmdline, line, len + 1);
 			_next();
 		}
 

@@ -137,7 +137,7 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Mutex
 		virtual ~Node() { }
 
 		char const *name() { return _name; }
-		void name(char const *name) { strncpy(_name, name, MAX_NAME_LEN); }
+		void name(char const *name) { copy_cstring(_name, name, MAX_NAME_LEN); }
 
 		virtual Vfs::file_size length() = 0;
 
@@ -516,7 +516,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (*path == '\0') return &_root;
 
 			char buf[Vfs::MAX_PATH_LEN];
-			strncpy(buf, path, Vfs::MAX_PATH_LEN);
+			copy_cstring(buf, path, Vfs::MAX_PATH_LEN);
 			Directory *dir = &_root;
 
 			char *name = &buf[0];

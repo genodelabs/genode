@@ -171,7 +171,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			 */
 			enum { MAX_ARGS_LEN = 256 };
 			char adjusted_args[MAX_ARGS_LEN];
-			strncpy(adjusted_args, args.string(), sizeof(adjusted_args));
+			copy_cstring(adjusted_args, args.string(), sizeof(adjusted_args));
 
 			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
 			                    "ram_quota", String<64>(remaining_ram_quota).string());

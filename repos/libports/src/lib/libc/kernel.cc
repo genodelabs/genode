@@ -152,7 +152,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 		{
 			char *dst = (char *)_heap.alloc(path.length());
-			Genode::strncpy(dst, path.string(), path.length());
+			copy_cstring(dst, path.string(), path.length());
 			fd->fd_path = dst;
 		}
 
