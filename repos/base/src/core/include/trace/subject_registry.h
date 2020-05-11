@@ -88,9 +88,9 @@ class Genode::Trace::Subject
 					if (_size)
 						_ram_ptr->free(_ds);
 
+					_ds      = ram.alloc(size); /* may throw */
 					_ram_ptr = &ram;
 					_size    = size;
-					_ds      = ram.alloc(size);
 				}
 
 				/**
@@ -220,17 +220,17 @@ class Genode::Trace::Subject
 			/* check state and throw error in case subject is not traceable */
 			_traceable_or_throw();
 
-			_policy_id = policy_id;
-
 			_buffer.setup(ram, size);
 			if(!_policy.setup(ram, local_rm, policy_ds, policy_size))
-					throw Already_traced();
+				throw Already_traced();
 
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
 			if (!source->try_acquire(*this))
 				throw Traced_by_other_session();
+
+			_policy_id = policy_id;
 
 			_allocated_memory = policy_size + size;
 
