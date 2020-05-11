@@ -1254,7 +1254,8 @@ int oops_in_progress;
 
 char *strncpy(char *dst, const char* src, size_t n)
 {
-	return Genode::strncpy(dst, src, n);
+	Genode::copy_cstring(dst, src, n);
+	return dst;
 }
 
 int strncmp(const char *cs, const char *ct, size_t count)

@@ -44,7 +44,7 @@ struct Genode::Local_connection_base : Noncopyable
 		{
 			/* copy original arguments into modifiable buffer */
 			char buf[Args::capacity()];
-			strncpy(buf, args.string(), sizeof(buf));
+			copy_cstring(buf, args.string(), sizeof(buf));
 
 			Arg_string::set_arg(buf, sizeof(buf), "ram_quota",
 			                    String<64>(resources.ram_quota.value).string());

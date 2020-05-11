@@ -443,7 +443,7 @@ void qbus_create_inplace(void* bus, size_t size , const char* type,
 	BusState   *b = &w->_bus_state;
 	char const *n = "xhci.0";
 	b->name = (char *)g_malloc(Genode::strlen(n) + 1);
-	Genode::strncpy(b->name, n, Genode::strlen(n) + 1);
+	Genode::copy_cstring(b->name, n, Genode::strlen(n) + 1);
 }
 
 

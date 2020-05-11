@@ -34,7 +34,7 @@ struct Main
 			env.rm().attach(loader.alloc_rom_module("config", CONFIG_SIZE));
 
 		String<100> config("<config><counter>", counter++, "</counter></config>");
-		strncpy(config_ds_addr, config.string(), CONFIG_SIZE);
+		copy_cstring(config_ds_addr, config.string(), CONFIG_SIZE);
 		env.rm().detach(config_ds_addr);
 		loader.commit_rom_module("config");
 		timer.trigger_once(250 * 1000);

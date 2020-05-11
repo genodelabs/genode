@@ -42,7 +42,7 @@ class File_system::Symlink : public Node
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			size_t count = min(len, sizeof(_link_to) + 1);
-			Genode::strncpy(dst, _link_to, count);
+			Genode::copy_cstring(dst, _link_to, count);
 			return count;
 		}
 
@@ -52,7 +52,7 @@ class File_system::Symlink : public Node
 			if (seek_offset) return 0;
 
 			size_t count = min(len, sizeof(_link_to) + 1);
-			Genode::strncpy(_link_to, src, count);
+			Genode::copy_cstring(_link_to, src, count);
 			return count;
 		}
 

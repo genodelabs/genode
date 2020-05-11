@@ -168,7 +168,7 @@ class Genode::Path_base
 				throw Path_too_long();
 
 			if (_path)
-				strncpy(_path + orig_len, path, _path_max_len - orig_len);
+				copy_cstring(_path + orig_len, path, _path_max_len - orig_len);
 		}
 
 		void _append_slash_if_needed()
@@ -207,7 +207,7 @@ class Genode::Path_base
 			 * Use argument path if absolute
 			 */
 			if (absolute(path))
-				strncpy(_path, path, _path_max_len);
+				copy_cstring(_path, path, _path_max_len);
 
 			/*
 			 * Otherwise, concatenate current working directory with
@@ -216,7 +216,7 @@ class Genode::Path_base
 			else {
 				const char *const relative_path = path;
 
-				strncpy(_path, pwd, _path_max_len);
+				copy_cstring(_path, pwd, _path_max_len);
 
 				if (!empty(relative_path)) {
 
@@ -371,7 +371,7 @@ class Genode::Path : public Path_base
 
 		Path& operator=(char const *path)
 		{
-			Genode::strncpy(_buf, path, MAX_LEN);
+			copy_cstring(_buf, path, MAX_LEN);
 			_canonicalize();
 			return *this;
 		}
@@ -380,14 +380,14 @@ class Genode::Path : public Path_base
 
 		Path& operator=(Path const &other)
 		{
-			Genode::strncpy(_buf, other._buf, MAX_LEN);
+			copy_cstring(_buf, other._buf, MAX_LEN);
 			return *this;
 		}
 
 		template <unsigned N>
 		Path& operator=(Path<N> const &other)
 		{
-			Genode::strncpy(_buf, other._buf, MAX_LEN);
+			copy_cstring(_buf, other._buf, MAX_LEN);
 			return *this;
 		}
 };
@@ -409,7 +409,7 @@ namespace Genode {
 			if (!strcmp(" -> ", label+j, 4)) {
 				path.append("/");
 
-				strncpy(tmp, label+i, (j-i)+1);
+				copy_cstring(tmp, label+i, (j-i)+1);
 				/* rewrite any directory separators */
 				for (size_t k = 0; k < path.capacity(); ++k)
 					if (tmp[k] == '/')
@@ -421,7 +421,7 @@ namespace Genode {
 			}
 		}
 		path.append("/");
-		strncpy(tmp, label+i, path.capacity());
+		copy_cstring(tmp, label+i, path.capacity());
 		/* rewrite any directory separators */
 		for (size_t k = 0; k < path.capacity(); ++k)
 			if (tmp[k] == '/')

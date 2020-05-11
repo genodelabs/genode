@@ -86,8 +86,8 @@ void Genode::print_lines(char const *string, size_t len, FUNC const &func)
 		/* buffer for sub-string of the input string plus null-termination */
 		char line_buf[MAX_LINE_LEN + 1];
 
-		 /* give strncpy one more as it will add the null termination */
-		Genode::strncpy(line_buf, string, line_len - skip_char + 1);
+		 /* one more byte for the null termination */
+		copy_cstring(line_buf, string, line_len - skip_char + 1);
 
 		/* process null-terminated string in buffer */
 		func(line_buf);

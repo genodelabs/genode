@@ -41,7 +41,7 @@ namespace Util {
 		static char tmp[64] = { };
 		if (len > sizeof(tmp)) { return nullptr; }
 
-		Genode::strncpy(tmp, base + offset, len);
+		copy_cstring(tmp, base + offset, len);
 
 		len--; /* skip NUL */
 		while (len > 0 && tmp[--len] == ' ') { tmp[len] = 0; }

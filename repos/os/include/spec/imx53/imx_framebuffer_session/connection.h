@@ -39,7 +39,7 @@ class Framebuffer::Imx_connection : public Genode::Connection<Imx_session>,
 			char argbuf[ARGBUF_SIZE];
 
 			/* donate ram quota for storing server-side meta data */
-			strncpy(argbuf, "ram_quota=8K", sizeof(argbuf));
+			copy_cstring(argbuf, "ram_quota=8K", sizeof(argbuf));
 
 			/* set optional session-constructor arguments */
 			if (width)

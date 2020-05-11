@@ -222,10 +222,10 @@ void Http::parse_uri(::String const &u)
 	for (i = 0; i < length && uri[i] != '/'; i++) ;
 
 	_heap.alloc(i + 1, (void**)&_host);
-	Genode::strncpy(_host, uri, i + 1);
+	copy_cstring(_host, uri, i + 1);
 
 	_heap.alloc(length - i + 1, (void**)&_path);
-	Genode::strncpy(_path, uri + i, length - i + 1);
+	copy_cstring(_path, uri + i, length - i + 1);
 
 	/* look for port */
 	size_t len = Genode::strlen(_host);

@@ -59,7 +59,7 @@ class Report::Session_component : public Genode::Rpc_object<Session>
 
 			char buf[1024];
 			for (size_t consumed = 0; consumed < length; consumed += strlen(buf)) {
-				strncpy(buf, _ds.local_addr<char>() + consumed, sizeof(buf));
+				copy_cstring(buf, _ds.local_addr<char>() + consumed, sizeof(buf));
 				log(Cstring(buf));
 			}
 			log("\nend of report");

@@ -72,7 +72,7 @@ static void construct_component(Libc::Env &env)
 
 					argv[arg_i] = (char *)malloc(size);
 
-					Genode::strncpy(argv[arg_i], start, size);
+					Genode::copy_cstring(argv[arg_i], start, size);
 				});
 
 				++arg_i;
@@ -114,8 +114,7 @@ static void construct_component(Libc::Env &env)
 						return;
 					}
 
-					/* Genode's strncpy always zero-terminates */
-					Genode::strncpy(envp[env_i] + pos, s, len + 1);
+					copy_cstring(envp[env_i] + pos, s, len + 1);
 					pos += len;
 				};
 

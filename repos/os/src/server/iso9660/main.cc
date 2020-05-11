@@ -157,7 +157,7 @@ class Iso::Root : public Iso::Root_component
 				throw Insufficient_ram_quota();
 
 			Session_label const label = label_from_args(args);
-			strncpy(_path, label.last_element().string(), sizeof(_path));
+			copy_cstring(_path, label.last_element().string(), sizeof(_path));
 
 			if (verbose)
 				Genode::log("Request for file ", Cstring(_path), " len ", strlen(_path));

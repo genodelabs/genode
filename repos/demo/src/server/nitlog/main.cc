@@ -125,8 +125,8 @@ class Log_entry
 		Log_entry(Genode::Color color, const char *label, const char *log_text, const char *log_attr, int id):
 			_color(color), _id(id)
 		{
-			Genode::strncpy(_label, label,    sizeof(_label));
-			Genode::strncpy(_text,  log_text, sizeof(_text));
+			Genode::copy_cstring(_label, label,    sizeof(_label));
+			Genode::copy_cstring(_text,  log_text, sizeof(_text));
 
 			_label_len = Genode::strlen(_label);
 			_text_len  = Genode::strlen(_text);

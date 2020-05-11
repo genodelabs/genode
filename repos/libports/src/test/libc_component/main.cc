@@ -177,7 +177,7 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 	{
 		if (!(string_buf.valid_string())) { return; }
 
-		strncpy(_buf, string_buf.string(), sizeof(_buf));
+		Genode::copy_cstring(_buf, string_buf.string(), sizeof(_buf));
 		size_t len = strlen(_buf);
 
 		if (_buf[len-1] == '\n') _buf[len-1] = 0;

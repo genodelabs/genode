@@ -427,6 +427,6 @@ uint32_t RTBldCfgRevision(void)     { return ~0; }
 
 extern "C" DECLHIDDEN(int) rtProcInitExePath(char *pszPath, size_t cchPath)
 {
-	Genode::strncpy(pszPath, "/virtualbox", cchPath);
+	Genode::copy_cstring(pszPath, "/virtualbox", cchPath);
 	return 0;
 }

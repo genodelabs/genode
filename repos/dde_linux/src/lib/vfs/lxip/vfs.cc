@@ -970,7 +970,7 @@ class Vfs::Lxip_accept_file final : public Vfs::Lxip_file
 			f.f_flags = 0;
 
 			if (_sock.ops->poll(&f, &_sock, nullptr) & (POLLIN)) {
-				Genode::strncpy(dst, "1\n", len);
+				copy_cstring(dst, "1\n", len);
 				return Genode::strlen(dst);
 			}
 

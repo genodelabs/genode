@@ -102,7 +102,7 @@ class Scout::Canvas : public Canvas_base
 		void draw_string(int x, int y, Font *font, Color color, char const *str, int len) override
 		{
 			char buf[len + 1];
-			Genode::strncpy(buf, str, len + 1);
+			Genode::copy_cstring(buf, str, len + 1);
 			Text_painter::paint(_surface, Text_painter::Position(x, y), *font, color, buf);
 		}
 

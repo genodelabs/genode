@@ -277,10 +277,10 @@ void Libc::Component::construct(Libc::Env &env)
 		typedef String<128> Name;
 
 		Name const vbox_file = config.attribute_value("vbox_file", Name());
-		Genode::strncpy(c_vbox_file, vbox_file.string(), sizeof(c_vbox_file));
+		copy_cstring(c_vbox_file, vbox_file.string(), sizeof(c_vbox_file));
 
 		Name const vm_name = config.attribute_value("vm_name", Name());
-		Genode::strncpy(c_vbox_vmname, vm_name.string(), sizeof(c_vbox_vmname));
+		copy_cstring(c_vbox_vmname, vm_name.string(), sizeof(c_vbox_vmname));
 	}
 
 	/* enable stdout/stderr for VBox Log infrastructure */

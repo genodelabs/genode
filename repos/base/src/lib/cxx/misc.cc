@@ -197,7 +197,8 @@ extern "C" int strncmp(const char *s1, const char *s2, size_t n)
 
 extern "C" char *strcpy(char *dest, const char *src)
 {
-	return Genode::strncpy(dest, src, ~0UL);
+	Genode::copy_cstring(dest, src, ~0UL);
+	return dest;
 }
 
 
@@ -243,10 +244,10 @@ void Genode::cxx_demangle(char const *symbol, char *out, size_t size)
 {
 	char *demangled_name = __cxxabiv1::__cxa_demangle(symbol, nullptr, nullptr, nullptr);
 	if (demangled_name) {
-		Genode::strncpy(out, demangled_name, size);
+		Genode::copy_cstring(out, demangled_name, size);
 		free(demangled_name);
 	} else {
-		Genode::strncpy(out, symbol, size);
+		Genode::copy_cstring(out, symbol, size);
 	}
 }
 

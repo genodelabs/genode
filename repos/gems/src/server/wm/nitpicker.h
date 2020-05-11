@@ -743,8 +743,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 				{
 					char sanitized_title[command.title.title.capacity()];
 
-					Genode::strncpy(sanitized_title, command.title.title.string(),
-					                sizeof(sanitized_title));
+					Genode::copy_cstring(sanitized_title, command.title.title.string(),
+					                     sizeof(sanitized_title));
 
 					for (char *c = sanitized_title; *c; c++)
 						if (*c == '"')

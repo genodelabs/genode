@@ -171,21 +171,15 @@ namespace Genode {
 	 * \param dst   destination buffer
 	 * \param src   buffer holding the null-terminated source string
 	 * \param size  maximum number of characters to copy
-	 * \return      pointer to destination string
 	 *
-	 * Note that this function is not fully compatible to the C standard, in
-	 * particular there is no zero-padding if the length of 'src' is smaller
-	 * than 'size'. Furthermore, in contrast to the libc version, this function
-	 * always produces a null-terminated string in the 'dst' buffer if the
-	 * 'size' argument is greater than 0.
+	 * In contrast to the POSIX 'strncpy' function, 'copy_cstring' always
+	 * produces a null-terminated string in the 'dst' buffer if the 'size'
+	 * argument is greater than 0.
 	 */
-	inline char *strncpy(char *dst, const char *src, size_t size)
+	inline void copy_cstring(char *dst, const char *src, size_t size)
 	{
 		/* sanity check for corner case of a zero-size destination buffer */
-		if (size == 0) return dst;
-
-		/* backup original 'dst' for the use as return value */
-		char *orig_dst = dst;
+		if (size == 0) return;
 
 		/*
 		 * Copy characters from 'src' to 'dst' respecting the 'size' limit.
@@ -198,8 +192,6 @@ namespace Genode {
 
 		/* append null termination to the destination buffer */
 		*dst = 0;
-
-		return orig_dst;
 	}
 
 
@@ -687,7 +679,7 @@ class Genode::String
 		 */
 		String(char const *cstr) : _len(min(Genode::strlen(cstr) + 1, CAPACITY))
 		{
-			Genode::strncpy(_buf, cstr, _len);
+			copy_cstring(_buf, cstr, _len);
 		}
 
 		/**
@@ -696,7 +688,7 @@ class Genode::String
 		template <unsigned N>
 		String(String<N> const &other) : _len(min(other.length(), CAPACITY))
 		{
-			Genode::strncpy(_buf, other.string(), _len);
+			copy_cstring(_buf, other.string(), _len);
 		}
 
 		/**

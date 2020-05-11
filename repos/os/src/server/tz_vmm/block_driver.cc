@@ -102,7 +102,7 @@ Block_driver::Block_driver(Env       &env,
 void Block_driver::_name(Vm_base &vm)
 {
 	_dev_apply(Device::Id { vm.smc_arg_2() },
-		[&] (Device &dev) { strncpy((char *)_buf, dev.name().string(), _buf_size); },
+		[&] (Device &dev) { copy_cstring((char *)_buf, dev.name().string(), _buf_size); },
 		[&] ()            { ((char *)_buf)[0] = 0; });
 }
 

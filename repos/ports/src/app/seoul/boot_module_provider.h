@@ -183,7 +183,7 @@ class Boot_module_provider
 						return 0;
 
 					/* copy name to command line */
-					strncpy(&dst[cmd_len], name.string(), name_len + 1);
+					copy_cstring(&dst[cmd_len], name.string(), name_len + 1);
 					cmd_len += name_len;
 
 					/* check if name fills entire destination buffer */
@@ -205,7 +205,7 @@ class Boot_module_provider
 						}
 
 						/* copy 'cmdline' attribute to destination buffer */
-						Genode::strncpy(&dst[cmd_len], cmdline.string(), dst_len - cmd_len);
+						copy_cstring(&dst[cmd_len], cmdline.string(), dst_len - cmd_len);
 
 						/*
 						 * The string returned by the 'value' function is

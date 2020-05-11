@@ -44,7 +44,7 @@ class Vfs::Symlink_file_system : public Single_file_system
 			                 file_size &out_count) override
 			{
 				auto n = min(count, _target.length());
-				strncpy(dst, _target.string(), n);
+				copy_cstring(dst, _target.string(), n);
 				out_count = n - 1;
 				return READ_OK;
 			}

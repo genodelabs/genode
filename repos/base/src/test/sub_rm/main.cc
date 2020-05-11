@@ -43,7 +43,7 @@ static void fill_ds_with_test_pattern(Env &env, char const *pattern,
 {
 	log("fill dataspace with information");
 	char *content = env.rm().attach(ds);
-	strncpy(content + offset, pattern, ~0);
+	copy_cstring(content + offset, pattern, ~0);
 	env.rm().detach(content);
 }
 

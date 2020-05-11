@@ -77,7 +77,7 @@ Platform_thread::Registry &Platform_thread::_registry()
 Platform_thread::Platform_thread(size_t, const char *name, unsigned,
                                  Affinity::Location, addr_t)
 {
-	strncpy(_name, name, min(sizeof(_name), strlen(name) + 1));
+	copy_cstring(_name, name, min(sizeof(_name), strlen(name) + 1));
 
 	_registry().insert(this);
 }

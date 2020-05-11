@@ -180,7 +180,7 @@ class Genode::Arg
 
 			/* stop here if _value is not a string */
 			if (_value.type() != Token::STRING) {
-				strncpy(dst, default_string, dst_len);
+				copy_cstring(dst, default_string, dst_len);
 				return;
 			}
 
