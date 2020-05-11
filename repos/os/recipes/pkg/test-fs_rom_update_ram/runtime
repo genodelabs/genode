@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="20" />
+		<timeout meaning="failed" sec="35" />
 		<log     meaning="succeeded">&lt;config iteration="4" /></log>
 	</events>
 
