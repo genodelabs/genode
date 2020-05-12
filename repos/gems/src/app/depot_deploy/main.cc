@@ -80,9 +80,37 @@ struct Depot_deploy::Main
 				xml.append(start, length); });
 
 			config.with_sub_node("report", [&] (Xml_node const &report) {
+
+				auto copy_bool_attribute = [&] (char const* name) {
+					if (report.has_attribute(name)) {
+						xml.attribute(name, report.attribute_value(name, false));
+					}
+				};
+
+				auto copy_buffer_size_attribute = [&] () {
+					char const *name { "buffer" };
+					if (report.has_attribute(name)) {
+						xml.attribute(name, report.attribute_value(name,
+						                                           Number_of_bytes(4096)));
+					}
+				};
+
 				size_t const delay_ms = report.attribute_value("delay_ms", 1000UL);
 				xml.node("report", [&] () {
 					xml.attribute("delay_ms", delay_ms);
+
+					/* attributes according to repos/os/src/lib/sandbox/report.h */
+					copy_bool_attribute("ids");
+					copy_bool_attribute("requested");
+					copy_bool_attribute("provided");
+					copy_bool_attribute("session_args");
+					copy_bool_attribute("child_ram");
+					copy_bool_attribute("child_caps");
+					copy_bool_attribute("init_ram");
+					copy_bool_attribute("init_caps");
+
+					/* attribute according to repos/os/src/init/main.cc */
+					copy_buffer_size_attribute();
 				});
 			});
 
