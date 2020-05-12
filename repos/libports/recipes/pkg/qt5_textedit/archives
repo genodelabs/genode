@@ -11,6 +11,7 @@ _/src/qt5_qjpeg
 _/src/qt5_qpa_nitpicker
 _/src/stdcxx
 _/src/vfs
+_/src/vfs_pipe
 _/src/zlib
 _/raw/qt5_textedit
 _/src/qt5_component

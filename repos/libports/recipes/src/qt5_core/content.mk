@@ -3,10 +3,7 @@ MIRROR_FROM_REP_DIR := lib/mk/qt5_core.mk \
                        lib/mk/qt5_pcre2.mk \
                        lib/mk/qt5_pcre2_generated.inc \
                        lib/mk/qt5.inc \
-                       src/lib/qt5/libc_dummies.cc \
-                       include/libc-plugin \
-                       lib/mk/libc_pipe.mk \
-                       src/lib/libc_pipe
+                       src/lib/qt5/libc_dummies.cc
 
 content: $(MIRROR_FROM_REP_DIR) src/lib/qt5_core/target.mk
 
