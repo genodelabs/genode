@@ -25,6 +25,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/stdcxx \
                   [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_pipe \
                   [depot_user]/src/zlib \
                   [depot_user]/pkg/themed_wm \
                   [depot_user]/raw/qt5_dejavusans
