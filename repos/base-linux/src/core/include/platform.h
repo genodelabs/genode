@@ -24,6 +24,29 @@
 #include <synced_range_allocator.h>
 #include <assertion.h>
 
+#include <util/arg_string.h>
+
+/**
+ * List of Unix environment variables, initialized by the startup code
+ */
+extern char **lx_environ;
+
+
+/**
+ * Read environment variable as long value
+ */
+static unsigned long ram_quota_from_env()
+{
+	for (char **curr = lx_environ; curr && *curr; curr++) {
+
+		Genode::Arg arg = Genode::Arg_string::find_arg(*curr, "GENODE_RAM_QUOTA");
+		if (arg.valid())
+			return arg.ulong_value(~0);
+	}
+
+	return ~0;
+}
+
 namespace Genode {
 
 	using namespace Genode;
@@ -87,7 +110,7 @@ namespace Genode {
 				int    remove_range(addr_t, size_t) override { return 0; }
 				void   free(void *)                 override { }
 				void   free(void *, size_t)         override { }
-				size_t avail()                const override { return ~0; }
+				size_t avail()                const override { return ram_quota_from_env(); }
 				bool   valid_addr(addr_t)     const override { return true; }
 				size_t overhead(size_t)       const override { return 0; }
 				bool   need_size_for_free()   const override { return true; }
