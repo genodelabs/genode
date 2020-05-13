@@ -49,6 +49,14 @@ proc audio_drv_binary { } {
 	return no_audio_drv_available
 }
 
+##
+# Return attributes of the audio driver's <start> node
+#
+proc audio_drv_start_attr { } {
+	if {[have_spec linux]} { return {ld="no"} }
+	return ""
+}
+
 proc acpi_drv_name { } {
 	global use_acpica_as_acpi_drv
 	if {[info exists use_acpica_as_acpi_drv] && $use_acpica_as_acpi_drv} {

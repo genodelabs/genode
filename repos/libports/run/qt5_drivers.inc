@@ -167,7 +167,7 @@ proc drivers_start_nodes { feature_arg } {
 	append start_nodes [platform_drv_config]
 
 	append_if [use_audio_drv feature] start_nodes {
-		<start name="audio_drv">
+		<start name="audio_drv" } [audio_drv_start_attr] {>
 			<binary name="} [audio_drv_binary] {"/>
 			<resource name="RAM" quantum="8M"/>
 			<provides><service name="Audio_out"/></provides>
