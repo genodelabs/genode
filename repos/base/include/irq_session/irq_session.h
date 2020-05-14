@@ -78,7 +78,7 @@ struct Genode::Irq_session : Session
 	 */
 	static const char * service_name() { return "IRQ"; }
 
-	enum { CAP_QUOTA = 3 };
+	enum { CAP_QUOTA = 3, RAM_QUOTA = 6 * 1024 };
 
 
 	/*********************

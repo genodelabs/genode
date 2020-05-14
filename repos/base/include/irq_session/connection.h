@@ -35,9 +35,10 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 	               Genode::addr_t        device_config_phys = 0)
 	:
 		Connection<Irq_session>(env, session(env.parent(),
-		                                     "ram_quota=6K, cap_quota=4, "
+		                                     "ram_quota=%u, cap_quota=%u, "
 		                                     "irq_number=%u, irq_trigger=%u, "
 		                                     "irq_polarity=%u, device_config_phys=0x%lx",
+		                                     RAM_QUOTA, CAP_QUOTA,
 		                                     irq, trigger, polarity, device_config_phys)),
 		Irq_session_client(cap())
 	{ }
