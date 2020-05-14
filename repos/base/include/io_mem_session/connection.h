@@ -33,9 +33,9 @@ struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_cl
 	:
 		Connection<Io_mem_session>(env,
 		                           session(env.parent(),
-		                                   "cap_quota=%u, ram_quota=6K, "
+		                                   "cap_quota=%u, ram_quota=%u, "
 		                                   "base=0x%p, size=0x%lx, wc=%s",
-		                                   CAP_QUOTA, base, size,
+		                                   CAP_QUOTA, RAM_QUOTA, base, size,
 		                                   write_combined ? "yes" : "no")),
 		Io_mem_session_client(cap())
 	{ }
