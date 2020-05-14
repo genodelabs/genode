@@ -1,5 +1,5 @@
 /*
- * \brief  PCI device capability type
+ * \brief  Device capability type
  * \author Norman Feske
  * \date   2008-08-16
  */
