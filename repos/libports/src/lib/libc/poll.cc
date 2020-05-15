@@ -124,7 +124,9 @@ int ppoll(struct pollfd fds[], nfds_t nfds,
           const struct timespec *timeout,
           const sigset_t*)
 {
-	int timeout_ms = timeout->tv_sec * 1000 + timeout->tv_nsec / 1000;
+	int timeout_ms = timeout ?
+	                 (timeout->tv_sec * 1000 + timeout->tv_nsec / 1000) :
+	                 -1;
 	return poll(fds, nfds, timeout_ms);
 }
 
