@@ -20,6 +20,7 @@
 #include <base/rpc_server.h>
 #include <base/service.h>
 #include <base/thread.h>
+#include <util/retry.h>
 #include <cpu_session/client.h>
 #include <parent/parent.h>
 #include <pd_session/capability.h>
@@ -57,7 +58,35 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 
 		Pd_session_capability                    _core_pd;
 
-		Cpu_session_client                       _parent_cpu_session;
+		struct Expanding_parent_cpu_session : Cpu_session_client
+		{
+			Cpu_session_component &_component;
+
+			Expanding_parent_cpu_session(Cpu_session_capability cap,
+			                             Cpu_session_component &component)
+			:
+				Cpu_session_client(cap), _component(component) { }
+
+			Thread_capability create_thread(Capability<Pd_session> pd,
+			                                Cpu_session::Name const &name,
+			                                Affinity::Location affinity,
+			                                Weight weight,
+			                                addr_t utcb) override
+			{
+				enum { UPGRADE_ATTEMPTS = ~0U };
+				return Genode::retry<Out_of_ram>(
+					[&] () {
+						return Genode::retry<Out_of_caps>(
+							[&] () { return Cpu_session_client::create_thread(pd, name, affinity, weight, utcb); },
+							[&] () { _component._env.upgrade(_component._id_space_element.id(), "cap_quota=3"); },
+							UPGRADE_ATTEMPTS);
+					},
+					[&] () { _component._env.upgrade(_component._id_space_element.id(), "ram_quota=8K"); },
+					UPGRADE_ATTEMPTS);
+			}
+		};
+
+		Expanding_parent_cpu_session             _parent_cpu_session;
 		Entrypoint                              &_signal_ep;
 
 		int const                                _new_thread_pipe_write_end;

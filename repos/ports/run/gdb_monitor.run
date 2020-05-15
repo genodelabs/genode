@@ -119,7 +119,7 @@ append qemu_args " -serial stdio "
 append qemu_args " -serial chardev:uart "
 append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait,ipv4 "
 
-run_genode_until {.*\[init -> gdb_monitor\].*} 30
+run_genode_until {.*\[init -> gdb_monitor\] Remote debugging using /dev/terminal.*} 30
 set genode_id [output_spawn_id]
 
 puts "GDB monitor is up, starting GDB"
