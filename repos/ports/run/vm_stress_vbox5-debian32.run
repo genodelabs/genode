@@ -36,8 +36,8 @@ set use_vbox5_nova 0
 set vmm_name "vbox5_gen"
 
 set use_vcpus 1
-lappend results_expected 1 13 41 80
-lappend boottime_expected 21
+lappend results_expected 1 3 23 79
+lappend boottime_expected 54
 source ${genode_dir}/repos/ports/run/vbox_win.inc
 source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 kill_spawned [output_spawn_id]
@@ -55,29 +55,29 @@ if {[have_spec nova]} {
 	set vmm_name "vbox5_nova"
 
 	set use_vcpus 1
-	lappend results_expected 1 13 36 78
-	lappend boottime_expected 26
+	lappend results_expected 1 2 22 77
+	lappend boottime_expected 58
 	source ${genode_dir}/repos/ports/run/vbox_win.inc
 	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 	kill_spawned [output_spawn_id]
 
 	set use_vcpus 2
-	lappend results_expected 2 11 35 48
-	lappend boottime_expected 25
+	lappend results_expected 2 2 22 47
+	lappend boottime_expected 58
 	source ${genode_dir}/repos/ports/run/vbox_win.inc
 	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 	kill_spawned [output_spawn_id]
 
 	set use_vcpus 3
-	lappend results_expected 3 9 39 39
-	lappend boottime_expected 26
+	lappend results_expected 3 2 22 37
+	lappend boottime_expected 58
 	source ${genode_dir}/repos/ports/run/vbox_win.inc
 	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 	kill_spawned [output_spawn_id]
 
 	set use_vcpus 4
-	lappend results_expected 4 10 41 34
-	lappend boottime_expected 27
+	lappend results_expected 4 2 21 33
+	lappend boottime_expected 58
 	source ${genode_dir}/repos/ports/run/vbox_win.inc
 	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 	kill_spawned [output_spawn_id]
