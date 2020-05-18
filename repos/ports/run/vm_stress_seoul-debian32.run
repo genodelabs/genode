@@ -88,8 +88,8 @@ set vmm_name "seoul"
 
 set vcpus_to_be_used  1
 set use_vcpus $vcpus_to_be_used
-lappend results_expected 1 10 35 76
-lappend boottime_expected 54
+lappend results_expected 1 2 20 75
+lappend boottime_expected 51
 source ${genode_dir}/repos/ports/run/seoul.inc
 source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 run_genode_until $match_guest_down 20 [output_spawn_id]
@@ -97,8 +97,8 @@ kill_spawned [output_spawn_id]
 
 set vcpus_to_be_used  2
 set use_vcpus $vcpus_to_be_used
-lappend results_expected 2 10 38 47
-lappend boottime_expected 54
+lappend results_expected 2 2 21 46
+lappend boottime_expected 51
 source ${genode_dir}/repos/ports/run/seoul.inc
 source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 run_genode_until $match_guest_down 20 [output_spawn_id]
@@ -106,8 +106,8 @@ kill_spawned [output_spawn_id]
 
 set vcpus_to_be_used  3
 set use_vcpus $vcpus_to_be_used
-lappend results_expected 3 10 39 38
-lappend boottime_expected 54
+lappend results_expected 3 2 21 37
+lappend boottime_expected 52
 source ${genode_dir}/repos/ports/run/seoul.inc
 source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 run_genode_until $match_guest_down 20 [output_spawn_id]
@@ -115,8 +115,8 @@ kill_spawned [output_spawn_id]
 
 set vcpus_to_be_used  4
 set use_vcpus $vcpus_to_be_used
-lappend results_expected 4 10 36 34
-lappend boottime_expected 54
+lappend results_expected 4 2 23 33
+lappend boottime_expected 53
 source ${genode_dir}/repos/ports/run/seoul.inc
 source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 run_genode_until $match_guest_down 20 [output_spawn_id]
