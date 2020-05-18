@@ -73,7 +73,7 @@ install_config {
 		</start>
 
 		<start name="fs_query" caps="120">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<config>
 				<vfs> <dir name="fs"> <fs writeable="yes"/> </dir> </vfs>
 				<query path="/fs/items" content="yes"/>
