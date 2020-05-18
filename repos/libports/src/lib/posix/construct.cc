@@ -72,7 +72,7 @@ static void construct_component(Libc::Env &env)
 
 					argv[arg_i] = (char *)malloc(size);
 
-					copy_cstring(argv[arg_i], start, size);
+					Genode::copy_cstring(argv[arg_i], start, size);
 				});
 
 				++arg_i;

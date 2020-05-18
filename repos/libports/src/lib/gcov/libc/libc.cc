@@ -263,7 +263,9 @@ extern "C" void *malloc(size_t size)
 
 extern "C" char *strcpy(char *dest, const char *src)
 {
-	return copy_cstring(dest, src, Genode::strlen(src) + 1);
+	Genode::copy_cstring(dest, src, Genode::strlen(src) + 1);
+
+	return dest;
 }
 
 
