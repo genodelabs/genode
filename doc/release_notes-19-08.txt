@@ -665,13 +665,13 @@ in the new '-t <architecture-board-kernel>' command line option, which
 instructs autopilot to generate a build directory for _architecture_ and
 execute tests for the _board-kernel_ combination.
 
-! autopilot -t x86_64-pc-sel4 -t x86_64-pc-nova -r run/log
+! autopilot -t x86_64-pc-sel4 -t x86_64-pc-nova -r log
 
 The known options for '-k kernel' and '-p platform' are still supported with
 the small change that the platform must now be defined as
 _architecture-board_.
 
-! autopilot -p x86_64-pc -k sel4 -k nova -r run/log
+! autopilot -p x86_64-pc -k sel4 -k nova -r log
 
 Autopilot now also documents the hidden feature to propagate custom 'RUN_OPTs'
 via the 'RUN_OPT_AUTOPILOT' environment variable to the run tool executed.
