@@ -152,6 +152,7 @@ system__default_priority R 4
 system__denorm R 1
 system__duration_32_bits R 1
 system__exit_status_supported R 1
+system__exp_int__exp_integer T
 system__fractional_fixed_ops R 1
 system__front_end_zcx_support R 1
 system__frontend_exceptions R 1

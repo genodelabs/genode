@@ -11,7 +11,7 @@ SRC_ADS += system.ads \
 	   a-except.ads \
 	   ada.ads
 
-SRC_ADB += s-stalib.adb s-secsta.adb s-parame.adb i-c.adb s-arit64.adb s-stoele.adb s-init.adb
+SRC_ADB += s-stalib.adb s-secsta.adb s-parame.adb i-c.adb s-arit64.adb s-expint.adb s-stoele.adb s-init.adb
 CUSTOM_ADA_FLAGS = --RTS=$(ADA_RTS) -c -gnatg -gnatp -gnatpg -gnatn2
 
 # C runtime glue code
@@ -39,6 +39,7 @@ vpath s-parame.adb $(ADA_RUNTIME_DIR)
 vpath a-except.adb $(ADA_RUNTIME_DIR)
 vpath i-c.adb $(ADA_RUNTIME_DIR)
 vpath s-arit64.adb $(ADA_RUNTIME_DIR)
+vpath s-expint.adb $(ADA_RUNTIME_DIR)
 vpath system.ads $(ADA_RUNTIME_DIR)
 vpath s-stoele.adb $(ADA_RUNTIME_DIR)
 vpath s-init.adb $(ADA_RUNTIME_DIR)

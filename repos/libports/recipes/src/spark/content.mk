@@ -17,6 +17,8 @@ MIRROR_FROM_ADA_RT_DIR := \
 		system.ads \
 		s-arit64.ads \
 		s-arit64.adb \
+		s-expint.ads \
+		s-expint.adb \
 		s-exctab.ads \
 		s-exctab.adb \
 		s-parame.ads \
