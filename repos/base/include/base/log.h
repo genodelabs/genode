@@ -174,11 +174,11 @@ namespace Genode {
 	void raw(ARGS &&... args) { Raw::output(args...); }
 
 
-  /**
-   * Write 'args' to the trace buffer if tracing is enabled
-   *
-   * The message is prefixed with a timestamp value
-   */
+	/**
+	 * Write 'args' to the trace buffer if tracing is enabled
+	 *
+	 * The message is prefixed with a timestamp value
+	 */
 	template <typename... ARGS>
 	void trace(ARGS && ... args) {
 		Trace_output::trace_output().output(Trace::timestamp(), ": ", args...); }

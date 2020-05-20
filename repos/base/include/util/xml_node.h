@@ -1123,6 +1123,13 @@ class Genode::Xml_node
 };
 
 
+/**
+ * Utility for unquoting XML attributes
+ *
+ * The 'Xml_unquoted' utility can be used to revert quoted XML attribute
+ * values. Such quoting is needed whenever an attribute value can contain '"'
+ * characters.
+ */
 class Genode::Xml_unquoted : Noncopyable
 {
 	private:

@@ -332,6 +332,9 @@ class Genode::Thread
 
 		/**
 		 * Cancel currently blocking operation
+		 *
+		 * \deprecated
+		 * \noapi
 		 */
 		void cancel_blocking();
 

@@ -57,6 +57,9 @@ struct Genode::Cpu_thread : Interface
 
 	/**
 	 * Cancel a currently blocking operation
+	 *
+	 * \deprecated
+	 * \noapi
 	 */
 	virtual void cancel_blocking() = 0;
 

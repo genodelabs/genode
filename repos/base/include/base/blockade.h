@@ -1,7 +1,15 @@
 /*
- * \brief  Blockade primitives
+ * \brief  Blockade primitive
  * \author Alexander Boettcher
  * \date   2020-01-24
+ *
+ * A 'Blockade' is a locking primitive designated for deliberately pausing
+ * the execution of a thread until woken up by another thread. It is typically
+ * used as a mechanism for synchonizing the startup of threads.
+ *
+ * At initialization time, a blockade is in locked state. A thread can pause
+ * its own execution by calling the 'block()' method. Another thread can wake
+ * up the paused thread by calling 'wakeup()' on the blockade.
  */
 
 /*
@@ -23,10 +31,12 @@ namespace Genode { class Blockade; }
 class Genode::Blockade : Noncopyable
 {
 	private:
+
 		Lock _lock;
 
 	public:
-		explicit Blockade() : _lock(Lock::LOCKED) { }
+
+		Blockade() : _lock(Lock::LOCKED) { }
 
 		void block() { _lock.lock(); }
 

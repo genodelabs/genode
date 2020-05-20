@@ -2,6 +2,20 @@
  * \brief  Connection to block service
  * \author Norman Feske
  * \date   2019-04-10
+ *
+ * The 'Block::Connection' is equipped with an interface for the implementation
+ * of robust block-session clients that perform block I/O in an asynchronous
+ * fashion.
+ *
+ * An application-defined JOB type, inherited from 'Connection::Job',
+ * encapsulates the application's context information associated with a block
+ * operation.
+ *
+ * The life cycle of the jobs is implemented by the 'Connection' and driven by
+ * the application's invocation of 'Connection::update_jobs'. The 'update_jobs'
+ * mechanism takes three hook functions as arguments, which implement the
+ * applications-defined policy for producing and consuming data, and for the
+ * completion of jobs.
  */
 
 /*
