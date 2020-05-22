@@ -527,11 +527,11 @@ extract modifier {(§key(extern|externc|constexpr|static|inline|virtual|volatile)
 extract funcdecl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned|keyconst)\d+°\s*)*§(identifier|keyunsigned|keyconst)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§(keyconst|keyoverride)\d+°\s*)*(§assign\d+°\s*§identifier\d+°)?\s*;} {content block classblock}
 
 # extract function implementations
-extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned|keyconst)\d+°\s*)*(§(identifier|keyunsigned|keyconst)\d+°\s*)+(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§(keyconst|keyoverride)\d+°\s*)*§block\d+°[;\t ]*} {content block classblock}
+extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned|keyconst)\d+°\s*)*(§(identifier|keyunsigned|keyconst)\d+°\s*)+(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§(keyconst|keyoverride)\d+°\s*)*(§attribute\d+°\s*)*§block\d+°[;\t ]*} {content block classblock}
 extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?§operatorfunction\d+°\s*(§modifier\d+°\s*)?§block\d+°[;\t ]*} {content block classblock}
 
 # extract template functions
-extract tplfunc {(§mlcomment\d+° *\n[ \t]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§funcimpl\d+°} {content block classblock}
+extract tplfunc {(§mlcomment\d+° *\n[ \t]*)?§keytemplate\d+°\s*§tplargs\d+°\s*(§attribute\d+°\s*)*§funcimpl\d+°} {content block classblock}
 
 # extract template functions declarations
 extract tplfuncdecl {(§mlcomment\d+° *\n[ \t]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§funcdecl\d+°} {content block classblock}
