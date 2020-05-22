@@ -38,7 +38,8 @@ CC_OPT  += -DINTERRUPT_VC_USB=9
 CC_OPT  += -DIRQF_TRIGGER_LOW=1
 
 INC_DIR += $(LX_CONTRIB_DIR)/drivers/usb/host/dwc_otg/dwc_common_port \
-           $(LX_CONTRIB_DIR)/drivers/usb/host/dwc_otg/dwc_otg
+           $(LX_CONTRIB_DIR)/drivers/usb/host/dwc_otg/dwc_otg \
+           $(call select_from_repositories,include/spec/rpi)
 SRC_CC  += platform.cc
 
 vpath platform.cc $(LIB_DIR)/spec/rpi
