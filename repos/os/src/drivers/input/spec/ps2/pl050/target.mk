@@ -1,4 +1,4 @@
-TARGET   = pbxa9_ps2_drv
+TARGET   = pl050_input_drv
 REQUIRES = arm_v7
 SRC_CC   = main.cc
 LIBS     = base

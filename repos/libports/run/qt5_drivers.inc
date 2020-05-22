@@ -23,7 +23,7 @@ proc use_fb_drv { feature_arg } {
 }
 
 proc fb_drv_binary { } {
-	if {[have_spec pbxa9]}   { return pbxa9_fb_drv   }
+	if {[have_spec pbxa9]}   { return pl11x_fb_drv   }
 	if {[have_spec x86]}     { return vesa_fb_drv    }
 	if {[have_spec imx53]}   { return imx53_fb_drv   }
 	if {[have_spec rpi]}     { return rpi_fb_drv     }

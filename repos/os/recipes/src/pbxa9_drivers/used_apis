@@ -2,4 +2,5 @@ base
 os
 framebuffer_session
 input_session
+platform_session
 timer_session

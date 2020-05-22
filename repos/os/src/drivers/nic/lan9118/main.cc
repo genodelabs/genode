@@ -21,6 +21,7 @@
 #include <base/env.h>
 #include <base/heap.h>
 #include <nic/component.h>
+#include <platform_session/connection.h>
 #include <root/component.h>
 
 /* driver code */
@@ -30,28 +31,9 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 {
 	private:
 
-		enum {
-
-			/**
-			 * If no resource addresses are given, we take these Realview
-			 * platform addresses as default ones.
-			 */
-			REALVIEW_MMIO_BASE = 0x4e000000,
-			REALVIEW_IRQ       = 60,
-
-			/**
-			 * Size of MMIO resource
-			 *
-			 * The device spans actually a much larger
-			 * resource. However, only the first page is needed.
-			 */
-			LAN9118_MMIO_SIZE = 0x1000,
-		};
-
-		Genode::Env                   &_env;
-		Genode::Attached_rom_dataspace _config    { _env, "config"     };
-		Genode::addr_t                 _mmio_base { REALVIEW_MMIO_BASE };
-		unsigned                       _irq       { REALVIEW_IRQ       };
+		Genode::Env           & _env;
+		Platform::Connection    _platform { _env };
+		Platform::Device_client _device   { _platform.device_by_index(0) };
 
 	protected:
 
@@ -75,7 +57,7 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 			}
 
 			return new (Root::md_alloc())
-			            Lan9118(_mmio_base, LAN9118_MMIO_SIZE, _irq,
+				Lan9118(_device.io_mem_dataspace(), _device.irq(),
 			            tx_buf_size, rx_buf_size, *md_alloc(), _env);
 		}
 
@@ -84,13 +66,7 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 		Root(Genode::Env &env, Genode::Allocator &md_alloc)
 		: Genode::Root_component<Lan9118,
 		                         Genode::Single_client>(env.ep(), md_alloc),
-		  _env(env)
-		{
-			_mmio_base =
-				_config.xml().attribute_value("mmio_base",
-			                                  (Genode::addr_t)REALVIEW_MMIO_BASE);
-			_irq = _config.xml().attribute_value<unsigned>("irq", REALVIEW_IRQ);
-		}
+		  _env(env) { }
 };
 
 

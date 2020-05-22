@@ -15,10 +15,10 @@
 #ifndef _DRIVERS__NIC__SPEC__LAN9118__LAN9118_H_
 #define _DRIVERS__NIC__SPEC__LAN9118__LAN9118_H_
 
-#include <base/attached_io_mem_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <base/log.h>
 #include <util/misc_math.h>
-#include <irq_session/connection.h>
+#include <irq_session/client.h>
 #include <timer_session/connection.h>
 #include <nic/component.h>
 
@@ -74,11 +74,11 @@ class Lan9118 : public Nic::Session_component
 			MAC_CSR_CMD_WRITE = (0 << 30),
 		};
 
-		Genode::Attached_io_mem_dataspace _mmio;
+		Genode::Attached_dataspace        _mmio;
 		volatile Genode::uint32_t        *_reg_base;
 		Timer::Connection                 _timer;
 		Nic::Mac_address                  _mac_addr { };
-		Genode::Irq_connection            _irq;
+		Genode::Irq_session_client        _irq;
 		Genode::Signal_handler<Lan9118>   _irq_handler;
 
 		/**
@@ -304,17 +304,18 @@ class Lan9118 : public Nic::Session_component
 		 *
 		 * \throw  Device_not_supported
 		 */
-		Lan9118(Genode::addr_t mmio_base, Genode::size_t mmio_size, int irq,
-		        Genode::size_t const tx_buf_size,
-		        Genode::size_t const rx_buf_size,
-		        Genode::Allocator   &rx_block_md_alloc,
-		        Genode::Env         &env)
+		Lan9118(Genode::Io_mem_dataspace_capability ds_cap,
+		        Genode::Irq_session_capability      irq_cap,
+		        Genode::size_t const                tx_buf_size,
+		        Genode::size_t const                rx_buf_size,
+		        Genode::Allocator                 & rx_block_md_alloc,
+		        Genode::Env                       & env)
 		: Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
 		                    rx_block_md_alloc, env),
-		  _mmio(env, mmio_base, mmio_size),
+		  _mmio(env.rm(), ds_cap),
 		  _reg_base(_mmio.local_addr<Genode::uint32_t>()),
 		  _timer(env),
-		  _irq(env, irq),
+		  _irq(irq_cap),
 		  _irq_handler(env.ep(), *this, &Lan9118::_handle_irq)
 		{
 			_irq.sigh(_irq_handler);

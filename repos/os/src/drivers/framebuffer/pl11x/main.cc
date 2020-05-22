@@ -13,22 +13,15 @@
  */
 
 /* Genode includes */
-#include <base/attached_rom_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <base/component.h>
-#include <base/heap.h>
 #include <base/log.h>
-#include <io_mem_session/connection.h>
-#include <timer_session/connection.h>
 #include <dataspace/client.h>
-#include <timer_session/connection.h>
 #include <framebuffer_session/framebuffer_session.h>
-#include <os/ring_buffer.h>
 #include <os/static_root.h>
-#include <util/reconstructible.h>
-
-/* device configuration */
-#include <pl11x_defs.h>
-#include <sp810_defs.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
+#include <timer_session/connection.h>
 
 
 /***********************************************
@@ -58,15 +51,15 @@ namespace Framebuffer
 	class Main;
 }
 
-class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Session>
+class Framebuffer::Session_component :
+	public Genode::Rpc_object<Framebuffer::Session>
 {
 	private:
 
-		Genode::Dataspace_capability _fb_ds_cap;
-		Genode::Dataspace_client     _fb_ds;
-		Genode::addr_t               _regs_base;
-		Genode::addr_t               _sys_regs_base;
-		Timer::Connection            _timer;
+		Ram_dataspace_capability _fb_ds_cap;
+		addr_t                   _regs_base;
+		addr_t                   _sys_regs_base;
+		Timer::Connection        _timer;
 
 		enum {
 			/**
@@ -88,6 +81,22 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 			CLCDC_BCD     = 1 << 26,
 		};
 
+		enum Sp810_defs {
+			SP810_REG_OSCCLCD = 0x1c,
+			SP810_REG_LOCK    = 0x20,
+		};
+
+		enum Pl11x_defs {
+			PL11X_REG_TIMING0 = 0,
+			PL11X_REG_TIMING1 = 1,
+			PL11X_REG_TIMING2 = 2,
+			PL11X_REG_TIMING3 = 3,
+			PL11X_REG_UPBASE  = 4,
+			PL11X_REG_LPBASE  = 5,
+			PL11X_REG_CTRL    = 6,
+			PL11X_REG_IMSC    = 7,
+		};
+
 		void sys_reg_write(unsigned reg, long value) {
 			*(volatile long *)(_sys_regs_base + sizeof(long)*reg) = value; }
 
@@ -105,12 +114,14 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 		/**
 		 * Constructor
 		 */
-		Session_component(Genode::Env &env,
-		                  void *regs_base, void *sys_regs_base,
-		                  Genode::Dataspace_capability fb_ds_cap)
-		: _fb_ds_cap(fb_ds_cap), _fb_ds(_fb_ds_cap),
-		  _regs_base((Genode::addr_t)regs_base),
-		  _sys_regs_base((Genode::addr_t)sys_regs_base),
+		Session_component(Env                    & env,
+		                  void                   * regs_base,
+		                  void                   * sys_regs_base,
+		                  Ram_dataspace_capability fb_ds_cap,
+		                  Genode::addr_t           fb_ds_bus_addr)
+		: _fb_ds_cap(fb_ds_cap),
+		  _regs_base((addr_t)regs_base),
+		  _sys_regs_base((addr_t)sys_regs_base),
 		  _timer(env)
 		{
 			using namespace Genode;
@@ -154,7 +165,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 			reg_write(PL11X_REG_TIMING3, tim3);
 
 			/* set framebuffer address and ctrl register */
-			reg_write(PL11X_REG_UPBASE, _fb_ds.phys_addr());
+			reg_write(PL11X_REG_UPBASE, fb_ds_bus_addr);
 			reg_write(PL11X_REG_LPBASE, 0);
 			reg_write(PL11X_REG_IMSC,   0);
 			reg_write(PL11X_REG_CTRL,   ctrl);
@@ -182,29 +193,33 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 struct Framebuffer::Main
 {
-	Env        &_env;
-	Entrypoint &_ep;
+	Env                    & _env;
+	Platform::Connection     _platform   { _env };
+	Platform::Device_client  _pl11x_dev  {
+		_platform.device_by_property("compatible", "arm,pl111") };
+	Platform::Device_client  _sp810_dev  {
+		_platform.device_by_property("compatible", "arm,sp810") };
+	Attached_dataspace       _lcd_io_mem { _env.rm(),
+	                                       _pl11x_dev.io_mem_dataspace() };
+	Attached_dataspace       _sys_mem    { _env.rm(),
+	                                       _sp810_dev.io_mem_dataspace() };
+	Ram_dataspace_capability _fb_ds_cap  {
+		_platform.alloc_dma_buffer(FRAMEBUFFER_SIZE) };
 
-	Heap _heap { _env.ram(), _env.rm() };
+	Session_component _fb_session { _env,
+	                                _lcd_io_mem.local_addr<void*>(),
+	                                _sys_mem.local_addr<void*>(),
+	                                _fb_ds_cap,
+	                                _platform.bus_addr_dma_buffer(_fb_ds_cap) };
 
-	/* locally map LCD control registers */
-	Io_mem_connection _lcd_io_mem { _env, PL11X_LCD_PHYS, PL11X_LCD_SIZE };
-	void *            _lcd_base   { _env.rm().attach(_lcd_io_mem.dataspace()) };
+	Static_root<Session> _fb_root { _env.ep().manage(_fb_session) };
 
-	/* locally map system control registers */
-	Io_mem_connection _sys_mem  { _env, SP810_PHYS, SP810_SIZE };
-	void *            _sys_base { _env.rm().attach(_sys_mem.dataspace()) };
-
-	Dataspace_capability _fb_ds_cap  { _env.ram().alloc(Framebuffer::FRAMEBUFFER_SIZE) };
-	Session_component    _fb_session { _env, _lcd_base, _sys_base, _fb_ds_cap };
-	Static_root<Session> _fb_root    { _ep.manage(_fb_session) };
-
-	Main(Env &env) : _env(env), _ep(_env.ep())
+	Main(Env &env) : _env(env)
 	{
 		log("--- pl11x framebuffer driver ---\n");
 
 		/* announce service */
-		_env.parent().announce(_ep.manage(_fb_root));
+		_env.parent().announce(env.ep().manage(_fb_root));
 	}
 
 	private:

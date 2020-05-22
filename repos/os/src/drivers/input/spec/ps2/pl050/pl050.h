@@ -16,7 +16,8 @@
 
 /* Genode includes */
 #include <os/ring_buffer.h>
-#include <base/attached_io_mem_dataspace.h>
+#include <base/attached_dataspace.h>
+#include <io_mem_session/client.h>
 
 /* local includes */
 #include "serial_interface.h"
@@ -66,9 +67,9 @@ class Pl050
 			_Channel(_Channel const &);
 			_Channel &operator = (_Channel const &);
 
-			Genode::Mutex                     _mutex { };
-			Genode::Attached_io_mem_dataspace _io_mem;
-			volatile Genode::uint32_t        *_reg_base;
+			Genode::Mutex                 _mutex { };
+			Genode::Attached_dataspace    _io_mem_ds;
+			volatile Genode::uint32_t   * _reg_base;
 
 			/**
 			 * Return true if input is available
@@ -78,17 +79,11 @@ class Pl050
 
 		public:
 
-			/**
-			 * Constructor
-			 *
-			 * \param phys_base  local address of the channel's device
-			 *                   registers
-			 */
-			_Channel(Genode::Env &env,
-			         Genode::addr_t phys_base, Genode::size_t phys_size)
+			_Channel(Genode::Env                       & env,
+			         Genode::Io_mem_dataspace_capability cap)
 			:
-				_io_mem(env, phys_base, phys_size),
-				_reg_base(_io_mem.local_addr<Genode::uint32_t>())
+				_io_mem_ds(env.rm(), cap),
+				_reg_base(_io_mem_ds.local_addr<Genode::uint32_t>())
 			{ }
 
 			/**
@@ -129,13 +124,11 @@ class Pl050
 
 	public:
 
-		Pl050(Genode::Env &env,
-		      Genode::addr_t keyb_mmio_base,
-		      Genode::size_t keyb_mmio_size,
-		      Genode::addr_t mouse_mmio_base,
-		      Genode::size_t mouse_mmio_size) :
-			_kbd(env, keyb_mmio_base, keyb_mmio_size),
-			_aux(env, mouse_mmio_base, mouse_mmio_size)
+		Pl050(Genode::Env                       & env,
+		      Genode::Io_mem_dataspace_capability keyb_cap,
+		      Genode::Io_mem_dataspace_capability mouse_cap) :
+			_kbd(env, keyb_cap),
+			_aux(env, mouse_cap)
 		{
 			_kbd.enable_irq();
 			_aux.enable_irq();
