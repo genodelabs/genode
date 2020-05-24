@@ -29,6 +29,8 @@ struct Test::Sequential : Test_base
 	size_t   const _size    = _node.attribute_value("size",   Number_of_bytes());
 	size_t   const _length  = _node.attribute_value("length", Number_of_bytes());
 
+	block_number_t _end = 0;
+
 	Block::Operation::Type const _op_type = _node.attribute_value("write", false)
 	                                      ? Block::Operation::Type::WRITE
 	                                      : Block::Operation::Type::READ;
@@ -49,11 +51,12 @@ struct Test::Sequential : Test_base
 
 		_size_in_blocks   = _size   / _info.block_size;
 		_length_in_blocks = _length / _info.block_size;
+		_end              = _start + _length_in_blocks;
 	}
 
 	void _spawn_job() override
 	{
-		if (_bytes >= _length)
+		if (_bytes >= _length || _start >= _end)
 			return;
 
 		_job_cnt++;
