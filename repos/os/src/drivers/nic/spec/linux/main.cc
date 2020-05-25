@@ -36,6 +36,7 @@
 #include <base/heap.h>
 #include <base/thread.h>
 #include <base/log.h>
+#include <base/blockade.h>
 #include <nic/root.h>
 
 /* Linux */
@@ -61,6 +62,7 @@ class Linux_session_component : public Nic::Session_component
 		{
 			int                               fd;
 			Genode::Signal_context_capability sigh;
+			Genode::Blockade                  blockade { };
 
 			Rx_signal_thread(Genode::Env &env, int fd, Genode::Signal_context_capability sigh)
 			: Genode::Thread(env, "rx_signal", 0x1000), fd(fd), sigh(sigh) { }
@@ -78,6 +80,8 @@ class Linux_session_component : public Nic::Session_component
 
 					/* signal incoming packet */
 					Genode::Signal_transmitter(sigh).submit();
+
+					blockade.block();
 				}
 			}
 		};
@@ -169,40 +173,60 @@ class Linux_session_component : public Nic::Session_component
 			return true;
 		}
 
-		bool _receive()
+		enum class Receive_result {
+			NO_PACKET, READ_ERROR, SUBMITTED, ALLOC_FAILED, SUBMIT_QUEUE_FULL };
+
+		Receive_result _receive()
 		{
 			unsigned const max_size = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
 
 			if (!_rx.source()->ready_to_submit())
-				return false;
+				return Receive_result::SUBMIT_QUEUE_FULL;
 
 			Nic::Packet_descriptor p;
 			try {
 				p = _rx.source()->alloc_packet(max_size);
-			} catch (Session::Rx::Source::Packet_alloc_failed) { return false; }
+			} catch (Session::Rx::Source::Packet_alloc_failed) { return Receive_result::ALLOC_FAILED; }
 
 			int size = read(_tap_fd, _rx.source()->packet_content(p), max_size);
 			if (size <= 0) {
 				_rx.source()->release_packet(p);
-				return false;
+				return errno == EAGAIN ? Receive_result::NO_PACKET
+				                       : Receive_result::READ_ERROR;
 			}
 
 			/* adjust packet size */
 			Nic::Packet_descriptor p_adjust(p.offset(), size);
 			_rx.source()->submit_packet(p_adjust);
 
-			return true;
+			return Receive_result::SUBMITTED;
 		}
 
 	protected:
 
+		bool _handle_incoming_packets()
+		{
+			while (true) {
+				switch (_receive()) {
+				case Receive_result::NO_PACKET:         return true;
+				case Receive_result::READ_ERROR:        return true;
+				case Receive_result::SUBMITTED:         continue;
+				case Receive_result::ALLOC_FAILED:      return false;
+				case Receive_result::SUBMIT_QUEUE_FULL: return false;
+				}
+			}
+		}
+
 		void _handle_packet_stream() override
 		{
-			while (_rx.source()->ack_avail())
+			while (_rx.source()->ack_avail()) {
 				_rx.source()->release_packet(_rx.source()->get_acked_packet());
+			}
 
 			while (_send()) ;
-			while (_receive()) ;
+
+			if (_handle_incoming_packets())
+				_rx_thread.blockade.wakeup();
 		}
 
 	public:
