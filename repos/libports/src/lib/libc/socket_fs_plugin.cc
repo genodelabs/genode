@@ -735,7 +735,7 @@ extern "C" int socket_fs_listen(int libc_fd, int backlog)
 
 
 static ssize_t do_recvfrom(File_descriptor *fd,
-                           void *buf, ::size_t len, int flags,
+                           void *buf, ::size_t const len, int const flags,
                            struct sockaddr *src_addr, socklen_t *src_addrlen)
 {
 	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
@@ -755,9 +755,27 @@ static ssize_t do_recvfrom(File_descriptor *fd,
 	int data_fd = flags & MSG_PEEK ? context->peek_fd() : context->data_fd();
 
 	try {
-		lseek(data_fd, 0, 0);
-		ssize_t out_len = read(data_fd, buf, len);
-		return out_len;
+		if (lseek(data_fd, 0, SEEK_SET) != 0)
+			return Errno(EINVAL);
+
+		size_t out_sum = 0;
+
+		do {
+			size_t const result = read(data_fd,
+			                           (char *)buf + out_sum,
+			                           len - out_sum);
+			if (result <= 0) { /* eof & error */
+				if (out_sum)
+					return out_sum;
+
+				return result;
+			}
+
+			out_sum += result;
+		} while ((flags & MSG_WAITALL) &&
+		         (out_sum < len));
+
+		return out_sum;
 	} catch (Socket_fs::Context::Inaccessible) {
 		return Errno(EINVAL);
 	}
