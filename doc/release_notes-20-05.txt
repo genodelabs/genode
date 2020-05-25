@@ -1,0 +1,1168 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 20.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+Genode 20.05 takes our [https://genode.org/about/road-map - road map's] focus
+on the consolidation and optimization of the framework and its API to heart.
+It contains countless of under-the-hood improvements, mostly on the account of
+vastly intensified automated testing, the confrontation of Genode with
+increasingly complex software stacks, and stressful real-world work loads. You
+will find this theme throughout the release notes below. The result of this
+overhaul is captured in the updated version of the Genode Foundations book
+(Section [New revision of the Genode Foundations book]).
+
+Since we achieved the first version of Sculpt OS running on 64-bit ARM
+hardware with the previous release, we have intensified our engagement with
+ARM platforms. Section [New platform driver for the ARM universe] introduces a
+proper device-driver infrastructure for ARM platforms, taking cues from our
+x86 platform driver, while taking a clean-slate approach. Section
+[Consolidated virtual machine monitor for ARMv7 and ARMv8] shows the
+continuation of our ARM virtualization support. In
+[https://genodians.org/nfeske/2020-04-30-porting-sculpt - anticipation] of a
+more diverse ARM SoC support in the future, maintained not only by Genode Labs
+but by independent groups,
+Section [Board support outside the Genode main repository] describes the new
+ability to host board-support packages outside the Genode source tree.
+
+Even though Genode is able to run on top of the Linux kernel since the very
+beginning, Linux was solely meant as a development vehicle. In particular,
+Genode's capability-based security model was not in effect on this kernel.
+Thanks to the work described in
+Section [Capability-based security using seccomp on Linux], this has changed
+now. By combining seccomp with an epoll-based RPC mechanism, each Genode
+component is sandboxed individually and access control is solely managed by
+Genode capabilities now.
+
+The most significant functional addition is a new version of our custom
+block-level encryption component described in
+Section [Feature-completeness of the consistent block encrypter]. This
+long-term project reached the important milestone of feature completeness so
+that we are well prepared to introduce this much anticipated feature to Sculpt
+OS in the upcoming release.
+
+Given the focus on architectural work, we deferred a few points originally
+mentioned on our [https://genode.org/about/road-map - road map] for this
+release. In particular, the topics related to Sculpt OS and its related use
+cases (network router and desktop) had to be postponed. On the other hand, our
+focus on new tooling for streamlining the development and porting of Genode
+software has remained steady, which is illustrated by the series of articles
+at [https://genodians.org]. For example, the articles about
+[https://genodians.org/chelmuth/2020-03-16-lets-encrypt - the development of network applications], or
+[https://genodians.org/nfeske/2020-05-27-autoconf-git - the porting of Git].
+
+
+Capability-based security using seccomp on Linux
+################################################
+
+_This section was written by Stefan Thöni of_
+_[https://gapfruit.com/ - gapfruit AG] who conducted the described line of_
+_work in close collaboration with Genode Labs._
+
+My goal for the Genode
+[https://genodians.org/m-stein/2019-08-13-community-summer - Community Summer 2019]
+was to enable seccomp for base-linux to achieve an intermediate level of
+security for a Genode system running on Linux. To get any security benefit
+from seccomp, it turned out the RPC mechanisms of base-linux needed to be
+significantly reworked to prevent processes from forging any capabilities.
+
+The new implementation of capability-based security on Linux maps each
+capability to a pair of socket descriptors, one of which can be transferred
+along socket connections using kernel mechanisms. Each invocation of a
+capability uses the received socket descriptor to address the server which in
+turn uses the epoll framework of the Linux kernel to get notification of
+incoming messages and the server side socket descriptor to securely determine
+the invoked RPC object. Capabilities which are passed back to the server
+rather than invoked can be securely identified by their inode number. This
+way, no client can forge any capability.
+
+With the hard part finally finished thanks to a
+[https://github.com/genodelabs/genode/pull/3581 - concerted effort] led by
+Norman Feske, I could turn back to seccomp. This Linux kernel mechanism
+restricts the ability of a process to use syscalls. Thanks to the small
+interface required by Genode processes, the whitelist approach worked nicely.
+All Genode processes get restricted to just 25 syscalls on x86, none of which
+can access any file on the host system. Instead, all accesses to the host
+system must go through Genode's RPC mechanisms to one of the hybrid
+components, which are not yet subject to seccomp. Although some global
+information of the host system may still be accessed, the possibilities of
+escaping a sandboxed Genode process are vastly reduced.
+
+Note that these changes are transparent to any user of base-linux in all but
+one way: The Genode system might run out of socket descriptors in large
+scenarios. If this happens, you need to increase the hard open file descriptor
+limit. See 'man limits.conf' for further information.
+
+
+Feature-completeness of the consistent block encrypter
+######################################################
+
+With
+[https://genode.org/documentation/release-notes/19.11#Preliminary_block-device_encrypter - Genode 19.11],
+we introduced a preliminary version of the consistent block encrypter (CBE).
+The CBE is a block-device encryption component with its core logic entirely
+written in SPARK. It combines multiple techniques to ensure confidentiality,
+integrity, consistency, and freshness of the block data efficiently.
+Furthermore, the whole core logic so far passes 'gnatprove' in mode "flow".
+
+With Genode 20.05, the CBE reached not only feature completeness by receiving
+support for trust-anchor integration, online rekeying and online resizing,
+it also has been integrated as VFS plugin into a real-world scenario running
+an encrypted Linux VM.
+
+As the full story would not fit in the release notes, we decided to dedicate
+an extra article at genodians.org that will be published soon and that will
+include a tutorial for deploying the CBE in your own Sculpt OS. At this point,
+however, we will give you a brief summary of the update. You can check out the
+code and run scripts that showcase the new features using the branches
+[https://github.com/m-stein/genode/commits/cbe_20.05 - genode/cbe_20.05] and
+[https://github.com/m-stein/cbe/commits/cbe_20.05 - cbe/cbe_20.05].
+
+
+Trust-anchor integration
+------------------------
+
+For several reasons, the management of the encryption keys is an aspect that
+should not be part of the CBE. Instead, an external entity, called trust
+anchor like a smartcard or an USB dongle shall be available to the CBE for
+this purpose.
+
+First of all, the trust anchor is responsible for generating the symmetric
+block-encryption keys for the CBE via a pseudo-random number generator. The
+confidentiality of the whole CBE device depends on these keys. Primarily, they
+must never leave the CBE component unencrypted, but even more importantly, the
+trust anchor must be the only one able to decrypt them when they got read from
+the back-end device.
+
+That said, the trust anchor carries the private key of the user exclusively
+and does the asymmetric encryption and decryption of the symmetric keys every
+time they leave or enter the CBE component.
+
+Furthermore, the trust anchor is also the key element to the integrity,
+consistency, and freshness of an existing CBE device as it always holds the
+top-level hash of the most recent CBE state known to be consistent. On
+startup, a CBE component matches this hash against the superblocks found on
+the device to find the correct one and exclude broken or modified data.
+
+In order to stay independent from the concrete implementation of different
+trust anchors, the CBE defines a simple and generic interface to cover the
+above mentioned tasks.
+
+
+Online rekeying
+---------------
+
+It is desirable to be able to replace the symmetric key of a CBE device. For
+instance, when the trust anchor got compromised or lost. But also as a
+preventive requirement on a regular basis.
+
+In order to rekey a CBE device, each block in the CBE must be decrypted and
+then re-encrypted. Obviously, this can be a time-intensive task for larger
+devices or in the presence of many states of a device.
+
+Rekeying in the CBE is therefore implemented in a way that doesn't block all
+other operations on the device. The CBE will continue handling requests from
+the user to read blocks, write blocks, synchronize the back end, or discard
+snapshots during the rekeying process.
+
+If the system should be turned off while rekeying, be it cleanly or
+unintentionally, the process is automatically and safely continued at the next
+startup without losing much progress. Once the CBE is done with a rekeying,
+the old symmetric key is removed completely from the system.
+
+
+Online resizing
+---------------
+
+There are two pools in the CBE that one might want to re-dimension after
+initialization. One is the most recent state of the CBE device, i.e., the
+range of addressable virtual blocks. The other is the pool of sparse blocks
+that are used to hold older states of the above mentioned blocks. If the pool
+of sparse blocks is bigger, the user can keep more snapshots of the device
+respectively snapshots that differ more from the current state.
+
+As with rekeying, resizing is done online. I.e., the same operations that get
+executed in parallel to rekeying can be executed in parallel to resizing too.
+Also on system shutdowns or crashes, resizing behaves like rekeying and
+automatically continues at the next startup.
+
+
+VFS plugin and demo scenario
+----------------------------
+
+During the previous months, we phased out the former CBE server components and
+solely focused on the CBE-VFS plugin together with the tooling components
+'cbe_tester', 'cbe_init', 'cbe_check', and 'cbe_dump'.
+
+As the introduction of the trust anchor simplified the key management, the
+plugin was adapted in this regard. It still exposes the same three main
+directories _control/_, _snapshots/_ and _current/_. However, the _control/_
+directory now only contains the files _create_snapshot_, _discard_snapshot_,
+_extend_, and _rekey_. The former two files are used for snapshot management
+whereas the other ones address rekeying and extending the size of the block
+pools of the CBE. The file that dealt with key management is gone.
+
+There is a new integrated test scenario _vfs_cbe.run_ for base-linux where
+the new features of the CBE are exercised concurrently by a shell-script. As
+preliminary step, the _vfs_cbe_init.run_ has to be executed to create the
+CBE image file.
+
+Furthermore, we finally put the CBE to good use by employing it as backing
+storage for VMs. In this exemplary scenario, the CBE-VFS plugin is running in
+its own VFS server and is accessed by a management component and the VM. The
+CBE is initialized with a 1 GiB virtual block device (VBD) and 256 MiB worth
+of sparse blocks.
+
+[image cbe_vbox]
+
+The exemplary CBE-VFS server configuration looks like this:
+
+! <start name="vfs_cbe">
+!   <binary name="vfs"/>
+!   <resource name="RAM" quantum="8M"/>
+!   <config>
+!     <vfs>
+!       <fs buffer_size="1M" label="cbe_file"/>
+!       <dir name="dev">
+!         <cbe name="cbe" block="/cbe.img"/>
+!       </dir>
+!     </vfs>
+!     <policy label_prefix="bash_cbe" root="/dev/cbe"         writeable="yes"/>
+!     <policy label_prefix="vbox_cbe" root="/dev/cbe/current" writeable="yes"/>
+!   </config>
+!   <route>
+!     <service name="File_system" label="cbe_file">
+!       <child name="fs_server"/>
+!     </service>
+!     <any-service> <parent/> </any-service>
+!   </route>
+! </start>
+
+The file serving as backing storage for the CBE is accessed via the FS-VFS
+plugin but thanks to the nature of Genode's VFS, it could as easily be a
+normal block device simply by replacing the FS-VFS plugin with the block-VFS
+plugin.
+
+That being said, the complete 'cbe' directory is made accessible to a
+management component. In this example a 'bash' environment steps in to fulfill
+this role:
+
+! <start name="bash_cbe" caps="1000">
+!   <binary name="/bin/bash"/>
+!   <resource name="RAM" quantum="64M"/>
+!   <config>
+!     <libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/terminal"
+!           rtc="/dev/rtc" pipe="/dev/pipe"/>
+!     <vfs>
+!       […]
+!       <dir name="dev">
+!         <fs label="cbe" buffer_size="1M"/>
+!       </dir>
+!     </vfs>
+!     <arg value="bash"/>
+!     <env key="TERM" value="screen"/>
+!     <env key="HOME" value="/"/>
+!     <env key="PATH" value="/bin"/>
+!   </config>
+!   <route>
+!       <service name="File_system" label="cbe"> <child name="vfs_cbe"/> </service>
+!       […]
+!       <any-service> <parent/> <any-child/> </any-service>
+!   </route>
+! </start>
+
+Within the confinement of the shell, the user may access, create and discard
+snapshots, extend the CBE and last but not least may issue rekey requests by
+interacting with the files in the _/dev/cbe/_ directory.
+
+On the other hand, there is VirtualBox where access to the CBE is limited to
+the common block operations:
+
+! <start name="vbox_cbe" caps="1000">
+!   <binary name="virtualbox5-nova"/>
+!   <resource name="RAM" quantum="4G"/>
+!   <config vbox_file="machine.vbox" vm_name="linux">
+!     <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+!     <vfs>
+!       <fs label="vm" buffer_size="4M" writeable="yes"/>
+!       <dir name="dev">
+!         <fs label="cbe" buffer_size="4M" writeable="yes"/>
+!         <log/> <rtc/>
+!       </dir>
+!     </vfs>
+!   </config>
+!   <route>
+!     <service name="File_system" label="vm">  <child name="vm_fs"/> </service>
+!     <service name="File_system" label="cbe"> <child name="vfs_cbe"/> </service>
+!     […]
+!     <any-service> <parent/> </any-service>
+!   </route>
+! </start>
+
+The VM is configured for raw access in its 'machine.vbox' configuration. The
+configuration references the CBE's current working state. Since its access is
+limited by the 'policy' at the VFS server, the used VMDK file looks as
+follows:
+
+! […]
+! RW 2097152 FLAT "/dev/cbe/data" 0
+! […]
+
+The block device size is set to 1 GiB, given as number of 512 byte sectors.
+Any extending operations on the CBE require the user to update the VMDK
+configuration to reflect the new state of the CBE.
+
+All in all, in this scenario, the VM is able to read from and write to the CBE
+while the user may perform management operations concurrently. Please note,
+that the interface of the CBE-VFS plugin is not yet set in stone and may
+change as the plugin as well as the CBE library itself continue to mature. For
+now, the interface is specially tailored towards the interactive demonstration
+use-case.
+
+Together with the upcoming Genodians article about the CBE, we will also
+publish depot archives that can be used to conveniently reproduce the
+described demo scenario.
+
+
+Limitations
+-----------
+
+Please note that the actual block encryption is not part of the CBE itself as
+the CBE should not depend on a concrete encryption algorithm. Instead, it
+defines a generic interface to hand over the actual encryption or decryption
+of a block to a separate entity. Therefore, the encryption module employed in
+our scenarios should be seen as mere placeholder.
+
+An advantage of this design is that encryption can be individually adapted to
+the use case without having to change the management of the virtual device.
+This also includes the possible use of encryption hardware. Furthermore, in
+the case that an encryption method is found to be obsolete, devices using the
+CBE can be updated easily by doing a rekeying with the new encryption method.
+
+The same applies for the trust anchor. In our CBE scenarios it is represented
+by a placeholder module that is meant only to demonstrate the interplay with
+the CBE and that should be replaced in a productive context.
+
+Furthermore, the CBE leaves a lot of unused potential for optimization
+regarding performance since we focused primarily on robustness and
+functionality, postponing optimizations at this stage. For instance, even
+though the CBE is designed from the ground up to operate asynchronously, the
+conservative parametrization of the current version deliberately doesn't take
+advantage of it. We are looking forward to unleash this potential during the
+next release cycle.
+
+Last but not least, note that the CBE has not undergone any security
+assessment independent from Genode Labs yet.
+
+
+New revision of the Genode Foundations book
+###########################################
+
+The "Genode Foundations" book received its annual update. It is available at
+the [https://genode.org] website as a PDF document and an online version.
+The most noteworthy additions and changes are:
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:  </div>
+: </p>
+
+* Description of the feedback-control-system composition
+* Removal of outdated components and APIs (e.g., Noux, slave API)
+* Additional features ('<alias>', unlabeled LOG sessions)
+* Recommended next steps after reading of the getting-started section
+* Updated API reference ('Mutex', 'Blockade', 'Request_stream', 'Sandbox')
+
+: <div class="visualClear"><!-- --></div>
+
+To examine the changes in detail, please refer to the book's
+[https://github.com/nfeske/genode-manual/commits/master - revision history].
+
+
+The great consolidation
+#######################
+
+On Genode's [https://genode.org/about/road-map - road map] for 2020, we stated
+that "during 2020, we will intensify the consolidation and optimization of the
+framework and its API, and talk about it." This ambition is strongly reflected
+by the current release as described as follows.
+
+
+Updated block servers using 'Request_stream' API
+================================================
+
+During the previous release cycle, we did adjust Genode's AHCI driver as well
+as the partition manager to take advantage of the modern 'Request_stream' API,
+and thus, deprecating the ancient 'Bock::Driver' interface. With the current
+release, we have continued this line of work by introducing the
+'Request_stream' API in our USB block driver and Genode's native NVMe driver
+with the ultimate goal to eliminate the 'Block::Driver' interface within all
+Genode components.
+
+Additionally, the NVMe driver received a major polishing regarding the
+handling of DMA memory. The handling of this type of memory got substantially
+simplified and the driver now can use the shared memory of a client session
+directly, and therefore, save copy operations.
+
+
+Migration from 'Lock' to 'Mutex' and 'Blockade'
+===============================================
+
+Since introducing the 'Mutex' and 'Blockade' types in the
+[https://genode.org/documentation/release-notes/20.02#Base-framework_refinements - previous release],
+we continued the cultivation of using those types across the _base_ and _os_
+repositories of the framework. The changes are mostly transparent to a Genode
+developer. One noticeable change is that the 'Genode::Synced_interface' now
+requires a 'Mutex' as template argument, the 'Lock' class is not supported
+anymore.
+
+
+Retired Noux runtime environment
+================================
+
+We introduced Noux in Genode
+[https://genode.org/documentation/release-notes/11.02#Noux_-_an_execution_environment_for_the_GNU_userland - version 11.02]
+as a runtime environment for executing command-line-based GNU userland
+software on top of Genode. It soon became an invaluable feature that nicely
+bridged the gap between Genode's rigid component architecture and the use of
+broadly popular Unix tools such as Vim, bash, and make. In particular, without
+Noux as a stepping stone, we couldn't have conceived the
+[https://genode.org/download/sculpt - Sculpt] operating system.
+Code-wise, Noux was the starting point of Genode's unique
+[https://genode.org/documentation/release-notes/14.05#Per-process_virtual_file_systems - VFS]
+infrastructure that we take for granted today.
+
+That said, the success story of Noux was not without problems. For example,
+despite significant feature overlap between Noux and Genode's libc, both
+runtime environments remained distinct from each other. Programs had to be
+targeted to either environment at build time. As another problem, the
+fork/execve mechanism of Noux required a few special hooks in Genode's base
+system that are complicated. Still, those hooks remained insufficient to
+accommodate Noux on top of the Linux kernel.
+
+One year ago, a "divine" plan of how the feature set of Noux could be
+implemented in our regular C runtime struck us. It
+[https://genode.org/documentation/release-notes/19.11#C_runtime_with_improved_POSIX_compatibility - turned out]
+to work as we hoped for. During the release cycles of versions
+[https://genode.org/documentation/release-notes/19.08#Consolidation_of_the_C_runtime_and_Noux - 19.08],
+[https://genode.org/documentation/release-notes/19.11#C_runtime_with_improved_POSIX_compatibility - 19.11], and
+[https://genode.org/documentation/release-notes/20.02#POSIX_compatibility_improvements - 20.02],
+we gradually moved closer to our vision. With the current release, we are
+proud to announce that Noux has become obsolete without sacrificing its
+feature set! All use cases of Noux can now be addressed by combining Genode's
+generic building blocks, in particular the VFS server, VFS plugins for pipes
+and terminal access, the 'fs_rom' server, and the C runtime.
+
+[image from_noux_to_libc]
+
+Figure [from_noux_to_libc] illustrates the different approaches. On the left,
+the Noux runtime environment provides the traditional Unix system-call
+interface to the Unix process(es), taking the position of a Unix kernel. Noux
+implements concepts like a virtual file system, file descriptors, pipes, and
+execve/fork. Structurally, it looks very traditional. The scenario on the
+right achieves the same functionality without a Unix-kernel-like component.
+The VFS is provided by a standalone file-system server. For obtaining
+executables from the VFS, the 'fs_rom' server is used. The Unix program (bash
+in the example) is executed as a plain Genode component that is linked against
+Genode's C runtime. This runtime transparently implements fork/execve for
+spawning child processes (Vim in the example). All inter-component
+communication is achieved via generic Genode session interfaces like the
+file-system session. No Unix-like system call interface between components is
+needed. The scenario on the right works on all kernels supported by Genode,
+including Linux.
+
+The retirement of Noux touches a lot of the existing system scenarios, which
+had to be revisited one by one. Among the many examples and test cases updated
+to the structure depicted above are _fs_query.run_, _ssh_terminal.run_,
+_vim.run_, and _tool_chain_auto.run_. The latter is currently the most complex
+scenario, which self-hosts the Genode tool chain and build/packaging system on
+top of Genode.
+
+Sculpt OS as the most prominent use case of Noux had to be adjusted as well.
+The _noux-system_ package has been replaced by the new _system_shell_ package
+as drop-in replacement. The log-noux instance of the Leitzentrale has been
+replaced by a simple new component called _stdin2out_. Disk-management
+operations are now performed by executing the file-system utilities _e2fsck_,
+_resize2fs_, and _mke2fs_ as stand-alone components. The prepare step and the
+inspect tab are realized as a system composition like depicted above. On the
+user-visible surface, this profound change is barely noticeable.
+
+
+Removed components and features
+===============================
+
+RAM file-system server
+~~~~~~~~~~~~~~~~~~~~~~
+
+The 'ram_fs' file-system server has become obsolete because its feature set is
+covered by the generic 'vfs' server when combined with the import VFS plugin:
+
+! <start name="ram_fs"...>
+!   ...
+!   <config>
+!     <vfs>
+!       <ram/>
+!       <import>
+!         ...
+!       </import>
+!     </vfs>
+!     ...
+!   </config>
+! </start>
+
+Since the VFS server is a full substitute, the current release drops the
+original 'ram_fs' server and migrates all remaining use cases to the VFS
+server.
+
+
+Input-merger component
+~~~~~~~~~~~~~~~~~~~~~~
+
+The input-merger component was introduced in version
+[https://genode.org/documentation/release-notes/14.11#New_input_merger - 14.11]
+as a mechanism for merging PS/2 and USB HID input streams.
+It was later superseded by the generic input filter in version
+[https://genode.org/documentation/release-notes/17.02#Input-event_filter - 17.02].
+The functionality of the input merger can be achieved with the input filter
+using a configuration like this:
+
+! <config>
+!   <input label="ps2"/>
+!   <input label="usb"/>
+!   <output>
+!     <merge>
+!       <input name="ps2"/>
+!       <input name="usb"/>
+!     </merge>
+!   </output>
+! </config>
+
+The current release removes the input merger.
+
+
+OpenVPN moved to genode-world repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since we do not consider our initial
+[https://genode.org/documentation/release-notes/14.08#New_port_of_OpenVPN - port of OpenVPN]
+as an officially supported feature of Genode, we moved it to the Genode-world
+repository.
+
+
+Rust support removed
+~~~~~~~~~~~~~~~~~~~~
+
+Support for the Rust programming language was added as a community
+[https://github.com/genodelabs/genode/pull/1899 - contribution] in 2016. It
+included the ability to supplement Rust code to Genode components via Genode's
+build system, a few runtime libraries, and a small test case. However, the
+addition of Rust remained a one-off contribution with no consecutive
+engagement of the developer. Over the years, we kept the feature alive - it
+used to be exercised as part of our nightly tests - but it was never picked up
+by any regular Genode developer. Once it eventually became stale, it was no
+longer an attractive feature either because it depended on an outdated nightly
+build of the Rust tool chain.
+
+The current release removes Rust to lift our maintenance burden. To
+accommodate Rust developers in the future, we may consider supporting Rust on
+Genode via the [https://github.com/nfeske/goa - Goa] tool, and facilitating
+regular tools and work flows like cargo.
+
+
+Python2 removed
+~~~~~~~~~~~~~~~
+
+With Python3 present in the Genode world repository since version
+[https://genode.org/documentation/release-notes/18.08#Python_3 - 18.08],
+the time was overdue to remove our original port of Python2 from Genode's main
+repository.
+
+
+Init's ancient '<configfile>' feature removed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The '<configfile>' feature of init allows the use of a ROM session for
+obtaining the configuration for a started component. It has long been replaced
+by the label-matching-based session routing.
+
+! <route>
+!   <service name="ROM" label="config">
+!     <parent label="another.config"/> </service>
+!   ...
+! </route>
+
+Since its naming is rather inconsistent with our terminology (ROM modules are
+not files, the "name" is actually a "label") and its use case is covered by
+init's generic session-routing mechanism, we took the chance to remove this
+legacy with the current release.
+
+
+Board support outside the Genode main repository
+================================================
+
+During the last decade of development, a wide range of hardware support
+entered the Genode OS framework. However, the limited resources of a small
+core-developer team at Genode Labs makes it impossible to guarantee the same
+daily test-coverage for every single board that entered the framework at some
+point in time. On the other hand, it is crucial for the acceptance of a
+project like Genode to deliver high-quality and carefully tested components.
+
+To balance the act in between retaining hardware support not necessarily used
+by the core-team, and having thoroughly tested, recommended hardware on the
+other hand, we decided to continuously move support for hardware that is no
+longer tested regularly to the
+[https://github.com/genodelabs/genode-world - Genode-World] repository.
+
+We started this process by migrating the OMAP4 and Exynos support. The support
+for Odroid X2 was eventually dropped. Support for Odroid XU, Arndale board,
+and Panda board on top of the base-hw kernel got moved to Genode-World. The
+Fiasco.OC kernel support for these boards is no longer part of the framework.
+
+If you like to build scenarios for one of the boards that are now located in
+Genode-World, you have to add the world repository to the 'REPOSITORIES'
+variable of your build environment, e.g., by uncommenting the following line
+in the _etc/build.conf_ file of your build directory:
+
+! #REPOSITORIES += $(GENODE_DIR)/repos/world
+
+To take advantage of the full convenience of using the run tool with one of
+these world-located boards, you have to tweak the location of the kernel's
+run-tool plugin by replacing the following part:
+
+! ifdef KERNEL
+! RUN_OPT += --include boot_dir/$(KERNEL)
+! endif
+
+with the absolute path of the kernel-specific file in your Genode-World
+repository. Typically this would be:
+
+! ifdef KERNEL
+! RUN_OPT += --include $(GENODE_DIR)/repos/world/tool/run/boot_dir/$(KERNEL)
+! endif
+
+In the near future, the following hardware targets will be moved to
+Genode-World too:
+
+* nit6_solox
+* usb_armory
+* wand_quad
+* zynq_qemu
+
+For the community, this step has the advantage of improved transparency: All
+hardware support found inside the main Genode repository gets tested each
+night using the CI tools at Genode Labs. The targets hosted at Genode-World
+are only guaranteed to compile on a regular basis. On the other hand, the
+barrier for contributors to introduce and maintain their own hardware support
+is lowered because the quality assurance with respect to Genode-World
+components is less strict compared with the inclusion of patches in Genode's
+main repository.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+New platform driver for the ARM universe
+========================================
+
+In contrast to x86 PCs where most devices are discovered at runtime using
+PCI-bus discovery, within ARM SoCs most devices as well as their I/O resources
+are known in advance. Given this fact and for the ease-of-use, until now, most
+Genode drivers on ARM used hard-coded I/O resource values, in particular
+interrupt and memory-mapped I/O registers.
+
+But in principle, the same device can actually appear within different SoCs.
+Even though it may use different I/O resources, its inner-working is
+technically identical. By now, we had to re-compile those drivers for
+different SoCs, or configure the driver appropriately. A more substantial
+downside of this approach is that the drivers directly open up interrupt and
+I/O memory sessions at the core component, which is by definition free of any
+policy. Therefore, it is not impossible that a driver requests I/O resources
+not intended for it. Last but not least, device drivers need DMA-capable
+memory along with the knowledge about the corresponding bus address to program
+the device appropriately. But this knowledge should not be made available to
+arbitrary components given any memory.
+
+Because of these arguments, there was a need for a platform driver component
+for ARM similar to the existing one addressing x86 PCs. Actually, it would be
+preferable to have a common API that covers both architectures because there
+are devices present in both, e.g., certain PCI devices. Nevertheless, the
+platform session and platform device interface currently used in the x86
+variant emerged from the originally called PCI session and got slightly
+frayed. Therefore, we started with a clean and consolidated API for the new
+generic ARM platform driver. And although this first version's API is not yet
+carved in stone, it will serve as a blueprint for a consolidation of the x86
+platform driver in future.
+
+The new platform driver serves a virtual bus to each of its clients in form of
+a platform session. The session's API allows the client to request a ROM
+session capability. Inside the corresponding ROM dataspace, a driver can find
+all information related to its devices in XML-structured form, like in the
+following example for the framebuffer driver on pbxa9:
+
+! <devices>
+!
+!   <device name="clcd">
+!     <property name="compatible" value="arm,pl111"/>
+!   </device>
+!
+!   <device name="sp810_syscon0">
+!     <property name="compatible" value="arm,sp810"/>
+!   </device>
+!
+! <devices>
+
+The device information in the example above is quite lean, but might get
+enriched dependent on the platform driver variant for instance by:
+
+* PCI device information in case of PCI devices
+* Device-specific configuration values, e.g., hardware RX/TX queue-sizes
+* Device-environment information, e.g., peripheral clock frequency
+
+Given the information about available devices, a driver requests a
+platform-device interface for one specific device using its unique name. If a
+device is not used anymore, it should be released again. The side effect of
+acquisition and release of a device can affect the powering, clock-gating, and
+I/O pin-setting of the corresponding device.
+
+Besides device discovery and acquisition, the platform session allows the
+driver to allocate and free DMA-capable memory in form of RAM dataspaces, and
+to obtain the corresponding bus addresses.
+
+Currently, the platform device interface is limited to obtain interrupt and
+I/O memory resources. Information about the available I/O resources is either
+integral part of the driver implementation or can be derived from the
+device-specific part of the platform session's devices ROM. There is no
+additional naming required to request a device's interrupt or I/O memory
+session. They are simply referenced by indices.
+
+The new platform driver for ARM uses a config ROM to obtain its device
+configuration, as well as the policy rules that define which devices are
+assigned to whom. The following example shows how the configuration is used in
+the _drivers_interactive_ package for pbxa9 to define and deliver necessary
+device resources for framebuffer and input drivers:
+
+! <config>
+!
+!   <!-- device resource declarations -->
+!
+!   <device name="clcd">
+!     <resource name="IO_MEM" address="0x10020000" size="0x1000"/>
+!     <property name="compatible" value="arm,pl111"/>
+!   </device>
+!
+!   <device name="sp810_syscon0">
+!     <resource name="IO_MEM" address="0x10001000" size="0x1000"/>
+!     <property name="compatible" value="arm,sp810"/>
+!   </device>
+!
+!   <device name="kmi0">
+!     <resource name="IO_MEM" address="0x10006000" size="0x1000"/>
+!     <resource name="IRQ"    number="52"/>
+!     <property name="compatible" value="arm,pl050"/>
+!   </device>
+!
+!  <device name="kmi1">
+!    <resource name="IO_MEM" address="0x10007000" size="0x1000"/>
+!    <resource name="IRQ"    number="53"/>
+!    <property name="compatible" value="arm,pl050"/>
+!  </device>
+!
+!  <!-- policy part, who owns which devices -->
+!
+!  <policy label="fb_drv -> ">
+!    <device name="clcd"/>
+!    <device name="sp810_syscon0"/>
+!  </policy>
+!
+!  <policy label="ps2_drv -> ">
+!    <device name="kmi0"/>
+!    <device name="kmi1"/>
+!  </policy>
+! </config>
+
+The platform driver is dynamically re-configurable. By now, if it detects
+changes in the policy of an already used session, or one of its devices, that
+session is closed. Open sessions without configuration changes are not
+affected.
+
+The device resource information in the above configuration is one-by-one
+derived from the flattened device tree of the ARM Realview PBX A9 board. In
+the near future, we approach to provide tooling for the automated derivation
+of arbitrary flattened device trees to a platform driver configuration.
+
+By now, the drivers for pl11x framebuffer devices, pl050 PS/2-devices, and the
+lan9118 Ethernet device got converted to use the new platform session API, and
+are therefore no longer dependent on a specific SoC or board definition.
+
+Within the upcoming releases, we plan to extend the support of different SoCs
+using the new platform session API. Thereby, the existent platform session API
+specific to Raspberry Pi and i.MX53 boards will vanish, and its functionality
+will be incorporated into the new one.
+
+
+Block-device sync-operation support
+===================================
+
+Support for 'SYNC' block requests was extended throughout the block storage
+stack. Such a request instructs the block components to flush their internal
+buffers. Although it was already implemented in most prominent device drivers
+such as AHCI and NVMe, we encountered problems with older AHCI controllers. A
+'SYNC' request is now only issued when the NCQ queue of the AHCI controller is
+empty.
+
+In addition, the block-VFS plugin as well as the 'lx_fs' file system component
+now respect a sync request at the VFS or rather file-system-session level.
+
+
+Base API refinements
+====================
+
+Deprecation of unsafe 'Xml_node' methods
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One year ago, we
+[https://genode.org/documentation/release-notes/19.02#Improved_API_safety - revised]
+the interface of Genode's XML parser to promote memory safety. The current
+release marks the risky API methods as deprecated and updates all components
+to the modern API accordingly.
+
+
+Replaced 'Genode::strncpy' by 'Genode::copy_cstring'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since the first version of Genode, the public API featured a few
+POSIX-inspired string-handling functions, which were usually named after their
+POSIX counterparts. In the case of 'strncpy', this is unfortunate because
+Genode's version is not 100% compatible with the POSIX 'strncpy'. In
+particular, Genode's version ensures the null-termination of the resulting
+string as a mitigation against the most prevalent memory-safety risk of POSIX
+'strncpy'. The current release replaces 'Genode::strncpy' with a new
+'Genode::copy_cstring' function to avoid misconceptions caused by the naming
+ambiguity in the future.
+
+
+LOG session
+~~~~~~~~~~~
+
+The return value of 'Log_session::write' got removed. It was never meaningful
+in practice. Yet ignoring the value at the caller site tends to make static
+code analyzers nervous.
+
+
+Removed 'Allocator_guard'
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The 'Allocator_guard' was an
+[https://genode.org/documentation/release-notes/11.02#Comprehensive_accounting_of_core_resources - early]
+take on a utility for tracking and constraining the consumption of memory
+within a component. However, we later
+[https://github.com/genodelabs/genode/issues/1039 - got aware] of several
+limitations of the taken approach. In short, the 'Allocator_guard' tried
+to attack the resource-accounting problem at the wrong level of abstraction.
+In Genode
+[https://genode.org/documentation/release-notes/17.05#Merged_RAM_and_PD_services_of_the_core_component - 17.05],
+we introduced a water-tight alternative in the form of the
+'Constrained_ram_allocator', which was gradually being picked up by new
+components. However, the relic from the past still remained present in several
+time-tested components including Genode's core component. With the current
+release, we finally removed the 'Allocator_guard' from the framework and
+migrated all former use cases to the 'Constrained_ram_allocator'.
+
+The adjustment of core in this respect has the side effect of a more accurate
+capability accounting in core's CPU, TRACE, and RM services. In particular,
+the dataspace capabilities needed for core-internal allocations via the
+'Sliced_heap' are accounted to the respective client now. The same goes for
+nitpicker and nic_dump as other former users of the allocator guard. Hence,
+the change touches code at the client and server sides related to these
+services.
+
+
+C runtime
+=========
+
+Decoupling C++ runtime support from Genode's base ABI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Traditionally all Genode components are linked (explicitly or implicitly) to
+the platform library and dynamic linker ld.lib.so. This library provides the
+kernel-agnostic _base_ API/ABI and hides platform-specific adaptations from
+the components. Also, ld.lib.so includes the C++ runtime which is provided via
+the C++ ABI and implements support for runtime type information, guard
+variables, and exceptions. So, C++ programs using the named features are
+guaranteed to work on Genode as expected.
+
+Since the introduction of our
+[https://genode.org/documentation/developer-resources/package_management - package management]
+and depot archives in
+[https://genode.org/documentation/release-notes/17.05#Package_management - release 17.05]
+software packages are required to explicitly specify API dependencies. For
+Genode components using the base framework, e.g., to implement signal handlers
+in the entrypoint, the dependency to the _base_ API is natural.
+Genode-agnostic programs using only the LibC or C++ STL on the other hand
+shall not depend on one specific version of the platform library.
+Unfortunately up to this release, this independence could only be accomplished
+for C or simple C++ programs for the reasons named above. Therefore, all C++
+components had to specify the dependency to the base ABI. The unwanted result
+of this intermixture was that complex POSIX programs (e.g., Qt5 applications)
+had to be updated every time the base ABI changed a tiny detail.
+
+In this release, we cut the dependency on the LibC runtime level and provide
+the C++ ABI symbols also in the LibC ABI. The implementation of the functions
+remains in ld.lib.so and, thus, is provided at runtime in any case. We also
+cleaned up many POSIX-level depot archives from the base dependency already,
+which paves the way for less version updates in the future of only the base
+API changes.
+
+
+Redirection of LOG output to TRACE events
+=========================================
+
+During the debugging of timing-sensitive system scenarios such as high-rate
+interrupt handling of device drivers, instrumentation via the regular logging
+mechanism becomes prohibitive because the costs of the logging skew the system
+behavior too much.
+
+For situations like this, Genode features a
+[https://genode.org/documentation/release-notes/13.08#Light-weight_event_tracing - light-weight tracing]
+mechanism, later supplemented with easy-to-use
+[https://genode.org/documentation/release-notes/18.02#New_trace-logging_component - tooling].
+Still, the tracing facility remains underused to this day.
+
+As one particular barrier of use, manual instrumentation must explicitly
+target the tracing mechanism by using the 'trace' function instead of the
+'log' function. The process of switching from the logging approach to the
+tracing mechanism is not seamless. The current release overcomes this obstacle
+by extending the trace policy interface with a new policy hook of the form
+
+! size_t log_output (char *dst, char const *log_message, size_t len);
+
+The hook is invoked each time the traced component performs log output. Once
+the trace monitor installs a trace policy that implements this hook into the
+traced component, log output can be captured into the thread-local trace
+buffer. The size of the captured data is returned. If the hook function
+returns 0, the output is directed to the LOG as usual. This way, the
+redirection policy of log output can even be changed while the component is
+running!
+
+The new feature is readily available for the use with the trace logger by
+specifying the 'policy="log_output"' attribute at a '<policy>' node in the
+trace logger's configuration. (excerpt taken from the example at
+_os/recipes/pkg/test-trace_logger/runtime_):
+
+! <config verbose="yes"
+!         session_ram="10M"
+!         session_parent_levels="1"
+!         session_arg_buffer="64K"
+!         period_sec="3"
+!         activity="yes"
+!         affinity="yes"
+!         default_policy="null"
+!         default_buffer="1K">
+!
+!   <policy label="init -> dynamic -> test-trace_logger -> dynamic_rom"
+!           thread="ep"
+!           buffer="8K"
+!           policy="log_output"/>
+! </config>
+
+Thanks to Tomasz Gajewski for contributing this handy feature.
+
+
+MSI-X support on x86
+====================
+
+The platform driver now supports the scan for the MSI-X capability of PCI
+devices as well as the parsing and setup of the MSI-X structure to make use of
+it. With this change, MSI-X style interrupts become usable by kernels
+supporting MSI already.
+
+The feature was tested with NVMe devices so far. If MSI-X is available for a
+PCI device, the output looks like this:
+
+! [init -> platform_drv] nvme_drv -> : assignment of PCI device 01:00.0 succeeded
+! [init -> platform_drv] 01:00.0 adjust IRQ as reported by ACPI: 11 -> 16
+! [init -> platform_drv] 01:00.0 uses MSI-X vector 0x7f, address 0xfee00018
+! [init -> nvme_drv] NVMe PCIe controller found (0x1987:0x5007)
+
+
+Optimized retrieval of TRACE subject information
+================================================
+
+The trace infrastructure of Genode allows for the tracking and collection of
+information about the available subjects (e.g., threads) in the system. Up to
+now, the retrieval of information about all subjects of count N required to
+issue N RPC calls to Genode's core component, which imply N times the overhead
+for inter-component context switching. With this release, the trace session
+got extended with the ability to request the information of all subjects as
+one batch, thereby dramatically reducing the overhead in large scenarios such
+as Sculpt OS. The new 'for_each_subject_info' method of the trace-client side
+makes use of the new optimization and is used by the top component.
+
+
+Library updates
+===============
+
+We updated the OpenSSL patch level from 1.0.2q to the latest version 1.0.2u as
+an intermediate step to a future update to 1.1.1.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Consolidated virtual machine monitor for ARMv7 and ARMv8
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The virtual machine monitor for ARMv8 introduced and enriched during the past
+two releases got consolidated within this release cycle to support ARMv7 as
+well. The old ARMv7 proof-of-concept implementation of the virtual machine
+monitor is now superseded by it. Most of the code base of both architecture
+variants is shared and only certain aspects of the CPU model are
+differentiated. As a positive side effect, the ARMv7 virtual machine is now
+supporting recent Linux kernel versions too.
+
+Note that the virtualization support is still limited to the base-hw kernel.
+The ARMv7 variant can be used on the following boards:
+
+* virt_qemu
+* imx7d_sabre
+* arndale (now in genode-world!)
+
+The ARMv8 variant is now available on top of these boards:
+
+* virt_qemu_64
+* imx8q_evk
+
+
+Write-combined framebuffer on x86
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Motivated by a chewy GUI performance of Sculpt on
+[https://genode.org/documentation/release-notes/20.02#Execution_on_bare_hardware__base-hw_ - Genode/Spunky],
+the write-combining support for base-hw got enabled. To achieve better
+throughput to the framebuffer memory, we set up the x86 page attribute table
+(PAT) with a configuration for write combining and added the corresponding
+cacheability attributes to the page-table entries of the framebuffer memory
+mappings. With these changes the GUI became much more snappy.
+
+
+Improved cache maintenance on ARM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While conducting performance measurements, in particular when using a lot of
+dataspaces, it became obvious that the usage of ARM cache maintenance
+operations was far from optimal in the base-hw kernel. As a consequence, we
+consolidated all cache maintenance operations in the kernel across all ARM
+processor variants. Thereby we also found some misunderstandings of the
+hardware semantics related to making the instruction and data cache coherent.
+The latter is necessary in the presence of self-modifying code, for example in
+the Java JIT compiler.
+
+Therefore, we also had to change the system call interface for this purpose.
+The now called 'cache_coherent_region' system call is limited to target
+exactly one page at a time. However, the 'Genode::cache_coherent' function of
+the base API abstracts away from this kernel-specific system call anyway.
+
+As another side effect, we tweaked the clearing of memory. Whenever core hands
+out a newly allocated dataspace, its memory needs to be filled with zeroes to
+prevent crosstalk between components. Now, the base-hw kernel contains
+architecture specific ways of effectively clearing memory, which dramatically
+increased the performance for memory-allocation-intensive scenarios.
+
+
+Qemu-virt platform support
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Thanks to the contribution by Piotr Tworek, the base-hw kernel now runs on top
+of the Qemu virt platform too. It comes in two flavours. The 32-bit 'virt_qemu'
+board consists of 2GB of RAM, 2 Cortex A15 cores and uses the GICv2 interrupt
+controller. The 'virt_qemu_64' board is the 64-bit variant with 4 Cortex A53
+cores, a GICv3 interrupt controller, and has also 2GB of RAM.
+
+Both machine models support the ARM virtualization extensions, which can be
+utilized by using Genode's virtual machine monitor for ARM as discussed in
+Section [Consolidated virtual machine monitor for ARMv7 and ARMv8].
+
+
+NOVA microhypervisor
+====================
+
+Genode's present CPU affinity-handling concept was originally introduced in
+[https://genode.org/documentation/release-notes/13.08#Management_of_CPU_affinities - release 13.08].
+With the current release, we added support to leverage the two dimensional
+version of the concept by grouping
+[https://en.wikipedia.org/wiki/Hyper-threading - hyper-threads] of one CPU
+core on the y-axis in the affinity space of Genode.
+
+Genode's core (roottask) for NOVA got adjusted to scan the NOVA kernel's
+hypervisor information page (HIP) for hyper-thread support. If available, all
+CPUs belonging to the same core get grouped now in Genode's affinity space
+along the y-axis. An example output on a machine with hyper-thread support now
+looks like this:
+
+! Hypervisor reports 4x2 CPUs
+! mapping: affinity space -> kernel cpu id - package:core:thread
+!  remap (0x0) -> 0 - 0:0:0) boot cpu
+!  remap (0x1) -> 1 - 0:0:1)
+!  remap (1x0) -> 2 - 0:1:0)
+!  remap (1x1) -> 3 - 0:1:1)
+!  remap (2x0) -> 4 - 0:2:0)
+!  remap (2x1) -> 5 - 0:2:1)
+!  remap (3x0) -> 6 - 0:3:0)
+!  remap (3x1) -> 7 - 0:3:1)
+
+From the output, one can determine Genode's affinity notation in form of (x,y)
+mapped to the corresponding CPU. The package:core:thread column represents the
+report by the NOVA kernel about CPU characteristics collected by utilizing
+[https://en.wikipedia.org/wiki/CPUID - CPUID] during system boot up.
+
+To utilize all hyper-threads in an init configuration, the affinity-space can
+now be configured with a height of 2 and the y-axis of a 'start' node with 0
+to 1, e.g.
+
+! <config>
+!  <affinity-space width="4" height="2"/>
+!  ...
+!  <start name="app">
+!   <affinity xpos="0" ypos="1"/>  <!-- CPU on Core 0, Hyper-thread 1 -->
+!   ...
+!
+!  <start name="app"> <!-- CPU on Core 3, Hyper-thread 0 -->
+!   <affinity xpos="3" ypos="0"/>
+!   ...
+!  </start>
+!
+!  <start name="app"> <!-- CPU on Core 3, Hyper-thread 1 -->
+!     <affinity xpos="3" ypos="1"/>
+!   ...
+!  </start>
+! </config>
+
+Note: With this new feature, the former sorting of hyper-threaded CPUs for
+Genode/NOVA is removed, which got introduced with
+[https://genode.org/documentation/release-notes/16.11#NOVA_hypervisor - release 16.08].
+
+
+Linux
+=====
+
+When executed on top of the Linux kernel, Genode's core component used to
+assume a practically infinite amount of RAM as the basis for the RAM-quota
+trading within the Genode system. The current release introduces the option to
+manually supply a realistic value of the total RAM quota in the form of an
+environment variable to Genode's core component. If the environment variable
+GENODE_RAM_QUOTA is defined, its value is taken as the number of bytes
+assigned to the init component started by core.
+
+Thanks to Pirmin Duss for this welcome contribution.
