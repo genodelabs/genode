@@ -123,7 +123,10 @@ void Thread::_deinit_platform_thread()
 	for (;;) {
 
 		/* destroy thread locally */
-		int ret = lx_tgkill(native_thread().pid, native_thread().tid, LX_SIGCANCEL);
+		int pid = native_thread().pid;
+		if (pid == 0) break;
+
+		int ret = lx_tgkill(pid, native_thread().tid, LX_SIGCANCEL);
 
 		if (ret < 0) break;
 
