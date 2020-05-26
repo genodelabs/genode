@@ -415,7 +415,7 @@ ROM session interface
 
 Originally, the ROM session interface had been designed for providing boot
 modules to the user land. Later, in version
-[http://genode.org/documentation/release-notes/12.05#System_reconfiguration_at_runtime - 12.05],
+[https://genode.org/documentation/release-notes/12.05#System_reconfiguration_at_runtime - 12.05],
 we enhanced the interface to support dynamic updates of ROM modules to
 facilitate the reconfiguration of components at runtime. In the meanwhile,
 the dynamic updating of ROM modules has become commonplace within Genode,
@@ -479,7 +479,7 @@ Pluggable VFS file systems
 ==========================
 
 The virtual file system (VFS) infrastructure introduced with version
-[http://genode.org/documentation/release-notes/14.05#Per-process_virtual_file_systems - 14.05],
+[https://genode.org/documentation/release-notes/14.05#Per-process_virtual_file_systems - 14.05],
 supports a number of built-in file-system types such as the TAR, ROM, FS,
 block, terminal, or LOG file systems. It allows the tailoring of the
 file-system environment specifically for each individual program.
@@ -1030,7 +1030,7 @@ Finished transition to new ports mechanism
 ==========================================
 
 In version 14.05, we introduced
-[http://genode.org/documentation/release-notes/14.05#Management_of_ported_3rd-party_source_code - new tools]
+[https://genode.org/documentation/release-notes/14.05#Management_of_ported_3rd-party_source_code - new tools]
 for integrating 3rd-party software with Genode and migrated the majority of
 our ports to the new mechanism. With the current version, we have finished the
 transition by migrating the remaining ports, namely Qt5, GCC, and GDB.

@@ -28,7 +28,7 @@ with new device-driver infrastructure such as the first version of a device
 driver manager and a new ACPI parser.
 
 Feature-wise, the current release takes the first steps towards the goal of the
-[http://genode.org/about/road-map - Roadmap for 2012], turning Genode into a
+[https://genode.org/about/road-map - Roadmap for 2012], turning Genode into a
 general-purpose OS ready for everyday use by its developers. According to the
 roadmap, we enhanced the Noux runtime with fork semantics so that we can run
 command-line based GNU programs such as the bash shell and coreutils unmodified
@@ -48,7 +48,7 @@ releases. This way of development seemed to work quite well for us, we were
 satisfied about the pace of development, and with each release, our project got
 more recognition.
 
-However, the excellent book [http://producingoss.com/ - Producing Open Source Software]
+However, the excellent book [https://producingoss.com/ - Producing Open Source Software]
 made us realize that even though we released our work under an Open-Source
 license, our development process was actually far from being open and may have
 discouraged participation of people outside the inner circle of developers.
@@ -58,14 +58,14 @@ to liberate the project from its closed fashion of development.
 
 In the beginning of December, the vague idea has become a plan. So we finally
 brought the topic to our mailing list
-([http://genode.org/news/steps-towards-an-open-development-process - Steps towards an open development process]).
+([https://genode.org/news/steps-towards-an-open-development-process - Steps towards an open development process]).
 We decided to take the release cycle for Genode 12.02 as the opportunity to put
 our plan to practice. The central element of this endeavour was moving the
 project over to GitHub and adapt our workflows and tooling support accordingly.
 First, we started to embrace GitHub's issue tracker for the management of
 working topics:
 
-:[http://github.com/genodelabs/genode/issues]: Issue Tracker
+:[https://github.com/genodelabs/genode/issues]: Issue Tracker
 
 The most significant step was leaving our Genode-Labs-internal code
 repositories behind and starting a completely public Git repository instead:
@@ -86,7 +86,7 @@ comes directly from the project's Git repository. So maintaining website
 content is done in the same coherent and transparent way as working on Genode's
 code base. So we could finally put the old Wiki to rest. In the process, we
 largely revisited the existing content. For example, we rewrote the
-[http://genode.org/community/contributions - contributions] document in a
+[https://genode.org/community/contributions - contributions] document in a
 tutorial-like style and incorporated several practical hints, in particular
 related to the recommended use of Git.
 
@@ -419,9 +419,9 @@ New and updated libraries
 
   We updated Qt4 from version 4.7.1 to version 4.7.4. For the most part, the
   update contains bug fixes as detailed in the release notes for the versions
-  [http://qt.nokia.com/products/changes/changes-4.7.2 - 4.7.2],
-  [http://qt.nokia.com/products/changes/changes-4.7.3 - 4.7.3], and
-  [http://labs.qt.nokia.com/2011/09/01/qt-4-7-4-released - 4.7.4].
+  [https://qt.nokia.com/products/changes/changes-4.7.2 - 4.7.2],
+  [https://qt.nokia.com/products/changes/changes-4.7.3 - 4.7.3], and
+  [https://labs.qt.nokia.com/2011/09/01/qt-4-7-4-released - 4.7.4].
 
 :Update of zlib to version 1.2.6:
 
@@ -469,7 +469,7 @@ PDF viewer
 According to our road map for 2012, we pursued the port of an existing PDF
 viewer as native application to Genode.
 
-We first looked at the [http://poppler.freedesktop.org - libpoppler],
+We first looked at the [https://poppler.freedesktop.org - libpoppler],
 which seems to be the most popular PDF rendering engine in the world of
 freedesktop.org. To get a grasp on what the porting effort of this engine may
 be, we looked at projects using this library as well as the library source
@@ -678,7 +678,7 @@ employing a full-blown ACPI interpreter, the ACPI driver uses an ingenious
 technique invented by Bernhard Kauer, which is described in the following
 paper:
 
-:[http://os.inf.tu-dresden.de/papers_ps/tr-atare-2009.pdf - ATARE - ACPI Tables and Regular Expressions]:
+:[https://os.inf.tu-dresden.de/papers_ps/tr-atare-2009.pdf - ATARE - ACPI Tables and Regular Expressions]:
   _TU Dresden technical report TUD-FI09-09, Dresden, Germany, August 2009_
 
 :Usage:

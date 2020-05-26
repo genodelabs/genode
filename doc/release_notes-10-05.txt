@@ -1012,7 +1012,7 @@ Arora web browser
 Arora has its origin as an example application for Qt4. However, it emancipated
 itself to be a separate project.
 
-:[http://arora.googlecode.com]: Arora project website
+:[https://arora.googlecode.com]: Arora project website
 
 Even though compared with other browsers, its popularity is relatively small
 but for us, it is perfect to stretch the bounds of our Genode infrastructure.
@@ -1123,7 +1123,7 @@ New two-stage build system
 ==========================
 
 Since the thorough
-[http://www.genode-labs.com/publications/scons-vs-make-2008.pdf - analysis of the Genode build system]
+[https://www.genode-labs.com/publications/scons-vs-make-2008.pdf - analysis of the Genode build system]
 by Ludwig Hähne in 2008, we were planning to incorporate his findings into
 Genode. In his study, he reimplemented Genode's make-based build system using
 SCons and compared both implementations. For us, the two most interesting

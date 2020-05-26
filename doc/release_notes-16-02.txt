@@ -48,7 +48,7 @@ version 2.1, which prompted us to fundamentally revisit the low-level resource
 management of Genode on this kernel. A summary of this undertaking is presented
 in Section [seL4 version 2.1].
 
-According to the [http:/about/road-map - road map], we originally planned to
+According to the [https://genode.org/about/road-map - road map], we originally planned to
 revise the framework API in this release. Even though this topic is
 [https://github.com/genodelabs/genode/issues/1832 - very actively pursued], we
 decided to not rush it. We find it important to provide a smooth migration path
@@ -62,7 +62,7 @@ Assignment of USB devices to virtual machines
 
 As a migration strategy for running Genode on a daily basis, using VirtualBox
 to execute a feature-rich OS is vital. In release
-[http://genode.org/documentation/release-notes/15.05#USB-device_pass-through_support - 15.05],
+[https://genode.org/documentation/release-notes/15.05#USB-device_pass-through_support - 15.05],
 we added USB pass-through support to VirtualBox by enabling its integrated USB
 proxy service. Since we use the open-source edition of VirtualBox, we were
 merely able to use the OHCI device model and were therefore limited to using
@@ -181,11 +181,11 @@ The consumer, in this case a VMM, then accesses the USB device (4).
 New support for the RISC-V CPU architecture
 ###########################################
 
-We became aware of [http://riscv.org - RISC-V] when attending several talks
+We became aware of [https://riscv.org - RISC-V] when attending several talks
 about the project at [https://fosdem.org - FOSDEM] in 2015. RISC-V aims to be
 an open-source hardware architecture and is now complemented by many projects
 that target the release of real hardware or ASICs (for example,
-[http://lowrisc.org - the LowRISC project]). We have experience with various
+[https://www.lowrisc.org - the LowRISC project]). We have experience with various
 major CPU architectures and many systems on a chip and, therefore, embrace a
 sharp eye on certain platform properties. Intel's ME and ARM's Trustzone
 practically lock out operating systems of certain hardware and firmware
@@ -195,7 +195,7 @@ AMT technology for instance comes with a complete TCP/IP stack that intercepts
 packets from the integrated NIC and a VNC server that can magically expose a
 mouse and a keyboard at the USB controller. If you are interested in more
 details about this topic
-[http://blog.invisiblethings.org/papers/2015/x86_harmful.pdf - Intel x86 considered harmful]
+[https://blog.invisiblethings.org/papers/2015/x86_harmful.pdf - Intel x86 considered harmful]
 by Joanna Rutkowska is a very good read. We decided to have a deeper look at
 the RISC-V architecture as an alternative open hardware platform. Especially,
 since the LowRISC project promises a completely open system on chip, including
@@ -281,7 +281,7 @@ GUI stack usability improvements
 
 Motivated by the daily use of Genode as desktop OS by an increasingly number
 of developers, the window-layouter component of the
-[http://genode.org/documentation/release-notes/15.11#GUI_stack - GUI stack]
+[https://genode.org/documentation/release-notes/15.11#GUI_stack - GUI stack]
 received welcomed usability improvements.
 
 
@@ -451,7 +451,7 @@ components within the _world_ repository are not subjected to the regular
 quality-assurance measures of Genode Labs. Hence, problems are to be expected.
 If you encounter bugs, build problems, or stability issues, please report them
 to the [https://github.com/genodelabs/genode-world/issues - issue tracker] or
-the [http://genode.org/community/mailing-lists - mailing list].
+the [https://genode.org/community/mailing-lists - mailing list].
 
 
 Updated 3rd-party software
@@ -499,10 +499,10 @@ Build integration
 -----------------
 
 Building Genode scenarios running on top of the
-[http://muen.sk - Muen separation kernel] has been greatly simplified by
+[https://muen.sk - Muen separation kernel] has been greatly simplified by
 properly integrating the Muen system build process into the Genode build system.
 As described in the
-[http://genode.org/documentation/release-notes/15.08#Genode_on_top_of_the_Muen_Separation_Kernel - 15.08 release notes],
+[https://genode.org/documentation/release-notes/15.08#Genode_on_top_of_the_Muen_Separation_Kernel - 15.08 release notes],
 the architecture with Muen is different since the entire hw_x86_64_muen Genode
 system runs as a guest VM on top of the separation kernel. This means that the
 Genode base-hw image must itself be packaged into the final Muen system image
@@ -531,7 +531,7 @@ _image/muen_ run-tool plugin, which processes the following RUN_OPT parameters.
 
 The options are automatically added to the _etc/build.conf_ file for the
 hw_x86_64_muen base-hw platform. The
-[http://genode.org/documentation/platforms/muen - documentation] has been
+[https://genode.org/documentation/platforms/muen - documentation] has been
 updated to reflect the new, simplified build process.
 
 A port file was added to facilitate the download of the Muen sources v0.7 and
@@ -562,7 +562,7 @@ drivers to transparently use MSIs for passed-through PCI devices.
 seL4 version 2.1
 ================
 
-By the end of 2015, the [http://sel4.systems/ - seL4 kernel] version 2.0 was
+By the end of 2015, the [https://sel4.systems/ - seL4 kernel] version 2.0 was
 published. With the current release, we update Genode's preliminary support
 for this kernel from the experimental branch of one year ago to the master
 branch of version 2.1. Note that this line of work is still considered as an

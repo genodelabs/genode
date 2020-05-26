@@ -154,7 +154,7 @@ edition are:
 : <p>
 :  <div style="clear: both; float: left; margin-right:20px;">
 :   <a class="internal-link" href="https://genode.org">
-:    <img class="image-inline" src="http://genode.org/documentation/genode-foundations-title.png">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
 :   </a>
 :  </div>
 : </p>
@@ -834,7 +834,7 @@ Nim programming language
 ========================
 
 In the previous release, we were proud to debut a
-[http://genode.org/documentation/release-notes/17.02#Linux_TCP_IP_stack_as_VFS_plugin - pluggable TCP/IP stack]
+[https://genode.org/documentation/release-notes/17.02#Linux_TCP_IP_stack_as_VFS_plugin - pluggable TCP/IP stack]
 for the VFS library. This required an overhaul of the Berkley sockets and
 'select' implementation within the POSIX runtime, but scrutiny of the POSIX
 standard leaves us reluctant to endorse it as a network API.

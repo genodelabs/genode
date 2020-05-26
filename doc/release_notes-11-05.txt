@@ -96,7 +96,7 @@ C++-based alternative, fostering the use of the C++ streaming operators
 combined with templates. The following paper provides a detailed discussion
 on the subject:
 
-:[http://genode-labs.com/publications/dynrpc-2007.pdf - A Case Study on the Cost and Benefit of Dynamic RPC Marshalling for Low-Level System Components]:
+:[https://genode-labs.com/publications/dynrpc-2007.pdf - A Case Study on the Cost and Benefit of Dynamic RPC Marshalling for Low-Level System Components]:
   _SIGOPS OSR Special Issue on Secure Small-Kernel Systems, 2007_
 
 In hindsight, leaving behind the IDL approach was the right decision. From a
@@ -120,7 +120,7 @@ function call to a remote process running on the same machine (contrarily to
 the term RPC being used in the context of systems distributed over a network).
 
 The state of the art is best explained by the example interface discussed
-in the [http://genode.org/documentation/developer-resources/client_server_tutorial - Hello Tutorial].
+in the [https://genode.org/documentation/developer-resources/client_server_tutorial - Hello Tutorial].
 On Genode, each RPC interface is represented by an abstract C++ class,
 enriched by some bits of information shared by the caller and the callee.
 

@@ -9,7 +9,7 @@
 
 
 With Genode 13.05, we have diverged quite a bit from the feature-laden plans
-laid out in our [http://genode.org/about/road-map road map] as we realized
+laid out in our [https://genode.org/about/road-map road map] as we realized
 that consolidating and optimizing the current feature set will have a more
 sustainable effect than functional enhancements at this point. In particular,
 we addressed the problem that the ever growing diversity of platforms imposes
@@ -110,7 +110,7 @@ TFTP boot x86
 The following description uses NOVA as an example to illustrate the usage.
 Other base platforms are supported as well and can be configured analogously.
 
-[http://os.inf.tu-dresden.de/~us15/pulsar/ - Pulsar] is a tiny boot loader
+[https://os.inf.tu-dresden.de/~us15/pulsar/ - Pulsar] is a tiny boot loader
 that uses PXE to fetch boot images via TFTP over the network. On the x86
 architecture, Genode supports the automatic generation of Pulsar configuration
 files, which can be placed directly onto a TFTP server. Genode can be booted
@@ -345,7 +345,7 @@ each requiring a dedicated 'Terminal::Session'. Hence, we need a way to
 multiplex the 'Terminal::Session' interface between those clients. Our
 multiplexing solution comes in the form of a component called terminal_mux,
 which we just introduced in the
-[http://genode.org/documentation/release-notes/13.02#New_terminal_multiplexer - previous release].
+[https://genode.org/documentation/release-notes/13.02#New_terminal_multiplexer - previous release].
 It uses a single terminal connection to implement a text-based user interface
 to multiple virtual terminal consoles.
 
@@ -400,7 +400,7 @@ unsynchronized class interfaces.
 :MMIO framework improvements:
 
 For native Genode device drivers, we consistently use our
-[http://genode.org/documentation/release-notes/12.02#MMIO_access_framework - MMIO framework API].
+[https://genode.org/documentation/release-notes/12.02#MMIO_access_framework - MMIO framework API].
 These utilities help us to safeguard the access to individual bit fields of
 memory-mapped device registers and cleanly separate the declaration of device
 registers from the driver logic. During the increased use of the API, we
@@ -669,7 +669,7 @@ particular, we addressed USB networking, XHCI (USB-3), Gigabit networking over
 USB-3, eMMC, and SATA.
 
 The development of those device drivers follows our rationale that guided our
-[http://genode.org/documentation/articles/pandaboard - previous work on the OMAP4 platform].
+[https://genode.org/documentation/articles/pandaboard - previous work on the OMAP4 platform].
 For the USB driver, we employed the device-driver-environment (DDE) approach
 for reusing the Linux USB stack and the host controller drivers. In contrast,
 the eMMC and SATA drivers are built as genuine Genode drivers with no
@@ -747,7 +747,7 @@ The OMAP4 framebuffer driver used to support HDMI only, which was used
 for connecting a display to the Pandaboard. To make the driver usable on
 phones and tablets, the driver has been enhanced to support LCD output. Thanks
 to Alexander Tarasikov for the patch and the insightful story about
-[http://allsoftwaresucks.blogspot.com/2013/05/porting-genode-to-commercial-hardware.html - porting Genode to the B&N Nook HD+ tablet]!
+[https://allsoftwaresucks.blogspot.com/2013/05/porting-genode-to-commercial-hardware.html - porting Genode to the B&N Nook HD+ tablet]!
 
 
 USB

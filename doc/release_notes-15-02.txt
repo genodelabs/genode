@@ -8,7 +8,7 @@
 
 
 
-Genode's [http://genode.org/about/road-map - roadmap] for this year puts a
+Genode's [https://genode.org/about/road-map - roadmap] for this year puts a
 strong emphasis on the consolidation and cultivation of the existing feature
 set. With the first release of the year, version 15.02 pays tribute to this
 mission by stepping up to extensive and systematic automated testing. As
@@ -46,7 +46,7 @@ Cortex-A15-based Arndale board.
 
 While integrating ARM's virtualization extension, we aimed to strictly follow
 microkernel-construction principles. The primary design is inspired by the
-[http://hypervisor.org/ - NOVA OS Virtualization Architecture]. It is based on a
+[https://hypervisor.org/ - NOVA OS Virtualization Architecture]. It is based on a
 microhypervisor that provides essential microkernel mechanisms along with
 basic primitives to switch between virtual machines (VMs). On top of the
 microhypervisor, classical OS services are implemented as
@@ -71,7 +71,7 @@ Design
 
 The ARM virtualization extensions are based on the so-called security
 extensions, commonly known as
-[http://genode.org/documentation/articles/trustzone - TrustZone].
+[https://genode.org/documentation/articles/trustzone - TrustZone].
 The ARM designers did not follow the
 Intel approach to split the CPU into a "root" and a "guest" world while having all prior
 existing CPU modes available in both worlds. Instead, ARM added a new privilege level
@@ -206,7 +206,7 @@ Modular tool kit for automated testing
 ######################################
 
 In
-[http://genode.org/documentation/release-notes/13.05#Automated_quality-assurance_testing - Genode version 13.05],
+[https://genode.org/documentation/release-notes/13.05#Automated_quality-assurance_testing - Genode version 13.05],
 we already introduced comprehensive support for the automated testing of
 Genode scenarios. Since then, Genode Labs has significantly widened the scope
 of its internal test infrastructure, both in terms of the coverage of the test
@@ -391,7 +391,7 @@ the physical address ranges of memory:
 
 * When using an IOMMU on NOVA, Genode represents the address space
   accessible by devices (by the means of DMA) using a so-called device PD
-  ([http://genode.org/documentation/release-notes/13.02#DMA_protection_via_IOMMU]).
+  ([https://genode.org/documentation/release-notes/13.02#DMA_protection_via_IOMMU]).
   DMA transactions originating from PCI devices are subjected to the virtual
   address space of the device PD.
   All DMA buffers are identity-mapped with their physical addresses within
@@ -739,7 +739,7 @@ includes hardware, software, and firmware. This motivated us to
 bring Genode to this platform.
 
 The underlying idea is to facilitate
-[http://genode.org/documentation/articles/trustzone - ARM TrustZone] to
+[https://genode.org/documentation/articles/trustzone - ARM TrustZone] to
 use Genode as a companion to a Linux-based OS on the platform.
 Whereas Linux would run in the normal world of TrustZone, Genode runs
 in the secure world. With Linux, the normal world will control the

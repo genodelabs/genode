@@ -141,7 +141,7 @@ Third, even though not inherent to synchronous RPC, Genode's original design
 facilitated the use of a session capability as argument for requesting the
 parent to close a specific session. However, the use of capabilities as
 re-identifiable tokens is not well supported by most kernels, including seL4
-([http://sel4.systems/pipermail/devel/2014-November/000114.html - discussion]
+([https://sel4.systems/pipermail/devel/2014-November/000114.html - discussion]
 on the seL4 mailing list).
 
 
@@ -534,7 +534,7 @@ Transition to new framework API
 ===============================
 
 Since we fundamentally revised Genode's API in
-[http://genode.org/documentation/release-notes/16.05#The_great_API_renovation - version 16.05],
+[https://genode.org/documentation/release-notes/16.05#The_great_API_renovation - version 16.05],
 we gradually adapt our existing components. Given that Genode comes with
 over 300 components, this is no small feat. But with 30 percent of the
 components converted, we already made substantial progress.
@@ -603,11 +603,11 @@ your own time source, you can find an example at _os/include/os/timer.h_ .
 Support for smart cards
 =======================
 
-We ported the [http://pcsclite.alioth.debian.org/pcsclite.html - PC/SC Lite]
+We ported the [https://pcsclite.alioth.debian.org/pcsclite.html - PC/SC Lite]
 library to Genode, which provides a commonly used API for communicating with
 smart cards. It supports USB smart card readers, using the
-[http://pcsclite.alioth.debian.org/ccid.html - CCID] library as driver.
-The CCID driver itself requires [http://libusb.info - libusb] to access the
+[https://pcsclite.alioth.debian.org/ccid.html - CCID] library as driver.
+The CCID driver itself requires [https://libusb.info - libusb] to access the
 USB device.
 
 Vanilla PC/SC Lite is structured as a client-server architecture, consisting

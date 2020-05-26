@@ -214,7 +214,7 @@ Unification of the ports management
 With the new source-tree layout in place, we could pursue a new take on
 unifying the management of ported 3rd-party source code. The new solution,
 which is very much inspired by the fabulous
-[http://nixos.org/nix - Nix package manager] comes in the form of new tools to
+[https://nixos.org/nix - Nix package manager] comes in the form of new tools to
 be found at 'tool/ports/'.
 
 Note that even though the port mechanism described herein looks a bit like
@@ -268,7 +268,7 @@ please refer to the updated porting guide:
 
 :Genode Porting Guide:
 
-  [http://genode.org/documentation/developer-resources/porting]
+  [https://genode.org/documentation/developer-resources/porting]
 
 
 :Known limitations:

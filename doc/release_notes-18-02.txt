@@ -728,7 +728,7 @@ on Genode:
   noux package. Note, however, that this port comprises solely the
   functionality needed for simple scripting.
 
-:[http://flif.info/ - FLIF]: is a library for the Free Lossless Image
+:[https://flif.info/ - FLIF]: is a library for the Free Lossless Image
   Format. Thanks to Emery Hemingway for making it available in the
   genode-world repository.
 

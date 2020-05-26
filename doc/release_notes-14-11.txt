@@ -402,7 +402,7 @@ modules:
 
 Furthermore all Intel wireless cards supported by the 'iwlwifi' driver need a
 specific firmware to work. You can download the archives containing the
-firmware from [http://wireless.kernel.org/en/users/Drivers/iwlwifi]. The
+firmware from [https://wireless.kernel.org/en/users/Drivers/iwlwifi]. The
 firmware image also has to be added to the boot module list. If the firmware
 is missing, the driver will complain and print an error message:
 
@@ -556,7 +556,7 @@ For realizing graphical applications that are security critical, we wish to
 avoid the complexity of sophisticated tool kits like Qt5. To ease the
 development of such Genode-specific graphical applications, we introduced a
 few common low-level interfaces and utilities for graphics in
-[http://genode.org/documentation/release-notes/14.02#Unified_interfaces_for_graphics - version 14.02].
+[https://genode.org/documentation/release-notes/14.02#Unified_interfaces_for_graphics - version 14.02].
 
 The current version refines those utilities with added support for layering
 graphics using alpha channels. There is a new ALPHA8 pixel format that can be
@@ -637,7 +637,7 @@ Growing tool kit for low-complexity GUI applications
 ====================================================
 
 With the current release, we continue our line of GUI-related work started in
-[http://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08].
+[https://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08].
 As a side product of implementing low-complexity GUI components directly on
 Genode instead of using existing GUI tool kits, a library of common utilities
 is evolving. The utilities are not strictly GUI-related but also cover the
@@ -935,7 +935,7 @@ Raspberry Pi
 ============
 
 Genode added principle support for the Raspberry Pi one year ago in
-[http://genode.org/documentation/release-notes/13.11#Raspberry_Pi - version 13.11].
+[https://genode.org/documentation/release-notes/13.11#Raspberry_Pi - version 13.11].
 Back then, the driver support covered the interrupt controller, timer, UART,
 display, and USB. The latter was particularly challenging because the DWC-OTG
 USB host controller lacked public documentation. Hence, we ported the driver
@@ -1035,7 +1035,7 @@ amttool, which uses a SOAP EOI protocol for communication. Newer hardware with
 AMT version 9 or higher dropped the support for SOAP EOI - read
 [https://software.intel.com/en-us/blogs/2012/12/01/intel-amt-wsman-interface-is-replacing-the-soapeoi-interface - a blog entry by Intel]
 for more details - switched to the
-[http://www.dmtf.org/standards/wsman - WSMAN interface]. The tool wsman on
+[https://www.dmtf.org/standards/wsman - WSMAN interface]. The tool wsman on
 Linux speaks the protocol and can be used as a replacement. We integrated the
 support of wsman into our run tool infrastructure and use it by default if
 installed - otherwise amttool will be used. Of course, you can enforce your

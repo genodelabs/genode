@@ -98,10 +98,10 @@ Applications and library infrastructure
   Thanks to the C runtime, the flexible per-component VFS, the standard
   C++ library, and the Noux runtime (for UNIX software), porting software
   to Genode is relatively straight forward. The
-  [http://genode.org/documentation/developer-resources/porting - porting guide]
+  [https://genode.org/documentation/developer-resources/porting - porting guide]
   explains the typical steps. A wish list of software that we'd like to
   have available on Genode is available at
-  [http://usr.sysret.de/jws/genode/porting_wishlist.html].
+  [https://usr.sysret.de/jws/genode/porting_wishlist.html].
 
 :Native Open-Street-Maps (OSM) client:
 
@@ -121,7 +121,7 @@ Application frameworks and runtime environments
 
 :OpenJDK:
 
-  [http://openjdk.java.net/ - OpenJDK] is the reference implementation of the
+  [https://openjdk.java.net/ - OpenJDK] is the reference implementation of the
   Java programming language and hosts an enormous ecosystem of application
   software.
 
@@ -190,8 +190,8 @@ Application frameworks and runtime environments
   analyzing such components with formal methods.
 
   The use of Haskell for systems development was pioneered by the
-  [http://programatica.cs.pdx.edu/House/ - House Project]. A more recent
-  development is [http://halvm.org - HalVM] - a light-weight OS runtime for
+  [https://programatica.cs.pdx.edu/House/ - House Project]. A more recent
+  development is [https://halvm.org - HalVM] - a light-weight OS runtime for
   Xen that is based on Haskell.
 
 :Xlib compatibility:
@@ -310,7 +310,7 @@ Device drivers
   Genode utilizes the network device drivers of the iPXE project, which
   perform reasonably well for everyday use cases but are obviously not
   designated for high-performance networking.
-  The [http://dpdk.org/ - DPDK] is a vendor-supported suite of network device
+  The [https://dpdk.org/ - DPDK] is a vendor-supported suite of network device
   drivers that is specifically developed for high-performance applications.
   It presents an attractive alternative to iPXE-based drivers. This project
   has the goal to make DPDK drivers available as a Genode component.

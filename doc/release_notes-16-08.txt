@@ -412,7 +412,7 @@ to prepare your system for Muen.
 
 As a next step, create a VirtualBox VM with a 32-bit guest OS of your choice
 and install the guest additions
-[http://download.virtualbox.org/virtualbox/4.3.36/VBoxGuestAdditions_4.3.36.iso].
+[https://download.virtualbox.org/virtualbox/4.3.36/VBoxGuestAdditions_4.3.36.iso].
 In this tutorial, we chose Windows 7.
 
 Note: use guest additions close to the VirtualBox version of Genode. We have
@@ -858,7 +858,7 @@ Init configuration changes
 ==========================
 
 We refined the label-based server-side policy-selection mechanism introduced in
-[http://genode.org/documentation/release-notes/15.11#Label-dependent_session_routing - version 15.11]
+[https://genode.org/documentation/release-notes/15.11#Label-dependent_session_routing - version 15.11]
 to limit the damage of spelling mistakes in manually crafted configurations.
 I.e., consider the following policy of a file-system server with a misspelled
 'label_prefix' attribute:
@@ -1015,7 +1015,7 @@ RISC-V front-end server
 =======================
 
 In version
-[http://genode.org/documentation/release-notes/16.02#New_support_for_the_RISC-V_CPU_architecture - 16.02],
+[https://genode.org/documentation/release-notes/16.02#New_support_for_the_RISC-V_CPU_architecture - 16.02],
 Genode gained support for the RISC-V CPU architecture. Genode can be executed
 on either a simulator or a synthesized FPGA softcore, e.g., on Xilinx Zynq
 FPGAs. On the latter platform, the RISC-V core is a secondary CPU that

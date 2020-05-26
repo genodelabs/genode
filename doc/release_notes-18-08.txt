@@ -979,7 +979,7 @@ NOVA microhypervisor
 ====================
 
 The NOVA kernel branch in use has been switched to revision r10, which is an
-intermediate result of [http://cyberus-technology.de/ - Cyberus Technology]
+intermediate result of [https://cyberus-technology.de/ - Cyberus Technology]
 and of [https://www.genode-labs.com/ - Genode Labs] to harmonize their
 independently developed NOVA kernel branches. We hope to mutually benefit from
 the evolution of NOVA over the long run by having a common NOVA trunk and

@@ -620,7 +620,7 @@ system.
 
 Now, one could use the Firefox appliance VM of Sculpt (see the
 [https://genode.org/documentation/release-notes/18.05 - release notes] or the
-[http://genodians.org/alex-ab/2019-03-06-disposal-browser-vm - Genodians article])
+[https://genodians.org/alex-ab/2019-03-06-disposal-browser-vm - Genodians article])
 for this. But this VM aims for a long-term browsing experience which, in the
 context of mere captive-portal handling, brings some drawbacks like a much
 higher RAM consumption or the required sessions for USB detection and shared

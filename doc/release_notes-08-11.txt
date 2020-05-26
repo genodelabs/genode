@@ -110,7 +110,7 @@ above becomes as simple as:
 !/* invoke remote procedure */
 !Capability ds_csp = rom.dataspace();
 
-[http://genode.org/documentation/api/base_index#Connecting_to_services - See the API documentation for the connection template...]
+[https://genode.org/documentation/api/base_index#Connecting_to_services - See the API documentation for the connection template...]
 
 
 Typed capabilities
@@ -134,7 +134,7 @@ classes at the client side.
 From the application-developer's perspective, working with capabilities
 has now become type-safe, making the produced code more readable and robust.
 
-[http://genode.org/documentation/api/base_index#Capability_representation - See the updated API documentation for the capability representation...]
+[https://genode.org/documentation/api/base_index#Capability_representation - See the updated API documentation for the capability representation...]
 
 
 Fifo data structure
@@ -146,7 +146,7 @@ first-out semantics. For such use cases, we introduced a dedicated
 'Fifo' template. The main motivation for introducing 'Fifo' into the
 base API is the new semaphore described below.
 
-[http://genode.org/documentation/api/base_index#Structured_data_types - See the new API documentation for the fifo template...]
+[https://genode.org/documentation/api/base_index#Structured_data_types - See the new API documentation for the fifo template...]
 
 
 Semaphore
@@ -163,7 +163,7 @@ and added the semaphore to Genode's official base API. We have made
 the wake-up policy in the presence of multiple consumers configurable
 via a template argument. The default policy is first-in-first-out.
 
-[http://genode.org/documentation/api/base_index#Synchronization - See the new API documentation for the semaphore...]
+[https://genode.org/documentation/api/base_index#Synchronization - See the new API documentation for the semaphore...]
 
 Thanks to Christian Prochaska for his valuable contributions to the new
 semaphore design.
@@ -221,7 +221,7 @@ would have to be queued at the transmitter.
 Image [signals] illustrates the roles of signaller thread,
 transmitter, receiver, and signal-handler thread.
 
-[http://genode.org/documentation/api/base_index#Asynchronous_notifications - See the new API documentation for asynchronous notifications...]
+[https://genode.org/documentation/api/base_index#Asynchronous_notifications - See the new API documentation for asynchronous notifications...]
 
 The current generic implementation of the signalling API employs one
 thread at each transmitter and one thread at each receiver. Because
@@ -422,27 +422,27 @@ the API.
 Christian Helmuth created the initial version of the Linux device-driver
 environment for L4. He describes his effort of reusing unmodified sound
 drivers on the L4 platform in his thesis
-[http://os.inf.tu-dresden.de/papers_ps/helmuth-diplom.pdf - Generische Portierung von Linux-Gerätetreibern auf die DROPS-Architektur].
+[https://os.inf.tu-dresden.de/papers_ps/helmuth-diplom.pdf - Generische Portierung von Linux-Gerätetreibern auf die DROPS-Architektur].
 ;
 Gerd Griessbach approached the problem of re-using Linux USB drivers
 by following the DDE approach in his diploma thesis
-[http://os.inf.tu-dresden.de/papers_ps/griessbach-diplom.pdf - USB for DROPS].
+[https://os.inf.tu-dresden.de/papers_ps/griessbach-diplom.pdf - USB for DROPS].
 ;
 Marek Menzer adapted Linux DDE to Linux 2.6 and explored the DDE
 approach for block-device drivers in his student research project
-[http://os.inf.tu-dresden.de/papers_ps/menzer-beleg.pdf - Portierung des DROPS Device Driver Environment (DDE) für Linux 2.6 am Beispiel des IDE-Treibers ]
+[https://os.inf.tu-dresden.de/papers_ps/menzer-beleg.pdf - Portierung des DROPS Device Driver Environment (DDE) für Linux 2.6 am Beispiel des IDE-Treibers ]
 and his diploma thesis
-[http://os.inf.tu-dresden.de/papers_ps/menzer-diplom.pdf - Entwicklung eines Blockgeräte-Frameworks für DROPS].
+[https://os.inf.tu-dresden.de/papers_ps/menzer-diplom.pdf - Entwicklung eines Blockgeräte-Frameworks für DROPS].
 ;
 Thomas Friebel generalized the DDE approach and introduced the DDE kit
 API to enable the re-use of device driver from other platforms than
 Linux. In particular, he experimented with the block-device drivers of
 FreeBSD in his diploma thesis
-[http://os.inf.tu-dresden.de/papers_ps/friebel-diplom.pdf - Übertragung des Device-Driver-Environment-Ansatzes auf Subsysteme des BSD-Betriebssystemkerns].
+[https://os.inf.tu-dresden.de/papers_ps/friebel-diplom.pdf - Übertragung des Device-Driver-Environment-Ansatzes auf Subsysteme des BSD-Betriebssystemkerns].
 ;
 Dirk Vogt successfully re-approached the port of USB device drivers
 from the Linux kernel to L4 in his student research project
-[http://os.inf.tu-dresden.de/papers_ps/beleg-vogt.pdf - USB for the L4 Environment].
+[https://os.inf.tu-dresden.de/papers_ps/beleg-vogt.pdf - USB for the L4 Environment].
 
 The current incarnation of the DDE kit API provides the following
 features:
@@ -556,7 +556,7 @@ source-code repository called 'libc' and is based on the code of FreeBSD.
 The original code is available at the official FreeBSD website.
 
 :FreeBSD website:
-  [http://www.freebsd.org/developers/cvs.html]
+  [https://www.freebsd.org/developers/cvs.html]
 
 Our libc port comprises the libraries 'gdtoa', 'gen', 'locale', 'stdio',
 'stdlib', 'stdtime', 'string', and 'msun'. Currently, it supports the

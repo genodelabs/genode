@@ -28,7 +28,7 @@ supported base platforms.
 
 Our original plan for the release 9.02 also comprised the support of a
 Linux-on-Genode (para-)virtualization solution. Initially, we intended to
-make [http://os.inf.tu-dresden.de/L4/LinuxOnL4/ - L4Linux] available on
+make [https://os.inf.tu-dresden.de/L4/LinuxOnL4/ - L4Linux] available on
 the L4/Fiasco version of Genode. However, we identified several downsides
 with this approach. Apparently, the development of the officially available
 version of L4/Fiasco has become slow and long-known issues remain unfixed.
@@ -41,7 +41,7 @@ and VT support) that we want to explore. Furthermore, there exists another
 version of L4Linux called OKLinux for the OKL4 kernel developed at
 [http://ok-labs.com - OK-Labs], which is very interesting as well.
 Therefore, we decided against an ad-hoc solution and deferred this feature
-to the next release. [http:/about/road-map - See our updated road map...]
+to the next release. [https://genode.org/about/road-map - See our updated road map...]
 
 
 Major new Features
@@ -126,7 +126,7 @@ effort is included in this release and comes in the form of the
 :Further details:
 
 You can find further technical details and usage instructions at this
-dedicated [http://genode.org/documentation/platforms/pistachio - page].
+dedicated [https://genode.org/documentation/platforms/pistachio - page].
 
 
 Qt4 on Genode
@@ -331,7 +331,7 @@ Device-Driver-Environment Kit
 
 Because of the apparent stabilization of the DDE Kit API, we have now added
 this API to Genode's official API reference.
-[http://genode.org/documentation/api/dde_kit_index - See the documentation of the DDE Kit API...]
+[https://genode.org/documentation/api/dde_kit_index - See the documentation of the DDE Kit API...]
 
 
 PS/2 input driver
@@ -413,7 +413,7 @@ gcc 4.2.4.
 
 As an alternative to installing the tool chain from source, we also
 provide pre-compiled binaries at the download section of our website.
-[http://genode.org/download/tool-chain - Visit our tool-chain download website...]
+[https://genode.org/download/tool-chain - Visit our tool-chain download website...]
 
 For the Linux version of Genode, we still use the host's default gcc
 as tool chain. This way, we spare the hassle of downloading and installing

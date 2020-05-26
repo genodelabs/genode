@@ -643,7 +643,7 @@ system partition in a GUID partition table (GPT). The image is equipped by the
 new 'image/uefi' module with the GRUB2 boot loader, a GRUB2 configuration, and
 the corresponding Genode run scenario. The final image can be copied with 'dd'
 to a bootable USB stick. Additionally, we added support to boot such an image
-on Qemu leveraging [http://www.tianocore.org - TianoCore's] UEFI firmware.
+on Qemu leveraging [https://www.tianocore.org - TianoCore's] UEFI firmware.
 
 As a side project, minor virtualization support for AMD has been added to
 Virtualbox 4 and to the NOVA kernel on Genode. This enables us to run a 32-bit

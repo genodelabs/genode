@@ -172,7 +172,7 @@ Full virtualization on NOVA/x86
 
 Vancouver is a x86 virtual machine monitor that is designed to run as
 user-level process on top of the NOVA hypervisor. In
-[http://genode.org/documentation/release-notes/11.11#Faithful_x86_PC_Virtualization_enabled_by_the_Vancouver_VMM - Genode version 11.11],
+[https://genode.org/documentation/release-notes/11.11#Faithful_x86_PC_Virtualization_enabled_by_the_Vancouver_VMM - Genode version 11.11],
 we introduced the preliminary adaptation of Vancouver to Genode. This version
 was meant as a mere proof of concept, which allowed the bootup of small Guest
 OSes (such as Fiasco.OC or Pistachio) inside the VMM. However, it did not
@@ -379,7 +379,7 @@ Trimmed and unified framework API
 =================================
 
 A though-provoking
-[http://sourceforge.net/mailarchive/forum.php?thread_name=CAGQ-%3Dq27%2B_UooBiJmz9RdTE1gDmVcg9v0w-8TNgEH5fzHYiA%2BQ%40mail.gmail.com&forum_name=genode-main - posting]
+[https://sourceforge.net/mailarchive/forum.php?thread_name=CAGQ-%3Dq27%2B_UooBiJmz9RdTE1gDmVcg9v0w-8TNgEH5fzHYiA%2BQ%40mail.gmail.com&forum_name=genode-main - posting]
 on our mailing list prompted us to explore the idea to make shared libraries
 and dynamically linked executables binary compatible among different kernels.
 This sounds a bit crazy at first but it is not downright infeasible.

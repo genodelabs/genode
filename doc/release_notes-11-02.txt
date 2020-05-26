@@ -88,7 +88,7 @@ following packages:
 Moreover, you need to download and install the tool-chain used by Genode. Have
 a look at this page:
 
-:[http://genode.org/download/tool-chain]:
+:[https://genode.org/download/tool-chain]:
   Genode tool-chain
 
 
@@ -98,8 +98,8 @@ Downloading and building Fiasco.OC
 Checkout the Fiasco.OC sources and tool-chain to an appropriated directory:
 
 ! export REPOMGR_SVN_REV=27
-! svn cat http://svn.tudos.org/repos/oc/tudos/trunk/repomgr |\
-!   perl - init http://svn.tudos.org/repos/oc/tudos fiasco l4re
+! svn cat https://svn.tudos.org/repos/oc/tudos/trunk/repomgr |\
+!   perl - init https://svn.tudos.org/repos/oc/tudos fiasco l4re
 
 
 Building the kernel
@@ -154,7 +154,7 @@ Building the Fiasco.OC version of Genode
 
 The Fiasco.OC version of Genode is available at the Genode public subversion repository:
 
-:http://genode.org/download/subversion-repository:
+:https://genode.org/download/subversion-repository:
   Information about accessing the Genode public subversion repository
 
 Go to a directory where you want the Genode/Fiasco.OC build directory to remain. Use
@@ -273,7 +273,7 @@ Further Information
 :genode/tool/builddir/README:
   Reference manual for the 'create_builddir' script
 
-:[http://os.inf.tu-dresden.de/fiasco]:
+:[https://os.inf.tu-dresden.de/fiasco]:
   Official website for the Fiasco.OC microkernel.
 
 
@@ -453,7 +453,7 @@ and a set of IP cores for implementing fully-fledged windowed GUIs on FPGAs:
 
 :Website of the Genode FPGA Graphics Project:
 
-  [http://genode-labs.com/products/fpga-graphics]
+  [https://genode-labs.com/products/fpga-graphics]
 
 Ever since we first released the Genode FPGA project, we envisioned to combine
 it with the Genode OS Framework. In Spring 2010, Martin Stein joined our team

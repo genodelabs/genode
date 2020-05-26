@@ -203,7 +203,7 @@ but less so with file systems that are well supported by the Linux kernel.
 Coincidentally, when we came to this realization, we stumbled upon the
 wonderful work of Antti Kantee on so-called rump kernels:
 
-:[http://wiki.netbsd.org/rumpkernel/]:
+:[https://wiki.netbsd.org/rumpkernel/]:
   Rump kernel Wiki
 
 The motivation behind the rump kernels was the development of
@@ -394,7 +394,7 @@ Block cache
 ===========
 
 The provisioning of a block cache was one of the primary motivations behind the
-[http://www.genode.org/documentation/release-notes/13.11#Dynamic_resource_balancing - dynamic resource balancing]
+[https://genode.org/documentation/release-notes/13.11#Dynamic_resource_balancing - dynamic resource balancing]
 concept that was introduced in Genode 13.11. We are now introducing the first
 version of such a cache.
 

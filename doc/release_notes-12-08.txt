@@ -48,7 +48,7 @@ the genode.org website via the lighttpd web server,
 
 :What about the road map?:
 
-Those of you who track the milestones laid out in our [http:/about/road-map - road map]
+Those of you who track the milestones laid out in our [https://genode.org/about/road-map - road map]
 may wonder how Genode 12.08 relates to the stated goals. In fact, several
 points of the road map haven't received the attention as originally planned.
 As an explanation, let us quote the paragraph right atop of the road-map page:
@@ -152,10 +152,10 @@ you will see the new 'hw_panda_a2', 'hw_vea9x4', 'hw_pbxa9' choices of
 build-directory templates. The latter platform enables you to run a
 'base-hw' Genode system on Qemu.
 
-[http://genode.org/documentation/platforms/hw - Learn more about using the new base-hw platform...]
+[https://genode.org/documentation/platforms/hw - Learn more about using the new base-hw platform...]
 
 For running Genode directly on the Pandaboard, please refer to the
-[http://genode.org/documentation/platforms/hw_panda_a2 - Pandaboard-specific documentation...]
+[https://genode.org/documentation/platforms/hw_panda_a2 - Pandaboard-specific documentation...]
 
 
 Embracing the NOVA Hypervisor
@@ -406,14 +406,14 @@ New and updated 3rd-party libraries
 
 :Expat:
 
-[http://expat.sourceforge.net - Expat] is an XML parsing library. The port of
+[https://expat.sourceforge.net - Expat] is an XML parsing library. The port of
 this library was motivated by our goal to use the GNU debugger for on-target
 debugging. GDB depends on this library.
 
 :MPC and GMP:
 
 We complemented our existing port of the
-[http://gmplib.org - GNU multiple precision arithmetic library (libgmp)] with
+[https://gmplib.org - GNU multiple precision arithmetic library (libgmp)] with
 support for the x86_64 and ARM architectures. This change combined with the
 port of the [http://www.multiprecision.org/index.php?prog=mpc - MPC library]
 enables us to build the Genode tool chain for these architectures.
@@ -437,14 +437,14 @@ on it.
 
 :PCRE:
 
-[http://www.pcre.org/ - PCRE] is a library for parsing regular rexpressions. We
+[https://www.pcre.org/ - PCRE] is a library for parsing regular rexpressions. We
 require this library for our ongoing work on porting the lighttpd webserver.
 
 
 Lighttpd web server
 ===================
 
-The [http://www.lighttpd.net/ - Lighttpd] web server has been added to the
+The [https://www.lighttpd.net/ - Lighttpd] web server has been added to the
 'ports' repository. The port runs as a native Genode application and ultimately
 clears the way to hosting the genode.org website on Genode. To test drive this
 scenario, please give the 'ports/run/genode_org.run' script a try.

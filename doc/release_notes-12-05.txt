@@ -17,7 +17,7 @@ The highlights are the introduction of Genode's file-system infrastructure and
 a new concept for the dynamic adjustment of the system's behaviour at runtime.
 
 The release follows the rough plan we laid out in our
-[http://genode.org/about/road-map - road map]. One planned road-map item was
+[https://genode.org/about/road-map - road map]. One planned road-map item was
 revisiting our base of device drivers as we realized that some important
 drivers were not on par with our requirements, the USB stack being the most
 important example. Our prior existing solution was originally ported from Linux
@@ -619,8 +619,8 @@ from the official zlib mirrors.
 
 :Video codecs via libav:
 
-The [http://libav.org - libav project] is one successor of the popular
-[http://ffmpeg.org/ - FFmpeg] library, which is a comprehensive solution
+The [https://libav.org - libav project] is one successor of the popular
+[https://ffmpeg.org/ - FFmpeg] library, which is a comprehensive solution
 for video and audio decoding, conversion, and streaming. The version
 0.8.2 of libav has been incorporated into the libports repository.
 
@@ -645,7 +645,7 @@ versatile test tool, which loads and runs test scripts configured with
 Genode's config mechanism. Test results can be aggregated, printed, and
 analyzed at runtime by scripts.
 
-:[http://lua.org/]: Lua programming language
+:[https://lua.org/]: Lua programming language
 
 
 libSDL
@@ -743,7 +743,7 @@ player. It consists of the following pieces.
 [image media_player]
   The unmodified 'avplay' embedded in Qt4-based GUI.
   The media file was downloaded from
-  http://www.youtube.com/watch?v=CbtAP3kUCxs.
+  https://www.youtube.com/watch?v=CbtAP3kUCxs.
 
 The latter part is particularly interesting because it makes creative use of
 Genode's unique service virtualization facilities. The 'qt_avplay' program

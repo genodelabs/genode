@@ -194,7 +194,7 @@ Qemu is decribed at a dedicated Wiki page:
 
 :Genode/OKL4 on the GTA01 platfrom:
 
-  [http://genode.org/community/wiki/GenodeOKL4OnTheGTA01Platform - Genode.org Community Wiki]
+  [https://genode.org/community/wiki/GenodeOKL4OnTheGTA01Platform - Genode.org Community Wiki]
 
 Both the OKL4 version 2.1.1 and the GTA01 chip are not the most current
 platforms but this combination turned out to be good as starting point.
@@ -238,7 +238,7 @@ Usage
 
 If you haven't build Genode for OKL4 yet, please refer to the following document:
 
-:[http://genode.org/documentation/platforms/okl4 - Genode on the OKL4 microkernel]:
+:[https://genode.org/documentation/platforms/okl4 - Genode on the OKL4 microkernel]:
   This page contains the information on how to build and use Genode with OKL4.
 
 For building OKLinux for Genode, you first need to download and patch the
@@ -532,7 +532,7 @@ the following config file can be used:
 
 For trying out the example with Qemu, please refer to the instructions
 given in the
-[http://genode.org/documentation/release-notes/9.02#section-4 - description]
+[https://genode.org/documentation/release-notes/9.02#section-4 - description]
 of the initial networking support added in Genode version 9.02.
 
 

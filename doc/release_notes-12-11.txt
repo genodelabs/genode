@@ -328,7 +328,7 @@ To prevent the TCP/IP stack from artificially throttling TCP throughput,
 we adjusted lwIP's TCP_SND_BUF size.
 
 From our work on optimizing the NIC stub-code performance of L4Linux as
-described [http://genode.org/documentation/articles/pandaboard - here],
+described [https://genode.org/documentation/articles/pandaboard - here],
 we learned that the use of a NIC-specific packet allocator for the
 packet-stream interface is beneficial. At the lwIP back end, we still relied on
 the original general-purpose allocator. Hence, we improved the lwIP back-end
@@ -368,7 +368,7 @@ device-driver environment for the audio drivers of the Open Sound System (OSS).
 
 :Website of the Open Sound System:
 
-  [http://http://www.4front-tech.com]
+  [http://www.4front-tech.com]
 
 The new 'dde_oss' contains all the pieces needed to use Intel HDA, AC97, and
 ES1370 audio cards on Genode. On first use, the 3rd-party code can be
@@ -732,4 +732,4 @@ refer to the tool-chain website:
 
 :Genode tool chain:
 
-  [http://genode.org/download/tool-chain]
+  [https://genode.org/download/tool-chain]

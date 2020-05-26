@@ -63,7 +63,7 @@ In December 2009, the day we waited for a long time had come. The first version
 of NOVA was publicly released:
 
 :Official website of the NOVA hypervisor:
-  [http://hypervisor.org]
+  [https://hypervisor.org]
 
 Besides the novel and modern kernel interface, NOVA has a list of features that
 sets it apart from most other microkernels, in particular support for
@@ -221,7 +221,7 @@ The Genode release 10.02 supports the NOVA pre-release version 0.1. You can
 download the archive here:
 
 :Download NOVA version 0.1:
-  [http://os.inf.tu-dresden.de/~us15/nova/nova-hypervisor-0.1.tar.bz2]
+  [https://os.inf.tu-dresden.de/~us15/nova/nova-hypervisor-0.1.tar.bz2]
 
 For building NOVA, please refer to the 'README' file contained in the archive.
 Normally, a simple 'make' in the 'build/' subdirectory is all you need to
@@ -236,7 +236,7 @@ following command:
 
 This tool will create a fresh build directory at the location specified
 as 'BUILD_DIR'. Provided that you have installed the
-[http://genode.org/download/tool-chain - Genode tool chain], you can now build
+[https://genode.org/download/tool-chain - Genode tool chain], you can now build
 Genode by using 'make' from within the new build directory.
 
 Note that in contrast to most other kernels, the Genode build process does not
@@ -908,7 +908,7 @@ request inconsistently. We have now enhanced the 'Root_component' template with
 a policy parameter to 'Root_component' that allows the specification of a
 session-creation policy. The most important policy is whether a service can
 have a single or multiple clients.
-[http://genode.org/documentation/api/inline?code/base/include/root/component.h - See the improved template...]
+[https://genode.org/documentation/api/inline?code/base/include/root/component.h - See the improved template...]
 
 Out-of-order RPC replies
 ========================
@@ -933,7 +933,7 @@ provided with the 'libports' repository. It is based on the official
 Python code available from the website:
 
 :Python website:
-  [http://www.python.org]
+  [https://www.python.org]
 
 To fetch the upstream Python source code, call 'make prepare' from within the
 'libports' directory. To include Python in your build process, add 'libports'
@@ -1107,7 +1107,7 @@ running Genode like the following.
 ! sudo ip address add 10.0.0.1/24 brd + dev tap0
 
 Give it a try with the
-[http://genode.org/documentation/release-notes/9.11#section-17 - lwIP example scenario].
+[https://genode.org/documentation/release-notes/9.11#section-17 - lwIP example scenario].
 Please note that lwIP is configured for DHCP and does not assign a
 static IP configuration to its end of the wire. Hence, you should run
 a DHCP server on tap0, e.g.

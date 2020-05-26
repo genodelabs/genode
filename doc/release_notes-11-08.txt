@@ -251,27 +251,27 @@ The new way of dealing with different kernels motivated us to revisit and
 complement our exiting documentation. The following documents are new or
 have received considerable attention:
 
-:[http://genode.org/documentation/developer-resources/getting_started - Getting started]:
+:[https://genode.org/documentation/developer-resources/getting_started - Getting started]:
   The revised guide of how to explore Genode provides a quick way to
   test drive Genode's graphical demo scenario with a kernel of your
   choice and gives pointers to documents needed to proceed your
   exploration.
 
-:[http://genode.org/documentation/developer-resources/build_system - Build system manual]:
+:[https://genode.org/documentation/developer-resources/build_system - Build system manual]:
   The new build-system manual explains the concepts behind Genode's
   build system, provides guidance with creating custom programs and
   libraries, and covers the tool support for the automated integration
   and testing of application scenarios.
 
-:[http://genode.org/documentation/components - Components overview]:
+:[https://genode.org/documentation/components - Components overview]:
   The new components-overview document explains the categorization of
   Genode's components and lists all components that come with the framework.
 
-:[http://genode.org/documentation/developer-resources/init - Configuration of the init process]:
+:[https://genode.org/documentation/developer-resources/init - Configuration of the init process]:
   The document describes Genode's configuration concept, the routing of
   service requests, and the expression of mandatory access-control policies.
 
-:[http://genode.org/community/wiki - Wiki]:
+:[https://genode.org/community/wiki - Wiki]:
   The platform-specific Wiki pages for L4/Fiasco, L4ka::Pistachio, NOVA,
   Codezero, Fiasco.OC, and OKL4 have been updated to reflect the new flows of
   working with the respective base platforms.

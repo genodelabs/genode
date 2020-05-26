@@ -66,7 +66,7 @@ completely written from scratch:
 
 The book is published under the Creative Commons Attribution + ShareAlike
 License (CC-BY-SA) and can be downloaded as
-[http://genode.org/documentation/genode-foundations-15-05.pdf - PDF document].
+[https://genode.org/documentation/genode-foundations-15-05.pdf - PDF document].
 
 It first presents the motivation behind our project, followed by a thorough
 description of the Genode OS architecture. The conceptual material is
@@ -74,7 +74,7 @@ complemented with practical information for developers and a discussion of
 framework internals. The second part of the book serves as a reference of
 Genode's programming interfaces.
 
-[http://genode.org/documentation/genode-foundations-15-05.pdf - Download the book (PDF)...]
+[https://genode.org/documentation/genode-foundations-15-05.pdf - Download the book (PDF)...]
 
 In the upcoming weeks, we plan to update the documentation section of the
 genode.org website with the new material. Until then, we hope you find the
@@ -135,8 +135,8 @@ Principal support for the 64-bit x86 architecture
 _This section was written by Adrian-Ken Rueegsegger and Reto Buerki who_
 _conducted the described line of work independent from Genode Labs._
 
-The [http://muen.sk - Muen Separation Kernel (SK) project] is an Open-Source
-microkernel, which uses the [http://spark-2014.org/ - SPARK] programming
+The [https://muen.sk - Muen Separation Kernel (SK) project] is an Open-Source
+microkernel, which uses the [https://spark-2014.org/ - SPARK] programming
 language to enable light-weight formal methods for high assurance. The 64-bit
 x86 kernel, currently consisting of a little over 5'000 LOC, makes extensive
 use of the latest Intel virtualization features and has been formally proven
@@ -337,7 +337,7 @@ Dynamic thread weights
 ======================
 
 With the Genode release 14.11, we introduced an entirely
-[http://genode.org/documentation/release-notes/14.11#Trading_CPU_time_between_components_using_the_HW_kernel - new scheduler]
+[https://genode.org/documentation/release-notes/14.11#Trading_CPU_time_between_components_using_the_HW_kernel - new scheduler]
 in the base-hw kernel that allows for the trading of CPU time between Genode
 components. This scheduler knows two parameters for each scheduling context: A
 priority that models the urgency for low-latency execution and a quota that
@@ -688,7 +688,7 @@ File-system utilities
 =====================
 
 When we introduced Genode's file-system session interface in
-[http://genode.org/documentation/release-notes/12.05#New_file-system_infrastructure - version 12.05],
+[https://genode.org/documentation/release-notes/12.05#New_file-system_infrastructure - version 12.05],
 it was accompanied with a RAM file system as the first implementation. Since
 then, a growing number of file-system services were developed, which took the
 RAM file system as blue print. Over the years, this practice resulted in the
@@ -902,7 +902,7 @@ Board support for i.MX6-based Wandboard
 The increasing interest in the combination of Genode and the Freescale i.MX6
 SoC motivated us to add official support for a board based on this SoC
 to our custom kernel. We settled on the
-[http://www.wandboard.org/ - Wandboard Quad] that was developed on a volunteer
+[https://www.wandboard.org/ - Wandboard Quad] that was developed on a volunteer
 basis. Thanks to Praveen Srinivas (IIT Madras, India) and Nikolay Golikov
 (Ksys Labs LLC, Russia) who contributed their work on i.MX6. The Wandboard
 Quad features 2 GiB of DDR3 RAM and a quad-core Cortex-A9 CPU. So, unlike when
@@ -984,7 +984,7 @@ USB-device pass-through support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 With the availability of the
-[http://www.genode.org/documentation/release-notes/15.02#USB_session_interface - USB session interface]
+[https://genode.org/documentation/release-notes/15.02#USB_session_interface - USB session interface]
 and the new [USB device-list report] feature of the USB driver, it is now
 possible to pass a selection of raw USB devices directly to VirtualBox guests.
 
@@ -1024,7 +1024,7 @@ Platforms
 Proof-of-concept support for the seL4 kernel
 ============================================
 
-Since last summer when the [http://sel4.systems - seL4 kernel] was released
+Since last summer when the [https://sel4.systems - seL4 kernel] was released
 under the General Public License, we entertained the idea to run Genode on
 this kernel. As the name suggests, the seL4 kernel is a member of the L4
 family of kernels. But there are two things that set this kernel apart from
@@ -1040,7 +1040,7 @@ Since last autumn, we conducted the port of Genode to the seL4 kernel as
 background activity. We took the chance to thoroughly document our experience
 by the following series of articles:
 
-:[http://genode.org/documentation/articles/sel4_part_1 - Building a simple root task from scratch]:
+:[https://genode.org/documentation/articles/sel4_part_1 - Building a simple root task from scratch]:
   The first article describes the integration of the kernel code with Genode's
   source tree and the steps taken to create a minimalistic root task that runs
   on the kernel. It is full of hands-on information about the methodology of
@@ -1048,12 +1048,12 @@ by the following series of articles:
   from the perspective of someone with no prior association with the seL4
   project.
 
-:[http://genode.org/documentation/articles/sel4_part_2 - IPC and virtual memory]:
+:[https://genode.org/documentation/articles/sel4_part_2 - IPC and virtual memory]:
   The second part of the article series examines the seL4 kernel interface
   with respect to synchronous inter-process communication and the management
   of virtual memory.
 
-:[http://genode.org/documentation/articles/sel4_part_3 - Porting the core component]:
+:[https://genode.org/documentation/articles/sel4_part_3 - Porting the core component]:
   The third article presents the steps taken to bring Genode's core and init
   components to life. Among the covered topics are the memory and capability
   management, inter-component communication, and page-fault handling. The
@@ -1167,7 +1167,7 @@ development environment and the tool chain running within Genode's Noux
 runtime environment.
 
 To use Genode 15.05, please obtain and install the new binary version of the
-tool chain available at [http://genode.org/download/tool-chain] or build it
+tool chain available at [https://genode.org/download/tool-chain] or build it
 manually via the _tool/tool_chain_ script.
 
 
@@ -1205,7 +1205,7 @@ The following parts have been pruned from the Genode source tree:
 
 * The _linux_drivers_ repository hosted device drivers ported via the
   original DDE-Linux approach. We
-  [http://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - disregarded this approach]
+  [https://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - disregarded this approach]
   in 2012. The only remaining code worth keeping is the i915 GPU driver, which
   will potentially re-appear in our modern _repos/dde_linux_ repository.
 

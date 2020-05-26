@@ -9,7 +9,7 @@
 
 
 In the
-[http://genode.org/documentation/release-notes/15.08 - previous release],
+[https://genode.org/documentation/release-notes/15.08 - previous release],
 we proudly reported the initial use of Genode as day-to-day OS. With the
 current release, we maintained the strong focus on making Genode viable as the
 foundation of a desktop OS. There are many aspects to be considered, ranging
@@ -30,7 +30,7 @@ Armory (a dedicated article about this work will follow soon), added support
 for Xilinx Zynq-7000, and optimized our version of VirtualBox for NOVA.
 
 According to our
-[http://genode.org/about/road-map - road map], we planned to address package
+[https://genode.org/about/road-map - road map], we planned to address package
 management, a modern web browser, and cross-kernel binary compatibility with
 the version 15.11. However, we decided to put emphasis on the general
 usability, robustness, and scalability first, before entering new
@@ -106,7 +106,7 @@ as well as high-level applications:
   without the need to restart it?
 
 We attempted to answer these questions with a single mechanism in version
-[http://genode.org/documentation/release-notes/12.05#System_reconfiguration_at_runtime - 12.05].
+[https://genode.org/documentation/release-notes/12.05#System_reconfiguration_at_runtime - 12.05].
 But the scalability of the approach remained unproven until now.
 
 In short, configuration information is supplied to a component by its
@@ -201,7 +201,7 @@ similar common GUI elements. These parts of the GUI must be implemented at the
 client side.
 
 In
-[http://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08],
+[https://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08],
 we laid the foundation for a scalable GUI architecture that further reduced
 the functional scope of nitpicker and complements nitpicker with higher-level
 components for managing windows. Thanks to this architecture, most of
@@ -1067,11 +1067,11 @@ from Linux kernel 3.14.5 to Genode. We successfully tested it on machines
 containing Intel GPUs from generation five up to generation eight. With the
 port of the Intel driver to Genode, we followed the approach that we already
 used to enable the USB stack on Genode described in
-[http://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - release 12.05],
+[https://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - release 12.05],
 to enable the Linux TCP/IP stack in
-[http://genode.org/documentation/release-notes/13.11#Gigabit_networking_using_the_Linux_TCP_IP_stack - release 13.11],
+[https://genode.org/documentation/release-notes/13.11#Gigabit_networking_using_the_Linux_TCP_IP_stack - release 13.11],
 and more recently to enable the Intel wireless stack in
-[http://genode.org/documentation/release-notes/14.11#Intel_wireless_stack - release 14.11].
+[https://genode.org/documentation/release-notes/14.11#Intel_wireless_stack - release 14.11].
 
 The driver can be configured dynamically at run-time via the config
 ROM-mechanism. Each connector of the graphics card can be configured
@@ -1303,14 +1303,14 @@ You can build the demo by executing
 A tutorial on how to create a bootable SD card can be found in the
 corresponding run script _os/tz_vmm.run_. A tutorial on how to reproduce the
 pre-built Linux image, Rootfs and DTB - used by the run script - can be found
-at [http://genode.org/files/release-15.11/usb_armory_tz_vmm/README].
+at [https://genode.org/files/release-15.11/usb_armory_tz_vmm/README].
 
 
 NOVA
 ====
 
 With the release 15.08, we
-[http://genode.org/documentation/release-notes/15.08#NOVA_kernel-resource_management - extended the kernel]
+[https://genode.org/documentation/release-notes/15.08#NOVA_kernel-resource_management - extended the kernel]
 to handle memory quota per Genode component. The line of work for the current
 release built upon those new mechanisms and simplifies the memory management
 within Genode's core component.
@@ -1345,9 +1345,9 @@ Tools and build system
 Run-tool support for booting via the iPXE boot loader
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[http://ipxe.org - iPXE] is an open source network boot firmware, which
+[https://ipxe.org - iPXE] is an open source network boot firmware, which
 supports booting from a web server
-[http://ipxe.org/howto/chainloading#breaking_the_loop_with_an_embedded_script - via HTTP].
+[https://ipxe.org/howto/chainloading#breaking_the_loop_with_an_embedded_script - via HTTP].
 
 With the new load module at _tool/run/load/ipxe_, Genode's run tool has become
 able to load images via iPXE/HTTP to the test hardware. The following two
@@ -1375,7 +1375,7 @@ This can be achieved by building iPXE with the following embedded script:
 In addition to loading an image, an iPXE boot configuration is required to
 boot the loaded image on the target machine. The run-tool back ends for NOVA,
 Fiasco.OC, and L4/Fiasco have been enhanced to automatically generate such
-configurations, which use the [http://ipxe.org/cmd/sanboot - sanboot command]
+configurations, which use the [https://ipxe.org/cmd/sanboot - sanboot command]
 to download and boot an ISO image via HTTP. To use this boot method, your
 RUN_OPT configuration must specify both the ISO-image and the iPXE-load
 modules:
@@ -1383,7 +1383,7 @@ modules:
 ! RUN_OPT +=  --include image/iso --include load/ipxe
 
 Note that the webserver serving the ISO image must support
-[http://forum.ipxe.org/showthread.php?tid=7295&pid=10482#pid10482 - ranged requests].
+[https://forum.ipxe.org/showthread.php?tid=7295&pid=10482#pid10482 - ranged requests].
 
 Thanks to Adrian-Ken Rueegsegger for these improvements!
 

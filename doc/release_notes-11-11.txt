@@ -76,7 +76,7 @@ traditional hypervisors. Hence, the authors of NOVA coined the term
 microhypervisor.
 
 The NOVA virtualization architecture is detailed in the paper
-[http://os.inf.tu-dresden.de/papers_ps/steinberg_eurosys2010.pdf - NOVA: A Microhypervisor-Based Secure Virtualization Architecture]
+[https://os.inf.tu-dresden.de/papers_ps/steinberg_eurosys2010.pdf - NOVA: A Microhypervisor-Based Secure Virtualization Architecture]
 by Udo Steinberg and Bernhard Kauer.
 
 Since February 2010, NOVA is one of the supported base platforms of Genode. But
@@ -123,7 +123,7 @@ L4Linux is the base of L4Android, a project that combines the Android software
 stack with L4Linux. With the current release, we have integrated L4Android with
 Genode.
 
-:[http://l4android.org]:
+:[https://l4android.org]:
   L4Android project website
 
 [image l4android]
@@ -396,7 +396,7 @@ Vancouver is a virtual machine monitor specifically developed for the use with
 the NOVA hypervisor. It virtualizes a 32-bit x86 PC hardware including various
 peripherals.
 
-The official project website is [http://hypervisor.org]. Vancouver relies
+The official project website is [https://hypervisor.org]. Vancouver relies
 on hardware virtualization support such as VMX (Intel) or SVM (AMD).
 With the current release, we have added the first version of our port of
 Vancouver to Genode to the 'ports' repository. To download the Vancouver
@@ -575,7 +575,7 @@ bidirectional communication (terminal session), and creating the actual GDB
 support in the form of the GDB monitor component. To paint a complete picture
 of the scene, we have added the following documentation:
 
-:[http://genode.org/documentation/developer-resources/gdb]:
+:[https://genode.org/documentation/developer-resources/gdb]:
   User-level debugging on Genode
 
 
@@ -680,7 +680,7 @@ the official successor of gPXE, for our NIC drivers. Currently, drivers for
 Intel E1000/E1000e and PCnet32 cards are enabled in the new 'nic_drv'. The
 Linux based driver was removed.
 
-:[http://ipxe.org]:
+:[https://ipxe.org]:
   iPXE open source boot firmware
 
 

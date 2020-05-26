@@ -190,7 +190,7 @@ The changes between the last year's edition and the current revision are:
 : <p>
 :  <div style="clear: both; float: left; margin-right:20px;">
 :   <a class="internal-link" href="https://genode.org">
-:    <img class="image-inline" src="http://genode.org/documentation/genode-foundations-title.png">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
 :   </a>
 :  </div>
 : </p>

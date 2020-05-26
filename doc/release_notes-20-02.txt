@@ -588,7 +588,7 @@ implementations of a window-layouter, and decorator. The interplay of the
 latter three allows a window management that scales from simple to rich and
 sophisticated without lowering its security properties. For a brief description
 of its architecture, please refer to the release notes of
-[http://genode.org/documentation/release-notes/14.08 - 14.08].
+[https://genode.org/documentation/release-notes/14.08 - 14.08].
 
 In this architecture, the window layouter is responsible for the arrangement
 of the different windows. It exports a data model of the window layout.

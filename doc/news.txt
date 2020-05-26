@@ -270,7 +270,7 @@ about the articles, readers are invited to the new
 [https://reddit.com/r/genode - /r/genode] subreddit.
 
 As written in the
-[http://genodians.org/nfeske/2019-01-07-welcome - initial posting],
+[https://genodians.org/nfeske/2019-01-07-welcome - initial posting],
 Genode users and developers are warmly invited to join the authors at
 Genodians.org!
 
@@ -1076,7 +1076,7 @@ The story behind Genode's TrustZone demo on the USB Armory | 2015-12-08
 | Our latest article provides a look behind the scenes of the
 | development of Genode's support for the USB Armory platform.
 
-The [http://inversepath.com/usbarmory - USB Armory] is a computer in the form
+The [https://inversepath.com/usbarmory - USB Armory] is a computer in the form
 of a USB stick. It normally runs Linux. But thanks to the ARM TrustZone
 capabilities of the device, it is possible to run Genode behind the back of
 Linux. This is useful for shielding sensitive information like cryptographic
@@ -1090,7 +1090,7 @@ was splitting the hardware platform into two worlds while maintaining the
 full functionality of Linux. The article goes on to explain the interplay
 between the secure world (Genode) and the normal world (Linux). Furthermore,
 it provides all the pointers needed to reproduce the scenario.
-[http:/documentation/articles/usb_armory - Read the article...]
+[https://genode.org/documentation/articles/usb_armory - Read the article...]
 
 
 Genode OS Framework release 15.11 | 2015-11-30
@@ -2269,7 +2269,7 @@ for our dual-licensing business model. If we made Genode available under the
 BSD license, there would be not point in pursuing this model. However, hiding
 the development process from the public is not only poor-spirited but it
 creates an artificial barrier for people who want to participate. The book
-"Producing Open Source Software" (http://producingoss.com) by Karl Fogel was an
+"Producing Open Source Software" (https://producingoss.com) by Karl Fogel was an
 eye opener to us.
 
 Regarding the efficiency of collaboration, I have to admit that the statement
@@ -2367,7 +2367,7 @@ new support of L4Android on Genode, Android can be used on Genode on the
 Fiasco.OC kernel on the IA32 architecture. For those of you who are eager to
 experiment with L4Android on Genode, please find further information at the
 top-level
-[http://genode.svn.sourceforge.net/viewvc/genode/trunk/ports-foc/README - README]
+[https://genode.svn.sourceforge.net/viewvc/genode/trunk/ports-foc/README - README]
 file of the 'ports-foc' repository and share your results with us at the
 [https:/community/mailing-lists - Genode mailing list].
 
@@ -2482,17 +2482,17 @@ concepts live. The talk was recorded at the
 Amsterdam. Thanks to Bas the Lange for publishing the material.
 
 : <object height="385" width="480">
-:  <param name="movie" value="http://www.youtube.com/v/Z1IMV3FJO7Q" />
+:  <param name="movie" value="https://www.youtube.com/v/Z1IMV3FJO7Q" />
 :  <param name="allowFullScreen" value="true" />
 :  <param name="allowscriptaccess" value="always" />
 :  <embed width="480" height="385" allowfullscreen="true"
 :         allowscriptaccess="always"
 :         type="application/x-shockwave-flash"
-:         src="http://www.youtube.com/v/Z1IMV3FJO7Q">
+:         src="https://www.youtube.com/v/Z1IMV3FJO7Q">
 :  </embed>
 : </object>
 
-[http://www.youtube.com/watch?v=Z1IMV3FJO7Q - Visit the YouTube page...]
+[https://www.youtube.com/watch?v=Z1IMV3FJO7Q - Visit the YouTube page...]
 
 
 Genode OS Framework release 11.02 | 2011-02-24
@@ -2549,17 +2549,17 @@ prepared the following screencast with a guided walk-through. Enjoy!
 
 : <object height="385" width="480">
 :  <param name="movie"
-:         value="http://www.youtube.com/v/CJdWOmajo_8?fs=1&amp;hl=en_US" />
+:         value="https://www.youtube.com/v/CJdWOmajo_8?fs=1&amp;hl=en_US" />
 :  <param name="allowFullScreen" value="true" />
 :  <param name="allowscriptaccess" value="always" />
 :  <embed width="480" height="385"
-:         src="http://www.youtube.com/v/CJdWOmajo_8?fs=1&amp;hl=en_US"
+:         src="https://www.youtube.com/v/CJdWOmajo_8?fs=1&amp;hl=en_US"
 :         type="application/x-shockwave-flash" allowscriptaccess="always"
 :         allowfullscreen="true">
 :  </embed>
 : </object>
 
-[http://www.youtube.com/watch?v=CJdWOmajo_8 - Visit the YouTube page...]
+[https://www.youtube.com/watch?v=CJdWOmajo_8 - Visit the YouTube page...]
 
 [https:/download/live-cds - Download the real thing...]
 
@@ -2958,13 +2958,13 @@ for graphics, input devices, and sound. It is often used as back end for games,
 emulators, and media players. Also the Linux version of Genode relies on the
 hardware abstractions provided by libSDL.
 
-As [http://sourceforge.net/mailarchive/message.php?msg_id=21406424 - announced on the Genode mailing list],
+As [https://sourceforge.net/mailarchive/message.php?msg_id=21406424 - announced on the Genode mailing list],
 libSDL has been ported to Genode. At the current stage, the port supports
 the video subsystem and the input handling for mouse and keyboard. With
 libSDL now becoming available for Genode, it becomes much easier to make the
 wealth of libSDL-based applications available on our platform.
 
-[http://sourceforge.net/mailarchive/message.php?msg_id=21406424 - Read the announcement...]
+[https://sourceforge.net/mailarchive/message.php?msg_id=21406424 - Read the announcement...]
 
 
 Genode on the L4ka::Pistachio kernel | 2008-12-18
@@ -3116,7 +3116,7 @@ Project website launched | 2008-07-29
 | Genode OS framework is scheduled for the 6th of August.
 
 Today, we proudly launched the website of the Genode project
-[https://www.genode.org - https://www.genode.org]. This website is the central
+[https://genode.org - https://genode.org]. This website is the central
 resource for people using or developing the Genode OS framework. It covers
 the latest news about our progress, architectural and technical documentation,
 a community-maintained wiki, mailing lists, information on accessing the
@@ -3125,7 +3125,7 @@ attention of people who want bring forward the project together with us.
 
 We have scheduled the first official release of the Genode OS framework for the
 6th August. Until then, we invite you to test-drive the beta-version of the
-framework as provided at the [https://www.genode.org/download - download].
+framework as provided at the [https://genode.org/download - download].
 
 
 Genode Labs founded | 2008-07-17

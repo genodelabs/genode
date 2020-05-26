@@ -17,7 +17,7 @@ networking, audio output, real-time priorities, mandatory access control,
 USB, ATAPI block devices, Python, hardware-accelerated 3D graphics, Qt4,
 the WebKit-based Arora browser, and the paravirtualized OKLinux kernel.
 So many wonderful toys waiting to get played with. This is how the idea of
-creating [http://genode.org/download/live-cds - the new Genode Live CD] was
+creating [https://genode.org/download/live-cds - the new Genode Live CD] was
 born. In the past, Genode was mostly used in settings with a relatively static
 configuration consisting of several components orchestrated to fulfill
 a few special-purpose functions. Now, the time has come for the next step,
@@ -65,7 +65,7 @@ the nifty interfaces used by the driver in our emulation framework. To
 achieve our short-term goal of a great live CD experience, we had to
 walk a different path.
 
-[http://gpxe.org/ - gPXE] is a lovely network boot loader / open-source
+[https://gpxe.org/ - gPXE] is a lovely network boot loader / open-source
 PXE ROM project and the successor of the famous Etherboot
 implementation. Besides support for DNS, HTTP, iSCSI and AoE, gPXE
 includes dozens of NIC drivers and applies a plain driver framework.
@@ -100,7 +100,7 @@ at 'bin/gpxe_nic_drv'.
 On-demand paging
 ################
 
-In the [http://genode.org/documentation/release-notes/8.11#section-8 - release 8.11],
+In the [https://genode.org/documentation/release-notes/8.11#section-8 - release 8.11],
 we laid the foundation for implementing user-level dataspace managers.
 But so far, the facility remained largely unused except for managing thread
 contexts. This changed with this release.
@@ -271,7 +271,7 @@ Finished transition to new init concept
 =======================================
 
 With the release 10.05, we introduced the
-[http://genode.org/documentation/release-notes/10.05#section-0 - current configuration concept of init].
+[https://genode.org/documentation/release-notes/10.05#section-0 - current configuration concept of init].
 This concept supports mandatory access control and provides flexible
 ways for defining client-server relationships. Until now, we maintained
 the old init concept. With the current release, the transition to the
@@ -736,7 +736,7 @@ Automated coding-style checker
 
 As Genode's code base grows and new developers start to get involved,
 we noticed recurring questions regarding coding style. There is a
-[http://genode.org/documentation/developer-resources/coding_style - document]
+[https://genode.org/documentation/developer-resources/coding_style - document]
 describing our coding style but for people just starting to get involved,
 adhering all the rules can become tedious. However, we stress the importance
 of a consistent coding style for the project. Not only does a consistent style

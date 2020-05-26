@@ -19,7 +19,7 @@ The previous Genode release was accompanied by a source-code archive containing
 the initial version of Qt4 for Genode. Our approach is to make the Qt4
 framework available for building Genode applications running natively on the
 microkernel rather than within a virtualization environment. As advertised in
-our [http://genode.org/about/road-map - road map], we have now seamlessly
+our [https://genode.org/about/road-map - road map], we have now seamlessly
 integrated the Qt4 framework into our mainline source tree.  Furthermore, we
 have adapted our port to the Qt4 version 4.5.1. Section [Integration of Qt4
 into the mainline repository] gives a rough overview of the changes and an
@@ -152,7 +152,7 @@ L4 kernels.
 These differences of OKL4 compared with the microkernels already supported
 by Genode posed a number of interesting challenges and opportunities. We have
 thoroughly documented the process in
-[http://genode.org/documentation/articles/genode-on-okl4 - Bringing Genode to OKL4].
+[https://genode.org/documentation/articles/genode-on-okl4 - Bringing Genode to OKL4].
 
 
 Usage
@@ -160,7 +160,7 @@ Usage
 
 For using Genode with OKL4, please refer to the following dedicated page:
 
-:[http://genode.org/documentation/platforms/okl4 - Genode on the OKL4 microkernel]:
+:[https://genode.org/documentation/platforms/okl4 - Genode on the OKL4 microkernel]:
   Site about building and using Genode with the OKL4 kernel.
 
 
@@ -293,7 +293,7 @@ Genode's libc. Thereby the linker will silently create references to glibc
 symbols, making both libraries collide. So if using Qt4, we recommend using the
 Genode tool chain:
 
-:[http://genode.org/download/tool-chain]:
+:[https://genode.org/download/tool-chain]:
   Information about downloading and using the Genode tool chain
 
 
@@ -308,7 +308,7 @@ we already utilized this approach for realizing basic networking on Genode.
 With this release, we complement DDE Linux with support required by USB
 drivers. We are grateful for being able to base our implementation on the
 excellent foundation laid by Dirk Vogt. He described his work in
-[http://os.inf.tu-dresden.de/papers_ps/beleg-vogt.pdf - USB for the L4 environment].
+[https://os.inf.tu-dresden.de/papers_ps/beleg-vogt.pdf - USB for the L4 environment].
 
 For USB HID support, we added the Linux USB and input subsystems to the DDE
 Linux 2.6 framework. Besides the 'dde_linux26/net.h' API for network drivers

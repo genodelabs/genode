@@ -95,7 +95,7 @@ since the last year's edition are:
 : <p>
 :  <div style="clear: both; float: left; margin-right:20px;">
 :   <a class="internal-link" href="https://genode.org">
-:    <img class="image-inline" src="http://genode.org/documentation/genode-foundations-title.png">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
 :   </a>
 :  </div>
 : </p>
@@ -603,7 +603,7 @@ Over the course of the past year, we started to look into Java support for
 Genode with the ultimate goal of porting an existing Java Virtual Machine
 (JVM), which translates and executes Java byte code, to Genode. After
 investigating possible JVM candidates, it became obvious that
-[http://openjdk.java.net - OpenJDK] is the only viable option when looking for
+[https://openjdk.java.net - OpenJDK] is the only viable option when looking for
 a functional, maintained, feature complete, and open-source Java SDK.
 Therefore, we decided upon OpenJDK version 9 and started to port OpenJDK's
 HotSpot virtual machine.

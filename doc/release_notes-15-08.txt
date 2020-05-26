@@ -47,13 +47,13 @@ _conducted the described line of work independent from Genode Labs._
 
 After completing our x86_64 port of the Genode base-hw kernel, which was
 featured in the
-[http://genode.org/documentation/release-notes/15.05#Principal_support_for_the_64-bit_x86_architecture - previous release (15.05)],
+[https://genode.org/documentation/release-notes/15.05#Principal_support_for_the_64-bit_x86_architecture - previous release (15.05)],
 we immediately started working on our main goal: running a Genode system as
 guest on the Muen Separation Kernel (SK). This would enable the Muen platform
 to benefit from the rich ecosystem of Genode.
 
-For those who have not read the 15.05 Genode release notes, [http://muen.sk - Muen]
-is an Open-Source microkernel, which uses the [http://spark-2014.org/ - SPARK]
+For those who have not read the 15.05 Genode release notes, [https://muen.sk - Muen]
+is an Open-Source microkernel, which uses the [https://spark-2014.org/ - SPARK]
 programming language to enable light-weight formal methods for high assurance.
 The 64-bit x86 kernel, currently consisting of a little over 5'000 LOC, makes
 extensive use of the latest Intel virtualization features and has been formally
@@ -194,18 +194,18 @@ Our modified version of the NOVA microhypervisor is the used kernel.
 The user interface is based on our custom GUI stack including the nitpicker
 GUI server as well as the window manager and its companion components
 (decorator, layouter, pointer) we introduced in
-[http://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08].
+[https://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08].
 The display is driven by the VESA driver. User input is handled by the PS/2
 driver for handling the laptop keyboard and trackpoint, and the USB driver for
 handling an externally connected keyboard and mouse.
 
 Network connectivity is provided by our port of the Intel Wireless stack that
 we introduced with the version
-[http://genode.org/documentation/release-notes/14.11#Intel_wireless_stack - 14.11].
+[https://genode.org/documentation/release-notes/14.11#Intel_wireless_stack - 14.11].
 
 Our custom AHCI driver provides access to the physical hard disk. File-system
 access is provided by our
-[http://genode.org/documentation/release-notes/14.02#NetBSD_file_systems_using_rump_kernels - Rump-kernel-based file-system server].
+[https://genode.org/documentation/release-notes/14.02#NetBSD_file_systems_using_rump_kernels - Rump-kernel-based file-system server].
 
 A simple Genode shell called CLI monitor allows the user to start and kill
 subsystems dynamically. Initially, the two most important subsystems are
@@ -383,9 +383,9 @@ systems rely on a virtual file system (VFS) implemented in the OS kernel,
 Genode's VFS has the form of a library that can optionally be linked to a
 component. The implementation of this library originated from the noux runtime
 introduced in version
-[http://genode.org/documentation/release-notes/11.02#Noux_-_an_execution_environment_for_the_GNU_userland - 11.02],
+[https://genode.org/documentation/release-notes/11.02#Noux_-_an_execution_environment_for_the_GNU_userland - 11.02],
 and was later integrated into our C runtime in version
-[http://genode.org/documentation/release-notes/14.05#Per-process_virtual_file_systems - 14.05].
+[https://genode.org/documentation/release-notes/14.05#Per-process_virtual_file_systems - 14.05].
 With the current release, we take the VFS a step further by making it
 available to components without a C runtime. Thereby, low-complexity
 security-sensitive components such as CLI monitor become able to benefit from
@@ -435,7 +435,7 @@ and identifying effective optimization vectors, tools for gathering a holistic
 view of the system are highly desired.
 
 With the introduction of our light-weight
-[http://genode.org/documentation/release-notes/13.08#Light-weight_event_tracing - event-tracing facility]
+[https://genode.org/documentation/release-notes/13.08#Light-weight_event_tracing - event-tracing facility]
 in version 13.08, we laid the foundation for such tools. The current release
 extends core's TRACE service with the ability to obtain statistics about CPU
 utilization. More specifically, it enables clients of core's TRACE service to
@@ -513,7 +513,7 @@ and PCI drivers. The ACPI driver originally executed the PCI driver as a slave
 (child) service. The ACPI driver parsed the ACPI tables and provided the
 relevant information as configuration during the PCI-driver startup. We
 changed this close coupling to the more modern and commonly used
-[http://genode.org/documentation/release-notes/14.02#New_session_interface_for_status_reporting - report_rom mechanism].
+[https://genode.org/documentation/release-notes/14.02#New_session_interface_for_status_reporting - report_rom mechanism].
 
 When the new ACPI driver finishes the ACPI table parsing, it provides the
 information via a report to any interested and registered components. The
@@ -784,8 +784,8 @@ common API among the execution environments of ported user-level device
 drivers. However, over the course of the past years, we found that this
 approach could not fulfill its promise while introducing a number of new
 problems. We reported our experiences in the release notes of versions
-[http://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - 12.05] and
-[http://genode.org/documentation/release-notes/14.11#Roundup - 14.11].
+[https://genode.org/documentation/release-notes/12.05#Re-approaching_the_Linux_device-driver_environment - 12.05] and
+[https://genode.org/documentation/release-notes/14.11#Roundup - 14.11].
 To be able to remove the DDE-Kit API, we reworked the USB driver, our port of
 the Linux TCP/IP stack, and the wireless driver accordingly.
 

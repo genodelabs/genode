@@ -533,7 +533,7 @@ Management of CPU affinities
 ============================
 
 In line with our experience of supporting
-[http://www.genode.org/documentation/release-notes/10.02#Real-time_priorities - real-time priorities]
+[https://genode.org/documentation/release-notes/10.02#Real-time_priorities - real-time priorities]
 in version 10.02, we were seeking a way to express CPU affinities such that
 Genode's recursive nature gets preserved and facilitated. Dealing with
 physical CPU numbers would contradict with this mission. Our solution
