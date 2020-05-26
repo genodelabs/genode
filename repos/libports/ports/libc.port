@@ -258,6 +258,11 @@ generated_files += $(generated_rpcsvc_files)
 _dirs: $(generated_files)
 $(generated_files) : $(DOWNLOADS)
 
+default: include/libc/osreldate.h
+include/libc/osreldate.h: _dirs
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)echo '#include <sys/param.h>' > $@
+
 
 #
 # Create symlinks for sys headers expected in parent directory
