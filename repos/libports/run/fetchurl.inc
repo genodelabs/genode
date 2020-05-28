@@ -4,16 +4,39 @@
 # \date   2016-06-05
 #
 
-if {[have_spec linux] || [have_spec rpi3] ||
+if {[have_spec rpi3] ||
     [expr [have_spec imx53] && [have_spec trustzone]]} {
 	puts "Run script does not support this platform."
 	exit 0
 }
 
-proc socket_fs_plugin {} {
-	global use_lxip
-	if { $use_lxip } { return lxip }
-	return lwip
+if {[get_cmd_switch --autopilot] && [have_spec linux]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+
+#
+# This run script works on Linux with NAT setup from tap0 to uplink
+# device uplink0 like follows.
+#
+# iptables -t nat -A POSTROUTING -o uplink0 -j MASQUERADE
+# iptables -A FORWARD -i tap0    -o uplink0 -j ACCEPT
+# iptables -A FORWARD -i uplink0 -o tap0    -m state --state RELATED,ESTABLISHED -j ACCEPT
+# echo 1 > /proc/sys/net/ipv4/ip_forward
+#
+
+proc socket_fs_plugin { } {
+	set result "<[ip_stack]"
+
+	if {[have_spec linux]} {
+		append result { ip_addr="10.0.2.55" netmask="255.255.255.0"}
+		append result { gateway="10.0.2.1" nameserver="1.1.1.1"}
+	} else {
+		append result { dhcp="yes"}
+	}
+
+	append result {/>}
+	return $result
 }
 
 create_boot_directory
@@ -29,7 +52,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/libssl \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/vfs \
-                  [depot_user]/src/vfs_[socket_fs_plugin] \
+                  [depot_user]/src/vfs_[ip_stack] \
                   [depot_user]/src/zlib
 
 install_config {
@@ -82,16 +105,18 @@ install_config {
 					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
 					<inline name="random">01234567890123456789</inline>
 				</dir>
-				<dir name="socket"> <} [socket_fs_plugin] { dhcp="yes"/> </dir>
+				<dir name="socket"> } [socket_fs_plugin] { </dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
+			      rng="/dev/random" socket="/socket"/>
 			<fetch url="https://genode.org/about/LICENSE" path="/dev/log" retry="3"/>
 		</config>
 	</start>
 </config>
 }
 
-build_boot_image {}
+#build            { }
+build_boot_image { }
 
 proc qemu_nic_model {} {
 	if [have_spec x86]         { return e1000 }

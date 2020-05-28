@@ -1,2 +1,2 @@
-set use_lxip 1
+proc ip_stack { } { return lxip }
 source ${genode_dir}/repos/libports/run/fetchurl.inc
