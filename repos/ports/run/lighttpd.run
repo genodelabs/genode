@@ -4,6 +4,22 @@
 # \date   2012-08-16
 #
 
+proc ip_stack { } { return lwip }
+
+proc socket_fs_plugin { } {
+	set result "<[ip_stack]"
+
+	if {[have_spec linux]} {
+		append result { ip_addr="10.0.2.55" netmask="255.255.255.0"}
+		append result { gateway="10.0.2.1" nameserver="1.1.1.1"}
+	} else {
+		append result { dhcp="yes"}
+	}
+
+	append result {/>}
+	return $result
+}
+
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_nic_pkg] \
@@ -15,7 +31,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/lighttpd \
                   [depot_user]/src/posix \
                   [depot_user]/src/vfs \
-                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/vfs_[ip_stack] \
                   [depot_user]/src/zlib
 
 install_config {
@@ -60,19 +76,20 @@ install_config {
 			<arg value="-D" />
 			<vfs>
 				<dir name="dev">
-					<log/>
-					<null/>
+					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
+					<inline name="random">0123456789012345678901234567890123456789</inline>
 				</dir>
-				<dir name="socket">
-					<lwip dhcp="yes"/> </dir>
+				<dir name="socket"> } [socket_fs_plugin] { </dir>
 				<dir name="etc">
 					<dir name="lighttpd">
 						<inline name="lighttpd.conf">
 # lighttpd configuration
-server.port          = 80
-server.document-root = "/website"
-server.event-handler = "select"
+server.port            = 80
+server.document-root   = "/website"
+server.event-handler   = "select"
 server.network-backend = "write"
+server.upload-dirs     = ( "/tmp" )
+server.modules         = ("mod_openssl")
 index-file.names     = (
   "index.xhtml", "index.html", "index.htm"
 )
@@ -80,6 +97,61 @@ mimetype.assign      = (
   ".html"         =>      "text/html",
   ".htm"          =>      "text/html"
 )
+$SERVER["socket"] == ":443" {
+	ssl.engine  = "enable"
+	ssl.pemfile = "/etc/lighttpd/example.pem"
+}
+						</inline>
+						<inline name="example.pem">
+-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4KHUZjDRew89c
+wDlYPz9XFigcMDnDlHzdg2ByrGZIOUNYC5LH1QUK0TDbPP45Xx455niA0QY85dMQ
+4DQx0Qk6+TDpVD3F2MYQgbIX6YkX9kgqX+jiHgsNzRD4KamNYmfUY+dJhlZEXWAF
+uNSnRLvg4EH72AVKLLKiruGwkisW/AYU6dNE8iFOYL8Q75bBUADiQSDdD8vkpeXg
+1NqxNyHPR6YRbA+vqcK0kbC8btKR9wG6m99OhTR4x3M87vtFFLNtJNEf54fYxi+L
+1rljSqHbaXD+XJsVKgX+UlI1ZlYW4KqlMciMemkBp0CovCxLfsbMmkXAW2RONpkm
++sdO3CXFAgMBAAECggEAIKv00nqAVAuzP0ZPJivaZe3lYdLgfKVcXcRQGSgi4U9f
+dkBfYxqU0W15mHvCspUAfM85s8jhrW4suwK739axJ4hMOCkc6Hvj78vCt+FT1C96
+cCIh4/PmjCVEjHJ/xTifKRwsTWwK5AgY4AsBl0dneabvremOTrGNY7VZDwVvpZz1
+qXkSNjQ63tZKj9cESO5ceGLzuBAG6JDDpqJM5fmdsQ36/QVz9Gogr8bXEWFM1TOo
+lWVAPB/l6nqKurfMv+5th354+owv9CGKxqLBE1fujwE2VogBz7mkR/rnABOPU5ev
+wQVLXoUkO2bI8Uvc28lChaiG6ihfdmNCmwoi56HFRQKBgQDj0WoIxiY7H42KV7Hh
+uQZv/0aoQyjXuqJ7Vq0HdxOAxZr0GpSYgo3MTZWooI2AnAstPHXo0BsQr+XVijWm
+xiDxMM4p9nrBzjEIHwyDaf62Pz/6lIPdenynLiEIOUbocJ3r0/3tCrY3U7fgjzYY
+f9PZmXKEOOKdbVPyXG0OIJ/ADwKBgQDO8GkCdVGy/YB0X7ntqcBG0xgmDnKRmYpQ
+X7Tb377AT2lzvftxaRVrx+UXtvFdy4xdrxjqHJCgOHT/fsAfjJlo7v1+KhTvE0pt
+jCdJPLbzXJRwaISaeEaMJ/N8Vv/j2/YuoS5M5vh4NlWeO16HtF7N9V9cMEZ5iRW1
+9G/eWgOo6wKBgQCY6rn3xblnuhgxogd+ccmGZ50v2FST6WyiyV0/Q4hNyVXnP+g6
+LneriPBJzertRtChvpGOghGIs+jb2veESD1YZ+Aafp2LdTGoN98YXo9gGTiCpCmX
+Al6lgOsfMAMOhnkaEKPC9ou0u3cTPk2bSEIVL1CUu/IwpW/RoIR7FR7ltQKBgQDA
+RAmsqQfhPzqL5SzALclhhFuZcC7uLDOf/WvyJW37C000pjzp3/JxE2Y8pFKZDLc7
+i6WgTi3pTssVXtRt+5nFLtcC02Jjxg6OvXr6xphMf6XC0rjxM/KH4c6Npd9V+1Y9
+eK+l76rHNeRSgWKQvvqebO3On2O7I6yyQ4t0kTl5RQKBgQCbX1cTtNmNr6HNleXL
+zfclKESSYy57uq3fQxhRrEE2ZNbemLOxEuoBCFYoMwpZEjC1GZyICrM7o5673/Ih
+I0oZerUBmt2l8noZCQoITEa97bCbp2vIdHYnCf/H3Nf2qM329fc00kAmm7vUVRgM
+4BqXnuFcAOuY68sgp9JArzK+EQ==
+-----END PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIDazCCAlOgAwIBAgIUYPOYXijLmMjjlgRCGHuZeyP0iPEwDQYJKoZIhvcNAQEL
+BQAwRTELMAkGA1UEBhMCREUxEzARBgNVBAgMClNvbWUtU3RhdGUxDTALBgNVBAoM
+BFRlc3QxEjAQBgNVBAMMCTEwLjAuMi41NTAeFw0yMDA1MTQxNDQ0MzlaFw00NzA5
+MzAxNDQ0MzlaMEUxCzAJBgNVBAYTAkRFMRMwEQYDVQQIDApTb21lLVN0YXRlMQ0w
+CwYDVQQKDARUZXN0MRIwEAYDVQQDDAkxMC4wLjIuNTUwggEiMA0GCSqGSIb3DQEB
+AQUAA4IBDwAwggEKAoIBAQC4KHUZjDRew89cwDlYPz9XFigcMDnDlHzdg2ByrGZI
+OUNYC5LH1QUK0TDbPP45Xx455niA0QY85dMQ4DQx0Qk6+TDpVD3F2MYQgbIX6YkX
+9kgqX+jiHgsNzRD4KamNYmfUY+dJhlZEXWAFuNSnRLvg4EH72AVKLLKiruGwkisW
+/AYU6dNE8iFOYL8Q75bBUADiQSDdD8vkpeXg1NqxNyHPR6YRbA+vqcK0kbC8btKR
+9wG6m99OhTR4x3M87vtFFLNtJNEf54fYxi+L1rljSqHbaXD+XJsVKgX+UlI1ZlYW
+4KqlMciMemkBp0CovCxLfsbMmkXAW2RONpkm+sdO3CXFAgMBAAGjUzBRMB0GA1Ud
+DgQWBBQvSHuosL/SDn/8sKl0dpyPeFvOfjAfBgNVHSMEGDAWgBQvSHuosL/SDn/8
+sKl0dpyPeFvOfjAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQBR
+sGYEuRwIU/tmAmTbniptItN9VE0NNj9QeKh+hKQ9cHvhxmlBlf5b7Vb2JaRZdy88
+kRIFKiNkyjgQVg+5KuEIcg17mHSal7zG+jIZ3c1bIpVCM4AjUe7EXl8LM4+dJ5sX
+Bwpd34tUk2edOiT8R/dU7uesxCdeIQ2FfvKyrXca73nj+UTvFGXUk/9mWY8KAaYc
+F/PWBhiZhJD4/dkUHJnrVtjpcqW2Io8bFmrMq2vfqQv+W2FZGCsHgXkAZO2E0jyQ
+5eOrwzgWRtMc5PvoGvqQfefseaLs0fvSQdcPqfv88Eqk5NGTOCIW8/KEsBwFJuwa
+EpA5DBBklj8UE2CdONvN
+-----END CERTIFICATE-----
 						</inline>
 					</dir>
 				</dir>
@@ -96,14 +168,16 @@ mimetype.assign      = (
 </html>
 					</inline>
 				</dir>
+				<dir name="tmp"> <ram/> </dir>
 			</vfs>
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      socket="/socket" />
+			      rtc="/dev/rtc/" rng="/dev/random" socket="/socket"/>
 		</config>
 	</start>
 </config>}
 
-build_boot_image {}
+#build            { }
+build_boot_image { }
 
 proc qemu_nic_model {} {
 	if [have_spec x86]     { return e1000 }
@@ -112,7 +186,7 @@ proc qemu_nic_model {} {
 	return nic_model_missing
 }
 
-append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:80 "
+append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:80,hostfwd=tcp::5556-:443 "
 append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 append qemu_args " -nographic "
 append xen_args  { sdl=0\; vif=\["model=e1000,mac=02:00:00:00:01:01,bridge=xenbr0"\] }
