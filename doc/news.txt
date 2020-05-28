@@ -4,6 +4,42 @@
                                ===========
 
 
+Genode OS Framework release 20.05 | 2020-05-28
+##############################################
+
+| Version 20.05 wraps up the consolidation of Noux with the C runtime,
+| advances the device-driver infrastructure and virtualization support on ARM,
+| reaches feature-completion of our block encryptor, and leverages seccomp for
+| sandboxing components on top of Linux.
+
+It has become almost a tradition to dedicate the spring release to topics
+under the hood of the Genode OS framework, taking the time for careful
+consolidation, and architectural improvements.
+
+On the latter account, the Linux version gained an architectural revamp of its
+inter-component communication model, leveraging the combination of the
+seccomp and epoll kernel mechanisms to enable Genode's capability-based
+security concept on this kernel. The new version applies strict sandboxing
+to each component individually. In particular, the host file system is
+shielded from Genode components and Genode's least-privilege access-control
+scheme comes into effect.
+
+As the second prominent architectural topic, the release features new
+device-driver infrastructure for the ARM universe along with a unified
+version of the formerly distinct virtual machine monitors for ARMv7 and
+ARMv8. These are important steps to bring Genode on ARM to parity with the
+x86 version.
+
+Further highlights of the release are the first feature-complete version
+of our custom block-encryption component, the improved management of CPU
+affinities on x86, and new tracing utilities. Last but not least, the
+release is accompanied with an updated version of the Genode Foundations
+book, reflecting the changes of the framework since one year ago.
+
+Read the details of the new release in the
+[https:/documentation/release-notes/20.05 - release documentation of version 20.05...]
+
+
 Sculpt OS release 20.02 | 2020-03-10
 ####################################
 
