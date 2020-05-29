@@ -394,6 +394,8 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 			/* Create new RPC object */
 			Session_component *session = new (heap)
 				Session_component(*rom, sessions, id, label);
+			if (session_diag_from_args(args.string()).enabled)
+				log("deliver ROM \"", label, "\"");
 			env.parent().deliver_session_cap(pid, env.ep().manage(*session));
 
 		} else if (!rom->transfer) {
