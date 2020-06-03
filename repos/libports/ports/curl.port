@@ -1,27 +1,15 @@
 LICENSE   := MIT
 DOWNLOADS := curl.archive
-VERSION   := 7.29.0
+VERSION   := 7.70.0
 
-URL(curl) := http://curl.haxx.se/download/archeology/curl-$(VERSION).tar.gz
-SHA(curl) := 67dc5b952ac489191b62dbe95b18d336b821649f61404a280186c72e8cd0b9d6
+URL(curl) := http://curl.haxx.se/download/curl-$(VERSION).tar.gz
+SHA(curl) := ca2feeb8ef13368ce5d5e5849a5fd5e2dd4755fecf7d8f0cc94000a4206fb8e7
 SIG(curl) := ${URL(curl)}.asc
 KEY(curl) := daniel@haxx.se
 DIR(curl) := src/lib/curl
 
-PATCHES   := src/lib/curl/*.patch
+PATCHES   := src/lib/curl/curl_h.patch
 
-#
-# Assemble public include directory. Filter out 'curlbuild.h' because we
-# provide a custom version of this file in 'libports/include/curl/'.
-#
-# Don't use ':=' for the definition of 'DIR_CONTENT(include/curl)' and
-# 'curl_headers' to defer the evaluation to the time when the directories are
-# created. Otherwise, the '$(wildcard)' would be executed before the
-# downloads are complete.
-#
-curl_include_dir := src/lib/curl/include/curl
-curl_headers      = $(filter-out curlbuild.h,$(notdir $(wildcard $(curl_include_dir)/*.h)))
-
-DIRS := include/curl
-DIR_CONTENT(include/curl) = $(addprefix $(curl_include_dir)/,$(curl_headers))
+DIRS := include
+DIR_CONTENT(include) = src/lib/curl/include/curl
 

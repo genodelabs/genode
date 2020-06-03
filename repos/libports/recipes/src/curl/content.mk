@@ -1,22 +1,28 @@
-content: src/lib/curl/target.mk lib/mk LICENSE
+MIRROR_FROM_REP_DIR := \
+	lib/mk/curl.inc \
+	lib/mk/spec/32bit/curl.mk \
+	lib/mk/spec/64bit/curl.mk
 
-PORT_DIR := $(call port_dir,$(REP_DIR)/ports/curl)
+content: $(MIRROR_FROM_REP_DIR)
 
-src/lib/curl:
-	mkdir -p $@
-	cp -r $(REP_DIR)/$@/curl_config.h $@
-	cp -r $(PORT_DIR)/src/lib/curl/* $@
+$(MIRROR_FROM_REP_DIR):
+	$(mirror_from_rep_dir)
+
+content: src/lib/curl/target.mk
 
 src/lib/curl/target.mk: src/lib/curl
 	echo "LIBS += curl" > $@
 
-lib/mk:
+PORT_DIR := $(call port_dir,$(REP_DIR)/ports/curl)
+
+content: src/lib/curl
+
+src/lib/curl:
 	mkdir -p $@
-	cp $(REP_DIR)/lib/mk/curl.inc $@
-	for spec in 32bit 64bit; do \
-	  mkdir -p $@/spec/$$spec; \
-	  cp $(REP_DIR)/$@/spec/$$spec/curl.mk $@/spec/$$spec/; \
-	done
+	cp -r $(PORT_DIR)/src/lib/curl/lib $@/
+	cp -r $(REP_DIR)/src/lib/curl/spec $@/
+
+content: LICENSE
 
 LICENSE:
 	cp $(PORT_DIR)/src/lib/curl/COPYING $@

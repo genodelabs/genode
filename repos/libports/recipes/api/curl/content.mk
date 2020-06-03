@@ -1,5 +1,6 @@
 MIRROR_FROM_REP_DIR := lib/import/import-curl.mk \
-                       lib/symbols/curl
+                       lib/symbols/curl \
+                       src/lib/curl
 
 content: $(MIRROR_FROM_REP_DIR)
 
@@ -11,17 +12,10 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/curl)
 content: include
 
 include:
-	mkdir -p $@/curl
-	cp $(PORT_DIR)/include/curl/* $@/curl
+	mkdir -p $@
+	cp -r $(PORT_DIR)/include/curl $@/
 
 content: src/lib/curl
-
-src/lib/curl:
-	mkdir -p $@
-	for spec in 32bit 64bit; do \
-	  mkdir -p $@/spec/$$spec/curl; \
-	  cp $(REP_DIR)/$@/spec/$$spec/curl/curlbuild.h $@/spec/$$spec/curl/; \
-	done
 
 content: LICENSE
 

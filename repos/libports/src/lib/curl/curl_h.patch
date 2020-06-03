@@ -1,15 +1,9 @@
-We have no osreldate.h because this header is normally created by
-`sys/conf/newvers.sh` but since our libc is based on FreeBSD 8.2
-let's just define the symbol.
-
-+++ src/lib/curl/include/curl/curl.h
-@@ -47,8 +47,7 @@
- #include <limits.h>
++++ src/lib/curl/lib/socketpair.h
+@@ -32,5 +32,7 @@
  
- #if defined(__FreeBSD__) && (__FreeBSD__ >= 2)
--/* Needed for __FreeBSD_version symbol definition */
--#include <osreldate.h>
-+#define __FreeBSD_version 802000
- #endif
+ /* Defined here to allow specific build configs to disable it completely */
+ #define USE_SOCKETPAIR 1
++/* prevent use of socketpair on Genode */
++#undef USE_SOCKETPAIR
  
- /* The include stuff here below is mainly for time_t! */
+ #endif /* HEADER_CURL_SOCKETPAIR_H */
