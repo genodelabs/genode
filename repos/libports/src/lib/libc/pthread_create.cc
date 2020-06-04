@@ -24,11 +24,28 @@
 #include <errno.h>
 
 /* libc-internal includes */
+#include <internal/init.h>
 #include <internal/thread_create.h>
 #include <internal/pthread.h>
 
 
-static Genode::String<32> pthread_name()
+static Genode::Cpu_session * _cpu_session { nullptr };
+static bool                  _single_cpu { false };
+
+void Libc::init_pthread_support(Genode::Cpu_session &cpu_session,
+                                Genode::Xml_node node)
+{
+	_cpu_session = &cpu_session;
+
+	String<32> placement("all-cpus");
+	placement = node.attribute_value("placement", placement);
+
+	if (placement == "single-cpu")
+		_single_cpu = true;
+}
+
+
+static unsigned pthread_id()
 {
 	static Genode::Lock mutex;
 
@@ -36,9 +53,7 @@ static Genode::String<32> pthread_name()
 
 	Genode::Lock::Guard guard(mutex);
 
-	++id;
-
-	return { "pthread.", id };
+	return id++;
 }
 
 
@@ -80,12 +95,22 @@ extern "C"
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
 	{
+		if (!_cpu_session || !start_routine || !thread)
+			return EINVAL;
+
 		size_t const stack_size = (attr && *attr && (*attr)->stack_size)
 		                        ? (*attr)->stack_size
 		                        : Libc::Component::stack_size();
 
+		using Genode::Affinity;
+
+		unsigned const id { pthread_id() };
+		Genode::String<32> const pthread_name { "pthread.", id };
+		Affinity::Space space { _cpu_session->affinity_space() };
+		Affinity::Location location { space.location_of_index(_single_cpu ? 0 : id) };
+
 		return Libc::pthread_create(thread, start_routine, arg, stack_size,
-		                            pthread_name().string(), nullptr,
-		                            Genode::Affinity::Location());
+		                            pthread_name.string(), _cpu_session,
+		                            location);
 	}
 }

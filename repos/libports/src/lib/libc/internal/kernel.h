@@ -167,6 +167,13 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			     : Xml_node("<empty/>");
 		}
 
+		Xml_node _pthread_config()
+		{
+			return _libc_env.libc_config().has_sub_node("pthread")
+			     ? _libc_env.libc_config().sub_node("pthread")
+			     : Xml_node("<pthread/>");
+		}
+
 		typedef String<Vfs::MAX_PATH_LEN> Config_attr;
 
 		Config_attr const _rtc_path = _libc_env.libc_config().attribute_value("rtc", Config_attr());
