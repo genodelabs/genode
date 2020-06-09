@@ -300,6 +300,11 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		 */
 		Packet_descriptor _packet { };
 
+		/**
+		 * Initial seek offset from where to start writing
+		 */
+		seek_off_t _initial_write_seek_offset { 0 };
+
 	protected:
 
 		Submit_result _submit_read_at(file_offset seek_offset)
@@ -324,7 +329,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 			if (!(_mode & WRITE_ONLY))
 				return Submit_result::DENIED;
 
-			_handle.seek(seek_offset);
+			_initial_write_seek_offset = seek_offset;
 
 			_packet_in_progress = true;
 			return Submit_result::ACCEPTED;
@@ -398,10 +403,13 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		 *
 		 * \return number of consumed bytes
 		 */
-		file_size _execute_write(char const *src_ptr, size_t length)
+		file_size _execute_write(char const *src_ptr, size_t length,
+		                         seek_off_t write_pos)
 		{
 			file_size out_count = 0;
 			try {
+				_handle.seek(_initial_write_seek_offset + write_pos);
+
 				switch (_handle.fs().write(&_handle, src_ptr, length, out_count)) {
 				case Write_result::WRITE_ERR_AGAIN:
 				case Write_result::WRITE_ERR_WOULD_BLOCK:
@@ -677,7 +685,7 @@ struct Vfs_server::Symlink : Io_node
 				{
 					size_t const count = _write_buffer.length();
 
-					if (_execute_write(_write_buffer.string(), count) == count)
+					if (_execute_write(_write_buffer.string(), count, 0) == count)
 						_acknowledge_as_success(count);
 					else
 						_acknowledge_as_failure();
@@ -808,7 +816,8 @@ class Vfs_server::File : public Io_node
 				{
 					size_t       const count    = _packet.length() - _write_pos;
 					char const * const src_ptr  = _payload_ptr.ptr + _write_pos;
-					size_t       const consumed = _execute_write(src_ptr, count);
+					size_t       const consumed = _execute_write(src_ptr, count,
+					                                             _write_pos);
 
 					if (consumed == count) {
 						_acknowledge_as_success(count);
@@ -837,8 +846,6 @@ class Vfs_server::File : public Io_node
 
 					/*
 					 * Keep executing the write operation for the remaining bytes.
-					 * The seek offset used for subsequent VFS write operations
-					 * is incremented automatically by the VFS handle.
 					 */
 					_write_pos += consumed;
 					break;
