@@ -274,7 +274,7 @@ generates configurations for some of those drivers. For the time being, the
 changes to the Sculpt manager are not yet part of the official release.
 Nevertheless, you can produce a Sculpt OS image to be run on an i.MX 8M EVK
 board by using the following
-[https://github.com/skalk/sculpt_20.02_imx8q_evk/ - topic branch].
+[https://github.com/skalk/genode/commits/sculpt_20.02_imx8q_evk - topic branch].
 
 Alternatively, you can also have a look at Sculpt OS on ARMv8 hardware by
 following the video recordings of the following talk at FOSDEM 2020.
