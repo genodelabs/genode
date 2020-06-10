@@ -20,6 +20,7 @@ extern "C" {
 #include <locale.h>
 #include <runetype.h>
 #include <xlocale_private.h>
+#include <errno.h>
 
 
 extern struct xlocale_component __xlocale_global_collate;
@@ -63,5 +64,16 @@ char *setlocale(int, const char *)
 	           (_RuneLocale*)&_DefaultRuneLocale);
 	return (char*)"C";
 }
+
+
+locale_t newlocale(int, const char *locale, locale_t)
+{
+	Genode::warning("cannot set \"", locale, "\" locale, not implemented");
+	errno = ENOENT;
+	return NULL;
+}
+
+
+void freelocale(locale_t) { }
 
 }
