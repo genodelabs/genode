@@ -8,7 +8,7 @@ block_session
 usb_session
 framebuffer_session
 platform_session
-nitpicker_session
+gui_session
 terminal_session
 rtc_session
 input_session

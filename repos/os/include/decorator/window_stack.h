@@ -15,7 +15,7 @@
 #define _INCLUDE__DECORATOR__WINDOW_STACK_H_
 
 /* Genode includes */
-#include <nitpicker_session/nitpicker_session.h>
+#include <gui_session/gui_session.h>
 #include <base/log.h>
 
 /* local includes */

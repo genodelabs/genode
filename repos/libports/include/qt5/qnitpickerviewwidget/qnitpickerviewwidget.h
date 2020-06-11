@@ -19,7 +19,7 @@
 #include <qwindowsystem_qws.h>
 #endif
 
-#include <nitpicker_session/client.h>
+#include <gui_session/client.h>
 
 
 class QEmbeddedViewWidget : public QWidget

@@ -15,7 +15,7 @@
 #include <util/list.h>
 #include <base/component.h>
 #include <base/log.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <timer_session/connection.h>
 #include <input/event.h>
 

@@ -22,7 +22,7 @@
 #include <input_session/client.h>
 #include <input/event.h>
 #include <input/keycodes.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 
 /* MuPDF includes */
 extern "C" {

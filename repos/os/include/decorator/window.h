@@ -18,7 +18,7 @@
 #include <util/string.h>
 #include <util/xml_generator.h>
 #include <util/list_model.h>
-#include <nitpicker_session/client.h>
+#include <gui_session/client.h>
 #include <base/snprintf.h>
 
 /* decorator includes */

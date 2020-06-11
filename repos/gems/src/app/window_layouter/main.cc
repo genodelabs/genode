@@ -19,7 +19,7 @@
 #include <base/heap.h>
 #include <os/reporter.h>
 #include <os/session_policy.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <input_session/client.h>
 #include <input/event.h>
 #include <input/keycodes.h>

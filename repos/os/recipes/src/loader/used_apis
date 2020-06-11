@@ -3,4 +3,4 @@ os
 framebuffer_session
 input_session
 loader_session
-nitpicker_session
+gui_session

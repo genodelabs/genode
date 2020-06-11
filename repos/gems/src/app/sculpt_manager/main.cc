@@ -17,7 +17,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <os/path.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <vm_session/vm_session.h>
 #include <timer_session/connection.h>
 

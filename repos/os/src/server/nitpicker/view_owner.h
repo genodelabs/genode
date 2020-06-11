@@ -22,7 +22,7 @@
 /* Genode includes */
 #include <util/xml_generator.h>
 #include <input/event.h>
-#include <nitpicker_session/nitpicker_session.h>
+#include <gui_session/gui_session.h>
 #include <os/texture.h>
 
 /* local includes */

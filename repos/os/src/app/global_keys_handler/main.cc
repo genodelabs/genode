@@ -16,7 +16,7 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/registry.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <os/reporter.h>
 #include <input/event.h>
 #include <input/keycodes.h>

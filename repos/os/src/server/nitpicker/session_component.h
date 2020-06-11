@@ -21,7 +21,7 @@
 #include <os/session_policy.h>
 #include <os/reporter.h>
 #include <os/pixel_rgb565.h>
-#include <nitpicker_session/nitpicker_session.h>
+#include <gui_session/gui_session.h>
 
 /* local includes */
 #include "canvas.h"

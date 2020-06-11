@@ -1,5 +1,5 @@
 /*
- * \brief  Client-side nitpicker session interface
+ * \brief  Client-side GUI session interface
  * \author Norman Feske
  * \date   2006-08-23
  */
@@ -11,10 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__NITPICKER_SESSION__CLIENT_H_
-#define _INCLUDE__NITPICKER_SESSION__CLIENT_H_
+#ifndef _INCLUDE__GUI_SESSION__CLIENT_H_
+#define _INCLUDE__GUI_SESSION__CLIENT_H_
 
-#include <nitpicker_session/capability.h>
+#include <gui_session/capability.h>
 #include <base/rpc_client.h>
 #include <base/attached_dataspace.h>
 
@@ -112,4 +112,4 @@ class Nitpicker::Session_client : public Genode::Rpc_client<Session>
 		}
 };
 
-#endif /* _INCLUDE__NITPICKER_SESSION__CLIENT_H_ */
+#endif /* _INCLUDE__GUI_SESSION__CLIENT_H_ */

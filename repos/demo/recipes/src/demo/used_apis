@@ -5,4 +5,4 @@ nitpicker_gfx
 timer_session
 input_session
 framebuffer_session
-nitpicker_session
+gui_session

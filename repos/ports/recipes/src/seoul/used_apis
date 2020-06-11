@@ -3,7 +3,7 @@ libc
 os
 blit
 nitpicker_gfx
-nitpicker_session
+gui_session
 framebuffer_session
 input_session
 timer_session

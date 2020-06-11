@@ -20,7 +20,7 @@
 #include <util/misc_math.h>
 #include <base/component.h>
 #include <base/attached_ram_dataspace.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 
 /* local includes */
 #include <input.h>

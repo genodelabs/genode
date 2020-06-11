@@ -15,7 +15,7 @@
 #define _INCLUDE__DECORATOR__TYPES_H_
 
 /* Genode includes */
-#include <nitpicker_session/nitpicker_session.h>
+#include <gui_session/gui_session.h>
 #include <util/xml_node.h>
 #include <util/color.h>
 #include <util/geometry.h>

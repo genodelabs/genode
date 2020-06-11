@@ -22,7 +22,7 @@
 
 /* Genode includes */
 #include <base/rpc_server.h>
-#include <nitpicker_session/nitpicker_session.h>
+#include <gui_session/gui_session.h>
 
 class Wrapped_nitpicker_session : public Genode::Rpc_object<Nitpicker::Session>
 {

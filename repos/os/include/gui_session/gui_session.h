@@ -13,8 +13,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__NITPICKER_SESSION__NITPICKER_SESSION_H_
-#define _INCLUDE__NITPICKER_SESSION__NITPICKER_SESSION_H_
+#ifndef _INCLUDE__GUI_SESSION__GUI_SESSION_H_
+#define _INCLUDE__GUI_SESSION__GUI_SESSION_H_
 
 #include <session/session.h>
 #include <os/surface.h>
@@ -361,4 +361,4 @@ struct Nitpicker::Session : Genode::Session
 	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus, Rpc_session_control);
 };
 
-#endif /* _INCLUDE__NITPICKER_SESSION__NITPICKER_SESSION_H_ */
+#endif /* _INCLUDE__GUI_SESSION__GUI_SESSION_H_ */

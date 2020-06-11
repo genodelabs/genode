@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <root/component.h>
-#include <nitpicker_session/nitpicker_session.h>
+#include <gui_session/gui_session.h>
 #include <base/component.h>
 
 /* local includes */

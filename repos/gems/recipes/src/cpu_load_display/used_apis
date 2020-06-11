@@ -4,6 +4,6 @@ polygon_gfx
 nano3d
 gems
 input_session
-nitpicker_session
+gui_session
 framebuffer_session
 timer_session

@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <input/component.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 
 namespace Wm {
 	struct Layouter_nitpicker_session;

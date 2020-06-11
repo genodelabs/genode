@@ -18,7 +18,7 @@
 #include <base/session_label.h>
 #include <root/component.h>
 #include <log_session/log_session.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <timer_session/connection.h>
 #include <input/event.h>
 #include <os/pixel_rgb565.h>

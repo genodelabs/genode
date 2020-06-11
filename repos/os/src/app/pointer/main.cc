@@ -22,7 +22,7 @@
 #include <os/pixel_rgb888.h>
 #include <os/surface.h>
 #include <os/texture_rgb888.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <report_rom/report_service.h>
 #include <pointer/dither_painter.h>
 #include <pointer/shape_report.h>

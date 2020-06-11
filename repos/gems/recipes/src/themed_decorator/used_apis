@@ -10,6 +10,6 @@ zlib
 gems
 vfs
 input_session
-nitpicker_session
+gui_session
 framebuffer_session
 report_session

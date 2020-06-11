@@ -15,7 +15,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <util/misc_math.h>
 #include <decorator/xml_utils.h>
 #include <nitpicker_gfx/box_painter.h>

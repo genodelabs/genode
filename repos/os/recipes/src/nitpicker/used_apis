@@ -5,5 +5,5 @@ blit
 input_session
 timer_session
 framebuffer_session
-nitpicker_session
+gui_session
 report_session

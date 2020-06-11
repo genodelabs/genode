@@ -23,7 +23,7 @@
 #include <os/reporter.h>
 #include <os/session_policy.h>
 #include <root/component.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <input_session/capability.h>
 #include <input/component.h>
 

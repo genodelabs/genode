@@ -15,7 +15,7 @@
 #define _INCLUDE__SCOUT__NITPICKER_GRAPHICS_BACKEND_H_
 
 /* Genode includes */
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <os/pixel_rgb565.h>
 #include <base/attached_dataspace.h>
 

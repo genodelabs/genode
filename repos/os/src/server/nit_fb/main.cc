@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <input/component.h>
 #include <os/surface.h>
 #include <input/event.h>

@@ -7,7 +7,7 @@ input_session
 libc
 libiconv
 nic_session
-nitpicker_session
+gui_session
 os
 report_session
 rtc_session

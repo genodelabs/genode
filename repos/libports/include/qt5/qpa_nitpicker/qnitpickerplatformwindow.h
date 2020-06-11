@@ -18,7 +18,7 @@
 
 /* Genode includes */
 #include <input/event.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 
 /* EGL includes */
 #include <EGL/egl.h>

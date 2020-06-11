@@ -14,7 +14,7 @@
 /* Genode includes */
 #define Framebuffer Fb_Genode
 #include <framebuffer_session/connection.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #undef Framebuffer
 
 #include <os/texture_rgb565.h>

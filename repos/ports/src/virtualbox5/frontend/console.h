@@ -20,7 +20,7 @@
 #include <input/keycodes.h>
 #include <input_session/connection.h>
 #define Framebuffer Fb_Genode
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #undef Framebuffer
 #include <os/reporter.h>
 #include <report_session/connection.h>

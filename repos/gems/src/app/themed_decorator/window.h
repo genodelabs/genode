@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/ram_allocator.h>
 #include <decorator/window.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <base/attached_dataspace.h>
 #include <util/reconstructible.h>
 

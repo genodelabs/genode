@@ -11,10 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__NITPICKER_SESSION__CONNECTION_H_
-#define _INCLUDE__NITPICKER_SESSION__CONNECTION_H_
+#ifndef _INCLUDE__GUI_SESSION__CONNECTION_H_
+#define _INCLUDE__GUI_SESSION__CONNECTION_H_
 
-#include <nitpicker_session/client.h>
+#include <gui_session/client.h>
 #include <framebuffer_session/client.h>
 #include <input_session/client.h>
 #include <util/arg_string.h>
@@ -99,4 +99,4 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		Framebuffer::Session *framebuffer() { return &_framebuffer; }
 };
 
-#endif /* _INCLUDE__NITPICKER_SESSION__CONNECTION_H_ */
+#endif /* _INCLUDE__GUI_SESSION__CONNECTION_H_ */

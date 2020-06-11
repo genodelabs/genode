@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <os/session_policy.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 
 namespace Wm { class Direct_nitpicker_session; }
 

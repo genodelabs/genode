@@ -3,7 +3,7 @@ framebuffer_session
 input_session
 libc
 mesa
-nitpicker_session
+gui_session
 os
 qoost
 qt5_core

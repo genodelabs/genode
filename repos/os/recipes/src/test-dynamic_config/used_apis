@@ -2,6 +2,6 @@ base
 os
 input_session
 framebuffer_session
-nitpicker_session
+gui_session
 loader_session
 timer_session

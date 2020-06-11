@@ -22,7 +22,7 @@
 /* Genode includes */
 #include <base/entrypoint.h>
 #include <timer_session/connection.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <os/surface.h>
 #include <os/pixel_alpha8.h>
 #include <base/attached_dataspace.h>

@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <nitpicker_session/client.h>
+#include <gui_session/client.h>
 
 /* Qt includes */
 #include <qpa/qplatformscreen.h>

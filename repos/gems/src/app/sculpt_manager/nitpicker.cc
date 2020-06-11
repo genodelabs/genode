@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <input/component.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <base/heap.h>
 
 struct Nitpicker::Session_component : Rpc_object<Nitpicker::Session>

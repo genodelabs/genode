@@ -7,6 +7,6 @@ blit
 gems
 nitpicker_gfx
 vfs
-nitpicker_session
+gui_session
 framebuffer_session
 input_session

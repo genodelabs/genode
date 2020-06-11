@@ -18,7 +18,7 @@
 #include <base/env.h>
 #include <base/attached_rom_dataspace.h>
 #include <platform_session/platform_session.h>
-#include <nitpicker_session/nitpicker_session.h>
+#include <gui_session/gui_session.h>
 #include <usb_session/usb_session.h>
 #include <log_session/log_session.h>
 #include <rm_session/rm_session.h>

@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <input/component.h>
 #include <base/session_object.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 
 /* local includes */
 #include <input_event_handler.h>

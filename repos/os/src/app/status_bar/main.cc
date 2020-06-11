@@ -17,7 +17,7 @@
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/pixel_rgb565.h>
-#include <nitpicker_session/connection.h>
+#include <gui_session/connection.h>
 #include <nitpicker_gfx/box_painter.h>
 #include <nitpicker_gfx/tff_font.h>
 
