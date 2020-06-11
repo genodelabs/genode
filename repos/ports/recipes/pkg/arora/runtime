@@ -2,7 +2,7 @@
 
 	<requires>
 		<nic/>
-		<nitpicker/>
+		<gui/>
 		<report label="arora -> shape"/>
 		<rm/>
 		<rtc/>

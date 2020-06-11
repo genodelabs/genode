@@ -5,7 +5,7 @@
 		<file_system label="shared"/>
 		<vm/>
 		<timer/>
-		<nitpicker/>
+		<gui/>
 		<nic/>
 		<rom label="capslock"/>
 		<rom label="platform_info"/>

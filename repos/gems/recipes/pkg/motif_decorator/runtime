@@ -4,7 +4,7 @@
 		<rom label="window_layout"/>
 		<rom label="pointer"/>
 		<report/>
-		<nitpicker/>
+		<gui/>
 		<timer/>
 	</requires>
 

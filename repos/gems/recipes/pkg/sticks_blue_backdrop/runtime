@@ -1,6 +1,6 @@
 <runtime ram="64M" caps="300" binary="backdrop" config="backdrop.config">
 
-	<requires> <nitpicker/> </requires>
+	<requires> <gui/> </requires>
 
 	<content>
 		<rom label="backdrop.config"/>

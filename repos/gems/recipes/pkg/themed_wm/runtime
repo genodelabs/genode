@@ -1,15 +1,15 @@
 <runtime ram="28M" caps="1000" binary="init" config="wm.config">
 
 	<requires>
-		<nitpicker label="focus"/>
-		<nitpicker/>
+		<gui label="focus"/>
+		<gui/>
 		<report label="shape"/>
 		<report label="clipboard"/>
 		<rom    label="clipboard"/>
 		<timer/>
 	</requires>
 
-	<provides> <nitpicker/> <report/> <rom/> </provides>
+	<provides> <gui/> <report/> <rom/> </provides>
 
 	<content>
 		<rom label="ld.lib.so"/>

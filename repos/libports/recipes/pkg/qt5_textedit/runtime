@@ -2,7 +2,7 @@
 
 	<requires>
 		<file_system/>
-		<nitpicker/>
+		<gui/>
 		<report label="shape"/>
 		<report label="clipboard"/>
 		<rom    label="clipboard"/>

@@ -1,6 +1,6 @@
 <runtime ram="4M" caps="200" binary="nano3d">
 
-	<requires> <nitpicker/> <timer/> </requires>
+	<requires> <gui/> <timer/> </requires>
 
 	<config/>
 

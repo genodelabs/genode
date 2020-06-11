@@ -1,7 +1,7 @@
 <runtime ram="76M" caps="1000" binary="init" config="system_shell.config">
 
 	<requires>
-		<nitpicker/>
+		<gui/>
 		<timer/>
 		<file_system label="config" writeable="yes"/>
 		<file_system label="report" writeable="no"/>

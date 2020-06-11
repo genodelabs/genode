@@ -33,7 +33,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::BLOCK:       return "block";
 		case Service::Type::FILE_SYSTEM: return "file_system";
 		case Service::Type::NIC:         return "nic";
-		case Service::Type::GUI:         return "nitpicker";
+		case Service::Type::GUI:         return "gui";
 		case Service::Type::RM:          return "rm";
 		case Service::Type::IO_MEM:      return "io_mem";
 		case Service::Type::IO_PORT:     return "io_port";

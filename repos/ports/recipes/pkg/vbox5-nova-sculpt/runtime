@@ -3,7 +3,7 @@
 	<requires>
 		<file_system label="vm"/>
 		<file_system label="shared"/>
-		<nitpicker/>
+		<gui/>
 		<nic/>
 		<rom label="capslock"/>
 		<rom label="platform_info"/>

@@ -1,7 +1,7 @@
 <runtime ram="7M" caps="400" binary="init">
 
 	<requires>
-		<nitpicker/>
+		<gui/>
 		<rom label="window_list"/>
 		<rom label="focus_request"/>
 		<rom label="hover"/>
