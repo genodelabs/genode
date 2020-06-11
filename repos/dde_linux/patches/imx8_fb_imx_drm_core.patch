@@ -1,7 +1,5 @@
-imx_drm_core.patch
-
 diff --git a/drivers/gpu/drm/imx/imx-drm-core.c b/drivers/gpu/drm/imx/imx-drm-core.c
-index 76b782c..a2c3a76 100644
+index 453100d..05ef413 100644
 --- a/drivers/gpu/drm/imx/imx-drm-core.c
 +++ b/drivers/gpu/drm/imx/imx-drm-core.c
 @@ -43,7 +43,9 @@ static void imx_drm_driver_lastclose(struct drm_device *drm)
@@ -14,7 +12,7 @@ index 76b782c..a2c3a76 100644
  }
  
  DEFINE_DRM_GEM_CMA_FOPS(imx_drm_driver_fops);
-@@ -120,6 +122,17 @@ static int compare_of(struct device *dev, void *data)
+@@ -120,6 +122,20 @@ static int compare_of(struct device *dev, void *data)
  {
  	struct device_node *np = data;
  
@@ -26,13 +24,16 @@ index 76b782c..a2c3a76 100644
 +	    (strncmp(np->name, "hdmi", strlen(np->name)) == 0))
 +		return 1;
 +
++	if (strcmp(dev->driver->name, "nwl_dsi-imx") == 0 && strcmp(np->name, "mipi_dsi") == 0)
++		return 1;
++
 +	return 0;
 +
 +#if 0
  	/* Special case for DI, dev->of_node may not be set yet */
  	if (strcmp(dev->driver->name, "imx-ipuv3-crtc") == 0) {
  		struct ipu_client_platformdata *pdata = dev->platform_data;
-@@ -161,6 +174,7 @@ static int compare_of(struct device *dev, void *data)
+@@ -161,6 +177,7 @@ static int compare_of(struct device *dev, void *data)
  	}
  
  	return dev->of_node == np;
@@ -40,7 +41,7 @@ index 76b782c..a2c3a76 100644
  }
  
  static const char *const imx_drm_dpu_comp_parents[] = {
-@@ -416,8 +430,10 @@ static void imx_drm_unbind(struct device *dev)
+@@ -416,8 +433,10 @@ static void imx_drm_unbind(struct device *dev)
  
  	drm_kms_helper_poll_fini(drm);
  

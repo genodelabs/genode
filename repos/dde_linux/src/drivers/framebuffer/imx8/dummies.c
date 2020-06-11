@@ -121,6 +121,29 @@ void drm_dev_unregister(struct drm_device *dev)
 }
 
 
+/***********************
+ ** linux/drm_panel.h **
+ ***********************/
+
+void drm_panel_init(struct drm_panel *panel)
+{
+	TRACE;
+}
+
+
+void drm_panel_remove(struct drm_panel *panel)
+{
+	TRACE_AND_STOP;
+}
+
+
+int drm_panel_detach(struct drm_panel *panel)
+{
+	TRACE;
+	return -1;
+}
+
+
 /*****************************************
  ** drivers/gpu/drm/drm_fb_cma_helper.c **
  *****************************************/
@@ -295,12 +318,6 @@ void clk_disable_unprepare(struct clk *clk)
 	TRACE;
 }
 
-int clk_prepare_enable(struct clk *clk)
-{
-	TRACE;
-	return 0;
-}
-
 
 /******************
  ** linux/gpio.h **
@@ -373,6 +390,7 @@ bool is_of_node(const struct fwnode_handle *fwnode)
 }
 
 
+
 /************************
  ** linux/pm_runtime.h **
  ************************/
@@ -411,6 +429,53 @@ ktime_t ktime_get_real(void)
 }
 
 
+/***********************
+ ** linux/of_device.h **
+ ***********************/
+
+int of_device_uevent_modalias(struct device *dev, struct kobj_uevent_env *env)
+{
+	TRACE_AND_STOP;
+	return -ENODEV;
+}
+
+
+/********************
+ ** linux/device.h **
+ ********************/
+
+void device_initialize(struct device *dev)
+{
+	TRACE;
+}
+
+void device_unregister(struct device *dev)
+{
+	TRACE;
+}
+
+
+/***********************
+ ** video/videomode.h **
+ ***********************/
+
+void videomode_from_timing(const struct display_timing *dt, struct videomode *vm)
+{
+	TRACE_AND_STOP;
+}
+
+
+/***********************
+ ** linux/backlight.h **
+ ***********************/
+
+int backlight_disable(struct backlight_device *bd)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+
 /*************************
  ** linux/dma-mapping.h **
  *************************/
@@ -433,6 +498,76 @@ int dma_mmap_wc(struct device *dev,
 	return -1;
 }
 
+
+/*****************
+ ** linux/phy.h **
+ *****************/
+struct phy;
+struct phy_provider *__devm_of_phy_provider_register(struct device *dev,
+                                                     struct device_node *children,
+                                                     struct module *owner,
+                                                     struct phy * (*of_xlate)(struct device *dev,
+                                                        struct of_phandle_args *args))
+{
+	TRACE;
+	return NULL;
+}
+
+
+struct phy *of_phy_simple_xlate(struct device *dev, struct of_phandle_args *args)
+{
+	TRACE_AND_STOP;
+	return NULL;
+}
+
+
+int phy_power_off(struct phy *phy)
+{
+	TRACE;
+	return -1;
+}
+
+
+int phy_exit(struct phy *phy)
+{
+	TRACE;
+	return -1;
+}
+
+
+/***********************
+ ** linux/interrupt.h **
+ ***********************/
+
+void devm_free_irq(struct device *dev, unsigned int irq, void *dev_id)
+{
+	TRACE;
+}
+
+
+/********************************
+ ** linux/unaligned/generic.h  **
+ ********************************/
+
+u32 get_unaligned_le32(const void *p)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+
+/********************
+ ** linux/regmap.h **
+ ********************/
+
+struct regmap;
+
+int regmap_write(struct regmap *map, unsigned int reg, unsigned int val)
+{
+	TRACE_AND_STOP;
+
+	return 0;
+}
 
 /************************
  ** linux/pm-runtime.h **
@@ -561,12 +696,6 @@ loff_t noop_llseek(struct file *file, loff_t offset, int whence)
 	return -1;
 }
 
-int of_alias_get_id(struct device_node *np, const char *stem)
-{
-	TRACE_AND_STOP;
-	return -ENOSYS;
-}
-
 int of_irq_get(struct device_node *dev, int index)
 {
 	TRACE_AND_STOP;
@@ -592,8 +721,8 @@ void print_hex_dump(const char *level, const char *prefix_str, int prefix_type, 
 
 int PTR_ERR_OR_ZERO(__force const void *ptr)
 {
-	TRACE_AND_STOP;
-	return -1;
+	TRACE;
+	return 0;
 }
 
 void up_read(struct rw_semaphore *sem)

@@ -8,19 +8,26 @@ SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/dma-buf/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/i2c/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/base/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/drm/*.c))
+SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/drm/bridge/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/drm/imx/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/drm/imx/dcss/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/drm/imx/hdp/*.c))
+SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/drm/panel/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/gpu/imx/dcss/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/irqchip/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/mxc/hdp/*.c))
+SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/phy/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/video/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/lib/*.c))
+
+
+CC_OPT_nwl-dsi += -DMOD_SUFFIX=_bridge
 
 #
 # Linux sources are C89 with GNU extensions
 #
 CC_C_OPT += -std=gnu89
+
 
 #
 # Reduce build noise of compiling contrib code
@@ -34,12 +41,15 @@ vpath %.c $(LX_CONTRIB_DIR)/drivers/base
 vpath %.c $(LX_CONTRIB_DIR)/drivers/dma-buf
 vpath %.c $(LX_CONTRIB_DIR)/drivers/i2c
 vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/drm
+vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/drm/bridge
 vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/drm/imx
 vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/drm/imx/dcss
 vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/drm/imx/hdp
+vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/drm/panel
 vpath %.c $(LX_CONTRIB_DIR)/drivers/gpu/imx/dcss
 vpath %.c $(LX_CONTRIB_DIR)/drivers/irqchip
 vpath %.c $(LX_CONTRIB_DIR)/drivers/mxc/hdp
+vpath %.c $(LX_CONTRIB_DIR)/drivers/phy
 vpath %.c $(LX_CONTRIB_DIR)/drivers/video
 vpath %.c $(LX_CONTRIB_DIR)/lib
 

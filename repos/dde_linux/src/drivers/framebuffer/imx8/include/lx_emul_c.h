@@ -19,7 +19,7 @@
 
 #define TRACE_AND_STOP \
 	do { \
-		lx_printf("%s not implemented\n", __func__); \
+		lx_printf("%s not implemented called from %p\n", __func__, __builtin_return_address(0)); \
 		BUG(); \
 	} while (0)
 

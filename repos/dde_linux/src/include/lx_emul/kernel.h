@@ -78,7 +78,7 @@ static inline void panic(const char *fmt, ...)
 	va_start(args, fmt);
 	lx_vprintf(fmt, args);
 	va_end(args);
-	lx_printf("panic()");
+	lx_printf("\npanic()\n");
 	while (1) ;
 }
 

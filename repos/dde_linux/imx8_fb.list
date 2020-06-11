@@ -18,6 +18,7 @@ linux-x.x.x/drivers/gpu/drm/drm_gem.c
 linux-x.x.x/drivers/gpu/drm/drm_gem_cma_helper.c
 linux-x.x.x/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 linux-x.x.x/drivers/gpu/drm/drm_internal.h
+linux-x.x.x/drivers/gpu/drm/drm_mipi_dsi.c
 linux-x.x.x/drivers/gpu/drm/drm_mm.c
 linux-x.x.x/drivers/gpu/drm/drm_mode_config.c
 linux-x.x.x/drivers/gpu/drm/drm_mode_object.c
@@ -31,8 +32,10 @@ linux-x.x.x/drivers/gpu/drm/drm_property.c
 linux-x.x.x/drivers/gpu/drm/drm_rect.c
 linux-x.x.x/drivers/gpu/drm/drm_vblank.c
 linux-x.x.x/drivers/gpu/drm/drm_vma_manager.c
+linux-x.x.x/drivers/gpu/drm/bridge/nwl-dsi.c
 linux-x.x.x/drivers/gpu/drm/imx/imx-drm.h
 linux-x.x.x/drivers/gpu/drm/imx/imx-drm-core.c
+linux-x.x.x/drivers/gpu/drm/imx/nwl_dsi-imx.c
 linux-x.x.x/drivers/gpu/drm/imx/dcss/dcss-crtc.c
 linux-x.x.x/drivers/gpu/drm/imx/dcss/dcss-crtc.h
 linux-x.x.x/drivers/gpu/drm/imx/dcss/dcss-kms.c
@@ -61,6 +64,7 @@ linux-x.x.x/drivers/gpu/drm/imx/hdp/ss28fdsoi_hdmitx_table.c
 linux-x.x.x/drivers/gpu/drm/imx/hdp/ss28fdsoi_hdmitx_table.h
 linux-x.x.x/drivers/gpu/drm/imx/hdp/t28hpc_hdmitx_table.c
 linux-x.x.x/drivers/gpu/drm/imx/hdp/t28hpc_hdmitx_table.h
+linux-x.x.x/drivers/gpu/drm/panel/panel-raydium-rm67191.c
 linux-x.x.x/drivers/gpu/imx/dcss/dcss-common.c
 linux-x.x.x/drivers/gpu/imx/dcss/dcss-blkctl.c
 linux-x.x.x/drivers/gpu/imx/dcss/dcss-ctxld.c
@@ -111,6 +115,7 @@ linux-x.x.x/drivers/mxc/hdp/source_vif.h
 linux-x.x.x/drivers/mxc/hdp/util.c
 linux-x.x.x/drivers/mxc/hdp/util.h
 linux-x.x.x/drivers/mxc/hdp-cec/imx-hdp-cec.h
+linux-x.x.x/drivers/phy/phy-mixel-mipi-dsi.c
 linux-x.x.x/drivers/video/hdmi.c
 linux-x.x.x/include/asm-generic/atomic64.h
 linux-x.x.x/include/asm-generic/bitops/__ffs.h
@@ -145,6 +150,7 @@ linux-x.x.x/include/drm/drm_gem_framebuffer_helper.h
 linux-x.x.x/include/drm/drm_hashtab.h
 linux-x.x.x/include/drm/drm_hdcp.h
 linux-x.x.x/include/drm/drm_ioctl.h
+linux-x.x.x/include/drm/drm_mipi_dsi.h
 linux-x.x.x/include/drm/drm_mm.h
 linux-x.x.x/include/drm/drm_mode_config.h
 linux-x.x.x/include/drm/drm_mode_object.h
@@ -163,6 +169,7 @@ linux-x.x.x/include/drm/drm_property.h
 linux-x.x.x/include/drm/drm_rect.h
 linux-x.x.x/include/drm/drm_vblank.h
 linux-x.x.x/include/drm/drm_vma_manager.h
+linux-x.x.x/include/drm/bridge/nwl_dsi.h
 linux-x.x.x/include/linux/irqchip/chained_irq.h
 linux-x.x.x/include/linux/busfreq-imx.h
 linux-x.x.x/include/linux/component.h
@@ -183,12 +190,16 @@ linux-x.x.x/include/linux/mod_devicetable.h
 linux-x.x.x/include/linux/of_graph.h
 linux-x.x.x/include/linux/pm_runtime.h
 linux-x.x.x/include/linux/pm_wakeirq.h
+linux-x.x.x/include/linux/phy.h
 linux-x.x.x/include/linux/radix-tree.h
 linux-x.x.x/include/linux/ratelimit.h
 linux-x.x.x/include/linux/rbtree_augmented.h
 linux-x.x.x/include/linux/rbtree.h
 linux-x.x.x/include/linux/sort.h
 linux-x.x.x/include/linux/vga_switcheroo.h
+linux-x.x.x/include/linux/mfd/syscon/imx8mq-iomuxc-gpr.h
+linux-x.x.x/include/linux/phy/phy.h
+linux-x.x.x/include/linux/phy/phy-mixel-mipi-dsi.h
 linux-x.x.x/include/soc/imx8/sc/ipc.h
 linux-x.x.x/include/soc/imx8/sc/scfw.h
 linux-x.x.x/include/soc/imx8/sc/sci.h
@@ -204,6 +215,7 @@ linux-x.x.x/include/uapi/linux/i2c.h
 linux-x.x.x/include/uapi/linux/media-bus-format.h
 linux-x.x.x/include/uapi/linux/swab.h
 linux-x.x.x/include/video/display_timing.h
+linux-x.x.x/include/video/mipi_display.h
 linux-x.x.x/include/video/of_videomode.h
 linux-x.x.x/include/video/videomode.h
 linux-x.x.x/include/video/viv-metadata.h

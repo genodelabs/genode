@@ -111,14 +111,17 @@ LX_MUTEX_INIT_DECLARE(component_mutex);
  ** asm-generic/io.h **
  **********************/
 
+#include <lx_emul/mmio.h>
+
+
 static inline u32 __raw_readl(const volatile void __iomem *addr)
 {
-	return *(const volatile u32 __force *) addr;
+	return readl(addr);
 }
 
 static inline void __raw_writel(u32 b, volatile void __iomem *addr)
 {
-	*(volatile u32 __force *) addr = b;
+	writel(b, addr);
 }
 
 
@@ -756,6 +759,13 @@ enum rpm_status {
 	RPM_SUSPENDED,
 };
 
+#define pm_generic_suspend   NULL
+#define pm_generic_resume    NULL
+#define pm_generic_freeze    NULL
+#define pm_generic_thaw      NULL
+#define pm_generic_poweroff  NULL
+#define pm_generic_restore   NULL
+
 
 /***********************
  ** linux/pm_domain.h **
@@ -784,6 +794,7 @@ struct bus_type
 	const char *name;
 
 	int (*match)(struct device *dev, struct device_driver *drv);
+	int (*uevent)(struct device *dev, struct kobj_uevent_env *env);
 	int (*probe)(struct device *dev);
 	int (*remove)(struct device *dev);
 	void (*shutdown)(struct device *dev);
@@ -855,8 +866,12 @@ struct device_attribute {
 #define dev_printk(level, dev, format, arg...) \
 	lx_printf("dev_printk: " format , ## arg)
 
+#if DEBUG_DRIVER
 #define dev_dbg(dev, format, arg...) \
 	lx_printf("dev_dbg: " format, ## arg)
+#else
+#define dev_dbg(dev, format, arg...)
+#endif
 
 #define dev_err_ratelimited(dev, fmt, ...)                              \
 	dev_err(dev, fmt, ##__VA_ARGS__)
@@ -869,7 +884,10 @@ struct device_driver
 	const struct of_device_id *of_match_table;
 	const struct acpi_device_id *acpi_match_table;
 	const struct dev_pm_ops *pm;
-	int            (*probe)  (struct device *dev);
+
+	int  (*probe)  (struct device *dev);
+	int  (*remove) (struct device *dev);
+	void (*shutdown) (struct device *dev);
 };
 
 int driver_register(struct device_driver *drv);
@@ -899,8 +917,14 @@ int  device_add(struct device *dev);
 
 int device_register(struct device *dev);
 void device_unregister(struct device *dev);
+void device_initialize(struct device *dev);
+
+
 
 const char *dev_name(const struct device *dev);
+
+struct device *bus_find_device(struct bus_type *bus, struct device *start, void *data,
+                               int (*match)(struct device *dev, void *data));
 
 int bus_for_each_drv(struct bus_type *bus, struct device_driver *start,
                      void *data, int (*fn)(struct device_driver *, void *));
@@ -913,6 +937,7 @@ struct acpi_device;
 
 void devm_kfree(struct device *dev, void *p);
 void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp);
+void *devm_kcalloc(struct device *dev, size_t n, size_t size, gfp_t flags);
 
 typedef void (*dr_release_t)(struct device *dev, void *res);
 typedef int (*dr_match_t)(struct device *dev, void *res, void *match_data);
@@ -931,15 +956,15 @@ void *devres_open_group(struct device *dev, void *id, gfp_t gfp);
 int devres_release_group(struct device *dev, void *id);
 void devres_remove_group(struct device *dev, void *id);
 
+void *devres_find(struct device *dev, dr_release_t release,
+                   dr_match_t match, void *match_data);
+
 int dev_to_node(struct device *dev);
 
 
 /****************
  ** linux/io.h **
  ****************/
-
-#define writel(value, addr) (*(volatile uint32_t *)(addr) = (value))
-#define readl(addr)         (*(volatile uint32_t *)(addr))
 
 #define readl_relaxed  readl
 #define writel_relaxed(v, a) writel(v, a)
@@ -1163,6 +1188,13 @@ extern struct page *shmem_read_mapping_page( struct address_space *mapping, pgof
 struct file *shmem_file_setup(const char *, loff_t, unsigned long);
 
 
+/********************************
+ ** linux/unaligned/generic.h  **
+ ********************************/
+
+u32 get_unaligned_le32(const void *p);
+
+
 /*****************
  ** linux/i2c.h **
  *****************/
@@ -1170,9 +1202,22 @@ struct file *shmem_file_setup(const char *, loff_t, unsigned long);
 enum i2c_slave_event { DUMMY };
 
 
+/***********************
+ ** uapi/linux/uuid.h **
+ ***********************/
+
+typedef struct {
+	__u8 b[16];
+} uuid_le;
+
+
 /****************
  ** linux/of.h **
  ****************/
+
+struct of_phandle_args;
+
+#include <linux/mod_devicetable.h>
 
 int of_alias_get_id(struct device_node *np, const char *stem);
 struct device_node *of_node_get(struct device_node *node);
@@ -1184,6 +1229,10 @@ int of_property_read_u32_index(const struct device_node *, const char *, u32,
                                u32 *);
 
 #define for_each_child_of_node(parent, child) \
+	for (child = of_get_next_child(parent, NULL); child != NULL; \
+	     child = of_get_next_child(parent, child))
+
+#define for_each_available_child_of_node(parent, child) \
 	for (child = of_get_next_child(parent, NULL); child != NULL; \
 	     child = of_get_next_child(parent, child))
 
@@ -1216,6 +1265,10 @@ int of_property_read_string(const struct device_node *np, const char *propname,
                             const char **out_string);
 int of_property_read_u32(const struct device_node *np, const char *propname, u32 *out_value);
 
+struct property *of_find_property(const struct device_node *np,
+                                  const char *name, int *lenp);
+int of_modalias_node(struct device_node *node, char *modalias, int len);
+
 bool is_of_node(const struct fwnode_handle *fwnode);
 
 #define to_of_node(__fwnode)						\
@@ -1228,6 +1281,9 @@ bool is_of_node(const struct fwnode_handle *fwnode);
 			NULL;						\
 	})
 
+struct device_node *of_get_child_by_name(const struct device_node *node,
+                                         const char *name);
+
 
 /***********************
  ** linux/of_device.h **
@@ -1237,6 +1293,28 @@ const void *of_device_get_match_data(const struct device *dev);
 
 const struct of_device_id *of_match_device(const struct of_device_id *matches,
                                            const struct device *dev);
+
+int of_driver_match_device(struct device *dev, const struct device_driver *drv);
+
+int of_device_uevent_modalias(struct device *dev, struct kobj_uevent_env *env);
+
+
+/**************************
+ ** linux/of_videomode.h **
+ **************************/
+
+struct videomode;
+
+int of_get_videomode(struct device_node *np, struct videomode *vm, int index);
+
+
+/***********************
+ ** video/videomode.h **
+ ***********************/
+
+struct display_timing;
+
+void videomode_from_timing(const struct display_timing *dt, struct videomode *vm);
 
 
 /******************
@@ -1282,6 +1360,51 @@ int gpio_get_value(unsigned int gpio);
 bool gpio_is_valid(int number);
 int gpio_request_one(unsigned gpio, unsigned long flags, const char *label);
 void gpio_set_value(unsigned int gpio, int value);
+
+
+/***************************
+ ** linux/gpio/consumer.h **
+ ***************************/
+
+#define GPIOD_FLAGS_BIT_DIR_SET		BIT(0)
+#define GPIOD_FLAGS_BIT_DIR_OUT		BIT(1)
+#define GPIOD_FLAGS_BIT_DIR_VAL		BIT(2)
+
+enum gpiod_flags {
+	GPIOD_OUT_HIGH = GPIOD_FLAGS_BIT_DIR_SET | GPIOD_FLAGS_BIT_DIR_OUT |
+	                 GPIOD_FLAGS_BIT_DIR_VAL
+};
+
+struct gpio_desc
+{
+	u32 pin;
+};
+
+struct gpio_desc *
+devm_gpiod_get(struct device *dev, const char *con_id, enum gpiod_flags flags);
+
+void gpiod_set_value(struct gpio_desc *desc, int value);
+
+
+/********************
+ ** linux/regmap.h **
+ ********************/
+
+struct regmap
+{
+	u8 *base;
+};
+
+int regmap_write(struct regmap *map, unsigned int reg, unsigned int val);
+
+int regmap_update_bits(struct regmap *map, unsigned reg, unsigned mask,
+                       unsigned val);
+
+/************************
+ ** linux/mfd/syscon.h **
+ ************************/
+
+struct regmap *syscon_regmap_lookup_by_phandle( struct device_node *np, const char *property);
 
 
 /* needed by drivers/gpu/drm/drm_modes.c */
@@ -1544,6 +1667,58 @@ int device_property_read_u32(struct device *, const char *, u32 *);
 void call_rcu(struct rcu_head *, void (*)(struct rcu_head *));
 
 
+/***********************
+ ** linux/backlight.h **
+ ***********************/
+
+enum backlight_type {
+	BACKLIGHT_RAW = 1,
+};
+
+struct backlight_properties
+{
+	int brightness;
+	int max_brightness;
+	enum backlight_type type;
+};
+
+struct backlight_ops;
+
+struct backlight_device
+{
+	struct backlight_properties props;
+	struct backlight_ops const *ops;
+	struct device               dev;
+};
+
+struct backlight_ops {
+	int (*update_status)(struct backlight_device *);
+	int (*get_brightness)(struct backlight_device *);
+};
+
+int backlight_enable(struct backlight_device *bd);
+int backlight_disable(struct backlight_device *bd);
+
+void *bl_get_data(struct backlight_device *bl_dev);
+
+struct backlight_device *
+devm_backlight_device_register(struct device *dev, const char *name,
+                               struct device *parent, void *devdata,
+                               const struct backlight_ops *ops,
+                               const struct backlight_properties *props);
+
+/****************************
+ ** drivers/phy/phy-core.c **
+ ****************************/
+
+void devm_phy_consume(struct device *dev, void *res);
+
+/***********************
+ ** linux/backlight.h **
+ ***********************/
+
+struct drm_panel;
+
 /************************
  ** drm/drm_os_linux.h **
  ************************/
@@ -1622,7 +1797,9 @@ static inline void *irq_desc_get_handler_data(struct irq_desc *desc)
 #define CONFIG_MMU                             1
 #define CONFIG_OF                              1
 #define CONFIG_VIDEOMODE_HELPERS               1
-
+#define CONFIG_PHY_MIXEL_MIPI_DSI              1
+#define CONFIG_GENERIC_PHY                     1
+#define CONFIG_DRM_PANEL                       1
 
 /**************************
  ** Dummy trace funtions **
@@ -1653,6 +1830,7 @@ void enable_irq(unsigned int);
 void disable_irq(unsigned int);
 int disable_irq_nosync(unsigned int);
 
+void devm_free_irq(struct device *dev, unsigned int irq, void *dev_id);
 
 /*****************************
  ** linux/platform_device.h **
@@ -1704,29 +1882,31 @@ struct platform_driver {
 int platform_driver_register(struct platform_driver *);
 void platform_driver_unregister(struct platform_driver *);
 
+#ifndef MOD_SUFFIX
+#define MOD_SUFFIX
+#endif
+
+#define _MOD_CONCAT(a,b,c) a##b##c
+#define MOD_CONCAT(a,b,c) _MOD_CONCAT(a,b,c)
+
 #define module_driver(__driver, __register, __unregister, ...) \
-static int __init __driver##_init(void) \
+static int __init MOD_CONCAT(__driver, MOD_SUFFIX, _init)(void) \
 { \
 	return __register(&(__driver) , ##__VA_ARGS__); \
 } \
-module_init(__driver##_init); \
-static void __exit __driver##_exit(void) \
+int MOD_CONCAT(module_##__driver, MOD_SUFFIX, _init)() { \
+  return MOD_CONCAT(__driver, MOD_SUFFIX, _init)(); } \
+static void __exit MOD_CONCAT(__driver, MOD_SUFFIX, _exit)(void) \
 { \
 	__unregister(&(__driver) , ##__VA_ARGS__); \
 } \
-module_exit(__driver##_exit);
+void MOD_CONCAT(module_exit_##__driver, MOD_SUFFIX, _exit)() { \
+	MOD_CONCAT(__driver, MOD_SUFFIX, _exit)(); }
+
 
 #define module_platform_driver(__platform_driver) \
 	module_driver(__platform_driver, platform_driver_register, \
 			platform_driver_unregister)
-
-/***********************
- ** uapi/linux/uuid.h **
- ***********************/
-
-typedef struct {
-	__u8 b[16];
-} uuid_le;
 
 
 /************************
@@ -1743,7 +1923,8 @@ enum cpuhp_state {
  *******************/
 
 enum {
-	SZ_4K = 0x00001000,
+	SZ_256 = 0x00000100,
+	SZ_4K  = 0x00001000,
 	SZ_16K = 0x00004000,
 };
 
@@ -1763,10 +1944,26 @@ enum {
        IOMEM_END_HDMI_CRS   = 0x33ffff,
        IOMEM_BASE_HDMI_RST  = 0x340000,
        IOMEM_END_HDMI_RST   = 0x34000f,
+       IOMEM_BASE_MIPI_DSI  = 0x400000,
+       IOMEM_BASE_MIPI_DPHY = 0x400300,
+       IOMEM_END_MIPI_DSI   = 0x400fff,
        IRQ_IRQSTEER         = 32,
        IRQ_HDMI_IN          = 33,
-       IRQ_HDMI_OUT         = 34
+       IRQ_HDMI_OUT         = 34,
+       IRQ_MIPI_DSI         = 35,
+       IOMEM_BASE_SRC       = 0x410000,
+       IOMEM_END_SRC        = 0xf1ffff,
 };
+
+
+/************************************
+ ** drivers/gpu/drm/drm_mipi_dsi.c **
+ ************************************/
+
+//XXX: init in startup code before drm_mipi_dsi.c
+LX_MUTEX_INIT_DECLARE(host_lock);
+
+#define host_lock LX_MUTEX(host_lock)
 
 #include <lx_emul/extern_c_end.h>
 

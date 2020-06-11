@@ -40,6 +40,11 @@ extern "C" int module_imx_drm_pdrv_init();
 extern "C" int module_dcss_driver_init();
 extern "C" int module_dcss_crtc_driver_init();
 extern "C" int module_imx_hdp_imx_platform_driver_init();
+extern "C" int module_mixel_mipi_phy_driver_init();
+extern "C" int module_imx_nwl_dsi_driver_bridge_init();
+extern "C" int module_imx_nwl_dsi_driver_init();
+extern "C" int module_rad_panel_driver_init();
+extern "C" void postcore_mipi_dsi_bus_init();
 
 unsigned long jiffies;
 
@@ -79,6 +84,32 @@ struct Framebuffer::Main
 		Lx::scheduler().schedule();
 	}
 
+	bool _hdmi()
+	{
+		try {
+			Xml_node config = _config.xml();
+			Xml_node xn = config.sub_node();
+			for (unsigned i = 0; i < config.num_sub_nodes(); xn = xn.next()) {
+				if (!xn.has_type("connector"))
+					continue;
+
+				bool enabled = xn.attribute_value("enabled", true);
+				if (!enabled)
+					continue;
+
+				/* check first connector only */
+				typedef String<64> Name;
+				Name const con_policy = xn.attribute_value("name", Name());
+				if (con_policy == "DSI-1")
+					return false;
+
+				return true;
+			}
+		} catch (...) { }
+
+		return true;
+	}
+
 	Main(Env &env) : _env(env)
 	{
 		log("--- i.MX8 framebuffer driver ---");
@@ -88,6 +119,7 @@ struct Framebuffer::Main
 		LX_MUTEX_INIT(bridge_lock);
 		LX_MUTEX_INIT(core_lock);
 		LX_MUTEX_INIT(component_mutex);
+		LX_MUTEX_INIT(host_lock);
 
 		/* init singleton Lx::Scheduler */
 		Lx::scheduler(&_env);
@@ -125,6 +157,13 @@ void Framebuffer::Main::_run_linux()
 	module_dcss_crtc_driver_init();
 	module_imx_hdp_imx_platform_driver_init();
 
+	/* MIPI DSI */
+	module_mixel_mipi_phy_driver_init();
+	module_imx_nwl_dsi_driver_bridge_init();
+	module_imx_nwl_dsi_driver_init();
+	postcore_mipi_dsi_bus_init();
+	module_rad_panel_driver_init();
+
 	/**
 	 * This device is originally created with the name '32e2d000.irqsteer'
 	 * via 'of_platform_bus_create()'. Here it is called 'imx-irqsteer' to match
@@ -148,40 +187,6 @@ void Framebuffer::Main::_run_linux()
 	imx_irqsteer_pdev->dev.of_node->full_name  = "imx-irqsteer";
 
 	platform_device_register(imx_irqsteer_pdev);
-
-
-	/**
-	 * This device is originally created with the name '32e00000.dcss'
-	 * via 'of_platform_bus_create()'. Here it is called 'dcss-core' to match
-	 * the driver name.
-	 */
-
-	struct platform_device *dcss_pdev =
-		platform_device_alloc("dcss-core", 0);
-
-	static resource dcss_resources[] = 	{
-		{ IOMEM_BASE_DCSS, IOMEM_END_DCSS, "dcss", IORESOURCE_MEM },
-		{        3,        3, "dpr_dc_ch0", IORESOURCE_IRQ },
-		{        4,        4, "dpr_dc_ch1", IORESOURCE_IRQ },
-		{        5,        5, "dpr_dc_ch2", IORESOURCE_IRQ },
-		{        6,        6, "ctx_ld",     IORESOURCE_IRQ },
-		{        8,        8, "ctxld_kick", IORESOURCE_IRQ },
-		{        9,        9, "dtg_prg1",   IORESOURCE_IRQ },
-		{       16,       16, "dtrc_ch1",   IORESOURCE_IRQ },
-		{       17,       17, "dtrc_ch2",   IORESOURCE_IRQ },
-	};
-
-	dcss_pdev->num_resources = 9;
-	dcss_pdev->resource = dcss_resources;
-
-	dcss_pdev->dev.of_node                    = (device_node*)kzalloc(sizeof(device_node), 0);
-	dcss_pdev->dev.of_node->name              = "dcss";
-	dcss_pdev->dev.of_node->full_name         = "dcss";
-	dcss_pdev->dev.of_node->properties        = (property*)kzalloc(sizeof(property), 0);
-	dcss_pdev->dev.of_node->properties->name  = "disp-dev";
-	dcss_pdev->dev.of_node->properties->value = (void*)"hdmi_disp";
-
-	platform_device_register(dcss_pdev);
 
 
 	/**
@@ -214,9 +219,90 @@ void Framebuffer::Main::_run_linux()
 	hdp_pdev->dev.of_node->properties->name  = "compatible";
 	hdp_pdev->dev.of_node->properties->value = (void*)"fsl,imx8mq-hdmi";
 
-	platform_device_register(hdp_pdev);
+	bool hdmi = _hdmi();
+	if (hdmi)
+		platform_device_register(hdp_pdev);
 
+	struct platform_device *mipi_dsi_phy_pdev =
+		platform_device_alloc("mixel-mipi-dsi-phy", 0);
+
+	static resource mipi_dsi_phy_resources[] = {
+		{ IOMEM_BASE_MIPI_DPHY, IOMEM_BASE_MIPI_DPHY+0xff, "dsi_phy", IORESOURCE_MEM }
+	};
+
+	mipi_dsi_phy_pdev->num_resources = 1;
+	mipi_dsi_phy_pdev->resource      = mipi_dsi_phy_resources;
+
+	mipi_dsi_phy_pdev->dev.of_node                      = (device_node*)kzalloc(sizeof(device_node), 0);
+	mipi_dsi_phy_pdev->dev.of_node->properties          = (property*)kzalloc(2*sizeof(property), 0);
+	mipi_dsi_phy_pdev->dev.of_node->properties[0].name  = "compatible";
+	mipi_dsi_phy_pdev->dev.of_node->properties[0].value = (void*)"mixel,imx8mq-mipi-dsi-phy";
+	mipi_dsi_phy_pdev->dev.of_node->properties[0].next  = &mipi_dsi_phy_pdev->dev.of_node->properties[1];
+	mipi_dsi_phy_pdev->dev.of_node->properties[1].name  = "dsi_phy";
+	mipi_dsi_phy_pdev->dev.of_node->properties[1].value = (void*)0;
+
+	mipi_dsi_phy_pdev->dev.parent = &mipi_dsi_phy_pdev->dev;
+
+	if (hdmi == false) {
+		platform_device_register(mipi_dsi_phy_pdev);
+	}
 	/**
+	 * This device is originally created with the name '32e00000.dcss'
+	 * via 'of_platform_bus_create()'. Here it is called 'dcss-core' to match
+	 * the driver name.
+	 */
+	struct platform_device *dcss_pdev =
+		platform_device_alloc("dcss-core", 0);
+
+	static resource dcss_resources[] = 	{
+		{ IOMEM_BASE_DCSS, IOMEM_END_DCSS, "dcss", IORESOURCE_MEM },
+		{        3,        3, "dpr_dc_ch0", IORESOURCE_IRQ },
+		{        4,        4, "dpr_dc_ch1", IORESOURCE_IRQ },
+		{        5,        5, "dpr_dc_ch2", IORESOURCE_IRQ },
+		{        6,        6, "ctx_ld",     IORESOURCE_IRQ },
+		{        8,        8, "ctxld_kick", IORESOURCE_IRQ },
+		{        9,        9, "dtg_prg1",   IORESOURCE_IRQ },
+		{       16,       16, "dtrc_ch1",   IORESOURCE_IRQ },
+		{       17,       17, "dtrc_ch2",   IORESOURCE_IRQ },
+	};
+
+	dcss_pdev->num_resources = 9;
+	dcss_pdev->resource = dcss_resources;
+
+	dcss_pdev->dev.of_node                    = (device_node*)kzalloc(sizeof(device_node), 0);
+	dcss_pdev->dev.of_node->name              = "dcss";
+	dcss_pdev->dev.of_node->full_name         = "dcss";
+	dcss_pdev->dev.of_node->properties        = (property*)kzalloc(sizeof(property), 0);
+	dcss_pdev->dev.of_node->properties->name  = "disp-dev";
+	dcss_pdev->dev.of_node->properties->value = hdmi ? (void*)"hdmi_disp" : (void *)"mipi_disp";
+
+	platform_device_register(dcss_pdev);
+
+
+	struct platform_device *mipi_dsi_bridge_pdev =
+		platform_device_alloc("nwl-mipi-dsi", 0);
+
+	static resource mipi_dsi_bridge_resources[] = {
+		{ IOMEM_BASE_MIPI_DSI, IOMEM_END_MIPI_DSI, "mipi_dsi_bridge", IORESOURCE_MEM },
+		{ IRQ_MIPI_DSI,        IRQ_MIPI_DSI,       "mipi_dsi",        IORESOURCE_IRQ }
+	};
+
+	mipi_dsi_bridge_pdev->num_resources = 2;
+	mipi_dsi_bridge_pdev->resource      = mipi_dsi_bridge_resources;
+
+	Genode::addr_t **phy_ptr =
+	  (Genode::addr_t **)devres_find(&mipi_dsi_phy_pdev->dev, devm_phy_consume, nullptr, nullptr);
+	mipi_dsi_bridge_pdev->dev.of_node                      = (device_node*)kzalloc(sizeof(device_node), 0);
+	mipi_dsi_bridge_pdev->dev.of_node->name                = "mipi_dsi_bridge";
+	mipi_dsi_bridge_pdev->dev.of_node->properties          = (property*)kzalloc(sizeof(property), 0);
+	mipi_dsi_bridge_pdev->dev.of_node->properties[0].name  = "dphy";
+	mipi_dsi_bridge_pdev->dev.of_node->properties[0].value = phy_ptr ? (void*)*phy_ptr : nullptr;
+	mipi_dsi_bridge_pdev->dev.of_node->properties[0].next  = nullptr;
+
+	if (hdmi == false)
+		platform_device_register(mipi_dsi_bridge_pdev);
+
+	/*
 	 * This device is originally created with the name 'display-subsystem'
 	 * via 'of_platform_bus_create()'. Here it is called 'imx-drm' to match
 	 * the driver name.
@@ -231,6 +317,20 @@ void Framebuffer::Main::_run_linux()
 
 	platform_device_register(display_subsystem_pdev);
 
+	struct platform_device *mipi_dsi_imx_pdev =
+		platform_device_alloc("nwl_dsi-imx", 0);
+
+	mipi_dsi_imx_pdev->dev.of_node                      = (device_node*)kzalloc(sizeof(device_node), 0);
+	mipi_dsi_imx_pdev->dev.of_node->name                = "mipi_dsi";
+	mipi_dsi_imx_pdev->dev.of_node->properties          = (property*)kzalloc(2*sizeof(property), 0);
+	mipi_dsi_imx_pdev->dev.of_node->properties[0].name  = "compatible";
+	mipi_dsi_imx_pdev->dev.of_node->properties[0].value = (void *)"fsl,imx8mq-mipi-dsi_drm";
+	mipi_dsi_imx_pdev->dev.of_node->properties[0].next  = &mipi_dsi_imx_pdev->dev.of_node->properties[1];
+	mipi_dsi_imx_pdev->dev.of_node->properties[1].name  = "dphy";
+	mipi_dsi_imx_pdev->dev.of_node->properties[1].value = phy_ptr ? (void *)*phy_ptr : nullptr;
+
+	if (hdmi == false)
+		platform_device_register(mipi_dsi_imx_pdev);
 
 	_driver.finish_initialization();
 	_driver.config_sigh(_policy_change_handler);
