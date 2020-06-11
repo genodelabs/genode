@@ -1,10 +1,10 @@
 /*
- * \brief  Wrapper of a nitpicker session
+ * \brief  Wrapper of a GUI session
  * \author Norman Feske
  * \date   2014-10-01
  *
  * This utility is intended to reduce repetitive boiler-plate code of
- * components that intercept the nitpicker session interface. By default,
+ * components that intercept the GUI session interface. By default,
  * all RPC function calls are forwarded to the wrapped session. So the
  * implementations have to override only those functions that need
  * customizations.
@@ -17,8 +17,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__GEMS__WRAPPED_NITPICKER_SESSION_H_
-#define _INCLUDE__GEMS__WRAPPED_NITPICKER_SESSION_H_
+#ifndef _INCLUDE__GEMS__WRAPPED_GUI_SESSION_H_
+#define _INCLUDE__GEMS__WRAPPED_GUI_SESSION_H_
 
 /* Genode includes */
 #include <base/rpc_server.h>
@@ -108,4 +108,4 @@ class Wrapped_nitpicker_session : public Genode::Rpc_object<Nitpicker::Session>
 		}
 };
 
-#endif /* _INCLUDE__GEMS__WRAPPED_NITPICKER_SESSION_H_ */
+#endif /* _INCLUDE__GEMS__WRAPPED_GUI_SESSION_H_ */

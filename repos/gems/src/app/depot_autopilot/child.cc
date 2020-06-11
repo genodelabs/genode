@@ -319,7 +319,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 					_gen_provides_sub_node(xml, service, "input",       "Input");
 					_gen_provides_sub_node(xml, service, "log",         "LOG");
 					_gen_provides_sub_node(xml, service, "nic",         "Nic");
-					_gen_provides_sub_node(xml, service, "nitpicker",   "Nitpicker");
+					_gen_provides_sub_node(xml, service, "nitpicker",   "Gui");
 					_gen_provides_sub_node(xml, service, "report",      "Report");
 					_gen_provides_sub_node(xml, service, "rom",         "ROM");
 					_gen_provides_sub_node(xml, service, "terminal",    "Terminal");

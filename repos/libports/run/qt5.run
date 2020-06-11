@@ -74,7 +74,7 @@ append config {
 			</launcher>
 		</config>
 		<route>
-			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="calculatorform -> shape">
 				<child name="pointer" label="wm -> qt_launchpad -> calculatorform -> shape"/>
 			</service>

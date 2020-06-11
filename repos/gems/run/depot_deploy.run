@@ -60,7 +60,7 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 		<config focus="rom">
 			<background color="#123456"/>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
@@ -74,7 +74,7 @@ install_config {
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker" /> </service>
+			<service name="Gui"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -142,7 +142,7 @@ install_config {
 					<service name="PD"/>
 					<service name="LOG"/>
 					<service name="Timer"/>
-					<service name="Nitpicker"/>
+					<service name="Gui"/>
 					<service name="File_system"/>
 					<service name="Report"/>
 				</parent-provides>
@@ -165,7 +165,7 @@ install_config {
 
 			<start name="wm" pkg="} [depot_user]/pkg/[current_pkg wm] {">
 				<route>
-					<service name="Nitpicker"> <parent/> </service>
+					<service name="Gui"> <parent/> </service>
 				</route>
 			</start>
 
@@ -177,7 +177,7 @@ install_config {
 					<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
 					<service name="ROM" label="rules">             <child name="wm"/> </service>
 					<service name="Report">                        <child name="wm"/> </service>
-					<service name="Nitpicker">                     <child name="wm"/> </service>
+					<service name="Gui">                     <child name="wm"/> </service>
 					<service name="File_system" label="recall">    <child name="recall_fs"/> </service>
 				</route>
 			</start>
@@ -187,27 +187,27 @@ install_config {
 					<service name="ROM"    label="window_layout">     <child name="wm"/> </service>
 					<service name="ROM"    label="pointer">           <child name="wm"/> </service>
 					<service name="Report">                           <child name="wm"/> </service>
-					<service name="Nitpicker">                        <child name="wm"/> </service>
+					<service name="Gui">                        <child name="wm"/> </service>
 				</route>
 			</start>
 
 			<start name="backdrop" pkg="} [depot_user]/pkg/[current_pkg sticks_blue_backdrop] {">
 				<route>
-					<service name="Nitpicker"> <parent label="backdrop"/> </service>
+					<service name="Gui"> <parent label="backdrop"/> </service>
 				</route>
 			</start>
 
 <!--
 			<start name="slides" pkg="} [depot_user]/pkg/[current_pkg pdf_view] {">
 				<route>
-					<service name="Nitpicker"> <child name="wm"/> </service>
+					<service name="Gui"> <child name="wm"/> </service>
 				</route>
 			</start>
 			-->
 
 			<start name="nano3d" pkg="} [depot_user]/pkg/[current_pkg nano3d] {">
 				<route>
-					<service name="Nitpicker"> <child name="wm"/> </service>
+					<service name="Gui"> <child name="wm"/> </service>
 				</route>
 				<config shape="cube"/>
 			</start>
@@ -220,7 +220,7 @@ install_config {
 
 			<start name="system_shell" pkg="} [depot_user]/pkg/[current_pkg system_shell] {">
 				<route>
-					<service name="Nitpicker"> <child name="wm"/> </service>
+					<service name="Gui"> <child name="wm"/> </service>
 					<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
 					<service name="File_system"> <parent/> </service>
 					<service name="Report" label="clipboard"> <parent label="clipboard"/> </service>
@@ -255,7 +255,7 @@ install_config {
 			<service name="ROM" label_last="fs_rom">       <parent/> </service>
 			<service name="ROM">   <child name="fs_rom"/> </service>
 			<service name="Timer"> <child name="timer"/>  </service>
-			<service name="Nitpicker" label_last="backdrop">
+			<service name="Gui" label_last="backdrop">
 				<child name="nitpicker" label="backdrop"/> </service>
 			<service name="File_system"> <child name="ram_fs"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

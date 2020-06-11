@@ -237,7 +237,7 @@ append_if [expr $use_cpu_load] config {
 			<service name="LOG"><parent/></service>
 			<service name="Timer"><child name="timer"/></service>
 			<service name="ROM" label="trace_subjects"><child name="report_rom"/></service>
-			<service name="Nitpicker"><child name="nitpicker"/></service>
+			<service name="Gui"><child name="nitpicker"/></service>
 			<any-service><parent/></any-service>
 		</route>
 	</start>

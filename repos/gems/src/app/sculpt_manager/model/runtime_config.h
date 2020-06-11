@@ -126,7 +126,7 @@ class Sculpt::Runtime_config
 					}
 				}
 
-				if (service == "Nitpicker") {
+				if (service == "Gui") {
 					result = "GUI";
 					return;
 				}
@@ -323,10 +323,10 @@ class Sculpt::Runtime_config
 			Registry<Parent_service> _r { };
 
 			Parent_service const
-				_focus     { _r, Type::NITPICKER,   "keyboard focus",                 "focus" },
-				_backdrop  { _r, Type::NITPICKER,   "desktop background",             "backdrop" },
-				_lockscreen{ _r, Type::NITPICKER,   "desktop lock screen",            "lock_screen" },
-				_nitpicker { _r, Type::NITPICKER,   "system GUI server" },
+				_focus     { _r, Type::GUI,         "keyboard focus",                 "focus" },
+				_backdrop  { _r, Type::GUI,         "desktop background",             "backdrop" },
+				_lockscreen{ _r, Type::GUI,         "desktop lock screen",            "lock_screen" },
+				_nitpicker { _r, Type::GUI,         "system GUI server" },
 				_config_fs { _r, Type::FILE_SYSTEM, "writeable system configuration", "config" },
 				_report_fs { _r, Type::FILE_SYSTEM, "read-only system reports",       "report" },
 				_capslock  { _r, Type::ROM,         "global capslock state",          "capslock" },

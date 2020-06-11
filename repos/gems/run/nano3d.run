@@ -46,7 +46,7 @@ append config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 		<config>
 			<domain name="default" layer="2" content="client" label="no"/>
 			<domain name="nano3d"  layer="1" content="client" label="no" origin="pointer"/>
@@ -69,7 +69,7 @@ append config {
 			<image png="genode_logo.png" anchor="bottom_right" alpha="150"/>
 		</config>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker" label="backdrop" /> </service>
+			<service name="Gui"> <child name="nitpicker" label="backdrop" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

@@ -58,10 +58,10 @@ class Loader::Child : public Child_policy
 
 		Service &_matching_service(Service::Name const &name)
 		{
-			if (name == "Nitpicker") return _local_nitpicker_service;
-			if (name == "ROM")       return _local_rom_service;
-			if (name == "CPU")       return _local_cpu_service;
-			if (name == "PD")        return _local_pd_service;
+			if (name == "Gui") return _local_nitpicker_service;
+			if (name == "ROM") return _local_rom_service;
+			if (name == "CPU") return _local_cpu_service;
+			if (name == "PD")  return _local_pd_service;
 
 			/* populate session-local parent service registry on demand */
 			Service *service = nullptr;

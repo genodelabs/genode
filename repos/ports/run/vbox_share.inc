@@ -278,7 +278,7 @@ append config_of_app {
 
 	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 		<route>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>
 			<service name="Input"> <child name="input_filter" /> </service>
@@ -303,7 +303,7 @@ append config_of_app {
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes"/>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="Gui"> <child name="nitpicker"/>  </service>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
 			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>

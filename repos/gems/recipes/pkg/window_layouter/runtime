@@ -19,7 +19,7 @@
 			<service name="ROM"/>
 			<service name="Report"/>
 			<service name="Timer"/>
-			<service name="Nitpicker"/>
+			<service name="Gui"/>
 			<service name="File_system"/>
 		</parent-provides>
 

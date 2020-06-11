@@ -63,7 +63,7 @@ set config {
 
 	<start name="nitpicker" caps="200">
 		<resource name="RAM" quantum="2M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides> <service name="Gui"/> </provides>
 		<config>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
 			<domain name="default" layer="2" content="client" label="no" focus="click" hover="always" />
@@ -94,7 +94,7 @@ set launchpad_config {
 				<service name="RM"/>
 				<service name="CPU"/>
 				<service name="LOG"/>
-				<service name="Nitpicker"/>
+				<service name="Gui"/>
 				<service name="Timer"/>
 				<service name="Gpu"/>
 			</parent-provides>

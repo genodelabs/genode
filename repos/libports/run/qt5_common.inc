@@ -96,9 +96,9 @@ proc qt5_start_nodes { feature_arg } {
 	append start_nodes {
 		<start name="nitpicker" caps="200">
 			<resource name="RAM" quantum="2M"/>
-			<provides><service name="Nitpicker"/></provides>
+			<provides> <service name="Gui"/> </provides>
 			<route> }
-	append_if [use_fb_sdl feature] start_nodes { 
+	append_if [use_fb_sdl feature] start_nodes {
 				<service name="Framebuffer"> <child name="fb_sdl" /> </service>
 	}
 	append_if [use_fb_drv feature] start_nodes {
@@ -128,7 +128,7 @@ proc qt5_start_nodes { feature_arg } {
 			<provides> <service name="Report"/> </provides>
 			<config shapes="yes"/>
 			<route>
-				<service name="Nitpicker"> <child name="nitpicker"/> </service>
+				<service name="Gui"> <child name="nitpicker"/> </service>
 				<service name="ROM" label="hover"> <child name="wm_report_rom"/> </service>
 				<service name="ROM" label="xray"> <child name="wm_report_rom"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
@@ -173,13 +173,13 @@ proc qt5_start_nodes { feature_arg } {
 				<press name="KEY_CAPSLOCK" bool="capslock" change="toggle"/>
 				<press name="KEY_NUMLOCK"  bool="numlock"  change="toggle"/>
 
-				<report name="capslock">     <bool name="capslock"/>     </report>
-				<report name="numlock">      <bool name="numlock"/>      </report>
+				<report name="capslock"> <bool name="capslock"/> </report>
+				<report name="numlock">  <bool name="numlock"/>  </report>
 			</config>
 			<route>
-				<service name="Report">    <child name="wm_report_rom"/> </service>
-				<service name="Nitpicker"> <child name="nitpicker"/>  </service>
-				<service name="Timer">     <child name="timer"/>      </service>
+				<service name="Report"> <child name="wm_report_rom"/> </service>
+				<service name="Gui">    <child name="nitpicker"/>     </service>
+				<service name="Timer">  <child name="timer"/>         </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
@@ -187,7 +187,7 @@ proc qt5_start_nodes { feature_arg } {
 		<start name="wm" caps="250">
 			<resource name="RAM" quantum="8M"/>
 			<provides>
-				<service name="Nitpicker"/> <service name="Report"/> <service name="ROM"/>
+				<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
 			</provides>
 			<config>
 				<policy label_prefix="decorator" role="decorator"/>

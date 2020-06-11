@@ -21,7 +21,7 @@ install_config {
 		<service name="LOG"/>
 	</parent-provides>
 	<default-route>
-		<service name="Nitpicker"> <child name="nitpicker"/> </service>
+		<service name="Gui"> <child name="nitpicker"/> </service>
 		<service name="Timer">     <child name="timer"/> </service>
 		<service name="Terminal">  <child name="terminal"/> </service>
 		<service name="Platform">  <child name="platform_drv"/> </service>
@@ -50,7 +50,7 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="2M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides> <service name="Gui"/> </provides>
 		<config>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
 			<domain name="default" layer="2" content="client" label="no" focus="click" hover="always" />

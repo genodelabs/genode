@@ -30,7 +30,7 @@ void initialize_qt_gui(Genode::Env &env)
 QStringList QNitpickerIntegrationPlugin::keys() const
 {
 	QStringList list;
-	list << "Nitpicker";
+	list << "Gui";
 	return list;
 }
 

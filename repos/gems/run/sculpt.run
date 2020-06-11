@@ -269,7 +269,7 @@ install_config {
 
 	<start name="nitpicker" caps="1000">
 		<resource name="RAM" quantum="6M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 		<route>
 			<service name="ROM" label="config">
 				<child name="config_fs_rom" label="nitpicker"/> </service>
@@ -338,7 +338,7 @@ install_config {
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes"/>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="Gui"> <child name="nitpicker"/>  </service>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
 			<service name="ROM" label="xray">  <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -365,7 +365,7 @@ install_config {
 		</config>
 		<route>
 			<service name="Report">    <child name="report_rom"/> </service>
-			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="Gui"> <child name="nitpicker"/>  </service>
 			<service name="Timer">     <child name="timer"/>      </service>
 			<any-service> <parent/> </any-service>
 		</route>
@@ -401,7 +401,7 @@ install_config {
 		<resource name="RAM" quantum="130M"/>
 		<affinity xpos="1" width="1"/> <!-- decouple leitzentrale from boot CPU -->
 		<provides>
-			<service name="Nitpicker"/>
+			<service name="Gui"/>
 			<service name="File_system"/> <!-- fonts -->
 			<service name="ROM"/>         <!-- view dialog ROMs -->
 			<service name="Report"/>      <!-- view hover reports -->
@@ -423,7 +423,7 @@ install_config {
 			<service name="ROM" label="manager -> nitpicker_hover">
 				<child name="report_rom"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="File_system" label="config">
 				<child name="config_fs" label="rw"/> </service>
@@ -461,13 +461,13 @@ install_config {
 			<service name="Platform" label_prefix="acpica">
 				<child name="drivers" label="acpica"/> </service>
 			<service name="Platform"> <child name="drivers"/> </service>
-			<service name="Nitpicker" label_prefix="leitzentrale">
+			<service name="Gui" label_prefix="leitzentrale">
 				<child name="leitzentrale"/> </service>
-			<service name="Nitpicker" label="backdrop">
+			<service name="Gui" label="backdrop">
 				<child name="nitpicker" label="backdrop"/> </service>
-			<service name="Nitpicker" label="lock_screen">
+			<service name="Gui" label="lock_screen">
 				<child name="nitpicker" label="lock_screen"/> </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
 			<service name="Report" label="inspect -> clipboard">

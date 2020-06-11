@@ -32,7 +32,7 @@ append config {
 	<start name="openglwindow" caps="200">
 		<resource name="RAM" quantum="80M"/>
 		<route>
-			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape">
 				<child name="pointer" label="wm -> openglwindow -> shape"/>
 			</service>

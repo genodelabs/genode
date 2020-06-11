@@ -1,9 +1,7 @@
 /*
- * \brief  Nitpicker session interface
+ * \brief  GUI session interface
  * \author Norman Feske
  * \date   2006-08-10
- *
- * A Nitpicker session handles exactly one buffer.
  */
 
 /*
@@ -46,7 +44,7 @@ struct Nitpicker::Session : Genode::Session
 	/**
 	 * \noapi
 	 */
-	static const char *service_name() { return "Nitpicker"; }
+	static const char *service_name() { return "Gui"; }
 
 	/*
 	 * A nitpicker session consumes a dataspace capability for the server's

@@ -421,7 +421,7 @@ append config {
 			<service name="Report">     <child name="report_rom"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 	</start>
 
 	<start name="pointer">
@@ -483,7 +483,7 @@ if {$use_fancy_stuff} {
 				<service name="RM"/>
 				<service name="CPU"/>
 				<service name="LOG"/>
-				<service name="Nitpicker"/>
+				<service name="Gui"/>
 				<service name="Timer"/>
 				<service name="Nic"/>
 				<service name="Block"/>

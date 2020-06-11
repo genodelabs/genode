@@ -6,7 +6,7 @@
 		<service name="RM"/>
 		<service name="ROM"/>
 		<service name="Timer"/>
-		<service name="Nitpicker"/>
+		<service name="Gui"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>

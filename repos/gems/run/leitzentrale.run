@@ -93,7 +93,7 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 		<config focus="rom">
 			<report hover="yes" displays="yes"/>
 			<background color="#000000"/>
@@ -112,7 +112,7 @@ install_config {
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker" /> </service>
+			<service name="Gui"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -235,7 +235,7 @@ install_config {
 		<binary name="init"/>
 		<resource name="RAM" quantum="122M"/>
 		<provides>
-			<service name="Nitpicker"/>
+			<service name="Gui"/>
 			<service name="File_system"/>
 			<service name="Report"/>
 			<service name="ROM"/>
@@ -245,7 +245,7 @@ install_config {
 				<child name="leitzentrale_config"/> </service>
 			<service name="ROM" label_prefix="manager -> config -> ">
 				<child name="config_rom"/> </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="File_system" label="config">
 				<child name="config_fs" label="rw"/> </service>
@@ -301,9 +301,9 @@ install_config {
 			<service name="Block" label_last="ahci-1"> <child name="ahci-1"/> </service>
 			<service name="Block" label_last="ahci-2"> <child name="ahci-2"/> </service>
 			<service name="Block"> <child name="drivers"/> </service>
-			<service name="Nitpicker" label_prefix="leitzentrale">
+			<service name="Gui" label_prefix="leitzentrale">
 				<child name="leitzentrale"/> </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label_prefix="leitzentrale ->">
 				<child name="leitzentrale"/> </service>

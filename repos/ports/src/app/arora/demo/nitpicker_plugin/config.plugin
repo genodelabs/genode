@@ -6,7 +6,7 @@
 		<service name="CPU"/>
 		<service name="LOG"/>
 		<service name="Timer"/>
-		<service name="Nitpicker"/>
+		<service name="Gui"/>
 	</parent-provides>
 	<default-route> <any-service> <any-child/> <parent/> </any-service> </default-route>
 	<start name="framebuffer" caps="100">
@@ -21,7 +21,7 @@
 	</start>
 	<start name="nitpicker" caps="100">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides> <service name="Gui"/> </provides>
 		<config>
 			<domain name="pointer" layer="1" label="no" content="client" xray="no" origin="pointer" />
 			<domain name="default" layer="2" label="no" content="client" hover="always" focus="click" />

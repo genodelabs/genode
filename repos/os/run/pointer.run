@@ -85,7 +85,7 @@ set config {
 	</start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides> <service name="Gui"/> </provides>
 		<config>
 			<report focus="yes" hover="yes" xray="yes"/>
 			<domain name="pointer" layer="1" content="client" label="no"  origin="pointer"/>
@@ -195,11 +195,11 @@ set config {
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes" verbose="no"/>
 		<route>
-			<service name="PD">        <parent/>                            </service>
-			<service name="LOG">       <parent/>                            </service>
-			<service name="Nitpicker"> <child name="nitpicker"/>            </service>
-			<service name="ROM" label="xray">   <child name="report_rom_nitpicker"/> </service>
-			<service name="ROM" label="hover">  <child name="report_rom_nitpicker"/> </service>
+			<service name="PD">  <parent/>                 </service>
+			<service name="LOG"> <parent/>                 </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
+			<service name="ROM" label="xray">  <child name="report_rom_nitpicker"/> </service>
+			<service name="ROM" label="hover"> <child name="report_rom_nitpicker"/> </service>
 			<service name="ROM"> <parent/> </service>
 			<service name="CPU"> <parent/> </service>
 		</route>
@@ -209,60 +209,60 @@ set config {
 		<binary name="testnit"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
-			<service name="LOG">       <parent/>                 </service>
-			<service name="PD">        <parent/>                 </service>
-			<service name="CPU">       <parent/>                 </service>
-			<service name="ROM">       <parent/>                 </service>
-			<service name="Timer">     <child name="timer"/>     </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="LOG">   <parent/>                 </service>
+			<service name="PD">    <parent/>                 </service>
+			<service name="CPU">   <parent/>                 </service>
+			<service name="ROM">   <parent/>                 </service>
+			<service name="Timer"> <child name="timer"/>     </service>
+			<service name="Gui">   <child name="nitpicker"/> </service>
 		</route>
 	</start>
 	<start name="test-label-smiley">
 		<binary name="testnit"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
-			<service name="LOG">       <parent/>                 </service>
-			<service name="PD">        <parent/>                 </service>
-			<service name="CPU">       <parent/>                 </service>
-			<service name="ROM">       <parent/>                 </service>
-			<service name="Timer">     <child name="timer"/>     </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="LOG">   <parent/>                 </service>
+			<service name="PD">    <parent/>                 </service>
+			<service name="CPU">   <parent/>                 </service>
+			<service name="ROM">   <parent/>                 </service>
+			<service name="Timer"> <child name="timer"/>     </service>
+			<service name="Gui">   <child name="nitpicker"/> </service>
 		</route>
 	</start>
 	<start name="test-label-arrow">
 		<binary name="testnit"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
-			<service name="LOG">       <parent/>                 </service>
-			<service name="PD">        <parent/>                 </service>
-			<service name="CPU">       <parent/>                 </service>
-			<service name="ROM">       <parent/>                 </service>
-			<service name="Timer">     <child name="timer"/>     </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="LOG">   <parent/>                 </service>
+			<service name="PD">    <parent/>                 </service>
+			<service name="CPU">   <parent/>                 </service>
+			<service name="ROM">   <parent/>                 </service>
+			<service name="Timer"> <child name="timer"/>     </service>
+			<service name="Gui">   <child name="nitpicker"/> </service>
 		</route>
 	</start>
 	<start name="test-label-blade">
 		<binary name="testnit"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
-			<service name="PD">        <parent/>                 </service>
-			<service name="LOG">       <parent/>                 </service>
-			<service name="CPU">       <parent/>                 </service>
-			<service name="ROM">       <parent/>                 </service>
-			<service name="Timer">     <child name="timer"/>     </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="PD">    <parent/>                 </service>
+			<service name="LOG">   <parent/>                 </service>
+			<service name="CPU">   <parent/>                 </service>
+			<service name="ROM">   <parent/>                 </service>
+			<service name="Timer"> <child name="timer"/>     </service>
+			<service name="Gui">   <child name="nitpicker"/> </service>
 		</route>
 	</start>
 	<start name="test-label-bladex">
 		<binary name="testnit"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
-			<service name="PD">        <parent/>                 </service>
-			<service name="LOG">       <parent/>                 </service>
-			<service name="CPU">       <parent/>                 </service>
-			<service name="ROM">       <parent/>                 </service>
-			<service name="Timer">     <child name="timer"/>     </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="PD">    <parent/>                 </service>
+			<service name="LOG">   <parent/>                 </service>
+			<service name="CPU">   <parent/>                 </service>
+			<service name="ROM">   <parent/>                 </service>
+			<service name="Timer"> <child name="timer"/>     </service>
+			<service name="Gui">   <child name="nitpicker"/> </service>
 		</route>
 	</start>
 </config>}

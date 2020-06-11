@@ -125,7 +125,7 @@ append config_of_app {
 
 	<start name="nitpicker" priority="-1" caps="150">
 		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 		<route>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>
 			<service name="Input"> <child name="input_filter" /> </service>
@@ -141,7 +141,7 @@ append config_of_app {
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes"/>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="Gui"> <child name="nitpicker"/>  </service>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
 			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
@@ -154,11 +154,11 @@ if { $use_vms > 1 } {
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<provides>
-			<service name="Nitpicker"/> <service name="Report"/> <service name="ROM"/>
+			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
 		</provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
@@ -267,7 +267,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 		<route>}
 
 	append_if [expr ($use_vms > 1)] config_of_app {
-			<service name="Nitpicker"> <child name="wm"/></service>}
+			<service name="Gui"> <child name="wm"/> </service>}
 
 	append_if [expr $use_ram_fs] config_of_app {
 			<service name="File_system" label="from_ram_fs"> <child name="ram_fs"/> </service>}

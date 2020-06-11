@@ -189,14 +189,14 @@ For example, the original start node of the Nitpicker GUI server as found in
 the 'os/run/demo.run' run script looks as follows:
 ! <start name="nitpicker">
 !   <resource name="RAM" quantum="1M"/>
-!   <provides><service name="Nitpicker"/></provides>
+!   <provides><service name="Gui"/></provides>
 ! </start>
 
 For debugging the Nitpicker service, it must be replaced with the following
 snippet (see the 'debug_nitpicker.run' script at 'ports/run/' for reference):
 ! <start name="gdb_monitor">
 !   <resource name="RAM" quantum="4M"/>
-!   <provides><service name="Nitpicker"/></provides>
+!   <provides> <service name="Gui"/> </provides>
 !   <config><target name="nitpicker"/></config>
 ! </start>
 

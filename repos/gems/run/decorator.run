@@ -58,7 +58,7 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides> <service name="Gui"/> </provides>
 		<config>
 			<report pointer="yes" />
 			<domain name="default" layer="2" content="client" label="no"/>

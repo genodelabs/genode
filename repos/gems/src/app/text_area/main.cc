@@ -146,7 +146,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 			service_node("PD");
 			service_node("LOG");
 			service_node("File_system");
-			service_node("Nitpicker");
+			service_node("Gui");
 			service_node("Timer");
 			service_node("Report");
 		});
@@ -198,7 +198,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 				});
 
 				xml.node("service", [&] () {
-					xml.attribute("name", "Nitpicker");
+					xml.attribute("name", "Gui");
 					xml.node("local", [&] () { });
 				});
 

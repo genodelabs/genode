@@ -47,7 +47,7 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 		<config>
 			<domain name="pointer" layer="1" label="no" content="client" origin="pointer" />
 			<domain name="default" layer="2" label="no" content="client" hover="always" />
@@ -60,7 +60,7 @@ install_config {
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

@@ -46,7 +46,7 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides> <service name="Gui"/> </provides>
 		<config>
 			<domain name="" layer="2" /> <default-policy domain=""/>
 		</config>

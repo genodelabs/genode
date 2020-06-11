@@ -66,7 +66,7 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nitpicker"/></provides>
+		<provides><service name="Gui"/></provides>
 		<config focus="rom">
 
 			<report focus="yes" /> <!-- interpreted by clipboard -->
@@ -87,7 +87,7 @@ install_config {
 	<start name="pointer">
 		<resource name="RAM" quantum="2M"/>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -110,13 +110,13 @@ install_config {
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<provides>
-			<service name="Nitpicker"/> <service name="Report"/> <service name="ROM"/>
+			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
 		</provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
 			<service name="ROM"    label_last="clipboard"> <child name="clipboard"/> </service>
 			<service name="Report" label_last="clipboard"> <child name="clipboard"/> </service>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -126,7 +126,7 @@ install_config {
 		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
 		<config xpos="10" ypos="10" initial_width="800" initial_height="600"/>
 		<route>
-			<service name="Nitpicker"> <child name="wm" label="terminal"/> </service>
+			<service name="Gui"> <child name="wm" label="terminal"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>

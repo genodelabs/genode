@@ -53,7 +53,7 @@ append config {
 			</policy>
 		</config>
 		<route>
-			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="Gui"> <child name="wm"/> </service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
@@ -71,7 +71,7 @@ append config {
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
 		</config>
 		<route>
-			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape">
 				<child name="pointer" label="wm -> test-qpluginwidget -> shape"/>
 			</service>
