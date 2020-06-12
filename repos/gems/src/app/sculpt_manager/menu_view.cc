@@ -126,7 +126,7 @@ void Menu_view::_gen_start_node_content(Xml_generator &xml) const
 
 		Label const label = _child_state.name();
 
-		gen_service_node<Nitpicker::Session>(xml, [&] () {
+		gen_service_node<Gui::Session>(xml, [&] () {
 			xml.node("parent", [&] () {
 				xml.attribute("label", Label("leitzentrale -> ", label)); }); });
 

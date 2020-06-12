@@ -5,7 +5,7 @@
  *
  * This ROM service can be used as proxy for clipboard ROMs to ensure the
  * consistency of the client labels appearing at the clipboard component
- * with the label of the currently focused nitpicker client.
+ * with the label of the currently focused GUI client.
  */
 
 /*

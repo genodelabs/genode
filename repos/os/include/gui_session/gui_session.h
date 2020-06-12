@@ -20,7 +20,7 @@
 #include <framebuffer_session/capability.h>
 #include <input_session/capability.h>
 
-namespace Nitpicker {
+namespace Gui {
 
 	using Genode::size_t;
 
@@ -39,7 +39,7 @@ namespace Nitpicker {
 }
 
 
-struct Nitpicker::Session : Genode::Session
+struct Gui::Session : Genode::Session
 {
 	/**
 	 * \noapi
@@ -308,7 +308,7 @@ struct Nitpicker::Session : Genode::Session
 	 * Perform control operation on one or multiple sessions
 	 *
 	 * The 'label' is used to select the sessions, on which the 'operation' is
-	 * performed. Nitpicker creates a selector string by concatenating the
+	 * performed. The GUI server creates a selector string by concatenating the
 	 * caller's session label with the supplied 'label' argument. A session is
 	 * selected if its label starts with the selector string. Thereby, the
 	 * operation is limited to the caller session or any child session of the

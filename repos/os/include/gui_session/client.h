@@ -18,10 +18,10 @@
 #include <base/rpc_client.h>
 #include <base/attached_dataspace.h>
 
-namespace Nitpicker { struct Session_client; }
+namespace Gui { struct Session_client; }
 
 
-class Nitpicker::Session_client : public Genode::Rpc_client<Session>
+class Gui::Session_client : public Genode::Rpc_client<Session>
 {
 	private:
 
@@ -83,7 +83,7 @@ class Nitpicker::Session_client : public Genode::Rpc_client<Session>
 		void buffer(Framebuffer::Mode mode, bool alpha) override {
 			call<Rpc_buffer>(mode, alpha); }
 
-		void focus(Nitpicker::Session_capability session) override {
+		void focus(Gui::Session_capability session) override {
 			call<Rpc_focus>(session); }
 
 		void session_control(Label selector, Session_control operation) override {

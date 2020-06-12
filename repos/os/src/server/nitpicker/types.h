@@ -21,9 +21,12 @@
 #include <base/log.h>
 #include <os/surface.h>
 
+namespace Gui { }
+
 namespace Nitpicker {
 
 	using namespace Genode;
+	using namespace Gui;
 
 	typedef Surface_base::Point Point;
 	typedef Surface_base::Area  Area;

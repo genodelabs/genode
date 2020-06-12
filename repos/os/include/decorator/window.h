@@ -39,7 +39,7 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 {
 	public:
 
-		typedef Nitpicker::Session::View_handle View_handle;
+		typedef Gui::Session::View_handle View_handle;
 
 		struct Border
 		{
@@ -178,11 +178,11 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		 * We do not immediately update the views as part of the update
 		 * method because at the time when updating the model, the
 		 * decorations haven't been redrawn already. If we updated the
-		 * nitpicker views at this point, we would reveal not-yet-drawn pixels.
+		 * GUI views at this point, we would reveal not-yet-drawn pixels.
 		 */
 		virtual bool update(Xml_node window_node) = 0;
 
-		virtual void update_nitpicker_views() { }
+		virtual void update_gui_views() { }
 
 		/**
 		 * Report information about element at specified position

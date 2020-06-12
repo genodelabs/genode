@@ -1,5 +1,5 @@
 /*
- * \brief  Nitpicker-based virtual framebuffer
+ * \brief  Virtual framebuffer
  * \author Norman Feske
  * \date   2006-09-21
  */
@@ -17,7 +17,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <input/component.h>
 #include <scout/user_state.h>
-#include <scout/nitpicker_graphics_backend.h>
+#include <scout/graphics_backend_impl.h>
 
 #include "framebuffer_window.h"
 #include "services.h"
@@ -148,9 +148,9 @@ class Liquid_fb::Main : public Scout::Event_handler
 		/* heuristic for allocating the double-buffer backing store */
 		enum { WINBORDER_WIDTH = 10, WINBORDER_HEIGHT = 40 };
 
-		Nitpicker::Connection _nitpicker { _env };
+		Gui::Connection _gui { _env };
 
-		Platform _platform { _env, *_nitpicker.input() };
+		Platform _platform { _env, *_gui.input() };
 
 		bool const _event_handler_registered = (_platform.event_handler(*this), true);
 
@@ -159,8 +159,8 @@ class Liquid_fb::Main : public Scout::Event_handler
 		Scout::Point const _initial_position { (int)config_fb_x, (int)config_fb_y };
 		Scout::Area  const _initial_size = _max_size;
 
-		Nitpicker_graphics_backend
-			_graphics_backend { _env.rm(), _nitpicker, _heap, _max_size,
+		Graphics_backend_impl
+			_graphics_backend { _env.rm(), _gui, _heap, _max_size,
 			                    _initial_position, _initial_size };
 
 		Input::Session_component _input_session_component { _env, _env.ram() };

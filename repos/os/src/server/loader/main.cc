@@ -21,7 +21,7 @@
 
 /* local includes */
 #include <child.h>
-#include <nitpicker.h>
+#include <gui.h>
 #include <rom.h>
 
 
@@ -155,7 +155,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			}
 		};
 
-		struct Local_nitpicker_factory : Local_service<Nitpicker::Session_component>::Factory
+		struct Local_gui_factory : Local_service<Gui::Session_component>::Factory
 		{
 			Entrypoint    &_ep;
 			Env           &_env;
@@ -163,27 +163,27 @@ class Loader::Session_component : public Rpc_object<Session>
 			Ram_allocator &_ram;
 
 			Area                       _max_size    { };
-			Nitpicker::View_capability _parent_view { };
+			Gui::View_capability _parent_view { };
 
 			Signal_context_capability view_ready_sigh { };
 
-			Constructible<Nitpicker::Session_component> session { };
+			Constructible<Gui::Session_component> session { };
 
-			Local_nitpicker_factory(Entrypoint &ep, Env &env,
-			                        Region_map &rm, Ram_allocator &ram)
+			Local_gui_factory(Entrypoint &ep, Env &env,
+			                  Region_map &rm, Ram_allocator &ram)
 			: _ep(ep), _env(env), _rm(rm), _ram(ram) { }
 
 			void constrain_geometry(Area size) { _max_size = size; }
 
-			void parent_view(Nitpicker::View_capability view)
+			void parent_view(Gui::View_capability view)
 			{
 				_parent_view = view;
 			}
 
-			Nitpicker::Session_component &create(Args const &args, Affinity) override
+			Gui::Session_component &create(Args const &args, Affinity) override
 			{
 				if (session.constructed()) {
-					warning("attempt to open more than one nitpicker session");
+					warning("attempt to open more than one GUI session");
 					throw Service_denied();
 				}
 
@@ -192,11 +192,11 @@ class Loader::Session_component : public Rpc_object<Session>
 				return *session;
 			}
 
-			void upgrade(Nitpicker::Session_component &, Args const &) override { }
-			void destroy(Nitpicker::Session_component &) override { }
+			void upgrade(Gui::Session_component &, Args const &) override { }
+			void destroy(Gui::Session_component &) override { }
 		};
 
-		typedef Local_service<Nitpicker::Session_component> Local_nitpicker_service;
+		typedef Local_service<Gui::Session_component> Local_gui_service;
 
 		enum { STACK_SIZE = 2*4096 };
 
@@ -217,28 +217,28 @@ class Loader::Session_component : public Rpc_object<Session>
 		Local_rom_service           _rom_service { _rom_factory };
 		Local_cpu_service           _cpu_service { _env };
 		Local_pd_service            _pd_service  { _env };
-		Local_nitpicker_factory     _nitpicker_factory { _env.ep(), _env, _env.rm(), _local_ram };
-		Local_nitpicker_service     _nitpicker_service { _nitpicker_factory };
+		Local_gui_factory           _gui_factory { _env.ep(), _env, _env.rm(), _local_ram };
+		Local_gui_service           _gui_service { _gui_factory };
 		Signal_context_capability   _fault_sigh { };
 		Constructible<Child>        _child { };
 
 		/**
-		 * Return virtual nitpicker session component
+		 * Return virtual GUI session component
 		 */
-		Nitpicker::Session_component &_virtual_nitpicker_session()
+		Gui::Session_component &_virtual_gui_session()
 		{
-			if (!_nitpicker_factory.session.constructed())
+			if (!_gui_factory.session.constructed())
 				throw View_does_not_exist();
 
-			return *_nitpicker_factory.session;
+			return *_gui_factory.session;
 		}
 
-		Nitpicker::Session_component const &_virtual_nitpicker_session() const
+		Gui::Session_component const &_virtual_gui_session() const
 		{
-			if (!_nitpicker_factory.session.constructed())
+			if (!_gui_factory.session.constructed())
 				throw View_does_not_exist();
 
-			return *_nitpicker_factory.session;
+			return *_gui_factory.session;
 		}
 
 	public:
@@ -303,17 +303,17 @@ class Loader::Session_component : public Rpc_object<Session>
 
 		void constrain_geometry(Area size) override
 		{
-			_nitpicker_factory.constrain_geometry(size);
+			_gui_factory.constrain_geometry(size);
 		}
 
-		void parent_view(Nitpicker::View_capability view) override
+		void parent_view(Gui::View_capability view) override
 		{
-			_nitpicker_factory.parent_view(view);
+			_gui_factory.parent_view(view);
 		}
 
 		void view_ready_sigh(Signal_context_capability sigh) override
 		{
-			_nitpicker_factory.view_ready_sigh = sigh;
+			_gui_factory.view_ready_sigh = sigh;
 		}
 
 		void fault_sigh(Signal_context_capability sigh) override
@@ -356,7 +356,7 @@ class Loader::Session_component : public Rpc_object<Session>
 				                 prefixed_label(_label, Session_label(label.string())),
 				                 Cap_quota{cap_quota}, Ram_quota{ram_quota},
 				                 _parent_services, _rom_service,
-				                 _cpu_service, _pd_service, _nitpicker_service,
+				                 _cpu_service, _pd_service, _gui_service,
 				                 _fault_sigh);
 			}
 			catch (Genode::Service_denied) {
@@ -365,12 +365,12 @@ class Loader::Session_component : public Rpc_object<Session>
 
 		void view_geometry(Rect rect, Point offset) override
 		{
-			_virtual_nitpicker_session().loader_view_geometry(rect, offset);
+			_virtual_gui_session().loader_view_geometry(rect, offset);
 		}
 
 		Area view_size() const override
 		{
-			return _virtual_nitpicker_session().loader_view_size();
+			return _virtual_gui_session().loader_view_size();
 		}
 };
 

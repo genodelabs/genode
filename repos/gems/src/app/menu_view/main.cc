@@ -28,7 +28,7 @@
 #include <os/vfs.h>
 
 /* gems includes */
-#include <gems/nitpicker_buffer.h>
+#include <gems/gui_buffer.h>
 
 namespace Menu_view { struct Main; }
 
@@ -37,11 +37,11 @@ struct Menu_view::Main
 {
 	Env &_env;
 
-	Nitpicker::Connection _nitpicker { _env };
+	Gui::Connection _gui { _env };
 
-	Constructible<Nitpicker_buffer> _buffer { };
+	Constructible<Gui_buffer> _buffer { };
 
-	Nitpicker::Session::View_handle _view_handle = _nitpicker.create_view();
+	Gui::Session::View_handle _view_handle = _gui.create_view();
 
 	/**
 	 * Dialog position in screen coordinate space
@@ -75,13 +75,13 @@ struct Menu_view::Main
 			return;
 
 		/* display view behind all others */
-		typedef Nitpicker::Session::Command     Command;
-		typedef Nitpicker::Session::View_handle View_handle;
+		typedef Gui::Session::Command     Command;
+		typedef Gui::Session::View_handle View_handle;
 
 		_view_geometry = geometry;
-		_nitpicker.enqueue<Command::Geometry>(_view_handle, _view_geometry);
-		_nitpicker.enqueue<Command::To_front>(_view_handle, View_handle());
-		_nitpicker.execute();
+		_gui.enqueue<Command::Geometry>(_view_handle, _view_geometry);
+		_gui.enqueue<Command::To_front>(_view_handle, View_handle());
+		_gui.execute();
 	}
 
 	/**
@@ -125,7 +125,7 @@ struct Menu_view::Main
 
 	Attached_rom_dataspace _dialog_rom { _env, "dialog" };
 
-	Attached_dataspace _input_ds { _env.rm(), _nitpicker.input()->dataspace() };
+	Attached_dataspace _input_ds { _env.rm(), _gui.input()->dataspace() };
 
 	Widget::Hovered _last_reported_hovered { };
 
@@ -189,7 +189,7 @@ struct Menu_view::Main
 		_dialog_rom.sigh(_dialog_update_handler);
 		_config.sigh(_config_handler);
 
-		_nitpicker.input()->sigh(_input_handler);
+		_gui.input()->sigh(_input_handler);
 
 		_timer.sigh(_frame_timer_handler);
 
@@ -284,7 +284,7 @@ void Menu_view::Main::_handle_input()
 	Point const orig_hovered_position = _hovered_position;
 	bool  const orig_dialog_hovered   = _dialog_hovered;
 
-	_nitpicker.input()->for_each_event([&] (Input::Event const &ev) {
+	_gui.input()->for_each_event([&] (Input::Event const &ev) {
 		ev.handle_absolute_motion([&] (int x, int y) {
 			_dialog_hovered   = true;
 			_hovered_position = Point(x, y) - _position;
@@ -343,7 +343,7 @@ void Menu_view::Main::_handle_frame_timer()
 		                         || (max_size.h() > buffer_h);
 
 		if (!_buffer.constructed() || size_increased)
-			_buffer.construct(_nitpicker, max_size, _env.ram(), _env.rm());
+			_buffer.construct(_gui, max_size, _env.ram(), _env.rm());
 		else
 			_buffer->reset_surface();
 
@@ -357,7 +357,7 @@ void Menu_view::Main::_handle_frame_timer()
 		});
 
 		_buffer->flush_surface();
-		_nitpicker.framebuffer()->refresh(0, 0, _buffer->size().w(), _buffer->size().h());
+		_gui.framebuffer()->refresh(0, 0, _buffer->size().w(), _buffer->size().h());
 		_update_view(Rect(_position, size));
 
 		_schedule_redraw = false;

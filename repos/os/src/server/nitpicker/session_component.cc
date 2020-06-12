@@ -438,7 +438,7 @@ void Session_component::buffer(Framebuffer::Mode mode, bool use_alpha)
 }
 
 
-void Session_component::focus(Capability<Nitpicker::Session> session_cap)
+void Session_component::focus(Capability<Gui::Session> session_cap)
 {
 	if (this->cap() == session_cap)
 		return;

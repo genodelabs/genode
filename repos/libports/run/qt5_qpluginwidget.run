@@ -4,7 +4,7 @@ import_from_depot [depot_user]/src/libcrypto \
                   [depot_user]/src/libssl \
                   [depot_user]/src/qt5_component \
                   [depot_user]/src/qt5_network \
-                  [depot_user]/src/qt5_qnitpickerviewwidget \
+                  [depot_user]/src/qt5_qgenodeviewwidget \
                   [depot_user]/src/qt5_qpluginwidget \
                   [depot_user]/src/qt5_widgets \
                   [depot_user]/src/test-qpluginwidget

@@ -43,7 +43,7 @@ struct Loader::Session_client : Genode::Rpc_client<Session>
 	void constrain_geometry(Area size) override {
 		call<Rpc_constrain_geometry>(size); }
 
-	void parent_view(Nitpicker::View_capability view) override {
+	void parent_view(Gui::View_capability view) override {
 		call<Rpc_parent_view>(view); }
 
 	void view_ready_sigh(Signal_context_capability sigh) override {

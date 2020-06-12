@@ -1,5 +1,5 @@
 /*
- * \brief  Fader for a nitpicker client
+ * \brief  Fader for a GUI client
  * \author Norman Feske
  * \date   2014-09-08
  */
@@ -29,13 +29,13 @@
 /* local includes */
 #include <alpha_dither_painter.h>
 
-namespace Nit_fader {
+namespace Gui_fader {
 
 	class Main;
 	class Src_buffer;
 	class Dst_buffer;
 	class Framebuffer_session_component;
-	class Nitpicker_session_component;
+	class Gui_session_component;
 
 	typedef Genode::Surface_base::Area  Area;
 	typedef Genode::Surface_base::Point Point;
@@ -58,7 +58,7 @@ namespace Nit_fader {
 /**
  * Buffer handed out to our client as virtual framebuffer
  */
-class Nit_fader::Src_buffer
+class Gui_fader::Src_buffer
 {
 	private:
 
@@ -96,7 +96,7 @@ class Nit_fader::Src_buffer
 };
 
 
-class Nit_fader::Dst_buffer
+class Gui_fader::Dst_buffer
 {
 	private:
 
@@ -129,7 +129,7 @@ class Nit_fader::Dst_buffer
 };
 
 
-class Nit_fader::Framebuffer_session_component
+class Gui_fader::Framebuffer_session_component
 :
 	public Genode::Rpc_object<Framebuffer::Session>
 {
@@ -137,8 +137,8 @@ class Nit_fader::Framebuffer_session_component
 
 		Genode::Env &_env;
 
-		Nitpicker::Connection &_nitpicker;
-		Src_buffer            &_src_buffer;
+		Gui::Connection &_gui;
+		Src_buffer      &_src_buffer;
 
 		Constructible<Dst_buffer> _dst_buffer { };
 
@@ -150,11 +150,11 @@ class Nit_fader::Framebuffer_session_component
 		/**
 		 * Constructor
 		 */
-		Framebuffer_session_component(Genode::Env &env,
-		                              Nitpicker::Connection &nitpicker,
-		                              Src_buffer            &src_buffer)
+		Framebuffer_session_component(Genode::Env     &env,
+		                              Gui::Connection &gui,
+		                              Src_buffer      &src_buffer)
 		:
-			_env(env), _nitpicker(nitpicker), _src_buffer(src_buffer)
+			_env(env), _gui(gui), _src_buffer(src_buffer)
 		{ }
 
 		void dst_buffer(Dataspace_capability ds_cap, Area size)
@@ -207,7 +207,7 @@ class Nit_fader::Framebuffer_session_component
 
 			transfer_src_to_dst_alpha(rect);
 
-			_nitpicker.framebuffer()->refresh(rect.x1(), rect.y1(), rect.w(), rect.h());
+			_gui.framebuffer()->refresh(rect.x1(), rect.y1(), rect.w(), rect.h());
 
 			/* keep animating as long as the destination value is not reached */
 			return _fade != _fade.dst();
@@ -230,12 +230,12 @@ class Nit_fader::Framebuffer_session_component
 
 		Framebuffer::Mode mode() const override
 		{
-			return _nitpicker.framebuffer()->mode();
+			return _gui.framebuffer()->mode();
 		}
 
 		void mode_sigh(Genode::Signal_context_capability sigh) override
 		{
-			_nitpicker.framebuffer()->mode_sigh(sigh);
+			_gui.framebuffer()->mode_sigh(sigh);
 		}
 
 		void refresh(int x, int y, int w, int h) override
@@ -243,42 +243,42 @@ class Nit_fader::Framebuffer_session_component
 			transfer_src_to_dst_pixel(Rect(Point(x, y), Area(w, h)));
 			transfer_src_to_dst_alpha(Rect(Point(x, y), Area(w, h)));
 
-			_nitpicker.framebuffer()->refresh(x, y, w, h);
+			_gui.framebuffer()->refresh(x, y, w, h);
 		}
 
 		void sync_sigh(Genode::Signal_context_capability sigh) override
 		{
-			_nitpicker.framebuffer()->sync_sigh(sigh);
+			_gui.framebuffer()->sync_sigh(sigh);
 		}
 };
 
 
-class Nit_fader::Nitpicker_session_component
+class Gui_fader::Gui_session_component
 :
-	public Genode::Rpc_object<Nitpicker::Session>
+	public Genode::Rpc_object<Gui::Session>
 {
 	private:
 
-		typedef Nitpicker::View_capability      View_capability;
-		typedef Nitpicker::Session::View_handle View_handle;
+		typedef Gui::View_capability      View_capability;
+		typedef Gui::Session::View_handle View_handle;
 
 		Genode::Env &_env;
 
 		Reconstructible<Src_buffer> _src_buffer { _env, Area(1, 1), false };
 
-		Nitpicker::Connection _nitpicker { _env };
+		Gui::Connection _gui { _env };
 
 		Genode::Attached_ram_dataspace _command_ds {
-			_env.ram(), _env.rm(), sizeof(Nitpicker::Session::Command_buffer) };
+			_env.ram(), _env.rm(), sizeof(Gui::Session::Command_buffer) };
 
-		Nitpicker::Session::Command_buffer &_commands =
-			*_command_ds.local_addr<Nitpicker::Session::Command_buffer>();
+		Gui::Session::Command_buffer &_commands =
+			*_command_ds.local_addr<Gui::Session::Command_buffer>();
 
-		Framebuffer_session_component _fb_session { _env, _nitpicker, *_src_buffer };
+		Framebuffer_session_component _fb_session { _env, _gui, *_src_buffer };
 
 		Framebuffer::Session_capability _fb_cap { _env.ep().manage(_fb_session) };
 
-		Nitpicker::Session::View_handle _view_handle { };
+		Gui::Session::View_handle _view_handle { };
 
 		bool _view_visible = false;
 		Rect _view_geometry { };
@@ -288,14 +288,14 @@ class Nit_fader::Nitpicker_session_component
 			if (!_view_handle.valid() || (_view_visible == _fb_session.visible()))
 				return;
 
-			typedef Nitpicker::Session::Command Command;
+			typedef Gui::Session::Command Command;
 
 			if (_fb_session.visible())
-				_nitpicker.enqueue<Command::Geometry>(_view_handle, _view_geometry);
+				_gui.enqueue<Command::Geometry>(_view_handle, _view_geometry);
 			else
-				_nitpicker.enqueue<Command::Geometry>(_view_handle, Rect());
+				_gui.enqueue<Command::Geometry>(_view_handle, Rect());
 
-			_nitpicker.execute();
+			_gui.execute();
 
 			_view_visible = _fb_session.visible();
 		}
@@ -305,13 +305,13 @@ class Nit_fader::Nitpicker_session_component
 		/**
 		 * Constructor
 		 */
-		Nitpicker_session_component(Genode::Env &env) : _env(env)
+		Gui_session_component(Genode::Env &env) : _env(env)
 		{ }
 
 		/**
 		 * Destructor
 		 */
-		~Nitpicker_session_component()
+		~Gui_session_component()
 		{
 			_env.ep().dissolve(_fb_session);
 		}
@@ -331,9 +331,9 @@ class Nit_fader::Nitpicker_session_component
 		}
 
 
-		/**********************************
-		 ** Nitpicker::Session interface **
-		 **********************************/
+		/****************************
+		 ** Gui::Session interface **
+		 ****************************/
 
 		Framebuffer::Session_capability framebuffer_session() override
 		{
@@ -342,35 +342,35 @@ class Nit_fader::Nitpicker_session_component
 
 		Input::Session_capability input_session() override
 		{
-			return _nitpicker.input_session();
+			return _gui.input_session();
 		}
 
 		View_handle create_view(View_handle parent) override
 		{
-			_view_handle = _nitpicker.create_view(parent);
+			_view_handle = _gui.create_view(parent);
 			_update_view_visibility();
 			return _view_handle;
 		}
 
 		void destroy_view(View_handle handle) override
 		{
-			return _nitpicker.destroy_view(handle);
+			return _gui.destroy_view(handle);
 		}
 
 		View_handle view_handle(View_capability view_cap,
 		                        View_handle handle) override
 		{
-			return _nitpicker.view_handle(view_cap, handle);
+			return _gui.view_handle(view_cap, handle);
 		}
 
 		View_capability view_capability(View_handle handle) override
 		{
-			return _nitpicker.view_capability(handle);
+			return _gui.view_capability(handle);
 		}
 
 		void release_view_handle(View_handle handle) override
 		{
-			_nitpicker.release_view_handle(handle);
+			_gui.release_view_handle(handle);
 		}
 
 		Dataspace_capability command_dataspace() override
@@ -382,11 +382,11 @@ class Nit_fader::Nitpicker_session_component
 		{
 			for (unsigned i = 0; i < _commands.num(); i++) {
 
-				Nitpicker::Session::Command command = _commands.get(i);
+				Gui::Session::Command command = _commands.get(i);
 
 				bool forward_command = true;
 
-				if (command.opcode == Nitpicker::Session::Command::OP_GEOMETRY) {
+				if (command.opcode == Gui::Session::Command::OP_GEOMETRY) {
 
 					/* remember view geometry as defined by the client */
 					_view_geometry = command.geometry.rect;
@@ -396,21 +396,21 @@ class Nit_fader::Nitpicker_session_component
 				}
 
 				if (forward_command)
-					_nitpicker.enqueue(command);
+					_gui.enqueue(command);
 			}
 			_fb_session.transfer_src_to_dst_pixel(Rect(Point(0, 0), _fb_session.size()));
 			_fb_session.transfer_src_to_dst_alpha(Rect(Point(0, 0), _fb_session.size()));
-			return _nitpicker.execute();
+			return _gui.execute();
 		}
 
 		Framebuffer::Mode mode() override
 		{
-			return _nitpicker.mode();
+			return _gui.mode();
 		}
 
 		void mode_sigh(Genode::Signal_context_capability sigh) override
 		{
-			_nitpicker.mode_sigh(sigh);
+			_gui.mode_sigh(sigh);
 		}
 
 		void buffer(Framebuffer::Mode mode, bool use_alpha) override
@@ -419,19 +419,19 @@ class Nit_fader::Nitpicker_session_component
 
 			_src_buffer.construct(_env, size, use_alpha);
 
-			_nitpicker.buffer(mode, true);
+			_gui.buffer(mode, true);
 
-			_fb_session.dst_buffer(_nitpicker.framebuffer()->dataspace(), size);
+			_fb_session.dst_buffer(_gui.framebuffer()->dataspace(), size);
 		}
 
 		void focus(Genode::Capability<Session> focused) override
 		{
-			_nitpicker.focus(focused);
+			_gui.focus(focused);
 		}
 };
 
 
-struct Nit_fader::Main
+struct Gui_fader::Main
 {
 	Genode::Env &env;
 
@@ -461,17 +461,17 @@ struct Nit_fader::Main
 		env.ep(), *this, &Main::handle_config_update
 	};
 
-	Nitpicker_session_component nitpicker_session { env };
+	Gui_session_component gui_session { env };
 
-	Genode::Static_root<Nitpicker::Session> nitpicker_root
+	Genode::Static_root<Gui::Session> gui_root
 	{
-		env.ep().manage(nitpicker_session)
+		env.ep().manage(gui_session)
 	};
 
 	void handle_timer()
 	{
 		Genode::uint64_t frame = curr_frame();
-		if (nitpicker_session.animate(frame - last_frame))
+		if (gui_session.animate(frame - last_frame))
 			timer.trigger_once(PERIOD);
 
 		last_frame = frame;
@@ -491,12 +491,12 @@ struct Nit_fader::Main
 		/* apply initial config */
 		handle_config_update();
 
-		env.parent().announce(env.ep().manage(nitpicker_root));
+		env.parent().announce(env.ep().manage(gui_root));
 	}
 };
 
 
-void Nit_fader::Main::handle_config_update()
+void Gui_fader::Main::handle_config_update()
 {
 	config.update();
 
@@ -521,7 +521,7 @@ void Nit_fader::Main::handle_config_update()
 
 		initial_fade_in = false;
 
-		nitpicker_session.fade(280*new_alpha, steps);
+		gui_session.fade(280*new_alpha, steps);
 
 		alpha = new_alpha;
 
@@ -537,4 +537,4 @@ void Nit_fader::Main::handle_config_update()
  ***************/
 
 void Component::construct(Genode::Env &env) {
-		static Nit_fader::Main desktop(env); }
+		static Gui_fader::Main desktop(env); }

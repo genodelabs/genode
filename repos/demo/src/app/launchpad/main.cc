@@ -18,7 +18,7 @@
 #include <scout/platform.h>
 #include <scout/tick.h>
 #include <scout/user_state.h>
-#include <scout/nitpicker_graphics_backend.h>
+#include <scout/graphics_backend_impl.h>
 
 #include "config.h"
 #include "elements.h"
@@ -84,9 +84,9 @@ struct Main : Scout::Event_handler
 
 	bool const _global_new_initialized = (_alloc_ptr = &_heap, true);
 
-	Nitpicker::Connection _nitpicker { _env };
+	Gui::Connection _gui { _env };
 
-	Platform _platform { _env, *_nitpicker.input() };
+	Platform _platform { _env, *_gui.input() };
 
 	bool const _event_handler_registered = (_platform.event_handler(*this), true);
 
@@ -101,8 +101,8 @@ struct Main : Scout::Event_handler
 	Scout::Point const _initial_position { _initial_x, _initial_y };
 	Scout::Area  const _initial_size     { _initial_w, _initial_h };
 
-	Nitpicker_graphics_backend
-		_graphics_backend { _env.rm(), _nitpicker, _heap, _max_size,
+	Graphics_backend_impl
+		_graphics_backend { _env.rm(), _gui, _heap, _max_size,
 		                    _initial_position, _initial_size };
 
 	Launchpad_window<Pixel_rgb565>

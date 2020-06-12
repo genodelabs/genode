@@ -31,7 +31,7 @@ endif
 # QtGui
 ifeq ($(findstring gui, $(QT)), gui)
 QT_DEFINES += -DQT_GUI_LIB
-LIBS += qt5_gui qt5_qpa_nitpicker qt5_qjpeg
+LIBS += qt5_gui qt5_qpa_genode qt5_qjpeg
 endif
 
 # QtWidgets

@@ -1,5 +1,5 @@
 /*
- * \brief  A Qt Widget that can load a plugin application and show its Nitpicker view
+ * \brief  A Qt Widget that can load a plugin application and show its GUI view
  * \author Christian Prochaska
  * \date   2010-08-26
  */
@@ -18,7 +18,7 @@
 /* Qt includes */
 #include <QtGui>
 
-#include <qnitpickerplatformwindow.h>
+#include <qgenodeplatformwindow.h>
 
 #include <qpluginwidget/qpluginwidget.h>
 
@@ -38,7 +38,7 @@ const char *config = " \
         <service name=\"RM\"/> \
         <service name=\"ROM\"/> \
         <service name=\"Timer\"/> \
-        <service name=\"Nitpicker\"/> \
+        <service name=\"Gui\"/> \
     </parent-provides> \
     <default-route> \
         <any-service> <parent/> <any-child/> </any-service> \
@@ -89,7 +89,7 @@ class Signal_wait_thread : public QThread
 PluginStarter::PluginStarter(Libc::Env *env,
                              QUrl plugin_url, QString &args,
                              int max_width, int max_height,
-                             Nitpicker::View_capability parent_view)
+                             Gui::View_capability parent_view)
 :
 	_env(env),
 	_plugin_url(plugin_url),
@@ -434,8 +434,8 @@ void QPluginWidget::showEvent(QShowEvent *event)
 
 	if (!_plugin_starter_started) {
 
-		QNitpickerPlatformWindow *platform_window =
-			dynamic_cast<QNitpickerPlatformWindow*>(window()->windowHandle()->handle());
+		QGenodePlatformWindow *platform_window =
+			dynamic_cast<QGenodePlatformWindow*>(window()->windowHandle()->handle());
 
 		assert(_env != nullptr);
 

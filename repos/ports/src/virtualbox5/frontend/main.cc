@@ -169,7 +169,7 @@ HRESULT setupmachine(Genode::Env &env)
 
 	for (unsigned uScreenId = 0; uScreenId < cMonitors; uScreenId++)
 	{
-		Genodefb *fb = new Genodefb(env, genodeConsole->nitpicker());
+		Genodefb *fb = new Genodefb(env, genodeConsole->gui());
 		HRESULT rc = display->AttachFramebuffer(uScreenId, fb, gaFramebufferId[uScreenId].asOutParam());
 		if (FAILED(rc))
 			return rc;

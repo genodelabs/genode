@@ -1,5 +1,5 @@
 /*
- * \brief  Framebuffer-to-Nitpicker adapter
+ * \brief  Framebuffer-to-GUI adapter
  * \author Norman Feske
  * \date   2010-09-09
  */
@@ -87,9 +87,9 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 {
 	Genode::Pd_session const &_pd;
 
-	Nitpicker::Connection &_nitpicker;
+	Gui::Connection &_gui;
 
-	Framebuffer::Session &_nit_fb = *_nitpicker.framebuffer();
+	Framebuffer::Session &_nit_fb = *_gui.framebuffer();
 
 	Genode::Signal_context_capability _mode_sigh { };
 
@@ -97,11 +97,11 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	View_updater &_view_updater;
 
-	Framebuffer::Mode::Format _format = _nitpicker.mode().format();
+	Framebuffer::Mode::Format _format = _gui.mode().format();
 
 	/*
 	 * Mode as requested by the configuration or by a mode change of our
-	 * nitpicker session.
+	 * GUI session.
 	 */
 	Framebuffer::Mode _next_mode;
 
@@ -109,7 +109,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	/*
 	 * Number of bytes used for backing the current virtual framebuffer at
-	 * nitpicker.
+	 * the GUI server.
 	 */
 	size_t _buffer_num_bytes = 0;
 
@@ -127,7 +127,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	{
 		/* calculation in bytes */
 		size_t const used      = _buffer_num_bytes,
-		             needed    = Nitpicker::Session::ram_quota(mode, false),
+		             needed    = Gui::Session::ram_quota(mode, false),
 		             usable    = _pd.avail_ram().value,
 		             preserved = 64*1024;
 
@@ -139,18 +139,18 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	 * Constructor
 	 */
 	Session_component(Genode::Pd_session const &pd,
-	                  Nitpicker::Connection &nitpicker,
+	                  Gui::Connection &gui,
 	                  View_updater &view_updater,
 	                  Framebuffer::Mode initial_mode)
 	:
-		_pd(pd), _nitpicker(nitpicker), _view_updater(view_updater),
+		_pd(pd), _gui(gui), _view_updater(view_updater),
 		_next_mode(initial_mode)
 	{ }
 
-	void size(Nitpicker::Area size)
+	void size(Gui::Area size)
 	{
 		/* ignore calls that don't change the size */
-		if (Nitpicker::Area(_next_mode.width(), _next_mode.height()) == size)
+		if (Gui::Area(_next_mode.width(), _next_mode.height()) == size)
 			return;
 
 		Framebuffer::Mode const mode(size.w(), size.h(), _next_mode.format());
@@ -166,9 +166,9 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 			Genode::Signal_transmitter(_mode_sigh).submit();
 	}
 
-	Nitpicker::Area size() const
+	Gui::Area size() const
 	{
-		return Nitpicker::Area(_active_mode.width(), _active_mode.height());
+		return Gui::Area(_active_mode.width(), _active_mode.height());
 	}
 
 
@@ -178,11 +178,11 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	Genode::Dataspace_capability dataspace() override
 	{
-		_nitpicker.buffer(_active_mode, false);
+		_gui.buffer(_active_mode, false);
 
 		_buffer_num_bytes =
 			Genode::max(_buffer_num_bytes,
-			            Nitpicker::Session::ram_quota(_active_mode, false));
+			            Gui::Session::ram_quota(_active_mode, false));
 
 		/*
 		 * We defer the update of the view until the client calls refresh the
@@ -220,7 +220,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		/*
 		 * Keep a component-local copy of the signal capability. Otherwise,
 		 * NOVA would revoke the capability from further recipients (in this
-		 * case the nitpicker instance we are using) once we revoke the
+		 * case the GUI-server instance we are using) once we revoke the
 		 * capability locally.
 		 */
 		_sync_sigh = sigh;
@@ -240,17 +240,17 @@ struct Nit_fb::Main : View_updater
 
 	Genode::Attached_rom_dataspace config_rom { env, "config" };
 
-	Nitpicker::Connection nitpicker { env };
+	Gui::Connection gui { env };
 
 	Point position { 0, 0 };
 
 	unsigned refresh_rate = 0;
 
-	typedef Nitpicker::Session::View_handle View_handle;
+	typedef Gui::Session::View_handle View_handle;
 
-	View_handle view = nitpicker.create_view();
+	View_handle view = gui.create_view();
 
-	Genode::Attached_dataspace input_ds { env.rm(), nitpicker.input()->dataspace() };
+	Genode::Attached_dataspace input_ds { env.rm(), gui.input()->dataspace() };
 
 	struct Initial_size
 	{
@@ -285,16 +285,16 @@ struct Nit_fb::Main : View_updater
 
 	Framebuffer::Mode _initial_mode()
 	{
-		return Framebuffer::Mode(_initial_size.width (nitpicker.mode()),
-		                         _initial_size.height(nitpicker.mode()),
-		                         nitpicker.mode().format());
+		return Framebuffer::Mode(_initial_size.width (gui.mode()),
+		                         _initial_size.height(gui.mode()),
+		                         gui.mode().format());
 	}
 
 	/*
 	 * Input and framebuffer sessions provided to our client
 	 */
 	Input::Session_component       input_session { env, env.ram() };
-	Framebuffer::Session_component fb_session { env.pd(), nitpicker, *this, _initial_mode() };
+	Framebuffer::Session_component fb_session { env.pd(), gui, *this, _initial_mode() };
 
 	/*
 	 * Attach root interfaces to the entry point
@@ -307,11 +307,10 @@ struct Nit_fb::Main : View_updater
 	 */
 	void update_view() override
 	{
-		typedef Nitpicker::Session::Command Command;
-		nitpicker.enqueue<Command::Geometry>(view, Rect(position,
-		                                                fb_session.size()));
-		nitpicker.enqueue<Command::To_front>(view, View_handle());
-		nitpicker.execute();
+		typedef Gui::Session::Command Command;
+		gui.enqueue<Command::Geometry>(view, Rect(position, fb_session.size()));
+		gui.enqueue<Command::To_front>(view, View_handle());
+		gui.execute();
 	}
 
 	/**
@@ -340,7 +339,7 @@ struct Nit_fb::Main : View_updater
 	{
 		Xml_node const config = config_rom.xml();
 
-		Framebuffer::Mode const nit_mode = nitpicker.mode();
+		Framebuffer::Mode const nit_mode = gui.mode();
 
 		position = _coordinate_origin(nit_mode, config)
 		         + Point(config.attribute_value("xpos", 0L),
@@ -403,7 +402,7 @@ struct Nit_fb::Main : View_updater
 	{
 		Input::Event const * const events = input_ds.local_addr<Input::Event>();
 
-		unsigned const num = nitpicker.input()->flush();
+		unsigned const num = gui.input()->flush();
 		bool update = false;
 
 		for (unsigned i = 0; i < num; i++) {
@@ -441,8 +440,8 @@ struct Nit_fb::Main : View_updater
 		 * Register signal handlers
 		 */
 		config_rom.sigh(config_update_handler);
-		nitpicker.mode_sigh(mode_update_handler);
-		nitpicker.input()->sigh(input_handler);
+		gui.mode_sigh(mode_update_handler);
+		gui.input()->sigh(input_handler);
 	}
 };
 

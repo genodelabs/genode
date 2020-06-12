@@ -282,7 +282,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 		Genode::Env &_env;
 
-		Nitpicker::Area const _size;
+		Gui::Area const _size;
 
 		Genode::Attached_rom_dataspace _config { _env, "config" };
 
@@ -318,7 +318,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 	public:
 
 		Scene(Genode::Env &env, Genode::uint64_t update_rate_ms,
-		      Nitpicker::Point pos, Nitpicker::Area size)
+		      Gui::Point pos, Gui::Area size)
 		:
 			Nano3d::Scene<PT>(env, update_rate_ms, pos, size),
 			_env(env), _size(size),
@@ -341,7 +341,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 		void _plot_cpu(Genode::Surface<PT>                   &pixel,
 		               Genode::Surface<Genode::Pixel_alpha8> &alpha,
-		               Cpu const &cpu, Nitpicker::Rect rect)
+		               Cpu const &cpu, Gui::Rect rect)
 		{
 			enum { HISTORY_LEN = Timeline::HISTORY_LEN };
 
@@ -453,12 +453,12 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 			/* plot graphs for the CPUs below each other */
 			enum { GAP = 8 };
-			Nitpicker::Point const step(0, _size.h()/num_cpus);
-			Nitpicker::Area  const size(_size.w(), step.y() - GAP);
-			Nitpicker::Point       point(0, GAP/2);
+			Gui::Point const step(0, _size.h()/num_cpus);
+			Gui::Area  const size(_size.w(), step.y() - GAP);
+			Gui::Point       point(0, GAP/2);
 
 			_cpu_registry.for_each_cpu([&] (Cpu const &cpu) {
-				_plot_cpu(pixel, alpha, cpu, Nitpicker::Rect(point, size));
+				_plot_cpu(pixel, alpha, cpu, Gui::Rect(point, size));
 				point = point + step;
 			});
 		}
@@ -471,5 +471,5 @@ void Component::construct(Genode::Env &env)
 
 	static Cpu_load_display::Scene<Genode::Pixel_rgb565>
 		scene(env, UPDATE_RATE_MS,
-		      Nitpicker::Point(0, 0), Nitpicker::Area(400, 400));
+		      Gui::Point(0, 0), Gui::Area(400, 400));
 }

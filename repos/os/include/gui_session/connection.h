@@ -1,5 +1,5 @@
 /*
- * \brief  Connection to Nitpicker service
+ * \brief  Connection to GUI service
  * \author Norman Feske
  * \date   2008-08-22
  */
@@ -20,11 +20,11 @@
 #include <util/arg_string.h>
 #include <base/connection.h>
 
-namespace Nitpicker { class Connection; }
+namespace Gui { class Connection; }
 
 
-class Nitpicker::Connection : public Genode::Connection<Session>,
-                              public Session_client
+class Gui::Connection : public Genode::Connection<Session>,
+                        public Session_client
 {
 	public:
 
@@ -89,7 +89,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		}
 
 		/**
-		 * Return sub session for Nitpicker's input service
+		 * Return sub session for GUI's input service
 		 */
 		Input::Session_client *input() { return &_input; }
 

@@ -39,7 +39,7 @@ struct Decorator::Main : Window_factory_base
 {
 	Env &_env;
 
-	Nitpicker::Connection _nitpicker { _env };
+	Gui::Connection _nitpicker { _env };
 
 	struct Canvas
 	{
@@ -47,7 +47,7 @@ struct Decorator::Main : Window_factory_base
 		Attached_dataspace              fb_ds;
 		Decorator::Canvas<Pixel_rgb565> canvas;
 
-		Canvas(Env &env, Nitpicker::Connection &nitpicker)
+		Canvas(Env &env, Gui::Connection &nitpicker)
 		:
 			mode(nitpicker.mode()),
 			fb_ds(env.rm(),
@@ -339,7 +339,7 @@ void Decorator::Main::_handle_nitpicker_sync()
 
 	Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 
-	_window_stack.update_nitpicker_views();
+	_window_stack.update_gui_views();
 
 	_nitpicker.execute();
 

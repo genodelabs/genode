@@ -52,13 +52,17 @@ namespace Nitpicker {
 	 */
 	struct Session_view_list_elem : List<Session_view_list_elem>::Element { };
 
+	class View_component;
+}
+
+
+namespace Gui {
+
 	/*
 	 * We use view capabilities as mere tokens to pass views between sessions.
 	 * There is no RPC interface associated with a view.
 	 */
-	struct View : Interface { GENODE_RPC_INTERFACE(); };
-
-	class View_component;
+	struct View : Genode::Interface { GENODE_RPC_INTERFACE(); };
 }
 
 
@@ -67,7 +71,7 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
                                   private View_stack_elem,
                                   private View_parent_elem,
                                   private Weak_object<View_component>,
-                                  public  Rpc_object<View>
+                                  public  Rpc_object<Gui::View>
 {
 	public:
 

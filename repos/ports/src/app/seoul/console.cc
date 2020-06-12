@@ -406,14 +406,14 @@ bool Seoul::Console::receive(MessageTimeout &msg) {
 Seoul::Console::Console(Genode::Env &env, Genode::Allocator &alloc,
                         Synced_motherboard &mb,
                         Motherboard &unsynchronized_motherboard,
-                        Nitpicker::Connection &nitpicker,
+                        Gui::Connection &gui,
                         Seoul::Guest_memory &guest_memory)
 :
 	_env(env),
 	_unsynchronized_motherboard(unsynchronized_motherboard),
 	_motherboard(mb),
-	_framebuffer(*nitpicker.framebuffer()),
-	_input(*nitpicker.input()),
+	_framebuffer(*gui.framebuffer()),
+	_input(*gui.input()),
 	_memory(guest_memory),
 	_fb_ds(_framebuffer.dataspace()),
 	_fb_mode(_framebuffer.mode()),

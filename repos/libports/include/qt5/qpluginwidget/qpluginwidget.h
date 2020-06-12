@@ -1,5 +1,5 @@
 /*
- * \brief  A Qt Widget that can load a plugin application and show its Nitpicker view
+ * \brief  A Qt Widget that can load a plugin application and show its GUI view
  * \author Christian Prochaska
  * \date   2010-08-26
  */
@@ -22,7 +22,7 @@
 #include <QtGui>
 #include <QtNetwork>
 
-#include <qnitpickerviewwidget/qnitpickerviewwidget.h>
+#include <qgenodeviewwidget/qgenodeviewwidget.h>
 
 enum Plugin_loading_state
 {
@@ -45,19 +45,19 @@ class PluginStarter : public QThread
 
 	private:
 
-		Libc::Env                  *_env;
-		QUrl                        _plugin_url;
-		QByteArray                  _args;
-		int                         _max_width;
-		int                         _max_height;
-		Nitpicker::View_capability  _parent_view;
+		Libc::Env                *_env;
+		QUrl                      _plugin_url;
+		QByteArray                _args;
+		int                       _max_width;
+		int                       _max_height;
+		Gui::View_capability      _parent_view;
 
-		Loader::Connection         *_pc;
-		enum Plugin_loading_state   _plugin_loading_state;
-		QString                     _plugin_loading_error_string;
+		Loader::Connection       *_pc;
+		enum Plugin_loading_state _plugin_loading_state;
+		QString                   _plugin_loading_error_string;
 
-		QNetworkAccessManager      *_qnam;
-		QNetworkReply              *_reply;
+		QNetworkAccessManager    *_qnam;
+		QNetworkReply            *_reply;
 
 		void _start_plugin(QString &file_name, QByteArray const &file_buf);
 
@@ -68,19 +68,19 @@ class PluginStarter : public QThread
 		PluginStarter(Libc::Env *env,
 		              QUrl plugin_url, QString &args,
 		              int max_width, int max_height,
-		              Nitpicker::View_capability parent_view);
+		              Gui::View_capability parent_view);
 
 		void run();
 		enum Plugin_loading_state plugin_loading_state() { return _plugin_loading_state; }
 		QString &plugin_loading_error_string() { return _plugin_loading_error_string; }
 
 		/**
-		 * Requst size of the nitpicker view of the loaded subsystem
+		 * Requst size of the Genode GUI view of the loaded subsystem
 		 */
 		Loader::Area view_size();
 
 		/**
-		 * Set geometry of the nitpicker view of the loaded subsystem
+		 * Set geometry of the Genode GUI view of the loaded subsystem
 		 */
 		void view_geometry(Loader::Rect rect, Loader::Point offset);
 

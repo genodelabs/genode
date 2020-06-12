@@ -17,7 +17,7 @@
 #include <scout/platform.h>
 #include <scout/tick.h>
 #include <scout/user_state.h>
-#include <scout/nitpicker_graphics_backend.h>
+#include <scout/graphics_backend_impl.h>
 
 #include "config.h"
 #include "elements.h"
@@ -63,9 +63,9 @@ struct Scout::Main : Scout::Event_handler
 	bool const _launcher_initialized = (Launcher::init(_env, _heap), true);
 	bool const _png_image_initialized = (Png_image::init(_heap), true);
 
-	Nitpicker::Connection _nitpicker { _env };
+	Gui::Connection _gui { _env };
 
-	Platform _platform { _env, *_nitpicker.input() };
+	Platform _platform { _env, *_gui.input() };
 
 	bool const _event_handler_registered = (_platform.event_handler(*this), true);
 
@@ -75,8 +75,8 @@ struct Scout::Main : Scout::Event_handler
 
 	Config const _config { };
 
-	Nitpicker_graphics_backend
-		_graphics_backend { _env.rm(), _nitpicker, _heap, _max_size,
+	Graphics_backend_impl
+		_graphics_backend { _env.rm(), _gui, _heap, _max_size,
 		                    _initial_position, _initial_size };
 
 	void _init_navicons()

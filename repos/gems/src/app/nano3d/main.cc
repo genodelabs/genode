@@ -37,7 +37,7 @@ class Scene : public Nano3d::Scene<PT>
 		Genode::Env  &_env;
 		Genode::Heap  _heap { _env.ram(), _env.rm() };
 
-		Nitpicker::Area const _size;
+		Gui::Area const _size;
 
 		struct Radial_texture
 		{
@@ -104,7 +104,7 @@ class Scene : public Nano3d::Scene<PT>
 	public:
 
 		Scene(Genode::Env &env, Genode::uint64_t update_rate_ms,
-		      Nitpicker::Point pos, Nitpicker::Area size)
+		      Gui::Point pos, Gui::Area size)
 		:
 			Nano3d::Scene<PT>(env, update_rate_ms, pos, size),
 			_env(env), _size(size),
@@ -231,5 +231,5 @@ void Component::construct(Genode::Env &env)
 
 	static Scene<Genode::Pixel_rgb565>
 		scene(env, UPDATE_RATE_MS,
-		      Nitpicker::Point(-200, -200), Nitpicker::Area(400, 400));
+		      Gui::Point(-200, -200), Gui::Area(400, 400));
 }

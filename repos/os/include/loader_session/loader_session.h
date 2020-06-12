@@ -128,7 +128,7 @@ struct Loader::Session : Genode::Session
 	 * If 'parent_view' is not called prior calling 'start', the
 	 * subsystem's view will not have a parent view.
 	 */
-	virtual void parent_view(Nitpicker::View_capability view) = 0;
+	virtual void parent_view(Gui::View_capability view) = 0;
 
 	/**
 	 * Register signal handler notified at creation time of the first view
@@ -180,7 +180,7 @@ struct Loader::Session : Genode::Session
 	GENODE_RPC(Rpc_cap_quota, void, cap_quota, Cap_quota);
 	GENODE_RPC(Rpc_ram_quota, void, ram_quota, Ram_quota);
 	GENODE_RPC(Rpc_constrain_geometry, void, constrain_geometry, Area);
-	GENODE_RPC(Rpc_parent_view, void, parent_view, Nitpicker::View_capability);
+	GENODE_RPC(Rpc_parent_view, void, parent_view, Gui::View_capability);
 	GENODE_RPC(Rpc_view_ready_sigh, void, view_ready_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_fault_sigh, void, fault_sigh, Signal_context_capability);
 	GENODE_RPC_THROW(Rpc_start, void, start,

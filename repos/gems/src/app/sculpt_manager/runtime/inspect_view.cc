@@ -40,10 +40,10 @@ static void gen_nit_fb_start(Xml_generator &xml)
 	xml.node("route", [&] () {
 		gen_parent_rom_route(xml, "nit_fb");
 		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_route<Cpu_session>        (xml);
-		gen_parent_route<Pd_session>         (xml);
-		gen_parent_route<Log_session>        (xml);
-		gen_parent_route<Nitpicker::Session> (xml);
+		gen_parent_route<Cpu_session>  (xml);
+		gen_parent_route<Pd_session>   (xml);
+		gen_parent_route<Log_session>  (xml);
+		gen_parent_route<Gui::Session> (xml);
 	});
 }
 
@@ -248,7 +248,7 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 				gen_parent_service<Timer::Session>(xml);
 				gen_parent_service<Report::Session>(xml);
 				gen_parent_service<::File_system::Session>(xml);
-				gen_parent_service<Nitpicker::Session>(xml);
+				gen_parent_service<Gui::Session>(xml);
 			});
 
 			xml.node("start", [&] () { gen_nit_fb_start(xml); });
@@ -315,7 +315,7 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 					gen_named_node(xml, "child", "ram_fs");
 				});
 
-			gen_service_node<Nitpicker::Session>(xml, [&] () {
+			gen_service_node<Gui::Session>(xml, [&] () {
 				xml.node("parent", [&] () {
 					xml.attribute("label", String<64>("leitzentrale -> inspect")); }); });
 

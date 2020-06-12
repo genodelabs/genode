@@ -46,7 +46,7 @@ void Sculpt::gen_runtime_view_start_content(Xml_generator &xml,
 
 	xml.node("route", [&] () {
 
-		gen_service_node<Nitpicker::Session>(xml, [&] () {
+		gen_service_node<Gui::Session>(xml, [&] () {
 			xml.node("parent", [&] () {
 				xml.attribute("label", "leitzentrale -> runtime_view"); }); });
 

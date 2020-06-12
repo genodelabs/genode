@@ -17,7 +17,7 @@
 #include <base/capability.h>
 #include <gui_session/gui_session.h>
 
-namespace Nitpicker {
+namespace Gui {
 
 	typedef Genode::Capability<Session> Session_capability;
 }

@@ -110,10 +110,10 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 		template <typename FUNC>
 		void for_each_window(FUNC const &func) { _windows.for_each(func); }
 
-		void update_nitpicker_views()
+		void update_gui_views()
 		{
 			/*
-			 * Update nitpicker views in reverse order (back-most first). The
+			 * Update GUI views in reverse order (back-most first). The
 			 * reverse order is important because the stacking position of a
 			 * view is propagated by referring to the neighbor the view is in
 			 * front of. By starting with the back-most view, we make sure that
@@ -123,7 +123,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			Reversed_windows reversed = _reversed_window_list();
 
 			while (Genode::List_element<Window_base> *win = reversed.first()) {
-				win->object()->update_nitpicker_views();
+				win->object()->update_gui_views();
 				reversed.remove(win);
 			}
 		}
@@ -244,7 +244,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
 		new_front_most_id = root_node.sub_node("window").attribute_value("id", ~0UL);
 
 	/*
-	 * Propagate changed stacking order to nitpicker
+	 * Propagate changed stacking order to the GUI server
 	 *
 	 * First, we reverse the window list. The 'reversed' list starts with
 	 * the back-most window. We then go throuh each window back to front

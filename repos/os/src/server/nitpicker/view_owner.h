@@ -34,12 +34,14 @@ namespace Nitpicker { class View_owner; }
 
 struct Nitpicker::View_owner : Interface
 {
+	using Label = Gui::Session::Label;
+
 	/**
 	 * Return the owner's session label
 	 */
-	virtual Session::Label label() const { return Session::Label(""); }
+	virtual Label label() const { return Label(""); }
 
-	virtual bool matches_session_label(Session::Label const &) const { return false; }
+	virtual bool matches_session_label(Label const &) const { return false; }
 
 	virtual bool visible() const { return true; }
 

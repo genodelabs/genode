@@ -3,7 +3,7 @@ ARORA = arora-0.11.0
 QT_TMPL_DIR = $(call select_from_repositories,src/app/qt5/tmpl)
 
 ifneq ($(QT_TMPL_DIR),)
-LIBS += qt5_printsupport qt5_qpluginwidget qt5_qnitpickerviewwidget
+LIBS += qt5_printsupport qt5_qpluginwidget qt5_qgenodeviewwidget
 else
 REQUIRES += qt5
 endif

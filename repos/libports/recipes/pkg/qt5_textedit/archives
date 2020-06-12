@@ -8,7 +8,7 @@ _/src/mesa
 _/src/qt5_core
 _/src/qt5_gui
 _/src/qt5_qjpeg
-_/src/qt5_qpa_nitpicker
+_/src/qt5_qpa_genode
 _/src/stdcxx
 _/src/vfs
 _/src/vfs_pipe

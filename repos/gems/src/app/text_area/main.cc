@@ -23,7 +23,7 @@
 #include <os/reporter.h>
 
 /* local includes */
-#include <nitpicker.h>
+#include <gui.h>
 #include <report.h>
 #include <dialog.h>
 #include <new_file.h>
@@ -33,7 +33,7 @@ namespace Text_area { struct Main; }
 
 struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
                          Sandbox::State_handler,
-                         Nitpicker::Input_event_handler,
+                         Gui::Input_event_handler,
                          Dialog::Trigger_copy, Dialog::Trigger_paste,
                          Dialog::Trigger_save
 {
@@ -76,9 +76,9 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 
 	Sandbox _sandbox { _env, *this };
 
-	typedef Sandbox::Local_service<Nitpicker::Session_component> Nitpicker_service;
+	typedef Sandbox::Local_service<Gui::Session_component> Gui_service;
 
-	Nitpicker_service _nitpicker_service { _sandbox, *this };
+	Gui_service _gui_service { _sandbox, *this };
 
 	typedef Sandbox::Local_service<Dynamic_rom_session> Rom_service;
 
@@ -245,30 +245,30 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 			return Report_service::Close_response::CLOSED;
 		});
 
-		_nitpicker_service.for_each_requested_session([&] (Nitpicker_service::Request &request) {
+		_gui_service.for_each_requested_session([&] (Gui_service::Request &request) {
 
-			Nitpicker::Session_component &session = *new (_heap)
-				Nitpicker::Session_component(_env, *this, _env.ep(),
-				                             request.resources, "", request.diag);
+			Gui::Session_component &session = *new (_heap)
+				Gui::Session_component(_env, *this, _env.ep(),
+				                       request.resources, "", request.diag);
 
 			request.deliver_session(session);
 		});
 
-		_nitpicker_service.for_each_upgraded_session([&] (Nitpicker::Session_component &session,
+		_gui_service.for_each_upgraded_session([&] (Gui::Session_component &session,
 		                                                  Session::Resources const &amount) {
 			session.upgrade(amount);
-			return Nitpicker_service::Upgrade_response::CONFIRMED;
+			return Gui_service::Upgrade_response::CONFIRMED;
 		});
 
-		_nitpicker_service.for_each_session_to_close([&] (Nitpicker::Session_component &session) {
+		_gui_service.for_each_session_to_close([&] (Gui::Session_component &session) {
 
 			destroy(_heap, &session);
-			return Nitpicker_service::Close_response::CLOSED;
+			return Gui_service::Close_response::CLOSED;
 		});
 	}
 
 	/**
-	 * Nitpicker::Input_event_handler interface
+	 * Gui::Input_event_handler interface
 	 */
 	void handle_input_event(Input::Event const &event) override
 	{

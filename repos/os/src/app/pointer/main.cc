@@ -35,7 +35,7 @@ namespace Pointer { class Main; }
 
 
 template <typename PT>
-void convert_default_pointer_data_to_pixels(PT *pixel, Nitpicker::Area size)
+void convert_default_pointer_data_to_pixels(PT *pixel, Gui::Area size)
 {
 	unsigned char *alpha = (unsigned char *)(pixel + size.count());
 
@@ -66,17 +66,17 @@ class Pointer::Main : public Rom::Reader
 
 		bool _verbose = _config.xml().attribute_value("verbose", false);
 
-		Nitpicker::Connection _nitpicker { _env };
+		Gui::Connection _gui { _env };
 
-		Nitpicker::Session::View_handle _view = _nitpicker.create_view();
+		Gui::Session::View_handle _view = _gui.create_view();
 
 		bool _default_pointer_visible = false;
 
-		Nitpicker::Area _current_pointer_size { };
+		Gui::Area _current_pointer_size { };
 
 		Genode::Dataspace_capability _pointer_ds { };
 
-		void _resize_nitpicker_buffer_if_needed(Nitpicker::Area pointer_size);
+		void _resize_gui_buffer_if_needed(Gui::Area pointer_size);
 		void _show_default_pointer();
 		void _update_pointer();
 
@@ -134,7 +134,7 @@ class Pointer::Main : public Rom::Reader
 };
 
 
-void Pointer::Main::_resize_nitpicker_buffer_if_needed(Nitpicker::Area pointer_size)
+void Pointer::Main::_resize_gui_buffer_if_needed(Gui::Area pointer_size)
 {
 	if (pointer_size == _current_pointer_size)
 		return;
@@ -143,9 +143,9 @@ void Pointer::Main::_resize_nitpicker_buffer_if_needed(Nitpicker::Area pointer_s
 	                               (int)pointer_size.h(),
 	                               Framebuffer::Mode::RGB565 };
 
-	_nitpicker.buffer(mode, true /* use alpha */);
+	_gui.buffer(mode, true /* use alpha */);
 
-	_pointer_ds = _nitpicker.framebuffer()->dataspace();
+	_pointer_ds = _gui.framebuffer()->dataspace();
 
 	_current_pointer_size = pointer_size;
 }
@@ -157,10 +157,10 @@ void Pointer::Main::_show_default_pointer()
 	if (_default_pointer_visible)
 		return;
 
-	Nitpicker::Area const pointer_size { big_mouse.w, big_mouse.h };
+	Gui::Area const pointer_size { big_mouse.w, big_mouse.h };
 
 	try {
-		_resize_nitpicker_buffer_if_needed(pointer_size);
+		_resize_gui_buffer_if_needed(pointer_size);
 	} catch (...) {
 		Genode::error(__func__, ": could not resize the pointer buffer "
 		              "for ", pointer_size.w(), "x", pointer_size.h(), " pixels");
@@ -171,11 +171,11 @@ void Pointer::Main::_show_default_pointer()
 
 	convert_default_pointer_data_to_pixels(ds.local_addr<Genode::Pixel_rgb565>(),
 	                                       pointer_size);
-	_nitpicker.framebuffer()->refresh(0, 0, pointer_size.w(), pointer_size.h());
+	_gui.framebuffer()->refresh(0, 0, pointer_size.w(), pointer_size.h());
 
-	Nitpicker::Rect geometry(Nitpicker::Point(0, 0), pointer_size);
-	_nitpicker.enqueue<Nitpicker::Session::Command::Geometry>(_view, geometry);
-	_nitpicker.execute();
+	Gui::Rect geometry(Gui::Point(0, 0), pointer_size);
+	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);
+	_gui.execute();
 
 	_default_pointer_visible = true;
 }
@@ -183,16 +183,16 @@ void Pointer::Main::_show_default_pointer()
 
 void Pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 {
-	Nitpicker::Area  shape_size;
-	Nitpicker::Point shape_hot;
+	Gui::Area  shape_size;
+	Gui::Point shape_hot;
 
 	if (shape_report.visible) {
 
-		shape_size = Nitpicker::Area(shape_report.width, shape_report.height);
-		shape_hot = Nitpicker::Point((int)-shape_report.x_hot, (int)-shape_report.y_hot);
+		shape_size = Gui::Area(shape_report.width, shape_report.height);
+		shape_hot = Gui::Point((int)-shape_report.x_hot, (int)-shape_report.y_hot);
 
 		try {
-			_resize_nitpicker_buffer_if_needed(shape_size);
+			_resize_gui_buffer_if_needed(shape_size);
 		} catch (...) {
 			error(__func__, ": could not resize the pointer buffer "
 			      "for ", shape_size, " pixels");
@@ -232,11 +232,11 @@ void Pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 		Dither_painter::paint(alpha_surface, texture);
 	}
 
-	_nitpicker.framebuffer()->refresh(0, 0, shape_size.w(), shape_size.h());
+	_gui.framebuffer()->refresh(0, 0, shape_size.w(), shape_size.h());
 
-	Nitpicker::Rect geometry(shape_hot, shape_size);
-	_nitpicker.enqueue<Nitpicker::Session::Command::Geometry>(_view, geometry);
-	_nitpicker.execute();
+	Gui::Rect geometry(shape_hot, shape_size);
+	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);
+	_gui.execute();
 
 	_default_pointer_visible = false;
 }
@@ -344,7 +344,7 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 	Framebuffer::Mode const mode { Pointer::MAX_WIDTH, Pointer::MAX_HEIGHT,
 	                               Framebuffer::Mode::RGB565 };
 
-	_nitpicker.buffer(mode, true /* use alpha */);
+	_gui.buffer(mode, true /* use alpha */);
 
 	if (_shapes_enabled) {
 		try {
@@ -366,9 +366,9 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 		}
 	}
 
-	typedef Nitpicker::Session::View_handle View_handle;
-	_nitpicker.enqueue<Nitpicker::Session::Command::To_front>(_view, View_handle());
-	_nitpicker.execute();
+	typedef Gui::Session::View_handle View_handle;
+	_gui.enqueue<Gui::Session::Command::To_front>(_view, View_handle());
+	_gui.execute();
 
 	_update_pointer();
 

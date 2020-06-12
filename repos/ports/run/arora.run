@@ -8,7 +8,7 @@ import_from_depot [depot_user]/src/arora \
                   [depot_user]/src/libssl \
                   [depot_user]/src/qt5_network \
                   [depot_user]/src/qt5_printsupport \
-                  [depot_user]/src/qt5_qnitpickerviewwidget \
+                  [depot_user]/src/qt5_qgenodeviewwidget \
                   [depot_user]/src/qt5_opengl \
                   [depot_user]/src/qt5_qpluginwidget \
                   [depot_user]/src/qt5_scriptclassic \

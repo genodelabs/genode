@@ -4,7 +4,7 @@
  * \author Norman Feske
  * \date   2010-09-02
  *
- * This input service implementation is used by the virtualized nitpicker
+ * This input service implementation is used by the virtualized GUI
  * service to translate the input coordinate system from the coordinates
  * seen by the user of the virtualized session and the physical coordinates
  * dictated by the loader-session client.

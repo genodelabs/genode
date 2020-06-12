@@ -42,9 +42,9 @@ namespace Sculpt {
 	typedef String<36>  Start_name;
 	typedef String<64>  Label;
 
-	typedef Nitpicker::Point Point;
-	typedef Nitpicker::Rect  Rect;
-	typedef Nitpicker::Area  Area;
+	typedef Gui::Point Point;
+	typedef Gui::Rect  Rect;
+	typedef Gui::Area  Area;
 
 	enum Writeable { WRITEABLE, READ_ONLY };
 }

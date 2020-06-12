@@ -10,8 +10,8 @@ qoost
 qt5_core
 qt5_gui
 qt5_network
-qt5_qnitpickerviewwidget
-qt5_qpa_nitpicker
+qt5_qgenodeviewwidget
+qt5_qpa_genode
 qt5_widgets
 stdcxx
 vfs

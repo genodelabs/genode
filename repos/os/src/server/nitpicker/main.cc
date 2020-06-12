@@ -172,7 +172,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 		void _session_visibility(Session_label const &label, Suffix const &suffix,
 		                         bool visible)
 		{
-			Nitpicker::Session::Label const selector(label, suffix);
+			Gui::Session::Label const selector(label, suffix);
 
 			for (Session_component *s = _session_list.first(); s; s = s->next())
 				if (s->matches_session_label(selector))
@@ -502,7 +502,7 @@ void Nitpicker::Main::_handle_focus()
 
 	_focus_rom->update();
 
-	typedef Session::Label Label;
+	typedef Gui::Session::Label Label;
 	Label const label = _focus_rom->xml().attribute_value("label", Label());
 
 	/*

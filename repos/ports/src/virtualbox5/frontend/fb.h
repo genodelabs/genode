@@ -26,18 +26,18 @@
 #include "Global.h"
 #include "VirtualBoxBase.h"
 
-typedef Nitpicker::Session::View_handle View_handle;
+typedef Gui::Session::View_handle View_handle;
 
 class Genodefb :
 	VBOX_SCRIPTABLE_IMPL(IFramebuffer)
 {
 	private:
 
-		Genode::Env           &_env;
-		Nitpicker::Connection &_nitpicker;
-		Fb_Genode::Session    &_fb;
-		View_handle            _view;
-		Fb_Genode::Mode        _fb_mode { 1024, 768, Fb_Genode::Mode::RGB565 };
+		Genode::Env        &_env;
+		Gui::Connection    &_gui;
+		Fb_Genode::Session &_fb;
+		View_handle         _view;
+		Fb_Genode::Mode     _fb_mode { 1024, 768, Fb_Genode::Mode::RGB565 };
 
 		/*
 		 * The mode currently used by the VM. Can be smaller than the
@@ -60,39 +60,39 @@ class Genodefb :
 
 		void _adjust_buffer()
 		{
-			_nitpicker.buffer(Fb_Genode::Mode(_fb_mode.width(), _fb_mode.height(),
-			                                  Fb_Genode::Mode::RGB565), false);
+			_gui.buffer(Fb_Genode::Mode(_fb_mode.width(), _fb_mode.height(),
+			                            Fb_Genode::Mode::RGB565), false);
 
-			typedef Nitpicker::Session::Command Command;
+			typedef Gui::Session::Command Command;
 
-			Nitpicker::Rect rect(Nitpicker::Point(0, 0),
-			                     Nitpicker::Area(_fb_mode.width(), _fb_mode.height()));
+			Gui::Rect rect(Gui::Point(0, 0),
+			               Gui::Area(_fb_mode.width(), _fb_mode.height()));
 
-			_nitpicker.enqueue<Command::Geometry>(_view, rect);
-			_nitpicker.execute();
+			_gui.enqueue<Command::Geometry>(_view, rect);
+			_gui.execute();
 		}
 
 		Fb_Genode::Mode _initial_setup()
 		{
-			typedef Nitpicker::Session::Command Command;
+			typedef Gui::Session::Command Command;
 
-			_view = _nitpicker.create_view();
+			_view = _gui.create_view();
 
 			_adjust_buffer();
 
-			_nitpicker.enqueue<Command::To_front>(_view, View_handle());
-			_nitpicker.execute();
+			_gui.enqueue<Command::To_front>(_view, View_handle());
+			_gui.execute();
 
 			return _fb_mode;
 		}
 
 	public:
 
-		Genodefb (Genode::Env &env, Nitpicker::Connection &nitpicker)
+		Genodefb (Genode::Env &env, Gui::Connection &gui)
 		:
 			_env(env),
-			_nitpicker(nitpicker),
-			_fb(*nitpicker.framebuffer()),
+			_gui(gui),
+			_fb(*gui.framebuffer()),
 			_virtual_fb_mode(_initial_setup()),
 			_fb_base(env.rm().attach(_fb.dataspace()))
 		{
@@ -205,9 +205,9 @@ class Genodefb :
 
 			Lock();
 
-			Nitpicker::Area const area_fb = Nitpicker::Area(_fb_mode.width(),
-			                                                _fb_mode.height());
-			Nitpicker::Area const area_vm = Nitpicker::Area(width, height);
+			Gui::Area const area_fb = Gui::Area(_fb_mode.width(),
+			                                    _fb_mode.height());
+			Gui::Area const area_vm = Gui::Area(width, height);
 
 			using namespace Genode;
 

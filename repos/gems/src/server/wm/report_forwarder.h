@@ -4,12 +4,13 @@
  * \date   2019-02-18
  *
  * This report service has the sole purpose of applying the same labeling
- * policy to an application's shape report as done for the application's
- * 'Nitpicker' session. This consistency is needed by the pointer to correlate
- * the currently hovered nitpicker session with the reported shapes.
- * Analogously, clipboard reports can be routed through the window
- * manager to support the clipboard component with associating its clients
- * with nitpicker's reported focus.
+ * policy to an application's shape report as done for the application's GUI
+ * session. This consistency is needed by the pointer to correlate the
+ * currently hovered GUI session with the reported shapes.
+ *
+ * Analogously, clipboard reports can be routed through the window manager to
+ * support the clipboard component with associating its clients with
+ * nitpicker's reported focus.
  */
 
 /*

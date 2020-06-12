@@ -139,11 +139,11 @@ class Pdf_view
 
 		Genode::Env &_env;
 
-		Nitpicker::Connection  _nitpicker { _env };
-		Framebuffer::Session  &_framebuffer = *_nitpicker.framebuffer();
-		Input::Session_client &_input       = *_nitpicker.input();
+		Gui::Connection        _gui { _env };
+		Framebuffer::Session  &_framebuffer = *_gui.framebuffer();
+		Input::Session_client &_input       = *_gui.input();
 
-		Framebuffer::Mode _nit_mode = _nitpicker.mode();
+		Framebuffer::Mode _nit_mode = _gui.mode();
 		Framebuffer::Mode  _fb_mode {};
 
 		Genode::Constructible<Genode::Attached_dataspace> _fb_ds { };
@@ -157,22 +157,22 @@ class Pdf_view
 		Genode::Signal_handler<Pdf_view> _input_handler {
 			_env.ep(), *this, &Pdf_view::_handle_input_events };
 
-		Nitpicker::Session::View_handle _view = _nitpicker.create_view();
+		Gui::Session::View_handle _view = _gui.create_view();
 
 		pixel_t *_fb_base() { return _fb_ds->local_addr<pixel_t>(); }
 
 		void _rebuffer()
 		{
-			using namespace Nitpicker;
+			using namespace Gui;
 
-			_nit_mode = _nitpicker.mode();
+			_nit_mode = _gui.mode();
 
 			int max_x = Genode::max(_nit_mode.width(),  _fb_mode.width());
 			int max_y = Genode::max(_nit_mode.height(), _fb_mode.height());
 
 			if (max_x > _fb_mode.width() || max_y > _fb_mode.height()) {
 				_fb_mode = Mode(max_x, max_y, _nit_mode.format());
-				_nitpicker.buffer(_fb_mode, NO_ALPHA);
+				_gui.buffer(_fb_mode, NO_ALPHA);
 				if (_fb_ds.constructed())
 					_fb_ds.destruct();
 				_fb_ds.construct(_env.rm(), _framebuffer.dataspace());
@@ -190,11 +190,11 @@ class Pdf_view
 			_pdfapp.resolution = Genode::min(_nit_mode.width()/5,
 			                                 _nit_mode.height()/3.8);
 
-			typedef Nitpicker::Session::Command Command;
-			_nitpicker.enqueue<Command::Geometry>(
+			typedef Gui::Session::Command Command;
+			_gui.enqueue<Command::Geometry>(
 				_view, Rect(Point(), Area(_nit_mode.width(), _nit_mode.height())));
-			_nitpicker.enqueue<Command::To_front>(_view, Nitpicker::Session::View_handle());
-			_nitpicker.execute();
+			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
+			_gui.execute();
 		}
 
 		void _handle_nit_mode()
@@ -284,7 +284,7 @@ class Pdf_view
 		 */
 		Pdf_view(Genode::Env &env) : _env(env)
 		{
-			_nitpicker.mode_sigh(_nit_mode_handler);
+			_gui.mode_sigh(_nit_mode_handler);
 			_input.sigh(_input_handler);
 
 			pdfapp_init(&_pdfapp);
@@ -322,9 +322,9 @@ class Pdf_view
 
 		void title(char const *msg)
 		{
-			typedef Nitpicker::Session::Command Command;
-			_nitpicker.enqueue<Command::Title>(_view, msg);
-			_nitpicker.execute();
+			typedef Gui::Session::Command Command;
+			_gui.enqueue<Command::Title>(_view, msg);
+			_gui.execute();
 		}
 
 		void show();

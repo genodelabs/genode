@@ -11,8 +11,8 @@ qt5_gui
 qt5_printsupport
 qt5_qjpeg
 qt5_network
-qt5_qnitpickerviewwidget
-qt5_qpa_nitpicker
+qt5_qgenodeviewwidget
+qt5_qpa_genode
 qt5_qpluginwidget
 qt5_scriptclassic
 qt5_ui_tools

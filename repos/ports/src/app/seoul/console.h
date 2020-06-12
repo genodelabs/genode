@@ -108,7 +108,7 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 		 */
 		Console(Genode::Env &env, Genode::Allocator &alloc,
 		        Synced_motherboard &, Motherboard &,
-		        Nitpicker::Connection &, Seoul::Guest_memory &);
+		        Gui::Connection &, Seoul::Guest_memory &);
 };
 
 #endif /* _CONSOLE_H_ */

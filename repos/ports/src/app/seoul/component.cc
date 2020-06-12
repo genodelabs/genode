@@ -1387,27 +1387,25 @@ void Component::construct(Genode::Env &env)
 	Genode::log(" framebuffer ", width, "x", height);
 
 	/* setup framebuffer memory for guest */
-	static Nitpicker::Connection nitpicker { env };
-	nitpicker.buffer(Framebuffer::Mode(width, height,
-	                                   Framebuffer::Mode::RGB565), false);
+	static Gui::Connection gui { env };
+	gui.buffer(Framebuffer::Mode(width, height, Framebuffer::Mode::RGB565), false);
 
-	static Framebuffer::Session  &framebuffer { *nitpicker.framebuffer() };
+	static Framebuffer::Session  &framebuffer { *gui.framebuffer() };
 	Framebuffer::Mode           const fb_mode { framebuffer.mode() };
 
 	size_t const fb_size = Genode::align_addr(fb_mode.width() *
 	                                          fb_mode.height() *
 	                                          fb_mode.bytes_per_pixel(), 12);
 
-	typedef Nitpicker::Session::View_handle View_handle;
-	typedef Nitpicker::Session::Command Command;
+	typedef Gui::Session::View_handle View_handle;
+	typedef Gui::Session::Command Command;
 
-	View_handle view = nitpicker.create_view();
-	Nitpicker::Rect rect(Nitpicker::Point(0, 0),
-	                     Nitpicker::Area(fb_mode.width(), fb_mode.height()));
+	View_handle view = gui.create_view();
+	Gui::Rect rect(Gui::Point(0, 0), Gui::Area(fb_mode.width(), fb_mode.height()));
 
-	nitpicker.enqueue<Command::Geometry>(view, rect);
-	nitpicker.enqueue<Command::To_front>(view, View_handle());
-	nitpicker.execute();
+	gui.enqueue<Command::Geometry>(view, rect);
+	gui.enqueue<Command::To_front>(view, View_handle());
+	gui.execute();
 
 	/* setup guest memory */
 	static Seoul::Guest_memory guest_memory(env, heap, vm_con, vm_size);
@@ -1450,7 +1448,7 @@ void Component::construct(Genode::Env &env)
 	/* create console thread */
 	static Seoul::Console vcon(env, heap, machine.motherboard(),
 	                           machine.unsynchronized_motherboard(),
-	                           nitpicker, guest_memory);
+	                           gui, guest_memory);
 
 	vcon.register_host_operations(machine.unsynchronized_motherboard());
 

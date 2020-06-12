@@ -21,7 +21,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/qt5_core \
                   [depot_user]/src/qt5_gui \
                   [depot_user]/src/qt5_qjpeg \
-                  [depot_user]/src/qt5_qpa_nitpicker \
+                  [depot_user]/src/qt5_qpa_genode \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/stdcxx \
                   [depot_user]/src/vfs \

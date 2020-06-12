@@ -114,7 +114,7 @@ class GenodeConsole : public Console {
 
 	private:
 
-		Nitpicker::Connection                  _nitpicker;
+		Gui::Connection                        _gui;
 		Input::Session_client                 &_input;
 		unsigned                               _ax, _ay;
 		bool                                   _last_received_motion_event_was_absolute;
@@ -150,8 +150,8 @@ class GenodeConsole : public Console {
 		GenodeConsole()
 		:
 			Console(),
-			_nitpicker(genode_env()),
-			_input(*_nitpicker.input()),
+			_gui(genode_env()),
+			_input(*_gui.input()),
 			_ax(0), _ay(0),
 			_last_received_motion_event_was_absolute(false),
 			_shape_report_connection(genode_env(), "shape",
@@ -182,7 +182,7 @@ class GenodeConsole : public Console {
 			}
 		}
 
-		Nitpicker::Connection &nitpicker() { return _nitpicker; }
+		Gui::Connection &gui() { return _gui; }
 
 		void init_clipboard();
 

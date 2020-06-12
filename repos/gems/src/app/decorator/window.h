@@ -29,25 +29,25 @@ class Decorator::Window : public Window_base
 {
 	private:
 
-		Nitpicker::Session_client &_nitpicker;
+		Gui::Session_client &_gui;
 
 		/*
 		 * Flag indicating that the current window position has been propagated
-		 * to the window's corresponding nitpicker views.
+		 * to the window's corresponding GUI views.
 		 */
-		bool _nitpicker_views_up_to_date = false;
+		bool _gui_views_up_to_date = false;
 
-		struct Nitpicker_view
+		struct Gui_view
 		{
-			Nitpicker::Session_client &_nitpicker;
+			Gui::Session_client &_gui;
 
-			View_handle _handle { _nitpicker.create_view() };
+			View_handle _handle { _gui.create_view() };
 
-			typedef Nitpicker::Session::Command Command;
+			typedef Gui::Session::Command Command;
 
-			Nitpicker_view(Nitpicker::Session_client &nitpicker, unsigned id = 0)
+			Gui_view(Gui::Session_client &gui, unsigned id = 0)
 			:
-				_nitpicker(nitpicker)
+				_gui(gui)
 			{
 				/*
 				 * We supply the window ID as label for the anchor view.
@@ -56,41 +56,41 @@ class Decorator::Window : public Window_base
 					char buf[128];
 					Genode::snprintf(buf, sizeof(buf), "%d", id);
 
-					_nitpicker.enqueue<Command::Title>(_handle, Genode::Cstring(buf));
+					_gui.enqueue<Command::Title>(_handle, Genode::Cstring(buf));
 				}
 			}
 
-			~Nitpicker_view()
+			~Gui_view()
 			{
-				_nitpicker.destroy_view(_handle);
+				_gui.destroy_view(_handle);
 			}
 
 			View_handle handle() const { return _handle; }
 
 			void stack(View_handle neighbor)
 			{
-				_nitpicker.enqueue<Command::To_front>(_handle, neighbor);
+				_gui.enqueue<Command::To_front>(_handle, neighbor);
 			}
 
 			void stack_back_most()
 			{
-				_nitpicker.enqueue<Command::To_back>(_handle, View_handle());
+				_gui.enqueue<Command::To_back>(_handle, View_handle());
 			}
 
 			void place(Rect rect)
 			{
-				_nitpicker.enqueue<Command::Geometry>(_handle, rect);
+				_gui.enqueue<Command::Geometry>(_handle, rect);
 				Point offset = Point(0, 0) - rect.p1();
-				_nitpicker.enqueue<Command::Offset>(_handle, offset);
+				_gui.enqueue<Command::Offset>(_handle, offset);
 			}
 		};
 
-		Nitpicker_view _bottom_view { _nitpicker },
-		               _right_view  { _nitpicker },
-		               _left_view   { _nitpicker },
-		               _top_view    { _nitpicker };
+		Gui_view _bottom_view { _gui },
+		         _right_view  { _gui },
+		         _left_view   { _gui },
+		         _top_view    { _gui };
 
-		Nitpicker_view _content_view { _nitpicker, (unsigned)id() };
+		Gui_view _content_view { _gui, (unsigned)id() };
 
 		static Border _init_border() {
 			return Border(_border_size + _title_height,
@@ -419,11 +419,11 @@ class Decorator::Window : public Window_base
 
 	public:
 
-		Window(unsigned id, Nitpicker::Session_client &nitpicker,
+		Window(unsigned id, Gui::Session_client &gui,
 		       Animator &animator, Config const &config)
 		:
 			Window_base(id),
-			_nitpicker(nitpicker),
+			_gui(gui),
 			_animator(animator), _config(config)
 		{ }
 
@@ -470,9 +470,9 @@ class Decorator::Window : public Window_base
 			outer_geometry().cut(geometry(), top, left, right, bottom);
 		}
 
-		void update_nitpicker_views() override
+		void update_gui_views() override
 		{
-			if (!_nitpicker_views_up_to_date) {
+			if (!_gui_views_up_to_date) {
 
 				/* update view positions */
 				Rect top, left, right, bottom;
@@ -484,7 +484,7 @@ class Decorator::Window : public Window_base
 				_right_view  .place(right);
 				_bottom_view .place(bottom);
 
-				_nitpicker_views_up_to_date = true;
+				_gui_views_up_to_date = true;
 			}
 		}
 

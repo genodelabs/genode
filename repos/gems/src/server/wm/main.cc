@@ -21,7 +21,7 @@
 #include <util/xml_node.h>
 
 /* local includes */
-#include <nitpicker.h>
+#include <gui.h>
 #include <report_forwarder.h>
 #include <rom_forwarder.h>
 
@@ -60,12 +60,11 @@ struct Wm::Main
 
 	Window_registry window_registry { heap, window_list_reporter };
 
-	Nitpicker::Connection focus_nitpicker_session { env };
+	Gui::Connection focus_gui_session { env };
 
-	Nitpicker::Root nitpicker_root { env, window_registry,
-	                                 heap, env.ram(),
-	                                 pointer_reporter, focus_request_reporter,
-	                                 focus_nitpicker_session };
+	Gui::Root gui_root { env, window_registry, heap, env.ram(),
+	                     pointer_reporter, focus_request_reporter,
+	                     focus_gui_session };
 
 	void handle_focus_update()
 	{
@@ -80,10 +79,10 @@ struct Wm::Main
 				.attribute("id").value(win_id);
 
 			if (win_id) {
-				Nitpicker::Session_capability session_cap =
-					nitpicker_root.lookup_nitpicker_session(win_id);
+				Gui::Session_capability session_cap =
+					gui_root.lookup_gui_session(win_id);
 
-				focus_nitpicker_session.focus(session_cap);
+				focus_gui_session.focus(session_cap);
 			}
 
 		} catch (...) { }
@@ -103,7 +102,7 @@ struct Wm::Main
 				width  = window.attribute_value("width",  0UL),
 				height = window.attribute_value("height", 0UL);
 
-			nitpicker_root.request_resize(win_id, Area(width, height));
+			gui_root.request_resize(win_id, Area(width, height));
 		});
 	}
 

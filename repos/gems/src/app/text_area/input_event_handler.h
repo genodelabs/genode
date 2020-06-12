@@ -18,9 +18,9 @@
 #include <util/interface.h>
 #include <input/event.h>
 
-namespace Nitpicker { struct Input_event_handler; }
+namespace Gui { struct Input_event_handler; }
 
-struct Nitpicker::Input_event_handler : Genode::Interface
+struct Gui::Input_event_handler : Genode::Interface
 {
 	virtual void handle_input_event(Input::Event const &) = 0;
 };

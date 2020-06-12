@@ -63,9 +63,9 @@ struct Decorator::Main : Window_factory_base
 	Reporter _hover_reporter = { _env, "hover" };
 
 	/**
-	 * Nitpicker connection used to sync animations
+	 * GUI connection used to sync animations
 	 */
-	Nitpicker::Connection _nitpicker { _env };
+	Gui::Connection _gui { _env };
 
 	bool _window_layout_update_needed = false;
 
@@ -78,13 +78,13 @@ struct Decorator::Main : Window_factory_base
 	Reporter _decorator_margins_reporter = { _env, "decorator_margins" };
 
 	/**
-	 * Process the update every 'frame_period' nitpicker sync signals. The
-	 * 'frame_cnt' holds the counter of the nitpicker sync signals.
+	 * Process the update every 'frame_period' GUI sync signals. The
+	 * 'frame_cnt' holds the counter of the GUI sync signals.
 	 *
 	 * A lower 'frame_period' value makes the decorations more responsive
 	 * but it also puts more load on the system.
 	 *
-	 * If the nitpicker sync signal fires every 10 milliseconds, a
+	 * If the GUI sync signal fires every 10 milliseconds, a
 	 * 'frame_period' of 2 results in an update rate of 1000/20 = 50 frames per
 	 * second.
 	 */
@@ -92,12 +92,12 @@ struct Decorator::Main : Window_factory_base
 	unsigned _frame_period = 2;
 
 	/**
-	 * Install handler for responding to nitpicker sync events
+	 * Install handler for responding to GUI sync events
 	 */
-	void _handle_nitpicker_sync();
+	void _handle_gui_sync();
 
-	Signal_handler<Main> _nitpicker_sync_handler = {
-		_env.ep(), *this, &Main::_handle_nitpicker_sync };
+	Signal_handler<Main> _gui_sync_handler = {
+		_env.ep(), *this, &Main::_handle_gui_sync };
 
 	Attached_rom_dataspace _config { _env, "config" };
 
@@ -122,7 +122,7 @@ struct Decorator::Main : Window_factory_base
 		 * and view_handle operations. Currently, these exceptions will
 		 * abort the decorator.
 		 */
-		_nitpicker.upgrade_ram(256*1024);
+		_gui.upgrade_ram(256*1024);
 
 		_config.sigh(_config_handler);
 		_handle_config();
@@ -136,7 +136,7 @@ struct Decorator::Main : Window_factory_base
 			Genode::log("pointer information unavailable");
 		}
 
-		_nitpicker.framebuffer()->sync_sigh(_nitpicker_sync_handler);
+		_gui.framebuffer()->sync_sigh(_gui_sync_handler);
 
 		_hover_reporter.enabled(true);
 
@@ -167,7 +167,7 @@ struct Decorator::Main : Window_factory_base
 	{
 		return new (_heap)
 			Window(_env, window_node.attribute_value("id", 0UL),
-			       _nitpicker, _animator, _theme, _decorator_config);
+			       _gui, _animator, _theme, _decorator_config);
 	}
 
 	/**
@@ -249,7 +249,7 @@ void Decorator::Main::_handle_window_layout_update()
 }
 
 
-void Decorator::Main::_handle_nitpicker_sync()
+void Decorator::Main::_handle_gui_sync()
 {
 	if (_frame_cnt++ < _frame_period)
 		return;
@@ -259,7 +259,7 @@ void Decorator::Main::_handle_nitpicker_sync()
 	bool model_updated = false;
 
 	auto flush_window_stack_changes = [&] () {
-		_window_stack.update_nitpicker_views(); };
+		_window_stack.update_gui_views(); };
 
 	if (_window_layout_update_needed) {
 
@@ -281,8 +281,8 @@ void Decorator::Main::_handle_nitpicker_sync()
 
 	/*
 	 * To make the perceived animation speed independent from the setting of
-	 * 'frame_period', we update the animation as often as the nitpicker
-	 * sync signal occurs.
+	 * 'frame_period', we update the animation as often as the GUI sync signal
+	 * occurs.
 	 */
 	for (unsigned i = 0; i < _frame_period; i++)
 		_animator.animate();
@@ -290,8 +290,8 @@ void Decorator::Main::_handle_nitpicker_sync()
 	if (!model_updated && !windows_animated)
 		return;
 
-	_window_stack.update_nitpicker_views();
-	_nitpicker.execute();
+	_window_stack.update_gui_views();
+	_gui.execute();
 }
 
 

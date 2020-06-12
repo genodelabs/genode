@@ -28,7 +28,7 @@
 		<rom label="qt5_dejavusans.tar"/>
 		<rom label="qt5_gui.lib.so"/>
 		<rom label="qt5_qjpeg.lib.so"/>
-		<rom label="qt5_qpa_nitpicker.lib.so"/>
+		<rom label="qt5_qpa_genode.lib.so"/>
 		<rom label="stdcxx.lib.so"/>
 		<rom label="vfs.lib.so"/>
 		<rom label="vfs_pipe.lib.so"/>
@@ -47,7 +47,7 @@
 		<rom label="qt5_network.lib.so"/>
 		<rom label="qt5_opengl.lib.so"/>
 		<rom label="qt5_printsupport.lib.so"/>
-		<rom label="qt5_qnitpickerviewwidget.lib.so"/>
+		<rom label="qt5_qgenodeviewwidget.lib.so"/>
 		<rom label="qt5_qpluginwidget.lib.so"/>
 		<rom label="qt5_scriptclassic.lib.so"/>
 		<rom label="qt5_sql.lib.so"/>

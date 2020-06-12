@@ -35,7 +35,7 @@
 #include <view/settings_dialog.h>
 #include <view/file_browser_dialog.h>
 #include <menu_view.h>
-#include <nitpicker.h>
+#include <gui.h>
 #include <keyboard_focus.h>
 #include <network.h>
 #include <storage.h>
@@ -68,21 +68,21 @@ struct Sculpt::Main : Input_event_handler,
 
 	Registry<Child_state> _child_states { };
 
-	Constructible<Nitpicker::Connection> _nitpicker { };
+	Constructible<Gui::Connection> _gui { };
 
 	Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
 
 	void _handle_input()
 	{
-		_nitpicker->input()->for_each_event([&] (Input::Event const &ev) {
+		_gui->input()->for_each_event([&] (Input::Event const &ev) {
 			handle_input_event(ev); });
 	}
 
-	Signal_handler<Main> _nitpicker_mode_handler {
-		_env.ep(), *this, &Main::_handle_nitpicker_mode };
+	Signal_handler<Main> _gui_mode_handler {
+		_env.ep(), *this, &Main::_handle_gui_mode };
 
-	void _handle_nitpicker_mode();
+	void _handle_gui_mode();
 
 	Managed_config<Main> _fonts_config {
 		_env, "config", "fonts", *this, &Main::_handle_fonts_config };
@@ -103,7 +103,7 @@ struct Sculpt::Main : Input_event_handler,
 								if (px > 0.0)
 									_font_size_px = px; }); } }); } }); });
 
-		_handle_nitpicker_mode();
+		_handle_gui_mode();
 	}
 
 	Managed_config<Main> _input_filter_config {
@@ -114,12 +114,12 @@ struct Sculpt::Main : Input_event_handler,
 		_input_filter_config.try_generate_manually_managed();
 	}
 
-	Attached_rom_dataspace _nitpicker_hover { _env, "nitpicker_hover" };
+	Attached_rom_dataspace _gui_hover { _env, "nitpicker_hover" };
 
-	Signal_handler<Main> _nitpicker_hover_handler {
-		_env.ep(), *this, &Main::_handle_nitpicker_hover };
+	Signal_handler<Main> _gui_hover_handler {
+		_env.ep(), *this, &Main::_handle_gui_hover };
 
-	void _handle_nitpicker_hover();
+	void _handle_gui_hover();
 
 
 	/**********************
@@ -710,7 +710,7 @@ struct Sculpt::Main : Input_event_handler,
 	void select_font_size(Font_size font_size) override
 	{
 		_font_size = font_size;
-		_handle_nitpicker_mode();
+		_handle_gui_mode();
 	}
 
 	Signal_handler<Main> _fs_query_result_handler {
@@ -983,40 +983,40 @@ struct Sculpt::Main : Input_event_handler,
 		_fb_drv_config.try_generate_manually_managed();
 	}
 
-	Attached_rom_dataspace _nitpicker_displays { _env, "displays" };
+	Attached_rom_dataspace _gui_displays { _env, "displays" };
 
-	Signal_handler<Main> _nitpicker_displays_handler {
-		_env.ep(), *this, &Main::_handle_nitpicker_displays };
+	Signal_handler<Main> _gui_displays_handler {
+		_env.ep(), *this, &Main::_handle_gui_displays };
 
-	void _handle_nitpicker_displays()
+	void _handle_gui_displays()
 	{
-		_nitpicker_displays.update();
+		_gui_displays.update();
 
-		if (!_nitpicker_displays.xml().has_sub_node("display"))
+		if (!_gui_displays.xml().has_sub_node("display"))
 			return;
 
-		if (_nitpicker.constructed())
+		if (_gui.constructed())
 			return;
 
 		/*
-		 * Since nitpicker has successfully issued the first 'displays' report,
-		 * there is a good chance that the framebuffer driver is running. This
-		 * is a good time to activate the GUI.
+		 * Since the nitpicker GUI server has successfully issued the first
+		 * 'displays' report, there is a good chance that the framebuffer
+		 * driver is running. This is a good time to activate the GUI.
 		 */
-		_nitpicker.construct(_env, "input");
-		_nitpicker->input()->sigh(_input_handler);
-		_nitpicker->mode_sigh(_nitpicker_mode_handler);
+		_gui.construct(_env, "input");
+		_gui->input()->sigh(_input_handler);
+		_gui->mode_sigh(_gui_mode_handler);
 
 		/*
-		 * Adjust GUI parameters to initial nitpicker mode
+		 * Adjust GUI parameters to initial GUI mode
 		 */
-		_handle_nitpicker_mode();
+		_handle_gui_mode();
 
 		/*
-		 * Avoid 'Constructible<Nitpicker::Root>' because it requires the
-		 * definition of 'Nitpicker::Session_component'.
+		 * Avoid 'Constructible<Gui::Root>' because it requires the definition
+		 * of 'Gui::Session_component'.
 		 */
-		static Nitpicker::Root gui_nitpicker(_env, _heap, *this);
+		static Gui::Root gui_nitpicker(_env, _heap, *this);
 
 		generate_runtime_config();
 	}
@@ -1064,13 +1064,13 @@ struct Sculpt::Main : Input_event_handler,
 		_manual_deploy_rom.sigh(_manual_deploy_handler);
 		_runtime_state_rom.sigh(_runtime_state_handler);
 		_runtime_config_rom.sigh(_runtime_config_handler);
-		_nitpicker_displays.sigh(_nitpicker_displays_handler);
+		_gui_displays.sigh(_gui_displays_handler);
 
 		/*
 		 * Subscribe to reports
 		 */
 		_update_state_rom    .sigh(_update_state_handler);
-		_nitpicker_hover     .sigh(_nitpicker_hover_handler);
+		_gui_hover           .sigh(_gui_hover_handler);
 		_pci_devices         .sigh(_pci_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
@@ -1128,7 +1128,7 @@ void Sculpt::Main::_handle_window_layout()
 
 	unsigned const log_min_w = 400;
 
-	if (!_nitpicker.constructed())
+	if (!_gui.constructed())
 		return;
 
 	typedef String<128> Label;
@@ -1159,7 +1159,7 @@ void Sculpt::Main::_handle_window_layout()
 	if (panel_height == 0)
 		return;
 
-	Framebuffer::Mode const mode = _nitpicker->mode();
+	Framebuffer::Mode const mode = _gui->mode();
 
 	/* area reserved for the panel */
 	Rect const panel(Point(0, 0), Area(mode.width(), panel_height));
@@ -1323,12 +1323,12 @@ void Sculpt::Main::_handle_window_layout()
 }
 
 
-void Sculpt::Main::_handle_nitpicker_mode()
+void Sculpt::Main::_handle_gui_mode()
 {
-	if (!_nitpicker.constructed())
+	if (!_gui.constructed())
 		return;
 
-	Framebuffer::Mode const mode = _nitpicker->mode();
+	Framebuffer::Mode const mode = _gui->mode();
 
 	_handle_window_layout();
 
@@ -1409,7 +1409,7 @@ Sculpt::Dialog::Hover_result Sculpt::Main::hover(Xml_node hover)
 }
 
 
-void Sculpt::Main::_handle_nitpicker_hover()
+void Sculpt::Main::_handle_gui_hover()
 {
 	if (!_storage._discovery_state.discovery_in_progress())
 		return;
@@ -1418,8 +1418,8 @@ void Sculpt::Main::_handle_nitpicker_hover()
 	if (_storage._discovery_state.user_state != Discovery_state::USER_UNKNOWN)
 		return;
 
-	_nitpicker_hover.update();
-	Xml_node const hover = _nitpicker_hover.xml();
+	_gui_hover.update();
+	Xml_node const hover = _gui_hover.xml();
 	if (!hover.has_type("hover"))
 		return;
 
@@ -1678,7 +1678,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Block::Session>(xml);
 		gen_parent_service<Usb::Session>(xml);
 		gen_parent_service<::File_system::Session>(xml);
-		gen_parent_service<Nitpicker::Session>(xml);
+		gen_parent_service<Gui::Session>(xml);
 		gen_parent_service<Rtc::Session>(xml);
 		gen_parent_service<Trace::Session>(xml);
 		gen_parent_service<Io_mem_session>(xml);

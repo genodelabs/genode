@@ -22,7 +22,7 @@
 #include <util/reconstructible.h>
 
 /* gems includes */
-#include <gems/nitpicker_buffer.h>
+#include <gems/gui_buffer.h>
 #include <gems/animated_geometry.h>
 
 /* local includes */
@@ -48,9 +48,9 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 		/*
 		 * Flag indicating that the current window position has been propagated
-		 * to the window's corresponding nitpicker views.
+		 * to the window's corresponding GUI views.
 		 */
-		bool _nitpicker_views_up_to_date = false;
+		bool _gui_views_up_to_date = false;
 
 		unsigned _topped_cnt = 0;
 
@@ -141,22 +141,21 @@ class Decorator::Window : public Window_base, public Animator::Item
 			func(_maximizer);
 		}
 
-		struct Nitpicker_view
+		struct Gui_view
 		{
-			typedef Nitpicker::Session::Command Command;
+			typedef Gui::Session::Command Command;
 
 			bool const _view_is_remote;
 
-			Nitpicker::Session_client &_nitpicker;
+			Gui::Session_client &_gui;
 
 			View_handle _handle;
 
-			Nitpicker_view(Nitpicker::Session_client &nitpicker,
-			               unsigned id = 0)
+			Gui_view(Gui::Session_client &gui, unsigned id = 0)
 			:
 				_view_is_remote(false),
-				_nitpicker(nitpicker),
-				_handle(_nitpicker.create_view())
+				_gui(gui),
+				_handle(_gui.create_view())
 			{
 				/*
 				 * We supply the window ID as label for the anchor view.
@@ -165,63 +164,63 @@ class Decorator::Window : public Window_base, public Animator::Item
 					char buf[128];
 					Genode::snprintf(buf, sizeof(buf), "%d", id);
 
-					_nitpicker.enqueue<Command::Title>(_handle, Genode::Cstring(buf));
+					_gui.enqueue<Command::Title>(_handle, Genode::Cstring(buf));
 				}
 			}
 
-			View_handle _create_remote_view(Nitpicker::Session_client &remote_nitpicker)
+			View_handle _create_remote_view(Gui::Session_client &remote_gui)
 			{
-				/* create view at the remote nitpicker session */
-				View_handle handle = remote_nitpicker.create_view();
-				Nitpicker::View_capability view_cap = remote_nitpicker.view_capability(handle);
+				/* create view at the remote GUI session */
+				View_handle handle = remote_gui.create_view();
+				Gui::View_capability view_cap = remote_gui.view_capability(handle);
 
-				/* import remote view into local nitpicker session */
-				return _nitpicker.view_handle(view_cap);
+				/* import remote view into local GUI session */
+				return _gui.view_handle(view_cap);
 			}
 
 			/**
 			 * Constructor called for creating a view that refers to a buffer
-			 * of another nitpicker session
+			 * of another GUI session
 			 */
-			Nitpicker_view(Nitpicker::Session_client &nitpicker,
-			               Nitpicker::Session_client &remote_nitpicker)
+			Gui_view(Gui::Session_client &gui,
+			         Gui::Session_client &remote_gui)
 			:
 				_view_is_remote(true),
-				_nitpicker(nitpicker),
-				_handle(_create_remote_view(remote_nitpicker))
+				_gui(gui),
+				_handle(_create_remote_view(remote_gui))
 			{ }
 
-			~Nitpicker_view()
+			~Gui_view()
 			{
 				if (_view_is_remote)
-					_nitpicker.release_view_handle(_handle);
+					_gui.release_view_handle(_handle);
 				else
-					_nitpicker.destroy_view(_handle);
+					_gui.destroy_view(_handle);
 			}
 
 			View_handle handle() const { return _handle; }
 
 			void stack(View_handle neighbor)
 			{
-				_nitpicker.enqueue<Command::To_front>(_handle, neighbor);
+				_gui.enqueue<Command::To_front>(_handle, neighbor);
 			}
 
 			void stack_back_most()
 			{
-				_nitpicker.enqueue<Command::To_back>(_handle, View_handle());
+				_gui.enqueue<Command::To_back>(_handle, View_handle());
 			}
 
 			void place(Rect rect, Point offset)
 			{
-				_nitpicker.enqueue<Command::Geometry>(_handle, rect);
-				_nitpicker.enqueue<Command::Offset>(_handle, offset);
+				_gui.enqueue<Command::Geometry>(_handle, rect);
+				_gui.enqueue<Command::Offset>(_handle, offset);
 			}
 		};
 
 		/**
-		 * Nitpicker used as a global namespace of view handles
+		 * GUI session used as a global namespace of view handles
 		 */
-		Nitpicker::Session_client &_nitpicker;
+		Gui::Session_client &_gui;
 
 		Config const &_config;
 
@@ -243,25 +242,23 @@ class Decorator::Window : public Window_base, public Animator::Item
 		Genode::Animated_rect _animated_rect { _animator };
 
 		/*
-		 * Geometry most recently propagated to nitpicker
+		 * Geometry most recently propagated to GUI server
 		 */
-		Rect _nitpicker_view_rect { };
+		Rect _gui_view_rect { };
 
 		/**
-		 * Nitpicker session that contains the upper and lower window
-		 * decorations.
+		 * GUI session that contains the upper and lower window decorations
 		 */
-		Nitpicker::Connection                _nitpicker_top_bottom { _env };
-		Genode::Constructible<Nitpicker_buffer> _buffer_top_bottom { };
-		Area                                      _size_top_bottom { };
+		Gui::Connection                   _gui_top_bottom { _env };
+		Genode::Constructible<Gui_buffer> _buffer_top_bottom { };
+		Area                              _size_top_bottom { };
 
 		/**
-		 * Nitpicker session that contains the left and right window
-		 * decorations.
+		 * GUI session that contains the left and right window decorations
 		 */
-		Nitpicker::Connection                _nitpicker_left_right { _env };
-		Genode::Constructible<Nitpicker_buffer> _buffer_left_right { };
-		Area                                      _size_left_right { };
+		Gui::Connection                   _gui_left_right { _env };
+		Genode::Constructible<Gui_buffer> _buffer_left_right { };
+		Area                              _size_left_right { };
 
 		Area _visible_top_bottom_area(Area const inner_size) const
 		{
@@ -277,14 +274,14 @@ class Decorator::Window : public Window_base, public Animator::Item
 			return Area(outer_size.w() - inner_size.w(), outer_size.h());
 		}
 
-		Nitpicker_view _bottom_view { _nitpicker, _nitpicker_top_bottom },
-		               _right_view  { _nitpicker, _nitpicker_left_right },
-		               _left_view   { _nitpicker, _nitpicker_left_right },
-		               _top_view    { _nitpicker, _nitpicker_top_bottom };
+		Gui_view _bottom_view { _gui, _gui_top_bottom },
+		         _right_view  { _gui, _gui_left_right },
+		         _left_view   { _gui, _gui_left_right },
+		         _top_view    { _gui, _gui_top_bottom };
 
-		Nitpicker_view _content_view { _nitpicker, (unsigned)id() };
+		Gui_view _content_view { _gui, (unsigned)id() };
 
-		void _repaint_decorations(Nitpicker_buffer &buffer, Area area)
+		void _repaint_decorations(Gui_buffer &buffer, Area area)
 		{
 			buffer.reset_surface();
 
@@ -306,7 +303,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 			buffer.flush_surface();
 
-			buffer.nitpicker.framebuffer()->refresh(0, 0, buffer.size().w(), buffer.size().h());
+			buffer.gui.framebuffer()->refresh(0, 0, buffer.size().w(), buffer.size().h());
 		}
 
 		void _repaint_decorations()
@@ -317,7 +314,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			_repaint_decorations(*_buffer_left_right, _visible_left_right_area(inner_size));
 		}
 
-		void _reallocate_nitpicker_buffers()
+		void _reallocate_gui_buffers()
 		{
 			bool const use_alpha = true;
 
@@ -327,12 +324,12 @@ class Decorator::Window : public Window_base, public Animator::Item
 			 || size_top_bottom.h() > _size_top_bottom.h()
 			 || !_buffer_top_bottom.constructed()) {
 
-				_nitpicker_top_bottom.buffer(Framebuffer::Mode(size_top_bottom.w(),
-				                                               size_top_bottom.h(),
-				                                               Framebuffer::Mode::RGB565),
-				                             use_alpha);
+				_gui_top_bottom.buffer(Framebuffer::Mode(size_top_bottom.w(),
+				                                         size_top_bottom.h(),
+				                                         Framebuffer::Mode::RGB565),
+				                       use_alpha);
 
-				_buffer_top_bottom.construct(_nitpicker_top_bottom, size_top_bottom,
+				_buffer_top_bottom.construct(_gui_top_bottom, size_top_bottom,
 				                             _env.ram(), _env.rm());
 
 				_size_top_bottom = size_top_bottom;
@@ -344,12 +341,12 @@ class Decorator::Window : public Window_base, public Animator::Item
 			 || size_left_right.h() > _size_left_right.h()
 			 || !_buffer_left_right.constructed()) {
 
-				_nitpicker_left_right.buffer(Framebuffer::Mode(size_left_right.w(),
-				                                               size_left_right.h(),
-				                                               Framebuffer::Mode::RGB565),
-				                             use_alpha);
+				_gui_left_right.buffer(Framebuffer::Mode(size_left_right.w(),
+				                                         size_left_right.h(),
+				                                         Framebuffer::Mode::RGB565),
+				                       use_alpha);
 
-				_buffer_left_right.construct(_nitpicker_left_right, size_left_right,
+				_buffer_left_right.construct(_gui_left_right, size_left_right,
 				                             _env.ram(), _env.rm());
 
 				_size_left_right = size_left_right;
@@ -377,15 +374,15 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 	public:
 
-		Window(Genode::Env &env, unsigned id, Nitpicker::Session_client &nitpicker,
+		Window(Genode::Env &env, unsigned id, Gui::Session_client &gui,
 		       Animator &animator, Theme const &theme, Config const &config)
 		:
 			Window_base(id),
 			Animator::Item(animator),
 			_env(env), _theme(theme), _animator(animator),
-			_nitpicker(nitpicker), _config(config)
+			_gui(gui), _config(config)
 		{
-			_reallocate_nitpicker_buffers();
+			_reallocate_gui_buffers();
 			_alpha.dst(_focused ? 256 : 200, 20);
 			animate();
 		}
@@ -458,13 +455,13 @@ class Decorator::Window : public Window_base, public Animator::Item
 			return _outer_from_inner_geometry(geometry());
 		}
 
-		void update_nitpicker_views() override
+		void update_gui_views() override
 		{
-			bool const nitpicker_view_rect_up_to_date =
-				_nitpicker_view_rect.p1() == geometry().p1() &&
-				_nitpicker_view_rect.p2() == geometry().p2();
+			bool const gui_view_rect_up_to_date =
+				_gui_view_rect.p1() == geometry().p1() &&
+				_gui_view_rect.p2() == geometry().p2();
 
-			if (!_nitpicker_views_up_to_date || !nitpicker_view_rect_up_to_date) {
+			if (!_gui_views_up_to_date || !gui_view_rect_up_to_date) {
 
 				Area const theme_size = _theme.background_size();
 				Rect const inner      = _curr_inner_geometry();
@@ -480,10 +477,10 @@ class Decorator::Window : public Window_base, public Animator::Item
 				_right_view  .place(right,  Point(-right.w(), -top.h()));
 				_bottom_view .place(bottom, Point(0, -theme_size.h() + bottom.h()));
 
-				_nitpicker.execute();
+				_gui.execute();
 
-				_nitpicker_view_rect        = inner;
-				_nitpicker_views_up_to_date = true;
+				_gui_view_rect        = inner;
+				_gui_views_up_to_date = true;
 			}
 		}
 
@@ -537,7 +534,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			 * Detect position changes
 			 */
 			if (geometry_changed || motion_triggered) {
-				_nitpicker_views_up_to_date = false;
+				_gui_views_up_to_date = false;
 				updated = true;
 			}
 
@@ -546,7 +543,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			 */
 			if (size_changed || motion_triggered) {
 
-				_reallocate_nitpicker_buffers();
+				_reallocate_gui_buffers();
 
 				/* triggering the animation has the side effect of repainting */
 				trigger_animation = true;

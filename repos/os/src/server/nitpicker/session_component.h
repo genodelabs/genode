@@ -44,7 +44,7 @@ namespace Nitpicker {
 
 struct Nitpicker::Visibility_controller : Interface
 {
-	typedef Session::Label Suffix;
+	using Suffix = Gui::Session::Label;
 
 	virtual void hide_matching_sessions(Session_label const &, Suffix const &) = 0;
 
@@ -52,7 +52,7 @@ struct Nitpicker::Visibility_controller : Interface
 };
 
 
-class Nitpicker::Session_component : public  Session_object<Nitpicker::Session>,
+class Nitpicker::Session_component : public  Session_object<Gui::Session>,
                                      public  View_owner,
                                      public  Buffer_provider,
                                      private Session_list::Element
@@ -61,7 +61,7 @@ class Nitpicker::Session_component : public  Session_object<Nitpicker::Session>,
 
 		friend class List<Session_component>;
 
-		using Nitpicker::Session::Label;
+		using Gui::Session::Label;
 
 		/*
 		 * Noncopyable
@@ -390,7 +390,7 @@ class Nitpicker::Session_component : public  Session_object<Nitpicker::Session>,
 
 		void buffer(Framebuffer::Mode mode, bool use_alpha) override;
 
-		void focus(Capability<Nitpicker::Session> session_cap) override;
+		void focus(Capability<Gui::Session> session_cap) override;
 
 		void session_control(Label suffix, Session_control control) override;
 

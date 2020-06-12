@@ -8,7 +8,7 @@ _/src/mesa
 _/src/qt5_core
 _/src/qt5_gui
 _/src/qt5_qjpeg
-_/src/qt5_qpa_nitpicker
+_/src/qt5_qpa_genode
 _/src/stdcxx
 _/src/vfs
 _/src/vfs_pipe
@@ -20,7 +20,7 @@ _/src/libcrypto
 _/src/libssl
 _/src/qt5_network
 _/src/qt5_printsupport
-_/src/qt5_qnitpickerviewwidget
+_/src/qt5_qgenodeviewwidget
 _/src/qt5_opengl
 _/src/qt5_qpluginwidget
 _/src/qt5_scriptclassic

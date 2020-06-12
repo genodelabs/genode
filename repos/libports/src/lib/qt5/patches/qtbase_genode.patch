@@ -241,7 +241,7 @@ index 7444e61..1ae740d 100644
  #define QT_FEATURE_pdf 1
  #define QT_FEATURE_picture 1
 -#define QT_QPA_DEFAULT_PLATFORM_NAME "minimal"
-+#define QT_QPA_DEFAULT_PLATFORM_NAME "nitpicker"
++#define QT_QPA_DEFAULT_PLATFORM_NAME "genode"
  #define QT_FEATURE_sessionmanager -1
  #define QT_NO_SESSIONMANAGER 
  #define QT_FEATURE_shortcut 1

@@ -208,7 +208,7 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 
 		geometry(new_geometry);
 
-		_nitpicker_views_up_to_date = false;
+		_gui_views_up_to_date = false;
 
 		updated |= true;
 	}
