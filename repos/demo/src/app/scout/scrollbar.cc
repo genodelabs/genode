@@ -327,4 +327,4 @@ Element *Scrollbar<PT>::find(Point position)
 }
 
 
-template class Scrollbar<Genode::Pixel_rgb565>;
+template class Scrollbar<Genode::Pixel_rgb888>;

@@ -18,7 +18,7 @@
 #include <framebuffer_session/framebuffer_session.h>
 #include <input/root.h>
 #include <nitpicker_gfx/texture_painter.h>
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 #include <os/static_root.h>
 #include <timer_session/connection.h>
 
@@ -26,7 +26,7 @@
 #include "services.h"
 
 
-typedef Genode::Texture<Genode::Pixel_rgb565> Texture_rgb565;
+typedef Genode::Texture<Genode::Pixel_rgb888> Texture_rgb888;
 
 
 class Window_content : public Scout::Element
@@ -81,17 +81,17 @@ class Window_content : public Scout::Element
 			Genode::Allocator                    &alloc;
 			unsigned                              w, h;
 			Genode::Attached_ram_dataspace        ds;
-			Genode::Pixel_rgb565                 *pixel;
+			Genode::Pixel_rgb888                 *pixel;
 			unsigned char                        *alpha;
-			Genode::Texture<Genode::Pixel_rgb565> texture;
+			Genode::Texture<Genode::Pixel_rgb888> texture;
 
 			Fb_texture(Genode::Ram_allocator &ram, Genode::Region_map &local_rm,
 			           Genode::Allocator &alloc,
 			           unsigned w, unsigned h, bool config_alpha)
 			:
 				alloc(alloc), w(w), h(h),
-				ds(ram, local_rm, w*h*sizeof(Genode::Pixel_rgb565)),
-				pixel(ds.local_addr<Genode::Pixel_rgb565>()),
+				ds(ram, local_rm, w*h*sizeof(Genode::Pixel_rgb888)),
+				pixel(ds.local_addr<Genode::Pixel_rgb888>()),
 				alpha((unsigned char *)alloc.alloc(w*h)),
 				texture(pixel, alpha, Scout::Area(w, h))
 			{
@@ -250,8 +250,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		Mode mode() const override
 		{
-			return Mode(_window_content.mode_size().w(),
-			            _window_content.mode_size().h(), Mode::RGB565);
+			return Mode { .area = _window_content.mode_size() };
 		}
 
 		void mode_sigh(Genode::Signal_context_capability sigh) override {

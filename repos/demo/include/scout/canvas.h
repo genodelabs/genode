@@ -71,7 +71,7 @@ struct Scout::Canvas_base : Texture_allocator
 };
 
 
-#include <os/texture_rgb565.h>
+#include <os/texture_rgb888.h>
 #include <base/env.h>
 
 

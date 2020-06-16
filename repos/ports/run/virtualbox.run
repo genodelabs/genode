@@ -102,10 +102,10 @@ append_if [expr $use_usb] config {
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1" caps="150">
 		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>}
 append_if [expr [have_spec framebuffer] && [have_include power_on/qemu]] config {
-		<config width="1280" height="1024" depth="16" buffered="yes"/>}
+		<config width="1280" height="1024" buffered="yes"/>}
 append_if [expr [have_spec framebuffer] && [have_include power_on/qemu]] config {
 		<config buffered="yes"/>}
 append_if [have_spec framebuffer] config {

@@ -230,16 +230,15 @@ class Gui::Session_component : public Rpc_object<Session>
 
 		Framebuffer::Mode mode() override
 		{
-			int mode_width = _max_size.valid() ?
-			                 _max_size.w() :
-			                 _gui.mode().width();
+			unsigned const mode_width = _max_size.valid() ?
+			                            _max_size.w() :
+			                            _gui.mode().area.w();
 
-			int mode_height = _max_size.valid() ?
-			                  _max_size.h() :
-			                  _gui.mode().height();
+			unsigned const mode_height = _max_size.valid() ?
+			                             _max_size.h() :
+			                             _gui.mode().area.h();
 
-			return Framebuffer::Mode(mode_width, mode_height,
-			                         _gui.mode().format());
+			return Framebuffer::Mode { .area = { mode_width, mode_height } };
 		}
 
 		void mode_sigh(Signal_context_capability) override { }

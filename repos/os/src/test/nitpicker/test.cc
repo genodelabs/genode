@@ -18,6 +18,7 @@
 #include <gui_session/connection.h>
 #include <timer_session/connection.h>
 #include <input/event.h>
+#include <os/pixel_rgb888.h>
 
 using namespace Genode;
 
@@ -150,10 +151,10 @@ void Component::construct(Genode::Env &env)
 	static Gui::Connection   gui   { env, "testnit" };
 	static Timer::Connection timer { env };
 
-	Framebuffer::Mode const mode(256, 256, Framebuffer::Mode::RGB565);
+	Framebuffer::Mode const mode { .area = { 256, 256 } };
 	gui.buffer(mode, false);
 
-	int const scr_w = mode.width(), scr_h = mode.height();
+	int const scr_w = mode.area.w(), scr_h = mode.area.h();
 
 	log("screen is ", mode);
 	if (!scr_w || !scr_h) {
@@ -172,7 +173,8 @@ void Component::construct(Genode::Env &env)
 	Genode::Attached_dataspace fb_ds(
 		env.rm(), gui.framebuffer()->dataspace());
 
-	short *pixels = fb_ds.local_addr<short>();
+	typedef Genode::Pixel_rgb888 PT;
+	PT *pixels = fb_ds.local_addr<PT>();
 	unsigned char *alpha = (unsigned char *)&pixels[scr_w*scr_h];
 	unsigned char *input_mask = CONFIG_ALPHA ? alpha + scr_w*scr_h : 0;
 
@@ -183,7 +185,7 @@ void Component::construct(Genode::Env &env)
 	 */
 	for (int i = 0; i < scr_h; i++)
 		for (int j = 0; j < scr_w; j++) {
-			pixels[i*scr_w + j] = (i/8)*32*64 + (j/4)*32 + i*j/256;
+			pixels[i*scr_w + j] = PT((3*i)/8, j, i*j/32);
 			if (CONFIG_ALPHA) {
 				alpha[i*scr_w + j] = (i*2) ^ (j*2);
 				input_mask[i*scr_w + j] = alpha[i*scr_w + j] > 127;

@@ -178,7 +178,7 @@ proc drivers_start_nodes { feature_arg } {
 	append_if [use_fb_drv feature] start_nodes {
 		<start name="fb_drv">
 			<binary name="} [fb_drv_binary] {"/>
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="18M"/>
 			<provides><service name="Framebuffer"/></provides>
 		</start>
 	}

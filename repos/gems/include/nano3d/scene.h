@@ -81,12 +81,6 @@ class Nano3d::Scene
 			_init_framebuffer(Gui::Connection &gui,
 			                  Gui::Area const size)
 			{
-				Framebuffer::Mode::Format const format = gui.mode().format();
-				if (format != Framebuffer::Mode::RGB565) {
-					Genode::error("framebuffer mode ", (int)format, " is not supported");
-					throw Unsupported_color_depth();
-				}
-
 				/*
 				 * Dimension the virtual framebuffer 3 times as high as the
 				 * visible view because it contains the visible buffer, the
@@ -94,7 +88,7 @@ class Nano3d::Scene
 				 */
 				bool     const use_alpha = true;
 				unsigned const height    = size.h()*NUM_BUFFERS;
-				gui.buffer(Framebuffer::Mode(size.w(), height, format),
+				gui.buffer(Framebuffer::Mode { .area = { size.w(), height } },
 				                 use_alpha);
 
 				return *gui.framebuffer();
@@ -109,7 +103,7 @@ class Nano3d::Scene
 			 */
 			Gui::Area size() const
 			{
-				return Gui::Area(mode.width(), mode.height()/NUM_BUFFERS);
+				return Gui::Area(mode.area.w(), mode.area.h()/NUM_BUFFERS);
 			}
 
 			Genode::Attached_dataspace ds { rm, framebuffer.dataspace() };

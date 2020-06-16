@@ -21,7 +21,7 @@ void Session_component::_release_buffer()
 	if (!_texture)
 		return;
 
-	typedef Pixel_rgb565 PT;
+	typedef Pixel_rgb888 PT;
 
 	Chunky_texture<PT> const *cdt = static_cast<Chunky_texture<PT> const *>(_texture);
 
@@ -412,15 +412,10 @@ void Session_component::execute()
 	}
 }
 
+
 Framebuffer::Mode Session_component::mode()
 {
-	Area const phys_area(_framebuffer.mode().width(),
-	                     _framebuffer.mode().height());
-
-	Area const session_area = screen_area(phys_area);
-
-	return Framebuffer::Mode(session_area.w(), session_area.h(),
-	                         _framebuffer.mode().format());
+	return Framebuffer::Mode { .area = screen_area(_framebuffer.mode().area) };
 }
 
 
@@ -473,11 +468,9 @@ void Session_component::session_control(Label suffix, Session_control control)
 
 Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
 {
-	typedef Pixel_rgb565 PT;
+	typedef Pixel_rgb888 PT;
 
-	Area const size(mode.width(), mode.height());
-
-	_buffer_size = Chunky_texture<PT>::calc_num_bytes(size, use_alpha);
+	_buffer_size = Chunky_texture<PT>::calc_num_bytes(mode.area, use_alpha);
 
 	/*
 	 * Preserve the content of the original buffer if nitpicker has
@@ -504,7 +497,7 @@ Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha
 	{
 		try {
 			return new (&_session_alloc)
-				Chunky_texture<PT>(_env.ram(), _env.rm(), size, use_alpha);
+				Chunky_texture<PT>(_env.ram(), _env.rm(), mode.area, use_alpha);
 		} catch (...) {
 			return (Chunky_texture<PT>*)nullptr;
 		}

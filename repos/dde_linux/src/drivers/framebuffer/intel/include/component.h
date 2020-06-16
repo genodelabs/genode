@@ -43,8 +43,13 @@ class Framebuffer::Driver
 
 		struct Configuration
 		{
-			struct lx_c_fb_config _lx = { 16, 64, 64, 2,
-			                              nullptr, 0, nullptr };
+			struct lx_c_fb_config _lx = { .height = 16,
+			                              .width  = 64,
+			                              .pitch  = 64,
+			                              .bpp    = 4,
+			                              .addr   = nullptr,
+			                              .size   = 0,
+			                              .lx_fb  = nullptr };
 		} _config;
 
 		Session_component             &_session;
@@ -168,8 +173,10 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			return _ds.cap();
 		}
 
-		Mode mode() const override {
-			return Mode(_driver.width(), _driver.height(), Mode::RGB565); }
+		Mode mode() const override
+		{
+			return Mode { .area { _driver.width(), _driver.height() } };
+		}
 
 		void mode_sigh(Genode::Signal_context_capability sigh) override {
 			_mode_sigh = sigh; }

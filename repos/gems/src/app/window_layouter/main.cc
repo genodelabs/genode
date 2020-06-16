@@ -329,7 +329,7 @@ struct Window_layouter::Main : Operations,
 		/* determine maximized window geometry */
 		Framebuffer::Mode const mode = _gui.mode();
 
-		_screen_size = Area(mode.width(), mode.height());
+		_screen_size = mode.area;
 
 		_update_window_layout();
 	}

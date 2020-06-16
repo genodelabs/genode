@@ -123,7 +123,7 @@ struct Test::Main
 	{
 		if (_config.xml().has_sub_node("check_framebuffer")) {
 			log("connect to framebuffer driver");
-			Framebuffer::Mode mode(640, 480, Framebuffer::Mode::RGB565);
+			Framebuffer::Mode mode { .area = { 640, 480 } };
 			Framebuffer::Connection fb(_env, mode);
 		}
 

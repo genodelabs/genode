@@ -351,7 +351,7 @@ append_if [expr $use_nic_session && $use_nic_bridge] config {
 append_if $use_framebuffer config {
 	<start name="fb_drv" priority="-1" caps="130">
 		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<route>
 			<service name="Timer"><child name="timer"/></service>
@@ -359,7 +359,7 @@ append_if $use_framebuffer config {
 			<any-service><parent/></any-service>
 		</route>}
 append_if [expr $use_framebuffer &&  [have_include "power_on/qemu"]] config {
-		<config width="1280" height="960" depth="16" buffered="yes"/>}
+		<config width="1280" height="960" depth="32" buffered="yes"/>}
 append_if [expr $use_framebuffer && ![have_include "power_on/qemu"]] config {
 		<config buffered="yes"/>}
 append_if $use_framebuffer config {

@@ -224,7 +224,7 @@ proc qt5_start_nodes { feature_arg } {
 
 		<start name="decorator" caps="300">
 			<binary name="} [qt5_decorator_binary] {"/>
-			<resource name="RAM" quantum="16M"/>} [qt5_decorator_config] {
+			<resource name="RAM" quantum="32M"/>} [qt5_decorator_config] {
 			<route>
 				<service name="ROM" label="window_layout"> <child name="wm_report_rom"/> </service>
 				<service name="ROM" label="pointer">       <child name="wm_report_rom"/> </service>

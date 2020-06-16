@@ -16,7 +16,7 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <polygon_gfx/shaded_polygon_painter.h>
-#include <polygon_gfx/interpolate_rgb565.h>
+#include <os/pixel_rgb888.h>
 #include <os/pixel_alpha8.h>
 #include <nano3d/scene.h>
 #include <nano3d/sincos_frac16.h>
@@ -469,7 +469,7 @@ void Component::construct(Genode::Env &env)
 {
 	enum { UPDATE_RATE_MS = 250 };
 
-	static Cpu_load_display::Scene<Genode::Pixel_rgb565>
+	static Cpu_load_display::Scene<Genode::Pixel_rgb888>
 		scene(env, UPDATE_RATE_MS,
 		      Gui::Point(0, 0), Gui::Area(400, 400));
 }

@@ -33,9 +33,7 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 		/**
 		 * Create session and return typed session capability
 		 */
-		Session_capability _connect(Genode::Parent &parent,
-		                            unsigned width, unsigned height,
-		                            Mode::Format format)
+		Session_capability _connect(Genode::Parent &parent, Area area)
 		{
 			using namespace Genode;
 
@@ -48,12 +46,10 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 			Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota", CAP_QUOTA);
 
 			/* set optional session-constructor arguments */
-			if (width)
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_width", width);
-			if (height)
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_height", height);
-			if (format != Mode::INVALID)
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_format", format);
+			if (area.w())
+				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_width", area.w());
+			if (area.h())
+				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_height", area.h());
 
 			return session(parent, argbuf);
 		}
@@ -72,8 +68,7 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 		Connection(Genode::Env &env, Framebuffer::Mode mode)
 		:
 			Genode::Connection<Session>(env, _connect(env.parent(),
-			                                          mode.width(), mode.height(),
-			                                          mode.format())),
+			                                          mode.area)),
 			Session_client(cap())
 		{ }
 };

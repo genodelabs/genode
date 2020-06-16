@@ -57,8 +57,8 @@ class Framebuffer::Session_component :
 		void _refresh_buffered(int x, int y, int w, int h)
 		{
 			/* clip specified coordinates against screen boundaries */
-			int x2 = min(x + w - 1, (int)_mode.width()  - 1),
-				y2 = min(y + h - 1, (int)_mode.height() - 1);
+			int x2 = min(x + w - 1, (int)_mode.area.w()  - 1),
+				y2 = min(y + h - 1, (int)_mode.area.h() - 1);
 			int x1 = max(x, 0),
 				y1 = max(y, 0);
 			if (x1 > x2 || y1 > y2) return;
@@ -66,10 +66,10 @@ class Framebuffer::Session_component :
 			int bypp = _mode.bytes_per_pixel();
 
 			/* copy pixels from back buffer to physical frame buffer */
-			char *src = (char *)_bb_addr + bypp*(_mode.width()*y1 + x1),
-			     *dst = (char *)_fb_addr + bypp*(_mode.width()*y1 + x1);
+			char *src = (char *)_bb_addr + bypp*(_mode.area.w()*y1 + x1),
+			     *dst = (char *)_fb_addr + bypp*(_mode.area.h()*y1 + x1);
 
-			blit(src, bypp*_mode.width(), dst, bypp*_mode.width(),
+			blit(src, bypp*_mode.area.w(), dst, bypp*_mode.area.w(),
 			     bypp*(x2 - x1 + 1), y2 - y1 + 1);
 		}
 
@@ -79,7 +79,7 @@ class Framebuffer::Session_component :
 		: _env(env),
 		  _buffered(buffered),
 		  _mode(driver.mode()),
-		  _size(_mode.bytes_per_pixel() * _mode.width() * _mode.height()),
+		  _size(_mode.bytes_per_pixel()*_mode.area.count()),
 		  _bb_ds(buffered ? _env.ram().alloc(_size)
 		                  : Genode::Ram_dataspace_capability()),
 		  _bb_addr(buffered ? (void*)_env.rm().attach(_bb_ds) : 0),

@@ -97,8 +97,6 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	View_updater &_view_updater;
 
-	Framebuffer::Mode::Format _format = _gui.mode().format();
-
 	/*
 	 * Mode as requested by the configuration or by a mode change of our
 	 * GUI session.
@@ -150,10 +148,10 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	void size(Gui::Area size)
 	{
 		/* ignore calls that don't change the size */
-		if (Gui::Area(_next_mode.width(), _next_mode.height()) == size)
+		if (Gui::Area(_next_mode.area.w(), _next_mode.area.h()) == size)
 			return;
 
-		Framebuffer::Mode const mode(size.w(), size.h(), _next_mode.format());
+		Framebuffer::Mode const mode { .area = size };
 
 		if (!_ram_suffices_for_mode(mode)) {
 			Genode::warning("insufficient RAM for mode ", mode);
@@ -168,7 +166,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	Gui::Area size() const
 	{
-		return Gui::Area(_active_mode.width(), _active_mode.height());
+		return _active_mode.area;
 	}
 
 
@@ -268,15 +266,15 @@ struct Nit_fb::Main : View_updater
 		unsigned width(Framebuffer::Mode const &mode) const
 		{
 			if (_width > 0) return _width;
-			if (_width < 0) return mode.width() + _width;
-			return mode.width();
+			if (_width < 0) return mode.area.w() + _width;
+			return mode.area.w();
 		}
 
 		unsigned height(Framebuffer::Mode const &mode) const
 		{
 			if (_height > 0) return _height;
-			if (_height < 0) return mode.height() + _height;
-			return mode.height();
+			if (_height < 0) return mode.area.h() + _height;
+			return mode.area.h();
 		}
 
 		bool valid() const { return _width != 0 && _height != 0; }
@@ -285,9 +283,8 @@ struct Nit_fb::Main : View_updater
 
 	Framebuffer::Mode _initial_mode()
 	{
-		return Framebuffer::Mode(_initial_size.width (gui.mode()),
-		                         _initial_size.height(gui.mode()),
-		                         gui.mode().format());
+		return Framebuffer::Mode { .area = { _initial_size.width (gui.mode()),
+		                                     _initial_size.height(gui.mode()) } };
 	}
 
 	/*
@@ -327,9 +324,9 @@ struct Nit_fb::Main : View_updater
 		Value const value = config.attribute_value(attr, Value());
 
 		if (value == "top_left")     return Point(0, 0);
-		if (value == "top_right")    return Point(mode.width(), 0);
-		if (value == "bottom_left")  return Point(0, mode.height());
-		if (value == "bottom_right") return Point(mode.width(), mode.height());
+		if (value == "top_right")    return Point(mode.area.w(), 0);
+		if (value == "bottom_left")  return Point(0, mode.area.h());
+		if (value == "bottom_right") return Point(mode.area.w(), mode.area.h());
 
 		warning("unsupported ", attr, " attribute value '", value, "'");
 		return Point(0, 0);
@@ -339,9 +336,9 @@ struct Nit_fb::Main : View_updater
 	{
 		Xml_node const config = config_rom.xml();
 
-		Framebuffer::Mode const nit_mode = gui.mode();
+		Framebuffer::Mode const gui_mode = gui.mode();
 
-		position = _coordinate_origin(nit_mode, config)
+		position = _coordinate_origin(gui_mode, config)
 		         + Point(config.attribute_value("xpos", 0L),
 		                 config.attribute_value("ypos", 0L));
 
@@ -354,15 +351,15 @@ struct Nit_fb::Main : View_updater
 			_initial_size.set = true;
 		}
 
-		unsigned const nit_width  = nit_mode.width();
-		unsigned const nit_height = nit_mode.height();
+		unsigned const gui_width  = gui_mode.area.w();
+		unsigned const gui_height = gui_mode.area.h();
 
-		long width  = config.attribute_value("width",  (long)nit_mode.width()),
-		     height = config.attribute_value("height", (long)nit_mode.height());
+		long width  = config.attribute_value("width",  (long)gui_mode.area.w()),
+		     height = config.attribute_value("height", (long)gui_mode.area.h());
 
 		if (!_initial_size.set && _initial_size.valid()) {
-			width  = _initial_size.width (nit_mode);
-			height = _initial_size.height(nit_mode);
+			width  = _initial_size.width (gui_mode);
+			height = _initial_size.height(gui_mode);
 
 			_initial_size.set = true;
 		} else {
@@ -371,8 +368,8 @@ struct Nit_fb::Main : View_updater
 			 * If configured width / height values are negative, the effective
 			 * width / height is deduced from the screen size.
 			 */
-			if (width  < 0) width  = nit_width  + width;
-			if (height < 0) height = nit_height + height;
+			if (width  < 0) width  = gui_width  + width;
+			if (height < 0) height = gui_height + height;
 		}
 
 		fb_session.size(Area(width, height));

@@ -23,6 +23,15 @@ namespace Genode {
 	        Pixel_rgb888;
 
 	template <>
+	inline Pixel_rgb888 Pixel_rgb888::avr(Pixel_rgb888 p1, Pixel_rgb888 p2)
+	{
+		Pixel_rgb888 res;
+		res.pixel = (((p1.pixel&0xfe00fe00)>>1) + ((p2.pixel&0xfe00fe00)>>1))
+		          | (((p1.pixel&0x00fe00fe)>>1) + ((p2.pixel&0x00fe00fe)>>1));
+		return res;
+	}
+
+	template <>
 	inline Pixel_rgb888 Pixel_rgb888::blend(Pixel_rgb888 src, int alpha)
 	{
 		Pixel_rgb888 res;
@@ -37,7 +46,7 @@ namespace Genode {
 	{
 		Pixel_rgb888 res;
 
-		res.pixel = blend(p1, 255 - alpha).pixel + blend(p2, alpha).pixel;
+		res.pixel = blend(p1, 256 - alpha).pixel + blend(p2, alpha).pixel;
 		return res;
 	}
 }

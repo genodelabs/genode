@@ -66,7 +66,7 @@ class Framebuffer::Driver
 			return true;
 		}
 
-		Mode mode() { return Mode(_width, _height, Mode::RGB565); }
+		Mode mode() { return Mode { .area = { _width, _height } }; }
 		Ipu &ipu()  { return _ipu; }
 };
 

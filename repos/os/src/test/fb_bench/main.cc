@@ -30,7 +30,7 @@ struct Test
 	int                      id;
 	Timer::Connection        timer   { env };
 	Heap                     heap    { env.ram(), env.rm() };
-	Framebuffer::Connection  fb      { env, Framebuffer::Mode() };
+	Framebuffer::Connection  fb      { env, Framebuffer::Mode { } };
 	Attached_dataspace       fb_ds   { env.rm(), fb.dataspace() };
 	Framebuffer::Mode const  fb_mode { fb.mode() };
 	char                    *buf[2];
@@ -100,8 +100,8 @@ struct Blit_test : Test
 	{
 		unsigned       kib      = 0;
 		uint64_t const start_ms = timer.elapsed_ms();
-		unsigned const w        = fb_mode.width() * fb_mode.bytes_per_pixel();
-		unsigned const h        = fb_mode.height();
+		unsigned const w        = fb_mode.area.w() * fb_mode.bytes_per_pixel();
+		unsigned const h        = fb_mode.area.h();
 		for (unsigned i = 0; timer.elapsed_ms() - start_ms < DURATION_MS; i++) {
 			blit(buf[i % 2], w, fb_ds.local_addr<char>(), w, w, h);
 			kib += (w * h) / 1024;
@@ -118,8 +118,8 @@ struct Unaligned_blit_test : Test
 	{
 		unsigned       kib      = 0;
 		uint64_t const start_ms = timer.elapsed_ms();
-		unsigned const w        = fb_mode.width() * fb_mode.bytes_per_pixel();
-		unsigned const h        = fb_mode.height();
+		unsigned const w        = fb_mode.area.w() * fb_mode.bytes_per_pixel();
+		unsigned const h        = fb_mode.area.h();
 		for (unsigned i = 0; timer.elapsed_ms() - start_ms < DURATION_MS; i++) {
 			blit(buf[i % 2] + 2, w, fb_ds.local_addr<char>() + 2, w, w - 2, h);
 			kib += (w * h) / 1024;

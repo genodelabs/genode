@@ -27,9 +27,8 @@
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
-#include <os/pixel_rgb565.h>
 #include <os/pixel_rgb888.h>
-#include <os/dither_painter.h>
+#include <blit/blit.h>
 
 #include <lx_emul_c.h>
 
@@ -158,13 +157,13 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		Genode::Dataspace_capability dataspace() override
 		{
 			_ds.realloc(&_ram, _driver.width() * _driver.height() *
-			                   Mode::bytes_per_pixel(Mode::RGB565));
+			                   mode().bytes_per_pixel());
 			_in_mode_change = false;
 			return _ds.cap();
 		}
 
 		Mode mode() const override {
-			return Mode(_driver.width(), _driver.height(), Mode::RGB565); }
+			return Mode { .area = { _driver.width(), _driver.height() } }; }
 
 		void mode_sigh(Genode::Signal_context_capability sigh) override {
 			_mode_sigh = sigh; }
@@ -179,12 +178,13 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		{
 			using namespace Genode;
 
-			if (!_driver.fb_addr()         ||
-				!_ds.local_addr<void>() ||
-				_in_mode_change) return;
+			if (!_driver.fb_addr() || !_ds.local_addr<void>() || _in_mode_change)
+				return;
 
-			int width      = _driver.width();
-			int height     = _driver.height();
+			int      width  = _driver.width();
+			int      height = _driver.height();
+			unsigned bpp    = 4;
+			unsigned pitch  = _driver.width();
 
 			/* clip specified coordinates against screen boundaries */
 			int x2 = min(x + w - 1, width  - 1),
@@ -194,18 +194,11 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			if (x1 > x2 || y1 > y2) return;
 
 			/* copy pixels from back buffer to physical frame buffer */
-			Genode::Pixel_rgb565 * src = _ds.local_addr<Genode::Pixel_rgb565>();
-			Genode::Pixel_rgb888 * dst = (Genode::Pixel_rgb888*)_driver.fb_addr();
+			char *src = _ds.local_addr<char>()   + bpp*(width*y1 + x1),
+			     *dst = (char*)_driver.fb_addr() + bpp*(pitch*y1 + x1);
 
-			for (int row = y1; row <= y2; row++) {
-				int line_offset = width * row;
-				Genode::Pixel_rgb565 const * s = src + line_offset + x1;
-				Genode::Pixel_rgb888 * d = dst + line_offset + x1;
-				for (int col = x1; col <= x2; col++) {
-					Genode::Pixel_rgb565 const px = *s++;
-					*d++ = Genode::Pixel_rgb888(px.r(), px.g(), px.b(), px.a());
-				}
-			}
+			blit(src, bpp*width, dst, bpp*pitch,
+			     bpp*(x2 - x1 + 1), y2 - y1 + 1);
 		}
 };
 

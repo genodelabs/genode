@@ -1162,11 +1162,11 @@ void Sculpt::Main::_handle_window_layout()
 	Framebuffer::Mode const mode = _gui->mode();
 
 	/* area reserved for the panel */
-	Rect const panel(Point(0, 0), Area(mode.width(), panel_height));
+	Rect const panel(Point(0, 0), Area(mode.area.w(), panel_height));
 
 	/* available space on the right of the menu */
 	Rect avail(Point(0, panel.h()),
-	           Point(mode.width() - 1, mode.height() - 1));
+	           Point(mode.area.w() - 1, mode.area.h() - 1));
 
 	Point const log_offset = _log_visible
 	                       ? Point(0, 0)
@@ -1174,8 +1174,8 @@ void Sculpt::Main::_handle_window_layout()
 
 	Point const log_p1(avail.x2() - log_min_w - margins.right + 1 + log_offset.x(),
 	                   avail.y1() + margins.top);
-	Point const log_p2(mode.width()  - margins.right  - 1 + log_offset.x(),
-	                   mode.height() - margins.bottom - 1);
+	Point const log_p2(mode.area.w() - margins.right  - 1 + log_offset.x(),
+	                   mode.area.h() - margins.bottom - 1);
 
 	/* position of the inspect window */
 	Point const inspect_p1(avail.x1() + margins.left, avail.y1() + margins.top);
@@ -1225,7 +1225,7 @@ void Sculpt::Main::_handle_window_layout()
 			Area  const size = win_size(win);
 			Point const pos  = _network_visible
 			                 ? Point(log_p1.x() - size.w(), avail.y1())
-			                 : Point(mode.width(), avail.y1());
+			                 : Point(mode.area.w(), avail.y1());
 			gen_window(win, Rect(pos, size));
 		});
 
@@ -1301,7 +1301,7 @@ void Sculpt::Main::_handle_window_layout()
 
 		_with_window(window_list, logo_label, [&] (Xml_node win) {
 			Area  const size = win_size(win);
-			Point const pos(mode.width() - size.w(), mode.height() - size.h());
+			Point const pos(mode.area.w() - size.w(), mode.area.h() - size.h());
 			gen_window(win, Rect(pos, size));
 		});
 	});
@@ -1334,12 +1334,12 @@ void Sculpt::Main::_handle_gui_mode()
 
 	if (!_fonts_config.try_generate_manually_managed()) {
 
-		_font_size_px = (float)mode.height() / 60.0;
+		_font_size_px = (float)mode.area.h() / 60.0;
 
 		if (_font_size == Font_size::SMALL) _font_size_px *= 0.85;
 		if (_font_size == Font_size::LARGE) _font_size_px *= 1.35;
 
-		Area const size(mode.width(), mode.height());
+		Area const size(mode.area.w(), mode.area.h());
 		_screen_size = size;
 		_panel_menu_view.min_width = size.w();
 		unsigned const menu_width = max(_font_size_px*21, 320.0);

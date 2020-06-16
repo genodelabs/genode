@@ -31,8 +31,8 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="2000">
-		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+	<start name="drivers" caps="1500">
+		<resource name="RAM" quantum="64M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -91,7 +91,7 @@ install_config {
 	</start>
 
 	<start name="gui_fader">
-		<resource name="RAM" quantum="5M"/>
+		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Gui"/></provides>
 		<route>
 			<service name="ROM" label="config">
@@ -103,7 +103,7 @@ install_config {
 	</start>
 
 	<start name="scout">
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="16M"/>
 		<route>
 			<service name="Gui"> <child name="gui_fader" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -112,7 +112,7 @@ install_config {
 
 	<start name="scout2">
 		<binary name="scout" />
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="16M"/>
 		<route>
 			<service name="Gui"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>

@@ -96,7 +96,7 @@ struct Terminal::Main : Character_consumer
 
 	struct Paste_buffer { char buffer[READ_BUFFER_SIZE]; } _paste_buffer { };
 
-	typedef Pixel_rgb565 PT;
+	typedef Pixel_rgb888 PT;
 
 	Constructible<Text_screen_surface<PT>> _text_screen_surface { };
 

@@ -29,9 +29,8 @@ class Nitpicker::Buffer
 {
 	private:
 
-		Area                      _size;
-		Framebuffer::Mode::Format _format;
-		Attached_ram_dataspace    _ram_ds;
+		Area                   _size;
+		Attached_ram_dataspace _ram_ds;
 
 	public:
 
@@ -42,19 +41,17 @@ class Nitpicker::Buffer
 		 * \throw Out_of_caps
 		 * \throw Region_map::Region_conflict
 		 */
-		Buffer(Ram_allocator &ram, Region_map &rm,
-		       Area size, Framebuffer::Mode::Format format, size_t bytes)
+		Buffer(Ram_allocator &ram, Region_map &rm, Area size, size_t bytes)
 		:
-			_size(size), _format(format), _ram_ds(ram, rm, bytes)
+			_size(size), _ram_ds(ram, rm, bytes)
 		{ }
 
 		/**
 		 * Accessors
 		 */
-		Ram_dataspace_capability  ds_cap() const { return _ram_ds.cap(); }
-		Area                        size() const { return _size; }
-		Framebuffer::Mode::Format format() const { return _format; }
-		void                 *local_addr() const { return _ram_ds.local_addr<void>(); }
+		Ram_dataspace_capability ds_cap() const { return _ram_ds.cap(); }
+		Area                       size() const { return _size; }
+		void                *local_addr() const { return _ram_ds.local_addr<void>(); }
 };
 
 

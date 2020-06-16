@@ -45,8 +45,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 			Mode _mode = mode();
 
 			/* clip specified coordinates against screen boundaries */
-			int x2 = min(x + w - 1, (int)_mode.width()  - 1),
-				y2 = min(y + h - 1, (int)_mode.height() - 1);
+			int x2 = min(x + w - 1, (int)_mode.area.w()  - 1),
+				y2 = min(y + h - 1, (int)_mode.area.h() - 1);
 			int x1 = max(x, 0),
 				y1 = max(y, 0);
 			if (x1 > x2 || y1 > y2) return;
@@ -89,7 +89,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 		Mode mode() const override
 		{
-			return Mode(_width, _height, Mode::RGB565);
+			return Mode { .area = { _width, _height } };
 		}
 
 		void mode_sigh(Genode::Signal_context_capability) override { }
@@ -123,7 +123,7 @@ struct Framebuffer::Main
 
 	Platform::Connection _platform { _env };
 
-	Platform::Framebuffer_info _fb_info {1024, 768, 16 };
+	Platform::Framebuffer_info _fb_info { 1024, 768, 32 };
 
 	Constructible<Framebuffer::Session_component>    _fb_session { };
 	Constructible<Static_root<Framebuffer::Session>> _fb_root    { };

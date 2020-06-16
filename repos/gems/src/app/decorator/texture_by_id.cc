@@ -14,8 +14,8 @@
 /* Genode includes */
 #include <gems/chunky_texture.h>
 #include <base/env.h>
-#include <os/pixel_rgb565.h>
-#include <os/texture_rgb565.h>
+#include <os/pixel_rgb888.h>
+#include <os/texture_rgb888.h>
 
 /* local includes */
 #include "canvas.h"
@@ -62,7 +62,7 @@ extern unsigned char _binary_windowed_rgba_start[];
 Texture_base const &
 Decorator::texture_by_id(Texture_id id, Ram_allocator &ram, Region_map &rm)
 {
-	static Icon_texture<Pixel_rgb565> const icons[4] {
+	static Icon_texture<Pixel_rgb888> const icons[4] {
 		{ ram, rm, _binary_closer_rgba_start },
 		{ ram, rm, _binary_minimize_rgba_start },
 		{ ram, rm, _binary_maximize_rgba_start },

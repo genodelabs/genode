@@ -1,0 +1,2 @@
+If you find the red and blue color channels swapped, you may need to specify
+the option 'framebuffer_swap=1' in you Raspberry Pi's config.txt.

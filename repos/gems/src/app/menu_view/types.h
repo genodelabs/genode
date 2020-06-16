@@ -22,7 +22,6 @@
 #include <nitpicker_gfx/texture_painter.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
-#include <os/pixel_rgb565.h>
 #include <os/pixel_alpha8.h>
 #include <os/texture_rgb888.h>
 #include <util/reconstructible.h>

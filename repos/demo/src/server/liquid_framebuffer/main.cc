@@ -35,7 +35,7 @@ class Background_animator : public Scout::Tick
 {
 	private:
 
-		Framebuffer_window<Scout::Pixel_rgb565> &_fb_win;
+		Framebuffer_window<Scout::Pixel_rgb888> &_fb_win;
 
 		int _bg_offset = 0;
 
@@ -44,7 +44,7 @@ class Background_animator : public Scout::Tick
 		/**
 		 * Constructor
 		 */
-		Background_animator(Framebuffer_window<Scout::Pixel_rgb565> &fb_win)
+		Background_animator(Framebuffer_window<Scout::Pixel_rgb888> &fb_win)
 		: _fb_win(fb_win) { schedule(20); }
 
 		/**
@@ -169,7 +169,7 @@ class Liquid_fb::Main : public Scout::Event_handler
 			(init_window_content(_env.ram(), _env.rm(), _heap, _input_session_component,
 			                     config_fb_width, config_fb_height, config_alpha), true);
 
-		Framebuffer_window<Pixel_rgb565>
+		Framebuffer_window<Pixel_rgb888>
 			_fb_win { _graphics_backend, window_content(),
 			          _initial_position, _initial_size, _max_size,
 			          config_title.string(), config_alpha,

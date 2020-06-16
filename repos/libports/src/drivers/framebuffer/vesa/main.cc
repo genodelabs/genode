@@ -71,7 +71,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 			/* determine bytes per pixel */
 			int bypp = 0;
-			if (_scr_depth == 16) bypp = 2;
+			if (_scr_depth == 32) bypp = 4;
 			if (!bypp) return;
 
 			/* copy pixels from back buffer to physical frame buffer */
@@ -98,11 +98,6 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			_fb_cap(fb_cap)
 		{
 			if (!buffered) return;
-
-			if (_scr_depth != 16) {
-				Genode::warning("buffered mode not supported for depth ", _scr_depth);
-				return;
-			}
 
 			size_t const bb_size = _scr_width*_scr_height*_scr_depth/8;
 			try { _bb.construct(env.ram(), env.rm(), bb_size); }
@@ -140,8 +135,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		Mode mode() const override
 		{
-			return Mode(_scr_width, _scr_height,
-			            _scr_depth == 16 ? Mode::RGB565 : Mode::INVALID);
+			return Mode { .area = { _scr_width, _scr_height } };
 		}
 
 		void mode_sigh(Genode::Signal_context_capability) override { }
@@ -191,9 +185,9 @@ class Framebuffer::Root : public Root_component
 		{
 			unsigned       scr_width  = _session_arg("width",  args, "fb_width",  0);
 			unsigned       scr_height = _session_arg("height", args, "fb_height", 0);
-			unsigned const scr_depth  = _session_arg("depth",  args, "fb_mode",   16);
+			unsigned const scr_depth  = 32;
 
-			bool const buffered = _config.xml().attribute_value("buffered", false);
+			bool const buffered = _config.xml().attribute_value("buffered", true);
 
 			if (Framebuffer::set_mode(scr_width, scr_height, scr_depth) != 0) {
 				Genode::warning("Could not set vesa mode ",
@@ -233,6 +227,7 @@ struct Framebuffer::Main
 
 	Main(Genode::Env &env) : env(env)
 	{
+		Genode::log("modified");
 		try { Framebuffer::init(env, heap); } catch (...) {
 			Genode::error("H/W driver init failed");
 			throw;

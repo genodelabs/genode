@@ -324,9 +324,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 			 || size_top_bottom.h() > _size_top_bottom.h()
 			 || !_buffer_top_bottom.constructed()) {
 
-				_gui_top_bottom.buffer(Framebuffer::Mode(size_top_bottom.w(),
-				                                         size_top_bottom.h(),
-				                                         Framebuffer::Mode::RGB565),
+				_gui_top_bottom.buffer(Framebuffer::Mode { .area = { size_top_bottom.w(),
+				                                                     size_top_bottom.h() } },
 				                       use_alpha);
 
 				_buffer_top_bottom.construct(_gui_top_bottom, size_top_bottom,
@@ -341,9 +340,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 			 || size_left_right.h() > _size_left_right.h()
 			 || !_buffer_left_right.constructed()) {
 
-				_gui_left_right.buffer(Framebuffer::Mode(size_left_right.w(),
-				                                         size_left_right.h(),
-				                                         Framebuffer::Mode::RGB565),
+				_gui_left_right.buffer(Framebuffer::Mode { .area = { size_left_right.w(),
+				                                                     size_left_right.h() } },
 				                       use_alpha);
 
 				_buffer_left_right.construct(_gui_left_right, size_left_right,

@@ -21,7 +21,7 @@
 #include <gui_session/connection.h>
 #include <timer_session/connection.h>
 #include <input/event.h>
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 
 /*
  * Nitpicker's graphics backend
@@ -409,8 +409,7 @@ struct Nitlog::Main
 
 	void _init_gui_buffer()
 	{
-		_gui.buffer(Framebuffer::Mode(_win_w, _win_h,
-		            Framebuffer::Mode::RGB565), false);
+		_gui.buffer(Framebuffer::Mode { .area = { _win_w, _win_h } }, false);
 	}
 
 	bool const _gui_buffer_initialized = (_init_gui_buffer(), true);
@@ -420,7 +419,7 @@ struct Nitlog::Main
 	/* create log window */
 	Attached_dataspace _fb_ds { _env.rm(), _gui.framebuffer()->dataspace() };
 
-	Canvas<Pixel_rgb565> _canvas { _fb_ds.local_addr<Pixel_rgb565>(),
+	Canvas<Pixel_rgb888> _canvas { _fb_ds.local_addr<Pixel_rgb888>(),
 	                               ::Area(_win_w, _win_h) };
 
 	Log_window _log_window { _canvas, _font };

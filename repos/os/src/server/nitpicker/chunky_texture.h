@@ -25,9 +25,6 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 {
 	private:
 
-		Framebuffer::Mode::Format _format() {
-			return Framebuffer::Mode::RGB565; }
-
 		/**
 		 * Return base address of alpha channel or 0 if no alpha channel exists
 		 */
@@ -46,7 +43,7 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 		 */
 		Chunky_texture(Ram_allocator &ram, Region_map &rm, Area size, bool use_alpha)
 		:
-			Buffer(ram, rm, size, _format(), calc_num_bytes(size, use_alpha)),
+			Buffer(ram, rm, size, calc_num_bytes(size, use_alpha)),
 			Texture<PT>((PT *)local_addr(),
 			            _alpha_base(size, use_alpha), size) { }
 

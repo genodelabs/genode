@@ -18,7 +18,7 @@
 #include <base/attached_ram_dataspace.h>
 #include <os/texture.h>
 #include <os/surface.h>
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 #include <os/pixel_alpha8.h>
 #include <os/static_root.h>
 #include <util/reconstructible.h>
@@ -50,7 +50,7 @@ namespace Gui_fader {
 	using Genode::Reconstructible;
 	using Genode::Constructible;
 
-	typedef Genode::Pixel_rgb565 Pixel_rgb565;
+	typedef Genode::Pixel_rgb888 Pixel_rgb888;
 	typedef Genode::Pixel_alpha8 Pixel_alpha8;
 }
 
@@ -62,7 +62,7 @@ class Gui_fader::Src_buffer
 {
 	private:
 
-		typedef Pixel_rgb565 Pixel;
+		typedef Pixel_rgb888 Pixel;
 
 		bool             const _use_alpha;
 		Attached_ram_dataspace _ds;
@@ -103,11 +103,11 @@ class Gui_fader::Dst_buffer
 		Genode::Attached_dataspace _ds;
 		Area                       _size;
 
-		Surface<Pixel_rgb565> _pixel_surface { _ds.local_addr<Pixel_rgb565>(), _size };
+		Surface<Pixel_rgb888> _pixel_surface { _ds.local_addr<Pixel_rgb888>(), _size };
 
 		Surface<Pixel_alpha8> _alpha_surface
 		{
-			_ds.local_addr<Pixel_alpha8>() + _size.count()*sizeof(Pixel_rgb565),
+			_ds.local_addr<Pixel_alpha8>() + _size.count()*sizeof(Pixel_rgb888),
 			_size
 		};
 
@@ -119,12 +119,12 @@ class Gui_fader::Dst_buffer
 		{
 			/* initialize input-mask buffer */
 			unsigned char *input_mask_buffer = _ds.local_addr<unsigned char>()
-			                                 + _size.count()*(1 + sizeof(Pixel_rgb565));
+			                                 + _size.count()*(1 + sizeof(Pixel_rgb888));
 
 			Genode::memset(input_mask_buffer, 0xff, _size.count());
 		}
 
-		Surface<Pixel_rgb565> &pixel_surface() { return _pixel_surface; }
+		Surface<Pixel_rgb888> &pixel_surface() { return _pixel_surface; }
 		Surface<Pixel_alpha8> &alpha_surface() { return _alpha_surface; }
 };
 
@@ -415,7 +415,7 @@ class Gui_fader::Gui_session_component
 
 		void buffer(Framebuffer::Mode mode, bool use_alpha) override
 		{
-			Area const size(mode.width(), mode.height());
+			Area const size = mode.area;
 
 			_src_buffer.construct(_env, size, use_alpha);
 

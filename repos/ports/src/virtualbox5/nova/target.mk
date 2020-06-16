@@ -2,6 +2,7 @@ TARGET   = virtualbox5-nova
 REQUIRES = nova
 
 LIBS    += virtualbox5-nova
+LIBS    += blit
 
 include $(REP_DIR)/src/virtualbox5/target.inc
 

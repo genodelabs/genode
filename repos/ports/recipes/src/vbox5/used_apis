@@ -16,3 +16,5 @@ timer_session
 usb_session
 vfs
 vm_session
+nitpicker_gfx
+blit

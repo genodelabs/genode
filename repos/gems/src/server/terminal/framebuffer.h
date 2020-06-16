@@ -28,7 +28,7 @@ class Terminal::Framebuffer
 
 		Env &_env;
 
-		::Framebuffer::Connection _fb { _env, ::Framebuffer::Mode() };
+		::Framebuffer::Connection _fb { _env, ::Framebuffer::Mode { } };
 
 		Constructible<Attached_dataspace> _ds { };
 
@@ -47,8 +47,8 @@ class Terminal::Framebuffer
 			_fb.mode_sigh(mode_sigh);
 		}
 
-		unsigned w() const { return _mode.width(); }
-		unsigned h() const { return _mode.height(); }
+		unsigned w() const { return _mode.area.w(); }
+		unsigned h() const { return _mode.area.h(); }
 
 		template <typename PT>
 		PT *pixel() { return _ds->local_addr<PT>(); }
@@ -64,10 +64,7 @@ class Terminal::Framebuffer
 		 */
 		bool mode_changed() const
 		{
-			::Framebuffer::Mode _new_mode = _fb.mode();
-
-			return _new_mode.width()  != _mode.width()
-			    || _new_mode.height() != _mode.height();
+			return _fb.mode().area != _mode.area;
 		}
 
 		void switch_to_new_mode()
@@ -83,7 +80,7 @@ class Terminal::Framebuffer
 			 * the old (possibly too small) dataspace.
 			 */
 			_mode = _fb.mode();
-			if (_mode.width() && _mode.height())
+			if (_mode.area.count() > 0)
 				_ds.construct(_env.rm(), _fb.dataspace());
 		}
 };

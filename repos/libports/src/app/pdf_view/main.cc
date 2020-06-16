@@ -23,6 +23,7 @@
 #include <input/event.h>
 #include <input/keycodes.h>
 #include <gui_session/connection.h>
+#include <os/pixel_rgb888.h>
 
 /* MuPDF includes */
 extern "C" {
@@ -37,71 +38,19 @@ extern "C" {
 #include <unistd.h>
 
 
-/***************
- ** Dithering **
- ***************/
-
-/*
- * XXX blatantly copied from 'demo/src/app/backdrop/main.cc'
- *
- * We should factor-out the dithering support into a separate header file.
- * But where is a good place to put it?
- */
-
-enum { DITHER_SIZE = 16, DITHER_MASK = DITHER_SIZE - 1 };
-
-static const int dither_matrix[DITHER_SIZE][DITHER_SIZE] = {
-  {   0,192, 48,240, 12,204, 60,252,  3,195, 51,243, 15,207, 63,255 },
-  { 128, 64,176,112,140, 76,188,124,131, 67,179,115,143, 79,191,127 },
-  {  32,224, 16,208, 44,236, 28,220, 35,227, 19,211, 47,239, 31,223 },
-  { 160, 96,144, 80,172,108,156, 92,163, 99,147, 83,175,111,159, 95 },
-  {   8,200, 56,248,  4,196, 52,244, 11,203, 59,251,  7,199, 55,247 },
-  { 136, 72,184,120,132, 68,180,116,139, 75,187,123,135, 71,183,119 },
-  {  40,232, 24,216, 36,228, 20,212, 43,235, 27,219, 39,231, 23,215 },
-  { 168,104,152, 88,164,100,148, 84,171,107,155, 91,167,103,151, 87 },
-  {   2,194, 50,242, 14,206, 62,254,  1,193, 49,241, 13,205, 61,253 },
-  { 130, 66,178,114,142, 78,190,126,129, 65,177,113,141, 77,189,125 },
-  {  34,226, 18,210, 46,238, 30,222, 33,225, 17,209, 45,237, 29,221 },
-  { 162, 98,146, 82,174,110,158, 94,161, 97,145, 81,173,109,157, 93 },
-  {  10,202, 58,250,  6,198, 54,246,  9,201, 57,249,  5,197, 53,245 },
-  { 138, 74,186,122,134, 70,182,118,137, 73,185,121,133, 69,181,117 },
-  {  42,234, 26,218, 38,230, 22,214, 41,233, 25,217, 37,229, 21,213 },
-  { 170,106,154, 90,166,102,150, 86,169,105,153, 89,165,101,149, 85 }
-};
+typedef Genode::Pixel_rgb888 pixel_t;
 
 
-static inline uint16_t rgb565(int r, int g, int b)
+static void copy_line_rgba(const unsigned char *rgba_src,
+                           pixel_t *dst, int num_pixels)
 {
-	enum {
-		R_MASK = 0xf800, R_LSHIFT = 8,
-		G_MASK = 0x07e0, G_LSHIFT = 3,
-		B_MASK = 0x001f, B_RSHIFT = 3
-	};
-	return ((r << R_LSHIFT) & R_MASK)
-	     | ((g << G_LSHIFT) & G_MASK)
-	     | ((b >> B_RSHIFT) & B_MASK);
-}
-
-
-static void convert_line_rgba_to_rgb565(const unsigned char *rgba_src,
-                                        uint16_t *dst, int num_pixels, int line)
-{
-	using namespace Genode;
-
-	enum { CHANNEL_MAX = 255 };
-
-	int const *dm = dither_matrix[line & DITHER_MASK];
-
 	for (int i = 0; i < num_pixels; i++) {
-		int v = dm[i & DITHER_MASK] >> 5;
+		unsigned const r = *rgba_src++;
+		unsigned const g = *rgba_src++;
+		unsigned const b = *rgba_src++;
+		rgba_src++; /* ignore alpha */
 
-		*dst++ = rgb565(min(v + (int)rgba_src[0], (int)CHANNEL_MAX),
-		                min(v + (int)rgba_src[1], (int)CHANNEL_MAX),
-		                min(v + (int)rgba_src[2], (int)CHANNEL_MAX));
-
-		/* we ignore the alpha channel */
-
-		rgba_src += 4; /* next pixel */
+		*dst++ = pixel_t(r, g, b);
 	}
 }
 
@@ -130,7 +79,6 @@ class Pdf_view
 		class Non_supported_framebuffer_mode { };
 		class Unexpected_document_color_depth { };
 
-		typedef uint16_t pixel_t;
 		typedef Framebuffer::Mode Mode;
 
 	private:
@@ -167,19 +115,19 @@ class Pdf_view
 
 			_nit_mode = _gui.mode();
 
-			int max_x = Genode::max(_nit_mode.width(),  _fb_mode.width());
-			int max_y = Genode::max(_nit_mode.height(), _fb_mode.height());
+			unsigned max_x = Genode::max(_nit_mode.area.w(), _fb_mode.area.w());
+			unsigned max_y = Genode::max(_nit_mode.area.h(), _fb_mode.area.h());
 
-			if (max_x > _fb_mode.width() || max_y > _fb_mode.height()) {
-				_fb_mode = Mode(max_x, max_y, _nit_mode.format());
+			if (max_x > _fb_mode.area.w() || max_y > _fb_mode.area.h()) {
+				_fb_mode = Mode { .area = { max_x, max_y } };
 				_gui.buffer(_fb_mode, NO_ALPHA);
 				if (_fb_ds.constructed())
 					_fb_ds.destruct();
 				_fb_ds.construct(_env.rm(), _framebuffer.dataspace());
 			}
 
-			_pdfapp.scrw = _nit_mode.width();
-			 _pdfapp.scrh = _nit_mode.height();
+			_pdfapp.scrw = _nit_mode.area.w();
+			_pdfapp.scrh = _nit_mode.area.h();
 
 			/*
 			 * XXX replace heuristics with a meaningful computation
@@ -187,12 +135,11 @@ class Pdf_view
 			 * The magic values are hand-tweaked manually to accommodating the
 			 * use case of showing slides.
 			 */
-			_pdfapp.resolution = Genode::min(_nit_mode.width()/5,
-			                                 _nit_mode.height()/3.8);
+			_pdfapp.resolution = Genode::min(_nit_mode.area.w()/5,
+			                                 _nit_mode.area.h()/3.8);
 
 			typedef Gui::Session::Command Command;
-			_gui.enqueue<Command::Geometry>(
-				_view, Rect(Point(), Area(_nit_mode.width(), _nit_mode.height())));
+			_gui.enqueue<Command::Geometry>(_view, Rect(Point(), _nit_mode.area));
 			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
 			_gui.execute();
 		}
@@ -200,7 +147,7 @@ class Pdf_view
 		void _handle_nit_mode()
 		{
 			_rebuffer();
-			pdfapp_onresize(&_pdfapp, _nit_mode.width(), _nit_mode.height());
+			pdfapp_onresize(&_pdfapp, _nit_mode.area.w(), _nit_mode.area.h());
 		}
 
 		pdfapp_t _pdfapp { };
@@ -268,7 +215,7 @@ class Pdf_view
 
 		void _refresh()
 		{
-			_framebuffer.refresh(0, 0, _nit_mode.width(), _nit_mode.height());
+			_framebuffer.refresh(0, 0, _nit_mode.area.w(), _nit_mode.area.h());
 
 			/* handle one sync signal only */
 			_framebuffer.sync_sigh(Genode::Signal_context_capability());
@@ -335,12 +282,12 @@ class Pdf_view
 
 void Pdf_view::show()
 {
-	Genode::Area<> const fb_size(_fb_mode.width(), _fb_mode.height());
+	Framebuffer::Area const fb_size = _fb_mode.area;
 	int const x_max = Genode::min((int)fb_size.w(), _pdfapp.image->w);
 	int const y_max = Genode::min((int)fb_size.h(), _pdfapp.image->h);
 
 	/* clear framebuffer */
-	memset(_fb_base(), 0, _fb_ds->size());
+	::memset((void *)_fb_base(), 0, _fb_ds->size());
 
 	Genode::size_t src_line_bytes   = _pdfapp.image->n * _pdfapp.image->w;
 	unsigned char *src_line         = _pdfapp.image->samples;
@@ -354,15 +301,15 @@ void Pdf_view::show()
 	int const tweaked_y_max = y_max - 2;
 
 	/* center vertically if the dst buffer is higher than the image */
-	if (_pdfapp.image->h < _nit_mode.height())
-		dst_line += dst_line_width*((_nit_mode.height() - _pdfapp.image->h)/2);
+	if ((unsigned)_pdfapp.image->h < _nit_mode.area.h())
+		dst_line += dst_line_width*((_nit_mode.area.h() - _pdfapp.image->h)/2);
 
 	/* center horizontally if the dst buffer is wider than the image */
-	if (_pdfapp.image->w < _nit_mode.width())
-		dst_line += (_nit_mode.width() - _pdfapp.image->w)/2;
+	if ((unsigned)_pdfapp.image->w < _nit_mode.area.w())
+		dst_line += (_nit_mode.area.w() - _pdfapp.image->w)/2;
 
 	for (int y = 0; y < tweaked_y_max; y++) {
-		convert_line_rgba_to_rgb565(src_line, dst_line, x_max, y);
+		copy_line_rgba(src_line, dst_line, x_max);
 		src_line += src_line_bytes;
 		dst_line += dst_line_width;
 	}

@@ -95,8 +95,8 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 		{
 			unsigned const bpp   = _requested_mode.bytes_per_pixel();
 			unsigned const flags = SDL_SWSURFACE | SDL_RESIZABLE;
-			unsigned const w     = _requested_mode.width();
-			unsigned const h     = _requested_mode.height();
+			unsigned const w     = _requested_mode.area.w();
+			unsigned const h     = _requested_mode.area.h();
 			
 			if (SDL_VideoModeOK(w, h, bpp*8, flags))
 				_screen = SDL_SetVideoMode(w, h, bpp*8, flags);
@@ -153,8 +153,8 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 			/* clip refresh area to screen boundaries */
 			int const x1 = max(x, 0);
 			int const y1 = max(y, 0);
-			int const x2 = min(x + w - 1, min(_mode.width(),  _screen->w) - 1);
-			int const y2 = min(y + h - 1, min(_mode.height(), _screen->h) - 1);
+			int const x2 = min(x + w - 1, min((int)_mode.area.w(), _screen->w) - 1);
+			int const y2 = min(y + h - 1, min((int)_mode.area.h(), _screen->h) - 1);
 
 			if (x1 > x2 || y1 > y2)
 				return;
@@ -163,7 +163,7 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 			unsigned const bpp = _mode.bytes_per_pixel();
 
 			char const * const src_base  = _fb_ds->local_addr<char>();
-			unsigned     const src_pitch = bpp*_mode.width();
+			unsigned     const src_pitch = bpp*_mode.area.w();
 			char const * const src       = src_base + y1*src_pitch + bpp*x1;
 
 			unsigned     const dst_pitch =         _screen->pitch;
@@ -186,10 +186,10 @@ struct Fb_sdl::Main
 
 	Timer::Connection _timer { _env };
 
-	int _fb_width  = _config.xml().attribute_value("width", 1024UL);
-	int _fb_height = _config.xml().attribute_value("height", 768UL);
+	unsigned const _fb_width  = _config.xml().attribute_value("width", 1024UL);
+	unsigned const _fb_height = _config.xml().attribute_value("height", 768UL);
 
-	Framebuffer::Mode _fb_mode { _fb_width, _fb_height, Framebuffer::Mode::RGB565 };
+	Framebuffer::Mode _fb_mode { .area = { _fb_width, _fb_height } };
 
 	Framebuffer::Session_component _fb_session { _env, _fb_mode };
 
@@ -250,9 +250,13 @@ void Fb_sdl::Main::_handle_sdl_event(SDL_Event const &event)
 
 	if (event.type == SDL_VIDEORESIZE) {
 
-		Framebuffer::Mode const mode(event.resize.w, event.resize.h,
-		                             Framebuffer::Mode::RGB565);
+		if (event.resize.w < 0 || event.resize.h < 0) {
+			warning("attempt to resize to negative size");
+			return;
+		}
 
+		Framebuffer::Mode const mode { .area = { (unsigned)event.resize.w,
+		                                         (unsigned)event.resize.h } };
 		_fb_session.submit_mode_change(mode);
 		return;
 	}

@@ -47,7 +47,7 @@ void lx_c_allocate_framebuffer(struct drm_device * dev,
 	if (!r) goto err2;
 	r->width        = c->width;
 	r->height       = c->height;
-	r->pixel_format = DRM_FORMAT_RGB565;
+	r->pixel_format = DRM_FORMAT_XRGB8888;
 	r->pitches[0]   = c->pitch;
 	c->lx_fb = intel_framebuffer_create(obj, r);
 	if (IS_ERR(c->lx_fb)) goto err2;

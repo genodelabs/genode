@@ -105,7 +105,7 @@ struct Main : Scout::Event_handler
 		_graphics_backend { _env.rm(), _gui, _heap, _max_size,
 		                    _initial_position, _initial_size };
 
-	Launchpad_window<Pixel_rgb565>
+	Launchpad_window<Pixel_rgb888>
 		_launchpad { _env, _graphics_backend, _initial_position, _initial_size,
 		             _max_size, _env.pd().avail_ram().value };
 

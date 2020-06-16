@@ -145,8 +145,9 @@ append config {
 
 	<start name="fb_drv" priority="-1">
 		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Framebuffer"/></provides>
+		<config buffered="yes"/>
 	</start>
 
 	<start name="nitpicker" priority="-1">

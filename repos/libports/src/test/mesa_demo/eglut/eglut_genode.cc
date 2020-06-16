@@ -57,12 +57,14 @@ struct Window : Genode_egl_window
 	Window(Genode::Env &env, int w, int h)
 	:
 		env(env),
-	  mode_dispatcher(*signal_ep, *this, &Window::mode_handler)
+		mode_dispatcher(*signal_ep, *this, &Window::mode_handler)
 	{
 		width  = w;
 		height = h;
 
-		framebuffer.construct(env, Framebuffer::Mode(width, height, Framebuffer::Mode::RGB565));
+		Framebuffer::Mode const mode { .area = { (unsigned)width, (unsigned)height } };
+
+		framebuffer.construct(env, mode);
 		addr = env.rm().attach(framebuffer->dataspace());
 
 		framebuffer->mode_sigh(mode_dispatcher);
@@ -87,10 +89,10 @@ struct Window : Genode_egl_window
 
 		eglut_window *win  = _eglut->current;
 		if (win) {
-			win->native.width  = mode.width();
-			win->native.height = mode.height();
-			width  = mode.width();
-			height = mode.height();
+			win->native.width  = mode.area.w();
+			win->native.height = mode.area.h();
+			width  = mode.area.w();
+			height = mode.area.h();
 
 			if (win->reshape_cb)
 				win->reshape_cb(win->native.width, win->native.height);

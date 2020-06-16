@@ -42,7 +42,7 @@ install_config {
 	</start>
 
 	<start name="drivers" caps="1500">
-		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<resource name="RAM" quantum="64M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -147,7 +147,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker" caps="110">
+	<start name="nitpicker" caps="120">
 		<resource name="RAM" quantum="1216K"/>
 		<provides> <service name="Gui"/> </provides>
 		<route>
@@ -185,7 +185,7 @@ install_config {
 	</start>
 
 	<start name="scout" caps="10000">
-		<resource name="RAM" quantum="64M" />
+		<resource name="RAM" quantum="80M" />
 	</start>
 </config>}
 
@@ -199,11 +199,11 @@ puts $launchpad_config_fd {<config>
 	<launcher name="launchpad" ram_quota="6M"   caps="1000">
 		<configfile name="launchpad.config" />
 	</launcher>
-	<launcher name="nitlog"    ram_quota="1M" caps="70"/>
-	<launcher name="liquid_fb" ram_quota="7M" caps="70">
+	<launcher name="nitlog"    ram_quota="1M" caps="100"/>
+	<launcher name="liquid_fb" ram_quota="9M" caps="100">
 		<config resize_handle="on" />
 	</launcher>
-	<launcher name="nitpicker" ram_quota="1M" caps="70">
+	<launcher name="nitpicker" ram_quota="1M" caps="100">
 		<config>
 			<domain name="" layer="3" conten="client" label="no" focus="click"/>
 			<default-policy domain="" />

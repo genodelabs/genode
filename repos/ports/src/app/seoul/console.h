@@ -34,7 +34,7 @@
 #include <gui_session/connection.h>
 #include <timer_session/connection.h>
 
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 
 /* local includes */
 #include "keyboard.h"
@@ -43,7 +43,7 @@
 
 namespace Seoul {
 	class Console;
-	using Genode::Pixel_rgb565;
+	using Genode::Pixel_rgb888;
 	using Genode::Dataspace_capability;
 }
 
@@ -64,7 +64,7 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 		Genode::addr_t       const    _fb_vm_mapping;
 		Genode::addr_t       const    _vm_phys_fb;
 		short                        *_pixels;
-		Genode::Surface<Pixel_rgb565> _surface;
+		Genode::Surface<Pixel_rgb888> _surface;
 		unsigned                      _timer    { 0 };
 		Keyboard                      _vkeyb    { _motherboard };
 		char                         *_guest_fb { nullptr };

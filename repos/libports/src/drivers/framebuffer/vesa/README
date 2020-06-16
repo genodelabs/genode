@@ -35,35 +35,7 @@ be set to '"yes"' to prevent the driver from changing the mode. This way,
 the driver will just query the current mode and make the already
 initialized framebuffer available to its client.
 
-
-Options and usage from clients
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:Example:
-
-  ! #include <framebuffer_session/connection.h>
-  !
-  ! ...
-  !
-  ! /* create session to frame-buffer service */
-  ! Framebuffer::Connection framebuffer(1024, 768, Framebuffer::Session::RGB565);
-  !
-  ! /* retrieve frame buffer dataspace */
-  ! Dataspace_capability fb_ds_cap = framebuffer.dataspace();
-  !
-  ! /* map dataspace to local address space */
-  ! void *local_addr = env()->rm_session()->attach(fb_ds_cap);
-
-:Session-creation arguments:
-
-  :'fb_width': resolution width in pixel
-
-  :'fb_height': resolution height in pixel
-
-  :'fb_mode ': bits per pixel
-
 :Supported modes:
 
-  '640x480', '800x600', '1024x786', '1280x1024' at 15, 16, 24, 32 bits per pixel
-  Buffered output is only supported for modes using 16 bits per pixel.
+  '640x480', '800x600', '1024x786', '1280x1024' at 32 bits per pixel.
 

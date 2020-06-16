@@ -41,7 +41,7 @@ namespace Framebuffer
 		HSYNC_LEN    =   64,
 		VSYNC_LEN    =   25,
 
-		BYTES_PER_PIXEL  = 2,
+		BYTES_PER_PIXEL  = 4,
 		FRAMEBUFFER_SIZE = SCR_WIDTH*SCR_HEIGHT*BYTES_PER_PIXEL,
 	};
 
@@ -65,13 +65,12 @@ class Framebuffer::Session_component :
 			/**
 			 * Bit definitions of the lcd control register
 			 */
-			CTRL_ENABLED   = 1 <<  0,
-			CTRL_BPP16     = 4 <<  1,
-			CTRL_BPP16_565 = 6 <<  1,
-			CTRL_TFT       = 1 <<  5,
-			CTRL_BGR       = 1 <<  8,
-			CTRL_POWER     = 1 << 11,
-			CTRL_VCOMP     = 1 << 12,
+			CTRL_ENABLED = 1 <<  0,
+			CTRL_BPP_24  = 5 <<  1,
+			CTRL_TFT     = 1 <<  5,
+			CTRL_BGR     = 1 <<  8,
+			CTRL_POWER   = 1 << 11,
+			CTRL_VCOMP   = 1 << 12,
 
 			/**
 			 * Bit definitions for CLCDC timing.
@@ -151,7 +150,7 @@ class Framebuffer::Session_component :
 				_timer.msleep(100);
 			}
 
-			ctrl = CTRL_BGR | CTRL_ENABLED | CTRL_TFT | CTRL_VCOMP | CTRL_BPP16_565;
+			ctrl = CTRL_BGR | CTRL_ENABLED | CTRL_TFT | CTRL_VCOMP | CTRL_BPP_24;
 
 			/* init color-lcd oscillator */
 			sys_reg_write(SP810_REG_LOCK,    0xa05f);
@@ -177,7 +176,7 @@ class Framebuffer::Session_component :
 
 		Genode::Dataspace_capability dataspace() override { return _fb_ds_cap; }
 
-		Mode mode() const override { return Mode(SCR_WIDTH, SCR_HEIGHT, Mode::RGB565); }
+		Mode mode() const override { return Mode { .area { SCR_WIDTH, SCR_HEIGHT } }; }
 
 		void mode_sigh(Genode::Signal_context_capability) override { }
 

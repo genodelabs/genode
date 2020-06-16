@@ -477,4 +477,4 @@ void Browser_window<PT>::handle_scroll(int view_pos)
 	ypos_sb(-view_pos, 0);
 }
 
-template class Browser_window<Genode::Pixel_rgb565>;
+template class Browser_window<Genode::Pixel_rgb888>;

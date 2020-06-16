@@ -16,7 +16,7 @@
 #define _TEXT_SCREEN_SURFACE_H_
 
 /* Genode includes */
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 
 /* terminal includes */
 #include <terminal/char_cell_array_character_screen.h>

@@ -22,7 +22,6 @@
 #include <nitpicker_gfx/texture_painter.h>
 #include <base/attached_dataspace.h>
 #include <util/reconstructible.h>
-#include <os/texture_rgb565.h>
 #include <os/texture_rgb888.h>
 
 /* gems includes */
@@ -63,11 +62,6 @@ struct Backdrop::Main
 			/* setup virtual framebuffer mode */
 			gui.buffer(mode, false);
 
-			if (mode.format() != Framebuffer::Mode::RGB565) {
-				Genode::warning("Color mode %d not supported\n", (int)mode.format());
-				return Dataspace_capability();
-			}
-
 			return gui.framebuffer()->dataspace();
 		}
 
@@ -92,10 +86,7 @@ struct Backdrop::Main
 		/**
 		 * Return size of virtual framebuffer
 		 */
-		Surface_base::Area size() const
-		{
-			return Surface_base::Area(mode.width(), mode.height());
-		}
+		Surface_base::Area size() const { return mode.area; }
 
 		/**
 		 * Return back buffer as painting surface
@@ -251,13 +242,12 @@ void Backdrop::Main::_apply_image(Xml_node operation)
 	Png_image png_image(_env.ram(), _env.rm(), _heap, file.data<void>());
 
 	Area const scaled_size = calc_scaled_size(operation, png_image.size(),
-	                                          Area(_buffer->mode.width(),
-	                                               _buffer->mode.height()));
+	                                          _buffer->mode.area);
 	/*
 	 * Determine parameters of graphics operation
 	 */
-	int const h_gap = (int)_buffer->mode.width()  - scaled_size.w(),
-	          v_gap = (int)_buffer->mode.height() - scaled_size.h();
+	int const h_gap = (int)_buffer->mode.area.w() - scaled_size.w(),
+	          v_gap = (int)_buffer->mode.area.h() - scaled_size.h();
 
 	int const anchored_xpos = anchor.horizontal == Anchor::LOW    ? 0
 	                        : anchor.horizontal == Anchor::CENTER ? h_gap/2
@@ -291,7 +281,7 @@ void Backdrop::Main::_apply_image(Xml_node operation)
 	 */
 
 	/* create texture with down-sampled scaled image */
-	typedef Pixel_rgb565 PT;
+	typedef Pixel_rgb888 PT;
 	Chunky_texture<PT> texture(_env.ram(), _env.rm(), scaled_size);
 	convert_pixel_format(scaled_texture, texture, alpha, _heap);
 
@@ -309,7 +299,7 @@ void Backdrop::Main::_apply_fill(Xml_node operation)
 	 */
 
 	/* create texture with down-sampled scaled image */
-	typedef Pixel_rgb565 PT;
+	typedef Pixel_rgb888 PT;
 
 	Color const color = operation.attribute_value("color", Color(0, 0, 0));
 
@@ -326,9 +316,8 @@ void Backdrop::Main::_handle_config()
 
 	Framebuffer::Mode const phys_mode = _gui.mode();
 	Framebuffer::Mode const
-		mode(_config.xml().attribute_value("width",  (unsigned)phys_mode.width()),
-		     _config.xml().attribute_value("height", (unsigned)phys_mode.height()),
-		     phys_mode.format());
+		mode { .area = { _config.xml().attribute_value("width",  phys_mode.area.w()),
+		                 _config.xml().attribute_value("height", phys_mode.area.h()) } };
 
 	_buffer.construct(_env, _gui, mode);
 

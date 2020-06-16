@@ -18,8 +18,8 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/pixel_alpha8.h>
-#include <os/pixel_rgb565.h>
 #include <os/pixel_rgb888.h>
+#include <os/pixel_rgb565.h>
 #include <os/surface.h>
 #include <os/texture_rgb888.h>
 #include <gui_session/connection.h>
@@ -42,7 +42,7 @@ void convert_default_pointer_data_to_pixels(PT *pixel, Gui::Area size)
 	for (unsigned y = 0; y < size.h(); y++) {
 		for (unsigned x = 0; x < size.w(); x++) {
 
-			/* the source is known to be in RGB565 format */
+			/* the source is known to be in RGB888 format */
 			Genode::Pixel_rgb565 src =
 				*(Genode::Pixel_rgb565 *)(&big_mouse.pixels[y][x]);
 
@@ -139,9 +139,7 @@ void Pointer::Main::_resize_gui_buffer_if_needed(Gui::Area pointer_size)
 	if (pointer_size == _current_pointer_size)
 		return;
 
-	Framebuffer::Mode const mode { (int)pointer_size.w(),
-	                               (int)pointer_size.h(),
-	                               Framebuffer::Mode::RGB565 };
+	Framebuffer::Mode const mode { .area = pointer_size };
 
 	_gui.buffer(mode, true /* use alpha */);
 
@@ -169,7 +167,7 @@ void Pointer::Main::_show_default_pointer()
 
 	Genode::Attached_dataspace ds { _env.rm(), _pointer_ds };
 
-	convert_default_pointer_data_to_pixels(ds.local_addr<Genode::Pixel_rgb565>(),
+	convert_default_pointer_data_to_pixels(ds.local_addr<Genode::Pixel_rgb888>(),
 	                                       pointer_size);
 	_gui.framebuffer()->refresh(0, 0, pointer_size.w(), pointer_size.h());
 
@@ -220,12 +218,12 @@ void Pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 
 		Attached_dataspace ds { _env.rm(), _pointer_ds };
 
-		Pixel_rgb565 *pixel = ds.local_addr<Pixel_rgb565>();
+		Pixel_rgb888 *pixel = ds.local_addr<Pixel_rgb888>();
 
 		Pixel_alpha8 *alpha =
 			reinterpret_cast<Pixel_alpha8 *>(pixel + shape_size.count());
 
-		Surface<Pixel_rgb565> pixel_surface(pixel, shape_size);
+		Surface<Pixel_rgb888> pixel_surface(pixel, shape_size);
 		Surface<Pixel_alpha8> alpha_surface(alpha, shape_size);
 
 		Dither_painter::paint(pixel_surface, texture);
@@ -341,8 +339,7 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 	 * pointer size to let the user know right from the start if the
 	 * RAM quota is too low.
 	 */
-	Framebuffer::Mode const mode { Pointer::MAX_WIDTH, Pointer::MAX_HEIGHT,
-	                               Framebuffer::Mode::RGB565 };
+	Framebuffer::Mode const mode { .area = { Pointer::MAX_WIDTH, Pointer::MAX_HEIGHT } };
 
 	_gui.buffer(mode, true /* use alpha */);
 
@@ -353,7 +350,7 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 			_handle_hover();
 		} catch (Genode::Rom_connection::Rom_connection_failed) {
 			Genode::warning("Could not open ROM session for \"hover\".",
-		                	" This ROM is used for custom pointer shape support.");
+		                    " This ROM is used for custom pointer shape support.");
 		}
 
 		try {
@@ -362,7 +359,7 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 			_handle_xray();
 		} catch (Genode::Rom_connection::Rom_connection_failed) {
 			Genode::warning("Could not open ROM session for \"xray\".",
-		                	" This ROM is used for custom pointer shape support.");
+		                    " This ROM is used for custom pointer shape support.");
 		}
 	}
 

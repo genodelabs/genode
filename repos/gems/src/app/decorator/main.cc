@@ -17,7 +17,7 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <gui_session/connection.h>
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 #include <os/reporter.h>
 
 /* decorator includes */
@@ -45,16 +45,14 @@ struct Decorator::Main : Window_factory_base
 	{
 		Framebuffer::Mode         const mode;
 		Attached_dataspace              fb_ds;
-		Decorator::Canvas<Pixel_rgb565> canvas;
+		Decorator::Canvas<Pixel_rgb888> canvas;
 
 		Canvas(Env &env, Gui::Connection &nitpicker)
 		:
 			mode(nitpicker.mode()),
 			fb_ds(env.rm(),
 			      (nitpicker.buffer(mode, false), nitpicker.framebuffer()->dataspace())),
-			canvas(fb_ds.local_addr<Pixel_rgb565>(),
-			       Area(mode.width(), mode.height()),
-			       env.ram(), env.rm())
+			canvas(fb_ds.local_addr<Pixel_rgb888>(), mode.area, env.ram(), env.rm())
 		{ }
 	};
 
@@ -66,9 +64,7 @@ struct Decorator::Main : Window_factory_base
 	{
 		_canvas.construct(_env, _nitpicker);
 
-		_window_stack.mark_as_dirty(Rect(Point(0, 0),
-		                            Area(_canvas->mode.width(),
-		                                 _canvas->mode.height())));
+		_window_stack.mark_as_dirty(Rect(Point(0, 0), _canvas->mode.area));
 
 		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 

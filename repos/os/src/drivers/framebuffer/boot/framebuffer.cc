@@ -13,6 +13,7 @@
 
 #include <framebuffer.h>
 #include <base/component.h>
+#include <blit/blit.h>
 
 using namespace Framebuffer;
 
@@ -50,7 +51,7 @@ Session_component::Session_component(Genode::Env &env,
 	_fb_mem.construct(_env, _core_fb.addr, _core_fb.pitch * _core_fb.height,
 	                  true);
 
-	_fb_mode = Mode(_core_fb.width, _core_fb.height, Mode::RGB565);
+	_fb_mode = Mode { .area = { _core_fb.width, _core_fb.height } };
 
 	_fb_ram.construct(_env.ram(), _env.rm(), _core_fb.width * _core_fb.height *
 	                                         _fb_mode.bytes_per_pixel());
@@ -70,28 +71,24 @@ void Session_component::refresh(int const x, int const y, int const w, int const
 {
 	using namespace Genode;
 
-	uint32_t const c_x = x < 0 ? 0U : x;
-	uint32_t const c_y = y < 0 ? 0U : y;
-	uint32_t const c_w = w < 0 ? 0U : w;
-	uint32_t const c_h = h < 0 ? 0U : h;
+	int      const width  = _core_fb.width;
+	int      const height = _core_fb.height;
+	unsigned const bpp    = 4;
+	unsigned const pitch  = _core_fb.pitch;
 
-	uint32_t const u_x = min(_core_fb.width,  max(c_x, 0U));
-	uint32_t const u_y = min(_core_fb.height, max(c_y, 0U));
-	uint32_t const u_w = min(_core_fb.width,  max(c_w, 0U) + u_x);
-	uint32_t const u_h = min(_core_fb.height, max(c_h, 0U) + u_y);
+	/* clip specified coordinates against screen boundaries */
+	int const x2 = min(x + w - 1, width  - 1),
+	          y2 = min(y + h - 1, height - 1);
+	int const x1 = max(x, 0),
+	          y1 = max(y, 0);
+	if (x1 > x2 || y1 > y2)
+		return;
 
-	Pixel_rgb888       * const pixel_32 = _fb_mem->local_addr<Pixel_rgb888>();
-	Pixel_rgb565 const * const pixel_16 = _fb_ram->local_addr<Pixel_rgb565>();
+	/* copy pixels from back buffer to physical frame buffer */
+	char const *src = _fb_ram->local_addr<char>() + bpp*width*y1 + bpp*x1;
+	char       *dst = _fb_mem->local_addr<char>() + pitch*y1     + bpp*x1;
 
-	for (uint32_t r = u_y; r < u_h; ++r) {
-		for (uint32_t c = u_x; c < u_w; ++c) {
-			uint32_t const s = c + r * _core_fb.width;
-			uint32_t const d = c + r * (_core_fb.pitch / (_core_fb.bpp / 8));
-
-			pixel_32[d].rgba(pixel_16[s].r(), pixel_16[s].g(),
-			                 pixel_16[s].b(), 0);
-		}
-	}
+	blit(src, bpp*width, dst, pitch, bpp*(x2 - x1 + 1), y2 - y1 + 1);
 }
 
 Genode::Dataspace_capability Session_component::dataspace()

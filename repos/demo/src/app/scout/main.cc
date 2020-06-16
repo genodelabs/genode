@@ -82,7 +82,7 @@ struct Scout::Main : Scout::Event_handler
 	void _init_navicons()
 	{
 		for (unsigned int i = 0; i < sizeof(navicons)/sizeof(void *); i++) {
-			Fade_icon<Pixel_rgb565, 64, 64> *icon = new Fade_icon<Pixel_rgb565, 64, 64>;
+			Fade_icon<Pixel_rgb888, 64, 64> *icon = new Fade_icon<Pixel_rgb888, 64, 64>;
 			icon->rgba(navicons_rgba[i]);
 			icon->alpha(100);
 			*navicons[i] = icon;
@@ -94,12 +94,12 @@ struct Scout::Main : Scout::Event_handler
 	Document &_doc = *create_document();
 
 	/* create instance of browser window */
-	Browser_window<Pixel_rgb565> _browser { &_doc, _graphics_backend,
+	Browser_window<Pixel_rgb888> _browser { &_doc, _graphics_backend,
 	                                        _initial_position, _initial_size,
 	                                        _max_size, _config };
 
 	/* initialize mouse cursor */
-	Icon<Pixel_rgb565, 32, 32> _mcursor { };
+	Icon<Pixel_rgb888, 32, 32> _mcursor { };
 
 	void _init_mouse_cursor()
 	{

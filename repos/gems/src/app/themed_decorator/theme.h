@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <os/texture.h>
-#include <os/pixel_rgb565.h>
 #include <os/pixel_alpha8.h>
 #include <os/pixel_rgb888.h>
 
@@ -25,7 +24,6 @@ namespace Decorator {
 	class Theme;
 
 	typedef Genode::Pixel_rgb888 Pixel_rgb888;
-	typedef Genode::Pixel_rgb565 Pixel_rgb565;
 	typedef Genode::Pixel_alpha8 Pixel_alpha8;
 
 	typedef Genode::Surface<Pixel_rgb888> Pixel_surface;

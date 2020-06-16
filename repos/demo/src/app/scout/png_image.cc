@@ -131,6 +131,7 @@ void Png_image::fill_cache(Canvas_base &canvas)
 		row_ptr = (png_byte *)alloc().alloc(needed_row_size);
 		curr_row_size = needed_row_size;
 	}
+	memset(row_ptr, 0, curr_row_size);
 
 	/* fill texture */
 	for (unsigned j = 0; j < _min_size.h(); j++) {

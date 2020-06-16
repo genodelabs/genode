@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <gui_session/connection.h>
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 #include <base/attached_dataspace.h>
 
 /* Scout includes */
@@ -24,7 +24,7 @@
 
 
 namespace Scout {
-	using Genode::Pixel_rgb565;
+	using Genode::Pixel_rgb888;
 	class Graphics_backend_impl;
 }
 
@@ -45,8 +45,10 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		Genode::Dataspace_capability _init_fb_ds(Area max_size)
 		{
-			_gui.buffer(Framebuffer::Mode(max_size.w(), max_size.h()*2,
-			                              Framebuffer::Mode::RGB565), false);
+			Framebuffer::Mode const mode { .area = { max_size.w(), max_size.h()*2 }};
+
+			_gui.buffer(mode, false);
+
 			return _gui.framebuffer()->dataspace();
 		}
 
@@ -111,7 +113,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 		{
 			bring_to_front();
 
-			typedef Genode::Pixel_rgb565 PT;
+			typedef Genode::Pixel_rgb888 PT;
 			static Canvas<PT> canvas_0(_base<PT>(0), max_size, alloc);
 			static Canvas<PT> canvas_1(_base<PT>(1), max_size, alloc);
 
@@ -130,7 +132,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 		void copy_back_to_front(Rect rect) override
 		{
 
-			typedef Genode::Pixel_rgb565 PT;
+			typedef Genode::Pixel_rgb888 PT;
 
 			PT const *src = _base<PT>( _back_idx());
 			PT       *dst = _base<PT>(_front_idx());

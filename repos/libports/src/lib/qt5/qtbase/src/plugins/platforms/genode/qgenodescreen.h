@@ -42,16 +42,13 @@ class QGenodeScreen : public QPlatformScreen
 
 			Framebuffer::Mode const scr_mode = _gui.mode();
 
-			if (scr_mode.format() != Framebuffer::Mode::RGB565)
-				qCritical() << "GUI screen format is not RGB565";
-
-			_geometry.setRect(0, 0, scr_mode.width(),
-			                        scr_mode.height());
+			_geometry.setRect(0, 0, scr_mode.area.w(),
+			                        scr_mode.area.h());
 		}
 
 		QRect geometry() const { return _geometry; }
-		int depth() const { return 16; }
-		QImage::Format format() const { return QImage::Format_RGB16; }
+		int depth() const { return 32; }
+		QImage::Format format() const { return QImage::Format_ARGB32; }
 		QDpi logicalDpi() const { return QDpi(80, 80); };
 
 		QPlatformCursor *cursor() const

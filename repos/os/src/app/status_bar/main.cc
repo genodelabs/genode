@@ -16,7 +16,7 @@
 #include <util/color.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 #include <gui_session/connection.h>
 #include <nitpicker_gfx/box_painter.h>
 #include <nitpicker_gfx/tff_font.h>
@@ -51,7 +51,7 @@ struct Status_bar::Buffer
 	 * The status bar is as wide as nitpicker's screen and has a fixed
 	 * height.
 	 */
-	Framebuffer::Mode const _mode { _nit_mode.width(), HEIGHT, _nit_mode.format() };
+	Framebuffer::Mode const _mode { .area = { _nit_mode.area.w(), HEIGHT } };
 
 	Dataspace_capability _init_buffer()
 	{
@@ -120,14 +120,9 @@ void Status_bar::Buffer::draw(Domain_name const &domain_name,
                               Label       const &label,
                               Color              color)
 {
-	if (_mode.format() != Framebuffer::Mode::RGB565) {
-		error("pixel format not supported");
-		return;
-	}
+	typedef Pixel_rgb888 PT;
 
-	typedef Pixel_rgb565 PT;
-
-	Area const area(_mode.width(), _mode.height());
+	Area const area = _mode.area;
 
 	Surface<PT> surface(_fb_ds.local_addr<PT>(), area);
 
@@ -248,8 +243,7 @@ void Status_bar::Main::_handle_mode()
 
 	_draw_status_bar();
 
-	Rect const geometry(Point(0, 0), Area(_buffer->mode().width(),
-	                                      _buffer->mode().height()));
+	Rect const geometry(Point(0, 0), _buffer->mode().area);
 
 	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);
 	_gui.execute();

@@ -16,8 +16,8 @@
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <polygon_gfx/shaded_polygon_painter.h>
-#include <polygon_gfx/interpolate_rgb565.h>
 #include <polygon_gfx/textured_polygon_painter.h>
+#include <os/pixel_rgb888.h>
 #include <nano3d/dodecahedron_shape.h>
 #include <nano3d/cube_shape.h>
 #include <nano3d/scene.h>
@@ -229,7 +229,7 @@ void Component::construct(Genode::Env &env)
 {
 	enum { UPDATE_RATE_MS = 20 };
 
-	static Scene<Genode::Pixel_rgb565>
+	static Scene<Genode::Pixel_rgb888>
 		scene(env, UPDATE_RATE_MS,
 		      Gui::Point(-200, -200), Gui::Area(400, 400));
 }

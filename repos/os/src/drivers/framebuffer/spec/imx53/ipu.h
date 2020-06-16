@@ -225,24 +225,25 @@ class Ipu : Genode::Mmio
 			cpmem.sly  = stride - 1;
 			cpmem.eba0 = phys_base >> 3;
 			cpmem.eba1 = phys_base >> 3;
-			cpmem.bpp  = 3;  /* corresponds to 16BPP      */
+			cpmem.bpp  = 0;  /* corresponds to 32BPP      */
 			cpmem.pfs  = 7;  /* corresponds to RGB        */
-			cpmem.npb  = 31; /* 32 pixel per burst access */
+			cpmem.npb  = 15;
 
 			/* red */
-			cpmem.wid0 = 4;
-			cpmem.off0 = 0;
+			cpmem.wid0 = 7;
+			cpmem.off0 = 8;
 
 			/* green */
-			cpmem.wid1 = 5;
-			cpmem.off1 = 5;
+			cpmem.wid1 = 7;
+			cpmem.off1 = 16;
 
 			/* blue */
-			cpmem.wid2 = 4;			cpmem.off2 = 11;
+			cpmem.wid2 = 7;
+			cpmem.off2 = 24;
 
 			/* alpha */
 			cpmem.wid3 = 7;
-			cpmem.off3 = 16;
+			cpmem.off3 = 0;
 
 			Genode::memcpy(dst, (void*)&cpmem, sizeof(Cp_mem));
 		}

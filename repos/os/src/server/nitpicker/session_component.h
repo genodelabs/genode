@@ -20,7 +20,7 @@
 #include <base/heap.h>
 #include <os/session_policy.h>
 #include <os/reporter.h>
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 #include <gui_session/gui_session.h>
 
 /* local includes */

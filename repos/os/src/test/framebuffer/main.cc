@@ -18,10 +18,13 @@
 #include <base/log.h>
 #include <framebuffer_session/connection.h>
 #include <base/attached_dataspace.h>
+#include <os/surface.h>
+#include <os/pixel_rgb888.h>
 #include <util/reconstructible.h>
 
 
-using Genode::uint16_t;
+using Area  = Genode::Surface_base::Area;
+using Pixel = Genode::Pixel_rgb888;
 
 class Test_environment
 {
@@ -29,13 +32,11 @@ class Test_environment
 
 		using Ds = Genode::Constructible<Genode::Attached_dataspace>;
 
-		enum Color {
-			BLACK = 0x0,
-			BLUE  = 0x1f,
-			GREEN = 0x7e0,
-			RED   = 0xf800,
-			WHITE = 0xffff,
-		};
+		Pixel const BLACK = {   0,   0,   0 };
+		Pixel const BLUE  = {   0,   0, 255 };
+		Pixel const GREEN = {   0, 255,   0 };
+		Pixel const RED   = { 255,   0,   0 };
+		Pixel const WHITE = { 255, 255, 255 };
 
 		enum State { STRIPES, ALL_BLUE, ALL_GREEN, ALL_RED, COLORED };
 
@@ -57,7 +58,7 @@ class Test_environment
 		void _sync_handle() {
 			if (_sync_cnt++ % FRAME_CNT == 0) _draw(); }
 
-		void _draw_frame(uint16_t volatile *, uint16_t, unsigned, unsigned);
+		void _draw_frame(Pixel *, Pixel, Area);
 
 		Genode::size_t _fb_bpp()  { return _mode.bytes_per_pixel(); }
 		Genode::size_t _fb_size() { return _fb_ds->size(); }
@@ -79,9 +80,10 @@ class Test_environment
 };
 
 
-void Test_environment::_draw_frame(uint16_t volatile *p, uint16_t c,
-                                   unsigned const w, unsigned const h)
+void Test_environment::_draw_frame(Pixel *p, Pixel c, Area area)
 {
+	unsigned const w = area.w(), h = area.h();
+
 	/* top and bottom */
 	for (unsigned i = 0; i < w; ++i)
 		p[i] = p[(h - 1)*w + i] = c;
@@ -100,7 +102,7 @@ void Test_environment::_draw()
 	case STRIPES:
 		{
 			Genode::log("black & white stripes");
-			addr_t const stripe_width = _mode.width() / 4;
+			addr_t const stripe_width = _mode.area.w() / 4;
 			addr_t stripe_o = 0;
 			bool stripe = 0;
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp()) {
@@ -109,11 +111,10 @@ void Test_environment::_draw()
 					stripe_o = 0;
 					stripe = !stripe;
 				}
-				*(uint16_t volatile *)(_fb_base() + o) = stripe ? BLACK : WHITE;
+				*(Pixel *)(_fb_base() + o) = stripe ? BLACK : WHITE;
 			}
 
-			_draw_frame((uint16_t volatile *)_fb_base(), RED,
-			            _mode.width(), _mode.height());
+			_draw_frame((Pixel *)_fb_base(), RED, _mode.area);
 			_state = ALL_BLUE;
 			break;
 		}
@@ -121,10 +122,9 @@ void Test_environment::_draw()
 		{
 			Genode::log("blue");
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
-				*(uint16_t volatile *)(_fb_base() + o) = BLUE;
+				*(Pixel *)(_fb_base() + o) = BLUE;
 
-			_draw_frame((uint16_t volatile *)_fb_base(), RED,
-			            _mode.width(), _mode.height());
+			_draw_frame((Pixel *)_fb_base(), RED, _mode.area);
 			_state = ALL_GREEN;
 			break;
 		}
@@ -132,10 +132,9 @@ void Test_environment::_draw()
 		{
 			Genode::log("green");
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
-				*(uint16_t volatile *)(_fb_base() + o) = GREEN;
+				*(Pixel *)(_fb_base() + o) = GREEN;
 
-			_draw_frame((uint16_t volatile *)_fb_base(), RED,
-			            _mode.width(), _mode.height());
+			_draw_frame((Pixel *)_fb_base(), RED, _mode.area);
 			_state = ALL_RED;
 			break;
 		}
@@ -143,10 +142,9 @@ void Test_environment::_draw()
 		{
 			Genode::log("red");
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
-				*(uint16_t volatile *)(_fb_base() + o) = RED;
+				*(Pixel *)(_fb_base() + o) = RED;
 
-			_draw_frame((uint16_t volatile *)_fb_base(), WHITE,
-			            _mode.width(), _mode.height());
+			_draw_frame((Pixel *)_fb_base(), WHITE, _mode.area);
 			_state = COLORED;
 			break;
 		}
@@ -155,14 +153,13 @@ void Test_environment::_draw()
 			Genode::log("all colors mixed");
 			unsigned i = 0;
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp(), i++)
-				*(uint16_t volatile *)(_fb_base() + o) = i;
+				*(Pixel *)(_fb_base() + o) = Pixel(i>>16, i>>8, i);
 
-			_draw_frame((uint16_t volatile *)_fb_base(), WHITE,
-			            _mode.width(), _mode.height());
+			_draw_frame((Pixel *)_fb_base(), WHITE, _mode.area);
 			_state = STRIPES;
 		}
 	};
-	_fb.refresh(0, 0, _mode.width(), _mode.height());
+	_fb.refresh(0, 0, _mode.area.w(), _mode.area.h());
 }
 
 
@@ -175,11 +172,6 @@ void Test_environment::_mode_handle()
 	_fb_ds.construct(_env.rm(), _fb.dataspace());
 
 	Genode::log("framebuffer is ", _mode);
-
-	if (_mode.bytes_per_pixel() != 2) {
-		Genode::error("pixel format not supported");
-		throw -1;
-	}
 
 	_draw();
 }

@@ -17,7 +17,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/log.h>
 #include <base/heap.h>
-#include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
 #include <os/surface.h>
 #include <nitpicker_gfx/tff_font.h>
 #include <nitpicker_gfx/box_painter.h>
@@ -51,14 +51,13 @@ struct Test::Main
 {
 	Env &_env;
 
-	Framebuffer::Connection _fb { _env, Framebuffer::Mode() };
+	Framebuffer::Connection _fb { _env, Framebuffer::Mode { } };
 
 	Attached_dataspace _fb_ds { _env.rm(), _fb.dataspace() };
 
-	typedef Pixel_rgb565 PT;
+	typedef Pixel_rgb888 PT;
 
-	Surface_base::Area const _size { (unsigned)_fb.mode().width(),
-	                                 (unsigned)_fb.mode().height() };
+	Surface_base::Area const _size = _fb.mode().area;
 
 	Surface<PT> _surface { _fb_ds.local_addr<PT>(), _size };
 

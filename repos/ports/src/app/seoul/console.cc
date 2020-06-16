@@ -192,25 +192,26 @@ bool Seoul::Console::receive(MessageConsole &msg)
 			 * It's important to set the _vesa_mode field, otherwise the
 			 * device model is going to ignore this mode.
 			 */
-			msg.info->_vesa_mode = 0x114;
+			unsigned const bpp = _fb_mode.bytes_per_pixel();
+			msg.info->_vesa_mode = 0x138;
 			msg.info->attr = 0x39f;
-			msg.info->resolution[0] = _fb_mode.width();
-			msg.info->resolution[1] = _fb_mode.height();
-			msg.info->bytes_per_scanline = _fb_mode.width()*2;
-			msg.info->bytes_scanline = _fb_mode.width()*2;
-			msg.info->bpp = 16;
+			msg.info->resolution[0]      = _fb_mode.area.w();
+			msg.info->resolution[1]      = _fb_mode.area.h();
+			msg.info->bytes_per_scanline = _fb_mode.area.w()*bpp;
+			msg.info->bytes_scanline     = _fb_mode.area.w()*bpp;
+			msg.info->bpp = 32;
 			msg.info->memory_model = MEMORY_MODEL_DIRECT_COLOR;
-			msg.info->vbe1[0] = 0x5; /* red mask size */
-			msg.info->vbe1[1] = 0xb; /* red field position */
-			msg.info->vbe1[2] = 0x6; /* green mask size */
-			msg.info->vbe1[3] = 0x5; /* green field position */
-			msg.info->vbe1[4] = 0x5; /* blue mask size */
-			msg.info->vbe1[5] = 0x0; /* blue field position */
-			msg.info->vbe1[6] = 0x0; /* reserved mask size */
-			msg.info->vbe1[7] = 0x0; /* reserved field position */
+			msg.info->vbe1[0] =  0x8; /* red mask size */
+			msg.info->vbe1[1] = 0x10; /* red field position */
+			msg.info->vbe1[2] =  0x8; /* green mask size */
+			msg.info->vbe1[3] =  0x8; /* green field position */
+			msg.info->vbe1[4] =  0x8; /* blue mask size */
+			msg.info->vbe1[5] =  0x0; /* blue field position */
+			msg.info->vbe1[6] =  0x0; /* reserved mask size */
+			msg.info->vbe1[7] =  0x0; /* reserved field position */
 			msg.info->colormode = 0x0; /* direct color mode info */
 			msg.info->phys_base = 0xe0000000;
-			msg.info->_phys_size = _fb_mode.width()*_fb_mode.height()*2;
+			msg.info->_phys_size = _fb_mode.area.count()*bpp;
 			return true;
 		}
 		return false;
@@ -306,7 +307,7 @@ unsigned Seoul::Console::_handle_fb()
 		/* compare checksums to detect changed buffer */
 		if (fb_state.checksum1 != fb_state.checksum2) {
 			fb_state.unchanged = 0;
-			_framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+			_framebuffer.refresh(0, 0, _fb_mode.area.w(), _fb_mode.area.h());
 			return 100;
 		}
 
@@ -320,7 +321,7 @@ unsigned Seoul::Console::_handle_fb()
 		fb_state.vga_revoked = true;
 		fb_state.unchanged = 0;
 
-		_framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+		_framebuffer.refresh(0, 0, _fb_mode.area.w(), _fb_mode.area.h());
 		//Logging::printf("Deactivated text buffer loop.\n");
 
 		return 0;
@@ -338,7 +339,7 @@ unsigned Seoul::Console::_handle_fb()
 		return 0;
 	}
 
-	_framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+	_framebuffer.refresh(0, 0, _fb_mode.area.w(), _fb_mode.area.h());
 
 	fb_state.unchanged++;
 
@@ -422,9 +423,7 @@ Seoul::Console::Console(Genode::Env &env, Genode::Allocator &alloc,
 	_fb_vm_mapping(_env.rm().attach(_fb_vm_ds)),
 	_vm_phys_fb(guest_memory.alloc_io_memory(_fb_size)),
 	_pixels(_env.rm().attach(_fb_ds)),
-	_surface(reinterpret_cast<Genode::Pixel_rgb565 *>(_pixels),
-	         Genode::Surface_base::Area(_fb_mode.width(),
-	        _fb_mode.height()))
+	_surface(reinterpret_cast<Genode::Pixel_rgb888 *>(_pixels), _fb_mode.area)
 {
 	guest_memory.add_region(alloc, PHYS_FRAME_VGA << 12,
 	                        _fb_vm_mapping, _fb_vm_ds, _fb_size);

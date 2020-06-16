@@ -20,7 +20,6 @@
 #include <base/attached_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <os/surface.h>
-#include <os/pixel_rgb565.h>
 #include <os/pixel_alpha8.h>
 #include <os/pixel_rgb888.h>
 
@@ -31,7 +30,6 @@
 struct Gui_buffer
 {
 	typedef Genode::Pixel_rgb888 Pixel_rgb888;
-	typedef Genode::Pixel_rgb565 Pixel_rgb565;
 	typedef Genode::Pixel_alpha8 Pixel_alpha8;
 
 	typedef Genode::Surface<Pixel_rgb888> Pixel_surface;
@@ -58,11 +56,6 @@ struct Gui_buffer
 		/* setup virtual framebuffer mode */
 		gui.buffer(mode, true);
 
-		if (mode.format() != Framebuffer::Mode::RGB565) {
-			Genode::warning("color mode ", mode, " not supported");
-			return Genode::Dataspace_capability();
-		}
-
 		return gui.framebuffer()->dataspace();
 	}
 
@@ -88,8 +81,8 @@ struct Gui_buffer
 	           Genode::Ram_allocator &ram, Genode::Region_map &rm)
 	:
 		ram(ram), rm(rm), gui(gui),
-		mode(Genode::max(1UL, size.w()), Genode::max(1UL, size.h()),
-		     gui.mode().format())
+		mode({ .area = { Genode::max(1U, size.w()),
+		                 Genode::max(1U, size.h()) } })
 	{
 		reset_surface();
 	}
@@ -97,7 +90,7 @@ struct Gui_buffer
 	/**
 	 * Return size of virtual framebuffer
 	 */
-	Area size() const { return Area(mode.width(), mode.height()); }
+	Area size() const { return mode.area; }
 
 	template <typename FN>
 	void apply_to_surface(FN const &fn)
@@ -175,7 +168,7 @@ struct Gui_buffer
 		// XXX track dirty rectangles
 		Rect const clip_rect(Genode::Surface_base::Point(0, 0), size());
 
-		Pixel_rgb565 *pixel_base = fb_ds.local_addr<Pixel_rgb565>();
+		Pixel_rgb888 *pixel_base = fb_ds.local_addr<Pixel_rgb888>();
 		Pixel_alpha8 *alpha_base = fb_ds.local_addr<Pixel_alpha8>()
 		                         + mode.bytes_per_pixel()*size().count();
 

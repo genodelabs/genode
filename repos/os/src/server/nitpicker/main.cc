@@ -197,13 +197,13 @@ struct Nitpicker::Main : Focus_updater
 {
 	Env &_env;
 
-	Framebuffer::Connection _framebuffer { _env, Framebuffer::Mode() };
+	Framebuffer::Connection _framebuffer { _env, Framebuffer::Mode { } };
 
 	Input::Connection _input { _env };
 
 	Attached_dataspace _ev_ds { _env.rm(), _input.dataspace() };
 
-	typedef Pixel_rgb565 PT;  /* physical pixel type */
+	typedef Pixel_rgb888 PT;  /* physical pixel type */
 
 	/*
 	 * Initialize framebuffer
@@ -219,7 +219,7 @@ struct Nitpicker::Main : Focus_updater
 
 		Attached_dataspace fb_ds;
 
-		Canvas<PT> screen = { fb_ds.local_addr<PT>(), Area(mode.width(), mode.height()) };
+		Canvas<PT> screen = { fb_ds.local_addr<PT>(), mode.area };
 
 		Area size = screen.size();
 
@@ -608,7 +608,7 @@ void Nitpicker::Main::_handle_fb_mode()
 	_fb_screen.construct(_env.rm(), _framebuffer);
 
 	/* let the view stack use the new size */
-	_view_stack.size(Area(_fb_screen->mode.width(), _fb_screen->mode.height()));
+	_view_stack.size(_fb_screen->mode.area);
 
 	/* redraw */
 	_view_stack.update_all_views();

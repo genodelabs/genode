@@ -37,7 +37,7 @@ set vcpus_to_be_used  1
 
 set multiboot_files {
 		<rom name="munich"/>
-		<rom name="bzImage-3.1" cmdline="root=/dev/ram0 earlyprintk=ttyS0 vga=0x314"/>
+		<rom name="bzImage-3.1" cmdline="root=/dev/ram0 earlyprintk=ttyS0 vga=0x338"/>
 		<rom name="tc-browser.gz"/>
 }
 

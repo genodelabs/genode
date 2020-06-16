@@ -980,9 +980,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			 * mode
 			 */
 			if (_resize_requested)
-				return Framebuffer::Mode(_requested_size.w(),
-				                         _requested_size.h(),
-				                         real_mode.format());
+				return Framebuffer::Mode { .area = _requested_size };
 
 			/*
 			 * If the first top-level view has a defined size, use it
@@ -990,9 +988,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			 */
 			if (Top_level_view const *v = _top_level_views.first())
 				if (v->size().valid())
-					return Framebuffer::Mode(v->size().w(),
-					                         v->size().h(),
-					                         real_mode.format());
+					return Framebuffer::Mode { .area = v->size() };
 
 			/*
 			 * If top-level view has yet been defined, return the real mode.

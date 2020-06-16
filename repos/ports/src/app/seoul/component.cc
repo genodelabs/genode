@@ -1388,20 +1388,19 @@ void Component::construct(Genode::Env &env)
 
 	/* setup framebuffer memory for guest */
 	static Gui::Connection gui { env };
-	gui.buffer(Framebuffer::Mode(width, height, Framebuffer::Mode::RGB565), false);
+	gui.buffer(Framebuffer::Mode { .area = { width, height } }, false);
 
-	static Framebuffer::Session  &framebuffer { *gui.framebuffer() };
-	Framebuffer::Mode           const fb_mode { framebuffer.mode() };
+	static Framebuffer::Session &framebuffer { *gui.framebuffer() };
+	Framebuffer::Mode      const fb_mode     { framebuffer.mode() };
 
-	size_t const fb_size = Genode::align_addr(fb_mode.width() *
-	                                          fb_mode.height() *
+	size_t const fb_size = Genode::align_addr(fb_mode.area.count() *
 	                                          fb_mode.bytes_per_pixel(), 12);
 
 	typedef Gui::Session::View_handle View_handle;
 	typedef Gui::Session::Command Command;
 
 	View_handle view = gui.create_view();
-	Gui::Rect rect(Gui::Point(0, 0), Gui::Area(fb_mode.width(), fb_mode.height()));
+	Gui::Rect rect(Gui::Point(0, 0), fb_mode.area);
 
 	gui.enqueue<Command::Geometry>(view, rect);
 	gui.enqueue<Command::To_front>(view, View_handle());
