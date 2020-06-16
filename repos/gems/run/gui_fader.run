@@ -68,7 +68,7 @@ install_config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/></provides>
 		<config verbose="yes">
-			<rom name="nit_fader.config">
+			<rom name="gui_fader.config">
 				<inline description="initial state">
 					<config />
 				</inline>
@@ -90,12 +90,12 @@ install_config {
 		</config>
 	</start>
 
-	<start name="nit_fader">
+	<start name="gui_fader">
 		<resource name="RAM" quantum="5M"/>
 		<provides><service name="Gui"/></provides>
 		<route>
 			<service name="ROM" label="config">
-				<child name="dynamic_rom" label="nit_fader.config"/>
+				<child name="dynamic_rom" label="gui_fader.config"/>
 			</service>
 			<service name="Gui"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -105,7 +105,7 @@ install_config {
 	<start name="scout">
 		<resource name="RAM" quantum="10M"/>
 		<route>
-			<service name="Gui"> <child name="nit_fader" /> </service>
+			<service name="Gui"> <child name="gui_fader" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -120,8 +120,8 @@ install_config {
 	</start>
 </config>}
 
-build { server/nit_fader }
+build { server/gui_fader }
 
-build_boot_image { nit_fader }
+build_boot_image { gui_fader }
 
 run_genode_until forever

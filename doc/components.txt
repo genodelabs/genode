@@ -457,7 +457,7 @@ Separate components
 :'libports/src/server/acpi_input':
   A component that transforms ACPI events into Genode input events.
 
-:'gems/src/server/nit_fader':
+:'gems/src/server/gui_fader':
   A wrapper for nitpicker's session interface that applies alpha-blending to
   the of views a nitpicker client.
 

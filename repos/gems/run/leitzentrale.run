@@ -15,7 +15,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/themed_decorator \
                   [depot_user]/src/nic_router \
                   [depot_user]/src/gui_fb \
-                  [depot_user]/src/nit_fader \
+                  [depot_user]/src/gui_fader \
                   [depot_user]/src/libpng \
                   [depot_user]/src/zlib \
                   [depot_user]/src/menu_view \

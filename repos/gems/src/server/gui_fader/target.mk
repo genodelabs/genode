@@ -1,4 +1,4 @@
-TARGET   = nit_fader
+TARGET   = gui_fader
 SRC_CC   = main.cc
 LIBS     = base blit
 INC_DIR += $(PRG_DIR)
