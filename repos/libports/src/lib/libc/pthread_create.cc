@@ -30,18 +30,45 @@
 
 
 static Genode::Cpu_session * _cpu_session { nullptr };
-static bool                  _single_cpu { false };
+static unsigned              _id_cpu_map[32];
+static bool                  _verbose { false };
 
 void Libc::init_pthread_support(Genode::Cpu_session &cpu_session,
                                 Genode::Xml_node node)
 {
 	_cpu_session = &cpu_session;
 
+	_verbose = node.attribute_value("verbose", false);
+
 	String<32> placement("all-cpus");
 	placement = node.attribute_value("placement", placement);
 
-	if (placement == "single-cpu")
-		_single_cpu = true;
+	if (placement == "single-cpu") {
+		return;
+	}
+
+	if (placement == "manual") {
+		node.for_each_sub_node("thread", [](Xml_node &node) {
+			if (node.has_attribute("id") && node.has_attribute("cpu")) {
+				unsigned const id  = node.attribute_value("id", 0U);
+				unsigned const cpu = node.attribute_value("cpu", 0U);
+
+				if (id < sizeof(_id_cpu_map) / sizeof(_id_cpu_map[0])) {
+					_id_cpu_map[id] = cpu;
+					if (_verbose)
+						Genode::log("pthread.", id, " -> cpu ", cpu);
+				} else {
+					Genode::warning("pthread configuration ignored - "
+					                "id=", id, " cpu=", cpu);
+				}
+			}
+		});
+		return;
+	}
+
+	/* all-cpus and unknown case */
+	for (unsigned i = 0; i < sizeof(_id_cpu_map) / sizeof(_id_cpu_map[0]); i++)
+		_id_cpu_map[i] = i;
 }
 
 
@@ -105,9 +132,14 @@ extern "C"
 		using Genode::Affinity;
 
 		unsigned const id { pthread_id() };
+		unsigned const cpu = (id < sizeof(_id_cpu_map) / sizeof(_id_cpu_map[0])) ? _id_cpu_map[id] : 0;
+
 		Genode::String<32> const pthread_name { "pthread.", id };
 		Affinity::Space space { _cpu_session->affinity_space() };
-		Affinity::Location location { space.location_of_index(_single_cpu ? 0 : id) };
+		Affinity::Location location { space.location_of_index(cpu) };
+
+		if (_verbose)
+			Genode::log("create ", pthread_name, " -> cpu ", cpu);
 
 		return Libc::pthread_create(thread, start_routine, arg, stack_size,
 		                            pthread_name.string(), _cpu_session,
