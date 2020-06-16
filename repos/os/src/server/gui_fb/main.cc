@@ -89,7 +89,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	Gui::Connection &_gui;
 
-	Framebuffer::Session &_nit_fb = *_gui.framebuffer();
+	Framebuffer::Session &_gui_fb = *_gui.framebuffer();
 
 	Genode::Signal_context_capability _mode_sigh { };
 
@@ -191,7 +191,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		 */
 		_dataspace_is_new = true;
 
-		return _nit_fb.dataspace();
+		return _gui_fb.dataspace();
 	}
 
 	Mode mode() const override
@@ -212,7 +212,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 			_dataspace_is_new = false;
 		}
 
-		_nit_fb.refresh(x, y, w, h);
+		_gui_fb.refresh(x, y, w, h);
 	}
 
 	void sync_sigh(Genode::Signal_context_capability sigh) override
@@ -225,7 +225,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		 */
 		_sync_sigh = sigh;
 
-		_nit_fb.sync_sigh(sigh);
+		_gui_fb.sync_sigh(sigh);
 	}
 };
 

@@ -26,9 +26,9 @@ static void for_each_inspected_storage_target(Storage_devices const &devices, FN
 }
 
 
-static void gen_nit_fb_start(Xml_generator &xml)
+static void gen_gui_fb_start(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "nit_fb", Cap_quota{100}, Ram_quota{18*1024*1024});
+	gen_common_start_content(xml, "gui_fb", Cap_quota{100}, Ram_quota{18*1024*1024});
 
 	xml.node("provides", [&] () {
 		gen_service_node<Framebuffer::Session>(xml, [&] () {});
@@ -38,7 +38,7 @@ static void gen_nit_fb_start(Xml_generator &xml)
 	xml.node("config", [&] () { });
 
 	xml.node("route", [&] () {
-		gen_parent_rom_route(xml, "nit_fb");
+		gen_parent_rom_route(xml, "gui_fb");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>  (xml);
 		gen_parent_route<Pd_session>   (xml);
@@ -56,10 +56,10 @@ static void gen_terminal_start(Xml_generator &xml)
 
 	xml.node("route", [&] () {
 		gen_service_node<Framebuffer::Session>(xml, [&] () {
-			gen_named_node(xml, "child", "nit_fb"); });
+			gen_named_node(xml, "child", "gui_fb"); });
 
 		gen_service_node<Input::Session>(xml, [&] () {
-			gen_named_node(xml, "child", "nit_fb");  });
+			gen_named_node(xml, "child", "gui_fb");  });
 
 		gen_parent_rom_route(xml, "config", "terminal.config");
 
@@ -251,7 +251,7 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 				gen_parent_service<Gui::Session>(xml);
 			});
 
-			xml.node("start", [&] () { gen_nit_fb_start(xml); });
+			xml.node("start", [&] () { gen_gui_fb_start(xml); });
 			xml.node("start", [&] () { gen_terminal_start(xml); });
 			xml.node("start", [&] () { gen_vfs_start(xml, devices, ram_fs_state); });
 			xml.node("start", [&] () { gen_fs_rom_start(xml); });
@@ -279,7 +279,7 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 			gen_parent_rom_route(xml, "init");
 			gen_parent_rom_route(xml, "terminal");
 			gen_parent_rom_route(xml, "vfs");
-			gen_parent_rom_route(xml, "nit_fb");
+			gen_parent_rom_route(xml, "gui_fb");
 			gen_parent_rom_route(xml, "cached_fs_rom");
 			gen_parent_rom_route(xml, "vfs.lib.so");
 			gen_parent_rom_route(xml, "vfs_pipe.lib.so");

@@ -6,7 +6,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/motif_wm \
                   [depot_user]/src/init \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/nit_fb \
+                  [depot_user]/src/gui_fb \
                   [depot_user]/src/clipboard \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/libc \
@@ -121,7 +121,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nit_fb">
+	<start name="gui_fb">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
 		<config xpos="10" ypos="10" initial_width="800" initial_height="600"/>
@@ -147,8 +147,8 @@ install_config {
 		<route>
 			<service name="ROM"    label="clipboard"> <child name="wm"/> </service>
 			<service name="Report" label="clipboard"> <child name="wm"/> </service>
-			<service name="Framebuffer"> <child name="nit_fb"/> </service>
-			<service name="Input">       <child name="nit_fb"/> </service>
+			<service name="Framebuffer"> <child name="gui_fb"/> </service>
+			<service name="Input">       <child name="gui_fb"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

@@ -71,7 +71,7 @@ install_config {
 			<policy label="nit_focus -> slides"
 			        report="global_keys_handler -> slides"/>
 			<policy label="nit_focus -> hover" report="nitpicker -> hover"/>
-			<policy label="slides_nit_fb_config -> slides"
+			<policy label="slides_gui_fb_config -> slides"
 			        report="global_keys_handler -> slides"/>
 			<policy label="leitzentrale -> manager -> displays"
 			        report="nitpicker -> displays"/>

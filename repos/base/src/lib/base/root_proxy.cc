@@ -82,7 +82,7 @@ namespace {
 				 * scenario may result in a deadlock:
 				 *
 				 * A component provides two services, e.g., "Framebuffer" and
-				 * "Input" (fb_sdl or nit_fb). In-between the two 'announce'
+				 * "Input" (fb_sdl or gui_fb). In-between the two 'announce'
 				 * calls (within the 'Component::construct' function), a
 				 * service request for the already announced service comes in.
 				 * The root proxy calls 'apply' with the service name, which

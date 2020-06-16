@@ -1,9 +1,9 @@
-The 'nit_fb' server provides a single session of the 'Input' and 'Framebuffer'
+The 'gui_fb' server provides a single session of the 'Input' and 'Framebuffer'
 services by presenting a Nitpicker view at a predefined screen position. If
 instantiated multiple times, it can be used to statically arrange multiple
 virtual frame buffers on one physical screen. The size and screen position
-of each 'nit_fb' instance can be defined via Genode's configuration mechansim
-using the following attributes of the 'nit_fb' config node:
+of each 'gui_fb' instance can be defined via Genode's configuration mechansim
+using the following attributes of the 'gui_fb' config node:
 
 ! <config xpos="100" ypos="150" width="300" height="200" origin="top_left"/>
 
@@ -17,7 +17,7 @@ relative to the physical screen size. E.g., when using a screen size of
 640x480, the effective width for a 'width' attribute value of "-100" would
 be 640 - 100 = 540.
 
-In case 'nit_fb' is used in a dynamic fashion, e.g., in combination with a
+In case 'gui_fb' is used in a dynamic fashion, e.g., in combination with a
 window manager, the 'initial_width' and 'initial_height' attributes must be
 used to set the initial dimensions of the frame buffer rather than 'width'
 and 'height'. Mixing those attributes is not supported, 'width' or 'height'

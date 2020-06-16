@@ -13,7 +13,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/demo \
                   [depot_user]/src/init \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/nit_fb \
+                  [depot_user]/src/gui_fb \
                   [depot_user]/src/vfs
 
 install_config {
@@ -87,7 +87,7 @@ install_config {
 	<start name="launchpad" priority="-1" caps="1000">
 		<resource name="RAM" quantum="20M"/>
 		<config>
-			<launcher name="nit_fb" ram_quota="7M" caps="100">
+			<launcher name="gui_fb" ram_quota="7M" caps="100">
 				<config initial_width="500" initial_height="400" />
 			</launcher>
 			<launcher name="nitpicker" ram_quota="1M" caps="100">

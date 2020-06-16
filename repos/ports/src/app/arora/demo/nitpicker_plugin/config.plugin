@@ -10,7 +10,7 @@
 	</parent-provides>
 	<default-route> <any-service> <any-child/> <parent/> </any-service> </default-route>
 	<start name="framebuffer" caps="100">
-		<binary name="nit_fb"/>
+		<binary name="gui_fb"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Framebuffer"/>

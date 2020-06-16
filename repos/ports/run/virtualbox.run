@@ -219,10 +219,10 @@ append_if [expr $use_gui] config {
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<service name="Report" label="shape"> <child name="pointer" label="nit_fb2 -> shape"/> </service>
+			<service name="Report" label="shape"> <child name="pointer" label="gui_fb2 -> shape"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Framebuffer"> <child name="nit_fb2" /> </service>
-			<service name="Input"> <child name="nit_fb2" /> </service>
+			<service name="Framebuffer"> <child name="gui_fb2" /> </service>
+			<service name="Input"> <child name="gui_fb2" /> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>}
@@ -250,10 +250,10 @@ append_if [expr $use_bridge] config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>}
 
 append config {
-			<service name="Report" label="shape"> <child name="pointer" label="nit_fb1 -> shape"/> </service>
+			<service name="Report" label="shape"> <child name="pointer" label="gui_fb1 -> shape"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Framebuffer"> <child name="nit_fb1" /> </service>
-			<service name="Input"> <child name="nit_fb1" /> </service>
+			<service name="Framebuffer"> <child name="gui_fb1" /> </service>
+			<service name="Input"> <child name="gui_fb1" /> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>

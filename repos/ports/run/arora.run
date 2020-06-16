@@ -29,7 +29,7 @@ append build_components {
 	server/clipboard
 	server/loader
 	server/tar_rom
-	server/nit_fb
+	server/gui_fb
 	app/launchpad
 	test/nitpicker
 }
@@ -83,7 +83,7 @@ append config {
 				<parent-rom name="ld.lib.so"/>
 				<parent-rom name="init"/>
 				<parent-rom name="tar_rom"/>
-				<parent-rom name="nit_fb"/>
+				<parent-rom name="gui_fb"/>
 				<parent-rom name="nitpicker"/>
 				<parent-rom name="pointer"/>
 				<parent-rom name="launchpad"/>
@@ -148,7 +148,7 @@ append boot_modules {
 	clipboard
 	loader
 	tar_rom
-	nit_fb
+	gui_fb
 	launchpad
 	testnit
 	nitpicker_plugin.tar

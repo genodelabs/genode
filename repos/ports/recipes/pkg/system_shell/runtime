@@ -19,7 +19,7 @@
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
 		<rom label="init"/>
-		<rom label="nit_fb"/>
+		<rom label="gui_fb"/>
 		<rom label="vfs"/>
 		<rom label="vfs_pipe.lib.so"/>
 		<rom label="cached_fs_rom"/>

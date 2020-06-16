@@ -336,11 +336,11 @@ one session interface to another, or in the form of libraries.
 Separate components
 ===================
 
-:'os/src/server/nit_fb':
+:'os/src/server/gui_fb':
   Translates a nitpicker session to a pair of framebuffer and input sessions.
-  Each 'nit_fb' instance is visible as a rectangular area on screen presenting
+  Each 'gui_fb' instance is visible as a rectangular area on screen presenting
   a virtual frame buffer. The area is statically positioned. For more
-  information, please refer to 'os/src/server/nit_fb/README'.
+  information, please refer to 'os/src/server/gui_fb/README'.
 
 :'gems/src/server/wm':
   Window manager that implements the nitpicker session interface but manages
@@ -350,7 +350,7 @@ Separate components
   layouter located at 'gems/src/app/floating_window_layouter/'.
 
 :'demo/src/server/liquid_framebuffer':
-  Implements the same translation as 'nit_fb' but by presenting an interactive
+  Implements the same translation as 'gui_fb' but by presenting an interactive
   window rather than a statically positioned screen area.
 
 :'os/src/server/tar_rom':
