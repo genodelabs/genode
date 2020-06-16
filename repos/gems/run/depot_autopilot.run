@@ -725,6 +725,7 @@ set default_test_pkgs {
 	test-trace
 	test-trace_logger
 	test-utf8
+	test-vfs_block
 	test-vfs_stress_fs
 	test-vfs_stress_ram
 	test-weak_ptr
