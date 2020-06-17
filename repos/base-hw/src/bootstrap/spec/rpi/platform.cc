@@ -39,23 +39,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 {
 	using ::Board::Cpu;
 
-	struct Sctlr : Cpu::Sctlr
-	{
-		struct W  : Bitfield<3,1>  { }; /* enable write buffer */
-		struct Dt : Bitfield<16,1> { }; /* global data TCM enable */
-		struct It : Bitfield<18,1> { }; /* global instruction TCM enable */
-		struct U  : Bitfield<22,1> { }; /* enable unaligned data access */
-		struct Xp : Bitfield<23,1> { }; /* disable subpage AP bits */
-	};
-
 	Cpu::Sctlr::init();
-	Cpu::Sctlr::access_t sctlr = Cpu::Sctlr::read();
-	Sctlr::W::set(sctlr, 1);
-	Sctlr::Dt::set(sctlr, 1);
-	Sctlr::It::set(sctlr, 1);
-	Sctlr::U::set(sctlr, 1);
-	Sctlr::Xp::set(sctlr, 1);
-	Cpu::Sctlr::write(sctlr);
 
 	Cpu::Cpsr::init();
 
@@ -82,9 +66,18 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::Ttbr0::write(ttbr);
 	Cpu::Ttbr1::write(ttbr);
 
-	sctlr = Cpu::Sctlr::read();
+	struct Sctlr : Cpu::Sctlr
+	{
+		struct U  : Bitfield<22,1> { }; /* enable unaligned data access */
+		struct Xp : Bitfield<23,1> { }; /* disable subpage AP bits */
+	};
+
+	Cpu::Sctlr::access_t sctlr = Cpu::Sctlr::read();
 	Cpu::Sctlr::C::set(sctlr, 1);
 	Cpu::Sctlr::I::set(sctlr, 1);
+	Sctlr::U::set(sctlr, 1);
+	Sctlr::Xp::set(sctlr, 1);
+	Cpu::Sctlr::Z::set(sctlr, 1);
 	Cpu::Sctlr::M::set(sctlr, 1);
 	Cpu::Sctlr::write(sctlr);
 
