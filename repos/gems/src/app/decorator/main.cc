@@ -183,7 +183,7 @@ struct Decorator::Main : Window_factory_base
 	 */
 	Window_base *create(Xml_node window_node) override
 	{
-		for (unsigned retry = 0 ; retry < 2; retry ++) {
+		for (;;) {
 			try {
 				return new (_heap)
 					Window(window_node.attribute_value("id", 0UL),
@@ -195,7 +195,7 @@ struct Decorator::Main : Window_factory_base
 			}
 			catch (Genode::Out_of_caps) {
 				Genode::log("Handle Out_of_caps of nitpicker session - upgrade by 2");
-				_nitpicker.upgrade_ram(2);
+				_nitpicker.upgrade_caps(2);
 			}
 		}
 		return nullptr;

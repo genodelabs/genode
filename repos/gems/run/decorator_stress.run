@@ -9,6 +9,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/decorator \
                   [depot_user]/src/libc \
                   [depot_user]/src/libpng \
+                  [depot_user]/src/vfs \
                   [depot_user]/src/zlib
 
 install_config {
@@ -82,8 +83,11 @@ install_config {
 		</route>
 	</start>
 
-	<start name="decorator">
+	<start name="decorator" caps="200">
 		<resource name="RAM" quantum="8M"/>
+		<config>
+			<default-policy/>
+		</config>
 		<route>
 			<service name="ROM" label="pointer">
 				<child name="report_rom" /> </service>
