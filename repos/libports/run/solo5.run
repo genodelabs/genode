@@ -14,9 +14,11 @@ import_from_depot \
 	[depot_user]/src/[base_src] \
 	[depot_user]/src/init \
 	[depot_user]/src/nic_loopback \
-	[depot_user]/src/ram_block \
+	[depot_user]/src/vfs_block \
 	[depot_user]/src/rtc_drv \
 	[depot_user]/src/sequence \
+	[depot_user]/src/vfs \
+	[depot_user]/src/vfs_import
 
 append config {
 <config>
@@ -48,10 +50,19 @@ append config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="ram_block" caps="96">
+	<start name="vfs_block" caps="96">
 		<resource name="RAM" quantum="40M"/>
 		<provides> <service name="Block"/> </provides>
-		<config size="32M" block_size="4096"/>
+		<config>
+			<vfs>
+				<ram/>
+				<import>
+					<zero name="block_file" size="32M"/>
+				</import>
+			</vfs>
+			<default-policy file="/block_file" block_size="4096"
+			                writeable="yes"/>
+		</config>
 	</start>
 
 	<start name="test" caps="256">

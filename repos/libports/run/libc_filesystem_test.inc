@@ -15,13 +15,13 @@ set use_sd_card_drv [expr [have_include "power_on/qemu"] && [have_spec pbxa9]]
 # use AHCI on x86
 set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
 
-# use ram_block on Linux and Qemu/rpi3
-set use_ram_block   [expr [have_spec linux] || [expr [have_include "power_on/qemu"] && [have_spec rpi3]]]
+# use vfs_block on Linux and Qemu/rpi3
+set use_vfs_block   [expr [have_spec linux] || [expr [have_include "power_on/qemu"] && [have_spec rpi3]]]
 
 if {[catch { exec which $mkfs_cmd } ]} {
 	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }
 
-if {[expr ![have_include "power_on/qemu"] && !$use_ram_block]} {
+if {[expr ![have_include "power_on/qemu"] && !$use_vfs_block]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
 	puts "check when you have prepared your native environment.\n";
 	exit 0
@@ -40,7 +40,8 @@ lappend build_components test/libc_$filesystem
 
 lappend_if $use_ahci        build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
-lappend_if $use_ram_block   build_components server/ram_block
+lappend_if $use_vfs_block   build_components server/vfs_block
+lappend_if $use_vfs_block   build_components lib/vfs/import
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -116,11 +117,20 @@ append_if $use_sd_card_drv config {
 	</start>
 }
 
-append_if $use_ram_block config {
-	<start name="ram_block">
-		<resource name="RAM" quantum="128M" />
+append_if $use_vfs_block config {
+	<start name="vfs_block">
+		<resource name="RAM" quantum="68M"/>
 		<provides><service name="Block"/></provides>
-		<config file="test.hda" block_size="512"/>
+		<config>
+			<vfs>
+				<ram/>
+				<import>
+					<rom name="test.hda"/>
+				</import>
+			</vfs>
+			<default-policy file="/test.hda" block_size="512"
+			                writeable="yes"/>
+		</config>
 	</start>}
 
 append config {
@@ -158,8 +168,9 @@ append boot_modules libc_$filesystem.lib.so
 
 lappend_if $use_ahci         boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules pbxa9_sd_card_drv
-lappend_if $use_ram_block    boot_modules ram_block
-lappend_if $use_ram_block    boot_modules test.hda
+lappend_if $use_vfs_block    boot_modules vfs_block
+lappend_if $use_vfs_block    boot_modules test.hda
+lappend_if $use_vfs_block    boot_modules vfs_import.lib.so
 
 append_platform_drv_boot_modules
 

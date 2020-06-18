@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="60"/>
+		<timeout meaning="failed" sec="80"/>
 		<log meaning="succeeded">child "block_tester" exited with exit value 0</log>
 		<log meaning="failed">Error: </log>
 	</events>
@@ -37,7 +37,7 @@
 
 		<default caps="100"/>
 
-		<start name="vfs_block">
+		<start name="vfs_block" caps="150">
 			<resource name="RAM" quantum="38M"/>
 			<provides> <service name="Block"/> </provides>
 			<config>

@@ -69,7 +69,7 @@ if {$use_fancy_stuff} { set use_framebuffer 1 }
 
 lappend_if $use_block_vdi       build_components server/vdi_block
 lappend_if $use_usb             build_components drivers/usb
-lappend_if $use_block_ram       build_components server/ram_block
+lappend_if $use_block_ram       build_components server/vfs_block
 lappend_if $use_drv_ahci        build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
 lappend_if $use_nic_bridge      build_components server/nic_bridge
@@ -252,10 +252,19 @@ append_if $use_part_block config {
 	</start>}
 
 append_if $use_block_ram config {
-	<start name="ram_block" priority="-1">
-		<resource name="RAM" quantum="262M" />
+	<start name="vfs_block" priority="-1">
+		<resource name="RAM" quantum="266M" />
 		<provides><service name="Block"/></provides>
-		<config file="seoul-disc.raw" block_size="512"/>
+		<config>
+			<vfs>
+				<ram/>
+				<import>
+					<rom name="seoul-disc.raw"/>
+				</import>
+			</vfs>
+			<default-policy file="/seoul-disc.raw" block_size="512"
+			                writeable="yes"/>
+		</config>
 	</start>}
 
 append_if $use_fs_rump config {
@@ -524,7 +533,8 @@ set boot_modules {
 lappend_if $use_block_vdi     boot_modules vdi_block
 lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
-lappend_if $use_block_ram     boot_modules ram_block
+lappend_if $use_block_ram     boot_modules vfs_block
+lappend_if $use_block_ram     boot_modules vfs.lib.so
 lappend_if $use_drv_ahci      boot_modules ahci_drv
 lappend_if $use_nic_session   boot_modules ipxe_nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge

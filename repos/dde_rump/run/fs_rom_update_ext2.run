@@ -6,9 +6,10 @@ set build_components {
 	app/rom_logger
 	app/rom_to_file
 	lib/vfs/rump
+	lib/vfs/import
 	server/dynamic_rom
 	server/fs_rom
-	server/ram_block
+	server/vfs_block
 	server/vfs
 }
 
@@ -45,10 +46,19 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="ram_block">
-		<resource name="RAM" quantum="16M" />
+	<start name="vfs_block">
+		<resource name="RAM" quantum="11M"/>
 		<provides><service name="Block"/></provides>
-		<config file="ext2.img" block_size="512"/>
+		<config>
+			<vfs>
+				<ram/>
+				<import>
+					<rom name="ext2.img"/>
+				</import>
+			</vfs>
+			<default-policy file="ext2.img" block_size="512"
+			                writeable="yes"/>
+		</config>
 	</start>
 	<start name="vfs" caps="256">
 		<resource name="RAM" quantum="10M"/>
@@ -123,7 +133,7 @@ set boot_modules {
 	dynamic_rom
 	ext2.img
 	fs_rom
-	ram_block
+	vfs_block
 	rom_logger
 	rom_to_file
 	rump_fs.lib.so
@@ -132,6 +142,7 @@ set boot_modules {
 	vfs
 	vfs.lib.so
 	vfs_rump.lib.so
+	vfs_import.lib.so
 }
 
 build_boot_image $boot_modules

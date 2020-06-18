@@ -13,9 +13,10 @@ set dd     [installed_command dd]
 #
 set build_components {
 	core init timer
-	server/ram_block
+	server/vfs_block
 	server/vfs
 	lib/vfs/rump
+	lib/vfs/import
 	test/libc_vfs
 }
 
@@ -52,10 +53,19 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="ram_block" caps="120">
+	<start name="vfs_block" caps="110">
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Block"/></provides>
-		<config file="ext2.raw" block_size="512"/>
+		<config>
+			<vfs>
+				<ram/>
+				<import>
+					<rom name="ext2.raw"/>
+				</import>
+			</vfs>
+			<default-policy root="/" file="ext2.raw" block_size="512"
+			                writeable="yes"/>
+		</config>
 	</start>
 	<start name="vfs" caps="200">
 		<resource name="RAM" quantum="16M" />
@@ -85,15 +95,15 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer test-libc_vfs ram_block
+	core ld.lib.so init timer test-libc_vfs vfs_block
 	rump.lib.so rump_fs.lib.so vfs vfs_rump.lib.so
-	ext2.raw libc.lib.so vfs.lib.so
+	ext2.raw libc.lib.so vfs.lib.so vfs_import.lib.so
 }
 
 build_boot_image $boot_modules
 
 append qemu_args "  -nographic"
 
-run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
+run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 80
 
 exec rm -f bin/ext2.raw
