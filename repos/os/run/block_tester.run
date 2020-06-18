@@ -29,7 +29,6 @@ if { $use_linux } {
 set build_components {
 	core init timer
 	drivers/ahci
-	server/ram_block
 	server/lx_block
 	app/block_tester
 	server/part_block
@@ -344,7 +343,7 @@ create_disk_image 1
 
 # generic modules
 set boot_modules {
-	core init timer ahci_drv ram_block block_tester
+	core init timer ahci_drv block_tester
 	ld.lib.so test-block-client part_block
 }
 
