@@ -166,16 +166,19 @@ Duration Timer::Connection::curr_time()
 		mutex_guard.destruct();
 
 		/* interpolate time difference since the last real time update */
-		Timestamp  const ts_diff = _timestamp() - ts;
-		uint64_t   const us_diff = _ts_to_us_ratio(ts_diff, us_to_ts_factor,
-		                                              us_to_ts_factor_shift);
+		Timestamp const ts_current_cpu = _timestamp();
+		Timestamp const ts_diff = (ts_current_cpu < ts) ? 0 : ts_current_cpu - ts;
+		uint64_t  const us_diff = _ts_to_us_ratio(ts_diff, us_to_ts_factor,
+		                                          us_to_ts_factor_shift);
 
 		interpolated_time.add(Microseconds(us_diff));
 
 	} else {
+		Timestamp const us = elapsed_us();
+		Timestamp const us_diff = (us < _us) ? 0 : us - _us;
 
 		/* use remote timer instead of timestamps */
-		interpolated_time.add(Microseconds(elapsed_us() - _us));
+		interpolated_time.add(Microseconds(us_diff));
 
 		mutex_guard.destruct();
 	}
