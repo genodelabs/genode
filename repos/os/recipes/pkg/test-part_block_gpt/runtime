@@ -13,7 +13,8 @@
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="rom_block"/>
+		<rom label="vfs_block"/>
+		<rom label="vfs.lib.so"/>
 		<rom label="part_block"/>
 		<rom label="test-block-client"/>
 		<rom label="report_rom"/>
@@ -36,16 +37,21 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="rom_block">
+		<start name="vfs_block">
 			<resource name="RAM" quantum="32M"/>
 			<provides><service name="Block"/></provides>
-			<config file="ata.gpt.raw" block_size="512"/>
+			<config>
+				<vfs>
+					<rom name="ata.gpt.raw"/>
+				</vfs>
+				<default-policy file="/ata.gpt.raw" block_size="512"/>
+			</config>
 		</start>
 		<start name="part_block">
 			<resource name="RAM" quantum="10M" />
 			<provides><service name="Block" /></provides>
 			<route>
-				<any-service><child name="rom_block"/> <parent/><any-child/></any-service>
+				<any-service><child name="vfs_block"/> <parent/><any-child/></any-service>
 			</route>
 			<config use_gpt="yes">
 				<report partitions="yes"/>

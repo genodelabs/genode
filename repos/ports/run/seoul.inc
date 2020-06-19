@@ -7,6 +7,7 @@
 
 set use_fs_rump $use_block_vdi
 set use_drv_ahci [expr $use_block_vdi || $use_block_sata]
+set use_vfs_block [expr $use_block_ram || $use_genode_iso]
 
 create_boot_directory
 
@@ -69,7 +70,7 @@ if {$use_fancy_stuff} { set use_framebuffer 1 }
 
 lappend_if $use_block_vdi       build_components server/vdi_block
 lappend_if $use_usb             build_components drivers/usb
-lappend_if $use_block_ram       build_components server/vfs_block
+lappend_if $use_vfs_block       build_components server/vfs_block
 lappend_if $use_drv_ahci        build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
 lappend_if $use_nic_bridge      build_components server/nic_bridge
@@ -78,7 +79,6 @@ lappend_if $use_fancy_stuff     build_components app/status_bar
 lappend_if $use_fancy_stuff     build_components app/launchpad
 lappend_if $use_fancy_stuff     build_components server/report_rom
 lappend_if $use_genode_iso      build_components server/iso9660
-lappend_if $use_genode_iso      build_components server/rom_block
 lappend_if $use_top             build_components app/top
 
 append_platform_drv_build_components
@@ -306,17 +306,22 @@ append_if $use_block_vdi config {
 	</start>}
 
 append_if $use_genode_iso config {
-	<start name="rom_block" priority="-1">
+	<start name="vfs_block" priority="-1">
 		<resource name="RAM" quantum="16M" />
 		<provides><service name="Block"/></provides>
-		<config file="genode.iso" block_size="2048"/>
+		<config>
+			<vfs>
+				<rom name="genode.iso"/>
+			</vfs>
+			<default-policy file="/genode.iso" block_size="2048"/>
+		</config>
 	</start>
 
 	<start name="iso9660" priority="-1">
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="ROM"/></provides>
 		<route>
-			<service name="Block"><child name="rom_block"/></service>
+			<service name="Block"><child name="vfs_block"/></service>
 			<any-service><parent/></any-service>
 		</route>
 	</start>}
@@ -533,8 +538,8 @@ set boot_modules {
 lappend_if $use_block_vdi     boot_modules vdi_block
 lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
-lappend_if $use_block_ram     boot_modules vfs_block
-lappend_if $use_block_ram     boot_modules vfs.lib.so
+lappend_if $use_vfs_block     boot_modules vfs_block
+lappend_if $use_vfs_block     boot_modules vfs.lib.so
 lappend_if $use_drv_ahci      boot_modules ahci_drv
 lappend_if $use_nic_session   boot_modules ipxe_nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
@@ -545,7 +550,6 @@ lappend_if $use_fancy_stuff   boot_modules launchpad
 lappend_if $use_fancy_stuff   boot_modules launchpad-config
 lappend_if $use_fancy_stuff   boot_modules report_rom
 
-lappend_if $use_genode_iso    boot_modules rom_block
 lappend_if $use_genode_iso    boot_modules iso9660
 lappend_if $use_genode_iso    boot_modules genode.iso
 
