@@ -14,17 +14,19 @@
 
 #include <base/component.h>
 #include <base/log.h>
-#include <timer_session/connection.h>
 
 #include <bogomips.h>
 
-void Component::construct(Genode::Env &env)
+void Component::construct(Genode::Env &)
 {
-	Timer::Connection timer(env);
-	timer.msleep(2000);
+	using namespace Genode;
 
-	Genode::log("Cpu testsuite started");
-	Genode::log("start bogomips");
-	bogomips();
-	Genode::log("finished bogomips");
+	log("Cpu testsuite started");
+
+	size_t cnt = 1000*1000*1000 / bogomips_instr_count() * 10;
+
+	log("Execute 10G BogoMIPS in ", cnt, " rounds with ",
+	    bogomips_instr_count(), " instructions each");
+	bogomips(cnt);
+	log("Finished execution");
 };

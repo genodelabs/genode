@@ -5,52 +5,67 @@ if { [get_cmd_switch --autopilot] } {
 	}
 }
 
+if {[have_spec linux] || [have_spec riscv]} {
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0
+}
+
 build "core init timer test/cpu_bench"
 
 create_boot_directory
 
 install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-
-	<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
-	<default caps="200"/>
-
-	<start name="timer" caps="64" priority="0">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="test-cpu" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-	</start>
-</config>
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+			<service name="PD"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="cpu_bench">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
 }
 
-build_boot_image {
-	core init test-cpu ld.lib.so timer
-}
+build_boot_image { core init cpu_bench ld.lib.so }
 
 append qemu_args " -nographic  "
 
-proc run_test {name serial_id} {
-	run_genode_until "start $name.*\n"    20  $serial_id
-	set t1  [clock milliseconds]
-	run_genode_until "finished $name.*\n" 200 $serial_id
-	set t2  [clock milliseconds]
-	return [expr {$t2 - $t1}]
+#
+# Those value relate to hardware used in CI testsuite used at Genode Labs,
+# as well as the initialization of their bootloaders, we use this to measure
+# regressions in the platform initialization code
+#
+proc bogomips_max_time { } {
+	if {[board] == "rpi"}                        { return 14300 }
+	if {[board] == "imx53_qsb"}                  { return  7520 }
+	if {[board] == "imx53_qsb_tz"}               { return  7520 }
+	if {[board] == "imx6q_sabrelite"}            { return  6320 }
+	if {[board] == "imx7d_sabre"}                { return  9470 }
+	if {[board] == "imx8q_evk"}                  { return  7510 }
+	if {[have_spec x86_64] && [[board] == "pc"]} { return   600 }
+	if {[have_spec x86_32] && [[board] == "pc"]} { return  3150 }
+	return 0
 }
 
-run_genode_until "Cpu testsuite started" 60
+# run the test
+run_genode_until {\[init -\> cpu_bench\] Execute 10G BogoMIPS.*\n} 120
 set serial_id       [output_spawn_id]
-set bogomips        [run_test "bogomips" $serial_id]
-puts "bogomips: 2G Bogus instructions in $bogomips milliseconds ([expr {2000000.0 / $bogomips}] BogoMIPS)"
+set t1  [clock milliseconds]
+run_genode_until "Finished execution.*\n" 30 $serial_id
+set t2  [clock milliseconds]
+set result [expr {$t2 - $t1}]
+set bogomips [expr {10000000000 / $result}]
+set maximum [bogomips_max_time]
+puts "10G bogus instructions in $result msecs ($bogomips BogoMIPS)"
+if {$result > $maximum} {
+	puts "Test failed: bogomips loop lasted longer than $maximum msecs"
+	exit 1
+}
 exit 0
+

@@ -1,8 +1,18 @@
+/*
+ * \brief  Testing CPU performance
+ * \author Stefan Kalkowski
+ * \date   2018-10-22
+ *
+ */
 
-void bogomips() __attribute__((optimize("O0")));
+/*
+ * Copyright (C) 2018 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
 
-void bogomips()
-{
-	for (register unsigned i = 0; i < 1000000000; i++) ;
-};
+#pragma once
 
+extern "C" void          bogomips(unsigned long);
+extern "C" unsigned long bogomips_instr_count(void);
