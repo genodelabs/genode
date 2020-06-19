@@ -1,6 +1,8 @@
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_bsd)
 
-LIB_MK := $(addprefix lib/mk/, dde_bsd_audio.inc dde_bsd_audio_include.mk) \
+MK_FILES := dde_bsd_audio.inc dde_bsd_audio_include.mk dde_bsd_audio_pci.mk
+
+LIB_MK := $(addprefix lib/mk/, $(MK_FILES)) \
           $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/dde_bsd_audio.mk) \
           lib/import/import-dde_bsd_audio_include.mk
 
@@ -21,6 +23,7 @@ MIRROR_FROM_PORT_DIR := $(addprefix src/lib/audio/, \
                           dev/audio.c \
                           dev/ic/ac97.h \
                           dev/ic/ac97.c \
+                          lib/libkern \
                           sys/device.h \
                           sys/audioio.h \
                           sys/queue.h)

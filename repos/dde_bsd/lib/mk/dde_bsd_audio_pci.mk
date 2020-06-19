@@ -13,9 +13,8 @@ INC_DIR += $(AUDIO_CONTRIB_DIR)
 
 LIBS += dde_bsd_audio_include
 
-SRC_CC += dummies.cc driver.cc irq.cc mem.cc misc.cc scheduler.cc timer.cc
-SRC_C += bsd_emul.c
-SRC_S += setjmp.S
+SRC_C  := bsd_emul_pci.c
+SRC_CC += pci.cc
 
 CC_OPT += -Wno-unused-but-set-variable
 
@@ -25,15 +24,23 @@ CC_OPT += -fno-builtin-printf -fno-builtin-snprintf -fno-builtin-vsnprintf \
 
 CC_OPT += -D_KERNEL
 
-# disable false warning in audio.c:786
-CC_C_OPT += -Wno-maybe-uninitialized
-
 # enable when debugging
-#CC_OPT += -DAUDIO_DEBUG
+#CC_OPT += -DAC97_DEBUG
+#CC_OPT += -DAUICH_DEBUG
+#CC_OPT += -DAZALIA_DEBUG
+#CC_OPT += -DDIAGNOSTIC
 
-# audio interface
-SRC_C += dev/audio.c
-SRC_C += dev/mulaw.c
+# AC97 codec
+SRC_C += dev/ic/ac97.c
+
+# HDA driver
+SRC_C += dev/pci/azalia.c dev/pci/azalia_codec.c
+
+# ICH driver
+SRC_C += dev/pci/auich.c
+
+# ES1370
+SRC_C += dev/pci/eap.c
 
 vpath %.c  $(AUDIO_CONTRIB_DIR)
 vpath %.c  $(LIB_DIR)
