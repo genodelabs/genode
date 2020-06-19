@@ -1,3 +1,4 @@
+sys/lib/libkern/strlcpy.c
 sys/dev/audio.c
 sys/dev/audio_if.h
 sys/dev/pci/auich.c

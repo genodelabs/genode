@@ -715,6 +715,14 @@ struct timeval
 
 void microuptime(struct timeval *);
 
+
+/***************************
+ ** lib/libkern/libkern.h **
+ ***************************/
+
+size_t strlcpy(char *, char const *, size_t);
+
+
 #include <extern_c_end.h>
 
 #endif /* _BSD_EMUL_H_ */

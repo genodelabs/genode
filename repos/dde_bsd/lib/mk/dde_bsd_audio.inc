@@ -25,6 +25,9 @@ CC_OPT += -fno-builtin-printf -fno-builtin-snprintf -fno-builtin-vsnprintf \
 
 CC_OPT += -D_KERNEL
 
+# libkern
+SRC_C += lib/libkern/strlcpy.c
+
 # disable false warning in audio.c:786
 CC_C_OPT += -Wno-maybe-uninitialized
 
