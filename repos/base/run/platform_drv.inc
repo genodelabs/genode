@@ -45,7 +45,7 @@ proc usb_host_drv_binary { } {
 #
 proc audio_drv_binary { } {
 	if {[have_spec linux]} { return linux_audio_drv }
-	if {[have_spec x86]}   { return audio_drv }
+	if {[have_spec x86]}   { return pci_audio_drv }
 	return no_audio_drv_available
 }
 

@@ -35,7 +35,7 @@ set build_components {
 set boot_modules {
 	event_filter
 	ipxe_nic_drv
-	audio_drv
+	pci_audio_drv
 	report_rom
 	dynamic_rom
 }
@@ -91,6 +91,7 @@ append config_of_app {
 		(Recording is configured to use the external mic.)
 	-->
 	<start name="audio_drv" priority="-1">
+		<binary name="pci_audio_drv"/>
 		<resource name="RAM" quantum="9M"/>
 		<provides>
 			<service name="Audio_out"/>

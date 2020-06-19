@@ -1,4 +1,4 @@
-<runtime ram="16M" caps="256" binary="audio_drv">
+<runtime ram="16M" caps="256" binary="pci_audio_drv">
 
 	<requires> <platform/> <rm/> <timer/> </requires>
 
@@ -11,7 +11,7 @@
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="audio_drv"/>
+		<rom label="pci_audio_drv"/>
 	</content>
 
 </runtime>
