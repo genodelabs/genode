@@ -29,18 +29,3 @@ code respectively the download source of binaries are described below.
   OS header can be loaded.
   The changes are available on the genode_bender branch of
   https://github.com/skalk/morbo.git.
-
-:'tianocore.bin'
-
-  Open Virtual Machine Firmware (OVMF) developed by
-  http://www.tianocore.org/ovmf. OVMF is an project to enable UEFI support for
-  Virtual Machines. This UEFI binary is supposed to be used with QEMU.
-
-  The UEFI firmware was built based on the description of
-
-  https://github.com/tianocore/tianocore.github.io/wiki/How-to-build-OVMF
-
-  and the source code has been obtained from
-
-  https://github.com/tianocore/edk2.git
-  git commit 6e5e544f227f031d0b45828b56cec5668dd1bf5b

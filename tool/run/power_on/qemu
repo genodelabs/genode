@@ -140,7 +140,12 @@ proc run_power_on { } {
 			append qemu_args " -drive format=raw,file=[run_dir].img "
 		} else {
 		if {[have_include "image/uefi"]} {
-			append qemu_args " --bios [genode_dir]/tool/boot/tianocore.bin -net none -drive format=raw,file=[run_dir].img "
+			set uefi_firmware "/usr/share/ovmf/OVMF.fd"
+			if {![file exists $uefi_firmware]} {
+				puts "'$uefi_firmware' uefi image missing. Please install a ovmf package matching your qemu version."
+				exit -3
+			}
+			append qemu_args " --bios $uefi_firmware -net none -drive format=raw,file=[run_dir].img "
 		} else {
 			puts "Aborting, cannot execute Qemu without a ISO or disk image"
 			exit -4
