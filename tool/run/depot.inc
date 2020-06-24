@@ -466,6 +466,8 @@ proc drivers_interactive_pkg { } {
 	if {[have_spec imx53_qsb]} { return drivers_interactive-imx53_qsb }
 	if {[have_spec rpi]}       { return drivers_interactive-rpi }
 	if {[have_spec imx8q_evk]} { return drivers_interactive-imx8q_evk }
+	if {[have_spec panda]}     { return drivers_interactive-panda }
+	if {[have_spec arndale]}   { return drivers_interactive-arndale }
 
 	puts stderr "drivers_interactive package undefined for this build configuration"
 	exit 1
