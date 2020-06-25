@@ -112,7 +112,7 @@ proc run_power_on { } {
 	if {[have_spec virt_qemu]} {
 		append qemu_args " -M virt,virtualization=true"
 		if {[have_spec arm_v8a]} {
-			append qemu_args ",gic_version=3 -cpu cortex-a53 -smp 4"
+			append qemu_args ",gic-version=3 -cpu cortex-a53 -smp 4"
 		}
 		if {[have_spec arm_v7a]} {
 			append qemu_args " -cpu cortex-a15 -smp 2"
