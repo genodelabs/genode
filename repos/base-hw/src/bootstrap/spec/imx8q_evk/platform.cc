@@ -13,6 +13,7 @@
 
 #include <platform.h>
 
+
 /**
  * Leave out the first page (being 0x0) from bootstraps RAM allocator,
  * some code does not feel happy with addresses being zero
@@ -28,146 +29,7 @@ Bootstrap::Platform::Board::Board()
 {
 	::Board::Pic pic {};
 
-	static volatile unsigned long initial_values[][2] {
-		// GPC values
-		{ 0x303A0004, 0x5050424  },
-		{ 0x303A0030, 0xEB22DE22 },
-		{ 0x303A0034, 0xFFFFF1C7 },
-		{ 0x303A0038, 0x7BFFBC00 },
-		{ 0x303A003C, 0xFA3BF12A },
-		{ 0x303A004C, 0xFFFFDFFF },
-		{ 0x303A01B4, 0x3980     },
-		{ 0x303A01CC, 0xFFFFBFFF },
-		{ 0x303A01D4, 0xFFFF7FFF },
-		{ 0x303A01DC, 0xFFFF7FFF },
-		{ 0x303A01FC, 0x107FF9F  },
-		{ 0x303A080C, 0x1        },
-		{ 0x303A0840, 0x1        },
-		{ 0x303A084C, 0x1        },
-		{ 0x303A0880, 0x1        },
-		{ 0x303A088C, 0x1        },
-		{ 0x303A08C0, 0x1        },
-		{ 0x303A08CC, 0x1        },
-		{ 0x303A0C8C, 0x1        },
-		{ 0x303A0DCC, 0x1        },
-		{ 0x303A0E0C, 0x1        },
-		{ 0x303A0ECC, 0x1        },
-		{ 0x303A0F00, 0x1        },
-		{ 0x303A0F0C, 0x1        },
-
-		// CCM values
-		{ 0x303840B0, 0x2        },
-		{ 0x303840B4, 0x2        },
-		{ 0x303840B8, 0x2        },
-		{ 0x303840BC, 0x2        },
-		{ 0x303840C0, 0x2        },
-		{ 0x303840C4, 0x2        },
-		{ 0x303840C8, 0x2        },
-		{ 0x303840CC, 0x2        },
-		{ 0x303840D0, 0x2        },
-		{ 0x303840D4, 0x2        },
-		{ 0x303840D8, 0x2        },
-		{ 0x303840DC, 0x2        },
-		{ 0x303840E0, 0x2        },
-		{ 0x303840E4, 0x2        },
-		{ 0x303840E8, 0x2        },
-		{ 0x303840EC, 0x2        },
-		{ 0x303840F0, 0x2        },
-		{ 0x303840F4, 0x2        },
-		{ 0x303840F8, 0x2        },
-		{ 0x303840FC, 0x2        },
-		{ 0x30384250, 0x3        },
-		{ 0x30384254, 0x3        },
-		{ 0x30384258, 0x3        },
-		{ 0x3038425C, 0x3        },
-		{ 0x303843A0, 0x3        },
-		{ 0x303843A4, 0x3        },
-		{ 0x303843A8, 0x3        },
-		{ 0x303843AC, 0x3        },
-		{ 0x303844D0, 0x3        },
-		{ 0x303844D4, 0x3        },
-		{ 0x303844D8, 0x3        },
-		{ 0x303844DC, 0x3        },
-		{ 0x303844F0, 0x3        },
-		{ 0x303844F4, 0x3        },
-		{ 0x303844F8, 0x3        },
-		{ 0x303844FC, 0x3        },
-		{ 0x30384560, 0x0        },
-		{ 0x30384564, 0x0        },
-		{ 0x30384568, 0x0        },
-		{ 0x3038456C, 0x0        },
-		{ 0x303845D0, 0x3        },
-		{ 0x303845D4, 0x3        },
-		{ 0x303845D8, 0x3        },
-		{ 0x303845DC, 0x3        },
-		{ 0x30388010, 0x0        },
-		{ 0x30388014, 0x0        },
-		{ 0x30388018, 0x0        },
-		{ 0x3038801C, 0x0        },
-		{ 0x30388020, 0x0        },
-		{ 0x30388024, 0x0        },
-		{ 0x30388028, 0x0        },
-		{ 0x3038802C, 0x0        },
-		{ 0x30388030, 0x11000400 },
-		{ 0x30388034, 0x11000400 },
-		{ 0x30388038, 0x11000400 },
-		{ 0x3038803C, 0x11000400 },
-		{ 0x30388080, 0x11000000 },
-		{ 0x30388084, 0x11000000 },
-		{ 0x30388088, 0x11000000 },
-		{ 0x3038808C, 0x11000000 },
-		{ 0x30388090, 0x0        },
-		{ 0x30388094, 0x0        },
-		{ 0x30388098, 0x0        },
-		{ 0x3038809C, 0x0        },
-		{ 0x303880B0, 0x1100     },
-		{ 0x303880B4, 0x1100     },
-		{ 0x303880B8, 0x1100     },
-		{ 0x303880BC, 0x1100     },
-		{ 0x30388110, 0x0        },
-		{ 0x30388114, 0x0        },
-		{ 0x30388118, 0x0        },
-		{ 0x3038811C, 0x0        },
-		{ 0x30388180, 0x1000000  },
-		{ 0x30388184, 0x1000000  },
-		{ 0x30388188, 0x1000000  },
-		{ 0x3038818C, 0x1000000  },
-		{ 0x303881A0, 0x10000000 },
-		{ 0x303881A4, 0x10000000 },
-		{ 0x303881A8, 0x10000000 },
-		{ 0x303881AC, 0x10000000 },
-		{ 0x303881B0, 0x1000100  },
-		{ 0x303881B4, 0x1000100  },
-		{ 0x303881B8, 0x1000100  },
-		{ 0x303881BC, 0x1000100  },
-		{ 0x30388200, 0x1000000  },
-		{ 0x30388204, 0x1000000  },
-		{ 0x30388208, 0x1000000  },
-		{ 0x3038820C, 0x1000000  },
-		{ 0x30388220, 0x10000000 },
-		{ 0x30388224, 0x10000000 },
-		{ 0x30388228, 0x10000000 },
-		{ 0x3038822C, 0x10000000 },
-		{ 0x30388230, 0x1000100  },
-		{ 0x30388234, 0x1000100  },
-		{ 0x30388238, 0x1000100  },
-		{ 0x3038823C, 0x1000100  },
-
-		// CCMA values
-		{ 0x30360000, 0x88080    },
-		{ 0x30360004, 0x292A2FA6 },
-		{ 0x30360004, 0x292A2FA6 },
-		{ 0x30360008, 0x88080    },
-		{ 0x30360008, 0x88080    },
-		{ 0x3036000C, 0x10385BA3 },
-		{ 0x3036000C, 0x10385BA3 },
-		{ 0x30360010, 0x98080    },
-		{ 0x30360010, 0x98080    },
-		{ 0x30360014, 0x3FFFFF1A },
-		{ 0x30360014, 0x3FFFFF1A },
-		{ 0x30360018, 0x88081    },
-		{ 0x30360054, 0x2B9      },
-
+	static volatile unsigned long iomux_values[][2] {
 		// IOMUXC
 		{ 0x30330064, 0x6        },
 		{ 0x30330140, 0x0        },
@@ -267,9 +129,66 @@ Bootstrap::Platform::Board::Board()
 		{ 0x30340040, 0x49409200 }
 	};
 
-	unsigned num_values = sizeof(initial_values) / (2*sizeof(unsigned long));
+	struct Gpio_reg : Genode::Mmio
+	{
+		Gpio_reg(Genode::addr_t const mmio_base)
+			: Genode::Mmio(mmio_base) { }
+
+		struct Data       : Register<0x0,  32> {};
+		struct Dir        : Register<0x4,  32> {};
+		struct Int_conf_0 : Register<0xc,  32> {};
+		struct Int_conf_1 : Register<0x10, 32> {};
+		struct Int_mask   : Register<0x14, 32> {};
+		struct Int_stat   : Register<0x18, 32> {};
+	};
+
+	struct Ccm_reg : Genode::Mmio
+	{
+		Ccm_reg(Genode::addr_t const mmio_base)
+			: Genode::Mmio(mmio_base) { }
+
+		struct Target_root_0 : Register<0x8000, 32> {};
+	};
+
+	struct Pll_reg : Genode::Mmio
+	{
+		Pll_reg(Genode::addr_t const mmio_base)
+			: Genode::Mmio(mmio_base) { }
+
+		struct Pll_arm_0 : Register<0x28,  32> {};
+		struct Pll_arm_1 : Register<0x2c,  32> {};
+	};
+
+	unsigned num_values = sizeof(iomux_values) / (2*sizeof(unsigned long));
 	for (unsigned i = 0; i < num_values; i++)
-		*((volatile Genode::uint32_t*)initial_values[i][0]) = (Genode::uint32_t)initial_values[i][1];
+		*((volatile Genode::uint32_t*)iomux_values[i][0]) = (Genode::uint32_t)iomux_values[i][1];
+
+
+	Ccm_reg ccm(0x30380000);
+	Ccm_reg pll(0x30360000);
+
+	/* configure GPIO PIN 13 of GPIO 1 for high voltage */
+	Gpio_reg regulator(0x30200000);
+	regulator.write<Gpio_reg::Int_conf_0>(0);
+	regulator.write<Gpio_reg::Int_conf_1>(0);
+	regulator.write<Gpio_reg::Int_mask>(0x1000);
+	regulator.write<Gpio_reg::Int_stat>(0xffffffff);
+	regulator.write<Gpio_reg::Dir>(0x2328);
+	regulator.write<Gpio_reg::Data>(0x9f40);
+
+	ccm.write<Ccm_reg::Target_root_0>(0x14000000);
+	pll.write<Pll_reg::Pll_arm_1>(0x4a);
+
+	unsigned long v = pll.read<Pll_reg::Pll_arm_0>();
+	pll.write<Pll_reg::Pll_arm_0>(v & 0xffffffe0);
+	v = pll.read<Pll_reg::Pll_arm_0>();
+	pll.write<Pll_reg::Pll_arm_0>(v | (1<<12));
+
+	while (!(pll.read<Pll_reg::Pll_arm_0>() & (1<<11))) { ; }
+
+	v = pll.read<Pll_reg::Pll_arm_0>();
+	pll.write<Pll_reg::Pll_arm_0>(v ^ (1<<12));
+	ccm.write<Ccm_reg::Target_root_0>(0x11000000);
 }
 
 
