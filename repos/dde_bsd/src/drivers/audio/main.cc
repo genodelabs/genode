@@ -500,26 +500,37 @@ struct Main
 		Audio::update_config(env, config.xml());
 	}
 
+	Genode::Constructible<Audio_out::Out>  _out      { };
+	Genode::Constructible<Audio_out::Root> _out_root { };
+
+	Genode::Constructible<Audio_in::In>   _in      { };
+	Genode::Constructible<Audio_in::Root> _in_root { };
+
+	Genode::Signal_handler<Main> announce_session_dispatcher {
+		env.ep(), *this, &Main::handle_announce_session };
+
+	void handle_announce_session()
+	{
+		_out.construct(env);
+		Audio::play_sigh(_out->sigh());
+
+		_out_root.construct(env, heap, _out->data_avail());
+		env.parent().announce(env.ep().manage(*_out_root));
+
+		_in.construct(env);
+		Audio::record_sigh(_in->sigh());
+
+		_in_root.construct(env, heap,
+		                   Genode::Signal_context_capability());
+		env.parent().announce(env.ep().manage(*_in_root));
+	}
+
 	Main(Genode::Env &env) : env(env)
 	{
-		Audio::init_driver(env, heap, config.xml());
-
-		if (!Audio::driver_active()) {
-			return;
-		}
-
-		static Audio_out::Out out(env);
-		Audio::play_sigh(out.sigh());
-		static Audio_out::Root out_root(env, heap, out.data_avail());
-		env.parent().announce(env.ep().manage(out_root));
-
-		static Audio_in::In in(env);
-		Audio::record_sigh(in.sigh());
-		static Audio_in::Root in_root(env, heap,
-		                              Genode::Signal_context_capability());
-		env.parent().announce(env.ep().manage(in_root));
-
 		config.sigh(config_update_dispatcher);
+
+		Audio::init_driver(env, heap, config.xml(),
+		                   announce_session_dispatcher);
 	}
 };
 

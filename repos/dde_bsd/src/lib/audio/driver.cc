@@ -417,10 +417,15 @@ namespace {
 		Genode::Env       &env;
 		Genode::Allocator &alloc;
 		Genode::Xml_node   config;
+		Genode::Signal_context_capability announce_sigh;
 
 		Task_args(Genode::Env &env, Genode::Allocator &alloc,
-		          Genode::Xml_node config)
-		: env(env), alloc(alloc), config(config) { }
+		          Genode::Xml_node config,
+		          Genode::Signal_context_capability announce_sigh)
+		:
+			env(env), alloc(alloc), config(config),
+			announce_sigh(announce_sigh)
+		{ }
 	};
 }
 
@@ -429,7 +434,8 @@ static void run_bsd(void *p)
 {
 	Task_args *args = static_cast<Task_args*>(p);
 
-	if (!Bsd::probe_drivers(args->env, args->alloc)) {
+	int const success = Bsd::probe_drivers(args->env, args->alloc);
+	if (!success) {
 		Genode::error("no supported sound card found");
 		Genode::sleep_forever();
 	}
@@ -440,6 +446,10 @@ static void run_bsd(void *p)
 	}
 
 	adev_usuable = configure_audio_device(args->env, adev, args->config);
+
+	if (adev_usuable && args->announce_sigh.valid()) {
+		Genode::Signal_transmitter(args->announce_sigh).submit();
+	}
 
 	while (true) {
 		Bsd::scheduler().current()->block_and_schedule();
@@ -488,22 +498,20 @@ void Audio::update_config(Genode::Env &env, Genode::Xml_node config)
 
 
 void Audio::init_driver(Genode::Env &env, Genode::Allocator &alloc,
-                        Genode::Xml_node config)
+                        Genode::Xml_node config,
+                        Genode::Signal_context_capability announce_sigh)
 {
 	Bsd::mem_init(env, alloc);
 	Bsd::irq_init(env.ep(), alloc);
 	Bsd::timer_init(env);
 
-	static Task_args args(env, alloc, config);
+	static Task_args args(env, alloc, config, announce_sigh);
 
 	static Bsd::Task task_bsd(run_bsd, &args, "bsd",
 	                          Bsd::Task::PRIORITY_0, Bsd::scheduler(),
 	                          2048 * sizeof(Genode::addr_t));
 	Bsd::scheduler().schedule();
 }
-
-
-bool Audio::driver_active() { return drv_loaded() && adev_usuable; }
 
 
 void Audio::play_sigh(Genode::Signal_context_capability sigh) {
