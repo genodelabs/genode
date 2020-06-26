@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <util/string.h>
 #include <util/list.h>
-#include <util/dirty_rect.h>
 #include <base/weak_ptr.h>
 #include <base/rpc_server.h>
 
@@ -29,8 +28,6 @@ namespace Nitpicker {
 
 	class Buffer;
 	class Focus;
-
-	typedef Dirty_rect<Rect, 3> Dirty_rect;
 
 	/*
 	 * For each buffer, there is a list of views that belong to this buffer.
@@ -104,7 +101,6 @@ class Nitpicker::View : private Same_buffer_list_elem,
 		Point       _buffer_off { };  /* offset to the visible buffer area    */
 		View_owner &_owner;
 		Title       _title      { "" };
-		Dirty_rect  _dirty_rect { };
 
 		List<View_parent_elem> _children { };
 
@@ -274,23 +270,6 @@ class Nitpicker::View : private Same_buffer_list_elem,
 		 * Return true if input at screen position 'p' refers to the view
 		 */
 		bool input_response_at(Point p) const;
-
-		/**
-		 * Mark part of view as dirty
-		 *
-		 * \param rect  dirty rectangle in absolute coordinates
-		 */
-		void mark_as_dirty(Rect rect) { _dirty_rect.mark_as_dirty(rect); }
-
-		/**
-		 * Return dirty-rectangle information
-		 */
-		Dirty_rect dirty_rect() const { return _dirty_rect; }
-
-		/**
-		 * Reset dirty rectangle
-		 */
-		void mark_as_clean() { _dirty_rect = Dirty_rect(); }
 };
 
 #endif /* _VIEW_H_ */

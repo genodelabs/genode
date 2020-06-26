@@ -22,6 +22,7 @@
 #include <framebuffer_session/connection.h>
 #include <os/session_policy.h>
 #include <nitpicker_gfx/tff_font.h>
+#include <util/dirty_rect.h>
 
 /* local includes */
 #include "types.h"
@@ -195,7 +196,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 };
 
 
-struct Nitpicker::Main : Focus_updater
+struct Nitpicker::Main : Focus_updater, View_stack::Damage
 {
 	Env &_env;
 
@@ -225,14 +226,32 @@ struct Nitpicker::Main : Focus_updater
 
 		Area size = screen.size();
 
+		typedef Genode::Dirty_rect<Rect, 3> Dirty_rect;
+
+		Dirty_rect dirty_rect { };
+
 		/**
 		 * Constructor
 		 */
 		Framebuffer_screen(Region_map &rm, Framebuffer::Session &fb)
-		: framebuffer(fb), fb_ds(rm, framebuffer.dataspace()) { }
+		:
+			framebuffer(fb), fb_ds(rm, framebuffer.dataspace())
+		{
+			dirty_rect.mark_as_dirty(Rect(Point(0, 0), size));
+		}
 	};
 
 	Reconstructible<Framebuffer_screen> _fb_screen = { _env.rm(), _framebuffer };
+
+	/**
+	 * View_stack::Damage interface
+	 */
+	void mark_as_damaged(Rect rect) override
+	{
+		if (_fb_screen.constructed()) {
+			_fb_screen->dirty_rect.mark_as_dirty(rect);
+		}
+	}
 
 	Point _initial_pointer_pos()
 	{
@@ -266,7 +285,7 @@ struct Nitpicker::Main : Focus_updater
 	Tff_font const _font { _binary_default_tff_start, _glyph_buffer };
 
 	Focus      _focus { };
-	View_stack _view_stack { _fb_screen->screen.size(), _focus, _font };
+	View_stack _view_stack { _fb_screen->screen.size(), _focus, _font, *this };
 	User_state _user_state { _focus, _global_keys, _view_stack, _initial_pointer_pos() };
 
 	View_owner _global_view_owner { };
@@ -360,16 +379,6 @@ struct Nitpicker::Main : Focus_updater
 	 * True if the user recently moved the pointer
 	 */
 	bool _motion_activity = false;
-
-	/**
-	 * Perform redraw and flush pixels to the framebuffer
-	 */
-	void _draw_and_flush()
-	{
-		_view_stack.draw(_fb_screen->screen).flush([&] (Rect const &rect) {
-			_framebuffer.refresh(rect.x1(), rect.y1(),
-			                     rect.w(),  rect.h()); });
-	}
 
 	Main(Env &env) : _env(env)
 	{
@@ -471,12 +480,18 @@ void Nitpicker::Main::_handle_input()
 	if (result.motion_activity)
 		_view_stack.geometry(_pointer_origin, Rect(_user_state.pointer_pos(), Area()));
 
-	/* perform redraw and flush pixels to the framebuffer */
-	_view_stack.draw(_fb_screen->screen).flush([&] (Rect const &rect) {
+	/* perform redraw */
+	{
+		/* call 'Dirty_rect::flush' on a copy to preserve the state */
+		Dirty_rect dirty_rect = _fb_screen->dirty_rect;
+		dirty_rect.flush([&] (Rect const &rect) {
+			_view_stack.draw(_fb_screen->screen, rect); });
+	}
+
+	/* flush pixels to the framebuffer, reset dirty_rect */
+	_fb_screen->dirty_rect.flush([&] (Rect const &rect) {
 		_framebuffer.refresh(rect.x1(), rect.y1(),
 		                     rect.w(),  rect.h()); });
-
-	_view_stack.mark_all_views_as_clean();
 
 	/* deliver framebuffer synchronization events */
 	for (Gui_session *s = _session_list.first(); s; s = s->next())

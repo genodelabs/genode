@@ -23,6 +23,13 @@ namespace Nitpicker { class View_stack; }
 
 class Nitpicker::View_stack
 {
+	public:
+
+		struct Damage : Interface, Noncopyable
+		{
+			virtual void mark_as_damaged(Rect) = 0;
+		};
+
 	private:
 
 		Area                   _size;
@@ -30,7 +37,7 @@ class Nitpicker::View_stack
 		Font            const &_font;
 		List<View_stack_elem>  _views { };
 		View                  *_default_background = nullptr;
-		Dirty_rect mutable     _dirty_rect { };
+		Damage                &_damage;
 
 		/**
 		 * Return outline geometry of a view
@@ -79,27 +86,15 @@ class Nitpicker::View_stack
 		template <typename VIEW>
 		VIEW *_next_view(VIEW &view) const;
 
-		/**
-		 * Schedule 'rect' to be redrawn
-		 */
-		void _mark_view_as_dirty(View &view, Rect rect)
-		{
-			_dirty_rect.mark_as_dirty(rect);
-
-			view.mark_as_dirty(rect);
-		}
-
 	public:
 
 		/**
 		 * Constructor
 		 */
-		View_stack(Area size, Focus &focus, Font const &font)
+		View_stack(Area size, Focus &focus, Font const &font, Damage &damage)
 		:
-			_size(size), _focus(focus), _font(font)
-		{
-			_dirty_rect.mark_as_dirty(Rect(Point(0, 0), _size));
-		}
+			_size(size), _focus(focus), _font(font), _damage(damage)
+		{ }
 
 		/**
 		 * Return size
@@ -121,16 +116,11 @@ class Nitpicker::View_stack
 		void draw_rec(Canvas_base &, Font const &, View const *, Rect) const;
 
 		/**
-		 * Draw dirty areas
+		 * Draw specified area
 		 */
-		Dirty_rect draw(Canvas_base &canvas) const
+		void draw(Canvas_base &canvas, Rect rect) const
 		{
-			Dirty_rect result = _dirty_rect;
-
-			_dirty_rect.flush([&] (Rect const &rect) {
-				draw_rec(canvas, _font, _first_view(), rect); });
-
-			return result;
+			draw_rec(canvas, _font, _first_view(), rect);
 		}
 
 		/**
@@ -141,19 +131,7 @@ class Nitpicker::View_stack
 			Rect const whole_screen(Point(), _size);
 
 			_place_labels(whole_screen);
-			_dirty_rect.mark_as_dirty(whole_screen);
-
-			for (View *view = _first_view(); view; view = view->view_stack_next())
-				view->mark_as_dirty(_outline(*view));
-		}
-
-		/**
-		 * mark all view-local dirty rectangles a clean
-		 */
-		void mark_all_views_as_clean()
-		{
-			for (View *view = _first_view(); view; view = view->view_stack_next())
-				view->mark_as_clean();
+			_damage.mark_as_damaged(whole_screen);
 		}
 
 		/**

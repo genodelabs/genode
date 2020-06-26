@@ -190,9 +190,8 @@ void View_stack::draw_rec(Canvas_base &canvas, Font const &font,
 	if (next && left.valid()) draw_rec(canvas, font, next, left);
 
 	/* draw current view */
-	view->dirty_rect().flush([&] (Rect const &dirty_rect) {
-
-		Clip_guard clip_guard(canvas, Rect::intersect(clipped, dirty_rect));
+	{
+		Clip_guard clip_guard(canvas, clipped);
 
 		/* draw background if view is transparent */
 		if (view->uses_alpha())
@@ -200,7 +199,7 @@ void View_stack::draw_rec(Canvas_base &canvas, Font const &font,
 
 		view->frame(canvas, _focus);
 		view->draw(canvas, font, _focus);
-	});
+	}
 
 	/* draw areas at the bottom/right of the current view */
 	if (next &&  right.valid()) draw_rec(canvas, font, next, right);
@@ -213,8 +212,7 @@ void View_stack::refresh_view(View &view, Rect const rect)
 	/* rectangle constrained to view geometry */
 	Rect const view_rect = Rect::intersect(rect, _outline(view));
 
-	for (View *v = _first_view(); v; v = v->view_stack_next())
-		_mark_view_as_dirty(*v, view_rect);
+	_damage.mark_as_damaged(view_rect);
 
 	view.for_each_child([&] (View &child) { refresh_view(child, rect); });
 }
@@ -286,7 +284,7 @@ void View_stack::title(View &view, const char *title)
 	view.title(_font, title);
 	_place_labels(view.abs_geometry());
 
-	_mark_view_as_dirty(view, _outline(view));
+	_damage.mark_as_damaged(_outline(view));
 }
 
 
