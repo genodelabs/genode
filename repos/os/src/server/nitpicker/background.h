@@ -16,36 +16,34 @@
 
 #include <nitpicker_gfx/box_painter.h>
 
-#include "session_component.h"
+#include "gui_session.h"
 #include "clip_guard.h"
 
 namespace Nitpicker { struct Background; }
 
 
-struct Nitpicker::Background : private Texture_base, View_component
+struct Nitpicker::Background : private Texture_base, View
 {
 	static Color default_color() { return Color(25, 37, 50); }
 
 	Color color = default_color();
 
 	/*
-	 * The background uses no texture. Therefore
-	 * we can pass a null pointer as texture argument
-	 * to the Session constructor.
+	 * The background uses no texture. Therefore we can pass a null pointer as
+	 * texture argument to the Session constructor.
 	 */
 	Background(View_owner &owner, Area size)
 	:
 		Texture_base(Area(0, 0)),
-		View_component(owner, View_component::NOT_TRANSPARENT,
-		                      View_component::BACKGROUND, 0)
+		View(owner, View::NOT_TRANSPARENT, View::BACKGROUND, 0)
 	{
-		View_component::geometry(Rect(Point(0, 0), size));
+		View::geometry(Rect(Point(0, 0), size));
 	}
 
 
-	/******************************
-	 ** View_component interface **
-	 ******************************/
+	/********************
+	 ** View interface **
+	 ********************/
 
 	int  frame_size(Focus const &) const override { return 0; }
 	void frame(Canvas_base &, Focus const &) const override { }

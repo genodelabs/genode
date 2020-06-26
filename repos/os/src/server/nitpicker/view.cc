@@ -16,9 +16,9 @@
 #include <nitpicker_gfx/texture_painter.h>
 #include <nitpicker_gfx/box_painter.h>
 
-#include "view_component.h"
+#include "view.h"
 #include "clip_guard.h"
-#include "session_component.h"
+#include "gui_session.h"
 #include "draw_label.h"
 
 
@@ -63,8 +63,9 @@ namespace Nitpicker {
 	texture_painter_mode(Focus const &focus, View_owner const &owner)
 	{
 		/*
-		 * Tint view unless it belongs to a domain that is explicitly configured to
-		 * display the raw client content or if belongs to the focused domain.
+		 * Tint view unless it belongs to a domain that is explicitly
+		 * configured to display the raw client content or if belongs to the
+		 * focused domain.
 		 */
 		if (owner.content_client() || focus.same_domain_as_focused(owner))
 			return Texture_painter::SOLID;
@@ -73,10 +74,8 @@ namespace Nitpicker {
 	}
 }
 
-using namespace Nitpicker;
 
-
-void View_component::title(Font const &font, Title const &title)
+void Nitpicker::View::title(Font const &font, Title const &title)
 {
 	_title = title;
 
@@ -86,7 +85,7 @@ void View_component::title(Font const &font, Title const &title)
 }
 
 
-void View_component::frame(Canvas_base &canvas, Focus const &focus) const
+void Nitpicker::View::frame(Canvas_base &canvas, Focus const &focus) const
 {
 	if (!_owner.label_visible())
 		return;
@@ -97,7 +96,7 @@ void View_component::frame(Canvas_base &canvas, Focus const &focus) const
 }
 
 
-void View_component::draw(Canvas_base &canvas, Font const &font, Focus const &focus) const
+void Nitpicker::View::draw(Canvas_base &canvas, Font const &font, Focus const &focus) const
 {
 	Texture_painter::Mode const op = texture_painter_mode(focus, _owner);
 
@@ -143,7 +142,7 @@ void View_component::draw(Canvas_base &canvas, Font const &font, Focus const &fo
 }
 
 
-void View_component::apply_origin_policy(View_component &pointer_origin)
+void Nitpicker::View::apply_origin_policy(View &pointer_origin)
 {
 	if (owner().origin_pointer() && !has_parent(pointer_origin))
 		_assign_parent(&pointer_origin);
@@ -153,7 +152,7 @@ void View_component::apply_origin_policy(View_component &pointer_origin)
 }
 
 
-bool View_component::input_response_at(Point p) const
+bool Nitpicker::View::input_response_at(Point p) const
 {
 	Rect const view_rect = abs_geometry();
 
@@ -170,7 +169,7 @@ bool View_component::input_response_at(Point p) const
 }
 
 
-int View_component::frame_size(Focus const &focus) const
+int Nitpicker::View::frame_size(Focus const &focus) const
 {
 	if (!_owner.label_visible()) return 0;
 
@@ -178,13 +177,13 @@ int View_component::frame_size(Focus const &focus) const
 }
 
 
-bool View_component::transparent() const
+bool Nitpicker::View::transparent() const
 {
 	return _transparent || _owner.uses_alpha();
 }
 
 
-bool View_component::uses_alpha() const
+bool Nitpicker::View::uses_alpha() const
 {
 	return _owner.uses_alpha();
 }

@@ -18,7 +18,7 @@
 #include <input/keycodes.h>
 
 /* local includes */
-#include "session_component.h"
+#include "gui_session.h"
 
 namespace Nitpicker { class Global_keys; }
 
@@ -29,11 +29,11 @@ class Nitpicker::Global_keys
 
 		struct Policy
 		{
-			Session_component *_session = nullptr;
+			Gui_session *_session = nullptr;
 
 			bool defined() const { return _session != nullptr; }
 
-			void client(Session_component *s) { _session = s; }
+			void client(Gui_session *s) { _session = s; }
 		};
 
 		enum { NUM_POLICIES = Input::KEY_MAX + 1 };
@@ -50,7 +50,7 @@ class Nitpicker::Global_keys
 
 	public:
 
-		Session_component *global_receiver(Input::Keycode key) {
+		Gui_session *global_receiver(Input::Keycode key) {
 			return _valid(key) ? _policies[key]._session : 0; }
 
 		void apply_config(Xml_node config, Session_list &session_list);

@@ -1,5 +1,5 @@
 /*
- * \brief  Nitpicker session component
+ * \brief  GUI session component
  * \author Norman Feske
  * \date   2017-11-16
  */
@@ -16,7 +16,7 @@
 using namespace Nitpicker;
 
 
-void Session_component::_release_buffer()
+void Gui_session::_release_buffer()
 {
 	if (!_texture)
 		return;
@@ -36,24 +36,24 @@ void Session_component::_release_buffer()
 }
 
 
-bool Session_component::_views_are_equal(View_handle v1, View_handle v2)
+bool Gui_session::_views_are_equal(View_handle v1, View_handle v2)
 {
 	if (!v1.valid() || !v2.valid())
 		return false;
 
-	Weak_ptr<View_component> v1_ptr = _view_handle_registry.lookup(v1);
-	Weak_ptr<View_component> v2_ptr = _view_handle_registry.lookup(v2);
+	Weak_ptr<View> v1_ptr = _view_handle_registry.lookup(v1);
+	Weak_ptr<View> v2_ptr = _view_handle_registry.lookup(v2);
 
 	return  v1_ptr == v2_ptr;
 }
 
 
-View_owner &Session_component::forwarded_focus()
+View_owner &Gui_session::forwarded_focus()
 {
-	Session_component *next_focus = this;
+	Gui_session *next_focus = this;
 
 	/* helper used for detecting cycles */
-	Session_component *next_focus_slow = next_focus;
+	Gui_session *next_focus_slow = next_focus;
 
 	for (bool odd = false; ; odd = !odd) {
 
@@ -78,14 +78,14 @@ View_owner &Session_component::forwarded_focus()
 }
 
 
-void Session_component::_execute_command(Command const &command)
+void Gui_session::_execute_command(Command const &command)
 {
 	switch (command.opcode) {
 
 	case Command::OP_GEOMETRY:
 		{
 			Command::Geometry const &cmd = command.geometry;
-			Locked_ptr<View_component> view(_view_handle_registry.lookup(cmd.view));
+			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 			if (!view.valid())
 				return;
 
@@ -104,7 +104,7 @@ void Session_component::_execute_command(Command const &command)
 	case Command::OP_OFFSET:
 		{
 			Command::Offset const &cmd = command.offset;
-			Locked_ptr<View_component> view(_view_handle_registry.lookup(cmd.view));
+			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 
 			if (view.valid())
 				_view_stack.buffer_offset(*view, cmd.offset);
@@ -118,7 +118,7 @@ void Session_component::_execute_command(Command const &command)
 			if (_views_are_equal(cmd.view, cmd.neighbor))
 				return;
 
-			Locked_ptr<View_component> view(_view_handle_registry.lookup(cmd.view));
+			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 			if (!view.valid())
 				return;
 
@@ -129,7 +129,7 @@ void Session_component::_execute_command(Command const &command)
 			}
 
 			/* stack view relative to neighbor */
-			Locked_ptr<View_component> neighbor(_view_handle_registry.lookup(cmd.neighbor));
+			Locked_ptr<View> neighbor(_view_handle_registry.lookup(cmd.neighbor));
 			if (neighbor.valid())
 				_view_stack.stack(*view, &(*neighbor), false);
 
@@ -142,7 +142,7 @@ void Session_component::_execute_command(Command const &command)
 			if (_views_are_equal(cmd.view, cmd.neighbor))
 				return;
 
-			Locked_ptr<View_component> view(_view_handle_registry.lookup(cmd.view));
+			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 			if (!view.valid())
 				return;
 
@@ -153,7 +153,7 @@ void Session_component::_execute_command(Command const &command)
 			}
 
 			/* stack view relative to neighbor */
-			Locked_ptr<View_component> neighbor(_view_handle_registry.lookup(cmd.neighbor));
+			Locked_ptr<View> neighbor(_view_handle_registry.lookup(cmd.neighbor));
 			if (neighbor.valid())
 				_view_stack.stack(*view, &(*neighbor), true);
 
@@ -164,7 +164,7 @@ void Session_component::_execute_command(Command const &command)
 		{
 			Command::Background const &cmd = command.background;
 			if (_provides_default_bg) {
-				Locked_ptr<View_component> view(_view_handle_registry.lookup(cmd.view));
+				Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 				if (!view.valid())
 					return;
 
@@ -178,7 +178,7 @@ void Session_component::_execute_command(Command const &command)
 				_background->background(false);
 
 			/* assign session background */
-			Locked_ptr<View_component> view(_view_handle_registry.lookup(cmd.view));
+			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 			if (!view.valid())
 				return;
 
@@ -194,10 +194,10 @@ void Session_component::_execute_command(Command const &command)
 	case Command::OP_TITLE:
 		{
 			Command::Title const &cmd = command.title;
-			Locked_ptr<View_component> view(_view_handle_registry.lookup(cmd.view));
+			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 
 			if (view.valid())
-				_view_stack.title(*view, _font, cmd.title.string());
+				_view_stack.title(*view, cmd.title.string());
 
 			return;
 		}
@@ -208,7 +208,7 @@ void Session_component::_execute_command(Command const &command)
 }
 
 
-void Session_component::_destroy_view(View_component &view)
+void Gui_session::_destroy_view(View &view)
 {
 	if (_background == &view)
 		_background = nullptr;
@@ -224,14 +224,14 @@ void Session_component::_destroy_view(View_component &view)
 }
 
 
-void Session_component::destroy_all_views()
+void Gui_session::destroy_all_views()
 {
 	while (Session_view_list_elem *v = _view_list.first())
-		_destroy_view(*static_cast<View_component *>(v));
+		_destroy_view(*static_cast<View *>(v));
 }
 
 
-void Session_component::submit_input_event(Input::Event e)
+void Gui_session::submit_input_event(Input::Event e)
 {
 	using namespace Input;
 
@@ -251,9 +251,9 @@ void Session_component::submit_input_event(Input::Event e)
 }
 
 
-Session_component::View_handle Session_component::create_view(View_handle parent_handle)
+Gui_session::View_handle Gui_session::create_view(View_handle parent_handle)
 {
-	View_component *view = nullptr;
+	View *view = nullptr;
 
 	/*
 	 * Create child view
@@ -261,14 +261,12 @@ Session_component::View_handle Session_component::create_view(View_handle parent
 	if (parent_handle.valid()) {
 
 		try {
-			Locked_ptr<View_component> parent(_view_handle_registry.lookup(parent_handle));
+			Locked_ptr<View> parent(_view_handle_registry.lookup(parent_handle));
 			if (!parent.valid())
 				return View_handle();
 
 			view = new (_view_alloc)
-				View_component(*this,
-				               View_component::NOT_TRANSPARENT, View_component::NOT_BACKGROUND,
-				               &(*parent));
+				View(*this, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, &(*parent));
 
 			parent->add_child(*view);
 		}
@@ -282,14 +280,12 @@ Session_component::View_handle Session_component::create_view(View_handle parent
 	else {
 		try {
 			view = new (_view_alloc)
-				View_component(*this,
-				               View_component::NOT_TRANSPARENT, View_component::NOT_BACKGROUND,
-				               nullptr);
+				View(*this, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, nullptr);
 		}
 		catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
 	}
 
-	view->title(_font, "");
+	_view_stack.title(*view, "");
 	view->apply_origin_policy(_pointer_origin);
 
 	_view_list.insert(view);
@@ -302,8 +298,8 @@ Session_component::View_handle Session_component::create_view(View_handle parent
 }
 
 
-void Session_component::apply_session_policy(Xml_node config,
-                                              Domain_registry const &domain_registry)
+void Gui_session::apply_session_policy(Xml_node config,
+                                       Domain_registry const &domain_registry)
 {
 	reset_domain();
 
@@ -331,7 +327,7 @@ void Session_component::apply_session_policy(Xml_node config,
 }
 
 
-void Session_component::destroy_view(View_handle handle)
+void Gui_session::destroy_view(View_handle handle)
 {
 	/*
 	 * Search view object given the handle
@@ -345,7 +341,7 @@ void Session_component::destroy_view(View_handle handle)
 	 */
 	for (Session_view_list_elem *v = _view_list.first(); v; v = v->next()) {
 
-		auto handle_matches = [&] (View_component const &view)
+		auto handle_matches = [&] (View const &view)
 		{
 			try { return _view_handle_registry.has_handle(view, handle); }
 
@@ -353,7 +349,7 @@ void Session_component::destroy_view(View_handle handle)
 			catch (...) { return false; };
 		};
 
-		View_component &view = *static_cast<View_component *>(v);
+		View &view = *static_cast<View *>(v);
 
 		if (handle_matches(view)) {
 			_destroy_view(view);
@@ -364,10 +360,10 @@ void Session_component::destroy_view(View_handle handle)
 }
 
 
-Session_component::View_handle
-Session_component::view_handle(View_capability view_cap, View_handle handle)
+Gui_session::View_handle
+Gui_session::view_handle(View_capability view_cap, View_handle handle)
 {
-	auto lambda = [&] (View_component *view)
+	auto lambda = [&] (View *view)
 	{
 		return (view) ? _view_handle_registry.alloc(*view, handle)
 		              : View_handle();
@@ -380,17 +376,17 @@ Session_component::view_handle(View_capability view_cap, View_handle handle)
 }
 
 
-View_capability Session_component::view_capability(View_handle handle)
+View_capability Gui_session::view_capability(View_handle handle)
 {
 	try {
-		Locked_ptr<View_component> view(_view_handle_registry.lookup(handle));
+		Locked_ptr<View> view(_view_handle_registry.lookup(handle));
 		return view.valid() ? view->cap() : View_capability();
 	}
 	catch (View_handle_registry::Lookup_failed) { return View_capability(); }
 }
 
 
-void Session_component::release_view_handle(View_handle handle)
+void Gui_session::release_view_handle(View_handle handle)
 {
 	try {
 		_view_handle_registry.free(handle); }
@@ -402,7 +398,7 @@ void Session_component::release_view_handle(View_handle handle)
 }
 
 
-void Session_component::execute()
+void Gui_session::execute()
 {
 	for (unsigned i = 0; i < _command_buffer.num(); i++) {
 		try {
@@ -413,13 +409,13 @@ void Session_component::execute()
 }
 
 
-Framebuffer::Mode Session_component::mode()
+Framebuffer::Mode Gui_session::mode()
 {
-	return Framebuffer::Mode { .area = screen_area(_framebuffer.mode().area) };
+	return Framebuffer::Mode { .area = screen_area(_screen_size) };
 }
 
 
-void Session_component::buffer(Framebuffer::Mode mode, bool use_alpha)
+void Gui_session::buffer(Framebuffer::Mode mode, bool use_alpha)
 {
 	/* check if the session quota suffices for the specified mode */
 	if (_buffer_size + _ram_quota_guard().avail().value < ram_quota(mode, use_alpha))
@@ -433,14 +429,14 @@ void Session_component::buffer(Framebuffer::Mode mode, bool use_alpha)
 }
 
 
-void Session_component::focus(Capability<Gui::Session> session_cap)
+void Gui_session::focus(Capability<Gui::Session> session_cap)
 {
 	if (this->cap() == session_cap)
 		return;
 
 	_forwarded_focus = nullptr;
 
-	_env.ep().rpc_ep().apply(session_cap, [&] (Session_component *session) {
+	_env.ep().rpc_ep().apply(session_cap, [&] (Gui_session *session) {
 		if (session)
 			_forwarded_focus = session; });
 
@@ -448,7 +444,7 @@ void Session_component::focus(Capability<Gui::Session> session_cap)
 }
 
 
-void Session_component::session_control(Label suffix, Session_control control)
+void Gui_session::session_control(Label suffix, Session_control control)
 {
 	switch (control) {
 	case SESSION_CONTROL_HIDE:
@@ -466,7 +462,7 @@ void Session_component::session_control(Label suffix, Session_control control)
 }
 
 
-Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
+Buffer *Gui_session::realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
 {
 	typedef Pixel_rgb888 PT;
 

@@ -15,7 +15,7 @@
 #define _FOCUS_H_
 
 #include "types.h"
-#include "view_component.h"
+#include "view.h"
 
 namespace Nitpicker {
 	struct Focus;
@@ -55,7 +55,7 @@ class Nitpicker::Focus : Noncopyable
 		 * Return true if the specified view is the background view as defined for
 		 * the currentlu focused view owner.
 		 */
-		bool focused_background(View_component const &view) const
+		bool focused_background(View const &view) const
 		{
 			return _focused && (_focused->background() == &view);
 		}

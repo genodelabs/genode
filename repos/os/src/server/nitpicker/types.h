@@ -38,7 +38,7 @@ namespace Nitpicker {
 	static inline Color black() { return Color(0, 0, 0); }
 	static inline Color white() { return Color(255, 255, 255); }
 
-	class Session_component;
+	class Gui_session;
 	class View_stack;
 }
 

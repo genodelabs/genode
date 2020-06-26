@@ -1,5 +1,5 @@
 /*
- * \brief  Input sub session as part of the nitpicker session
+ * \brief  Input sub session as part of the GUI session
  * \author Norman Feske
  * \date   2017-11-16
  */

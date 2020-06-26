@@ -52,7 +52,7 @@ namespace Nitpicker {
 	 */
 	struct Session_view_list_elem : List<Session_view_list_elem>::Element { };
 
-	class View_component;
+	class View;
 }
 
 
@@ -66,12 +66,12 @@ namespace Gui {
 }
 
 
-class Nitpicker::View_component : private Same_buffer_list_elem,
-                                  private Session_view_list_elem,
-                                  private View_stack_elem,
-                                  private View_parent_elem,
-                                  private Weak_object<View_component>,
-                                  public  Rpc_object<Gui::View>
+class Nitpicker::View : private Same_buffer_list_elem,
+                        private Session_view_list_elem,
+                        private View_stack_elem,
+                        private View_parent_elem,
+                        private Weak_object<View>,
+                        public  Rpc_object<Gui::View>
 {
 	public:
 
@@ -80,31 +80,31 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 		enum Transparent { NOT_TRANSPARENT = 0, TRANSPARENT = 1 };
 		enum Background  { NOT_BACKGROUND  = 0, BACKGROUND  = 1 };
 
-		using Weak_object<View_component>::weak_ptr;
-		using Weak_object<View_component>::weak_ptr_const;
+		using Weak_object<View>::weak_ptr;
+		using Weak_object<View>::weak_ptr_const;
 
 	private:
 
 		friend class View_stack;
-		friend class Session_component;
-		friend class Locked_ptr<View_component>;
+		friend class Gui_session;
+		friend class Locked_ptr<View>;
 
 		/*
 		 * Noncopyable
 		 */
-		View_component(View_component const &);
-		View_component &operator = (View_component const &);
+		View(View const &);
+		View &operator = (View const &);
 
 		Transparent const _transparent;   /* background is partly visible */
 		Background        _background;    /* view is a background view    */
 
-		View_component *_parent;          /* parent view                          */
-		Rect            _geometry   { };  /* position and size relative to parent */
-		Rect            _label_rect { };  /* position and size of label */
-		Point           _buffer_off { };  /* offset to the visible buffer area    */
-		View_owner     &_owner;
-		Title           _title      { "" };
-		Dirty_rect      _dirty_rect { };
+		View       *_parent;          /* parent view                          */
+		Rect        _geometry   { };  /* position and size relative to parent */
+		Rect        _label_rect { };  /* position and size of label */
+		Point       _buffer_off { };  /* offset to the visible buffer area    */
+		View_owner &_owner;
+		Title       _title      { "" };
+		Dirty_rect  _dirty_rect { };
 
 		List<View_parent_elem> _children { };
 
@@ -115,7 +115,7 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 		 * of the view. However, if the domain origin changes at runtime, we
 		 * need to dynamically re-assign the pointer origin as the parent.
 		 */
-		void _assign_parent(View_component *parent)
+		void _assign_parent(View *parent)
 		{
 			if (_parent == parent)
 				return;
@@ -131,13 +131,12 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 
 	public:
 
-		View_component(View_owner &owner, Transparent transparent,
-		               Background bg, View_component *parent)
+		View(View_owner &owner, Transparent transparent, Background bg, View *parent)
 		:
 			_transparent(transparent), _background(bg), _parent(parent), _owner(owner)
 		{ }
 
-		virtual ~View_component()
+		virtual ~View()
 		{
 			/* invalidate weak pointers to this object */
 			lock_for_destruction();
@@ -148,7 +147,7 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 
 			/* break links to our children */
 			while (View_parent_elem *e = _children.first()) {
-				static_cast<View_component *>(e)->dissolve_from_parent();
+				static_cast<View *>(e)->dissolve_from_parent();
 				_children.remove(e);
 			}
 		}
@@ -181,28 +180,28 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 			_geometry = Rect();
 		}
 
-		bool has_parent(View_component const &parent) const { return &parent == _parent; }
+		bool has_parent(View const &parent) const { return &parent == _parent; }
 
-		void apply_origin_policy(View_component &pointer_origin);
+		void apply_origin_policy(View &pointer_origin);
 
 		Rect geometry() const { return _geometry; }
 
 		void geometry(Rect geometry) { _geometry = geometry; }
 
-		void add_child(View_component const &child) { _children.insert(&child); }
+		void add_child(View const &child) { _children.insert(&child); }
 
-		void remove_child(View_component const &child) { _children.remove(&child); }
+		void remove_child(View const &child) { _children.remove(&child); }
 
 		template <typename FN>
 		void for_each_child(FN const &fn) {
 			for (View_parent_elem *e = _children.first(); e; e = e->next())
-				fn(*static_cast<View_component *>(e));
+				fn(*static_cast<View *>(e));
 		}
 
 		template <typename FN>
 		void for_each_const_child(FN const &fn) const {
 			for (View_parent_elem const *e = _children.first(); e; e = e->next())
-				fn(*static_cast<View_component const *>(e));
+				fn(*static_cast<View const *>(e));
 		}
 
 		/**
@@ -228,11 +227,11 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 		/**
 		 * Return successor in view stack
 		 */
-		View_component const *view_stack_next() const {
-			return static_cast<View_component const *>(View_stack_elem::next()); }
+		View const *view_stack_next() const {
+			return static_cast<View const *>(View_stack_elem::next()); }
 
-		View_component *view_stack_next() {
-			return static_cast<View_component *>(View_stack_elem::next()); }
+		View *view_stack_next() {
+			return static_cast<View *>(View_stack_elem::next()); }
 
 		/**
 		 * Set view as background
@@ -252,7 +251,7 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 			return &owner == &_owner;
 		}
 
-		bool same_owner_as(View_component const &other) const
+		bool same_owner_as(View const &other) const
 		{
 			return &_owner == &other._owner;
 		}

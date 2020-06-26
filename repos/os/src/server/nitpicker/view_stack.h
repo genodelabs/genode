@@ -14,8 +14,8 @@
 #ifndef _VIEW_STACK_H_
 #define _VIEW_STACK_H_
 
-#include "view_component.h"
-#include "session_component.h"
+#include "view.h"
+#include "gui_session.h"
 #include "canvas.h"
 
 namespace Nitpicker { class View_stack; }
@@ -27,8 +27,9 @@ class Nitpicker::View_stack
 
 		Area                   _size;
 		Focus                 &_focus;
+		Font            const &_font;
 		List<View_stack_elem>  _views { };
-		View_component        *_default_background = nullptr;
+		View                  *_default_background = nullptr;
 		Dirty_rect mutable     _dirty_rect { };
 
 		/**
@@ -38,30 +39,30 @@ class Nitpicker::View_stack
 		 * Nitpicker mode. In non-flat modes, we incorporate the surrounding
 		 * frame.
 		 */
-		Rect _outline(View_component const &view) const;
+		Rect _outline(View const &view) const;
 
 		/**
 		 * Return top-most view of the view stack
 		 */
-		View_component const *_first_view() const
+		View const *_first_view() const
 		{
-			return static_cast<View_component const *>(_views.first());
+			return static_cast<View const *>(_views.first());
 		}
 
-		View_component *_first_view()
+		View *_first_view()
 		{
-			return static_cast<View_component *>(_views.first()); 
+			return static_cast<View *>(_views.first()); 
 		}
 
 		/**
 		 * Find position in view stack for inserting a view
 		 */
-		View_component const *_target_stack_position(View_component const *neighbor, bool behind);
+		View const *_target_stack_position(View const *neighbor, bool behind);
 
 		/**
 		 * Find best visible label position
 		 */
-		void _optimize_label_rec(View_component const *cv, View_component const *lv,
+		void _optimize_label_rec(View const *cv, View const *lv,
 		                         Rect rect, Rect *optimal);
 
 		/**
@@ -81,7 +82,7 @@ class Nitpicker::View_stack
 		/**
 		 * Schedule 'rect' to be redrawn
 		 */
-		void _mark_view_as_dirty(View_component &view, Rect rect)
+		void _mark_view_as_dirty(View &view, Rect rect)
 		{
 			_dirty_rect.mark_as_dirty(rect);
 
@@ -93,7 +94,9 @@ class Nitpicker::View_stack
 		/**
 		 * Constructor
 		 */
-		View_stack(Area size, Focus &focus) : _size(size), _focus(focus)
+		View_stack(Area size, Focus &focus, Font const &font)
+		:
+			_size(size), _focus(focus), _font(font)
 		{
 			_dirty_rect.mark_as_dirty(Rect(Point(0, 0), _size));
 		}
@@ -115,17 +118,17 @@ class Nitpicker::View_stack
 		 *
 		 * \param view  current view in view stack
 		 */
-		void draw_rec(Canvas_base &, Font const &, View_component const *, Rect) const;
+		void draw_rec(Canvas_base &, Font const &, View const *, Rect) const;
 
 		/**
 		 * Draw dirty areas
 		 */
-		Dirty_rect draw(Canvas_base &canvas, Font const &font) const
+		Dirty_rect draw(Canvas_base &canvas) const
 		{
 			Dirty_rect result = _dirty_rect;
 
 			_dirty_rect.flush([&] (Rect const &rect) {
-				draw_rec(canvas, font, _first_view(), rect); });
+				draw_rec(canvas, _font, _first_view(), rect); });
 
 			return result;
 		}
@@ -140,7 +143,7 @@ class Nitpicker::View_stack
 			_place_labels(whole_screen);
 			_dirty_rect.mark_as_dirty(whole_screen);
 
-			for (View_component *view = _first_view(); view; view = view->view_stack_next())
+			for (View *view = _first_view(); view; view = view->view_stack_next())
 				view->mark_as_dirty(_outline(*view));
 		}
 
@@ -149,7 +152,7 @@ class Nitpicker::View_stack
 		 */
 		void mark_all_views_as_clean()
 		{
-			for (View_component *view = _first_view(); view; view = view->view_stack_next())
+			for (View *view = _first_view(); view; view = view->view_stack_next())
 				view->mark_as_clean();
 		}
 
@@ -159,9 +162,9 @@ class Nitpicker::View_stack
 		 * \param Session  Session that created the view
 		 * \param Rect     Buffer area to update
 		 */
-		void mark_session_views_as_dirty(Session_component const &session, Rect rect)
+		void mark_session_views_as_dirty(Gui_session const &session, Rect rect)
 		{
-			for (View_component *view = _first_view(); view; view = view->view_stack_next()) {
+			for (View *view = _first_view(); view; view = view->view_stack_next()) {
 
 				if (!view->owned_by(session))
 					continue;
@@ -184,12 +187,12 @@ class Nitpicker::View_stack
 		 *
 		 * \param view  view that should be updated on screen
 		 */
-		void refresh_view(View_component &view, Rect);
+		void refresh_view(View &view, Rect);
 
 		/**
 		 * Refresh entire view
 		 */
-		void refresh_view(View_component &view) { refresh_view(view, _outline(view)); }
+		void refresh_view(View &view) { refresh_view(view, _outline(view)); }
 
 		/**
 		 * Refresh area
@@ -201,14 +204,14 @@ class Nitpicker::View_stack
 		 *
 		 * \param rect  new geometry of view on screen
 		 */
-		void geometry(View_component &view, Rect rect);
+		void geometry(View &view, Rect rect);
 
 		/**
 		 * Define buffer offset of view
 		 *
 		 * \param buffer_off  view offset of displayed buffer
 		 */
-		void buffer_offset(View_component &view, Point buffer_off);
+		void buffer_offset(View &view, Point buffer_off);
 
 		/**
 		 * Insert view at specified position in view stack
@@ -221,40 +224,40 @@ class Nitpicker::View_stack
 		 * bottom of the view stack, specify neighbor = 0 and
 		 * behind = false.
 		 */
-		void stack(View_component &view, View_component const *neighbor = 0,
+		void stack(View &view, View const *neighbor = 0,
 		           bool behind = true);
 
 		/**
 		 * Set view title
 		 */
-		void title(View_component &view, Font const &font, char const *title);
+		void title(View &view, char const *title);
 
 		/**
 		 * Find view at specified position
 		 */
-		View_component *find_view(Point);
+		View *find_view(Point);
 
 		/**
 		 * Remove view from view stack
 		 */
-		void remove_view(View_component const &, bool redraw = true);
+		void remove_view(View const &, bool redraw = true);
 
 		/**
 		 * Define default background
 		 */
-		void default_background(View_component &view) { _default_background = &view; }
+		void default_background(View &view) { _default_background = &view; }
 
 		/**
 		 * Return true if view is the default background
 		 */
-		bool is_default_background(View_component const &view) const
+		bool is_default_background(View const &view) const
 		{
 			return &view == _default_background;
 		}
 
-		void apply_origin_policy(View_component &pointer_origin)
+		void apply_origin_policy(View &pointer_origin)
 		{
-			for (View_component *v = _first_view(); v; v = v->view_stack_next())
+			for (View *v = _first_view(); v; v = v->view_stack_next())
 				v->apply_origin_policy(pointer_origin);
 		}
 

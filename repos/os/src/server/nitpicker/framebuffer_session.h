@@ -1,5 +1,5 @@
 /*
- * \brief  Framebuffer sub session as part of the nitpicker session
+ * \brief  Framebuffer sub session as part of the GUI session
  * \author Norman Feske
  * \date   2017-11-16
  */
@@ -38,37 +38,33 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 		Session_component(Session_component const &);
 		Session_component &operator = (Session_component const &);
 
-		Buffer                       *_buffer = 0;
-		View_stack                   &_view_stack;
-		Nitpicker::Session_component &_session;
-		Framebuffer::Session         &_framebuffer;
-		Buffer_provider              &_buffer_provider;
-		Signal_context_capability     _mode_sigh { };
-		Signal_context_capability     _sync_sigh { };
-		Framebuffer::Mode             _mode { };
-		bool                          _alpha = false;
+		Buffer                   *_buffer = 0;
+		View_stack               &_view_stack;
+		Nitpicker::Gui_session   &_session;
+		Buffer_provider          &_buffer_provider;
+		Signal_context_capability _mode_sigh { };
+		Signal_context_capability _sync_sigh { };
+		Framebuffer::Mode         _mode { };
+		bool                      _alpha = false;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Session_component(View_stack                   &view_stack,
-		                  Nitpicker::Session_component &session,
-		                  Framebuffer::Session         &framebuffer,
-		                  Buffer_provider              &buffer_provider)
+		Session_component(View_stack             &view_stack,
+		                  Nitpicker::Gui_session &session,
+		                  Buffer_provider        &buffer_provider)
 		:
 			_view_stack(view_stack),
 			_session(session),
-			_framebuffer(framebuffer),
 			_buffer_provider(buffer_provider)
 		{ }
 
 		/**
 		 * Change virtual framebuffer mode
 		 *
-		 * Called by Nitpicker::Session_component when re-dimensioning the
-		 * buffer.
+		 * Called by Nitpicker::Gui_session when re-dimensioning the buffer.
 		 *
 		 * The new mode does not immediately become active. The client can
 		 * keep using an already obtained framebuffer dataspace. However,

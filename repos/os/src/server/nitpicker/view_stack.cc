@@ -1,5 +1,5 @@
 /*
- * \brief  Nitpicker view stack implementation
+ * \brief  Nitpicker view-stack implementation
  * \author Norman Feske
  * \date   2006-08-09
  */
@@ -40,7 +40,7 @@ VIEW *View_stack::_next_view(VIEW &view) const
 }
 
 
-Nitpicker::Rect View_stack::_outline(View_component const &view) const
+Nitpicker::Rect View_stack::_outline(View const &view) const
 {
 	Rect const rect = view.abs_geometry();
 
@@ -52,7 +52,7 @@ Nitpicker::Rect View_stack::_outline(View_component const &view) const
 }
 
 
-View_component const *View_stack::_target_stack_position(View_component const *neighbor, bool behind)
+Nitpicker::View const *View_stack::_target_stack_position(View const *neighbor, bool behind)
 {
 	if (behind) {
 
@@ -60,7 +60,7 @@ View_component const *View_stack::_target_stack_position(View_component const *n
 			return nullptr;
 
 		/* find target position behind neighbor */
-		for (View_component const *cv = _first_view(); cv; cv = _next_view(*cv))
+		for (View const *cv = _first_view(); cv; cv = _next_view(*cv))
 			if (cv == neighbor)
 				return cv;
 
@@ -70,7 +70,7 @@ View_component const *View_stack::_target_stack_position(View_component const *n
 			return nullptr;
 
 		/* find target position in front of neighbor */
-		for (View_component const *cv = _first_view(), *next = nullptr; cv; cv = next) {
+		for (View const *cv = _first_view(), *next = nullptr; cv; cv = next) {
 
 			next = _next_view(*cv);
 			if (!next || next == neighbor || next->background())
@@ -83,7 +83,7 @@ View_component const *View_stack::_target_stack_position(View_component const *n
 }
 
 
-void View_stack::_optimize_label_rec(View_component const *cv, View_component const *lv,
+void View_stack::_optimize_label_rec(View const *cv, View const *lv,
                                      Rect rect, Rect *optimal)
 {
 	/* if label already fits in optimized rectangle, we are happy */
@@ -136,8 +136,8 @@ void View_stack::_place_labels(Rect rect)
 	 */
 
 	/* ignore mouse cursor */
-	View_component const *start = _next_view(*_first_view());
-	View_component       *view  = _next_view(*_first_view());
+	View const *start = _next_view(*_first_view());
+	View       *view  = _next_view(*_first_view());
 
 	for (; view && _next_view(*view); view = _next_view(*view)) {
 
@@ -169,7 +169,7 @@ void View_stack::_place_labels(Rect rect)
 
 
 void View_stack::draw_rec(Canvas_base &canvas, Font const &font,
-                          View_component const *view, Rect rect) const
+                          View const *view, Rect rect) const
 {
 	Rect clipped;
 
@@ -183,7 +183,7 @@ void View_stack::draw_rec(Canvas_base &canvas, Font const &font,
 	Rect top, left, right, bottom;
 	rect.cut(clipped, &top, &left, &right, &bottom);
 
-	View_component const *next = _next_view(*view);
+	View const *next = _next_view(*view);
 
 	/* draw areas at the top/left of the current view */
 	if (next &&  top.valid()) draw_rec(canvas, font, next, top);
@@ -208,21 +208,21 @@ void View_stack::draw_rec(Canvas_base &canvas, Font const &font,
 }
 
 
-void View_stack::refresh_view(View_component &view, Rect const rect)
+void View_stack::refresh_view(View &view, Rect const rect)
 {
 	/* rectangle constrained to view geometry */
 	Rect const view_rect = Rect::intersect(rect, _outline(view));
 
-	for (View_component *v = _first_view(); v; v = v->view_stack_next())
+	for (View *v = _first_view(); v; v = v->view_stack_next())
 		_mark_view_as_dirty(*v, view_rect);
 
-	view.for_each_child([&] (View_component &child) { refresh_view(child, rect); });
+	view.for_each_child([&] (View &child) { refresh_view(child, rect); });
 }
 
 
 void View_stack::refresh(Rect const rect)
 {
-	for (View_component *v = _first_view(); v; v = v->view_stack_next()) {
+	for (View *v = _first_view(); v; v = v->view_stack_next()) {
 
 		Rect const intersection = Rect::intersect(rect, _outline(*v));
 
@@ -232,7 +232,7 @@ void View_stack::refresh(Rect const rect)
 }
 
 
-void View_stack::geometry(View_component &view, Rect const rect)
+void View_stack::geometry(View &view, Rect const rect)
 {
 	Rect const old_outline = _outline(view);
 
@@ -259,7 +259,7 @@ void View_stack::geometry(View_component &view, Rect const rect)
 }
 
 
-void View_stack::buffer_offset(View_component &view, Point const buffer_off)
+void View_stack::buffer_offset(View &view, Point const buffer_off)
 {
 	view.buffer_off(buffer_off);
 
@@ -267,7 +267,7 @@ void View_stack::buffer_offset(View_component &view, Point const buffer_off)
 }
 
 
-void View_stack::stack(View_component &view, View_component const *neighbor, bool behind)
+void View_stack::stack(View &view, View const *neighbor, bool behind)
 {
 	_views.remove(&view);
 	_views.insert(&view, _target_stack_position(neighbor, behind));
@@ -281,18 +281,18 @@ void View_stack::stack(View_component &view, View_component const *neighbor, boo
 }
 
 
-void View_stack::title(View_component &view, Font const &font, const char *title)
+void View_stack::title(View &view, const char *title)
 {
-	view.title(font, title);
+	view.title(_font, title);
 	_place_labels(view.abs_geometry());
 
 	_mark_view_as_dirty(view, _outline(view));
 }
 
 
-View_component *View_stack::find_view(Point p)
+Nitpicker::View *View_stack::find_view(Point p)
 {
-	View_component *view = _first_view();
+	View *view = _first_view();
 
 	for ( ; view; view = _next_view(*view))
 		if (view->input_response_at(p))
@@ -302,9 +302,9 @@ View_component *View_stack::find_view(Point p)
 }
 
 
-void View_stack::remove_view(View_component const &view, bool /* redraw */)
+void View_stack::remove_view(View const &view, bool /* redraw */)
 {
-	view.for_each_const_child([&] (View_component const &child) { remove_view(child); });
+	view.for_each_const_child([&] (View const &child) { remove_view(child); });
 
 	/* remember geometry of view to remove */
 	Rect rect = _outline(view);
@@ -329,7 +329,7 @@ void View_stack::sort_views_by_layer()
 		unsigned         lowest_layer = ~0U;
 		View_stack_elem *lowest_view  = nullptr;
 		for (View_stack_elem *v = _views.first(); v; v = v->next()) {
-			unsigned const layer = static_cast<View_component *>(v)->owner().layer();
+			unsigned const layer = static_cast<View *>(v)->owner().layer();
 			if (layer < lowest_layer) {
 				lowest_layer = layer;
 				lowest_view  = v;
@@ -359,8 +359,8 @@ void View_stack::to_front(char const *selector)
 	 * Move all views that match the selector to the front while
 	 * maintaining their ordering.
 	 */
-	View_component *at = nullptr;
-	for (View_component *v = _first_view(); v; v = v->view_stack_next()) {
+	View *at = nullptr;
+	for (View *v = _first_view(); v; v = v->view_stack_next()) {
 
 		if (!v->owner().matches_session_label(selector))
 			continue;

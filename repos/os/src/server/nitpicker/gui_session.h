@@ -1,5 +1,5 @@
 /*
- * \brief  Nitpicker session component
+ * \brief  GUI session component
  * \author Norman Feske
  * \date   2017-11-16
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SESSION_COMPONENT_H_
-#define _SESSION_COMPONENT_H_
+#ifndef _GUI_SESSION_H_
+#define _GUI_SESSION_H_
 
 /* Genode includes */
 #include <util/list.h>
@@ -30,15 +30,15 @@
 #include "input_session.h"
 #include "focus.h"
 #include "chunky_texture.h"
-#include "view_component.h"
+#include "view.h"
 
 namespace Nitpicker {
 
 	class Visibility_controller;
-	class Session_component;
-	class View_component;
+	class Gui_session;
+	class View;
 
-	typedef List<Session_component> Session_list;
+	typedef List<Gui_session> Session_list;
 }
 
 
@@ -52,22 +52,22 @@ struct Nitpicker::Visibility_controller : Interface
 };
 
 
-class Nitpicker::Session_component : public  Session_object<Gui::Session>,
-                                     public  View_owner,
-                                     public  Buffer_provider,
-                                     private Session_list::Element
+class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
+                               public  View_owner,
+                               public  Buffer_provider,
+                               private Session_list::Element
 {
 	private:
 
-		friend class List<Session_component>;
+		friend class List<Gui_session>;
 
 		using Gui::Session::Label;
 
 		/*
 		 * Noncopyable
 		 */
-		Session_component(Session_component const &);
-		Session_component &operator = (Session_component const &);
+		Gui_session(Gui_session const &);
+		Gui_session &operator = (Gui_session const &);
 
 		Env &_env;
 
@@ -75,7 +75,7 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 
 		Domain_registry::Entry const *_domain     = nullptr;
 		Texture_base           const *_texture    = nullptr;
-		View_component               *_background = nullptr;
+		View                         *_background = nullptr;
 
 		/*
 		 * The input mask buffer containing a byte value per texture pixel,
@@ -93,7 +93,7 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 
 		Sliced_heap _session_alloc;
 
-		Framebuffer::Session &_framebuffer;
+		Area const &_screen_size;
 
 		Framebuffer::Session_component _framebuffer_session_component;
 
@@ -104,19 +104,17 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 
 		View_stack &_view_stack;
 
-		Font const &_font;
-
 		Focus_updater &_focus_updater;
 
 		Signal_context_capability _mode_sigh { };
 
-		View_component &_pointer_origin;
+		View &_pointer_origin;
 
-		View_component &_builtin_background;
+		View &_builtin_background;
 
 		List<Session_view_list_elem> _view_list { };
 
-		Tslab<View_component, 4000> _view_alloc { &_session_alloc };
+		Tslab<View, 4000> _view_alloc { &_session_alloc };
 
 		/* capabilities for sub sessions */
 		Framebuffer::Session_capability _framebuffer_session_cap;
@@ -135,7 +133,7 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
-		typedef Handle_registry<View_handle, View_component> View_handle_registry;
+		typedef Handle_registry<View_handle, View> View_handle_registry;
 
 		View_handle_registry _view_handle_registry;
 
@@ -143,7 +141,7 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 
 		Visibility_controller &_visibility_controller;
 
-		Session_component *_forwarded_focus = nullptr;
+		Gui_session *_forwarded_focus = nullptr;
 
 		/**
 		 * Calculate session-local coordinate to physical screen position
@@ -169,31 +167,30 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 
 		void _execute_command(Command const &);
 
-		void _destroy_view(View_component &);
+		void _destroy_view(View &);
 
 	public:
 
-		Session_component(Env                   &env,
-		                  Resources       const &resources,
-		                  Label           const &label,
-		                  Diag            const &diag,
-		                  View_stack            &view_stack,
-		                  Font            const &font,
-		                  Focus_updater         &focus_updater,
-		                  View_component        &pointer_origin,
-		                  View_component        &builtin_background,
-		                  Framebuffer::Session  &framebuffer,
-		                  bool                   provides_default_bg,
-		                  Reporter              &focus_reporter,
-		                  Visibility_controller &visibility_controller)
+		Gui_session(Env                   &env,
+		            Resources       const &resources,
+		            Label           const &label,
+		            Diag            const &diag,
+		            View_stack            &view_stack,
+		            Focus_updater         &focus_updater,
+		            View                  &pointer_origin,
+		            View                  &builtin_background,
+		            Area            const &screen_size,
+		            bool                   provides_default_bg,
+		            Reporter              &focus_reporter,
+		            Visibility_controller &visibility_controller)
 		:
 			Session_object(env.ep(), resources, label, diag),
 			_env(env),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_session_alloc(_ram, env.rm()),
-			_framebuffer(framebuffer),
-			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
-			_view_stack(view_stack), _font(font), _focus_updater(focus_updater),
+			_screen_size(screen_size),
+			_framebuffer_session_component(view_stack, *this, *this),
+			_view_stack(view_stack), _focus_updater(focus_updater),
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
 			_framebuffer_session_cap(_env.ep().manage(_framebuffer_session_component)),
@@ -204,7 +201,7 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 			_visibility_controller(visibility_controller)
 		{ }
 
-		~Session_component()
+		~Gui_session()
 		{
 			_env.ep().dissolve(_framebuffer_session_component);
 			_env.ep().dissolve(_input_session_component);
@@ -247,7 +244,7 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 		bool has_same_domain(View_owner const *owner) const override
 		{
 			if (!owner) return false;
-			return static_cast<Session_component const &>(*owner)._domain == _domain;
+			return static_cast<Gui_session const &>(*owner)._domain == _domain;
 		}
 
 		bool has_focusable_domain() const override
@@ -353,7 +350,7 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 			_framebuffer_session_component.submit_sync();
 		}
 
-		void forget(Session_component &session)
+		void forget(Gui_session &session)
 		{
 			if (_forwarded_focus == &session)
 				_forwarded_focus = nullptr;
@@ -361,7 +358,7 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 
 
 		/*********************************
-		 ** Nitpicker session interface **
+		 ** GUI session interface **
 		 *********************************/
 
 		Framebuffer::Session_capability framebuffer_session() override {
@@ -402,4 +399,4 @@ class Nitpicker::Session_component : public  Session_object<Gui::Session>,
 		Buffer *realloc_buffer(Framebuffer::Mode mode, bool use_alpha) override;
 };
 
-#endif /* _SESSION_COMPONENT_H_ */
+#endif /* _GUI_SESSION_H_ */

@@ -13,7 +13,6 @@
 
 /* local includes */
 #include "global_keys.h"
-#include "session_component.h"
 
 using namespace Nitpicker;
 
@@ -63,7 +62,7 @@ void Global_keys::apply_config(Xml_node config, Session_list &session_list)
 			}
 
 			/* assign policy to matching client session */
-			for (Session_component *s = session_list.first(); s; s = s->next())
+			for (Gui_session *s = session_list.first(); s; s = s->next())
 				if (node.attribute("label").has_value(s->label().string()))
 					policy->client(s);
 		}

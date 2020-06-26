@@ -14,24 +14,23 @@
 #ifndef _POINTER_ORIGIN_H_
 #define _POINTER_ORIGIN_H_
 
-#include "view_component.h"
-#include "session_component.h"
+#include "view.h"
+#include "gui_session.h"
 
 namespace Nitpicker { struct Pointer_origin; }
 
 
-struct Nitpicker::Pointer_origin : View_component
+struct Nitpicker::Pointer_origin : View
 {
 	Pointer_origin(View_owner &owner)
 	:
-		View_component(owner, View_component::TRANSPARENT,
-		                      View_component::NOT_BACKGROUND, 0)
+		View(owner, View::TRANSPARENT, View::NOT_BACKGROUND, 0)
 	{ }
 
 
-	/******************************
-	 ** View_component interface **
-	 ******************************/
+	/********************
+	 ** View interface **
+	 ********************/
 
 	int  frame_size(Focus const &) const override { return 0; }
 	void frame(Canvas_base &, Focus const &) const override { }

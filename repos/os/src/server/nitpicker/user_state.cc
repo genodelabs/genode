@@ -124,7 +124,7 @@ void User_state::_handle_input_event(Input::Event ev)
 		_key_array.pressed(key, false);
 	});
 
-	View_component const * const pointed_view = _view_stack.find_view(_pointer_pos);
+	View const * const pointed_view = _view_stack.find_view(_pointer_pos);
 
 	View_owner * const hovered = pointed_view ? &pointed_view->owner() : 0;
 
@@ -420,7 +420,7 @@ User_state::Handle_forget_result User_state::forget(View_owner const &owner)
 	if (&owner == _last_clicked) _last_clicked = nullptr;
 
 	if (_hovered == &owner) {
-		View_component * const pointed_view = _view_stack.find_view(_pointer_pos);
+		View * const pointed_view = _view_stack.find_view(_pointer_pos);
 		_hovered = pointed_view ? &pointed_view->owner() : nullptr;
 	}
 

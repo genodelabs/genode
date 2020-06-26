@@ -61,8 +61,7 @@ namespace Nitpicker { struct Buffer_provider; }
 /**
  * Interface for triggering the re-allocation of a virtual framebuffer
  *
- * Used by 'Framebuffer::Session_component',
- * implemented by 'Nitpicker::Session_component'
+ * Used by 'Framebuffer::Session_component', * implemented by 'Gui_session'
  */
 struct Nitpicker::Buffer_provider : Interface
 {
