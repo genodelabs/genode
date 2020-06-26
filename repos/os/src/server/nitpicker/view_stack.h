@@ -32,7 +32,7 @@ class Nitpicker::View_stack
 
 	private:
 
-		Area                   _size;
+		Area                   _size { };
 		Focus                 &_focus;
 		Font            const &_font;
 		List<View_stack_elem>  _views { };
@@ -91,9 +91,9 @@ class Nitpicker::View_stack
 		/**
 		 * Constructor
 		 */
-		View_stack(Area size, Focus &focus, Font const &font, Damage &damage)
+		View_stack(Focus &focus, Font const &font, Damage &damage)
 		:
-			_size(size), _focus(focus), _font(font), _damage(damage)
+			_focus(focus), _font(font), _damage(damage)
 		{ }
 
 		/**

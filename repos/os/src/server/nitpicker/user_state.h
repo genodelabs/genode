@@ -75,10 +75,16 @@ class Nitpicker::User_state
 		 */
 		View_stack &_view_stack;
 
+		/**
+		 * True once the initial screen size becomes known and used as the
+		 * initial (centered) pointer position.
+		 */
+		bool _initial_pointer_position_defined = false;
+
 		/*
 		 * Current pointer position
 		 */
-		Point _pointer_pos;
+		Point _pointer_pos { };
 
 		/*
 		 * Currently pointed-at view owner
@@ -194,12 +200,29 @@ class Nitpicker::User_state
 		 * \param focus  exported focus information, to be consumed by the
 		 *               view stack to tailor its view drawing operations
 		 */
-		User_state(Focus &focus, Global_keys &global_keys, View_stack &view_stack,
-		           Point initial_pointer_pos)
+		User_state(Focus &focus, Global_keys &global_keys, View_stack &view_stack)
 		:
-			_focus(focus), _global_keys(global_keys), _view_stack(view_stack),
-			_pointer_pos(initial_pointer_pos)
+			_focus(focus), _global_keys(global_keys), _view_stack(view_stack)
 		{ }
+
+		/**
+		 * Called whenever the view-stack size has changed
+		 */
+		void sanitize_pointer_position()
+		{
+			Area const screen_size = _view_stack.size();
+
+			/* center pointer initially */
+			if (!_initial_pointer_position_defined) {
+				_pointer_pos = Point(screen_size.w()/2, screen_size.h()/2);
+				_initial_pointer_position_defined = true;
+			}
+
+			/* ensure that pointer remains within screen boundaries */
+			if (screen_size.count() > 0)
+				_pointer_pos = Point(min((int)screen_size.w() - 1, _pointer_pos.x()),
+				                     min((int)screen_size.h() - 1, _pointer_pos.y()));
+		}
 
 
 		/****************************************

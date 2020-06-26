@@ -411,7 +411,7 @@ void Gui_session::execute()
 
 Framebuffer::Mode Gui_session::mode()
 {
-	return Framebuffer::Mode { .area = screen_area(_screen_size) };
+	return Framebuffer::Mode { .area = screen_area(_view_stack.size()) };
 }
 
 

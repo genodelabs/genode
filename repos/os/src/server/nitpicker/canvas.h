@@ -60,11 +60,14 @@ class Nitpicker::Canvas : public Canvas_base, public Surface_base::Flusher
 {
 	private:
 
+		Point const _offset;
 		Surface<PT> _surface;
 
 	public:
 
-		Canvas(PT *base, Area size) : _surface(base, size)
+		Canvas(PT *base, Point offset, Area size)
+		:
+			_offset(offset), _surface(base, size)
 		{
 			_surface.flusher(this);
 		}
@@ -76,13 +79,20 @@ class Nitpicker::Canvas : public Canvas_base, public Surface_base::Flusher
 
 		Area size() const override { return _surface.size(); }
 
-		Rect clip() const override { return _surface.clip(); }
+		Rect clip() const override
+		{
+			Rect const clip_rect = _surface.clip();
+			return Rect(clip_rect.p1() + _offset, clip_rect.area());
+		}
 
-		void clip(Rect rect) override { _surface.clip(rect); }
+		void clip(Rect rect) override
+		{
+			_surface.clip(Rect(rect.p1() - _offset, rect.area()));
+		}
 
 		void draw_box(Rect rect, Color color) override
 		{
-			Box_painter::paint(_surface, rect, color);
+			Box_painter::paint(_surface, Rect(rect.p1() - _offset, rect.area()), color);
 		}
 
 		void draw_texture(Point pos, Texture_base const &texture_base,
@@ -90,13 +100,14 @@ class Nitpicker::Canvas : public Canvas_base, public Surface_base::Flusher
 		                  bool allow_alpha) override
 		{
 			Texture<PT> const &texture = static_cast<Texture<PT> const &>(texture_base);
-			Texture_painter::paint(_surface, texture, mix_color, pos, mode,
+			Texture_painter::paint(_surface, texture, mix_color, pos - _offset, mode,
 			                       allow_alpha);
 		}
 
 		void draw_text(Point pos, Font const &font,
 		               Color color, char const *string) override
 		{
+			pos = pos - _offset;
 			Text_painter::paint(_surface, Text_painter::Position(pos.x(), pos.y()),
 			                    font, color, string);
 		}

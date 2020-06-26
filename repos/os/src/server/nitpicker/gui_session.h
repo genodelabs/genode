@@ -93,8 +93,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Sliced_heap _session_alloc;
 
-		Area const &_screen_size;
-
 		Framebuffer::Session_component _framebuffer_session_component;
 
 		bool const _input_session_accounted = (
@@ -179,7 +177,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		            Focus_updater         &focus_updater,
 		            View                  &pointer_origin,
 		            View                  &builtin_background,
-		            Area            const &screen_size,
 		            bool                   provides_default_bg,
 		            Reporter              &focus_reporter,
 		            Visibility_controller &visibility_controller)
@@ -188,7 +185,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			_env(env),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_session_alloc(_ram, env.rm()),
-			_screen_size(screen_size),
 			_framebuffer_session_component(view_stack, *this, *this),
 			_view_stack(view_stack), _focus_updater(focus_updater),
 			_pointer_origin(pointer_origin),

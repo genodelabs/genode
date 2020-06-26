@@ -6,4 +6,5 @@ input_session
 timer_session
 framebuffer_session
 gui_session
+capture_session
 report_session

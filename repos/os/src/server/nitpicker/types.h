@@ -40,6 +40,11 @@ namespace Nitpicker {
 
 	class Gui_session;
 	class View_stack;
+
+	static inline Area max_area(Area a1, Area a2)
+	{
+		return Area(max(a1.w(), a2.w()), max(a1.h(), a2.h()));
+	}
 }
 
 #endif /* _TYPES_H_ */
