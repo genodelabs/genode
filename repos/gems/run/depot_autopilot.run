@@ -711,7 +711,6 @@ set default_test_pkgs {
 	test-sequence
 	test-signal
 	test-slab
-	test-solo5
 	test-stack_smash
 	test-stdcxx
 	test-synced_interface
@@ -764,7 +763,6 @@ set skip_test(test-rm_fault)        [expr [have_spec linux] || ![non_executable_
 set skip_test(test-rm_fault_no_nox) [expr [have_spec linux] || ![skip_test test-rm_fault]]
 set skip_test(test-rm_nested)       [expr [have_spec linux]]
 set skip_test(test-slab)            [expr ![interactive] && [have_include "power_on/qemu"]]
-set skip_test(test-solo5)           [expr ![have_spec x86_64]]
 set skip_test(test-spark_exception) [expr [have_spec arm]]
 set skip_test(test-tcp_bulk_lwip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
 set skip_test(test-tcp_bulk_lxip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
