@@ -1,12 +1,5 @@
-base
 libc
 mesa
+qt5
 qt5_component
-qt5_core
-qt5_network
-qt5_gui
-qt5_qjpeg
-qt5_qml
-qt5_qpa_genode
-qt5_quick
 stdcxx

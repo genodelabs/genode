@@ -1,6 +1,4 @@
-MIRROR_FROM_REP_DIR := lib/mk/qt5_svg.mk \
-                       lib/mk/qt5_svg_generated.inc \
-                       lib/mk/qt5.inc \
+MIRROR_FROM_REP_DIR := lib/mk/qt5_svg.mk
 
 content: $(MIRROR_FROM_REP_DIR) src/lib/qt5_svg/target.mk
 
@@ -13,7 +11,7 @@ src/lib/qt5_svg/target.mk:
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt5)
 
-MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtsvg/src/svg
+MIRROR_FROM_PORT_DIR := src/lib/qt5/qtsvg
 
 content: $(MIRROR_FROM_PORT_DIR)
 
@@ -24,4 +22,4 @@ $(MIRROR_FROM_PORT_DIR):
 content: LICENSE
 
 LICENSE:
-	cp $(PORT_DIR)/src/lib/qt5/qt5/LICENSE.LGPLv3 $@
+	cp $(PORT_DIR)/src/lib/qt5/LICENSE.LGPLv3 $@

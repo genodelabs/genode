@@ -1,6 +1,4 @@
-MIRROR_FROM_REP_DIR := src/app/qt5/qt_launchpad \
-                       src/app/qt5/tmpl/target_defaults.inc \
-                       src/app/qt5/tmpl/target_final.inc
+MIRROR_FROM_REP_DIR := src/app/qt5/qt_launchpad
 
 content: $(MIRROR_FROM_REP_DIR) LICENSE
 

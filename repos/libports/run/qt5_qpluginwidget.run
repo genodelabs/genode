@@ -1,19 +1,14 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot [depot_user]/src/libcrypto \
-                  [depot_user]/src/libssl \
-                  [depot_user]/src/qt5_component \
-                  [depot_user]/src/qt5_network \
-                  [depot_user]/src/qt5_qgenodeviewwidget \
-                  [depot_user]/src/qt5_qpluginwidget \
-                  [depot_user]/src/qt5_widgets \
-                  [depot_user]/src/test-qpluginwidget
+import_from_depot [depot_user]/src/qt5_component \
+                  [depot_user]/src/libqgenodeviewwidget \
+                  [depot_user]/src/libqpluginwidget \
+                  [depot_user]/src/test-qpluginwidget \
+                  [depot_user]/src/zlib
 
 #
 # Build
 #
-
-append build_components [qt5_build_components feature]
 
 append build_components {
 	server/loader
@@ -30,7 +25,7 @@ build $build_components
 append config {
 <config>
 	<parent-provides>}
-append config [qt5_parent_provides feature]
+append config [qt5_parent_provides]
 append config {
 	</parent-provides>
 	<default caps="100"/>
@@ -38,7 +33,7 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
-append config [qt5_start_nodes feature]
+append config [qt5_start_nodes]
 
 append config {
 	<start name="loader" caps="100">
@@ -66,7 +61,15 @@ append config {
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="qt">
+					<dir name="plugins">
+						<dir name="qpluginwidget">
+							<rom name="libqpluginwidget.lib.so"/>
+						</dir>
+					</dir>
+				</dir>
 				<tar name="qt5_dejavusans.tar"/>
+				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
 		</config>
@@ -88,7 +91,7 @@ install_config $config
 # Boot modules
 #
 
-append boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules]
 
 append boot_modules {
 	loader

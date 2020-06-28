@@ -1,15 +1,9 @@
-QT5_PORT_DIR := $(call select_from_ports,qt5)
-QT5_CONTRIB_DIR := $(QT5_PORT_DIR)/src/lib/qt5/qt5
+QMAKE_PROJECT_FILE = $(QT_DIR)/qttools/examples/designer/calculatorform/calculatorform.pro
 
-QMAKE_PROJECT_PATH = $(QT5_CONTRIB_DIR)/qttools/examples/designer/calculatorform
-QMAKE_PROJECT_FILE = $(QMAKE_PROJECT_PATH)/calculatorform.pro
+QMAKE_TARGET_BINARIES = calculatorform
 
-vpath % $(QMAKE_PROJECT_PATH)
+QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5Widgets
 
-include $(call select_from_repositories,src/app/qt5/tmpl/target_defaults.inc)
+LIBS = libc libm mesa qt5_component stdcxx $(QT5_PORT_LIBS)
 
-include $(call select_from_repositories,src/app/qt5/tmpl/target_final.inc)
-
-LIBS += qt5_component
-
-CC_CXX_WARN_STRICT =
+include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)

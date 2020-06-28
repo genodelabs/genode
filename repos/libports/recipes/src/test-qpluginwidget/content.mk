@@ -1,6 +1,4 @@
-MIRROR_FROM_REP_DIR := src/test/qt5/qpluginwidget \
-                       src/app/qt5/tmpl/target_defaults.inc \
-                       src/app/qt5/tmpl/target_final.inc
+MIRROR_FROM_REP_DIR := src/test/qt5/qpluginwidget
 
 content: $(MIRROR_FROM_REP_DIR) LICENSE
 

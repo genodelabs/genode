@@ -1,9 +1,7 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
 import_from_depot [depot_user]/src/qt5_component \
-                  [depot_user]/src/qt5_printsupport \
                   [depot_user]/src/qt5_textedit \
-                  [depot_user]/src/qt5_widgets \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/test-tiled_wm
 
@@ -43,12 +41,12 @@ proc qt5_decorator_config { } {
 
 append config {
 <config>
-	<parent-provides>} [qt5_parent_provides feature] {
+	<parent-provides>} [qt5_parent_provides] {
 	</parent-provides>
 	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>} [qt5_start_nodes feature] {
+	</default-route>} [qt5_start_nodes] {
 
 	<start name="test_reports">
 		<binary name="report_rom"/>
@@ -120,6 +118,7 @@ append config {
 				</dir>
 				<dir name="fs"> <ram/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
+				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
 		</config>
 		<route>
@@ -145,6 +144,7 @@ append config {
 				</dir>
 				<dir name="fs"> <ram/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
+				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
 		</config>
 		<route>
@@ -167,6 +167,7 @@ append config {
 				</dir>
 				<dir name="fs"> <ram/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
+				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
 		</config>
 		<route>
@@ -189,6 +190,7 @@ append config {
 				</dir>
 				<dir name="fs"> <ram/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
+				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
 		</config>
 		<route>
@@ -210,6 +212,7 @@ append config {
 				</dir>
 				<dir name="fs"> <ram/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
+				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
 		</config>
 		<route>
@@ -224,14 +227,11 @@ append config {
 
 install_config $config
 
-append build_components [qt5_build_components feature]
-
 # for debugging only
 #append build_components { app/window_layouter app/themed_decorator }
+#build $build_components
 
-build $build_components
-
-append boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules]
 
 # for debugging only
 #append boot_modules { window_layouter themed_decorator }

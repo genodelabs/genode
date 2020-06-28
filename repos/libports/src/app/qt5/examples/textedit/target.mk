@@ -1,15 +1,9 @@
-QT5_PORT_DIR := $(call select_from_ports,qt5)
-QT5_CONTRIB_DIR := $(QT5_PORT_DIR)/src/lib/qt5/qt5
+QMAKE_PROJECT_FILE = $(QT_DIR)/qtbase/examples/widgets/richtext/textedit/textedit.pro
 
-QMAKE_PROJECT_PATH = $(QT5_CONTRIB_DIR)/qtbase/examples/widgets/richtext/textedit
-QMAKE_PROJECT_FILE = $(QMAKE_PROJECT_PATH)/textedit.pro
+QMAKE_TARGET_BINARIES = textedit
 
-vpath % $(QMAKE_PROJECT_PATH)
+QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5PrintSupport libQt5Widgets
 
-include $(call select_from_repositories,src/app/qt5/tmpl/target_defaults.inc)
+LIBS = libc libm mesa qt5_component stdcxx $(QT5_PORT_LIBS)
 
-include $(call select_from_repositories,src/app/qt5/tmpl/target_final.inc)
-
-LIBS += qt5_component qt5_printsupport
-
-CC_CXX_WARN_STRICT =
+include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)

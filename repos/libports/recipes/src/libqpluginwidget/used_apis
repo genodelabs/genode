@@ -1,0 +1,14 @@
+base
+framebuffer_session
+gui_session
+input_session
+libc
+libqgenodeviewwidget
+loader_session
+mesa
+os
+qoost
+qt5
+stdcxx
+vfs
+zlib

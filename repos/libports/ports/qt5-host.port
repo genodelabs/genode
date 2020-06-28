@@ -1,5 +1,5 @@
 LICENSE := GPL
-VERSION := 5.13.0
+VERSION := 5.13.2
 
 QTBASE  := qtbase-everywhere-src-${VERSION}
 QTTOOLS := qttools-everywhere-src-${VERSION}
@@ -7,9 +7,9 @@ QTTOOLS := qttools-everywhere-src-${VERSION}
 DOWNLOADS := ${QTBASE}.archive $(QTTOOLS).archive
 
 URL(${QTBASE}) := https://download.qt.io/archive/qt/5.13/$(VERSION)/submodules/$(QTBASE).tar.xz
-SHA(${QTBASE}) := ff6964b3b528cd3b1d21bcf3470006e8e5cbe69591923f982871d886ea0488fe
+SHA(${QTBASE}) := 26b6b686d66a7ad28eaca349e55e2894e5a735f3831e45f2049e93b1daa92121
 DIR(${QTBASE}) := src/lib/qtbase
 
 URL(${QTTOOLS}) := https://download.qt.io/archive/qt/5.13/$(VERSION)/submodules/$(QTTOOLS).tar.xz
-SHA(${QTTOOLS}) := a7887a618dc6434c2567521990c2a7ca72ca6a8379c1d93c5aa6c1798d7a0819
+SHA(${QTTOOLS}) := 919a2713b6d2d7873a09ad85bd93cf4282606e5bf84d5884250f665a253ec06e
 DIR(${QTTOOLS}) := src/lib/qttools

@@ -1,12 +1,15 @@
-include $(call select_from_repositories,src/app/qt5/tmpl/target_defaults.inc)
+QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5Widgets
 
-include $(call select_from_repositories,src/app/qt5/tmpl/target_final.inc)
+LIBS = base libc libm mesa stdcxx qoost $(QT5_PORT_LIBS)
 
-CC_CXX_WARN_STRICT =
+include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)
+
+QT5_GENODE_LIBS_APP += ld.lib.so
+QT5_GENODE_LIBS_APP := $(filter-out qt5_component.lib.so,$(QT5_GENODE_LIBS_APP))
+
+qmake_prepared.tag: qmake_root/lib/ld.lib.so
 
 INC_DIR += $(PRG_DIR)/..
-
-LIBS += qoost
 
 #
 # We need Qt headers in a local directory for MOC to work correctly
@@ -22,4 +25,3 @@ endif
 
 icon.h: $(ICON_H)
 	$(VERBOSE)cp $(ICON_H) .
-

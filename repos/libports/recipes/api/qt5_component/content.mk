@@ -1,4 +1,5 @@
-MIRROR_FROM_REP_DIR := lib/symbols/qt5_component
+MIRROR_FROM_REP_DIR := include/qt5_component \
+                       lib/symbols/qt5_component
 
 content: $(MIRROR_FROM_REP_DIR) LICENSE
 

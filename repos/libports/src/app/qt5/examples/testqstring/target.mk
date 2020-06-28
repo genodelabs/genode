@@ -1,18 +1,9 @@
-QT5_PORT_DIR := $(call select_from_ports,qt5)
-QT5_CONTRIB_DIR := $(QT5_PORT_DIR)/src/lib/qt5/qt5
+QMAKE_PROJECT_FILE = $(QT_DIR)/qtbase/examples/qtestlib/tutorial1
 
-QMAKE_PROJECT_PATH = $(QT5_CONTRIB_DIR)/qtbase/examples/qtestlib/tutorial1
-QMAKE_PROJECT_FILE = $(QMAKE_PROJECT_PATH)/tutorial1.pro
+QMAKE_TARGET_BINARIES = tutorial1
 
-vpath % $(QMAKE_PROJECT_PATH)
+QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5Test libQt5Widgets
 
-# 'testqstring.cpp' includes 'testqstring.moc' 
-testqstring.o: testqstring.moc
+LIBS = libc libm mesa qt5_component stdcxx $(QT5_PORT_LIBS)
 
-include $(call select_from_repositories,src/app/qt5/tmpl/target_defaults.inc)
-
-include $(call select_from_repositories,src/app/qt5/tmpl/target_final.inc)
-
-LIBS += qt5_component
-
-CC_CXX_WARN_STRICT =
+include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)

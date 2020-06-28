@@ -1,11 +1,73 @@
-include $(call select_from_repositories,lib/import/import-qt5_svg.mk)
+include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)
 
-SHARED_LIB = yes
+QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5Widgets
 
-LIBS += qt5_core qt5_gui qt5_widgets zlib
+LIBS = libc libm mesa stdcxx $(QT5_PORT_LIBS)
 
-include $(REP_DIR)/lib/mk/qt5_svg_generated.inc
+built.tag: qmake_prepared.tag
 
-include $(REP_DIR)/lib/mk/qt5.inc
+	@#
+	@# run qmake
+	@#
 
-CC_CXX_WARN_STRICT =
+	$(VERBOSE)source env.sh && $(QMAKE) \
+		-qtconf qmake_root/mkspecs/$(QMAKE_PLATFORM)/qt.conf \
+		$(QT_DIR)/qtsvg/qtsvg.pro \
+		$(QT5_OUTPUT_FILTER)
+
+	@#
+	@# build
+	@#
+
+	$(VERBOSE)source env.sh && $(MAKE) sub-src $(QT5_OUTPUT_FILTER)
+
+	@#
+	@# install into local 'install' directory
+	@#
+
+	$(VERBOSE)$(MAKE) INSTALL_ROOT=$(CURDIR)/install sub-src-install_subtargets $(QT5_OUTPUT_FILTER)
+
+	$(VERBOSE)ln -sf .$(CURDIR)/qmake_root install/qt
+
+	@#
+	@# create stripped versions
+	@#
+
+	$(VERBOSE)cd $(CURDIR)/install/qt/lib && \
+		$(STRIP) libQt5Svg.lib.so -o libQt5Svg.lib.so.stripped
+
+	$(VERBOSE)cd $(CURDIR)/install/qt/plugins/imageformats && \
+		$(STRIP) libqsvg.lib.so -o libqsvg.lib.so.stripped
+
+	@#
+	@# create symlinks in 'bin' directory
+	@#
+
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Svg.lib.so.stripped $(PWD)/bin/libQt5Svg.lib.so
+
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/imageformats/libqsvg.lib.so.stripped $(PWD)/bin/libqsvg.lib.so
+
+	@#
+	@# create symlinks in 'debug' directory
+	@#
+
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Svg.lib.so $(PWD)/debug/
+
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/imageformats/libqsvg.lib.so $(PWD)/debug/
+
+	@#
+	@# create tar archives
+	@#
+
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqsvg.tar --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqsvg.lib.so.stripped
+
+	@#
+	@# mark as done
+	@#
+
+	$(VERBOSE)touch $@
+
+
+ifeq ($(called_from_lib_mk),yes)
+all: built.tag
+endif

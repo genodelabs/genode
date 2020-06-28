@@ -1,0 +1,10 @@
+base
+framebuffer_session
+gui_session
+input_session
+libc
+mesa
+os
+qoost
+qt5
+stdcxx

@@ -4,16 +4,26 @@
  * \date    2008-04-05
  */
 
-/* local includes */
-#include "qt_launchpad.h"
+/*
+ * Copyright (C) 2008-2020 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
+/* Genode includes */
+#include <libc/component.h>
+#include <base/attached_rom_dataspace.h>
 
 /* Qt includes */
 #include <QtGui>
 #include <QApplication>
 
-/* Genode includes */
-#include <libc/component.h>
-#include <base/attached_rom_dataspace.h>
+/* qt5_component includes */
+#include <qt5_component/qpa_init.h>
+
+/* local includes */
+#include "qt_launchpad.h"
 
 namespace Qt_launchpad_namespace {
 	struct Local_env;
@@ -62,13 +72,11 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 	}
 };
 
-extern void initialize_qt_gui(Genode::Env &);
-
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
 
-		initialize_qt_gui(env);
+		qpa_init(env);
 
 		Qt_launchpad_namespace::Local_env local_env(env);
 

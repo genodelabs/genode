@@ -1,17 +1,7 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot [depot_user]/src/qt5_component \
-                  [depot_user]/src/qt5_widgets \
-                  [depot_user]/src/qt5_calculatorform
-
-#
-# Build
-#
-
-append build_components [qt5_build_components feature]
-
-build $build_components
-
+import_from_depot [depot_user]/src/qt5_calculatorform \
+                  [depot_user]/src/qt5_component
 
 #
 # Generate config
@@ -20,7 +10,7 @@ build $build_components
 append config {
 <config>
 	<parent-provides>}
-append config [qt5_parent_provides feature]
+append config [qt5_parent_provides]
 append config {
 	</parent-provides>
 	<default caps="100"/>
@@ -28,7 +18,7 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
-append config [qt5_start_nodes feature]
+append config [qt5_start_nodes]
 
 append config {
 	<start name="calculatorform" caps="200">
@@ -41,6 +31,7 @@ append config {
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
 				<tar name="qt5_dejavusans.tar"/>
+				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
 		</config>
@@ -62,7 +53,7 @@ install_config $config
 # Boot modules
 #
 
-append boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules]
 
 build_boot_image $boot_modules
 

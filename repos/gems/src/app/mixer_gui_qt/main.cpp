@@ -4,6 +4,13 @@
  * \date 2015-10-15
  */
 
+/*
+ * Copyright (C) 2015-2020 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
 /* Genode includes */
 #include <base/log.h>
 #include <base/thread.h>
@@ -14,6 +21,9 @@
 #include <QApplication>
 #include <QDebug>
 #include <QFile>
+
+/* qt5_component includes */
+#include <qt5_component/qpa_init.h>
 
 /* application includes */
 #include "main_window.h"
@@ -89,13 +99,11 @@ static inline void load_stylesheet()
 }
 
 
-extern void initialize_qt_gui(Genode::Env &);
-
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
 
-		initialize_qt_gui(env);
+		qpa_init(env);
 
 		int argc = 1;
 		char const *argv[] = { "mixer_gui_qt", 0 };

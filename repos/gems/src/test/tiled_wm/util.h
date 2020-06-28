@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -33,6 +33,8 @@
 /* Libc includes */
 #include <libc/component.h>
 
+/* qt5_component includes */
+#include <qt5_component/qpa_init.h>
 
 typedef Genode::String<32> Name;
 
@@ -75,11 +77,9 @@ class Genode_signal_proxy : public QObject,
  * Qt initialization
  */
 
-extern void initialize_qt_gui(Genode::Env &);
-
 static inline QApplication & qt5_initialization(Libc::Env &env)
 {
-	initialize_qt_gui(env);
+	qpa_init(env);
 
 	char const *argv[] = { "qt5_app", 0 };
 	int argc = sizeof(argv)/sizeof(*argv);

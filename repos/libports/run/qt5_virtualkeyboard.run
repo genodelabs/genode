@@ -1,40 +1,11 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot [depot_user]/raw/qt5_qt_labs_folderlistmodel \
-                  [depot_user]/raw/qt5_qtquick_controls2 \
-                  [depot_user]/raw/qt5_qtquick_layouts \
-                  [depot_user]/raw/qt5_qtquick_templates2 \
-                  [depot_user]/raw/qt5_qtquick_virtualkeyboard \
-                  [depot_user]/raw/qt5_qtquick_window \
-                  [depot_user]/raw/qt5_qtquick2 \
-                  [depot_user]/src/libcrypto \
-                  [depot_user]/src/libssl \
-                  [depot_user]/src/qt5_component \
-                  [depot_user]/src/qt5_network \
-                  [depot_user]/src/qt5_qml \
+import_from_depot [depot_user]/src/qt5_component \
+                  [depot_user]/src/qt5_declarative \
                   [depot_user]/src/qt5_quickcontrols2 \
-                  [depot_user]/src/qt5_quicktemplates2 \
-                  [depot_user]/src/qt5_qt_labs_folderlistmodel \
-                  [depot_user]/src/qt5_qtquick_controls2 \
-                  [depot_user]/src/qt5_qtquick_layouts \
-                  [depot_user]/src/qt5_qtquick_templates2 \
-                  [depot_user]/src/qt5_qtquick_virtualkeyboard \
-                  [depot_user]/src/qt5_qtquick_window \
-                  [depot_user]/src/qt5_qtquick2 \
-                  [depot_user]/src/qt5_quick \
                   [depot_user]/src/qt5_svg \
                   [depot_user]/src/qt5_virtualkeyboard \
-                  [depot_user]/src/qt5_widgets \
                   [depot_user]/src/qt5_virtualkeyboard_example
-
-#
-# Build
-#
-
-append build_components [qt5_build_components feature]
-
-build $build_components
-
 
 #
 # Generate config
@@ -43,7 +14,7 @@ build $build_components
 append config {
 <config>
 	<parent-provides>}
-append config [qt5_parent_provides feature]
+append config [qt5_parent_provides]
 append config {
 	</parent-provides>
 	<default caps="300"/>
@@ -51,7 +22,7 @@ append config {
 		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
 	</default-route>}
 
-append config [qt5_start_nodes feature]
+append config [qt5_start_nodes]
 
 append config {
 	<start name="basic" caps="350">
@@ -64,23 +35,12 @@ append config {
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
 				<tar name="qt5_dejavusans.tar"/>
-				<tar name="qt5_qt_labs_folderlistmodel.tar"/>
-				<tar name="qt5_qmlfolderlistmodelplugin.tar"/>
-				<tar name="qt5_qquicklayoutsplugin.tar"/>
-				<tar name="qt5_qtquick2.tar"/>
-				<tar name="qt5_qtquick2plugin.tar"/>
-				<tar name="qt5_qtquick_controls2.tar"/>
-				<tar name="qt5_qtquick_layouts.tar"/>
-				<tar name="qt5_qtquick_templates2.tar"/>
-				<tar name="qt5_qtquick_virtualkeyboard.tar"/>
-				<tar name="qt5_qtquick_window.tar"/>
-				<tar name="qt5_qtvirtualkeyboardplugin.tar"/>
-				<tar name="qt5_qtquickcontrols2plugin.tar"/>
-				<tar name="qt5_qtquicktemplates2plugin.tar"/>
-				<tar name="qt5_qtquickvirtualkeyboardplugin.tar"/>
-				<tar name="qt5_qtquickvirtualkeyboardsettingsplugin.tar"/>
-				<tar name="qt5_qtquickvirtualkeyboardstylesplugin.tar"/>
-				<tar name="qt5_windowplugin.tar"/>
+				<tar name="qt5_declarative_qml.tar"/>
+				<tar name="qt5_libqgenode.tar"/>
+				<tar name="qt5_libqsvg.tar"/>
+				<tar name="qt5_libqtvirtualkeyboardplugin.tar"/>
+				<tar name="qt5_quickcontrols2_qml.tar"/>
+				<tar name="qt5_virtualkeyboard_qml.tar"/>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
 		</config>
@@ -102,7 +62,7 @@ install_config $config
 # Boot modules
 #
 
-append boot_modules [qt5_boot_modules feature]
+append boot_modules [qt5_boot_modules]
 
 build_boot_image $boot_modules
 

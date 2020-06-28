@@ -1,4 +1,4 @@
-TEMPLATE   = app
-TARGET     = test-qpluginwidget
-QT         = core gui widgets
-SOURCES   += main.cpp
+TEMPLATE  = app
+TARGET    = test-qpluginwidget
+QT        = core gui network widgets
+SOURCES   = main.cpp

@@ -4,6 +4,13 @@
  * \date    2008-04-05
  */
 
+/*
+ * Copyright (C) 2008-2020 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
 #include <QScrollArea>
 
 #include <base/log.h>
@@ -94,7 +101,7 @@ void Qt_launchpad::add_launcher(Launchpad_child::Name const &binary_name,
 void Qt_launchpad::add_child(Launchpad_child::Name const &name,
                              unsigned long quota,
                              Launchpad_child &launchpad_child,
-                             Genode::Allocator &alloc)
+                             Genode::Allocator &)
 {
 	Child_entry *child_entry = new Child_entry(name, quota / 1024,
                                              initial_quota() / 1024,
@@ -106,7 +113,7 @@ void Qt_launchpad::add_child(Launchpad_child::Name const &name,
 }
 
 
-void Qt_launchpad::remove_child(Launchpad_child::Name const &name, Genode::Allocator &alloc)
+void Qt_launchpad::remove_child(Launchpad_child::Name const &name, Genode::Allocator &)
 {
 	Child_entry *child_entry =
 	  childrenDockWidgetContents->findChild<Child_entry*>(QString(name.string()) + "_child_entry");

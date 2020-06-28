@@ -1,5 +1,5 @@
-base
 libc
+qt5
 qt5_component
-qt5_core
+so
 stdcxx

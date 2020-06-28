@@ -1,6 +1,4 @@
-MIRROR_FROM_REP_DIR := src/app/qt5/examples/testqstring \
-                       src/app/qt5/tmpl/target_defaults.inc \
-                       src/app/qt5/tmpl/target_final.inc
+MIRROR_FROM_REP_DIR := src/app/qt5/examples/testqstring
 
 content: $(MIRROR_FROM_REP_DIR) LICENSE
 
@@ -9,7 +7,7 @@ $(MIRROR_FROM_REP_DIR):
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt5)
 
-MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtbase/examples/qtestlib/tutorial1
+MIRROR_FROM_PORT_DIR := src/lib/qt5/qtbase/examples/qtestlib/tutorial1
 
 content: $(MIRROR_FROM_PORT_DIR)
 
@@ -18,5 +16,5 @@ $(MIRROR_FROM_PORT_DIR):
 	cp -r $(PORT_DIR)/$@ $(dir $@)
 
 LICENSE:
-	cp $(GENODE_DIR)/LICENSE $@
+	cp $(PORT_DIR)/src/lib/qt5/LICENSE.GPLv3 $@
 

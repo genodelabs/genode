@@ -5,16 +5,11 @@ _/src/jpeg
 _/src/libc
 _/src/libpng
 _/src/mesa
-_/src/qt5_core
-_/src/qt5_gui
-_/src/qt5_qjpeg
-_/src/qt5_qpa_genode
+_/src/qt5_base
 _/src/stdcxx
 _/src/vfs
 _/src/vfs_pipe
 _/src/zlib
 _/raw/qt5_textedit
 _/src/qt5_component
-_/src/qt5_printsupport
 _/src/qt5_textedit
-_/src/qt5_widgets

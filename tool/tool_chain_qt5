@@ -38,7 +38,7 @@ GENODE_DIR               ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 CONTRIB_DIR               = $(shell $(GENODE_DIR)/tool/ports/current qt5-host)
 QTBASE_DIR                = $(CONTRIB_DIR)/src/lib/qtbase
 QTTOOLS_DIR               = $(CONTRIB_DIR)/src/lib/qttools
-TOOL_VERSION              = 19.08
+TOOL_VERSION              = 20.08
 BUILD_DIR                 = $(GENODE_DIR)/build/tool/qt5/$(TOOL_VERSION)
 DEFAULT_INSTALL_LOCATION  = /usr/local/genode/qt5/$(TOOL_VERSION)
 INSTALL_LOCATION         ?= $(DEFAULT_INSTALL_LOCATION)
@@ -49,9 +49,18 @@ $(QTBASE_DIR)/configure:
 
 QMAKE = $(BUILD_DIR)/qtbase/bin/qmake
 
+# the '-no-strip' option is needed for installing syncqt.pl
+
 $(QMAKE): $(QTBASE_DIR)/configure
 	$(VERBOSE)mkdir -p $(BUILD_DIR)/qtbase
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase && $(QTBASE_DIR)/configure -opensource -confirm-license -no-iconv -no-zstd -no-opengl -prefix $(INSTALL_LOCATION)
+	$(VERBOSE)cd $(BUILD_DIR)/qtbase && $(QTBASE_DIR)/configure \
+	                                    -opensource \
+	                                    -confirm-license \
+	                                    -no-iconv \
+	                                    -no-zstd \
+	                                    -no-opengl \
+	                                    -no-strip \
+	                                    -prefix $(INSTALL_LOCATION)
 
 $(BUILD_DIR)/qtbase/src/Makefile: $(QMAKE)
 	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
@@ -59,36 +68,29 @@ $(BUILD_DIR)/qtbase/src/Makefile: $(QMAKE)
 	          $(QTBASE_DIR)/src/src.pro -qtconf $(BUILD_DIR)/qtbase/bin/qt.conf -- -opensource
 
 $(BUILD_DIR)/qtbase/bin/moc: $(BUILD_DIR)/qtbase/src/Makefile
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-	          make -j$(MAKE_JOBS) sub-moc
+	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-moc
 
 $(BUILD_DIR)/qtbase/bin/rcc: $(BUILD_DIR)/qtbase/src/Makefile
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-	          make -j$(MAKE_JOBS) sub-rcc
+	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-rcc
 
 $(BUILD_DIR)/qtbase/bin/uic: $(BUILD_DIR)/qtbase/src/Makefile
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-	          make -j$(MAKE_JOBS) sub-uic
+	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-uic
 
 $(BUILD_DIR)/qtbase/bin/qlalr: $(BUILD_DIR)/qtbase/src/Makefile
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-	          make -j$(MAKE_JOBS) sub-qlalr
+	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-qlalr
 
 $(BUILD_DIR)/qtbase/bin/qfloat16-tables: $(BUILD_DIR)/qtbase/src/Makefile
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-	          make -j$(MAKE_JOBS) sub-qfloat16-tables
+	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-qfloat16-tables
 
-$(BUILD_DIR)/qtbase/lib/libQt5Xml.so: $(BUILD_DIR)/qtbase/src/Makefile
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-	          make -j$(MAKE_JOBS) sub-xml
+$(BUILD_DIR)/qtbase/lib/libQt5Xml.so.5: $(BUILD_DIR)/qtbase/src/Makefile
+	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-xml
 
-$(BUILD_DIR)/qttools/Makefile: $(QTTOOLS_DIR)/qttools.pro 
+$(BUILD_DIR)/qttools/Makefile: $(QTTOOLS_DIR)/qttools.pro $(BUILD_DIR)/qtbase/lib/libQt5Xml.so.5
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@) && $(BUILD_DIR)/qtbase/bin/qmake $<
 
 $(BUILD_DIR)/qttools/src/linguist/lupdate/Makefile: $(QTTOOLS_DIR)/src/linguist/lupdate/lupdate.pro \
-                                                    $(BUILD_DIR)/qttools/Makefile \
-                                                    $(BUILD_DIR)/qtbase/lib/libQt5Xml.so
+                                                    $(BUILD_DIR)/qttools/Makefile
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@) && $(BUILD_DIR)/qtbase/bin/qmake $<
 
@@ -96,8 +98,7 @@ $(BUILD_DIR)/qttools/bin/lupdate: $(BUILD_DIR)/qttools/src/linguist/lupdate/Make
 	$(VERBOSE)make -C $(dir $<) -j$(MAKE_JOBS)
 
 $(BUILD_DIR)/qttools/src/linguist/lrelease/Makefile: $(QTTOOLS_DIR)/src/linguist/lrelease/lrelease.pro \
-                                                     $(BUILD_DIR)/qttools/Makefile \
-                                                     $(BUILD_DIR)/qtbase/lib/libQt5Xml.so
+                                                     $(BUILD_DIR)/qttools/Makefile
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@) && $(BUILD_DIR)/qtbase/bin/qmake $<
 
@@ -112,40 +113,56 @@ build: $(BUILD_DIR)/qtbase/bin/moc \
        $(BUILD_DIR)/qttools/bin/lupdate \
        $(BUILD_DIR)/qttools/bin/lrelease
 
-$(INSTALL_LOCATION)/bin/moc: $(BUILD_DIR)/qtbase/bin/moc
+$(INSTALL_LOCATION)/bin:
+	$(VERBOSE)$(SUDO) mkdir -p $@
+
+$(INSTALL_LOCATION)/lib:
+	$(VERBOSE)$(SUDO) mkdir -p $@
+
+$(INSTALL_LOCATION)/lib/libQt5Core.so.5: $(BUILD_DIR)/qtbase/lib/libQt5Core.so.5 $(INSTALL_LOCATION)/lib
+	$(VERBOSE)$(SUDO) strip $< -o $@
+
+$(INSTALL_LOCATION)/lib/libQt5Xml.so.5: $(BUILD_DIR)/qtbase/lib/libQt5Xml.so.5
+	$(VERBOSE)$(SUDO) strip $< -o $@
+
+$(INSTALL_LOCATION)/bin/moc: $(BUILD_DIR)/qtbase/bin/moc $(INSTALL_LOCATION)/bin
 	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-              $(SUDO) make sub-moc-install_subtargets
+              $(SUDO) strip $< -o $@
 
-$(INSTALL_LOCATION)/bin/rcc: $(BUILD_DIR)/qtbase/bin/rcc
+$(INSTALL_LOCATION)/bin/rcc: $(BUILD_DIR)/qtbase/bin/rcc $(INSTALL_LOCATION)/bin
 	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-              $(SUDO) make sub-rcc-install_subtargets
+              $(SUDO) strip $< -o $@
 
-$(INSTALL_LOCATION)/bin/uic: $(BUILD_DIR)/qtbase/bin/uic
+$(INSTALL_LOCATION)/bin/uic: $(BUILD_DIR)/qtbase/bin/uic $(INSTALL_LOCATION)/bin $(INSTALL_LOCATION)/lib/libQt5Core.so.5
 	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-              $(SUDO) make sub-uic-install_subtargets
+              $(SUDO) strip $< -o $@
 
-$(INSTALL_LOCATION)/bin/qlalr: $(BUILD_DIR)/qtbase/bin/qlalr
+$(INSTALL_LOCATION)/bin/qlalr: $(BUILD_DIR)/qtbase/bin/qlalr $(INSTALL_LOCATION)/bin $(INSTALL_LOCATION)/lib/libQt5Core.so.5
 	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-              $(SUDO) make sub-qlalr-install_subtargets
+              $(SUDO) strip $< -o $@
 
-$(INSTALL_LOCATION)/bin/qfloat16-tables: $(BUILD_DIR)/qtbase/bin/qfloat16-tables
-	$(VERBOSE)$(SUDO) cp $< $@
+$(INSTALL_LOCATION)/bin/qfloat16-tables: $(BUILD_DIR)/qtbase/bin/qfloat16-tables $(INSTALL_LOCATION)/bin
+	$(VERBOSE)$(SUDO) strip $< -o $@
 
-$(INSTALL_LOCATION)/lib/libQt5Xml.so: $(BUILD_DIR)/qtbase/lib/libQt5Xml.so
-	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
-              $(SUDO) make sub-xml-install_subtargets
+$(INSTALL_LOCATION)/bin/qmake: $(BUILD_DIR)/qtbase/bin/qmake $(INSTALL_LOCATION)/bin
+	$(VERBOSE)$(SUDO) strip $< -o $@
 
-$(INSTALL_LOCATION)/bin/lupdate: $(BUILD_DIR)/qttools/bin/lupdate $(INSTALL_LOCATION)/lib/libQt5Xml.so
-	$(VERBOSE)$(SUDO) cp $< $@
+$(INSTALL_LOCATION)/bin/syncqt.pl: $(INSTALL_LOCATION)/bin
+	$(VERBOSE)$(SUDO) make -C $(BUILD_DIR)/qtbase install_syncqt
 
-$(INSTALL_LOCATION)/bin/lrelease: $(BUILD_DIR)/qttools/bin/lrelease $(INSTALL_LOCATION)/lib/libQt5Xml.so
-	$(VERBOSE)$(SUDO) cp $< $@
+$(INSTALL_LOCATION)/bin/lupdate: $(BUILD_DIR)/qttools/bin/lupdate $(INSTALL_LOCATION)/bin $(INSTALL_LOCATION)/lib/libQt5Core.so.5 $(INSTALL_LOCATION)/lib/libQt5Xml.so.5
+	$(VERBOSE)$(SUDO) strip $< -o $@
+
+$(INSTALL_LOCATION)/bin/lrelease: $(BUILD_DIR)/qttools/bin/lrelease $(INSTALL_LOCATION)/bin $(INSTALL_LOCATION)/lib/libQt5Core.so.5 $(INSTALL_LOCATION)/lib/libQt5Xml.so.5
+	$(VERBOSE)$(SUDO) strip $< -o $@
 
 install: $(INSTALL_LOCATION)/bin/moc \
          $(INSTALL_LOCATION)/bin/rcc \
          $(INSTALL_LOCATION)/bin/uic \
          $(INSTALL_LOCATION)/bin/qlalr \
          $(INSTALL_LOCATION)/bin/qfloat16-tables \
+         $(INSTALL_LOCATION)/bin/qmake \
+         $(INSTALL_LOCATION)/bin/syncqt.pl \
          $(INSTALL_LOCATION)/bin/lupdate \
          $(INSTALL_LOCATION)/bin/lrelease
 ifeq ($(INSTALL_LOCATION),$(DEFAULT_INSTALL_LOCATION))

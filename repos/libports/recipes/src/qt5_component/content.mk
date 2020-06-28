@@ -1,5 +1,5 @@
 MIRROR_FROM_REP_DIR := lib/mk/qt5_component.mk \
-                       src/lib/qt5/qt_component.cc
+                       src/lib/qt5_component/qt_component.cc
 
 content: $(MIRROR_FROM_REP_DIR) LICENSE src/lib/qt5_component/target.mk
 
