@@ -470,7 +470,7 @@ Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha
 {
 	typedef Pixel_rgb888 PT;
 
-	_buffer_size = Chunky_texture<PT>::calc_num_bytes(mode.area, use_alpha);
+	size_t const buffer_size = Chunky_texture<PT>::calc_num_bytes(mode.area, use_alpha);
 
 	/*
 	 * Preserve the content of the original buffer if nitpicker has
@@ -480,13 +480,16 @@ Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha
 	if (texture()) {
 
 		enum { PRESERVED_RAM = 128*1024 };
-		if (_env.pd().avail_ram().value > _buffer_size + PRESERVED_RAM) {
+		if (_env.pd().avail_ram().value > buffer_size + PRESERVED_RAM) {
 			src_texture = static_cast<Texture<PT> const *>(texture());
 		} else {
 			warning("not enough RAM to preserve buffer content during resize");
 			_release_buffer();
 		}
 	}
+
+	/* set new buffer_size after _release_buffer(), which changes _buffer_size also */
+	_buffer_size = buffer_size;
 
 	Ram_quota const temporary_ram_upgrade = src_texture
 	                                      ? Ram_quota{_buffer_size} : Ram_quota{0};
