@@ -1,0 +1,31 @@
+This driver probes available VirtIO MMIO devices on Qemu's virt platform and
+exports the results in XML format via a ROM session. The exported ROM module
+is suitable as configuration for the generic ARM platform driver.
+
+This driver can currently recognize NIC, block, console, RNG, GPU, and
+input devices. When a device of a given type is detected, it is assigned a
+name based on its type and index on a bus. For example, if the system has
+two VirtIO NIC devices, their names will be "nic0" and "nic1".
+
+To simplify probing devices of the same type, each XML device node has
+an additional "type" property node. The value of this property is simply
+set to a string indicating device type, without any extra indices, e.g.,
+"nic", "gpu", "input", etc.
+
+! <device name="nic0">
+!  <resource ... />
+!  <property name="type" value="nic"/>
+! </device>
+
+Configuration
+~~~~~~~~~~~~~
+
+The virtdev_rom component appends the unmodified content of its own configuration
+ROM to its output. This makes it possible to easily append extra policies
+to the device configuration produced by the driver, e.g.,:
+
+! <config>
+!   <policy label_prefix="virtio_nic">  <device name="nic0">   </policy>
+!   <policy label_prefix="virtio_kbd>   <device name="input0"> </policy>
+!   <policy label_prefix="virtio_mouse> <device name="input1"> </policy>
+! </config>
