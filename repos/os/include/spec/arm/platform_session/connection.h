@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__SPEC__ARM__PLATFORM_SESSION__CONNECTION_H_
 #define _INCLUDE__SPEC__ARM__PLATFORM_SESSION__CONNECTION_H_
 
+#include <base/attached_dataspace.h>
 #include <base/connection.h>
 #include <base/env.h>
 #include <platform_session/client.h>
