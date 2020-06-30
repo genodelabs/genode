@@ -1,0 +1,46 @@
+This driver probes available VirtIO MMIO devices on virt qemu platform
+and exports the resutls of the probe in XML format via ROM session. The
+exported config is suitable for feeding into generic ARM platform driver.
+
+This driver can currently recignizes nic, block, console, rng, gpu and
+input devices. When a device of a given type is detected its assigned a
+name based on its type and index on a bus. For example, if the system has
+two VirtIO NIC devices their names will be "nic0" and "nic1".
+
+To simplify probing devices of the same type each XML device node has
+an additional "type" property node. The value of this property is simply
+set to a string indicating device type, without any extra indexes, ex
+"nic", "gpu", "input", etc.
+
+  ! <device name="nic0">
+  !  <resource ... />
+  !  <property name="type" value="nic"/>
+  ! </device>
+
+Unfortunately in case of QEMU, 32 VirtIO MMIO devices share 16kB of IO
+address space. This means that in 28 out of 32 cases device specific
+configuration space is situated at a certain offset within the
+Io_mem_dataspace returned by Platform::Device client. Since the current
+design of the ARM platform driver does not have any mechanisms to handle
+such unfortunate setup, the configuration exposed by virtdev ROM driver
+contains an extra property node to propagate this information. The name
+attribute of such property node is "io_mem_offset".
+
+  ! <device name="nic0">
+  !   <resource ... />
+  !   <property name="type" value="nic"/>
+  !   <property name="io_mem_offset" value="512"/>
+  ! </device>
+
+Configuration
+~~~~~~~~~~~~~
+
+The virtdev_rom appends the unmodified contents of its own configuration
+ROM to its output. This makes it possible to easily append extra policies
+to the device configuration produced by the driver, ex:
+
+  ! <config>
+  !   <policy label_prefix="virtio_nic">  <device name="nic0"> </policy>
+  !   <policy label_prefix="virtio_kbd>   <device name="input0"> </policy>
+  !   <policy label_prefix="virtio_mouse> <device name="input1"> </policy>
+  ! </config>

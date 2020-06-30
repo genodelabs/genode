@@ -5,6 +5,7 @@ proc have_platform_drv {} {
 
 	return [expr [have_spec imx53] \
 	          || [have_spec rpi] \
+	          || [have_spec virt_qemu] \
 	          || [have_spec x86]]
 }
 
@@ -77,8 +78,9 @@ proc gpio_drv { } {
 
 proc platform_drv_build_components {} {
 	set drv_build_components ""
-	lappend_if [have_platform_drv] drv_build_components drivers/platform
-	lappend_if [have_spec x86]     drv_build_components server/report_rom
+	lappend_if [have_platform_drv]   drv_build_components drivers/platform
+	lappend_if [have_spec x86]       drv_build_components server/report_rom
+	lappend_if [have_spec virt_qemu] drv_build_components drivers/virtdev_rom
 	if {[have_spec x86]} {
 		if {[acpi_drv_name] eq "acpi_drv"} {
 			lappend drv_build_components drivers/acpi
@@ -99,14 +101,16 @@ proc append_platform_drv_build_components {} {
 proc platform_drv_binary {} {
 	if {[have_spec imx53]    } { return imx53_platform_drv     }
 	if {[have_spec rpi]      } { return rpi_platform_drv       }
+	if {[have_spec virt_qemu]} { return platform_drv           }
 	if {[have_spec x86]      } { return platform_drv           }
 	return no_platform_drv_available
 }
 
 proc platform_drv_boot_modules {} {
 	set drv_boot_modules ""
-	lappend_if [have_platform_drv] drv_boot_modules [platform_drv_binary]
-	lappend_if [have_spec x86]     drv_boot_modules report_rom
+	lappend_if [have_platform_drv]   drv_boot_modules [platform_drv_binary]
+	lappend_if [have_spec x86]       drv_boot_modules report_rom
+	lappend_if [have_spec virt_qemu] drv_boot_modules virtdev_rom
 
 	if {[have_spec x86]} {
 		if {[have_spec muen]} {
@@ -157,6 +161,18 @@ proc platform_drv_policy {} {
 }
 
 
+proc virtdev_policy {} {
+	if (![have_spec virt_qemu]) {
+		return {}
+	}
+
+	return {
+		<policy label_prefix="virtio_nic">  <device name="nic0"/> </policy>
+		<policy label_prefix="virtio_fb">  <device name="gpu0"/> </policy>
+	}
+}
+
+
 proc platform_drv_priority {} { return "" }
 proc platform_drv_add_routing {} {
 
@@ -170,6 +186,8 @@ proc platform_drv_add_routing {} {
 
 
 proc platform_drv_config_config {} {
+	if {[have_spec virt_qemu]} return {}
+
 	if {[acpi_drv_name] eq "acpica"} {
 		return {
 		<config acpi_ready="yes">}
@@ -248,6 +266,20 @@ proc platform_drv_config {} {
 
 	}
 
+	if {[have_spec virt_qemu]} {
+		append drv_config {
+			<start name="virtdev_rom">
+				<resource name="RAM" quantum="640K"/>
+				<provides> <service name="ROM"/> </provides>
+				<route> <any-service> <parent/> </any-service> </route>
+				<config>}
+		append drv_config [virtdev_policy]
+		append drv_config {
+				</config>
+			</start>
+		}
+	}
+
 	if {[have_platform_drv]} {
 
 		append drv_config {
@@ -272,6 +304,9 @@ proc platform_drv_config {} {
 		append_if [expr [have_spec x86] && ![have_spec muen]] drv_config {
 			<service name="ROM" label="acpi"> <child name="acpi_report_rom"/> </service>}
 
+		append_if [have_spec virt_qemu] drv_config {
+			<service name="ROM" label="config"> <child name="virtdev_rom"/> </service>}
+
 		append_if [have_spec rpi] drv_config {
 			<service name="Timer"> <any-child/> </service>}
 
@@ -282,8 +317,10 @@ proc platform_drv_config {} {
 		append drv_config [platform_drv_config_config]
 		append drv_config [platform_drv_policy]
 
+		append_if [expr ![have_spec virt_qemu]] drv_config {
+			</config>}
+
 		append drv_config {
-		</config>
 	</start>}
 
 	}
