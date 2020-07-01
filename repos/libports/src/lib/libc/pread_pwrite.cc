@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <libc-plugin/fd_alloc.h>
 
 /* libc includes */
@@ -52,7 +52,7 @@ static ssize_t pread_pwrite_impl(Rw_func rw_func, int fd, Buf_type buf, ::size_t
 	if (fdesc == 0)
 		return -1;
 
-	Lock_guard<Lock> rw_lock_guard(fdesc->lock);
+	Mutex::Guard guard(fdesc->mutex);
 
 	::off_t old_offset = lseek(fd, 0, SEEK_CUR);
 

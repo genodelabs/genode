@@ -1,6 +1,7 @@
 /*
  * \brief  POSIX readers/writer lock (rwlock) implementation
  * \author Alexander Senier
+ * \author Christian Helmuth
  * \date   2018-01-25
  */
 
@@ -13,8 +14,7 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/lock.h>
-#include <base/lock_guard.h>
+#include <base/mutex.h>
 #include <base/thread.h>
 #include <libc/allocator.h>
 
@@ -44,26 +44,26 @@ extern "C" {
 	{
 		private:
 
-			Thread *_owner = nullptr;
-			Lock _nbr_mutex {};
-			Lock _global_mutex {};
+			Thread *_owner        { nullptr };
+			Mutex   _nbr_mutex    { };
+			Mutex   _global_mutex { };
 			int _nbr = 0;
 
 		public:
 
 			void rdlock()
 			{
-				Lock_guard<Lock> guard(_nbr_mutex);
+				Mutex::Guard guard(_nbr_mutex);
 				++_nbr;
 				if (_nbr == 1) {
-					_global_mutex.lock();
+					_global_mutex.acquire();
 					_owner = nullptr;
 				}
 			}
 
 			void wrlock()
 			{
-				_global_mutex.lock();
+				_global_mutex.acquire();
 				_owner = Thread::myself();
 			}
 
@@ -71,11 +71,11 @@ extern "C" {
 			{
 				/* Read lock */
 				if (_owner == nullptr) {
-					Lock_guard<Lock> guard(_nbr_mutex);
+					Mutex::Guard guard(_nbr_mutex);
 					_nbr--;
 					if (_nbr == 0) {
 						_owner = nullptr;
-						_global_mutex.unlock();
+						_global_mutex.release();
 					}
 					return 0;
 				};
@@ -88,7 +88,7 @@ extern "C" {
 
 				/* Write lock owned by us */
 				_owner = nullptr;
-				_global_mutex.unlock();
+				_global_mutex.release();
 				return 0;
 			}
 	};
@@ -99,13 +99,13 @@ extern "C" {
 
 	static int rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr)
 	{
-		static Lock rwlock_init_lock { };
+		static Mutex rwlock_init_mutex { };
 
 		if (!rwlock)
 			return EINVAL;
 
 		try {
-			Lock::Guard g(rwlock_init_lock);
+			Mutex::Guard g(rwlock_init_mutex);
 			Libc::Allocator alloc { };
 			*rwlock = new (alloc) struct pthread_rwlock();
 			return 0;

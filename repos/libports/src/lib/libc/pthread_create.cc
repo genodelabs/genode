@@ -16,7 +16,7 @@
  */
 
 /* Genode includes */
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <util/string.h>
 
 /* libc includes */
@@ -74,11 +74,11 @@ void Libc::init_pthread_support(Genode::Cpu_session &cpu_session,
 
 static unsigned pthread_id()
 {
-	static Genode::Lock mutex;
+	static Genode::Mutex mutex;
 
 	static unsigned id = 0;
 
-	Genode::Lock::Guard guard(mutex);
+	Genode::Mutex::Guard guard(mutex);
 
 	return id++;
 }

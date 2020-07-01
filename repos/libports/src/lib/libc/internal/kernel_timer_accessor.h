@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <timer_session/connection.h>
 
 namespace Libc { struct Kernel_timer_accessor; }
@@ -28,9 +28,9 @@ struct Libc::Kernel_timer_accessor : Timer_accessor
 	/*
 	 * The '_timer' is constructed by whatever thread (main thread
 	 * of pthread) that uses a time-related function first. Hence,
-	 * the construction must be protected by a lock.
+	 * the construction must be protected by a mutex.
 	 */
-	Lock _lock;
+	Mutex _mutex;
 
 	Constructible<Timer> _timer;
 
@@ -38,7 +38,7 @@ struct Libc::Kernel_timer_accessor : Timer_accessor
 
 	Timer &timer() override
 	{
-		Lock::Guard guard(_lock);
+		Mutex::Guard guard(_mutex);
 
 		if (!_timer.constructed())
 			_timer.construct(_env);

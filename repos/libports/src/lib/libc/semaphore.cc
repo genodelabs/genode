@@ -62,7 +62,7 @@ struct sem : Genode::Noncopyable
 
 		Applicant *_applicants { nullptr };
 		int        _count;
-		Lock       _data_mutex;
+		Mutex      _data_mutex;
 
 		/* _data_mutex must be hold when calling the following methods */
 
@@ -100,11 +100,11 @@ struct sem : Genode::Noncopyable
 
 			_append_applicant(&applicant);
 
-			_data_mutex.unlock();
+			_data_mutex.release();
 
 			blockade.block();
 
-			_data_mutex.lock();
+			_data_mutex.acquire();
 
 			if (blockade.woken_up()) {
 				return true;
@@ -158,14 +158,14 @@ struct sem : Genode::Noncopyable
 
 		int trydown()
 		{
-			Lock::Guard lock_guard(_data_mutex);
+			Mutex::Guard guard(_data_mutex);
 
 			return _try_down();
 		}
 
 		int down()
 		{
-			Lock::Guard lock_guard(_data_mutex);
+			Mutex::Guard guard(_data_mutex);
 
 			/* fast path */
 			if (_try_down() == 0)
@@ -178,7 +178,7 @@ struct sem : Genode::Noncopyable
 
 		int down_timed(timespec const &abs_timeout)
 		{
-			Lock::Guard lock_guard(_data_mutex);
+			Mutex::Guard guard(_data_mutex);
 
 			/* fast path */
 			if (_try_down() == 0)
@@ -200,7 +200,7 @@ struct sem : Genode::Noncopyable
 
 		int up()
 		{
-			Lock::Guard lock_guard(_data_mutex);
+			Mutex::Guard guard(_data_mutex);
 
 			_count_up();
 

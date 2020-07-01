@@ -532,7 +532,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		/**
 		 * Monitor interface
 		 */
-		bool _monitor(Genode::Lock &mutex, Function &fn, uint64_t timeout_ms) override
+		bool _monitor(Mutex &mutex, Function &fn, uint64_t timeout_ms) override
 		{
 			if (_main_context()) {
 				Main_job job { fn, timeout_ms };

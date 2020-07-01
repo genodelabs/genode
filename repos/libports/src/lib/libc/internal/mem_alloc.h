@@ -104,7 +104,7 @@ namespace Libc {
 						_ram = ram, _region_map = rm; }
 			};
 
-			Lock   mutable _lock;
+			Mutex  mutable _mutex;
 			Dataspace_pool _ds_pool;      /* list of dataspaces */
 			Allocator_avl  _alloc;        /* local allocator    */
 			size_t         _chunk_size;

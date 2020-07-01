@@ -55,7 +55,7 @@ class Libc::Monitor : Interface
 
 	protected:
 
-		virtual bool _monitor(Genode::Lock &, Function &, uint64_t) = 0;
+		virtual bool _monitor(Mutex &, Function &, uint64_t) = 0;
 		virtual void _charge_monitors() = 0;
 
 	public:
@@ -70,7 +70,7 @@ class Libc::Monitor : Interface
 		 * Returns true if execution completed, false on timeout.
 		 */
 		template <typename FN>
-		bool monitor(Genode::Lock &mutex, FN const &fn, uint64_t timeout_ms = 0)
+		bool monitor(Mutex &mutex, FN const &fn, uint64_t timeout_ms = 0)
 		{
 			struct _Function : Function
 			{
@@ -118,26 +118,26 @@ struct Libc::Monitor::Pool
 	private:
 
 		Registry<Job> _jobs;
+		Mutex         _mutex;
 
-		Lock _mutex;
 		bool _execution_pending { false };
 
 	public:
 
-		void monitor(Genode::Lock &mutex, Job &job)
+		void monitor(Mutex &mutex, Job &job)
 		{
 			Registry<Job>::Element element { _jobs, job };
 
-			mutex.unlock();
+			mutex.release();
 
 			job.wait_for_completion();
 
-			mutex.lock();
+			mutex.acquire();
 		}
 
 		bool charge_monitors()
 		{
-			Lock::Guard guard { _mutex };
+			Mutex::Guard guard { _mutex };
 
 			bool const charged = !_execution_pending;
 			_execution_pending = true;
@@ -147,7 +147,7 @@ struct Libc::Monitor::Pool
 		void execute_monitors()
 		{
 			{
-				Lock::Guard guard { _mutex };
+				Mutex::Guard guard { _mutex };
 
 				if (!_execution_pending) return;
 

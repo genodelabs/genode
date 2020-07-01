@@ -63,15 +63,15 @@ static void suspend(Libc::Suspend_functor &check)
 };
 
 
-static Genode::Lock &vfs_lock()
+static Genode::Mutex &vfs_mutex()
 {
-	static Genode::Lock _vfs_lock;
-	return _vfs_lock;
+	static Genode::Mutex mutex;
+	return mutex;
 }
 
 
 #define VFS_THREAD_SAFE(code) ({ \
-	Genode::Lock::Guard g(vfs_lock()); \
+	Genode::Mutex::Guard g(vfs_mutex()); \
 	code; \
 })
 
@@ -237,7 +237,7 @@ void Libc::Vfs_plugin::_with_info(File_descriptor &fd, FN const &fn)
 	path.append_element("info");
 
 	try {
-		Lock::Guard g(vfs_lock());
+		Mutex::Guard g(vfs_mutex());
 
 		File_content const content(_alloc, *_root_dir, path.string(),
 		                           File_content::Limit{4096U});

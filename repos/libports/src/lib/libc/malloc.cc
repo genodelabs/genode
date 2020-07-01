@@ -122,7 +122,7 @@ class Libc::Malloc
 
 		Constructible<Slab_alloc> _slabs[NUM_SLABS]; /* slab allocators */
 
-		Lock _lock;
+		Mutex _mutex;
 
 		unsigned _slab_log2(size_t size) const
 		{
@@ -155,7 +155,7 @@ class Libc::Malloc
 
 		void * alloc(size_t size)
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			size_t   const real_size = size + _room();
 			unsigned const msb       = _slab_log2(real_size);
@@ -206,7 +206,7 @@ class Libc::Malloc
 
 		void free(void *ptr)
 		{
-			Lock::Guard lock_guard(_lock);
+			Mutex::Guard lock_guard(_mutex);
 
 			Metadata *md = (Metadata *)ptr - 1;
 

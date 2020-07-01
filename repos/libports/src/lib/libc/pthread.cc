@@ -97,7 +97,7 @@ void Libc::Pthread::join(void **retval)
 		_suspend_ptr->suspend(check);
 	} while (check.retry);
 
-	_join_lock.lock();
+	_join_blockade.block();
 
 	if (retval)
 		*retval = _retval;
@@ -114,7 +114,7 @@ void Libc::Pthread::cancel()
 
 	_resume_ptr->resume_all();
 
-	_join_lock.unlock();
+	_join_blockade.wakeup();
 }
 
 
@@ -125,8 +125,8 @@ void Libc::Pthread::cancel()
 void Libc::Pthread_registry::insert(Pthread &thread)
 {
 	/* prevent multiple insertions at the same location */
-	static Lock insert_lock;
-	Lock::Guard insert_lock_guard(insert_lock);
+	static Mutex insert_mutex;
+	Mutex::Guard guard(insert_mutex);
 
 	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++) {
 		if (_array[i] == 0) {
@@ -213,7 +213,7 @@ class pthread_mutex : Genode::Noncopyable
 	protected:
 
 		pthread_t _owner      { nullptr };
-		Lock      _data_mutex;
+		Mutex     _data_mutex;
 
 		/* _data_mutex must be hold when calling the following methods */
 
@@ -252,11 +252,11 @@ class pthread_mutex : Genode::Noncopyable
 
 			_append_applicant(&applicant);
 
-			_data_mutex.unlock();
+			_data_mutex.release();
 
 			blockade.block();
 
-			_data_mutex.lock();
+			_data_mutex.acquire();
 
 			if (blockade.woken_up()) {
 				return true;
@@ -326,7 +326,7 @@ struct Libc::Pthread_mutex_normal : pthread_mutex
 	{
 		pthread_t const myself = pthread_self();
 
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		/* fast path without lock contention */
 		if (_try_lock(myself) == 0)
@@ -341,7 +341,7 @@ struct Libc::Pthread_mutex_normal : pthread_mutex
 	{
 		pthread_t const myself = pthread_self();
 
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		/* fast path without lock contention - does not check abstimeout according to spec */
 		if (_try_lock(myself) == 0)
@@ -364,14 +364,14 @@ struct Libc::Pthread_mutex_normal : pthread_mutex
 	{
 		pthread_t const myself = pthread_self();
 
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		return _try_lock(myself);
 	}
 
 	int unlock() override final
 	{
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		if (_owner != pthread_self())
 			return EPERM;
@@ -400,7 +400,7 @@ struct Libc::Pthread_mutex_errorcheck : pthread_mutex
 	{
 		pthread_t const myself = pthread_self();
 
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		/* fast path without lock contention (or deadlock) */
 		int const result = _try_lock(myself);
@@ -422,14 +422,14 @@ struct Libc::Pthread_mutex_errorcheck : pthread_mutex
 	{
 		pthread_t const myself = pthread_self();
 
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		return _try_lock(myself);
 	}
 
 	int unlock() override final
 	{
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		if (_owner != pthread_self())
 			return EPERM;
@@ -463,7 +463,7 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 	{
 		pthread_t const myself = pthread_self();
 
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		/* fast path without lock contention */
 		if (_try_lock(myself) == 0)
@@ -483,14 +483,14 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 	{
 		pthread_t const myself = pthread_self();
 
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		return _try_lock(myself);
 	}
 
 	int unlock() override final
 	{
-		Lock::Guard lock_guard(_data_mutex);
+		Mutex::Guard guard(_data_mutex);
 
 		if (_owner != pthread_self())
 			return EPERM;
@@ -880,13 +880,13 @@ extern "C" {
 	static int cond_init(pthread_cond_t *__restrict cond,
 	                     const pthread_condattr_t *__restrict attr)
 	{
-		static Lock cond_init_lock { };
+		static Mutex cond_init_mutex { };
 
 		if (!cond)
 			return EINVAL;
 
 		try {
-			Lock::Guard g(cond_init_lock);
+			Mutex::Guard guard(cond_init_mutex);
 			Libc::Allocator alloc { };
 			*cond = new (alloc) pthread_cond;
 			return 0;
@@ -1030,9 +1030,9 @@ extern "C" {
 	};
 
 
-	static Lock &key_list_lock()
+	static Mutex &key_list_mutex()
 	{
-		static Lock inst { };
+		static Mutex inst { };
 		return inst;
 	}
 
@@ -1055,7 +1055,7 @@ extern "C" {
 		if (!key)
 			return EINVAL;
 
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock());
+		Mutex::Guard guard(key_list_mutex());
 
 		for (int k = 0; k < PTHREAD_KEYS_MAX; k++) {
 			/*
@@ -1080,7 +1080,7 @@ extern "C" {
 		if (key < 0 || key >= PTHREAD_KEYS_MAX || !keys().key[key].first())
 			return EINVAL;
 
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock());
+		Mutex::Guard guard(key_list_mutex());
 
 		while (Key_element * element = keys().key[key].first()) {
 			keys().key[key].remove(element);
@@ -1099,7 +1099,7 @@ extern "C" {
 
 		void *myself = Thread::myself();
 
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock());
+		Mutex::Guard guard(key_list_mutex());
 
 		for (Key_element *key_element = keys().key[key].first(); key_element;
 		     key_element = key_element->next())
@@ -1123,7 +1123,7 @@ extern "C" {
 
 		void *myself = Thread::myself();
 
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock());
+		Mutex::Guard guard(key_list_mutex());
 
 		for (Key_element *key_element = keys().key[key].first(); key_element;
 		     key_element = key_element->next())
@@ -1146,8 +1146,8 @@ extern "C" {
 			if (!p) return EINVAL;
 
 			{
-				static Lock lock;
-				Lock::Guard guard(lock);
+				static Mutex mutex;
+				Mutex::Guard guard(mutex);
 
 				if (!once->mutex) {
 					once->mutex = p;

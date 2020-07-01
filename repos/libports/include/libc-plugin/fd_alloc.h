@@ -15,7 +15,8 @@
 #ifndef _LIBC_PLUGIN__FD_ALLOC_H_
 #define _LIBC_PLUGIN__FD_ALLOC_H_
 
-#include <base/lock.h>
+/* Genode includes */
+#include <base/mutex.h>
 #include <base/log.h>
 #include <os/path.h>
 #include <base/allocator.h>
@@ -42,7 +43,7 @@ namespace Libc {
 
 	struct File_descriptor
 	{
-		Genode::Lock lock { };
+		Genode::Mutex mutex { };
 
 		typedef Genode::Id_space<File_descriptor> Id_space;
 		Id_space::Element _elem;
@@ -70,7 +71,7 @@ namespace Libc {
 	{
 		private:
 
-			Genode::Lock _lock;
+			Genode::Mutex _mutex;
 
 			Genode::Allocator &_alloc;
 

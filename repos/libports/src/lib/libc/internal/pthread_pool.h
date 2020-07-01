@@ -26,7 +26,8 @@ struct Libc::Pthread_pool
 {
 	struct Pthread : Timeout_handler
 	{
-		Lock    lock { Lock::LOCKED };
+		Blockade blockade;
+
 		Pthread *next { nullptr };
 
 		Timer_accessor         &_timer_accessor;
@@ -55,11 +56,11 @@ struct Libc::Pthread_pool
 
 		void handle_timeout() override
 		{
-			lock.unlock();
+			blockade.wakeup();
 		}
 	};
 
-	Lock            mutex;
+	Mutex           mutex;
 	Pthread        *pthreads = nullptr;
 	Timer_accessor &timer_accessor;
 
@@ -69,27 +70,27 @@ struct Libc::Pthread_pool
 
 	void resume_all()
 	{
-		Lock::Guard g(mutex);
+		Mutex::Guard g(mutex);
 
 		for (Pthread *p = pthreads; p; p = p->next)
-			p->lock.unlock();
+			p->blockade.wakeup();
 	}
 
 	uint64_t suspend_myself(Suspend_functor & check, uint64_t timeout_ms)
 	{
 		Pthread myself { timer_accessor, timeout_ms };
 		{
-			Lock::Guard g(mutex);
+			Mutex::Guard g(mutex);
 
 			myself.next = pthreads;
 			pthreads    = &myself;
 		}
 
 		if (check.suspend())
-			myself.lock.lock();
+			myself.blockade.block();
 
 		{
-			Lock::Guard g(mutex);
+			Mutex::Guard g(mutex);
 
 			/* address of pointer to next pthread allows to change the head */
 			for (Pthread **next = &pthreads; *next; next = &(*next)->next) {

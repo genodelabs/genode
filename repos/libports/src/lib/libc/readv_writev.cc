@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/lock.h>
+#include <base/mutex.h>
 
 /* libc includes */
 #include <sys/uio.h>
@@ -46,17 +46,13 @@ struct Write
 };
 
 
-static Lock &rw_lock()
-{
-	static Lock rw_lock;
-	return rw_lock;
-}
-
-
 template <typename Rw_func>
 static ssize_t readv_writev_impl(Rw_func rw_func, int fd, const struct iovec *iov, int iovcnt)
 {
-	Lock_guard<Lock> rw_lock_guard(rw_lock());
+	/* FIXME this should be a pthread_mutex because function uses blocking operations */
+	static Mutex rw_mutex;
+
+	Mutex::Guard guard(rw_mutex);
 
 	char *v;
 	ssize_t bytes_transfered_total = 0;

@@ -1048,8 +1048,10 @@ static int read_ifaddr_file(sockaddr_in &sockaddr, Socket_fs::Absolute_path cons
 
 extern "C" int getifaddrs(struct ifaddrs **ifap)
 {
-	static Lock lock;
-	Lock::Guard guard(lock);
+	/* FIXME this should be a pthread_mutex because function uses blocking operations */
+	static Mutex mutex;
+
+	Mutex::Guard guard(mutex);
 
 	static sockaddr_in address;
 	static sockaddr_in netmask   { 0 };

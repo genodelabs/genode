@@ -89,14 +89,14 @@ struct Libc::Select_cb
 
 struct Libc::Select_cb_list
 {
-	Lock       _mutex;
+	Mutex      _mutex;
 	Select_cb *_first = nullptr;
 
-	struct Guard : Lock::Guard
+	struct Guard : Mutex::Guard
 	{
 		Select_cb_list *l;
 
-		Guard(Select_cb_list &list) : Lock::Guard(list._mutex), l(&list) { }
+		Guard(Select_cb_list &list) : Mutex::Guard(list._mutex), l(&list) { }
 	};
 
 	void unsynchronized_insert(Select_cb *scb)

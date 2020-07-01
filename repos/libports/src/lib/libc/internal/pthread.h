@@ -17,6 +17,7 @@
 #define _LIBC__INTERNAL__PTHREAD_H_
 
 /* Genode includes */
+#include <base/blockade.h>
 #include <libc/allocator.h>
 #include <libc/component.h>
 #include <util/reconstructible.h>
@@ -165,7 +166,7 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 		bool _exiting = false;
 
 		/*
-		 * The join lock is needed because 'Libc::resume_all()' uses a
+		 * The join blockade is needed because 'Libc::resume_all()' uses a
 		 * 'Signal_transmitter' which holds a reference to a signal context
 		 * capability, which needs to be released before the thread can be
 		 * destroyed.
@@ -174,7 +175,7 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 		 * returns when the thread entry function returns, which does not
 		 * happen with 'pthread_cancel()'.
 		 */
-		Lock _join_lock { Lock::LOCKED };
+		Genode::Blockade _join_blockade;
 
 		/* return value for 'pthread_join()' */
 		void *_retval = PTHREAD_CANCELED;
@@ -301,7 +302,7 @@ class Libc::Pthread_blockade : public Blockade, public Timeout_handler
 {
 	private:
 
-		Lock                   _blockade { Lock::LOCKED };
+		Genode::Blockade       _blockade;
 		Constructible<Timeout> _timeout;
 
 	public:
@@ -314,12 +315,12 @@ class Libc::Pthread_blockade : public Blockade, public Timeout_handler
 			}
 		}
 
-		void block() override { _blockade.lock(); }
+		void block() override { _blockade.block(); }
 
 		void wakeup() override
 		{
 			_woken_up = true;
-			_blockade.unlock();
+			_blockade.wakeup();
 		}
 
 		/**
@@ -328,7 +329,7 @@ class Libc::Pthread_blockade : public Blockade, public Timeout_handler
 		void handle_timeout() override
 		{
 			_expired = true;
-			_blockade.unlock();
+			_blockade.wakeup();
 		}
 };
 
