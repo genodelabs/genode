@@ -18,6 +18,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <input/keycodes.h>
 #include <root/component.h>
+#include <timer_session/connection.h>
 #include <input_session/connection.h>
 #include <framebuffer_session/connection.h>
 #include <os/session_policy.h>
@@ -276,6 +277,19 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 			_sessions.for_each([&] (Capture_session &session) {
 				session.mark_as_damaged(rect); });
 		}
+
+		void report_displays(Xml_generator &xml) const
+		{
+			Area const size = bounding_box();
+
+			if (size.count() == 0)
+				return;
+
+			xml.node("display", [&] () {
+				xml.attribute("width",  size.w());
+				xml.attribute("height", size.h());
+			});
+		}
 };
 
 
@@ -285,11 +299,25 @@ struct Nitpicker::Main : Focus_updater,
 {
 	Env &_env;
 
-	Framebuffer::Connection _framebuffer { _env, Framebuffer::Mode { } };
+	Timer::Connection _timer { _env };
 
-	Input::Connection _input { _env };
+	Signal_handler<Main> _timer_handler = { _env.ep(), *this, &Main::_handle_input };
 
-	Attached_dataspace _ev_ds { _env.rm(), _input.dataspace() };
+	unsigned long _timer_period_ms = 10;
+
+	Constructible<Framebuffer::Connection> _framebuffer { };
+
+	struct Input_connection
+	{
+		Input::Connection connection;
+
+		Attached_dataspace ev_ds;
+
+		Input_connection(Env &env)
+		: connection(env), ev_ds(env.rm(), connection.dataspace()) { }
+	};
+
+	Constructible<Input_connection> _input { };
 
 	typedef Pixel_rgb888 PT;  /* physical pixel type */
 
@@ -325,6 +353,9 @@ struct Nitpicker::Main : Focus_updater,
 			dirty_rect.mark_as_dirty(Rect(Point(0, 0), size));
 		}
 	};
+
+	bool _request_framebuffer = false;
+	bool _request_input       = false;
 
 	Constructible<Framebuffer_screen> _fb_screen { };
 
@@ -401,6 +432,12 @@ struct Nitpicker::Main : Focus_updater,
 		_capture_root.mark_as_damaged(rect);
 	}
 
+	void _update_input_connection()
+	{
+		bool const output_present = (_view_stack.size().count() > 0);
+		_input.conditional(_request_input && output_present, _env);
+	}
+
 	/**
 	 * Capture_session::Handler interface
 	 */
@@ -435,6 +472,8 @@ struct Nitpicker::Main : Focus_updater,
 
 			_report_displays();
 		}
+
+		_update_input_connection();
 	}
 
 	/**
@@ -514,10 +553,9 @@ struct Nitpicker::Main : Focus_updater,
 		_config_rom.sigh(_config_handler);
 		_handle_config();
 
-		_framebuffer.sync_sigh(_input_handler);
+		_timer.sigh(_timer_handler);
 
 		_handle_fb_mode();
-		_framebuffer.mode_sigh(_fb_mode_handler);
 
 		_env.parent().announce(_env.ep().manage(_gui_root));
 
@@ -544,9 +582,10 @@ void Nitpicker::Main::_handle_input()
 	bool const old_motion_activity = _motion_activity;
 
 	/* handle batch of pending events */
-	User_state::Handle_input_result const result =
-		_user_state.handle_input_events(_ev_ds.local_addr<Input::Event>(),
-		                                _input.flush());
+	User_state::Handle_input_result const result = _input.constructed()
+		? _user_state.handle_input_events(_input->ev_ds.local_addr<Input::Event>(),
+		                                  _input->connection.flush())
+		: User_state::Handle_input_result { };
 
 	if (result.button_activity) {
 		_last_button_activity_period = _period_cnt;
@@ -610,7 +649,7 @@ void Nitpicker::Main::_handle_input()
 		_update_pointer_position();
 
 	/* perform redraw */
-	if (_fb_screen.constructed()) {
+	if (_framebuffer.constructed() && _fb_screen.constructed()) {
 		/* call 'Dirty_rect::flush' on a copy to preserve the state */
 		Dirty_rect dirty_rect = _fb_screen->dirty_rect;
 		dirty_rect.flush([&] (Rect const &rect) {
@@ -618,9 +657,9 @@ void Nitpicker::Main::_handle_input()
 
 		/* flush pixels to the framebuffer, reset dirty_rect */
 		_fb_screen->dirty_rect.flush([&] (Rect const &rect) {
-			_framebuffer.refresh(rect.x1(), rect.y1(),
-		                     rect.w(),  rect.h()); });
-}
+			_framebuffer->refresh(rect.x1(), rect.y1(),
+			                      rect.w(),  rect.h()); });
+	}
 
 	/* deliver framebuffer synchronization events */
 	for (Gui_session *s = _session_list.first(); s; s = s->next())
@@ -731,6 +770,22 @@ void Nitpicker::Main::_handle_config()
 	/* update focus report since the domain colors might have changed */
 	Reporter::Xml_generator xml(_focus_reporter, [&] () {
 		_user_state.report_focused_view_owner(xml, _button_activity); });
+
+	/* update framebuffer output back end */
+	bool const request_framebuffer = config.attribute_value("request_framebuffer", true);
+	if (request_framebuffer != _request_framebuffer) {
+		_request_framebuffer = request_framebuffer;
+		_handle_fb_mode();
+	}
+
+	/*
+	 * Update input back end
+	 *
+	 * Defer input session creation until at least one capture client
+	 * (framebuffer driver) is present.
+	 */
+	_request_input = config.attribute_value("request_input", true);
+	_update_input_connection();
 }
 
 
@@ -746,14 +801,33 @@ void Nitpicker::Main::_report_displays()
 				xml.attribute("height", _fb_screen->size.h());
 			});
 		}
+
+		_capture_root.report_displays(xml);
 	});
 }
 
 
 void Nitpicker::Main::_handle_fb_mode()
 {
-	/* reconstruct framebuffer screen and menu bar */
-	_fb_screen.construct(_env.rm(), _framebuffer);
+	if (_request_framebuffer && !_framebuffer.constructed()) {
+		_framebuffer.construct(_env, Framebuffer::Mode{});
+		_framebuffer->mode_sigh(_fb_mode_handler);
+		_framebuffer->sync_sigh(_input_handler);
+		_timer.trigger_periodic(0);
+	}
+
+	if (_request_framebuffer && !_fb_screen.constructed())
+		_fb_screen.construct(_env.rm(), *_framebuffer);
+
+	if (!_request_framebuffer && _fb_screen.constructed())
+		_fb_screen.destruct();
+
+	if (!_request_framebuffer && _framebuffer.constructed()) {
+		_framebuffer.destruct();
+	}
+
+	if (!_request_framebuffer)
+		_timer.trigger_periodic(_timer_period_ms*1000);
 
 	capture_buffer_size_changed();
 }
