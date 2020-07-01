@@ -177,26 +177,28 @@ proc qt5_start_nodes { } {
 				<service name="ROM" label="input_filter.config"> <parent label="qt5_input_filter.config"/> </service>
 				<service name="ROM" label="input_filter -> capslock"> <child name="wm_report_rom"/> </service>
 				<service name="ROM" label="input_filter -> numlock.remap"> <child name="numlock_remap_rom"/> </service>
-				<service name="Timer"> <child name="timer"/> </service>
+				<service name="Timer">   <child name="timer"/> </service>
+				<service name="Capture"> <child name="nitpicker"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
-			<provides>
-				<service name="Input"/> <service name="Framebuffer"/>
-			</provides>
+			<provides> <service name="Input"/> </provides>
 		</start>
 
 		<start name="nitpicker" caps="200">
 			<resource name="RAM" quantum="2M"/>
-			<provides><service name="Gui"/></provides>
+			<provides> <service name="Gui"/> <service name="Capture"/> </provides>
 			<route>
 				<service name="Report"> <child name="wm_report_rom"/> </service>
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
-			<config>
+			<config request_framebuffer="no">
+				<capture/>
+
 				<report focus="yes" hover="yes" xray="yes"/>
 
 				<domain name="pointer" layer="1" label="no" content="client" origin="pointer" />
-				<domain name="default" layer="2" label="no" content="client" focus="click" hover="always" />
+				<domain name="default" layer="2" label="no" content="client"
+				        focus="click" hover="always" width="1024" height="768"/>
 
 				<policy label_prefix="pointer" domain="pointer"/>
 				<default-policy domain="default"/>

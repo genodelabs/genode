@@ -3,6 +3,6 @@ os
 blit
 platform_session
 gpio_session
-framebuffer_session
+capture_session
 input_session
 timer_session

@@ -254,13 +254,13 @@ install_config {
 			<service name="ROM" label_last="usb_policy">
 				<child name="config_fs_rom" label="usb"/> </service>
 			<service name="ROM" label_last="numlock">  <child name="report_rom"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Report"> <child name="fs_report"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Report">  <child name="fs_report"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 		<provides>
 			<service name="Input"/>
-			<service name="Framebuffer"/>
 			<service name="Block"/>
 			<service name="Usb"/>
 			<service name="Platform"/>
@@ -269,7 +269,7 @@ install_config {
 
 	<start name="nitpicker" caps="1000">
 		<resource name="RAM" quantum="6M"/>
-		<provides><service name="Gui"/></provides>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
 		<route>
 			<service name="ROM" label="config">
 				<child name="config_fs_rom" label="nitpicker"/> </service>
@@ -277,10 +277,9 @@ install_config {
 				<child name="nit_focus"/> </service>
 			<service name="Report" label="keystate">
 				<child name="report_logger"/> </service>
-			<service name="Report">      <child name="report_rom"/> </service>
-			<service name="Framebuffer"> <child name="drivers"/>    </service>
-			<service name="Input">       <child name="drivers"/>    </service>
-			<service name="Timer">       <child name="timer"/>      </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Input">  <child name="drivers"/>    </service>
+			<service name="Timer">  <child name="timer"/>      </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>

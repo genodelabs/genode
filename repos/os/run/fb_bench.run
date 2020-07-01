@@ -15,6 +15,8 @@ if {[get_cmd_switch --autopilot] && [have_spec linux]} {
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/gui_fb \
                   [depot_user]/src/init
 build { test/fb_bench }
 
@@ -45,12 +47,35 @@ install_config {
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides>
-			<service name="Input"/> <service name="Framebuffer"/>
-		</provides>
+		<provides> <service name="Input"/> </provides>
+	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+		<config focus="rom" request_framebuffer="no">
+			<capture/>
+			<domain name="default" layer="1" width="1024" height="768"/>
+			<default-policy domain="default"/>
+		</config>
+		<route>
+			<service name="Input">  <child name="drivers"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="gui_fb">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
+		<config/>
+		<route>
+			<service name="Gui"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="test-fb_bench">
@@ -60,8 +85,13 @@ install_config {
 		  - RAM.
 		  -->
 		<resource name="RAM" quantum="72M"/>
+		<config/>
 	</start>
 </config>}
+
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"gui_fb -> \" domain=\"default\"/>"
+close $fd
 
 build_boot_image { test-fb_bench }
 

@@ -1,13 +1,14 @@
 /*
- * \brief  Basic test for framebuffer session
+ * \brief  Basic test for framebuffer drivers
  * \author Martin Stein
  * \author Christian Helmuth
  * \author Stefan Kalkowski
+ * \author Norman Feske
  * \date   2012-01-09
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,71 +17,107 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/log.h>
-#include <framebuffer_session/connection.h>
-#include <base/attached_dataspace.h>
-#include <os/surface.h>
-#include <os/pixel_rgb888.h>
+#include <os/static_root.h>
+#include <capture_session/capture_session.h>
+#include <base/attached_ram_dataspace.h>
 #include <util/reconstructible.h>
 
+namespace Test {
 
-using Area  = Genode::Surface_base::Area;
-using Pixel = Genode::Pixel_rgb888;
+	using namespace Genode;
 
-class Test_environment
+	using Area  = Capture::Area;
+	using Point = Capture::Point;
+	using Pixel = Capture::Pixel;
+
+	struct Capture_session;
+	class Main;
+}
+
+
+struct Test::Capture_session : Rpc_object<Capture::Session>
+{
+	Env &_env;
+
+	Pixel const BLACK = {   0,   0,   0 };
+	Pixel const BLUE  = {   0,   0, 255 };
+	Pixel const GREEN = {   0, 255,   0 };
+	Pixel const RED   = { 255,   0,   0 };
+	Pixel const WHITE = { 255, 255, 255 };
+
+	enum State { STRIPES, ALL_BLUE, ALL_GREEN, ALL_RED, COLORED };
+
+	Area _size { 0, 0 };
+
+	Constructible<Attached_ram_dataspace> _ds { };
+
+	State _state = STRIPES;
+
+	unsigned long _sync_cnt = 0;
+
+	enum { FRAME_CNT = 200 };
+
+	void _draw();
+
+	void _draw_frame(Pixel *, Pixel, Area);
+
+	Capture_session(Env &env) : _env(env) { }
+
+
+	/********************************
+	 ** Capture::Session interface **
+	 ********************************/
+
+	Area screen_size() const override { return _size; }
+
+	void screen_size_sigh(Signal_context_capability) override { }
+
+	void buffer(Area size) override
+	{
+		_ds.construct(_env.ram(), _env.rm(), buffer_bytes(size));
+		_size = size;
+		_draw();
+	}
+
+	Dataspace_capability dataspace() override
+	{
+		return _ds.constructed() ? _ds->cap() : Ram_dataspace_capability();
+	}
+
+	Affected_rects capture_at(Point) override
+	{
+		Affected_rects affected { };
+
+		if (_sync_cnt++ % FRAME_CNT == 0) {
+			_draw();
+			affected.rects[0] = Rect(Point(0, 0), _size);
+		}
+
+		return affected;
+	}
+};
+
+
+class Test::Main
 {
 	private:
 
-		using Ds = Genode::Constructible<Genode::Attached_dataspace>;
+		Env &_env;
 
-		Pixel const BLACK = {   0,   0,   0 };
-		Pixel const BLUE  = {   0,   0, 255 };
-		Pixel const GREEN = {   0, 255,   0 };
-		Pixel const RED   = { 255,   0,   0 };
-		Pixel const WHITE = { 255, 255, 255 };
+		Capture_session _capture_session { _env };
 
-		enum State { STRIPES, ALL_BLUE, ALL_GREEN, ALL_RED, COLORED };
-
-		Genode::Env &_env;
-
-		Framebuffer::Mode                        _mode { };
-		Framebuffer::Connection                  _fb { _env, _mode };
-		Ds                                       _fb_ds { };
-		Genode::Signal_handler<Test_environment> _mode_sigh;
-		Genode::Signal_handler<Test_environment> _sync_sigh;
-		unsigned long                            _sync_cnt = 0;
-		State                                    _state = STRIPES;
-
-		enum { FRAME_CNT = 200 };
-
-		void _draw();
-		void _mode_handle();
-
-		void _sync_handle() {
-			if (_sync_cnt++ % FRAME_CNT == 0) _draw(); }
-
-		void _draw_frame(Pixel *, Pixel, Area);
-
-		Genode::size_t _fb_bpp()  { return _mode.bytes_per_pixel(); }
-		Genode::size_t _fb_size() { return _fb_ds->size(); }
-		Genode::addr_t _fb_base() {
-			return (Genode::addr_t) _fb_ds->local_addr<void>(); }
+		Static_root<Capture::Session> _capture_root { _env.ep().manage(_capture_session) };
 
 	public:
 
-		Test_environment(Genode::Env &env)
-		:
-			_env(env),
-			_mode_sigh(_env.ep(), *this, &Test_environment::_mode_handle),
-			_sync_sigh(_env.ep(), *this, &Test_environment::_sync_handle)
+		Main(Env &env) : _env(env)
 		{
-			_fb.mode_sigh(_mode_sigh);
-			_fb.sync_sigh(_sync_sigh);
-			_mode_handle();
+			_env.parent().announce(env.ep().manage(_capture_root));
 		}
 };
 
 
-void Test_environment::_draw_frame(Pixel *p, Pixel c, Area area)
+void Test::Capture_session::_draw_frame(Pixel *p, Pixel c, Area area)
 {
 	unsigned const w = area.w(), h = area.h();
 
@@ -94,91 +131,81 @@ void Test_environment::_draw_frame(Pixel *p, Pixel c, Area area)
 }
 
 
-void Test_environment::_draw()
+void Test::Capture_session::_draw()
 {
-	using namespace Genode;
+	if (!_ds.constructed())
+		return;
+
+	addr_t const num_pixels = _size.count();
+
+	Pixel * const fb_base = _ds->local_addr<Pixel>();
 
 	switch(_state) {
 	case STRIPES:
 		{
-			Genode::log("black & white stripes");
-			addr_t const stripe_width = _mode.area.w() / 4;
+			log("black & white stripes");
+			addr_t const stripe_width = _size.w() / 4;
 			addr_t stripe_o = 0;
 			bool stripe = 0;
-			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp()) {
+			for (addr_t o = 0; o < num_pixels; o++) {
 				stripe_o++;
 				if (stripe_o == stripe_width) {
 					stripe_o = 0;
 					stripe = !stripe;
 				}
-				*(Pixel *)(_fb_base() + o) = stripe ? BLACK : WHITE;
+				fb_base[o] = stripe ? BLACK : WHITE;
 			}
 
-			_draw_frame((Pixel *)_fb_base(), RED, _mode.area);
+			_draw_frame(fb_base, RED, _size);
 			_state = ALL_BLUE;
 			break;
 		}
 	case ALL_BLUE:
 		{
-			Genode::log("blue");
-			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
-				*(Pixel *)(_fb_base() + o) = BLUE;
+			log("blue");
+			for (addr_t o = 0; o < num_pixels; o++)
+				fb_base[o] = BLUE;
 
-			_draw_frame((Pixel *)_fb_base(), RED, _mode.area);
+			_draw_frame(fb_base, RED, _size);
 			_state = ALL_GREEN;
 			break;
 		}
 	case ALL_GREEN:
 		{
-			Genode::log("green");
-			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
-				*(Pixel *)(_fb_base() + o) = GREEN;
+			log("green");
+			for (addr_t o = 0; o < num_pixels; o++)
+				fb_base[o] = GREEN;
 
-			_draw_frame((Pixel *)_fb_base(), RED, _mode.area);
+			_draw_frame(fb_base, RED, _size);
 			_state = ALL_RED;
 			break;
 		}
 	case ALL_RED:
 		{
-			Genode::log("red");
-			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
-				*(Pixel *)(_fb_base() + o) = RED;
+			log("red");
+			for (addr_t o = 0; o < num_pixels; o++)
+				fb_base[o] = RED;
 
-			_draw_frame((Pixel *)_fb_base(), WHITE, _mode.area);
+			_draw_frame(fb_base, WHITE, _size);
 			_state = COLORED;
 			break;
 		}
 	case COLORED:
 		{
-			Genode::log("all colors mixed");
+			log("all colors mixed");
 			unsigned i = 0;
-			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp(), i++)
-				*(Pixel *)(_fb_base() + o) = Pixel(i>>16, i>>8, i);
+			for (addr_t o = 0; o < num_pixels; o++, i++)
+				fb_base[o] = Pixel(i>>16, i>>8, i);
 
-			_draw_frame((Pixel *)_fb_base(), WHITE, _mode.area);
+			_draw_frame(fb_base, WHITE, _size);
 			_state = STRIPES;
 		}
 	};
-	_fb.refresh(0, 0, _mode.area.w(), _mode.area.h());
-}
-
-
-void Test_environment::_mode_handle()
-{
-	_mode = _fb.mode();
-	if (_fb_ds.constructed())
-		_fb_ds.destruct();
-
-	_fb_ds.construct(_env.rm(), _fb.dataspace());
-
-	Genode::log("framebuffer is ", _mode);
-
-	_draw();
 }
 
 
 void Component::construct(Genode::Env &env)
 {
 	Genode::log("--- Test framebuffer ---");
-	static Test_environment te(env);
+	static Test::Main main(env);
 }

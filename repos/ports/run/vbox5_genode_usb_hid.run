@@ -146,19 +146,18 @@ append config {
 	<start name="fb_drv" priority="-1">
 		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="16M"/>
-		<provides><service name="Framebuffer"/></provides>
-		<config buffered="yes"/>
+		<config/>
 	</start>
 
 	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Gui"/></provides>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
 		<route>
-			<service name="Framebuffer"> <child name="fb_drv" /> </service>
 			<service name="Report"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config>
+		<config request_framebuffer="no">
+			<capture/>
 			<report focus="yes" hover="yes" />
 
 			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />

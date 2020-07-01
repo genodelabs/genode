@@ -1,3 +1,4 @@
 _/src/fb_sdl
 _/src/input_filter
+_/src/input_event_bridge
 _/raw/drivers_interactive-linux

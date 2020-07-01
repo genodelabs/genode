@@ -16,7 +16,6 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/allocator_avl.h>
 #include <base/heap.h>
-#include <framebuffer_session/connection.h>
 #include <input_session/connection.h>
 #include <block_session/connection.h>
 
@@ -32,6 +31,7 @@ struct Test::Main
 
 	Attached_rom_dataspace _config        { _env, "config" };
 	Attached_rom_dataspace _block_devices { _env, "block_devices" };
+	Attached_rom_dataspace _displays      { _env, "displays" };
 
 	static bool _attribute_matches(char const *attr, Xml_node expected, Xml_node checked)
 	{
@@ -113,6 +113,14 @@ struct Test::Main
 			Block::Connection<> block(_env, &packet_alloc, 128*1024, label.string());
 		});
 
+		if (_config.xml().has_sub_node("check_displays")) {
+			_displays.update();
+			if (!_displays.xml().has_sub_node("display"))
+				return;
+
+			log("available displays: ", _displays.xml());
+		}
+
 		log("all expected devices present and accessible");
 	}
 
@@ -121,12 +129,6 @@ struct Test::Main
 
 	Main(Env &env) : _env(env)
 	{
-		if (_config.xml().has_sub_node("check_framebuffer")) {
-			log("connect to framebuffer driver");
-			Framebuffer::Mode mode { .area = { 640, 480 } };
-			Framebuffer::Connection fb(_env, mode);
-		}
-
 		if (_config.xml().has_sub_node("check_input")) {
 			log("connect to input driver");
 			Input::Connection input(_env);

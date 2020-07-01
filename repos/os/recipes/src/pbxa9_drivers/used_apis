@@ -1,6 +1,6 @@
 base
 os
-framebuffer_session
+capture_session
 input_session
 platform_session
 timer_session

@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2007-2017 Genode Labs GmbH
+ * Copyright (C) 2007-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,225 +17,144 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
-#include <base/attached_ram_dataspace.h>
-#include <root/component.h>
 #include <util/reconstructible.h>
-#include <util/arg_string.h>
-#include <blit/blit.h>
 #include <timer_session/connection.h>
-#include <framebuffer_session/framebuffer_session.h>
+#include <capture_session/connection.h>
+#include <blit/painter.h>
+#include <os/pixel_rgb888.h>
 
 /* local includes */
 #include "framebuffer.h"
 
-
-namespace Framebuffer {
-	struct Session_component;
-	struct Root;
+namespace Vesa_driver {
+	using namespace Genode;
 	struct Main;
-
-	using Genode::size_t;
-	using Genode::min;
-	using Genode::max;
-	using Genode::Dataspace_capability;
-	using Genode::Attached_rom_dataspace;
-	using Genode::Attached_ram_dataspace;
 }
 
 
-class Framebuffer::Session_component : public Genode::Rpc_object<Session>
+struct Vesa_driver::Main
 {
-	private:
+	using Pixel = Capture::Pixel;
+	using Area  = Capture::Area;
 
-		Genode::Env &_env;
+	Env &_env;
 
-		unsigned const _scr_width, _scr_height, _scr_depth;
-
-		Timer::Connection _timer { _env };
-
-		/* dataspace of physical frame buffer */
-		Dataspace_capability  _fb_cap;
-		void                 *_fb_addr;
-
-		/* dataspace uses a back buffer (if '_buffered' is true) */
-		Genode::Constructible<Attached_ram_dataspace> _bb;
-
-		void _refresh_buffered(int x, int y, int w, int h)
-		{
-			/* clip specified coordinates against screen boundaries */
-			int x2 = min(x + w - 1, (int)_scr_width  - 1),
-			    y2 = min(y + h - 1, (int)_scr_height - 1);
-			int x1 = max(x, 0),
-			    y1 = max(y, 0);
-			if (x1 > x2 || y1 > y2) return;
-
-			/* determine bytes per pixel */
-			int bypp = 0;
-			if (_scr_depth == 32) bypp = 4;
-			if (!bypp) return;
-
-			/* copy pixels from back buffer to physical frame buffer */
-			char *src = _bb->local_addr<char>() + bypp*(_scr_width*y1 + x1),
-			     *dst = (char *)_fb_addr + bypp*(_scr_width*y1 + x1);
-
-			blit(src, bypp*_scr_width, dst, bypp*_scr_width,
-			     bypp*(x2 - x1 + 1), y2 - y1 + 1);
-		}
-
-		bool _buffered() const { return _bb.constructed(); }
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Session_component(Genode::Env &env,
-		                  unsigned scr_width, unsigned scr_height, unsigned scr_depth,
-		                  Dataspace_capability fb_cap, bool buffered)
-		:
-			_env(env),
-			_scr_width(scr_width), _scr_height(scr_height), _scr_depth(scr_depth),
-			_fb_cap(fb_cap)
-		{
-			if (!buffered) return;
-
-			size_t const bb_size = _scr_width*_scr_height*_scr_depth/8;
-			try { _bb.construct(env.ram(), env.rm(), bb_size); }
-			catch (...) {
-				Genode::warning("could not allocate back buffer, disabled buffered output");
-				return;
-			}
-
-			_fb_addr = env.rm().attach(_fb_cap);
-
-			Genode::log("using buffered output");
-		}
-
-		/**
-		 * Destructor
-		 */
-		~Session_component()
-		{
-			if (_buffered()) {
-				_bb.destruct();
-				_env.rm().detach(_fb_addr);
-			}
-		}
+	Heap _heap { _env.ram(), _env.rm() };
 
 
-		/***********************************
-		 ** Framebuffer session interface **
-		 ***********************************/
+	/*
+	 * Config
+	 */
 
-		Dataspace_capability dataspace() override
-		{
-			return _buffered() ? Dataspace_capability(_bb->cap())
-			                   : Dataspace_capability(_fb_cap);
-		}
+	Attached_rom_dataspace _config { _env, "config" };
 
-		Mode mode() const override
-		{
-			return Mode { .area = { _scr_width, _scr_height } };
-		}
+	Area _size { 1, 1 };
 
-		void mode_sigh(Genode::Signal_context_capability) override { }
+	void _handle_config();
 
-		void sync_sigh(Genode::Signal_context_capability sigh) override
-		{
-			_timer.sigh(sigh);
-			_timer.trigger_periodic(10*1000);
-		}
-
-		void refresh(int x, int y, int w, int h) override
-		{
-			if (_buffered())
-				_refresh_buffered(x, y, w, h);
-		}
-};
+	Signal_handler<Main> _config_handler { _env.ep(), *this, &Main::_handle_config };
 
 
-/**
- * Shortcut for single-client root component
- */
-typedef Genode::Root_component<Framebuffer::Session_component,
-                               Genode::Single_client> Root_component;
+	/*
+	 * Capture
+	 */
 
-class Framebuffer::Root : public Root_component
-{
-	private:
+	Capture::Connection _capture { _env };
 
-		Genode::Env &_env;
-
-		Attached_rom_dataspace const &_config;
-
-		unsigned _session_arg(char const *attr_name, char const *args,
-		                      char const *arg_name, unsigned default_value)
-		{
-			/* try to obtain value from config file */
-			unsigned result = _config.xml().attribute_value(attr_name,
-			                                                default_value);
-
-			/* check session argument to override value from config file */
-			return Genode::Arg_string::find_arg(args, arg_name).ulong_value(result);
-		}
-
-	protected:
-
-		Session_component *_create_session(char const *args) override
-		{
-			unsigned       scr_width  = _session_arg("width",  args, "fb_width",  0);
-			unsigned       scr_height = _session_arg("height", args, "fb_height", 0);
-			unsigned const scr_depth  = 32;
-
-			bool const buffered = _config.xml().attribute_value("buffered", true);
-
-			if (Framebuffer::set_mode(scr_width, scr_height, scr_depth) != 0) {
-				Genode::warning("Could not set vesa mode ",
-				                scr_width, "x", scr_height, "@", scr_depth);
-				throw Genode::Service_denied();
-			}
-
-			Genode::log("using video mode: ",
-			            scr_width, "x", scr_height, "@", scr_depth);
-
-			return new (md_alloc()) Session_component(_env,
-			                                          scr_width, scr_height, scr_depth,
-			                                          Framebuffer::hw_framebuffer(),
-			                                          buffered);
-		}
-
-	public:
-
-		Root(Genode::Env &env, Genode::Allocator &alloc,
-		     Attached_rom_dataspace const &config)
-		:
-			Root_component(&env.ep().rpc_ep(), &alloc),
-			_env(env), _config(config)
-		{ }
-};
+	Constructible<Capture::Connection::Screen> _captured_screen { };
 
 
-struct Framebuffer::Main
-{
-	Genode::Env &env;
+	/*
+	 * Timer
+	 */
 
-	Genode::Heap heap { env.ram(), env.rm() };
+	Timer::Connection _timer { _env };
 
-	Attached_rom_dataspace config { env, "config" };
+	Signal_handler<Main> _timer_handler { _env.ep(), *this, &Main::_handle_timer };
 
-	Root root { env, heap, config };
+	void _handle_timer();
 
-	Main(Genode::Env &env) : env(env)
+
+	/*
+	 * Driver
+	 */
+
+	bool const _framebuffer_initialized = ( Framebuffer::init(_env, _heap), true );
+
+	Constructible<Attached_dataspace> _fb_ds { };
+
+	Main(Env &env) : _env(env)
 	{
-		Genode::log("modified");
-		try { Framebuffer::init(env, heap); } catch (...) {
-			Genode::error("H/W driver init failed");
-			throw;
-		}
+		_config.sigh(_config_handler);
+		_timer.sigh(_timer_handler);
 
-		env.parent().announce(env.ep().manage(root));
+		_handle_config();
 	}
 };
+
+
+void Vesa_driver::Main::_handle_timer()
+{
+	if (!_fb_ds.constructed())
+		return;
+
+	Surface<Pixel> surface(_fb_ds->local_addr<Pixel>(), _size);
+
+	_captured_screen->apply_to_surface(surface);
+}
+
+
+void Vesa_driver::Main::_handle_config()
+{
+	_config.update();
+
+	Xml_node const config = _config.xml();
+
+	Area const configured_size { config.attribute_value("width",  0U),
+	                             config.attribute_value("height", 0U) };
+	if (configured_size == _size)
+		return;
+
+	_size = Area { };
+	_fb_ds.destruct();
+	_timer.trigger_periodic(0);
+
+	/* set VESA mode */
+	{
+		enum { BITS_PER_PIXEL = 32 };
+
+		struct Pretty_mode
+		{
+			Area size;
+			void print(Output &out) const {
+				Genode::print(out, "VESA mode ", size, "@", (int)BITS_PER_PIXEL); }
+		};
+
+		unsigned width  = configured_size.w(),
+		         height = configured_size.h();
+
+		if (Framebuffer::set_mode(width, height, BITS_PER_PIXEL) != 0) {
+			warning("could not set ", Pretty_mode{configured_size});
+			return;
+		}
+
+		/*
+		 * Framebuffer::set_mode may return a size different from the passed
+		 * argument. In paricular, when passing a size of (0,0), the function
+		 * sets and returns the highest screen mode possible.
+		 */
+		_size = Area { width, height };
+
+		log("using ", Pretty_mode{_size});
+	}
+
+	/* enable pixel capturing */
+	_fb_ds.construct(_env.rm(), Framebuffer::hw_framebuffer());
+	_captured_screen.construct(_capture, _env.rm(), _size);
+
+	unsigned long const period_ms = config.attribute_value("period_ms", 20U);
+	_timer.trigger_periodic(period_ms*1000);
+}
 
 
 void Component::construct(Genode::Env &env)
@@ -243,5 +162,5 @@ void Component::construct(Genode::Env &env)
 	/* XXX execute constructors of global statics */
 	env.exec_static_constructors();
 
-	static Framebuffer::Main inst(env);
+	static Vesa_driver::Main inst(env);
 }

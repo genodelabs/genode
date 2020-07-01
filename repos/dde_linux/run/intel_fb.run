@@ -128,7 +128,6 @@ append config {
 
 			<start name="intel_fb_drv" caps="1000">
 				<resource name="RAM" quantum="60M"/>
-				<provides><service name="Framebuffer"/></provides>
 				<route>
 					<service name="ROM" label="config">
 						<child name="config_rom" label="fb_drv.config"/> </service>
@@ -149,6 +148,8 @@ append config {
 
 			<start name="test-framebuffer" priority="-1">
 				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
 			</start>
 		</config>
 	</start>

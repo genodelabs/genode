@@ -2,4 +2,4 @@ base
 os
 blit
 platform_session
-framebuffer_session
+capture_session

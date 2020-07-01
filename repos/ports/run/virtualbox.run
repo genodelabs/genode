@@ -102,8 +102,7 @@ append_if [expr $use_usb] config {
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1" caps="150">
 		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="8M"/>
-		<provides><service name="Framebuffer"/></provides>}
+		<resource name="RAM" quantum="8M"/>}
 append_if [expr [have_spec framebuffer] && [have_include power_on/qemu]] config {
 		<config width="1280" height="1024" buffered="yes"/>}
 append_if [expr [have_spec framebuffer] && [have_include power_on/qemu]] config {
@@ -114,10 +113,7 @@ append_if [have_spec framebuffer] config {
 append_if [have_spec sdl] config {
 	<start name="fb_sdl" priority="-1" ld="no">
 		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
+		<provides> <service name="Input"/> </provides>
 	</start>}
 
 append_if [have_spec x86] config {
@@ -169,9 +165,8 @@ append config {
 
 	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Gui"/></provides>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
 		<route>
-			<service name="Framebuffer"> <child name="fb_drv" /> </service>
 			<service name="Report"> <child name="report_rom" /> </service>}
 
 append_if [expr $use_ps2] config {
@@ -182,7 +177,9 @@ append_if [expr $use_usb] config {
 append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config>
+		<config request_framebuffer="no">
+			<capture/>
+
 			<report focus="yes" hover="yes" xray="yes" />
 
 			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />

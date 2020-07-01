@@ -11,6 +11,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/drivers_managed-pc \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/nitpicker \
                   [depot_user]/src/init
 
 install_config {
@@ -41,6 +42,7 @@ install_config {
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<policy label="test-driver_manager -> block_devices" report="drivers -> block_devices"/>
+			<policy label="test-driver_manager -> displays"      report="nitpicker -> displays"/>
 		</config>
 	</start>
 
@@ -57,13 +59,13 @@ install_config {
 			<service name="ROM" label="numlock">   <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="system">    <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="usb_policy"><child name="dynamic_rom"/> </service>
-			<service name="Timer">  <child name="timer"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Report">  <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 		<provides>
 			<service name="Input"/>
-			<service name="Framebuffer"/>
 			<service name="Block"/>
 		</provides>
 	</start>
@@ -95,16 +97,30 @@ install_config {
 		</config>
 	</start>
 
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+		<config request_framebuffer="no" request_input="no">
+			<capture/>
+			<report displays="yes"/>
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="test-driver_manager">
 		<resource name="RAM" quantum="1M"/>
 		<config>
 			<check_ahci_block_device label="ahci-1" block_count="65536" block_size="512"
 			                         model="QEMU HARDDISK"/>
 			<check_input/>
-			<check_framebuffer/>
+			<check_displays/>
 		</config>
 		<route>
 			<service name="ROM" label="block_devices"> <child name="report_rom"/> </service>
+			<service name="ROM" label="displays">      <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

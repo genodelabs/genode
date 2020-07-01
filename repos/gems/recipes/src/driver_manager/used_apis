@@ -3,6 +3,6 @@ os
 report_session
 block_session
 usb_session
-framebuffer_session
+capture_session
 timer_session
 platform_session

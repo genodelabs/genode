@@ -21,12 +21,14 @@
 #include <io_mem_session/connection.h>
 #include <platform_session/connection.h>
 #include <util/mmio.h>
+#include <capture_session/connection.h>
 
 /* local includes */
 #include <ipu.h>
 
 namespace Framebuffer {
 	using namespace Genode;
+	using Area = Capture::Area;
 	class Driver;
 };
 
@@ -46,7 +48,7 @@ class Framebuffer::Driver
 
 	public:
 
-		enum Resolutions { BYTES_PER_PIXEL  = 2 };
+		enum Resolutions { BYTES_PER_PIXEL  = 4 };
 
 		Driver(Genode::Env &env, Genode::Xml_node config)
 		: _env(env),
@@ -66,7 +68,8 @@ class Framebuffer::Driver
 			return true;
 		}
 
-		Mode mode() { return Mode { .area = { _width, _height } }; }
+		Area screen_size() const { return Area { _width, _height }; }
+
 		Ipu &ipu()  { return _ipu; }
 };
 

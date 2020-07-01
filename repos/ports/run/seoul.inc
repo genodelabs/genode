@@ -352,11 +352,11 @@ append_if $use_framebuffer config {
 	<start name="fb_drv" priority="-1" caps="130">
 		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="16M"/>
-		<provides><service name="Framebuffer"/></provides>
 		<route>
-			<service name="Timer"><child name="timer"/></service>
-			<service name="Platform"><any-child/></service>
-			<any-service><parent/></any-service>
+			<service name="Timer">    <child name="timer"/></service>
+			<service name="Capture">  <child name="nitpicker"/></service>
+			<service name="Platform"> <any-child/></service>
+			<any-service> <parent/> </any-service>
 		</route>}
 append_if [expr $use_framebuffer &&  [have_include "power_on/qemu"]] config {
 		<config width="1280" height="960" depth="32" buffered="yes"/>}
@@ -408,7 +408,8 @@ append_if $use_usb config {
 append config {
 	<start name="nitpicker" priority="-1" caps="120">
 		<resource name="RAM" quantum="8M"/>
-		<config>
+		<config request_framebuffer="no">
+			<capture/>
 			<report focus="yes" />
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
 			<domain name="panel"   layer="2" content="client" label="no" focus="none" />
@@ -430,16 +431,16 @@ append config {
 			<default-policy domain=""/>
 		</config>
 		<route>
-			<service name="Timer">      <child name="timer"/></service>
-			<service name="Framebuffer"><child name="fb_drv"/></service>
-			<service name="Report">     <child name="report_rom"/></service>
+			<service name="Timer">  <child name="timer"/></service>
+			<service name="Report"> <child name="report_rom"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-		<provides><service name="Gui"/></provides>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
 	</start>
 
 	<start name="pointer">
 		<resource name="RAM" quantum="2M"/>
+		<config/>
 	</start>
 
 	<start name="report_rom">

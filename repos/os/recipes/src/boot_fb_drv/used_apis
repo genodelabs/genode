@@ -1,5 +1,5 @@
 base
 os
 blit
-framebuffer_session
+capture_session
 timer_session

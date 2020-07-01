@@ -11,6 +11,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/coreutils \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/gui_fb \
                   [depot_user]/src/fs_rom
 
 # write default vimrc file
@@ -53,12 +55,35 @@ install_config {
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides>
-			<service name="Input"/> <service name="Framebuffer"/>
-		</provides>
+		<provides> <service name="Input"/> </provides>
+	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+		<config focus="rom" request_framebuffer="no">
+			<capture/>
+			<domain name="default" layer="2" content="client" label="no" hover="always"/>
+			<default-policy domain="default"/>
+		</config>
+		<route>
+			<service name="Input">  <child name="drivers"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="gui_fb">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
+		<config/>
+		<route>
+			<service name="Gui"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="terminal" caps="110">
@@ -66,6 +91,8 @@ install_config {
 		<provides><service name="Terminal"/></provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
+			<service name="Input">       <child name="gui_fb"/> </service>
+			<service name="Framebuffer"> <child name="gui_fb"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -124,6 +151,10 @@ install_config {
 		</route>
 	</start>
 </config>}
+
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"gui_fb -> \" domain=\"default\"/>"
+close $fd
 
 build { lib/ld test/fork test/execve }
 

@@ -3,5 +3,5 @@ os
 platform_session
 timer_session
 report_session
-framebuffer_session
+capture_session
 blit

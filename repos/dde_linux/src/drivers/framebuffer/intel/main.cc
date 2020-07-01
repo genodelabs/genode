@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2020 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -18,8 +18,8 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 
-/* Server related local includes */
-#include <component.h>
+/* local includes */
+#include <driver.h>
 
 /* Linux emulation environment includes */
 #include <lx_emul.h>
@@ -33,110 +33,102 @@
 #include <lx_kit/work.h>
 
 /* Linux module functions */
-extern "C" void postcore_i2c_init(void); /* i2c-core-base.c */
-extern "C" int module_i915_init();  /* i915_drv.c */
-extern "C" void radix_tree_init(); /* called by start_kernel(void) normally */
+extern "C" void postcore_i2c_init(void);  /* i2c-core-base.c */
+extern "C" int module_i915_init();        /* i915_drv.c */
+extern "C" void radix_tree_init();        /* called by start_kernel(void) normally */
 extern "C" void drm_connector_ida_init(); /* called by drm_core_init(void) normally */
-
-static void run_linux(void * m);
 
 unsigned long jiffies;
 
+namespace Framebuffer { struct Main; }
 
-struct Main
+
+struct Framebuffer::Main
 {
-	Genode::Env                   &env;
-	Genode::Entrypoint            &ep     { env.ep() };
-	Genode::Attached_rom_dataspace config { env, "config" };
-	Genode::Heap                   heap   { env.ram(), env.rm() };
-	Framebuffer::Root              root   { env, heap, config };
+	void _run_linux();
+
+	/**
+	 * Entry for executing code in the Linux kernel context
+	 */
+	static void _run_linux_entry(void *m)
+	{
+		reinterpret_cast<Main*>(m)->_run_linux();
+	}
+
+	Env                   &_env;
+	Entrypoint            &_ep     { _env.ep() };
+	Attached_rom_dataspace _config { _env, "config" };
+	Heap                   _heap   { _env.ram(), _env.rm() };
+	Driver                 _driver { _env, _config };
 
 	/* Linux task that handles the initialization */
-	Genode::Constructible<Lx::Task> linux;
+	Constructible<Lx::Task> _linux;
 
-	Main(Genode::Env &env) : env(env)
+	Signal_handler<Main> _policy_change_handler {
+		_env.ep(), *this, &Main::_handle_policy_change };
+
+	bool _policy_change_pending = false;
+
+	void _handle_policy_change()
 	{
-		Genode::log("--- intel framebuffer driver ---");
+		_policy_change_pending = true;
+		_linux->unblock();
+		Lx::scheduler().schedule();
+	}
 
-		Lx_kit::construct_env(env);
+	Main(Env &env) : _env(env)
+	{
+		log("--- intel framebuffer driver ---");
+
+		Lx_kit::construct_env(_env);
 
 		LX_MUTEX_INIT(bridge_lock);
 		LX_MUTEX_INIT(core_lock);
 
 		/* init singleton Lx::Scheduler */
-		Lx::scheduler(&env);
+		Lx::scheduler(&_env);
 
-		Lx::pci_init(env, env.ram(), heap);
-		Lx::malloc_init(env, heap);
+		Lx::pci_init(_env, _env.ram(), _heap);
+		Lx::malloc_init(_env, _heap);
 
 		/* init singleton Lx::Timer */
-		Lx::timer(&env, &ep, &heap, &jiffies);
+		Lx::timer(&_env, &_ep, &_heap, &jiffies);
 
 		/* init singleton Lx::Irq */
-		Lx::Irq::irq(&ep, &heap);
+		Lx::Irq::irq(&_ep, &_heap);
 
 		/* init singleton Lx::Work */
-		Lx::Work::work_queue(&heap);
+		Lx::Work::work_queue(&_heap);
 
-		linux.construct(run_linux, reinterpret_cast<void*>(this),
-		                "linux", Lx::Task::PRIORITY_0, Lx::scheduler());
+		_linux.construct(_run_linux_entry, reinterpret_cast<void*>(this),
+		                 "linux", Lx::Task::PRIORITY_0, Lx::scheduler());
 
 		/* give all task a first kick before returning */
 		Lx::scheduler().schedule();
 	}
-
-	void announce() { env.parent().announce(ep.manage(root)); }
-
-	Lx::Task &linux_task() { return *linux; }
 };
 
 
-struct Policy_agent
+void Framebuffer::Main::_run_linux()
 {
-	Main &main;
-	Genode::Signal_handler<Policy_agent> handler;
-	bool _pending = false;
-
-	void handle()
-	{
-		_pending = true;
-		main.linux_task().unblock();
-		Lx::scheduler().schedule();
-	}
-
-	bool pending()
-	{
-		bool ret = _pending;
-		_pending = false;
-		return ret;
-	}
-
-	Policy_agent(Main &m)
-	: main(m), handler(main.ep, *this, &Policy_agent::handle) {}
-};
-
-
-static void run_linux(void * m)
-{
-	Main * main = reinterpret_cast<Main*>(m);
-
 	system_wq  = alloc_workqueue("system_wq", 0, 0);
 
 	radix_tree_init();
 	drm_connector_ida_init();
 	postcore_i2c_init();
 	module_i915_init();
-	main->root.session.driver().finish_initialization();
-	main->announce();
 
-	Policy_agent pa(*main);
-	main->root.session.driver().config_sigh(pa.handler);
-	main->config.sigh(pa.handler);
+	_driver.finish_initialization();
+	_driver.config_sigh(_policy_change_handler);
+
+	_config.sigh(_policy_change_handler);
 
 	while (1) {
 		Lx::scheduler().current()->block_and_schedule();
-		while (pa.pending())
-			main->root.session.config_changed();
+		while (_policy_change_pending) {
+			_policy_change_pending = false;
+			_driver.config_changed();
+		}
 	}
 }
 
@@ -146,5 +138,5 @@ void Component::construct(Genode::Env &env)
 	/* XXX execute constructors of global statics */
 	env.exec_static_constructors();
 
-	static Main m(env);
+	static Framebuffer::Main main(env);
 }

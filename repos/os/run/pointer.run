@@ -12,6 +12,7 @@ set build_components {
 	server/report_rom
 	server/dynamic_rom
 	server/nitpicker
+	server/input_event_bridge
 	app/pointer
 	test/pointer
 	test/nitpicker
@@ -49,22 +50,31 @@ set config {
 			<service name="LOG"> <parent/> </service>
 		</route>
 	</start>
-	<start name="fb_sdl" ld="no">
-		<resource name="RAM" quantum="6M"/>
+	<start name="input_event_bridge">
+		<resource name="RAM" quantum="1M"/>
 		<provides>
-			<service name="Framebuffer"/>
+			<service name="Event"/>
 			<service name="Input"/>
 		</provides>
-		<config buffered="yes" width="1280" height="720" depth="16"/>
+		<config/>
 		<route>
-			<service name="ROM">   <parent/>             </service>
-			<service name="CPU">   <parent/>             </service>
-			<service name="PD">    <parent/>             </service>
-			<service name="LOG">   <parent/>             </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
-	<alias name="input_drv" child="fb_sdl"/>
+	<start name="fb_sdl" ld="no">
+		<resource name="RAM" quantum="6M"/>
+		<config buffered="yes" width="1280" height="720" depth="16"/>
+		<route>
+			<service name="ROM">     <parent/>             </service>
+			<service name="CPU">     <parent/>             </service>
+			<service name="PD">      <parent/>             </service>
+			<service name="LOG">     <parent/>             </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Event">   <child name="input_event_bridge"/> </service>
+		</route>
+	</start>
+	<alias name="input_drv" child="input_event_bridge"/>
 	<alias name="fb_drv"    child="fb_sdl"/>
 
 	<start name="report_rom_nitpicker">
@@ -85,8 +95,9 @@ set config {
 	</start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Gui"/> </provides>
-		<config>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+		<config request_framebuffer="no">
+			<capture/>
 			<report focus="yes" hover="yes" xray="yes"/>
 			<domain name="pointer" layer="1" content="client" label="no"  origin="pointer"/>
 			<domain name="default" layer="3" content="client" label="yes" hover="always" focus="click"/>
@@ -102,7 +113,6 @@ set config {
 			<service name="PD">          <parent/>                        </service>
 			<service name="LOG">         <parent/>                        </service>
 			<service name="Timer">       <child name="timer"/>            </service>
-			<service name="Framebuffer"> <child name="fb_drv"/>           </service>
 			<service name="Input">       <child name="input_drv"/>        </service>
 			<service name="Report">      <child name="report_rom_nitpicker"/> </service>
 		</route>
@@ -282,6 +292,7 @@ set boot_modules {
 	pointer
 	test-pointer
 	testnit
+	input_event_bridge
 }
 
 # "lsort -unique" removes duplicates but core must be first

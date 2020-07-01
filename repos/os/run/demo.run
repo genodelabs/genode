@@ -46,12 +46,11 @@ install_config {
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides>
-			<service name="Input"/> <service name="Framebuffer"/>
-		</provides>
+		<provides> <service name="Input"/> </provides>
 	</start>
 
 	<start name="report_rom">
@@ -69,16 +68,18 @@ install_config {
 	<start name="nitpicker_config">
 		<binary name="rom_filter"/>
 		<resource name="RAM" quantum="1096K"/>
-		<provides><service name="ROM"/></provides>
+		<provides> <service name="ROM"/> </provides>
 		<config>
 			<input name="xray_enabled" rom="xray" node="xray">
 				<attribute name="enabled" /> </input>
 
 			<output node="config">
+				<attribute name="request_framebuffer" value="no"/>
 				<attribute name="focus" value="rom"/>
 				<inline>
 					<report focus="yes" xray="yes" hover="yes" keystate="yes"
 					        clicked="yes"/>
+					<capture/>
 					<domain name="pointer" layer="1" origin="pointer"
 					        content="client" label="no"/>
 					<domain name="panel" layer="2"
@@ -149,7 +150,7 @@ install_config {
 
 	<start name="nitpicker" caps="120">
 		<resource name="RAM" quantum="1216K"/>
-		<provides> <service name="Gui"/> </provides>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
 		<route>
 			<service name="ROM" label="config">
 				<child name="nitpicker_config"/> </service>

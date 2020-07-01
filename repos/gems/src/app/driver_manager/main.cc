@@ -18,7 +18,7 @@
 #include <os/reporter.h>
 #include <block_session/block_session.h>
 #include <rm_session/rm_session.h>
-#include <framebuffer_session/framebuffer_session.h>
+#include <capture_session/capture_session.h>
 #include <io_mem_session/io_mem_session.h>
 #include <io_port_session/io_port_session.h>
 #include <timer_session/timer_session.h>
@@ -128,13 +128,11 @@ struct Driver_manager::Intel_fb_driver : Device_driver
 			_gen_common_start_node_content(xml, "intel_fb_drv", "intel_fb_drv",
 			                               Ram_quota{42*1024*1024}, Cap_quota{800},
 			                               Priority{0});
-			_gen_provides_node<Framebuffer::Session>(xml);
 			xml.node("route", [&] () {
 				_gen_config_route(xml, "fb_drv.config");
 				_gen_default_parent_route(xml);
 			});
 		});
-		_gen_forwarded_service<Framebuffer::Session>(xml, "intel_fb_drv");
 	}
 };
 
@@ -147,13 +145,11 @@ struct Driver_manager::Vesa_fb_driver : Device_driver
 			_gen_common_start_node_content(xml, "vesa_fb_drv", "vesa_fb_drv",
 			                               Ram_quota{8*1024*1024}, Cap_quota{100},
 			                               Priority{-1});
-			_gen_provides_node<Framebuffer::Session>(xml);
 			xml.node("route", [&] () {
 				_gen_config_route(xml, "fb_drv.config");
 				_gen_default_parent_route(xml);
 			});
 		});
-		_gen_forwarded_service<Framebuffer::Session>(xml, "vesa_fb_drv");
 	}
 };
 
@@ -193,13 +189,11 @@ struct Driver_manager::Boot_fb_driver : Device_driver
 			_gen_common_start_node_content(xml, "fb_boot_drv", "fb_boot_drv",
 			                               _ram_quota, Cap_quota{100},
 			                               Priority{-1});
-			_gen_provides_node<Framebuffer::Session>(xml);
 			xml.node("route", [&] () {
 				_gen_config_route(xml, "fb_drv.config");
 				_gen_default_parent_route(xml);
 			});
 		});
-		_gen_forwarded_service<Framebuffer::Session>(xml, "fb_boot_drv");
 	}
 };
 
@@ -538,6 +532,7 @@ void Driver_manager::Main::_generate_init_config(Reporter &init_config) const
 			_gen_parent_service_xml(xml, Platform::Session::service_name());
 			_gen_parent_service_xml(xml, Report::Session::service_name());
 			_gen_parent_service_xml(xml, Usb::Session::service_name());
+			_gen_parent_service_xml(xml, Capture::Session::service_name());
 		});
 
 

@@ -32,16 +32,17 @@ install_config {
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="test-framebuffer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides>
-			<service name="Input"/> <service name="Framebuffer"/>
-		</provides>
+		<provides> <service name="Input"/> </provides>
 	</start>
 
 	<start name="test-framebuffer">
 		<resource name="RAM" quantum="10M"/>
+		<provides> <service name="Capture"/> </provides>
+		<config/>
 	</start>
 </config>}
 

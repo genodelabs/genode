@@ -278,14 +278,14 @@ append config_of_app {
 
 	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Gui"/></provides>
+		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
 		<route>
-			<service name="Framebuffer"> <child name="fb_drv" /> </service>
 			<service name="Input"> <child name="input_filter" /> </service>
 			<service name="Report"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config>
+		<config request_framebuffer="no">
+			<capture/>
 			<report focus="yes" hover="yes" />
 
 			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />

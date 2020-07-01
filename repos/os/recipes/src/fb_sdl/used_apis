@@ -1,7 +1,7 @@
 base-linux
 base
 os
-input_session
-framebuffer_session
+event_session
 timer_session
+capture_session
 blit

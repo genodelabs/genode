@@ -17,7 +17,7 @@
 #include <base/attached_io_mem_dataspace.h>
 
 /* local includes */
-#include <component.h>
+#include <driver.h>
 
 #include <lx_emul.h>
 #include <lx_emul_c.h>
@@ -1053,7 +1053,7 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector,
 
 	/* try to read configuration for connector */
 	try {
-		Xml_node config = _session.config();
+		Xml_node config = _config.xml();
 		Xml_node xn = config.sub_node();
 		for (unsigned i = 0; i < config.num_sub_nodes(); xn = xn.next()) {
 			if (!xn.has_type("connector"))
@@ -1114,7 +1114,7 @@ void Framebuffer::Driver::finish_initialization()
 
 	generate_report();
 
-	_session.config_changed();
+	config_changed();
 }
 
 
@@ -1122,21 +1122,21 @@ void Framebuffer::Driver::update_mode()
 {
 	using namespace Genode;
 
-	Configuration old = _config;
-	_config = Configuration();
+	Configuration old = _lx_config;
+	_lx_config = Configuration();
 
 	lx_for_each_connector(lx_drm_device, [&] (drm_connector *c) {
 		unsigned brightness;
 		drm_display_mode * mode = _preferred_mode(c, brightness);
 		if (!mode) return;
-		if (mode->hdisplay > _config._lx.width)  _config._lx.width  = mode->hdisplay;
-		if (mode->vdisplay > _config._lx.height) _config._lx.height = mode->vdisplay;
+		if (mode->hdisplay > _lx_config._lx.width)  _lx_config._lx.width  = mode->hdisplay;
+		if (mode->vdisplay > _lx_config._lx.height) _lx_config._lx.height = mode->vdisplay;
 
 	});
 
-	lx_c_allocate_framebuffer(lx_drm_device, &_config._lx);
+	lx_c_allocate_framebuffer(lx_drm_device, &_lx_config._lx);
 
-	if (!_config._lx.lx_fb) {
+	if (!_lx_config._lx.lx_fb) {
 		Genode::error("updating framebuffer failed");
 		return;
 	}
@@ -1147,16 +1147,16 @@ void Framebuffer::Driver::update_mode()
 			unsigned brightness = MAX_BRIGHTNESS + 1;
 
 			/* set mode */
-			lx_c_set_mode(lx_drm_device, c, _config._lx.lx_fb,
+			lx_c_set_mode(lx_drm_device, c, _lx_config._lx.lx_fb,
 			              _preferred_mode(c, brightness));
 		});
 	}
 
 	/* force virtual framebuffer size if requested */
-	if (int w = _session.force_width_from_config())
-		_config._lx.width = min(_config._lx.width, w);
-	if (int h = _session.force_height_from_config())
-		_config._lx.height = min(_config._lx.height, h);
+	if (int w = _force_width_from_config())
+		_lx_config._lx.width = min(_lx_config._lx.width, w);
+	if (int h = _force_height_from_config())
+		_lx_config._lx.height = min(_lx_config._lx.height, h);
 
 	if (old._lx.lx_fb) {
 		if (drm_framebuffer_read_refcount(old._lx.lx_fb) > 1) {
@@ -1197,8 +1197,8 @@ void Framebuffer::Driver::generate_report()
 
 	/* check for report configuration option */
 	try {
-		_reporter.enabled(_session.config().sub_node("report")
-		                 .attribute_value(_reporter.name().string(), false));
+		_reporter.enabled(_config.xml().sub_node("report")
+		                  .attribute_value(_reporter.name().string(), false));
 	} catch (...) {
 		_reporter.enabled(false);
 	}
