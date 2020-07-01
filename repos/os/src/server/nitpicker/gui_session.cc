@@ -504,6 +504,12 @@ Buffer *Gui_session::realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
 
 	Chunky_texture<PT> * const texture = try_alloc_texture();
 
+	if (!texture) {
+		_release_buffer();
+		_ram_quota_guard().try_downgrade(temporary_ram_upgrade);
+		return nullptr;
+	}
+
 	/* copy old buffer content into new buffer and release old buffer */
 	if (src_texture) {
 
