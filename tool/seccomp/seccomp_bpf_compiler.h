@@ -140,6 +140,9 @@ class Filter
 						/* The nmap syscall has a different name on different architectures
 						 * but it slould be save as it only uses an already open socket. */
 						_add_allow_rule(SCMP_SYS(mmap2));
+
+						/* returning from signal handlers is safe */
+						_add_allow_rule(SCMP_SYS(sigreturn));
 					}
 					break;
 				case SCMP_ARCH_X86_64:
@@ -158,6 +161,9 @@ class Filter
 						/* The nmap syscall has a different name on different architectures
 						 * but it slould be save as it only uses an already open socket. */
 						_add_allow_rule(SCMP_SYS(mmap));
+
+						/* returning from signal handlers is safe */
+						_add_allow_rule(SCMP_SYS(rt_sigreturn));
 					}
 					break;
 				case SCMP_ARCH_ARM:
@@ -180,7 +186,7 @@ class Filter
 						/* This syscall is only used on ARM. */
 						_add_allow_rule(SCMP_SYS(cacheflush));
 
-						/* This syscall is only used on ARM. */
+						/* returning from signal handlers is safe */
 						_add_allow_rule(SCMP_SYS(sigreturn));
 					}
 					break;
@@ -189,7 +195,7 @@ class Filter
 					throw -104;
 			}
 
-			// build and export
+			/* build and export */
 			seccomp_export_bpf(_ctx, 1);
 
 			return 0;

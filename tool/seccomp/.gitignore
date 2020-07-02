@@ -1,0 +1,3 @@
+/seccomp_bpf_policy_arm.bin
+/seccomp_bpf_policy_x86_32.bin
+/seccomp_bpf_policy_x86_64.bin
