@@ -28,6 +28,8 @@ struct Nitpicker::Background : private Texture_base, View
 
 	Color color = default_color();
 
+	Resizeable_texture<Pixel> _texture { };
+
 	/*
 	 * The background uses no texture. Therefore we can pass a null pointer as
 	 * texture argument to the Session constructor.
@@ -35,7 +37,7 @@ struct Nitpicker::Background : private Texture_base, View
 	Background(View_owner &owner, Area size)
 	:
 		Texture_base(Area(0, 0)),
-		View(owner, View::NOT_TRANSPARENT, View::BACKGROUND, 0)
+		View(owner, _texture, View::NOT_TRANSPARENT, View::BACKGROUND, 0)
 	{
 		View::geometry(Rect(Point(0, 0), size));
 	}

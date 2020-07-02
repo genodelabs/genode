@@ -21,6 +21,7 @@
 #include <os/session_policy.h>
 #include <os/reporter.h>
 #include <os/pixel_rgb888.h>
+#include <blit/painter.h>
 #include <gui_session/gui_session.h>
 
 /* local includes */
@@ -29,7 +30,6 @@
 #include "framebuffer_session.h"
 #include "input_session.h"
 #include "focus.h"
-#include "chunky_texture.h"
 #include "view.h"
 
 namespace Nitpicker {
@@ -73,8 +73,9 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Constrained_ram_allocator _ram;
 
+		Resizeable_texture<Pixel> _texture { };
+
 		Domain_registry::Entry const *_domain     = nullptr;
-		Texture_base           const *_texture    = nullptr;
 		View                         *_background = nullptr;
 
 		/*
@@ -152,8 +153,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			return _domain ? _domain->phys_pos(pos, screen_area) : Point(0, 0);
 		}
 
-		void _release_buffer();
-
 		/**
 		 * Helper for performing sanity checks in OP_TO_FRONT and OP_TO_BACK
 		 *
@@ -203,8 +202,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			_env.ep().dissolve(_input_session_component);
 
 			destroy_all_views();
-
-			_release_buffer();
 		}
 
 		using Session_list::Element::next;
@@ -261,9 +258,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		View const *background() const override { return _background; }
 
-		Texture_base const *texture() const override { return _texture; }
-
-		bool uses_alpha() const override { return _texture && _uses_alpha; }
+		bool uses_alpha() const override { return _texture.valid() && _uses_alpha; }
 
 		unsigned layer() const override { return _domain ? _domain->layer() : ~0UL; }
 
@@ -274,14 +269,14 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 */
 		unsigned char input_mask_at(Point p) const override
 		{
-			if (!_input_mask || !_texture) return 0;
+			if (!_input_mask || !_texture.valid()) return 0;
 
 			/* check boundaries */
-			if ((unsigned)p.x() >= _texture->size().w()
-			 || (unsigned)p.y() >= _texture->size().h())
+			if ((unsigned)p.x() >= _texture.size().w()
+			 || (unsigned)p.y() >= _texture.size().h())
 				return 0;
 
-			return _input_mask[p.y()*_texture->size().w() + p.x()];
+			return _input_mask[p.y()*_texture.size().w() + p.x()];
 		}
 
 		void submit_input_event(Input::Event e) override;
@@ -392,7 +387,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 ** Buffer_provider interface **
 		 *******************************/
 
-		Buffer *realloc_buffer(Framebuffer::Mode mode, bool use_alpha) override;
+		Dataspace_capability realloc_buffer(Framebuffer::Mode mode, bool use_alpha) override;
 };
 
 #endif /* _GUI_SESSION_H_ */

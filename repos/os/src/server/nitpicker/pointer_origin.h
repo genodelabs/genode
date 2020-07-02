@@ -22,9 +22,11 @@ namespace Nitpicker { struct Pointer_origin; }
 
 struct Nitpicker::Pointer_origin : View
 {
+	Resizeable_texture<Pixel> _texture { };
+
 	Pointer_origin(View_owner &owner)
 	:
-		View(owner, View::TRANSPARENT, View::NOT_BACKGROUND, 0)
+		View(owner, _texture, View::TRANSPARENT, View::NOT_BACKGROUND, 0)
 	{ }
 
 

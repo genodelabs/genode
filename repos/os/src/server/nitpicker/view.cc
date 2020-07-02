@@ -125,13 +125,12 @@ void Nitpicker::View::draw(Canvas_base &canvas, Font const &font, Focus const &f
 	                              owner_color.g >> 1,
 	                              owner_color.b >> 1);
 
-	Texture_base const *texture = _owner.texture();
-	if (texture) {
-		canvas.draw_texture(_buffer_off + view_rect.p1(), *texture, op,
-		                    mix_color, allow_alpha);
-	} else {
+	_texture.with_texture([&] (Texture_base const &texture) {
+		canvas.draw_texture(_buffer_off + view_rect.p1(), texture, op,
+		                    mix_color, allow_alpha); });
+
+	if (!_texture.valid())
 		canvas.draw_box(view_rect, black());
-	}
 
 	if (!_owner.label_visible()) return;
 

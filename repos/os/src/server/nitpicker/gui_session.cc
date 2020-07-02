@@ -16,26 +16,6 @@
 using namespace Nitpicker;
 
 
-void Gui_session::_release_buffer()
-{
-	if (!_texture)
-		return;
-
-	typedef Pixel_rgb888 PT;
-
-	Chunky_texture<PT> const *cdt = static_cast<Chunky_texture<PT> const *>(_texture);
-
-	_texture    = nullptr;
-	_uses_alpha = false;
-	_input_mask = nullptr;
-
-	destroy(&_session_alloc, const_cast<Chunky_texture<PT> *>(cdt));
-
-	replenish(Ram_quota{_buffer_size});
-	_buffer_size = 0;
-}
-
-
 bool Gui_session::_views_are_equal(View_handle v1, View_handle v2)
 {
 	if (!v1.valid() || !v2.valid())
@@ -266,7 +246,7 @@ Gui_session::View_handle Gui_session::create_view(View_handle parent_handle)
 				return View_handle();
 
 			view = new (_view_alloc)
-				View(*this, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, &(*parent));
+				View(*this, _texture, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, &(*parent));
 
 			parent->add_child(*view);
 		}
@@ -280,7 +260,7 @@ Gui_session::View_handle Gui_session::create_view(View_handle parent_handle)
 	else {
 		try {
 			view = new (_view_alloc)
-				View(*this, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, nullptr);
+				View(*this, _texture, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, nullptr);
 		}
 		catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
 	}
@@ -462,79 +442,60 @@ void Gui_session::session_control(Label suffix, Session_control control)
 }
 
 
-Buffer *Gui_session::realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
+Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
 {
-	typedef Pixel_rgb888 PT;
-
-	size_t const buffer_size = Chunky_texture<PT>::calc_num_bytes(mode.area, use_alpha);
+	Ram_quota const next_buffer_size { Chunky_texture<Pixel>::calc_num_bytes(mode.area, use_alpha) };
+	Ram_quota const orig_buffer_size { _buffer_size };
 
 	/*
 	 * Preserve the content of the original buffer if nitpicker has
 	 * enough slack memory to temporarily keep the original pixels.
 	 */
-	Texture<PT> const *src_texture = nullptr;
-	if (texture()) {
 
-		enum { PRESERVED_RAM = 128*1024 };
-		if (_env.pd().avail_ram().value > buffer_size + PRESERVED_RAM) {
-			src_texture = static_cast<Texture<PT> const *>(texture());
-		} else {
-			warning("not enough RAM to preserve buffer content during resize");
-			_release_buffer();
-		}
+	enum { PRESERVED_RAM = 128*1024 };
+	bool const preserve_content =
+		(_env.pd().avail_ram().value > next_buffer_size.value + PRESERVED_RAM);
+
+	if (!preserve_content) {
+		warning("not enough RAM to preserve buffer content during resize");
+		_texture.release_current();
+		replenish(orig_buffer_size);
 	}
 
-	/* set new buffer_size after _release_buffer(), which changes _buffer_size also */
-	_buffer_size = buffer_size;
+	_buffer_size = 0;
+	_uses_alpha  = false;
+	_input_mask  = nullptr;
 
-	Ram_quota const temporary_ram_upgrade = src_texture
-	                                      ? Ram_quota{_buffer_size} : Ram_quota{0};
+	Ram_quota const temporary_ram_upgrade = _texture.valid()
+	                                      ? next_buffer_size : Ram_quota{0};
 
 	_ram_quota_guard().upgrade(temporary_ram_upgrade);
 
-	auto try_alloc_texture = [&] ()
-	{
-		try {
-			return new (&_session_alloc)
-				Chunky_texture<PT>(_env.ram(), _env.rm(), mode.area, use_alpha);
-		} catch (...) {
-			return (Chunky_texture<PT>*)nullptr;
-		}
-	};
-
-	Chunky_texture<PT> * const texture = try_alloc_texture();
-
-	if (!texture) {
-		_release_buffer();
+	if (!_texture.try_construct_next(_env.ram(), _env.rm(), mode.area, use_alpha)) {
+		_texture.release_current();
+		replenish(orig_buffer_size);
 		_ram_quota_guard().try_downgrade(temporary_ram_upgrade);
-		return nullptr;
+		return Dataspace_capability();
 	}
 
-	/* copy old buffer content into new buffer and release old buffer */
-	if (src_texture) {
+	_texture.switch_to_next();
 
-		Surface<PT> surface(texture->pixel(),
-		                    texture->Texture_base::size());
+	/* 'switch_to_next' has released the current texture */
+	if (preserve_content)
+		replenish(orig_buffer_size);
 
-		Texture_painter::paint(surface, *src_texture, Color(), Point(0, 0),
-		                       Texture_painter::SOLID, false);
-		_release_buffer();
+	if (!_ram_quota_guard().try_downgrade(temporary_ram_upgrade))
+		warning("accounting error during framebuffer realloc");
 
-		if (!_ram_quota_guard().try_downgrade(temporary_ram_upgrade))
-			warning("accounting error during framebuffer realloc");
-
-	}
-
-	try { withdraw(Ram_quota{_buffer_size}); }
+	try { withdraw(next_buffer_size); }
 	catch (...) {
-		destroy(&_session_alloc, texture);
-		_buffer_size = 0;
-		return nullptr;
+		_texture.release_current();
+		return Dataspace_capability();
 	}
 
-	_texture    = texture;
-	_uses_alpha = use_alpha;
-	_input_mask = texture->input_mask_buffer();
+	_buffer_size = next_buffer_size.value;
+	_uses_alpha  = use_alpha;
+	_input_mask  = _texture.input_mask_buffer();
 
-	return texture;
+	return _texture.dataspace();
 }

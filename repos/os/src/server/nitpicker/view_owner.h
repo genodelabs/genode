@@ -80,11 +80,6 @@ struct Nitpicker::View_owner : Interface
 	virtual View const *background() const { return nullptr; }
 
 	/**
-	 * Teturn texture containing the owners virtual frame buffer
-	 */
-	virtual Texture_base const *texture() const { return nullptr; }
-
-	/**
 	 * Return input-mask value at given position
 	 */
 	virtual unsigned char input_mask_at(Point) const { return 0; }

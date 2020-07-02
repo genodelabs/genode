@@ -20,6 +20,7 @@
 #include <base/allocator.h>
 #include <base/log.h>
 #include <os/surface.h>
+#include <os/pixel_rgb888.h>
 
 namespace Gui { }
 
@@ -27,6 +28,7 @@ namespace Nitpicker {
 
 	using namespace Genode;
 	using namespace Gui;
+	using Pixel = Pixel_rgb888;
 
 	typedef Surface_base::Point Point;
 	typedef Surface_base::Area  Area;

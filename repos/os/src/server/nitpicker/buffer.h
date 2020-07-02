@@ -65,7 +65,7 @@ namespace Nitpicker { struct Buffer_provider; }
  */
 struct Nitpicker::Buffer_provider : Interface
 {
-	virtual Buffer *realloc_buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
+	virtual Dataspace_capability realloc_buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
 };
 
 #endif /* _BUFFER_H_ */

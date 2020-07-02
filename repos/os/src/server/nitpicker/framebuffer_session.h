@@ -38,7 +38,6 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 		Session_component(Session_component const &);
 		Session_component &operator = (Session_component const &);
 
-		Buffer                   *_buffer = 0;
 		View_stack               &_view_stack;
 		Nitpicker::Gui_session   &_session;
 		Buffer_provider          &_buffer_provider;
@@ -94,9 +93,7 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 
 		Dataspace_capability dataspace() override
 		{
-			_buffer = _buffer_provider.realloc_buffer(_mode, _alpha);
-
-			return _buffer ? _buffer->ds_cap() : Ram_dataspace_capability();
+			return _buffer_provider.realloc_buffer(_mode, _alpha);
 		}
 
 		Mode mode() const override { return _mode; }

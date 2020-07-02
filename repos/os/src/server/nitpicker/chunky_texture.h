@@ -59,15 +59,15 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 			return bytes_per_pixel*size.w()*size.h();
 		}
 
-		unsigned char *input_mask_buffer()
+		unsigned char const *input_mask_buffer() const
 		{
 			if (!Texture<PT>::alpha()) return 0;
 
 			Area const size = Texture<PT>::size();
 
 			/* input-mask values come right after the alpha values */
-			return (unsigned char *)local_addr() + calc_num_bytes(size, false)
-			                                     + size.count();
+			return (unsigned char const *)local_addr() + calc_num_bytes(size, false)
+			                                           + size.count();
 		}
 };
 

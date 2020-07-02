@@ -23,6 +23,7 @@
 /* local includes */
 #include "canvas.h"
 #include "view_owner.h"
+#include "resizeable_texture.h"
 
 namespace Nitpicker {
 
@@ -102,6 +103,8 @@ class Nitpicker::View : private Same_buffer_list_elem,
 		View_owner &_owner;
 		Title       _title      { "" };
 
+		Resizeable_texture<Pixel> const &_texture;
+
 		List<View_parent_elem> _children { };
 
 		/**
@@ -127,9 +130,11 @@ class Nitpicker::View : private Same_buffer_list_elem,
 
 	public:
 
-		View(View_owner &owner, Transparent transparent, Background bg, View *parent)
+		View(View_owner &owner, Resizeable_texture<Pixel> const &texture,
+		     Transparent transparent, Background bg, View *parent)
 		:
-			_transparent(transparent), _background(bg), _parent(parent), _owner(owner)
+			_transparent(transparent), _background(bg), _parent(parent),
+			_owner(owner), _texture(texture)
 		{ }
 
 		virtual ~View()
