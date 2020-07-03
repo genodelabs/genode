@@ -99,6 +99,9 @@ class Filter
 			_add_allow_rule(SCMP_SYS(fstat));
 			_add_allow_rule(SCMP_SYS(fstat64));
 
+			/* This syscall is used by the 'wait_for_continue' debug mechanism. */
+			_add_allow_rule(SCMP_SYS(read));
+
 			/* This syscall is used to wait for a condition. This should be safe. */
 			_add_allow_rule(SCMP_SYS(futex));
 
