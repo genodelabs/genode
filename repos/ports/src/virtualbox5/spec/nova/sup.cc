@@ -700,8 +700,7 @@ uint64_t genode_cpu_hz()
 
 		if (cpu_freq == 0) {
 			Genode::error("could not read out CPU frequency");
-			Genode::Lock lock;
-			lock.lock();
+			Genode::sleep_forever();
 		}
 	}
 

@@ -94,7 +94,7 @@ class Vcpu_handler_svm : public Vcpu_handler
 				break;
 			case VCPU_STARTUP:
 				_svm_startup();
-				_lock_emt.unlock();
+				_blockade_emt.wakeup();
 				/* pause - no resume */
 				break;
 			default:
@@ -170,13 +170,10 @@ class Vcpu_handler_svm : public Vcpu_handler
 		{
 			_state = _state_ds.local_addr<Genode::Vm_state>();
 
-			/* sync with initial startup exception */
-			_lock_emt.lock();
-
 			_vm_session.run(_vcpu);
 
 			/* sync with initial startup exception */
-			_lock_emt.lock();
+			_blockade_emt.block();
 		}
 
 		bool hw_save_state(Genode::Vm_state *state, VM * pVM, PVMCPU pVCpu) {

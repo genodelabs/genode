@@ -12,6 +12,7 @@
  */
 
 #include <base/log.h>
+#include <base/sleep.h>
 
 #include <string.h> /* libc memcpy */
 
@@ -163,8 +164,7 @@ char *pdmR3FileR3(const char * file, bool)
 void RTAssertMsg2Add(const char *pszFormat, ...)
 {
 	Genode::error(__func__, "not implemented");
-	Genode::Lock lock(Genode::Lock::LOCKED);
-	lock.lock();
+	Genode::sleep_forever();
 }
 
 const char * RTBldCfgRevisionStr(void)

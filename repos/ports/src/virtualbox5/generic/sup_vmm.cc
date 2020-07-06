@@ -17,6 +17,7 @@
 #include <base/heap.h>
 #include <base/log.h>
 #include <base/semaphore.h>
+#include <base/sleep.h>
 #include <util/flex_iterator.h>
 #include <rom_session/connection.h>
 #include <base/attached_rom_dataspace.h>
@@ -728,8 +729,7 @@ uint64_t genode_cpu_hz()
 
 		if (cpu_freq == 0) {
 			Genode::error("could not read out CPU frequency");
-			Genode::Lock lock;
-			lock.lock();
+			Genode::sleep_forever();
 		}
 	}
 

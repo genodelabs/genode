@@ -48,14 +48,14 @@ static struct {
 static Libc::Mem_alloc * heap_by_mmtag(MMTAG enmTag)
 {
 	enum { REGION_SIZE = 4096 * 4096 };
-	static Genode::Lock memory_init_lock;
+	static Genode::Mutex memory_init_mutex { };
 
 	Assert(enmTag < sizeof(memory_regions) / sizeof(memory_regions[0]));
 
 	if (memory_regions[enmTag].conn)
 		return memory_regions[enmTag].heap;
 
-	Genode::Lock::Guard guard(memory_init_lock);
+	Genode::Mutex::Guard guard(memory_init_mutex);
 
 	if (memory_regions[enmTag].conn)
 		return memory_regions[enmTag].heap;

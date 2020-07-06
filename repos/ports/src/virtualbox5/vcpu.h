@@ -66,12 +66,12 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 	protected:
 
 		Genode::Entrypoint             _ep;
-		Genode::Lock                   _lock_emt;
+		Genode::Blockade               _blockade_emt { };
 		Genode::Semaphore              _sem_handler;
 		Genode::Vm_state              *_state { nullptr };
 
 		/* halt / wakeup handling with timeout support */
-		Genode::Lock                   _r0_block_guard;
+		Genode::Mutex                  _r0_mutex;
 		Genode::Semaphore              _r0_block;
 		Genode::uint64_t               _r0_wakeup_abs { 0 };
 
@@ -152,7 +152,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			_sem_handler.up();
 
 			/* wait for next exit */
-			_lock_emt.lock();
+			_blockade_emt.block();
 
 			/* next time run - recall() may change this */
 			_next_state = RUN;
@@ -173,7 +173,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 				if (npt_ept_unmap) {
 					Genode::error("NPT/EPT unmap not supported - stop");
 					while (true) {
-						_lock_emt.lock();
+						_blockade_emt.block();
 					}
 				}
 
@@ -204,7 +204,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 			_vm_state = PAUSED;
 
-			_lock_emt.unlock();
+			_blockade_emt.wakeup();
 		}
 
 		bool _recall_handler()
@@ -479,7 +479,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			_vm_exits ++;
 
 			_vm_state = IRQ_WIN;
-			_lock_emt.unlock();
+			_blockade_emt.wakeup();
 		}
 
 		void _npt_ept()
@@ -491,7 +491,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			_vm_exits ++;
 
 			_vm_state = NPT_EPT;
-			_lock_emt.unlock();
+			_blockade_emt.wakeup();
 		}
 
 		void _irq_window_pthread()
@@ -725,7 +725,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 		void check_time()
 		{
 			{
-				Genode::Lock_guard<Genode::Lock> lock(_r0_block_guard);
+				Genode::Mutex::Guard guard(_r0_mutex);
 
 				const uint64_t u64NowGip = RTTimeNanoTS();
 				if (!_r0_wakeup_abs || _r0_wakeup_abs >= u64NowGip)
@@ -738,7 +738,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 		void halt(Genode::uint64_t rttime_abs)
 		{
 			{
-				Genode::Lock_guard<Genode::Lock> lock(_r0_block_guard);
+				Genode::Mutex::Guard guard(_r0_mutex);
 				_r0_wakeup_abs = rttime_abs;
 			}
 
@@ -748,7 +748,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 		void wake_up()
 		{
 			{
-				Genode::Lock_guard<Genode::Lock> lock(_r0_block_guard);
+				Genode::Mutex::Guard guard(_r0_mutex);
 				_r0_wakeup_abs = 0;
 			}
 

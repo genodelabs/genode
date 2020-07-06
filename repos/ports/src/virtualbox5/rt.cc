@@ -189,7 +189,12 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 
 Genode::Avl_tree<Avl_ds> Avl_ds::_runtime_ds;
 Genode::Avl_tree<Avl_ds> Avl_ds::_unused_ds;
-static Genode::Lock lock_ds;
+
+static Genode::Mutex & mutex_ds()
+{
+	static Genode::Mutex mutex { };
+	return mutex;
+}
 
 Genode::addr_t Avl_ds::hit = 0;
 Genode::addr_t Avl_ds::hit_coarse = 0;
@@ -209,7 +214,7 @@ static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 	if (cb % 0x1000)
 		cb = (cb & ~0xFFFUL) + 0x1000UL;
 
-	Lock::Guard guard(lock_ds);
+	Mutex::Guard guard(mutex_ds());
 
 	if (Avl_ds * ds_free = Avl_ds::find_match(cb)) {
 		ds_free->used(cb);
@@ -281,7 +286,7 @@ void *RTMemPageAllocTag(size_t cb, const char *pszTag)
 
 void RTMemPageFree(void *pv, size_t cb)
 {
-	Genode::Lock::Guard guard(lock_ds);
+	Genode::Mutex::Guard guard(mutex_ds());
 
 	Avl_ds::free_memory(pv, cb);
 }
@@ -323,7 +328,7 @@ void * RTMemTCGAlloc(size_t cb)
 		return alloc_mem(cb, __func__);
 
 	{
-		Genode::Lock::Guard guard(lock_ds);
+		Genode::Mutex::Guard guard(mutex_ds());
 
 		for (Tcg_slab * tcg = list.first(); tcg; tcg = tcg->next()) {
 			if (tcg->_full)
@@ -341,7 +346,7 @@ void * RTMemTCGAlloc(size_t cb)
 	Tcg_slab * tcg = new (vmm_heap()) Tcg_slab(alloc_mem(TCG_CACHE, __func__));
 	if (tcg && tcg->_base) {
 		{
-			Genode::Lock::Guard guard(lock_ds);
+			Genode::Mutex::Guard guard(mutex_ds());
 			list.insert(tcg);
 		}
 		return RTMemTCGAlloc(cb);
@@ -367,7 +372,7 @@ void * RTMemTCGAllocZ(size_t cb)
 
 void RTMemTCGFree(void *pv)
 {
-	Genode::Lock::Guard guard(lock_ds);
+	Genode::Mutex::Guard guard(mutex_ds());
 
 	Genode::addr_t const ptr = reinterpret_cast<Genode::addr_t>(pv);
 	for (Tcg_slab * tcg = list.first(); tcg; tcg = tcg->next()) {
@@ -393,7 +398,7 @@ void * RTMemTCGRealloc(void *ptr, size_t size)
 
 	Genode::addr_t max_size = 0;
 	{
-		Genode::Lock::Guard guard(lock_ds);
+		Genode::Mutex::Guard guard(mutex_ds());
 
 		max_size = Avl_ds::max_size_at(ptr);
 		if (!max_size) {

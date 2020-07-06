@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/sleep.h>
 #include <cpu/consts.h>
 #include <util/flex_iterator.h>
 #include <util/touch.h>
@@ -858,8 +859,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 			if (ec_ctrl(EC_RECALL, _ec_sel) != NOVA_OK) {
 				Genode::error("recall failed");
-				Genode::Lock lock(Genode::Lock::LOCKED);
-				lock.lock();
+				Genode::sleep_forever();
 			}
 
 #if 0

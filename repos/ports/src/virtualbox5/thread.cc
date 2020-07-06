@@ -14,6 +14,7 @@
 /* Genode */
 #include <base/attached_rom_dataspace.h>
 #include <base/log.h>
+#include <base/sleep.h>
 #include <base/thread.h>
 #include <cpu_session/connection.h>
 
@@ -60,11 +61,11 @@ static Genode::Cpu_connection * cpu_connection(RTTHREADTYPE type)
 	using namespace Genode;
 
 	static Cpu_connection * con[RTTHREADTYPE_END - 1];
-	static Lock lock;
+	static Mutex mutex { };
 
 	Assert(type && type < RTTHREADTYPE_END);
 
-	Lock::Guard guard(lock);
+	Mutex::Guard guard(mutex);
 
 	if (con[type - 1])
 		return con[type - 1];
@@ -168,8 +169,7 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	}
 
 	Genode::error("could not create vbox pthread - halt");
-	Genode::Lock lock(Genode::Lock::LOCKED);
-	lock.lock();
+	Genode::sleep_forever();
 	return EAGAIN;
 }
 

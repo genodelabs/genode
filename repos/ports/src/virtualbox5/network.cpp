@@ -81,10 +81,10 @@ typedef struct DRVNIC
  * Return lock to synchronize the destruction of the
  * PDRVNIC, i.e., the Nic_client.
  */
-static Genode::Lock *destruct_lock()
+static Genode::Blockade &destruct_blockade()
 {
-	static Genode::Lock lock(Genode::Lock::LOCKED);
-	return &lock;
+	static Genode::Blockade blockade { };
+	return blockade;
 }
 
 
@@ -153,7 +153,7 @@ class Nic_client
 			_nic.rx_channel()->sigh_packet_avail(Genode::Signal_context_capability());
 			_nic.rx_channel()->sigh_ready_to_ack(Genode::Signal_context_capability());
 
-			destruct_lock()->unlock();
+			destruct_blockade().wakeup();
 		}
 
 		void _tx_ack(bool block = false)
@@ -451,7 +451,7 @@ static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 		Genode::Signal_transmitter(nic_client->dispatcher()).submit();
 
 	/* wait until the recv thread exits */
-	destruct_lock()->lock();
+	destruct_blockade().block();
 
 	if (nic_client)
 		destroy(vmm_heap(), nic_client);

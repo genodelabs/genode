@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/lock.h>
 #include <base/log.h>
 
 /* NOVA includes */
@@ -34,10 +33,10 @@ namespace Vmm {
 	{
 		struct Utcb_backup { char buf[Nova::Utcb::size()]; };
 
-		static Lock        lock;
+		static Mutex       mutex;
 		static Utcb_backup utcb_backup;
 
-		Lock::Guard guard(lock);
+		Mutex::Guard guard(mutex);
 
 		utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
 
@@ -51,10 +50,10 @@ namespace Vmm {
 	{
 		struct Utcb_backup { char buf[Nova::Utcb::size()]; };
 
-		static Lock        lock;
+		static Mutex       mutex;
 		static Utcb_backup utcb_backup;
 
-		Lock::Guard guard(lock);
+		Mutex::Guard guard(mutex);
 
 		utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
 
@@ -68,10 +67,10 @@ namespace Vmm {
 	{
 		struct Utcb_backup { char buf[Nova::Utcb::size()]; };
 
-		static Lock        lock;
+		static Mutex       mutex;
 		static Utcb_backup utcb_backup;
 
-		Lock::Guard guard(lock);
+		Mutex::Guard guard(mutex);
 
 		utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
 

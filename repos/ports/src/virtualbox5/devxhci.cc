@@ -219,11 +219,11 @@ struct Timer_queue : public Qemu::Timer_queue
 
 	Qemu::int64_t get_ns() { return TMTimerGetNano(tm_timer); }
 
-	Genode::Lock _timer_lock;
+	Genode::Mutex _timer_mutex { };
 
 	void register_timer(void *qtimer, void (*cb)(void*), void *data) override
 	{
-		Genode::Lock::Guard lock_guard(_timer_lock);
+		Genode::Mutex::Guard guard(_timer_mutex);
 		if (verbose_timer)
 			Genode::log("qtimer: ", qtimer, " cb: ", cb, " data: ", data);
 
@@ -238,7 +238,7 @@ struct Timer_queue : public Qemu::Timer_queue
 
 	void delete_timer(void *qtimer) override
 	{
-		Genode::Lock::Guard lock_guard(_timer_lock);
+		Genode::Mutex::Guard guard(_timer_mutex);
 		if (verbose_timer)
 			Genode::log("qtimer: ", qtimer);
 
@@ -256,7 +256,7 @@ struct Timer_queue : public Qemu::Timer_queue
 
 	void activate_timer(void *qtimer, long long int expire_abs) override
 	{
-		Genode::Lock::Guard lock_guard(_timer_lock);
+		Genode::Mutex::Guard guard(_timer_mutex);
 		if (verbose_timer)
 			Genode::log("qtimer: ", qtimer, " expire: ", expire_abs);
 
@@ -274,7 +274,7 @@ struct Timer_queue : public Qemu::Timer_queue
 
 	void deactivate_timer(void *qtimer) override
 	{
-		Genode::Lock::Guard lock_guard(_timer_lock);
+		Genode::Mutex::Guard guard(_timer_mutex);
 		if (verbose_timer)
 			Genode::log("qtimer: ", qtimer);
 
