@@ -36,7 +36,7 @@ int channel_data_cb(ssh_session session, ssh_channel channel,
                     void *userdata)
 {
 	using Genode::error;
-	using Genode::Lock;
+	using Genode::Mutex;
 
 	if (len == 0) {
 		return 0;
@@ -60,7 +60,7 @@ int channel_data_cb(ssh_session session, ssh_channel channel,
 	}
 
 	Ssh::Terminal &conn      { *p->terminal };
-	Lock::Guard    guard     { conn.read_buf.lock() };
+	Mutex::Guard   guard     { conn.read_buf.mutex() };
 	char const    *src       { reinterpret_cast<char const*>(data) };
 	size_t         num_bytes { 0 };
 

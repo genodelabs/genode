@@ -234,7 +234,7 @@ void Ssh::Server::_parse_config(Genode::Xml_node const &config)
 	_log_level  = config.attribute_value("debug",      0u);
 	_log_logins = config.attribute_value("log_logins", true);
 
-	Genode::Lock::Guard g(_logins.lock());
+	Genode::Mutex::Guard guard(_logins.mutex());
 	auto print = [&] (Login const &login) {
 		Genode::log("Login configured: ", login);
 	};
@@ -330,7 +330,7 @@ void Ssh::Server::_log_login(User const &user, Session const &s, bool pubkey)
 
 void Ssh::Server::attach_terminal(Ssh::Terminal &conn)
 {
-	Genode::Lock::Guard g(_terminals.lock());
+	Genode::Mutex::Guard guard(_terminals.mutex());
 
 	try {
 		new (&_heap) Terminal_session(_terminals,
@@ -358,7 +358,7 @@ void Ssh::Server::attach_terminal(Ssh::Terminal &conn)
 
 void Ssh::Server::detach_terminal(Ssh::Terminal &conn)
 {
-	Genode::Lock::Guard g(_terminals.lock());
+	Genode::Mutex::Guard guard(_terminals.mutex());
 
 	Terminal_session *p = nullptr;
 	auto lookup = [&] (Terminal_session &t) {
@@ -390,7 +390,7 @@ void Ssh::Server::detach_terminal(Ssh::Terminal &conn)
 
 void Ssh::Server::update_config(Genode::Xml_node const &config)
 {
-	Genode::Lock::Guard g(_terminals.lock());
+	Genode::Mutex::Guard guard(_terminals.mutex());
 
 	_parse_config(config);
 	ssh_bind_options_set(_ssh_bind, SSH_BIND_OPTIONS_LOG_VERBOSITY, &_log_level);
@@ -422,7 +422,7 @@ Ssh::Session *Ssh::Server::lookup_session(ssh_session s)
 bool Ssh::Server::request_terminal(Session &session,
                                    const char* command)
 {
-	Genode::Lock::Guard g(_logins.lock());
+	Genode::Mutex::Guard guard(_logins.mutex());
 	Login const *l = _logins.lookup(session.user().string());
 	if (!l || !l->request_terminal) {
 		return false;
@@ -502,7 +502,7 @@ bool Ssh::Server::auth_password(ssh_session s, char const *u, char const *pass)
 	 * Even if there is no valid login for the user, let
 	 * the client try anyway and check multi login afterwards.
 	 */
-	Genode::Lock::Guard g(_logins.lock());
+	Genode::Mutex::Guard guard(_logins.mutex());
 	Login const *l = _logins.lookup(u);
 	if (l && l->user == u && l->password == pass) {
 		if (_allow_multi_login(s, *l)) {
@@ -563,7 +563,7 @@ bool Ssh::Server::auth_pubkey(ssh_session s, char const *u,
 	 * matches allow authentication to proceed.
 	 */
 	if (signature_state == SSH_PUBLICKEY_STATE_VALID) {
-		Genode::Lock::Guard g(_logins.lock());
+		Genode::Mutex::Guard guard(_logins.mutex());
 		Login const *l = _logins.lookup(u);
 		if (l && !ssh_key_cmp(pubkey, l->pub_key,
 		                      SSH_KEY_CMP_PUBLIC)) {
@@ -591,7 +591,7 @@ void Ssh::Server::loop()
 		}
 
 		{
-			Genode::Lock::Guard g(_terminals.lock());
+			Genode::Mutex::Guard guard(_terminals.mutex());
 
 			/* first remove all stale sessions */
 			auto cleanup = [&] (Session &s) {

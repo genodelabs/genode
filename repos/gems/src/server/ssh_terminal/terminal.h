@@ -159,7 +159,7 @@ class Ssh::Terminal
 		 */
 		void send(ssh_channel channel)
 		{
-			Lock::Guard g(_write_buf.lock());
+			Mutex::Guard guard(_write_buf.mutex());
 
 			if (!_write_buf.read_avail()) { return; }
 
@@ -192,7 +192,7 @@ class Ssh::Terminal
 		 */
 		size_t read(char *dst, size_t dst_len)
 		{
-			Genode::Lock::Guard g(read_buf.lock());
+			Mutex::Guard guard(read_buf.mutex());
 
 			size_t const num_bytes = min(dst_len, read_buf.read_avail());
 			Genode::memcpy(dst, read_buf.content(), num_bytes);
@@ -214,7 +214,7 @@ class Ssh::Terminal
 		 */
 		size_t write(char const *src, Genode::size_t src_len)
 		{
-			Lock::Guard g(_write_buf.lock());
+			Mutex::Guard g(_write_buf.mutex());
 
 			size_t num_bytes = 0;
 			size_t i = 0;
@@ -247,7 +247,7 @@ class Ssh::Terminal
 		 */
 		bool read_buffer_empty()
 		{
-			Genode::Lock::Guard g(read_buf.lock());
+			Mutex::Guard guard(read_buf.mutex());
 			return !read_buf.read_avail();
 		}
 };

@@ -109,7 +109,7 @@ struct Ssh::Login : Genode::Registry<Ssh::Login>::Element
 struct Ssh::Login_registry : Genode::Registry<Ssh::Login>
 {
 	Genode::Allocator &_alloc;
-	Genode::Lock       _lock { };
+	Genode::Mutex      _mutex { };
 
 	/**
 	 * Import one login from node
@@ -153,9 +153,9 @@ struct Ssh::Login_registry : Genode::Registry<Ssh::Login>
 	Login_registry(Genode::Allocator &alloc) : _alloc(alloc) { }
 
 	/**
-	 * Return registry lock
+	 * Return registry mutex 
 	 */
-	Genode::Lock &lock() { return _lock; }
+	Genode::Mutex &mutex() { return _mutex; }
 
 	/**
 	 * Import all login information from config

@@ -60,10 +60,10 @@ struct Ssh::Session : Genode::Registry<Session>::Element
 
 	Ssh::Terminal *terminal          { nullptr };
 
-	Genode::Lock _access_lock { };
-	Genode::Lock &lock_terminal()
+	Genode::Mutex  _access_mutex { };
+	Genode::Mutex &mutex_terminal()
 	{
-		return _access_lock;
+		return _access_mutex;
 	}
 
 	bool spawn_terminal { false };
@@ -110,8 +110,8 @@ struct Ssh::Terminal_session : Genode::Registry<Terminal_session>::Element
 
 struct Ssh::Terminal_registry : Genode::Registry<Terminal_session>
 {
-	Genode::Lock _lock { };
-	Genode::Lock &lock() { return _lock; }
+	Genode::Mutex _mutex { };
+	Genode::Mutex &mutex() { return _mutex; }
 };
 
 

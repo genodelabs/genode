@@ -56,7 +56,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 			if (!_config_rom.valid()) { return; }
 
 			{
-				Genode::Lock::Guard g(_logins.lock());
+				Genode::Mutex::Guard guard(_logins.mutex());
 				_logins.import(_config_rom.xml());
 			}
 

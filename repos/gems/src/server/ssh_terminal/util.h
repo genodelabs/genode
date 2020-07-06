@@ -42,10 +42,10 @@ namespace Util
 template <size_t C>
 struct Util::Buffer
 {
-	Genode::Lock _lock    { };
-	char         _data[C] { };
-	size_t       _head    { 0 };
-	size_t       _tail    { 0 };
+	Genode::Mutex _mutex   { };
+	char          _data[C] { };
+	size_t        _head    { 0 };
+	size_t        _tail    { 0 };
 
 	size_t read_avail()   const { return _head > _tail ? _head - _tail : 0; }
 	size_t write_avail()  const { return _head <= C ? C - _head : 0; }
@@ -55,7 +55,7 @@ struct Util::Buffer
 	void consume(size_t n) { _tail += n; }
 	void reset()           { _head = _tail = 0; }
 
-	Genode::Lock &lock()   { return _lock; }
+	Genode::Mutex &mutex() { return _mutex; }
 };
 
 #endif /* _SSH_TERMINAL_UTIL_H_ */
