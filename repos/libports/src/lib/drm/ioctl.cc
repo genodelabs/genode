@@ -156,7 +156,7 @@ class Drm_call
 		Gpu::Connection _gpu_session { _env };
 		Gpu::Info       _gpu_info { _gpu_session.info() };
 
-		Genode::Lock _completion_lock { Genode::Lock::LOCKED };
+		Genode::Blockade _completion_lock { };
 
 		size_t available_gtt_size { _gpu_info.aperture_size };
 
@@ -357,7 +357,7 @@ class Drm_call
 		 ** execbuffer completion **
 		 ***************************/
 
-		void _handle_completion() { _completion_lock.unlock(); }
+		void _handle_completion() { _completion_lock.wakeup(); }
 
 		Genode::Io_signal_handler<Drm_call> _completion_sigh {
 			_env.ep(), *this, &Drm_call::_handle_completion };
@@ -834,7 +834,7 @@ class Drm_call
 			              : _generic_ioctl(command_number(request), arg);
 		}
 
-		void wait_for_completion() { _completion_lock.lock(); }
+		void wait_for_completion() { _completion_lock.block(); }
 };
 
 
