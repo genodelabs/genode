@@ -13,7 +13,7 @@
 
 #include <base/heap.h>
 #include <base/allocator.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 
 #include <threads.h>
 
@@ -27,19 +27,19 @@ extern "C" {
 			return thrd_error;
 		}
 		Genode::Allocator &alloc = ZX::Resource<Genode::Heap>::get_component();
-		mtx->lock = static_cast<void *>(new (alloc) Genode::Lock());
+		mtx->lock = static_cast<void *>(new (alloc) Genode::Mutex());
 		return thrd_success;
 	}
 
 	int mtx_lock(mtx_t *mtx)
 	{
-		static_cast<Genode::Lock *>(mtx->lock)->lock();
+		static_cast<Genode::Mutex *>(mtx->lock)->acquire();
 		return thrd_success;
 	}
 
 	int mtx_unlock(mtx_t *mtx)
 	{
-		static_cast<Genode::Lock *>(mtx->lock)->unlock();
+		static_cast<Genode::Mutex *>(mtx->lock)->release();
 		return thrd_success;
 	}
 

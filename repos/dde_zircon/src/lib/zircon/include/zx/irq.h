@@ -17,7 +17,7 @@
 #include <irq_session/connection.h>
 #include <irq_session/client.h>
 #include <base/signal.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 
 namespace ZX{
 	enum {
@@ -31,26 +31,24 @@ namespace ZX{
 		private:
 			tsession _irq;
 			Genode::Signal_handler<Irq> _irq_handler;
-			Genode::Lock _lock;
+			Genode::Mutex _mutex { };
 
 			void _unlock()
 			{
-				_lock.unlock();
+				_mutex.release();
 			}
 
 		public:
 			Irq(Genode::Env &env, int irq) :
 				_irq(env, irq),
-				_irq_handler(env.ep(), *this, &Irq::_unlock),
-				_lock()
+				_irq_handler(env.ep(), *this, &Irq::_unlock)
 			{
 				_irq.sigh(_irq_handler);
 			}
 
 			Irq(Genode::Env &env, Genode::Irq_session_capability cap) :
 				_irq(cap),
-				_irq_handler(env.ep(), *this, &Irq::_unlock),
-				_lock()
+				_irq_handler(env.ep(), *this, &Irq::_unlock)
 			{
 				_irq.sigh(_irq_handler);
 			}
@@ -58,7 +56,7 @@ namespace ZX{
 			void wait()
 			{
 				_irq.ack_irq();
-				_lock.lock();
+				_mutex.acquire();
 			}
 	};
 }
