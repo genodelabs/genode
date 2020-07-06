@@ -72,7 +72,7 @@ bool Launchpad::_child_name_exists(Launchpad_child::Name const &name)
 Launchpad_child::Name
 Launchpad::_get_unique_child_name(Launchpad_child::Name const &binary_name)
 {
-	Lock::Guard lock_guard(_children_lock);
+	Mutex::Guard guard(_children_mutex);
 
 	if (!_child_name_exists(binary_name))
 		return binary_name;
@@ -195,7 +195,7 @@ Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name
 			                cap_quota, ram_quota,
 			                _parent_services, _child_services, config_ds);
 
-		Lock::Guard lock_guard(_children_lock);
+		Mutex::Guard guard(_children_mutex);
 		_children.insert(c);
 
 		add_child(unique_name, ram_quota.value, *c, _heap);
@@ -212,7 +212,7 @@ void Launchpad::exit_child(Launchpad_child &child)
 {
 	remove_child(child.name(), _heap);
 
-	Lock::Guard lock_guard(_children_lock);
+	Mutex::Guard guard(_children_mutex);
 	_children.remove(&child);
 
 	destroy(_sliced_heap, &child);
