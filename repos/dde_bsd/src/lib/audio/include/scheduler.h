@@ -18,7 +18,6 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/lock.h>
 #include <base/sleep.h>
 
 /* local includes */
@@ -140,7 +139,6 @@ class Bsd::Scheduler
 	private:
 
 		Bsd::List<Bsd::Task> _present_list;
-		Genode::Lock       _present_list_mutex;
 
 		Task *_current = nullptr; /* currently scheduled task */
 
