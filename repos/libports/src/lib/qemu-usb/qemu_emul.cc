@@ -40,7 +40,7 @@ extern "C" void _type_init_usb_host_register_types(Genode::Entrypoint*,
                                                    Genode::Env *);
 extern "C" void _type_init_xhci_register_types();
 
-extern Genode::Lock _lock;
+extern Genode::Mutex _mutex;
 
 Qemu::Controller *qemu_controller();
 
@@ -81,7 +81,7 @@ void Qemu::usb_update_devices() {
 
 void Qemu::usb_timer_callback(void (*cb)(void*), void *data)
 {
-	Genode::Lock::Guard g(_lock);
+	Genode::Mutex::Guard guard(_mutex);
 
 	cb(data);
 }
@@ -545,7 +545,7 @@ struct Controller : public Qemu::Controller
 
 	int    mmio_read(Genode::off_t offset, void *buf, Genode::size_t size)
 	{
-		Genode::Lock::Guard g(_lock);
+		Genode::Mutex::Guard guard(_mutex);
 		Mmio &mmio        = find_region(offset);
 		Genode::off_t reg = offset - mmio.offset;
 
@@ -571,7 +571,7 @@ struct Controller : public Qemu::Controller
 
 	int    mmio_write(Genode::off_t offset, void const *buf, Genode::size_t size)
 	{
-		Genode::Lock::Guard g(_lock);
+		Genode::Mutex::Guard guard(_mutex);
 		Mmio &mmio        = find_region(offset);
 		Genode::off_t reg = offset - mmio.offset;
 		void *ptr         = Object_pool::p()->xhci_state();

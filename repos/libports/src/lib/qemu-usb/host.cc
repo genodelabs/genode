@@ -24,7 +24,7 @@ using namespace Genode;
 static bool const verbose_devices  = false;
 static bool const verbose_host     = false;
 static bool const verbose_warnings = false;
-Lock _lock;
+Mutex _mutex;
 
 static void update_ep(USBDevice *);
 static bool claim_interfaces(USBDevice *dev);
@@ -302,7 +302,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	void ack_avail()
 	{
-		Lock::Guard g(_lock);
+		Mutex::Guard guard(_mutex);
 
 		/* we are already dead, do nothing */
 		if (deleted == true) return;
@@ -463,7 +463,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	void state_change()
 	{
-		Lock::Guard g(_lock);
+		Mutex::Guard guard(_mutex);
 		if (usb_raw.plugged())
 			return;
 
@@ -472,7 +472,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	void destroy()
 	{
-		Lock::Guard g(_lock);
+		Mutex::Guard guard(_mutex);
 
 		_release_interfaces();
 
@@ -905,7 +905,7 @@ struct Usb_devices : List<Usb_host_device>
 
 	void _devices_update()
 	{
-		Lock::Guard g(_lock);
+		Mutex::Guard guard(_mutex);
 
 		_garbage_collect();
 
