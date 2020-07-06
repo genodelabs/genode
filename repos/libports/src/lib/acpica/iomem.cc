@@ -15,6 +15,7 @@
 #include <base/attached_io_mem_dataspace.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/log.h>
+#include <base/sleep.h>
 #include <util/misc_math.h>
 
 #include <io_mem_session/connection.h>
@@ -31,8 +32,7 @@ extern "C" {
 #define FAIL(retval) \
 	{ \
 		Genode::error(__func__, ":", __LINE__, " called - dead"); \
-		Genode::Lock lock; \
-		while (1) lock.lock(); \
+		while (1) Genode::sleep_forever(); \
 		return retval; \
 	}
 

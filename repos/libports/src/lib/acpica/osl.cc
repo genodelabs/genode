@@ -12,6 +12,7 @@
  */
 
 #include <base/log.h>
+#include <base/sleep.h>
 #include <util/misc_math.h>
 
 #include <io_port_session/connection.h>
@@ -30,8 +31,7 @@ extern "C" {
 #define FAIL(retval) \
 	{ \
 		Genode::error(__func__, ":", __LINE__, " called - dead"); \
-		Genode::Lock lock; \
-		while (1) lock.lock(); \
+		while (1) Genode::sleep_forever(); \
 		return retval; \
 	}
 
@@ -56,26 +56,26 @@ void AcpiOsFree (void *ptr)
 
 ACPI_STATUS AcpiOsCreateLock (ACPI_SPINLOCK *spin_lock)
 {
-	*spin_lock = new (Acpica::heap()) Genode::Lock();
+	*spin_lock = new (Acpica::heap()) Genode::Mutex();
 	return AE_OK;
 }
 
 ACPI_CPU_FLAGS AcpiOsAcquireLock (ACPI_SPINLOCK h)
 {
-	Genode::Lock *lock = reinterpret_cast<Genode::Lock *>(h);
-	lock->lock();
+	Genode::Mutex *mutex = reinterpret_cast<Genode::Mutex *>(h);
+	mutex->acquire();
 
 	return AE_OK;
 }
 
 void AcpiOsReleaseLock (ACPI_SPINLOCK h, ACPI_CPU_FLAGS flags)
 {
-	Genode::Lock *lock = reinterpret_cast<Genode::Lock *>(h);
+	Genode::Mutex *mutex = reinterpret_cast<Genode::Mutex *>(h);
 
 	if (flags != AE_OK)
 		Genode::warning("warning - unknown flags in ", __func__);
 
-	lock->unlock();
+	mutex->release();
 
 	return;
 }
