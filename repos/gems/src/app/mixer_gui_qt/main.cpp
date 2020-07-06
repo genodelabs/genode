@@ -41,17 +41,17 @@ struct Report_handler
 	Genode::Entrypoint                     sig_ep;
 	Genode::Signal_handler<Report_handler> channels_handler;
 
-	Genode::Lock _report_lock { Genode::Lock::LOCKED };
+	Genode::Blockade _report_blockade { };
 
 	bool window_connected { false };
 
 	void _report(char const *data, size_t size)
 	{
 		Genode::Xml_node node(data, size);
-		proxy->report_changed(&_report_lock, &node);
+		proxy->report_changed(&_report_blockade, &node);
 
 		/* wait until the report was handled */
-		_report_lock.lock();
+		_report_blockade.block();
 	}
 
 	void _handle_channels()

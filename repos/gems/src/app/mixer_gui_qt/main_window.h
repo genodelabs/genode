@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/lock.h>
 #include <util/xml_node.h>
 
 /* Qt includes */

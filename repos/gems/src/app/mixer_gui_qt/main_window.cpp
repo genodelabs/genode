@@ -421,13 +421,13 @@ void Main_window::_update_clients(Genode::Xml_node &channels)
  */
 void Main_window::report_changed(void *l, void const *p)
 {
-	Genode::Lock &lock     = *reinterpret_cast<Genode::Lock*>(l);
+	Genode::Blockade &blockade = *reinterpret_cast<Genode::Blockade*>(l);
 	Genode::Xml_node &node = *((Genode::Xml_node*)p);
 
 	if (node.has_type("channel_list"))
 		_update_clients(node);
 
-	lock.unlock();
+	blockade.wakeup();
 }
 
 
