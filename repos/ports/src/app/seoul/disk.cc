@@ -140,7 +140,7 @@ void Seoul::Disk::handle_disk(unsigned disknr)
 		}
  
 		{
-			Genode::Lock::Guard lock_guard(_alloc_lock);
+			Genode::Mutex::Guard guard(_alloc_mutex);
 			source->release_packet(packet);
 		}
 		destroy(&_tslab_msg, msg);
@@ -235,7 +235,7 @@ void Seoul::Disk::check_restart()
 		if (restarted) {
 			destroy(&_tslab_avl, obj);
 		} else {
-			Genode::Lock::Guard lock_guard(_alloc_lock);
+			Genode::Mutex::Guard guard(_alloc_mutex);
 			_restart_msg.insert(obj);
 		}
 	}
@@ -254,7 +254,7 @@ bool Seoul::Disk::restart(struct disk_session const &disk,
 	Block::Packet_descriptor packet;
 
 	try {
-		Genode::Lock::Guard lock_guard(_alloc_lock);
+		Genode::Mutex::Guard guard(_alloc_mutex);
 
 		packet = Block::Packet_descriptor(
 			disk.blk_con->alloc_packet(blocks * blk_size),
@@ -311,7 +311,7 @@ bool Seoul::Disk::execute(bool const write, struct disk_session const &disk,
 	char * source_addr          = nullptr;
 
 	try {
-		Genode::Lock::Guard lock_guard(_alloc_lock);
+		Genode::Mutex::Guard guard(_alloc_mutex);
 
 		packet = Block::Packet_descriptor(
 			disk.blk_con->alloc_packet(blocks * blk_size),
@@ -371,7 +371,7 @@ bool Seoul::Disk::execute(bool const write, struct disk_session const &disk,
 				source->submit_packet(packet);
 			else {
 				/* failed packet allocation, restart at later point in time */
-				Genode::Lock::Guard lock_guard(_alloc_lock);
+				Genode::Mutex::Guard guard(_alloc_mutex);
 				_restart_msg.insert(new (&_tslab_avl) Avl_entry(source_addr,
 				                                                msg_cpy));
 			}
@@ -382,7 +382,7 @@ bool Seoul::Disk::execute(bool const write, struct disk_session const &disk,
 		destroy(disk_heap(), msg_cpy->dma);
 		destroy(&_tslab_msg, msg_cpy);
 		if (source_addr) {
-			Genode::Lock::Guard lock_guard(_alloc_lock);
+			Genode::Mutex::Guard guard(_alloc_mutex);
 			source->release_packet(packet);
 		}
 		return false;
@@ -415,7 +415,7 @@ bool Seoul::Disk::execute(bool const write, struct disk_session const &disk,
 	} else {
 		destroy(&_tslab_msg, msg_cpy);
 
-		Genode::Lock::Guard lock_guard(_alloc_lock);
+		Genode::Mutex::Guard guard(_alloc_mutex);
 		source->release_packet(packet);
 	}
 	return ok;

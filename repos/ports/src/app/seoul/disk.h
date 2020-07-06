@@ -128,8 +128,8 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 
 		Genode::Avl_tree<Avl_entry> _lookup_msg  { };
 		Genode::Avl_tree<Avl_entry> _restart_msg { };
-		/* _alloc_lock protects both lists + alloc_packet/release_packet !!! */
-		Genode::Lock                _alloc_lock  { };
+		/* _alloc_mutex protects both lists + alloc_packet/release_packet !!! */
+		Genode::Mutex               _alloc_mutex { };
 
 		/*
 		 * Noncopyable
@@ -167,7 +167,7 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 		Avl_entry * lookup_and_remove(Genode::Avl_tree<Avl_entry> &tree,
 		                              void * specific_obj = nullptr)
 		{
-			Genode::Lock::Guard lock_guard(_alloc_lock);
+			Genode::Mutex::Guard guard(_alloc_mutex);
 
 			Avl_entry * obj = tree.first();
 			if (obj && specific_obj)

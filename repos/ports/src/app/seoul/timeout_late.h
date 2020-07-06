@@ -36,8 +36,8 @@ class Late_timeout
 
 	private:
 
-		Genode::Lock _lock   { };
-		Remote       _remote { };
+		Genode::Mutex _mutex  { };
+		Remote        _remote { };
 
 	public:
 
@@ -45,7 +45,7 @@ class Late_timeout
 
 		void timeout(Clock &clock, MessageTimer const &msg)
 		{
-			Genode::Lock_guard<Genode::Lock> guard(_lock);
+			Genode::Mutex::Guard guard(_mutex);
 
 			Genode::uint64_t const now = clock.time();
 
@@ -58,7 +58,7 @@ class Late_timeout
 
 		Remote reset()
 		{
-			Genode::Lock_guard<Genode::Lock> guard(_lock);
+			Genode::Mutex::Guard guard(_mutex);
 
 			Remote last = _remote;
 
