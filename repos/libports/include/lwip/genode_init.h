@@ -20,7 +20,7 @@
 namespace Lwip {
 	void genode_init(Genode::Allocator &heap, Genode::Timeout_scheduler &timer);
 
-	Genode::Lock &lock();
+	Genode::Mutex &mutex();
 }
 
 #endif

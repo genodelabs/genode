@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/snprintf.h>
-#include <base/lock.h>
 #include <base/env.h>
 
 extern "C" {

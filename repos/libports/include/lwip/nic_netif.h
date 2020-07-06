@@ -141,7 +141,7 @@ class Lwip::Nic_netif
 
 		void handle_rx_packets()
 		{
-			Genode::Lock::Guard g { Lwip::lock() };
+			Genode::Mutex::Guard guard { Lwip::mutex() };
 			auto &rx = *_nic.rx();
 
 			while (rx.packet_avail() && rx.ready_to_ack()) {

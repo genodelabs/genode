@@ -902,7 +902,7 @@ class Lwip::Udp_socket_dir final :
 		                 char *dst, file_size count,
 		                 file_size &out_count) override
 		{
-			Genode::Lock::Guard g { Lwip::lock() };
+			Genode::Mutex::Guard guard { Lwip::mutex() };
 			Read_result result = Read_result::READ_ERR_INVALID;
 
 			switch(handle.kind) {
@@ -988,7 +988,7 @@ class Lwip::Udp_socket_dir final :
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
 		{
-			Genode::Lock::Guard g { Lwip::lock() };
+			Genode::Mutex::Guard g { Lwip::mutex() };
 
 			switch(handle.kind) {
 
@@ -1291,7 +1291,7 @@ class Lwip::Tcp_socket_dir final :
 		                 char *dst, file_size count,
 		                 file_size &out_count) override
 		{
-			Genode::Lock::Guard g { Lwip::lock() };
+			Genode::Mutex::Guard g { Lwip::mutex() };
 
 			switch(handle.kind) {
 
@@ -1377,9 +1377,9 @@ class Lwip::Tcp_socket_dir final :
 
 					handle.kind = Lwip_file_handle::LOCATION;
 					/* read the location of the new socket directory */
-					Lwip::lock().unlock();
+					Lwip::mutex().release();
 					Read_result result = handle.read(dst, count, out_count);
-					Lwip::lock().lock();
+					Lwip::mutex().acquire();
 
 					return result;
 				}
@@ -1443,7 +1443,7 @@ class Lwip::Tcp_socket_dir final :
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
 		{
-			Genode::Lock::Guard g { Lwip::lock() };
+			Genode::Mutex::Guard guard { Lwip::mutex() };
 			if (_pcb == NULL) {
 				/* socket is closed */
 				return Write_result::WRITE_ERR_IO;
