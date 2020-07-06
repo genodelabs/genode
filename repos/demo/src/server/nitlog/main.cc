@@ -185,15 +185,15 @@ class Log_window
 {
 	private:
 
-		Canvas_base &_canvas;
-		Font  const &_font;
-		Log_entry    _entries[LOG_H];    /* log entries                           */
-		int          _dst_entry = 0;     /* destination entry for next write      */
-		int          _view_pos  = 0;     /* current view port on the entry array  */
-		bool         _scroll    = false; /* scroll mode (when text hits bottom)   */
-		char         _attr[LOG_W];       /* character attribute buffer            */
-		bool         _dirty     = true;  /* schedules the log window for a redraw */
-		Genode::Lock _dirty_lock { };
+		Canvas_base  &_canvas;
+		Font  const  &_font;
+		Log_entry     _entries[LOG_H];    /* log entries                           */
+		int           _dst_entry = 0;     /* destination entry for next write      */
+		int           _view_pos  = 0;     /* current view port on the entry array  */
+		bool          _scroll    = false; /* scroll mode (when text hits bottom)   */
+		char          _attr[LOG_W];       /* character attribute buffer            */
+		bool          _dirty     = true;  /* schedules the log window for a redraw */
+		Genode::Mutex _dirty_mutex { };
 
 	public:
 
@@ -226,7 +226,7 @@ class Log_window
 				_scroll = true;
 
 			/* schedule log window for redraw */
-			Genode::Lock::Guard lock_guard(_dirty_lock);
+			Genode::Mutex::Guard guard(_dirty_mutex);
 			_dirty |= 1;
 		}
 
@@ -238,7 +238,7 @@ class Log_window
 		bool draw()
 		{
 			{
-				Genode::Lock::Guard lock_guard(_dirty_lock);
+				Genode::Mutex::Guard guard(_dirty_mutex);
 				if (!_dirty) return false;
 				_dirty = false;
 			}
