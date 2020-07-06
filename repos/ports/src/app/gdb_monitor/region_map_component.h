@@ -73,7 +73,7 @@ namespace Gdb_monitor {
 		private:
 
 			Avl_tree<Region>  _region_map;
-			Lock              _region_map_lock;
+			Mutex             _region_map_mutex;
 			Dataspace_pool   &_managed_ds_map;
 
 		public:

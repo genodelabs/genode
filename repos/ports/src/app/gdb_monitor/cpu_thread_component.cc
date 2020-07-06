@@ -149,14 +149,14 @@ int Cpu_thread_component::deliver_signal(int signo)
 		}
 
 		/*
-		 * The lock guard prevents an interruption by
+		 * The mutex guard prevents an interruption by
 		 * 'genode_stop_all_threads()', which could cause
 		 * the new thread to be resumed when it should be
 		 * stopped.
 		 */
 
-		Lock::Guard stop_new_threads_lock_guard(
-			_cpu_session_component.stop_new_threads_lock());
+		Mutex::Guard stop_new_threads_mutex_guard(
+			_cpu_session_component.stop_new_threads_mutex());
 
 		if (!_cpu_session_component.stop_new_threads())
 			resume();

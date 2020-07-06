@@ -96,7 +96,7 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 		Append_list<Cpu_thread_component>        _thread_list;
 
 		bool                                     _stop_new_threads = true;
-		Lock                                     _stop_new_threads_lock;
+		Mutex                                    _stop_new_threads_mutex;
 
 		Capability<Cpu_session::Native_cpu>      _native_cpu_cap;
 
@@ -136,7 +136,7 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 		void handle_unresolved_page_fault();
 		void stop_new_threads(bool stop);
 		bool stop_new_threads();
-		Lock &stop_new_threads_lock();
+		Mutex &stop_new_threads_mutex();
 		int handle_initial_breakpoint(unsigned long lwpid);
 		void pause_all_threads();
 		void resume_all_threads();

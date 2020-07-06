@@ -28,7 +28,7 @@ using namespace Gdb_monitor;
 
 Region_map_component::Region *Region_map_component::find_region(void *local_addr, addr_t *offset_in_region)
 {
-	Lock::Guard lock_guard(_region_map_lock);
+	Mutex::Guard guard(_region_map_mutex);
 
 	Region *first = _region_map.first();
 	Region *region = first ? first->find_by_addr(local_addr) : 0;
@@ -73,7 +73,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 	                                       use_local_addr, local_addr,
 	                                       executable, writeable);
 
-	Lock::Guard lock_guard(_region_map_lock);
+	Mutex::Guard guard(_region_map_mutex);
 	_region_map.insert(new (_alloc) Region(addr, (void*)((addr_t)addr + size - 1), ds_cap, offset));
 
 	return addr;
@@ -84,7 +84,7 @@ void Region_map_component::detach(Region_map::Local_addr local_addr)
 {
 	_parent_region_map.detach(local_addr);
 
-	Lock::Guard lock_guard(_region_map_lock);
+	Mutex::Guard guard(_region_map_mutex);
 	Region *region = _region_map.first()->find_by_addr(local_addr);
 	if (!region) {
 		warning("address not in region map");

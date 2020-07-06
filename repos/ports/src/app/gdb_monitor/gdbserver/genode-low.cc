@@ -61,7 +61,7 @@ class Memory_model
 {
 	private:
 
-		Lock _lock;
+		Mutex _mutex { };
 
 		Region_map_component &_address_space;
 
@@ -160,7 +160,7 @@ class Memory_model
 
 		unsigned char read(void *addr)
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			addr_t offset_in_region = 0;
 
@@ -188,7 +188,7 @@ class Memory_model
 			if (verbose)
 				log(__func__, ": write addr=", addr, ", value=", Hex(value));
 
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 
 			addr_t offset_in_region = 0;
 			Region_map_component::Region *region =

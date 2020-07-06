@@ -177,9 +177,9 @@ bool Cpu_session_component::stop_new_threads()
 }
 
 
-Lock &Cpu_session_component::stop_new_threads_lock()
+Mutex &Cpu_session_component::stop_new_threads_mutex()
 {
-	return _stop_new_threads_lock;
+	return _stop_new_threads_mutex;
 }
 
 
@@ -197,7 +197,7 @@ int Cpu_session_component::handle_initial_breakpoint(unsigned long lwpid)
 
 void Cpu_session_component::pause_all_threads()
 {
-	Lock::Guard stop_new_threads_lock_guard(stop_new_threads_lock());
+	Mutex::Guard stop_new_threads_mutex_guard(stop_new_threads_mutex());
 
 	stop_new_threads(true);
 
@@ -212,7 +212,7 @@ void Cpu_session_component::pause_all_threads()
 
 void Cpu_session_component::resume_all_threads()
 {
-Lock::Guard stop_new_threads_guard(stop_new_threads_lock());
+	Mutex::Guard stop_new_threads_guard(stop_new_threads_mutex());
 
 	stop_new_threads(false);
 
