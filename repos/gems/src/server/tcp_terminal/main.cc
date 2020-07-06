@@ -277,7 +277,7 @@ class Open_socket_pool
 		/**
 		 * Protection for '_list'
 		 */
-		Genode::Lock _lock;
+		Genode::Mutex _mutex;
 
 		/**
 		 * List of open sockets
@@ -332,7 +332,7 @@ class Open_socket_pool
 
 		void insert(Open_socket *s)
 		{
-			Genode::Lock::Guard guard(_lock);
+			Genode::Mutex::Guard guard(_mutex);
 			_list.insert(s);
 			_count++;
 			_wakeup_select();
@@ -340,7 +340,7 @@ class Open_socket_pool
 
 		void remove(Open_socket *s)
 		{
-			Genode::Lock::Guard guard(_lock);
+			Genode::Mutex::Guard guard(_mutex);
 			_list.remove(s);
 			_count--;
 			_wakeup_select();
@@ -357,7 +357,7 @@ class Open_socket_pool
 			fd_set rfds;
 			int    nfds = 0;
 			{
-				Genode::Lock::Guard guard(_lock);
+				Genode::Mutex::Guard guard(_mutex);
 
 				/* collect file descriptors of all open sessions */
 				FD_ZERO(&rfds);
@@ -408,7 +408,7 @@ class Open_socket_pool
 
 			/* read pending data from sockets */
 			{
-				Genode::Lock::Guard guard(_lock);
+				Genode::Mutex::Guard guard(_mutex);
 
 				for (Open_socket *s = _list.first(); s; s = s->next()) {
 
