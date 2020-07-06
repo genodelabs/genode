@@ -166,9 +166,3 @@ void Thread::start()
 	/* wait until the 'thread_start' function got entered */
 	startup_lock().block();
 }
-
-
-void Thread::cancel_blocking()
-{
-	Cpu_thread_client(_thread_cap).cancel_blocking();
-}

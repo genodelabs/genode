@@ -189,40 +189,6 @@ Thread_state Platform_thread::state()
 }
 
 
-void Platform_thread::cancel_blocking()
-{
-	L4_Word_t     dummy;
-	L4_ThreadId_t dummy_tid;
-
-	/*
-	 * XXX: This implementation is not safe because it only cancels
-	 *      a currently executed blocking operation but it has no
-	 *      effect when the thread is executing user code and going
-	 *      to block soon. To solve this issue, we would need signalling
-	 *      semantics, which means that we flag the thread to being
-	 *      canceled the next time it enters the kernel.
-	 */
-
-	/* control flags for 'L4_ExchangeRegisters' */
-	enum {
-		CANCEL_SEND         = 1 << 2,
-		CANCEL_RECV         = 1 << 1,
-		CANCEL_IPC          = CANCEL_SEND | CANCEL_RECV,
-		USER_DEFINED_HANDLE = 1 << 6,
-		RESUME              = 1 << 8,
-	};
-
-	/* reset value for the thread's user-defined handle */
-	enum { USER_DEFINED_HANDLE_ZERO = 0 };
-
-	L4_ExchangeRegisters(_l4_thread_id,
-	                     CANCEL_IPC | RESUME | USER_DEFINED_HANDLE,
-	                     0, 0, 0, USER_DEFINED_HANDLE_ZERO, L4_nilthread,
-	                     &dummy, &dummy, &dummy, &dummy, &dummy,
-	                     &dummy_tid);
-}
-
-
 Platform_thread::~Platform_thread()
 {
 	/*

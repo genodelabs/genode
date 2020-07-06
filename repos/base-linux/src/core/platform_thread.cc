@@ -89,12 +89,6 @@ Platform_thread::~Platform_thread()
 }
 
 
-void Platform_thread::cancel_blocking()
-{
-	lx_tgkill(_pid, _tid, LX_SIGUSR1);
-}
-
-
 void Platform_thread::pause()
 {
 	warning(__func__, "not implemented");

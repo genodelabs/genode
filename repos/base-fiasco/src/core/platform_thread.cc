@@ -142,17 +142,6 @@ Thread_state Platform_thread::state()
 }
 
 
-void Platform_thread::cancel_blocking()
-{
-	l4_umword_t   dummy;
-	l4_threadid_t invalid = L4_INVALID_ID;
-
-	l4_inter_task_ex_regs(_l4_thread_id, ~0UL, ~0UL,
-	                      &invalid, &invalid, &invalid,
-	                      &dummy, &dummy, &dummy, 0, l4_utcb_get());
-}
-
-
 Platform_thread::Platform_thread(size_t, const char *name, unsigned,
                                  Affinity::Location, addr_t)
 : _l4_thread_id(L4_INVALID_ID), _name(name) { }

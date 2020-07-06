@@ -492,13 +492,6 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * This method is solely needed on Linux.
 		 */
 		bool is_myself() const;
-
-		/**
-		 * Required outside of core. E.g. launchpad needs it to forcefully kill
-		 * a client which blocks on a session opening request where the service
-		 * is not up yet.
-		 */
-		void cancel_blocking() { Thread::cancel_blocking(); }
 };
 
 

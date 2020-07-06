@@ -124,11 +124,6 @@ namespace Genode {
 			void resume();
 
 			/**
-			 * Cancel currently blocking operation
-			 */
-			void cancel_blocking();
-
-			/**
 			 * Override thread state with 's'
 			 *
 			 * \throw Cpu_session::State_access_failed

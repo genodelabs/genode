@@ -69,6 +69,3 @@ void Thread::start()
 	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top(), this);
 	native_thread().pid = lx_getpid();
 }
-
-
-void Thread::cancel_blocking() { }

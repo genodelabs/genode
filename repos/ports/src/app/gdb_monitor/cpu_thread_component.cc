@@ -253,12 +253,6 @@ void Cpu_thread_component::single_step(bool enable)
 }
 
 
-void Cpu_thread_component::cancel_blocking()
-{
-	_parent_cpu_thread.cancel_blocking();
-}
-
-
 void Cpu_thread_component::state(Thread_state const &state)
 {
 	_parent_cpu_thread.state(state);

@@ -531,14 +531,6 @@ Thread::Thread(Env &env, Name const &name, size_t stack_size)
 : Thread(env, name, stack_size, Location(), Weight(), env.cpu()) { }
 
 
-void Thread::cancel_blocking()
-{
-	/*
-	 * XXX implement interaction with CPU session
-	 */
-}
-
-
 Thread::~Thread()
 {
 	bool const needs_join = (pthread_cancel(native_thread().meta_data->pt) == 0);

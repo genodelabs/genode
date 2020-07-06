@@ -102,9 +102,3 @@ void Thread::start()
 	Cpu_thread_client cpu_thread(_thread_cap);
 	cpu_thread.start((addr_t)_thread_start, _stack->top());
 }
-
-
-void Thread::cancel_blocking()
-{
-	Cpu_thread_client(_thread_cap).cancel_blocking();
-}

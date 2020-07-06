@@ -56,14 +56,6 @@ struct Genode::Cpu_thread : Interface
 	virtual void resume() = 0;
 
 	/**
-	 * Cancel a currently blocking operation
-	 *
-	 * \deprecated
-	 * \noapi
-	 */
-	virtual void cancel_blocking() = 0;
-
-	/**
 	 * Get the current thread state
 	 *
 	 * \return  state of the targeted thread
@@ -144,7 +136,6 @@ struct Genode::Cpu_thread : Interface
 	GENODE_RPC(Rpc_start, void, start, addr_t, addr_t);
 	GENODE_RPC(Rpc_pause, void, pause);
 	GENODE_RPC(Rpc_resume, void, resume);
-	GENODE_RPC(Rpc_cancel_blocking, void, cancel_blocking);
 	GENODE_RPC_THROW(Rpc_get_state, Thread_state, state,
 	                 GENODE_TYPE_LIST(State_access_failed));
 	GENODE_RPC_THROW(Rpc_set_state, void, state,
@@ -158,7 +149,7 @@ struct Genode::Cpu_thread : Interface
 	GENODE_RPC(Rpc_trace_policy, Dataspace_capability, trace_policy);
 
 	GENODE_RPC_INTERFACE(Rpc_utcb, Rpc_start, Rpc_pause, Rpc_resume,
-	                     Rpc_cancel_blocking, Rpc_set_state, Rpc_get_state,
+	                     Rpc_set_state, Rpc_get_state,
 	                     Rpc_exception_sigh, Rpc_single_step, Rpc_affinity,
 	                     Rpc_trace_control_index, Rpc_trace_buffer,
 	                     Rpc_trace_policy);

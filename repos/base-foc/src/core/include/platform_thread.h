@@ -117,11 +117,6 @@ namespace Genode {
 			void resume();
 
 			/**
-			 * Cancel currently blocking operation
-			 */
-			void cancel_blocking();
-
-			/**
 			 * This thread is about to be bound
 			 *
 			 * \param pd    platform pd, thread is bound to

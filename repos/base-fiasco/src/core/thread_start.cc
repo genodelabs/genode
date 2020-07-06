@@ -49,14 +49,6 @@ void Thread::start()
 }
 
 
-void Thread::cancel_blocking()
-{
-	/*
-	 * Within core, we never need to unblock threads
-	 */
-}
-
-
 void Thread::_deinit_platform_thread()
 {
 	/* destruct platform thread */

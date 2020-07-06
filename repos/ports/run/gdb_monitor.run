@@ -292,8 +292,7 @@ if {![have_spec arm]} {
 	send "bt\n"
 	run_genode_until {\(gdb\)} 20 $gdb_id
 
-	if {![regexp {Genode::Cancelable_lock::lock} $output] ||
-		![regexp {Genode::Signal_receiver::block_for_signal} $output] ||
+	if {![regexp {Genode::Signal_receiver::block_for_signal} $output] ||
 		![regexp {Genode::Entrypoint::_wait_and_dispatch_one_io_signal} $output] ||
 		![regexp {Libc::Kernel::run} $output] } {
 

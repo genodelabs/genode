@@ -256,12 +256,6 @@ namespace Genode {
 				return true;
 			}
 
-			/**
-			 * Cancel blocking in a lock so that recall exception can take
-			 * place.
-			 */
-			void    client_cancel_blocking();
-
 			uint8_t client_recall(bool get_state_and_block);
 			void client_set_ec(addr_t ec) { _state.sel_client_ec = ec; }
 

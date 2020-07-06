@@ -450,21 +450,6 @@ void Pager_object::wake_up()
 }
 
 
-void Pager_object::client_cancel_blocking()
-{
-	uint8_t res = sm_ctrl(exc_pt_sel_client() + SM_SEL_EC, SEMAPHORE_UP);
-	if (res != NOVA_OK)
-		warning("canceling blocked client failed (thread sm)");
-
-	if (!_state.has_signal_sm())
-		return;
-
-	res = sm_ctrl(exc_pt_sel_client() + PT_SEL_STARTUP, SEMAPHORE_UP);
-	if (res != NOVA_OK)
-		warning("canceling blocked client failed (signal sm)");
-}
-
-
 uint8_t Pager_object::client_recall(bool get_state_and_block)
 {
 	Mutex::Guard _state_lock_guard(_state_lock);

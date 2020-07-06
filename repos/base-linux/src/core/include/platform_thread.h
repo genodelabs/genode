@@ -81,11 +81,6 @@ namespace Genode {
 			~Platform_thread();
 
 			/**
-			 * Cancel currently blocking operation
-			 */
-			void cancel_blocking();
-
-			/**
 			 * Pause this thread
 			 */
 			void pause();

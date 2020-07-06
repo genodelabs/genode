@@ -166,12 +166,6 @@ void Cpu_sampler::Cpu_thread_component::single_step(bool enable)
 }
 
 
-void Cpu_sampler::Cpu_thread_component::cancel_blocking()
-{
-	_parent_cpu_thread.cancel_blocking();
-}
-
-
 Thread_state Cpu_sampler::Cpu_thread_component::state()
 {
 	return _parent_cpu_thread.state();

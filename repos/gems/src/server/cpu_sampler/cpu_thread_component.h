@@ -84,7 +84,6 @@ class Cpu_sampler::Cpu_thread_component : public Rpc_object<Cpu_thread>
 		void pause() override;
 		void resume() override;
 		void single_step(bool) override;
-		void cancel_blocking() override;
 		Thread_state state() override;
 		void state(Thread_state const &) override;
 		void exception_sigh(Signal_context_capability) override;

@@ -150,12 +150,3 @@ void Thread::start()
 	new (platform().core_mem_alloc())
 		Core_trace_source(Trace::sources(), *this);
 }
-
-
-void Thread::cancel_blocking()
-{
-	using namespace Nova;
-
-	if (sm_ctrl(native_thread().exc_pt_sel + SM_SEL_EC, SEMAPHORE_UP))
-		nova_die();
-}

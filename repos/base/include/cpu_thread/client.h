@@ -37,9 +37,6 @@ struct Genode::Cpu_thread_client : Rpc_client<Cpu_thread>
 	void resume() override {
 		call<Rpc_resume>(); }
 
-	void cancel_blocking() override {
-		call<Rpc_cancel_blocking>(); }
-
 	Thread_state state() override {
 		return call<Rpc_get_state>(); }
 

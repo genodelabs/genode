@@ -346,12 +346,6 @@ bool Thread::_restart()
 }
 
 
-void Thread::_call_cancel_thread_blocking()
-{
-	reinterpret_cast<Thread*>(user_arg_1())->_cancel_blocking();
-}
-
-
 void Thread::_cancel_blocking()
 {
 	switch (_state) {
@@ -768,7 +762,6 @@ void Thread::_call()
 	case call_id_delete_thread():          _call_delete_thread(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
 	case call_id_resume_thread():          _call_resume_thread(); return;
-	case call_id_cancel_thread_blocking(): _call_cancel_thread_blocking(); return;
 	case call_id_thread_pager():           _call_pager(); return;
 	case call_id_invalidate_tlb():         _call_invalidate_tlb(); return;
 	case call_id_new_pd():

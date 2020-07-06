@@ -100,9 +100,3 @@ void Thread::start()
 	/* start thread with its initial IP and aligned SP */
 	Cpu_thread_client(_thread_cap).start((addr_t)_thread_start, _stack->top());
 }
-
-
-void Thread::cancel_blocking()
-{
-	Cpu_thread_client(_thread_cap).cancel_blocking();
-}

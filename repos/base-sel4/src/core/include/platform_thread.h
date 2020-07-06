@@ -120,11 +120,6 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		void resume();
 
 		/**
-		 * Cancel currently blocking operation
-		 */
-		void cancel_blocking();
-
-		/**
 		 * Override thread state with 's'
 		 *
 		 * \throw Cpu_session::State_access_failed

@@ -63,12 +63,6 @@ void Cpu_thread_component::resume()
 }
 
 
-void Cpu_thread_component::cancel_blocking()
-{
-	_platform_thread.cancel_blocking();
-}
-
-
 Thread_state Cpu_thread_component::state()
 {
 	return _platform_thread.state();

@@ -77,12 +77,6 @@ void Thread::start()
 }
 
 
-void Thread::cancel_blocking()
-{
-	native_thread().platform_thread->cancel_blocking();
-}
-
-
 void Thread::_deinit_platform_thread()
 {
 	/* destruct platform thread */

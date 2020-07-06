@@ -143,27 +143,6 @@ void Platform_thread::unbind()
 }
 
 
-void Platform_thread::cancel_blocking()
-{
-	L4_Word_t     dummy;
-	L4_ThreadId_t dummy_tid;
-
-	/*
-	 * For more details, please refer to the corresponding implementation in
-	 * the 'base-pistachio' repository.
-	 */
-
-	/* reset value for the thread's user-defined handle */
-	enum { USER_DEFINED_HANDLE_ZERO = 0 };
-
-	L4_ExchangeRegisters(_l4_thread_id,
-	                     L4_ExReg_Resume | L4_ExReg_AbortOperation | L4_ExReg_user,
-	                     0, 0, 0, USER_DEFINED_HANDLE_ZERO, L4_nilthread,
-	                     &dummy, &dummy, &dummy, &dummy, &dummy,
-	                     &dummy_tid);
-}
-
-
 unsigned long Platform_thread::pager_object_badge() const
 {
 	return native_thread_id().raw;

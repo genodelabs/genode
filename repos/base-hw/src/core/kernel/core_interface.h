@@ -59,8 +59,7 @@ namespace Kernel
 	constexpr Call_arg call_id_ack_irq()                { return 120; }
 	constexpr Call_arg call_id_new_obj()                { return 121; }
 	constexpr Call_arg call_id_delete_obj()             { return 122; }
-	constexpr Call_arg call_id_cancel_thread_blocking() { return 123; }
-	constexpr Call_arg call_id_new_core_thread()        { return 124; }
+	constexpr Call_arg call_id_new_core_thread()        { return 123; }
 
 	/**
 	 * Invalidate TLB entries for the `pd` in region `addr`, `sz`
@@ -137,27 +136,6 @@ namespace Kernel
 	{
 		return call(call_id_start_thread(), (Call_arg)&thread, cpu_id,
 		            (Call_arg)&pd, (Call_arg)&utcb);
-	}
-
-
-	/**
-	 * Cancel blocking of a thread if it is in a cancelable blocking state
-	 *
-	 * \param thread  pointer to thread kernel object
-	 *
-	 * Does cleanly cancel a cancelable blocking thread state (IPC, signalling,
-	 * stopped). The thread whose blocking was cancelled goes back to the
-	 * 'active' thread state. If needed, it receives a syscall return value
-	 * that reflects the cancellation. This syscall doesn't affect the pause
-	 * state of the thread (see the 'pause_thread' syscall) which means that
-	 * the thread may still be not allowed for scheduling. The syscall is
-	 * core-restricted and may target any thread. It is actually used to
-	 * limit the time a parent waits for a server when closing a session
-	 * of one of its children.
-	 */
-	inline void cancel_thread_blocking(Thread & thread)
-	{
-		call(call_id_cancel_thread_blocking(), (Call_arg)&thread);
 	}
 
 

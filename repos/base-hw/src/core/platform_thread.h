@@ -163,12 +163,6 @@ namespace Genode {
 			void resume() { Kernel::resume_thread(*_kobj); }
 
 			/**
-			 * Cancel currently blocking operation
-			 */
-			void cancel_blocking() {
-				Kernel::cancel_thread_blocking(*_kobj); }
-
-			/**
 			 * Set CPU quota of the thread to 'quota'
 			 */
 			void quota(size_t const quota);

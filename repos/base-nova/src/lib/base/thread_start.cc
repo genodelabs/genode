@@ -198,12 +198,3 @@ void Thread::start()
 		/* request creation of SC to let thread run*/
 		cpu_thread.resume();
 }
-
-
-void Thread::cancel_blocking()
-{
-	using namespace Nova;
-
-	if (sm_ctrl(native_thread().exc_pt_sel + SM_SEL_EC, SEMAPHORE_UP))
-		nova_die();
-}

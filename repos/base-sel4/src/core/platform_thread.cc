@@ -205,12 +205,6 @@ void Platform_thread::state(Thread_state)
 }
 
 
-void Platform_thread::cancel_blocking()
-{
-	seL4_Signal(_info.lock_sel.value());
-}
-
-
 bool Platform_thread::install_mapping(Mapping const &mapping)
 {
 	return _pd->install_mapping(mapping, name());

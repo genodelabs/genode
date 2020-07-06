@@ -278,14 +278,6 @@ void Platform_thread::state(Thread_state s)
 }
 
 
-void Platform_thread::cancel_blocking()
-{
-	if (!_pager) return;
-
-	_pager->client_cancel_blocking();
-}
-
-
 void Platform_thread::single_step(bool on)
 {
 	if (!_pager) return;

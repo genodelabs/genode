@@ -220,7 +220,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		void _call_stop_thread();
 		void _call_pause_thread();
 		void _call_resume_thread();
-		void _call_cancel_thread_blocking();
 		void _call_restart_thread();
 		void _call_yield_thread();
 		void _call_delete_thread();

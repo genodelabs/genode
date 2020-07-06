@@ -103,11 +103,6 @@ namespace Genode {
 			void resume();
 
 			/**
-			 * Cancel currently blocking operation
-			 */
-			void cancel_blocking();
-
-			/**
 			 * This thread is about to be bound
 			 *
 			 * \param thread_id     local thread ID

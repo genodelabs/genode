@@ -331,14 +331,6 @@ class Genode::Thread
 		Thread_capability cap() const { return _thread_cap; }
 
 		/**
-		 * Cancel currently blocking operation
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		void cancel_blocking();
-
-		/**
 		 * Return kernel-specific thread meta data
 		 */
 		Native_thread &native_thread();

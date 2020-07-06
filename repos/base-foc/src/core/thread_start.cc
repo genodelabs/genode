@@ -110,11 +110,3 @@ void Thread::start()
 	new (platform().core_mem_alloc()) Core_trace_source(Trace::sources(),
 	                                                    *this, pt);
 }
-
-
-void Thread::cancel_blocking()
-{
-	/*
-	 * Within core, we never need to unblock threads
-	 */
-}

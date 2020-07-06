@@ -219,12 +219,6 @@ Foc_thread_state Platform_thread::state()
 }
 
 
-void Platform_thread::cancel_blocking()
-{
-	l4_irq_trigger(_irq.local.data()->kcap());
-}
-
-
 void Platform_thread::affinity(Affinity::Location location)
 {
 	_location = location;
