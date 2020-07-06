@@ -118,10 +118,10 @@ extern "C" void dde_udelay(unsigned long usecs)
 /**
  * DDE iPXE mutual exclusion lock
  */
-static Genode::Lock _ipxe_lock;
+static Genode::Mutex _ipxe_mutex;
 
-extern "C" void dde_lock_enter(void) { _ipxe_lock.lock(); }
-extern "C" void dde_lock_leave(void) { _ipxe_lock.unlock(); }
+extern "C" void dde_lock_enter(void) { _ipxe_mutex.acquire(); }
+extern "C" void dde_lock_leave(void) { _ipxe_mutex.release(); }
 
 
 extern "C" void dde_mdelay(unsigned long msecs)
