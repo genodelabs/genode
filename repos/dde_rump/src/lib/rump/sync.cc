@@ -15,7 +15,7 @@
 extern "C" {
 #include <sys/cdefs.h>
 }
-#include <base/lock.h>
+#include <base/mutex.h>
 #include <util/fifo.h>
 #include <rump/env.h>
 
@@ -36,15 +36,15 @@ struct rumpuser_mtx
 {
 	struct Applicant : Genode::Fifo<Applicant>::Element
 	{
-		Genode::Lock lock { Genode::Lock::LOCKED };
+		Genode::Blockade blockade { };
 
-		void block()   { lock.lock();   }
-		void wake_up() { lock.unlock(); }
+		void block()   { blockade.block(); }
+		void wake_up() { blockade.wakeup(); }
 	};
 
 	Genode::Fifo<Applicant> fifo;
 	bool                    occupied = false;
-	Genode::Lock            meta_lock;
+	Genode::Mutex           meta_lock;
 
 	struct lwp *owner = nullptr;
 	int         flags;
@@ -61,7 +61,7 @@ struct rumpuser_mtx
 			 */
 			Applicant applicant;
 			{
-				Genode::Lock::Guard guard(meta_lock);
+				Genode::Mutex::Guard guard(meta_lock);
 
 				if (!occupied) {
 					occupied = true;
@@ -89,7 +89,7 @@ struct rumpuser_mtx
 
 	void exit()
 	{
-		Genode::Lock::Guard guard(meta_lock);
+		Genode::Mutex::Guard guard(meta_lock);
 
 		occupied = false;
 
@@ -213,7 +213,7 @@ struct Cond
 {
 	int                     num_waiters;
 	int                     num_signallers;
-	Genode::Lock            counter_lock;
+	Genode::Mutex           counter_mutex;
 	Timed_semaphore         signal_sem { Rump::env().timeout_ep() };
 	Genode::Semaphore       handshake_sem;
 
@@ -225,9 +225,9 @@ struct Cond
 		using namespace Genode;
 		int result = 0;
 	
-		counter_lock.lock();
+		counter_mutex.acquire();
 		num_waiters++;
-		counter_lock.unlock();
+		counter_mutex.release();
 	
 		mutex->exit();
 	
@@ -248,7 +248,7 @@ struct Cond
 			}
 		}
 	
-		counter_lock.lock();
+		counter_mutex.acquire();
 		if (num_signallers > 0) {
 			if (result == -2) /* timeout occured */
 				signal_sem.down();
@@ -256,7 +256,7 @@ struct Cond
 			--num_signallers;
 		}
 		num_waiters--;
-		counter_lock.unlock();
+		counter_mutex.release();
 	
 		mutex->enter();
 	
@@ -270,30 +270,30 @@ struct Cond
 
 	int signal()
 	{
-		counter_lock.lock();
+		counter_mutex.acquire();
 		if (num_waiters > num_signallers) {
 		  ++num_signallers;
 		  signal_sem.up();
-		  counter_lock.unlock();
+		  counter_mutex.release();
 		  handshake_sem.down();
 		} else
-		  counter_lock.unlock();
+		  counter_mutex.release();
 	   return 0;
 	}
 
 	int broadcast()
 	{
-		counter_lock.lock();
+		counter_mutex.acquire();
 		if (num_waiters > num_signallers) {
 			int still_waiting = num_waiters - num_signallers;
 			num_signallers = num_waiters;
 			for (int i = 0; i < still_waiting; i++)
 				signal_sem.up();
-			counter_lock.unlock();
+			counter_mutex.release();
 			for (int i = 0; i < still_waiting; i++)
 				handshake_sem.down();
 		} else
-			counter_lock.unlock();
+			counter_mutex.release();
 	
 		return 0;
 	}
@@ -425,8 +425,8 @@ void rumpuser_cv_has_waiters(struct rumpuser_cv *cv, int *nwaiters)
 struct Rw_lock {
 
 	Genode::Semaphore  _lock;
-	Genode::Lock       _inc;
-	Genode::Lock       _write;
+	Genode::Mutex      _inc { };
+	Genode::Mutex      _write { };
 
 	int _read;
 
@@ -434,7 +434,7 @@ struct Rw_lock {
 
 	bool read_lock(bool try_lock)
 	{
-		Genode::Lock::Guard guard(_inc);
+		Genode::Mutex::Guard guard(_inc);
 
 		if (_read > 0) {
 			_read++;
@@ -458,14 +458,14 @@ struct Rw_lock {
 
 	void read_unlock()
 	{
-		Genode::Lock::Guard guard(_inc);
+		Genode::Mutex::Guard guard(_inc);
 		if (--_read == 0)
 			unlock();
 	}
 
 	bool lock(bool try_lock)
 	{
-		Genode::Lock::Guard guard(_write);
+		Genode::Mutex::Guard guard(_write);
 		if (_lock.cnt() > 0) {
 			_lock.down();
 			return true;
@@ -480,7 +480,7 @@ struct Rw_lock {
 
 	void unlock()
 	{
-		Genode::Lock::Guard guard(_write);
+		Genode::Mutex::Guard guard(_write);
 		_lock.up();
 	}
 

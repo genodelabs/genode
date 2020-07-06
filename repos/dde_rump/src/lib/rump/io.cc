@@ -32,7 +32,7 @@ class Backend
 		Genode::Allocator_avl _alloc { &Rump::env().heap() };
 		Block::Connection<>   _session { Rump::env().env(), &_alloc };
 		Block::Session::Info  _info { _session.info() };
-		Genode::Lock          _session_lock;
+		Genode::Mutex         _session_mutex;
 
 		void _sync()
 		{
@@ -51,7 +51,7 @@ class Backend
 
 		void sync()
 		{
-			Genode::Lock::Guard guard(_session_lock);
+			Genode::Mutex::Guard guard(_session_mutex);
 			_sync();
 		}
 
@@ -59,7 +59,7 @@ class Backend
 		{
 			using namespace Block;
 
-			Genode::Lock::Guard guard(_session_lock);
+			Genode::Mutex::Guard guard(_session_mutex);
 
 			Packet_descriptor::Opcode opcode;
 			opcode = op & RUMPUSER_BIO_WRITE ? Packet_descriptor::WRITE :

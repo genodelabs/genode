@@ -81,13 +81,13 @@ class Hard_context_registry : public Genode::Avl_tree<Hard_context>
 {
 	private:
 
-		Genode::Lock lock;
+		Genode::Mutex mutex;
 
 	public:
 
 		Hard_context *find(Genode::Thread const *t)
 		{
-			Genode::Lock::Guard g(lock);
+			Genode::Mutex::Guard guard(mutex);
 			if (!first())
 				return nullptr;
 
@@ -96,13 +96,13 @@ class Hard_context_registry : public Genode::Avl_tree<Hard_context>
 
 		void insert(Hard_context *h)
 		{
-			Genode::Lock::Guard g(lock);
+			Genode::Mutex::Guard guard(mutex);
 			Avl_tree::insert(h);
 		}
 
 		void remove(Hard_context *h)
 		{
-			Genode::Lock::Guard g(lock);
+			Genode::Mutex::Guard guard(mutex);
 			Avl_tree::remove(h);
 		}
 

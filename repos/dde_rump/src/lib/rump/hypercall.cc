@@ -264,9 +264,9 @@ struct Allocator_policy
 
 typedef Allocator::Fap<MAX_VIRTUAL_MEMORY, Allocator_policy> Rump_alloc;
 
-static Genode::Lock & alloc_lock()
+static Genode::Mutex & alloc_mutex()
 {
-	static Genode::Lock inst;
+	static Genode::Mutex inst { };
 	return inst;
 }
 
@@ -280,7 +280,7 @@ static Rump_alloc* allocator()
 
 int rumpuser_malloc(size_t len, int alignment, void **memp)
 {
-	Genode::Lock::Guard guard(alloc_lock());
+	Genode::Mutex::Guard guard(alloc_mutex());
 
 	int align = alignment ? Genode::log2(alignment) : 0;
 	*memp     = allocator()->alloc(len, align);
@@ -295,7 +295,7 @@ int rumpuser_malloc(size_t len, int alignment, void **memp)
 
 void rumpuser_free(void *mem, size_t len)
 {
-	Genode::Lock::Guard guard(alloc_lock());
+	Genode::Mutex::Guard guard(alloc_mutex());
 
 	allocator()->free(mem, len);
 
