@@ -330,10 +330,10 @@ struct Wifi::Frontend
 
 	Msg_buffer _msg;
 
-	Genode::Lock _notify_lock { Genode::Lock::UNLOCKED };
+	Genode::Blockade _notify_blockade { };
 
-	void _notify_lock_lock()   { _notify_lock.lock(); }
-	void _notify_lock_unlock() { _notify_lock.unlock(); }
+	void _notify_lock_lock()   { _notify_blockade.block(); }
+	void _notify_lock_unlock() { _notify_blockade.wakeup(); }
 
 	bool _rfkilled { false };
 
@@ -1567,6 +1567,9 @@ struct Wifi::Frontend
 	{
 		_config_rom.sigh(_config_sigh);
 		_scan_timer.sigh(_scan_timer_sigh);
+
+		/* set/initialize as unblocked */
+		_notify_blockade.wakeup();
 
 		try {
 			_ap_reporter.construct(env, "accesspoints", "accesspoints");

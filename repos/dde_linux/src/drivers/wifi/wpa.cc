@@ -13,8 +13,8 @@
  */
 
 /* Genode includes */
+#include <base/blockade.h>
 #include <base/env.h>
-#include <base/lock.h>
 #include <base/sleep.h>
 
 /* libc includes */
@@ -40,14 +40,14 @@ void * Wpa_thread::_entry_trampoline(void *arg)
 void Wpa_thread::_entry()
 {
 	/* wait until the wifi driver is up and running */
-	_lock.lock();
+	_blockade.block();
 	_exit = wpa_main();
 	Genode::sleep_forever();
 }
 
 
-Wpa_thread::Wpa_thread(Genode::Env &env, Genode::Lock &lock)
-: _lock(lock), _exit(-1)
+Wpa_thread::Wpa_thread(Genode::Env &env, Genode::Blockade &blockade)
+: _blockade(blockade), _exit(-1)
 {
 	pthread_t tid = 0;
 	if (pthread_create(&tid, 0, _entry_trampoline, this) != 0) {

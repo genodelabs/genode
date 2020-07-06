@@ -15,7 +15,6 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/lock.h>
 #include <base/log.h>
 #include <base/sleep.h>
 #include <base/thread.h>
@@ -39,7 +38,6 @@ class Lx_kit::Scheduler : public Lx::Scheduler
 		bool verbose = false;
 
 		Lx_kit::List<Lx::Task> _present_list;
-		Genode::Lock           _present_list_mutex;
 
 		Lx::Task *_current = nullptr; /* currently scheduled task */
 

@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/allocator.h>
 #include <base/entrypoint.h>
-#include <base/lock.h>
 #include <base/signal.h>
 #include <irq_session/client.h>
 #include <util/misc_math.h>

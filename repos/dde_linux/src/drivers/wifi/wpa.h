@@ -17,15 +17,15 @@
 
 namespace Genode {
 	struct Env;
-	struct Lock;
+	struct Blockade;
 }
 
 class Wpa_thread
 {
 	private:
 
-		Genode::Lock &_lock;
-		int           _exit;
+		Genode::Blockade &_blockade;
+		int               _exit;
 
 		static void * _entry_trampoline(void *arg);
 
@@ -33,7 +33,7 @@ class Wpa_thread
 
 	public:
 
-		Wpa_thread(Genode::Env &env, Genode::Lock &lock);
+		Wpa_thread(Genode::Env &, Genode::Blockade &);
 };
 
 #endif /* _WIFI__WPA_H_ */
