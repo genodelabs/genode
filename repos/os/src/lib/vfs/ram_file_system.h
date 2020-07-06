@@ -887,8 +887,8 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			Node *node = parent->child(basename(path));
 			if (!node) return UNLINK_ERR_NO_ENTRY;
+			Node::Guard node_guard(node);
 
-			node->acquire();
 			parent->release(node);
 			node->notify();
 			parent->notify();
