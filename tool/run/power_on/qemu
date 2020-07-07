@@ -146,6 +146,9 @@ proc run_power_on { } {
 				exit -3
 			}
 			append qemu_args " --bios $uefi_firmware -net none -drive format=raw,file=[run_dir].img "
+
+			# limit boot resolution in Qemu to 1920x1080
+			append qemu_args " -device VGA,vgamem_mb=8 "
 		} else {
 			puts "Aborting, cannot execute Qemu without a ISO or disk image"
 			exit -4
