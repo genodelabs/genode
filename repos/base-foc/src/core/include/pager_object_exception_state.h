@@ -16,6 +16,15 @@
 
 #include <foc/thread_state.h>
 
-namespace Genode { typedef Foc_thread_state Pager_object_exception_state; }
+namespace Genode { struct Pager_object_exception_state; }
+
+struct Genode::Pager_object_exception_state
+{
+	Lock             lock { };
+	unsigned         exceptions;   /* counts exceptions raised by the thread */
+	bool             paused;       /* indicates whether thread is stopped */
+	bool             in_exception; /* true if thread is in exception */
+	Foc_thread_state state;        /* accessible via native cpu thread RPC */
+};
 
 #endif /* _CORE__INCLUDE__PAGER_OBJECT_EXCEPTION_STATE_H_ */

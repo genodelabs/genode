@@ -96,9 +96,11 @@ void Platform_thread::pause()
 		return;
 	}
 
+	Foc_thread_state &reg_state = _pager_obj->state.state;
+
 	unsigned exc      = _pager_obj->state.exceptions;
-	_pager_obj->state.ip  = ~0UL;
-	_pager_obj->state.sp  = ~0UL;
+	reg_state.ip  = ~0UL;
+	reg_state.sp  = ~0UL;
 	l4_umword_t flags = L4_THREAD_EX_REGS_TRIGGER_EXCEPTION;
 
 	/* Mark thread to be stopped */
@@ -109,8 +111,8 @@ void Platform_thread::pause()
 	 * The pager thread, which also acts as exception handler, will
 	 * leave the thread in exception state until, it gets woken again
 	 */
-	l4_thread_ex_regs_ret(_thread.local.data()->kcap(), &_pager_obj->state.ip,
-	                      &_pager_obj->state.sp, &flags);
+	l4_thread_ex_regs_ret(_thread.local.data()->kcap(), &reg_state.ip,
+	                      &reg_state.sp, &flags);
 
 	/*
 	 * The thread state ("ready") is encoded in the lowest bit of the flags.
@@ -202,14 +204,14 @@ void Platform_thread::pager(Pager_object &pager_obj)
 void Platform_thread::state(Thread_state s)
 {
 	if (_pager_obj)
-		*static_cast<Thread_state *>(&_pager_obj->state) = s;
+		*static_cast<Thread_state *>(&_pager_obj->state.state) = s;
 }
 
 
 Foc_thread_state Platform_thread::state()
 {
 	Foc_thread_state s;
-	if (_pager_obj) s = _pager_obj->state;
+	if (_pager_obj) s = _pager_obj->state.state;
 
 	s.kcap = _gate.remote;
 	s.id   = _gate.local.local_name();

@@ -16,7 +16,6 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/log.h>
-#include <base/lock.h>
 
 /* core includes */
 #include <pager.h>
@@ -59,7 +58,7 @@ void Pager_entrypoint::entry()
 				{
 					if (_pager.exception()) {
 						Lock::Guard guard(obj->state.lock);
-						_pager.get_regs(obj->state);
+						_pager.get_regs(obj->state.state);
 						obj->state.exceptions++;
 						obj->state.in_exception = true;
 						obj->submit_exception_signal();
@@ -99,7 +98,7 @@ void Pager_entrypoint::entry()
 						/* revert exception flag */
 						obj->state.in_exception = false;
 						/* set new register contents */
-						_pager.set_regs(obj->state);
+						_pager.set_regs(obj->state.state);
 					}
 
 					/* send wake up message to requested thread */
@@ -115,7 +114,7 @@ void Pager_entrypoint::entry()
 			case Ipc_pager::PAUSE:
 				{
 					Lock::Guard guard(obj->state.lock);
-					_pager.get_regs(obj->state);
+					_pager.get_regs(obj->state.state);
 					obj->state.exceptions++;
 					obj->state.in_exception = true;
 
