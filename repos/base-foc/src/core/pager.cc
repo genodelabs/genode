@@ -57,7 +57,7 @@ void Pager_entrypoint::entry()
 			case Ipc_pager::EXCEPTION:
 				{
 					if (_pager.exception()) {
-						Lock::Guard guard(obj->state.lock);
+						Mutex::Guard guard(obj->state.mutex);
 						_pager.get_regs(obj->state.state);
 						obj->state.exceptions++;
 						obj->state.in_exception = true;
@@ -94,7 +94,7 @@ void Pager_entrypoint::entry()
 					_pager.acknowledge_wakeup();
 
 					{
-						Lock::Guard guard(obj->state.lock);
+						Mutex::Guard guard(obj->state.mutex);
 						/* revert exception flag */
 						obj->state.in_exception = false;
 						/* set new register contents */
@@ -113,7 +113,7 @@ void Pager_entrypoint::entry()
 			 */
 			case Ipc_pager::PAUSE:
 				{
-					Lock::Guard guard(obj->state.lock);
+					Mutex::Guard guard(obj->state.mutex);
 					_pager.get_regs(obj->state.state);
 					obj->state.exceptions++;
 					obj->state.in_exception = true;

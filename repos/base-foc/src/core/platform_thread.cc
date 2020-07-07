@@ -89,10 +89,10 @@ void Platform_thread::pause()
 	if (!_pager_obj)
 		return;
 
-	_pager_obj->state.lock.lock();
+	_pager_obj->state.mutex.acquire();
 
 	if (_pager_obj->state.paused == true) {
-		_pager_obj->state.lock.unlock();
+		_pager_obj->state.mutex.release();
 		return;
 	}
 
@@ -118,7 +118,7 @@ void Platform_thread::pause()
 	 * The thread state ("ready") is encoded in the lowest bit of the flags.
 	 */
 	bool in_syscall = (flags & 1) == 0;
-	_pager_obj->state.lock.unlock();
+	_pager_obj->state.mutex.release();
 
 	/**
 	 * Check whether the thread was in ongoing ipc, if so it won't raise
@@ -151,11 +151,11 @@ void Platform_thread::resume()
 	if (!_pager_obj)
 		return;
 
-	_pager_obj->state.lock.lock();
+	_pager_obj->state.mutex.acquire();
 
 	/* Mark thread to be runable again */
 	_pager_obj->state.paused = false;
-	_pager_obj->state.lock.unlock();
+	_pager_obj->state.mutex.release();
 
 	/* Send a message to the exception handler, to unblock the client */
 	Msgbuf<16> snd, rcv;

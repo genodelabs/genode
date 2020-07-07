@@ -14,13 +14,14 @@
 #ifndef _CORE__INCLUDE__PAGER_OBJECT_EXCEPTION_STATE_H_
 #define _CORE__INCLUDE__PAGER_OBJECT_EXCEPTION_STATE_H_
 
+#include <base/mutex.h>
 #include <foc/thread_state.h>
 
 namespace Genode { struct Pager_object_exception_state; }
 
 struct Genode::Pager_object_exception_state
 {
-	Lock             lock { };
+	Mutex            mutex { };
 	unsigned         exceptions;   /* counts exceptions raised by the thread */
 	bool             paused;       /* indicates whether thread is stopped */
 	bool             in_exception; /* true if thread is in exception */

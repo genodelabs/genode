@@ -17,7 +17,6 @@
 #define _INCLUDE__FOC__THREAD_STATE_H_
 
 #include <base/capability.h>
-#include <base/lock.h>
 #include <base/thread_state.h>
 
 /* Fiasco includes */
