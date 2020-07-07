@@ -63,7 +63,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	}
 
 	template <typename FN>
-	size_t for_each_subject_info(FN const &fn)
+	For_each_subject_info_result for_each_subject_info(FN const &fn)
 	{
 		return _retry([&] () {
 			return Session_client::for_each_subject_info(fn); });

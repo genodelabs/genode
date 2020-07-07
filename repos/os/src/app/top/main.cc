@@ -91,7 +91,7 @@ struct Trace_subject_registry
 
 			do {
 				try {
-					return trace.for_each_subject_info(fn);
+					return trace.for_each_subject_info(fn).count;
 				} catch (Genode::Out_of_ram) {
 					trace.upgrade_ram(4096);
 				}
