@@ -32,21 +32,21 @@ typedef Token<Scanner_policy_identifier_with_underline> Tid_token;
 
 void Platform_thread::Registry::insert(Platform_thread *thread)
 {
-	Lock::Guard guard(_lock);
+	Mutex::Guard guard(_mutex);
 	_list.insert(thread);
 }
 
 
 void Platform_thread::Registry::remove(Platform_thread *thread)
 {
-	Lock::Guard guard(_lock);
+	Mutex::Guard guard(_mutex);
 	_list.remove(thread);
 }
 
 
 void Platform_thread::Registry::submit_exception(unsigned long pid)
 {
-	Lock::Guard guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	/* traverse list to find 'Platform_thread' with matching PID */
 	for (Platform_thread *curr = _list.first(); curr; curr = curr->next()) {

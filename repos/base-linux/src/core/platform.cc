@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/lock.h>
 #include <linux_dataspace/client.h>
 
 /* base-internal includes */

@@ -61,12 +61,12 @@ static bool is_sub_rm_session(Dataspace_capability ds)
 
 
 /**
- * Lock for protecting mmap/unmap sequences and region-map meta data
+ * Mutex for protecting mmap/unmap sequences and region-map meta data
  */
-static Lock &lock()
+static Mutex &mutex()
 {
-	static Lock lock;
-	return lock;
+	static Mutex mutex { };
+	return mutex;
 }
 
 
@@ -175,7 +175,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
                                                Region_map::Local_addr local_addr,
                                                bool executable, bool writeable)
 {
-	Lock::Guard lock_guard(lock());
+	Mutex::Guard mutex_guard(mutex());
 
 	/* only support attach_at for sub RM sessions */
 	if (_sub_rm && !use_local_addr) {
@@ -320,7 +320,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 
 void Region_map_mmap::detach(Region_map::Local_addr local_addr)
 {
-	Lock::Guard lock_guard(lock());
+	Mutex::Guard mutex_guard(mutex());
 
 	/*
 	 * Cases

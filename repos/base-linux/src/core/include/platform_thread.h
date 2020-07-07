@@ -43,8 +43,8 @@ namespace Genode {
 
 			struct Registry
 			{
-				Lock                  _lock { };
-				List<Platform_thread> _list { };
+				Mutex                 _mutex { };
+				List<Platform_thread> _list  { };
 
 				void insert(Platform_thread *thread);
 				void remove(Platform_thread *thread);
