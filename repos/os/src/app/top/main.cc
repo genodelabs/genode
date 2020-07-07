@@ -68,9 +68,6 @@ struct Trace_subject_registry
 			return nullptr;
 		}
 
-		enum { MAX_SUBJECTS = 1024 };
-		Genode::Trace::Subject_id _subjects[MAX_SUBJECTS];
-
 		enum { MAX_CPUS_X = 16, MAX_CPUS_Y = 4, MAX_ELEMENTS_PER_CPU = 6};
 
 		/* accumulated execution time on all CPUs */
@@ -80,37 +77,14 @@ struct Trace_subject_registry
 		/* most significant consumer per CPU */
 		Entry const * load[MAX_CPUS_X][MAX_CPUS_Y][MAX_ELEMENTS_PER_CPU];
 
-		bool _reconstruct_trace_connection = false;
-
-		template <typename FN>
-		unsigned update_subjects(Genode::Pd_session &pd,
-		                         Genode::Trace::Connection &trace,
-		                         FN const &fn)
-		{
-			Genode::Ram_quota ram_quota;
-
-			do {
-				try {
-					return trace.for_each_subject_info(fn).count;
-				} catch (Genode::Out_of_ram) {
-					trace.upgrade_ram(4096);
-				}
-
-				ram_quota = pd.avail_ram();
-				_reconstruct_trace_connection = (ram_quota.value < 4 * 4096);
-
-			} while (ram_quota.value >= 2 * 4096);
-
-			return 0;
-		}
-
 	public:
 
-		void update(Genode::Pd_session &pd, Genode::Trace::Connection &trace,
+		bool update(Genode::Trace::Connection &trace,
 		            Genode::Allocator &alloc)
 		{
-			update_subjects(pd, trace, [&](Genode::Trace::Subject_id const &id, Genode::Trace::Subject_info const &info) {
-
+			auto res = trace.for_each_subject_info([&](Genode::Trace::Subject_id const &id,
+			                                           Genode::Trace::Subject_info const &info)
+			{
 				Entry *e = _lookup(id);
 				if (!e) {
 					e = new (alloc) Entry(id);
@@ -129,14 +103,11 @@ struct Trace_subject_registry
 				}
 			});
 
-			if (_reconstruct_trace_connection)
-				throw Genode::Out_of_ram();
+			return res.count < res.limit;
 		}
 
 		void flush(Genode::Trace::Connection &trace, Genode::Allocator &alloc)
 		{
-			_reconstruct_trace_connection = false;
-
 			while (Entry * const e = _entries.first()) {
 					trace.free(e->id);
 					_entries.remove(e);
@@ -312,13 +283,16 @@ struct App::Main
 	Env &_env;
 
 	enum {
-		TRACE_RAM_QUOTA = 20 * 4096,
-		ARG_BUFFER_RAM  = 32 * 1024,
-		PARENT_LEVELS   = 0
+		PARENT_LEVELS = 0
 	};
 
-	Reconstructible<Trace::Connection> _trace { _env, TRACE_RAM_QUOTA,
-	                                            ARG_BUFFER_RAM, PARENT_LEVELS };
+	size_t trace_ram_quota { 20 * 4096 };
+	size_t arg_buffer_ram  { 10 * 4096 };
+
+	Reconstructible<Trace::Connection> _trace { _env,
+	                                            trace_ram_quota,
+	                                            arg_buffer_ram,
+	                                            PARENT_LEVELS };
 
 	static uint64_t _default_period_ms() { return 5000; }
 
@@ -376,27 +350,25 @@ void App::Main::_handle_config()
 
 void App::Main::_handle_period()
 {
-	bool reconstruct = false;
-
 	/* update subject information */
-	try {
-		_trace_subject_registry.update(_env.pd(), *_trace, _heap);
-	} catch (Genode::Out_of_ram) {
-		reconstruct = true;
+	bool const arg_buffer_sufficient = _trace_subject_registry.update(*_trace,
+	                                                                  _heap);
+	if (arg_buffer_sufficient) {
+		/* show most significant consumers */
+		_trace_subject_registry.top(_sort);
+		return;
 	}
 
-	/* show most significant consumers */
-	_trace_subject_registry.top(_sort);
+	trace_ram_quota += 4096;
+	arg_buffer_ram  += 4 * 4096;
 
 	/* by destructing the session we free up the allocated memory in core */
-	if (reconstruct) {
-		Genode::warning("re-construct trace session because of out of memory");
+	Genode::warning("re-construct trace session");
 
-		_trace_subject_registry.flush(*_trace, _heap);
+	_trace_subject_registry.flush(*_trace, _heap);
 
-		_trace.destruct();
-		_trace.construct(_env, TRACE_RAM_QUOTA, ARG_BUFFER_RAM, PARENT_LEVELS);
-	}
+	_trace.destruct();
+	_trace.construct(_env, trace_ram_quota, arg_buffer_ram, PARENT_LEVELS);
 }
 
 
