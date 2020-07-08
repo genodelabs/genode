@@ -391,7 +391,14 @@ void Gui_session::execute()
 
 Framebuffer::Mode Gui_session::mode()
 {
-	return Framebuffer::Mode { .area = screen_area(_view_stack.size()) };
+	Area const screen = screen_area(_view_stack.size());
+
+	/*
+	 * Return at least a size of 1x1 to spare the clients the need to handle
+	 * the special case of 0x0, which can happen at boot time before the
+	 * framebuffer driver is running.
+	 */
+	return { .area = { max(screen.w(), 1u), max(screen.h(), 1u) } };
 }
 
 
