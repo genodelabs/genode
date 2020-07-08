@@ -88,7 +88,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 		X86FXSTATE _guest_fpu_state __attribute__((aligned(0x10)));
 		X86FXSTATE _emt_fpu_state __attribute__((aligned(0x10)));
 
-		pthread _pthread;
+		pthread         _pthread;
+		pthread_cond_t  _cond_wait;
+		pthread_mutex_t _mutex;
 
 		Vmm::Vcpu_other_pd _vcpu;
 
@@ -124,6 +126,29 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			ACTIVITY_STATE_ACTIVE = 0U,
 			INTERRUPT_STATE_NONE  = 0U,
 		};
+
+		timespec add_timespec_ns(timespec a, uint64_t ns) const
+		{
+			enum { NSEC_PER_SEC = 1'000'000'000ull };
+
+			long sec = a.tv_sec;
+
+			while (a.tv_nsec >= NSEC_PER_SEC) {
+				a.tv_nsec -= NSEC_PER_SEC;
+				sec++;
+			}
+			while (ns >= NSEC_PER_SEC) {
+				ns -= NSEC_PER_SEC;
+				sec++;
+			}
+
+			long nsec = a.tv_nsec + ns;
+			while (nsec >= NSEC_PER_SEC) {
+				nsec -= NSEC_PER_SEC;
+				sec++;
+			}
+			return timespec { sec, nsec };
+		}
 
 	protected:
 
@@ -834,7 +859,16 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			_vcpu(cpu_connection, location, pd_vcpu),
 			_ec_sel(Genode::cap_map().insert()),
 			_cpu_id(cpu_id)
-		{ }
+		{
+			pthread_mutexattr_t _attr;
+			pthread_mutexattr_init(&_attr);
+
+			pthread_cond_init(&_cond_wait, nullptr);
+
+			pthread_mutexattr_settype(&_attr, PTHREAD_MUTEX_ERRORCHECK);
+			pthread_mutex_init(&_mutex, &_attr);
+
+		}
 
 		pthread &pthread_obj() { return _pthread; }
 
@@ -880,24 +914,24 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 #endif
 		}
 
-		void halt(Genode::uint64_t tsc_abs)
+		void halt(Genode::uint64_t const wait_ns)
 		{
-			Assert(utcb() == Thread::myself()->utcb());
+			/* calculate timeout */
+			timespec ts { 0, 0 };
+			clock_gettime(CLOCK_REALTIME, &ts);
+			ts = add_timespec_ns(ts, wait_ns);
 
-			Genode::addr_t sem = native_thread().exc_pt_sel + Nova::SM_SEL_EC;
-			Nova::sm_ctrl(sem, Nova::SEMAPHORE_DOWNZERO, tsc_abs);
+			/* wait for condition or timeout */
+			pthread_mutex_lock(&_mutex);
+			pthread_cond_timedwait(&_cond_wait, &_mutex, &ts);
+			pthread_mutex_unlock(&_mutex);
 		}
 
 		void wake_up()
 		{
-			/*
-			 * Note: the following 'SEMAPHORE_UP' call can cause a
-			 *       'Blocking_canceled' exception in the target thread
-			 *       if it is currently blocking on a Genode lock, because
-			 *       the same NOVA semaphore is used.
-			 */
-			Genode::addr_t sem = native_thread().exc_pt_sel + Nova::SM_SEL_EC;
-			Nova::sm_ctrl(sem, Nova::SEMAPHORE_UP);
+			pthread_mutex_lock(&_mutex);
+			pthread_cond_signal(&_cond_wait);
+			pthread_mutex_unlock(&_mutex);
 		}
 
 		int run_hw(PVMR0 pVMR0)

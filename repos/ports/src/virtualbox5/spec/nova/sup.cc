@@ -340,9 +340,6 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 		if (!ns_diff)
 			return VINF_SUCCESS;
 
-		uint64_t const tsc_offset = genode_cpu_hz() * ns_diff / (1000*1000*1000);
-		uint64_t const tsc_abs    = Genode::Trace::timestamp() + tsc_offset;
-
 		using namespace Genode;
 
 		if (ns_diff > RT_NS_1SEC)
@@ -350,7 +347,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
-		vcpu_handler->halt(tsc_abs);
+		vcpu_handler->halt(ns_diff);
 
 		return VINF_SUCCESS;
 	}
