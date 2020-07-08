@@ -42,14 +42,17 @@ append qemu_args " -nographic  "
 # regressions in the platform initialization code
 #
 proc bogomips_max_time { } {
-	if {[board] == "rpi"}                        { return 14300 }
-	if {[board] == "imx53_qsb"}                  { return  7520 }
-	if {[board] == "imx53_qsb_tz"}               { return  7520 }
-	if {[board] == "imx6q_sabrelite"}            { return  6320 }
-	if {[board] == "imx7d_sabre"}                { return  9470 }
-	if {[board] == "imx8q_evk"}                  { return  7510 }
-	if {[have_spec x86_64] && [[board] == "pc"]} { return   600 }
-	if {[have_spec x86_32] && [[board] == "pc"]} { return  3150 }
+	if {[board] == "rpi"}             { return 14300 }
+	if {[board] == "imx53_qsb"}       { return  7520 }
+	if {[board] == "imx53_qsb_tz"}    { return  7520 }
+	if {[board] == "imx6q_sabrelite"} { return  6320 }
+	if {[board] == "imx7d_sabre"}     { return  9470 }
+	if {[board] == "imx8q_evk"}       { return  7510 }
+	if {[board] == "pc"} {
+		if {[have_spec x86_64]}       { return   600 }
+		if {[have_spec x86_32]}       { return  3150 }
+	}
+	if {[board] == "muen"}            { return   600 }
 	return 0
 }
 
@@ -67,5 +70,3 @@ if {$result > $maximum} {
 	puts "Test failed: bogomips loop lasted longer than $maximum msecs"
 	exit 1
 }
-exit 0
-
