@@ -3,7 +3,7 @@ VERSION     := 2
 DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
                wifi.archive fec.archive libnl.archive wpa_supplicant.git \
                fw.archive usb_host.archive dwc_otg_host.git usb_hid.archive \
-               usb_net.archive imx8_fb.archive
+               usb_modem.archive usb_net.archive imx8_fb.archive
 
 #
 # Tools
@@ -59,6 +59,14 @@ SHA(usb_net)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c
 DIR(usb_net)     := $(SRC_DIR_USB_NET)
 TAR_OPT(usb_net) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION_USB_NET)/g' $(REP_DIR)/usb_net.list)
 HASH_INPUT       += $(REP_DIR)/usb_net.list
+
+SRC_DIR_USB_MODEM  := src/drivers/usb_modem
+VERSION_USB_MODEM  := 4.16.3
+URL(usb_modem)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB_MODEM).tar.xz
+SHA(usb_modem)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
+DIR(usb_modem)     := $(SRC_DIR_USB_MODEM)
+TAR_OPT(usb_modem) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION_USB_NET)/g' $(REP_DIR)/usb_modem.list)
+HASH_INPUT         += $(REP_DIR)/usb_modem.list
 
 #
 # Raspberry Pi USB controller
@@ -158,6 +166,7 @@ PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.pat
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_modem*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/fec_*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_hid*.patch)))
@@ -210,6 +219,10 @@ PATCH_OPT(patches/usb_hid_evdev.patch)     := $(USB_HID_OPT)
 # USB NET
 USB_NET_OPT = -p1 -d$(SRC_DIR_USB_NET)
 PATCH_OPT(patches/usb_net_skbuff_cast.patch) := $(USB_NET_OPT)
+
+# USB MODEM
+USB_MODEM_OPT = -p1 -d$(SRC_DIR_USB_MODEM)
+PATCH_OPT(patches/usb_modem_skbuff_cast.patch) := $(USB_MODEM_OPT)
 
 # INTEL FB
 PATCH_OPT(patches/intel_fb_backlight.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
