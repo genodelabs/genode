@@ -46,8 +46,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="drivers" caps="2500">
-		<resource name="RAM" quantum="64M" constrain_phys="yes"/>
+	<start name="drivers" caps="2500" managing_system="yes">
+		<resource name="RAM" quantum="64M"/>
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label_last="managed/event_filter">

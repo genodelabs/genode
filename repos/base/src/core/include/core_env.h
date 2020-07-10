@@ -72,6 +72,7 @@ class Genode::Core_env : public Env_deprecated, Noncopyable
 			            Ram_dataspace_factory::any_phys_range(),
 			            Ram_dataspace_factory::Virt_range { platform().vm_start(),
 			                                                platform().vm_size() },
+			            Pd_session_component::Managing_system::PERMITTED,
 			            _region_map,
 			            *((Pager_entrypoint *)nullptr),
 			            "" /* args to native PD */,

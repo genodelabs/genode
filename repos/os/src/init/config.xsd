@@ -164,7 +164,6 @@
         <xs:complexType>
          <xs:attribute name="name"           type="xs:string" />
          <xs:attribute name="quantum"        type="Number_of_bytes" />
-         <xs:attribute name="constrain_phys" type="Boolean" />
         </xs:complexType>
        </xs:element> <!-- "resource" -->
 
@@ -198,10 +197,11 @@
        </xs:element> <!-- "config" -->
 
       </xs:choice>
-      <xs:attribute name="name"     type="xs:string" />
-      <xs:attribute name="ld"       type="Boolean" />
-      <xs:attribute name="caps"     type="xs:int" />
-      <xs:attribute name="priority" type="xs:int" />
+      <xs:attribute name="name"            type="xs:string" />
+      <xs:attribute name="ld"              type="Boolean" />
+      <xs:attribute name="caps"            type="xs:int" />
+      <xs:attribute name="priority"        type="xs:int" />
+      <xs:attribute name="managing_system" type="Boolean" />
      </xs:complexType>
     </xs:element> <!-- "start" -->
 

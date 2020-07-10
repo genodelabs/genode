@@ -43,6 +43,10 @@ namespace Genode { class Pd_session_component; }
 
 class Genode::Pd_session_component : public Session_object<Pd_session>
 {
+	public:
+
+		enum class Managing_system { DENIED, PERMITTED };
+
 	private:
 
 		Rpc_entrypoint            &_ep;
@@ -63,6 +67,8 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		Region_map_component _address_space;
 		Region_map_component _stack_area;
 		Region_map_component _linker_area;
+
+		Managing_system _managing_system;
 
 		friend class Native_pd_component;
 
@@ -122,6 +128,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		                     Range_allocator  &phys_alloc,
 		                     Phys_range        phys_range,
 		                     Virt_range        virt_range,
+		                     Managing_system   managing_system,
 		                     Region_map       &local_rm,
 		                     Pager_entrypoint &pager_ep,
 		                     char const       *args,
@@ -140,7 +147,8 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			_address_space(ep, _sliced_heap, pager_ep,
 			               virt_range.start, virt_range.size, diag),
 			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size(), diag),
-			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE, diag)
+			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE, diag),
+			_managing_system(managing_system)
 		{
 			if (platform().core_needs_platform_pd() || label != "core") {
 				_pd.construct(_sliced_heap, _label.string());
@@ -319,6 +327,13 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 *******************************************/
 
 		Capability<Native_pd> native_pd() override { return _native_pd.cap(); }
+
+
+		/*******************************
+		 ** Managing system interface **
+		 *******************************/
+
+		Managing_system_state managing_system(Managing_system_state const &) override;
 };
 
 #endif /* _CORE__INCLUDE__PD_SESSION_COMPONENT_H_ */

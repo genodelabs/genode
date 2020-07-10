@@ -108,3 +108,8 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 		error(__func__, " failed ", Hex(virt), "+", Hex(size));
 	}
 }
+
+
+using State = Genode::Pd_session::Managing_system_state;
+
+State Pd_session_component::managing_system(State const &) { return State(); }

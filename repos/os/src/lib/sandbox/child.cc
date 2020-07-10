@@ -625,7 +625,7 @@ void Sandbox::Child::filter_session_args(Service::Name const &service,
 		 * allocating DMA memory (as the only use case for the constrain-phys
 		 * mechanism).
 		 */
-		if (_constrain_phys) {
+		if (_managing_system) {
 			addr_t start = 0;
 			addr_t size  = (sizeof(long) == 4) ? 0xc0000000UL : 0x100000000UL;
 
@@ -634,9 +634,11 @@ void Sandbox::Child::filter_session_args(Service::Name const &service,
 
 			Arg_string::set_arg(args, args_len, "phys_start", String<32>(Hex(start)).string());
 			Arg_string::set_arg(args, args_len, "phys_size",  String<32>(Hex(size)) .string());
+			Arg_string::set_arg(args, args_len, "managing_system", "yes");
 		} else {
 			Arg_string::remove_arg(args, "phys_start");
 			Arg_string::remove_arg(args, "phys_size");
+			Arg_string::remove_arg(args, "managing_system");
 		}
 	}
 }

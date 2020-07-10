@@ -16,6 +16,7 @@
 #define _INCLUDE__PD_SESSION__PD_SESSION_H_
 
 #include <base/exception.h>
+#include <cpu/cpu_state.h>
 #include <session/session.h>
 #include <region_map/region_map.h>
 #include <base/ram_allocator.h>
@@ -298,6 +299,18 @@ struct Genode::Pd_session : Session, Ram_allocator
 	virtual Capability<Native_pd> native_pd() = 0;
 
 
+	/*******************************************
+	 ** Access to system management interface **
+	 *******************************************/
+
+	using Managing_system_state = Cpu_state;
+
+	/**
+	 * Call privileged system management functionality of kernel or firmware
+	 */
+	virtual Managing_system_state managing_system(Managing_system_state const &) = 0;
+
+
 	/*********************
 	 ** RPC declaration **
 	 *********************/
@@ -347,6 +360,9 @@ struct Genode::Pd_session : Session, Ram_allocator
 
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
 
+	GENODE_RPC(Rpc_managing_system, Managing_system_state, managing_system,
+	           Managing_system_state const &);
+
 	GENODE_RPC_INTERFACE(Rpc_assign_parent, Rpc_assign_pci, Rpc_map,
 	                     Rpc_alloc_signal_source, Rpc_free_signal_source,
 	                     Rpc_alloc_context, Rpc_free_context, Rpc_submit,
@@ -355,7 +371,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 	                     Rpc_transfer_cap_quota, Rpc_cap_quota, Rpc_used_caps,
 	                     Rpc_alloc, Rpc_free,
 	                     Rpc_transfer_ram_quota, Rpc_ram_quota, Rpc_used_ram,
-	                     Rpc_native_pd);
+	                     Rpc_native_pd, Rpc_managing_system);
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

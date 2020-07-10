@@ -251,9 +251,9 @@ proc platform_drv_config {} {
 	if {[have_platform_drv]} {
 
 		append drv_config {
-	<start name="platform_drv" } [platform_drv_priority] { caps="800">
+	<start name="platform_drv" } [platform_drv_priority] { caps="800" managing_system="yes">
 		<binary name="} [platform_drv_binary] {"/>
-		<resource name="RAM" quantum="4M" constrain_phys="yes"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Platform"/>}
 

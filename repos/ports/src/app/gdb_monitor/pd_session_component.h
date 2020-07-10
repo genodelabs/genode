@@ -144,6 +144,10 @@ class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 
 		Capability<Native_pd> native_pd() override {
 			return _pd.native_pd(); }
+
+		Managing_system_state
+		managing_system(Managing_system_state const & state) override {
+			return _pd.managing_system(state); }
 };
 
 #endif /* _PD_SESSION_COMPONENT_H_ */

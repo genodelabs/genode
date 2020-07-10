@@ -57,6 +57,14 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 			                                           platform().vm_size() };
 		}
 
+		static Pd_session_component::Managing_system _managing_system(char const * args)
+		{
+			return (Arg_string::find_arg(args,
+			                             "managing_system").bool_value(false))
+				? Pd_session_component::Managing_system::PERMITTED
+				: Pd_session_component::Managing_system::DENIED;
+		}
+
 	protected:
 
 		Pd_session_component *_create_session(const char *args) override
@@ -70,6 +78,7 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 				                     _phys_alloc,
 				                     _phys_range_from_args(args),
 				                     _virt_range_from_args(args),
+				                     _managing_system(args),
 				                     _local_rm, _pager_ep, args,
 				                     _core_mem);
 		}

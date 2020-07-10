@@ -3,7 +3,7 @@
  * \author Norman Feske
  * \date   2016-01-13
  *
- * This dummy is used on all kernels with no IOMMU support.
+ * This dummy is used on all kernels with no IOMMU and managing system support.
  */
 
 /*
@@ -22,3 +22,6 @@ bool Pd_session_component::assign_pci(addr_t, uint16_t) { return true; }
 
 void Pd_session_component::map(addr_t, addr_t) { }
 
+using State = Genode::Pd_session::Managing_system_state;
+
+State Pd_session_component::managing_system(State const &) { return State(); }

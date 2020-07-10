@@ -206,8 +206,8 @@ append  config { </wifi_config>
 	</start> }
 } else {
 	append config {
-	<start name="nic_drv" caps="1000">
-		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+	<start name="nic_drv" caps="1000" managing_system="yes">
+		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>

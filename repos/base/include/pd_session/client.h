@@ -93,6 +93,9 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	Ram_quota used_ram()  const override { return call<Rpc_used_ram>(); }
 
 	Capability<Native_pd> native_pd() override { return call<Rpc_native_pd>(); }
+
+	Managing_system_state managing_system(Managing_system_state const & state) override {
+		return call<Rpc_managing_system>(state); }
 };
 
 #endif /* _INCLUDE__PD_SESSION__CLIENT_H_ */

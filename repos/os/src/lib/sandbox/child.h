@@ -163,7 +163,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			Ram_quota assigned_ram_quota;
 			Cap_quota assigned_cap_quota;
 			size_t    cpu_quota_pc;
-			bool      constrain_phys;
 
 			Ram_quota effective_ram_quota() const
 			{
@@ -197,7 +196,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		                                     Cap_quota default_cap_quota, Cap_quota)
 		{
 			size_t          cpu_quota_pc   = 0;
-			bool            constrain_phys = false;
 			Number_of_bytes ram_bytes      = 0;
 
 			size_t caps = start_node.attribute_value("caps", default_cap_quota.value);
@@ -209,7 +207,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 				if (name == "RAM") {
 					ram_bytes      = rsc.attribute_value("quantum", ram_bytes);
-					constrain_phys = rsc.attribute_value("constrain_phys", false);
 				}
 
 				if (name == "CPU") {
@@ -227,8 +224,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			                            affinity_location_from_xml(affinity_space, start_node)),
 			                   Ram_quota { ram_bytes },
 			                   Cap_quota { caps },
-			                   cpu_quota_pc,
-			                   constrain_phys };
+			                   cpu_quota_pc };
 		}
 
 		Resources _resources;
@@ -322,10 +318,11 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		long const _priority         { _resources.priority };
 
 		/**
-		 * If set to true, the child is allowed to constrain physical RAM
-		 * allocations.
+		 * If set to true, the child is allowed to do system management,
+		 * e.g., constrain physical RAM allocations.
 		 */
-		bool const _constrain_phys { _resources.constrain_phys };
+		bool const _managing_system {
+			_start_node->xml().attribute_value("managing_system", false) };
 
 		/**
 		 * Resource request initiated by the child
