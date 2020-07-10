@@ -771,9 +771,10 @@ extern "C" {
 		pthread_mutextype const type = (!attr || !*attr)
 		                             ? PTHREAD_MUTEX_NORMAL : (*attr)->type;
 		switch (type) {
-		case PTHREAD_MUTEX_NORMAL:     *mutex = new (alloc) Pthread_mutex_normal; break;
-		case PTHREAD_MUTEX_ERRORCHECK: *mutex = new (alloc) Pthread_mutex_errorcheck; break;
-		case PTHREAD_MUTEX_RECURSIVE:  *mutex = new (alloc) Pthread_mutex_recursive; break;
+		case PTHREAD_MUTEX_NORMAL:      *mutex = new (alloc) Pthread_mutex_normal; break;
+		case PTHREAD_MUTEX_ADAPTIVE_NP: *mutex = new (alloc) Pthread_mutex_normal; break;
+		case PTHREAD_MUTEX_ERRORCHECK:  *mutex = new (alloc) Pthread_mutex_errorcheck; break;
+		case PTHREAD_MUTEX_RECURSIVE:   *mutex = new (alloc) Pthread_mutex_recursive; break;
 
 		default:
 			*mutex = nullptr;
