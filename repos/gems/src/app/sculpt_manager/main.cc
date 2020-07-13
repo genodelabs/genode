@@ -363,6 +363,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Attached_rom_dataspace _editor_saved_rom { _env, "report -> runtime/editor/saved" };
 
+	Affinity::Space _affinity_space { 1, 1 };
 
 	/**
 	 * Panel_dialog::State interface
@@ -886,7 +887,7 @@ struct Sculpt::Main : Input_event_handler,
 	Start_name new_construction(Component::Path const &pkg,
 	                            Component::Info const &info) override
 	{
-		return _runtime_state.new_construction(pkg, info);
+		return _runtime_state.new_construction(pkg, info, _affinity_space);
 	}
 
 	void _apply_to_construction(Popup_dialog::Action::Apply_to &fn) override
@@ -1090,6 +1091,14 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy.handle_deploy();
 		_handle_pci_devices();
 		_handle_runtime_config();
+
+		/*
+		 * Read static platform information
+		 */
+		_platform.xml().with_sub_node("affinity-space", [&] (Xml_node const &node) {
+			_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
+			                                  node.attribute_value("height", 1U));
+		});
 
 		/*
 		 * Generate initial config/managed/deploy configuration
@@ -1686,11 +1695,9 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Irq_session>(xml);
 	});
 
-	_platform.xml().with_sub_node("affinity-space", [&] (Xml_node const &node) {
-		xml.node("affinity-space", [&] () {
-			xml.attribute("width",  node.attribute_value("width",  1U));
-			xml.attribute("height", node.attribute_value("height", 1U));
-		});
+	xml.node("affinity-space", [&] () {
+		xml.attribute("width",  _affinity_space.width());
+		xml.attribute("height", _affinity_space.height());
 	});
 
 	xml.node("start", [&] () {

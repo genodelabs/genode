@@ -85,6 +85,25 @@ void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
 		});
 	});
 
+	if (_resources.constructed() && component.affinity_space.total() > 1) {
+		xml.node("frame", [&] {
+			xml.node("vbox", [&] () {
+				bool const selected = _route_selected(_resources->start_name());
+
+				if (!selected)
+					_gen_route_entry(xml, _resources->start_name(),
+					                 "Resource assignment", false, "enter");
+
+				if (selected) {
+					_gen_route_entry(xml, "back", "Resource assignment",
+					                 true, "back");
+
+					_resources->generate(xml);
+				}
+			});
+		});
+	}
+
 	/*
 	 * Display "Add component" button once all routes are defined
 	 */
@@ -456,6 +475,12 @@ void Popup_dialog::click(Action &action)
 				if (!clicked_on_selected_route && clicked_route.valid()) {
 					_state = ROUTE_SELECTED;
 					_selected_route.construct(clicked_route);
+				}
+
+				if (_resources.constructed()) {
+					action.apply_to_construction([&] (Component &component) {
+						_resources->click(component);
+					});
 				}
 			}
 		}

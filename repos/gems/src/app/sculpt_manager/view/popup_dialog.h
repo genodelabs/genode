@@ -30,6 +30,8 @@
 #include <view/activatable_item.h>
 #include <depot_query.h>
 
+#include <view/resource_dialog.h>
+
 namespace Sculpt { struct Popup_dialog; }
 
 
@@ -113,6 +115,8 @@ struct Sculpt::Popup_dialog : Dialog
 	Activatable_item _install_item { };
 	Hoverable_item   _route_item   { };
 
+	Constructible<Resource_dialog> _resources { };
+
 	enum State { TOP_LEVEL, DEPOT_REQUESTED, DEPOT_SHOWN, DEPOT_SELECTION,
 	             INDEX_REQUESTED, INDEX_SHOWN,
 	             PKG_REQUESTED, PKG_SHOWN, ROUTE_SELECTED };
@@ -193,6 +197,10 @@ struct Sculpt::Popup_dialog : Dialog
 			_action_item .match(hover, "frame", "vbox", "button", "name"),
 			_install_item.match(hover, "frame", "vbox", "float", "vbox", "float", "button", "name"),
 			_route_item  .match(hover, "frame", "vbox", "frame", "vbox", "hbox", "name"));
+
+		if (_resources.constructed() &&
+		    hover_result == Dialog::Hover_result::UNMODIFIED)
+			return _resources->hover(hover, "frame", "vbox", "frame", "vbox");
 
 		return hover_result;
 	}
@@ -447,6 +455,10 @@ struct Sculpt::Popup_dialog : Dialog
 	{
 		if (_state < PKG_REQUESTED)
 			return;
+
+		if (!_resources.constructed())
+			_resources.construct(construction.affinity_space,
+			                     construction.affinity_location);
 
 		_pkg_rom_missing = blueprint_rom_missing(blueprint, construction.path);
 		_pkg_missing     = blueprint_missing    (blueprint, construction.path);

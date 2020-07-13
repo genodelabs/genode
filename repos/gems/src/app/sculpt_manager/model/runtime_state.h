@@ -107,11 +107,12 @@ class Sculpt::Runtime_state : public Runtime_info
 			 */
 			Launched_child(Allocator &alloc, Start_name const &name,
 			               Component::Path const &pkg_path,
-			               Component::Info const &info)
+			               Component::Info const &info,
+			               Affinity::Space const space)
 			:
 				name(name), launcher(), launched(false)
 			{
-				construction.construct(alloc, pkg_path, info);
+				construction.construct(alloc, pkg_path, info, space);
 			}
 
 			void gen_deploy_start_node(Xml_generator &xml) const
@@ -124,6 +125,11 @@ class Sculpt::Runtime_state : public Runtime_info
 					/* interactively constructed */
 					if (construction.constructed()) {
 						xml.attribute("pkg", construction->path);
+
+						xml.attribute("xpos", construction->affinity_location.xpos());
+						xml.attribute("ypos", construction->affinity_location.ypos());
+						xml.attribute("width", construction->affinity_location.width());
+						xml.attribute("height", construction->affinity_location.height());
 
 						xml.node("route", [&] () {
 							construction->routes.for_each([&] (Route const &route) {
@@ -363,7 +369,8 @@ class Sculpt::Runtime_state : public Runtime_info
 		}
 
 		Start_name new_construction(Component::Path const pkg,
-		                                      Component::Info const &info)
+		                            Component::Info const &info,
+		                            Affinity::Space const space)
 		{
 			/* allow only one construction at a time */
 			discard_construction();
@@ -377,7 +384,7 @@ class Sculpt::Runtime_state : public Runtime_info
 
 			_currently_constructed = new (_alloc)
 				Registered<Launched_child>(_launched_children, _alloc,
-				                           unique_name, pkg, info);
+				                           unique_name, pkg, info, space);
 			return unique_name;
 		}
 

@@ -37,12 +37,18 @@ struct Sculpt::Component : Noncopyable
 	uint64_t ram  { };
 	size_t   caps { };
 
+	Affinity::Space    const affinity_space;
+	Affinity::Location       affinity_location { 0, 0,
+	                                             affinity_space.width(),
+	                                             affinity_space.height() };
+
 	bool blueprint_known = false;
 
 	List_model<Route> routes { };
 
-	Component(Allocator &alloc, Path const &path, Info const &info)
-	: _route_update_policy(alloc), path(path), info(info) { }
+	Component(Allocator &alloc, Path const &path, Info const &info,
+	          Affinity::Space const space)
+	: _route_update_policy(alloc), path(path), info(info), affinity_space (space) { }
 
 	~Component()
 	{
