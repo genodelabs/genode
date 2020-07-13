@@ -271,13 +271,16 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		Pthread_pool _pthreads { _timer_accessor };
 
-		Monitor::Pool _monitors { };
+		Monitor::Pool _monitors { *this };
 
 		Reconstructible<Io_signal_handler<Kernel>> _execute_monitors {
 			_env.ep(), *this, &Kernel::_monitors_handler };
 
+		bool _execute_monitors_pending { false };
+
 		void _monitors_handler()
 		{
+			_execute_monitors_pending = false;
 			_monitors.execute_monitors();
 		}
 
@@ -532,26 +535,30 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		/**
 		 * Monitor interface
 		 */
-		bool _monitor(Mutex &mutex, Function &fn, uint64_t timeout_ms) override
+		Monitor::Result _monitor(Mutex &mutex, Function &fn, uint64_t timeout_ms) override
 		{
 			if (_main_context()) {
 				Main_job job { fn, timeout_ms };
 
 				_monitors.monitor(mutex, job);
-				return job.completed();
+				return job.completed() ? Monitor::Result::COMPLETE
+				                       : Monitor::Result::TIMEOUT;
 
 			} else {
 				Pthread_job job { fn, _timer_accessor, timeout_ms };
 
 				_monitors.monitor(mutex, job);
-				return job.completed();
+				return job.completed() ? Monitor::Result::COMPLETE
+				                       : Monitor::Result::TIMEOUT;
 			}
 		}
 
 		void _charge_monitors() override
 		{
-			if (_monitors.charge_monitors())
+			if (!_execute_monitors_pending) {
+				_execute_monitors_pending = true;
 				Signal_transmitter(*_execute_monitors).submit();
+			}
 		}
 
 		/**
