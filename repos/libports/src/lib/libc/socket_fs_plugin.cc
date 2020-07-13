@@ -46,7 +46,7 @@
 
 namespace Libc {
 	extern char const *config_socket();
-	bool read_ready(File_descriptor *);
+	bool read_ready_from_kernel(File_descriptor *);
 }
 
 
@@ -180,7 +180,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 		bool _fd_read_ready(Fd type)
 		{
 			if (_fd[type].file)
-				return Libc::read_ready(_fd[type].file);
+				return Libc::read_ready_from_kernel(_fd[type].file);
 			else
 				return false;
 		}

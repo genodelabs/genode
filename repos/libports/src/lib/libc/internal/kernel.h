@@ -282,8 +282,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		void _monitors_handler()
 		{
-			_execute_monitors_pending = false;
-			_monitors.execute_monitors();
+			 /* used to leave I/O-signal dispatcher only - handled afterwards */
 		}
 
 		Constructible<Clone_connection> _clone_connection { };
@@ -452,13 +451,21 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 						_switch_to_user();
 				}
 
-				if (_dispatch_pending_io_signals) {
-					/* dispatch pending signals but don't block */
-					while (_env.ep().dispatch_pending_io_signal()) ;
+				if (_execute_monitors_pending) {
+
+					_execute_monitors_pending = false;
+					_monitors.execute_monitors();
+
 				} else {
-					/* block for signals */
-					_env.ep().wait_and_dispatch_one_io_signal();
-					handle_io_progress();
+
+					if (_dispatch_pending_io_signals) {
+						/* dispatch pending signals but don't block */
+						while (_env.ep().dispatch_pending_io_signal()) ;
+					} else {
+						/* block for signals */
+						_env.ep().wait_and_dispatch_one_io_signal();
+						handle_io_progress();
+					}
 				}
 
 				if (!_kernel_routine && _resume_main_once && !_setjmp(_kernel_context))
@@ -562,7 +569,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		{
 			if (!_execute_monitors_pending) {
 				_execute_monitors_pending = true;
-				Signal_transmitter(*_execute_monitors).submit();
+				if (!_main_context())
+					Signal_transmitter(*_execute_monitors).submit();
 			}
 		}
 

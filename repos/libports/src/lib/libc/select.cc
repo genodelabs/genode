@@ -35,6 +35,7 @@
 #include <signal.h>
 
 /* libc-internal includes */
+#include <internal/kernel.h>
 #include <internal/init.h>
 #include <internal/signal.h>
 #include <internal/suspend.h>
@@ -207,7 +208,7 @@ static int selscan(int nfds,
 
 
 /* this function gets called by plugin backends when file descripors become ready */
-static void select_notify()
+void Libc::select_notify_from_kernel()
 {
 	bool resume_all = false;
 	fd_set tmp_readfds, tmp_writefds, tmp_exceptfds;
@@ -260,39 +261,34 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 
 	Constructible<Select_cb> select_cb;
 
-	/* initialize the select notification function pointer */
-	if (!libc_select_notify)
-		libc_select_notify = select_notify;
-
 	if (readfds)   in_readfds   = *readfds;   else FD_ZERO(&in_readfds);
 	if (writefds)  in_writefds  = *writefds;  else FD_ZERO(&in_writefds);
 	if (exceptfds) in_exceptfds = *exceptfds; else FD_ZERO(&in_exceptfds);
 
-	{
-		/*
-		 * We use the guard directly to atomically check if any descripor is
-		 * ready, but insert into select-callback list otherwise.
-		 */
-		Select_cb_list::Guard guard(select_cb_list());
+	/*
+	 * Insert callback first to avoid race after 'selscan()'
+	 */
 
-		int const nready = selscan(nfds,
-		                           &in_readfds, &in_writefds, &in_exceptfds,
-		                           readfds, writefds, exceptfds);
+	select_cb.construct(nfds, in_readfds, in_writefds, in_exceptfds);
+	select_cb_list().insert(&(*select_cb));
 
-		/* return if any descripor is ready */
-		if (nready)
-			return nready;
+	int const nready = selscan(nfds,
+	                           &in_readfds, &in_writefds, &in_exceptfds,
+	                           readfds, writefds, exceptfds);
 
-		/* return on zero-timeout */
-		if (tv && (tv->tv_sec) == 0 && (tv->tv_usec == 0))
-			return 0;
-
-		/* suspend as we don't have any immediate events */
-
-		select_cb.construct(nfds, in_readfds, in_writefds, in_exceptfds);
-
-		select_cb_list().unsynchronized_insert(&(*select_cb));
+	/* return if any descripor is ready */
+	if (nready) {
+		select_cb_list().remove(&(*select_cb));
+		return nready;
 	}
+
+	/* return on zero-timeout */
+	if (tv && (tv->tv_sec) == 0 && (tv->tv_usec == 0)) {
+		select_cb_list().remove(&(*select_cb));
+		return 0;
+	}
+
+	/* suspend as we don't have any immediate events */
 
 	struct Timeout
 	{
@@ -352,7 +348,7 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	if (signal_occurred_during_select())
 		return Errno(EINTR);
 
-	/* not timed out -> results have been stored in select_cb by select_notify() */
+	/* not timed out -> results have been stored in select_cb by select_notify_from_kernel() */
 
 	if (readfds)   *readfds   = select_cb->readfds;
 	if (writefds)  *writefds  = select_cb->writefds;
@@ -410,10 +406,6 @@ int Libc::Select_handler_base::select(int nfds, fd_set &readfds,
 {
 	fd_set in_readfds, in_writefds, in_exceptfds;
 
-	/* initialize the select notification function pointer */
-	if (!libc_select_notify)
-		libc_select_notify = select_notify;
-
 	in_readfds   = readfds;
 	in_writefds  = writefds;
 	in_exceptfds = exceptfds;
@@ -424,7 +416,7 @@ int Libc::Select_handler_base::select(int nfds, fd_set &readfds,
 
 	{
 		/*
-		 * We use the guard directly to atomically check is any descripor is
+		 * We use the guard directly to atomically check if any descripor is
 		 * ready, and insert into select-callback list otherwise.
 		 */
 		Select_cb_list::Guard guard(select_cb_list());

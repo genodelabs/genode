@@ -81,9 +81,9 @@ class Libc::Vfs_plugin : public Plugin
 		bool                       const _pipe_configured;
 
 		/**
-		 * Sync a handle and propagate errors
+		 * Sync a handle
 		 */
-		int _vfs_sync(Vfs::Vfs_handle&);
+		void _vfs_sync(Vfs::Vfs_handle&);
 
 		/**
 		 * Update modification time
@@ -158,12 +158,11 @@ class Libc::Vfs_plugin : public Plugin
 		                     fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		                     struct timeval *timeout) override;
 
-		File_descriptor *open(const char *, int, int libc_fd);
-
-		File_descriptor *open(const char *path, int flags) override
-		{
-			return open(path, flags, ANY_FD);
-		}
+		/* kernel-specific API without monitor */
+		File_descriptor *open_from_kernel(const char *, int, int libc_fd);
+		int close_from_kernel(File_descriptor *);
+		::off_t lseek_from_kernel(File_descriptor *fd, ::off_t offset);
+		int     stat_from_kernel(const char *, struct stat *);
 
 		int     access(char const *, int) override;
 		int     close(File_descriptor *) override;
@@ -178,6 +177,7 @@ class Libc::Vfs_plugin : public Plugin
 		int     ioctl(File_descriptor *, int , char *) override;
 		::off_t lseek(File_descriptor *fd, ::off_t offset, int whence) override;
 		int     mkdir(const char *, mode_t) override;
+		File_descriptor *open(const char *path, int flags) override;
 		int     pipe(File_descriptor *pipefdo[2]) override;
 		bool    poll(File_descriptor &fdo, struct pollfd &pfd) override;
 		ssize_t read(File_descriptor *, void *, ::size_t) override;

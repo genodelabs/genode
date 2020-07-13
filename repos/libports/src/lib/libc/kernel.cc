@@ -116,27 +116,137 @@ void Libc::Kernel::reset_malloc_heap()
 
 void Libc::Kernel::_init_file_descriptors()
 {
+	/**
+	 * path element token
+	 */
+	struct Scanner_policy_path_element
+	{
+		static bool identifier_char(char c, unsigned /* i */)
+		{
+			return (c != '/') && (c != 0);
+		}
+	};
+	typedef Genode::Token<Scanner_policy_path_element> Path_element_token;
+
+	auto resolve_symlinks = [&] (Absolute_path next_iteration_working_path, Absolute_path &resolved_path)
+	{
+		char path_element[PATH_MAX];
+		char symlink_target[PATH_MAX];
+
+		Absolute_path current_iteration_working_path;
+
+		enum { FOLLOW_LIMIT = 10 };
+		int follow_count = 0;
+		bool symlink_resolved_in_this_iteration;
+		do {
+			if (follow_count++ == FOLLOW_LIMIT) {
+				errno = ELOOP;
+				throw Symlink_resolve_error();
+			}
+
+			current_iteration_working_path = next_iteration_working_path;
+
+			next_iteration_working_path.import("");
+			symlink_resolved_in_this_iteration = false;
+
+			Path_element_token t(current_iteration_working_path.base());
+
+			while (t) {
+				if (t.type() != Path_element_token::IDENT) {
+						t = t.next();
+						continue;
+				}
+
+				t.string(path_element, sizeof(path_element));
+
+				try {
+					next_iteration_working_path.append_element(path_element);
+				} catch (Path_base::Path_too_long) {
+					errno = ENAMETOOLONG;
+					throw Symlink_resolve_error();
+				}
+
+				/*
+				 * If a symlink has been resolved in this iteration, the remaining
+				 * path elements get added and a new iteration starts.
+				 */
+				if (!symlink_resolved_in_this_iteration) {
+					struct stat stat_buf;
+					int res = _vfs.stat_from_kernel(next_iteration_working_path.base(), &stat_buf);
+					if (res == -1) {
+						throw Symlink_resolve_error();
+					}
+					if (S_ISLNK(stat_buf.st_mode)) {
+						res = readlink(next_iteration_working_path.base(),
+						               symlink_target, sizeof(symlink_target) - 1);
+						if (res < 1)
+							throw Symlink_resolve_error();
+
+						/* zero terminate target */
+						symlink_target[res] = 0;
+
+						if (symlink_target[0] == '/')
+							/* absolute target */
+							next_iteration_working_path.import(symlink_target, _cwd.base());
+						else {
+							/* relative target */
+							next_iteration_working_path.strip_last_element();
+							try {
+								next_iteration_working_path.append_element(symlink_target);
+							} catch (Path_base::Path_too_long) {
+								errno = ENAMETOOLONG;
+								throw Symlink_resolve_error();
+							}
+						}
+						symlink_resolved_in_this_iteration = true;
+					}
+				}
+
+				t = t.next();
+			}
+
+		} while (symlink_resolved_in_this_iteration);
+
+		resolved_path = next_iteration_working_path;
+		resolved_path.remove_trailing('/');
+	};
+
+	typedef String<Vfs::MAX_PATH_LEN> Path;
+
+	auto resolve_absolute_path = [&] (Path const &path)
+	{
+		Absolute_path abs_path { };
+		Absolute_path abs_dir(path.string(), _cwd.base());   abs_dir.strip_last_element();
+		Absolute_path dir_entry(path.string(), _cwd.base()); dir_entry.keep_only_last_element();
+
+		try {
+			resolve_symlinks(abs_dir, abs_path);
+			abs_path.append_element(dir_entry.string());
+			return abs_path;
+		} catch (Path_base::Path_too_long) { return Absolute_path(); }
+	};
+
 	auto init_fd = [&] (Xml_node const &node, char const *attr,
 	                    int libc_fd, unsigned flags)
 	{
 		if (!node.has_attribute(attr))
 			return;
 
-		typedef String<Vfs::MAX_PATH_LEN> Path;
-		Path const path = node.attribute_value(attr, Path());
+		Absolute_path const path {
+			resolve_absolute_path(node.attribute_value(attr, Path())) };
 
 		struct stat out_stat { };
-		if (stat(path.string(), &out_stat) != 0)
+		if (_vfs.stat_from_kernel(path.string(), &out_stat) != 0)
 			return;
 
-		File_descriptor *fd = _vfs.open(path.string(), flags, libc_fd);
+		File_descriptor *fd = _vfs.open_from_kernel(path.string(), flags, libc_fd);
 		if (!fd)
 			return;
 
 		if (fd->libc_fd != libc_fd) {
 			error("could not allocate fd ",libc_fd," for ",path,", "
 			      "got fd ",fd->libc_fd);
-			_vfs.close(fd);
+			_vfs.close_from_kernel(fd);
 			return;
 		}
 
@@ -151,14 +261,14 @@ void Libc::Kernel::_init_file_descriptors()
 			warning("may leak former FD path memory");
 
 		{
-			char *dst = (char *)_heap.alloc(path.length());
-			copy_cstring(dst, path.string(), path.length());
+			char *dst = (char *)_heap.alloc(path.max_len());
+			copy_cstring(dst, path.string(), path.max_len());
 			fd->fd_path = dst;
 		}
 
 		::off_t const seek = node.attribute_value("seek", 0ULL);
 		if (seek)
-			_vfs.lseek(fd, seek, SEEK_SET);
+			_vfs.lseek_from_kernel(fd, seek);
 	};
 
 	if (_vfs.root_dir_has_dirents()) {
@@ -323,11 +433,16 @@ void Libc::Kernel::_clone_state_from_parent()
 }
 
 
-extern void (*libc_select_notify)();
+extern void (*libc_select_notify_from_kernel)();
 
 
 void Libc::Kernel::handle_io_progress()
 {
+	if (_execute_monitors_pending) {
+		_execute_monitors_pending = false;
+		_monitors.execute_monitors();
+	}
+
 	/*
 	 * TODO: make VFS I/O completion checks during
 	 * kernel time to avoid flapping between stacks
@@ -337,14 +452,14 @@ void Libc::Kernel::handle_io_progress()
 		_io_ready = false;
 
 		/* some contexts may have been deblocked from select() */
-		if (libc_select_notify)
-			libc_select_notify();
+		select_notify_from_kernel();
 
 		/*
 		 * resume all as any VFS context may have
 		 * been deblocked from blocking I/O
 		 */
 		Kernel::resume_all();
+		_monitors.execute_monitors();
 	}
 }
 

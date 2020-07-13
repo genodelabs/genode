@@ -64,7 +64,7 @@ namespace Libc {
 	/**
 	 * Virtual file system
 	 */
-	void init_vfs_plugin(Suspend &);
+	void init_vfs_plugin(Monitor &);
 	void init_file_operations(Cwd &);
 
 	/**

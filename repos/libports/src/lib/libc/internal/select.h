@@ -30,6 +30,8 @@ namespace Libc {
 
 		virtual void deschedule_select() = 0;
 	};
+
+	void select_notify_from_kernel();
 }
 
 #endif /* _LIBC__INTERNAL__SELECT_H_ */
