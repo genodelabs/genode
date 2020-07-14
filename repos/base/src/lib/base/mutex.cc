@@ -17,17 +17,12 @@
 
 void Genode::Mutex::acquire()
 {
-	while (1) {
-		try {
-			Lock::Applicant myself(Thread::myself());
-			if (_lock.lock_owner(myself))
-				Genode::error("deadlock ahead, mutex=", this, ", return ip=",
-					      __builtin_return_address(0));
+	Lock::Applicant myself(Thread::myself());
+	if (_lock.lock_owner(myself))
+		Genode::error("deadlock ahead, mutex=", this, ", return ip=",
+		              __builtin_return_address(0));
 
-			_lock.Cancelable_lock::lock(myself);
-			return;
-		} catch (Blocking_canceled) { }
-	}
+	_lock.lock(myself);
 }
 
 void Genode::Mutex::release()
@@ -35,8 +30,7 @@ void Genode::Mutex::release()
 	Lock::Applicant myself(Thread::myself());
 	if (!_lock.lock_owner(myself)) {
 		Genode::error("denied non mutex owner the release, mutex=",
-		              this, ", return ip=",
-			      __builtin_return_address(0));
+		              this, ", return ip=", __builtin_return_address(0));
 		return;
 	}
 	_lock.unlock();

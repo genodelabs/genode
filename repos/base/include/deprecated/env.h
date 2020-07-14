@@ -25,7 +25,6 @@
 #include <pd_session/capability.h>
 #include <base/allocator.h>
 #include <base/snprintf.h>
-#include <base/lock.h>
 
 namespace Genode {
 

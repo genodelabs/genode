@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <base/sleep.h>
-#include <base/lock.h>
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>

@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <file_system/listener.h>
 #include <util/list.h>
-#include <base/lock.h>
 
 
 namespace File_system {

@@ -18,8 +18,6 @@ using Vmm::Cpu_base;
 using Vmm::Cpu;
 using Vmm::Gic;
 
-Genode::Lock & Vmm::lock() { static Genode::Lock l {}; return l; }
-
 
 Cpu_base::System_register::System_register(unsigned         op0,
                                            unsigned         crn,

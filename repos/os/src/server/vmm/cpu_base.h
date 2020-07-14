@@ -26,7 +26,6 @@
 namespace Vmm {
 	class Vm;
 	class Cpu_base;
-	Genode::Lock & lock();
 }
 
 class Vmm::Cpu_base

@@ -14,7 +14,6 @@
 #ifndef _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_
 #define _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_
 
-#include <base/lock.h>
 #include <base/rpc_server.h>
 #include <base/rpc_client.h>
 #include <util/list.h>

@@ -13,7 +13,6 @@
 #ifndef _INCLUDE__USB__PACKET_HANDLER_
 #define _INCLUDE__USB__PACKET_HANDLER_
 
-#include <base/lock.h>
 #include <usb_session/connection.h>
 
 namespace Usb { class Packet_handler; }

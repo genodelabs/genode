@@ -16,7 +16,6 @@
 
 #include <signal_source/rpc_object.h>
 #include <base/tslab.h>
-#include <base/lock.h>
 #include <base/rpc_client.h>
 #include <base/rpc_server.h>
 #include <util/fifo.h>

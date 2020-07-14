@@ -42,7 +42,7 @@ class Genode::Mutex : Noncopyable
 {
 	private:
 
-		Lock _lock { };
+		Lock _lock { Lock::UNLOCKED };
 
 	public:
 

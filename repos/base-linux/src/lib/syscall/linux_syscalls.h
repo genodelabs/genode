@@ -352,6 +352,11 @@ inline int lx_sigaction(int signum, void (*handler)(int), bool altstack)
 	struct kernel_sigaction act;
 	act.handler = handler;
 
+	/*
+	 * System calls should be restarted on signal occurrence and not return
+	 * with EINTR. We therefore set the SA_RESTART flag in signal handlers.
+	 */
+
 #ifdef _LP64
 	/*
 	 * The SA_RESTORER flag is not officially documented, but used internally
@@ -360,10 +365,10 @@ inline int lx_sigaction(int signum, void (*handler)(int), bool altstack)
 	 * when leaving the signal handler and it should call the rt_sigreturn syscall.
 	 */
 	enum { SA_RESTORER = 0x04000000 };
-	act.flags    = SA_RESTORER;
+	act.flags    = SA_RESTORER | SA_RESTART;
 	act.restorer = lx_restore_rt;
 #else
-	act.flags    = 0;
+	act.flags    = SA_RESTART;
 	act.restorer = 0;
 #endif
 

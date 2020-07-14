@@ -15,7 +15,6 @@
 #define _CORE__INCLUDE__RPC_CAP_FACTORY_H_
 
 #include <base/allocator.h>
-#include <base/lock.h>
 #include <base/capability.h>
 
 namespace Genode { class Rpc_cap_factory; }

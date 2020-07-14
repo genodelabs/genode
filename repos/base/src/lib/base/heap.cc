@@ -15,7 +15,6 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <base/heap.h>
-#include <base/lock.h>
 
 using namespace Genode;
 

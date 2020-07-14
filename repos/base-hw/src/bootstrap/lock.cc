@@ -15,18 +15,18 @@
 #include <base/mutex.h>
 #include <hw/assert.h>
 
-Genode::Cancelable_lock::Cancelable_lock(Genode::Cancelable_lock::State state)
+Genode::Lock::Lock(Genode::Lock::State state)
 : _state(state), _owner(nullptr) { }
 
 
-void Genode::Cancelable_lock::unlock()
+void Genode::Lock::unlock()
 {
 	assert(_state == LOCKED);
 	_state = UNLOCKED;
 }
 
 
-void Genode::Cancelable_lock::lock()
+void Genode::Lock::lock()
 {
 	assert(_state == UNLOCKED);
 	_state = LOCKED;

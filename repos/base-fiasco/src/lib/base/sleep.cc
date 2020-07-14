@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <base/sleep.h>
-#include <base/lock.h>
 
 /* L4/Fiasco includes */
 namespace Fiasco {

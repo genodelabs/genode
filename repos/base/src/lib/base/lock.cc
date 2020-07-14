@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/cancelable_lock.h>
+#include <base/lock.h>
 #include <cpu/memory_barrier.h>
 
 /* base-internal includes */
@@ -37,7 +37,7 @@ static inline bool thread_base_valid(Genode::Thread *thread_base)
  ** Lock applicant **
  ********************/
 
-void Cancelable_lock::Applicant::wake_up()
+void Lock::Applicant::wake_up()
 {
 	if (!thread_base_valid(_thread_base)) return;
 
@@ -56,17 +56,17 @@ void Cancelable_lock::Applicant::wake_up()
 }
 
 
-/*********************
- ** Cancelable lock **
- *********************/
+/***************
+ ** Lock lock **
+ ***************/
 
-void Cancelable_lock::lock()
+void Lock::lock()
 {
 	Applicant myself(Thread::myself());
 	lock(myself);
 }
 
-void Cancelable_lock::lock(Applicant &myself)
+void Lock::lock(Applicant &myself)
 {
 	spinlock_lock(&_spinlock_state);
 
@@ -126,38 +126,10 @@ void Cancelable_lock::lock(Applicant &myself)
 	 * !   thread_yield();
 	 */
 	thread_stop_myself(myself.thread_base());
-
-	/*
-	 * We expect to be the lock owner when woken up. If this is not
-	 * the case, the blocking was canceled via core's cancel-blocking
-	 * mechanism. We have to dequeue ourself from the list of applicants
-	 * and reflect this condition as a C++ exception.
-	 */
-	spinlock_lock(&_spinlock_state);
-	if (_owner != myself) {
-		/*
-		 * Check if we are the applicant to be waken up next,
-		 * otherwise, go through the list of remaining applicants
-		 */
-		for (Applicant *a = &_owner; a; a = a->applicant_to_wake_up()) {
-			/* remove reference to ourself from the applicants list */
-			if (a->applicant_to_wake_up() == &myself) {
-				a->applicant_to_wake_up(myself.applicant_to_wake_up());
-				if (_last_applicant == &myself)
-					_last_applicant = a;
-				break;
-			}
-		}
-
-		spinlock_unlock(&_spinlock_state);
-
-		throw Blocking_canceled();
-	}
-	spinlock_unlock(&_spinlock_state);
 }
 
 
-void Cancelable_lock::unlock()
+void Lock::unlock()
 {
 	spinlock_lock(&_spinlock_state);
 
@@ -190,7 +162,7 @@ void Cancelable_lock::unlock()
 }
 
 
-Cancelable_lock::Cancelable_lock(Cancelable_lock::State initial)
+Lock::Lock(Lock::State initial)
 :
 	_spinlock_state(SPINLOCK_UNLOCKED),
 	_state(UNLOCKED),
