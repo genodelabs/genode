@@ -33,10 +33,12 @@
 #include "pointer_origin.h"
 #include "domain_registry.h"
 #include "capture_session.h"
+#include "event_session.h"
 
 namespace Nitpicker {
 	class  Gui_root;
 	class  Capture_root;
+	class  Event_root;
 	struct Main;
 }
 
@@ -293,15 +295,64 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 };
 
 
+/*****************************************
+ ** Implementation of the event service **
+ *****************************************/
+
+class Nitpicker::Event_root : public Root_component<Event_session>
+{
+	private:
+
+		Env &_env;
+
+		Event_session::Handler &_handler;
+
+	protected:
+
+		Event_session *_create_session(const char *args) override
+		{
+			return new (md_alloc())
+				Event_session(_env,
+				              session_resources_from_args(args),
+				              session_label_from_args(args),
+				              session_diag_from_args(args),
+				              _handler);
+		}
+
+		void _upgrade_session(Event_session *s, const char *args) override
+		{
+			s->upgrade(ram_quota_from_args(args));
+			s->upgrade(cap_quota_from_args(args));
+		}
+
+		void _destroy_session(Event_session *session) override
+		{
+			Genode::destroy(md_alloc(), session);
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Event_root(Env &env, Allocator &md_alloc, Event_session::Handler &handler)
+		:
+			Root_component<Event_session>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env), _handler(handler)
+		{ }
+};
+
+
 struct Nitpicker::Main : Focus_updater,
                          View_stack::Damage,
-                         Capture_session::Handler
+                         Capture_session::Handler,
+                         Event_session::Handler
 {
 	Env &_env;
 
 	Timer::Connection _timer { _env };
 
-	Signal_handler<Main> _timer_handler = { _env.ep(), *this, &Main::_handle_input };
+	Signal_handler<Main> _timer_handler = { _env.ep(), *this, &Main::_handle_period };
 
 	unsigned long _timer_period_ms = 10;
 
@@ -420,6 +471,8 @@ struct Nitpicker::Main : Focus_updater,
 
 	Capture_root _capture_root { _env, _sliced_heap, _view_stack, *this };
 
+	Event_root _event_root { _env, _sliced_heap, *this };
+
 	/**
 	 * View_stack::Damage interface
 	 */
@@ -502,11 +555,16 @@ struct Nitpicker::Main : Focus_updater,
 	Signal_handler<Main> _focus_handler = { _env.ep(), *this, &Main::_handle_focus };
 
 	/**
-	 * Signal handler invoked on the reception of user input
+	 * Event_session::Handler interface
 	 */
-	void _handle_input();
+	void handle_input_events(User_state::Input_batch) override;
 
-	Signal_handler<Main> _input_handler = { _env.ep(), *this, &Main::_handle_input };
+	/**
+	 * Signal handler periodically invoked for the reception of user input and redraw
+	 */
+	void _handle_period();
+
+	Signal_handler<Main> _input_period = { _env.ep(), *this, &Main::_handle_period };
 
 	/**
 	 * Counter that is incremented periodically
@@ -562,30 +620,28 @@ struct Nitpicker::Main : Focus_updater,
 		if (_config_rom.xml().has_sub_node("capture"))
 			_env.parent().announce(_env.ep().manage(_capture_root));
 
+		if (_config_rom.xml().has_sub_node("event"))
+			_env.parent().announce(_env.ep().manage(_event_root));
+
 		/*
 		 * Detect initial motion activity such that the first hover report
 		 * contains the boot-time activity of the user in the very first
 		 * report.
 		 */
-		_handle_input();
+		_handle_period();
 
 		_report_displays();
 	}
 };
 
 
-void Nitpicker::Main::_handle_input()
+void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 {
-	_period_cnt++;
-
 	bool const old_button_activity = _button_activity;
 	bool const old_motion_activity = _motion_activity;
 
-	/* handle batch of pending events */
-	User_state::Handle_input_result const result = _input.constructed()
-		? _user_state.handle_input_events(_input->ev_ds.local_addr<Input::Event>(),
-		                                  _input->connection.flush())
-		: User_state::Handle_input_result { };
+	User_state::Handle_input_result const result =
+		_user_state.handle_input_events(batch);
 
 	if (result.button_activity) {
 		_last_button_activity_period = _period_cnt;
@@ -647,6 +703,24 @@ void Nitpicker::Main::_handle_input()
 	/* update pointer position */
 	if (result.motion_activity)
 		_update_pointer_position();
+}
+
+
+void Nitpicker::Main::_handle_period()
+{
+	_period_cnt++;
+
+	/* handle batch of pending events */
+	if (_input.constructed()) {
+
+		size_t const max_events = _input->ev_ds.size() / sizeof(Input::Event);
+
+		User_state::Input_batch const batch {
+			.events = _input->ev_ds.local_addr<Input::Event>(),
+			.count  = min(max_events, (size_t)_input->connection.flush()) };
+
+		handle_input_events(batch);
+	}
 
 	/* perform redraw */
 	if (_framebuffer.constructed() && _fb_screen.constructed()) {
@@ -812,7 +886,7 @@ void Nitpicker::Main::_handle_fb_mode()
 	if (_request_framebuffer && !_framebuffer.constructed()) {
 		_framebuffer.construct(_env, Framebuffer::Mode{});
 		_framebuffer->mode_sigh(_fb_mode_handler);
-		_framebuffer->sync_sigh(_input_handler);
+		_framebuffer->sync_sigh(_timer_handler);
 		_timer.trigger_periodic(0);
 	}
 

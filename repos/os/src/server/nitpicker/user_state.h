@@ -229,6 +229,8 @@ class Nitpicker::User_state
 		 ** Interface used by the main program **
 		 ****************************************/
 
+		struct Input_batch { Input::Event *events; size_t count; };
+
 		struct Handle_input_result
 		{
 			bool const hover_changed;
@@ -240,8 +242,7 @@ class Nitpicker::User_state
 			bool const last_clicked_changed;
 		};
 
-		Handle_input_result handle_input_events(Input::Event const *ev_buf,
-		                                        unsigned num_ev);
+		Handle_input_result handle_input_events(Input_batch);
 
 		/**
 		 * Discard all references to specified view owner

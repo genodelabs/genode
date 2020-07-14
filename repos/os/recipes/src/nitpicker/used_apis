@@ -7,4 +7,5 @@ timer_session
 framebuffer_session
 gui_session
 capture_session
+event_session
 report_session

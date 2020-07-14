@@ -277,8 +277,7 @@ void User_state::_handle_input_event(Input::Event ev)
 
 
 User_state::Handle_input_result
-User_state::handle_input_events(Input::Event const * const ev_buf,
-                                unsigned const num_ev)
+User_state::handle_input_events(Input_batch batch)
 {
 	Point              const old_pointer_pos    = _pointer_pos;
 	View_owner       * const old_hovered        = _hovered;
@@ -289,18 +288,18 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 
 	bool button_activity = false;
 
-	if (num_ev > 0) {
+	if (batch.count > 0) {
 		/*
 		 * Take events from input event buffer, merge consecutive motion
 		 * events, and pass result to the user state.
 		 */
-		for (unsigned src_ev_cnt = 0; src_ev_cnt < num_ev; src_ev_cnt++) {
+		for (unsigned src_ev_cnt = 0; src_ev_cnt < batch.count; src_ev_cnt++) {
 
-			Input::Event const *e = &ev_buf[src_ev_cnt];
+			Input::Event const *e = &batch.events[src_ev_cnt];
 			Input::Event curr = *e;
 
 			if (e->absolute_motion() || e->relative_motion()) {
-				unsigned const n = num_consecutive_events(e, num_ev - src_ev_cnt);
+				unsigned const n = num_consecutive_events(e, batch.count - src_ev_cnt);
 				curr = merge_motion_events(e, n);
 
 				/* skip merged events */
@@ -332,8 +331,8 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 	button_activity |= _key_pressed();
 
 	bool key_state_affected = false;
-	for (unsigned i = 0; i < num_ev; i++)
-		key_state_affected |= (ev_buf[i].press() || ev_buf[i].release());
+	for (unsigned i = 0; i < batch.count; i++)
+		key_state_affected |= (batch.events[i].press() || batch.events[i].release());
 
 	_apply_pending_focus_change();
 
