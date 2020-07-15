@@ -778,6 +778,9 @@ void Child::_try_construct_env_dependent_members()
 		if (session.phase == Session_state::AVAILABLE)
 			session.phase =  Session_state::CAP_HANDED_OUT; });
 
+	if (_process.constructed())
+		return;
+
 	_policy.init(_cpu.session(), _cpu.cap());
 
 	Process::Type const type = _policy.forked()
