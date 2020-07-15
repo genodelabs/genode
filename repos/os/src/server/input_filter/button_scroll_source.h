@@ -24,7 +24,7 @@
 namespace Input_filter { class Button_scroll_source; }
 
 
-class Input_filter::Button_scroll_source : public Source, Source::Sink
+class Input_filter::Button_scroll_source : public Source, Source::Filter
 {
 	private:
 
@@ -147,12 +147,10 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 
 		Source &_source;
 
-		Source::Sink &_destination;
-
 		/**
-		 * Sink interface
+		 * Filter interface
 		 */
-		void submit_event(Input::Event const &event) override
+		void filter_event(Sink &destination, Input::Event const &event) override
 		{
 			using Input::Event;
 
@@ -169,7 +167,7 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			          wheel_y = _vertical_wheel  .pending_motion();
 
 			if (wheel_x || wheel_y)
-				_destination.submit_event(Input::Wheel{wheel_x, wheel_y});
+				destination.submit_event(Input::Wheel{wheel_x, wheel_y});
 
 			/*
 			 * Submit both press event and release event of magic button at
@@ -187,8 +185,8 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 					if (_vertical_wheel  .handle_deactivation(event)
 					  | _horizontal_wheel.handle_deactivation(event)) {
 
-						_destination.submit_event(Input::Press{key});
-						_destination.submit_event(Input::Release{key});
+						destination.submit_event(Input::Press{key});
+						destination.submit_event(Input::Release{key});
 					}
 				});
 				return;
@@ -198,7 +196,7 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			if (_vertical_wheel  .suppressed(event)) return;
 			if (_horizontal_wheel.suppressed(event)) return;
 
-			_destination.submit_event(event);
+			destination.submit_event(event);
 		}
 
 		static Xml_node _sub_node(Xml_node node, char const *type)
@@ -211,18 +209,19 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 
 		static char const *name() { return "button-scroll"; }
 
-		Button_scroll_source(Owner &owner, Xml_node config, Source::Sink &destination,
-		                     Source::Factory &factory)
+		Button_scroll_source(Owner &owner, Xml_node config, Source::Factory &factory)
 		:
 			Source(owner),
 			_vertical_wheel  (_sub_node(config, "vertical")),
 			_horizontal_wheel(_sub_node(config, "horizontal")),
 			_owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config), *this)),
-			_destination(destination)
+			_source(factory.create_source(_owner, input_sub_node(config)))
 		{ }
 
-		void generate() override { _source.generate(); }
+		void generate(Sink &destination) override
+		{
+			Source::Filter::apply(destination, *this, _source);
+		}
 };
 
 #endif /* _INPUT_FILTER__BUTTON_SCROLL_SOURCE_H_ */

@@ -65,8 +65,6 @@ class Input_filter::Source
 			throw Invalid_config { };
 		}
 
-		virtual void generate() = 0;
-
 		struct Owner;
 
 		struct Sink : Interface
@@ -74,12 +72,48 @@ class Input_filter::Source
 			virtual void submit_event(Input::Event const &) = 0;
 		};
 
+		virtual void generate(Sink &) = 0;
+
+		/**
+		 * Interface to time-trigger the generate mechanism independently from
+		 * incoming events. This is used for emitting character repeat events.
+		 */
+		struct Trigger : Interface
+		{
+			virtual void trigger_generate() = 0;
+		};
+
+		struct Filter : Interface
+		{
+			virtual void filter_event(Sink &, Input::Event const &) = 0;
+
+			static void apply(Sink &destination, Filter &filter, Source &source)
+			{
+				struct Intermediate_sink : Sink
+				{
+					Sink   &_destination;
+					Filter &_filter;
+
+					void submit_event(Input::Event const &event) override
+					{
+						_filter.filter_event(_destination, event);
+					}
+
+					Intermediate_sink(Sink &destination, Filter &filter)
+					: _destination(destination), _filter(filter) { }
+
+				} intermediate_sink { destination, filter };
+
+				source.generate(intermediate_sink);
+			}
+		};
+
 		struct Factory : Interface
 		{
 			/*
 			 * \throw Invalid_config
 			 */
-			virtual Source &create_source(Owner &, Xml_node, Sink &) = 0;
+			virtual Source &create_source(Owner &, Xml_node) = 0;
 
 			virtual void destroy_source(Source &) = 0;
 		};

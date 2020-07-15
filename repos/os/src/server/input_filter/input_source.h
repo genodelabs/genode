@@ -26,21 +26,20 @@ class Input_filter::Input_source : public Source
 	private:
 
 		Input_connection &_connection;
-		Sink             &_destination;
 
 	public:
 
 		static char const *name() { return "input"; }
 
-		Input_source(Owner &owner, Input_connection &connection, Sink &destination)
+		Input_source(Owner &owner, Input_connection &connection)
 		:
-			Source(owner), _connection(connection), _destination(destination)
+			Source(owner), _connection(connection)
 		{ }
 
-		void generate() override
+		void generate(Sink &sink) override
 		{
 			_connection.for_each_event([&] (Input::Event const &event) {
-				_destination.submit_event(event); });
+				sink.submit_event(event); });
 		}
 };
 

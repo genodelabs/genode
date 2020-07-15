@@ -25,15 +25,13 @@
 namespace Input_filter { class Accelerate_source; }
 
 
-class Input_filter::Accelerate_source : public Source, Source::Sink
+class Input_filter::Accelerate_source : public Source, Source::Filter
 {
 	private:
 
 		Owner _owner;
 
 		Source &_source;
-
-		Source::Sink &_destination;
 
 		/**
 		 * Look-up table used for the non-linear acceleration of motion values
@@ -84,9 +82,9 @@ class Input_filter::Accelerate_source : public Source, Source::Sink
 		}
 
 		/**
-		 * Sink interface
+		 * Filter interface
 		 */
-		void submit_event(Input::Event const &event) override
+		void filter_event(Sink &destination, Input::Event const &event) override
 		{
 			using namespace Input;
 
@@ -95,26 +93,27 @@ class Input_filter::Accelerate_source : public Source, Source::Sink
 			ev.handle_relative_motion([&] (int x, int y) {
 				ev = Relative_motion{_apply_acceleration(x),
 				                     _apply_acceleration(y)}; });
-			_destination.submit_event(ev);
+			destination.submit_event(ev);
 		}
 
 	public:
 
 		static char const *name() { return "accelerate"; }
 
-		Accelerate_source(Owner &owner, Xml_node config, Source::Sink &destination,
-		                  Source::Factory &factory)
+		Accelerate_source(Owner &owner, Xml_node config, Source::Factory &factory)
 		:
 			Source(owner),
 			_owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config), *this)),
-			_destination(destination),
+			_source(factory.create_source(_owner, input_sub_node(config))),
 			_lut                (config.attribute_value("curve", 127L)),
 			_sensitivity_percent(config.attribute_value("sensitivity_percent", 100L)),
 			_max                (config.attribute_value("max", 20L))
 		{ }
 
-		void generate() override { _source.generate(); }
+		void generate(Sink &destination) override
+		{
+			Source::Filter::apply(destination, *this, _source);
+		}
 };
 
 #endif /* _INPUT_FILTER__ACCELERATE_SOURCE_H_ */

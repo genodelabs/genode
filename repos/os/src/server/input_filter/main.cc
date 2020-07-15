@@ -31,7 +31,7 @@ namespace Input_filter { struct Main; }
 
 
 struct Input_filter::Main : Input_connection::Avail_handler,
-                            Source::Factory
+                            Source::Factory, Source::Trigger
 {
 	Env &_env;
 
@@ -201,7 +201,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 	 *
 	 * \throw Source::Invalid_config
 	 */
-	Source &create_source(Source::Owner &owner, Xml_node node, Source::Sink &sink) override
+	Source &create_source(Source::Owner &owner, Xml_node node) override
 	{
 		/*
 		 * Guard for the protection against too deep recursions while
@@ -234,7 +234,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 					match = &connection; });
 
 			if (match)
-				return *new (_heap) Input_source(owner, *match, sink);
+				return *new (_heap) Input_source(owner, *match);
 
 			warning("input named '", label, "' does not exist");
 			throw Source::Invalid_config();
@@ -242,21 +242,22 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 		/* create regular filter */
 		if (node.type() == Remap_source::name())
-			return *new (_heap) Remap_source(owner, node, sink, *this,
+			return *new (_heap) Remap_source(owner, node, *this,
 			                                 _include_accessor);
 
 		if (node.type() == Merge_source::name())
-			return *new (_heap) Merge_source(owner, node, sink, *this);
+			return *new (_heap) Merge_source(owner, node, *this);
 
 		if (node.type() == Chargen_source::name())
-			return *new (_heap) Chargen_source(owner, node, sink, *this, _heap,
-			                                   _timer_accessor, _include_accessor);
+			return *new (_heap) Chargen_source(owner, node, *this, _heap,
+			                                   _timer_accessor, _include_accessor,
+			                                   *this);
 
 		if (node.type() == Button_scroll_source::name())
-			return *new (_heap) Button_scroll_source(owner, node, sink, *this);
+			return *new (_heap) Button_scroll_source(owner, node, *this);
 
 		if (node.type() == Accelerate_source::name())
-			return *new (_heap) Accelerate_source(owner, node, sink, *this);
+			return *new (_heap) Accelerate_source(owner, node, *this);
 
 		warning("unknown <", node.type(), "> input-source node type");
 		throw Source::Invalid_config();
@@ -298,13 +299,13 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 		 * \throw Source::Invalid_config
 		 * \throw Genode::Out_of_memory
 		 */
-		Output(Xml_node output, Source::Sink &sink, Source::Factory &factory)
+		Output(Xml_node output, Source::Factory &factory)
 		:
 			_owner(factory),
-			_top_level(factory.create_source(_owner, Source::input_sub_node(output), sink))
+			_top_level(factory.create_source(_owner, Source::input_sub_node(output)))
 		{ }
 
-		void generate() { _top_level.generate(); }
+		void generate(Source::Sink &destination) { _top_level.generate(destination); }
 	};
 
 	Constructible<Output> _output { };
@@ -344,7 +345,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 				pending |= connection.pending(); });
 
 			if (pending && _output.constructed())
-				_output->generate();
+				_output->generate(_final_sink);
 
 			if (_config_update_pending && _input_connections_idle())
 				Signal_transmitter(_config_handler).submit();
@@ -421,8 +422,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 		try {
 			if (_config.xml().has_sub_node("output"))
-				_output.construct(_config.xml().sub_node("output"),
-				                  _final_sink, *this);
+				_output.construct(_config.xml().sub_node("output"), *this);
 		}
 		catch (Source::Invalid_config) {
 			warning("invalid <output> configuration"); }
@@ -437,6 +437,17 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 		{ _env.ep(), *this, &Main::_handle_config };
 
 	Include_accessor _include_accessor { _env, _heap, _config_handler };
+
+	/**
+	 * Source::Trigger interface
+	 *
+	 * Trigger emission of character-repeat events.
+	 */
+	void trigger_generate() override
+	{
+		if (_output.constructed())
+			_output->generate(_final_sink);
+	}
 
 	/**
 	 * Constructor

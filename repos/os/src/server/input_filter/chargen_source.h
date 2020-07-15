@@ -25,7 +25,7 @@
 namespace Input_filter { class Chargen_source; }
 
 
-class Input_filter::Chargen_source : public Source, Source::Sink
+class Input_filter::Chargen_source : public Source, Source::Filter
 {
 	private:
 
@@ -514,18 +514,18 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 
 		Owner _owner;
 
-		Source::Sink &_destination;
-
 		/**
 		 * Mechanism for periodically repeating the last character
 		 */
 		struct Char_repeater
 		{
-			Source::Sink      &_destination;
 			Timer::Connection &_timer;
+			Source::Trigger   &_trigger;
 
 			Microseconds const _delay;
 			Microseconds const _rate;
+
+			unsigned _pending_event_count = 0;
 
 			Codepoint _curr_character { Codepoint::INVALID };
 
@@ -534,45 +534,57 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			void _handle_timeout(Duration)
 			{
 				if (_state == REPEAT) {
-					_destination.submit_event(Input::Press_char{Input::KEY_UNKNOWN,
-					                                            _curr_character});
-					_destination.submit_event(Input::Release{Input::KEY_UNKNOWN});
+					_pending_event_count++;
 					_timeout.schedule(_rate);
 				}
+
+				_trigger.trigger_generate();
+			}
+
+			void emit_events(Source::Sink &destination)
+			{
+				for (unsigned i = 0; i < _pending_event_count; i++) {
+					destination.submit_event(Input::Press_char{Input::KEY_UNKNOWN,
+					                                            _curr_character});
+					destination.submit_event(Input::Release{Input::KEY_UNKNOWN});
+				}
+
+				_pending_event_count = 0;
 			}
 
 			Timer::One_shot_timeout<Char_repeater> _timeout {
 				_timer, *this, &Char_repeater::_handle_timeout };
 
-			Char_repeater(Source::Sink &destination, Timer::Connection &timer,
-			              Xml_node node)
+			Char_repeater(Timer::Connection &timer, Xml_node node, Source::Trigger &trigger)
 			:
-				_destination(destination), _timer(timer),
+				_timer(timer), _trigger(trigger),
 				_delay(node.attribute_value("delay_ms", (uint64_t)0)*1000),
 				_rate (node.attribute_value("rate_ms",  (uint64_t)0)*1000)
 			{ }
 
 			void schedule_repeat(Codepoint character)
 			{
-				_curr_character = character;
-				_state          = REPEAT;
+				_curr_character      = character;
+				_state               = REPEAT;
+				_pending_event_count = 0;
 
 				_timeout.schedule(_delay);
 			}
 
 			void cancel()
 			{
-				_curr_character = Codepoint { Codepoint::INVALID };
-				_state          = IDLE;
+				_curr_character      = Codepoint { Codepoint::INVALID };
+				_state               = IDLE;
+				_pending_event_count = 0;
 			}
 		};
 
 		Constructible<Char_repeater> _char_repeater { };
 
 		/**
-		 * Sink interface (called from our child node)
+		 * Filter interface
 		 */
-		void submit_event(Event const &event) override
+		void filter_event(Sink &destination, Event const &event) override
 		{
 			Event ev = event;
 
@@ -607,10 +619,12 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			});
 
 			/* forward filtered event */
-			_destination.submit_event(ev);
+			destination.submit_event(ev);
 		}
 
 		Source &_source;
+
+		Source::Trigger &_trigger;
 
 		void _apply_config(Xml_node const config, unsigned const max_recursion = 4)
 		{
@@ -669,8 +683,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			 * Instantiate character repeater on demand
 			 */
 			if (node.type() == "repeat") {
-				_char_repeater.construct(_destination,
-				                         _timer_accessor.timer(), node);
+				_char_repeater.construct(_timer_accessor.timer(), node, _trigger);
 				return;
 			}
 
@@ -706,11 +719,11 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 
 		Chargen_source(Owner            &owner,
 		               Xml_node          config,
-		               Source::Sink     &destination,
 		               Source::Factory  &factory,
 		               Allocator        &alloc,
 		               Timer_accessor   &timer_accessor,
-		               Include_accessor &include_accessor)
+		               Include_accessor &include_accessor,
+		               Source::Trigger  &trigger)
 		:
 			Source(owner),
 			_alloc(alloc),
@@ -719,8 +732,8 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			_key_map(_alloc),
 			_sequencer(_alloc),
 			_owner(factory),
-			_destination(destination),
-			_source(factory.create_source(_owner, input_sub_node(config), *this))
+			_source(factory.create_source(_owner, input_sub_node(config))),
+			_trigger(trigger)
 		{
 			_apply_config(config);
 
@@ -738,7 +751,14 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 				destroy(_alloc, &mod_rom); });
 		}
 
-		void generate() override { _source.generate(); }
+		void generate(Sink &destination) override
+		{
+			if (_char_repeater.constructed())
+				_char_repeater->emit_events(destination);
+
+			Source::Filter::apply(destination, *this, _source);
+
+		}
 };
 
 #endif /* _INPUT_FILTER__CHARGEN_SOURCE_H_ */

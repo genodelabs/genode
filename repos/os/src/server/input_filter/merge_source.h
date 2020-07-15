@@ -30,19 +30,19 @@ class Input_filter::Merge_source : public Source
 
 		static char const *name() { return "merge"; }
 
-		Merge_source(Owner &owner, Xml_node config, Sink &destination,
-		             Source::Factory &factory)
+		Merge_source(Owner &owner, Xml_node config, Source::Factory &factory)
 		:
 			Source(owner), _owner(factory)
 		{
 			config.for_each_sub_node([&] (Xml_node node) {
 				if (input_node(node))
-					factory.create_source(_owner, node, destination); });
+					factory.create_source(_owner, node); });
 		}
 
-		void generate() override
+		void generate(Sink &destination) override
 		{
-			_owner.for_each([&] (Source &source) { source.generate(); });
+			_owner.for_each([&] (Source &source) {
+				source.generate(destination); });
 		}
 };
 

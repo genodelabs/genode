@@ -25,7 +25,7 @@
 namespace Input_filter { class Remap_source; }
 
 
-class Input_filter::Remap_source : public Source, Source::Sink
+class Input_filter::Remap_source : public Source, Source::Filter
 {
 	private:
 
@@ -42,18 +42,16 @@ class Input_filter::Remap_source : public Source, Source::Sink
 
 		Source &_source;
 
-		Source::Sink &_destination;
-
 		/**
-		 * Sink interface
+		 * Filter interface
 		 */
-		void submit_event(Input::Event const &event) override
+		void filter_event(Source::Sink &destination, Input::Event const &event) override
 		{
 			using Input::Event;
 
 			/* forward events that are unrelated to the remapper */
 			if (!event.press() && !event.release()) {
-				_destination.submit_event(event);
+				destination.submit_event(event);
 				return;
 			}
 
@@ -66,10 +64,10 @@ class Input_filter::Remap_source : public Source, Source::Sink
 			auto remap = [&] (Input::Keycode key) { return _keys[key].code; };
 
 			event.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
-				_destination.submit_event(Input::Press_char{remap(key), codepoint}); });
+				destination.submit_event(Input::Press_char{remap(key), codepoint}); });
 
 			event.handle_release([&] (Input::Keycode key) {
-				_destination.submit_event(Input::Release{remap(key)}); });
+				destination.submit_event(Input::Release{remap(key)}); });
 		}
 
 		void _apply_config(Xml_node const config, unsigned const max_recursion = 4)
@@ -126,14 +124,12 @@ class Input_filter::Remap_source : public Source, Source::Sink
 
 		static char const *name() { return "remap"; }
 
-		Remap_source(Owner &owner, Xml_node config, Source::Sink &destination,
-		             Source::Factory &factory, Include_accessor &include_accessor)
+		Remap_source(Owner &owner, Xml_node config, Source::Factory &factory,
+		             Include_accessor &include_accessor)
 		:
 			Source(owner),
-			_include_accessor(include_accessor),
-			_owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config), *this)),
-			_destination(destination)
+			_include_accessor(include_accessor), _owner(factory),
+			_source(factory.create_source(_owner, input_sub_node(config)))
 		{
 			for (unsigned i = 0; i < Input::KEY_MAX; i++)
 				_keys[i].code = Input::Keycode(i);
@@ -141,7 +137,10 @@ class Input_filter::Remap_source : public Source, Source::Sink
 			_apply_config(config);
 		}
 
-		void generate() override { _source.generate(); }
+		void generate(Source::Sink &destination) override
+		{
+			Source::Filter::apply(destination, *this, _source);
+		}
 };
 
 #endif /* _INPUT_FILTER__REMAP_SOURCE_H_ */
