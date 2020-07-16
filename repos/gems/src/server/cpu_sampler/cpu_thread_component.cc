@@ -77,24 +77,32 @@ void Cpu_sampler::Cpu_thread_component::take_sample()
 		return;
 	}
 
-	try {
+	enum { MAX_LOOP_CNT = 100 };
+	unsigned loop_cnt = 0;
+	for (; loop_cnt < MAX_LOOP_CNT; loop_cnt++) {
 
 		_parent_cpu_thread.pause();
 
-		Thread_state thread_state = _parent_cpu_thread.state();
+		try {
+
+			Thread_state thread_state = _parent_cpu_thread.state();
+
+			_sample_buf[_sample_buf_index++] = thread_state.ip;
+
+		} catch (State_access_failed) {
+			continue;
+		}
 
 		_parent_cpu_thread.resume();
-
-		_sample_buf[_sample_buf_index++] = thread_state.ip;
 
 		if (_sample_buf_index == SAMPLE_BUF_SIZE)
 			flush();
 
-	} catch (Cpu_thread::State_access_failed) {
-
-		Genode::log("thread state access failed");
-
+		break;
 	}
+
+	if (loop_cnt >= MAX_LOOP_CNT)
+		log("thread state access failed, ", _label.string());
 }
 
 

@@ -237,7 +237,26 @@ void Cpu_thread_component::start(addr_t ip, addr_t sp)
 
 void Cpu_thread_component::pause()
 {
-	_parent_cpu_thread.pause();
+	unsigned loop_cnt = 0;
+
+	/* required semantic for gdb is that thread is paused with valid state */
+	for (;;) {
+
+		_parent_cpu_thread.pause();
+
+		try {
+			/* check if the thread state is valid */
+			_parent_cpu_thread.state();
+			/* the thread is paused */
+			return;
+		} catch (State_access_failed) {
+			loop_cnt ++;
+
+			if (loop_cnt % 100 == 0)
+				Genode::warning("pausing thread failed ", loop_cnt,
+				                ". times, continue looping");
+		}
+	}
 }
 
 
