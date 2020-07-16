@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INPUT_FILTER__CHARGEN_SOURCE_H_
-#define _INPUT_FILTER__CHARGEN_SOURCE_H_
+#ifndef _EVENT_FILTER__CHARGEN_SOURCE_H_
+#define _EVENT_FILTER__CHARGEN_SOURCE_H_
 
 /* Genode includes */
 #include <input/keycodes.h>
@@ -22,10 +22,10 @@
 #include <timer_accessor.h>
 #include <include_accessor.h>
 
-namespace Input_filter { class Chargen_source; }
+namespace Event_filter { class Chargen_source; }
 
 
-class Input_filter::Chargen_source : public Source, Source::Filter
+class Event_filter::Chargen_source : public Source, Source::Filter
 {
 	private:
 
@@ -544,9 +544,9 @@ class Input_filter::Chargen_source : public Source, Source::Filter
 			void emit_events(Source::Sink &destination)
 			{
 				for (unsigned i = 0; i < _pending_event_count; i++) {
-					destination.submit_event(Input::Press_char{Input::KEY_UNKNOWN,
-					                                            _curr_character});
-					destination.submit_event(Input::Release{Input::KEY_UNKNOWN});
+					destination.submit(Input::Press_char{Input::KEY_UNKNOWN,
+					                                      _curr_character});
+					destination.submit(Input::Release{Input::KEY_UNKNOWN});
 				}
 
 				_pending_event_count = 0;
@@ -619,7 +619,7 @@ class Input_filter::Chargen_source : public Source, Source::Filter
 			});
 
 			/* forward filtered event */
-			destination.submit_event(ev);
+			destination.submit(ev);
 		}
 
 		Source &_source;
@@ -761,4 +761,4 @@ class Input_filter::Chargen_source : public Source, Source::Filter
 		}
 };
 
-#endif /* _INPUT_FILTER__CHARGEN_SOURCE_H_ */
+#endif /* _EVENT_FILTER__CHARGEN_SOURCE_H_ */

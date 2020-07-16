@@ -11,14 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INPUT_FILTER__KEY_CODE_BY_NAME_H_
-#define _INPUT_FILTER__KEY_CODE_BY_NAME_H_
+#ifndef _EVENT_FILTER__KEY_CODE_BY_NAME_H_
+#define _EVENT_FILTER__KEY_CODE_BY_NAME_H_
 
 /* Genode includes */
 #include <base/exception.h>
 #include <input/keycodes.h>
 
-namespace Input_filter {
+namespace Event_filter {
 
 	struct Unknown_key : Genode::Exception { };
 
@@ -38,4 +38,4 @@ namespace Input_filter {
 	}
 }
 
-#endif /* _INPUT_FILTER__KEY_CODE_BY_NAME_H_ */
+#endif /* _EVENT_FILTER__KEY_CODE_BY_NAME_H_ */

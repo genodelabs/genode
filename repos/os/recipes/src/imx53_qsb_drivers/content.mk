@@ -7,9 +7,8 @@ include/gpio:
 	cp -r $(REP_DIR)/include/gpio $@
 
 src/drivers:
-	mkdir -p $@/framebuffer/spec $@/input $@/gpio/spec
+	mkdir -p $@/framebuffer/spec $@/gpio/spec
 	cp -r $(REP_DIR)/src/drivers/gpio/spec/imx $@/gpio/spec/
 	cp -r $(REP_DIR)/src/drivers/gpio/spec/imx53 $@/gpio/spec/
 	cp -r $(REP_DIR)/src/drivers/framebuffer/spec/imx53 $@/framebuffer/spec/
 	cp -r $(REP_DIR)/include/spec/imx53/imx_framebuffer_session $@/framebuffer/spec/imx53/
-	cp -r $(REP_DIR)/src/drivers/input/dummy $@/input/

@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INPUT_FILTER__ACCELERATE_SOURCE_H_
-#define _INPUT_FILTER__ACCELERATE_SOURCE_H_
+#ifndef _EVENT_FILTER__ACCELERATE_SOURCE_H_
+#define _EVENT_FILTER__ACCELERATE_SOURCE_H_
 
 /* Genode includes */
 #include <util/bezier.h>
@@ -22,10 +22,10 @@
 #include <source.h>
 #include <key_code_by_name.h>
 
-namespace Input_filter { class Accelerate_source; }
+namespace Event_filter { class Accelerate_source; }
 
 
-class Input_filter::Accelerate_source : public Source, Source::Filter
+class Event_filter::Accelerate_source : public Source, Source::Filter
 {
 	private:
 
@@ -86,14 +86,12 @@ class Input_filter::Accelerate_source : public Source, Source::Filter
 		 */
 		void filter_event(Sink &destination, Input::Event const &event) override
 		{
-			using namespace Input;
-
-			Event ev = event;
+			Input::Event ev = event;
 
 			ev.handle_relative_motion([&] (int x, int y) {
-				ev = Relative_motion{_apply_acceleration(x),
-				                     _apply_acceleration(y)}; });
-			destination.submit_event(ev);
+				ev = Input::Relative_motion{_apply_acceleration(x),
+				                            _apply_acceleration(y)}; });
+			destination.submit(ev);
 		}
 
 	public:
@@ -116,4 +114,4 @@ class Input_filter::Accelerate_source : public Source, Source::Filter
 		}
 };
 
-#endif /* _INPUT_FILTER__ACCELERATE_SOURCE_H_ */
+#endif /* _EVENT_FILTER__ACCELERATE_SOURCE_H_ */

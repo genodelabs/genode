@@ -70,30 +70,23 @@ proc qt5_parent_provides { } {
 # 
 proc language_chargen { } { return "en_us" }
 
-exec cp -f [genode_dir]/repos/os/src/server/input_filter/[language_chargen].chargen bin/
-exec cp -f [genode_dir]/repos/os/src/server/input_filter/special.chargen bin/
+exec cp -f [genode_dir]/repos/os/src/server/event_filter/[language_chargen].chargen bin/
+exec cp -f [genode_dir]/repos/os/src/server/event_filter/special.chargen bin/
 
-set qt5_input_filter_config {
-	<config>}
-append_if [have_spec ps2] qt5_input_filter_config {
-		<input label="ps2"/>}
-append_if [have_spec usb] qt5_input_filter_config {
-		<input label="usb"/>}
-append_if [have_spec linux] qt5_input_filter_config {
-		<input label="sdl"/>}
-append qt5_input_filter_config {
+set qt5_event_filter_config {
+	<config>
 		<output>
 			<chargen>
 				<remap>
 					<include rom="numlock.remap"/>
 					<merge>}
-append_if [have_spec ps2] qt5_input_filter_config {
+append_if [have_spec ps2] qt5_event_filter_config {
 						<input name="ps2"/>}
-append_if [have_spec usb] qt5_input_filter_config {
+append_if [have_spec usb] qt5_event_filter_config {
 						<input name="usb"/>}
-append_if [have_spec linux] qt5_input_filter_config {
+append_if [have_spec linux] qt5_event_filter_config {
 						<input name="sdl"/>}
-append qt5_input_filter_config {
+append qt5_event_filter_config {
 					</merge>
 				</remap>
 				<mod1>
@@ -109,17 +102,23 @@ append qt5_input_filter_config {
 					<rom name="capslock"/>
 				</mod4>
 				<repeat delay_ms="500" rate_ms="50"/>}
-append qt5_input_filter_config "
+append qt5_event_filter_config "
 				<include rom=\"[language_chargen].chargen\"/>"
-append qt5_input_filter_config {
+append qt5_event_filter_config {
 				<include rom="special.chargen"/>
 			</chargen>
-		</output>
-	</config>
-}
+		</output>}
+append_if [have_spec ps2] qt5_event_filter_config {
+		<policy label="ps2" input="ps2"/>}
+append_if [have_spec usb] qt5_event_filter_config {
+		<policy label="usb" input="usb"/>}
+append_if [have_spec linux] qt5_event_filter_config {
+		<policy label="sdl" input="sdl"/>}
+append qt5_event_filter_config {
+	</config>}
 
-set fd [open bin/qt5_input_filter.config w]
-puts $fd $qt5_input_filter_config
+set fd [open bin/qt5_event_filter.config w]
+puts $fd $qt5_event_filter_config
 close $fd
 
 
@@ -169,30 +168,32 @@ proc qt5_start_nodes { } {
 			</route>
 		</start>
 
-		<start name="drivers" caps="1000">
+		<start name="drivers" caps="1500">
 			<resource name="RAM" quantum="64M" constrain_phys="yes"/>
 			<binary name="init"/>
 			<route>
 				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-				<service name="ROM" label="input_filter.config"> <parent label="qt5_input_filter.config"/> </service>
-				<service name="ROM" label="input_filter -> capslock"> <child name="wm_report_rom"/> </service>
-				<service name="ROM" label="input_filter -> numlock.remap"> <child name="numlock_remap_rom"/> </service>
+				<service name="ROM" label="event_filter.config"> <parent label="qt5_event_filter.config"/> </service>
+				<service name="ROM" label="event_filter -> capslock"> <child name="wm_report_rom"/> </service>
+				<service name="ROM" label="event_filter -> numlock.remap"> <child name="numlock_remap_rom"/> </service>
 				<service name="Timer">   <child name="timer"/> </service>
 				<service name="Capture"> <child name="nitpicker"/> </service>
+				<service name="Event">   <child name="nitpicker"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
-			<provides> <service name="Input"/> </provides>
 		</start>
 
 		<start name="nitpicker" caps="200">
 			<resource name="RAM" quantum="2M"/>
-			<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+			<provides>
+				<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+			</provides>
 			<route>
 				<service name="Report"> <child name="wm_report_rom"/> </service>
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
-			<config request_framebuffer="no">
-				<capture/>
+			<config request_framebuffer="no" request_input="no">
+				<capture/> <event/>
 
 				<report focus="yes" hover="yes" xray="yes"/>
 
@@ -240,7 +241,7 @@ proc qt5_start_nodes { } {
 				<policy label="clipboard -> focus"                  report="nitpicker -> focus"/>
 				<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
 				<policy label="pointer -> xray"                     report="nitpicker -> xray"/>
-				<policy label="drivers -> input_filter -> capslock" report="global_keys_handler -> capslock"/>
+				<policy label="drivers -> event_filter -> capslock" report="global_keys_handler -> capslock"/>
 				<policy label="numlock_remap_rom -> numlock"        report="global_keys_handler -> numlock"/>
 				<policy label="ps2_drv -> capslock"                 report="global_keys_handler -> capslock"/>
 				<policy label="ps2_drv -> numlock"                  report="global_keys_handler -> numlock"/>
@@ -331,5 +332,5 @@ proc qt5_boot_modules { } {
 
 	lappend boot_modules [language_chargen].chargen
 	lappend boot_modules special.chargen
-	lappend boot_modules qt5_input_filter.config
+	lappend boot_modules qt5_event_filter.config
 }

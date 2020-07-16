@@ -129,11 +129,6 @@ struct Test::Main
 
 	Main(Env &env) : _env(env)
 	{
-		if (_config.xml().has_sub_node("check_input")) {
-			log("connect to input driver");
-			Input::Connection input(_env);
-		}
-
 		_block_devices.sigh(_block_devices_update_handler);
 		_check_conditions();
 	}

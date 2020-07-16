@@ -41,9 +41,9 @@ install_config {
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Event">   <child name="nitpicker"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Input"/> </provides>
 	</start>
 
 	<start name="report_rom">
@@ -57,9 +57,11 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
-		<config request_framebuffer="no">
-			<capture/>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
+		<config request_framebuffer="no" request_input="no">
+			<capture/> <event/>
 			<report pointer="yes" />
 			<domain name="default" layer="2" content="client" label="no"/>
 			<default-policy domain="default"/>

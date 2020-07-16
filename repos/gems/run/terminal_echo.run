@@ -3,6 +3,8 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/pkg/terminal \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/gui_fb \
                   [depot_user]/src/init
 
 install_config {
@@ -35,11 +37,32 @@ install_config {
 			<route>
 				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 				<service name="Timer"> <child name="timer"/> </service>
+				<service name="Capture"> <child name="nitpicker"/> </service>
+				<service name="Event">   <child name="nitpicker"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
+		</start>
+
+		<start name="nitpicker">
+			<resource name="RAM" quantum="4M"/>
 			<provides>
-				<service name="Input"/> <service name="Framebuffer"/>
+				<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 			</provides>
+			<config focus="rom" request_framebuffer="no" request_input="no">
+				<capture/> <event/>
+				<domain name="default" layer="2" content="client" label="no" hover="always"/>
+				<default-policy domain="default"/>
+			</config>
+		</start>
+
+		<start name="gui_fb">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
+			<config/>
+			<route>
+				<service name="Gui"> <child name="nitpicker" label="terminal"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
 		</start>
 
 		<start name="terminal" caps="110">
@@ -56,6 +79,10 @@ install_config {
 		</start>
 	</config>
 }
+
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"terminal\" domain=\"default\"/>"
+close $fd
 
 build { server/terminal test/terminal_echo }
 

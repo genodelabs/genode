@@ -14,7 +14,7 @@ fs_query
 gdb_monitor
 ieee754
 init_smp
-input_filter
+event_filter
 libc_vfs_fs_ext2
 log_core
 lwip

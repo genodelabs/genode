@@ -33,9 +33,9 @@ append config {
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Event">   <child name="nitpicker"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Input"/> </provides>
 	</start>
 
 	<start name="timer">
@@ -45,9 +45,11 @@ append config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
-		<config request_framebuffer="no">
-			<capture/>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
+		<config request_framebuffer="no" request_input="no">
+			<capture/> <event/>
 
 			<domain name="default" layer="2" content="client" label="no"/>
 			<domain name="nano3d"  layer="1" content="client" label="no" origin="pointer"/>

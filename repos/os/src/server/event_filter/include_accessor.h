@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INPUT_FILTER__INCLUDE_ACCESSOR_H_
-#define _INPUT_FILTER__INCLUDE_ACCESSOR_H_
+#ifndef _EVENT_FILTER__INCLUDE_ACCESSOR_H_
+#define _EVENT_FILTER__INCLUDE_ACCESSOR_H_
 
 /* Genode includes */
 #include <util/xml_node.h>
@@ -20,10 +20,10 @@
 /* local includes */
 #include <types.h>
 
-namespace Input_filter { struct Include_accessor; }
+namespace Event_filter { struct Include_accessor; }
 
 
-class Input_filter::Include_accessor : Interface
+class Event_filter::Include_accessor : Interface
 {
 	public:
 
@@ -64,4 +64,4 @@ class Input_filter::Include_accessor : Interface
 		}
 };
 
-#endif /* _INPUT_FILTER__INCLUDE_ACCESSOR_H_ */
+#endif /* _EVENT_FILTER__INCLUDE_ACCESSOR_H_ */

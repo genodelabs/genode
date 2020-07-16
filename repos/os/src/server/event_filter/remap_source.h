@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INPUT_FILTER__REMAP_SOURCE_H_
-#define _INPUT_FILTER__REMAP_SOURCE_H_
+#ifndef _EVENT_FILTER__REMAP_SOURCE_H_
+#define _EVENT_FILTER__REMAP_SOURCE_H_
 
 /* Genode includes */
 #include <input/keycodes.h>
@@ -22,10 +22,10 @@
 #include <source.h>
 #include <key_code_by_name.h>
 
-namespace Input_filter { class Remap_source; }
+namespace Event_filter { class Remap_source; }
 
 
-class Input_filter::Remap_source : public Source, Source::Filter
+class Event_filter::Remap_source : public Source, Source::Filter
 {
 	private:
 
@@ -51,7 +51,7 @@ class Input_filter::Remap_source : public Source, Source::Filter
 
 			/* forward events that are unrelated to the remapper */
 			if (!event.press() && !event.release()) {
-				destination.submit_event(event);
+				destination.submit(event);
 				return;
 			}
 
@@ -64,10 +64,10 @@ class Input_filter::Remap_source : public Source, Source::Filter
 			auto remap = [&] (Input::Keycode key) { return _keys[key].code; };
 
 			event.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
-				destination.submit_event(Input::Press_char{remap(key), codepoint}); });
+				destination.submit(Input::Press_char{remap(key), codepoint}); });
 
 			event.handle_release([&] (Input::Keycode key) {
-				destination.submit_event(Input::Release{remap(key)}); });
+				destination.submit(Input::Release{remap(key)}); });
 		}
 
 		void _apply_config(Xml_node const config, unsigned const max_recursion = 4)
@@ -143,4 +143,4 @@ class Input_filter::Remap_source : public Source, Source::Filter
 		}
 };
 
-#endif /* _INPUT_FILTER__REMAP_SOURCE_H_ */
+#endif /* _EVENT_FILTER__REMAP_SOURCE_H_ */

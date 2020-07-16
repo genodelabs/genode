@@ -35,6 +35,7 @@ append build_components {
 	server/fs_rom
 	drivers/ahci
 	drivers/framebuffer
+	app/input_event_client
 }
 
 lappend_if [expr $use_serial] build_components server/log_terminal
@@ -212,8 +213,19 @@ append_platform_drv_config
 append_if [expr $use_ps2] config {
 	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
+		<provides> <service name="Input"/> </provides>
 		<config/>
+	</start>
+
+	<start name="ps2" caps="90">
+		<resource name="RAM" quantum="1M"/>
+		<binary name="input_event_client"/>
+		<config/>
+		<route>
+			<service name="Event"> <child name="event_filter" label="ps2"/> </service>
+			<service name="Input"> <child name="ps2_drv"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 	</start>}
 
 append_if [expr $use_cpu_load] config {
@@ -347,12 +359,23 @@ append_if [expr $use_usb] config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
+
+	<start name="usb" caps="90">
+		<resource name="RAM" quantum="1M"/>
+		<binary name="input_event_client"/>
+		<config/>
+		<route>
+			<service name="Event"> <child name="event_filter" label="usb_hid"/> </service>
+			<service name="Input"> <child name="usb_drv"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
 }
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1" caps="150">
 		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="16M"/>
+		<resource name="RAM" quantum="32M"/>
 		<config/>
 	</start>}
 
@@ -385,6 +408,7 @@ append boot_modules {
 	libc.lib.so vfs.lib.so libm.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
+	input_event_client
 }
 
 lappend_if [expr $use_rumpfs] boot_modules rump.lib.so

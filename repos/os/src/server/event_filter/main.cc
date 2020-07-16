@@ -12,12 +12,10 @@
  */
 
 /* Genode includes */
-#include <input/component.h>
-#include <os/static_root.h>
 #include <base/component.h>
-#include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <timer_session/connection.h>
+#include <event_session/connection.h>
 
 /* local includes */
 #include <input_source.h>
@@ -26,12 +24,12 @@
 #include <chargen_source.h>
 #include <button_scroll_source.h>
 #include <accelerate_source.h>
+#include <event_session.h>
 
-namespace Input_filter { struct Main; }
+namespace Event_filter { struct Main; }
 
 
-struct Input_filter::Main : Input_connection::Avail_handler,
-                            Source::Factory, Source::Trigger
+struct Event_filter::Main : Source::Factory, Source::Trigger
 {
 	Env &_env;
 
@@ -39,18 +37,16 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Registry<Registered<Input_connection> > _input_connections { };
-
-	typedef String<Session_label::capacity()> Label;
+	Event_root _event_root { _env, _heap, *this, _config };
 
 	/*
 	 * Mechanism to construct a 'Timer' on demand
 	 *
-	 * By lazily constructing the timer, the input-filter does not depend
+	 * By lazily constructing the timer, the event-filter does not depend
 	 * on a timer service unless its configuration defines time-related
 	 * filtering operations like key repeat.
 	 */
-	struct Timer_accessor : Input_filter::Timer_accessor
+	struct Timer_accessor : Event_filter::Timer_accessor
 	{
 		struct Lazy
 		{
@@ -80,7 +76,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 	/**
 	 * Pool of configuration include snippets, obtained as ROM modules
 	 */
-	struct Include_accessor : Input_filter::Include_accessor
+	struct Include_accessor : Event_filter::Include_accessor
 	{
 		struct Rom
 		{
@@ -225,20 +221,11 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 		} nesting_level_guard { _create_source_max_nesting_level };
 
 		/* return input source with the matching name */
-		if (node.type() == Input_source::name()) {
-			Label const label = node.attribute_value("name", Label());
-			Input_connection *match = nullptr;
-
-			_input_connections.for_each([&] (Input_connection &connection) {
-				if (connection.label() == label)
-					match = &connection; });
-
-			if (match)
-				return *new (_heap) Input_source(owner, *match);
-
-			warning("input named '", label, "' does not exist");
-			throw Source::Invalid_config();
-		}
+		if (node.type() == Input_source::name())
+			return *new (_heap)
+				Input_source(owner,
+				             node.attribute_value("name", Input_name()),
+				             _event_root);
 
 		/* create regular filter */
 		if (node.type() == Remap_source::name())
@@ -274,20 +261,6 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 	 */
 	bool _config_update_pending = false;
 
-	/**
-	 * Return true if all input sources are in their default state
-	 */
-	bool _input_connections_idle() const
-	{
-		bool idle = true;
-
-		_input_connections.for_each([&] (Input_connection const &connection) {
-			if (!connection.idle())
-				idle = false; });
-
-		return idle;
-	}
-
 	struct Output
 	{
 		Source::Owner  _owner;
@@ -310,60 +283,15 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 	Constructible<Output> _output { };
 
-	/*
-	 * Input session provided to our client
-	 */
-	Input::Session_component _input_session { _env, _env.ram() };
-
-	/* process events */
-	struct Final_sink : Source::Sink
-	{
-		Input::Session_component &_input_session;
-
-		Final_sink(Input::Session_component &input_session)
-		: _input_session(input_session) { }
-
-		void submit_event(Input::Event const &event) override {
-			_input_session.submit(event); }
-
-	} _final_sink { _input_session };
-
-	/*
-	 * Input_connection::Avail_handler
-	 */
-	void handle_input_avail() override
-	{
-		for (;;) {
-
-			/* fetch events in input sources */
-			_input_connections.for_each([&] (Input_connection &connection) {
-				connection.flush(); });
-
-			bool pending = false;
-
-			_input_connections.for_each([&] (Input_connection &connection) {
-				pending |= connection.pending(); });
-
-			if (pending && _output.constructed())
-				_output->generate(_final_sink);
-
-			if (_config_update_pending && _input_connections_idle())
-				Signal_transmitter(_config_handler).submit();
-
-			/* stop if no events are pending */
-			if (!pending)
-				break;
-		}
-	}
-
-	Static_root<Input::Session> _input_root { _env.ep().manage(_input_session) };
+	/* destination for filter results */
+	Event::Connection _event_connection { _env };
 
 	void _handle_config()
 	{
 		_config.update();
 
 		bool const force = _config.xml().attribute_value("force", false);
-		bool const idle  = _input_connections_idle();
+		bool const idle  = _event_root.all_sessions_idle();
 
 		/* defer reconfiguration until all sources are idle */
 		if (!idle && !force) {
@@ -381,48 +309,11 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 	{
 		Xml_node const config = _config.xml();
 
-		/* close input sessions that are no longer needed */
-		_input_connections.for_each([&] (Registered<Input_connection> &conn) {
-
-			bool obsolete = true;
-			config.for_each_sub_node("input", [&] (Xml_node input_node) {
-				if (conn.label() == input_node.attribute_value("label", Label()))
-					obsolete = false; });
-
-			if (obsolete)
-				destroy(_heap, &conn);
-		});
-
-		/* open new input sessions */
-		config.for_each_sub_node("input", [&] (Xml_node input_node) {
-
-			try {
-				Label const label =
-					input_node.attribute_value("label", Label());
-
-				bool already_exists = false;
-				_input_connections.for_each([&] (Input_connection const &conn) {
-					if (conn.label() == label)
-						already_exists = true; });
-
-				if (already_exists)
-					return;
-
-				try {
-					new (_heap)
-						Registered<Input_connection>(_input_connections, _env,
-						                             label, *this, _heap);
-				}
-				catch (Genode::Service_denied) {
-					warning("parent denied input source '", label, "'"); }
-			}
-			catch (Xml_node::Nonexistent_attribute) {
-				warning("ignoring invalid input node '", input_node); }
-		});
+		_event_root.apply_config(config);
 
 		try {
-			if (_config.xml().has_sub_node("output"))
-				_output.construct(_config.xml().sub_node("output"), *this);
+			if (config.has_sub_node("output"))
+				_output.construct(config.sub_node("output"), *this);
 		}
 		catch (Source::Invalid_config) {
 			warning("invalid <output> configuration"); }
@@ -441,12 +332,19 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 	/**
 	 * Source::Trigger interface
 	 *
-	 * Trigger emission of character-repeat events.
+	 * Process pending events, which may originate from an event client or
+	 * artificially emitted by a filter (character-repeat events).
 	 */
 	void trigger_generate() override
 	{
-		if (_output.constructed())
-			_output->generate(_final_sink);
+		if (!_output.constructed())
+			return;
+
+		_event_connection.with_batch([&] (Event::Session_client::Batch &batch) {
+			_output->generate(batch); });
+
+		if (_config_update_pending && _event_root.all_sessions_idle())
+			Signal_transmitter(_config_handler).submit();
 	}
 
 	/**
@@ -454,7 +352,6 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 	 */
 	Main(Genode::Env &env) : _env(env)
 	{
-		_input_session.event_queue().enabled(true);
 		_config.sigh(_config_handler);
 
 		/*
@@ -465,9 +362,9 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 		/*
 		 * Announce service
 		 */
-		_env.parent().announce(_env.ep().manage(_input_root));
+		_env.parent().announce(_env.ep().manage(_event_root));
 	}
 };
 
 
-void Component::construct(Genode::Env &env) { static Input_filter::Main inst(env); }
+void Component::construct(Genode::Env &env) { static Event_filter::Main inst(env); }

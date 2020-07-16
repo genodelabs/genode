@@ -11,16 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INPUT_FILTER__MERGE_SOURCE_H_
-#define _INPUT_FILTER__MERGE_SOURCE_H_
+#ifndef _EVENT_FILTER__MERGE_SOURCE_H_
+#define _EVENT_FILTER__MERGE_SOURCE_H_
 
 /* local includes */
 #include <source.h>
 
-namespace Input_filter { class Merge_source; }
+namespace Event_filter { class Merge_source; }
 
 
-class Input_filter::Merge_source : public Source
+class Event_filter::Merge_source : public Source
 {
 	private:
 
@@ -46,4 +46,4 @@ class Input_filter::Merge_source : public Source
 		}
 };
 
-#endif /* _INPUT_FILTER__REMAP_SOURCE_H_ */
+#endif /* _EVENT_FILTER__REMAP_SOURCE_H_ */

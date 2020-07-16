@@ -50,8 +50,8 @@ install_config {
 		<resource name="RAM" quantum="64M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
-			<service name="ROM" label_last="managed/input_filter">
-				<parent label="input_filter.config"/> </service>
+			<service name="ROM" label_last="managed/event_filter">
+				<parent label="event_filter.config"/> </service>
 			<service name="ROM" label_last="numlock_remap">
 				<parent label="numlock_remap.config"/> </service>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -61,13 +61,11 @@ install_config {
 			<service name="ROM" label="usb_policy"><child name="dynamic_rom"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Event">   <child name="nitpicker"/> </service>
 			<service name="Report">  <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides>
-			<service name="Input"/>
-			<service name="Block"/>
-		</provides>
+		<provides> <service name="Block"/> </provides>
 	</start>
 
 	<start name="dynamic_rom">
@@ -99,9 +97,11 @@ install_config {
 
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
 		<config request_framebuffer="no" request_input="no">
-			<capture/>
+			<capture/> <event/>
 			<report displays="yes"/>
 		</config>
 		<route>
@@ -115,7 +115,6 @@ install_config {
 		<config>
 			<check_ahci_block_device label="ahci-1" block_count="65536" block_size="512"
 			                         model="QEMU HARDDISK"/>
-			<check_input/>
 			<check_displays/>
 		</config>
 		<route>

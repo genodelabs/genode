@@ -1,4 +1,5 @@
 _/src/platform_drv
 _/src/usb_drv
 _/src/rpi_fb_drv
+_/src/input_event_client
 _/raw/drivers_interactive-rpi

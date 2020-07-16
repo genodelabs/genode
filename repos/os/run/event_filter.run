@@ -17,7 +17,7 @@ proc test_char_repeat { } {
 
 set build_components {
 	core init timer
-	server/report_rom server/input_filter test/input_filter
+	server/report_rom server/event_filter test/event_filter
 }
 
 build $build_components
@@ -55,47 +55,50 @@ append config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="ROM"/> <service name="Report"/> </provides>
 		<config>
-			<policy label_prefix="input_filter -> config"
-			        report="test-input_filter -> input_filter.config"/>
-			<policy label_prefix="input_filter -> chargen_include"
-			        report="test-input_filter -> chargen_include"/>
-			<policy label_prefix="input_filter -> remap_include"
-			        report="test-input_filter -> remap_include"/>
-			<policy label_prefix="input_filter -> capslock"
-			        report="test-input_filter -> capslock"/>
+			<policy label_prefix="event_filter -> config"
+			        report="test-event_filter -> event_filter.config"/>
+			<policy label_prefix="event_filter -> chargen_include"
+			        report="test-event_filter -> chargen_include"/>
+			<policy label_prefix="event_filter -> remap_include"
+			        report="test-event_filter -> remap_include"/>
+			<policy label_prefix="event_filter -> capslock"
+			        report="test-event_filter -> capslock"/>
 		</config>
 	</start>
 
-	<start name="input_filter" priority="-1">
+	<start name="event_filter" priority="-1">
 		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Input"/> </provides>
+		<provides> <service name="Event"/> </provides>
 		<route>
 			<service name="ROM" label="config">          <child name="report_rom"/> </service>
 			<service name="ROM" label="chargen_include"> <child name="report_rom"/> </service>
 			<service name="ROM" label="remap_include">   <child name="report_rom"/> </service>
 			<service name="ROM" label="capslock">        <child name="report_rom"/> </service>
-			<service name="Input"> <child name="test-input_filter"/> </service>
+			<service name="Event"> <child name="test-event_filter"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="test-input_filter" priority="-1">
+	<start name="test-event_filter" priority="-1">
 		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Input"/> </provides>
+		<provides> <service name="Event"/> </provides>
 		<config>
+
+			<driver name="usb"/>
+			<driver name="ps2"/>
 
 			<message string="test merging of two input sources"/>
 
 			<filter_config>
-				<input label="ps2"/>
-				<input label="usb"/>
 				<output>
 					<merge>
 						<input name="ps2"/>
 						<input name="usb"/>
 					</merge>
 				</output>
+				<policy label_suffix="ps2" input="ps2"/>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="250"/>
 
@@ -111,8 +114,6 @@ append config {
 			<message string="test key remapping"/>
 
 			<filter_config>
-				<input label="ps2"/>
-				<input label="usb"/>
 				<output>
 					<remap>
 						<merge>
@@ -125,6 +126,8 @@ append config {
 						<key name="KEY_A" to="KEY_B"/>
 					</remap>
 				</output>
+				<policy label_suffix="ps2" input="ps2"/>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="250"/>
 
@@ -144,8 +147,8 @@ append config {
 			<expect_press code="KEY_B"/>
 
 			<filter_config>
-				<input label="usb"/>
 				<output> <input name="usb"/> </output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="250"/>
 
@@ -153,7 +156,6 @@ append config {
 			<usb> <release code="KEY_A"/> </usb>
 			<expect_release code="KEY_B"/>
 
-			<!-- input_filter now requests a new input session from us -->
 			<sleep ms="100"/>
 
 			<!-- now the default configuration is expected to take effect -->
@@ -161,11 +163,12 @@ append config {
 			<expect_press   code="KEY_A"/>
 			<expect_release code="KEY_A"/>
 
+			<!-- disconnect ps2 to avoid warnings by the event filter -->
+			<driver name="ps2" connected="no"/>
 
 			<message string="test emission of characters"/>
 
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<chargen>
 						<input name="usb"/>
@@ -176,6 +179,7 @@ append config {
 						<map mod1="yes"> <key name="KEY_A" char="A"/> </map>
 					</chargen>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="250"/>
 			<usb>
@@ -203,7 +207,6 @@ append_if [test_char_repeat] config {
 			<message string="test character repeat"/>
 
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<chargen>
 						<input name="usb"/>
@@ -211,6 +214,7 @@ append_if [test_char_repeat] config {
 						<map> <key name="KEY_A" char="a"/> </map>
 					</chargen>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="500"/>
 			<usb> <press code="KEY_A"/> </usb>
@@ -234,7 +238,6 @@ append config {
 			<message string="capslock handling"/>
 
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<chargen>
 						<remap>
@@ -245,12 +248,13 @@ append config {
 						<map mod4="yes"> <key name="KEY_A" char="A"/> </map>
 					</chargen>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<!--
 			     Leave the 'capslock' ROM initially undefined, which prompts
-			     the input filter to complain about the modifier state being
+			     the event filter to complain about the modifier state being
 			     unavailable. However, as soon as 'capslock' becomes defined,
-			     the input filter is expected to re-processes its configuration.
+			     the event filter is expected to re-processes its configuration.
 			 -->
 			<sleep ms="250"/>
 			<capslock enabled="no"/>
@@ -270,7 +274,6 @@ append config {
 			<message string="sequence handling"/>
 
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<chargen>
 						<remap>
@@ -286,6 +289,7 @@ append config {
 						<sequence first="0x0300" second="0x0065" code="0x00e8"/> <!-- LATIN SMALL LETTER E WITH GRAVE -->
 					</chargen>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="250"/>
 			<usb>
@@ -320,7 +324,6 @@ append config {
 			<message string="button-scroll feature"/>
 
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<button-scroll>
 						<input name="usb"/>
@@ -328,6 +331,7 @@ append config {
 						<horizontal button="KEY_LEFTSHIFT" speed_percent="50"/>
 					</button-scroll>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="100"/>
 			<usb>
@@ -359,12 +363,12 @@ append config {
 
 			<!-- linear acceleration -->
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<accelerate max="100" curve="0" sensitivity_percent="200">
 						<input name="usb"/>
 					</accelerate>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="100"/>
 			<usb>
@@ -380,12 +384,12 @@ append config {
 
 			<!-- non-linear acceleration -->
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<accelerate max="100" curve="127" sensitivity_percent="200">
 						<input name="usb"/>
 					</accelerate>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="100"/>
 			<usb>
@@ -411,13 +415,13 @@ append config {
 			<remap_include>   </remap_include>
 			<chargen_include> </chargen_include>
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<chargen>
 						<input name="usb"/>
 						<include rom="nonexisting_include"/>
 					</chargen>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="100"/>
 
@@ -425,13 +429,13 @@ append config {
 			<message string="detect top-level node mismatch in included ROM"/>
 
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<chargen>
 						<input name="usb"/>
 						<include rom="remap_include"/>
 					</chargen>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="100"/>
 
@@ -440,13 +444,13 @@ append config {
 
 			<chargen_include> <include rom="chargen_include"/> </chargen_include>
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<chargen>
 						<input name="usb"/>
 						<include rom="chargen_include"/>
 					</chargen>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="100"/>
 
@@ -457,13 +461,13 @@ append config {
 				<map> <key name="KEY_A" char="a"/> </map>
 			</chargen_include>
 			<filter_config>
-				<input label="usb"/>
 				<output>
 					<chargen>
 						<input name="usb"/>
 						<include rom="chargen_include"/>
 					</chargen>
 				</output>
+				<policy label_suffix="usb" input="usb"/>
 			</filter_config>
 			<sleep ms="100"/>
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
@@ -481,7 +485,7 @@ append config {
 
 		</config>
 		<route>
-			<service name="Input">  <child name="input_filter"/> </service>
+			<service name="Event">  <child name="event_filter"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Timer">  <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
@@ -497,11 +501,11 @@ install_config $config
 #
 
 set boot_modules { core ld.lib.so init timer report_rom
-                   input_filter test-input_filter }
+                   event_filter test-event_filter }
 
 build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-run_genode_until {.*child "test-input_filter" exited with exit value 0.*} 60
+run_genode_until {.*child "test-event_filter" exited with exit value 0.*} 60
 

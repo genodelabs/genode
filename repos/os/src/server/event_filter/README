@@ -4,7 +4,7 @@ This component transforms input events originating from multiple sources.
 Configuration
 -------------
 
-An input-filter configuration consists of two parts, a declaration of
+An event-filter configuration consists of two parts, a declaration of
 input sources ("Input" connections) that the component should request,
 and the definition of a filter chain. Each input source is defined via
 an '<input>' node with the name of the input source as 'name' attribute and
@@ -120,7 +120,7 @@ sub nodes:
   generated instantly on key press but only after the sequence is
   completed. If an unfinished sequence can't be completed due to an
   unmatched character, the sequence is aborted and no character is
-  generated. input_filter supports sequences of up to four characters.
+  generated. Sequences of up to four characters are supported.
 
   For example, the French AZERTY keyboard layout [1] has a dead key
   for Circumflex Accent "^" right of the P key (which is bracket left
@@ -165,11 +165,11 @@ sub nodes:
 Additional features
 -------------------
 
-The input filter is able to respond to configuration updates as well as updates
+The event filter is able to respond to configuration updates as well as updates
 of included ROM modules. However, a new configuration is applied only if the
 input sources are in their idle state - that is, no key is pressed. This
 ensures the consistency of the generated key events (for each press event there
-must be a corresponding release event), on which clients of the input filter
+must be a corresponding release event), on which clients of the event filter
 may depend. However, this deferred reconfiguration can be overridden by setting
 the 'force' attribute of the '<config>' node to 'yes'. If forced, the new
 configuration is applied immediately.
@@ -178,7 +178,7 @@ configuration is applied immediately.
 Examples
 --------
 
-An automated test that exercises various corner cases of the input filter
-can be found at _os/run/input_filter.run_. For a practical example of how
-to use the input filter with the terminal, please refer to the
+An automated test that exercises various corner cases of the event filter
+can be found at _os/run/event_filter.run_. For a practical example of how
+to use the event filter with the terminal, please refer to the
 _gems/run/terminal_echo.run_ script.

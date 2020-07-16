@@ -14,10 +14,11 @@ set build_components {
 	drivers/input
 	server/acpi_input
 	server/dynamic_rom
-	server/input_filter
+	server/event_filter
 	server/report_rom
+	server/event_dump
 	app/acpica
-	test/input
+	app/input_event_client
 }
 
 set use_acpica_as_acpi_drv 0
@@ -130,22 +131,21 @@ append config {
 		</start>}
 
 append config {
-		<start name="input_filter">
+		<start name="event_filter">
 			<resource name="RAM" quantum="1M" />
-			<provides> <service name="Input" /> </provides>
+			<provides> <service name="Event" /> </provides>
 			<config>
-				<input label="ps2" />
-				<input label="acpi" />
 				<output>
 					<merge>
 						<input name="ps2"/>
 						<input name="acpi"/>
 					</merge>
 				</output>
+				<policy label="ps2"  input="ps2"/>
+				<policy label="acpi" input="acpi"/>
 			</config>
 			<route>
-				<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>
-				<service name="Input" label="acpi"> <child name="acpi_input" /> </service>
+				<service name="Event"> <child name="event_dump" /> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
@@ -162,16 +162,38 @@ append config {
 			</route>
 		</start>
 
-		<start name="test-input">
+		<start name="ps2" caps="90">
 			<resource name="RAM" quantum="1M"/>
+			<binary name="input_event_client"/>
+			<config/>
 			<route>
-				<service name="Input"> <child name="input_filter"/> </service>
+				<service name="Event"> <child name="event_filter" label="ps2"/> </service>
+				<service name="Input"> <child name="ps2_drv"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="event_dump">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Event"/> </provides>
+			<route>
 				<service name="Timer"> <child name="timer"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
 
 append config {
+		<start name="acpi" caps="90">
+			<resource name="RAM" quantum="1M"/>
+			<binary name="input_event_client"/>
+			<config/>
+			<route>
+				<service name="Event"> <child name="event_filter" label="acpi"/> </service>
+				<service name="Input"> <child name="acpi_input"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
 		<start name="acpi_input">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Input"/></provides>
@@ -211,12 +233,13 @@ set boot_modules {
 	ld.lib.so
 	timer
 	ps2_drv
-	input_filter
+	event_filter
 	report_rom
 	dynamic_rom
 	acpica
 	acpi_input
-	test-input
+	event_dump
+	input_event_client
 }
 
 append_platform_drv_boot_modules

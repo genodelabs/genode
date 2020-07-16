@@ -11,20 +11,21 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INPUT_FILTER__SOURCE_H_
-#define _INPUT_FILTER__SOURCE_H_
+#ifndef _EVENT_FILTER__SOURCE_H_
+#define _EVENT_FILTER__SOURCE_H_
 
 /* Genode includes */
 #include <base/registry.h>
+#include <util/xml_node.h>
 #include <input/event.h>
 
 /* local includes */
 #include <types.h>
 
-namespace Input_filter { struct Source; }
+namespace Event_filter { struct Source; }
 
 
-class Input_filter::Source
+class Event_filter::Source
 {
 	private:
 
@@ -67,10 +68,7 @@ class Input_filter::Source
 
 		struct Owner;
 
-		struct Sink : Interface
-		{
-			virtual void submit_event(Input::Event const &) = 0;
-		};
+		using Sink = Event::Session_client::Batch;
 
 		virtual void generate(Sink &) = 0;
 
@@ -94,7 +92,7 @@ class Input_filter::Source
 					Sink   &_destination;
 					Filter &_filter;
 
-					void submit_event(Input::Event const &event) override
+					void submit(Input::Event const &event) override
 					{
 						_filter.filter_event(_destination, event);
 					}
@@ -131,4 +129,4 @@ class Input_filter::Source
 		};
 };
 
-#endif /* _INPUT_FILTER__SOURCE_H_ */
+#endif /* _EVENT_FILTER__SOURCE_H_ */

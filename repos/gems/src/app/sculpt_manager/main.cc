@@ -106,12 +106,12 @@ struct Sculpt::Main : Input_event_handler,
 		_handle_gui_mode();
 	}
 
-	Managed_config<Main> _input_filter_config {
-		_env, "config", "input_filter", *this, &Main::_handle_input_filter_config };
+	Managed_config<Main> _event_filter_config {
+		_env, "config", "event_filter", *this, &Main::_handle_event_filter_config };
 
-	void _handle_input_filter_config(Xml_node)
+	void _handle_event_filter_config(Xml_node)
 	{
-		_input_filter_config.try_generate_manually_managed();
+		_event_filter_config.try_generate_manually_managed();
 	}
 
 	Attached_rom_dataspace _gui_hover { _env, "nitpicker_hover" };

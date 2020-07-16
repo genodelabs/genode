@@ -102,7 +102,7 @@ catch { exec dd if=/dev/urandom of=bin/test.bin bs=4096 count=8160 }
 # Step 1: prepare and start the actual VM
 #
 set build_components {
-	server/input_filter
+	server/event_filter
 	server/report_rom server/fs_rom server/vfs
 	server/tcp_terminal drivers/nic
 	lib/vfs/lwip lib/vfs/pipe lib/vfs/import
@@ -118,7 +118,7 @@ set boot_modules {
 	vfs fs_rom
 	posix.lib.so bash.tar coreutils.tar
 	tcp_terminal vfs_lwip.lib.so vfs_pipe.lib.so vfs_import.lib.so
-	ipxe_nic_drv report_rom input_filter
+	ipxe_nic_drv report_rom event_filter
 	test.bin template.bat
 }
 
@@ -246,17 +246,12 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="input_filter" priority="-1">
+	<start name="event_filter" priority="-1">
 		<resource name="RAM" quantum="1M" />
 		<provides>
-			<service name="Input" />
+			<service name="Event" />
 		</provides>
-		<config>}
-append_if [expr $use_ps2] config_of_app {
-			<input label="ps2"/> }
-append_if [expr $use_usb] config_of_app {
-			<input label="usb_hid"/>}
-append config_of_app {
+		<config>
 			<output>
 				<merge>}
 append_if [expr $use_ps2] config_of_app {
@@ -265,28 +260,30 @@ append_if [expr $use_usb] config_of_app {
 					<input name="usb_hid"/>}
 append config_of_app {
 				</merge>
-			</output>
-		</config>
-		<route> }
+			</output>}
 append_if [expr $use_ps2] config_of_app {
-			<service name="Input" label="ps2"> <child name="ps2_drv" /> </service> }
+			<policy label="ps2" input="ps2"/>}
 append_if [expr $use_usb] config_of_app {
-			<service name="Input" label="usb_hid"> <child name="usb_drv" /> </service> }
+			<policy label="usb_hid" input="usb_hid"/>}
 append config_of_app {
+		</config>
+		<route>
+			<service name="Event"> <child name="nitpicker"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>
 
 	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="12M"/>
-		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
 		<route>
-			<service name="Input"> <child name="input_filter" /> </service>
 			<service name="Report"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config request_framebuffer="no">
-			<capture/>
+		<config request_framebuffer="no" request_input="no">
+			<capture/> <event/>
 			<report focus="yes" hover="yes" />
 
 			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />
@@ -350,7 +347,6 @@ append config_of_app {
 				<child name="ram_fs_to"/>
 			</service>
 			<service name="File_system"> <child name="rump_fs"/> </service>
-			<service name="Input"> <child name="input_filter"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

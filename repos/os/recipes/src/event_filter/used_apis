@@ -1,4 +1,4 @@
 base
 os
-input_session
+event_session
 timer_session

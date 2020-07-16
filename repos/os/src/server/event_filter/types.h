@@ -1,5 +1,5 @@
 /*
- * \brief  Types used by the input filter
+ * \brief  Types used by the event filter
  * \author Norman Feske
  * \date   2017-02-01
  */
@@ -11,13 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INPUT_FILTER__TYPES_H_
-#define _INPUT_FILTER__TYPES_H_
+#ifndef _EVENT_FILTER__TYPES_H_
+#define _EVENT_FILTER__TYPES_H_
 
 /* Genode includes */
 #include <util/string.h>
 #include <base/session_label.h>
 
-namespace Input_filter { using namespace Genode; }
+namespace Event_filter { using namespace Genode; }
 
-#endif /* _INPUT_FILTER__TYPES_H_ */
+#endif /* _EVENT_FILTER__TYPES_H_ */
