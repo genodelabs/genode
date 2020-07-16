@@ -25,20 +25,18 @@ namespace Event { struct Session_client; }
 
 class Event::Session_client : public Genode::Rpc_client<Session>
 {
+	public:
+
+		struct Batch : Genode::Noncopyable, Genode::Interface
+		{
+			virtual void submit(Input::Event const &) = 0;
+		};
+
 	private:
 
 		Genode::Attached_dataspace _ds;
 
-	public:
-
-		Session_client(Genode::Region_map &local_rm,
-		               Genode::Capability<Session> session)
-		:
-			Genode::Rpc_client<Session>(session),
-			_ds(local_rm, call<Rpc_dataspace>())
-		{ }
-
-		class Batch : Genode::Noncopyable
+		class Batch_impl : Batch
 		{
 			private:
 
@@ -61,18 +59,18 @@ class Event::Session_client : public Genode::Rpc_client<Session>
 					_count = 0;
 				}
 
-				Batch(Session_client &session)
+				Batch_impl(Session_client &session)
 				:
 					_session(session),
 					_buffer({ .events = session._ds.local_addr<Input::Event>(),
 					          .max    = session._ds.size() / sizeof(Input::Event) })
 				{ }
 
-				~Batch() { _submit(); }
+				~Batch_impl() { _submit(); }
 
 			public:
 
-				void submit(Input::Event const &event)
+				void submit(Input::Event const &event) override
 				{
 					if (_count == _buffer.max)
 						_submit();
@@ -82,10 +80,20 @@ class Event::Session_client : public Genode::Rpc_client<Session>
 				}
 		};
 
+
+	public:
+
+		Session_client(Genode::Region_map &local_rm,
+		               Genode::Capability<Session> session)
+		:
+			Genode::Rpc_client<Session>(session),
+			_ds(local_rm, call<Rpc_dataspace>())
+		{ }
+
 		template <typename FN>
 		void with_batch(FN const &fn)
 		{
-			Batch batch { *this };
+			Batch_impl batch { *this };
 
 			fn(batch);
 		}
