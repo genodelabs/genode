@@ -109,10 +109,9 @@ Cpu_session_component(Rpc_entrypoint             &thread_ep,
 { }
 
 
-void Cpu_sampler::Cpu_session_component::upgrade_ram_quota(size_t ram_quota)
+void Cpu_sampler::Cpu_session_component::upgrade_quota(char const * args)
 {
-	String<64> const args("ram_quota=", ram_quota);
-	_env.upgrade(_id_space_element.id(), args.string());
+	_env.upgrade(_id_space_element.id(), args);
 }
 
 

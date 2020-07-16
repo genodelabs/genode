@@ -51,8 +51,7 @@ class Cpu_sampler::Cpu_root : public Root_component<Cpu_session_component>
 
 		void _upgrade_session(Cpu_session_component *cpu, const char *args) override
 		{
-			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			cpu->upgrade_ram_quota(ram_quota);
+			cpu->upgrade_quota(args);
 		}
 
 	public:

@@ -90,7 +90,7 @@ class Cpu_sampler::Cpu_session_component : public Rpc_object<Cpu_session>
 		 */
 		~Cpu_session_component();
 
-		void upgrade_ram_quota(size_t ram_quota);
+		void upgrade_quota(char const *);
 
 
 		/***************************
