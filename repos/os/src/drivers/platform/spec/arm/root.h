@@ -23,14 +23,11 @@
 
 namespace Driver { class Root; }
 
-class Driver::Root : public Genode::Root_component<Driver::Session_component>
+class Driver::Root : public Root_component<Session_component>
 {
 	public:
 
-		Root(Genode::Env                    & env,
-		     Genode::Allocator              & alloc,
-		     Genode::Attached_rom_dataspace & config,
-		     Device_model                   & devices);
+		Root(Driver::Env & env);
 
 		void update_policy();
 
@@ -40,10 +37,8 @@ class Driver::Root : public Genode::Root_component<Driver::Session_component>
 
 		void _upgrade_session(Session_component *, const char *) override;
 
-		Genode::Env                       & _env;
-		Genode::Attached_rom_dataspace    & _config;
-		Driver::Device_model              & _devices;
-		Genode::Registry<Session_component> _sessions {};
+		Driver::Env               & _env;
+		Registry<Session_component> _sessions {};
 };
 
 #endif /* _SRC__DRIVERS__PLATFORM__SPEC__ARM__ROOT_H_ */

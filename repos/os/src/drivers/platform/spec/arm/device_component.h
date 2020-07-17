@@ -18,6 +18,7 @@
 #include <platform_session/platform_session.h>
 #include <platform_device/platform_device.h>
 
+#include <env.h>
 #include <device.h>
 
 namespace Driver {
@@ -26,7 +27,7 @@ namespace Driver {
 }
 
 
-class Driver::Device_component : public Genode::Rpc_object<Platform::Device>
+class Driver::Device_component : public Rpc_object<Platform::Device>
 {
 	public:
 
@@ -40,17 +41,15 @@ class Driver::Device_component : public Genode::Rpc_object<Platform::Device>
 		bool acquire();
 		void release();
 
-		void report(Genode::Xml_generator&);
+		void report(Xml_generator&);
 
 
 		/**************************
 		 ** Platform::Device API **
 		 **************************/
 
-		Genode::Irq_session_capability irq(unsigned) override;
-
-		Genode::Io_mem_session_capability
-			io_mem(unsigned, Genode::Cache_attribute) override;
+		Irq_session_capability    irq(unsigned) override;
+		Io_mem_session_capability io_mem(unsigned, Cache_attribute) override;
 
 	private:
 
@@ -59,7 +58,7 @@ class Driver::Device_component : public Genode::Rpc_object<Platform::Device>
 		Session_component                    & _session;
 		Driver::Device::Name             const _device;
 		Platform::Device_capability            _cap {};
-		Genode::List_element<Device_component> _list_elem { this };
+		List_element<Device_component>         _list_elem { this };
 
 		/*
 		 * Noncopyable

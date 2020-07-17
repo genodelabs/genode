@@ -50,6 +50,14 @@ class Platform::Connection : public Genode::Connection<Session>,
 		  Client(cap()),
 		  _rm(env.rm()) { _try_attach(); }
 
+		void update()
+		{
+			if (_ds.constructed() && _rom.update() == true) { return; }
+			_try_attach();
+		}
+
+		void sigh(Signal_context_capability sigh) { _rom.sigh(sigh); }
+
 		Device_capability acquire_device(String const &device) override
 		{
 			return retry_with_upgrade(Ram_quota{6*1024}, Cap_quota{6}, [&] () {

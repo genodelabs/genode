@@ -12,9 +12,7 @@
  */
 
 #include <base/component.h>
-#include <base/env.h>
-#include <base/heap.h>
-
+#include <env.h>
 #include <root.h>
 
 namespace Driver { struct Main; };
@@ -23,29 +21,25 @@ struct Driver::Main
 {
 	void update_config();
 
-	Genode::Env                  & env;
-	Genode::Heap                   heap           { env.ram(), env.rm()  };
-	Genode::Sliced_heap            sliced_heap    { env.ram(), env.rm()  };
-	Genode::Attached_rom_dataspace config         { env, "config"        };
-	Genode::Signal_handler<Main>   config_handler { env.ep(), *this,
-	                                                &Main::update_config };
-	Driver::Device_model           devices        { heap, config.xml()   };
-	Driver::Root                   root           { env, sliced_heap,
-	                                                config, devices      };
+	Driver::Env          env;
+	Signal_handler<Main> config_handler { env.env.ep(), *this,
+	                                      &Main::update_config };
+	Driver::Root         root           { env };
 
-	Main(Genode::Env &env)
-	: env(env)
+	Main(Genode::Env & e)
+	: env(e)
 	{
-		config.sigh(config_handler);
-		env.parent().announce(env.ep().manage(root));
+		env.devices.update(env.config.xml());
+		env.config.sigh(config_handler);
+		env.env.parent().announce(env.env.ep().manage(root));
 	}
 };
 
 
 void Driver::Main::update_config()
 {
-	config.update();
-	devices.update(config.xml());
+	env.config.update();
+	env.devices.update(env.config.xml());
 	root.update_policy();
 }
 

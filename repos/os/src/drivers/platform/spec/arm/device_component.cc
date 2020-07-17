@@ -26,7 +26,7 @@ Driver::Session_component & Device_component::session() { return _session; }
 bool Driver::Device_component::acquire()
 {
 	bool acquired = false;
-	_session.devices().for_each([&] (Driver::Device & device) {
+	_session.env().devices.for_each([&] (Driver::Device & device) {
 		if (device.name() == _device) {
 			acquired = device.acquire(_session); }});
 	return acquired;
@@ -35,16 +35,16 @@ bool Driver::Device_component::acquire()
 
 void Driver::Device_component::release()
 {
-	_session.devices().for_each([&] (Driver::Device & device) {
+	_session.env().devices.for_each([&] (Driver::Device & device) {
 		if (device.name() == _device) { device.release(_session); }});
 }
 
 
 Genode::Io_mem_session_capability
-Device_component::io_mem(unsigned idx, Genode::Cache_attribute attr)
+Device_component::io_mem(unsigned idx, Cache_attribute attr)
 {
-	Genode::Io_mem_session_capability cap;
-	_session.devices().for_each([&] (Driver::Device & device) {
+	Io_mem_session_capability cap;
+	_session.env().devices.for_each([&] (Driver::Device & device) {
 		if (device.name() == _device) {
 			cap = device.io_mem(idx, attr, _session); }});
 	return cap;
@@ -53,17 +53,17 @@ Device_component::io_mem(unsigned idx, Genode::Cache_attribute attr)
 
 Genode::Irq_session_capability Device_component::irq(unsigned idx)
 {
-	Genode::Irq_session_capability cap;
-	_session.devices().for_each([&] (Driver::Device & device) {
+	Irq_session_capability cap;
+	_session.env().devices.for_each([&] (Driver::Device & device) {
 		if (device.name() == _device) { cap = device.irq(idx, _session); }});
 	return cap;
 }
 
 
-void Driver::Device_component::report(Genode::Xml_generator & xml)
+void Driver::Device_component::report(Xml_generator & xml)
 {
-	_session.devices().for_each([&] (Driver::Device & device) {
-		if (device.name() == _device) { device.report(xml); }});
+	_session.env().devices.for_each([&] (Driver::Device & device) {
+		if (device.name() == _device) { device.report(xml, _session); }});
 }
 
 

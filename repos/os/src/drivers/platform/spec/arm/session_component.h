@@ -32,79 +32,71 @@ namespace Driver {
 
 
 class Driver::Session_component :
-	public  Genode::Session_object<Platform::Session>,
-	private Genode::Registry<Driver::Session_component>::Element,
-	private Genode::Dynamic_rom_session::Xml_producer
+	public  Session_object<Platform::Session>,
+	private Registry<Driver::Session_component>::Element,
+	private Dynamic_rom_session::Xml_producer
 {
 	public:
 
-		using Registry = Genode::Registry<Session_component>;
+		using Session_registry = Registry<Session_component>;
 
-		Session_component(Genode::Env     & env,
-		                  Device_model    & devices,
-		                  Registry        & registry,
-		                  Label     const & label,
-		                  Resources const & resources,
-		                  Diag      const & diag);
+		Session_component(Driver::Env      & env,
+		                  Session_registry & registry,
+		                  Label      const & label,
+		                  Resources  const & resources,
+		                  Diag       const & diag);
 		~Session_component();
 
-		Genode::Heap & heap();
-		Genode::Env  & env();
-		Device_model & devices();
+		Heap         & heap();
+		Driver::Env  & env();
 
 		void     add(Device::Name const &);
 		bool     has_device(Device::Name const &) const;
 		unsigned devices_count() const;
+		void     update_devices_rom();
 
-		Genode::Ram_quota_guard &ram_quota_guard() {
-			return _ram_quota_guard(); }
-
-		Genode::Cap_quota_guard &cap_quota_guard() {
-			return _cap_quota_guard(); }
+		Ram_quota_guard & ram_quota_guard() { return _ram_quota_guard(); }
+		Cap_quota_guard & cap_quota_guard() { return _cap_quota_guard(); }
 
 
 		/**************************
 		 ** Platform Session API **
 		 **************************/
 
-		using Rom_session_capability   = Genode::Rom_session_capability;
-		using Device_capability        = Platform::Device_capability;
-		using Ram_dataspace_capability = Genode::Ram_dataspace_capability;
-		using String                   = Platform::Session::String;
-		using size_t                   = Genode::size_t;
+		using Device_capability = Platform::Device_capability;
+		using String            = Platform::Session::String;
 
 		Rom_session_capability devices_rom() override;
 		Device_capability acquire_device(String const &) override;
 		void release_device(Device_capability) override;
 		Ram_dataspace_capability alloc_dma_buffer(size_t const) override;
 		void free_dma_buffer(Ram_dataspace_capability ram_cap) override;
-		Genode::addr_t bus_addr_dma_buffer(Ram_dataspace_capability) override;
+		addr_t bus_addr_dma_buffer(Ram_dataspace_capability) override;
 
 	private:
 
 		friend class Root;
 
-		struct Dma_buffer : Genode::List<Dma_buffer>::Element
+		struct Dma_buffer : List<Dma_buffer>::Element
 		{
-			Genode::Ram_dataspace_capability const cap;
+			Ram_dataspace_capability const cap;
 
-			Dma_buffer(Genode::Ram_dataspace_capability const cap)
+			Dma_buffer(Ram_dataspace_capability const cap)
 			: cap(cap) {}
 		};
 
-		using Device_list_element = Genode::List_element<Device_component>;
-		using Device_list         = Genode::List<Device_list_element>;
+		using Device_list_element = List_element<Device_component>;
+		using Device_list         = List<Device_list_element>;
 
-		Genode::Env                     & _env;
-		Genode::Constrained_ram_allocator _env_ram     { _env.pd(),
-		                                                 _ram_quota_guard(),
-		                                                 _cap_quota_guard()  };
-		Genode::Heap                      _md_alloc    { _env_ram, _env.rm() };
-		Device_list                       _device_list { };
-		Genode::List<Dma_buffer>          _buffer_list { };
-		Genode::Dynamic_rom_session       _rom_session { _env.ep(), _env.ram(),
-		                                                 _env.rm(), *this    };
-		Device_model                    & _device_model;
+		Driver::Env             & _env;
+		Constrained_ram_allocator _env_ram     { _env.env.pd(),
+		                                         _ram_quota_guard(),
+		                                         _cap_quota_guard()  };
+		Heap                      _md_alloc    { _env_ram, _env.env.rm() };
+		Device_list               _device_list { };
+		List<Dma_buffer>          _buffer_list { };
+		Dynamic_rom_session       _rom_session { _env.env.ep(), _env.env.ram(),
+		                                         _env.env.rm(), *this    };
 
 		/*
 		 * Noncopyable
@@ -117,7 +109,7 @@ class Driver::Session_component :
 		 ** Dynamic_rom_session::Xml_producer API **
 		 *******************************************/
 
-		void produce_xml(Genode::Xml_generator &xml) override;
+		void produce_xml(Xml_generator &xml) override;
 };
 
 #endif /* _SRC__DRIVERS__PLATFORM__SPEC__ARM__SESSION_COMPONENT_H_ */
