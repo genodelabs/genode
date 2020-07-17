@@ -385,6 +385,8 @@ class Hw::Level_3_translation_table :
 					using Base = Long_translation_table<SIZE_LOG2_4KB,
 					                                    SIZE_LOG2_2MB>;
 					using Block_descriptor = typename Stage_trait<Base, STAGE>::Type;
+					if (!Descriptor::valid(desc))
+						return;
 					phys = Block_descriptor::Output_address::masked(desc);
 					found = true;
 				}
