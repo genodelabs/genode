@@ -4,3 +4,4 @@ capture_session
 input_session
 platform_session
 timer_session
+blit
