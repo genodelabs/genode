@@ -1,0 +1,73 @@
+<runtime ram="7M" caps="700" binary="init">
+
+	<provides> <cpu/> </provides>
+
+	<requires>
+		<trace/>
+		<timer/>
+		<file_system label="recall" writeable="yes"/>
+	</requires>
+
+	<config>
+
+		<service name="CPU">
+			<default-policy> <child name="cpu_balancer"/> </default-policy>
+		</service>
+
+		<default-route> <any-service> <parent/> </any-service> </default-route>
+
+		<parent-provides>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="ROM"/>
+			<service name="TRACE"/>
+			<service name="File_system"/>
+			<service name="Gui"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<start name="fs_report" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> </provides>
+			<config> <vfs> <fs/> </vfs> </config>
+			<route>
+				<service name="File_system"> <parent label="recall"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="fs_rom" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="ROM"/> </provides>
+			<config/>
+			<route>
+				<service name="File_system"> <parent label="recall"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="cpu_balancer" caps="200">
+			<resource name="RAM" quantum="2M"/>
+
+			<provides><service name="CPU"/></provides>
+<!--
+			<config interval_us="1000000" report="yes" trace="yes"/>
+-->
+			<route>
+				<service name="ROM" label="config"> <child name="fs_rom" label="config"/> </service>
+				<service name="Report" label="components"> <child name="fs_report" label="components"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="cpu_balancer"/>
+		<rom label="init"/>
+		<rom label="fs_report"/>
+		<rom label="fs_rom"/>
+	</content>
+
+</runtime>
