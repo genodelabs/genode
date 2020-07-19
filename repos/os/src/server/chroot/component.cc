@@ -104,7 +104,8 @@ struct Chroot::Main
 	}
 
 	Session_capability request_session(Parent::Client::Id  const &id,
-	                                   Session_state::Args const &args)
+	                                   Session_state::Args const &args,
+	                                   Affinity            const  affinity)
 	{
 		typedef String<PATH_MAX_LEN> Prefix;
 
@@ -180,7 +181,6 @@ struct Chroot::Main
 
 		Arg_string::set_arg_string(new_args, ARGS_MAX_LEN, "root", new_root);
 
-		Affinity affinity;
 		return env.session("File_system", id, new_args, affinity);
 	}
 };
@@ -205,7 +205,9 @@ void Chroot::Main::handle_session_request(Xml_node request)
 		try {
 			session = new (heap)
 				Session(env.id_space(), server_id_space, server_id);
-			Session_capability cap = request_session(session->client_id.id(), args);
+			Session_capability cap = request_session(session->client_id.id(), args,
+			                                         Affinity::from_xml(request));
+
 
 			env.parent().deliver_session_cap(server_id, cap);
 		}

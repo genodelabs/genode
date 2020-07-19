@@ -170,14 +170,16 @@ void Root_proxy::_handle_session_request(Xml_node request, char const *type)
 		typedef Session_state::Args Args;
 		Args const args = request.sub_node("args").decoded_content<Args>();
 
+		/* construct session */
 		try {
 			Service::Name const name = request.attribute_value("service", Service::Name());
 
 			_services.apply(name, [&] (Service &service) {
 
-				// XXX affinity
 				Session_capability cap =
-					Root_client(service.root).session(args.string(), Affinity());
+					Root_client(service.root).session(args.string(),
+					                                  Affinity::from_xml(request));
+
 
 				new (_session_slab) Session(_id_space, id, service, cap);
 				_env.parent().deliver_session_cap(id, cap);

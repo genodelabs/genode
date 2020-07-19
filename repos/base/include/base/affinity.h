@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__BASE__AFFINITY_H_
 #define _INCLUDE__BASE__AFFINITY_H_
 
+#include <util/xml_node.h>
+
 namespace Genode { class Affinity; }
 
 
@@ -85,6 +87,12 @@ class Genode::Affinity
 				 * of the space.
 				 */
 				inline Location location_of_index(int index);
+
+				static Space from_xml(Xml_node const &node)
+				{
+					return Affinity::Space(node.attribute_value("width",  0U),
+					                       node.attribute_value("height", 0U));
+				}
 		};
 
 
@@ -133,6 +141,15 @@ class Genode::Affinity
 				{
 					return Location(_xpos + dx, _ypos + dy, _width, _height);
 				}
+
+				static Location from_xml(Xml_node const &node)
+				{
+					return Location(node.attribute_value("xpos",   0U),
+					                node.attribute_value("ypos",   0U),
+					                node.attribute_value("width",  0U),
+					                node.attribute_value("height", 0U));
+				}
+
 		};
 
 	private:
@@ -149,6 +166,21 @@ class Genode::Affinity
 
 		Space    space()    const { return _space; }
 		Location location() const { return _location; }
+
+		static Affinity from_xml(Xml_node const &node)
+		{
+			Affinity::Space    space    { };
+			Affinity::Location location { };
+
+			node.with_sub_node("affinity", [&] (Xml_node const &node) {
+				node.with_sub_node("space", [&] (Xml_node const &node) {
+					space = Space::from_xml(node); });
+				node.with_sub_node("location", [&] (Xml_node const &node) {
+					location = Location::from_xml(node); });
+			});
+
+			return Affinity(space, location);
+		}
 
 		/**
 		 * Return location scaled to specified affinity space

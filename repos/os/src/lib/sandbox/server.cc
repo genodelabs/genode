@@ -229,7 +229,7 @@ void Sandbox::Server::_handle_create_session_request(Xml_node request,
 		Session_state &session =
 			route.service.create_session(route.service.factory(),
 		                                 _client_id_space, id, route.label,
-		                                 argbuf, Affinity());
+		                                 argbuf, Affinity::from_xml(request));
 
 		/* transfer session quota */
 		try {

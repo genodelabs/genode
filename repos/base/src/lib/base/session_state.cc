@@ -70,6 +70,18 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 			xml.node("args", [&] () {
 				xml.append_sanitized(Server_args(*this).string());
 			});
+			xml.node("affinity", [&] () {
+				xml.node("space", [&] () {
+					xml.attribute("width",  _affinity.space().width());
+					xml.attribute("height", _affinity.space().height());
+				});
+				xml.node("location", [&] () {
+					xml.attribute("xpos",   _affinity.location().xpos());
+					xml.attribute("ypos",   _affinity.location().ypos());
+					xml.attribute("width",  _affinity.location().width());
+					xml.attribute("height", _affinity.location().height());
+				});
+			});
 		});
 		break;
 
