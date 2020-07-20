@@ -715,7 +715,12 @@ void genode_update_tsc(void (*update_func)(void), Genode::uint64_t update_us)
 	Trace::Timestamp const ticks_min_sleep  = ticks_per_us * 100;
 	Trace::Timestamp       wakeup_absolute  = Trace::timestamp();
 
-	Genode::addr_t sem = Thread::myself()->native_thread().exc_pt_sel + Nova::SM_SEL_EC;
+	/* initialize first time in context of running thread */
+	auto const &exc_base = Thread::myself()->native_thread().exc_pt_sel;
+	request_signal_sm_cap(exc_base + Nova::PT_SEL_PAGE_FAULT,
+	                      exc_base + Nova::SM_SEL_SIGNAL);
+	Genode::addr_t const sem = exc_base + SM_SEL_SIGNAL;
+
 	for (;;) {
 		update_func();
 
