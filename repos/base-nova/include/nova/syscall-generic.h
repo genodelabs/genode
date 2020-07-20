@@ -756,6 +756,7 @@ namespace Nova {
 		PT_SEL_PARENT     = 0x1a,  /* convention on Genode */
 		PT_SEL_MAIN_EC    = 0x1c,  /* convention on Genode */
 		PT_SEL_STARTUP    = 0x1e,
+		SM_SEL_SIGNAL     = 0x1e,  /* alias of PT_SEL_STARTUP */
 		PT_SEL_RECALL     = 0x1f,
 		SM_SEL_EC         = 0x1d,  /* convention on Genode */
 	};

@@ -28,7 +28,7 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 	Threaded_time_source::handler(handler);
 
 	/* check whether to cancel last timeout */
-	if (duration.value == 0 && _sem != ~0UL) {
+	if (duration.value == 0 && _sem) {
 		uint8_t res = Nova::sm_ctrl(_sem, Nova::SEMAPHORE_UP);
 		if (res != Nova::NOVA_OK)
 			nova_die();
@@ -40,10 +40,14 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 
 void Timer::Time_source::_wait_for_irq()
 {
-	if (_sem == ~0UL) {
-		_sem = Thread::native_thread().exc_pt_sel + SM_SEL_EC; }
+	if (!_sem) {
+		/* initialize first time in context of running thread */
+		auto const &exc_base = Thread::native_thread().exc_pt_sel;
+		request_signal_sm_cap(exc_base + Nova::PT_SEL_PAGE_FAULT,
+		                      exc_base + Nova::SM_SEL_SIGNAL);
 
-	addr_t sem = _sem;
+		_sem = Thread::native_thread().exc_pt_sel + SM_SEL_SIGNAL;
+	}
 
 	/* calculate absolute timeout */
 	Trace::Timestamp now   = Trace::timestamp();
@@ -52,7 +56,7 @@ void Timer::Time_source::_wait_for_irq()
 	if (_timeout_us == max_timeout().value) {
 
 		/* tsc_absolute == 0 means blocking without timeout */
-		uint8_t res = sm_ctrl(sem, SEMAPHORE_DOWN, 0);
+		uint8_t res = sm_ctrl(_sem, SEMAPHORE_DOWN, 0);
 		if (res != Nova::NOVA_OK && res != Nova::NOVA_TIMEOUT) {
 			nova_die(); }
 
@@ -60,7 +64,7 @@ void Timer::Time_source::_wait_for_irq()
 
 		/* block until timeout fires or it gets canceled */
 		unsigned long long tsc_absolute = now + us_64 * (_tsc_khz / TSC_FACTOR);
-		uint8_t res = sm_ctrl(sem, SEMAPHORE_DOWN, tsc_absolute);
+		uint8_t res = sm_ctrl(_sem, SEMAPHORE_DOWN, tsc_absolute);
 		if (res != Nova::NOVA_OK && res != Nova::NOVA_TIMEOUT) {
 			nova_die(); }
 	}

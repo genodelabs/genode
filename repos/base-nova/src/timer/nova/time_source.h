@@ -57,7 +57,7 @@ class Timer::Time_source : public Threaded_time_source
 			return 1000*1000;
 		}
 
-		Genode::addr_t           _sem        { ~0UL };
+		Genode::addr_t           _sem        { 0 };
 		uint64_t                 _timeout_us { 0 };
 		unsigned long      const _tsc_khz;
 		Duration                 _curr_time  { Microseconds(0) };
