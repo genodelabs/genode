@@ -104,8 +104,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			cpu_thread.start(0, 0);
 
 			/*
-			 * Request native EC thread cap and put it next to the
-			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
+			 * Request native EC thread cap used for recalling vCPU
 			 */
 			addr_t const pager_pt = _exc_pt_sel + Nova::PT_SEL_PAGE_FAULT;
 			request_native_ec_cap(pager_pt, sel_ec);
@@ -118,61 +117,6 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 		}
 
 		Genode::addr_t exc_base() override { return _exc_pt_sel; }
-};
-
-
-class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
-{
-	enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
-
-	public:
-
-		Vcpu_same_pd(Cpu_connection * cpu_connection,
-		             Genode::Affinity::Location location,
-		             Genode::Capability<Genode::Pd_session>,
-		             Genode::size_t stack_size)
-		:
-			Thread(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_connection, location)
-		{
-			/* release pre-allocated selectors of Thread */
-			Genode::cap_map().remove(native_thread().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
-
-			/* allocate correct number of selectors */
-			this->native_thread().exc_pt_sel = cap_map().insert(Nova::NUM_INITIAL_VCPU_PT_LOG2);
-
-			/* tell generic thread code that this becomes a vCPU */
-			this->native_thread().vcpu = true;
-		}
-
-		~Vcpu_same_pd()
-		{
-			using namespace Nova;
-
-			revoke(Nova::Obj_crd(this->native_thread().exc_pt_sel, NUM_INITIAL_VCPU_PT_LOG2));
-			cap_map().remove(this->native_thread().exc_pt_sel, NUM_INITIAL_VCPU_PT_LOG2, false);
-
-			/* allocate selectors for ~Thread */
-			this->native_thread().exc_pt_sel = cap_map().insert(Nova::NUM_INITIAL_PT_LOG2);
-		}
-
-		addr_t exc_base() override { return this->native_thread().exc_pt_sel; }
-
-		void start(Genode::addr_t sel_ec) override
-		{
-			this->Thread::start();
-
-			/*
-			 * Request native EC thread cap and put it next to the
-			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
-			 */
-			addr_t const pager_pt = exc_base() + Nova::PT_SEL_PAGE_FAULT;
-			request_native_ec_cap(pager_pt, sel_ec);
-
-			/* solely needed for vcpu to request native ec cap - drop it */
-			Nova::revoke(Nova::Obj_crd(pager_pt, 0));
-		}
-
-		void entry() override { }
 };
 
 #endif /* _INCLUDE__VMM__VCPU_THREAD_H_ */

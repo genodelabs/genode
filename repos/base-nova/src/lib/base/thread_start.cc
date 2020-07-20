@@ -154,9 +154,7 @@ void Thread::start()
 	try {
 		Nova_native_cpu::Thread_type thread_type;
 
-		if (native_thread().vcpu)
-			thread_type = Nova_native_cpu::Thread_type::VCPU;
-		else if (global)
+		if (global)
 			thread_type = Nova_native_cpu::Thread_type::GLOBAL;
 		else
 			thread_type = Nova_native_cpu::Thread_type::LOCAL;
@@ -187,12 +185,10 @@ void Thread::start()
 
 	using namespace Nova;
 
-	if (!native_thread().vcpu) {
-		/* default: we don't accept any mappings or translations */
-		Utcb * utcb_obj = reinterpret_cast<Utcb *>(utcb());
-		utcb_obj->crd_rcv = Obj_crd();
-		utcb_obj->crd_xlt = Obj_crd();
-	}
+	/* default: we don't accept any mappings or translations */
+	Utcb * utcb_obj = reinterpret_cast<Utcb *>(utcb());
+	utcb_obj->crd_rcv = Obj_crd();
+	utcb_obj->crd_xlt = Obj_crd();
 
 	if (global)
 		/* request creation of SC to let thread run*/

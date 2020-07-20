@@ -121,11 +121,7 @@ int Platform_thread::start(void *ip, void *sp)
 			return -4;
 		}
 
-		if (vcpu()) {
-			if (!remote_pd())
-				res = map_pagefault_portal(*_pager, _pager->exc_pt_sel_client(),
-				                           _sel_exc_base, _pd->pd_sel(), utcb);
-		} else
+		if (!vcpu())
 			res = map_thread_portals(*_pager, _sel_exc_base, utcb);
 
 		if (res != NOVA_OK) {

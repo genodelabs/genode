@@ -30,7 +30,6 @@ struct Genode::Native_thread
 
 	addr_t ec_sel     { 0 };      /* selector for execution context */
 	addr_t exc_pt_sel { 0 };      /* base of event portal window */
-	bool   vcpu       { false };  /* true if thread is a virtual CPU */
 	addr_t initial_ip { 0 };      /* initial IP of local thread */
 
 	/* receive window for capability selectors received at the server side */
@@ -56,7 +55,6 @@ struct Genode::Native_thread
 
 	Native_thread() : ec_sel(INVALID_INDEX),
 	                  exc_pt_sel(INVALID_INDEX),
-	                  vcpu(false),
 	                  initial_ip(0) { }
 };
 

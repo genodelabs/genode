@@ -128,20 +128,6 @@ class Vmm::Vcpu_dispatcher : public T
 		 * virtualization event.
 		 */
 		void entry() override { }
-
-		/**
-		 * Return capability selector of the VCPU's SM and EC
-		 *
-		 * The returned number corresponds to the VCPU's semaphore selector.
-		 * The consecutive number corresponds to the EC. The number returned by
-		 * this function is used by the VMM code as a unique identifier of the
-		 * VCPU. I.e., it gets passed as arguments for 'MessageHostOp'
-		 * operations.
-		 */
-		Nova::mword_t sel_sm_ec()
-		{
-			return T::native_thread().exc_pt_sel + Nova::SM_SEL_EC;
-		}
 };
 
 #endif /* _INCLUDE__VMM__VCPU_DISPATCHER_H_ */
