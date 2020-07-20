@@ -308,7 +308,11 @@ build_boot_image $boot_modules
 set wait_timeout 70
 if {[have_spec foc]} { set wait_timeout 120 }
 
-if {!$use_serial} {
+if {![info exists use_check_result]} {
+	set use_check_result 0
+}
+
+if {$use_check_result} {
 	run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: no, hostWindowMapping: no, graphics: no} $wait_timeout
 
 	# run_genode_until forever 0 [output_spawn_id]
