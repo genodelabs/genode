@@ -70,10 +70,9 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 		Genode::Semaphore              _sem_handler;
 		Genode::Vm_state              *_state { nullptr };
 
-		/* halt / wakeup handling with timeout support */
-		Genode::Mutex                  _r0_mutex;
-		Genode::Semaphore              _r0_block;
-		Genode::uint64_t               _r0_wakeup_abs { 0 };
+		pthread_cond_t  _cond_wait;
+		pthread_mutex_t _mutex;
+
 
 		/* information used for NPT/EPT handling */
 		Genode::addr_t npt_ept_exit_addr { 0 };
@@ -110,6 +109,29 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			ACTIVITY_STATE_ACTIVE = 0U,
 			INTERRUPT_STATE_NONE  = 0U,
 		};
+
+		timespec add_timespec_ns(timespec a, uint64_t ns) const
+		{
+			enum { NSEC_PER_SEC = 1'000'000'000ull };
+
+			long sec = a.tv_sec;
+
+			while (a.tv_nsec >= NSEC_PER_SEC) {
+				a.tv_nsec -= NSEC_PER_SEC;
+				sec++;
+			}
+			while (ns >= NSEC_PER_SEC) {
+				ns -= NSEC_PER_SEC;
+				sec++;
+			}
+
+			long nsec = a.tv_nsec + ns;
+			while (nsec >= NSEC_PER_SEC) {
+				nsec -= NSEC_PER_SEC;
+				sec++;
+			}
+			return timespec { sec, nsec };
+		}
 
 	protected:
 
@@ -675,7 +697,15 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			_ep(env, stack_size,
 			    Genode::String<12>("EP-EMT-", cpu_id).string(), location),
 			_cpu_id(cpu_id)
-		{ }
+		{
+			pthread_mutexattr_t _attr;
+			pthread_mutexattr_init(&_attr);
+
+			pthread_cond_init(&_cond_wait, nullptr);
+
+			pthread_mutexattr_settype(&_attr, PTHREAD_MUTEX_ERRORCHECK);
+			pthread_mutex_init(&_mutex, &_attr);
+		}
 
 		unsigned int cpu_id() { return _cpu_id; }
 
@@ -722,37 +752,24 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 #endif
 		}
 
-		void check_time()
+		void halt(Genode::uint64_t const wait_ns)
 		{
-			{
-				Genode::Mutex::Guard guard(_r0_mutex);
+			/* calculate timeout */
+			timespec ts { 0, 0 };
+			clock_gettime(CLOCK_REALTIME, &ts);
+			ts = add_timespec_ns(ts, wait_ns);
 
-				const uint64_t u64NowGip = RTTimeNanoTS();
-				if (!_r0_wakeup_abs || _r0_wakeup_abs >= u64NowGip)
-					return;
-			}
-
-			wake_up();
-		}
-
-		void halt(Genode::uint64_t rttime_abs)
-		{
-			{
-				Genode::Mutex::Guard guard(_r0_mutex);
-				_r0_wakeup_abs = rttime_abs;
-			}
-
-			_r0_block.down();
+			/* wait for condition or timeout */
+			pthread_mutex_lock(&_mutex);
+			pthread_cond_timedwait(&_cond_wait, &_mutex, &ts);
+			pthread_mutex_unlock(&_mutex);
 		}
 
 		void wake_up()
 		{
-			{
-				Genode::Mutex::Guard guard(_r0_mutex);
-				_r0_wakeup_abs = 0;
-			}
-
-			_r0_block.up();
+			pthread_mutex_lock(&_mutex);
+			pthread_cond_signal(&_cond_wait);
+			pthread_mutex_unlock(&_mutex);
 		}
 
 		int run_hw(PVMR0 pVMR0)

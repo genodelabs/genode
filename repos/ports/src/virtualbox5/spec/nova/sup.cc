@@ -334,8 +334,8 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 	case VMMR0_DO_GVMM_SCHED_HALT:
 	{
-		const uint64_t u64NowGip = RTTimeNanoTS();
-		const uint64_t ns_diff = u64Arg > u64NowGip ? u64Arg - u64NowGip : 0;
+		uint64_t const u64NowGip = RTTimeNanoTS();
+		uint64_t const ns_diff = u64Arg > u64NowGip ? u64Arg - u64NowGip : 0;
 
 		if (!ns_diff)
 			return VINF_SUCCESS;

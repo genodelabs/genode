@@ -383,7 +383,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
-		vcpu_handler->halt(u64NowGip + ns_diff);
+		vcpu_handler->halt(ns_diff);
 
 		return VINF_SUCCESS;
 	}
@@ -1160,13 +1160,6 @@ class Periodic_gip
 			if (rttimer_func) {
 				Libc::with_libc([&] () {
 					rttimer_func(nullptr, rttimer_obj, 0); });
-			}
-
-			for (Vcpu_handler *vcpu_handler = vcpu_handler_list().first();
-			     vcpu_handler;
-			     vcpu_handler = vcpu_handler->next())
-			{
-				vcpu_handler->check_time();
 			}
 		}
 
