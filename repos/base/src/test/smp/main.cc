@@ -82,7 +82,7 @@ namespace Mp_server_test {
 		Client                 cli  { cap };
 
 		Cpu_compound(Genode::Affinity::Location l, Genode::Env &env)
-		: rpc(&env.pd(), STACK_SIZE, "rpc en", true, l) {}
+		: rpc(&env.pd(), STACK_SIZE, "rpc en", l) {}
 		~Cpu_compound() { rpc.dissolve(&comp); }
 	};
 

@@ -58,7 +58,8 @@ class Genode::Core_env : public Env_deprecated, Noncopyable
 
 		Core_env()
 		:
-			_entrypoint(nullptr, ENTRYPOINT_STACK_SIZE, "entrypoint"),
+			_entrypoint(nullptr, ENTRYPOINT_STACK_SIZE, "entrypoint",
+			            Affinity::Location()),
 			_region_map(_entrypoint),
 			_pd_session(_entrypoint,
 			            _entrypoint,

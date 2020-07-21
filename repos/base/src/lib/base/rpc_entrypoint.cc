@@ -57,12 +57,6 @@ void Rpc_entrypoint::reply_signal_info(Untyped_capability reply_cap,
 }
 
 
-void Rpc_entrypoint::activate()
-{
-	_delay_start.wakeup();
-}
-
-
 bool Rpc_entrypoint::is_myself() const
 {
 	return (Thread::myself() == this);
@@ -70,8 +64,7 @@ bool Rpc_entrypoint::is_myself() const
 
 
 Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
-                               char const *name, bool start_on_construction,
-                               Affinity::Location location)
+                               char const *name, Affinity::Location location)
 :
 	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size, location),
 	_cap(Untyped_capability()),
@@ -80,21 +73,12 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	Thread::start();
 	_block_until_cap_valid();
 
-	if (start_on_construction)
-		activate();
-
 	_exit_cap = manage(&_exit_handler);
 }
 
 
 Rpc_entrypoint::~Rpc_entrypoint()
 {
-	/*
-	 * We have to make sure the server loop is running which is only the case
-	 * if the Rpc_entrypoint was activated before we execute the RPC call.
-	 */
-	_delay_start.wakeup();
-
 	/* leave server loop */
 	_exit_cap.call<Exit::Rpc_exit>();
 

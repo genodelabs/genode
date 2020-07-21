@@ -283,13 +283,9 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
  * RPC entrypoint serving RPC objects
  *
  * The entrypoint's thread will initialize its capability but will not
- * immediately enable the processing of requests. This way, the
- * activation-using server can ensure that it gets initialized completely
- * before the first capability invocations come in. Once the server is
- * ready, it must enable the entrypoint explicitly by calling the
- * 'activate()' method. The 'start_on_construction' argument is a
- * shortcut for the common case where the server's capability is handed
- * over to other parties _after_ the server is completely initialized.
+ * immediately enable the processing of requests. The server's capability must
+ * be handed over to other parties _after_ the server is completely
+ * initialized.
  */
 class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 {
@@ -339,7 +335,6 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 
 		Native_capability _caller       { };
 		Blockade          _cap_valid    { };  /* thread startup synchronization        */
-		Blockade          _delay_start  { };  /* delay start of request dispatching    */
 		Blockade          _delay_exit   { };  /* delay destructor until server settled */
 		Pd_session       &_pd_session;        /* for creating capabilities             */
 		Exit_handler      _exit_handler { };
@@ -412,8 +407,7 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * \param location     CPU affinity
 		 */
 		Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
-		               char const *name, bool start_on_construction = true,
-		               Affinity::Location location = Affinity::Location());
+		               char const *name, Affinity::Location location);
 
 		~Rpc_entrypoint();
 
@@ -435,11 +429,6 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		{
 			_dissolve(obj);
 		}
-
-		/**
-		 * Activate entrypoint, start processing RPC requests
-		 */
-		void activate();
 
 		/**
 		 * Request reply capability for current call

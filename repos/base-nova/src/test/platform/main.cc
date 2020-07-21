@@ -41,7 +41,8 @@ using namespace Genode;
 void test_translate(Genode::Env &env)
 {
 	enum { STACK_SIZE = 4096 };
-	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_translate");
+	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_translate",
+	                         Affinity::Location());
 
 	Test::Component  component;
 	Test::Capability session_cap = ep.manage(&component);
@@ -136,7 +137,8 @@ void test_translate(Genode::Env &env)
 void test_revoke(Genode::Env &env)
 {
 	enum { STACK_SIZE = 4096 };
-	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_revoke");
+	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_revoke",
+	                         Affinity::Location());
 
 	Test::Component  component;
 	Test::Capability session_cap = ep.manage(&component);
@@ -304,7 +306,8 @@ void test_pat(Genode::Env &env)
 
 	enum { STACK_SIZE = 4096 };
 
-	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_pat");
+	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_pat",
+	                         Affinity::Location());
 
 	Genode::Rm_connection rm(env);
 	Genode::Region_map_client rm_free_area(rm.create(1 << (DS_ORDER + PAGE_4K)));
@@ -381,7 +384,8 @@ void test_server_oom(Genode::Env &env)
 
 	enum { STACK_SIZE = 4096 };
 
-	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_oom");
+	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_oom",
+	                         Affinity::Location());
 
 	Test::Component  component;
 	Test::Capability session_cap = ep.manage(&component);

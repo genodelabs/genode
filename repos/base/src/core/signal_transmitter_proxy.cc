@@ -58,6 +58,6 @@ void Signal_transmitter::submit(unsigned cnt)
 Rpc_entrypoint &Core_env::signal_ep()
 {
 	static Rpc_entrypoint ep(nullptr, ENTRYPOINT_STACK_SIZE,
-	                         "signal_entrypoint");
+	                         "signal_entrypoint", Affinity::Location());
 	return ep;
 }

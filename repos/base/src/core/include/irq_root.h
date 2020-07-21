@@ -55,7 +55,7 @@ class Genode::Irq_root : public Root_component<Irq_session_component>
 		         Range_allocator &irq_alloc, Allocator &md_alloc)
 		:
 			Root_component<Irq_session_component>(&_session_ep, &md_alloc),
-			_session_ep(&pd_session, STACK_SIZE, "irq"),
+			_session_ep(&pd_session, STACK_SIZE, "irq", Affinity::Location()),
 			_irq_alloc(irq_alloc)
 		{ }
 };

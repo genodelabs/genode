@@ -64,7 +64,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 }
 
 static void cleanup_call(Rpc_object_base *obj, Nova::Utcb * ep_utcb,
-                         Native_capability &cap, Genode::Blockade &delay_start)
+                         Native_capability &cap)
 {
 
 	/* effectively invalidate the capability used before */
@@ -83,9 +83,6 @@ static void cleanup_call(Rpc_object_base *obj, Nova::Utcb * ep_utcb,
 	/* don't call ourself */
 	if (utcb == ep_utcb)
 		return;
-
-	/* activate entrypoint now - otherwise cleanup call will block forever */
-	delay_start.wakeup();
 
 	/* make a IPC to ensure that cap() identifier is not used anymore */
 	utcb->msg()[0] = 0xdead;
@@ -109,8 +106,7 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	/* make sure nobody is able to find this object */
 	remove(obj);
 
-	cleanup_call(obj, reinterpret_cast<Nova::Utcb *>(this->utcb()), _cap,
-	             _delay_start);
+	cleanup_call(obj, reinterpret_cast<Nova::Utcb *>(this->utcb()), _cap);
 }
 
 static void reply(Nova::Utcb &utcb, Rpc_exception_code exc, Msgbuf_base &snd_msg)
@@ -160,11 +156,6 @@ void Rpc_entrypoint::_activation_entry()
 		reply(utcb, exc, ep._snd_buf);
 	}
 
-	/* delay start */
-	ep._delay_start.block();
-	/* XXX inadequate usage of Blockade here is planned to be removed, see #3612 */
-	ep._delay_start.wakeup();
-
 	/* atomically lookup and lock referenced object */
 	auto lambda = [&] (Rpc_object_base *obj) {
 		if (!obj) {
@@ -198,20 +189,6 @@ void Rpc_entrypoint::entry()
 void Rpc_entrypoint::_block_until_cap_valid() { }
 
 
-void Rpc_entrypoint::activate()
-{
-	/*
-	 * In contrast to a normal thread, a server activation is created at
-	 * construction time. However, it executes no code because processing
-	 * time is always provided by the caller of the server activation. To
-	 * delay the processing of requests until the 'activate' function is
-	 * called, we grab the '_delay_start' lock on construction and release it
-	 * here.
-	 */
-	_delay_start.wakeup();
-}
-
-
 bool Rpc_entrypoint::is_myself() const
 {
 	return (Thread::myself() == this);
@@ -219,8 +196,7 @@ bool Rpc_entrypoint::is_myself() const
 
 
 Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
-                               const char  *name, bool start_on_construction,
-                               Affinity::Location location)
+                               const char  *name, Affinity::Location location)
 :
 	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size, location),
 	_pd_session(*pd_session)
@@ -246,9 +222,6 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	/* prepare portal receive window of new thread */
 	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)&_stack->utcb()))
 		throw Cpu_session::Thread_creation_failed();
-
-	if (start_on_construction)
-		activate();
 }
 
 
@@ -269,8 +242,7 @@ Rpc_entrypoint::~Rpc_entrypoint()
 		/* avoid any incoming IPC */
 		Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
 
-		cleanup_call(obj, reinterpret_cast<Nova::Utcb *>(this->utcb()), _cap,
-		             _delay_start);
+		cleanup_call(obj, reinterpret_cast<Nova::Utcb *>(this->utcb()), _cap);
 	});
 
 	if (!_cap.valid())

@@ -157,7 +157,7 @@ void Entrypoint::_process_incoming_signals()
 
 		init_signal_thread(_env);
 
-		_rpc_ep.construct(&_env.pd(), Component::stack_size(), initial_ep_name());
+		_rpc_ep.construct(&_env.pd(), Component::stack_size(), initial_ep_name(), Affinity::Location());
 		init_heartbeat_monitoring(_env);
 		_signal_proxy_cap = manage(_signal_proxy);
 		_sig_rec.construct();
@@ -330,7 +330,7 @@ namespace {
 Entrypoint::Entrypoint(Env &env)
 :
 	_env(env),
-	_rpc_ep(&env.pd(), Component::stack_size(), initial_ep_name()),
+	_rpc_ep(&env.pd(), Component::stack_size(), initial_ep_name(), Affinity::Location()),
 
 	/* initialize signalling before creating the first signal receiver */
 	_signalling_initialized((init_signal_thread(env), true))
@@ -365,7 +365,7 @@ Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name,
                        Affinity::Location location)
 :
 	_env(env),
-	_rpc_ep(&env.pd(), stack_size, name, true, location),
+	_rpc_ep(&env.pd(), stack_size, name, location),
 	_signalling_initialized(true)
 {
 	_signal_proxy_thread.construct(env, *this, location,

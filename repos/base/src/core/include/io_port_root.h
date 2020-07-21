@@ -30,7 +30,7 @@ namespace Genode {
 		public:
 
 			Io_port_handler(Pd_session &pd_session) :
-				_ep(&pd_session, STACK_SIZE, "ioport")
+				_ep(&pd_session, STACK_SIZE, "ioport", Affinity::Location())
 			{ }
 
 			Rpc_entrypoint &entrypoint() { return _ep; }

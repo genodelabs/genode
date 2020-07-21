@@ -50,15 +50,6 @@ void Rpc_entrypoint::entry()
 	_cap = srv;
 	_cap_valid.wakeup();
 
-	/*
-	 * Now, the capability of the server activation is initialized
-	 * an can be passed around. However, the processing of capability
-	 * invocations should not happen until activation-using server
-	 * is completely initialized. Thus, we wait until the activation
-	 * gets explicitly unblocked by calling 'Rpc_entrypoint::activate()'.
-	 */
-	_delay_start.block();
-
 	Rpc_exception_code exc = Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
 	while (!_exit_handler.exit) {
