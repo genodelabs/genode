@@ -140,13 +140,13 @@ struct Dmar_struct_header : Generic
 	void apply(FUNC const &func = [] () { } )
 	{
 		addr_t addr = dmar_entry_start();
-		do {
+		while (addr < dmar_entry_end()) {
 			Dmar_common dmar(addr);
 
 			func(dmar);
 
 			addr = dmar.base() + dmar.read<Dmar_common::Length>();
-		} while (addr < dmar_entry_end());
+		}
 	}
 
 	struct Dmar_struct_header * clone(Genode::Allocator &alloc)
@@ -205,13 +205,13 @@ struct Dmar_drhd : Genode::Mmio
 	void apply(FUNC const &func = [] () { } )
 	{
 		addr_t addr = base() + 16;
-		do {
+		while (addr < base() + read<Length>()) {
 			Device_scope scope(addr);
 
 			func(scope);
 
 			addr = scope.base() + scope.read<Device_scope::Length>();
-		} while (addr < base() + read<Length>());
+		}
 	}
 };
 
@@ -228,13 +228,13 @@ struct Dmar_rmrr : Genode::Mmio
 	void apply(FUNC const &func = [] () { } )
 	{
 		addr_t addr = base() + 24;
-		do {
+		while (addr < base() + read<Length>()) {
 			Device_scope scope(addr);
 
 			func(scope);
 
 			addr = scope.base() + scope.read<Device_scope::Length>();
-		} while (addr < base() + read<Length>());
+		}
 	}
 };
 
@@ -242,30 +242,13 @@ struct Dmar_rmrr : Genode::Mmio
 /* Fixed ACPI description table (FADT) */
 struct Fadt : Genode::Mmio
 {
-	static uint32_t features;
-	static uint32_t reset_type;
-	static uint64_t reset_addr;
-	static uint8_t  reset_value;
+	Fadt(addr_t a) : Genode::Mmio(a) { }
 
-	Fadt(addr_t a) : Genode::Mmio(a)
-	{
-		features    = read<Fadt::Feature_flags>();
-		reset_type  = read<Fadt::Reset_reg_type>();
-		reset_addr  = read<Fadt::Reset_reg_addr>();
-		reset_value = read<Fadt::Reset_value>();
-	}
+	struct Dsdt : Register<0x28, 32> { };
 
-	struct Dsdt           : Register<0x28, 32> { };
-	struct Feature_flags  : Register<0x70, 32> { };
-	struct Reset_reg_type : Register<0x74, 32> { };
-	struct Reset_reg_addr : Register<0x78, 64> { };
-	struct Reset_value    : Register<0x80, 8>  { };
+	static uint32_t size() { return Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
 };
 
-uint32_t Fadt::features    = 0;
-uint32_t Fadt::reset_type  = 0;
-uint64_t Fadt::reset_addr  = 0;
-uint8_t  Fadt::reset_value = 0;
 
 class Dmar_entry : public List<Dmar_entry>::Element
 {
@@ -1218,7 +1201,7 @@ class Acpi_table
 						continue;
 					}
 
-					if (table.is_facp()) {
+					if (table.is_facp() && Fadt::size() <= table->size) {
 						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature));
 						dsdt = fadt.read<Fadt::Dsdt>();
 					}
