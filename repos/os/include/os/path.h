@@ -240,7 +240,7 @@ class Genode::Path_base
 		char const *base()   const { return _path; }
 		char const *string() const { return _path; }
 
-		size_t max_len() { return _path_max_len; }
+		size_t max_len() const { return _path_max_len; }
 
 		void remove_trailing(char c) { remove_trailing(c, _path); }
 
