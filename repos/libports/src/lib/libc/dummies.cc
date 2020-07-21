@@ -174,9 +174,7 @@ DUMMY(int, -1, chmod, (const char *, mode_t))
 DUMMY(int, -1, chown, (const char *, uid_t, gid_t))
 DUMMY(int, -1, fchown, (int, uid_t, gid_t))
 DUMMY(int, -1, flock, (int, int))
-DUMMY(int, -1, fstatat, (int, const char *, struct stat *, int))
 DUMMY(int, -1, mkfifo, (const char *, mode_t))
-DUMMY(int, -1, stat, (const char *, struct stat *))
 DUMMY(void,  , sync, (void))
 __SYS_DUMMY(int, -11, utimensat, (int, const char *, const struct timespec[2], int));
 __SYS_DUMMY(int, -1, futimens, (int, const struct timespec[2]));
