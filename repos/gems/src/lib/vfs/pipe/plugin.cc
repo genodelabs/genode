@@ -247,13 +247,13 @@ Vfs_pipe::Pipe_handle::read(char *buf,
 
 bool
 Vfs_pipe::Pipe_handle::read_ready() {
-	return !pipe.buffer.empty(); }
+	return !writer && !pipe.buffer.empty(); }
 
 
 bool
 Vfs_pipe::Pipe_handle::notify_read_ready()
 {
-	if (!read_ready_elem.enqueued())
+	if (!writer && !read_ready_elem.enqueued())
 		pipe.read_ready_waiters.enqueue(read_ready_elem);
 	return true;
 }
