@@ -167,6 +167,9 @@ class Filter
 
 						/* returning from signal handlers is safe */
 						_add_allow_rule(SCMP_SYS(rt_sigreturn));
+
+						/* restarting syscalls is safe (can occur when debugging with GDB) */
+						_add_allow_rule(SCMP_SYS(restart_syscall));
 					}
 					break;
 				case SCMP_ARCH_ARM:
