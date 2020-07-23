@@ -33,9 +33,7 @@ $(MIRROR_FROM_PORT_DIR):
 	mkdir -p $(dir $@)
 	cp -r $(PORT_DIR)/$@ $(dir $@)
 
-MIRROR_FROM_LIBPORTS := lib/mk/libc_pipe.mk \
-                        src/lib/libc_pipe \
-                        lib/mk/libc-mem.mk \
+MIRROR_FROM_LIBPORTS := lib/mk/libc-mem.mk \
                         lib/mk/libc-common.inc \
                         src/lib/libc/internal/init.h \
                         src/lib/libc/internal/mem_alloc.h \

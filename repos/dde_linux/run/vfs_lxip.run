@@ -44,14 +44,14 @@ append config {
 		<provides> <service name="Terminal"/> </provides>
 		<config ld_verbose="yes">
 			<policy label="test-terminal_echo" port="8888"/>
-			<libc stdout="/dev/log" socket="/socket"/>
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="socket">
-						<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
-					</dir>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<dir name="socket">
+					<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" socket="/socket" pipe="/pipe"/>
 		</config>
 	</start>
 -->
@@ -65,7 +65,7 @@ append config {
 					<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
 	</start>
 <!--
@@ -80,7 +80,7 @@ install_config $config
 
 append boot_modules {
 	core init timer linux_nic_drv
-	ld.lib.so libc.lib.so vfs.lib.so libc_pipe.lib.so posix.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so posix.lib.so
 	libm.lib.so
 	vfs_lxip.lib.so lxip.lib.so
 	tcp_terminal

@@ -1,6 +1,7 @@
 set build_components {
 	core init timer server/terminal_crosslink server/vfs
 	test/libc_select test/libc_counter
+	lib/vfs/pipe
 }
 
 build $build_components
@@ -38,6 +39,7 @@ set config {
 		<config>
 			<vfs>
 				<terminal/>
+				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
 			<default-policy root="/" writeable="yes"/>
 		</config>
@@ -66,7 +68,7 @@ set config {
 				<dir name="dev"> <log/> <null/> <zero/> </dir>
 				<dir name="vfs"> <fs/> </dir>
 			</vfs>
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" pipe="/vfs/pipe"/>
 		</config>
 	</start>
 </config>
@@ -78,7 +80,7 @@ set boot_modules {
 	core init timer terminal_crosslink vfs
 	test-libc_counter-source test-libc_select
 	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so stdcxx.lib.so
-	libc_pipe.lib.so posix.lib.so
+	vfs_pipe.lib.so posix.lib.so
 }
 
 build_boot_image $boot_modules

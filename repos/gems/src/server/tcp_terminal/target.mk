@@ -1,5 +1,5 @@
 TARGET = tcp_terminal
 SRC_CC = main.cc
-LIBS   = libc libc_pipe
+LIBS   = libc
 
 CC_CXX_WARN_STRICT =

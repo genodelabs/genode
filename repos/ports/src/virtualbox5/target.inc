@@ -20,7 +20,7 @@ LIBS  += virtualbox5-bios virtualbox5-recompiler virtualbox5-runtime \
          virtualbox5-xml virtualbox5-main virtualbox5-apiwrap \
          virtualbox5-dis
 
-LIBS  += libc_pipe libiconv
+LIBS  += libiconv
 
 LIBS  += qemu-usb
 

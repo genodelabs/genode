@@ -26,6 +26,7 @@ set build_components {
 	core init timer
 	drivers/usb
 	test/smartcard
+	lib/vfs/pipe
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -92,13 +93,14 @@ append config {
 		<config>
 			<vfs>
 				<dir name="dev"> <log/> <inline name="rtc">2018-01-01 00:01</inline> </dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<dir name="ifd-ccid.bundle">
 					<dir name="Contents">
 						<rom name="Info.plist"/>
 					</dir>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
 			<env key="LIBUSB_DEBUG" value="1"/> <!-- log libusb errors -->
 		</config>
 	</start>
@@ -114,8 +116,8 @@ install_config $config
 set boot_modules {
 	core init timer usb_drv test-smartcard
 	ld.lib.so pcsc-lite.lib.so ccid.lib.so libusb.lib.so
-	libc.lib.so vfs.lib.so libm.lib.so libc_pipe.lib.so posix.lib.so
-	Info.plist
+	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
+	Info.plist vfs_pipe.lib.so
 }
 
 append_platform_drv_boot_modules

@@ -22,7 +22,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/src/nitpicker \
                   [depot_user]/src/demo \
-                  [depot_user]/src/init
+                  [depot_user]/src/init \
+                  [depot_user]/src/vfs_pipe
 
 set build_components {
 	drivers/uart
@@ -93,8 +94,11 @@ install_config {
 				</config>
 			</target>
 			<preserve name="RAM" quantum="2M"/>
-			<vfs> <dir name="dev"> <log/> <terminal/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev"> <log/> <terminal/> </dir>
+				<dir name="pipe"> <pipe/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
 		</config>
 	</start>
 
@@ -115,7 +119,7 @@ proc binary_name_gdbserver_platform_lib_so { } {
 
 # generic modules
 build_boot_image {
-	stdcxx.lib.so libc.lib.so libm.lib.so vfs.lib.so libc_pipe.lib.so
+	stdcxx.lib.so libc.lib.so libm.lib.so vfs.lib.so
 	pc_uart_drv
 	gdb_monitor gdbserver_platform.lib.so
 }

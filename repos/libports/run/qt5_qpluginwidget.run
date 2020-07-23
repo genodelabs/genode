@@ -57,10 +57,10 @@ append config {
 		<config>
 			<vfs>
 				<dir name="dev">
-					<dir name="pipe"> <pipe/> </dir>
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<dir name="qt">
 					<dir name="plugins">
 						<dir name="qpluginwidget">
@@ -71,7 +71,7 @@ append config {
 				<tar name="qt5_dejavusans.tar"/>
 				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 		</config>
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>

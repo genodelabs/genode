@@ -28,17 +28,17 @@ append config {
 		<config>
 			<vfs>
 				<dir name="dev">
-					<dir name="pipe"> <pipe/> </dir>
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<tar name="qt5_declarative_qml.tar"/>
 				<tar name="qt5_dejavusans.tar"/>
 				<tar name="qt5_libqjpeg.tar"/>
 				<tar name="qt5_libqgenode.tar"/>
 				<tar name="qt5_samegame.tar"/>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 		</config>
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>

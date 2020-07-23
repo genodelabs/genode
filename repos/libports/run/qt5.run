@@ -26,25 +26,25 @@ append config {
 	<start name="qt_launchpad" caps="600">
 		<resource name="RAM" quantum="80M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
-					<dir name="pipe"> <pipe/> </dir>
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
 				<tar name="qt5_libqgenode.tar"/>
 			</vfs>
 			<launcher name="calculatorform" ram_quota="30M" caps="200">
 				<config>
-					<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
+					<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 					<vfs>
 						<dir name="dev">
-							<dir name="pipe"> <pipe/> </dir>
 							<log/>
 							<inline name="rtc">2018-01-01 00:01</inline>
 						</dir>
+						<dir name="pipe"> <pipe/> </dir>
 						<tar name="qt5_dejavusans.tar"/>
 						<tar name="qt5_libqgenode.tar"/>
 					</vfs>
@@ -52,13 +52,13 @@ append config {
 			</launcher>
 			<launcher name="tetrix" ram_quota="40M" caps="200">
 				<config>
-					<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
+					<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 					<vfs>
 						<dir name="dev">
-							<dir name="pipe"> <pipe/> </dir>
 							<log/>
 							<inline name="rtc">2018-01-01 00:01</inline>
 						</dir>
+						<dir name="pipe"> <pipe/> </dir>
 						<tar name="qt5_dejavusans.tar"/>
 						<tar name="qt5_libqgenode.tar"/>
 					</vfs>

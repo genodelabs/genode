@@ -23,7 +23,8 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
-                  [depot_user]/src/nitpicker
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/vfs_pipe
 
 if {$use_vms > 1} {
 	import_from_depot [depot_user]/pkg/themed_wm
@@ -382,7 +383,6 @@ install_config $config
 append boot_modules {
 	part_block ahci_drv fs_rom vfs
 	libc.lib.so vfs.lib.so libm.lib.so
-	libc_pipe.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
 }

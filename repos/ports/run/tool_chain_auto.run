@@ -168,9 +168,9 @@ install_config {
 				<dir name="dev">
 					<zero/>
 					<log/>
-					<dir name="pipe"> <pipe/> </dir>
 					<inline name="rtc">2030-01-01 00:01</inline>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<dir name="home">
 					<ram/>
 					<rom name=".bash_profile" label="bash_profile" binary="no"/>
@@ -210,7 +210,7 @@ install_config {
 		<resource name="RAM" quantum="300M" />
 		<config ld_verbose="yes">
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      rtc="/dev/rtc" pipe="/dev/pipe"/>
+			      rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs>
 				<fs buffer_size="2M"/>
 				<dir name="dev"> <null/> </dir>

@@ -21,6 +21,7 @@ set build_components {
 	server/vfs
 	lib/vfs/jitterentropy
 	lib/vfs/lxip
+	lib/vfs/pipe
 	test/libports/ncurses
 	test/terminal_echo
 	noux-pkg/bash
@@ -93,8 +94,9 @@ set config {
 					</dir>
 				</dir>
 				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" rtc="/dev/rtc">
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" pipe="/pipe" rtc="/dev/rtc">
 			</libc>
 		</config>
 		<route>
@@ -172,9 +174,9 @@ set boot_modules {
 	test-terminal_echo
 
 	libc.lib.so libm.lib.so vfs.lib.so
-	vfs_lxip.lib.so lxip.lib.so libc_pipe.lib.so
+	vfs_lxip.lib.so lxip.lib.so
 	posix.lib.so libcrypto.lib.so libssh.lib.so zlib.lib.so ncurses.lib.so
-	vfs_jitterentropy.lib.so ssh_terminal
+	vfs_jitterentropy.lib.so vfs_pipe.lib.so ssh_terminal
 
 	bash.tar ed25519_key
 }

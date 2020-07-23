@@ -239,7 +239,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"no\" capslock=\"NOROM\">"
 	}
 	append config_of_app {
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs>
 				<dir name="dev">
 					<log/> <rtc/>}
@@ -249,7 +249,8 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 	append_if [expr !$use_rumpfs] config_of_app {
 					<block name="sda3" label="raw" block_buffer_count="128" />}
 	append config_of_app {
-				</dir>}
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>}
 
 	append_if [expr $use_ram_fs] config_of_app {
 				<dir name="ram">  <fs label="from_ram_fs"/> </dir>}

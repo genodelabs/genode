@@ -26,6 +26,7 @@ append build_components { drivers/rtc }
 append build_components { drivers/usb }
 append build_components { drivers/nic }
 append build_components { server/input_filter }
+append build_components { lib/vfs/pipe }
 
 append_platform_drv_build_components
 
@@ -338,8 +339,11 @@ append config {
 		<config vbox_file="virtualbox_nic_router.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
-				<dir name="dev"> <log/> <rtc/> </dir>
-				<dir name="dev"> <terminal/> </dir>
+				<dir name="dev">
+					<log/> <rtc/>
+					<terminal/>
+					<dir name="pipe"> <pipe/> </dir>
+				</dir>
 				<rom name="virtualbox_nic_router.vbox" />
 				<rom name="test.iso" />
 			</vfs>
@@ -384,7 +388,6 @@ append boot_modules { virtualbox_nic_router.vbox }
 append boot_modules { ld.lib.so }
 append boot_modules { libc.lib.so }
 append boot_modules { libm.lib.so }
-append boot_modules { libc_pipe.lib.so }
 append boot_modules { libiconv.lib.so }
 append boot_modules { stdcxx.lib.so }
 append boot_modules { qemu-usb.lib.so }
@@ -397,6 +400,7 @@ append boot_modules { vfs.lib.so }
 append boot_modules { ipxe_nic_drv }
 append boot_modules { input_filter }
 append boot_modules { log_terminal }
+append boot_modules { vfs_pipe.lib.so }
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules

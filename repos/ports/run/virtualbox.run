@@ -28,7 +28,8 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
-                  [depot_user]/src/nitpicker
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/vfs_pipe
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 # override defaults of platform_drv.inc
@@ -102,7 +103,7 @@ append_if [expr $use_usb] config {
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1" caps="150">
 		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="8M"/>}
+		<resource name="RAM" quantum="12M"/>}
 append_if [expr [have_spec framebuffer] && [have_include power_on/qemu]] config {
 		<config width="1280" height="1024" buffered="yes"/>}
 append_if [expr [have_spec framebuffer] && [have_include power_on/qemu]] config {
@@ -207,9 +208,12 @@ append_if [expr $use_gui] config {
 		<binary name="} $virtualbox_binary {"/>
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
-				<dir name="dev"> <log/> <rtc/> </dir>
+				<dir name="dev">
+					<log/> <rtc/>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<rom name="test.vbox" />
 				<rom name="test.iso" />
 			</vfs>
@@ -229,9 +233,12 @@ append config {
 		<binary name="} $virtualbox_binary {"/>
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
-				<dir name="dev"> <log/> <rtc/> </dir>}
+				<dir name="dev">
+					<log/> <rtc/>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>}
 
 append_if [expr $use_serial] config {
 				<dir name="dev"> <terminal/> </dir>}
@@ -275,7 +282,7 @@ lappend_if [expr         $use_top] boot_modules top
 lappend_if [expr         $use_gui] boot_modules report_rom
 
 append boot_modules {
-	libc.lib.so vfs.lib.so libm.lib.so libc_pipe.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
 }

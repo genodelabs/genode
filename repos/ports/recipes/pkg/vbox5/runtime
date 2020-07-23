@@ -78,7 +78,6 @@
 		<rom label="init"/>
 		<rom label="virtualbox5"/>
 		<rom label="libc.lib.so"/>
-		<rom label="libc_pipe.lib.so"/>
 		<rom label="libm.lib.so"/>
 		<rom label="libiconv.lib.so"/>
 		<rom label="qemu-usb.lib.so"/>

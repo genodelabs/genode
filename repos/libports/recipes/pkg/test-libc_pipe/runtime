@@ -48,11 +48,11 @@
 					<config>
 						<vfs>
 							<dir name="dev">
-								<dir name="pipe"> <pipe/> </dir>
 								<log/>
 							</dir>
+							<dir name="pipe"> <pipe/> </dir>
 						</vfs>
-						<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe"/>
+						<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
 					</config>
 				</start>
 				<start name="libc_pipe_remote">
@@ -60,11 +60,11 @@
 					<config>
 						<vfs>
 							<dir name="dev">
-								<dir name="pipe"> <fs/> </dir>
 								<log/>
 							</dir>
+							<dir name="pipe"> <fs/> </dir>
 						</vfs>
-						<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe"/>
+						<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
 					</config>
 				</start>
 			</config>

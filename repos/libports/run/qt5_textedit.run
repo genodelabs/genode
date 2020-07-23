@@ -40,13 +40,13 @@ append config {
 	<start name="textedit" caps="300">
 		<resource name="RAM" quantum="70M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
-					<dir name="pipe"> <pipe/> </dir>
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<dir name="fs">	<fs/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
 				<tar name="qt5_libqgenode.tar"/>
@@ -63,13 +63,13 @@ append config {
 		<binary name="textedit" />
 		<resource name="RAM" quantum="70M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
-					<dir name="pipe"> <pipe/> </dir>
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<dir name="fs">	<fs/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
 				<tar name="qt5_libqgenode.tar"/>

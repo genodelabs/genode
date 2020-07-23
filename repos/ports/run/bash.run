@@ -111,9 +111,9 @@ install_config {
 				<dir name="tmp"> <ram/> </dir>
 				<dir name="dev">
 					<zero/> <null/> <terminal/>
-					<dir name="pipe"> <pipe/> </dir>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
 
 			<policy label_prefix="vfs_rom" root="/"/>
@@ -136,7 +136,7 @@ install_config {
 		<resource name="RAM" quantum="30M" />
 		<config ld_verbose="yes">
 			<libc stdin="/dev/terminal" stdout="/dev/terminal"
-			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/dev/pipe"/>
+			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs> <fs/> </vfs>
 			<arg value="bash"/>
 			<env key="TERM" value="screen"/>

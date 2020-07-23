@@ -139,8 +139,9 @@ set config_of_app {
 			<vfs>
 				<dir name="dev"> <log/> </dir>
 				<dir name="socket"> <lwip dhcp="yes"/> </dir>
+				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
-			<libc stdout="/dev/log" socket="/socket" />
+			<libc stdout="/dev/log" socket="/socket" pipe="/pipe"/>
 		</config>
 	</start>
 
@@ -184,9 +185,9 @@ set config_of_app {
 				<dir name="tmp"> <ram/> </dir>
 				<dir name="dev">
 					<zero/> <null/> <terminal/>
-					<dir name="pipe"> <pipe/> </dir>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
 
 			<policy label_prefix="vfs_rom" root="/"/>
@@ -218,7 +219,7 @@ set config_of_app {
 		<resource name="RAM" quantum="30M" />
 		<config ld_verbose="yes">
 			<libc stdin="/dev/terminal" stdout="/dev/terminal"
-			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/dev/pipe"/>
+			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs> <fs/> </vfs>
 			<arg value="bash"/>
 			<env key="TERM" value="screen"/>
@@ -316,9 +317,12 @@ append_if [expr $use_vbox5] config_of_app "
 append config_of_app {
 		<resource name="RAM" quantum="1280M"/>
 		<config vbox_file="} $vbox_file {" vm_name="AutoDisk">
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs>
-				<dir name="dev"> <log/> <rtc/> </dir>
+				<dir name="dev">
+					<log/> <rtc/>
+				 </dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<rom name="} $vbox_file {"/>}
 
 append_if [expr $use_ram_fs] config_of_app {

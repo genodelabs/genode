@@ -38,7 +38,8 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
-                  [depot_user]/src/nitpicker
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/vfs_pipe
 
 
 set config {
@@ -207,10 +208,11 @@ append config {
 		<config vbox_file="vm_genode_usb_hid.vbox" vm_name="TestVM" xhci="yes">
 			<vfs>
 				<dir name="dev"> <log/> <terminal/> </dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<rom name="vm_genode_usb_hid.vbox" />
 				<rom name="usb_hid.iso" />
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
 		</config>
 		<route>
 			<service name="Report"><child name="report_rom" /></service>
@@ -257,7 +259,7 @@ set boot_modules {
 	virtualbox5-nova
 	usb_hid.iso
 	vm_genode_usb_hid.vbox
-	ld.lib.so libc.lib.so libm.lib.so libc_pipe.lib.so
+	ld.lib.so libc.lib.so libm.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
 }

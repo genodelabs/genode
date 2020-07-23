@@ -39,6 +39,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_jitterentropy \
                   [depot_user]/src/vfs_lxip \
+                  [depot_user]/src/vfs_pipe \
                   [depot_user]/src/vim-minimal \
                   [depot_user]/src/zlib
 
@@ -109,7 +110,7 @@ set config {
 			<policy label_prefix="dynamic" user="noux" password="xuon" multi_login="yes" request_terminal="yes"/>
 			<policy label_prefix="always-running-noux" user="charlie" password="xuon"/>
 
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" pipe="/pipe" rtc="/dev/rtc"/>
 
 			<vfs>
 				<dir name="dev">
@@ -124,6 +125,7 @@ set config {
 					</dir>
 				</dir>
 				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
 		</config>
 		<route>

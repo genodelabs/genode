@@ -224,11 +224,10 @@ driver ('pci_drv'). For an example of integrating TCP terminal into a Genode
 scenario, please refer to the 'tcp_terminal.run' script proved at 'gems/run/'.
 
 GDB monitor is built upon the libc and a few custom libc plugins, each coming
-in the form of a separate shared library. Please make sure to integrate those
-shared libraries along with the dynamic linker (ld.lib.so) in your boot image.
-They are 'libc.lib.so' (the libc), and 'libc_pipe.lib.so' (used for synchronizing
-threads via 'select' and 'pipe'). For using the TCP terminal, 'lwip.lib.so' (TCP/IP
-stack) is needed as well.
+in the form of a separate shared library. Please make sure to integrate the
+shared C library (libc.lib.so) along with the dynamic linker (ld.lib.so) in
+your boot image. For using the TCP terminal, 'lwip.lib.so' (TCP/IP stack) is
+needed as well.
 
 
 Examples

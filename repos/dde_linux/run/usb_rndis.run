@@ -66,8 +66,9 @@ set config {
 			<vfs>
 				<dir name="dev"> <log/> </dir>
 				<dir name="socket"> <lwip dhcp="yes"/> </dir>
+				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
-			<libc stdout="/dev/log" socket="/socket"/>
+			<libc stdout="/dev/log" socket="/socket" pipe="/pipe"/>
 		</config>
 		<route>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -93,7 +94,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer usb_drv
-	libc.lib.so vfs.lib.so libc_pipe.lib.so lwip_legacy.lib.so
+	libc.lib.so vfs.lib.so lwip_legacy.lib.so
 	tcp_terminal
 	test-terminal_echo
 	vfs_lwip.lib.so

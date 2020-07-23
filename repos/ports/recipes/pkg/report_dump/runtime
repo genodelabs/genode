@@ -32,8 +32,8 @@
 					<tar name="coreutils.tar" />
 					<dir name="dev">
 						<zero/> <null/> <log/> <rtc/>
-						<dir name="pipe"> <pipe/> </dir>
 					</dir>
+					<dir name="pipe"> <pipe/> </dir>
 					<dir name="rw">     <fs label="target"/> </dir>
 					<dir name="report"> <fs label="report"/> </dir>
 					<dir name="tmp"> <ram /> </dir>
@@ -72,7 +72,7 @@
 			<exit propagate="yes"/>
 			<config>
 				<libc stdin="/dev/null" stdout="/dev/null"
-				      stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe"/>
+				      stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
 				<vfs> <fs/> </vfs>
 				<arg value="bash"/>
 				<arg value="--login"/>

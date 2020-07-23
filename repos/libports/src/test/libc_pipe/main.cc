@@ -1,5 +1,5 @@
 /*
- * \brief  libc_pipe test
+ * \brief  Test for using libc with VFS pipe plugin
  * \author Christian Prochaska
  * \date   2016-04-24
  */

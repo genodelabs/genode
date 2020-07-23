@@ -19,6 +19,7 @@ set build_components {
 	drivers/uart
 	app/gdb_monitor
 	test/gdb_monitor
+	lib/vfs/pipe
 }
 
 lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"
@@ -53,7 +54,10 @@ set config {
 	</start>
 	<start name="pc_uart_drv">
 		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Terminal"/> </provides>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
 		<config>
 			<policy label_prefix="gdb_monitor" uart="1"/>
 		</config>
@@ -68,8 +72,11 @@ set config {
 				</config>
 			</target>
 			<preserve name="RAM" quantum="4M"/>
-			<vfs> <dir name="dev"> <log/> <terminal/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev"> <log/> <terminal/> </dir>
+				<dir name="pipe"> <pipe/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
 		</config>
 	</start>
 </config>
@@ -88,8 +95,9 @@ proc binary_name_gdbserver_platform_lib_so { } {
 
 # generic modules
 set boot_modules {
-	libc_pipe.lib.so
-	pc_uart_drv
+	core init timer
+	ld.lib.so libc.lib.so libm.lib.so vfs.lib.so stdcxx.lib.so
+	pc_uart_drv vfs_pipe.lib.so
 	gdb_monitor gdbserver_platform.lib.so test-gdb_monitor
 }
 
