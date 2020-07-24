@@ -76,6 +76,8 @@ struct Timer::Periodic_timeout : private Genode::Noncopyable
 		{
 			_timeout.schedule_periodic(duration, _handler);
 		}
+
+		~Periodic_timeout() { _timeout.discard(); }
 };
 
 
@@ -120,6 +122,8 @@ class Timer::One_shot_timeout : private Genode::Noncopyable
 		                 HANDLER           &object,
 		                 Handler_method     method)
 		: _timeout(timeout_scheduler), _handler(object, method) { }
+
+		~One_shot_timeout() { _timeout.discard(); }
 
 		void schedule(Microseconds duration) {
 			_timeout.schedule_one_shot(duration, _handler); }

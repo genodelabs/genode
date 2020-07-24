@@ -236,24 +236,30 @@ Timeout::Alarm *Alarm_timeout_scheduler::_alarm_get_pending_alarm()
 {
 	Mutex::Guard mutex_guard(_mutex);
 
-	if (!_active_head || !_active_head->_raw.is_pending_at(_now, _now_period)) {
-		return nullptr; }
+	do {
+		if (!_active_head || !_active_head->_raw.is_pending_at(_now, _now_period)) {
+			return nullptr; }
 
-	/* remove alarm from head of the list */
-	Alarm *pending_alarm = _active_head;
-	_active_head = _active_head->_next;
+		/* remove alarm from head of the list */
+		Alarm *pending_alarm = _active_head;
+		_active_head = _active_head->_next;
 
-	/*
-	 * Acquire dispatch mutex to defer destruction until the call of '_on_alarm'
-	 * is finished
-	 */
-	pending_alarm->_dispatch_mutex.acquire();
+		/*
+		 * Acquire dispatch mutex to defer destruction until the call of '_on_alarm'
+		 * is finished
+		 */
+		pending_alarm->_dispatch_mutex.acquire();
 
-	/* reset alarm object */
-	pending_alarm->_next = nullptr;
-	pending_alarm->_active--;
+		/* reset alarm object */
+		pending_alarm->_next = nullptr;
+		pending_alarm->_active--;
 
-	return pending_alarm;
+		if (pending_alarm->_delete) {
+			pending_alarm->_dispatch_mutex.release();
+			continue;
+		}
+		return pending_alarm;
+	} while (true);
 }
 
 
@@ -399,11 +405,19 @@ void Alarm_timeout_scheduler::_alarm_discard(Alarm *alarm)
 	 * is finished, '_alarm_get_pending_alarm' would proceed with operating on
 	 * a dangling pointer.
 	 */
-	Mutex::Guard alarm_list_guard(_mutex);
-
 	if (alarm) {
+		{
+			/* inform that this object is going to be deleted */
+			Mutex::Guard alarm_guard(alarm->_dispatch_mutex);
+			alarm->_delete = true;
+		}
+		{
+			Mutex::Guard alarm_list_guard(_mutex);
+			_alarm_unsynchronized_dequeue(alarm);
+		}
+
+		/* get anyone using this out of '_alarm_get_pending_alarm'() finally */
 		Mutex::Guard alarm_guard(alarm->_dispatch_mutex);
-		_alarm_unsynchronized_dequeue(alarm);
 	}
 }
 

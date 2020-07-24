@@ -171,7 +171,8 @@ class Genode::Timeout : private Noncopyable
 
 				Mutex                    _dispatch_mutex { };
 				Raw                      _raw            { };
-				int                      _active         { 0 };
+				short                    _active         { 0 };
+				bool                     _delete         { false };
 				Alarm                   *_next           { nullptr };
 				Alarm_timeout_scheduler *_scheduler      { nullptr };
 
