@@ -45,15 +45,20 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		addr_t          _next = 0;         /* next free bit index                 */
 
 		/*
-		 * Returns the count of blocks fitting the given size
-		 *
-		 * The block count returned is aligned to the bit count
-		 * of a machine word to fit the needs of the used bit array.
+		 * Returns the count of bits required to use the internal bit
+		 * array to track the allocations. The bit count is rounded up/aligned
+		 * to the natural machine word bit size.
 		 */
-		inline size_t _block_cnt(size_t bytes)
+		inline size_t _bits_cnt(size_t const size)
 		{
-			bytes /= _block_size;
-			return bytes - (bytes % (sizeof(addr_t)*8));
+			size_t const bits = sizeof(addr_t)*8;
+			size_t const cnt = size / _block_size;
+
+			size_t bits_aligned = cnt / bits;
+			if (cnt % bits)
+				bits_aligned += 1;
+
+			return bits_aligned * bits;
 		}
 
 	public:
@@ -72,16 +77,23 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		 ** Range-allocator interface **
 		 *******************************/
 
-		int add_range(addr_t base, size_t size) override
+		int add_range(addr_t const base, size_t const size) override
 		{
 			if (_base || _array) return -1;
 
-			size_t const number_of_bytes = _block_cnt(size)/8;
-			_base = base;
-			_bits = (addr_t *)_md_alloc->alloc(number_of_bytes);
-			memset(_bits, 0, number_of_bytes);
+			size_t const bits_cnt = _bits_cnt(size);
 
-			_array = new (_md_alloc) Bit_array_base(_block_cnt(size), _bits);
+			_base = base;
+			_bits = (addr_t *)_md_alloc->alloc(bits_cnt / 8);
+			memset(_bits, 0, bits_cnt / 8);
+
+			_array = new (_md_alloc) Bit_array_base(bits_cnt, _bits);
+
+			/* reserve bits which are unavailable */
+			size_t const max_cnt = size / _block_size;
+			if (bits_cnt > max_cnt)
+				_array->set(max_cnt, bits_cnt - max_cnt);
+
 			return 0;
 		}
 
@@ -97,7 +109,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			}
 
 			if (_bits)  {
-				_md_alloc->free(_bits, _block_cnt(size)/8);
+				_md_alloc->free(_bits, _bits_cnt(size)/8);
 				_bits = nullptr;
 			}
 
