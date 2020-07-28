@@ -82,7 +82,7 @@ class Lwip::Nic_netif
 			BUF_SIZE    = 128 * PACKET_SIZE,
 		};
 
-		Genode::Tslab<struct Nic_netif_pbuf, 128> _pbuf_alloc;
+		Genode::Tslab<Nic_netif_pbuf, 128*sizeof(Nic_netif_pbuf)> _pbuf_alloc;
 
 		Nic::Packet_allocator _nic_tx_alloc;
 		Nic::Connection _nic;
