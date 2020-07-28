@@ -219,12 +219,14 @@ Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
 	 */
 	_entries_per_block((_block_size - sizeof(Block) - sizeof(umword_t))
 	                   / (_slab_size + sizeof(Entry) + 1)),
-
 	_initial_sb((Block *)initial_sb),
 	_nested(false),
 	_curr_sb((Block *)initial_sb),
 	_backing_store(backing_store)
 {
+	static_assert(sizeof(Slab::Block) <= overhead_per_block());
+	static_assert(sizeof(Slab::Entry) <= overhead_per_entry());
+
 	/* if no initial slab block was specified, try to get one */
 	if (!_curr_sb && _backing_store)
 		_new_slab_block().with_result(
