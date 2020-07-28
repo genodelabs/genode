@@ -1152,9 +1152,16 @@ class Lwip::Tcp_socket_dir final :
 
 		~Tcp_socket_dir()
 		{
+			if (_recv_pbuf) {
+				pbuf_free(_recv_pbuf);
+				_recv_pbuf = nullptr;
+			}
+
 			tcp_arg(_pcb, NULL);
 
 			for (Pcb_pending *p = _pcb_pending.first(); p; p->next()) {
+				if (p->buf)
+					pbuf_free(p->buf);
 				destroy(alloc, p);
 			}
 
@@ -1373,6 +1380,7 @@ class Lwip::Tcp_socket_dir final :
 					tcp_backlog_accepted(pp->pcb);
 
 					_pcb_pending.remove(pp);
+					pp->buf = nullptr;
 					destroy(alloc, pp);
 
 					handle.kind = Lwip_file_handle::LOCATION;
