@@ -263,12 +263,68 @@ void Pager_object::exception(uint8_t exit_id)
 }
 
 
+bool Pager_object::_migrate_thread()
+{
+	bool const valid_migrate = (_state.migrate() && _badge);
+	if (!valid_migrate)
+		return false;
+
+	_state.reset_migrate();
+
+	try {
+		/* revoke all exception portals pointing to current pager */
+		Platform_thread &thread = *reinterpret_cast<Platform_thread *>(_badge);
+
+		Nova::revoke(Obj_crd(_selectors, 2));
+
+		/* revoke all exception portals selectors */
+		Nova::revoke(Obj_crd(exc_pt_sel_client()+0x00, 4));
+		Nova::revoke(Obj_crd(exc_pt_sel_client()+0x10, 3));
+		Nova::revoke(Obj_crd(exc_pt_sel_client()+0x18, 1));
+		Nova::revoke(Obj_crd(exc_pt_sel_client()+0x1f, 0));
+
+		/* re-create portals bound to pager on new target CPU */
+		_location   = _next_location;
+		_exceptions = Exception_handlers(*this);
+		_construct_pager();
+
+		/* map all exception portals to thread pd */
+		thread.prepare_migration();
+
+		/* syscall to migrate */
+		unsigned const migrate_to = platform_specific().kernel_cpu_id(_location);
+		uint8_t res = syscall_retry(*this, [&]() {
+			return ec_ctrl(EC_MIGRATE, _state.sel_client_ec, migrate_to,
+			               Obj_crd(EC_SEL_THREAD, 0, Obj_crd::RIGHT_EC_RECALL));
+		});
+
+		if (res == Nova::NOVA_OK)
+			thread.finalize_migration(_location);
+
+		return true;
+	} catch (...) {
+		return false;
+	}
+}
+
+
 void Pager_object::_recall_handler(Pager_object &obj)
 {
 	Thread &myself = *Thread::myself();
 	Utcb   &utcb   = *reinterpret_cast<Utcb *>(myself.utcb());
 
+	/* acquire mutex */
 	obj._state_lock.acquire();
+
+	/* check for migration */
+	if (obj._migrate_thread()) {
+		/* release mutex */
+		obj._state_lock.release();
+
+		utcb.set_msg_word(0);
+		utcb.mtd = 0;
+		reply(myself.stack_top());
+	}
 
 	if (obj._state.modified) {
 		obj._copy_state_to_utcb(utcb);
@@ -589,61 +645,25 @@ Exception_handlers::Exception_handlers(Pager_object &obj)
  ** Pager object **
  ******************/
 
-
-Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
-                           Thread_capability thread_cap, unsigned long badge,
-                           Affinity::Location location, Session_label const &,
-                           Cpu_session::Name const &)
-:
-	_badge(badge),
-	_selectors(cap_map().insert(2)),
-	_client_exc_pt_sel(cap_map().insert(NUM_INITIAL_PT_LOG2)),
-	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
-	_location(location),
-	_exceptions(*this),
-	_pd_target(Native_thread::INVALID_INDEX)
+void Pager_object::_construct_pager()
 {
-	uint8_t res;
-
-	addr_t const pd_sel  = platform_specific().core_pd_sel();
-	_state._status       = 0;
-	_state.modified      = false;
-	_state.sel_client_ec = Native_thread::INVALID_INDEX;
-	_state.block();
-
-	if (Native_thread::INVALID_INDEX == _selectors ||
-	    Native_thread::INVALID_INDEX == _client_exc_pt_sel)
-		throw Invalid_thread();
-
-	addr_t const ec_sel = pager_thread(location, platform_specific()).native_thread().ec_sel;
+	addr_t const pd_sel = platform_specific().core_pd_sel();
+	addr_t const ec_sel = pager_thread(_location, platform_specific()).native_thread().ec_sel;
 
 	/* create portal for page-fault handler - 14 */
 	_exceptions.register_handler<14>(*this, Mtd::QUAL | Mtd::ESP | Mtd::EIP,
 	                                 _page_fault_handler);
 
-	/* create portal for startup handler - 26 */
-	Mtd const mtd_startup(Mtd::ESP | Mtd::EIP);
-	_exceptions.register_handler<PT_SEL_STARTUP>(*this, mtd_startup,
-	                                             _startup_handler);
-
-	/* create portal for recall handler - 31 */
+	/* create portal for recall handler */
 	Mtd const mtd_recall(Mtd::ESP | Mtd::EIP | Mtd::ACDB | Mtd::EFL |
 	                     Mtd::EBSD | Mtd::FSGS);
 	_exceptions.register_handler<PT_SEL_RECALL>(*this, mtd_recall,
 	                                            _recall_handler);
 
-	/*
-	 * Create semaphore required for Genode locking. It can be later on
-	 * requested by the thread the same way as all exception portals.
-	 */
-	res = Nova::create_sm(exc_pt_sel_client() + SM_SEL_EC, pd_sel, 0);
-	if (res != Nova::NOVA_OK) {
-		throw Invalid_thread();
-	}
-
 	/* create portal for final cleanup call used during destruction */
-	res = create_portal(sel_pt_cleanup(), pd_sel, ec_sel, Mtd(0),
-	                    reinterpret_cast<addr_t>(_invoke_handler), this);
+	uint8_t res = create_portal(sel_pt_cleanup(), pd_sel, ec_sel, Mtd(0),
+	                            reinterpret_cast<addr_t>(_invoke_handler),
+	                            this);
 	if (res != Nova::NOVA_OK) {
 		error("could not create pager cleanup portal, error=", res);
 		throw Invalid_thread();
@@ -659,6 +679,69 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	res = Nova::create_sm(sel_sm_block_oom(), pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
 		throw Invalid_thread();
+	}
+}
+
+
+Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
+                           Thread_capability thread_cap, unsigned long badge,
+                           Affinity::Location location, Session_label const &,
+                           Cpu_session::Name const &)
+:
+	_badge(badge),
+	_selectors(cap_map().insert(2)),
+	_client_exc_pt_sel(cap_map().insert(NUM_INITIAL_PT_LOG2)),
+	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
+	_location(location),
+	_exceptions(*this),
+	_pd_target(Native_thread::INVALID_INDEX)
+{
+	_state._status       = 0;
+	_state.modified      = false;
+	_state.sel_client_ec = Native_thread::INVALID_INDEX;
+	_state.block();
+
+	if (Native_thread::INVALID_INDEX == _selectors ||
+	    Native_thread::INVALID_INDEX == _client_exc_pt_sel)
+		throw Invalid_thread();
+
+	_construct_pager();
+
+	/* create portal for startup handler */
+	Mtd const mtd_startup(Mtd::ESP | Mtd::EIP);
+	_exceptions.register_handler<PT_SEL_STARTUP>(*this, mtd_startup,
+	                                             _startup_handler);
+
+	/*
+	 * Create semaphore required for Genode locking. It can be later on
+	 * requested by the thread the same way as all exception portals.
+	 */
+	addr_t const pd_sel = platform_specific().core_pd_sel();
+	uint8_t const res = Nova::create_sm(exc_pt_sel_client() + SM_SEL_EC,
+	                                    pd_sel, 0);
+	if (res != Nova::NOVA_OK)
+		throw Invalid_thread();
+}
+
+
+void Pager_object::migrate(Affinity::Location location)
+{
+	Mutex::Guard _state_lock_guard(_state_lock);
+
+	if (_state.blocked())
+		return;
+
+	if (location.xpos() == _location.xpos() &&
+	    location.ypos() == _location.ypos())
+		return;
+
+	/* initiate migration by recall handler */
+	bool const just_recall = false;
+	uint8_t const res = _unsynchronized_client_recall(just_recall);
+	if (res == Nova::NOVA_OK) {
+		_next_location = location;
+
+		_state.request_migrate();
 	}
 }
 
@@ -868,7 +951,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 }
 
 
-addr_t Pager_object::get_oom_portal()
+addr_t Pager_object::create_oom_portal()
 {
 	try {
 		addr_t const pt_oom      = sel_oom_portal();

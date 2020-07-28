@@ -70,6 +70,11 @@ namespace Genode {
 			Platform_thread(Platform_thread const &);
 			Platform_thread &operator = (Platform_thread const &);
 
+			/**
+			 * Create OOM portal and delegate it
+			 */
+			bool _create_and_map_oom_portal(Nova::Utcb &);
+
 		public:
 
 			/* mark as vcpu in remote pd if it is a vcpu */
@@ -81,16 +86,13 @@ namespace Genode {
 				return _sel_exc_base;
 			}
 
-			/* invalid thread number */
-			enum { THREAD_INVALID = -1 };
-
 			/**
 			 * Constructor
 			 */
-			Platform_thread(size_t, const char *name = 0,
-			                unsigned priority = 0,
-			                Affinity::Location affinity = Affinity::Location(),
-			                int thread_id = THREAD_INVALID);
+			Platform_thread(size_t quota, char const *name,
+			                unsigned priority,
+			                Affinity::Location affinity,
+			                addr_t utcb);
 
 			/**
 			 * Destructor
@@ -174,9 +176,19 @@ namespace Genode {
 			void affinity(Affinity::Location location);
 
 			/**
+			 * Pager_object starts migration preparation and calls for
+			 * finalization of the migration.
+			 * The method delegates the new exception portals to
+			 * the protection domain and set the new acknowledged location.
+			 */
+			void prepare_migration();
+			void finalize_migration(Affinity::Location const location) {
+				_location = location; }
+
+			/**
 			 * Get the executing CPU for this thread
 			 */
-			Affinity::Location affinity() const;
+			Affinity::Location affinity() const { return _location; }
 
 			/**
 			 * Get thread name

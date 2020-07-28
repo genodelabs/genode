@@ -36,7 +36,7 @@ static inline void spinlock_lock(volatile T *lock_variable)
 
 	Genode::Thread * myself = Genode::Thread::myself();
 	T const tid = myself ? myself->native_thread().ec_sel
-	                     : (Genode::addr_t)Nova::PT_SEL_MAIN_EC;
+	                     : (Genode::addr_t)Nova::EC_SEL_THREAD;
 
 	unsigned help_counter = 0;
 

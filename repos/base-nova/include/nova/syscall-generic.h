@@ -236,7 +236,13 @@ namespace Nova {
 	/**
 	 * Ec operations
 	 */
-	enum Ec_op { EC_RECALL = 0U, EC_YIELD = 1U, EC_DONATE_SC = 2U, EC_RESCHEDULE = 3U };
+	enum Ec_op {
+		EC_RECALL = 0U,
+		EC_YIELD  = 1U,
+		EC_DONATE_SC = 2U,
+		EC_RESCHEDULE = 3U,
+		EC_MIGRATE = 4U,
+	};
 
 	/**
 	 * Pd operations
@@ -754,7 +760,7 @@ namespace Nova {
 	enum {
 		PT_SEL_PAGE_FAULT = 0xe,
 		PT_SEL_PARENT     = 0x1a,  /* convention on Genode */
-		PT_SEL_MAIN_EC    = 0x1c,  /* convention on Genode */
+		EC_SEL_THREAD     = 0x1c,  /* convention on Genode */
 		PT_SEL_STARTUP    = 0x1e,
 		SM_SEL_SIGNAL     = 0x1e,  /* alias of PT_SEL_STARTUP */
 		PT_SEL_RECALL     = 0x1f,

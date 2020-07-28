@@ -85,7 +85,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 		_thread_cap = main_thread_cap();
 
 		native_thread().exc_pt_sel = 0;
-		native_thread().ec_sel     = Nova::PT_SEL_MAIN_EC;
+		native_thread().ec_sel     = Nova::EC_SEL_THREAD;
 
 		request_native_ec_cap(PT_SEL_PAGE_FAULT, native_thread().ec_sel);
 		return;
@@ -125,7 +125,6 @@ void Thread::_deinit_platform_thread()
 
 	if (native_thread().ec_sel != Native_thread::INVALID_INDEX) {
 		revoke(Obj_crd(native_thread().ec_sel, 0));
-		cap_map().remove(native_thread().ec_sel, 0, false);
 	}
 
 	/* de-announce thread */
@@ -172,9 +171,7 @@ void Thread::start()
 	cpu_thread.start(thread_ip, _stack->top());
 
 	/* request native EC thread cap */ 
-	native_thread().ec_sel = cap_map().insert();
-	if (native_thread().ec_sel == Native_thread::INVALID_INDEX)
-		throw Cpu_session::Thread_creation_failed();
+	native_thread().ec_sel = native_thread().exc_pt_sel + Nova::EC_SEL_THREAD;
 
 	/*
 	 * Requested ec cap that is used for recall and
