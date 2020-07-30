@@ -793,7 +793,7 @@ class Lwip::Udp_socket_dir final :
 			private:
 
 				u16_t  offset = 0;
-				pbuf  *buf;
+				pbuf * const buf;
 
 			public:
 
@@ -857,6 +857,10 @@ class Lwip::Udp_socket_dir final :
 
 		virtual ~Udp_socket_dir()
 		{
+			_packet_queue.dequeue_all([&] (Packet &pkt) {
+				destroy(_packet_slab, &pkt);
+			});
+
 			udp_remove(_pcb);
 			_pcb = NULL;
 
