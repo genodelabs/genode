@@ -21,9 +21,7 @@ namespace Libc { struct Errno; }
 
 struct Libc::Errno
 {
-    int const error;
-
-    explicit Errno(int error) : error(error) { errno = error; }
+    explicit Errno(int error) { errno = error; }
 
     operator int() const { return -1; }
 };
