@@ -563,19 +563,26 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 		Libc::Allocator alloc { };
 		accept_context = new (alloc)
 			Socket_fs::Context(listen_context->proto(), handle_fd);
-	} catch (New_socket_failed) { return Errno(EACCES); }
+	} catch (New_socket_failed) {
+		close(handle_fd);
+		return Errno(EACCES);
+	}
+
+	if (addr && addrlen) {
+		Socket_fs::Remote_functor func(*accept_context, false);
+		int ret = read_sockaddr_in(func, (sockaddr_in *)addr, addrlen);
+		if (ret == -1) {
+			Libc::Allocator alloc { };
+			destroy(alloc, accept_context);
+			return ret;
+		}
+	}
 
 	File_descriptor *accept_fd =
 		file_descriptor_allocator()->alloc(&plugin(), accept_context);
 
 	/* inherit the O_NONBLOCK flag if set */
 	accept_context->fd_flags(listen_context->fd_flags());
-
-	if (addr && addrlen) {
-		Socket_fs::Remote_functor func(*accept_context, false);
-		int ret = read_sockaddr_in(func, (sockaddr_in *)addr, addrlen);
-		if (ret == -1) return ret;
-	}
 
 	return accept_fd->libc_fd;
 }
