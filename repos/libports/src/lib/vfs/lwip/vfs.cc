@@ -1305,6 +1305,12 @@ class Lwip::Tcp_socket_dir final :
 			case Lwip_file_handle::DATA:
 				{
 					if (_recv_pbuf == nullptr) {
+						if (!_pcb || _pcb->state == CLOSE_WAIT) {
+							shutdown();
+							out_count = 0;
+							return Read_result::READ_OK;
+						}
+
 						/*
 						 * queue the read if the PCB is active and
 						 * there is nothing to read, otherwise return
@@ -1645,10 +1651,13 @@ err_t tcp_delayed_recv_callback(void *arg, struct tcp_pcb *pcb, struct pbuf *buf
 	Lwip::Tcp_socket_dir::Pcb_pending *pending =
 		static_cast<Lwip::Tcp_socket_dir::Pcb_pending *>(arg);
 
-	if (pending->buf && buf) {
-		pbuf_cat(pending->buf, buf);
-	} else {
-		pending->buf = buf;
+	/* XXX buf == nullptr means ENOTCONN */
+	if (buf) {
+		if (pending->buf) {
+			pbuf_cat(pending->buf, buf);
+		} else {
+			pending->buf = buf;
+		}
 	}
 
 	return ERR_OK;
