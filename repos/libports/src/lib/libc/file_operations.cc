@@ -43,6 +43,8 @@ extern "C" {
 #include <internal/mem_alloc.h>
 #include <internal/mmap_registry.h>
 #include <internal/errno.h>
+#include <internal/init.h>
+#include <internal/cwd.h>
 
 using namespace Libc;
 
@@ -61,6 +63,14 @@ Libc::Mmap_registry *Libc::mmap_registry()
 }
 
 
+static Cwd *_cwd_ptr;
+
+void Libc::init_file_operations(Cwd &cwd)
+{
+	_cwd_ptr = &cwd;
+}
+
+
 /***************
  ** Utilities **
  ***************/
@@ -70,8 +80,11 @@ Libc::Mmap_registry *Libc::mmap_registry()
  */
 static Absolute_path &cwd()
 {
-	static Absolute_path _cwd("/");
-	return _cwd;
+	struct Missing_call_of_init_file_operations : Exception { };
+	if (!_cwd_ptr)
+		throw Missing_call_of_init_file_operations();
+
+	return _cwd_ptr->cwd();
 }
 
 /**

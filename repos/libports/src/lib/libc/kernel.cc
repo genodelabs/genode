@@ -168,7 +168,7 @@ void Libc::Kernel::_init_file_descriptors()
 		typedef String<Vfs::MAX_PATH_LEN> Path;
 
 		if (node.has_attribute("cwd"))
-			chdir(node.attribute_value("cwd", Path()).string());
+			_cwd.import(node.attribute_value("cwd", Path()).string(), _cwd.base());
 
 		init_fd(node, "stdin",  0, O_RDONLY);
 		init_fd(node, "stdout", 1, O_WRONLY);
@@ -418,6 +418,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_plugin(*this);
 	init_sleep(*this);
 	init_vfs_plugin(*this);
+	init_file_operations(*this);
 	init_time(*this, _rtc_path, *this);
 	init_select(*this, *this, *this, _signal);
 	init_socket_fs(*this);

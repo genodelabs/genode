@@ -41,6 +41,7 @@
 #include <internal/signal.h>
 #include <internal/monitor.h>
 #include <internal/pthread.h>
+#include <internal/cwd.h>
 
 namespace Libc {
 	class Kernel;
@@ -107,7 +108,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
                             Select,
                             Kernel_routine_scheduler,
                             Current_time,
-                            Watch
+                            Watch,
+                            Cwd
 {
 	private:
 
@@ -285,6 +287,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		}
 
 		Constructible<Clone_connection> _clone_connection { };
+
+		Absolute_path _cwd { "/" };
 
 		struct Resumer
 		{
@@ -657,6 +661,11 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			return _libc_env.vfs().watch(path, &watch_handle, _heap) == Result::WATCH_OK
 				? watch_handle : nullptr;
 		}
+
+		/**
+		 * Cwd interface
+		 */
+		Absolute_path &cwd() { return _cwd; }
 
 
 		/****************************************

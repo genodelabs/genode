@@ -39,6 +39,7 @@ namespace Libc {
 	struct Signal;
 	struct File_descriptor_allocator;
 	struct Timer_accessor;
+	struct Cwd;
 
 	/**
 	 * Support for shared libraries
@@ -64,6 +65,7 @@ namespace Libc {
 	 * Virtual file system
 	 */
 	void init_vfs_plugin(Suspend &);
+	void init_file_operations(Cwd &);
 
 	/**
 	 * Select support
