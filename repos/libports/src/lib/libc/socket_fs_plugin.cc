@@ -458,6 +458,7 @@ static int read_sockaddr_in(Socket_fs::Sockaddr_functor &func,
 	int const n = read(func.fd(), addr_string.base(), addr_string.capacity() - 1);
 
 	if (n == -1) return Errno(errno);
+	/* 0 return value means "no packet resp. not connected" */
 	if (!n)
 		switch (func.context.proto()) {
 		case Socket_fs::Context::Proto::UDP: return Errno(EAGAIN);

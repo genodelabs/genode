@@ -988,9 +988,9 @@ class Lwip::Udp_socket_dir final :
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
 		{
-			Genode::Mutex::Guard g { Lwip::mutex() };
+			Genode::Mutex::Guard guard { Lwip::mutex() };
 
-			switch(handle.kind) {
+			switch (handle.kind) {
 
 			case Lwip_file_handle::DATA: {
 				if (ip_addr_isany(&_to_addr)) break;
@@ -1300,7 +1300,7 @@ class Lwip::Tcp_socket_dir final :
 		{
 			Genode::Mutex::Guard g { Lwip::mutex() };
 
-			switch(handle.kind) {
+			switch (handle.kind) {
 
 			case Lwip_file_handle::DATA:
 				{
@@ -1363,7 +1363,8 @@ class Lwip::Tcp_socket_dir final :
 					out_count = Genode::snprintf(dst, count, "%s:%d\n",
 					                             ip_str, _pcb->remote_port);
 					return Read_result::READ_OK;
-				} else if (state == CLOSED) {
+				} else {
+					out_count = 0;
 					return Read_result::READ_OK;
 				}
 				break;
@@ -1457,7 +1458,7 @@ class Lwip::Tcp_socket_dir final :
 				return Write_result::WRITE_ERR_IO;
 			}
 
-			switch(handle.kind) {
+			switch (handle.kind) {
 			case Lwip_file_handle::DATA:
 				if (state == READY) {
 					Write_result res = Write_result::WRITE_ERR_WOULD_BLOCK;
