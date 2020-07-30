@@ -384,7 +384,10 @@ void Ssh::Server::detach_terminal(Ssh::Terminal &conn)
 	};
 	_sessions.for_each(invalidate_terminal);
 	_cleanup_sessions();
-	Genode::destroy(&_heap, p);
+
+	Libc::with_libc([&] () {
+		Genode::destroy(&_heap, p);
+	});
 }
 
 
