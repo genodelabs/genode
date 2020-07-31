@@ -273,6 +273,7 @@ extern "C" int dup2(int libc_fd, int new_libc_fd)
 		close(new_libc_fd);
 
 	new_fd = file_descriptor_allocator()->alloc(fd->plugin, 0, new_libc_fd);
+	if (!new_fd) return Errno(EMFILE);
 
 	/* new_fd->context must be assigned by the plugin implementing 'dup2' */
 	return fd->plugin->dup2(fd, new_fd);
@@ -513,10 +514,8 @@ __SYS_(int, open, (const char *pathname, int flags, ...),
 	}
 
 	new_fdo = plugin->open(resolved_path.base(), flags);
-	if (!new_fdo) {
-		error("plugin()->open(\"", pathname, "\") failed");
+	if (!new_fdo)
 		return -1;
-	}
 	new_fdo->path(resolved_path.base());
 
 	return new_fdo->libc_fd;

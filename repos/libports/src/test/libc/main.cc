@@ -19,17 +19,19 @@
 
 /* libC includes */
 extern "C" {
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/random.h>
-#include <sys/syscall.h>
 #include <sys/limits.h>
+#include <sys/random.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
 #include <time.h>
-#include <inttypes.h>
+#include <time.h>
+#include <unistd.h>
 }
 
 int main(int argc, char **argv)
@@ -175,6 +177,33 @@ int main(int argc, char **argv)
 	}
 
 	perror("perror");
+
+	{
+		/* test EMFILE (issue #3841) */
+		rlimit limit { 0, 0 };
+		if (getrlimit(RLIMIT_NOFILE, &limit) == -1) {
+			perror("getrlimit");
+			++error_count;
+		} else {
+			int fd[limit.rlim_cur]; memset(fd, -1, sizeof(fd));
+
+			while (limit.rlim_cur--) {
+				int i = open("/dev/log", O_WRONLY);
+				if (i == -1) break;
+				fd[i] = i;
+			}
+
+			if (errno != EMFILE) {
+				printf("open returned '%s' expected EMFILE\n", strerror(errno));
+				++error_count;
+			}
+
+			for (int i : fd) {
+				if (i != -1)
+					close(i);
+			}
+		}
+	}
 
 	struct timespec ts;
 	for (int i = 0; i < 3; ++i) {

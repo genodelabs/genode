@@ -559,6 +559,12 @@ Libc::File_descriptor *Libc::Vfs_plugin::dup(File_descriptor *fd)
 	File_descriptor * const new_fd =
 		file_descriptor_allocator()->alloc(this, vfs_context(handle));
 
+	if (!new_fd) {
+		VFS_THREAD_SAFE(handle->close());
+		errno = EMFILE;
+		return nullptr;
+	}
+
 	new_fd->flags = fd->flags;
 	new_fd->path(fd->fd_path);
 

@@ -41,6 +41,7 @@
 #include <internal/errno.h>
 #include <internal/init.h>
 #include <internal/suspend.h>
+#include <internal/unconfirmed.h>
 
 
 namespace Libc {
@@ -568,6 +569,16 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 		return Errno(EACCES);
 	}
 
+	File_descriptor *accept_fd =
+		file_descriptor_allocator()->alloc(&plugin(), accept_context);
+	if (!accept_fd) {
+		Libc::Allocator alloc { };
+		destroy(alloc, accept_context);
+		return Errno(EMFILE);
+	}
+
+	auto _accept_fd = make_unconfirmed([&] { file_descriptor_allocator()->free(accept_fd); });
+
 	if (addr && addrlen) {
 		Socket_fs::Remote_functor func(*accept_context, false);
 		int ret = read_sockaddr_in(func, (sockaddr_in *)addr, addrlen);
@@ -578,12 +589,10 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 		}
 	}
 
-	File_descriptor *accept_fd =
-		file_descriptor_allocator()->alloc(&plugin(), accept_context);
-
 	/* inherit the O_NONBLOCK flag if set */
 	accept_context->fd_flags(listen_context->fd_flags());
 
+	_accept_fd.confirm();
 	return accept_fd->libc_fd;
 }
 
@@ -1028,6 +1037,11 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 	} catch (New_socket_failed) { return Errno(EACCES); }
 
 	File_descriptor *fd = file_descriptor_allocator()->alloc(&plugin(), context);
+	if (!fd) {
+		Libc::Allocator alloc { };
+		destroy(alloc, context);
+		return Errno(EMFILE);
+	}
 
 	return fd->libc_fd;
 }

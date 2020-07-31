@@ -63,13 +63,15 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 	bool const any_fd = (libc_fd < 0);
 	Id_space::Id id {(unsigned)libc_fd};
 
-	if (any_fd) {
-		id.value = _id_allocator.alloc();
-	} else {
-		_id_allocator.alloc_addr(addr_t(libc_fd));
-	}
+	try {
+		if (any_fd) {
+			id.value = _id_allocator.alloc();
+		} else {
+			_id_allocator.alloc_addr(addr_t(libc_fd));
+		}
 
-	return new (_alloc) File_descriptor(_id_space, *plugin, *context, id);
+		return new (_alloc) File_descriptor(_id_space, *plugin, *context, id);
+	} catch (...) { return nullptr; }
 }
 
 
