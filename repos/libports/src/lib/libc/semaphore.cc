@@ -64,6 +64,8 @@ struct sem : Genode::Noncopyable
 		int        _count;
 		Mutex      _data_mutex;
 
+		clockid_t  _clock_id { CLOCK_REALTIME };
+
 		/* _data_mutex must be hold when calling the following methods */
 
 		void _append_applicant(Applicant *applicant)
@@ -185,7 +187,7 @@ struct sem : Genode::Noncopyable
 				return 0;
 
 			timespec abs_now;
-			clock_gettime(CLOCK_REALTIME, &abs_now);
+			clock_gettime(_clock_id, &abs_now);
 
 			Libc::uint64_t const timeout_ms =
 				calculate_relative_timeout_ms(abs_now, abs_timeout);
@@ -206,10 +208,30 @@ struct sem : Genode::Noncopyable
 
 			return 0;
 		}
+
+		int set_clock(clockid_t clock_id)
+		{
+			switch (clock_id) {
+			case CLOCK_REALTIME:
+				_clock_id = CLOCK_REALTIME;
+				return 0;
+			case CLOCK_MONOTONIC:
+				_clock_id = CLOCK_MONOTONIC;
+				return 0;
+			default:
+				break;
+			}
+			return -1;
+		}
 };
 
 
 extern "C" {
+
+	int sem_set_clock(sem_t *sem, clockid_t clock_id)
+	{
+		return (*sem)->set_clock(clock_id);
+	}
 
 	int sem_close(sem_t *)
 	{

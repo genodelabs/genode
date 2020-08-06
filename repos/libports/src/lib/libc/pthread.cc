@@ -505,6 +505,15 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 };
 
 
+/*
+ * The pthread_cond implementation uses the POSIX semaphore API
+ * internally that does not have means to set the clock. For this
+ * reason the private 'sem_set_clock' function is introduced,
+ * see 'semaphore.cc' for the implementation.
+*/
+extern "C" int sem_set_clock(sem_t *sem, clockid_t clock_id);
+
+
 extern "C" {
 
 	/* Thread */
@@ -879,11 +888,16 @@ extern "C" {
 		sem_t           signal_sem;
 		sem_t           handshake_sem;
 
-		pthread_cond() : num_waiters(0), num_signallers(0)
+		pthread_cond(clockid_t clock_id) : num_waiters(0), num_signallers(0)
 		{
 			pthread_mutex_init(&counter_mutex, nullptr);
 			sem_init(&signal_sem, 0, 0);
 			sem_init(&handshake_sem, 0, 0);
+
+			if (sem_set_clock(&signal_sem, clock_id)) {
+				struct Invalid_timedwait_clock { };
+				throw Invalid_timedwait_clock();
+			}
 		}
 
 		~pthread_cond()
@@ -895,12 +909,25 @@ extern "C" {
 	};
 
 
+	struct pthread_cond_attr
+	{
+		clockid_t clock_id { CLOCK_REALTIME };
+	};
+
+
 	int pthread_condattr_init(pthread_condattr_t *attr)
 	{
+		static Mutex condattr_init_mutex { };
+
 		if (!attr)
 			return EINVAL;
 
-		*attr = nullptr;
+		try {
+			Mutex::Guard guard(condattr_init_mutex);
+			Libc::Allocator alloc { };
+			*attr = new (alloc) pthread_cond_attr;
+			return 0;
+		} catch (...) { return ENOMEM; }
 
 		return 0;
 	}
@@ -908,9 +935,12 @@ extern "C" {
 
 	int pthread_condattr_destroy(pthread_condattr_t *attr)
 	{
-		/* assert that the attr was produced by the init no-op */
-		if (!attr || *attr != nullptr)
+		if (!attr)
 			return EINVAL;
+
+		Libc::Allocator alloc { };
+		destroy(alloc, *attr);
+		*attr = nullptr;
 
 		return 0;
 	}
@@ -919,11 +949,10 @@ extern "C" {
 	int pthread_condattr_setclock(pthread_condattr_t *attr,
 	                              clockid_t clock_id)
 	{
-		/* assert that the attr was produced by the init no-op */
-		if (!attr || *attr != nullptr)
+		if (!attr)
 			return EINVAL;
 
-		warning(__func__, " not implemented yet");
+		(*attr)->clock_id = clock_id;
 
 		return 0;
 	}
@@ -940,7 +969,8 @@ extern "C" {
 		try {
 			Mutex::Guard guard(cond_init_mutex);
 			Libc::Allocator alloc { };
-			*cond = new (alloc) pthread_cond;
+			*cond = attr && *attr ? new (alloc) pthread_cond((*attr)->clock_id)
+			                      : new (alloc) pthread_cond(CLOCK_REALTIME);
 			return 0;
 		} catch (...) { return ENOMEM; }
 	}
