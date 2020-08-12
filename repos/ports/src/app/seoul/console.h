@@ -30,7 +30,6 @@
 /* os includes */
 #include <framebuffer_session/connection.h>
 #include <input/event.h>
-#include <input_session/connection.h>
 #include <gui_session/connection.h>
 #include <timer_session/connection.h>
 

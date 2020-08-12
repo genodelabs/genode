@@ -16,7 +16,6 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/allocator_avl.h>
 #include <base/heap.h>
-#include <input_session/connection.h>
 #include <block_session/connection.h>
 
 namespace Test {

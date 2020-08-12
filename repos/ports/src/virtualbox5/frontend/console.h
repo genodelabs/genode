@@ -18,7 +18,6 @@
 #include <base/attached_rom_dataspace.h>
 #include <input/event.h>
 #include <input/keycodes.h>
-#include <input_session/connection.h>
 #define Framebuffer Fb_Genode
 #include <gui_session/connection.h>
 #undef Framebuffer
