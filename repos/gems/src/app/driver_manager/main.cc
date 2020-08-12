@@ -186,7 +186,7 @@ struct Driver_manager::Boot_fb_driver : Device_driver
 	void generate_start_node(Xml_generator &xml) const override
 	{
 		xml.node("start", [&] () {
-			_gen_common_start_node_content(xml, "fb_boot_drv", "fb_boot_drv",
+			_gen_common_start_node_content(xml, "boot_fb_drv", "boot_fb_drv",
 			                               _ram_quota, Cap_quota{100},
 			                               Priority{-1});
 			xml.node("route", [&] () {
