@@ -37,7 +37,6 @@ class Ps2::Keyboard : public Input_driver
 		Keyboard &operator = (Keyboard const &);
 
 		Serial_interface   &_kbd;
-		Input::Event_queue &_ev_queue;
 		bool         const  _xlate_mode;
 		Verbose      const &_verbose;
 
@@ -420,11 +419,9 @@ class Ps2::Keyboard : public Input_driver
 		 * If 'xlate_mode' is true, we do not attempt to manually switch the
 		 * keyboard to scan code set 2 but just decode the scan-code set 1.
 		 */
-		Keyboard(Serial_interface &kbd, Input::Event_queue &ev_queue,
-		         bool xlate_mode, Verbose const &verbose)
+		Keyboard(Serial_interface &kbd, bool xlate_mode, Verbose const &verbose)
 		:
-			_kbd(kbd), _ev_queue(ev_queue), _xlate_mode(xlate_mode),
-			_verbose(verbose)
+			_kbd(kbd), _xlate_mode(xlate_mode), _verbose(verbose)
 		{
 			for (int i = 0; i <= Input::KEY_MAX; i++)
 				_key_state[i] = false;
@@ -496,7 +493,7 @@ class Ps2::Keyboard : public Input_driver
 		 ** Input driver interface **
 		 ****************************/
 
-		void handle_event() override
+		void handle_event(Event::Session_client::Batch &batch) override
 		{
 			_state_machine->process(_kbd.read(), _verbose.scancodes);
 
@@ -523,16 +520,11 @@ class Ps2::Keyboard : public Input_driver
 				Genode::log("post ", press ? "PRESS" : "RELEASE", ", "
 				            "key_code = ", Input::key_name(key_code));
 
-			if (_ev_queue.avail_capacity() == 0) {
-				Genode::warning("event queue overflow - dropping events");
-				_ev_queue.reset();
-			}
-
 			/* post event to event queue */
 			if (press)
-				_ev_queue.add(Input::Press{key_code});
+				batch.submit(Input::Press{key_code});
 			else
-				_ev_queue.add(Input::Release{key_code});
+				batch.submit(Input::Release{key_code});
 
 			/* start with new packet */
 			_state_machine->reset();

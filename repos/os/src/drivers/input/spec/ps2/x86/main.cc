@@ -17,8 +17,7 @@
 #include <util/retry.h>
 
 /* os includes */
-#include <input/component.h>
-#include <input/root.h>
+#include <event_session/connection.h>
 #include <platform_session/connection.h>
 #include <timer_session/connection.h>
 
@@ -37,8 +36,7 @@ struct Ps2::Main
 {
 	Genode::Env &_env;
 
-	Input::Session_component _session { _env, _env.ram() };
-	Input::Root_component    _root { _env.ep().rpc_ep(), _session };
+	Event::Connection _event { _env };
 
 	Platform::Connection _platform { _env };
 
@@ -61,13 +59,12 @@ struct Ps2::Main
 
 	Genode::Reconstructible<Verbose> _verbose { _config.xml() };
 
-	Keyboard _keyboard { _i8042.kbd_interface(), _session.event_queue(),
-	                     _i8042.kbd_xlate(), *_verbose };
+	Keyboard _keyboard { _i8042.kbd_interface(), _i8042.kbd_xlate(), *_verbose };
 
-	Mouse _mouse { _i8042.aux_interface(), _session.event_queue(), _timer, *_verbose };
+	Mouse _mouse { _i8042.aux_interface(), _timer, *_verbose };
 
-	Irq_handler _keyboard_irq { _env.ep(), _keyboard, _device_ps2.irq(0) };
-	Irq_handler _mouse_irq    { _env.ep(), _mouse,    _device_ps2.irq(1) };
+	Irq_handler _keyboard_irq { _env.ep(), _keyboard, _event, _device_ps2.irq(0) };
+	Irq_handler _mouse_irq    { _env.ep(), _mouse,    _event, _device_ps2.irq(1) };
 
 	Led_state _capslock { _env, "capslock" },
 	          _numlock  { _env, "numlock"  },
@@ -97,8 +94,6 @@ struct Ps2::Main
 	{
 		_config.sigh(_config_handler);
 		_handle_config();
-
-		env.parent().announce(env.ep().manage(_root));
 	}
 };
 

@@ -70,7 +70,7 @@ append config {
 
 	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
+		<config/>
 	</start>
 
 	<start name="usb_config_fs" priority="-1">
@@ -152,13 +152,15 @@ append config {
 
 	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="12M"/>
-		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
 		<route>
 			<service name="Report"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config request_framebuffer="no">
-			<capture/>
+		<config request_framebuffer="no" request_input="no">
+			<capture/> <event/>
 			<report focus="yes" hover="yes" />
 
 			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />

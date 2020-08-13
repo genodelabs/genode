@@ -204,7 +204,7 @@ append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
 			<service name="File_system"><child name="rump_fs"/></service>}
 append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
-			<any-service><parent/><any-child/></any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
 
@@ -213,18 +213,10 @@ append_platform_drv_config
 append_if [expr $use_ps2] config {
 	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Input"/> </provides>
-		<config/>
-	</start>
-
-	<start name="ps2" caps="90">
-		<resource name="RAM" quantum="1M"/>
-		<binary name="input_event_client"/>
 		<config/>
 		<route>
 			<service name="Event"> <child name="event_filter" label="ps2"/> </service>
-			<service name="Input"> <child name="ps2_drv"/> </service>
-			<any-service> <parent/> </any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
 

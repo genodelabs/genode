@@ -74,10 +74,7 @@ class Ps2::Mouse : public Input_driver
 	private:
 
 		Serial_interface   &_aux;
-		Input::Event_queue &_ev_queue;
-
 		Type                _type { PS2 };
-
 		Timer::Connection  &_timer;
 		Verbose      const &_verbose;
 		bool                _button_state[NUM_BUTTONS];
@@ -85,41 +82,6 @@ class Ps2::Mouse : public Input_driver
 		unsigned char _packet[MAX_PACKET_LEN];
 		int           _packet_len { PS2_PACKET_LEN };
 		int           _packet_idx = 0;
-
-		void _check_for_event_queue_overflow()
-		{
-			if (_ev_queue.avail_capacity())
-				return;
-
-			Genode::warning("event queue overflow - dropping events");
-			_ev_queue.reset();
-		}
-
-		/**
-		 * Generate mouse button event on state changes
-		 *
-		 * Depending on the old and new state, this function
-		 * posts press or release events for the mouse buttons
-		 * to the event queue. Note that the old state value
-		 * gets set to the new state.
-		 */
-		void _button_event(bool *old_state, bool new_state, int key_code)
-		{
-			if (*old_state == new_state) return;
-
-			if (_verbose.mouse)
-				Genode::log("post ", new_state ? "PRESS" : "RELEASE", ", "
-				            "key_code=", key_code);
-
-			_check_for_event_queue_overflow();
-
-			if (new_state)
-				_ev_queue.add(Input::Press{Input::Keycode(key_code)});
-			else
-				_ev_queue.add(Input::Release{Input::Keycode(key_code)});
-
-			*old_state = new_state;
-		}
 
 		/**
 		 * Probe for extended ImPS/2 mouse (IntelliMouse)
@@ -180,10 +142,9 @@ class Ps2::Mouse : public Input_driver
 
 	public:
 
-		Mouse(Serial_interface &aux, Input::Event_queue &ev_queue,
-		      Timer::Connection &timer, Verbose const &verbose)
+		Mouse(Serial_interface &aux, Timer::Connection &timer, Verbose const &verbose)
 		:
-			_aux(aux), _ev_queue(ev_queue), _timer(timer), _verbose(verbose)
+			_aux(aux), _timer(timer), _verbose(verbose)
 		{
 			for (unsigned i = 0; i < NUM_BUTTONS; ++i)
 				_button_state[i] = false;
@@ -249,7 +210,7 @@ class Ps2::Mouse : public Input_driver
 		 ** Input driver interface **
 		 ****************************/
 
-		void handle_event() override
+		void handle_event(Event::Session_client::Batch &batch) override
 		{
 			_packet[_packet_idx++] = _aux.read();
 			if (_packet_idx < _packet_len)
@@ -278,9 +239,7 @@ class Ps2::Mouse : public Input_driver
 				if (_verbose.mouse)
 					Genode::log("post MOTION, rel_x=", rel_x, ", rel_y=", rel_y);
 
-				_check_for_event_queue_overflow();
-
-				_ev_queue.add(Input::Relative_motion{rel_x, rel_y});
+				batch.submit(Input::Relative_motion{rel_x, rel_y});
 			}
 
 			/* generate wheel event */
@@ -299,20 +258,42 @@ class Ps2::Mouse : public Input_driver
 				if (_verbose.mouse)
 					Genode::log("post WHEEL, rel_z=", rel_z);
 
-				_check_for_event_queue_overflow();
-
-				_ev_queue.add(Input::Wheel{0, rel_z});
+				batch.submit(Input::Wheel{0, rel_z});
 			}
 
+			/**
+			 * Generate mouse button event on state changes
+			 *
+			 * Depending on the old and new state, this function
+			 * posts press or release events for the mouse buttons
+			 * to the event queue. Note that the old state value
+			 * gets set to the new state.
+			 */
+			auto button_event = [&] (bool *old_state, bool new_state, int key_code)
+			{
+				if (*old_state == new_state) return;
+
+				if (_verbose.mouse)
+					Genode::log("post ", new_state ? "PRESS" : "RELEASE", ", "
+					            "key_code=", key_code);
+
+				if (new_state)
+					batch.submit(Input::Press{Input::Keycode(key_code)});
+				else
+					batch.submit(Input::Release{Input::Keycode(key_code)});
+
+				*old_state = new_state;
+			};
+
 			/* detect changes of mouse-button state and post corresponding events */
-			_button_event(&_button_state[LEFT],   ph & FLAG_BTN_LEFT,   Input::BTN_LEFT);
-			_button_event(&_button_state[RIGHT],  ph & FLAG_BTN_RIGHT,  Input::BTN_RIGHT);
-			_button_event(&_button_state[MIDDLE], ph & FLAG_BTN_MIDDLE, Input::BTN_MIDDLE);
+			button_event(&_button_state[LEFT],   ph & FLAG_BTN_LEFT,   Input::BTN_LEFT);
+			button_event(&_button_state[RIGHT],  ph & FLAG_BTN_RIGHT,  Input::BTN_RIGHT);
+			button_event(&_button_state[MIDDLE], ph & FLAG_BTN_MIDDLE, Input::BTN_MIDDLE);
 
 			/* post extra button events */
 			if (_type == EXPS2) {
-				_button_event(&_button_state[SIDE],  _packet[3] & 0x10, Input::BTN_SIDE);
-				_button_event(&_button_state[EXTRA], _packet[3] & 0x20, Input::BTN_EXTRA);
+				button_event(&_button_state[SIDE],  _packet[3] & 0x10, Input::BTN_SIDE);
+				button_event(&_button_state[EXTRA], _packet[3] & 0x20, Input::BTN_EXTRA);
 			}
 
 			/* start new packet */

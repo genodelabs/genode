@@ -1,5 +1,5 @@
 base
 os
 platform_session
-input_session
+event_session
 timer_session

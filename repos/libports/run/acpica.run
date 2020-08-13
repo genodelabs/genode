@@ -18,7 +18,6 @@ set build_components {
 	server/event_dump
 	app/acpica
 	app/acpi_event
-	app/input_event_client
 }
 
 set use_acpica_as_acpi_drv 0
@@ -153,22 +152,11 @@ append config {
 append config {
 		<start name="ps2_drv">
 			<resource name="RAM" quantum="2M"/>
-			<provides><service name="Input"/></provides>
 			<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
 			<route>
 				<service name="Platform"> <child name="platform_drv"/> </service>
 				<service name="Timer"> <child name="timer"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="ps2" caps="90">
-			<resource name="RAM" quantum="1M"/>
-			<binary name="input_event_client"/>
-			<config/>
-			<route>
 				<service name="Event"> <child name="event_filter" label="ps2"/> </service>
-				<service name="Input"> <child name="ps2_drv"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>
@@ -228,7 +216,6 @@ set boot_modules {
 	acpica
 	acpi_event
 	event_dump
-	input_event_client
 }
 
 append_platform_drv_boot_modules

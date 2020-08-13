@@ -28,23 +28,29 @@ class Irq_handler
 		Genode::Irq_session_client          _irq;
 		Genode::Signal_handler<Irq_handler> _handler;
 		Input_driver                       &_input_driver;
+		Event::Session_client              &_event_session;
 
 		void _handle()
 		{
 			_irq.ack_irq();
 
-			while (_input_driver.event_pending())
-				_input_driver.handle_event();
+			_event_session.with_batch([&] (Event::Session_client::Batch &batch) {
+				while (_input_driver.event_pending())
+					_input_driver.handle_event(batch);
+			});
 		}
 
 	public:
 
-		Irq_handler(Genode::Entrypoint &ep, Input_driver &input_driver,
+		Irq_handler(Genode::Entrypoint            &ep,
+		            Input_driver                  &input_driver,
+		            Event::Session_client         &event_session,
 		            Genode::Irq_session_capability irq_cap)
 		:
 			_irq(irq_cap),
 			_handler(ep, *this, &Irq_handler::_handle),
-			_input_driver(input_driver)
+			_input_driver(input_driver),
+			_event_session(event_session)
 		{
 			_irq.sigh(_handler);
 			_irq.ack_irq();

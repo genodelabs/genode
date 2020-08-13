@@ -86,7 +86,7 @@ append_platform_drv_config
 append_if [expr $use_ps2] config {
 	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="2M"/>
-		<provides><service name="Input"/></provides>
+		<config/>
 	</start>}
 
 append_if [expr $use_usb] config {
@@ -166,20 +166,20 @@ append config {
 
 	<start name="nitpicker" priority="-1">
 		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Gui"/> <service name="Capture"/> </provides>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
 		<route>
 			<service name="Report"> <child name="report_rom" /> </service>}
 
-append_if [expr $use_ps2] config {
-			<service name="Input"> <child name="ps2_drv"/> </service>}
 append_if [expr $use_usb] config {
 			<service name="Input"> <child name="usb_drv"/> </service>}
 
 append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config request_framebuffer="no">
-			<capture/>
+		<config request_framebuffer="no" request_input="no">
+			<capture/> <event/>
 
 			<report focus="yes" hover="yes" xray="yes" />
 
