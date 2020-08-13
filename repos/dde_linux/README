@@ -39,11 +39,13 @@ Configuration snippet:
 
 !<start name="usb_drv">
 !  <resource name="RAM" quantum="12M"/>
-!  <provides><service name="Input"/></provides>
 !  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !    <hid/>
 !  </config>
 !</start>
+
+With '<hid>' config node in place, the USB driver requests an "Event" session
+for reporting input events.
 
 Note: It has been observed that certain 1.0 versions of Qemu do not generate
 mouse interrupts. The mouse driver should work correctly on Qemu 1.0.93 and
@@ -92,7 +94,6 @@ Configuration snippet:
 !  <resource name="RAM" quantum="12M"/>
 !  <provides>
 !    <service name="Nic"/>
-!    <service name="Input"/>
 !  </provides>
 !  <config ehci="yes" xhci="yes">
 !    <nic mac="2e:60:90:0c:4e:01" />

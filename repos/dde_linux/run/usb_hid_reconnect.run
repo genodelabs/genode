@@ -27,7 +27,7 @@ if { [get_cmd_switch --autopilot] && ![have_spec x86_64] } {
 set build_components {
 	core init timer
 	drivers/usb
-	test/input
+	server/event_dump
 	server/dynamic_rom
 }
 
@@ -69,7 +69,6 @@ append config {
 
 	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>
 		<config uhci="no" ohci="no" ehci="no" xhci="yes"
 		        capslock_led="rom" numlock_led="rom" scrlock_led="rom"
 		        bios_handoff="yes">
@@ -85,9 +84,10 @@ append config {
 			<service name="IO_PORT">  <parent/>    </service>
 			<service name="IO_MEM">   <parent/>    </service>
 			<service name="LOG">      <parent/>    </service>
-			<service name="RM">      <parent/>    </service>
+			<service name="RM">       <parent/>    </service>
 			<service name="Platform"> <any-child/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Timer">    <child name="timer"/> </service>
+			<service name="Event">    <child name="event_dump"/> </service>
 		</route>
 	</start>
 
@@ -123,8 +123,10 @@ append config {
 		</route>
 	</start>
 
-	<start name="test-input">
+	<start name="event_dump">
 		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Event"/> </provides>
+		<config/>
 	</start>
 </config>}
 
@@ -136,7 +138,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer usb_drv test-input dynamic_rom
+	core ld.lib.so init timer usb_drv event_dump dynamic_rom
 }
 
 append_platform_drv_boot_modules

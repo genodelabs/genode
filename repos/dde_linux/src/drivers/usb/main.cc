@@ -45,8 +45,6 @@ extern "C" void module_mt_driver_init();
 extern "C" void module_raw_driver_init();
 extern "C" void module_led_init();
 
-extern "C" void start_input_service(void *ep, void *services);
-
 struct workqueue_struct *system_power_efficient_wq;
 struct workqueue_struct *system_wq;
 struct workqueue_struct *tasklet_wq;
@@ -122,7 +120,7 @@ void start_usb_driver(Genode::Env &env)
 	static Services services(env);
 
 	if (services.hid)
-		start_input_service(&env.ep().rpc_ep(), &services);
+		start_input_service(&services);
 
 	Storage::init(env);
 	Nic::init(env);

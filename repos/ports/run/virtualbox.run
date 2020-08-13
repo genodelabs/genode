@@ -91,8 +91,7 @@ append_if [expr $use_ps2] config {
 
 append_if [expr $use_usb] config {
 	<start name="usb_drv" priority="-1" caps="120">
-		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>}
+		<resource name="RAM" quantum="12M"/>}
 
 append_if [expr $use_usb] config {
 		<config uhci="yes" ehci="yes" xhci="yes">
@@ -114,7 +113,6 @@ append_if [have_spec framebuffer] config {
 append_if [have_spec sdl] config {
 	<start name="fb_sdl" priority="-1" ld="no">
 		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Input"/> </provides>
 	</start>}
 
 append_if [have_spec x86] config {
@@ -172,9 +170,6 @@ append config {
 		<route>
 			<service name="Report"> <child name="report_rom" /> </service>}
 
-append_if [expr $use_usb] config {
-			<service name="Input"> <child name="usb_drv"/> </service>}
-
 append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
@@ -222,8 +217,6 @@ append_if [expr $use_gui] config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<service name="Report" label="shape"> <child name="pointer" label="gui_fb2 -> shape"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Framebuffer"> <child name="gui_fb2" /> </service>
-			<service name="Input"> <child name="gui_fb2" /> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>}
@@ -256,8 +249,6 @@ append_if [expr $use_bridge] config {
 append config {
 			<service name="Report" label="shape"> <child name="pointer" label="gui_fb1 -> shape"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Framebuffer"> <child name="gui_fb1" /> </service>
-			<service name="Input"> <child name="gui_fb1" /> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>

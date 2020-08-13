@@ -3,5 +3,4 @@ _/src/ps2_drv
 _/src/usb_drv
 _/src/vesa_drv
 _/src/event_filter
-_/src/input_event_client
 _/raw/drivers_interactive-muen

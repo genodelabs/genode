@@ -3194,7 +3194,7 @@ void genode_input_register(genode_input_event_cb handler, unsigned long res_x,
 void genode_evdev_event(struct input_handle *handle, unsigned int type,
                         unsigned int code, int value);
 
-void start_input_service(void *ep, void *);
+void start_input_service(void *);
 
 
 /******************

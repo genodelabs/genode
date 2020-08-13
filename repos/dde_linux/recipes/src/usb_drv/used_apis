@@ -3,7 +3,7 @@ os
 nic_session
 usb_session
 gpio_session
-input_session
+event_session
 block_session
 platform_session
 timer_session

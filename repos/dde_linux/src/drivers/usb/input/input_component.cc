@@ -14,7 +14,7 @@
  */
 
 #include <base/rpc_server.h>
-#include <input/root.h>
+#include <event_session/connection.h>
 #include <os/ring_buffer.h>
 
 #include <lx_emul.h>
@@ -28,13 +28,7 @@ using namespace Genode;
 /**
  * Singleton instance of input-session component
  */
-static Genode::Constructible<Input::Session_component> _input_session;
-
-
-/**
- * Singleton instance of input-root component
- */
-static Genode::Constructible<Input::Root_component> _input_root;
+static Genode::Constructible<Event::Connection> _event_session;
 
 
 /**
@@ -43,9 +37,12 @@ static Genode::Constructible<Input::Root_component> _input_root;
 static void input_callback(enum input_event_type type,
                            unsigned code, int ax, int ay, int rx, int ry)
 {
-	using namespace Input;
+	auto submit = [&] (Input::Event const &ev) {
+		_event_session->with_batch([&] (Event::Session_client::Batch &batch) {
+			batch.submit(ev); });
+	};
 
-	auto submit = [&] (Event const &ev) { _input_session->submit(ev); };
+	using namespace Input;
 
 	switch (type) {
 	case EVENT_TYPE_PRESS:   submit(Press{Keycode(code)});    break;
@@ -71,16 +68,12 @@ static void input_callback(enum input_event_type type,
 }
 
 
-void start_input_service(void *ep_ptr, void * service_ptr)
+void start_input_service(void *service_ptr)
 {
-	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(ep_ptr);
 	Services *service = static_cast<Services *>(service_ptr);
 	Env &env = service->env;
 
-	_input_session.construct(env, env.ram());
-	_input_root.construct(*ep, *_input_session);
-
-	env.parent().announce(ep->manage(&*_input_root));
+	_event_session.construct(env);
 
 	genode_input_register(input_callback, service->screen_width,
 	                      service->screen_height, service->multitouch);

@@ -184,8 +184,6 @@ void Driver::main_task_entry(void * arg)
 	Genode::log("Configured HID screen with ", screen_x, "x", screen_y,
 	            " (multitouch=", multi_touch ? "true" : "false", ")");
 
-	driver->env.parent().announce(driver->ep.manage(driver->root));
-
 	for (;;) {
 		if (!use_report)
 			static Device dev(*driver, Label(""));
@@ -237,9 +235,13 @@ void Driver::scan_report()
 void Driver::input_callback(Input_event type, unsigned code,
                             int ax, int ay, int rx, int ry)
 {
-	using namespace Input;
+	auto submit = [&] (Input::Event const &ev)
+	{
+		driver->event.with_batch([&] (Event::Session_client::Batch &batch) {
+			batch.submit(ev); });
+	};
 
-	auto submit = [&] (Event const &ev) { driver->session.submit(ev); };
+	using namespace Input;
 
 	switch (type) {
 	case EVENT_TYPE_PRESS:   submit(Press{Keycode(code)});    break;

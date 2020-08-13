@@ -13,5 +13,4 @@ _/src/init
 _/src/driver_manager
 _/src/rom_filter
 _/src/rom_reporter
-_/src/input_event_client
 _/raw/drivers_managed-pc

@@ -35,7 +35,6 @@ append build_components {
 	server/fs_rom
 	drivers/ahci
 	drivers/framebuffer
-	app/input_event_client
 }
 
 lappend_if [expr $use_serial] build_components server/log_terminal
@@ -340,26 +339,13 @@ append_if [expr $use_usb] config {
 
 	<start name="usb_drv" priority="-1" caps="120">
 		<resource name="RAM" quantum="20M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Usb"/>
-		</provides>
+		<provides> <service name="Usb"/> </provides>
 		<route>
-			<service name="Report"><child name="report_rom"/></service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Event"> <child name="event_filter" label="usb_hid"/> </service>
 			<service name="ROM" label="config">
 				<child name="usb_config_rom" label="usb_drv.config"/> </service>
 			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-
-	<start name="usb" caps="90">
-		<resource name="RAM" quantum="1M"/>
-		<binary name="input_event_client"/>
-		<config/>
-		<route>
-			<service name="Event"> <child name="event_filter" label="usb_hid"/> </service>
-			<service name="Input"> <child name="usb_drv"/> </service>
-			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 }
@@ -400,7 +386,6 @@ append boot_modules {
 	libc.lib.so vfs.lib.so libm.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
-	input_event_client
 }
 
 lappend_if [expr $use_rumpfs] boot_modules rump.lib.so

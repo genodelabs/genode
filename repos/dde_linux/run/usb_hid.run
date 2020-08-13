@@ -68,7 +68,7 @@ proc usb_drv_binary { } {
 set build_components {
 	core init timer
 	drivers/usb
-	test/input
+	server/event_dump
 	server/dynamic_rom
 }
 
@@ -115,7 +115,6 @@ append config {
 		<binary name="} [usb_drv_binary] {"/>
 		<resource name="RAM" quantum="12M"/>
 		<resource name="CPU" quantum="80"/>
-		<provides><service name="Input"/></provides>
 		<config uhci="yes" ohci="yes" ehci="yes" xhci="yes"
 		        capslock_led="rom" numlock_led="rom" scrlock_led="rom"
 		        bios_handoff="yes">
@@ -136,6 +135,7 @@ append config {
 			<service name="Platform">  <any-child/> </service>
 			<service name="Regulator"> <child name="platform_drv"/> </service>
 			<service name="Timer">     <child name="timer"/> </service>
+			<service name="Event">     <child name="event_dump"/> </service>
 		</route>
 	</start>
 
@@ -171,8 +171,10 @@ append config {
 		</route>
 	</start>
 
-	<start name="test-input" priority="-1">
+	<start name="event_dump" priority="-1">
 		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Event"/> </provides>
+		<config/>
 	</start>
 </config>}
 
@@ -184,7 +186,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer test-input dynamic_rom
+	core ld.lib.so init timer event_dump dynamic_rom
 }
 
 append boot_modules [usb_drv_binary]
@@ -202,12 +204,12 @@ if { [have_include "power_on/qemu"] || ![get_cmd_switch --autopilot] } { run_gen
 
 # autopilot test
 
-run_genode_until {\[init -\> test-input\] Input event #0\t} 60
+run_genode_until {\[init -\> event_dump\] Input event #0\t} 60
 
 # remove everything before the first interesting line
-regexp {(\[init -\> test-input\] Input event #0\t.*)} $output all output
+regexp {(\[init -\> event_dump\] Input event #0\t.*)} $output all output
 
-run_genode_until {\[init -\> test-input\] Input event #11.*\n} 40 [output_spawn_id]
+run_genode_until {\[init -\> event_dump\] Input event #11.*\n} 40 [output_spawn_id]
 
 # pay only attention to the output of init and its children
 grep_output {^\[init }
@@ -222,22 +224,22 @@ filter_out_color_escape_sequences
 trim_lines
 
 compare_output_to {
-[init -> test-input] Input event #0	PRESS KEY_X 65534	key count: 1
-[init -> test-input] Input event #1	RELEASE KEY_X	key count: 0
-[init -> test-input] Input event #2	PRESS BTN_LEFT 65534	key count: 1
-[init -> test-input] Input event #3	REL_MOTION -1+0	key count: 1
-[init -> test-input] Input event #4	REL_MOTION +0+1	key count: 1
-[init -> test-input] Input event #5	RELEASE BTN_LEFT	key count: 0
+[init -> event_dump] Input event #0	PRESS KEY_X 65534	key count: 1
+[init -> event_dump] Input event #1	RELEASE KEY_X	key count: 0
+[init -> event_dump] Input event #2	PRESS BTN_LEFT 65534	key count: 1
+[init -> event_dump] Input event #3	REL_MOTION -1+0	key count: 1
+[init -> event_dump] Input event #4	REL_MOTION +0+1	key count: 1
+[init -> event_dump] Input event #5	RELEASE BTN_LEFT	key count: 0
 [init -> usb_drv] dev_info: USB disconnect, device
 [init -> usb_drv] dev_info: new full-speed USB device
 [init -> usb_drv] dev_info: D L
 [init -> usb_drv] dev_info: input: USB HID v1.11 Keyboard [D L]
 [init -> usb_drv] dev_info: D L
 [init -> usb_drv] dev_info: input: USB HID v1.11 Mouse [D L]
-[init -> test-input] Input event #6	PRESS KEY_X 65534	key count: 1
-[init -> test-input] Input event #7	RELEASE KEY_X	key count: 0
-[init -> test-input] Input event #8	PRESS BTN_LEFT 65534	key count: 1
-[init -> test-input] Input event #9	REL_MOTION -1+0	key count: 1
-[init -> test-input] Input event #10	REL_MOTION +0+1	key count: 1
-[init -> test-input] Input event #11	RELEASE BTN_LEFT	key count: 0
+[init -> event_dump] Input event #6	PRESS KEY_X 65534	key count: 1
+[init -> event_dump] Input event #7	RELEASE KEY_X	key count: 0
+[init -> event_dump] Input event #8	PRESS BTN_LEFT 65534	key count: 1
+[init -> event_dump] Input event #9	REL_MOTION -1+0	key count: 1
+[init -> event_dump] Input event #10	REL_MOTION +0+1	key count: 1
+[init -> event_dump] Input event #11	RELEASE BTN_LEFT	key count: 0
 }

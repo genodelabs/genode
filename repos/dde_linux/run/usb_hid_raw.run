@@ -66,7 +66,7 @@ set build_components {
 	core init timer
 	drivers/usb_host
 	drivers/usb_hid
-	test/input
+	server/event_dump
 	server/dynamic_rom
 	server/report_rom
 }
@@ -141,13 +141,13 @@ append config {
 
 	<start name="usb_hid_drv" caps="140">
 		<resource name="RAM" quantum="11M"/>
-		<provides><service name="Input"/></provides>
 		<config use_report="yes" capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>
 			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="scrlock">  <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="report"> <child name="report_rom"/> </service>
+			<service name="Event"> <child name="event_dump"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -184,8 +184,10 @@ append config {
 		</route>
 	</start>
 
-	<start name="test-input">
+	<start name="event_dump">
 		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Event"/> </provides>
+		<config/>
 	</start>
 </config>}
 
@@ -197,7 +199,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer usb_hid_drv test-input dynamic_rom report_rom
+	core ld.lib.so init timer usb_hid_drv event_dump dynamic_rom report_rom
 }
 
 append boot_modules [usb_host_drv_binary]
@@ -215,12 +217,12 @@ if { [have_include "power_on/qemu"] || ![get_cmd_switch --autopilot] } { run_gen
 
 # autopilot test
 
-run_genode_until {\[init -\> test-input\] Input event #0\t} 60
+run_genode_until {\[init -\> event_dump\] Input event #0\t} 60
 
 # remove everything before the first interesting line
-regexp {(\[init -\> test-input\] Input event #0\t.*)} $output all output
+regexp {(\[init -\> event_dump\] Input event #0\t.*)} $output all output
 
-run_genode_until {\[init -\> test-input\] Input event #11.*\n} 40 [output_spawn_id]
+run_genode_until {\[init -\> event_dump\] Input event #11.*\n} 40 [output_spawn_id]
 
 # pay only attention to the output of init and its children
 grep_output {^\[init }
@@ -235,20 +237,20 @@ filter_out_color_escape_sequences
 trim_lines
 
 compare_output_to {
-[init -> test-input] Input event #0	PRESS KEY_X 65534	key count: 1
-[init -> test-input] Input event #1	RELEASE KEY_X	key count: 0
-[init -> test-input] Input event #2	PRESS BTN_LEFT 65534	key count: 1
-[init -> test-input] Input event #3	REL_MOTION -1+0	key count: 1
-[init -> test-input] Input event #4	REL_MOTION +0+1	key count: 1
-[init -> test-input] Input event #5	RELEASE BTN_LEFT	key count: 0
+[init -> event_dump] Input event #0	PRESS KEY_X 65534	key count: 1
+[init -> event_dump] Input event #1	RELEASE KEY_X	key count: 0
+[init -> event_dump] Input event #2	PRESS BTN_LEFT 65534	key count: 1
+[init -> event_dump] Input event #3	REL_MOTION -1+0	key count: 1
+[init -> event_dump] Input event #4	REL_MOTION +0+1	key count: 1
+[init -> event_dump] Input event #5	RELEASE BTN_LEFT	key count: 0
 [init -> usb_drv] dev_info: USB disconnect, device
 [init -> usb_drv] dev_info: new full-speed USB device
 [init -> usb_hid_drv] dev_info: input: USB HID v1.11 Keyboard [HID 03eb:204d]
 [init -> usb_hid_drv] dev_info: input: USB HID v1.11 Mouse [HID 03eb:204d]
-[init -> test-input] Input event #6	PRESS KEY_X 65534	key count: 1
-[init -> test-input] Input event #7	RELEASE KEY_X	key count: 0
-[init -> test-input] Input event #8	PRESS BTN_LEFT 65534	key count: 1
-[init -> test-input] Input event #9	REL_MOTION -1+0	key count: 1
-[init -> test-input] Input event #10	REL_MOTION +0+1	key count: 1
-[init -> test-input] Input event #11	RELEASE BTN_LEFT	key count: 0
+[init -> event_dump] Input event #6	PRESS KEY_X 65534	key count: 1
+[init -> event_dump] Input event #7	RELEASE KEY_X	key count: 0
+[init -> event_dump] Input event #8	PRESS BTN_LEFT 65534	key count: 1
+[init -> event_dump] Input event #9	REL_MOTION -1+0	key count: 1
+[init -> event_dump] Input event #10	REL_MOTION +0+1	key count: 1
+[init -> event_dump] Input event #11	RELEASE BTN_LEFT	key count: 0
 }

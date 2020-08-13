@@ -1,15 +1,14 @@
 USB HID driver
 ##############
 
-Supports keyboard and mouse connected via USB.
-It connects to one or multiple USB sessions. A run script can be found
-under 'run/usb_hid.run'.
+Supports keyboard and mouse connected via USB. It connects to one or multiple
+USB sessions and reports input events to an event session. A run script can be
+found under 'run/usb_hid.run'.
 
 Configuration snippet:
 
 !<start name="usb_hid_drv">
 !  <resource name="RAM" quantum="10M"/>
-!  <provides><service name="Input"/></provides>
 !  <config use_report="yes"/>
 !</start>
 

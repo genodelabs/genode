@@ -5,5 +5,4 @@ _/src/usb_drv
 _/src/vesa_drv
 _/src/report_rom
 _/src/event_filter
-_/src/input_event_client
 _/raw/drivers_interactive-pc
