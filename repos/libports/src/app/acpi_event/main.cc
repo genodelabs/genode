@@ -16,23 +16,21 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/heap.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/avl_tree.h>
 
 /* os includes */
-#include <input/component.h>
-#include <input/root.h>
-#include <base/attached_rom_dataspace.h>
+#include <event_session/connection.h>
 
 namespace Transform {
-	using Genode::Xml_node;
-	using Genode::String;
+	using namespace Genode;
 
 	struct Main;
 	class Keys;
 };
 
 
-class Transform::Keys : public Genode::Avl_node<Transform::Keys> {
+class Transform::Keys : public Avl_node<Transform::Keys> {
 
 	public:
 
@@ -46,8 +44,8 @@ class Transform::Keys : public Genode::Avl_node<Transform::Keys> {
 		bool                 _first = true;
 		Type                 _type;
 
-		static Genode::Avl_tree<Keys> _map_ec;
-		static Genode::Avl_tree<Keys> _map_special;
+		static Avl_tree<Keys> _map_ec;
+		static Avl_tree<Keys> _map_special;
 
 		Keys *_find_by_acpi_value(long acpi_value)
 		{
@@ -65,7 +63,7 @@ class Transform::Keys : public Genode::Avl_node<Transform::Keys> {
 
 		bool higher(Keys *k) const { return k->_acpi_value > _acpi_value; }
 
-		Type const type() { return _type; }
+		Type type() const { return _type; }
 
 		unsigned long update_count(unsigned long acpi_count)
 		{
@@ -120,25 +118,24 @@ struct Transform::Main {
 		ACPI_AC_ONLINE, ACPI_AC_OFFLINE, ACPI_BATTERY
 	};
 
-	Genode::Heap _heap;
+	Heap _heap;
 
-	Genode::Attached_rom_dataspace _config;
-	Genode::Attached_rom_dataspace _acpi_ac;
-	Genode::Attached_rom_dataspace _acpi_battery;
-	Genode::Attached_rom_dataspace _acpi_ec;
-	Genode::Attached_rom_dataspace _acpi_fixed;
-	Genode::Attached_rom_dataspace _acpi_lid;
+	Attached_rom_dataspace _config;
+	Attached_rom_dataspace _acpi_ac;
+	Attached_rom_dataspace _acpi_battery;
+	Attached_rom_dataspace _acpi_ec;
+	Attached_rom_dataspace _acpi_fixed;
+	Attached_rom_dataspace _acpi_lid;
 
-	Genode::Signal_handler<Main> _dispatch_acpi_ac;
-	Genode::Signal_handler<Main> _dispatch_acpi_battery;
-	Genode::Signal_handler<Main> _dispatch_acpi_ec;
-	Genode::Signal_handler<Main> _dispatch_acpi_fixed;
-	Genode::Signal_handler<Main> _dispatch_acpi_lid;
+	Signal_handler<Main> _dispatch_acpi_ac;
+	Signal_handler<Main> _dispatch_acpi_battery;
+	Signal_handler<Main> _dispatch_acpi_ec;
+	Signal_handler<Main> _dispatch_acpi_fixed;
+	Signal_handler<Main> _dispatch_acpi_lid;
 
-	Input::Session_component _session;
-	Input::Root_component    _root;
+	Event::Connection _event;
 
-	Main(Genode::Env &env)
+	Main(Env &env)
 	:
 		_heap(env.ram(), env.rm()),
 		_config(env, "config"),
@@ -152,18 +149,17 @@ struct Transform::Main {
 		_dispatch_acpi_ec(env.ep(), *this, &Main::check_acpi_ec),
 		_dispatch_acpi_fixed(env.ep(), *this, &Main::check_acpi_fixed),
 		_dispatch_acpi_lid(env.ep(), *this, &Main::check_acpi_lid),
-		_session(env, env.ram()),
-		_root(env.ep().rpc_ep(), _session)
+		_event(env)
 	{
 		Xml_node config(_config.local_addr<char>(), _config.size());
 		config.for_each_sub_node("map", [&] (Xml_node map_node) {
 			try {
 				long acpi_value = 0;
-				Genode::String<8> acpi_type;
-				Genode::String<8> acpi_value_string;
-				Genode::String<32> to_key;
+				String<8> acpi_type;
+				String<8> acpi_value_string;
+				String<32> to_key;
 
-				Genode::String<16> key_type("PRESS_RELEASE");
+				String<16> key_type("PRESS_RELEASE");
 				Keys::Type press_release = Keys::Type::PRESS_RELEASE;
 
 				map_node.attribute("acpi").value(acpi_type);
@@ -257,8 +253,6 @@ struct Transform::Main {
 		_acpi_fixed.sigh(_dispatch_acpi_fixed);
 		_acpi_lid.sigh(_dispatch_acpi_lid);
 
-		env.parent().announce(env.ep().manage(_root));
-
 		/* check for initial valid ACPI data */
 		check_acpi_ac();
 		check_acpi_battery();
@@ -299,16 +293,19 @@ struct Transform::Main {
 
 	void submit_input(Keys * key)
 	{
-		if (!key)
-			return;
+		_event.with_batch([&] (Event::Session_client::Batch &batch) {
 
-		if (key->type() == Keys::Type::PRESS_RELEASE ||
-		    key->type() == Keys::Type::PRESS)
-			_session.submit(Input::Press{key->key_code()});
+			if (!key)
+				return;
 
-		if (key->type() == Keys::Type::PRESS_RELEASE ||
-		    key->type() == Keys::Type::RELEASE)
-			_session.submit(Input::Release{key->key_code()});
+			if (key->type() == Keys::Type::PRESS_RELEASE ||
+			    key->type() == Keys::Type::PRESS)
+				batch.submit(Input::Press{key->key_code()});
+
+			if (key->type() == Keys::Type::PRESS_RELEASE ||
+			    key->type() == Keys::Type::RELEASE)
+				batch.submit(Input::Release{key->key_code()});
+		});
 	}
 
 	void check_acpi_fixed()

@@ -12,12 +12,12 @@ if {
 set build_components {
 	core init timer
 	drivers/input
-	server/acpi_input
 	server/dynamic_rom
 	server/event_filter
 	server/report_rom
 	server/event_dump
 	app/acpica
+	app/acpi_event
 	app/input_event_client
 }
 
@@ -96,11 +96,11 @@ append config {
 			</provides>
 			<config verbose="yes">
 				<policy label="platform_drv -> acpi_ready" report="acpica -> acpi_ready"/>
-				<policy label="acpi_input -> acpi_ac" report="acpica -> acpi_ac"/>
-				<policy label="acpi_input -> acpi_battery" report="acpica -> acpi_battery"/>
-				<policy label="acpi_input -> acpi_ec" report="acpica -> acpi_ec"/>
-				<policy label="acpi_input -> acpi_fixed" report="acpica -> acpi_fixed"/>
-				<policy label="acpi_input -> acpi_lid" report="acpica -> acpi_lid"/>
+				<policy label="acpi_event -> acpi_ac"      report="acpica -> acpi_ac"/>
+				<policy label="acpi_event -> acpi_battery" report="acpica -> acpi_battery"/>
+				<policy label="acpi_event -> acpi_ec"      report="acpica -> acpi_ec"/>
+				<policy label="acpi_event -> acpi_fixed"   report="acpica -> acpi_fixed"/>
+				<policy label="acpi_event -> acpi_lid"     report="acpica -> acpi_lid"/>
 			</config>
 			<route>
 				<any-service> <parent/> </any-service>
@@ -183,20 +183,8 @@ append config {
 		</start>}
 
 append config {
-		<start name="acpi" caps="90">
+		<start name="acpi_event">
 			<resource name="RAM" quantum="1M"/>
-			<binary name="input_event_client"/>
-			<config/>
-			<route>
-				<service name="Event"> <child name="event_filter" label="acpi"/> </service>
-				<service name="Input"> <child name="acpi_input"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="acpi_input">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Input"/></provides>
 			<config>
 				<!-- example mapping - adapt to your target notebook !!! -->
 				<!-- as="PRESS_RELEASE" is default if nothing specified -->
@@ -211,11 +199,12 @@ append config {
 				<map acpi="battery" value="0"       to_key="KEY_BATTERY"/>
 			</config>
 			<route>
-				<service name="ROM" label="acpi_ac"> <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_ac">      <child name="acpi_state"/> </service>
 				<service name="ROM" label="acpi_battery"> <child name="acpi_state"/> </service>
-				<service name="ROM" label="acpi_ec"> <child name="acpi_state"/> </service>
-				<service name="ROM" label="acpi_fixed"> <child name="acpi_state"/> </service>
-				<service name="ROM" label="acpi_lid"> <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_ec">      <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_fixed">   <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_lid">     <child name="acpi_state"/> </service>
+				<service name="Event"> <child name="event_filter" label="acpi"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
@@ -237,7 +226,7 @@ set boot_modules {
 	report_rom
 	dynamic_rom
 	acpica
-	acpi_input
+	acpi_event
 	event_dump
 	input_event_client
 }
