@@ -9,7 +9,8 @@ SIG(gcc) := ${URL(gcc)}
 KEY(gcc) := GNU
 
 TAR_OPT(gcc) := gcc-$(VERSION)/libstdc++-v3 \
-                gcc-$(VERSION)/libgcc/gthr-single.h \
+                gcc-$(VERSION)/libgcc/gthr.h \
+                gcc-$(VERSION)/libgcc/gthr-posix.h \
                 --strip-components=2
 
 PATCHES   := src/lib/stdcxx/*.patch
@@ -46,7 +47,8 @@ DIR_CONTENT(include/stdcxx/bits) := \
     src/lib/stdcxx/config/os/generic/error_constants.h \
     src/lib/stdcxx/config/os/generic/os_defines.h \
     src/lib/stdcxx/config/locale/generic/messages_members.h \
-    src/lib/stdcxx/config/locale/generic/time_members.h
+    src/lib/stdcxx/config/locale/generic/time_members.h \
+    src/lib/stdcxx/gthr.h
 
 DIRS += include/stdcxx/config
 DIR_CONTENT(include/stdcxx/config) := \
@@ -62,7 +64,7 @@ symlinks: $(DOWNLOADS)
 	ln -s ../../config/allocator/new_allocator_base.h src/lib/stdcxx/include/bits/c++allocator.h
 	ln -s ../../config/io/c_io_stdio.h src/lib/stdcxx/include/bits/c++io.h
 	ln -s ../../config/locale/generic/c_locale.h src/lib/stdcxx/include/bits/c++locale.h
-	ln -s ../../gthr-single.h src/lib/stdcxx/include/bits/gthr.h
+	ln -s ../../gthr-posix.h src/lib/stdcxx/include/bits/gthr-default.h
 	ln -s atomicity_builtins/atomicity.h src/lib/stdcxx/config/cpu/generic/atomicity.cc
 	ln -s collate_members.cc src/lib/stdcxx/config/locale/generic/collate_members_cow.cc
 	ln -s messages_members.cc src/lib/stdcxx/config/locale/generic/messages_members_cow.cc

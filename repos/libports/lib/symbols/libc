@@ -1077,7 +1077,9 @@ _ZTIN4Libc6PluginE D 40
 _Unwind_Complete T
 _Unwind_DeleteException T
 _Unwind_Resume T
+_ZN10__cxxabiv120__si_class_type_infoD2Ev T
 _ZNK10__cxxabiv117__class_type_info10__do_catchEPKSt9type_infoPPvj T
+_ZNK10__cxxabiv117__class_type_info11__do_upcastEPKS0_PPv T
 _ZNK10__cxxabiv120__si_class_type_info11__do_upcastEPKNS_17__class_type_infoEPKvRNS1_15__upcast_resultE T
 _ZNK10__cxxabiv120__si_class_type_info12__do_dyncastElNS_17__class_type_info10__sub_kindEPKS1_PKvS4_S6_RNS1_16__dyncast_resultE T
 _ZNK10__cxxabiv120__si_class_type_info20__do_find_public_srcElPKvPKNS_17__class_type_infoES2_ T
@@ -1086,6 +1088,8 @@ _ZNKSt9exception4whatEv T
 _ZNSt13bad_exceptionD0Ev T
 _ZNSt13bad_exceptionD1Ev T
 _ZNSt13bad_exceptionD2Ev T
+_ZNSt15__exception_ptr13exception_ptrC1Ev T
+_ZNSt15__exception_ptr13exception_ptrD1Ev T
 _ZNSt9exceptionD0Ev T
 _ZNSt9exceptionD1Ev T
 _ZNSt9exceptionD2Ev T
@@ -1201,6 +1205,7 @@ _ZTIl D 32
 _ZTIm D 32
 _ZTIs D 32
 _ZTIt D 32
+_ZTIv D 32
 _ZTIx D 32
 _ZTIy D 32
 _ZTSN10__cxxabiv115__forced_unwindE R 32
