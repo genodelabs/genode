@@ -48,7 +48,7 @@ append config {
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
-		<config request_framebuffer="no" request_input="no">
+		<config>
 			<capture/> <event/>
 
 			<domain name="default" layer="2" content="client" label="no"/>

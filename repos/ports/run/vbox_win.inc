@@ -179,7 +179,7 @@ append config_of_app {
 			</rom>
 			<rom name="nitpicker.config">
 				<inline description="standard_mode">
-					<config request_framebuffer="no" request_input="no">
+					<config>
 						<capture/> <event/>
 						<report focus="yes" hover="yes" />
 
@@ -196,7 +196,7 @@ append config_of_app {
 
 append_if [expr !$use_rumpfs] config_of_app {
 				<inline description="shutdown">
-					<config request_framebuffer="no" request_input="no">
+					<config>
 						<capture/> <event/>
 						<report focus="yes" hover="yes" />
 

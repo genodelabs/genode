@@ -85,7 +85,7 @@ install_config {
 		</provides>
 		<config>
 			<target name="nitpicker">
-				<config request_framebuffer="no" request_input="no">
+				<config>
 					<capture/> <event/>
 					<domain name="pointer" layer="1" xray="no" origin="pointer"
 					        content="client" label="no"/>

@@ -61,7 +61,7 @@ install_config {
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
-		<config focus="rom" request_framebuffer="no" request_input="no">
+		<config focus="rom">
 			<capture/> <event/>
 			<report hover="yes"/>
 			<background color="#123456"/>

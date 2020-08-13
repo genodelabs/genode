@@ -846,7 +846,7 @@ void Nitpicker::Main::_handle_config()
 		_user_state.report_focused_view_owner(xml, _button_activity); });
 
 	/* update framebuffer output back end */
-	bool const request_framebuffer = config.attribute_value("request_framebuffer", true);
+	bool const request_framebuffer = config.attribute_value("request_framebuffer", false);
 	if (request_framebuffer != _request_framebuffer) {
 		_request_framebuffer = request_framebuffer;
 		_handle_fb_mode();
@@ -858,7 +858,7 @@ void Nitpicker::Main::_handle_config()
 	 * Defer input session creation until at least one capture client
 	 * (framebuffer driver) is present.
 	 */
-	_request_input = config.attribute_value("request_input", true);
+	_request_input = config.attribute_value("request_input", false);
 	_update_input_connection();
 }
 

@@ -74,8 +74,6 @@ install_config {
 				<attribute name="enabled" /> </input>
 
 			<output node="config">
-				<attribute name="request_framebuffer" value="no"/>
-				<attribute name="request_input" value="no"/>
 				<attribute name="focus" value="rom"/>
 				<inline>
 					<report focus="yes" xray="yes" hover="yes" keystate="yes"
@@ -208,7 +206,7 @@ puts $launchpad_config_fd {<config>
 		<config resize_handle="on" />
 	</launcher>
 	<launcher name="nitpicker" ram_quota="1M" caps="100">
-		<config>
+		<config request_input="yes" request_framebuffer="yes">
 			<domain name="" layer="3" conten="client" label="no" focus="click"/>
 			<default-policy domain="" />
 		</config>

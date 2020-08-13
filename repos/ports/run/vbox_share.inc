@@ -282,7 +282,7 @@ append config_of_app {
 			<service name="Report"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config request_framebuffer="no" request_input="no">
+		<config>
 			<capture/> <event/>
 			<report focus="yes" hover="yes" />
 

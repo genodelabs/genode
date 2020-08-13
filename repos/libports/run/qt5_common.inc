@@ -192,7 +192,7 @@ proc qt5_start_nodes { } {
 				<service name="Report"> <child name="wm_report_rom"/> </service>
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
-			<config request_framebuffer="no" request_input="no">
+			<config>
 				<capture/> <event/>
 
 				<report focus="yes" hover="yes" xray="yes"/>

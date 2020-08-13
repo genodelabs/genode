@@ -410,7 +410,7 @@ append config {
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
-		<config request_framebuffer="no" request_input="no">
+		<config>
 			<capture/> <event/>
 			<report focus="yes" />
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />

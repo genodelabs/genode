@@ -173,7 +173,7 @@ append config {
 append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config request_framebuffer="no" request_input="no">
+		<config>
 			<capture/> <event/>
 
 			<report focus="yes" hover="yes" xray="yes" />

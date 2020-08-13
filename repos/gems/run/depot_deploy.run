@@ -62,7 +62,7 @@ install_config {
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
-		<config focus="rom" request_framebuffer="no" request_input="no">
+		<config focus="rom">
 			<capture/> <event/>
 			<background color="#123456"/>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />

@@ -59,7 +59,7 @@ install_config {
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
-		<config focus="rom" request_framebuffer="no" request_input="no">
+		<config focus="rom">
 			<capture/> <event/>
 			<domain name="default" layer="1" width="1024" height="768"/>
 			<default-policy domain="default"/>
