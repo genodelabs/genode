@@ -1,2 +1,2 @@
-SRC_DIR = src/drivers/framebuffer/spec/rpi
+SRC_DIR = src/drivers/framebuffer/rpi
 include $(GENODE_DIR)/repos/base/recipes/src/content.inc

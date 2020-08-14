@@ -10,7 +10,7 @@ source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
 lappend_if [have_spec ps2] build_components drivers/ps2
-lappend_if [have_spec sdl] build_components drivers/framebuffer/spec/sdl
+lappend_if [have_spec sdl] build_components drivers/framebuffer/sdl
 lappend_if [have_spec sdl] build_components server/nitpicker
 
 build $build_components
