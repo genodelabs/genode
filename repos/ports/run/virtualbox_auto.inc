@@ -41,7 +41,7 @@ lappend_if [expr $use_serial] build_components server/log_terminal
 lappend_if [expr $use_rumpfs] build_components lib/vfs/rump
 lappend_if [expr $use_rumpfs] build_components server/vfs
 lappend_if [expr $use_vbox5]  build_components virtualbox5
-lappend_if [expr $use_ps2]    build_components drivers/input
+lappend_if [expr $use_ps2]    build_components drivers/ps2
 lappend_if [expr $use_usb]    build_components drivers/usb
 lappend_if [expr $use_usb]    build_components app/usb_report_filter
 lappend_if [have_spec x86]    build_components drivers/rtc

@@ -15,7 +15,7 @@ if { [have_include "power_on/qemu"] || ![have_spec nova] || ![have_spec x86_64]}
 
 set build_components {
 	drivers/framebuffer
-	drivers/input
+	drivers/ps2
 	drivers/usb
 	server/log_terminal
 	server/fs_rom

@@ -11,7 +11,7 @@ if {
 
 set build_components {
 	core init timer
-	drivers/input
+	drivers/ps2
 	server/dynamic_rom
 	server/event_filter
 	server/report_rom

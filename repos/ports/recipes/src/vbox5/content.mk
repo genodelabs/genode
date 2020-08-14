@@ -67,7 +67,7 @@ $(MIRROR_FROM_QEMU_USB_PORT_DIR):
 	mkdir -p $(dir $@)
 	cp -r $(QEMU_USB_PORT_DIR)/$@ $(dir $@)
 
-MIRROR_FROM_OS := src/drivers/input/spec/ps2/scan_code_set_1.h \
+MIRROR_FROM_OS := src/drivers/ps2/scan_code_set_1.h \
                   include/pointer/shape_report.h \
 
 content: $(MIRROR_FROM_OS)

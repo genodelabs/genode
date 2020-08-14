@@ -7,7 +7,7 @@ assert_spec x86
 set build_components {
 	core init timer
 	drivers/audio
-	drivers/input
+	drivers/ps2
 	server/mixer
 	test/audio_out
 	test/audio_out_click

@@ -9,7 +9,7 @@ set build_components { core init timer server/dynamic_rom server/event_dump }
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
-lappend_if [have_spec ps2] build_components drivers/input/spec/ps2
+lappend_if [have_spec ps2] build_components drivers/ps2
 lappend_if [have_spec sdl] build_components drivers/framebuffer/spec/sdl
 lappend_if [have_spec sdl] build_components server/nitpicker
 

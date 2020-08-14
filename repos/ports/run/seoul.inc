@@ -62,7 +62,7 @@ proc platform_drv_priority {} { return { priority="-1"} }
 
 set build_components {
 	drivers/rtc
-	drivers/input
+	drivers/ps2
 	app/seoul
 }
 
