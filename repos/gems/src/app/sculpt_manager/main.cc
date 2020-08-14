@@ -68,14 +68,16 @@ struct Sculpt::Main : Input_event_handler,
 
 	Registry<Child_state> _child_states { };
 
-	Constructible<Gui::Connection> _gui { };
+	Gui::Connection _gui { _env, "input" };
+
+	Gui::Root _gui_root { _env, _heap, *this };
 
 	Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
 
 	void _handle_input()
 	{
-		_gui->input()->for_each_event([&] (Input::Event const &ev) {
+		_gui.input()->for_each_event([&] (Input::Event const &ev) {
 			handle_input_event(ev); });
 	}
 
@@ -984,44 +986,6 @@ struct Sculpt::Main : Input_event_handler,
 		_fb_drv_config.try_generate_manually_managed();
 	}
 
-	Attached_rom_dataspace _gui_displays { _env, "displays" };
-
-	Signal_handler<Main> _gui_displays_handler {
-		_env.ep(), *this, &Main::_handle_gui_displays };
-
-	void _handle_gui_displays()
-	{
-		_gui_displays.update();
-
-		if (!_gui_displays.xml().has_sub_node("display"))
-			return;
-
-		if (_gui.constructed())
-			return;
-
-		/*
-		 * Since the nitpicker GUI server has successfully issued the first
-		 * 'displays' report, there is a good chance that the framebuffer
-		 * driver is running. This is a good time to activate the GUI.
-		 */
-		_gui.construct(_env, "input");
-		_gui->input()->sigh(_input_handler);
-		_gui->mode_sigh(_gui_mode_handler);
-
-		/*
-		 * Adjust GUI parameters to initial GUI mode
-		 */
-		_handle_gui_mode();
-
-		/*
-		 * Avoid 'Constructible<Gui::Root>' because it requires the definition
-		 * of 'Gui::Session_component'.
-		 */
-		static Gui::Root gui_nitpicker(_env, _heap, *this);
-
-		generate_runtime_config();
-	}
-
 	void _handle_window_layout();
 
 	template <size_t N, typename FN>
@@ -1065,7 +1029,8 @@ struct Sculpt::Main : Input_event_handler,
 		_manual_deploy_rom.sigh(_manual_deploy_handler);
 		_runtime_state_rom.sigh(_runtime_state_handler);
 		_runtime_config_rom.sigh(_runtime_config_handler);
-		_gui_displays.sigh(_gui_displays_handler);
+		_gui.input()->sigh(_input_handler);
+		_gui.mode_sigh(_gui_mode_handler);
 
 		/*
 		 * Subscribe to reports
@@ -1087,6 +1052,7 @@ struct Sculpt::Main : Input_event_handler,
 		/*
 		 * Import initial report content
 		 */
+		_handle_gui_mode();
 		_storage.handle_storage_devices_update();
 		_deploy.handle_deploy();
 		_handle_pci_devices();
@@ -1137,9 +1103,6 @@ void Sculpt::Main::_handle_window_layout()
 
 	unsigned const log_min_w = 400;
 
-	if (!_gui.constructed())
-		return;
-
 	typedef String<128> Label;
 	Label const
 		inspect_label          ("runtime -> leitzentrale -> inspect"),
@@ -1168,7 +1131,11 @@ void Sculpt::Main::_handle_window_layout()
 	if (panel_height == 0)
 		return;
 
-	Framebuffer::Mode const mode = _gui->mode();
+	Framebuffer::Mode const mode = _gui.mode();
+
+	/* suppress intermediate boot-time states before the framebuffer driver is up */
+	if (mode.area.count() <= 1)
+		return;
 
 	/* area reserved for the panel */
 	Rect const panel(Point(0, 0), Area(mode.area.w(), panel_height));
@@ -1334,10 +1301,7 @@ void Sculpt::Main::_handle_window_layout()
 
 void Sculpt::Main::_handle_gui_mode()
 {
-	if (!_gui.constructed())
-		return;
-
-	Framebuffer::Mode const mode = _gui->mode();
+	Framebuffer::Mode const mode = _gui.mode();
 
 	_handle_window_layout();
 

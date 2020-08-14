@@ -73,8 +73,6 @@ install_config {
 			<policy label="nit_focus -> hover" report="nitpicker -> hover"/>
 			<policy label="slides_gui_fb_config -> slides"
 			        report="global_keys_handler -> slides"/>
-			<policy label="leitzentrale -> manager -> displays"
-			        report="nitpicker -> displays"/>
 		</config>
 	</start>
 
@@ -416,8 +414,6 @@ install_config {
 				<child name="report_fs_rom"/> </service>
 			<service name="ROM" label_prefix="manager -> config -> ">
 				<child name="config_fs_rom"/> </service>
-			<service name="ROM" label_prefix="manager -> displays">
-				<child name="report_rom"/> </service>
 			<service name="ROM" label_prefix="config -> ">
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label="manager -> nitpicker_hover">
