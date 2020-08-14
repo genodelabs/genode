@@ -2,6 +2,6 @@ LICENSE   := BSD
 VERSION   := git
 DOWNLOADS := libsparkcrypto.git
 
-URL(libsparkcrypto) := https://github.com/Componolit/libsparkcrypto.git
+URL(libsparkcrypto) := https://github.com/m-stein/libsparkcrypto.git
 DIR(libsparkcrypto) := libsparkcrypto
-REV(libsparkcrypto) := ceb57ace3df2b27a7a2f2617c9c4089c4e44e555
+REV(libsparkcrypto) := a8d7086714d90aa772829c69064a7236bddec6d9
