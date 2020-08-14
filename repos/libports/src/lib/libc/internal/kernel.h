@@ -458,6 +458,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				} else {
 					/* block for signals */
 					_env.ep().wait_and_dispatch_one_io_signal();
+					handle_io_progress();
 				}
 
 				if (!_kernel_routine && _resume_main_once && !_setjmp(_kernel_context))

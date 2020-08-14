@@ -233,8 +233,6 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 		}
 	}
 
-	_handle_io_progress();
-
 	/* initiate potential deferred-signal handling in entrypoint */
 	if (_deferred_signals.first()) {
 		/* construct the handler on demand (otherwise we break core) */
