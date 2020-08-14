@@ -805,9 +805,8 @@ int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
 
 static int platform_match(struct device *dev, struct device_driver *drv)
 {
-	if (!dev->name)
-		return 0;
-
+	if (of_match_device(drv->of_match_table, dev)) return 1;
+	if (!dev->name) return 0;
 
 	printk("MATCH %s %s\n", dev->name, drv->name);
 	return (Genode::strcmp(dev->name, drv->name) == 0);
@@ -889,6 +888,7 @@ int platform_get_irq(struct platform_device *dev, unsigned int num)
 	return r ? r->start : -1;
 }
 
+static struct platform_device * platform_device_list = nullptr;
 
 int platform_device_register(struct platform_device *pdev)
 {
@@ -897,6 +897,16 @@ int platform_device_register(struct platform_device *pdev)
 	/*Set parent to ourselfs */
 	if (!pdev->dev.parent)
 		pdev->dev.parent = &pdev->dev;
+
+	if (!platform_device_list) { platform_device_list = pdev;
+	} else {
+		for (struct platform_device * pd = platform_device_list;
+			 pd; pd = pd->next) {
+			if (!pd->next) { pd->next = pdev; break; }
+		}
+	}
+	pdev->next = nullptr;
+
 	device_add(&pdev->dev);
 	return 0;
 }
@@ -1008,6 +1018,8 @@ int device_property_read_string(struct device *dev, const char *propname, const 
 
 const void *of_get_property(const struct device_node *node, const char *name, int *lenp)
 {
+	if (Genode::strcmp(name, "fsl,anatop")  == 0) { return (const void*) 0xdeaddead; }
+
 	for (property * p = node ? node->properties : nullptr; p; p = p->next)
 		if (Genode::strcmp(name, p->name) == 0) return p->value;
 
@@ -1035,9 +1047,12 @@ const struct of_device_id *of_match_device(const struct of_device_id *matches,
                                            const struct device *dev)
 {
 	const char * compatible = (const char*) of_get_property(dev->of_node, "compatible", 0);
-	for (; matches && matches->compatible[0]; matches++)
+	if (!compatible) return nullptr;
+
+	for (; matches && matches->compatible[0]; matches++) {
 		if (Genode::strcmp(matches->compatible, compatible) == 0)
 			return matches;
+	}
 	return nullptr;
 }
 
@@ -1047,10 +1062,17 @@ int of_parse_phandle_with_args(struct device_node *np,
                                const char *cells_name,
                                int index, struct of_phandle_args *out_args)
 {
-	out_args->np      = (device_node*) of_get_property(np, "fsl,usbmisc", 0);
-	out_args->args[0] = 1;
+	if (Genode::strcmp(list_name, "fsl,usbmisc") == 0) {
+		for (struct platform_device * pd = platform_device_list; pd; pd = pd->next) {
+			if (Genode::strcmp(pd->name, "usbmisc_imx") == 0) {
+				out_args->np      = pd->dev.of_node;
+				out_args->args[0] = 1;
+				return 0;
+			}
+		}
+	}
 
-	return 0;
+	return -1;
 }
 
 

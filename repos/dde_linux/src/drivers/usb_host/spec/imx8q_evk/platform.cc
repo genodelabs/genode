@@ -21,40 +21,9 @@
 extern "C" void module_dwc3_driver_init();
 extern "C" void module_xhci_plat_init();
 
-void platform_hcd_init(Genode::Env &, Services *services)
+void platform_hcd_init(Genode::Env &, Services *)
 {
 	module_dwc3_driver_init();
 	module_xhci_plat_init();
-
-	/* setup XHCI-controller platform device */
-	{
-		static resource xhci_res[] =
-		{
-			{ 0x38200000ul, 0x38200000ul + 0x10000 - 1, "dwc3", IORESOURCE_MEM },
-			{ 41 + 32, 41 + 32, "dwc3-irq", IORESOURCE_IRQ },
-		};
-
-		platform_device *pdev = (platform_device *)kzalloc(sizeof(platform_device), 0);
-		pdev->name = (char *)"dwc3";
-		pdev->id   = 2;
-		pdev->num_resources = 2;
-		pdev->resource = xhci_res;
-
-		pdev->dev.of_node             = (device_node*)kzalloc(sizeof(device_node), 0);
-		pdev->dev.of_node->properties = (property*)kzalloc(sizeof(property), 0);
-		pdev->dev.of_node->properties->name  = "compatible";
-		pdev->dev.of_node->properties->value = (void*)"fsl,imx8mq-dwc3";
-		pdev->dev.of_node->properties->next = (property*)kzalloc(sizeof(property), 0);
-		pdev->dev.of_node->properties->next->name  = "dr_mode";
-		pdev->dev.of_node->properties->next->value = (void*)"host";
-
-		/*
-		 * Needed for DMA buffer allocation. See 'hcd_buffer_alloc' in 'buffer.c'
-		 */
-		static u64 dma_mask = ~(u64)0;
-		pdev->dev.dma_mask = &dma_mask;
-		pdev->dev.coherent_dma_mask = ~0;
-
-		platform_device_register(pdev);
-	}
+	lx_platform_device_init();
 }

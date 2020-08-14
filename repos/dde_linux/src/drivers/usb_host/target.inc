@@ -45,6 +45,7 @@ SRC_C    += lib/find_bit.c
 
 CC_OPT   += -U__linux__
 CC_OPT   += -D__KERNEL__
+CC_OPT   += -DCONFIG_OF=1
 CC_OPT   += -DCONFIG_USB_DEVICEFS=1
 CC_OPT   += -DCONFIG_HOTPLUG=1
 CC_OPT   += -DCONFIG_USB_PHY=1

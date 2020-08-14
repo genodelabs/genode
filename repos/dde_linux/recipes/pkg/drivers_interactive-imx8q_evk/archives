@@ -1,4 +1,5 @@
 _/src/imx8_fb_drv
+_/src/platform_drv
 _/src/usb_host_drv
 _/src/usb_hid_drv
 _/raw/drivers_interactive-imx8q_evk

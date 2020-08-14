@@ -921,6 +921,7 @@ struct platform_device {
 	struct device    dev;
 	u32              num_resources;
 	struct resource *resource;
+	struct platform_device * next;
 };
 
 struct platform_device *platform_device_alloc(const char *name, int id);
@@ -1581,7 +1582,7 @@ const struct of_device_id *of_match_device(const struct of_device_id *matches, c
 extern struct platform_device *of_find_device_by_node(struct device_node *np);
 struct property *of_find_property(const struct device_node *np, const char *name, int *lenp);
 
-#define of_match_ptr(ptr) NULL
+#define of_match_ptr(ptr) (ptr)
 #define for_each_available_child_of_node(parent, child) while (0)
 
 const void *of_device_get_match_data(const struct device *dev);
@@ -1820,6 +1821,7 @@ static inline void trace_xhci_dbg_address(struct va_format *v) {}
 #define trace_dwc3_writel(v0, v1, v2)
 
 void lx_backtrace(void);
+void lx_platform_device_init(void);
 
 #include <lx_emul/extern_c_end.h>
 
