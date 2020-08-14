@@ -62,6 +62,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 		Interrupt_handler &_interrupt_handler;
 
+		bool const _raw;
+
 		enum { READ_BUFFER_SIZE = 4000 };
 
 		typedef Genode::Ring_buffer<char, READ_BUFFER_SIZE + 1,
@@ -71,7 +73,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 		static void _fetch_data_from_terminal(Terminal::Connection &terminal,
 		                                      Read_buffer          &read_buffer,
-		                                      Interrupt_handler    &interrupt_handler)
+		                                      Interrupt_handler    &interrupt_handler,
+		                                      bool                  raw)
 		{
 			while (terminal.avail()) {
 
@@ -93,7 +96,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 					enum { INTERRUPT = 3 };
 
-					if (c == INTERRUPT) {
+					if (c == INTERRUPT && !raw) {
 						interrupt_handler.handle_interrupt();
 					} else {
 						read_buffer.add(c);
@@ -108,6 +111,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			Read_buffer          &_read_buffer;
 			Interrupt_handler    &_interrupt_handler;
 
+			bool _raw;
+
 			bool notifying = false;
 			bool blocked   = false;
 
@@ -117,12 +122,14 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			                    Directory_service    &ds,
 			                    File_io_service      &fs,
 			                    Genode::Allocator    &alloc,
-			                    int                   flags)
+			                    int                   flags,
+			                    bool                  raw)
 			:
 				Single_vfs_handle(ds, fs, alloc, flags),
 				_terminal(terminal),
 				_read_buffer(read_buffer),
-				_interrupt_handler(interrupt_handler)
+				_interrupt_handler(interrupt_handler),
+				_raw(raw)
 			{ }
 
 			bool read_ready() override {
@@ -133,7 +140,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			{
 				if (_read_buffer.empty())
 					_fetch_data_from_terminal(_terminal, _read_buffer,
-					                          _interrupt_handler);
+					                          _interrupt_handler, _raw);
 
 				if (_read_buffer.empty()) {
 					blocked = true;
@@ -168,9 +175,9 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 		void _handle_read_avail()
 		{
 			/*
-			 * Fetch as much data from the terminal as possible to detect
-			 * user-interrupt characters (control-c), even before the VFS
-			 * client attempts to read from the terminal.
+			 * On non-raw sessions, fetch as much data from the terminal as
+			 * possible to detect user-interrupt characters (control-c), even
+			 * before the VFS client attempts to read from the terminal.
 			 *
 			 * Note that a user interrupt that follows a large chunk of data
 			 * (exceeding the capacity of the read buffer) cannot be detected
@@ -180,7 +187,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			 * situation occurs. This can be provoked by pasting a large amount
 			 * of text into the terminal.
 			 */
-			_fetch_data_from_terminal(_terminal, _read_buffer, _interrupt_handler);
+			_fetch_data_from_terminal(_terminal, _read_buffer, _interrupt_handler,
+			                          _raw);
 
 			_handle_registry.for_each([this] (Registered_handle &handle) {
 				if (handle.blocked) {
@@ -200,12 +208,14 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 		Data_file_system(Genode::Entrypoint   &ep,
 		                 Terminal::Connection &terminal,
 		                 Name           const &name,
-		                 Interrupt_handler    &interrupt_handler)
+		                 Interrupt_handler    &interrupt_handler,
+		                 bool                  raw)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, name.string(),
 			                   Node_rwx::rw(), Genode::Xml_node("<data/>")),
 			_name(name), _ep(ep), _terminal(terminal),
-			_interrupt_handler(interrupt_handler)
+			_interrupt_handler(interrupt_handler),
+			_raw(raw)
 		{
 			/* register for read-avail notification */
 			_terminal.read_avail_sigh(_read_avail_handler);
@@ -224,7 +234,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			try {
 				*out_handle = new (alloc)
 					Registered_handle(_handle_registry, _terminal, _read_buffer,
-					                  _interrupt_handler, *this, *this, alloc, flags);
+					                  _interrupt_handler, *this, *this, alloc, flags,
+					                  _raw);
 				return OPEN_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
@@ -271,7 +282,9 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 
 	Terminal::Connection _terminal { _env, _label.string() };
 
-	Data_file_system _data_fs { _env.ep(), _terminal, _name, *this };
+	bool const _raw;
+
+	Data_file_system _data_fs { _env.ep(), _terminal, _name, *this, _raw };
 
 	struct Info
 	{
@@ -328,7 +341,8 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 	:
 		_label(config.attribute_value("label", Label(""))),
 		_name(name(config)),
-		_env(env.env())
+		_env(env.env()),
+		_raw(config.attribute_value("raw", false))
 	{
 		_terminal.size_changed_sigh(_size_changed_handler);
 		_handle_size_changed();
