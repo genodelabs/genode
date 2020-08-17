@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <libc/args.h>
 #include <libc/component.h>
 
 /* libc includes */
@@ -20,8 +21,11 @@
 /* qt5_component includes */
 #include <qt5_component/qpa_init.h>
 
+/* initial environment for the FreeBSD libc implementation */
+extern char **environ;
+
 /* provided by the application */
-extern "C" int main(int argc, char const **argv);
+extern "C" int main(int argc, char **argv, char **envp);
 
 void Libc::Component::construct(Libc::Env &env)
 {
@@ -29,11 +33,24 @@ void Libc::Component::construct(Libc::Env &env)
 
 		qpa_init(env);
 
-		int argc = 1;
-		char const *argv[] = { "qt5_app", 0 };
+		int argc    = 0;
+		char **argv = nullptr;
+		char **envp = nullptr;
 
-		int exit_value = main(argc, argv);
+		populate_args_and_env(env, argc, argv, envp);
 
-		exit(exit_value);
+		/* at least the executable name is required */
+
+		char default_argv0[] { "qt5_component" };
+		char *default_argv[] { default_argv0, nullptr };
+
+		if (argc == 0) {
+			argc = 1;
+			argv = default_argv;
+		}
+
+		environ = envp;
+
+		exit(main(argc, argv, envp));
 	});
 }
