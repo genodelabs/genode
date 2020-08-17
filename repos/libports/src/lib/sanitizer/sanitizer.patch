@@ -4,7 +4,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- sanitizer_common/sanitizer_genode.cc               |  330 ++++++++++++++++++++
+ sanitizer_common/sanitizer_genode.cc               |  345 ++++++++++++++++++++
  sanitizer_common/sanitizer_internal_defs.h         |    6 
  sanitizer_common/sanitizer_platform.h              |    4 
  sanitizer_common/sanitizer_posix.h                 |    2 
@@ -13,15 +13,15 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  sanitizer_common/sanitizer_symbolizer_libcdep.cc   |   10 -
  .../sanitizer_symbolizer_posix_libcdep.cc          |   31 +-
  ubsan/ubsan_diag.cc                                |    4 
- 9 files changed, 376 insertions(+), 15 deletions(-)
+ 9 files changed, 391 insertions(+), 15 deletions(-)
  create mode 100644 sanitizer_common/sanitizer_genode.cc
 
 diff --git a/sanitizer_common/sanitizer_genode.cc b/sanitizer_common/sanitizer_genode.cc
 new file mode 100644
-index 0000000..cd2bc92
+index 0000000..52dda98
 --- /dev/null
 +++ b/sanitizer_common/sanitizer_genode.cc
-@@ -0,0 +1,330 @@
+@@ -0,0 +1,345 @@
 +/*
 + * \brief  Genode-specific functions from sanitizer_common.h
 + *         and sanitizer_libc.h
@@ -48,7 +48,6 @@ index 0000000..cd2bc92
 +using namespace __sanitizer;
 +
 +
-+extern int  genode_atexit(void (*func)(void));
 +extern void genode_exit(int) __attribute__((noreturn));
 +
 +
@@ -74,8 +73,17 @@ index 0000000..cd2bc92
 +
 +void sanitizer_init(Genode::Env &env)
 +{
-+Genode::log("sanitizer_init()");
 +	genode_env = &env;
++}
++
++
++static void (*atexit_func)(void) = nullptr;
++
++
++void sanitizer_exit()
++{
++	if (atexit_func)
++		atexit_func();
 +}
 +
 +
@@ -91,7 +99,14 @@ index 0000000..cd2bc92
 +
 +int __sanitizer::Atexit(void (*function)(void))
 +{
-+	return genode_atexit(function);
++	if (atexit_func) {
++		Genode::error("sanitizer: ", __func__,
++		              ": only one exit handler is currently supported");
++		return -1;
++	}
++
++	atexit_func = function;
++	return 0;
 +}
 +
 +
@@ -629,14 +644,13 @@ index 978d966..7d38a9b 100644
  
  using namespace __ubsan;
  
-@@ -209,8 +211,10 @@ static void RenderText(InternalScopedString *Buffer, const char *Message,
+@@ -209,7 +211,9 @@ static void RenderText(InternalScopedString *Buffer, const char *Message,
  #if SANITIZER_WINDOWS
        sprintf_s(FloatBuffer, sizeof(FloatBuffer), "%Lg", (long double)A.Float);
  #else
 +#if 0
        snprintf(FloatBuffer, sizeof(FloatBuffer), "%Lg", (long double)A.Float);
- #endif
 +#endif
+ #endif
        Buffer->append("%s", FloatBuffer);
        break;
-     }

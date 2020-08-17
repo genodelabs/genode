@@ -68,13 +68,6 @@ extern "C" void abort()
 }
 
 
-extern void genode_atexit(void (*func)(void));                                                                                                                                                                                               
-extern "C" void atexit(void (*func)(void))
-{
-    genode_atexit(func);
-}
-
-
 extern "C" int atoi(const char *nptr)
 {
 	Genode::error("atoi() called: not implemented");

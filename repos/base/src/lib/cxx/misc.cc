@@ -41,29 +41,16 @@ extern "C" void __pure_virtual()
 }
 
 
-/**
- * Prototype for exit-handler support function provided by '_main.cc'
+/*
+ * Plain Genode components do not support the atexit mechanism.
+ *
+ * To accommodate applications that depend on this mechansim, the libc
+ * overrides this weak no-op function with a working implementation.
  */
-extern int genode___cxa_atexit(void(*func)(void*), void *arg,
-                               void *dso_handle);
-
-
-extern "C" int __cxa_atexit(void(*func)(void*), void *arg,
-                            void *dso_handle)
+extern "C" __attribute__((weak))
+int __cxa_atexit(void(*)(void*), void *, void *)
 {
-	return genode___cxa_atexit(func, arg, dso_handle);
-}
-
-
-/**
- * Prototype for finalize support function provided by '_main.cc'
- */
-extern int genode___cxa_finalize(void *dso);
-
-
-extern "C" void __cxa_finalize(void *dso)
-{
-	genode___cxa_finalize(dso);
+	return -1;
 }
 
 
@@ -71,11 +58,10 @@ extern "C" void __cxa_finalize(void *dso)
  ** Support required for ARM EABI **
  ***********************************/
 
-
-extern "C" int __aeabi_atexit(void *arg, void(*func)(void*),
-                              void *dso_handle)
+extern "C" __attribute__((weak))
+int __aeabi_atexit(void *, void(*)(void*), void *)
 {
-	return genode___cxa_atexit(func, arg, dso_handle);
+	return -1;
 }
 
 
@@ -117,10 +103,6 @@ extern "C" void abort(void)
 		name = myself->name();
 
 	Genode::warning("abort called - thread: ", name.string());
-
-	/* Notify the parent of failure */
-	if (name != "main")
-		genode_exit(1);
 
 	Genode::sleep_forever();
 }

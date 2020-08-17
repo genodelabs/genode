@@ -39,9 +39,7 @@
 #
 
 _Z11genode_exiti T
-_Z13genode_atexitPFvvE T
 _Z16main_thread_utcbv T
-_Z21genode___cxa_finalizePv T
 _Z22__ldso_raise_exceptionv T
 _ZN5Timer10Connection16schedule_timeoutEN6Genode12MicrosecondsERNS1_11Time_source15Timeout_handlerE T
 _ZN5Timer10Connection18_schedule_one_shotERN6Genode7TimeoutENS1_12MicrosecondsE T
@@ -625,12 +623,12 @@ _ZTVSt9exception D 40
 _ZTVSt9type_info D 64
 _ZdlPv W
 _ZdlPvm W
-__aeabi_atexit T
+__aeabi_atexit W
 __aeabi_unwind_cpp_pr0 T
 __aeabi_unwind_cpp_pr1 T
 __cxa_allocate_dependent_exception T
 __cxa_allocate_exception T
-__cxa_atexit T
+__cxa_atexit W
 __cxa_bad_cast T
 __cxa_bad_typeid T
 __cxa_begin_catch T

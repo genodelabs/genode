@@ -42,6 +42,7 @@
 #include <internal/monitor.h>
 #include <internal/pthread.h>
 #include <internal/cwd.h>
+#include <internal/atexit.h>
 
 namespace Libc {
 	class Kernel;
@@ -191,6 +192,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		void _handle_user_interrupt();
 
 		Signal _signal { _pid };
+
+		Atexit _atexit { _heap };
 
 		Reconstructible<Io_signal_handler<Kernel>> _resume_main_handler {
 			_env.ep(), *this, &Kernel::_resume_main };

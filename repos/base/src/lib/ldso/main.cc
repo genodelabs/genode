@@ -19,6 +19,7 @@
 #include <util/string.h>
 #include <base/thread.h>
 #include <base/heap.h>
+#include <base/sleep.h>
 
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
@@ -43,14 +44,10 @@ namespace Linker {
 };
 
 static    Binary *binary_ptr = nullptr;
+static    Parent *parent_ptr = nullptr;
 bool      Linker::verbose  = false;
 Stage     Linker::stage    = STAGE_BINARY;
 Link_map *Link_map::first;
-
-/**
- * Registers dtors
- */
-int genode_atexit(Linker::Func);
 
 
 Linker::Region_map::Constructible_region_map &Linker::Region_map::r()
@@ -344,8 +341,6 @@ extern char **genode_argv;
 extern int    genode_argc;
 extern char **genode_envp;
 
-void genode_exit(int status);
-
 static int exit_status;
 
 static void exit_on_suspended() { genode_exit(exit_status); }
@@ -411,17 +406,20 @@ struct Linker::Binary : private Root_object, public Elf_object
 	{
 		Init::list()->exec_static_constructors();
 
-		/* call static constructors and register destructors */
+		/* call static constructors */
 		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
 		Func * const ctors_end   = (Func *)lookup_symbol("_ctors_end");
 		for (Func * ctor = ctors_end; ctor != ctors_start; (*--ctor)());
 
-		Func * const dtors_start = (Func *)lookup_symbol("_dtors_start");
-		Func * const dtors_end   = (Func *)lookup_symbol("_dtors_end");
-		for (Func * dtor = dtors_start; dtor != dtors_end; genode_atexit(*dtor++));
-
 		static_construction_finished = true;
 		stage = STAGE_SO;
+	}
+
+	void call_dtors()
+	{
+		Func * const dtors_start = (Func *)lookup_symbol("_dtors_start");
+		Func * const dtors_end   = (Func *)lookup_symbol("_dtors_end");
+		for (Func * dtor = dtors_end; dtor != dtors_start; (*--dtor)());
 	}
 
 	void call_entry_point(Env &env)
@@ -494,6 +492,19 @@ struct Linker::Binary : private Root_object, public Elf_object
 
 	bool is_binary() const override { return true; }
 };
+
+
+void genode_exit(int status)
+{
+	binary_ptr->call_dtors();
+
+	/* inform parent about the exit status */
+	if (parent_ptr)
+		parent_ptr->exit(status);
+
+	/* wait for destruction by the parent */
+	Genode::sleep_forever();
+}
 
 
 /**********************************
@@ -790,6 +801,8 @@ void Component::construct(Genode::Env &env)
 	Config const config(env);
 
 	verbose = config.verbose();
+
+	parent_ptr = &env.parent();
 
 	/* load binary and all dependencies */
 	try {

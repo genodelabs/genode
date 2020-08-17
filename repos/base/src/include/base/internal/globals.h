@@ -38,7 +38,6 @@ namespace Genode {
 	void init_root_proxy(Env &);
 	void init_tracing(Env &);
 	void init_log(Parent &);
-	void init_exit(Parent &);
 	void init_parent_resource_requests(Env &);
 	void init_heartbeat_monitoring(Env &);
 	void deinit_heartbeat_monitoring();

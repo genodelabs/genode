@@ -1,4 +1,5 @@
 OnPrint W
+_Z14sanitizer_exitv T
 _Z14sanitizer_initRN6Genode3EnvE T
 _ZN11__sanitizer10ExtractIntEPKcS1_Pi T
 _ZN11__sanitizer10FlagParser10ll_strndupEPKcm T

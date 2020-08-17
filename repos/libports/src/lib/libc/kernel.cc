@@ -510,6 +510,8 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 :
 	_env(env), _heap(heap)
 {
+	init_atexit(_atexit);
+
 	atexit(close_file_descriptors_on_exit);
 
 	init_semaphore_support(_timer_accessor);

@@ -8,8 +8,6 @@
  * The startup code calls constructors for static objects before calling
  * main(). Furthermore, this file contains the support of exit handlers
  * and destructors.
- *
- * Some code within this file is based on 'atexit.c' of FreeBSD's libc.
  */
 
 /*
@@ -29,175 +27,7 @@
 #include <base/internal/parent_cap.h>
 #include <base/internal/crt0.h>
 
-
-enum { ATEXIT_SIZE = 256 };
-
-
-/***************
- ** C++ stuff **
- ***************/
-
 void * __dso_handle = 0;
-
-enum Atexit_fn_type { ATEXIT_FN_EMPTY, ATEXIT_FN_STD, ATEXIT_FN_CXA };
-
-struct atexit_fn
-{
-	Atexit_fn_type fn_type;
-	union
-	{
-		void (*std_func)(void);
-		void (*cxa_func)(void *);
-	} fn_ptr;       /* function pointer */
-	void *fn_arg;   /* argument for CXA callback */
-	void *fn_dso;   /* shared module handle */
-};
-
-/* all members are initialized with 0 */
-static struct atexit
-{
-	bool enabled;
-	int index;
-	struct atexit_fn fns[ATEXIT_SIZE];
-} _atexit;
-
-
-static Genode::Mutex &atexit_mutex()
-{
-	static Genode::Mutex _atexit_lock;
-	return _atexit_lock;
-}
-
-
-static void atexit_enable()
-{
-	_atexit.enabled = true;
-}
-
-
-static int atexit_register(struct atexit_fn *fn)
-{
-	Genode::Mutex::Guard atexit_lock_guard(atexit_mutex());
-
-	if (!_atexit.enabled)
-		return 0;
-
-	if (_atexit.index >= ATEXIT_SIZE) {
-		Genode::error("Cannot register exit handler - ATEXIT_SIZE reached");
-		return -1;
-	}
-
-	_atexit.fns[_atexit.index++] = *fn;
-
-	return 0;
-}
-
-
-/**
- * Register a function to be performed at exit
- */
-int genode_atexit(void (*func)(void))
-{
-	struct atexit_fn fn;
-	int error;
-
-	fn.fn_type = ATEXIT_FN_STD;
-	fn.fn_ptr.std_func = func;
-	fn.fn_arg = 0;
-	fn.fn_dso = 0;
-
-	error = atexit_register(&fn);
-	return (error);
-}
-
-
-/**
- * Register a function to be performed at exit or when an shared object
- * with given dso handle is unloaded dynamically.
- *
- * This function is called directly by compiler generated code, so
- * it needs to be declared as extern "C" and cannot be local to
- * the cxx lib.
- */
-int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
-{
-	struct atexit_fn fn;
-	int error;
-
-	fn.fn_type = ATEXIT_FN_CXA;
-	fn.fn_ptr.cxa_func = func;
-	fn.fn_arg = arg;
-	fn.fn_dso = dso;
-
-	error = atexit_register(&fn);
-	return (error);
-}
-
-
-/*
- * Call all handlers registered with __cxa_atexit for the shared
- * object owning 'dso'.  Note: if 'dso' is NULL, then all remaining
- * handlers are called.
- */
-void genode___cxa_finalize(void *dso)
-{
-	struct atexit_fn fn;
-	int n = 0;
-
-	atexit_mutex().acquire();
-	for (n = _atexit.index; --n >= 0;) {
-		if (_atexit.fns[n].fn_type == ATEXIT_FN_EMPTY)
-			continue; /* already been called */
-		if (dso != 0 && dso != _atexit.fns[n].fn_dso)
-			continue; /* wrong DSO */
-		fn = _atexit.fns[n];
-
-		/*
-		 * Mark entry to indicate that this particular handler
-		 * has already been called.
-		 */
-		_atexit.fns[n].fn_type = ATEXIT_FN_EMPTY;
-		atexit_mutex().release();
-
-		/* call the function of correct type */
-		if (fn.fn_type == ATEXIT_FN_CXA)
-			fn.fn_ptr.cxa_func(fn.fn_arg);
-		else if (fn.fn_type == ATEXIT_FN_STD)
-			fn.fn_ptr.std_func();
-
-		atexit_mutex().acquire();
-	}
-	atexit_mutex().release();
-}
-
-
-extern "C" void __cxa_finalize(void *dso);
-
-static Genode::Parent *_parent_ptr;
-
-
-namespace Genode { void init_exit(Parent &parent) { _parent_ptr = &parent; } }
-
-
-/**
- * Terminate the process.
- */
-void genode_exit(int status)
-{
-	/* call handlers registered with 'atexit()' or '__cxa_atexit()' */
-	__cxa_finalize(0);
-
-	/* call destructors for global static objects. */
-	void (**func)();
-	for (func = &_dtors_start; func != &_dtors_end; (*func++)());
-
-	/* inform parent about the exit status */
-	if (_parent_ptr)
-		_parent_ptr->exit(status);
-
-	/* wait for destruction by the parent */
-	Genode::sleep_forever();
-}
 
 
 /**
@@ -242,16 +72,6 @@ namespace Genode {
 
 extern "C" int _main()
 {
-	/*
-	 * Allow exit handlers to be registered.
-	 *
-	 * This is done after the creation of the environment to prevent its
-	 * destruction. The environment is still needed to notify the parent
-	 * after all exit handlers (including static object destructors) have
-	 * been called.
-	 */
-	atexit_enable();
-
 	Genode::bootstrap_component();
 
 	/* never reached */
@@ -259,22 +79,13 @@ extern "C" int _main()
 }
 
 
-static int exit_status;
-static void exit_on_suspended() { genode_exit(exit_status); }
-
-
 extern int main(int argc, char **argv, char **envp);
 
 
 void Component::construct(Genode::Env &env) __attribute__((weak));
-void Component::construct(Genode::Env &env)
+void Component::construct(Genode::Env &)
 {
 	/* call real main function */
-	exit_status = main(genode_argc, genode_argv, genode_envp);
-
-	/* trigger suspend in the entry point */
-	env.ep().schedule_suspend(exit_on_suspended, nullptr);
-
-	/* return to entrypoint and exit via exit_on_suspended() */
+	main(genode_argc, genode_argv, genode_envp);
 }
 

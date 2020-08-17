@@ -15,6 +15,7 @@
 #include <base/log.h>
 
 extern void sanitizer_init(Genode::Env &);
+extern void sanitizer_exit();
 
 void Component::construct(Genode::Env &env)
 {
@@ -30,4 +31,10 @@ void Component::construct(Genode::Env &env)
 
 	int * volatile ptr = nullptr;
 	*ptr = 0x55;
+
+	/*
+	 * Not reached in this test, but calls exit handlers registered by
+	 * sanitizers in general.
+	 */
+	sanitizer_exit();
 }

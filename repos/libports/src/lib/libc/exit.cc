@@ -16,11 +16,16 @@
 
 /* libc-internal includes */
 #include <internal/types.h>
+#include <internal/atexit.h>
+
 
 extern void genode_exit(int status) __attribute__((noreturn));
 
+
 extern "C" void _exit(int status)
 {
+	Libc::execute_atexit_handlers_in_application_context();
+
 	genode_exit(status);
 }
 

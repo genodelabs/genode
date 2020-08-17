@@ -40,6 +40,7 @@ namespace Libc {
 	struct File_descriptor_allocator;
 	struct Timer_accessor;
 	struct Cwd;
+	struct Atexit;
 
 	/**
 	 * Support for shared libraries
@@ -143,6 +144,11 @@ namespace Libc {
 	 * Signal handling
 	 */
 	void init_signal(Signal &);
+
+	/**
+	 * Atexit handling
+	 */
+	void init_atexit(Atexit &);
 }
 
 #endif /* _LIBC__INTERNAL__INIT_H_ */
