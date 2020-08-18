@@ -78,6 +78,7 @@ class Libc::Vfs_plugin : public Plugin
 		Constructible<Genode::Directory> _root_dir { };
 		Vfs::Io_response_handler        &_response_handler;
 		Update_mtime               const _update_mtime;
+		Current_real_time               &_current_real_time;
 		bool                       const _pipe_configured;
 
 		/**
@@ -118,12 +119,14 @@ class Libc::Vfs_plugin : public Plugin
 		           Genode::Allocator        &alloc,
 		           Vfs::Io_response_handler &handler,
 		           Update_mtime              update_mtime,
+		           Current_real_time        &current_real_time,
 		           Xml_node                  config)
 		:
 			_alloc(alloc),
 			_root_fs(env.vfs()),
 			_response_handler(handler),
 			_update_mtime(update_mtime),
+			_current_real_time(current_real_time),
 			_pipe_configured(_init_pipe_configured(config))
 		{
 			if (config.has_sub_node("libc"))

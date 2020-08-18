@@ -33,6 +33,7 @@ namespace Libc {
 	struct Monitor;
 	struct Select;
 	struct Current_time;
+	struct Current_real_time;
 	struct Clone_connection;
 	struct Kernel_routine_scheduler;
 	struct Watch;
@@ -101,7 +102,7 @@ namespace Libc {
 	 * Init timing facilities
 	 */
 	void init_sleep(Suspend &);
-	void init_time(Current_time &, Rtc_path const &, Watch &);
+	void init_time(Current_time &, Current_real_time &);
 
 	/**
 	 * Socket fs

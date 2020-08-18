@@ -33,105 +33,16 @@
 #include <internal/current_time.h>
 #include <internal/watch.h>
 
-static Libc::Current_time *_current_time_ptr;
-static char const         *_rtc_path;
-static Libc::Watch        *_watch_ptr;
+static Libc::Current_time      *_current_time_ptr;
+static Libc::Current_real_time *_current_real_time_ptr;
 
 
-void Libc::init_time(Current_time   &current_time,
-                     Rtc_path const &rtc_path,
-                     Watch          &watch)
+void Libc::init_time(Current_time      &current_time,
+                     Current_real_time &current_real_time)
 {
-	static Rtc_path rtc_path_inst = rtc_path;
-
-	_current_time_ptr = &current_time;
-	_rtc_path         =  rtc_path_inst.string();
-	_watch_ptr        = &watch;
+	_current_time_ptr      = &current_time;
+	_current_real_time_ptr = &current_real_time;
 }
-
-
-namespace Libc { struct Rtc; }
-
-
-struct Libc::Rtc : Vfs::Watch_response_handler
-{
-	Vfs::Vfs_watch_handle *_watch_handle { nullptr };
-
-	Rtc_path const _rtc_path;
-
-	Watch &_watch;
-
-	bool   _read_file { true };
-	time_t _rtc_value { 0 };
-
-	bool const _rtc_path_valid = (_rtc_path != "");
-
-	Rtc(Rtc_path const &rtc_path, Watch &watch)
-	:
-		_rtc_path(rtc_path), _watch(watch)
-	{
-		if (!_rtc_path_valid) {
-			warning("rtc not configured, returning ", _rtc_value);
-			return;
-		}
-
-		_watch_handle = _watch.alloc_watch_handle(_rtc_path.string());
-		if (_watch_handle) {
-			_watch_handle->handler(this);
-		}
-	}
-
-	/******************************************
-	 ** Vfs::Watch_reponse_handler interface **
-	 ******************************************/
-
-	void watch_response() override
-	{
-		_read_file = true;
-	}
-
-	time_t read()
-	{
-		if (!_rtc_path_valid) { return 0; }
-
-		/* return old value */
-		if (!_read_file) { return _rtc_value; }
-
-		_read_file = false;
-
-		int fd = open(_rtc_path.string(), O_RDONLY);
-		if (fd == -1) {
-			warning(_rtc_path, " not readable, returning ", _rtc_value);
-			return _rtc_value;
-		}
-
-		char buf[32];
-		ssize_t n = ::read(fd, buf, sizeof(buf));
-		if (n > 0) {
-			buf[n - 1] = '\0';
-			struct tm tm;
-			memset(&tm, 0, sizeof(tm));
-
-			if (strptime(buf, "%Y-%m-%d %R", &tm)) {
-				_rtc_value = mktime(&tm);
-				if (_rtc_value == (time_t)-1)
-					_rtc_value = 0;
-			}
-		}
-
-		close(fd);
-
-		struct Missing_call_of_init_time : Exception { };
-		if (!_current_time_ptr)
-			throw Missing_call_of_init_time();
-
-		uint64_t const ts_value =
-			_current_time_ptr->current_time().trunc_to_plain_ms().value;
-		_rtc_value += (time_t)ts_value / 1000;
-
-		return _rtc_value;
-	}
-};
 
 
 using namespace Libc;
@@ -165,21 +76,13 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 	case CLOCK_REALTIME:
 	case CLOCK_SECOND: /* FreeBSD specific */
 	{
-		if (!_watch_ptr)
+		if (!_current_real_time_ptr)
 			throw Missing_call_of_init_time();
 
-		/*
-		 * XXX move instance to Libc::Kernel
-		 */
-		Rtc &rtc = *unmanaged_singleton<Rtc>(_rtc_path, *_watch_ptr);
+		if (!_current_real_time_ptr->has_real_time())
+			return Errno(EINVAL);
 
-		time_t const rtc_value = rtc.read();
-		if (!rtc_value) return Errno(EINVAL);
-
-		uint64_t const time = current_time().trunc_to_plain_ms().value;
-
-		ts->tv_sec  = rtc_value + time/1000;
-		ts->tv_nsec = (time % 1000) * (1000*1000);
+		*ts = _current_real_time_ptr->current_real_time();
 		break;
 	}
 

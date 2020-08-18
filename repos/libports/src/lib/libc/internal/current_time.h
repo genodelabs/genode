@@ -26,6 +26,13 @@ namespace Libc {
 	{
 		virtual Duration current_time() = 0;
 	};
+
+	struct Current_real_time : Interface
+	{
+		virtual bool has_real_time() const = 0;
+
+		virtual timespec current_real_time() = 0;
+	};
 }
 
 #endif /* _LIBC__INTERNAL__CURRENT_TIME_H_ */

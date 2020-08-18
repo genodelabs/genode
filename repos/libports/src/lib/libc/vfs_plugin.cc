@@ -43,6 +43,7 @@
 #include <internal/init.h>
 #include <internal/legacy.h>
 #include <internal/monitor.h>
+#include <internal/current_time.h>
 
 
 static Libc::Monitor *_monitor_ptr;
@@ -521,17 +522,18 @@ struct Sync
 	Vfs::Vfs_handle &vfs_handle;
 	Vfs::Timestamp   mtime { Vfs::Timestamp::INVALID };
 
-	Sync(Vfs::Vfs_handle &vfs_handle, Libc::Vfs_plugin::Update_mtime update_mtime)
+	Sync(Vfs::Vfs_handle &vfs_handle, Libc::Vfs_plugin::Update_mtime update_mtime,
+	     Libc::Current_real_time &current_real_time)
 	:
 		vfs_handle(vfs_handle)
 	{
-		if (update_mtime == Libc::Vfs_plugin::Update_mtime::NO) {
-			state = TIMESTAMP_UPDATED;
-		} else {
-			timespec ts { 0, 0};
+		if (update_mtime == Libc::Vfs_plugin::Update_mtime::NO
+		 || !current_real_time.has_real_time()) {
 
-			/* XXX using  clock_gettime directly is probably not the best idea */
-			clock_gettime(CLOCK_REALTIME, &ts);
+			state = TIMESTAMP_UPDATED;
+
+		} else {
+			timespec const ts = current_real_time.current_real_time();
 
 			mtime = { .value = (long long)ts.tv_sec };
 		}
@@ -566,7 +568,7 @@ int Libc::Vfs_plugin::close_from_kernel(File_descriptor *fd)
 
 	if ((fd->modified) || (fd->flags & O_CREAT)) {
 		/* XXX mtime not updated here */
-		Sync sync { *handle, Update_mtime::NO };
+		Sync sync { *handle, Update_mtime::NO, _current_real_time };
 
 		while (!sync.complete())
 			Libc::Kernel::kernel().libc_env().ep().wait_and_dispatch_one_io_signal();
@@ -583,7 +585,7 @@ int Libc::Vfs_plugin::close(File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	Sync sync { *handle , _update_mtime };
+	Sync sync { *handle , _update_mtime, _current_real_time };
 	Mutex::Guard guard(vfs_mutex());
 
 	monitor().monitor(vfs_mutex(), [&] {
@@ -676,7 +678,7 @@ int Libc::Vfs_plugin::fstat(File_descriptor *fd, struct stat *buf)
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
 	if (fd->modified) {
-		Sync sync { *handle , _update_mtime };
+		Sync sync { *handle , _update_mtime, _current_real_time };
 		Mutex::Guard guard(vfs_mutex());
 
 		monitor().monitor(vfs_mutex(), [&] {
@@ -1308,7 +1310,7 @@ int Libc::Vfs_plugin::_legacy_ioctl(File_descriptor *fd, int request, char *argp
 int Libc::Vfs_plugin::ftruncate(File_descriptor *fd, ::off_t length)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
-	Sync sync { *handle, _update_mtime };
+	Sync sync { *handle, _update_mtime, _current_real_time };
 	Mutex::Guard guard(vfs_mutex());
 
 	bool succeeded = false;
@@ -1381,9 +1383,12 @@ int Libc::Vfs_plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 int Libc::Vfs_plugin::fsync(File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
-	if (!fd->modified) { return 0; }
 
-	Sync sync { *handle, _update_mtime };
+	if (!fd->modified)
+		return 0;
+
+	Sync sync { *handle, _update_mtime, _current_real_time };
+
 	Mutex::Guard guard(vfs_mutex());
 
 	monitor().monitor(vfs_mutex(), [&] {
@@ -1442,9 +1447,7 @@ int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 				}
 
 				handle->handler(&_response_handler);
-				/* XXX this could deadlock in rare cases where the clock is
-				 * accessed the first time */
-				sync.construct(*handle, _update_mtime);
+				sync.construct(*handle, _update_mtime, _current_real_time);
 			} stage = Stage::WRITE; [[fallthrough]]
 
 		case Stage::WRITE:
