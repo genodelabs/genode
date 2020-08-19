@@ -1,7 +1,7 @@
 LSC_DIR := \
 	$(call port_dir,$(GENODE_DIR)/repos/libports/ports/libsparkcrypto)
 LSC_ALI_DIR := \
-	$(call port_dir,$(GENODE_DIR)/repos/libports/ports/libsparkcrypto)/lib/ali/libsparkcrypto
+	$(call port_dir,$(GENODE_DIR)/repos/libports/ports/libsparkcrypto)/libsparkcrypto-alis/lib/ali/libsparkcrypto
 
 MIRROR_FROM_LSC_DIR := \
 	$(addprefix libsparkcrypto/src/shared/generic/,\

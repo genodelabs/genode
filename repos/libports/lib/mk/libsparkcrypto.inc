@@ -39,26 +39,16 @@ SRC_ADB = \
 	lsc-internal-sha1.adb \
 	lsc-internal-sha256.adb \
 	lsc-internal-sha512.adb \
-
-SRC_ADB += \
-	lsc-aes.adb \
-	lsc-aes-cbc.adb \
 	lsc-aes_generic.adb \
 	lsc-aes_generic-cbc.adb \
 	lsc-internal-convert_hash.adb \
 	lsc-internal-convert_hmac.adb \
 	lsc-ops_generic.adb \
-	lsc-ripemd160.adb \
 	lsc-ripemd160_generic.adb \
-	lsc-ripemd160-hmac.adb \
 	lsc-ripemd160-hmac_generic.adb \
-	lsc-sha1.adb \
 	lsc-sha1_generic.adb \
-	lsc-sha1-hmac.adb \
 	lsc-sha1-hmac_generic.adb \
-	lsc-sha2.adb \
 	lsc-sha2_generic.adb \
-	lsc-sha2-hmac.adb \
 	lsc-sha2-hmac_generic.adb \
 
 
