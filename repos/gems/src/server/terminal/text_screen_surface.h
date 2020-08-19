@@ -50,6 +50,16 @@ class Terminal::Text_screen_surface
 			unsigned        columns;
 			unsigned        lines;
 
+			enum { BORDER = 1U };
+
+			/**
+			 * Return number of visible pixels considering the border
+			 */
+			static unsigned _visible(unsigned value)
+			{
+				return max(value, 2U*BORDER) - 2U*BORDER;
+			}
+
 			class Invalid : Genode::Exception { };
 
 			Geometry(Font const &font, Framebuffer const &framebuffer)
@@ -57,8 +67,8 @@ class Terminal::Text_screen_surface
 				fb_size(framebuffer.w(), framebuffer.h()),
 				char_width(font.string_width(Utf8_ptr("M"))),
 				char_height(font.height()),
-				columns((framebuffer.w() << 8)/char_width.value),
-				lines(framebuffer.h()/char_height)
+				columns((_visible(framebuffer.w()) << 8)/char_width.value),
+				lines(_visible(framebuffer.h())/char_height)
 			{
 				if (columns*lines == 0)
 					throw Invalid();
