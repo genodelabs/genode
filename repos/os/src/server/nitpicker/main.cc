@@ -890,15 +890,15 @@ void Nitpicker::Main::_handle_fb_mode()
 		_timer.trigger_periodic(0);
 	}
 
-	if (_request_framebuffer && !_fb_screen.constructed())
+	/* reconstruct '_fb_screen' with updated mode */
+	if (_request_framebuffer && _framebuffer.constructed())
 		_fb_screen.construct(_env.rm(), *_framebuffer);
 
 	if (!_request_framebuffer && _fb_screen.constructed())
 		_fb_screen.destruct();
 
-	if (!_request_framebuffer && _framebuffer.constructed()) {
+	if (!_request_framebuffer && _framebuffer.constructed())
 		_framebuffer.destruct();
-	}
 
 	if (!_request_framebuffer)
 		_timer.trigger_periodic(_timer_period_ms*1000);
