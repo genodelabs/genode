@@ -111,22 +111,6 @@ class Genode::Xml_attribute
 		class Nonexistent_attribute : public Exception { };
 
 
-		/**
-		 * Return attribute type as null-terminated string
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		void type(char *dst, size_t max_len) const __attribute__((deprecated))
-		{
-			/*
-			 * Limit number of characters by token length, take
-			 * null-termination into account.
-			 */
-			max_len = min(max_len, _tokens.name.len() + 1);
-			copy_cstring(dst, _tokens.name.start(), max_len);
-		}
-
 		typedef String<64> Name;
 		Name name() const {
 			return Name(Cstring(_tokens.name.start(), _tokens.name.len())); }
@@ -137,17 +121,6 @@ class Genode::Xml_attribute
 		bool has_type(char const *type) {
 			return strlen(type) == _tokens.name.len() &&
 			       strcmp(type, _tokens.name.start(), _tokens.name.len()) == 0; }
-
-		/**
-		 * Return size of value
-		 *
-		 * \deprecated  use 'with_raw_node' instead
-		 * \noapi
-		 */
-		char const *value_base() const __attribute__((deprecated))
-		{
-			return _tokens.value.start() + 1;
-		}
 
 		/**
 		 * Return size of the value in bytes
@@ -190,18 +163,6 @@ class Genode::Xml_attribute
 		}
 
 		/**
-		 * Return attribute value as null-terminated string
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		void value(char *dst, size_t max_len) const __attribute__((deprecated))
-		{
-			with_raw_value([&] (char const *start, size_t length) {
-				copy_cstring(dst, start, min(max_len, length + 1)); });
-		}
-
-		/**
 		 * Return attribute value as typed value
 		 *
 		 * \param T  type of value to read
@@ -228,38 +189,6 @@ class Genode::Xml_attribute
 		{
 			with_raw_value([&] (char const *start, size_t length) {
 				out = String<N>(Cstring(start, length)); });
-		}
-
-		/**
-		 * Return attribute value as 'Genode::String'
-		 *
-		 * \deprecated  use 'value(String<N> &out' instead
-		 * \noapi
-		 */
-		template <size_t N>
-		__attribute__((deprecated))
-		void value(String<N> *out) const
-		{
-			with_raw_value([&] (char const *start, size_t length) {
-				*out = String<N>(Cstring(start, length)); });
-		}
-
-		/**
-		 * Return attribute value as typed value
-		 *
-		 * \deprecated  use 'value(T &out)' instead
-		 * \noapi
-		 */
-		template <typename T>
-		__attribute__((deprecated))
-		bool value(T *out) const
-		{
-			bool result = false;
-
-			with_raw_value([&] (char const *start, size_t length) {
-				result = (ascii_to(start, *out) == length); });
-
-			return result;
 		}
 
 		/**
@@ -710,27 +639,9 @@ class Genode::Xml_node
 		}
 
 		/**
-		 * Request type name of XML node as null-terminated string
-		 *
-		 * \noapi
-		 */
-		void type_name(char *dst, size_t max_len) const __attribute__((deprecated))
-		{
-			_tags.start.name().string(dst, max_len);
-		}
-
-		/**
 		 * Return size of node including start and end tags in bytes
 		 */
 		size_t size() const { return _tags.end.next_token().start() - _addr; }
-
-		/**
-		 * Return pointer to start of node
-		 *
-		 * \deprecated  use 'with_raw_node' instead
-		 * \noapi
-		 */
-		char const *addr() const __attribute__((deprecated)) { return _addr; }
 
 		/**
 		 * Return size of node content
@@ -786,29 +697,6 @@ class Genode::Xml_node
 				return;
 
 			fn(_content_base(), content_size());
-		}
-
-		/**
-		 * Return pointer to start of content
-		 *
-		 * \deprecated  use 'with_raw_content()' instead
-		 * \noapi
-		 */
-		char *content_addr() const __attribute__((deprecated))
-		{
-			return _tags.start.next_token().start();
-		}
-
-		/**
-		 * Return pointer to start of content
-		 *
-		 * \deprecated  use 'with_raw_content()' instead
-		 *
-		 * \noapi
-		 */
-		char const *content_base() const __attribute__((deprecated))
-		{
-			return _tags.start.next_token().start();
 		}
 
 		/**
