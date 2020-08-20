@@ -46,12 +46,14 @@
 #include <internal/current_time.h>
 
 
-static Libc::Monitor *_monitor_ptr;
+static Libc::Monitor      *_monitor_ptr;
+static Genode::Region_map *_region_map_ptr;
 
 
-void Libc::init_vfs_plugin(Monitor &monitor)
+void Libc::init_vfs_plugin(Monitor &monitor, Genode::Region_map &rm)
 {
 	_monitor_ptr = &monitor;
+	_region_map_ptr = &rm;
 }
 
 
@@ -61,6 +63,15 @@ static Libc::Monitor & monitor()
 	if (!_monitor_ptr)
 		throw Missing_call_of_init_vfs_plugin();
 	return *_monitor_ptr;
+}
+
+
+static Genode::Region_map &region_map()
+{
+	struct Missing_call_of_init_vfs_plugin : Genode::Exception { };
+	if (!_region_map_ptr)
+		throw Missing_call_of_init_vfs_plugin();
+	return *_region_map_ptr;
 }
 
 
@@ -1634,7 +1645,7 @@ int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags,
                              File_descriptor *fd, ::off_t offset)
 {
-	if (prot != PROT_READ && !(prot == (PROT_READ | PROT_WRITE) && flags == MAP_PRIVATE)) {
+	if ((prot != PROT_READ) && (prot != (PROT_READ | PROT_WRITE))) {
 		error("mmap for prot=", Hex(prot), " not supported");
 		errno = EACCES;
 		return (void *)-1;
@@ -1646,34 +1657,57 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 		return (void *)-1;
 	}
 
-	/*
-	 * XXX attempt to obtain memory mapping via
-	 *     'Vfs::Directory_service::dataspace'.
-	 */
+	void *addr = nullptr;
 
-	void *addr = mem_alloc()->alloc(length, PAGE_SHIFT);
-	if (addr == (void *)-1) {
-		errno = ENOMEM;
-		return (void *)-1;
-	}
+	if (flags & MAP_PRIVATE) {
 
-	/* copy variables for complete read */
-	size_t read_remain = length;
-	size_t read_offset = offset;
-	char *read_addr = (char *)addr;
+		/*
+		 * XXX attempt to obtain memory mapping via
+		 *     'Vfs::Directory_service::dataspace'.
+		 */
 
-	while (read_remain > 0) {
-		ssize_t length_read = ::pread(fd->libc_fd, read_addr, read_remain, read_offset);
-		if (length_read < 0) { /* error */
-			error("mmap could not obtain file content");
-			::munmap(addr, length);
-			errno = EACCES;
+		addr = mem_alloc()->alloc(length, PAGE_SHIFT);
+		if (addr == (void *)-1) {
+			error("mmap out of memory");
+			errno = ENOMEM;
 			return (void *)-1;
-		} else if (length_read == 0) /* EOF */
-			break; /* done (length can legally be greater than the file length) */
-		read_remain -= length_read;
-		read_offset += length_read;
-		read_addr += length_read;
+		}
+
+		/* copy variables for complete read */
+		size_t read_remain = length;
+		size_t read_offset = offset;
+		char *read_addr = (char *)addr;
+
+		while (read_remain > 0) {
+			ssize_t length_read = ::pread(fd->libc_fd, read_addr, read_remain, read_offset);
+			if (length_read < 0) { /* error */
+				error("mmap could not obtain file content");
+				::munmap(addr, length);
+				errno = EACCES;
+				return (void *)-1;
+			} else if (length_read == 0) /* EOF */
+				break; /* done (length can legally be greater than the file length) */
+			read_remain -= length_read;
+			read_offset += length_read;
+			read_addr += length_read;
+		}
+	} else if (flags & MAP_SHARED) {
+
+		Genode::Dataspace_capability ds_cap;
+
+		Mutex::Guard guard(vfs_mutex());
+		monitor().monitor(vfs_mutex(), [&] {
+			ds_cap = _root_fs.dataspace(fd->fd_path);
+			return Fn::COMPLETE;
+		});
+
+		if (!ds_cap.valid()) {
+			Genode::error("mmap got invalid dataspace capability");
+			errno = ENODEV;
+			return (void*)-1;
+		}
+
+		addr = region_map().attach(ds_cap, length, offset);
 	}
 
 	return addr;
@@ -1682,7 +1716,11 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 {
-	mem_alloc()->free(addr);
+	if (mem_alloc()->size_at(addr) > 0)
+		mem_alloc()->free(addr);
+	else
+		region_map().detach(addr);
+
 	return 0;
 }
 

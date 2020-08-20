@@ -66,7 +66,7 @@ namespace Libc {
 	/**
 	 * Virtual file system
 	 */
-	void init_vfs_plugin(Monitor &);
+	void init_vfs_plugin(Monitor &, Genode::Region_map &);
 	void init_file_operations(Cwd &);
 
 	/**
