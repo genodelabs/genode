@@ -237,6 +237,7 @@ fwprintf T
 fwrite T
 fwscanf T
 gai_strerror T
+genode_cache_coherent T
 getaddrinfo T
 getbootfile T
 getbsize T
