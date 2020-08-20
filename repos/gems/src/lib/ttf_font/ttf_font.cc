@@ -250,6 +250,7 @@ Ttf_font::_create_stbtt_font_info(Allocator &alloc, void const *ttf)
 Ttf_font::Ttf_font(Allocator &alloc, void const *ttf, float px)
 :
 	_stbtt_font_info(_create_stbtt_font_info(alloc, ttf)),
+	_px(px),
 	_scale(stbtt_ScaleForPixelHeight(&_stbtt_font_info, px)),
 	_baseline(obtain_baseline(_stbtt_font_info, _scale)),
 	_height(px + 0.5 /* round to integer */),
@@ -269,6 +270,16 @@ Ttf_font::~Ttf_font()
 
 void Ttf_font::_apply_glyph(Codepoint c, Apply_fn const &fn) const
 {
+	if (_px < 1.0) {
+		Glyph const glyph { .width   = 0,
+		                    .height  = 0,
+		                    .vpos    = 0,
+		                    .advance = 0,
+		                    .values  = nullptr };
+		fn.apply(glyph);
+		return;
+	}
+
 	/* find vertical subpixel position that yields the sharpest glyph */
 	float best_shift_y = 0;
 	{

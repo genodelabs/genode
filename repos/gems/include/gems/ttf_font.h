@@ -34,6 +34,7 @@ class Ttf_font : public Text_painter::Font
 
 		Stbtt_font_info &_stbtt_font_info;
 
+		float    const _px;
 		float    const _scale;
 		unsigned const _baseline;
 		unsigned const _height;
