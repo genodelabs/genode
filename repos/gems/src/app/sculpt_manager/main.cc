@@ -116,13 +116,6 @@ struct Sculpt::Main : Input_event_handler,
 		_event_filter_config.try_generate_manually_managed();
 	}
 
-	Attached_rom_dataspace _gui_hover { _env, "nitpicker_hover" };
-
-	Signal_handler<Main> _gui_hover_handler {
-		_env.ep(), *this, &Main::_handle_gui_hover };
-
-	void _handle_gui_hover();
-
 
 	/**********************
 	 ** Device discovery **
@@ -1036,7 +1029,6 @@ struct Sculpt::Main : Input_event_handler,
 		 * Subscribe to reports
 		 */
 		_update_state_rom    .sigh(_update_state_handler);
-		_gui_hover           .sigh(_gui_hover_handler);
 		_pci_devices         .sigh(_pci_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
@@ -1379,29 +1371,6 @@ void Sculpt::Main::_handle_gui_mode()
 Sculpt::Dialog::Hover_result Sculpt::Main::hover(Xml_node hover)
 {
 	return _storage.dialog.match_sub_dialog(hover, "vbox", "frame", "vbox");
-}
-
-
-void Sculpt::Main::_handle_gui_hover()
-{
-	if (!_storage._discovery_state.discovery_in_progress())
-		return;
-
-	/* check if initial user activity has already been evaluated */
-	if (_storage._discovery_state.user_state != Discovery_state::USER_UNKNOWN)
-		return;
-
-	_gui_hover.update();
-	Xml_node const hover = _gui_hover.xml();
-	if (!hover.has_type("hover"))
-		return;
-
-	_storage._discovery_state.user_state = hover.attribute_value("active", false)
-	                                     ? Discovery_state::USER_INTERVENED
-	                                     : Discovery_state::USER_IDLE;
-
-	/* trigger re-evaluation of default storage target */
-	_storage.handle_storage_devices_update();
 }
 
 

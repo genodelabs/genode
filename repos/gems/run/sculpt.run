@@ -55,8 +55,6 @@ install_config {
 		<config verbose="no">
 			<policy label="leitzentrale_config -> leitzentrale"
 			        report="global_keys_handler -> leitzentrale"/>
-			<policy label="leitzentrale -> manager -> nitpicker_hover"
-			        report="nitpicker -> hover"/>
 			<policy label="pointer -> hover" report="nitpicker -> hover"/>
 			<policy label="pointer -> xray"
 			        report="global_keys_handler -> leitzentrale"/>
