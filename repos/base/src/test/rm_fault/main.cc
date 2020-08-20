@@ -32,7 +32,7 @@ using namespace Genode;
  ***********/
 
 enum {
-	MANAGED_ADDR = 0x10000000,
+	MANAGED_ADDR = 0x18000000,
 	STOP_TEST    = 0xdead,
 	READ_TEST    = 0x12345,
 	WRITE_TEST   = READ_TEST - 1,
