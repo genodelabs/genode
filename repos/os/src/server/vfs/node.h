@@ -144,7 +144,8 @@ class Vfs_server::Node : Node_space::Element, Node_queue::Element
 		 * nodes, which accept a job in addition to an already submitted
 		 * READ_READY request (which leaves '_packet_in_progress' untouched).
 		 */
-		bool job_acceptable() const { return !job_in_progress(); }
+		bool job_acceptable() const { return !job_in_progress()
+		                                  && !acknowledgement_pending(); }
 
 		/**
 		 * Submit job to node
