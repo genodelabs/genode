@@ -1640,8 +1640,8 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 		return (void *)-1;
 	}
 
-	if (addr_in != 0) {
-		error("mmap for predefined address not supported");
+	if (flags & MAP_FIXED) {
+		error("mmap for fixed predefined address not supported yet");
 		errno = EINVAL;
 		return (void *)-1;
 	}

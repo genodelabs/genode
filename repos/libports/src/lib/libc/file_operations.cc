@@ -413,9 +413,15 @@ __SYS_(void *, mmap, (void *addr, ::size_t length,
                       int prot, int flags,
                       int libc_fd, ::off_t offset),
 {
-
 	/* handle requests for anonymous memory */
-	if (!addr && libc_fd == -1) {
+	if ((flags & MAP_ANONYMOUS) || (flags & MAP_ANON)) {
+
+		if (flags & MAP_FIXED) {
+			Genode::error("mmap for fixed predefined address not supported yet");
+			errno = EINVAL;
+			return MAP_FAILED;
+		}
+
 		bool const executable = prot & PROT_EXEC;
 		void *start = mem_alloc(executable)->alloc(length, PAGE_SHIFT);
 		if (!start) {
