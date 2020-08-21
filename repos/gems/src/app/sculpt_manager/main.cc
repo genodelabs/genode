@@ -1478,6 +1478,16 @@ void Sculpt::Main::_handle_runtime_state()
 
 		}); /* for each partition */
 
+		/* respond to failure of part_block */
+		if (device.discovery_in_progress()) {
+			Child_exit_state exit_state(state, device.part_block_start_name());
+			if (!exit_state.responsive) {
+				error(device.part_block_start_name(), " got stuck");
+				device.state = Storage_device::RELEASED;
+				reconfigure_runtime = true;
+			}
+		}
+
 		/* respond to completion of GPT relabeling */
 		if (device.relabel_in_progress()) {
 			Child_exit_state exit_state(state, device.relabel_start_name());
@@ -1606,6 +1616,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("delay_ms",   4*500);
 		xml.attribute("buffer",     "1M");
 	});
+
+	xml.node("heartbeat", [&] () { xml.attribute("rate_ms", 1000); });
 
 	xml.node("parent-provides", [&] () {
 		gen_parent_service<Rom_session>(xml);

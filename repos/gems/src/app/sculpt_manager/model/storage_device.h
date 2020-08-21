@@ -201,8 +201,11 @@ struct Sculpt::Storage_device
 		return gpt_expand_in_progress() || fs_resize_in_progress();
 	}
 
-	Start_name relabel_start_name() const { return Start_name(label, ".relabel"); }
-	Start_name expand_start_name()  const { return Start_name(label, ".expand");  }
+	bool discovery_in_progress() const { return state == UNKNOWN; }
+
+	Start_name part_block_start_name() const { return Start_name(label, ".part_block"); }
+	Start_name relabel_start_name()    const { return Start_name(label, ".relabel"); }
+	Start_name expand_start_name()     const { return Start_name(label, ".expand");  }
 };
 
 
@@ -215,6 +218,8 @@ void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml,
 	                         Cap_quota{100}, Ram_quota{8*1024*1024});
 
 	gen_named_node(xml, "binary", "part_block");
+
+	xml.node("heartbeat", [&] () { });
 
 	xml.node("config", [&] () {
 		xml.node("report", [&] () { xml.attribute("partitions", "yes"); });
