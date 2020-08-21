@@ -283,9 +283,9 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 
 	public:
 
-		struct No_partion_table : Exception { };
-		struct Ambiguous_tables : Exception { };
-		struct Invalid_config   : Exception { };
+		struct No_partition_table : Exception { };
+		struct Ambiguous_tables   : Exception { };
+		struct Invalid_config     : Exception { };
 
 		Main(Env &env) : _env(env)
 		{
@@ -554,7 +554,7 @@ Block::Partition_table & Block::Main::_table()
 	if (valid_mbr) return _mbr;
 
 	error("Aborting: no partition table found.");
-	throw No_partion_table();
+	throw No_partition_table();
 }
 
 void Component::construct(Genode::Env &env) { static Block::Main main(env); }
