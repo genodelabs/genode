@@ -22,9 +22,7 @@
 #include <os/surface.h>
 #include <os/pixel_alpha8.h>
 #include <os/pixel_rgb888.h>
-
-/* gems includes */
-#include <gems/dither_painter.h>
+#include <blit/painter.h>
 
 
 struct Gui_buffer
@@ -131,7 +129,7 @@ struct Gui_buffer
 
 		surface.clip(clip_rect);
 
-		Dither_painter::paint(surface, texture, Point());
+		Blit_painter::paint(surface, texture, Point());
 	}
 
 	void _update_input_mask()
@@ -161,9 +159,12 @@ struct Gui_buffer
 	{
 		/* represent back buffer as texture */
 		Genode::Texture<Pixel_rgb888>
-			texture(pixel_surface_ds.local_addr<Pixel_rgb888>(),
-			        alpha_surface_ds.local_addr<unsigned char>(),
-			        size());
+			pixel_texture(pixel_surface_ds.local_addr<Pixel_rgb888>(),
+			              nullptr, size());
+
+		Genode::Texture<Pixel_alpha8>
+			alpha_texture(alpha_surface_ds.local_addr<Pixel_alpha8>(),
+			              nullptr, size());
 
 		// XXX track dirty rectangles
 		Rect const clip_rect(Genode::Surface_base::Point(0, 0), size());
@@ -172,8 +173,8 @@ struct Gui_buffer
 		Pixel_alpha8 *alpha_base = fb_ds.local_addr<Pixel_alpha8>()
 		                         + mode.bytes_per_pixel()*size().count();
 
-		_convert_back_to_front(pixel_base, texture, clip_rect);
-		_convert_back_to_front(alpha_base, texture, clip_rect);
+		_convert_back_to_front(pixel_base, pixel_texture, clip_rect);
+		_convert_back_to_front(alpha_base, alpha_texture, clip_rect);
 
 		_update_input_mask();
 	}
