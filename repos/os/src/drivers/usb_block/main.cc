@@ -852,7 +852,7 @@ struct Usb::Block_driver : Usb::Completion
 
 		/* range check */
 		block_number_t const last = op.block_number + op.count;
-		if (last >= info().block_count)
+		if (last > info().block_count)
 			return Response::REJECTED;
 
 		/* check if request is pending */
