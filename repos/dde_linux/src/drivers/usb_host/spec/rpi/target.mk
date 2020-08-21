@@ -46,5 +46,3 @@ INC_DIR += $(LX_CONTRIB_DIR)/drivers/usb/host/dwc_common_port \
            $(REP_DIR)/src/lib/usb_host/spec/arm
 
 vpath %.c $(LX_CONTRIB_DIR)/drivers/usb/host
-
-LIBS += rpi_usb

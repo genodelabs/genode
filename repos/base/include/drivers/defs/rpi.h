@@ -25,14 +25,7 @@ namespace Rpi {
 		MMIO_0_BASE = 0x20000000,
 		MMIO_0_SIZE = 0x02000000,
 
-		/*
-		 * IRQ numbers   0..7 refer to the basic IRQs.
-		 * IRQ numbers  8..39 refer to GPU IRQs  0..31.
-		 * IRQ numbers 40..71 refer to GPU IRQs 32..63.
-		 */
-		GPU_IRQ_BASE = 8,
-
-		SYSTEM_TIMER_IRQ       = GPU_IRQ_BASE + 1,
+		SYSTEM_TIMER_IRQ       = 1,
 		SYSTEM_TIMER_MMIO_BASE = 0x20003000,
 		SYSTEM_TIMER_MMIO_SIZE = 0x1000,
 		SYSTEM_TIMER_CLOCK     = 1000000,
@@ -56,11 +49,8 @@ namespace Rpi {
 		USB_DWC_OTG_BASE = 0x20980000,
 		USB_DWC_OTG_SIZE = 0x20000,
 
-		/* timer */
-		TIMER_IRQ = 0,
-
 		/* USB host controller */
-		DWC_IRQ = 17,
+		DWC_IRQ = 9,
 
 		/* SD card */
 		SDHCI_BASE = MMIO_0_BASE + 0x300000,

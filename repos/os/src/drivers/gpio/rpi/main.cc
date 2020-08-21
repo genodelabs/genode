@@ -26,25 +26,11 @@
 #include "driver.h"
 
 
-Gpio::Rpi_driver& Gpio::Rpi_driver::factory(Genode::Env &env)
-{
-	unsigned irq_offset = 0;
-	static Genode::Attached_rom_dataspace rom { env, "platform_info" };
-	try {
-		String<32> kernel_name =
-			rom.xml().sub_node("kernel").attribute_value("name", String<32>());
-		if (kernel_name == "hw") irq_offset += Rpi::GPU_IRQ_BASE;
-	} catch (...) { }
-	static Rpi_driver driver(env, irq_offset);
-	return driver;
-}
-
-
 struct Main
 {
 	Genode::Env         &env;
 	Genode::Sliced_heap  sliced_heap;
-	Gpio::Rpi_driver     &driver;
+	Gpio::Rpi_driver     driver;
 	Gpio::Root           root;
 
 	Genode::Attached_rom_dataspace config_rom { env, "config" };
@@ -53,7 +39,7 @@ struct Main
 	:
 		env(env),
 		sliced_heap(env.ram(), env.rm()),
-		driver(Gpio::Rpi_driver::factory(env)),
+		driver(env),
 		root(&env.ep().rpc_ep(), &sliced_heap, driver)
 	{
 		using namespace Genode;

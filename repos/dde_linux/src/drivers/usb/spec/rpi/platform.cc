@@ -28,8 +28,6 @@
 
 using namespace Genode;
 
-unsigned dwc_irq(Genode::Env&);
-
 
 /************************************************
  ** Resource info passed to the dwc_otg driver **
@@ -38,6 +36,7 @@ unsigned dwc_irq(Genode::Env&);
 enum {
 	DWC_BASE = 0x20980000,
 	DWC_SIZE = 0x20000,
+	DWC_IRQ  = 9,
 };
 
 
@@ -155,11 +154,10 @@ extern "C" int  module_smsc95xx_driver_init();
 
 void platform_hcd_init(Env &env, Services *services)
 {
-	unsigned irq = dwc_irq(env);
 	static resource _dwc_otg_resource[] =
 	{
 		{ DWC_BASE, DWC_BASE + DWC_SIZE - 1, "dwc_otg", IORESOURCE_MEM },
-		{ irq, irq, "dwc_otg-irq" /* name unused */, IORESOURCE_IRQ }
+		{ DWC_IRQ, DWC_IRQ, "dwc_otg-irq" /* name unused */, IORESOURCE_IRQ }
 	};
 
 	/* enable USB power */

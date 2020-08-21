@@ -76,25 +76,16 @@ Board::Pic::Pic()
 
 bool Board::Pic::take_request(unsigned &irq)
 {
-	/* read basic IRQ status mask */
-	uint32_t const p = read<Irq_pending_basic>();
-
-
 	/* read GPU IRQ status mask */
 	uint32_t const p1 = read<Irq_pending_gpu_1>(),
 	               p2 = read<Irq_pending_gpu_2>();
-
-	if (Irq_pending_basic::Timer::get(p)) {
-		irq = Irq_pending_basic::Timer::SHIFT;
-		return true;
-	}
 
 	/* search for lowest set bit in pending masks */
 	for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 		if (!_is_pending(i, p1, p2))
 			continue;
 
-		irq = Board::GPU_IRQ_BASE + i;
+		irq = i;
 
 		/* handle SOF interrupts locally, filter from the user land */
 		if (irq == Board::DWC_IRQ)
@@ -118,23 +109,15 @@ void Board::Pic::mask()
 
 void Board::Pic::unmask(unsigned const i, unsigned)
 {
-	if (i < 8)
-		write<Irq_enable_basic>(1 << i);
-	else if (i < 32 + 8)
-		write<Irq_enable_gpu_1>(1 << (i - 8));
-	else
-		write<Irq_enable_gpu_2>(1 << (i - 8 - 32));
+	if (i < 32) { write<Irq_enable_gpu_1>(1 << i); }
+	else        { write<Irq_enable_gpu_2>(1 << (i - 32)); }
 }
 
 
 void Board::Pic::mask(unsigned const i)
 {
-	if (i < 8)
-		write<Irq_disable_basic>(1 << i);
-	else if (i < 32 + 8)
-		write<Irq_disable_gpu_1>(1 << (i - 8));
-	else
-		write<Irq_disable_gpu_2>(1 << (i - 8 - 32));
+	if (i < 32) { write<Irq_disable_gpu_1>(1 << i); }
+	else        { write<Irq_disable_gpu_2>(1 << (i - 32)); }
 }
 
 

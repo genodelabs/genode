@@ -54,21 +54,21 @@ class Gpio::Rpi_driver : public Driver
 			});
 		}
 
-		Rpi_driver(Genode::Env &env, unsigned irq_offset)
+		void _invalid_gpio(unsigned gpio) {
+			Genode::error("invalid GPIO pin number ", gpio); }
+
+	public:
+
+		Rpi_driver(Genode::Env &env)
 		:
 			_reg(env, Rpi::GPIO_CONTROLLER_BASE, 0, Rpi::GPIO_CONTROLLER_SIZE),
-			_irq(env, IRQ + irq_offset),
+			_irq(env, IRQ),
 			_dispatcher(env.ep(), *this, &Rpi_driver::_handle),
 			_async(false)
 		{
 			_irq.sigh(_dispatcher);
 			_irq.ack_irq();
 		}
-
-		void _invalid_gpio(unsigned gpio) {
-			Genode::error("invalid GPIO pin number ", gpio); }
-
-	public:
 
 		void set_async_events(bool async) { _async = async; }
 
@@ -79,8 +79,6 @@ class Gpio::Rpi_driver : public Driver
 
 			_reg.set_gpio_function(gpio, function);
 		}
-
-		static Rpi_driver& factory(Genode::Env &env);
 
 
 		/******************************
