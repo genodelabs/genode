@@ -11,8 +11,10 @@
  * version 2.
  */
 
-#include <lx_emul/irq.h>
 #include <base/env.h>
+#include <irq_session/connection.h>
+
+#include <lx_emul/irq.h>
 #include <lx_kit/backend_alloc.h>
 #include <lx_kit/env.h>
 #include <lx_kit/irq.h>
@@ -45,7 +47,9 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap) {
 extern "C" int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                            const char *name, void *dev)
 {
-	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), irq, handler, dev);
+	Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
+		Genode::Irq_connection(Lx_kit::env().env(), irq);
+	Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev);
 
 	return 0;
 }

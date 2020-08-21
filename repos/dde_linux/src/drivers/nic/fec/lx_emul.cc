@@ -20,7 +20,7 @@
 #include <base/env.h>
 #include <base/snprintf.h>
 #include <gpio_session/connection.h>
-#include <irq_session/client.h>
+#include <irq_session/connection.h>
 
 #include <component.h>
 #include <lx_emul.h>
@@ -586,7 +586,9 @@ int platform_get_irq(struct platform_device * d, unsigned int i)
 
 int devm_request_irq(struct device *dev, unsigned int irq, irq_handler_t handler, unsigned long irqflags, const char *devname, void *dev_id)
 {
-	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), irq, handler, dev_id);
+	Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
+		Genode::Irq_connection(Lx_kit::env().env(), irq);
+	Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev_id);
 	return 0;
 }
 

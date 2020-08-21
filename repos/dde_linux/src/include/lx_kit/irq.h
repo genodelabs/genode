@@ -32,11 +32,12 @@ class Lx::Irq
 		/**
 		 * Request an IRQ
 		 */
-		virtual void request_irq(Platform::Device &dev, unsigned int irq,
+		virtual void request_irq(Genode::Irq_session_capability cap,
+		                         unsigned int irq,
 		                         irq_handler_t handler, void *dev_id,
 		                         irq_handler_t thread_fn = 0) = 0;
 
-		virtual void inject_irq(Platform::Device &dev) = 0;
+		virtual void inject_irq(unsigned int irq) = 0;
 
 		/**
 		 * Disable an IRQ

@@ -41,12 +41,10 @@ class Lx_kit::Irq : public Lx::Irq
 		{
 			char name[16];
 
-			Name_composer(Platform::Device &device)
+			Name_composer(unsigned number)
 			{
 				Genode::snprintf(name, sizeof(name),
-				                 "irq_%02x:%02x",
-				                 device.vendor_id(),
-				                 device.device_id());
+				                 "irq_%02x", number);
 			}
 		};
 
@@ -99,7 +97,6 @@ class Lx_kit::Irq : public Lx::Irq
 			private:
 
 				Name_composer               _name;
-				Platform::Device           &_dev;
 				unsigned int                _irq;
 				Genode::Irq_session_client  _irq_sess;
 				Lx_kit::List<Handler>       _handler;
@@ -125,13 +122,12 @@ class Lx_kit::Irq : public Lx::Irq
 				 * Constructor
 				 */
 				Context(Genode::Entrypoint &ep,
-				        Platform::Device &dev,
+				        Genode::Irq_session_capability cap,
 				        unsigned int irq)
 				:
-					_name(dev),
-					_dev(dev),
+					_name(irq),
 					_irq(irq),
-					_irq_sess(dev.irq(0)),
+					_irq_sess(cap),
 					_task(_run_irq, this, _name.name, Lx::Task::PRIORITY_3, Lx::scheduler()),
 					_irq_enabled(true),
 					_irq_ack_pending(false),
@@ -184,9 +180,6 @@ class Lx_kit::Irq : public Lx::Irq
 				 */
 				void add_handler(Handler *h) { _handler.append(h); }
 
-				bool device(Platform::Device &dev) {
-					return (&dev == &_dev); }
-
 				bool irq(unsigned int irq) {
 					return (irq == _irq); }
 
@@ -220,16 +213,6 @@ class Lx_kit::Irq : public Lx::Irq
 		Handler_slab           _handler_alloc;
 
 		/**
-		 * Find context for given device
-		 */
-		Context *_find_context(Platform::Device &dev)
-		{
-			for (Context *i = _list.first(); i; i = i->next())
-				if (i->device(dev)) return i;
-			return nullptr;
-		}
-
-		/**
 		 * Find context for given IRQ number
 		 */
 		Context *_find_context(unsigned int irq)
@@ -256,15 +239,17 @@ class Lx_kit::Irq : public Lx::Irq
 		 ** Lx::Irq interface **
 		 ***********************/
 
-		void request_irq(Platform::Device &dev, unsigned int irq,
-		                 irq_handler_t handler, void *dev_id,
-		                 irq_handler_t thread_fn = 0) override
+		void request_irq(Genode::Irq_session_capability cap,
+		                 unsigned int                   irq,
+		                 irq_handler_t                  handler,
+		                 void                         * dev_id,
+		                 irq_handler_t                  thread_fn = 0) override
 		{
-			Context *ctx = _find_context(dev);
+			Context *ctx = _find_context(irq);
 
 			/* if this IRQ is not registered */
 			if (!ctx) {
-				ctx = new (&_context_alloc) Context(_ep, dev, irq);
+				ctx = new (&_context_alloc) Context(_ep, cap, irq);
 				_list.insert(ctx);
 			}
 
@@ -274,9 +259,9 @@ class Lx_kit::Irq : public Lx::Irq
 			ctx->add_handler(h);
 		}
 
-		void inject_irq(Platform::Device &dev)
+		void inject_irq(unsigned int irq)
 		{
-			Context *ctx = _find_context(dev);
+			Context *ctx = _find_context(irq);
 			if (ctx) ctx->unblock();
 		}
 

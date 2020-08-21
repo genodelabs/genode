@@ -15,6 +15,7 @@
 
 /* Genode includes */
 #include <base/attached_io_mem_dataspace.h>
+#include <irq_session/connection.h>
 
 /* local includes */
 #include <driver.h>
@@ -564,8 +565,10 @@ void irq_set_chained_handler_and_data(unsigned int irq,
 	irqsteer_irq_desc.irq_data.chip = irqsteer_chip;
 	irqsteer_irq_desc.handle_irq = handle;
 
-	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq),
-	                           irq, irqsteer_irq_handler, nullptr, nullptr);
+	Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
+		Genode::Irq_connection(Lx_kit::env().env(), irq);
+	Lx::Irq::irq().request_irq(irq_con->cap(), irq,
+	                           irqsteer_irq_handler, nullptr, nullptr);
 }
 
 
@@ -583,8 +586,9 @@ int devm_request_threaded_irq(struct device *dev, unsigned int irq,
 		return -1;
 	}
 
-	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq),
-	                           irq, handler, dev_id, thread_fn);
+	Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
+		Genode::Irq_connection(Lx_kit::env().env(), irq);
+	Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev_id, thread_fn);
 
 	return 0;
 }
@@ -885,9 +889,11 @@ int devm_request_irq(struct device *dev, unsigned int irq,
 		irqsteer_handler[irq] = handler;
 		irqsteer_dev_id[irq] = dev_id;
 		enable_irq(irq);
-	} else
-		Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq),
-		                           irq, handler, dev_id);
+	} else {
+		Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
+			Genode::Irq_connection(Lx_kit::env().env(), irq);
+		Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev_id);
+	}
 
 	return 0;
 }

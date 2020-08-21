@@ -12,6 +12,7 @@
  */
 
 #include <base/attached_io_mem_dataspace.h>
+#include <irq_session/connection.h>
 #include <base/env.h>
 
 #include <lx_emul.h>
@@ -19,6 +20,7 @@
 #include <lx_kit/backend_alloc.h>
 #include <lx_kit/env.h>
 #include <lx_kit/irq.h>
+#include <lx_kit/malloc.h>
 
 
 /****************************
@@ -48,7 +50,10 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap) {
 extern "C" int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                            const char *name, void *dev)
 {
-	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), irq, handler, dev);
+	Genode::Irq_connection * irq_con =
+		new(Lx::Malloc::mem())
+			Genode::Irq_connection(Lx_kit::env().env(), irq);
+	Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev);
 
 	return 0;
 }
@@ -56,7 +61,10 @@ extern "C" int request_irq(unsigned int irq, irq_handler_t handler, unsigned lon
 
 int devm_request_irq(struct device *dev, unsigned int irq, irq_handler_t handler, unsigned long irqflags, const char *devname, void *dev_id)
 {
-	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), irq, handler, dev_id);
+	Genode::Irq_connection * irq_con =
+		new(Lx::Malloc::mem())
+			Genode::Irq_connection(Lx_kit::env().env(), irq);
+	Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev_id);
 	return 0;
 }
 

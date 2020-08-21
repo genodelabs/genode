@@ -166,7 +166,7 @@ void Framebuffer::Driver::finish_initialization()
 void Framebuffer::Driver::_poll()
 {
 	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) lx_drm_device->pdev->bus;
-	Lx::Irq::irq().inject_irq(pci_dev->client());
+	Lx::Irq::irq().inject_irq(pci_dev->irq);
 }
 
 
@@ -1095,7 +1095,7 @@ int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
 {
 	struct drm_device * drm_dev = (struct drm_device*) dev;
 	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) drm_dev->pdev->bus;
-	Lx::Irq::irq().request_irq(pci_dev->client(), irq, handler, dev);
+	Lx::Irq::irq().request_irq(pci_dev->client().irq(0), irq, handler, dev);
 	return 0;
 }
 
