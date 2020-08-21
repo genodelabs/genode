@@ -92,6 +92,11 @@ struct Gpc
 
 	Gpc(Genode::Env & env) : env(env)
 	{
+		//FIXME: add beyond initialization code,
+		//       when all drivers use the new platform driver
+		//       Until now, the disabling of power domains will harm
+		//       drivers not claiming it resources from here
+#if 0
 		for (unsigned domain = MIPI; domain <= PCIE_2; domain++) {
 			Genode::Pd_session::Managing_system_state state;
 			state.r[0] = SIP_SERVICE_FUNC;
@@ -99,5 +104,6 @@ struct Gpc
 			state.r[2] = domain;
 			state.r[3] = OFF;
 		}
+#endif
 	};
 };

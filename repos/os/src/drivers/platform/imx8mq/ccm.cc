@@ -297,6 +297,11 @@ void Driver::Ccm::Gate::disable() { write<Ccgr>(0x0); }
 
 Driver::Ccm::Ccm(Genode::Env & env) : env(env)
 {
+	//FIXME: add beyond initialization code,
+	//       when all drivers use the new platform driver
+	//       Until now, the disabling of certain clocks will harm
+	//       drivers not claiming it resources from here
+#if 0
 	video_pll1_clk.enable();
 
 	/* set VIDEO PLL */
@@ -417,4 +422,5 @@ Driver::Ccm::Ccm(Genode::Env & env) : env(env)
 	/* increase NOC clock for better DDR performance */
 	noc_clk_root.set_parent("system_pll1_clk");
 	noc_clk_root.set_rate(800000000);
+#endif
 }
