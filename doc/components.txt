@@ -31,9 +31,9 @@ of them is briefly characterized as follows:
   session interfaces. Naturally, a device driver is specific to a
   particular hardware platform. The hardware resources are accessed
   via core's IO_MEM, IO_PORT, and IRQ services. The functionality of
-  the driver is made available to other system components by announcing
+  the driver is made available to other system components via
   one of Genode's device-independent session interfaces, which are
-  'platform_session', 'framebuffer_session', 'input_session', 'block_session',
+  'platform_session', 'capture_session', 'event_session', 'block_session',
   'audio_out_session', 'log_session', 'nic_session', and 'timer_session'
   (see 'os/include/' for the interface definitions). Those interfaces are
   uniform across hardware platforms and kernel base platforms. Usually,
@@ -112,29 +112,20 @@ The UART device drivers implement the UART-session interface.
 Framebuffer and input drivers
 =============================
 
-Framebuffer and input drivers implement the framebuffer-session interface and
-input-session interfaces respectively.
+Framebuffer and input drivers are implemented as clients of the
+capture-session and event-session interfaces respectively.
 
-:'os/src/drivers/input/dummy':
-  Pseudo input driver without accessing any hardware. This component is useful
-  to resolve a dependency from an input session for scenarios where no user
-  input is required.
-
-:'os/src/drivers/input/spec/ps2/x86':
+:'os/src/drivers/ps2/x86':
   Driver for the 'i8042' PS/2 controller as found in x86 PCs. It supports both
   mouse (including ImPS/2, ExPS/2) and keyboard.
 
-:'os/src/drivers/input/spec/ps2/pl050':
+:'os/src/drivers/ps2/pl050':
   Driver for the PL050 PS/2 controller as found on ARM platforms such as
   VersatilePB. The physical base address used by the driver is obtained at
   compile time from a header file called 'pl050_defs.h'. The version of the
   VersatilePB platform can be found at 'os/include/platform/vpb926/' and
   is made available to the driver via the SPECS machinery of the Genode build
   system.
-
-:'os/src/drivers/input/spec/imx53':
-  Input driver for Egalaxy touchscreen and Freescale's MPR121
-  capacitative touch buttons on i.MX53.
 
 :'libports/src/drivers/framebuffer/vesa':
   Driver using VESA mode setting on x86 PCs. For more information, please refer
@@ -147,13 +138,13 @@ input-session interfaces respectively.
 :'os/src/drivers/framebuffer/pl11x':
   Driver for the PL110/PL111 LCD display.
 
-:'os/src/drivers/framebuffer/spec/imx53':
+:'os/src/drivers/framebuffer/imx53':
   Driver for LCD output on i.MX53 SoCs.
 
-:'os/src/drivers/framebuffer/spec/rpi':
+:'os/src/drivers/framebuffer/rpi':
   Driver for the HDMI output of the Raspberry Pi.
 
-:'os/src/drivers/framebuffer/spec/sdl':
+:'os/src/drivers/framebuffer/sdl':
   Serves as both framebuffer and input driver on Linux using libSDL. This
   driver is only usable on the Linux base platform.
 
@@ -165,9 +156,9 @@ input-session interfaces respectively.
   the Linux Intel KMS driver.
 
 :'dde_linux/src/drivers/usb':
-  USB driver that makes USB HID and USB storage devices available as input
-  sessions and block session respectively. For examples of using this driver,
-  refer to the run scripts at 'dde_linux/run/usb_hid' and
+  USB driver that makes USB HID and USB storage devices available as an input
+  event stream and a block session respectively. For examples of using this
+  driver, refer to the run scripts at 'dde_linux/run/usb_hid' and
   'dde_linux/run/usb_storage'.
 
 :'dde_linux/src/drivers/usb_hid':
@@ -287,13 +278,14 @@ Resource multiplexers
 By convention, resource multiplexers are located at the 'src/server'
 subdirectory of a source repository.
 
-:Framebuffer and input: The framebuffer and input session interfaces can be
-  multiplexed using the Nitpicker GUI server, which allows multiple clients to
-  create and manage rectangular areas on screen. Nitpicker uses one input
-  session and one framebuffer session as back end and, in turn, provides
-  so-called nitpicker sessions to one or multiple clients. Each nitpicker
-  session contains a virtual framebuffer and a virtual input session. Nitpicker
-  (including a README file) is located at 'os/src/server/nitpicker'.
+:Framebuffer and input: Framebuffer and input devices can be multiplexed using
+  the Nitpicker GUI server, which allows multiple clients to create and manage
+  rectangular areas on screen. Nitpicker serves as broker between input
+  devices, output devices, and graphical applications. It provides an event
+  service for input drivers, a capture service for output drivers, and a GUI
+  service for the applications. Each GUI session contains a virtual
+  framebuffer and a virtual input interface. Nitpicker (including a README
+  file) is located at 'os/src/server/nitpicker'.
 
 :Audio output: The audio mixer located at 'os/src/server/mixer' enables
   multiple clients to use the audio-out interface. The mixing is done by simply
@@ -337,13 +329,13 @@ Separate components
 ===================
 
 :'os/src/server/gui_fb':
-  Translates a nitpicker session to a pair of framebuffer and input sessions.
+  Translates a GUI session to a pair of framebuffer and input sessions.
   Each 'gui_fb' instance is visible as a rectangular area on screen presenting
   a virtual frame buffer. The area is statically positioned. For more
   information, please refer to 'os/src/server/gui_fb/README'.
 
 :'gems/src/server/wm':
-  Window manager that implements the nitpicker session interface but manages
+  Window manager that implements the GUI session interface but manages
   each client view as a separate window. The window decorations are provided
   by a so-called decorator (e.g., 'gems/src/app/decorator'). The behaviour
   is defined by a so-called window layouter such as the floating window
@@ -383,8 +375,7 @@ Separate components
   Adapter that writes LOG messages to files on a file system.
 
 :'demo/src/server/nitlog':
-  Provides a LOG session, printing log output on screen via a nitpicker
-  session.
+  Provides a LOG session, printing log output on screen via a GUI session.
 
 :'os/src/app/rom_logger':
   The rom_logger component requests a ROM session and writes the
@@ -450,16 +441,16 @@ Separate components
   is then propagated to the clients of the ROM service according to a
   configurable information-flow policy.
 
-:'os/src/server/input_filter':
+:'os/src/server/event_filter':
   A component that transforms and merges input events from multiple sources
-  into a single stream.
+  into a single event stream.
 
-:'libports/src/server/acpi_input':
+:'libports/src/app/acpi_event':
   A component that transforms ACPI events into Genode input events.
 
 :'gems/src/server/gui_fader':
-  A wrapper for nitpicker's session interface that applies alpha-blending to
-  the of views a nitpicker client.
+  A wrapper for nitpicker's GUI session interface that applies alpha-blending
+  to the of views a GUI client.
 
 
 VFS plugins
@@ -526,7 +517,7 @@ Libraries
   run on a text terminal.
 
 :'libports/lib/mk/qt5_*':
-  Qt5 framework, using nitpicker session and NIC session as back end.
+  Qt5 framework, using GUI session and NIC session as back end.
 
 :'libports/lib/mk/vfs_jitterentropy.mk':
   A VFS plugin that makes a jitter-based random-number generator available
@@ -555,8 +546,8 @@ subdirectory of a repository. Most applications come with README files
 located in their respective directory.
 
 :'gems/src/app/backdrop':
-  Nitpicker client application that sets a composition of PNG images as
-  desktop background.
+  GUI client application that sets a composition of PNG images as desktop
+  background.
 
 :'demo/src/app/launchpad':
   Graphical application for interactively starting and killing subsystems.
