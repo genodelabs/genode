@@ -24,6 +24,7 @@
 
 #include "Global.h"
 #include "VirtualBoxBase.h"
+#include "DisplayWrap.h"
 
 typedef Gui::Session::View_handle View_handle;
 
@@ -46,6 +47,9 @@ class Genodefb :
 
 		void                  *_fb_base;
 		RTCRITSECT             _fb_lock;
+
+		ComPtr<IDisplay>             _display;
+		ComPtr<IDisplaySourceBitmap> _display_bitmap;
 
 		void _clear_screen()
 		{
@@ -85,13 +89,14 @@ class Genodefb :
 
 	public:
 
-		Genodefb (Genode::Env &env, Gui::Connection &gui)
+		Genodefb (Genode::Env &env, Gui::Connection &gui, ComPtr<IDisplay> const &display)
 		:
 			_env(env),
 			_gui(gui),
 			_fb(*gui.framebuffer()),
 			_virtual_fb_mode(_initial_setup()),
-			_fb_base(env.rm().attach(_fb.dataspace()))
+			_fb_base(env.rm().attach(_fb.dataspace())),
+			_display(display)
 		{
 			int rc = RTCritSectInit(&_fb_lock);
 			Assert(rc == VINF_SUCCESS);
@@ -137,6 +142,9 @@ class Genodefb :
 
 			Lock();
 
+			/* save the new bitmap reference */
+			_display->QuerySourceBitmap(screen, _display_bitmap.asOutParam());
+
 			bool ok = (w <= (ULONG)_fb_mode.area.w()) &&
 			          (h <= (ULONG)_fb_mode.area.h());
 
@@ -155,13 +163,17 @@ class Genodefb :
 				_virtual_fb_mode = Fb_Genode::Mode { .area = { w, h } };
 
 				result = S_OK;
-			} else
+			} else {
 				Genode::log("fb resize : [", screen, "] ",
 				            _virtual_fb_mode.area, " -> ",
 				            w, "x", h, " ignored"
 				            " (host: ", _fb_mode.area, ")");
+			}
 
 			Unlock();
+
+			/* request appropriate NotifyUpdate() */
+			_display->InvalidateAndUpdateScreen(screen);
 
 			return result;
 		}
@@ -170,12 +182,6 @@ class Genodefb :
 		{
 			if (ComSafeArrayOutIsNull(enmCapabilities))
 				return E_POINTER;
-
-			com::SafeArray<FramebufferCapabilities_T> caps;
-			caps.resize(1);
-			caps[0] = FramebufferCapabilities_UpdateImage;
-			//caps[0] = FramebufferCapabilities_VHWA;
-			caps.detachTo(ComSafeArrayOutArg(enmCapabilities));
 
 			return S_OK;
 		}
@@ -186,6 +192,60 @@ class Genodefb :
 				return E_POINTER;
 
 			*reduce = 0;
+			return S_OK;
+		}
+
+		HRESULT NotifyUpdate(ULONG o_x, ULONG o_y, ULONG width, ULONG height) override
+		{
+			if (!_fb_base) return S_OK;
+
+			Lock();
+
+			if (_display_bitmap.isNull()) {
+				_clear_screen();
+				Unlock();
+				return S_OK;
+			}
+
+			BYTE *pAddress = NULL;
+			ULONG ulWidth = 0;
+			ULONG ulHeight = 0;
+			ULONG ulBitsPerPixel = 0;
+			ULONG ulBytesPerLine = 0;
+			BitmapFormat_T bitmapFormat = BitmapFormat_Opaque;
+			_display_bitmap->QueryBitmapInfo(&pAddress,
+			                                 &ulWidth,
+			                                 &ulHeight,
+			                                 &ulBitsPerPixel,
+			                                 &ulBytesPerLine,
+			                                 &bitmapFormat);
+
+			Gui::Area const area_fb = Gui::Area(_fb_mode.area.w(),
+			                                    _fb_mode.area.h());
+			Gui::Area const area_vm = Gui::Area(ulWidth, ulHeight);
+
+			using namespace Genode;
+
+			typedef Pixel_rgb888 Pixel_src;
+			typedef Pixel_rgb888 Pixel_dst;
+
+			Texture<Pixel_src> texture((Pixel_src *)pAddress, nullptr, area_vm);
+			Surface<Pixel_dst> surface((Pixel_dst *)_fb_base, area_fb);
+
+			surface.clip(Surface_base::Rect(Surface_base::Point(o_x, o_y),
+                                            Surface_base::Area(width, height)));
+
+			Texture_painter::paint(surface,
+			                       texture,
+			                       Genode::Color(0, 0, 0),
+			                       Surface_base::Point(0, 0),
+			                       Texture_painter::SOLID,
+			                       false);
+
+			_fb.refresh(o_x, o_y, width, height);
+
+			Unlock();
+
 			return S_OK;
 		}
 
@@ -260,10 +320,6 @@ class Genodefb :
 			return E_NOTIMPL; }
 
 		STDMETHODIMP COMGETTER(PixelFormat) (ULONG *format) override {
-			Assert(!"FixMe");
-			return E_NOTIMPL; }
-
-		HRESULT NotifyUpdate(ULONG x, ULONG y, ULONG w, ULONG h) override {
 			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
