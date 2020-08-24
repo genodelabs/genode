@@ -29,7 +29,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/libc \
                   [depot_user]/src/stdcxx \
                   [depot_user]/src/fs_rom \
-                  [depot_user]/src/cached_fs_rom
+                  [depot_user]/src/cached_fs_rom \
+                  [depot_user]/src/zlib
 
 
 #
