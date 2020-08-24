@@ -43,7 +43,6 @@ MIRROR_FROM_LIBPORTS := lib/mk/libc-mem.mk \
                         src/lib/libc/internal/timer.h \
                         src/lib/libc/internal/types.h \
                         src/lib/libc/libc_mem_alloc.cc \
-                        include/libc-plugin \
                         lib/import/import-qemu-usb_include.mk \
                         lib/mk/qemu-usb_include.mk \
                         lib/mk/qemu-usb.mk \

@@ -42,8 +42,6 @@
 static char c_vbox_file[128];
 static char c_vbox_vmname[128];
 
-extern "C" void init_libc_vbox_logger(void);
-
 
 /**
  * xpcom style memory allocation
@@ -282,9 +280,6 @@ void Libc::Component::construct(Libc::Env &env)
 		Name const vm_name = config.attribute_value("vm_name", Name());
 		copy_cstring(c_vbox_vmname, vm_name.string(), sizeof(c_vbox_vmname));
 	}
-
-	/* enable stdout/stderr for VBox Log infrastructure */
-	init_libc_vbox_logger();
 
 	Libc::with_libc([&] () {
 		static char  argv0[] = { '_', 'm', 'a', 'i', 'n', 0};

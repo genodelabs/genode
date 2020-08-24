@@ -133,13 +133,9 @@ extern "C" void *realloc(void *ptr, ::size_t size)
 
 extern "C" char *getenv(const char *name)
 {
-	/*
-	 * Logging to the pseudo file '/log' is done via the libc plugin provided
-	 * by 'logging.cc'.
-	 */
 	if (Genode::strcmp(name, "VBOX_LOG_DEST") == 0 ||
 	    Genode::strcmp(name, "VBOX_RELEASE_LOG_DEST") == 0)
-		return (char *)"file=log";
+		return (char *)"file=/dev/log";
 
 	if (Genode::strcmp(name, "VBOX_LOG") == 0 ||
 	    Genode::strcmp(name, "VBOX_RELEASE_LOG") == 0) 
