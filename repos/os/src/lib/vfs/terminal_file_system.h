@@ -111,7 +111,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			Read_buffer          &_read_buffer;
 			Interrupt_handler    &_interrupt_handler;
 
-			bool _raw;
+			bool const _raw;
 
 			bool notifying = false;
 			bool blocked   = false;
