@@ -19,6 +19,7 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 		-confirm-license \
 		-no-pch \
 		-release \
+		-force-debug-info \
 		-no-strip \
 		-opengl desktop \
 		-no-feature-dbus \
@@ -59,6 +60,9 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 	$(VERBOSE)cd $(CURDIR)/install/qt/plugins/imageformats && \
 		$(STRIP) libqjpeg.lib.so -o libqjpeg.lib.so.stripped
 
+	$(VERBOSE)cd $(CURDIR)/install/qt/plugins/sqldrivers && \
+		$(STRIP) libqsqlite.lib.so -o libqsqlite.lib.so.stripped
+
 	@#
 	@# create symlinks in 'bin' directory
 	@#
@@ -72,6 +76,7 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Widgets.lib.so.stripped $(PWD)/bin/libQt5Widgets.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/platforms/libqgenode.lib.so.stripped $(PWD)/bin/libqgenode.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/imageformats/libqjpeg.lib.so.stripped $(PWD)/bin/libqjpeg.lib.so
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/sqldrivers/libqsqlite.lib.so.stripped $(PWD)/bin/libqsqlite.lib.so
 
 	@#
 	@# create symlinks in 'debug' directory
@@ -86,6 +91,7 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Widgets.lib.so $(PWD)/debug/
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/platforms/libqgenode.lib.so $(PWD)/debug/libqgenode.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/imageformats/libqjpeg.lib.so $(PWD)/debug/libqjpeg.lib.so
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/sqldrivers/libqsqlite.lib.so $(PWD)/debug/libqsqlite.lib.so
 
 	@#
 	@# create tar archives
@@ -93,6 +99,7 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 
 	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqgenode.tar --transform='s/\.stripped//' -C install qt/plugins/platforms/libqgenode.lib.so.stripped
 	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqjpeg.tar   --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqjpeg.lib.so.stripped
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqsqlite.tar --transform='s/\.stripped//' -C install qt/plugins/sqldrivers/libqsqlite.lib.so.stripped
 
 	@#
 	@# mark as done
