@@ -172,7 +172,6 @@ class Genode::Xml_generator
 
 				bool _has_content    = false;
 				bool _is_indented    = false;
-				bool _has_attributes = false;
 
 				/**
 				 * Cursor position of next attribute to insert
