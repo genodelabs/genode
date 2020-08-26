@@ -5,6 +5,17 @@ please refer to the following document:
 
   [http://genode-labs.com/publications/nitpicker-secure-gui-2005.pdf]
 
+The Nitpicker GUI server serves as a broker between input drivers, framebuffer
+drivers, and applications. For each of these component types, it provides a
+dedicated service interface. Input drivers connect to the "Event" service,
+framebuffer drivers to the "Capture" service, and applications to the "Gui"
+service. Hence, its '<start>' node should normally be equipped with the
+following declaration about the provided services.
+
+! <provides>
+!   <service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+! </provides>
+
 
 Nitpicker supports the following configuration options, supplied via Genode's
 config mechanism.
@@ -231,3 +242,13 @@ The 'keystate' attribute enables the reporting of the currently pressed keys.
 The 'clicked' attribute enables the reporting of the last clicked-on unfocused
 client. This report is useful for a focus-managing component to implement a
 focus-on-click policy.
+
+
+Cascaded usage scenarios
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Nitpicker can be used in a nested fashion by specifying the '<config>'
+attributes 'request_framebuffer="yes"' and 'request_input="yes". If
+specified, nitpicker requests sessions to an "Input" and a "Framebuffer"
+service upon startup and uses those as input/output back end. Those services
+are usually provided by the gui_fb component.
