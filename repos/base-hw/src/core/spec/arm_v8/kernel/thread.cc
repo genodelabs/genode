@@ -28,13 +28,13 @@ void Thread::exception(Cpu & cpu)
 {
 	switch (regs->exception_type) {
 	case Cpu::RESET:         return;
-	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]]
-	case Cpu::IRQ_LEVEL_EL1: [[fallthrough]]
-	case Cpu::FIQ_LEVEL_EL0: [[fallthrough]]
+	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];
+	case Cpu::IRQ_LEVEL_EL1: [[fallthrough]];
+	case Cpu::FIQ_LEVEL_EL0: [[fallthrough]];
 	case Cpu::FIQ_LEVEL_EL1:
 		_interrupt(cpu.id());
 		return;
-	case Cpu::SYNC_LEVEL_EL0: [[fallthrough]]
+	case Cpu::SYNC_LEVEL_EL0: [[fallthrough]];
 	case Cpu::SYNC_LEVEL_EL1:
 		{
 			Cpu::Esr::access_t esr = Cpu::Esr_el1::read();

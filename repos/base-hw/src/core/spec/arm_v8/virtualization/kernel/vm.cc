@@ -146,15 +146,15 @@ Vm::Vm(unsigned                 cpu,
 void Vm::exception(Cpu & cpu)
 {
 	switch (_state.exception_type) {
-	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]]
-	case Cpu::IRQ_LEVEL_EL1: [[fallthrough]]
-	case Cpu::FIQ_LEVEL_EL0: [[fallthrough]]
+	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];
+	case Cpu::IRQ_LEVEL_EL1: [[fallthrough]];
+	case Cpu::FIQ_LEVEL_EL0: [[fallthrough]];
 	case Cpu::FIQ_LEVEL_EL1:
 		_interrupt(cpu.id());
 		break;
-	case Cpu::SYNC_LEVEL_EL0: [[fallthrough]]
-	case Cpu::SYNC_LEVEL_EL1: [[fallthrough]]
-	case Cpu::SERR_LEVEL_EL0: [[fallthrough]]
+	case Cpu::SYNC_LEVEL_EL0: [[fallthrough]];
+	case Cpu::SYNC_LEVEL_EL1: [[fallthrough]];
+	case Cpu::SERR_LEVEL_EL0: [[fallthrough]];
 	case Cpu::SERR_LEVEL_EL1:
 		pause();
 		_context.submit(1);
