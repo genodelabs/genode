@@ -67,7 +67,7 @@ void operator delete (void *ptr, Deallocator &dealloc) { try_dealloc(ptr,  deall
  * implementation of the 'stdcxx' library instead. To make this possible, the
  * 'delete (void *)' implementation in the 'cxx' library must be 'weak'.
  */
-__attribute__((weak)) void operator delete (void *)
+__attribute__((weak)) void operator delete (void *) noexcept
 {
 	Genode::error("cxx: operator delete (void *) called - not implemented. "
 	              "A working implementation is available in the 'stdcxx' library.");
