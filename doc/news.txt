@@ -4,6 +4,43 @@
                                ===========
 
 
+Genode OS Framework release 20.08 | 2020-08-28
+##############################################
+
+| With Genode 20.08, the low-level GUI stack underwent a profound redesign,
+| the Chromium web engine comes to life, the i.MX8 support covers clock and
+| power management, and the CBE block encrypter becomes highly modular.
+
+The most stunning feature of Genode 20.08 is most certainly the new ability
+to host the Chromium web engine as native component in the form of the Falkon
+web browser. This long-time project involved overcoming countless road
+blocks along the way to the great benefit of Genode's users at large: building
+bridges between 3rd-party build systems and Genode, covering seemingly obscure
+corner cases of POSIX, solving instruction-cache invalidation issues on ARM -
+just to name a few.
+
+Under the hood, we took the release cycle as opportunity to tackle a major
+surgery of the low-level GUI stack that we planned for more than two years.
+The architectural change lays the groundwork for swapping out graphics and
+input drivers on the fly without reboot. It also paves the ground for features
+like screen capturing and remote desktop scenarios in a privacy-protecting
+way.
+
+On our mission of bringing the driver support for the 64-bit ARM-based i.MX8
+SoC on par with our driver coverage on Intel PCs, the release introduces a
+platform driver specifically for this SoC that covers clock and power
+management. One step closer to using Sculpt OS on the MNT Reform laptop.
+
+Furthermore, Genode's custom block encrypter called CBE received continuous
+development. In particular, the cryptographic algorithm and trust anchor
+have become pluggable modules. This will allow for tailoring the CBE to
+custom products - like hardware trust anchors - without changing its
+implementation.
+
+These and many more improvements are covered in detail in the
+[https:/documentation/release-notes/20.08 - release documentation of version 20.08...]
+
+
 Genode OS Framework release 20.05 | 2020-05-28
 ##############################################
 
