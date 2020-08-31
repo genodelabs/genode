@@ -27,6 +27,9 @@ class Vfs::Rtc_file_system : public Single_file_system
 {
 	private:
 
+		/* "1970-01-01 00:00\n" */
+		enum { TIMESTAMP_LEN = 17 };
+
 		class Rtc_vfs_handle : public Single_vfs_handle
 		{
 			private:
@@ -51,8 +54,6 @@ class Vfs::Rtc_file_system : public Single_file_system
 				Read_result read(char *dst, file_size count,
 				                 file_size &out_count) override
 				{
-					enum { TIMESTAMP_LEN = 17 };
-
 					if (seek() >= TIMESTAMP_LEN) {
 						out_count = 0;
 						return READ_OK;
@@ -137,7 +138,13 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			return Single_file_system::stat(path, out);
+			Stat_result result = Single_file_system::stat(path, out);
+
+			if (result == STAT_OK) {
+				out.size = TIMESTAMP_LEN;
+			}
+
+			return result;
 		}
 
 		Watch_result watch(char const        *path,
