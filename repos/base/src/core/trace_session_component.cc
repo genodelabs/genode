@@ -187,9 +187,7 @@ Session_component::Session_component(Rpc_entrypoint  &ep,
 	_policies(policies),
 	_subjects(_subjects_slab, _ram, _sources),
 	_argument_buffer(_ram, local_rm, arg_buffer_size)
-{
-	withdraw(Ram_quota{_argument_buffer.size()});
-}
+{ }
 
 
 Session_component::~Session_component()

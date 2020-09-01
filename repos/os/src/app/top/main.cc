@@ -286,8 +286,8 @@ struct App::Main
 		PARENT_LEVELS = 0
 	};
 
-	size_t trace_ram_quota { 20 * 4096 };
-	size_t arg_buffer_ram  { 10 * 4096 };
+	size_t arg_buffer_ram  { 12 * 4096 }; /* ~ 190 trace Subject_info objects */
+	size_t trace_ram_quota { arg_buffer_ram + 4 * 4096 };
 
 	Reconstructible<Trace::Connection> _trace { _env,
 	                                            trace_ram_quota,
@@ -359,8 +359,9 @@ void App::Main::_handle_period()
 		return;
 	}
 
-	trace_ram_quota += 4096;
-	arg_buffer_ram  += 4 * 4096;
+	enum { ARG_RAM_UPGRADE = 4 * 4096 };
+	trace_ram_quota += ARG_RAM_UPGRADE;
+	arg_buffer_ram  += ARG_RAM_UPGRADE;
 
 	/* by destructing the session we free up the allocated memory in core */
 	Genode::warning("re-construct trace session");
