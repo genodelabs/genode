@@ -22,7 +22,6 @@
 #include <internal/errno.h>
 #include <internal/file.h>
 #include <internal/init.h>
-#include <internal/suspend.h>
 
 using namespace Libc;
 

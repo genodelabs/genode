@@ -391,28 +391,13 @@ extern void (*libc_select_notify_from_kernel)();
 
 void Libc::Kernel::handle_io_progress()
 {
-	if (_execute_monitors_pending) {
-		_execute_monitors_pending = false;
-		_monitors.execute_monitors();
-	}
+	if (_io_progressed) {
+		_io_progressed = false;
 
-	/*
-	 * TODO: make VFS I/O completion checks during
-	 * kernel time to avoid flapping between stacks
-	 */
-
-	if (_io_ready) {
-		_io_ready = false;
-
-		/* some contexts may have been deblocked from select() */
-		select_notify_from_kernel();
-
-		/*
-		 * resume all as any VFS context may have
-		 * been deblocked from blocking I/O
-		 */
 		Kernel::resume_all();
-		_monitors.execute_monitors();
+
+		if (_execute_monitors_pending == Monitor::Pool::State::JOBS_PENDING)
+			_execute_monitors_pending = _monitors.execute_monitors();
 	}
 }
 
@@ -490,7 +475,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_vfs_plugin(*this, _env.rm());
 	init_file_operations(*this);
 	init_time(*this, *this);
-	init_select(*this, *this, *this, _signal);
+	init_select(*this, _signal, *this);
 	init_socket_fs(*this);
 	init_passwd(_passwd_config());
 	init_signal(_signal);

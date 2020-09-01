@@ -38,10 +38,9 @@
 #include <internal/kernel.h>
 #include <internal/init.h>
 #include <internal/signal.h>
-#include <internal/suspend.h>
-#include <internal/resume.h>
 #include <internal/select.h>
 #include <internal/errno.h>
+#include <internal/monitor.h>
 
 namespace Libc {
 	struct Select_cb;
@@ -51,19 +50,16 @@ namespace Libc {
 using namespace Libc;
 
 
-static Suspend      *_suspend_ptr;
-static Resume       *_resume_ptr;
 static Select       *_select_ptr;
 static Libc::Signal *_signal_ptr;
+static Monitor      *_monitor_ptr;
 
 
-void Libc::init_select(Suspend &suspend, Resume &resume, Select &select,
-                       Signal &signal)
+void Libc::init_select(Select &select, Signal &signal, Monitor &monitor)
 {
-	_suspend_ptr = &suspend;
-	_resume_ptr  = &resume;
 	_select_ptr  = &select;
 	_signal_ptr  = &signal;
+	_monitor_ptr = &monitor;
 }
 
 
@@ -210,7 +206,6 @@ static int selscan(int nfds,
 /* this function gets called by plugin backends when file descripors become ready */
 void Libc::select_notify_from_kernel()
 {
-	bool resume_all = false;
 	fd_set tmp_readfds, tmp_writefds, tmp_exceptfds;
 
 	/* check for each waiting select() function if one of its fds is ready now
@@ -224,18 +219,8 @@ void Libc::select_notify_from_kernel()
 			scb.readfds   = tmp_readfds;
 			scb.writefds  = tmp_writefds;
 			scb.exceptfds = tmp_exceptfds;
-
-			resume_all = true;
 		}
 	});
-
-	if (resume_all) {
-		struct Missing_call_of_init_select : Exception { };
-		if (!_resume_ptr)
-			throw Missing_call_of_init_select();
-
-		_resume_ptr->resume_all();
-	}
 }
 
 
@@ -288,35 +273,14 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		return 0;
 	}
 
-	/* suspend as we don't have any immediate events */
+	using Genode::uint64_t;
 
-	struct Timeout
-	{
-		timeval const *_tv;
-		bool    const  valid    { _tv != nullptr };
-		Genode::uint64_t  duration {
-			valid ? (Genode::uint64_t)_tv->tv_sec*1000 + _tv->tv_usec/1000 : 0UL };
-
-		bool expired() const { return valid && duration == 0; };
-
-		Timeout(timeval *tv) : _tv(tv) { }
-	} timeout { tv };
-
-	struct Check : Suspend_functor
-	{
-		struct Timeout *timeout;
-		Select_cb      *select_cb;
-
-		Check(Timeout *timeout, Select_cb * select_cb)
-		: timeout(timeout), select_cb(select_cb) { }
-
-		bool suspend() override {
-			return !timeout->expired() && select_cb->nready == 0; }
-	} check ( &timeout, &*select_cb );
-
+	uint64_t const timeout_ms = (tv != nullptr)
+	                          ? (uint64_t)tv->tv_sec*1000 + tv->tv_usec/1000
+	                          : 0UL;
 	{
 		struct Missing_call_of_init_select : Exception { };
-		if (!_suspend_ptr || !_signal_ptr)
+		if (!_monitor_ptr || !_signal_ptr)
 			throw Missing_call_of_init_select();
 	}
 
@@ -324,25 +288,31 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 
 	auto signal_occurred_during_select = [&] ()
 	{
-		return _signal_ptr->count() != orig_signal_count;
+		return (_signal_ptr->count() != orig_signal_count);
 	};
 
-	for (;;) {
-		if (timeout.expired())
-			break;
+	auto monitor_fn = [&] ()
+	{
+		select_notify_from_kernel();
 
 		if (select_cb->nready != 0)
-			break;
+			return Monitor::Function_result::COMPLETE;
 
 		if (signal_occurred_during_select())
-			break;
+			return Monitor::Function_result::COMPLETE;
 
-		timeout.duration = _suspend_ptr->suspend(check, timeout.duration);
-	}
+		return Monitor::Function_result::INCOMPLETE;
+	};
+
+	Mutex mutex { };
+	Mutex::Guard guard(mutex);
+
+	Monitor::Result const monitor_result =
+		_monitor_ptr->monitor(mutex, monitor_fn, timeout_ms);
 
 	select_cb_list().remove(&(*select_cb));
 
-	if (timeout.expired())
+	if (monitor_result == Monitor::Result::TIMEOUT)
 		return 0;
 
 	if (signal_occurred_during_select())
@@ -356,6 +326,7 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 
 	return select_cb->nready;
 }
+
 
 extern "C" __attribute__((alias("select")))
 int __sys_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,

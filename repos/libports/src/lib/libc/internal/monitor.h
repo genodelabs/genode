@@ -60,7 +60,7 @@ class Libc::Monitor : Interface
 	protected:
 
 		virtual Result _monitor(Mutex &, Function &, uint64_t) = 0;
-		virtual void _charge_monitors() = 0;
+		virtual void _trigger_monitor_examination() = 0;
 
 	public:
 
@@ -68,7 +68,7 @@ class Libc::Monitor : Interface
 		 * Block until monitored execution completed or timeout expires
 		 *
 		 * The mutex must be locked when calling the monitor. It is released
-		 * during wait for completion and re-aquired before the function
+		 * during wait for completion and re-acquired before the function
 		 * returns. This behavior is comparable to condition variables.
 		 *
 		 * Returns true if execution completed, false on timeout.
@@ -83,14 +83,13 @@ class Libc::Monitor : Interface
 				_Function(FN const &fn) : fn(fn) { }
 			} function { fn };
 
-			_charge_monitors();
 			return _monitor(mutex, function, timeout_ms);
 		}
 
 		/**
-		 * Charge monitor to execute the monitored function
+		 * Trigger examination of monitored functions
 		 */
-		void charge_monitors() { _charge_monitors(); }
+		void trigger_monitor_examination() { _trigger_monitor_examination(); }
 };
 
 
@@ -136,21 +135,35 @@ struct Libc::Monitor::Pool
 
 			mutex.release();
 
-			_monitor.charge_monitors();
+			_monitor.trigger_monitor_examination();
 
 			job.wait_for_completion();
 
 			mutex.acquire();
 		}
 
+		enum class State { JOBS_PENDING, ALL_COMPLETE };
+
 		/* called by the monitor context itself */
-		void execute_monitors()
+		State execute_monitors()
 		{
+			State result = State::ALL_COMPLETE;
+
 			_jobs.for_each([&] (Job &job) {
-				if (!job.completed() && !job.expired() && job.execute()) {
-					job.complete();
+
+				if (!job.completed() && !job.expired()) {
+
+					bool const completed = job.execute();
+
+					if (completed)
+						job.complete();
+
+					if (!completed)
+						result = State::JOBS_PENDING;
 				}
 			});
+
+			return result;
 		}
 };
 

@@ -209,7 +209,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		bool    _dispatch_pending_io_signals = false;
 
 		/* io_progress_handler marker */
-		bool _io_ready { false };
+		bool _io_progressed { false };
 
 		Thread &_myself { *Thread::myself() };
 
@@ -285,11 +285,15 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		Reconstructible<Io_signal_handler<Kernel>> _execute_monitors {
 			_env.ep(), *this, &Kernel::_monitors_handler };
 
-		bool _execute_monitors_pending { false };
+		Monitor::Pool::State _execute_monitors_pending = Monitor::Pool::State::ALL_COMPLETE;
+
+		Constructible<Main_job> _main_monitor_job { };
 
 		void _monitors_handler()
 		{
-			 /* used to leave I/O-signal dispatcher only - handled afterwards */
+			/* mark monitors for execution when running in kernel only */
+			_execute_monitors_pending = Monitor::Pool::State::JOBS_PENDING;
+			_io_progressed = true;
 		}
 
 		Constructible<Clone_connection> _clone_connection { };
@@ -440,29 +444,86 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 					/* the 'kernel_routine' may install another kernel routine */
 					_kernel_routine = nullptr;
 					routine.execute_in_kernel();
-					if (!_kernel_routine)
+
+					if (!_kernel_routine) {
 						_switch_to_user();
-				}
+					}
 
-				if (_execute_monitors_pending) {
-
-					_execute_monitors_pending = false;
-					_monitors.execute_monitors();
-
-				} else {
-
-					if (_dispatch_pending_io_signals) {
-						/* dispatch pending signals but don't block */
-						while (_env.ep().dispatch_pending_io_signal()) ;
-					} else {
-						/* block for signals */
+					if (_kernel_routine) {
 						_env.ep().wait_and_dispatch_one_io_signal();
-						handle_io_progress();
 					}
 				}
 
-				if (!_kernel_routine && _resume_main_once && !_setjmp(_kernel_context))
+				/*
+				 * Dispatch all pending I/O signals at once and execute
+				 * monitors that may now become able to complete.
+				 */
+				auto dispatch_all_pending_io_signals = [&] ()
+				{
+					while (_env.ep().dispatch_pending_io_signal());
+				};
+
+				dispatch_all_pending_io_signals();
+
+				if (_io_progressed)
+					Kernel::resume_all();
+
+				_io_progressed = false;
+
+				/*
+				 * Execute monitors on kernel entry regardless of any I/O
+				 * because the monitor function may be unrelated to I/O.
+				 */
+				if (_execute_monitors_pending == Monitor::Pool::State::JOBS_PENDING)
+					_execute_monitors_pending = _monitors.execute_monitors();
+
+				/*
+				 * Process I/O signals without returning to the application
+				 * as long as the main thread depends on I/O.
+				 */
+
+				auto main_blocked_in_monitor = [&] ()
+				{
+					/*
+					 * In general, 'resume_all()' only flags the main state but
+					 * does not alter the main monitor job. For exmaple in case
+					 * of a sleep timeout, main is resumed by 'resume_main()'
+					 * in 'Main_blockade::wakeup()' but did not yet return from
+					 * 'suspend()'. The expired state in the main job is set
+					 * only after 'suspend()' returned.
+					 */
+					if (_resume_main_once)
+						return false;
+
+					return _main_monitor_job.constructed()
+					   && !_main_monitor_job->completed()
+					   && !_main_monitor_job->expired();
+				};
+
+				auto main_suspended_for_io = [&] {
+					return _resume_main_once == false; };
+
+				while (main_blocked_in_monitor() || main_suspended_for_io()) {
+
+					/*
+					 * Block for one I/O signal and process all pending ones
+					 * before executing the monitor functions. This avoids
+					 * superflous executions of the monitor functions when
+					 * receiving bursts of I/O signals.
+					 */
+					_env.ep().wait_and_dispatch_one_io_signal();
+
+					dispatch_all_pending_io_signals();
+
+					handle_io_progress();
+				}
+
+				/*
+				 * Return to the application
+				 */
+				if (!_kernel_routine && _resume_main_once && !_setjmp(_kernel_context)) {
 					_switch_to_user();
+				}
 			}
 		}
 
@@ -508,11 +569,17 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		Monitor::Result _monitor(Mutex &mutex, Function &fn, uint64_t timeout_ms) override
 		{
 			if (_main_context()) {
-				Main_job job { fn, timeout_ms };
 
-				_monitors.monitor(mutex, job);
-				return job.completed() ? Monitor::Result::COMPLETE
-				                       : Monitor::Result::TIMEOUT;
+				_main_monitor_job.construct(fn, timeout_ms);
+
+				_monitors.monitor(mutex, *_main_monitor_job);
+
+				Monitor::Result const job_result = _main_monitor_job->completed()
+				                                 ? Monitor::Result::COMPLETE
+				                                 : Monitor::Result::TIMEOUT;
+				_main_monitor_job.destruct();
+
+				return job_result;
 
 			} else {
 				Pthread_job job { fn, _timer_accessor, timeout_ms };
@@ -523,13 +590,12 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			}
 		}
 
-		void _charge_monitors() override
+		void _trigger_monitor_examination() override
 		{
-			if (!_execute_monitors_pending) {
-				_execute_monitors_pending = true;
-				if (!_main_context())
-					Signal_transmitter(*_execute_monitors).submit();
-			}
+			if (_main_context())
+				_monitors_handler();
+			else
+				Signal_transmitter(*_execute_monitors).submit();
 		}
 
 		/**
@@ -600,7 +666,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		/**
 		 * Cwd interface
 		 */
-		Absolute_path &cwd() { return _cwd; }
+		Absolute_path &cwd() override { return _cwd; }
 
 
 		/*********************************
@@ -625,11 +691,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		 ** Vfs::Io_response_handler interface **
 		 ****************************************/
 
-		void read_ready_response() override {
-			_io_ready = true; }
-
-		void io_progress_response() override {
-			_io_ready = true; }
+		void read_ready_response() override  { _io_progressed = true; }
+		void io_progress_response() override { _io_progressed = true; }
 
 
 		/**********************************************
