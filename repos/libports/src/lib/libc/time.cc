@@ -27,7 +27,6 @@
 #include <unistd.h>
 
 /* libc-internal includes */
-#include <internal/legacy.h>
 #include <internal/errno.h>
 #include <internal/init.h>
 #include <internal/current_time.h>

@@ -16,7 +16,6 @@
 #define _LIBC__INTERNAL__PTHREAD_POOL_H_
 
 /* libc-internal includes */
-#include <internal/legacy.h>
 #include <internal/suspend.h>
 
 namespace Libc { class Pthread_pool; }

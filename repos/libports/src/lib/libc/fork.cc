@@ -34,7 +34,6 @@
 /* libc-internal includes */
 #include <internal/init.h>
 #include <internal/clone_session.h>
-#include <internal/legacy.h>
 #include <internal/kernel_routine.h>
 #include <internal/suspend.h>
 #include <internal/resume.h>

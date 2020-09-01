@@ -502,22 +502,6 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			                       : _pthreads.suspend_myself(check, timeout_ms);
 		}
 
-		void dispatch_pending_io_signals()
-		{
-			if (!_main_context()) return;
-
-			if (!_setjmp(_user_context)) {
-				_valid_user_context          = true;
-				_dispatch_pending_io_signals = true;
-				_resume_main_once            = true; /* afterwards resume main */
-				_switch_to_kernel();
-			} else {
-				_valid_user_context          = false;
-				_dispatch_pending_io_signals = false;
-				_signal.execute_signal_handlers();
-			}
-		}
-
 		/**
 		 * Monitor interface
 		 */

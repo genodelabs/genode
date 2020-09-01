@@ -41,7 +41,6 @@
 #include <internal/mem_alloc.h>
 #include <internal/errno.h>
 #include <internal/init.h>
-#include <internal/legacy.h>
 #include <internal/monitor.h>
 #include <internal/current_time.h>
 
@@ -951,9 +950,6 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
                                ::size_t count)
 {
-	/* TODO why is this required? */
-	dispatch_pending_io_signals();
-
 	if ((fd->flags & O_ACCMODE) == O_WRONLY) {
 		return Errno(EBADF);
 	}

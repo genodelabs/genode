@@ -21,7 +21,6 @@
 #include <stdlib.h>
 
 /* libc-local includes */
-#include <internal/legacy.h>
 #include <internal/errno.h>
 #include <internal/init.h>
 
