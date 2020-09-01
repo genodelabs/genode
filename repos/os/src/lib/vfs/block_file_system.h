@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -15,21 +15,39 @@
 #ifndef _INCLUDE__VFS__BLOCK_FILE_SYSTEM_H_
 #define _INCLUDE__VFS__BLOCK_FILE_SYSTEM_H_
 
+/* Genode includes */
 #include <base/allocator_avl.h>
 #include <block_session/connection.h>
+#include <util/xml_generator.h>
+#include <vfs/dir_file_system.h>
+#include <vfs/readonly_value_file_system.h>
 #include <vfs/single_file_system.h>
+
 
 namespace Vfs { class Block_file_system; }
 
 
-class Vfs::Block_file_system : public Single_file_system
+struct Vfs::Block_file_system
+{
+	typedef String<64> Name;
+
+	struct Local_factory;
+	struct Data_file_system;
+	struct Compound_file_system;
+};
+
+
+class Vfs::Block_file_system::Data_file_system : public Single_file_system
 {
 	private:
 
-		Vfs::Env &_env;
+		/*
+		 * Noncopyable
+		 */
+		Data_file_system(Data_file_system const &);
+		Data_file_system &operator = (Data_file_system const &);
 
-		typedef Genode::String<64> Label;
-		Label _label;
+		Vfs::Env &_env;
 
 		/*
 		 * Serialize access to packet stream of the block session
@@ -39,37 +57,26 @@ class Vfs::Block_file_system : public Single_file_system
 		char                 *_block_buffer;
 		unsigned              _block_buffer_count;
 
-		Genode::Allocator_avl _tx_block_alloc { &_env.alloc() };
+		Block::Connection<>        &_block;
+		Block::Session::Info const &_info;
 
-		Block::Connection<> _block {
-			_env.env(), &_tx_block_alloc, 128*1024, _label.string() };
-
-		Block::Session::Info const _info { _block.info() };
 
 		Block::Session::Tx::Source *_tx_source;
 
-		bool _writeable;
+		bool const _writeable;
 
 		Genode::Signal_receiver           _signal_receiver { };
 		Genode::Signal_context            _signal_context  { };
 		Genode::Signal_context_capability _source_submit_cap;
-
-		/*
-		 * Noncopyable
-		 */
-		Block_file_system(Block_file_system const &);
-		Block_file_system &operator = (Block_file_system const &);
 
 		class Block_vfs_handle : public Single_vfs_handle
 		{
 			private:
 
 				Genode::Allocator                 &_alloc;
-				Label                             &_label;
 				Mutex                             &_mutex;
 				char                              *_block_buffer;
 				unsigned                          &_block_buffer_count;
-				Genode::Allocator_avl             &_tx_block_alloc;
 				Block::Connection<>               &_block;
 				Genode::size_t               const _block_size;
 				Block::sector_t              const _block_count;
@@ -147,11 +154,9 @@ class Vfs::Block_file_system : public Single_file_system
 				Block_vfs_handle(Directory_service                 &ds,
 				                 File_io_service                   &fs,
 				                 Genode::Allocator                 &alloc,
-				                 Label                             &label,
 				                 Mutex                             &mutex,
 				                 char                              *block_buffer,
 				                 unsigned                          &block_buffer_count,
-				                 Genode::Allocator_avl             &tx_block_alloc,
 				                 Block::Connection<>               &block,
 				                 Genode::size_t                     block_size,
 				                 Block::sector_t                    block_count,
@@ -162,11 +167,9 @@ class Vfs::Block_file_system : public Single_file_system
 				                 Genode::Signal_context_capability &source_submit_cap)
 				: Single_vfs_handle(ds, fs, alloc, 0),
 				  _alloc(alloc),
-				  _label(label),
 				  _mutex(mutex),
 				  _block_buffer(block_buffer),
 				  _block_buffer_count(block_buffer_count),
-				  _tx_block_alloc(tx_block_alloc),
 				  _block(block),
 				  _block_size(block_size),
 				  _block_count(block_count),
@@ -352,14 +355,20 @@ class Vfs::Block_file_system : public Single_file_system
 
 	public:
 
-		Block_file_system(Vfs::Env &env, Genode::Xml_node config)
+		Data_file_system(Vfs::Env                   &env,
+		                 Block::Connection<>        &block,
+		                 Block::Session::Info const &info,
+		                 Name                 const &name,
+		                 unsigned                    block_buffer_count)
 		:
-			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
-			                   Node_rwx::rw(), config),
+			Single_file_system { Node_type::CONTINUOUS_FILE, name.string(),
+			                     info.writeable ? Node_rwx::rw() : Node_rwx::ro(),
+			                     Genode::Xml_node("<data/>") },
 			_env(env),
-			_label(config.attribute_value("label", Label())),
 			_block_buffer(0),
-			_block_buffer_count(config.attribute_value("block_buffer_count", 1UL)),
+			_block_buffer_count(block_buffer_count),
+			_block(block),
+			_info(info),
 			_tx_source(_block.tx()),
 			_writeable(_info.writeable),
 			_source_submit_cap(_signal_receiver.manage(&_signal_context))
@@ -370,15 +379,15 @@ class Vfs::Block_file_system : public Single_file_system
 			_block.tx_channel()->sigh_ready_to_submit(_source_submit_cap);
 		}
 
-		~Block_file_system()
+		~Data_file_system()
 		{
 			_signal_receiver.dissolve(&_signal_context);
 
 			destroy(_env.alloc(), _block_buffer);
 		}
 
-		static char const *name()   { return "block"; }
-		char const *type() override { return "block"; }
+		static char const *name()   { return "data"; }
+		char const *type() override { return "data"; }
 
 		/*********************************
 		 ** Directory service interface **
@@ -393,10 +402,9 @@ class Vfs::Block_file_system : public Single_file_system
 
 			try {
 				*out_handle = new (alloc) Block_vfs_handle(*this, *this, alloc,
-				                                           _label, _mutex,
+				                                           _mutex,
 				                                           _block_buffer,
 				                                           _block_buffer_count,
-				                                           _tx_block_alloc,
 				                                           _block,
 				                                           _info.block_size,
 				                                           _info.block_count,
@@ -427,25 +435,135 @@ class Vfs::Block_file_system : public Single_file_system
 		{
 			return FTRUNCATE_OK;
 		}
+};
 
-		Ioctl_result ioctl(Vfs_handle *, Ioctl_opcode opcode, Ioctl_arg,
-		                   Ioctl_out &out) override
+
+struct Vfs::Block_file_system::Local_factory : File_system_factory
+{
+	typedef Genode::String<64> Label;
+	Label const _label;
+
+	Name const _name;
+
+	Vfs::Env &_env;
+
+	Genode::Allocator_avl _tx_block_alloc { &_env.alloc() };
+
+	Block::Connection<> _block {
+		_env.env(), &_tx_block_alloc, 128*1024, _label.string() };
+
+	Block::Session::Info const _info { _block.info() };
+
+	Data_file_system _data_fs;
+	
+	struct Info : Block::Session::Info
+	{
+		void print(Genode::Output &out) const
 		{
-			switch (opcode) {
-			case IOCTL_OP_DIOCGMEDIASIZE:
-
-				out.diocgmediasize.size = _info.block_count * _info.block_size;
-				return IOCTL_OK;
-
-			default:
-
-				Genode::warning("invalid ioctl request ", (int)opcode);
-				break;
-			}
-
-			/* never reached */
-			return IOCTL_ERR_INVALID;
+			char buf[128] { };
+			Genode::Xml_generator xml(buf, sizeof(buf), "block", [&] () {
+				xml.attribute("count", Block::Session::Info::block_count);
+				xml.attribute("size",  Block::Session::Info::block_size);
+			});
+			Genode::print(out, Genode::Cstring(buf));
 		}
+	};
+
+	Readonly_value_file_system<Info>             _info_fs        { "info",        Info { } };
+	Readonly_value_file_system<Genode::uint64_t> _block_count_fs { "block_count", 0 };
+	Readonly_value_file_system<Genode::size_t>   _block_size_fs  { "block_size",  0 };
+
+	static Name name(Xml_node config)
+	{
+		return config.attribute_value("name", Name("block"));
+	}
+
+	static unsigned buffer_count(Xml_node config)
+	{
+		return config.attribute_value("block_buffer_count", 1UL);
+	}
+
+	Local_factory(Vfs::Env &env, Xml_node config)
+	:
+		_label   { config.attribute_value("label", Label("")) },
+		_name    { name(config) },
+		_env     { env },
+		_data_fs { _env, _block, _info, name(config), buffer_count(config) }
+	{
+		_info_fs       .value(Info { _info });
+		_block_count_fs.value(_info.block_count);
+		_block_size_fs .value(_info.block_size);
+	}
+
+	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
+	{
+		if (node.has_type("data")) {
+			return &_data_fs;
+		}
+
+		if (node.has_type("info")) {
+			return &_info_fs;
+		}
+
+		if (node.has_type("block_count")) {
+			return &_block_count_fs;
+		}
+
+		if (node.has_type("block_size")) {
+			return &_block_size_fs;
+		}
+
+		return nullptr;
+	}
+};
+
+
+class Vfs::Block_file_system::Compound_file_system : private Local_factory,
+                                                     public  Vfs::Dir_file_system
+{
+	private:
+
+		using Name = Block_file_system::Name;
+
+		using Config = String<200>;
+		static Config _config(Name const &name)
+		{
+			char buf[Config::capacity()] { };
+
+			/*
+			 * By not using the node type "dir", we operate the
+			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
+			 * to be present at the mount point.
+			 */
+			Genode::Xml_generator xml(buf, sizeof(buf), "compound", [&] () {
+
+				xml.node("data", [&] () {
+					xml.attribute("name", name); });
+
+				xml.node("dir", [&] () {
+					xml.attribute("name", Name(".", name));
+					xml.node("info",  [&] () {});
+					xml.node("block_count", [&] () {});
+					xml.node("block_size",  [&] () {});
+				});
+			});
+
+			return Config(Genode::Cstring(buf));
+		}
+
+	public:
+
+		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node node)
+		:
+			Local_factory { vfs_env, node },
+			Vfs::Dir_file_system { vfs_env,
+			                       Xml_node(_config(Local_factory::name(node)).string()),
+			                       *this }
+		{ }
+
+		static const char *name() { return "block"; }
+
+		char const *type() override { return name(); }
 };
 
 #endif /* _INCLUDE__VFS__BLOCK_FILE_SYSTEM_H_ */
