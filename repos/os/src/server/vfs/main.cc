@@ -261,46 +261,36 @@ class Vfs_server::Session_component : private Session_resources,
 
 		bool _try_acknowledge_jobs()
 		{
-			bool overall_progress = false;
+			bool progress = false;
 
-			for (;;) {
-				if (!_stream.ready_to_ack())
-					break;
+			Node_queue requeued_nodes { };
 
-				if (_active_nodes.empty())
-					break;
+			_active_nodes.dequeue_all([&] (Node &node) {
 
-				bool progress_in_iteration = false;
+				if (!_stream.ready_to_ack()) {
+					requeued_nodes.enqueue(node);
+					return;
+				}
 
-				_active_nodes.dequeue([&] (Node &node) {
+				if (node.acknowledgement_pending()) {
+					_stream.acknowledge_packet(node.dequeue_acknowledgement());
+					progress = true;
+				}
 
-					/*
-					 * Deliver only one acknowledgement per iteration to
-					 * re-check the 'ready_to_ack' condition for each
-					 * acknowledgement.
-					 */
-					if (node.acknowledgement_pending()) {
-						_stream.acknowledge_packet(node.dequeue_acknowledgement());
-						progress_in_iteration = true;
-					}
+				/*
+				 * If there is still another acknowledgement pending,
+				 * keep the node enqueud to process it in the next call of
+				 * '_try_acknowledge_jobs'. This can happen if there is a
+				 * READ_READY acknowledgement in addition to the
+				 * acknowledgement of an operation.
+				 */
+				if (node.active())
+					requeued_nodes.enqueue(node);
+			});
 
-					/*
-					 * If there is still another acknowledgement pending, keep
-					 * the node enqueud to process it in the next iteration.
-					 * This can happen if there is a READ_READY acknowledgement
-					 * in addition to the acknowledgement of an operation.
-					 */
-					if (node.active())
-						_active_nodes.enqueue(node);
-				});
+			_active_nodes = requeued_nodes;
 
-				overall_progress |= progress_in_iteration;
-
-				if (!progress_in_iteration)
-					break;
-			}
-
-			return overall_progress;
+			return progress;
 		}
 
 	public:
