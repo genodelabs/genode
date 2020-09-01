@@ -26,11 +26,6 @@ namespace Libc {
 	 * XXX  called only by 'Libc::Vfs_plugin::read'
 	 */
 	void dispatch_pending_io_signals();
-
-	/*
-	 * XXX  this function is solely needed to support noux fork mechanism
-	 */
-	void schedule_suspend(void (*) ());
 }
 
 #endif /* _LIBC__INTERNAL__LEGACY_H_ */

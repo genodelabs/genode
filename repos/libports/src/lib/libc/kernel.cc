@@ -40,28 +40,6 @@ inline void Libc::Main_blockade::wakeup()
 }
 
 
-/**
- * Main context execution was suspended (on fork)
- *
- * This function is executed in the context of the initial thread.
- */
-static void suspended_callback()
-{
-	Libc::Kernel::kernel().entrypoint_suspended();
-}
-
-
-/**
- * Resume main context execution (after fork)
- *
- * This function is executed in the context of the initial thread.
- */
-static void resumed_callback()
-{
-	Libc::Kernel::kernel().entrypoint_resumed();
-}
-
-
 size_t Libc::Kernel::_user_stack_size()
 {
 	size_t size = Component::stack_size();
@@ -72,31 +50,6 @@ size_t Libc::Kernel::_user_stack_size()
 		size = stack.attribute_value("size", 0UL); });
 
 	return size;
-}
-
-
-void Libc::Kernel::schedule_suspend(void(*original_suspended_callback) ())
-{
-	if (_state != USER) {
-		error(__PRETTY_FUNCTION__, " called from non-user context");
-		return;
-	}
-
-	/*
-	 * We hook into suspend-resume callback chain to destruct and
-	 * reconstruct parts of the kernel from the context of the initial
-	 * thread, i.e., without holding any object locks.
-	 */
-	_original_suspended_callback = original_suspended_callback;
-	_env.ep().schedule_suspend(suspended_callback, resumed_callback);
-
-	if (!_setjmp(_user_context)) {
-		_valid_user_context = true;
-		_suspend_scheduled = true;
-		_switch_to_kernel();
-	} else {
-		_valid_user_context = false;
-	}
 }
 
 

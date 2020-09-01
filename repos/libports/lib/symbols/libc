@@ -983,7 +983,6 @@ _ZN4Libc14pthread_createEPP7pthreadRN6Genode6ThreadE T
 #
 # Libc plugin interface
 #
-_ZN4Libc16schedule_suspendEPFvvE T
 _ZN4Libc25File_descriptor_allocator15find_by_libc_fdEi T
 _ZN4Libc25File_descriptor_allocator4freeEPNS_15File_descriptorE T
 _ZN4Libc25File_descriptor_allocator5allocEPNS_6PluginEPNS_14Plugin_contextEi T

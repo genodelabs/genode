@@ -24,8 +24,3 @@ void Libc::dispatch_pending_io_signals()
 	Kernel::kernel().dispatch_pending_io_signals();
 }
 
-
-void Libc::schedule_suspend(void (*suspended) ())
-{
-	Kernel::kernel().schedule_suspend(suspended);
-}
