@@ -16,44 +16,44 @@
 #include <sys/time.h>
 
 /* libc-internal includes */
-#include <internal/suspend.h>
+#include <internal/monitor.h>
 #include <internal/init.h>
 
 using namespace Libc;
 
 
-static Suspend *_suspend_ptr;
+static Libc::Monitor *_monitor_ptr;
 
 
-void Libc::init_sleep(Suspend &suspend)
+void Libc::init_sleep(Monitor &monitor)
 {
-	_suspend_ptr = &suspend;
+	_monitor_ptr = &monitor;
 }
 
 
 static void millisleep(Genode::uint64_t timeout_ms)
 {
-	Genode::uint64_t remaining_ms = timeout_ms;
-
-	struct Missing_call_of_init_sleep : Exception { };
-	if (!_suspend_ptr)
+	struct Missing_call_of_init_sleep : Genode::Exception { };
+	if (!_monitor_ptr)
 		throw Missing_call_of_init_sleep();
 
-	struct Check : Libc::Suspend_functor
-	{
-		bool suspend() override { return true; }
+	static Mutex mutex;
 
-	} check;
+	Mutex::Guard guard(mutex);
 
-	while (remaining_ms > 0)
-		remaining_ms = _suspend_ptr->suspend(check, remaining_ms);
+	_monitor_ptr->monitor(mutex,
+	                      [&] { return Libc::Monitor::Function_result::INCOMPLETE; },
+	                      timeout_ms);
 }
 
 
 extern "C" __attribute__((weak))
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	/* XXX nanosleep({0,0}) may yield but is not required to do so */
+	/*
+	 * According to POSIX nanosleep({0,0}) may yield but is not required to do
+	 * so. We just return.
+	 */
 	if (!req->tv_sec && !req->tv_nsec) return 0;
 
 	Genode::uint64_t sleep_ms = (Genode::uint64_t)req->tv_sec*1000;
@@ -106,7 +106,10 @@ int __sys_clock_nanosleep(clockid_t clock_id, int flags,
 extern "C" __attribute__((weak))
 unsigned int sleep(unsigned int seconds)
 {
-	/* XXX sleep(0) may yield but is not required to do so */
+	/*
+	 * According to POSIX usleep(0) may yield but is not required to do so.
+	 * We just return.
+	 */
 	if (!seconds) return 0;
 
 	Libc::uint64_t const sleep_ms = (Libc::uint64_t)seconds*1000;
@@ -120,7 +123,10 @@ unsigned int sleep(unsigned int seconds)
 extern "C" __attribute__((weak))
 int usleep(useconds_t useconds)
 {
-	/* XXX usleep(0) may yield but is not required to do so */
+	/*
+	 * According to POSIX usleep(0) may yield but is not required to do so.
+	 * We just return.
+	 */
 	if (!useconds) return 0;
 
 	Libc::uint64_t const sleep_ms = (Libc::uint64_t)useconds/1000;

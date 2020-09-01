@@ -101,7 +101,7 @@ namespace Libc {
 	/**
 	 * Init timing facilities
 	 */
-	void init_sleep(Suspend &);
+	void init_sleep(Monitor &);
 	void init_time(Current_time &, Current_real_time &);
 
 	/**
