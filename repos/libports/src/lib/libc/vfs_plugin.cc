@@ -1099,6 +1099,44 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 		termios->c_ispeed = 0;
 		termios->c_ospeed = 0;
 		handled = true;
+
+	} else if (request == DIOCGMEDIASIZE) {
+
+		if (!argp)
+			return Errno(EINVAL);
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() == "block") {
+
+					size_t const size =
+						info.attribute_value("size", 0UL);
+					if (!size) {
+						warning("block size is 0");
+					}
+
+					uint64_t const count =
+						info.attribute_value("count", 0ULL);
+					if (!count) {
+						warning("block count is 0");
+					}
+
+					/* we need libc's off_t which is int64_t */
+					using ::off_t;
+
+					off_t disk_size = (off_t) count * size;
+					if (disk_size < 0) {
+						warning("disk size overflow - returning 0");
+						disk_size = 0;
+					}
+
+					*(off_t*)argp = disk_size;
+					handled = true;
+				}
+			});
+
+			return Fn::COMPLETE;
+		});
 	}
 
 	if (handled)
