@@ -165,17 +165,7 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 
 		bool _exiting = false;
 
-		/*
-		 * The join blockade is needed because 'Libc::resume_all()' uses a
-		 * 'Signal_transmitter' which holds a reference to a signal context
-		 * capability, which needs to be released before the thread can be
-		 * destroyed.
-		 *
-		 * Also, we cannot use 'Thread::join()', because it only
-		 * returns when the thread entry function returns, which does not
-		 * happen with 'pthread_cancel()'.
-		 */
-		Genode::Blockade _join_blockade;
+		Genode::Mutex _mutex { };
 
 		/* return value for 'pthread_join()' */
 		void *_retval = PTHREAD_CANCELED;
@@ -189,10 +179,12 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 		class Cleanup_handler : public List<Cleanup_handler>::Element
 		{
 			private:
+
 				void (*_routine)(void*);
 				void *_arg;
 
 			public:
+
 				Cleanup_handler(void (*routine)(void*), void *arg)
 				: _routine(routine), _arg(arg) { }
 

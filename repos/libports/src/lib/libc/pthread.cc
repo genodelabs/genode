@@ -32,8 +32,7 @@
 #include <internal/init.h>
 #include <internal/kernel.h>
 #include <internal/pthread.h>
-#include <internal/resume.h>
-#include <internal/suspend.h>
+#include <internal/monitor.h>
 #include <internal/time.h>
 #include <internal/timer.h>
 
@@ -42,20 +41,27 @@ using namespace Libc;
 
 
 static Thread         *_main_thread_ptr;
-static Resume         *_resume_ptr;
-static Suspend        *_suspend_ptr;
+static Monitor        *_monitor_ptr;
 static Timer_accessor *_timer_accessor_ptr;
 
 
-void Libc::init_pthread_support(Suspend &suspend, Resume &resume,
-                                Timer_accessor &timer_accessor)
+void Libc::init_pthread_support(Monitor &monitor, Timer_accessor &timer_accessor)
 {
 	_main_thread_ptr    = Thread::myself();
-	_suspend_ptr        = &suspend;
-	_resume_ptr         = &resume;
+	_monitor_ptr        = &monitor;
 	_timer_accessor_ptr = &timer_accessor;
 }
 
+
+static Libc::Monitor & monitor()
+{
+	struct Missing_call_of_init_pthread_support : Genode::Exception { };
+	if (!_monitor_ptr)
+		throw Missing_call_of_init_pthread_support();
+	return *_monitor_ptr;
+}
+
+namespace { using Fn = Libc::Monitor::Function_result; }
 
 /*************
  ** Pthread **
@@ -74,47 +80,26 @@ void Libc::Pthread::Thread_object::entry()
 
 void Libc::Pthread::join(void **retval)
 {
-	struct Check : Suspend_functor
-	{
-		bool retry { false };
+	Genode::Mutex::Guard guard(_mutex);
 
-		Pthread &_thread;
+	monitor().monitor(_mutex, [&] {
+		if (!_exiting)
+			return Fn::INCOMPLETE;
 
-		Check(Pthread &thread) : _thread(thread) { }
-
-		bool suspend() override
-		{
-			retry = !_thread._exiting;
-			return retry;
-		}
-	} check(*this);
-
-	struct Missing_call_of_init_pthread_support : Exception { };
-	if (!_suspend_ptr)
-		throw Missing_call_of_init_pthread_support();
-
-	do {
-		_suspend_ptr->suspend(check);
-	} while (check.retry);
-
-	_join_blockade.block();
-
-	if (retval)
-		*retval = _retval;
+		if (retval)
+			*retval = _retval;
+		return Fn::COMPLETE;
+	});
 }
 
 
 void Libc::Pthread::cancel()
 {
+	Genode::Mutex::Guard guard(_mutex);
+
 	_exiting = true;
 
-	struct Missing_call_of_init_pthread_support : Exception { };
-	if (!_resume_ptr)
-		throw Missing_call_of_init_pthread_support();
-
-	_resume_ptr->resume_all();
-
-	_join_blockade.wakeup();
+	monitor().trigger_monitor_examination();
 }
 
 
@@ -278,7 +263,7 @@ class pthread_mutex : Genode::Noncopyable
 		/**
 		 * Enqueue current context as applicant for mutex
 		 *
-		 * Return true if mutex was aquired, false on timeout expiration.
+		 * Return true if mutex was acquired, false on timeout expiration.
 		 */
 		bool _apply_for_mutex(pthread_t thread, Libc::uint64_t timeout_ms)
 		{
