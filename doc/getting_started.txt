@@ -50,9 +50,17 @@ This creates a new build directory for building x86_64 binaries in './build'.
 The build system creates unified binaries that work on the given
 architecture independent from the underlying base platform, in this case Linux.
 
-To give Genode a try, build and execute a simple demo scenario via:
+Now change into the fresh build directory:
 
 ! cd build/x86_64
+
+Please uncomment the following line in 'etc/build.conf' to make the
+build process as smooth as possible.
+
+! RUN_OPT += --depot-auto-update
+
+To give Genode a try, build and execute a simple demo scenario via:
+
 ! make KERNEL=linux BOARD=linux run/demo
 
 By invoking 'make' with the 'run/demo' argument, all components needed by the

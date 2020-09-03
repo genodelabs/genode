@@ -444,12 +444,12 @@ proc check_for_missing_depot_archives { } {
 
 	if {[llength $local_user_archives]} {
 		append create_args " CROSS_DEV_PREFIX=[cross_dev_prefix]"
-		puts stderr "You may create the following archives locally:\n"
+		puts stderr "You may create the following archives locally by executing:\n"
 		puts stderr "  [genode_dir]/tool/depot/create $local_user_archives$create_args\n"
 	}
 
 	if {[llength $foreign_archives]} {
-		puts stderr "You may try to download the following archives:\n"
+		puts stderr "You may try to download the following archives by executing:\n"
 		puts stderr "  [genode_dir]/tool/depot/download $foreign_archives\n"
 	}
 
