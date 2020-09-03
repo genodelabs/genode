@@ -14,6 +14,7 @@
  */
 
 /* Genode includes */
+#include <base/attached_io_mem_dataspace.h>
 #include <base/log.h>
 #include <base/component.h>
 #include <base/heap.h>
@@ -124,7 +125,6 @@ void Framebuffer::Main::_run_linux()
 	module_dcss_crtc_driver_init();
 	module_imx_hdp_imx_platform_driver_init();
 
-
 	/**
 	 * This device is originally created with the name '32e2d000.irqsteer'
 	 * via 'of_platform_bus_create()'. Here it is called 'imx-irqsteer' to match
@@ -135,8 +135,9 @@ void Framebuffer::Main::_run_linux()
 		platform_device_alloc("imx-irqsteer", 0);
 	
 	static resource imx_irqsteer_resources[] = 	{
-		{ 0x32e2d000, 0x32e2dfff, "imx-irqsteer", IORESOURCE_MEM },
-		{         50,         50, "imx-irqsteer", IORESOURCE_IRQ },
+		{ IOMEM_BASE_IRQSTEER, IOMEM_END_IRQSTEER,
+		  "imx-irqsteer", IORESOURCE_MEM },
+		{ IRQ_IRQSTEER, IRQ_IRQSTEER, "imx-irqsteer", IORESOURCE_IRQ },
 	};
 
 	imx_irqsteer_pdev->num_resources = 2;
@@ -159,15 +160,15 @@ void Framebuffer::Main::_run_linux()
 		platform_device_alloc("dcss-core", 0);
 
 	static resource dcss_resources[] = 	{
-		{ 0x32e00000, 0x32efffff, "dcss",       IORESOURCE_MEM },
-		{          3,          3, "dpr_dc_ch0", IORESOURCE_IRQ },
-		{          4,          4, "dpr_dc_ch1", IORESOURCE_IRQ },
-		{          5,          5, "dpr_dc_ch2", IORESOURCE_IRQ },
-		{          6,          6, "ctx_ld",     IORESOURCE_IRQ },
-		{          8,          8, "ctxld_kick", IORESOURCE_IRQ },
-		{          9,          9, "dtg_prg1",   IORESOURCE_IRQ },
-		{         16,         16, "dtrc_ch1",   IORESOURCE_IRQ },
-		{         17,         17, "dtrc_ch2",   IORESOURCE_IRQ },
+		{ IOMEM_BASE_DCSS, IOMEM_END_DCSS, "dcss", IORESOURCE_MEM },
+		{        3,        3, "dpr_dc_ch0", IORESOURCE_IRQ },
+		{        4,        4, "dpr_dc_ch1", IORESOURCE_IRQ },
+		{        5,        5, "dpr_dc_ch2", IORESOURCE_IRQ },
+		{        6,        6, "ctx_ld",     IORESOURCE_IRQ },
+		{        8,        8, "ctxld_kick", IORESOURCE_IRQ },
+		{        9,        9, "dtg_prg1",   IORESOURCE_IRQ },
+		{       16,       16, "dtrc_ch1",   IORESOURCE_IRQ },
+		{       17,       17, "dtrc_ch2",   IORESOURCE_IRQ },
 	};
 
 	dcss_pdev->num_resources = 9;
@@ -193,11 +194,14 @@ void Framebuffer::Main::_run_linux()
 		platform_device_alloc("i.mx8-hdp", 0);
 
 	static resource hdp_resources[] = 	{
-		{ 0x32c00000, 0x32cfffff, "hdp_ctrl",  IORESOURCE_MEM },
-		{ 0x32e40000, 0x32e7ffff, "hdp_crs",   IORESOURCE_MEM },
-		{ 0x32e2f000, 0x32e2f00f, "hdp_reset", IORESOURCE_MEM },
-		{         48,         48, "plug_in",   IORESOURCE_IRQ },
-		{         57,         57, "plug_out",  IORESOURCE_IRQ },
+		{ IOMEM_BASE_HDMI_CTRL, IOMEM_END_HDMI_CTRL,
+		  "hdp_ctrl",  IORESOURCE_MEM },
+		{ IOMEM_BASE_HDMI_CRS, IOMEM_END_HDMI_CRS,
+		  "hdp_crs",   IORESOURCE_MEM },
+		{ IOMEM_BASE_HDMI_RST, IOMEM_END_HDMI_RST,
+		  "hdp_reset", IORESOURCE_MEM },
+		{       33,       33, "plug_in",   IORESOURCE_IRQ },
+		{       34,       34, "plug_out",  IORESOURCE_IRQ },
 	};
 
 	hdp_pdev->num_resources = 5;
@@ -211,7 +215,6 @@ void Framebuffer::Main::_run_linux()
 	hdp_pdev->dev.of_node->properties->value = (void*)"fsl,imx8mq-hdmi";
 
 	platform_device_register(hdp_pdev);
-
 
 	/**
 	 * This device is originally created with the name 'display-subsystem'

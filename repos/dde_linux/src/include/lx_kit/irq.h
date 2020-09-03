@@ -17,6 +17,7 @@
 #define _LX_KIT__IRQ_H_
 
 /* Genode includes */
+#include <base/allocator.h>
 #include <platform_device/platform_device.h>
 
 

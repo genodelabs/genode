@@ -1748,6 +1748,26 @@ enum {
 };
 
 
+/*****************************
+ ** IO resource definitions **
+ *****************************/
+
+enum {
+       IOMEM_BASE_DCSS      = 0x100000,
+       IOMEM_END_DCSS       = 0x1fffff,
+       IOMEM_BASE_IRQSTEER  = IOMEM_BASE_DCSS + 0x2d000,
+       IOMEM_END_IRQSTEER   = IOMEM_BASE_IRQSTEER + 0xfff,
+       IOMEM_BASE_HDMI_CTRL = 0x200000,
+       IOMEM_END_HDMI_CTRL  = 0x2fffff,
+       IOMEM_BASE_HDMI_CRS  = 0x300000,
+       IOMEM_END_HDMI_CRS   = 0x33ffff,
+       IOMEM_BASE_HDMI_RST  = 0x340000,
+       IOMEM_END_HDMI_RST   = 0x34000f,
+       IRQ_IRQSTEER         = 32,
+       IRQ_HDMI_IN          = 33,
+       IRQ_HDMI_OUT         = 34
+};
+
 #include <lx_emul/extern_c_end.h>
 
 #endif /* _LX_EMUL_H_ */

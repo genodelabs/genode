@@ -14,8 +14,8 @@
  */
 
 /* Genode includes */
-#include <base/attached_io_mem_dataspace.h>
-#include <irq_session/connection.h>
+#include <base/attached_dataspace.h>
+#include <platform_session/connection.h>
 
 /* local includes */
 #include <driver.h>
@@ -51,6 +51,41 @@
 
 #include <lx_kit/irq.h>
 #include <lx_kit/malloc.h>
+
+
+enum Device_id { DCSS, HDMI, UNKNOWN };
+
+namespace Lx_kit {
+	Platform::Connection    & platform_connection();
+	Platform::Device_client & platform_device(Device_id);
+}
+
+
+Platform::Connection & Lx_kit::platform_connection()
+{
+	static Platform::Connection plat { Lx_kit::env().env() };
+	return plat;
+}
+
+
+Platform::Device_client & Lx_kit::platform_device(Device_id id)
+{
+	if (id == DCSS) {
+		static Platform::Device_client dcss {
+			platform_connection().device_by_property("compatible",
+			                                         "nxp,imx8mq-dcss") };
+		return dcss;
+	}
+
+	if (id == HDMI) {
+		static Platform::Device_client hdmi {
+			platform_connection().device_by_property("compatible",
+			                                         "fsl,imx8mq-hdmi") };
+		return hdmi;
+	}
+
+	throw 1;
+}
 
 
 /********************************
@@ -252,23 +287,28 @@ struct clk *devm_clk_get(struct device *dev, const char *id)
 {
 	/* numbers from running Linux system */
 
-	static struct clk clocks[] {
-		{ "apb", 133333334 },
-		{ "axi", 800000000 },
-		{ "ipg", 133333334 },
-		{ "pix", 27000000 },
-		{ "rtrm", 400000000 },
-		{ "dtrc", 25000000 },
-	};
+	using namespace Genode;
 
-	for (unsigned i = 0; i < (sizeof(clocks) / sizeof(struct clk)); i++)
-		if (Genode::strcmp(clocks[i].name, id) == 0)
-			return &clocks[i];
+	const char * clock_name = id;
+	if (String<32>("ipg") == id) { clock_name = "apb"; }
 
-	if (DEBUG_DRIVER)
-		Genode::warning("MISSING CLOCK: ", id);
+	unsigned long rate = 0;
+	Lx_kit::platform_connection().with_xml([&] (Xml_node node) {
+		node.for_each_sub_node("device", [&] (Xml_node node) {
+			node.for_each_sub_node("clock", [&] (Xml_node node) {
+				if (node.attribute_value("name", String<64>()) != clock_name) {
+					return; }
+				rate = node.attribute_value<unsigned long>("rate", 0);
+			});
+		});
+	});
 
-	return nullptr;
+	if (!rate) return nullptr;
+
+	struct clk * clock = (struct clk*) kzalloc(sizeof(struct clk), GFP_KERNEL);
+	clock->name = id;
+	clock->rate = rate;
+	return clock;
 }
 
 
@@ -565,9 +605,7 @@ void irq_set_chained_handler_and_data(unsigned int irq,
 	irqsteer_irq_desc.irq_data.chip = irqsteer_chip;
 	irqsteer_irq_desc.handle_irq = handle;
 
-	Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
-		Genode::Irq_connection(Lx_kit::env().env(), irq);
-	Lx::Irq::irq().request_irq(irq_con->cap(), irq,
+	Lx::Irq::irq().request_irq(Lx_kit::platform_device(DCSS).irq(), irq,
 	                           irqsteer_irq_handler, nullptr, nullptr);
 }
 
@@ -586,9 +624,17 @@ int devm_request_threaded_irq(struct device *dev, unsigned int irq,
 		return -1;
 	}
 
-	Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
-		Genode::Irq_connection(Lx_kit::env().env(), irq);
-	Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev_id, thread_fn);
+	Device_id id = UNKNOWN;
+	unsigned off = 0;
+	switch (irq) {
+	case IRQ_IRQSTEER: id = DCSS; break;
+	case IRQ_HDMI_IN:  id = HDMI; break;
+	case IRQ_HDMI_OUT: id = HDMI; off = 1; break;
+	default: ;
+	};
+
+	Lx::Irq::irq().request_irq(Lx_kit::platform_device(id).irq(off),
+	                           irq, handler, dev_id, thread_fn);
 
 	return 0;
 }
@@ -703,14 +749,46 @@ int disable_irq_nosync(unsigned int irq)
 
 static void *_ioremap(phys_addr_t phys_addr, unsigned long size, int wc)
 {
-	try {
-		Genode::Attached_io_mem_dataspace *ds = new(Lx::Malloc::mem())
-			Genode::Attached_io_mem_dataspace(Lx_kit::env().env(), phys_addr, size, !!wc);
-		return ds->local_addr<void>();
-	} catch (...) {
-		panic("Failed to request I/O memory: [%lx,%lx)", phys_addr, phys_addr + size);
-		return 0;
-	}
+	using namespace Genode;
+
+	Region_map & rm = Lx_kit::env().env().rm();
+
+	if (phys_addr          >= IOMEM_BASE_DCSS &&
+		(phys_addr+size-1) <= IOMEM_END_DCSS) {
+		static Attached_dataspace ds {
+			rm, Lx_kit::platform_device(DCSS).io_mem_dataspace() };
+		addr_t off = phys_addr - IOMEM_BASE_DCSS;
+		return (void*)(((addr_t)ds.local_addr<void>()) + off);
+	};
+
+	if (phys_addr          >= IOMEM_BASE_HDMI_CTRL &&
+		(phys_addr+size-1) <= IOMEM_END_HDMI_RST) {
+		switch (phys_addr) {
+			case IOMEM_BASE_HDMI_CTRL:
+				{
+					static Attached_dataspace ds {
+						rm, Lx_kit::platform_device(HDMI).io_mem_dataspace(0) };
+					return ds.local_addr<void>();
+				}
+			case IOMEM_BASE_HDMI_CRS:
+				{
+					static Attached_dataspace ds {
+						rm, Lx_kit::platform_device(HDMI).io_mem_dataspace(1) };
+					return ds.local_addr<void>();
+				}
+			case IOMEM_BASE_HDMI_RST:
+				{
+					static Attached_dataspace ds {
+						rm, Lx_kit::platform_device(HDMI).io_mem_dataspace(2) };
+					return ds.local_addr<void>();
+				}
+			default: ;
+		};
+	};
+
+	panic("Failed to request I/O memory: [%lx,%lx)",
+	      phys_addr, phys_addr + size);
+	return nullptr;
 }
 
 void *devm_ioremap(struct device *dev, resource_size_t offset,
@@ -890,9 +968,16 @@ int devm_request_irq(struct device *dev, unsigned int irq,
 		irqsteer_dev_id[irq] = dev_id;
 		enable_irq(irq);
 	} else {
-		Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
-			Genode::Irq_connection(Lx_kit::env().env(), irq);
-		Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev_id);
+		Device_id id = UNKNOWN;
+		unsigned off = 0;
+		switch (irq) {
+			case IRQ_IRQSTEER: id = DCSS; break;
+			case IRQ_HDMI_IN:  id = HDMI; break;
+			case IRQ_HDMI_OUT: id = HDMI; off = 1; break;
+			default: ;
+		};
+		Lx::Irq::irq().request_irq(Lx_kit::platform_device(id).irq(off),
+		                           irq, handler, dev_id);
 	}
 
 	return 0;
