@@ -35,7 +35,6 @@ namespace Libc {
 	struct Current_time;
 	struct Current_real_time;
 	struct Clone_connection;
-	struct Kernel_routine_scheduler;
 	struct Watch;
 	struct Signal;
 	struct File_descriptor_allocator;
@@ -126,8 +125,7 @@ namespace Libc {
 	 */
 	void init_fork(Genode::Env &, Config_accessor const &,
 	               Genode::Allocator &heap, Heap &malloc_heap, int pid,
-	               Suspend &, Resume &, Signal &, Kernel_routine_scheduler &,
-	               Binary_name const &);
+	               Monitor &, Signal &, Binary_name const &);
 
 	struct Reset_malloc_heap : Interface
 	{

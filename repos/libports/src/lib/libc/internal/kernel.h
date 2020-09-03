@@ -34,7 +34,6 @@
 #include <internal/suspend.h>
 #include <internal/resume.h>
 #include <internal/select.h>
-#include <internal/kernel_routine.h>
 #include <internal/current_time.h>
 #include <internal/kernel_timer_accessor.h>
 #include <internal/watch.h>
@@ -108,7 +107,6 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
                             Suspend,
                             Monitor,
                             Select,
-                            Kernel_routine_scheduler,
                             Current_time,
                             Current_real_time,
                             Watch,
@@ -236,8 +234,6 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		Select_handler_base *_scheduled_select_handler = nullptr;
 
-		Kernel_routine *_kernel_routine = nullptr;
-
 		void _resume_main() { _resume_main_once = true; }
 
 		Kernel_timer_accessor _timer_accessor { _env };
@@ -356,7 +352,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				exit(1);
 			}
 
-			if (!check.suspend() && !_kernel_routine)
+			if (!check.suspend())
 				return timeout_ms;
 
 			if (timeout_ms > 0)
@@ -425,6 +421,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				/* _setjmp() returned directly -> switch to user stack and call application code */
 
 				if (_cloned) {
+					_main_monitor_job->complete();
 					_switch_to_user();
 				} else {
 					_state = USER;
@@ -437,22 +434,6 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			/* _setjmp() returned after _longjmp() - user context suspended */
 
 			while ((!_app_returned)) {
-
-				if (_kernel_routine) {
-					Kernel_routine &routine = *_kernel_routine;
-
-					/* the 'kernel_routine' may install another kernel routine */
-					_kernel_routine = nullptr;
-					routine.execute_in_kernel();
-
-					if (!_kernel_routine) {
-						_switch_to_user();
-					}
-
-					if (_kernel_routine) {
-						_env.ep().wait_and_dispatch_one_io_signal();
-					}
-				}
 
 				/*
 				 * Dispatch all pending I/O signals at once and execute
@@ -521,7 +502,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				/*
 				 * Return to the application
 				 */
-				if (!_kernel_routine && _resume_main_once && !_setjmp(_kernel_context)) {
+				if (_resume_main_once && !_setjmp(_kernel_context)) {
 					_switch_to_user();
 				}
 			}
@@ -700,14 +681,6 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		 **********************************************/
 
 		void handle_io_progress() override;
-
-		/**
-		 * Kernel_routine_scheduler interface
-		 */
-		void register_kernel_routine(Kernel_routine &kernel_routine) override
-		{
-			_kernel_routine = &kernel_routine;
-		}
 
 
 		/********************************

@@ -348,6 +348,7 @@ void Libc::Kernel::_clone_state_from_parent()
 
 	/* fetch user contex of the parent's application */
 	_clone_connection->memory_content(&_user_context, sizeof(_user_context));
+	_clone_connection->memory_content(&_main_monitor_job, sizeof(_main_monitor_job));
 	_valid_user_context = true;
 
 	_libc_env.libc_config().for_each_sub_node([&] (Xml_node node) {
@@ -466,8 +467,8 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 		init_malloc(*_malloc_heap);
 	}
 
-	init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid, *this, *this, _signal,
-	          *this, _binary_name);
+	init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid, *this, _signal,
+	          _binary_name);
 	init_execve(_env, _heap, _user_stack, *this, _binary_name,
 	            *file_descriptor_allocator());
 	init_plugin(*this);
