@@ -252,7 +252,12 @@ class Nitpicker::User_state
 			bool const hover_changed;
 			bool const focus_changed;
 		};
+
 		Handle_forget_result forget(View_owner const &);
+
+		struct Update_hover_result { bool const hover_changed; };
+
+		Update_hover_result update_hover();
 
 		void report_keystate(Xml_generator &) const;
 		void report_pointer_position(Xml_generator &) const;

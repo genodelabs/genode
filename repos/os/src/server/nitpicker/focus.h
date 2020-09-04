@@ -20,6 +20,7 @@
 namespace Nitpicker {
 	struct Focus;
 	struct Focus_updater : Interface { virtual void update_focus() = 0; };
+	struct Hover_updater : Interface { virtual void update_hover() = 0; };
 }
 
 

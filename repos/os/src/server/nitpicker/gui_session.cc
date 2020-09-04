@@ -337,6 +337,8 @@ void Gui_session::destroy_view(View_handle handle)
 			break;
 		}
 	}
+
+	_hover_updater.update_hover();
 }
 
 
@@ -386,6 +388,7 @@ void Gui_session::execute()
 		catch (View_handle_registry::Lookup_failed) {
 			warning("view lookup failed during command execution"); }
 	}
+	_hover_updater.update_hover();
 }
 
 
@@ -446,6 +449,8 @@ void Gui_session::session_control(Label suffix, Session_control control)
 		_view_stack.to_front(Label(label(), suffix).string());
 		break;
 	}
+
+	_hover_updater.update_hover();
 }
 
 

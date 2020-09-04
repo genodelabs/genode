@@ -104,6 +104,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		View_stack &_view_stack;
 
 		Focus_updater &_focus_updater;
+		Hover_updater &_hover_updater;
 
 		Signal_context_capability _mode_sigh { };
 
@@ -174,6 +175,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		            Diag            const &diag,
 		            View_stack            &view_stack,
 		            Focus_updater         &focus_updater,
+		            Hover_updater         &hover_updater,
 		            View                  &pointer_origin,
 		            View                  &builtin_background,
 		            bool                   provides_default_bg,
@@ -185,7 +187,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_session_alloc(_ram, env.rm()),
 			_framebuffer_session_component(view_stack, *this, *this),
-			_view_stack(view_stack), _focus_updater(focus_updater),
+			_view_stack(view_stack),
+			_focus_updater(focus_updater), _hover_updater(hover_updater),
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
 			_framebuffer_session_cap(_env.ep().manage(_framebuffer_session_component)),

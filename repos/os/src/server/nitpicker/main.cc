@@ -83,6 +83,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 		Reporter                     &_focus_reporter;
 		Reporter                     &_hover_reporter;
 		Focus_updater                &_focus_updater;
+		Hover_updater                &_hover_updater;
 
 	protected:
 
@@ -95,8 +96,8 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 			Gui_session *session = new (md_alloc())
 				Gui_session(_env,
 				            session_resources_from_args(args), label,
-				            session_diag_from_args(args),
-				            _view_stack, _focus_updater, _pointer_origin,
+				            session_diag_from_args(args), _view_stack,
+				            _focus_updater, _hover_updater, _pointer_origin,
 				            _builtin_background, provides_default_bg,
 				            _focus_reporter, *this);
 
@@ -104,6 +105,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 			_session_list.insert(session);
 			_global_keys.apply_config(_config.xml(), _session_list);
 			_focus_updater.update_focus();
+			_hover_updater.update_hover();
 
 			return session;
 		}
@@ -128,11 +130,8 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 
 			Genode::destroy(md_alloc(), session);
 
-			/* report hover changes */
-			if (_hover_reporter.enabled() && result.hover_changed) {
-				Reporter::Xml_generator xml(_hover_reporter, [&] () {
-					_user_state.report_hovered_view_owner(xml, false); });
-			}
+			if (result.hover_changed)
+				_hover_updater.update_hover();
 
 			/* report focus changes */
 			if (_focus_reporter.enabled() && result.focus_changed) {
@@ -158,7 +157,8 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 		         Allocator                    &md_alloc,
 		         Reporter                     &focus_reporter,
 		         Reporter                     &hover_reporter,
-		         Focus_updater                &focus_updater)
+		         Focus_updater                &focus_updater,
+		         Hover_updater                &hover_updater)
 		:
 			Root_component<Gui_session>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env), _config(config), _session_list(session_list),
@@ -167,7 +167,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
 			_focus_reporter(focus_reporter), _hover_reporter(hover_reporter),
-			_focus_updater(focus_updater)
+			_focus_updater(focus_updater),   _hover_updater(hover_updater)
 		{ }
 
 
@@ -343,7 +343,7 @@ class Nitpicker::Event_root : public Root_component<Event_session>
 };
 
 
-struct Nitpicker::Main : Focus_updater,
+struct Nitpicker::Main : Focus_updater, Hover_updater,
                          View_stack::Damage,
                          Capture_session::Handler,
                          Event_session::Handler
@@ -467,11 +467,19 @@ struct Nitpicker::Main : Focus_updater,
 	Gui_root _gui_root { _env, _config_rom, _session_list, *_domain_registry,
 	                     _global_keys, _view_stack, _user_state, _pointer_origin,
 	                     _builtin_background, _sliced_heap,
-	                     _focus_reporter, _hover_reporter, *this };
+	                     _focus_reporter, _hover_reporter, *this, *this };
 
 	Capture_root _capture_root { _env, _sliced_heap, _view_stack, *this };
 
 	Event_root _event_root { _env, _sliced_heap, *this };
+
+	void _generate_hover_report()
+	{
+		if (_hover_reporter.enabled()) {
+			Reporter::Xml_generator xml(_hover_reporter, [&] () {
+				_user_state.report_hovered_view_owner(xml, false); });
+		}
+	}
 
 	/**
 	 * View_stack::Damage interface
@@ -535,6 +543,17 @@ struct Nitpicker::Main : Focus_updater,
 	 * Called whenever a new session appears.
 	 */
 	void update_focus() override { _handle_focus(); }
+
+	/**
+	 * Hover_updater interface
+	 *
+	 * Called whenever the view composition changes.
+	 */
+	void update_hover() override
+	{
+		if (_user_state.update_hover().hover_changed)
+			_generate_hover_report();
+	}
 
 	/*
 	 * Configuration-update handler, executed in the context of the RPC
