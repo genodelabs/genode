@@ -109,6 +109,11 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 			bool read_ready() override { return true; }
 		};
 
+		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
+		typedef Registry<Registered_watch_handle> Watch_handle_registry;
+
+		Watch_handle_registry _handle_registry { };
+
 	public:
 
 		Glyphs_file_system(Font const &font)
@@ -121,6 +126,16 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 		static char const *type_name() { return "glyphs"; }
 
 		char const *type() override { return type_name(); }
+
+
+		/**
+		 * Propagate font change to watch handlers
+		 */
+		void trigger_watch_response()
+		{
+			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
+				handle.watch_response(); });
+		}
 
 
 		/*********************************
@@ -139,8 +154,8 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 					Vfs_handle(*this, *this, alloc, _font);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -148,6 +163,29 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 			Stat_result result = Single_file_system::stat(path, out);
 			out.size = FILE_SIZE;
 			return result;
+		}
+
+		Watch_result watch(char const        *path,
+		                   Vfs_watch_handle **handle,
+		                   Allocator         &alloc) override
+		{
+			if (!_single_file(path))
+				return WATCH_ERR_UNACCESSIBLE;
+
+			try {
+				*handle = new (alloc)
+					Registered_watch_handle(_handle_registry, *this, alloc);
+
+				return WATCH_OK;
+			}
+			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+		}
+
+		void close(Vfs_watch_handle *handle) override
+		{
+			destroy(handle->alloc(),
+			        static_cast<Registered_watch_handle *>(handle));
 		}
 };
 

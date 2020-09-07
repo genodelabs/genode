@@ -127,6 +127,7 @@ struct Vfs_ttf::Local_factory : File_system_factory
 	{
 		_font.construct(_env, config);
 		_update_attributes();
+		_glyphs_fs.trigger_watch_response();
 	}
 };
 
