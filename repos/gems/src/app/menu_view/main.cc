@@ -115,7 +115,8 @@ struct Menu_view::Main
 	Directory _fonts_dir  { _root_dir, "fonts" };
 	Directory _styles_dir { _root_dir, "styles" };
 
-	Style_database _styles { _env.ram(), _env.rm(), _heap, _fonts_dir, _styles_dir };
+	Style_database _styles { _env.ram(), _env.rm(), _heap, _fonts_dir, _styles_dir,
+	                         _dialog_update_handler };
 
 	Animator _animator { };
 
@@ -223,6 +224,8 @@ void Menu_view::Main::_update_hover_report()
 
 void Menu_view::Main::_handle_dialog_update()
 {
+	_styles.flush_outdated_styles();
+
 	try {
 		Xml_node const config = _config.xml();
 
@@ -274,6 +277,9 @@ void Menu_view::Main::_handle_config()
 	} catch (...) {
 		_hover_reporter.enabled(false);
 	}
+
+	_config.xml().with_sub_node("vfs", [&] (Xml_node const &vfs_node) {
+		_vfs_env.root_dir().apply_config(vfs_node); });
 
 	_handle_dialog_update();
 }

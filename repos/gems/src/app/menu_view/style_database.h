@@ -38,9 +38,23 @@ struct Menu_view::Label_style
 
 class Menu_view::Style_database
 {
+	public:
+
+		struct Changed_handler : Interface
+		{
+			virtual void handle_style_changed() = 0;
+		};
+
 	private:
 
 		enum { PATH_MAX_LEN = 200 };
+
+		/*
+		 * True whenever the style must be updated, e.g., because the font size
+		 * changed. The member is marked as 'mutable' because it must be
+		 * writeable by the 'Font_entry'.
+		 */
+		bool mutable _out_of_date = false;
 
 		typedef String<PATH_MAX_LEN> Path;
 
@@ -108,9 +122,24 @@ class Menu_view::Style_database
 		{
 			Path const path;
 
+			bool out_of_date = false;
+
+			Style_database const &_style_database;
+
 			Cached_font::Limit _font_cache_limit { 256*1024 };
 			Vfs_font           _vfs_font;
 			Cached_font        _cached_font;
+
+			Watch_handler<Font_entry> _glyphs_changed_handler;
+
+			void _handle_glyphs_changed()
+			{
+				out_of_date = true;
+				_style_database._out_of_date = true;
+
+				/* schedule dialog redraw */
+				Signal_transmitter(_style_database._style_changed_sigh).submit();
+			}
 
 			Text_painter::Font const &font() const { return _cached_font; }
 
@@ -119,11 +148,15 @@ class Menu_view::Style_database
 			 *
 			 * \throw Reading_failed
 			 */
-			Font_entry(Directory const &fonts_dir, Path const &path, Allocator &alloc)
+			Font_entry(Directory const &fonts_dir, Path const &path, Allocator &alloc,
+			           Style_database const &style_database)
 			try :
 				path(path),
+				_style_database(style_database),
 				_vfs_font(alloc, fonts_dir, path),
-				_cached_font(alloc, _vfs_font, _font_cache_limit)
+				_cached_font(alloc, _vfs_font, _font_cache_limit),
+				_glyphs_changed_handler(fonts_dir, Path(path, "/glyphs"),
+				                        *this, &Font_entry::_handle_glyphs_changed)
 			{ }
 			catch (...) { throw Reading_failed(); }
 		};
@@ -133,6 +166,8 @@ class Menu_view::Style_database
 		Allocator       &_alloc;
 		Directory const &_fonts_dir;
 		Directory const &_styles_dir;
+
+		Signal_context_capability _style_changed_sigh;
 
 		/*
 		 * The lists are mutable because they are populated as a side effect of
@@ -194,10 +229,12 @@ class Menu_view::Style_database
 	public:
 
 		Style_database(Ram_allocator &ram, Region_map &rm, Allocator &alloc,
-		               Directory const &fonts_dir, Directory const &styles_dir)
+		               Directory const &fonts_dir, Directory const &styles_dir,
+		               Signal_context_capability style_changed_sigh)
 		:
 			_ram(ram), _rm(rm), _alloc(alloc),
-			_fonts_dir(fonts_dir), _styles_dir(styles_dir)
+			_fonts_dir(fonts_dir), _styles_dir(styles_dir),
+			_style_changed_sigh(style_changed_sigh)
 		{ }
 
 		Texture<Pixel_rgb888> const *texture(Xml_node node, char const *png_name) const
@@ -236,7 +273,7 @@ class Menu_view::Style_database
 			 */
 			try {
 				Font_entry *e = new (_alloc)
-					Font_entry(_fonts_dir, path, _alloc);
+					Font_entry(_fonts_dir, path, _alloc, *this);
 
 				_fonts.insert(e);
 				return &e->font();
@@ -254,6 +291,24 @@ class Menu_view::Style_database
 		void with_label_style(Xml_node node, FN const &fn) const
 		{
 			fn(_label_style(node));
+		}
+
+		void flush_outdated_styles()
+		{
+			if (!_out_of_date)
+				return;
+
+			/* flush fonts that are marked as out of date */
+			for (Font_entry *font = _fonts.first(), *next = nullptr; font; ) {
+				next = font->next();
+
+				if (font->out_of_date) {
+					_fonts.remove(font);
+					destroy(_alloc, font);
+				}
+				font = next;
+			}
+			_out_of_date = false;
 		}
 };
 
