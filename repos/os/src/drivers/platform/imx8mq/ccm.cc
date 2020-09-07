@@ -72,17 +72,19 @@ void Driver::Ccm::Frac_pll::set_rate(unsigned long rate)
 {
 	static constexpr uint32_t fixed_frac = 1 << 24;
 
+	/* we set output div value to fixed value of 2 */
 	uint64_t r        = rate * 2;
-	uint64_t pr       = _parent().get_rate() * 8;
+	uint64_t pr       = _parent().get_rate() * 8 /
+	                    (read<Config_reg_0::Refclk_div_value>() + 1);
 	uint32_t div_int  = (uint32_t)((r / pr) & 0b1111111);
-	uint32_t div_frac = (uint32_t)((r - div_int * pr) * fixed_frac) / pr;
+	uint32_t div_frac = (uint32_t)(((r - div_int * pr) * fixed_frac) / pr);
 
 	Config_reg_1::access_t v = 0;
-	Config_reg_1::Int_div_ctl::set(v, div_int);
+	Config_reg_1::Int_div_ctl::set(v, div_int-1);
 	Config_reg_1::Frac_div_ctl::set(v, div_frac);
 	write<Config_reg_1>(v);
 
-	write<Config_reg_0::Refclk_div_value>(0);
+	//write<Config_reg_0::Refclk_div_value>(0);
 	write<Config_reg_0::Output_div_value>(0);
 	write<Config_reg_0::Newdiv_val>(1);
 
@@ -102,14 +104,18 @@ unsigned long Driver::Ccm::Frac_pll::get_rate() const
 {
 	static constexpr uint32_t fixed_frac = 1 << 24;
 
+	/**
+	 * Formula from the reference manual:
+	 *  PLLOUT   = REF / DIVR_VAL * 8 * DIVF_VAL / DIVQ_VAL
+	 *  DIVF_VAL = 1 + DIVFI + (DIVFF/2^24)
+	 */
 	uint32_t divq  = (read<Config_reg_0::Output_div_value>() + 1) * 2;
-	uint32_t divr  = read<Config_reg_0::Refclk_div_value>();
+	uint32_t divr  = read<Config_reg_0::Refclk_div_value>() + 1;
 	uint32_t divff = read<Config_reg_1::Frac_div_ctl>();
 	uint32_t divfi = read<Config_reg_1::Int_div_ctl>();
 
 	uint64_t ref = _parent().get_rate() * 8 / divr;
 
-	Genode::log("Frac_pll clock ", name(), " parent-rate ", _parent().get_rate());
 	return (ref * (divfi + 1) / divq) +
 	       (ref * divff / fixed_frac / divq);
 }
@@ -240,6 +246,11 @@ void Driver::Ccm::Root_clock::set_parent(Name name)
 {
 	for (unsigned i = 0; i < REF_CLK_MAX; i++) {
 		if (_ref_clks[i].ref.name() == name) {
+			/**
+			 * enable parent before setting it,
+			 * otherwise the system stalls
+			 */
+			_ref_clks[i].ref.enable();
 			write<Target_reg::Ref_sel>(i);
 			return;
 		}
@@ -259,10 +270,23 @@ unsigned long Driver::Ccm::Root_clock::get_rate() const
 }
 
 
-void Driver::Ccm::Root_clock::enable() { write<Target_reg::Enable>(1); }
+void Driver::Ccm::Root_clock::enable()
+{
+	/* enable the parent clock */
+	_ref_clks[read<Target_reg::Ref_sel>()].ref.enable();
+	write<Target_reg::Enable>(1);
+}
 
 
-void Driver::Ccm::Root_clock::disable() { write<Target_reg::Enable>(0); }
+void Driver::Ccm::Root_clock::disable()
+{
+	/*
+	 * the parent clock cannot be disabled implictly,
+	 * because it can be used by several root clocks,
+	 * we need reference-counting first to implement this.
+	 */
+	write<Target_reg::Enable>(0);
+}
 
 
 /**************************
@@ -285,10 +309,20 @@ unsigned long Driver::Ccm::Root_clock_divider::get_rate() const
  ** Gate immplementation **
  **************************/
 
-void Driver::Ccm::Gate::enable()  { write<Ccgr>(0x3); }
+void Driver::Ccm::Gate::enable()
+{
+	/* enable the parent clock implictly */
+	_parent.enable();
+	write<Ccgr>(0x3);
+}
 
 
-void Driver::Ccm::Gate::disable() { write<Ccgr>(0x0); }
+void Driver::Ccm::Gate::disable()
+{
+	/* disable the parent clock implictly */
+	_parent.disable();
+	write<Ccgr>(0x0);
+}
 
 
 /*******************
