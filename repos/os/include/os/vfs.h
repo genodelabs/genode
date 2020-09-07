@@ -630,7 +630,7 @@ class Genode::Watch_handler : public Vfs::Watch_response_handler,
 
 	public:
 
-		Watch_handler(Directory &dir, Directory::Path const &rel_path,
+		Watch_handler(Directory const &dir, Directory::Path const &rel_path,
 		              T &obj, void (T::*member)())
 		:
 			Watcher(dir, rel_path, *this), _obj(obj), _member(member)
