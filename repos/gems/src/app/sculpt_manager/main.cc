@@ -1355,15 +1355,7 @@ void Sculpt::Main::_handle_gui_mode()
 		});
 	}
 
-	/* font size may has changed */
-	_panel_menu_view.trigger_restart();
-	_main_menu_view.trigger_restart();
-	_file_browser_menu_view.trigger_restart();
-	_network.trigger_dialog_restart();
-	_graph_menu_view.trigger_restart();
-	_popup_menu_view.trigger_restart();
-	_settings_menu_view.trigger_restart();
-
+	/* font size may has changed, propagate fonts config of runtime view */
 	generate_runtime_config();
 }
 
