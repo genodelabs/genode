@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <blit/painter.h>
+#include <os/pixel_alpha8.h>
 
 /* local includes */
 #include "chunky_texture.h"
@@ -80,6 +81,20 @@ class Nitpicker::Resizeable_texture
 				Texture<PT> const &texture = *_textures[_current];
 
 				Blit_painter::paint(surface, texture, Point(0, 0));
+
+				/* copy alpha channel */
+				if (_textures[_current]->alpha() && _textures[next]->alpha()) {
+
+					typedef Pixel_alpha8 AT;
+
+					Surface<AT> surface((AT *)_textures[next]->alpha(),
+					                    _textures[next]->Texture_base::size());
+
+					Texture<AT> const texture((AT *)_textures[_current]->alpha(), nullptr,
+					                          _textures[_current]->Texture_base::size());
+
+					Blit_painter::paint(surface, texture, Point(0, 0));
+				}
 			}
 
 			_textures[_current].destruct();
