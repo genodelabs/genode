@@ -10,3 +10,4 @@ set ruler
 set ts=2
 set wildmode=list:longest
 set completeopt=menu,longest
+set nowritebackup
