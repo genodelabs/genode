@@ -30,6 +30,7 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <sys/disk.h>
+#include <sys/soundcard.h>
 #include <dlfcn.h>
 
 /* libc plugin interface */
@@ -1169,6 +1170,204 @@ Libc::Vfs_plugin::_ioctl_dio(File_descriptor *fd, unsigned long request, char *a
 }
 
 
+Libc::Vfs_plugin::Ioctl_result
+Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char *argp)
+{
+	if (!argp)
+		return { true, EINVAL };
+
+	bool handled = false;
+	/*
+	 * Initialize to "success" and any ioctl is required to set
+	 * in case of error.
+	 *
+	 * This method will either return handled equals true if the I/O control
+	 * was handled successfully or failed and the result is not successfull
+	 * (see the end of this method).
+	 * 
+	 */
+	int result = 0;
+
+	if (request == SNDCTL_DSP_CHANNELS) {
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() != "oss") {
+					return;
+				}
+
+				unsigned int const avail_chans =
+					info.attribute_value("channels", 0U);
+				if (avail_chans == 0U) {
+					result = EINVAL;
+					return;
+				}
+
+				int const num_chans = *(int const*)argp;
+				if (num_chans < 0) {
+					result = EINVAL;
+					return;
+				}
+
+				if ((unsigned)num_chans != avail_chans) {
+					result = ENOTSUP;
+					return;
+				}
+
+				*(int*)argp = avail_chans;
+
+				handled = true;
+			});
+
+			return Fn::COMPLETE;
+		});
+
+	} else if (request == SNDCTL_DSP_GETOSPACE) {
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() != "oss") {
+					return;
+				}
+
+				unsigned int const frag_size =
+					info.attribute_value("frag_size", 0U);
+				unsigned int const frag_avail =
+					info.attribute_value("frag_avail", 0U);
+				if (!frag_avail || !frag_size) {
+					result = ENOTSUP;
+					return;
+				}
+
+				int const fragsize  = (int)frag_size;
+				int const fragments = (int)frag_avail;
+				if (fragments < 0 || fragsize < 0) {
+					result = EINVAL;
+					return;
+				}
+
+				struct audio_buf_info *buf_info =
+					(struct audio_buf_info*)argp;
+
+				buf_info->fragments = fragments;
+				buf_info->fragsize  = fragsize;
+				buf_info->bytes     = fragments * fragsize;
+
+				handled = true;
+			});
+
+			return Fn::COMPLETE;
+		});
+
+	} else if (request == SNDCTL_DSP_POST) {
+
+		handled = true;
+
+	} else if (request == SNDCTL_DSP_RESET) {
+
+		handled = true;
+
+	} else if (request == SNDCTL_DSP_SAMPLESIZE) {
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() != "oss") {
+					return;
+				}
+
+				unsigned int const format =
+					info.attribute_value("format", ~0U);
+				if (format == ~0U) {
+					result = EINVAL;
+					return;
+				}
+
+				int const requested_fmt = *(int const*)argp;
+
+				if (requested_fmt != (int)format) {
+					result = ENOTSUP;
+					return;
+				}
+
+				handled = true;
+			});
+
+			return Fn::COMPLETE;
+		});
+
+	} else if (request == SNDCTL_DSP_SETFRAGMENT) {
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() != "oss") {
+					return;
+				}
+
+				unsigned int const frag_size =
+					info.attribute_value("frag_size", 0U);
+				unsigned int const frag_size_log2 =
+					frag_size ? Genode::log2(frag_size) : 0;
+
+				unsigned int const queue_size =
+					info.attribute_value("queue_size", 0U);
+
+				if (!queue_size || !frag_size_log2) {
+					result = ENOTSUP;
+					return;
+				}
+
+				/* ignore the given hint */
+
+				handled = true;
+			});
+
+			return Fn::COMPLETE;
+		});
+
+	} else if (request == SNDCTL_DSP_SPEED) {
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() != "oss") {
+					return;
+				}
+
+				unsigned int const samplerate =
+					info.attribute_value("sample_rate", 0U);
+				if (samplerate == 0U) {
+					result = EINVAL;
+					return;
+				}
+
+				int const speed = *(int const*)argp;
+				if (speed < 0) {
+					result = EINVAL;
+					return;
+				}
+
+				if ((unsigned)speed != samplerate) {
+					result = ENOTSUP;
+					return;
+				}
+
+				*(int*)argp = samplerate;
+
+				handled = true;
+			});
+
+			return Fn::COMPLETE;
+		});
+
+	}
+
+	/*
+	 * Either handled or a failed attempt will mark the I/O control
+	 * as handled.
+	 */
+	return { handled || result != 0, result };
+}
+
+
 int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *argp)
 {
 	Ioctl_result result { false, 0 };
@@ -1183,6 +1382,15 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 		break;
 	case DIOCGMEDIASIZE:
 		result = _ioctl_dio(fd, request, argp);
+		break;
+	case SNDCTL_DSP_CHANNELS:
+	case SNDCTL_DSP_GETOSPACE:
+	case SNDCTL_DSP_POST:
+	case SNDCTL_DSP_RESET:
+	case SNDCTL_DSP_SAMPLESIZE:
+	case SNDCTL_DSP_SETFRAGMENT:
+	case SNDCTL_DSP_SPEED:
+		result = _ioctl_sndctl(fd, request, argp);
 		break;
 	default:
 		break;
