@@ -170,8 +170,11 @@ class Vfs::Rom_file_system : public Single_file_system
 			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
-		Dataspace_capability dataspace(char const *) override
+		Dataspace_capability dataspace(char const *path) override
 		{
+			if (!_single_file(path))
+				return Genode::Dataspace_capability();
+
 			return _rom.cap();
 		}
 
