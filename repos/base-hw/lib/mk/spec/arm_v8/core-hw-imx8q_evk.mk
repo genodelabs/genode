@@ -16,4 +16,4 @@ SRC_S += spec/arm_v8/virtualization/exception_vector.s
 NR_OF_CPUS = 4
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/spec/arm_v8/core-hw.inc
+include $(call select_from_repositories,lib/mk/spec/arm_v8/core-hw.inc)
