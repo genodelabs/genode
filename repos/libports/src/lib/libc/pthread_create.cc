@@ -141,9 +141,15 @@ extern "C"
 		if (_verbose)
 			Genode::log("create ", pthread_name, " -> cpu ", cpu);
 
-		return Libc::pthread_create(thread, start_routine, arg, stack_size,
-		                            pthread_name.string(), _cpu_session,
-		                            location);
+		int result = Libc::pthread_create(thread, start_routine, arg, stack_size,
+		                                  pthread_name.string(), _cpu_session,
+		                                  location);
+
+		if ((result == 0) && attr && *attr &&
+		    ((*attr)->detach_state == PTHREAD_CREATE_DETACHED))
+			pthread_detach(*thread);
+
+		return result;
 	}
 
 	typeof(pthread_create) _pthread_create

@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/sleep.h>
 #include <base/thread.h>
 #include <util/list.h>
 #include <libc/allocator.h>
@@ -93,6 +92,13 @@ void Libc::Pthread::join(void **retval)
 }
 
 
+int Libc::Pthread::detach()
+{
+	_detach_blockade.wakeup();
+	return 0;
+}
+
+
 void Libc::Pthread::cancel()
 {
 	Genode::Mutex::Guard guard(_mutex);
@@ -144,6 +150,20 @@ bool Libc::Pthread_registry::contains(Pthread &thread)
 			return true;
 
 	return false;
+}
+
+
+void Libc::Pthread_registry::cleanup(Pthread *new_cleanup_thread)
+{
+	static Mutex cleanup_mutex;
+	Mutex::Guard guard(cleanup_mutex);
+
+	if (_cleanup_thread) {
+		Libc::Allocator alloc { };
+		destroy(alloc, _cleanup_thread);
+	}
+
+	_cleanup_thread = new_cleanup_thread;
 }
 
 
@@ -558,7 +578,6 @@ extern "C" {
 	void pthread_exit(void *value_ptr)
 	{
 		pthread_self()->exit(value_ptr);
-		sleep_forever();
 	}
 
 	typeof(pthread_exit) _pthread_exit
@@ -612,6 +631,34 @@ extern "C" {
 
 	__attribute__((alias("thr_self")))
 	pthread_t __sys_thr_self(void);
+
+
+	int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
+	{
+		if (!attr || !*attr || !detachstate)
+			return EINVAL;
+
+		*detachstate = (*attr)->detach_state;
+
+		return 0;
+	}
+
+	typeof(pthread_attr_getdetachstate) _pthread_attr_getdetachstate
+		__attribute__((alias("pthread_attr_getdetachstate")));
+
+
+	int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
+	{
+		if (!attr || !*attr)
+			return EINVAL;
+
+		(*attr)->detach_state = detachstate;
+
+		return 0;
+	}
+
+	typeof(pthread_attr_setdetachstate) _pthread_attr_setdetachstate
+		__attribute__((alias("pthread_attr_setdetachstate")));
 
 
 	int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
@@ -690,6 +737,15 @@ extern "C" {
 
 	typeof(pthread_equal) _pthread_equal
 		__attribute__((alias("pthread_equal")));
+
+
+	int pthread_detach(pthread_t thread)
+	{
+		return thread->detach();
+	}
+
+	typeof(pthread_detach) _pthread_detach
+		__attribute__((alias("pthread_detach")));
 
 
 	void __pthread_cleanup_push_imp(void (*routine)(void*), void *arg,

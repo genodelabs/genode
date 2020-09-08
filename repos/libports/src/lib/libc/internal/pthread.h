@@ -18,6 +18,7 @@
 
 /* Genode includes */
 #include <base/blockade.h>
+#include <base/sleep.h>
 #include <libc/allocator.h>
 #include <libc/component.h>
 #include <util/reconstructible.h>
@@ -51,6 +52,9 @@ class Libc::Pthread_registry
 
 		Pthread *_array[MAX_NUM_PTHREADS] = { 0 };
 
+		/* thread to be destroyed on next 'cleanup()' call */
+		Pthread *_cleanup_thread { nullptr };
+
 	public:
 
 		void insert(Pthread &thread);
@@ -58,6 +62,9 @@ class Libc::Pthread_registry
 		void remove(Pthread &thread);
 
 		bool contains(Pthread &thread);
+
+		/* destroy '_cleanup_thread' and register another one if given */
+		void cleanup(Pthread *new_cleanup_thread = nullptr);
 };
 
 
@@ -68,8 +75,9 @@ extern "C" {
 
 	struct pthread_attr
 	{
-		void   *stack_addr { nullptr };
-		size_t  stack_size { Libc::Component::stack_size() };
+		void   *stack_addr   { nullptr };
+		size_t  stack_size   { Libc::Component::stack_size() };
+		int     detach_state { PTHREAD_CREATE_JOINABLE };
 	};
 
 	/*
@@ -160,6 +168,7 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 		void _associate_thread_with_pthread()
 		{
 			Thread::Tls::Base::tls(_thread, *this);
+			pthread_registry().cleanup();
 			pthread_registry().insert(*this);
 		}
 
@@ -173,6 +182,8 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 		 * that needs to be released before the thread can be destroyed.
 		 */
 		Genode::Mutex _mutex { };
+
+		Genode::Blockade _detach_blockade;
 
 		/* return value for 'pthread_join()' */
 		void *_retval = PTHREAD_CANCELED;
@@ -243,17 +254,29 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 
 		void join(void **retval);
 
+		int detach();
+
 		/*
 		 * Inform the thread calling 'pthread_join()' that this thread can be
 		 * destroyed.
 		 */
 		void cancel();
 
-		void exit(void *retval)
+		void exit(void *retval) __attribute__((noreturn))
 		{
 			while (cleanup_pop(1)) { }
 			_retval = retval;
 			cancel();
+
+			/*
+			 * Block until the thread is destroyed by 'pthread_join()' or
+			 * register the thread for destruction if it is in detached state.
+			 */
+
+			_detach_blockade.block();
+
+			pthread_registry().cleanup(this);
+			sleep_forever();
 		}
 
 		void   *stack_addr() const { return _stack_addr; }
