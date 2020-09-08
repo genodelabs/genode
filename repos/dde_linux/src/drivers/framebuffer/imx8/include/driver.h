@@ -71,7 +71,7 @@ class Framebuffer::Driver
 		 * Capture
 		 */
 
-		Capture::Connection _capture { _env };
+		Constructible<Capture::Connection> _capture { };
 
 		Constructible<Capture::Connection::Screen> _captured_screen { };
 
@@ -147,7 +147,14 @@ class Framebuffer::Driver
 
 			Area const size { _lx_config._lx.width, _lx_config._lx.height };
 
-			_captured_screen.construct(_capture, _env.rm(), size);
+
+			if (_captured_screen.constructed()) {
+				_capture.destruct();
+				_captured_screen.destruct();
+			}
+
+			_capture.construct(_env);
+			_captured_screen.construct(*_capture, _env.rm(), size);
 
 			_capture_timer.trigger_periodic(10*1000);
 		}
