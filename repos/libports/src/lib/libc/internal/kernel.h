@@ -547,13 +547,13 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		/**
 		 * Monitor interface
 		 */
-		Monitor::Result _monitor(Mutex &mutex, Function &fn, uint64_t timeout_ms) override
+		Monitor::Result _monitor(Function &fn, uint64_t timeout_ms) override
 		{
 			if (_main_context()) {
 
 				_main_monitor_job.construct(fn, timeout_ms);
 
-				_monitors.monitor(mutex, *_main_monitor_job);
+				_monitors.monitor(*_main_monitor_job);
 
 				Monitor::Result const job_result = _main_monitor_job->completed()
 				                                 ? Monitor::Result::COMPLETE
@@ -565,7 +565,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			} else {
 				Pthread_job job { fn, _timer_accessor, timeout_ms };
 
-				_monitors.monitor(mutex, job);
+				_monitors.monitor(job);
 				return job.completed() ? Monitor::Result::COMPLETE
 				                       : Monitor::Result::TIMEOUT;
 			}

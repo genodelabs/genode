@@ -368,10 +368,7 @@ struct Libc::Local_clone_service : Noncopyable
 
 		void destroy(Session &) override
 		{
-			Mutex mutex { };
-			mutex.acquire();
-
-			monitor().monitor(mutex, [&] {
+			monitor().monitor([&] {
 				_child_ready.child_ready();
 				return Fn::COMPLETE;
 			});
@@ -610,15 +607,12 @@ extern "C" pid_t __sys_fork(void)
 	_user_stack_base_ptr = (void *)mystack.base;
 	_user_stack_size     = mystack.top - mystack.base;
 
-	Mutex mutex { };
-	mutex.acquire();
-
 	enum class Stage { FORK, WAIT_FORK_READY };
 	
 	Stage         stage { Stage::FORK };
 	Forked_child *child { nullptr };
 
-	monitor().monitor(mutex, [&] {
+	monitor().monitor([&] {
 		switch (stage) {
 		case Stage::FORK:
 			child = fork_kernel_routine();
@@ -704,10 +698,7 @@ extern "C" pid_t __sys_wait4(pid_t pid, int *status, int options, rusage *rusage
 
 	Wait4_functor functor { pid, *_forked_children_ptr };
 
-	Mutex mutex { };
-	mutex.acquire();
-
-	monitor().monitor(mutex, [&] {
+	monitor().monitor([&] {
 		functor.with_exited_child([&] (Registered<Forked_child> &child) {
 			result    = child.pid();
 			exit_code = child.exit_code();

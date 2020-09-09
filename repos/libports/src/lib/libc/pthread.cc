@@ -80,9 +80,9 @@ void Libc::Pthread::Thread_object::entry()
 
 void Libc::Pthread::join(void **retval)
 {
-	Genode::Mutex::Guard guard(_mutex);
+	monitor().monitor([&] {
+		Genode::Mutex::Guard guard(_mutex);
 
-	monitor().monitor(_mutex, [&] {
 		if (!_exiting)
 			return Fn::INCOMPLETE;
 

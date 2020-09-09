@@ -74,12 +74,6 @@ static Genode::Region_map &region_map()
 }
 
 
-static Genode::Mutex &vfs_mutex()
-{
-	static Genode::Mutex mutex;
-	return mutex;
-}
-
 namespace { using Fn = Libc::Monitor::Function_result; }
 
 
@@ -248,10 +242,8 @@ void Libc::Vfs_plugin::_with_info(File_descriptor &fd, FN const &fn)
 
 int Libc::Vfs_plugin::access(const char *path, int amode)
 {
-	Mutex::Guard guard(vfs_mutex());
-
 	bool succeeded = false;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		if (_root_fs.leaf_path(path))
 			succeeded = true;
 		return Fn::COMPLETE;
@@ -383,9 +375,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags)
 	File_descriptor *fd = nullptr;
 	int result_errno = 0;
 	{
-		Mutex::Guard guard(vfs_mutex());
-
-		monitor().monitor(vfs_mutex(), [&] {
+		monitor().monitor([&] {
 
 			/* handle open for directories */
 			if (_root_fs.directory(path)) {
@@ -596,9 +586,8 @@ int Libc::Vfs_plugin::close(File_descriptor *fd)
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
 	Sync sync { *handle , _update_mtime, _current_real_time };
-	Mutex::Guard guard(vfs_mutex());
 
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		if ((fd->modified) || (fd->flags & O_CREAT))
 			if (!sync.complete())
 				return Fn::INCOMPLETE;
@@ -620,10 +609,8 @@ int Libc::Vfs_plugin::dup2(File_descriptor *fd,
 
 	typedef Vfs::Directory_service::Open_result Result;
 
-	Mutex::Guard guard(vfs_mutex());
-
 	int result = -1;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		if (_root_fs.open(fd->fd_path, fd->flags, &handle, _alloc) != Result::OPEN_OK) {
 
 			warning("dup2 failed for path ", fd->fd_path);
@@ -651,11 +638,9 @@ Libc::File_descriptor *Libc::Vfs_plugin::dup(File_descriptor *fd)
 
 	typedef Vfs::Directory_service::Open_result Result;
 
-	Mutex::Guard guard(vfs_mutex());
-
 	Libc::File_descriptor *result = nullptr;
 	int result_errno = 0;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		if (_root_fs.open(fd->fd_path, fd->flags, &handle, _alloc) != Result::OPEN_OK) {
 
 			warning("dup failed for path ", fd->fd_path);
@@ -689,9 +674,8 @@ int Libc::Vfs_plugin::fstat(File_descriptor *fd, struct stat *buf)
 
 	if (fd->modified) {
 		Sync sync { *handle , _update_mtime, _current_real_time };
-		Mutex::Guard guard(vfs_mutex());
 
-		monitor().monitor(vfs_mutex(), [&] {
+		monitor().monitor([&] {
 			if (!sync.complete()) {
 				return Fn::INCOMPLETE;
 			}
@@ -733,11 +717,9 @@ int Libc::Vfs_plugin::mkdir(const char *path, mode_t mode)
 
 	typedef Vfs::Directory_service::Opendir_result Opendir_result;
 
-	Mutex::Guard guard(vfs_mutex());
-
 	int result = -1;
 	int result_errno = 0;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		switch (_root_fs.opendir(path, true, &dir_handle, _alloc)) {
 		case Opendir_result::OPENDIR_ERR_LOOKUP_FAILED:       result_errno = ENOENT;       break;
 		case Opendir_result::OPENDIR_ERR_NAME_TOO_LONG:       result_errno = ENAMETOOLONG; break;
@@ -793,11 +775,9 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 
 	Vfs::Directory_service::Stat stat;
 
-	Mutex::Guard guard(vfs_mutex());
-
 	int result = -1;
 	int result_errno = 0;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		switch (_root_fs.stat(path, stat)) {
 		case Result::STAT_ERR_NO_ENTRY: result_errno = ENOENT; break;
 		case Result::STAT_ERR_NO_PERM:  result_errno = EACCES; break;
@@ -831,10 +811,8 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 	Vfs::file_size out_count  = 0;
 	Result         out_result = Result::WRITE_OK;
 
-	Mutex::Guard guard(vfs_mutex());
-
 	if (fd->flags & O_NONBLOCK) {
-		monitor().monitor(vfs_mutex(), [&] {
+		monitor().monitor([&] {
 			try {
 				out_result = handle->fs().write(handle, (char const *)buf, count, out_count);
 			} catch (Vfs::File_io_service::Insufficient_buffer) { }
@@ -870,7 +848,7 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 			return stat.type == Vfs::Node_type::CONTINUOUS_FILE;
 		};
 
-		monitor().monitor(vfs_mutex(), [&]
+		monitor().monitor([&]
 		{
 			for (;;) {
 
@@ -961,12 +939,10 @@ ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
 	if (fd->flags & O_DIRECTORY)
 		return Errno(EISDIR);
 
-	Mutex::Guard guard(vfs_mutex());
-
 	/* TODO refactor multiple monitor() calls to state machine in one call */
 	bool succeeded = false;
 	int result_errno = 0;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		if (fd->flags & O_NONBLOCK && !read_ready_from_kernel(fd)) {
 			result_errno = EAGAIN;
 			return Fn::COMPLETE;
@@ -981,7 +957,7 @@ ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
 	Vfs::file_size out_count = 0;
 	Result         out_result;
 
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		out_result = handle->fs().complete_read(handle, (char *)buf, count, out_count);
 		return out_result != Result::READ_QUEUED ? Fn::COMPLETE : Fn::INCOMPLETE;
 	});
@@ -1022,16 +998,15 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 	Dirent dirent_out;
 
 	/* TODO refactor multiple monitor() calls to state machine in one call */
-	Mutex::Guard guard(vfs_mutex());
 
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		return handle->fs().queue_read(handle, sizeof(Dirent)) ? Fn::COMPLETE : Fn::INCOMPLETE;
 	});
 
 	Result         out_result;
 	Vfs::file_size out_count;
 
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		out_result = handle->fs().complete_read(handle, (char *)&dirent_out, sizeof(Dirent), out_count);
 		return out_result != Result::READ_QUEUED ? Fn::COMPLETE : Fn::INCOMPLETE;
 	});
@@ -1095,9 +1070,7 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, int request, char *argp)
 		if (!argp)
 			return Errno(EINVAL);
 
-		Mutex::Guard guard(vfs_mutex());
-
-		monitor().monitor(vfs_mutex(), [&] {
+		monitor().monitor([&] {
 			_with_info(*fd, [&] (Xml_node info) {
 				if (info.type() == "terminal") {
 					::winsize *winsize = (::winsize *)argp;
@@ -1231,11 +1204,9 @@ int Libc::Vfs_plugin::_legacy_ioctl(File_descriptor *fd, int request, char *argp
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	Mutex::Guard guard(vfs_mutex());
-
 	bool succeeded = false;
 	int result_errno = 0;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		switch (handle->fs().ioctl(handle, opcode, arg, out)) {
 		case Result::IOCTL_ERR_INVALID: result_errno = EINVAL; break;
 		case Result::IOCTL_ERR_NOTTY:   result_errno = ENOTTY; break;
@@ -1318,11 +1289,10 @@ int Libc::Vfs_plugin::ftruncate(File_descriptor *fd, ::off_t length)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 	Sync sync { *handle, _update_mtime, _current_real_time };
-	Mutex::Guard guard(vfs_mutex());
 
 	bool succeeded = false;
 	int result_errno = 0;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		if (fd->modified) {
 			if (!sync.complete()) {
 				return Fn::INCOMPLETE;
@@ -1396,9 +1366,7 @@ int Libc::Vfs_plugin::fsync(File_descriptor *fd)
 
 	Sync sync { *handle, _update_mtime, _current_real_time };
 
-	Mutex::Guard guard(vfs_mutex());
-
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		if (!sync.complete()) {
 			return Fn::INCOMPLETE;
 		}
@@ -1411,8 +1379,6 @@ int Libc::Vfs_plugin::fsync(File_descriptor *fd)
 
 int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 {
-	Mutex::Guard guard(vfs_mutex());
-
 	enum class Stage { OPEN, WRITE, SYNC };
 
 	Stage                stage     { Stage::OPEN };
@@ -1424,7 +1390,7 @@ int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 
 	bool succeeded { false };
 	int result_errno { 0 };
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 
 		switch (stage) {
 		case Stage::OPEN:
@@ -1490,8 +1456,6 @@ int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 
 ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t buf_size)
 {
-	Mutex::Guard guard(vfs_mutex());
-
 	enum class Stage { OPEN, QUEUE_READ, COMPLETE_READ };
 
 	Stage            stage   { Stage::OPEN };
@@ -1500,7 +1464,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t bu
 
 	bool succeeded { false };
 	int result_errno { 0 };
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 
 		switch (stage) {
 		case Stage::OPEN:
@@ -1576,11 +1540,9 @@ int Libc::Vfs_plugin::unlink(char const *path)
 {
 	typedef Vfs::Directory_service::Unlink_result Result;
 
-	Mutex::Guard guard(vfs_mutex());
-
 	bool succeeded = false;
 	int result_errno = 0;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		switch (_root_fs.unlink(path)) {
 		case Result::UNLINK_ERR_NO_ENTRY:  result_errno = ENOENT;    break;
 		case Result::UNLINK_ERR_NO_PERM:   result_errno = EPERM;     break;
@@ -1600,11 +1562,9 @@ int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 {
 	typedef Vfs::Directory_service::Rename_result Result;
 
-	Mutex::Guard guard(vfs_mutex());
-
 	bool succeeded = false;
 	int result_errno = false;
-	monitor().monitor(vfs_mutex(), [&] {
+	monitor().monitor([&] {
 		if (_root_fs.leaf_path(to_path)) {
 			if (_root_fs.directory(to_path)) {
 				if (!_root_fs.directory(from_path)) {
@@ -1691,8 +1651,7 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 		Genode::Dataspace_capability ds_cap;
 
-		Mutex::Guard guard(vfs_mutex());
-		monitor().monitor(vfs_mutex(), [&] {
+		monitor().monitor([&] {
 			ds_cap = _root_fs.dataspace(fd->fd_path);
 			return Fn::COMPLETE;
 		});
@@ -1822,8 +1781,6 @@ int Libc::Vfs_plugin::select(int nfds,
 	FD_ZERO(writefds);
 	FD_ZERO(exceptfds);
 
-	Mutex::Guard guard(vfs_mutex());
-
 	auto fn = [&] {
 		for (int fd = 0; fd < nfds; ++fd) {
 
@@ -1861,7 +1818,7 @@ int Libc::Vfs_plugin::select(int nfds,
 	if (Libc::Kernel::kernel().main_context() && Libc::Kernel::kernel().main_suspended()) {
 		fn();
 	} else {
-		monitor().monitor(vfs_mutex(), fn);
+		monitor().monitor(fn);
 	}
 
 	return nready;

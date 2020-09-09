@@ -37,12 +37,7 @@ static void millisleep(Genode::uint64_t timeout_ms)
 	if (!_monitor_ptr)
 		throw Missing_call_of_init_sleep();
 
-	static Mutex mutex;
-
-	Mutex::Guard guard(mutex);
-
-	_monitor_ptr->monitor(mutex,
-	                      [&] { return Libc::Monitor::Function_result::INCOMPLETE; },
+	_monitor_ptr->monitor([&] { return Libc::Monitor::Function_result::INCOMPLETE; },
 	                      timeout_ms);
 }
 

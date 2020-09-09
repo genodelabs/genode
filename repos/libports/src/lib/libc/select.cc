@@ -304,11 +304,8 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		return Monitor::Function_result::INCOMPLETE;
 	};
 
-	Mutex mutex { };
-	Mutex::Guard guard(mutex);
-
 	Monitor::Result const monitor_result =
-		_monitor_ptr->monitor(mutex, monitor_fn, timeout_ms);
+		_monitor_ptr->monitor(monitor_fn, timeout_ms);
 
 	select_cb_list().remove(&(*select_cb));
 
