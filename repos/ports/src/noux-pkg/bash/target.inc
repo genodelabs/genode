@@ -1,4 +1,12 @@
 CONFIGURE_ARGS = --without-bash-malloc
+
+#
+# Avoid aliasing with the libc 'getenv' to prevent the dynamic linker from
+# resolving libc-internal references to the bash binary, which causes
+# trouble for fork/execve.
+#
+CONFIGURE_ARGS += bash_cv_getenv_redef=no
+
 CFLAGS += -Dsh_xfree=free
 
 #
