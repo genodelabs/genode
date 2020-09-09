@@ -418,6 +418,7 @@ void Alarm_timeout_scheduler::_alarm_discard(Alarm *alarm)
 
 		/* get anyone using this out of '_alarm_get_pending_alarm'() finally */
 		Mutex::Guard alarm_guard(alarm->_dispatch_mutex);
+		alarm->_delete = false;
 	}
 }
 
