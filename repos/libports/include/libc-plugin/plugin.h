@@ -110,7 +110,7 @@ namespace Libc {
 			virtual int getsockopt(File_descriptor *, int level,
 			                       int optname, void *optval,
 			                       socklen_t *optlen);
-			virtual int ioctl(File_descriptor *, int request, char *argp);
+			virtual int ioctl(File_descriptor *, unsigned long request, char *argp);
 			virtual int listen(File_descriptor *, int backlog);
 			virtual ::off_t lseek(File_descriptor *, ::off_t offset, int whence);
 			virtual int mkdir(const char *pathname, mode_t mode);

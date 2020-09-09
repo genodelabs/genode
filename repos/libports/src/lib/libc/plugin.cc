@@ -184,7 +184,7 @@ DUMMY(ssize_t, -1, getdirentries, (File_descriptor *, char *, ::size_t, ::off_t 
 DUMMY(int,     -1, getpeername,   (File_descriptor *, struct sockaddr *, socklen_t *));
 DUMMY(int,     -1, getsockname,   (File_descriptor *, struct sockaddr *, socklen_t *));
 DUMMY(int,     -1, getsockopt,    (File_descriptor *, int, int, void *, socklen_t *));
-DUMMY(int,     -1, ioctl,         (File_descriptor *, int, char*));
+DUMMY(int,     -1, ioctl,         (File_descriptor *, unsigned long, char*));
 DUMMY(int,     -1, listen,        (File_descriptor *, int));
 DUMMY(::off_t, -1, lseek,         (File_descriptor *, ::off_t, int));
 DUMMY(ssize_t, -1, read,          (File_descriptor *, void *, ::size_t));

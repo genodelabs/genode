@@ -375,7 +375,7 @@ __SYS_(ssize_t, getdirentries, (int libc_fd, char *buf, ::size_t nbytes, ::off_t
 	FD_FUNC_WRAPPER(getdirentries, libc_fd, buf, nbytes, basep); })
 
 
-__SYS_(int, ioctl, (int libc_fd, int request, char *argp), {
+__SYS_(int, ioctl, (int libc_fd, unsigned long request, char *argp), {
 	FD_FUNC_WRAPPER(ioctl, libc_fd, request, argp); })
 
 

@@ -1061,7 +1061,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 }
 
 
-int Libc::Vfs_plugin::ioctl(File_descriptor *fd, int request, char *argp)
+int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *argp)
 {
 	bool handled = false;
 
@@ -1114,7 +1114,7 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, int request, char *argp)
  * XXX Remove this method once all ioctl operations are supported via
  *     regular VFS file accesses.
  */
-int Libc::Vfs_plugin::_legacy_ioctl(File_descriptor *fd, int request, char *argp)
+int Libc::Vfs_plugin::_legacy_ioctl(File_descriptor *fd, unsigned long request, char *argp)
 {
 	using ::off_t;
 

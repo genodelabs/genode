@@ -315,7 +315,7 @@ struct Libc::Socket_fs::Plugin : Libc::Plugin
 	int close(File_descriptor *) override;
 	bool poll(File_descriptor &fd, struct pollfd &pfd) override;
 	int select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
-	int ioctl(File_descriptor *, int, char *) override;
+	int ioctl(File_descriptor *, unsigned long, char *) override;
 };
 
 
@@ -1275,7 +1275,7 @@ int Socket_fs::Plugin::close(File_descriptor *fd)
 }
 
 
-int Socket_fs::Plugin::ioctl(File_descriptor *, int request, char*)
+int Socket_fs::Plugin::ioctl(File_descriptor *, unsigned long request, char*)
 {
 	if (request == FIONREAD) {
 		/*
