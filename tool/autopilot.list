@@ -59,6 +59,7 @@ sub_rm
 tar_rom
 thread
 timeout
+timeout_smp
 timer_accuracy
 tz_vmm
 usb_hid
