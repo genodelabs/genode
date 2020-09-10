@@ -609,6 +609,7 @@ struct Sculpt::Main : Input_event_handler,
 	void cancel_format(Storage_target const &target) override
 	{
 		_storage.cancel_format(target);
+		_graph.reset_storage_operation();
 	}
 
 	void expand(Storage_target const &target) override
@@ -619,6 +620,7 @@ struct Sculpt::Main : Input_event_handler,
 	void cancel_expand(Storage_target const &target) override
 	{
 		_storage.cancel_expand(target);
+		_graph.reset_storage_operation();
 	}
 
 	void check(Storage_target const &target) override
@@ -1443,7 +1445,7 @@ void Sculpt::Main::_handle_runtime_state()
 					partition.check_in_progress = 0;
 					reconfigure_runtime = true;
 					_storage.dialog.reset_operation();
-					_graph.reset_operation();
+					_graph.reset_storage_operation();
 				}
 			}
 
@@ -1463,7 +1465,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 					reconfigure_runtime = true;
 					_storage.dialog.reset_operation();
-					_graph.reset_operation();
+					_graph.reset_storage_operation();
 				}
 			}
 
@@ -1475,7 +1477,7 @@ void Sculpt::Main::_handle_runtime_state()
 					reconfigure_runtime = true;
 					device.rediscover();
 					_storage.dialog.reset_operation();
-					_graph.reset_operation();
+					_graph.reset_storage_operation();
 				}
 			}
 
@@ -1498,7 +1500,7 @@ void Sculpt::Main::_handle_runtime_state()
 				device.rediscover();
 				reconfigure_runtime = true;
 				_storage.dialog.reset_operation();
-				_graph.reset_operation();
+				_graph.reset_storage_operation();
 			}
 		}
 
@@ -1517,7 +1519,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 				reconfigure_runtime = true;
 				_storage.dialog.reset_operation();
-				_graph.reset_operation();
+				_graph.reset_storage_operation();
 			}
 		}
 

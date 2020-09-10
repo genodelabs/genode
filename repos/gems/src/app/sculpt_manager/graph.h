@@ -81,7 +81,7 @@ struct Sculpt::Graph : Dialog
 
 	void reset() override { }
 
-	void reset_operation()
+	void reset_storage_operation()
 	{
 		if (_storage_dialog.constructed())
 			_storage_dialog->reset_operation();
