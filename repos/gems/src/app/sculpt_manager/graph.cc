@@ -24,13 +24,16 @@ void Graph::_gen_selected_node_content(Xml_generator &xml, Start_name const &nam
 
 	if (removable) {
 		gen_named_node(xml, "frame", "operations", [&] () {
-			xml.node("vbox", [&] () {
+			xml.node("hbox", [&] () {
 				gen_named_node(xml, "button", "remove", [&] () {
-					_remove_item.gen_button_attr(xml, "remove");
+					_action_item.gen_button_attr(xml, "remove");
 					xml.node("label", [&] () {
-						xml.attribute("text", "Remove");
-					});
-				});
+						xml.attribute("text", "Remove"); }); });
+
+				gen_named_node(xml, "button", "restart", [&] () {
+					_action_item.gen_button_attr(xml, "restart");
+					xml.node("label", [&] () {
+						xml.attribute("text", "Restart"); }); });
 			});
 		});
 	}
@@ -276,8 +279,8 @@ Dialog::Hover_result Graph::hover(Xml_node hover)
 		_ram_fs_dialog.match_sub_dialog(hover, "depgraph", "frame", "vbox", "frame", "vbox"),
 		_node_button_item.match(hover, "depgraph", "frame", "vbox", "button", "name"),
 		_add_button_item .match(hover, "depgraph", "button", "name"),
-		_remove_item     .match(hover, "depgraph", "frame", "vbox",
-		                               "frame", "vbox", "button", "name"));
+		_action_item     .match(hover, "depgraph", "frame", "vbox",
+		                               "frame", "hbox", "button", "name"));
 
 	if (_add_button_item.hovered("global+")) {
 
@@ -335,11 +338,11 @@ void Graph::click(Action &action)
 
 		_runtime_state.toggle_selection(_node_button_item._hovered,
 		                                _runtime_config);
-		_remove_item.reset();
+		_action_item.reset();
 	}
 
-	if (_remove_item.hovered("remove"))
-		_remove_item.propose_activation_on_click();
+	if (_action_item.hovered("remove") || _action_item.hovered("restart"))
+		_action_item.propose_activation_on_click();
 }
 
 
@@ -352,11 +355,11 @@ void Graph::clack(Action &action, Ram_fs_dialog::Action &ram_fs_action)
 		if (_storage_dialog->clack(action) == Clack_result::CONSUMED)
 			return;
 
-	if (_remove_item.hovered("remove")) {
+	if (_action_item.hovered("remove")) {
 
-		_remove_item.confirm_activation_on_clack();
+		_action_item.confirm_activation_on_clack();
 
-		if (_remove_item.activated("remove")) {
+		if (_action_item.activated("remove")) {
 			action.remove_deployed_component(_runtime_state.selected());
 
 			/*
@@ -366,8 +369,16 @@ void Graph::clack(Action &action, Ram_fs_dialog::Action &ram_fs_action)
 			_runtime_state.toggle_selection(_runtime_state.selected(),
 			                                _runtime_config);
 		}
-	} else {
-		_remove_item.reset();
 	}
+
+	if (_action_item.hovered("restart")) {
+
+		_action_item.confirm_activation_on_clack();
+
+		if (_action_item.activated("restart"))
+			action.restart_deployed_component(_runtime_state.selected());
+	}
+
+	_action_item.reset();
 }
 

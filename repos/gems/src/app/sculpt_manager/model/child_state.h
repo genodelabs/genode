@@ -25,6 +25,10 @@ namespace Sculpt { struct Child_state; }
 
 struct Sculpt::Child_state : Noncopyable
 {
+	public:
+
+		struct Version { unsigned value; };
+
 	private:
 
 		Registry<Child_state>::Element _element;
@@ -37,7 +41,7 @@ struct Sculpt::Child_state : Noncopyable
 		Ram_quota _ram_quota = _initial_ram_quota;
 		Cap_quota _cap_quota = _initial_cap_quota;
 
-		struct Version { unsigned value; } _version { 0 };
+		Version _version { 0 };
 
 	public:
 

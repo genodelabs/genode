@@ -57,7 +57,7 @@ struct Sculpt::Activatable_item : Hoverable_item
 		if (!_selected.valid() || !_activated.valid())
 			Hoverable_item::gen_button_attr(xml, id);
 
-		if (_selected.valid() && _selected == _hovered)
+		if (_selected.valid() && _selected == _hovered && _selected == id)
 			xml.attribute("selected", "yes");
 	}
 };

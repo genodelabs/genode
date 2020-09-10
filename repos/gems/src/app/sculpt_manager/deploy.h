@@ -108,8 +108,43 @@ struct Sculpt::Deploy
 			 */
 			deploy.for_each_sub_node("start", [&] (Xml_node node) {
 				Start_name const name = node.attribute_value("name", Start_name());
-				if (!_runtime_info.abandoned_by_user(name))
-					append_xml_node(node);
+				if (_runtime_info.abandoned_by_user(name))
+					return;
+
+				xml.node("start", [&] () {
+
+					/*
+					 * Copy attributes
+					 */
+
+					xml.attribute("name", name);
+
+					/* override version with restarted version, after restart */
+					using Version = Child_state::Version;
+					Version version = _runtime_info.restarted_version(name);
+					if (version.value == 0)
+						version = Version { node.attribute_value("version", 0U) };
+
+					if (version.value > 0)
+						xml.attribute("version", version.value);
+
+					auto copy_attribute = [&] (auto attr)
+					{
+						if (node.has_attribute(attr)) {
+							using Value = String<128>;
+							xml.attribute(attr, node.attribute_value(attr, Value()));
+						}
+					};
+
+					copy_attribute("caps");
+					copy_attribute("ram");
+					copy_attribute("cpu");
+					copy_attribute("pkg");
+
+					/* copy start-node content */
+					node.with_raw_content([&] (char const *start, size_t length) {
+						xml.append(start, length); });
+				});
 			});
 
 			/*

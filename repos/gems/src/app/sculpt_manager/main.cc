@@ -645,6 +645,17 @@ struct Sculpt::Main : Input_event_handler,
 	/*
 	 * Graph::Action interface
 	 */
+	void restart_deployed_component(Start_name const &name) override
+	{
+		_runtime_state.restart(name);
+
+		/* update config/managed/deploy with the component 'name' removed */
+		_deploy.update_managed_deploy_config(_manual_deploy_rom.xml());
+	}
+
+	/*
+	 * Graph::Action interface
+	 */
 	void toggle_launcher_selector(Rect anchor) override
 	{
 		_popup_menu_view.generate();

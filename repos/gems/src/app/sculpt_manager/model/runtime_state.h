@@ -30,6 +30,8 @@ class Sculpt::Runtime_state : public Runtime_info
 {
 	public:
 
+		using Version = Child_state::Version;
+
 		struct Info
 		{
 			bool selected;
@@ -45,6 +47,8 @@ class Sculpt::Runtime_state : public Runtime_info
 
 			unsigned long assigned_caps;
 			unsigned long avail_caps;
+
+			Version version;
 		};
 
 	private:
@@ -57,11 +61,14 @@ class Sculpt::Runtime_state : public Runtime_info
 		{
 			Start_name const name;
 
-			Info info { .selected    = false,
-			            .tcb         = false,
-			            .tcb_updated = false,
-			            .assigned_ram  = 0, .avail_ram  = 0,
-			            .assigned_caps = 0, .avail_caps = 0 };
+			Info info { .selected      = false,
+			            .tcb           = false,
+			            .tcb_updated   = false,
+			            .assigned_ram  = 0,
+			            .avail_ram     = 0,
+			            .assigned_caps = 0,
+			            .avail_caps    = 0,
+			            .version       = { 0 }};
 
 			bool abandoned_by_user = false;
 
@@ -79,10 +86,26 @@ class Sculpt::Runtime_state : public Runtime_info
 		struct Abandoned_child : Interface
 		{
 			Start_name const name;
+
 			Abandoned_child(Start_name const &name) : name(name) { };
 		};
 
 		Registry<Registered<Abandoned_child> > _abandoned_children { };
+
+		/**
+		 * Child that was interactively restarted
+		 */
+		struct Restarted_child : Interface
+		{
+			Start_name const name;
+
+			Version version;
+
+			Restarted_child(Start_name const &name, Version const &version)
+			: name(name), version(version) { };
+		};
+
+		Registry<Registered<Restarted_child> > _restarted_children { };
 
 		/**
 		 * Child that was interactively launched
@@ -115,20 +138,25 @@ class Sculpt::Runtime_state : public Runtime_info
 				construction.construct(alloc, pkg_path, info, space);
 			}
 
-			void gen_deploy_start_node(Xml_generator &xml) const
+			void gen_deploy_start_node(Xml_generator &xml, Runtime_state const &state) const
 			{
 				if (!launched)
 					return;
 
 				gen_named_node(xml, "start", name, [&] () {
 
+					Version const version = state.restarted_version(name);
+
+					if (version.value > 0)
+						xml.attribute("version", version.value);
+
 					/* interactively constructed */
 					if (construction.constructed()) {
 						xml.attribute("pkg", construction->path);
 
-						xml.attribute("xpos", construction->affinity_location.xpos());
-						xml.attribute("ypos", construction->affinity_location.ypos());
-						xml.attribute("width", construction->affinity_location.width());
+						xml.attribute("xpos",   construction->affinity_location.xpos());
+						xml.attribute("ypos",   construction->affinity_location.ypos());
+						xml.attribute("width",  construction->affinity_location.width());
 						xml.attribute("height", construction->affinity_location.height());
 
 						xml.node("route", [&] () {
@@ -178,15 +206,17 @@ class Sculpt::Runtime_state : public Runtime_info
 					Xml_node const ram = node.sub_node("ram");
 					child.info.assigned_ram = max(ram.attribute_value("assigned", Number_of_bytes()),
 					                              ram.attribute_value("quota",    Number_of_bytes()));
-					child.info.avail_ram    = ram.attribute_value("avail",    Number_of_bytes());
+					child.info.avail_ram    =     ram.attribute_value("avail",    Number_of_bytes());
 				}
 
 				if (node.has_sub_node("caps")) {
 					Xml_node const caps = node.sub_node("caps");
 					child.info.assigned_caps = max(caps.attribute_value("assigned", 0UL),
 					                               caps.attribute_value("quota",    0UL));
-					child.info.avail_caps    = caps.attribute_value("avail",    0UL);
+					child.info.avail_caps    =     caps.attribute_value("avail",    0UL);
 				}
+
+				child.info.version.value = node.attribute_value("version", 0U);
 			}
 
 			static bool element_matches_xml_node(Child const &elem, Xml_node node)
@@ -240,9 +270,28 @@ class Sculpt::Runtime_state : public Runtime_info
 		bool abandoned_by_user(Start_name const &name) const override
 		{
 			bool result = false;
+
 			_abandoned_children.for_each([&] (Abandoned_child const &child) {
 				if (!result && child.name == name)
 					result = true; });
+
+			return result;
+		}
+
+		/**
+		 * Return version of restarted child
+		 *
+		 * If the returned value is version 0, the child has not been
+		 * restarted.
+		 */
+		Version restarted_version(Start_name const &name) const override
+		{
+			Version result { 0 };
+
+			_restarted_children.for_each([&] (Restarted_child const &child) {
+				if (!result.value && child.name == name)
+					result = child.version; });
+
 			return result;
 		}
 
@@ -252,7 +301,7 @@ class Sculpt::Runtime_state : public Runtime_info
 		void gen_launched_deploy_start_nodes(Xml_generator &xml) const override
 		{
 			_launched_children.for_each([&] (Launched_child const &child) {
-				child.gen_deploy_start_node(xml); });
+				child.gen_deploy_start_node(xml, *this); });
 		}
 
 		Info info(Start_name const &name) const
@@ -363,6 +412,30 @@ class Sculpt::Runtime_state : public Runtime_info
 			new (_alloc) Registered<Abandoned_child>(_abandoned_children, name);
 		}
 
+		void restart(Start_name const &name)
+		{
+			/* determin current version from most recent state report */
+			Version current_version { 0 };
+			_children.for_each([&] (Child const &child) {
+				if (child.name == name)
+					current_version = child.info.version; });
+
+			Version const next_version { current_version.value + 1 };
+
+			bool already_restarted = false;
+
+			_restarted_children.for_each([&] (Restarted_child &child) {
+				if (child.name == name) {
+					already_restarted = true;
+					child.version = next_version;
+				}
+			});
+
+			if (!already_restarted)
+				new (_alloc)
+					Registered<Restarted_child>(_restarted_children, name, next_version);
+		}
+
 		void launch(Start_name const &name, Path const &launcher)
 		{
 			new (_alloc) Registered<Launched_child>(_launched_children, name, launcher);
@@ -430,6 +503,9 @@ class Sculpt::Runtime_state : public Runtime_info
 				destroy(_alloc, &child); });
 
 			_launched_children.for_each([&] (Launched_child &child) {
+				destroy(_alloc, &child); });
+
+			_restarted_children.for_each([&] (Restarted_child &child) {
 				destroy(_alloc, &child); });
 		}
 };

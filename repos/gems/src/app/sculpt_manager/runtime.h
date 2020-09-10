@@ -19,6 +19,7 @@
 #include <model/storage_devices.h>
 #include <model/storage_target.h>
 #include <model/nic_target.h>
+#include <model/child_state.h>
 
 namespace Sculpt {
 
@@ -29,12 +30,16 @@ namespace Sculpt {
 
 	struct Runtime_info : Interface
 	{
+		using Version = Child_state::Version;
+
 		/**
 		 * Return true if specified child is present in the runtime subsystem
 		 */
 		virtual bool present_in_runtime(Start_name const &) const = 0;
 
 		virtual bool abandoned_by_user(Start_name const &) const = 0;
+
+		virtual Version restarted_version(Start_name const &) const = 0;
 
 		virtual void gen_launched_deploy_start_nodes(Xml_generator &) const = 0;
 	};
