@@ -12,8 +12,6 @@
  */
 
 /* Genode */
-#include <nic/xml_node.h> /* ugly template dependency forces us
-                             to include this before xml_node.h */
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/env.h>

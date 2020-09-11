@@ -15,7 +15,6 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
-#include <nic/xml_node.h>
 #include <timer_session/connection.h>
 
 /* local includes */

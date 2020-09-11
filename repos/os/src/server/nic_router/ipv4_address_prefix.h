@@ -17,7 +17,11 @@
 /* Genode includes */
 #include <net/ipv4.h>
 
-namespace Net { class Ipv4_address_prefix; }
+namespace Net {
+	class Ipv4_address_prefix;
+
+	static inline Genode::size_t ascii_to(char const *, Net::Ipv4_address_prefix &);
+}
 
 
 struct Net::Ipv4_address_prefix
@@ -48,14 +52,10 @@ struct Net::Ipv4_address_prefix
 };
 
 
-namespace Genode {
-
-	inline size_t ascii_to(char const *s, Net::Ipv4_address_prefix &result);
-}
-
-
-Genode::size_t Genode::ascii_to(char const *s, Net::Ipv4_address_prefix &result)
+Genode::size_t Net::ascii_to(char const *s, Ipv4_address_prefix &result)
 {
+	using namespace Genode;
+
 	/* read the leading IPv4 address, fail if there's no address */
 	Net::Ipv4_address_prefix buf;
 	size_t read_len = ascii_to(s, buf.address);

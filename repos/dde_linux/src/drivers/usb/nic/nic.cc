@@ -14,7 +14,6 @@
 #include <base/rpc_server.h>
 #include <base/snprintf.h>
 #include <nic_session/nic_session.h>
-#include <nic/xml_node.h>
 #include <util/xml_node.h>
 
 #include <lx_kit/env.h>

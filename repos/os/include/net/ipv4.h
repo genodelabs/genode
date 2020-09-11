@@ -25,13 +25,13 @@
 
 namespace Genode { class Output; }
 
-namespace Net
-{
+namespace Net {
 	enum { IPV4_ADDR_LEN = 4 };
 
 	class Ipv4_address;
-
 	class Ipv4_packet;
+
+	static inline Genode::size_t ascii_to(char const *, Net::Ipv4_address &);
 }
 
 
@@ -191,17 +191,14 @@ class Net::Ipv4_packet
 } __attribute__((packed));
 
 
-namespace Genode {
-
-	inline size_t ascii_to(char const *s, Net::Ipv4_address &result);
-}
-
-
-Genode::size_t Genode::ascii_to(char const *s, Net::Ipv4_address &result)
+Genode::size_t Net::ascii_to(char const *s, Net::Ipv4_address &result)
 {
+	using namespace Genode;
+
 	Net::Ipv4_address buf;
 	size_t            number_idx = 0;
 	size_t            read_len   = 0;
+
 	while (1) {
 
 		/* read the current number, fail if there's no number */

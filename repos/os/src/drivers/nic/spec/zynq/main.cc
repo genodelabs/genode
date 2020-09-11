@@ -12,13 +12,6 @@
  */
 
 /* Genode includes */
-/*
- * Needs to be included first because otherwise
- * util/xml_node.h will not pick up the ascii_to
- * overload.
- */
-#include <nic/xml_node.h>
-
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>

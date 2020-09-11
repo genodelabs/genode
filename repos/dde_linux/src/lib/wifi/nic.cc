@@ -17,7 +17,6 @@
 #include <base/rpc_server.h>
 #include <base/snprintf.h>
 #include <base/tslab.h>
-#include <nic/xml_node.h>
 #include <nic/component.h>
 #include <root/component.h>
 #include <util/xml_node.h>

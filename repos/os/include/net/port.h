@@ -19,7 +19,11 @@
 #include <base/output.h>
 #include <util/string.h>
 
-namespace Net { class Port; }
+namespace Net {
+	class Port;
+
+	static inline Genode::size_t ascii_to(const char *, Net::Port &);
+}
 
 /**
  * This class makes it clear what the port integer-value means at an interface
@@ -37,20 +41,19 @@ struct Net::Port
 __attribute__((packed));
 
 
-namespace Genode {
+/**
+ * Read port value from string
+ *
+ * \return number of consumed characters
+ */
+Genode::size_t Net::ascii_to(const char *s, Net::Port &result)
+{
+	using namespace Genode;
 
-	/**
-	 * Read port value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(const char *s, Net::Port &result)
-	{
-		unsigned value = 0;
-		size_t const consumed = ascii_to_unsigned(s, value, 0);
-		result = Net::Port(value);
-		return consumed;
-	}
+	unsigned value = 0;
+	size_t const consumed = ascii_to_unsigned(s, value, 0);
+	result = Net::Port(value);
+	return consumed;
 }
 
 #endif /* _NET__PORT_H_ */
