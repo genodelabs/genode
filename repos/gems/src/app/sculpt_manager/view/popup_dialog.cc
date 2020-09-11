@@ -92,10 +92,10 @@ void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
 
 				if (!selected)
 					_gen_route_entry(xml, _resources->start_name(),
-					                 "Resource assignment", false, "enter");
+					                 "Resource assignment ...", false, "enter");
 
 				if (selected) {
-					_gen_route_entry(xml, "back", "Resource assignment",
+					_gen_route_entry(xml, "back", "Resource assignment ...",
 					                 true, "back");
 
 					_resources->generate(xml);
@@ -422,11 +422,19 @@ void Popup_dialog::click(Action &action)
 
 	else if (_state == ROUTE_SELECTED) {
 
+		/*
+		 * Keep the routing selection open when clicking on the "Add component"
+		 * button. Otherwise, the change of the dialog size (while folding the
+		 * route selection) would result in the unhovering of the operaton
+		 * button. So the clack would go elsewhere.
+		 */
+		bool const click_on_operation = _action_item.hovered("launch");
+
 		/* back to index */
 		if (clicked == "back") {
 			back_to_index();
 
-		} else {
+		} else if (!click_on_operation) {
 
 			/* close selected route */
 			if (clicked_route == "back") {
