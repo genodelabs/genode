@@ -84,15 +84,15 @@ class Lx::Timer
 	private:
 
 		Genode::Entrypoint                          &_ep;
-		Genode::Timeout_scheduler                   &_scheduler;
+		::Timer::Connection                         &_timer;
 
 		/* One-shot timeout for timer list */
 		::Timer::One_shot_timeout<Lx::Timer>         _timers_one_shot {
-			_scheduler, *this, &Lx::Timer::_handle_timers };
+			_timer, *this, &Lx::Timer::_handle_timers };
 
 		/* One-shot timeout for 'wait' */
 		::Timer::One_shot_timeout<Lx::Timer>         _wait_one_shot {
-			_scheduler, *this, &Lx::Timer::_handle_wait };
+			_timer, *this, &Lx::Timer::_handle_wait };
 
 		Lx_kit::List<Context>                        _list;
 		Genode::Tslab<Context, 32 * sizeof(Context)> _timer_alloc;
@@ -165,7 +165,7 @@ class Lx::Timer
 		{
 			auto new_jiffies = usecs_to_jiffies(dur.trunc_to_plain_us().value);
 			if (new_jiffies < jiffies)
-				jiffies = usecs_to_jiffies(_scheduler.curr_time().trunc_to_plain_us().value);
+				jiffies = usecs_to_jiffies(_timer.curr_time().trunc_to_plain_us().value);
 			else
 				jiffies = new_jiffies;
 		}
@@ -199,13 +199,13 @@ class Lx::Timer
 		/**
 		 * Constructor
 		 */
-		Timer(Genode::Entrypoint &ep,
-		      Genode::Timeout_scheduler &scheduler,
-		      Genode::Allocator &alloc,
+		Timer(Genode::Entrypoint  &ep,
+		      ::Timer::Connection &timer,
+		      Genode::Allocator   &alloc,
 		      void (*tick)())
 		:
 			_ep(ep),
-			_scheduler(scheduler),
+			_timer(timer),
 			_timer_alloc(&alloc),
 			_tick(tick)
 		{
@@ -296,7 +296,7 @@ class Lx::Timer
 			 * Do not use lx_emul usecs_to_jiffies(unsigned int) because
 			 * of implicit truncation!
 			 */
-			jiffies = _scheduler.curr_time().trunc_to_plain_ms().value / JIFFIES_TICK_MS;
+			jiffies = _timer.curr_time().trunc_to_plain_ms().value / JIFFIES_TICK_MS;
 		}
 
 		/**
@@ -326,11 +326,12 @@ class Lx::Timer
 static Lx::Timer *_timer;
 
 
-void Lx::timer_init(Genode::Entrypoint &ep,
-                    Genode::Timeout_scheduler &scheduler,
-                    Genode::Allocator &alloc, void (*tick)())
+void Lx::timer_init(Genode::Entrypoint  &ep,
+                    ::Timer::Connection &timer,
+                    Genode::Allocator   &alloc,
+                    void (*tick)())
 {
-	static Lx::Timer inst(ep, scheduler, alloc, tick);
+	static Lx::Timer inst(ep, timer, alloc, tick);
 	_timer = &inst;
 }
 

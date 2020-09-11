@@ -26,9 +26,9 @@ namespace Lx {
 	                     Genode::Allocator &alloc,
 	                     void (*ticker)());
 
-	void timer_init(Genode::Entrypoint &ep,
-	                Genode::Timeout_scheduler &scheduler,
-	                Genode::Allocator &alloc,
+	void timer_init(Genode::Entrypoint  &ep,
+	                ::Timer::Connection &timer,
+	                Genode::Allocator   &alloc,
 	                void (*ticker)());
 
 	void timer_update_jiffies();

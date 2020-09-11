@@ -18,8 +18,8 @@
 using namespace Genode;
 
 
-void Timer::Time_source::schedule_timeout(Microseconds     duration,
-                                          Timeout_handler &handler)
+void Timer::Time_source::set_timeout(Microseconds     duration,
+                                     Timeout_handler &handler)
 {
 	Mutex::Guard mutex_guard(_mutex);
 	Threaded_time_source::handler(handler);
@@ -27,7 +27,8 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 }
 
 
-void Timer::Time_source::_wait_for_irq()
+Timer::Time_source::Result_of_wait_for_irq
+Timer::Time_source::_wait_for_irq()
 {
 	enum { SLEEP_GRANULARITY_US = 1000 };
 	uint64_t last_time_us = curr_time().trunc_to_plain_us().value;
@@ -49,4 +50,5 @@ void Timer::Time_source::_wait_for_irq()
 			break;
 	}
 	_mutex.release();
+	return IRQ_TRIGGERED;
 }

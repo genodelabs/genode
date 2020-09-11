@@ -36,8 +36,8 @@ Timer::Time_source::Time_source(Env &env)
 }
 
 
-void Timer::Time_source::schedule_timeout(Microseconds     duration,
-                                          Timeout_handler &handler)
+void Timer::Time_source::set_timeout(Microseconds     duration,
+                                     Timeout_handler &handler)
 {
 	Kernel::timeout_t duration_us = duration.value;
 	if (duration_us < MIN_TIMEOUT_US) {

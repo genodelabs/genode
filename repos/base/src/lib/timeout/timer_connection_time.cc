@@ -38,8 +38,8 @@ void Timer::Connection::_update_real_time()
 	 * reached, we take the results that has the lowest latency.
 	 */
 	for (unsigned remote_time_trials = 0;
-	     remote_time_trials < MAX_REMOTE_TIME_TRIALS; )
-	{
+	     remote_time_trials < MAX_REMOTE_TIME_TRIALS; ) {
+
 		/* read out the two time values close in succession */
 		Timestamp volatile new_ts = _timestamp();
 		uint64_t  volatile new_us = elapsed_us();
@@ -111,8 +111,8 @@ void Timer::Connection::_update_real_time()
 		 * raise the shift successively to get as much precision as possible.
 		 */
 		uint64_t ts_diff_shifted = ts_diff << factor_shift;
-		while (ts_diff_shifted < us_diff << MIN_FACTOR_LOG2)
-		{
+		while (ts_diff_shifted < us_diff << MIN_FACTOR_LOG2) {
+
 			factor_shift++;
 			ts_diff_shifted <<= 1;
 			old_factor <<= 1;
@@ -143,7 +143,7 @@ void Timer::Connection::_update_real_time()
 
 Duration Timer::Connection::curr_time()
 {
-	_enable_modern_mode();
+	_switch_to_timeout_framework_mode();
 
 	Reconstructible<Mutex::Guard> mutex_guard(_real_time_mutex);
 	Duration                      interpolated_time(_real_time);
@@ -156,8 +156,8 @@ Duration Timer::Connection::curr_time()
 	 * the value would stand still for quite some time because we
 	 * can't let it jump back to a more realistic level.
 	 */
-	if (_interpolation_quality == MAX_INTERPOLATION_QUALITY)
-	{
+	if (_interpolation_quality == MAX_INTERPOLATION_QUALITY) {
+
 		/* buffer interpolation related members and free the mutex */
 		Timestamp const ts                    = _ts;
 		uint64_t  const us_to_ts_factor       = _us_to_ts_factor;

@@ -97,8 +97,8 @@ void Timer::Connection::_handle_timeout()
 }
 
 
-void Timer::Connection::schedule_timeout(Microseconds     duration,
-                                         Timeout_handler &handler)
+void Timer::Connection::set_timeout(Microseconds     duration,
+                                    Timeout_handler &handler)
 {
 	if (duration.value < MIN_TIMEOUT_US)
 		duration.value = MIN_TIMEOUT_US;
@@ -108,22 +108,6 @@ void Timer::Connection::schedule_timeout(Microseconds     duration,
 
 	_handler = &handler;
 	trigger_once(duration.value);
-}
-
-
-void Timer::Connection::_enable_modern_mode()
-{
-	if (_mode == MODERN) {
-		return;
-	}
-	_mode = MODERN;
-	_sigh(_signal_handler);
-	_scheduler._enable();
-
-	/* do initial calibration burst to make interpolation available earlier */
-	for (unsigned i = 0; i < NR_OF_INITIAL_CALIBRATIONS; i++) {
-		_update_real_time();
-	}
 }
 
 
@@ -145,22 +129,20 @@ Timer::Connection::Connection(Genode::Env &env, char const *label)
 : Timer::Connection(env, env.ep(), label) {}
 
 
-void Timer::Connection::_schedule_one_shot(Timeout &timeout, Microseconds duration)
+Timeout_scheduler &Timer::Connection::_switch_to_timeout_framework_mode()
 {
-	_enable_modern_mode();
-	_scheduler._schedule_one_shot(timeout, duration);
+	if (_mode == TIMEOUT_FRAMEWORK) {
+		return _timeout_scheduler;
+	}
+	_mode = TIMEOUT_FRAMEWORK;
+	_sigh(_signal_handler);
+
+	_timeout_scheduler._enable();
+
+
+	/* do initial calibration burst to make interpolation available earlier */
+	for (unsigned i = 0; i < NR_OF_INITIAL_CALIBRATIONS; i++) {
+		_update_real_time();
+	}
+	return _timeout_scheduler;
 };
-
-
-void Timer::Connection::_schedule_periodic(Timeout &timeout, Microseconds duration)
-{
-	_enable_modern_mode();
-	_scheduler._schedule_periodic(timeout, duration);
-};
-
-
-void Timer::Connection::_discard(Timeout &timeout)
-{
-	_enable_modern_mode();
-	_scheduler._discard(timeout);
-}

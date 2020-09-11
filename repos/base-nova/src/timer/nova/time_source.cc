@@ -22,50 +22,47 @@ using namespace Genode;
 using namespace Nova;
 
 
-void Timer::Time_source::schedule_timeout(Microseconds     duration,
-                                          Timeout_handler &handler)
+void Timer::Time_source::set_timeout(Microseconds     duration,
+                                     Timeout_handler &handler)
 {
+	/* set new timeout parameters and wake up the blocking thread */
 	Threaded_time_source::handler(handler);
-
-	/* check whether to cancel last timeout */
-	if (duration.value == 0 && _sem) {
-		uint8_t res = Nova::sm_ctrl(_sem, Nova::SEMAPHORE_UP);
-		if (res != Nova::NOVA_OK)
-			nova_die();
-	}
-	/* remember timeout to be set during wait_for_timeout call */
 	_timeout_us = duration.value;
+	if (_sem) {
+		if (Nova::sm_ctrl(_sem, Nova::SEMAPHORE_UP) != Nova::NOVA_OK) {
+			nova_die();
+		}
+	}
 }
 
 
-void Timer::Time_source::_wait_for_irq()
+Timer::Time_source::Result_of_wait_for_irq
+Timer::Time_source::_wait_for_irq()
 {
+	/* initialize semaphore if not done yet */
 	if (!_sem) {
-		/* initialize first time in context of running thread */
 		auto const &exc_base = Thread::native_thread().exc_pt_sel;
 		request_signal_sm_cap(exc_base + Nova::PT_SEL_PAGE_FAULT,
 		                      exc_base + Nova::SM_SEL_SIGNAL);
 
 		_sem = Thread::native_thread().exc_pt_sel + SM_SEL_SIGNAL;
 	}
-
 	/* calculate absolute timeout */
-	Trace::Timestamp now   = Trace::timestamp();
-	Trace::Timestamp us_64 = _timeout_us;
+	unsigned long long const deadline_timestamp {
+		_timeout_us <= max_timeout().value ?
+			Trace::timestamp() + _timeout_us * (_tsc_khz / TSC_FACTOR) : 0 };
 
-	if (_timeout_us == max_timeout().value) {
+	/* block until timeout fires or it gets canceled */
+	switch (sm_ctrl(_sem, SEMAPHORE_DOWN, deadline_timestamp)) {
 
-		/* tsc_absolute == 0 means blocking without timeout */
-		uint8_t res = sm_ctrl(_sem, SEMAPHORE_DOWN, 0);
-		if (res != Nova::NOVA_OK && res != Nova::NOVA_TIMEOUT) {
-			nova_die(); }
+	case Nova::NOVA_TIMEOUT:
+		return IRQ_TRIGGERED;
 
-	} else {
+	case Nova::NOVA_OK:
+		return CANCELLED;
 
-		/* block until timeout fires or it gets canceled */
-		unsigned long long tsc_absolute = now + us_64 * (_tsc_khz / TSC_FACTOR);
-		uint8_t res = sm_ctrl(_sem, SEMAPHORE_DOWN, tsc_absolute);
-		if (res != Nova::NOVA_OK && res != Nova::NOVA_TIMEOUT) {
-			nova_die(); }
+	default:
+		nova_die();
+		return CANCELLED;
 	}
 }

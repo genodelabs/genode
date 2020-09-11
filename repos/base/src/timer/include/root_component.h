@@ -31,8 +31,8 @@ class Timer::Root_component : public Genode::Root_component<Session_component>
 
 		enum { MIN_TIMEOUT_US = 1000 };
 
-		Time_source                     _time_source;
-		Genode::Alarm_timeout_scheduler _timeout_scheduler;
+		Time_source               _time_source;
+		Genode::Timeout_scheduler _timeout_scheduler;
 
 
 		/********************

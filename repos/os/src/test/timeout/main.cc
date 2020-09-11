@@ -50,6 +50,17 @@ static bool precise_time(Xml_node config)
 	return false;
 }
 
+struct A1 {
+A1() {
+log(__func__,__LINE__);
+}
+};
+
+struct A2 {
+A2() {
+log(__func__,__LINE__);
+}
+};
 
 struct Test
 {
@@ -58,6 +69,7 @@ struct Test
 	Signal_transmitter      done;
 	unsigned                id;
 	Attached_rom_dataspace  config { env, "config" };
+
 	Timer::Connection       timer  { env };
 
 	Test(Env                       &env,
@@ -76,6 +88,7 @@ struct Test
 		 *       because Timer::Connection by now must be backwards compatible
 		 *       and therefore starts interpolation only on demand.
 		 */
+
 		timer.curr_time();
 
 		log("\nTEST ", id, ": ", brief, "\n");
@@ -819,4 +832,14 @@ struct Main
 };
 
 
-void Component::construct(Env &env) { static Main main(env); }
+void Component::construct(Env &env) { 
+/*
+Timer::Connection timer { env};
+while (1) {
+log(__func__,__LINE__);
+timer.msleep(1000);
+log(__func__,__LINE__);
+}
+*/
+static Main main(env);
+}

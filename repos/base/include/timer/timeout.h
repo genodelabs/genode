@@ -21,23 +21,34 @@
 
 /* Genode includes */
 #include <util/noncopyable.h>
+#include <util/list.h>
 #include <base/duration.h>
-#include <base/log.h>
 #include <base/mutex.h>
+#include <util/misc_math.h>
+#include <base/blockade.h>
 
 namespace Genode {
 
 	class Time_source;
-	class Timeout_scheduler;
 	class Timeout;
-	class Alarm_timeout_scheduler;
+	class Timeout_handler;
+	class Timeout_scheduler;
 }
 
-namespace Timer
-{
+namespace Timer {
+
 	class Connection;
 	class Root_component;
 }
+
+
+/**
+ * Interface of a timeout callback
+ */
+struct Genode::Timeout_handler : Interface
+{
+	virtual void handle_timeout(Duration curr_time) = 0;
+};
 
 
 /**
@@ -45,14 +56,6 @@ namespace Timer
  */
 struct Genode::Time_source : Interface
 {
-	/**
-	 * Interface of a timeout callback
-	 */
-	struct Timeout_handler : Interface
-	{
-		virtual void handle_timeout(Duration curr_time) = 0;
-	};
-
 	/**
 	 * Return the current time of the source
 	 */
@@ -69,62 +72,8 @@ struct Genode::Time_source : Interface
 	 * \param duration  timeout duration
 	 * \param handler   timeout callback
 	 */
-	virtual void schedule_timeout(Microseconds     duration,
-	                              Timeout_handler &handler) = 0;
-
-	/**
-	 * Tell the time source which scheduler to use for its own timeouts
-	 *
-	 * This method enables a time source for example to synchronize with an
-	 * accurate but expensive timer only on a periodic basis while using a
-	 * cheaper interpolation in general.
-	 */
-	virtual void scheduler(Timeout_scheduler &) { };
-};
-
-
-/**
- * Interface of a time-source multiplexer
- *
- * Beside 'curr_time()', this abstract interface is used by the Timeout
- * implementation only. Users of the timeout framework must schedule and
- * discard timeouts via methods of the timeout.
- */
-class Genode::Timeout_scheduler : Interface
-{
-	private:
-
-		friend Timeout;
-
-		/**
-		 * Add a one-shot timeout to the schedule
-		 *
-		 * \param timeout   timeout callback object
-		 * \param duration  timeout trigger delay
-		 */
-		virtual void _schedule_one_shot(Timeout &timeout, Microseconds duration) = 0;
-
-		/**
-		 * Add a periodic timeout to the schedule
-		 *
-		 * \param timeout   timeout callback object
-		 * \param duration  timeout trigger period
-		 */
-		virtual void _schedule_periodic(Timeout &timeout, Microseconds duration) = 0;
-
-		/**
-		 * Remove timeout from the scheduler
-		 *
-		 * \param timeout  corresponding timeout callback object
-		 */
-		virtual void _discard(Timeout &timeout) = 0;
-
-	public:
-
-		/**
-		 *  Read out the now time of the scheduler
-		 */
-		virtual Duration curr_time() = 0;
+	virtual void set_timeout(Microseconds     duration,
+	                         Timeout_handler &handler) = 0;
 };
 
 
@@ -136,173 +85,116 @@ class Genode::Timeout_scheduler : Interface
  * example, in a Timer-session server. If this is not the case, the classes
  * Periodic_timeout and One_shot_timeout are the better choice.
  */
-class Genode::Timeout : private Noncopyable
+class Genode::Timeout : private Noncopyable,
+                        public Genode::List<Timeout>::Element
 {
-	friend class Alarm_timeout_scheduler;
-
-	public:
-
-		/**
-		 * Interface of a timeout handler
-		 */
-		struct Handler : Interface
-		{
-			virtual void handle_timeout(Duration curr_time) = 0;
-		};
+	friend class Timeout_scheduler;
 
 	private:
 
-		class Alarm
-		{
-			friend class Alarm_timeout_scheduler;
+		Mutex                  _mutex               { };
+		Timeout_scheduler     &_scheduler;
+		Microseconds           _period              { 0 };
+		Microseconds           _deadline            { Microseconds { 0 } };
+		List_element<Timeout>  _pending_timeouts_le { this };
+		Timeout_handler       *_pending_handler     { nullptr };
+		Timeout_handler       *_handler             { nullptr };
+		bool                   _in_discard_blockade { false };
+		Blockade               _discard_blockade    { };
 
-			private:
+		Timeout(Timeout const &);
 
-				typedef uint64_t Time;
-
-				struct Raw
-				{
-					Time deadline;
-					bool deadline_period;
-					Time period;
-
-					bool is_pending_at(uint64_t time, bool time_period) const;
-				};
-
-				Mutex                    _dispatch_mutex { };
-				Raw                      _raw            { };
-				short                    _active         { 0 };
-				bool                     _delete         { false };
-				Alarm                   *_next           { nullptr };
-				Alarm_timeout_scheduler *_scheduler      { nullptr };
-
-				void _alarm_assign(Time                     period,
-				                   Time                     deadline,
-				                   bool                     deadline_period,
-				                   Alarm_timeout_scheduler *scheduler)
-				{
-					_raw.period          = period;
-					_raw.deadline_period = deadline_period;
-					_raw.deadline        = deadline;
-					_scheduler           = scheduler;
-				}
-
-				void _alarm_reset() { _alarm_assign(0, 0, false, 0), _active = 0, _next = 0; }
-
-				bool _on_alarm(uint64_t);
-
-				Alarm(Alarm const &);
-				Alarm &operator = (Alarm const &);
-
-			public:
-
-				Timeout_scheduler &timeout_scheduler;
-				Handler           *handler  = nullptr;
-				bool               periodic = false;
-
-				Alarm(Timeout_scheduler &timeout_scheduler)
-				: timeout_scheduler(timeout_scheduler) { _alarm_reset(); }
-
-				virtual ~Alarm();
-
-		} _alarm;
+		Timeout &operator = (Timeout const &);
 
 	public:
 
-		Timeout(Timeout_scheduler &timeout_scheduler)
-		: _alarm(timeout_scheduler) { }
+		Timeout(Timeout_scheduler &scheduler);
 
-		~Timeout() { discard(); }
+		Timeout(Timer::Connection &timer_connection);
 
-		void schedule_periodic(Microseconds duration, Handler &handler);
+		~Timeout();
 
-		void schedule_one_shot(Microseconds duration, Handler &handler);
+		void schedule_periodic(Microseconds     duration,
+		                       Timeout_handler &handler);
+
+		void schedule_one_shot(Microseconds     duration,
+		                       Timeout_handler &handler);
 
 		void discard();
 
-		bool scheduled() { return _alarm.handler != nullptr; }
+		bool scheduled();
 };
 
 
 /**
- * Timeout-scheduler implementation using the Alarm framework
+ * Multiplexes one time source amongst different timeouts
  */
-class Genode::Alarm_timeout_scheduler : private Noncopyable,
-                                        public  Timeout_scheduler,
-                                        public  Time_source::Timeout_handler
+class Genode::Timeout_scheduler : private Noncopyable,
+                                  public  Timeout_handler
 {
 	friend class Timer::Connection;
 	friend class Timer::Root_component;
-	friend class Timeout::Alarm;
+	friend class Timeout;
 
 	private:
 
-		using Alarm = Timeout::Alarm;
+		static constexpr uint64_t max_sleep_time_us { 60'000'000 };
 
-		Time_source     &_time_source;
-		Mutex            _mutex             { };
-		Alarm           *_active_head       { nullptr };
-		Alarm           *_pending_head      { nullptr };
-		Alarm::Time      _now               { 0UL };
-		bool             _now_period        { false };
-		Alarm::Raw       _min_handle_period { };
+		Mutex               _mutex              { };
+		Time_source        &_time_source;
+		Microseconds const  _max_sleep_time     { min(_time_source.max_timeout().value, max_sleep_time_us) };
+		List<Timeout>       _timeouts           { };
+		Microseconds        _current_time       { 0 };
+		bool                _destructor_called  { false };
+		Microseconds        _rate_limit_period;
+		Microseconds        _rate_limit_deadline;
 
-		void _alarm_unsynchronized_enqueue(Alarm *alarm);
+		void _insert_into_timeouts_list(Timeout &timeout);
 
-		void _alarm_unsynchronized_dequeue(Alarm *alarm);
+		void _set_time_source_timeout();
 
-		Alarm *_alarm_get_pending_alarm();
+		void _set_time_source_timeout(uint64_t duration_us);
 
-		void _alarm_setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time first_duration);
+		void _schedule_timeout(Timeout         &timeout,
+		                       Microseconds     duration,
+		                       Microseconds     period,
+		                       Timeout_handler &handler);
+
+		void _discard_timeout_unsynchronized(Timeout &timeout);
 
 		void _enable();
 
+		void _schedule_one_shot_timeout(Timeout         &timeout,
+		                                Microseconds     duration,
+                                        Timeout_handler &handler);
 
-		/**********************************
-		 ** Time_source::Timeout_handler **
-		 **********************************/
+		void _schedule_periodic_timeout(Timeout         &timeout,
+		                                Microseconds     period,
+		                                Timeout_handler &handler);
+
+		void _discard_timeout(Timeout &timeout);
+
+		void _destruct_timeout(Timeout &timeout);
+
+		Timeout_scheduler(Timeout_scheduler const &);
+
+		Timeout_scheduler &operator = (Timeout_scheduler const &);
+
+
+		/*********************
+		 ** Timeout_handler **
+		 *********************/
 
 		void handle_timeout(Duration curr_time) override;
 
-
-		/***********************
-		 ** Timeout_scheduler **
-		 ***********************/
-
-		void _schedule_one_shot(Timeout &timeout, Microseconds duration) override;
-		void _schedule_periodic(Timeout &timeout, Microseconds duration) override;
-
-		void _discard(Timeout &timeout) override {
-			_alarm_discard(&timeout._alarm); }
-
-		void _alarm_discard(Alarm *alarm);
-
-		void _alarm_schedule_absolute(Alarm *alarm, Alarm::Time duration);
-
-		void _alarm_schedule(Alarm *alarm, Alarm::Time period);
-
-		void _alarm_handle(Alarm::Time now);
-
-		bool _alarm_next_deadline(Alarm::Time *deadline);
-
-		bool _alarm_head_timeout(const Alarm * alarm) { return _active_head == alarm; }
-
-		Alarm_timeout_scheduler(Alarm_timeout_scheduler const &);
-		Alarm_timeout_scheduler &operator = (Alarm_timeout_scheduler const &);
-
 	public:
 
-		Alarm_timeout_scheduler(Time_source  &time_source,
-		                        Microseconds  min_handle_period = Microseconds(1));
+		Timeout_scheduler(Time_source  &time_source,
+		                  Microseconds  min_handle_period);
 
-		~Alarm_timeout_scheduler();
+		~Timeout_scheduler();
 
-
-		/***********************
-		 ** Timeout_scheduler **
-		 ***********************/
-
-		Duration curr_time() override { return _time_source.curr_time(); }
+		Duration curr_time();
 };
 
 #endif /* _TIMER__TIMEOUT_H_ */

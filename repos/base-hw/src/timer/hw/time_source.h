@@ -25,8 +25,10 @@
 
 namespace Timer {
 
-	using Microseconds = Genode::Microseconds;
-	using Duration     = Genode::Duration;
+	using Microseconds    = Genode::Microseconds;
+	using Duration        = Genode::Duration;
+	using Timeout_handler = Genode::Timeout_handler;
+
 	class Time_source;
 }
 
@@ -47,7 +49,7 @@ class Timer::Time_source : public Genode::Signalled_time_source
 		 *************************/
 
 		Duration curr_time() override;
-		void schedule_timeout(Microseconds duration, Timeout_handler &handler) override;
+		void set_timeout(Microseconds duration, Timeout_handler &handler) override;
 		Microseconds max_timeout() const override {
 			return Microseconds(_max_timeout_us); };
 };

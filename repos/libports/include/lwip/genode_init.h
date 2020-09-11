@@ -18,7 +18,7 @@
 #include <base/allocator.h>
 
 namespace Lwip {
-	void genode_init(Genode::Allocator &heap, Genode::Timeout_scheduler &timer);
+	void genode_init(Genode::Allocator &heap, ::Timer::Connection &timer);
 
 	Genode::Mutex &mutex();
 }

@@ -17,8 +17,8 @@
 using namespace Genode;
 
 
-void Timer::Time_source::schedule_timeout(Genode::Microseconds  duration,
-                                          Timeout_handler      &handler)
+void Timer::Time_source::set_timeout(Genode::Microseconds  duration,
+                                     Timeout_handler      &handler)
 {
 	_handler = &handler;
 	

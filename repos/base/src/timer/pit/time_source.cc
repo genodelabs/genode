@@ -49,8 +49,8 @@ uint16_t Timer::Time_source::_read_counter(bool *wrapped)
 }
 
 
-void Timer::Time_source::schedule_timeout(Microseconds     duration,
-                                          Timeout_handler &handler)
+void Timer::Time_source::set_timeout(Microseconds     duration,
+                                     Timeout_handler &handler)
 {
 	_handler = &handler;
 	uint64_t duration_us = duration.value;

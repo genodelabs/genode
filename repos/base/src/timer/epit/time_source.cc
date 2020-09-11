@@ -20,8 +20,8 @@
 using namespace Genode;
 
 
-void Timer::Time_source::schedule_timeout(Genode::Microseconds  duration,
-                                          Timeout_handler      &handler)
+void Timer::Time_source::set_timeout(Genode::Microseconds     duration,
+                                     Genode::Timeout_handler &handler)
 {
 	unsigned long const ticks = (1ULL * duration.value * TICKS_PER_MS) / 1000;
 	_handler = &handler;

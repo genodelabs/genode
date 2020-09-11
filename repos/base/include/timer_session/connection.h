@@ -34,50 +34,42 @@ namespace Timer
  * Periodic timeout that is linked to a custom handler, scheduled when constructed
  */
 template <typename HANDLER>
-struct Timer::Periodic_timeout : private Genode::Noncopyable
+struct Timer::Periodic_timeout : private Genode::Noncopyable,
+                                 private Genode::Timeout_handler
 {
 	private:
 
 		using Duration          = Genode::Duration;
 		using Timeout           = Genode::Timeout;
-		using Timeout_scheduler = Genode::Timeout_scheduler;
 		using Microseconds      = Genode::Microseconds;
 
 		typedef void (HANDLER::*Handler_method)(Duration);
 
-		Timeout _timeout;
-
-		struct Handler : Timeout::Handler
-		{
-			HANDLER              &object;
-			Handler_method const  method;
-
-			Handler(HANDLER &object, Handler_method method)
-			: object(object), method(method) { }
+		Timeout               _timeout;
+		HANDLER              &_object;
+		Handler_method const  _method;
 
 
-			/**********************
-			 ** Timeout::Handler **
-			 **********************/
+		/*********************
+		 ** Timeout_handler **
+		 *********************/
 
-			void handle_timeout(Duration curr_time) override {
-				(object.*method)(curr_time); }
-
-		} _handler;
+		void handle_timeout(Duration curr_time) override {
+			(_object.*_method)(curr_time); }
 
 	public:
 
-		Periodic_timeout(Timeout_scheduler &timeout_scheduler,
-		                 HANDLER           &object,
-		                 Handler_method     method,
-		                 Microseconds       duration)
+		Periodic_timeout(Connection     &timer,
+		                 HANDLER        &object,
+		                 Handler_method  method,
+		                 Microseconds    duration)
 		:
-			_timeout(timeout_scheduler), _handler(object, method)
+			_timeout { timer },
+			_object  { object },
+			_method  { method }
 		{
-			_timeout.schedule_periodic(duration, _handler);
+			_timeout.schedule_periodic(duration, *this);
 		}
-
-		~Periodic_timeout() { _timeout.discard(); }
 };
 
 
@@ -85,48 +77,42 @@ struct Timer::Periodic_timeout : private Genode::Noncopyable
  * One-shot timeout that is linked to a custom handler, scheduled manually
  */
 template <typename HANDLER>
-class Timer::One_shot_timeout : private Genode::Noncopyable
+class Timer::One_shot_timeout : private Genode::Noncopyable,
+                                private Genode::Timeout_handler
 {
 	private:
 
 		using Duration          = Genode::Duration;
 		using Timeout           = Genode::Timeout;
-		using Timeout_scheduler = Genode::Timeout_scheduler;
 		using Microseconds      = Genode::Microseconds;
 
 		typedef void (HANDLER::*Handler_method)(Duration);
 
-		Timeout _timeout;
-
-		struct Handler : Timeout::Handler
-		{
-			HANDLER              &object;
-			Handler_method const  method;
-
-			Handler(HANDLER &object, Handler_method method)
-			: object(object), method(method) { }
+		Timeout               _timeout;
+		HANDLER              &_object;
+		Handler_method const  _method;
 
 
-			/**********************
-			 ** Timeout::Handler **
-			 **********************/
+		/*********************
+		 ** Timeout_handler **
+		 *********************/
 
-			void handle_timeout(Duration curr_time) override {
-				(object.*method)(curr_time); }
-
-		} _handler;
+		void handle_timeout(Duration curr_time) override {
+			(_object.*_method)(curr_time); }
 
 	public:
 
-		One_shot_timeout(Timeout_scheduler &timeout_scheduler,
-		                 HANDLER           &object,
-		                 Handler_method     method)
-		: _timeout(timeout_scheduler), _handler(object, method) { }
-
-		~One_shot_timeout() { _timeout.discard(); }
+		One_shot_timeout(Connection     &timer,
+		                 HANDLER        &object,
+		                 Handler_method  method)
+		:
+			_timeout { timer },
+			_object  { object },
+			_method  { method }
+		{ }
 
 		void schedule(Microseconds duration) {
-			_timeout.schedule_one_shot(duration, _handler); }
+			_timeout.schedule_one_shot(duration, *this); }
 
 		void discard() { _timeout.discard(); }
 
@@ -141,19 +127,21 @@ class Timer::One_shot_timeout : private Genode::Noncopyable
  */
 class Timer::Connection : public  Genode::Connection<Session>,
                           public  Session_client,
-                          private Genode::Time_source,
-                          public  Genode::Timeout_scheduler
+                          private Genode::Time_source
 {
+	friend class Genode::Timeout;
+
 	private:
 
-		using Timeout         = Genode::Timeout;
-		using Timeout_handler = Genode::Time_source::Timeout_handler;
-		using Timestamp       = Genode::Trace::Timestamp;
-		using Duration        = Genode::Duration;
-		using Mutex           = Genode::Mutex;
-		using Microseconds    = Genode::Microseconds;
-		using Milliseconds    = Genode::Milliseconds;
-		using Entrypoint      = Genode::Entrypoint;
+		using Timeout           = Genode::Timeout;
+		using Timeout_handler   = Genode::Timeout_handler;
+		using Timestamp         = Genode::Trace::Timestamp;
+		using Duration          = Genode::Duration;
+		using Mutex             = Genode::Mutex;
+		using Microseconds      = Genode::Microseconds;
+		using Milliseconds      = Genode::Milliseconds;
+		using Entrypoint        = Genode::Entrypoint;
+		using Io_signal_handler = Genode::Io_signal_handler<Connection>;
 
 		/*
 		 * Noncopyable
@@ -163,19 +151,34 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 		/*
 		 * The mode determines which interface of the timer connection is
-		 * enabled. Initially, a timer connection is in LEGACY mode. When in
-		 * MODERN mode, a call to the LEGACY interface causes an exception.
-		 * When in LEGACY mode, a call to the MODERN interface causes a switch
-		 * to the MODERN mode. The LEGACY interface is deprecated. Please
-		 * prefer using the MODERN interface.
+		 * enabled. Initially, a timer connection is in TIMER_SESSION mode.
+		 * In this mode, the user can operate directly on the connection using
+		 * the methods of the timer-session interface. As soon as the
+		 * connection is handed over as argument to the constructor of a
+		 * Periodic_timeout or a One_shot_timeout, it switches to
+		 * TIMEOUT_FRAMEWORK mode. From this point on, the only method that
+		 * the user can use directly on the connection is 'curr_time'. For
+		 * the rest of the functionality he rather uses the interfaces of
+		 * timeout objects that reference the connection.
 		 *
-		 * LEGACY = Timer Session interface, blocking calls usleep and msleep
-		 * MODERN = more precise curr_time, non-blocking and multiplexed
-		 *          handling with Periodic_timeout resp. One_shot_timeout
+		 * These are the characteristics of the two modes:
+		 *
+		 *    TIMER_SESSION:
+		 *
+		 *       * Allows for both blocking and non-blocking timeout semantics.
+		 *       * Missing local interpolation leads to less precise curr_time
+		 *         results.
+		 *       * Only one timeout at a time per connection.
+		 *
+		 *    TIMEOUT FRAMEWORK:
+		 *
+		 *       * Supports only non-blocking timeout semantics.
+		 *       * More precise curr_time results through local interpolation.
+		 *       * Multiplexing of multiple timeouts at the same connection
 		 */
-		enum Mode { LEGACY, MODERN };
+		enum Mode { TIMER_SESSION, TIMEOUT_FRAMEWORK };
 
-		Mode                    _mode             { LEGACY };
+		Mode                    _mode             { TIMER_SESSION };
 		Mutex                   _mutex            { };
 		Genode::Signal_receiver _sig_rec          { };
 		Genode::Signal_context  _default_sigh_ctx { };
@@ -185,17 +188,14 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 		Genode::Signal_context_capability _custom_sigh_cap { };
 
-		void _enable_modern_mode();
-
 		void _sigh(Signal_context_capability sigh)
 		{
 			Session_client::sigh(sigh);
 		}
 
-
-		/*************************
-		 ** Time_source helpers **
-		 *************************/
+		/****************************************************
+		 ** Members for interaction with Timeout framework **
+		 ****************************************************/
 
 		enum { MIN_TIMEOUT_US             = 5000 };
 		enum { REAL_TIME_UPDATE_PERIOD_US = 500000 };
@@ -205,17 +205,19 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		enum { NR_OF_INITIAL_CALIBRATIONS = 3 * MAX_INTERPOLATION_QUALITY };
 		enum { MIN_FACTOR_LOG2            = 8 };
 
-		Genode::Io_signal_handler<Connection> _signal_handler;
+		Io_signal_handler         _signal_handler;
+		Timeout_handler          *_handler               { nullptr };
+		Mutex                     _real_time_mutex       { };
+		uint64_t                  _us                    { elapsed_us() };
+		Timestamp                 _ts                    { _timestamp() };
+		Duration                  _real_time             { Microseconds { _us } };
+		Duration                  _interpolated_time     { _real_time };
+		unsigned                  _interpolation_quality { 0 };
+		uint64_t                  _us_to_ts_factor       { 1 };
+		unsigned                  _us_to_ts_factor_shift { 0 };
+		Genode::Timeout_scheduler _timeout_scheduler     { *this, Microseconds { 1 } };
 
-		Timeout_handler *_handler               { nullptr };
-		Mutex            _real_time_mutex       { };
-		uint64_t         _us                    { elapsed_us() };
-		Timestamp        _ts                    { _timestamp() };
-		Duration         _real_time             { Microseconds(_us) };
-		Duration         _interpolated_time     { _real_time };
-		unsigned         _interpolation_quality { 0 };
-		uint64_t         _us_to_ts_factor       { 1UL };
-		unsigned         _us_to_ts_factor_shift { 0 };
+		Genode::Timeout_scheduler &_switch_to_timeout_framework_mode();
 
 		Timestamp _timestamp();
 
@@ -237,28 +239,12 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 ** Time_source **
 		 *****************/
 
-		void schedule_timeout(Microseconds duration, Timeout_handler &handler) override;
+		void set_timeout(Microseconds duration, Timeout_handler &handler) override;
 		Microseconds max_timeout() const override { return Microseconds(REAL_TIME_UPDATE_PERIOD_US); }
-
-
-		/*******************************
-		 ** Timeout_scheduler helpers **
-		 *******************************/
-
-		Genode::Alarm_timeout_scheduler _scheduler { *this };
-
-
-		/***********************
-		 ** Timeout_scheduler **
-		 ***********************/
-
-		void _schedule_one_shot(Timeout &timeout, Microseconds duration) override;
-		void _schedule_periodic(Timeout &timeout, Microseconds duration) override;
-		void _discard(Timeout &timeout) override;
 
 	public:
 
-		struct Cannot_use_both_legacy_and_modern_interface : Genode::Exception { };
+		struct Method_cannot_be_used_in_timeout_framework_mode : Genode::Exception { };
 
 		/**
 		 * Constructor
@@ -287,8 +273,8 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 */
 		void sigh(Signal_context_capability sigh) override
 		{
-			if (_mode == MODERN) {
-				throw Cannot_use_both_legacy_and_modern_interface();
+			if (_mode == TIMEOUT_FRAMEWORK) {
+				throw Method_cannot_be_used_in_timeout_framework_mode();
 			}
 			_custom_sigh_cap = sigh;
 			Session_client::sigh(_custom_sigh_cap);
@@ -302,8 +288,8 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 */
 		void usleep(uint64_t us) override
 		{
-			if (_mode == MODERN) {
-				throw Cannot_use_both_legacy_and_modern_interface();
+			if (_mode == TIMEOUT_FRAMEWORK) {
+				throw Method_cannot_be_used_in_timeout_framework_mode();
 			}
 			/*
 			 * Omit the interaction with the timer driver for the corner case
@@ -340,16 +326,16 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 */
 		void msleep(uint64_t ms) override
 		{
-			if (_mode == MODERN) {
-				throw Cannot_use_both_legacy_and_modern_interface();
+			if (_mode == TIMEOUT_FRAMEWORK) {
+				throw Method_cannot_be_used_in_timeout_framework_mode();
 			}
 			usleep(1000*ms);
 		}
 
 
-		/***********************************
-		 ** Timeout_scheduler/Time_source **
-		 ***********************************/
+		/*****************
+		 ** Time_source **
+		 *****************/
 
 		Duration curr_time() override;
 };

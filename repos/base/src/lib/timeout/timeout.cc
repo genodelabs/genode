@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <timer/timeout.h>
+#include <timer_session/connection.h>
 
 using namespace Genode;
 
@@ -21,419 +22,386 @@ using namespace Genode;
  ** Timeout **
  *************/
 
-void Timeout::schedule_periodic(Microseconds duration, Handler &handler)
+void Timeout::schedule_periodic(Microseconds     duration,
+                                Timeout_handler &handler)
 {
-	_alarm.handler = &handler;
-	_alarm.periodic = true;
-	_alarm.timeout_scheduler._schedule_periodic(*this, duration);
+	_scheduler._schedule_periodic_timeout(*this, duration, handler);
 }
 
 
-void Timeout::schedule_one_shot(Microseconds duration, Handler &handler)
+void Timeout::schedule_one_shot(Microseconds     duration,
+                                Timeout_handler &handler)
 {
-	_alarm.handler = &handler;
-	_alarm.periodic = false;
-	_alarm.timeout_scheduler._schedule_one_shot(*this, duration);
+	_scheduler._schedule_one_shot_timeout(*this, duration, handler);
 }
 
 
-void Timeout::discard()
-{
-	_alarm.timeout_scheduler._discard(*this);
-	_alarm.handler = nullptr;
-}
-
-
-/********************
- ** Timeout::Alarm **
- ********************/
-
-bool Timeout::Alarm::_on_alarm(uint64_t)
-{
-	if (handler) {
-		Handler *current = handler;
-		if (!periodic) {
-			handler = nullptr;
-		}
-		current->handle_timeout(timeout_scheduler.curr_time());
-	}
-	return periodic;
-}
-
-
-Timeout::Alarm::~Alarm()
-{
-	if (_scheduler)
-		_scheduler->_alarm_discard(this);
-}
-
-
-bool Timeout::Alarm::Raw::is_pending_at(uint64_t time, bool time_period) const
-{
-	return (time_period == deadline_period &&
-	        time        >= deadline) ||
-	       (time_period != deadline_period &&
-	        time        <  deadline);
-}
-
-
-/*****************************
- ** Alarm_timeout_scheduler **
- *****************************/
-
-void Alarm_timeout_scheduler::handle_timeout(Duration duration)
-{
-	uint64_t const curr_time_us = duration.trunc_to_plain_us().value;
-
-	_alarm_handle(curr_time_us);
-
-	/* sleep time is either until the next deadline or the maximum timout */
-	uint64_t sleep_time_us;
-	Alarm::Time deadline_us;
-	if (_alarm_next_deadline(&deadline_us)) {
-		sleep_time_us = deadline_us - curr_time_us;
-	} else {
-		sleep_time_us = _time_source.max_timeout().value; }
-
-	/* limit max timeout to a more reasonable value, e.g. 60s */
-	if (sleep_time_us > 60000000) {
-		sleep_time_us = 60000000;
-	} else if (sleep_time_us == 0) {
-		sleep_time_us = 1; }
-
-	_time_source.schedule_timeout(Microseconds(sleep_time_us), *this);
-}
-
-
-Alarm_timeout_scheduler::Alarm_timeout_scheduler(Time_source  &time_source,
-                                                 Microseconds  min_handle_period)
+Timeout::Timeout(Timeout_scheduler &scheduler)
 :
-	_time_source(time_source)
+	_scheduler(scheduler)
+{ }
+
+
+Timeout::Timeout(Timer::Connection &timer_connection)
+:
+	_scheduler(timer_connection._switch_to_timeout_framework_mode())
+{ }
+
+
+Timeout::~Timeout() { _scheduler._destruct_timeout(*this); }
+
+void Timeout::discard() { _scheduler._discard_timeout(*this); }
+
+bool Timeout::scheduled() { return _handler != nullptr; }
+
+
+/***********************
+ ** Timeout_scheduler **
+ ***********************/
+
+void Timeout_scheduler::handle_timeout(Duration curr_time)
 {
-	Alarm::Time const deadline         = _now + min_handle_period.value;
-	_min_handle_period.period          = min_handle_period.value;
-	_min_handle_period.deadline        = deadline;
-	_min_handle_period.deadline_period = _now > deadline ?
-	                                     !_now_period : _now_period;
-}
-
-
-Alarm_timeout_scheduler::~Alarm_timeout_scheduler()
-{
-	Mutex::Guard mutex_guard(_mutex);
-	while (_active_head) {
-		Alarm *next = _active_head->_next;
-		_active_head->_alarm_reset();
-		_active_head = next;
-	}
-}
-
-
-void Alarm_timeout_scheduler::_enable()
-{
-	_time_source.schedule_timeout(Microseconds(0), *this);
-}
-
-
-void Alarm_timeout_scheduler::_schedule_one_shot(Timeout      &timeout,
-                                                 Microseconds  duration)
-{
-	/* raise timeout duration by the age of the local time value */
-	uint64_t us = _time_source.curr_time().trunc_to_plain_us().value;
-	if (us >= _now) {
-		us = duration.value + (us - _now); }
-	else {
-		us = duration.value + (~0UL - _now) + us; }
-	if (us >= duration.value) {
-		duration.value = us; }
-
-	/* insert timeout into scheduling queue */
-	_alarm_schedule_absolute(&timeout._alarm, duration.value);
-
-	/* if new timeout is the closest to now, update the time-source timeout */
-	if (_alarm_head_timeout(&timeout._alarm)) {
-		_time_source.schedule_timeout(Microseconds(0), *this); }
-}
-
-
-void Alarm_timeout_scheduler::_schedule_periodic(Timeout      &timeout,
-                                                 Microseconds  duration)
-{
-	_alarm_schedule(&timeout._alarm, duration.value);
-
-	if (_alarm_head_timeout(&timeout._alarm)) {
-		_time_source.schedule_timeout(Microseconds(0), *this); }
-}
-
-
-void Alarm_timeout_scheduler::_alarm_unsynchronized_enqueue(Alarm *alarm)
-{
-	if (alarm->_active) {
-		error("trying to insert the same alarm twice!");
-		return;
-	}
-
-	alarm->_active++;
-
-	/* if active alarm list is empty add first element */
-	if (!_active_head) {
-		alarm->_next = 0;
-		_active_head = alarm;
-		return;
-	}
-
-	/* if deadline is smaller than any other deadline, put it on the head */
-	if (alarm->_raw.is_pending_at(_active_head->_raw.deadline, _active_head->_raw.deadline_period)) {
-		alarm->_next = _active_head;
-		_active_head = alarm;
-		return;
-	}
-
-	/* find list element with a higher deadline */
-	Alarm *curr = _active_head;
-	while (curr->_next &&
-	       curr->_next->_raw.is_pending_at(alarm->_raw.deadline, alarm->_raw.deadline_period))
+	List<List_element<Timeout> > pending_timeouts { };
 	{
-		curr = curr->_next;
-	}
+		/* acquire scheduler and update stored current time */
+		Mutex::Guard const scheduler_guard(_mutex);
+		if (_destructor_called) {
+			return;
+		}
+		_current_time = curr_time.trunc_to_plain_us();
 
-	/* if end of list is reached, append new element */
-	if (curr->_next == 0) {
-		curr->_next = alarm;
-		return;
-	}
+		/* apply rate limit to the handling of timeouts */
+		if (_current_time.value < _rate_limit_deadline.value) {
 
-	/* insert element in middle of list */
-	alarm->_next = curr->_next;
-	curr->_next  = alarm;
-}
+			_time_source.set_timeout(
+				Microseconds { _rate_limit_deadline.value -
+				               _current_time.value },
+				*this);
 
-
-void Alarm_timeout_scheduler::_alarm_unsynchronized_dequeue(Alarm *alarm)
-{
-	if (!_active_head) return;
-
-	if (_active_head == alarm) {
-		_active_head = alarm->_next;
-		alarm->_alarm_reset();
-		return;
-	}
-
-	/* find predecessor in alarm queue */
-	Alarm *curr;
-	for (curr = _active_head; curr && (curr->_next != alarm); curr = curr->_next);
-
-	/* alarm is not enqueued */
-	if (!curr) return;
-
-	/* remove alarm from alarm queue */
-	curr->_next = alarm->_next;
-	alarm->_alarm_reset();
-}
-
-
-Timeout::Alarm *Alarm_timeout_scheduler::_alarm_get_pending_alarm()
-{
-	Mutex::Guard mutex_guard(_mutex);
-
-	do {
-		if (!_active_head || !_active_head->_raw.is_pending_at(_now, _now_period)) {
-			return nullptr; }
-
-		/* remove alarm from head of the list */
-		Alarm *pending_alarm = _active_head;
-		_active_head = _active_head->_next;
+			return;
+		}
+		_rate_limit_deadline.value = _current_time.value +
+		                             _rate_limit_period.value;
 
 		/*
-		 * Acquire dispatch mutex to defer destruction until the call of '_on_alarm'
-		 * is finished
+		 * Filter out all pending timeouts to a local list first. The
+		 * processing of pending timeouts can have effects on the '_timeouts'
+		 * list and these would interfere with the filtering if we would do
+		 * it all in the same loop.
 		 */
-		pending_alarm->_dispatch_mutex.acquire();
+		while (Timeout *timeout = _timeouts.first()) {
 
-		/* reset alarm object */
-		pending_alarm->_next = nullptr;
-		pending_alarm->_active--;
-
-		if (pending_alarm->_delete) {
-			pending_alarm->_dispatch_mutex.release();
-			continue;
+			timeout->_mutex.acquire();
+			if (timeout->_deadline.value > _current_time.value) {
+				timeout->_mutex.release();
+				break;
+			}
+			_timeouts.remove(timeout);
+			pending_timeouts.insert(&timeout->_pending_timeouts_le);
 		}
-		return pending_alarm;
-	} while (true);
+		/*
+		 * Do the framework-internal processing of the pending timeouts and
+		 * then release their mutexes.
+		 */
+		for (List_element<Timeout> const *elem { pending_timeouts.first() };
+		     elem != nullptr;
+		     elem = elem->next()) {
+
+			Timeout &timeout { *elem->object() };
+			if (!timeout._in_discard_blockade) {
+
+				/*
+				 * Remember the handler in an extra member that is altered
+				 * only by this code path. This enables us to release the
+				 * mutexes of all pending timeouts before starting to call
+				 * the timeout handlers. This is necessary to prevent
+				 * deadlocks in a situation where multiple timeouts become
+				 * pending at once, the handler of the first pending
+				 * timeout is about to re-schedule his timeout, and then
+				 * a second thread calls 'discard' on another pending
+				 * timeout just before that handlers call to 'schedule'.
+				 */
+				timeout._pending_handler = timeout._handler;
+
+			} else {
+
+				/*
+				 * Another thread, that wants to discard the timeout, has been
+				 * waiting for a prior call to the timeout handler to finish.
+				 * It has already been unblocked again but couldn't continue
+				 * discarding the timeout yet. Therefore, we refrain from
+				 * calling the timeout handler again until the other thread
+				 * could complete its task.
+				 */
+				pending_timeouts.remove(elem);
+			}
+			if (timeout._period.value == 0) {
+
+				/* discard one-shot timeouts */
+				timeout._handler = nullptr;
+
+			} else {
+
+				/* determine new timeout deadline */
+				uint64_t const nr_of_periods {
+					((_current_time.value - timeout._deadline.value) /
+					 timeout._period.value) + 1 };
+
+				uint64_t deadline_us { timeout._deadline.value +
+				                       nr_of_periods * timeout._period.value };
+
+				if (deadline_us < _current_time.value) {
+					deadline_us = ~(uint64_t)0;
+				}
+				/* re-insert timeout into timeouts list */
+				timeout._deadline = Microseconds { deadline_us };
+				_insert_into_timeouts_list(timeout);
+			}
+			timeout._mutex.release();
+		}
+		_set_time_source_timeout();
+	}
+	/* call the handler of each pending timeout */
+	while (List_element<Timeout> const *elem = pending_timeouts.first()) {
+
+		Timeout &timeout { *elem->object() };
+		pending_timeouts.remove(elem);
+
+		/*
+		 * Timeout handlers are called without holding any timeout mutex or
+		 * the scheduler mutex. This ensures that the handler can,
+		 * for instance, re-schedule the timeout without running into a
+		 * deadlock. The only thing we synchronize is discarding the
+		 * timeout. As long as the timeout's '_pending_handler' is set,
+		 * a thread that wants to discard the timeout will block at the
+		 * timeout's '_discard_blockade'.
+		 */
+		timeout._pending_handler->handle_timeout(curr_time);
+
+		/*
+		 * Unset the timeout's '_pending_handler' again. While the timeout
+		 * handler was running, another thread might have tried to discard
+		 * the timeout and got blocked at the timeout's '_discard_blockade'.
+		 * If this is the case, we have to unblock the other thread.
+		 */
+		Mutex::Guard timeout_guard(timeout._mutex);
+		timeout._pending_handler = nullptr;
+		if (timeout._in_discard_blockade) {
+			timeout._discard_blockade.wakeup();
+		}
+	}
 }
 
 
-void Alarm_timeout_scheduler::_alarm_handle(Alarm::Time curr_time)
+Timeout_scheduler::Timeout_scheduler(Time_source  &time_source,
+                                     Microseconds  rate_limit_period)
+:
+	_time_source         { time_source },
+	_rate_limit_period   { rate_limit_period },
+	_rate_limit_deadline { Microseconds { _current_time.value +
+	                                      rate_limit_period.value } }
+{ }
+
+
+Timeout_scheduler::~Timeout_scheduler()
 {
 	/*
-	 * Raise the time counter and if it wraps, update also in which
-	 * period of the time counter we are.
+	 * Acquire the scheduler mutex and don't release it at the end of this
+	 * function to ease debugging in case that someone accesses a dangling
+	 * scheduler pointer.
 	 */
-	if (_now > curr_time) {
-		_now_period = !_now_period;
-	}
-	_now = curr_time;
+	_mutex.acquire();
 
-	if (!_min_handle_period.is_pending_at(_now, _now_period)) {
+	/*
+	 * The function 'Timeout_scheduler::_discard_timeout_unsynchronized' may
+	 * have to release and re-acquire the scheduler mutex due to pending
+	 * timeout handlers. But, nonetheless, we don't want others to schedule
+	 * or discard timeouts while we are emptying the timeout list. Setting
+	 * the flag '_destructor_called' causes such attempts to finish without
+	 * effect.
+	 */
+	_destructor_called = true;
+
+	/* discard all scheduled timeouts */
+	while (Timeout *timeout = _timeouts.first()) {
+		Mutex::Guard const timeout_guard { timeout->_mutex };
+		_discard_timeout_unsynchronized(*timeout);
+	}
+}
+
+
+void Timeout_scheduler::_enable()
+{
+	Mutex::Guard const scheduler_guard { _mutex };
+	if (_destructor_called) {
 		return;
 	}
-	Alarm::Time const deadline         = _now + _min_handle_period.period;
-	_min_handle_period.deadline        = deadline;
-	_min_handle_period.deadline_period = _now > deadline ?
-	                                     !_now_period : _now_period;
+	_set_time_source_timeout();
+}
 
-	/*
-	 * Dequeue all pending alarms before starting to re-schedule. Otherwise,
-	 * a long-lasting alarm that has a deadline in the next now_period might
-	 * get scheduled as head of this now_period falsely because the code
-	 * thinks that it belongs to the last now_period.
-	 */
-	while (Alarm *curr = _alarm_get_pending_alarm()) {
 
-		/* enqueue alarm into list of pending alarms */
-		curr->_next = _pending_head;
-		_pending_head = curr;
+void Timeout_scheduler::_set_time_source_timeout()
+{
+	_set_time_source_timeout(
+		_timeouts.first() ?
+			_timeouts.first()->_deadline.value - _current_time.value :
+			~(uint64_t)0);
+}
+
+
+void Timeout_scheduler::_set_time_source_timeout(uint64_t duration_us)
+{
+	if (duration_us < _rate_limit_period.value) {
+		duration_us = _rate_limit_period.value;
 	}
-	while (Alarm *curr = _pending_head) {
-
-		/* dequeue alarm from list of pending alarms */
-		_pending_head = _pending_head->_next;
-		curr->_next = nullptr;
-
-		uint64_t triggered = 1;
-
-		if (curr->_raw.period) {
-			Alarm::Time deadline = curr->_raw.deadline;
-
-			/* schedule next event */
-			if (deadline == 0)
-				 deadline = curr_time;
-
-			triggered += (curr_time - deadline) / curr->_raw.period;
-		}
-
-		/* do not reschedule if alarm function returns 0 */
-		bool reschedule = curr->_on_alarm(triggered);
-
-		if (reschedule) {
-
-			/*
-			 * At this point, the alarm deadline normally is somewhere near
-			 * the current time but If the alarm had no deadline by now,
-			 * initialize it with the current time.
-			 */
-			if (curr->_raw.deadline == 0) {
-				curr->_raw.deadline        = _now;
-				curr->_raw.deadline_period = _now_period;
-			}
-			/*
-			 * Raise the deadline value by one period of the alarm and
-			 * if the deadline value wraps thereby, update also in which
-			 * period it is located.
-			 */
-			Alarm::Time const deadline = curr->_raw.deadline +
-			                             triggered * curr->_raw.period;
-			if (curr->_raw.deadline > deadline) {
-				curr->_raw.deadline_period = !curr->_raw.deadline_period;
-			}
-			curr->_raw.deadline = deadline;
-
-			/* synchronize enqueue operation */
-			Mutex::Guard mutex_guard(_mutex);
-			_alarm_unsynchronized_enqueue(curr);
-		}
-
-		/* release alarm, resume concurrent destructor operation */
-		curr->_dispatch_mutex.release();
+	if (duration_us > _max_sleep_time.value) {
+		duration_us = _max_sleep_time.value;
 	}
+	_time_source.set_timeout(Microseconds(duration_us), *this);
 }
 
 
-void Alarm_timeout_scheduler::_alarm_setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time first_duration)
+void Timeout_scheduler::_schedule_one_shot_timeout(Timeout         &timeout,
+                                                   Microseconds     duration,
+                                                   Timeout_handler &handler)
 {
-	/*
-	 * If the alarm is already present in the queue, re-consider its queue
-	 * position because its deadline might have changed. I.e., if an alarm is
-	 * rescheduled with a new timeout before the original timeout triggered.
-	 */
-	if (alarm._active)
-		_alarm_unsynchronized_dequeue(&alarm);
-
-	Alarm::Time deadline = _now + first_duration;
-	alarm._alarm_assign(period, deadline, _now > deadline ? !_now_period : _now_period, this);
-
-	_alarm_unsynchronized_enqueue(&alarm);
+	_schedule_timeout(timeout, duration, Microseconds { 0 }, handler);
 }
 
 
-void Alarm_timeout_scheduler::_alarm_schedule_absolute(Alarm *alarm, Alarm::Time duration)
+void Timeout_scheduler::_schedule_periodic_timeout(Timeout         &timeout,
+                                                   Microseconds     period,
+                                                   Timeout_handler &handler)
 {
-	Mutex::Guard alarm_list_guard(_mutex);
 
-	_alarm_setup_alarm(*alarm, 0, duration);
+	/* prevent using a period of 0 */
+	if (period.value == 0) {
+		period.value = 1;
+	}
+	_schedule_timeout(timeout, Microseconds { 0 }, period, handler);
 }
 
 
-void Alarm_timeout_scheduler::_alarm_schedule(Alarm *alarm, Alarm::Time period)
+void Timeout_scheduler::_schedule_timeout(Timeout         &timeout,
+                                          Microseconds     duration,
+                                          Microseconds     period,
+                                          Timeout_handler &handler)
 {
-	Mutex::Guard alarm_list_guard(_mutex);
-
-	/*
-	 * Refuse to schedule a periodic timeout of 0 because it would trigger
-	 * infinitely in the 'handle' function. To account for the case where the
-	 * alarm object was already scheduled, we make sure to remove it from the
-	 * queue.
-	 */
-	if (period == 0) {
-		_alarm_unsynchronized_dequeue(alarm);
+	/* acquire scheduler and timeout mutex */
+	Mutex::Guard const scheduler_guard { _mutex };
+	if (_destructor_called) {
 		return;
 	}
+	Mutex::Guard const timeout_guard(timeout._mutex);
 
-	/* first deadline is overdue */
-	_alarm_setup_alarm(*alarm, period, 0);
-}
+	/* prevent inserting a timeout twice */
+	if (timeout._handler != nullptr) {
+		_timeouts.remove(&timeout);
+	}
+	/* determine timeout deadline */
+	uint64_t const curr_time_us {
+		_time_source.curr_time().trunc_to_plain_us().value };
 
+	uint64_t const deadline_us {
+		duration.value <= ~(uint64_t)0 - curr_time_us ?
+			curr_time_us + duration.value : ~(uint64_t)0 };
 
-void Alarm_timeout_scheduler::_alarm_discard(Alarm *alarm)
-{
+	/* set up timeout object and insert into timeouts list */
+	timeout._handler = &handler;
+	timeout._deadline = Microseconds { deadline_us };
+	timeout._period = period;
+	_insert_into_timeouts_list(timeout);
+
 	/*
-	 * Make sure that nobody is inside the '_alarm_get_pending_alarm' when
-	 * grabbing the '_dispatch_mutex'. This is important when this function
-	 * is called from the 'Alarm' destructor. Without the '_dispatch_mutex',
-	 * we could take the mutex and proceed with destruction just before
-	 * '_alarm_get_pending_alarm' tries to grab the mutex. When the destructor
-	 * is finished, '_alarm_get_pending_alarm' would proceed with operating on
-	 * a dangling pointer.
+	 * If the new timeout is the first to trigger, we have to  update the
+	 * time-source timeout.
 	 */
-	if (alarm) {
-		{
-			/* inform that this object is going to be deleted */
-			Mutex::Guard alarm_guard(alarm->_dispatch_mutex);
-			alarm->_delete = true;
-		}
-		{
-			Mutex::Guard alarm_list_guard(_mutex);
-			_alarm_unsynchronized_dequeue(alarm);
-		}
-
-		/* get anyone using this out of '_alarm_get_pending_alarm'() finally */
-		Mutex::Guard alarm_guard(alarm->_dispatch_mutex);
-		alarm->_delete = false;
+	if (_timeouts.first() == &timeout) {
+		_set_time_source_timeout(deadline_us - curr_time_us);
 	}
 }
 
 
-bool Alarm_timeout_scheduler::_alarm_next_deadline(Alarm::Time *deadline)
+void Timeout_scheduler::_insert_into_timeouts_list(Timeout &timeout)
 {
-	Mutex::Guard alarm_list_guard(_mutex);
-
-	if (!_active_head) return false;
-
-	if (deadline)
-		*deadline = _active_head->_raw.deadline;
-
-	if (*deadline < _min_handle_period.deadline) {
-		*deadline = _min_handle_period.deadline;
+	/* if timeout list is empty, insert as first element */
+	if (_timeouts.first() == nullptr) {
+		_timeouts.insert(&timeout);
+		return;
 	}
-	return true;
+	/* if timeout has the shortest deadline, insert as first element */
+	if (_timeouts.first()->_deadline.value >= timeout._deadline.value) {
+		_timeouts.insert(&timeout);
+		return;
+	}
+	/* find list element with next shorter deadline and insert behind it */
+	Timeout *curr_timeout { _timeouts.first() };
+	for (;
+	     curr_timeout->next() != nullptr &&
+	     curr_timeout->next()->_deadline.value < timeout._deadline.value;
+	     curr_timeout = curr_timeout->_next);
+
+	_timeouts.insert(&timeout, curr_timeout);
+}
+
+
+void Timeout_scheduler::_discard_timeout(Timeout &timeout)
+{
+	Mutex::Guard const scheduler_mutex { _mutex };
+	Mutex::Guard const timeout_mutex { timeout._mutex };
+	_discard_timeout_unsynchronized(timeout);
+}
+
+
+void Timeout_scheduler::_destruct_timeout(Timeout &timeout)
+{
+	Mutex::Guard const scheduler_mutex { _mutex };
+
+	/*
+	 * Acquire the timeout mutex and don't release it at the end of this
+	 * function to ease debugging in case that someone accesses a dangling
+	 * timeout pointer.
+	 */
+	timeout._mutex.acquire();
+	_discard_timeout_unsynchronized(timeout);
+}
+
+
+void Timeout_scheduler::_discard_timeout_unsynchronized(Timeout &timeout)
+{
+	if (timeout._pending_handler != nullptr) {
+
+		if (timeout._in_discard_blockade) {
+			error("timeout is getting discarded by multiple threads");
+		}
+
+		/*
+		 * We cannot discard a timeout whose handler is currently executed. We
+		 * rather set its flag '_in_discard_blockade' (this ensures that the
+		 * timeout handler is not getting called again) and then wait for the
+		 * current handler call to finish. 'Timeout_scheduler::handle_timeout'
+		 * will wake us up as soon as the handler returned.
+		 */
+		timeout._in_discard_blockade = true;
+		timeout._mutex.release();
+		_mutex.release();
+
+		timeout._discard_blockade.block();
+
+		_mutex.acquire();
+		timeout._mutex.acquire();
+		timeout._in_discard_blockade = false;
+	}
+	_timeouts.remove(&timeout);
+	timeout._handler = nullptr;
+}
+
+
+Duration Timeout_scheduler::curr_time()
+{
+	Mutex::Guard const scheduler_guard { _mutex };
+	if (_destructor_called) {
+		return Duration { Microseconds { 0 } };
+	}
+	return _time_source.curr_time();
 }

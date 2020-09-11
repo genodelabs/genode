@@ -53,7 +53,7 @@ class Timer::Time_source : public Threaded_time_source
 			 * The returned value must never be zero because it is used as
 			 * divisor by '_tsc_to_us'.
 			 */
-			Genode::warning("unable to obtain tsc frequency, asuming 1 GHz");
+			Genode::warning("unable to obtain tsc frequency, assuming 1 GHz");
 			return 1000*1000;
 		}
 
@@ -77,7 +77,7 @@ class Timer::Time_source : public Threaded_time_source
 		 ** Threaded_time_source **
 		 **************************/
 
-		void _wait_for_irq() override;
+		Result_of_wait_for_irq _wait_for_irq() override;
 
 	public:
 
@@ -92,13 +92,12 @@ class Timer::Time_source : public Threaded_time_source
 		 ** Genode::Time_source **
 		 *************************/
 
-		void schedule_timeout(Microseconds duration,
-		                      Timeout_handler &handler) override;
+		void set_timeout(Microseconds duration,
+		                 Timeout_handler &handler) override;
 
 		Microseconds max_timeout() const override
 		{
-			uint64_t const max_us = _tsc_to_us(~(uint64_t)0);
-			return max_us > ~(uint64_t)0 ? Microseconds(~(uint64_t)0) : Microseconds(max_us);
+			return Microseconds(_tsc_to_us(~(uint64_t)0));
 		}
 
 		Duration curr_time() override

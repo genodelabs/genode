@@ -34,7 +34,7 @@ namespace Timer {
 
 class Timer::Session_component : public  Genode::Rpc_object<Session>,
                                  private Genode::List<Session_component>::Element,
-                                 private Genode::Timeout::Handler
+                                 private Genode::Timeout_handler
 {
 	private:
 
@@ -46,6 +46,11 @@ class Timer::Session_component : public  Genode::Rpc_object<Session>,
 
 		uint64_t const _init_time_us =
 			_timeout_scheduler.curr_time().trunc_to_plain_us().value;
+
+
+		/*********************
+		 ** Timeout_handler **
+		 *********************/
 
 		void handle_timeout(Duration) override {
 			Genode::Signal_transmitter(_sigh).submit(); }
