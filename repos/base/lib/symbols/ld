@@ -124,17 +124,6 @@ _ZN6Genode14Signal_contextD2Ev T
 _ZN6Genode14cache_coherentEmm T
 _ZN6Genode14env_deprecatedEv T
 _ZN6Genode14ipc_reply_waitERKNS_17Native_capabilityENS_18Rpc_exception_codeERNS_11Msgbuf_baseES5_ T
-_ZN6Genode15Alarm_scheduler12_setup_alarmERNS_5AlarmEmm T
-_ZN6Genode15Alarm_scheduler13next_deadlineEPm T
-_ZN6Genode15Alarm_scheduler17schedule_absoluteEPNS_5AlarmEy T
-_ZN6Genode15Alarm_scheduler18_get_pending_alarmEv T
-_ZN6Genode15Alarm_scheduler23_unsynchronized_dequeueEPNS_5AlarmE T
-_ZN6Genode15Alarm_scheduler23_unsynchronized_enqueueEPNS_5AlarmE T
-_ZN6Genode15Alarm_scheduler6handleEy T
-_ZN6Genode15Alarm_scheduler7discardEPNS_5AlarmE T
-_ZN6Genode15Alarm_scheduler8scheduleEPNS_5AlarmEm T
-_ZN6Genode15Alarm_schedulerD1Ev T
-_ZN6Genode15Alarm_schedulerD2Ev T
 _ZN6Genode15Connection_baseC1Ev T
 _ZN6Genode15Connection_baseC2Ev T
 _ZN6Genode15Signal_receiver12local_submitENS_6Signal4DataE T
@@ -232,9 +221,6 @@ _ZN6Genode4SlabC2EmmPvPNS_9AllocatorE T
 _ZN6Genode4SlabD0Ev T
 _ZN6Genode4SlabD1Ev T
 _ZN6Genode4SlabD2Ev T
-_ZN6Genode5AlarmD0Ev T
-_ZN6Genode5AlarmD1Ev T
-_ZN6Genode5AlarmD2Ev T
 _ZN6Genode5Child10yield_sighENS_10CapabilityINS_14Signal_contextEEE T
 _ZN6Genode5Child11session_capENS_8Id_spaceINS_6Parent6ClientEE2IdE T
 _ZN6Genode5Child12session_sighENS_10CapabilityINS_14Signal_contextEEE T
@@ -366,7 +352,6 @@ _ZTIN6Genode18Allocator_avl_baseE D 24
 _ZTIN6Genode23Alarm_timeout_schedulerE D 72
 _ZTIN6Genode4HeapE D 24
 _ZTIN6Genode4SlabE D 24
-_ZTIN6Genode5AlarmE D 16
 _ZTIN6Genode5Child14Initial_threadE D 24
 _ZTIN6Genode5ChildE D 72
 _ZTIN6Genode6OutputE D 24
@@ -383,7 +368,6 @@ _ZTSN6Genode18Allocator_avl_baseE R 30
 _ZTSN6Genode23Alarm_timeout_schedulerE R 35
 _ZTSN6Genode4HeapE R 15
 _ZTSN6Genode4SlabE R 15
-_ZTSN6Genode5AlarmE R 16
 _ZTSN6Genode5Child14Initial_threadE R 32
 _ZTSN6Genode5ChildE R 16
 _ZTSN6Genode6OutputE R 17
@@ -401,7 +385,6 @@ _ZTVN6Genode18Allocator_avl_baseE D 128
 _ZTVN6Genode23Alarm_timeout_schedulerE D 112
 _ZTVN6Genode4HeapE D 72
 _ZTVN6Genode4SlabE D 72
-_ZTVN6Genode5AlarmE D 40
 _ZTVN6Genode5Child14Initial_threadE D 48
 _ZTVN6Genode5ChildE D 440
 _ZTVN6Genode6OutputE D 48

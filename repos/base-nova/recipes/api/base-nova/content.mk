@@ -1,6 +1,5 @@
 FROM_BASE_NOVA := etc include
-FROM_BASE      := lib/mk/timeout.mk src/lib/timeout \
-                  lib/mk/alarm.mk   src/lib/alarm
+FROM_BASE      := lib/mk/timeout.mk src/lib/timeout
 
 content: $(FROM_BASE_NOVA) $(FROM_BASE) LICENSE
 

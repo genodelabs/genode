@@ -12,7 +12,7 @@
  */
 
 #include <base/log.h>
-#include <base/alarm.h>
+#include <rump/alarm.h>
 
 using namespace Genode;
 

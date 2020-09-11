@@ -21,7 +21,7 @@
 
 #include <base/thread.h>
 #include <base/semaphore.h>
-#include <base/alarm.h>
+#include <rump/alarm.h>
 #include <timer_session/connection.h>
 
 using Genode::Exception;
