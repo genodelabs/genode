@@ -93,6 +93,22 @@ class Libc::Vfs_plugin : public Plugin
 
 		int _legacy_ioctl(File_descriptor *, unsigned long, char *);
 
+		struct Ioctl_result
+		{
+			bool handled;
+			int  error;
+		};
+
+		/**
+		 * Terminal related I/O controls
+		 */
+		Ioctl_result _ioctl_tio(File_descriptor *, unsigned long, char *);
+
+		/**
+		 * Block related I/O controls
+		 */
+		Ioctl_result _ioctl_dio(File_descriptor *, unsigned long, char *);
+
 		/**
 		 * Call functor 'fn' with ioctl info for the given file descriptor 'fd'
 		 *
