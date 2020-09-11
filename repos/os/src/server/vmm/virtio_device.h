@@ -225,6 +225,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 		Genode::Constructible<Virtio_queue> _queue[NUM];
 		Gic::Irq                           &_irq;
 		Ram                                &_ram;
+		Genode::Mutex                       _mutex;
 
 		struct Dummy {
 			Mmio_register regs[7];
@@ -344,6 +345,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				if (reg >= device.NUM) return;
 				device._queue_select(reg);
 			}
@@ -359,6 +361,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				device._queue_data().num = Genode::min(reg,
 					device._reg_container.regs[6].value());
 			}
@@ -374,11 +377,13 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			Register read(Address_range&,  Cpu&) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				return device._queue_data().ready; 
 			}
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				bool construct = reg == 1 ? true : false;
 				device._queue_data().ready = reg;
 				device._queue_state(construct);
@@ -395,6 +400,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				if (!device._queue[reg].constructed()) return;
 
 				device._notify(reg);
@@ -411,6 +417,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				device._queue_data().descr_low = reg;
 			}
 
@@ -425,6 +432,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				device._queue_data().descr_high = reg;
 			}
 
@@ -439,6 +447,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				device._queue_data().driver_low = reg;
 			}
 
@@ -453,6 +462,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				device._queue_data().driver_high = reg;
 			}
 
@@ -467,6 +477,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				device._queue_data().device_low = reg;
 			}
 
@@ -481,6 +492,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				device._queue_data().device_high = reg;
 			}
 
@@ -507,6 +519,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register reg) override
 			{
+				Genode::Mutex::Guard guard(device.mutex());
 				device._deassert_irq();
 			}
 
@@ -525,6 +538,8 @@ class Vmm::Virtio_device : public Vmm::Mmio_device
 		              Mmio_bus &bus,
 		              Ram      &ram,
 		              unsigned queue_size = 8);
+
+		Genode::Mutex & mutex() { return _mutex; }
 };
 
 #endif /* _VIRTIO_DEVICE_H_ */

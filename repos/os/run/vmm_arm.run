@@ -150,7 +150,7 @@ if { [have_spec arm_64] } {
 
 	if {![file exists bin/dtb]} {
 		puts "Download device tree blob ..."
-			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-20.02/dtb-arm64-virt
+			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-20.11/dtb-arm64-virt-smp
 	}
 
 	if {![file exists bin/initrd]} {
@@ -216,4 +216,4 @@ build_boot_image $boot_modules
 #
 append qemu_args " -nographic "
 run_genode_until "\[init -> vm\] .*sbin.*" 220
-exec rm bin/linux bin/dtb
+exec rm bin/linux bin/dtb bin/initrd

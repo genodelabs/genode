@@ -109,6 +109,8 @@ class Vmm::Virtio_net : public Virtio_device
 
 		void _handle()
 		{
+			Genode::Mutex::Guard guard(_mutex);
+
 			_rx();
 			_tx();
 		}

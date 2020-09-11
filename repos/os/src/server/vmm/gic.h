@@ -47,7 +47,7 @@ class Vmm::Gic : public Vmm::Mmio_device
 				struct List : Genode::List<Irq>
 				{
 					void insert(Irq & irq);
-					Irq * highest_enabled();
+					Irq * highest_enabled(unsigned cpu_id = ~0U);
 				};
 
 				struct Irq_handler {
@@ -92,7 +92,7 @@ class Vmm::Gic : public Vmm::Mmio_device
 				Config          _config  { LEVEL    };
 				unsigned        _num     { 0 };
 				Genode::uint8_t _prio    { 0 };
-				Genode::uint8_t _target  { 1 };
+				Genode::uint8_t _target  { 0 };
 				List          & _pending_list;
 				Irq_handler   * _handler { nullptr };
 		};
@@ -382,6 +382,9 @@ class Vmm::Gic : public Vmm::Mmio_device
 			Register read(Irq & irq)              { return irq.target(); }
 			void     write(Irq & irq, Register v) { irq.target(v);       }
 
+			Register read(Address_range  & access, Cpu&) override;
+			void     write(Address_range & access, Cpu&, Register value) override;
+
 			Gicd_itargetr()
 			: Irq_reg("GICD_ITARGETSR", Mmio_register::RW, 0x800, 8, 1024) {}
 		} _itargetr;
@@ -398,14 +401,14 @@ class Vmm::Gic : public Vmm::Mmio_device
 
 		struct Gicd_sgir : Genode::Register<32>, Mmio_register
 		{
-			struct Enable  : Bitfield<0, 1> {};
-			struct Disable : Bitfield<6, 1> {};
+			struct Int_id        : Bitfield<0, 4>  {};
+			struct Target_list   : Bitfield<16, 8> {};
+			struct Target_filter : Bitfield<24, 2> {
+				enum Target_type { LIST, ALL, MYSELF, INVALID };
+			};
 
 			void write(Address_range & access, Cpu & cpu,
-			           Mmio_register::Register value) override
-			{
-				Genode::error("SGIR WRITE ", value);
-			}
+			           Mmio_register::Register value) override;
 
 			Gicd_sgir()
 			: Mmio_register("GICD_SGIR", Mmio_register::WO, 0xf00, 4, 0) {}
@@ -414,8 +417,10 @@ class Vmm::Gic : public Vmm::Mmio_device
 
 		struct Gicd_irouter : Irq_reg
 		{
-			Register read(Irq &)            { return 0x0; } // FIXME smp
-			void     write(Irq &, Register) { }
+			Register read(Irq &) { return 0x0; } /* FIXME affinity routing support */
+
+			void write(Irq & i, Register v) {
+				if (v) Genode::error("Affinity routing not supported ", i.number()); }
 
 			Gicd_irouter()
 			: Irq_reg("GICD_IROUTER", Mmio_register::RW, 0x6100, 64, 1024) {}

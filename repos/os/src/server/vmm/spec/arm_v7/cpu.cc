@@ -186,4 +186,5 @@ Cpu::Cpu(Vm                      & vm,
 {
 	_state.cpsr  = 0x93; /* el1 mode and IRQs disabled */
 	_state.sctrl = 0xc50078;
+	_state.vmpidr = (1UL << 31) | cpu_id();
 }

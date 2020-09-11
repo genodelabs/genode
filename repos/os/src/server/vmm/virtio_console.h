@@ -32,6 +32,8 @@ class Vmm::Virtio_console : public Virtio_device
 
 		void _read()
 		{
+			Genode::Mutex::Guard guard(_mutex);
+
 			auto read = [&] (addr_t data, size_t size)
 			{
 				if (!_terminal.avail()) return 0ul;
@@ -61,6 +63,7 @@ class Vmm::Virtio_console : public Virtio_device
 		}
 
 		Register _device_specific_features() { return 0; }
+
 	public:
 
 		Virtio_console(const char * const name,

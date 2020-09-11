@@ -45,6 +45,7 @@ class Vmm::Cpu_base
 				enum {
 					WFI     = 0x1,
 					MRC_MCR = 0x3,
+					HVC_32  = 0x12,
 					HVC     = 0x16,
 					MRS_MSR = 0x18,
 					DA      = 0x24,
@@ -219,6 +220,10 @@ class Vmm::Cpu_base
 		void _handle_data_abort();
 		void _handle_hyper_call();
 		void _update_state();
+
+	public:
+
+		Vm & vm() { return _vm; }
 };
 
 #endif /* _SRC__SERVER__VMM__CPU_BASE_H_ */

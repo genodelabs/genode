@@ -58,8 +58,9 @@ void Generic_timer::schedule_timeout()
 	}
 
 	if (_enabled()) {
-		if (_usecs_left()) {
-			_timeout.schedule(Genode::Microseconds(_usecs_left()));
+		Genode::uint64_t usecs = _usecs_left();
+		if (usecs) {
+			_timeout.schedule(Genode::Microseconds(usecs));
 		} else _handle_timeout(Genode::Duration(Genode::Microseconds(0)));
 	}
 }
@@ -67,7 +68,7 @@ void Generic_timer::schedule_timeout()
 
 void Generic_timer::cancel_timeout()
 {
-	if (_timeout.scheduled()) _timeout.discard();
+	if (_timeout.scheduled()) { _timeout.discard(); }
 }
 
 

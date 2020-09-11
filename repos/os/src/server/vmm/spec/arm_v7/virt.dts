@@ -14,7 +14,16 @@
 			compatible = "arm,cortex-a15";
 			reg = <0x00>;
 			device_type = "cpu";
+			enable-method = "psci";
 		};
+	};
+
+	psci {
+		compatible    = "arm,psci-1.0";
+		method        = "hvc";
+		cpu_suspend   = <0xc4000001>;
+		cpu_off       = <0xc4000002>;
+		cpu_on        = <0xc4000003>;
 	};
 
 	timer {

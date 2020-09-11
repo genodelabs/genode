@@ -90,6 +90,7 @@ void Cpu_base::_handle_sync()
 {
 	/* check device number*/
 	switch (Esr::Ec::get(_state.esr_el2)) {
+	case Esr::Ec::HVC_32: [[fallthrough]];
 	case Esr::Ec::HVC:
 		_handle_hyper_call();
 		break;
@@ -137,6 +138,7 @@ void Cpu_base::_handle_hyper_call()
 		case Psci::PSCI_FEATURES:
 			_state.reg(0, Psci::NOT_SUPPORTED);
 			return;
+		case Psci::CPU_ON_32: [[fallthrough]];
 		case Psci::CPU_ON:
 			_vm.cpu((unsigned)_state.reg(1), [&] (Cpu & cpu) {
 				cpu.state().ip   = _state.reg(2);
