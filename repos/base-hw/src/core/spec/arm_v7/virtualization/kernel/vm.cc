@@ -39,20 +39,51 @@ namespace Kernel
 
 using namespace Kernel;
 
-extern "C" void   kernel();
-extern     void * kernel_stack;
-extern "C" void   hypervisor_enter_vm(Genode::Vm_state&);
-
 struct Host_context {
+	Cpu::Ttbr_64bit::access_t vttbr;
+	Cpu::Hcr::access_t        hcr;
+	Cpu::Hstr::access_t       hstr;
+	Cpu::Cpacr::access_t      cpacr;
 	addr_t                    sp;
 	addr_t                    ip;
+	addr_t                    spsr;
 	Cpu::Ttbr_64bit::access_t ttbr0;
 	Cpu::Ttbr_64bit::access_t ttbr1;
 	Cpu::Sctlr::access_t      sctlr;
 	Cpu::Ttbcr::access_t      ttbcr;
 	Cpu::Mair0::access_t      mair0;
 	Cpu::Dacr::access_t       dacr;
+	Cpu::Vmpidr::access_t     vmpidr;
 } vt_host_context;
+
+
+extern "C" void   kernel();
+extern "C" void   hypervisor_enter_vm(Genode::Vm_state&, Host_context&);
+
+
+static Host_context & host_context(Cpu & cpu)
+{
+	static Genode::Constructible<Host_context> host_context[NR_OF_CPUS];
+	if (!host_context[cpu.id()].constructed()) {
+		host_context[cpu.id()].construct();
+		Host_context & c = *host_context[cpu.id()];
+		c.sp     = cpu.stack_start();
+		c.ttbr0  = Cpu::Ttbr0_64bit::read();
+		c.ttbr1  = Cpu::Ttbr1_64bit::read();
+		c.sctlr  = Cpu::Sctlr::read();
+		c.ttbcr  = Cpu::Ttbcr::read();
+		c.mair0  = Cpu::Mair0::read();
+		c.dacr   = Cpu::Dacr::read();
+		c.vmpidr = Cpu::Mpidr::read();
+		c.ip     = (addr_t) &kernel;
+		c.vttbr  = 0;
+		c.hcr    = 0;
+		c.hstr   = 0;
+		c.cpacr  = 0xf00000;
+		c.spsr   = 0x1d3;
+	}
+	return *host_context[cpu.id()];
+}
 
 
 Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu & cpu)
@@ -92,48 +123,20 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 	asm volatile("mcr p15, 0, %0, c14, c1, 0" :: "r" (0b11));
 }
 
-using Vmid_allocator = Genode::Bit_allocator<256>;
 
-static Vmid_allocator &alloc()
-{
-	static Vmid_allocator * allocator = nullptr;
-	if (!allocator) {
-		allocator = unmanaged_singleton<Vmid_allocator>();
-
-		/* reserve VM ID 0 for the hypervisor */
-		unsigned id = allocator->alloc();
-		assert (id == 0);
-	}
-	return *allocator;
-}
-
-
-Kernel::Vm::Vm(unsigned, /* FIXME: smp support */
+Kernel::Vm::Vm(unsigned                 cpu,
                Genode::Vm_state       & state,
                Kernel::Signal_context & context,
-               void                   * const table)
+               Identity               & id)
 : Kernel::Object { *this },
   Cpu_job(Cpu_priority::MIN, 0),
-  _id(alloc().alloc()),
   _state(state),
   _context(context),
-  _table(table),
-  _vcpu_context(cpu_pool().primary_cpu())
+  _id(id),
+  _vcpu_context(cpu_pool().cpu(cpu))
 {
-	affinity(cpu_pool().primary_cpu());
-
-	vt_host_context.sp    = _cpu->stack_start();
-	vt_host_context.ttbr0 = Cpu::Ttbr0_64bit::read();
-	vt_host_context.ttbr1 = Cpu::Ttbr1_64bit::read();
-	vt_host_context.sctlr = Cpu::Sctlr::read();
-	vt_host_context.ttbcr = Cpu::Ttbcr::read();
-	vt_host_context.mair0 = Cpu::Mair0::read();
-	vt_host_context.dacr  = Cpu::Dacr::read();
-	vt_host_context.ip    = (addr_t) &kernel;
+	affinity(cpu_pool().cpu(cpu));
 }
-
-
-Kernel::Vm::~Vm() { alloc().free(_id); }
 
 
 void Kernel::Vm::exception(Cpu & cpu)
@@ -163,8 +166,8 @@ void Kernel::Vm::proceed(Cpu & cpu)
 	/*
 	 * the following values have to be enforced by the hypervisor
 	 */
-	_state.vttbr = Cpu::Ttbr_64bit::Ba::masked((Cpu::Ttbr_64bit::access_t)_table);
-	Cpu::Ttbr_64bit::Asid::set(_state.vttbr, _id);
+	_state.vttbr = Cpu::Ttbr_64bit::Ba::masked((Cpu::Ttbr_64bit::access_t)_id.table);
+	Cpu::Ttbr_64bit::Asid::set(_state.vttbr, _id.id);
 
 	/*
 	 * use the following report fields not needed for loading the context
@@ -174,7 +177,7 @@ void Kernel::Vm::proceed(Cpu & cpu)
 	_state.esr_el2   = Cpu::Hstr::init();
 	_state.hpfar_el2 = Cpu::Hcr::init();
 
-	hypervisor_enter_vm(_state);
+	hypervisor_enter_vm(_state, host_context(cpu));
 }
 
 

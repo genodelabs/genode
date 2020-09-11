@@ -58,7 +58,8 @@ static inline void prepare_non_secure_world()
 }
 
 
-static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr)
+static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr,
+                                      unsigned cpu_id)
 {
 	using namespace Hw::Mm;
 
@@ -80,7 +81,7 @@ static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr)
 	/* set hypervisor exception vector */
 	Cpu::Vbar_el2::write(el2_addr(hypervisor_exception_vector().base));
 	Genode::addr_t const stack_el2 = el2_addr(hypervisor_stack().base +
-	                                          hypervisor_stack().size);
+	                                          (cpu_id+1) * 0x1000);
 
 	/* set hypervisor's translation table */
 	Cpu::Ttbr0_el2::write(ttbr);
@@ -89,7 +90,7 @@ static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr)
 	Cpu::Tcr_el2::T0sz::set(tcr_el2, 25);
 	Cpu::Tcr_el2::Irgn0::set(tcr_el2, 1);
 	Cpu::Tcr_el2::Orgn0::set(tcr_el2, 1);
-	Cpu::Tcr_el2::Sh0::set(tcr_el2, 0b10);
+	Cpu::Tcr_el2::Sh0::set(tcr_el2, 0b11);
 
 	/* prepare MMU usage by hypervisor code */
 	Cpu::Tcr_el2::write(tcr_el2);
@@ -141,6 +142,8 @@ unsigned Bootstrap::Platform::enable_mmu()
 	bool primary = primary_cpu;
 	if (primary) primary_cpu = false;
 
+	unsigned cpu_id = (Cpu::Mpidr::read() & 0xff);
+
 	Cpu::Ttbr::access_t ttbr =
 		Cpu::Ttbr::Baddr::masked((Genode::addr_t)core_pd->table_base);
 
@@ -152,7 +155,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 			prepare_non_secure_world();
 		} else {
 			::Board::Pic pic __attribute__((unused)) {};
-			prepare_hypervisor(ttbr);
+			prepare_hypervisor(ttbr, cpu_id);
 		}
 	}
 
@@ -201,5 +204,5 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::Sctlr::Uct::set(sctlr, 1);
 	Cpu::Sctlr_el1::write(sctlr);
 
-	return (Cpu::Mpidr::read() & 0xff);
+	return cpu_id;
 }

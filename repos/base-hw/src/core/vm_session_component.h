@@ -65,7 +65,8 @@ class Genode::Vm_session_component
 		Region_map                 &_region_map;
 		Board::Vm_page_table       &_table;
 		Board::Vm_page_table_array &_table_array;
-		unsigned                    _id_alloc { 0 };
+		Kernel::Vm::Identity        _id;
+		unsigned                    _vcpu_id_alloc { 0 };
 
 		static size_t _ds_size();
 		bool          _valid_id(Vcpu_id id) { return id.id < Board::VCPU_MAX; }

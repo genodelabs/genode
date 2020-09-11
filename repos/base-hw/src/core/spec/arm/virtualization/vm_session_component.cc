@@ -80,6 +80,22 @@ void * Vm_session_component::_alloc_table()
 }
 
 
+using Vmid_allocator = Genode::Bit_allocator<256>;
+
+static Vmid_allocator &alloc()
+{
+	static Vmid_allocator * allocator = nullptr;
+	if (!allocator) {
+		allocator = unmanaged_singleton<Vmid_allocator>();
+
+		/* reserve VM ID 0 for the hypervisor */
+		unsigned id = allocator->alloc();
+		assert (id == 0);
+	}
+	return *allocator;
+}
+
+
 Vm_session_component::Vm_session_component(Rpc_entrypoint &ds_ep,
                                            Resources resources,
                                            Label const &,
@@ -96,7 +112,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ds_ep,
   _region_map(region_map),
   _table(*construct_at<Board::Vm_page_table>(_alloc_table())),
   _table_array(*(new (cma()) Board::Vm_page_table_array([this] (void * virt) {
-	return (addr_t)cma().phys_addr(virt);})))
+	return (addr_t)cma().phys_addr(virt);}))),
+  _id({(unsigned)alloc().alloc(), cma().phys_addr(&_table)})
 {
 	/* configure managed VM area */
 	_map.add_range(0, 0UL - 0x1000);
@@ -117,7 +134,7 @@ Vm_session_component::~Vm_session_component()
 	}
 
 	/* free region in allocator */
-	for (unsigned i = 0; i < _id_alloc; i++) {
+	for (unsigned i = 0; i < _vcpu_id_alloc; i++) {
 		Vcpu & vcpu = _vcpus[i];
 		if (vcpu.ds_cap.valid()) {
 			_region_map.detach(vcpu.ds_addr);
@@ -128,4 +145,5 @@ Vm_session_component::~Vm_session_component()
 	/* free guest-to-host page tables */
 	destroy(platform().core_mem_alloc(), &_table);
 	destroy(platform().core_mem_alloc(), &_table_array);
+	alloc().free(_id.id);
 }

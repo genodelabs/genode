@@ -11,34 +11,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-.set USR_MODE, 16
-.set FIQ_MODE, 17
-.set IRQ_MODE, 18
-.set SVC_MODE, 19
-.set ABT_MODE, 23
-.set UND_MODE, 27
-.set SYS_MODE, 31
-
-.macro _save_bank mode
-	cps   #\mode          /* switch to given mode                  */
-	mrs   r1, spsr        /* store mode-specific spsr              */
-	stmia r0!, {r1,sp,lr} /* store mode-specific sp and lr         */
-.endm /* _save_bank mode */
-
-.macro _restore_bank mode
-	cps   #\mode          /* switch to given mode                        */
-	ldmia r0!, {r1,sp,lr} /* load mode-specific sp, lr, and spsr into r1 */
-	msr   spsr_cxfs, r1   /* load mode-specific spsr                     */
-.endm
-
 .macro _vm_exit exception_type
-	str   r0, [sp]
+	push  { r0 }
 	mrc   p15, 4, r0, c1, c1, 0 /* read HCR register */
 	tst   r0, #1                /* check VM bit      */
-	ldreq r0, [sp]
 	beq   _host_to_vm
 	mov   r0, #\exception_type
-	str   r0, [sp, #17*4]
 	b     _vm_to_host
 .endm /* _vm_exit */
 
@@ -70,146 +48,176 @@ _vt_irq_entry: _vm_exit 6
 _vt_trp_entry: _vm_exit 8
 
 _host_to_vm:
-	msr   elr_hyp,   r2
-	msr   spsr_cxfs, r3           /* load cpsr              */
-	mcrr  p15, 6, r5, r6, c2      /* write VTTBR            */
-	mcr   p15, 0, r7, c1, c0, 0   /* write SCTRL            */
-	mcr   p15, 4, r8, c1, c1, 3   /* write HSTR             */
-	mcr   p15, 4, r9, c1, c1, 0   /* write HCR register     */
-	mcr   p15, 0, r12, c2, c0, 2  /* write TTBRC            */
-	sub   sp, r0, #46*4
-	ldm   r0!, {r1-r12}
-	mcr   p15, 0, r1, c2, c0, 0   /* write TTBR0            */
-	mcr   p15, 0, r2, c2, c0, 1   /* write TTBR1            */
-	mcr   p15, 0, r3, c10, c2, 0  /* write PRRR             */
-	mcr   p15, 0, r4, c10, c2, 1  /* write NMRR             */
-	mcr   p15, 0, r5, c3, c0, 0   /* write DACR             */
-	mcr   p15, 0, r6, c5, c0, 0   /* write DFSR             */
-	mcr   p15, 0, r7, c5, c0, 1   /* write IFSR             */
-	mcr   p15, 0, r8, c5, c1, 0   /* write ADFSR            */
-	mcr   p15, 0, r9, c5, c1, 1   /* write AIFSR            */
-	mcr   p15, 0, r10, c6, c0, 0  /* write DFAR             */
-	mcr   p15, 0, r11, c6, c0, 2  /* write IFAR             */
-	mcr   p15, 0, r12, c13, c0, 1 /* write CIDR             */
-	ldm   r0!, {r1-r4}
-	mcr   p15, 0, r1, c13, c0, 2  /* write TLS1             */
-	mcr   p15, 0, r2, c13, c0, 3  /* write TLS2             */
-	mcr   p15, 0, r3, c13, c0, 4  /* write TLS3             */
-	mcr   p15, 0, r4, c1,  c0, 2  /* write CPACR            */
-	ldr  r1, [r0]
-	vmsr fpscr, r1
-	add  r1, r0, #4
-	vldm r1!, {d0-d15}
-	vldm r1!, {d16-d31}
-	ldm  r1!, {r2-r7}
-	mcrr p15, 4, r2, r3,  c14     /* write cntvoff          */
-	mcrr p15, 3, r4, r5,  c14     /* write cntv_cval        */
-	mcr  p15, 0, r6, c14, c3, 1   /* write cntv_ctl         */
-	mcr  p15, 0, r7, c14, c1, 0   /* write cntkctl          */
-	ldmia sp, {r0-r12}            /* load vm's r0-r12       */
+	push  { r1 }
+	ldr   r0, [sp, #1*4]
+	add   r0, r0, #13*4
+	ldmia r0!, { r1-r5 }
+	msr   sp_usr,    r1
+	mov   lr,        r2
+	msr   elr_hyp,   r3
+	msr   spsr_cxfs, r4
+	ldmia r0!, { r1-r12 }
+	msr   spsr_und,  r1
+	msr   sp_und,    r2
+	msr   lr_und,    r3
+	msr   spsr_svc,  r4
+	msr   sp_svc,    r5
+	msr   lr_svc,    r6
+	msr   spsr_abt,  r7
+	msr   sp_abt,    r8
+	msr   lr_abt,    r9
+	msr   spsr_irq,  r10
+	msr   sp_irq,    r11
+	msr   lr_irq,    r12
+	ldmia r0!, {r5 - r12}
+	msr   spsr_fiq,  r5
+	msr   sp_fiq,    r6
+	msr   lr_fiq,    r7
+	msr   r8_fiq,    r8
+	msr   r9_fiq,    r9
+	msr   r10_fiq,   r10
+	msr   r11_fiq,   r11
+	msr   r12_fiq,   r12
+	ldmia r0!, {r1 - r12}
+	mcrr  p15, 6, r1, r2, c2      /* write VTTBR        */
+	mcr   p15, 0, r3, c1, c0, 0   /* write SCTRL        */
+	mcr   p15, 4, r4, c1, c1, 3   /* write HSTR         */
+	mcr   p15, 4, r5, c1, c1, 0   /* write HCR register */
+	mcr   p15, 0, r8, c2, c0, 2   /* write TTBRC        */
+	mcr   p15, 0, r9, c2, c0, 0   /* write TTBR0        */
+	mcr   p15, 0, r10, c2, c0, 1  /* write TTBR1        */
+	mcr   p15, 0, r11, c10, c2, 0 /* write PRRR         */
+	mcr   p15, 0, r12, c10, c2, 1 /* write NMRR         */
+	ldmia r0!, {r1-r12}
+	mcr   p15, 0, r1, c3, c0, 0   /* write DACR         */
+	mcr   p15, 0, r2, c5, c0, 0   /* write DFSR         */
+	mcr   p15, 0, r3, c5, c0, 1   /* write IFSR         */
+	mcr   p15, 0, r4, c5, c1, 0   /* write ADFSR        */
+	mcr   p15, 0, r5, c5, c1, 1   /* write AIFSR        */
+	mcr   p15, 0, r6, c6, c0, 0   /* write DFAR         */
+	mcr   p15, 0, r7, c6, c0, 2   /* write IFAR         */
+	mcr   p15, 0, r8, c13, c0, 1  /* write CIDR         */
+	mcr   p15, 0, r9, c13, c0, 2  /* write TLS1         */
+	mcr   p15, 0, r10, c13, c0, 3 /* write TLS2         */
+	mcr   p15, 0, r11, c13, c0, 4 /* write TLS3         */
+	mcr   p15, 0, r12, c1,  c0, 2 /* write CPACR        */
+	ldmia r0!, {r1-r2}
+	mcr   p15, 4, r1,  c0,  c0, 5 /* write VMPIDR       */
+	vmsr  fpscr, r2
+	vldm  r0!, {d0-d15}
+	vldm  r0!, {d16-d31}
+	ldmia r0!, {r1-r6}
+	mcrr  p15, 4, r1, r2,  c14    /* write cntvoff      */
+	mcrr  p15, 3, r3, r4,  c14    /* write cntv_cval    */
+	mcr   p15, 0, r5, c14, c3, 1  /* write cntv_ctl     */
+	mcr   p15, 0, r6, c14, c1, 0  /* write cntkctl      */
+	ldr   r0, [sp, #1*4]
+	ldmia r0, {r0-r12}            /* load vm's r0-r12   */
 	eret
 
 _vm_to_host:
-	add r0, sp, #1*4
-	stmia r0, {r1-r12}            /* save regs r1-r12       */
-	mov r1, #0
-	mcrr p15, 6, r1, r1, c2       /* write VTTBR            */
-	mcr p15, 4, r1, c1, c1, 0     /* write HCR register     */
-	mcr p15, 4, r1, c1, c1, 3     /* write HSTR register    */
+	push  { r0 }                  /* push cpu excep.    */
+	ldr   r0,  [sp, #3*4]         /* load vm state ptr  */
+	add   r0,  r0,  #1*4          /* skip r0            */
+	stmia r0!, {r1-r12}           /* save regs r1-r12   */
+	pop   { r5 }                  /* pop cpu excep.     */
+	pop   { r1 }                  /* pop r0             */
+	str   r1,  [r0, #-13*4]       /* save r0            */
+	mrs   r1,  sp_usr             /* read USR sp        */
+	mov   r2,  lr                 /* read USR lr        */
+	mrs   r3,  elr_hyp            /* read ip            */
+	mrs   r4,  spsr               /* read cpsr          */
+	mrs   r6,  spsr_und
+	mrs   r7,  sp_und
+	mrs   r8,  lr_und
+	mrs   r9,  spsr_svc
+	mrs   r10, sp_svc
+	mrs   r11, lr_svc
+	mrs   r12, spsr_abt
+	stmia r0!, {r1-r12}
+	mrs   r1,  sp_abt
+	mrs   r2,  lr_abt
+	mrs   r3,  spsr_irq
+	mrs   r4,  sp_irq
+	mrs   r5,  lr_irq
+	mrs   r6,  spsr_fiq
+	mrs   r7,  sp_fiq
+	mrs   r8,  lr_fiq
+	mrs   r9,  r8_fiq
+	mrs   r10, r9_fiq
+	mrs   r11, r10_fiq
+	mrs   r12, r11_fiq
+	stmia r0!, {r1-r12}
+	mrs   r1,  r12_fiq
+	str   r1,  [r0]
+	add   r0,  r0, #3*4           /* skip VTTBR             */
+	mrc   p15, 0, r1,  c1,  c0, 0 /* read SCTRL             */
+	mrc   p15, 4, r2,  c5,  c2, 0 /* read HSR               */
+	mrc   p15, 4, r3,  c6,  c0, 4 /* read HPFAR             */
+	mrc   p15, 4, r4,  c6,  c0, 0 /* read HDFAR             */
+	mrc   p15, 4, r5,  c6,  c0, 2 /* read HIFAR             */
+	mrc   p15, 0, r6,  c2,  c0, 2 /* read TTBRC             */
+	mrc   p15, 0, r7,  c2,  c0, 0 /* read TTBR0             */
+	mrc   p15, 0, r8,  c2,  c0, 1 /* read TTBR1             */
+	mrc   p15, 0, r9,  c10, c2, 0 /* read PRRR              */
+	mrc   p15, 0, r10, c10, c2, 1 /* read NMRR              */
+	mrc   p15, 0, r11, c3,  c0, 0 /* read DACR              */
+	mrc   p15, 0, r12, c5,  c0, 0 /* read DFSR              */
+	stmia r0!, {r1-r12}
+	mrc   p15, 0, r1,  c5,  c0, 1 /* read IFSR              */
+	mrc   p15, 0, r2,  c5,  c1, 0 /* read ADFSR             */
+	mrc   p15, 0, r3,  c5,  c1, 1 /* read AIFSR             */
+	mrc   p15, 0, r4,  c6,  c0, 0 /* read DFAR              */
+	mrc   p15, 0, r5,  c6,  c0, 2 /* read IFAR              */
+	mrc   p15, 0, r6,  c13, c0, 1 /* read CIDR              */
+	mrc   p15, 0, r7,  c13, c0, 2 /* read TLS1              */
+	mrc   p15, 0, r8,  c13, c0, 3 /* read TLS2              */
+	mrc   p15, 0, r9,  c13, c0, 4 /* read TLS3              */
+	mrc   p15, 0, r10, c1,  c0, 2 /* read CPACR             */
+	mrc   p15, 4, r11, c0,  c0, 5 /* read VMPIDR            */
+	stmia r0!, {r1-r11}
+	mov   r1,  #1                 /* clear fpu excep. state */
+	lsl   r1,  #30
+	vmsr  fpexc, r1
+	vmrs  r12, fpscr
+	stmia r0!, {r12}
+	vstm  r0!, {d0-d15}
+	vstm  r0!, {d16-d31}
+	mrrc  p15, 4, r1,  r2,  c14   /* read cntvoff           */
+	mrrc  p15, 3, r3,  r4,  c14   /* read cntv_cval         */
+	mrc   p15, 0, r5,  c14, c3, 1 /* read cntv_ctl          */
+	mrc   p15, 0, r6,  c14, c1, 0 /* read cntkctl           */
+	stmia r0!, {r1-r6}
 
-	mrs r1, ELR_hyp               /* read ip                */
-	mrs r2, spsr                  /* read cpsr              */
-	mrc p15, 0, r3, c1, c0, 0     /* read SCTRL             */
-	mrc p15, 4, r4, c5, c2, 0     /* read HSR               */
-	mrc p15, 4, r5, c6, c0, 4     /* read HPFAR             */
-	mrc p15, 4, r6, c6, c0, 0     /* read HDFAR             */
-	mrc p15, 4, r7, c6, c0, 2     /* read HIFAR             */
-	mrc p15, 0, r8, c2, c0, 2     /* read TTBRC             */
-	mrc p15, 0, r9, c2, c0, 0     /* read TTBR0             */
-	mrc p15, 0, r10, c2, c0, 1    /* read TTBR1             */
-	mrc p15, 0, r11, c10, c2, 0   /* read PRRR              */
-	mrc p15, 0, r12, c10, c2, 1   /* read NMRR              */
-	add r0, sp, #40*4             /* offset SCTRL           */
-	stm r0!, {r3-r12}
-	mrc p15, 0, r3, c3, c0, 0     /* read DACR              */
-	mrc p15, 0, r4, c5, c0, 0     /* read DFSR              */
-	mrc p15, 0, r5, c5, c0, 1     /* read IFSR              */
-	mrc p15, 0, r6, c5, c1, 0     /* read ADFSR             */
-	mrc p15, 0, r7, c5, c1, 1     /* read AIFSR             */
-	mrc p15, 0, r8, c6, c0, 0     /* read DFAR              */
-	mrc p15, 0, r9, c6, c0, 2     /* read IFAR              */
-	mrc p15, 0, r10, c13, c0, 1   /* read CIDR              */
-	mrc p15, 0, r11, c13, c0, 2   /* read TLS1              */
-	mrc p15, 0, r12, c13, c0, 3   /* read TLS2              */
-	stm r0!, {r3-r12}
-	mrc p15, 0, r3, c13, c0, 4    /* read TLS3              */
-	mrc p15, 0, r4, c1, c0, 2     /* read CPACR             */
-	stm r0!, {r3, r4}
+	clrex
+	dsb sy
+	isb sy
 
-	mov r3, #0xf
-	lsl r3, #20
-	mcr p15, 0, r3, c1, c0, 2     /* write CPACR            */
+	/**************************
+	 ** Restore host context **
+	 **************************/
 
-	mov    r3, #1               /* clear fpu exception state */
-	lsl    r3, #30
-	vmsr   fpexc, r3
-	vmrs   r4, fpscr
-	stmia  r0!, {r4}
-	vstm   r0!, {d0-d15}
-	vstm   r0!, {d16-d31}
-	mrrc p15, 4, r3, r4,  c14     /* read cntvoff          */
-	mrrc p15, 3, r5, r6,  c14     /* read cntv_cval        */
-	mrc  p15, 0, r7, c14, c3, 1   /* write cntv_ctl         */
-	mrc  p15, 0, r8, c14, c1, 0   /* write cntkctl          */
-	stm  r0!, {r3-r8}
-	add r0, sp, #13*4
-	ldr r3, _vt_host_context_ptr
-	ldr sp, [r3]
-	add r3, r3, #2*4
-	ldm r3, {r4-r11}
-	mcrr p15, 0, r6,  r7,  c2
-	mcrr p15, 1, r6,  r7,  c2
-	mcr  p15, 0, r8,  c1,  c0, 0  /* write SCTRL            */
-	mcr  p15, 0, r9,  c2,  c0, 2  /* write TTBRC            */
-	mcr  p15, 0, r10, c10, c2, 0  /* write MAIR0            */
-	mcr  p15, 0, r11, c3,  c0, 0  /* write DACR             */
-	mov r10, #7
-	lsl r10, #6
-	add r10, r10, #SVC_MODE
-	msr spsr_cxsf, r10
-	adr r10, _svc_mode_ret
-	msr ELR_hyp, r10
+	pop   { r0, r1 }
+	ldmia r0!, {r1-r12}
+	mcrr  p15, 6, r1,  r2,  c2    /* write VTTBR            */
+	mcr   p15, 4, r3,  c1,  c1, 0 /* write HCR register     */
+	mcr   p15, 4, r4,  c1,  c1, 3 /* write HSTR register    */
+	mcr   p15, 0, r5,  c1,  c0, 2 /* write CPACR            */
+	msr   sp_svc,    r6
+	msr   elr_hyp,   r7
+	msr   spsr_cxfs, r8
+	mcrr  p15, 0, r9,  r10, c2    /* write TTBR0            */
+	mcrr  p15, 1, r11, r12, c2    /* write TTBR1            */
+	ldmia r0,  {r1-r5}
+	mcr   p15, 0, r1,  c1,  c0, 0 /* write SCTRL            */
+	mcr   p15, 0, r2,  c2,  c0, 2 /* write TTBRC            */
+	mcr   p15, 0, r3,  c10, c2, 0 /* write MAIR0            */
+	mcr   p15, 0, r4,  c3,  c0, 0 /* write DACR             */
+	mcr   p15, 4, r5,  c0,  c0, 5 /* write VMPIDR           */
 	eret
-_svc_mode_ret:
-	stmia r0, {r13-r14}^          /* save user regs sp,lr   */
-	add r0, r0, #2*4
-	stmia r0!, {r1-r2}            /* save ip, cpsr          */
-	add r0, r0, #1*4
-	_save_bank UND_MODE           /* save undefined banks   */
-	_save_bank SVC_MODE           /* save supervisor banks  */
-	_save_bank ABT_MODE           /* save abort banks       */
-	_save_bank IRQ_MODE           /* save irq banks         */
-	_save_bank FIQ_MODE           /* save fiq banks         */
-	stmia r0!, {r8-r12}           /* save fiq r8-r12        */
-	cps #SVC_MODE
-	ldr r0, _vt_host_context_ptr
-	ldm r0, {sp,pc}
+
 
 /* host kernel must jump to this point to switch to a vm */
 .global hypervisor_enter_vm
 hypervisor_enter_vm:
-	add   r0, r0, #13*4
-	ldm   r0, {r13 - r14}^
-	add   r0, r0, #2*4
-	ldmia r0!, {r2 - r4}
-	_restore_bank UND_MODE
-	_restore_bank SVC_MODE
-	_restore_bank ABT_MODE
-	_restore_bank IRQ_MODE
-	_restore_bank FIQ_MODE
-	ldmia r0!, {r8 - r12}
-	cps   #SVC_MODE
-	ldm   r0!, {r5 - r12}
 	hvc   #0
-
-_vt_host_context_ptr: .long vt_host_context

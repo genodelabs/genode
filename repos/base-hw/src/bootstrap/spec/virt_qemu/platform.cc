@@ -15,7 +15,6 @@
 #include <spec/arm/cortex_a7_a15_virtualization.h>
 
 extern "C" void *    _start_setup_stack;   /* entrypoint for non-boot CPUs */
-static unsigned char hyp_mode_stack[1024]; /* hypervisor mode's kernel stack */
 
 using namespace Board;
 
@@ -31,7 +30,7 @@ Bootstrap::Platform::Board::Board()
                             Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_SIZE }) {}
 
 
-static inline void switch_to_supervisor_mode()
+static inline void switch_to_supervisor_mode(unsigned cpu_id)
 {
 	using Cpsr = Hw::Arm_cpu::Psr;
 
@@ -39,6 +38,9 @@ static inline void switch_to_supervisor_mode()
 	Cpsr::M::set(cpsr, Cpsr::M::SVC);
 	Cpsr::F::set(cpsr, 1);
 	Cpsr::I::set(cpsr, 1);
+
+	Genode::addr_t const stack = Hw::Mm::hypervisor_stack().base +
+	                             (cpu_id+1) * 0x1000;
 
 	asm volatile (
 		"msr sp_svc, sp        \n" /* copy current mode's sp           */
@@ -48,13 +50,14 @@ static inline void switch_to_supervisor_mode()
 		"mov sp, %[stack]      \n" /* copy to hyp stack pointer        */
 		"msr spsr_cxfs, %[cpsr] \n" /* set psr for supervisor mode      */
 		"eret                  \n" /* exception return                 */
-		"1:":: [cpsr] "r" (cpsr), [stack] "r" (&hyp_mode_stack));
+		"1:":: [cpsr] "r" (cpsr), [stack] "r" (stack));
 }
 
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
 	static volatile bool primary_cpu = true;
+	unsigned cpu = Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
 
 	/* locally initialize interrupt controller */
 	::Board::Pic pic { };
@@ -67,14 +70,14 @@ unsigned Bootstrap::Platform::enable_mmu()
 	}
 
 	prepare_hypervisor((addr_t)core_pd->table_base);
-	switch_to_supervisor_mode();
+	switch_to_supervisor_mode(cpu);
 
 	Cpu::Sctlr::init();
 	Cpu::Cpsr::init();
 
 	Cpu::enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
 
-	return Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
+	return cpu;
 }
 
 

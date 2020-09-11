@@ -32,32 +32,34 @@ extern "C" void   hypervisor_enter_vm(addr_t vm, addr_t host,
                                       addr_t pic, addr_t guest_table);
 
 
-static Genode::Vm_state & host_context()
+static Genode::Vm_state & host_context(Cpu & cpu)
 {
-	static Genode::Constructible<Genode::Vm_state> host_context;
-	if (!host_context.constructed()) {
-		host_context.construct();
-		host_context->ip        = (addr_t) &kernel;
-		host_context->pstate    = 0;
-		Cpu::Spsr::Sp::set(host_context->pstate, 1); /* select non-el0 stack pointer */
-		Cpu::Spsr::El::set(host_context->pstate, Cpu::Current_el::EL1);
-		Cpu::Spsr::F::set(host_context->pstate, 1);
-		Cpu::Spsr::I::set(host_context->pstate, 1);
-		Cpu::Spsr::A::set(host_context->pstate, 1);
-		Cpu::Spsr::D::set(host_context->pstate, 1);
-		host_context->fpcr      = Cpu::Fpcr::read();
-		host_context->fpsr      = 0;
-		host_context->sctlr_el1 = Cpu::Sctlr_el1::read();
-		host_context->actlr_el1 = Cpu::Actlr_el1::read();
-		host_context->vbar_el1  = Cpu::Vbar_el1::read();
-		host_context->cpacr_el1 = Cpu::Cpacr_el1::read();
-		host_context->ttbr0_el1 = Cpu::Ttbr0_el1::read();
-		host_context->ttbr1_el1 = Cpu::Ttbr1_el1::read();
-		host_context->tcr_el1   = Cpu::Tcr_el1::read();
-		host_context->mair_el1  = Cpu::Mair_el1::read();
-		host_context->amair_el1 = Cpu::Amair_el1::read();
+	static Genode::Constructible<Genode::Vm_state> host_context[NR_OF_CPUS];
+	if (!host_context[cpu.id()].constructed()) {
+		host_context[cpu.id()].construct();
+		Genode::Vm_state & c = *host_context[cpu.id()];
+		c.sp_el1    = cpu.stack_start();
+		c.ip        = (addr_t) &kernel;
+		c.pstate    = 0;
+		Cpu::Spsr::Sp::set(c.pstate, 1); /* select non-el0 stack pointer */
+		Cpu::Spsr::El::set(c.pstate, Cpu::Current_el::EL1);
+		Cpu::Spsr::F::set(c.pstate, 1);
+		Cpu::Spsr::I::set(c.pstate, 1);
+		Cpu::Spsr::A::set(c.pstate, 1);
+		Cpu::Spsr::D::set(c.pstate, 1);
+		c.fpcr      = Cpu::Fpcr::read();
+		c.fpsr      = 0;
+		c.sctlr_el1 = Cpu::Sctlr_el1::read();
+		c.actlr_el1 = Cpu::Actlr_el1::read();
+		c.vbar_el1  = Cpu::Vbar_el1::read();
+		c.cpacr_el1 = Cpu::Cpacr_el1::read();
+		c.ttbr0_el1 = Cpu::Ttbr0_el1::read();
+		c.ttbr1_el1 = Cpu::Ttbr1_el1::read();
+		c.tcr_el1   = Cpu::Tcr_el1::read();
+		c.mair_el1  = Cpu::Mair_el1::read();
+		c.amair_el1 = Cpu::Amair_el1::read();
 	}
-	return *host_context;
+	return *host_context[cpu.id()];
 }
 
 
@@ -99,32 +101,15 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 }
 
 
-using Vmid_allocator = Genode::Bit_allocator<256>;
-
-static Vmid_allocator &alloc()
-{
-	static Vmid_allocator * allocator = nullptr;
-	if (!allocator) {
-		allocator = unmanaged_singleton<Vmid_allocator>();
-
-		/* reserve VM ID 0 for the hypervisor */
-		unsigned id = allocator->alloc();
-		assert (id == 0);
-	}
-	return *allocator;
-}
-
-
 Vm::Vm(unsigned                 cpu,
        Genode::Vm_state       & state,
        Kernel::Signal_context & context,
-       void                   * const table)
+       Identity               & id)
 : Kernel::Object { *this },
   Cpu_job(Cpu_priority::MIN, 0),
-  _id(alloc().alloc()),
   _state(state),
   _context(context),
-  _table(table),
+  _id(id),
   _vcpu_context(cpu_pool().cpu(cpu))
 {
 	affinity(cpu_pool().cpu(cpu));
@@ -156,9 +141,6 @@ Vm::Vm(unsigned                 cpu,
 		}
 	}
 }
-
-
-Vm::~Vm() { alloc().free(_id); }
 
 
 void Vm::exception(Cpu & cpu)
@@ -198,12 +180,11 @@ void Vm::proceed(Cpu & cpu)
 	 * the following values have to be enforced by the hypervisor
 	 */
 	Cpu::Vttbr_el2::access_t vttbr_el2 =
-		Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_table);
-	Cpu::Vttbr_el2::Asid::set(vttbr_el2, _id);
+		Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_id.table);
+	Cpu::Vttbr_el2::Asid::set(vttbr_el2, _id.id);
 	addr_t guest = Hw::Mm::el2_addr(&_state);
 	addr_t pic   = Hw::Mm::el2_addr(&_vcpu_context.pic);
-	addr_t host  = Hw::Mm::el2_addr(&host_context());
-	host_context().sp_el1 = cpu.stack_start();
+	addr_t host  = Hw::Mm::el2_addr(&host_context(cpu));
 
 	hypervisor_enter_vm(guest, host, pic, vttbr_el2);
 }

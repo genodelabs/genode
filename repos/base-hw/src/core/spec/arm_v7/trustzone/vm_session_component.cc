@@ -48,6 +48,9 @@ void * Vm_session_component::_alloc_table()
 }
 
 
+static unsigned id_alloc = 0;
+
+
 Vm_session_component::Vm_session_component(Rpc_entrypoint  &ep,
                                            Resources resources,
                                            Label const &,
@@ -55,15 +58,21 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint  &ep,
                                            Ram_allocator &ram_alloc,
                                            Region_map &region_map,
                                            unsigned, Trace::Source_registry &)
-:
-	Ram_quota_guard(resources.ram_quota),
-	Cap_quota_guard(resources.cap_quota),
-	_ep(ep),
-	_constrained_md_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-	_sliced_heap(_constrained_md_ram_alloc, region_map),
-	_region_map(region_map),
+: Ram_quota_guard(resources.ram_quota),
+  Cap_quota_guard(resources.cap_quota),
+  _ep(ep),
+  _constrained_md_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
+  _sliced_heap(_constrained_md_ram_alloc, region_map),
+  _region_map(region_map),
   _table(*construct_at<Board::Vm_page_table>(_alloc_table())),
-  _table_array(dummy_array()) { }
+  _table_array(dummy_array()),
+  _id({id_alloc++, nullptr})
+{
+	if (_id.id) {
+		error("Only one TrustZone VM available!");
+		throw Service_denied();
+	}
+}
 
 
 Vm_session_component::~Vm_session_component()
@@ -79,11 +88,13 @@ Vm_session_component::~Vm_session_component()
 	}
 
 	/* free region in allocator */
-	for (unsigned i = 0; i < _id_alloc; i++) {
+	for (unsigned i = 0; i < _vcpu_id_alloc; i++) {
 		Vcpu & vcpu = _vcpus[i];
 		if (vcpu.ds_cap.valid()) {
 			_region_map.detach(vcpu.ds_addr);
 			_constrained_md_ram_alloc.free(vcpu.ds_cap);
 		}
 	}
+
+	id_alloc--;
 }

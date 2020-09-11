@@ -50,6 +50,7 @@ struct Genode::Vm_state : Genode::Cpu_state_modes
 	Genode::uint32_t tls2      { 0 };
 	Genode::uint32_t tls3      { 0 };
 	Genode::uint32_t cpacr     { 0 };
+	Genode::uint32_t vmpidr    { 0 };
 
 	/**
 	 * Fpu registers

@@ -51,7 +51,7 @@ Memory_region const Hw::Mm::hypervisor_exception_vector() {
 	return Memory_region(0xffffffe050000000UL, 0x2000UL); }
 
 Memory_region const Hw::Mm::hypervisor_stack() {
-	return Memory_region(0xffffffe050003000UL, 0x1000UL); }
+	return Memory_region(0xffffffe060000000UL, 0x10000UL); }
 
 Memory_region const Hw::Mm::supervisor_exception_vector() {
 	return Memory_region(KERNEL_START, 0x1000UL); }

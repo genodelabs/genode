@@ -12,11 +12,11 @@
  */
 
 #include <platform.h>
+#include <hw/memory_map.h>
 #include <spec/arm/imx_aipstz.h>
 #include <spec/arm/cortex_a7_a15_virtualization.h>
 
-extern "C" void *    _start_setup_stack;   /* entrypoint for non-boot CPUs */
-static unsigned char hyp_mode_stack[1024]; /* hypervisor mode's kernel stack */
+extern "C" void * _start_setup_stack;   /* entrypoint for non-boot CPUs */
 
 using namespace Board;
 
@@ -161,7 +161,7 @@ Bootstrap::Platform::Board::Board()
 }
 
 
-static inline void switch_to_supervisor_mode()
+static inline void switch_to_supervisor_mode(unsigned cpu_id)
 {
 	using Cpsr = Hw::Arm_cpu::Psr;
 
@@ -169,6 +169,9 @@ static inline void switch_to_supervisor_mode()
 	Cpsr::M::set(cpsr, Cpsr::M::SVC);
 	Cpsr::F::set(cpsr, 1);
 	Cpsr::I::set(cpsr, 1);
+
+	Genode::addr_t const stack = Hw::Mm::hypervisor_stack().base +
+	                             (cpu_id+1) * 0x1000;
 
 	asm volatile (
 		"msr sp_svc, sp        \n" /* copy current mode's sp           */
@@ -178,7 +181,7 @@ static inline void switch_to_supervisor_mode()
 		"msr spsr_cxfs, %[cpsr] \n" /* set psr for supervisor mode      */
 		"adr lr, 1f            \n" /* load exception return address    */
 		"eret                  \n" /* exception return                 */
-		"1:":: [cpsr] "r" (cpsr), [stack] "r" (&hyp_mode_stack));
+		"1:":: [cpsr] "r" (cpsr), [stack] "r" (stack));
 }
 
 
@@ -186,13 +189,14 @@ unsigned Bootstrap::Platform::enable_mmu()
 {
 	static volatile bool primary_cpu = true;
 	static unsigned long timer_freq  = Cpu::Cntfrq::read();
+	unsigned cpu = Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
 
 	/* locally initialize interrupt controller */
 	::Board::Pic pic { };
 
 	prepare_nonsecure_world(timer_freq);
 	prepare_hypervisor((addr_t)core_pd->table_base);
-	switch_to_supervisor_mode();
+	switch_to_supervisor_mode(cpu);
 
 	Cpu::Sctlr::init();
 	Cpu::Cpsr::init();
@@ -206,7 +210,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	Cpu::enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
 
-	return Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
+	return cpu;
 }
 
 

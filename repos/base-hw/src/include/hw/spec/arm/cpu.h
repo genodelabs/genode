@@ -36,6 +36,9 @@ struct Hw::Arm_cpu
 		struct Me    : Bitfield<31, 1> { }; /* multiprocessing extension */
 	);
 
+	/* Virtual Multiprocessor Affinity Register */
+	ARM_CP15_REGISTER_32BIT(Vmpidr, c0, c0, 4, 5);
+
 	/* System Control Register */
 	ARM_CP15_REGISTER_32BIT(Sctlr, c1, c0, 0, 0,
 		struct M : Bitfield<0,1>  { }; /* enable MMU */

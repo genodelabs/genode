@@ -19,21 +19,18 @@
 #include <kernel/vm.h>
 
 Kernel::Vm::Vm(unsigned,
-               Board::Vm_state       & state,
+               Board::Vm_state        & state,
                Kernel::Signal_context & context,
-               void * const)
+               Identity               & id)
 : Kernel::Object { *this },
   Cpu_job(Cpu_priority::MIN, 0),
   _state(state),
   _context(context),
-  _table(nullptr),
+  _id(id),
   _vcpu_context(cpu_pool().primary_cpu())
 {
 	affinity(cpu_pool().primary_cpu());
 }
-
-
-Kernel::Vm::~Vm() { }
 
 
 void Kernel::Vm::exception(Cpu & cpu)

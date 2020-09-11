@@ -27,7 +27,7 @@ namespace Board {
 		TIMER_IRQ           = 14 + 16,
 		VT_TIMER_IRQ        = 11 + 16,
 		VT_MAINTAINANCE_IRQ = 9  + 16,
-		VCPU_MAX            = 4
+		VCPU_MAX            = 16
 	};
 };
 

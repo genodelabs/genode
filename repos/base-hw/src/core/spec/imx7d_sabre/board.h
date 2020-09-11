@@ -25,7 +25,7 @@ namespace Board {
 
 	struct Virtual_local_pic {};
 
-	enum { TIMER_IRQ = 30, VCPU_MAX = 1 };
+	enum { TIMER_IRQ = 30, VCPU_MAX = 16 };
 }
 
 #endif /* _CORE__SPEC__IMX7_SABRELITE__BOARD_H_ */

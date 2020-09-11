@@ -25,7 +25,7 @@ void Kernel::Thread::_call_new_vm()
 	}
 
 	_call_new<Vm>((unsigned)user_arg_2(), *(Board::Vm_state*)user_arg_3(),
-	              *context, (void*)user_arg_4());
+	              *context, *(Vm::Identity*)user_arg_4());
 }
 
 

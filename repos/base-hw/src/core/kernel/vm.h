@@ -35,6 +35,14 @@ namespace Kernel
 
 class Kernel::Vm : private Kernel::Object, public Cpu_job
 {
+	public:
+
+		struct Identity
+		{
+			unsigned const id;
+			void *   const table;
+		};
+
 	private:
 
 		using State = Board::Vm_state;
@@ -48,10 +56,9 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		enum Scheduler_state { ACTIVE, INACTIVE };
 
 		Object                      _kernel_object { *this };
-		unsigned                    _id = 0;
 		State                     & _state;
 		Signal_context            & _context;
-		void             * const    _table;
+		Identity const              _id;
 		Scheduler_state             _scheduled = INACTIVE;
 		Board::Vcpu_context         _vcpu_context;
 
@@ -60,16 +67,14 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		/**
 		 * Constructor
 		 *
+		 * \param cpu      cpu affinity
 		 * \param state    initial CPU state
 		 * \param context  signal for VM exceptions other than interrupts
-		 * \param table    translation table for guest to host physical memory
 		 */
 		Vm(unsigned           cpu,
 		   State            & state,
 		   Signal_context   & context,
-		   void       * const table);
-
-		~Vm();
+		   Identity         & id);
 
 		/**
 		 * Inject an interrupt to this VM
@@ -85,8 +90,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		 * \param dst                memory donation for the VM object
 		 * \param state              location of the CPU state of the VM
 		 * \param signal_context_id  kernel name of the signal context for VM events
-		 * \param table              guest-physical to host-physical translation
-		 *                           table pointer
+		 * \param id                 VM identity
 		 *
 		 * \retval cap id when successful, otherwise invalid cap id
 		 */
@@ -94,10 +98,10 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		                              unsigned                    cpu,
 		                              void * const                state,
 		                              capid_t const               signal_context_id,
-		                              void * const                table)
+		                              Identity                  & id)
 		{
 			return call(call_id_new_vm(), (Call_arg)&vm, (Call_arg)cpu,
-			            (Call_arg)state, (Call_arg)table, signal_context_id);
+			            (Call_arg)state, (Call_arg)&id, signal_context_id);
 		}
 
 		/**

@@ -23,10 +23,6 @@
 
 using namespace Genode;
 
-static Core_mem_allocator & cma() {
-	return static_cast<Core_mem_allocator&>(platform().core_mem_alloc()); }
-
-
 size_t Vm_session_component::_ds_size() {
 	return align_addr(sizeof(Board::Vm_state), get_page_size_log2()); }
 
@@ -70,8 +66,7 @@ void Vm_session_component::_exception_handler(Signal_context_capability handler,
 
 	unsigned const cpu = vcpu.location.valid() ? vcpu.location.xpos() : 0;
 
-	if (!vcpu.kobj.create(cpu, vcpu.ds_addr, Capability_space::capid(handler),
-	                      cma().phys_addr(&_table)))
+	if (!vcpu.kobj.create(cpu, vcpu.ds_addr, Capability_space::capid(handler), _id))
 		Genode::warning("Cannot instantiate vm kernel object, ",
 		                "invalid signal context?");
 }
@@ -81,7 +76,7 @@ Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability tcap)
 {
 	using namespace Genode;
 
-	if (_id_alloc == Board::VCPU_MAX) return Vcpu_id{Vcpu_id::INVALID};
+	if (_vcpu_id_alloc == Board::VCPU_MAX) return Vcpu_id{Vcpu_id::INVALID};
 
 	Affinity::Location vcpu_location;
 	auto lambda = [&] (Cpu_thread_component *ptr) {
@@ -90,7 +85,7 @@ Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability tcap)
 	};
 	_ep.apply(tcap, lambda);
 
-	Vcpu & vcpu = _vcpus[_id_alloc];
+	Vcpu & vcpu = _vcpus[_vcpu_id_alloc];
 	vcpu.ds_cap = _constrained_md_ram_alloc.alloc(_ds_size(),
 	                                              Cache_attribute::UNCACHED);
 	try {
@@ -101,7 +96,7 @@ Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability tcap)
 	}
 
 	vcpu.location = vcpu_location;
-	return Vcpu_id { _id_alloc++ };
+	return Vcpu_id { _vcpu_id_alloc++ };
 }
 
 
