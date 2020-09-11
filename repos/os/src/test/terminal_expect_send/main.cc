@@ -55,6 +55,7 @@ struct Main
 			if (read_buffer[i] == '\n') {
 				if (verbose) log(Cstring(line));
 				line_idx = 0;
+				line[line_idx] = 0;
 			}
 		}
 	}
