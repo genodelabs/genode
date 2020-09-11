@@ -37,10 +37,10 @@ struct Sculpt::Component : Noncopyable
 	uint64_t ram  { };
 	size_t   caps { };
 
-	Affinity::Space    const affinity_space;
-	Affinity::Location       affinity_location { 0, 0,
-	                                             affinity_space.width(),
-	                                             affinity_space.height() };
+	Affinity::Space const affinity_space;
+	Affinity::Location    affinity_location { 0, 0,
+	                                          affinity_space.width(),
+	                                          affinity_space.height() };
 
 	bool blueprint_known = false;
 
@@ -72,6 +72,23 @@ struct Sculpt::Component : Noncopyable
 			});
 
 			blueprint_known = true;
+		});
+	}
+
+	void gen_affinity_xml(Xml_generator &xml) const
+	{
+		bool const all_cpus = affinity_space.width()  == affinity_location.width()
+		                   && affinity_space.height() == affinity_location.height();
+
+		/* omit <affinity> node if all CPUs are used by the component */
+		if (all_cpus)
+			return;
+
+		xml.node("affinity", [&] () {
+			xml.attribute("xpos",   affinity_location.xpos());
+			xml.attribute("ypos",   affinity_location.ypos());
+			xml.attribute("width",  affinity_location.width());
+			xml.attribute("height", affinity_location.height());
 		});
 	}
 

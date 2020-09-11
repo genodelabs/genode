@@ -406,6 +406,7 @@ struct Sculpt::Popup_dialog : Dialog
 		_selected_user = User();
 		_selected_route.destruct();
 		_menu._level = 0;
+		_resources.destruct();
 	}
 
 	Popup_dialog(Env &env, Refresh &refresh,

@@ -134,6 +134,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 			Xml_node const sub_node = from_node.sub_node(sub_node_type.string());
 			sub_node.with_raw_node([&] (char const *start, size_t length) {
+				xml.append("\n\t\t");
 				xml.append(start, length); });
 		}
 
@@ -368,32 +369,29 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 			xml.attribute("quantum", cpu_quota);
 		});
 
-		/* location handling */
+		/* affinity-location handling */
 		bool const affinity_from_launcher = _defined_by_launcher()
-		                                 && (_launcher_xml->xml().has_attribute("xpos") ||
-		                                     _launcher_xml->xml().has_attribute("ypos"));
-		bool const affinity_from_start = _start_xml->xml().has_attribute("xpos")
-                                              || _start_xml->xml().has_attribute("ypos");
-		if (affinity_from_start || affinity_from_launcher) {
-			long xpos = 0, ypos = 0;
-			unsigned width = 1, height = 1;
+		                                 && _launcher_xml->xml().has_sub_node("affinity");
 
-			if (affinity_from_launcher) {
-				xpos   = _launcher_xml->xml().attribute_value("xpos",   xpos);
-				ypos   = _launcher_xml->xml().attribute_value("ypos",   ypos);
-				width  = _launcher_xml->xml().attribute_value("width",  width);
-				height = _launcher_xml->xml().attribute_value("height", height);
-			}
-			xpos   = _start_xml->xml().attribute_value("xpos",   xpos);
-			ypos   = _start_xml->xml().attribute_value("ypos",   ypos);
-			width  = _start_xml->xml().attribute_value("width",  width);
-			height = _start_xml->xml().attribute_value("height", height);
+		bool const affinity_from_start = _start_xml->xml().has_sub_node("affinity");
+
+		if (affinity_from_start || affinity_from_launcher) {
+
+			Affinity::Location location { };
+
+			if (affinity_from_launcher)
+				_launcher_xml->xml().with_sub_node("affinity", [&] (Xml_node node) {
+					location = Affinity::Location::from_xml(node); });
+
+			if (affinity_from_start)
+				_start_xml->xml().with_sub_node("affinity", [&] (Xml_node node) {
+					location = Affinity::Location::from_xml(node); });
 
 			xml.node("affinity", [&] () {
-				xml.attribute("xpos",   xpos);
-				xml.attribute("ypos",   ypos);
-				xml.attribute("width",  width);
-				xml.attribute("height", height);
+				xml.attribute("xpos",   location.xpos());
+				xml.attribute("ypos",   location.ypos());
+				xml.attribute("width",  location.width());
+				xml.attribute("height", location.height());
 			});
 		}
 

@@ -33,9 +33,8 @@ struct Sculpt::Resource_dialog : Noncopyable, Dialog
 	Hoverable_item        _space_item { };
 
 
-	Resource_dialog(Affinity::Space space,
-	                Affinity::Location loc)
-	: _space(space), _location(loc)
+	Resource_dialog(Affinity::Space space, Affinity::Location location)
+	: _space(space), _location(location)
 	{ }
 
 	void _gen_affinity_entry(Xml_generator &, Start_name const &) const;

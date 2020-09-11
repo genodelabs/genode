@@ -154,10 +154,7 @@ class Sculpt::Runtime_state : public Runtime_info
 					if (construction.constructed()) {
 						xml.attribute("pkg", construction->path);
 
-						xml.attribute("xpos",   construction->affinity_location.xpos());
-						xml.attribute("ypos",   construction->affinity_location.ypos());
-						xml.attribute("width",  construction->affinity_location.width());
-						xml.attribute("height", construction->affinity_location.height());
+						construction->gen_affinity_xml(xml);
 
 						xml.node("route", [&] () {
 							construction->routes.for_each([&] (Route const &route) {
