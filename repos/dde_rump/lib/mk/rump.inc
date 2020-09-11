@@ -196,7 +196,8 @@ SRC_NOLINK += accessors.c \
               vnode_if.c \
               xlat_mbr_fstype.c
 
-INC_DIR += $(RUMP_BASE)/include \
+INC_DIR += $(REP_DIR)/src/include \
+           $(RUMP_BASE)/include \
            $(RUMP_PORT_DIR)/src/lib/libc/include \
            $(RUMP_PORT_DIR)/src/sys/rump/librump/rumpkern/opt \
            $(RUMP_PORT_DIR)/src/sys \
