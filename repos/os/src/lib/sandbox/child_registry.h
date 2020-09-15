@@ -32,7 +32,7 @@ class Sandbox::Child_registry : public Name_registry, Child_list
 		bool _unique(const char *name) const
 		{
 			/* check for name clash with an existing child */
-			List_element<Sandbox::Child> const *curr = first();
+			List_element<Child> const *curr = first();
 			for (; curr; curr = curr->next())
 				if (curr->object()->has_name(name))
 					return false;
