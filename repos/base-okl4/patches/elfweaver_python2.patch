@@ -1,0 +1,10 @@
+diff --git a/tools/pyelf/elfweaver b/tools/pyelf/elfweaver
+index 48a43be..a96e13a 100755
+--- a/tools/pyelf/elfweaver
++++ b/tools/pyelf/elfweaver
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python2
+ #
+ # Copyright (c) 2007 Open Kernel Labs, Inc. (Copyright Holder).
+ # All rights reserved.
