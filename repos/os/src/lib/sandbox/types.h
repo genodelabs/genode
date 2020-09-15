@@ -28,7 +28,7 @@ namespace Sandbox {
 
 	struct Prio_levels { long value; };
 
-	typedef List<List_element<Sandbox::Child> > Child_list;
+	typedef List<List_element<Child> > Child_list;
 }
 
 #endif /* _LIB__SANDBOX__TYPES_H_ */
