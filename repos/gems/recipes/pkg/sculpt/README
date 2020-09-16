@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 20.02
+                      Sculpt Operating System 20.08
                       =============================
 
 
@@ -58,7 +58,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at
-[https://genode.org/documentation/sculpt-20-02.pdf].
+[https://genode.org/documentation/sculpt-20-08.pdf].
 
 
 Hardware requirements and preparations
@@ -113,43 +113,47 @@ from [https://genode.org/download/sculpt].
 Right after system boot, Sculpt's system-management user interface
 ("Leitzentrale") appears.
 The panel at the top of the screen contains two centered tabs for switching
-between the "Components" view and a "Files" view.
+between the "Components" view and a "Files" view (Figure [sculpt_20_08_panel]).
 The components view displays a live graph of the software components and their
 relationships. It also provides convenient access to the connected storage
 devices. The "Log" button at the right side of the panel reveals diagnostic
 messages, the "Network" button allows you to configure network connectivity,
 and the "Settings" button on the left gives access to a few user-interface
-tweaks.
+tweaks (Figure [sculpt_20_08_panel]).
 
-[image sculpt_20.02_panel 60%]
+[image sculpt_20_08_panel 60%]
 
 Consider the following steps as a warm-up with Sculpt OS.
 
 Select the in-memory file system as *default storage location* by clicking
-on the "ram fs" component in the graph and pressing the "Use" button.
+on the "ram fs" component in the graph and pressing the "Use" button
+(Figure [sculpt_20_08_use_ram_fs]).
 This way, software will be installed solely into memory without accessing any
 real storage device.
 
-[image sculpt_20.02_use_ram_fs 40%]
+[image sculpt_20_08_use_ram_fs 40%]
 
 Enable *networking* in the "Network" dialog by selecting the "Wired" or
 "Wifi" option. In the latter case, select an access point and enter the
 corresponding passphrase (if needed). A successful network connection is
-indicated by the IP address displayed at the bottom of the network dialog.
+indicated by the IP address displayed at the bottom of the network dialog
+(Figure [sculpt_20_08_network]).
 
-[image sculpt_20.02_network 40%]
+[image sculpt_20_08_network 40%]
 
 With a storage location selected and established network connectivity, it is
 time to *install and start* additional components by clicking on the '+'
-button of the components view. Select "Depot ..." from the menu.
+button of the components view. Select "Depot ..." from the menu
+(Figure [sculpt_20_08_menu]).
 
-[image sculpt_20.02_menu 40%]
+[image sculpt_20_08_menu 40%]
 
 The depot contains software packages, which can be obtained by different
 independent software providers. The selection of software providers is
-completely up to the user and can be defined in the "Selection ..." sub menu.
+completely up to the user and can be defined in the "Selection ..." sub menu
+(Figure [sculpt_20_08_select]).
 
-[image sculpt_20.02_select 40%]
+[image sculpt_20_08_select 40%]
 
 Select "genodelabs" to download the directory of software officially
 provided by Genode Labs. Note that the other options are not necessarily
@@ -163,17 +167,18 @@ When now going back to the depot menu, a new menu item "genodelabs ..."
 appears. It leads to a catalogue of software browsable via hierarchically
 structured menus. As a starter, let's add a desktop background.
 In the "GUI ..." sub menu, a click on the first item named "sticks blue
-backdrop" reveals the option to install the package.
+backdrop" reveals the option to install the package
+(Figure [sculpt_20_08_install_backdrop]).
 
-[image sculpt_20.02_install_backdrop 40%]
+[image sculpt_20_08_install_backdrop 40%]
 
 A click on the "Install" button triggers the download of the package and its
 dependencies. Once the download is complete, the menu presents a configuration
 dialog that allows you to define the interplay of the new component with the
 system. In this particular case, you have to decide for a GUI service to be
-used by the backdrop.
+used by the backdrop (Figure [sculpt_20_08_backdrop_routes]).
 
-[image sculpt_20.02_backdrop_routes 40%]
+[image sculpt_20_08_backdrop_routes 40%]
 
 The first option "system GUI server" would grant direct access to the system's
 low-level GUI server, which is normally not used by applications but by
@@ -184,17 +189,18 @@ appears as a layer behind all other applications. The fourth option "keyboard
 focus" is preserved for a single component that controls the keyboard focus.
 In our case, "desktop background" is the correct choice.
 Once the configuration is complete, a new button for adding the component to
-the system appears.
+the system appears (Figure [sculpt_20_08_add_backdrop]).
 
-[image sculpt_20.02_add_backdrop 40%]
+[image sculpt_20_08_add_backdrop 40%]
 
 After pressing the button, you should notice a slight visual change. *Press*
 *F12* to toggle between the Leitzentrale and the desktop. Now, the backdrop
 should become visible in full glory. In the component graph, the new component
 appears connected to the "GUI". A click on the component reveals further
-information along with the option to remove it from the system.
+information along with the options to remove it from the system or to
+restart it (Figure [sculpt_20_08_backdrop_selected]).
 
-[image sculpt_20.02_backdrop_selected 40%]
+[image sculpt_20_08_backdrop_selected 40%]
 
 As a next step, let us add a window system. In the '+' menu, you can find
 a readily packaged window system at _genodelabs_ -> _GUI_ -> _themed wm_.
@@ -215,11 +221,12 @@ to obtain clipboard content.
 After adding the component, the "themed wm" will appear in the components view.
 To give the window system a quick try, add the small demo you can find at
 _genodelabs_ -> _Demos_ -> _nano3d_ and assign its _GUI_ to our "themed wm".
+You will be greeted with the window as shown in Figure [sculpt_ce_nano3d].
 
 [image sculpt_ce_nano3d 40%]
 
-Next, let us add a *small Unix-like subsystem* called _noux_ hosted in a
-window. This noux runtime will be presented in a terminal window. The font
+Next, let us add a *small Unix-like subsystem* called _system shell_ hosted in
+a window. This subsystem will be presented in a terminal window. The font
 used by the terminal is obtained from a font server. To create the font
 server, install and add the package _genodelabs_ -> _GUI_ -> _fonts fs_, and
 assign the _system font configuration_ to its _ROM (config)_. "ROM" means
@@ -227,8 +234,8 @@ read-only memory. So we grant the font server read-only access to the system's
 default font configuration (which is generated automatically according to the
 screen resolution).
 
-For starting the actual noux runtime, select and install
-_genodelabs_ -> _Tools_ -> _noux-system_ from the menu. The configuration
+For starting the actual system shell, select and install
+_genodelabs_ -> _Tools_ -> _system shell_ from the menu. The configuration
 dialog is a bit more elaborate this time.
 
 :GUI: defines the GUI server that should host the terminal.
@@ -238,7 +245,7 @@ dialog is a bit more elaborate this time.
   _/config/_ inside the instance. There exist a number of options.
   By selecting _writeable system configuration_, we grant control over
   the whole system. It goes without saying that this should not be done
-  lightheartedly. However, since we trust the "noux-system" package from
+  lightheartedly. However, since we trust the "system shell" package from
   Genode Labs, let's do it.
 
 :File system (report): defines the file system to be mounted at _/report/_
@@ -264,20 +271,25 @@ dialog is a bit more elaborate this time.
   clipboard can be found in
   [https://genodians.org/nfeske/2019-07-03-copy-paste - a dedicated article].
 
-With those decisions taken, a fresh noux runtime can be started, which appears
-in a window.
+:Region maps:
+  Select "custom virtual memory objects" to allow the subsystem to manage
+  its virtual memory layout by itself.
 
-[image sculpt_ce_noux 60%]
+With those decisions taken, a fresh system shell can be started, which appears
+in a window (Figure [sculpt_20_08_system_shell]).
 
-When selecting the "noux-system" component in the graph, the
+[image sculpt_20_08_system_shell 60%]
+
+When selecting the "system system" component in the graph, the
 relationship to the other components of the system is presented. This provides
 a convenient way to reveal the _trusted computing base_ of the selected
-component. For example, since there is no connection from _noux-system_ to the
+component (Figure [sculpt_20_08_system_shell_selected]).
+For example, since there is no connection from _system shell_ to the
 _nic_router_ we know that this component is isolated from the network. The
 network-related components are outside the trusted computing base of the
-noux instance.
+system shell.
 
-[image sculpt_20.02_noux_selected 50%]
+[image sculpt_20_08_system_shell_selected 50%]
 
 
 Further exploration
@@ -355,7 +367,7 @@ Static system
 The first - static - part of the system is baked into the boot image. It
 contains components that must be shared by the upper - dynamic - parts and
 defines the relationships between the upper parts via a static policy that
-is fixed by the creator of the boot image.
+is fixed by the creator of the boot image (Figure [sculpt_static]).
 
 ;         Drivers      |   Leitzentrale   |     Runtime
 ;    --------------------------------------------------------
@@ -406,12 +418,12 @@ device resources.
 ;               :          :     :            :           :
 ;          (platform)  (event) (USB)    (framebuffer)  (block)
 
-[image sculpt_drivers 80%]
+[image sculpt_20_08_drivers 80%]
   Services provided by the drivers subsystem
 
-As illustrated by Figure [sculpt_drivers], some drivers like the framebuffer
-driver live in a dynamically managed subsystem that depends on runtime
-discovery of the hardware by the so-called driver-manager component.
+As illustrated by Figure [sculpt_20_08_drivers], some drivers like the
+framebuffer driver live in a dynamically managed subsystem that depends on
+runtime discovery of the hardware by the so-called driver-manager component.
 Whenever an Intel graphics device is present, the Intel framebuffer driver
 is spawned. Otherwise, a generic VESA driver or a driver for a
 boot-time-initialized framebuffer is used.
@@ -445,27 +457,29 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 20.02 features a command-line
+Alternatively to the "Files" tab, Sculpt 20.08 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
-"Inspect" appears, which hosts the command-line interface.
+"Inspect" appears, which hosts the command-line interface
+(Figure [sculpt_20_08_inspect_tab]).
 
-[image sculpt_20.02_inspect_tab 60%]
+[image sculpt_20_08_inspect_tab 60%]
 
-The inspect tab hosts a small Unix-like runtime called noux as user
-interface. Don't let the presence of a Unix shell mislead you.
-Sculpt is not a Unix system. It merely uses Unix subsystems in the form of
-noux instances as convenient tools for managing and editing files.
-Within the inspect tab, you can interact with both the report and
-config file systems using familiar commands such as the bash shell, a
-subset of coreutils, and Vim.
+The inspect tab hosts a small Unix-like runtime as user interface. Don't let
+the presence of a Unix shell mislead you. Sculpt is not a Unix system. It
+merely uses Unix-like subsystems as convenient tools for managing and editing
+files. Within the inspect tab, you can interact with both the report and
+config file systems using familiar commands such as the bash shell, a subset
+of coreutils, and Vim.
 
-Besides the interactive shell, the Leitzentrale employs a noux instance that
-gives you a quick glance at the most recent log messages. The log is also
+_Note that the interactive inspect view is not bullet-proof. Should you get_
+_stuck, you may re-spawn it at any time by toggling the "Inspect" button._
+
+Besides the interactive shell, the Leitzentrale employs a simple viewer of the
+most recent diagnostic log messages. You can toggle the log display via the
+panel's log button. Each line of the log is prefixed by the label of the
+originating component. For detailed analysis, the complete log is also
 available at _report/log_ and can be browsed with Vim in the inspect window.
-
-_Noux is not bullet-proof. Should you get stuck, you may re-spawn it at_
-_any time by toggling the "Inspect" button._
 
 
 Tweaking and inspecting the system
@@ -482,14 +496,15 @@ Interactive file browser
 
 The "Files" tab of the panel switches the main screen area to a simple file
 browser that lists all file systems available, in particular the _config_
-and _report_ file systems. By toggling one of the file-system buttons, the
+and _report_ file systems (Figure [sculpt_20_08_files_tab]).
+By toggling one of the file-system buttons, the
 respective directory hierarchy can be browsed. When hovering a file, an "Edit"
 or "View" button appears, which can be used to open the file in a text area
 that appears on the right side of the file browser. The editor supports the
 usual notepad-like motions, operations, and shortcuts (control-c for copy,
 control-v for paste, control-s for save).
 
-[image sculpt_20.02_files_tab 80%]
+[image sculpt_20_08_files_tab 80%]
 
 _Note that the file browser as the most recent addition to Sculpt does not_
 _yet support file operations like the copying, renaming, or removal of_
@@ -528,7 +543,7 @@ Adjusting the user-input handling
 By default, Sculpt uses the US-English keyboard layout with a functioning
 capslock key. You may possibly want to adjust the former and - as a Vim
 user - most likely discharge the latter. As mentioned in Section
-[Drivers subsystem], user input is processed by the event-filter component.
+[System overview], user input is processed by the event-filter component.
 You can edit this component's configuration via
 
 ! inspect:/> vim /config/event_filter
@@ -624,7 +639,7 @@ Whenever adding a new component via the '+' menu, one has to define how to
 connect the component with the rest of the system. It is important to know
 what the presented options mean to take educated decisions.
 
-[image sculpt_20.02_noux_routing 40%]
+[image sculpt_20_08_system_shell_routing 40%]
 
 Each choice represents a connection to a system resource of a particular type.
 Initially, the presented options are resources that are built-in into Sculpt's
@@ -731,7 +746,7 @@ The base system provides three different GUI options.
 
 :keyboard focus: grants control over the keyboard focus. It should be
   assigned to only one component, typically a window manager. However,
-  in principle, another component like _noux-system_ can be connected
+  in principle, another component like the _system shell_ can be connected
   to it and thereby becomes able to receive keyboard input.
 
 :desktop lock screen: assigns the component the role of a lock screen. Once
@@ -854,8 +869,8 @@ The Sculpt base system has two built-in file systems.
 
 The two built-in file systems reside in memory. In order to access persistent
 storage, additional file-system services can be started as regular components
-within the runtime subsystem. Those components, in turn, need to be connected to
-the corresponding block devices.
+within the runtime subsystem. Those components, in turn, need to be connected
+to the corresponding block devices.
 
 :used file system: is the file system selected for the use of Sculpt.
   In principle, the specific file system such as "usb-1-10.3.fs" can be
@@ -990,6 +1005,22 @@ audio infrastructure like drivers and a mixer can be installed as regular
 components.
 
 
+CPU-resource assignment
+~~~~~~~~~~~~~~~~~~~~~~~
+
+[image sculpt_20_08_affinity 40%]
+
+You may already have noticed the additional item "Resource assignment ..."
+in the component-configuration dialog (Figure [sculpt_20_08_affinity]).
+It leads to a sub menu for restricting
+the CPU usage of the new component. The configuration dialog shows a matrix of
+CPU cores where the x-axis denotes the physical cores and the y-axis the
+hyperthreads. By default, all available CPU cores are selected. You can toggle
+the nodes by clicking on them. The dialog ensures that the selection is always
+a rectangular area. So one click may affect nodes other than only the clicked
+one.
+
+
 Runtime management
 ==================
 
@@ -999,10 +1030,9 @@ In contrast to the drivers subsystem and the Leitzentrale, which have a
 predefined purpose, the runtime subsystem is shaped by the user. The
 components present in the runtime subsystem are displayed by the components view.
 Some of them are managed by the Leitzentrale. For example, while inspecting a
-file system, the corresponding "inspect", "inspect_terminal", and
-"inspect_noux" components appear automatically. Other components correspond to
-subsystems deployed from installed packages, in particular the ones created
-via the "+" menu.
+file system, the corresponding "inspect" component appear automatically. Other
+components correspond to subsystems deployed from installed packages, in
+particular the ones created via the "+" menu.
 
 The current configuration of the runtime subsystem is available at the
 _config_ file system at _managed/runtime_. It is not recommended to modify
@@ -1094,8 +1124,8 @@ Depending on the operation selected by the user, the Sculpt manager will
 automatically spawn helper components in the runtime to perform the selected
 operation.
 For example, by selecting the "Format device" operation, the Sculpt manager
-will create a noux instance with the selected block device mounted at
-'/dev/block' and e2fsprogs mounted at '/'. The noux instance runs
+will create a tiny Unix-like subsystem with the selected block device mounted at
+'/dev/block' and e2fsprogs mounted at '/'. This Unix-like subsystem runs
 'mkfs.ext2' as init process. Likewise, an existing EXT2 file system
 can be checked by activating the "Check" button, which triggers the execution
 of 'fsck.ext2' for the selected file system.
@@ -1220,18 +1250,18 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-20.02 sculpt-20.02
+  ! git checkout -b sculpt-20.08 sculpt-20.08
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2020-02-27
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2020-09-17
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
 
 # Download all ingredients for the Sculpt boot image
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2020-03-09
+  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2020-09-17
 
 # Create a build directory
 
@@ -1425,8 +1455,8 @@ Device drivers
   _(used by the VESA driver)_
 
 
-Programs and libraries used within the noux runtime
----------------------------------------------------
+Programs and libraries used within the Unix-like subsystems
+-----------------------------------------------------------
 
 :Vim:
   [http://www.vim.org]
@@ -1471,6 +1501,9 @@ Libraries used for the package-management infrastructure
 :GnuPG:
   [https://www.gnupg.org]
   _(basis of the verify tool)_
+
+:Jitterentropy RNG:
+  [https://chronox.de/jent.html]
 
 
 Applications
