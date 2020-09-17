@@ -4,6 +4,42 @@
                                ===========
 
 
+Sculpt OS release 20.08 | 2020-09-17
+####################################
+
+| Version 20.08 of the Sculpt operating system refines the user experience
+| and becomes able to host the Chromium-based Falkon web browser.
+
+The new version of Sculpt OS is based on the latest Genode release
+[https://genode.org/documentation/release-notes/20.08 - 20.08].
+In particular, it incorporates the
+[https://genode.org/documentation/release-notes/20.08#The_GUI_stack__restacked - redesigned GUI stack]
+to the benefit of quicker boot times, improved interactive responsiveness, and
+better pixel output quality.
+It also removes the last traces of the
+[https://genode.org/documentation/release-notes/20.05#Retired_Noux_runtime_environment - noux runtime].
+Fortunately, these massive under-the-hood changes do not disrupt the
+user-visible surface of Sculpt. Most users will feel right at home.
+
+Upon closer inspection, there are couple of new features to appreciate. The
+CPU-affinity of each component can now be restricted interactively by the user,
+components can be easily restarted via a click on a button, font-size changes
+have an immediate effect now, and the VESA driver (used when running Sculpt in
+a virtual machine) can dynamically change the screen resolution.
+
+Thanks to our continuous efforts of strengthening of the base system, Sculpt
+OS has become able to host a first version of the Chromium-based Falkon web
+browser from an installable package. Even though this version is still rough
+around the edges and unoptimized, it already enables Sculpt users to casually
+browse the modern web without the need for a virtual machine.
+
+The updated [https://genode.org/documentation/articles/sculpt-20-08 - manual]
+goes into detail about the use of the new system.
+
+The ready-to-use system image for version 20.08 is available at the
+[https://genode.org/download/sculpt - Sculpt download page].
+
+
 Genode OS Framework release 20.08 | 2020-08-28
 ##############################################
 
