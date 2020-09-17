@@ -34,10 +34,10 @@ like swapping out or updating drivers on the fly without reboot.
 Besides these main topics, the current release features the continuation of of
 two long-term projects, namely the CBE block encrypter and the profound
 support of 64-bit ARM devices.
-Section [Consistent Block Encrypter] describes the CBE's new *pluggable
-crypto* and trust anchor facilities.
-Section [Device drivers] goes into detail about the steadily emerging *driver
-landscape on 64-bit ARM*.
+Section [Consistent Block Encrypter] describes the CBE's new *pluggable crypto*
+and trust anchor facilities.
+Section [Device drivers] goes into detail about the steadily
+emerging *driver landscape on 64-bit ARM*.
 
 
 The GUI stack, restacked
@@ -423,8 +423,8 @@ C runtime
 Serialized VFS access
 ~~~~~~~~~~~~~~~~~~~~~
 
-Unsurprisingly, the VFS is an integral part of the C runtime as _everything is
-a file_ in the UNIX philosophy. The basis for the libc VFS is the VFS library
+Unsurprisingly, the VFS is an integral part of the C runtime as _everything is_
+_a file_ in the UNIX philosophy. The basis for the libc VFS is the VFS library
 and its versatile plugin concept. As the libc (and other users of the library)
 may employ multiple threads, which could use the VFS, the integrity of data
 structures, esp. those of more complex plugins like the network stack in
