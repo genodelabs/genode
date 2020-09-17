@@ -369,20 +369,26 @@ USBHostDevice *create_usbdevice(void *data)
 
 void remove_usbdevice(USBHostDevice *device)
 {
-	DeviceClass *usb_device_class = &Object_pool::p()->obj[Object_pool::USB_DEVICE]._device_class;
-	DeviceState *usb_device_state = cast_DeviceState(device);
+	try {
+		DeviceClass *usb_device_class = &Object_pool::p()->obj[Object_pool::USB_DEVICE]._device_class;
+		DeviceState *usb_device_state = cast_DeviceState(device);
 
-	if (usb_device_class == nullptr)
-		Genode::error("usb_device_class null");
+		if (usb_device_class == nullptr)
+			Genode::error("usb_device_class null");
 
-	if (usb_device_state == nullptr)
-		Genode::error("usb_device_class null");
+		if (usb_device_state == nullptr)
+			Genode::error("usb_device_state null");
 
-	Error *e = nullptr;
-	usb_device_class->unrealize(usb_device_state, &e);
+		Error *e = nullptr;
+		usb_device_class->unrealize(usb_device_state, &e);
 
-	Wrapper *obj = Object_pool::p()->find_object(device);
-	Object_pool::p()->free_object(obj);
+		Wrapper *obj = Object_pool::p()->find_object(device);
+		if (obj)
+			Object_pool::p()->free_object(obj);
+	} catch (int) {
+		/* thrown by find_object */
+		Genode::warning("usb device unknown");
+	}
 }
 
 
