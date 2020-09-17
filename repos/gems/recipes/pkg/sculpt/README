@@ -1261,7 +1261,7 @@ a free download at [https://genode.org].
 
 # Download all ingredients for the Sculpt boot image
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2020-09-17
+  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2020-09-18
 
 # Create a build directory
 
@@ -1306,12 +1306,18 @@ be prepared. The following command prepares all of them at once:
 
 ! <GENODE-DIR>/tool/ports/prepare_port \
 !      acpica bash coreutils curl dde_ipxe dde_linux \
-!      dde_rump drm e2fsprogs expat freetype gnupg \
+!      dde_rump drm e2fsprogs-lib expat freetype gnupg \
 !      jitterentropy jpeg libarchive libc libgcrypt \
 !      libiconv libpng libssh mesa ncurses nova openssl \
-!      qemu-usb qoost qt5 stb stdcxx \
-!      ttf-bitstream-vera vim virtualbox5 x86emu xz \
-!      zlib
+!      qemu-usb qoost qt5 stb stdcxx ttf-bitstream-vera \
+!      vim virtualbox5 x86emu xz zlib
+
+To be able to compile components that are dependent on the QT5-library, the
+corresponding toolchain needs to be installed in addition to the base Genode
+toolchain. You can build and install it by using the following commands:
+
+! <GENODE-DIR>/tool/tool_chain_qt5 build
+! <GENODE-DIR>/tool/tool_chain_qt5 install
 
 The ingredients of the boot image are subsumed by the 'pkg/sculpt' package.
 The default set of software installed by the update runtime is defined by
