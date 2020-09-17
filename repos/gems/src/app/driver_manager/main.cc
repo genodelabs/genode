@@ -176,7 +176,7 @@ struct Driver_manager::Boot_fb_driver : Device_driver
 				_pitch = _height = 0;
 		}
 
-		size_t num_bytes() const { return _pitch * _height + 512*1024; }
+		size_t num_bytes() const { return _pitch * _height + 1024*1024; }
 
 		bool valid() const { return _pitch * _height != 0; }
 	};
