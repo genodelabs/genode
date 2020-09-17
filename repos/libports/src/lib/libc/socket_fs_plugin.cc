@@ -1222,13 +1222,19 @@ int Socket_fs::Plugin::select(int nfds,
 
 	for (int fd = 0; fd < nfds; ++fd) {
 
+		bool fd_in_readfds = FD_ISSET(fd, &in_readfds);
+		bool fd_in_writefds = FD_ISSET(fd, &in_writefds);
+
+		if (!fd_in_readfds && !fd_in_writefds)
+			continue;
+
 		File_descriptor *fdo = file_descriptor_allocator()->find_by_libc_fd(fd);
 
 		/* handle only fds that belong to this plugin */
 		if (!fdo || (fdo->plugin != this))
 			continue;
 
-		if (FD_ISSET(fd, &in_readfds)) {
+		if (fd_in_readfds) {
 			try {
 				Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
 
@@ -1239,7 +1245,7 @@ int Socket_fs::Plugin::select(int nfds,
 			} catch (Socket_fs::Context::Inaccessible) { }
 		}
 
-		if (FD_ISSET(fd, &in_writefds)) {
+		if (fd_in_writefds) {
 			try {
 				Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
 

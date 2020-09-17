@@ -2080,6 +2080,12 @@ int Libc::Vfs_plugin::select(int nfds,
 	auto fn = [&] {
 		for (int fd = 0; fd < nfds; ++fd) {
 
+			bool fd_in_readfds = FD_ISSET(fd, &in_readfds);
+			bool fd_in_writefds = FD_ISSET(fd, &in_writefds);
+
+			if (!fd_in_readfds && !fd_in_writefds)
+				continue;
+
 			File_descriptor *fdo =
 				file_descriptor_allocator()->find_by_libc_fd(fd);
 
@@ -2090,7 +2096,7 @@ int Libc::Vfs_plugin::select(int nfds,
 			Vfs::Vfs_handle *handle = vfs_handle(fdo);
 			if (!handle) continue;
 
-			if (FD_ISSET(fd, &in_readfds)) {
+			if (fd_in_readfds) {
 				if (handle->fs().read_ready(handle)) {
 					FD_SET(fd, readfds);
 					++nready;
@@ -2099,7 +2105,7 @@ int Libc::Vfs_plugin::select(int nfds,
 				}
 			}
 
-			if (FD_ISSET(fd, &in_writefds)) {
+			if (fd_in_writefds) {
 				if (true /* XXX always writeable */) {
 					FD_SET(fd, writefds);
 					++nready;
