@@ -354,32 +354,41 @@ struct Libc::Local_clone_service : Noncopyable
 
 	typedef Local_service<Session> Service;
 
+	Child_ready &_child_ready;
+
+	Io_signal_handler<Local_clone_service> _child_ready_handler;
+
+	void _handle_child_ready()
+	{
+		_child_ready.child_ready();
+
+		monitor().trigger_monitor_examination();
+	}
+
 	struct Factory : Local_service<Session>::Factory
 	{
-		Session     &_session;
-		Child_ready &_child_ready;
+		Session                  &_session;
+		Signal_context_capability _started_sigh;
 
-		Factory(Session &session, Child_ready &child_ready)
-		: _session(session), _child_ready(child_ready) { }
+		Factory(Session &session, Signal_context_capability started_sigh)
+		: _session(session), _started_sigh(started_sigh) { }
 
 		Session &create(Args const &, Affinity) override { return _session; }
 
 		void upgrade(Session &, Args const &) override { }
 
-		void destroy(Session &) override
-		{
-			monitor().monitor([&] {
-				_child_ready.child_ready();
-				return Fn::COMPLETE;
-			});
-		}
+		void destroy(Session &) override { Signal_transmitter(_started_sigh).submit(); }
 
 	} _factory;
 
 	Service service { _factory };
 
 	Local_clone_service(Env &env, Entrypoint &ep, Child_ready &child_ready)
-	: _session(env, ep), _factory(_session, child_ready) { }
+	:
+		_session(env, ep), _child_ready(child_ready),
+		_child_ready_handler(env.ep(), *this, &Local_clone_service::_handle_child_ready),
+		_factory(_session, _child_ready_handler)
+	{ }
 };
 
 
