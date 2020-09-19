@@ -114,6 +114,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "set timeout=0"
 
 		# choose best graphic mode
+		# uncomment line to get vga console working in hypervisor
 		puts $fh "set gfxpayload=auto"
 
 		if {[have_include image/uefi]} {
