@@ -304,7 +304,13 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 			catch (Watch_failed) { }
 
 			try { return _read_dataspace(update_only); }
-			catch (Lookup_failed)     { /* missing but may appear anytime soon */ }
+			catch (Lookup_failed) {
+				if (_file_size > 0) {
+					_file_ds.clear();
+					_file_size = 0;
+					Signal_transmitter(_sigh).submit();
+				}
+			}
 			catch (Invalid_handle)    { warning(_file_path, ": invalid handle"); }
 			catch (Invalid_name)      { warning(_file_path, ": invalid name"); }
 			catch (Permission_denied) { warning(_file_path, ": permission denied"); }
