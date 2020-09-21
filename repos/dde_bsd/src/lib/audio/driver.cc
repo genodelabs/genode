@@ -178,7 +178,7 @@ static bool set_mixer_value(Mixer &mixer, char const * const field,
 		case AUDIO_MIXER_SET:
 			{
 				for (int i = 0; i < info.un.s.num_mem; i++) {
-					if (Genode::strcmp(value, info.un.e.member[i].label.name) == 0) {
+					if (Genode::strcmp(value, info.un.s.member[i].label.name) == 0) {
 						oldv= ctrl.un.mask;
 						newv |= info.un.s.member[i].mask;
 
