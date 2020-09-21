@@ -216,7 +216,7 @@ static bool set_mixer_value(Mixer &mixer, char const * const field,
 }
 
 
-static char const *get_mixer_value(mixer_devinfo_t *info)
+static char const *get_mixer_value(mixer_devinfo_t const *info)
 {
 	static char buffer[128];
 
@@ -269,6 +269,33 @@ static char const *get_mixer_value(mixer_devinfo_t *info)
 	}
 
 	return buffer;
+}
+
+
+static bool headphone_plugged()
+{
+	for (unsigned i = 0; i < mixer.num; i++) {
+		mixer_devinfo_t const &info = mixer.info[i];
+
+		if (info.type == AUDIO_MIXER_CLASS) {
+			continue;
+		}
+
+		unsigned     const mixer_class = info.mixer_class;
+		char const * const class_name  = mixer.info[mixer_class].label.name;
+		char const * const name        = info.label.name;
+
+		Genode::String<64> const control { class_name, ".", name };
+		if (control != "outputs.hp_sense") {
+			continue;
+		}
+
+		auto const result = get_mixer_value(&info);
+
+		return Genode::strcmp("plugged", result) == 0;
+	}
+
+	return false;
 }
 
 
@@ -405,6 +432,8 @@ static bool configure_audio_device(Genode::Env &env, dev_t dev, Genode::Xml_node
 	if (verbose) dump_mixer(mixer);
 
 	configure_mixer(env, mixer, config);
+
+	notify_hp_sense(headphone_plugged() ? 1: 0);
 
 	return true;
 }
@@ -558,6 +587,12 @@ extern "C" void notify_record()
 {
 	if (_record_sigh.valid())
 		Genode::Signal_transmitter(_record_sigh).submit();
+}
+
+
+extern "C" void notify_hp_sense(int const sense)
+{
+	set_mixer_value(mixer, "record.adc-0:1_source", sense ? "mic2" : "mic");
 }
 
 
