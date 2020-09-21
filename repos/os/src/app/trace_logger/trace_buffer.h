@@ -42,8 +42,13 @@ class Trace_buffer
 			using namespace Genode;
 
 			bool wrapped = _buffer.wrapped() != _wrapped_count;
-			if (wrapped)
+			if (wrapped) {
+				if ((_buffer.wrapped() - 1) != _wrapped_count) {
+					warning("buffer wrapped multiple times; you might want to raise buffer size; curr_count=",
+					        _buffer.wrapped(), " last_count=", _wrapped_count);
+				}
 				_wrapped_count = _buffer.wrapped();
+			}
 
 			/* initialize _curr if _buffer was empty until now */
 			if (_curr.last())
