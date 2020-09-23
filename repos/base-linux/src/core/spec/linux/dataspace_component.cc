@@ -22,6 +22,7 @@
 /* Genode includes */
 #include <linux_dataspace/linux_dataspace.h>
 #include <util/arg_string.h>
+#include <util/misc_math.h>
 #include <root/root.h>
 #include <base/session_label.h>
 
@@ -56,7 +57,7 @@ Genode::size_t Dataspace_component::_file_size()
 	struct stat64 s;
 	if (lx_stat(_fname.buf, &s) < 0) throw Service_denied();
 
-	return s.st_size;
+	return align_addr(s.st_size, 12);
 }
 
 
