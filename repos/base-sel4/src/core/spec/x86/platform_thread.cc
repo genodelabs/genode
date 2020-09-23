@@ -23,10 +23,11 @@ Phys_allocator& Genode::phys_alloc_16k(Allocator * core_mem_alloc)
 	return phys_alloc_16k;
 }
 
-void Genode::Platform_thread::affinity(Affinity::Location location)
+void Genode::Platform_thread::affinity(Affinity::Location const location)
 {
-	_location = location;
-	seL4_TCB_SetAffinity(tcb_sel().value(), location.xpos());
+	seL4_Error const res = seL4_TCB_SetAffinity(tcb_sel().value(), location.xpos());
+	if (res == seL4_NoError)
+		_location = location;
 }
 
 bool Genode::Thread_info::init_vcpu(Platform &platform, Cap_sel ept)

@@ -221,19 +221,16 @@ Foc_thread_state Platform_thread::state()
 }
 
 
-void Platform_thread::affinity(Affinity::Location location)
+void Platform_thread::affinity(Affinity::Location const location)
 {
-	_location = location;
-
 	int const cpu = location.xpos();
 
 	l4_sched_param_t params = l4_sched_param(_prio);
 	params.affinity         = l4_sched_cpu_set(cpu, 0, 1);
 	l4_msgtag_t tag = l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP,
 	                                          _thread.local.data()->kcap(), &params);
-	if (l4_error(tag))
-		warning("setting affinity of ", Hex(_thread.local.data()->kcap()),
-		        " to ", cpu, " failed!");
+	if (!l4_error(tag))
+		_location = location;
 }
 
 

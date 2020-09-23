@@ -66,6 +66,7 @@ Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
 	_utcb_core_addr(&utcb),
 	_utcb_pd_addr(&utcb),
 	_main_thread(false),
+	_location(Affinity::Location()),
 	_kobj(true, _label.string())
 {
 	/* create UTCB for a core thread */
@@ -92,6 +93,7 @@ Platform_thread::Platform_thread(size_t             const  quota,
 	_priority(_scale_priority(virt_prio)),
 	_quota(quota),
 	_main_thread(false),
+	_location(location),
 	_kobj(true, _priority, _quota, _label.string())
 {
 	try {
@@ -101,7 +103,6 @@ Platform_thread::Platform_thread(size_t             const  quota,
 		throw Out_of_ram();
 	}
 	_utcb_core_addr = (Native_utcb *)core_env().rm_session()->attach(_utcb);
-	affinity(location);
 }
 
 
@@ -121,9 +122,9 @@ void Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
 }
 
 
-void Platform_thread::affinity(Affinity::Location const & location)
+void Platform_thread::affinity(Affinity::Location const &)
 {
-	_location = location;
+	/* yet no migration support, don't claim wrong location, e.g. for tracing */
 }
 
 

@@ -13,10 +13,13 @@
 
 #include <platform_thread.h>
 
-void Genode::Platform_thread::affinity(Affinity::Location location)
+void Genode::Platform_thread::affinity(Affinity::Location const location)
 {
-	_location = location;
-
-	Genode::error("could not set affinity");
-	//seL4_TCB_SetAffinity(tcb_sel().value(), location.xpos());
+#if CONFIG_MAX_NUM_NODES > 1
+	seL4_Error const res = seL4_TCB_SetAffinity(tcb_sel().value(), location.xpos());
+	if (res == seL4_NoError)
+		_location = location;
+#else
+	(void)location;
+#endif
 }

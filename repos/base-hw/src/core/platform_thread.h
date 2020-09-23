@@ -72,7 +72,7 @@ namespace Genode {
 		 */
 		bool _main_thread;
 
-		Affinity::Location _location { };
+		Affinity::Location _location;
 
 		Kernel_object<Kernel::Thread> _kobj;
 

@@ -42,8 +42,6 @@ static const bool verbose2 = true;
 
 void Platform_thread::affinity(Affinity::Location location)
 {
-	_location = location;
-
 	unsigned const cpu_no = location.xpos();
 
 	if (cpu_no >= L4_NumProcessors(get_kip())) {
@@ -51,9 +49,12 @@ void Platform_thread::affinity(Affinity::Location location)
 		return;
 	}
 
-	if (_l4_thread_id != L4_nilthread)
+	if (_l4_thread_id != L4_nilthread) {
 		if (L4_Set_ProcessorNo(_l4_thread_id, cpu_no) == 0)
 			error("could not set processor number");
+		else
+			_location = location;
+	}
 }
 
 

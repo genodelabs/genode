@@ -63,7 +63,7 @@ namespace Genode {
 			Platform_pd       *_platform_pd = nullptr;
 			unsigned           _priority = 0;
 			Pager_object      *_pager = nullptr;
-			Affinity::Location _location { };
+			Affinity::Location _location;
 
 		public:
 
@@ -74,15 +74,16 @@ namespace Genode {
 			 * Constructor
 			 */
 			Platform_thread(size_t, char const *name, unsigned priority,
-			                Affinity::Location, addr_t)
+			                Affinity::Location location, addr_t)
 			:
-				_name(name), _priority(priority)
+				_name(name), _priority(priority), _location(location)
 			{ }
 
 			/**
 			 * Constructor used for core-internal threads
 			 */
-			Platform_thread(char const *name) : _name(name) { }
+			Platform_thread(char const *name)
+			: _name(name), _location(Affinity::Location()) { }
 
 			/**
 			 * Destructor
