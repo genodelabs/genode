@@ -1,0 +1,62 @@
+build "core init test/migrate timer"
+
+if {![have_include "power_on/qemu"]} {
+	puts "Run script is not supported on this platform"
+	exit 0
+}
+if {[have_spec foc] && ([have_spec pbxa9] || [have_spec rpi3])} {
+	# foc kernel does detect solely 1 CPU */
+	puts "Run script is not supported on this platform"
+	exit 0
+}
+if {![have_spec nova] && ![have_spec foc] && ![have_spec sel4]} {
+	puts "Run script is not supported on this platform"
+	exit 0
+}
+
+create_boot_directory
+
+append config {
+	<config prio_levels="2">
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="IO_PORT"/> <!-- on some kernels for timer -->
+			<service name="IRQ"/>     <!-- on some kernels for timer -->
+			<service name="TRACE"/>   <!-- used by migration test -->
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<start name="timer" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="test-migrate" caps="100">
+			<resource name="RAM" quantum="10M"/>
+			<config />
+		</start>
+	</config>
+}
+
+install_config $config
+
+build_boot_image "core ld.lib.so init test-migrate timer"
+
+append qemu_args "-nographic "
+append qemu_args "-smp 4,cores=4,threads=1"
+
+run_genode_until {.*test completed successfully.*\n} 70
+
+grep_output {^\[init -> test-migrate\] \[ep\] thread 'migrate' migrated, .*}
+
+compare_output_to {
+[init -> test-migrate] [ep] thread 'migrate' migrated, location=1x0
+[init -> test-migrate] [ep] thread 'migrate' migrated, location=2x0
+[init -> test-migrate] [ep] thread 'migrate' migrated, location=3x0
+[init -> test-migrate] [ep] thread 'migrate' migrated, location=0x0
+}

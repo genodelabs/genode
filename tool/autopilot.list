@@ -22,6 +22,7 @@ lx_hybrid_ctors
 lx_hybrid_exception
 lx_hybrid_pthread_ipc
 microcode
+migrate
 moon
 netperf_lwip
 netperf_lwip_bridge
