@@ -1,8 +1,13 @@
+# Block numbers of 0-65535 supported for testing
+set block_number 12345
+
+set test_rounds  10000
+
 build "core init test/aes_cbc_4k"
 
 create_boot_directory
 
-install_config {
+append config {
 	<config>
 		<parent-provides>
 			<service name="LOG"/>
@@ -13,14 +18,119 @@ install_config {
 		<default-route> <any-service> <parent/> </any-service> </default-route>
 		<default caps="100"/>
 		<start name="test-aes_cbc_4k">
-			<resource name="RAM" quantum="2M"/>
+			<config block_number="} $block_number {" test_rounds="} $test_rounds {">
+
+				<libc stdout="/dev/log" stderr="/dev/log"/>
+				<vfs>
+					<dir name="dev">
+						<log/>
+					</dir>
+				</vfs>
+
+			</config>
+			<resource name="RAM" quantum="3M"/>
 		</start>
 	</config>}
 
-exec echo -n "Not for the public"  > [run_dir]/genode/plaintext
-exec echo -n "Better kept private" > [run_dir]/genode/key
+install_config $config
 
-build_boot_image "core ld.lib.so spark.lib.so libsparkcrypto.lib.so init test-aes_cbc_4k"
+#
+# Use host tools to do same aes_cbc_essiv crypto as Genode test will do
+#
+
+set debug_steps 0
+
+exec echo -n "Better kept private" > [run_dir]/genode/passphrase
+exec echo -n "Not for the public"  > [run_dir]/genode/plaintext
+
+# extent plaintext to 4k to crypt the same size on Genode and here
+exec truncate -s 4k [run_dir]/genode/plaintext
+
+# create some key of right size, e.g. 256 bit
+set key_aes [exec sha256sum [run_dir]/genode/passphrase]
+# remove file name from output
+regexp {([0-9,a-z]+)} $key_aes all key_aes
+
+if {$debug_steps} { puts "$key_aes - key" }
+
+# write key
+set fd [open [run_dir]/genode/hex_key w]
+puts -nonewline $fd $key_aes
+close $fd
+
+# convert key from hex form into binary form
+exec xxd -r -p [run_dir]/genode/hex_key [run_dir]/genode/key
+if {!$debug_steps} { exec rm [run_dir]/genode/hex_key }
+
+#
+# ESSIV
+#
+
+# hash key
+exec sha256sum [run_dir]/genode/key >[run_dir]/genode/hash_of_key
+
+# read in hash_of_key
+set fd [open [run_dir]/genode/hash_of_key r]
+set hash_of_key [read $fd]
+close $fd
+exec rm [run_dir]/genode/hash_of_key
+
+# extract key from file (contains beside the key also the file name)
+regexp {([0-9,a-z]+)} $hash_of_key all hash_of_key
+
+if {$debug_steps} { puts "$hash_of_key - hash of key" }
+
+# convert block_number to binary form - up to now works solely for 0-65535 !
+if {$block_number >= 65536} {
+	puts "block number too large for this script\n"
+	exit 1
+}
+set hex_block [format "%02x%02x" [expr $block_number%256] [expr $block_number/256]]
+exec echo "$hex_block" | xxd -r -p >[run_dir]/genode/blocknumber
+exec truncate -s 16 [run_dir]/genode/blocknumber
+
+# crypt the blocknumber with the hash_of_key as key
+catch {
+ # -p - shows information about generated key, salt and iv
+ exec openssl enc -aes-256-cbc -nosalt -iv 0 -p \
+      -K "$hash_of_key" \
+      -in        [run_dir]/genode/blocknumber \
+      -out       [run_dir]/genode/iv_crypt
+}
+
+# remove 16 byte at end of this file
+exec truncate -s 16 [run_dir]/genode/iv_crypt
+
+# convert and read in iv in hex form
+set iv [exec xxd -p [run_dir]/genode/iv_crypt]
+
+if {$debug_steps} { puts "$iv - iv" }
+
+if {!$debug_steps} {
+	exec rm [run_dir]/genode/blocknumber
+	exec rm [run_dir]/genode/iv_crypt
+}
+
+#
+# Now make aes_cbc with essiv
+#
+
+catch {
+ exec openssl enc -aes-256-cbc -nosalt -iv "$iv" \
+      -K "$key_aes" \
+      -in        [run_dir]/genode/plaintext \
+      -out       [run_dir]/genode/openssl_crypted
+}
+
+if {$debug_steps} { exit 0 }
+
+#
+# build and boot image
+#
+set boot_modules { core ld.lib.so init }
+append boot_modules { libc.lib.so vfs.lib.so libcrypto.lib.so test-aes_cbc_4k }
+
+build_boot_image $boot_modules
 
 append qemu_args "-nographic "
 
