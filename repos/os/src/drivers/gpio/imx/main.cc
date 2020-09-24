@@ -25,19 +25,11 @@
 /* local includes */
 #include <driver.h>
 
-
-Imx_driver &Imx_driver::factory(Genode::Env &env)
-{
-	static Imx_driver driver(env);
-	return driver;
-}
-
-
 struct Main
 {
 	Genode::Env          &env;
 	Genode::Sliced_heap   sliced_heap;
-	Imx_driver           &driver;
+	Imx_driver            driver { env };
 	Gpio::Root            root;
 
 	Genode::Attached_rom_dataspace config_rom { env, "config" };
@@ -46,7 +38,6 @@ struct Main
 	:
 		env(env),
 		sliced_heap(env.ram(), env.rm()),
-		driver(Imx_driver::factory(env)),
 		root(&env.ep().rpc_ep(), &sliced_heap, driver)
 	{
 		using namespace Genode;

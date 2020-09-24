@@ -17,15 +17,14 @@
 #define _DRIVERS__GPIO__SPEC__IMX__GPIO_H_
 
 /* Genode includes */
-#include <base/attached_io_mem_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <util/mmio.h>
 
-struct Gpio_reg : Genode::Attached_io_mem_dataspace, Genode::Mmio
+struct Gpio_reg : Genode::Attached_dataspace, Genode::Mmio
 {
 	Gpio_reg(Genode::Env &env,
-	         Genode::addr_t const mmio_base,
-	         Genode::size_t const mmio_size)
-	: Genode::Attached_io_mem_dataspace(env, mmio_base, mmio_size),
+	         Genode::Dataspace_capability cap)
+	: Genode::Attached_dataspace(env.rm(), cap),
 	  Genode::Mmio((Genode::addr_t)local_addr<void>()) { }
 
 	struct Data     : Register_array<0x0, 32, 32, 1> {};
