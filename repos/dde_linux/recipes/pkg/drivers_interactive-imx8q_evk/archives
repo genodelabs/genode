@@ -1,3 +1,5 @@
+_/src/event_filter
+_/src/imx8q_evk_drivers
 _/src/imx8_fb_drv
 _/src/platform_drv
 _/src/usb_host_drv
