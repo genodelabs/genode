@@ -30,7 +30,7 @@ class Genode::Vm : public Vm_base
 
 		enum { DTB_OFFSET = 0x1000000 };
 
-		Gpio::Connection  _led { _env, 123 };
+		Gpio::Connection  _led { _env, 28 };
 
 
 		/*************

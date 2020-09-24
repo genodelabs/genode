@@ -1,7 +1,7 @@
 #
 # Build
 #
-if {[have_spec gpio] == 0} {
+if {[have_spec rpi] == 0} {
 	puts "Runs only on platforms with GPIO"
 	exit 0
 }
@@ -41,10 +41,9 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>}
 
-append config "
-	<start name=\"[gpio_drv]\">"
 
 append config {
+		<start name="rpi_gpio_drv"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Gpio"/></provides>
 		<config async_events="0">
@@ -73,7 +72,7 @@ set boot_modules {
 	signal_gpio_drv
 }
 
-append boot_modules [gpio_drv]
+append boot_modules rpi_gpio_drv
 
 build_boot_image $boot_modules
 

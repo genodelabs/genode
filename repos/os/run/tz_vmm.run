@@ -143,10 +143,29 @@ set config {
 	<default caps="100"/>}
 
 append_if $trusted_led config {
-	<start name="imx53_gpio_drv">
+	<start name="platform_drv" caps="150">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Platform"/> </provides>
+		<config>
+			<device name="gpio">
+				<io_mem address="0x53f90000" size="0x4000"/>
+				<irq number="56"/>
+				<irq number="57"/>
+			</device>
+			<policy label="imx_gpio_drv -> ">
+				<device name="gpio"/>
+			</policy>
+		</config>
+	</start>
+
+	<start name="imx_gpio_drv">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Gpio"/></provides>
 		<config/>
+		<route>
+			<service name="Platform"><child name="platform_drv" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 	</start>}
 
 append_if $mmc_rootfs config {
@@ -164,6 +183,11 @@ append_if $mmc_rootfs config {
 	<start name="imx53_sd_card_drv">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Block"/></provides>
+		<route>
+			<service name="Platform"> <child name="imx53_platform_drv"/> </service>
+			<service name="Regulator"> <child name="imx53_platform_drv"/> </service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 	</start>
 	<start name="part_block">
 		<resource name="RAM" quantum="10M" />
@@ -266,7 +290,8 @@ if { $mmc_rootfs } {
 }
 cd ..
 
-lappend_if $trusted_led boot_modules imx53_gpio_drv
+lappend_if $trusted_led boot_modules imx_gpio_drv
+lappend_if $trusted_led boot_modules platform_drv
 
 build_boot_image [join $boot_modules " "]
 
