@@ -283,12 +283,9 @@ class Nitpicker::User_state
 		 */
 		void focus(View_owner &owner)
 		{
-			/*
-			 * The focus change is not applied immediately but deferred to the
-			 * next call of '_apply_pending_focus_change' via the periodic
-			 * call of 'handle_input_events'.
-			 */
 			_next_focused = &owner;
+
+			_apply_pending_focus_change();
 		}
 
 		void reset_focus() { _next_focused = nullptr; }
