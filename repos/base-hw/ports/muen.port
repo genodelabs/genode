@@ -3,7 +3,7 @@ VERSION   := git
 DOWNLOADS := muen.git
 
 URL(muen) := https://git.codelabs.ch/git/muen.git
-REV(muen) := 76b75b5f859f14397d146c16e5411142a6af11d0
+REV(muen) := 7f41b2748e0ed6aadc3e43426390ae4efc3c5e65
 DIR(muen) := src/kernel/muen
 
 PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/muen_*.patch))

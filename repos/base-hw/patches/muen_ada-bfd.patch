@@ -3,7 +3,7 @@ index cd776781e..36c87b126 100644
 --- a/contrib/ada-bfd/Makefile
 +++ b/contrib/ada-bfd/Makefile
 @@ -1,6 +1,6 @@
--REV = afcd3c0e6f25c7bec7fe8f240c8376eaa2125b63
+-REV = 235a23452f7c5104ce6270a84f9794f497d496aa
 +REV = 1ee4c51befbda90360e519f5b76c17db124e2973
  PKG = ada-bfd
 -SRC = https://github.com/stcarrez/ada-bfd.git
