@@ -60,6 +60,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			private:
 
 				friend class Genode::List<Io_mem>;
+				friend class Platform::Device_component;
 
 			public:
 
@@ -221,6 +222,47 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 
 		bool _setup_msi(Genode::uint16_t);
 		bool _setup_msix(Genode::uint16_t);
+
+		template <typename FUNC>
+		void apply_msix_table(Pci::Resource const &lookup,
+		                      Genode::addr_t const msix_table_phys,
+		                      Genode::size_t const msix_table_size,
+		                      FUNC const &fn)
+		{
+			Genode::uint8_t max = sizeof(_io_mem) / sizeof(_io_mem[0]);
+			for (unsigned i = 0; i < max; ++i) {
+				Pci::Resource res = _device_config.resource(i);
+
+				if (!res.valid() || !res.mem())
+					continue;
+
+				if (res.base() != lookup.base() || res.size() != lookup.size())
+					continue;
+
+				for (Io_mem * io_mem = _io_mem[i].first(); io_mem; io_mem = io_mem->next()) {
+
+					Dataspace_client ds_client(io_mem->dataspace());
+
+					if (!(ds_client.phys_addr() <= msix_table_phys &&
+					      msix_table_phys + msix_table_size <= ds_client.phys_addr() + ds_client.size()))
+						continue;
+
+					Genode::size_t const offset = msix_table_phys - ds_client.phys_addr();
+
+					Attached_dataspace mem_io(_env.rm(), io_mem->dataspace());
+
+					fn(reinterpret_cast<addr_t>(mem_io.local_addr<void>()) + offset);
+
+					return;
+				}
+			}
+
+			/* requested io_mem not allocated by Pci::Resource - try direct */
+			Io_mem io_mem(_env, msix_table_phys, msix_table_size, false);
+			Attached_dataspace mem_io(_env.rm(), io_mem.dataspace());
+			Genode::addr_t const msix_table = reinterpret_cast<addr_t>(mem_io.local_addr<void>());
+			fn(msix_table);
+		};
 
 	public:
 
