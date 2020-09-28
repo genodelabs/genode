@@ -1,10 +1,9 @@
-SRC_ADB := aes_cbc_4k.adb
-LIBS    += spark libsparkcrypto
+LIBSSL_PORT_DIR = $(call select_from_ports,openssl)
 
-CC_ADA_OPT += -gnatec=$(REP_DIR)/src/lib/aes_cbc_4k/spark.adc
+LIBS    += libcrypto
+SRC_CC  += aes_cbc_4k.cc
 
 INC_DIR += $(REP_DIR)/src/lib/aes_cbc_4k
-
-aes_cbc_4k.o : aes_cbc_4k.ads
+INC_DIR += $(LIBSSL_PORT_DIR)/include
 
 vpath % $(REP_DIR)/src/lib/aes_cbc_4k

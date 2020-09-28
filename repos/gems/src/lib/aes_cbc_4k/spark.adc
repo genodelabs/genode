@@ -1,2 +1,0 @@
-pragma SPARK_Mode (On);
-pragma Check_Policy (Debug, Disable);
