@@ -418,7 +418,6 @@ lcong48 T
 ldexp T
 ldiv T
 lfind T
-libc_select_notify V
 link W
 listen T
 llabs T

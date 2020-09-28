@@ -53,7 +53,7 @@ static void use_file_system()
 {
 	int result = 0;
 
-	int const fd = open("/tmp/blub", O_RDWR | O_NONBLOCK | O_CREAT | O_APPEND);
+	int const fd = open("/tmp/blub", O_RDWR /*| O_NONBLOCK*/ | O_CREAT | O_APPEND);
 	if (fd == -1) die("open");
 
 	printf("open returned fd %d\n", fd);
@@ -96,41 +96,6 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 	fd_set _exceptfds;
 	bool   _in_read = false;
 
-	void _select()
-	{
-		int nready = 0;
-		do {
-			fd_set readfds   = _readfds;
-			fd_set writefds  = _writefds;
-			fd_set exceptfds = _exceptfds;
-
-			nready = _select_handler.select(_fd + 1, readfds, writefds, exceptfds);
-			if (nready)
-				_select_ready(nready, readfds, writefds, exceptfds);
-		} while (nready);
-	}
-
-	Libc::Select_handler<Session_component> _select_handler {
-		*this, &Session_component::_select_ready };
-
-	void _read()
-	{
-		_in_read = true;
-
-		/* never mind the potentially nested with_libc */
-		Libc::with_libc([&] () {
-			int const result = read(_fd, _buf, sizeof(_buf)-1);
-			if (result <= 0) {
-				Genode::warning("read returned ", result, " in select handler");
-				return;
-			}
-			_buf[result] = 0;
-			Genode::log("read from file \"", Genode::Cstring(_buf), "\"");
-		});
-
-		_in_read = false;
-	}
-
 	void _select_ready(int nready, fd_set const &readfds, fd_set const &writefds, fd_set const &exceptfds)
 	{
 		Libc::with_libc([&] () {
@@ -154,6 +119,55 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 		});
 	}
 
+	void _select()
+	{
+		/*
+		 * This function activates the select handler. Ready file FDs must be
+		 * handled immediately on return from select() as these events will not
+		 * unblock the entrypoint later on.
+		 */
+		int nready = 0;
+		do {
+			fd_set readfds   = _readfds;
+			fd_set writefds  = _writefds;
+			fd_set exceptfds = _exceptfds;
+
+			nready = _select_handler.select(_fd + 1, readfds, writefds, exceptfds);
+			if (nready)
+				_select_ready(nready, readfds, writefds, exceptfds);
+		} while (nready);
+	}
+
+	Libc::Select_handler<Session_component> _select_handler {
+		*this, &Session_component::_handle_select };
+
+	void _handle_select(int nready, fd_set const &readfds, fd_set const &writefds, fd_set const &exceptfds)
+	{
+		/* handle all ready fds */
+		_select_ready(nready, readfds, writefds, exceptfds);
+
+		/* reactivate select handler */
+		_select();
+	}
+
+	void _read()
+	{
+		_in_read = true;
+
+		/* never mind the potentially nested with_libc */
+		Libc::with_libc([&] () {
+			int const result = read(_fd, _buf, sizeof(_buf)-1);
+			if (result <= 0) {
+				Genode::warning("read returned ", result, " in select handler");
+				return;
+			}
+			_buf[result] = 0;
+			Genode::log("read from file \"", Genode::Cstring(_buf), "\"");
+		});
+
+		_in_read = false;
+	}
+
 	Session_component(Libc::Env &env) : _env(env)
 	{
 		Libc::with_libc([&] () {
@@ -171,6 +185,8 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 
 		/* initially call read two times to ensure blocking */
 		_read(); _read();
+
+		_select();
 	}
 
 	void write(String const &string_buf) override

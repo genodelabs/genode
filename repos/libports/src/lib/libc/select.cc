@@ -63,9 +63,6 @@ void Libc::init_select(Select &select, Signal &signal, Monitor &monitor)
 }
 
 
-void (*libc_select_notify)() __attribute__((weak));
-
-
 /** Description for a task waiting in select */
 struct Libc::Select_cb
 {
@@ -416,6 +413,8 @@ int Libc::Select_handler_base::select(int nfds, fd_set &readfds,
 
 void Libc::Select_handler_base::dispatch_select()
 {
+	Libc::select_notify_from_kernel();
+
 	Select_handler_cb &select_cb = *_select_cb;
 
 	if (select_cb->nready == 0) return;
