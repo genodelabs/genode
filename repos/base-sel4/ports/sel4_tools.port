@@ -8,3 +8,4 @@ REV(sel4_tools) := 3839bb9740f8f13266de4273774004634388a2f7
 DIR(sel4_tools) := src/tool/sel4_tools
 
 $(call check_tool,python)
+$(call check_tool,cpio)

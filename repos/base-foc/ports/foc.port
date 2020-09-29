@@ -37,3 +37,5 @@ PATCH_OPT(patches/0014-Always-enable-user-mode-access-for-performance-monit.patc
 PATCH_OPT(patches/0015-VMX-disable-event-injection-if-requested-by-VMM.patch)     := -p3 -d${DIR(foc)}
 PATCH_OPT(patches/0016-svm-provide-cr0-to-guest-if-np-enabled.patch)              := -p3 -d${DIR(foc)}
 PATCH_OPT(patches/0017-svm-avoid-forceful-exit-on-task-switch.patch)              := -p3 -d${DIR(foc)}
+
+$(call check_tool,gawk)
