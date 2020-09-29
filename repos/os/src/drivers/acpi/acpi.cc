@@ -238,6 +238,69 @@ struct Dmar_rmrr : Genode::Mmio
 	}
 };
 
+/* I/O Virtualization Definition Blocks for AMD IO-MMU */
+struct Ivdb : Genode::Mmio
+{
+	struct Type   : Register<0x00, 8>  { };
+	struct Length : Register<0x02, 16> { };
+
+	Ivdb(addr_t const addr) : Genode::Mmio(addr) { }
+};
+
+
+struct Ivdb_entry : public List<Ivdb_entry>::Element
+{
+	unsigned const type;
+
+	Ivdb_entry(unsigned t) : type (t) { }
+
+	template <typename FUNC>
+	static void for_each(FUNC const &func)
+	{
+		for (Ivdb_entry *entry = list()->first(); entry; entry = entry->next()) {
+			func(*entry);
+		}
+	}
+
+	static List<Ivdb_entry> *list()
+	{
+		static List<Ivdb_entry> _list;
+		return &_list;
+	}
+};
+
+
+/* I/O Virtualization Reporting Structure (IVRS) for AMD IO-MMU */
+struct Ivrs : Genode::Mmio
+{
+	struct Length : Register<0x04, 32> { };
+	struct Ivinfo : Register<0x24, 32> {
+		struct Dmar : Bitfield<1, 1> { };
+	};
+
+	static constexpr unsigned min_size() { return 0x30; }
+
+	Ivrs(addr_t const table) : Genode::Mmio(table) { }
+
+	void parse(Allocator &alloc)
+	{
+		addr_t addr = base() + 0x30;
+		while (addr < base() + read<Ivrs::Length>()) {
+			bool dmar = Ivinfo::Dmar::get(read<Ivinfo::Dmar>());
+			if (dmar)
+				Genode::warning("Predefined regions should be added to IOMMU");
+
+			Ivdb ivdb(addr);
+
+			uint32_t const type = ivdb.read<Ivdb::Type>();
+			uint32_t const size = ivdb.read<Ivdb::Length>();
+
+			Ivdb_entry::list()->insert(new (&alloc) Ivdb_entry(type));
+
+			addr += size;
+		}
+	}
+};
 
 /* Fixed ACPI description table (FADT) */
 struct Fadt : Genode::Mmio
@@ -370,6 +433,8 @@ class Table_wrapper
 		}
 
 		bool valid() { return !checksum((uint8_t *)_table, _table->size); }
+
+		bool is_ivrs() const { return _cmp("IVRS");}
 
 		/**
 		 * Is this the FACP table
@@ -1201,6 +1266,13 @@ class Acpi_table
 						continue;
 					}
 
+					if (table.is_ivrs() && Ivrs::min_size() <= table->size) {
+						log("Found IVRS");
+
+						Ivrs ivrs(reinterpret_cast<Genode::addr_t>(table->signature));
+						ivrs.parse(alloc);
+					}
+
 					if (table.is_facp() && Fadt::size() <= table->size) {
 						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature));
 						dsdt = fadt.read<Fadt::Dsdt>();
@@ -1421,6 +1493,13 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 				});
 			});
 		}
+
+		Ivdb_entry::for_each([&](auto entry) {
+			xml.node("ivdb", [&] () {
+				xml.attribute("type", entry.type);
+			});
+		});
+
 		{
 			Element *e = Element::list()->first();
 

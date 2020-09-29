@@ -134,6 +134,18 @@ static void add_dmar(ACPI_TABLE_DMAR const * const dmar_table,
 	}, [](ACPI_DMAR_HEADER const * const e) { return e->Length; });
 }
 
+static void add_ivdb(ACPI_TABLE_IVRS const * const ivrs_table,
+                     Reporter::Xml_generator &xml)
+{
+	typedef ACPI_IVRS_HEADER Ivdb;
+
+	for_each_element(ivrs_table, (Ivdb *) nullptr, [&](Ivdb const * const e) {
+		xml.node("ivdb", [&] () {
+			xml.attribute("type", e->Type);
+		});
+	}, [](Ivdb const * const e) { return e->Length; });
+}
+
 void Acpica::generate_report(Genode::Env &env, Bridge *pci_root_bridge)
 {
 	enum { REPORT_SIZE = 5 * 4096 };
@@ -160,6 +172,10 @@ void Acpica::generate_report(Genode::Env &env, Bridge *pci_root_bridge)
 
 			add_dmar(reinterpret_cast<ACPI_TABLE_DMAR *>(header), xml);
 		}
+
+		status = AcpiGetTable((char *)ACPI_SIG_IVRS, 0, &header);
+		if (status == AE_OK)
+			add_ivdb(reinterpret_cast<ACPI_TABLE_IVRS *>(header), xml);
 
 		if (pci_root_bridge)
 			pci_root_bridge->generate(xml);

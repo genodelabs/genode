@@ -903,7 +903,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					continue;
 				}
 
-				if (node.has_type("drhd")) {
+				if (node.has_type("drhd") || node.has_type("ivdb")) {
 					_iommu = true;
 					continue;
 				}
