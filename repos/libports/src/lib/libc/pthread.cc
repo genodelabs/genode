@@ -1076,8 +1076,18 @@ extern "C" {
 
 		pthread_mutex_lock(&c->counter_mutex);
 		if (c->num_signallers > 0) {
-			if (result == ETIMEDOUT) /* timeout occured */
-				sem_wait(&c->signal_sem);
+			if (result == ETIMEDOUT) {
+				/*
+				 * Another thread may have called pthread_cond_signal(),
+				 * detected this waiter and posted 'signal_sem' concurrently.
+				 *
+				 * We can't consume this post by 'sem_wait(&c->signal_sem)'
+				 * because a third thread may have consumed the post already
+				 * above in sem_wait/timedwait(). So, we just do nothing here
+				 * and accept the spurious wakeup on next
+				 * pthread_cond_wait/timedwait().
+				 */
+			}
 			sem_post(&c->handshake_sem);
 			--c->num_signallers;
 		}

@@ -815,7 +815,7 @@ struct Test_cond_timed
 
 	enum class State { RUN, END } _shared_state { State::RUN };
 
-	enum { ROUNDS = 10 };
+	enum { ROUNDS = 50, TIMEOUT_MS = 50 };
 
 	static void *signaller_fn(void *arg)
 	{
@@ -829,17 +829,21 @@ struct Test_cond_timed
 
 		bool loop = true;
 		for (unsigned i = 1; loop; ++i) {
-			usleep(249*1000);
+			usleep((TIMEOUT_MS-1)*1000);
 			pthread_mutex_lock(_mutex.mutex());
 
 			if (i == ROUNDS) {
 				_shared_state = State::END;
 				loop          = false;
 			}
-			pthread_cond_broadcast(_cond.cond());
+			pthread_cond_signal(_cond.cond());
 
 			pthread_mutex_unlock(_mutex.mutex());
 		}
+
+		pthread_mutex_lock(_mutex.mutex());
+		pthread_cond_broadcast(_cond.cond());
+		pthread_mutex_unlock(_mutex.mutex());
 
 		printf("signaller: finished\n");
 	}
@@ -856,6 +860,9 @@ struct Test_cond_timed
 
 		printf("waiter%s: started\n", note);
 
+		bool const timedwait = !main_thread;
+		bool       timed_out = false;
+
 		for (bool loop = true; loop; ) {
 			pthread_mutex_lock(_mutex.mutex());
 
@@ -869,15 +876,22 @@ struct Test_cond_timed
 					break;
 				}
 
-				ts = add_timespec_ms(ts, 250);
+				if (timedwait) {
+					ts  = add_timespec_ms(ts, TIMEOUT_MS);
+					ret = pthread_cond_timedwait(_cond.cond(), _mutex.mutex(), &ts);
+				} else {
+					ret = pthread_cond_wait(_cond.cond(), _mutex.mutex());
+				}
 
-				ret = pthread_cond_timedwait(_cond.cond(), _mutex.mutex(), &ts);
-
-				if (ret)
-					printf("waiter%s: pthread_cond_timedwait: %s\n", note, strerror(ret));
+				timed_out |= (ret == ETIMEDOUT);
 			} while (ret != 0);
 
 			pthread_mutex_unlock(_mutex.mutex());
+		}
+
+		if (timedwait && !timed_out) {
+			printf("waiter%s: pthread_cond_timedwait did not time-out!\n");
+			exit(-1);
 		}
 
 		printf("waiter%s: finished\n", note);
