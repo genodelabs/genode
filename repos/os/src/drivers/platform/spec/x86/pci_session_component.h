@@ -694,11 +694,13 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				 * A device was found. Create a new device component for the
 				 * device and return its capability.
 				 */
-				try {
-					Device_component * dev = new (_md_alloc)
-						Device_component(_env, config, config_space, config_access, *this,
-						                 _md_alloc, _global_heap);
+				Device_component * dev = new (_md_alloc)
+					Device_component(_env, config, config_space, config_access, *this,
+					                 _md_alloc, _global_heap);
 
+				_device_list.insert(dev);
+
+				try {
 					/* if more than one driver uses the device - warn about */
 					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
 					    Device_config::MAX_DEVICES * device +
@@ -711,14 +713,10 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 						               Device_config::MAX_DEVICES * device +
 						               function, 1);
 
-					_device_list.insert(dev);
 					return _env.ep().rpc_ep().manage(dev);
-				}
-				catch (Genode::Out_of_ram) {
-					throw;
-				}
-				catch (Genode::Out_of_caps) {
-					Genode::warning("Out_of_caps during Device_component construction");
+				} catch (...) {
+					_device_list.remove(dev);
+					destroy(_md_alloc, dev);
 					throw;
 				}
 			};
