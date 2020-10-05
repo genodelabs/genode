@@ -431,6 +431,7 @@ _Unwind_Complete T
 _Unwind_DeleteException T
 _Unwind_Resume T
 _ZN10__cxxabiv120__si_class_type_infoD2Ev T
+_ZN9__gnu_cxx9__freeresEv T
 _ZNK10__cxxabiv117__class_type_info10__do_catchEPKSt9type_infoPPvj T
 _ZNK10__cxxabiv117__class_type_info11__do_upcastEPKS0_PPv T
 _ZNK10__cxxabiv120__si_class_type_info11__do_upcastEPKNS_17__class_type_infoEPKvRNS1_15__upcast_resultE T
@@ -446,6 +447,9 @@ _ZNSt15__exception_ptr13exception_ptrD1Ev T
 _ZNSt9exceptionD0Ev T
 _ZNSt9exceptionD1Ev T
 _ZNSt9exceptionD2Ev T
+_ZSt13set_terminatePFvvE T
+_ZSt17current_exceptionv T
+_ZSt17rethrow_exceptionNSt15__exception_ptr13exception_ptrE T
 _ZSt18uncaught_exceptionv T
 _ZSt19uncaught_exceptionsv T
 _ZSt9terminatev T
@@ -535,6 +539,7 @@ _ZTIPl D 32
 _ZTIPm D 32
 _ZTIPs D 32
 _ZTIPt D 32
+_ZTIPv D 32
 _ZTIPx D 32
 _ZTIPy D 32
 _ZTISt10bad_typeid D 24
@@ -624,14 +629,17 @@ __cxa_get_globals_fast T
 __cxa_guard_abort T
 __cxa_guard_acquire T
 __cxa_guard_release T
+__cxa_init_primary_exception T
 __cxa_pure_virtual T
 __cxa_rethrow T
 __cxa_throw T
 __cxa_throw_bad_array_length T
 __cxa_throw_bad_array_new_length T
 __cxa_type_match T
+__cxa_vec_new T
 __dynamic_cast T
 __emutls_get_address T
+__gcc_personality_v0 T
 __gxx_personality_v0 T
 __stack_chk_fail W
 __stack_chk_guard B 8

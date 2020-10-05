@@ -61,6 +61,15 @@ KEEP_SYMBOLS += _ZTVN10__cxxabiv116__enum_type_infoE
 KEEP_SYMBOLS += _ZN10__cxxabiv121__vmi_class_type_infoD0Ev
 KEEP_SYMBOLS += _ZTVN10__cxxabiv119__pointer_type_infoE
 KEEP_SYMBOLS += _ZTSN10__cxxabiv120__function_type_infoE
+KEEP_SYMBOLS += __cxa_init_primary_exception
+KEEP_SYMBOLS += __cxa_vec_new
+KEEP_SYMBOLS += _ZN9__gnu_cxx9__freeresEv
+KEEP_SYMBOLS += _ZSt17current_exceptionv
+KEEP_SYMBOLS += _ZSt17rethrow_exceptionNSt15__exception_ptr13exception_ptrE
+KEEP_SYMBOLS += _ZSt13set_terminatePFvvE
+KEEP_SYMBOLS += _ZTIPv
+KEEP_SYMBOLS += _ZTISt16nested_exception
+KEEP_SYMBOLS += _ZTVSt16nested_exception
 
 #
 # Include dependency files for the corresponding object files except
