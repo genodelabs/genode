@@ -32,9 +32,9 @@ class Gpio::Session_component : public Genode::Rpc_object<Gpio::Session>
 		struct Irq_session_component : public Genode::Rpc_object<Genode::Irq_session>
 		{
 			Driver        &_driver;
-			unsigned long  _pin;
+			Pin const     &_pin;
 
-			Irq_session_component(Driver &driver, unsigned long pin)
+			Irq_session_component(Driver &driver, Pin const &pin)
 			: _driver(driver), _pin(pin) { }
 
 
@@ -51,7 +51,7 @@ class Gpio::Session_component : public Genode::Rpc_object<Gpio::Session>
 
 		Genode::Rpc_entrypoint &_ep;
 		Driver                 &_driver;
-		unsigned long           _pin;
+		Pin const               _pin;
 
 		Irq_session_component          _irq_component;
 		Genode::Irq_session_capability _irq_cap;
@@ -61,8 +61,8 @@ class Gpio::Session_component : public Genode::Rpc_object<Gpio::Session>
 
 		Session_component(Genode::Rpc_entrypoint &ep,
 		                  Driver                 &driver,
-		                  unsigned long           gpio_pin)
-		: _ep(ep), _driver(driver), _pin(gpio_pin),
+		                  unsigned               gpio_pin)
+		: _ep(ep), _driver(driver), _pin(Pin { gpio_pin }),
 		  _irq_component(_driver, _pin),
 		  _irq_cap(_ep.manage(&_irq_component)) { }
 
@@ -120,12 +120,12 @@ class Gpio::Root : public Genode::Root_component<Gpio::Session_component>
 
 		Session_component *_create_session(const char *args) override
 		{
-			unsigned long pin =
+			unsigned pin =
 				Genode::Arg_string::find_arg(args, "gpio").ulong_value(0);
 			Genode::size_t ram_quota  =
 				Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
-			if (!_driver.gpio_valid(pin))
+			if (!_driver.gpio_valid(Pin { pin }))
 				throw Genode::Service_denied();
 
 			if (ram_quota < sizeof(Session_component)) {

@@ -30,8 +30,11 @@ static int verbose = 1;
 
 namespace Gpio { class Rpi_driver; }
 
+
 class Gpio::Rpi_driver : public Driver
 {
+	using Pin = Gpio::Pin;
+
 	private:
 
 		enum {
@@ -54,7 +57,7 @@ class Gpio::Rpi_driver : public Driver
 			});
 		}
 
-		void _invalid_gpio(unsigned gpio) {
+		void _invalid_gpio(Pin gpio) {
 			Genode::error("invalid GPIO pin number ", gpio); }
 
 	public:
@@ -85,9 +88,9 @@ class Gpio::Rpi_driver : public Driver
 		 **  Driver interface  **
 		 ******************************/
 
-		bool gpio_valid(unsigned gpio) override { return gpio < MAX_PINS; }
+		bool gpio_valid(Pin gpio) override { return gpio.value < MAX_PINS; }
 
-		void direction(unsigned gpio, bool input) override
+		void direction(Pin gpio, bool input) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 
@@ -95,113 +98,113 @@ class Gpio::Rpi_driver : public Driver
 				Genode::log("direction: gpio=", gpio, " input=", input);
 
 			Reg::Function f = input ? Reg::FSEL_INPUT : Reg::FSEL_OUTPUT;
-			_reg.set_gpio_function(gpio, f);
+			_reg.set_gpio_function(gpio.value, f);
 		}
 
-		void write(unsigned gpio, bool level) override
+		void write(Pin gpio, bool level) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 
 			if (verbose)
 				Genode::log("write: gpio=", gpio, " level=", level);
 
-			if (_reg.get_gpio_function(gpio)!=Reg::FSEL_OUTPUT)
+			if (_reg.get_gpio_function(gpio.value)!=Reg::FSEL_OUTPUT)
 				warning("GPIO pin ", gpio, " is not configured for output");
 
 			if (level)
-				_reg.set_gpio_level(gpio);
+				_reg.set_gpio_level(gpio.value);
 			else
-				_reg.clear_gpio_level(gpio);
+				_reg.clear_gpio_level(gpio.value);
 		}
 
-		bool read(unsigned gpio) override
+		bool read(Pin gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return 0; }
-			if(_reg.get_gpio_function(gpio) != Reg::FSEL_INPUT)
+			if(_reg.get_gpio_function(gpio.value) != Reg::FSEL_INPUT)
 				warning("GPIO pin ", gpio, " is not configured for input");
 
-			return _reg.get_gpio_level(gpio);
+			return _reg.get_gpio_level(gpio.value);
 		}
 
-		void debounce_enable(unsigned, bool) override {
+		void debounce_enable(Pin, bool) override {
 			Genode::warning("debounce_enable not supported!"); }
 
-		void debounce_time(unsigned, unsigned long) override {
+		void debounce_time(Pin, unsigned long) override {
 			Genode::warning("debounce_time not supported!"); }
 
-		void falling_detect(unsigned gpio) override
+		void falling_detect(Pin gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 
 			if (verbose) Genode::log("falling_detect: gpio=", gpio);
 
 			if(_async)
-				_reg.set_gpio_async_falling_detect(gpio);
+				_reg.set_gpio_async_falling_detect(gpio.value);
 			else
-				_reg.set_gpio_falling_detect(gpio);
+				_reg.set_gpio_falling_detect(gpio.value);
 		}
 
-		void rising_detect(unsigned gpio) override
+		void rising_detect(Pin gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 
 			if (verbose) Genode::log("rising_detect: gpio=", gpio);
 
 			if(_async)
-				_reg.set_gpio_async_rising_detect(gpio);
+				_reg.set_gpio_async_rising_detect(gpio.value);
 			else
-				_reg.set_gpio_rising_detect(gpio);
+				_reg.set_gpio_rising_detect(gpio.value);
 		}
 
-		void high_detect(unsigned gpio) override
+		void high_detect(Pin gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("high_detect: gpio=", gpio);
 
-			_reg.set_gpio_high_detect(gpio);
+			_reg.set_gpio_high_detect(gpio.value);
 		}
 
-		void low_detect(unsigned gpio) override
+		void low_detect(Pin gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("low_detect: gpio=", gpio);
 
-			_reg.set_gpio_low_detect(gpio);
+			_reg.set_gpio_low_detect(gpio.value);
 		}
 
-		void irq_enable(unsigned gpio, bool enable) override
+		void irq_enable(Pin gpio, bool enable) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("irq_enable: gpio=", gpio, " enable=", enable);
 
-			_irq_enabled[gpio] = enable;
+			_irq_enabled[gpio.value] = enable;
 		}
 
-		void ack_irq(unsigned gpio) override
+		void ack_irq(Pin gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("ack_irq: gpio=", gpio);
 
-			_reg.clear_event(gpio);
+			_reg.clear_event(gpio.value);
 			_irq.ack_irq();
 		}
 
-		void register_signal(unsigned gpio,
+		void register_signal(Pin gpio,
 		                     Genode::Signal_context_capability cap) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("register_signal: gpio=", gpio);
 
-			_sig_cap[gpio] = cap;
+			_sig_cap[gpio.value] = cap;
 		}
 
-		void unregister_signal(unsigned gpio) override
+		void unregister_signal(Pin gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("unregister_signal: gpio=", gpio);
 			Genode::Signal_context_capability cap;
 
-			_sig_cap[gpio] = cap;
+			_sig_cap[gpio.value] = cap;
 		}
 };
 
