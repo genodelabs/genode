@@ -13,7 +13,7 @@ INC_DIR += $(BASE_HW_DIR)/src/core/spec/arm_v7
 # add C++ sources
 SRC_CC += spec/arm_v7/perf_counter.cc
 
-SRC_S  += spec/arm/vfpv3-d32.cc
+SRC_S  += spec/arm/vfpv3-d32.s
 
 # include less specific configuration
 include $(BASE_HW_DIR)/lib/mk/spec/arm/core-hw.inc
