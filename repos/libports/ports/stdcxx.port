@@ -64,6 +64,10 @@ symlinks: $(DOWNLOADS)
 	ln -s ../../config/allocator/new_allocator_base.h src/lib/stdcxx/include/bits/c++allocator.h
 	ln -s ../../config/io/c_io_stdio.h src/lib/stdcxx/include/bits/c++io.h
 	ln -s ../../config/locale/generic/c_locale.h src/lib/stdcxx/include/bits/c++locale.h
+	ln -s ../../config/cpu/generic/opt/ext/opt_random.h src/lib/stdcxx/include/ext/opt_random.h
+	ln -s ../precompiled/extc++.h src/lib/stdcxx/include/bits/extc++.h
+	ln -s ../precompiled/stdc++.h src/lib/stdcxx/include/bits/stdc++.h
+	ln -s ../precompiled/stdtr1c++.h src/lib/stdcxx/include/bits/stdtr1c++.h
 	ln -s ../../gthr-posix.h src/lib/stdcxx/include/bits/gthr-default.h
 	ln -s atomicity_builtins/atomicity.h src/lib/stdcxx/config/cpu/generic/atomicity.cc
 	ln -s collate_members.cc src/lib/stdcxx/config/locale/generic/collate_members_cow.cc
