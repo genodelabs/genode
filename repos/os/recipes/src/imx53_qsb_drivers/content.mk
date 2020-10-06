@@ -9,6 +9,5 @@ include/gpio:
 src/drivers:
 	mkdir -p $@/framebuffer $@/gpio
 	cp -r $(REP_DIR)/src/drivers/gpio/imx $@/gpio/
-	cp -r $(REP_DIR)/src/drivers/gpio/imx53 $@/gpio/
 	cp -r $(REP_DIR)/src/drivers/framebuffer/imx53 $@/framebuffer/
 	cp -r $(REP_DIR)/include/spec/imx53/imx_framebuffer_session $@/framebuffer/imx53/
