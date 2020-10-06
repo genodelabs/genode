@@ -287,6 +287,12 @@ Libc::File_descriptor *Libc::Vfs_plugin::open_from_kernel(const char *path, int 
 		File_descriptor *fd =
 			file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
 
+		if (!fd) {
+			handle->close();
+			errno = EMFILE;
+			return nullptr;
+		}
+
 		handle->handler(&_response_handler);
 		fd->flags = flags & O_ACCMODE;
 
@@ -360,6 +366,12 @@ Libc::File_descriptor *Libc::Vfs_plugin::open_from_kernel(const char *path, int 
 	File_descriptor *fd =
 		file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
 
+	if (!fd) {
+		handle->close();
+		errno = EMFILE;
+		return nullptr;
+	}
+
 	handle->handler(&_response_handler);
 	fd->flags = flags & (O_ACCMODE|O_NONBLOCK|O_APPEND);
 
@@ -405,8 +417,6 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags)
 				/* the directory was successfully opened */
 
 				fd = file_descriptor_allocator()->alloc(this, vfs_context(handle), Libc::ANY_FD);
-
-				/* FIXME error cleanup code leaks resources! */
 
 				if (!fd) {
 					handle->close();
@@ -486,8 +496,6 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags)
 			/* the file was successfully opened */
 
 			fd = file_descriptor_allocator()->alloc(this, vfs_context(handle), Libc::ANY_FD);
-
-			/* FIXME error cleanup code leaks resources! */
 
 			if (!fd) {
 				handle->close();
@@ -653,6 +661,12 @@ Libc::File_descriptor *Libc::Vfs_plugin::dup(File_descriptor *fd)
 
 		File_descriptor * const new_fd =
 			file_descriptor_allocator()->alloc(this, vfs_context(handle));
+
+		if (!new_fd) {
+			handle->close();
+			result_errno = EMFILE;
+			return Fn::COMPLETE;
+		}
 
 		new_fd->flags = fd->flags;
 		new_fd->path(fd->fd_path);
