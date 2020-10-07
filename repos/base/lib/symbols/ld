@@ -442,12 +442,23 @@ _ZNKSt9exception4whatEv T
 _ZNSt13bad_exceptionD0Ev T
 _ZNSt13bad_exceptionD1Ev T
 _ZNSt13bad_exceptionD2Ev T
+_ZNSt15__exception_ptr13exception_ptr4swapERS0_ T
+_ZNSt15__exception_ptr13exception_ptrC1EPv T
+_ZNSt15__exception_ptr13exception_ptrC1ERKS0_ T
 _ZNSt15__exception_ptr13exception_ptrC1Ev T
 _ZNSt15__exception_ptr13exception_ptrD1Ev T
+_ZNSt15__exception_ptr13exception_ptraSERKS0_ T
+_ZNSt15__exception_ptreqERKNS_13exception_ptrES2_ T
+_ZNSt15__exception_ptrneERKNS_13exception_ptrES2_ T
+_ZNSt16nested_exceptionD1Ev T
+_ZNSt16nested_exceptionD2Ev T
 _ZNSt9exceptionD0Ev T
 _ZNSt9exceptionD1Ev T
 _ZNSt9exceptionD2Ev T
+_ZSt13get_terminatev T
 _ZSt13set_terminatePFvvE T
+_ZSt14get_unexpectedv T
+_ZSt14set_unexpectedPFvvE T
 _ZSt17current_exceptionv T
 _ZSt17rethrow_exceptionNSt15__exception_ptr13exception_ptrE T
 _ZSt18uncaught_exceptionv T
@@ -545,6 +556,7 @@ _ZTIPy D 32
 _ZTISt10bad_typeid D 24
 _ZTISt13bad_exception D 24
 _ZTISt16bad_array_length D 24
+_ZTISt16nested_exception D 16
 _ZTISt20bad_array_new_length D 24
 _ZTISt8bad_cast D 24
 _ZTISt9bad_alloc D 24
@@ -594,9 +606,11 @@ _ZTVN10__cxxabiv120__function_type_infoE D 64
 _ZTVN10__cxxabiv120__si_class_type_infoE D 88
 _ZTVN10__cxxabiv121__vmi_class_type_infoE D 88
 _ZTVN10__cxxabiv123__fundamental_type_infoE D 64
+_ZTVN10__cxxabiv129__pointer_to_member_type_infoE V
 _ZTVSt10bad_typeid D 40
 _ZTVSt13bad_exception D 40
 _ZTVSt16bad_array_length D 40
+_ZTVSt16nested_exception D 32
 _ZTVSt20bad_array_new_length D 40
 _ZTVSt8bad_cast D 40
 _ZTVSt9bad_alloc D 40
