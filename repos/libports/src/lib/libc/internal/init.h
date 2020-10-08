@@ -41,6 +41,7 @@ namespace Libc {
 	struct Timer_accessor;
 	struct Cwd;
 	struct Atexit;
+	struct Config_accessor;
 
 	/**
 	 * Support for shared libraries
@@ -66,7 +67,7 @@ namespace Libc {
 	 * Virtual file system
 	 */
 	void init_vfs_plugin(Monitor &, Genode::Region_map &);
-	void init_file_operations(Cwd &);
+	void init_file_operations(Cwd &, Config_accessor const &);
 
 	/**
 	 * Select support
