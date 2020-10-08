@@ -51,7 +51,7 @@ namespace Test_signal {
 	struct Session_component;
 	struct Entrypoint;
 
-	enum { TIMER_DURATION = 10'000ul };
+	enum { TIMER_DURATION = 20'000ul };
 }
 
 
@@ -146,7 +146,7 @@ struct Main
 
 		if (++rpc_count % 100 == 0)
 			test_ep.sc.stats();
-		if (rpc_count == 3'000)
+		if (rpc_count == 2'000)
 			env.parent().exit(0);
 	}
 };
