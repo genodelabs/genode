@@ -1900,13 +1900,13 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 	if ((prot != PROT_READ) && (prot != (PROT_READ | PROT_WRITE))) {
 		error("mmap for prot=", Hex(prot), " not supported");
 		errno = EACCES;
-		return (void *)-1;
+		return MAP_FAILED;
 	}
 
 	if (flags & MAP_FIXED) {
 		error("mmap for fixed predefined address not supported yet");
 		errno = EINVAL;
-		return (void *)-1;
+		return MAP_FAILED;
 	}
 
 	void *addr = nullptr;
@@ -1922,7 +1922,7 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 		if (addr == (void *)-1) {
 			error("mmap out of memory");
 			errno = ENOMEM;
-			return (void *)-1;
+			return MAP_FAILED;
 		}
 
 		/* copy variables for complete read */
@@ -1936,14 +1936,24 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 				error("mmap could not obtain file content");
 				::munmap(addr, length);
 				errno = EACCES;
-				return (void *)-1;
+				return MAP_FAILED;
 			} else if (length_read == 0) /* EOF */
 				break; /* done (length can legally be greater than the file length) */
 			read_remain -= length_read;
 			read_offset += length_read;
 			read_addr += length_read;
 		}
+
 	} else if (flags & MAP_SHARED) {
+
+		/* duplicate the file descriptor to keep the file open as long as the mapping exists */
+
+		Libc::File_descriptor *dup_fd = dup(fd);
+
+		if (!dup_fd) {
+			errno = ENFILE;
+			return MAP_FAILED;
+		}
 
 		Genode::Dataspace_capability ds_cap;
 
@@ -1954,11 +1964,20 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 		if (!ds_cap.valid()) {
 			Genode::error("mmap got invalid dataspace capability");
+			close(dup_fd);
 			errno = ENODEV;
-			return (void*)-1;
+			return MAP_FAILED;
 		}
 
-		addr = region_map().attach(ds_cap, length, offset);
+		try {
+			addr = region_map().attach(ds_cap, length, offset);
+		} catch (...) {
+			close(dup_fd);
+			errno = ENOMEM;
+			return MAP_FAILED;
+		}
+
+		new (_alloc) Mmap_entry(_mmap_registry, addr, dup_fd);
 	}
 
 	return addr;
@@ -1967,10 +1986,28 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 {
-	if (mem_alloc()->size_at(addr) > 0)
+	if (mem_alloc()->size_at(addr) > 0) {
+		/* private mapping */
 		mem_alloc()->free(addr);
-	else
-		region_map().detach(addr);
+		return 0;
+	}
+
+	/* shared mapping */
+
+	Libc::File_descriptor *fd = nullptr;
+
+	_mmap_registry.for_each([&] (Mmap_entry &entry) {
+		if (entry.start == addr) {
+			fd = entry.fd;
+			destroy(_alloc, &entry);
+			region_map().detach(addr);
+		}
+	});
+
+	if (!fd)
+		return Errno(EINVAL);
+
+	close(fd);
 
 	return 0;
 }

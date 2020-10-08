@@ -451,7 +451,10 @@ __SYS_(void *, mmap, (void *addr, ::size_t length,
 	}
 
 	void *start = fd->plugin->mmap(addr, length, prot, flags, fd, offset);
-	mmap_registry()->insert(start, length, fd->plugin);
+
+	if (start != MAP_FAILED)
+		mmap_registry()->insert(start, length, fd->plugin);
+
 	return start;
 })
 
@@ -471,6 +474,12 @@ extern "C" int munmap(void *start, ::size_t length)
 	 */
 	Plugin *plugin = mmap_registry()->lookup_plugin_by_addr(start);
 
+	/*
+	 * Remove registry entry before unmapping to avoid double insertion error
+	 * if another thread gets the same start address immediately after unmapping.
+	 */
+	mmap_registry()->remove(start);
+
 	int ret = 0;
 	if (plugin)
 		ret = plugin->munmap(start, length);
@@ -481,7 +490,6 @@ extern "C" int munmap(void *start, ::size_t length)
 		mem_alloc(executable)->free(start);
 	}
 
-	mmap_registry()->remove(start);
 	return ret;
 }
 

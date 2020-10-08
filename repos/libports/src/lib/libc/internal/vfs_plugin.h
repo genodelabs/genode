@@ -73,6 +73,17 @@ class Libc::Vfs_plugin : public Plugin
 
 	private:
 
+		struct Mmap_entry : Registry<Mmap_entry>::Element
+		{
+			void                  * const start;
+			Libc::File_descriptor * const fd;
+
+			Mmap_entry(Registry<Mmap_entry> &registry, void *start,
+			           Libc::File_descriptor *fd)
+			: Registry<Mmap_entry>::Element(registry, *this), start(start),
+			  fd(fd) { }
+		};
+
 		Genode::Allocator               &_alloc;
 		Vfs::File_system                &_root_fs;
 		Constructible<Genode::Directory> _root_dir { };
@@ -80,6 +91,7 @@ class Libc::Vfs_plugin : public Plugin
 		Update_mtime               const _update_mtime;
 		Current_real_time               &_current_real_time;
 		bool                       const _pipe_configured;
+		Registry<Mmap_entry>             _mmap_registry;
 
 		/**
 		 * Sync a handle
