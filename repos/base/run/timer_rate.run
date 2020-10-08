@@ -1,0 +1,43 @@
+build { core init timer test/timer_rate }
+
+create_boot_directory
+
+install_config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service><parent/><any-child/></any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer" priority="0">
+		<resource name="RAM" quantum="1M"/>
+		<resource name="CPU" quantum="5"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="test" priority="-1">
+		<binary name="test-timer_rate"/>
+		<resource name="RAM" quantum="10M"/>
+		<config
+			max_abs_error_pc="5"
+			measure_duration_us="3000000"
+			min_good_bad_diff_us="10"/>
+	</start>
+</config>
+}
+build_boot_image { core ld.lib.so init timer test-timer_rate }
+
+append qemu_args "  -nographic"
+
+run_genode_until "child \"test\" exited with exit value.*\n" 120
+grep_output {\[init\] child "test" exited with exit value}
+compare_output_to {[init] child "test" exited with exit value 0}
+
