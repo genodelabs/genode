@@ -55,6 +55,13 @@ void Vm_session_component::_pause(Vcpu_id id)
 }
 
 
+Capability<Vm_session::Native_vcpu> Vm_session_component::_native_vcpu(Vcpu_id id)
+{
+	if (!_valid_id(id)) { return Capability<Vm_session::Native_vcpu>(); }
+	return reinterpret_cap_cast<Vm_session::Native_vcpu>(_vcpus[id.id].kobj.cap());
+}
+
+
 void Vm_session_component::_exception_handler(Signal_context_capability handler,
                                               Vcpu_id id)
 {

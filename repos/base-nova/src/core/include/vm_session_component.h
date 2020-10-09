@@ -179,6 +179,8 @@ class Genode::Vm_session_component
 		void attach_pic(addr_t) override {}
 		void detach(addr_t, size_t) override;
 		Vcpu_id _create_vcpu(Thread_capability);
+		Capability<Native_vcpu> _native_vcpu(Vcpu_id) {
+			return Capability<Native_vcpu>(); }
 };
 
 #endif /* _CORE__VM_SESSION_COMPONENT_H_ */

@@ -107,12 +107,13 @@ class Genode::Vm_session_component
 		void attach_pic(addr_t) override;
 		void detach(addr_t, size_t) override;
 
-		Dataspace_capability _cpu_state(Vcpu_id);
-		Vcpu_id              _create_vcpu(Thread_capability);
-		void                 _exception_handler(Signal_context_capability,
-		                                        Vcpu_id);
-		void                 _run(Vcpu_id);
-		void                 _pause(Vcpu_id);
+		Dataspace_capability    _cpu_state(Vcpu_id);
+		Vcpu_id                 _create_vcpu(Thread_capability);
+		void                    _exception_handler(Signal_context_capability,
+		                                           Vcpu_id);
+		void                    _run(Vcpu_id);
+		void                    _pause(Vcpu_id);
+		Capability<Native_vcpu> _native_vcpu(Vcpu_id);
 };
 
 #endif /* _CORE__VM_SESSION_COMPONENT_H_ */

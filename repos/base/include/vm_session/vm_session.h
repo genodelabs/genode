@@ -78,6 +78,17 @@ struct Genode::Vm_session : Session
 	 */
 	virtual void attach_pic(addr_t vm_addr) = 0;
 
+
+	/*****************************************
+	 ** Access to kernel-specific interface **
+	 *****************************************/
+
+	/**
+	 * Common base class of kernel-specific CPU interfaces
+	 */
+	struct Native_vcpu : Interface { };
+
+
 	/*********************
 	 ** RPC declaration **
 	 *********************/
@@ -87,6 +98,7 @@ struct Genode::Vm_session : Session
 	           Signal_context_capability, Vcpu_id);
 	GENODE_RPC(Rpc_run, void, _run, Vcpu_id);
 	GENODE_RPC(Rpc_pause, void, _pause, Vcpu_id);
+	GENODE_RPC(Rpc_native_vcpu, Capability<Native_vcpu>, _native_vcpu, Vcpu_id);
 	GENODE_RPC_THROW(Rpc_attach, void, attach,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Region_conflict,
 	                                  Invalid_dataspace),
@@ -99,7 +111,7 @@ struct Genode::Vm_session : Session
 
 	GENODE_RPC_INTERFACE(Rpc_cpu_state, Rpc_exception_handler,
 	                     Rpc_run, Rpc_pause, Rpc_attach, Rpc_detach,
-	                     Rpc_attach_pic, Rpc_create_vcpu);
+	                     Rpc_attach_pic, Rpc_create_vcpu, Rpc_native_vcpu);
 };
 
 #endif /* _INCLUDE__VM_SESSION__VM_SESSION_H_ */
