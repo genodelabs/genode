@@ -37,10 +37,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs_lwip \
                   [depot_user]/src/vfs
 
-build { test/lwip/http_srv }
-
 install_config {
-<config verbose="yes">
+<config verbose="yes" prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -61,7 +59,7 @@ install_config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="drivers" caps="1000" managing_system="yes">
+	<start name="drivers" caps="1000" managing_system="yes" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
@@ -72,7 +70,7 @@ install_config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="test-lwip_httpsrv" caps="120">
+	<start name="test-lwip_httpsrv" caps="120" priority="-1">
 		<resource name="RAM" quantum="4M"/>
 		<config>
 			<vfs>
@@ -85,6 +83,8 @@ install_config {
 </config>
 }
 
+build { test/lwip/http_srv }
+
 build_boot_image { test-lwip_httpsrv }
 
 #
@@ -93,7 +93,7 @@ build_boot_image { test-lwip_httpsrv }
 append qemu_args "  -nographic "
 append_qemu_nic_args "hostfwd=tcp::5555-:80"
 
-run_genode_until {.*lwIP Nic interface up.*\n} 30
+run_genode_until {.*Start the server loop.*\n} 30
 
 if {[have_include "power_on/qemu"]} {
 	set uri "http://localhost:5555/"
