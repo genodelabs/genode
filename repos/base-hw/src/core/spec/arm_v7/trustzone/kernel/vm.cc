@@ -24,7 +24,7 @@ Kernel::Vm::Vm(unsigned,
                Genode::Vm_state       & state,
                Kernel::Signal_context & context,
                void                   * const)
-:
+: Kernel::Object { *this },
 	Cpu_job(Cpu_priority::MIN, 0),
 	_state(state),
 	_context(context),

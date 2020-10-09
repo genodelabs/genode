@@ -42,6 +42,8 @@ namespace Kernel
 	constexpr Call_arg call_id_timeout()                  { return 16; }
 	constexpr Call_arg call_id_timeout_max_us()           { return 17; }
 	constexpr Call_arg call_id_time()                     { return 18; }
+	constexpr Call_arg call_id_run_vm()                   { return 19; }
+	constexpr Call_arg call_id_pause_vm()                 { return 20; }
 
 
 	/*****************************************************************
@@ -368,6 +370,28 @@ namespace Kernel
 	inline void delete_cap(capid_t const cap)
 	{
 		call(call_id_delete_cap(), cap);
+	}
+
+
+	/**
+	 * Execute a virtual-machine (again)
+	 *
+	 * \param vm  pointer to vm kernel object
+	 */
+	inline void run_vm(capid_t const cap)
+	{
+		call(call_id_run_vm(), cap);
+	}
+
+
+	/**
+	 * Stop execution of a virtual-machine
+	 *
+	 * \param vm  pointer to vm kernel object
+	 */
+	inline void pause_vm(capid_t const cap)
+	{
+		call(call_id_pause_vm(), cap);
 	}
 }
 

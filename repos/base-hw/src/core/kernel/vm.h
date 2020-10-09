@@ -33,7 +33,7 @@ namespace Kernel
 }
 
 
-class Kernel::Vm : public Cpu_job
+class Kernel::Vm : private Kernel::Object, public Cpu_job
 {
 	private:
 

@@ -34,13 +34,31 @@ void Kernel::Thread::_call_delete_vm() { _call_delete<Vm>(); }
 
 void Kernel::Thread::_call_run_vm()
 {
-	reinterpret_cast<Vm*>(user_arg_1())->run();
+	Object_identity_reference * ref = pd().cap_tree().find(user_arg_1());
+	Vm * vm = ref ? ref->object<Vm>() : nullptr;
+
+	if (!vm) {
+		Genode::raw("Invalid VM cap");
+		user_arg_0(-1);
+		return;
+	}
+
+	vm->run();
 	user_arg_0(0);
 }
 
 
 void Kernel::Thread::_call_pause_vm()
 {
-	reinterpret_cast<Vm*>(user_arg_1())->pause();
+	Object_identity_reference * ref = pd().cap_tree().find(user_arg_1());
+	Vm * vm = ref ? ref->object<Vm>() : nullptr;
+
+	if (!vm) {
+		Genode::raw("Invalid VM cap");
+		user_arg_0(-1);
+		return;
+	}
+
+	vm->pause();
 	user_arg_0(0);
 }

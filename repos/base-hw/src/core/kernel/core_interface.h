@@ -51,8 +51,6 @@ namespace Kernel
 	constexpr Call_arg call_id_delete_signal_context()  { return 112; }
 	constexpr Call_arg call_id_delete_signal_receiver() { return 113; }
 	constexpr Call_arg call_id_new_vm()                 { return 114; }
-	constexpr Call_arg call_id_run_vm()                 { return 115; }
-	constexpr Call_arg call_id_pause_vm()               { return 116; }
 	constexpr Call_arg call_id_delete_vm()              { return 117; }
 	constexpr Call_arg call_id_new_irq()                { return 118; }
 	constexpr Call_arg call_id_delete_irq()             { return 119; }
@@ -151,27 +149,6 @@ namespace Kernel
 		call(call_id_thread_pager(), (Call_arg)&thread, signal_context_id);
 	}
 
-
-	/**
-	 * Execute a virtual-machine (again)
-	 *
-	 * \param vm  pointer to vm kernel object
-	 */
-	inline void run_vm(Vm & vm)
-	{
-		call(call_id_run_vm(), (Call_arg) &vm);
-	}
-
-
-	/**
-	 * Stop execution of a virtual-machine
-	 *
-	 * \param vm  pointer to vm kernel object
-	 */
-	inline void pause_vm(Vm & vm)
-	{
-		call(call_id_pause_vm(), (Call_arg) &vm);
-	}
 
 	/**
 	 * Acknowledge interrupt

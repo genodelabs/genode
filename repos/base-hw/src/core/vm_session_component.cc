@@ -41,18 +41,10 @@ addr_t Vm_session_component::_alloc_ds()
 }
 
 
-void Vm_session_component::_run(Vcpu_id id)
-{
-	if (_valid_id(id) && _vcpus[id.id].kobj.constructed())
-		Kernel::run_vm(*_vcpus[id.id].kobj);
-}
+void Vm_session_component::_run(Vcpu_id) { }
 
 
-void Vm_session_component::_pause(Vcpu_id id)
-{
-	if (_valid_id(id) && _vcpus[id.id].kobj.constructed())
-		Kernel::pause_vm(*_vcpus[id.id].kobj);
-}
+void Vm_session_component::_pause(Vcpu_id) { }
 
 
 Capability<Vm_session::Native_vcpu> Vm_session_component::_native_vcpu(Vcpu_id id)

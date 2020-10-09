@@ -112,7 +112,8 @@ Kernel::Vm::Vm(unsigned, /* FIXME: smp support */
                Genode::Vm_state       & state,
                Kernel::Signal_context & context,
                void                   * const table)
-:  Cpu_job(Cpu_priority::MIN, 0),
+: Kernel::Object { *this },
+  Cpu_job(Cpu_priority::MIN, 0),
   _id(alloc().alloc()),
   _state(state),
   _context(context),

@@ -740,6 +740,8 @@ void Thread::_call()
 	case call_id_timeout():                  _call_timeout(); return;
 	case call_id_timeout_max_us():           _call_timeout_max_us(); return;
 	case call_id_time():                     _call_time(); return;
+	case call_id_run_vm():                   _call_run_vm(); return;
+	case call_id_pause_vm():                 _call_pause_vm(); return;
 	default:
 		/* check wether this is a core thread */
 		if (!_core) {
@@ -777,8 +779,6 @@ void Thread::_call()
 	case call_id_delete_signal_receiver(): _call_delete<Signal_receiver>(); return;
 	case call_id_new_vm():                 _call_new_vm(); return;
 	case call_id_delete_vm():              _call_delete_vm(); return;
-	case call_id_run_vm():                 _call_run_vm(); return;
-	case call_id_pause_vm():               _call_pause_vm(); return;
 	case call_id_pause_thread():           _call_pause_thread(); return;
 	case call_id_new_irq():                _call_new_irq(); return;
 	case call_id_delete_irq():             _call_delete<User_irq>(); return;
