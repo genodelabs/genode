@@ -260,7 +260,7 @@ foreach file $files_from_raw_archives {
 	file copy -force $file [run_dir]/genode/ }
 
 install_config {
-	<config>
+	<config prio_levels="2">
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="IRQ"/>
@@ -287,7 +287,7 @@ install_config {
 			</route>
 		</start>
 
-		<start name="test" caps="} $caps {">
+		<start name="test" priority="-1" caps="} $caps {">
 			<resource name="RAM" quantum="} $ram {"/>
 			<binary name="init"/>
 			<route>
