@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/mutex.h>
+#include <base/semaphore.h>
 #include <base/thread.h>
 #include <libc/allocator.h>
 
@@ -32,6 +33,8 @@ using namespace Libc;
  * A reader-preferring implementation of a readers-writer lock as described
  * in Michael Raynal, "Concurrent Programming: Algorithms, Principles, and
  * Foundations", ISBN 978-3-642-32026-2, page 75
+ *
+ * https://books.google.com/books?id=0a1AAAAAQBAJ&pg=PA75 
  */
 
 extern "C" {
@@ -44,10 +47,10 @@ extern "C" {
 	{
 		private:
 
-			Thread *_owner        { nullptr };
-			Mutex   _nbr_mutex    { };
-			Mutex   _global_mutex { };
-			int _nbr = 0;
+			Thread    *_owner      { nullptr };
+			Mutex      _nbr_mutex  { };
+			Semaphore  _global_sem { 1 };
+			int        _nbr        { 0 };
 
 		public:
 
@@ -56,14 +59,14 @@ extern "C" {
 				Mutex::Guard guard(_nbr_mutex);
 				++_nbr;
 				if (_nbr == 1) {
-					_global_mutex.acquire();
+					_global_sem.down();
 					_owner = nullptr;
 				}
 			}
 
 			void wrlock()
 			{
-				_global_mutex.acquire();
+				_global_sem.down();
 				_owner = Thread::myself();
 			}
 
@@ -75,7 +78,7 @@ extern "C" {
 					_nbr--;
 					if (_nbr == 0) {
 						_owner = nullptr;
-						_global_mutex.release();
+						_global_sem.up();
 					}
 					return 0;
 				};
@@ -88,7 +91,7 @@ extern "C" {
 
 				/* Write lock owned by us */
 				_owner = nullptr;
-				_global_mutex.release();
+				_global_sem.up();
 				return 0;
 			}
 	};
