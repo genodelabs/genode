@@ -32,6 +32,7 @@ extern "C" {
 /* libc-internal includes */
 #include <internal/init.h>
 #include <internal/clone_session.h>
+#include <internal/errno.h>
 
 
 namespace Libc {
@@ -81,14 +82,16 @@ class Libc::Malloc
 		typedef Genode::addr_t addr_t;
 
 		enum {
-			SLAB_START = 5,  /* 32 bytes (log2) */
-			SLAB_STOP  = 11, /* 2048 bytes (log2) */
-			NUM_SLABS  = (SLAB_STOP - SLAB_START) + 1
+			SLAB_START    = 5,  /* 32 bytes (log2) */
+			SLAB_STOP     = 11, /* 2048 bytes (log2) */
+			NUM_SLABS     = (SLAB_STOP - SLAB_START) + 1,
+			DEFAULT_ALIGN = 16
 		};
 
 		struct Metadata
 		{
-			unsigned long long value; /* bits 63..5 size and 4..0 offset */
+			size_t size;
+			size_t offset;
 
 			/**
 			 * Allocation metadata
@@ -96,11 +99,8 @@ class Libc::Malloc
 			 * \param size    allocation size
 			 * \param offset  offset of pointer from allocation
 			 */
-			Metadata(size_t size, unsigned offset)
-			: value(((unsigned long long)size << 5) | (offset & 0x1f)) { }
-
-			size_t   size()   const { return value >> 5; }
-			unsigned offset() const { return value & 0x1f; }
+			Metadata(size_t size, size_t offset)
+			: size(size), offset(offset) { }
 		};
 
 		/**
@@ -108,15 +108,18 @@ class Libc::Malloc
 		 *
 		 * We store the metadata of the allocation right before the pointer
 		 * returned to the caller and can then retrieve the information when
-		 * freeing the block. Therefore, we add room for metadata and 16-byte
+		 * freeing the block. Therefore, we add room for metadata and
 		 * alignment.
 		 *
 		 * Note, the worst case is an allocation that starts at
-		 * 16 byte - sizeof(Metadata) + 1 because it misses one byte of space
+		 * 'align' byte - sizeof(Metadata) + 1 because it misses one byte of space
 		 * for the metadata and therefore increases the worst-case allocation
-		 * by 15 bytes additionally to the metadata space.
+		 * by ('align' - 1) bytes additionally to the metadata space.
 		 */
-		static constexpr size_t _room() { return sizeof(Metadata) + 15; }
+		static constexpr size_t _room(size_t align)
+		{
+			return sizeof(Metadata) + (align - 1);
+		}
 
 		Allocator &_backing_store; /* back-end allocator */
 
@@ -153,11 +156,11 @@ class Libc::Malloc
 		 * Allocator interface
 		 */
 
-		void * alloc(size_t size)
+		void * alloc(size_t size, size_t align = DEFAULT_ALIGN)
 		{
 			Mutex::Guard guard(_mutex);
 
-			size_t   const real_size = size + _room();
+			size_t   const real_size = size + _room(align);
 			unsigned const msb       = _slab_log2(real_size);
 
 			void *alloc_addr = nullptr;
@@ -172,9 +175,9 @@ class Libc::Malloc
 
 			/* correctly align the allocation address */
 			Metadata * const aligned_addr =
-				(Metadata *)(((addr_t)alloc_addr + _room()) & ~15UL);
+				(Metadata *)(((addr_t)alloc_addr + _room(align)) & ~(align - 1));
 
-			unsigned const offset = (addr_t)aligned_addr - (addr_t)alloc_addr;
+			size_t const offset = (addr_t)aligned_addr - (addr_t)alloc_addr;
 
 			*(aligned_addr - 1) = Metadata(real_size, offset);
 
@@ -183,8 +186,8 @@ class Libc::Malloc
 
 		void *realloc(void *ptr, size_t size)
 		{
-			size_t const real_size     = size + _room();
-			size_t const old_real_size = ((Metadata *)ptr - 1)->size();
+			size_t const real_size     = size + _room(DEFAULT_ALIGN);
+			size_t const old_real_size = ((Metadata *)ptr - 1)->size;
 
 			/* do not reallocate if new size is less than the current size */
 			if (real_size <= old_real_size)
@@ -195,7 +198,7 @@ class Libc::Malloc
 
 			if (new_addr) {
 				/* copy content from old block into new block */
-				::memcpy(new_addr, ptr, old_real_size - _room());
+				::memcpy(new_addr, ptr, old_real_size - _room(DEFAULT_ALIGN));
 
 				/* free old block */
 				free(ptr);
@@ -210,10 +213,10 @@ class Libc::Malloc
 
 			Metadata *md = (Metadata *)ptr - 1;
 
-			size_t   const  real_size  = md->size();
+			size_t   const  real_size  = md->size;
 			unsigned const  msb        = _slab_log2(real_size);
 
-			void *alloc_addr = (void *)((addr_t)ptr - md->offset());
+			void *alloc_addr = (void *)((addr_t)ptr - md->offset);
 
 			if (msb > SLAB_STOP) {
 				_backing_store.free(alloc_addr, real_size);
@@ -261,6 +264,17 @@ extern "C" void *realloc(void *ptr, size_t size)
 	}
 
 	return mallocator->realloc(ptr, size);
+}
+
+
+int posix_memalign(void **memptr, size_t alignment, size_t size)
+{
+	*memptr = mallocator->alloc(size, alignment);
+
+	if (!*memptr)
+		return Errno(ENOMEM);
+
+	return 0;
 }
 
 

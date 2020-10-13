@@ -493,6 +493,7 @@ popen T
 posix2time T
 posix_fadvise T
 posix_madvise T
+posix_memalign T
 posix_spawn T
 posix_spawn_file_actions_addclose T
 posix_spawn_file_actions_adddup2 T
