@@ -208,7 +208,9 @@ struct Vcpu : Genode::Thread
 		uint64_t                    _tsc_offset { 0 };
 		bool                        _show_error_unsupported_pdpte { true };
 		bool                        _show_error_unsupported_tpr   { true };
-		bool                        _show_error_unsupported_fpu   { true };
+
+		uint8_t                     _fpu_ep[512]    __attribute__((aligned(0x10)));
+		uint8_t                     _fpu_vcpu[512]  __attribute__((aligned(0x10)));
 
 		enum
 		{
@@ -340,9 +342,26 @@ struct Vcpu : Genode::Thread
 				if (_vm_type == Virt::VMX)
 					_write_intel_state(state, vmcs, vcpu);
 
+				/* save FPU state of this thread and restore state of vCPU */
+				asm volatile ("fxsave %0" : "=m" (*_fpu_ep));
+				if (state.fpu.valid()) {
+					state.fpu.value([&] (uint8_t *fpu, size_t const) {
+						asm volatile ("fxrstor %0" : : "m" (*fpu) : "memory");
+					});
+				} else
+					asm volatile ("fxrstor %0" : : "m" (*_fpu_vcpu) : "memory");
+
 				/* tell Fiasco.OC to run the vCPU */
 				l4_msgtag_t tag = l4_thread_vcpu_resume_start();
 				tag = l4_thread_vcpu_resume_commit(L4_INVALID_CAP, tag);
+
+				/* save FPU state of vCPU and restore state of this thread */
+				state.fpu.value([&] (uint8_t *fpu, size_t const) {
+					asm volatile ("fxsave %0" : "=m" (*fpu) :: "memory");
+					asm volatile ("fxsave %0" : "=m" (*_fpu_vcpu) :: "memory");
+				});
+				asm volatile ("fxrstor %0" : : "m" (*_fpu_ep) : "memory");
+
 
 				/* got VM exit or interrupted by asynchronous signal */
 				uint64_t reason = 0;
@@ -966,13 +985,6 @@ struct Vcpu : Genode::Thread
 			if (state.sysenter_ip.valid())
 				l4_vm_vmx_write(vmcs, Vmcs::SYSENTER_IP,
 				                state.sysenter_ip.value());
-
-			if (state.fpu.valid()) {
-				if (_show_error_unsupported_fpu) {
-					_show_error_unsupported_fpu = false;
-					Genode::error("FPU guest state not supported on Fiasco.OC");
-				}
-			}
 		}
 
 		void _write_amd_state(Vm_state &state, Fiasco::l4_vm_svm_vmcb_t *vmcb,
@@ -1171,13 +1183,6 @@ struct Vcpu : Genode::Thread
 				vmcb->state_save_area.sysenter_esp = state.sysenter_sp.value();
 			if (state.sysenter_ip.valid())
 				vmcb->state_save_area.sysenter_eip = state.sysenter_ip.value();
-
-			if (state.fpu.valid()) {
-				if (_show_error_unsupported_fpu) {
-					_show_error_unsupported_fpu = false;
-					Genode::error("FPU guest state not supported on Fiasco.OC");
-				}
-			}
 		}
 
 	public:

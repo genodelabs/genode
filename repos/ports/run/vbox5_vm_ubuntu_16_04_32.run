@@ -8,11 +8,7 @@ if {(![have_spec nova] && ![have_spec foc])} {
 	puts "Platform is unsupported."
 }
 
-if {[have_spec nova]} {
-	set flavor   "ubuntu_16_04_32"
-} else {
-	set flavor   "ubuntu_16_04_32_1vcpu"
-}
+set flavor   "ubuntu_16_04_32"
 
 set vm_ram   "1280M"
 
