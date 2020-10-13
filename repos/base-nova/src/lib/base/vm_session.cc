@@ -37,10 +37,13 @@ struct Vcpu {
 		Signal_dispatcher_base      &_obj;
 		Allocator                   &_alloc;
 		Vm_session_client::Vcpu_id   _id;
-		addr_t                       _state { 0 };
-		void                        *_ep_handler { nullptr };
-		void                        *_dispatching { nullptr };
-		bool                         _block { true };
+		addr_t                       _state         { 0 };
+		void                        *_ep_handler    { nullptr };
+		void                        *_dispatching   { nullptr };
+		bool                         _block         { true };
+		bool                         _use_guest_fpu { false };
+
+		uint8_t                     _fpu_ep[512]  __attribute__((aligned(0x10)));
 
 		enum Remote_state_requested {
 			NONE = 0,
@@ -48,8 +51,8 @@ struct Vcpu {
 			RUN = 2
 		} _remote { NONE };
 
-		static void _read_nova_state(Nova::Utcb &utcb, Vm_state &state,
-		                             unsigned exit_reason)
+		void _read_nova_state(Nova::Utcb &utcb, Vm_state &state,
+		                      unsigned exit_reason)
 		{
 			typedef Genode::Vm_state::Segment Segment;
 			typedef Genode::Vm_state::Range Range;
@@ -59,9 +62,11 @@ struct Vcpu {
 
 			if (utcb.mtd & Nova::Mtd::FPU) {
 				state.fpu.value([&] (uint8_t *fpu, size_t const) {
-					asm volatile ("fxsave %0" : "=m" (*fpu));
+					asm volatile ("fxsave %0" : "=m" (*fpu) :: "memory");
 				});
+				asm volatile ("fxrstor %0" : : "m" (*_fpu_ep) : "memory");
 			}
+
 
 			if (utcb.mtd & Nova::Mtd::ACDB) {
 				state.ax.value(utcb.ax);
@@ -197,7 +202,7 @@ struct Vcpu {
 
 		}
 
-		static void _write_nova_state(Nova::Utcb &utcb, Vm_state &state)
+		void _write_nova_state(Nova::Utcb &utcb, Vm_state &state)
 		{
 			utcb.items = 0;
 			utcb.mtd = 0;
@@ -394,9 +399,13 @@ struct Vcpu {
 				utcb.write_tpr_threshold(state.tpr_threshold.value());
 			}
 
+
+			if (_use_guest_fpu || state.fpu.valid())
+				asm volatile ("fxsave %0" : "=m" (*_fpu_ep) :: "memory");
+
 			if (state.fpu.valid()) {
 				state.fpu.value([&] (uint8_t *fpu, size_t const) {
-					asm volatile ("fxrstor %0" : : "m" (*fpu));
+					asm volatile ("fxrstor %0" : : "m" (*fpu) : "memory");
 				});
 			}
 		}
@@ -471,7 +480,7 @@ struct Vcpu {
 			Vm_state &state = *reinterpret_cast<Vm_state *>(vcpu->_state);
 			/* transform state from NOVA to Genode */
 			if (exit_reason != VM_EXIT_RECALL || !previous_blocked)
-				_read_nova_state(utcb, state, exit_reason);
+				vcpu->_read_nova_state(utcb, state, exit_reason);
 
 			if (exit_reason == VM_EXIT_RECALL) {
 				if (previous_blocked)
@@ -498,7 +507,7 @@ struct Vcpu {
 					if (previous_blocked) {
 						/* resume vCPU - with vCPU state update */
 						vcpu->_block = false;
-						_write_nova_state(utcb, state);
+						vcpu->_write_nova_state(utcb, state);
 						Nova::reply(myself.stack_top());
 					}
 				}
@@ -514,7 +523,7 @@ struct Vcpu {
 			}
 
 			/* reply to NOVA and transfer vCPU state */
-			_write_nova_state(utcb, state);
+			vcpu->_write_nova_state(utcb, state);
 			Nova::reply(myself.stack_top());
 		}
 
@@ -671,8 +680,10 @@ struct Vcpu {
 			if (state.qual_primary.valid() || state.qual_secondary.valid())
 				mtd |= Nova::Mtd::QUAL;
 
-			if (state.fpu.valid())
+			if (state.fpu.valid()) {
+				_use_guest_fpu = true;
 				mtd |= Nova::Mtd::FPU;
+			}
 
 			state = Vm_state {};
 
