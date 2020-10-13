@@ -76,18 +76,16 @@ extern "C" {
 				if (_owner == nullptr) {
 					Mutex::Guard guard(_nbr_mutex);
 					_nbr--;
-					if (_nbr == 0) {
-						_owner = nullptr;
+					if (_nbr == 0)
 						_global_sem.up();
-					}
 					return 0;
-				};
+				}
 
 				if (_owner != Thread::myself()) {
 					error("Unlocking writer lock owned by other thread");
 					errno = EPERM;
 					return -1;
-				};
+				}
 
 				/* Write lock owned by us */
 				_owner = nullptr;
