@@ -16,6 +16,7 @@
 
 #include <base/env.h>
 #include <dataspace/capability.h>
+#include <base/attached_ram_dataspace.h>
 
 /* base-internal includes */
 #include <base/internal/trace_control.h>
@@ -31,27 +32,12 @@ class Genode::Trace::Control_area
 
 	private:
 
-		Ram_allocator           &_ram;
-		Region_map              &_rm;
-		Ram_dataspace_capability _ds;
-		Trace::Control          *_local_base;
+		Ram_allocator                &_ram;
+		Region_map                   &_rm;
+		Attached_ram_dataspace const  _area;
 
-		static Ram_dataspace_capability _try_alloc(Ram_allocator &ram, size_t size)
-		{
-			try { return ram.alloc(size); }
-			catch (...) { return Ram_dataspace_capability(); }
-		}
-
-		static Trace::Control *_try_attach(Region_map &rm, Dataspace_capability ds)
-		{
-			try { return rm.attach(ds); }
-			catch (...) { return nullptr; }
-		}
-
-		bool _index_valid(int index) const
-		{
-			return (index + 1)*sizeof(Trace::Control) < SIZE;
-		}
+		bool _index_valid(unsigned const index) const {
+			return index < SIZE / sizeof(Trace::Control); }
 
 		/*
 		 * Noncopyable
@@ -59,48 +45,45 @@ class Genode::Trace::Control_area
 		Control_area(Control_area const &);
 		Control_area &operator = (Control_area const &);
 
+		Trace::Control * _local_base() const {
+			return _area.local_addr<Trace::Control>(); }
+
 	public:
 
 		Control_area(Ram_allocator &ram, Region_map &rm)
 		:
-			_ram(ram), _rm(rm),
-			_ds(_try_alloc(ram, SIZE)),
-			_local_base(_try_attach(rm, _ds))
+			_ram(ram), _rm(rm), _area(ram, rm, SIZE)
 		{ }
 
-		~Control_area()
-		{
-			if (_local_base) _rm.detach(_local_base);
-			if (_ds.valid()) _ram.free(_ds);
-		}
+		~Control_area() { }
 
-		Dataspace_capability dataspace() const { return _ds; }
+		Dataspace_capability dataspace() const { return _area.cap(); }
 
 		bool alloc(unsigned &index_out)
 		{
 			for (unsigned index = 0; _index_valid(index); index++) {
-				if (!_local_base[index].is_free()) {
+				if (!_local_base()[index].is_free()) {
 					continue;
 				}
 
-				_local_base[index].alloc();
+				_local_base()[index].alloc();
 				index_out = index;
 				return true;
 			}
 
-			error("trace-control allocaton failed");
+			error("trace-control allocation failed");
 			return false;
 		}
 
 		void free(unsigned index)
 		{
 			if (_index_valid(index))
-				_local_base[index].reset();
+				_local_base()[index].reset();
 		}
 
 		Trace::Control *at(unsigned index)
 		{
-			return _index_valid(index) ? &_local_base[index] : nullptr;
+			return _index_valid(index) ? &(_local_base()[index]) : nullptr;
 		}
 };
 
