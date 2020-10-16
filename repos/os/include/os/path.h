@@ -326,7 +326,7 @@ class Genode::Path_base
 			return strcmp(_path, other._path) != 0;
 		}
 
-		char const *last_element()
+		char const *last_element() const
 		{
 			return last_element(_path)+1;
 		}

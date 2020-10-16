@@ -1,0 +1,159 @@
+<runtime ram="64M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="120" />
+		<log meaning="succeeded">--- test succeeded ---</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="fs_rom"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="report_rom"/>
+		<rom label="test-libc_fifo_pipe"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_pipe.lib.so"/>
+	</content>
+
+	<config verbose="no">
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="128"/>
+
+		<start name="vfs">
+			<provides>
+				<service name="File_system"/>
+			</provides>
+			<resource name="RAM" quantum="4M"/>
+			<config>
+				<vfs>
+					<pipe>
+						<fifo name="upstream"/>
+						<fifo name="downstream"/>
+					</pipe>
+				</vfs>
+				<policy label="fifo-pipe-test -> in" root="/.upstream/in" writeable="yes" />
+				<policy label="fifo-pipe-test -> out" root="/.downstream/out" writeable="no" />
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="ram_fs">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="2M"/>
+			<provides>
+				<service name="File_system"/>
+			</provides>
+			<config>
+				<vfs>
+					<inline name="init_template">
+						<config verbose="no">
+							<parent-provides>
+								<service name="CPU"/>
+								<service name="File_system"/>
+								<service name="LOG"/>
+								<service name="PD"/>
+								<service name="RM"/>
+								<service name="ROM"/>
+								<service name="Timer"/>
+							</parent-provides>
+							<default caps="110"/>
+
+							<start name="echo">
+								<binary name="test-libc_fifo_pipe"/>
+								<resource name="RAM" quantum="3M"/>
+								<config type="echo">
+									<vfs>
+										<dir name="dev">
+											<fs label="downstream"/>
+											<fs label="upstream"/>
+											<log/>
+										</dir>
+									</vfs>
+									<libc stdin="/dev/upstream" stdout="/dev/downstream" stderr="/dev/log"/>
+								</config>
+								<route>
+									<any-service> <parent/> <any-child/> </any-service>
+								</route>
+							</start>
+
+						</config>
+					</inline>
+				</vfs>
+				<policy label="fs_rom -> " root="/" writeable="no"/>
+			</config>
+		</start>
+
+		<start name="fs_rom">
+			<resource name="RAM" quantum="2M"/>
+			<provides>
+				<service name="ROM"/>
+			</provides>
+			<route>
+				<service name="File_system"> <child name="ram_fs"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="2M"/>
+			<provides>
+				<service name="ROM"/>
+				<service name="Report"/>
+			</provides>
+			<config verbose="no">
+				<policy label="init.config" report="init.config"/>
+			</config>
+		</start>
+
+		<start name="fifo-pipe-test">
+			<binary name="test-libc_fifo_pipe"/>
+			<resource name="RAM" quantum="8M"/>
+			<config iterations="15">
+				<vfs>
+					<dir name="ro">
+						<rom name="test-data.bin"/>
+					</dir>
+					<dir name="dev">
+						<dir name="send-pipe">
+							<fs label="in"/>
+						</dir>
+						<dir name="receive-pipe">
+							<fs label="out"/>
+						</dir>
+						<log/>
+					</dir>
+				</vfs>
+				<libc stdout="/dev/log" stderr="/dev/log"/>
+			</config>
+			<route>
+				<service name="File_system">                   <child name="vfs"/> </service>
+				<service name="Report" label="init.config">    <child name="report_rom" label="init.config"/> </service>
+				<service name="ROM"    label="init_template">  <child name="fs_rom"     label="init_template"/> </service>
+				<service name="ROM"    label="test-data.bin">  <parent label="init"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="init" caps="200">
+			<resource name="RAM" quantum="16M"/>
+			<route>
+				<service name="ROM" label="config">    <child name="report_rom" label="init.config"/> </service>
+				<service name="File_system">           <child name="vfs"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+</runtime>

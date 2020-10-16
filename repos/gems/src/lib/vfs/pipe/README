@@ -10,3 +10,44 @@ The read and write capacity of a pipe may be queried by stat'ing the size of
 
 When all "in" and "out" handles on a pipe as well as the initial handle on "new"
 are closed, the pipe is destroyed.
+
+The pipe plugin can also be used as named pipe which enables data transfer via
+file handles from one component to another. E.g. you can attach stdout of a libc
+component to a named pipe and write data using standard fwrite() calls.
+
+Here a sample scenario where stdin of a component is attached to a named pipe:
+
+! <start name="vfs">
+!   <provides> <service name="File_system"/> </provides>
+!   <resource name="RAM" quantum="4M"/>
+!   <config>
+!     <vfs>
+!       <pipe>
+!         <fifo name="upstream"/>
+!         <fifo name="downstream"/>
+!       </pipe>
+!     </vfs>
+!     <default-policy root="/" writeable="yes"/>
+!   </config>
+! </start>
+!
+! <start name="my-libc-app">
+!   <resource name="RAM" quantum="4M"/>
+!   <config>
+!     <vfs>
+!       <dir name="dev">
+!         <dir name="pipe"> <fs/> </dir>
+!         <log/>
+!       </dir>
+!     </vfs>
+!     <libc stdin="/dev/pipe/upstream" stdout="/dev/log" stderr="/dev/log"/>
+!   </config>
+! </start>
+
+The fifo named 'upstream' represents a named pipe file which can be opened with
+read-only or write-only flags.
+
+A remote component can now write to '/dev/pipe/upstream' so the data written is
+then accessible on stdin within "my-libc-app". Once the remote component closes
+the '/dev/pipe/upstream' file, an EOF is received on stdin of "my-libc-app". An
+example can be found in in run/vfs_fifo_pipe.run.

@@ -1,0 +1,7 @@
+_/src/fs_rom
+_/src/init
+_/src/libc
+_/src/report_rom
+_/src/test-libc_fifo_pipe
+_/src/vfs
+_/src/vfs_pipe
