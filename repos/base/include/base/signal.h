@@ -88,7 +88,12 @@ class Genode::Signal
 			 */
 			Data() : context(0), num(0) { }
 
-		} _data;
+		} _data { };
+
+		/**
+		 * Constructor for invalid signal
+		 */
+		Signal() { };
 
 		/**
 		 * Constructor
@@ -117,6 +122,7 @@ class Genode::Signal
 
 		Signal_context *context()       { return _data.context; }
 		unsigned        num()     const { return _data.num; }
+		bool            valid()   const { return _data.context != nullptr; }
 };
 
 
@@ -299,9 +305,7 @@ class Genode::Signal_receiver : Noncopyable
 
 					do {
 						Mutex::Guard mutex_guard(context->_mutex);
-						try {
-							functor(*context);
-						} catch (Break_for_each) { return; }
+						if (functor(*context)) return;
 						context = context->_next;
 					} while (context != _head);
 				}
@@ -352,7 +356,6 @@ class Genode::Signal_receiver : Noncopyable
 		 */
 		class Context_already_in_use { };
 		class Context_not_associated { };
-		class Signal_not_pending     { };
 
 		/**
 		 * Constructor
@@ -401,10 +404,9 @@ class Genode::Signal_receiver : Noncopyable
 		void unblock_signal_waiter(Rpc_entrypoint &rpc_ep);
 
 		/**
-		 * Retrieve  pending signal
+		 * Retrieve pending signal
 		 *
-		 * \throw   'Signal_not_pending' no pending signal found
-		 * \return  received signal
+		 * \return  received signal (invalid if no pending signal found)
 		 */
 		Signal pending_signal();
 

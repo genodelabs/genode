@@ -158,7 +158,7 @@ Signal Signal_receiver::pending_signal()
 	Signal::Data result;
 	_contexts.for_each_locked([&] (Signal_context &context) {
 
-		if (!context._pending) return;
+		if (!context._pending) return false;
 
 		_contexts.head(context._next);
 		context._pending     = false;
@@ -166,7 +166,7 @@ Signal Signal_receiver::pending_signal()
 		context._curr_signal = Signal::Data(0, 0);
 
 		Trace::Signal_received trace_event(context, result.num);
-		throw Context_ring::Break_for_each();
+		return true;
 	});
 	if (result.context) {
 		Mutex::Guard context_guard(result.context->_mutex);
@@ -178,7 +178,7 @@ Signal Signal_receiver::pending_signal()
 
 	/* look for pending signals */
 	if (Kernel::pending_signal(Capability_space::capid(_cap)) != 0) {
-		throw Signal_not_pending();
+		return Signal();
 	}
 
 	/* read signal data */

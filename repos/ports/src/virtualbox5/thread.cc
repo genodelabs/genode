@@ -160,8 +160,6 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 			log("Upgrading memory for creation of "
 			    "thread '", Cstring(rtthread->szName), "'");
 			cpu_connection(rtthread->enmType)->upgrade_ram(4096);
-		} catch (Genode::Signal_receiver::Signal_not_pending) {
-			error("signal not pending ?");
 		} catch (Out_of_caps) {
 			error("out of caps ...");
 		}

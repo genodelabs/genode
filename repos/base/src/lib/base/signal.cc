@@ -235,13 +235,14 @@ void Signal_receiver::block_for_signal()
 	_signal_available.down();
 }
 
+
 Signal Signal_receiver::pending_signal()
 {
 	Mutex::Guard contexts_guard(_contexts_mutex);
 	Signal::Data result;
-	_contexts.for_each_locked([&] (Signal_context &context) {
+	_contexts.for_each_locked([&] (Signal_context &context) -> bool {
 
-		if (!context._pending) return;
+		if (!context._pending) return false;
 
 		_contexts.head(context._next);
 		context._pending     = false;
@@ -249,7 +250,7 @@ Signal Signal_receiver::pending_signal()
 		context._curr_signal = Signal::Data(0, 0);
 
 		Trace::Signal_received trace_event(context, result.num);
-		throw Context_ring::Break_for_each();
+		return true;
 	});
 	if (result.context) {
 		Mutex::Guard context_guard(result.context->_mutex);
@@ -268,9 +269,8 @@ Signal Signal_receiver::pending_signal()
 	 * signal, we may have increased the semaphore already. In this case
 	 * the signal-causing context is absent from the list.
 	 */
-	throw Signal_not_pending();
+	return Signal();
 }
-
 
 void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &)
 {

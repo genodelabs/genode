@@ -149,9 +149,10 @@ Signal Signal_receiver::wait_for_signal()
 {
 	for (;;) {
 
-		try {
-			return pending_signal();
-		} catch (Signal_not_pending) { }
+		Signal sig = pending_signal();
+
+		if (sig.valid())
+			return sig;
 
 		/* block until the receiver has received a signal */
 		block_for_signal();
