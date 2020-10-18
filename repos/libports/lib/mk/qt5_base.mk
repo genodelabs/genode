@@ -52,7 +52,8 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 		$(STRIP) libQt5PrintSupport.lib.so -o libQt5PrintSupport.lib.so.stripped && \
 		$(STRIP) libQt5Sql.lib.so -o libQt5Sql.lib.so.stripped && \
 		$(STRIP) libQt5Test.lib.so -o libQt5Test.lib.so.stripped && \
-		$(STRIP) libQt5Widgets.lib.so -o libQt5Widgets.lib.so.stripped
+		$(STRIP) libQt5Widgets.lib.so -o libQt5Widgets.lib.so.stripped && \
+		$(STRIP) libQt5Xml.lib.so -o libQt5Xml.lib.so.stripped
 
 	$(VERBOSE)cd $(CURDIR)/install/qt/plugins/platforms && \
 		$(STRIP) libqgenode.lib.so -o libqgenode.lib.so.stripped
@@ -74,6 +75,7 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Sql.lib.so.stripped $(PWD)/bin/libQt5Sql.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Test.lib.so.stripped $(PWD)/bin/libQt5Test.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Widgets.lib.so.stripped $(PWD)/bin/libQt5Widgets.lib.so
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Xml.lib.so.stripped $(PWD)/bin/libQt5Xml.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/platforms/libqgenode.lib.so.stripped $(PWD)/bin/libqgenode.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/imageformats/libqjpeg.lib.so.stripped $(PWD)/bin/libqjpeg.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/sqldrivers/libqsqlite.lib.so.stripped $(PWD)/bin/libqsqlite.lib.so
@@ -89,6 +91,7 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Sql.lib.so $(PWD)/debug/
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Test.lib.so $(PWD)/debug/
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Widgets.lib.so $(PWD)/debug/
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Xml.lib.so $(PWD)/debug/
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/platforms/libqgenode.lib.so $(PWD)/debug/libqgenode.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/imageformats/libqjpeg.lib.so $(PWD)/debug/libqjpeg.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/sqldrivers/libqsqlite.lib.so $(PWD)/debug/libqsqlite.lib.so
