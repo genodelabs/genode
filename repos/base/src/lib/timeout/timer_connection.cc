@@ -46,10 +46,19 @@ uint64_t Timer::Connection::_ts_to_us_ratio(Timestamp ts,
 	 * often nor have much effect on the resulting factor.
 	 */
 	Timestamp const max_ts = ~(Timestamp)0ULL >> shift;
-	while (ts > max_ts) {
-		warning("timestamp value too big");
-		ts >>= 1;
-		us >>= 1;
+	if (ts > max_ts) {
+		/*
+		 * Reduce the number of warnings printed to not aggravate the problem
+		 * even more.
+		 */
+		static unsigned nr_of_warnings { 0 };
+		if (nr_of_warnings++ % 1000 == 0) {
+			warning("timestamp value too big");
+		}
+		while (ts > max_ts) {
+			ts >>= 1;
+			us >>= 1;
+		}
 	}
 	if (!us) { us = 1; }
 	if (!ts) { ts = 1; }
