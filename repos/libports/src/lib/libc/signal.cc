@@ -199,3 +199,20 @@ extern "C" int waitid(idtype_t idtype, id_t id, siginfo_t *info, int flags)
 		ret = 0;
 	return (ret);
 }
+
+
+extern "C" int raise(int sig)
+{
+	char const *signame = sys_signame[sig];
+
+	switch(sig) {
+	case SIGQUIT:
+	case SIGABRT:
+	case SIGKILL:
+		error(__func__, "(", signame, ")");
+		exit(-1);
+	default:
+		warning(__func__, "(", signame, ") not implemented");
+		return Libc::Errno(EINVAL);
+	};
+}
