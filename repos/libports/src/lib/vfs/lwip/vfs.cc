@@ -2032,6 +2032,7 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			if (_netif.ready()) return true;
 
 			/* handle must be woken when the interface comes up */
+			Genode::warning("read blocked until lwIP interface is ready");
 			_netif.enqueue(*vfs_handle);
 			return false;
 		}
