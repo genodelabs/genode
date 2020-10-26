@@ -53,7 +53,7 @@ uint64_t Timer::Connection::_ts_to_us_ratio(Timestamp ts,
 		 */
 		static unsigned nr_of_warnings { 0 };
 		if (nr_of_warnings++ % 1000 == 0) {
-			warning("timestamp value too big");
+			warning("timestamp value too big, ts=", ts, " max_ts=", max_ts);
 		}
 		while (ts > max_ts) {
 			ts >>= 1;

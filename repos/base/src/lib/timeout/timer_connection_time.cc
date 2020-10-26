@@ -41,8 +41,8 @@ void Timer::Connection::_update_real_time()
 	     remote_time_trials < MAX_REMOTE_TIME_TRIALS; ) {
 
 		/* read out the two time values close in succession */
-		Timestamp volatile new_ts = _timestamp();
-		uint64_t  volatile new_us = elapsed_us();
+		Timestamp const new_ts = _timestamp();
+		uint64_t  const new_us = elapsed_us();
 
 		/* do not proceed until the time difference is at least 1 us */
 		if (new_us == _us || new_ts == _ts) { continue; }
@@ -99,7 +99,10 @@ void Timer::Connection::_update_real_time()
 
 			/* if possible, lower the shift to meet the limitation */
 			if (!factor_shift) {
-				error("timestamp difference too big");
+
+				error("timestamp difference too big, ts_diff=", ts_diff,
+				      " max_ts_diff=", max_ts_diff);
+
 				throw Factor_update_failed();
 			}
 			factor_shift--;
