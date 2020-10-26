@@ -110,6 +110,20 @@ namespace Genode {
 }
 
 
+/********************
+ ** Signal_context **
+ ********************/
+
+void Signal_context::local_submit()
+{
+	if (_receiver) {
+		/* construct and locally submit signal object */
+		Signal::Data signal(this, 1);
+		_receiver->local_submit(signal);
+	}
+}
+
+
 /*****************************
  ** Signal context registry **
  *****************************/
@@ -278,16 +292,16 @@ void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &)
 }
 
 
-void Signal_receiver::local_submit(Signal::Data ns)
+void Signal_receiver::local_submit(Signal::Data data)
 {
-	Signal_context *context = ns.context;
+	Signal_context *context = data.context;
 
 	/*
 	 * Replace current signal of the context by signal with accumulated
 	 * counters. In the common case, the current signal is an invalid
 	 * signal with a counter value of zero.
 	 */
-	unsigned num = context->_curr_signal.num + ns.num;
+	unsigned num = context->_curr_signal.num + data.num;
 	context->_curr_signal = Signal::Data(context, num);
 
 	/* wake up the receiver if the context becomes pending */

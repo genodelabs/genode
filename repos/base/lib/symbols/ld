@@ -115,6 +115,7 @@ _ZN6Genode14Rpc_entrypointC1EPNS_10Pd_sessionEmPKcNS_8Affinity8LocationE T
 _ZN6Genode14Rpc_entrypointD0Ev T
 _ZN6Genode14Rpc_entrypointD1Ev T
 _ZN6Genode14Rpc_entrypointD2Ev T
+_ZN6Genode14Signal_context12local_submitEv T
 _ZN6Genode14Signal_contextD0Ev T
 _ZN6Genode14Signal_contextD1Ev T
 _ZN6Genode14Signal_contextD2Ev T
