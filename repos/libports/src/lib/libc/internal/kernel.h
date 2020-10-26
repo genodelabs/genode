@@ -576,7 +576,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			if (_main_context())
 				_monitors_handler();
 			else
-				Signal_transmitter(*_execute_monitors).submit();
+				_execute_monitors->local_submit();
 		}
 
 		/**
