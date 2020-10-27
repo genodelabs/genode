@@ -41,7 +41,7 @@ struct Vfs::Directory_service : Interface
 	/**
 	 * Flags of 'mode' argument of open syscall
 	 */
-	enum {
+	enum Open_mode {
 		OPEN_MODE_RDONLY  = 0,
 		OPEN_MODE_WRONLY  = 1,
 		OPEN_MODE_RDWR    = 2,
