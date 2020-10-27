@@ -62,10 +62,11 @@ append config {
 			<service name="Audio_out"/>
 			<service name="Audio_in"/>
 		</provides>
-		<config recording="yes">
-			<mixer field="outputs.master" value="255"/>
+		<config>
+			<mixer field="outputs.master" value="128"/>
 			<mixer field="record.adc-0:1_source" value="sel2"/>
-			<mixer field="record.adc-0:1" value="255"/>
+			<mixer field="record.adc-0:1" value="128"/>
+			<mixer field="record.enable" value="on"/>
 		</config>
 	</start>
 	<start name="test-audio_in">
