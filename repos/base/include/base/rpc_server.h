@@ -99,7 +99,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		}
 
 		template <typename ARG>
-		ARG _read_arg(Ipc_unmarshaller &msg, Rpc_arg_out)
+		ARG _read_arg(Ipc_unmarshaller &, Rpc_arg_out)
 		{
 			return ARG();
 		}
