@@ -111,8 +111,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ds_ep,
   _sliced_heap(_constrained_md_ram_alloc, region_map),
   _region_map(region_map),
   _table(*construct_at<Board::Vm_page_table>(_alloc_table())),
-  _table_array(*(new (cma()) Board::Vm_page_table_array([this] (void * virt) {
-	return (addr_t)cma().phys_addr(virt);}))),
+  _table_array(*(new (cma()) Board::Vm_page_table_array([] (void * virt) {
+                             return (addr_t)cma().phys_addr(virt);}))),
   _id({(unsigned)alloc().alloc(), cma().phys_addr(&_table)})
 {
 	/* configure managed VM area */
