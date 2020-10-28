@@ -211,14 +211,26 @@ struct Usb_device
 		}
 };
 
+static Usb_device *device_instance;
 
 static int genode_init(struct libusb_context* ctx)
 {
+	if (!device_instance) {
+		device_instance = new (libc_alloc) Usb_device;
+	} else {
+		Genode::error("tried to init genode usb context twice");
+	}
 	return LIBUSB_SUCCESS;
 }
 
 
-static void genode_exit(void) { }
+static void genode_exit(void)
+{
+	if (device_instance) {
+		destroy(libc_alloc, device_instance);
+		device_instance = nullptr;
+	}
+}
 
 
 int genode_get_device_list(struct libusb_context *ctx,
@@ -248,8 +260,7 @@ int genode_get_device_list(struct libusb_context *ctx,
 		dev->bus_number = busnum;
 		dev->device_address = devaddr;
 
-		/* FIXME: find place to free the allocated memory */
-		Usb_device *usb_device = new (libc_alloc) Usb_device;
+		Usb_device *usb_device = device_instance;
 		*(Usb_device**)dev->os_priv = usb_device;
 
 		switch (usb_device->device_descriptor.speed) {
