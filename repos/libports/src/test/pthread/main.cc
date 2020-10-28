@@ -890,7 +890,7 @@ struct Test_cond_timed
 		}
 
 		if (timedwait && !timed_out) {
-			printf("waiter%s: pthread_cond_timedwait did not time-out!\n");
+			printf("waiter%s: pthread_cond_timedwait did not time-out!\n", note);
 			exit(-1);
 		}
 
