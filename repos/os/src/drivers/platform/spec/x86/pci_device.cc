@@ -297,15 +297,17 @@ bool Platform::Device_component::_setup_msix(Genode::uint16_t const msix_cap)
 			struct Msi_entry : public Mmio {
 				Msi_entry(addr_t const base) : Mmio(base) { }
 
-				struct Address : Register<0x0, 64> { };
-				struct Value   : Register<0x8, 32> { };
-				struct Vector  : Register<0xc, 32> {
+				struct Address_low  : Register<0x0, 32> { };
+				struct Address_high : Register<0x4, 32> { };
+				struct Value        : Register<0x8, 32> { };
+				struct Vector       : Register<0xc, 32> {
 					struct Mask : Bitfield <0, 1> { };
 				};
 			} msi_entry_0 (msix_table);
 
 			/* setup first msi-x table entry */
-			msi_entry_0.write<Msi_entry::Address>(msi_address & ~(0x3UL));
+			msi_entry_0.write<Msi_entry::Address_low>(msi_address & ~(0x3UL));
+			msi_entry_0.write<Msi_entry::Address_high>(sizeof(msi_address) == 4 ? 0 : msi_address >> 32);
 			msi_entry_0.write<Msi_entry::Value>(msi_value);
 			msi_entry_0.write<Msi_entry::Vector::Mask>(0);
 

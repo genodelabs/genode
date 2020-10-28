@@ -260,7 +260,9 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			/* requested io_mem not allocated by Pci::Resource - try direct */
 			Io_mem io_mem(_env, msix_table_phys, msix_table_size, false);
 			Attached_dataspace mem_io(_env.rm(), io_mem.dataspace());
-			Genode::addr_t const msix_table = reinterpret_cast<addr_t>(mem_io.local_addr<void>());
+			addr_t const offset = msix_table_phys & 0xfffull;
+			addr_t const msix_table = reinterpret_cast<addr_t>(mem_io.local_addr<void>()) + offset;
+
 			fn(msix_table);
 		};
 
