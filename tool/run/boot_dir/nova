@@ -59,18 +59,21 @@ proc run_boot_dir {binaries} {
 
 	exec mv   [run_dir]/image.elf [run_dir]/boot/image.elf
 
+	#
+	# Setup bender and plugins
+	#
+	set options_bender ""
+
+	if {[apply_microcode]} {
+		exec cp bin/micro.code [run_dir]/boot/
+		append options_bender " microcode"
+	}
+
 	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
 		#
 		# Compress Genode image, to be uncompressed by GRUB
 		#
 		exec gzip [run_dir]/boot/image.elf
-
-		set serial_bender_opt ""
-
-		if {[apply_microcode]} {
-			exec cp bin/micro.code [run_dir]/boot/
-			exec cp [genode_dir]/tool/boot/microcode [run_dir]/boot/
-		}
 
 		if {[have_include "image/disk"]} {
 			exec mkdir -p [run_dir]/boot/grub
@@ -101,7 +104,7 @@ proc run_boot_dir {binaries} {
 				# exec cp /boot/grub/unicode.pf2 [run_dir]/boot/grub/unicode.pf2
 			}
 
-			set serial_bender_opt "serial_fallback"
+			append options_bender " serial_fallback"
 		}
 
 		#
@@ -132,9 +135,8 @@ proc run_boot_dir {binaries} {
 		puts $fh "menuentry 'Genode on NOVA' {"
 		puts $fh " insmod multiboot2"
 		puts $fh " insmod gzio"
-		puts $fh " multiboot2 /boot/bender $serial_bender_opt"
+		puts $fh " multiboot2 /boot/bender $options_bender"
 		if {[apply_microcode]} {
-			puts $fh " module2 /boot/microcode serial"
 			puts $fh " module2 /boot/micro.code micro.code"
 		}
 		puts $fh " module2 /boot/hypervisor hypervisor iommu novpid [kernel_output]"
@@ -154,18 +156,12 @@ proc run_boot_dir {binaries} {
 		#
 		install_pxe_bootloader_to_run_dir
 
-		if {[apply_microcode]} {
-			exec cp [genode_dir]/tool/boot/microcode [run_dir]/boot/
-			exec cp bin/micro.code [run_dir]/boot/
-		}
-
 		#
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-		puts $fh " exec /boot/bender"
+		puts $fh " exec /boot/bender $options_bender"
 		if {[apply_microcode]} {
-			puts $fh " load /boot/microcode serial"
 			puts $fh " load /boot/micro.code micro.code"
 		}
 		puts $fh " load /boot/hypervisor iommu novpid [kernel_output]"
