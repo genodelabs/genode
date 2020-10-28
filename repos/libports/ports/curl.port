@@ -2,7 +2,7 @@ LICENSE   := MIT
 DOWNLOADS := curl.archive
 VERSION   := 7.29.0
 
-URL(curl) := http://curl.haxx.se/download/curl-$(VERSION).tar.gz
+URL(curl) := http://curl.haxx.se/download/archeology/curl-$(VERSION).tar.gz
 SHA(curl) := 67dc5b952ac489191b62dbe95b18d336b821649f61404a280186c72e8cd0b9d6
 SIG(curl) := ${URL(curl)}.asc
 KEY(curl) := daniel@haxx.se
