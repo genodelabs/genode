@@ -601,7 +601,7 @@ class Audio_out::Mixer
 			}
 
 			_channels[ch].insert(&session);
-			_report_channels();
+			_handle_config_update();
 		}
 
 		/**
@@ -616,7 +616,7 @@ class Audio_out::Mixer
 			}
 
 			_channels[ch].remove(&session);
-			_report_channels();
+			_handle_config_update();
 		}
 
 		/**
