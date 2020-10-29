@@ -13,57 +13,112 @@
 
 /* Genode includes */
 #include <base/component.h>
+#include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <timer_session/connection.h>
 
 using namespace Genode;
 
+struct Cpu_burn : Thread
+{
+	List_element<Cpu_burn>  _list_element { this };
+	Env           &_env;
+	Blockade       _block { };
+	bool volatile  _stop  { false };
+
+	Cpu_burn(Genode::Env &env, Location const &location)
+	:
+		Genode::Thread(env, Name("burn_", location.xpos(), "x", location.ypos()),
+		               4 * 4096, location, Weight(), env.cpu()),
+		_env(env)
+	{ }
+
+	void entry() override
+	{
+		while (true) {
+			_block.block();
+
+			while (!_stop) { }
+
+			_stop = false;
+		}
+	}
+};
+
+typedef List<List_element<Cpu_burn> >  Thread_list;
+
 struct Cpu_burner
 {
-	Genode::Env &_env;
+	Genode::Env       &_env;
+	Genode::Heap       _heap   { _env.ram(), _env.rm() };
+	Timer::Connection _timer   { _env };
+	Thread_list       _threads { };
 
-	Timer::Connection _timer { _env };
-
-	unsigned long _percent = 100;
+	uint64_t          _start_ms { 0 };
+	unsigned short    _percent  { 100 };
+	bool              _burning  { false };
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
 	void _handle_config()
 	{
 		_config.update();
+
+		if (!_config.valid())
+			return;
+
 		_percent = _config.xml().attribute_value("percent", 100L);
+		if (_percent > 100)
+			_percent = 100;
 	}
 
 	Genode::Signal_handler<Cpu_burner> _config_handler {
 		_env.ep(), *this, &Cpu_burner::_handle_config };
 
-	unsigned _burn_per_iteration = 10;
-
 	void _handle_period()
 	{
-		uint64_t const start_ms = _timer.elapsed_ms();
+		uint64_t next_timer_ms = 1000;
+		bool     stop_burner   = false;
+		bool     start_burner  = false;
 
-		unsigned iterations = 0;
-		for (;; iterations++) {
+		if (_burning) {
+			uint64_t const curr_ms   = _timer.elapsed_ms();
+			uint64_t const passed_ms = curr_ms - _start_ms;
 
-			uint64_t const curr_ms = _timer.elapsed_ms();
-			uint64_t passed_ms     = curr_ms - start_ms;
+			if (_percent < 100) {
+				stop_burner = (passed_ms >= 10*_percent);
+				if (stop_burner)
+					next_timer_ms = (100 - _percent) * 10;
+				else
+					next_timer_ms = 10*_percent - passed_ms;
+			}
+		} else
+			start_burner = true;
 
-			if (passed_ms >= 10*_percent)
-				break;
+		if (stop_burner) {
+			for (auto t = _threads.first(); t; t = t->next()) {
+				auto thread = t->object();
+				if (!thread)
+					continue;
 
-			/* burn some time */
-			for (unsigned volatile i = 0; i < _burn_per_iteration; i++)
-				for (unsigned volatile j = 0; j < 1000*1000; j++)
-					(void) (i*j);
+				thread->_stop = true;
+			}
+			_burning = false;
 		}
 
-		/* adjust busy loop duration */
-		if (iterations > 10)
-			_burn_per_iteration *= 2;
+		if (start_burner) {
+			for (auto t = _threads.first(); t; t = t->next()) {
+				auto thread = t->object();
+				if (!thread)
+					continue;
 
-		if (iterations < 5)
-			_burn_per_iteration /= 2;
+				thread->_block.wakeup();
+			}
+			_burning  = true;
+			_start_ms = _timer.elapsed_ms();
+		}
+
+		_timer.trigger_once(next_timer_ms*1000);
 	}
 
 	Genode::Signal_handler<Cpu_burner> _period_handler {
@@ -75,7 +130,17 @@ struct Cpu_burner
 		_handle_config();
 
 		_timer.sigh(_period_handler);
-		_timer.trigger_periodic(1000*1000);
+		_timer.trigger_once(1000*1000);
+
+		Affinity::Space space = env.cpu().affinity_space();
+
+		for (unsigned i = 0; i < space.total(); i++) {
+			Affinity::Location location = env.cpu().affinity_space().location_of_index(i);
+			Cpu_burn *t = new (_heap) Cpu_burn(env, location);
+			t->start();
+
+			_threads.insert(&t->_list_element);
+		}
 	}
 };
 
