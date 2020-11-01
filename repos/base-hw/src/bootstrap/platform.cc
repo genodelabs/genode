@@ -150,9 +150,8 @@ Mapping Platform::_load_elf()
 
 void Platform::start_core(unsigned cpu_id)
 {
-	typedef void (* Entry)(unsigned);
-	Entry __attribute__((noreturn)) const entry
-		= reinterpret_cast<Entry>(core_elf.entry());
+	typedef void (* Entry)(unsigned) __attribute__((noreturn));
+	Entry const entry = reinterpret_cast<Entry>(core_elf.entry());
 	entry(cpu_id);
 }
 
