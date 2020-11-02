@@ -71,7 +71,7 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 		Genode::uint64_t  fpcr;
 	};
 
-	struct alignas(8) Context : Cpu_state
+	struct alignas(16) Context : Cpu_state
 	{
 		Genode::uint64_t pstate { };
 		Genode::uint64_t exception_type { RESET };
