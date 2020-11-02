@@ -47,7 +47,7 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		uint64_t d0_d31[32];  /* VFP/SIMD - general purpose registers   */
 	};
 
-	struct alignas(4) Context : Cpu_state, Fpu_context
+	struct alignas(8) Context : Cpu_state, Fpu_context
 	{
 		Context(bool privileged);
 	};
