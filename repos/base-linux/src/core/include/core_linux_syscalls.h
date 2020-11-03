@@ -72,11 +72,6 @@ inline int lx_stat(const char *path, struct stat64 *buf)
  ** Functions used by core's io port session support code **
  ***********************************************************/
 
-inline int lx_ioperm(unsigned long from, unsigned long num, int turn_on)
-{
-	return lx_syscall(SYS_ioperm, from, num, turn_on);
-}
-
 inline int lx_iopl(int level)
 {
 	return lx_syscall(SYS_iopl, level);
