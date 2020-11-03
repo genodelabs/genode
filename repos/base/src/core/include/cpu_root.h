@@ -30,7 +30,6 @@ namespace Genode {
 			Region_map             &_local_rm;
 			Rpc_entrypoint         &_thread_ep;
 			Pager_entrypoint       &_pager_ep;
-			Allocator              &_md_alloc;
 			Trace::Source_registry &_trace_sources;
 
 		protected:
@@ -80,7 +79,7 @@ namespace Genode {
 				Root_component<Cpu_session_component>(&session_ep, &md_alloc),
 				_ram_alloc(ram_alloc), _local_rm(local_rm),
 				_thread_ep(thread_ep), _pager_ep(pager_ep),
-				_md_alloc(md_alloc), _trace_sources(trace_sources)
+				_trace_sources(trace_sources)
 			{ }
 	};
 }
