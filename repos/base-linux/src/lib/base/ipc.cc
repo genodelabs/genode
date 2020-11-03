@@ -114,7 +114,6 @@ namespace {
 			typedef Genode::size_t size_t;
 
 			msghdr      _msg   { };
-			sockaddr_un _addr  { };
 			iovec       _iovec { };
 			char        _cmsg_buf[CMSG_SPACE(MAX_SDS_PER_MSG*sizeof(int))];
 
