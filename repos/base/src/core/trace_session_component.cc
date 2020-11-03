@@ -182,12 +182,13 @@ Session_component::Session_component(Rpc_entrypoint  &ep,
 	_local_rm(local_rm),
 	_subjects_slab(&_md_alloc),
 	_policies_slab(&_md_alloc),
-	_parent_levels(parent_levels),
 	_sources(sources),
 	_policies(policies),
 	_subjects(_subjects_slab, _ram, _sources),
 	_argument_buffer(_ram, local_rm, arg_buffer_size)
-{ }
+{
+	(void)parent_levels;
+}
 
 
 Session_component::~Session_component()
