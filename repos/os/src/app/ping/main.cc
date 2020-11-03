@@ -70,7 +70,6 @@ class Main : public Nic_handler,
 		Net::Nic                        _nic           { _env, _heap, *this, _verbose };
 		Ipv4_address             const  _dst_ip        { _config.attribute_value("dst_ip",  Ipv4_address()) };
 		Mac_address                     _dst_mac       { };
-		uint16_t                        _ip_id         { 1 };
 		uint16_t                        _icmp_seq      { 1 };
 		unsigned long                   _count         { _config.attribute_value("count", (unsigned long)DEFAULT_COUNT) };
 		Constructible<Dhcp_client>      _dhcp_client   { };
