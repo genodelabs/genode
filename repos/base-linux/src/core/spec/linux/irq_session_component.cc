@@ -23,7 +23,7 @@
 Genode::Irq_session_component::Irq_session_component(Genode::Range_allocator &, const char *)
 :
 	_irq_number(0),
-	_irq_object(_irq_number)
+	_irq_object()
 { }
 
 Genode::Irq_session_component::~Irq_session_component()
@@ -42,11 +42,9 @@ Genode::Irq_session::Info Genode::Irq_session_component::info()
 	return { .type = Genode::Irq_session::Info::Type::INVALID, .address = 0, .value = 0 };
 }
 
-Genode::Irq_object::Irq_object(unsigned irq) :
+Genode::Irq_object::Irq_object() :
 	Thread_deprecated<4096>("irq"),
-	_sig_cap(Signal_context_capability()),
-	_irq(irq),
-	_fd(-1)
+	_sig_cap(Signal_context_capability())
 {
     Genode::warning(__func__, " not implemented");
 }
