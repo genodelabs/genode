@@ -62,7 +62,6 @@ class Virtdev_rom::Root : public Root_component<Session_component>
 		Root(Root const &) = delete;
 		Root &operator = (Root const &) = delete;
 
-		Env                      &_env;
 		Ram_dataspace_capability  _ds;
 
 		Session_component *_create_session(const char *) override
@@ -75,9 +74,7 @@ class Virtdev_rom::Root : public Root_component<Session_component>
 	public:
 
 		Root(Env &env, Allocator &md_alloc, Ram_dataspace_capability &cap)
-		: Root_component<Session_component>(env.ep(), md_alloc),
-		  _env(env),
-		  _ds(cap)
+		: Root_component<Session_component>(env.ep(), md_alloc), _ds(cap)
 		{ }
 };
 
