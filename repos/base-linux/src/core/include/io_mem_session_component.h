@@ -29,9 +29,7 @@ namespace Genode {
 
 		private:
 
-			Range_allocator &_io_mem_alloc;
 			Dataspace_component _ds;
-			Rpc_entrypoint &_ds_ep;
 			Io_mem_dataspace_capability _ds_cap;
 
 			size_t get_arg_size(const char *);

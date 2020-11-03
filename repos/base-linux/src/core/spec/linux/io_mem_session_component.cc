@@ -39,12 +39,13 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc
                                                    Range_allocator &,
                                                    Rpc_entrypoint  &ds_ep,
                                                    const char      *args) :
-    _io_mem_alloc(io_mem_alloc),
     _ds(0, 0, 0, UNCACHED, true, 0),
-    _ds_ep(ds_ep),
     _ds_cap(Io_mem_dataspace_capability())
 {
-	warning("no io_mem support on Linux (args=\"", args, "\")"); }
+	(void)io_mem_alloc;
+	(void)ds_ep;
+	warning("no io_mem support on Linux (args=\"", args, "\")");
+}
 
 Cache_attribute Io_mem_session_component::get_arg_wc(const char *)
 {
