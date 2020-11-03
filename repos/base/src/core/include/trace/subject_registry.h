@@ -309,7 +309,6 @@ class Genode::Trace::Subject_registry
 		typedef List<Subject> Subjects;
 
 		Allocator       &_md_alloc;
-		Ram_allocator   &_ram;
 		Source_registry &_sources;
 		unsigned         _id_cnt  { 0 };
 		Mutex            _mutex   { };
@@ -396,10 +395,10 @@ class Genode::Trace::Subject_registry
 		 * \param ram       allocator used for the allocation of trace
 		 *                  buffers and policy dataspaces.
 		 */
-		Subject_registry(Allocator &md_alloc, Ram_allocator &ram,
+		Subject_registry(Allocator &md_alloc,
 		                 Source_registry &sources)
 		:
-			_md_alloc(md_alloc), _ram(ram), _sources(sources)
+			_md_alloc(md_alloc), _sources(sources)
 		{ }
 
 		/**
