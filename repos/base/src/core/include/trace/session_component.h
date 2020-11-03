@@ -41,7 +41,6 @@ class Genode::Trace::Session_component
 		Sliced_heap                  _md_alloc { _ram, _local_rm };
 		Tslab<Trace::Subject, 4096>  _subjects_slab;
 		Tslab<Trace::Policy, 4096>   _policies_slab;
-		unsigned               const _parent_levels;
 		Source_registry             &_sources;
 		Policy_registry             &_policies;
 		Subject_registry             _subjects;
