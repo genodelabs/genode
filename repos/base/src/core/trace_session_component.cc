@@ -185,7 +185,7 @@ Session_component::Session_component(Rpc_entrypoint  &ep,
 	_parent_levels(parent_levels),
 	_sources(sources),
 	_policies(policies),
-	_subjects(_subjects_slab, _ram, _sources),
+	_subjects(_subjects_slab, _sources),
 	_argument_buffer(_ram, local_rm, arg_buffer_size)
 { }
 
