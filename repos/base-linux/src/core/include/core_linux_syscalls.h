@@ -72,10 +72,12 @@ inline int lx_stat(const char *path, struct stat64 *buf)
  ** Functions used by core's io port session support code **
  ***********************************************************/
 
+#if defined(__x86_64__) || defined(__i386__)
 inline int lx_iopl(int level)
 {
 	return lx_syscall(SYS_iopl, level);
 }
+#endif
 
 /**************************************************
  ** Functions used by core's io mem session code **
