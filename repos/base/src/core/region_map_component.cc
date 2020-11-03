@@ -24,7 +24,6 @@
 #include <region_map_component.h>
 #include <dataspace_component.h>
 
-static const bool verbose             = false;
 static const bool verbose_page_faults = false;
 
 
