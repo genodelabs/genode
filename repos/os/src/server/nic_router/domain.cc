@@ -209,6 +209,7 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	                                            config.verbose_packet_drop()) },
 	_icmp_echo_server    { node.attribute_value("icmp_echo_server",
 	                                            config.icmp_echo_server()) },
+	_use_arp             { _node.attribute_value("use_arp", true) },
 	_label               { node.attribute_value("label",
 	                                            String<160>()).string() }
 {

@@ -532,6 +532,10 @@ sessions connected, current IPv4 config).
 Other configuration attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+Maximum number of packets handled per signal
+--------------------------------------------
+
 If possible, the NIC router normally handles multiple packets from a NIC
 session per signal. However, if one NIC session has a high packet rate and a
 big buffer, this can lead to starvation of the other NIC sessions. Thus, the
@@ -544,8 +548,28 @@ When set to zero, the limit is deactivated, meaning that the router always
 handles all available packets of a NIC session.
 
 
+Disable requesting address resolutions via ARP
+----------------------------------------------
+
+By default, the NIC router requests required IP-to-MAC address resolutions at a
+domain using ARP. However this may be a problem in certain environments, e.g.,
+when being connected to an LTE modem that doesn't forward ARP. In order to
+deal with such scenarios, one can disable ARP requests at a domain by setting
+the flag 'use_arp' to 'no' (default is 'yes'):
+
+! <config ... >
+!     <domain use_arp="no" ... />
+! <config/>
+
+Whenever the NIC router has to send a packet at a domain with 'use_arp="no"',
+it will set the destination MAC-address of the packet to equal the source
+MAC-address of the packet (instead of requesting the destination MAC-address
+via ARP). This behavior was observed in common Linux-based systems at network
+interfaces with the 'NOARP' flag set.
+
+
 Behavior regarding the NIC-session link state
----------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 At downlinks, the NIC router applies a feedback-driven state machine for the
 link state in order to ensure that clients recognize state transitions. This
@@ -593,6 +617,7 @@ automated run scripts:
 * libports/run/nic_router.run          (basic functionality)
 * dde_linux/run/nic_router_uplinks.run (dynamically switching uplinks)
 * os/run/ping_nic_router.run           (ICMP routing)
+* os/run/nic_router_disable_arp.run    ('use_arp' configuration flag)
 * os/run/nic_router_dhcp_unmanaged.run (DHCP + link states without a manager)
 * os/run/nic_router_dhcp_managed.run   (DHCP + link states with a manager)
 * os/run/nic_router_flood.run          (client misbehaving on protocol level)

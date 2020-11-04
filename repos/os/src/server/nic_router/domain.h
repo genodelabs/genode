@@ -119,6 +119,7 @@ class Net::Domain : public Domain_base,
 		bool                            const _verbose_packets;
 		bool                            const _verbose_packet_drop;
 		bool                            const _icmp_echo_server;
+		bool                            const _use_arp;
 		Genode::Session_label           const _label;
 		Domain_link_stats                     _udp_stats            { };
 		Domain_link_stats                     _tcp_stats            { };
@@ -209,6 +210,7 @@ class Net::Domain : public Domain_base,
 		bool                         verbose_packets()     const { return _verbose_packets; }
 		bool                         verbose_packet_drop() const { return _verbose_packet_drop; }
 		bool                         icmp_echo_server()    const { return _icmp_echo_server; }
+		bool                         use_arp()             const { return _use_arp; }
 		Genode::Session_label const &label()               const { return _label; }
 		Ipv4_config           const &ip_config()           const { return *_ip_config; }
 		List<Domain>                &ip_config_dependents()      { return _ip_config_dependents; }

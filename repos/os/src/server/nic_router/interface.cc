@@ -282,6 +282,9 @@ void Interface::_pass_prot(Ethernet_frame       &eth,
                            size_t         const  prot_size)
 {
 	eth.src(_router_mac);
+	if (!_domain().use_arp()) {
+		eth.dst(_router_mac);
+	}
 	_update_checksum(prot, prot_base, prot_size, ip.src(), ip.dst(), ip.total_length());
 	_pass_ip(eth, size_guard, ip);
 }
@@ -535,17 +538,21 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
 	if (!remote_ip_cfg.valid) {
 		throw Drop_packet("target domain has yet no IP config");
 	}
-	Ipv4_address const &hop_ip = remote_domain.next_hop(dst_ip);
-	try { eth.dst(remote_domain.arp_cache().find_by_ip(hop_ip).mac()); }
-	catch (Arp_cache::No_match) {
-		remote_domain.interfaces().for_each([&] (Interface &interface) {
-			interface._broadcast_arp_request(remote_ip_cfg.interface.address,
-			                                 hop_ip);
-		});
-		try { new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt }; }
-		catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(); }
-		catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(); }
-		throw Packet_postponed();
+	if (remote_domain.use_arp()) {
+
+		Ipv4_address const &hop_ip = remote_domain.next_hop(dst_ip);
+		try { eth.dst(remote_domain.arp_cache().find_by_ip(hop_ip).mac()); }
+		catch (Arp_cache::No_match) {
+			remote_domain.interfaces().for_each([&] (Interface &interface) {
+				interface._broadcast_arp_request(remote_ip_cfg.interface.address,
+				                                 hop_ip);
+			});
+			try { new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt }; }
+			catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(); }
+			catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(); }
+			throw Packet_postponed();
+		}
+
 	}
 }
 
