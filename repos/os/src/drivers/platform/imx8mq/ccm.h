@@ -173,7 +173,6 @@ struct Driver::Ccm
 
 
 		Clock      & _parent;
-		Clock_tree & _tree;
 
 		public:
 
@@ -182,7 +181,7 @@ struct Driver::Ccm
 			                   Clock       & parent,
 			                   Clock_tree  & tree)
 			: Clock(name, tree), Mmio(base),
-			  _parent(parent), _tree(tree) {}
+			  _parent(parent) {}
 
 			void          set_rate(unsigned long) override;
 			unsigned long get_rate()        const override;
