@@ -51,12 +51,10 @@ void append_param_req_list(Dhcp_options &dhcp_opts)
  ** Dhcp_client **
  *****************/
 
-Dhcp_client::Dhcp_client(Genode::Allocator   &alloc,
-                         Timer::Connection   &timer,
+Dhcp_client::Dhcp_client(Timer::Connection   &timer,
                          Nic                 &nic,
                          Dhcp_client_handler &handler)
 :
-	_alloc   (alloc),
 	_timeout (timer, *this, &Dhcp_client::_handle_timeout),
 	_nic     (nic),
 	_handler (handler)

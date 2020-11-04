@@ -153,7 +153,7 @@ Main::Main(Env &env) : _env(env)
 
 	/* else, start the DHCP client for requesting an IP config */
 	else {
-		_dhcp_client.construct(_heap, _timer, _nic, *this); }
+		_dhcp_client.construct(_timer, _nic, *this); }
 }
 
 
