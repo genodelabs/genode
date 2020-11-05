@@ -49,6 +49,9 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 
 	private:
 
+		Constructible<Account<Cap_quota> > _cap_account { };
+		Constructible<Account<Ram_quota> > _ram_account { };
+
 		Rpc_entrypoint            &_ep;
 		Constrained_ram_allocator  _constrained_md_ram_alloc;
 		Constrained_core_ram       _constrained_core_ram_alloc;
@@ -60,9 +63,6 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		Native_pd_component        _native_pd;
 
 		Constructible<Platform_pd> _pd { };
-
-		Constructible<Account<Cap_quota> > _cap_account { };
-		Constructible<Account<Ram_quota> > _ram_account { };
 
 		Region_map_component _address_space;
 		Region_map_component _stack_area;
