@@ -51,8 +51,7 @@ struct Sculpt::Storage_devices
 	{
 		usb_storage_devices.update_from_xml(policy, node);
 
-		if (node.has_type("raw"))
-			_usb_active_config_valid = true;
+		_usb_active_config_valid = true;
 
 		usb_present = false;
 		usb_storage_devices.for_each([&] (Storage_device const &) {

@@ -231,8 +231,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="drivers" caps="3100" priority="-1" managing_system="yes">
-		<resource name="RAM" quantum="96M"/>
+	<start name="drivers" caps="3150" priority="-1" managing_system="yes">
+		<resource name="RAM" quantum="128M"/>
 		<binary name="init"/>
 		<route>
 			<service name="LOG"> <child name="log"/> </service>

@@ -36,10 +36,8 @@ void Sculpt::Storage::handle_storage_devices_update()
 		_usb_active_config_rom.update();
 		Usb_storage_device_update_policy policy(_env, _alloc, _storage_device_update_handler);
 		Xml_node const config = _usb_active_config_rom.xml();
-		Xml_node const raw = config.has_sub_node("raw")
-		                   ? config.sub_node("raw") : Xml_node("<raw/>");
 
-		_storage_devices.update_usb_storage_devices_from_xml(policy, raw);
+		_storage_devices.update_usb_storage_devices_from_xml(policy, config);
 
 		if (policy.device_added_or_vanished)
 			reconfigure_runtime = true;

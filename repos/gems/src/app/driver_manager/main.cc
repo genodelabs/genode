@@ -659,45 +659,49 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 		xml.attribute("xhci", true);
 		xml.attribute("capslock_led", "rom");
 		xml.attribute("numlock_led",  "rom");
-		xml.node("hid", [&] () { });
-		xml.node("raw", [&] () {
-			xml.node("report", [&] () { xml.attribute("devices", true); });
 
-			/* incorporate user-managed policy */
-			policy.with_raw_content([&] (char const *start, size_t length) {
-				xml.append(start, length); });
+		xml.node("report", [&] () { xml.attribute("devices", true); });
 
-			devices.for_each_sub_node("device", [&] (Xml_node device) {
+		/* incorporate user-managed policy */
+		policy.with_raw_content([&] (char const *start, size_t length) {
+			xml.append(start, length); });
 
-				typedef String<64> Label;
-				typedef String<32> Id;
+		/* usb hid drv gets all hid devices */
+		xml.node("policy", [&] () {
+			xml.attribute("label_prefix", "usb_hid_drv");
+			xml.attribute("class", "0x3");
+		});
 
-				Label const label      = device.attribute_value("label", Label());
-				Id    const vendor_id  = device.attribute_value("vendor_id",  Id());
-				Id    const product_id = device.attribute_value("product_id", Id());
+		devices.for_each_sub_node("device", [&] (Xml_node device) {
 
-				/*
-				 * Limit USB sessions to storage and vendor specific in order to avoid
-				 * conflicts with the USB driver's built-in HID drivers.
-				 */
-				unsigned long const class_code = device.attribute_value("class", 0UL);
+			typedef String<64> Label;
+			typedef String<32> Id;
 
-				enum { USB_CLASS_MASS_STORAGE = 8, USB_CLASS_VENDOR_SPECIFIC = 0xff };
+			Label const label      = device.attribute_value("label", Label());
+			Id    const vendor_id  = device.attribute_value("vendor_id",  Id());
+			Id    const product_id = device.attribute_value("product_id", Id());
 
-				bool const expose_as_usb_raw = (class_code == USB_CLASS_MASS_STORAGE) ||
-				                               (class_code == USB_CLASS_VENDOR_SPECIFIC);
-				if (!expose_as_usb_raw)
-					return;
+			/*
+			 * Limit USB sessions to storage and vendor specific in order to avoid
+			 * conflicts with the USB driver's built-in HID drivers.
+			 */
+			unsigned long const class_code = device.attribute_value("class", 0UL);
 
-				xml.node("policy", [&] () {
-					xml.attribute("label_suffix", label);
-					xml.attribute("vendor_id",  vendor_id);
-					xml.attribute("product_id", product_id);
+			enum { USB_CLASS_MASS_STORAGE = 8, USB_CLASS_VENDOR_SPECIFIC = 0xff };
 
-					/* annotate policy to make storage devices easy to spot */
-					if (class_code == USB_CLASS_MASS_STORAGE)
-						xml.attribute("class", "storage");
-				});
+			bool const expose_as_usb_raw = (class_code == USB_CLASS_MASS_STORAGE) ||
+			                               (class_code == USB_CLASS_VENDOR_SPECIFIC);
+			if (!expose_as_usb_raw)
+				return;
+
+			xml.node("policy", [&] () {
+				xml.attribute("label_suffix", label);
+				xml.attribute("vendor_id",  vendor_id);
+				xml.attribute("product_id", product_id);
+
+				/* annotate policy to make storage devices easy to spot */
+				if (class_code == USB_CLASS_MASS_STORAGE)
+					xml.attribute("class", "storage");
 			});
 		});
 	});
