@@ -1047,10 +1047,12 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 
 			for (Vfs::File * &file : _files) file = nullptr;
 
+			_files[ACCEPT_NODE]  = &_accept_file;
 			_files[BIND_NODE]    = &_bind_file;
 			_files[CONNECT_NODE] = &_connect_file;
 			_files[DATA_NODE]    = &_data_file;
 			_files[PEEK_NODE]    = &_peek_file;
+			_files[LISTEN_NODE]  = &_listen_file;
 			_files[LOCAL_NODE]   = &_local_file;
 			_files[REMOTE_NODE]  = &_remote_file;
 		}
@@ -1110,23 +1112,16 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 			return Vfs::Directory_service::OPEN_ERR_UNACCESSIBLE;
 		}
 
-		void bind(bool v) override
-		{
-			_files[LISTEN_NODE] = v ? &_listen_file : nullptr;
-		}
+		void bind(bool v) override { }
 
 		long bind() override { return _bind_file.port(); }
 
 		bool lookup_port(long port) override { return _parent.lookup_port(port); }
 
-		void connect(bool v) override
-		{
-			_files[REMOTE_NODE] = v ? &_remote_file : nullptr;
-		}
+		void connect(bool v) override { }
 
 		void listen(bool v) override
 		{
-			_files[ACCEPT_NODE] = v ? &_accept_file : nullptr;
 			_files[ACCEPT_SOCKET_NODE] = v ? &_accept_socket_file : nullptr;
 		}
 
