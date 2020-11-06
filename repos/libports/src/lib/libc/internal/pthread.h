@@ -37,6 +37,7 @@ namespace Libc {
 	struct Pthread_registry;
 	struct Pthread_blockade;
 	struct Pthread_job;
+	struct Pthread_mutex;
 }
 
 
@@ -370,6 +371,38 @@ struct Libc::Pthread_job : Monitor::Job
 			Job(fn, _blockade),
 			_blockade(timer_accessor, timeout_ms)
 		{ }
+};
+
+
+struct Libc::Pthread_mutex
+{
+	public:
+
+		class Guard
+		{
+			private:
+
+				Pthread_mutex &_mutex;
+
+			public:
+
+				explicit Guard(Pthread_mutex &mutex) : _mutex(mutex) { _mutex.lock(); }
+
+				~Guard() { _mutex.unlock(); }
+		};
+
+	private:
+
+		pthread_mutex_t _mutex;
+
+	public:
+
+		Pthread_mutex() { pthread_mutex_init(&_mutex, nullptr); }
+
+		~Pthread_mutex() { pthread_mutex_destroy(&_mutex); }
+
+		void lock()   { pthread_mutex_lock(&_mutex); }
+		void unlock() { pthread_mutex_unlock(&_mutex); }
 };
 
 

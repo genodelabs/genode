@@ -41,6 +41,7 @@
 #include <internal/errno.h>
 #include <internal/init.h>
 #include <internal/suspend.h>
+#include <internal/pthread.h>
 #include <internal/unconfirmed.h>
 
 
@@ -248,7 +249,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 			ssize_t connect_status_len;
 
 			connect_status_len = read(connect_fd(), connect_status,
-									  sizeof(connect_status));
+			                          sizeof(connect_status));
 
 			if (connect_status_len <= 0) {
 				error("socket_fs: reading from the connect file failed");
@@ -1070,10 +1071,9 @@ static int read_ifaddr_file(sockaddr_in &sockaddr, Socket_fs::Absolute_path cons
 
 extern "C" int getifaddrs(struct ifaddrs **ifap)
 {
-	/* FIXME this should be a pthread_mutex because function uses blocking operations */
-	static Mutex mutex;
+	static Pthread_mutex mutex;
 
-	Mutex::Guard guard(mutex);
+	Pthread_mutex::Guard guard(mutex);
 
 	static sockaddr_in address;
 	static sockaddr_in netmask   { 0 };
@@ -1170,14 +1170,12 @@ bool Socket_fs::Plugin::poll(File_descriptor &fdo, struct pollfd &pfd)
 
 	bool res { false };
 
-	if ((pfd.events & POLLIN_MASK) && context->read_ready())
-	{
+	if ((pfd.events & POLLIN_MASK) && context->read_ready()) {
 		pfd.revents |= pfd.events & POLLIN_MASK;
 		res = true;
 	}
 
-	if ((pfd.events & POLLOUT_MASK) && context->write_ready())
-	{
+	if ((pfd.events & POLLOUT_MASK) && context->write_ready()) {
 		pfd.revents |= pfd.events & POLLOUT_MASK;
 		res = true;
 	}
