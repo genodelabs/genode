@@ -142,7 +142,14 @@ Driver::Device::Device(Driver & driver, Label label)
 Driver::Device::~Device()
 {
 	driver.devices.remove(&le);
+}
+
+
+bool Driver::Device::deinit()
+{
 	if (udev) unregister_device();
+
+	return !udev && !state_task.handling_signal && !urb_task.handling_signal;
 }
 
 
@@ -228,7 +235,9 @@ void Driver::scan_report()
 	};
 
 	devices.for_each([&] (Device & d) {
-		if (!d.updated) destroy(heap, &d); });
+		if (!d.updated && d.deinit())
+			destroy(heap, &d);
+	});
 }
 
 

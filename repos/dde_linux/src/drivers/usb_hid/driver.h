@@ -33,11 +33,14 @@ struct Driver
 	{
 		Lx::Task                     task;
 		Genode::Signal_handler<Task> handler;
+		bool                         handling_signal { false };
 	
 		void handle_signal()
 		{
 			task.unblock();
+			handling_signal = true;
 			Lx::scheduler().schedule();
+			handling_signal = false;
 		}
 	
 		template <typename... ARGS>
@@ -56,6 +59,7 @@ struct Driver
 		Genode::Allocator_avl         &alloc;
 		Task                           state_task;
 		Task                           urb_task;
+
 		Usb::Connection                usb { env, &alloc, label.string(),
 		                                     512 * 1024, state_task.handler };
 		usb_device                   * udev = nullptr;
@@ -70,6 +74,7 @@ struct Driver
 		void unregister_device();
 		void probe_interface(usb_interface *, usb_device_id *);
 		void remove_interface(usb_interface *);
+		bool deinit();
 	};
 
 	struct Devices : Genode::List<Device::Le>
