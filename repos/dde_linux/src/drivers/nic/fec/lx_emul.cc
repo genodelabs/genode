@@ -15,12 +15,14 @@
  * Unconditionally include common Genode headers _before_ lx_emul.h to
  * prevent shenanigans with macro definitions.
  */
-#include <base/attached_io_mem_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/env.h>
 #include <base/snprintf.h>
 #include <gpio_session/connection.h>
-#include <irq_session/connection.h>
+#include <irq_session/client.h>
+#include <platform_session/connection.h>
+#include <platform_device/client.h>
 
 #include <component.h>
 #include <lx_emul.h>
@@ -225,79 +227,116 @@ struct Gpio_irq : public Genode::List<Gpio_irq>::Element
 };
 
 
-struct Fec
+static unsigned irq_counter = 32;
+
+struct Fec : public Genode::List<Fec>::Element
 {
 	using String = Genode::String<128>;
 
 	struct Mdio
 	{
-		struct Phy
+		struct Phy : public Genode::List<Phy>::Element
 		{
 			String              name;
-			String              phy_driver;
-			const unsigned      phy_reg;
-			const unsigned      gpio_irq;
+			String              phy_driver { };
+			String              mdio_bus { };
+			unsigned            phy_reg { 0 };
+			unsigned            gpio_irq { 0 };
 			struct phy_device * phy_dev { nullptr };
 
-			Phy(String name, String driver, const unsigned reg, const unsigned irq)
-			: name(name), phy_driver(driver), phy_reg(reg), gpio_irq(irq) {}
+			Phy(String name, Genode::Xml_node xml, Platform::Device_capability)
+			: name(name)
+			{
+				using namespace Genode;
+
+				xml.for_each_sub_node("property", [&] (Xml_node node) {
+					if (String("compatible") == node.attribute_value("name", String())) {
+						phy_driver = node.attribute_value("value", String()); }
+					if (String("mdio_bus") == node.attribute_value("name", String())) {
+						mdio_bus = node.attribute_value("value", String()); }
+					if (String("mdio_reg") == node.attribute_value("name", String())) {
+						phy_reg = node.attribute_value("value", 0U); }
+					if (String("gpio_irq") == node.attribute_value("name", String())) {
+						gpio_irq = node.attribute_value("value", 0U); }
+				});
+			}
 		};
 
-		enum { MAX = 10 };
-		Genode::Constructible<Phy> phys[MAX];
+		Genode::List<Phy> phys;
 
 		template <typename FUNC>
-		void for_each(FUNC && f)
-		{
-			for (unsigned i = 0; i < MAX; i++)
-				if (phys[i].constructed()) f(*phys[i]);
-		}
+		void for_each(FUNC && f) {
+			for (Phy * p = phys.first(); p; p = p->next()) { f(*p); } }
 	};
 
 	String                            name;
-	String                            device;
-	const unsigned                    irq;
-	const size_t                      mmio;
-	String                            phy_mode;
-	const bool                        magic_packet;
-	const int                         tx_queues;
-	const int                         rx_queues;
+	String                            type;
+	Platform::Device_client           device;
+	const unsigned                    irq { irq_counter };
+	String                            phy_mode {};
+	String                            phy_name {};
+	bool                              magic_packet { true };
+	int                               tx_queues { 1 };
+	int                               rx_queues { 1 };
 	struct net_device *               net_dev { nullptr };
 	Session_component *               session { nullptr };
-	Genode::Attached_io_mem_dataspace io_ds   { Lx_kit::env().env(), mmio, 0x4000 };
+	Genode::Attached_dataspace        io_ds   { Lx_kit::env().env().rm(),
+	                                            device.io_mem_dataspace() };
 	Genode::Constructible<Mdio>       mdio;
 	Mdio::Phy *                       phy { nullptr };
 
-	Fec(String name, String device, const unsigned irq,
-	    const size_t mmio, String mode, const bool magic = true,
-		const int tx_queues = 1, const int rx_queues = 1)
-	: name(name), device(device), irq(irq), mmio(mmio), phy_mode(mode), magic_packet(magic),
-	  tx_queues(tx_queues), rx_queues(rx_queues) {};
+	Fec(String name,
+	    Genode::Xml_node xml,
+	    Platform::Device_capability cap)
+	: name(name), device(cap)
+	{
+		using namespace Genode;
+
+		xml.for_each_sub_node("property", [&] (Xml_node node) {
+			if (String("compatible") == node.attribute_value("name", String())) {
+				type = node.attribute_value("value", String()); }
+			if (String("mii") == node.attribute_value("name", String())) {
+				phy_mode = node.attribute_value("value", String()); }
+			if (String("phy") == node.attribute_value("name", String())) {
+				phy_name = node.attribute_value("value", String()); }
+			if (String("magic_packet") == node.attribute_value("name", String())) {
+				magic_packet = node.attribute_value("value", true); }
+			if (String("tx-queues") == node.attribute_value("name", String())) {
+				tx_queues = node.attribute_value("value", 1UL); }
+			if (String("rx-queues") == node.attribute_value("name", String())) {
+				rx_queues = node.attribute_value("value", 1UL); }
+		});
+
+		irq_counter += 10;
+	}
 };
 
 
-static const unsigned FEC_MAX = 2;
-static Genode::Constructible<Fec> fec_devices[FEC_MAX];
+static Genode::List<Fec> & fec_devices()
+{
+	static Genode::List<Fec> list;
+	return list;
+}
+
 
 net_device * Session_component::_register_session_component(Session_component & s,
                                                             Genode::Session_label policy)
 {
-	Genode::Session_label name = policy.last_element();
+	unsigned number = 0;
+	for (Fec * f = fec_devices().first(); f; f = f->next()) { number++; }
 
-	for (unsigned i = 0; i < FEC_MAX; i++) {
+	for (Fec * f = fec_devices().first(); f; f = f->next()) {
+		/* If there is more than one device, check session label against card name */
+		if (number > 1) {
+			Genode::Session_label name = policy.last_element();
+			if (f->name != name) continue;
+		}
 
-		/* No more cards available */
-		if (!fec_devices[i].constructed()) return nullptr;
+		/* Session already in use? */
+		if (f->session) continue;
 
-		/* Session does not match cards policy */
-		if (fec_devices[i]->name.length() > 1 &&
-		    fec_devices[i]->name != name) continue;
-
-		/* Session already in use */
-		if (fec_devices[i]->session) return nullptr;
-
-		fec_devices[i]->session = &s;
-		return fec_devices[i]->net_dev;
+		f->session = &s;
+		return f->net_dev;
 	}
 	return nullptr;
 }
@@ -317,68 +356,66 @@ void lx_backtrace()
 #endif
 }
 
+
+static Platform::Connection & platform_connection()
+{
+	static Genode::Constructible<Platform::Connection> plat;
+	if (!plat.constructed()) plat.construct(Lx_kit::env().env());
+	return *plat;
+}
+
+
 int platform_driver_register(struct platform_driver * drv)
 {
+	using namespace Genode;
 	using String = Fec::String;
 
-	try {
-		unsigned i = 0;
-		Genode::Attached_rom_dataspace config { Lx_kit::env().env(), "config" };
-		config.xml().for_each_sub_node("card", [&] (Genode::Xml_node const node) {
-			if (i == FEC_MAX) {
-				Genode::error("More cards defined than available!");
+	platform_connection().with_xml([&] (Xml_node & xml) {
+		xml.for_each_sub_node("device", [&] (Xml_node node) {
+
+			String name = node.attribute_value("name", String());
+			String compatible;
+			node.for_each_sub_node("property", [&] (Xml_node node) {
+				if (String("compatible") == node.attribute_value("name", String())) {
+					compatible = node.attribute_value("value", String()); }});
+
+			if (compatible == "fsl,imx6q-fec"  ||
+			    compatible == "fsl,imx6sx-fec" ||
+			    compatible == "fsl,imx25-fec") {
+				Fec * f = new (Lx_kit::env().heap())
+					Fec(name, node, platform_connection().acquire_device(name.string()));
+
+				/* order of devices is important, therefore insert it at the end */
+				Fec * last = fec_devices().first();
+				for (; last; last = last->next()) {
+					if (!last->next()) { break; }
+				}
+				fec_devices().insert(f, last);
 				return;
 			}
 
-			String name         = node.attribute_value("name", String());
-			String type         = node.attribute_value("type", String());
-			String mdio         = node.attribute_value("mii",  String());
-			String phy          = node.attribute_value("phy",  String());
-			unsigned irq        = node.attribute_value("irq",  0UL);
-			Genode::addr_t mmio = node.attribute_value("mmio", 0UL);
-			bool   magic        = node.attribute_value("magic_packet", true);
-			unsigned txq        = node.attribute_value("tx-queues", 1UL);
-			unsigned rxq        = node.attribute_value("rx-queues", 1UL);
-			fec_devices[i].construct(name, type, irq, mmio, mdio, magic, txq, rxq);
-
-			node.for_each_sub_node("mdio", [&] (Genode::Xml_node const node) {
-				fec_devices[i]->mdio.construct();
-				unsigned j = 0;
-				node.for_each_sub_node("phy", [&] (Genode::Xml_node const node) {
-					String name  = node.attribute_value("name", String());
-					String type  = node.attribute_value("type", String());
-					unsigned irq = node.attribute_value("gpio_irq", 0UL);
-					unsigned reg = node.attribute_value("reg_num",  0UL);
-					fec_devices[i]->mdio->phys[j].construct(name, type, reg, irq);
-					j++;
-				});
-			});
-
-			for (unsigned k = 0; k <= i; k++)
-				if (fec_devices[k]->mdio.constructed()) {
-					fec_devices[k]->mdio->for_each([&] (Fec::Mdio::Phy & p) {
-						if (p.name == phy) fec_devices[i]->phy = &p; });
+			if (compatible == "ethernet-phy-ieee802.3-c22") {
+				Fec::Mdio::Phy * p = new (Lx_kit::env().heap())
+					Fec::Mdio::Phy(name, node, platform_connection().acquire_device(name.string()));
+				for (Fec * f = fec_devices().first(); f; f = f->next()) {
+					if (f->phy_name == name) { f->phy = p; }
+					if (f->name == p->mdio_bus) {
+						if (!f->mdio.constructed()) { f->mdio.construct(); }
+						f->mdio->phys.insert(p);
+					}
 				}
-
-			i++;
+			}
 		});
-	} catch(...) { }
+	});
 
-	if (!fec_devices[0].constructed()) {
-		Genode::warning("No valid configuration provided, use default values");
-		fec_devices[0].construct(String(), "fsl,imx6q-fec", 150, 0x2188000, "rgmii");
-	}
-
-	for (unsigned i = 0; i < FEC_MAX; i++) {
-		if (!fec_devices[i].constructed()) break;
-
+	for (Fec * f = fec_devices().first(); f; f = f->next()) {
 		platform_device * pd = new (Lx::Malloc::dma()) platform_device();
-		pd->name         = fec_devices[i]->name.string();
-		pd->dev.of_node  = (device_node*) &fec_devices[i];
+		pd->name         = f->name.string();
+		pd->dev.of_node  = (device_node*) f;
 		pd->dev.plat_dev = pd;
 		drv->probe(pd);
 		{
-			net_device * dev = fec_devices[i]->net_dev;
+			net_device * dev = f->net_dev;
 			int err = dev ? dev->netdev_ops->ndo_open(dev) : -1;
 			if (err) {
 				Genode::error("ndo_open()  failed: ", err);
@@ -430,7 +467,7 @@ const struct of_device_id *of_match_device(const struct of_device_id *matches,
 {
 	Fec * fec = (Fec*) dev->plat_dev->dev.of_node;
 	for (; matches && matches->compatible[0]; matches++)
-		if (Genode::strcmp(matches->compatible, fec->device.string()) == 0)
+		if (Genode::strcmp(matches->compatible, fec->type.string()) == 0)
 			return matches;
 
 	return nullptr;
@@ -586,9 +623,8 @@ int platform_get_irq(struct platform_device * d, unsigned int i)
 
 int devm_request_irq(struct device *dev, unsigned int irq, irq_handler_t handler, unsigned long irqflags, const char *devname, void *dev_id)
 {
-	Genode::Irq_connection * irq_con = new (Lx_kit::env().heap())
-		Genode::Irq_connection(Lx_kit::env().env(), irq);
-	Lx::Irq::irq().request_irq(irq_con->cap(), irq, handler, dev_id);
+	Fec * fec = (Fec*) dev->plat_dev->dev.of_node;
+	Lx::Irq::irq().request_irq(fec->device.irq(irq - fec->irq), irq, handler, dev_id);
 	return 0;
 }
 
@@ -984,9 +1020,9 @@ static int of_mdiobus_register_phy(Fec::Mdio::Phy & ph, struct mii_bus *mdio)
 {
 	struct phy_device * phy = get_phy_device(mdio, ph.phy_reg, false);
 
-	if (!phy || IS_ERR(phy)) return 1;
+	if (!phy) return 1;
 
-	phy->irq         = ph.gpio_irq;
+	phy->irq              = ph.gpio_irq;
 	phy->mdio.dev.of_node = (device_node*) &ph;
 
 	/* All data is now stored in the phy struct;
@@ -1031,8 +1067,9 @@ int of_driver_match_device(struct device *dev, const struct device_driver *drv)
 {
 	Fec::Mdio::Phy * phy = (Fec::Mdio::Phy*) dev->of_node;
 
-	return phy ? (Genode::strcmp(drv->name,
-	                             phy->phy_driver.string()) == 0) : 0;
+	if (!phy) return 0;
+
+	return (Genode::strcmp(drv->name, "Atheros 8035 ethernet") == 0) ? 1 : 0;
 }
 
 
@@ -1074,6 +1111,14 @@ int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags, co
 {
 	new (Lx::Malloc::mem()) Gpio_irq(Lx_kit::env().env(), irq, handler, dev);
 	return 0;
+}
+
+
+int request_threaded_irq(unsigned int irq, irq_handler_t handler,
+                         irq_handler_t thread_fn,
+                         unsigned long flags, const char *name, void *dev)
+{
+	return request_irq(irq, thread_fn, flags, name, dev);
 }
 
 
@@ -1263,6 +1308,12 @@ bool of_phy_is_fixed_link(struct device_node *np)
 {
 	TRACE;
 	return 0;
+}
+
+bool of_property_read_bool(const struct device_node *np, const char *propname)
+{
+	TRACE;
+	return false;
 }
 
 void phy_led_trigger_change_speed(struct phy_device *phy)

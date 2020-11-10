@@ -241,11 +241,6 @@ int of_phy_register_fixed_link(struct device_node *np)
 	return -1;
 }
 
-bool of_property_read_bool(const struct device_node *np, const char *propname)
-{
-	TRACE_AND_STOP;
-}
-
 void phy_led_triggers_unregister(struct phy_device *phy)
 {
 	TRACE_AND_STOP;
@@ -303,13 +298,6 @@ int regulator_disable(struct regulator *r)
 {
 	TRACE_AND_STOP;
 	return -1;
-}
-
-int request_threaded_irq(unsigned int irq, irq_handler_t handler,
-                         irq_handler_t thread_fn,
-                         unsigned long flags, const char *name, void *dev)
-{
-	TRACE_AND_STOP;
 }
 
 void sk_free(struct sock *sk)
