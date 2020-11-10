@@ -1,0 +1,176 @@
+assert_spec linux
+
+if {[expr ![info exists ::env(CBE_KEEP)]]} {
+exec rm -rf var/libcache/cbe
+exec rm -rf var/libcache/cbe_cxx
+exec rm -rf var/libcache/cbe_common
+exec rm -rf var/libcache/cbe_common_cxx
+exec rm -rf var/libcache/cbe_init
+exec rm -rf var/libcache/cbe_init_cxx
+exec rm -rf var/libcache/cbe_check
+exec rm -rf var/libcache/cbe_check_cxx
+exec rm -rf var/libcache/cbe_dump
+exec rm -rf var/libcache/cbe_dump_cxx
+}
+
+proc cbe_image_file { } {
+	return "vfs_cbe_block.img"
+}
+
+set image_size 32
+
+proc cbe_image_size_mb { } {
+	global image_size
+	return $image_size
+}
+
+append build_components {
+	core init timer
+	server/lx_block
+	server/lx_fs
+	server/vfs
+	app/sequence
+
+	app/cbe_init_trust_anchor
+	app/cbe_init
+	lib/vfs/cbe_trust_anchor
+}
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="lx_block" ld="no">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Block"/> </provides>
+		<config file="} [cbe_image_file] {" block_size="4K" writeable="yes"/>
+	</start>
+
+	<start name="lx_fs" ld="no">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="vfs_trust_anchor" caps="120">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="16M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<vfs>
+				<dir name="ta_storage">
+					<fs/>
+				</dir>
+
+				<dir name="dev">
+					<cbe_trust_anchor name="cbe_trust_anchor"
+					                  storage_dir="/ta_storage"/>
+				</dir>
+			</vfs>
+
+			<default-policy root="/dev/cbe_trust_anchor" writeable="yes"/>
+		</config>
+		<route>
+			<service name="File_system"> <child name="lx_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="initialize_cbe" caps="200">
+		<binary name="sequence"/>
+		<resource name="RAM" quantum="128M"/>
+		<config>
+
+			<start name="cbe_init_trust_anchor">
+				<resource name="RAM" quantum="4M"/>
+				<config passphrase="foobar" trust_anchor_dir="/trust_anchor">
+					<vfs>
+						<dir name="trust_anchor">
+							<fs label="ta"/>
+						</dir>
+					</vfs>
+				</config>
+			</start>
+
+			<start name="cbe_init">
+				<resource name="RAM" quantum="4M"/>
+				<config trust_anchor_dir="/trust_anchor">
+					<vfs>
+						<dir name="trust_anchor">
+							<fs label="ta"/>
+						</dir>
+					</vfs>
+
+					<key id="12"/>
+					<virtual-block-device
+						nr_of_levels="3"
+						nr_of_children="64"
+						nr_of_leafs="512" />
+
+					<free-tree
+						nr_of_levels="3"
+						nr_of_children="64"
+						nr_of_leafs="2048" />
+				</config>
+			</start>
+
+		</config>
+		<route>
+			<service name="File_system" label_last="ta">
+				<child name="vfs_trust_anchor"/>
+			</service>
+			<service name="Block"> <child name="lx_block"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+exec rm -rf bin/[cbe_image_file]
+exec truncate -s [cbe_image_size_mb]M bin/[cbe_image_file]
+
+append boot_modules {
+	core init timer lx_block lx_fs sequence
+	vfs vfs.lib.so
+	ld.lib.so spark.lib.so libsparkcrypto.lib.so
+
+	cbe_init_trust_anchor
+	cbe_init cbe_init_cxx.lib.so
+	vfs_cbe_trust_anchor.lib.so
+}
+
+append boot_modules [cbe_image_file]
+
+build_boot_image $boot_modules
+
+run_genode_until {.*child "initialize_cbe" exited with exit value 0.*\n} 240
+
+exec cp [run_dir]/genode/keyfile bin
+exec cp [run_dir]/genode/secured_superblock bin

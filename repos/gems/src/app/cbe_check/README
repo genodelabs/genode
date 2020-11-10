@@ -1,0 +1,19 @@
+The cbe_check component check the meta data of a CBE device. This includes
+the tree for the virtual block device, free tree and meta tree. On success,
+the component exits with exit value 0, otherwise with exit value -1.
+
+
+Sessions
+~~~~~~~~
+
+This is an overview of the sessions required and provided by the
+component apart from the environment sessions:
+
+* Requires one Block session.
+
+
+Examples
+~~~~~~~~
+
+An example of how to use the cbe_init component can be found in the test script
+'cbe/run/cbe_check.run'.

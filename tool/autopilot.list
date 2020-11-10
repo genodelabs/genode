@@ -1,5 +1,6 @@
 aes_cbc_4k
 bomb
+cbe_tester
 cpu_bench
 cpu_quota
 cpu_sampler

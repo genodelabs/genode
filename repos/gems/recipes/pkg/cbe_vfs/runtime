@@ -1,0 +1,30 @@
+<runtime ram="64M" caps="200" binary="vfs">
+
+	<requires> <log/> <file_system label="cbe_fs"/> </requires>
+
+	<provides> <file_system/> </provides>
+
+	<config>
+		<vfs>
+			<fs buffer_size="1M" label="cbe_fs"/>
+			<cbe_crypto_aes_cbc name="cbe_crypto"/>
+			<dir name="ta"> <fs buffer_size="1M" label="ta"/> </dir>
+			<dir name="dev">
+				<cbe name="cbe" verbose="no" debug="no" block="/cbe.img"
+				     crypto="/cbe_crypto" trust_anchor="/ta"/>
+			</dir>
+		</vfs>
+		<policy label_prefix="cbe_vbox5-nova" root="/dev/cbe/current" writeable="yes"/>
+		<policy label_prefix="cbe_shell"      root="/dev"             writeable="yes"/>
+	</config>
+
+	<content>
+		<rom label="cbe_cxx.lib.so"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libcrypto.lib.so"/>
+		<rom label="spark.lib.so"/>
+		<rom label="vfs"/>
+		<rom label="vfs_cbe.lib.so"/>
+		<rom label="vfs_cbe_crypto_aes_cbc.lib.so"/>
+	</content>
+</runtime>

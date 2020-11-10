@@ -1,0 +1,71 @@
+<runtime ram="10M" caps="300" binary="init" config="init.config">
+
+	<requires>
+		<file_system label="cbe_fs"/>
+	</requires>
+
+	<content>
+		<rom label="cbe_init"/>
+		<rom label="init"/>
+		<rom label="init.config"/>
+		<rom label="ld.lib.so"/>
+		<rom label="cbe_init_cxx.lib.so"/>
+		<rom label="libsparkcrypto.lib.so"/>
+		<rom label="spark.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_block"/>
+	</content>
+
+	<config verbose="yes">
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+			<service name="File_system"/>
+		</parent-provides>
+
+		<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
+
+		<default caps="100"/>
+
+		<start name="cbe_init">
+			<resource name="RAM" quantum="4M"/>
+			<exit propagate="yes"/>
+			<config>
+				<key id="23"/>
+				<!-- VBD is 1GiB (~16MiB MD) -->
+				<virtual-block-device nr_of_levels="5" nr_of_children="64"
+									  nr_of_leafs="262144"/>
+				<!-- FT is 128MiB (~2MiB MD) -->
+				<free-tree nr_of_levels="4" nr_of_children="64"
+						   nr_of_leafs="32768"/>
+			</config>
+			<route>
+				<service name="Block"> <child name="vfs_block"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="vfs_block">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="Block"/> </provides>
+			<config>
+				<vfs>
+					<fs buffer_size="1M"/>
+				</vfs>
+				<policy label_prefix="cbe_init" block_size="512"
+						file="/cbe.img" writeable="yes"/>
+			</config>
+			<route>
+				<service name="File_system"> <parent label="cbe_fs"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+	</config>
+
+</runtime>

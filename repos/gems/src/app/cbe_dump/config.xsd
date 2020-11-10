@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<xs:include schemaLocation="base_types.xsd"/>
+
+	<xs:simpleType name="Max_superblocks">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="8"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Max_superblocks -->
+
+	<xs:simpleType name="Max_snapshots">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="48"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Max_snapshots -->
+
+	<xs:element name="config">
+		<xs:complexType>
+			<xs:choice minOccurs="1" maxOccurs="1">
+
+				<xs:element name="dump">
+					<xs:complexType>
+						<xs:attribute name="free_tree"              type="Boolean"/>
+						<xs:attribute name="hashes"                 type="Boolean"/>
+						<xs:attribute name="max_snapshots"          type="Max_snapshots"/>
+						<xs:attribute name="max_superblocks"        type="Max_superblocks"/>
+						<xs:attribute name="meta_tree"              type="Boolean"/>
+						<xs:attribute name="unused_nodes"           type="Boolean"/>
+						<xs:attribute name="vbd"                    type="Boolean"/>
+						<xs:attribute name="vbd_pba_filter"         type="xs:positiveInteger" />
+						<xs:attribute name="vbd_pba_filter_enabled" type="Boolean"/>
+						<xs:attribute name="vbd_vba_filter"         type="xs:positiveInteger" />
+						<xs:attribute name="vbd_vba_filter_enabled" type="Boolean"/>
+					</xs:complexType>
+				</xs:element><!-- dump -->
+
+			</xs:choice>
+		</xs:complexType>
+	</xs:element><!-- config -->
+
+</xs:schema>
