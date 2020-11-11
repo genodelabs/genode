@@ -107,6 +107,13 @@ struct Device : List<Device>::Element
 	{
 		return &iface->altsetting[alt_setting].endpoint[endpoint_num];
 	}
+
+	Session_label label()
+	{
+		if (!udev || !udev->bus)
+			return Session_label("usb-unknown");
+		return Session_label("usb-", udev->bus->busnum, "-", udev->devnum);
+	}
 };
 
 
@@ -1030,6 +1037,13 @@ void Device::report_device_list()
 	{
 
 		for (Device *d = list()->first(); d; d = d->next()) {
+			usb_interface *iface = d->interface(0);
+
+			if (!iface || !iface->cur_altsetting || !d->udev || !d->udev->bus) {
+				Genode::warning("device ", d->label().string(), " state incomplete");
+				continue;
+			}
+
 			xml.node("device", [&] ()
 			{
 				char buf[16];
@@ -1037,8 +1051,7 @@ void Device::report_device_list()
 				unsigned const bus = d->udev->bus->busnum;
 				unsigned const dev = d->udev->devnum;
 
-				Genode::snprintf(buf, sizeof(buf), "usb-%d-%d", bus, dev);
-				xml.attribute("label", buf);
+				xml.attribute("label", d->label().string());
 
 				Genode::snprintf(buf, sizeof(buf), "0x%4x",
 				                 d->udev->descriptor.idVendor);
@@ -1054,7 +1067,6 @@ void Device::report_device_list()
 				Genode::snprintf(buf, sizeof(buf), "0x%4x", dev);
 				xml.attribute("dev", buf);
 
-				usb_interface *iface = d->interface(0);
 				Genode::snprintf(buf, sizeof(buf), "0x%02x",
 				                 iface->cur_altsetting->desc.bInterfaceClass);
 				xml.attribute("class", buf);
