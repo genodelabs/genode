@@ -253,7 +253,7 @@ void Pointer::Main::_update_pointer()
 			_rom_registry.lookup(*this, _hovered_label);
 
 		try {
-			Shape_report shape_report { 0, 0, 0, 0, 0, 0 };
+			Shape_report shape_report { 0, 0, 0, 0, 0, {0} };
 
 			shape_module.read_content(*this, (char*)&shape_report, sizeof(shape_report));
 

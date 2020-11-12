@@ -379,8 +379,8 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 
 				struct Sequence
 				{
-					Codepoint seq[4] { Codepoint::INVALID, Codepoint::INVALID,
-					                   Codepoint::INVALID, Codepoint::INVALID };
+					Codepoint seq[4] { {Codepoint::INVALID}, {Codepoint::INVALID},
+						           {Codepoint::INVALID}, {Codepoint::INVALID} };
 
 					unsigned len { 0 };
 
