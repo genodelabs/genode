@@ -34,23 +34,23 @@ class Net::Configuration
 		using Mac_string = Genode::String<17>;
 
 		Genode::Allocator          &_alloc;
-		unsigned long        const  _max_packets_per_signal  { 0 };
-		bool                 const  _verbose                 { false };
-		bool                 const  _verbose_packets         { false };
-		bool                 const  _verbose_packet_drop     { false };
-		bool                 const  _verbose_domain_state    { false };
-		bool                 const  _icmp_echo_server        { true };
-		Genode::Microseconds const  _dhcp_discover_timeout   { DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC };
-		Genode::Microseconds const  _dhcp_request_timeout    { DEFAULT_DHCP_REQUEST_TIMEOUT_SEC  };
-		Genode::Microseconds const  _dhcp_offer_timeout      { DEFAULT_DHCP_OFFER_TIMEOUT_SEC    };
-		Genode::Microseconds const  _icmp_idle_timeout       { DEFAULT_ICMP_IDLE_TIMEOUT_SEC     };
-		Genode::Microseconds const  _udp_idle_timeout        { DEFAULT_UDP_IDLE_TIMEOUT_SEC      };
-		Genode::Microseconds const  _tcp_idle_timeout        { DEFAULT_TCP_IDLE_TIMEOUT_SEC      };
-		Genode::Microseconds const  _tcp_max_segm_lifetime   { DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC };
-		Pointer<Report>             _report                  { };
-		Pointer<Genode::Reporter>   _reporter                { };
-		Domain_tree                 _domains                 { };
-		Uplink_tree                 _uplinks                 { };
+		unsigned long        const  _max_packets_per_signal;
+		bool                 const  _verbose;
+		bool                 const  _verbose_packets;
+		bool                 const  _verbose_packet_drop;
+		bool                 const  _verbose_domain_state;
+		bool                 const  _icmp_echo_server;
+		Genode::Microseconds const  _dhcp_discover_timeout;
+		Genode::Microseconds const  _dhcp_request_timeout;
+		Genode::Microseconds const  _dhcp_offer_timeout;
+		Genode::Microseconds const  _icmp_idle_timeout;
+		Genode::Microseconds const  _udp_idle_timeout;
+		Genode::Microseconds const  _tcp_idle_timeout;
+		Genode::Microseconds const  _tcp_max_segm_lifetime;
+		Pointer<Report>             _report   { };
+		Pointer<Genode::Reporter>   _reporter { };
+		Domain_tree                 _domains  { };
+		Uplink_tree                 _uplinks  { };
 		Genode::Xml_node     const  _node;
 
 		void _invalid_uplink(Uplink     &uplink,
@@ -60,16 +60,6 @@ class Net::Configuration
 		                     char const *reason);
 
 	public:
-
-		enum { DEFAULT_REPORT_INTERVAL_SEC       =   5 };
-		enum { DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC =  10 };
-		enum { DEFAULT_DHCP_REQUEST_TIMEOUT_SEC  =  10 };
-		enum { DEFAULT_DHCP_OFFER_TIMEOUT_SEC    =  10 };
-		enum { DEFAULT_ICMP_IDLE_TIMEOUT_SEC     =  10 };
-		enum { DEFAULT_UDP_IDLE_TIMEOUT_SEC      =  30 };
-		enum { DEFAULT_TCP_IDLE_TIMEOUT_SEC      = 600 };
-		enum { DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC =  30 };
-		enum { DEFAULT_MAX_PACKETS_PER_SIGNAL    =  32 };
 
 		Configuration(Genode::Xml_node const  node,
 		              Genode::Allocator      &alloc);

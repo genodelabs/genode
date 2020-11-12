@@ -30,8 +30,21 @@ using namespace Genode;
 Configuration::Configuration(Xml_node const  node,
                              Allocator      &alloc)
 :
-	_alloc(alloc),
-	_node(node)
+	_alloc                  { alloc },
+	_max_packets_per_signal { 0 },
+	_verbose                { false },
+	_verbose_packets        { false },
+	_verbose_packet_drop    { false },
+	_verbose_domain_state   { false },
+	_icmp_echo_server       { false },
+	_dhcp_discover_timeout  { 0 },
+	_dhcp_request_timeout   { 0 },
+	_dhcp_offer_timeout     { 0 },
+	_icmp_idle_timeout      { 0 },
+	_udp_idle_timeout       { 0 },
+	_tcp_idle_timeout       { 0 },
+	_tcp_max_segm_lifetime  { 0 },
+	_node                   { node }
 { }
 
 
@@ -66,19 +79,19 @@ Configuration::Configuration(Env               &env,
                              Interface_list    &interfaces)
 :
 	_alloc                  { alloc },
-	_max_packets_per_signal { node.attribute_value("max_packets_per_signal",    (unsigned long)DEFAULT_MAX_PACKETS_PER_SIGNAL) },
+	_max_packets_per_signal { node.attribute_value("max_packets_per_signal",    (unsigned long)32) },
 	_verbose                { node.attribute_value("verbose",                   false) },
 	_verbose_packets        { node.attribute_value("verbose_packets",           false) },
 	_verbose_packet_drop    { node.attribute_value("verbose_packet_drop",       false) },
 	_verbose_domain_state   { node.attribute_value("verbose_domain_state",      false) },
 	_icmp_echo_server       { node.attribute_value("icmp_echo_server",          true) },
-	_dhcp_discover_timeout  { read_sec_attr(node,  "dhcp_discover_timeout_sec", DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC) },
-	_dhcp_request_timeout   { read_sec_attr(node,  "dhcp_request_timeout_sec",  DEFAULT_DHCP_REQUEST_TIMEOUT_SEC ) },
-	_dhcp_offer_timeout     { read_sec_attr(node,  "dhcp_offer_timeout_sec",    DEFAULT_DHCP_OFFER_TIMEOUT_SEC   ) },
-	_icmp_idle_timeout      { read_sec_attr(node,  "icmp_idle_timeout_sec",     DEFAULT_ICMP_IDLE_TIMEOUT_SEC    ) },
-	_udp_idle_timeout       { read_sec_attr(node,  "udp_idle_timeout_sec",      DEFAULT_UDP_IDLE_TIMEOUT_SEC     ) },
-	_tcp_idle_timeout       { read_sec_attr(node,  "tcp_idle_timeout_sec",      DEFAULT_TCP_IDLE_TIMEOUT_SEC     ) },
-	_tcp_max_segm_lifetime  { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC) },
+	_dhcp_discover_timeout  { read_sec_attr(node,  "dhcp_discover_timeout_sec", 10) },
+	_dhcp_request_timeout   { read_sec_attr(node,  "dhcp_request_timeout_sec",  10) },
+	_dhcp_offer_timeout     { read_sec_attr(node,  "dhcp_offer_timeout_sec",    10) },
+	_icmp_idle_timeout      { read_sec_attr(node,  "icmp_idle_timeout_sec",     10) },
+	_udp_idle_timeout       { read_sec_attr(node,  "udp_idle_timeout_sec",      30) },
+	_tcp_idle_timeout       { read_sec_attr(node,  "tcp_idle_timeout_sec",      600) },
+	_tcp_max_segm_lifetime  { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", 30) },
 	_node                   { node }
 {
 	/* do parts of domain initialization that do not lookup other domains */
