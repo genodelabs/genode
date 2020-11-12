@@ -21,8 +21,8 @@ Microseconds Genode::read_sec_attr(Xml_node const  node,
                                    char     const *name,
                                    uint64_t const  default_sec)
 {
-	uint64_t sec = node.attribute_value(name, (uint64_t)0);
-	if (!sec) {
+	uint64_t sec = node.attribute_value(name, ~(uint64_t)0);
+	if (sec == ~(uint64_t)0) {
 		sec = default_sec;
 	}
 	return Microseconds(sec * 1000 * 1000);
