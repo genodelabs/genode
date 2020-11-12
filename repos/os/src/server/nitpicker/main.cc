@@ -81,7 +81,6 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 		View                         &_pointer_origin;
 		View                         &_builtin_background;
 		Reporter                     &_focus_reporter;
-		Reporter                     &_hover_reporter;
 		Focus_updater                &_focus_updater;
 		Hover_updater                &_hover_updater;
 
@@ -156,7 +155,6 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 		         View                         &builtin_background,
 		         Allocator                    &md_alloc,
 		         Reporter                     &focus_reporter,
-		         Reporter                     &hover_reporter,
 		         Focus_updater                &focus_updater,
 		         Hover_updater                &hover_updater)
 		:
@@ -166,8 +164,8 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 			_view_stack(view_stack), _user_state(user_state),
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
-			_focus_reporter(focus_reporter), _hover_reporter(hover_reporter),
-			_focus_updater(focus_updater),   _hover_updater(hover_updater)
+			_focus_reporter(focus_reporter), _focus_updater(focus_updater),
+			_hover_updater(hover_updater)
 		{ }
 
 
@@ -467,7 +465,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	Gui_root _gui_root { _env, _config_rom, _session_list, *_domain_registry,
 	                     _global_keys, _view_stack, _user_state, _pointer_origin,
 	                     _builtin_background, _sliced_heap,
-	                     _focus_reporter, _hover_reporter, *this, *this };
+	                     _focus_reporter, *this, *this };
 
 	Capture_root _capture_root { _env, _sliced_heap, _view_stack, *this };
 
