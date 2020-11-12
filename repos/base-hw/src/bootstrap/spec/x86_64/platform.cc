@@ -246,13 +246,6 @@ struct Lapic : Mmio
 	Lapic(addr_t const addr) : Mmio(addr) { }
 };
 
-static inline Genode::uint64_t rdtsc()
-{
-	Genode::uint32_t lo, hi;
-	asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
-	return (Genode::uint64_t)hi << 32 | lo;
-}
-
 static inline void ipi_to_all(Lapic &lapic, unsigned const boot_frame,
                               Lapic::Icr_low::Delivery_mode::Mode const mode)
 {
