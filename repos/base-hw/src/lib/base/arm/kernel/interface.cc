@@ -60,7 +60,8 @@ Call_ret_64 Kernel::call64(Call_arg arg_0)
 {
 	register Call_arg arg_0_reg asm("r0") = arg_0;
 	register Call_arg arg_1_reg asm("r1");
-	asm volatile(CALL_1_SWI);
+	/* In this particular case both r0 and r1 are used as output. */
+	asm volatile(CALL_1_SWI, "+r"(arg_1_reg));
 	return ((Call_ret_64)arg_0_reg) << 32 | (Call_ret_64)arg_1_reg;
 }
 
