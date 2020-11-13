@@ -107,7 +107,7 @@ namespace Libc {
 	/**
 	 * Socket fs
 	 */
-	void init_socket_fs(Suspend &);
+	void init_socket_fs(Suspend &, Monitor &);
 
 	/**
 	 * Pthread/semaphore support

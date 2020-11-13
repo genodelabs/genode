@@ -36,6 +36,7 @@
 #include <net/if.h>
 
 /* libc-internal includes */
+#include <internal/kernel.h>
 #include <internal/socket_fs_plugin.h>
 #include <internal/file.h>
 #include <internal/errno.h>
@@ -52,12 +53,26 @@ namespace Libc {
 
 
 static Libc::Suspend *_suspend_ptr;
+static Libc::Monitor *_monitor_ptr;
 
 
-void Libc::init_socket_fs(Suspend &suspend)
+void Libc::init_socket_fs(Suspend &suspend, Monitor &monitor)
 {
 	_suspend_ptr = &suspend;
+	_monitor_ptr = &monitor;
 }
+
+
+static Libc::Monitor & monitor()
+{
+	struct Missing_call_of_init_socket_fs : Genode::Exception { };
+	if (!_monitor_ptr)
+		throw Missing_call_of_init_socket_fs();
+	return *_monitor_ptr;
+}
+
+
+namespace { using Fn = Libc::Monitor::Function_result; }
 
 
 /***************
@@ -1229,43 +1244,53 @@ int Socket_fs::Plugin::select(int nfds,
 	FD_ZERO(writefds);
 	FD_ZERO(exceptfds);
 
-	for (int fd = 0; fd < nfds; ++fd) {
+	auto fn = [&] {
 
-		bool fd_in_readfds = FD_ISSET(fd, &in_readfds);
-		bool fd_in_writefds = FD_ISSET(fd, &in_writefds);
+		for (int fd = 0; fd < nfds; ++fd) {
 
-		if (!fd_in_readfds && !fd_in_writefds)
-			continue;
+			bool fd_in_readfds = FD_ISSET(fd, &in_readfds);
+			bool fd_in_writefds = FD_ISSET(fd, &in_writefds);
 
-		File_descriptor *fdo = file_descriptor_allocator()->find_by_libc_fd(fd);
+			if (!fd_in_readfds && !fd_in_writefds)
+				continue;
 
-		/* handle only fds that belong to this plugin */
-		if (!fdo || (fdo->plugin != this))
-			continue;
+			File_descriptor *fdo = file_descriptor_allocator()->find_by_libc_fd(fd);
 
-		if (fd_in_readfds) {
-			try {
-				Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
+			/* handle only fds that belong to this plugin */
+			if (!fdo || (fdo->plugin != this))
+				continue;
 
-				if (context->read_ready()) {
-					FD_SET(fd, readfds);
-					++nready;
-				}
-			} catch (Socket_fs::Context::Inaccessible) { }
+			if (fd_in_readfds) {
+				try {
+					Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
+
+					if (context->read_ready()) {
+						FD_SET(fd, readfds);
+						++nready;
+					}
+				} catch (Socket_fs::Context::Inaccessible) { }
+			}
+
+			if (fd_in_writefds) {
+				try {
+					Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
+
+					if (context->write_ready()) {
+						FD_SET(fd, writefds);
+						++nready;
+					}
+				} catch (Socket_fs::Context::Inaccessible) { }
+			}
+
+			/* XXX exceptfds not supported */
 		}
+		return Fn::COMPLETE;
+	};
 
-		if (fd_in_writefds) {
-			try {
-				Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
-
-				if (context->write_ready()) {
-					FD_SET(fd, writefds);
-					++nready;
-				}
-			} catch (Socket_fs::Context::Inaccessible) { }
-		}
-
-		/* XXX exceptfds not supported */
+	if (Libc::Kernel::kernel().main_context() && Libc::Kernel::kernel().main_suspended()) {
+		fn();
+	} else {
+		monitor().monitor(fn);
 	}
 
 	return nready;
