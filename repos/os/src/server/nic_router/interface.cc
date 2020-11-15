@@ -373,7 +373,7 @@ void Interface::attach_to_domain()
 
 		/* construct DHCP client if the new domain needs it */
 		if (domain.ip_config_dynamic()) {
-			_dhcp_client.construct(_alloc, _timer, *this);
+			_dhcp_client.construct(_timer, *this);
 		}
 		attach_to_domain_finish();
 	}
@@ -2011,7 +2011,7 @@ void Interface::handle_config_2()
 					_dhcp_client.destruct();
 				}
 				if (new_domain.ip_config_dynamic()) {
-					_dhcp_client.construct(_alloc, _timer, *this);
+					_dhcp_client.construct(_timer, *this);
 				}
 				return;
 			}
@@ -2026,7 +2026,7 @@ void Interface::handle_config_2()
 			if (!old_domain.ip_config_dynamic() &&
 			    new_domain.ip_config_dynamic())
 			{
-				_dhcp_client.construct(_alloc, _timer, *this);
+				_dhcp_client.construct(_timer, *this);
 			}
 
 			/* remember that the interface stays attached to the same domain */
@@ -2053,7 +2053,7 @@ void Interface::handle_config_2()
 
 			/* construct DHCP client if the new domain needs it */
 			if (new_domain.ip_config_dynamic()) {
-				_dhcp_client.construct(_alloc, _timer, *this);
+				_dhcp_client.construct(_timer, *this);
 			}
 		}
 		catch (Domain_tree::No_match) { }
