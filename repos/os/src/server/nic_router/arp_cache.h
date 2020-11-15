@@ -79,7 +79,6 @@ class Net::Arp_cache : public Genode::Avl_tree<Arp_cache_entry>
 
 		Domain const         &_domain;
 		Arp_cache_entry_slot  _entries[NR_OF_ENTRIES];
-		bool                  _init = true;
 		unsigned              _curr = 0;
 
 	public:
