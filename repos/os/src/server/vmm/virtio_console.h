@@ -62,7 +62,7 @@ class Vmm::Virtio_console : public Virtio_device
 				_assert_irq();
 		}
 
-		Register _device_specific_features() { return 0; }
+		Register _device_specific_features() override { return 0; }
 
 	public:
 
