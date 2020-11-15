@@ -53,11 +53,10 @@ Configuration &Dhcp_client::_config() { return _domain().config(); };
 Domain &Dhcp_client::_domain() { return _interface.domain(); }
 
 
-Dhcp_client::Dhcp_client(Genode::Allocator &alloc,
-                         Timer::Connection &timer,
+Dhcp_client::Dhcp_client(Timer::Connection &timer,
                          Interface         &interface)
 :
-	_alloc(alloc), _interface(interface),
+	_interface(interface),
 	_timeout(timer, *this, &Dhcp_client::_handle_timeout)
 { }
 
