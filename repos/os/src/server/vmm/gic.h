@@ -134,7 +134,7 @@ class Vmm::Gic : public Vmm::Mmio_device
 				Genode::Constructible<Irq> _ppi[MAX_PPI];
 				Irq::List                  _pending_list;
 
-				struct Redistributor : Mmio_device
+				struct Redistributor : Mmio_device, Genode::Interface
 				{
 					unsigned      cpu_id;
 					bool          last;
