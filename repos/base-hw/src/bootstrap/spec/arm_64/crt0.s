@@ -92,4 +92,4 @@
 		.space STACK_SIZE
 	.endr
 	_crt0_start_stack:
-	.long STACK_SIZE
+	.quad STACK_SIZE
