@@ -34,6 +34,7 @@ using Genode::Exception;
 using Genode::Out_of_ram;
 using Genode::Out_of_caps;
 using Genode::Constructible;
+using Genode::Reconstructible;
 using Genode::Signal_context_capability;
 using Genode::Signal_transmitter;
 
@@ -644,8 +645,9 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 		dhcp_opts.append_option<Dhcp_packet::Ip_lease_time>(dhcp_srv.ip_lease_time().value / 1000 / 1000);
 		dhcp_opts.append_option<Dhcp_packet::Subnet_mask>(local_intf.subnet_mask());
 		dhcp_opts.append_option<Dhcp_packet::Router_ipv4>(local_intf.address);
-		if (dhcp_srv.dns_server().valid()) {
-			dhcp_opts.append_option<Dhcp_packet::Dns_server_ipv4>(dhcp_srv.dns_server()); }
+		dhcp_srv.for_each_dns_server_ip([&] (Ipv4_address const &dns_server_ip) {
+			dhcp_opts.append_option<Dhcp_packet::Dns_server_ipv4>(dns_server_ip);
+		});
 		dhcp_opts.append_option<Dhcp_packet::Broadcast_addr>(local_intf.broadcast_address());
 		dhcp_opts.append_option<Dhcp_packet::Options_end>();
 
@@ -1865,7 +1867,7 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 	try {
 		Dhcp_server &old_dhcp_srv = old_domain.dhcp_server();
 		Dhcp_server &new_dhcp_srv = new_domain.dhcp_server();
-		if (old_dhcp_srv.dns_server() != new_dhcp_srv.dns_server()) {
+		if (!old_dhcp_srv.dns_servers_equal_to_those_of(new_dhcp_srv)) {
 			throw Pointer<Dhcp_server>::Invalid();
 		}
 		if (old_dhcp_srv.ip_lease_time().value !=

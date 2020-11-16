@@ -109,10 +109,18 @@
 
 							<xs:element name="dhcp-server">
 								<xs:complexType>
+									<xs:choice minOccurs="0" maxOccurs="unbounded">
+
+										<xs:element name="dns-server">
+											<xs:complexType>
+												<xs:attribute name="ip" type="Ipv4_address" />
+											</xs:complexType>
+										</xs:element><!-- dns-server -->
+
+									</xs:choice>
 									<xs:attribute name="ip_first"          type="Ipv4_address" />
 									<xs:attribute name="ip_last"           type="Ipv4_address" />
 									<xs:attribute name="ip_lease_time_sec" type="Seconds" />
-									<xs:attribute name="dns_server"        type="Ipv4_address" />
 									<xs:attribute name="dns_server_from"   type="Domain_name" />
 								</xs:complexType>
 							</xs:element><!-- dhcp-server -->

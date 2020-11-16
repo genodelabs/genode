@@ -18,11 +18,11 @@
 #include <util/list.h>
 #include <base/allocator.h>
 
-namespace Net { template <typename> class List; }
+namespace Local { template <typename> class List; }
 
 
 template <typename LT>
-struct Net::List : Genode::List<LT>
+struct Local::List : Genode::List<LT>
 {
 	using Base = Genode::List<LT>;
 

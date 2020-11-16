@@ -228,8 +228,11 @@ proc test_7_router_config { } {
 		<domain name="t7_d1" interface="100.200.0.1/24">
 			<dhcp-server ip_first="100.200.0.32"
 			             ip_last="100.200.0.64"
-			             ip_lease_time_sec="3600"
-			             dns_server="8.8.8.8"/>
+			             ip_lease_time_sec="3600">
+
+				<dns-server ip="8.8.8.8"/>
+
+			</dhcp-server>
 
 			<tcp dst="10.0.0.0/16">
 				<permit port="2345" domain="t7_d2" />

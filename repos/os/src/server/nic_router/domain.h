@@ -142,6 +142,18 @@ class Net::Domain : public Domain_base,
 
 		void _log_ip_config() const;
 
+		void _prepare_reconstructing_ip_config();
+
+		void _finish_reconstructing_ip_config();
+
+		template <typename FUNC>
+		void _reconstruct_ip_config(FUNC && functor)
+		{
+			_prepare_reconstructing_ip_config();
+			functor(_ip_config);
+			_finish_reconstructing_ip_config();
+		}
+
 		void __FIXME__dissolve_foreign_arp_waiters();
 
 	public:
@@ -162,12 +174,7 @@ class Net::Domain : public Domain_base,
 
 		Ipv4_address const &next_hop(Ipv4_address const &ip) const;
 
-		void ip_config(Ipv4_config const &ip_config);
-
-		void ip_config(Ipv4_address ip,
-		               Ipv4_address subnet_mask,
-		               Ipv4_address gateway,
-		               Ipv4_address dns_server);
+		void ip_config_from_dhcp_ack(Dhcp_packet &dhcp_ack);
 
 		void discard_ip_config();
 

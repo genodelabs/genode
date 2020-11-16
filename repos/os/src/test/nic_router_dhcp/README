@@ -1,0 +1,153 @@
+
+
+                        ====================
+                        NIC-router-DHCP test
+                        ====================
+
+                            Martin Stein
+
+
+
+The NIC-router-DHCP test is meant to test and demonstrate the functionalities
+of the NIC router that correspond to the management of networks through DHCP.
+This comprises the abilities of the router to basically act as DHCP client and
+DHCP server, to recognize and propagate additional information through DHCP,
+and to react to changes in DHCP environments.
+
+
+Unmanaged test scenario
+#######################
+
+The test is integrated by the run scripts
+'os/run/nic_router_dhcp_unmanaged.run' and 'os/run/nic_router_managed.run'.
+The "unmanaged" variant creates the following setup:
+
+
++--------------------------------------+   Received
+| Test Client                          |   DHCP info
+| (DHCP Client 2)                      |---------------->  Serial Output
++--------------------------------------+
+                       |
+                       | NIC session
+                       |
+                       v
++---------------+-------------------+--+
+| NIC Router 2  | Domain Downlink 2 |  |
+|               | (DHCP Server 2)   |  |
+|               +-------------------+  |
+|                      ^               |
+|                      | Built-in      |
+|                      | DHCP info     |
+|                      | forwarding    |
+|                      |               |
+|                      |               |
+|               +-------------------+  |
+|               | Domain Uplink     |  |
+|               | (DHCP Client 1)   |  |
++---------------+-------------------+--+
+                       |
+                       | NIC session
+                       |
+                       v
++---------------+-------------------+--+   Reconfigure
+| NIC Router 1  | Domain Downlink 1 |  |   DHCP server   +--------------+
+|               | (DHCP Server 1)   |  |<----------------| Dynamic ROM  |
+|               +-------------------+  |                 +--------------+
+|                                      |
++--------------------------------------+
+
+
+Throughout the test, the dynamic ROM changes the setup of DHCP Server 1
+multiple times. This results also in changes of the additional information
+propagated via DHCP. As a reaction to the changes, the link state of domain
+Downlink 1 does a "down-up" sequence in order to advise all connected DHCP
+clients to reset. DHCP Client 1 does so and receives the updated information
+for its domain Uplink.
+
+But the domain Uplink is also watched by Downlink 2 for additional DHCP
+information through the router-internal forwarding mechanism (currently only
+DNS server addresses, see attribute 'dns_server_from'). Therefore, the reset of
+DHCP Client 1 also causes the link state of Downlink 2 to go "down" until DHCP
+Client 1 finishes re-requesting DHCP. This causes DHCP Client 2 in the test
+client (os/src/test/nic_router_dhcp/manager) to reset and re-request both the
+basic DHCP info (originating from DHCP Server 2) and the updated additional
+DHCP info (originating from DHCP Server 1) as soon as Downlink 2 is "up" again.
+
+The test terminates successfully when the test client has printed a certain
+sequence of successively received DHCP setups to the serial output. It fails,
+at the other hand, when the expected output wasn't observed for a certain time.
+
+
+Managed test scenario
+#####################
+
+The "managed" variant of test differs only in one detail from the "unmanaged"
+variant: It doesn't use the router-internal mechanism for forwarding additional
+DHCP information from the domain Uplink to domain Downlink 2. Instead, it
+achieves the forwarding through an additional manager component
+(os/src/test/nic_router_dhcp/manager):
+
+
++--------------------------------------+   Received
+| Test Client                          |   DHCP info
+| (DHCP Client 2)                      |---------------->  Serial Output
++--------------------------------------+
+                       |
+                       | NIC session
+                       |
+                       v                   Reconfigure
++---------------+-------------------+--+   DHCP server   +--------------+
+| NIC Router 2  | Domain Downlink 2 |  |      +---+      | Test Manager |
+|               | (DHCP Server 2)   |  |<-----| R |------|              |
+|               +-------------------+  |      | e |      |              |
+|                                      |      | p |      |              |
+|                                      |      | o |      |              |
+|                                      |      | r |      |              |
+|                                      |      | t |      |              |
+|                                      |      |   |      |              |
+|                                      |      | R |      |              |
+|               +-------------------+  |      | O |      |              |
+|               | Domain Uplink     |  |------| M |----->|              |
+|               | (DHCP Client 1)   |  |      +---+      |              |
++---------------+-------------------+--+   Observe DHCP  +--------------+
+                       |                   client state
+                       | NIC session
+                       |
+                       v
++---------------+-------------------+--+   Reconfigure
+| NIC Router 1  | Domain Downlink 1 |  |   DHCP server   +--------------+
+|               | (DHCP Server 1)   |  |<----------------| Dynamic ROM  |
+|               +-------------------+  |                 +--------------+
+|                                      |
++--------------------------------------+
+
+
+The manager initially writes out a router configuration using a Report session.
+The configuration is received by NIC Router 2 through a ROM session. The
+mediator between the managers Report and the routers ROM session is a Report
+ROM server. The initial router configuration written by the manager is
+basically the same as the static NIC-Router-2 configuration in the "unmanaged"
+scenario with the small addition that it causes the router to report its state.
+
+Now, each time that the DCHP info of domain Uplink changes, NIC Router 2
+generates a new state report reflecting the updated DHCP info. The manager
+receives the state update through its ROM session with the Report ROM server.
+Now, the manager checks whether the additional DHCP info of domain Uplink
+was affected by the update. If so, it generates a new router configuration
+injecting the new additional DHCP info into DHCP Server 2.
+
+Note that the test manager takes care not to create endless feedback-response
+loops by re-configuring the router only when the interesting part of the router
+state changes (the additional DHCP info of domain Uplink). The test manager
+reduces re-configuration even further by doing it only when the DHCP info at
+domain Uplink became valid. This means that it skips the short periods where
+DHCP Client 1 is waiting for the re-request to finish and no DHCP info is
+available. It's fine for DHCP Server 2 to stay with the outdated information
+during this time as no basic DHCP information is affected and routing via
+Uplink remains blocked until DHCP finished anyway.
+
+The rest of the process remains the same as in the "unmanaged" variant. The
+"managed" approach has the benefit that the forwarding of additional DHCP info
+can be adapted to scenarios with special requirements. For instance, one might
+want to filter information in order to restrict or protect the client behind
+the router.

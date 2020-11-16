@@ -385,34 +385,61 @@ One can configure the NIC router to act as DHCP server at interfaces of a
 domain by adding the <dhcp> tag to the configuration of the domain like
 this:
 
-<domain name="vbox" interface="10.0.1.1/24">
-    <dhcp-server ip_first="10.0.1.80"
-                 ip_last="10.0.1.100"
-                 ip_lease_time_sec="3600"
-                 dns_server="10.0.0.2"
-                 dns_server_from="uplink" />
-    ...
-</domain>
+! <domain name="vbox" interface="10.0.1.1/24">
+!
+!     <dhcp-server ip_first="10.0.1.80"
+!                  ip_last="10.0.1.100"
+!                  ip_lease_time_sec="3600">
+!
+!         <dns-server ip="8.8.8.8" />
+!         <dns-server ip="1.1.1.1" />
+!         ...
+!
+!     </dhcp-server>
+!     ...
+!
+! </domain>
 
-The attributes ip_first and ip_last define the available IPv4 address range
-while ip_lease_time_sec defines the lifetime of an IPv4 address assignment in
-seconds. The IPv4 address range must be in the subnet defined by the interface
-attribute of the domain tag and must not cover the IPv4 address in this
-attribute. The dns_server attribute gives the IPv4 address of the DNS server
-that might also be in another subnet. The dns_server_from attribute has effect
-only if the dns_server attribute is not set. If this is the case, the
-dns_server_from attribute states the domain from whose IP config to take the
-DNS server address. This is useful, for instance, if the stated domain
-receives the address of a local DNS server via DHCP. Whenever the IP config
-of the stated domain becomes invalid, the DHCP server switches to a mode where
-it drops all requests unanswered until the IP config becomes valid again.
+or like this:
+
+! <domain name="vbox" interface="10.0.1.1/24">
+!
+!     <dhcp-server ip_first="10.0.1.80"
+!                  ip_last="10.0.1.100"
+!                  ip_lease_time_sec="3600"
+!                  dns_server_from="uplink" />
+!     ...
+!
+! </domain>
+
+The mandatory attributes 'ip_first' and 'ip_last' define the available IPv4
+address range while the optional attribute 'ip_lease_time_sec' defines the
+lifetime of an IPv4 address assignment in seconds. The IPv4 address range must
+be in the subnet defined by the 'interface' attribute of the <domain> tag and
+must not cover the IPv4 address given by this attribute.
+
+The <dns-server> sub-tags from the first example statically provide a list of
+DNS server addresses that shall be propagated by the DHCP server through DHCP
+option 6 entries to its clients. These addresses might be of any IP subnet. The
+DHCP option 6 entries in the DHCP replies will have the same order as the
+<dns-server> tags in the configuration.
+
+The 'dns_server_from' attribute from the second example takes effect only when
+the <dhcp-server> tag does not contain any <dns-server> sub-tags. The attribute
+states the domain from whose IP config to take the list of propagated DNS
+server addresses. Note that the order of DNS server adresses is not altered
+thereby. This is useful in scenarios where these addresses must be obtained
+dynamically through the DHCP client of another domain. An implication of the
+'dns_server_from' attribute is that the link state of all interfaces at the
+domain with the DHCP server becomes bound to the validity of the IP config of
+the domain that is stated in the attribute.
 
 The lifetime of an assignment that was yet only offered to the client can be
 configured for all domains in the <config> tag of the router:
 
 ! <config dhcp_offer_timeout_sec="6">
 
-The timeout ip_lease_time_sec is applied only when the offer is acknowledged
+The timeout 'ip_lease_time_sec' is applied only when the offer is acknowledged
 by the client in time.
 
 
@@ -454,7 +481,7 @@ Configuration example (shows default values of attributes):
 !            quota="yes"
 !            config="yes"
 !            config_triggers="no"
-!            interval_sec="5">
+!            interval_sec="5"/>
 ! </config>
 
 If the 'report' tag is not available, no reports are send.
@@ -560,19 +587,24 @@ two contrary edges at a max. The following diagrams demonstrate this:
 Examples
 ~~~~~~~~
 
-This section will list and explain some interesting configuration snippets. A
-comprehensive example of how to use the router (except DHCP server
-functionality) can be found in the test script 'libports/run/nic_router.run'.
-For an example of how to use the DHCP server and the DHCP client functionality
-see the 'os/run/ping_nic_router.run' script.
+In-action examples of how to use the router are provided through the following
+automated run scripts:
 
-The environment for the examples shall be as
-follows. There are two virtual subnets 192.168.1.0/24 and 192.168.2.0/24 that
-connect as Virtnet A and B to the router. The standard gateway of the virtual
-networks is the NIC router with IP 192.168.*.1 . The router's uplink leads to
-the NIC driver that connects the machine with your home network 10.0.2.0/24.
-Your home network is connected to the internet through its standard gateway
-10.0.2.1 .
+* libports/run/nic_router.run          (basic functionality)
+* dde_linux/run/nic_router_uplinks.run (dynamically switching uplinks)
+* os/run/ping_nic_router.run           (ICMP routing)
+* os/run/nic_router_dhcp_unmanaged.run (DHCP + link states without a manager)
+* os/run/nic_router_dhcp_managed.run   (DHCP + link states with a manager)
+* os/run/nic_router_flood.run          (client misbehaving on protocol level)
+* os/run/nic_router_stress.run         (client misbehaving on session level)
+
+The rest of this section will list and explain some smaller configuration
+snippets. The environment for these examples shall be as follows. There are
+two virtual subnets 192.168.1.0/24 and 192.168.2.0/24 that connect as Virtnet A
+and B to the router. The standard gateway of the virtual networks is the NIC
+router with IP 192.168.*.1 . The router's uplink leads to the NIC driver that
+connects the machine with your home network 10.0.2.0/24.  Your home network is
+connected to the internet through its standard gateway 10.0.2.1 .
 
 
 Connecting local networks

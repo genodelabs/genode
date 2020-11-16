@@ -47,7 +47,7 @@ void Domain::_log_ip_config() const
 		if (!ip_config.valid &&
 			(ip_config.interface_valid ||
 			 ip_config.gateway_valid ||
-			 ip_config.dns_server_valid))
+			 !ip_config.dns_servers.empty()))
 		{
 			log("[", *this, "] malformed ", _ip_config_dynamic ? "dynamic" :
 			    "static", "IP config: ", ip_config);
@@ -60,7 +60,7 @@ void Domain::_log_ip_config() const
 }
 
 
-void Domain::ip_config(Ipv4_config const &new_ip_config)
+void Domain::_prepare_reconstructing_ip_config()
 {
 	if (!_ip_config_dynamic) {
 		throw Ip_config_static(); }
@@ -69,7 +69,7 @@ void Domain::ip_config(Ipv4_config const &new_ip_config)
 	if (ip_config().valid) {
 
 		/* mark IP config invalid */
-		_ip_config.construct();
+		_ip_config.construct(_alloc);
 
 		/* detach all dependent interfaces from old IP config */
 		_interfaces.for_each([&] (Interface &interface) {
@@ -86,8 +86,11 @@ void Domain::ip_config(Ipv4_config const &new_ip_config)
 			waiter.src().cancel_arp_waiting(waiter);
 		}
 	}
-	/* overwrite old with new IP config */
-	_ip_config.construct(new_ip_config);
+}
+
+
+void Domain::_finish_reconstructing_ip_config()
+{
 	_log_ip_config();
 
 	/* attach all dependent interfaces to new IP config if it is valid */
@@ -113,20 +116,15 @@ void Domain::ip_config(Ipv4_config const &new_ip_config)
 
 void Domain::discard_ip_config()
 {
-	/* install invalid IP config */
-	Ipv4_config const new_ip_config;
-	ip_config(new_ip_config);
+	_reconstruct_ip_config([&] (Reconstructible<Ipv4_config> &ip_config) {
+		ip_config.construct(_alloc); });
 }
 
 
-void Domain::ip_config(Ipv4_address ip,
-                       Ipv4_address subnet_mask,
-                       Ipv4_address gateway,
-                       Ipv4_address dns_server)
+void Domain::ip_config_from_dhcp_ack(Dhcp_packet &dhcp_ack)
 {
-	Ipv4_config const new_ip_config(Ipv4_address_prefix(ip, subnet_mask),
-	                                gateway, dns_server);
-	ip_config(new_ip_config);
+	_reconstruct_ip_config([&] (Reconstructible<Ipv4_config> &ip_config) {
+		ip_config.construct(dhcp_ack, _alloc); });
 }
 
 
@@ -139,7 +137,8 @@ void Domain::try_reuse_ip_config(Domain const &domain)
 	{
 		return;
 	}
-	ip_config(domain.ip_config());
+	_reconstruct_ip_config([&] (Reconstructible<Ipv4_config> &ip_config) {
+		ip_config.construct(domain.ip_config(), _alloc); });
 }
 
 
@@ -198,18 +197,20 @@ void Domain::print(Output &output) const
 
 Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 :
-	Domain_base(node), Avl_string_base(_name.string()), _config(config),
-	_node(node), _alloc(alloc),
-	_ip_config(_node.attribute_value("interface",  Ipv4_address_prefix()),
-	           _node.attribute_value("gateway",    Ipv4_address()),
-	           Ipv4_address()),
-	_verbose_packets(_node.attribute_value("verbose_packets",
-	                                       _config.verbose_packets())),
-	_verbose_packet_drop(_node.attribute_value("verbose_packet_drop",
-	                                           _config.verbose_packet_drop())),
-	_icmp_echo_server(_node.attribute_value("icmp_echo_server",
-	                                        _config.icmp_echo_server())),
-	_label(_node.attribute_value("label", String<160>()).string())
+	Domain_base          { node },
+	Avl_string_base      { Domain_base::_name.string() },
+	_config              { config },
+	_node                { node },
+	_alloc               { alloc },
+	_ip_config           { node, alloc },
+	_verbose_packets     { node.attribute_value("verbose_packets",
+	                                            config.verbose_packets()) },
+	_verbose_packet_drop { node.attribute_value("verbose_packet_drop",
+	                                            config.verbose_packet_drop()) },
+	_icmp_echo_server    { node.attribute_value("icmp_echo_server",
+	                                            config.icmp_echo_server()) },
+	_label               { node.attribute_value("label",
+	                                            String<160>()).string() }
 {
 	_log_ip_config();
 
@@ -375,7 +376,11 @@ void Domain::report(Xml_generator &xml)
 		if (_config.report().config()) {
 			xml.attribute("ipv4", String<19>(ip_config().interface));
 			xml.attribute("gw",   String<16>(ip_config().gateway));
-			xml.attribute("dns",  String<16>(ip_config().dns_server));
+			ip_config().for_each_dns_server([&] (Dns_server const &dns_server) {
+				xml.node("dns", [&] () {
+					xml.attribute("ip", String<16>(dns_server.ip()));
+				});
+			});
 			empty = false;
 		}
 		if (_config.report().stats()) {

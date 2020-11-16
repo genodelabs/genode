@@ -1,0 +1,6 @@
+#
+# See os/src/test/nic_router_dhcp/README for a documentation.
+#
+
+proc nic_router_2_managed { } { return 1 }
+source ${genode_dir}/repos/os/run/nic_router_dhcp.inc

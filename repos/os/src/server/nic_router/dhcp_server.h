@@ -15,10 +15,11 @@
 #define _DHCP_SERVER_H_
 
 /* local includes */
-#include <ipv4_address_prefix.h>
 #include <bit_allocator_dynamic.h>
 #include <list.h>
 #include <pointer.h>
+#include <dns_server.h>
+#include <ipv4_config.h>
 
 /* Genode includes */
 #include <net/mac_address.h>
@@ -29,6 +30,7 @@
 namespace Net {
 
 	class Configuration;
+	class Dhcp_server_base;
 	class Dhcp_server;
 	class Dhcp_allocation;
 	class Dhcp_allocation_tree;
@@ -41,11 +43,31 @@ namespace Net {
 }
 
 
-class Net::Dhcp_server : private Genode::Noncopyable
+class Net::Dhcp_server_base
+{
+	protected:
+
+		Genode::Allocator     &_alloc;
+		Net::List<Dns_server>  _dns_servers { };
+
+		void _invalid(Domain const &domain,
+		              char   const *reason);
+
+	public:
+
+		Dhcp_server_base(Genode::Xml_node const &node,
+		                 Domain           const &domain,
+		                 Genode::Allocator      &alloc);
+
+		~Dhcp_server_base();
+};
+
+
+class Net::Dhcp_server : private Genode::Noncopyable,
+                         private Net::Dhcp_server_base
 {
 	private:
 
-		Ipv4_address         const    _dns_server;
 		Pointer<Domain>      const    _dns_server_from;
 		Genode::Microseconds const    _ip_lease_time;
 		Ipv4_address         const    _ip_first;
@@ -54,13 +76,12 @@ class Net::Dhcp_server : private Genode::Noncopyable
 		Genode::uint32_t     const    _ip_count;
 		Genode::Bit_allocator_dynamic _ip_alloc;
 
-		void _invalid(Domain     &domain,
-		              char const *reason);
-
 		Genode::Microseconds _init_ip_lease_time(Genode::Xml_node const node);
 
 		Pointer<Domain> _init_dns_server_from(Genode::Xml_node const  node,
 		                                      Domain_tree            &domains);
+
+		Ipv4_config const &_resolve_dns_server_from() const;
 
 	public:
 
@@ -83,6 +104,27 @@ class Net::Dhcp_server : private Genode::Noncopyable
 
 		bool ready() const;
 
+		template <typename FUNC>
+		void for_each_dns_server_ip(FUNC && functor) const
+		{
+			if (_dns_server_from.valid()) {
+
+				_resolve_dns_server_from().for_each_dns_server(
+					[&] (Dns_server const &dns_server) {
+						functor(dns_server.ip());
+					});
+
+			} else {
+
+				_dns_servers.for_each([&] (Dns_server const &dns_server) {
+					functor(dns_server.ip());
+				});
+			}
+		}
+
+		bool
+		dns_servers_equal_to_those_of(Dhcp_server const &dhcp_server) const;
+
 
 		/*********
 		 ** log **
@@ -95,7 +137,6 @@ class Net::Dhcp_server : private Genode::Noncopyable
 		 ** Accessors **
 		 ***************/
 
-		Ipv4_address   const &dns_server()    const;
 		Domain               &dns_server_from()     { return _dns_server_from(); }
 		Genode::Microseconds  ip_lease_time() const { return _ip_lease_time; }
 };

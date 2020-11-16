@@ -12,17 +12,21 @@
  */
 
 /* local includes */
+#include <nic.h>
 #include <dhcp_client.h>
-#include <interface.h>
-#include <domain.h>
-#include <configuration.h>
+#include <ipv4_config.h>
+
+/* Genode includes */
+#include <util/xml_node.h>
 
 enum { PKT_SIZE = 1024 };
+
+struct Send_buffer_too_small : Genode::Exception { };
+struct Bad_send_dhcp_args    : Genode::Exception { };
 
 using namespace Genode;
 using namespace Net;
 using Message_type = Dhcp_packet::Message_type;
-using Drop_packet  = Net::Interface::Drop_packet;
 using Dhcp_options = Dhcp_packet::Options_aggregator<Size_guard>;
 
 
@@ -47,24 +51,23 @@ void append_param_req_list(Dhcp_options &dhcp_opts)
  ** Dhcp_client **
  *****************/
 
-Configuration &Dhcp_client::_config() { return _domain().config(); };
-
-
-Domain &Dhcp_client::_domain() { return _interface.domain(); }
-
-
-Dhcp_client::Dhcp_client(Genode::Allocator &alloc,
-                         Timer::Connection &timer,
-                         Interface         &interface)
+Dhcp_client::Dhcp_client(Genode::Allocator   &alloc,
+                         Timer::Connection   &timer,
+                         Nic                 &nic,
+                         Dhcp_client_handler &handler)
 :
-	_alloc(alloc), _interface(interface),
-	_timeout(timer, *this, &Dhcp_client::_handle_timeout)
-{ }
-
-
-void Dhcp_client::discover()
+	_alloc   (alloc),
+	_timeout (timer, *this, &Dhcp_client::_handle_timeout),
+	_nic     (nic),
+	_handler (handler)
 {
-	_set_state(State::SELECT, _config().dhcp_discover_timeout());
+	_discover();
+}
+
+
+void Dhcp_client::_discover()
+{
+	_set_state(State::SELECT, _discover_timeout);
 	_send(Message_type::DISCOVER, Ipv4_address(), Ipv4_address(),
 	      Ipv4_address());
 }
@@ -73,7 +76,7 @@ void Dhcp_client::discover()
 void Dhcp_client::_rerequest(State next_state)
 {
 	_set_state(next_state, _rerequest_timeout(2));
-	Ipv4_address const client_ip = _domain().ip_config().interface.address;
+	Ipv4_address const client_ip = _handler.ip_config().interface.address;
 	_send(Message_type::REQUEST, client_ip, Ipv4_address(), client_ip);
 }
 
@@ -93,14 +96,7 @@ Microseconds Dhcp_client::_rerequest_timeout(unsigned lease_time_div_log2)
 
 	if (timeout_sec > MAX_TIMEOUT_SEC) {
 		timeout_sec = MAX_TIMEOUT_SEC;
-		if (_interface.config().verbose()) {
-			try {
-				log("[", _interface.domain(), "] prune re-request timeout of "
-				    "DHCP client");
-			}
-			catch (Pointer<Domain>::Invalid) {
-				log("[?] prune re-request timeout of DHCP client"); }
-		}
+		warning("Had to prune the state timeout of DHCP client");
 	}
 	return Microseconds(timeout_sec * 1000 * 1000);
 }
@@ -109,57 +105,104 @@ Microseconds Dhcp_client::_rerequest_timeout(unsigned lease_time_div_log2)
 void Dhcp_client::_handle_timeout(Duration)
 {
 	switch (_state) {
-	case State::BOUND:  _rerequest(State::RENEW);      break;
-	case State::RENEW:  _rerequest(State::REBIND);     break;
-	case State::REBIND: _domain().discard_ip_config(); [[fallthrough]];
-	default:            discover();
+	case State::BOUND: _rerequest(State::RENEW);  break;
+	case State::RENEW: _rerequest(State::REBIND); break;
+	default:           _discover();
 	}
 }
 
 
-void Dhcp_client::handle_dhcp_reply(Dhcp_packet &dhcp)
+void Dhcp_client::handle_eth(Ethernet_frame &eth, Size_guard &size_guard)
 {
-	try {
-		Message_type const msg_type =
-			dhcp.option<Dhcp_packet::Message_type_option>().value();
-
-		switch (_state) {
-		case State::SELECT:
-
-			if (msg_type != Message_type::OFFER) {
-				throw Drop_packet("DHCP client expects an offer");
-			}
-			_set_state(State::REQUEST, _config().dhcp_request_timeout());
-			_send(Message_type::REQUEST, Ipv4_address(),
-			      dhcp.option<Dhcp_packet::Server_ipv4>().value(),
-			      dhcp.yiaddr());
-			break;
-
-		case State::REQUEST:
-			{
-				if (msg_type != Message_type::ACK) {
-					throw Drop_packet("DHCP client expects an acknowledgement");
-				}
-				_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
-				_set_state(State::BOUND, _rerequest_timeout(1));
-				_domain().ip_config_from_dhcp_ack(dhcp);
-				break;
-			}
-		case State::RENEW:
-		case State::REBIND:
-
-			if (msg_type != Message_type::ACK) {
-				throw Drop_packet("DHCP client expects an acknowledgement");
-			}
-			_set_state(State::BOUND, _rerequest_timeout(1));
-			_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
-			break;
-
-		default: throw Drop_packet("DHCP client doesn't expect a packet");
-		}
+	if (eth.dst() != _nic.mac() &&
+	    eth.dst() != Mac_address(0xff))
+	{
+		throw Drop_packet_inform("DHCP client expects Ethernet targeting the router");
 	}
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
+	if (ip.protocol() != Ipv4_packet::Protocol::UDP) {
+		throw Drop_packet_inform("DHCP client expects UDP packet"); }
+
+	Udp_packet &udp = ip.data<Udp_packet>(size_guard);
+	if (!Dhcp_packet::is_dhcp(&udp)) {
+		throw Drop_packet_inform("DHCP client expects DHCP packet"); }
+
+	Dhcp_packet &dhcp = udp.data<Dhcp_packet>(size_guard);
+	if (dhcp.op() != Dhcp_packet::REPLY) {
+		throw Drop_packet_inform("DHCP client expects DHCP reply"); }
+
+	if (dhcp.client_mac() != _nic.mac()) {
+		throw Drop_packet_inform("DHCP client expects DHCP targeting the router"); }
+
+	try { _handle_dhcp_reply(dhcp); }
 	catch (Dhcp_packet::Option_not_found) {
-		throw Drop_packet("DHCP reply misses required option");
+		throw Drop_packet_inform("DHCP client misses DHCP option"); }
+}
+
+
+void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
+{
+	Message_type const msg_type =
+		dhcp.option<Dhcp_packet::Message_type_option>().value();
+
+	switch (_state) {
+	case State::SELECT:
+
+		if (msg_type != Message_type::OFFER) {
+			throw Drop_packet_inform("DHCP client expects an offer");
+		}
+		_set_state(State::REQUEST, _request_timeout);
+		_send(Message_type::REQUEST, Ipv4_address(),
+		      dhcp.option<Dhcp_packet::Server_ipv4>().value(),
+		      dhcp.yiaddr());
+		break;
+
+	case State::REQUEST:
+		{
+			if (msg_type != Message_type::ACK) {
+				throw Drop_packet_inform("DHCP client expects an acknowledgement");
+			}
+			_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
+			_set_state(State::BOUND, _rerequest_timeout(1));
+
+			log("DHCP request completed:");
+			log("  IP lease time: ", _lease_time_sec, " seconds");
+			log("  Interface: ", Ipv4_address_prefix(dhcp.yiaddr(), dhcp.option<Dhcp_packet::Subnet_mask>().value()));
+			log("  Router: ", dhcp.option<Dhcp_packet::Router_ipv4>().value());
+
+			Ipv4_address dns_server { };
+			unsigned idx { 1 };
+			dhcp.for_each_option([&] (Dhcp_packet::Option const &opt)
+			{
+				if (!dns_server.valid()) {
+					dns_server = reinterpret_cast<Dhcp_packet::Dns_server_ipv4 const *>(&opt)->value();
+				}
+				if (opt.code() != Dhcp_packet::Option::Code::DNS_SERVER) {
+					return;
+				}
+				log("  DNS server #", idx++, ": ", reinterpret_cast<Dhcp_packet::Dns_server_ipv4 const *>(&opt)->value());
+			});
+			Ipv4_config ip_config(
+				Ipv4_address_prefix(
+					dhcp.yiaddr(),
+					dhcp.option<Dhcp_packet::Subnet_mask>().value()),
+				dhcp.option<Dhcp_packet::Router_ipv4>().value(),
+				dns_server);
+
+			_handler.ip_config(ip_config);
+			break;
+		}
+	case State::RENEW:
+	case State::REBIND:
+
+		if (msg_type != Message_type::ACK) {
+			throw Drop_packet_inform("DHCP client expects an acknowledgement");
+		}
+		_set_state(State::BOUND, _rerequest_timeout(1));
+		_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
+		break;
+
+	default: throw Drop_packet_inform("DHCP client doesn't expect a packet");
 	}
 }
 
@@ -169,13 +212,12 @@ void Dhcp_client::_send(Message_type msg_type,
                         Ipv4_address server_ip,
                         Ipv4_address requested_ip)
 {
-	Mac_address client_mac = _interface.router_mac();
-	_interface.send(PKT_SIZE, [&] (void *pkt_base, Size_guard &size_guard) {
+	_nic.send(PKT_SIZE, [&] (void *pkt_base, Size_guard &size_guard) {
 
 		/* create ETH header of the request */
 		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
 		eth.dst(Mac_address(0xff));
-		eth.src(client_mac);
+		eth.src(_nic.mac());
 		eth.type(Ethernet_frame::Type::IPV4);
 
 		/* create IP header of the request */
@@ -202,7 +244,7 @@ void Dhcp_client::_send(Message_type msg_type,
 		dhcp.htype(Dhcp_packet::Htype::ETH);
 		dhcp.hlen(sizeof(Mac_address));
 		dhcp.ciaddr(client_ip);
-		dhcp.client_mac(client_mac);
+		dhcp.client_mac(_nic.mac());
 		dhcp.default_magic_cookie();
 
 		/* append DHCP option fields to the request */
@@ -211,13 +253,13 @@ void Dhcp_client::_send(Message_type msg_type,
 		switch (msg_type) {
 		case Message_type::DISCOVER:
 			append_param_req_list(dhcp_opts);
-			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
+			dhcp_opts.append_option<Dhcp_packet::Client_id>(_nic.mac());
 			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
 			break;
 
 		case Message_type::REQUEST:
 			append_param_req_list(dhcp_opts);
-			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
+			dhcp_opts.append_option<Dhcp_packet::Client_id>(_nic.mac());
 			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
 			if (_state == State::REQUEST) {
 				dhcp_opts.append_option<Dhcp_packet::Requested_addr>(requested_ip);
@@ -226,7 +268,7 @@ void Dhcp_client::_send(Message_type msg_type,
 			break;
 
 		default:
-			throw Interface::Bad_send_dhcp_args();
+			throw Bad_send_dhcp_args();
 		}
 		dhcp_opts.append_option<Dhcp_packet::Options_end>();
 

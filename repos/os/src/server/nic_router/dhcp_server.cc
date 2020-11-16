@@ -21,12 +21,38 @@ using namespace Net;
 using namespace Genode;
 
 
-/*****************
- ** Dhcp_server **
- *****************/
+/**********************
+ ** Dhcp_server_base **
+ **********************/
 
-void Dhcp_server::_invalid(Domain     &domain,
-                           char const *reason)
+Dhcp_server_base::Dhcp_server_base(Xml_node const &node,
+                                   Domain   const &domain,
+                                   Allocator      &alloc)
+:
+	_alloc { alloc }
+{
+	node.for_each_sub_node("dns-server", [&] (Xml_node const &sub_node) {
+
+		try {
+			_dns_servers.insert_as_tail(*new (alloc)
+				Dns_server(sub_node.attribute_value("ip", Ipv4_address())));
+
+		} catch (Dns_server::Invalid) {
+
+			_invalid(domain, "invalid DNS server entry");
+		}
+	});
+}
+
+
+Dhcp_server_base::~Dhcp_server_base()
+{
+	_dns_servers.destroy_each(_alloc);
+}
+
+
+void Dhcp_server_base::_invalid(Domain const &domain,
+                                char   const *reason)
 {
 	if (domain.config().verbose()) {
 		log("[", domain, "] invalid DHCP server (", reason, ")"); }
@@ -35,13 +61,17 @@ void Dhcp_server::_invalid(Domain     &domain,
 }
 
 
+/*****************
+ ** Dhcp_server **
+ *****************/
+
 Dhcp_server::Dhcp_server(Xml_node            const  node,
                          Domain                    &domain,
                          Allocator                 &alloc,
                          Ipv4_address_prefix const &interface,
                          Domain_tree               &domains)
 :
-	_dns_server(node.attribute_value("dns_server", Ipv4_address())),
+	Dhcp_server_base(node, domain, alloc),
 	_dns_server_from(_init_dns_server_from(node, domains)),
 	_ip_lease_time  (_init_ip_lease_time(node)),
 	_ip_first(node.attribute_value("ip_first", Ipv4_address())),
@@ -75,9 +105,9 @@ Microseconds Dhcp_server::_init_ip_lease_time(Xml_node const node)
 
 void Dhcp_server::print(Output &output) const
 {
-	if (_dns_server.valid()) {
-		Genode::print(output, "DNS server ", _dns_server, ", ");
-	}
+	_dns_servers.for_each([&] (Dns_server const &dns_server) {
+		Genode::print(output, "DNS server ", dns_server.ip(), ", ");
+	});
 	try { Genode::print(output, "DNS server from ", _dns_server_from(), ", "); }
 	catch (Pointer<Domain>::Invalid) { }
 
@@ -85,6 +115,18 @@ void Dhcp_server::print(Output &output) const
 	                        ", last ", _ip_last,
 	                       ", count ", _ip_count,
 	                  ", lease time ", _ip_lease_time.value / 1000 / 1000, " sec");
+}
+
+
+bool Dhcp_server::dns_servers_equal_to_those_of(Dhcp_server const &dhcp_server) const
+{
+	return _dns_servers.equal_to(dhcp_server._dns_servers);
+}
+
+
+Ipv4_config const &Dhcp_server::_resolve_dns_server_from() const
+{
+	return _dns_server_from().ip_config();
 }
 
 
@@ -117,7 +159,7 @@ void Dhcp_server::free_ip(Ipv4_address const &ip)
 Pointer<Domain> Dhcp_server::_init_dns_server_from(Genode::Xml_node const  node,
                                                    Domain_tree            &domains)
 {
-	if (_dns_server.valid()) {
+	if (!_dns_servers.empty()) {
 		return Pointer<Domain>();
 	}
 	Domain_name dns_server_from =
@@ -131,17 +173,9 @@ Pointer<Domain> Dhcp_server::_init_dns_server_from(Genode::Xml_node const  node,
 }
 
 
-Ipv4_address const &Dhcp_server::dns_server() const
-{
-	try { return _dns_server_from().ip_config().dns_server; }
-	catch (Pointer<Domain>::Invalid) { }
-	return _dns_server;
-}
-
-
 bool Dhcp_server::ready() const
 {
-	if (_dns_server.valid()) {
+	if (!_dns_servers.empty()) {
 		return true;
 	}
 	try { return _dns_server_from().ip_config().valid; }
