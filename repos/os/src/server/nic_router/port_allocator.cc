@@ -18,12 +18,8 @@ using namespace Net;
 using namespace Genode;
 
 
-bool Net::dynamic_port(Port const port)
-{
-	return port.value >= (unsigned)Port_allocator::FIRST &&
-	       port.value <  (unsigned)Port_allocator::FIRST +
-	                               Port_allocator::COUNT;
-}
+bool Net::dynamic_port(Port const port) {
+	return port.value >= Port_allocator::FIRST; }
 
 
 /********************
