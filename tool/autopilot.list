@@ -18,6 +18,7 @@ gdb_monitor
 ieee754
 init_smp
 event_filter
+libc_integration
 libc_vfs_fs_ext2
 log_core
 lwip

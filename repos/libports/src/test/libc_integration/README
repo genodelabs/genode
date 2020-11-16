@@ -1,0 +1,28 @@
+Libc test for heavy multi threading and vfs usage.
+
+
+To build this example for Linux use the following command:
+
+``` bash
+cd `mktemp -d`
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/fd_set.h
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/input_sender.h
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/main.cc
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/pipe.h
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/stdcxx_log.cc
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/stdcxx_log.h
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/thread.cc
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/thread.h
+ln -s <genode_dir>/repos/libports/src/test/libc_integration/definitions.h
+
+g++ -pthread -Wall -Werror -std=c++17 \
+	main.cc thread.cc stdcxx_log.cc \
+	-o integration_test
+./integration_test
+```
+
+Parameters:
+  -wo     number of worker to run              default value: 200000000
+  -pw     number of parallel workers to run    default value: 23
+  -ws     maximal buffer to transfer           default value: 16384
+  -ds     data size to write at once           default value: 1024

@@ -1,0 +1,117 @@
+# -wo   number of worker to run default value: 200000000
+# -pw   number of parallel workers to run    default value: 23
+# -ws   maximal buffer to transfer           default value: 16384
+# -ds   data size to write at once           default value: 1024
+
+set config_wo 10000
+set config_pw 23
+set config_ws 16384
+set config_ds 1024
+
+set run_script_timeout 500000
+
+if { [get_cmd_switch --autopilot] } {
+	set current_date [clock format [clock seconds] -format %a]
+	if {[get_cmd_switch --autopilot] && $current_date != "Sat" && $current_date != "Sun" } {
+		puts "\n Run script is not supported on this platform today. \n";
+		exit 0
+	}
+
+	if {[have_include "power_on/qemu"]} {
+		puts "Run script does not support autopilot mode on Qemu"
+		exit 0
+	}
+
+	set run 0
+	set run_script_timeout 1200
+
+	if {[have_board pc]} {
+		set config_wo 10000
+		set run [expr [have_spec nova] || [have_spec hw]]
+	}
+	if {[have_board imx8q_evk]} {
+		set config_wo 10000
+		set run 1
+	}
+	if {[have_board linux]} {
+		set run 1
+	}
+
+	if {!$run} {
+		puts "\n Run script is not supported on this platform. \n";
+		exit 0
+	}
+}
+
+create_boot_directory
+
+set build_components {
+	test/libc_integration
+}
+
+set boot_modules {
+	test-libc_integration
+}
+
+import_from_depot [depot_user]/src/[base_src]
+import_from_depot [depot_user]/src/init
+import_from_depot [depot_user]/src/libc
+import_from_depot [depot_user]/src/posix
+import_from_depot [depot_user]/src/stdcxx
+import_from_depot [depot_user]/src/vfs
+import_from_depot [depot_user]/src/vfs_pipe
+
+build $build_components
+
+set config {}
+append config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="200"/>
+	<start name="timer">
+		<resource name="CPU" quantum="20"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="test-libc_integration" caps="400" priority="-1">
+		<resource name="RAM" quantum="256M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe"/>
+			<arg value="test-libc_integration"/>
+			<arg value="-wo"/> <arg value="} $config_wo {"/>
+			<arg value="-pw"/> <arg value="} $config_pw {"/>
+			<arg value="-ws"/> <arg value="} $config_ws {"/>
+			<arg value="-ds"/> <arg value="} $config_ds {"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2019-08-20 15:01</inline>
+					<dir name="pipe">
+						<pipe/>
+					</dir>
+				</dir>
+			</vfs>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -smp 10 "
+
+run_genode_until {.*--- test finished ---.*} $run_script_timeout
