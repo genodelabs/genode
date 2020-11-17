@@ -18,7 +18,6 @@
 #include <linux_native_pd/linux_native_pd.h>
 
 namespace Genode {
-
 	class Dataspace_component;
 	class Pd_session_component;
 	class Native_pd_component;
@@ -26,7 +25,7 @@ namespace Genode {
 
 
 class Genode::Native_pd_component : public Rpc_object<Linux_native_pd,
-	                                                  Native_pd_component>
+                                                      Native_pd_component>
 {
 	private:
 

@@ -19,6 +19,7 @@
 
 namespace Genode { struct Linux_native_cpu_client; }
 
+
 struct Genode::Linux_native_cpu_client : Rpc_client<Linux_native_cpu>
 {
 	explicit Linux_native_cpu_client(Capability<Native_cpu> cap)

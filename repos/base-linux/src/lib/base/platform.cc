@@ -27,10 +27,15 @@ using namespace Genode;
 extern char _binary_seccomp_bpf_policy_bin_start[];
 extern char _binary_seccomp_bpf_policy_bin_end[];
 
-struct bpf_program {
-  Genode::uint16_t blk_cnt;
-  Genode::uint64_t* blks;
-};
+
+namespace Genode {
+
+	struct Bpf_program
+	{
+		uint16_t  blk_cnt;
+		uint64_t *blks;
+	};
+}
 
 void Genode::binary_ready_hook_for_platform()
 {
@@ -40,19 +45,22 @@ void Genode::binary_ready_hook_for_platform()
 	}
 
 	for (char* i = _binary_seccomp_bpf_policy_bin_start;
-	     i < _binary_seccomp_bpf_policy_bin_end - sizeof(Genode::uint32_t); i++) {
-		Genode::uint32_t* v = reinterpret_cast<Genode::uint32_t*>(i);
+	     i < _binary_seccomp_bpf_policy_bin_end - sizeof(uint32_t); i++) {
+
+		uint32_t *v = reinterpret_cast<uint32_t *>(i);
 		if (*v == 0xCAFEAFFE) {
 			*v = lx_getpid();
 		}
 	}
 
-	bpf_program program;
-	program.blk_cnt = (_binary_seccomp_bpf_policy_bin_end -
-	                   _binary_seccomp_bpf_policy_bin_start) /
-	                   sizeof(Genode::uint64_t);
-	program.blks = (Genode::uint64_t*)_binary_seccomp_bpf_policy_bin_start;
-	Genode::uint64_t flags = SECCOMP_FILTER_FLAG_TSYNC;
+	Bpf_program program {
+		.blk_cnt = (uint16_t)((_binary_seccomp_bpf_policy_bin_end -
+		                       _binary_seccomp_bpf_policy_bin_start) /
+		                       sizeof(uint64_t)),
+		.blks = (uint64_t *)_binary_seccomp_bpf_policy_bin_start
+	};
+
+	uint64_t flags = SECCOMP_FILTER_FLAG_TSYNC;
 	auto ret = lx_seccomp(SECCOMP_SET_MODE_FILTER, flags, &program);
 	if (ret != 0) {
 		error("SECCOMP_SET_MODE_FILTER failed ", ret);

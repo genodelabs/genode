@@ -11,16 +11,17 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <base/log.h>
 #include <linux_dataspace/client.h>
 #include <base/internal/page_size.h>
-
-#include <core_linux_syscalls.h>
-
 #include <io_mem_session_component.h>
 
+/* core-local includes */
+#include <core_linux_syscalls.h>
 
 using namespace Genode;
+
 
 size_t Io_mem_session_component::get_arg_size(const char *args)
 {
@@ -38,9 +39,10 @@ addr_t Io_mem_session_component::get_arg_phys(const char *args)
 	return Arg_string::find_arg(args, "base").ulong_value(0);
 }
 
+
 Cache_attribute Io_mem_session_component::get_arg_wc(const char *args)
 {
-	Arg a = Arg_string::find_arg("wc", args);
+	Arg const a = Arg_string::find_arg("wc", args);
 	if (a.valid() && a.bool_value(0)) {
 		return WRITE_COMBINED;
 	} else {
@@ -58,10 +60,10 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc
 	_ds_ep(ds_ep),
 	_ds_cap(Io_mem_dataspace_capability())
 {
-	int _fd = -1;
+	int _fd = lx_open("/dev/hwio", O_RDWR | O_SYNC);
 
-	_fd = lx_open("/dev/hwio", O_RDWR | O_SYNC);
 	lx_ioctl_iomem(_fd, (unsigned long)get_arg_phys(args), get_arg_size(args));
+
 	if (_fd > 0) {
 		_ds.fd(_fd);
 	} else {
@@ -72,7 +74,8 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc
 	_ds_cap = static_cap_cast<Io_mem_dataspace>(static_cap_cast<Dataspace>(_ds_ep.manage(&_ds)));
 }
 
+
 Io_mem_dataspace_capability Io_mem_session_component::dataspace()
 {
-    return _ds_cap;
+	return _ds_cap;
 }

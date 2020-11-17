@@ -20,9 +20,8 @@
 #include <irq_session/irq_session.h>
 #include <irq_object.h>
 
-namespace Genode {
-	class Irq_session_component;
-}
+namespace Genode { class Irq_session_component; }
+
 
 class Genode::Irq_session_component : public Rpc_object<Irq_session>,
                                       private List<Irq_session_component>::Element
@@ -30,8 +29,10 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 	private:
 
 		friend class List<Irq_session_component>;
+
 		unsigned _irq_number;
-		Genode::Irq_object _irq_object;
+
+		Irq_object _irq_object;
 
 	public:
 

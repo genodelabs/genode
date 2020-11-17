@@ -20,25 +20,19 @@
 #include <platform.h>
 #include <platform_services.h>
 #include <io_port_root.h>
-
 #include <core_linux_syscalls.h>
 
-/**
- * Add x86 specific ioport service
- */
-namespace Genode
+void Genode::platform_add_local_services(Rpc_entrypoint         &,
+                                         Sliced_heap            &md,
+                                         Registry<Service>      &reg,
+                                         Trace::Source_registry &)
 {
-    void platform_add_local_services(Rpc_entrypoint         &,
-                                     Sliced_heap            &md,
-                                     Registry<Service>      &reg,
-                                     Trace::Source_registry &)
-    {
-            if (!lx_iopl(3)) {
-                    static Io_port_root io_port_root(*core_env().pd_session(),
-                                                     platform().io_port_alloc(), md);
+	if (!lx_iopl(3)) {
+		static Io_port_root io_port_root(*core_env().pd_session(),
+		                                 platform().io_port_alloc(), md);
 
-                    static Core_service<Io_port_session_component>
-                            io_port_ls(reg, io_port_root);
-            }
-    }
+		static Core_service<Io_port_session_component>
+
+		io_port_ls(reg, io_port_root);
+	}
 }

@@ -38,7 +38,7 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 	Linux_dataspace::Filename fname;
 
 	if (label.last_element().length() > sizeof(fname.buf)) {
-		Genode::error("file name too long: ", label.last_element());
+		error("file name too long: ", label.last_element());
 		throw Service_denied();
 	}
 
@@ -52,7 +52,7 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 }
 
 
-Genode::size_t Dataspace_component::_file_size()
+size_t Dataspace_component::_file_size()
 {
 	struct stat64 s;
 	if (lx_stat(_fname.buf, &s) < 0) throw Service_denied();
@@ -62,17 +62,21 @@ Genode::size_t Dataspace_component::_file_size()
 
 
 Dataspace_component::Dataspace_component(const char *args)
-: _fname(_file_name(args)),
-  _size(_file_size()),
-  _addr(0),
-  _cap(_fd_to_cap(lx_open(_fname.buf, O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR))),
-  _writable(false),
-  _owner(0) { }
+:
+	_fname(_file_name(args)),
+	_size(_file_size()),
+	_addr(0),
+	_cap(_fd_to_cap(lx_open(_fname.buf, O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR))),
+	_writable(false),
+	_owner(0)
+{ }
+
 
 Dataspace_component::Dataspace_component(size_t size, addr_t, addr_t phys_addr,
-        Cache_attribute, bool, Dataspace_owner *_owner) :
-    _size(size), _addr(phys_addr), _cap(), _writable(false), _owner(_owner)
+                                         Cache_attribute, bool, Dataspace_owner *_owner)
+:
+	_size(size), _addr(phys_addr), _cap(), _writable(false), _owner(_owner)
 {
-    warning("Should only be used for IOMEM and not within Linux.");
-    _fname.buf[0] = 0;
+	warning("Should only be used for IOMEM and not within Linux.");
+	_fname.buf[0] = 0;
 }

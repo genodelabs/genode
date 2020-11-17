@@ -19,7 +19,9 @@
 
 using namespace Genode;
 
+
 class Capability_invalid : public Genode::Exception {};
+
 
 /**
  * Return pointer to locally implemented region map

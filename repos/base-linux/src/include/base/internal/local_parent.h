@@ -24,7 +24,6 @@
 #include <base/internal/expanding_parent_client.h>
 
 namespace Genode {
-
 	class Local_session;
 	class Local_parent;
 }

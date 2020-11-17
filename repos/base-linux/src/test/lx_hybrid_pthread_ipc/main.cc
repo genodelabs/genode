@@ -23,7 +23,6 @@
 #include <stdlib.h>
 
 
-
 static Genode::Blockade *main_wait_lock()
 {
 	static Genode::Blockade inst;

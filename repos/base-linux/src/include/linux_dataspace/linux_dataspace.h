@@ -19,37 +19,37 @@
 #include <base/ipc.h>
 #include <base/rpc.h>
 
-namespace Genode {
-
-	struct Linux_dataspace : Dataspace
-	{
-		enum { FNAME_LEN = 64 };
-		struct Filename { char buf[FNAME_LEN]; };
-
-		virtual ~Linux_dataspace() { }
-
-		/**
-		 * Request name of file that represents the dataspace on Linux
-		 *
-		 * This function is used for calling execve on files passed as ROM
-		 * dataspaces.
-		 */
-		virtual Filename fname() = 0;
-
-		/**
-		 * Request file descriptor of the dataspace
-		 */
-		virtual Untyped_capability fd() = 0;
-
-		/*********************
-		 ** RPC declaration **
-		 *********************/
+namespace Genode { struct Linux_dataspace; }
 
 
-		GENODE_RPC(Rpc_fname, Filename, fname);
-		GENODE_RPC(Rpc_fd, Untyped_capability, fd);
-		GENODE_RPC_INTERFACE_INHERIT(Dataspace, Rpc_fname, Rpc_fd);
-	};
-}
+struct Genode::Linux_dataspace : Dataspace
+{
+	enum { FNAME_LEN = 64 };
+	struct Filename { char buf[FNAME_LEN]; };
+
+	virtual ~Linux_dataspace() { }
+
+	/**
+	 * Request name of file that represents the dataspace on Linux
+	 *
+	 * This function is used for calling execve on files passed as ROM
+	 * dataspaces.
+	 */
+	virtual Filename fname() = 0;
+
+	/**
+	 * Request file descriptor of the dataspace
+	 */
+	virtual Untyped_capability fd() = 0;
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+
+	GENODE_RPC(Rpc_fname, Filename, fname);
+	GENODE_RPC(Rpc_fd, Untyped_capability, fd);
+	GENODE_RPC_INTERFACE_INHERIT(Dataspace, Rpc_fname, Rpc_fd);
+};
 
 #endif /* _INCLUDE__LINUX_DATASPACE__LINUX_DATASPACE_H_ */

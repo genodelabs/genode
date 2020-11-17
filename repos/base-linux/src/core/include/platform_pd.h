@@ -2,8 +2,6 @@
  * \brief  Linux protection domain facility
  * \author Norman Feske
  * \date   2006-06-13
- *
- * Pretty dumb.
  */
 
 /*
@@ -23,6 +21,7 @@ namespace Genode {
 	struct Platform_pd;
 	struct Platform_thread;
 }
+
 
 struct Genode::Platform_pd
 {

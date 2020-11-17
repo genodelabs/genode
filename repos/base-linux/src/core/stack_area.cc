@@ -92,18 +92,16 @@ struct Stack_area_ram_allocator : Genode::Ram_allocator
 /**
  * Return single instance of the stack-area RM and RAM session
  */
-namespace Genode {
 
-	Region_map    *env_stack_area_region_map;
-	Ram_allocator *env_stack_area_ram_allocator;
+Genode::Region_map    *Genode::env_stack_area_region_map;
+Genode::Ram_allocator *Genode::env_stack_area_ram_allocator;
 
-	void init_stack_area()
-	{
-		static Stack_area_region_map rm_inst;
-		env_stack_area_region_map = &rm_inst;
+void Genode::init_stack_area()
+{
+	static Stack_area_region_map rm_inst;
+	env_stack_area_region_map = &rm_inst;
 
-		static Stack_area_ram_allocator ram_inst;
-		env_stack_area_ram_allocator = &ram_inst;
-	}
+	static Stack_area_ram_allocator ram_inst;
+	env_stack_area_ram_allocator = &ram_inst;
 }
 

@@ -16,22 +16,11 @@
 #include <base/service.h>
 
 /* core includes */
-#include <core_env.h>
-#include <platform.h>
 #include <platform_services.h>
-#include <io_port_root.h>
 
-#include <core_linux_syscalls.h>
 
-/**
- * Add x86 specific ioport service
- */
-
-namespace Genode
-{
-    void platform_add_local_services(Rpc_entrypoint         &,
-                                     Sliced_heap            &,
-                                     Registry<Service>      &,
-                                     Trace::Source_registry &)
-    { }
-}
+void Genode::platform_add_local_services(Rpc_entrypoint         &,
+                                         Sliced_heap            &,
+                                         Registry<Service>      &,
+                                         Trace::Source_registry &)
+{ }

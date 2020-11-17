@@ -39,10 +39,10 @@ using namespace Genode;
  */
 struct Execve_args
 {
-	char         const *filename;
-	char       * const *argv;
-	char       * const *envp;
-	Lx_sd        const parent_sd;
+	char   const *filename;
+	char * const *argv;
+	char * const *envp;
+	Lx_sd  const parent_sd;
 
 	Execve_args(char   const *filename,
 	            char * const *argv,

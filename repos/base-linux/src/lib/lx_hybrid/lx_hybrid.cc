@@ -79,24 +79,30 @@ static Genode::Env *_env_ptr;
 
 
 namespace Genode {
+
 	extern void bootstrap_component();
 	extern void call_global_static_constructors();
 
-	/*
-	 * This function is normally provided by the cxx library, which is not
-	 * used for lx_hybrid programs. For lx_hybrid programs, the exception
-	 * handling is initialized by the host system's regular startup code.
-	 *
-	 * However, we conveniently use this function to get hold of the
-	 * component's environment and initialize the default log output.
-	 */
-	void init_exception_handling(Env &env)
-	{
-		_env_ptr = &env;
-
-		init_log(env.parent());
-	}
+	struct Thread_meta_data_created;
+	struct Thread_meta_data_adopted;
 }
+
+
+/*
+ * This function is normally provided by the cxx library, which is not
+ * used for lx_hybrid programs. For lx_hybrid programs, the exception
+ * handling is initialized by the host system's regular startup code.
+ *
+ * However, we conveniently use this function to get hold of the
+ * component's environment and initialize the default log output.
+ */
+void Genode::init_exception_handling(Env &env)
+{
+	_env_ptr = &env;
+
+	init_log(env.parent());
+}
+
 
 /*
  * Static constructors are handled by the Linux startup code - so implement
@@ -104,11 +110,13 @@ namespace Genode {
  */
 void Genode::call_global_static_constructors() { }
 
+
 Genode::size_t Component::stack_size() __attribute__((weak));
 Genode::size_t Component::stack_size()
 {
 	return 16UL * 1024 * sizeof(Genode::addr_t);
 }
+
 
 /*
  * Hybrid components are not allowed to implement legacy main(). This enables
@@ -184,165 +192,164 @@ static pthread_key_t tls_key()
 }
 
 
-namespace Genode {
+/**
+ * Meta data tied to the thread via the pthread TLS mechanism
+ */
+struct Genode::Native_thread::Meta_data
+{
+	/**
+	 * Linux-specific thread meta data
+	 *
+	 * For non-hybrid programs, this information is located at the
+	 * 'Stack'. But the POSIX threads of hybrid programs have no 'Stack'
+	 * object. So we have to keep the meta data here.
+	 */
+	Native_thread native_thread { };
 
 	/**
-	 * Meta data tied to the thread via the pthread TLS mechanism
+	 * Filled out by 'thread_start' function in the stack of the new
+	 * thread
 	 */
-	struct Native_thread::Meta_data
+	Thread &thread_base;
+
+	/**
+	 * POSIX thread handle
+	 */
+	pthread_t pt { };
+
+	/**
+	 * Constructor
+	 *
+	 * \param thread  associated 'Thread' object
+	 */
+	Meta_data(Thread *thread) : thread_base(*thread)
 	{
-		/**
-		 * Linux-specific thread meta data
-		 *
-		 * For non-hybrid programs, this information is located at the
-		 * 'Stack'. But the POSIX threads of hybrid programs have no 'Stack'
-		 * object. So we have to keep the meta data here.
-		 */
-		Native_thread native_thread { };
+		native_thread.meta_data = this;
+	}
 
-		/**
-		 * Filled out by 'thread_start' function in the stack of the new
-		 * thread
-		 */
-		Thread &thread_base;
+	virtual ~Meta_data() { }
 
-		/**
-		 * POSIX thread handle
-		 */
-		pthread_t pt { };
+	/**
+	 * Used to block the constructor until the new thread has initialized
+	 * 'id'
+	 */
+	virtual void wait_for_construction() = 0;
+	virtual void constructed() = 0;
 
-		/**
-		 * Constructor
-		 *
-		 * \param thread  associated 'Thread' object
-		 */
-		Meta_data(Thread *thread) : thread_base(*thread)
-		{
-			native_thread.meta_data = this;
-		}
+	/**
+	 * Used to block the new thread until 'start' is called
+	 */
+	virtual void wait_for_start() = 0;
+	virtual void started() = 0;
 
-		virtual ~Meta_data() { }
+	/**
+	 * Used to block the 'join()' function until the 'entry()' is done
+	 */
+	virtual void wait_for_join() = 0;
+	virtual void joined() = 0;
+};
+
+
+/**
+ * Thread meta data for a thread created by Genode
+ */
+class Genode::Thread_meta_data_created : public Native_thread::Meta_data
+{
+	private:
 
 		/**
 		 * Used to block the constructor until the new thread has initialized
 		 * 'id'
 		 */
-		virtual void wait_for_construction() = 0;
-		virtual void constructed() = 0;
+		Blockade _construct_lock { };
 
 		/**
 		 * Used to block the new thread until 'start' is called
 		 */
-		virtual void wait_for_start() = 0;
-		virtual void started() = 0;
+		Blockade _start_lock { };
 
 		/**
 		 * Used to block the 'join()' function until the 'entry()' is done
 		 */
-		virtual void wait_for_join() = 0;
-		virtual void joined() = 0;
-	};
+		Blockade _join_lock { };
 
-	/**
-	 * Thread meta data for a thread created by Genode
-	 */
-	class Thread_meta_data_created : public Native_thread::Meta_data
-	{
-		private:
+	public:
 
-			/**
-			 * Used to block the constructor until the new thread has initialized
-			 * 'id'
-			 */
-			Blockade _construct_lock { };
+		Thread_meta_data_created(Thread *thread)
+		: Native_thread::Meta_data(thread) { }
 
-			/**
-			 * Used to block the new thread until 'start' is called
-			 */
-			Blockade _start_lock { };
+		void wait_for_construction() override
+		{
+			_construct_lock.block();
+		}
 
-			/**
-			 * Used to block the 'join()' function until the 'entry()' is done
-			 */
-			Blockade _join_lock { };
+		void constructed() override
+		{
+			_construct_lock.wakeup();
+		}
 
-		public:
+		void wait_for_start() override
+		{
+			_start_lock.block();
+		}
 
-			Thread_meta_data_created(Thread *thread)
-			: Native_thread::Meta_data(thread) { }
+		void started() override
+		{
+			_start_lock.wakeup();
+		}
 
-			void wait_for_construction() override
-			{
-				_construct_lock.block();
-			}
+		void wait_for_join() override
+		{
+			_join_lock.block();
+		}
 
-			void constructed() override
-			{
-				_construct_lock.wakeup();
-			}
+		void joined() override
+		{
+			_join_lock.wakeup();
+		}
+};
 
-			void wait_for_start() override
-			{
-				_start_lock.block();
-			}
 
-			void started() override
-			{
-				_start_lock.wakeup();
-			}
+/**
+ * Thread meta data for an adopted thread
+ */
+class Genode::Thread_meta_data_adopted : public Native_thread::Meta_data
+{
+	public:
 
-			void wait_for_join() override
-			{
-				_join_lock.block();
-			}
+		Thread_meta_data_adopted(Thread *thread)
+		: Native_thread::Meta_data(thread) { }
 
-			void joined() override
-			{
-				_join_lock.wakeup();
-			}
-	};
+		void wait_for_construction() override
+		{
+			error("wait_for_construction() called for an adopted thread");
+		}
 
-	/**
-	 * Thread meta data for an adopted thread
-	 */
-	class Thread_meta_data_adopted : public Native_thread::Meta_data
-	{
-		public:
+		void constructed() override
+		{
+			error("constructed() called for an adopted thread");
+		}
 
-			Thread_meta_data_adopted(Thread *thread)
-			: Native_thread::Meta_data(thread) { }
+		void wait_for_start() override
+		{
+			error("wait_for_start() called for an adopted thread");
+		}
 
-			void wait_for_construction() override
-			{
-				error("wait_for_construction() called for an adopted thread");
-			}
+		void started() override
+		{
+			error("started() called for an adopted thread");
+		}
 
-			void constructed() override
-			{
-				error("constructed() called for an adopted thread");
-			}
+		void wait_for_join() override
+		{
+			error("wait_for_join() called for an adopted thread");
+		}
 
-			void wait_for_start() override
-			{
-				error("wait_for_start() called for an adopted thread");
-			}
-
-			void started() override
-			{
-				error("started() called for an adopted thread");
-			}
-
-			void wait_for_join() override
-			{
-				error("wait_for_join() called for an adopted thread");
-			}
-
-			void joined() override
-			{
-				error("joined() called for an adopted thread");
-			}
-	};
-}
+		void joined() override
+		{
+			error("joined() called for an adopted thread");
+		}
+};
 
 
 static void adopt_thread(Native_thread::Meta_data *meta_data)

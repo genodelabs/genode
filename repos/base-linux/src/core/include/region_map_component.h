@@ -2,8 +2,6 @@
  * \brief  Core-specific instance of the region-map interface
  * \author Christian Helmuth
  * \date   2006-07-17
- *
- * Dummies for Linux platform
  */
 
 /*
@@ -75,8 +73,8 @@ struct Genode::Rm_client : Pager_object
 {
 	Rm_client(Cpu_session_capability, Thread_capability,
 	          Region_map_component &, unsigned long,
-	          Affinity::Location, Cpu_session::Name const&,
-	          Session_label const&)
+	          Affinity::Location, Cpu_session::Name const &,
+	          Session_label const &)
 	{ }
 };
 

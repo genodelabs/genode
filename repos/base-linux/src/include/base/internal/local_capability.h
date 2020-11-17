@@ -4,7 +4,7 @@
  * \author Stefan Kalkowski
  * \date   2011-05-22
  *
- * A typed capability is a capability tied to one specifiec RPC interface
+ * A typed capability is a capability tied to one specifiec RPC interface.
  */
 
 /*

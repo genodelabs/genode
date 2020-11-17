@@ -20,7 +20,6 @@
 #include <linux_native_cpu/linux_native_cpu.h>
 
 namespace Genode {
-
 	class Cpu_session_component;
 	class Native_cpu_component;
 }
@@ -37,6 +36,7 @@ class Genode::Native_cpu_component : public Rpc_object<Linux_native_cpu,
 	public:
 
 		Native_cpu_component(Cpu_session_component &, char const *);
+
 		~Native_cpu_component();
 
 		void thread_id(Thread_capability, int, int) override;

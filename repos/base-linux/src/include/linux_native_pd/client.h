@@ -19,6 +19,7 @@
 
 namespace Genode { struct Linux_native_pd_client; }
 
+
 struct Genode::Linux_native_pd_client : Rpc_client<Linux_native_pd>
 {
 	explicit Linux_native_pd_client(Capability<Native_pd> cap)

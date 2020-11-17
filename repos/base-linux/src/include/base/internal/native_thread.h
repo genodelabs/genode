@@ -21,6 +21,7 @@
 
 namespace Genode { struct Native_thread; }
 
+
 class Genode::Native_thread
 {
 	private:

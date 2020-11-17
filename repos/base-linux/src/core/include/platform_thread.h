@@ -2,8 +2,6 @@
  * \brief  Linux thread facility
  * \author Norman Feske
  * \date   2006-06-13
- *
- * Pretty dumb.
  */
 
 /*
@@ -25,135 +23,133 @@
 /* core includes */
 #include <pager.h>
 
-namespace Genode {
+namespace Genode { class Platform_thread; }
 
-	class Platform_thread;
 
-	/*
-	 * We hold all Platform_thread objects in a list in order to be able to
-	 * reflect SIGCHLD as exception signals. When a SIGCHILD occurs, we
-	 * determine the PID of the terminated child process via 'wait4'. We use
-	 * the list to find the 'Platform_thread' matching the TID, wherei, in
-	 * turn, we find the exception handler's 'Signal_context_capability'.
-	 */
+/*
+ * We hold all Platform_thread objects in a list in order to be able to
+ * reflect SIGCHLD as exception signals. When a SIGCHILD occurs, we
+ * determine the PID of the terminated child process via 'wait4'. We use
+ * the list to find the 'Platform_thread' matching the TID, wherei, in
+ * turn, we find the exception handler's 'Signal_context_capability'.
+ */
 
-	class Platform_thread : public List<Platform_thread>::Element
-	{
-		private:
+class Genode::Platform_thread : public List<Platform_thread>::Element
+{
+	private:
 
-			struct Registry
-			{
-				Mutex                 _mutex { };
-				List<Platform_thread> _list  { };
+		struct Registry
+		{
+			Mutex                 _mutex { };
+			List<Platform_thread> _list  { };
 
-				void insert(Platform_thread *thread);
-				void remove(Platform_thread *thread);
-
-				/**
-				 * Trigger exception handler for 'Platform_thread' with matching PID.
-				 */
-				void submit_exception(unsigned long pid);
-			};
+			void insert(Platform_thread *thread);
+			void remove(Platform_thread *thread);
 
 			/**
-			 * Return singleton instance of 'Platform_thread::Registry'
+			 * Trigger exception handler for 'Platform_thread' with matching PID.
 			 */
-			static Registry &_registry();
+			void submit_exception(unsigned long pid);
+		};
 
-			unsigned long _tid = -1;
-			unsigned long _pid = -1;
-			char          _name[32] { };
+		/**
+		 * Return singleton instance of 'Platform_thread::Registry'
+		 */
+		static Registry &_registry();
 
-			/*
-			 * Dummy pager object that is solely used for storing the
-			 * 'Signal_context_capability' for the thread's exception handler.
-			 */
-			Pager_object _pager { };
+		unsigned long _tid = -1;
+		unsigned long _pid = -1;
+		char          _name[32] { };
 
-		public:
+		/*
+		 * Dummy pager object that is solely used for storing the
+		 * 'Signal_context_capability' for the thread's exception handler.
+		 */
+		Pager_object _pager { };
 
-			/**
-			 * Constructor
-			 */
-			Platform_thread(size_t, const char *name, unsigned priority,
-			                Affinity::Location, addr_t);
+	public:
 
-			~Platform_thread();
+		/**
+		 * Constructor
+		 */
+		Platform_thread(size_t, const char *name, unsigned priority,
+		                Affinity::Location, addr_t);
 
-			/**
-			 * Pause this thread
-			 */
-			void pause();
+		~Platform_thread();
 
-			/**
-			 * Enable/disable single stepping
-			 */
-			void single_step(bool) { }
+		/**
+		 * Pause this thread
+		 */
+		void pause();
 
-			/**
-			 * Resume this thread
-			 */
-			void resume();
+		/**
+		 * Enable/disable single stepping
+		 */
+		void single_step(bool) { }
 
-			/**
-			 * Dummy implementation of platform-thread interface
-			 */
-			Pager_object &pager() { return _pager; }
-			void          pager(Pager_object &) { }
-			int           start(void *, void *) { return 0; }
+		/**
+		 * Resume this thread
+		 */
+		void resume();
 
-			Thread_state state()
-			{
-				warning("Not implemented");
-				throw Cpu_thread::State_access_failed();
-			}
+		/**
+		 * Dummy implementation of platform-thread interface
+		 */
+		Pager_object &pager() { return _pager; }
+		void          pager(Pager_object &) { }
+		int           start(void *, void *) { return 0; }
 
-			void state(Thread_state)
-			{
-				warning("Not implemented");
-				throw Cpu_thread::State_access_failed();
-			}
+		Thread_state state()
+		{
+			warning("Not implemented");
+			throw Cpu_thread::State_access_failed();
+		}
 
-			const char   *name() { return _name; }
+		void state(Thread_state)
+		{
+			warning("Not implemented");
+			throw Cpu_thread::State_access_failed();
+		}
 
-			/**
-			 * Set the executing CPU for this thread
-			 *
-			 * SMP is currently not directly supported on Genode/Linux
-			 * (but indirectly by the Linux kernel).
-			 */
-			void affinity(Affinity::Location) { }
+		const char   *name() { return _name; }
 
-			/**
-			 * Request the affinity of this thread
-			 */
-			Affinity::Location affinity() const { return Affinity::Location(); }
+		/**
+		 * Set the executing CPU for this thread
+		 *
+		 * SMP is currently not directly supported on Genode/Linux
+		 * (but indirectly by the Linux kernel).
+		 */
+		void affinity(Affinity::Location) { }
 
-			/**
-			 * Register process ID and thread ID of thread
-			 */
-			void thread_id(int pid, int tid) { _pid = pid, _tid = tid; }
+		/**
+		 * Request the affinity of this thread
+		 */
+		Affinity::Location affinity() const { return Affinity::Location(); }
 
-			/**
-			 * Notify Genode::Signal handler about sigchld
-			 */
-			static void submit_exception(int pid)
-			{
-				_registry().submit_exception(pid);
-			}
+		/**
+		 * Register process ID and thread ID of thread
+		 */
+		void thread_id(int pid, int tid) { _pid = pid, _tid = tid; }
 
-			/**
-			 * Set CPU quota of the thread to 'quota'
-			 */
-			void quota(size_t const) { /* not supported*/ }
+		/**
+		 * Notify Genode::Signal handler about sigchld
+		 */
+		static void submit_exception(int pid)
+		{
+			_registry().submit_exception(pid);
+		}
 
-			/**
-			 * Return execution time consumed by the thread
-			 */
-			Trace::Execution_time execution_time() const { return { 0, 0 }; }
+		/**
+		 * Set CPU quota of the thread to 'quota'
+		 */
+		void quota(size_t const) { /* not supported*/ }
 
-			unsigned long pager_object_badge() const { return 0; }
-	};
-}
+		/**
+		 * Return execution time consumed by the thread
+		 */
+		Trace::Execution_time execution_time() const { return { 0, 0 }; }
+
+		unsigned long pager_object_badge() const { return 0; }
+};
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

@@ -21,7 +21,6 @@
 #include <linux_syscalls.h>
 #include <base/internal/elf.h>
 
-
 using namespace Genode;
 
 

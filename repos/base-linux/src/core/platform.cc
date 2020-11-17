@@ -27,7 +27,6 @@
 /* Linux includes */
 #include <core_linux_syscalls.h>
 
-
 using namespace Genode;
 
 
@@ -88,7 +87,8 @@ static void sigchld_handler(int)
 
 
 Platform::Platform()
-: _core_mem_alloc(nullptr)
+:
+	_core_mem_alloc(nullptr)
 {
 	/* make 'mmap' behave deterministically */
 	lx_disable_aslr();

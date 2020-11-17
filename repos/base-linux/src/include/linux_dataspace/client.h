@@ -19,30 +19,30 @@
 #include <base/rpc_client.h>
 #include <util/string.h>
 
-namespace Genode {
-
-	struct Linux_dataspace_client : Rpc_client<Linux_dataspace>
-	{
-		explicit Linux_dataspace_client(Dataspace_capability ds)
-		: Rpc_client<Linux_dataspace>(static_cap_cast<Linux_dataspace>(ds)) { }
+namespace Genode { struct Linux_dataspace_client; }
 
 
-		/*********************************
-		 ** Generic dataspace interface **
-		 *********************************/
-
-		size_t size()      override { return call<Rpc_size>();      }
-		addr_t phys_addr() override { return call<Rpc_phys_addr>(); }
-		bool   writable()  override { return call<Rpc_writable>();  }
+struct Genode::Linux_dataspace_client : Rpc_client<Linux_dataspace>
+{
+	explicit Linux_dataspace_client(Dataspace_capability ds)
+	: Rpc_client<Linux_dataspace>(static_cap_cast<Linux_dataspace>(ds)) { }
 
 
-		/****************************************
-		 ** Linux-specific dataspace interface **
-		 ****************************************/
+	/*********************************
+	 ** Generic dataspace interface **
+	 *********************************/
 
-		Filename           fname() override { return call<Rpc_fname>(); }
-		Untyped_capability fd()    override { return call<Rpc_fd>(); }
-	};
-}
+	size_t size()      override { return call<Rpc_size>();      }
+	addr_t phys_addr() override { return call<Rpc_phys_addr>(); }
+	bool   writable()  override { return call<Rpc_writable>();  }
+
+
+	/****************************************
+	 ** Linux-specific dataspace interface **
+	 ****************************************/
+
+	Filename           fname() override { return call<Rpc_fname>(); }
+	Untyped_capability fd()    override { return call<Rpc_fd>(); }
+};
 
 #endif /* _INCLUDE__LINUX_DATASPACE__CLIENT_H_ */

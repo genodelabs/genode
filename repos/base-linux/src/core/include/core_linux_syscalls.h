@@ -79,6 +79,7 @@ inline int lx_iopl(int level)
 }
 #endif
 
+
 /**************************************************
  ** Functions used by core's io mem session code **
  **************************************************/
@@ -260,6 +261,5 @@ inline int lx_read(int fd, void *buf, Genode::size_t count)
 {
 	return lx_syscall(SYS_read, fd, buf, count);
 }
-
 
 #endif /* _CORE__INCLUDE__CORE_LINUX_SYSCALLS_H_ */
