@@ -1861,6 +1861,7 @@ void Interface::_update_icmp_links(Domain &cln_dom)
 void Interface::_update_dhcp_allocations(Domain &old_domain,
                                          Domain &new_domain)
 {
+	bool dhcp_clients_outdated { false };
 	try {
 		Dhcp_server &old_dhcp_srv = old_domain.dhcp_server();
 		Dhcp_server &new_dhcp_srv = new_domain.dhcp_server();
@@ -1890,6 +1891,7 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 				}
 			}
 			/* dismiss DHCP allocation */
+			dhcp_clients_outdated = true;
 			_dhcp_allocations.remove(allocation);
 			_destroy_dhcp_allocation(allocation, old_domain);
 		});
@@ -1897,6 +1899,7 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 	catch (Pointer<Dhcp_server>::Invalid) {
 
 		/* dismiss all DHCP allocations */
+		dhcp_clients_outdated = true;
 		while (Dhcp_allocation *allocation = _dhcp_allocations.first()) {
 			if (_config().verbose()) {
 				log("[", new_domain, "] dismiss DHCP allocation: ",
@@ -1905,6 +1908,10 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 			_dhcp_allocations.remove(*allocation);
 			_destroy_dhcp_allocation(*allocation, old_domain);
 		}
+	}
+	if (dhcp_clients_outdated) {
+		_policy.interface_unready();
+		_policy.interface_ready();
 	}
 }
 
