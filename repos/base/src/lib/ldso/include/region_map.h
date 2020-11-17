@@ -28,7 +28,10 @@
 /* local includes */
 #include <linker.h>
 
-namespace Linker { class Region_map; }
+namespace Linker {
+	extern bool verbose;
+	class Region_map;
+}
 
 
 /**
@@ -57,6 +60,11 @@ class Linker::Region_map
 			_base((addr_t)_env.rm().attach_at(_rm.dataspace(), base))
 		{
 			_range.add_range(base, Pd_session::LINKER_AREA_SIZE);
+
+			if (Linker::verbose)
+				log("  ",   Hex(base),
+				    " .. ", Hex(base + Pd_session::LINKER_AREA_SIZE - 1),
+				    ": linker area");
 		}
 
 	public:
