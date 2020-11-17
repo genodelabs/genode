@@ -193,6 +193,7 @@ void Ssh::Server::_cleanup_session(Session &s)
 	ssh_channel_free(s.channel);
 	s.channel = nullptr;
 
+	ssh_blocking_flush(s.session, 5*1000);
 	ssh_event_remove_session(_event_loop, s.session);
 	ssh_disconnect(s.session);
 	ssh_free(s.session);
