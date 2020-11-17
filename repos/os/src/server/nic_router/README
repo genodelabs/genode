@@ -517,6 +517,46 @@ When set to zero, the limit is deactivated, meaning that the router always
 handles all available packets of a NIC session.
 
 
+Behavior regarding the NIC-session link state
+---------------------------------------------
+
+At downlinks, the NIC router applies a feedback-driven state machine for the
+link state in order to ensure that clients recognize state transitions. This
+means that the NIC router guarantees that a new link state remains fixed until
+the client has read it using the corresponding RPC at the NIC-session
+interface. If, in the meantime, further "up" and "down" edges occur, they are
+memorized and executed as soon as the former state has been read by the
+client. Such postponed link state edges are merged in a way that they result in
+two contrary edges at a max. The following diagrams demonstrate this:
+
+
+! client reads:      0         1      0       1    0          1
+!                         _____        _______           _________________
+! client link state: ____|     |______|       |_________|
+!                         _       __________             _________________
+! real link state:   ____| |_____|          |___________|
+!
+!                    time --->
+
+
+! client reads:      0          1      0     1                0     1
+!                         ______        _____________          _____
+! client link state: ____|      |______|             |________|     |_____
+!                         _   _______________________   _   _   _
+! real link state:   ____| |_|                       |_| |_| |_| |________
+!
+!                    time --->
+
+
+! client reads:      0            1      0          1           0     1
+!                         ________              _________        __________
+! client link state: ____|        |____________|         |______|
+!                         _   __                _________   _   ___________
+! real link state:   ____| |_|  |______________|         |_| |_|
+!
+!                    time --->
+
+
 Examples
 ~~~~~~~~
 

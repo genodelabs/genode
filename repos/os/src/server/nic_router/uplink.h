@@ -104,8 +104,10 @@ class Net::Uplink_interface_base : public Interface_policy
 {
 	private:
 
-		Const_reference<Domain_name> _domain_name;
-		Genode::Session_label  const _label;
+		Const_reference<Domain_name>  _domain_name;
+		Genode::Session_label  const  _label;
+		bool                   const &_session_link_state;
+		bool                          _interface_ready { false };
 
 
 		/***************************
@@ -115,11 +117,15 @@ class Net::Uplink_interface_base : public Interface_policy
 		Domain_name determine_domain_name() const override { return _domain_name(); };
 		void handle_config(Configuration const &) override { }
 		Genode::Session_label const &label() const override { return _label; }
+		void interface_unready() override;
+		void interface_ready() override;
+		bool interface_link_state() const override;
 
 	public:
 
 		Uplink_interface_base(Domain_name           const &domain_name,
-		                      Genode::Session_label const &label);
+		                      Genode::Session_label const &label,
+		                      bool                  const &session_link_state);
 
 		virtual ~Uplink_interface_base() { }
 
@@ -143,13 +149,13 @@ class Net::Uplink_interface : public Uplink_interface_base,
 			BUF_SIZE = Nic::Session::QUEUE_SIZE * PKT_SIZE,
 		};
 
-		bool                                     _link_state { false };
-		Genode::Signal_handler<Uplink_interface> _link_state_handler;
+		bool                                     _session_link_state { false };
+		Genode::Signal_handler<Uplink_interface> _session_link_state_handler;
 		Net::Interface                           _interface;
 
 		Ipv4_address_prefix _read_interface();
 
-		void _handle_link_state();
+		void _handle_session_link_state();
 
 	public:
 

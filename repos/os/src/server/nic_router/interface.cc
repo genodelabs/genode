@@ -318,7 +318,7 @@ Interface::_transport_rules(Domain &local_domain, L3_protocol const prot) const
 void Interface::_attach_to_domain_raw(Domain &domain)
 {
 	_domain = domain;
-	Signal_transmitter(_session_link_state_sigh).submit();
+	_policy.interface_ready();
 	_interfaces.remove(this);
 	domain.attach_interface(*this);
 }
@@ -330,7 +330,7 @@ void Interface::_detach_from_domain_raw()
 	domain.detach_interface(*this);
 	_interfaces.insert(this);
 	_domain = Pointer<Domain>();
-	Signal_transmitter(_session_link_state_sigh).submit();
+	_policy.interface_unready();
 
 	domain.tcp_stats().dissolve_interface(_tcp_stats);
 	domain.udp_stats().dissolve_interface(_udp_stats);
@@ -347,7 +347,7 @@ void Interface::_update_domain_object(Domain &new_domain) {
 	old_domain.interface_updates_domain_object(*this);
 	_interfaces.insert(this);
 	_domain = Pointer<Domain>();
-	Signal_transmitter(_session_link_state_sigh).submit();
+	_policy.interface_unready();
 
 	old_domain.tcp_stats().dissolve_interface(_tcp_stats);
 	old_domain.udp_stats().dissolve_interface(_udp_stats);
@@ -357,7 +357,7 @@ void Interface::_update_domain_object(Domain &new_domain) {
 
 	/* attach raw */
 	_domain = new_domain;
-	Signal_transmitter(_session_link_state_sigh).submit();
+	_policy.interface_ready();
 	_interfaces.remove(this);
 	new_domain.attach_interface(*this);
 }
@@ -408,12 +408,6 @@ void Interface::attach_to_ip_config(Domain            &domain,
 }
 
 
-void Interface::session_link_state_sigh(Signal_context_capability sigh)
-{
-	_session_link_state_sigh = sigh;
-}
-
-
 void Interface::detach_from_ip_config()
 {
 	/* destroy our own ARP waiters */
@@ -440,14 +434,15 @@ void Interface::detach_from_ip_config()
 void Interface::detach_from_remote_ip_config()
 {
 	/* only the DNS server address of the local DHCP server can be remote */
-	Signal_transmitter(_session_link_state_sigh).submit();
+	_policy.interface_unready();
+
 }
 
 
 void Interface::attach_to_remote_ip_config()
 {
 	/* only the DNS server address of the local DHCP server can be remote */
-	Signal_transmitter(_session_link_state_sigh).submit();
+	_policy.interface_ready();
 }
 
 
@@ -876,11 +871,11 @@ void Interface::_send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf
 
 bool Interface::link_state() const
 {
-	return _domain.valid() && _session_link_state;
+	return _policy.interface_link_state();
 }
 
 
-void Interface::handle_link_state()
+void Interface::handle_interface_link_state()
 {
 	struct Keep_ip_config : Exception { };
 	try {
@@ -900,7 +895,7 @@ void Interface::handle_link_state()
 	catch (Keep_ip_config) { }
 
 	/* force report if configured */
-	try { _config().report().handle_link_state(); }
+	try { _config().report().handle_interface_link_state(); }
 	catch (Pointer<Report>::Invalid) { }
 }
 
@@ -1713,12 +1708,10 @@ Interface::Interface(Genode::Entrypoint     &ep,
                      Interface_list         &interfaces,
                      Packet_stream_sink     &sink,
                      Packet_stream_source   &source,
-                     bool                   &session_link_state,
                      Interface_policy       &policy)
 :
 	_sink               { sink },
 	_source             { source },
-	_session_link_state { session_link_state },
 	_sink_ack           { ep, *this, &Interface::_ack_avail },
 	_sink_submit        { ep, *this, &Interface::_ready_to_submit },
 	_source_ack         { ep, *this, &Interface::_ready_to_ack },

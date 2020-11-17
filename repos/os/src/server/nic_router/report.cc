@@ -90,7 +90,7 @@ void Net::Report::handle_config()
 	_report();
 }
 
-void Net::Report::handle_link_state()
+void Net::Report::handle_interface_link_state()
 {
 	if (!_link_state_triggers) {
 		return; }

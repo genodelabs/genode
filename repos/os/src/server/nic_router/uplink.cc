@@ -112,11 +112,31 @@ void Net::Uplink::print(Output &output) const
  ***************************/
 
 Net::Uplink_interface_base::Uplink_interface_base(Domain_name   const &domain_name,
-                                                  Session_label const &label)
+                                                  Session_label const &label,
+                                                  bool          const &session_link_state)
 :
-	_domain_name { domain_name },
-	_label       { label }
+	_domain_name        { domain_name },
+	_label              { label },
+	_session_link_state { session_link_state }
 { }
+
+
+void Net::Uplink_interface_base::interface_unready()
+{
+	_interface_ready = false;
+};
+
+
+void Net::Uplink_interface_base::interface_ready()
+{
+	_interface_ready = true;
+};
+
+
+bool Net::Uplink_interface_base::interface_link_state() const
+{
+	return _interface_ready && _session_link_state;
+}
 
 
 /**********************
@@ -131,14 +151,14 @@ Net::Uplink_interface::Uplink_interface(Env                 &env,
                                         Domain_name   const &domain_name,
                                         Session_label const &label)
 :
-	Uplink_interface_base { domain_name, label },
-	Nic::Packet_allocator { &alloc },
-	Nic::Connection       { env, this, BUF_SIZE, BUF_SIZE, label.string() },
-	_link_state_handler   { env.ep(), *this,
-	                        &Uplink_interface::_handle_link_state },
-	_interface            { env.ep(), timer, mac_address(), alloc,
-	                        Mac_address(), config, interfaces, *rx(), *tx(),
-	                        _link_state, *this }
+	Uplink_interface_base       { domain_name, label, _session_link_state },
+	Nic::Packet_allocator       { &alloc },
+	Nic::Connection             { env, this, BUF_SIZE, BUF_SIZE, label.string() },
+	_session_link_state_handler { env.ep(), *this,
+	                              &Uplink_interface::_handle_session_link_state },
+	_interface                  { env.ep(), timer, mac_address(), alloc,
+	                              Mac_address(), config, interfaces, *rx(), *tx(),
+	                              *this }
 {
 	/* install packet stream signal handlers */
 	rx_channel()->sigh_ready_to_ack   (_interface.sink_ack());
@@ -147,13 +167,13 @@ Net::Uplink_interface::Uplink_interface(Env                 &env,
 	tx_channel()->sigh_ready_to_submit(_interface.source_submit());
 
 	/* initialize link state handling */
-	Nic::Connection::link_state_sigh(_link_state_handler);
-	_link_state = link_state();
+	Nic::Connection::link_state_sigh(_session_link_state_handler);
+	_session_link_state = Nic::Connection::link_state();
 }
 
 
-void Net::Uplink_interface::_handle_link_state()
+void Net::Uplink_interface::_handle_session_link_state()
 {
-	_link_state = link_state();
-	_interface.handle_link_state();
+	_session_link_state = Nic::Connection::link_state();
+	_interface.handle_interface_link_state();
 }

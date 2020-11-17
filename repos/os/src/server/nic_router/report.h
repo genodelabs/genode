@@ -75,7 +75,7 @@ class Net::Report
 
 		void handle_config();
 
-		void handle_link_state();
+		void handle_interface_link_state();
 
 
 		/***************

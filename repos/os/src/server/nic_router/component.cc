@@ -63,7 +63,9 @@ Interface_policy::Interface_policy(Genode::Session_label const &label,
 	_label       { label },
 	_config      { config },
 	_session_env { session_env }
-{ }
+{
+	_session_link_state_transition(UP);
+}
 
 
 Domain_name
@@ -88,6 +90,153 @@ Net::Session_component::Interface_policy::determine_domain_name() const
 }
 
 
+void Net::Session_component::
+Interface_policy::_session_link_state_transition(Transient_link_state tls)
+{
+	_transient_link_state = tls;
+	Signal_transmitter(_session_link_state_sigh).submit();
+}
+
+
+void Net::Session_component::Interface_policy::interface_unready()
+{
+	switch (_transient_link_state) {
+	case UP_ACKNOWLEDGED:
+
+		_session_link_state_transition(DOWN);
+		break;
+
+	case UP:
+
+		_transient_link_state = UP_DOWN;
+		break;
+
+	case DOWN_UP:
+
+		_transient_link_state = DOWN_UP_DOWN;
+		break;
+
+	case UP_DOWN:
+
+		break;
+
+	case UP_DOWN_UP:
+
+		_transient_link_state = UP_DOWN;
+		break;
+
+	case DOWN_ACKNOWLEDGED: break;
+	case DOWN:              break;
+	case DOWN_UP_DOWN:      break;
+	}
+}
+
+
+void Net::Session_component::Interface_policy::interface_ready()
+{
+	switch (_transient_link_state) {
+	case DOWN_ACKNOWLEDGED:
+
+		_session_link_state_transition(UP);
+		break;
+
+	case DOWN:
+
+		_transient_link_state = DOWN_UP;
+		break;
+
+	case UP_DOWN:
+
+		_transient_link_state = UP_DOWN_UP;
+		break;
+
+	case DOWN_UP:
+
+		break;
+
+	case DOWN_UP_DOWN:
+
+		_transient_link_state = DOWN_UP;
+		break;
+
+	case UP_ACKNOWLEDGED: break;
+	case UP:              break;
+	case UP_DOWN_UP:      break;
+	}
+}
+
+bool
+Net::Session_component::Interface_policy::interface_link_state() const
+{
+	switch (_transient_link_state) {
+	case DOWN_ACKNOWLEDGED: return false;
+	case DOWN:              return false;
+	case DOWN_UP:           return true;
+	case DOWN_UP_DOWN:      return false;
+	case UP_ACKNOWLEDGED:   return true;
+	case UP:                return true;
+	case UP_DOWN:           return false;
+	case UP_DOWN_UP:        return true;
+	}
+	class Never_reached : Exception { };
+	throw Never_reached { };
+}
+
+
+bool
+Net::Session_component::Interface_policy::read_and_ack_session_link_state()
+{
+	switch (_transient_link_state) {
+	case DOWN_ACKNOWLEDGED:
+
+		return false;
+
+	case DOWN:
+
+		_transient_link_state = DOWN_ACKNOWLEDGED;
+		return false;
+
+	case DOWN_UP:
+
+		_session_link_state_transition(UP);
+		return false;
+
+	case DOWN_UP_DOWN:
+
+		_session_link_state_transition(UP_DOWN);
+		return false;
+
+	case UP_ACKNOWLEDGED:
+
+		return true;
+
+	case UP:
+
+		_transient_link_state = UP_ACKNOWLEDGED;
+		return true;
+
+	case UP_DOWN:
+
+		_session_link_state_transition(DOWN);
+		return true;
+
+	case UP_DOWN_UP:
+
+		_session_link_state_transition(DOWN_UP);
+		return true;
+	}
+	class Never_reached { };
+	throw Never_reached { };
+}
+
+
+void Net::Session_component::Interface_policy::
+session_link_state_sigh(Signal_context_capability sigh)
+{
+	_session_link_state_sigh = sigh;
+}
+
+
 /***********************
  ** Session_component **
  ***********************/
@@ -109,7 +258,7 @@ Net::Session_component::Session_component(Session_env                    &sessio
 	_interface_policy      { label, _session_env, config },
 	_interface             { _session_env.ep(), timer, router_mac, _alloc,
 	                         mac, config, interfaces, *_tx.sink(),
-	                         *_rx.source(), _link_state, _interface_policy },
+	                         *_rx.source(), _interface_policy },
 	_ram_ds                { ram_ds }
 {
 	_interface.attach_to_domain();
@@ -118,6 +267,19 @@ Net::Session_component::Session_component(Session_env                    &sessio
 	_tx.sigh_packet_avail   (_interface.sink_submit());
 	_rx.sigh_ack_avail      (_interface.source_ack());
 	_rx.sigh_ready_to_submit(_interface.source_submit());
+}
+
+
+bool Net::Session_component::link_state()
+{
+	return _interface_policy.read_and_ack_session_link_state();
+}
+
+
+void Net::
+Session_component::link_state_sigh(Signal_context_capability sigh)
+{
+	_interface_policy.session_link_state_sigh(sigh);
 }
 
 

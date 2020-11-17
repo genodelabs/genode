@@ -257,19 +257,55 @@ class Net::Session_component : private Session_component_base,
 {
 	private:
 
-		struct Interface_policy : Net::Interface_policy
+		class Interface_policy : public Net::Interface_policy
 		{
 			private:
+
+				using Signal_context_capability =
+					Genode::Signal_context_capability;
+
+				/*
+				 * The transient link state is a combination of session and
+				 * interface link state. The first word in the value name
+				 * denotes the link state of the session. If the session
+				 * link state has already been read by the client and
+				 * can therefore be altered directly, it is marked as
+				 * 'ACKNOWLEDGED'. Otherwise, the denoted session state
+				 * has to stay fixed until the client has read it. In this
+				 * case, the session link state in the value name may be
+				 * followed by the pending link state edges. Consequently,
+				 * the last 'UP' or 'DOWN' in each value name denotes the
+				 * router-internal interface link-state.
+				 */
+				enum Transient_link_state
+				{
+					DOWN_ACKNOWLEDGED,
+					DOWN,
+					DOWN_UP,
+					DOWN_UP_DOWN,
+					UP_ACKNOWLEDGED,
+					UP,
+					UP_DOWN,
+					UP_DOWN_UP
+				};
 
 				Genode::Session_label    const  _label;
 				Const_reference<Configuration>  _config;
 				Genode::Session_env      const &_session_env;
+				Transient_link_state            _transient_link_state    { DOWN_ACKNOWLEDGED };
+				Signal_context_capability       _session_link_state_sigh { };
+
+				void _session_link_state_transition(Transient_link_state tls);
 
 			public:
 
 				Interface_policy(Genode::Session_label const &label,
 				                 Genode::Session_env   const &session_env,
 				                 Configuration         const &config);
+
+				bool read_and_ack_session_link_state();
+
+				void session_link_state_sigh(Genode::Signal_context_capability sigh);
 
 
 				/***************************
@@ -280,9 +316,11 @@ class Net::Session_component : private Session_component_base,
 				void handle_config(Configuration const &config) override { _config = config; }
 				Genode::Session_label const &label() const override { return _label; }
 				void report(Genode::Xml_generator &xml) const override { _session_env.report(xml); };
+				void interface_unready() override;
+				void interface_ready() override;
+				bool interface_link_state() const override;
 		};
 
-		bool                                   _link_state { true };
 		Interface_policy                       _interface_policy;
 		Interface                              _interface;
 		Genode::Ram_dataspace_capability const _ram_ds;
@@ -306,9 +344,8 @@ class Net::Session_component : private Session_component_base,
 		 ******************/
 
 		Mac_address mac_address() override { return _interface.mac(); }
-		bool link_state() override { return _interface.link_state(); }
-		void link_state_sigh(Genode::Signal_context_capability sigh) override {
-			_interface.session_link_state_sigh(sigh); }
+		bool link_state() override;
+		void link_state_sigh(Genode::Signal_context_capability sigh) override;
 
 
 		/***************
