@@ -59,6 +59,7 @@ struct Ssh::Session : Genode::Registry<Session>::Element
 	ssh_channel_callbacks channel_cb { nullptr };
 
 	Ssh::Terminal *terminal          { nullptr };
+	bool           terminal_detached { false };
 
 	Genode::Mutex  _access_mutex { };
 	Genode::Mutex &mutex_terminal()
