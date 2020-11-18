@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _DHCP_H_
-#define _DHCP_H_
+#ifndef _NET__DHCP_H_
+#define _NET__DHCP_H_
 
 /* Genode */
 #include <base/exception.h>
@@ -476,4 +476,4 @@ class Net::Dhcp_packet
 
 } __attribute__((packed));
 
-#endif /* _DHCP_H_ */
+#endif /* _NET__DHCP_H_ */
