@@ -50,7 +50,7 @@ L(pseudo_end):
 L(thread_start):
 	.cfi_startproc
 	/* Clearing frame pointer is insufficient, use CFI.  */
-	.cfi_undefined (%rip);
+	.cfi_undefined %rip;
 
 	/* Clear the frame pointer.  The ABI suggests this be done, to mark 
 	   the outermost frame obviously.  */
