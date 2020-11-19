@@ -564,7 +564,7 @@ This section will list and explain some interesting configuration snippets. A
 comprehensive example of how to use the router (except DHCP server
 functionality) can be found in the test script 'libports/run/nic_router.run'.
 For an example of how to use the DHCP server and the DHCP client functionality
-see the 'ports/run/virtualbox_nic_router.run' script.
+see the 'os/run/ping_nic_router.run' script.
 
 The environment for the examples shall be as
 follows. There are two virtual subnets 192.168.1.0/24 and 192.168.2.0/24 that

@@ -348,8 +348,6 @@ append config {
 
 install_config $config
 
-exec cp ${genode_dir}/repos/ports/run/virtualbox_nic_router.vbox bin/.
-
 append boot_modules {
 	iwlwifi-6000-4.ucode
 	iwlwifi-6000g2a-6.ucode
