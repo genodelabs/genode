@@ -30,6 +30,9 @@ void *kmalloc(size_t size, gfp_t flags)
 		? Lx::Malloc::dma().alloc(size)
 		: Lx::Malloc::mem().alloc(size);
 
+	if (!addr)
+		return 0;
+
 	if ((Genode::addr_t)addr & 0x3)
 		Genode::error("unaligned kmalloc ", (Genode::addr_t)addr);
 
