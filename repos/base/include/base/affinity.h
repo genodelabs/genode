@@ -86,7 +86,7 @@ class Genode::Affinity
 				 * case, the x and y coordinates are wrapped by the bounds
 				 * of the space.
 				 */
-				inline Location location_of_index(int index);
+				inline Location location_of_index(int index) const;
 
 				static Space from_xml(Xml_node const &node)
 				{
@@ -215,7 +215,7 @@ class Genode::Affinity
 };
 
 
-Genode::Affinity::Location Genode::Affinity::Space::location_of_index(int index)
+Genode::Affinity::Location Genode::Affinity::Space::location_of_index(int index) const
 {
 	return Location(index % _width, (index / _width) % _height, 1, 1);
 }
