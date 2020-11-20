@@ -13,7 +13,6 @@
 
 #include <lx_emul/impl/kernel.h>
 #include <lx_emul/impl/delay.h>
-#include <lx_emul/impl/slab.h>
 #include <lx_emul/impl/work.h>
 #include <lx_emul/impl/spinlock.h>
 #include <lx_emul/impl/mutex.h>
@@ -139,7 +138,13 @@ int  mutex_lock_interruptible(struct mutex *m)
 
 int driver_register(struct device_driver *drv)
 {
-	if (drv) new (Lx::Malloc::mem()) Lx_driver(*drv);
+	if (!drv)
+		return 1;
+
+	Lx_driver * driver = (Lx_driver *)kzalloc(sizeof(Lx_driver), GFP_KERNEL);
+
+	Genode::construct_at<Lx_driver>(driver, *drv);
+
 	return 0;
 }
 
@@ -249,20 +254,14 @@ int __usb_get_extra_descriptor(char *buffer, unsigned size, unsigned char type, 
 
 void *vzalloc(unsigned long size)
 {
-	size_t *addr;
-	try { addr = (size_t *)Lx::Malloc::mem().alloc_large(size); }
-	catch (...) { return 0; }
-
-	memset(addr, 0, size);
-
-	return addr;
+	return kzalloc(size, 0);
 }
 
 
 void vfree(void *addr)
 {
 	if (!addr) return;
-	Lx::Malloc::mem().free_large(addr);
+	kfree(addr);
 }
 
 
@@ -550,4 +549,65 @@ int usb_set_configuration(struct usb_device *dev, int configuration)
 	dev->state = USB_STATE_CONFIGURED;
 
 	return 0;
+}
+
+static Genode::Allocator &heap()
+{
+	static Genode::Heap heap(Lx_kit::env().env().ram(), Lx_kit::env().env().rm());
+	return heap;
+}
+
+extern "C"
+void *kmalloc(size_t size, gfp_t flags)
+{
+	try {
+		void * const addr = heap().alloc(size);
+
+		if (!addr)
+			return 0;
+
+		if ((Genode::addr_t)addr & 0x3)
+			Genode::error("unaligned kmalloc ", (Genode::addr_t)addr);
+
+		if (flags & __GFP_ZERO)
+			memset(addr, 0, size);
+
+		return addr;
+	} catch (...) {
+		return NULL;
+	}
+}
+
+extern "C"
+void kfree(const void *p)
+{
+	if (!p) return;
+
+	heap().free((void *)p, 0);
+}
+
+extern "C"
+void *kzalloc(size_t size, gfp_t flags)
+{
+	return kmalloc(size, flags | __GFP_ZERO);
+}
+
+extern "C"
+void *kcalloc(size_t n, size_t size, gfp_t flags)
+{
+	if (size != 0 && n > (~0UL / size))
+		return 0;
+
+	return kzalloc(n * size, flags);
+}
+
+extern "C"
+void *kmemdup(const void *src, size_t size, gfp_t flags)
+{
+	void *addr = kmalloc(size, flags);
+
+	if (addr)
+		memcpy(addr, src, size);
+
+	return addr;
 }

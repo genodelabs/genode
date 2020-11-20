@@ -14,7 +14,6 @@
 #include <base/component.h>
 
 #include <lx_kit/env.h>
-#include <lx_kit/malloc.h>
 #include <lx_kit/scheduler.h>
 #include <lx_kit/timer.h>
 
@@ -287,7 +286,6 @@ Driver::Driver(Genode::Env &env) : env(env)
 	LX_MUTEX_INIT(wacom_udev_list_lock);
 
 	Lx::scheduler(&env);
-	Lx::malloc_init(env, heap);
 	Lx::timer(&env, &ep, &heap, &jiffies);
 
 	main_task.construct(env.ep(), main_task_entry, reinterpret_cast<void*>(this),
