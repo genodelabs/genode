@@ -12,7 +12,6 @@
  */
 
 /* Linux kit includes */
-#include <lx_kit/malloc.h>
 #include <lx_kit/usb.h>
 
 int usb_control_msg(struct usb_device *dev, unsigned int pipe,
@@ -30,13 +29,23 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 	dr->wLength      = cpu_to_le16(size);
 
 	urb * u = (urb*) usb_alloc_urb(0, GFP_KERNEL);
-	if (!u) return -ENOMEM;
+	if (!u) {
+		kfree(dr);
+		return -ENOMEM;
+	}
+
+	Sync_ctrl_urb * scu = (Sync_ctrl_urb *)kzalloc(sizeof(Sync_ctrl_urb), GFP_KERNEL);
+	if (!scu) {
+		usb_free_urb(u);
+		kfree(dr);
+		return -ENOMEM;
+	}
 
 	usb_fill_control_urb(u, dev, pipe, (unsigned char *)dr, data,
 	                     size, nullptr, nullptr);
 
-	Sync_ctrl_urb * scu = new (Lx::Malloc::mem())
-		Sync_ctrl_urb(*(Usb::Connection*)(dev->bus->controller), *u);
+	Genode::construct_at<Sync_ctrl_urb>(scu, *(Usb::Connection*)(dev->bus->controller), *u);
+
 	scu->send(timeout);
 	int ret = u->actual_length;
 	usb_free_urb(u);
@@ -59,8 +68,12 @@ struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags)
 
 int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 {
-	Urb * u = new (Lx::Malloc::mem())
-		Urb(*(Usb::Connection*)(urb->dev->bus->controller), *urb);
+	Urb * u = (Urb *)kzalloc(sizeof(Urb), mem_flags);
+	if (!u)
+		return 1;
+
+	Genode::construct_at<Urb>(u, *(Usb::Connection*)(urb->dev->bus->controller), *urb);
+
 	u->send();
 	return 0;
 }
