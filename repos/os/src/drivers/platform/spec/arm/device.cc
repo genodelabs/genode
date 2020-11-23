@@ -54,12 +54,14 @@ void Driver::Device::release(Session_component & sc)
 	_io_mem_list.for_each([&] (Io_mem & io_mem) {
 		if (io_mem.io_mem) {
 			destroy(sc.heap(), io_mem.io_mem);
+			io_mem.io_mem = nullptr;
 		}
 	});
 
 	_irq_list.for_each([&] (Irq & irq) {
 		if (irq.irq) {
 			destroy(sc.heap(), irq.irq);
+			irq.irq = nullptr;
 		}
 	});
 
