@@ -48,6 +48,7 @@ struct Benchmark
 	};
 
 	Env                      &env;
+	Platform::Connection      platform     { env };
 	Attached_rom_dataspace    config       { env, "config" };
 	Packet_descriptor         pkt          { };
 	uint64_t                  time_before_ms { };
@@ -55,7 +56,7 @@ struct Benchmark
 	Operation                 operation    { READ };
 	Signal_handler<Benchmark> ack_handler  { env.ep(), *this, &Benchmark::update_state };
 	Driver_session            drv_session  { ack_handler };
-	Sd_card::Driver           drv          { env };
+	Sd_card::Driver           drv          { env, platform };
 	size_t const              buf_size_kib { config.xml().attribute_value("buffer_size_kib",
 	                                                                      (size_t)0) };
 	size_t const              buf_size     { buf_size_kib * 1024 };

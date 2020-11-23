@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <cpu/memory_barrier.h>
 #include <dataspace/client.h>
 
 /* local includes */
@@ -60,6 +61,6 @@ int Table::setup_request(size_t const size, addr_t const buffer_phys)
 		consumed += curr;
 	}
 	/* ensure that all descriptor writes were actually executed */
-	asm volatile ("dsb #15" ::: "memory");
+	Genode::memory_barrier();
 	return 0;
 }

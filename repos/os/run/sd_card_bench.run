@@ -3,44 +3,78 @@
 #
 
 proc buffer_size_kib {} {
-	if {[have_spec pl180]}     { return [expr 12 * 1024] }
+	if {[have_spec pbxa9]}     { return [expr 12 * 1024] }
 	if {[have_spec imx8q_evk]} { return [expr      1024] }
 	if {[have_spec imx6]}      { return [expr      1024] }
-	if {[have_spec imx53] &&
-	    ![have_spec foc]}      { return [expr      1024] }
+	if {[have_spec imx53]}     { return [expr      1024] }
 	if {[have_spec rpi]}       { return [expr  4 * 1024] }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
 
 proc sd_card_drv {} {
-	if {[have_spec pbxa9]}           { return pbxa9_sd_card_drv }
-	if {[have_spec imx8q_evk]}       { return imx8q_evk_sd_card_drv }
-	if {[have_spec imx6q_sabrelite]} { return imx6q_sabrelite_sd_card_drv }
+	if {[have_spec pbxa9]}           { return pl180_sd_card_drv }
+	if {[have_spec imx8q_evk]}       { return imx8_sd_card_drv  }
+	if {[have_spec imx6q_sabrelite]} { return imx6_sd_card_drv  }
 	if {[have_spec imx53]}           { return imx53_sd_card_drv }
-	if {[have_spec rpi]}             { return rpi_sd_card_drv }
+	if {[have_spec rpi]}             { return rpi_sd_card_drv   }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
 
-#
-# Build the boot modules
-#
+proc platform_drv {} {
+	if {[have_spec imx8q_evk]} { return imx8mq_platform_drv }
+	return platform_drv
+}
 
-set build_components { core init timer drivers/sd_card }
+proc device_resources {} {
+	if {[have_spec pbxa9]} {
+		return {
+			<io_mem   address="0x10005000" size="0x1000"/>
+			<property name="compatible" value="arm,pl18x"/>
+		}
+	}
+	if {[have_spec imx8q_evk]} {
+		return {
+			<io_mem   address="0x30b50000" size="0x10000"/>
+			<irq      number="55"/>
+			<clock    name="nand_usdhc_bus_clk_root"/>
+			<clock    name="usdhc2_clk_root"/>
+			<clock    name="usdhc2_gate"/>
+			<property name="compatible" value="fsl,imx8mq-usdhc"/>
+		}
+	}
+	if {[have_spec imx6q_sabrelite]} {
+		return {
+			<io_mem   address="0x0219c000" size="0x4000"/>
+			<irq      number="57"/>
+			<property name="compatible" value="fsl,imx6q-usdhc"/>
+		}
+	}
+	if {[have_spec imx53]} {
+		return {
+			<io_mem   address="0x50004000" size="0x4000"/>
+			<irq      number="1"/>
+			<property name="compatible" value="fsl,imx53-esdhc"/>
+		}
+	}
+	if {[have_spec rpi]} {
+		return {
+			<io_mem   address="0x20300000" size="0x100"/>
+			<property name="compatible" value="brcm,bcm2835-sdhci"/>
+		}
+	}
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0;
+}
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-build $build_components
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/platform_drv
 
-
-#
-# Install the config
-#
-
-append config {
-<config>
+install_config {
+<config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -50,40 +84,50 @@ append config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
+	<start name="platform_drv">
+		<binary name="} [platform_drv] {"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Platform"/></provides>
+		<config>
+			<device name="card">} [device_resources] {</device>
+			<policy label="sd_card_drv -> "> <device name="card"/> </policy>
+		</config>
+		<route> <any-service> <parent/> </any-service> </route>
+	</start>
 
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="RM">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
 	</start>
-	<start name="} [sd_card_drv] {">
+
+	<start name="sd_card_drv">
+		<binary name="} [sd_card_drv] {"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Block"/></provides>
 		<config benchmark="yes" buffer_size_kib="} [buffer_size_kib] {"/>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="RM">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<any-service> <any-child/> </any-service>
+		</route>
 	</start>
-</config>}
 
-install_config $config
+</config> }
 
-
-#
-# Create the boot image
-#
-
-set boot_modules {
-	core ld.lib.so init
-	timer
-}
-
-append boot_modules [sd_card_drv]
-append_platform_drv_boot_modules
-build_boot_image $boot_modules
+build { drivers/sd_card }
+build_boot_image [sd_card_drv]
 
 
 #
@@ -104,4 +148,8 @@ if {[have_include power_on/qemu]} {
 
 run_genode_until "--- SD card benchmark finished ---" 120
 
-exec rm -f $disk_image
+if {[have_include power_on/qemu]} {
+	if { [file exists $disk_image] != 0 } then {
+		exec rm -f $disk_image
+	}
+}

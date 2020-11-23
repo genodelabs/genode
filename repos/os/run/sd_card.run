@@ -1,85 +1,88 @@
-#
-# Build
-#
-
 assert_spec pbxa9
 
-# generic components
-set build_components {
-	core init
-	timer
-	drivers/sd_card
-	test/block/client
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/platform_drv
 
+build { drivers/sd_card test/block/client }
 
-#
-# Config
-#
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default caps="100"/>
 
-set config  {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/> }
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Platform"/></provides>
+		<config>
+			<device name="card">
+				<io_mem   address="0x10005000" size="0x1000"/>
+				<property name="compatible" value="arm,pl18x"/>
+			</device>
+			<policy label="pl180_sd_card_drv -> ">
+				<device name="card"/>
+			</policy>
+		</config>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
 
-append_platform_drv_config
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="RM">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start>
 
-append config {
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Timer"/></provides>
-		</start>
-		<start name="pbxa9_sd_card_drv">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Block"/></provides>
-		</start>
-		<start name="test-block-client">
-			<resource name="RAM" quantum="1M" />
-		</start>
-	</config> }
+	<start name="pl180_sd_card_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Block"/></provides>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="RM">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<any-service> <any-child/> </any-service>
+		</route>
+	</start>
 
-install_config $config
+	<start name="test-block-client">
+		<resource name="RAM" quantum="1M" />
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="RM">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<any-service> <any-child/> </any-service>
+		</route>
+	</start>
+</config> }
 
+build_boot_image { pl180_sd_card_drv test-block-client }
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer
-	pbxa9_sd_card_drv
-	test-block-client
-}
-
-append_platform_drv_boot_modules
 set disk_image "bin/sd_card.img"
-
-build_boot_image $boot_modules
-append qemu_args "-drive file=$disk_image,format=raw,if=sd,cache=writeback -nographic "
-
 if { [file exists $disk_image] == 0 } then {
 	# create empty block device file
 	catch { exec dd if=/dev/zero of=$disk_image bs=1M count=512 }
 }
-
+append qemu_args "-drive file=$disk_image,format=raw,if=sd,cache=writeback -nographic "
 run_genode_until forever
 
 exec rm $disk_image

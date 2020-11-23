@@ -113,7 +113,7 @@ if { $mmc_rootfs } {
 	# add targets that enable MMC access via paravirtualized block
 	lappend targets timer
 	lappend targets drivers/platform
-	lappend targets drivers/sd_card
+	lappend targets drivers/sd_card/imx53
 	lappend targets server/part_block
 }
 
@@ -152,9 +152,12 @@ append_if $trusted_led config {
 				<irq number="56"/>
 				<irq number="57"/>
 			</device>
-			<policy label="imx_gpio_drv -> ">
-				<device name="gpio"/>
-			</policy>
+			<device name="sd_card">
+				<io_mem address="0x50004000" size="0x4000"/>
+				<irq    number="1"/>
+			</device>
+			<policy label="imx_gpio_drv -> "> <device name="gpio"/> </policy>
+			<policy label="sd_card_drv -> "> <device name="sd_card"/> </policy>
 		</config>
 	</start>
 
@@ -173,19 +176,12 @@ append_if $mmc_rootfs config {
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="imx53_platform_drv">
-		<resource name="RAM" quantum="3M"/>
-		<provides>
-			<service name="Regulator"/>
-			<service name="Platform"/>
-		</provides>
-	</start>
-	<start name="imx53_sd_card_drv">
+	<start name="sd_card_drv">
+		<binary name="imx53_sd_card_drv"/>
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Block"/></provides>
 		<route>
-			<service name="Platform"> <child name="imx53_platform_drv"/> </service>
-			<service name="Regulator"> <child name="imx53_platform_drv"/> </service>
+			<service name="Platform"> <child name="platform_drv"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
@@ -260,7 +256,6 @@ if { $mmc_rootfs } {
 
 	# add components that enable MMC access via parvirtualized block
 	lappend boot_modules timer
-	lappend boot_modules imx53_platform_drv
 	lappend boot_modules imx53_sd_card_drv
 	lappend boot_modules part_block
 

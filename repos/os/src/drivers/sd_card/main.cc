@@ -17,6 +17,7 @@
 #include <base/log.h>
 #include <base/heap.h>
 #include <block/component.h>
+#include <platform_session/connection.h>
 
 /* local includes */
 #include <benchmark.h>
@@ -26,23 +27,26 @@ using namespace Genode;
 
 struct Main
 {
-	Env  &env;
-	Heap  heap { env.ram(), env.rm() };
+	Env                 & env;
+	Heap                  heap     { env.ram(), env.rm() };
+	Platform::Connection  platform { env };
 
 	struct Factory : Block::Driver_factory
 	{
-		Env  &env;
-		Heap &heap;
+		Env                  & env;
+		Heap                 & heap;
+		Platform::Connection & platform;
 
-		Factory(Env &env, Heap &heap) : env(env), heap(heap) { }
+		Factory(Env &env, Heap &heap, Platform::Connection &platform)
+		: env(env), heap(heap), platform(platform) { }
 
 		Block::Driver *create() override {
-			return new (&heap) Sd_card::Driver(env); }
+			return new (&heap) Sd_card::Driver(env, platform); }
 
 		void destroy(Block::Driver *driver) override {
 			Genode::destroy(&heap, static_cast<Sd_card::Driver*>(driver)); }
 
-	} factory { env, heap };
+	} factory { env, heap, platform };
 
 	Block::Root root { env.ep(), heap, env.rm(), factory, true };
 

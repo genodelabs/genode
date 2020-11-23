@@ -21,15 +21,21 @@ using namespace Genode;
 using namespace Sd_card;
 
 
-Driver::Driver(Env &env)
-:
-	Driver_base(env.ram()),
-	Attached_mmio(env, Rpi::SDHCI_BASE, Rpi::SDHCI_SIZE),
-	_env(env)
+Driver::Driver(Env & env, Platform::Connection & platform)
+: Driver_base(env.ram()),
+  Platform::Device_client(platform.device_by_index(0)),
+  Attached_dataspace(env.rm(), Device_client::io_mem_dataspace()),
+  Mmio((addr_t)local_addr<void>()),
+  _env(env),
+  _platform(platform),
+  _irq(Device_client::irq())
 {
 	log("SD card detected");
 	log("capacity: ", _card_info.capacity_mb(), " MiB");
 }
+
+
+Driver::~Driver() { _platform.release_device(rpc_cap()); }
 
 
 void Driver::_set_and_enable_clock(unsigned divider)

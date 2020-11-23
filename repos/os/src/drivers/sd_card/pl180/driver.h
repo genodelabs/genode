@@ -16,11 +16,11 @@
 #define _DRIVER_H_
 
 /* local includes */
-#include <os/attached_mmio.h>
+#include <base/attached_dataspace.h>
 #include <block/driver.h>
+#include <platform_session/connection.h>
 #include <timer_session/connection.h>
-
-#include "board.h"
+#include <util/mmio.h>
 
 namespace Sd_card {
 
@@ -30,7 +30,10 @@ namespace Sd_card {
 }
 
 
-class Sd_card::Driver : public  Block::Driver, private Attached_mmio
+class Sd_card::Driver : public  Block::Driver,
+                        private Platform::Device_client,
+                        private Attached_dataspace,
+                        private Mmio
 {
 	private:
 
@@ -80,7 +83,9 @@ class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 			RxDataAvlbl     = 0x200000,
 		};
 
-		Timer::Connection  _timer;
+		Platform::Connection & _platform;
+		Timer::Connection      _timer;
+
 		uint32_t volatile *_base { local_addr<unsigned volatile>() };
 
 		uint32_t _read_reg(Register reg) const { return _base[reg >> 2]; }
@@ -118,7 +123,8 @@ class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 
 	public:
 
-		Driver(Env &env);
+		Driver(Env &env, Platform::Connection & platform);
+		~Driver();
 
 
 		/******************

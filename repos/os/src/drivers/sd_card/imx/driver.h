@@ -11,13 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _DRIVER_H_
-#define _DRIVER_H_
+#ifndef _SRC__DRIVERS__SD_CARD__SPEC__IMX__DRIVER_H_
+#define _SRC__DRIVERS__SD_CARD__SPEC__IMX__DRIVER_H_
 
 /* Genode includes */
+#include <base/attached_dataspace.h>
+#include <irq_session/client.h>
+#include <platform_session/connection.h>
 #include <timer_session/connection.h>
-#include <irq_session/connection.h>
-#include <os/attached_mmio.h>
+#include <util/mmio.h>
 
 /* local includes */
 #include <driver_base.h>
@@ -27,7 +29,9 @@ namespace Sd_card { class Driver; }
 
 
 class Sd_card::Driver : public  Driver_base,
-                        private Attached_mmio
+                        private Platform::Device_client,
+                        private Attached_dataspace,
+                        private Mmio
 {
 	private:
 
@@ -212,12 +216,13 @@ class Sd_card::Driver : public  Driver_base,
 			bool                     read    = false;
 		};
 
-		Env                    &_env;
+		Env                   & _env;
+		Platform::Connection  & _platform;
 		Block_transfer          _block_transfer { };
 		Timer_delayer           _delayer        { _env };
 		Signal_handler<Driver>  _irq_handler    { _env.ep(), *this,
 		                                          &Driver::_handle_irq };
-		Irq_connection          _irq;
+		Irq_session_client      _irq;
 		Card_info               _card_info      { _init() };
 		Adma2::Table            _adma2_table    { _env.ram(), _env.rm() };
 
@@ -273,7 +278,8 @@ class Sd_card::Driver : public  Driver_base,
 		using Block::Driver::read;
 		using Block::Driver::write;
 
-		Driver(Env &env);
+		Driver(Env &env, Platform::Connection & platform);
+		~Driver();
 
 
 		/*******************
@@ -296,4 +302,4 @@ class Sd_card::Driver : public  Driver_base,
 			return _env.ram().alloc(size, UNCACHED); }
 };
 
-#endif /* _DRIVER_H_ */
+#endif /* _SRC__DRIVERS__SD_CARD__SPEC__IMX__DRIVER_H_ */

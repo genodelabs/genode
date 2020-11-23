@@ -17,10 +17,11 @@
 #define _DRIVER_H_
 
 /* Genode includes */
+#include <base/attached_dataspace.h>
+#include <irq_session/client.h>
+#include <platform_session/connection.h>
 #include <timer_session/connection.h>
-#include <drivers/defs/rpi.h>
-#include <os/attached_mmio.h>
-#include <irq_session/connection.h>
+#include <util/mmio.h>
 
 /* local includes */
 #include <driver_base.h>
@@ -29,7 +30,9 @@ namespace Sd_card { class Driver; }
 
 
 class Sd_card::Driver : public  Driver_base,
-                        private Attached_mmio
+                        private Platform::Device_client,
+                        private Attached_dataspace,
+                        private Mmio
 {
 	private:
 
@@ -155,10 +158,11 @@ class Sd_card::Driver : public  Driver_base,
 			void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
 		};
 
-		Env            &_env;
-		Timer_delayer   _delayer   { _env };
-		Irq_connection  _irq       { _env, Rpi::SDHCI_IRQ };
-		Card_info       _card_info { _init() };
+		Env                  & _env;
+		Platform::Connection & _platform;
+		Timer_delayer          _delayer   { _env };
+		Irq_session_client     _irq;
+		Card_info              _card_info { _init() };
 
 		template <typename REG>
 		bool _poll_and_wait_for(unsigned value)
@@ -196,7 +200,8 @@ class Sd_card::Driver : public  Driver_base,
 
 	public:
 
-		Driver(Env &env);
+		Driver(Env & env, Platform::Connection & platform);
+		~Driver();
 
 
 		/*******************

@@ -138,8 +138,13 @@ void Driver::_write_data(unsigned    length,
 }
 
 
-Driver::Driver(Env &env)
-: Block::Driver(env.ram()), Attached_mmio(env, PL180_PHYS, PL180_SIZE), _timer(env)
+Driver::Driver(Env &env, Platform::Connection & platform)
+: Block::Driver(env.ram()),
+  Platform::Device_client(platform.device_by_index(0)),
+  Attached_dataspace(env.rm(), Device_client::io_mem_dataspace()),
+  Mmio((addr_t)local_addr<void>()),
+  _platform(platform),
+  _timer(env)
 {
 	enum { POWER_UP = 2, POWER_ON = 3 };
 
@@ -183,6 +188,10 @@ Driver::Driver(Env &env)
 	/* CMD7: select card */
 	_request(7, rca << 16, &resp);
 }
+
+
+Driver::~Driver() {
+	_platform.release_device(Platform::Device_client::rpc_cap()); }
 
 
 void Driver::read(Block::sector_t           block_number,

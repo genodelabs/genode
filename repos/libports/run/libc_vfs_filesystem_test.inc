@@ -45,7 +45,8 @@ set build_components { test/libc_vfs }
 
 lappend build_components {*}$test_build_components
 
-lappend_if $use_sd_card_drv build_components drivers/sd_card
+lappend_if $use_sd_card_drv build_components drivers/platform
+lappend_if $use_sd_card_drv build_components drivers/sd_card/pl180
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -123,7 +124,23 @@ append_if $use_ahci config {
 	</start>}
 
 append_if $use_sd_card_drv config {
-	<start name="pbxa9_sd_card_drv">
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Platform"/></provides>
+		<config>
+			<device name="">
+				<io_mem   address="0x10005000" size="0x1000"/>
+				<property name="compatible" value="arm,pl18x"/>
+			</device>
+			<policy label="pl180_sd_card_drv -> ">
+				<device name=""/>
+			</policy>
+		</config>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="pl180_sd_card_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
 	</start>
@@ -188,7 +205,8 @@ append boot_modules {
 
 lappend boot_modules {*}$test_boot_modules
 
-lappend_if $use_sd_card_drv  boot_modules pbxa9_sd_card_drv
+lappend_if $use_sd_card_drv  boot_modules platform_drv
+lappend_if $use_sd_card_drv  boot_modules pl180_sd_card_drv
 lappend_if $use_vfs_block    boot_modules test.hda
 
 append_platform_drv_boot_modules
