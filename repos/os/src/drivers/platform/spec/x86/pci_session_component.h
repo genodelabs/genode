@@ -725,31 +725,33 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 		void release_device(Device_capability device_cap) override
 		{
-			Device_component * device;
+			Device_component * device = nullptr;
 			auto lambda = [&] (Device_component *d)
 			{
 				device = d;
 				if (!device)
 					return;
 
-				unsigned const bus  = device->device_config().bus_number();
-				unsigned const dev  = device->device_config().device_number();
-				unsigned const func = device->device_config().function_number();
+				if (device->device_config().valid()) {
+					unsigned const bus  = device->device_config().bus_number();
+					unsigned const dev  = device->device_config().device_number();
+					unsigned const func = device->device_config().function_number();
 
-				if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
-				                   Device_config::MAX_DEVICES * dev +
-				                   func, 1))
-					bdf_in_use.clear(Device_config::MAX_BUSES * bus +
-					                 Device_config::MAX_DEVICES * dev + func, 1);
+					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
+					                   Device_config::MAX_DEVICES * dev +
+					                   func, 1))
+						bdf_in_use.clear(Device_config::MAX_BUSES * bus +
+						                 Device_config::MAX_DEVICES * dev + func, 1);
+				}
 
 				_device_list.remove(device);
 				_env.ep().rpc_ep().dissolve(device);
 			};
 
-			/* lookup device component for previous device */
+			/* lookup device component */
 			_env.ep().rpc_ep().apply(device_cap, lambda);
 
-			if (device && device->device_config().valid())
+			if (device)
 				destroy(_md_alloc, device);
 		}
 
