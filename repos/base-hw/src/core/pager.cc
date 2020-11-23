@@ -102,8 +102,10 @@ void Pager_entrypoint::dissolve(Pager_object &o)
 
 
 Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
-: Thread_deprecated<PAGER_EP_STACK_SIZE>("pager_ep"),
-  _kobj(true)
+:
+	Thread(Weight::DEFAULT_WEIGHT, "pager_ep", PAGER_EP_STACK_SIZE,
+	       Type::NORMAL),
+	_kobj(true)
 { start(); }
 
 

@@ -117,7 +117,7 @@ void Irq_object::entry()
 
 Irq_object::Irq_object(unsigned irq)
 :
-	Thread_deprecated<4096>("irq"),
+	Thread(Weight::DEFAULT_WEIGHT, "irq", 4096 /* stack */, Type::NORMAL),
 	_irq(irq)
 { }
 

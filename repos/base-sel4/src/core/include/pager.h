@@ -156,12 +156,12 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 
 
 class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
-                                 public Thread_deprecated<PAGER_EP_STACK_SIZE>
+                                 public Thread
 {
 	private:
 
-		Ipc_pager       _pager { };
-		Rpc_cap_factory _cap_factory;
+		Ipc_pager        _pager { };
+		Rpc_cap_factory &_cap_factory;
 
 		Untyped_capability _pager_object_cap(unsigned long badge);
 
@@ -176,7 +176,8 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 		 */
 		Pager_entrypoint(Rpc_cap_factory &cap_factory)
 		:
-			Thread_deprecated<PAGER_EP_STACK_SIZE>("pager_ep"),
+			Thread(Weight::DEFAULT_WEIGHT, "pager_ep", PAGER_EP_STACK_SIZE,
+			       Type::NORMAL),
 			_cap_factory(cap_factory)
 		{ start(); }
 

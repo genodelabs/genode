@@ -84,9 +84,9 @@ class Timer::Threaded_time_source : public Genode::Time_source,
 
 		virtual Result_of_wait_for_irq _wait_for_irq() = 0;
 
-		/***********************
-		 ** Thread_deprecated **
-		 ***********************/
+		/************
+		 ** Thread **
+		 ************/
 
 		void entry() override
 		{

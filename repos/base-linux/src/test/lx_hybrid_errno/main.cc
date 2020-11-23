@@ -17,12 +17,12 @@
 
 enum { STACK_SIZE = 4096 };
 
-struct Thread : Genode::Thread_deprecated<STACK_SIZE>
+struct Thread : Genode::Thread
 {
 	Genode::Blockade &_barrier;
 
-	Thread(Genode::Blockade &barrier)
-	: Genode::Thread_deprecated<STACK_SIZE>("stat"), _barrier(barrier) { start(); }
+	Thread(Genode::Blockade &barrier, Genode::Env &env)
+	: Genode::Thread(env, "stat", STACK_SIZE), _barrier(barrier) { start(); }
 
 	void entry() override
 	{
@@ -62,7 +62,7 @@ void Component::construct(Genode::Env &env)
 	Genode::log("main: before thread creation, errno=", orig_errno);
 
 	/* create thread, which modifies its thread-local errno value */
-	static Thread thread(barrier);
+	static Thread thread(barrier, env);
 
 	/* block until the thread performed a 'stat' syscall */
 	barrier.block();

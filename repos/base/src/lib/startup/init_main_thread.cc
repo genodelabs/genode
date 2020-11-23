@@ -56,7 +56,7 @@ extern unsigned char __initial_stack_base[];
 /**
  * The first thread in a program
  */
-class Main_thread : public Thread_deprecated<MAIN_THREAD_STACK_SIZE>
+class Main_thread : public Thread
 {
 	public:
 
@@ -67,7 +67,8 @@ class Main_thread : public Thread_deprecated<MAIN_THREAD_STACK_SIZE>
 		 */
 		Main_thread(bool reinit)
 		:
-			Thread_deprecated("main", reinit ? REINITIALIZED_MAIN : MAIN)
+			Thread(Weight::DEFAULT_WEIGHT, "main", MAIN_THREAD_STACK_SIZE,
+			       reinit ? Type::REINITIALIZED_MAIN : Type::MAIN)
 		{ }
 
 		/**********************
