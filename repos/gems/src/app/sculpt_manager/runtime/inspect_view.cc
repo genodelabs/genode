@@ -50,7 +50,7 @@ static void gen_gui_fb_start(Xml_generator &xml)
 
 static void gen_terminal_start(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "terminal", Cap_quota{100}, Ram_quota{4*1024*1024});
+	gen_common_start_content(xml, "terminal", Cap_quota{110}, Ram_quota{4*1024*1024});
 
 	gen_provides<Terminal::Session>(xml);
 

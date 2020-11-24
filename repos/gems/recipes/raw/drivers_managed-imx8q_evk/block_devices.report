@@ -1,0 +1,3 @@
+<block_devices default="sdcard">
+	<device label="sdcard" model="Unknown"/>
+</block_devices>

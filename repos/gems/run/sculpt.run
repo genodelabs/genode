@@ -1,4 +1,4 @@
-if {![have_spec pc]} {
+if {![have_spec pc] && ![have_spec imx8q_evk]} {
 	puts "Platform is unsupported.";
 	exit 0;
 }
@@ -18,7 +18,8 @@ proc config_system_content {} { return {\
 <system state=""/>} }
 
 proc nic_drv {} {
-	if {[have_spec pc]} { return ipxe_nic_drv }
+	if {[have_spec pc]}        { return ipxe_nic_drv }
+	if {[have_spec imx8q_evk]} { return fec_nic_drv  }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
@@ -50,6 +51,7 @@ install_config {
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
+		<resource name="CPU" quantum="10"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
@@ -238,6 +240,7 @@ install_config {
 
 	<start name="drivers" caps="3150" priority="-1" managing_system="yes">
 		<resource name="RAM" quantum="128M"/>
+		<resource name="CPU" quantum="40"/>
 		<binary name="init"/>
 		<route>
 			<service name="LOG"> <child name="log"/> </service>
@@ -438,6 +441,7 @@ install_config {
 	<start name="runtime" caps="50000" priority="-3">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32G"/>
+		<resource name="CPU" quantum="40"/>
 		<route>
 			<service name="ROM" label="config">
 				<child name="config_fs_rom" label="managed/runtime"/> </service>
