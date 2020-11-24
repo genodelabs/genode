@@ -1,6 +1,6 @@
-if {![have_spec x86] || [have_spec linux]} {
-	puts "Platform is unsupported."
-	exit 0
+if {![have_spec pc]} {
+	puts "Platform is unsupported.";
+	exit 0;
 }
 
 if {[have_spec nova]} {
@@ -10,13 +10,18 @@ if {[have_spec nova]} {
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/sculpt
+                  [depot_user]/pkg/sculpt-[board]
 
 proc config_system_content {} { return {\
 <!-- supported states: "poweroff" or "reset" when acpica started -->
 <!-- Note: power down your persistent Genode applications & VMs beforehand on your own ! -->
 <system state=""/>} }
 
+proc nic_drv {} {
+	if {[have_spec pc]} { return ipxe_nic_drv }
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0;
+}
 
 install_config {
 <config prio_levels="4"> <!-- set prio_levels to 4 -->
@@ -260,6 +265,7 @@ install_config {
 			<service name="Block"/>
 			<service name="Usb"/>
 			<service name="Platform"/>
+			<service name="Rtc"/>
 		</provides>
 	</start>
 
@@ -429,11 +435,6 @@ install_config {
 		</route>
 	</start>
 
-	<start name="rtc_drv" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Rtc"/> </provides>
-	</start>
-
 	<start name="runtime" caps="50000" priority="-3">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32G"/>
@@ -455,6 +456,7 @@ install_config {
 			<service name="Platform" label_prefix="acpica">
 				<child name="drivers" label="acpica"/> </service>
 			<service name="Platform"> <child name="drivers"/> </service>
+			<service name="Rtc"> <child name="drivers"/> </service>
 			<service name="Gui" label_prefix="leitzentrale">
 				<child name="leitzentrale"/> </service>
 			<service name="Gui" label="backdrop">
@@ -483,7 +485,7 @@ install_config {
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
 			<service name="LOG"> <child name="log"/> </service>
-			<service name="Rtc"> <child name="rtc_drv"/> </service>
+			<service name="ROM" label="nic_drv"> <parent label="} [nic_drv] {"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -505,27 +507,29 @@ file copy -force [genode_dir]/repos/gems/recipes/pkg/sculpt/README [run_dir]/gen
 
 file copy -force [genode_dir]/repos/gems/run/sculpt/vimrc [run_dir]/genode/
 
-file copy -force [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genode/
-
-file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
-                 [run_dir]/genode/drivers.config
-
 foreach file { en_us.chargen de_ch.chargen de_de.chargen fr_ch.chargen fr_fr.chargen special.chargen } {
 	file copy -force [genode_dir]/repos/os/src/server/event_filter/$file \
-	                 [run_dir]/genode/$file }
-
-file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/event_filter.config \
-                 [run_dir]/genode/event_filter.config
+		[run_dir]/genode/$file }
 
 file copy -force [genode_dir]/repos/gems/recipes/raw/depot_download/depot_download.config \
-                 [run_dir]/genode/depot_download.config
+	[run_dir]/genode/depot_download.config
 
 file copy -force [genode_dir]/VERSION [run_dir]/genode/
 
 file copy -force [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
 file copy -force [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/
 
-exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/genode/machine.vdi
+if {[have_spec pc]} {
+	file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/event_filter.config \
+	[run_dir]/genode/event_filter.config
+
+	file copy -force [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genode/
+
+	file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
+		[run_dir]/genode/drivers.config
+
+	exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/genode/machine.vdi
+}
 
 
 #

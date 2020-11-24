@@ -20,6 +20,7 @@
 #include <gui_session/connection.h>
 #include <vm_session/vm_session.h>
 #include <timer_session/connection.h>
+#include <io_port_session/io_port_session.h>
 
 /* included from depot_deploy tool */
 #include <children.h>
