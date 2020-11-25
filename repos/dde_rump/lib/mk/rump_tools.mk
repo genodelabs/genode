@@ -65,7 +65,11 @@ HOST_INC_DIR = $(addprefix -I,$(RUMP_TOOL) \
                               $(RUMP_PORT_DIR)/src/tools/compat \
                               $(RUMP_PORT_DIR)/src/usr.bin/config)
 
-HOST_CC_OPT = $(COMPAT_DEFS) $(HOST_D_OPT) $(HOST_INC_DIR)
+#
+# Force commmon symbols, multiple definitions of symbols may occur otherwise
+#
+HOST_CC_OPT = $(COMPAT_DEFS) $(HOST_D_OPT) $(HOST_INC_DIR) \
+              -fcommon
 
 HOST_OBJ = $(HOST_SRC_C:%.c=$(RUMP_TOOL)/%.o)
 
