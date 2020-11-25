@@ -1,0 +1,629 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 20.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+With Genode 20.11, we focused on the scalability of real-world application
+workloads, and nurtured Genode's support for 64-bit ARM hardware. We thereby
+follow the overarching goal to run highly sophisticated Genode-based systems
+on devices of various form factors.
+
+When speaking of real-world workloads, we acknowledge that we cannot always
+know the exact behavior of applications. The system must deal gracefully with
+many unknowns: The roles and CPU intensity of threads, the interplay of
+application code with I/O, memory-pressure situations, or the sudden fragility
+of otherwise very useful code. The worst case must always be anticipated. In
+traditional operating systems, this implies that the OS kernel needs to be
+aware of certain behavioral patterns of the applications, and has to take
+decisions based on heuristics. Think of CPU scheduling, load balancing among
+CPU cores, driving power-saving features of the hardware, memory swapping,
+caching, and responding to near-fatal situations like OOM.
+
+Genode allows us to move such complex heuristics outside the kernel into
+dedicated components. Our new CPU balancer described in Section
+[CPU-load balancing] is a living poster child of our approach. With this
+optional component, a part of a Genode system can be subjected to a CPU-load
+balancing policy of arbitrary complexity without affecting the quality of
+service of unrelated components, and without polluting the OS kernel with
+complexity.
+
+A second aspect of real-world workloads is that they are usually *not*
+designed for Genode. To accommodate the wealth of time tested applications, we
+need to bridge the massive gap between APIs of olde (think of POSIX) and
+Genode's clean-slate interfaces.
+Section [Streamlined ioctl handling in the C runtime / VFS] shows how the
+current release leverages our novel VFS concept for the emulation of
+traditional ioctl-based interfaces. So useful existing applications come to
+live without compromising the architectural benefits of Genode.
+
+Platform-wise, the new release continues our mission to host Genode-based
+systems such as [https://genode.org/download/sculpt - Sculpt OS] on 64-bit
+ARM hardware. This work entails intensive development of device drivers and
+the overall driver architecture.
+Section [Sculpt OS on 64-bit ARM hardware (i.MX8 EVK)] reports on the
+achievement of bringing Sculpt to 64-bit i.MX8 hardware. This line of work
+goes almost hand in hand with the improvements of our custom virtual machine
+monitor for ARM as outlined in Section [Multicore virtualization on ARM].
+
+
+CPU-load balancing
+##################
+
+Migrating load over CPUs may be desirable in dynamic scenarios, where the
+workload is not known in advance or too complex. For example, in case of POSIX
+software ported to Genode, amount and roles of threads and processes can
+generally not planned for. With the current release, we add an optional CPU
+service designated for such dynamic scenarios. The new component called
+[https://genodians.org/alex-ab/2020-11-16-cpu-balancer - CPU balancer] is able
+to monitor threads and their utilization behaviour. Depending on configured
+policies, the balancer can instruct Genode's core via the CPU session
+interface to migrate threads between CPUs.
+
+[image cpu_balancer]
+  The CPU balancer intercepts the interaction of a Genode subsystem
+  (workload) with core's low-level CPU service.
+
+This feature requires a kernel that supports thread migration, which are
+Fiasco.OC, seL4, and to some degree the NOVA kernel. For the NOVA kernel,
+solely threads with an attached scheduling context can be migrated, which are
+'Genode::Thread' and POSIX pthread instances. Genode's entrypoint and virtual
+CPU instances are not supported.
+
+The feature can be tested by the scenario located at _repos/os/run/cpu_balancer.run_.
+Further information regarding policy configuration, a demo integration into
+Sculpt 20.08, and a screencast video are available as a dedicated
+[https://genodians.org/alex-ab/2020-11-16-cpu-balancer - CPU balancer]
+article.
+
+
+Sculpt OS on 64-bit ARM hardware (i.MX8 EVK)
+############################################
+
+Within the last year, a lot of effort was put into Genode's support for ARM
+64-bit hardware. A consequent next step was to port Sculpt OS to the i.MX8 EVK
+board, which we have used so far as reference platform. With the current
+release, we proudly present the first incarnation of Sculpt OS for this board.
+
+In contrast to the original x86 PC variant, this first ARM version ships with
+a static set of devices inside the drivers subsystem. No device manager
+component probes for the used hardware and starts drivers on demand. Instead,
+the set of drivers defined in the _drivers_managed-imx8q_evk_ package enables
+USB HID devices to make use of mouse and keyboard peripherals connected to the
+board. It drives the SD-card, which can be used as storage back end for
+Genode's depot package management. Finally, it contains drivers to manage the
+display engine and the platform's device resources.
+
+With Sculpt OS for ARM 64-bit, we not only aim for classical desktop/notebook
+systems - like on x86 - but also for embedded consumer hardware like phones
+and tablets. In order to leverage this goal, we enabled support for
+[https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/i-mx-8-series-accessory-boards:i.MX8-ACCESSORY-BOARDS - NXP's MX8_DSI_OLED1]
+display on the i.MX8 platform on Genode. The panel features an OLED display as
+well as a Synaptics RMI4 compliant touch screen.
+
+Genode's i.MX8 display driver that we released with version
+[https://genode.org/documentation/release-notes/20.02#Display_engine - 20.02]
+supported HDMI devices only, whereas the OLED display is connected via
+[https://www.mipi.org/specifications/dsi - MIPI DSI] to the SoC. Therefore, we
+extended the display driver by the MIPI DSI infrastructure as well as the
+actual driver for the OLED display. This endeavor turned out to be a very
+rocky one, which we have documented in detail on our
+[https://genodians.org/ssumpf/2020-09-30-mipi_touch - Genodians] website.
+
+[image imx8_oled]
+  The administrative user interface of Sculpt OS responds to touch input.
+
+In order to enable the touch screen device, we implemented a new Genode
+component from scratch. The touch screen is connected via an I2C bus to the
+SoC where data can be sent to and received from. At the moment, the I2C
+implementation is hidden within the driver but as more devices require I2C
+access, it will eventually become a standalone component. Interrupts are
+delivered via GPIO pins from the touch screen to the SoC, which made it
+necessary to enable i.MX8 support within Genode's generic i.MX GPIO driver. We
+took this as an opportunity to streamline, cleanup, and make the driver more
+robust. Additionally, all driver components now take advantage of the new
+platform driver API for ARM that has been introduced with release
+[https://genode.org/documentation/release-notes/20.05#New_platform_driver_for_the_ARM_universe - 20.05].
+
+In its current incarnation, the driver for the display management is not able
+to switch in between HDMI or MIPI-DSI connected displays dynamically.
+Therefore, the display to be used in Sculpt has to be configured in the
+framebuffer configuration manually. By default the HDMI connector is used.
+
+Beyond the driver subsystem, there are few components dependent on the actual
+hardware, which is why the look & feel of the Sculpt desktop does not actually
+differ from the x86 PC version, with the following exceptions:
+
+When you select the network configuration dialog, you'll have no "Wifi" option
+because of the missing hardware. However, the "Wired" option allows you to
+start the corresponding driver for the i.MX FEC Ethernet device. The second
+difference to the Sculpt OS x86 PC variant is the absence of a virtual machine
+solution at the moment. Although Genode comprises a mature
+virtual-machine-monitor solution for ARM - see
+Section [Multicore virtualization on ARM] - it still lacks a reasonable
+storage back end. Therefore, we left virtualization out of the picture for
+now. Lastly, there is no possibility to use USB block devices, because the
+required management component - a driver manager for i.MX8 - does not exist
+yet. We plan to bridge these remaining few gaps compared to the x86 version
+with the upcoming Genode releases.
+
+To give Sculpt a try on the i.MX8 EVK board, you have to start the well-known
+Sculpt run-script as usual, but for the base-hw kernel. For example:
+
+!  tool/create_builddir arm_v8a
+!  cd build/arm_v8a
+!  make run/sculpt KERNEL=hw BOARD=imx8q_evk
+
+Under the hood, the run script requests a sculpt-<board> specific package from
+the depot package system. Currently, _sculpt-pc_ and _sculpt-imx8q_evk_ are
+available.
+
+
+Multicore virtualization on ARM
+###############################
+
+The written-from-scratch virtualization solution for Genode on ARMv8 entered the
+picture exactly one year ago with
+[https://genode.org/documentation/release-notes/19.11#Virtualization_of_64-bit_ARM_platforms - release 19.11].
+Since then, a couple of improvements and validations have been incorporated
+into it. Support for VirtIO network and console models had been added.
+Moreover, it got streamlined with our prior existing ARMv7 hypervisor and
+virtual-machine monitor (VMM). But although the architecture of the VMM was
+designed from the very beginning with more than one virtual-CPU (VCPU) in
+mind, running a VM on multiple cores had not been addressed nor tested.
+
+With this release, we enhance the virtualization support of the base-hw
+kernel, acting as the ARM hypervisor, to support multicore virtual machines.
+The VMM implementation got extended to start an entrypoint for each VCPU owned
+by a VM. The affinities of those entrypoints are configured to distribute over
+all physical CPUs available to the VMM. The affinity of an entrypoint that
+handles events of a VCPU is automatically used as the affinity of the VCPU
+itself. Whenever a VCPU exit needs to be handled, this is delegated to the VMM
+entrypoint running on the same CPU. Once the VMM's entrypoint successfully
+handled the exit reason, it resumes the VCPU.
+
+Formerly, the control to start or stop a VCPU was implemented by core's VM
+service that runs on the first CPU. But that implied that all different VMM
+entrypoints running on distinct CPUs would have needed to frequently call
+core's service entrypoint on the first CPU, inducing costly cross-CPU
+communication. This is amplified by the fact that core's entrypoint uses a
+system call to instruct the kernel's internal scheduler of the corresponding
+target CPU, which again would potentially target a remote CPU. For simplifying
+the implementation and for improving performance, we slightly extended the
+VM-session interface to return a kernel-specific capability addressing a VCPU
+directly. With this capability, a VMM's entrypoint is able to directly call
+the kernel to start or stop a VCPU instead of using the indirection over core.
+However, the detail whether the kernel is called directly or not is hidden
+behind the VM session client API and transparent to the user.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+C runtime
+=========
+
+We improved the support for aligned memory allocations to fix sporadic memory
+leaks, which occurred with our port of the Falkon web browser. One relevant
+change is the implementation of the 'posix_memalign()' function, another
+change is that the address alignment of anonymous 'mmap()' allocations is now
+configurable like follows:
+
+! <config>
+!     <libc>
+!         <mmap align_log2="21"/>
+!     </libc>
+! </config>
+
+
+Standard C++ library
+====================
+
+Even though Genode uses C++ as its primary programming language, we do not
+rely on or make use of any C++ standard library within the Genode OS
+framework. However, since a C++ STL is a vital part of application programming
+with C++, we provide one for applications built on top of the base framework;
+in particular the GNU C++ STL library (_libstdc++_). It is treated as a
+regular 3rd party library and its functionality is extended on demand. This
+approach worked well enough to even enable larger C++-based software like Qt5
+and Chromium's Blink engine (as part of QtWebEngine) to run on Genode. That
+being said, for developers using _libstdc++_ on Genode, it is not immediately
+clear, which features are supported and which are not.
+
+Fortunately, _libstdc++_ includes a testsuite that - as the name suggests -
+allows for testing the range of functionality of the library on a given
+platform. So we turned to it to establish a base line of supported features.
+We were particularly interested in how our port behaves when C++17 is
+requested. It goes without saying that this only includes the aspects, which
+are specifically probed by the testsuite. Rather than adding thorough Genode
+support to the testsuite, we opted for providing an
+[https://github.com/cnuke/genode-libstdcxx-testsuite/ - environment] that
+mimics the common 'unix' target and allows us to execute the testsuite on
+the Linux version of Genode via a regular Linux host OS. It uses the Genode
+tool chain to compile the tests and spawns a Genode base-linux system to
+execute them.
+
+Executing the testsuite was an iterative process because in the beginning, we
+encountered many falsely failed tests. On one hand, most of them were due to
+the way C++ is applied in Genode or rather how our build system works
+internally. For one, _libsupc++_ on Genode is part of the _cxx_ library. This
+library in turn is part of _ldso.lib.so_, the dynamic linker that provides
+the base API. As the build system uses stub libraries generated from 'symbol'
+files containing the ABI of a given shared object, each missing symbol must
+be made available. Otherwise the linking step is going to fail complaining
+about undefined references because components use these stub libraries
+during compilation. On the other hand, we had to get cozy with the testsuite's
+underlying test framework in order to get our test environment straight.
+
+In case of the testsuite, there were a lot of symbols missing because we did
+not encounter them so far in our workloads, and thus, were not part of the
+symbols file. After all, templates will always generate specific symbols that
+are difficult to foresee. Besides that, we lacked support for aligned 'new'
+and 'delete' operators. With these adaptions in place, we were able to
+successfully execute the testsuite.
+
+In the end, the results paint a good picture. The current short-comings boil
+down to
+
+* Support for the *stdc++fs* library is not available as the library is
+  not ported yet.
+* Proper *locale* support in the 'libc' as well as 'stdc++' is not available.
+* Support for parallel operations with *openmp* is not available.
+* Various subsystems ('std::thread', 'std::random_device', numerics library)
+  need further attention for proper functionality. This is most prominent
+  for the failing execution tests where sometimes the threads appear to
+  get stuck.
+
+These findings are documented at issue
+[https://github.com/genodelabs/genode/issues/3925 - 3925].
+
+
+Consistent Block Encrypter (CBE)
+================================
+
+The CBE is a library for the management of encrypted block-devices that is
+entirely written in SPARK. It was first announced and integrated with
+[https://genode.org/documentation/release-notes/19.11#Preliminary_block-device_encrypter - Genode 19.11],
+reached feature-completeness with
+[https://genode.org/documentation/release-notes/20.05#Feature-completeness_of_the_consistent_block_encrypter - Genode 20.05],
+and has received a highly modular back-end system with version
+[https://genode.org/documentation/release-notes/20.08#Consistent_Block_Encrypter - 20.08].
+For this release, we thoroughly streamlined the CBE repository, added enhanced
+automated quality assurance, and switched to another default encryption
+back end.
+
+
+Repository restructuring
+------------------------
+
+Generally speaking, the [https://github.com/m-stein/cbe - CBE repository] has
+been freed from everything that is not either part of the SPARK-based core
+logic (cbe, cbe_common, and the hashing algorithm), the essential SPARK-based
+tooling (initialization, checking), or the Ada-based C++ bindings (*_cxx
+libraries). The whole Genode-specific integration, testing, and packaging
+moved to Genode's 'gems' repository and the former Genode sub-repository 'cbe'
+was replaced by the new CBE port _gems/ports/cbe.port_. We also took the
+opportunity to remove many unused remnants of earlier development stages and
+to drastically simplify the ecosystem of CBE-related packages.
+
+We hope that this allows for certain characteristics of the CBE project, like
+its strong OS-independence or a completely "flow-mode"-provable core logic to
+become more clear, while at the same time, the Genode-specific accessories can
+benefit from being part of Genode's mainline development.
+
+
+Automated testing, benchmarking, and proving
+--------------------------------------------
+
+The CBE tester is a scriptable environment meant for testing all aspects of
+the CBE library and its basic tooling. Through its XML command interface, one
+can not only access and validate data of CBE devices but also initialize them,
+check their consistency, analyze their meta data, execute performance
+benchmarks, manage device snapshots, perform online re-keying or online
+re-dimensioning of devices, and, last but not least, manage the required Trust
+Anchors.
+
+Before this release, the CBE tester was a mere patchwork solution and many of
+the above mentioned features were limited or even missing. For instance block
+access was issued only in a synchronous fashion, the Trust-Anchor was managed
+implicitly, and validating read data wasn't possible. Besides adding the
+missing features, we also reworked the component entirely to follow a clean
+and comprehensible implementation concept. The new CBE tester comes together
+with the run script _gems/run/cbe_tester.run_ that shall serve as both a
+demonstration how to use the tester and an extensive automated test and
+benchmark for the CBE.
+
+Furthermore, we created the CBE-specific autopilot tool _tool/cbe_autopilot_
+that is meant to establish a common reference for the quality of CBE releases
+as well as for their integration in Genode. Running the tool without arguments
+will give instructions how to use it. In a nutshell, when running
+'tool/cbe_autopilot basics', the tool will GNAT-prove what is expected to be
+provable, run all CBE-related run scripts expected to work, and build all
+CBE-related packages (existing build and depot directories are not touched in
+this process). The idea is to make the successful execution of the test
+mandatory before advancing the master branch of the CBE repository or
+releasing a new version of the integration in Genode. A handy side-feature of
+the tool is that one can run 'tool/cbe_autopilot prove' to do only the
+GNAT-proving part. With 'tool/cbe_autopilot clean' finally, the tool cleans up
+all of its artifacts.
+
+
+Libcrypto back end for block encryption
+---------------------------------------
+
+The introduction of VFS plugins for CBE back ends in the previous Genode
+release made it much easier to interchange concrete implementations. This
+motivated us to play around a bit in our endeavour of optimizing execution
+time. It turned out that especially the choice of the block-encryption back
+end has a significant impact on the overall performance of CBE block
+operations. It furthermore seemed that especially the 'libsparkcrypto'
+library, our former default for block encryption, prioritizes other qualities
+over performance.
+
+That said, in general, we want to enable an informed user to decide for him-
+or herself which qualities one prefers in such an algorithm. The VFS plugin
+mechanism pays tribute to this. And it also seems very natural to us to
+combine a SPARK-based block-device management with a SPARK-based encryption
+back-end like 'libsparkcrypto'. But for our default use case, we came to the
+conclusion that the 'libcrypto' library might be a better choice.
+
+
+Streamlined ioctl handling in the C runtime / VFS
+=================================================
+
+The Genode release
+[https://genode.org/documentation/release-notes/19.11#C_runtime_with_improved_POSIX_compatibility - 19.11]
+introduced the emulation of ioctl operations via pseudo files. This feature
+was first used by the Terminal. With the current release, we further employ
+this mechanism for additional ioctl operations, like the block-device related
+I/O controls, as the long-term plan is to remove the notion of ioctl's from
+the 'Vfs::File_io_services' API all-together.
+
+We therefore equipped the block VFS-plugin with a compound directory hosting
+the pseudo files for triggering device operations:
+
+:info: This file contains the device information structured as 'block'
+  XML node having 'size' and 'count' attributes providing the used block size
+  as well as the total number of blocks.
+
+:block_count: contains the total number of blocks.
+
+:block_size: contains the size of one block in bytes.
+
+Furthermore, we split the existing 'ioctl' handling method in the libc into
+specific ones for dealing with terminals and block devices because at some
+point more different groups of I/O controls are to follow.
+
+The first one to follow is the 'SNDCTL' group. This group deals with audio
+devices and corresponds to the standard set by the OpenSoundSystem (OSS)
+specification years ago. In the same vein as the terminal and block I/O
+controls, the sound controls are implemented via property files.
+
+The controls currently implemented are the ones used by the OSS-output plugin
+of [https://cmus.github.io/ - cmus], the driving factor behind the
+implementation, which uses the (obsolete) version 3 API.
+
+At the moment, it is not possible to set or rather change any parameters. In
+case the requested setting differs from the parameters of the underlying
+audio-out session - in contrast to the suggestion in the OSS manual - we do
+not silently adjust the parameters returned to the callee but let the I/O
+control operation fail.
+
+The following list contains the currently handled SNDCTL I/O controls:
+
+:SNDCTL_DSP_CHANNELS: sets the number of channels. We return the available
+  channels here and return ENOTSUP if it differs from the requested number of
+  channels.
+
+:SNDCTL_DSP_GETOSPACE: returns the amount of playback data that can be written
+  without blocking. For now it amounts the space left in the stream buffer of
+  the audio-out session.
+
+:SNDCTL_DSP_POST: forces playback to start. We do nothing and return success.
+
+:SNDCTL_DSP_RESET: is supposed to reset the device when it is active before
+  any parameters are changed. We do nothing and return success.
+
+:SNDCTL_DSP_SAMPLESIZE: sets the sample size. We return the sample size of the
+  underlying audio-out session and return ENOTSUP if it differs from the
+  requested format.
+
+:SNDCTL_DSP_SETFRAGMENT: sets the buffer size hint. We ignore the hint and
+  return success.
+
+:SNDCTL_DSP_SPEED: sets the sample rate. For now, we always return the rate of
+  the underlying audio out session and return ENOTSUP if it differs from the
+  requested one.
+
+The libc extension is accompanied by an OSS VFS plugin that gives access to an
+audio-out session by roughly implementing an OSS pseudo-device. It merely
+wraps the session and does not provide any form of resampling or re-coding of
+the audio stream.
+
+[image cmus]
+
+Image [cmus] depicts how the various pieces work together in a real-world
+scenario. The interplay of the extended libc with the OSS VFS plugin allows
+for listening to MP3s - for the time being the format is restricted to
+44.1kHz/16bit - on Sculpt using the [https://cmus.github.io/ - cmus]
+audio player.
+
+The current state serves as a starting point for further implementing the OSS
+API to cover more use cases, especially with ported POSIX software like
+VirtualBox and Qt5 or even as SDL2 audio back end. While showing its age, OSS
+is still supported by the majority of middle ware and makes for a decent
+experimentation target.
+
+
+Device drivers
+##############
+
+VirtIO support
+==============
+
+Thanks to the remarkable contribution by Piotr Tworek, the Genode OS framework
+has become able to drive VirtIO network devices.
+
+He did not only provide a single VirtIO network driver but a framework to
+easily add more VirtIO driver classes in the future. Either the devices are
+connected as PCI devices or directly as platform devices with fixed
+memory-mapped I/O addresses. The framework supports both and abstracts away
+from the concrete connection type.
+
+The VirtIO network driver enables networking for Genode when using the
+'virt_qemu' board on either the ARMv7a or ARMv8a architecture. However, the
+VirtIO device configuration on Qemu is dynamic. The order and presence of
+different command line switches affect the bus address and interrupt
+assignment of each device. To make the use of Genode with Qemu robust in
+changing environments, a tiny helper component was supplemented. This
+component named 'virtdev_rom' probes the memory-mapped I/O areas of the system
+bus and detects available and known VirtIO devices. The results are provided
+in the form of a configuration that can be consumed by the platform driver to
+assign the correct device resources to the corresponding VirtIO driver.
+
+The VirtIO network driver in action, as well as the interplay of the platform
+driver and the 'virtdev_rom' component can be observed when using the
+'drivers_nic-virt_qemu' package.
+
+
+Improved support for OpenBSD audio drivers
+==========================================
+
+So far, the supported drivers exclusively used PCI as transport bus and for
+practical reasons, the emulation environment was tied to it. The bus handling
+has now moved into its own compilation unit to make future addition of drivers
+that employ other transport buses easier. On the same account, the component
+got renamed to 'pci_audio_drv' to reflect its bus connection.
+
+While at it, the execution flow of the component got adapted. The kernel code
+should have been executed within the context of the main task like it is done
+in the DDE Linux drivers. The initial port of the HDA driver, however, called
+the code directly from within the session as there was no immediate reason to
+use a task context because suspending the execution was not needed. When using
+USB devices, that is no longer possible as we have to suspend the execution
+during the execution of the kernel code. So we pass in the audio data and
+schedule the emulated BSD kernel code.
+
+The above mentioned changes are mostly preliminary clean-up work for the
+upcoming support of USB audio devices.
+
+Furthermore, we implemented timeout handling in the driver and use Genode's
+timeout framework API to schedule timeouts and for providing the current time.
+For now there is only one timeout - the unsolicited Azalia codec event - and
+therefore the timeout queue consists of solely one timeout object. Those
+events are important for detecting plugged in headphones.
+
+Supporting headphones was further refined by accounting for the situation
+where the driver is started while headphones are already plugged in and the
+mixer needs to be configured accordingly. In particular, on the Fujitsu S938
+the driver lacked the proper quirk for switching between the internal and
+external microphone.
+
+In addition to the changes made to the audio driver component, the behaviour
+of the audio mixer was adjusted with regard to handling the configuration
+of a new session. The mixer now applies the settings already stored in its
+configuration to new sessions instead of only reporting them. In case of
+Sculpt, where an existing launcher already contains a valid configuration,
+that allows for setting the volume levels appropriately for known sessions
+prior to establishing the connection.
+
+
+Retiring the monolithic USB driver
+==================================
+
+With [https://genode.org/documentation/release-notes/18.08#Decomposed_USB_stack - release 18.08],
+a componentized USB stack got introduced next to our time-tested monolithic
+USB driver. With the current release, the driver manager as used by Sculpt OS
+switched to use the new USB stack in order to benefit from the de-composition
+and from more supported USB devices. The monolithic driver was still based on
+an older DDE-Linux revision compared to the componentized version. This step
+paves the ground to retire the monolithic USB driver with the next Genode
+release and will improve the number of supported USB devices with the upcoming
+Sculpt OS release.
+
+
+Platforms
+#########
+
+Hardware P-State support on PC hardware
+=======================================
+
+Intel CPUs feature Speed Shift respectively Hardware P-State (HWP)
+functionality in order to balance CPU frequency and voltage for performance
+and power efficiency. Up to now, the UEFI firmware of the notebooks we worked
+with selected or made an option selectable in the UEFI configuration to
+specify the desired behaviour, e.g. optimize for performance or power
+efficiency.
+
+With a recent Lenovo notebook, however, we faced the issue that either the fan
+would run for too long after some load and/or the performance of the CPUs
+regressed. Finding a well working sweet spot
+[https://github.com/genodelabs/genode/issues/3871 - seems hard].
+This experience prompted us to investigate how the Intel HWP feature can be
+set and configured. After some experiments, we achieved to reduce the fan
+noise and received better performance by tweaking the Intel HWP settings.
+
+However, changing the Intel HWP settings requires access to the privileged
+mode on all available CPUs. Since Genode supports several kernels, a solution
+would require us to modify all kernels or the feature would remain solely
+available to one kernel. We went for a different approach.
+
+On x86, we use the tools from the
+[https://genode.org/documentation/release-notes/18.08#New_Intel_Microcode_update_mechanism - Morbo project],
+e.g., bender and microcode, to run code before the kernels are booted. The
+jobs of the tools are to scan, enable, or apply changes to the CPUs and
+chipset, which are not required to change during runtime. We came to the
+conclusion that the named bootstrap tools are good places to apply such
+one-time Intel HWP settings for the moment.
+
+During the course of adding the Intel HWP functionality, we merged the
+microcode functionality into the bender tool and made it configurable via the
+boot options 'microcode' and 'intel_hwp'. A typical generated grub2
+configuration by using both options would look like this:
+
+| insmod multiboot2
+| insmod gzio
+| multiboot2 /boot/bender bender microcode intel_hwp
+| module2    /boot/micro.code micro.code
+| module2    /boot/hypervisor hypervisor ...
+| module2    /boot/image.elf.gz image.elf ...
+
+When using the NOVA kernel and Genode's _run_ tool for booting respectively
+disk-image creation, one may use the existing 'options_bender' variable in
+_tool/run/boot/nova_. The microcode option is added by setting the
+'apply_microcode' flag in the same file. The 'intel_hwp' option, at the other
+hand, can simply be appended to 'options_bender'. On startup, bender will print
+the applied HWP settings for each core to the serial output if the
+'intel_hwp' option was set. The new feature will try to set Intel HWP to
+'PERFORMANCE' mode, the mode for which we observed the best results.
+
+
+NOVA microhypervisor
+====================
+
+The IO-MMU is a hardware feature to protect operating systems, e.g., Genode,
+against misbehaving devices and/or corresponding device drivers. The feature
+is supported on x86 since the
+[https://genode.org/documentation/release-notes/13.02#DMA_protection_via_IOMMU - 13.02 release]
+and described in the release notes. Up to now, this feature is solely
+supported for Intel hardware, in particular CPUs and chipsets supporting Intel
+VT-d.
+
+With the current release, we add support for AMD's IO-MMU variant to the
+Genode framework for the NOVA kernel - being the first one out of the
+supported microkernels. Being conceptionally equivalent, the actual
+implementation for AMD differs from Intel unsurprisingly. In order to add the
+support, a new IO-MMU interface abstraction for accommodating both versions -
+Intel and AMD - has been added to the NOVA kernel. Further, the discovery of
+the available AMD IO-MMUs required the traversal of different ACPI tables than
+for Intel and another page table format for the IO-MMU had to be added. On the
+Genode framework side, only very few changes were necessary, namely the
+detection of the IO-MMU feature by parsing the ACPI tables in Genode's ACPI
+driver as well as the ported Intel ACPICA component.
+
+The change has been already successfully tested on various Ryzen desktops and
+notebooks on a backported Sculpt 20.08 branch.
