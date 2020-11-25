@@ -35,7 +35,7 @@ of them is briefly characterized as follows:
   one of Genode's device-independent session interfaces, which are
   'platform_session', 'capture_session', 'event_session', 'block_session',
   'audio_out_session', 'log_session', 'nic_session', and 'timer_session'
-  (see 'os/include/' for the interface definitions). Those interfaces are
+  (see _os/include/_ for the interface definitions). Those interfaces are
   uniform across hardware platforms and kernel base platforms. Usually,
   each device driver can accommodate only one client at a time.
 
@@ -64,7 +64,7 @@ of them is briefly characterized as follows:
 Device drivers
 ##############
 
-Device drivers usually reside in the 'src/drivers' subdirectory of source-code
+Device drivers usually reside in the _src/drivers/_ subdirectory of source-code
 repositories. The most predominant repositories hosting device drivers are
 'os', 'dde_ipxe', 'dde_linux'.
 
@@ -72,23 +72,23 @@ repositories. The most predominant repositories hosting device drivers are
 Platform devices
 ================
 
-:'os/src/drivers/platform/': Platform drivers for various platforms.
+:_os/src/drivers/platform/_: Platform drivers for various platforms.
   On x86, the platform driver uses the PCI controller as found on x86 PC
   hardware. A client can probe for a particular device and request information
   about physical device resources (using the 'platform_device' interface). I/O
   resources for MMIO regions, I/O ports, and interrupts can be requested by the
   provided device abstraction.
 
-:'os/src/drivers/acpi':
+:_os/src/drivers/acpi/_:
   On x86 platforms that use the APIC (namely Fiasco.OC, NOVA, and hw_x86_64)
   this simple ACPI parser traverses the ACPI tables and reports device-resource
   information (e.g., interrupt lines of PCI devices).
 
-:'os/src/app/smbios_decoder':
+:_os/src/app/smbios_decoder/_:
   A component that parses SMBIOS information on x86 platforms and makes the
   result available as a report.
 
-:'libports/src/app/acpica':
+:_libports/src/app/acpica/_:
   In addition to our ACPI base driver, the acpica component uses the
   ACPICA library to provide access to dynamic functions like battery
   states, events (e.g., notebook lid close and power buttons), as well
@@ -102,10 +102,10 @@ UART devices
 
 The UART device drivers implement the UART-session interface.
 
-:'os/src/drivers/uart/spec/pbxa9':
+:_os/src/drivers/uart/spec/pbxa9/_:
   Driver for the PL011 UART as found on many ARM-based platforms.
 
-:'os/src/drivers/uart/spec/x86':
+:_os/src/drivers/uart/spec/x86/_:
   Driver for the i8250 UART as found on PC hardware.
 
 
@@ -115,60 +115,62 @@ Framebuffer and input drivers
 Framebuffer and input drivers are implemented as clients of the
 capture-session and event-session interfaces respectively.
 
-:'os/src/drivers/ps2/x86':
+:_os/src/drivers/ps2/x86/_:
   Driver for the 'i8042' PS/2 controller as found in x86 PCs. It supports both
   mouse (including ImPS/2, ExPS/2) and keyboard.
 
-:'os/src/drivers/ps2/pl050':
+:_os/src/drivers/ps2/pl050/_:
   Driver for the PL050 PS/2 controller as found on ARM platforms such as
   VersatilePB. The physical base address used by the driver is obtained at
-  compile time from a header file called 'pl050_defs.h'. The version of the
-  VersatilePB platform can be found at 'os/include/platform/vpb926/' and
+  compile time from a header file called _pl050_defs.h_. The version of the
+  VersatilePB platform can be found at _os/include/platform/vpb926/_ and
   is made available to the driver via the SPECS machinery of the Genode build
   system.
 
-:'libports/src/drivers/framebuffer/vesa':
+:_libports/src/drivers/framebuffer/vesa/_:
   Driver using VESA mode setting on x86 PCs. For more information, please refer
   to the README file in the driver directory.
 
-:'libports/src/drivers/framebuffer/boot':
+:_libports/src/drivers/framebuffer/boot/_:
   Driver for boot-time initialized framebuffers (e.g., UEFI GOP)
   discovered from the 'platform_info' ROM
 
-:'os/src/drivers/framebuffer/pl11x':
+:_os/src/drivers/framebuffer/pl11x/_:
   Driver for the PL110/PL111 LCD display.
 
-:'os/src/drivers/framebuffer/imx53':
+:_os/src/drivers/framebuffer/imx53/_:
   Driver for LCD output on i.MX53 SoCs.
 
-:'os/src/drivers/framebuffer/rpi':
+:_os/src/drivers/framebuffer/rpi/_:
   Driver for the HDMI output of the Raspberry Pi.
 
-:'os/src/drivers/framebuffer/sdl':
+:_os/src/drivers/framebuffer/sdl/_:
   Serves as both framebuffer and input driver on Linux using libSDL. This
   driver is only usable on the Linux base platform.
 
-:'os/src/drivers/gpu/intel':
+:_os/src/drivers/gpu/intel/_:
   An experimental Intel Graphics GPU multiplexer for Broadwell and newer.
 
-:'dde_linux/src/drivers/framebuffer/intel':
+:_dde_linux/src/drivers/framebuffer/intel/_:
   Framebuffer driver for Intel i915 compatible graphic cards based on
   the Linux Intel KMS driver.
 
-:'dde_linux/src/drivers/usb':
-  USB driver that makes USB HID and USB storage devices available as an input
-  event stream and a block session respectively. For examples of using this
-  driver, refer to the run scripts at 'dde_linux/run/usb_hid' and
-  'dde_linux/run/usb_storage'.
+:_dde_linux/src/drivers/usb_host/_:
+  USB host-controller driver that provides an USB session interface to
+  USB drivers.
 
-:'dde_linux/src/drivers/usb_hid':
+:_dde_linux/src/drivers/usb_hid/_:
   USB Human Interface Device driver using the USB session interface.
+
+:_os/src/drivers/usb_block/_:
+  USB storage driver that uses the USB session interface and provides
+  a block-session interface.
 
 
 Timer drivers
 =============
 
-The timer driver located at 'os/src/drivers/timer' implements the timer-session
+The timer driver located at _base/src/timer/_ implements the timer-session
 interface. Technically, it is both a device driver (accessing a timer
 device) and a resource multiplexer (supporting multiple timer-session clients
 at the same time). Depending on the base platform, the implementation uses
@@ -189,13 +191,13 @@ Audio drivers
 =============
 
 Audio drivers implement the Audio_out session interface defined at
-'os/include/audio_out_session/' for playback and optionally the audio_in
+_os/include/audio_out_session/_ for playback and optionally the audio_in
 interface for recording.
 
-:'os/src/drivers/audio/spec/linux':
+:_os/src/drivers/audio/spec/linux/_:
   Uses ALSA as back-end on the Linux base platform and supports only playback.
 
-:'dde_bsd/src/drivers/audio':
+:_dde_bsd/src/drivers/audio/_:
   Sound drivers ported from OpenBSD. Currently, the repository
   includes support for Intel HD Audio as well as for Ensoniq AudioPCI
   (ES1370) compatible sound cards.
@@ -205,31 +207,31 @@ Block drivers
 =============
 
 All block drivers implement the block-session interface defined at
-'os/include/block_session/'.
+_os/include/block_session/_.
 
-:'os/src/drivers/sd_card/spec/pl180':
+:_os/src/drivers/sd_card/spec/pl180/_:
   Driver for SD-cards connected via the PL180 device as found on the PBX-A9
   platform.
 
-:'os/src/drivers/sd_card/spec/imx53':
+:_os/src/drivers/sd_card/spec/imx53/_:
   Driver for SD-cards connected to the Freescale i.MX53 platform like the
   Quick Start Board or the USB armory device.
 
-:'os/src/drivers/sd_card/spec/rpi':
+:_os/src/drivers/sd_card/spec/rpi/_:
   Driver for SD-cards connected to the Raspberry Pi.
 
-:'dde_linux/src/drivers/usb':
+:_dde_linux/src/drivers/usb/_:
   USB driver that makes USB storage devices available as block sessions.
   For an example of using this driver, refer to the run script at
-  'dde_linux/run/usb_storage'.
+  _dde_linux/run/usb_storage.run_.
 
-:'os/src/drivers/ahci':
+:_os/src/drivers/ahci/_:
   Driver for SATA disks and CD-ROMs on x86 PCs.
 
-:'os/src/drivers/nvme':
+:_os/src/drivers/nvme/_:
   Driver for NVMe block devices on x86 PCs.
 
-:'os/src/drivers/usb_block':
+:_os/src/drivers/usb_block/_:
   USB Mass Storage Bulk-Only driver using the USB session interface.
 
 
@@ -237,45 +239,45 @@ Network interface drivers
 =========================
 
 All network interface drivers implement the NIC session interface
-defined at 'os/include/nic_session'.
+defined at _os/include/nic_session/_.
 
-:'os/src/drivers/nic/spec/linux':
+:_os/src/drivers/nic/spec/linux/_:
   Driver that uses a Linux tap device as back end. It is only useful on the
   Linux base platform.
 
-:'os/src/drivers/nic/spec/lan9118':
+:_os/src/drivers/nic/spec/lan9118/_:
   Native device driver for the LAN9118 network adaptor as featured on the
   PBX-A9 platform.
 
-:'dde_ipxe/src/drivers/nic':
+:_dde_ipxe/src/drivers/nic/_:
   Device drivers ported from the iPXE project. Supported devices are Intel
   E1000 and pcnet32.
 
-:'dde_linux/src/drivers/wifi':
+:_dde_linux/src/drivers/wifi/_:
   The wifi_drv component is a port of the Linux mac802.11 stack, including the
   iwlwifi driver. It enables the use of Intel Wireless 6xxx and 7xxx cards.
 
-:'dde_linux/src/drivers/usb':
+:_dde_linux/src/drivers/usb/_:
   For the OMAP4 platform, the USB driver contains the networking driver.
 
-:'dde_linux/src/drivers/nic/fec':
+:_dde_linux/src/drivers/nic/fec/_:
   Driver for ethernet NICs of the i.MX SoC family.
 
 
 General-purpose I/O drivers
 ===========================
 
-:'os/src/drivers/gpio/spec/imx53':
+:_os/src/drivers/gpio/spec/imx53/_:
   Driver for accessing the GPIO pins of i.MX53 platforms.
 
-:'os/src/drivers/gpio/spec/rpi':
+:_os/src/drivers/gpio/spec/rpi/_:
   Driver for accessing the GPIO pins of Raspberry Pi platforms.
 
 
 Resource multiplexers
 #####################
 
-By convention, resource multiplexers are located at the 'src/server'
+By convention, resource multiplexers are located at the _src/server/_
 subdirectory of a source repository.
 
 :Framebuffer and input: Framebuffer and input devices can be multiplexed using
@@ -285,35 +287,35 @@ subdirectory of a source repository.
   service for input drivers, a capture service for output drivers, and a GUI
   service for the applications. Each GUI session contains a virtual
   framebuffer and a virtual input interface. Nitpicker (including a README
-  file) is located at 'os/src/server/nitpicker'.
+  file) is located at _os/src/server/nitpicker/_.
 
-:Audio output: The audio mixer located at 'os/src/server/mixer' enables
+:Audio output: The audio mixer located at _os/src/server/mixer/_ enables
   multiple clients to use the audio-out interface. The mixing is done by simply
   adding and clamping the signals of all present clients.
 
-:Networking: The NIC bridge located at 'os/src/server/nic_bridge' multiplexes
+:Networking: The NIC bridge located at _os/src/server/nic_bridge/_ multiplexes
   one NIC session to multiple virtual NIC sessions using a proxy-ARP
   implementation. Each client has to obtain a dedicated IP address visible to
   the physical network. DHCP requests originating from the virtual NIC sessions
   are delegated to the physical network.
 
-  The NIC router located at 'os/src/server/nic_router' multiplexes one NIC
+  The NIC router located at _os/src/server/nic_router/_ multiplexes one NIC
   session to multiple virtual NIC sessions by applying network address
   translation (NAT).
 
-:Block: The block-device partition server at 'os/src/server/part_block' reads
+:Block: The block-device partition server at _os/src/server/part_block/_ reads
   the partition table of a block session and exports each partition found as
   separate block session. For using this server, please refer to the run
-  script at 'os/run/part_block'.
+  script at _os/run/part_block.run_.
 
 :File system: The VFS file-system server allows multiple clients to
   concurrently access the same virtual file system. It is located at
-  'os/src/server/vfs'. The VFS can be assembled out of several builtin
+  _os/src/server/vfs/_. The VFS can be assembled out of several builtin
   file-system types (like a RAM file system, or pseudo file systems for
   various Genode session interfaces) as well as external plugins such as rump
   (mounting file systems supported by the NetBSD kernel).
 
-:Terminal: The terminal_mux service located at gems/src/server/terminal_mux
+:Terminal: The terminal_mux service located at _gems/src/server/terminal_mux/_
   is able to provide multiple terminal sessions over one terminal-client
   session. The user can switch between the different sessions using a keyboard
   shortcut, which brings up an ncurses-based menu.
@@ -328,127 +330,123 @@ one session interface to another, or in the form of libraries.
 Separate components
 ===================
 
-:'os/src/server/gui_fb':
+:_os/src/server/gui_fb/_:
   Translates a GUI session to a pair of framebuffer and input sessions.
   Each 'gui_fb' instance is visible as a rectangular area on screen presenting
   a virtual frame buffer. The area is statically positioned. For more
-  information, please refer to 'os/src/server/gui_fb/README'.
+  information, please refer to _os/src/server/gui_fb/README_.
 
-:'gems/src/server/wm':
+:_gems/src/server/wm/_:
   Window manager that implements the GUI session interface but manages
   each client view as a separate window. The window decorations are provided
-  by a so-called decorator (e.g., 'gems/src/app/decorator'). The behaviour
+  by a so-called decorator (e.g., _gems/src/app/decorator/_). The behaviour
   is defined by a so-called window layouter such as the floating window
-  layouter located at 'gems/src/app/floating_window_layouter/'.
+  layouter located at _gems/src/app/floating_window_layouter/_.
 
-:'demo/src/server/liquid_framebuffer':
+:_demo/src/server/liquid_framebuffer/_:
   Implements the same translation as 'gui_fb' but by presenting an interactive
   window rather than a statically positioned screen area.
 
-:'os/src/server/tar_rom':
+:_os/src/server/tar_rom/_:
   Provides each file contained in a tar file obtained via Genode's ROM session
   as separate ROM session.
 
-:'os/src/server/iso9660':
+:_os/src/server/iso9660/_:
   Provides each file of an ISO9660 file system accessed via a block session as
   separate ROM session.
 
-:'os/src/server/lx_fs':
+:_os/src/server/lx_fs/_:
   A file system server that makes the file system of a Linux base platform
   available to Genode.
 
-:'os/src/server/rom_block':
-  Provides the content of a ROM file as a block session, similar to the
-  loop-mount mechanism on Linux
+:_os/src/server/vfs_block/_:
+  Provides the content of a file obtained from a VFS as a block session,
+  similar to the loop-mount mechanism on Linux
 
-:'os/src/server/ram_block':
-  Provides the content of a RAM dataspace as a block session. In contrast
-  to 'rom_block', this server provides a writeable block device.
-
-:'os/src/server/terminal_log':
+:_os/src/server/terminal_log/_:
   Adapter for forwarding LOG messages to a terminal session.
 
-:'os/src/server/log_terminal':
+:_os/src/server/log_terminal/_:
   Adapter for forwarding terminal output to a LOG session.
 
-:'os/src/server/fs_log':
+:_os/src/server/fs_log/_:
   Adapter that writes LOG messages to files on a file system.
 
-:'demo/src/server/nitlog':
+:_demo/src/server/nitlog/_:
   Provides a LOG session, printing log output on screen via a GUI session.
 
-:'os/src/app/rom_logger':
+:_os/src/app/rom_logger/_:
   The rom_logger component requests a ROM session and writes the
   content of the ROM dataspace to the LOG.
 
-:'os/src/server/rom_filter':
+:_os/src/server/rom_filter/_:
   The ROM filter provides a ROM module that depends on the content of
   other ROM modules steered by the filter configuration, e.g., dynamic
   switching between configuration variants dependent on the state of
   the system.
 
-:'os/src/server/log_terminal':
+:_os/src/server/log_terminal/_:
   Forwards terminal output to a LOG session.
 
-:'gems/src/server/file_terminal':
+:_gems/src/server/file_terminal/_:
   Provides terminal sessions that target files on a file system.
 
-:'gems/src/server/terminal':
+:_gems/src/server/terminal/_:
   Provides a terminal session via a graphical terminal using a framebuffer
   session and an input session.
 
-:'gems/src/server/tcp_terminal':
+:_gems/src/server/tcp_terminal/_:
   Provides one or multiple terminal sessions over TCP connections.
-  For further information, refer to 'gems/src/server/tcp_terminal/README'.
+  For further information, refer to _gems/src/server/tcp_terminal/README_.
 
-:'os/src/server/terminal_crosslink':
+:_os/src/server/terminal_crosslink/_:
   The terminal crosslink service allows to terminal clients to talk to each
   other.
 
-:'gems/src/server/http_block':
+:_gems/src/server/http_block/_:
   A block service that fetches a virtual block device over the network from
   a HTTP server.
 
-:'os/src/server/fs_rom':
+:_os/src/server/fs_rom/_:
   A ROM service that translates the 'File_system' session interface to the
   'ROM' session' interface. Each request for a ROM file is handled by looking
   up an equally named file on the file system.
-  Please refer to 'os/src/server/fs_rom' for more information.
+  Please refer to _os/src/server/fs_rom/_ for more information.
 
   For use cases where ROMs are known to be static, the
-  'os/src/server/cached_fs_rom' can be considered as a faster alternative to
+  _os/src/server/cached_fs_rom/_ can be considered as a faster alternative to
   the regular 'fs_rom' server. Note that 'cached_fs_rom' is not supported
   in base-linux though.
 
-:'os/src/server/chroot':
+:_os/src/server/chroot/_:
   An intermediate file-system server that makes a sub directory of a file
   system available as the root of a file system handed out to its client.
 
-:'os/src/server/dynamic_rom':
+:_os/src/server/dynamic_rom/_:
   A simple ROM service that provides ROM modules that change in time according
   to a configured timeline.
 
-:'os/src/server/report_rom':
+:_os/src/server/report_rom/_:
   A service that implements both the report session interface and the ROM
   session interface. It reflects incoming reports as ROM modules.
 
-:'os/src/server/fs_report':
+:_os/src/server/fs_report/_:
   Report server that writes reports to file-systems
 
-:'os/src/server/clipboard':
+:_os/src/server/clipboard/_:
   This component is both a report service and a ROM service. The
   clients of the report service can issue new clipboard content, which
   is then propagated to the clients of the ROM service according to a
   configurable information-flow policy.
 
-:'os/src/server/event_filter':
+:_os/src/server/event_filter/_:
   A component that transforms and merges input events from multiple sources
   into a single event stream.
 
-:'libports/src/app/acpi_event':
+:_libports/src/app/acpi_event/_:
   A component that transforms ACPI events into Genode input events.
 
-:'gems/src/server/gui_fader':
+:_gems/src/server/gui_fader/_:
   A wrapper for nitpicker's GUI session interface that applies alpha-blending
   to the of views a GUI client.
 
@@ -461,37 +459,37 @@ implement the VFS-plugin interface. They can be combined with any application
 based on Genode's C runtime, with the VFS server, and with non-POSIX
 components that use the Genode's VFS library directly.
 
-:'gems/src/lib/vfs/trace':
+:_gems/src/lib/vfs/trace/_:
   A VFS plugin that makes core's TRACE service accessible as a pseudo
   file system.
 
-:'gems/src/lib/vfs/import':
+:_gems/src/lib/vfs/import/_:
   A VFS plugin that pre-populates a VFS with initial content.
 
-:'gems/src/lib/vfs/pipe':
+:_gems/src/lib/vfs/pipe/_:
   A VFS plugin that provides bi-directional pipes for exchanging streamed
   data between components.
 
-:'gems/src/lib/vfs/ttf':
+:_gems/src/lib/vfs/ttf/_:
   A VFS plugin that makes rendered pixel data of the glyphs of Truetype fonts
   available as a pseudo file system.
 
-:'libports/src/lib/vfs/jitterentropy':
+:_libports/src/lib/vfs/jitterentropy/_:
   A VFS plugin that provides random numbers based on the jitter of executing
   CPU instructions.
 
-:'libports/src/lib/vfs/lwip':
+:_libports/src/lib/vfs/lwip/_:
   A VFS plugin that uses the light-weight IP (lwIP) stack to provide a
   network socket interface as a pseudo file system.
 
-:'dde_linux/src/lib/vfs/lxip':
+:_dde_linux/src/lib/vfs/lxip/_:
   A VFS plugin that uses the TCP/IP stack ported from the Linux kernel to
   provide a network socket interface as a pseudo file system.
 
-:'libports/src/lib/vfs/fatfs':
+:_libports/src/lib/vfs/fatfs/_:
   A VFS plugin that allows for the mounting of FAT-formatted block devices.
 
-:'dde_rump/src/lib/vfs/rump':
+:_dde_rump/src/lib/vfs/rump/_:
   A VFS plugin that enables the use of NetBSD's file-system drivers such
   as ext2 or msdos.
 
@@ -499,41 +497,41 @@ components that use the Genode's VFS library directly.
 Libraries
 =========
 
-:'libports/lib/mk/libc':
+:_libports/lib/mk/libc/_:
   C runtime ported from FreeBSD.
 
-:'libports/lib/mk/stdcxx':
+:_libports/lib/mk/stdcxx/_:
   Standard C++ library
 
-:'libports/lib/mk/mesa_api':
+:_libports/lib/mk/mesa_api/_:
   Mesa OpenGL API with backends for software rasterization (egl_swrast)
   and Intel Graphics (egl_i965)
 
-:'libports/lib/mk/mupdf':
+:_libports/lib/mk/mupdf/_:
   PDF rendering engine.
 
-:'libports/lib/mk/ncurses':
+:_libports/lib/mk/ncurses/_:
   Library for implementing pseudo-graphical applications (i.e., VIM) that
   run on a text terminal.
 
-:'libports/lib/mk/qt5_*':
+:_libports/lib/mk/qt5_*/_:
   Qt5 framework, using GUI session and NIC session as back end.
 
-:'libports/lib/mk/vfs_jitterentropy.mk':
+:_libports/lib/mk/vfs_jitterentropy.mk_:
   A VFS plugin that makes a jitter-based random-number generator available
   as a file within the process-local VFS.
 
-:'libports/lib/mk/libarchive.mk':
+:_libports/lib/mk/libarchive.mk_:
   Library providing a common interface to a variety of archive
   formats.
 
-:'libports/lib/mk/lz4.mk':
+:_libports/lib/mk/lz4.mk_:
   Library for processing LZ4 lossless compression archives.
 
-:'libports/lib/mk/liblzma.mk':
+:_libports/lib/mk/liblzma.mk_:
   Library for processing LZMA archives.
 
-:'libports/lib/mk/libgcrypt.mk':
+:_libports/lib/mk/libgcrypt.mk_:
   GnuPG library for OpenPGP processing, e.g., signature verification.
 
 
@@ -541,100 +539,96 @@ Applications
 ############
 
 Applications are Genode components that use other component's services but
-usually do not provide services. They are typically located in the 'src/app/'
+usually do not provide services. They are typically located in the _src/app/_
 subdirectory of a repository. Most applications come with README files
 located in their respective directory.
 
-:'gems/src/app/backdrop':
+:_gems/src/app/backdrop/_:
   GUI client application that sets a composition of PNG images as desktop
   background.
 
-:'demo/src/app/launchpad':
+:_demo/src/app/launchpad/_:
   Graphical application for interactively starting and killing subsystems.
 
-:'gems/app/launcher': Graphical launcher of Genode subsystems.
-
-:'demo/src/app/scout':
+:_demo/src/app/scout/_:
   Graphical hypertext browser used for Genode's default demonstration scenario.
 
-:'libports/src/test/mesa_demo':
-  Example programs for using the Mesa OpenGL graphics stack.
-
-:'ports/src/app/arora':
-  Arora is a Qt-based web browser using the Webkit engine.
-
-:'ports/src/app/gdb_monitor':
+:_ports/src/app/gdb_monitor/_:
   Application that allows the debugging of a process via GDB over a remote
   connection.
 
-:'libports/src/app/qt5/qt_launchpad':
+:_libports/src/app/qt5/qt_launchpad/_:
   Graphical application starter implemented using Qt.
 
-:'libports/src/app/qt5/examples/':
+:_libports/src/app/qt5/examples/_:
   Several example applications that come with Qt.
 
-:'os/src/app/sequence':
+:_os/src/app/sequence/_:
   Simple utility to serialize the execution of multiple components
 
-:'ports/src/noux-pkg':
+:_ports/src/noux-pkg/_:
   Ports of popular commandline-based Unix software such as VIM, bash,
   coreutils, binutils, gcc, findutils, and netcat. The programs are supposed
   to be executed within the Noux runtime environment.
 
-:'ports/src/app/lighttpd':
+:_ports/src/app/lighttpd/_:
   Lighttpd is a fast and feature-rich web server. The port of lighttpd uses
   a file-system session to access the website content and the web-server
   configuration.
 
-:'os/src/app/trace_logger':
+:_os/src/app/trace_logger/_:
   Convenient, runtime-configurable frontend to the tracing facility.
 
-:'os/src/app/rom_reporter':
+:_os/src/app/rom_reporter/_:
   The ROM-reporter component requests a ROM session and reports the
   content of the ROM dataspace to a report session with the same label
   as the ROM session.
 
-:'os/src/app/log_core':
+:_os/src/app/log_core/_:
   Component transforming core and kernel output to Genode LOG output.
 
 
 Package-management components
 =============================
 
-:'gems/src/app/depot_query':
+:_gems/src/app/depot_query/_:
   Tool for querying subsystem information from a depot.
 
-:'gems/src/app/depot_download_manager':
+:_gems/src/app/depot_download_manager/_:
   Tool for managing the download of depot content.
 
-:'gems/src/app/depot_deploy':
+:_gems/src/app/depot_deploy/_:
   Subsystem init configuration generator based on blueprints.
 
-:'libports/src/app/fetchurl':
+:_libports/src/app/fetchurl/_:
   A runtime-configurable frontend to the libcURL library for
   downloading content.
 
-:'libports/src/app/extract':
+:_libports/src/app/extract/_:
   Tool for extracting archives using libarchive.
 
-:'ports/src/app/verify':
+:_ports/src/app/verify/_:
   This component verifies detached OpenPGP signatures using libgcrypt.
 
 
 Runtime environments
 ####################
 
-:'ports/src/app/seoul': Seoul is a virtual-machine monitor developed for
+:_ports/src/app/seoul/_: Seoul is a virtual-machine monitor developed for
   the use with the NOVA platform. It virtualizes 32bit x86 PC hardware
   including various peripherals.
 
-:'os/src/server/loader': A service that allows the creation and destruction
+:_os/src/server/loader/_: A service that allows the creation and destruction
   of Genode subsystems via a session interface. For further information,
-  refer to 'os/src/server/loader/README'.
+  refer to _os/src/server/loader/README_.
 
-:'ports/src/virtualbox': VirtualBox running on top of the NOVA hypervisor.
+:_ports/src/virtualbox5/_: VirtualBox running on top of the NOVA hypervisor.
 
-:'os/src/server/vmm': A virtual machine monitor that is based on
+:_os/src/server/vmm/_: A virtual machine monitor that is based on
   hardware-assisted virtualization of ARM platforms. It is supported on
   the base-hw kernel only.
+
+:_os/src/server/cpu_balancer/_: The CPU balancer intercepts the interaction
+  of components with core's low-level services to migrate threads dynamically
+  between CPU cores.
 
