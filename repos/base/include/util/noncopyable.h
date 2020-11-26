@@ -31,9 +31,9 @@ class Genode::Noncopyable
 		/**
 		 * Constructor
 		 */
-		Noncopyable(const Noncopyable&);
+		Noncopyable(Noncopyable const &) = delete;
 
-		const Noncopyable& operator=(const Noncopyable&);
+		Noncopyable & operator = (Noncopyable const &) = delete;
 
 	protected:
 
@@ -42,14 +42,14 @@ class Genode::Noncopyable
 		 *
 		 * \noapi
 		 */
-		Noncopyable()  {}
+		Noncopyable() { }
 
 		/**
 		 * Destructor
 		 *
 		 * \noapi
 		 */
-		~Noncopyable() {}
+		~Noncopyable() { }
 };
 
 #endif /* _INCLUDE__UTIL__NONCOPYABLE_H_ */
