@@ -40,12 +40,20 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 				++envc;
 		});
 
-		if (argc == 0 && envc == 0)
+		if (argc == 0 && envc == 0) {
+			/*
+			 * If argc is zero then argv is still a NULL-terminated array.
+			 */
+			static char const *args[] = { nullptr, nullptr };
+			argc = 0;
+			argv = (char**)&args;
+			envp = &argv[1];
 			return; /* from lambda */
+		}
 
-		/* arguments and environment are a contiguous array (but don't count on it) */
-		argv = (char**)malloc((argc + envc + 1) * sizeof(char*));
-		envp = &argv[argc];
+		/* arguments and environment are arranged System V style (but don't count on it) */
+		argv = (char**)malloc((argc + envc + 2) * sizeof(char*));
+		envp = &argv[argc+1];
 
 		/* read the arguments */
 		int arg_i = 0;
@@ -123,6 +131,8 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 			catch (Xml_node::Nonexistent_attribute) { }
 		});
 
+		/* argv and envp are both NULL terminated */
+		argv[arg_i] = NULL;
 		envp[env_i] = NULL;
 	});
 }
