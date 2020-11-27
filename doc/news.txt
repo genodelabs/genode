@@ -4,6 +4,36 @@
                                ===========
 
 
+Genode OS Framework release 20.11 | 2020-11-27
+##############################################
+
+| Genode 20.11 brings Sculpt OS to 64-bit ARM hardware, introduces dynamic
+| CPU-load balancing, and enables multicore virtualization on ARM. Driver-wise,
+| the release improves audio on PC hardware, and adds VirtIO networking support.
+
+ARM 64-bit has been a recurring theme of the Genode releases this year and the
+just released version 20.11 is no exception. We are proud to announce that our
+Genode-based custom general-purpose OS called Sculpt has come to life on
+64-bit ARM hardware, namely the NXP i.MX8 EVK board. This is the result of
+intensive work on the framework's driver architecture for ARM and several
+SoC-specific device drivers. Closely related to this line of work is the new
+ability to run multicore virtual machines on ARM.
+
+Another highlight of version 20.11 is a new CPU balancing mechanism, which
+automates the dynamic assignment of threads to CPU cores for complex
+workloads. With traditional operating systems, such policies are normally part
+of the OS kernel. Thanks to Genode's component architecture, we are able to
+implement such potentially complex policies in the form of an optional
+component, which offers ultimate flexibility while keeping the kernel
+untainted by complex heuristics.
+
+Further topics of the current release are improved power management and audio
+support on PC hardware, a new OSS API emulation that allows for the
+reuse of popular audio applications on Genode, and new support for VirtIO
+networking. The full picture is given by the
+[https:/documentation/release-notes/20.11 - release documentation of version 20.11...]
+
+
 Sculpt OS release 20.08 | 2020-09-17
 ####################################
 
