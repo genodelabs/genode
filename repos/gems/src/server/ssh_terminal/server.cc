@@ -374,19 +374,12 @@ void Ssh::Server::detach_terminal(Ssh::Terminal &conn)
 		Genode::error("could not detach Terminal for user ", conn.user());
 		return;
 	}
-	auto invalidate_terminal = [&] (Session &sess) {
 
-		Libc::with_libc([&] () {
-			if (sess.terminal != &conn) { return; }
-			sess.terminal = nullptr;
-			sess.terminal_detached = true;
-		});
+	auto invalidate_terminal = [&] (Session &sess) {
+		if (sess.terminal != &conn) { return; }
+		sess.terminal_detached = true;
 	};
 	_sessions.for_each(invalidate_terminal);
-
-	Libc::with_libc([&] () {
-		Genode::destroy(&_heap, p);
-	});
 
 	_wake_loop();
 }
@@ -599,6 +592,20 @@ void Ssh::Server::loop()
 
 			/* first remove all stale sessions */
 			auto cleanup = [&] (Session &s) {
+				if (s.terminal_detached) {
+					Terminal_session *p = nullptr;
+					auto lookup = [&] (Terminal_session &t) {
+						if (&t.conn == s.terminal) {
+							p = &t;
+							s.terminal = nullptr;
+						}
+					};
+					_terminals.for_each(lookup);
+
+					if (p)
+						Genode::destroy(&_heap, p);
+				}
+
 				if (!s.terminal_detached
 				    && ssh_is_connected(s.session)) { return ; }
 				_cleanup_session(s);
