@@ -26,21 +26,20 @@
 #include <base/internal/crt0.h>
 #include <base/internal/cap_map.h>
 
-
 namespace Genode {
 
 	static inline Parent_capability parent_cap()
 	{
 		unsigned long const local_name = _parent_cap;
 
-		static Cap_index *i = cap_map().insert(local_name, Fiasco::PARENT_CAP);
+		static Cap_index *i = cap_map().insert(local_name, Foc::PARENT_CAP);
 		/*
 		 * Update local name after a parent capability got reloaded via
 		 * 'Platform_env::reload_parent_cap()'.
 		 */
 		if (i->id() != local_name) {
 			cap_map().remove(i);
-			i = cap_map().insert(local_name, Fiasco::PARENT_CAP);
+			i = cap_map().insert(local_name, Foc::PARENT_CAP);
 		}
 
 		return reinterpret_cap_cast<Parent>(Native_capability(i));

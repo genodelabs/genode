@@ -16,8 +16,10 @@
 /* core includes */
 #include <ipc_pager.h>
 
+using namespace Genode;
 
-void Genode::Ipc_pager::get_regs(Foc_thread_state &state) const
+
+void Ipc_pager::get_regs(Foc_thread_state &state) const
 {
 	state.ip     = _regs.ip;
 	state.sp     = _regs.sp;
@@ -42,7 +44,7 @@ void Genode::Ipc_pager::get_regs(Foc_thread_state &state) const
 }
 
 
-void Genode::Ipc_pager::set_regs(Foc_thread_state const &state)
+void Ipc_pager::set_regs(Foc_thread_state const &state)
 {
 	_regs.ip     = state.ip;
 	_regs.sp     = state.sp;

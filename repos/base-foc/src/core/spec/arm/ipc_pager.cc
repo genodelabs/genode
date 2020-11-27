@@ -16,23 +16,22 @@
 /* core includes */
 #include <ipc_pager.h>
 
-namespace Fiasco {
-#include <l4/sys/utcb.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
+
+using namespace Genode;
+
 
 enum Exceptions { EX_REGS = 0x500000 };
 
 
-void Genode::Ipc_pager::_parse_exception()
+void Ipc_pager::_parse_exception()
 {
-	if (Fiasco::l4_utcb_exc()->err == EX_REGS)
-		_type = PAUSE;
-	else
-		_type = EXCEPTION;
+	_type = (Foc::l4_utcb_exc()->err == EX_REGS) ? PAUSE : EXCEPTION;
 }
 
 
-void Genode::Ipc_pager::get_regs(Foc_thread_state &state) const
+void Ipc_pager::get_regs(Foc_thread_state &state) const
 {
 	state.ip   = _regs.pc;
 	state.sp   = _regs.sp;
@@ -54,7 +53,7 @@ void Genode::Ipc_pager::get_regs(Foc_thread_state &state) const
 }
 
 
-void Genode::Ipc_pager::set_regs(Foc_thread_state const &state)
+void Ipc_pager::set_regs(Foc_thread_state const &state)
 {
 	_regs.pc    = state.ip;
 	_regs.sp    = state.sp;
@@ -75,7 +74,8 @@ void Genode::Ipc_pager::set_regs(Foc_thread_state const &state)
 	_regs.cpsr  = state.cpsr;
 }
 
-bool Genode::Ipc_pager::exec_fault() const
+
+bool Ipc_pager::exec_fault() const
 {
 	return (_pf_addr & 4) && !(_pf_addr & 1);
 }

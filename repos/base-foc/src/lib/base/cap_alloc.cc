@@ -13,8 +13,11 @@
 
 #include <base/internal/cap_alloc.h>
 
-Genode::Cap_index_allocator &Genode::cap_idx_alloc()
+using namespace Genode;
+
+
+Cap_index_allocator &Genode::cap_idx_alloc()
 {
-	static Genode::Cap_index_allocator_tpl<Cap_index,4096> alloc;
+	static Cap_index_allocator_tpl<Cap_index,4096> alloc;
 	return alloc;
 }

@@ -24,12 +24,8 @@
 #include <platform.h>
 #include <core_env.h>
 
-namespace Fiasco {
-#include <l4/sys/debugger.h>
-#include <l4/sys/factory.h>
-#include <l4/sys/scheduler.h>
-#include <l4/sys/thread.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 using namespace Genode;
 
@@ -45,7 +41,7 @@ void Thread::_init_platform_thread(size_t, Type) { }
 
 void Thread::start()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	/* create and start platform thread */
 	Platform_thread &pt = *new (platform().core_mem_alloc())
@@ -53,7 +49,7 @@ void Thread::start()
 
 	platform_specific().core_pd().bind_thread(pt);
 
-	l4_utcb_t *foc_utcb = (l4_utcb_t *)(pt.utcb());
+	l4_utcb_t * const foc_utcb = (l4_utcb_t *)(pt.utcb());
 
 	native_thread() = Native_thread(pt.gate().remote);
 
@@ -84,7 +80,7 @@ void Thread::start()
 			uint64_t const sc_time = 0;
 			addr_t const kcap = (addr_t) platform_thread.pager_object_badge();
 
-			using namespace Fiasco;
+			using namespace Foc;
 			l4_kernel_clock_t ec_time = 0;
 			l4_msgtag_t res = l4_thread_stats_time(kcap, &ec_time);
 			if (l4_error(res))

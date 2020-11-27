@@ -29,14 +29,11 @@
  * our expectations below macro can be used.
   */
 #ifdef TEST_KERN_CAP_EQUAL
-namespace Fiasco {
-#include <l4/sys/debugger.h>
-}
 inline bool CHECK_CAP_EQUAL(bool equal, Genode::addr_t cap1,
                                         Genode::addr_t cap2)
 {
-	unsigned long id1 = Fiasco::l4_debugger_global_id(cap1),
-	              id2 = Fiasco::l4_debugger_global_id(cap2);
+	unsigned long id1 = Foc::l4_debugger_global_id(cap1),
+	              id2 = Foc::l4_debugger_global_id(cap2);
 	ASSERT(((id1 == id2) == equal), "CAPS NOT EQUAL!!!");
 	return equal;
 }
@@ -49,6 +46,9 @@ inline bool CHECK_CAP_EQUAL(bool equal, Genode::addr_t,
 #endif /* TEST_KERN_CAP_EQUAL */
 
 
+using namespace Genode;
+
+
 /***********************
  **  Cap_index class  **
  ***********************/
@@ -56,13 +56,11 @@ inline bool CHECK_CAP_EQUAL(bool equal, Genode::addr_t,
 static volatile int _cap_index_spinlock = SPINLOCK_UNLOCKED;
 
 
-bool Genode::Cap_index::higher(Genode::Cap_index *n) { return n->_id > _id; }
+bool Cap_index::higher(Cap_index *n) { return n->_id > _id; }
 
 
-Genode::Cap_index* Genode::Cap_index::find_by_id(Genode::uint16_t id)
+Cap_index* Cap_index::find_by_id(uint16_t id)
 {
-	using namespace Genode;
-
 	if (_id == id) return this;
 
 	Cap_index *n = Avl_node<Cap_index>::child(id > _id);
@@ -70,31 +68,33 @@ Genode::Cap_index* Genode::Cap_index::find_by_id(Genode::uint16_t id)
 }
 
 
-Genode::addr_t Genode::Cap_index::kcap() const {
-	return cap_idx_alloc().idx_to_kcap(this); }
+addr_t Cap_index::kcap() const
+{
+	return cap_idx_alloc().idx_to_kcap(this);
+}
 
 
-Genode::uint8_t Genode::Cap_index::inc()
+uint8_t Cap_index::inc()
 {
 	/* con't ref-count index that are controlled by core */
 	if (cap_idx_alloc().static_idx(this))
 		return 1;
 
 	spinlock_lock(&_cap_index_spinlock);
-	Genode::uint8_t ret = ++_ref_cnt;
+	uint8_t ret = ++_ref_cnt;
 	spinlock_unlock(&_cap_index_spinlock);
 	return ret;
 }
 
 
-Genode::uint8_t Genode::Cap_index::dec()
+uint8_t Cap_index::dec()
 {
 	/* con't ref-count index that are controlled by core */
 	if (cap_idx_alloc().static_idx(this))
 		return 1;
 
 	spinlock_lock(&_cap_index_spinlock);
-	Genode::uint8_t ret = --_ref_cnt;
+	uint8_t ret = --_ref_cnt;
 	spinlock_unlock(&_cap_index_spinlock);
 	return ret;
 }
@@ -104,18 +104,16 @@ Genode::uint8_t Genode::Cap_index::dec()
  **  Capability_map class  **
  ****************************/
 
-Genode::Cap_index* Genode::Capability_map::find(int id)
+Cap_index* Capability_map::find(int id)
 {
-	Genode::Lock_guard<Spin_lock> guard(_lock);
+	Lock_guard<Spin_lock> guard(_lock);
 
 	return _tree.first() ? _tree.first()->find_by_id(id) : 0;
 }
 
 
-Genode::Cap_index* Genode::Capability_map::insert(int id)
+Cap_index* Capability_map::insert(int id)
 {
-	using namespace Genode;
-
 	Lock_guard<Spin_lock> guard(_lock);
 
 	ASSERT(!_tree.first() || !_tree.first()->find_by_id(id),
@@ -130,10 +128,8 @@ Genode::Cap_index* Genode::Capability_map::insert(int id)
 }
 
 
-Genode::Cap_index* Genode::Capability_map::insert(int id, addr_t kcap)
+Cap_index* Capability_map::insert(int id, addr_t kcap)
 {
-	using namespace Genode;
-
 	Lock_guard<Spin_lock> guard(_lock);
 
 	/* remove potentially existent entry */
@@ -150,10 +146,9 @@ Genode::Cap_index* Genode::Capability_map::insert(int id, addr_t kcap)
 }
 
 
-Genode::Cap_index* Genode::Capability_map::insert_map(int id, addr_t kcap)
+Cap_index* Capability_map::insert_map(int id, addr_t kcap)
 {
-	using namespace Genode;
-	using namespace Fiasco;
+	using namespace Foc;
 
 	Lock_guard<Spin_lock> guard(_lock);
 
@@ -196,9 +191,9 @@ Genode::Cap_index* Genode::Capability_map::insert_map(int id, addr_t kcap)
 }
 
 
-Genode::Capability_map &Genode::cap_map()
+Capability_map &Genode::cap_map()
 {
-	static Genode::Capability_map map;
+	static Capability_map map;
 	return map;
 }
 
@@ -207,22 +202,23 @@ Genode::Capability_map &Genode::cap_map()
  ** Capability_space **
  **********************/
 
-Fiasco::l4_cap_idx_t Genode::Capability_space::alloc_kcap()
+Foc::l4_cap_idx_t Capability_space::alloc_kcap()
 {
 	return cap_idx_alloc().alloc_range(1)->kcap();
 }
 
 
-void Genode::Capability_space::free_kcap(Fiasco::l4_cap_idx_t kcap)
+void Capability_space::free_kcap(Foc::l4_cap_idx_t kcap)
 {
-	Genode::Cap_index *idx = Genode::cap_idx_alloc().kcap_to_idx(kcap);
-	Genode::cap_idx_alloc().free(idx, 1);
+	Cap_index *idx = cap_idx_alloc().kcap_to_idx(kcap);
+	cap_idx_alloc().free(idx, 1);
 }
 
 
-Fiasco::l4_cap_idx_t Genode::Capability_space::kcap(Native_capability cap)
+Foc::l4_cap_idx_t Capability_space::kcap(Native_capability cap)
 {
 	if (cap.data() == nullptr)
-		Genode::raw("Native_capability data is NULL!");
+		raw("Native_capability data is NULL!");
+
 	return cap.data()->kcap();
 }

@@ -18,8 +18,9 @@
 #ifndef _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_
 #define _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_
 
-namespace Fiasco {
-#include <l4/sys/utcb.h>
+#include <foc/syscall.h>
+
+namespace Foc {
 
 	enum Utcb_regs {
 		UTCB_TCR_BADGE      = 1,
@@ -27,11 +28,13 @@ namespace Fiasco {
 	};
 }
 
+
 namespace Genode { struct Native_utcb; }
+
 
 struct Genode::Native_utcb
 {
-	Fiasco::l4_utcb_t *foc_utcb = nullptr;
+	Foc::l4_utcb_t *foc_utcb = nullptr;
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_ */

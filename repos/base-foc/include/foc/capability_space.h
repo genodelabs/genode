@@ -25,17 +25,17 @@ namespace Genode { namespace Capability_space {
 	 * Allocate kernel capability selector without associating it with a
 	 * Genode capability
 	 */
-	Fiasco::l4_cap_idx_t alloc_kcap();
+	Foc::l4_cap_idx_t alloc_kcap();
 
 	/**
 	 * Release kernel capability selector
 	 */
-	void free_kcap(Fiasco::l4_cap_idx_t);
+	void free_kcap(Foc::l4_cap_idx_t);
 
 	/**
 	 * Request kernel capability selector associated with Genode capability
 	 */
-	Fiasco::l4_cap_idx_t kcap(Native_capability);
+	Foc::l4_cap_idx_t kcap(Native_capability);
 
 } }
 

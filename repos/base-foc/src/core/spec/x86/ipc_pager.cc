@@ -14,20 +14,22 @@
 /* core includes */
 #include <ipc_pager.h>
 
-namespace Fiasco {
-#include <l4/sys/utcb.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
+
+using namespace Genode;
+
 
 enum Exceptions { EX_REGS = 0xff };
 
 
-void Genode::Ipc_pager::_parse_exception()
+void Ipc_pager::_parse_exception()
 {
-	if (Fiasco::l4_utcb_exc()->trapno == EX_REGS)
-		_type = PAUSE;
-	else
-		_type = EXCEPTION;
+	_type = (Foc::l4_utcb_exc()->trapno == EX_REGS) ? PAUSE : EXCEPTION;
 }
 
-bool Genode::Ipc_pager::exec_fault() const {
-	return ((_pf_addr & 1) && !write_fault()); }
+
+bool Ipc_pager::exec_fault() const
+{
+	return ((_pf_addr & 1) && !write_fault());
+}

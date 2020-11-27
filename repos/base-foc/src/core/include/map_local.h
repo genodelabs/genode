@@ -19,13 +19,8 @@
 #include <platform.h>
 #include <util.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-#include <l4/sigma0/sigma0.h>
-#include <l4/sys/task.h>
-#include <l4/sys/cache.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 namespace Genode {
 
@@ -47,7 +42,7 @@ namespace Genode {
 		size_t page_size_log2 = get_page_size_log2();
 		for (unsigned i = 0; i < num_pages; i++, offset += page_size) {
 
-			using namespace Fiasco;
+			using namespace Foc;
 
 			l4_fpage_t snd_fpage = l4_fpage(from_addr + offset,
 			                                page_size_log2, L4_FPAGE_RW);
@@ -84,7 +79,7 @@ namespace Genode {
 	static inline bool map_local_io(addr_t from_addr, addr_t to_addr,
 	                                size_t num_pages)
 	{
-		using namespace Fiasco;
+		using namespace Foc;
 
 		size_t size = num_pages << get_page_size_log2();
 
@@ -129,7 +124,7 @@ namespace Genode {
 
 	static inline void unmap_local(addr_t const local_base, size_t const num_pages)
 	{
-		using namespace Fiasco;
+		using namespace Foc;
 
 		size_t const size = num_pages << get_page_size_log2();
 		addr_t addr = local_base;

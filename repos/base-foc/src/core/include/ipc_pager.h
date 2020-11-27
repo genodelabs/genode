@@ -28,22 +28,22 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/types.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 namespace Genode {
+
 	class Mapping;
 	class Ipc_pager;
 }
+
 
 class Genode::Mapping
 {
 	private:
 
 		addr_t             _dst_addr;
-		Fiasco::l4_fpage_t _fpage { };
+		Foc::l4_fpage_t _fpage { };
 		Cache_attribute    _cacheability;
 		bool               _iomem;
 
@@ -55,26 +55,27 @@ class Genode::Mapping
 		Mapping(addr_t dst_addr, addr_t src_addr,
 		        Cache_attribute c, bool io_mem,
 		        unsigned log2size, bool write, bool executable)
-		: _dst_addr(dst_addr), _cacheability(c), _iomem(io_mem)
+		:
+			_dst_addr(dst_addr), _cacheability(c), _iomem(io_mem)
 		{
-			typedef Fiasco::L4_fpage_rights Rights;
-			Rights rights = (write && executable) ? Fiasco::L4_FPAGE_RWX :
-			                (write && !executable) ? Fiasco::L4_FPAGE_RW :
-			                (!write && !executable) ? Fiasco::L4_FPAGE_RO :
-			                                          Fiasco::L4_FPAGE_RX;
+			typedef Foc::L4_fpage_rights Rights;
+			Rights rights = ( write &&  executable) ? Foc::L4_FPAGE_RWX :
+			                ( write && !executable) ? Foc::L4_FPAGE_RW  :
+			                (!write && !executable) ? Foc::L4_FPAGE_RO  :
+			                                          Foc::L4_FPAGE_RX;
 
-			_fpage = Fiasco::l4_fpage(src_addr, log2size, rights);
+			_fpage = Foc::l4_fpage(src_addr, log2size, rights);
 		}
 
 		/**
 		 * Construct invalid flexpage
 		 */
-		Mapping() : _dst_addr(0), _fpage(Fiasco::l4_fpage_invalid()),
+		Mapping() : _dst_addr(0), _fpage(Foc::l4_fpage_invalid()),
 		            _cacheability(UNCACHED), _iomem(false) { }
 
-		Fiasco::l4_umword_t dst_addr() const { return _dst_addr; }
+		Foc::l4_umword_t dst_addr() const { return _dst_addr; }
 		bool                grant()    const { return false; }
-		Fiasco::l4_fpage_t  fpage()    const { return _fpage; }
+		Foc::l4_fpage_t  fpage()    const { return _fpage; }
 		Cache_attribute cacheability() const { return _cacheability; }
 		bool iomem()                   const { return _iomem; }
 		/**
@@ -101,8 +102,8 @@ class Genode::Ipc_pager : public Native_capability
 		addr_t                _pf_ip   { 0 };      /* ip of faulter            */
 		Mapping               _reply_mapping { };  /* page-fault answer        */
 		unsigned long         _badge;              /* badge of faulting thread */
-		Fiasco::l4_msgtag_t   _tag  { };           /* receive message tag      */
-		Fiasco::l4_exc_regs_t _regs { };           /* exception registers      */
+		Foc::l4_msgtag_t   _tag  { };           /* receive message tag      */
+		Foc::l4_exc_regs_t _regs { };           /* exception registers      */
 		Msg_type              _type { PAGEFAULT };
 
 		void _parse_msg_type(void);

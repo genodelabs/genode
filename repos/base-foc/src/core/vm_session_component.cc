@@ -20,10 +20,8 @@
 #include <pd_session_component.h>
 #include <cpu_thread_component.h>
 
-namespace Fiasco {
-#include <l4/sys/factory.h>
-}
-
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 using namespace Genode;
 
@@ -45,7 +43,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 {
 	_cap_quota_guard().withdraw(Cap_quota{1});
 
-	using namespace Fiasco;
+	using namespace Foc;
 	l4_msgtag_t msg = l4_factory_create_vm(L4_BASE_FACTORY_CAP,
 	                                       _task_vcpu.local.data()->kcap());
 	if (l4_error(msg)) {
@@ -57,6 +55,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	_map.add_range(0, 0UL - 0x1000);
 	_map.add_range(0UL - 0x1000, 0x1000);
 }
+
 
 Vm_session_component::~Vm_session_component()
 {
@@ -92,7 +91,7 @@ Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
 		throw;
 	}
 
-	Fiasco::l4_msgtag_t msg = l4_factory_create_irq(Fiasco::L4_BASE_FACTORY_CAP,
+	Foc::l4_msgtag_t msg = l4_factory_create_irq(Foc::L4_BASE_FACTORY_CAP,
 	                                                _recall.local.data()->kcap());
 	if (l4_error(msg)) {
 		_ram_alloc.free(_ds_cap);
@@ -122,18 +121,20 @@ Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability cap)
 		Vcpu * vcpu = nullptr;
 		try {
 			vcpu = new (_heap) Vcpu(_constrained_md_ram_alloc,
-	                                       _cap_quota_guard(),
-	                                       Vcpu_id {_id_alloc});
+			                        _cap_quota_guard(),
+			                        Vcpu_id {_id_alloc});
 
-			Fiasco::l4_cap_idx_t task = thread->platform_thread().setup_vcpu(_id_alloc, _task_vcpu, vcpu->recall_cap());
-			if (task == Fiasco::L4_INVALID_CAP)
+			Foc::l4_cap_idx_t task =
+				thread->platform_thread().setup_vcpu(_id_alloc, _task_vcpu, vcpu->recall_cap());
+
+			if (task == Foc::L4_INVALID_CAP)
 				throw 0;
 
 			_ep.apply(vcpu->ds_cap(), [&] (Dataspace_component *ds) {
 				if (!ds)
 					throw 1;
 				/* tell client where to find task cap */
-				*reinterpret_cast<Fiasco::l4_cap_idx_t *>(ds->phys_addr()) = task;
+				*reinterpret_cast<Foc::l4_cap_idx_t *>(ds->phys_addr()) = task;
 			});
 		} catch (int) {
 			if (vcpu)
@@ -174,7 +175,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
 	                       guest_phys, attribute.size, guest_phys);
 
-	using namespace Fiasco;
+	using namespace Foc;
 
 	uint8_t flags = L4_FPAGE_RO;
 	if (dsc.writable() && attribute.writeable)
@@ -207,7 +208,7 @@ void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 	Flexpage page = flex.page();
 
 	while (page.valid()) {
-		using namespace Fiasco;
+		using namespace Foc;
 
 		l4_task_unmap(_task_vcpu.local.data()->kcap(),
 		              l4_fpage(page.addr, page.log2_order, L4_FPAGE_RWX),

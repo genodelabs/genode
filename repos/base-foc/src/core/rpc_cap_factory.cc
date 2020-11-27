@@ -26,14 +26,8 @@
 #include <base/internal/cap_alloc.h>
 #include <base/internal/foc_assert.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/consts.h>
-#include <l4/sys/debugger.h>
-#include <l4/sys/factory.h>
-#include <l4/sys/task.h>
-#include <l4/sys/types.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 using namespace Genode;
 
@@ -42,9 +36,9 @@ using namespace Genode;
  **  Cap_index_allocator  **
  ***************************/
 
-Genode::Cap_index_allocator &Genode::cap_idx_alloc()
+Cap_index_allocator &Genode::cap_idx_alloc()
 {
-	static Genode::Cap_index_allocator_tpl<Core_cap_index,10*1024> alloc;
+	static Cap_index_allocator_tpl<Core_cap_index,10*1024> alloc;
 	return alloc;
 }
 
@@ -60,11 +54,11 @@ Core_cap_index *Cap_mapping::_get_cap()
 }
 
 
-void Cap_mapping::map(Fiasco::l4_cap_idx_t task)
+void Cap_mapping::map(Foc::l4_cap_idx_t task)
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
-	if (!local.valid() || !Fiasco::Capability::valid(remote))
+	if (!local.valid() || !Foc::Capability::valid(remote))
 		return;
 
 	l4_msgtag_t tag = l4_task_map(task, L4_BASE_TASK_CAP,
@@ -75,12 +69,16 @@ void Cap_mapping::map(Fiasco::l4_cap_idx_t task)
 }
 
 
-Cap_mapping::Cap_mapping(bool alloc, Fiasco::l4_cap_idx_t r)
-: local(alloc ? _get_cap() : (Native_capability::Data *)nullptr), remote(r) { }
+Cap_mapping::Cap_mapping(bool alloc, Foc::l4_cap_idx_t r)
+:
+	local(alloc ? _get_cap() : (Native_capability::Data *)nullptr), remote(r)
+{ }
 
 
-Cap_mapping::Cap_mapping(Native_capability cap, Fiasco::l4_cap_idx_t r)
-: local(cap), remote(r) { }
+Cap_mapping::Cap_mapping(Native_capability cap, Foc::l4_cap_idx_t r)
+:
+	local(cap), remote(r)
+{ }
 
 
 /***********************
@@ -97,7 +95,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 	}
 
 	try {
-		using namespace Fiasco;
+		using namespace Foc;
 
 		Core_cap_index const * ref = static_cast<Core_cap_index const*>(ep.data());
 
@@ -123,11 +121,13 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 			cap_map().remove(idx);
 			platform_specific().cap_id_alloc().free(id);
 			return cap;
-		} else
-			/* set debugger-name of ipc-gate to thread's name */
-			Fiasco::l4_debugger_set_object_name(idx->kcap(), ref->pt()->name().string());
 
-		// XXX remove cast
+		} else {
+
+			/* set debugger-name of ipc-gate to thread's name */
+			Foc::l4_debugger_set_object_name(idx->kcap(), ref->pt()->name().string());
+		}
+
 		idx->session((Pd_session_component *)this);
 		idx->pt(ref->pt());
 		cap = Native_capability(idx);
@@ -144,38 +144,41 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 	 */
 	if (cap.valid())
 		_pool.insert(new (_entry_slab) Entry(cap));
+
 	return cap;
 }
 
 
 void Rpc_cap_factory::free(Native_capability cap)
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
-	if (!cap.valid()) return;
+	if (!cap.valid())
+		return;
 
 	/* check whether the capability was created by this cap_session */
 	if (static_cast<Core_cap_index const *>(cap.data())->session() != (Pd_session_component *)this)
 		return;
 
-	Entry * entry = nullptr;
-	_pool.apply(cap, [&] (Entry *e) {
-		entry = e;
-		if (e) {
-			_pool.remove(e);
+	Entry * entry_ptr = nullptr;
+	_pool.apply(cap, [&] (Entry *ptr) {
+		entry_ptr = ptr;
+		if (ptr) {
+			_pool.remove(ptr);
 		} else
 			warning("Could not find capability to be deleted");
 	});
-	if (entry) destroy(_entry_slab, entry);
+
+	if (entry_ptr)
+		destroy(_entry_slab, entry_ptr);
 }
 
 
 Rpc_cap_factory::~Rpc_cap_factory()
 {
-	_pool.remove_all([this] (Entry *e) {
-		if (!e) return;
-		destroy(_entry_slab, e);
-	});
+	_pool.remove_all([this] (Entry *ptr) {
+		if (ptr)
+			destroy(_entry_slab, ptr); });
 }
 
 
@@ -184,7 +187,8 @@ Rpc_cap_factory::~Rpc_cap_factory()
  *******************************/
 
 Cap_id_allocator::Cap_id_allocator(Allocator &alloc)
-: _id_alloc(&alloc)
+:
+	_id_alloc(&alloc)
 {
 	_id_alloc.add_range(CAP_ID_OFFSET, CAP_ID_RANGE);
 }
@@ -197,6 +201,7 @@ unsigned long Cap_id_allocator::alloc()
 	void *id = nullptr;
 	if (_id_alloc.alloc(CAP_ID_OFFSET, &id))
 		return (unsigned long) id;
+
 	throw Out_of_ids();
 }
 
@@ -210,22 +215,22 @@ void Cap_id_allocator::free(unsigned long id)
 }
 
 
-void Genode::Capability_map::remove(Genode::Cap_index *i)
+void Capability_map::remove(Cap_index *i)
 {
-	using namespace Genode;
-	using namespace Fiasco;
+	using namespace Foc;
 
 	Lock_guard<Spin_lock> guard(_lock);
 
 	if (i) {
-		Core_cap_index* e = static_cast<Core_cap_index*>(_tree.first() ? _tree.first()->find_by_id(i->id()) : 0);
+		Core_cap_index* e = static_cast<Core_cap_index*>(_tree.first()
+		                  ? _tree.first()->find_by_id(i->id()) : nullptr);
+
 		if (e == i) {
 			l4_msgtag_t tag = l4_task_unmap(L4_BASE_TASK_CAP,
 			                                l4_obj_fpage(i->kcap(), 0, L4_FPAGE_RWX),
 			                                L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);
 			if (l4_msgtag_has_error(tag))
 				error("destruction of ipc-gate ", i->kcap(), " failed!");
-
 
 			platform_specific().cap_id_alloc().free(i->id());
 			_tree.remove(i);

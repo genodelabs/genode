@@ -1,5 +1,5 @@
 /*
- * \brief   Fiasco thread facility
+ * \brief   Fiasco.OC thread facility
  * \author  Christian Helmuth
  * \author  Stefan Kalkowski
  * \date    2006-04-11
@@ -29,180 +29,184 @@
 namespace Genode {
 
 	class Platform_pd;
-	class Platform_thread : Interface
-	{
-		private:
+	class Platform_thread;
+}
 
-			/*
-			 * Noncopyable
-			 */
-			Platform_thread(Platform_thread const &);
-			Platform_thread &operator = (Platform_thread const &);
 
-			enum State { DEAD, RUNNING };
+class Genode::Platform_thread : Interface
+{
+	private:
 
-			typedef String<32> Name;
+		/*
+		 * Noncopyable
+		 */
+		Platform_thread(Platform_thread const &);
+		Platform_thread &operator = (Platform_thread const &);
 
-			friend class Platform_pd;
+		enum State { DEAD, RUNNING };
 
-			Name         const _name;           /* name at kernel debugger */
-			State              _state;
-			bool               _core_thread;
-			Cap_mapping        _thread;
-			Cap_mapping        _gate  { };
-			Cap_mapping        _pager { };
-			Cap_mapping        _irq;
-			addr_t             _utcb;
-			Platform_pd       *_platform_pd;    /* protection domain thread
-			                                      is bound to */
-			Pager_object      *_pager_obj;
-			unsigned           _prio;
+		typedef String<32> Name;
 
-			Affinity::Location _location { };
+		friend class Platform_pd;
 
-			void _create_thread(void);
-			void _finalize_construction();
-			bool _in_syscall(Fiasco::l4_umword_t flags);
+		Name    const _name;           /* name at kernel debugger */
+		State         _state;
+		bool          _core_thread;
+		Cap_mapping   _thread;
+		Cap_mapping   _gate  { };
+		Cap_mapping   _pager { };
+		Cap_mapping   _irq;
+		addr_t        _utcb;
+		Platform_pd  *_platform_pd;    /* protection domain thread is bound to */
+		Pager_object *_pager_obj;
+		unsigned      _prio;
 
-		public:
+		Affinity::Location _location { };
 
-			enum { DEFAULT_PRIORITY = 128 };
+		void _create_thread(void);
+		void _finalize_construction();
+		bool _in_syscall(Foc::l4_umword_t flags);
 
-			/**
-			 * Constructor for non-core threads
-			 */
-			Platform_thread(size_t, const char *name, unsigned priority,
-			                Affinity::Location, addr_t);
+	public:
 
-			/**
-			 * Constructor for core main-thread
-			 */
-			Platform_thread(Core_cap_index& thread,
-			                Core_cap_index& irq, const char *name);
+		enum { DEFAULT_PRIORITY = 128 };
 
-			/**
-			 * Constructor for core threads
-			 */
-			Platform_thread(const char *name);
+		/**
+		 * Constructor for non-core threads
+		 */
+		Platform_thread(size_t, const char *name, unsigned priority,
+		                Affinity::Location, addr_t);
 
-			/**
-			 * Destructor
-			 */
-			~Platform_thread();
+		/**
+		 * Constructor for core main-thread
+		 */
+		Platform_thread(Core_cap_index& thread,
+		                Core_cap_index& irq, const char *name);
 
-			/**
-			 * Start thread
-			 *
-			 * \param ip  instruction pointer to start at
-			 * \param sp  stack pointer to use
-			 *
-			 * \retval  0  successful
-			 * \retval -1  thread could not be started
-			 */
-			int start(void *ip, void *sp);
+		/**
+		 * Constructor for core threads
+		 */
+		Platform_thread(const char *name);
 
-			/**
-			 * Pause this thread
-			 */
-			void pause();
+		/**
+		 * Destructor
+		 */
+		~Platform_thread();
 
-			/**
-			 * Enable/disable single stepping
-			 */
-			void single_step(bool);
+		/**
+		 * Start thread
+		 *
+		 * \param ip  instruction pointer to start at
+		 * \param sp  stack pointer to use
+		 *
+		 * \retval  0  successful
+		 * \retval -1  thread could not be started
+		 */
+		int start(void *ip, void *sp);
 
-			/**
-			 * Resume this thread
-			 */
-			void resume();
+		/**
+		 * Pause this thread
+		 */
+		void pause();
 
-			/**
-			 * This thread is about to be bound
-			 *
-			 * \param pd    platform pd, thread is bound to
-			 */
-			void bind(Platform_pd &pd);
+		/**
+		 * Enable/disable single stepping
+		 */
+		void single_step(bool);
 
-			/**
-			 * Unbind this thread
-			 */
-			void unbind();
+		/**
+		 * Resume this thread
+		 */
+		void resume();
 
-			/**
-			 * Override thread state with 's'
-			 *
-			 * \throw Cpu_session::State_access_failed
-			 */
-			void state(Thread_state s);
+		/**
+		 * This thread is about to be bound
+		 *
+		 * \param pd    platform pd, thread is bound to
+		 */
+		void bind(Platform_pd &pd);
 
-			/**
-			 * Read thread state
-			 *
-			 * \throw Cpu_session::State_access_failed
-			 */
-			Foc_thread_state state();
+		/**
+		 * Unbind this thread
+		 */
+		void unbind();
 
-			/**
-			 * Set the executing CPU for this thread
-			 */
-			void affinity(Affinity::Location location);
+		/**
+		 * Override thread state with 's'
+		 *
+		 * \throw Cpu_session::State_access_failed
+		 */
+		void state(Thread_state s);
 
-			/**
-			 * Get the executing CPU for this thread
-			 */
-			Affinity::Location affinity() const;
+		/**
+		 * Read thread state
+		 *
+		 * \throw Cpu_session::State_access_failed
+		 */
+		Foc_thread_state state();
 
-			/**
-			 * Make thread to vCPU
-			 */
-			Fiasco::l4_cap_idx_t setup_vcpu(unsigned, Cap_mapping const &,
-			                                Cap_mapping &);
+		/**
+		 * Set the executing CPU for this thread
+		 */
+		void affinity(Affinity::Location location);
 
-			/************************
-			 ** Accessor functions **
-			 ************************/
+		/**
+		 * Get the executing CPU for this thread
+		 */
+		Affinity::Location affinity() const;
 
-			/**
-			 * Return/set pager
-			 */
-			Pager_object &pager() const
-			{
-				if (_pager_obj)
+		/**
+		 * Make thread to vCPU
+		 */
+		Foc::l4_cap_idx_t setup_vcpu(unsigned, Cap_mapping const &, Cap_mapping &);
+
+
+		/************************
+		 ** Accessor functions **
+		 ************************/
+
+		/**
+		 * Return/set pager
+		 */
+		Pager_object &pager() const
+		{
+			if (_pager_obj)
 				return *_pager_obj;
 
-				ASSERT_NEVER_CALLED;
-			}
+			ASSERT_NEVER_CALLED;
+		}
 
-			void pager(Pager_object &pager);
+		void pager(Pager_object &pager);
 
-			/**
-			 * Return identification of thread when faulting
-			 */
-			unsigned long pager_object_badge() {
-				return (unsigned long) _thread.local.data()->kcap(); }
+		/**
+		 * Return identification of thread when faulting
+		 */
+		unsigned long pager_object_badge()
+		{
+			return (unsigned long) _thread.local.data()->kcap();
+		}
 
-			/**
-			 * Set CPU quota of the thread to 'quota'
-			 */
-			void quota(size_t const) { /* not supported*/ }
+		/**
+		 * Set CPU quota of the thread to 'quota'
+		 */
+		void quota(size_t const) { /* not supported*/ }
 
-			/**
-			 * Return execution time consumed by the thread
-			 */
-			Trace::Execution_time execution_time() const;
+		/**
+		 * Return execution time consumed by the thread
+		 */
+		Trace::Execution_time execution_time() const;
 
 
-			/*******************************
-			 ** Fiasco-specific Accessors **
-			 *******************************/
+		/**********************************
+		 ** Fiasco.OC-specific Accessors **
+		 **********************************/
 
-			Cap_mapping const & thread()      const { return _thread;      }
-			Cap_mapping       & gate()              { return _gate;        }
-			Name                name()        const { return _name;        }
-			bool                core_thread() const { return _core_thread; }
-			addr_t              utcb()        const { return _utcb;        }
-			unsigned            prio()        const { return _prio;        }
-	};
-}
+		Cap_mapping const & thread()      const { return _thread;      }
+		Cap_mapping       & gate()              { return _gate;        }
+		Name                name()        const { return _name;        }
+		bool                core_thread() const { return _core_thread; }
+		addr_t              utcb()        const { return _utcb;        }
+		unsigned            prio()        const { return _prio;        }
+};
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

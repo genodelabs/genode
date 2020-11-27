@@ -20,7 +20,7 @@
 namespace Genode {
 
 	void raw_write_string(char const *str) {
-		Fiasco::outstring(const_cast<char *>(str)); }
+		Foc::outstring(const_cast<char *>(str)); }
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_ */

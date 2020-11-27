@@ -22,7 +22,7 @@
 #include <base/internal/cap_map.h> /* cap_idx_alloc */
 
 using namespace Genode;
-using namespace Fiasco;
+using namespace Foc;
 
 
 struct Main { Main(Env &env); };
@@ -34,15 +34,15 @@ Main::Main(Env &env)
 
 	enum { COUNT = 1000 };
 
-	Cap_index*           idx = cap_idx_alloc().alloc_range(COUNT);
-	Fiasco::l4_cap_idx_t tid = Capability_space::kcap(env.pd_session_cap());
+	Cap_index        *idx = cap_idx_alloc().alloc_range(COUNT);
+	Foc::l4_cap_idx_t tid = Capability_space::kcap(env.pd_session_cap());
 
 	/* try the first 1000 local name IDs */
 	for (int local_name = 0; local_name < COUNT; local_name++, idx++) {
 		idx->id(local_name);
 		l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
-                    l4_obj_fpage(tid, 0, L4_FPAGE_RWX),
-                    idx->kcap() | L4_ITEM_MAP);
+		            l4_obj_fpage(tid, 0, L4_FPAGE_RWX),
+		            idx->kcap() | L4_ITEM_MAP);
 
 		Log_session_capability log_session_cap =
 			reinterpret_cap_cast<Log_session>(Native_capability(idx));

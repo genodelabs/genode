@@ -15,10 +15,11 @@
 
 #include <base/internal/cap_map.h>
 
-void Genode::Capability_map::remove(Genode::Cap_index* i)
-{
-	using namespace Genode;
+using namespace Genode;
 
+
+void Capability_map::remove(Genode::Cap_index* i)
+{
 	Lock_guard<Spin_lock> guard(_lock);
 
 	if (i) {

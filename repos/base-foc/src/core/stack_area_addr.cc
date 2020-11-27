@@ -14,6 +14,9 @@
 /* base-internal includes */
 #include <base/internal/stack_area.h>
 
+using namespace Genode;
+
+
 /*
  * The base address of the context area differs for core, because
  * roottask on Fiasco.OC uses identity mappings. The virtual address range
@@ -21,4 +24,4 @@
  * address range that lies outside of the RAM of the currently supported
  * platforms.
  */
-Genode::addr_t Genode::stack_area_virtual_base() { return 0x20000000UL; }
+addr_t Genode::stack_area_virtual_base() { return 0x20000000UL; }

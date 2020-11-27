@@ -22,19 +22,21 @@
 #include <base/internal/native_utcb.h>
 #include <base/internal/cap_map.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 using namespace Genode;
-using namespace Fiasco;
+using namespace Foc;
 
-void Ipc_pager::_parse(unsigned long label) {
+
+void Ipc_pager::_parse(unsigned long label)
+{
 	_badge = label & ~0x3;
 	_parse_msg_type();
+
 	if (_type == PAGEFAULT || _type == EXCEPTION)
 		_parse_pagefault();
+
 	if (_type == PAUSE || _type == EXCEPTION)
 		_regs = *l4_utcb_exc();
 }
@@ -96,12 +98,15 @@ void Ipc_pager::reply_and_wait_for_fault()
 	l4_utcb_mr()->mr[0] = _reply_mapping.dst_addr() | L4_ITEM_MAP | grant;
 
 	switch (_reply_mapping.cacheability()) {
+
 	case WRITE_COMBINED:
 		l4_utcb_mr()->mr[0] |= L4_FPAGE_BUFFERABLE << 4;
 		break;
+
 	case CACHED:
 		l4_utcb_mr()->mr[0] |= L4_FPAGE_CACHEABLE << 4;
 		break;
+
 	case UNCACHED:
 		if (!_reply_mapping.iomem())
 			l4_utcb_mr()->mr[0] |= L4_FPAGE_BUFFERABLE << 4;
@@ -124,7 +129,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 void Ipc_pager::acknowledge_wakeup()
 {
-	l4_cap_idx_t dst = Fiasco::Capability::valid(_last.kcap)
+	l4_cap_idx_t dst = Foc::Capability::valid(_last.kcap)
 	                 ? _last.kcap : (l4_cap_idx_t)L4_SYSF_REPLY;
 
 	/* answer wakeup call from one of core's region-manager sessions */
@@ -135,14 +140,14 @@ void Ipc_pager::acknowledge_wakeup()
 void Ipc_pager::acknowledge_exception()
 {
 	_regs = *l4_utcb_exc();
-	l4_cap_idx_t dst = Fiasco::Capability::valid(_last.kcap)
+	l4_cap_idx_t dst = Foc::Capability::valid(_last.kcap)
 	                 ? _last.kcap : (l4_cap_idx_t)L4_SYSF_REPLY;
-	Fiasco::l4_msgtag_t const msg_tag =
+	Foc::l4_msgtag_t const msg_tag =
 		l4_ipc_send(dst, l4_utcb(),
 		            l4_msgtag(0, L4_UTCB_EXCEPTION_REGS_SIZE, 0, 0),
 		            L4_IPC_SEND_TIMEOUT_0);
 
-	Fiasco::l4_umword_t const err = l4_ipc_error(msg_tag, l4_utcb());
+	Foc::l4_umword_t const err = l4_ipc_error(msg_tag, l4_utcb());
 	if (err) {
 		warning("failed to acknowledge exception, l4_ipc_err=", err);
 	}
@@ -151,7 +156,7 @@ void Ipc_pager::acknowledge_exception()
 
 Ipc_pager::Ipc_pager()
 :
-	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
+	Native_capability((Cap_index*)Foc::l4_utcb_tcr()->user[Foc::UTCB_TCR_BADGE]),
 	_badge(0)
 { }
 

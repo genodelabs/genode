@@ -14,18 +14,16 @@
 #ifndef _INCLUDE__FOC__NATIVE_CAPABILITY_H_
 #define _INCLUDE__FOC__NATIVE_CAPABILITY_H_
 
-namespace Fiasco {
-#include <l4/sys/consts.h>
-#include <l4/sys/types.h>
-#include <l4/sys/utcb.h>
-#include <l4/sys/task.h>
+#include <foc/syscall.h>
+
+namespace Foc {
 
 	/*********************************************
 	 ** Capability selectors controlled by core **
 	 *********************************************/
 
 	/* use the same task cap selector like L4Re for compatibility in L4Linux */
-	static constexpr l4_cap_idx_t TASK_CAP = L4_BASE_TASK_CAP;
+	static constexpr l4_cap_idx_t TASK_CAP  = L4_BASE_TASK_CAP;
 
 	static constexpr l4_cap_idx_t DEBUG_CAP = L4_BASE_DEBUGGER_CAP;
 

@@ -1,5 +1,5 @@
 /*
- * \brief  Fiasco-specific implementation of the non-core startup Thread API
+ * \brief  Fiasco.OC-specific implementation of the non-core startup Thread API
  * \author Norman Feske
  * \author Stefan Kalkowski
  * \author Martin Stein
@@ -27,17 +27,15 @@
 #include <base/internal/cap_map.h>
 #include <base/internal/globals.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/utcb.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 using namespace Genode;
 
 
 void Thread::_deinit_platform_thread()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	if (native_thread().kcap && _thread_cap.valid()) {
 		Cap_index *i = (Cap_index*)l4_utcb_tcr_u(utcb()->foc_utcb)->user[UTCB_TCR_BADGE];
@@ -51,8 +49,8 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 {
 	_init_cpu_session_and_trace_control();
 
-	if (type == NORMAL)
-	{
+	if (type == NORMAL) {
+
 		/* create thread at core */
 		_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(),
 		                                          name(), _affinity,
@@ -64,22 +62,23 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 
 		return;
 	}
+
 	/* adjust values whose computation differs for a main thread */
-	native_thread().kcap = Fiasco::MAIN_THREAD_CAP;
+	native_thread().kcap = Foc::MAIN_THREAD_CAP;
 	_thread_cap = main_thread_cap();
 
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
-	/* make thread object known to the Fiasco environment */
+	/* make thread object known to the Fiasco.OC environment */
 	addr_t const t = (addr_t)this;
-	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = t;
+	Foc::l4_utcb_tcr()->user[Foc::UTCB_TCR_THREAD_OBJ] = t;
 }
 
 
 void Thread::start()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	Foc_native_cpu_client native_cpu(_cpu_session->native_cpu());
 
@@ -89,7 +88,7 @@ void Thread::start()
 	catch (...) { throw Cpu_session::Thread_creation_failed(); }
 
 	/* remember UTCB of the new thread */
-	Fiasco::l4_utcb_t * const foc_utcb = (Fiasco::l4_utcb_t *)state.utcb;
+	Foc::l4_utcb_t * const foc_utcb = (Foc::l4_utcb_t *)state.utcb;
 	utcb()->foc_utcb = foc_utcb;
 
 	native_thread() = Native_thread(state.kcap);

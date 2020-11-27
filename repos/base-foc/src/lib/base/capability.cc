@@ -11,10 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/types.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 /* base-internal includes */
 #include <base/internal/cap_map.h>

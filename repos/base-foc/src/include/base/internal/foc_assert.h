@@ -17,14 +17,13 @@
 /* Genode includes */
 #include <base/log.h>
 
-namespace Fiasco {
-#include <l4/sys/kdebug.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 #define ASSERT(e, s) \
 	do { if (!(e)) { \
 		Genode::raw("assertion failed: ", s, " at ", __FILE__, ":", __LINE__); \
-		Fiasco::enter_kdebug("ASSERT"); \
+		Foc::enter_kdebug("ASSERT"); \
 		} \
 	} while(0)
 

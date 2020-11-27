@@ -19,6 +19,7 @@
 
 namespace Genode { struct Pager_object_exception_state; }
 
+
 struct Genode::Pager_object_exception_state
 {
 	Mutex            mutex { };

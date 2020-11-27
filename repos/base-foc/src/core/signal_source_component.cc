@@ -20,10 +20,8 @@
 #include <platform.h>
 #include <signal_source_component.h>
 
-namespace Fiasco {
-#include <l4/sys/factory.h>
-#include <l4/sys/irq.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 using namespace Genode;
 
@@ -38,6 +36,7 @@ void Signal_source_component::release(Signal_context_component &context)
 		_signal_queue.remove(context);
 }
 
+
 void Signal_source_component::submit(Signal_context_component &context,
                                      unsigned long             cnt)
 {
@@ -48,7 +47,7 @@ void Signal_source_component::submit(Signal_context_component &context,
 		_signal_queue.enqueue(context);
 
 		/* wake up client */
-		Fiasco::l4_irq_trigger(_blocking_semaphore.data()->kcap());
+		Foc::l4_irq_trigger(_blocking_semaphore.data()->kcap());
 	}
 }
 
@@ -75,7 +74,7 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint &ep)
 	Signal_source_rpc_object(cap_map().insert(platform_specific().cap_id_alloc().alloc())),
 	_entrypoint(ep)
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP,
 	                                        _blocking_semaphore.data()->kcap());

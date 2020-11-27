@@ -14,7 +14,13 @@
 /* core includes */
 #include <core_log.h>
 
-namespace Fiasco {
-#include <l4/sys/kdebug.h>
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
+
+using namespace Genode;
+
+
+void Core_log::out(char const c)
+{
+	Foc::outchar(c);
 }
-void Genode::Core_log::out(char const c) { Fiasco::outchar(c); }

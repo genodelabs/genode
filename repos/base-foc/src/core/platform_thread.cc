@@ -1,5 +1,5 @@
 /*
- * \brief  Fiasco thread facility
+ * \brief  Fiasco.OC thread facility
  * \author Stefan Kalkowski
  * \date   2011-01-04
  */
@@ -22,22 +22,16 @@
 #include <platform.h>
 #include <core_env.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/debugger.h>
-#include <l4/sys/factory.h>
-#include <l4/sys/irq.h>
-#include <l4/sys/scheduler.h>
-#include <l4/sys/thread.h>
-#include <l4/sys/types.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 using namespace Genode;
-using namespace Fiasco;
+using namespace Foc;
+
 
 Trace::Execution_time Platform_thread::execution_time() const
 {
-	Fiasco::l4_kernel_clock_t us = 0;
+	Foc::l4_kernel_clock_t us = 0;
 	l4_thread_stats_time(_thread.local.data()->kcap(), &us);
 	return { us, 0, 10000 /* quantum readable ?*/, _prio };
 }
@@ -98,10 +92,11 @@ void Platform_thread::pause()
 
 	Foc_thread_state &reg_state = _pager_obj->state.state;
 
-	unsigned exc      = _pager_obj->state.exceptions;
-	reg_state.ip  = ~0UL;
-	reg_state.sp  = ~0UL;
-	l4_umword_t flags = L4_THREAD_EX_REGS_TRIGGER_EXCEPTION;
+	reg_state.ip = ~0UL;
+	reg_state.sp = ~0UL;
+
+	unsigned const exc   = _pager_obj->state.exceptions;
+	l4_umword_t    flags = L4_THREAD_EX_REGS_TRIGGER_EXCEPTION;
 
 	/* Mark thread to be stopped */
 	_pager_obj->state.paused = true;
@@ -117,7 +112,8 @@ void Platform_thread::pause()
 	/*
 	 * The thread state ("ready") is encoded in the lowest bit of the flags.
 	 */
-	bool in_syscall = (flags & 1) == 0;
+	bool const in_syscall = (flags & 1) == 0;
+
 	_pager_obj->state.mutex.release();
 
 	/**
@@ -137,12 +133,12 @@ void Platform_thread::pause()
 
 void Platform_thread::single_step(bool enabled)
 {
-	Fiasco::l4_cap_idx_t const tid = thread().local.data()->kcap();
+	Foc::l4_cap_idx_t const tid = thread().local.data()->kcap();
 
 	enum { THREAD_SINGLE_STEP = 0x40000 };
 	int const flags = enabled ? THREAD_SINGLE_STEP : 0;
 
-	Fiasco::l4_thread_ex_regs(tid, ~0UL, ~0UL, flags);
+	Foc::l4_thread_ex_regs(tid, ~0UL, ~0UL, flags);
 }
 
 
@@ -157,7 +153,7 @@ void Platform_thread::resume()
 	_pager_obj->state.paused = false;
 	_pager_obj->state.mutex.release();
 
-	/* Send a message to the exception handler, to unblock the client */
+	/* send a message to the exception handler, to unblock the client */
 	Msgbuf<16> snd, rcv;
 	snd.insert(_pager_obj);
 	ipc_call(_pager_obj->cap(), snd, rcv, 0);
@@ -168,7 +164,7 @@ void Platform_thread::bind(Platform_pd &pd)
 {
 	_platform_pd = &pd;
 	_gate.map(pd.native_task().data()->kcap());
-	_irq.map(pd.native_task().data()->kcap());
+	_irq .map(pd.native_task().data()->kcap());
 }
 
 
@@ -211,7 +207,8 @@ void Platform_thread::state(Thread_state s)
 Foc_thread_state Platform_thread::state()
 {
 	Foc_thread_state s;
-	if (_pager_obj) s = _pager_obj->state.state;
+	if (_pager_obj)
+		s = _pager_obj->state.state;
 
 	s.kcap = _gate.remote;
 	s.id   = _gate.local.local_name();
@@ -273,7 +270,7 @@ void Platform_thread::_finalize_construction()
 		warning("attaching thread's irq failed");
 
 	/* set human readable name in kernel debugger */
-	Fiasco::l4_debugger_set_object_name(_thread.local.data()->kcap(), _name.string());
+	Foc::l4_debugger_set_object_name(_thread.local.data()->kcap(), _name.string());
 
 	/* set priority of thread */
 	l4_sched_param_t params = l4_sched_param(_prio);
@@ -284,15 +281,16 @@ void Platform_thread::_finalize_construction()
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
                                  Affinity::Location location, addr_t)
-: _name(name),
-  _state(DEAD),
-  _core_thread(false),
-  _thread(true),
-  _irq(true),
-  _utcb(0),
-  _platform_pd(0),
-  _pager_obj(0),
-  _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, prio))
+:
+	_name(name),
+	_state(DEAD),
+	_core_thread(false),
+	_thread(true),
+	_irq(true),
+	_utcb(0),
+	_platform_pd(0),
+	_pager_obj(0),
+	_prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, prio))
 {
 	/* XXX remove const cast */
 	((Core_cap_index *)_thread.local.data())->pt(this);
@@ -304,34 +302,34 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
 
 Platform_thread::Platform_thread(Core_cap_index &thread,
                                  Core_cap_index &irq, const char *name)
-: _name(name),
-  _state(RUNNING),
-  _core_thread(true),
-  _thread(Native_capability(&thread), L4_BASE_THREAD_CAP),
-  _irq(Native_capability(&irq)),
-  _utcb(0),
-  _platform_pd(0),
-  _pager_obj(0),
-  _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, 0))
+:
+	_name(name),
+	_state(RUNNING),
+	_core_thread(true),
+	_thread(Native_capability(&thread), L4_BASE_THREAD_CAP),
+	_irq(Native_capability(&irq)),
+	_utcb(0),
+	_platform_pd(0),
+	_pager_obj(0),
+	_prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, 0))
 {
-	/* XXX remove const cast */
 	((Core_cap_index *)_thread.local.data())->pt(this);
 	_finalize_construction();
 }
 
 
 Platform_thread::Platform_thread(const char *name)
-: _name(name),
-  _state(DEAD),
-  _core_thread(true),
-  _thread(true),
-  _irq(true),
-  _utcb(0),
-  _platform_pd(0),
-  _pager_obj(0),
-  _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, 0))
+:
+	_name(name),
+	_state(DEAD),
+	_core_thread(true),
+	_thread(true),
+	_irq(true),
+	_utcb(0),
+	_platform_pd(0),
+	_pager_obj(0),
+	_prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, 0))
 {
-	/* XXX remove const cast */
 	((Core_cap_index *)_thread.local.data())->pt(this);
 	_create_thread();
 	_finalize_construction();
@@ -343,36 +341,36 @@ Platform_thread::~Platform_thread()
 	thread_cap_factory().free(_gate.local);
 
 	/*
-	 * We inform our protection domain about thread destruction, which will end up in
-	 * Thread::unbind()
+	 * We inform our protection domain about thread destruction, which will end
+	 * up in Thread::unbind()
 	 */
 	if (_platform_pd)
 		_platform_pd->unbind_thread(*this);
 }
 
-Fiasco::l4_cap_idx_t Platform_thread::setup_vcpu(unsigned const vcpu_id,
+Foc::l4_cap_idx_t Platform_thread::setup_vcpu(unsigned const vcpu_id,
                                                  Cap_mapping const &task_vcpu,
                                                  Cap_mapping &vcpu_irq)
 {
 	if (!_platform_pd)
-		return Fiasco::L4_INVALID_CAP;
-	if (vcpu_id >= (Platform::VCPU_VIRT_EXT_END - Platform::VCPU_VIRT_EXT_START) / L4_PAGESIZE)
-		return Fiasco::L4_INVALID_CAP;
+		return Foc::L4_INVALID_CAP;
 
-	Genode::addr_t const vcpu_addr = Platform::VCPU_VIRT_EXT_START +
-	                                 L4_PAGESIZE * vcpu_id;
-	l4_fpage_t vm_page = l4_fpage( vcpu_addr, L4_PAGESHIFT, L4_FPAGE_RW);
+	if (vcpu_id >= (Platform::VCPU_VIRT_EXT_END - Platform::VCPU_VIRT_EXT_START) / L4_PAGESIZE)
+		return Foc::L4_INVALID_CAP;
+
+	addr_t     const vcpu_addr = Platform::VCPU_VIRT_EXT_START + L4_PAGESIZE*vcpu_id;
+	l4_fpage_t const vm_page   = l4_fpage( vcpu_addr, L4_PAGESHIFT, L4_FPAGE_RW);
 
 	l4_msgtag_t msg = l4_task_add_ku_mem(_platform_pd->native_task().data()->kcap(), vm_page);
 	if (l4_error(msg)) {
-		Genode::error("ku_mem failed ", l4_error(msg));
-		return Fiasco::L4_INVALID_CAP;
+		error("ku_mem failed ", l4_error(msg));
+		return Foc::L4_INVALID_CAP;
 	}
 
 	msg = l4_thread_vcpu_control_ext(_thread.local.data()->kcap(), vcpu_addr);
 	if (l4_error(msg)) {
-		Genode::error("vcpu_control_exit failed ", l4_error(msg));
-		return Fiasco::L4_INVALID_CAP;
+		error("vcpu_control_exit failed ", l4_error(msg));
+		return Foc::L4_INVALID_CAP;
 	}
 
 	/* attach thread to irq */

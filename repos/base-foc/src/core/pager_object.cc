@@ -18,16 +18,14 @@
 #include <base/internal/cap_map.h>
 
 /* Fiasco.OC includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-}
+#include <foc/syscall.h>
 
 using namespace Genode;
 
 
 void Pager_object::wake_up()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	/*
 	 * Issue IPC to pager, transmitting the pager-object pointer as 'IP'.

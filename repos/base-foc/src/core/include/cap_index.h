@@ -45,7 +45,9 @@ class Genode::Core_cap_index : public Native_capability::Data
 		Core_cap_index(Pd_session_component *session = 0,
 		               Platform_thread      *pt      = 0,
 		               Native_thread         gate    = Native_thread() )
-		: _session(session), _pt(pt), _gate(gate) {}
+		:
+			_session(session), _pt(pt), _gate(gate)
+		{ }
 
 		Pd_session_component const *session() const { return _session; }
 		Platform_thread      const *pt()      const { return _pt; }

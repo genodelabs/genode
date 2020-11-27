@@ -20,7 +20,6 @@
  *   --------------------------------------------------------------
  */
 
-
 /* Genode includes */
 #include <base/blocking.h>
 #include <base/ipc.h>
@@ -35,15 +34,10 @@
 #include <base/internal/foc_assert.h>
 
 /* Fiasco.OC includes */
-namespace Fiasco {
-#include <l4/sys/consts.h>
-#include <l4/sys/ipc.h>
-#include <l4/sys/types.h>
-#include <l4/sys/utcb.h>
-}
+#include <foc/syscall.h>
 
 using namespace Genode;
-using namespace Fiasco;
+using namespace Foc;
 
 
 /***************
@@ -55,7 +49,7 @@ enum Debug { DEBUG_MSG = 1 };
 
 static inline bool ipc_error(l4_msgtag_t tag, bool print)
 {
-	int ipc_error = l4_ipc_error(tag, l4_utcb());
+	int const ipc_error = l4_ipc_error(tag, l4_utcb());
 	if (ipc_error && print) raw("Ipc error: ", ipc_error, " occurred!");
 	return ipc_error;
 }
@@ -305,8 +299,7 @@ static bool badge_matches_label(unsigned long badge, unsigned long label)
 }
 
 
-void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
-                       Msgbuf_base &snd_msg)
+void Genode::ipc_reply(Native_capability, Rpc_exception_code exc, Msgbuf_base &snd_msg)
 {
 	l4_msgtag_t tag = copy_msgbuf_to_utcb(snd_msg, exc.value);
 
@@ -316,10 +309,10 @@ void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
 }
 
 
-Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
-                                           Rpc_exception_code      exc,
-                                           Msgbuf_base            &reply_msg,
-                                           Msgbuf_base            &request_msg)
+Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
+                                   Rpc_exception_code      exc,
+                                   Msgbuf_base            &reply_msg,
+                                   Msgbuf_base            &request_msg)
 {
 	Receive_window &rcv_window = Thread::myself()->native_thread().rcv_window;
 
@@ -372,7 +365,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 
 Ipc_server::Ipc_server()
 :
-	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])
+	Native_capability((Cap_index*)Foc::l4_utcb_tcr()->user[Foc::UTCB_TCR_BADGE])
 {
 	Thread::myself()->native_thread().rcv_window.init();
 }
@@ -406,6 +399,6 @@ addr_t Receive_window::rcv_cap_sel_base()
 
 addr_t Receive_window::rcv_cap_sel(unsigned i)
 {
-	return rcv_cap_sel_base() + i*Fiasco::L4_CAP_SIZE;
+	return rcv_cap_sel_base() + i*Foc::L4_CAP_SIZE;
 }
 

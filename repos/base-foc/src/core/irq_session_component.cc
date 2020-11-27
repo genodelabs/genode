@@ -25,18 +25,10 @@
 #include <platform.h>
 #include <util.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/icu.h>
-#include <l4/sys/irq.h>
-#include <l4/sys/factory.h>
-#include <l4/sys/types.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
-namespace Genode {
-	class Interrupt_handler;
-}
-
+namespace Genode { class Interrupt_handler; }
 
 using namespace Genode;
 
@@ -58,7 +50,7 @@ class Genode::Interrupt_handler : public Thread
 
 		void entry() override;
 
-		static Fiasco::l4_cap_idx_t handler_cap()
+		static Foc::l4_cap_idx_t handler_cap()
 		{
 			static Interrupt_handler handler;
 			return handler._thread_cap.data()->kcap();
@@ -68,35 +60,40 @@ class Genode::Interrupt_handler : public Thread
 
 
 enum { MAX_MSIS = 256 };
-static class Msi_allocator : public Genode::Bit_array<MAX_MSIS>
+
+
+static struct Msi_allocator : Bit_array<MAX_MSIS>
 {
-	public:
+	Msi_allocator()
+	{
+		using namespace Foc;
 
-		Msi_allocator() {
-			using namespace Fiasco;
+		l4_icu_info_t info { };
 
-			l4_icu_info_t info { .features = 0, .nr_irqs = 0, .nr_msis = 0 };
-			l4_msgtag_t res = l4_icu_info(Fiasco::L4_BASE_ICU_CAP, &info);
+		l4_msgtag_t const res = l4_icu_info(Foc::L4_BASE_ICU_CAP, &info);
 
-			if (l4_error(res) || !(info.features & L4_ICU_FLAG_MSI))
-				set(0, MAX_MSIS);
-			else
-				if (info.nr_msis < MAX_MSIS)
-					set(info.nr_msis, MAX_MSIS - info.nr_msis);
-		}
+		if (l4_error(res) || !(info.features & L4_ICU_FLAG_MSI))
+			set(0, MAX_MSIS);
+		else
+			if (info.nr_msis < MAX_MSIS)
+				set(info.nr_msis, MAX_MSIS - info.nr_msis);
+	}
+
 } msi_alloc;
 
-bool Genode::Irq_object::associate(unsigned irq, bool msi,
-                                   Irq_session::Trigger trigger,
-                                   Irq_session::Polarity polarity)
+
+bool Irq_object::associate(unsigned irq, bool msi,
+                           Irq_session::Trigger trigger,
+                           Irq_session::Polarity polarity)
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	_irq      = irq;
 	_trigger  = trigger;
 	_polarity = polarity;
 
-	if (msi) irq |= L4_ICU_FLAG_MSI;
+	if (msi)
+		irq |= L4_ICU_FLAG_MSI;
 	else
 		/* set interrupt mode */
 		Platform::setup_irq_mode(irq, _trigger, _polarity);
@@ -124,7 +121,7 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 		 * Architecture Specification
 		 */
 		unsigned src_id = 0x0;
-		Fiasco::l4_icu_msi_info_t info = l4_icu_msi_info_t();
+		Foc::l4_icu_msi_info_t info = l4_icu_msi_info_t();
 		if (l4_error(l4_icu_msi_info(L4_BASE_ICU_CAP, irq,
 		                             src_id, &info))) {
 			error("cannot get MSI info");
@@ -138,9 +135,9 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 }
 
 
-void Genode::Irq_object::ack_irq()
+void Irq_object::ack_irq()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	int err;
 	l4_msgtag_t tag = l4_irq_unmask(_capability());
@@ -149,7 +146,7 @@ void Genode::Irq_object::ack_irq()
 }
 
 
-Genode::Irq_object::Irq_object()
+Irq_object::Irq_object()
 :
 	 _cap(cap_map().insert(platform_specific().cap_id_alloc().alloc())),
 	 _trigger(Irq_session::TRIGGER_UNCHANGED),
@@ -158,15 +155,17 @@ Genode::Irq_object::Irq_object()
 { }
 
 
-Genode::Irq_object::~Irq_object()
+Irq_object::~Irq_object()
 {
 	if (_irq == ~0U)
 		return;
 
-	using namespace Fiasco;
+	using namespace Foc;
 
 	unsigned long irq = _irq;
-	if (_msi_addr) irq |= L4_ICU_FLAG_MSI;
+
+	if (_msi_addr)
+		irq |= L4_ICU_FLAG_MSI;
 
 	if (l4_error(l4_irq_detach(_capability())))
 		error("cannot detach IRQ");
@@ -182,13 +181,14 @@ Genode::Irq_object::~Irq_object()
  ** IRQ session component **
  ***************************/
 
-
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
-: _irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
-  _irq_alloc(irq_alloc), _irq_object()
+:
+	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
+	_irq_alloc(irq_alloc), _irq_object()
 {
-	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
+	long const msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
+
 	if (msi) {
 		if (msi_alloc.get(_irq_number, 1)) {
 			error("unavailable MSI ", _irq_number, " requested");
@@ -203,6 +203,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 	}
 
 	Irq_args const irq_args(args);
+
 	if (_irq_object.associate(_irq_number, msi, irq_args.trigger(),
 	                          irq_args.polarity()))
 		return;
@@ -226,13 +227,16 @@ Irq_session_component::~Irq_session_component()
 	if (_irq_object.msi_address()) {
 		msi_alloc.clear(_irq_number, 1);
 	} else {
-		Genode::addr_t free_irq = _irq_number;
+		addr_t const free_irq = _irq_number;
 		_irq_alloc.free((void *)free_irq);
 	}
 }
 
 
-void Irq_session_component::ack_irq() { _irq_object.ack_irq(); }
+void Irq_session_component::ack_irq()
+{
+	_irq_object.ack_irq();
+}
 
 
 void Irq_session_component::sigh(Genode::Signal_context_capability cap)
@@ -241,7 +245,7 @@ void Irq_session_component::sigh(Genode::Signal_context_capability cap)
 }
 
 
-Genode::Irq_session::Info Irq_session_component::info()
+Irq_session::Info Irq_session_component::info()
 {
 	if (!_irq_object.msi_address())
 		return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
@@ -263,7 +267,7 @@ __attribute__((optimize("-fno-omit-frame-pointer")))
 __attribute__((noinline))
 void Interrupt_handler::entry()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	int         err;
 	l4_msgtag_t tag;

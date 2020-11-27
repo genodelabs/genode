@@ -20,30 +20,23 @@
 #include <platform.h>
 
 /* Fiasco.OC includes */
-namespace Fiasco {
-#include <l4/sys/thread.h>
-#include <l4/sys/factory.h>
-}
+#include <foc/syscall.h>
+
+using namespace Genode;
 
 
-Genode::Native_capability
-Genode::Native_cpu_component::native_cap(Genode::Thread_capability cap)
+Native_capability Native_cpu_component::native_cap(Thread_capability cap)
 {
-	using namespace Genode;
-
 	auto lambda = [&] (Cpu_thread_component *thread) {
 		return (!thread) ? Native_capability()
-		                 : thread->platform_thread().thread().local;
-	};
+		                 : thread->platform_thread().thread().local; };
+
 	return _thread_ep.apply(cap, lambda);
 }
 
 
-Genode::Foc_thread_state
-Genode::Native_cpu_component::thread_state(Genode::Thread_capability cap)
+Foc_thread_state Native_cpu_component::thread_state(Thread_capability cap)
 {
-	using namespace Genode;
-
 	auto lambda = [&] (Cpu_thread_component *thread) {
 		return (!thread) ? Foc_thread_state()
 		                 : thread->platform_thread().state(); };
@@ -52,7 +45,7 @@ Genode::Native_cpu_component::thread_state(Genode::Thread_capability cap)
 }
 
 
-Genode::Native_cpu_component::Native_cpu_component(Cpu_session_component &cpu_session, char const *)
+Native_cpu_component::Native_cpu_component(Cpu_session_component &cpu_session, char const *)
 :
 	_cpu_session(cpu_session), _thread_ep(_cpu_session._thread_ep)
 {
@@ -60,7 +53,7 @@ Genode::Native_cpu_component::Native_cpu_component(Cpu_session_component &cpu_se
 }
 
 
-Genode::Native_cpu_component::~Native_cpu_component()
+Native_cpu_component::~Native_cpu_component()
 {
 	_thread_ep.dissolve(this);
 }

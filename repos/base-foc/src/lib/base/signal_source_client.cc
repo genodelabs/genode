@@ -23,12 +23,9 @@
 #include <base/internal/capability_data.h>
 #include <base/internal/native_thread.h>
 
-/* Fiasco includes */
+/* Fiasco.OC includes */
 #include <foc_native_cpu/client.h>
-
-namespace Fiasco {
-#include <l4/sys/irq.h>
-}
+#include <foc/syscall.h>
 
 using namespace Genode;
 
@@ -40,7 +37,7 @@ Signal_source_client::Signal_source_client(Capability<Signal_source> cap)
 	/* request mapping of semaphore capability selector */
 	_sem(call<Rpc_request_semaphore>())
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	Foc_native_cpu_client cpu_client(env_deprecated()->cpu_session()->native_cpu());
 	Native_capability thread_cap = cpu_client.native_cap(Thread::myself()->cap());
@@ -52,7 +49,7 @@ Signal_source_client::Signal_source_client(Capability<Signal_source> cap)
 
 Signal_source_client::~Signal_source_client()
 {
-	Fiasco::l4_irq_detach(_sem.data()->kcap());
+	Foc::l4_irq_detach(_sem.data()->kcap());
 }
 
 
@@ -60,7 +57,7 @@ __attribute__((optimize("-fno-omit-frame-pointer")))
 __attribute__((noinline))
 Signal_source_client::Signal Signal_source_client::wait_for_signal()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	Signal signal;
 	do {

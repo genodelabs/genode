@@ -1,5 +1,5 @@
 /*
- * \brief  Fiasco platform interface implementation
+ * \brief  Fiasco.OC platform interface implementation
  * \author Christian Helmuth
  * \author Stefan Kalkowski
  * \date   2006-04-11
@@ -35,17 +35,8 @@
 #include <platform_pd.h>
 #include <util.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sigma0/sigma0.h>
-#include <l4/sys/icu.h>
-#include <l4/sys/ipc.h>
-#include <l4/sys/kip>
-#include <l4/sys/thread.h>
-#include <l4/sys/types.h>
-#include <l4/sys/utcb.h>
-#include <l4/sys/scheduler.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 using namespace Genode;
 
@@ -60,8 +51,11 @@ static Synced_range_allocator<Allocator_avl> &_core_address_ranges()
 	return _core_address_ranges;
 }
 
+
 enum { PAGER_STACK_ELEMENTS = 1024 };
+
 static unsigned long _core_pager_stack[PAGER_STACK_ELEMENTS];
+
 
 /**
  * Core pager "service loop"
@@ -72,13 +66,14 @@ __attribute__((optimize("-fno-omit-frame-pointer")))
 __attribute__((noinline))
 static void _core_pager_loop()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
-	bool send_reply = false;
-	l4_umword_t  label;
-	l4_utcb_t   *utcb    = l4_utcb();
-	l4_msgtag_t  snd_tag = l4_msgtag(0, 0, 0, 0);
-	l4_msgtag_t  tag;
+	l4_utcb_t * const utcb = l4_utcb();
+
+	bool        send_reply = false;
+	l4_umword_t label;
+	l4_msgtag_t snd_tag = l4_msgtag(0, 0, 0, 0);
+	l4_msgtag_t tag;
 
 	while (true) {
 
@@ -93,9 +88,9 @@ static void _core_pager_loop()
 		}
 
 		/* read fault information */
-		l4_umword_t pfa = l4_trunc_page(l4_utcb_mr()->mr[0]);
-		l4_umword_t ip  = l4_utcb_mr()->mr[1];
-		bool rw         = l4_utcb_mr()->mr[0] & 2; //TODO enum
+		l4_umword_t const pfa = l4_trunc_page(l4_utcb_mr()->mr[0]);
+		l4_umword_t const ip  = l4_utcb_mr()->mr[1];
+		bool        const rw  = l4_utcb_mr()->mr[0] & 2; //TODO enum
 
 		if (pfa < (l4_umword_t)L4_PAGESIZE) {
 
@@ -156,7 +151,7 @@ Platform::Core_pager::Core_pager(Platform_pd &core_pd, Sigma0 &sigma0)
 	void *sp = (void *)&_core_pager_stack[PAGER_STACK_ELEMENTS - 1];
 	start((void *)_core_pager_loop, sp);
 
-	using namespace Fiasco;
+	using namespace Foc;
 
 	l4_thread_control_start();
 	l4_thread_control_pager(thread().local.data()->kcap());
@@ -180,10 +175,10 @@ Platform::Core_pager &Platform::core_pager()
 
 struct Region
 {
-	addr_t start;
-	addr_t end;
+	addr_t start = 0;
+	addr_t end   = 0;
 
-	Region() : start(0), end(0) { }
+	Region() { }
 	Region(addr_t s, addr_t e) : start(s), end(e) { }
 
 	/**
@@ -202,8 +197,8 @@ struct Region
 static inline void add_region(Region r, Range_allocator &alloc)
 {
 	/* adjust region */
-	addr_t start = trunc_page(r.start);
-	addr_t end   = round_page(r.end);
+	addr_t const start = trunc_page(r.start);
+	addr_t const end   = round_page(r.end);
 
 	alloc.add_range(start, end - start);
 }
@@ -215,8 +210,8 @@ static inline void add_region(Region r, Range_allocator &alloc)
 static inline void remove_region(Region r, Range_allocator &alloc)
 {
 	/* adjust region */
-	addr_t start = trunc_page(r.start);
-	addr_t end   = round_page(r.end);
+	addr_t const start = trunc_page(r.start);
+	addr_t const end   = round_page(r.end);
 
 	alloc.remove_range(start, end - start);
 }
@@ -227,7 +222,7 @@ static inline void remove_region(Region r, Range_allocator &alloc)
  */
 static inline int sigma0_req_region(addr_t *addr, unsigned log2size)
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	l4_utcb_mr()->mr[0] = SIGMA0_REQ_FPAGE_ANY;
 	l4_utcb_mr()->mr[1] = l4_fpage(0, log2size, 0).raw;
@@ -251,13 +246,14 @@ static inline int sigma0_req_region(addr_t *addr, unsigned log2size)
 }
 
 
-static Fiasco::l4_kernel_info_t &sigma0_map_kip()
+static Foc::l4_kernel_info_t &sigma0_map_kip()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	static l4_kernel_info_t *kip_ptr = nullptr;
 
-	if (kip_ptr) return *kip_ptr;
+	if (kip_ptr)
+		return *kip_ptr;
 
 	/* signal we want to map the KIP */
 	l4_utcb_mr()->mr[0] = SIGMA0_REQ_KIP;
@@ -268,14 +264,14 @@ static Fiasco::l4_kernel_info_t &sigma0_map_kip()
 	l4_utcb_br()->br[1] = l4_fpage(0, L4_WHOLE_ADDRESS_SPACE, L4_FPAGE_RX).raw;
 
 	/* call sigma0 */
-	l4_msgtag_t tag = l4_ipc_call(L4_BASE_PAGER_CAP,
-	                              l4_utcb(),
-	                              l4_msgtag(L4_PROTO_SIGMA0, 1, 0, 0),
-	                              L4_IPC_NEVER);
+	l4_msgtag_t const tag = l4_ipc_call(L4_BASE_PAGER_CAP,
+	                                    l4_utcb(),
+	                                    l4_msgtag(L4_PROTO_SIGMA0, 1, 0, 0),
+	                                    L4_IPC_NEVER);
 	if (l4_ipc_error(tag, l4_utcb()))
 		panic("kip request to sigma0 failed");
 
-	l4_addr_t ret = l4_trunc_page(l4_utcb_mr()->mr[0]);
+	l4_addr_t const ret = l4_trunc_page(l4_utcb_mr()->mr[0]);
 	if (!ret)
 		panic("kip mapping failed");
 
@@ -297,11 +293,12 @@ void Platform::_setup_mem_alloc()
 	for ( ; beg < end; beg += L4_PAGESIZE) (void)(*beg);
 
 	/* request pages of known page size starting with largest */
-	size_t log2_sizes[] = { L4_LOG2_SUPERPAGESIZE, L4_LOG2_PAGESIZE };
+	size_t const log2_sizes[] = { L4_LOG2_SUPERPAGESIZE, L4_LOG2_PAGESIZE };
 
 	for (unsigned i = 0; i < sizeof(log2_sizes)/sizeof(*log2_sizes); ++i) {
-		size_t log2_size = log2_sizes[i];
-		size_t size      = 1UL << log2_size;
+		size_t const log2_size = log2_sizes[i];
+		size_t const size      = 1UL << log2_size;
+
 		int    err       = 0;
 		addr_t addr      = 0;
 		Region region;
@@ -312,10 +309,10 @@ void Platform::_setup_mem_alloc()
 			if (!err) {
 				/* XXX do not allocate page0 */
 				if (addr == 0) {
-					Fiasco::l4_task_unmap(Fiasco::L4_BASE_TASK_CAP,
-					                      Fiasco::l4_fpage(0, log2_size,
-					                                       Fiasco::L4_FPAGE_RW),
-					                      Fiasco::L4_FP_ALL_SPACES);
+					Foc::l4_task_unmap(Foc::L4_BASE_TASK_CAP,
+					                      Foc::l4_fpage(0, log2_size,
+					                                       Foc::L4_FPAGE_RW),
+					                      Foc::L4_FP_ALL_SPACES);
 					continue;
 				}
 
@@ -335,10 +332,10 @@ void Platform::_setup_mem_alloc()
 
 void Platform::_setup_irq_alloc()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	l4_icu_info_t info { .features = 0, .nr_irqs = 0, .nr_msis = 0 };
-	l4_msgtag_t res = l4_icu_info(Fiasco::L4_BASE_ICU_CAP, &info);
+	l4_msgtag_t res = l4_icu_info(Foc::L4_BASE_ICU_CAP, &info);
 	if (l4_error(res))
 		panic("could not determine number of IRQs");
 
@@ -348,7 +345,7 @@ void Platform::_setup_irq_alloc()
 
 void Platform::_setup_basics()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	l4_kernel_info_t const &kip = sigma0_map_kip();
 
@@ -364,12 +361,12 @@ void Platform::_setup_basics()
 	_rom_fs.insert(&_kip_rom);
 
 	/* update multi-boot info pointer from KIP */
-	addr_t mb_info_addr = kip.user_ptr;
+	addr_t const mb_info_addr = kip.user_ptr;
 	log("MBI @ ", Hex(mb_info_addr));
 
 	/* parse memory descriptors - look for virtual memory configuration */
 	/* XXX we support only one VM region (here and also inside RM) */
-	using Fiasco::L4::Kip::Mem_desc;
+	using Foc::L4::Kip::Mem_desc;
 
 	_vm_start = 0; _vm_size  = 0;
 	Mem_desc const * const desc = Mem_desc::first(&kip);
@@ -385,8 +382,8 @@ void Platform::_setup_basics()
 		panic("Virtual memory configuration not found");
 
 	/* configure applicable address space but never use page0 */
-	_vm_size  = _vm_start == 0 ? _vm_size - L4_PAGESIZE : _vm_size;
-	_vm_start = _vm_start == 0 ? L4_PAGESIZE : _vm_start;
+	_vm_size  = (_vm_start == 0 ? _vm_size - L4_PAGESIZE : _vm_size);
+	_vm_start = (_vm_start == 0 ? L4_PAGESIZE : _vm_start);
 
 	/* reserve virtual range for extended vCPU features - better way XXX ? */
 	if (_vm_start < VCPU_VIRT_EXT_END) {
@@ -412,8 +409,8 @@ void Platform::_setup_basics()
 	remove_region(Region((addr_t)&kip, (addr_t)&kip + L4_PAGESIZE), _io_mem_alloc);
 
 	/* remove core program image memory from region and IO_MEM allocator */
-	addr_t img_start = (addr_t) &_prog_img_beg;
-	addr_t img_end   = (addr_t) &_prog_img_end;
+	addr_t const img_start = (addr_t) &_prog_img_beg;
+	addr_t const img_end   = (addr_t) &_prog_img_end;
 	remove_region(Region(img_start, img_end), _region_alloc);
 	remove_region(Region(img_start, img_end), _io_mem_alloc);
 
@@ -422,18 +419,22 @@ void Platform::_setup_basics()
 }
 
 
-Platform::Platform() :
+Platform::Platform()
+:
 	_ram_alloc(nullptr), _io_mem_alloc(&core_mem_alloc()),
 	_io_port_alloc(&core_mem_alloc()), _irq_alloc(&core_mem_alloc()),
 	_region_alloc(&core_mem_alloc()), _cap_id_alloc(core_mem_alloc()),
 	_kip_rom((addr_t)&sigma0_map_kip(), L4_PAGESIZE, "l4v2_kip"),
-	_sigma0(cap_map().insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_PAGER_CAP))
+	_sigma0(cap_map().insert(_cap_id_alloc.alloc(), Foc::L4_BASE_PAGER_CAP))
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.
 	 */
 	static bool initialized = 0;
-	if (initialized) panic("Platform constructed twice!");
+
+	if (initialized)
+		panic("Platform constructed twice!");
+
 	initialized = true;
 
 	_setup_basics();
@@ -446,10 +447,10 @@ Platform::Platform() :
 
 	Core_cap_index &pdi =
 		*reinterpret_cast<Core_cap_index*>(cap_map().insert(_cap_id_alloc.alloc(),
-		                                                    Fiasco::L4_BASE_TASK_CAP));
+		                                                    Foc::L4_BASE_TASK_CAP));
 	Core_cap_index &thi =
 		*reinterpret_cast<Core_cap_index*>(cap_map().insert(_cap_id_alloc.alloc(),
-		                                                    Fiasco::L4_BASE_THREAD_CAP));
+		                                                    Foc::L4_BASE_THREAD_CAP));
 	Core_cap_index &irqi =
 		*reinterpret_cast<Core_cap_index*>(cap_map().insert(_cap_id_alloc.alloc()));
 
@@ -476,10 +477,11 @@ Platform::Platform() :
 
 		if (ram_alloc().alloc_aligned(size, &phys_ptr, align).error())
 			return;
+
 		if (region_alloc().alloc_aligned(size, &core_local_ptr, align).error())
 			return;
 
-		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+		addr_t const phys_addr       = reinterpret_cast<addr_t>(phys_ptr);
 		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
 		if (!map_local(phys_addr, core_local_addr, pages))
@@ -487,18 +489,17 @@ Platform::Platform() :
 
 		memset(core_local_ptr, 0, size);
 
-		Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
-		                          pages << get_page_size_log2(),
-		                          "platform_info", [&] ()
+		Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
+		                  pages << get_page_size_log2(),
+		                  "platform_info", [&] ()
 		{
 			xml.node("kernel", [&] () { xml.attribute("name", "foc"); });
 			xml.node("hardware", [&] () {
-				_setup_platform_info(xml, sigma0_map_kip());
-			});
+				_setup_platform_info(xml, sigma0_map_kip()); });
+
 			xml.node("affinity-space", [&] () {
 				xml.attribute("width", affinity_space().width());
-				xml.attribute("height", affinity_space().height());
-			});
+				xml.attribute("height", affinity_space().height()); });
 		});
 
 		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
@@ -533,6 +534,7 @@ Platform::Platform() :
 	}
 
 	Affinity::Space const cpus = affinity_space();
+
 	for (unsigned cpu_id = 0; cpu_id < cpus.width(); cpu_id++)
 	{
 		struct Trace_source : public  Trace::Source::Info_accessor,
@@ -540,7 +542,7 @@ Platform::Platform() :
 		                      private Trace::Source
 		{
 			Affinity::Location const affinity;
-			Genode::String<8>  const name;
+			String<8>          const name;
 
 			/**
 			 * Trace::Source::Info_accessor interface
@@ -550,7 +552,7 @@ Platform::Platform() :
 				uint64_t       ec_time = 0;
 				uint64_t const sc_time = 0;
 
-				using namespace Fiasco;
+				using namespace Foc;
 				l4_sched_cpu_set_t const cpu = l4_sched_cpu_set(affinity.xpos(), 0);
 				l4_msgtag_t const res = l4_scheduler_idle_time(L4_BASE_SCHEDULER_CAP,
 				                                               &cpu, &ec_time);
@@ -589,7 +591,7 @@ Platform::Platform() :
 void Platform::wait_for_exit()
 {
 	/*
-	 * On Fiasco, Core never exits. So let us sleep forever.
+	 * On Fiasco.OC, core never exits. So let us sleep forever.
 	 */
 	sleep_forever();
 }
@@ -597,8 +599,7 @@ void Platform::wait_for_exit()
 
 Affinity::Space Platform::affinity_space() const
 {
-	using namespace Genode;
-	using namespace Fiasco;
+	using namespace Foc;
 
 	l4_sched_cpu_set_t cpus = l4_sched_cpu_set(0, 0, 1);
 	l4_umword_t cpus_max;

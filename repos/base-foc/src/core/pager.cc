@@ -1,5 +1,5 @@
 /*
- * \brief  Fiasco pager framework
+ * \brief  Fiasco.OC pager framework
  * \author Norman Feske
  * \author Christian Helmuth
  * \author Stefan Kalkowski
@@ -24,10 +24,7 @@
 #include <base/internal/native_thread.h>
 
 /* Fiasco.OC includes */
-namespace Fiasco {
-#include <l4/sys/factory.h>
-#include <l4/sys/ipc.h>
-}
+#include <foc/syscall.h>
 
 using namespace Genode;
 
@@ -45,6 +42,7 @@ void Pager_entrypoint::entry()
 		reply_pending = false;
 
 		apply(_pager.badge(), [&] (Pager_object *obj) {
+
 			/* the pager_object might be destroyed, while we got the message */
 			if (!obj) {
 				warning("no pager object found!");
@@ -149,7 +147,7 @@ void Pager_entrypoint::dissolve(Pager_object &obj)
 
 Pager_capability Pager_entrypoint::manage(Pager_object &obj)
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	Native_capability cap(_cap_factory.alloc(Thread::_thread_cap));
 

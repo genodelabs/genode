@@ -20,33 +20,32 @@
 #include <base/mutex.h>
 #include <synced_range_allocator.h>
 
-namespace Genode {
-
-	class Cap_id_allocator
-	{
-		private:
-
-			enum {
-				CAP_ID_RANGE   = ~0UL,
-				CAP_ID_MASK    = ~3UL,
-				CAP_ID_NUM_MAX = CAP_ID_MASK >> 2,
-				CAP_ID_OFFSET  = 1 << 2
-			};
-
-			Synced_range_allocator<Allocator_avl> _id_alloc;
-
-			Mutex _mutex { };
-
-		public:
-
-			class Out_of_ids : Exception {};
+namespace Genode { class Cap_id_allocator; }
 
 
-			Cap_id_allocator(Allocator &);
+class Genode::Cap_id_allocator
+{
+	private:
 
-			unsigned long alloc();
-			void free(unsigned long id);
-	};
-}
+		enum {
+			CAP_ID_RANGE   = ~0UL,
+			CAP_ID_MASK    = ~3UL,
+			CAP_ID_NUM_MAX = CAP_ID_MASK >> 2,
+			CAP_ID_OFFSET  = 1 << 2
+		};
+
+		Synced_range_allocator<Allocator_avl> _id_alloc;
+
+		Mutex _mutex { };
+
+	public:
+
+		class Out_of_ids : Exception {};
+
+		Cap_id_allocator(Allocator &);
+
+		unsigned long alloc();
+		void free(unsigned long id);
+};
 
 #endif /* _CORE__INCLUDE__CAP_ID_ALLOC_H_ */

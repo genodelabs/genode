@@ -11,13 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-namespace Fiasco {
-#include <l4/sys/cache.h>
-}
-
 #include <cpu/cache.h>
+#include <foc/syscall.h>
 
-void Genode::cache_coherent(Genode::addr_t addr, Genode::size_t size)
+using namespace Genode;
+
+
+void Genode::cache_coherent(addr_t addr, size_t size)
 {
-	Fiasco::l4_cache_coherent(addr, addr + size);
+	Foc::l4_cache_coherent(addr, addr + size);
 }

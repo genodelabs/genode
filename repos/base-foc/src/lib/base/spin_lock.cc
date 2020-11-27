@@ -17,11 +17,13 @@
 #include <base/internal/cap_map.h>
 #include <base/internal/spin_lock.h>
 
-
-Genode::Spin_lock::Spin_lock() : _spinlock(SPINLOCK_UNLOCKED) {}
-
-
-void Genode::Spin_lock::lock()   { spinlock_lock(&_spinlock);   }
+using namespace Genode;
 
 
-void Genode::Spin_lock::unlock() { spinlock_unlock(&_spinlock); }
+Spin_lock::Spin_lock() : _spinlock(SPINLOCK_UNLOCKED) {}
+
+
+void Spin_lock::lock()   { spinlock_lock(&_spinlock);   }
+
+
+void Spin_lock::unlock() { spinlock_unlock(&_spinlock); }

@@ -17,10 +17,12 @@
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
 
+using namespace Genode;
 
-Genode::Thread *Genode::Thread::myself()
+
+Thread *Thread::myself()
 {
-	using namespace Fiasco;
+	using namespace Foc;
 
 	return reinterpret_cast<Thread*>(l4_utcb_tcr()->user[UTCB_TCR_THREAD_OBJ]);
 }

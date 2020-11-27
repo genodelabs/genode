@@ -19,16 +19,16 @@
 #include <base/heap.h>
 #include <vm_session/vm_session.h>
 
-/* Core includes */
+/* core includes */
 #include <cap_mapping.h>
 #include <dataspace_component.h>
 #include <region_map_component.h>
-
 #include <trace/source_registry.h>
 
 namespace Genode { class Vm_session_component; struct Vcpu; }
 
-struct Genode::Vcpu : Genode::List<Vcpu>::Element
+
+struct Genode::Vcpu : List<Vcpu>::Element
 {
 	private:
 
@@ -50,12 +50,13 @@ struct Genode::Vcpu : Genode::List<Vcpu>::Element
 		Cap_mapping &recall_cap() { return _recall; }
 };
 
+
 class Genode::Vm_session_component
 :
 	private Ram_quota_guard,
 	private Cap_quota_guard,
-	public Rpc_object<Vm_session, Vm_session_component>,
-	public Region_map_detach
+	public  Rpc_object<Vm_session, Vm_session_component>,
+	public  Region_map_detach
 {
 	private:
 
@@ -88,12 +89,14 @@ class Genode::Vm_session_component
 		                     Trace::Source_registry &);
 		~Vm_session_component();
 
+
 		/*********************************
 		 ** Region_map_detach interface **
 		 *********************************/
 
 		void detach(Region_map::Local_addr) override;
 		void unmap_region(addr_t, size_t) override;
+
 
 		/**************************
 		 ** Vm session interface **

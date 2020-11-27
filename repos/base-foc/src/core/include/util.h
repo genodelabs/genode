@@ -26,11 +26,8 @@
 /* base-internal includes */
 #include <base/internal/page_size.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/types.h>
-#include <l4/sys/ktrace.h>
-}
+/* Fiasco.OC includes */
+#include <foc/syscall.h>
 
 namespace Genode {
 
@@ -43,7 +40,7 @@ namespace Genode {
 
 	inline void touch_ro(const void *addr, unsigned size)
 	{
-		using namespace Fiasco;
+		using namespace Foc;
 		unsigned char const volatile *bptr;
 		unsigned char const *eptr;
 
@@ -55,7 +52,8 @@ namespace Genode {
 
 	inline void touch_rw(const void *addr, unsigned size)
 	{
-		using namespace Fiasco;
+		using namespace Foc;
+
 		unsigned char volatile *bptr;
 		unsigned char const *eptr;
 
@@ -65,8 +63,8 @@ namespace Genode {
 			touch_read_write(bptr);
 	}
 
-	inline addr_t trunc_page(addr_t addr) { return Fiasco::l4_trunc_page(addr); }
-	inline addr_t round_page(addr_t addr) { return Fiasco::l4_round_page(addr); }
+	inline addr_t trunc_page(addr_t addr) { return Foc::l4_trunc_page(addr); }
+	inline addr_t round_page(addr_t addr) { return Foc::l4_round_page(addr); }
 
 	constexpr size_t get_super_page_size()      { return L4_SUPERPAGESIZE;      }
 	constexpr size_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }

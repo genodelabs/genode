@@ -23,126 +23,127 @@
 #include <base/internal/cap_map.h>
 #include <base/internal/foc_assert.h>
 
-namespace Genode {
+namespace Genode { template <typename, unsigned> class Cap_index_allocator_tpl; }
 
-	/**
-	 * Cap_index_allocator_tpl implements the Cap_index_allocator for Fiasco.OC.
-	 *
-	 * It's designed as a template because we need two distinguished versions
-	 * for core and non-core processes with respect to dimensioning. Moreover,
-	 * core needs more information within a Cap_index object, than the base
-	 * class provides.
-	 *
-	 * \param T   Cap_index specialization to use
-	 * \param SZ  size of Cap_index array used by the allocator
-	 */
-	template <typename T, unsigned SZ>
-	class Cap_index_allocator_tpl : public Cap_index_allocator
-	{
-		private:
+
+/**
+ * Cap_index_allocator_tpl implements the Cap_index_allocator for Fiasco.OC.
+ *
+ * It's designed as a template because we need two distinguished versions
+ * for core and non-core processes with respect to dimensioning. Moreover,
+ * core needs more information within a Cap_index object, than the base
+ * class provides.
+ *
+ * \param T   Cap_index specialization to use
+ * \param SZ  size of Cap_index array used by the allocator
+ */
+template <typename T, unsigned SZ>
+class Genode::Cap_index_allocator_tpl : public Cap_index_allocator
+{
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Cap_index_allocator_tpl(Cap_index_allocator_tpl const &);
+		Cap_index_allocator_tpl &operator = (Cap_index_allocator_tpl const &);
+
+		Spin_lock _lock { }; /* used very early in initialization,
+		                        where normal lock isn't feasible */
+
+		enum {
+			/* everything below START_IDX is managed by core */
+			START_IDX = Foc::USER_BASE_CAP >> Foc::L4_CAP_SHIFT
+		};
+
+	protected:
+
+		unsigned char _data[SZ*sizeof(T)] { };
+
+		T * const _indices = reinterpret_cast<T*>(&_data);
+
+	public:
+
+		Cap_index_allocator_tpl() { }
+
+
+		/***********************************
+		 ** Cap_index_allocator interface **
+		 ***********************************/
+
+		Cap_index* alloc_range(size_t cnt) override
+		{
+			Lock_guard<Spin_lock> guard(_lock);
 
 			/*
-			 * Noncopyable
+			 * iterate through array and find unused, consecutive entries
 			 */
-			Cap_index_allocator_tpl(Cap_index_allocator_tpl const &);
-			Cap_index_allocator_tpl &operator = (Cap_index_allocator_tpl const &);
+			for (unsigned i = START_IDX, j = 0; (i+cnt) < SZ; i+=j+1, j=0) {
+				for (; j < cnt; j++)
+					if (_indices[i+j].used())
+						break;
 
-			Spin_lock _lock { }; /* used very early in initialization,
-			                        where normal lock isn't feasible */
-
-			enum {
-				/* everything below START_IDX is managed by core */
-				START_IDX = Fiasco::USER_BASE_CAP >> Fiasco::L4_CAP_SHIFT
-			};
-
-		protected:
-
-			unsigned char _data[SZ*sizeof(T)];
-			T*            _indices;
-
-		public:
-
-			Cap_index_allocator_tpl() : _indices(reinterpret_cast<T*>(&_data)) {
-				memset(&_data, 0, sizeof(_data)); }
-
-
-			/***********************************
-			 ** Cap_index_allocator interface **
-			 ***********************************/
-
-			Cap_index* alloc_range(size_t cnt) override
-			{
-				Lock_guard<Spin_lock> guard(_lock);
-
-				/*
-				 * iterate through array and find unused, consecutive entries
-				 */
-				for (unsigned i = START_IDX, j = 0; (i+cnt) < SZ; i+=j+1, j=0) {
-					for (; j < cnt; j++)
-						if (_indices[i+j].used())
-							break;
-
-					/* if we found a fitting hole, initialize the objects */
-					if (j == cnt) {
-						for (j = 0; j < cnt; j++)
-							new (&_indices[i+j]) T();
-						return &_indices[i];
-					}
+				/* if we found a fitting hole, initialize the objects */
+				if (j == cnt) {
+					for (j = 0; j < cnt; j++)
+						new (&_indices[i+j]) T();
+					return &_indices[i];
 				}
-				ASSERT(0, "cap index allocation failed");
-				return 0;
+			}
+			ASSERT(0, "cap index allocation failed");
+			return 0;
+		}
+
+		Cap_index* alloc(addr_t addr) override
+		{
+			Lock_guard<Spin_lock> guard(_lock);
+
+			/*
+			 * construct the Cap_index pointer from the given
+			 * address in capability space
+			 */
+			T * const obj = reinterpret_cast<T*>(kcap_to_idx(addr));
+
+			if (obj < &_indices[0] || obj >= &_indices[SZ]) {
+				ASSERT(0, "cap index out of bounds");
+				throw Index_out_of_bounds();
 			}
 
-			Cap_index* alloc(addr_t addr) override
-			{
-				Lock_guard<Spin_lock> guard(_lock);
+			return new (obj) T();
+		}
 
-				/*
-				 * construct the Cap_index pointer from the given
-				 * address in capability space
-				 */
-				T* obj = reinterpret_cast<T*>(kcap_to_idx(addr));
+		void free(Cap_index* idx, size_t cnt) override
+		{
+			Lock_guard<Spin_lock> guard(_lock);
 
+			T *obj = static_cast<T*>(idx);
+			for (size_t i = 0; i < cnt; obj++, i++) {
+				/* range check given pointer address */
 				if (obj < &_indices[0] || obj >= &_indices[SZ]) {
 					ASSERT(0, "cap index out of bounds");
 					throw Index_out_of_bounds();
 				}
-
-				return new (obj) T();
+				delete obj;
 			}
+		}
 
-			void free(Cap_index* idx, size_t cnt) override
-			{
-				Lock_guard<Spin_lock> guard(_lock);
+		addr_t idx_to_kcap(Cap_index const *idx) const override
+		{
+			return ((T const *)idx - &_indices[0]) << Foc::L4_CAP_SHIFT;
+		}
 
-				T* obj = static_cast<T*>(idx);
-				for (size_t i = 0; i < cnt; obj++, i++) {
-					/* range check given pointer address */
-					if (obj < &_indices[0] || obj >= &_indices[SZ]) {
-						ASSERT(0, "cap index out of bounds");
-						throw Index_out_of_bounds();
-					}
-					delete obj;
-				}
-			}
+		Cap_index *kcap_to_idx(addr_t kcap) override {
+			return &_indices[kcap >> Foc::L4_CAP_SHIFT]; }
 
-			addr_t idx_to_kcap(Cap_index const *idx) const override {
-				return ((T const *)idx - &_indices[0]) << Fiasco::L4_CAP_SHIFT;
-			}
+		bool static_idx(Cap_index *idx) override {
+			return ((T*)idx) < &_indices[START_IDX]; }
 
-			Cap_index* kcap_to_idx(addr_t kcap) override {
-				return &_indices[kcap >> Fiasco::L4_CAP_SHIFT]; }
+		void reinit() override
+		{
+			construct_at<Cap_index_allocator_tpl<T, SZ> >(this);
+		}
 
-			bool static_idx(Cap_index *idx) override {
-				return ((T*)idx) < &_indices[START_IDX]; }
-
-			void reinit() override
-			{
-				construct_at<Cap_index_allocator_tpl<T, SZ> >(this);
-			}
-
-			size_t max_caps() const override { return SZ; }
-	};
-}
+		size_t max_caps() const override { return SZ; }
+};
 
 #endif /* _INCLUDE__BASE__CAP_ALLOC_H_ */

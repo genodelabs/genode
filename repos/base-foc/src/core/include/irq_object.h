@@ -38,12 +38,12 @@ class Genode::Irq_object
 		Irq_session::Polarity  _polarity; /* interrupt polarity */
 
 		unsigned               _irq;
-		Genode::addr_t         _msi_addr;
-		Genode::addr_t         _msi_data;
+		addr_t                 _msi_addr;
+		addr_t                 _msi_data;
 
 		Signal_context_capability _sig_cap { };
 
-		Fiasco::l4_cap_idx_t _capability() const { return _cap->kcap(); }
+		Foc::l4_cap_idx_t _capability() const { return _cap->kcap(); }
 
 	public:
 
