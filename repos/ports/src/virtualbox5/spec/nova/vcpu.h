@@ -517,6 +517,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			utcb->mtd |= Mtd::SYSCALL_SWAPGS;
 			utcb->write_star(pCtx->msrSTAR);
 			utcb->write_lstar(pCtx->msrLSTAR);
+			utcb->write_cstar(pCtx->msrCSTAR);
 			utcb->write_fmask(pCtx->msrSFMASK);
 			utcb->write_kernel_gs_base(pCtx->msrKERNELGSBASE);
 
@@ -603,6 +604,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 			if (pCtx->msrLSTAR != utcb->read_lstar())
 				CPUMSetGuestMsr(pVCpu, MSR_K8_LSTAR, utcb->read_lstar());
+
+			if (pCtx->msrCSTAR != utcb->read_cstar())
+				CPUMSetGuestMsr(pVCpu, MSR_K8_CSTAR, utcb->read_cstar());
 
 			if (pCtx->msrSFMASK != utcb->read_fmask())
 				CPUMSetGuestMsr(pVCpu, MSR_K8_SF_MASK, utcb->read_fmask());

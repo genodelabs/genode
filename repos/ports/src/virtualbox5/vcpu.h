@@ -345,6 +345,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 			_state->star.value(pCtx->msrSTAR);
 			_state->lstar.value(pCtx->msrLSTAR);
+			_state->cstar.value(pCtx->msrCSTAR);
 			_state->fmask.value(pCtx->msrSFMASK);
 			_state->kernel_gs_base.value(pCtx->msrKERNELGSBASE);
 
@@ -436,6 +437,9 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 			if (pCtx->msrLSTAR != _state->lstar.value())
 				CPUMSetGuestMsr(pVCpu, MSR_K8_LSTAR, _state->lstar.value());
+
+			if (pCtx->msrCSTAR != _state->cstar.value())
+				CPUMSetGuestMsr(pVCpu, MSR_K8_CSTAR, _state->cstar.value());
 
 			if (pCtx->msrSFMASK != _state->fmask.value())
 				CPUMSetGuestMsr(pVCpu, MSR_K8_SF_MASK, _state->fmask.value());

@@ -566,6 +566,7 @@ namespace Nova {
 				mword_t cr8, efer;
 				unsigned long long star;
 				unsigned long long lstar;
+				unsigned long long cstar;
 				unsigned long long fmask;
 				unsigned long long kernel_gs_base;
 				unsigned tpr;
@@ -625,6 +626,8 @@ namespace Nova {
 		inline void write_star(mword_t value) { star = value; }
 		inline mword_t read_lstar() { return lstar; }
 		inline void write_lstar(mword_t value) { lstar = value; }
+		inline mword_t read_cstar() { return cstar; }
+		inline void write_cstar(mword_t value) { cstar = value; }
 		inline mword_t read_fmask() { return fmask; }
 		inline void write_fmask(mword_t value) { fmask = value; }
 		inline mword_t read_kernel_gs_base() { return kernel_gs_base; }
@@ -656,6 +659,8 @@ namespace Nova {
 		inline void write_star(mword_t) { }
 		inline mword_t read_lstar() { return 0UL; }
 		inline void write_lstar(mword_t) { }
+		inline mword_t read_cstar() { return 0UL; }
+		inline void write_cstar(mword_t) { }
 		inline mword_t read_fmask() { return 0UL; }
 		inline void write_fmask(mword_t) { }
 		inline mword_t read_kernel_gs_base() { return 0UL; }

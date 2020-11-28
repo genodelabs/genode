@@ -374,12 +374,12 @@ struct Vcpu : Genode::Thread
 #endif
 			}
 
-			if (state.star.valid() || state.lstar.valid() ||
+			if (state.star.valid() || state.lstar.valid() || state.cstar.valid() ||
 			    state.fmask.valid() || state.kernel_gs_base.valid())
 			{
 				if (_show_error_unsupported_star) {
 					_show_error_unsupported_star = false;
-					Genode::error("star, lstar, fmask, gs_base not supported by seL4");
+					Genode::error("star, lstar, cstar, fmask, gs_base not supported by seL4");
 				}
 			}
 
@@ -704,7 +704,7 @@ struct Vcpu : Genode::Thread
 
 			state.efer.value(_read_vmcs(service, Vmcs::EFER));
 
-			/* XXX star, lstar, fmask, kernel_gs_base not supported by seL4 */
+			/* XXX star, lstar, cstar, fmask, kernel_gs_base not supported by seL4 */
 
 			/* XXX tpr and tpr_threshold not supported by seL4 */
 		}

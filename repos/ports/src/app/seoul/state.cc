@@ -373,10 +373,10 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		Genode::warning("pdpte not supported by Seoul");
 	}
 
-	if (state.star.valid() || state.lstar.valid() ||
+	if (state.star.valid() || state.lstar.valid() || state.cstar.valid() ||
 	    state.fmask.valid() || state.kernel_gs_base.valid()) {
 
-		Genode::warning("star, lstar, fmask, kernel_gs not supported by Seoul");
+		Genode::warning("star, lstar, cstar, fmask, kernel_gs not supported by Seoul");
 	}
 
 	if (state.tpr.valid() || state.tpr_threshold.valid()) {

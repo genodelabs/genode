@@ -191,6 +191,7 @@ struct Vcpu {
 			if (utcb.mtd & Nova::Mtd::SYSCALL_SWAPGS) {
 				state.star.value(utcb.read_star());
 				state.lstar.value(utcb.read_lstar());
+				state.cstar.value(utcb.read_cstar());
 				state.fmask.value(utcb.read_fmask());
 				state.kernel_gs_base.value(utcb.read_kernel_gs_base());
 			}
@@ -384,11 +385,13 @@ struct Vcpu {
 			}
 
 			if (state.star.valid() || state.lstar.valid() ||
-			    state.fmask.valid() || state.kernel_gs_base.valid()) {
+			    state.cstar.valid() || state.fmask.valid() ||
+			    state.kernel_gs_base.valid()) {
 
 				utcb.mtd  |= Nova::Mtd::SYSCALL_SWAPGS;
 				utcb.write_star(state.star.value());
 				utcb.write_lstar(state.lstar.value());
+				utcb.write_cstar(state.cstar.value());
 				utcb.write_fmask(state.fmask.value());
 				utcb.write_kernel_gs_base(state.kernel_gs_base.value());
 			}
@@ -671,7 +674,8 @@ struct Vcpu {
 				mtd |= Nova::Mtd::PDPTE;
 
 			if (state.star.valid() || state.lstar.valid() ||
-			    state.fmask.valid() || state.kernel_gs_base.valid())
+			    state.cstar.valid() || state.fmask.valid() ||
+			    state.kernel_gs_base.valid())
 				mtd |= Nova::Mtd::SYSCALL_SWAPGS;
 
 			if (state.tpr.valid() || state.tpr_threshold.valid())

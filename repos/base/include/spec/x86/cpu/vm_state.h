@@ -134,6 +134,7 @@ struct Genode::Vm_state
 
 	Register<uint64_t> star;
 	Register<uint64_t> lstar;
+	Register<uint64_t> cstar;
 	Register<uint64_t> fmask;
 	Register<uint64_t> kernel_gs_base;
 

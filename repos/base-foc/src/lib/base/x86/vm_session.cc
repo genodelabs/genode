@@ -152,6 +152,7 @@ struct Vcpu : Thread
 
 			MSR_FMASK  = 0x2842,
 			MSR_LSTAR  = 0x2844,
+			MSR_CSTAR  = 0x2846,
 			MSR_STAR   = 0x284a,
 
 			KERNEL_GS_BASE = 0x284c,
@@ -614,6 +615,7 @@ struct Vcpu : Thread
 
 			state.star.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_STAR));
 			state.lstar.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_LSTAR));
+			state.cstar.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_CSTAR));
 			state.fmask.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_FMASK));
 			state.kernel_gs_base.value(l4_vm_vmx_read(vmcs, Vmcs::KERNEL_GS_BASE));
 
@@ -756,7 +758,7 @@ struct Vcpu : Thread
 				error("pdpte not implemented");
 			}
 
-			if (state.star.valid() || state.lstar.valid() ||
+			if (state.star.valid() || state.lstar.valid() || state.cstar.valid() ||
 			    state.fmask.valid() || state.kernel_gs_base.valid()) {
 
 				error("star, fstar, fmask, kernel_gs_base not implemented");
@@ -812,6 +814,9 @@ struct Vcpu : Thread
 
 			if (state.lstar.valid())
 				l4_vm_vmx_write(vmcs, Vmcs::MSR_LSTAR, state.lstar.value());
+
+			if (state.cstar.valid())
+				l4_vm_vmx_write(vmcs, Vmcs::MSR_CSTAR, state.cstar.value());
 
 			if (state.fmask.valid())
 				l4_vm_vmx_write(vmcs, Vmcs::MSR_FMASK, state.fmask.value());
@@ -1032,7 +1037,7 @@ struct Vcpu : Thread
 				vmcb->control_area.tsc_offset = _tsc_offset;
 			}
 
-			if (state.star.value() || state.lstar.value() ||
+			if (state.star.value() || state.lstar.value() || state.cstar.value() ||
 			    state.fmask.value() || state.kernel_gs_base.value())
 				error(__LINE__, " not implemented");
 
