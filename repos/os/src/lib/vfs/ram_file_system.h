@@ -27,8 +27,8 @@ namespace Vfs_ram {
 	using namespace Genode;
 	using namespace Vfs;
 	using namespace Ram_fs;
-	using File_system::Chunk;
-	using File_system::Chunk_index;
+	using ::File_system::Chunk;
+	using ::File_system::Chunk_index;
 
 	struct Io_handle;
 	struct Watch_handle;
