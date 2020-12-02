@@ -80,10 +80,16 @@ class Usb::Session_client : public Genode::Rpc_client<Session>
 			call<Rpc_iface_descr>(index, alt_setting, interface_descr);
 		}
 
+		bool interface_extra(unsigned index, unsigned alt_setting,
+		                     Interface_extra *interface_data) override
+		{
+			return call<Rpc_iface_extra>(index, alt_setting, interface_data);
+		}
+
 		void endpoint_descriptor(unsigned              interface_num,
-		                             unsigned              alt_setting,
-		                             unsigned              endpoint_num,
-		                             Endpoint_descriptor  *endpoint_descr) override
+		                         unsigned              alt_setting,
+		                         unsigned              endpoint_num,
+		                         Endpoint_descriptor  *endpoint_descr) override
 		{
 			call<Rpc_ep_descr>(interface_num, alt_setting, endpoint_num, endpoint_descr);
 		}

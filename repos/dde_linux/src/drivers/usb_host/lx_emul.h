@@ -1742,11 +1742,14 @@ struct regmap *syscon_regmap_lookup_by_phandle(struct device_node *np, const cha
 
 static inline u32 __raw_readl(const volatile void __iomem *addr)
 {
-	return *(const volatile u32 __force *) addr;
+	u32 val = *(const volatile u32 __force *) addr;
+	iormb();
+	return val;
 }
 
 static inline void __raw_writel(u32 b, volatile void __iomem *addr)
 {
+	iowmb();
 	*(volatile u32 __force *) addr = b;
 }
 

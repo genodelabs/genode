@@ -22,6 +22,7 @@ namespace Usb {
 	struct Interface_descriptor;
 	struct Endpoint_descriptor;
 	struct String;
+	struct Interface_extra;
 }
 
 namespace Usb {
@@ -193,8 +194,18 @@ struct Usb::Interface_descriptor
 	 * Genode extensions (POD only)
 	 */
 	bool active = false;
-
 } __attribute__((packed));
+
+
+/**
+ * Vendor specific data
+ */
+struct Usb::Interface_extra
+{
+	Genode::uint8_t length;
+	Genode::uint8_t data[32];
+};
+
 
 /**
  * USB hardware endpoint descriptor
