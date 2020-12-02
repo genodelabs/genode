@@ -100,13 +100,13 @@ void Child::session_sigh(Signal_context_capability sigh)
  */
 Session_state &
 create_session(Child_policy::Name const &child_name, Service &service,
-               Session_label const &label,
+               Session_label const &label, Session::Diag diag,
                Session_state::Factory &factory, Id_space<Parent::Client> &id_space,
                Parent::Client::Id id, Session_state::Args const &args,
                Affinity const &affinity)
 {
 	try {
-		return service.create_session(factory, id_space, id, label, args, affinity); }
+		return service.create_session(factory, id_space, id, label, diag, args, affinity); }
 
 	catch (Insufficient_ram_quota) {
 		error(child_name, " requested session with insufficient RAM quota");
@@ -174,7 +174,9 @@ Session_capability Child::session(Parent::Client::Id id,
 	Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", forward_ram_quota.value);
 
 	/* may throw a 'Service_denied' exception */
-	Child_policy::Route route = _policy.resolve_session_request(name.string(), label);
+	Child_policy::Route route =
+		_policy.resolve_session_request(name.string(), label,
+		                                session_diag_from_args(argbuf));
 
 	Service &service = route.service;
 
@@ -182,7 +184,7 @@ Session_capability Child::session(Parent::Client::Id id,
 	Arg_string::set_arg(argbuf, sizeof(argbuf), "diag", route.diag.enabled);
 
 	Session_state &session =
-		create_session(_policy.name(), service, route.label,
+		create_session(_policy.name(), service, route.label, route.diag,
 		               _session_factory, _id_space, id, argbuf, filtered_affinity);
 
 	_policy.session_state_changed();

@@ -146,7 +146,8 @@ class Core_child : public Child_policy
 		Name name() const override { return "init"; }
 
 		Route resolve_session_request(Service::Name const &name,
-		                              Session_label const &label) override
+		                              Session_label const &label,
+		                              Session::Diag const  diag) override
 		{
 			Service *service = nullptr;
 			_services.for_each([&] (Service &s) {
@@ -158,7 +159,7 @@ class Core_child : public Child_policy
 
 			return Route { .service = *service,
 			               .label   = label,
-			               .diag    = Session::Diag() };
+			               .diag    = diag };
 		}
 
 		void init(Pd_session &session, Capability<Pd_session> cap) override

@@ -120,12 +120,13 @@ class Test_child : public Genode::Child_policy
 		}
 
 		Route resolve_session_request(Service::Name const &service,
-		                              Session_label const &label) override
+		                              Session_label const &label,
+		                              Session::Diag const  diag) override
 		{
 			auto route = [&] (Service &service) {
 				return Route { .service = service,
 				               .label   = label,
-				               .diag    = Session::Diag() }; };
+				               .diag    = diag }; };
 
 			if (service == Cpu_session::service_name()) return route(_cpu_service);
 			if (service ==  Pd_session::service_name()) return route( _pd_service);

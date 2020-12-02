@@ -446,7 +446,8 @@ void Sandbox::Child::init(Cpu_session &session, Cpu_session_capability cap)
 
 Sandbox::Child::Route
 Sandbox::Child::resolve_session_request(Service::Name const &service_name,
-                                        Session_label const &label)
+                                        Session_label const &label,
+                                        Session::Diag const  diag)
 {
 	/* check for "config" ROM request */
 	if (service_name == Rom_session::service_name() &&
@@ -474,17 +475,16 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 	 */
 	if (service_name == Rom_session::service_name() &&
 	    label == _unique_name && _unique_name != _binary_name)
-		return resolve_session_request(service_name, _binary_name);
+		return resolve_session_request(service_name, _binary_name, diag);
 
 	/* supply binary as dynamic linker if '<start ld="no">' */
 	if (!_use_ld && service_name == Rom_session::service_name() && label == "ld.lib.so")
-		return resolve_session_request(service_name, _binary_name);
+		return resolve_session_request(service_name, _binary_name, diag);
 
 	/* check for "session_requests" ROM request */
 	if (service_name == Rom_session::service_name()
 	 && label.last_element() == Session_requester::rom_name())
-		return Route { _session_requester.service(),
-		               Session::Label(), Session::Diag{false} };
+		return Route { _session_requester.service(), Session::Label(), diag };
 
 	try {
 		Xml_node route_node = _default_route_accessor.default_route();
@@ -517,7 +517,7 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 					target.attribute_value("label", Label(label.string()));
 
 				Session::Diag const
-					target_diag { target.attribute_value("diag", false) };
+					target_diag { target.attribute_value("diag", diag.enabled) };
 
 				auto no_filter = [] (Service &) -> bool { return false; };
 

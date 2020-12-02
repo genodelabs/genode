@@ -83,7 +83,8 @@ struct Genode::Child_policy
 	 * \throw Service_denied
 	 */
 	virtual Route resolve_session_request(Service::Name const &,
-	                                      Session_label const &) = 0;
+	                                      Session_label const &,
+	                                      Session::Diag) = 0;
 
 	/**
 	 * Apply transformations to session arguments
@@ -575,7 +576,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 				try {
 					Child_policy::Route const route =
 						_child._policy.resolve_session_request(_service_name(),
-						                                       label_from_args(_args.string()));
+						                                       label_from_args(_args.string()),
+						                                       session_diag_from_args(_args.string()));
 					_env_service.construct(_child, route.service);
 					_connection.construct(*_env_service, _child._id_space, _client_id,
 					                      _args, _child._policy.filter_session_affinity(Affinity()),

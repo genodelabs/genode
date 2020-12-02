@@ -306,11 +306,12 @@ class Gdb_monitor::App_child : public Child_policy,
 		}
 
 		Route resolve_session_request(Service::Name const &service_name,
-		                              Session_label const &label) override
+		                              Session_label const &label,
+		                              Session::Diag const  diag) override
 		{
 			return Route { .service = _matching_service(service_name, label),
 			               .label   = label,
-			               .diag    = Session::Diag() };
+			               .diag    = diag };
 		}
 
 		void announce_service(Service::Name const &service_name) override

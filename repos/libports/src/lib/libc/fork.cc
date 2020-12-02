@@ -474,7 +474,8 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	}
 
 	Route resolve_session_request(Service::Name const &name,
-	                              Session_label const &label) override
+	                              Session_label const &label,
+	                              Session::Diag const  diag) override
 	{
 		Session_label rewritten_label = label;
 
@@ -508,7 +509,7 @@ struct Libc::Forked_child : Child_policy, Child_ready
 		if (service_ptr)
 			return Route { .service = *service_ptr,
 			               .label   = rewritten_label,
-			               .diag    = Session::Diag() };
+			               .diag    = diag };
 
 		throw Service_denied();
 	}

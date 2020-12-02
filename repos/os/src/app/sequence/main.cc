@@ -114,12 +114,13 @@ struct Sequence::Child : Genode::Child_policy
 	 * otherwise forward directly to the parent.
 	 */
 	Route resolve_session_request(Service::Name const &name,
-	                              Session_label const &label) override
+	                              Session_label const &label,
+	                              Session::Diag const  diag) override
 	{
 		auto route = [&] (Service &service) {
 			return Route { .service = service,
 			               .label   = label,
-			               .diag    = Session::Diag() }; };
+			               .diag    = diag }; };
 
 		if (_have_config) {
 			Service *s =

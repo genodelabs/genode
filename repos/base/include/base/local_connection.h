@@ -68,7 +68,7 @@ struct Genode::Local_connection_base : Noncopyable
 		{
 			enum { NUM_ATTEMPTS = 10 };
 			for (unsigned i = 0; i < NUM_ATTEMPTS; i++) {
-				_session_state.construct(service, id_space, id, label,
+				_session_state.construct(service, id_space, id, label, diag,
 				                         _init_args(args, resources, diag),
 				                         affinity);
 

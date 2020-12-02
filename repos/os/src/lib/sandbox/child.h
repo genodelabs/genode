@@ -385,7 +385,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			try {
 				Route const route =
 					resolve_session_request(session.service().name(),
-					                        session.client_label());
+					                        session.client_label(),
+					                        session.diag());
 
 				return (session.service() == route.service)
 				    && (route.label == session.label());
@@ -599,7 +600,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			return _session_requester.id_space(); }
 
 		Route resolve_session_request(Service::Name const &,
-		                              Session_label const &) override;
+		                              Session_label const &, Session::Diag) override;
 
 		void     filter_session_args(Service::Name const &, char *, size_t) override;
 		Affinity filter_session_affinity(Affinity const &) override;

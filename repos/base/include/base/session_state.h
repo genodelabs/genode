@@ -65,6 +65,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 		Reconstructible<Id_space<Parent::Client>::Element> _id_at_client;
 
 		Session::Label const _label;
+		Session::Diag  const _diag;
 		Args                 _args;
 		Affinity             _affinity;
 
@@ -138,6 +139,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 		              Id_space<Parent::Client> &client_id_space,
 		              Parent::Client::Id        client_id,
 		              Session::Label     const &label,
+		              Session::Diag             diag,
 		              Args               const &args,
 		              Affinity           const &affinity);
 
@@ -178,6 +180,8 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 		}
 
 		Args const &args() const { return _args; }
+
+		Session::Diag diag() const { return _diag; }
 
 		Affinity const &affinity() const { return _affinity; }
 
