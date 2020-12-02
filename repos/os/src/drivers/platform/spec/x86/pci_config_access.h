@@ -15,12 +15,43 @@
 #ifndef _X86_PCI_CONFIG_ACCESS_H_
 #define _X86_PCI_CONFIG_ACCESS_H_
 
-#include <util/bit_array.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <base/attached_rom_dataspace.h>
 #include <platform_device/platform_device.h>
+#include <util/bit_array.h>
+#include <util/mmio.h>
 
 using namespace Genode;
+
+namespace Platform { namespace Pci { struct Bdf; } }
+
+
+struct Platform::Pci::Bdf
+{
+	struct Bdf_register : Register<16>
+	{
+		struct Function : Bitfield< 0, 3> { };
+		struct Device   : Bitfield< 3, 5> { };
+		struct Bus      : Bitfield< 8, 8> { };
+	};
+
+	uint16_t bdf;
+
+	Bdf(uint16_t bdf) : bdf(bdf) { }
+
+	Bdf(unsigned bus, unsigned device, unsigned function) : bdf(0)
+	{
+		Bdf_register::Bus::set(bdf, bus);
+		Bdf_register::Device::set(bdf, device);
+		Bdf_register::Function::set(bdf, function);
+	}
+
+	uint8_t bus()      const { return Bdf_register::Bus::get(bdf); }
+	uint8_t device()   const { return Bdf_register::Device::get(bdf); }
+	uint8_t function() const { return Bdf_register::Function::get(bdf); }
+
+	bool operator == (Bdf const &other) const { return bdf == other.bdf; }
+};
 
 namespace Platform {
 
@@ -34,17 +65,11 @@ namespace Platform {
 			/**
 			 * Calculate device offset from BDF
 			 *
-			 * \param bus       target PCI bus ID  (0..255)
-			 * \param device    target device ID   (0..31)
-			 * \param function  target function ID (0..7)
-			 *
 			 * \return device base address
 			 */
-			unsigned _dev_base(int bus, int device, int function)
+			unsigned _dev_base(Pci::Bdf const bdf)
 			{
-				return ((bus      << 20) |
-				        (device   << 15) |
-				        (function << 12));
+				return unsigned(bdf.bdf) << 12;
 			}
 
 			Genode::Bit_array<256> _used { };
@@ -72,9 +97,7 @@ namespace Platform {
 			/**
 			 * Read value from config space of specified device/function
 			 *
-			 * \param bus       target PCI bus ID
-			 * \param device    target device ID
-			 * \param function  target function ID
+			 * \param bdf       target PCI bus, device & function ID
 			 * \param addr      target byte within targeted PCI config space
 			 * \param size      bit width of read access
 			 *
@@ -82,12 +105,11 @@ namespace Platform {
 			 *
 			 * There is no range check for the input values.
 			 */
-			unsigned read(int bus, int device, int function,
-			              unsigned char addr, Device::Access_size size,
-			              bool track = true)
+			unsigned read(Pci::Bdf const bdf, unsigned char const addr,
+			              Device::Access_size const size, bool const track = true)
 			{
 				unsigned ret;
-				unsigned const offset = _dev_base(bus, device, function) + addr;
+				unsigned const offset = _dev_base(bdf) + addr;
 				char const * const field = _pciconf.local_addr<char>() + offset;
 
 				if (offset >= _pciconf_size)
@@ -129,20 +151,18 @@ namespace Platform {
 			/**
 			 * Write to config space of specified device/function
 			 *
-			 * \param bus       target PCI bus ID
-			 * \param device    target device ID
-			 * \param function  target function ID
+			 * \param bdf       target PCI bus, device & function ID
 			 * \param addr      target byte within targeted PCI config space
 			 * \param value     value to be written
 			 * \param size      bit width of write access
 			 *
 			 * There is no range check for the input values.
 			 */
-			void write(int bus, int device, int function, unsigned char addr,
-			           unsigned value, Device::Access_size size,
-			           bool track = true)
+			void write(Pci::Bdf const bdf, unsigned char const addr,
+			           unsigned const value, Device::Access_size const size,
+			           bool const track = true)
 			{
-				unsigned const offset = _dev_base(bus, device, function) + addr;
+				unsigned const offset = _dev_base(bdf) + addr;
 				char const * const field = _pciconf.local_addr<char>() + offset;
 
 				if (offset >= _pciconf_size)

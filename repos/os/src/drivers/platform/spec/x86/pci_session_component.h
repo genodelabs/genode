@@ -79,9 +79,11 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 				    Genode::uint8_t func)
 				: _bus(bus), _dev(dev), _func(func) { }
 
-				bool match(Genode::uint8_t bus, Genode::uint8_t dev,
-				           Genode::uint8_t func) {
-					return bus == _bus && dev == _dev && func == _func; }
+				bool match(Pci::Bdf const bdf)
+				{
+					return bdf.bus() == _bus && bdf.device() == _dev &&
+					       bdf.function() == _func;
+				}
 		};
 
 	private:
@@ -103,12 +105,8 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 		Genode::Io_mem_dataspace_capability match(Genode::Env &env,
 		                                          Device_config config)
 		{
-			Genode::uint8_t bus      = config.bus_number();
-			Genode::uint8_t device   = config.device_number();
-			Genode::uint8_t function = config.function_number();
-
 			for (Bdf *bdf = _bdf_list.first(); bdf; bdf = bdf->next()) {
-				if (!bdf->match(bus, device, function))
+				if (!bdf->match(config.bdf()))
 					continue;
 
 				if (_cap.valid())
@@ -183,7 +181,8 @@ class Platform::Pci_buses
 					for (; function < Device_config::MAX_FUNCTIONS; function++) {
 
 						/* read config space */
-						Device_config config(bus, device, function, config_access);
+						Pci::Bdf const bdf(bus, device, function);
+						Device_config config(bdf, config_access);
 
 						if (config.valid()) {
 							*out_device_config = config;
@@ -263,7 +262,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		 * the corresponding extended 4K PCI config space address.
 		 * A io mem dataspace is created and returned.
 		 */
-		Genode::addr_t lookup_config_space(Genode::uint16_t const bdf)
+		Genode::addr_t lookup_config_space(Pci::Bdf const bdf)
 		{
 			using namespace Genode;
 
@@ -652,9 +651,9 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 				if (prev) {
 					Device_config config = prev->device_config();
-					bus      = config.bus_number();
-					device   = config.device_number();
-					function = config.function_number();
+					bus      = config.bdf().bus();
+					device   = config.bdf().device();
+					function = config.bdf().function();
 				}
 
 				/*
@@ -670,9 +669,9 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 						return Device_capability();
 
 					/* get new bdf values */
-					bus      = config.bus_number();
-					device   = config.device_number();
-					function = config.function_number();
+					bus      = config.bdf().bus();
+					device   = config.bdf().device();
+					function = config.bdf().function();
 
 					/* if filter of driver don't match skip and continue */
 					if ((config.class_code() ^ device_class) & class_mask)
@@ -702,16 +701,12 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 				try {
 					/* if more than one driver uses the device - warn about */
-					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
-					    Device_config::MAX_DEVICES * device +
-					    function, 1))
+					if (bdf_in_use.get(config.bdf().bdf, 1))
 						Genode::error("Device ", config,
 						              " is used by more than one driver - "
 						              "session '", _label, "'.");
 					else
-						bdf_in_use.set(Device_config::MAX_BUSES * bus +
-						               Device_config::MAX_DEVICES * device +
-						               function, 1);
+						bdf_in_use.set(config.bdf().bdf, 1);
 
 					return _env.ep().rpc_ep().manage(dev);
 				} catch (...) {
@@ -733,15 +728,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					return;
 
 				if (device->device_config().valid()) {
-					unsigned const bus  = device->device_config().bus_number();
-					unsigned const dev  = device->device_config().device_number();
-					unsigned const func = device->device_config().function_number();
-
-					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
-					                   Device_config::MAX_DEVICES * dev +
-					                   func, 1))
-						bdf_in_use.clear(Device_config::MAX_BUSES * bus +
-						                 Device_config::MAX_DEVICES * dev + func, 1);
+					if (bdf_in_use.get(device->device_config().bdf().bdf, 1))
+						bdf_in_use.clear(device->device_config().bdf().bdf, 1);
 				}
 
 				_device_list.remove(device);
@@ -763,11 +751,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				return;
 
 			try {
-				addr_t const function = device->device_config().bus_number() * 32 * 8 +
-				                        device->device_config().device_number() * 8 +
-				                        device->device_config().function_number();
 				addr_t const base_ecam = Dataspace_client(_pciconf.cap()).phys_addr();
-				addr_t const base_offset = 0x1000UL * function;
+				addr_t const base_offset = 0x1000UL * device->device_config().bdf().bdf;
 
 				if (base_ecam + base_offset != device->config_space())
 					throw 1;
@@ -778,7 +763,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 						_device_pd.attach_dma_mem(rmrr_cap);
 				}
 
-				_device_pd.assign_pci(_pciconf.cap(), base_offset, device->device_config().bdf());
+				_device_pd.assign_pci(_pciconf.cap(), base_offset,
+				                      device->device_config().bdf().bdf);
 
 			} catch (...) {
 				Genode::error("assignment to device pd or of RMRR region failed");
@@ -857,8 +843,12 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				Session_component::add_config_space(bdf_start, func_count,
 				                                    base, _heap);
 
-				Device_config const bdf_first(bdf_start);
-				Device_config const bdf_last(bdf_start + func_count - 1);
+				Pci::Bdf const bdf_s(bdf_start);
+				Pci::Bdf const bdf_l(bdf_start + func_count - 1);
+
+				Device_config const bdf_first(bdf_s);
+				Device_config const bdf_last(bdf_l);
+
 				addr_t const memory_size = 0x1000UL * func_count;
 
 				/* Simplification: Only consider first config space and
@@ -937,8 +927,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 							path.attribute("dev") .value(dev);
 							path.attribute("func").value(func);
 
-							Device_config bridge(bus, dev, func,
-							                     &config_access);
+							Pci::Bdf const bdf(bus, dev, func);
+							Device_config bridge(bdf, &config_access);
 							if (bridge.pci_bridge())
 								/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
 								bus = bridge.read(config_access, 0x19,
@@ -1062,7 +1052,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 			}
 
 			if (Platform::Bridge::root_bridge_bdf < Platform::Bridge::INVALID_ROOT_BRIDGE) {
-				Device_config config(Platform::Bridge::root_bridge_bdf);
+				Device_config config(Pci::Bdf(Platform::Bridge::root_bridge_bdf));
 				Genode::log("Root bridge: ", config);
 			} else
 				Genode::warning("Root bridge: unknown");
@@ -1087,9 +1077,9 @@ class Platform::Root : public Genode::Root_component<Session_component>
 						                         &config_access))
 							return;
 
-						bus      = config.bus_number();
-						device   = config.device_number();
-						function = config.function_number();
+						bus      = config.bdf().bus();
+						device   = config.bdf().device();
+						function = config.bdf().function();
 
 						using Genode::String;
 						using Genode::Hex;

@@ -20,6 +20,7 @@
 #include <irq_session/connection.h>
 
 /* platform local includes */
+#include <pci_config_access.h>
 #include <irq_proxy.h>
 
 
@@ -181,8 +182,7 @@ class Platform::Irq_routing : public Genode::List<Platform::Irq_routing>::Elemen
 			_device_pin(device_pin)
 		{ }
 
-		static unsigned short rewrite(unsigned char bus, unsigned char dev,
-		                              unsigned char func, unsigned char pin);
+		static unsigned short rewrite(Pci::Bdf, unsigned char pin);
 };
 
 #endif /* _X86__IRQ_H_ */

@@ -97,9 +97,7 @@ namespace Platform {
 	{
 		private:
 
-			uint8_t _bus = 0;
-			uint8_t _device = 0;
-			uint8_t _function = 0;     /* location at PCI bus */
+			Pci::Bdf _bdf;
 
 			/*
 			 * Information provided by the PCI config space
@@ -147,29 +145,22 @@ namespace Platform {
 			/**
 			 * Constructor
 			 */
-			Device_config() : _vendor_id(INVALID_VENDOR) { }
+			Device_config() : _bdf(0, 0, 0), _vendor_id(INVALID_VENDOR) { }
 
-			Device_config(unsigned bdf)
-			:
-				_bus((bdf >> 8) & 0xff),
-				_device((bdf >> 3) & 0x1f),
-				_function(bdf & 0x7)
-			{ }
+			Device_config(Pci::Bdf bdf) : _bdf(bdf) { }
 
-			Device_config(int bus, int device, int function,
-			              Config_access *pci_config):
-				_bus(bus), _device(device), _function(function)
+			Device_config(Pci::Bdf bdf, Config_access *pci_config) : _bdf(bdf)
 			{
-				_vendor_id = pci_config->read(bus, device, function, 0, Device::ACCESS_16BIT);
+				_vendor_id = pci_config->read(bdf, 0, Device::ACCESS_16BIT);
 
 				/* break here if device is invalid */
 				if (_vendor_id == INVALID_VENDOR)
 					return;
 
-				_device_id    = pci_config->read(bus, device, function, 2, Device::ACCESS_16BIT);
-				_class_code   = pci_config->read(bus, device, function, 8, Device::ACCESS_32BIT) >> 8;
+				_device_id    = pci_config->read(bdf, 2, Device::ACCESS_16BIT);
+				_class_code   = pci_config->read(bdf, 8, Device::ACCESS_32BIT) >> 8;
 				_class_code  &= 0xffffff;
-				_header_type  = pci_config->read(bus, device, function, 0xe, Device::ACCESS_8BIT);
+				_header_type  = pci_config->read(bdf, 0xe, Device::ACCESS_8BIT);
 				_header_type &= 0x7f;
 
 				/*
@@ -178,10 +169,12 @@ namespace Platform {
 				 * device. Note, the mf bit of function 1-7 is not significant
 				 * and may be set or unset.
 				 */
-				if (function != 0
-				 && !(pci_config->read(bus, device, 0, 0xe, Device::ACCESS_8BIT) & 0x80)) {
-					_vendor_id = INVALID_VENDOR;
-					return;
+				if (bdf.function() != 0) {
+					Pci::Bdf const dev(bdf.bus(), bdf.device(), 0);
+					if (!(pci_config->read(dev, 0xe, Device::ACCESS_8BIT) & 0x80)) {
+						_vendor_id = INVALID_VENDOR;
+						return;
+					}
 				}
 
 				/*
@@ -200,7 +193,7 @@ namespace Platform {
 
 					/* read base-address register value */
 					unsigned const bar_value =
-						pci_config->read(bus, device, function, bar_idx, Device::ACCESS_32BIT);
+						pci_config->read(bdf, bar_idx, Device::ACCESS_32BIT);
 
 					/* skip invalid resource BARs */
 					if (bar_value == ~0U || bar_value == 0U) {
@@ -216,9 +209,9 @@ namespace Platform {
 					 * corresponding to the resource size. Finally, we write
 					 * back the bar-address value as assigned by the BIOS.
 					 */
-					pci_config->write(bus, device, function, bar_idx, ~0, Device::ACCESS_32BIT);
-					unsigned const bar_size = pci_config->read(bus, device, function, bar_idx, Device::ACCESS_32BIT);
-					pci_config->write(bus, device, function, bar_idx, bar_value, Device::ACCESS_32BIT);
+					pci_config->write(bdf, bar_idx, ~0, Device::ACCESS_32BIT);
+					unsigned const bar_size = pci_config->read(bdf, bar_idx, Device::ACCESS_32BIT);
+					pci_config->write(bdf, bar_idx, bar_value, Device::ACCESS_32BIT);
 
 					if (!Resource::Bar::mem64(bar_value)) {
 						_resource[i] = Resource(bar_value, bar_size);
@@ -227,11 +220,11 @@ namespace Platform {
 						/* also consume next BAR for MEM64 */
 						unsigned const bar2_idx = bar_idx + 4;
 						unsigned const bar2_value =
-							pci_config->read(bus, device, function, bar2_idx, Device::ACCESS_32BIT);
-						pci_config->write(bus, device, function, bar2_idx, ~0, Device::ACCESS_32BIT);
+							pci_config->read(bdf, bar2_idx, Device::ACCESS_32BIT);
+						pci_config->write(bdf, bar2_idx, ~0, Device::ACCESS_32BIT);
 						unsigned const bar2_size =
-							pci_config->read(bus, device, function, bar2_idx, Device::ACCESS_32BIT);
-						pci_config->write(bus, device, function, bar2_idx, bar2_value, Device::ACCESS_32BIT);
+							pci_config->read(bdf, bar2_idx, Device::ACCESS_32BIT);
+						pci_config->write(bdf, bar2_idx, bar2_value, Device::ACCESS_32BIT);
 
 						/* combine into first resource and mark second as invalid */
 						_resource[i] = Resource(bar_value, bar_size,
@@ -244,23 +237,18 @@ namespace Platform {
 			}
 
 			/**
-			 * Accessor functions for device location
+			 * Accessor function for device location
 			 */
-			int bus_number()      { return _bus; }
-			int device_number()   { return _device; }
-			int function_number() { return _function; }
+			Pci::Bdf bdf() const { return _bdf; }
 
 			void print(Genode::Output &out) const
 			{
 				using Genode::print;
 				using Genode::Hex;
-				print(out, Hex(_bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
-				      ":", Hex(_device, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
-				      ".", Hex(_function, Hex::Prefix::OMIT_PREFIX));
+				print(out, Hex(_bdf.bus(), Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
+				      ":", Hex(_bdf.device(), Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
+				      ".", Hex(_bdf.function(), Hex::Prefix::OMIT_PREFIX));
 			}
-
-			Genode::uint16_t bdf () {
-				return (_bus << 8) | (_device << 3) | (_function & 0x7); }
 
 			/**
 			 * Accessor functions for device information
@@ -298,8 +286,7 @@ namespace Platform {
 			unsigned read(Config_access &pci_config, unsigned char address,
 			              Device::Access_size size, bool track = true)
 			{
-				return pci_config.read(_bus, _device, _function, address,
-				                       size, track);
+				return pci_config.read(_bdf, address, size, track);
 			}
 
 			/**
@@ -309,8 +296,7 @@ namespace Platform {
 			           unsigned long value, Device::Access_size size,
 			           bool track = true)
 			{
-				pci_config.write(_bus, _device, _function, address, value,
-				                 size, track);
+				pci_config.write(_bdf, address, value, size, track);
 			}
 
 			bool reg_in_use(Config_access &pci_config, unsigned char address,
@@ -346,10 +332,10 @@ namespace Platform {
 			:
 				_bdf_start(bdf_start), _func_count(func_count), _base(base) {}
 
-			Genode::addr_t lookup_config_space(Genode::uint32_t bdf)
+			Genode::addr_t lookup_config_space(Pci::Bdf const bdf)
 			{
-				if ((_bdf_start <= bdf) && (bdf <= _bdf_start + _func_count - 1))
-					return _base + (bdf << 12);
+				if ((_bdf_start <= bdf.bdf) && (bdf.bdf <= _bdf_start + _func_count - 1))
+					return _base + (unsigned(bdf.bdf) << 12);
 				return 0;
 			}
 	};

@@ -165,10 +165,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 				return Irq_session_component::INVALID_IRQ;
 
 			/* lookup rewrite information as provided by acpi table */
-			uint16_t irq_r = Irq_routing::rewrite(_device_config.bus_number(),
-			                                      _device_config.device_number(),
-			                                      _device_config.function_number(),
-			                                      pin);
+			uint16_t irq_r = Irq_routing::rewrite(_device_config.bdf(), pin);
 			if (irq_r) {
 				Genode::log(_device_config, " adjust IRQ as reported by ACPI: ",
 				            irq, " -> ", irq_r);
@@ -353,9 +350,9 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		void bus_address(unsigned char *bus, unsigned char *dev,
 		                 unsigned char *fn) override
 		{
-			*bus = _device_config.bus_number();
-			*dev = _device_config.device_number();
-			*fn  = _device_config.function_number();
+			*bus = _device_config.bdf().bus();
+			*dev = _device_config.bdf().device();
+			*fn  = _device_config.bdf().function();
 		}
 
 		unsigned short vendor_id() override { return _device_config.vendor_id(); }

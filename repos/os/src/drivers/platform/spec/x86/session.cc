@@ -45,7 +45,7 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 		for (int fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
 
 			/* read config space */
-			Device_config config(bus, dev, fun, &config_access);
+			Device_config config(Pci::Bdf(bus, dev, fun), &config_access);
 
 			/*
 			 * Switch off PCI bus master DMA for some classes of devices,
