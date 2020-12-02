@@ -95,7 +95,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 		void _handle_set_signal()
 		{
-			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
+			_handle_registry.for_each([] (Registered_watch_handle &handle) {
 				handle.watch_response();
 			});
 		}
