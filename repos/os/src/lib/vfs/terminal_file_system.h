@@ -192,7 +192,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			_fetch_data_from_terminal(_terminal, _read_buffer, _interrupt_handler,
 			                          _raw);
 
-			_handle_registry.for_each([this] (Registered_handle &handle) {
+			_handle_registry.for_each([] (Registered_handle &handle) {
 				if (handle.blocked) {
 					handle.blocked = false;
 					handle.io_progress_response();

@@ -122,7 +122,7 @@ class Vfs::Rom_file_system : public Single_file_system
 
 		void _handle_rom_changed()
 		{
-			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
+			_handle_registry.for_each([] (Registered_watch_handle &handle) {
 				handle.watch_response(); });
 		}
 
