@@ -218,36 +218,27 @@ bool Platform::Device_component::_setup_msi(Genode::uint16_t const msi_cap)
 		addr_t const msi_address = _irq_session->msi_address();
 		uint32_t const msi_value = _irq_session->msi_data();
 
-		uint16_t msi = _device_config.read(_config_access,
-		                                   msi_cap + 2,
-		                                   Platform::Device::ACCESS_16BIT);
+		uint16_t msi = _read_config_16(msi_cap + 2);
 
-		_device_config.write(_config_access, msi_cap + 0x4, msi_address,
-		                     Platform::Device::ACCESS_32BIT);
+		_write_config_32(msi_cap + 0x4, msi_address);
 
 		if (msi & CAP_MSI_64) {
 			uint32_t upper_address = sizeof(msi_address) > 4
 			                       ? uint64_t(msi_address) >> 32
 			                       : 0UL;
 
-			_device_config.write(_config_access, msi_cap + 0x8,
-			                     upper_address,
-			                     Platform::Device::ACCESS_32BIT);
-			_device_config.write(_config_access, msi_cap + 0xc,
-			                     msi_value,
-			                     Platform::Device::ACCESS_16BIT);
+			_write_config_16(msi_cap + 0x8, upper_address);
+			_write_config_16(msi_cap + 0xc, msi_value);
 		} else
-			_device_config.write(_config_access, msi_cap + 0x8, msi_value,
-			                     Platform::Device::ACCESS_16BIT);
+			_write_config_16(msi_cap + 0x8, msi_value);
 
 		/* enable MSI */
 		_device_config.write(_config_access, msi_cap + 2,
 		                     msi ^ MSI_ENABLED,
 		                     Platform::Device::ACCESS_8BIT);
 
-		msi = _device_config.read(_config_access,
-		                          msi_cap + 2,
-		                          Platform::Device::ACCESS_16BIT);
+		msi = _read_config_16(msi_cap + 2);
+
 		return msi & MSI_ENABLED;
 	} catch (...) { }
 
@@ -266,16 +257,11 @@ bool Platform::Device_component::_setup_msix(Genode::uint16_t const msix_cap)
 		addr_t const msi_address = _irq_session->msi_address();
 		uint32_t const msi_value = _irq_session->msi_data();
 
-		uint16_t ctrl = _device_config.read(_config_access,
-		                                    msix_cap + 2,
-		                                    Platform::Device::ACCESS_16BIT);
-
-		uint32_t const table = _device_config.read(_config_access,
-		                                           msix_cap + 4,
-		                                           Platform::Device::ACCESS_32BIT);
+		uint16_t ctrl = _read_config_16(msix_cap + 2);
 
 		uint32_t const slots = Msix_ctrl::Slots::get(ctrl) + 1;
 
+		uint32_t const table = _read_config_32(msix_cap + 4);
 		uint8_t  const table_bir = Table_pba::Bir::masked(table);
 		uint32_t const table_off = Table_pba::Offset::masked(table);
 
@@ -320,13 +306,12 @@ bool Platform::Device_component::_setup_msix(Genode::uint16_t const msix_cap)
 			/* enable MSI-X */
 			Msix_ctrl::Fmask::set(ctrl, 0);
 			Msix_ctrl::Enable::set(ctrl, 1);
-			_device_config.write(_config_access, msix_cap + 2, ctrl,
-			                     Platform::Device::ACCESS_16BIT);
+			_write_config_16(msix_cap + 2, ctrl);
 		});
 
 		/* check back that MSI-X got enabled */
-		ctrl = _device_config.read(_config_access, msix_cap + 2,
-		                           Platform::Device::ACCESS_16BIT);
+		ctrl = _read_config_16(msix_cap + 2);
+
 		return Msix_ctrl::Enable::get(ctrl);
 	} catch (Genode::Out_of_caps) {
 		Genode::warning("Out_of_caps during MSI-X enablement"); }
