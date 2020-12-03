@@ -146,7 +146,7 @@ void Platform::Device_component::config_write(unsigned char address,
 		catch (...) {
 			Genode::error("assignment to device failed");
 		}
-		_enabled_bus_master = true;
+		_device_used = true;
 	}
 
 	_device_config.write(_config_access, address, value, size,

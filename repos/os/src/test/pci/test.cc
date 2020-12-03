@@ -44,6 +44,7 @@ enum {
 };
 
 enum {
+	CAP_PWRM   = 0x01,
 	CAP_MSI    = 0x05,
 	CAP_HT     = 0x08,
 	CAP_SECDEV = 0x0f,
@@ -189,6 +190,7 @@ static void print_device_info(Platform::Device_capability device_cap)
 			case CAP_MSIX:   cap_string = String<128>(cap_string, " MSI-X"); break;
 			case CAP_PCI_E:  cap_string = String<128>(cap_string, " PCI-E"); break;
 			case CAP_SECDEV: cap_string = String<128>(cap_string, " SECURE-DEVICE"); break;
+			case CAP_PWRM:   cap_string = String<128>(cap_string, " PWRM"); break;
 			default:
 				cap_string = String<128>(cap_string, " ", Hex(type));
 			}

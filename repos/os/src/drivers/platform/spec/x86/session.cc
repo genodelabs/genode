@@ -39,13 +39,22 @@ unsigned short Platform::bridge_bdf(unsigned char bus)
 }
 
 void Platform::Pci_buses::scan_bus(Config_access &config_access,
-                                   Genode::Allocator &heap, unsigned char bus)
+                                   Genode::Allocator &heap,
+                                   Device_bars_pool &devices_bars,
+                                   unsigned char bus)
 {
 	for (int dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
 		for (int fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
 
 			/* read config space */
 			Device_config config(Pci::Bdf(bus, dev, fun), &config_access);
+
+			/* remember Device BARs required after power off and/or reset */
+			if (config.valid()) {
+				Device_config::Device_bars bars = config.save_bars();
+				if (!bars.all_invalid())
+					new (heap) Registered<Device_config::Device_bars>(devices_bars, bars);
+			}
 
 			/*
 			 * Switch off PCI bus master DMA for some classes of devices,
@@ -112,7 +121,7 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 				    Hex(sec_bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
 				    ":00.0", !enabled ? " enabled" : "");
 
-				scan_bus(config_access, heap, sec_bus);
+				scan_bus(config_access, heap, devices_bars, sec_bus);
 			}
 		}
 	}

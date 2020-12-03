@@ -28,7 +28,12 @@
 #include "pci_device_config.h"
 #include "irq.h"
 
-namespace Platform { class Device_component; class Session_component; }
+namespace Platform {
+	class Device_component;
+	class Session_component;
+
+	typedef Registry<Registered<Device_config::Device_bars> > Device_bars_pool;
+}
 
 class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
                                    private Genode::List<Device_component>::Element
@@ -45,13 +50,14 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 
 		Genode::Env                 &_env;
 		Pci::Config::Delayer        &_delayer;
+		Device_bars_pool            &_devices_bars;
 		Device_config                _device_config { };
 		Genode::addr_t               _config_space;
 		Config_access                _config_access;
 		Platform::Session_component &_session;
 		Irq_session_component       *_irq_session = nullptr;
 		unsigned short               _irq_line;
-		bool                         _enabled_bus_master { false };
+		bool                         _device_used { false };
 
 		Genode::Allocator           &_global_heap;
 
@@ -89,6 +95,40 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			struct Enable : Bitfield<15, 1> { };
 		};
 
+		struct Pci_express : Pci::Config
+		{
+			Pci_express(Device_component &dev, uint16_t cap)
+			: Pci::Config(dev._config_access, dev._device_config.bdf(), cap) { }
+
+			struct Capabilities : Register<0x04, 32> {
+				struct Reset : Bitfield< 28, 1> { }; };
+			struct Control: Register<0x08, 16> {
+				struct Reset : Bitfield< 15, 1> { }; };
+			struct Status: Register<0x0a, 16> {
+				struct Pending : Bitfield< 5, 1> { }; };
+			struct Capabilities2 : Register<0x24, 32> {
+				struct Readiness : Bitfield<31, 1> { }; };
+			struct Status2 : Register<0x32, 16> {
+				struct Readiness_status : Bitfield<15, 1> { }; };
+		};
+
+		struct Pci_power: Pci::Config
+		{
+			Pci_power(Device_component &dev, uint16_t cap)
+			: Pci::Config(dev._config_access, dev._device_config.bdf(), cap) { }
+
+			struct Capabilities : Register<0x02, 16>
+			{
+				struct Specific_init : Bitfield< 5, 1> { };
+			};
+			struct Control : Register<0x04, 16>
+			{
+				struct D0_3          : Bitfield< 0, 2> { };
+				struct No_soft_reset : Bitfield< 3, 1> { };
+			};
+		};
+
+
 		Genode::Tslab<Genode::Io_port_connection, IO_BLOCK_SIZE> _slab_ioport;
 		char _slab_ioport_block_data[IO_BLOCK_SIZE];
 
@@ -105,7 +145,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		struct Status : Genode::Register<8> {
 			struct Capabilities : Bitfield<4,1> { };
 
-			inline static access_t read(Genode::uint8_t t) { return t; };
+			inline static access_t read(Genode::uint8_t t) { return t; }
 		};
 
 		/**
@@ -138,19 +178,32 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		/**
 		 * Read out msi capabilities of the device.
 		 */
-		Genode::uint16_t _msi_cap()
+		uint16_t _msi_cap()
 		{
 			enum { CAP_MSI = 0x5 };
 			return _lookup_cap(CAP_MSI);
 		}
 
-		Genode::uint16_t _msix_cap()
+		uint16_t _msix_cap()
 		{
 			enum { CAP_MSI_X = 0x11 };
 			return _lookup_cap(CAP_MSI_X);
 		}
 
-		Genode::uint16_t _lookup_cap(Genode::uint16_t const target_cap)
+		uint16_t _power_cap()
+		{
+			enum { CAP_POWER = 0x1 };
+			return _lookup_cap(CAP_POWER);
+		}
+
+		/* PCI express cap (not PCI express extended cap!) */
+		uint16_t _pcie_cap()
+		{
+			enum { CAP_PCIE = 0x10 };
+			return _lookup_cap(CAP_PCIE);
+		}
+
+		uint16_t _lookup_cap(uint16_t const target_cap)
 		{
 			enum { PCI_STATUS = 0x6, PCI_CAP_OFFSET = 0x34 };
 
@@ -222,13 +275,14 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		/**
 		 * Disable bus master dma if already enabled.
 		 */
-		void _disable_bus_master_dma() {
-
+		void _disable_bus_master_dma()
+		{
 			/*
 			 * Disabling a bridge may make the devices behind non-functional,
 			 * as we have no driver which will switch it on again
 			 */
-			if (_device_config.pci_bridge())
+			if (_device_config.pci_bridge() ||
+			    _device_config.bdf() == Pci::Bdf(Platform::Bridge::root_bridge_bdf))
 				return;
 
 			_device_config.disable_bus_master_dma(_config_access);
@@ -278,7 +332,128 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			addr_t const msix_table = reinterpret_cast<addr_t>(mem_io.local_addr<void>()) + offset;
 
 			fn(msix_table);
-		};
+		}
+
+		void _device_reset()
+		{
+			uint16_t const cap = _pcie_cap();
+			if (!cap)
+				return;
+
+			Pci_express pci_cap(*this, cap);
+
+			if (!pci_cap.read<Pci_express::Capabilities::Reset>())
+				return;
+
+			log(_device_config, " reset function");
+
+			pci_cap.write<Pci_express::Control::Reset>(1);
+
+			try {
+				/* optional use FLR Time if available instead of heuristic */
+				pci_cap.wait_for(Pci::Config::Attempts(100),
+				                 Pci::Config::Microseconds(10000), _delayer,
+				                 Pci_express::Status::Pending::Equal(0));
+			} catch (Pci::Config::Polling_timeout) {
+				warning(_device_config, " reset timeout raised");
+			}
+		}
+
+		void _power_off()
+		{
+			/* don't touch unused device */
+			if (!_device_used)
+				return;
+
+			uint16_t const cap = _power_cap();
+			if (!cap) {
+				_disable_bus_master_dma();
+				return;
+			}
+
+			/*
+			 * PCI Power Management - 8.2.2 D3 State
+			 *
+			 * "If the device driver is not capable of fully reinitializing"
+			 * "a function, the operating system should not put the function"
+			 * "into D3"
+			 *
+			 * Actually, at this point we don't know about the capabilities of
+			 * the actual driver.
+			 */
+			log(_device_config, " power off");
+
+			/*
+			 * "When placing a function into D3, the operating system software"
+			 * "is required to disable I/O and memory space as well as bus"
+			 * "mastering via the PCI Command register.
+			 */
+			Device_config::Pci_header header (_config_access, _device_config.bdf());
+
+			auto command = header.read<Device_config::Pci_header::Command>();
+			Device_config::Pci_header::Command::Dma::set(command, 0);
+			Device_config::Pci_header::Command::Memory::set(command, 0);
+			Device_config::Pci_header::Command::Ioport::set(command, 0);
+
+			header.write<Device_config::Pci_header::Command>(command);
+
+			/* power off */
+			Pci_power pci_cap(*this, cap);
+			pci_cap.write<Pci_power::Control::D0_3>(3);
+		}
+
+		void _power_on()
+		{
+			uint16_t const cap = _power_cap();
+			if (!cap)
+				return;
+
+			Pci_power pci_cap(*this, cap);
+
+			if (pci_cap.read<Pci_power::Control::D0_3>() == 0)
+				return;
+
+			/* since it was off before, it got used by powering it on */
+			_device_used = true;
+
+			log(_device_config, " power on",
+			    pci_cap.read<Pci_power::Control::No_soft_reset>() ? ", no_soft_reset" : "",
+			    pci_cap.read<Pci_power::Capabilities::Specific_init>() ? ", specific_init_required" : "");
+
+			/* power on */
+			pci_cap.write<Pci_power::Control::D0_3>(0);
+
+			/*
+			 * PCI Express 4.3 - 5.3.1.4. D3 State
+			 *
+			 * "Unless Readiness Notifications mechanisms are used ..."
+			 * "a minimum recovery time following a D3 hot → D0 transition of"
+			 * "at least 10 ms ..."
+			 */
+			_delayer.usleep(10'000);
+
+			/*
+			 * PCI Power Management - 3.2.4 - PMCSR Power Management Control/Status
+			 *
+			 * "no additional operating system intervention is required ..."
+			 * "beyond writing the PowerState"
+			 */
+			if (pci_cap.read<Pci_power::Control::No_soft_reset>())
+				return;
+
+			_device_reset();
+
+			_devices_bars.for_each([&](auto const &bars) {
+				if (!(bars.bdf == _device_config.bdf()))
+					return;
+
+				_device_config.restore_bars(_config_access, bars);
+			});
+
+			/* re-read the resources which set to valid ones after power on */
+			_device_config = Device_config(_device_config.bdf(),
+			                               &_config_access);
+		}
 
 	public:
 
@@ -291,10 +466,12 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		                 Platform::Session_component &session,
 		                 Genode::Allocator &md_alloc,
 		                 Genode::Allocator &global_heap,
-		                 Pci::Config::Delayer &delayer)
+		                 Pci::Config::Delayer &delayer,
+		                 Device_bars_pool &devices_bars)
 		:
 			_env(env),
 			_delayer(delayer),
+			_devices_bars(devices_bars),
 			_device_config(device_config), _config_space(addr),
 			_config_access(config_access),
 			_session(session),
@@ -307,6 +484,8 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				_io_port_conn[i] = nullptr;
 			}
+
+			_power_on();
 		}
 
 		/**
@@ -316,10 +495,12 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		                 Genode::Attached_io_mem_dataspace &pciconf,
 		                 Platform::Session_component &session, unsigned irq,
 		                 Genode::Allocator &global_heap,
-		                 Pci::Config::Delayer &delayer)
+		                 Pci::Config::Delayer &delayer,
+		                 Device_bars_pool &devices_bars)
 		:
 			_env(env),
 			_delayer(delayer),
+			_devices_bars(devices_bars),
 			_config_space(~0UL),
 			_config_access(pciconf),
 			_session(session),
@@ -353,8 +534,10 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 				}
 			}
 
-			if (_device_config.valid() && _enabled_bus_master)
-				_disable_bus_master_dma();
+			if (!_device_config.valid())
+				return;
+
+			_power_off();
 		}
 
 		/****************************************

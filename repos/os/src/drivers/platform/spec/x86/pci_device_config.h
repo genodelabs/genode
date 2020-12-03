@@ -142,6 +142,35 @@ namespace Platform {
 				PCI_CMD_DMA    = 0x4,
 			};
 
+			struct Pci_header : Pci::Config
+			{
+				Pci_header(Config_access &access, Pci::Bdf const bdf)
+				: Pci::Config(access, bdf, 0 /* from start */) { }
+
+				struct Command : Register<0x04, 16>
+				{
+					struct Ioport : Bitfield< 0, 1> { };
+					struct Memory : Bitfield< 1, 1> { };
+					struct Dma    : Bitfield< 2, 1> { };
+				};
+			};
+
+			struct Device_bars {
+				Pci::Bdf bdf;
+				uint32_t bar_addr[Device::NUM_RESOURCES] { };
+
+				bool all_invalid() const {
+					for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
+						if (bar_addr[i] != 0 && bar_addr[i] != ~0U)
+							return false;
+					}
+					return true;
+				}
+
+				Device_bars(Pci::Bdf bdf) : bdf(bdf) { }
+				virtual ~Device_bars() { };
+			};
+
 			/**
 			 * Constructor
 			 */
@@ -305,11 +334,41 @@ namespace Platform {
 
 			void disable_bus_master_dma(Config_access &pci_config)
 			{
-				unsigned const cmd = read(pci_config, PCI_CMD_REG,
-				                          Platform::Device::ACCESS_16BIT);
-				if (cmd & PCI_CMD_DMA)
-					write(pci_config, PCI_CMD_REG, cmd ^ PCI_CMD_DMA,
-					      Platform::Device::ACCESS_16BIT);
+				Pci_header header (pci_config, _bdf);
+
+				if (header.read<Pci_header::Command::Dma>())
+					header.write<Pci_header::Command::Dma>(0);
+			}
+
+			Device_bars save_bars()
+			{
+				Device_bars bars (_bdf);
+
+				for (unsigned r = 0; r < Device::NUM_RESOURCES; r++) {
+					if (!_resource_id_is_valid(r))
+						break;
+
+					bars.bar_addr[r] = _resource[r].base();
+				}
+
+				return bars;
+			};
+
+			void restore_bars(Config_access &config, Device_bars const &bars)
+			{
+				for (unsigned r = 0; r < Device::NUM_RESOURCES; r++) {
+					if (!_resource_id_is_valid(r))
+						break;
+
+					/* index of base-address register in configuration space */
+					unsigned const bar_idx = 0x10 + 4 * r;
+
+					/* PCI protocol to write address after requesting size */
+					config.write(_bdf, bar_idx, ~0U, Device::ACCESS_32BIT);
+					config.read (_bdf, bar_idx, Device::ACCESS_32BIT);
+					config.write(_bdf, bar_idx, bars.bar_addr[r],
+					             Device::ACCESS_32BIT);
+				}
 			}
 	};
 

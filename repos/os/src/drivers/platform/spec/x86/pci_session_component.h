@@ -136,7 +136,7 @@ class Platform::Pci_buses
 
 		Genode::Bit_array<Device_config::MAX_BUSES> _valid { };
 
-		void scan_bus(Config_access &config_access, Genode::Allocator &heap,
+		void scan_bus(Config_access &, Genode::Allocator &, Device_bars_pool &,
 		              unsigned char bus = 0);
 
 		bool _bus_valid(int bus)
@@ -149,10 +149,12 @@ class Platform::Pci_buses
 
 	public:
 
-		Pci_buses(Genode::Allocator &heap, Genode::Attached_io_mem_dataspace &pciconf)
+		Pci_buses(Genode::Allocator &heap,
+		          Genode::Attached_io_mem_dataspace &pciconf,
+		          Device_bars_pool &devices_bars)
 		{
 			Config_access c(pciconf);
-			scan_bus(c, heap);
+			scan_bus(c, heap, devices_bars);
 		}
 
 		/**
@@ -217,6 +219,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Platform::Pci_buses               &_pci_bus;
 		Genode::Heap                      &_global_heap;
 		Pci::Config::Delayer              &_delayer;
+		Device_bars_pool                  &_devices_bars;
 		bool                               _iommu;
 
 		/**
@@ -480,6 +483,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		                  Platform::Pci_buses               &buses,
 		                  Genode::Heap                      &global_heap,
 		                  Pci::Config::Delayer              &delayer,
+		                  Device_bars_pool                  &devices_bars,
 		                  char                        const *args,
 		                  bool                        const iommu)
 		:
@@ -493,6 +497,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_pci_bus(buses),
 			_global_heap(global_heap),
 			_delayer(delayer),
+			_devices_bars(devices_bars),
 			_iommu(iommu)
 		{
 			/* subtract the RPC session and session dataspace capabilities */
@@ -701,7 +706,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				 */
 				Device_component * dev = new (_md_alloc)
 					Device_component(_env, config, config_space, config_access,
-					                 *this, _md_alloc, _global_heap, _delayer);
+					                 *this, _md_alloc, _global_heap, _delayer,
+					                 _devices_bars);
 
 				_device_list.insert(dev);
 
@@ -827,6 +833,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 
 		Genode::Heap _heap { _env.ram(), _env.rm() };
 
+		Device_bars_pool                           _devices_bars { };
 		Genode::Constructible<Platform::Pci_buses> _buses { };
 
 		bool _iommu { false };
@@ -988,7 +995,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 			/* try surviving wrong ACPI ECAM/MMCONF table information */
 			while (true) {
 				try {
-					_buses.construct(_heap, *_pci_confspace);
+					_buses.construct(_heap, *_pci_confspace, _devices_bars);
 					/* construction and scan succeeded */
 					break;
 				} catch (Platform::Config_access::Invalid_mmio_access) {
@@ -1024,7 +1031,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 			try {
 				return  new (md_alloc())
 					Session_component(_env, _config, *_pci_confspace, *_buses,
-					                  _heap, _delayer, args, _iommu);
+					                  _heap, _delayer, _devices_bars, args,
+					                  _iommu);
 			}
 			catch (Genode::Session_policy::No_policy_defined) {
 				Genode::error("Invalid session request, no matching policy for ",
