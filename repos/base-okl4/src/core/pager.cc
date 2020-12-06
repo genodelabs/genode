@@ -53,10 +53,10 @@ static inline void print_page_fault(L4_Word_t type, L4_Word_t addr, L4_Word_t ip
  * identity. By convention, each thread stores its global ID in a
  * defined entry of its UTCB.
  */
-static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
+static inline L4_ThreadId_t thread_get_my_global_id()
 {
-	Okl4::L4_ThreadId_t myself;
-	myself.raw = Okl4::__L4_TCR_ThreadWord(UTCB_TCR_THREAD_WORD_MYSELF);
+	L4_ThreadId_t myself;
+	myself.raw = __L4_TCR_ThreadWord(UTCB_TCR_THREAD_WORD_MYSELF);
 	return myself;
 }
 

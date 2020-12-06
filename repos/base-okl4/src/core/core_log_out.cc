@@ -17,4 +17,7 @@
 /* base-internal includes */
 #include <base/internal/okl4.h>
 
-void Genode::Core_log::out(char const c) { Okl4::L4_KDB_PrintChar(c); }
+using namespace Genode;
+
+
+void Core_log::out(char const c) { Okl4::L4_KDB_PrintChar(c); }

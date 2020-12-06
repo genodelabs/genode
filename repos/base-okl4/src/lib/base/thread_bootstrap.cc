@@ -46,6 +46,8 @@ namespace Okl4
 	}
 }
 
+using namespace Genode;
+
 
 /*****************************
  ** Startup library support **
@@ -70,15 +72,17 @@ void prepare_reinit_main_thread() { prepare_init_main_thread(); }
  ** Thread **
  ************/
 
-void Genode::Thread::_thread_bootstrap()
+void Thread::_thread_bootstrap()
 {
 	native_thread().l4id.raw = Okl4::copy_uregister_to_utcb();
 }
 
 
-void Genode::Thread::_init_platform_thread(size_t, Type type)
+void Thread::_init_platform_thread(size_t, Type type)
 {
-	if (type == NORMAL) { return; }
+	if (type == NORMAL)
+		return;
+
 	native_thread().l4id.raw = main_thread_tid.raw;
 	_thread_cap = main_thread_cap();
 }
