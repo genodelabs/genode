@@ -14,10 +14,12 @@
 #ifndef _CORE__INCLUDE__RPC_CAP_FACTORY_H_
 #define _CORE__INCLUDE__RPC_CAP_FACTORY_H_
 
+/* Genode includes */
 #include <base/allocator.h>
 #include <base/capability.h>
 
 namespace Genode { class Rpc_cap_factory; }
+
 
 class Genode::Rpc_cap_factory
 {

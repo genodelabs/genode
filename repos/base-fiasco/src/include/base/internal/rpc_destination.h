@@ -14,10 +14,8 @@
 #ifndef _INCLUDE__BASE__INTERNAL__RPC_DESTINATION_H_
 #define _INCLUDE__BASE__INTERNAL__RPC_DESTINATION_H_
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/types.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 namespace Genode {
 

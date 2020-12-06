@@ -20,13 +20,11 @@
 #include <base/internal/ipc_server.h>
 #include <base/internal/capability_space_tpl.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-#include <l4/sys/syscalls.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 using namespace Genode;
+using namespace Fiasco;
 
 
 class Msg_header
@@ -34,9 +32,9 @@ class Msg_header
 	private:
 
 		/* kernel-defined message header */
-		Fiasco::l4_fpage_t   rcv_fpage; /* unused */
-		Fiasco::l4_msgdope_t size_dope;
-		Fiasco::l4_msgdope_t send_dope;
+		l4_fpage_t   rcv_fpage; /* unused */
+		l4_msgdope_t size_dope;
+		l4_msgdope_t send_dope;
 
 	public:
 
@@ -47,15 +45,15 @@ class Msg_header
 		 * arguments. The kernel does not fetch these data words from memory
 		 * but transfers them via the short-IPC registers.
 		 */
-		Fiasco::l4_umword_t protocol_word;
-		Fiasco::l4_umword_t num_caps;
+		l4_umword_t protocol_word;
+		l4_umword_t num_caps;
 
 	private:
 
 		enum { MAX_CAPS_PER_MSG = Msgbuf_base::MAX_CAPS_PER_MSG };
 
-		Fiasco::l4_threadid_t _cap_tid        [MAX_CAPS_PER_MSG];
-		unsigned long         _cap_local_name [MAX_CAPS_PER_MSG];
+		l4_threadid_t _cap_tid        [MAX_CAPS_PER_MSG];
+		unsigned long _cap_local_name [MAX_CAPS_PER_MSG];
 
 		size_t _num_msg_words(size_t num_data_words) const
 		{
@@ -65,7 +63,7 @@ class Msg_header
 			 * Account for the transfer of the protocol word, capability count,
 			 * and capability arguments in front of the payload.
 			 */
-			return 2 + caps_size/sizeof(Fiasco::l4_umword_t) + num_data_words;
+			return 2 + caps_size/sizeof(l4_umword_t) + num_data_words;
 		}
 
 	public:
@@ -77,8 +75,6 @@ class Msg_header
 		 */
 		void prepare_snd_msg(unsigned long protocol, Msgbuf_base const &snd_msg)
 		{
-			using namespace Fiasco;
-
 			protocol_word = protocol;
 			num_caps = min((unsigned)MAX_CAPS_PER_MSG, snd_msg.used_caps());
 
@@ -109,8 +105,6 @@ class Msg_header
 		 */
 		void prepare_rcv_msg(Msgbuf_base const &rcv_msg)
 		{
-			using namespace Fiasco;
-
 			size_t const rcv_max_words = rcv_msg.capacity()/sizeof(l4_umword_t);
 
 			size_dope = L4_IPC_DOPE(_num_msg_words(rcv_max_words), 0);
@@ -124,7 +118,7 @@ class Msg_header
 			for (unsigned i = 0; i < min((unsigned)MAX_CAPS_PER_MSG, num_caps); i++) {
 
 				Rpc_obj_key const rpc_obj_key(_cap_local_name[i]);
-				bool        const cap_valid = !Fiasco::l4_is_invalid_id(_cap_tid[i]);
+				bool        const cap_valid = !l4_is_invalid_id(_cap_tid[i]);
 
 				Native_capability cap;
 				if (cap_valid) {
@@ -147,8 +141,6 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
                                     size_t)
 {
-	using namespace Fiasco;
-
 	Capability_space::Ipc_cap_data const dst_data =
 		Capability_space::ipc_cap_data(dst);
 
@@ -190,8 +182,6 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
                        Msgbuf_base &snd_msg)
 {
-	using namespace Fiasco;
-
 	Msg_header &snd_header = snd_msg.header<Msg_header>();
 	snd_header.prepare_snd_msg(exc.value, snd_msg);
 
@@ -209,8 +199,6 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
                                            Msgbuf_base            &reply_msg,
                                            Msgbuf_base            &request_msg)
 {
-	using namespace Fiasco;
-
 	l4_msgdope_t ipc_result;
 
 	bool need_to_wait = true;
@@ -276,7 +264,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 Ipc_server::Ipc_server()
 :
-	Native_capability(Capability_space::import(Fiasco::l4_myself(), Rpc_obj_key()))
+	Native_capability(Capability_space::import(l4_myself(), Rpc_obj_key()))
 { }
 
 

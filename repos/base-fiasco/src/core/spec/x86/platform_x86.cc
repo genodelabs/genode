@@ -11,17 +11,19 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* base-internal includes */
 #include <base/internal/fiasco_thread_helper.h>
 
-#include "platform.h"
-#include "util.h"
+/* core includes */
+#include <platform.h>
+#include <util.h>
 
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 using namespace Genode;
 using namespace Fiasco;
+
 
 void Platform::_setup_io_port_alloc()
 {

@@ -17,15 +17,14 @@
 #include <cpu/memory_barrier.h>
 
 /* L4/Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-}
+#include <fiasco/syscall.h>
 
 using namespace Genode;
 
 
 Lock::Lock(Lock::State initial)
-: _state(UNLOCKED), _owner(nullptr)
+:
+	_state(UNLOCKED), _owner(nullptr)
 {
 	if (initial == LOCKED)
 		lock();
@@ -45,7 +44,7 @@ void Lock::lock(Applicant &myself)
 	 * XXX: How to notice cancel-blocking signals issued when  being outside the
 	 *      'l4_ipc_sleep' system call?
 	 */
-	while (!Genode::cmpxchg(&_state, UNLOCKED, LOCKED))
+	while (!cmpxchg(&_state, UNLOCKED, LOCKED))
 		Fiasco::l4_ipc_sleep(Fiasco::l4_ipc_timeout(0, 0, 500, 0));
 
 	_owner = myself;
@@ -55,6 +54,6 @@ void Lock::lock(Applicant &myself)
 void Lock::unlock()
 {
 	_owner = Applicant(nullptr);
-	Genode::memory_barrier();
+	memory_barrier();
 	_state = UNLOCKED;
 }

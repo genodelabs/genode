@@ -22,9 +22,7 @@
 #define _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_
 
 /* L4/Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-}
+#include <fiasco/syscall.h>
 
 
 /**

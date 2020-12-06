@@ -25,18 +25,12 @@
 #include <util.h>
 #include <platform_pd.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/syscalls.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 using namespace Fiasco;
 using namespace Genode;
 
-
-/**************************
- ** Static class members **
- **************************/
 
 static bool _init = false;
 
@@ -64,10 +58,10 @@ void Platform_pd::init()
 
 void Platform_pd::_create_pd(bool syscall)
 {
-	l4_threadid_t l4t   = l4_myself();
-	l4t.id.task         = _pd_id;
-	l4t.id.lthread      = 0;
-	l4t.id.version_low  = _version;
+	l4_threadid_t l4t  = l4_myself();
+	l4t.id.task        = _pd_id;
+	l4t.id.lthread     = 0;
+	l4t.id.version_low = _version;
 
 	l4_taskid_t nt;
 	if (syscall)

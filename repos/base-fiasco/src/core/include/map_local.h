@@ -18,12 +18,8 @@
 #include <platform.h>
 #include <util.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-#include <l4/sys/syscalls.h>
-#include <l4/sys/kdebug.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 namespace Genode {
 

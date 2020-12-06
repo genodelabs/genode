@@ -14,8 +14,10 @@
 #ifndef _INCLUDE__FIASCO__THREAD_HELPER_H_
 #define _INCLUDE__FIASCO__THREAD_HELPER_H_
 
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
+
 namespace Fiasco {
-#include <l4/sys/types.h>
 
 	/**
 	 * Sigma0 thread ID

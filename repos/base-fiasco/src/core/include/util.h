@@ -25,13 +25,8 @@
 #include <base/internal/fiasco_thread_helper.h>
 #include <base/internal/page_size.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/types.h>
-#include <l4/sys/ipc.h>
-#include <l4/sys/kdebug.h>
-#include <l4/sys/ktrace.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 namespace Genode {
 

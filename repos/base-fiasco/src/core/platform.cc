@@ -31,17 +31,11 @@
 #include <platform_pd.h>
 #include <util.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/types.h>
-#include <l4/sys/syscalls.h>
-#include <l4/sys/ipc.h>
-#include <l4/sys/kernel.h>
-#include <l4/sys/kip.h>
-#include <l4/sigma0/sigma0.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 using namespace Genode;
+using namespace Fiasco;
 
 
 /***********************************
@@ -54,6 +48,7 @@ static Synced_range_allocator<Allocator_avl> &_core_address_ranges()
 	return _core_address_ranges;
 }
 
+
 enum { PAGER_STACK_ELEMENTS = 1024 };
 static unsigned long _core_pager_stack[PAGER_STACK_ELEMENTS];
 static unsigned _core_pager_arg;
@@ -65,8 +60,6 @@ static unsigned _core_pager_arg;
 static void _core_pager_loop()
 {
 	unsigned pd_id = _core_pager_arg;
-
-	using namespace Fiasco;
 
 	l4_threadid_t t;
 	l4_umword_t dw0, dw1;
@@ -136,7 +129,7 @@ Platform::Sigma0::Sigma0()
 	             0, Affinity::Location(), Session_label(),
 	             Cpu_session::Name("sigma0"))
 {
-	cap(Capability_space::import(Fiasco::sigma0_threadid, Rpc_obj_key()));
+	cap(Capability_space::import(sigma0_threadid, Rpc_obj_key()));
 }
 
 
@@ -165,8 +158,6 @@ Platform::Core_pager::Core_pager(Platform_pd &core_pd)
 	/* stack begins at the top end of the '_core_pager_stack' array */
 	void *sp = (void *)&_core_pager_stack[PAGER_STACK_ELEMENTS - 1];
 	start((void *)_core_pager_loop, sp);
-
-	using namespace Fiasco;
 
 	/* pager0 receives pagefaults from me - for NULL pointer detection */
 	l4_umword_t d;
@@ -236,8 +227,6 @@ static inline void remove_region(Region r, Range_allocator &alloc)
  */
 static inline int sigma0_req_region(addr_t *addr, unsigned log2size)
 {
-	using namespace Fiasco;
-
 	/* XXX sigma0 always maps pages RW */
 	l4_umword_t req_fpage = l4_fpage(0, log2size, 0, 0).fpage;
 	void* rcv_window = L4_IPC_MAPMSG(0, L4_WHOLE_ADDRESS_SPACE);
@@ -246,7 +235,7 @@ static inline int sigma0_req_region(addr_t *addr, unsigned log2size)
 	l4_msgdope_t result;
 	l4_msgtag_t tag;
 
-	int err = l4_ipc_call_tag(Fiasco::sigma0_threadid,
+	int err = l4_ipc_call_tag(sigma0_threadid,
 	                          L4_IPC_SHORT_MSG, SIGMA0_REQ_FPAGE_ANY, req_fpage,
 	                          l4_msgtag(L4_MSGTAG_SIGMA0, 0, 0, 0),
 	                          rcv_window, &base, (l4_umword_t *)&rcv_fpage,
@@ -288,8 +277,8 @@ void Platform::_setup_mem_alloc()
 			if (!err) {
 				/* XXX do not allocate page0 */
 				if (addr == 0) {
-					Fiasco::l4_fpage_unmap(Fiasco::l4_fpage(0, log2_size, 0, 0),
-					                       L4_FP_FLUSH_PAGE | L4_FP_ALL_SPACES);
+					l4_fpage_unmap(l4_fpage(0, log2_size, 0, 0),
+					               L4_FP_FLUSH_PAGE | L4_FP_ALL_SPACES);
 					continue;
 				}
 
@@ -307,14 +296,14 @@ void Platform::_setup_mem_alloc()
 }
 
 
-void Platform::_setup_irq_alloc() {
-	_irq_alloc.add_range(0, 0x10); }
-
-
-static Fiasco::l4_kernel_info_t *get_kip()
+void Platform::_setup_irq_alloc()
 {
-	using namespace Fiasco;
+	_irq_alloc.add_range(0, 0x10);
+}
 
+
+static l4_kernel_info_t *get_kip()
+{
 	static l4_kernel_info_t *kip = nullptr;
 
 	if (kip) return kip;
@@ -329,7 +318,7 @@ static Fiasco::l4_kernel_info_t *get_kip()
 	l4_msgdope_t r;
 	l4_msgtag_t tag;
 
-	err = l4_ipc_call_tag(Fiasco::sigma0_threadid,
+	err = l4_ipc_call_tag(sigma0_threadid,
 	                      L4_IPC_SHORT_MSG, SIGMA0_REQ_KIP, 0,
 	                      l4_msgtag(L4_MSGTAG_SIGMA0, 0, 0, 0),
 	                      fpage, &dw0, &dw1,
@@ -357,10 +346,9 @@ static Fiasco::l4_kernel_info_t *get_kip()
 	return kip;
 }
 
+
 void Platform::_setup_basics()
 {
-	using namespace Fiasco;
-
 	l4_kernel_info_t * kip = get_kip();
 
 	/* add KIP as ROM module */
@@ -380,6 +368,7 @@ void Platform::_setup_basics()
 
 			break;
 		}
+
 	if (_vm_size == 0)
 		panic("Virtual memory configuration not found");
 
@@ -411,7 +400,8 @@ void Platform::_setup_basics()
 }
 
 
-Platform::Platform() :
+Platform::Platform()
+:
 	_ram_alloc(nullptr), _io_mem_alloc(&core_mem_alloc()),
 	_io_port_alloc(&core_mem_alloc()), _irq_alloc(&core_mem_alloc()),
 	_region_alloc(&core_mem_alloc()),
@@ -432,7 +422,7 @@ Platform::Platform() :
 
 	log(_rom_fs);
 
-	Fiasco::l4_threadid_t myself = Fiasco::l4_myself();
+	l4_threadid_t myself = l4_myself();
 
 	Platform_pd::init();
 
@@ -451,8 +441,8 @@ Platform::Platform() :
 	_core_pd->bind_thread(core_thread);
 
 	/* we never call _core_thread.start(), so set name directly */
-	Fiasco::fiasco_register_thread_name(core_thread.native_thread_id(),
-	                                    core_thread.name().string());
+	fiasco_register_thread_name(core_thread.native_thread_id(),
+	                            core_thread.name().string());
 
 	/* core log as ROM module */
 	{

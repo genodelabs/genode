@@ -16,11 +16,8 @@
 #include <util.h>
 #include <io_mem_session_component.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-#include <l4/sigma0/sigma0.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 using namespace Genode;
 

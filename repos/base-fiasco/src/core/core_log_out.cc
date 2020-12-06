@@ -14,7 +14,10 @@
 /* core includes */
 #include <core_log.h>
 
-namespace Fiasco {
-#include <l4/sys/kdebug.h>
-}
-void Genode::Core_log::out(char const c) { Fiasco::outchar(c); }
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
+
+using namespace Genode;
+
+
+void Core_log::out(char const c) { Fiasco::outchar(c); }

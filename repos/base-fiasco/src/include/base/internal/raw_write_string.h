@@ -14,10 +14,8 @@
 #ifndef _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 #define _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/kdebug.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 namespace Genode {
 

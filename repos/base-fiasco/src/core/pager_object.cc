@@ -17,12 +17,8 @@
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-#include <l4/sys/syscalls.h>
-#include <l4/sys/kdebug.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 using namespace Genode;
 

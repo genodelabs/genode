@@ -17,16 +17,15 @@
 /* Genode includes */
 #include <base/stdint.h>
 
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/types.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 namespace Genode {
 
 	struct Platform_thread;
 	struct Native_thread;
 }
+
 
 struct Genode::Native_thread
 {

@@ -22,10 +22,8 @@
 #include <base/internal/native_thread.h>
 #include <base/internal/capability_space_tpl.h>
 
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-#include <l4/sys/syscalls.h>
-}
+/* L4/Fiasco includes */
+#include <fiasco/syscall.h>
 
 using namespace Genode;
 using namespace Fiasco;
@@ -37,7 +35,7 @@ using namespace Fiasco;
 
 void Ipc_pager::wait_for_fault()
 {
-	l4_msgdope_t  result;
+	l4_msgdope_t result;
 
 	do {
 		l4_ipc_wait(&_last,
@@ -53,7 +51,7 @@ void Ipc_pager::wait_for_fault()
 
 void Ipc_pager::reply_and_wait_for_fault()
 {
-	l4_msgdope_t  result;
+	l4_msgdope_t result;
 
 	l4_ipc_reply_and_wait(_last,
 	                      L4_IPC_SHORT_FPAGE, _reply_mapping.dst_addr(),
