@@ -3,6 +3,7 @@ os
 report_session
 file_system_session
 nic_session
+uplink_session
 timer_session
 block_session
 usb_session

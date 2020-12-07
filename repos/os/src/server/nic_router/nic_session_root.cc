@@ -1,5 +1,5 @@
 /*
- * \brief  Downlink interface in form of a NIC session component
+ * \brief  NIC session server role of the NIC router
  * \author Martin Stein
  * \date   2016-08-23
  */
@@ -15,33 +15,21 @@
 #include <os/session_policy.h>
 
 /* local includes */
-#include <component.h>
+#include <nic_session_root.h>
 #include <configuration.h>
 
 using namespace Net;
 using namespace Genode;
 
 
-/**************************
- ** Communication_buffer **
- **************************/
+/********************************
+ ** Nic_session_component_base **
+ ********************************/
 
-Communication_buffer::Communication_buffer(Ram_allocator &ram_alloc,
-                                           size_t const   size)
-:
-	_ram_alloc { ram_alloc },
-	_ram_ds    { ram_alloc.alloc(size) }
-{ }
-
-
-/****************************
- ** Session_component_base **
- ****************************/
-
-Session_component_base::
-Session_component_base(Session_env  &session_env,
-                       size_t const  tx_buf_size,
-                       size_t const  rx_buf_size)
+Nic_session_component_base::
+Nic_session_component_base(Session_env  &session_env,
+                           size_t const  tx_buf_size,
+                           size_t const  rx_buf_size)
 :
 	_session_env  { session_env },
 	_alloc        { _session_env, _session_env },
@@ -51,11 +39,11 @@ Session_component_base(Session_env  &session_env,
 { }
 
 
-/*****************************************
- ** Session_component::Interface_policy **
- *****************************************/
+/*********************************************
+ ** Nic_session_component::Interface_policy **
+ *********************************************/
 
-Net::Session_component::
+Net::Nic_session_component::
 Interface_policy::Interface_policy(Genode::Session_label const &label,
                                    Session_env           const &session_env,
                                    Configuration         const &config)
@@ -69,7 +57,7 @@ Interface_policy::Interface_policy(Genode::Session_label const &label,
 
 
 Domain_name
-Net::Session_component::Interface_policy::determine_domain_name() const
+Net::Nic_session_component::Interface_policy::determine_domain_name() const
 {
 	Domain_name domain_name;
 	try {
@@ -90,7 +78,7 @@ Net::Session_component::Interface_policy::determine_domain_name() const
 }
 
 
-void Net::Session_component::
+void Net::Nic_session_component::
 Interface_policy::_session_link_state_transition(Transient_link_state tls)
 {
 	_transient_link_state = tls;
@@ -98,7 +86,7 @@ Interface_policy::_session_link_state_transition(Transient_link_state tls)
 }
 
 
-void Net::Session_component::Interface_policy::interface_unready()
+void Net::Nic_session_component::Interface_policy::interface_unready()
 {
 	switch (_transient_link_state) {
 	case UP_ACKNOWLEDGED:
@@ -132,7 +120,7 @@ void Net::Session_component::Interface_policy::interface_unready()
 }
 
 
-void Net::Session_component::Interface_policy::interface_ready()
+void Net::Nic_session_component::Interface_policy::interface_ready()
 {
 	switch (_transient_link_state) {
 	case DOWN_ACKNOWLEDGED:
@@ -166,7 +154,7 @@ void Net::Session_component::Interface_policy::interface_ready()
 }
 
 bool
-Net::Session_component::Interface_policy::interface_link_state() const
+Net::Nic_session_component::Interface_policy::interface_link_state() const
 {
 	switch (_transient_link_state) {
 	case DOWN_ACKNOWLEDGED: return false;
@@ -184,7 +172,7 @@ Net::Session_component::Interface_policy::interface_link_state() const
 
 
 bool
-Net::Session_component::Interface_policy::read_and_ack_session_link_state()
+Net::Nic_session_component::Interface_policy::read_and_ack_session_link_state()
 {
 	switch (_transient_link_state) {
 	case DOWN_ACKNOWLEDGED:
@@ -230,36 +218,38 @@ Net::Session_component::Interface_policy::read_and_ack_session_link_state()
 }
 
 
-void Net::Session_component::Interface_policy::
+void Net::Nic_session_component::Interface_policy::
 session_link_state_sigh(Signal_context_capability sigh)
 {
 	_session_link_state_sigh = sigh;
 }
 
 
-/***********************
- ** Session_component **
- ***********************/
+/***************************
+ ** Nic_session_component **
+ ***************************/
 
-Net::Session_component::Session_component(Session_env                    &session_env,
-                                          size_t                   const  tx_buf_size,
-                                          size_t                   const  rx_buf_size,
-                                          Timer::Connection              &timer,
-                                          Mac_address              const  mac,
-                                          Mac_address              const &router_mac,
-                                          Session_label            const &label,
-                                          Interface_list                 &interfaces,
-                                          Configuration                  &config,
-                                          Ram_dataspace_capability const  ram_ds)
+Net::
+Nic_session_component::
+Nic_session_component(Session_env                    &session_env,
+                      size_t                   const  tx_buf_size,
+                      size_t                   const  rx_buf_size,
+                      Timer::Connection              &timer,
+                      Mac_address              const  mac,
+                      Mac_address              const &router_mac,
+                      Session_label            const &label,
+                      Interface_list                 &interfaces,
+                      Configuration                  &config,
+                      Ram_dataspace_capability const  ram_ds)
 :
-	Session_component_base { session_env, tx_buf_size,rx_buf_size },
-	Session_rpc_object     { _session_env, _tx_buf.ds(), _rx_buf.ds(),
-	                         &_packet_alloc, _session_env.ep().rpc_ep() },
-	_interface_policy      { label, _session_env, config },
-	_interface             { _session_env.ep(), timer, router_mac, _alloc,
-	                         mac, config, interfaces, *_tx.sink(),
-	                         *_rx.source(), _interface_policy },
-	_ram_ds                { ram_ds }
+	Nic_session_component_base { session_env, tx_buf_size,rx_buf_size },
+	Session_rpc_object         { _session_env, _tx_buf.ds(), _rx_buf.ds(),
+	                             &_packet_alloc, _session_env.ep().rpc_ep() },
+	_interface_policy          { label, _session_env, config },
+	_interface                 { _session_env.ep(), timer, router_mac, _alloc,
+	                             mac, config, interfaces, *_tx.sink(),
+	                             *_rx.source(), _interface_policy },
+	_ram_ds                    { ram_ds }
 {
 	_interface.attach_to_domain();
 
@@ -270,42 +260,42 @@ Net::Session_component::Session_component(Session_env                    &sessio
 }
 
 
-bool Net::Session_component::link_state()
+bool Net::Nic_session_component::link_state()
 {
 	return _interface_policy.read_and_ack_session_link_state();
 }
 
 
 void Net::
-Session_component::link_state_sigh(Signal_context_capability sigh)
+Nic_session_component::link_state_sigh(Signal_context_capability sigh)
 {
 	_interface_policy.session_link_state_sigh(sigh);
 }
 
 
-/**********
- ** Root **
- **********/
+/**********************
+ ** Nic_session_root **
+ **********************/
 
-Net::Root::Root(Env               &env,
-                Timer::Connection &timer,
-                Allocator         &alloc,
-                Configuration     &config,
-                Quota             &shared_quota,
-                Interface_list    &interfaces)
+Net::Nic_session_root::Nic_session_root(Env               &env,
+                                        Timer::Connection &timer,
+                                        Allocator         &alloc,
+                                        Configuration     &config,
+                                        Quota             &shared_quota,
+                                        Interface_list    &interfaces)
 :
-	Root_component<Session_component> { &env.ep().rpc_ep(), &alloc },
-	_env                              { env },
-	_timer                            { timer },
-	_mac_alloc                        { MAC_ALLOC_BASE },
-	_router_mac                       { _mac_alloc.alloc() },
-	_config                           { config },
-	_shared_quota                     { shared_quota },
-	_interfaces                       { interfaces }
+	Root_component<Nic_session_component> { &env.ep().rpc_ep(), &alloc },
+	_env                                  { env },
+	_timer                                { timer },
+	_mac_alloc                            { MAC_ALLOC_BASE },
+	_router_mac                           { _mac_alloc.alloc() },
+	_config                               { config },
+	_shared_quota                         { shared_quota },
+	_interfaces                           { interfaces }
 { }
 
 
-Session_component *Net::Root::_create_session(char const *args)
+Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
 {
 	try {
 		/* create session environment temporarily on the stack */
@@ -316,7 +306,7 @@ Session_component *Net::Root::_create_session(char const *args)
 		/* alloc/attach RAM block and move session env to base of the block */
 		Ram_dataspace_capability ram_ds {
 			session_env_stack.alloc(sizeof(Session_env) +
-			                        sizeof(Session_component), CACHED) };
+			                        sizeof(Nic_session_component), CACHED) };
 		try {
 			void * const ram_ptr { session_env_stack.attach(ram_ds) };
 			Session_env &session_env {
@@ -327,14 +317,13 @@ Session_component *Net::Root::_create_session(char const *args)
 				Session_label const label { label_from_args(args) };
 				Mac_address   const mac   { _mac_alloc.alloc() };
 				try {
-					Session_component *x = construct_at<Session_component>(
+					return construct_at<Nic_session_component>(
 						(void*)((addr_t)ram_ptr + sizeof(Session_env)),
 						session_env,
 						Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
 						Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
 						_timer, mac, _router_mac, label, _interfaces,
 						_config(), ram_ds);
-					return x;
 				}
 				catch (Out_of_ram) {
 					_mac_alloc.free(mac);
@@ -392,7 +381,7 @@ Session_component *Net::Root::_create_session(char const *args)
 	}
 }
 
-void Net::Root::_destroy_session(Session_component *session)
+void Net::Nic_session_root::_destroy_session(Nic_session_component *session)
 {
 	Mac_address const mac = session->mac_address();
 
@@ -400,7 +389,7 @@ void Net::Root::_destroy_session(Session_component *session)
 	Ram_dataspace_capability  ram_ds        { session->ram_ds() };
 	Session_env        const &session_env   { session->session_env() };
 	Session_label      const  session_label { session->interface_policy().label() };
-	session->~Session_component();
+	session->~Nic_session_component();
 
 	/* copy session env to stack and detach/free all session data */
 	Session_env session_env_stack { session_env };
@@ -420,7 +409,7 @@ void Net::Root::_destroy_session(Session_component *session)
 }
 
 
-void Net::Root::_invalid_downlink(char const *reason)
+void Net::Nic_session_root::_invalid_downlink(char const *reason)
 {
 	if (_config().verbose()) {
 		log("[?] invalid downlink (", reason, ")"); }

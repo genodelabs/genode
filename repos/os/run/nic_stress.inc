@@ -83,7 +83,10 @@ append_if [string equal $type "nic_router"] config {
 
 	<start name="nic_router" caps="1000">
 		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Nic"/></provides>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
 		<config>
 			<policy label_prefix="nic_stress_2" domain="default"/>
 			<policy label_prefix="nic_stress_1" domain="default"/>
@@ -97,7 +100,10 @@ append_if [string equal $type "nic_bridge"] config {
 
 	<start name="nic_router" caps="1000">
 		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Nic"/></provides>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
 		<config>
 			<policy label_prefix="nic_bridge" domain="default"/>
 			<domain name="default" interface="10.0.2.55/24"/>

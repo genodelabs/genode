@@ -11,6 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
+#include <uplink_session/uplink_session.h>
+
+/* local includes */
 #include <runtime.h>
 
 
@@ -22,7 +26,14 @@ void Sculpt::gen_nic_router_start_content(Xml_generator &xml,
 	gen_common_start_content(xml, "nic_router",
 	                         Cap_quota{300}, Ram_quota{10*1024*1024});
 
-	gen_provides<Nic::Session>(xml);
+	xml.node("provides", [&] () {
+		xml.node("service", [&] () {
+			xml.attribute("name", Nic::Session::service_name());
+		});
+		xml.node("service", [&] () {
+			xml.attribute("name", Uplink::Session::service_name());
+		});
+	});
 
 	xml.node("route", [&] () {
 

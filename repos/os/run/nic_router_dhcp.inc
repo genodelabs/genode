@@ -142,7 +142,10 @@ append config {
 	<start name="nic_router_1">
 		<binary name="nic_router"/>
 		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Nic"/></provides>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
 		<route>
 			<service name="ROM" label="config">
 				<child name="dynamic_rom" label="nic_router_1.config"/>
@@ -154,7 +157,10 @@ append config {
 	<start name="nic_router_2">
 		<binary name="nic_router"/>
 		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Nic"/></provides>}
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>}
 
 append_if [expr ![nic_router_2_managed]] config {
 

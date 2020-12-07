@@ -41,7 +41,10 @@
 
 		<start name="nic_router">
 			<resource name="RAM" quantum="10M"/>
-			<provides><service name="Nic"/></provides>
+			<provides>
+				<service name="Nic"/>
+				<service name="Uplink"/>
+			</provides>
 			<config>
 				<domain name="default" interface="10.0.1.1/24"/>
 				<default-policy domain="default"/>

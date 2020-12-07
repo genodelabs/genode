@@ -18,7 +18,8 @@
 #include <timer_session/connection.h>
 
 /* local includes */
-#include <component.h>
+#include <nic_session_root.h>
+#include <uplink_session_root.h>
 #include <uplink.h>
 #include <configuration.h>
 
@@ -33,14 +34,15 @@ class Net::Main
 	private:
 
 		Genode::Env                    &_env;
-		Quota                           _shared_quota   { };
-		Interface_list                  _interfaces     { };
-		Timer::Connection               _timer          { _env };
-		Genode::Heap                    _heap           { &_env.ram(), &_env.rm() };
-		Genode::Attached_rom_dataspace  _config_rom     { _env, "config" };
-		Reference<Configuration>        _config         { *new (_heap) Configuration { _config_rom.xml(), _heap } };
-		Signal_handler<Main>            _config_handler { _env.ep(), *this, &Main::_handle_config };
-		Root                            _root           { _env, _timer, _heap, _config(), _shared_quota, _interfaces };
+		Quota                           _shared_quota        { };
+		Interface_list                  _interfaces          { };
+		Timer::Connection               _timer               { _env };
+		Genode::Heap                    _heap                { &_env.ram(), &_env.rm() };
+		Genode::Attached_rom_dataspace  _config_rom          { _env, "config" };
+		Reference<Configuration>        _config              { *new (_heap) Configuration { _config_rom.xml(), _heap } };
+		Signal_handler<Main>            _config_handler      { _env.ep(), *this, &Main::_handle_config };
+		Nic_session_root                _nic_session_root    { _env, _timer, _heap, _config(), _shared_quota, _interfaces };
+		Uplink_session_root             _uplink_session_root { _env, _timer, _heap, _config(), _shared_quota, _interfaces };
 
 		void _handle_config();
 
@@ -67,7 +69,8 @@ Net::Main::Main(Env &env) : _env(env)
 {
 	_config_rom.sigh(_config_handler);
 	_handle_config();
-	env.parent().announce(env.ep().manage(_root));
+	env.parent().announce(env.ep().manage(_nic_session_root));
+	env.parent().announce(env.ep().manage(_uplink_session_root));
 }
 
 
@@ -81,7 +84,8 @@ void Net::Main::_handle_config()
 		Configuration(_env, _config_rom.xml(), _heap, _timer, old_config,
 		              _shared_quota, _interfaces);
 
-	_root.handle_config(new_config);
+	_nic_session_root.handle_config(new_config);
+	_uplink_session_root.handle_config(new_config);
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_1(new_config); });
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_2(); });
 	_config = Reference<Configuration>(new_config);

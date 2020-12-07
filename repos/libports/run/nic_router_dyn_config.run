@@ -378,7 +378,10 @@ append config {
 
 	<start name="nic_router" caps="200" priority="-1">
 		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Nic"/></provides>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
 		<route>
 			<service name="ROM" label="config"> <child name="dynamic_rom" label="nic_router.config"/> </service>
 			<service name="Nic"> <child name="nic_bridge"/> </service>

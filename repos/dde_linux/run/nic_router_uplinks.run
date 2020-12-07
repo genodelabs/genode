@@ -317,7 +317,10 @@ append config {
 	<start name="router" caps="200" priority="-2">
 		<binary name="nic_router"/>
 		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Nic"/></provides>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
 		<route>
 			<service name="Nic" label="nic">
 				<child name="nic_drv"/>
