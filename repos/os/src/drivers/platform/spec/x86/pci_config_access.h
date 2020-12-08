@@ -23,7 +23,7 @@
 
 using namespace Genode;
 
-namespace Platform { namespace Pci { struct Bdf; } }
+namespace Platform { namespace Pci { struct Bdf; struct Config; } }
 
 
 struct Platform::Pci::Bdf
@@ -209,5 +209,65 @@ namespace Platform {
 			}
 	};
 }
+
+/**
+ * Type-safe, fine-grained access to a PCI config space of a device
+ *
+ * It is similar to Genode::Mmio but uses Config_access as backend.
+ */
+struct Platform::Pci::Config: Register_set<Platform::Pci::Config>
+{
+	private:
+
+		friend Register_set_plain_access;
+
+		Config_access &_config;
+		Pci::Bdf       _bdf;
+		uint16_t       _cap;
+
+		template <typename ACCESS_T>
+		inline ACCESS_T _read(off_t const &offset) const
+		{
+			addr_t const cap = _cap + offset;
+
+			if (sizeof(ACCESS_T) == 1)
+				return _config.read(_bdf, cap, Device::ACCESS_8BIT);
+			if (sizeof(ACCESS_T) == 2)
+				return _config.read(_bdf, cap, Device::ACCESS_16BIT);
+			if (sizeof(ACCESS_T) == 4)
+				return _config.read(_bdf, cap, Device::ACCESS_32BIT);
+
+			warning("unsupported read ", sizeof(ACCESS_T));
+			return 0;
+		}
+
+		template <typename ACCESS_T>
+		inline void _write(off_t const offset, ACCESS_T const value)
+		{
+			addr_t const cap = _cap + offset;
+
+			switch (sizeof(ACCESS_T)) {
+			case 1 :
+				_config.write(_bdf, cap, value, Device::ACCESS_8BIT);
+				break;
+			case 2 :
+				_config.write(_bdf, cap, value, Device::ACCESS_16BIT);
+				break;
+			case 4 :
+				_config.write(_bdf, cap, value, Device::ACCESS_32BIT);
+				break;
+			default:
+				warning("unsupported write ", sizeof(ACCESS_T));
+			}
+		}
+
+	public:
+
+		Config(Config_access &config, Pci::Bdf const &bdf, uint16_t cap)
+		:
+			Register_set<Config>(*this), _config(config), _bdf(bdf), _cap(cap)
+		{ }
+
+};
 
 #endif /* _X86_PCI_CONFIG_ACCESS_H_ */
