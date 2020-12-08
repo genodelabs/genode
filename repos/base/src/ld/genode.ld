@@ -15,8 +15,8 @@ ENTRY(_start)
 
 PHDRS
 {
-	ro PT_LOAD;
-	rw PT_LOAD;
+	ro PT_LOAD FLAGS(5);
+	rw PT_LOAD FLAGS(6);
 	boot PT_LOAD FLAGS(4);
 }
 
