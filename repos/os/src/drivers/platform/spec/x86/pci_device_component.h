@@ -44,6 +44,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		Device_component &operator = (Device_component const &);
 
 		Genode::Env                 &_env;
+		Pci::Config::Delayer        &_delayer;
 		Device_config                _device_config { };
 		Genode::addr_t               _config_space;
 		Config_access                _config_access;
@@ -289,9 +290,11 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		                 Config_access &config_access,
 		                 Platform::Session_component &session,
 		                 Genode::Allocator &md_alloc,
-		                 Genode::Allocator &global_heap)
+		                 Genode::Allocator &global_heap,
+		                 Pci::Config::Delayer &delayer)
 		:
 			_env(env),
+			_delayer(delayer),
 			_device_config(device_config), _config_space(addr),
 			_config_access(config_access),
 			_session(session),
@@ -312,9 +315,11 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		Device_component(Genode::Env &env,
 		                 Genode::Attached_io_mem_dataspace &pciconf,
 		                 Platform::Session_component &session, unsigned irq,
-		                 Genode::Allocator &global_heap)
+		                 Genode::Allocator &global_heap,
+		                 Pci::Config::Delayer &delayer)
 		:
 			_env(env),
+			_delayer(delayer),
 			_config_space(~0UL),
 			_config_access(pciconf),
 			_session(session),

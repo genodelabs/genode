@@ -2,7 +2,7 @@ assert_spec pci
 #
 # Build
 #
-set build_components { core init test/pci }
+set build_components { core init test/pci timer }
 
 set use_acpica_as_acpi_drv 0
 
@@ -46,7 +46,12 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
 
 append_platform_drv_config
 
@@ -64,7 +69,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init test-pci
+	core ld.lib.so init test-pci timer
 }
 
 # platform-specific modules

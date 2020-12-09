@@ -19,6 +19,7 @@
 #include <base/rpc_server.h>
 #include <base/tslab.h>
 #include <root/component.h>
+#include <timer_session/connection.h>
 
 #include <util/mmio.h>
 #include <util/retry.h>
@@ -215,6 +216,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Genode::List<Device_component>     _device_list { };
 		Platform::Pci_buses               &_pci_bus;
 		Genode::Heap                      &_global_heap;
+		Pci::Config::Delayer              &_delayer;
 		bool                               _iommu;
 
 		/**
@@ -477,6 +479,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		                  Genode::Attached_io_mem_dataspace &pciconf,
 		                  Platform::Pci_buses               &buses,
 		                  Genode::Heap                      &global_heap,
+		                  Pci::Config::Delayer              &delayer,
 		                  char                        const *args,
 		                  bool                        const iommu)
 		:
@@ -487,7 +490,10 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_cap_guard(Genode::cap_quota_from_args(args)),
 			_md_alloc(_env_ram, env.rm()),
 			_label(Genode::label_from_args(args)),
-			_pci_bus(buses), _global_heap(global_heap), _iommu(iommu)
+			_pci_bus(buses),
+			_global_heap(global_heap),
+			_delayer(delayer),
+			_iommu(iommu)
 		{
 			/* subtract the RPC session and session dataspace capabilities */
 			_cap_guard.withdraw(Genode::Cap_quota{2});
@@ -694,8 +700,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				 * device and return its capability.
 				 */
 				Device_component * dev = new (_md_alloc)
-					Device_component(_env, config, config_space, config_access, *this,
-					                 _md_alloc, _global_heap);
+					Device_component(_env, config, config_space, config_access,
+					                 *this, _md_alloc, _global_heap, _delayer);
 
 				_device_list.insert(dev);
 
@@ -824,6 +830,13 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		Genode::Constructible<Platform::Pci_buses> _buses { };
 
 		bool _iommu { false };
+
+		struct Timer_delayer : Pci::Config::Delayer, Timer::Connection
+		{
+			Timer_delayer(Env &env) : Timer::Connection(env) { }
+
+			void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
+		} _delayer { _env };
 
 		void _parse_report_rom(Genode::Env &env, const char * acpi_rom,
 		                       bool acpi_platform)
@@ -1011,7 +1024,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 			try {
 				return  new (md_alloc())
 					Session_component(_env, _config, *_pci_confspace, *_buses,
-					                  _heap, args, _iommu);
+					                  _heap, _delayer, args, _iommu);
 			}
 			catch (Genode::Session_policy::No_policy_defined) {
 				Genode::error("Invalid session request, no matching policy for ",
