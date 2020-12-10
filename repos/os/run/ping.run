@@ -1,11 +1,67 @@
-if {[have_spec foc] || [have_spec linux] ||
-    [have_spec rpi3] ||
+#
+# For running this script on Linux in your private network there is some
+# preparation required. Let's assume 'eth0' is your physical network device
+# (run 'ifconfig' for that), 'shrimp' is your Linux user name, and
+# 192.168.178.1 is the IP of a device in your local network you want to ping.
+# You would do the following:
+#
+# 1) Establish a bridge between a TAP device and a physical network device in
+#    your Linux:
+#    ! sudo brctl addbr br0
+#    ! sudo ip addr flush dev eth0
+#    ! sudo brctl addif br0 eth0
+#    ! sudo ip tuntap add tap0 mode tap user shrimp
+#    ! sudo brctl addif br0 tap0
+#    ! sudo ifconfig eth0 up
+#    ! sudo ifconfig tap0 up
+#    ! sudo ifconfig br0 up
+#    ! brctl show
+#    ! sudo dhclient -v br0
+#
+# 2) Now you can do testing with the script:
+#    ! cd <GENODE_DIR>/build/x86_64
+#    ! make run/ping KERNEL=linux BOARD=linux ON_LINUX_WITH_DST_IP=192.168.178.1
+#
+# 3) Clean up your Linux when done testing:
+#    ! sudo brctl delif br0 tap0
+#    ! sudo ip tuntap delete tap0 mode tap
+#    ! sudo brctl delif br0 eth0
+#    ! sudo ifconfig br0 down
+#    ! sudo brctl delbr br0
+#    ! sudo ifconfig eth0 up
+#    ! sudo dhclient -v eth0
+#
+
+if {[have_spec foc] || [have_spec rpi3] ||
     [expr [have_spec imx53] && [have_spec trustzone]]} {
+
 	puts "Run script is not supported on this platform."
 	exit 0
 }
 
+if {[get_cmd_switch --autopilot] && [have_spec linux]} {
+	puts "Run script does not support autopilot on Linux."
+	exit 0
+}
+
+set on_linux_with_dst_ip ""
+catch {set on_linux_with_dst_ip $::env(ON_LINUX_WITH_DST_IP)}
+set on_linux [expr ![string equal $on_linux_with_dst_ip ""]]
+
+if {[expr [have_spec linux] && !$on_linux]} {
+
+	puts "You must set 'on_linux_with_dst_ip' in the run script if you want to run on Linux."
+	exit 0
+}
+
+if {[expr ![have_spec linux] && $on_linux]} {
+
+	puts "You must run on Linux if 'on_linux_with_dst_ip' in the run script is set."
+	exit 0
+}
+
 set on_hardware [expr ![have_include power_on/qemu]]
+set second_ping_via_udp [expr $on_hardware && !$on_linux]
 
 create_boot_directory
 
@@ -17,7 +73,15 @@ import_from_depot [depot_user]/src/[base_src] \
 build { app/ping }
 
 proc dst_ip { } {
-	if {![have_include power_on/qemu]} {
+
+	global on_linux_with_dst_ip
+	global on_linux
+	if {$on_linux} {
+		return $on_linux_with_dst_ip
+	}
+
+	global on_hardware
+	if {$on_hardware} {
 		return "10.0.0.2"
 	} else {
 		return "10.0.2.2"
@@ -70,7 +134,7 @@ append config {
 		</route>
 	</start>}
 
-append_if $on_hardware config {
+append_if $second_ping_via_udp config {
 	<start name="ping_2">
 		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
@@ -108,7 +172,6 @@ append qemu_args " -nographic "
 append_qemu_nic_args
 
 set done_string ".*\"ping_1\" exited with exit value 0.*\n"
-
-append_if $on_hardware done_string ".*ping_2\] From [dst_ip] Destination Unreachable.*\n"
+append_if $second_ping_via_udp done_string ".*ping_2\] From [dst_ip] Destination Unreachable.*\n"
 
 run_genode_until $done_string 30
