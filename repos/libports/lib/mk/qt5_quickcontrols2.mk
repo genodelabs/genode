@@ -38,8 +38,26 @@ built.tag: qmake_prepared.tag
 		$(STRIP) libQt5QuickControls2.lib.so -o libQt5QuickControls2.lib.so.stripped && \
 		$(STRIP) libQt5QuickTemplates2.lib.so -o libQt5QuickTemplates2.lib.so.stripped
 
+	$(VERBOSE)cd $(CURDIR)/install/qt/qml/Qt/labs/calendar && \
+		$(STRIP) libqtlabscalendarplugin.lib.so -o libqtlabscalendarplugin.lib.so.stripped
+
+	$(VERBOSE)cd $(CURDIR)/install/qt/qml/Qt/labs/platform && \
+		$(STRIP) libqtlabsplatformplugin.lib.so -o libqtlabsplatformplugin.lib.so.stripped
+
 	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2 && \
 		$(STRIP) libqtquickcontrols2plugin.lib.so -o libqtquickcontrols2plugin.lib.so.stripped
+
+	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Fusion && \
+		$(STRIP) libqtquickcontrols2fusionstyleplugin.lib.so -o libqtquickcontrols2fusionstyleplugin.lib.so.stripped
+
+	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Imagine && \
+		$(STRIP) libqtquickcontrols2imaginestyleplugin.lib.so -o libqtquickcontrols2imaginestyleplugin.lib.so.stripped
+
+	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Material && \
+		$(STRIP) libqtquickcontrols2materialstyleplugin.lib.so -o libqtquickcontrols2materialstyleplugin.lib.so.stripped
+
+	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Universal && \
+		$(STRIP) libqtquickcontrols2universalstyleplugin.lib.so -o libqtquickcontrols2universalstyleplugin.lib.so.stripped
 
 	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Templates.2 && \
 		$(STRIP) libqtquicktemplates2plugin.lib.so -o libqtquicktemplates2plugin.lib.so.stripped
@@ -51,7 +69,13 @@ built.tag: qmake_prepared.tag
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickControls2.lib.so.stripped $(PWD)/bin/libQt5QuickControls2.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickTemplates2.lib.so.stripped $(PWD)/bin/libQt5QuickTemplates2.lib.so
 
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/calendar/libqtlabscalendarplugin.lib.so.stripped $(PWD)/bin/libqtlabscalendarplugin.lib.so
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/platform/libqtlabsplatformplugin.lib.so.stripped $(PWD)/bin/libqtlabsplatformplugin.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/libqtquickcontrols2plugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2plugin.lib.so
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Fusion/libqtquickcontrols2fusionstyleplugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2fusionstyleplugin.lib.so
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Imagine/libqtquickcontrols2imaginestyleplugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2imaginestyleplugin.lib.so
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Material/libqtquickcontrols2materialstyleplugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2materialstyleplugin.lib.so
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Universal/libqtquickcontrols2universalstyleplugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2universalstyleplugin.lib.so
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Templates.2/libqtquicktemplates2plugin.lib.so.stripped $(PWD)/bin/libqtquicktemplates2plugin.lib.so
 
 	@#
@@ -61,7 +85,13 @@ built.tag: qmake_prepared.tag
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickControls2.lib.so $(PWD)/debug/
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickTemplates2.lib.so $(PWD)/debug/
 
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/calendar/libqtlabscalendarplugin.lib.so $(PWD)/debug/
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/platform/libqtlabsplatformplugin.lib.so $(PWD)/debug/
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/libqtquickcontrols2plugin.lib.so $(PWD)/debug/
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Fusion/libqtquickcontrols2fusionstyleplugin.lib.so $(PWD)/debug/
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Imagine/libqtquickcontrols2imaginestyleplugin.lib.so $(PWD)/debug/
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Material/libqtquickcontrols2materialstyleplugin.lib.so $(PWD)/debug/
+	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Universal/libqtquickcontrols2universalstyleplugin.lib.so $(PWD)/debug/
 	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Templates.2/libqtquicktemplates2plugin.lib.so $(PWD)/debug/
 
 	@#
