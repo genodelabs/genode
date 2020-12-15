@@ -86,6 +86,8 @@ class Nonpci::Ps2 : public Platform::Device_component
 		{
 			return Genode::Io_mem_session_capability();
 		}
+
+		virtual String<5> name() const override { return "PS2"; }
 };
 
 
@@ -123,6 +125,8 @@ class Nonpci::Pit : public Platform::Device_component
 
 			return Genode::Io_port_session_capability();
 		}
+
+		virtual String<5> name() const override { return "PIT"; }
 };
 
 

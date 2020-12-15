@@ -547,6 +547,17 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		Device_config device_config() const { return _device_config; }
 		Genode::addr_t config_space() const { return _config_space; }
 
+		virtual String<5> name() const { return "PCI"; }
+
+		template <typename FUNC>
+		void for_each_device(FUNC const &fn) const
+		{
+			fn(*this);
+
+			for (auto *dev = this; dev; dev = dev->next()) {
+				fn(*dev); }
+		}
+
 		/**************************
 		 ** PCI-device interface **
 		 **************************/

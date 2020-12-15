@@ -42,8 +42,12 @@ struct Platform::Main
 	Genode::Constructible<Genode::Attached_rom_dataspace> system_state { };
 	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_ready { };
 
-	Genode::Signal_handler<Platform::Main> _acpi_report;
-	Genode::Signal_handler<Platform::Main> _system_report;
+	Signal_handler<Main> _acpi_report    { _env.ep(), *this,
+	                                       &Main::acpi_update };
+	Signal_handler<Main> _system_report  { _env.ep(), *this,
+	                                       &Main::system_update };
+	Signal_handler<Main> _config_handler { _env.ep(), *this,
+	                                       &Main::config_update };
 
 	Genode::Capability<Genode::Typed_root<Platform::Session_component> > root_cap { };
 
@@ -52,14 +56,22 @@ struct Platform::Main
 
 	void acpi_update()
 	{
-		acpi_rom->update();
+		if (!root.constructed()) {
+			acpi_rom->update();
 
-		if (!acpi_rom->valid() || root.constructed())
+			if (!acpi_rom->valid())
+				return;
+
+			root.construct(_env, sliced_heap, _config,
+			               acpi_rom->local_addr<const char>(), _acpi_platform);
+		}
+
+		if (root_cap.valid())
 			return;
 
-		const char * report_addr = acpi_rom->local_addr<const char>();
-
-		root.construct(_env, sliced_heap, _config, report_addr, _acpi_platform);
+		/* don't announce service if no policy entry is available */
+		if (!root->config_with_policy())
+			return;
 
 		root_cap = _env.ep().manage(*root);
 
@@ -92,6 +104,23 @@ struct Platform::Main
 		}
 	}
 
+	void config_update()
+	{
+		_config.update();
+
+		if (!_config.valid())
+			return;
+
+		if (!root_cap.valid())
+			acpi_update();
+
+
+		if (root.constructed()) {
+			root->generate_pci_report();
+			root->config_update();
+		}
+	}
+
 	static bool acpi_platform(Genode::Env & env)
 	{
 		using Name = String<32>;
@@ -110,13 +139,12 @@ struct Platform::Main
 	Main(Genode::Env &env)
 	:
 		_env(env),
-		_acpi_report(_env.ep(), *this, &Main::acpi_update),
-		_system_report(_env.ep(), *this, &Main::system_update),
 		_acpi_platform(acpi_platform(env))
 	{
-		const Genode::Xml_node config = _config.xml();
+		_config.sigh(_config_handler);
 
-		_acpi_ready = config.attribute_value("acpi_ready", false);
+		if (_config.valid())
+			_acpi_ready = _config.xml().attribute_value("acpi_ready", false);
 
 		if (_acpi_ready) {
 			acpi_ready.construct(env, "acpi_ready");
