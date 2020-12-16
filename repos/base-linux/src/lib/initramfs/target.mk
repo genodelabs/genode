@@ -1,5 +1,7 @@
 TARGET = lx_init
 
+REQUIRES = x86_64
+
 INITRAMFS = initramfs
 INITRAMFS_SRC_C = init.c
 
