@@ -25,6 +25,7 @@ help:
 	$(ECHO) "BUILD_LOCATION=...   - build location (default: $(DEFAULT_BUILD_LOCATION))"
 	$(ECHO) "INSTALL_LOCATION=... - install location (default: $(DEFAULT_INSTALL_LOCATION))"
 	$(ECHO) "SUDO=...             - name of sudo command, leave empty to not use sudo (default: sudo)"
+	$(ECHO) "ENABLE_FEATURES=...  - features to enable (default: \"$(ENABLE_FEATURES)\")"
 	$(ECHO)
 
 #
@@ -32,6 +33,7 @@ help:
 #
 
 SUPPORTED_PLATFORMS := x86 arm riscv aarch64
+ENABLE_FEATURES     ?= c c++ ada go gdb
 
 PLATFORM := $(firstword $(filter $(SUPPORTED_PLATFORMS),$(MAKECMDGOALS)))
 
@@ -169,8 +171,11 @@ GNAT_OK = $(call check_equal_f,$(shell gnatmake --version | sed -n -e 's/GNATMAK
             Need to have GNAT installed and the GNAT version must match the GCC version (found GCC $(HOST_GCC_VERSION)).)
 
 TOOLS_OK = $(AUTOCONF_OK) $(AUTOCONFINST_OK) $(PKG_CONFIG_OK) $(CURSES_OK) \
-           $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK) $(EXPAT_OK) \
-           $(GNAT_OK)
+           $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK) $(EXPAT_OK)
+
+ifneq ($(filter ada,$(ENABLE_FEATURES)),)
+TOOLS_OK += $(GNAT_OK) $(GPRBUILD_OK)
+endif
 
 ifneq ($(strip $(TOOLS_OK)),)
 $(error Please install missing tools.)
@@ -191,6 +196,8 @@ TARGET_NAME_riscv      = riscv64-unknown-elf
 TARGET_NAME_aarch64    = aarch64-none-elf
 
 GCC_CONFIG_riscv       = --with-arch=rv64imac --with-abi=lp64
+INSTALL_riscv          = cd $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64 && \
+                         $(SUDO) ln -sf ../../include include
 
 ifneq ($(VERBOSE),)
 CONFIG_QUIET = --quiet
@@ -204,17 +211,19 @@ COMMON_BOOTSTRAP_CONFIG = $(CONFIG_QUIET) \
 
 BINUTILS_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG)
 
-ifeq ($(PLATFORM),riscv)
-LANGUAGES              = c,c++
-LIB_GCC                = cd $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64 && \
-                         $(SUDO) ln -sf ../../include include
-else
-LANGUAGES              = c,c++,ada
-LIB_GCC                =
+LANGUAGES := $(filter-out gdb, $(ENABLE_FEATURES))
+LANGUAGES := $(shell echo "${LANGUAGES}" | sed -e 's/ /,/g')
+
+ifeq ($(filter ada,$(LANGUAGES)),)
+ALI2DEP_INSTALLED_BINARY =
+endif
+
+ifeq ($(filter gdb,$(ENABLE_FEATURES)),)
+GDB_INSTALLED_BINARIES =
 endif
 
 GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
-                        --enable-languages=c,c++,ada \
+                        --enable-languages=$(LANGUAGES) \
                         --disable-libatomic \
                         --disable-libcilkrts \
                         --disable-libgomp \
@@ -258,7 +267,7 @@ BINUTILS_CONFIG += $(BINUTILS_CONFIG_$(PLATFORM))
 GDB_CONFIG += $(COMMON_CONFIG) --disable-werror --disable-sim
 
 GCC_CONFIG += $(COMMON_CONFIG) \
-              --enable-languages=$(LANGUAGES),go \
+              --enable-languages=$(LANGUAGES) \
               --disable-libgo \
               --disable-gotools \
               --disable-libssp \
@@ -321,9 +330,9 @@ BINUTILS_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-o
 GCC_BINARIES                = $(BUILD_LOCATION)/$(PLATFORM)/gcc/gcc/g++-cross
 GCC_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-g++
 GDB_BINARIES                = $(BUILD_LOCATION)/$(PLATFORM)/gdb/gdb/gdb
-GDB_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
+GDB_INSTALLED_BINARIES     ?= $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
 ALI2DEP_BINARY              = $(BUILD_LOCATION)/ali2dep/ali2dep
-ALI2DEP_INSTALLED_BINARY    = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-ali2dep
+ALI2DEP_INSTALLED_BINARY   ?= $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-ali2dep
 
 build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES) $(ALI2DEP_INSTALLED_BINARY)
 
@@ -478,6 +487,7 @@ install: build_all
 	$(VERBOSE)$(SUDO) mkdir -p $(INSTALL_LOCATION)
 	$(VERBOSE)$(SUDO) cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
 	$(VERBOSE)$(LIB_GCC)
+	$(VERBOSE)$(INSTALL_$(PLATFORM))
 ifeq ($(INSTALL_LOCATION),$(DEFAULT_INSTALL_LOCATION))
 	$(VERBOSE)$(SUDO) ln -snf $(TOOL_CHAIN_VERSION) $(dir $(INSTALL_LOCATION))current
 endif
