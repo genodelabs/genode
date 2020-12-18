@@ -349,8 +349,9 @@ Platform_thread::~Platform_thread()
 }
 
 Foc::l4_cap_idx_t Platform_thread::setup_vcpu(unsigned const vcpu_id,
-                                                 Cap_mapping const &task_vcpu,
-                                                 Cap_mapping &vcpu_irq)
+                                              Cap_mapping const &task_vcpu,
+                                              Cap_mapping &vcpu_irq,
+                                              Region_map::Local_addr &vcpu_state)
 {
 	if (!_platform_pd)
 		return Foc::L4_INVALID_CAP;
@@ -358,8 +359,11 @@ Foc::l4_cap_idx_t Platform_thread::setup_vcpu(unsigned const vcpu_id,
 	if (vcpu_id >= (Platform::VCPU_VIRT_EXT_END - Platform::VCPU_VIRT_EXT_START) / L4_PAGESIZE)
 		return Foc::L4_INVALID_CAP;
 
-	addr_t     const vcpu_addr = Platform::VCPU_VIRT_EXT_START + L4_PAGESIZE*vcpu_id;
-	l4_fpage_t const vm_page   = l4_fpage( vcpu_addr, L4_PAGESHIFT, L4_FPAGE_RW);
+	/* vCPU state attached by kernel syscall to client PD directly */
+	vcpu_state = Region_map::Local_addr(Platform::VCPU_VIRT_EXT_START +
+	                                    L4_PAGESIZE * vcpu_id);
+
+	l4_fpage_t const vm_page = l4_fpage(vcpu_state, L4_PAGESHIFT, L4_FPAGE_RW);
 
 	l4_msgtag_t msg = l4_task_add_ku_mem(_platform_pd->native_task().data()->kcap(), vm_page);
 	if (l4_error(msg)) {
@@ -367,7 +371,7 @@ Foc::l4_cap_idx_t Platform_thread::setup_vcpu(unsigned const vcpu_id,
 		return Foc::L4_INVALID_CAP;
 	}
 
-	msg = l4_thread_vcpu_control_ext(_thread.local.data()->kcap(), vcpu_addr);
+	msg = l4_thread_vcpu_control_ext(_thread.local.data()->kcap(), vcpu_state);
 	if (l4_error(msg)) {
 		error("vcpu_control_exit failed ", l4_error(msg));
 		return Foc::L4_INVALID_CAP;

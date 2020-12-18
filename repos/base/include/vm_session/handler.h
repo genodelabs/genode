@@ -1,11 +1,12 @@
 /*
- * \brief  Client-side VM session exception handler
+ * \brief  Client-side VM session vCPU exception handler
  * \author Alexander Boettcher
+ * \author Christian Helmuth
  * \date   2018-09-29
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,44 +18,43 @@
 #include <base/signal.h>
 
 namespace Genode {
-	class Vm_state;
-	class Vm_handler_base;
-	template <typename, typename> class Vm_handler;
+	class Vcpu_state;
+	class Vcpu_handler_base;
+	template <typename, typename> class Vcpu_handler;
 }
 
-class Genode::Vm_handler_base : public Signal_dispatcher_base
+class Genode::Vcpu_handler_base : public Signal_dispatcher_base
 {
-	friend class Vm_session_client;
-
 	protected:
 
 		Rpc_entrypoint            &_rpc_ep;
-		Signal_context_capability  _cap {};
-		Genode::Semaphore          _done { 0 };
+		Signal_context_capability  _signal_cap { };
+		Genode::Semaphore          _ready_semaphore { 0 };
 
 	public:
 
-		virtual bool config_vm_event(Genode::Vm_state &, unsigned) = 0;
-
-		Vm_handler_base(Rpc_entrypoint &rpc)
+		Vcpu_handler_base(Rpc_entrypoint &rpc)
 		: _rpc_ep(rpc) { }
+
+		Rpc_entrypoint &          rpc_ep()          { return _rpc_ep; }
+		Signal_context_capability signal_cap()      { return _signal_cap; }
+		Genode::Semaphore &       ready_semaphore() { return _ready_semaphore; }
 };
 
 template <typename T, typename EP = Genode::Entrypoint>
-class Genode::Vm_handler : public Vm_handler_base 
+class Genode::Vcpu_handler : public Vcpu_handler_base
 {
 	private:
 
 		EP &_ep;
 		T  &_obj;
 		void (T::*_member) ();
-		void (T::*_config) (Genode::Vm_state &, unsigned const);
 
 		/*
 		 * Noncopyable
 		 */
-		Vm_handler(Vm_handler const &);
-		Vm_handler &operator = (Vm_handler const &);
+		Vcpu_handler(Vcpu_handler const &);
+		Vcpu_handler &operator = (Vcpu_handler const &);
 
 	public:
 
@@ -64,19 +64,17 @@ class Genode::Vm_handler : public Vm_handler_base
 		 * \param obj,member  object and method to call when
 		 *                    the vm exception occurs
 		 */
-		Vm_handler(EP &ep, T &obj, void (T::*member)(),
-		           void (T::*config)(Genode::Vm_state&, unsigned) = nullptr)
+		Vcpu_handler(EP &ep, T &obj, void (T::*member)())
 		:
-			Vm_handler_base(ep.rpc_ep()),
+			Vcpu_handler_base(ep.rpc_ep()),
 			_ep(ep),
 			_obj(obj),
-			_member(member),
-			_config(config)
+			_member(member)
 		{
-			_cap = ep.manage(*this);
+			_signal_cap = _ep.manage(*this);
 		}
 
-		~Vm_handler() { _ep.dissolve(*this); }
+		~Vcpu_handler() { _ep.dissolve(*this); }
 
 		/**
 		 * Interface of Signal_dispatcher_base
@@ -84,20 +82,10 @@ class Genode::Vm_handler : public Vm_handler_base
 		void dispatch(unsigned) override
 		{
 			(_obj.*_member)();
-			_done.up();
+			_ready_semaphore.up();
 		}
 
-		bool config_vm_event(Genode::Vm_state &state,
-		                     unsigned const vm_event) override
-		{
-			if (!_config)
-				return false;
-
-			(_obj.*_config)(state, vm_event);
-			return true;
-		}
-
-		operator Capability<Signal_context>() const { return _cap; }
+		operator Capability<Signal_context>() const { return _signal_cap; }
 };
 
 #endif /* _INCLUDE__VM_SESSION__HANDLER_H_ */

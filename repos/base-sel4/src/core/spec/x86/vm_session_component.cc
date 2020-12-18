@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -13,7 +13,7 @@
 
 /* base includes */
 #include <util/flex_iterator.h>
-#include <cpu/vm_state.h>
+#include <cpu/vcpu_state.h>
 
 /* core includes */
 #include <core_env.h>
@@ -24,6 +24,11 @@
 
 
 using namespace Genode;
+
+
+/********************************
+ ** Vm_session_component::Vcpu **
+ ********************************/
 
 void Vm_session_component::Vcpu::_free_up()
 {
@@ -40,15 +45,16 @@ void Vm_session_component::Vcpu::_free_up()
 	}
 }
 
-Vm_session_component::Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
-                                 Cap_quota_guard &cap_alloc,
-                                 Vcpu_id const vcpu_id,
-                                 seL4_Untyped const service)
+
+Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
+                                 Constrained_ram_allocator &ram_alloc,
+                                 Cap_quota_guard           &cap_alloc,
+                                 seL4_Untyped const         service)
 :
+	_ep(ep),
 	_ram_alloc(ram_alloc),
-	_ds_cap (_ram_alloc.alloc(align_addr(sizeof(Genode::Vm_state), 12),
-	                          Cache_attribute::CACHED)),
-	_vcpu_id(vcpu_id)
+	_ds_cap (_ram_alloc.alloc(align_addr(sizeof(Genode::Vcpu_state), 12),
+	                          Cache_attribute::CACHED))
 {
 	try {
 		/* notification cap */
@@ -59,12 +65,26 @@ Vm_session_component::Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
 		                          platform_specific().core_cnode().sel(),
 		                          _notification);
 
+		_ep.manage(this);
+
 		caps.acknowledge();
 	} catch (...) {
 		_free_up();
 		throw;
 	}
 }
+
+
+Vm_session_component::Vcpu::~Vcpu()
+{
+	_ep.dissolve(this);
+	_free_up();
+}
+
+
+/**************************
+ ** Vm_session_component **
+ **************************/
 
 Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Resources resources,
@@ -153,12 +173,11 @@ try
 	throw;
 }
 
+
 Vm_session_component::~Vm_session_component()
 {
-	for (;Vcpu * vcpu = _vcpus.first();) {
-		_vcpus.remove(vcpu);
-		destroy(_heap, vcpu);
-	}
+	_vcpus.for_each([&] (Vcpu &vcpu) {
+		destroy(_heap, &vcpu); });
 
 	/* detach all regions */
 	while (true) {
@@ -177,28 +196,27 @@ Vm_session_component::~Vm_session_component()
 		Platform_pd::pd_id_alloc().free(_pd_id);
 }
 
-Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability cap)
-{
-	Vcpu_id ret;
 
+Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_capability const cap)
+{
 	if (!cap.valid())
-		return ret;
+		return { };
+
+	Vcpu * vcpu = nullptr;
 
 	auto lambda = [&] (Cpu_thread_component *thread) {
 		if (!thread)
 			return;
 
-		/* allocate vCPU object */
-		Vcpu * vcpu = nullptr;
-
 		/* code to revert partial allocations in case of Out_of_ram/_quota */
 		auto free_up = [&] () { if (vcpu) destroy(_heap, vcpu); };
 
 		try {
-			vcpu = new (_heap) Vcpu(_constrained_md_ram_alloc,
-			                               _cap_quota_guard(),
-			                               Vcpu_id{_id_alloc},
-			                               _notifications._service);
+			vcpu = new (_heap) Registered<Vcpu>(_vcpus,
+			                                    _ep,
+			                                    _constrained_md_ram_alloc,
+			                                    _cap_quota_guard(),
+			                                    _notifications._service);
 
 			Platform_thread &pthread = thread->platform_thread();
 			pthread.setup_vcpu(_vm_page_table, vcpu->notification_cap());
@@ -218,32 +236,13 @@ Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability cap)
 			free_up();
 			return;
 		}
-
-		_vcpus.insert(vcpu);
-		ret.id = _id_alloc++;
 	};
 
 	_ep.apply(cap, lambda);
-	return ret;
+
+	return vcpu ? vcpu->cap() : Capability<Vm_session::Native_vcpu> {};
 }
 
-Dataspace_capability Vm_session_component::_cpu_state(Vcpu_id const vcpu_id)
-{
-	Vcpu * vcpu = _lookup(vcpu_id);
-	if (!vcpu)
-		return Dataspace_capability();
-
-	return vcpu->ds_cap();
-}
-
-void Vm_session_component::_pause(Vcpu_id const vcpu_id)
-{
-	Vcpu * vcpu = _lookup(vcpu_id);
-	if (!vcpu)
-		return;
-
-	vcpu->signal();
-}
 
 void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              addr_t const guest_phys,
@@ -307,6 +306,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 		page = flex.page();
 	}
 }
+
 
 void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 {

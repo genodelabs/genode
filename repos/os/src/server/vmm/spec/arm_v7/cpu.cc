@@ -161,8 +161,9 @@ Cpu::Cpu(Vm                      & vm,
          Gic                     & gic,
          Genode::Env             & env,
          Genode::Heap            & heap,
-         Genode::Entrypoint      & ep)
-: Cpu_base(vm, vm_session, bus, gic, env, heap, ep),
+         Genode::Entrypoint      & ep,
+         short const               id)
+: Cpu_base(vm, vm_session, bus, gic, env, heap, ep, id),
   _sr_midr   (0, 0, 0, 0, "MIDR",   false, 0x412fc0f1,     _reg_tree),
   _sr_mpidr  (0, 0, 0, 5, "MPIDR",  false, 1<<31|cpu_id(), _reg_tree),
   _sr_mmfr0  (0, 0, 1, 4, "MMFR0",  false, 0x10201105,     _reg_tree),

@@ -52,7 +52,7 @@ class Genode::Vm : public Vm_base
 		   Machine_type        mach,
 		   Board_revision      board,
 		   Allocator          &alloc,
-		   Vm_handler_base    &handler)
+		   Vcpu_handler_base  &handler)
 		: Vm_base(env, kernel, cmdl, ram, ram_sz, kernel_off, mach, board,
 		          alloc, handler)
 		{ }

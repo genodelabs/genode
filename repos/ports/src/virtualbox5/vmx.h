@@ -2,10 +2,11 @@
  * \brief  Genode specific VirtualBox SUPLib supplements
  * \author Norman Feske
  * \author Alexander Boettcher
+ * \author Christian Helmuth
  */
 
 /*
- * Copyright (C) 2013-2019 Genode Labs GmbH
+ * Copyright (C) 2013-2021 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -30,7 +31,7 @@
 	pCtx->REG.u64Base  = state->REG.value().base; \
 	pCtx->REG.Attr.u   = sel_ar_conv_from_genode(state->REG.value().ar)
 
-static inline bool vmx_save_state(Genode::Vm_state * state, VM * pVM, PVMCPU pVCpu)
+static inline bool vmx_save_state(Genode::Vcpu_state * state, VM * pVM, PVMCPU pVCpu)
 {
 	PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
@@ -62,16 +63,16 @@ enum { VMCS_SEG_UNUSABLE = 0x10000 };
 #define GENODE_WRITE_SELREG(REG) \
 	Assert(pCtx->REG.fFlags & CPUMSELREG_FLAGS_VALID); \
 	Assert(pCtx->REG.ValidSel == pCtx->REG.Sel); \
-	state->REG.value(Segment{pCtx->REG.Sel, \
-	                         sel_ar_conv_to_genode(pCtx->REG.Attr.u ? : VMCS_SEG_UNUSABLE), \
-	                         pCtx->REG.u32Limit, \
-	                         pCtx->REG.u64Base});
+	state->REG.charge( Segment{ .sel   = pCtx->REG.Sel, \
+	                            .ar    = sel_ar_conv_to_genode(pCtx->REG.Attr.u ? : VMCS_SEG_UNUSABLE), \
+	                            .limit = pCtx->REG.u32Limit, \
+	                            .base  = pCtx->REG.u64Base });
 
-static inline bool vmx_load_state(Genode::Vm_state * state, VM * pVM, PVMCPU pVCpu)
+static inline bool vmx_load_state(Genode::Vcpu_state * state, VM * pVM, PVMCPU pVCpu)
 {
 	PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
-	typedef Genode::Vm_state::Segment Segment;
+	typedef Genode::Vcpu_state::Segment Segment;
 
 	GENODE_WRITE_SELREG(es);
 	GENODE_WRITE_SELREG(ds);
@@ -84,16 +85,22 @@ static inline bool vmx_load_state(Genode::Vm_state * state, VM * pVM, PVMCPU pVC
 
 	/* ldtr */
 	if (pCtx->ldtr.Sel == 0) {
-		state->ldtr.value(Segment{0, sel_ar_conv_to_genode(0x82), 0, 0});
+		state->ldtr.charge(Segment { .sel   = 0,
+		                             .ar    = sel_ar_conv_to_genode(0x82),
+		                             .limit = 0,
+		                             .base  = 0 });
 	} else {
-		state->ldtr.value(Segment{pCtx->ldtr.Sel,
-		                          sel_ar_conv_to_genode(pCtx->ldtr.Attr.u),
-		                          pCtx->ldtr.u32Limit, pCtx->ldtr.u64Base});
+		state->ldtr.charge(Segment { .sel   = pCtx->ldtr.Sel,
+		                             .ar    = sel_ar_conv_to_genode(pCtx->ldtr.Attr.u),
+		                             .limit = pCtx->ldtr.u32Limit,
+		                             .base  = pCtx->ldtr.u64Base });
 	}
 
 	/* tr */
-	state->tr.value(Segment{pCtx->tr.Sel, sel_ar_conv_to_genode(pCtx->tr.Attr.u),
-	                        pCtx->tr.u32Limit, pCtx->tr.u64Base});
+	state->tr.charge(Segment { .sel   = pCtx->tr.Sel,
+	                           .ar    = sel_ar_conv_to_genode(pCtx->tr.Attr.u),
+	                           .limit = pCtx->tr.u32Limit,
+	                           .base  = pCtx->tr.u64Base });
 
 	return true;
 }

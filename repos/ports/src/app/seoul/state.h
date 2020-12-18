@@ -14,13 +14,13 @@
 #ifndef _STATE_H_
 #define _STATE_H_
 
-#include <cpu/vm_state.h>
+#include <cpu/vcpu_state.h>
 
 #include <nul/vcpu.h>
 
 namespace Seoul {
-	void write_vm_state(CpuState &, unsigned mtr, Genode::Vm_state &);
-	unsigned read_vm_state(Genode::Vm_state &, CpuState &);
+	void write_vm_state(CpuState &, unsigned mtr, Genode::Vcpu_state &);
+	unsigned read_vm_state(Genode::Vcpu_state &, CpuState &);
 }
 
 #endif /* _STATE_H_ */

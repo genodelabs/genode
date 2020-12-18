@@ -1,11 +1,12 @@
 /*
  * \brief  Core-specific instance of the VM session interface
  * \author Alexander Boettcher
+ * \author Christian Helmuth
  * \date   2018-08-26
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,6 +20,7 @@
 #include <vm_session/vm_session.h>
 #include <trace/control_area.h>
 #include <trace/source_registry.h>
+#include <nova_native_vcpu/nova_native_vcpu.h>
 
 namespace Genode { class Vm_session_component; }
 
@@ -34,63 +36,26 @@ class Genode::Vm_session_component
 		typedef Constrained_ram_allocator Con_ram_allocator;
 		typedef Allocator_avl_tpl<Rm_region> Avl_region;
 
-		class Vcpu : private List<Vcpu>::Element,
-		             public  Trace::Source::Info_accessor
+		class Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
+		             public Trace::Source::Info_accessor
 		{
-
-			friend class List<Vcpu>;
-			friend class Vm_session_component;
-
 			public:
 
-				enum State { INIT, ALIVE };
+				struct Creation_failed { };
 
 			private:
 
+				Rpc_entrypoint               &_ep;
 				Constrained_ram_allocator    &_ram_alloc;
 				Cap_quota_guard              &_cap_alloc;
 				Trace::Source_registry       &_trace_sources;
-				Ram_dataspace_capability      _ds_cap { };
 				addr_t                        _sel_sm_ec_sc;
-				addr_t                        _vm_pt_cnt { 0 };
-				Vcpu_id const                 _id;
-				State                         _state { INIT };
+				bool                          _alive { false };
+				unsigned           const      _id;
 				Affinity::Location const      _location;
+				unsigned           const      _priority;
 				Session_label      const     &_label;
-
-			public:
-
-				Vcpu(Constrained_ram_allocator &ram_alloc,
-				     Cap_quota_guard &cap_alloc,
-				     Vcpu_id const id, Affinity::Location const,
-				     Session_label const &,
-				     Trace::Control_area &,
-				     Trace::Source_registry &);
-
-				~Vcpu();
-
-				addr_t sm_sel() const { return _sel_sm_ec_sc + 0; }
-				addr_t ec_sel() const { return _sel_sm_ec_sc + 1; }
-				addr_t sc_sel() const { return _sel_sm_ec_sc + 2; }
-
-				addr_t new_pt_id();
-
-				Vcpu_id id() { return _id; }
-				bool match(Vcpu_id const id) const { return id.id == _id.id; }
-				Ram_dataspace_capability ds_cap() const { return _ds_cap; }
-
-				bool init() const { return _state == State::INIT; }
-				void alive() { _state = ALIVE; };
-
-				static addr_t invalid() { return ~0UL; }
-
-				/********************************************
-				 ** Trace::Source::Info_accessor interface **
-				 ********************************************/
-
-				Trace::Source::Info trace_source_info() const override;
-
-			private:
+				addr_t             const      _pd_sel;
 
 				struct Trace_control_slot
 				{
@@ -118,6 +83,42 @@ class Genode::Vm_session_component
 				Trace_control_slot _trace_control_slot;
 
 				Trace::Source _trace_source { *this, _trace_control_slot.control() };
+
+			public:
+
+				Vcpu(Rpc_entrypoint &,
+				     Constrained_ram_allocator &ram_alloc,
+				     Cap_quota_guard &cap_alloc,
+				     unsigned id,
+				     unsigned kernel_id,
+				     Affinity::Location,
+				     unsigned priority,
+				     Session_label const &,
+				     addr_t   pd_sel,
+				     addr_t   core_pd_sel,
+				     addr_t   vmm_pd_sel,
+				     Trace::Control_area &,
+				     Trace::Source_registry &);
+
+				~Vcpu();
+
+				addr_t sm_sel() const { return _sel_sm_ec_sc + 0; }
+				addr_t ec_sel() const { return _sel_sm_ec_sc + 1; }
+				addr_t sc_sel() const { return _sel_sm_ec_sc + 2; }
+
+				/*******************************
+				 ** Native_vcpu RPC interface **
+				 *******************************/
+
+				Capability<Dataspace> state();
+				void startup();
+				void exit_handler(unsigned, Signal_context_capability);
+
+				/********************************************
+				 ** Trace::Source::Info_accessor interface **
+				 ********************************************/
+
+				Trace::Source::Info trace_source_info() const override;
 		};
 
 		Rpc_entrypoint         &_ep;
@@ -127,20 +128,13 @@ class Genode::Vm_session_component
 		Sliced_heap             _heap;
 		Avl_region              _map { &_heap };
 		addr_t                  _pd_sel { 0 };
-		unsigned                _id_alloc { 0 };
+		unsigned                _next_vcpu_id { 0 };
 		unsigned                _priority;
 		Session_label const     _session_label;
 
-		List<Vcpu>              _vcpus { };
+		Registry<Registered<Vcpu>> _vcpus { };
 
-		Vcpu * _lookup(Vcpu_id const vcpu_id)
-		{
-			for (Vcpu * vcpu = _vcpus.first(); vcpu; vcpu = vcpu->next())
-				if (vcpu->match(vcpu_id)) return vcpu;
-
-			return nullptr;
-		}
-
+		/* helpers for vm_session_common.cc */
 		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
 		void _detach_vm_memory(addr_t, size_t);
 
@@ -163,24 +157,20 @@ class Genode::Vm_session_component
 		 ** Region_map_detach interface **
 		 *********************************/
 
-		void detach(Region_map::Local_addr) override;
-		void unmap_region(addr_t, size_t) override;
+		/* used on destruction of attached dataspaces */
+		void detach(Region_map::Local_addr) override; /* vm_session_common.cc */
+		void unmap_region(addr_t, size_t) override;   /* vm_session_common.cc */
 
 		/**************************
 		 ** Vm session interface **
 		 **************************/
 
-		Dataspace_capability _cpu_state(Vcpu_id);
+		Capability<Native_vcpu> create_vcpu(Thread_capability);
+		void attach_pic(addr_t) override { /* unused on NOVA */ }
 
-		void _exception_handler(Signal_context_capability, Vcpu_id);
-		void _run(Vcpu_id);
-		void _pause(Vcpu_id) { }
-		void attach(Dataspace_capability, addr_t, Attach_attr) override;
-		void attach_pic(addr_t) override {}
-		void detach(addr_t, size_t) override;
-		Vcpu_id _create_vcpu(Thread_capability);
-		Capability<Native_vcpu> _native_vcpu(Vcpu_id) {
-			return Capability<Native_vcpu>(); }
+		void attach(Dataspace_capability, addr_t, Attach_attr) override; /* vm_session_common.cc */
+		void detach(addr_t, size_t) override;                            /* vm_session_common.cc */
+
 };
 
 #endif /* _CORE__VM_SESSION_COMPONENT_H_ */

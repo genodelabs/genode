@@ -41,7 +41,7 @@ void Vm::_load_initrd()
 Vmm::Cpu & Vm::boot_cpu()
 {
 	if (!_cpus[0].constructed())
-		_cpus[0].construct(*this, _vm, _bus, _gic, _env, _heap, _env.ep());
+		_cpus[0].construct(*this, _vm, _bus, _gic, _env, _heap, _env.ep(), 0);
 	return *_cpus[0];
 }
 
@@ -59,7 +59,11 @@ Vm::Vm(Genode::Env & env)
   _virtio_block("Block", VIRTIO_BLK_MMIO_START, VIRTIO_BLK_MMIO_SIZE,
                 VIRTIO_BLK_IRQ, boot_cpu(), _bus, _ram, env, _heap)
 {
-	_vm.attach(_vm_ram.cap(), RAM_START);
+	_vm.attach(_vm_ram.cap(), RAM_START,
+	           Genode::Vm_session::Attach_attr { .offset     = 0,
+	                                             .size       = 0,
+	                                             .executable = true,
+	                                             .writeable  = true });
 
 	_load_kernel();
 	_load_dtb();
@@ -69,7 +73,7 @@ Vm::Vm(Genode::Env & env)
 		Genode::Affinity::Space space = _env.cpu().affinity_space();
 		Genode::Affinity::Location location(space.location_of_index(i));
 		_eps[i].construct(_env, STACK_SIZE, "vcpu ep", location);
-		_cpus[i].construct(*this, _vm, _bus, _gic, _env, _heap, *_eps[i]);
+		_cpus[i].construct(*this, _vm, _bus, _gic, _env, _heap, *_eps[i], i);
 	}
 
 	Genode::log("Start virtual machine ...");

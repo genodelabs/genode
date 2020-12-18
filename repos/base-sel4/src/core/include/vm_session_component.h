@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,6 +19,7 @@
 #include <vm_session/vm_session.h>
 
 #include <trace/source_registry.h>
+#include <sel4_native_vcpu/sel4_native_vcpu.h>
 
 namespace Genode { class Vm_session_component; }
 
@@ -31,27 +32,31 @@ class Genode::Vm_session_component
 {
 	private:
 
-		class Vcpu : public Genode::List<Vcpu>::Element
+		class Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		{
 			private:
 
-				Constrained_ram_allocator &_ram_alloc;
-				Ram_dataspace_capability   _ds_cap;
-				Cap_sel                    _notification { 0 };
-				Vm_session::Vcpu_id        _vcpu_id;
+				Rpc_entrypoint                 &_ep;
+				Constrained_ram_allocator      &_ram_alloc;
+				Ram_dataspace_capability const  _ds_cap;
+				Cap_sel                         _notification { 0 };
 
 				void _free_up();
 
 			public:
 
-				Vcpu(Constrained_ram_allocator &, Cap_quota_guard &, Vcpu_id,
-				     seL4_Untyped);
-				~Vcpu() { _free_up(); }
+				Vcpu(Rpc_entrypoint &, Constrained_ram_allocator &,
+				     Cap_quota_guard &, seL4_Untyped);
 
-				Dataspace_capability ds_cap() const { return _ds_cap; }
-				bool match(Vcpu_id id) const { return id.id == _vcpu_id.id; }
-				void signal() const { seL4_Signal(_notification.value()); }
+				~Vcpu();
+
 				Cap_sel notification_cap() const { return _notification; }
+
+				/*******************************
+				 ** Native_vcpu RPC interface **
+				 *******************************/
+
+				Capability<Dataspace> state() const { return _ds_cap; }
 		};
 
 		typedef Allocator_avl_tpl<Rm_region> Avl_region;
@@ -60,8 +65,6 @@ class Genode::Vm_session_component
 		Constrained_ram_allocator  _constrained_md_ram_alloc;
 		Heap                       _heap;
 		Avl_region                 _map { &_heap };
-		List<Vcpu>                 _vcpus { };
-		unsigned                   _id_alloc { 0 };
 		unsigned                   _pd_id    { 0 };
 		Cap_sel                    _vm_page_table;
 		Page_table_registry        _page_table_registry { _heap };
@@ -75,14 +78,9 @@ class Genode::Vm_session_component
 			seL4_Untyped _service;
 		}                          _notifications { 0, 0 };
 
-		Vcpu * _lookup(Vcpu_id const vcpu_id)
-		{
-			for (Vcpu * vcpu = _vcpus.first(); vcpu; vcpu = vcpu->next())
-				if (vcpu->match(vcpu_id)) return vcpu;
+		Registry<Registered<Vcpu>> _vcpus { };
 
-			return nullptr;
-		}
-
+		/* helpers for vm_session_common.cc */
 		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
 		void _detach_vm_memory(addr_t, size_t);
 
@@ -105,24 +103,19 @@ class Genode::Vm_session_component
 		 ** Region_map_detach interface **
 		 *********************************/
 
-		void detach(Region_map::Local_addr) override;
-		void unmap_region(addr_t, size_t) override;
+		/* used on destruction of attached dataspaces */
+		void detach(Region_map::Local_addr) override; /* vm_session_common.cc */
+		void unmap_region(addr_t, size_t) override;   /* vm_session_common.cc */
 
 		/**************************
 		 ** Vm session interface **
 		 **************************/
 
-		Dataspace_capability _cpu_state(Vcpu_id);
+		Capability<Native_vcpu> create_vcpu(Thread_capability);
+		void attach_pic(addr_t) override { /* unused on seL4 */ }
 
-		void _exception_handler(Signal_context_capability, Vcpu_id) {}
-		void _run(Vcpu_id) {}
-		void _pause(Vcpu_id);
-		void attach(Dataspace_capability, addr_t, Attach_attr) override;
-		void attach_pic(addr_t) override {}
-		void detach(addr_t, size_t) override;
-		Vcpu_id _create_vcpu(Thread_capability);
-		Capability<Native_vcpu> _native_vcpu(Vcpu_id) {
-			return Capability<Native_vcpu>(); }
+		void attach(Dataspace_capability, addr_t, Attach_attr) override; /* vm_session_common.cc */
+		void detach(addr_t, size_t) override;                            /* vm_session_common.cc */
 };
 
 #endif /* _CORE__VM_SESSION_COMPONENT_H_ */

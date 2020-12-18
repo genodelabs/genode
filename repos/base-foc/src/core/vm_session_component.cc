@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -26,6 +26,67 @@
 using namespace Genode;
 
 
+struct Vcpu_creation_error : Exception { };
+
+
+Vcpu::Vcpu(Rpc_entrypoint            &ep,
+           Constrained_ram_allocator &ram_alloc,
+           Cap_quota_guard           &cap_alloc,
+           Platform_thread           &thread,
+           Cap_mapping               &task_cap,
+           Vcpu_id_allocator         &vcpu_alloc)
+:
+	_ep(ep),
+	_ram_alloc(ram_alloc),
+	_cap_alloc(cap_alloc),
+	_vcpu_ids(vcpu_alloc)
+{
+	Foc::l4_msgtag_t msg = l4_factory_create_irq(Foc::L4_BASE_FACTORY_CAP,
+	                                             _recall.local.data()->kcap());
+	if (l4_error(msg)) {
+		Genode::error("vcpu irq creation failed", l4_error(msg));
+		throw Vcpu_creation_error();
+	}
+
+	try {
+		unsigned const vcpu_id = _vcpu_ids.alloc();
+		_task_index_client = thread.setup_vcpu(vcpu_id, task_cap, recall_cap(),
+	                                           _foc_vcpu_state);
+		if (_task_index_client == Foc::L4_INVALID_CAP) {
+			vcpu_alloc.free(vcpu_id);
+			if (l4_error(Foc::l4_irq_detach(_recall.local.data()->kcap())))
+				error("cannot detach IRQ");
+			throw Vcpu_creation_error();
+		}
+	} catch (Vcpu_id_allocator::Out_of_indices) {
+		throw Vcpu_creation_error();
+	}
+
+	_ep.manage(this);
+}
+
+
+Vcpu::~Vcpu()
+{
+	_ep.dissolve(this);
+
+	if (_task_index_client != Foc::L4_INVALID_CAP) {
+		if (l4_error(Foc::l4_irq_detach(_recall.local.data()->kcap())))
+			error("cannot detach IRQ");
+	}
+
+	if (_foc_vcpu_state) {
+		unsigned const vcpu_id = ((addr_t)_foc_vcpu_state -
+		                          Platform::VCPU_VIRT_EXT_START) / L4_PAGESIZE;
+		_vcpu_ids.free(vcpu_id);
+	}
+}
+
+
+/**************************
+ ** Vm_session_component **
+ **************************/
+
 Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Resources resources,
                                            Label const &,
@@ -41,7 +102,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_heap(_constrained_md_ram_alloc, local_rm)
 {
-	_cap_quota_guard().withdraw(Cap_quota{1});
+	Cap_quota_guard::Reservation caps(_cap_quota_guard(), Cap_quota{1});
 
 	using namespace Foc;
 	l4_msgtag_t msg = l4_factory_create_vm(L4_BASE_FACTORY_CAP,
@@ -54,15 +115,15 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	/* configure managed VM area */
 	_map.add_range(0, 0UL - 0x1000);
 	_map.add_range(0UL - 0x1000, 0x1000);
+
+	caps.acknowledge();
 }
 
 
 Vm_session_component::~Vm_session_component()
 {
-	for (;Vcpu * vcpu = _vcpus.first();) {
-		_vcpus.remove(vcpu);
-		destroy(_heap, vcpu);
-	}
+	_vcpus.for_each([&] (Vcpu &vcpu) {
+		destroy(_heap, &vcpu); });
 
 	/* detach all regions */
 	while (true) {
@@ -76,97 +137,34 @@ Vm_session_component::~Vm_session_component()
 }
 
 
-Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
-           Cap_quota_guard &cap_alloc,
-           Vm_session::Vcpu_id const id)
-:
-	_ram_alloc(ram_alloc),
-	_cap_alloc(cap_alloc),
-	_id(id)
+Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_capability cap)
 {
-	try {
-		/* create ds for vCPU state */
-		_ds_cap = _ram_alloc.alloc(0x1000, Cache_attribute::CACHED);
-	} catch (...) {
-		throw;
-	}
-
-	Foc::l4_msgtag_t msg = l4_factory_create_irq(Foc::L4_BASE_FACTORY_CAP,
-	                                                _recall.local.data()->kcap());
-	if (l4_error(msg)) {
-		_ram_alloc.free(_ds_cap);
-		Genode::error("vcpu irq creation failed", l4_error(msg));
-		throw 1;
-	}
-}
-
-Vcpu::~Vcpu()
-{
-	if (_ds_cap.valid())
-		_ram_alloc.free(_ds_cap);
-}
-
-Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability cap)
-{
-	Vcpu_id ret;
-
 	if (!cap.valid())
-		return ret;
+		return { };
 
-	auto lambda = [&] (Cpu_thread_component *thread) {
+	/* allocate vCPU object */
+	Vcpu * vcpu = nullptr;
+
+	_ep.apply(cap, [&] (Cpu_thread_component *thread) {
 		if (!thread)
 			return;
 
-		/* allocate vCPU object */
-		Vcpu * vcpu = nullptr;
 		try {
-			vcpu = new (_heap) Vcpu(_constrained_md_ram_alloc,
-			                        _cap_quota_guard(),
-			                        Vcpu_id {_id_alloc});
-
-			Foc::l4_cap_idx_t task =
-				thread->platform_thread().setup_vcpu(_id_alloc, _task_vcpu, vcpu->recall_cap());
-
-			if (task == Foc::L4_INVALID_CAP)
-				throw 0;
-
-			_ep.apply(vcpu->ds_cap(), [&] (Dataspace_component *ds) {
-				if (!ds)
-					throw 1;
-				/* tell client where to find task cap */
-				*reinterpret_cast<Foc::l4_cap_idx_t *>(ds->phys_addr()) = task;
-			});
-		} catch (int) {
-			if (vcpu)
-				destroy(_heap, vcpu);
-
+			vcpu = new (_heap) Registered<Vcpu>(_vcpus,
+			                                    _ep,
+			                                    _constrained_md_ram_alloc,
+			                                    _cap_quota_guard(),
+			                                    thread->platform_thread(),
+			                                    _task_vcpu,
+			                                    _vcpu_ids);
+		} catch (Vcpu_creation_error) {
 			return;
-		} catch (...) {
-			if (vcpu)
-				destroy(_heap, vcpu);
-
-			throw;
 		}
+	});
 
-		_vcpus.insert(vcpu);
-		ret.id = _id_alloc++;
-	};
-
-	_ep.apply(cap, lambda);
-	return ret;
+	return vcpu ? vcpu->cap() : Capability<Vm_session::Native_vcpu> {};
 }
 
-Dataspace_capability Vm_session_component::_cpu_state(Vcpu_id const vcpu_id)
-{
-	for (Vcpu *vcpu = _vcpus.first(); vcpu; vcpu = vcpu->next()) {
-		if (!vcpu->match(vcpu_id))
-			continue;
-
-		return vcpu->ds_cap();
-	}
-
-	return Dataspace_capability();
-}
 
 void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              addr_t const guest_phys,
@@ -201,6 +199,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 		page = flex.page();
 	}
 }
+
 
 void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 {

@@ -72,10 +72,11 @@ class Genode::Vm_root : public Root_component<Vm_session_component>
 		        Ram_allocator          &ram_alloc,
 		        Region_map             &local_rm,
 		        Trace::Source_registry &trace_sources)
-		: Root_component<Vm_session_component>(&session_ep, &md_alloc),
-		 _ram_allocator(ram_alloc),
-		 _local_rm(local_rm),
-		 _trace_sources(trace_sources)
+		:
+			Root_component<Vm_session_component>(&session_ep, &md_alloc),
+			_ram_allocator(ram_alloc),
+			_local_rm(local_rm),
+			_trace_sources(trace_sources)
 		{ }
 };
 

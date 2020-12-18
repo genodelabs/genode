@@ -1,11 +1,16 @@
 /*
- * \brief  Core-specific instance of the VM session interface
+ * \brief  Common functions for core VM-session component
  * \author Alexander Boettcher
+ * \author Christian Helmuth
  * \date   2018-08-26
+ *
+ * This file implements region-map functions for VM session, which
+ * includes the 'Region_map_detach' interface. The latter is used if
+ * an attached dataspace is destroyed.
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -106,6 +111,7 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 	});
 }
 
+
 void Vm_session_component::detach(addr_t guest_phys, size_t size)
 {
 	if (guest_phys & 0xffful) {
@@ -133,6 +139,7 @@ void Vm_session_component::detach(addr_t guest_phys, size_t size)
 	_detach_vm_memory(guest_phys, size);
 }
 
+
 void Vm_session_component::detach(Region_map::Local_addr addr)
 {
 	Rm_region *region = _map.metadata(addr);
@@ -141,6 +148,7 @@ void Vm_session_component::detach(Region_map::Local_addr addr)
 	else
 		Genode::error(__PRETTY_FUNCTION__, " unknown region");
 }
+
 
 void Vm_session_component::unmap_region(addr_t base, size_t size)
 {

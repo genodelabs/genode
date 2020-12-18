@@ -47,6 +47,7 @@ install_config {
 		<service name="VM"/>
 	</parent-provides>
 	<default-route>
+		<service name="VM"> <parent diag="yes"/> </service>
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
 	<default caps="100"/>
@@ -66,6 +67,30 @@ set boot_modules {
 	timer
 	test-vmm_x86
 }
+
+#
+# Generate artificial platform info to allow for executing the scenario on
+# base-linux
+#
+if {[have_spec linux]} {
+	set fd [open [run_dir]/genode/platform_info w]
+		puts $fd {
+			<platform_info>
+				<kernel name="nova"/>
+				<acpi revision="2" rsdt="0x2ffe20c5"/>
+				<affinity-space width="1" height="1"/>
+				<boot/>
+				<hardware>
+					<features svm="true" vmx="true"/>
+					<tsc invariant="false" freq_khz="2555589"/>
+					<cpus>
+						<cpu id="0" package="0" core="0" thread="0" family="0x10" model="0x2" stepping="0x3" platform="0x0" patch="0x0"/>
+					</cpus>
+				</hardware>
+			</platform_info>}
+	close $fd
+}
+
 build_boot_image $boot_modules
 
 append qemu_args " -cpu phenom -smp 2"

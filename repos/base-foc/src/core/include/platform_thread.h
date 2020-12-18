@@ -158,7 +158,8 @@ class Genode::Platform_thread : Interface
 		/**
 		 * Make thread to vCPU
 		 */
-		Foc::l4_cap_idx_t setup_vcpu(unsigned, Cap_mapping const &, Cap_mapping &);
+		Foc::l4_cap_idx_t setup_vcpu(unsigned, Cap_mapping const &,
+		                             Cap_mapping &, Region_map::Local_addr &);
 
 
 		/************************

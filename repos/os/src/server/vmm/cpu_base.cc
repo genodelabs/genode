@@ -169,13 +169,12 @@ void Cpu_base::_update_state()
 	_timer.cancel_timeout();
 }
 
-
-unsigned Cpu_base::cpu_id() const         { return _vcpu_id.id;          }
-void Cpu_base::run()                      { _vm_session.run(_vcpu_id);   }
-void Cpu_base::pause()                    { _vm_session.pause(_vcpu_id); }
-bool Cpu_base::active() const             { return _active;              }
-Cpu_base::State & Cpu_base::state() const { return _state;               }
-Gic::Gicd_banked & Cpu_base::gic()        { return _gic;                 }
+unsigned Cpu_base::cpu_id() const         { return _vcpu_id;  }
+void Cpu_base::run()                      { _vm_vcpu.run();   }
+void Cpu_base::pause()                    { _vm_vcpu.pause(); }
+bool Cpu_base::active() const             { return _active;   }
+Cpu_base::State & Cpu_base::state() const { return _state;    }
+Gic::Gicd_banked & Cpu_base::gic()        { return _gic;      }
 
 
 void Cpu_base::recall()
@@ -190,14 +189,14 @@ Cpu_base::Cpu_base(Vm                      & vm,
                    Gic                     & gic,
                    Genode::Env             & env,
                    Genode::Heap            & heap,
-                   Genode::Entrypoint      & ep)
-: _vm(vm),
+                   Genode::Entrypoint      & ep,
+                   short const               id)
+: _vcpu_id(id),
+  _vm(vm),
   _vm_session(vm_session),
   _heap(heap),
   _vm_handler(*this, ep, *this, &Cpu_base::_handle_nothing),
-  _vcpu_id(_vm_session.with_upgrade([&]() {
-	return _vm_session.create_vcpu(heap, env, _vm_handler);
-  })),
-  _state(*((State*)env.rm().attach(_vm_session.cpu_state(_vcpu_id)))),
+  _vm_vcpu(_vm_session, heap, _vm_handler, _exit_config),
+  _state(*((State*)(&_vm_vcpu.state()))),
   _gic(*this, gic, bus),
   _timer(env, ep, _gic.irq(VTIMER_IRQ), *this) { }

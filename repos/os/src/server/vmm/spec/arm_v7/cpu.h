@@ -28,7 +28,8 @@ class Vmm::Cpu : public Vmm::Cpu_base
 		    Gic                     & gic,
 		    Genode::Env             & env,
 		    Genode::Heap            & heap,
-		    Genode::Entrypoint      & ep);
+		    Genode::Entrypoint      & ep,
+		    short                     cpu_id);
 
 		enum Exception_type {
 			NO_EXCEPTION,

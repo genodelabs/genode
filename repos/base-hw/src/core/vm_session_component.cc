@@ -28,82 +28,55 @@ size_t Vm_session_component::_ds_size() {
 	return align_addr(sizeof(Board::Vm_state), get_page_size_log2()); }
 
 
-addr_t Vm_session_component::_alloc_ds()
+void Vm_session_component::Vcpu::exception_handler(Signal_context_capability handler)
 {
-	addr_t addr;
-	if (platform().ram_alloc().alloc_aligned(_ds_size(), (void**)&addr,
-		                                     get_page_size_log2()).error())
-		throw Insufficient_ram_quota();
-	return addr;
-}
-
-
-void Vm_session_component::_run(Vcpu_id) { }
-
-
-void Vm_session_component::_pause(Vcpu_id) { }
-
-
-Capability<Vm_session::Native_vcpu> Vm_session_component::_native_vcpu(Vcpu_id id)
-{
-	if (!_valid_id(id)) { return Capability<Vm_session::Native_vcpu>(); }
-	return reinterpret_cap_cast<Vm_session::Native_vcpu>(_vcpus[id.id].kobj.cap());
-}
-
-
-void Vm_session_component::_exception_handler(Signal_context_capability handler,
-                                              Vcpu_id id)
-{
-	if (!_valid_id(id)) {
-		Genode::warning("invalid vcpu id ", id.id);
+	if (!handler.valid()) {
+		Genode::warning("invalid signal");
 		return;
 	}
 
-	Vcpu & vcpu = _vcpus[id.id];
-	if (vcpu.kobj.constructed()) {
+	if (kobj.constructed()) {
 		Genode::warning("Cannot register vcpu handler twice");
 		return;
 	}
 
-	unsigned const cpu = vcpu.location.valid() ? vcpu.location.xpos() : 0;
+	unsigned const cpu = location.valid() ? location.xpos() : 0;
 
-	if (!vcpu.kobj.create(cpu, vcpu.ds_addr, Capability_space::capid(handler), _id))
+	if (!kobj.create(cpu, ds_addr, Capability_space::capid(handler), id))
 		Genode::warning("Cannot instantiate vm kernel object, ",
 		                "invalid signal context?");
 }
 
 
-Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability tcap)
+Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_capability const tcap)
 {
-	using namespace Genode;
-
-	if (_vcpu_id_alloc == Board::VCPU_MAX) return Vcpu_id{Vcpu_id::INVALID};
+	if (_vcpu_id_alloc == Board::VCPU_MAX) return { };
 
 	Affinity::Location vcpu_location;
-	auto lambda = [&] (Cpu_thread_component *ptr) {
+	_ep.apply(tcap, [&] (Cpu_thread_component *ptr) {
 		if (!ptr) return;
 		vcpu_location = ptr->platform_thread().affinity();
-	};
-	_ep.apply(tcap, lambda);
+	});
 
-	Vcpu & vcpu = _vcpus[_vcpu_id_alloc];
-	vcpu.ds_cap = _constrained_md_ram_alloc.alloc(_ds_size(),
-	                                              Cache_attribute::UNCACHED);
+	if (_vcpus[_vcpu_id_alloc].constructed())
+		return { };
+
+	_vcpus[_vcpu_id_alloc].construct(_id, _ep);
+	Vcpu & vcpu = *_vcpus[_vcpu_id_alloc];
+
 	try {
+		vcpu.ds_cap = _constrained_md_ram_alloc.alloc(_ds_size(),
+		                                              Cache_attribute::UNCACHED);
 		vcpu.ds_addr = _region_map.attach(vcpu.ds_cap);
 	} catch (...) {
-		_constrained_md_ram_alloc.free(vcpu.ds_cap);
+		if (vcpu.ds_cap.valid())
+			_constrained_md_ram_alloc.free(vcpu.ds_cap);
+		_vcpus[_vcpu_id_alloc].destruct();
 		throw;
 	}
 
 	vcpu.location = vcpu_location;
-	return Vcpu_id { _vcpu_id_alloc++ };
-}
 
-
-Genode::Dataspace_capability
-Vm_session_component::_cpu_state(Vm_session::Vcpu_id id)
-{
-	return (_valid_id(id)) ? _vcpus[id.id].ds_cap
-	                       : Genode::Ram_dataspace_capability();
+	_vcpu_id_alloc ++;
+	return vcpu.cap();
 }

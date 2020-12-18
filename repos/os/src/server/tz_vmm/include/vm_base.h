@@ -19,6 +19,7 @@
 #include <dataspace/client.h>
 #include <rom_session/connection.h>
 #include <vm_session/connection.h>
+#include <vm_session/handler.h>
 #include <util/noncopyable.h>
 #include <cpu/vm_state_trustzone.h>
 
@@ -69,9 +70,11 @@ class Genode::Vm_base : Noncopyable, Interface
 		Machine_type   const  _machine;
 		Board_revision const  _board;
 		Ram            const  _ram;
-		Vm_connection         _vm    { _env };
-		Vm_session::Vcpu_id   _vcpu_id;
-		Vm_state             &_state { *(Vm_state*)_env.rm().attach(_vm.cpu_state(_vcpu_id)) };
+
+		Vm_connection               _vm          { _env };
+		Vm_connection::Exit_config  _exit_config { };
+		Vm_connection::Vcpu         _vcpu;
+		Vm_state                   &_state       { *(Vm_state *)&_vcpu.state() };
 
 		void _load_kernel();
 
@@ -92,10 +95,10 @@ class Genode::Vm_base : Noncopyable, Interface
 		        Machine_type        machine,
 		        Board_revision      board,
 		        Allocator          &alloc,
-		        Vm_handler_base    &handler);
+		        Vcpu_handler_base  &handler);
 
-		void run()   { _vm.run(_vcpu_id); }
-		void pause() { _vm.pause(_vcpu_id); }
+		void run()   { _vcpu.run(); }
+		void pause() { _vcpu.pause(); }
 
 		void   start();
 		void   dump();

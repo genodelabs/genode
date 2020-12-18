@@ -15,130 +15,156 @@
 
 #include "state.h"
 
-void Seoul::write_vm_state(CpuState &seoul, unsigned mtr, Genode::Vm_state &state)
+void Seoul::write_vm_state(CpuState &seoul, unsigned mtr, Genode::Vcpu_state &state)
 {
-	state = Genode::Vm_state {}; /* reset */
+	state.discharge(); /* reset */
 
 	if (mtr & MTD_GPR_ACDB) {
-		state.ax.value(seoul.rax);
-		state.cx.value(seoul.rcx);
-		state.dx.value(seoul.rdx);
-		state.bx.value(seoul.rbx);
+		state.ax.charge(seoul.rax);
+		state.cx.charge(seoul.rcx);
+		state.dx.charge(seoul.rdx);
+		state.bx.charge(seoul.rbx);
 		mtr &= ~MTD_GPR_ACDB;
 	}
 
 	if (mtr & MTD_GPR_BSD) {
-		state.di.value(seoul.rdix);
-		state.si.value(seoul.rsix);
-		state.bp.value(seoul.rbpx);
+		state.di.charge(seoul.rdix);
+		state.si.charge(seoul.rsix);
+		state.bp.charge(seoul.rbpx);
 		mtr &= ~MTD_GPR_BSD;
 	}
 
 	if (mtr & MTD_RIP_LEN) {
-		state.ip.value(seoul.ripx);
-		state.ip_len.value(seoul.inst_len);
+		state.ip.charge(seoul.ripx);
+		state.ip_len.charge(seoul.inst_len);
 		mtr &= ~MTD_RIP_LEN;
 	}
 
 	if (mtr & MTD_RSP) {
-		state.sp.value(seoul.rspx);
+		state.sp.charge(seoul.rspx);
 		mtr &= ~MTD_RSP;
 	}
 
 	if (mtr & MTD_RFLAGS) {
-		state.flags.value(seoul.rflx);
+		state.flags.charge(seoul.rflx);
 		mtr &= ~MTD_RFLAGS;
 	}
 
 	if (mtr & MTD_DR) {
-		state.dr7.value(seoul.dr7);
+		state.dr7.charge(seoul.dr7);
 		mtr &= ~MTD_DR;
 	}
 
 	if (mtr & MTD_CR) {
-		state.cr0.value(seoul.cr0);
-		state.cr2.value(seoul.cr2);
-		state.cr3.value(seoul.cr3);
-		state.cr4.value(seoul.cr4);
+		state.cr0.charge(seoul.cr0);
+		state.cr2.charge(seoul.cr2);
+		state.cr3.charge(seoul.cr3);
+		state.cr4.charge(seoul.cr4);
 		mtr &= ~MTD_CR;
 	}
 
-	typedef Genode::Vm_state::Segment Segment;
-	typedef Genode::Vm_state::Range   Range;
+	typedef Genode::Vcpu_state::Segment Segment;
+	typedef Genode::Vcpu_state::Range   Range;
 
 	if (mtr & MTD_CS_SS) {
-		state.cs.value(Segment{seoul.cs.sel, seoul.cs.ar, seoul.cs.limit, seoul.cs.base});
-		state.ss.value(Segment{seoul.ss.sel, seoul.ss.ar, seoul.ss.limit, seoul.ss.base});
+		state.cs.charge(Segment { .sel   = seoul.cs.sel,
+		                          .ar    = seoul.cs.ar,
+		                          .limit = seoul.cs.limit,
+		                          .base  = seoul.cs.base });
+		state.ss.charge(Segment { .sel   = seoul.ss.sel,
+		                          .ar    = seoul.ss.ar,
+		                          .limit = seoul.ss.limit,
+		                          .base  = seoul.ss.base });
 		mtr &= ~MTD_CS_SS;
 	}
 
 	if (mtr & MTD_DS_ES) {
-		state.es.value(Segment{seoul.es.sel, seoul.es.ar, seoul.es.limit, seoul.es.base});
-		state.ds.value(Segment{seoul.ds.sel, seoul.ds.ar, seoul.ds.limit, seoul.ds.base});
+		state.es.charge(Segment { .sel   = seoul.es.sel,
+		                          .ar    = seoul.es.ar,
+		                          .limit = seoul.es.limit,
+		                          .base  = seoul.es.base });
+		state.ds.charge(Segment { .sel   = seoul.ds.sel,
+		                          .ar    = seoul.ds.ar,
+		                          .limit = seoul.ds.limit,
+		                          .base  = seoul.ds.base });
 		mtr &= ~MTD_DS_ES;
 	}
 
 	if (mtr & MTD_FS_GS) {
-		state.fs.value(Segment{seoul.fs.sel, seoul.fs.ar, seoul.fs.limit, seoul.fs.base});
-		state.gs.value(Segment{seoul.gs.sel, seoul.gs.ar, seoul.gs.limit, seoul.gs.base});
+		state.fs.charge(Segment { .sel   = seoul.fs.sel,
+		                          .ar    = seoul.fs.ar,
+		                          .limit = seoul.fs.limit,
+		                          .base  = seoul.fs.base });
+		state.gs.charge(Segment { .sel   = seoul.gs.sel,
+		                          .ar    = seoul.gs.ar,
+		                          .limit = seoul.gs.limit,
+		                          .base  = seoul.gs.base });
 		mtr &= ~MTD_FS_GS;
 	}
 
 	if (mtr & MTD_TR) {
-		state.tr.value(Segment{seoul.tr.sel, seoul.tr.ar, seoul.tr.limit, seoul.tr.base});
+		state.tr.charge(Segment { .sel   = seoul.tr.sel,
+		                          .ar    = seoul.tr.ar,
+		                          .limit = seoul.tr.limit,
+		                          .base  = seoul.tr.base });
 		mtr &= ~MTD_TR;
 	}
 
 	if (mtr & MTD_LDTR) {
-		state.ldtr.value(Segment{seoul.ld.sel, seoul.ld.ar, seoul.ld.limit, seoul.ld.base});
+		state.ldtr.charge(Segment { .sel   = seoul.ld.sel,
+		                            .ar    = seoul.ld.ar,
+		                            .limit = seoul.ld.limit,
+		                            .base  = seoul.ld.base });
 		mtr &= ~MTD_LDTR;
 	}
 
 	if (mtr & MTD_GDTR) {
-		state.gdtr.value(Range{seoul.gd.base, seoul.gd.limit});
+		state.gdtr.charge(Range { .limit = seoul.gd.limit,
+		                          .base  = seoul.gd.base });
 		mtr &= ~MTD_GDTR;
 	}
 
 	if (mtr & MTD_IDTR) {
-		state.idtr.value(Range{seoul.id.base, seoul.id.limit});
+		state.idtr.charge(Range{ .limit = seoul.id.limit,
+		                         .base  = seoul.id.base });
 		mtr &= ~MTD_IDTR;
 	}
 
 	if (mtr & MTD_SYSENTER) {
-		state.sysenter_cs.value(seoul.sysenter_cs);
-		state.sysenter_sp.value(seoul.sysenter_esp);
-		state.sysenter_ip.value(seoul.sysenter_eip);
+		state.sysenter_cs.charge(seoul.sysenter_cs);
+		state.sysenter_sp.charge(seoul.sysenter_esp);
+		state.sysenter_ip.charge(seoul.sysenter_eip);
 		mtr &= ~MTD_SYSENTER;
 	}
 
 	if (mtr & MTD_QUAL) {
-		state.qual_primary.value(seoul.qual[0]);
-		state.qual_secondary.value(seoul.qual[1]);
+		state.qual_primary.charge(seoul.qual[0]);
+		state.qual_secondary.charge(seoul.qual[1]);
 		/* not read by any kernel */
 		mtr &= ~MTD_QUAL;
 	}
 
 	if (mtr & MTD_CTRL) {
-		state.ctrl_primary.value(seoul.ctrl[0]);
-		state.ctrl_secondary.value(seoul.ctrl[1]);
+		state.ctrl_primary.charge(seoul.ctrl[0]);
+		state.ctrl_secondary.charge(seoul.ctrl[1]);
 		mtr &= ~MTD_CTRL;
 	}
 
 	if (mtr & MTD_INJ) {
-		state.inj_info.value(seoul.inj_info);
-		state.inj_error.value(seoul.inj_error);
+		state.inj_info.charge(seoul.inj_info);
+		state.inj_error.charge(seoul.inj_error);
 		mtr &= ~MTD_INJ;
 	}
 
 	if (mtr & MTD_STATE) {
-		state.intr_state.value(seoul.intr_state);
-		state.actv_state.value(seoul.actv_state);
+		state.intr_state.charge(seoul.intr_state);
+		state.actv_state.charge(seoul.actv_state);
 		mtr &= ~MTD_STATE;
 	}
 
 	if (mtr & MTD_TSC) {
-		state.tsc.value(seoul.tsc_value);
-		state.tsc_offset.value(seoul.tsc_off);
+		state.tsc.charge(seoul.tsc_value);
+		state.tsc_offset.charge(seoul.tsc_off);
 		mtr &= ~MTD_TSC;
 	}
 
@@ -146,15 +172,15 @@ void Seoul::write_vm_state(CpuState &seoul, unsigned mtr, Genode::Vm_state &stat
 		Genode::error("state transfer incomplete ", Genode::Hex(mtr));
 }
 
-unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
+unsigned Seoul::read_vm_state(Genode::Vcpu_state &state, CpuState &seoul)
 {
 	unsigned mtr = 0;
 
-	if (state.ax.valid() || state.cx.valid() ||
-	    state.dx.valid() || state.bx.valid()) {
+	if (state.ax.charged() || state.cx.charged() ||
+	    state.dx.charged() || state.bx.charged()) {
 
-		if (!state.ax.valid() || !state.cx.valid() ||
-		    !state.dx.valid() || !state.bx.valid())
+		if (!state.ax.charged() || !state.cx.charged() ||
+		    !state.dx.charged() || !state.bx.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_GPR_ACDB;
@@ -165,9 +191,9 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.rbx   = state.bx.value();
 	}
 
-	if (state.bp.valid() || state.di.valid() || state.si.valid()) {
+	if (state.bp.charged() || state.di.charged() || state.si.charged()) {
 
-		if (!state.bp.valid() || !state.di.valid() || !state.si.valid())
+		if (!state.bp.charged() || !state.di.charged() || !state.si.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_GPR_BSD;
@@ -176,18 +202,18 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.rbpx = state.bp.value();
 	}
 
-	if (state.flags.valid()) {
+	if (state.flags.charged()) {
 		mtr |= MTD_RFLAGS;
 		seoul.rflx = state.flags.value();
 	}
 
-	if (state.sp.valid()) {
+	if (state.sp.charged()) {
 		mtr |= MTD_RSP;
 		seoul.rspx = state.sp.value();
 	}
 
-	if (state.ip.valid() || state.ip_len.valid()) {
-		if (!state.ip.valid() || !state.ip_len.valid())
+	if (state.ip.charged() || state.ip_len.charged()) {
+		if (!state.ip.charged() || !state.ip_len.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_RIP_LEN;
@@ -195,22 +221,22 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.inst_len = state.ip_len.value();
 	}
 
-	if (state.dr7.valid()) {
+	if (state.dr7.charged()) {
 		mtr |= MTD_DR;
 		seoul.dr7 = state.dr7.value();
 	}
 #if 0
-	if (state.r8.valid()  || state.r9.valid() ||
-	    state.r10.valid() || state.r11.valid() ||
-	    state.r12.valid() || state.r13.valid() ||
-	    state.r14.valid() || state.r15.valid()) {
+	if (state.r8.charged()  || state.r9.charged() ||
+	    state.r10.charged() || state.r11.charged() ||
+	    state.r12.charged() || state.r13.charged() ||
+	    state.r14.charged() || state.r15.charged()) {
 
 		Genode::warning("r8-r15 not supported");
 	}
 #endif
 
-	if (state.cr0.valid() || state.cr2.valid() ||
-	    state.cr3.valid() || state.cr4.valid()) {
+	if (state.cr0.charged() || state.cr2.charged() ||
+	    state.cr3.charged() || state.cr4.charged()) {
 
 		mtr |= MTD_CR;
 
@@ -220,8 +246,8 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.cr4 = state.cr4.value();
 	}
 
-	if (state.cs.valid() || state.ss.valid()) {
-		if (!state.cs.valid() || !state.ss.valid())
+	if (state.cs.charged() || state.ss.charged()) {
+		if (!state.cs.charged() || !state.ss.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_CS_SS;
@@ -237,8 +263,8 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.ss.base  = state.ss.value().base;
 	}
 
-	if (state.es.valid() || state.ds.valid()) {
-		if (!state.es.valid() || !state.ds.valid())
+	if (state.es.charged() || state.ds.charged()) {
+		if (!state.es.charged() || !state.ds.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_DS_ES;
@@ -254,8 +280,8 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.ds.base  = state.ds.value().base;
 	}
 
-	if (state.fs.valid() || state.gs.valid()) {
-		if (!state.fs.valid() || !state.gs.valid())
+	if (state.fs.charged() || state.gs.charged()) {
+		if (!state.fs.charged() || !state.gs.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_FS_GS;
@@ -271,7 +297,7 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.gs.base  = state.gs.value().base;
 	}
 
-	if (state.tr.valid()) {
+	if (state.tr.charged()) {
 		mtr |= MTD_TR;
 		seoul.tr.sel   = state.tr.value().sel;
 		seoul.tr.ar    = state.tr.value().ar;
@@ -279,7 +305,7 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.tr.base  = state.tr.value().base;
 	}
 
-	if (state.ldtr.valid()) {
+	if (state.ldtr.charged()) {
 		mtr |= MTD_LDTR;
 		seoul.ld.sel   = state.ldtr.value().sel;
 		seoul.ld.ar    = state.ldtr.value().ar;
@@ -287,23 +313,23 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.ld.base  = state.ldtr.value().base;
 	}
 
-	if (state.gdtr.valid()) {
+	if (state.gdtr.charged()) {
 		mtr |= MTD_GDTR;
 		seoul.gd.limit = state.gdtr.value().limit;
 		seoul.gd.base  = state.gdtr.value().base;
 	}
 
-	if (state.idtr.valid()) {
+	if (state.idtr.charged()) {
 		mtr |= MTD_IDTR;
 		seoul.id.limit = state.idtr.value().limit;
 		seoul.id.base  = state.idtr.value().base;
 	}
 
-	if (state.sysenter_cs.valid() || state.sysenter_sp.valid() ||
-	    state.sysenter_ip.valid()) {
+	if (state.sysenter_cs.charged() || state.sysenter_sp.charged() ||
+	    state.sysenter_ip.charged()) {
 
-		if (!state.sysenter_cs.valid() || !state.sysenter_sp.valid() ||
-		    !state.sysenter_ip.valid())
+		if (!state.sysenter_cs.charged() || !state.sysenter_sp.charged() ||
+		    !state.sysenter_ip.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_SYSENTER;
@@ -313,8 +339,8 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.sysenter_eip = state.sysenter_ip.value();
 	}
 
-	if (state.ctrl_primary.valid() || state.ctrl_secondary.valid()) {
-		if (!state.ctrl_primary.valid() || !state.ctrl_secondary.valid())
+	if (state.ctrl_primary.charged() || state.ctrl_secondary.charged()) {
+		if (!state.ctrl_primary.charged() || !state.ctrl_secondary.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_CTRL;
@@ -323,8 +349,8 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.ctrl[1] = state.ctrl_secondary.value();
 	}
 
-	if (state.inj_info.valid() || state.inj_error.valid()) {
-		if (!state.inj_info.valid() || !state.inj_error.valid())
+	if (state.inj_info.charged() || state.inj_error.charged()) {
+		if (!state.inj_info.charged() || !state.inj_error.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_INJ;
@@ -333,8 +359,8 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.inj_error = state.inj_error.value();
 	}
 
-	if (state.intr_state.valid() || state.actv_state.valid()) {
-		if (!state.intr_state.valid() || !state.actv_state.valid())
+	if (state.intr_state.charged() || state.actv_state.charged()) {
+		if (!state.intr_state.charged() || !state.actv_state.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_STATE;
@@ -343,8 +369,8 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.actv_state = state.actv_state.value();
 	}
 
-	if (state.tsc.valid() || state.tsc_offset.valid()) {
-		if (!state.tsc.valid() || !state.tsc_offset.valid())
+	if (state.tsc.charged() || state.tsc_offset.charged()) {
+		if (!state.tsc.charged() || !state.tsc_offset.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_TSC;
@@ -353,8 +379,8 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.tsc_off   = state.tsc_offset.value();
 	}
 
-	if (state.qual_primary.valid() || state.qual_secondary.valid()) {
-		if (!state.qual_primary.valid() || !state.qual_secondary.valid())
+	if (state.qual_primary.charged() || state.qual_secondary.charged()) {
+		if (!state.qual_primary.charged() || !state.qual_secondary.charged())
 			Genode::warning("missing state ", __LINE__);
 
 		mtr |= MTD_QUAL;
@@ -363,23 +389,23 @@ unsigned Seoul::read_vm_state(Genode::Vm_state &state, CpuState &seoul)
 		seoul.qual[1] = state.qual_secondary.value();
 	}
 #if 0
-	if (state.efer.valid()) {
+	if (state.efer.charged()) {
 		Genode::warning("efer not supported by Seoul");
 	}
 
-	if (state.pdpte_0.valid() || state.pdpte_1.valid() ||
-	    state.pdpte_2.valid() || state.pdpte_3.valid()) {
+	if (state.pdpte_0.charged() || state.pdpte_1.charged() ||
+	    state.pdpte_2.charged() || state.pdpte_3.charged()) {
 
 		Genode::warning("pdpte not supported by Seoul");
 	}
 
-	if (state.star.valid() || state.lstar.valid() || state.cstar.valid() ||
-	    state.fmask.valid() || state.kernel_gs_base.valid()) {
+	if (state.star.charged() || state.lstar.charged() || state.cstar.charged() ||
+	    state.fmask.charged() || state.kernel_gs_base.charged()) {
 
 		Genode::warning("star, lstar, cstar, fmask, kernel_gs not supported by Seoul");
 	}
 
-	if (state.tpr.valid() || state.tpr_threshold.valid()) {
+	if (state.tpr.charged() || state.tpr_threshold.charged()) {
 		Genode::warning("tpr not supported by Seoul");
 	}
 #endif

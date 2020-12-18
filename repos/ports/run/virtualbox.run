@@ -222,7 +222,7 @@ append config {
 	</start>}
 
 append_if [expr $use_gui] config {
-	<start name="vbox2" priority="-2" caps="800">
+	<start name="vbox2" priority="-2" caps="1200">
 		<binary name="} $virtualbox_binary {"/>
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
@@ -245,7 +245,7 @@ append_if [expr $use_gui] config {
 	</start>}
 
 append config {
-	<start name="vbox1" priority="-2" caps="800">
+	<start name="vbox1" priority="-2" caps="1200">
 		<binary name="} $virtualbox_binary {"/>
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">

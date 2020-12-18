@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,9 +16,12 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/env.h>
 #include <base/registry.h>
-#include <vm_session/client.h>
-#include <cpu/vm_state.h>
+#include <cpu/vcpu_state.h>
 #include <trace/timestamp.h>
+#include <vm_session/connection.h>
+#include <vm_session/handler.h>
+
+#include <foc_native_vcpu/foc_native_vcpu.h>
 
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
@@ -32,6 +35,8 @@ namespace Foc {
 }
 
 using namespace Genode;
+
+using Exit_config = Vm_connection::Exit_config;
 
 
 enum Virt { VMX, SVM, UNKNOWN };
@@ -48,13 +53,42 @@ static uint32_t svm_features()
 static bool svm_np() { return svm_features() & (1U << 0); }
 
 
-struct Vcpu;
+/***********************************
+ ** Fiasco.OC vCPU implementation **
+ ***********************************/
+
+struct Foc_vcpu;
+
+struct Foc_native_vcpu_rpc : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
+{
+	private:
+
+		Capability<Vm_session::Native_vcpu> _create_vcpu(Vm_connection &vm,
+		                                                 Thread_capability &cap)
+		{
+			return vm.with_upgrade([&] () {
+				return vm.call<Vm_session::Rpc_create_vcpu>(cap); });
+		}
+
+	public:
+
+		Foc_vcpu &vcpu;
+
+		Foc_native_vcpu_rpc(Vm_connection &vm, Thread_capability &cap,
+		                    Foc_vcpu &vcpu)
+		:
+			Rpc_client<Vm_session::Native_vcpu>(_create_vcpu(vm, cap)),
+			vcpu(vcpu)
+		{ }
+
+		Foc::l4_cap_idx_t task_index() { return call<Rpc_task_index>(); }
+
+		Foc::l4_vcpu_state_t * foc_vcpu_state() {
+			return static_cast<Foc::l4_vcpu_state_t *>(call<Rpc_foc_vcpu_state>()); }
+};
 
 
-static Registry<Registered<Vcpu> > vcpus;
-
-
-struct Vcpu : Thread
+struct Foc_vcpu : Thread, Noncopyable
 {
 	private:
 
@@ -204,20 +238,19 @@ struct Vcpu : Thread
 		addr_t const vmcs_cr4_mask   { CR4_VMX };
 		addr_t const vmcs_cr4_set    { CR4_VMX };
 
-		Signal_context_capability   _signal;
+		Vcpu_handler_base          &_vcpu_handler;
+		Blockade                    _startup { };
 		Semaphore                   _wake_up { 0 };
-		Semaphore                  &_handler_ready;
-		Allocator                  &_alloc;
-		Vm_session_client::Vcpu_id  _id { Vm_session_client::Vcpu_id::INVALID };
-		addr_t                      _state { 0 };
-		addr_t                      _task { 0 };
-		enum Virt const             _vm_type;
 		uint64_t                    _tsc_offset { 0 };
+		enum Virt const             _vm_type;
 		bool                        _show_error_unsupported_pdpte { true };
 		bool                        _show_error_unsupported_tpr   { true };
 
-		uint8_t                     _fpu_ep[512]    __attribute__((aligned(0x10)));
-		uint8_t                     _fpu_vcpu[512]  __attribute__((aligned(0x10)));
+		Vcpu_state             _vcpu_state __attribute__((aligned(0x10))) { };
+		Vcpu_state::Fpu::State _fpu_ep     __attribute__((aligned(0x10))) { };
+		Vcpu_state::Fpu::State _fpu_vcpu   __attribute__((aligned(0x10))) { };
+
+		Constructible<Foc_native_vcpu_rpc> _rpc   { };
 
 		enum {
 			VMEXIT_STARTUP = 0xfe,
@@ -238,6 +271,10 @@ struct Vcpu : Thread
 
 		void entry() override
 		{
+			/* trigger that thread is up */
+			_startup.wakeup();
+
+			/* wait until vcpu is assigned to us */
 			_wake_up.down();
 
 			{
@@ -250,9 +287,8 @@ struct Vcpu : Thread
 				_state_request = NONE;
 			}
 
-			/* reserved ranged for state of vCPUs - see platform.cc */
-			addr_t const vcpu_addr = 0x1000 + 0x1000 * _id.id;
-			Foc::l4_vcpu_state_t * const vcpu = reinterpret_cast<Foc::l4_vcpu_state_t*>(vcpu_addr);
+			Foc::l4_vcpu_state_t * const vcpu = _rpc->foc_vcpu_state();
+			addr_t const vcpu_addr = reinterpret_cast<addr_t>(vcpu);
 
 			if (!l4_vcpu_check_version(vcpu))
 				error("vCPU version mismatch kernel vs user-land - ",
@@ -264,10 +300,10 @@ struct Vcpu : Thread
 			void * vmcs = reinterpret_cast<void *>(vcpu_addr + L4_VCPU_OFFSET_EXT_STATE);
 
 			/* set vm page table */
-			vcpu->user_task = _task;
+			vcpu->user_task = _rpc->task_index();
 
-			Vm_state &state = *reinterpret_cast<Vm_state *>(_state);
-			state = Vm_state {};
+			Vcpu_state &state = _vcpu_state;
+			state.discharge();
 
 			/* initial startup VM exit to get valid VM state */
 			if (_vm_type == Virt::VMX)
@@ -277,16 +313,16 @@ struct Vcpu : Thread
 				_read_amd_state(state, vmcb, vcpu);
 
 			state.exit_reason = VMEXIT_STARTUP;
-			Signal_transmitter(_signal).submit();
+			Signal_transmitter(_vcpu_handler.signal_cap()).submit();
 
-			_handler_ready.down();
+			_vcpu_handler.ready_semaphore().down();
 			_wake_up.down();
 
 			/*
 			 * Fiasoc.OC peculiarities
 			 */
 			if (_vm_type == Virt::SVM)
-				state.efer.value(state.efer.value() | AMD_SVM_ENABLE);
+				state.efer.charge(state.efer.value() | AMD_SVM_ENABLE);
 
 			if (_vm_type == Virt::SVM) {
 				vmcb->control_area.intercept_instruction0 = vmcb_ctrl0;
@@ -305,7 +341,7 @@ struct Vcpu : Thread
 				Foc::l4_vm_vmx_write(vmcs, Vmcs::CR0_MASK, vmcs_cr0_mask);
 				Foc::l4_vm_vmx_write(vmcs, Vmcs::CR4_MASK, vmcs_cr4_mask);
 				Foc::l4_vm_vmx_write(vmcs, Vmcs::CR4_SHADOW, 0);
-				state.cr4.value(vmcs_cr4_set);
+				state.cr4.charge(vmcs_cr4_set);
 
 				enum {
 					EXIT_SAVE_EFER = 1U << 20,
@@ -348,29 +384,29 @@ struct Vcpu : Thread
 					_write_intel_state(state, vmcs, vcpu);
 
 				/* save FPU state of this thread and restore state of vCPU */
-				asm volatile ("fxsave %0" : "=m" (*_fpu_ep));
-				if (state.fpu.valid()) {
-					state.fpu.value([&] (uint8_t *fpu, size_t const) {
-						asm volatile ("fxrstor %0" : : "m" (*fpu) : "memory");
+				asm volatile ("fxsave %0" : "=m" (_fpu_ep));
+				if (state.fpu.charged()) {
+					state.fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
+						asm volatile ("fxrstor %0" : : "m" (fpu) : "memory");
 					});
 				} else
-					asm volatile ("fxrstor %0" : : "m" (*_fpu_vcpu) : "memory");
+					asm volatile ("fxrstor %0" : : "m" (_fpu_vcpu) : "memory");
 
 				/* tell Fiasco.OC to run the vCPU */
 				l4_msgtag_t tag = l4_thread_vcpu_resume_start();
 				tag = l4_thread_vcpu_resume_commit(L4_INVALID_CAP, tag);
 
 				/* save FPU state of vCPU and restore state of this thread */
-				state.fpu.value([&] (uint8_t *fpu, size_t const) {
-					asm volatile ("fxsave %0" : "=m" (*fpu) :: "memory");
-					asm volatile ("fxsave %0" : "=m" (*_fpu_vcpu) :: "memory");
+				state.fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
+					asm volatile ("fxsave %0" : "=m" (fpu) :: "memory");
+					asm volatile ("fxsave %0" : "=m" (_fpu_vcpu) :: "memory");
 				});
-				asm volatile ("fxrstor %0" : : "m" (*_fpu_ep) : "memory");
+				asm volatile ("fxrstor %0" : : "m" (_fpu_ep) : "memory");
 
 				/* got VM exit or interrupted by asynchronous signal */
 				uint64_t reason = 0;
 
-				state = Vm_state {};
+				state.discharge();
 
 				if (_vm_type == Virt::SVM) {
 					reason = vmcb->control_area.exitcode;
@@ -425,13 +461,13 @@ struct Vcpu : Thread
 				}
 
 				/* notify VM handler */
-				Signal_transmitter(_signal).submit();
+				Signal_transmitter(_vcpu_handler.signal_cap()).submit();
 
 				/*
 				 * Wait until VM handler is really really done,
 				 * otherwise we lose state.
 				 */
-				_handler_ready.down();
+				_vcpu_handler.ready_semaphore().down();
 			}
 		}
 
@@ -447,54 +483,54 @@ struct Vcpu : Thread
 		uint16_t _convert_ar_16(addr_t value) {
 			return ((value & 0x1f000) >> 4) | (value & 0xff); }
 
-		void _read_intel_state(Vm_state &state, void *vmcs,
+		void _read_intel_state(Vcpu_state &state, void *vmcs,
 		                       Foc::l4_vcpu_state_t *vcpu)
 		{
-			state.ax.value(vcpu->r.ax);
-			state.cx.value(vcpu->r.cx);
-			state.dx.value(vcpu->r.dx);
-			state.bx.value(vcpu->r.bx);
+			state.ax.charge(vcpu->r.ax);
+			state.cx.charge(vcpu->r.cx);
+			state.dx.charge(vcpu->r.dx);
+			state.bx.charge(vcpu->r.bx);
 
-			state.bp.value(vcpu->r.bp);
-			state.di.value(vcpu->r.di);
-			state.si.value(vcpu->r.si);
+			state.bp.charge(vcpu->r.bp);
+			state.di.charge(vcpu->r.di);
+			state.si.charge(vcpu->r.si);
 
-			state.flags.value(Foc::l4_vm_vmx_read(vmcs, Vmcs::FLAGS));
+			state.flags.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::FLAGS));
 
-			state.sp.value(Foc::l4_vm_vmx_read(vmcs, Vmcs::SP));
+			state.sp.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::SP));
 
-			state.ip.value(Foc::l4_vm_vmx_read(vmcs, Vmcs::IP));
-			state.ip_len.value(Foc::l4_vm_vmx_read(vmcs, Vmcs::INST_LEN));
+			state.ip.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::IP));
+			state.ip_len.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::INST_LEN));
 
-			state.dr7.value(Foc::l4_vm_vmx_read(vmcs, Vmcs::DR7));
+			state.dr7.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::DR7));
 
 #ifdef __x86_64__
-			state.r8.value(vcpu->r.r8);
-			state.r9.value(vcpu->r.r9);
-			state.r10.value(vcpu->r.r10);
-			state.r11.value(vcpu->r.r11);
-			state.r12.value(vcpu->r.r12);
-			state.r13.value(vcpu->r.r13);
-			state.r14.value(vcpu->r.r14);
-			state.r15.value(vcpu->r.r15);
+			state.r8.charge(vcpu->r.r8);
+			state.r9.charge(vcpu->r.r9);
+			state.r10.charge(vcpu->r.r10);
+			state.r11.charge(vcpu->r.r11);
+			state.r12.charge(vcpu->r.r12);
+			state.r13.charge(vcpu->r.r13);
+			state.r14.charge(vcpu->r.r14);
+			state.r15.charge(vcpu->r.r15);
 #endif
 
 			{
 				addr_t const cr0 = Foc::l4_vm_vmx_read(vmcs, Vmcs::CR0);
 				addr_t const cr0_shadow = Foc::l4_vm_vmx_read(vmcs, Vmcs::CR0_SHADOW);
-				state.cr0.value((cr0 & ~vmcs_cr0_mask) | (cr0_shadow & vmcs_cr0_mask));
+				state.cr0.charge((cr0 & ~vmcs_cr0_mask) | (cr0_shadow & vmcs_cr0_mask));
 				if (state.cr0.value() != cr0_shadow)
 					Foc::l4_vm_vmx_write(vmcs, Vmcs::CR0_SHADOW, state.cr0.value());
 			}
 
 			unsigned const cr2 = Foc::l4_vm_vmx_get_cr2_index(vmcs);
-			state.cr2.value(Foc::l4_vm_vmx_read(vmcs, cr2));
-			state.cr3.value(Foc::l4_vm_vmx_read(vmcs, Vmcs::CR3));
+			state.cr2.charge(Foc::l4_vm_vmx_read(vmcs, cr2));
+			state.cr3.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::CR3));
 
 			{
 				addr_t const cr4 = Foc::l4_vm_vmx_read(vmcs, Vmcs::CR4);
 				addr_t const cr4_shadow = Foc::l4_vm_vmx_read(vmcs, Vmcs::CR4_SHADOW);
-				state.cr4.value((cr4 & ~vmcs_cr4_mask) | (cr4_shadow & vmcs_cr4_mask));
+				state.cr4.charge((cr4 & ~vmcs_cr4_mask) | (cr4_shadow & vmcs_cr4_mask));
 				if (state.cr4.value() != cr4_shadow)
 					Foc::l4_vm_vmx_write(vmcs, Vmcs::CR4_SHADOW,
 					                        state.cr4.value());
@@ -504,8 +540,8 @@ struct Vcpu : Thread
 			using Foc::l4_vm_vmx_read_16;
 			using Foc::l4_vm_vmx_read_32;
 			using Foc::l4_vm_vmx_read_nat;
-			typedef Vm_state::Segment Segment;
-			typedef Vm_state::Range Range;
+			typedef Vcpu_state::Segment Segment;
+			typedef Vcpu_state::Range Range;
 
 			{
 				Segment cs { l4_vm_vmx_read_16(vmcs, Vmcs::CS_SEL),
@@ -513,7 +549,7 @@ struct Vcpu : Thread
 				             l4_vm_vmx_read_32(vmcs, Vmcs::CS_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::CS_BASE) };
 
-				state.cs.value(cs);
+				state.cs.charge(cs);
 			}
 
 			{
@@ -522,7 +558,7 @@ struct Vcpu : Thread
 				            l4_vm_vmx_read_32(vmcs, Vmcs::SS_LIMIT),
 				            l4_vm_vmx_read_nat(vmcs, Vmcs::SS_BASE) };
 
-				state.ss.value(ss);
+				state.ss.charge(ss);
 			}
 
 			{
@@ -531,7 +567,7 @@ struct Vcpu : Thread
 				             l4_vm_vmx_read_32(vmcs, Vmcs::ES_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::ES_BASE) };
 
-				state.es.value(es);
+				state.es.charge(es);
 			}
 
 			{
@@ -540,7 +576,7 @@ struct Vcpu : Thread
 				             l4_vm_vmx_read_32(vmcs, Vmcs::DS_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::DS_BASE) };
 
-				state.ds.value(ds);
+				state.ds.charge(ds);
 			}
 
 			{
@@ -549,7 +585,7 @@ struct Vcpu : Thread
 				             l4_vm_vmx_read_32(vmcs, Vmcs::FS_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::FS_BASE) };
 
-				state.fs.value(fs);
+				state.fs.charge(fs);
 			}
 
 			{
@@ -558,7 +594,7 @@ struct Vcpu : Thread
 				             l4_vm_vmx_read_32(vmcs, Vmcs::GS_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::GS_BASE) };
 
-				state.gs.value(gs);
+				state.gs.charge(gs);
 			}
 
 			{
@@ -567,7 +603,7 @@ struct Vcpu : Thread
 				             l4_vm_vmx_read_32(vmcs, Vmcs::TR_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::TR_BASE) };
 
-				state.tr.value(tr);
+				state.tr.charge(tr);
 			}
 
 			{
@@ -576,48 +612,48 @@ struct Vcpu : Thread
 				               l4_vm_vmx_read_32(vmcs, Vmcs::LDTR_LIMIT),
 				               l4_vm_vmx_read_nat(vmcs, Vmcs::LDTR_BASE) };
 
-				state.ldtr.value(ldtr);
+				state.ldtr.charge(ldtr);
 			}
 
-			state.gdtr.value(Range{l4_vm_vmx_read_nat(vmcs, Vmcs::GDTR_BASE),
-			                       l4_vm_vmx_read_32(vmcs, Vmcs::GDTR_LIMIT)});
+			state.gdtr.charge(Range{.limit = l4_vm_vmx_read_32(vmcs, Vmcs::GDTR_LIMIT),
+			                        .base  = l4_vm_vmx_read_nat(vmcs, Vmcs::GDTR_BASE)});
 
-			state.idtr.value(Range{l4_vm_vmx_read_nat(vmcs, Vmcs::IDTR_BASE),
-			                       l4_vm_vmx_read_32(vmcs, Vmcs::IDTR_LIMIT)});
+			state.idtr.charge(Range{.limit = l4_vm_vmx_read_32(vmcs, Vmcs::IDTR_LIMIT),
+			                        .base  = l4_vm_vmx_read_nat(vmcs, Vmcs::IDTR_BASE)});
 
-			state.sysenter_cs.value(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_CS));
-			state.sysenter_sp.value(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_SP));
-			state.sysenter_ip.value(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_IP));
+			state.sysenter_cs.charge(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_CS));
+			state.sysenter_sp.charge(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_SP));
+			state.sysenter_ip.charge(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_IP));
 
-			state.qual_primary.value(l4_vm_vmx_read(vmcs, Vmcs::EXIT_QUAL));
-			state.qual_secondary.value(l4_vm_vmx_read(vmcs, Vmcs::GUEST_PHYS));
+			state.qual_primary.charge(l4_vm_vmx_read(vmcs, Vmcs::EXIT_QUAL));
+			state.qual_secondary.charge(l4_vm_vmx_read(vmcs, Vmcs::GUEST_PHYS));
 
-			state.ctrl_primary.value(l4_vm_vmx_read(vmcs, Vmcs::CTRL_0));
-			state.ctrl_secondary.value(l4_vm_vmx_read(vmcs, Vmcs::CTRL_1));
+			state.ctrl_primary.charge(l4_vm_vmx_read(vmcs, Vmcs::CTRL_0));
+			state.ctrl_secondary.charge(l4_vm_vmx_read(vmcs, Vmcs::CTRL_1));
 
 			if (state.exit_reason == INTEL_EXIT_INVALID ||
 			    state.exit_reason == VMEXIT_PAUSED)
 			{
-				state.inj_info.value(l4_vm_vmx_read(vmcs, Vmcs::INTR_INFO));
-				state.inj_error.value(l4_vm_vmx_read(vmcs, Vmcs::INTR_ERROR));
+				state.inj_info.charge(l4_vm_vmx_read(vmcs, Vmcs::INTR_INFO));
+				state.inj_error.charge(l4_vm_vmx_read(vmcs, Vmcs::INTR_ERROR));
 			} else {
-				state.inj_info.value(l4_vm_vmx_read(vmcs, Vmcs::IDT_INFO));
-				state.inj_error.value(l4_vm_vmx_read(vmcs, Vmcs::IDT_ERROR));
+				state.inj_info.charge(l4_vm_vmx_read(vmcs, Vmcs::IDT_INFO));
+				state.inj_error.charge(l4_vm_vmx_read(vmcs, Vmcs::IDT_ERROR));
 			}
 
-			state.intr_state.value(l4_vm_vmx_read(vmcs, Vmcs::STATE_INTR));
-			state.actv_state.value(l4_vm_vmx_read(vmcs, Vmcs::STATE_ACTV));
+			state.intr_state.charge(l4_vm_vmx_read(vmcs, Vmcs::STATE_INTR));
+			state.actv_state.charge(l4_vm_vmx_read(vmcs, Vmcs::STATE_ACTV));
 
-			state.tsc.value(Trace::timestamp());
-			state.tsc_offset.value(_tsc_offset);
+			state.tsc.charge(Trace::timestamp());
+			state.tsc_offset.charge(_tsc_offset);
 
-			state.efer.value(l4_vm_vmx_read(vmcs, Vmcs::EFER));
+			state.efer.charge(l4_vm_vmx_read(vmcs, Vmcs::EFER));
 
-			state.star.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_STAR));
-			state.lstar.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_LSTAR));
-			state.cstar.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_CSTAR));
-			state.fmask.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_FMASK));
-			state.kernel_gs_base.value(l4_vm_vmx_read(vmcs, Vmcs::KERNEL_GS_BASE));
+			state.star.charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_STAR));
+			state.lstar.charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_LSTAR));
+			state.cstar.charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_CSTAR));
+			state.fmask.charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_FMASK));
+			state.kernel_gs_base.charge(l4_vm_vmx_read(vmcs, Vmcs::KERNEL_GS_BASE));
 
 			/* XXX missing */
 #if 0
@@ -626,109 +662,109 @@ struct Vcpu : Thread
 #endif
 		}
 
-		void _read_amd_state(Vm_state &state, Foc::l4_vm_svm_vmcb_t *vmcb,
+		void _read_amd_state(Vcpu_state &state, Foc::l4_vm_svm_vmcb_t *vmcb,
 		                     Foc::l4_vcpu_state_t * const vcpu)
 		{
-			state.ax.value(vmcb->state_save_area.rax);
-			state.cx.value(vcpu->r.cx);
-			state.dx.value(vcpu->r.dx);
-			state.bx.value(vcpu->r.bx);
+			state.ax.charge(vmcb->state_save_area.rax);
+			state.cx.charge(vcpu->r.cx);
+			state.dx.charge(vcpu->r.dx);
+			state.bx.charge(vcpu->r.bx);
 
-			state.di.value(vcpu->r.di);
-			state.si.value(vcpu->r.si);
-			state.bp.value(vcpu->r.bp);
+			state.di.charge(vcpu->r.di);
+			state.si.charge(vcpu->r.si);
+			state.bp.charge(vcpu->r.bp);
 
-			state.flags.value(vmcb->state_save_area.rflags);
+			state.flags.charge(vmcb->state_save_area.rflags);
 
-			state.sp.value(vmcb->state_save_area.rsp);
+			state.sp.charge(vmcb->state_save_area.rsp);
 
-			state.ip.value(vmcb->state_save_area.rip);
-			state.ip_len.value(0); /* unsupported on AMD */
+			state.ip.charge(vmcb->state_save_area.rip);
+			state.ip_len.charge(0); /* unsupported on AMD */
 
-			state.dr7.value(vmcb->state_save_area.dr7);
+			state.dr7.charge(vmcb->state_save_area.dr7);
 
 #ifdef __x86_64__
-			state.r8.value(vcpu->r.r8);
-			state.r9.value(vcpu->r.r9);
-			state.r10.value(vcpu->r.r10);
-			state.r11.value(vcpu->r.r11);
-			state.r12.value(vcpu->r.r12);
-			state.r13.value(vcpu->r.r13);
-			state.r14.value(vcpu->r.r14);
-			state.r15.value(vcpu->r.r15);
+			state.r8.charge(vcpu->r.r8);
+			state.r9.charge(vcpu->r.r9);
+			state.r10.charge(vcpu->r.r10);
+			state.r11.charge(vcpu->r.r11);
+			state.r12.charge(vcpu->r.r12);
+			state.r13.charge(vcpu->r.r13);
+			state.r14.charge(vcpu->r.r14);
+			state.r15.charge(vcpu->r.r15);
 #endif
 
 			{
 				addr_t const cr0 = vmcb->state_save_area.cr0;
-				state.cr0.value((cr0 & ~vmcb_cr0_mask) | (vmcb_cr0_shadow & vmcb_cr0_mask));
+				state.cr0.charge((cr0 & ~vmcb_cr0_mask) | (vmcb_cr0_shadow & vmcb_cr0_mask));
 				if (state.cr0.value() != vmcb_cr0_shadow)
 					vmcb_cr0_shadow = state.cr0.value();
 			}
-			state.cr2.value(vmcb->state_save_area.cr2);
-			state.cr3.value(vmcb->state_save_area.cr3);
+			state.cr2.charge(vmcb->state_save_area.cr2);
+			state.cr3.charge(vmcb->state_save_area.cr3);
 			{
 				addr_t const cr4 = vmcb->state_save_area.cr4;
-				state.cr4.value((cr4 & ~vmcb_cr4_mask) | (vmcb_cr4_shadow & vmcb_cr4_mask));
+				state.cr4.charge((cr4 & ~vmcb_cr4_mask) | (vmcb_cr4_shadow & vmcb_cr4_mask));
 				if (state.cr4.value() != vmcb_cr4_shadow)
 					vmcb_cr4_shadow = state.cr4.value();
 			}
 
-			typedef Vm_state::Segment Segment;
+			typedef Vcpu_state::Segment Segment;
 
-			state.cs.value(Segment{vmcb->state_save_area.cs.selector,
+			state.cs.charge(Segment{vmcb->state_save_area.cs.selector,
 			                       vmcb->state_save_area.cs.attrib,
 			                       vmcb->state_save_area.cs.limit,
 			                       (addr_t)vmcb->state_save_area.cs.base});
 
-			state.ss.value(Segment{vmcb->state_save_area.ss.selector,
+			state.ss.charge(Segment{vmcb->state_save_area.ss.selector,
 			                       vmcb->state_save_area.ss.attrib,
 			                       vmcb->state_save_area.ss.limit,
 			                       (addr_t)vmcb->state_save_area.ss.base});
 
-			state.es.value(Segment{vmcb->state_save_area.es.selector,
+			state.es.charge(Segment{vmcb->state_save_area.es.selector,
 			                       vmcb->state_save_area.es.attrib,
 			                       vmcb->state_save_area.es.limit,
 			                       (addr_t)vmcb->state_save_area.es.base});
 
-			state.ds.value(Segment{vmcb->state_save_area.ds.selector,
+			state.ds.charge(Segment{vmcb->state_save_area.ds.selector,
 			                       vmcb->state_save_area.ds.attrib,
 			                       vmcb->state_save_area.ds.limit,
 			                       (addr_t)vmcb->state_save_area.ds.base});
 
-			state.fs.value(Segment{vmcb->state_save_area.fs.selector,
+			state.fs.charge(Segment{vmcb->state_save_area.fs.selector,
 			                       vmcb->state_save_area.fs.attrib,
 			                       vmcb->state_save_area.fs.limit,
 			                       (addr_t)vmcb->state_save_area.fs.base});
 
-			state.gs.value(Segment{vmcb->state_save_area.gs.selector,
+			state.gs.charge(Segment{vmcb->state_save_area.gs.selector,
 			                       vmcb->state_save_area.gs.attrib,
 			                       vmcb->state_save_area.gs.limit,
 			                       (addr_t)vmcb->state_save_area.gs.base});
 
-			state.tr.value(Segment{vmcb->state_save_area.tr.selector,
+			state.tr.charge(Segment{vmcb->state_save_area.tr.selector,
 			                       vmcb->state_save_area.tr.attrib,
 			                       vmcb->state_save_area.tr.limit,
 			                       (addr_t)vmcb->state_save_area.tr.base});
 
-			state.ldtr.value(Segment{vmcb->state_save_area.ldtr.selector,
+			state.ldtr.charge(Segment{vmcb->state_save_area.ldtr.selector,
 			                         vmcb->state_save_area.ldtr.attrib,
 			                         vmcb->state_save_area.ldtr.limit,
 			                         (addr_t)vmcb->state_save_area.ldtr.base});
 
-			typedef Vm_state::Range Range;
+			typedef Vcpu_state::Range Range;
 
-			state.gdtr.value(Range{(addr_t)vmcb->state_save_area.gdtr.base,
-			                       vmcb->state_save_area.gdtr.limit});
+			state.gdtr.charge(Range{.limit = vmcb->state_save_area.gdtr.limit,
+			                        .base  = (addr_t)vmcb->state_save_area.gdtr.base });
 
-			state.idtr.value(Range{(addr_t)vmcb->state_save_area.idtr.base,
-			                       vmcb->state_save_area.idtr.limit});
+			state.idtr.charge(Range{.limit = vmcb->state_save_area.idtr.limit,
+			                        .base  = (addr_t)vmcb->state_save_area.idtr.base });
 
-			state.sysenter_cs.value(vmcb->state_save_area.sysenter_cs);
-			state.sysenter_sp.value(vmcb->state_save_area.sysenter_esp);
-			state.sysenter_ip.value(vmcb->state_save_area.sysenter_eip);
+			state.sysenter_cs.charge(vmcb->state_save_area.sysenter_cs);
+			state.sysenter_sp.charge(vmcb->state_save_area.sysenter_esp);
+			state.sysenter_ip.charge(vmcb->state_save_area.sysenter_eip);
 
-			state.qual_primary.value(vmcb->control_area.exitinfo1);
-			state.qual_secondary.value(vmcb->control_area.exitinfo2);
+			state.qual_primary.charge(vmcb->control_area.exitinfo1);
+			state.qual_secondary.charge(vmcb->control_area.exitinfo2);
 
 			uint32_t inj_info = 0;
 			uint32_t inj_error = 0;
@@ -741,56 +777,56 @@ struct Vcpu : Thread
 				inj_info  = vmcb->control_area.exitintinfo;
 				inj_error = vmcb->control_area.exitintinfo >> 32;
 			}
-			state.inj_info.value(inj_info);
-			state.inj_error.value(inj_error);
+			state.inj_info.charge(inj_info);
+			state.inj_error.charge(inj_error);
 
-			state.intr_state.value(vmcb->control_area.interrupt_shadow);
-			state.actv_state.value(0);
+			state.intr_state.charge(vmcb->control_area.interrupt_shadow);
+			state.actv_state.charge(0);
 
-			state.tsc.value(Trace::timestamp());
-			state.tsc_offset.value(_tsc_offset);
+			state.tsc.charge(Trace::timestamp());
+			state.tsc_offset.charge(_tsc_offset);
 
-			state.efer.value(vmcb->state_save_area.efer);
+			state.efer.charge(vmcb->state_save_area.efer);
 
-			if (state.pdpte_0.valid() || state.pdpte_1.valid() ||
-			    state.pdpte_2.valid() || state.pdpte_3.valid()) {
+			if (state.pdpte_0.charged() || state.pdpte_1.charged() ||
+			    state.pdpte_2.charged() || state.pdpte_3.charged()) {
 
 				error("pdpte not implemented");
 			}
 
-			if (state.star.valid() || state.lstar.valid() || state.cstar.valid() ||
-			    state.fmask.valid() || state.kernel_gs_base.valid()) {
+			if (state.star.charged() || state.lstar.charged() || state.cstar.charged() ||
+			    state.fmask.charged() || state.kernel_gs_base.charged()) {
 
 				error("star, fstar, fmask, kernel_gs_base not implemented");
 			}
 
-			if (state.tpr.valid() || state.tpr_threshold.valid()) {
+			if (state.tpr.charged() || state.tpr_threshold.charged()) {
 				error("tpr not implemented");
 			}
 		}
 
-		void _write_intel_state(Vm_state &state, void *vmcs,
+		void _write_intel_state(Vcpu_state &state, void *vmcs,
 		                        Foc::l4_vcpu_state_t *vcpu)
 		{
 			using Foc::l4_vm_vmx_write;
 
-			if (state.ax.valid() || state.cx.valid() || state.dx.valid() ||
-			    state.bx.valid()) {
+			if (state.ax.charged() || state.cx.charged() || state.dx.charged() ||
+			    state.bx.charged()) {
 				vcpu->r.ax = state.ax.value();
 				vcpu->r.cx = state.cx.value();
 				vcpu->r.dx = state.dx.value();
 				vcpu->r.bx = state.bx.value();
 			}
 
-			if (state.bp.valid() || state.di.valid() || state.si.valid()) {
+			if (state.bp.charged() || state.di.charged() || state.si.charged()) {
 				vcpu->r.bp = state.bp.value();
 				vcpu->r.di = state.di.value();
 				vcpu->r.si = state.si.value();
 			}
 
-			if (state.r8.valid()  || state.r9.valid() || state.r10.valid() ||
-			    state.r11.valid() || state.r12.valid() || state.r13.valid() ||
-			    state.r14.valid() || state.r15.valid()) {
+			if (state.r8.charged()  || state.r9.charged() || state.r10.charged() ||
+			    state.r11.charged() || state.r12.charged() || state.r13.charged() ||
+			    state.r14.charged() || state.r15.charged()) {
 #ifdef __x86_64__
 				vcpu->r.r8 = state.r8.value();
 				vcpu->r.r9 = state.r9.value();
@@ -803,38 +839,38 @@ struct Vcpu : Thread
 #endif
 			}
 
-			if (state.tsc_offset.valid()) {
+			if (state.tsc_offset.charged()) {
 				_tsc_offset += state.tsc_offset.value();
 				l4_vm_vmx_write(vmcs, Vmcs::TSC_OFF_LO,  _tsc_offset & 0xffffffffu);
 				l4_vm_vmx_write(vmcs, Vmcs::TSC_OFF_HI, (_tsc_offset >> 32) & 0xffffffffu);
 			}
 
-			if (state.star.valid())
+			if (state.star.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::MSR_STAR, state.star.value());
 
-			if (state.lstar.valid())
+			if (state.lstar.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::MSR_LSTAR, state.lstar.value());
 
-			if (state.cstar.valid())
+			if (state.cstar.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::MSR_CSTAR, state.cstar.value());
 
-			if (state.fmask.valid())
+			if (state.fmask.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::MSR_FMASK, state.fmask.value());
 
-			if (state.kernel_gs_base.valid())
+			if (state.kernel_gs_base.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::KERNEL_GS_BASE, state.kernel_gs_base.value());
 
-			if (state.tpr.valid() || state.tpr_threshold.valid()) {
+			if (state.tpr.charged() || state.tpr_threshold.charged()) {
 				if (_show_error_unsupported_tpr) {
 					_show_error_unsupported_tpr = false;
 					error("TPR & TPR_THRESHOLD not supported on Fiasco.OC");
 				}
 			}
 
-			if (state.dr7.valid())
+			if (state.dr7.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::DR7, state.dr7.value());
 
-			if (state.cr0.valid()) {
+			if (state.cr0.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::CR0, vmcs_cr0_set | (~vmcs_cr0_mask & state.cr0.value()));
 				l4_vm_vmx_write(vmcs, Vmcs::CR0_SHADOW, state.cr0.value());
 
@@ -843,22 +879,22 @@ struct Vcpu : Thread
 				#endif
 			}
 
-			if (state.cr2.valid()) {
+			if (state.cr2.charged()) {
 				unsigned const cr2 = Foc::l4_vm_vmx_get_cr2_index(vmcs);
 				l4_vm_vmx_write(vmcs, cr2, state.cr2.value());
 			}
 
-			if (state.cr3.valid())
+			if (state.cr3.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::CR3, state.cr3.value());
 
-			if (state.cr4.valid()) {
+			if (state.cr4.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::CR4,
 				                vmcs_cr4_set | (~vmcs_cr4_mask & state.cr4.value()));
 				l4_vm_vmx_write(vmcs, Vmcs::CR4_SHADOW, state.cr4.value());
 			}
 
-			if (state.inj_info.valid() || state.inj_error.valid()) {
-				addr_t ctrl_0 = state.ctrl_primary.valid() ?
+			if (state.inj_info.charged() || state.inj_error.charged()) {
+				addr_t ctrl_0 = state.ctrl_primary.charged() ?
 				                state.ctrl_primary.value() :
 				                Foc::l4_vm_vmx_read(vmcs, Vmcs::CTRL_0);
 
@@ -873,7 +909,7 @@ struct Vcpu : Thread
 				else
 					ctrl_0 &= ~Vmcs::IRQ_WINDOW;
 
-				state.ctrl_primary.value(ctrl_0);
+				state.ctrl_primary.charge(ctrl_0);
 
 				l4_vm_vmx_write(vmcs, Vmcs::INTR_INFO,
 				                      state.inj_info.value() & ~0x3000);
@@ -881,105 +917,105 @@ struct Vcpu : Thread
 				                      state.inj_error.value());
 			}
 
-			if (state.flags.valid())
+			if (state.flags.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::FLAGS, state.flags.value());
 
-			if (state.sp.valid())
+			if (state.sp.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::SP, state.sp.value());
 
-			if (state.ip.valid())
+			if (state.ip.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::IP, state.ip.value());
 
-			if (state.ip_len.valid())
+			if (state.ip_len.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::ENTRY_INST_LEN, state.ip_len.value());
 
-			if (state.efer.valid())
+			if (state.efer.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::EFER, state.efer.value());
 
-			if (state.ctrl_primary.valid())
+			if (state.ctrl_primary.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::CTRL_0,
 				                _vmcs_ctrl0 | state.ctrl_primary.value());
 
-			if (state.ctrl_secondary.valid())
+			if (state.ctrl_secondary.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::CTRL_1,
 				                state.ctrl_secondary.value());
 
-			if (state.intr_state.valid())
+			if (state.intr_state.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::STATE_INTR,
 				                state.intr_state.value());
 
-			if (state.actv_state.valid())
+			if (state.actv_state.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::STATE_ACTV,
 				                state.actv_state.value());
 
-			if (state.cs.valid()) {
+			if (state.cs.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::CS_SEL, state.cs.value().sel);
 				l4_vm_vmx_write(vmcs, Vmcs::CS_AR, _convert_ar(state.cs.value().ar));
 				l4_vm_vmx_write(vmcs, Vmcs::CS_LIMIT, state.cs.value().limit);
 				l4_vm_vmx_write(vmcs, Vmcs::CS_BASE, state.cs.value().base);
 			}
 
-			if (state.ss.valid()) {
+			if (state.ss.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::SS_SEL, state.ss.value().sel);
 				l4_vm_vmx_write(vmcs, Vmcs::SS_AR, _convert_ar(state.ss.value().ar));
 				l4_vm_vmx_write(vmcs, Vmcs::SS_LIMIT, state.ss.value().limit);
 				l4_vm_vmx_write(vmcs, Vmcs::SS_BASE, state.ss.value().base);
 			}
 
-			if (state.es.valid()) {
+			if (state.es.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::ES_SEL, state.es.value().sel);
 				l4_vm_vmx_write(vmcs, Vmcs::ES_AR, _convert_ar(state.es.value().ar));
 				l4_vm_vmx_write(vmcs, Vmcs::ES_LIMIT, state.es.value().limit);
 				l4_vm_vmx_write(vmcs, Vmcs::ES_BASE, state.es.value().base);
 			}
 
-			if (state.ds.valid()) {
+			if (state.ds.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::DS_SEL, state.ds.value().sel);
 				l4_vm_vmx_write(vmcs, Vmcs::DS_AR, _convert_ar(state.ds.value().ar));
 				l4_vm_vmx_write(vmcs, Vmcs::DS_LIMIT, state.ds.value().limit);
 				l4_vm_vmx_write(vmcs, Vmcs::DS_BASE, state.ds.value().base);
 			}
 
-			if (state.fs.valid()) {
+			if (state.fs.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::FS_SEL, state.fs.value().sel);
 				l4_vm_vmx_write(vmcs, Vmcs::FS_AR, _convert_ar(state.fs.value().ar));
 				l4_vm_vmx_write(vmcs, Vmcs::FS_LIMIT, state.fs.value().limit);
 				l4_vm_vmx_write(vmcs, Vmcs::FS_BASE, state.fs.value().base);
 			}
 
-			if (state.gs.valid()) {
+			if (state.gs.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::GS_SEL, state.gs.value().sel);
 				l4_vm_vmx_write(vmcs, Vmcs::GS_AR, _convert_ar(state.gs.value().ar));
 				l4_vm_vmx_write(vmcs, Vmcs::GS_LIMIT, state.gs.value().limit);
 				l4_vm_vmx_write(vmcs, Vmcs::GS_BASE, state.gs.value().base);
 			}
 
-			if (state.tr.valid()) {
+			if (state.tr.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::TR_SEL, state.tr.value().sel);
 				l4_vm_vmx_write(vmcs, Vmcs::TR_AR, _convert_ar(state.tr.value().ar));
 				l4_vm_vmx_write(vmcs, Vmcs::TR_LIMIT, state.tr.value().limit);
 				l4_vm_vmx_write(vmcs, Vmcs::TR_BASE,  state.tr.value().base);
 			}
 
-			if (state.ldtr.valid()) {
+			if (state.ldtr.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::LDTR_SEL, state.ldtr.value().sel);
 				l4_vm_vmx_write(vmcs, Vmcs::LDTR_AR, _convert_ar(state.ldtr.value().ar));
 				l4_vm_vmx_write(vmcs, Vmcs::LDTR_LIMIT, state.ldtr.value().limit);
 				l4_vm_vmx_write(vmcs, Vmcs::LDTR_BASE, state.ldtr.value().base);
 			}
 
-			if (state.idtr.valid()) {
+			if (state.idtr.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::IDTR_BASE, state.idtr.value().base);
 				l4_vm_vmx_write(vmcs, Vmcs::IDTR_LIMIT, state.idtr.value().limit);
 			}
 
-			if (state.gdtr.valid()) {
+			if (state.gdtr.charged()) {
 				l4_vm_vmx_write(vmcs, Vmcs::GDTR_BASE, state.gdtr.value().base);
 				l4_vm_vmx_write(vmcs, Vmcs::GDTR_LIMIT, state.gdtr.value().limit);
 			}
 
-			if (state.pdpte_0.valid() || state.pdpte_1.valid() ||
-			    state.pdpte_2.valid() || state.pdpte_3.valid())
+			if (state.pdpte_0.charged() || state.pdpte_1.charged() ||
+			    state.pdpte_2.charged() || state.pdpte_3.charged())
 			{
 				if (_show_error_unsupported_pdpte) {
 					_show_error_unsupported_pdpte = false;
@@ -987,22 +1023,22 @@ struct Vcpu : Thread
 				}
 			}
 
-			if (state.sysenter_cs.valid())
+			if (state.sysenter_cs.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::SYSENTER_CS,
 				                state.sysenter_cs.value());
-			if (state.sysenter_sp.valid())
+			if (state.sysenter_sp.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::SYSENTER_SP,
 				                state.sysenter_sp.value());
-			if (state.sysenter_ip.valid())
+			if (state.sysenter_ip.charged())
 				l4_vm_vmx_write(vmcs, Vmcs::SYSENTER_IP,
 				                state.sysenter_ip.value());
 		}
 
-		void _write_amd_state(Vm_state &state, Foc::l4_vm_svm_vmcb_t *vmcb,
+		void _write_amd_state(Vcpu_state &state, Foc::l4_vm_svm_vmcb_t *vmcb,
 		                      Foc::l4_vcpu_state_t *vcpu)
 		{
-			if (state.ax.valid() || state.cx.valid() || state.dx.valid() ||
-			    state.bx.valid()) {
+			if (state.ax.charged() || state.cx.charged() || state.dx.charged() ||
+			    state.bx.charged()) {
 
 				vmcb->state_save_area.rax = state.ax.value();
 				vcpu->r.ax = state.ax.value();
@@ -1011,15 +1047,15 @@ struct Vcpu : Thread
 				vcpu->r.bx = state.bx.value();
 			}
 
-			if (state.bp.valid() || state.di.valid() || state.si.valid()) {
+			if (state.bp.charged() || state.di.charged() || state.si.charged()) {
 				vcpu->r.bp = state.bp.value();
 				vcpu->r.di = state.di.value();
 				vcpu->r.si = state.si.value();
 			}
 
-			if (state.r8.valid()  || state.r9.valid() || state.r10.valid() ||
-			    state.r11.valid() || state.r12.valid() || state.r13.valid() ||
-			    state.r14.valid() || state.r15.valid()) {
+			if (state.r8.charged()  || state.r9.charged() || state.r10.charged() ||
+			    state.r11.charged() || state.r12.charged() || state.r13.charged() ||
+			    state.r14.charged() || state.r15.charged()) {
 #ifdef __x86_64__
 				vcpu->r.r8 = state.r8.value();
 				vcpu->r.r9 = state.r9.value();
@@ -1032,7 +1068,7 @@ struct Vcpu : Thread
 #endif
 			}
 
-			if (state.tsc_offset.valid()) {
+			if (state.tsc_offset.charged()) {
 				_tsc_offset += state.tsc_offset.value();
 				vmcb->control_area.tsc_offset = _tsc_offset;
 			}
@@ -1041,17 +1077,17 @@ struct Vcpu : Thread
 			    state.fmask.value() || state.kernel_gs_base.value())
 				error(__LINE__, " not implemented");
 
-			if (state.tpr.valid() || state.tpr_threshold.valid()) {
+			if (state.tpr.charged() || state.tpr_threshold.charged()) {
 				if (_show_error_unsupported_tpr) {
 					_show_error_unsupported_tpr = false;
 					error("TPR & TPR_THRESHOLD not supported on Fiasco.OC");
 				}
 			}
 
-			if (state.dr7.valid())
+			if (state.dr7.charged())
 				vmcb->state_save_area.dr7 = state.dr7.value();
 
-			if (state.cr0.valid()) {
+			if (state.cr0.charged()) {
 				vmcb->state_save_area.cr0 = vmcb_cr0_set | (~vmcb_cr0_mask & state.cr0.value());
 				vmcb_cr0_shadow           = state.cr0.value();
 #if 0
@@ -1059,26 +1095,26 @@ struct Vcpu : Thread
 #endif
 			}
 
-			if (state.cr2.valid())
+			if (state.cr2.charged())
 				vmcb->state_save_area.cr2 = state.cr2.value();
 
-			if (state.cr3.valid())
+			if (state.cr3.charged())
 				vmcb->state_save_area.cr3 = state.cr3.value();
 
-			if (state.cr4.valid()) {
+			if (state.cr4.charged()) {
 				vmcb->state_save_area.cr4 = vmcb_cr4_set | (~vmcb_cr4_mask & state.cr4.value());
 				vmcb_cr4_shadow           = state.cr4.value();
 			}
 
-			if (state.ctrl_primary.valid())
+			if (state.ctrl_primary.charged())
 				vmcb->control_area.intercept_instruction0 = vmcb_ctrl0 |
 				                                            state.ctrl_primary.value();
 
-			if (state.ctrl_secondary.valid())
+			if (state.ctrl_secondary.charged())
 				vmcb->control_area.intercept_instruction1 = vmcb_ctrl1 |
 				                                            state.ctrl_secondary.value();
 
-			if (state.inj_info.valid()) {
+			if (state.inj_info.charged()) {
 				if (state.inj_info.value() & 0x1000) {
 					vmcb->control_area.interrupt_ctl |=  (1ul << 8 | 1ul << 20);
 					vmcb->control_area.intercept_instruction0 |= Vmcb::CTRL0_VINTR;
@@ -1090,97 +1126,97 @@ struct Vcpu : Thread
 				vmcb->control_area.eventinj |= ~0x3000U & state.inj_info.value();
 			}
 
-			if (state.inj_error.valid()) {
+			if (state.inj_error.charged()) {
 				vmcb->control_area.eventinj &= ((1ULL << 32) - 1);
 				uint64_t value = (0ULL + state.inj_error.value()) << 32;
 				vmcb->control_area.eventinj |= value;
 			}
 
-			if (state.flags.valid())
+			if (state.flags.charged())
 				vmcb->state_save_area.rflags = state.flags.value();
 
-			if (state.sp.valid())
+			if (state.sp.charged())
 				vmcb->state_save_area.rsp = state.sp.value();
 
-			if (state.ip.valid())
+			if (state.ip.charged())
 				vmcb->state_save_area.rip = state.ip.value();
 
-			if (state.efer.valid())
+			if (state.efer.charged())
 				vmcb->state_save_area.efer = state.efer.value() | AMD_SVM_ENABLE;
 
-			if (state.intr_state.valid())
+			if (state.intr_state.charged())
 				vmcb->control_area.interrupt_shadow = state.intr_state.value();
 
-			/* state.actv_state.valid() - not required for AMD */
+			/* state.actv_state.charged() - not required for AMD */
 
-			if (state.cs.valid()) {
+			if (state.cs.charged()) {
 				vmcb->state_save_area.cs.selector = state.cs.value().sel;
 				vmcb->state_save_area.cs.attrib = state.cs.value().ar;
 				vmcb->state_save_area.cs.limit = state.cs.value().limit;
 				vmcb->state_save_area.cs.base = state.cs.value().base;
 			}
 
-			if (state.ss.valid()) {
+			if (state.ss.charged()) {
 				vmcb->state_save_area.ss.selector = state.ss.value().sel;
 				vmcb->state_save_area.ss.attrib = state.ss.value().ar;
 				vmcb->state_save_area.ss.limit = state.ss.value().limit;
 				vmcb->state_save_area.ss.base = state.ss.value().base;
 			}
 
-			if (state.es.valid()) {
+			if (state.es.charged()) {
 				vmcb->state_save_area.es.selector = state.es.value().sel;
 				vmcb->state_save_area.es.attrib = state.es.value().ar;
 				vmcb->state_save_area.es.limit = state.es.value().limit;
 				vmcb->state_save_area.es.base = state.es.value().base;
 			}
 
-			if (state.ds.valid()) {
+			if (state.ds.charged()) {
 				vmcb->state_save_area.ds.selector = state.ds.value().sel;
 				vmcb->state_save_area.ds.attrib = state.ds.value().ar;
 				vmcb->state_save_area.ds.limit = state.ds.value().limit;
 				vmcb->state_save_area.ds.base = state.ds.value().base;
 			}
 
-			if (state.fs.valid()) {
+			if (state.fs.charged()) {
 				vmcb->state_save_area.fs.selector = state.fs.value().sel;
 				vmcb->state_save_area.fs.attrib = state.fs.value().ar;
 				vmcb->state_save_area.fs.limit = state.fs.value().limit;
 				vmcb->state_save_area.fs.base = state.fs.value().base;
 			}
 
-			if (state.gs.valid()) {
+			if (state.gs.charged()) {
 				vmcb->state_save_area.gs.selector = state.gs.value().sel;
 				vmcb->state_save_area.gs.attrib = state.gs.value().ar;
 				vmcb->state_save_area.gs.limit = state.gs.value().limit;
 				vmcb->state_save_area.gs.base = state.gs.value().base;
 			}
 
-			if (state.tr.valid()) {
+			if (state.tr.charged()) {
 				vmcb->state_save_area.tr.selector = state.tr.value().sel;
 				vmcb->state_save_area.tr.attrib = state.tr.value().ar;
 				vmcb->state_save_area.tr.limit = state.tr.value().limit;
 				vmcb->state_save_area.tr.base = state.tr.value().base;
 			}
 
-			if (state.ldtr.valid()) {
+			if (state.ldtr.charged()) {
 				vmcb->state_save_area.ldtr.selector = state.ldtr.value().sel;
 				vmcb->state_save_area.ldtr.attrib = state.ldtr.value().ar;
 				vmcb->state_save_area.ldtr.limit = state.ldtr.value().limit;
 				vmcb->state_save_area.ldtr.base = state.ldtr.value().base;
 			}
 
-			if (state.idtr.valid()) {
+			if (state.idtr.charged()) {
 				vmcb->state_save_area.idtr.base = state.idtr.value().base;
 				vmcb->state_save_area.idtr.limit = state.idtr.value().limit;
 			}
 
-			if (state.gdtr.valid()) {
+			if (state.gdtr.charged()) {
 				vmcb->state_save_area.gdtr.base = state.gdtr.value().base;
 				vmcb->state_save_area.gdtr.limit = state.gdtr.value().limit;
 			}
 
-			if (state.pdpte_0.valid() || state.pdpte_1.valid() ||
-			    state.pdpte_2.valid() || state.pdpte_3.valid())
+			if (state.pdpte_0.charged() || state.pdpte_1.charged() ||
+			    state.pdpte_2.charged() || state.pdpte_3.charged())
 			{
 				if (_show_error_unsupported_pdpte) {
 					_show_error_unsupported_pdpte = false;
@@ -1188,38 +1224,42 @@ struct Vcpu : Thread
 				}
 			}
 
-			if (state.sysenter_cs.valid())
+			if (state.sysenter_cs.charged())
 				vmcb->state_save_area.sysenter_cs = state.sysenter_cs.value();
-			if (state.sysenter_sp.valid())
+			if (state.sysenter_sp.charged())
 				vmcb->state_save_area.sysenter_esp = state.sysenter_sp.value();
-			if (state.sysenter_ip.valid())
+			if (state.sysenter_ip.charged())
 				vmcb->state_save_area.sysenter_eip = state.sysenter_ip.value();
+		}
+
+		Affinity::Location _location(Vcpu_handler_base &handler) const
+		{
+			Thread * ep = reinterpret_cast<Thread *>(&handler.rpc_ep());
+			return ep->affinity();
 		}
 
 	public:
 
-		Vcpu(Env &env, Signal_context_capability &cap,
-		     Semaphore &handler_ready, enum Virt type,
-		     Allocator &alloc, Affinity::Location location)
+		Foc_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler,
+		         enum Virt type)
 		:
-			Thread(env, "vcpu_thread", STACK_SIZE, location, Weight(), env.cpu()),
-			_signal(cap), _handler_ready(handler_ready), _alloc(alloc),
+			Thread(env, "vcpu_thread", STACK_SIZE, _location(handler),
+			       Weight(), env.cpu()),
+			_vcpu_handler(handler),
 			_vm_type(type)
-		{ }
-
-		Allocator &allocator() const { return _alloc; }
-
-		bool match(Vm_session_client::Vcpu_id id) { return id.id == _id.id; }
-
-		Vm_session_client::Vcpu_id id() const { return _id; }
-
-		void id(Vm_session_client::Vcpu_id id) { _id = id;   }
-
-		void assign_ds_state(Region_map &rm, Dataspace_capability cap)
 		{
-			_state = rm.attach(cap);
-			_task  = *reinterpret_cast<Foc::l4_cap_idx_t *>(_state);
-			*reinterpret_cast<Foc::l4_cap_idx_t *>(_state) = 0UL;
+			Thread::start();
+
+			/* wait until thread is alive, e.g. Thread::cap() is valid */
+			_startup.block();
+
+			try {
+				_rpc.construct(vm, this->cap(), *this);
+			} catch (...) {
+				terminate();
+				join();
+				throw;
+			}
 		}
 
 		void resume()
@@ -1258,6 +1298,9 @@ struct Vcpu : Thread
 			_state_request = TERMINATE;
 			_wake_up.up();
 		}
+
+		Vcpu_state          &state() { return _vcpu_state; }
+		Foc_native_vcpu_rpc *rpc()   { return &*_rpc; }
 };
 
 
@@ -1278,82 +1321,17 @@ static enum Virt virt_type(Env &env)
 }
 
 
-Vm_session_client::Vcpu_id
-Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
-                               Vm_handler_base &handler)
-{
-	enum Virt vm_type = virt_type(env);
-	if (vm_type == Virt::UNKNOWN) {
-		error("unsupported hardware virtualisation");
-		return Vm_session::Vcpu_id();
-	}
+/**************
+ ** vCPU API **
+ **************/
 
-	Thread * ep = reinterpret_cast<Thread *>(&handler._rpc_ep);
-	Affinity::Location location = ep->affinity();
-
-	/* create thread that switches modes between thread/cpu */
-	Vcpu * vcpu = new (alloc) Registered<Vcpu>(vcpus, env, handler._cap,
-	                                           handler._done, vm_type,
-	                                           alloc, location);
-
-	try {
-		/* now it gets actually valid - vcpu->cap() becomes valid */
-		vcpu->start();
-
-		/* instruct core to let it become a vCPU */
-		vcpu->id(call<Rpc_create_vcpu>(vcpu->cap()));
-
-		call<Rpc_exception_handler>(handler._cap, vcpu->id());
-
-		vcpu->assign_ds_state(env.rm(), call<Rpc_cpu_state>(vcpu->id()));
-	} catch (...) {
-		vcpu->terminate();
-		vcpu->join();
-
-		destroy(alloc, vcpu);
-		throw;
-	}
-	return vcpu->id();
-}
+void         Vm_connection::Vcpu::run()   {        static_cast<Foc_native_vcpu_rpc &>(_native_vcpu).vcpu.resume(); }
+void         Vm_connection::Vcpu::pause() {        static_cast<Foc_native_vcpu_rpc &>(_native_vcpu).vcpu.pause(); }
+Vcpu_state & Vm_connection::Vcpu::state() { return static_cast<Foc_native_vcpu_rpc &>(_native_vcpu).vcpu.state(); }
 
 
-void Vm_session_client::run(Vcpu_id vcpu_id)
-{
-	vcpus.for_each([&] (Vcpu &vcpu) {
-		if (vcpu.match(vcpu_id))
-			vcpu.resume();
-	});
-}
-
-
-void Vm_session_client::pause(Vm_session_client::Vcpu_id vcpu_id)
-{
-	vcpus.for_each([&] (Vcpu &vcpu) {
-		if (!vcpu.match(vcpu_id))
-			return;
-
-		vcpu.pause();
-	});
-}
-
-
-Dataspace_capability Vm_session_client::cpu_state(Vcpu_id vcpu_id)
-{
-	Dataspace_capability cap;
-
-	vcpus.for_each([&] (Vcpu &vcpu) {
-		if (vcpu.match(vcpu_id))
-			cap = call<Rpc_cpu_state>(vcpu_id);
-	});
-
-	return cap;
-}
-
-
-Vm_session::~Vm_session()
-{
-	vcpus.for_each([&] (Vcpu &vc) {
-		Allocator &alloc = vc.allocator();
-		destroy(alloc, &vc);
-	});
-}
+Vm_connection::Vcpu::Vcpu(Vm_connection &vm, Allocator &alloc,
+                          Vcpu_handler_base &handler, Exit_config const &)
+:
+	_native_vcpu(*((new (alloc) Foc_vcpu(vm._env, vm, handler, virt_type(vm._env)))->rpc()))
+{ }

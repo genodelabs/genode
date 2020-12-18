@@ -137,7 +137,10 @@ Vm_session_component::~Vm_session_component()
 
 	/* free region in allocator */
 	for (unsigned i = 0; i < _vcpu_id_alloc; i++) {
-		Vcpu & vcpu = _vcpus[i];
+		if (!_vcpus[i].constructed())
+			continue;
+
+		Vcpu & vcpu = *_vcpus[i];
 		if (vcpu.ds_cap.valid()) {
 			_region_map.detach(vcpu.ds_addr);
 			_constrained_md_ram_alloc.free(vcpu.ds_cap);

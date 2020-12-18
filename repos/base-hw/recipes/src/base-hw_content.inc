@@ -129,6 +129,7 @@ CONTENT += $(addprefix src/timer/,$(SRC_TIMER)) \
            $(addprefix src/core/,$(SRC_CORE)) \
            src/lib/hw src/lib/ld src/lib/cxx \
            src/include/base/internal src/include/pager \
+           src/include/hw_native_vcpu \
            include/drivers/uart
 
 # remove duplicates

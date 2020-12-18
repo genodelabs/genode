@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2021 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -20,8 +20,7 @@
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
 #include <vm_session/connection.h>
-
-#include <cpu/vm_state.h>
+#include <cpu/vcpu_state.h>
 
 /* VirtualBox includes */
 #include "PGMInternal.h" /* enable access to pgm.s.* */
@@ -65,10 +64,12 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 {
 	protected:
 
+		static Genode::Vm_connection::Exit_config const _exit_config;
+
 		Genode::Entrypoint             _ep;
 		Genode::Blockade               _blockade_emt { };
 		Genode::Semaphore              _sem_handler;
-		Genode::Vm_state              *_state { nullptr };
+		Genode::Vcpu_state            *_state { nullptr };
 
 		pthread_cond_t  _cond_wait;
 		pthread_mutex_t _mutex;
@@ -158,13 +159,14 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 		void switch_to_hw(PCPUMCTX pCtx)
 		{
+			using Genode::Vcpu_state;
+
 			again:
 
 			/* write FPU state */
-			_state->fpu.value([&] (uint8_t *fpu, size_t const size) {
-				if (size < sizeof(X86FXSTATE))
-					Genode::error("fpu state too small");
-				Genode::memcpy(fpu, pCtx->pXStateR3, sizeof(X86FXSTATE));
+			AssertCompile(sizeof(Vcpu_state::Fpu::State) >= sizeof(X86FXSTATE));
+			_state->fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
+				::memcpy(&fpu, pCtx->pXStateR3, sizeof(X86FXSTATE));
 			});
 
 			Assert(_vm_state == IRQ_WIN || _vm_state == PAUSED || _vm_state == NPT_EPT);
@@ -180,14 +182,12 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			_next_state = RUN;
 
 			/* write FPU state of vCPU to pCtx */
-			_state->fpu.value([&] (uint8_t *fpu, size_t const size) {
-				if (size < sizeof(X86FXSTATE))
-					Genode::error("fpu state too small");
-				Genode::memcpy(pCtx->pXStateR3, fpu, sizeof(X86FXSTATE));
+			_state->fpu.with_state([&] (Vcpu_state::Fpu::State const &fpu) {
+				::memcpy(pCtx->pXStateR3, &fpu, sizeof(X86FXSTATE));
 			});
 
 			if (_vm_state == IRQ_WIN) {
-				*_state = Genode::Vm_state {}; /* reset */
+				_state->discharge();
 				_irq_window_pthread();
 				goto again;
 			} else
@@ -202,7 +202,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 				Genode::addr_t const gp_map_addr = npt_ept_exit_addr & ~((1UL << 12) - 1);
 				int res = attach_memory_to_vm(gp_map_addr, npt_ept_errorcode);
 				if (res == VINF_SUCCESS) {
-					*_state = Genode::Vm_state {}; /* reset */
+					_state->discharge();
 					goto again;
 				}
 			}
@@ -267,8 +267,8 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 			/* check whether we have to request irq injection window */
 			if (check_to_request_irq_window(_vcpu)) {
-				*_state = Genode::Vm_state {}; /* reset */
-				_state->inj_info.value(_state->inj_info.value());
+				_state->discharge();
+				_state->inj_info.charge(_state->inj_info.value());
 				_irq_win = true;
 				return /* no-wait */ false;
 			}
@@ -279,48 +279,50 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 		inline bool vbox_to_state(VM *pVM, PVMCPU pVCpu)
 		{
-			typedef Genode::Vm_state::Range Range;
+			typedef Genode::Vcpu_state::Range Range;
 
 			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
-			_state->ip.value(pCtx->rip);
-			_state->sp.value(pCtx->rsp);
+			_state->ip.charge(pCtx->rip);
+			_state->sp.charge(pCtx->rsp);
 
-			_state->ax.value(pCtx->rax);
-			_state->bx.value(pCtx->rbx);
-			_state->cx.value(pCtx->rcx);
-			_state->dx.value(pCtx->rdx);
+			_state->ax.charge(pCtx->rax);
+			_state->bx.charge(pCtx->rbx);
+			_state->cx.charge(pCtx->rcx);
+			_state->dx.charge(pCtx->rdx);
 
-			_state->bp.value(pCtx->rbp);
-			_state->si.value(pCtx->rsi);
-			_state->di.value(pCtx->rdi);
+			_state->bp.charge(pCtx->rbp);
+			_state->si.charge(pCtx->rsi);
+			_state->di.charge(pCtx->rdi);
 
-			_state->r8.value(pCtx->r8);
-			_state->r9.value(pCtx->r9);
-			_state->r10.value(pCtx->r10);
-			_state->r11.value(pCtx->r11);
-			_state->r12.value(pCtx->r12);
-			_state->r13.value(pCtx->r13);
-			_state->r14.value(pCtx->r14);
-			_state->r15.value(pCtx->r15);
+			_state->r8.charge(pCtx->r8);
+			_state->r9.charge(pCtx->r9);
+			_state->r10.charge(pCtx->r10);
+			_state->r11.charge(pCtx->r11);
+			_state->r12.charge(pCtx->r12);
+			_state->r13.charge(pCtx->r13);
+			_state->r14.charge(pCtx->r14);
+			_state->r15.charge(pCtx->r15);
 
-			_state->flags.value(pCtx->rflags.u);
+			_state->flags.charge(pCtx->rflags.u);
 
-			_state->sysenter_cs.value(pCtx->SysEnter.cs);
-			_state->sysenter_sp.value(pCtx->SysEnter.esp);
-			_state->sysenter_ip.value(pCtx->SysEnter.eip);
+			_state->sysenter_cs.charge(pCtx->SysEnter.cs);
+			_state->sysenter_sp.charge(pCtx->SysEnter.esp);
+			_state->sysenter_ip.charge(pCtx->SysEnter.eip);
 
-			_state->dr7.value(pCtx->dr[7]);
+			_state->dr7.charge(pCtx->dr[7]);
 
-			_state->cr0.value(pCtx->cr0);
-			_state->cr2.value(pCtx->cr2);
-			_state->cr3.value(pCtx->cr3);
-			_state->cr4.value(pCtx->cr4);
+			_state->cr0.charge(pCtx->cr0);
+			_state->cr2.charge(pCtx->cr2);
+			_state->cr3.charge(pCtx->cr3);
+			_state->cr4.charge(pCtx->cr4);
 
-			_state->idtr.value(Range{pCtx->idtr.pIdt, pCtx->idtr.cbIdt});
-			_state->gdtr.value(Range{pCtx->gdtr.pGdt, pCtx->gdtr.cbGdt});
+			_state->idtr.charge(Range { .limit = pCtx->idtr.cbIdt,
+			                            .base  = pCtx->idtr.pIdt });
+			_state->gdtr.charge(Range { .limit = pCtx->gdtr.cbGdt,
+			                            .base  = pCtx->gdtr.pGdt });
 
-			_state->efer.value(CPUMGetGuestEFER(pVCpu));
+			_state->efer.charge(CPUMGetGuestEFER(pVCpu));
 
 			/*
 			 * Update the PDPTE registers if necessary
@@ -337,17 +339,17 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 				Genode::uint64_t *pdpte = pdpte_map(pVM, pCtx->cr3);
 
-				_state->pdpte_0.value(pdpte[0]);
-				_state->pdpte_1.value(pdpte[1]);
-				_state->pdpte_2.value(pdpte[2]);
-				_state->pdpte_3.value(pdpte[3]);
+				_state->pdpte_0.charge(pdpte[0]);
+				_state->pdpte_1.charge(pdpte[1]);
+				_state->pdpte_2.charge(pdpte[2]);
+				_state->pdpte_3.charge(pdpte[3]);
 			}
 
-			_state->star.value(pCtx->msrSTAR);
-			_state->lstar.value(pCtx->msrLSTAR);
-			_state->cstar.value(pCtx->msrCSTAR);
-			_state->fmask.value(pCtx->msrSFMASK);
-			_state->kernel_gs_base.value(pCtx->msrKERNELGSBASE);
+			_state->star.charge(pCtx->msrSTAR);
+			_state->lstar.charge(pCtx->msrLSTAR);
+			_state->cstar.charge(pCtx->msrCSTAR);
+			_state->fmask.charge(pCtx->msrSFMASK);
+			_state->kernel_gs_base.charge(pCtx->msrKERNELGSBASE);
 
 			/* from HMVMXR0.cpp */
 			bool interrupt_pending    = false;
@@ -355,16 +357,16 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			uint8_t pending_interrupt = 0;
 			PDMApicGetTPR(pVCpu, &tpr, &interrupt_pending, &pending_interrupt);
 
-			_state->tpr.value(tpr);
-			_state->tpr_threshold.value(0);
+			_state->tpr.charge(tpr);
+			_state->tpr_threshold.charge(0);
 
 			if (interrupt_pending) {
 				const uint8_t pending_priority = (pending_interrupt >> 4) & 0xf;
 				const uint8_t tpr_priority = (tpr >> 4) & 0xf;
 				if (pending_priority <= tpr_priority)
-					_state->tpr_threshold.value(pending_priority);
+					_state->tpr_threshold.charge(pending_priority);
 				else
-					_state->tpr_threshold.value(tpr_priority);
+					_state->tpr_threshold.charge(tpr_priority);
 			}
 
 			return true;
@@ -490,7 +492,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			_irq_request++;
 
 			unsigned const vector = 0;
-			_state->inj_info.value(REQ_IRQWIN_EXIT | vector);
+			_state->inj_info.charge(REQ_IRQWIN_EXIT | vector);
 
 			return true;
 		}
@@ -556,7 +558,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 				if (!TRPMHasTrap(pVCpu)) {
 					_irq_drop++;
 					/* happens if PDMApicSetTPR (see above) mask IRQ */
-					_state->inj_info.value(IRQ_INJ_NONE);
+					_state->inj_info.charge(IRQ_INJ_NONE);
 					Genode::error("virq window pthread aaaaaaa while loop");
 					return;
 				}
@@ -595,8 +597,8 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 			Event.n.u3Type = SVM_EVENT_EXTERNAL_IRQ;
 
-			_state->inj_info.value(Event.u);
-			_state->inj_error.value(Event.n.u32ErrorCode);
+			_state->inj_info.charge(Event.u);
+			_state->inj_error.charge(Event.n.u32ErrorCode);
 
 			_last_inj_info = _state->inj_info.value();
 			_last_inj_error = _state->inj_error.value();
@@ -673,8 +675,8 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 			return false;
 		}
 
-		virtual bool hw_load_state(Genode::Vm_state *, VM *, PVMCPU) = 0;
-		virtual bool hw_save_state(Genode::Vm_state *, VM *, PVMCPU) = 0;
+		virtual bool hw_load_state(Genode::Vcpu_state *, VM *, PVMCPU) = 0;
+		virtual bool hw_save_state(Genode::Vcpu_state *, VM *, PVMCPU) = 0;
 		virtual int vm_exit_requires_instruction_emulation(PCPUMCTX) = 0;
 
 		virtual void pause_vm() = 0;
@@ -791,11 +793,11 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 				Genode::error("wrong CPU !?");
 
 			/* take the utcb state prepared during the last exit */
-			_state->inj_info.value(IRQ_INJ_NONE);
-			_state->intr_state.value(next_utcb.intr_state);
-			_state->actv_state.value(ACTIVITY_STATE_ACTIVE);
-			_state->ctrl_primary.value(next_utcb.ctrl[0]);
-			_state->ctrl_secondary.value(next_utcb.ctrl[1]);
+			_state->inj_info.charge(IRQ_INJ_NONE);
+			_state->intr_state.charge(next_utcb.intr_state);
+			_state->actv_state.charge(ACTIVITY_STATE_ACTIVE);
+			_state->ctrl_primary.charge(next_utcb.ctrl[0]);
+			_state->ctrl_secondary.charge(next_utcb.ctrl[1]);
 
 			/* Transfer vCPU state from vbox to Genode format */
 			if (!vbox_to_state(pVM, pVCpu) ||

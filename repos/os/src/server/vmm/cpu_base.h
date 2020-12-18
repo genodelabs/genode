@@ -22,6 +22,7 @@
 #include <cpu/vm_state_virtualization.h>
 #include <util/mmio.h>
 #include <vm_session/connection.h>
+#include <vm_session/handler.h>
 
 namespace Vmm {
 	class Vm;
@@ -60,7 +61,8 @@ class Vmm::Cpu_base
 		         Gic                     & gic,
 		         Genode::Env             & env,
 		         Genode::Heap            & heap,
-		         Genode::Entrypoint      & ep);
+		         Genode::Entrypoint      & ep,
+		         short const               cpu_id);
 
 		unsigned           cpu_id() const;
 		void               run();
@@ -88,9 +90,9 @@ class Vmm::Cpu_base
 		}
 
 		template <typename T>
-		struct Signal_handler : Genode::Vm_handler<Signal_handler<T>>
+		struct Signal_handler : Genode::Vcpu_handler<Signal_handler<T>>
 		{
-			using Base = Genode::Vm_handler<Signal_handler<T>>;
+			using Base = Genode::Vcpu_handler<Signal_handler<T>>;
 
 			Cpu_base & cpu;
 			T        & obj;
@@ -194,14 +196,16 @@ class Vmm::Cpu_base
 					return (r->_encoding > _encoding); }
 		};
 
-		bool                              _active { true };
-		Vm                              & _vm;
-		Genode::Vm_connection           & _vm_session;
-		Genode::Heap                    & _heap;
-		Signal_handler<Cpu_base>          _vm_handler;
-		Genode::Vm_session::Vcpu_id       _vcpu_id;
-		State                           & _state;
-		Genode::Avl_tree<System_register> _reg_tree;
+		short                              _vcpu_id;
+		bool                               _active { true };
+		Vm                               & _vm;
+		Genode::Vm_connection            & _vm_session;
+		Genode::Heap                     & _heap;
+		Signal_handler<Cpu_base>           _vm_handler;
+		Genode::Vm_connection::Exit_config _exit_config { };
+		Genode::Vm_connection::Vcpu        _vm_vcpu;
+		State                            & _state;
+		Genode::Avl_tree<System_register>  _reg_tree;
 
 
 		/***********************

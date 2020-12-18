@@ -44,7 +44,7 @@ class Main
 		Vm::Kernel_name  const  _kernel_name       { "linux" };
 		Vm::Command_line const  _cmd_line          { "console=ttymxc0,115200" };
 		Attached_rom_dataspace  _config            { _env, "config" };
-		Vm_handler<Main>        _exception_handler { _env.ep(), *this,
+		Vcpu_handler<Main>      _exception_handler { _env.ep(), *this,
 		                                             &Main::_handle_exception };
 
 		Heap          _heap    { &_env.ram(), &_env.rm() };

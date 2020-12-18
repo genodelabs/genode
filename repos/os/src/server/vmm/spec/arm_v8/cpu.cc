@@ -212,8 +212,9 @@ Cpu::Cpu(Vm                      & vm,
          Gic                     & gic,
          Genode::Env             & env,
          Genode::Heap            & heap,
-         Genode::Entrypoint      & ep)
-: Cpu_base(vm, vm_session, bus, gic, env, heap, ep),
+         Genode::Entrypoint      & ep,
+         short const               id)
+: Cpu_base(vm, vm_session, bus, gic, env, heap, ep, id),
   _sr_id_aa64afr0_el1 (3, 0, 0, 5, 4, "ID_AA64AFR0_EL1",  false, 0x0, _reg_tree),
   _sr_id_aa64afr1_el1 (3, 0, 0, 5, 5, "ID_AA64AFR1_EL1",  false, 0x0, _reg_tree),
   _sr_id_aa64dfr0_el1 (3, 0, 0, 5, 0, "ID_AA64DFR0_EL1",  false, 0x6, _reg_tree),

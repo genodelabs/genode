@@ -40,11 +40,11 @@ Vm_base::Vm_base(Env                &env,
                  Machine_type        machine,
                  Board_revision      board,
                  Allocator          &alloc,
-                 Vm_handler_base    &handler)
+                 Vcpu_handler_base  &handler)
 :
 	_env(env), _kernel(kernel), _cmdline(cmdline), _kernel_off(kernel_off),
 	_machine(machine), _board(board), _ram(env, ram_base, ram_size),
-	_vcpu_id(_vm.create_vcpu(alloc, env, handler))
+	_vcpu(_vm, alloc, handler, _exit_config)
 {
 	_state.irq_injection = 0;
 }

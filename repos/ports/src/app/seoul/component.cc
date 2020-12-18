@@ -33,7 +33,8 @@
 #include <util/misc_math.h>
 
 #include <vm_session/connection.h>
-#include <cpu/vm_state.h>
+#include <vm_session/handler.h>
+#include <cpu/vcpu_state.h>
 
 /* os includes */
 #include <nic_session/connection.h>
@@ -156,14 +157,14 @@ class Vcpu : public StaticReceiver<Vcpu>
 	private:
 
 		Genode::Vm_connection              &_vm_con;
-		Genode::Vm_handler<Vcpu>            _handler;
+		Genode::Vcpu_handler<Vcpu>          _handler;
 		bool const                          _vmx;
 		bool const                          _svm;
 		bool const                          _map_small;
 		bool const                          _rdtsc_exit;
-		Genode::Vm_session_client::Vcpu_id  _id;
-		Genode::Attached_dataspace          _state_ds;
-		Genode::Vm_state                   &_state;
+		Genode::Vm_connection::Exit_config  _exit_config { };
+		Genode::Vm_connection::Vcpu         _vm_vcpu;
+		Genode::Vcpu_state                 &_state;
 
 		Seoul::Guest_memory                &_guest_memory;
 		Synced_motherboard                 &_motherboard;
@@ -183,18 +184,12 @@ class Vcpu : public StaticReceiver<Vcpu>
 		     bool vmx, bool svm, bool map_small, bool rdtsc)
 		:
 			_vm_con(vm_con),
-			_handler(ep, *this, &Vcpu::_handle_vm_exception,
-			         vmx ? &Vcpu::exit_config_intel :
-			         svm ? &Vcpu::exit_config_amd : nullptr),
+			_handler(ep, *this, &Vcpu::_handle_vm_exception),
+//			         vmx ? &Vcpu::exit_config_intel :
+//			         svm ? &Vcpu::exit_config_amd : nullptr),
 			_vmx(vmx), _svm(svm), _map_small(map_small), _rdtsc_exit(rdtsc),
-			/* construct vcpu */
-			_id(_vm_con.with_upgrade([&]() {
-				return _vm_con.create_vcpu(alloc, env, _handler);
-			})),
-			/* get state of vcpu */
-			_state_ds(env.rm(), _vm_con.cpu_state(_id)),
-			_state(*_state_ds.local_addr<Genode::Vm_state>()),
-
+			_vm_vcpu(_vm_con, alloc, _handler, _exit_config),
+			_state(_vm_vcpu.state()),
 			_guest_memory(guest_memory),
 			_motherboard(motherboard),
 			_vcpu(vcpu_mutex, unsynchronized_vcpu)
@@ -208,15 +203,13 @@ class Vcpu : public StaticReceiver<Vcpu>
 			unsynchronized_vcpu->executor.add(this, receive_static<CpuMessage>);
 
 			/* let vCPU run */
-			_vm_con.run(id());
+			_vm_vcpu.run();
 		}
-
-		Genode::Vm_session_client::Vcpu_id id() const { return _id; }
 
 		void block() { _block.down(); }
 		void unblock() { _block.up(); }
 
-		void recall() { _vm_con.pause(id()); }
+		void recall() { _vm_vcpu.pause(); }
 
 		void _handle_vm_exception()
 		{
@@ -269,11 +262,10 @@ class Vcpu : public StaticReceiver<Vcpu>
 			}
 
 			/* resume */
-			_vm_con.run(id());
-
+			_vm_vcpu.run();
 		}
 
-		void exit_config_intel(Genode::Vm_state &state, unsigned exit)
+		void exit_config_intel(Genode::Vcpu_state &state, unsigned exit)
 		{
 			CpuState dummy_state;
 			unsigned mtd = 0;
@@ -331,7 +323,7 @@ class Vcpu : public StaticReceiver<Vcpu>
 			Seoul::write_vm_state(dummy_state, mtd, state);
 		}
 
-		void exit_config_amd(Genode::Vm_state &state, unsigned exit)
+		void exit_config_amd(Genode::Vcpu_state &state, unsigned exit)
 		{
 			CpuState dummy_state;
 			unsigned mtd = 0;
@@ -482,7 +474,7 @@ class Vcpu : public StaticReceiver<Vcpu>
 			if (need_unmap)
 				Logging::panic("_handle_map_memory: need_unmap not handled, yet\n");
 
-			assert(_state.inj_info.valid());
+			assert(_state.inj_info.charged());
 
 			/* EPT violation during IDT vectoring? */
 			if (_state.inj_info.value() & 0x80000000U) {
@@ -500,9 +492,9 @@ class Vcpu : public StaticReceiver<Vcpu>
 
 				/* convert Seoul state to Genode VM state */
 				Seoul::write_vm_state(_seoul_state, _win.mtr_out, _state);
-//				_state.inj_info.value(_state.inj_info.value() & ~0x80000000U);
+//				_state.inj_info.charge(_state.inj_info.value() & ~0x80000000U);
 			} else
-				_state = Genode::Vm_state {}; /* reset */
+				_state.discharge(); /* reset */
 
 			_vm_con.with_upgrade([&]() {
 				if (_map_small)
@@ -549,7 +541,7 @@ class Vcpu : public StaticReceiver<Vcpu>
 		void _svm_startup()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
-			_state.ctrl_primary.value(_rdtsc_exit ? (1U << 14) : 0);
+			_state.ctrl_primary.charge(_rdtsc_exit ? (1U << 14) : 0);
 		}
 
 		void _svm_npt()
@@ -566,23 +558,23 @@ class Vcpu : public StaticReceiver<Vcpu>
 		void _svm_invalid()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
-			_state.ctrl_primary.value(1 << 18 /* cpuid */ | (_rdtsc_exit ? (1U << 14) : 0));
-			_state.ctrl_secondary.value(1 << 0  /* vmrun */);
+			_state.ctrl_primary.charge(1 << 18 /* cpuid */ | (_rdtsc_exit ? (1U << 14) : 0));
+			_state.ctrl_secondary.charge(1 << 0  /* vmrun */);
 		}
 
 		void _svm_ioio()
 		{
 			if (_state.qual_primary.value() & 0x4) {
 				Genode::log("invalid gueststate");
-				_state = Genode::Vm_state {}; /* reset */
-				_state.ctrl_secondary.value(0);
+				_state.discharge(); /* reset */
+				_state.ctrl_secondary.charge(0);
 			} else {
 				unsigned order = ((_state.qual_primary.value() >> 4) & 7) - 1;
 
 				if (order > 2)
 					order = 2;
 
-				_state.ip_len.value(_state.qual_secondary.value() - _state.ip.value());
+				_state.ip_len.charge(_state.qual_secondary.value() - _state.ip.value());
 
 				_handle_io(_state.qual_primary.value() & 1, order,
 				           _state.qual_primary.value() >> 16);
@@ -591,19 +583,19 @@ class Vcpu : public StaticReceiver<Vcpu>
 
 		void _svm_cpuid()
 		{
-			_state.ip_len.value(2);
+			_state.ip_len.charge(2);
 			_handle_vcpu(SKIP, CpuMessage::TYPE_CPUID);
 		}
 
 		void _svm_hlt()
 		{
-			_state.ip_len.value(1);
+			_state.ip_len.charge(1);
 			_vmx_hlt();
 		}
 
 		void _svm_rdtsc()
 		{
-			_state.ip_len.value(2);
+			_state.ip_len.charge(2);
 			_handle_vcpu(SKIP, CpuMessage::TYPE_RDTSC);
 		}
 
@@ -644,8 +636,8 @@ class Vcpu : public StaticReceiver<Vcpu>
 
 		void _vmx_vmcall()
 		{
-			_state = Genode::Vm_state {}; /* reset */
-			_state.ip.value(_state.ip.value() + _state.ip_len.value());
+			_state.discharge(); /* reset */
+			_state.ip.charge(_state.ip.value() + _state.ip_len.value());
 		}
 
 		void _vmx_pause()
@@ -663,15 +655,15 @@ class Vcpu : public StaticReceiver<Vcpu>
 
 		void _vmx_invalid()
 		{
-			_state.flags.value(_state.flags.value() | 2);
+			_state.flags.charge(_state.flags.value() | 2);
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
 		}
 
 		void _vmx_startup()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_HLT);
-			_state.ctrl_primary.value(_rdtsc_exit ? (1U << 12) : 0);
-			_state.ctrl_secondary.value(0);
+			_state.ctrl_primary.charge(_rdtsc_exit ? (1U << 12) : 0);
+			_state.ctrl_secondary.charge(0);
 		}
 
 		void _vmx_ioio()
@@ -679,9 +671,9 @@ class Vcpu : public StaticReceiver<Vcpu>
 			unsigned order = 0U;
 			if (_state.qual_primary.value() & 0x10) {
 				Logging::printf("invalid gueststate\n");
-				assert(_state.flags.valid());
-				_state = Genode::Vm_state {}; /* reset */
-				_state.flags.value(_state.flags.value() & ~2U);
+				assert(_state.flags.charged());
+				_state.discharge(); /* reset */
+				_state.flags.charge(_state.flags.value() & ~2U);
 			} else {
 				order = _state.qual_primary.value() & 7;
 				if (order > 2) order = 2;

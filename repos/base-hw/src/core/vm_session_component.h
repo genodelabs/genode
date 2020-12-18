@@ -21,6 +21,8 @@
 #include <vm_session/vm_session.h>
 #include <dataspace/capability.h>
 
+#include <hw_native_vcpu/hw_native_vcpu.h>
+
 /* Core includes */
 #include <object.h>
 #include <region_map_component.h>
@@ -49,13 +51,36 @@ class Genode::Vm_session_component
 		Vm_session_component(Vm_session_component const &);
 		Vm_session_component &operator = (Vm_session_component const &);
 
-		struct Vcpu
+		struct Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		{
+			Kernel::Vm::Identity      &id;
+			Rpc_entrypoint            &ep;
 			Ram_dataspace_capability   ds_cap   { };
 			Region_map::Local_addr     ds_addr  { nullptr };
 			Kernel_object<Kernel::Vm>  kobj     {};
 			Affinity::Location         location {};
-		} _vcpus[Board::VCPU_MAX];
+
+			Vcpu(Kernel::Vm::Identity &id, Rpc_entrypoint &ep) : id(id), ep(ep)
+			{
+				ep.manage(this);
+			}
+
+			~Vcpu()
+			{
+				ep.dissolve(this);
+			}
+
+			/*******************************
+			 ** Native_vcpu RPC interface **
+			 *******************************/
+
+			Capability<Dataspace>   state() const { return ds_cap; }
+			Native_capability native_vcpu()       { return kobj.cap(); }
+
+			void exception_handler(Signal_context_capability);
+		};
+
+		Constructible<Vcpu>         _vcpus[Board::VCPU_MAX];
 
 		Rpc_entrypoint             &_ep;
 		Constrained_ram_allocator   _constrained_md_ram_alloc;
@@ -68,10 +93,11 @@ class Genode::Vm_session_component
 		unsigned                    _vcpu_id_alloc { 0 };
 
 		static size_t _ds_size();
-		bool          _valid_id(Vcpu_id id) { return id.id < Board::VCPU_MAX; }
-		addr_t        _alloc_ds();
+
 		void *        _alloc_table();
 		void          _attach(addr_t phys_addr, addr_t vm_addr, size_t size);
+
+		/* helpers for vm_session_common.cc */
 		void          _attach_vm_memory(Dataspace_component &, addr_t,
 		                                Attach_attr);
 		void          _detach_vm_memory(addr_t, size_t);
@@ -107,13 +133,7 @@ class Genode::Vm_session_component
 		void attach_pic(addr_t) override;
 		void detach(addr_t, size_t) override;
 
-		Dataspace_capability    _cpu_state(Vcpu_id);
-		Vcpu_id                 _create_vcpu(Thread_capability);
-		void                    _exception_handler(Signal_context_capability,
-		                                           Vcpu_id);
-		void                    _run(Vcpu_id);
-		void                    _pause(Vcpu_id);
-		Capability<Native_vcpu> _native_vcpu(Vcpu_id);
+		Capability<Native_vcpu> create_vcpu(Thread_capability);
 };
 
 #endif /* _CORE__VM_SESSION_COMPONENT_H_ */
