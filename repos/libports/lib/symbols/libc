@@ -489,6 +489,7 @@ pause W
 pclose T
 perror T
 pipe T
+pipe2 T
 poll W
 popen T
 posix2time T
