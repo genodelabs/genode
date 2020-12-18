@@ -100,6 +100,7 @@ append config {
 				<policy label="acpi_event -> acpi_ec"      report="acpica -> acpi_ec"/>
 				<policy label="acpi_event -> acpi_fixed"   report="acpica -> acpi_fixed"/>
 				<policy label="acpi_event -> acpi_lid"     report="acpica -> acpi_lid"/>
+				<policy label="acpi_event -> acpi_hid"     report="acpica -> acpi_hid"/>
 			</config>
 			<route>
 				<any-service> <parent/> </any-service>
@@ -176,15 +177,16 @@ append config {
 			<config>
 				<!-- example mapping - adapt to your target notebook !!! -->
 				<!-- as="PRESS_RELEASE" is default if nothing specified -->
-				<map acpi="ec"      value="25"      to_key="KEY_VENDOR"/>
-				<map acpi="ec"      value="20"      to_key="KEY_BRIGHTNESSUP"/>
-				<map acpi="ec"      value="21"      to_key="KEY_BRIGHTNESSDOWN"/>
-				<map acpi="fixed"   value="0"       to_key="KEY_POWER"  as="PRESS_RELEASE"/>
-				<map acpi="lid"     value="CLOSED"  to_key="KEY_SLEEP"  as="PRESS"/>
-				<map acpi="lid"     value="OPEN"    to_key="KEY_SLEEP"  as="RELEASE"/>
-				<map acpi="ac"      value="ONLINE"  to_key="KEY_WAKEUP"/>
-				<map acpi="ac"      value="OFFLINE" to_key="KEY_SLEEP"/>
-				<map acpi="battery" value="0"       to_key="KEY_BATTERY"/>
+				<map acpi="ec"      value="25"        to_key="KEY_VENDOR"/>
+				<map acpi="ec"      value="20"        to_key="KEY_BRIGHTNESSUP"/>
+				<map acpi="ec"      value="21"        to_key="KEY_BRIGHTNESSDOWN"/>
+				<map acpi="fixed"   value="0"         to_key="KEY_POWER"  as="PRESS_RELEASE"/>
+				<map acpi="lid"     value="CLOSED"    to_key="KEY_SLEEP"  as="PRESS"/>
+				<map acpi="lid"     value="OPEN"      to_key="KEY_SLEEP"  as="RELEASE"/>
+				<map acpi="ac"      value="ONLINE"    to_key="KEY_WAKEUP"/>
+				<map acpi="ac"      value="OFFLINE"   to_key="KEY_SLEEP"/>
+				<map acpi="battery" value="0"         to_key="KEY_BATTERY"/>
+				<map acpi="hid"     value="0x4000000" to_key="KEY_FN_F4"/>
 			</config>
 			<route>
 				<service name="ROM" label="acpi_ac">      <child name="acpi_state"/> </service>
@@ -192,6 +194,7 @@ append config {
 				<service name="ROM" label="acpi_ec">      <child name="acpi_state"/> </service>
 				<service name="ROM" label="acpi_fixed">   <child name="acpi_state"/> </service>
 				<service name="ROM" label="acpi_lid">     <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_hid">     <child name="acpi_state"/> </service>
 				<service name="Event"> <child name="event_filter" label="acpi"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
