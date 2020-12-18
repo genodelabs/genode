@@ -210,6 +210,7 @@ struct Acpica::Main
 #include "sb.h"
 #include "ec.h"
 #include "bridge.h"
+#include "fujitsu.h"
 
 ACPI_STATUS init_pic_mode()
 {
@@ -250,7 +251,12 @@ void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
 	Acpica::init(env, heap, wait_acpi_ready, act_as_acpi_drv);
 
 	/* enable debugging: */
-	/* AcpiDbgLevel |= ACPI_LV_IO | ACPI_LV_INTERRUPTS | ACPI_LV_INIT_NAMES; */
+	if (false) {
+		AcpiDbgLevel |= ACPI_LV_IO | ACPI_LV_INTERRUPTS | ACPI_LV_INIT_NAMES;
+		AcpiDbgLayer |= ACPI_TABLES;
+		Genode::log("debugging level=", Genode::Hex(AcpiDbgLevel),
+		            " layers=", Genode::Hex(AcpiDbgLayer));
+	}
 
 	ACPI_STATUS status = AcpiInitializeSubsystem();
 	if (status != AE_OK) {
@@ -348,6 +354,13 @@ void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
 	status = AcpiGetDevices(ACPI_STRING("PNP0C0D"), Lid::detect, this, nullptr);
 	if (status != AE_OK) {
 		Genode::error("AcpiGetDevices (PNP0C0D) failed, status=", status);
+		return;
+	}
+
+	/* Fujitsu HID device */
+	status = AcpiGetDevices(ACPI_STRING("FUJ02E3"), Fuj02e3::detect, this, nullptr);
+	if (status != AE_OK) {
+		Genode::error("AcpiGetDevices (FUJ02E3) failed, status=", status);
 		return;
 	}
 

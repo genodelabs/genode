@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,6 +18,22 @@ class Ec;
 class Fixed;
 class Lid;
 
+namespace Acpica {
+	class Reportstate;
+	class Reporter;
+};
+
+class Acpica::Reporter : public Genode::List<Acpica::Reporter >::Element
+{
+	public:
+
+		Reporter() { }
+
+		virtual void generate(Genode::Xml_generator &) = 0;
+		virtual ~Reporter() { }
+};
+
+
 class Acpica::Reportstate {
 
 	private:
@@ -27,18 +43,21 @@ class Acpica::Reportstate {
 		Genode::Reporter _reporter_sb;
 		Genode::Reporter _reporter_ec;
 		Genode::Reporter _reporter_fix;
+		Genode::Reporter _reporter_hid;
 
 		bool _changed_lid   = false;
 		bool _changed_ac    = false;
 		bool _changed_sb    = false;
 		bool _changed_ec    = false;
 		bool _changed_fixed = false;
+		bool _changed_hid   = false;
 
-		Genode::List<Callback<Battery> > _list_sb;
-		Genode::List<Callback<Ec> > _list_ec;
-		Genode::List<Callback<Ac> > _list_ac;
-		Callback<Fixed> * _fixed;
-		Callback<Lid> * _lid;
+		Genode::List<Callback<Battery> >  _list_sb;
+		Genode::List<Callback<Ec> >       _list_ec;
+		Genode::List<Callback<Ac> >       _list_ac;
+		Genode::List<Acpica::Reporter>    _list_hid;
+		Callback<Fixed>                 * _fixed;
+		Callback<Lid>                   * _lid;
 
 	public:
 
@@ -48,7 +67,8 @@ class Acpica::Reportstate {
 			_reporter_ac (env, "acpi_ac"),
 			_reporter_sb (env, "acpi_battery"),
 			_reporter_ec (env, "acpi_ec"),
-			_reporter_fix(env, "acpi_fixed")
+			_reporter_fix(env, "acpi_fixed"),
+			_reporter_hid(env, "acpi_hid")
 		{ }
 
 		void add_notify(Acpica::Callback<Battery> * s) { _list_sb.insert(s); }
@@ -56,6 +76,7 @@ class Acpica::Reportstate {
 		void add_notify(Acpica::Callback<Lid> * l)     { _lid = l; }
 		void add_notify(Acpica::Callback<Ec> * e)      { _list_ec.insert(e); }
 		void add_notify(Acpica::Callback<Ac> * a)      { _list_ac.insert(a); }
+		void add_notify(Acpica::Reporter * r)          { _list_hid.insert(r); }
 
 		void enable() {
 			_reporter_ac.enabled(true);
@@ -63,6 +84,7 @@ class Acpica::Reportstate {
 			_reporter_sb.enabled(true);
 			_reporter_lid.enabled(true);
 			_reporter_fix.enabled(true);
+			_reporter_hid.enabled(true);
 		}
 
 		void battery_event() { _changed_sb    = true; }
@@ -70,6 +92,7 @@ class Acpica::Reportstate {
 		void fixed_event()   { _changed_fixed = true; }
 		void lid_event()     { _changed_lid   = true; }
 		void ac_event()      { _changed_ac    = true; battery_event(); }
+		void hid_event()     { _changed_hid   = true; }
 
 		bool generate_report(bool force = false)
 		{
@@ -113,6 +136,16 @@ class Acpica::Reportstate {
 				if (_fixed)
 					Genode::Reporter::Xml_generator xml(_reporter_fix, [&] () {
 						_fixed->generate(xml);
+					});
+			}
+
+			if (_changed_hid || force) {
+				_changed_hid = false;
+
+				if (_list_hid.first())
+					Genode::Reporter::Xml_generator xml(_reporter_hid, [&] () {
+						for (auto * hid = _list_hid.first(); hid; hid = hid->next())
+							hid->generate(xml);
 					});
 			}
 
