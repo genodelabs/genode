@@ -70,6 +70,19 @@ struct Terminal::Main : Character_consumer
 
 	Constructible<Font> _font { };
 
+	void _handle_glyphs_changed()
+	{
+		/*
+		 * Prevent call of '_handle_config' when the watch handler triggers
+		 * at construction time.
+		 */
+		if (_font.constructed())
+			_handle_config();
+	}
+
+	Watch_handler<Main> _glyphs_changed_handler {
+		_root_dir, "fonts/monospace/regular/glyphs", *this, &Main::_handle_glyphs_changed };
+
 	Color_palette _color_palette { };
 
 	Constructible<Attached_rom_dataspace> _clipboard_rom      { };
