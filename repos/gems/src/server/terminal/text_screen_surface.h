@@ -27,7 +27,6 @@
 
 /* local includes */
 #include "color_palette.h"
-#include "framebuffer.h"
 
 namespace Terminal { template <typename> class Text_screen_surface; }
 
@@ -62,13 +61,13 @@ class Terminal::Text_screen_surface
 
 			class Invalid : Genode::Exception { };
 
-			Geometry(Font const &font, Framebuffer const &framebuffer)
+			Geometry(Font const &font, Area initial_fb_size)
 			:
-				fb_size(framebuffer.w(), framebuffer.h()),
+				fb_size(initial_fb_size),
 				char_width(font.string_width(Utf8_ptr("M"))),
 				char_height(font.height()),
-				columns((_visible(framebuffer.w()) << 8)/char_width.value),
-				lines(_visible(framebuffer.h())/char_height)
+				columns((_visible(initial_fb_size.w()) << 8)/char_width.value),
+				lines(_visible(initial_fb_size.h())/char_height)
 			{
 				if (columns*lines == 0)
 					throw Invalid();
@@ -146,8 +145,7 @@ class Terminal::Text_screen_surface
 
 		Font          const &_font;
 		Color_palette const &_palette;
-		Framebuffer         &_framebuffer;
-		Geometry             _geometry { _font, _framebuffer };
+		Geometry             _geometry;
 
 		Cell_array<Char_cell>            _cell_array;
 		Char_cell_array_character_screen _character_screen { _cell_array };
@@ -185,11 +183,11 @@ class Terminal::Text_screen_surface
 		 * \throw Geometry::Invalid
 		 */
 		Text_screen_surface(Allocator &alloc, Font const &font,
-		                    Color_palette &palette, Framebuffer &framebuffer)
+		                    Color_palette &palette, Area initial_fb_size)
 		:
 			_font(font),
 			_palette(palette),
-			_framebuffer(framebuffer),
+			_geometry(font, initial_fb_size),
 			_cell_array(_geometry.columns, _geometry.lines, alloc)
 		{ }
 
@@ -210,12 +208,8 @@ class Terminal::Text_screen_surface
 
 		void cursor_pos(Position pos) { _character_screen.cursor_pos(pos); }
 
-		void redraw()
+		Rect redraw(Surface<PT> &surface)
 		{
-			PT *fb_base = _framebuffer.pixel<PT>();
-
-			Surface<PT> surface(fb_base, _geometry.fb_size);
-
 			unsigned const fg_alpha = 255;
 
 			/* clear border */
@@ -303,7 +297,7 @@ class Terminal::Text_screen_surface
 							x.value += (_geometry.char_width.value - (int)((glyph.width - 1)<<8)) >> 1;
 
 							Glyph_painter::paint(Glyph_painter::Position(x, (int)y),
-							                     glyph, fb_base, _geometry.fb_size.w(),
+							                     glyph, surface.addr(), _geometry.fb_size.w(),
 							                     clip_top, clip_bottom, clip_left, clip_right,
 							                     pixel, fg_alpha);
 							x = next_x;
@@ -331,9 +325,11 @@ class Terminal::Text_screen_surface
 				                 + first_dirty_line*_geometry.char_height;
 				unsigned const h = num_dirty_lines*_geometry.char_height
 				                 + _geometry.unused_pixels().h();
-				_framebuffer.refresh(Rect(Point(0, y),
-				                          Area(_geometry.fb_size.w(), h)));
+
+				return Rect(Point(0, y), Area(_geometry.fb_size.w(),h));
 			}
+
+			return Rect();
 		}
 
 		void apply_character(Character c)

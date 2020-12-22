@@ -16,7 +16,6 @@
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
 		<rom label="init"/>
-		<rom label="gui_fb"/>
 		<rom label="vfs"/>
 		<rom label="vfs_pipe.lib.so"/>
 		<rom label="cached_fs_rom"/>
@@ -45,24 +44,16 @@
 
 		<default caps="100"/>
 
-		<start name="gui_fb">
-			<resource name="RAM" quantum="8M"/>
-			<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-			<config xpos="10" ypos="10" initial_width="800" initial_height="600"/>
-			<route>
-				<service name="Gui"> <parent label="terminal"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
 		<start name="terminal">
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="12M"/>
 			<provides> <service name="Terminal"/> </provides>
 			<config copy="yes" paste="yes">
+				<initial width="800" height="600"/>
 				<vfs> <dir name="fonts"> <fs/> </dir> </vfs>
 			</config>
 			<route>
-				<service name="File_system"> <parent label="fonts"/> </service>
+				<service name="File_system"> <parent label="fonts"/>    </service>
+				<service name="Gui">         <parent label="terminal"/> </service>
 				<service name="Report" label="clipboard"> <parent label="clipboard"/> </service>
 				<service name="ROM"    label="clipboard"> <parent label="clipboard"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>

@@ -15,8 +15,7 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/heap.h>
-#include <framebuffer_session/connection.h>
-#include <input_session/connection.h>
+#include <gui_session/connection.h>
 #include <timer_session/connection.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/attached_ram_dataspace.h>
@@ -81,10 +80,23 @@ struct Terminal::Main : Character_consumer
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
-	Input::Connection _input { _env };
+	void _handle_mode_change()
+	{
+		_fb_mode = _gui.mode();
+		_handle_config();
+	}
+
+	Signal_handler<Main> _mode_change_handler {
+		_env.ep(), *this, &Main::_handle_mode_change };
+
+	Gui::Connection   _gui   { _env };
 	Timer::Connection _timer { _env };
 
-	Framebuffer _framebuffer { _env, _config_handler };
+	Constructible<Attached_dataspace> _fb_ds { };
+
+	Framebuffer::Mode _fb_mode { };
+
+	Gui::Session::View_handle _view = _gui.create_view();
 
 	Point _pointer { }; /* pointer positon in pixels */
 
@@ -111,12 +123,31 @@ struct Terminal::Main : Character_consumer
 
 	bool _flush_scheduled = false;
 
+	Framebuffer::Mode _flushed_fb_mode { };
+
 	void _handle_flush()
 	{
 		_flush_scheduled = false;
 
-		if (_text_screen_surface.constructed())
-			_text_screen_surface->redraw();
+		if (_text_screen_surface.constructed() && _fb_ds.constructed()) {
+
+			Surface<PT> surface(_fb_ds->local_addr<PT>(), _fb_mode.area);
+
+			Rect const dirty = _text_screen_surface->redraw(surface);
+
+			_gui.framebuffer()->refresh(dirty.x1(), dirty.y1(), dirty.w(), dirty.h());
+		}
+
+		/* update view geometry after mode change */
+		if (_fb_mode.area != _flushed_fb_mode.area) {
+
+			typedef Gui::Session::Command Command;
+			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));
+			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
+			_gui.execute();
+
+			_flushed_fb_mode = _fb_mode;
+		}
 	}
 
 	Signal_handler<Main> _flush_handler {
@@ -160,7 +191,17 @@ struct Terminal::Main : Character_consumer
 	{
 		_timer .sigh(_flush_handler);
 		_config.sigh(_config_handler);
-		_input .sigh(_input_handler);
+
+		_gui.input()->sigh(_input_handler);
+		_gui.mode_sigh(_mode_change_handler);
+
+		_fb_mode = _gui.mode();
+
+		/* apply initial size from config, if provided */
+		_config.xml().with_sub_node("initial", [&] (Xml_node const &initial) {
+			_fb_mode.area = Area(initial.attribute_value("width",  _fb_mode.area.w()),
+			                     initial.attribute_value("height", _fb_mode.area.h()));
+		});
 
 		_handle_config();
 
@@ -196,7 +237,10 @@ void Terminal::Main::_handle_config()
 	/*
 	 * Adapt terminal to font or framebuffer mode changes
 	 */
-	_framebuffer.switch_to_new_mode();
+	_gui.buffer(_fb_mode, false);
+
+	if (_fb_mode.area.count() > 0)
+		_fb_ds.construct(_env.rm(), _gui.framebuffer()->dataspace());
 
 	/*
 	 * Distinguish the case where the framebuffer change affects the character
@@ -210,7 +254,7 @@ void Terminal::Main::_handle_config()
 	 */
 
 	try {
-		Text_screen_surface<PT>::Geometry const new_geometry(_font->font(), _framebuffer);
+		Text_screen_surface<PT>::Geometry const new_geometry(_font->font(), _fb_mode.area);
 
 		bool const reconstruct = !_text_screen_surface.constructed() ||
 		                          _text_screen_surface->size() != new_geometry.size();
@@ -241,7 +285,7 @@ void Terminal::Main::_handle_config()
 			                               : Position();
 
 			_text_screen_surface.construct(_heap, _font->font(),
-			                               _color_palette, _framebuffer);
+			                               _color_palette, _fb_mode.area);
 
 			if (snapshot.constructed())
 				_text_screen_surface->import(*snapshot);
@@ -273,7 +317,7 @@ void Terminal::Main::_handle_config()
 
 void Terminal::Main::_handle_input()
 {
-	_input.for_each_event([&] (Input::Event const &event) {
+	_gui.input()->for_each_event([&] (Input::Event const &event) {
 
 		event.handle_absolute_motion([&] (int x, int y) {
 

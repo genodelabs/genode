@@ -10,7 +10,6 @@ _/src/libcrypto
 _/src/libssh
 _/src/libssl
 _/src/ncurses
-_/src/gui_fb
 _/src/posix
 _/src/report_rom
 _/src/terminal

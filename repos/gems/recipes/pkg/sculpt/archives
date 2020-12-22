@@ -9,8 +9,8 @@ _/src/cached_fs_rom
 _/src/fs_report
 _/src/nitpicker
 _/src/global_keys_handler
-_/src/gui_fb
 _/src/gui_fader
+_/src/gui_fb
 _/src/rom_filter
 _/src/terminal_log
 _/src/file_terminal

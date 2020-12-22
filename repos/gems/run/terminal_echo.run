@@ -4,7 +4,6 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/pkg/terminal \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/gui_fb \
                   [depot_user]/src/init
 
 install_config {
@@ -55,21 +54,12 @@ install_config {
 			</config>
 		</start>
 
-		<start name="gui_fb">
-			<resource name="RAM" quantum="4M"/>
-			<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-			<config/>
-			<route>
-				<service name="Gui"> <child name="nitpicker" label="terminal"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
 		<start name="terminal" caps="110">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="6M"/>
 			<provides><service name="Terminal"/></provides>
 			<route>
 				<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
+				<service name="Gui"> <child name="nitpicker" label="terminal"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>

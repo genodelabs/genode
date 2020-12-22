@@ -5,7 +5,6 @@ _/src/coreutils-minimal
 _/src/libc
 _/src/posix
 _/src/ncurses
-_/src/gui_fb
 _/src/terminal
 _/src/init
 _/src/vfs

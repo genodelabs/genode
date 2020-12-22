@@ -1,5 +1,18 @@
 This is a graphical terminal implementation. It provides the Terminal
-service and uses a nitpicker session for screen representation.
+service and uses a GUI session. The font information must be provided
+via a VFS configuration like the following.
+
+! <config>
+!   ...
+!   <vfs>
+!     <rom name="VeraMono.ttf"/>
+!     <dir name="fonts">
+!       <dir name="monospace">
+!         <ttf name="regular" path="/VeraMono.ttf" size_px="16"/>
+!       </dir>
+!     </dir>
+!   </vfs>
+! </config>
 
 
 Color configuration
@@ -14,7 +27,7 @@ index 0-7 normal color and index 8-15 bright (bold) colors.
 !     <color index="0" value="#000000"/> <!-- black is real black -->
 !     <color index="8" value="#101010"/> <!-- bright black stands out a bit -->
 !   </palette>
-! ...
+!   ...
 ! </config>
 
 
@@ -31,3 +44,18 @@ button, the selection is reported.
 Vice versa, with the '<config>' attribute 'paste="yes"' specified, the
 terminal allows the user to paste the content of a "clipboard" ROM session
 to the terminal client by pressing the middle mouse button.
+
+
+Initial terminal size
+~~~~~~~~~~~~~~~~~~~~~
+
+The terminal adjusts itself to the mode provided by the used GUI service and
+responds to mode changes. As a special case, the initial terminal size can be
+explicitly configured to accommodate situations where the terminal is hosted
+in a window smaller than the screen.
+
+! <config>
+!   <initial width="800" height="600"/>
+!   ...
+! </config>
+

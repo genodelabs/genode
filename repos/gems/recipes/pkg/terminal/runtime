@@ -1,6 +1,6 @@
-<runtime ram="4M" caps="100" binary="terminal" config="terminal.config">
+<runtime ram="12M" caps="100" binary="terminal" config="terminal.config">
 
-	<requires> <input/> <framebuffer/> </requires>
+	<requires> <gui/> </requires>
 	<provides> <terminal/> </provides>
 
 	<content>

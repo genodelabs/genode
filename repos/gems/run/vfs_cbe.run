@@ -26,8 +26,7 @@ import_from_depot [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/src/ncurses \
                   [depot_user]/src/bash \
                   [depot_user]/src/coreutils \
-                  [depot_user]/src/nitpicker \
-                  [depot_user]/src/gui_fb
+                  [depot_user]/src/nitpicker
 
 
 build {
@@ -46,6 +45,7 @@ build {
 	server/log_terminal
 	server/report_rom
 	server/fs_rom
+	app/cbe_init_trust_anchor
 }
 
 set config {
@@ -103,24 +103,13 @@ append_if $use_interactively config {
 		</route>
 	</start>
 
-	<start name="gui_fb">
-		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-		<config/>
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
 	<start name="terminal_service" caps="110">
 		<binary name="terminal"/>
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Terminal"/></provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
-			<service name="Input">       <child name="gui_fb"/> </service>
-			<service name="Framebuffer"> <child name="gui_fb"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
@@ -349,7 +338,7 @@ append boot_modules {
 append boot_modules [cbe_image_file]
 
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"gui_fb -> \" domain=\"default\"/>"
+puts $fd "<focus label=\"terminal_service -> \" domain=\"default\"/>"
 close $fd
 
 build_boot_image $boot_modules
