@@ -39,7 +39,7 @@ struct Decorator::Main : Window_factory_base
 {
 	Env &_env;
 
-	Gui::Connection _nitpicker { _env };
+	Gui::Connection _gui { _env };
 
 	struct Canvas
 	{
@@ -47,29 +47,29 @@ struct Decorator::Main : Window_factory_base
 		Attached_dataspace              fb_ds;
 		Decorator::Canvas<Pixel_rgb888> canvas;
 
-		Canvas(Env &env, Gui::Connection &nitpicker)
+		Canvas(Env &env, Gui::Connection &gui)
 		:
-			mode(nitpicker.mode()),
+			mode(gui.mode()),
 			fb_ds(env.rm(),
-			      (nitpicker.buffer(mode, false), nitpicker.framebuffer()->dataspace())),
+			      (gui.buffer(mode, false), gui.framebuffer()->dataspace())),
 			canvas(fb_ds.local_addr<Pixel_rgb888>(), mode.area, env.ram(), env.rm())
 		{ }
 	};
 
-	Reconstructible<Canvas> _canvas { _env, _nitpicker };
+	Reconstructible<Canvas> _canvas { _env, _gui };
 
 	Signal_handler<Main> _mode_handler { _env.ep(), *this, &Main::_handle_mode };
 
 	void _handle_mode()
 	{
-		_canvas.construct(_env, _nitpicker);
+		_canvas.construct(_env, _gui);
 
 		_window_stack.mark_as_dirty(Rect(Point(0, 0), _canvas->mode.area));
 
 		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 
 		dirty.flush([&] (Rect const &r) {
-			_nitpicker.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
+			_gui.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
 	}
 
 	Window_stack _window_stack = { *this };
@@ -105,13 +105,13 @@ struct Decorator::Main : Window_factory_base
 	Animator _animator { };
 
 	/**
-	 * Process the update every 'frame_period' nitpicker sync signals. The
-	 * 'frame_cnt' holds the counter of the nitpicker sync signals.
+	 * Process the update every 'frame_period' GUI sync signals. The
+	 * 'frame_cnt' holds the counter of the GUI sync signals.
 	 *
 	 * A lower 'frame_period' value makes the decorations more responsive
 	 * but it also puts more load on the system.
 	 *
-	 * If the nitpicker sync signal fires every 10 milliseconds, a
+	 * If the GUI sync signal fires every 10 milliseconds, a
 	 * 'frame_period' of 2 results in an update rate of 1000/20 = 50 frames per
 	 * second.
 	 */
@@ -119,12 +119,17 @@ struct Decorator::Main : Window_factory_base
 	unsigned _frame_period = 2;
 
 	/**
-	 * Install handler for responding to nitpicker sync events
+	 * Install handler for responding to GUI sync events
 	 */
-	void _handle_nitpicker_sync();
+	void _handle_gui_sync();
 
-	Signal_handler<Main> _nitpicker_sync_handler = {
-		_env.ep(), *this, &Main::_handle_nitpicker_sync };
+	void _trigger_sync_handling()
+	{
+		_gui.framebuffer()->sync_sigh(_gui_sync_handler);
+	}
+
+	Signal_handler<Main> _gui_sync_handler = {
+		_env.ep(), *this, &Main::_handle_gui_sync };
 
 	Heap _heap { _env.ram(), _env.rm() };
 
@@ -145,12 +150,10 @@ struct Decorator::Main : Window_factory_base
 		_config.sigh(_config_handler);
 		_handle_config();
 
-		_nitpicker.mode_sigh(_mode_handler);
+		_gui.mode_sigh(_mode_handler);
 
 		_window_layout.sigh(_window_layout_handler);
 		_pointer.sigh(_pointer_handler);
-
-		_nitpicker.framebuffer()->sync_sigh(_nitpicker_sync_handler);
 
 		_hover_reporter.enabled(true);
 
@@ -183,15 +186,15 @@ struct Decorator::Main : Window_factory_base
 			try {
 				return new (_heap)
 					Window(window_node.attribute_value("id", 0UL),
-					       _nitpicker, _animator, _decorator_config);
+					       _gui, _animator, _decorator_config);
 			}
 			catch (Genode::Out_of_ram) {
-				Genode::log("Handle Out_of_ram of nitpicker session - upgrade by 8K");
-				_nitpicker.upgrade_ram(8192);
+				Genode::log("Handle Out_of_ram of GUI session - upgrade by 8K");
+				_gui.upgrade_ram(8192);
 			}
 			catch (Genode::Out_of_caps) {
-				Genode::log("Handle Out_of_caps of nitpicker session - upgrade by 2");
-				_nitpicker.upgrade_caps(2);
+				Genode::log("Handle Out_of_caps of GUI session - upgrade by 2");
+				_gui.upgrade_caps(2);
 			}
 		}
 		return nullptr;
@@ -275,10 +278,12 @@ void Decorator::Main::_handle_window_layout_update()
 	_window_layout.update();
 
 	_window_layout_update_needed = true;
+
+	_trigger_sync_handling();
 }
 
 
-void Decorator::Main::_handle_nitpicker_sync()
+void Decorator::Main::_handle_gui_sync()
 {
 	if (_frame_cnt++ < _frame_period)
 		return;
@@ -324,7 +329,7 @@ void Decorator::Main::_handle_nitpicker_sync()
 
 	/*
 	 * To make the perceived animation speed independent from the setting of
-	 * 'frame_period', we update the animation as often as the nitpicker
+	 * 'frame_period', we update the animation as often as the GUI
 	 * sync signal occurs.
 	 */
 	for (unsigned i = 0; i < _frame_period; i++)
@@ -337,10 +342,16 @@ void Decorator::Main::_handle_nitpicker_sync()
 
 	_window_stack.update_gui_views();
 
-	_nitpicker.execute();
+	_gui.execute();
 
 	dirty.flush([&] (Rect const &r) {
-		_nitpicker.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
+		_gui.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
+
+	/*
+	 * Disable sync handling when becoming idle
+	 */
+	if (!_animator.active())
+		_gui.framebuffer()->sync_sigh(Signal_context_capability());
 }
 
 

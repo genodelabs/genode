@@ -99,6 +99,11 @@ struct Decorator::Main : Window_factory_base
 	Signal_handler<Main> _gui_sync_handler = {
 		_env.ep(), *this, &Main::_handle_gui_sync };
 
+	void _trigger_sync_handling()
+	{
+		_gui.framebuffer()->sync_sigh(_gui_sync_handler);
+	}
+
 	Attached_rom_dataspace _config { _env, "config" };
 
 	Config _decorator_config { _config.xml() };
@@ -136,7 +141,7 @@ struct Decorator::Main : Window_factory_base
 			Genode::log("pointer information unavailable");
 		}
 
-		_gui.framebuffer()->sync_sigh(_gui_sync_handler);
+		_trigger_sync_handling();
 
 		_hover_reporter.enabled(true);
 
@@ -246,6 +251,8 @@ void Decorator::Main::_handle_window_layout_update()
 	_window_layout.update();
 
 	_window_layout_update_needed = true;
+
+	_trigger_sync_handling();
 }
 
 
@@ -292,6 +299,12 @@ void Decorator::Main::_handle_gui_sync()
 
 	_window_stack.update_gui_views();
 	_gui.execute();
+
+	/*
+	 * Disable sync handling when becoming idle
+	 */
+	if (!_animator.active())
+		_gui.framebuffer()->sync_sigh(Signal_context_capability());
 }
 
 
