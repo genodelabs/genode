@@ -407,7 +407,7 @@ namespace Genode {
 		int j = 0;
 		unsigned long value = 0;
 
-		j = ascii_to_unsigned(s, value, 10);
+		j = ascii_to_unsigned(s, value, 0);
 
 		if (!j) return i;
 
