@@ -419,6 +419,10 @@ User_state::Handle_forget_result User_state::forget(View_owner const &owner)
 
 User_state::Update_hover_result User_state::update_hover()
 {
+	/* no hover changes while dragging */
+	if (_key_pressed())
+		return { .hover_changed = false };
+
 	View_owner * const old_hovered  = _hovered;
 	View const * const pointed_view = _view_stack.find_view(_pointer_pos);
 
@@ -432,7 +436,7 @@ User_state::Update_hover_result User_state::update_hover()
 		if (old_hovered)
 			old_hovered->submit_input_event(Hover_leave());
 
-		if (_hovered && _key_cnt == 0)
+		if (_hovered)
 			_hovered->submit_input_event(Absolute_motion{_pointer_pos.x(),
 			                                             _pointer_pos.y()});
 	}

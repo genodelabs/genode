@@ -705,7 +705,7 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 	}
 
 	/* report hover changes */
-	if (_hover_reporter.enabled() && !result.key_pressed
+	if (_hover_reporter.enabled()
 	 && (result.hover_changed || (old_motion_activity != _motion_activity))) {
 		Reporter::Xml_generator xml(_hover_reporter, [&] () {
 			_user_state.report_hovered_view_owner(xml, _motion_activity); });
