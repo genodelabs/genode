@@ -282,21 +282,22 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 	}
 
 	/* detect end of drag operation */
-	if (e.release() && _key_cnt == 0 && _dragged_window_id.valid()) {
+	if (e.release() && _key_cnt == 0) {
 
 		_drag_state = false;
 
-		/*
-		 * Issue resize to 0x0 when releasing the the window closer
-		 */
-		if (_dragged_element == Window::Element::CLOSER) {
+		if (_dragged_window_id.valid()) {
 
-			if (_dragged_element == _hovered_element)
-				_operations.close(_dragged_window_id);
+			/*
+			 * Issue resize to 0x0 when releasing the the window closer
+			 */
+			if (_dragged_element == Window::Element::CLOSER)
+				if (_dragged_element == _hovered_element)
+					_operations.close(_dragged_window_id);
+
+			_operations.finalize_drag(_dragged_window_id, _dragged_element,
+			                          _pointer_clicked, _pointer_curr);
 		}
-
-		_operations.finalize_drag(_dragged_window_id, _dragged_element,
-		                          _pointer_clicked, _pointer_curr);
 	}
 
 	/* handle key sequences */

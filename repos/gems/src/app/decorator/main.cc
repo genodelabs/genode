@@ -296,31 +296,16 @@ void Decorator::Main::_handle_gui_sync()
 
 	if (_window_layout_update_needed && _window_layout.valid()) {
 
-		try {
-			Xml_node xml(_window_layout.local_addr<char>(),
-			             _window_layout.size());
+		_window_stack.update_model(_window_layout.xml(), flush_window_stack_changes);
 
-			_window_stack.update_model(xml, flush_window_stack_changes);
+		model_updated = true;
 
-			model_updated = true;
-
-			/*
-			 * A decorator element might have appeared or disappeared under
-			 * the pointer.
-			 */
-			if (_pointer.valid())
-				update_hover_report(Xml_node(_pointer.local_addr<char>()),
-				                    _window_stack, _hover, _hover_reporter);
-
-		} catch (Xml_node::Invalid_syntax) {
-
-			/*
-			 * An error occured with processing the XML model. Flush the
-			 * internal representation with an empty window layout.
-			 */
-			_window_stack.update_model(Xml_node("<window_layout/>"),
-			                           flush_window_stack_changes);
-		}
+		/*
+		 * A decorator element might have appeared or disappeared under
+		 * the pointer.
+		 */
+		update_hover_report(_pointer.xml(),
+		                    _window_stack, _hover, _hover_reporter);
 
 		_window_layout_update_needed = false;
 	}
@@ -359,9 +344,7 @@ void Decorator::Main::_handle_pointer_update()
 {
 	_pointer.update();
 
-	if (_pointer.valid())
-		update_hover_report(Xml_node(_pointer.local_addr<char>()),
-		                    _window_stack, _hover, _hover_reporter);
+	update_hover_report(_pointer.xml(), _window_stack, _hover, _hover_reporter);
 }
 
 

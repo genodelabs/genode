@@ -259,8 +259,10 @@ struct Window_layouter::Main : Operations,
 		 * Update window layout because highlighting may have changed after the
 		 * drag operation. E.g., if the window has not kept up with the
 		 * dragging of a resize handle, the resize handle is no longer hovered.
+		 *
+		 * The call of '_handle_hover' implicitly triggers '_gen_window_layout'.
 		 */
-		_gen_window_layout();
+		_handle_hover();
 
 		_drag_state = Drag_state::SETTLING;
 
@@ -308,10 +310,6 @@ struct Window_layouter::Main : Operations,
 	Signal_handler<Main> _decorator_margins_handler {
 		_env.ep(), *this, &Main::_handle_decorator_margins};
 
-
-	/**
-	 * Install handler for responding to user input
-	 */
 	void _handle_input()
 	{
 		while (_input.pending())
@@ -601,10 +599,11 @@ void Window_layouter::Main::_handle_hover()
 
 	/*
 	 * An exception may occur during the 'Xml_node' construction if the hover
-	 * model is malformed. Under this condition, we invalidate the hover state.
+	 * model lacks a window. Under this condition, we invalidate the hover
+	 * state.
 	 */
 	catch (...) {
-		
+
 		_user_state.reset_hover();
 
 		/*
