@@ -235,8 +235,8 @@ $(ABI_SO): $(LIB).symbols.o
 	                $(LIB_SO_DEPS) $< \
 	                --end-group --no-whole-archive
 
-$(LIB_CHECKED): $(LIB_SO)
-	$(VERBOSE)$(BASE_DIR)/../../tool/check_abi $(LIB_SO) $(SYMBOLS)
+$(LIB_CHECKED): $(LIB_SO) $(SYMBOLS)
+	$(VERBOSE)$(BASE_DIR)/../../tool/check_abi $(LIB_SO) $(SYMBOLS) && touch $@
 
 $(LIB_SO).stripped: $(LIB_SO)
 	$(VERBOSE)$(STRIP) -o $@ $<
