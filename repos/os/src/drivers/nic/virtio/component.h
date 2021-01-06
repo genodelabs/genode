@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Need to come before attached_rom_dataspace.h */
+/* Genode includes */
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
@@ -23,35 +23,23 @@
 #include <util/misc_math.h>
 #include <util/register.h>
 #include <virtio/queue.h>
+#include <util/noncopyable.h>
+
+/* NIC driver includes */
+#include <drivers/nic/uplink_client_base.h>
 
 namespace Virtio_nic {
 	using namespace Genode;
 	struct Main;
 	class Root;
 	class Session_component;
+	class Device;
 }
 
 
-class Virtio_nic::Session_component : public Nic::Session_component
+class Virtio_nic::Device : Noncopyable
 {
-	private:
-
-		/*
-		 * Noncopyable
-		 */
-		Session_component(Session_component const &);
-		Session_component &operator = (Session_component const &);
-
-		struct Unsupported_version  : Genode::Exception { };
-		struct Device_init_failed   : Genode::Exception { };
-		struct Features_init_failed : Genode::Exception { };
-		struct Queue_init_failed    : Genode::Exception { };
-
-		struct Hardware_features
-		{
-			Nic::Mac_address mac = { };
-			bool link_status_available = false;
-		};
+	public:
 
 		/**
 		 * See section 5.1.6 of VirtIO 1.0 specification.
@@ -79,6 +67,19 @@ class Virtio_nic::Session_component : public Nic::Session_component
 			uint16_t csum_start   = 0;
 			uint16_t csum_offset  = 0;
 			uint16_t num_buffers  = 0;
+		};
+
+	private:
+
+		struct Unsupported_version  : Genode::Exception { };
+		struct Device_init_failed   : Genode::Exception { };
+		struct Features_init_failed : Genode::Exception { };
+		struct Queue_init_failed    : Genode::Exception { };
+
+		struct Hardware_features
+		{
+			Nic::Mac_address mac = { };
+			bool link_status_available = false;
 		};
 
 		/**
@@ -147,8 +148,6 @@ class Virtio_nic::Session_component : public Nic::Session_component
 
 		typedef Virtio::Queue<Virtio_net_header, Rx_queue_traits> Rx_queue_type;
 		typedef Virtio::Queue<Virtio_net_header, Tx_queue_traits> Tx_queue_type;
-		typedef Genode::Signal_handler<Session_component>         Signal_handler;
-
 
 		bool                const _verbose;
 		Virtio::Device           &_device;
@@ -156,9 +155,6 @@ class Virtio_nic::Session_component : public Nic::Session_component
 		Rx_queue_type             _rx_vq;
 		Tx_queue_type             _tx_vq;
 		Irq_session_client        _irq;
-		Signal_handler            _irq_handler;
-		bool                      _link_up = false;
-
 
 		void _init_virtio_device()
 		{
@@ -294,7 +290,46 @@ class Virtio_nic::Session_component : public Nic::Session_component
 			}
 		}
 
-		void _handle_irq()
+	public:
+
+		Device(Genode::Env             &env,
+		       Virtio::Device          &device,
+		       Irq_session_capability   irq_cap,
+		       Genode::Xml_node  const &xml)
+		try :
+			_verbose     { xml.attribute_value("verbose", false) },
+			_device      { device },
+			_hw_features { _init_hw_features(xml) },
+			_rx_vq       { env.ram(), env.rm(),
+			               _vq_size(RX_VQ, xml, "rx_queue_size"),
+			               _buf_size(RX_VQ, xml, "rx_buffer_size") },
+			_tx_vq       { env.ram(), env.rm(),
+			               _vq_size(TX_VQ, xml, "tx_queue_size"),
+			               _buf_size(TX_VQ, xml, "tx_buffer_size") },
+			_irq         { irq_cap }
+		{ }
+		catch (Tx_queue_type::Invalid_buffer_size)
+		{
+			error("Invalid TX VirtIO queue buffer size specified!");
+			throw;
+		}
+		catch (Rx_queue_type::Invalid_buffer_size)
+		{
+			error("Invalid RX VirtIO queue buffer size specified!");
+			throw;
+		}
+
+		virtual ~Device()
+		{
+			_device.set_status(Virtio::Device::Status::RESET);
+		}
+
+		bool verbose() { return _verbose; }
+
+		template <typename HANDLE_RX,
+		          typename HANDLE_LINK_STATE>
+		void drv_handle_irq(HANDLE_RX         && handle_rx,
+		                    HANDLE_LINK_STATE && handle_link_state)
 		{
 			const uint32_t reasons = _device.read_isr();
 
@@ -304,72 +339,27 @@ class Virtio_nic::Session_component : public Nic::Session_component
 				_tx_vq.ack_all_transfers();
 
 			if (reasons & IRQ_USED_RING_UPDATE) {
-				_receive();
+				handle_rx();
 			}
 
-			if ((reasons & IRQ_CONFIG_CHANGE) && _hw_features.link_status_available &&
-			    (link_state() != _link_up)) {
-				_link_up = !_link_up;
-				if (_verbose)
-					log("Link status changed: ", (_link_up ? "on-line" : "off-line"));
-				_link_state_changed();
+			if ((reasons & IRQ_CONFIG_CHANGE) && _hw_features.link_status_available) {
+				handle_link_state();
 			}
-
 			_irq.ack_irq();
 		}
 
-		bool _send()
+		bool tx_vq_write_pkt(char     const *pkt_base,
+		                      Genode::size_t  pkt_size)
 		{
-			if (!_tx.sink()->ready_to_ack())
-				return false;
-
-			if (!_tx.sink()->packet_avail())
-				return false;
-
-			auto packet = _tx.sink()->get_packet();
-			if (!packet.size() || !_tx.sink()->packet_valid(packet)) {
-				warning("Invalid tx packet");
-				return true;
-			}
-
-			if (link_state()) {
-				Virtio_net_header hdr;
-				auto const *data = _tx.sink()->packet_content(packet);
-				if (!_tx_vq.write_data(hdr, data, packet.size(), false)) {
-					warning("Failed to push packet into tx VirtIO queue!");
-					return false;
-				}
-			}
-
-			_tx.sink()->acknowledge_packet(packet);
-			return true;
+			Virtio_net_header hdr;
+			return _tx_vq.write_data(hdr, pkt_base, pkt_size, false);
 		}
 
-		void _receive()
+		template <typename RECEIVE_PKT>
+		void rx_vq_read_pkt(RECEIVE_PKT && rcv_pkt)
 		{
-			auto rcv_func = [&] (Virtio_net_header const &,
-			                     char              const *data,
-			                     size_t                   size) {
-				if (!_rx.source()->ready_to_submit()) {
-					Genode::warning("Not ready to submit!");
-					return false;
-				}
-
-				try {
-					auto p = _rx.source()->alloc_packet(size);
-					char *dst = _rx.source()->packet_content(p);
-					Genode::memcpy(dst, data, size);
-					_rx.source()->submit_packet(p);
-				} catch (Session::Rx::Source::Packet_alloc_failed) {
-					Genode::warning("Packet alloc failed!");
-					return false;
-				}
-
-				return true;
-			};
-
 			while (_rx_vq.has_used_buffers())
-				_rx_vq.read_data(rcv_func);
+				_rx_vq.read_data(rcv_pkt);
 
 			/**
 			 * Inform the device the buffers we've just consumed are ready
@@ -378,27 +368,19 @@ class Virtio_nic::Session_component : public Nic::Session_component
 			_device.notify_buffers_available(RX_VQ);
 		}
 
-		void _handle_packet_stream() override
+		void _finish_sent_packets()
 		{
-			while (_rx.source()->ack_avail())
-				_rx.source()->release_packet(_rx.source()->get_acked_packet());
+			_device.notify_buffers_available(TX_VQ);
+		}
 
+		void rx_vq_ack_pkts()
+		{
 			/* Reclaim all buffers processed by the device. */
 			if (_tx_vq.has_used_buffers())
 				_tx_vq.ack_all_transfers();
-
-			bool sent_packets = false;
-			while (_send())
-				sent_packets = true;
-
-			if (sent_packets) {
-				_device.notify_buffers_available(TX_VQ);
-			}
 		}
 
-	public:
-
-		bool link_state() override
+		bool read_link_state()
 		{
 			/**
 			 * According to docs when STATUS feature is not available or has not
@@ -419,7 +401,129 @@ class Virtio_nic::Session_component : public Nic::Session_component
 			return status & STATUS_LINK_UP;
 		}
 
-		Nic::Mac_address mac_address() override { return _hw_features.mac; }
+		Nic::Mac_address const &read_mac_address() const
+		{
+			return _hw_features.mac;
+		}
+
+		void init(Genode::Signal_context_capability irq_handler)
+		{
+			_setup_virtio_queues();
+			_irq.sigh(irq_handler);
+			_irq.ack_irq();
+		}
+};
+
+
+class Virtio_nic::Session_component : public Nic::Session_component,
+                                      public Device
+{
+	private:
+
+		typedef Genode::Signal_handler<Session_component> Signal_handler;
+
+		Signal_handler _irq_handler;
+		bool           _link_up = false;
+
+		void _handle_irq()
+		{
+			drv_handle_irq([&] () {
+
+				_receive();
+
+			}, [&] () {
+
+			 	if (link_state() == _link_up) {
+					return;
+				}
+				_link_up = !_link_up;
+				if (verbose())
+					log("Link status changed: ",
+					    (_link_up ? "on-line" : "off-line"));
+
+				_link_state_changed();
+			});
+		}
+
+		bool _send()
+		{
+			if (!_tx.sink()->ready_to_ack())
+				return false;
+
+			if (!_tx.sink()->packet_avail())
+				return false;
+
+			auto packet = _tx.sink()->get_packet();
+			if (!packet.size() || !_tx.sink()->packet_valid(packet)) {
+				warning("Invalid tx packet");
+				return true;
+			}
+
+			if (link_state()) {
+				char  const *data = _tx.sink()->packet_content(packet);
+				if (!tx_vq_write_pkt(data, packet.size())) {
+					warning("Failed to push packet into tx VirtIO queue!");
+					return false;
+				}
+			}
+
+			_tx.sink()->acknowledge_packet(packet);
+			return true;
+		}
+
+		void _receive()
+		{
+			rx_vq_read_pkt(
+				[&] (Virtio_net_header const &,
+				     char              const *data,
+				     size_t                   size)
+			{
+				if (!_rx.source()->ready_to_submit()) {
+					Genode::warning("Not ready to submit!");
+					return false;
+				}
+
+				try {
+					auto p = _rx.source()->alloc_packet(size);
+					char *dst = _rx.source()->packet_content(p);
+					Genode::memcpy(dst, data, size);
+					_rx.source()->submit_packet(p);
+				} catch (Session::Rx::Source::Packet_alloc_failed) {
+					Genode::warning("Packet alloc failed!");
+					return false;
+				}
+
+				return true;
+			});
+		}
+
+		void _handle_packet_stream() override
+		{
+			while (_rx.source()->ack_avail())
+				_rx.source()->release_packet(_rx.source()->get_acked_packet());
+
+			rx_vq_ack_pkts();
+
+			bool sent_packets = false;
+			while (_send())
+				sent_packets = true;
+
+			if (sent_packets) {
+				_finish_sent_packets();
+			}
+		}
+
+	public:
+
+		bool link_state() override
+		{
+			return read_link_state();
+		}
+
+		Nic::Mac_address mac_address() override
+		{
+			return read_mac_address();
+		}
 
 		Session_component(Genode::Env             &env,
 		                  Genode::Allocator       &rx_block_md_alloc,
@@ -428,43 +532,17 @@ class Virtio_nic::Session_component : public Nic::Session_component
 		                  Genode::Xml_node  const &xml,
 		                  Genode::size_t    const  tx_buf_size,
 		                  Genode::size_t    const  rx_buf_size)
-		try : Nic::Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
-		                         rx_block_md_alloc, env),
-		      _verbose(xml.attribute_value("verbose", false)),
-		      _device(device),
-		      _hw_features(_init_hw_features(xml)),
-		      _rx_vq(env.ram(), env.rm(),
-		             _vq_size(RX_VQ, xml, "rx_queue_size"),
-		             _buf_size(RX_VQ, xml, "rx_buffer_size")),
-		      _tx_vq(env.ram(), env.rm(),
-		             _vq_size(TX_VQ, xml, "tx_queue_size"),
-		             _buf_size(TX_VQ, xml, "tx_buffer_size")),
-		      _irq(irq_cap),
-		      _irq_handler(env.ep(), *this, &Session_component::_handle_irq),
-		      _link_up(link_state())
+		:
+			Nic::Session_component { tx_buf_size, rx_buf_size, Genode::CACHED,
+			                         rx_block_md_alloc, env },
+			Device                 { env, device, irq_cap, xml },
+			_irq_handler           { env.ep(), *this, &Session_component::_handle_irq },
+			_link_up               { link_state() }
 		{
-			_setup_virtio_queues();
-			_irq.sigh(_irq_handler);
-			_irq.ack_irq();
-
+			Virtio_nic::Device::init(_irq_handler);
 			_link_state_changed();
-
-			if (_verbose)
+			if (verbose())
 				Genode::log("Mac address: ", mac_address());
-		}
-		catch (Tx_queue_type::Invalid_buffer_size)
-		{
-			error("Invalid TX VirtIO queue buffer size specified!");
-			throw;
-		}
-		catch (Rx_queue_type::Invalid_buffer_size)
-		{
-			error("Invalid RX VirtIO queue buffer size specified!");
-			throw;
-		}
-
-		~Session_component() {
-			_device.set_status(Virtio::Device::Status::RESET);
 		}
 };
 
@@ -483,6 +561,7 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 
 		Genode::Env            &_env;
 		Virtio::Device         &_device;
+		Attached_rom_dataspace &_config_rom;
 		Irq_session_capability  _irq_cap;
 
 		Session_component *_create_session(const char *args) override
@@ -502,11 +581,9 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 				throw Genode::Insufficient_ram_quota();
 			}
 
-			Attached_rom_dataspace rom(_env, "config");
-
 			try {
 				return new (md_alloc()) Session_component(
-					_env, *md_alloc(), _device, _irq_cap, rom.xml(),
+					_env, *md_alloc(), _device, _irq_cap, _config_rom.xml(),
 					tx_buf_size, rx_buf_size);
 			} catch (...) { throw Service_denied(); }
 		}
@@ -516,8 +593,102 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 		Root(Env                    &env,
 		     Allocator              &md_alloc,
 		     Virtio::Device         &device,
-		     Irq_session_capability  irq_cap)
-		: Root_component<Session_component, Genode::Single_client>(env.ep(), md_alloc),
-		  _env(env), _device(device), _irq_cap(irq_cap)
+		     Irq_session_capability  irq_cap,
+		     Attached_rom_dataspace &config_rom)
+		:
+			Root_component<Session_component,
+			               Genode::Single_client> { env.ep(), md_alloc },
+			_env                                  { env },
+			_device                               { device },
+			_config_rom                           { config_rom },
+			_irq_cap                              { irq_cap }
 		{ }
+};
+
+
+namespace Genode {
+
+	class Uplink_client;
+}
+
+
+class Genode::Uplink_client : public Virtio_nic::Device,
+                              public Uplink_client_base
+{
+	private:
+
+		Signal_handler<Uplink_client> _irq_handler;
+
+		void _receive()
+		{
+			rx_vq_read_pkt(
+				[&] (Virtio_net_header const &,
+				     char              const *data,
+				     size_t                   size)
+			{
+				_drv_rx_handle_pkt(
+					size,
+					[&] (void   *conn_tx_pkt_base,
+						 size_t &conn_tx_pkt_size)
+				{
+					memcpy(conn_tx_pkt_base, data, conn_tx_pkt_size);
+					return Write_result::WRITE_SUCCEEDED;
+				});
+				return true;
+			});
+		}
+
+		void _handle_irq()
+		{
+			drv_handle_irq([&] () {
+
+				_receive();
+
+			}, [&] () {
+
+				_drv_handle_link_state(read_link_state());
+			});
+		}
+
+
+		/************************
+		 ** Uplink_client_base **
+		 ************************/
+
+		Transmit_result
+		_drv_transmit_pkt(const char *conn_rx_pkt_base,
+		                  size_t      conn_rx_pkt_size) override
+		{
+			rx_vq_ack_pkts();
+			if (tx_vq_write_pkt(conn_rx_pkt_base, conn_rx_pkt_size)) {
+
+				return Transmit_result::ACCEPTED;
+
+			} else {
+
+				warning("Failed to push packet into tx VirtIO queue!");
+				return Transmit_result::RETRY;
+			}
+		}
+
+		void _drv_finish_transmitted_pkts() override
+		{
+			_finish_sent_packets();
+		}
+
+	public:
+
+		Uplink_client(Env                         &env,
+		              Allocator                   &alloc,
+		              Virtio::Device              &device,
+		              Irq_session_capability       irq_cap,
+		              Genode::Xml_node      const &xml)
+		:
+			Device             { env, device, irq_cap, xml },
+			Uplink_client_base { env, alloc, read_mac_address() },
+			_irq_handler       { env.ep(), *this, &Uplink_client::_handle_irq }
+		{
+			Virtio_nic::Device::init(_irq_handler);
+			_drv_handle_link_state(read_link_state());
+		}
 };

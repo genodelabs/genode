@@ -11,7 +11,7 @@ SHARED_LIB = yes
 # wifi_include *must* be the first library, otherwise the include
 # order is wrong
 #
-LIBS  += wifi_include lx_kit_setjmp
+LIBS  += wifi_include lx_kit_setjmp nic_driver
 
 LD_OPT += --version-script=$(LIB_DIR)/symbol.map
 

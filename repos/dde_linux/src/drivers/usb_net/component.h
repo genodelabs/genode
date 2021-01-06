@@ -18,43 +18,16 @@
 #include <nic/component.h>
 #include <root/component.h>
 
-#include <lx_kit/scheduler.h>
+/* local includes */
+#include <linux_network_session_base.h>
 
-extern "C" {
-	struct net_device;
-	struct napi_struct;
-	struct sk_buff;
-}
 
-class Session_component : public Nic::Session_component
+class Session_component : public Nic::Session_component,
+                          public Linux_network_session_base
 {
 	private:
 
-		struct Tx_data
-		{
-			net_device * ndev;
-			sk_buff    * skb;
-		};
-
-		struct Rx_data
-		{
-			struct napi_struct * napi;
-		};
-
-		net_device * _ndev     = nullptr;
-		bool         _has_link = false;
-		Tx_data      _tx_data;
-		Rx_data      _rx_data;
-
-		static void _run_tx_task(void * args);
-		static void _run_rx_task(void * args);
-		static net_device * _register_session_component(Session_component &,
-		                                                Genode::Session_label);
-
-		Lx::Task _tx_task { _run_tx_task, &_tx_data, "tx_task",
-		                    Lx::Task::PRIORITY_1, Lx::scheduler() };
-		Lx::Task _rx_task { _run_rx_task, &_rx_data, "rx_task",
-		                    Lx::Task::PRIORITY_1, Lx::scheduler() };
+		bool _has_link = false;
 
 		bool _send();
 		void _handle_rx();
@@ -62,17 +35,27 @@ class Session_component : public Nic::Session_component
 
 	public:
 
-		Session_component(Genode::size_t const  tx_buf_size,
-		                  Genode::size_t const  rx_buf_size,
-		                  Genode::Allocator &   rx_block_md_alloc,
-		                  Genode::Env &         env,
-		                  Genode::Session_label label);
+		Session_component(Genode::size_t        const  tx_buf_size,
+		                  Genode::size_t        const  rx_buf_size,
+		                  Genode::Allocator           &rx_block_md_alloc,
+		                  Genode::Env                 &env,
+		                  Genode::Session_label const &label);
+
+
+		/****************************
+		 ** Nic::Session_component **
+		 ****************************/
 
 		Nic::Mac_address mac_address() override;
 		bool link_state() override { return _has_link; }
-		void link_state(bool link);
-		void receive(struct sk_buff *skb);
-		void unblock_rx_task(napi_struct * n);
+
+
+		/********************************
+		 ** Linux_network_session_base **
+		 ********************************/
+
+		void link_state(bool link) override;
+		void receive(struct sk_buff *skb) override;
 };
 
 

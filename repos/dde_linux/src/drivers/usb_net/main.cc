@@ -74,7 +74,7 @@ void Driver::Device::scan_interfaces(unsigned iface_idx)
 	probe_interface(iface, &id);
 	udev->config->interface[iface_idx] = iface;
 
-	driver.env.parent().announce(driver.ep.manage(driver.root));
+	driver.activate_network_session();
 };
 
 
@@ -195,6 +195,9 @@ Driver::Driver(Genode::Env &env) : env(env)
 {
 	Genode::log("--- USB net driver ---");
 
+	if (mode == Genode::Nic_driver_mode::NIC_SERVER) {
+		root.construct(env, heap);
+	}
 	Lx_kit::construct_env(env);
 	Lx::scheduler(&env);
 	Lx::malloc_init(env, heap);

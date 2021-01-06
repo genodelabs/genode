@@ -380,10 +380,12 @@ int register_netdev(struct net_device *dev)
 };
 
 
-net_device * Session_component::_register_session_component(Session_component & s,
-                                                            Genode::Session_label policy)
+net_device *
+Linux_network_session_base::
+_register_session(Linux_network_session_base &session,
+                  Genode::Session_label       policy)
 {
-	if (single_net_device) single_net_device->session_component = (void*) &s;
+	if (single_net_device) single_net_device->session_component = &session;
 	return single_net_device;
 }
 
@@ -430,7 +432,8 @@ void netif_carrier_off(struct net_device *dev)
 {
 	dev->state |= 1 << __LINK_STATE_NOCARRIER;
 	if (dev->session_component)
-		reinterpret_cast<Session_component*>(dev->session_component)->link_state(false);
+		reinterpret_cast<Linux_network_session_base*>(dev->session_component)->
+			link_state(false);
 }
 
 
@@ -457,14 +460,16 @@ void netif_carrier_on(struct net_device *dev)
 {
 	dev->state &= ~(1 << __LINK_STATE_NOCARRIER);
 	if (dev->session_component)
-		reinterpret_cast<Session_component*>(dev->session_component)->link_state(true);
+		reinterpret_cast<Linux_network_session_base*>(dev->session_component)->
+			link_state(true);
 }
 
 
 int netif_rx(struct sk_buff * skb)
 {
 	if (skb->dev->session_component)
-		reinterpret_cast<Session_component*>(skb->dev->session_component)->receive(skb);
+		reinterpret_cast<Linux_network_session_base*>(skb->dev->session_component)->
+			receive(skb);
 
 	dev_kfree_skb(skb);
 	return NET_RX_SUCCESS;

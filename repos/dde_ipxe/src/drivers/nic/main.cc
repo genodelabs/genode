@@ -12,14 +12,21 @@
  * version 2.
  */
 
-/* Genode */
+/* Genode includes */
 #include <base/component.h>
 #include <base/env.h>
 #include <base/heap.h>
 #include <base/log.h>
 #include <nic/component.h>
 #include <nic/root.h>
+#include <uplink_session/connection.h>
+#include <base/attached_rom_dataspace.h>
 
+/* NIC driver includes */
+#include <drivers/nic/uplink_client_base.h>
+#include <drivers/nic/mode.h>
+
+/* DDE iPXE includes */
 #include <dde_ipxe/support.h>
 #include <dde_ipxe/nic.h>
 
@@ -61,13 +68,13 @@ class Ipxe_session_component  : public Nic::Session_component
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
 			if (!packet.size()) {
-				Genode::warning("Invalid tx packet");
+				warning("Invalid tx packet");
 				return true;
 			}
 
 			if (link_state()) {
 				if (dde_ipxe_nic_tx(1, _tx.sink()->packet_content(packet), packet.size()))
-					Genode::warning("Sending packet failed!");
+					warning("Sending packet failed!");
 			}
 
 			_tx.sink()->acknowledge_packet(packet);
@@ -83,10 +90,10 @@ class Ipxe_session_component  : public Nic::Session_component
 
 			try {
 				Nic::Packet_descriptor p = _rx.source()->alloc_packet(packet_len);
-				Genode::memcpy(_rx.source()->packet_content(p), packet, packet_len);
+				memcpy(_rx.source()->packet_content(p), packet, packet_len);
 				_rx.source()->submit_packet(p);
 			} catch (...) {
-				Genode::warning(__func__, ": failed to process received packet");
+				warning(__func__, ": failed to process received packet");
 			}
 		}
 
@@ -100,11 +107,11 @@ class Ipxe_session_component  : public Nic::Session_component
 
 	public:
 
-		Ipxe_session_component(Genode::size_t const tx_buf_size,
-		                       Genode::size_t const rx_buf_size,
-		                       Genode::Allocator   &rx_block_md_alloc,
-		                       Genode::Env         &env)
-		: Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
+		Ipxe_session_component(size_t const tx_buf_size,
+		                       size_t const rx_buf_size,
+		                       Allocator   &rx_block_md_alloc,
+		                       Env         &env)
+		: Session_component(tx_buf_size, rx_buf_size, CACHED,
 		                    rx_block_md_alloc, env)
 		{
 			instance = this;
@@ -113,7 +120,7 @@ class Ipxe_session_component  : public Nic::Session_component
 
 			dde_ipxe_nic_get_mac_addr(1, _mac_addr.addr);
 
-			Genode::log("MAC address ", _mac_addr);
+			log("MAC address ", _mac_addr);
 		}
 
 		~Ipxe_session_component()
@@ -138,32 +145,126 @@ class Ipxe_session_component  : public Nic::Session_component
 Ipxe_session_component *Ipxe_session_component::instance;
 
 
+class Uplink_client : public Uplink_client_base
+{
+	public:
+
+		static Uplink_client *instance;
+
+	private:
+
+		Nic::Mac_address _init_drv_mac_addr()
+		{
+			instance = this;
+			dde_ipxe_nic_register_callbacks(
+				_drv_rx_callback, _drv_link_callback);
+
+			Nic::Mac_address mac_addr { };
+			dde_ipxe_nic_get_mac_addr(1, mac_addr.addr);
+			return mac_addr;
+		}
+
+
+		/***********************************
+		 ** Interface towards iPXE driver **
+		 ***********************************/
+
+		static void _drv_rx_callback(unsigned    interface_idx,
+		                             const char *drv_rx_pkt_base,
+		                             unsigned    drv_rx_pkt_size)
+		{
+			instance->_drv_rx_handle_pkt(
+				drv_rx_pkt_size,
+				[&] (void   *conn_tx_pkt_base,
+				     size_t &)
+			{
+				memcpy(conn_tx_pkt_base, drv_rx_pkt_base, drv_rx_pkt_size);
+				return Write_result::WRITE_SUCCEEDED;
+			});
+		}
+
+		static void _drv_link_callback()
+		{
+			instance->_drv_handle_link_state(dde_ipxe_nic_link_state(1));
+		}
+
+
+		/************************
+		 ** Uplink_client_base **
+		 ************************/
+
+		Transmit_result
+		_drv_transmit_pkt(const char *conn_rx_pkt_base,
+		                  size_t      conn_rx_pkt_size) override
+		{
+			if (dde_ipxe_nic_tx(1, conn_rx_pkt_base, conn_rx_pkt_size) == 0) {
+
+				return Transmit_result::ACCEPTED;
+			}
+			return Transmit_result::REJECTED;
+		}
+
+	public:
+
+		Uplink_client(Env       &env,
+		              Allocator &alloc)
+		:
+			Uplink_client_base { env, alloc, _init_drv_mac_addr() }
+		{
+			_drv_handle_link_state(dde_ipxe_nic_link_state(1));
+		}
+
+		~Uplink_client()
+		{
+			dde_ipxe_nic_unregister_callbacks();
+			instance = nullptr;
+		}
+};
+
+
+Uplink_client *Uplink_client::instance;
+
+
 struct Main
 {
-	Env  &_env;
-
-	Heap  _heap { _env.ram(), _env.rm() };
-
-	Nic::Root<Ipxe_session_component> root {_env, _heap };
+	Env                    &_env;
+	Heap                    _heap       { _env.ram(), _env.rm() };
+	Attached_rom_dataspace  _config_rom { _env, "config" };
 
 	Main(Env &env) : _env(env)
 	{
-		Genode::log("--- iPXE NIC driver started ---");
+		log("--- iPXE NIC driver started ---");
 
-		Genode::log("-- init iPXE NIC");
+		log("-- init iPXE NIC");
 
 		/* pass Env to backend */
 		dde_support_init(_env, _heap);
 
 		if (!dde_ipxe_nic_init()) {
-			Genode::error("could not find usable NIC device");
+			error("could not find usable NIC device");
 		}
+		Nic_driver_mode const mode {
+			read_nic_driver_mode(_config_rom.xml()) };
 
-		_env.parent().announce(_env.ep().manage(root));
+		switch (mode) {
+		case Nic_driver_mode::NIC_SERVER:
+			{
+				Nic::Root<Ipxe_session_component> &root {
+					*new (_heap)
+						Nic::Root<Ipxe_session_component>(_env, _heap) };
+
+				_env.parent().announce(_env.ep().manage(root));
+				break;
+			}
+		case Nic_driver_mode::UPLINK_CLIENT:
+
+			new (_heap) Uplink_client(_env, _heap);
+			break;
+		}
 	}
 };
 
-void Component::construct(Genode::Env &env)
+void Component::construct(Env &env)
 {
 	/* XXX execute constructors of global statics */
 	env.exec_static_constructors();

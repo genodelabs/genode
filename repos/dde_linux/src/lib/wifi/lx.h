@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <base/allocator.h>
 
+/* NIC driver includes */
+#include <drivers/nic/mode.h>
+
 /* local includes */
 #include <lx_kit/scheduler.h>
 
@@ -33,7 +36,9 @@ namespace Lx
 	void socket_init(Genode::Entrypoint&, Genode::Allocator&);
 	void socket_kick();
 
-	void nic_init(Genode::Env&, Genode::Allocator&);
+	void nic_init(Genode::Env&,
+	              Genode::Allocator&,
+	              Genode::Nic_driver_mode);
 
 	Genode::Ram_dataspace_capability backend_alloc(Genode::addr_t, Genode::Cache_attribute);
 	void backend_free(Genode::Ram_dataspace_capability);

@@ -4,6 +4,8 @@ libc
 libcrypto
 libssl
 nic_session
+uplink_session
+nic_driver
 platform_session
 report_session
 timer_session

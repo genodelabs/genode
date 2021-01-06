@@ -22,6 +22,9 @@
 #include <timer_session/connection.h>
 #include <nic/component.h>
 
+/* NIC driver includes */
+#include <drivers/nic/uplink_client_base.h>
+
 /* local includes */
 #include "system_control.h"
 #include "tx_buffer_descriptor.h"
@@ -30,16 +33,13 @@
 
 namespace Genode
 {
-	/**
-	 * Base driver Xilinx EMAC PS module
-	 */
-	class Cadence_gem
+	class Cadence_gem_base
 	:
-		private Genode::Attached_mmio,
-		public Nic::Session_component,
+		protected Genode::Attached_mmio,
 		public Phyio
 	{
 		private:
+
 			/**
 			* Control register
 			*/
@@ -95,8 +95,6 @@ namespace Genode
 			{
 				struct Phy_mgmt_idle  : Bitfield<2, 1> {};
 			};
-
-
 
 			/**
 			* DMA Config register
@@ -349,119 +347,13 @@ namespace Genode
 			class Phy_timeout_for_idle : public Genode::Exception {};
 			class Unkown_ethernet_speed : public Genode::Exception {};
 
-
-			Timer::Connection                   _timer;
-			System_control                      _sys_ctrl;
-			Tx_buffer_descriptor                _tx_buffer;
-			Rx_buffer_descriptor                _rx_buffer;
-			Genode::Irq_connection              _irq;
-			Genode::Signal_handler<Cadence_gem> _irq_handler;
-			Marvel_phy                          _phy;
-
-			addr_t  _rx_buf_region;
-			addr_t  _tx_buf_region;
-			size_t  _rx_buf_size;
-			size_t  _tx_buf_size;
-
-			void _init()
-			{
-				/* see 16.3.2 Configure the Controller */
-
-				/* 1. Program the Network Configuration register (gem.net_cfg) */
-				write<Config>(
-					Config::Gige_en::bits(1) |
-					Config::Speed_100::bits(1) |
-					Config::Pause_en::bits(1) |
-					Config::Full_duplex::bits(1) |
-					Config::Multi_hash_en::bits(1) |
-					Config::Mdc_clk_div::bits(Config::Mdc_clk_div::DIV_32) |
-					Config::Dis_cp_pause::bits(1) |
-					Config::Rx_chksum_en::bits(1) |
-					Config::Fcs_remove::bits(1)
-				);
-
-
-				write<Rx_qbar>( _rx_buffer.phys_addr() );
-				write<Tx_qbar>( _tx_buffer.phys_addr() );
-
-
-				/* 3. Program the DMA Configuration register (gem.dma_cfg) */
-				write<Dma_config>( Dma_config::init() );
-
-
-				/*
-				 * 4. Program the Network Control Register (gem.net_ctrl)
-				 * Enable MDIO, transmitter and receiver
-				 */
-				write<Control>(Control::init());
-
-
-
-				_phy.init();
-
-				/* change emac clocks depending on phy autonegation result */
-				uint32_t rclk = 0;
-				uint32_t clk = 0;
-				switch (_phy.eth_speed()) {
-				case SPEED_1000:
-					write<Config::Gige_en>(1);
-					rclk = (0 << 4) | (1 << 0);
-					clk = (1 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
-					log("Autonegotiation result: 1Gbit/s");
-					break;
-				case SPEED_100:
-					write<Config::Gige_en>(0);
-					write<Config::Speed_100>(1);
-					rclk = 1 << 0;
-					clk = (5 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
-					log("Autonegotiation result: 100Mbit/s");
-					break;
-				case SPEED_10:
-					write<Config::Gige_en>(0);
-					write<Config::Speed_100>(0);
-					rclk = 1 << 0;
-					/* FIXME untested */
-					clk = (5 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
-					log("Autonegotiation result: 10Mbit/s");
-					break;
-				default:
-					throw Unkown_ethernet_speed();
-				}
-				_sys_ctrl.set_clk(clk, rclk);
-
-
-				/* 16.3.6 Configure Interrupts */
-				write<Interrupt_enable>(Interrupt_enable::Rx_complete::bits(1) |
-				                        Interrupt_enable::Rx_overrun::bits(1) |
-				                        Interrupt_enable::Pause_received::bits(1) |
-				                        Interrupt_enable::Pause_zero::bits(1) |
-				                        Interrupt_enable::Rx_used_read::bits(1));
-			}
-
-			void _deinit()
-			{
-				/* 16.3.1 Initialize the Controller */
-
-				/* Disable all interrupts */
-				write<Interrupt_disable>(0x7FFFEFF);
-
-				/* Disable the receiver & transmitter */
-				write<Control>(0);
-				write<Control>(Control::Clear_statistics::bits(1));
-
-				write<Tx_status>(0xFF);
-				write<Rx_status>(0x0F);
-				write<Phy_maintenance>(0);
-
-				write<Rx_qbar>(0);
-				write<Tx_qbar>(0);
-
-				/* Clear the Hash registers for the mac address
-				 * pointed by AddressPtr
-				 */
-				write<Hash_register>(0);
-			}
-
+			Timer::Connection       _timer;
+			System_control          _sys_ctrl;
+			Genode::Irq_connection  _irq;
+			Marvel_phy              _phy;
+			Tx_buffer_sink         &_tx_buffer_sink;
+			Tx_buffer_descriptor    _tx_buffer;
+			Rx_buffer_descriptor    _rx_buffer;
 
 			void _mdio_wait()
 			{
@@ -479,7 +371,6 @@ namespace Genode
 				}
 			}
 
-
 			void _phy_setup_op(const uint8_t phyaddr, const uint8_t regnum, const uint16_t data, const Phy_maintenance::Operation::Type op)
 			{
 				_mdio_wait();
@@ -496,15 +387,69 @@ namespace Genode
 				_mdio_wait();
 			}
 
-			inline void _handle_acks()
+
+			/***********
+			 ** Phyio **
+			 ***********/
+
+			void phy_write(const uint8_t phyaddr, const uint8_t regnum, const uint16_t data) override
 			{
-				while (_rx.source()->ack_avail()) {
-					Nic::Packet_descriptor p = _rx.source()->get_acked_packet();
-					_rx_buffer.reset_descriptor(p);
-				}
+				_phy_setup_op(phyaddr, regnum, data, Phy_maintenance::Operation::WRITE);
 			}
 
-			virtual void _handle_irq()
+			void phy_read(const uint8_t phyaddr, const uint8_t regnum, uint16_t& data) override
+			{
+				_phy_setup_op(phyaddr, regnum, 0, Phy_maintenance::Operation::READ);
+
+				data = read<Phy_maintenance::Data>();
+			}
+
+		public:
+
+			/**
+			 * Constructor
+			 *
+			 * \param  base       MMIO base address
+			 */
+			Cadence_gem_base(Genode::Env      &env,
+			                 addr_t const      base,
+			                 size_t const      size,
+			                 int    const      irq,
+			                 Tx_buffer_sink   &tx_buffer_sink,
+			                 Rx_buffer_source &rx_buffer_source)
+			:
+				Genode::Attached_mmio(env, base, size),
+				_timer(env),
+				_sys_ctrl(env, _timer),
+				_irq(env, irq),
+				_phy(*this, _timer),
+				_tx_buffer_sink(tx_buffer_sink),
+				_tx_buffer(env, tx_buffer_sink, _timer),
+				_rx_buffer(env, rx_buffer_source)
+			{ }
+
+			void transmit_packet(Packet_descriptor packet)
+			{
+				_tx_buffer.add_to_queue(packet);
+				write<Control>(Control::start_tx());
+			}
+
+			Nic::Mac_address read_mac_address()
+			{
+				Nic::Mac_address mac;
+				uint32_t* const low_addr_pointer = reinterpret_cast<uint32_t*>(&mac.addr[0]);
+				uint16_t* const high_addr_pointer = reinterpret_cast<uint16_t*>(&mac.addr[4]);
+
+				*low_addr_pointer = read<Mac_addr_1::Low_addr>();
+				*high_addr_pointer = read<Mac_addr_1::High_addr>();
+
+				return mac;
+			}
+
+			template <typename RECEIVE_PKT,
+			          typename HANDLE_ACKS>
+			void handle_irq(RECEIVE_PKT  && receive_pkt,
+			                HANDLE_ACKS  && handle_acks)
 			{
 				/* 16.3.9 Receiving Frames */
 				/* read interrupt status, to detect the interrupt reason */
@@ -513,16 +458,11 @@ namespace Genode
 				const Tx_status::access_t txStatus = read<Tx_status>();
 
 				if ( Interrupt_status::Rx_complete::get(status) ) {
+
 					while (_rx_buffer.next_packet()) {
 
-						_handle_acks();
-
-						Nic::Packet_descriptor p = _rx_buffer.get_packet_descriptor();
-						if (_rx.source()->packet_valid(p))
-							_rx.source()->submit_packet(p);
-						else
-							Genode::error("invalid packet descriptor ", Genode::Hex(p.offset()),
-											  " size ", Genode::Hex(p.size()));
+						handle_acks();
+						receive_pkt(_rx_buffer.get_packet_descriptor());
 					}
 
 					/* reset receive complete interrupt */
@@ -530,7 +470,7 @@ namespace Genode
 					write<Interrupt_status>(Interrupt_status::Rx_complete::bits(1));
 				}
 				else {
-					_handle_acks();
+					handle_acks();
 				}
 
 				/* handle Rx/Tx errors */
@@ -540,7 +480,7 @@ namespace Genode
 					write<Control::Tx_en>(0);
 					write<Control::Rx_en>(0);
 
-					_tx_buffer.reset(*_tx.sink());
+					_tx_buffer.reset(_tx_buffer_sink);
 					_rx_buffer.reset();
 
 					write<Control::Tx_en>(1);
@@ -556,7 +496,7 @@ namespace Genode
 				  || Tx_status::Tx_err_bufexh::get(txStatus)) {
 
 					write<Control::Tx_en>(0);
-					_tx_buffer.reset(*_tx.sink());
+					_tx_buffer.reset(_tx_buffer_sink);
 					write<Control::Tx_en>(1);
 
 					Genode::error("Tx error: resetting transceiver");
@@ -632,63 +572,109 @@ namespace Genode
 				_irq.ack_irq();
 			}
 
-		public:
-			/**
-			 * Constructor
-			 *
-			 * \param  base       MMIO base address
-			 */
-			Cadence_gem(Genode::size_t const tx_buf_size,
-			            Genode::size_t const rx_buf_size,
-			            Genode::Allocator   &rx_block_md_alloc,
-			            Genode::Env         &env,
-			            addr_t const base, size_t const size, const int irq)
-			:
-				Genode::Attached_mmio(env, base, size),
-				Session_component(tx_buf_size, rx_buf_size, Genode::UNCACHED,
-				                  rx_block_md_alloc, env),
-				_timer(env),
-				_sys_ctrl(env, _timer),
-				_tx_buffer(env, *_tx.sink(), _timer),
-				_rx_buffer(env, *_rx.source()),
-				_irq(env, irq),
-				_irq_handler(env.ep(), *this, &Cadence_gem::_handle_irq),
-				_phy(*this, _timer),
-				_rx_buf_region((addr_t)_tx_ds.local_addr<void>()),
-				_tx_buf_region((addr_t)_rx_ds.local_addr<void>()),
-				_rx_buf_size(_tx_ds.size()),
-				_tx_buf_size(_rx_ds.size())
+			void init(Signal_context_capability irq_handler)
 			{
-				_irq.sigh(_irq_handler);
+				_irq.sigh(irq_handler);
 				_irq.ack_irq();
-				_deinit();
-				_init();
+
+				/* see 16.3.2 Configure the Controller */
+
+				/* 1. Program the Network Configuration register (gem.net_cfg) */
+				write<Config>(
+					Config::Gige_en::bits(1) |
+					Config::Speed_100::bits(1) |
+					Config::Pause_en::bits(1) |
+					Config::Full_duplex::bits(1) |
+					Config::Multi_hash_en::bits(1) |
+					Config::Mdc_clk_div::bits(Config::Mdc_clk_div::DIV_32) |
+					Config::Dis_cp_pause::bits(1) |
+					Config::Rx_chksum_en::bits(1) |
+					Config::Fcs_remove::bits(1)
+				);
+
+
+				write<Rx_qbar>(_rx_buffer.phys_addr());
+				write<Tx_qbar>(_tx_buffer.phys_addr());
+
+
+				/* 3. Program the DMA Configuration register (gem.dma_cfg) */
+				write<Dma_config>( Dma_config::init() );
+
+
+				/*
+				 * 4. Program the Network Control Register (gem.net_ctrl)
+				 * Enable MDIO, transmitter and receiver
+				 */
+				write<Control>(Control::init());
+
+
+
+				_phy.init();
+
+				/* change emac clocks depending on phy autonegation result */
+				uint32_t rclk = 0;
+				uint32_t clk = 0;
+				switch (_phy.eth_speed()) {
+				case SPEED_1000:
+					write<Config::Gige_en>(1);
+					rclk = (0 << 4) | (1 << 0);
+					clk = (1 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
+					log("Autonegotiation result: 1Gbit/s");
+					break;
+				case SPEED_100:
+					write<Config::Gige_en>(0);
+					write<Config::Speed_100>(1);
+					rclk = 1 << 0;
+					clk = (5 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
+					log("Autonegotiation result: 100Mbit/s");
+					break;
+				case SPEED_10:
+					write<Config::Gige_en>(0);
+					write<Config::Speed_100>(0);
+					rclk = 1 << 0;
+					/* FIXME untested */
+					clk = (5 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
+					log("Autonegotiation result: 10Mbit/s");
+					break;
+				default:
+					throw Unkown_ethernet_speed();
+				}
+				_sys_ctrl.set_clk(clk, rclk);
+
+
+				/* 16.3.6 Configure Interrupts */
+				write<Interrupt_enable>(Interrupt_enable::Rx_complete::bits(1) |
+				                        Interrupt_enable::Rx_overrun::bits(1) |
+				                        Interrupt_enable::Pause_received::bits(1) |
+				                        Interrupt_enable::Pause_zero::bits(1) |
+				                        Interrupt_enable::Rx_used_read::bits(1));
 			}
 
-			~Cadence_gem()
+			void deinit()
 			{
-				// TODO dsiable tx and rx and clean up irq registration
-				_deinit();
+				/* 16.3.1 Initialize the Controller */
+
+				/* Disable all interrupts */
+				write<Interrupt_disable>(0x7FFFEFF);
+
+				/* Disable the receiver & transmitter */
+				write<Control>(0);
+				write<Control>(Control::Clear_statistics::bits(1));
+
+				write<Tx_status>(0xFF);
+				write<Rx_status>(0x0F);
+				write<Phy_maintenance>(0);
+
+				write<Rx_qbar>(0);
+				write<Tx_qbar>(0);
+
+				/* Clear the Hash registers for the mac address
+				 * pointed by AddressPtr
+				 */
+				write<Hash_register>(0);
 			}
 
-			using Nic::Session_component::cap;
-
-
-			void phy_write(const uint8_t phyaddr, const uint8_t regnum, const uint16_t data) override
-			{
-				_phy_setup_op(phyaddr, regnum, data, Phy_maintenance::Operation::WRITE);
-			}
-
-
-			void phy_read(const uint8_t phyaddr, const uint8_t regnum, uint16_t& data) override
-			{
-				_phy_setup_op(phyaddr, regnum, 0, Phy_maintenance::Operation::READ);
-
-				data = read<Phy_maintenance::Data>();
-			}
-
-
-			void mac_address(const Nic::Mac_address &mac)
+			void write_mac_address(const Nic::Mac_address &mac)
 			{
 				const uint32_t* const low_addr_pointer = reinterpret_cast<const uint32_t*>(&mac.addr[0]);
 				const uint16_t* const high_addr_pointer = reinterpret_cast<const uint16_t*>(&mac.addr[4]);
@@ -697,12 +683,158 @@ namespace Genode
 				write<Mac_addr_1::High_addr>(*high_addr_pointer);
 			}
 
+			void rx_buffer_reset_pkt(Nic::Packet_descriptor pkt)
+			{
+				_rx_buffer.reset_descriptor(pkt);
+			}
+
+			void tx_buffer_submit_acks()
+			{
+				_tx_buffer.submit_acks(_tx_buffer_sink);
+			}
+	};
+
+	class Nic_rx_buffer_source : public Rx_buffer_source
+	{
+		private:
+
+			Nic::Session::Tx::Source &_source;
+
+		public:
+
+			Nic_rx_buffer_source(Nic::Session::Tx::Source &source)
+			:
+				_source { source }
+			{ }
+
+
+			/**********************
+			 ** Rx_buffer_source **
+			 **********************/
+
+			Dataspace_capability dataspace() override
+			{
+				return _source.dataspace();
+			};
+
+			Packet_descriptor alloc_packet(size_t size) override
+			{
+				return _source.alloc_packet(size);
+			}
+	};
+
+	class Nic_tx_buffer_sink : public Tx_buffer_sink
+	{
+		private:
+
+			Nic::Session::Rx::Sink &_sink;
+
+		public:
+
+			Nic_tx_buffer_sink(Nic::Session::Rx::Sink &sink)
+			:
+				_sink { sink }
+			{ }
+
+
+			/********************
+			 ** Tx_buffer_sink **
+			 ********************/
+
+			Dataspace_capability dataspace() override
+			{
+				return _sink.dataspace();
+			};
+
+			void acknowledge_packet(Packet_descriptor packet) override
+			{
+				_sink.acknowledge_packet(packet);
+			}
+
+			bool packet_valid(Packet_descriptor packet) override
+			{
+				return _sink.packet_valid(packet);
+			}
+	};
+
+	/**
+	 * Base driver Xilinx EMAC PS module
+	 */
+	class Cadence_gem : public Nic::Session_component
+	{
+		private:
+
+			Nic_rx_buffer_source        _rx_buffer_source;
+			Nic_tx_buffer_sink          _tx_buffer_sink;
+			Cadence_gem_base            _cadence_gem;
+			Signal_handler<Cadence_gem> _irq_handler;
+
+			void _handle_acks()
+			{
+				while (_rx.source()->ack_avail()) {
+					_cadence_gem.rx_buffer_reset_pkt(
+						_rx.source()->get_acked_packet());
+				}
+			}
+
+			void _handle_irq()
+			{
+				_cadence_gem.handle_irq(
+					[&] (Nic::Packet_descriptor pkt)
+				{
+					if (_rx.source()->packet_valid(pkt))
+						_rx.source()->submit_packet(pkt);
+					else
+						error(
+							"invalid packet descriptor ", Hex(pkt.offset()),
+							" size ", Hex(pkt.size()));
+				},
+					[&] ()
+				{
+					_handle_acks();
+				});
+			}
+
+		public:
+
+			/**
+			 * Constructor
+			 *
+			 * \param  base       MMIO base address
+			 */
+			Cadence_gem(size_t const  tx_buf_size,
+			            size_t const  rx_buf_size,
+			            Allocator    &rx_block_md_alloc,
+			            Env          &env,
+			            addr_t const  base,
+			            size_t const  size,
+			            int    const  irq)
+			:
+				Session_component(tx_buf_size, rx_buf_size, Genode::UNCACHED,
+				                  rx_block_md_alloc, env),
+				_rx_buffer_source(*_rx.source()),
+				_tx_buffer_sink(*_tx.sink()),
+				_cadence_gem(env, base, size, irq, _tx_buffer_sink, _rx_buffer_source),
+				_irq_handler(env.ep(), *this, &Cadence_gem::_handle_irq)
+			{
+				_cadence_gem.deinit();
+				_cadence_gem.init(_irq_handler);
+			}
+
+			~Cadence_gem()
+			{
+				// TODO disable tx and rx and clean up irq registration
+				_cadence_gem.deinit();
+			}
+
+			using Nic::Session_component::cap;
+
 
 			bool _send()
 			{
 				/* first, see whether we can acknowledge any
 				 * previously sent packet */
-				_tx_buffer.submit_acks(*_tx.sink());
+				_cadence_gem.tx_buffer_submit_acks();
 
 				if (!_tx.sink()->ready_to_ack())
 					return false;
@@ -710,15 +842,14 @@ namespace Genode
 				if (!_tx.sink()->packet_avail())
 					return false;
 
-				Genode::Packet_descriptor packet = _tx.sink()->get_packet();
+				Packet_descriptor packet = _tx.sink()->get_packet();
 				if (!packet.size()) {
 					Genode::warning("Invalid tx packet");
 					return true;
 				}
 
 				try {
-					_tx_buffer.add_to_queue(packet);
-					write<Control>(Control::start_tx());
+					_cadence_gem.transmit_packet(packet);
 				} catch (Tx_buffer_descriptor::Package_send_timeout) {
 					Genode::warning("Package Tx timeout");
 					return false;
@@ -734,14 +865,7 @@ namespace Genode
 
 			virtual Nic::Mac_address mac_address() override
 			{
-				Nic::Mac_address mac;
-				uint32_t* const low_addr_pointer = reinterpret_cast<uint32_t*>(&mac.addr[0]);
-				uint16_t* const high_addr_pointer = reinterpret_cast<uint16_t*>(&mac.addr[4]);
-
-				*low_addr_pointer = read<Mac_addr_1::Low_addr>();
-				*high_addr_pointer = read<Mac_addr_1::High_addr>();
-
-				return mac;
+				return _cadence_gem.read_mac_address();
 			}
 
 			virtual bool link_state() override
@@ -756,8 +880,203 @@ namespace Genode
 
 				while (_send());
 			}
+
+			void mac_address(const Nic::Mac_address &mac)
+			{
+				_cadence_gem.write_mac_address(mac);
+			}
 	};
 }
+
+
+namespace Genode {
+
+	class Uplink_client;
+
+	class Uplink_rx_buffer_source : public Rx_buffer_source
+	{
+		private:
+
+			Uplink::Session::Tx::Source &_source;
+
+		public:
+
+			Uplink_rx_buffer_source(Uplink::Session::Tx::Source &source)
+			:
+				_source { source }
+			{ }
+
+
+			/**********************
+			 ** Rx_buffer_source **
+			 **********************/
+
+			Dataspace_capability dataspace() override
+			{
+				return _source.dataspace();
+			};
+
+			Packet_descriptor alloc_packet(size_t size) override
+			{
+				return _source.alloc_packet(size);
+			}
+	};
+
+	class Uplink_tx_buffer_sink : public Tx_buffer_sink
+	{
+		private:
+
+			Uplink::Session::Rx::Sink &_sink;
+
+		public:
+
+			Uplink_tx_buffer_sink(Uplink::Session::Rx::Sink &sink)
+			:
+				_sink { sink }
+			{ }
+
+
+			/********************
+			 ** Tx_buffer_sink **
+			 ********************/
+
+			Dataspace_capability dataspace() override
+			{
+				return _sink.dataspace();
+			};
+
+			void acknowledge_packet(Packet_descriptor packet) override
+			{
+				_sink.acknowledge_packet(packet);
+			}
+
+			bool packet_valid(Packet_descriptor packet) override
+			{
+				return _sink.packet_valid(packet);
+			}
+	};
+}
+
+
+class Genode::Uplink_client : public Uplink_client_base
+{
+	private:
+
+		Signal_handler<Uplink_client>          _irq_handler;
+		Constructible<Uplink_rx_buffer_source> _rx_buffer_source { };
+		Constructible<Uplink_tx_buffer_sink>   _tx_buffer_sink   { };
+		Constructible<Cadence_gem_base>        _cadence_gem      { };
+
+		bool _send()
+		{
+			/* first, see whether we can acknowledge any
+			 * previously sent packet */
+			_cadence_gem->tx_buffer_submit_acks();
+
+			if (!_conn->rx()->ready_to_ack())
+				return false;
+
+			if (!_conn->rx()->packet_avail())
+				return false;
+
+			Packet_descriptor packet = _conn->rx()->get_packet();
+			if (!packet.size()) {
+				Genode::warning("Invalid tx packet");
+				return true;
+			}
+
+			try {
+				_cadence_gem->transmit_packet(packet);
+			} catch (Tx_buffer_descriptor::Package_send_timeout) {
+				Genode::warning("Package Tx timeout");
+				return false;
+			}
+
+			return true;
+		}
+
+		void _handle_acks()
+		{
+			while (_conn->tx()->ack_avail()) {
+
+				_cadence_gem->rx_buffer_reset_pkt(
+					_conn->tx()->get_acked_packet());
+			}
+		}
+
+		void _handle_irq()
+		{
+			if (!_conn.constructed()) {
+
+				class No_connection { };
+				throw No_connection { };
+			}
+			_cadence_gem->handle_irq(
+				[&] (Nic::Packet_descriptor pkt)
+			{
+				if (_conn->tx()->packet_valid(pkt))
+					_conn->tx()->submit_packet(pkt);
+				else
+					error(
+						"invalid packet descriptor ", Hex(pkt.offset()),
+						" size ", Hex(pkt.size()));
+			},
+				[&] ()
+			{
+				_handle_acks();
+			});
+		}
+
+
+		/************************
+		 ** Uplink_client_base **
+		 ************************/
+
+		void _custom_conn_rx_handle_packet_avail() override
+		{
+			_handle_acks();
+
+			while (_send());
+		}
+
+		bool _custom_conn_rx_packet_avail_handler() override
+		{
+			return true;
+		}
+
+		Transmit_result
+		_drv_transmit_pkt(const char *,
+		                  size_t      ) override
+		{
+			class Unexpected_call { };
+			throw Unexpected_call { };
+		}
+
+	public:
+
+		Uplink_client(Env                    &env,
+		              Allocator              &alloc,
+		              addr_t           const  base,
+		              size_t           const  size,
+		              int              const  irq,
+		              Net::Mac_address const  mac_addr)
+		:
+			Uplink_client_base { env, alloc, mac_addr },
+			_irq_handler       { env.ep(), *this, &Uplink_client::_handle_irq }
+		{
+			_drv_handle_link_state(true);
+			_rx_buffer_source.construct(*_conn->tx());
+			_tx_buffer_sink.construct(*_conn->rx()),
+			_cadence_gem.construct(
+				env, base, size, irq, *_tx_buffer_sink, *_rx_buffer_source);
+
+			_cadence_gem->deinit();
+			_cadence_gem->init(_irq_handler);
+
+			/* set mac address */
+			_cadence_gem->write_mac_address(mac_addr);
+		}
+};
 
 #endif /* _INCLUDE__DRIVERS__NIC__XILINX_EMACPS_BASE_H_ */
 

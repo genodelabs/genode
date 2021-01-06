@@ -18,52 +18,6 @@ extern "C" {
 #include <lxc.h>
 };
 
-void Session_component::_run_rx_task(void * args)
-{
-	Rx_data *data = static_cast<Rx_data*>(args);
-
-	while (1) {
-		Lx::scheduler().current()->block_and_schedule();
-
-		int ret = 0;
-		struct napi_struct * n = data->napi;
-
-		for (;;) {
-
-			/* This NAPI_STATE_SCHED test is for avoiding a race
-			 * with netpoll's poll_napi().  Only the entity which
-			 * obtains the lock and sees NAPI_STATE_SCHED set will
-			 * actually make the ->poll() call.  Therefore we avoid
-			 * accidentally calling ->poll() when NAPI is not scheduled.
-			 */
-			if (!test_bit(NAPI_STATE_SCHED, &n->state)) break;
-
-			int weight = n->weight;
-			int work   = n->poll(n, weight);
-			ret       += work;
-
-			if (work < weight) break;
-
-			Genode::warning("Too much incoming traffic, we should schedule RX more intelligent");
-		}
-	}
-}
-
-
-void Session_component::_run_tx_task(void * args)
-{
-	Tx_data *data = static_cast<Tx_data*>(args);
-
-	while (1) {
-		Lx::scheduler().current()->block_and_schedule();
-
-		net_device *     ndev = data->ndev;
-		struct sk_buff * skb  = data->skb;
-
-		ndev->netdev_ops->ndo_start_xmit(skb, ndev);
-	}
-}
-
 
 bool Session_component::_send()
 {
@@ -86,8 +40,6 @@ bool Session_component::_send()
 		warning("invalid tx packet");
 		return true;
 	}
-
-	enum { HEAD_ROOM = 8 };
 
 	struct sk_buff *skb = lxc_alloc_skb(packet.size() + HEAD_ROOM, HEAD_ROOM);
 
@@ -118,13 +70,6 @@ void Session_component::_handle_packet_stream()
 	_handle_rx();
 
 	while (_send()) continue;
-}
-
-
-void Session_component::unblock_rx_task(napi_struct * n)
-{
-	_rx_data.napi = n;
-	_rx_task.unblock();
 }
 
 
@@ -169,15 +114,14 @@ void Session_component::link_state(bool link)
 }
 
 
-Session_component::Session_component(Genode::size_t const  tx_buf_size,
-                                     Genode::size_t const  rx_buf_size,
-                                     Genode::Allocator &   rx_block_md_alloc,
-                                     Genode::Env &         env,
-                                     Genode::Session_label label)
-: Nic::Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
-                         rx_block_md_alloc, env),
-  _ndev(_register_session_component(*this, label)),
-  _has_link(_ndev ? !(_ndev->state & (1UL << __LINK_STATE_NOCARRIER)) : false)
-{
-	if (!_ndev) throw Genode::Service_denied();
-}
+Session_component::Session_component(Genode::size_t        const  tx_buf_size,
+                                     Genode::size_t        const  rx_buf_size,
+                                     Genode::Allocator           &rx_block_md_alloc,
+                                     Genode::Env                 &env,
+                                     Genode::Session_label const &label)
+:
+	Nic::Session_component     { tx_buf_size, rx_buf_size, Genode::CACHED,
+	                             rx_block_md_alloc, env },
+	Linux_network_session_base { label },
+	_has_link                  { _read_link_state_from_ndev() }
+{ }

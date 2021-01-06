@@ -1,8 +1,10 @@
 TARGET   = fec_nic_drv
-LIBS     = base lx_kit_setjmp fec_nic_include
-SRC_CC   = main.cc platform.cc lx_emul.cc component.cc
+LIBS     = base lx_kit_setjmp fec_nic_include nic_driver
+SRC_CC  += main.cc platform.cc lx_emul.cc component.cc uplink_client.cc
+SRC_CC  += linux_network_session_base.cc
 SRC_C   += dummy.c lxc.c
 INC_DIR += $(PRG_DIR)/../..
+INC_DIR += $(REP_DIR)/src/drivers/nic
 
 # lx_kit
 SRC_CC  += env.cc irq.cc malloc.cc scheduler.cc timer.cc work.cc printf.cc
@@ -36,6 +38,7 @@ CC_OPT_phy        = -Wno-unused-function -Wno-unused-but-set-variable
 CC_OPT_phy_device = -Wno-unused-function
 CC_OPT_at803x     = -Wno-unused-variable
 
+vpath linux_network_session_base.cc $(REP_DIR)/src/drivers/nic
 vpath %.c  $(LX_CONTRIB_DIR)/drivers/net/ethernet/freescale
 vpath %.c  $(LX_CONTRIB_DIR)/drivers/net/phy
 vpath %.c  $(LX_CONTRIB_DIR)/net/core

@@ -1,5 +1,5 @@
 SRC_CC  += main.cc
-LIBS     = base
+LIBS     = base nic_driver
 
 CC_CXX_WARN_STRICT =
 

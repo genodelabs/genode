@@ -14,27 +14,54 @@
 #ifndef _USB_NIC_COMPONENT_H_
 #define _USB_NIC_COMPONENT_H_
 
+/* Genode includes */
 #include <base/log.h>
 #include <nic/component.h>
 #include <root/component.h>
 
+/* Linux emulation environment includes */
 #include <lx_emul.h>
 #include <lx_emul/extern_c_begin.h>
 #include <linux/usb.h>
 #include <linux/usb/usbnet.h>
 #include <lx_emul/extern_c_end.h>
 
+/* NIC driver includes */
+#include <drivers/nic/uplink_client_base.h>
+
 namespace Usb_nic {
+
 	using namespace Genode;
 	using Genode::size_t;
+
 	class  Session_component;
 	struct Device;
 };
 
 
+class Usb_network_session
+{
+	protected:
+
+		Usb_nic::Device &_device;
+
+	public:
+
+		Usb_network_session(Usb_nic::Device &device)
+		:
+			_device { device }
+		{ }
+
+		virtual void link_state_changed() = 0;
+
+		virtual void rx(Genode::addr_t virt,
+		                Genode::size_t size) = 0;
+};
+
+
 struct Usb_nic::Device
 {
-	Session_component *_session;
+	Usb_network_session *_session;
 
 	/**
 	 * Transmit data to driver
@@ -54,7 +81,7 @@ struct Usb_nic::Device
 	/**
 	 * Set session belonging to this driver
 	 */
-	void session(Session_component *s) { _session = s; }
+	void session(Usb_network_session *s) { _session = s; }
 
 	/**
 	 * Check for session
@@ -91,12 +118,9 @@ struct Usb_nic::Device
 };
 
 
-class Usb_nic::Session_component : public Nic::Session_component
+class Usb_nic::Session_component : public Usb_network_session,
+                                   public Nic::Session_component
 {
-	private:
-
-		Device *_device;    /* device this session is using */
-
 	protected:
 
 		void _send_burst()
@@ -112,7 +136,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 			{
 				/* alloc skb */
 				if (!skb) {
-					if (!(skb = _device->alloc_skb()))
+					if (!(skb = _device.alloc_skb()))
 						return;
 
 					ptr           = skb->data;
@@ -122,9 +146,9 @@ class Usb_nic::Session_component : public Nic::Session_component
 				Packet_descriptor packet = save.size() ? save : _tx.sink()->get_packet();
 				save                     = Packet_descriptor();
 
-				if (!_device->skb_fill(&work_skb, ptr, packet.size(), skb->end)) {
+				if (!_device.skb_fill(&work_skb, ptr, packet.size(), skb->end)) {
 					/* submit batch */
-					_device->tx_skb(skb);
+					_device.tx_skb(skb);
 					skb  = nullptr;
 					save = packet;
 					continue;
@@ -134,7 +158,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 				try { Genode::memcpy(work_skb.data, _tx.sink()->packet_content(packet), packet.size()); }
 				catch (Genode::Packet_descriptor::Invalid_packet) { }
 				/* call fixup on dummy SKB */
-				_device->tx_fixup(&work_skb);
+				_device.tx_fixup(&work_skb);
 				/* advance to next slot */
 				ptr       = work_skb.end;
 				skb->len += work_skb.truesize;
@@ -144,7 +168,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 
 			/* submit last skb */
 			if (skb)
-				_device->tx_skb(skb);
+				_device.tx_skb(skb);
 		}
 
 		bool _send()
@@ -161,7 +185,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 				return true;
 			}
 
-			bool ret = _device->tx((addr_t)_tx.sink()->packet_content(packet), packet.size());
+			bool ret = _device.tx((addr_t)_tx.sink()->packet_content(packet), packet.size());
 			_tx.sink()->acknowledge_packet(packet);
 
 			return ret;
@@ -172,7 +196,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 			while (_rx.source()->ack_avail())
 				_rx.source()->release_packet(_rx.source()->get_acked_packet());
 
-			if (_device->burst())
+			if (_device.burst())
 				_send_burst();
 			else
 				while (_send());
@@ -187,21 +211,34 @@ class Usb_nic::Session_component : public Nic::Session_component
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Env         &env,
-		                  Device *device)
-		: Nic::Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
-		                         rx_block_md_alloc, env),
-			_device(device)
-			{ _device->session(this); }
+		                  Device              &device)
+		:
+			Usb_network_session    { device },
+			Nic::Session_component { tx_buf_size, rx_buf_size, Genode::CACHED,
+			                         rx_block_md_alloc, env }
+		{
+			_device.session(this);
+		}
 
 
-		Nic::Mac_address mac_address() override { return _device->mac_address(); }
-		bool link_state()              override { return _device->link_state(); }
-		void link_state_changed()               { _link_state_changed(); }
+		/****************************
+		 ** Nic::Session_component **
+		 ****************************/
+
+		Nic::Mac_address mac_address() override { return _device.mac_address(); }
+		bool link_state()              override { return _device.link_state(); }
+
+
+		/*************************
+		 ** Usb_network_session **
+		 *************************/
+
+		void link_state_changed() override { _link_state_changed(); }
 
 		/**
 		 * Send packet to client (called from driver)
 		 */
-		void rx(addr_t virt, size_t size)
+		void rx(addr_t virt, size_t size) override
 		{
 			_handle_packet_stream();
 
@@ -231,8 +268,8 @@ class Root : public Root_component
 {
 	private:
 
-		Genode::Env        &_env;
-		Usb_nic::Device    *_device;
+		Genode::Env     &_env;
+		Usb_nic::Device &_device;
 
 	protected:
 
@@ -262,17 +299,143 @@ class Root : public Root_component
 			}
 
 			return new (Root::md_alloc())
-			            Usb_nic::Session_component(tx_buf_size, rx_buf_size,
-			                                       Lx::Malloc::mem(), _env, _device);
+				Usb_nic::Session_component(tx_buf_size, rx_buf_size,
+				                           Lx::Malloc::mem(), _env,
+				                           _device);
 		}
 
 	public:
 
-		Root(Genode::Env &env, Genode::Allocator &md_alloc,
-		     Usb_nic::Device *device)
-		: Root_component(&env.ep().rpc_ep(), &md_alloc),
-			_env(env), _device(device)
+		Root(Genode::Env       &env,
+		     Genode::Allocator &md_alloc,
+		     Usb_nic::Device   &device)
+		:
+			Root_component { &env.ep().rpc_ep(), &md_alloc },
+			_env           { env },
+			_device        { device }
 		{ }
+};
+
+
+namespace Genode {
+
+	class Uplink_client;
+}
+
+
+class Genode::Uplink_client : public Usb_network_session,
+                              public Uplink_client_base
+{
+	private:
+
+		sk_buff        _burst_work_skb { };
+		sk_buff       *_burst_skb      { nullptr };
+		unsigned char *_burst_ptr      { nullptr };
+
+
+		/************************
+		 ** Uplink_client_base **
+		 ************************/
+
+		Transmit_result
+		_drv_transmit_pkt(const char *conn_rx_pkt_base,
+		                  size_t      conn_rx_pkt_size) override
+		{
+			if (_device.tx((addr_t)conn_rx_pkt_base, conn_rx_pkt_size) == 0) {
+				return Transmit_result::ACCEPTED;
+			}
+			return Transmit_result::REJECTED;
+		}
+
+		void _drv_transmit_pkt_burst_prepare() override
+		{
+			_burst_skb = nullptr;
+			_burst_ptr = nullptr;
+		}
+
+		Burst_result
+		_drv_transmit_pkt_burst_step(Packet_descriptor const &packet,
+		                             char              const *packet_base,
+		                             Packet_descriptor       &save) override
+		{
+			/* alloc _burst_skb */
+			if (!_burst_skb) {
+				if (!(_burst_skb = _device.alloc_skb()))
+					return Burst_result::BURST_FAILED;
+
+				_burst_ptr           = _burst_skb->data;
+				_burst_work_skb.data = nullptr;
+			}
+
+			if (!_device.skb_fill(&_burst_work_skb, _burst_ptr, packet.size(), _burst_skb->end)) {
+
+				/* submit batch */
+				_device.tx_skb(_burst_skb);
+				_burst_skb  = nullptr;
+				save = packet;
+				return Burst_result::BURST_CONTINUE;
+			}
+
+			/* copy packet to current data pos */
+			Genode::memcpy(_burst_work_skb.data, packet_base, packet.size());
+
+			/* call fixup on dummy SKB */
+			_device.tx_fixup(&_burst_work_skb);
+
+			/* advance to next slot */
+			_burst_ptr       = _burst_work_skb.end;
+			_burst_skb->len += _burst_work_skb.truesize;
+
+			return Burst_result::BURST_SUCCEEDED;
+		}
+
+		void _drv_transmit_pkt_burst_finish() override
+		{
+			/* submit last _burst_skb */
+			if (_burst_skb)
+				_device.tx_skb(_burst_skb);
+		}
+
+		bool _drv_supports_transmit_pkt_burst() override
+		{
+			return _device.burst();
+		}
+
+	public:
+
+		Uplink_client(Env             &env,
+		              Allocator       &alloc,
+		              Usb_nic::Device &device)
+		:
+			Usb_network_session { device },
+			Uplink_client_base  { env, alloc, _device.mac_address() }
+		{
+			_device.session(this);
+			_drv_handle_link_state(_device.link_state());
+		}
+
+
+		/*************************
+		 ** Usb_network_session **
+		 *************************/
+
+		void link_state_changed() override
+		{
+			_drv_handle_link_state(_device.link_state());
+		}
+
+		void rx(Genode::addr_t virt,
+		        Genode::size_t size) override
+		{
+			_drv_rx_handle_pkt(
+				size,
+				[&] (void   *conn_tx_pkt_base,
+					 size_t &)
+			{
+				memcpy(conn_tx_pkt_base, (void *)virt, size);
+				return Write_result::WRITE_SUCCEEDED;
+			});
+		}
 };
 
 #endif /* _USB_NIC_COMPONENT_H_ */

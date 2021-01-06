@@ -279,7 +279,7 @@ struct Fec : public Genode::List<Fec>::Element
 	int                               tx_queues { 1 };
 	int                               rx_queues { 1 };
 	struct net_device *               net_dev { nullptr };
-	Session_component *               session { nullptr };
+	Linux_network_session_base       *session { nullptr };
 	Genode::Attached_dataspace        io_ds   { Lx_kit::env().env().rm(),
 	                                            device.io_mem_dataspace() };
 	Genode::Constructible<Mdio>       mdio;
@@ -319,8 +319,10 @@ static Genode::List<Fec> & fec_devices()
 }
 
 
-net_device * Session_component::_register_session_component(Session_component & s,
-                                                            Genode::Session_label policy)
+net_device *
+Linux_network_session_base::
+_register_session(Linux_network_session_base &session,
+                  Genode::Session_label       policy)
 {
 	unsigned number = 0;
 	for (Fec * f = fec_devices().first(); f; f = f->next()) { number++; }
@@ -335,7 +337,7 @@ net_device * Session_component::_register_session_component(Session_component & 
 		/* Session already in use? */
 		if (f->session) continue;
 
-		f->session = &s;
+		f->session = &session;
 		return f->net_dev;
 	}
 	return nullptr;

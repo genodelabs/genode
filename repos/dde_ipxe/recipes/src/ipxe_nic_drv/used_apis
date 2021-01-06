@@ -1,5 +1,7 @@
 base
 os
 nic_session
+uplink_session
+nic_driver
 platform_session
 timer_session

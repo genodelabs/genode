@@ -15,6 +15,7 @@
 #ifndef _DRIVERS__NIC__SPEC__LAN9118__LAN9118_H_
 #define _DRIVERS__NIC__SPEC__LAN9118__LAN9118_H_
 
+/* Genode includes */
 #include <base/attached_dataspace.h>
 #include <base/log.h>
 #include <util/misc_math.h>
@@ -22,15 +23,20 @@
 #include <timer_session/connection.h>
 #include <nic/component.h>
 
-class Lan9118 : public Nic::Session_component
+/* NIC driver includes */
+#include <drivers/nic/uplink_client_base.h>
+
+class Lan9118_base
 {
 	private:
 
 		/*
 		 * Noncopyable
 		 */
-		Lan9118(Lan9118 const &);
-		Lan9118 &operator = (Lan9118 const &);
+		Lan9118_base(Lan9118_base const &);
+		Lan9118_base &operator = (Lan9118_base const &);
+
+	protected:
 
 		/**
 		 * MMIO register offsets
@@ -74,13 +80,6 @@ class Lan9118 : public Nic::Session_component
 			MAC_CSR_CMD_WRITE = (0 << 30),
 		};
 
-		Genode::Attached_dataspace        _mmio;
-		volatile Genode::uint32_t        *_reg_base;
-		Timer::Connection                 _timer;
-		Nic::Mac_address                  _mac_addr { };
-		Genode::Irq_session_client        _irq;
-		Genode::Signal_handler<Lan9118>   _irq_handler;
-
 		/**
 		 * Information about a received packet, used internally
 		 */
@@ -92,6 +91,12 @@ class Lan9118 : public Nic::Session_component
 			: size((status & 0x3fff0000) >> 16)
 			{ }
 		};
+
+		Genode::Attached_dataspace            _mmio;
+		volatile Genode::uint32_t            *_reg_base;
+		Timer::Connection                     _timer;
+		Nic::Mac_address                      _mac_addr { };
+		Genode::Irq_session_client            _irq;
 
 		/**
 		 * Read 32-bit wide MMIO register
@@ -193,46 +198,38 @@ class Lan9118 : public Nic::Session_component
 			return _reg_read(RX_FIFO_INF) & 0xffff;
 		}
 
-	protected:
-
-		bool _send()
+		void _drv_tx_transmit_pkt(Genode::size_t          packet_size,
+		                          Genode::uint32_t const *src,
+		                          bool                   &continue_sending,
+		                          bool                   &ack_packet)
 		{
-			if (!_tx.sink()->ready_to_ack())
-				return false;
-
-			if (!_tx.sink()->packet_avail())
-				return false;
-
-			Genode::Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.size() || !_tx.sink()->packet_valid(packet)) {
-				Genode::warning("Invalid tx packet");
-				return true;
-			}
-
 			/* limit size to 11 bits, the maximum supported by lan9118 */
 			enum { MAX_PACKET_SIZE_LOG2 = 11 };
 			Genode::size_t const max_size = (1 << MAX_PACKET_SIZE_LOG2) - 1;
-			if (packet.size() > max_size) {
-				Genode::error("packet size ", packet.size(), " too large, "
+			if (packet_size > max_size) {
+				Genode::error("packet size ", packet_size, " too large, "
 				              "limit is ", max_size);
-				return true;
+
+				continue_sending = true;
+				ack_packet = false;
+				return;
 			}
 
 			enum { FIRST_SEG = (1 << 13),
 			       LAST_SEG  = (1 << 12) };
 
-			Genode::uint32_t const cmd_a = packet.size() | FIRST_SEG | LAST_SEG,
-			                       cmd_b = packet.size();
+			Genode::uint32_t const cmd_a = packet_size | FIRST_SEG | LAST_SEG,
+			                       cmd_b = packet_size;
 
-			unsigned count = Genode::align_addr(packet.size(), 2) >> 2;
-			Genode::uint32_t *src = (Genode::uint32_t *)_tx.sink()->packet_content(packet);
+			unsigned count = Genode::align_addr(packet_size, 2) >> 2;
 
 			/* check space left in tx data fifo */
 			Genode::size_t const fifo_avail = _reg_read(TX_FIFO_INF) & 0xffff;
 			if (fifo_avail < count*4 + sizeof(cmd_a) + sizeof(cmd_b)) {
 				Genode::error("tx fifo overrun, ignore packet");
-				_tx.sink()->acknowledge_packet(packet);
-				return false;
+				continue_sending = false;
+				ack_packet = true;
+				return;
 			}
 
 			_reg_write(TX_DATA_FIFO, cmd_a);
@@ -242,54 +239,37 @@ class Lan9118 : public Nic::Session_component
 			for (; count--; src++)
 				_reg_write(TX_DATA_FIFO, *src);
 
-			_tx.sink()->acknowledge_packet(packet);
-			return true;
+			continue_sending = true;
+			ack_packet = true;
+			return;
 		}
 
-		void _handle_packet_stream() override
+		void _finish_handle_irq()
 		{
-			while (_rx.source()->ack_avail())
-				_rx.source()->release_packet(_rx.source()->get_acked_packet());
-
-			while (_send()) ;
-		}
-
-		void _handle_irq()
-		{
-			using namespace Genode;
-
-			_handle_packet_stream();
-
-			while (_rx_packet_avail() && _rx.source()->ready_to_submit()) {
-
-				/* read packet from NIC, copy to client buffer */
-				Rx_packet_info packet = _rx_packet_info();
-
-				/* align size to 32-bit boundary */
-				size_t const size = align_addr(packet.size, 2);
-
-				/* allocate rx packet buffer */
-				Nic::Packet_descriptor p;
-				try {
-					p = _rx.source()->alloc_packet(size);
-				} catch (Session::Rx::Source::Packet_alloc_failed) { return; }
-
-				uint32_t *dst = (uint32_t *)_rx.source()->packet_content(p);
-
-				/* calculate number of words to be read from rx fifo */
-				size_t count = min(size, _rx_data_pending()) >> 2;
-
-				/* copy payload from rx fifo to client buffer */
-				for (; count--; )
-					*dst++ = _reg_read(RX_DATA_FIFO);
-
-				_rx.source()->submit_packet(p);
-			}
-
 			/* acknowledge all pending irqs */
 			_reg_write(INT_STS, ~0);
 
 			_irq.ack_irq();
+		}
+
+		void _drv_rx_copy_pkt(Genode::size_t    size,
+		                      Genode::uint32_t *dst)
+		{
+			/* calculate number of words to be read from rx fifo */
+			Genode::size_t count = Genode::min(size, _rx_data_pending()) >> 2;
+
+			/* copy payload from rx fifo to client buffer */
+			for (; count--; )
+				*dst++ = _reg_read(RX_DATA_FIFO);
+		}
+
+		Genode::size_t _drv_rx_pkt_size()
+		{
+			/* read packet from NIC, copy to client buffer */
+			Rx_packet_info packet = _rx_packet_info();
+
+			/* align size to 32-bit boundary */
+			return Genode::align_addr(packet.size, 2);
 		}
 
 	public:
@@ -299,26 +279,17 @@ class Lan9118 : public Nic::Session_component
 		 */
 		class Device_not_supported { };
 
-		/**
-		 * Constructor
-		 *
-		 * \throw  Device_not_supported
-		 */
-		Lan9118(Genode::Io_mem_dataspace_capability ds_cap,
-		        Genode::Irq_session_capability      irq_cap,
-		        Genode::size_t const                tx_buf_size,
-		        Genode::size_t const                rx_buf_size,
-		        Genode::Allocator                 & rx_block_md_alloc,
-		        Genode::Env                       & env)
-		: Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
-		                    rx_block_md_alloc, env),
-		  _mmio(env.rm(), ds_cap),
-		  _reg_base(_mmio.local_addr<Genode::uint32_t>()),
-		  _timer(env),
-		  _irq(irq_cap),
-		  _irq_handler(env.ep(), *this, &Lan9118::_handle_irq)
+		Lan9118_base(Genode::Io_mem_dataspace_capability ds_cap,
+		             Genode::Irq_session_capability      irq_cap,
+		             Genode::Signal_context_capability   irq_handler,
+		             Genode::Env                       & env)
+		:
+			_mmio        { env.rm(), ds_cap },
+			_reg_base    { _mmio.local_addr<Genode::uint32_t>() },
+			_timer       { env },
+			_irq         { irq_cap }
 		{
-			_irq.sigh(_irq_handler);
+			_irq.sigh(irq_handler);
 			_irq.ack_irq();
 
 			unsigned long const id_rev     = _reg_read(ID_REV),
@@ -387,10 +358,7 @@ class Lan9118 : public Nic::Session_component
 			_reg_write(IRQ_CFG, IRQ_CFG_EN | IRQ_CFG_POL | IRQ_CFG_TYPE);
 		}
 
-		/**
-		 * Destructor
-		 */
-		~Lan9118()
+		virtual ~Lan9118_base()
 		{
 			Genode::log("disable NIC");
 
@@ -400,6 +368,93 @@ class Lan9118 : public Nic::Session_component
 			/* disable rx and tx at MAX */
 			_mac_csr_write(MAC_CR, 0);
 		}
+};
+
+
+class Lan9118 : public Nic::Session_component,
+                public Genode::Signal_handler<Lan9118>,
+                public Lan9118_base
+{
+	protected:
+
+		bool _send()
+		{
+			if (!_tx.sink()->ready_to_ack())
+				return false;
+
+			if (!_tx.sink()->packet_avail())
+				return false;
+
+			Genode::Packet_descriptor packet = _tx.sink()->get_packet();
+			if (!packet.size() || !_tx.sink()->packet_valid(packet)) {
+				Genode::warning("Invalid tx packet");
+				return true;
+			}
+
+			bool continue_sending { false };
+			bool ack_packet       { false };
+			_drv_tx_transmit_pkt(
+				packet.size(),
+				(Genode::uint32_t *)_tx.sink()->packet_content(packet),
+				continue_sending,
+				ack_packet);
+
+			if (ack_packet) {
+				_tx.sink()->acknowledge_packet(packet);
+			}
+			return continue_sending;
+		}
+
+		void _handle_packet_stream() override
+		{
+			while (_rx.source()->ack_avail())
+				_rx.source()->release_packet(_rx.source()->get_acked_packet());
+
+			while (_send()) ;
+		}
+
+		void _handle_irq()
+		{
+			using namespace Genode;
+
+			_handle_packet_stream();
+
+			while (_rx_packet_avail() && _rx.source()->ready_to_submit()) {
+
+				/* allocate rx packet buffer */
+				size_t const size { _drv_rx_pkt_size() };
+				Nic::Packet_descriptor p;
+				try {
+					p = _rx.source()->alloc_packet(size);
+				} catch (Session::Rx::Source::Packet_alloc_failed) { return; }
+
+				uint32_t *dst = (uint32_t *)_rx.source()->packet_content(p);
+				_drv_rx_copy_pkt(size, dst);
+
+				_rx.source()->submit_packet(p);
+			}
+			_finish_handle_irq();
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \throw  Device_not_supported
+		 */
+		Lan9118(Genode::Io_mem_dataspace_capability ds_cap,
+		        Genode::Irq_session_capability      irq_cap,
+		        Genode::size_t const                tx_buf_size,
+		        Genode::size_t const                rx_buf_size,
+		        Genode::Allocator                 & rx_block_md_alloc,
+		        Genode::Env                       & env)
+		:
+			Session_component               { tx_buf_size, rx_buf_size, Genode::CACHED,
+			                                  rx_block_md_alloc, env },
+			Genode::Signal_handler<Lan9118> { env.ep(), *this, &Lan9118::_handle_irq },
+			Lan9118_base                    { ds_cap, irq_cap, *this, env }
+		{ }
 
 		/**************************************
 		 ** Nic::Session_component interface **
@@ -414,6 +469,100 @@ class Lan9118 : public Nic::Session_component
 		{
 			/* XXX always return true for now */
 			return true;
+		}
+};
+
+
+namespace Genode {
+
+	class Uplink_client;
+}
+
+
+class Genode::Uplink_client : public Signal_handler<Uplink_client>,
+                              public Lan9118_base,
+                              public Uplink_client_base
+{
+	private:
+
+		/************************
+		 ** Uplink_client_base **
+		 ************************/
+
+		Transmit_result
+		_drv_transmit_pkt(const char *conn_rx_pkt_base,
+		                  size_t      conn_rx_pkt_size) override
+		{
+			bool continue_sending { false };
+			bool ack_packet       { false };
+			_drv_tx_transmit_pkt(
+				conn_rx_pkt_size,
+				(Genode::uint32_t const*)conn_rx_pkt_base,
+				continue_sending,
+				ack_packet);
+
+			/*
+			 * FIXME This seems to be a bug in the original (NIC client)
+			 *       driver. When having packets that don't fit the maximum
+			 *       transmittable size (limited by hardware) the driver
+			 *       didn't acknowledge the packet but continued forwarding
+			 *       packets from the session to the driver. Normally, we
+			 *       would expect the driver to acknowledge the packet without
+			 *       transmitting it (i.e., reject it).
+			 */
+			if (!ack_packet && continue_sending) {
+				return Transmit_result::REJECTED;
+			}
+			/*
+			 * FIXME This seems to be a bug in the original (NIC client)
+			 *       driver. When the hardware TX FIFO doesn't have enough
+			 *       space left to transmit the packet, the driver acknowledge
+			 *       the packet but didn't continue forwarding packets from
+			 *       the session to the hardware. Normally, we would expect
+			 *       the driver to not acknowledge the packet nor continue
+			 *       forwarding other packets (i.e., retry later).
+			 */
+			if (ack_packet && !continue_sending) {
+				return Transmit_result::RETRY;
+			}
+			if (ack_packet && continue_sending) {
+				return Transmit_result::ACCEPTED;
+			}
+			class Unexpected_transmit_result { };
+			throw Unexpected_transmit_result { };
+		}
+
+		void _handle_irq()
+		{
+			while (_rx_packet_avail()) {
+
+				_drv_rx_handle_pkt(
+					_drv_rx_pkt_size(),
+					[&] (void   *conn_tx_pkt_base,
+					     size_t &conn_tx_pkt_size)
+				{
+					_drv_rx_copy_pkt(
+						conn_tx_pkt_size,
+						(uint32_t *)conn_tx_pkt_base);
+
+					return Write_result::WRITE_SUCCEEDED;
+				});
+			}
+			_finish_handle_irq();
+		}
+
+	public:
+
+		Uplink_client(Env                         &env,
+		              Allocator                   &alloc,
+		              Io_mem_dataspace_capability  ds_cap,
+		              Irq_session_capability       irq_cap)
+		:
+			Signal_handler<Uplink_client> { env.ep(), *this, &Uplink_client::_handle_irq },
+			Lan9118_base                  { ds_cap, irq_cap, *this, env },
+			Uplink_client_base            { env, alloc, _mac_addr }
+		{
+			_drv_handle_link_state(true);
 		}
 };
 

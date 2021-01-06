@@ -11,11 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <base/component.h>
 #include <base/heap.h>
 #include <platform_session/connection.h>
 #include <virtio/mmio_device.h>
 
+/* NIC driver includes */
+#include <drivers/nic/mode.h>
+
+/* local includes */
 #include "component.h"
 
 namespace Virtio_mmio_nic {
@@ -61,20 +66,43 @@ struct Virtio_mmio_nic::Main
 		}
 	};
 
-	Genode::Env            &env;
-	Genode::Heap            heap            { env.ram(), env.rm() };
-	Platform::Connection    platform        { env };
-	Device_info             info            { platform };
-	Platform::Device_client platform_device { platform.acquire_device(info.name.string()) };
-	Virtio::Device          virtio_device   { env, platform_device.io_mem_dataspace(),
-	                                          info.io_mem_offset };
-	Virtio_nic::Root        root { env, heap, virtio_device, platform_device.irq() };
+	Genode::Env                                  &env;
+	Genode::Heap                                  heap            { env.ram(), env.rm() };
+	Platform::Connection                          platform        { env };
+	Device_info                                   info            { platform };
+	Platform::Device_client                       platform_device { platform.acquire_device(info.name.string()) };
+	Virtio::Device                                virtio_device   { env, platform_device.io_mem_dataspace(),
+	                                                                info.io_mem_offset };
+	Attached_rom_dataspace                        config_rom      { env, "config" };
+	Genode::Constructible<Virtio_nic::Root>       root            { };
+	Genode::Constructible<Genode::Uplink_client>  uplink_client   { };
 
 	Main(Env &env)
 	try : env(env)
 	{
 		log("--- VirtIO MMIO NIC driver started ---");
-		env.parent().announce(env.ep().manage(root));
+
+		Nic_driver_mode const mode {
+			read_nic_driver_mode(config_rom.xml()) };
+
+		switch (mode) {
+		case Nic_driver_mode::NIC_SERVER:
+
+			root.construct(
+				env, heap, virtio_device, platform_device.irq(0),
+				config_rom);
+
+			env.parent().announce(env.ep().manage(*root));
+			break;
+
+		case Nic_driver_mode::UPLINK_CLIENT:
+
+			uplink_client.construct(
+				env, heap, virtio_device, platform_device.irq(0),
+				config_rom.xml());
+
+			break;
+		}
 	}
 	catch (...) { env.parent().exit(-1); }
 };

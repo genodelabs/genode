@@ -14,13 +14,22 @@
 #ifndef _SRC__DRIVERS__USB_NET__DRIVER_H_
 #define _SRC__DRIVERS__USB_NET__DRIVER_H_
 
+/* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <usb_session/connection.h>
+#include <util/reconstructible.h>
+
+/* local includes */
+#include <uplink_client.h>
+#include <component.h>
+
+/* Linux emulation environment includes */
 #include <lx_kit/scheduler.h>
 
-#include <component.h>
+/* NIC driver includes */
+#include <drivers/nic/mode.h>
 
 struct usb_device_id;
 struct usb_interface;
@@ -88,16 +97,37 @@ struct Driver
 		}
 	};
 
-	Devices                         devices;
-	Genode::Env                    &env;
-	Genode::Entrypoint             &ep             { env.ep() };
-	Genode::Heap                    heap           { env.ram(), env.rm() };
-	Genode::Allocator_avl           alloc          { &heap };
-	Root                            root           { env, heap };
-	Genode::Constructible<Task>     main_task;
-	Genode::Constructible<Genode::Attached_rom_dataspace> report_rom;
+	Devices                                                devices;
+	Genode::Env                                           &env;
+	Genode::Entrypoint                                    &ep             { env.ep() };
+	Genode::Attached_rom_dataspace                         config_rom     { env, "config" };
+	Genode::Nic_driver_mode const                          mode           { read_nic_driver_mode(config_rom.xml()) };
+	Genode::Heap                                           heap           { env.ram(), env.rm() };
+	Genode::Allocator_avl                                  alloc          { &heap };
+	Genode::Constructible<Root>                            root           { };
+	Genode::Constructible<Genode::Uplink_client>           uplink_client  { };
+	Genode::Constructible<Task>                            main_task;
+	Genode::Constructible<Genode::Attached_rom_dataspace>  report_rom;
 
 	Driver(Genode::Env &env);
+
+	void activate_network_session()
+	{
+		switch (mode) {
+		case Genode::Nic_driver_mode::NIC_SERVER:
+
+			env.parent().announce(ep.manage(*root));
+			break;
+
+		case Genode::Nic_driver_mode::UPLINK_CLIENT:
+
+			uplink_client.construct(
+				env, heap,
+				config_rom.xml().attribute_value(
+					"uplink_label", Genode::Session_label::String { "" }));
+			break;
+		}
+	}
 
 	static void main_task_entry(void *);
 };

@@ -4,6 +4,7 @@
 	<xs:include schemaLocation="base_types.xsd"/>
 	<xs:include schemaLocation="net_types.xsd"/>
 	<xs:include schemaLocation="virtio_types.xsd"/>
+	<xs:include schemaLocation="nic_driver_types.xsd"/>
 
 	<xs:simpleType name="RxBufferSize">
 		<xs:restriction base="xs:unsignedShort">
@@ -19,6 +20,7 @@
 
 	<xs:element name="config">
 		<xs:complexType>
+			<xs:attribute name="mode"           type="Nic_driver_mode" />
 			<xs:attribute name="verbose"        type="Boolean" />
 			<xs:attribute name="mac"            type="Mac_address" />
 			<xs:attribute name="rx_queue_size"  type="Virtio_queue_size" />

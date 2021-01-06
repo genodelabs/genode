@@ -11,16 +11,23 @@
  * version 2.
  */
 
+/* Genode includes */
 #include <base/rpc_server.h>
 #include <base/snprintf.h>
 #include <nic_session/nic_session.h>
 #include <util/xml_node.h>
 
+/* Linux emulation environment includes */
 #include <lx_kit/env.h>
 #include <lx_kit/malloc.h>
 
+/* NIC driver includes */
+#include <drivers/nic/mode.h>
+
+/* local includes */
 #include <usb_nic_component.h>
 #include "signal.h"
+
 
 static Signal_helper *_signal = 0;
 
@@ -307,27 +314,54 @@ void Nic::init(Genode::Env &env) {
 int register_netdev(struct net_device *ndev)
 {
 	using namespace Genode;
-	static bool announce = false;
+	static bool registered = false;
 	int err = -ENODEV;
 
 	Nic_device *nic = Nic_device::add(ndev);
+	if (nic == nullptr) {
+
+		class Invalid_nic_device { };
+		throw Invalid_nic_device { };
+	}
 
 	/* XXX: move to 'main' */
-	if (!announce) {
-		static ::Root root(_signal->env(), Lx::Malloc::mem(), nic);
+	if (!registered) {
 
-		announce = true;
+		registered = true;
 
-		ndev->state |= 1 << __LINK_STATE_START;
+		Nic_driver_mode const mode {
+			read_nic_driver_mode(Lx_kit::env().config_rom().xml()) };
 
-		if ((err = ndev->netdev_ops->ndo_open(ndev)))
-			return err;
+		switch (mode) {
+		case Genode::Nic_driver_mode::NIC_SERVER:
 
-		if (ndev->netdev_ops->ndo_set_rx_mode)
-			ndev->netdev_ops->ndo_set_rx_mode(ndev);
+			static ::Root root(_signal->env(), Lx::Malloc::mem(), *nic);
+			ndev->state |= 1 << __LINK_STATE_START;
 
-		_nic = nic;
-		_signal->parent().announce(_signal->ep().rpc_ep().manage(&root));
+			if ((err = ndev->netdev_ops->ndo_open(ndev)))
+				return err;
+
+			if (ndev->netdev_ops->ndo_set_rx_mode)
+				ndev->netdev_ops->ndo_set_rx_mode(ndev);
+
+			_nic = nic;
+			_signal->parent().announce(_signal->ep().rpc_ep().manage(&root));
+			log("Acting as Nic server");
+			break;
+
+		case Genode::Nic_driver_mode::UPLINK_CLIENT:
+
+			ndev->state |= 1 << __LINK_STATE_START;
+			if ((err = ndev->netdev_ops->ndo_open(ndev)))
+				return err;
+
+			_nic = nic;
+			static Uplink_client uplink_client {
+				_signal->env(), Lx::Malloc::mem(), *nic };
+
+			log("Acting as Uplink client");
+			break;
+		}
 	}
 
 	return err;

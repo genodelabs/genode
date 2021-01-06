@@ -131,7 +131,7 @@ void Driver::Device::register_device()
 		probe_interface(udev->config->interface[i], &id);
 	}
 
-	driver.env.parent().announce(driver.ep.manage(driver.root));
+	driver.activate_network_session();
 	driver.env.parent().announce(driver.ep.manage(driver.terminal_root));
 }
 
@@ -226,6 +226,9 @@ Driver::Driver(Genode::Env &env) : env(env)
 {
 	Genode::log("--- USB net driver ---");
 
+	if (mode == Genode::Nic_driver_mode::NIC_SERVER) {
+		root.construct(env, heap);
+	}
 	Lx_kit::construct_env(env);
 	Lx::scheduler(&env);
 	Lx::malloc_init(env, heap);

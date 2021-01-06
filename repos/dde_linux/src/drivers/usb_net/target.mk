@@ -1,14 +1,16 @@
 TARGET  := usb_net_drv
 SRC_C   := dummies.c lxc.c
-SRC_CC  := main.cc lx_emul.cc component.cc
+SRC_CC  := main.cc lx_emul.cc component.cc linux_network_session_base.cc
 SRC_CC  += printf.cc timer.cc scheduler.cc malloc.cc env.cc work.cc
+SRC_CC  += uplink_client.cc
 
-LIBS    := base usb_net_include lx_kit_setjmp
+LIBS    := base usb_net_include lx_kit_setjmp nic_driver
 
 USB_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/drivers/usb_net
 
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(REP_DIR)/src/include
+INC_DIR += $(REP_DIR)/src/drivers/nic
 
 SRC_C += drivers/net/usb/asix_common.c
 SRC_C += drivers/net/usb/asix_devices.c
@@ -28,5 +30,6 @@ CC_C_OPT += -Wno-comment -Wno-int-conversion -Wno-incompatible-pointer-types \
 
 CC_CXX_WARN_STRICT =
 
+vpath linux_network_session_base.cc $(REP_DIR)/src/drivers/nic
 vpath %.c  $(USB_CONTRIB_DIR)
 vpath %.cc $(REP_DIR)/src/lx_kit

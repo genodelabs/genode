@@ -20,6 +20,10 @@
 #include <nic/component.h>
 #include <root/component.h>
 #include <util/xml_node.h>
+#include <uplink_session/connection.h>
+
+/* NIC driver includes */
+#include <drivers/nic/uplink_client_base.h>
 
 /* local includes */
 #include <lx.h>
@@ -97,6 +101,62 @@ bool tx_task_send(struct sk_buff *skb)
 
 	return true;
 }
+
+
+class Wifi_nic
+{
+	private:
+
+		net_device *_device  { nullptr };
+
+		static Wifi_nic *_instance;
+
+	public:
+
+		void device(net_device &device)
+		{
+			_device = &device;
+		}
+
+		bool device_set() const
+		{
+			return _device != nullptr;
+		}
+
+		net_device &device()
+		{
+			if (_device == nullptr) {
+
+				class Invalid { };
+				throw Invalid { };
+			}
+			return *_device;
+		}
+
+		static void instance(Wifi_nic &instance)
+		{
+			_instance = &instance;
+		}
+
+		static Wifi_nic &instance()
+		{
+			if (!_instance) {
+
+				class Invalid { };
+				throw Invalid { };
+			}
+			return *_instance;
+		}
+
+		virtual void activate() = 0;
+
+		virtual void handle_driver_rx_packet(struct sk_buff *skb) = 0;
+
+		virtual void handle_driver_link_state(bool state) = 0;
+};
+
+
+Wifi_nic *Wifi_nic::_instance { nullptr };
 
 
 /**
@@ -249,7 +309,8 @@ class Wifi_session_component : public Nic::Session_component
  * NIC root implementation
  */
 class Root : public Genode::Root_component<Wifi_session_component,
-                                           Genode::Single_client>
+                                           Genode::Single_client>,
+             public Wifi_nic
 {
 	private:
 
@@ -284,20 +345,19 @@ class Root : public Genode::Root_component<Wifi_session_component,
 
 			session = new (md_alloc())
 			          Wifi_session_component(tx_buf_size, rx_buf_size,
-			                                *md_alloc(), _env, device);
+			                                *md_alloc(), _env, &Wifi_nic::device());
 			return session;
 		}
 
 		void _destroy_session(Wifi_session_component *session)
 		{
 			/* stop rx */
-			Root::instance->session = nullptr;
+			session = nullptr;
 			Genode::Root_component<Wifi_session_component, Genode::Single_client>::_destroy_session(session);
 		}
 
 	public:
 
-		net_device             *device  = nullptr;
 		Wifi_session_component *session = nullptr;
 		static Root            *instance;
 
@@ -306,23 +366,194 @@ class Root : public Genode::Root_component<Wifi_session_component,
 			_env(env)
 		{ }
 
-		void announce() { _env.parent().announce(_env.ep().manage(*this)); }
+
+		/**************
+		 ** Wifi_nic **
+		 **************/
+
+		void activate() override
+		{
+			_env.parent().announce(_env.ep().manage(*this));
+		}
+
+		void handle_driver_rx_packet(struct sk_buff *skb) override
+		{
+			if (session) {
+				session->receive(skb);
+			}
+		}
+
+		void handle_driver_link_state(bool state) override
+		{
+			if (session) {
+				session->link_state(state);
+			}
+		}
 };
 
 
-Root *Root::instance;
+namespace Genode { class Wifi_uplink; }
 
 
-void Lx::nic_init(Genode::Env &env, Genode::Allocator &alloc)
+class Genode::Wifi_uplink : public Wifi_nic
 {
-	static Root root(env, alloc);
-	Root::instance = &root;
+	private:
+
+		class Uplink_client : public Uplink_client_base
+		{
+			private:
+
+				net_device &_ndev;
+
+				Nic::Mac_address _init_drv_mac_addr(net_device &ndev)
+				{
+					Nic::Mac_address mac_addr { };
+					memcpy(&mac_addr, ndev.perm_addr, ETH_ALEN);
+					return mac_addr;
+				}
+
+
+				/************************
+				 ** Uplink_client_base **
+				 ************************/
+
+				Transmit_result
+				_drv_transmit_pkt(const char *conn_rx_pkt_base,
+				                  size_t      conn_rx_pkt_size) override
+				{
+					/*
+					 * We must not be called from another task, just from the
+					 * packet stream dispatcher.
+					 */
+					if (Lx::scheduler().active()) {
+						warning("scheduler active");
+						return Transmit_result::RETRY;
+					}
+
+					struct sk_buff *skb {
+						lxc_alloc_skb(conn_rx_pkt_size +
+						              HEAD_ROOM, HEAD_ROOM) };
+
+					skb->dev = &_ndev;
+
+					unsigned char *data = lxc_skb_put(skb, conn_rx_pkt_size);
+					memcpy(data, conn_rx_pkt_base, conn_rx_pkt_size);
+
+					_tx_data.ndev = &_ndev;
+					_tx_data.skb  = skb;
+
+					_tx_task->unblock();
+					Lx::scheduler().schedule();
+					return Transmit_result::ACCEPTED;
+				}
+
+			public:
+
+				Uplink_client(Env        &env,
+				              Allocator  &alloc,
+				              net_device &ndev)
+				:
+					Uplink_client_base { env, alloc,
+					                     _init_drv_mac_addr(ndev) },
+					_ndev              { ndev }
+				{
+					_drv_handle_link_state(
+						!(_ndev.state & 1UL << __LINK_STATE_NOCARRIER));
+				}
+
+				void handle_driver_link_state(bool state)
+				{
+					_drv_handle_link_state(state);
+				}
+
+				void handle_driver_rx_packet(struct sk_buff *skb)
+				{
+					Skb skbh { skb_helper(skb) };
+					_drv_rx_handle_pkt(
+						skbh.packet_size + skbh.frag_size,
+						[&] (void   *conn_tx_pkt_base,
+						     size_t &)
+					{
+						memcpy(
+							conn_tx_pkt_base,
+							skbh.packet,
+							skbh.packet_size);
+
+						if (skbh.frag_size) {
+
+							memcpy(
+								(char *)conn_tx_pkt_base + skbh.packet_size,
+								skbh.frag,
+								skbh.frag_size);
+						}
+						return Write_result::WRITE_SUCCEEDED;
+					});
+				}
+		};
+
+		Env                          &_env;
+		Allocator                    &_alloc;
+		Constructible<Uplink_client>  _client { };
+
+	public:
+
+		Wifi_uplink(Env       &env,
+		            Allocator &alloc)
+		:
+			_env   { env },
+			_alloc { alloc }
+		{ }
+
+
+		/**************
+		 ** Wifi_nic **
+		 **************/
+
+		void activate() override
+		{
+			_client.construct(_env, _alloc, device());
+		}
+
+		void handle_driver_rx_packet(struct sk_buff *skb) override
+		{
+			if (_client.constructed()) {
+				_client->handle_driver_rx_packet(skb);
+			}
+		}
+
+		void handle_driver_link_state(bool state) override
+		{
+			if (_client.constructed()) {
+				_client->handle_driver_link_state(state);
+			}
+		}
+};
+
+
+void Lx::nic_init(Genode::Env             &env,
+                  Genode::Allocator       &alloc,
+                  Genode::Nic_driver_mode  mode)
+{
+	switch (mode) {
+	case Genode::Nic_driver_mode::NIC_SERVER:
+
+		Genode::log("Acting as NIC server");
+		static Root root(env, alloc);
+		Wifi_nic::instance(root);
+		break;
+
+	case Genode::Nic_driver_mode::UPLINK_CLIENT:
+
+		Genode::log("Acting as Uplink client");
+		Wifi_nic::instance(*new (alloc) Genode::Wifi_uplink(env, alloc));
+		break;
+	}
 }
 
 
 void Lx::get_mac_address(unsigned char *addr)
 {
-	memcpy(addr, Root::instance->device->perm_addr, ETH_ALEN);
+	memcpy(addr, Wifi_nic::instance().device().perm_addr, ETH_ALEN);
 }
 
 
@@ -535,12 +766,12 @@ extern "C" void __dev_remove_pack(struct packet_type *pt)
 
 extern "C" struct net_device *__dev_get_by_index(struct net *net, int ifindex)
 {
-	if (!Root::instance->device) {
+	if (!Wifi_nic::instance().device_set()) {
 		Genode::error("no net device registered!");
 		return 0;
 	}
 
-	return Root::instance->device;
+	return &Wifi_nic::instance().device();
 }
 
 
@@ -580,8 +811,7 @@ extern "C" int dev_parse_header(const struct sk_buff *skb, unsigned char *haddr)
 
 extern "C" int dev_queue_xmit(struct sk_buff *skb)
 {
-	struct net_device *dev           = skb->dev;
-	struct net_device_ops const *ops = dev->netdev_ops;
+	struct net_device *dev = skb->dev;
 
 	if (skb->next) {
 		Genode::warning("more skb's queued");
@@ -619,12 +849,12 @@ extern "C" void dev_close(struct net_device *ndev)
 
 bool Lx::open_device()
 {
-	if (!Root::instance->device) {
+	if (!Wifi_nic::instance().device_set()) {
 		Genode::error("no net_device available");
 		return false;
 	}
 
-	struct net_device * const ndev = Root::instance->device;
+	struct net_device * const ndev = &Wifi_nic::instance().device();
 
 	int err = ndev->netdev_ops->ndo_open(ndev);
 	if (err) {
@@ -660,7 +890,11 @@ extern "C" int register_netdevice(struct net_device *ndev)
 
 	already_registered = true;
 
-	Root::instance->device = ndev;
+	if (ndev == nullptr) {
+		class Invalid_net_device { };
+		throw Invalid_net_device { };
+	}
+	Wifi_nic::instance().device(*ndev);
 
 	ndev->state |= 1UL << __LINK_STATE_START;
 	netif_carrier_off(ndev);
@@ -698,7 +932,7 @@ extern "C" int register_netdevice(struct net_device *ndev)
 	if (ndev->netdev_ops->ndo_set_rx_mode)
 		ndev->netdev_ops->ndo_set_rx_mode(ndev);
 
-	Root::instance->announce();
+	Wifi_nic::instance().activate();
 
 	list_add_tail_rcu(&ndev->dev_list, &init_net.dev_base_head);
 
@@ -724,22 +958,14 @@ extern "C" int netif_carrier_ok(const struct net_device *dev)
 extern "C" void netif_carrier_on(struct net_device *dev)
 {
 	dev->state &= ~(1UL << __LINK_STATE_NOCARRIER);
-
-	Wifi_session_component *session = (Wifi_session_component *)dev->lx_nic_device;
-
-	if (session)
-		session->link_state(true);
+	Wifi_nic::instance().handle_driver_link_state(true);
 }
 
 
 extern "C" void netif_carrier_off(struct net_device *dev)
 {
 	dev->state |= 1UL << __LINK_STATE_NOCARRIER;
-
-	Wifi_session_component *session = (Wifi_session_component *)dev->lx_nic_device;
-
-	if (session)
-		session->link_state(false);
+	Wifi_nic::instance().handle_driver_link_state(false);
 }
 
 
@@ -754,14 +980,12 @@ extern "C" int netif_receive_skb(struct sk_buff *skb)
 	if (is_eapol(skb)) {
 		/* XXX call only AF_PACKET hook */
 		for (Proto_hook* ph = proto_hook_list().first(); ph; ph = ph->next()) {
-			ph->pt.func(skb, Root::instance->device, &ph->pt, Root::instance->device);
+			ph->pt.func(skb, &Wifi_nic::instance().device(), &ph->pt, &Wifi_nic::instance().device());
 		}
 		return NET_RX_SUCCESS;
 	}
 
-	if (Root::instance->session)
-		Root::instance->session->receive(skb);
-
+	Wifi_nic::instance().handle_driver_rx_packet(skb);
 	dev_kfree_skb(skb);
 	return NET_RX_SUCCESS;
 }

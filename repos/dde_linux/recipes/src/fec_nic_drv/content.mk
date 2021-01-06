@@ -4,6 +4,8 @@ LIB_MK := lib/mk/fec_nic_include.mk \
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_linux)
 
 MIRROR_FROM_REP_DIR := $(LIB_MK) \
+                       src/drivers/nic/linux_network_session_base.cc \
+                       src/drivers/nic/linux_network_session_base.h \
                        lib/import/import-fec_nic_include.mk \
                        src/include src/lx_kit \
                        $(shell cd $(REP_DIR); find src/drivers/nic/fec -type f)

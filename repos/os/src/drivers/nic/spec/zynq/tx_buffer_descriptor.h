@@ -23,6 +23,18 @@
 using namespace Genode;
 
 
+struct Tx_buffer_sink
+{
+	virtual ~Tx_buffer_sink() { }
+
+	virtual Dataspace_capability dataspace() = 0;
+
+	virtual void acknowledge_packet(Packet_descriptor packet) = 0;
+
+	virtual bool packet_valid(Packet_descriptor packet) = 0;
+};
+
+
 class Tx_buffer_descriptor : public Buffer_descriptor
 {
 	private:
@@ -66,7 +78,7 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 		class Package_send_timeout : public Genode::Exception {};
 
 		Tx_buffer_descriptor(Genode::Env &env,
-		                     Nic::Session::Rx::Sink &sink,
+		                     Tx_buffer_sink &sink,
 		                     Timer::Connection &timer)
 		: Buffer_descriptor(env, BUFFER_COUNT), _timer(timer),
 		  _phys_base(Dataspace_client(sink.dataspace()).phys_addr())
@@ -78,7 +90,7 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 			}
 		}
 
-		void reset(Nic::Session::Rx::Sink &sink)
+		void reset(Tx_buffer_sink &sink)
 		{
 			/* ack all packets that are still queued */
 			submit_acks(sink, true);
@@ -88,7 +100,7 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 			_reset_tail();
 		}
 
-		void submit_acks(Nic::Session::Rx::Sink &sink, bool force=false)
+		void submit_acks(Tx_buffer_sink &sink, bool force=false)
 		{
 			/* the tail marks the descriptor for which we wait to
 			 * be handed over to software */

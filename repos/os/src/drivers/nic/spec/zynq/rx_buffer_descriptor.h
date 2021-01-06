@@ -20,6 +20,16 @@
 using namespace Genode;
 
 
+struct Rx_buffer_source
+{
+	virtual ~Rx_buffer_source() { }
+
+	virtual Dataspace_capability dataspace() = 0;
+
+	virtual Packet_descriptor alloc_packet(size_t size) = 0;
+};
+
+
 class Rx_buffer_descriptor : public Buffer_descriptor
 {
 	private:
@@ -61,8 +71,8 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 		}
 
 	public:
-		Rx_buffer_descriptor(Genode::Env &env,
-		                     Nic::Session::Tx::Source &source)
+		Rx_buffer_descriptor(Genode::Env      &env,
+		                     Rx_buffer_source &source)
 		: Buffer_descriptor(env, MAX_BUFFER_COUNT),
 		  _phys_base(Dataspace_client(source.dataspace()).phys_addr())
 		{
