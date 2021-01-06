@@ -1318,13 +1318,6 @@ void Sculpt::Main::_handle_gui_mode()
 		if (_font_size == Font_size::SMALL) _font_size_px *= 0.85;
 		if (_font_size == Font_size::LARGE) _font_size_px *= 1.35;
 
-		Area const size(mode.area.w(), mode.area.h());
-		_screen_size = size;
-		_panel_menu_view.min_width = size.w();
-		unsigned const menu_width = max(_font_size_px*21, 320.0);
-		_main_menu_view.min_width = menu_width;
-		_network.min_dialog_width(menu_width);
-
 		_fonts_config.generate([&] (Xml_generator &xml) {
 			xml.attribute("copy",  true);
 			xml.attribute("paste", true);
@@ -1368,6 +1361,12 @@ void Sculpt::Main::_handle_gui_mode()
 			gen_color(8, background);
 		});
 	}
+
+	_screen_size = mode.area;
+	_panel_menu_view.min_width = _screen_size.w();
+	unsigned const menu_width = max(_font_size_px*21, 320.0);
+	_main_menu_view.min_width = menu_width;
+	_network.min_dialog_width(menu_width);
 
 	/* font size may has changed, propagate fonts config of runtime view */
 	generate_runtime_config();
