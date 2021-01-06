@@ -32,19 +32,6 @@
  open OUT,"| \"$^X\" \"$xlate\" $flavour \"$output\"";
  *STDOUT=*OUT;
  
---- a/src/lib/openssl/crypto/armcap.c
-+++ b/src/lib/openssl/crypto/armcap.c
-@@ -114,6 +114,10 @@
-         return;
-     }
- 
-+    /* Genode: only NEON for now */
-+    //OPENSSL_armcap_P |= ARMV7_NEON;
-+    return;
-+
- # if defined(__APPLE__) && !defined(__aarch64__)
-     /*
-      * Capability probing by catching SIGILL appears to be problematic
 --- a/src/lib/openssl/crypto/bn/asm/rsaz-avx2.pl
 +++ b/src/lib/openssl/crypto/bn/asm/rsaz-avx2.pl
 @@ -54,6 +54,8 @@

@@ -1,4 +1,4 @@
-SPECS       += arm_v8 arm_64 64bit
+SPECS       += arm_v8 arm_64 64bit neon
 REP_INC_DIR += include/spec/arm_v8
 REP_INC_DIR += include/spec/arm_64
 

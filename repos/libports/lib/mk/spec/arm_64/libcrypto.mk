@@ -6,7 +6,7 @@ CC_OPT += -DSHA512_ASM -DKECCAK1600_ASM -DVPAES_ASM -DECP_NISTZ256_ASM
 CC_OPT += -DPOLY1305_ASM
 
 SRC_C = \
-	armcap.c \
+	armcap_genode.c \
 	aes/aes_core.c \
 	bf/bf_enc.c \
 	bn/bn_asm.c \
@@ -31,6 +31,12 @@ SRC_S = \
 	# end of SRC_S
 
 vpath %.S $(call select_from_ports,openssl)/src/lib/openssl/crypto
+
+ifeq ($(filter-out $(SPECS),neon),)
+	vpath armcap_genode.c $(REP_DIR)/src/lib/openssl/crypto/spec/neon
+else
+	vpath armcap_genode.c $(REP_DIR)/src/lib/openssl/crypto/spec/arm
+endif
 
 include $(REP_DIR)/lib/mk/libcrypto.inc
 
