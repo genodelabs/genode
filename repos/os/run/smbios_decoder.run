@@ -1,6 +1,6 @@
 assert_spec x86_64
 
-if { "[board]" ne "pc" || [expr ![have_spec nova] && ![have_spec hw]] } {
+if {![have_board pc] || [expr ![have_spec nova] && ![have_spec hw]] } {
 	puts "Run script is only supported on hw/pc and nova/pc"
 	exit 0
 }

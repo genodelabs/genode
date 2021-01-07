@@ -31,7 +31,7 @@ proc run_boot_dir {binaries} {
 	# Save config part of the image.elf for easy inspection
 	exec cp -f [run_dir]/genode/config [run_dir].config
 
-        if {[board] == "pc"} {
+        if {[have_board pc]} {
 
             build_initrd $binaries
 

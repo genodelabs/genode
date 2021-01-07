@@ -44,9 +44,7 @@ proc append_qemu_nic_args { { extra_netdev_args "" } } {
 # XXX should by removed in favor of [have_include "exec/qemu"]
 #
 proc is_qemu_available { } {
-	if {[expr [have_spec linux] && {"[board]"} == {"linux"}]} { return false }
-
-	if {[have_spec rpi]} {
+	if {[have_board rpi] || [have_board linux]} {
 		puts stderr "skipping execution because platform is not supported by qemu"
 		return false
 	}

@@ -835,6 +835,10 @@ proc board { } {
 	return $board_var
 }
 
+##
+# Return whether the board equals to the given string
+#
+proc have_board {board} { global board_var; return [expr {$board_var} eq {$board}] }
 
 ##
 # Determine GDB executable installed at the host
