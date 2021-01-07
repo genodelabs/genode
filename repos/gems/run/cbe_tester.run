@@ -1,5 +1,6 @@
 
 assert_spec linux
+assert_spec x86_64
 
 exec rm -rf var/libcache/cbe
 exec rm -rf var/libcache/cbe_cxx
