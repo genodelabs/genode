@@ -17,9 +17,9 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "wifi_drv", Cap_quota{200}, Ram_quota{32*1024*1024});
 
-	gen_provides<Nic::Session>(xml);
-
 	xml.node("config", [&] () {
+
+		xml.attribute("mode", "uplink_client");
 
 		xml.node("vfs", [&] () {
 			gen_named_node(xml, "dir", "dev", [&] () {
@@ -40,6 +40,14 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 	});
 
 	xml.node("route", [&] () {
+
+		xml.node("service", [&] () {
+			xml.attribute("name", "Uplink");
+			xml.node("child", [&] () {
+				xml.attribute("name", "nic_router");
+			});
+		});
+
 		gen_service_node<Platform::Session>(xml, [&] () {
 			xml.node("parent", [&] () {
 				xml.attribute("label", "wifi"); }); });

@@ -12,17 +12,21 @@
  */
 
 #include <runtime.h>
+#include <uplink_session/uplink_session.h>
 
 void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "nic_drv", Cap_quota{300}, Ram_quota{16*1024*1024});
 	gen_named_node(xml, "resource", "CPU", [&] () { xml.attribute("quantum", "50"); });
 
-	gen_provides<Nic::Session>(xml);
-
-	xml.node("config", [&] () { });
+	xml.node("config", [&] () { xml.attribute("mode", "uplink_client"); });
 
 	xml.node("route", [&] () {
+
+		gen_service_node<Uplink::Session>(xml, [&] () {
+			xml.node("child", [&] () {
+				xml.attribute("name", "nic_router"); }); });
+
 		gen_service_node<Platform::Session>(xml, [&] () {
 			xml.node("parent", [&] () {
 				xml.attribute("label", "nic"); }); });

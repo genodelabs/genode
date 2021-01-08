@@ -21,6 +21,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/chroot \
                   [depot_user]/src/extract \
+                  [depot_user]/src/nic_router \
                   [depot_user]/src/libarchive \
                   [depot_user]/src/liblzma \
                   [depot_user]/src/verify
@@ -62,9 +63,42 @@ append config {
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="depot_download" domain="downlink"/>
+			<policy label_prefix="drivers"        domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2" dns_server_from="uplink"/>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
 	</start>
 
 	<start name="vfs">
@@ -105,10 +139,12 @@ append config {
 			<service name="ROM" label="config">
 				<parent label="depot_download.config"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<service name="File_system"> <child name="vfs"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 </config>}
 
 

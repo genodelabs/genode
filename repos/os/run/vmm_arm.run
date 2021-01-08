@@ -46,7 +46,10 @@ install_config {
 	<start name="nic_drv">
 		<binary name="nic_router" />
 		<resource name="RAM" quantum="8M"/>
-		<provides> <service name="Nic"/> </provides>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
 		<config>
 			<default-policy domain="default"/>
 			<domain name="default" interface="10.0.1.1/24">

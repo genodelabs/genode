@@ -18,7 +18,7 @@
 void Sculpt::Network::_generate_nic_router_uplink(Xml_generator &xml,
                                                   char    const *label)
 {
-	xml.node("uplink", [&] () {
+	xml.node("policy", [&] () {
 		xml.attribute("label", label);
 		xml.attribute("domain", "uplink");
 	});
@@ -90,8 +90,8 @@ void Sculpt::Network::_generate_nic_router_config()
 
 		bool uplink_exists = true;
 		switch (_nic_target.type()) {
-		case Nic_target::WIRED: _generate_nic_router_uplink(xml, "wired"); break;
-		case Nic_target::WIFI:  _generate_nic_router_uplink(xml, "wifi");  break;
+		case Nic_target::WIRED: _generate_nic_router_uplink(xml, "nic_drv -> "); break;
+		case Nic_target::WIFI:  _generate_nic_router_uplink(xml, "wifi_drv -> ");  break;
 		default: uplink_exists = false;
 		}
 		gen_named_node(xml, "domain", "default", [&] () {
@@ -187,17 +187,17 @@ void Sculpt::Network::_handle_nic_router_config(Xml_node config)
 				if (domain.attribute_value("name", String<16>()) != "uplink")
 					return;
 
-				config.for_each_sub_node("uplink", [&] (Xml_node uplink) {
+				config.for_each_sub_node("policy", [&] (Xml_node uplink) {
 
 					/* skip uplinks not assigned to a domain called "uplink" */
 					if (uplink.attribute_value("domain", String<16>()) != "uplink")
 						return;
 
-					if (uplink.attribute_value("label", String<16>()) == "wired") {
+					if (uplink.attribute_value("label", String<16>()) == "nic_drv -> ") {
 						target = Nic_target::WIRED;
 						throw Break();
 					}
-					if (uplink.attribute_value("label", String<16>()) == "wifi") {
+					if (uplink.attribute_value("label", String<16>()) == "wifi_drv -> ") {
 						target = Nic_target::WIFI;
 						throw Break();
 					}
@@ -216,14 +216,36 @@ void Sculpt::Network::_handle_nic_router_config(Xml_node config)
 
 void Sculpt::Network::gen_runtime_start_nodes(Xml_generator &xml) const
 {
-	if (_use_nic_drv)
-		xml.node("start", [&] () { gen_nic_drv_start_content(xml); });
+	switch (_nic_target.type()) {
+	case Nic_target::WIRED:
 
-	if (_use_wifi_drv)
-		xml.node("start", [&] () { gen_wifi_drv_start_content(xml); });
-
-	if (_nic_target.type() != Nic_target::OFF)
 		xml.node("start", [&] () {
-			gen_nic_router_start_content(xml, _nic_target,
-			                             _use_nic_drv, _use_wifi_drv); });
+			xml.attribute("version", _nic_drv_version);
+			gen_nic_drv_start_content(xml);
+		});
+		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
+		break;
+
+	case Nic_target::WIFI:
+
+		xml.node("start", [&] () {
+			xml.attribute("version", _wifi_drv_version);
+			gen_wifi_drv_start_content(xml);
+		});
+		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
+		break;
+
+	case Nic_target::LOCAL:
+
+		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
+		break;
+
+	case Nic_target::OFF:
+
+		break;
+
+	case Nic_target::UNDEFINED:
+
+		break;
+	}
 }

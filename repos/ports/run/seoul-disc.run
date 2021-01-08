@@ -19,7 +19,6 @@ set use_block_sata    0
 set use_part_block    0
 
 set use_nic_session   1
-set use_nic_bridge    0
 
 set use_usb           0
 

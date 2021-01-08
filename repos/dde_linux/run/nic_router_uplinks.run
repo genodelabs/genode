@@ -74,16 +74,19 @@ append config {
 		</provides>
 	</start>
 
-	<start name="nic_drv" priority="-1">
+	<start name="nic_drv" priority="-1" caps="120">
 		<binary name="ipxe_nic_drv"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nic"/></provides>
+		<resource name="RAM" quantum="8M"/>
+		<config mode="uplink_client"/>
+		<route>
+			<service name="Uplink"> <child name="router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="wifi_drv" caps="300" priority="-1">
 		<resource name="RAM" quantum="24M"/>
-		<provides> <service name="Nic"/> </provides>
-		<config ld_verbose="no">
+		<config mode="uplink_client" ld_verbose="no">
 			<vfs>
 				<dir name="dev"> <log/> <rtc/> <null/>
 					<jitterentropy name="random"/>
@@ -94,6 +97,7 @@ append config {
 			<libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 		</config>
 		<route>
+			<service name="Uplink"> <child name="router"/> </service>
 			<service name="Rtc"> <any-child/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
@@ -142,15 +146,18 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy     domain="downlink"/>
-						<uplink label="nic" domain="uplink"  />
+						<policy label_prefix="ping"    domain="downlink"/>
+						<policy label_prefix="nic_drv" domain="uplink"  />
+
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
+
 					</config>
 
 				</inline>
@@ -163,15 +170,18 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy      domain="downlink"/>
-						<uplink label="wifi" domain="uplink"  />
+						<policy label_prefix="ping"     domain="downlink"/>
+						<policy label_prefix="wifi_drv" domain="uplink"  />
+
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
+
 					</config>
 
 				</inline>
@@ -184,11 +194,13 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy domain="downlink"/>
+						<policy label_prefix="ping" domain="downlink"/>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
+
 					</config>
 
 				</inline>
@@ -201,15 +213,18 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy     domain="downlink"/>
-						<uplink label="nic" domain="uplink"  />
+						<policy label_prefix="ping"    domain="downlink"/>
+						<policy label_prefix="nic_drv" domain="uplink"  />
+
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
+
 					</config>
 
 				</inline>
@@ -222,15 +237,18 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy     domain="downlink"/>
-						<uplink label="nic" domain="uplink"  />
+						<policy label_prefix="ping"    domain="downlink"/>
+						<policy label_prefix="nic_drv" domain="uplink"  />
+
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
+
 					</config>
 
 				</inline>
@@ -243,11 +261,13 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy domain="downlink"/>
+						<policy label_prefix="ping" domain="downlink"/>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
+
 					</config>
 
 				</inline>
@@ -260,15 +280,18 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy      domain="downlink"/>
-						<uplink label="wifi" domain="uplink"  />
+						<policy label_prefix="ping"     domain="downlink"/>
+						<policy label_prefix="wifi_drv" domain="uplink"  />
+
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
+
 					</config>
 
 				</inline>
@@ -281,15 +304,18 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy     domain="downlink"/>
-						<uplink label="nic" domain="uplink"  />
+						<policy label_prefix="ping"    domain="downlink"/>
+						<policy label_prefix="nic_drv" domain="uplink"  />
+
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
+
 					</config>
 
 				</inline>
@@ -302,10 +328,12 @@ append config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<default-policy domain="downlink"/>
+						<policy label_prefix="ping" domain="downlink"/>
+
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
 						</domain>
+
 					</config>
 
 				</inline>
@@ -322,12 +350,6 @@ append config {
 			<service name="Uplink"/>
 		</provides>
 		<route>
-			<service name="Nic" label="nic">
-				<child name="nic_drv"/>
-			</service>
-			<service name="Nic" label="wifi">
-				<child name="wifi_drv"/>
-			</service>
 			<service name="ROM" label="config">
 				<child name="dynamic_rom" label="router.config"/>
 			</service>

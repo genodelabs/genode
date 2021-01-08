@@ -650,10 +650,23 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void restart_deployed_component(Start_name const &name) override
 	{
-		_runtime_state.restart(name);
+		if (name == "nic_drv") {
 
-		/* update config/managed/deploy with the component 'name' removed */
-		_deploy.update_managed_deploy_config(_manual_deploy_rom.xml());
+			_network.restart_nic_drv_on_next_runtime_cfg();
+			generate_runtime_config();
+
+		} else if (name == "wifi_drv") {
+
+			_network.restart_wifi_drv_on_next_runtime_cfg();
+			generate_runtime_config();
+
+		} else {
+
+			_runtime_state.restart(name);
+
+			/* update config/managed/deploy with the component 'name' removed */
+			_deploy.update_managed_deploy_config(_manual_deploy_rom.xml());
+		}
 	}
 
 	/*

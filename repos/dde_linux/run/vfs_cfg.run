@@ -1,11 +1,10 @@
-assert_spec linux
-
 set build_components {
 	core init timer
-	drivers/nic
 	lib/vfs/lxip
 	server/vfs
 	server/dynamic_rom
+	server/nic_router
+	app/ping
 }
 build $build_components
 
@@ -31,10 +30,53 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="nic_drv" ld="no">
-		<binary name="linux_nic_drv"/>
+
+	<start name="ping_1">
+		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
-		<provides> <service name="Nic"/> </provides>
+		<config interface="10.0.2.3/24"
+		        gateway="10.0.2.1"
+		        dst_ip="10.0.2.2"
+		        period_sec="1"
+		        verbose="no"
+		        count="3"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ping_2">
+		<binary name="ping"/>
+		<resource name="RAM" quantum="8M"/>
+		<config interface="10.0.2.4/24"
+		        gateway="10.0.2.1"
+		        dst_ip="10.0.2.55"
+		        period_sec="1"
+		        verbose="no"
+		        count="3"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<default-policy domain="default"/>
+			<domain name="default" interface="10.0.2.1/24">
+
+				<dhcp-server ip_first="10.0.2.2" ip_last="10.0.2.2"/>
+
+			</domain>
+
+		</config>
 	</start>
 
 	<start name="dynamic_rom">
@@ -67,26 +109,29 @@ append config {
 		<route>
 			<service name="ROM" label="config">
 				<child name="dynamic_rom" label="socket_fs.config"/> </service>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 </config>
 }
 
 install_config $config
 
 append boot_modules {
-	core init timer linux_nic_drv vfs dynamic_rom
+	core init timer vfs dynamic_rom
 	ld.lib.so vfs.lib.so vfs_lxip.lib.so lxip.lib.so
+	nic_router ping
 }
 
 build_boot_image $boot_modules
 
-puts "#################################################################"
-puts "## run simultaneous ping to 10.0.2.55 and <dynamic IP address> ##"
-puts "#################################################################"
-sleep 1
+append done_string ".*\"ping_.\" exited with exit value 0.*\n"
+append done_string ".*\"ping_.\" exited with exit value 0.*\n"
 
-run_genode_until forever
+append qemu_args " -nographic "
+
+run_genode_until $done_string 60
 
 # vi: set ft=tcl :

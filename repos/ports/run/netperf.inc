@@ -5,19 +5,8 @@
 # \date   2013-04-18
 #
 
-if {[expr $use_nic_bridge && $use_nic_router]} {
-	puts "Cannot test with both NIC bridge and NIC router.";
-	exit 0
-}
-
-if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
-	puts "\nRunning netperf in autopilot on Qemu is not recommended.\n"
-	exit
-}
-
-if {[have_include "power_on/qemu"] &&
-    [expr $use_nic_bridge || $use_nic_router || $use_usb_driver || $use_wifi_driver]} {
-	puts "Cannot test this configuration on qemu.";
+if {[have_include "power_on/qemu"]} {
+	puts "\nRun script does not support Qemu.\n"
 	exit 0
 }
 
@@ -26,7 +15,7 @@ if {[have_board imx53_qsb_tz]} {
 	exit 0
 }
 
-set bridge_mac "02:02:02:02:02:00"
+set bridge_mac "02:02:02:02:16:00"
 
 # autopilot: configure disjoint mac-address ranges for x86_32, x86_64, and others
 if {[get_cmd_switch --autopilot]} {
@@ -74,14 +63,13 @@ set packages "
 	[depot_user]/src/libc
 	[depot_user]/src/posix
 	[depot_user]/src/vfs
+	[depot_user]/src/nic_router
 "
 
 append_if [expr !$use_lxip] packages " [depot_user]/src/vfs_lwip          "
 append_if $use_lxip         packages " [depot_user]/src/vfs_lxip          "
 append_if $use_nic_bridge   packages " [depot_user]/src/nic_bridge        "
-append_if $use_nic_router   packages " [depot_user]/src/nic_router        "
 append_if $use_usb_driver   packages " [depot_user]/src/platform_drv      "
-append_if $use_usb_driver   packages " [depot_user]/src/usb_drv           "
 append_if $use_wifi_driver  packages " [depot_user]/src/fs_rom            "
 append_if $use_wifi_driver  packages " [depot_user]/src/vfs_import        "
 append_if $use_wifi_driver  packages " [depot_user]/src/report_rom        "
@@ -93,7 +81,12 @@ append_if $use_wifi_driver  packages " [depot_user]/raw/wifi_firmware     "
 
 import_from_depot $packages
 
-build { app/netperf }
+set build_components { app/netperf }
+
+append_if $use_usb_driver build_components " drivers/usb_host "
+append_if $use_usb_driver build_components " drivers/usb_net  "
+
+build $build_components
 
 #
 # Generate config
@@ -106,7 +99,7 @@ proc platform_drv_policy {} {
 	global use_wifi_driver
 	if { $use_wifi_driver } {
 		return {<policy label_prefix="nic_drv"> <pci class="WIFI"/> </policy>}}
-	return {<policy label_prefix="nic_drv"> <pci class="USB"/> </policy>}
+	return {<policy label_prefix="usb_host_drv"> <pci class="USB"/> </policy>}
 }
 
 set config {
@@ -171,9 +164,8 @@ append  config { </wifi_config>
 
 	<start name="nic_drv" caps="300">
 		<binary name="wifi_drv"/>
-		<resource name="RAM" quantum="24M"/>
-		<provides> <service name="Nic"/> </provides>
-		<config>
+		<resource name="RAM" quantum="32M"/>
+		<config mode="uplink_client">
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
@@ -189,88 +181,133 @@ append  config { </wifi_config>
 			<service name="File_system"> <child name="config_fs"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom" /> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>}
 
 } elseif { $use_usb_driver } {
+
 	append_platform_drv_config
 	append config {
-	<start name="nic_drv" caps="150">
-		<binary name="usb_drv"/>
-		<resource name="RAM" quantum="18M"/>
-		<provides><service name="Nic"/></provides>
-		<config uhci="no" ehci="no" xhci="yes">
-			<nic mac="02:00:00:00:01:01" />
-		</config>
-	</start> }
-} else {
+
+	<start name="usb_host_drv" caps="120"> }
+
+	append config "<binary name=\"[usb_host_drv_binary]\"/>"
 	append config {
+
+		<resource name="RAM" quantum="12M"/>
+		<provides> <service name="Usb"/> </provides>
+		<config bios_handoff="yes"> }
+
+	append_if [have_board arndale] config {
+
+			<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x772a"/> }
+
+	append_if [have_board rpi] config {
+
+			<policy label_prefix="nic_drv" vendor_id="0x0424" product_id="0xec00"/> }
+
+	append_if [have_spec x86] config {
+
+			<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x1790"/> }
+
+	append config {
+
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_drv" caps="200">
+		<binary name="usb_net_drv"/>
+		<resource name="RAM" quantum="20M"/>
+		<config mode="uplink_client" mac="02:00:00:00:01:01" />
+		<route>
+			<service name="Uplink"><child name="nic_router"/></service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start> }
+
+} else {
+
+	append config {
+
 	<start name="nic_drv" caps="1000" managing_system="yes">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Nic"/> </provides>
 	</start> }
 }
 
-append_if $use_nic_router config {
+append config {
+
 	<start name="nic_router" caps="120">
 		<resource name="RAM" quantum="5M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
 		</provides>
-		<config verbose_domain_state="yes">
+		<config verbose_domain_state="yes"> }
 
-			<policy label_prefix="netserver_genode" domain="server"/>
-			<uplink                                 domain="uplink"/>
+if {$use_nic_bridge} { append config {
 
-			<domain name="uplink"}
-append_if [expr $use_nic_router && [have_spec linux]] config "
-				interface=\"$lx_ip_addr/24\" gateway=\"10.0.2.1\""
-append_if $use_nic_router config {
+			<policy label_prefix="nic_bridge"       domain="server"/> }
+
+} else { append config {
+
+			<policy label_prefix="netserver_genode" domain="server"/> }
+}
+append config {
+
+			<policy label_prefix="nic_drv"          domain="uplink"/>
+
+			<domain name="uplink" }
+
+append_if [have_spec linux] config "
+
+			        interface=\"$lx_ip_addr/24\" gateway=\"10.0.2.1\""
+
+append config {
+
 			>
 				<nat domain="server" tcp-ports="100" />
 				<tcp-forward port="12864" domain="server" to="10.0.3.2" />
 				<tcp-forward port="12865" domain="server" to="10.0.3.2" />
 			</domain>
 
-			<domain name="server" interface="10.0.3.1/24">
+			<domain name="server" interface="10.0.3.1/24" verbose_packets="no">
 				<dhcp-server ip_first="10.0.3.2"
 				             ip_last="10.0.3.2"
 				             ip_lease_time_sec="600"/>
 			</domain>
 
 		</config>
-		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-}
+	</start> }
 
 append_if $use_nic_bridge config {
+
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="5M"/>
 		<provides><service name="Nic"/></provides>
-		<config mac="} $bridge_mac {">}
-append_if [expr $use_nic_bridge && [have_spec linux]] config "
-			<policy label_prefix=\"netserver_genode\" ip_addr=\"$lx_ip_addr\"/>"
-append_if $use_nic_bridge config {
+		<config mac="} $bridge_mac {">
 			<default-policy/>
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start> }
 
 append config {
+
 	<start name="netserver_genode" caps="320" priority="-1">
 	<binary name="netserver"/>
 		<resource name="RAM" quantum="32M"/>
@@ -285,34 +322,40 @@ append config {
 					<log/> <inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
 				<dir name="socket">
-					<} [socket_fs_plugin] { }
-if {[expr [have_spec linux] && !$use_nic_router]} {
-	append config " ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\""
-} else {
-	append config " dhcp=\"yes\""
-}
-append config {/>
+					<} [socket_fs_plugin] { dhcp="yes"/>
 				</dir>
 			</vfs>
-		</config>}
-append_if $use_nic_bridge config {
+		</config>
 		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>}
-append_if $use_nic_router config {
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>}
-append config {
-	</start>
-</config>
 }
+if { $use_nic_bridge } {
+
+	append config {
+
+			<service name="Nic"> <child name="nic_bridge"/> </service> }
+
+} else {
+
+	append config {
+
+			<service name="Nic"> <child name="nic_router"/> </service> }
+}
+append config {
+
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config> }
 
 install_config $config
 
-build_boot_image { netserver }
+set boot_modules { netserver }
+
+append_if $use_usb_driver boot_modules " [usb_host_drv_binary] "
+append_if $use_usb_driver boot_modules " usb_net_drv  "
+
+build_boot_image $boot_modules
 
 #
 # Execute test case
@@ -322,17 +365,8 @@ build_boot_image { netserver }
 append qemu_args     "  -nographic "
 append_qemu_nic_args "hostfwd=tcp::12865-:12865,hostfwd=tcp::49153-:49153"
 
-set ip_match_string ""
-set force_ports ""
-if $use_lxip {
-	set ip_match_string "ipaddr=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
-} else {
-	set ip_match_string "address=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
-}
-if $use_nic_router {
-	set ip_match_string "nic_router\\\] \\\[uplink\\\] dynamic IP config: interface (\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}).*\n"
-	set force_ports "-P 12864,12864"
-}
+set ip_match_string "nic_router\\\] \\\[uplink\\\] dynamic IP config: interface (\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}).*\n"
+set force_ports "-P 12864,12864"
 
 if {[have_spec linux]} {
 	run_genode_until {.*family AF_INET.*\n} 60
@@ -387,7 +421,6 @@ foreach netperf_test $netperf_tests {
 	# format output parseable for post proccessing scripts
 	puts -nonewline "! PERF: $netperf_test"
 	if {$use_nic_bridge} { puts -nonewline "_bridge" }
-	if {$use_nic_router} { puts -nonewline "_router" }
 	if {$use_usb_driver} { puts -nonewline "_xhci"   }
 	puts "              [lindex $throughput 1] MBit/s ok"
 }

@@ -25,6 +25,7 @@ if {[info exists flavor_extension]} {
 }
 
 set build_components {
+	server/nic_router
 	server/event_filter
 	drivers/nic
 	drivers/audio
@@ -33,6 +34,7 @@ set build_components {
 }
 
 set boot_modules {
+	nic_router
 	event_filter
 	ipxe_nic_drv
 	pci_audio_drv
@@ -73,9 +75,44 @@ set config_of_app {
 	<start name="nic_drv" priority="-1">
 		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="8M" />
+		<config mode="uplink_client"/>
+		<route>
+			<service name="Uplink"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
 		<provides>
-			<service name="Nic" />
+			<service name="Nic"/>
+			<service name="Uplink"/>
 		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="vbox"    domain="downlink"/>
+			<policy label_prefix="nic_drv" domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24" verbose_packets="no">
+
+				<dhcp-server ip_first="10.0.3.100" ip_last="10.0.3.200" dns_server_from="uplink"/>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
 	</start>
 
 	<!--

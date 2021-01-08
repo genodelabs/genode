@@ -44,9 +44,9 @@ append config {
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Nic"/> </provides>
 	</start>
 
 	<start name="nic_router">
@@ -57,8 +57,8 @@ append config {
 		</provides>
 		<config>
 
-			<policy label_prefix="ping" domain="downlink"/>
-			<uplink                     domain="uplink"/>
+			<policy label_prefix="ping"    domain="downlink"/>
+			<policy label_prefix="drivers" domain="uplink"/>
 
 			<domain name="uplink" use_arp="no" verbose_packets="yes">
 				<nat domain="downlink" icmp-ids="100"/>
@@ -69,10 +69,6 @@ append config {
 			</domain>
 
 		</config>
-		<route>
-			<service name="Nic"> <child name="drivers"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
 	</start>
 
 	<start name="ping">
@@ -99,7 +95,7 @@ append_qemu_nic_args
 
 set done_string ".*child \"ping\" exited with exit value 0.*\n"
 
-run_genode_until $done_string 10
+run_genode_until $done_string 30
 
 grep_output { ARP }
 compare_output_to {}

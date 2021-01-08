@@ -34,6 +34,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/platform_drv \
                   [depot_user]/src/posix \
                   [depot_user]/src/fs_rom \
+                  [depot_user]/src/nic_router \
                   [depot_user]/src/rtc_drv \
                   [depot_user]/src/ssh_terminal \
                   [depot_user]/src/vfs \
@@ -73,10 +74,54 @@ set config {
 
 	<start name="nic_drv">
 		<binary name="ipxe_nic_drv"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Nic"/> </provides>
+		<resource name="RAM" quantum="8M"/>
+		<config mode="uplink_client"/>
 		<route>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="ssh_terminal" domain="downlink"/>
+			<policy label_prefix="nic_drv"      domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+				<tcp-forward port="22" domain="downlink" to="10.0.3.2"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2" dns_server_from="uplink"/>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
 		</route>
 	</start>
 
@@ -129,7 +174,7 @@ set config {
 			</vfs>
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="CPU"> <parent/> </service>

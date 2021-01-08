@@ -25,6 +25,7 @@ set build_components {
 	test/libports/ncurses
 	test/terminal_echo
 	noux-pkg/bash
+	server/nic_router
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -55,24 +56,68 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
+
 	<start name="nic_drv">
 		<binary name="ipxe_nic_drv"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Nic"/> </provides>
+		<resource name="RAM" quantum="8M"/>
+		<config mode="uplink_client"/>
+		<route>
+			<service name="Uplink"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="ssh_terminal" domain="downlink"/>
+			<policy label_prefix="nic_drv"      domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+				<tcp-forward port="22" domain="downlink" to="10.0.3.2"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
+	</start>
+
 	<start name="rtc_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Rtc"/> </provides>
 	</start>
+
 	<start name="ssh_terminal" caps="250">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Terminal"/> </provides>
@@ -100,13 +145,16 @@ set config {
 			</libc>
 		</config>
 		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 	<start name="test-terminal_echo">
 		<resource name="RAM" quantum="1M"/>
 	</start>
+
 	<start name="vfs">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="File_system"/></provides>
@@ -115,6 +163,7 @@ set config {
 			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
+
 	<start name="vfs_rom">
 		<resource name="RAM" quantum="10M"/>
 		<binary name="fs_rom"/>
@@ -125,6 +174,7 @@ set config {
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
+
 	<start name="/bin/bash" caps="500">
 		<resource name="RAM" quantum="64M"/>
 		<config verbose="yes">
@@ -171,7 +221,7 @@ if {![file exists bin/ed25519_key]} {
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer ipxe_nic_drv rtc_drv report_rom vfs fs_rom
-	test-terminal_echo
+	test-terminal_echo nic_router
 
 	libc.lib.so libm.lib.so vfs.lib.so
 	vfs_lxip.lib.so lxip.lib.so

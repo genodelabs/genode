@@ -17,6 +17,7 @@ set build_components {
 	drivers/usb_net
 	test/lwip/http_srv
 	lib/vfs/lwip
+	server/nic_router
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -76,9 +77,40 @@ append config {
 	</start>
 
 	<start name="usb_net_drv">
+		<resource name="RAM" quantum="20M"/>
+		<config mode="uplink_client" mac="02:00:00:00:01:01" />
+		<route>
+			<service name="Uplink"><child name="nic_router"/></service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_router" caps="200">
 		<resource name="RAM" quantum="10M"/>
-		<provides> <service name="Nic"/> </provides>
-		<config mac="02:00:00:00:01:01" />
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
+			<policy label_prefix="usb_net_drv"       domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink" tcp-ports="16384"/>
+				<tcp-forward port="443" domain="downlink" to="10.0.3.2"/>
+				<tcp-forward port="80"  domain="downlink" to="10.0.3.2"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
+
+			</domain>
+
+		</config>
 	</start>
 
 	<start name="test-lwip_httpsrv" caps="120">
@@ -90,6 +122,10 @@ append config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
+		<route>
+			<service name="Nic"><child name="nic_router"/></service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 </config>
 }
@@ -104,6 +140,7 @@ install_config $config
 set boot_modules {
 	core init timer usb_net_drv
 	ld.lib.so libc.lib.so vfs.lib.so vfs_lwip.lib.so test-lwip_httpsrv
+	nic_router
 }
 
 append boot_modules [usb_host_drv_binary]

@@ -46,6 +46,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/fetchurl \
                   [depot_user]/src/init \
                   [depot_user]/src/libc \
+                  [depot_user]/src/nic_router \
                   [depot_user]/src/libcrypto \
                   [depot_user]/src/libssh \
                   [depot_user]/src/libssl \
@@ -82,11 +83,44 @@ install_config {
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="fetchurl" domain="downlink"/>
+			<policy label_prefix="drivers"  domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2" dns_server_from="uplink"/>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
 	</start>
 
 	<start name="report_rom">

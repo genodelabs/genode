@@ -1,3 +1,25 @@
+#
+# To execute this run script on your Linux host you have to do some
+# preparation:
+#
+# !) Setup a TAP device:
+#    ! export USER=[YOUR_USER_NAME]
+#    ! export TAP_DEV=tap0
+#    ! sudo ip tuntap add dev $TAP_DEV mode tap USER $USER
+#    ! sudo ip address flush dev $TAP_DEV
+#    ! sudo ip address add 10.0.2.1/24 brd 10.0.2.255 dev $TAP_DEV
+#    ! sudo ip link set dev $TAP_DEV addr 02:00:00:ca:fe:01
+#    ! sudo ip link set dev $TAP_DEV up
+#
+# 2) Now, start the test and connect using your favorite HTTP client, e.g.:
+#    ! cd <GENODE_DIR>/build/x86_64
+#    ! make run/lwip_lx KERNEL=linux BOARD=linux
+#    ! lynx -dump http://10.0.2.55
+#
+# 3) Clean up your Linux when done testing:
+#    ! sudo ip tuntap delete $TAP_DEV mode tap
+#
+
 assert_spec linux
 
 #
@@ -9,6 +31,7 @@ build {
 	drivers/nic
 	test/lwip/http_srv
 	lib/vfs/lwip
+	server/nic_router
 }
 
 create_boot_directory
@@ -19,6 +42,7 @@ create_boot_directory
 
 set config {
 <config verbose="yes">
+
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -29,28 +53,66 @@ set config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 	</parent-provides>
+
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
+
 	<start name="linux_nic_drv" ld="no">
-		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Nic"/> </provides>
+		<resource name="RAM" quantum="8M"/>
+		<config mode="uplink_client"/>
+		<route>
+			<service name="Uplink"> <child name="nic_router"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
+			<policy label_prefix="linux_nic_drv"     domain="uplink"/>
+
+			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+				<tcp-forward port="443" domain="downlink" to="10.0.3.2"/>
+				<tcp-forward port="80"  domain="downlink" to="10.0.3.2"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24"/>
+
+		</config>
+	</start>
+
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="5M"/>
 		<config ld_verbose="true">
 			<vfs>
 				<dir name="dev"> <log/> </dir>
-				<dir name="socket"> <lwip ip_addr="10.0.2.55" netmask="255.255.255.0"/> </dir>
+				<dir name="socket"> <lwip ip_addr="10.0.3.2" netmask="255.255.255.0" gateway="10.0.3.1"/> </dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
 	</start>
+
 </config>
 }
 
@@ -63,6 +125,7 @@ install_config $config
 set boot_modules {
 	core init timer linux_nic_drv
 	ld.lib.so libc.lib.so vfs.lib.so vfs_lwip.lib.so test-lwip_httpsrv
+	nic_router
 }
 
 build_boot_image $boot_modules

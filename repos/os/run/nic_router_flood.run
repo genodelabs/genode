@@ -57,9 +57,9 @@ install_config {
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Nic"/> </provides>
 	</start>
 
 	<start name="dynamic_rom">
@@ -80,7 +80,7 @@ install_config {
 
 	<policy label_prefix="flood_links" domain="flood_links"/>
 	<policy label_prefix="ping"        domain="flood_links"/>
-	<uplink                            domain="uplink"/>
+	<policy label_prefix="drivers"     domain="uplink"/>
 
 	<domain name="uplink" interface="10.0.2.15/24" gateway="10.0.2.2" verbose_packets="no">
 		<nat domain="flood_links" udp-ports="16384"
@@ -114,7 +114,7 @@ install_config {
 
 	<policy label_prefix="flood_links" domain="flood_links"/>
 	<policy label_prefix="ping"        domain="flood_links"/>
-	<uplink                            domain="uplink"/>
+	<policy label_prefix="drivers"     domain="uplink"/>
 
 	<domain name="uplink" verbose_packets="no">
 		<nat domain="flood_links" udp-ports="16384"
@@ -148,7 +148,6 @@ install_config {
 		</provides>
 		<route>
 			<service name="ROM" label="config"> <child name="dynamic_rom" label="nic_router.config"/> </service>
-			<service name="Nic"> <child name="drivers"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

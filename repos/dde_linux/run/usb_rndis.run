@@ -16,6 +16,7 @@ set build_components {
 	server/tcp_terminal
 	test/terminal_echo
 	lib/vfs/lwip
+	server/nic_router
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -45,19 +46,46 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
+
 	<start name="usb_drv">
 		<resource name="RAM" quantum="24M"/>
-		<provides>
-			<service name="Nic"/>
-		</provides>
-		<config uhci="no" ohci="no" ehci="yes" xhci="yes">
+		<config mode="uplink_client" uhci="no" ohci="no" ehci="yes" xhci="yes">
 			<nic mac="02:00:00:00:01:01" />
 		</config>
 	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="tcp_terminal" domain="downlink"/>
+			<policy label_prefix="usb_drv"      domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink" tcp-ports="16384"/>
+				<tcp-forward port="88" domain="downlink" to="10.0.3.2"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
+
+			</domain>
+
+		</config>
+	</start>
+
 	<start name="tcp_terminal" caps="200">
 		<resource name="RAM" quantum="2560K"/>
 		<provides> <service name="Terminal"/> </provides>
@@ -71,6 +99,7 @@ set config {
 			<libc stdout="/dev/log" socket="/socket" pipe="/pipe"/>
 		</config>
 		<route>
+			<service name="Nic"> <child name="nic_router" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -98,6 +127,7 @@ set boot_modules {
 	tcp_terminal
 	test-terminal_echo
 	vfs_lwip.lib.so
+	nic_router
 }
 
 append_platform_drv_boot_modules

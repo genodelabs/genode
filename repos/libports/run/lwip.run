@@ -33,6 +33,7 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_nic_pkg] \
                   [depot_user]/src/init \
+                  [depot_user]/src/nic_router \
                   [depot_user]/src/libc \
                   [depot_user]/src/vfs_lwip \
                   [depot_user]/src/vfs
@@ -65,9 +66,48 @@ install_config {
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes"
+		        dhcp_discover_timeout_sec="1">
+
+			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
+			<policy label_prefix="drivers"           domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+				<tcp-forward port="443" domain="downlink" to="10.0.3.2"/>
+				<tcp-forward port="80"  domain="downlink" to="10.0.3.2"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2"
+				             ip_last="10.0.3.2"
+				             dns_server_from="uplink"/>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
 	</start>
 
 	<start name="test-lwip_httpsrv" caps="120" priority="-1">
@@ -79,6 +119,10 @@ install_config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 </config>
 }
@@ -98,9 +142,9 @@ run_genode_until {.*Start the server loop.*\n} 30
 if {[have_include "power_on/qemu"]} {
 	set uri "http://localhost:5555/"
 } else {
-	set match_string "lwIP Nic interface up address=.* netmask.*\n"
+	set match_string "nic_router. .uplink. dynamic IP config: interface .*\n"
 	regexp $match_string $output ip_addr
-	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $ip_addr ip_addr 
+	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $ip_addr ip_addr
 
 	set uri "http://$ip_addr:80/"
 }

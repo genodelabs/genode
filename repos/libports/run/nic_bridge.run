@@ -11,7 +11,7 @@ if {[have_board rpi3]} {
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/nic_router \
                   [depot_user]/src/init \
                   [depot_user]/src/libc \
                   [depot_user]/src/nic_bridge \
@@ -42,15 +42,23 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1000" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-		<provides> <service name="Nic"/> </provides>
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="nic_bridge" domain="downlink"/>
+
+			<domain name="downlink" interface="10.0.2.1/24">
+
+				<dhcp-server ip_first="10.0.2.100" ip_last="10.0.2.200"/>
+
+			</domain>
+
+		</config>
 	</start>
 
 	<start name="nic_bridge" caps="200">
@@ -63,7 +71,7 @@ install_config {
 			<policy label_prefix="client_2"                     mac="02:02:02:02:79:00"/>
 		</config>
 		<route>
-			<service name="Nic"> <child name="drivers"/> </service>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

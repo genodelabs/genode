@@ -13,6 +13,7 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_nic_pkg] \
                   [depot_user]/src/init \
+                  [depot_user]/src/nic_router \
                   [depot_user]/src/libc \
                   [depot_user]/src/libcrypto \
                   [depot_user]/src/libssh \
@@ -51,9 +52,47 @@ install_config {
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="lighttpd" domain="downlink"/>
+			<policy label_prefix="nic_drv"  domain="uplink"/>
+
+			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+				<tcp-forward port="80" domain="downlink" to="10.0.3.2"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2">
+					<dns-server ip="8.8.8.8"/>
+					<dns-server ip="1.1.1.1"/>
+				</dhcp-server>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
 	</start>
 
 	<start name="lighttpd" caps="1000">
@@ -75,7 +114,12 @@ install_config {
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
 			      socket="/socket" />
 		</config>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
+
 </config>}
 
 #

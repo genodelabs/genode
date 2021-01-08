@@ -32,7 +32,7 @@ append config {
 	<start name="netty-client-A">
 		<binary name="test-netty_tcp"/>
 		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" mode="client" ip="10.0.2.1" port="8080">
+		<config ld_verbose="yes" mode="client" ip="10.0.3.1" port="8080">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
 				<dir name="socket"> <fs/>  </dir>
@@ -44,7 +44,7 @@ append config {
 	<start name="netty-client-B">
 		<binary name="test-netty_tcp"/>
 		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" mode="client" ip="10.0.2.1" port="13002">
+		<config ld_verbose="yes" mode="client" ip="10.0.3.1" port="13002">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
 				<dir name="socket"> <fs/>  </dir>

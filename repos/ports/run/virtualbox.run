@@ -8,8 +8,6 @@ set use_vbox5_nova 0
 
 # use_gui starts two VMs
 set use_gui 0
-# need a nic bridge for 2 VMs
-set use_bridge [expr $use_net && $use_gui]
 
 set build_components {
 	drivers/framebuffer
@@ -42,7 +40,7 @@ lappend_if [expr $use_serial] build_components server/log_terminal
 lappend_if [have_spec x86]    build_components drivers/rtc
 
 lappend_if [expr $use_net]    build_components drivers/nic
-lappend_if [expr $use_bridge] build_components server/nic_bridge
+lappend_if [expr $use_net]    build_components server/nic_router
 
 append_platform_drv_build_components
 
@@ -124,10 +122,49 @@ append_if [have_spec x86] config {
 append_if [expr $use_net] config {
 	<start name="nic_drv" priority="-1">
 		<binary name="ipxe_nic_drv"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nic"/></provides>
+		<resource name="RAM" quantum="8M"/>
+		<config mode="uplink_client"/>
+		<route>
+			<service name="Uplink"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
 	</start>
-}
+
+	<start name="nic_router" caps="120">
+		<resource name="RAM" quantum="5M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="vbox"    domain="downlink"/>
+			<policy label_prefix="nic_drv" domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24" verbose_packets="no">
+
+				<dhcp-server ip_first="10.0.3.100" ip_last="10.0.3.200">
+					<dns-server ip="8.8.8.8"/>
+					<dns-server ip="1.1.1.1"/>
+				</dhcp-server>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
+	</start> }
 
 append_if [expr $use_serial] config {
 	<start name="log_terminal" priority="-1">
@@ -135,18 +172,6 @@ append_if [expr $use_serial] config {
 		<provides>
 			<service name="Terminal"/>
 		</provides>
-	</start>
-}
-
-append_if [expr $use_bridge] config {
-	<start name="nic_bridge" priority="-1">
-		<resource name="RAM" quantum="6M"/>
-		<provides><service name="Nic"/></provides>
-		<config> <default-policy/> </config>
-		<route>
-			<service name="Nic"><child name="nic_drv"/></service>
-			<any-service><parent/></any-service>
-		</route>
 	</start>
 }
 
@@ -212,7 +237,7 @@ append_if [expr $use_gui] config {
 			</vfs>
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<service name="Report" label="shape"> <child name="pointer" label="gui_fb2 -> shape"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
@@ -239,12 +264,8 @@ append config {
 				<rom name="test.iso" />
 			</vfs>
 		</config>
-		<route>}
-
-append_if [expr $use_bridge] config {
-			<service name="Nic"> <child name="nic_bridge"/> </service>}
-
-append config {
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<service name="Report" label="shape"> <child name="pointer" label="gui_fb1 -> shape"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
@@ -277,7 +298,7 @@ append boot_modules {
 }
 
 append_if [expr $use_net]          boot_modules { ipxe_nic_drv }
-append_if [expr $use_bridge]       boot_modules { nic_bridge }
+append_if [expr $use_net]          boot_modules { nic_router }
 append_if [expr $use_serial]       boot_modules { log_terminal }
 
 append_platform_drv_boot_modules

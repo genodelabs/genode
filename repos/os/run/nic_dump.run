@@ -27,7 +27,9 @@ proc bad_dst_port { } { return "12345" }
 proc bad_dst_ip   { } { return "10.0.1.2" }
 
 append config {
+
 <config>
+
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -38,9 +40,11 @@ append config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 	</parent-provides>
+
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+
 	<default caps="100"/>
 
 	<start name="timer">
@@ -54,16 +58,48 @@ append config {
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Uplink"> <child name="nic_router_1"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="nic_dump" priority="-1" caps="120">
-		<resource name="RAM" quantum="6M"/>
+	<start name="nic_router_1" caps="200">
+		<binary name="nic_router"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config dhcp_discover_timeout_sec="1">
+
+			<policy label_prefix="nic_dump" domain="downlink"/>
+			<policy label_prefix="drivers"  domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink" icmp-ids="100" udp-ports="100"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
+				<icmp dst="} [good_dst_ip] {/24" domain="uplink"/>
+				<udp dst="} [good_dst_ip] {/24">
+					<permit port="} [bad_dst_port] {" domain="uplink"/>
+				</udp>
+
+			</domain>
+
+		</config>
+	</start>
+
+	<start name="nic_dump" caps="200">
+		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
-		<config uplink="bridge"
-		        downlink="router"
+		<config uplink="uplink"
+		        downlink="downlink"
 		        time="yes"
 		        default="name"
 		        eth="name"
@@ -74,21 +110,19 @@ append config {
 		        icmp="all"
 		        tcp="default" />
 		<route>
-			<service name="Nic"> <child name="drivers"/> </service>
+			<service name="Nic"> <child name="nic_router_1"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
+	<start name="nic_router_2" caps="200">
+		<binary name="nic_router"/>
 		<resource name="RAM" quantum="10M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
 		</provides>
-		<config verbose="no"
-		        verbose_packets="no"
-		        dhcp_discover_timeout_sec="1"
-		        icmp_idle_timeout_sec="6">
+		<config>
 
 			<policy label_prefix="ping_1" domain="ping_1"/>
 			<policy label_prefix="ping_2" domain="ping_2"/>
@@ -124,9 +158,7 @@ append config {
 			<service name="Nic"/>
 			<service name="Uplink"/>
 		</provides>
-		<config verbose="no"
-		        verbose_packets="no"
-		        icmp_idle_timeout_sec="10">
+		<config>
 
 			<policy label_prefix="ping_2" domain="ping_2"/>
 			<uplink                       domain="uplink"/>
@@ -148,7 +180,7 @@ append config {
 
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
+			<service name="Nic"> <child name="nic_router_2"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -162,7 +194,7 @@ append config {
 		        period_sec="1"
 		        verbose="no"/>
 		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
+			<service name="Nic"> <child name="nic_router_2"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -176,7 +208,7 @@ append config {
 		        period_sec="1"
 		        verbose="no"/>
 		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
+			<service name="Nic"> <child name="nic_router_2"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -219,9 +251,10 @@ append config {
 			<service name="Nic"> <child name="ping_2_nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>}
+	</start> }
 
 append_if $on_hardware config {
+
 	<start name="ping_23">
 		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
@@ -235,10 +268,11 @@ append_if $on_hardware config {
 			<service name="Nic"> <child name="ping_2_nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>}
+	</start> }
 
 append config {
-</config>}
+
+</config> }
 
 install_config $config
 build_boot_image { ping nic_dump }

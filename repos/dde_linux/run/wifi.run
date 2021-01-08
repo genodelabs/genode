@@ -69,6 +69,7 @@ set build_components {
 	drivers/wifi
 	server/report_rom
 	server/dynamic_rom
+	server/nic_router
 	test/lwip/http_srv
 	lib/vfs/jitterentropy
 	lib/vfs/lwip
@@ -120,6 +121,10 @@ append config {
 				<dir name="socket"> <lwip dhcp="yes"/> </dir>
 			</vfs>
 		</config>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="state_report_rom">
@@ -162,10 +167,37 @@ append config {
 		</config>
 	</start>
 
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
+			<policy label_prefix="wifi_drv"          domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink" tcp-ports="16384"/>
+				<tcp-forward port="443" domain="downlink" to="10.0.3.2"/>
+				<tcp-forward port="80"  domain="downlink" to="10.0.3.2"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
+
+			</domain>
+
+		</config>
+	</start>
+
 	<start name="wifi_drv" caps="200">
 		<resource name="RAM" quantum="24M"/>
-		<provides> <service name="Nic"/> </provides>
-		<config ld_verbose="yes">
+		<config ld_verbose="yes" mode="uplink_client">
 			<libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev"> <log/> <null/> <rtc/>
@@ -175,6 +207,7 @@ append config {
 			</vfs>
 		</config>
 		<route>
+			<service name="Uplink"> <child name="nic_router"/> </service>
 			<service name="Rtc"> <any-child/> </service>
 			<service name="Report" label="accesspoints"> <child name="accesspoints_report_rom"/> </service>
 			<service name="Report" label="state"> <child name="state_report_rom"/> </service>
@@ -215,6 +248,7 @@ set boot_modules {
 	wpa_driver_nl80211.lib.so wpa_supplicant.lib.so
 	wifi.lib.so
 	wifi_drv
+	nic_router
 
 	test-lwip_httpsrv
 	vfs_lwip.lib.so

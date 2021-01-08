@@ -20,15 +20,27 @@ using namespace Sculpt;
 void Graph::_gen_selected_node_content(Xml_generator &xml, Start_name const &name,
                                        Runtime_state::Info const &info) const
 {
-	bool const removable = _deploy_children.exists(name);
+	if (_deploy_children.exists(name)) {
 
-	if (removable) {
 		gen_named_node(xml, "frame", "operations", [&] () {
 			xml.node("hbox", [&] () {
 				gen_named_node(xml, "button", "remove", [&] () {
 					_action_item.gen_button_attr(xml, "remove");
 					xml.node("label", [&] () {
 						xml.attribute("text", "Remove"); }); });
+
+				gen_named_node(xml, "button", "restart", [&] () {
+					_action_item.gen_button_attr(xml, "restart");
+					xml.node("label", [&] () {
+						xml.attribute("text", "Restart"); }); });
+			});
+		});
+
+	} else if (name == "nic_drv" ||
+	           name == "wifi_drv") {
+
+		gen_named_node(xml, "frame", "operations", [&] () {
+			xml.node("hbox", [&] () {
 
 				gen_named_node(xml, "button", "restart", [&] () {
 					_action_item.gen_button_attr(xml, "restart");

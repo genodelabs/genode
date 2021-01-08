@@ -49,8 +49,8 @@ struct Sculpt::Network : Network_dialog::Action
 
 	Wpa_passphrase wpa_passphrase { };
 
-	bool _use_nic_drv  = false;
-	bool _use_wifi_drv = false;
+	unsigned _nic_drv_version = 0;
+	unsigned _wifi_drv_version = 0;
 
 	Attached_rom_dataspace _wlan_accesspoints_rom {
 		_env, "report -> runtime/wifi_drv/accesspoints" };
@@ -143,13 +143,6 @@ struct Sculpt::Network : Network_dialog::Action
 	 */
 	void nic_target(Nic_target::Type const type) override
 	{
-		/*
-		 * Start drivers on first use but never remove them to avoid
-		 * driver-restarting issues.
-		 */
-		if (type == Nic_target::WIFI)  _use_wifi_drv = true;
-		if (type == Nic_target::WIRED) _use_nic_drv  = true;
-
 		if (type != _nic_target.managed_type) {
 			_nic_target.managed_type = type;
 			_generate_nic_router_config();
@@ -189,6 +182,16 @@ struct Sculpt::Network : Network_dialog::Action
 				});
 			});
 		});
+	}
+
+	void restart_nic_drv_on_next_runtime_cfg()
+	{
+		_nic_drv_version++;
+	}
+
+	void restart_wifi_drv_on_next_runtime_cfg()
+	{
+		_wifi_drv_version++;
 	}
 
 	void wifi_disconnect() override

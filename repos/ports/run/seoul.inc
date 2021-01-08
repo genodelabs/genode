@@ -73,7 +73,7 @@ lappend_if $use_usb             build_components drivers/usb
 lappend_if $use_vfs_block       build_components server/vfs_block
 lappend_if $use_drv_ahci        build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
-lappend_if $use_nic_bridge      build_components server/nic_bridge
+lappend_if $use_nic_session     build_components server/nic_router
 lappend_if $use_framebuffer     build_components drivers/framebuffer
 lappend_if $use_fancy_stuff     build_components app/status_bar
 lappend_if $use_fancy_stuff     build_components app/launchpad
@@ -329,22 +329,49 @@ append_if $use_genode_iso config {
 append_platform_drv_config
 
 append_if $use_nic_session config {
+
 	<start name="nic_drv" priority="-2">
 		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
-		<provides><service name="Nic"/></provides>
-	</start>
-}
-
-append_if [expr $use_nic_session && $use_nic_bridge] config {
-	<start name="nic_bridge" priority="-3">
-		<resource name="RAM" quantum="6M"/>
-		<provides><service name="Nic"/></provides>
-		<config> <default-policy/> </config>
+		<config mode="uplink_client"/>
 		<route>
-			<service name="Nic"><child name="nic_drv"/></service>
-			<any-service><parent/></any-service>
+			<service name="Uplink"><child name="nic_router"/></service>
+			<any-service><parent/><any-child/></any-service>
 		</route>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+
+			<policy label_prefix="seoul"      domain="downlink"/>
+			<policy label_prefix="launchpad"  domain="downlink"/>
+			<policy label_prefix="nic_drv"    domain="uplink"/>
+
+			<domain name="uplink">
+
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.55" ip_last="10.0.3.155" dns_server_from="uplink"/>
+
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+
+			</domain>
+
+		</config>
 	</start>
 }
 
@@ -376,10 +403,8 @@ append config {
 			<service name="Timer"><child name="timer"/></service>
 			<service name="ROM" label="config">
 				<parent label="vm_seoul.cfg"/> </service>}
-append_if [expr $use_nic_session && $use_nic_bridge] config {
-			<service name="Nic"> <child name="nic_bridge"/> </service>}
-append_if [expr $use_nic_session && !$use_nic_bridge] config {
-			<service name="Nic"> <child name="nic_drv"/> </service>}
+append_if [expr $use_nic_session] config {
+			<service name="Nic"> <child name="nic_router"/> </service>}
 append_if $use_genode_iso config {
 			<service name="ROM" unscoped_label="seoul"> <parent/> </service>
 			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
@@ -469,7 +494,7 @@ append_if $use_fancy_stuff config {
 	<start name="launchpad" priority="-2" caps="1500">
 		<resource name="RAM" quantum="64000M"/>
 		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Nic"> <child name="nic_router"/> </service>
 			<service name="ROM" label="config">
 				<parent label="launchpad-config"/> </service>
 			<any-service><parent/><any-child/></any-service>
@@ -544,7 +569,7 @@ lappend_if $use_vfs_block     boot_modules vfs_block
 lappend_if $use_vfs_block     boot_modules vfs.lib.so
 lappend_if $use_drv_ahci      boot_modules ahci_drv
 lappend_if $use_nic_session   boot_modules ipxe_nic_drv
-lappend_if $use_nic_bridge    boot_modules nic_bridge
+lappend_if $use_nic_session   boot_modules nic_router
 lappend_if $use_framebuffer   boot_modules vesa_fb_drv
 
 lappend_if $use_fancy_stuff   boot_modules status_bar

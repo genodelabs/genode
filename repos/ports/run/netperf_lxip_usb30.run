@@ -15,7 +15,6 @@ if {[have_include "power_on/qemu"] || [have_include "power_on/linux"]} {
 
 # network configuration
 set use_nic_bridge      0
-set use_nic_router      0
 set use_wifi_driver     0
 set use_usb_driver      1
 set use_lxip            1
