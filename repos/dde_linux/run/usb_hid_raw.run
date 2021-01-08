@@ -183,7 +183,10 @@ append config {
 append config "[platform_drv_config_non_x86]"
 append config {
 		</config>
-		<route> <any-service> <parent/> </any-service> </route>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 	</start>
 }
 }
