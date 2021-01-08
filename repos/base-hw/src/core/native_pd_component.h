@@ -28,7 +28,7 @@ namespace Genode {
 }
 
 
-class Genode::Native_pd_component : public Rpc_object<Hw_native_pd>
+class Genode::Native_pd_component : public Rpc_object<Pd_session::Native_pd>
 {
 	private:
 
@@ -36,7 +36,7 @@ class Genode::Native_pd_component : public Rpc_object<Hw_native_pd>
 
 	public:
 
-		Native_pd_component(Pd_session_component &pd, char const *args);
+		Native_pd_component(Pd_session_component &, char const *args);
 
 		~Native_pd_component();
 

@@ -24,7 +24,7 @@ namespace Genode {
 }
 
 
-class Genode::Native_pd_component : public Rpc_object<Linux_native_pd,
+class Genode::Native_pd_component : public Rpc_object<Pd_session::Native_pd,
                                                       Native_pd_component>
 {
 	private:

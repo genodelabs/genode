@@ -82,8 +82,7 @@ Child::Process::Process(Type                  type,
 
 	pd.assign_parent(parent_cap);
 
-	Linux_native_pd_client
-		lx_pd(static_cap_cast<Linux_native_pd>(pd.native_pd()));
+	Linux_native_pd_client lx_pd(pd.native_pd());
 
 	lx_pd.start(ldso_ds);
 }

@@ -20,10 +20,10 @@
 namespace Genode { struct Hw_native_pd_client; }
 
 
-struct Genode::Hw_native_pd_client : Rpc_client<Hw_native_pd>
+struct Genode::Hw_native_pd_client : Rpc_client<Pd_session::Native_pd>
 {
-	explicit Hw_native_pd_client(Capability<Native_pd> cap)
-	: Rpc_client<Hw_native_pd>(static_cap_cast<Hw_native_pd>(cap)) { }
+	explicit Hw_native_pd_client(Capability<Pd_session::Native_pd> cap)
+	: Rpc_client<Pd_session::Native_pd>(cap) { }
 
 	void upgrade_cap_slab() override {
 		call<Rpc_upgrade_cap_slab>(); }

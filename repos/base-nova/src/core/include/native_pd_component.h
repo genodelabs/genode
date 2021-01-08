@@ -27,7 +27,7 @@ namespace Genode {
 }
 
 
-class Genode::Native_pd_component : public Rpc_object<Nova_native_pd>
+class Genode::Native_pd_component : public Rpc_object<Pd_session::Native_pd>
 {
 	private:
 

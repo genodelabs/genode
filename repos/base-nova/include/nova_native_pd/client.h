@@ -20,10 +20,10 @@
 namespace Genode { struct Nova_native_pd_client; }
 
 
-struct Genode::Nova_native_pd_client : Rpc_client<Nova_native_pd>
+struct Genode::Nova_native_pd_client : Rpc_client<Pd_session::Native_pd>
 {
 	explicit Nova_native_pd_client(Capability<Native_pd> cap)
-	: Rpc_client<Nova_native_pd>(static_cap_cast<Nova_native_pd>(cap)) { }
+	: Rpc_client<Pd_session::Native_pd>(static_cap_cast<Pd_session::Native_pd>(cap)) { }
 
 	Native_capability alloc_rpc_cap(Native_capability ep,
 	                                addr_t entry, addr_t mtd) override

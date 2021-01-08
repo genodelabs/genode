@@ -20,10 +20,10 @@
 namespace Genode { struct Linux_native_pd_client; }
 
 
-struct Genode::Linux_native_pd_client : Rpc_client<Linux_native_pd>
+struct Genode::Linux_native_pd_client : Rpc_client<Pd_session::Native_pd>
 {
 	explicit Linux_native_pd_client(Capability<Native_pd> cap)
-	: Rpc_client<Linux_native_pd>(static_cap_cast<Linux_native_pd>(cap)) { }
+	: Rpc_client<Pd_session::Native_pd>(cap) { }
 
 	void start(Capability<Dataspace> binary) {
 		call<Rpc_start>(binary); }

@@ -17,13 +17,8 @@
 #include <pd_session/pd_session.h>
 #include <dataspace/dataspace.h>
 
-namespace Genode { struct Linux_native_pd; }
-
-
-struct Genode::Linux_native_pd : Pd_session::Native_pd
+struct Genode::Pd_session::Native_pd : Interface
 {
-	void start(Capability<Dataspace> binary);
-
 	GENODE_RPC(Rpc_start, void, start, Capability<Dataspace>);
 	GENODE_RPC_INTERFACE(Rpc_start);
 };
