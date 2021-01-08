@@ -282,7 +282,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			 * as we have no driver which will switch it on again
 			 */
 			if (_device_config.pci_bridge() ||
-			    _device_config.bdf() == Pci::Bdf(Platform::Bridge::root_bridge_bdf))
+			    _device_config.bdf() == Pci::Bdf::from_value(Platform::Bridge::root_bridge_bdf))
 				return;
 
 			_device_config.disable_bus_master_dma(_config_access);
@@ -554,9 +554,9 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		void bus_address(unsigned char *bus, unsigned char *dev,
 		                 unsigned char *fn) override
 		{
-			*bus = _device_config.bdf().bus();
-			*dev = _device_config.bdf().device();
-			*fn  = _device_config.bdf().function();
+			*bus = _device_config.bdf().bus;
+			*dev = _device_config.bdf().device;
+			*fn  = _device_config.bdf().function;
 		}
 
 		unsigned short vendor_id() override { return _device_config.vendor_id(); }

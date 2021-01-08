@@ -28,30 +28,31 @@ namespace Platform { namespace Pci { struct Bdf; struct Config; } }
 
 struct Platform::Pci::Bdf
 {
-	struct Bdf_register : Register<16>
+	unsigned bus, device, function;
+
+	static Bdf from_value(uint16_t const bdf)
 	{
-		struct Function : Bitfield< 0, 3> { };
-		struct Device   : Bitfield< 3, 5> { };
-		struct Bus      : Bitfield< 8, 8> { };
-	};
-
-	uint16_t bdf;
-
-	Bdf(uint16_t bdf) : bdf(bdf) { }
-
-	Bdf(unsigned bus, unsigned device, unsigned function) : bdf(0)
-	{
-		Bdf_register::Bus::set(bdf, bus);
-		Bdf_register::Device::set(bdf, device);
-		Bdf_register::Function::set(bdf, function);
+		return Bdf { .bus      = (bdf >> 8) & 0xffu,
+		             .device   = (bdf >> 3) & 0x1fu,
+		             .function =  bdf       & 0x07u };
 	}
 
-	uint8_t bus()      const { return Bdf_register::Bus::get(bdf); }
-	uint8_t device()   const { return Bdf_register::Device::get(bdf); }
-	uint8_t function() const { return Bdf_register::Function::get(bdf); }
+	uint16_t value() const {
+		return ((bus & 0xff) << 8) | ((device & 0x1f) << 3) | (function & 7); }
 
-	bool operator == (Bdf const &other) const { return bdf == other.bdf; }
+	bool operator == (Bdf const &other) const {
+		return value() == other.value(); }
+
+	void print(Genode::Output &out) const
+	{
+		using Genode::print;
+		using Genode::Hex;
+		print(out, Hex(bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
+		      ":", Hex(device, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
+		      ".", Hex(function, Hex::Prefix::OMIT_PREFIX));
+	}
 };
+
 
 namespace Platform {
 
@@ -69,7 +70,7 @@ namespace Platform {
 			 */
 			unsigned _dev_base(Pci::Bdf const bdf)
 			{
-				return unsigned(bdf.bdf) << 12;
+				return unsigned(bdf.value()) << 12;
 			}
 
 			Genode::Bit_array<256> _used { };

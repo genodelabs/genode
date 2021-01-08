@@ -174,7 +174,8 @@ namespace Platform {
 			/**
 			 * Constructor
 			 */
-			Device_config() : _bdf(0, 0, 0), _vendor_id(INVALID_VENDOR) { }
+			Device_config() : _bdf({ .bus = 0, .device = 0, .function = 0 }) {
+				_vendor_id = INVALID_VENDOR; }
 
 			Device_config(Pci::Bdf bdf) : _bdf(bdf) { }
 
@@ -198,8 +199,8 @@ namespace Platform {
 				 * device. Note, the mf bit of function 1-7 is not significant
 				 * and may be set or unset.
 				 */
-				if (bdf.function() != 0) {
-					Pci::Bdf const dev(bdf.bus(), bdf.device(), 0);
+				if (bdf.function != 0) {
+					Pci::Bdf const dev { .bus = bdf.bus, .device = bdf.device, .function = 0 };
 					if (!(pci_config->read(dev, 0xe, Device::ACCESS_8BIT) & 0x80)) {
 						_vendor_id = INVALID_VENDOR;
 						return;
@@ -270,14 +271,7 @@ namespace Platform {
 			 */
 			Pci::Bdf bdf() const { return _bdf; }
 
-			void print(Genode::Output &out) const
-			{
-				using Genode::print;
-				using Genode::Hex;
-				print(out, Hex(_bdf.bus(), Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
-				      ":", Hex(_bdf.device(), Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
-				      ".", Hex(_bdf.function(), Hex::Prefix::OMIT_PREFIX));
-			}
+			void print(Genode::Output &out) const { Genode::print(out, bdf()); }
 
 			/**
 			 * Accessor functions for device information
@@ -393,8 +387,8 @@ namespace Platform {
 
 			Genode::addr_t lookup_config_space(Pci::Bdf const bdf)
 			{
-				if ((_bdf_start <= bdf.bdf) && (bdf.bdf <= _bdf_start + _func_count - 1))
-					return _base + (unsigned(bdf.bdf) << 12);
+				if ((_bdf_start <= bdf.value()) && (bdf.value() <= _bdf_start + _func_count - 1))
+					return _base + (unsigned(bdf.value()) << 12);
 				return 0;
 			}
 	};

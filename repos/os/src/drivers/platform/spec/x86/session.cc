@@ -43,11 +43,13 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
                                    Device_bars_pool &devices_bars,
                                    unsigned char bus)
 {
-	for (int dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
-		for (int fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
+	for (unsigned dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
+		for (unsigned fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
+
+			Pci::Bdf const bdf { .bus = bus, .device = dev, .function = fun };
 
 			/* read config space */
-			Device_config config(Pci::Bdf(bus, dev, fun), &config_access);
+			Device_config config(bdf, &config_access);
 
 			/* remember Device BARs required after power off and/or reset */
 			if (config.valid()) {
