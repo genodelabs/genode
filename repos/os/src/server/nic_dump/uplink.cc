@@ -32,7 +32,7 @@ Net::Uplink::Uplink(Env               &env,
 	Nic::Connection       { env, this, BUF_SIZE, BUF_SIZE },
 	Net::Interface        { env.ep(), config.attribute_value("uplink", Interface_label()),
 	                        timer, curr_time, config.attribute_value("time", false),
-	                        alloc, config }
+	                        config }
 {
 	rx_channel()->sigh_ready_to_ack(_sink_ack);
 	rx_channel()->sigh_packet_avail(_sink_submit);
