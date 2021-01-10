@@ -83,7 +83,7 @@ Net::Session_component::Session_component(Ram_quota    const ram_quota,
 	_rx.sigh_ack_avail(_source_ack);
 	_rx.sigh_ready_to_submit(_source_submit);
 	Interface::remote(_uplink);
-	_uplink.Interface::remote(*this);
+	_uplink.Net::Interface::remote(*this);
 	_uplink.link_state_sigh(_link_state_handler);
 	_print_state();
 }
