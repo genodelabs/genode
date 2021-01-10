@@ -49,7 +49,6 @@ class Net::Interface
 
 	private:
 
-		Genode::Allocator       &_alloc;
 		Pointer<Interface>       _remote { };
 		Interface_label          _label;
 		Timer::Connection       &_timer;
@@ -85,7 +84,6 @@ class Net::Interface
 		          Timer::Connection  &timer,
 		          Genode::Duration   &curr_time,
 		          bool                log_time,
-		          Genode::Allocator  &alloc,
 		          Genode::Xml_node    config);
 
 		virtual ~Interface() { }

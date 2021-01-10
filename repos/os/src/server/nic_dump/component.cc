@@ -73,8 +73,7 @@ Net::Session_component::Session_component(Ram_quota    const ram_quota,
 	Session_rpc_object(env.rm(), _tx_buf, _rx_buf, &_range_alloc,
 	                   env.ep().rpc_ep()),
 	Interface(env.ep(), config.attribute_value("downlink", Interface_label()),
-	          timer, curr_time, config.attribute_value("time", false),
-	          Session_component_base::_alloc, config),
+	          timer, curr_time, config.attribute_value("time", false), config),
 	_uplink(env, config, timer, curr_time, Session_component_base::_alloc),
 	_link_state_handler(env.ep(), *this, &Session_component::_handle_link_state)
 {
