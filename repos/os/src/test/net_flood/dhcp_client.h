@@ -64,7 +64,6 @@ class Net::Dhcp_client
 		enum { DISCOVER_TIMEOUT_SEC = 2 };
 		enum { REQUEST_TIMEOUT_SEC  = 2 };
 
-		Genode::Allocator                    &_alloc;
 		State                                 _state { State::INIT };
 		Timer::One_shot_timeout<Dhcp_client>  _timeout;
 		unsigned long                         _lease_time_sec = 0;
@@ -92,8 +91,7 @@ class Net::Dhcp_client
 
 	public:
 
-		Dhcp_client(Genode::Allocator   &alloc,
-		            Timer::Connection   &timer,
+		Dhcp_client(Timer::Connection   &timer,
 		            Nic                 &nic,
 		            Dhcp_client_handler &handler);
 
