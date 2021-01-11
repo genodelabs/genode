@@ -15,8 +15,16 @@ exec rm -rf var/libcache/cbe_dump_cxx
 
 set dd [installed_command dd]
 
-proc cbe_image_file { } {
+proc cbe_image_name { } {
 	return "cbe_block.img"
+}
+
+proc local_cbe_image { } {
+	return bin/[cbe_image_name]
+}
+
+proc autopilot_cbe_image { } {
+	return /tmp/[cbe_image_name].[exec id -un]
 }
 
 set image_size 1024
@@ -102,7 +110,7 @@ append config {
 	<start name="lx_block" ld="no">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Block"/> </provides>
-		<config file="} [cbe_image_file] {" block_size="4K" writeable="yes"/>
+		<config file="} [cbe_image_name] {" block_size="4K" writeable="yes"/>
 	</start>
 
 	<start name="vfs_trust_anchor" caps="120">
@@ -148,7 +156,7 @@ append config {
 				client_data_mismatch="yes"
 				client_data_transferred="no"/>
 
-			<block-io type="vfs" path="/} [cbe_image_file] {"/>
+			<block-io type="vfs" path="/} [cbe_image_name] {"/>
 			<crypto path="/crypto"/>
 			<trust-anchor path="/trust_anchor"/>
 
@@ -1004,9 +1012,17 @@ append config {
 
 install_config $config
 
-exec rm -rf bin/[cbe_image_file]
+exec rm -rf [local_cbe_image]
+if { [get_cmd_switch --autopilot] } {
 
-catch { exec $dd if=/dev/urandom of=bin/[cbe_image_file] bs=1M count=[cbe_image_size_mb] }
+	exec rm -rf [autopilot_cbe_image]
+	catch { exec $dd if=/dev/urandom of=[autopilot_cbe_image] bs=1M count=[cbe_image_size_mb] }
+	exec ln -sf -T [autopilot_cbe_image] [local_cbe_image]
+
+} else {
+
+	catch { exec $dd if=/dev/urandom of=[local_cbe_image] bs=1M count=[cbe_image_size_mb] }
+}
 
 append boot_modules {
 	core
@@ -1032,12 +1048,19 @@ append boot_modules {
 	vfs_import.lib.so
 }
 
-append boot_modules [cbe_image_file]
+append boot_modules [cbe_image_name]
 
 build_boot_image $boot_modules
 
 append qemu_args " -nographic -m 1280 "
 
 run_genode_until "child \"test\" exited with exit value.*\n" 360
+
+if { [get_cmd_switch --autopilot] } {
+
+	exec rm -rf [local_cbe_image]
+	exec rm -rf [autopilot_cbe_image]
+}
+
 grep_output {\[init\] child "test" exited with exit value}
 compare_output_to {[init] child "test" exited with exit value 0}
