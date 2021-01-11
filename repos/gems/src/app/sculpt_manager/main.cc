@@ -1315,6 +1315,12 @@ void Sculpt::Main::_handle_gui_mode()
 
 		_font_size_px = (float)mode.area.h() / 60.0;
 
+		/*
+		 * Limit lower bound of font size. Otherwise, the glyph rendering
+		 * may suffer from division-by-zero problems.
+		 */
+		_font_size_px = max(_font_size_px, 2.0);
+
 		if (_font_size == Font_size::SMALL) _font_size_px *= 0.85;
 		if (_font_size == Font_size::LARGE) _font_size_px *= 1.35;
 
