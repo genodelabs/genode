@@ -35,7 +35,6 @@ class Window_layouter::Window_list
 		Env                     &_env;
 		Allocator               &_alloc;
 		Change_handler          &_change_handler;
-		Area              const &_screen_size;
 		Focus_history           &_focus_history;
 		Decorator_margins const &_decorator_margins;
 
@@ -104,14 +103,12 @@ class Window_layouter::Window_list
 		Window_list(Env                     &env,
 		            Allocator               &alloc,
 		            Change_handler          &change_handler,
-		            Area              const &screen_size,
 		            Focus_history           &focus_history,
 		            Decorator_margins const &decorator_margins)
 		:
 			_env(env),
 			_alloc(alloc),
 			_change_handler(change_handler),
-			_screen_size(screen_size),
 			_focus_history(focus_history),
 			_decorator_margins(decorator_margins)
 		{
