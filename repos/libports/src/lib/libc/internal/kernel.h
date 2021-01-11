@@ -204,7 +204,6 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		jmp_buf _kernel_context;
 		jmp_buf _user_context;
 		bool    _valid_user_context          = false;
-		bool    _dispatch_pending_io_signals = false;
 
 		/* io_progress_handler marker */
 		bool _io_progressed { false };
@@ -218,8 +217,6 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		void *_user_stack = {
 			_myself.alloc_secondary_stack(_myself.name().string(),
 			                              _user_stack_size()) };
-
-		void (*_original_suspended_callback)() = nullptr;
 
 		enum State { KERNEL, USER };
 
