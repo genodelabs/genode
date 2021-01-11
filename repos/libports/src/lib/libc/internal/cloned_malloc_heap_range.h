@@ -40,7 +40,7 @@ struct Libc::Cloned_malloc_heap_range
 		local_addr(rm.attach_at(ds, (addr_t)start))
 	{ }
 	catch (Region_map::Region_conflict) {
-		error("could not clone heap region ", Hex_range(local_addr, size));
+		error("could not clone heap region ", Hex_range((addr_t)start, size));
 		throw;
 	}
 
