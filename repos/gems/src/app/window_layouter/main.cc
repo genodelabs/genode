@@ -68,7 +68,7 @@ struct Window_layouter::Main : Operations,
 	Decorator_margins _decorator_margins { Xml_node("<floating/>") };
 
 	Window_list _window_list {
-		_env, _heap, *this, _screen_size, _focus_history, _decorator_margins };
+		_env, _heap, *this, _focus_history, _decorator_margins };
 
 	Assign_list _assign_list { _heap };
 
