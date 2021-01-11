@@ -1038,6 +1038,6 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic -m 1280 "
 
-run_genode_until "child \"test\" exited with exit value.*\n" 300
+run_genode_until "child \"test\" exited with exit value.*\n" 360
 grep_output {\[init\] child "test" exited with exit value}
 compare_output_to {[init] child "test" exited with exit value 0}
