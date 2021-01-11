@@ -263,7 +263,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		bool uses_alpha() const override { return _texture.valid() && _uses_alpha; }
 
-		unsigned layer() const override { return _domain ? _domain->layer() : ~0UL; }
+		unsigned layer() const override { return _domain ? _domain->layer() : ~0U; }
 
 		bool origin_pointer() const override { return _domain && _domain->origin_pointer(); }
 
