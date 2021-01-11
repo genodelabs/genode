@@ -626,7 +626,7 @@ extern "C" pid_t __sys_fork(void)
 		switch (stage) {
 		case Stage::FORK:
 			child = fork_kernel_routine();
-			stage = Stage::WAIT_FORK_READY; [[ fallthrough ]]
+			stage = Stage::WAIT_FORK_READY; [[ fallthrough ]];
 		case Stage::WAIT_FORK_READY:
 			if (child->running() || child->exited()) {
 				return Fn::COMPLETE;

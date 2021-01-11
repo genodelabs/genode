@@ -554,15 +554,15 @@ struct Sync
 		case Sync::INITIAL:
 			if (!vfs_handle.fs().update_modification_timestamp(&vfs_handle, mtime))
 				return false;
-			state = Sync::TIMESTAMP_UPDATED; [[ fallthrough ]]
+			state = Sync::TIMESTAMP_UPDATED; [[ fallthrough ]];
 		case Sync::TIMESTAMP_UPDATED:
 			if (!vfs_handle.fs().queue_sync(&vfs_handle))
 				return false;
-			state = Sync::QUEUED; [[ fallthrough ]]
+			state = Sync::QUEUED; [[ fallthrough ]];
 		case Sync::QUEUED:
 			if (vfs_handle.fs().complete_sync(&vfs_handle) == Vfs::File_io_service::SYNC_QUEUED)
 				return false;
-			state = Sync::COMPLETE; [[ fallthrough ]]
+			state = Sync::COMPLETE; [[ fallthrough ]];
 		case Sync::COMPLETE:
 			break;
 		}
@@ -1717,7 +1717,7 @@ int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 
 				handle->handler(&_response_handler);
 				sync.construct(*handle, _update_mtime, _current_real_time);
-			} stage = Stage::WRITE; [[fallthrough]]
+			} stage = Stage::WRITE; [[fallthrough]];
 
 		case Stage::WRITE:
 			{
@@ -1726,7 +1726,7 @@ int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 				} catch (Vfs::File_io_service::Insufficient_buffer) {
 					return Fn::INCOMPLETE;
 				}
-			} stage = Stage::SYNC; [[fallthrough]]
+			} stage = Stage::SYNC; [[fallthrough]];
 
 		case Stage::SYNC:
 			{
@@ -1787,13 +1787,13 @@ ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t bu
 				}
 
 				handle->handler(&_response_handler);
-			} stage = Stage::QUEUE_READ; [[ fallthrough ]]
+			} stage = Stage::QUEUE_READ; [[ fallthrough ]];
 
 		case Stage::QUEUE_READ:
 			{
 				if (!handle->fs().queue_read(handle, buf_size))
 					return Fn::INCOMPLETE;
-			} stage = Stage::COMPLETE_READ; [[ fallthrough ]]
+			} stage = Stage::COMPLETE_READ; [[ fallthrough ]];
 
 		case Stage::COMPLETE_READ:
 			{
