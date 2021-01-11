@@ -221,20 +221,6 @@ void Libc::select_notify_from_kernel()
 }
 
 
-static inline void print(Output &output, timeval *tv)
-{
-	if (!tv) {
-		print(output, "nullptr");
-	} else {
-		print(output, "{");
-		print(output, tv->tv_sec);
-		print(output, ",");
-		print(output, tv->tv_usec);
-		print(output, "}");
-	}
-}
-
-
 extern "C" __attribute__((weak))
 int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
            struct timeval *tv)
