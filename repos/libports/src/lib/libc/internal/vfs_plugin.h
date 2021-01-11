@@ -36,7 +36,7 @@
 namespace Libc { class Vfs_plugin; }
 
 
-class Libc::Vfs_plugin : public Plugin
+class Libc::Vfs_plugin final : public Plugin
 {
 	public:
 
