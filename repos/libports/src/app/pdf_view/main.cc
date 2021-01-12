@@ -136,7 +136,7 @@ class Pdf_view
 			 * use case of showing slides.
 			 */
 			_pdfapp.resolution = Genode::min(_nit_mode.area.w()/5,
-			                                 _nit_mode.area.h()/3.8);
+			                                 _nit_mode.area.h()/4);
 
 			typedef Gui::Session::Command Command;
 			_gui.enqueue<Command::Geometry>(_view, Rect(Point(), _nit_mode.area));
@@ -282,8 +282,11 @@ class Pdf_view
 
 void Pdf_view::show()
 {
+	auto reduce_by = [] (auto value, auto diff) {
+		return (value >= diff) ? value - diff : 0; };
+
 	Framebuffer::Area const fb_size = _fb_mode.area;
-	int const x_max = Genode::min((int)fb_size.w(), _pdfapp.image->w);
+	int const x_max = Genode::min((int)fb_size.w(), reduce_by(_pdfapp.image->w, 2));
 	int const y_max = Genode::min((int)fb_size.h(), _pdfapp.image->h);
 
 	/* clear framebuffer */
