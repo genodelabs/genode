@@ -11,6 +11,7 @@
 #include <usb_session/connection.h>
 #include <usb/usb.h>
 #include <util/xml_node.h>
+#include <os/ring_buffer.h>
 
 #include <extern_c_begin.h>
 #include <qemu_emul.h>
@@ -61,6 +62,10 @@ class Isoc_packet : Fifo<Isoc_packet>::Element
 		Isoc_packet(Usb::Packet_descriptor packet, char *content)
 		: _packet(packet), _content(content),
 			_size (_packet.read_transfer() ? _packet.transfer.actual_size : _packet.size())
+		{ }
+
+		Isoc_packet()
+		: _packet { Usb::Packet_descriptor() }, _content { nullptr }, _size { 0 }
 		{ }
 
 		bool copy(USBPacket *usb_packet)
@@ -243,6 +248,9 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	Fifo<Isoc_packet>             isoc_read_queue { };
 	Reconstructible<Isoc_packet>  isoc_write_packet { Usb::Packet_descriptor(), nullptr };
 
+	Genode::Ring_buffer<Isoc_packet, 5, Genode::Ring_buffer_unsynchronized> _isoch_out_queue { };
+	unsigned _isoch_out_pending { 0 };
+
 	Entrypoint  &_ep;
 	Signal_handler<Usb_host_device> state_dispatcher { _ep, *this, &Usb_host_device::state_change };
 
@@ -334,8 +342,12 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			Usb::Packet_descriptor packet = usb_raw.source()->get_acked_packet();
 			Completion *c = dynamic_cast<Completion *>(packet.completion);
 
-			if ((packet.type == Packet_type::ISOC && !packet.read_transfer()) ||
-			    (c && c->state == Completion::CANCELED)) {
+			if ((packet.type == Packet_type::ISOC && !packet.read_transfer())) {
+				free_packet(packet);
+				_isoch_out_pending--;
+				continue;
+			}
+			if ((c && c->state == Completion::CANCELED)) {
 				free_packet(packet);
 				continue;
 			}
@@ -447,7 +459,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			if (isoc_write_packet->packet_count() < NUMBER_OF_PACKETS)
 				return;
 
-			submit(isoc_write_packet->packet());
+			_isoch_out_queue.add(*&*isoc_write_packet);
 		}
 
 		size_t size = usb_packet->ep->max_packet_size * NUMBER_OF_PACKETS;
@@ -466,6 +478,16 @@ struct Usb_host_device : List<Usb_host_device>::Element
 				warning("xHCI: packet allocation failed (size ", Hex(size), "in ", __func__, ")");
 			isoc_write_packet.construct(Usb::Packet_descriptor(), nullptr);
 			return;
+		}
+
+		if (_isoch_out_pending == 0 && _isoch_out_queue.avail_capacity() > 1) {
+			return;
+		}
+
+		while (!_isoch_out_queue.empty()) {
+			Isoc_packet i = _isoch_out_queue.get();
+			submit(i.packet());
+			_isoch_out_pending++;
 		}
 	}
 
