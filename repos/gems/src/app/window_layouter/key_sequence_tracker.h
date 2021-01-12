@@ -24,22 +24,6 @@ class Window_layouter::Key_sequence_tracker
 {
 	private:
 
-		enum State {
-
-			/*
-			 * No key is pressed. The next key will initiate a new key
-			 * sequence.
-			 */
-			STATE_IDLE,
-
-			/*
-			 * Key sequence has been started.
-			 */
-			STATE_IN_SEQUENCE,
-		};
-
-		State _state = STATE_IDLE;
-
 		struct Stack
 		{
 			struct Entry
