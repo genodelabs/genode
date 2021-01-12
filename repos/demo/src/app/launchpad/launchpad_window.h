@@ -64,8 +64,8 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 		Scout::Fade_icon<PT, 32, 32>     _sizer            { };
 		Scout::Scrollbar<PT>             _scrollbar        { };
 		Genode::List<Child_entry<PT> >   _child_entry_list { };
-		Scout::Docview                   _docview          { };
-		Scout::Spacer                    _spacer           { };
+		Scout::Docview                   _docview          { 0 };
+		Scout::Spacer                    _spacer           { 1, _TH };
 		Scout::Document                  _document         { };
 
 		Section<PT>                      _info_section     { };
