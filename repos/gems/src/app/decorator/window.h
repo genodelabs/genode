@@ -98,8 +98,6 @@ class Decorator::Window : public Window_base
 
 		Border const _border { _init_border() };
 
-		unsigned _topped_cnt = 0;
-
 		Window_title _title { };
 
 		bool _focused = false;
