@@ -12,7 +12,7 @@
  */
 
 #ifndef _INCLUDE__NANO3D__SQRT_H_
-#define _INCLUDE__NANO3D__SQRT_H__
+#define _INCLUDE__NANO3D__SQRT_H_
 
 namespace Nano3d {
 
@@ -38,4 +38,4 @@ namespace Nano3d {
 	}
 }
 
-#endif /* _INCLUDE__NANO3D__SQRT_H__ */
+#endif /* _INCLUDE__NANO3D__SQRT_H_ */
