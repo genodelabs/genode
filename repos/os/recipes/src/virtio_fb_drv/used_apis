@@ -1,0 +1,7 @@
+base
+blit
+capture_session
+event_session
+os
+platform_session
+virtio
