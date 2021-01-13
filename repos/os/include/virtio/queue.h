@@ -121,8 +121,8 @@ class Virtio::Queue
 		Genode::uint16_t          const  _buffer_size;
 		Genode::Attached_ram_dataspace   _ram_ds;
 		Descriptor                      *_desc_table = nullptr;
-		Avail                           *_avail = nullptr;
-		Used                            *_used = nullptr;
+		Avail                  volatile *_avail = nullptr;
+		Used                   volatile *_used = nullptr;
 		Genode::addr_t                   _buffer_phys_base = 0;
 		Genode::addr_t                   _buffer_local_base = 0;
 		Genode::uint16_t                 _last_used_idx = 0;
