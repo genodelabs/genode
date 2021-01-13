@@ -9,9 +9,10 @@ set build_components { core init timer server/dynamic_rom server/event_dump }
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
-lappend_if [have_spec ps2] build_components drivers/ps2
-lappend_if [have_spec sdl] build_components drivers/framebuffer/sdl
-lappend_if [have_spec sdl] build_components server/nitpicker
+lappend_if [have_board pc]    build_components drivers/ps2
+lappend_if [have_board muen]  build_components drivers/ps2
+lappend_if [have_board linux] build_components drivers/framebuffer/sdl
+lappend_if [have_board linux] build_components server/nitpicker
 
 build $build_components
 
@@ -52,7 +53,7 @@ append config {
 
 append_platform_drv_config
 
-append_if [have_spec ps2] config {
+append_if [expr [have_board pc] || [have_board muen]] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="2M"/>
 		<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"
@@ -72,7 +73,7 @@ append_if [have_spec ps2] config {
 		</route>
 	</start>}
 
-append_if [have_spec sdl] config {
+append_if [have_board linux] config {
 	<start name="fb_sdl" ld="no">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Input"/> <service name="Framebuffer"/> </provides>
@@ -156,9 +157,10 @@ set boot_modules { core ld.lib.so init timer dynamic_rom event_dump }
 # platform-specific modules
 append_platform_drv_boot_modules
 
-lappend_if [have_spec ps2] boot_modules ps2_drv
-lappend_if [have_spec sdl] boot_modules fb_sdl
-lappend_if [have_spec sdl] boot_modules nitpicker
+lappend_if [have_board pc]    boot_modules ps2_drv
+lappend_if [have_board muen]  boot_modules ps2_drv
+lappend_if [have_board linux] boot_modules fb_sdl
+lappend_if [have_board linux] boot_modules nitpicker
 
 build_boot_image $boot_modules
 

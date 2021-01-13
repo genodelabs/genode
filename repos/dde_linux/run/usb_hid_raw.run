@@ -38,7 +38,7 @@
 # input events on the host PC.
 #
 
-if { [have_spec linux] || [have_spec muen] } {
+if { [have_board linux] || [have_board muen] } {
 	puts "Run script does not support Linux and Muen."
 	exit 0
 }
@@ -49,16 +49,16 @@ if { [get_cmd_switch --autopilot] && [have_include "power_on/qemu"] } {
 }
 
 if { [get_cmd_switch --autopilot] &&
-    ![have_spec rpi] &&
+    ![have_board rpi] &&
     ![have_spec x86] &&
-    ![have_spec imx6q_sabrelite] &&
-    ![have_spec imx8q_evk]} {
+    ![have_board imx6q_sabrelite] &&
+    ![have_board imx8q_evk]} {
 	puts "Run script does not support autopilot mode on this platform"
 	exit 0
 }
 
 proc platform_drv_config_non_x86 {} {
-	if {[have_spec imx8q_evk]} {
+	if {[have_board imx8q_evk]} {
 		return {
 			<device name="usb_host_2">
 				<io_mem       address="0x38200000" size="0x10000"/>
@@ -82,7 +82,7 @@ proc platform_drv_config_non_x86 {} {
 			<policy label="usb_drv -> "> <device name="usb_host_2"/> </policy>
 		}
 	}
-	if {[have_spec imx6q_sabrelite]} {
+	if {[have_board imx6q_sabrelite]} {
 		return {
 			<device name="mxs_phy">
 				<io_mem address="0x020ca000" size="0xfff"/>
@@ -108,7 +108,7 @@ proc platform_drv_config_non_x86 {} {
 			</policy>
 		}
 	}
-	if {[have_spec rpi]} {
+	if {[have_board rpi]} {
 		return {
 			<device name="dwc_otg">
 				<io_mem       address="0x20980000" size="0x10000"/>
@@ -123,9 +123,9 @@ proc platform_drv_config_non_x86 {} {
 }
 
 proc platform_drv_binary_non_x86 {} {
-	if {[have_spec imx8q_evk]}       { return imx8mq_platform_drv  }
-	if {[have_spec imx6q_sabrelite]} { return platform_drv         }
-	if {[have_spec rpi]}             { return rpi_new_platform_drv }
+	if {[have_board imx8q_evk]}       { return imx8mq_platform_drv  }
+	if {[have_board imx6q_sabrelite]} { return platform_drv         }
+	if {[have_board rpi]}             { return rpi_new_platform_drv }
 	return no_platform_drv_available
 }
 

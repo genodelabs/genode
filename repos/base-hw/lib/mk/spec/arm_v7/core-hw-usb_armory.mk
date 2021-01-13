@@ -5,10 +5,8 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/usb_armory
-INC_DIR += $(REP_DIR)/src/core/spec/imx53
+INC_DIR += $(REP_DIR)/src/core/board/usb_armory
 INC_DIR += $(REP_DIR)/src/core/spec/arm_v7/trustzone
-INC_DIR += $(REP_DIR)/src/core/spec/imx53/trustzone
 
 # add C++ sources
 SRC_CC += kernel/vm_thread_on.cc

@@ -7,9 +7,9 @@
 #
 proc fast_polling_buf_size  { } {
 
-	if {[expr [have_spec pbxa9]        && [have_spec foc]]} { return 40000000 }
-	if {[expr [have_spec imx53_qsb_tz] && [have_spec hw]]}  { return 40000000 }
-	if {[expr [have_spec rpi]          && [have_spec hw]]}  { return 40000000 }
+	if {[expr [have_board pbxa9]        && [have_spec foc]]} { return 40000000 }
+	if {[expr [have_board imx53_qsb_tz] && [have_spec hw]]}  { return 40000000 }
+	if {[expr [have_board rpi]          && [have_spec hw]]}  { return 40000000 }
 	return 80000000
 }
 

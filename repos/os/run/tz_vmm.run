@@ -86,13 +86,12 @@
 #
 
 assert_spec hw
-assert_spec imx53
-assert_spec trustzone
+assert_spec imx53_qsb_tz
 
 # determine platform specific configuration
-set trusted_led       [have_spec usb_armory]
-set inversepath_linux [have_spec usb_armory]
-set freescale_linux   [have_spec imx53_qsb]
+set trusted_led       [have_board usb_armory]
+set inversepath_linux [have_board usb_armory]
+set freescale_linux   [have_board imx53_qsb_tz]
 set initrd_rootfs     $freescale_linux
 set mmc_rootfs        $inversepath_linux
 set dtb               $inversepath_linux
@@ -100,15 +99,15 @@ set dtb               $inversepath_linux
 set targets { core init server/tz_vmm }
 
 proc tz_vmm_binary {} {
-	if {[have_spec usb_armory]} { return usb_armory_tz_vmm }
-	if {[have_spec imx53_qsb]}  { return imx53_qsb_tz_vmm }
+	if {[have_board usb_armory]} { return usb_armory_tz_vmm }
+	if {[have_board imx53_qsb]}  { return imx53_qsb_tz_vmm }
 	return no_tz_vmm_binary
 }
 
 if { $mmc_rootfs } {
 
 	# choose interrupt for paravirtualized block
-	if { [have_spec imx53] } { set tz_vmm_block_irq 92 }
+	if { [have_board imx53_qsb_tz] } { set tz_vmm_block_irq 92 }
 
 	# add targets that enable MMC access via paravirtualized block
 	lappend targets timer

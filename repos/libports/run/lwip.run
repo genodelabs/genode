@@ -20,10 +20,10 @@
 #       tun/tap proxy driver at os/src/drivers/nic/linux)
 #
 
-if {[expr [have_spec linux]] ||
-    [expr [have_spec imx53] && [have_spec trustzone]] ||
-    [have_spec rpi3] ||
-    [expr [have_spec riscv]]} {
+if {[have_board linux] ||
+    [have_board imx53_qsb_tz] ||
+    [have_board rpi3]  ||
+    [have_board spike]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 set lynx [installed_command lynx]

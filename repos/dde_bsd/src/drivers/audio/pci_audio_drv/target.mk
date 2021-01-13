@@ -1,4 +1,4 @@
-REQUIRES = x86 pci
+REQUIRES = x86
 TARGET   = pci_audio_drv
 SRC_CC   = main.cc
 LIBS     = dde_bsd_audio dde_bsd_audio_pci base

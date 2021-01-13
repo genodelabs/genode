@@ -89,9 +89,6 @@ export SHELL := $(shell which bash)
 # Fetch SPECS configuration from all source repositories and the build directory
 #
 SPECS :=
-ifneq ($(BOARD),)
-SPECS += $(BOARD)
-endif
 -include $(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/etc/specs.conf))
 -include $(BUILD_BASE_DIR)/etc/specs.conf
 

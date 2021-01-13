@@ -26,6 +26,14 @@ src/kernel/foc: src/kernel
 	tar -C $(KERNEL_PORT_DIR)/src/kernel/foc --exclude=.git -cf - . |\
 		tar -C $@ -xf -
 
+content: etc/board.conf remove_other_board_libs
+
+etc/board.conf:
+	echo "BOARD = $(BOARD)" > etc/board.conf
+
+remove_other_board_libs: lib/mk
+	find lib/mk/spec -name kernel-foc-*.mk -o -name syscall-foc-*.mk |\
+		grep -v "foc-$(BOARD).mk" | xargs rm -rf
 
 content:
 	for spec in x86_32 x86_64 arm arm_64; do \
@@ -33,11 +41,3 @@ content:
 	  done;
 	sed -i "s/ld-foc/ld/"           src/lib/ld/foc/target.mk
 	sed -i "s/foc_timer_drv/timer/" src/timer/foc/target.mk
-	sed -i "s/BOARD.*unknown/BOARD = $(BOARD)/" src/core/foc/target.mk
-	sed -i "s/BOARD.*unknown/BOARD = $(BOARD)/" src/kernel/foc/target.mk
-	sed -i "s/BOARD.*unknown/BOARD = $(BOARD)/" lib/mk/syscall-foc.inc
-	sed -i "s/BOARD.*unknown/BOARD = $(BOARD)/" lib/mk/kernel-foc.inc
-
-content: enable_board_spec
-enable_board_spec: etc/specs.conf
-	echo "SPECS += $(BOARD)" >> etc/specs.conf

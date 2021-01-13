@@ -1,4 +1,6 @@
-L4_INCLUDE_DIR := $(LIB_CACHE_DIR)/syscall-foc/include
+include $(call select_from_repositories,etc/board.conf)
+
+L4_INCLUDE_DIR := $(LIB_CACHE_DIR)/syscall-foc-$(BOARD)/build/include
 
 ifeq ($(filter-out $(SPECS),x86_32),)
   INC_DIR += $(L4_INCLUDE_DIR)/x86/l4f $(L4_INCLUDE_DIR)/x86

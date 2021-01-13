@@ -5,7 +5,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/imx7d_sabre
+INC_DIR += $(REP_DIR)/src/core/board/imx7d_sabre
 INC_DIR += $(REP_DIR)/src/core/spec/arm/virtualization
 
 # add C++ sources

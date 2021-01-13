@@ -1,7 +1,6 @@
 create_boot_directory
 
-if {[have_spec linux] || [have_spec rpi3] ||
-    [expr [have_spec imx53] && [have_spec trustzone]]} {
+if {[have_board linux] || [have_board rpi3] || [have_board imx53_qsb_tz]} {
 	puts "Run script does not support this platform."
 	exit 0
 }

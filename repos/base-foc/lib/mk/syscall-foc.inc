@@ -6,9 +6,9 @@
 # userland (L4re) that comes with Fiasco.OC.
 #
 
-BOARD        ?= unknown
 L4_SRC_DIR   := $(call select_from_ports,foc)/src/kernel/foc
-L4_BUILD_DIR := $(shell pwd)/$(BOARD)-build
+L4_BUILD_DIR := $(shell pwd)/build
+L4_BIN_DIR   := $(LIB_CACHE_DIR)/syscall-foc-$(BOARD)/build/bin/$(L4_ARCH)
 
 #
 # Create mirror for architecture-specific L4sys header files

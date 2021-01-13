@@ -4,13 +4,12 @@
 # \date   2016-06-05
 #
 
-if {[have_spec rpi3] ||
-    [expr [have_spec imx53] && [have_spec trustzone]]} {
+if {[have_board rpi3] || [have_board imx53_qsb_tz]} {
 	puts "Run script does not support this platform."
 	exit 0
 }
 
-if {[get_cmd_switch --autopilot] && [have_spec linux]} {
+if {[get_cmd_switch --autopilot] && [have_board linux]} {
 	puts "Autopilot mode is not supported on this platform."
 	exit 0
 }
@@ -28,7 +27,7 @@ if {[get_cmd_switch --autopilot] && [have_spec linux]} {
 proc socket_fs_plugin { } {
 	set result "<[ip_stack]"
 
-	if {[have_spec linux]} {
+	if {[have_board linux]} {
 		append result { ip_addr="10.0.2.55" netmask="255.255.255.0"}
 		append result { gateway="10.0.2.1" nameserver="1.1.1.1"}
 	} else {

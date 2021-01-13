@@ -1,8 +1,9 @@
-if {[have_spec imx7d_sabre] ||
-    [have_spec imx6q_sabrelite] ||
-    [have_spec rpi3] ||
-    [have_spec zynq] ||
-    [have_spec imx53] && [have_spec foc]} {
+if {[have_board imx7d_sabre] ||
+    [have_board imx6q_sabrelite] ||
+    [have_board rpi3] ||
+    [have_board zynq] ||
+    [have_board imx53_qsb_tz] ||
+    [have_board imx53_qsb] && [have_spec foc]} {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
 }

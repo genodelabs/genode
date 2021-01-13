@@ -71,7 +71,7 @@ proc run_power_on { } {
 		# In the raspi3 model the first UART is never used as
 		# log output, but the second
 		#
-		if {[have_spec rpi3]} { append qemu_args " -serial null " }
+		if {[have_board rpi3]} { append qemu_args " -serial null " }
 		append qemu_args " -serial mon:stdio "
 	}
 
@@ -93,7 +93,7 @@ proc run_power_on { } {
 	}
 
 	# tweak emulated platform for specific platforms
-	if {[have_spec pbxa9]}  {
+	if {[have_board pbxa9]}  {
 		#
 		# For PBXA9 qemu adjusts provided RAM chips to the -m arg. Thus we
 		# filter user values and force value that enables all chips that Genode
@@ -103,11 +103,11 @@ proc run_power_on { } {
 		append qemu_args " -m 768"
 		append qemu_args " -M realview-pbx-a9"
 	}
-	if {[have_spec vpb926]} { append qemu_args " -M versatilepb     -m 128 " }
-	if {[have_spec zynq_qemu]}   { append qemu_args " -M xilinx-zynq-a9 -cpu cortex-a9 -m 256 " }
-	if {[have_spec rpi3]}   { append qemu_args " -M raspi3 -m 512 " }
+	if {[have_board vpb926]} { append qemu_args " -M versatilepb     -m 128 " }
+	if {[have_board zynq_qemu]}   { append qemu_args " -M xilinx-zynq-a9 -cpu cortex-a9 -m 256 " }
+	if {[have_board rpi3]}   { append qemu_args " -M raspi3 -m 512 " }
 
-	if {[have_spec virt_qemu]} {
+	if {[have_board virt_qemu]} {
 		append qemu_args " -M virt,virtualization=true"
 		if {[have_spec arm_v8a]} {
 			append qemu_args ",gic-version=3 -cpu cortex-a53 -smp 4"
@@ -119,7 +119,7 @@ proc run_power_on { } {
 	}
 
 	# on x86, we support booting via pxe or iso/disk image
-	if {[have_spec x86]} {
+	if {[have_board pc]} {
 		if {![regexp -- {-m} $qemu_args dummy]} {
 			if {[have_spec okl4]} {
 				# okl4 system integration specifies RAM from 32 to 800 MiB

@@ -1,4 +1,4 @@
-INC_DIR += $(REP_DIR)/src/core/spec/rpi3
+INC_DIR += $(REP_DIR)/src/core/board/rpi3
 
 # add C++ sources
 SRC_CC += kernel/vm_thread_off.cc

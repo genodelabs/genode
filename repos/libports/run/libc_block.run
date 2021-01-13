@@ -1,4 +1,4 @@
-set use_sd_card_drv [expr [have_spec pbxa9]]
+set use_sd_card_drv [expr [have_board pbxa9]]
 set use_ahci_drv    [expr [have_spec x86] && ![have_spec linux]]
 set use_vfs_block   [have_spec linux]
 

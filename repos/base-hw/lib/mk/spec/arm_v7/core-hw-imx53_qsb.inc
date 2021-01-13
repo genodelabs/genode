@@ -6,8 +6,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/imx53_qsb
-INC_DIR += $(REP_DIR)/src/core/spec/imx53
+INC_DIR += $(REP_DIR)/src/core/board/imx53_qsb
 
 SRC_CC += spec/arm/imx_epit.cc
 SRC_CC += spec/arm/imx_tzic.cc

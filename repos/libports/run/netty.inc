@@ -106,9 +106,9 @@ append_qemu_nic_args
 
 # When using with a tap device manually replace append_qemu_nic_args with:
 #proc qemu_nic_model {} {
-#       if [have_spec x86]         { return e1000 }
-#       if [have_spec lan9118]     { return lan9118 }
-#       if [have_spec zynq]        { return cadence_gem }
+#       if [have_spec x86]        { return e1000 }
+#       if [have_board pbxa9]     { return lan9118 }
+#       if [have_board zynq_qemu] { return cadence_gem }
 #       return nic_model_missing
 #}
 #append qemu_args " -net nic,model=[qemu_nic_model] "

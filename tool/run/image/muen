@@ -43,8 +43,8 @@ proc muen_spark_path { } {
 # \param  elf_img   ELF binary of Genode subject
 #
 proc run_image {elf_img} {
-	if {![have_spec "muen"]} {
-		puts stderr "Error: Missing SPEC muen, unsupported platform"
+	if {![have_board "muen"]} {
+		puts stderr "You've to build for the BOARD=muen"
 		exit -1
 	}
 

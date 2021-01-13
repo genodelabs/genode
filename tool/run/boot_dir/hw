@@ -6,20 +6,22 @@ proc binary_name_timer     { } { return "hw_timer_drv" }
 proc run_boot_string { } { return "\nkernel initialized" }
 
 proc bootstrap_link_address { } {
-	if {[have_spec "pbxa9"]}           { return "0x70000000" }
-	if {[have_spec "usb_armory"]}      { return "0x72000000" }
-	if {[have_spec "x86_64"]}          { return "0x00200000" }
-	if {[have_spec "wand_quad"]}       { return "0x10001000" }
-	if {[have_spec "imx6q_sabrelite"]} { return "0x10001000" }
-	if {[have_spec "imx53_qsb"]}       { return "0x70010000" }
-	if {[have_spec "imx7d_sabre"]}     { return "0x88000000" }
-	if {[have_spec "imx8q_evk"]}       { return "0x40010000" }
-	if {[have_spec "zynq"]}            { return "0x00100000" }
-	if {[have_spec "riscv"]}           { return "0x81000000" }
-	if {[have_spec "rpi"]}             { return "0x00800000" }
-	if {[have_spec "rpi3"]}            { return "0x00800000" }
-	if {[have_spec "nit6_solox"]}      { return "0x88000000" }
-	if {[have_spec "virt_qemu"]}       { return "0x40000000" }
+	if {[have_board "pbxa9"]}           { return "0x70000000" }
+	if {[have_board "usb_armory"]}      { return "0x72000000" }
+	if {[have_board "pc"]}              { return "0x00200000" }
+	if {[have_board "muen"]}            { return "0x00200000" }
+	if {[have_board "wand_quad"]}       { return "0x10001000" }
+	if {[have_board "imx6q_sabrelite"]} { return "0x10001000" }
+	if {[have_board "imx53_qsb"]}       { return "0x70010000" }
+	if {[have_board "imx53_qsb_tz"]}    { return "0x70010000" }
+	if {[have_board "imx7d_sabre"]}     { return "0x88000000" }
+	if {[have_board "imx8q_evk"]}       { return "0x40010000" }
+	if {[have_board "zynq_qemu"]}       { return "0x00100000" }
+	if {[have_board "riscv"]}           { return "0x81000000" }
+	if {[have_board "rpi"]}             { return "0x00800000" }
+	if {[have_board "rpi3"]}            { return "0x00800000" }
+	if {[have_board "nit6_solox"]}      { return "0x88000000" }
+	if {[have_board "virt_qemu"]}       { return "0x40000000" }
 
 	puts "unknown platform no linker address known"
 	exit -1
@@ -38,7 +40,7 @@ proc core_link_address { } {
 proc run_boot_dir {binaries} {
 
 	# generate static ACPI report for platform driver on Muen
-	if {[have_spec "muen"]} {
+	if {[have_board "muen"]} {
 		set fh [open "bin/acpi" "WRONLY CREAT TRUNC"]
 		puts $fh "<acpi><bdf start=\"0\" count=\"16384\" base=\"0xf8000000\"/><drhd/></acpi>"
 		close $fh
@@ -172,7 +174,7 @@ proc run_boot_dir {binaries} {
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-		if {[have_spec "muen"]} {
+		if {[have_board "muen"]} {
 			exec gzip [run_dir]/image.bin
 			puts $fh " exec /boot/unzip"
 			puts $fh " load /image.bin.gz"
@@ -192,7 +194,7 @@ proc run_boot_dir {binaries} {
 		set fh [open "[run_dir]/boot.cfg" "WRONLY CREAT TRUNC"]
 		puts $fh "#!ipxe"
 
-		if {[have_spec "muen"]} {
+		if {[have_board "muen"]} {
 			puts $fh "kernel image.bin"
 		} else {
 			install_pxe_bootloader_to_run_dir
@@ -212,19 +214,19 @@ proc run_boot_dir {binaries} {
 #
 proc base_src { } {
 
-	if {[have_spec x86_64] && ![have_spec muen]}         { return base-hw-pc }
-	if {[have_spec x86_64] &&  [have_spec muen]}         { return base-hw-muen }
-	if {[have_spec pbxa9]}                               { return base-hw-pbxa9 }
-	if {[have_spec rpi]}                                 { return base-hw-rpi }
-	if {[have_spec rpi3]}                                { return base-hw-rpi3 }
-	if {[have_spec imx6q_sabrelite]}                     { return base-hw-imx6q_sabrelite }
-	if {[have_spec imx7d_sabre]}                         { return base-hw-imx7d_sabre }
-	if {[have_spec imx8q_evk]}                           { return base-hw-imx8q_evk }
-	if {[have_spec nit6_solox]}                          { return base-hw-nit6_solox }
-	if {[have_spec imx53_qsb] && ![have_spec trustzone]} { return base-hw-imx53_qsb }
-	if {[have_spec imx53_qsb] &&  [have_spec trustzone]} { return base-hw-imx53_qsb_tz }
-	if {[have_spec zynq_qemu]}                           { return base-hw-zynq_qemu }
-	if {[have_spec virt_qemu]}                           { return base-hw-virt_qemu }
+	if {[have_spec x86_64] && ![have_board muen]} { return base-hw-pc }
+	if {[have_spec x86_64] &&  [have_board muen]} { return base-hw-muen }
+	if {[have_board pbxa9]}                       { return base-hw-pbxa9 }
+	if {[have_board rpi]}                         { return base-hw-rpi }
+	if {[have_board rpi3]}                        { return base-hw-rpi3 }
+	if {[have_board imx6q_sabrelite]}             { return base-hw-imx6q_sabrelite }
+	if {[have_board imx7d_sabre]}                 { return base-hw-imx7d_sabre }
+	if {[have_board imx8q_evk]}                   { return base-hw-imx8q_evk }
+	if {[have_board nit6_solox]}                  { return base-hw-nit6_solox }
+	if {[have_board imx53_qsb]}                   { return base-hw-imx53_qsb }
+	if {[have_board imx53_qsb_tz]}                { return base-hw-imx53_qsb_tz }
+	if {[have_board zynq_qemu]}                   { return base-hw-zynq_qemu }
+	if {[have_board virt_qemu]}                   { return base-hw-virt_qemu }
 
 	global specs
 

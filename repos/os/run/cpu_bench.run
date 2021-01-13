@@ -5,7 +5,7 @@ if { [get_cmd_switch --autopilot] } {
 	}
 }
 
-if {[have_spec linux] || [have_spec riscv]} {
+if {[have_board linux] || [have_board spike]} {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
 }

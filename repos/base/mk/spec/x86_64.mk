@@ -21,4 +21,3 @@ CC_MARCH ?= -m64 -mcmodel=large
 LD_MARCH ?= -melf_x86_64
 
 include $(BASE_DIR)/mk/spec/64bit.mk
-include $(BASE_DIR)/mk/spec/x86.mk

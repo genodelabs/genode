@@ -32,9 +32,7 @@
 #    ! sudo dhclient -v eth0
 #
 
-if {[have_spec foc] || [have_spec rpi3] ||
-    [expr [have_spec imx53] && [have_spec trustzone]]} {
-
+if {[have_spec foc] || [have_board rpi3] || [have_board imx53_qsb_tz]} {
 	puts "Run script is not supported on this platform."
 	exit 0
 }

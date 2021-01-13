@@ -1,30 +1,9 @@
 proc have_platform_drv {} {
-	if {[have_spec linux]} {
-		return 0
-	}
-
-	return [expr [have_spec imx53] \
-	          || [have_spec rpi] \
-	          || [have_spec x86]]
-}
-
-
-##
-# Return 1 if the scenario depends on the USB driver on the used platform
-#
-# On most ARM platform, user input is provided by an USB HID device. On other
-# platforms, the USB driver may be omitted.
-#
-proc need_usb_hid { } {
-
-	# covered by fb_sdl
-	if {[have_spec linux]} { return 0 }
-
-	# covered by ps2_drv
-	if {[have_spec x86]}   { return 0 }
-	if {[have_spec pbxa9]} { return 0 }
-
-	return [have_spec usb]
+	return [expr [have_board imx53_qsb] \
+	          || [have_board imx53_qsb_tz] \
+	          || [have_board rpi] \
+	          || [have_board muen] \
+	          || [have_board pc]]
 }
 
 
@@ -32,10 +11,11 @@ proc need_usb_hid { } {
 # Return name of the USB driver binary
 #
 proc usb_host_drv_binary { } {
-	if {[have_spec rpi]}       { return rpi_usb_host_drv       }
-	if {[have_spec imx6q_sabrelite]} { return imx6q_sabrelite_usb_host_drv }
-	if {[have_spec imx8q_evk]} { return imx8q_evk_usb_host_drv }
-	if {[have_spec x86]}       { return x86_pc_usb_host_drv    }
+	if {[have_board rpi]}             { return rpi_usb_host_drv       }
+	if {[have_board imx6q_sabrelite]} { return imx6q_sabrelite_usb_host_drv }
+	if {[have_board imx8q_evk]}       { return imx8q_evk_usb_host_drv }
+	if {[have_board muen]}            { return x86_pc_usb_host_drv    }
+	if {[have_board pc]}              { return x86_pc_usb_host_drv    }
 	return no_usb_drv_available
 }
 
@@ -44,8 +24,9 @@ proc usb_host_drv_binary { } {
 # Return name of the audio driver binary
 #
 proc audio_drv_binary { } {
-	if {[have_spec linux]} { return linux_audio_drv }
-	if {[have_spec x86]}   { return pci_audio_drv }
+	if {[have_board linux]} { return linux_audio_drv }
+	if {[have_board muen]}  { return pci_audio_drv }
+	if {[have_board pc]}    { return pci_audio_drv }
 	return no_audio_drv_available
 }
 
@@ -53,7 +34,7 @@ proc audio_drv_binary { } {
 # Return attributes of the audio driver's <start> node
 #
 proc audio_drv_start_attr { } {
-	if {[have_spec linux]} { return {ld="no"} }
+	if {[have_board linux]} { return {ld="no"} }
 	return ""
 }
 
@@ -68,8 +49,8 @@ proc acpi_drv_name { } {
 proc platform_drv_build_components {} {
 	set drv_build_components ""
 	lappend_if [have_platform_drv] drv_build_components drivers/platform
-	lappend_if [have_spec x86]     drv_build_components server/report_rom
-	if {[have_spec x86]} {
+	if {[have_board pc] || [have_board muen]} {
+		lappend drv_build_components server/report_rom
 		if {[acpi_drv_name] eq "acpi_drv"} {
 			lappend drv_build_components drivers/acpi
 		}
@@ -87,19 +68,21 @@ proc append_platform_drv_build_components {} {
 }
 
 proc platform_drv_binary {} {
-	if {[have_spec imx53]    } { return imx53_platform_drv     }
-	if {[have_spec rpi]      } { return rpi_platform_drv       }
-	if {[have_spec x86]      } { return platform_drv           }
+	if {[have_board imx53_qsb]}    { return imx53_platform_drv }
+	if {[have_board imx53_qsb_tz]} { return imx53_platform_drv }
+	if {[have_board rpi]}          { return rpi_platform_drv   }
+	if {[have_board pc]}           { return platform_drv       }
+	if {[have_board muen]}         { return platform_drv       }
 	return no_platform_drv_available
 }
 
 proc platform_drv_boot_modules {} {
 	set drv_boot_modules ""
 	lappend_if [have_platform_drv] drv_boot_modules [platform_drv_binary]
-	lappend_if [have_spec x86]     drv_boot_modules report_rom
 
 	if {[have_spec x86]} {
-		if {[have_spec muen]} {
+		lappend drv_boot_modules report_rom
+		if {[have_board muen]} {
 			lappend drv_boot_modules acpi
 		} else {
 			lappend drv_boot_modules [acpi_drv_name]
@@ -172,7 +155,7 @@ proc platform_drv_config_config {} {
 proc platform_drv_config {} {
 	set drv_config ""
 
-	if {[have_spec x86] && ![have_spec muen] && ![have_spec linux]} {
+	if {[have_board pc]} {
 
 		append drv_config {
 	<start name="acpi_drv" } [platform_drv_priority] { caps="350" >
@@ -259,10 +242,10 @@ proc platform_drv_config {} {
 
 		append drv_config "[platform_drv_add_routing]"
 
-		append_if [expr [have_spec x86] && ![have_spec muen]] drv_config {
+		append_if [have_board pc] drv_config {
 			<service name="ROM" label="acpi"> <child name="acpi_report_rom"/> </service>}
 
-		append_if [expr [have_spec rpi] || [have_spec x86]] drv_config {
+		append_if [expr [have_board rpi] || [have_board pc]] drv_config {
 			<service name="Timer"> <any-child/> </service>}
 
 		append drv_config {

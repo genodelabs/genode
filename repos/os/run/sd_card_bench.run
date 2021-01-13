@@ -3,38 +3,40 @@
 #
 
 proc buffer_size_kib {} {
-	if {[have_spec pbxa9]}     { return [expr 12 * 1024] }
-	if {[have_spec imx8q_evk]} { return [expr      1024] }
-	if {[have_spec imx6]}      { return [expr      1024] }
-	if {[have_spec imx53]}     { return [expr      1024] }
-	if {[have_spec rpi]}       { return [expr  4 * 1024] }
+	if {[have_board pbxa9]}           { return [expr 12 * 1024] }
+	if {[have_board imx8q_evk]}       { return [expr      1024] }
+	if {[have_board imx6q_sabrelite]} { return [expr      1024] }
+	if {[have_board imx53_qsb]}       { return [expr      1024] }
+	if {[have_board imx53_qsb_tz]}    { return [expr      1024] }
+	if {[have_board rpi]}             { return [expr  4 * 1024] }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
 
 proc sd_card_drv {} {
-	if {[have_spec pbxa9]}           { return pl180_sd_card_drv }
-	if {[have_spec imx8q_evk]}       { return imx8_sd_card_drv  }
-	if {[have_spec imx6q_sabrelite]} { return imx6_sd_card_drv  }
-	if {[have_spec imx53]}           { return imx53_sd_card_drv }
-	if {[have_spec rpi]}             { return rpi_sd_card_drv   }
+	if {[have_board pbxa9]}           { return pl180_sd_card_drv }
+	if {[have_board imx8q_evk]}       { return imx8_sd_card_drv  }
+	if {[have_board imx6q_sabrelite]} { return imx6_sd_card_drv  }
+	if {[have_board imx53_qsb]}       { return imx53_sd_card_drv }
+	if {[have_board imx53_qsb_tz]}    { return imx53_sd_card_drv }
+	if {[have_board rpi]}             { return rpi_sd_card_drv   }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
 
 proc platform_drv {} {
-	if {[have_spec imx8q_evk]} { return imx8mq_platform_drv }
+	if {[have_board imx8q_evk]} { return imx8mq_platform_drv }
 	return platform_drv
 }
 
 proc device_resources {} {
-	if {[have_spec pbxa9]} {
+	if {[have_board pbxa9]} {
 		return {
 			<io_mem   address="0x10005000" size="0x1000"/>
 			<property name="compatible" value="arm,pl18x"/>
 		}
 	}
-	if {[have_spec imx8q_evk]} {
+	if {[have_board imx8q_evk]} {
 		return {
 			<io_mem   address="0x30b50000" size="0x10000"/>
 			<irq      number="55"/>
@@ -44,21 +46,21 @@ proc device_resources {} {
 			<property name="compatible" value="fsl,imx8mq-usdhc"/>
 		}
 	}
-	if {[have_spec imx6q_sabrelite]} {
+	if {[have_board imx6q_sabrelite]} {
 		return {
 			<io_mem   address="0x0219c000" size="0x4000"/>
 			<irq      number="57"/>
 			<property name="compatible" value="fsl,imx6q-usdhc"/>
 		}
 	}
-	if {[have_spec imx53]} {
+	if {[have_board imx53_qsb] || [have_board imx53_qsb_tz]} {
 		return {
 			<io_mem   address="0x50004000" size="0x4000"/>
 			<irq      number="1"/>
 			<property name="compatible" value="fsl,imx53-esdhc"/>
 		}
 	}
-	if {[have_spec rpi]} {
+	if {[have_board rpi]} {
 		return {
 			<io_mem   address="0x20300000" size="0x100"/>
 			<property name="compatible" value="brcm,bcm2835-sdhci"/>
@@ -151,5 +153,3 @@ run_genode_until "--- SD card benchmark finished ---" 120
 if {[have_include power_on/qemu]} {
 	if { [file exists $disk_image] != 0 } then {
 		exec rm -f $disk_image
-	}
-}

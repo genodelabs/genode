@@ -5,7 +5,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/rpi
+INC_DIR += $(REP_DIR)/src/core/board/rpi
 
 # add C++ sources
 SRC_CC += platform_services.cc

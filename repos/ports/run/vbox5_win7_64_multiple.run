@@ -31,7 +31,7 @@ set use_serial 0
 set use_check_result 1
 
 set use_usb [expr ![get_cmd_switch --autopilot]]
-set use_ps2 [have_spec ps2]
+set use_ps2 1
 
 set use_vms 6
 set affinity_space_width 8

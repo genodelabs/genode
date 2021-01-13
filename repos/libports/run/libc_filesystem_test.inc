@@ -4,19 +4,19 @@
 # \date   2011-05-27
 #
 
-if {[have_spec odroid_xu] || [have_spec zynq]} {
+if {[have_board zynq_qemu]} {
 	puts "Run script does not support this platform."
 	exit 0
 }
 
 # use SD on Qemu/pbxa9
-set use_sd_card_drv [expr [have_include "power_on/qemu"] && [have_spec pbxa9]]
+set use_sd_card_drv [expr [have_include "power_on/qemu"] && [have_board pbxa9]]
 
 # use AHCI on x86
 set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
 
 # use vfs_block on Linux and Qemu/rpi3
-set use_vfs_block   [expr [have_spec linux] || [expr [have_include "power_on/qemu"] && [have_spec rpi3]]]
+set use_vfs_block   [expr [have_spec linux] || [expr [have_include "power_on/qemu"] && [have_board rpi3]]]
 
 if {[catch { exec which $mkfs_cmd } ]} {
 	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }

@@ -7,7 +7,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/wand_quad
+INC_DIR += $(REP_DIR)/src/core/board/wand_quad
 
 # add C++ sources
 SRC_CC += platform_services.cc

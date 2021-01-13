@@ -1,6 +1,7 @@
 L4_INC_TARGETS = arm/l4/sys \
                  arm/l4f/l4/sys \
                  arm/l4/vcpu
+L4_CONFIG     := $(call select_from_repositories,config/$(BOARD).user)
 
 CC_OPT += -Iinclude/arm
 

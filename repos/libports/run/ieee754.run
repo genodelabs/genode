@@ -2,7 +2,7 @@
 # Raspberry PI 1 needs "undef exc" handling emulation code in the kernel
 # for ieee754 full-compliant support
 #
-if {[have_spec rpi]} {
+if {[have_board rpi]} {
 	puts "Run script does not support Raspberry Pi 1"
 	exit 0
 }

@@ -4,12 +4,12 @@
 # \date   2017-06-13
 #
 
-set use_sd_card_drv [expr [have_spec pbxa9]]
+set use_sd_card_drv [expr [have_board pbxa9]]
 set use_ahci_drv    [expr [have_spec x86] && ![have_spec linux]]
 set use_vfs_block   [have_spec linux]
 set mkfs [installed_command $mkfs_cmd]
 
-if {[expr ![have_spec pbxa9] && ![have_spec x86]]} {
+if {[expr ![have_board pbxa9] && ![have_spec x86]]} {
         puts "Run script does not support this platform"; exit }
 
 #

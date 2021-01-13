@@ -5,7 +5,7 @@
 
 assert_spec x86
 
-if { [have_spec linux] || [have_spec muen] } {
+if { [have_spec linux] || [have_board muen] } {
 	puts "Run script does not support Linux and Muen."
 	exit 0
 }

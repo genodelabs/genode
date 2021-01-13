@@ -1,4 +1,4 @@
-INC_DIR += $(REP_DIR)/src/bootstrap/spec/nit6_solox
+INC_DIR += $(REP_DIR)/src/bootstrap/board/nit6_solox
 
 SRC_S   += bootstrap/spec/arm/crt0.s
 

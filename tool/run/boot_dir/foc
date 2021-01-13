@@ -9,13 +9,13 @@ proc run_boot_string { } { return "\nL4 Bootstrapper" }
 
 proc core_link_address { } {
 
-	if {[have_spec x86      ]} { return "0x01100000" }
-	if {[have_spec rpi      ]} { return "0x00800000" }
-	if {[have_spec rpi3     ]} { return "0x02000000" }
-	if {[have_spec pbxa9    ]} { return "0x76000000" }
-	if {[have_spec imx53    ]} { return "0x70140000" }
-	if {[have_spec imx6q_sabrelite ]} { return "0x14000000" }
-	if {[have_spec imx7d_sabre ]}     { return "0x91000000" }
+	if {[have_spec x86      ]}          { return "0x01100000" }
+	if {[have_board  rpi      ]}        { return "0x00800000" }
+	if {[have_board  rpi3     ]}        { return "0x02000000" }
+	if {[have_board  pbxa9    ]}        { return "0x76000000" }
+	if {[have_board  imx53_qsb]}        { return "0x70140000" }
+	if {[have_board  imx6q_sabrelite ]} { return "0x14000000" }
+	if {[have_board  imx7d_sabre ]}     { return "0x91000000" }
 
 	puts stderr "Error: platform not supported, core link address unknown"
 	exit 1
@@ -37,7 +37,7 @@ proc reset_target { {spawn_id_arg -1} } {
 }
 
 
-proc l4_build_dir { } { return "[pwd]/var/libcache/syscall-foc/[board]-build" }
+proc l4_build_dir { } { return "[pwd]/var/libcache/syscall-foc-[board]/build" }
 
 
 proc kernel_binary { } { return "[pwd]/bin/foc-[board]" }
@@ -221,11 +221,11 @@ proc run_boot_dir {binaries} {
 #
 proc base_src { } {
 
-	if {[have_spec x86]}     { return base-foc-pc }
-	if {[have_spec pbxa9]}   { return base-foc-pbxa9 }
-	if {[have_spec rpi3]}    { return base-foc-rpi3 }
-	if {[have_spec imx6q_sabrelite]} { return base-foc-imx6q_sabrelite }
-	if {[have_spec imx7d_sabre]}     { return base-foc-imx7d_sabre }
+	if {[have_spec   x86]}             { return base-foc-pc }
+	if {[have_board  pbxa9]}           { return base-foc-pbxa9 }
+	if {[have_board  rpi3]}            { return base-foc-rpi3 }
+	if {[have_board  imx6q_sabrelite]} { return base-foc-imx6q_sabrelite }
+	if {[have_board  imx7d_sabre]}     { return base-foc-imx7d_sabre }
 
 	global specs
 

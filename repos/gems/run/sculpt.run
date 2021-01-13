@@ -1,4 +1,4 @@
-if {![have_spec pc] && ![have_spec imx8q_evk]} {
+if {![have_board pc] && ![have_board imx8q_evk]} {
 	puts "Platform is unsupported.";
 	exit 0;
 }
@@ -18,8 +18,8 @@ proc config_system_content {} { return {\
 <system state=""/>} }
 
 proc nic_drv {} {
-	if {[have_spec pc]}        { return ipxe_nic_drv }
-	if {[have_spec imx8q_evk]} { return fec_nic_drv  }
+	if {[have_board pc]}        { return ipxe_nic_drv }
+	if {[have_board imx8q_evk]} { return fec_nic_drv  }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
@@ -523,7 +523,7 @@ file copy -force [genode_dir]/VERSION [run_dir]/genode/
 file copy -force [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
 file copy -force [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/
 
-if {[have_spec pc]} {
+if {[have_board pc]} {
 	file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/event_filter.config \
 	[run_dir]/genode/event_filter.config
 

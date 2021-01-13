@@ -237,6 +237,7 @@ exec -ignorestderr \
      --genode-dir [genode_dir] \
      --name usb_hid \
      --specs "$specs" \
+     --board "$board_var" \
      --repositories "$repositories" \
      --cross-dev-prefix "[cross_dev_prefix]" \
      --include boot_dir/nova \

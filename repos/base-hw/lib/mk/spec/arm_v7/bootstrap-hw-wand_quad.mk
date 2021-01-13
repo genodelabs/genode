@@ -1,4 +1,4 @@
-INC_DIR += $(REP_DIR)/src/bootstrap/spec/wand_quad
+INC_DIR += $(REP_DIR)/src/bootstrap/board/wand_quad
 
 SRC_S   += bootstrap/spec/arm/crt0.s
 

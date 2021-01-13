@@ -1,4 +1,4 @@
-INC_DIR += $(REP_DIR)/src/core/spec/imx8q_evk
+INC_DIR += $(REP_DIR)/src/core/board/imx8q_evk
 INC_DIR += $(REP_DIR)/src/core/spec/arm/virtualization
 
 # add C++ sources

@@ -50,22 +50,15 @@ set config_of_app {
 		<provides>
 			<service name="Event" />
 		</provides>
-		<config>}
-append config_of_app {
+		<config>
 			<output>
-				<merge>}
-append_if [expr $use_ps2] config_of_app {
-					<input name="ps2"/>}
-append_if [expr $use_usb] config_of_app {
-					<input name="usb_hid"/>}
-append config_of_app {
+				<merge>
+					<input name="ps2"/>
+					<input name="usb_hid"/>
 				</merge>
-			</output>}
-append_if [expr $use_ps2] config_of_app {
-			<policy label="ps2" input="ps2"/> }
-append_if [expr $use_usb] config_of_app {
-			<policy label="usb_hid" input="usb_hid"/>}
-append config_of_app {
+			</output>
+			<policy label="ps2" input="ps2"/>
+			<policy label="usb_hid" input="usb_hid"/>
 		</config>
 		<route>
 			<service name="Event"> <child name="nitpicker"/> </service>

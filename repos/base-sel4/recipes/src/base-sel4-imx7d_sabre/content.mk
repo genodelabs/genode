@@ -1,9 +1,5 @@
 include $(GENODE_DIR)/repos/base/recipes/src/base_content.inc
 
-content: enable_board_spec
-enable_board_spec: etc/specs.conf
-	echo "SPECS += imx7d_sabre" >> etc/specs.conf
-
 content: include/os/attached_mmio.h
 
 include/%.h:
@@ -32,8 +28,15 @@ src/tool/sel4_tools: src/kernel/sel4
 	mkdir -p $@
 	cp -r $(ELFLOADER_PORT_DIR)/src/tool/sel4_tools/* $@
 
+content: etc/board.conf
+
+etc/board.conf:
+	echo "BOARD = imx7d_sabre" > etc/board.conf
+
 content:
 	mv lib/mk/spec/arm/ld-sel4.mk lib/mk/spec/arm/ld.mk;
 	sed -i "s/ld-sel4/ld/"          src/lib/ld/sel4/target.mk
 	sed -i "s/imx7_timer_drv/timer/" src/timer/gpt/imx7/target.inc
+	find lib/mk/spec -name kernel-sel4-*.mk -o -name syscall-sel4-*.mk |\
+		grep -v "sel4-imx7d_sabre.mk" | xargs rm -rf
 

@@ -1,5 +1,5 @@
 TARGET          = muen
-REQUIRES        = x86_64 muen
+REQUIRES        = x86_64
 MUEN_SRC_DIR    = $(call select_from_ports,muen)/src/kernel/muen
 MUEN_BUILD_DIR  = $(BUILD_BASE_DIR)/kernel
 MUEN_CONF_FILE  = $(MUEN_BUILD_DIR)/muen.conf
@@ -22,8 +22,6 @@ else
 BUILD_OPTS     += BUILD_OUTPUT_NOCOLOR=true
 endif
 
-
-ifneq ($(filter muen, $(SPECS)),)
 $(TARGET): $(MUEN_DST_DIR)
 	$(MSG_BUILD)Muen policy
 	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR) $(BUILD_OPTS) policy-merge rts >> $(MUEN_LOG) 2>&1
@@ -52,7 +50,5 @@ clean_muen:
 	$(VERBOSE)rm -rf $(MUEN_DST_DIR)
 	$(VERBOSE)rm -f  $(MUEN_CONF_FILE)
 	$(VERBOSE)rm -f  $(MUEN_LOG)
-endif
-
 
 .PHONY: $(TARGET)

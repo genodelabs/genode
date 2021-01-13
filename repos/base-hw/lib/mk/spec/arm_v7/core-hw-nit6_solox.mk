@@ -7,7 +7,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/nit6_solox
+INC_DIR += $(REP_DIR)/src/core/board/nit6_solox
 
 # add C++ sources
 SRC_CC += platform_services.cc

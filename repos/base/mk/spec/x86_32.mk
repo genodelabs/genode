@@ -17,4 +17,3 @@ LD_MARCH ?= -melf_i386
 AS_MARCH ?= -march=i686 --32
 
 include $(BASE_DIR)/mk/spec/32bit.mk
-include $(BASE_DIR)/mk/spec/x86.mk

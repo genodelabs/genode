@@ -79,14 +79,10 @@ set qt5_event_filter_config {
 			<chargen>
 				<remap>
 					<include rom="numlock.remap"/>
-					<merge>}
-append_if [have_spec ps2] qt5_event_filter_config {
-						<input name="ps2"/>}
-append_if [have_spec usb] qt5_event_filter_config {
-						<input name="usb"/>}
-append_if [have_spec linux] qt5_event_filter_config {
-						<input name="sdl"/>}
-append qt5_event_filter_config {
+					<merge>
+						<input name="ps2"/>
+						<input name="usb"/>
+						<input name="sdl"/>
 					</merge>
 				</remap>
 				<mod1>
@@ -107,14 +103,10 @@ append qt5_event_filter_config "
 append qt5_event_filter_config {
 				<include rom="special.chargen"/>
 			</chargen>
-		</output>}
-append_if [have_spec ps2] qt5_event_filter_config {
-		<policy label="ps2" input="ps2"/>}
-append_if [have_spec usb] qt5_event_filter_config {
-		<policy label="usb" input="usb"/>}
-append_if [have_spec linux] qt5_event_filter_config {
-		<policy label="sdl" input="sdl"/>}
-append qt5_event_filter_config {
+		</output>
+		<policy label="ps2" input="ps2"/>
+		<policy label="usb" input="usb"/>
+		<policy label="sdl" input="sdl"/>
 	</config>}
 
 set fd [open bin/qt5_event_filter.config w]

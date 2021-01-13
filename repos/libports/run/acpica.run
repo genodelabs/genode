@@ -1,5 +1,3 @@
-assert_spec acpi
-
 if {
 	![have_spec hw] &&
 	![have_spec nova] &&

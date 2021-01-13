@@ -1,7 +1,6 @@
-BOARD        ?= unknown
-FOC_BUILD_DIR = $(shell pwd)/$(BOARD)-build
-FOC           = $(FOC_BUILD_DIR)/foc
-FOC_SRC      := $(call select_from_ports,foc)/src/kernel/foc/kernel/fiasco
+FOC_BUILD_DIR  = $(shell pwd)/build
+FOC            = $(FOC_BUILD_DIR)/foc
+FOC_SRC       := $(call select_from_ports,foc)/src/kernel/foc/kernel/fiasco
 
 KERNEL_BUILD_OUTPUT_FILTER = 2>&1 | sed "s/^/      [fiasco.oc]  /"
 
@@ -30,7 +29,7 @@ $(FOC): $(FOC_BUILD_DIR)
 # library.
 #
 
-LIBS += syscall-foc
+LIBS += syscall-foc-$(BOARD)
 
 PKGS := l4re-core/crtn \
         l4re-core/uclibc-headers \
@@ -42,7 +41,7 @@ PKGS := l4re-core/crtn \
         drivers-frst/include drivers-frst/of drivers-frst/uart \
         bootstrap
 
-L4_BUILD_DIR := $(LIB_CACHE_DIR)/syscall-foc/$(BOARD)-build
+L4_BUILD_DIR := $(LIB_CACHE_DIR)/syscall-foc-$(BOARD)/build
 
 #
 # Supress several warnings especially of the uclibc-minimal

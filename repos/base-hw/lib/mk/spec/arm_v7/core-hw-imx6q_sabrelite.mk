@@ -7,7 +7,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/imx6q_sabrelite
+INC_DIR += $(REP_DIR)/src/core/board/imx6q_sabrelite
 
 # add C++ sources
 SRC_CC += platform_services.cc

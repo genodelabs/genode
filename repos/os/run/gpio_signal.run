@@ -1,7 +1,7 @@
 #
 # Build
 #
-if {[have_spec rpi] == 0} {
+if {![have_board rpi]} {
 	puts "Runs only on platforms with GPIO"
 	exit 0
 }

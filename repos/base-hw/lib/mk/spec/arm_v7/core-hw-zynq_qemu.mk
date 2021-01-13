@@ -5,9 +5,9 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/zynq_qemu
+INC_DIR += $(REP_DIR)/src/core/board/zynq_qemu
 
 NR_OF_CPUS = 1
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/spec/zynq/core-hw.inc
+include $(REP_DIR)/lib/mk/spec/arm_v7/core-hw-zynq.inc

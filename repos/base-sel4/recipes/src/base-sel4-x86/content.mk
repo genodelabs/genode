@@ -17,10 +17,17 @@ KERNEL_PORT_DIR := $(call port_dir,$(REP_DIR)/ports/sel4)
 src/kernel/sel4: src/kernel
 	cp -r $(KERNEL_PORT_DIR)/src/kernel/sel4/* $@
 
+content: etc/board.conf
+
+etc/board.conf:
+	echo "BOARD = pc" > etc/board.conf
+
 content:
 	for spec in x86_32 x86_64 arm; do \
 	  mv lib/mk/spec/$$spec/ld-sel4.mk lib/mk/spec/$$spec/ld.mk; \
 	  done;
 	sed -i "s/ld-sel4/ld/"          src/lib/ld/sel4/target.mk
 	sed -i "s/pit_timer_drv/timer/" src/timer/pit/target.inc
+	find lib/mk/spec -name kernel-sel4-*.mk -o -name syscall-sel4-*.mk |\
+		grep -v "sel4-pc.mk" | xargs rm -rf
 

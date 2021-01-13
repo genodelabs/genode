@@ -1,5 +1,4 @@
 INC_DIR += $(REP_DIR)/src/core/spec/arm_v7/trustzone
-INC_DIR += $(REP_DIR)/src/core/spec/imx53/trustzone
 
 SRC_CC += kernel/vm_thread_on.cc
 SRC_CC += spec/arm_v7/trustzone/kernel/vm.cc

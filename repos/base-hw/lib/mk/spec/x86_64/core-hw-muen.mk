@@ -5,7 +5,7 @@
 # \date   2012-10-04
 #
 
-REQUIRES = muen
+REQUIRES = x86_64
 
 LIBS += sinfo-muen
 

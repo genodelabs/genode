@@ -61,9 +61,9 @@ append config {
 		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="Usb"/> </provides>
 		<config bios_handoff="yes">}
-append_if [have_spec arndale] config {
+append_if [have_board arndale] config {
 			<policy label_prefix="usb_net_drv" vendor_id="0x0b95" product_id="0x772a"/> }
-append_if [have_spec rpi] config {
+append_if [have_board rpi] config {
 			<policy label_prefix="usb_net_drv" vendor_id="0x0424" product_id="0xec00"/> }
 append_if [have_spec x86] config {
 			<policy label_prefix="usb_net_drv" vendor_id="0x0b95" product_id="0x1790"/> }

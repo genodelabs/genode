@@ -1,6 +1,6 @@
-L4_CONFIG := $(call select_from_repositories,config/rpi3.user)
-
-L4_BIN_DIR := $(LIB_CACHE_DIR)/syscall-foc/rpi3-build/bin/arm64_armv8a
+override BOARD := rpi3
+L4_ARCH        := arm64_armv8a
+L4_CONFIG      := $(call select_from_repositories,config/$(BOARD).user)
 
 L4_INC_TARGETS = arm64/l4/sys \
                  arm64/l4f/l4/sys \

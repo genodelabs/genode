@@ -1,7 +1,7 @@
 TMP         := $(call select_from_repositories,lib/mk/core-hw.inc)
 BASE_HW_DIR := $(TMP:%lib/mk/core-hw.inc=%)
 
-INC_DIR += $(BASE_HW_DIR)/src/bootstrap/spec/imx53_qsb
+INC_DIR += $(BASE_HW_DIR)/src/bootstrap/board/imx53_qsb
 
 SRC_S   += bootstrap/spec/arm/crt0.s
 
