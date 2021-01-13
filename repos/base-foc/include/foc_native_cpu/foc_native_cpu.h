@@ -19,10 +19,8 @@
 #include <cpu_session/cpu_session.h>
 #include <foc/thread_state.h>
 
-namespace Genode { struct Foc_native_cpu; }
 
-
-struct Genode::Foc_native_cpu : Cpu_session::Native_cpu
+struct Genode::Cpu_session::Native_cpu : Interface
 {
 	virtual Native_capability native_cap(Thread_capability) = 0;
 	virtual Foc_thread_state thread_state(Thread_capability) = 0;

@@ -20,10 +20,10 @@
 namespace Genode { struct Nova_native_cpu_client; }
 
 
-struct Genode::Nova_native_cpu_client : Rpc_client<Nova_native_cpu>
+struct Genode::Nova_native_cpu_client : Rpc_client<Cpu_session::Native_cpu>
 {
-	explicit Nova_native_cpu_client(Capability<Native_cpu> cap)
-	: Rpc_client<Nova_native_cpu>(static_cap_cast<Nova_native_cpu>(cap)) { }
+	explicit Nova_native_cpu_client(Capability<Cpu_session::Native_cpu> cap)
+	: Rpc_client<Cpu_session::Native_cpu>(cap) { }
 
 	void thread_type(Thread_capability thread_cap, Thread_type thread_type,
 	                 Exception_base exception_base) override {

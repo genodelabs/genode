@@ -335,19 +335,19 @@ void Platform_thread::pager(Pager_object &pager)
 }
 
 
-void Platform_thread::thread_type(Nova_native_cpu::Thread_type thread_type,
-                                  Nova_native_cpu::Exception_base exception_base)
+void Platform_thread::thread_type(Cpu_session::Native_cpu::Thread_type thread_type,
+                                  Cpu_session::Native_cpu::Exception_base exception_base)
 {
 	/* you can do it only once */
 	if (_sel_exc_base != Native_thread::INVALID_INDEX)
 		return;
 
-	if (!main_thread() || (thread_type == Nova_native_cpu::Thread_type::VCPU))
+	if (!main_thread() || (thread_type == Cpu_session::Native_cpu::Thread_type::VCPU))
 		_sel_exc_base = exception_base.exception_base;
 
-	if (thread_type == Nova_native_cpu::Thread_type::LOCAL)
+	if (thread_type == Cpu_session::Native_cpu::Thread_type::LOCAL)
 		_features |= WORKER;
-	else if (thread_type == Nova_native_cpu::Thread_type::VCPU)
+	else if (thread_type == Cpu_session::Native_cpu::Thread_type::VCPU)
 		_features |= VCPU;
 }
 

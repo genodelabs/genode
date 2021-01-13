@@ -85,8 +85,8 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 				});
 
 			/* tell parent that this will be a vCPU */
-			Nova_native_cpu::Thread_type thread_type { Nova_native_cpu::Thread_type::VCPU };
-			Nova_native_cpu::Exception_base exception_base { _exc_pt_sel };
+			Cpu_session::Native_cpu::Thread_type thread_type { Cpu_session::Native_cpu::Thread_type::VCPU };
+			Cpu_session::Native_cpu::Exception_base exception_base { _exc_pt_sel };
 			Nova_native_cpu_client native_cpu(_cpu_connection->native_cpu());
 			native_cpu.thread_type(vcpu_vm, thread_type, exception_base);
 

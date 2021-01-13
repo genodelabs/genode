@@ -17,10 +17,8 @@
 #include <base/rpc.h>
 #include <cpu_session/cpu_session.h>
 
-namespace Genode { struct Linux_native_cpu; }
 
-
-struct Genode::Linux_native_cpu : Cpu_session::Native_cpu
+struct Genode::Cpu_session::Native_cpu : Interface
 {
 	/**
 	 * Register Linux PID and TID of the specified thread

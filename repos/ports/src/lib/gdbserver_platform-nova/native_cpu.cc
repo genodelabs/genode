@@ -28,7 +28,7 @@ namespace Gdb_monitor {
 using namespace Genode;
 
 
-class Gdb_monitor::Native_cpu_component : public Rpc_object<Nova_native_cpu,
+class Gdb_monitor::Native_cpu_component : public Rpc_object<Cpu_session::Native_cpu,
                                                             Native_cpu_component>
 {
 	private:
@@ -51,8 +51,8 @@ class Gdb_monitor::Native_cpu_component : public Rpc_object<Nova_native_cpu,
 		}
 
 		void thread_type(Thread_capability thread_cap,
-		                 Nova_native_cpu::Thread_type thread_type,
-		                 Nova_native_cpu::Exception_base exception_base) override
+		                 Cpu_session::Native_cpu::Thread_type thread_type,
+		                 Cpu_session::Native_cpu::Exception_base exception_base) override
 		{
 			auto lambda = [&] (Cpu_thread_component *cpu_thread) {
 				_nova_native_cpu.thread_type(cpu_thread->parent_thread_cap(),

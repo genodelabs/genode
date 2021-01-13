@@ -28,8 +28,8 @@ namespace Cpu_sampler {
 using namespace Genode;
 
 
-class Cpu_sampler::Native_cpu_component : public Rpc_object<Nova_native_cpu,
-                                                          Native_cpu_component>
+class Cpu_sampler::Native_cpu_component : public Rpc_object<Cpu_session::Native_cpu,
+                                                            Native_cpu_component>
 {
 	private:
 
@@ -51,8 +51,8 @@ class Cpu_sampler::Native_cpu_component : public Rpc_object<Nova_native_cpu,
 		}
 
 		void thread_type(Thread_capability thread_cap,
-		                 Nova_native_cpu::Thread_type thread_type,
-		                 Nova_native_cpu::Exception_base exception_base) override
+		                 Cpu_session::Native_cpu::Thread_type thread_type,
+		                 Cpu_session::Native_cpu::Exception_base exception_base) override
 		{
 			auto lambda = [&] (Cpu_sampler::Cpu_thread_component *cpu_thread) {
 				_nova_native_cpu.thread_type(cpu_thread->parent_thread(),

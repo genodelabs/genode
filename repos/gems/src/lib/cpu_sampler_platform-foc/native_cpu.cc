@@ -28,7 +28,7 @@ namespace Cpu_sampler {
 using namespace Genode;
 
 
-class Cpu_sampler::Native_cpu_component : public Rpc_object<Foc_native_cpu,
+class Cpu_sampler::Native_cpu_component : public Rpc_object<Cpu_session::Native_cpu,
                                                             Native_cpu_component>
 {
 	private:

@@ -17,10 +17,8 @@
 #include <base/rpc.h>
 #include <cpu_session/cpu_session.h>
 
-namespace Genode { struct Nova_native_cpu; }
 
-
-struct Genode::Nova_native_cpu : Cpu_session::Native_cpu
+struct Genode::Cpu_session::Native_cpu : Interface
 {
 	enum Thread_type { GLOBAL, LOCAL, VCPU };
 

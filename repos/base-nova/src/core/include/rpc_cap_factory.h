@@ -53,7 +53,7 @@ class Genode::Rpc_cap_factory
 		 *
 		 * \throw Allocator::Out_of_memory
 		 *
-		 * This function is invoked via Nova_native_pd::alloc_rpc_cap.
+		 * This function is invoked via Native_pd::alloc_rpc_cap.
 		 */
 		Native_capability alloc(Native_capability ep, addr_t entry, addr_t mtd);
 

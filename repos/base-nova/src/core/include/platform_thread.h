@@ -146,8 +146,8 @@ namespace Genode {
 			/**
 			 * Set thread type and exception portal base
 			 */
-			void thread_type(Nova_native_cpu::Thread_type thread_type,
-			                 Nova_native_cpu::Exception_base exception_base);
+			void thread_type(Cpu_session::Native_cpu::Thread_type thread_type,
+			                 Cpu_session::Native_cpu::Exception_base exception_base);
 
 			/**
 			 * Set pager

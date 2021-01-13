@@ -151,14 +151,14 @@ void Thread::start()
 	/* create EC at core */
 
 	try {
-		Nova_native_cpu::Thread_type thread_type;
+		Cpu_session::Native_cpu::Thread_type thread_type;
 
 		if (global)
-			thread_type = Nova_native_cpu::Thread_type::GLOBAL;
+			thread_type = Cpu_session::Native_cpu::Thread_type::GLOBAL;
 		else
-			thread_type = Nova_native_cpu::Thread_type::LOCAL;
+			thread_type = Cpu_session::Native_cpu::Thread_type::LOCAL;
 
-		Nova_native_cpu::Exception_base exception_base { native_thread().exc_pt_sel };
+		Cpu_session::Native_cpu::Exception_base exception_base { native_thread().exc_pt_sel };
 
 		Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
 		native_cpu.thread_type(_thread_cap, thread_type, exception_base);
@@ -175,7 +175,7 @@ void Thread::start()
 
 	/*
 	 * Requested ec cap that is used for recall and
-	 * creation of portals (Nova_native_pd::alloc_rpc_cap).
+	 * creation of portals (Native_pd::alloc_rpc_cap).
 	 */
 	request_native_ec_cap(native_thread().exc_pt_sel + Nova::PT_SEL_PAGE_FAULT,
 	                      native_thread().ec_sel);

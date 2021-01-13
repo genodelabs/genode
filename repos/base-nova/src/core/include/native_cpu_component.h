@@ -25,7 +25,7 @@ namespace Genode {
 }
 
 
-class Genode::Native_cpu_component : public Rpc_object<Nova_native_cpu,
+class Genode::Native_cpu_component : public Rpc_object<Cpu_session::Native_cpu,
                                                        Native_cpu_component>
 {
 	private:

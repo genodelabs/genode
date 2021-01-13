@@ -21,10 +21,10 @@
 namespace Genode { struct Foc_native_cpu_client; }
 
 
-struct Genode::Foc_native_cpu_client : Rpc_client<Foc_native_cpu>
+struct Genode::Foc_native_cpu_client : Rpc_client<Cpu_session::Native_cpu>
 {
 	explicit Foc_native_cpu_client(Capability<Native_cpu> cap)
-	: Rpc_client<Foc_native_cpu>(static_cap_cast<Foc_native_cpu>(cap)) { }
+	: Rpc_client<Cpu_session::Native_cpu>(cap) { }
 
 	Native_capability native_cap(Thread_capability cap) override {
 		return call<Rpc_native_cap>(cap); }
