@@ -117,6 +117,9 @@ proc run_power_on { } {
 			append qemu_args " -cpu cortex-a15 -smp 2"
 		}
 		append qemu_args " -m 2048"
+		append qemu_args " -global virtio-mmio.force-legacy=false "
+		append qemu_args " -device virtio-mouse-device"
+		append qemu_args " -device virtio-keyboard-device"
 	}
 
 	# on x86, we support booting via pxe or iso/disk image
