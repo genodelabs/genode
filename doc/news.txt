@@ -4,6 +4,39 @@
                                ===========
 
 
+Road Map for 2021 | 2021-01-15
+##############################
+
+| In 2021, we plan to bring Genode to the Pinephone, advance the framework's
+| GPU support, and focus on development workflows.
+
+During the annual road-map discussion on Genode's public
+[https://genode.org/community/mailing-lists - mailing list],
+the following hot topics for this year emerged.
+
+First and most inspiring for many Genode developers, we aspire to have
+Genode running on the Pinephone with basic feature-phone functionality by the
+end of the year. Since this will involve substantial device-driver-related
+developments, the team will take this line of work as an opportunity to
+advance the tooling and workflows for carrying out such tasks. This, in turn,
+will hopefully ease the on-boarding of new driver developers in the future.
+
+Closely related to the Pinephone scenario, the project will make optimizations
+a top priority this year. The opportunities are plenty, ranging from
+micro-optimizations, over API refinements, to architectural changes if
+needed.
+
+Another recurring topic is the request for GPU support, which is required
+by many modern workloads such as video conferencing or streaming on mobile
+device. Therefore, we will revamp our past developments of GPU multiplexing
+on Intel hardware while also starting the investigation of GPUs on ARM-based
+devices.
+
+More information about our review of the past year, this year's focus, and a
+rough schedule are presented at our official
+[https:/about/road-map - road-map page].
+
+
 Genode OS Framework release 20.11 | 2020-11-27
 ##############################################
 
@@ -211,7 +244,7 @@ please consult the
 Road Map for 2020 | 2020-01-20
 ##############################
 
-| In 2019, we will be concerned about dwarfing the barrier of entry into
+| In 2020, we will be concerned about dwarfing the barrier of entry into
 | the Genode world.
 
 Following the last year's leitmotif of "bridging worlds", we turn our
