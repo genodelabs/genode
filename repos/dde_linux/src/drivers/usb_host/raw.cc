@@ -352,6 +352,14 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 
 				usb_host_endpoint *ep = read ? _device->udev->ep_in[p.transfer.ep & 0x0f]
 				                             : _device->udev->ep_out[p.transfer.ep & 0x0f];
+
+				if (!ep) {
+					error("could not get ep: ", p.transfer.ep);
+					dma_free(buf);
+					p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
+					return false;
+				}
+
 				polling_interval = ep->desc.bInterval;
 
 			} else
@@ -391,6 +399,13 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 				pipe = usb_sndisocpipe(_device->udev, p.transfer.ep);
 				ep   = _device->udev->ep_out[p.transfer.ep & 0x0f];
 				Genode::memcpy(buf, _sink->packet_content(p), p.size());
+			}
+
+			if (!ep) {
+				error("could not get ep: ", p.transfer.ep);
+				dma_free(buf);
+				p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
+				return false;
 			}
 
 			urb *urb = usb_alloc_urb(p.transfer.number_of_packets, GFP_KERNEL);
