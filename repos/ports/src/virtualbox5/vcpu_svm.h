@@ -38,23 +38,6 @@ class Vcpu_handler_svm : public Vcpu_handler
 		void _svm_default() { _default_handler(); }
 		void _svm_vintr()   { _irq_window(); }
 
-		void _svm_ioio()
-		{
-			if (_state->qual_primary.value() & 0x4) {
-				unsigned ctrl0 = _state->ctrl_primary.value();
-
-				Genode::warning("invalid gueststate");
-
-				*_state = Genode::Vm_state {}; /* reset */
-
-				_state->ctrl_primary.value(ctrl0);
-				_state->ctrl_secondary.value(0);
-
-				_vm_session.run(_vcpu);
-			} else
-				_default_handler();
-		}
-
 		template <unsigned X>
 		void _svm_npt()
 		{
@@ -71,9 +54,32 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 		void _svm_startup()
 		{
-			/* enable VM exits for CPUID */
-			next_utcb.ctrl[0] = SVM_CTRL1_INTERCEPT_CPUID;
-			next_utcb.ctrl[1] = 0;
+			/* enable VM exits */
+			next_utcb.ctrl[0] = SVM_CTRL1_INTERCEPT_INTR
+			                  | SVM_CTRL1_INTERCEPT_NMI
+			                  | SVM_CTRL1_INTERCEPT_INIT
+			                  | SVM_CTRL1_INTERCEPT_RDPMC
+			                  | SVM_CTRL1_INTERCEPT_CPUID
+			                  | SVM_CTRL1_INTERCEPT_RSM
+			                  | SVM_CTRL1_INTERCEPT_HLT
+			                  | SVM_CTRL1_INTERCEPT_INOUT_BITMAP
+			                  | SVM_CTRL1_INTERCEPT_MSR_SHADOW
+			                  | SVM_CTRL1_INTERCEPT_INVLPGA
+			                  | SVM_CTRL1_INTERCEPT_SHUTDOWN
+			                  | SVM_CTRL1_INTERCEPT_RDTSC
+			                  | SVM_CTRL1_INTERCEPT_FERR_FREEZE;
+
+			next_utcb.ctrl[1] = SVM_CTRL2_INTERCEPT_VMRUN
+			                  | SVM_CTRL2_INTERCEPT_VMMCALL
+			                  | SVM_CTRL2_INTERCEPT_VMLOAD
+			                  | SVM_CTRL2_INTERCEPT_VMSAVE
+			                  | SVM_CTRL2_INTERCEPT_STGI
+			                  | SVM_CTRL2_INTERCEPT_CLGI
+			                  | SVM_CTRL2_INTERCEPT_SKINIT
+			                  | SVM_CTRL2_INTERCEPT_WBINVD
+			                  | SVM_CTRL2_INTERCEPT_MONITOR
+			                  | SVM_CTRL2_INTERCEPT_RDTSCP
+			                  | SVM_CTRL2_INTERCEPT_MWAIT;
 		}
 
 		void _handle_vm_exception()
@@ -82,13 +88,27 @@ class Vcpu_handler_svm : public Vcpu_handler
 			bool recall_wait = true;
 
 			switch (exit) {
-			case SVM_EXIT_IOIO:  _svm_ioio(); break;
 			case SVM_EXIT_VINTR: _svm_vintr(); break;
-//			case SVM_EXIT_RDTSC: _svm_default(); break;
-			case SVM_EXIT_MSR:   _svm_default(); break;
 			case SVM_NPT:        _svm_npt<SVM_NPT>(); break;
-			case SVM_EXIT_HLT:   _svm_default(); break;
-			case SVM_EXIT_CPUID: _svm_default(); break;
+			case SVM_EXIT_CPUID:
+			case SVM_EXIT_HLT:
+			case SVM_EXIT_INVLPGA:
+			case SVM_EXIT_IOIO:
+			case SVM_EXIT_MSR:
+			case SVM_EXIT_READ_CR0 ... SVM_EXIT_WRITE_CR15:
+			case SVM_EXIT_RDTSC:
+			case SVM_EXIT_RDTSCP:
+			case SVM_EXIT_WBINVD:
+				_svm_default();
+				break;
+			case SVM_INVALID:
+				Genode::warning("invalid svm ip=", _state->ip.value());
+				_svm_default();
+				break;
+			case SVM_EXIT_SHUTDOWN:
+				Genode::error("shutdown exit");
+				::exit(-1);
+				break;
 			case RECALL:
 				recall_wait = Vcpu_handler::_recall_handler();
 				break;
@@ -134,13 +154,17 @@ class Vcpu_handler_svm : public Vcpu_handler
 		{
 			switch (exit) {
 			case RECALL:
+			case SVM_EXIT_INVLPGA:
 			case SVM_EXIT_IOIO:
 			case SVM_EXIT_VINTR:
+			case SVM_EXIT_READ_CR0 ... SVM_EXIT_WRITE_CR15:
 			case SVM_EXIT_RDTSC:
+			case SVM_EXIT_RDTSCP:
 			case SVM_EXIT_MSR:
 			case SVM_NPT:
 			case SVM_EXIT_HLT:
 			case SVM_EXIT_CPUID:
+			case SVM_EXIT_WBINVD:
 			case VCPU_STARTUP:
 				/* todo - touch all members */
 				Genode::memset(&state, ~0U, sizeof(state));

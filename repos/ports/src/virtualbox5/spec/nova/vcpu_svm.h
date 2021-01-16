@@ -30,29 +30,6 @@ class Vcpu_handler_svm : public Vcpu_handler
 			_irq_window();
 		}
 
-		__attribute__((noreturn)) void _svm_ioio()
-		{
-			using namespace Nova;
-			using namespace Genode;
-
-			Thread *myself = Thread::myself();
-			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
-
-			if (utcb->qual[0] & 0x4) {
-				unsigned ctrl0 = utcb->ctrl[0];
-
-				Vmm::warning("invalid gueststate");
-
-				utcb->ctrl[0] = ctrl0;
-				utcb->ctrl[1] = 0;
-				utcb->mtd = Mtd::CTRL;
-				
-				Nova::reply(_stack_reply);
-			}
-
-			_default_handler();
-		}
-
 		template <unsigned X>
 		__attribute__((noreturn)) void _svm_npt()
 		{
@@ -72,13 +49,56 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 			/* enable VM exits for CPUID */
 			next_utcb.mtd     = Nova::Mtd::CTRL;
-			next_utcb.ctrl[0] = SVM_CTRL1_INTERCEPT_CPUID;
-			next_utcb.ctrl[1] = 0;
+
+			next_utcb.ctrl[0] = SVM_CTRL1_INTERCEPT_INTR
+			                  | SVM_CTRL1_INTERCEPT_NMI
+			                  | SVM_CTRL1_INTERCEPT_INIT
+			                  | SVM_CTRL1_INTERCEPT_RDPMC
+			                  | SVM_CTRL1_INTERCEPT_CPUID
+			                  | SVM_CTRL1_INTERCEPT_RSM
+			                  | SVM_CTRL1_INTERCEPT_HLT
+			                  | SVM_CTRL1_INTERCEPT_INOUT_BITMAP
+			                  | SVM_CTRL1_INTERCEPT_MSR_SHADOW
+			                  | SVM_CTRL1_INTERCEPT_INVLPGA
+			                  | SVM_CTRL1_INTERCEPT_SHUTDOWN
+			                  | SVM_CTRL1_INTERCEPT_RDTSC
+			                  | SVM_CTRL1_INTERCEPT_FERR_FREEZE;
+
+			next_utcb.ctrl[1] = SVM_CTRL2_INTERCEPT_VMRUN
+			                  | SVM_CTRL2_INTERCEPT_VMMCALL
+			                  | SVM_CTRL2_INTERCEPT_VMLOAD
+			                  | SVM_CTRL2_INTERCEPT_VMSAVE
+			                  | SVM_CTRL2_INTERCEPT_STGI
+			                  | SVM_CTRL2_INTERCEPT_CLGI
+			                  | SVM_CTRL2_INTERCEPT_SKINIT
+			                  | SVM_CTRL2_INTERCEPT_WBINVD
+			                  | SVM_CTRL2_INTERCEPT_MONITOR
+			                  | SVM_CTRL2_INTERCEPT_RDTSCP
+			                  | SVM_CTRL2_INTERCEPT_MWAIT;
 
 			void *exit_status = _start_routine(_start_routine_arg);
 			pthread_exit(exit_status);
 
 			Nova::reply(nullptr);
+		}
+
+		__attribute__((noreturn)) void _svm_shutdown()
+		{
+			Vmm::error("shutdown exit");
+			exit(-1);
+		}
+
+		__attribute__((noreturn)) void _svm_invalid()
+		{
+			using namespace Nova;
+			using namespace Genode;
+
+			Thread *myself = Thread::myself();
+			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
+
+			Vmm::warning("invalid svm ip=", Genode::Hex(utcb->ip));
+
+			_default_handler();
 		}
 
 		__attribute__((noreturn)) void _svm_recall()
@@ -105,13 +125,55 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 			typedef Vcpu_handler_svm This;
 
+			register_handler<SVM_EXIT_READ_CR0, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_READ_CR1, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_READ_CR2, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_READ_CR3, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_READ_CR4, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_READ_CR5, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_READ_CR6, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_READ_CR7, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_READ_CR8, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+
+			register_handler<SVM_EXIT_WRITE_CR0, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WRITE_CR1, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WRITE_CR2, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WRITE_CR3, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WRITE_CR4, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WRITE_CR5, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WRITE_CR6, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WRITE_CR7, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WRITE_CR8, This,
+				&This::_svm_default> (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+
 			register_handler<RECALL, This,
-				&This::_svm_recall>       (exc_base, Mtd::ALL | Mtd::FPU);
+				&This::_svm_recall>       (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_INVLPGA, This,
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_IOIO, This,
-				&This::_svm_ioio>         (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_VINTR, This,
 				&This::_svm_vintr>        (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_RDTSC, This,
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_RDTSCP, This,
 				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_MSR, This,
 				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
@@ -121,6 +183,12 @@ class Vcpu_handler_svm : public Vcpu_handler
 				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_CPUID, This,
 				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_SHUTDOWN, This,
+				&This::_svm_shutdown>     (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WBINVD, This,
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_INVALID, This,
+				&This::_svm_invalid>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<VCPU_STARTUP, This,
 				&This::_svm_startup>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 

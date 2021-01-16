@@ -44,6 +44,14 @@ static inline bool svm_save_state(Genode::Vm_state * state, VM * pVM, PVMCPU pVC
 	GENODE_READ_SELREG(gs);
 	GENODE_READ_SELREG(ss);
 
+	if (   !pCtx->cs.Attr.n.u1Granularity
+	     && pCtx->cs.Attr.n.u1Present
+	     && pCtx->cs.u32Limit > UINT32_C(0xfffff))
+	{
+		Assert((pCtx->cs.u32Limit & 0xfff) == 0xfff);
+		pCtx->cs.Attr.n.u1Granularity = 1;
+	}
+
 	GENODE_SVM_ASSERT_SELREG(cs);
 	GENODE_SVM_ASSERT_SELREG(ds);
 	GENODE_SVM_ASSERT_SELREG(es);
@@ -53,6 +61,8 @@ static inline bool svm_save_state(Genode::Vm_state * state, VM * pVM, PVMCPU pVC
 
 	GENODE_READ_SELREG(ldtr);
 	GENODE_READ_SELREG(tr);
+
+	CPUMSetGuestEFER(pVCpu, CPUMGetGuestEFER(pVCpu) & ~uint64_t(MSR_K6_EFER_SVME));
 
 	return true;
 }
@@ -75,11 +85,7 @@ static inline bool svm_load_state(Genode::Vm_state * state, VM * pVM, PVMCPU pVC
 
 	PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
-	state->efer.value(pCtx->msrEFER | MSR_K6_EFER_SVME);
-	/* unimplemented */
-	if (CPUMIsGuestInLongModeEx(pCtx))
-		return false;
-	state->efer.value(state->efer.value() & ~MSR_K6_EFER_LME);
+	state->efer.value(state->efer.value() | MSR_K6_EFER_SVME);
 
 	GENODE_WRITE_SELREG(es);
 	GENODE_WRITE_SELREG(ds);

@@ -44,6 +44,14 @@ static inline bool svm_save_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 	GENODE_READ_SELREG(gs);
 	GENODE_READ_SELREG(ss);
 
+	if (   !pCtx->cs.Attr.n.u1Granularity
+	     && pCtx->cs.Attr.n.u1Present
+	     && pCtx->cs.u32Limit > UINT32_C(0xfffff))
+	{
+		Assert((pCtx->cs.u32Limit & 0xfff) == 0xfff);
+		pCtx->cs.Attr.n.u1Granularity = 1;
+	}
+
 	GENODE_SVM_ASSERT_SELREG(cs);
 	GENODE_SVM_ASSERT_SELREG(ds);
 	GENODE_SVM_ASSERT_SELREG(es);
@@ -53,6 +61,8 @@ static inline bool svm_save_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 
 	GENODE_READ_SELREG(ldtr);
 	GENODE_READ_SELREG(tr);
+
+	CPUMSetGuestEFER(pVCpu, CPUMGetGuestEFER(pVCpu) & ~uint64_t(MSR_K6_EFER_SVME));
 
 	return true;
 }
@@ -75,14 +85,8 @@ static inline bool svm_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 {
 	PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
-#ifdef __x86_64__
 	utcb->mtd  |= Nova::Mtd::EFER;
-	utcb->efer  = pCtx->msrEFER | MSR_K6_EFER_SVME;
-	/* unimplemented */
-	if (CPUMIsGuestInLongModeEx(pCtx))
-		return false;
-	utcb->efer &= ~MSR_K6_EFER_LME;
-#endif
+	utcb->write_efer(utcb->read_efer() | MSR_K6_EFER_SVME);
 
 	utcb->mtd |= Nova::Mtd::ESDS;
 	GENODE_WRITE_SELREG(es);
