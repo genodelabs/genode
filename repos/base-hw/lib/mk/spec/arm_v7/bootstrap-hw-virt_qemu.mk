@@ -1,4 +1,4 @@
-INC_DIR += $(REP_DIR)/src/bootstrap/board/virt_qemu
+REP_INC_DIR += src/bootstrap/board/virt_qemu
 
 SRC_CC  += bootstrap/board/virt_qemu/platform.cc
 SRC_CC  += bootstrap/spec/arm/arm_v7_cpu.cc
@@ -11,4 +11,4 @@ NR_OF_CPUS = 2
 
 CC_MARCH = -march=armv7ve -mtune=cortex-a15 -mfpu=vfpv3 -mfloat-abi=softfp
 
-include $(REP_DIR)/lib/mk/bootstrap-hw.inc
+include $(call select_from_repositories,lib/mk/bootstrap-hw.inc)

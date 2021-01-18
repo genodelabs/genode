@@ -1,5 +1,5 @@
-INC_DIR += $(REP_DIR)/src/core/board/virt_qemu
-INC_DIR += $(REP_DIR)/src/core/spec/arm/virtualization
+REP_INC_DIR += src/core/board/virt_qemu
+REP_INC_DIR += src/core/spec/arm/virtualization
 
 # add C++ sources
 SRC_CC += kernel/vm_thread_on.cc
@@ -18,4 +18,4 @@ NR_OF_CPUS = 2
 
 CC_MARCH = -march=armv7ve -mtune=cortex-a15 -mfpu=vfpv3 -mfloat-abi=soft
 
-include $(REP_DIR)/lib/mk/spec/cortex_a15/core-hw.inc
+include $(call select_from_repositories,lib/mk/spec/cortex_a15/core-hw.inc)

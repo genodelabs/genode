@@ -4,16 +4,12 @@
 # \date   2011-12-16
 #
 
-TMP         := $(call select_from_repositories,lib/mk/core-hw.inc)
-BASE_HW_DIR := $(TMP:%lib/mk/core-hw.inc=%)
-
 LIBS += base-hw-common cxx
 
 # add include paths
-INC_DIR += $(BASE_HW_DIR)/src/core
-INC_DIR += $(BASE_DIR)/src/core/include
-INC_DIR += $(BASE_HW_DIR)/src/include
-INC_DIR += $(BASE_DIR)/src/include
+REP_INC_DIR += src/core
+REP_INC_DIR += src/core/include
+REP_INC_DIR += src/include
 
 # add C++ sources
 SRC_CC += cpu_session_component.cc
@@ -74,6 +70,9 @@ include $(BASE_DIR)/src/core/version.inc
 # configure multiprocessor mode
 NR_OF_CPUS ?= 1
 CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
+
+TMP         := $(call select_from_repositories,lib/mk/core-hw.inc)
+BASE_HW_DIR := $(TMP:%lib/mk/core-hw.inc=%)
 
 # declare source locations
 vpath % $(BASE_HW_DIR)/src/core

@@ -5,8 +5,8 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/board/usb_armory
-INC_DIR += $(REP_DIR)/src/core/spec/arm_v7/trustzone
+REP_INC_DIR += src/core/board/usb_armory
+REP_INC_DIR += src/core/spec/arm_v7/trustzone
 
 # add C++ sources
 SRC_CC += kernel/vm_thread_on.cc
@@ -22,4 +22,4 @@ SRC_CC += vm_session_component.cc
 SRC_S += spec/arm_v7/trustzone/exception_vector.s
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/spec/cortex_a8/core-hw.inc
+include $(call select_from_repositories,lib/mk/spec/cortex_a8/core-hw.inc)

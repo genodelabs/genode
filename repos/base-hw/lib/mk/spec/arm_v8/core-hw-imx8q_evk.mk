@@ -1,5 +1,5 @@
-INC_DIR += $(REP_DIR)/src/core/board/imx8q_evk
-INC_DIR += $(REP_DIR)/src/core/spec/arm/virtualization
+REP_INC_DIR += src/core/board/imx8q_evk
+REP_INC_DIR += src/core/spec/arm/virtualization
 
 # add C++ sources
 SRC_CC += kernel/vm_thread_on.cc

@@ -2,9 +2,10 @@
 # evaluate bbl_dir immediately, otherwise it won't recognize
 # missing ports when checking library dependencies
 #
-BBL_DIR := $(call select_from_ports,bbl)/src/lib/bbl
 
-INC_DIR += $(REP_DIR)/src/core/spec/riscv $(BBL_DIR)
+REP_INC_DIR += src/core/spec/riscv
+
+INC_DIR += $(call select_from_ports,bbl)/src/lib/bbl
 
 CC_OPT += -fno-delete-null-pointer-checks
 
@@ -25,7 +26,7 @@ SRC_CC += spec/64bit/memory_map.cc
 SRC_S += spec/riscv/exception_vector.s
 SRC_S += spec/riscv/crt0.s
 
-vpath spec/64bit/memory_map.cc $(REP_DIR)/src/lib/hw
+vpath spec/64bit/memory_map.cc $(call select_from_repositories,src/lib/hw)
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/core-hw.inc
+include $(call select_from_repositories,lib/mk/core-hw.inc)

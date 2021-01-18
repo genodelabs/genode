@@ -1,4 +1,5 @@
-SRC_CC   = sinfo.cc
-INC_DIR += $(REP_DIR)/include/spec/x86_64/muen
+SRC_CC = sinfo.cc
 
-vpath sinfo.cc $(REP_DIR)/src/lib/muen
+REP_INC_DIR += include/spec/x86_64/muen
+
+vpath sinfo.cc $(call select_from_repositories,src/lib/muen)

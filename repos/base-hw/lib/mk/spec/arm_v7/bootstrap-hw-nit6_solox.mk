@@ -1,4 +1,4 @@
-INC_DIR += $(REP_DIR)/src/bootstrap/board/nit6_solox
+REP_INC_DIR += src/bootstrap/board/nit6_solox
 
 SRC_S   += bootstrap/spec/arm/crt0.s
 
@@ -11,4 +11,4 @@ SRC_CC  += hw/spec/32bit/memory_map.cc
 
 NR_OF_CPUS = 1
 
-include $(REP_DIR)/lib/mk/bootstrap-hw.inc
+include $(call select_from_repositories,lib/mk/bootstrap-hw.inc)

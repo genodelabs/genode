@@ -1,4 +1,4 @@
-INC_DIR += $(REP_DIR)/src/bootstrap/board/imx7d_sabre
+REP_INC_DIR += src/bootstrap/board/imx7d_sabre
 
 SRC_CC  += bootstrap/spec/arm/cortex_a15_cpu.cc
 SRC_CC  += bootstrap/spec/arm/gicv2.cc
@@ -15,4 +15,4 @@ NR_OF_CPUS = 2
 #
 CC_MARCH = -mcpu=cortex-a7 -mfpu=vfpv3 -mfloat-abi=softfp
 
-include $(REP_DIR)/lib/mk/bootstrap-hw.inc
+include $(call select_from_repositories,lib/mk/bootstrap-hw.inc)

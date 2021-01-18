@@ -5,8 +5,8 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/board/imx7d_sabre
-INC_DIR += $(REP_DIR)/src/core/spec/arm/virtualization
+REP_INC_DIR += src/core/board/imx7d_sabre
+REP_INC_DIR += src/core/spec/arm/virtualization
 
 # add C++ sources
 SRC_CC += kernel/vm_thread_on.cc
@@ -31,4 +31,4 @@ NR_OF_CPUS = 2
 CC_MARCH = -mcpu=cortex-a7 -mfpu=vfpv3 -mfloat-abi=softfp
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/spec/cortex_a15/core-hw.inc
+include $(call select_from_repositories,lib/mk/spec/cortex_a15/core-hw.inc)

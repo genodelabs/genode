@@ -6,7 +6,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/x86_64
+REP_INC_DIR += src/core/spec/x86_64
 
 # add assembly sources
 SRC_S += spec/x86_64/crt0.s
@@ -34,9 +34,9 @@ SRC_CC += spec/x86_64/platform_support_common.cc
 
 SRC_CC += spec/64bit/memory_map.cc
 
-vpath spec/64bit/memory_map.cc $(REP_DIR)/src/lib/hw
+vpath spec/64bit/memory_map.cc $(call select_from_repositories,src/lib/hw)
 
 NR_OF_CPUS = 32
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/core-hw.inc
+include $(call select_from_repositories,lib/mk/core-hw.inc)
