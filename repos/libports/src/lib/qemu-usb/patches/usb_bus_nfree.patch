@@ -1,18 +1,22 @@
-diff --git a/src/lib/qemu/hw/usb/bus.c b/src/lib/qemu/hw/usb/bus.c
-index 5f39e1e..b94f3af 100644
 --- a/src/lib/qemu/hw/usb/bus.c
 +++ b/src/lib/qemu/hw/usb/bus.c
-@@ -433,10 +433,10 @@ void usb_claim_port(USBDevice *dev, Error **errp)
+@@ -429,13 +429,13 @@
              return;
          }
      } else {
 -        if (bus->nfree == 1 && strcmp(object_get_typename(OBJECT(dev)), "usb-hub") != 0) {
 -            /* Create a new hub and chain it on */
--            usb_try_create_simple(bus, "usb-hub", NULL);
+-            hub = usb_try_new("usb-hub");
+-            if (hub) {
+-                usb_realize_and_unref(hub, bus, NULL);
+-            }
 -        }
 +        // if (bus->nfree == 1 && strcmp(object_get_typename(OBJECT(dev)), "usb-hub") != 0) {
 +        //     /* Create a new hub and chain it on */
-+        //     usb_try_create_simple(bus, "usb-hub", NULL);
++        //     hub = usb_try_new("usb-hub");
++        //     if (hub) {
++        //         usb_realize_and_unref(hub, bus, NULL);
++        //     }
 +        // }
          if (bus->nfree == 0) {
              error_setg(errp, "tried to attach usb device %s to a bus "

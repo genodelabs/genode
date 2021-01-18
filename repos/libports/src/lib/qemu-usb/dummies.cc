@@ -79,6 +79,13 @@ Object* object_dynamic_cast_assert(Object*, const char*, const char*, int, const
 }
 
 
+PCIBus *pci_get_bus(const PCIDevice *dev)
+{
+	TRACE;
+	return nullptr;
+}
+
+
 bool pci_bus_is_express(PCIBus*)
 {
 	TRACE;
@@ -116,11 +123,11 @@ ObjectClass* object_get_class(Object*)
 const char* object_get_typename(Object*)
 {
 	TRACE;
-	return nullptr;
+	return "";
 }
 
 
-void qbus_set_bus_hotplug_handler(BusState *state, Error **error)
+void qbus_set_bus_hotplug_handler(BusState *state)
 {
 	TRACE;
 }
@@ -146,10 +153,50 @@ long int strtol(const char*, char**, int)
 }
 
 
+ObjectProperty *object_property_add_bool(Object *, const char *,
+                                         bool (*get)(Object *, Error **),
+                                         void (*set)(Object *, bool, Error **))
+{
+	TRACE_AND_STOP;
+	return nullptr;
+}
+
+
+const PropertyInfo qdev_prop_link = { 0 };
+const PropertyInfo qdev_prop_on_off_auto = { 0 };
+
+
+void qdev_alias_all_properties(DeviceState *target, Object *source)
+{
+	TRACE;
+}
+
+
 DeviceState* qdev_try_create(BusState*, const char*)
 {
 	TRACE_AND_STOP;
 	return nullptr;
+}
+
+
+DeviceState *qdev_new(const char *name)
+{
+	TRACE_AND_STOP;
+	return nullptr;
+}
+
+
+DeviceState *qdev_try_new(const char *name)
+{
+	TRACE_AND_STOP;
+	return nullptr;
+}
+
+
+bool qdev_realize_and_unref(DeviceState *, BusState *, Error **)
+{
+	TRACE_AND_STOP;
+	return false;
 }
 
 
@@ -176,6 +223,29 @@ const char* qdev_fw_name(DeviceState*)
 {
 	TRACE;
 	return 0;
+}
+
+
+AddressSpace *pci_get_address_space(PCIDevice *dev)
+{
+	TRACE;
+	return nullptr;
+}
+
+
+void object_initialize_child_internal(Object *parent, const char *propname,
+                                      void *child, size_t size,
+                                      const char *type)
+{
+	TRACE;
+}
+
+
+bool object_property_set_link(Object *obj, const char *name,
+                              Object *value, Error **errp)
+{
+	TRACE;
+	return true;
 }
 
 

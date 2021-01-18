@@ -21,10 +21,11 @@
 
 namespace Qemu {
 
-	typedef Genode::size_t  size_t;
-	typedef Genode::off_t   off_t;
-	typedef Genode::int64_t int64_t;
-	typedef Genode::addr_t  addr_t;
+	typedef Genode::size_t   size_t;
+	typedef Genode::off_t    off_t;
+	typedef Genode::int64_t  int64_t;
+	typedef Genode::addr_t   addr_t;
+	typedef Genode::uint16_t uint16_t;
 
 
 	/************************************
@@ -83,6 +84,20 @@ namespace Qemu {
 	 */
 	struct Controller
 	{
+		/*
+		 * Controller information
+		 */
+		struct Info
+		{
+			uint16_t vendor_id;
+			uint16_t product_id;
+		};
+
+		/**
+		 * Get information of the controller
+		 */
+		virtual Info info() const = 0;
+
 		/**
 		 * Size of the MMIO region of the controller
 		 */

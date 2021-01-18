@@ -1,13 +1,14 @@
 LICENSE   := GPLv2
-VERSION   := 2.4.1
+VERSION   := 5.2.0
 DOWNLOADS := qemu.archive
 
-URL(qemu)     := http://wiki.qemu-project.org/download/qemu-$(VERSION).tar.bz2
-SHA(qemu)     := e3d5cf4c8b1f9129c9c797329a515bfb6b3b1ded0ab8b394c8a316490fe3a177
+URL(qemu)     := https://download.qemu.org/qemu-$(VERSION).tar.xz
+SHA(qemu)     := cb18d889b628fbe637672b0326789d9b0e3b8027e0445b936537c78549df17bc
 DIR(qemu)     := src/lib/qemu
-TAR_OPT(qemu) := --strip-components=1 --files-from $(REP_DIR)/src/lib/qemu-usb/files.list
+LIST_FILE     := $(REP_DIR)/src/lib/qemu-usb/files.list
+TAR_OPT(qemu) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION)/g' $(LIST_FILE))
 HASH_INPUT    += $(REP_DIR)/src/lib/qemu-usb/files.list
 
-PATCHES  := src/lib/qemu-usb/patches/xhci_state.patch \
+PATCHES  := src/lib/qemu-usb/patches/xhci_pci_register.patch \
             src/lib/qemu-usb/patches/usb_bus_nfree.patch
 PATCH_OPT:= -p1

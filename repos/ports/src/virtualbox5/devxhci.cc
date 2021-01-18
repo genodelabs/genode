@@ -488,7 +488,7 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 
 	int rc = PDMDevHlpTMTimerCreate(pDevIns, TMCLOCK_VIRTUAL, Timer_queue::tm_timer_cb,
 	                                pThis, TMTIMER_FLAGS_NO_CRIT_SECT,
-	                                "NEC-XHCI Timer", &pThis->controller_timer);
+	                                "XHCI Timer", &pThis->controller_timer);
 
 	static Timer_queue timer_queue(pThis->controller_timer);
 	pThis->timer_queue = &timer_queue;
@@ -497,6 +497,8 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 	pThis->ctl = Qemu::usb_init(timer_queue, pci_device, *pThis->usb_ep,
 	                            vmm_heap(), genode_env());
 
+	Qemu::Controller::Info const ctl_info = pThis->ctl->info();
+
 	/*
 	 * Init instance data.
 	 */
@@ -504,11 +506,11 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 	pThis->pDevInsR0 = PDMDEVINS_2_R0PTR(pDevIns);
 	pThis->pDevInsRC = PDMDEVINS_2_RCPTR(pDevIns);
 
-	PCIDevSetVendorId      (&pThis->PciDev, 0x1033); /* PCI_VENDOR_ID_NEC */
-	PCIDevSetDeviceId      (&pThis->PciDev, 0x0194); /* PCI_DEVICE_ID_NEC_UPD720200 */
+	PCIDevSetVendorId      (&pThis->PciDev, ctl_info.vendor_id);
+	PCIDevSetDeviceId      (&pThis->PciDev, ctl_info.product_id);
+	PCIDevSetClassBase     (&pThis->PciDev, 0x0c);   /* PCI serial */
+	PCIDevSetClassSub      (&pThis->PciDev, 0x03);   /* USB */
 	PCIDevSetClassProg     (&pThis->PciDev, 0x30);   /* xHCI */
-	PCIDevSetClassSub      (&pThis->PciDev, 0x03);
-	PCIDevSetClassBase     (&pThis->PciDev, 0x0c);
 	PCIDevSetInterruptPin  (&pThis->PciDev, 0x01);
 	PCIDevSetByte          (&pThis->PciDev, 0x60, 0x30); /* Serial Bus Release Number Register */
 #ifdef VBOX_WITH_MSI_DEVICES

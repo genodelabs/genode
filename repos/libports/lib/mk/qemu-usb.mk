@@ -9,7 +9,7 @@ LIBS = qemu-usb_include
 
 SRC_CC = dummies.cc qemu_emul.cc host.cc
 
-SRC_C = hcd-xhci.c core.c bus.c
+SRC_C = hcd-xhci.c hcd-xhci-pci.c core.c bus.c
 
 SHARED_LIB = yes
 

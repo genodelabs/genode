@@ -18,8 +18,7 @@
 #include <stdarg.h>
 #include <base/fixed_stdint.h>
 
-void q_printf(char const *, ...) __attribute__((format(printf, 1, 2)));
-void q_vprintf(char const *, va_list);
+void qemu_printf(char const *, ...) __attribute__((format(printf, 1, 2)));
 
 typedef genode_uint8_t  uint8_t;
 typedef genode_uint16_t uint16_t;
@@ -61,7 +60,7 @@ void *memcpy(void *dest, const void *src, size_t n);
 
 void abort();
 
-#define fprintf(fd, fmt, ...) q_printf(fmt, ##__VA_ARGS__)
+#define fprintf(fd, fmt, ...) qemu_printf(fmt, ##__VA_ARGS__)
 int snprintf(char *buf, size_t size, const char *fmt, ...);
 int strcmp(const char *s1, const char *s2);
 size_t strlen(char const *s);
@@ -97,6 +96,29 @@ typedef struct MemoryRegion { unsigned dummy; } MemoryRegion;
 
 struct tm;
 
+struct Aml { unsigned dummy; };
+typedef struct Aml Aml;
+
+
+/*****************
+ ** compiler.h> **
+ *****************/
+
+#define typeof_field(type, field) typeof(((type *)0)->field)
+#define type_check(t1,t2) ((t1*)0 - (t2*)0)
+
+/******************
+ ** qapi-types.h **
+ ******************/
+
+
+typedef enum OnOffAuto {
+	ON_OFF_AUTO_AUTO = 0,
+	ON_OFF_AUTO_ON = 1,
+	ON_OFF_AUTO_OFF = 2,
+	ON_OFF_AUTO__MAX = 3,
+} OnOffAuto;
+
 
 /******************
  ** qapi/error.h **
@@ -108,8 +130,10 @@ void error_setg(Error **errp, const char *fmt, ...);
 
 const char *error_get_pretty(Error *err);
 void error_report(const char *fmt, ...);
+void error_reportf_err(Error *err, const char *fmt, ...);
 void error_free(Error *err);
 void error_propagate(Error **dst_errp, Error *local_err);
+void error_append_hint(Error *const *errp, const char *fmt, ...);
 
 extern Error *error_abort;
 
@@ -182,16 +206,32 @@ size_t iov_memset(const struct iovec *iov, const unsigned int iov_cnt,
 typedef struct Object { unsigned dummy; } Object;
 typedef struct ObjectClass { unsigned dummy; } ObjectClass;
 
+typedef struct ObjectProperty { unsigned dummy; } ObjectProperty;
+ObjectProperty *object_property_add_bool(Object *obj, const char *name,
+                                         bool (*get)(Object *, Error **),
+                                         void (*set)(Object *, bool, Error **));
+
+#define object_initialize_child(parent, propname, child, type)          \
+	object_initialize_child_internal((parent), (propname),              \
+	                                 (child), sizeof(*(child)), (type))
+void object_initialize_child_internal(Object *parent, const char *propname,
+                                      void *child, size_t size,
+                                      const char *type);
+
+bool object_property_set_link(Object *obj, const char *name,
+                              Object *value, Error **errp);
+
 struct DeviceState;
 struct PCIDevice;
 struct XHCIState;
 
-struct PCIDevice   *cast_PCIDevice(void *);
-struct XHCIState   *cast_XHCIState(void *);
-struct DeviceState *cast_DeviceState(void *);
-struct BusState    *cast_BusState(void *);
-struct Object      *cast_object(void *);
-struct USBDevice   *cast_USBDevice(void *);
+struct PCIDevice    *cast_PCIDevice(void *);
+struct XHCIState    *cast_XHCIState(void *);
+struct XHCIPciState *cast_XHCIPciState(void *);
+struct DeviceState  *cast_DeviceState(void *);
+struct BusState     *cast_BusState(void *);
+struct Object       *cast_object(void *);
+struct USBDevice    *cast_USBDevice(void *);
 struct USBHostDevice *cast_USBHostDevice(void *);
 
 struct PCIDeviceClass      *cast_PCIDeviceClass(void *);
@@ -200,6 +240,8 @@ struct BusClass            *cast_BusClass(void *);
 struct HotplugHandlerClass *cast_HotplugHandlerClass(void *);
 
 struct USBDeviceClass      *cast_USBDeviceClass(void *);
+
+struct USBBus *cast_USBBus(void *);
 
 #define OBJECT_CHECK(type, obj, str) \
 	cast_##type((void *)obj)
@@ -213,6 +255,41 @@ struct USBDeviceClass      *cast_USBDeviceClass(void *);
 #define OBJECT_GET_CLASS(klass, obj, str) \
 	OBJECT_CHECK(klass, obj, str)
 
+#define DECLARE_INSTANCE_CHECKER(InstanceType, OBJ_NAME, TYPENAME) \
+	static inline InstanceType * \
+	OBJ_NAME(const void *obj) \
+	{ return OBJECT_CHECK(InstanceType, obj, TYPENAME); }
+
+#define DECLARE_CLASS_CHECKERS(ClassType, OBJ_NAME, TYPENAME) \
+	static inline ClassType * \
+	OBJ_NAME##_GET_CLASS(const void *obj) \
+	{ return OBJECT_GET_CLASS(ClassType, obj, TYPENAME); } \
+	\
+	static inline ClassType * \
+	OBJ_NAME##_CLASS(const void *klass) \
+	{ return OBJECT_CLASS_CHECK(ClassType, klass, TYPENAME); }
+
+#define DECLARE_OBJ_CHECKERS(InstanceType, ClassType, OBJ_NAME, TYPENAME) \
+	DECLARE_INSTANCE_CHECKER(InstanceType, OBJ_NAME, TYPENAME) \
+	\
+	DECLARE_CLASS_CHECKERS(ClassType, OBJ_NAME, TYPENAME)
+
+
+#define OBJECT_DECLARE_TYPE(InstanceType, ClassType, MODULE_OBJ_NAME) \
+	typedef struct InstanceType InstanceType; \
+	typedef struct ClassType ClassType; \
+	\
+	DECLARE_OBJ_CHECKERS(InstanceType, ClassType, \
+                         MODULE_OBJ_NAME, TYPE_##MODULE_OBJ_NAME)
+
+
+#define OBJECT_DECLARE_SIMPLE_TYPE(InstanceType, MODULE_OBJ_NAME) \
+	typedef struct InstanceType InstanceType; \
+	\
+	DECLARE_INSTANCE_CHECKER(InstanceType, MODULE_OBJ_NAME, TYPE_##MODULE_OBJ_NAME)
+
+void object_unref(void *obj);
+
 
 typedef struct InterfaceInfo {
 	const char *type;
@@ -224,6 +301,8 @@ typedef struct TypeInfo
 	char const *name;
 	char const *parent;
 	size_t      instance_size;
+
+	void (*instance_init)(Object *obj);
 
 	bool        abstract;
 	size_t      class_size;
@@ -241,6 +320,12 @@ Type type_register_static(const TypeInfo *info);
 
 const char *object_get_typename(Object *obj);
 
+typedef struct Visitor Visitor;
+
+#define TYPE_DEVICE "device"
+OBJECT_DECLARE_TYPE(DeviceState, DeviceClass, DEVICE)
+
+
 /********************
  ** glib emulation **
  ********************/
@@ -253,6 +338,8 @@ void  g_free(void *ptr);
 	memset(t, 0, sizeof(type) * count); \
 	t; \
 	})
+
+#define g_new g_new0
 
 #define g_malloc0(size) ({ \
 	void *t = g_malloc((size)); \
@@ -289,6 +376,7 @@ typedef struct BusState BusState;
 
 typedef struct DeviceState
 {
+	char const *id;
 	BusState *parent_bus;
 } DeviceState;
 
@@ -296,12 +384,13 @@ struct VMStateDescription;
 struct Property;
 
 typedef void (*DeviceRealize)(DeviceState *dev, Error **errp);
-typedef void (*DeviceUnrealize)(DeviceState *dev, Error **errp);
+typedef void (*DeviceUnrealize)(DeviceState *dev);
 
 typedef struct DeviceClass
 {
 	DECLARE_BITMAP(categories, DEVICE_CATEGORY_MAX);
 	struct Property *props;
+	bool user_creatable;
 	void (*reset)(DeviceState *dev);
 	DeviceRealize realize;
 	DeviceUnrealize unrealize;
@@ -339,11 +428,25 @@ enum Prop_type
 	BIT, UINT32, END
 };
 
+struct PropertyInfo { unsigned dummy; };
+typedef struct PropertyInfo PropertyInfo;
+
+extern const PropertyInfo qdev_prop_link;
+extern const PropertyInfo qdev_prop_on_off_auto;
+
 typedef struct Property
 {
+	const char   *name;
+	const PropertyInfo *info;
 	enum Prop_type type;
+	bool         set_default;
+	union {
+		int64_t i;
+		uint64_t u;
+	} defval;
 	unsigned       offset;
 	unsigned long  value;
+	const char   *link_type;
 } Property;
 
 
@@ -354,6 +457,28 @@ typedef struct Property
 #define DEFINE_PROP_END_OF_LIST() { .type = END }
 #define DEFINE_PROP_STRING(...) {}
 
+#define DEFINE_PROP_SIGNED(_name, _state, _field, _defval, _prop, _type) { \
+	.name      = (_name),                                           \
+	.info      = &(_prop),                                          \
+	.offset    = offsetof(_state, _field)                           \
+	    + type_check(_type,typeof_field(_state, _field)),           \
+	.set_default = true,                                            \
+	.defval.i  = (_type)_defval,                                    \
+	}
+#define DEFINE_PROP_ON_OFF_AUTO(_n, _s, _f, _d) \
+	    DEFINE_PROP_SIGNED(_n, _s, _f, _d, qdev_prop_on_off_auto, OnOffAuto)
+
+#define DEFINE_PROP_LINK(_name, _state, _field, _type, _ptr_type) {     \
+	.name = (_name),                                                \
+	.info = &(qdev_prop_link),                                      \
+	.offset = offsetof(_state, _field)                              \
+	    + type_check(_ptr_type, typeof_field(_state, _field)),      \
+	.link_type  = _type,                                            \
+	}
+
+void device_class_set_props(DeviceClass *dc, Property *props);
+
+void device_legacy_reset(DeviceState *dev);
 
 /* forward */
 typedef struct DeviceState DeviceState;
@@ -363,11 +488,18 @@ void qdev_simple_device_unplug_cb(HotplugHandler *hotplug_dev,
                                   DeviceState *dev, Error **errp);
 void qbus_create_inplace(void *bus, size_t size, const char *typename,
                          DeviceState *parent, const char *name);
-void qbus_set_bus_hotplug_handler(BusState *bus, Error **errp);
+void qbus_set_bus_hotplug_handler(BusState *bus);
 DeviceState *qdev_create(BusState *bus, const char *name);
 DeviceState *qdev_try_create(BusState *bus, const char *name);
 char *qdev_get_dev_path(DeviceState *dev);
 const char *qdev_fw_name(DeviceState *dev);
+DeviceState *qdev_new(const char *name);
+DeviceState *qdev_try_new(const char *name);
+bool qdev_realize_and_unref(DeviceState *dev, BusState *bus, Error **errp);
+
+void qdev_alias_all_properties(DeviceState *target, Object *source);
+
+extern bool qdev_hotplug;
 
 /******************
  ** hw/hotplug.h **
@@ -404,6 +536,7 @@ typedef struct HotplugHandlerClass
 struct USBBus *cast_DeviceStateToUSBBus(void);
 
 #define MAX(a, b) ((a) < (b) ? (b) : (a))
+#define MAX_CONST(a, b) MAX((a), (b))
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 
@@ -483,10 +616,12 @@ void memory_region_del_subregion(MemoryRegion *mr,
 
 typedef struct QEMUIOVector QEMUSGList;
 
+void qemu_sglist_init(QEMUSGList *qsg, DeviceState *dev, int alloc_hint, AddressSpace *as);
 void qemu_sglist_add(QEMUSGList *qsg, dma_addr_t base, dma_addr_t len);
 void qemu_sglist_destroy(QEMUSGList *qsg);
 
 int dma_memory_read(AddressSpace *as, dma_addr_t addr, void *buf, dma_addr_t len);
+int dma_memory_write(AddressSpace *as, dma_addr_t addr, const void *buf, dma_addr_t len);
 
 static inline uint64_t ldq_le_dma(AddressSpace *as, dma_addr_t addr)
 {
@@ -525,6 +660,8 @@ typedef struct PCIDevice
 {
 	uint8_t config[0x1000]; /* PCIe config space */
 	PCIBus *bus;
+
+	uint32_t cap_present;
 
 	uint8_t *msix_table;
 	uint8_t *msix_pba;
@@ -572,21 +709,34 @@ AddressSpace *pci_get_address_space(PCIDevice *dev);
 void pci_register_bar(PCIDevice *pci_dev, int region_num,
                       uint8_t attr, MemoryRegion *memory);
 bool pci_bus_is_express(PCIBus *bus);
+PCIBus *pci_get_bus(const PCIDevice *dev);
+
+AddressSpace *pci_get_address_space(PCIDevice *dev);
 
 int pcie_endpoint_cap_init(PCIDevice *dev, uint8_t offset);
 
+#define INTERFACE_PCIE_DEVICE "pci-express-device"
+#define INTERFACE_CONVENTIONAL_PCI_DEVICE "conventional-pci-device"
+
+#define PCI_VENDOR_ID_REDHAT             0x1b36
+#define PCI_DEVICE_ID_REDHAT_XHCI        0x000d
+
+enum {
+	QEMU_PCI_CAP_EXPRESS = 0x4,
+};
 
 /*********************
  ** hw/pci/msi(x).h **
  *********************/
 
 int msi_init(struct PCIDevice *dev, uint8_t offset,
-             unsigned int nr_vectors, bool msi64bit, bool msi_per_vector_mask);
+             unsigned int nr_vectors, bool msi64bit, bool msi_per_vector_mask, Error **errp);
 
 int msix_init(PCIDevice *dev, unsigned short nentries,
               MemoryRegion *table_bar, uint8_t table_bar_nr,
               unsigned table_offset, MemoryRegion *pba_bar,
-              uint8_t pba_bar_nr, unsigned pba_offset, uint8_t cap_pos);
+              uint8_t pba_bar_nr, unsigned pba_offset, uint8_t cap_pos, Error **);
+void msix_uninit(PCIDevice *dev, MemoryRegion *table_bar, MemoryRegion *pba_bar);
 
 bool msi_enabled(const PCIDevice *dev);
 int  msix_enabled(PCIDevice *dev);
@@ -616,6 +766,7 @@ void msix_notify(PCIDevice *dev, unsigned vector);
 #define VMSTATE_MSIX(...) {}
 #define VMSTATE_TIMER_PTR(...) {}
 #define VMSTATE_STRUCT(...) {}
+#define VMSTATE_PCI_DEVICE(...) {}
 #define VMSTATE_END_OF_LIST() {}
 
 typedef struct VMStateField { unsigned dummy; } VMStateField;
@@ -635,7 +786,7 @@ typedef struct VMStateDescription
 
 #define assert(cond) do { \
 	if (!(cond)) { \
-		q_printf("assertion faied: %s:%d\n", __FILE__, __LINE__); \
+		qemu_printf("assertion faied: %s:%d\n", __FILE__, __LINE__); \
 		int *d = (int *)0x0; \
 		*d = 1; \
 	}} while (0)
@@ -645,55 +796,63 @@ typedef struct VMStateDescription
  ** traces **
  ************/
 
-#define trace_usb_xhci_irq_msix_use(v)
-#define trace_usb_xhci_irq_msix_unuse(v)
-#define trace_usb_xhci_irq_msix(v)
+#if 0
+#define TRACE_PRINTF(...)  qemu_printf(__VA_ARGS__)
+#else
+#define TRACE_PRINTF(...)
+#endif
+
+#define trace_usb_packet_state_change(...) TRACE_PRINTF("%s:%d\n", "trace_usb_packet_state_change", __LINE__)
+#define trace_usb_packet_state_fault(...)  TRACE_PRINTF("%s:%d\n", "trace_usb_packet_state_fault", __LINE__)
+#define trace_usb_port_attach(...)         TRACE_PRINTF("%s:%d\n", "trace_usb_port_attach", __LINE__)
+#define trace_usb_port_claim(...)          TRACE_PRINTF("%s:%d\n", "trace_usb_port_claim", __LINE__)
+#define trace_usb_port_detach(...)         TRACE_PRINTF("%s:%d\n", "trace_usb_port_detach", __LINE__)
+#define trace_usb_port_release(...)        TRACE_PRINTF("%s:%d\n", "trace_usb_port_release", __LINE__)
+#define trace_usb_xhci_cap_read(...)       TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_cap_read", __LINE__)
+#define trace_usb_xhci_doorbell_read(...)  TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_doorbell_read", __LINE__)
+#define trace_usb_xhci_doorbell_write(...) TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_doorbell_write", __LINE__)
+#define trace_usb_xhci_enforced_limit(...) TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_enforced_limit", __LINE__)
+#define trace_usb_xhci_ep_disable(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_ep_disable", __LINE__)
+#define trace_usb_xhci_ep_enable(...)      TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_ep_enable", __LINE__)
+#define trace_usb_xhci_ep_kick(...)        TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_ep_kick", __LINE__)
+#define trace_usb_xhci_ep_reset(...)       TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_ep_reset", __LINE__)
+#define trace_usb_xhci_ep_set_dequeue(...) TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_ep_set_dequeue", __LINE__)
+#define trace_usb_xhci_ep_state(...)       TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_ep_state", __LINE__)
+#define trace_usb_xhci_ep_stop(...)        TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_ep_stop", __LINE__)
+#define trace_usb_xhci_exit(...)           TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_exit", __LINE__)
+#define trace_usb_xhci_fetch_trb(...)      TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_fetch_trb", __LINE__)
+#define trace_usb_xhci_irq_intx(...)       TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_irq_intx", __LINE__)
 #define trace_usb_xhci_irq_msi(v)
-#define trace_usb_xhci_queue_event(...)
-#define trace_usb_xhci_fetch_trb(...)
-#define trace_usb_xhci_run(...)
-#define trace_usb_xhci_stop(...)
-#define trace_usb_xhci_ep_state(...)
-#define trace_usb_xhci_ep_enable(...)
-#define trace_usb_xhci_ep_disable(...)
-#define trace_usb_xhci_ep_stop(...)
-#define trace_usb_xhci_ep_reset(...)
-#define trace_usb_xhci_ep_set_dequeue(...)
-#define trace_usb_xhci_xfer_async(...)
-#define trace_usb_xhci_xfer_nak(...)
-#define trace_usb_xhci_xfer_success(...)
-#define trace_usb_xhci_xfer_error(...)
-#define trace_usb_xhci_xfer_start(...)
-#define trace_usb_xhci_unimplemented(...)
-#define trace_usb_xhci_ep_kick(...)
-#define trace_usb_xhci_xfer_retry(...)
-#define trace_usb_xhci_slot_enable(...)
-#define trace_usb_xhci_slot_disable(...)
-#define trace_usb_xhci_slot_address(...)
-#define trace_usb_xhci_slot_configure(...)
-#define trace_usb_xhci_irq_intx(...)
-#define trace_usb_xhci_slot_reset(...)
-#define trace_usb_xhci_slot_evaluate(...)
-#define trace_usb_xhci_port_notify(...)
-#define trace_usb_xhci_port_link(...)
-#define trace_usb_xhci_port_reset(...)
-#define trace_usb_xhci_reset(...)
-#define trace_usb_xhci_cap_read(...)
-#define trace_usb_xhci_port_read(...)
-#define trace_usb_xhci_port_write(...)
-#define trace_usb_xhci_oper_read(...)
-#define trace_usb_xhci_oper_write(...)
-#define trace_usb_xhci_runtime_read(...)
-#define trace_usb_xhci_runtime_write(...)
-#define trace_usb_xhci_doorbell_read(...)
-#define trace_usb_xhci_doorbell_write(...)
-#define trace_usb_xhci_exit(...)
-#define trace_usb_port_claim(...)
-#define trace_usb_port_release(...)
-#define trace_usb_port_attach(...)
-#define trace_usb_port_detach(...)
-#define trace_usb_packet_state_fault(...)
-#define trace_usb_packet_state_change(...)
+#define trace_usb_xhci_irq_msix(v)
+#define trace_usb_xhci_irq_msix_unuse(v)
+#define trace_usb_xhci_irq_msix_use(v)
+#define trace_usb_xhci_oper_read(...)      TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_oper_read", __LINE__)
+#define trace_usb_xhci_oper_write(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_oper_write", __LINE__)
+#define trace_usb_xhci_port_link(...)      TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_port_link", __LINE__)
+#define trace_usb_xhci_port_notify(...)    TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_port_notify", __LINE__)
+#define trace_usb_xhci_port_read(...)      TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_port_read", __LINE__)
+#define trace_usb_xhci_port_reset(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_port_reset", __LINE__)
+#define trace_usb_xhci_port_write(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_port_write", __LINE__)
+#define trace_usb_xhci_queue_event(...)    TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_queue_event", __LINE__)
+#define trace_usb_xhci_reset(...)          TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_reset", __LINE__)
+#define trace_usb_xhci_run(...)            TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_run", __LINE__)
+#define trace_usb_xhci_runtime_read(...)   TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_runtime_read", __LINE__)
+#define trace_usb_xhci_runtime_write(...)  TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_runtime_write", __LINE__)
+#define trace_usb_xhci_slot_address(...)   TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_slot_address", __LINE__)
+#define trace_usb_xhci_slot_configure(...) TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_slot_configure", __LINE__)
+#define trace_usb_xhci_slot_disable(...)   TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_slot_disable", __LINE__)
+#define trace_usb_xhci_slot_enable(...)    TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_slot_enable", __LINE__)
+#define trace_usb_xhci_slot_evaluate(...)  TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_slot_evaluate", __LINE__)
+#define trace_usb_xhci_slot_reset(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_slot_reset", __LINE__)
+#define trace_usb_xhci_stop(...)           TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_stop", __LINE__)
+#define trace_usb_xhci_unimplemented(...)  TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_unimplemented", __LINE__)
+#define trace_usb_xhci_xfer_async(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_xfer_async", __LINE__)
+#define trace_usb_xhci_xfer_error(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_xfer_error", __LINE__)
+#define trace_usb_xhci_xfer_nak(...)       TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_xfer_nak", __LINE__)
+#define trace_usb_xhci_xfer_retry(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_xfer_retry", __LINE__)
+#define trace_usb_xhci_xfer_start(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_xfer_start", __LINE__)
+#define trace_usb_xhci_xfer_success(...)   TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_xfer_success", __LINE__)
+
 
 /***********************
  ** library interface **
@@ -721,6 +880,15 @@ void usb_host_update_devices();
  ***********************/
 
 void monitor_printf(Monitor *mon, const char *fmt, ...);
+
+
+/*************
+ ** errno.h **
+ *************/
+
+enum {
+	ENOTSUP = 666,
+};
 
 
 #endif /* _INCLUDE__QEMU_EMUL_H_ */
