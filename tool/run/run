@@ -1056,14 +1056,15 @@ foreach include_name [get_cmd_arg --include ""] {
 		continue
 	}
 
-	# if it is relative, check run modules
-	set run_path [genode_dir]/tool/run
-	set dir { etc }
-	lappend dir $run_path
+	# if it is relative, check repositories and tool directory for run modules
+	set search_dirs {}
+	foreach rep_dir $repositories {
+		lappend search_dirs [file join $rep_dir tool run] }
+	lappend search_dirs [genode_dir]/tool/run
 
 	set found 0
-	foreach location $dir {
-		set include_file $location/$include_name
+	foreach dir $search_dirs {
+		set include_file $dir/$include_name
 		if {[file exists $include_file] == 1} {
 			puts "including $include_file"
 			lappend include_list $include_name
@@ -1071,7 +1072,6 @@ foreach include_name [get_cmd_arg --include ""] {
 
 			set found 1
 			break
-		} else {
 		}
 	}
 
