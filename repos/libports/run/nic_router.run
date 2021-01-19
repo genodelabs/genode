@@ -178,11 +178,11 @@ proc test_7_config { } {
 	if {[enable_test_7]} {
 
 		append config "
-			[client_config t7_d1_c1_tcp http dhcp       dhcp     dhcp          t7_d1_nic_router 2345 10.0.2.204]
-			[client_config t7_d1_c2_tcp http dhcp       dhcp     dhcp          nic_router       3456 10.0.2.240]
-			[client_config t7_d1_c3_tcp http dhcp       dhcp     dhcp          nic_router       3456 10.0.2.240]
-			[server_config t7_d2_s1_tcp http 10.0.2.204 10.0.2.1 255.255.255.0 nic_router       2345 ]
-			[server_config t7_d2_s2_tcp http 10.0.2.240 10.0.2.1 255.255.255.0 nic_router       3456 ]"
+			[client_config t7_d1_c1_tcp http dhcp         dhcp       dhcp          t7_d1_nic_router 2345 10.13.78.204]
+			[client_config t7_d1_c2_tcp http dhcp         dhcp       dhcp          nic_router       3456 10.13.78.240]
+			[client_config t7_d1_c3_tcp http dhcp         dhcp       dhcp          nic_router       3456 10.13.78.240]
+			[server_config t7_d2_s1_tcp http 10.13.78.204 10.13.78.1 255.255.255.0 nic_router       2345 ]
+			[server_config t7_d2_s2_tcp http 10.13.78.240 10.13.78.1 255.255.255.0 nic_router       3456 ]"
 
 		append config {
 			<start name="t7_d1_nic_router" caps="200" priority="-1">
@@ -206,7 +206,7 @@ proc test_7_config { } {
 						             ip_last="100.2.3.10"
 						             dns_server_from="uplink"/>
 
-						<tcp dst="10.0.0.0/16">
+						<tcp dst="10.13.0.0/16">
 							<permit port="2345" domain="uplink" />
 						</tcp>
 					</domain>
@@ -237,13 +237,13 @@ proc test_7_router_config { } {
 
 			</dhcp-server>
 
-			<tcp dst="10.0.0.0/16">
+			<tcp dst="10.13.0.0/16">
 				<permit port="2345" domain="t7_d2" />
 				<permit port="3456" domain="t7_d2" />
 			</tcp>
 		</domain>
 
-		<domain name="t7_d2" interface="10.0.2.1/24">
+		<domain name="t7_d2" interface="10.13.78.1/24">
 			<nat domain="t7_d1" tcp-ports="18" />
 		</domain>} }
 }
