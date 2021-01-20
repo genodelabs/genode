@@ -555,6 +555,9 @@ __SYS_(int, open, (const char *pathname, int flags, ...),
 		return -1;
 	new_fdo->path(resolved_path.base());
 
+	if (flags & O_APPEND)
+		lseek(new_fdo->libc_fd, 0, SEEK_END);
+
 	return new_fdo->libc_fd;
 })
 
