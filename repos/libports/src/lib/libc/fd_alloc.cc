@@ -127,6 +127,17 @@ File_descriptor *File_descriptor_allocator::any_cloexec_libc_fd()
 }
 
 
+void File_descriptor_allocator::update_append_libc_fds()
+{
+	Mutex::Guard guard(_mutex);
+
+	_id_space.for_each<File_descriptor>([&] (File_descriptor &fd) {
+		if (fd.flags & O_APPEND)
+			fd.plugin->lseek(&fd, 0, SEEK_END);
+	});
+}
+
+
 int File_descriptor_allocator::any_open_fd()
 {
 	Mutex::Guard guard(_mutex);

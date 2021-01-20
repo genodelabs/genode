@@ -721,6 +721,8 @@ extern "C" pid_t __sys_wait4(pid_t pid, int *status, int options, rusage *rusage
 		return Fn::INCOMPLETE;
 	});
 
+	file_descriptor_allocator()->update_append_libc_fds();
+
 	/*
 	 * The libc expects status information in bits 0..6 and the exit value
 	 * in bits 8..15 (according to 'wait.h').

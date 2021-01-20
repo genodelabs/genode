@@ -114,6 +114,11 @@ namespace Libc {
 			File_descriptor *any_cloexec_libc_fd();
 
 			/**
+			 * Update seek state of file descriptor with append flag set.
+			 */
+			void update_append_libc_fds();
+
+			/**
 			 * Return file-descriptor ID of any open file, or -1 if no file is
 			 * open
 			 */
