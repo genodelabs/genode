@@ -46,6 +46,7 @@ postprocess.tag: $(LIB).lib.so
 	$(VERBOSE)printf "\x02" |\
 	          dd of=$(LIB).lib.so bs=1 seek=16 count=1 conv=notrunc \
 	          2> /dev/null
+	$(VERBOSE)touch $@
 endif
 
 else
