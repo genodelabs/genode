@@ -12,24 +12,6 @@ PLATFORM = $(MAKECMDGOALS)
 
 PLATFORMS = arm_v6 arm_v7a arm_v8a riscv x86_32 x86_64 linux
 
-PLATFORMS_DEPR = imx53_qsb imx53_qsb_tz imx6q_sabrelite imx7d_sabre \
-                 nit6_solox pbxa9 riscv_spike rpi \
-                 usb_armory wand_quad zynq_qemu muen
-
-PLATFORM_ALT(imx53_qsb)       = arm_v7a
-PLATFORM_ALT(imx53_qsb_tz)    = arm_v7a
-PLATFORM_ALT(imx6q_sabrelite) = arm_v7a
-PLATFORM_ALT(imx7d_sabre)     = arm_v7a
-PLATFORM_ALT(muen)            = x86_64
-PLATFORM_ALT(nit6_solox)      = arm_v7a
-PLATFORM_ALT(pbxa9)           = arm_v7a
-PLATFORM_ALT(riscv_spike)     = riscv
-PLATFORM_ALT(rpi)             = arm_v6
-PLATFORM_ALT(usb_armory)      = arm_v7a
-PLATFORM_ALT(wand_quad)       = arm_v7a
-PLATFORM_ALT(zynq_qemu)       = arm_v7a
-
-
 usage:
 	@echo
 	@echo "Tool for preparing Genode build directories"
@@ -41,10 +23,6 @@ usage:
 	@echo "  <platform>   can be:"
 	@$(foreach PLAT,$(PLATFORMS), \
 	   echo "                  '$(PLAT)'";)
-	@echo
-	@echo "  the following <platform> arguments are deprecated:"
-	@$(foreach PLAT,$(PLATFORMS_DEPR), \
-	   printf "                  %-20s(use '$(PLATFORM_ALT($(PLAT)))')\n" "'$(PLAT)'";)
 	@echo
 	@echo "  The definition of BUILD_DIR is optional. If specified,"
 	@echo "  <build-dir> is the location of the build directory to create."
@@ -68,11 +46,9 @@ BUILD_DIR ?= $(GENODE_DIR)/build/$(PLATFORM)
 #
 ifneq ($(PLATFORM),)
    #
-   # Check if platform is deprecated or unknown
+   # Check if platform is unknown
    #
-   ifneq ($(filter $(PLATFORM),$(PLATFORMS_DEPR)),)
-      $(info Platform '$(PLATFORM)' is deprecated, use '$(PLATFORM_ALT($(PLATFORM)))' instead)
-   else ifeq ($(filter $(PLATFORM),$(PLATFORMS)),)
+   ifeq ($(filter $(PLATFORM),$(PLATFORMS)),)
       $(error Bad platform argument '$(PLATFORM)')
    endif
 
@@ -120,33 +96,11 @@ BUILD_CONF(x86_32)  := run_x86_32 $(BUILD_CONF_X86)
 BUILD_CONF(x86_64)  := run_x86_64 $(BUILD_CONF_X86)
 BUILD_CONF(linux)   := run_kernel_linux repos
 
-# deprecated platforms, to be removed
-BUILD_CONF(imx53_qsb)       := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(imx53_qsb_tz)    := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(imx6q_sabrelite) := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(imx7d_sabre)     := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(nit6_solox)      := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(pbxa9)           := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(rpi)             := $(BUILD_CONF_ARM_V6)
-BUILD_CONF(usb_armory)      := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(wand_quad)       := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(zynq_qemu)       := $(BUILD_CONF_ARM_V7)
-BUILD_CONF(muen)            := run_x86_64 $(BUILD_CONF_X86)
-BUILD_CONF(riscv_spike)     := ${BUILD_CONF(riscv)}
-
 message: $(BUILD_DIR)/etc/build.conf
 $(BUILD_DIR)/etc/build.conf:
 	@echo "GENODE_DIR  := $(GENODE_ABS_DIR)" > $@
 	@echo 'BASE_DIR    := $$(GENODE_DIR)/repos/base' >> $@
 	@echo 'CONTRIB_DIR := $(CONTRIB_ABS_DIR)' >> $@
-ifeq ($(PLATFORM),riscv_spike)
-	@echo "BOARD       := spike" >> $@
-else ifeq ($(PLATFORM),muen)
-	@echo "BOARD       := muen" >> $@
-	@echo "KERNEL      := hw" >> $@
-else ifneq ($(filter $(PLATFORM),$(PLATFORMS_DEPR)),)
-	@echo "BOARD       := $(PLATFORM)" >> $@
-endif
 	@echo >> $@
 	@for i in make_j run; do \
 		cat $(GENODE_DIR)/tool/builddir/build.conf/$$i; done >> $@
@@ -184,20 +138,6 @@ SPECS(riscv)           := riscv
 SPECS(x86_32)          := x86_32
 SPECS(x86_64)          := x86_64
 SPECS(linux)           := $(HOST_SPEC_ARCH)
-
-# deprecated platforms
-SPECS(rpi)             := arm_v6
-SPECS(imx53_qsb)       := arm_v7a
-SPECS(imx53_qsb_tz)    := arm_v7a
-SPECS(imx6q_sabrelite) := arm_v7a
-SPECS(imx7d_sabre)     := arm_v7a
-SPECS(nit6_solox)      := arm_v7a
-SPECS(pbxa9)           := arm_v7a
-SPECS(usb_armory)      := arm_v7a
-SPECS(wand_quad)       := arm_v7a
-SPECS(zynq_qemu)       := arm_v7a
-SPECS(riscv_spike)     := riscv
-SPECS(muen)            := x86_64
 
 ifneq (${SPECS(${PLATFORM})},)
 message: $(BUILD_DIR)/etc/specs.conf
