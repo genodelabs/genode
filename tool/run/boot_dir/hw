@@ -5,29 +5,29 @@ proc binary_name_timer     { } { return "hw_timer_drv" }
 
 proc run_boot_string { } { return "\nkernel initialized" }
 
-proc bootstrap_link_address { } {
-	if {[have_board "pbxa9"]}           { return "0x70000000" }
-	if {[have_board "usb_armory"]}      { return "0x72000000" }
-	if {[have_board "pc"]}              { return "0x00200000" }
-	if {[have_board "muen"]}            { return "0x00200000" }
-	if {[have_board "wand_quad"]}       { return "0x10001000" }
-	if {[have_board "imx6q_sabrelite"]} { return "0x10001000" }
-	if {[have_board "imx53_qsb"]}       { return "0x70010000" }
-	if {[have_board "imx53_qsb_tz"]}    { return "0x70010000" }
-	if {[have_board "imx7d_sabre"]}     { return "0x88000000" }
-	if {[have_board "imx8q_evk"]}       { return "0x40010000" }
-	if {[have_board "zynq_qemu"]}       { return "0x00100000" }
-	if {[have_board "riscv"]}           { return "0x81000000" }
-	if {[have_board "rpi"]}             { return "0x00800000" }
-	if {[have_board "rpi3"]}            { return "0x00800000" }
-	if {[have_board "nit6_solox"]}      { return "0x88000000" }
-	if {[have_board "virt_qemu"]}       { return "0x40000000" }
 
-	puts "unknown platform no linker address known"
-	exit -1
+proc bootstrap_link_address { } {
+
+	set link_address_file [file join "board" [board] "image_link_address"]
+
+	set repo [repository_contains $link_address_file]
+
+	if {$repo == ""} {
+		puts stderr "\nError: unknown image link address\n"
+		puts stderr " File $link_address_file not present in any repository.\n"
+		exit -1
+	}
+
+	set fh [open [file join $repo $link_address_file] "RDONLY"]
+	set link_address [lindex [gets $fh] 0]
+	close $fh
+
+	return $link_address
 }
 
+
 proc core_link_address { } {
+
 	if {[have_spec "64bit"]} { return "0xffffffc000000000" }
 	if {[have_spec "32bit"]} { return "0x80000000" }
 	return 0;
@@ -212,25 +212,4 @@ proc run_boot_dir {binaries} {
 ##
 # Base source archive within depot
 #
-proc base_src { } {
-
-	if {[have_spec x86_64] && ![have_board muen]} { return base-hw-pc }
-	if {[have_spec x86_64] &&  [have_board muen]} { return base-hw-muen }
-	if {[have_board pbxa9]}                       { return base-hw-pbxa9 }
-	if {[have_board rpi]}                         { return base-hw-rpi }
-	if {[have_board rpi3]}                        { return base-hw-rpi3 }
-	if {[have_board imx6q_sabrelite]}             { return base-hw-imx6q_sabrelite }
-	if {[have_board imx7d_sabre]}                 { return base-hw-imx7d_sabre }
-	if {[have_board imx8q_evk]}                   { return base-hw-imx8q_evk }
-	if {[have_board nit6_solox]}                  { return base-hw-nit6_solox }
-	if {[have_board imx53_qsb]}                   { return base-hw-imx53_qsb }
-	if {[have_board imx53_qsb_tz]}                { return base-hw-imx53_qsb_tz }
-	if {[have_board zynq_qemu]}                   { return base-hw-zynq_qemu }
-	if {[have_board virt_qemu]}                   { return base-hw-virt_qemu }
-
-	global specs
-
-	puts stderr "Test requires base-hw kernel archive, which is missing for this build configuration"
-	puts stderr "  SPECS=\"$specs\""
-	exit 0
-}
+proc base_src { } { return "base-hw-[board]" }
