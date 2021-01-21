@@ -292,12 +292,12 @@ struct Linker::Ld : private Dependency, Elf_object
 
 Elf::Addr Ld::jmp_slot(Dependency const &dep, Elf::Size index)
 {
-	Mutex::Guard guard(mutex());
-
-	if (verbose_relocation)
-		log("LD: SLOT ", &dep.obj(), " ", Hex(index));
-
 	try {
+		Mutex::Guard guard(mutex());
+
+		if (verbose_relocation)
+			log("LD: SLOT ", &dep.obj(), " ", Hex(index));
+
 		Reloc_jmpslot slot(dep, dep.obj().dynamic().pltrel_type(), 
 		                   dep.obj().dynamic().pltrel(), index);
 		return slot.target_addr();
