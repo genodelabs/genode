@@ -50,10 +50,7 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 			[&] () {
 				return retry<Out_of_caps>(
 					[&] () { return Pd_session_client::alloc(size, cached); },
-					[&] () {
-						warning("cap quota exhausted, issuing resource request to parent");
-						_request_caps_from_parent(UPGRADE_CAPS);
-					},
+					[&] () { _request_caps_from_parent(UPGRADE_CAPS); },
 					NUM_ATTEMPTS);
 			},
 			[&] () {
