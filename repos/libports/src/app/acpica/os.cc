@@ -55,16 +55,68 @@ struct Acpica::Statechange
 	Attached_rom_dataspace _system_state;
 	bool _enable_reset;
 	bool _enable_poweroff;
+	bool _enable_sleep;
 
-	Statechange(Env &env, bool reset, bool poweroff)
+	Statechange(Env &env, bool reset, bool poweroff, bool sleep)
 	:
 		_dispatcher(env.ep(), *this, &Statechange::state_changed),
 		_system_state(env, "system"),
-		_enable_reset(reset), _enable_poweroff(poweroff)
+		_enable_reset(reset), _enable_poweroff(poweroff), _enable_sleep(sleep)
 	{
 		_system_state.sigh(_dispatcher);
 
 		state_changed();
+	}
+
+	template <typename T>
+	void suspend_prepare_check(T const &state)
+	{
+		if (!_enable_sleep)
+			return;
+
+		UINT8 sleep_state = 0;
+
+		if (state == "s0_prepare") { sleep_state = 0; } else
+		if (state == "s1_prepare") { sleep_state = 1; } else
+		if (state == "s2_prepare") { sleep_state = 2; } else
+		if (state == "s3_prepare") { sleep_state = 3; } else
+		if (state == "s4_prepare") { sleep_state = 4; } else
+		if (state == "s5_prepare") { sleep_state = 5; } else
+			return;
+
+		Genode::log("prepare suspend S", sleep_state);
+
+		ACPI_STATUS res = AcpiEnterSleepStatePrep(sleep_state);
+		if (ACPI_FAILURE(res))
+			Genode::error("AcpiEnterSleepStatePrep failed ",
+			              res, " ", AcpiFormatException(res));
+	}
+
+	template <typename T>
+	void resume_check(T const &state)
+	{
+		if (!_enable_sleep)
+			return;
+
+		UINT8 sleep_state = 0;
+
+		if (state == "s0_resume") { sleep_state = 0; } else
+		if (state == "s1_resume") { sleep_state = 1; } else
+		if (state == "s2_resume") { sleep_state = 2; } else
+		if (state == "s3_resume") { sleep_state = 3; } else
+		if (state == "s4_resume") { sleep_state = 4; } else
+		if (state == "s5_resume") { sleep_state = 5; } else
+			return;
+
+		ACPI_STATUS res = AcpiLeaveSleepStatePrep(sleep_state);
+		if (ACPI_FAILURE(res))
+			Genode::error("AcpiLeaveSleepStatePrep failed ",
+			              res, " ", AcpiFormatException(res));
+
+		res = AcpiLeaveSleepState(sleep_state);
+		if (ACPI_FAILURE(res))
+			Genode::error("AcpiLeaveSleepState failed ",
+			              res, " ", AcpiFormatException(res));
 	}
 
 	void state_changed() {
@@ -98,6 +150,11 @@ struct Acpica::Statechange
 			      " spaceid=", Hex(AcpiGbl_FADT.ResetRegister.SpaceId),
 			      " addr=", Hex(space_addr));
 		}
+
+		suspend_prepare_check(state);
+
+		resume_check(state);
+
 	}
 };
 
@@ -139,6 +196,7 @@ struct Acpica::Main
 		sci_irq(env.ep(), *this, &Main::acpi_irq),
 		unchanged_state_max(config.xml().attribute_value("update_unchanged", 10U))
 	{
+		bool const enable_sleep    = config.xml().attribute_value("sleep", false);
 		bool const enable_reset    = config.xml().attribute_value("reset", false);
 		bool const enable_poweroff = config.xml().attribute_value("poweroff", false);
 		bool const enable_report   = config.xml().attribute_value("report", false);
@@ -152,8 +210,9 @@ struct Acpica::Main
 		if (enable_report)
 			report->enable();
 
-		if (enable_reset || enable_poweroff)
-			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff);
+		if (enable_reset || enable_poweroff || enable_sleep)
+			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff,
+			                               enable_sleep);
 
 		/* setup IRQ */
 		if (!irq_handler.handler) {
