@@ -53,6 +53,9 @@ class Isoc_packet : Fifo<Isoc_packet>::Element
 		char                  *_content;
 		int                    _size;
 
+		int _packet_index { 0 };
+		unsigned _packet_in_offset { 0 };
+
 	public:
 
 		Isoc_packet(Usb::Packet_descriptor packet, char *content)
@@ -77,6 +80,26 @@ class Isoc_packet : Fifo<Isoc_packet>::Element
 			}
 
 			return remaining <= usb_packet->iov.size;
+		}
+
+		bool copy_read(USBPacket *usb_packet)
+		{
+			if (!valid()) return false;
+
+			unsigned remaining = _packet.transfer.actual_packet_size[_packet_index];
+			/* this should not happen as there asserts in the qemu code */
+			if (remaining > usb_packet->iov.size) {
+				Genode::error("iov too small, ignoring packet content");
+			}
+			int copy_size = min(usb_packet->iov.size, remaining);
+
+			char *src = _content + _packet_in_offset;
+			usb_packet_copy(usb_packet, src, copy_size);
+
+			_packet_in_offset += _packet.transfer.packet_size[_packet_index];
+			++_packet_index;
+
+			return _packet_index == _packet.transfer.number_of_packets;
 		}
 
 		bool     valid()        const { return _content != nullptr; }
@@ -345,7 +368,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		}
 
 		isoc_read_queue.head([&] (Isoc_packet &head) {
-			if (head.copy(packet)) {
+			if (head.copy_read(packet)) {
 				isoc_read_queue.remove(head);
 				free_packet(&head);
 			}
@@ -360,12 +383,12 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	{
 		unsigned count = 0;
 		isoc_read_queue.for_each([&count] (Isoc_packet&) { count++; });
-		return (count + _isoc_in_pending) < 3 ? true : false;
+		return (count + _isoc_in_pending) < 32 ? true : false;
 	}
 
 	void isoc_in_packet(USBPacket *usb_packet)
 	{
-		enum { NUMBER_OF_PACKETS = 2 };
+		enum { NUMBER_OF_PACKETS = 1 };
 		isoc_read(usb_packet);
 
 		if (!isoc_new_packet())
