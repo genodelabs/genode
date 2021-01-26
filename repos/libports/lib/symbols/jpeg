@@ -35,10 +35,12 @@ jpeg_abort_decompress T
 jpeg_add_quant_table T
 jpeg_alloc_huff_table T
 jpeg_alloc_quant_table T
+jpeg_aritab R 912
 jpeg_calc_jpeg_dimensions T
 jpeg_calc_output_dimensions T
 jpeg_consume_input T
 jpeg_copy_critical_parameters T
+jpeg_core_output_dimensions T
 jpeg_default_colorspace T
 jpeg_default_qtables T
 jpeg_destroy T
@@ -122,9 +124,17 @@ jpeg_idct_ifast T
 jpeg_idct_islow T
 jpeg_input_complete T
 jpeg_mem_available T
+jpeg_mem_dest T
 jpeg_mem_init T
+jpeg_mem_src T
 jpeg_mem_term T
-jpeg_natural_order T
+jpeg_natural_order R 320
+jpeg_natural_order2 R 80
+jpeg_natural_order3 R 100
+jpeg_natural_order4 R 128
+jpeg_natural_order5 R 164
+jpeg_natural_order6 R 208
+jpeg_natural_order7 R 260
 jpeg_new_colormap T
 jpeg_open_backing_store T
 jpeg_quality_scaling T
@@ -144,6 +154,7 @@ jpeg_start_compress T
 jpeg_start_decompress T
 jpeg_start_output T
 jpeg_std_error T
+jpeg_std_huff_table T
 jpeg_std_message_table D 1024
 jpeg_stdio_dest T
 jpeg_stdio_src T
@@ -156,4 +167,3 @@ jpeg_write_raw_data T
 jpeg_write_scanlines T
 jpeg_write_tables T
 jround_up T
-jzero_far T

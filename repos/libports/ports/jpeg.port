@@ -1,9 +1,9 @@
 LICENSE   := JPEG
-VERSION   := 7
+VERSION   := v9d
 DOWNLOADS := jpeg.archive
 
-URL(jpeg) := http://www.ijg.org/files/jpegsrc.v7.tar.gz
-SHA(jpeg) := 50b7866206c5be044c4a2b0d7895898f5a58d31b50e16e79cf7dea3b90337ebf
+URL(jpeg) := http://www.ijg.org/files/jpegsrc.$(VERSION).tar.gz
+SHA(jpeg) := 6c434a3be59f8f62425b2e3c077e785c9ce30ee5874ea1c270e843f273ba71ee
 DIR(jpeg) := src/lib/jpeg
 
 DIRS := include/jpeg
