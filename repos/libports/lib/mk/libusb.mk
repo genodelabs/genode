@@ -6,6 +6,9 @@ INC_DIR += $(REP_DIR)/src/lib/libusb
 
 INC_DIR += $(LIBUSB_DIR)/libusb
 
+# internal/thread_create.h for Libc::pthread_create
+INC_DIR += $(call select_from_repositories,src/lib/libc)
+
 SRC_C = core.c \
         descriptor.c \
         io.c \
