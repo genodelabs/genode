@@ -258,7 +258,7 @@ see https://www.gnu.org/licenses/.
 /* #undef HAVE_NATIVE_mpn_addlsh2_nc_ip2 */
 /* #undef HAVE_NATIVE_mpn_addlsh_nc_ip2 */
 /* #undef HAVE_NATIVE_mpn_addmul_1c */
-#define HAVE_NATIVE_mpn_addmul_2 1
+/* #undef HAVE_NATIVE_mpn_addmul_2 */
 /* #undef HAVE_NATIVE_mpn_addmul_3 */
 /* #undef HAVE_NATIVE_mpn_addmul_4 */
 /* #undef HAVE_NATIVE_mpn_addmul_5 */
@@ -301,7 +301,7 @@ see https://www.gnu.org/licenses/.
 #define HAVE_NATIVE_mpn_modexact_1c_odd 1
 #define HAVE_NATIVE_mpn_mul_1 1
 /* #undef HAVE_NATIVE_mpn_mul_1c */
-#define HAVE_NATIVE_mpn_mul_2 1
+/* #undef HAVE_NATIVE_mpn_mul_2 */
 /* #undef HAVE_NATIVE_mpn_mul_3 */
 /* #undef HAVE_NATIVE_mpn_mul_4 */
 /* #undef HAVE_NATIVE_mpn_mul_5 */
