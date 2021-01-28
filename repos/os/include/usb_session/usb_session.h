@@ -68,6 +68,7 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 			int     polling_interval; /* for interrupt transfers */
 			int     number_of_packets;
 			size_t  packet_size[MAX_PACKETS];
+			size_t  actual_packet_size[MAX_PACKETS];
 		} transfer;
 
 		struct

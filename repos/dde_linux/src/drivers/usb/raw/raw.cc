@@ -278,9 +278,20 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 				p.transfer.actual_size = urb->actual_length;
 				p.succeded             = true;
 
-				if (read)
+				if (read) {
+					/* make sure the client sees the actual amount of data */
+					for (int i = 0; i < urb->number_of_packets; i++) {
+						p.transfer.actual_packet_size[i] = urb->iso_frame_desc[i].actual_length;
+					}
+
+					/*
+					 * We have to copy the whole transfer buffer because the
+					 * controller used the offsets into the original buffer to
+					 * store the data.
+					 */
 					Genode::memcpy(_sink->packet_content(p), urb->transfer_buffer,
-					               urb->actual_length);
+					               urb->transfer_buffer_length);
+				}
 			} else if (urb->status == -ESHUTDOWN) {
 				p.error = Packet_descriptor::NO_DEVICE_ERROR;
 			} else if ((urb->status == -EPROTO) || (urb->status == -EILSEQ)) {
