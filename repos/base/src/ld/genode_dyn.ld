@@ -18,7 +18,6 @@
 
 PHDRS
 {
-  phdr     PT_PHDR PHDRS;
   interp   PT_INTERP;
   ro       PT_LOAD;
   rw       PT_LOAD;
