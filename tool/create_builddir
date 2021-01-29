@@ -102,7 +102,7 @@ $(BUILD_DIR)/etc/build.conf:
 	@echo 'BASE_DIR    := $$(GENODE_DIR)/repos/base' >> $@
 	@echo 'CONTRIB_DIR := $(CONTRIB_ABS_DIR)' >> $@
 	@echo >> $@
-	@for i in make_j run; do \
+	@for i in make_j ccache run; do \
 		cat $(GENODE_DIR)/tool/builddir/build.conf/$$i; done >> $@
 	@for i in ${BUILD_CONF(${PLATFORM})}; do \
 		cat $(GENODE_DIR)/tool/builddir/build.conf/$$i; done >> $@

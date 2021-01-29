@@ -18,6 +18,11 @@ $(KERNEL_BUILD_DIR)/Makefile:
 	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) $(VERBOSE_DIR) -C $(KERNEL_SRC) BUILDDIR=$(dir $@)
 	$(VERBOSE)cp $(REP_DIR)/config/kernel $(KERNEL_BUILD_DIR)/config/config.out
 
+#
+# Prevent passing 'CCACHE=yes'. The environment variable is evaluated by the
+# kernel's build system, which expects it to be empty or set to 'ccache'.
+#
+unexport CCACHE
 
 #
 # How to pass custom compiler flags to the Pistachio build system
