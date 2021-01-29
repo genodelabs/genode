@@ -11,7 +11,8 @@ proc test_timeout { } {
 }
 
 proc enable_test_1 { } { return 1 }
-proc enable_test_2 { } { return 1 }
+# disabled until #3992 is fixed
+proc enable_test_2 { } { return 0 }
 proc enable_test_3 { } { return 1 }
 proc enable_test_4 { } { return 1 }
 proc enable_test_5 { } { return 1 }
