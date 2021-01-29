@@ -153,3 +153,5 @@ run_genode_until "--- SD card benchmark finished ---" 120
 if {[have_include power_on/qemu]} {
 	if { [file exists $disk_image] != 0 } then {
 		exec rm -f $disk_image
+	}
+}
