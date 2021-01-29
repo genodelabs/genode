@@ -16,6 +16,11 @@ LIBC_SYMBOLS += malloc free calloc realloc \
                 __stderrp
 
 #
+# Symbols for supc++.o local use only
+#
+LOCAL_CXX_SYMBOLS += _Znam _Znwm
+
+#
 # Symbols we wrap (see unwind.cc)
 #
 EH_SYMBOLS = _Unwind_Resume _Unwind_Complete _Unwind_DeleteException
@@ -47,7 +52,7 @@ SRC_O         = supc++.o
 SRC_C         = unwind.c
 CXX_SRC       = $(sort $(CXX_SRC_CC))
 CXX_OBJECTS   = $(addsuffix .o,$(basename $(CXX_SRC)))
-LOCAL_SYMBOLS = $(patsubst %,--localize-symbol=%,$(LIBC_SYMBOLS))
+LOCAL_SYMBOLS = $(patsubst %,--localize-symbol=%,$(LIBC_SYMBOLS) $(LOCAL_CXX_SYMBOLS))
 REDEF_SYMBOLS = $(foreach S, $(EH_SYMBOLS), --redefine-sym $(S)=_cxx_$(S))
 
 #
