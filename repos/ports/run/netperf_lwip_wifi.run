@@ -11,11 +11,6 @@ if {[have_include "power_on/qemu"] || [have_include "power_on/linux"]} {
 	exit 0
 }
 
-if { [have_spec muen] } {
-	puts "Run script does not support Muen."
-	exit 0
-}
-
 if {[get_cmd_switch --autopilot] && [have_spec x86_32] &&
     ![expr [have_board foc] || [have_spec nova]]} {
 	puts stderr "\nNetperf WIFI running with non-ACPI kernel on native x86_32 test machine is not supported because of wrong interrupt number in pci config space (should be 11 instead 10).\n"

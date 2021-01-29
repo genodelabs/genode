@@ -1,18 +1,10 @@
 # kernel to use (nova, hw, sel4, linux, or foc)
 #KERNEL ?= nova
 
-# board to use (pc, linux, or muen)
+# board to use (pc or linux)
 BOARD ?= pc
 
 # local variable for run-tool arguments that depend on the used board
-BOARD_RUN_OPT(muen)   = --include image/muen
-BOARD_RUN_OPT(muen)  += --image-muen-hardware hardware/lenovo-t430s.xml
-BOARD_RUN_OPT(muen)  += --image-muen-platform platform/lenovo-t430s.xml
-BOARD_RUN_OPT(muen)  += --image-muen-gnat-path /opt/gnat
-BOARD_RUN_OPT(muen)  += --image-muen-spark-path /opt/spark
-BOARD_RUN_OPT(muen)  += --image-muen-system xml/genode-base_hw.xml
-BOARD_RUN_OPT(muen)  += --image-muen-components 'libdebuglog libmudm libmutime libxhcidbg dbgserver sm time'
-BOARD_RUN_OPT(muen)  += --image-muen-external-build 0
 BOARD_RUN_OPT(linux)  = --include power_on/linux --include log/linux
 BOARD_RUN_OPT(pc)     = $(QEMU_RUN_OPT)
 

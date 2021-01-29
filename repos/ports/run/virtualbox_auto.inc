@@ -350,7 +350,7 @@ append_if [expr $use_usb] config {
 	</start>
 }
 
-append_if [expr [have_board pc] || [have_board muen]] config {
+append_if [have_board pc] config {
 	<start name="fb_drv" priority="-1" caps="150">
 		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="32M"/>
@@ -401,11 +401,10 @@ lappend_if [expr $use_cpu_load] boot_modules top
 lappend_if [have_spec nova] boot_modules log_core
 
 # platform-specific modules
-lappend_if [expr            $use_ps2] boot_modules ps2_drv
-lappend_if [expr            $use_usb] boot_modules usb_drv
-lappend_if [expr            $use_usb] boot_modules usb_report_filter
-lappend_if [have_board  pc]   boot_modules vesa_fb_drv
-lappend_if [have_board  muen] boot_modules vesa_fb_drv
-lappend_if [have_spec x86]  boot_modules rtc_drv
+lappend_if [expr $use_ps2] boot_modules ps2_drv
+lappend_if [expr $use_usb] boot_modules usb_drv
+lappend_if [expr $use_usb] boot_modules usb_report_filter
+lappend_if [have_board pc] boot_modules vesa_fb_drv
+lappend_if [have_spec x86] boot_modules rtc_drv
 
 append_platform_drv_boot_modules

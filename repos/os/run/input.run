@@ -10,7 +10,6 @@ source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
 lappend_if [have_board pc]    build_components drivers/ps2
-lappend_if [have_board muen]  build_components drivers/ps2
 lappend_if [have_board linux] build_components drivers/framebuffer/sdl
 lappend_if [have_board linux] build_components server/nitpicker
 
@@ -53,7 +52,7 @@ append config {
 
 append_platform_drv_config
 
-append_if [expr [have_board pc] || [have_board muen]] config {
+append_if [have_board pc] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="2M"/>
 		<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"
@@ -158,7 +157,6 @@ set boot_modules { core ld.lib.so init timer dynamic_rom event_dump }
 append_platform_drv_boot_modules
 
 lappend_if [have_board pc]    boot_modules ps2_drv
-lappend_if [have_board muen]  boot_modules ps2_drv
 lappend_if [have_board linux] boot_modules fb_sdl
 lappend_if [have_board linux] boot_modules nitpicker
 

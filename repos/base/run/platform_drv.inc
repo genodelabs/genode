@@ -2,7 +2,6 @@ proc have_platform_drv {} {
 	return [expr [have_board imx53_qsb] \
 	          || [have_board imx53_qsb_tz] \
 	          || [have_board rpi] \
-	          || [have_board muen] \
 	          || [have_board pc]]
 }
 
@@ -14,7 +13,6 @@ proc usb_host_drv_binary { } {
 	if {[have_board rpi]}             { return rpi_usb_host_drv       }
 	if {[have_board imx6q_sabrelite]} { return imx6q_sabrelite_usb_host_drv }
 	if {[have_board imx8q_evk]}       { return imx8q_evk_usb_host_drv }
-	if {[have_board muen]}            { return x86_pc_usb_host_drv    }
 	if {[have_board pc]}              { return x86_pc_usb_host_drv    }
 	return no_usb_drv_available
 }
@@ -25,7 +23,6 @@ proc usb_host_drv_binary { } {
 #
 proc audio_drv_binary { } {
 	if {[have_board linux]} { return linux_audio_drv }
-	if {[have_board muen]}  { return pci_audio_drv }
 	if {[have_board pc]}    { return pci_audio_drv }
 	return no_audio_drv_available
 }
@@ -49,7 +46,7 @@ proc acpi_drv_name { } {
 proc platform_drv_build_components {} {
 	set drv_build_components ""
 	lappend_if [have_platform_drv] drv_build_components drivers/platform
-	if {[have_board pc] || [have_board muen]} {
+	if {[have_board pc]} {
 		lappend drv_build_components server/report_rom
 		if {[acpi_drv_name] eq "acpi_drv"} {
 			lappend drv_build_components drivers/acpi
@@ -72,7 +69,6 @@ proc platform_drv_binary {} {
 	if {[have_board imx53_qsb_tz]} { return imx53_platform_drv }
 	if {[have_board rpi]}          { return rpi_platform_drv   }
 	if {[have_board pc]}           { return platform_drv       }
-	if {[have_board muen]}         { return platform_drv       }
 	return no_platform_drv_available
 }
 
@@ -82,11 +78,7 @@ proc platform_drv_boot_modules {} {
 
 	if {[have_spec x86]} {
 		lappend drv_boot_modules report_rom
-		if {[have_board muen]} {
-			lappend drv_boot_modules acpi
-		} else {
-			lappend drv_boot_modules [acpi_drv_name]
-		}
+		lappend drv_boot_modules [acpi_drv_name]
 	}
 
 	return $drv_boot_modules

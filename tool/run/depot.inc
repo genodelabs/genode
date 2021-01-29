@@ -459,7 +459,6 @@ proc check_for_missing_depot_archives { } {
 
 proc drivers_interactive_pkg { } {
 
-	if {[have_board muen]}      { return drivers_interactive-muen }
 	if {[have_board linux]}     { return drivers_interactive-linux }
 	if {[have_board pc]}        { return drivers_interactive-pc }
 	if {[have_board pbxa9]}     { return drivers_interactive-pbxa9 }
@@ -478,7 +477,6 @@ proc drivers_interactive_pkg { } {
 proc drivers_nic_pkg { } {
 
 	if {[have_board pc]}              { return drivers_nic-pc              }
-	if {[have_board muen]}            { return drivers_nic-muen            }
 	if {[have_board linux]}           { return drivers_nic-linux           }
 	if {[have_board pbxa9]}           { return drivers_nic-pbxa9           }
 	if {[have_board rpi]}             { return drivers_nic-rpi             }

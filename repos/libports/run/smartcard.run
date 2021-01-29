@@ -5,8 +5,8 @@
 #       configured for the application and for the USB driver.
 #
 
-if { [have_include "power_on/qemu"] || [have_spec linux] || [have_board muen] } {
-	puts "Run script does not support Qemu, Linux, and Muen"
+if {[have_include "power_on/qemu"] || [have_spec linux]} {
+	puts "Run script does not support Qemu or Linux"
 	exit 0
 }
 

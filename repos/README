@@ -31,33 +31,25 @@ but build upon of each other:
 
   :'nova':
     NOVA hypervisor developed at University of Technology Dresden
-    See [https://genode.org/documentation/platforms/nova]
 
   :'foc':
     Fiasco.OC is a modernized version of the Fiasco microkernel with a
     completely revised kernel interface fostering capability-based
     security. It is not compatible with L4/Fiasco.
-    See [https://genode.org/documentation/platforms/foc]
 
   :'hw':
     The hw platform allows the execution of Genode on bare ARM and x86 hardware
     without the need for a separate kernel. The kernel functionality is
-    included in core except in the special case of the Muen separation
-    kernel.
-    See [https://genode.org/documentation/platforms/hw] and
-    [https://genode.org/documentation/platforms/muen]
+    included in core.
 
   :'okl4':
     OKL4 kernel (x86_32 and ARM) developed at Open-Kernel-Labs.
-    See [https://genode.org/documentation/platforms/okl4]
 
   :'pistachio':
     L4ka::Pistachio kernel developed at University of Karlsruhe.
-    See [https://genode.org/documentation/platforms/pistachio]
 
   :'fiasco':
     L4/Fiasco kernel developed at University of Technology Dresden.
-    See [https://genode.org/documentation/platforms/fiasco]
 
   :'sel4':
     seL4 microkernel developed at NICTA/General Dynamics

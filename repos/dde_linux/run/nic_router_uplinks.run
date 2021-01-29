@@ -1,4 +1,4 @@
-if {[expr ![have_spec nova] && ![have_spec sel4] && ![have_spec hw] && ![have_spec foc] || ![have_spec x86] || [have_include power_on/qemu] || [have_board muen]]} {
+if {[expr ![have_spec nova] && ![have_spec sel4] && ![have_spec hw] && ![have_spec foc] || ![have_spec x86] || [have_include power_on/qemu]]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 proc wifi_ssid {} {

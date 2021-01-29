@@ -39,13 +39,6 @@ proc core_link_address { } {
 #
 proc run_boot_dir {binaries} {
 
-	# generate static ACPI report for platform driver on Muen
-	if {[have_board "muen"]} {
-		set fh [open "bin/acpi" "WRONLY CREAT TRUNC"]
-		puts $fh "<acpi><bdf start=\"0\" count=\"16384\" base=\"0xf8000000\"/><drhd/></acpi>"
-		close $fh
-	}
-
 	#
 	# Build bootstrap, the core object, and the dynamic linker on demand
 	#
@@ -174,14 +167,8 @@ proc run_boot_dir {binaries} {
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-		if {[have_board "muen"]} {
-			exec gzip [run_dir]/image.bin
-			puts $fh " exec /boot/unzip"
-			puts $fh " load /image.bin.gz"
-		} else {
-			puts $fh " exec /boot/bender"
-			puts $fh " load /boot/image.elf"
-		}
+		puts $fh " exec /boot/bender"
+		puts $fh " load /boot/image.elf"
 		close $fh
 
 		generate_tftp_config
@@ -194,13 +181,9 @@ proc run_boot_dir {binaries} {
 		set fh [open "[run_dir]/boot.cfg" "WRONLY CREAT TRUNC"]
 		puts $fh "#!ipxe"
 
-		if {[have_board "muen"]} {
-			puts $fh "kernel image.bin"
-		} else {
-			install_pxe_bootloader_to_run_dir
-			puts $fh "kernel boot/bender"
-			puts $fh "module boot/image.elf"
-		}
+		install_pxe_bootloader_to_run_dir
+		puts $fh "kernel boot/bender"
+		puts $fh "module boot/image.elf"
 		puts $fh "boot"
 		close $fh
 

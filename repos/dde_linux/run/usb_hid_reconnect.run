@@ -5,18 +5,18 @@
 
 assert_spec x86
 
-if { [have_spec linux] || [have_board muen] } {
-	puts "Run script does not support Linux and Muen."
+if {[have_spec linux]} {
+	puts "Run script does not support Linux."
 	exit 0
 }
 
-if { [get_cmd_switch --autopilot] && [have_include "power_on/qemu"] } {
-	puts "Run script does not support autopilot mode on Qemu"
+if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
+	puts "Run script does not support autopilot mode on Qemu."
 	exit 0
 }
 
-if { [get_cmd_switch --autopilot] && ![have_spec x86_64] } {
-	puts "Run script does not support autopilot mode on this platform"
+if {[get_cmd_switch --autopilot] && ![have_spec x86_64]} {
+	puts "Run script does not support autopilot mode on this platform."
 	exit 0
 }
 

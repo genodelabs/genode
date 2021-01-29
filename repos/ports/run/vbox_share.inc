@@ -62,14 +62,13 @@ if {[have_include "power_on/qemu"]} {
 	exit 0
 }
 
-# Tested for nova and muen.
-if {(![have_spec nova] && ![have_board muen])} {
+# Tested for nova
+if {![have_spec nova]} {
 	puts "Platform is unsupported."
 	exit 0
 }
 
 set virtualbox_binary "virtualbox-rem"
-if {[have_board muen]} { set virtualbox_binary "virtualbox-muen" }
 if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
 set virtualbox5_binary "virtualbox5-rem"
 if {[have_spec nova]} { set virtualbox5_binary "virtualbox5-nova" }

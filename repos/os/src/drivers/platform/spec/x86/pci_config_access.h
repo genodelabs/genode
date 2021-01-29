@@ -109,44 +109,30 @@ namespace Platform {
 			unsigned read(Pci::Bdf const bdf, unsigned char const addr,
 			              Device::Access_size const size, bool const track = true)
 			{
-				unsigned ret;
-				unsigned const offset = _dev_base(bdf) + addr;
-				char const * const field = _pciconf.local_addr<char>() + offset;
+				unsigned     const offset    = _dev_base(bdf) + addr;
+				char const * const field_ptr = _pciconf.local_addr<char>() + offset;
 
 				if (offset >= _pciconf_size)
 					throw Invalid_mmio_access();
 
-				/*
-				 * Memory access code is implemented in a way to make it work
-				 * with Muen subject monitor (SM) device emulation and also
-				 * general x86 targets. On Muen, the simplified device
-				 * emulation code (which also works for Linux) always returns
-				 * 0xffff in EAX to indicate a non-existing device. Therefore,
-				 * we enforce the usage of EAX in the following assembly
-				 * templates. Also clear excess bits before return to guarantee
-				 * the requested size.
-				 */
 				switch (size) {
+
 				case Device::ACCESS_8BIT:
 					if (track)
 						_use_register(addr, 1);
-					asm volatile("movb %1,%%al" :"=a" (ret) :"m" (*((volatile unsigned char *)field)) :"memory");
-					return ret & 0xff;
+					return *(uint8_t const *)field_ptr;
+
 				case Device::ACCESS_16BIT:
 					if (track)
 						_use_register(addr, 2);
+					return *(uint16_t const *)field_ptr;
 
-					asm volatile("movw %1,%%ax" :"=a" (ret) :"m" (*(volatile unsigned short *)field) :"memory");
-					return ret & 0xffff;
 				case Device::ACCESS_32BIT:
 					if (track)
 						_use_register(addr, 4);
-
-					asm volatile("movl %1,%%eax" :"=a" (ret) :"m" (*(volatile unsigned int *)field) :"memory");
-					return ret;
-				default:
-					return ~0U;
+					return *(uint32_t const *)field_ptr;
 				}
+				return ~0U;
 			}
 
 			/**
@@ -163,8 +149,8 @@ namespace Platform {
 			           unsigned const value, Device::Access_size const size,
 			           bool const track = true)
 			{
-				unsigned const offset = _dev_base(bdf) + addr;
-				char const * const field = _pciconf.local_addr<char>() + offset;
+				unsigned const offset    = _dev_base(bdf) + addr;
+				char *   const field_ptr = _pciconf.local_addr<char>() + offset;
 
 				if (offset >= _pciconf_size)
 					throw Invalid_mmio_access();
@@ -174,23 +160,23 @@ namespace Platform {
 				 * for an explanation of the assembly templates
 				 */
 				switch (size) {
+
 				case Device::ACCESS_8BIT:
 					if (track)
 						_use_register(addr, 1);
-
-					asm volatile("movb %%al,%1" : :"a" (value), "m" (*(volatile unsigned char *)field) :"memory");
+					*(uint8_t volatile *)field_ptr = value;
 					break;
+
 				case Device::ACCESS_16BIT:
 					if (track)
 						_use_register(addr, 2);
-
-					asm volatile("movw %%ax,%1" : :"a" (value), "m" (*(volatile unsigned char *)field) :"memory");
+					*(uint16_t volatile *)field_ptr = value;
 					break;
+
 				case Device::ACCESS_32BIT:
 					if (track)
 						_use_register(addr, 4);
-
-					asm volatile("movl %%eax,%1" : :"a" (value), "m" (*(volatile unsigned char *)field) :"memory");
+					*(uint32_t volatile *)field_ptr = value;
 					break;
 				}
 			}

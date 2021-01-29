@@ -52,7 +52,6 @@ proc bogomips_max_time { } {
 		if {[have_spec x86_64]} { return   600 }
 		if {[have_spec x86_32]} { return  3150 }
 	}
-	if {[have_board muen]}            { return   600 }
 	return 0
 }
 
