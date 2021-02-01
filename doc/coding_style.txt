@@ -93,6 +93,24 @@ and the source code always looks good.
 _Hint:_ In VIM, use the 'set list' and 'set listchars' commands to make tabs
 and spaces visible.
 
+* If class initializers span multiple lines, put the colon on a separate
+  line and indent the initializers using one tab. For example:
+  ! Complicated_machinery(Material &material, Deadline deadline)
+  ! :
+  ! <tab>_material(material),
+  ! <tab>_deadline(deadline),
+  ! <tab>...
+  ! {
+  !      ...
+  ! }
+
+* Preferably place statements that alter the control flow - such as
+  'break', 'continue', or 'return' - at the beginning of a separate line,
+  followed by vertical space (a blank line or the closing brace of the
+  surrounding scope).
+  ! if (early_return_possible)
+  !     return;
+
 
 Switch statements
 ~~~~~~~~~~~~~~~~~
