@@ -13,12 +13,13 @@
 
 #include <base/component.h>
 
+#include <driver.h>
+#include <lx_emul.h>
+
 #include <lx_kit/env.h>
 #include <lx_kit/scheduler.h>
 #include <lx_kit/timer.h>
-
-#include <driver.h>
-#include <lx_emul.h>
+#include <lx_kit/work.h>
 
 #include <lx_emul/extern_c_begin.h>
 #include <linux/hid.h>
@@ -40,13 +41,11 @@ void Driver::Device::register_device()
 
 	udev = (usb_device*) kzalloc(sizeof(usb_device), GFP_KERNEL);
 	udev->bus = (usb_bus*) kzalloc(sizeof(usb_bus), GFP_KERNEL);
-	udev->config = (usb_host_config*) kzalloc(sizeof(usb_host_config), GFP_KERNEL);
 	udev->bus->bus_name = "usbbus";
 	udev->bus->controller = (device*) (&usb);
 	udev->bus_mA = 900; /* set to maximum USB3.0 */
 
 	Genode::memcpy(&udev->descriptor,   &dev_desc,    sizeof(usb_device_descriptor));
-	Genode::memcpy(&udev->config->desc, &config_desc, sizeof(usb_config_descriptor));
 	udev->devnum = dev_desc.num;
 	udev->speed  = (usb_device_speed) dev_desc.speed;
 	udev->authorized = 1;
@@ -56,9 +55,19 @@ void Driver::Device::register_device()
 		Genode::error("usb_get_configuration returned error ", cfg);
 		return;
 	}
+
 	usb_detect_interface_quirks(udev);
 	cfg = usb_choose_configuration(udev);
-	usb_set_configuration(udev, cfg);
+	if (cfg < 0) {
+		Genode::error("usb_choose_configuration returned error ", cfg);
+		return;
+	}
+
+	int ret = usb_set_configuration(udev, cfg);
+	if (ret < 0) {
+		Genode::error("usb_set_configuration returned error ", ret);
+		return;
+	}
 
 	for (int i = 0; i < udev->config->desc.bNumInterfaces; i++) {
 		struct usb_interface      * iface = udev->config->interface[i];
@@ -84,8 +93,8 @@ void Driver::Device::unregister_device()
 		if (!udev->config->interface[i]) break;
 		else remove_interface(udev->config->interface[i]);
 	}
+	usb_destroy_configuration(udev);
 	kfree(udev->bus);
-	kfree(udev->config);
 	kfree(udev);
 	udev = nullptr;
 }
@@ -96,12 +105,13 @@ void Driver::Device::state_task_entry(void * arg)
 	Device & dev = *reinterpret_cast<Device*>(arg);
 
 	for (;;) {
-		if (dev.usb.plugged() && !dev.udev)
-			dev.register_device();
+		while (dev.state_task.signal_pending()) {
+			if (dev.usb.plugged() && !dev.udev)
+				dev.register_device();
 
-		if (!dev.usb.plugged() && dev.udev)
-			dev.unregister_device();
-
+			if (!dev.usb.plugged() && dev.udev)
+				dev.unregister_device();
+		}
 		Lx::scheduler().current()->block_and_schedule();
 	}
 }
@@ -127,7 +137,7 @@ Driver::Device::Device(Driver & driver, Label label)
 : label(label),
   driver(driver),
   env(driver.env),
-  alloc(driver.alloc),
+  alloc(&driver.heap),
   state_task(env.ep(), state_task_entry, reinterpret_cast<void*>(this),
              "usb_state", Lx::Task::PRIORITY_0, Lx::scheduler()),
   urb_task(env.ep(), urb_task_entry, reinterpret_cast<void*>(this),
@@ -193,10 +203,12 @@ void Driver::main_task_entry(void * arg)
 	            " (multitouch=", multi_touch ? "true" : "false", ")");
 
 	for (;;) {
-		if (!use_report)
-			static Device dev(*driver, Label(""));
-		else
-			driver->scan_report();
+		while (driver->main_task->signal_pending()) {
+			if (!use_report)
+				static Device dev(*driver, Label(""));
+			else
+				driver->scan_report();
+		}
 		Lx::scheduler().current()->block_and_schedule();
 	}
 }
@@ -289,6 +301,7 @@ Driver::Driver(Genode::Env &env) : env(env)
 
 	Lx::scheduler(&env);
 	Lx::timer(&env, &ep, &heap, &jiffies);
+	Lx::Work::work_queue(&heap);
 
 	main_task.construct(env.ep(), main_task_entry, reinterpret_cast<void*>(this),
 	                    "main", Lx::Task::PRIORITY_0, Lx::scheduler());

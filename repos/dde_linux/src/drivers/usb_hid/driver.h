@@ -31,18 +31,36 @@ struct Driver
 
 	struct Task
 	{
-		Lx::Task                     task;
-		Genode::Signal_handler<Task> handler;
-		bool                         handling_signal { false };
+		Lx::Task                      task;
+		Genode::Signal_handler<Task>  handler;
+		bool                          handling_signal { false };
+
+		/*
+		 * If the task is currently executing and the signal handler
+		 * is called again via 'block_and_schedule()', we need to
+		 * keep this information, so the task does not block at the
+		 * end when a new signal already occurred.
+		 *
+		 * Initialized as true for the initial run of the task.
+		 */
+		bool                         _signal_pending { true };
 	
 		void handle_signal()
 		{
+			_signal_pending = true;
 			task.unblock();
 			handling_signal = true;
 			Lx::scheduler().schedule();
 			handling_signal = false;
 		}
-	
+
+		bool signal_pending()
+		{
+			bool ret = _signal_pending;
+			_signal_pending = false;
+			return ret;
+		}
+
 		template <typename... ARGS>
 		Task(Genode::Entrypoint & ep, ARGS &&... args)
 		: task(args...), handler(ep, *this, &Task::handle_signal) {}
@@ -56,7 +74,13 @@ struct Driver
 		Label                          label;
 		Driver                        &driver;
 		Genode::Env                   &env;
-		Genode::Allocator_avl         &alloc;
+
+		/*
+		 * Dedicated allocator per device to notice dangling
+		 * allocations on device destruction.
+		 */
+		Genode::Allocator_avl          alloc;
+
 		Task                           state_task;
 		Task                           urb_task;
 
@@ -101,7 +125,6 @@ struct Driver
 	Genode::Env                    &env;
 	Genode::Entrypoint             &ep    { env.ep() };
 	Genode::Heap                    heap  { env.ram(), env.rm() };
-	Genode::Allocator_avl           alloc { &heap };
 	Event::Connection               event { env };
 	Genode::Constructible<Task>     main_task;
 	Genode::Constructible<Genode::Attached_rom_dataspace> report_rom;

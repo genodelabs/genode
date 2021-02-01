@@ -259,7 +259,7 @@ int input_event_to_user(char __user *buffer, const struct input_event *event)
 struct input_dev;
 void input_ff_destroy(struct input_dev *dev)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 struct ff_effect;
@@ -325,22 +325,6 @@ struct device *kobj_to_dev(struct kobject *kobj)
 {
 	TRACE_AND_STOP;
 	return NULL;
-}
-
-void kref_get(struct kref *kref)
-{
-	TRACE_AND_STOP;
-}
-
-void kref_init(struct kref *kref)
-{
-	TRACE;
-}
-
-int  kref_put(struct kref *kref, void (*release) (struct kref *kref))
-{
-	TRACE_AND_STOP;
-	return -1;
 }
 
 int kstrtou8(const char *s, unsigned int base, u8 *res)
@@ -410,7 +394,7 @@ void __module_get(struct module *module)
 
 void module_put(struct module * module)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 loff_t no_llseek(struct file *file, loff_t offset, int whence)
@@ -525,7 +509,7 @@ void usb_block_urb(struct urb *urb)
 struct usb_device;
 int usb_clear_halt(struct usb_device *dev, int pipe)
 {
-	TRACE_AND_STOP;
+	TRACE;
 	return -1;
 }
 
@@ -538,7 +522,7 @@ int usb_interrupt_msg(struct usb_device *usb_dev, unsigned int pipe, void *data,
 struct usb_interface;
 void usb_queue_reset_device(struct usb_interface *dev)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 int usb_string(struct usb_device *dev, int index, char *buf, size_t size)
@@ -643,11 +627,6 @@ void poll_wait(struct file *a0, wait_queue_head_t *a1, poll_table *a2)
 void power_supply_changed(struct power_supply *psy)
 {
 	TRACE_AND_STOP;
-}
-
-void put_device(struct device *dev)
-{
-	TRACE;
 }
 
 int  sysfs_create_group(struct kobject *kobj, const struct attribute_group *grp)

@@ -101,9 +101,18 @@ struct Lx_driver
 
 	Lx_driver(device_driver & drv) : dev_drv(drv) { list().insert(&le); }
 
-	bool match(struct device *dev) {
+	bool match(struct device *dev)
+	{
+		/*
+		 *  Don't try if buses don't match, since drivers often use 'container_of'
+		 *  which might cast the device to non-matching type
+		 */
+		if (dev_drv.bus != dev->bus)
+			return false;
+
 		return dev_drv.bus->match ? dev_drv.bus->match(dev, &dev_drv)
-		                          : false; }
+		                          : false;
+	}
 
 	int probe(struct device *dev)
 	{
@@ -296,8 +305,22 @@ void *usb_alloc_coherent(struct usb_device *dev, size_t size, gfp_t mem_flags, d
 
 struct device *get_device(struct device *dev)
 {
-	//dev->ref++;
+	dev->ref++;
 	return dev;
+}
+
+
+void put_device(struct device *dev)
+{
+	if (dev->ref) {
+		dev->ref--;
+		return;
+	}
+
+	if (dev->release)
+		dev->release(dev);
+	else if (dev->type && dev->type->release)
+		dev->type->release(dev);
 }
 
 
@@ -309,7 +332,7 @@ void cdev_init(struct cdev *c, const struct file_operations *fops)
 
 void usb_free_coherent(struct usb_device *dev, size_t size, void *addr, dma_addr_t dma)
 {
-	//kfree(dev);
+	kfree(addr);
 }
 
 
@@ -611,3 +634,29 @@ void *kmemdup(const void *src, size_t size, gfp_t flags)
 
 	return addr;
 }
+
+/******************
+ ** linux/kref.h **
+ ******************/
+
+void kref_init(struct kref *kref)
+{ 
+	atomic_set(&kref->refcount, 1);
+}
+
+
+void kref_get(struct kref *kref)
+{
+	atomic_inc(&kref->refcount);
+}
+
+
+int  kref_put(struct kref *kref, void (*release) (struct kref *kref))
+{
+	if(!atomic_dec_return(&kref->refcount)) {
+		release(kref);
+		return 1;
+	}
+	return 0;
+}
+

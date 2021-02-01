@@ -126,6 +126,7 @@ struct device
 	const struct device_type * type;
 	void (*release)(struct device *dev);
 	void                     * driver_data;
+	unsigned                   ref;
 };
 
 void down(struct semaphore *sem);
@@ -630,6 +631,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type, unsigned
 
 struct usb_device;
 extern int usb_get_configuration(struct usb_device *dev);
+extern void usb_destroy_configuration(struct usb_device *dev);
 
 struct usb_hcd { unsigned amd_resume_bug:1; };
 
