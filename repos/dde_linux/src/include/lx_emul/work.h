@@ -151,6 +151,14 @@ typedef int (*wait_queue_func_t)(wait_queue_entry_t *, unsigned, int, void *);
 typedef struct wait_queue_head {
 	spinlock_t  lock;
 	void       *list;
+	/*
+	 * Reserve memory for a 'Wait_list' object, which needs to be
+	 * freed together with the 'wait_queue_head_t' object.
+	 *
+	 * This implementation relies on the currently given fact that
+	 * 'Wait_list' does not need to have a destructor called.
+	 */
+	char        wait_list_reserved[8];
 } wait_queue_head_t;
 struct wait_queue_entry {
 	unsigned int		flags;

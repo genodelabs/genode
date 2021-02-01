@@ -21,7 +21,9 @@ typedef Lx::Task::List         Wait_list;
 
 void init_waitqueue_head(wait_queue_head_t *wq)
 {
-	wq->list = new (&Lx_kit::env().heap()) Wait_list;
+	static_assert(sizeof(wq->wait_list_reserved) >= sizeof(Wait_list));
+	Genode::construct_at<Wait_list>(wq->wait_list_reserved);
+	wq->list = &wq->wait_list_reserved;
 }
 
 void add_wait_queue(wait_queue_head_t *q, wait_queue_entry_t *wait)
