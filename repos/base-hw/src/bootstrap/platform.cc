@@ -19,7 +19,9 @@
 
 using namespace Bootstrap;
 
+
 extern unsigned _bss_end;
+
 
 /*****************************
  ** Platform::Ram_allocator **
@@ -57,10 +59,11 @@ void Platform::Ram_allocator::remove(Memory_region const & region) {
  ******************/
 
 Platform::Pd::Pd(Platform::Ram_allocator & alloc)
-: table_base(alloc.alloc_aligned(sizeof(Table),       Table::ALIGNM_LOG2)),
-  array_base(alloc.alloc_aligned(sizeof(Table_array), Table::ALIGNM_LOG2)),
-  table(*Genode::construct_at<Table>(table_base)),
-  array(*Genode::construct_at<Table_array>(array_base))
+:
+	table_base(alloc.alloc_aligned(sizeof(Table),       Table::ALIGNM_LOG2)),
+	array_base(alloc.alloc_aligned(sizeof(Table_array), Table::ALIGNM_LOG2)),
+	table(*Genode::construct_at<Table>(table_base)),
+	array(*Genode::construct_at<Table_array>(array_base))
 {
 	using namespace Genode;
 	addr_t const table_virt_base = Hw::Mm::core_page_tables().base;
@@ -156,15 +159,18 @@ void Platform::start_core(unsigned cpu_id)
 }
 
 
-static constexpr Genode::Boot_modules_header & header() {
-	return *((Genode::Boot_modules_header*) &_boot_modules_headers_begin); }
+static constexpr Genode::Boot_modules_header & header()
+{
+	return *((Genode::Boot_modules_header*) &_boot_modules_headers_begin);
+}
 
 
 Platform::Platform()
-: bootstrap_region((addr_t)&_prog_img_beg,
-                   ((addr_t)&_prog_img_end - (addr_t)&_prog_img_beg)),
-  core_elf_addr(header().base),
-  core_elf(core_elf_addr)
+:
+	bootstrap_region((addr_t)&_prog_img_beg,
+	                 ((addr_t)&_prog_img_end - (addr_t)&_prog_img_beg)),
+	core_elf_addr(header().base),
+	core_elf(core_elf_addr)
 {
 	using namespace Genode;
 

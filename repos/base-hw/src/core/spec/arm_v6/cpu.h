@@ -20,6 +20,7 @@
 
 namespace Genode { struct Cpu; }
 
+
 struct Genode::Cpu : Arm_cpu
 {
 	static inline void synchronization_barrier() {}

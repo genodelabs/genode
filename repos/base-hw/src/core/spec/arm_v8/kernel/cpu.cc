@@ -14,6 +14,7 @@
 /* core includes */
 #include <kernel/cpu.h>
 
+
 void Kernel::Cpu::_arch_init()
 {
 	/* enable timer interrupt */

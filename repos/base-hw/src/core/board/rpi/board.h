@@ -19,8 +19,6 @@
 #include <spec/arm/bcm2835_pic.h>
 #include <spec/arm/bcm2835_system_timer.h>
 
-namespace Board {
-	using namespace Hw::Rpi_board;
-};
+namespace Board { using namespace Hw::Rpi_board; };
 
 #endif /* _CORE__SPEC__RPI__BOARD_H_ */

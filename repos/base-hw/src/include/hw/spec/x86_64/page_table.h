@@ -22,8 +22,7 @@
 #include <util/misc_math.h>
 #include <util/register.h>
 
-namespace Hw
-{
+namespace Hw {
 
 	/**
 	 * IA-32e paging translates 48-bit linear addresses to 52-bit physical
@@ -96,6 +95,7 @@ namespace Hw
 		}
 	};
 }
+
 
 class Hw::Level_4_translation_table
 {
@@ -246,6 +246,7 @@ class Hw::Level_4_translation_table
 		{
 			this->_range_op(vo, 0, size, Remove_func());
 		}
+
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 
@@ -305,10 +306,10 @@ class Hw::Page_directory
 				bool const wc = flags.cacheable == Genode::Cache_attribute::WRITE_COMBINED;
 
 				return Base::create(flags)
-					| Base::Ps::bits(1)
-					| G::bits(flags.global)
-					| Pa::masked(pa)
-					| Base::Pwt::bits(wc ? 1 : 0);
+				     | Base::Ps::bits(1)
+				     | G::bits(flags.global)
+				     | Pa::masked(pa)
+				     | Base::Pwt::bits(wc ? 1 : 0);
 			}
 		};
 
@@ -345,8 +346,7 @@ class Hw::Page_directory
 			Page_flags const & flags;
 			Allocator        & alloc;
 
-			Insert_func(Page_flags const & flags,
-			            Allocator & alloc)
+			Insert_func(Page_flags const & flags, Allocator & alloc)
 			: flags(flags), alloc(alloc) { }
 
 			void operator () (addr_t const vo, addr_t const pa,
@@ -492,16 +492,14 @@ class Hw::Page_directory
 
 namespace Hw {
 
-	struct Level_3_translation_table :
-		Page_directory<
-			Level_4_translation_table,
-			SIZE_LOG2_2MB, SIZE_LOG2_1GB>
+	struct Level_3_translation_table
+	:
+		Page_directory< Level_4_translation_table, SIZE_LOG2_2MB, SIZE_LOG2_1GB>
 	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
-	struct Level_2_translation_table :
-		Page_directory<
-			Level_3_translation_table,
-			SIZE_LOG2_1GB, SIZE_LOG2_512GB>
+	struct Level_2_translation_table
+	:
+		Page_directory<Level_3_translation_table, SIZE_LOG2_1GB, SIZE_LOG2_512GB>
 	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 }

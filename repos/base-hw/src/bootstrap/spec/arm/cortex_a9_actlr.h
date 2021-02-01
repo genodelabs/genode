@@ -18,6 +18,7 @@
 
 namespace Bootstrap { struct Actlr; }
 
+
 struct Bootstrap::Actlr : Board::Cpu::Actlr
 {
 	struct Fw                 : Bitfield<0, 1> { };

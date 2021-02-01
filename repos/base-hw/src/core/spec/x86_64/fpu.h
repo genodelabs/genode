@@ -21,6 +21,7 @@
 
 namespace Genode { class Fpu_context; }
 
+
 class Genode::Fpu_context
 {
 	addr_t _fxsave_addr { 0 };

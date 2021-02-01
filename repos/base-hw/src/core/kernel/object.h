@@ -25,8 +25,8 @@
 #include <kernel/interface.h>
 #include <kernel/kernel.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/*
 	 * Forward declarations
 	 */
@@ -118,9 +118,8 @@ class Kernel::Object : private Object_identity_list
 };
 
 
-class Kernel::Object_identity
-: public Object_identity_list::Element,
-  public Kernel::Object_identity_reference_list
+class Kernel::Object_identity : public Object_identity_list::Element,
+                                public Kernel::Object_identity_reference_list
 {
 	private:
 
@@ -145,8 +144,9 @@ class Kernel::Object_identity
 
 
 class Kernel::Object_identity_reference
-: public Genode::Avl_node<Kernel::Object_identity_reference>,
-  public Genode::List<Kernel::Object_identity_reference>::Element
+:
+	public Genode::Avl_node<Kernel::Object_identity_reference>,
+	public Genode::List<Kernel::Object_identity_reference>::Element
 {
 	private:
 
@@ -171,8 +171,10 @@ class Kernel::Object_identity_reference
 		 ***************/
 
 		template <typename KOBJECT>
-		KOBJECT * object() {
-			return _identity ? _identity->object<KOBJECT>() : nullptr; }
+		KOBJECT * object()
+		{
+			return _identity ? _identity->object<KOBJECT>() : nullptr;
+		}
 
 		Object_identity_reference * factory(void * dst, Pd &pd);
 
@@ -204,7 +206,8 @@ class Kernel::Object_identity_reference
 
 
 class Kernel::Object_identity_reference_tree
-: public Genode::Avl_tree<Kernel::Object_identity_reference>
+:
+	public Genode::Avl_tree<Kernel::Object_identity_reference>
 {
 	public:
 

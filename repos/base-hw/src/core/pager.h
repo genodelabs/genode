@@ -30,8 +30,8 @@
 #include <object.h>
 #include <rpc_cap_factory.h>
 
-namespace Genode
-{
+namespace Genode {
+
 	/**
 	 * Interface used by generic region_map code
 	 */
@@ -67,10 +67,12 @@ struct Genode::Mapping : Hw::Mapping
 	        unsigned size_log2,
 	        bool writeable,
 	        bool executable)
-	: Hw::Mapping(phys, virt, 1 << size_log2,
-	              { writeable ? Hw::RW : Hw::RO,
-	                executable ? Hw::EXEC : Hw::NO_EXEC, Hw::USER,
-	                Hw::NO_GLOBAL, io ? Hw::DEVICE : Hw::RAM, cacheable }) {}
+	:
+		Hw::Mapping(phys, virt, 1 << size_log2,
+		            { writeable  ? Hw::RW   : Hw::RO,
+		              executable ? Hw::EXEC : Hw::NO_EXEC, Hw::USER,
+		              Hw::NO_GLOBAL, io ? Hw::DEVICE : Hw::RAM, cacheable })
+	{ }
 
 	void prepare_map_operation() const {}
 };

@@ -19,6 +19,7 @@
 #include <hw/spec/x86_64/framebuffer.h>
 
 namespace Hw::Pc_board {
+
 	struct Boot_info;
 	struct Serial;
 	enum Dummies { UART_BASE, UART_CLOCK };

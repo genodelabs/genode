@@ -15,5 +15,6 @@
 #include <kernel/cpu.h>
 #include <hw/memory_map.h>
 
+
 void Kernel::Cpu::_arch_init() {
 	Stvec::write(Hw::Mm::supervisor_exception_vector().base); }

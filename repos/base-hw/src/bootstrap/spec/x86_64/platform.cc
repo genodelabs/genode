@@ -23,8 +23,10 @@
 
 using namespace Genode;
 
+
 /* contains Multiboot MAGIC value (either version 1 or 2) */
 extern "C" Genode::addr_t __initial_ax;
+
 /* contains physical pointer to multiboot */
 extern "C" Genode::addr_t __initial_bx;
 
@@ -44,6 +46,7 @@ enum { AP_BOOT_CODE_PAGE = 0x1000 };
 extern "C" void * _start;
 extern "C" void * _ap;
 
+
 static Hw::Acpi_rsdp search_rsdp(addr_t area, addr_t area_size)
 {
 	if (area && area_size && area < area + area_size) {
@@ -62,12 +65,13 @@ static Hw::Acpi_rsdp search_rsdp(addr_t area, addr_t area_size)
 
 
 Bootstrap::Platform::Board::Board()
-: core_mmio(Memory_region { 0, 0x1000 },
-            Memory_region { Hw::Cpu_memory_map::lapic_phys_base(), 0x1000 },
-            Memory_region { Hw::Cpu_memory_map::MMIO_IOAPIC_BASE,
-                            Hw::Cpu_memory_map::MMIO_IOAPIC_SIZE },
-            Memory_region { __initial_bx & ~0xFFFUL,
-                            get_page_size() })
+:
+	core_mmio(Memory_region { 0, 0x1000 },
+	          Memory_region { Hw::Cpu_memory_map::lapic_phys_base(), 0x1000 },
+	          Memory_region { Hw::Cpu_memory_map::MMIO_IOAPIC_BASE,
+	                          Hw::Cpu_memory_map::MMIO_IOAPIC_SIZE },
+	          Memory_region { __initial_bx & ~0xFFFUL,
+	                          get_page_size() })
 {
 	Hw::Acpi_rsdp & acpi_rsdp = info.acpi_rsdp;
 	static constexpr size_t initial_map_max = 1024 * 1024 * 1024;
@@ -219,8 +223,8 @@ Bootstrap::Platform::Board::Board()
 		addr_t ap_code_size = (addr_t)&_start - (addr_t)&_ap;
 		memcpy((void *)AP_BOOT_CODE_PAGE, &_ap, ap_code_size);
 	}
-
 }
+
 
 struct Lapic : Mmio
 {
@@ -228,23 +232,30 @@ struct Lapic : Mmio
 	{
 		struct APIC_enable : Bitfield<8, 1> { };
 	};
-	struct Icr_low  : Register<0x300, 32> {
+
+	struct Icr_low : Register<0x300, 32>
+	{
 		struct Vector          : Bitfield< 0, 8> { };
-		struct Delivery_mode   : Bitfield< 8, 3> {
+		struct Delivery_mode   : Bitfield< 8, 3>
+		{
 			enum Mode { INIT = 5, SIPI = 6 };
 		};
 		struct Delivery_status : Bitfield<12, 1> { };
 		struct Level_assert    : Bitfield<14, 1> { };
-		struct Dest_shorthand  : Bitfield<18, 2> {
+		struct Dest_shorthand  : Bitfield<18, 2>
+		{
 			enum { ALL_OTHERS = 3 };
 		};
 	};
-	struct Icr_high : Register<0x310, 32> {
+
+	struct Icr_high : Register<0x310, 32>
+	{
 		struct Destination : Bitfield<24, 8> { };
 	};
 
 	Lapic(addr_t const addr) : Mmio(addr) { }
 };
+
 
 static inline void ipi_to_all(Lapic &lapic, unsigned const boot_frame,
                               Lapic::Icr_low::Delivery_mode::Mode const mode)
@@ -267,6 +278,7 @@ static inline void ipi_to_all(Lapic &lapic, unsigned const boot_frame,
 	lapic.write<Lapic::Icr_high::Destination>(apic_cpu_id);
 	lapic.write<Lapic::Icr_low>(icr_low);
 }
+
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
@@ -325,4 +337,6 @@ addr_t Bios_data_area::_mmio_base_virt() { return 0x1ff000; }
 
 
 Board::Serial::Serial(addr_t, size_t, unsigned baudrate)
-:X86_uart(Bios_data_area::singleton()->serial_port(), 0, baudrate) {}
+:
+	X86_uart(Bios_data_area::singleton()->serial_port(), 0, baudrate)
+{ }

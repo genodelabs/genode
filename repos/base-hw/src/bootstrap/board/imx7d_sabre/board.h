@@ -20,6 +20,7 @@
 #include <hw/spec/arm/gicv2.h>
 
 namespace Board {
+
 	using namespace Hw::Imx7d_sabre_board;
 	using Pic = Hw::Gicv2;
 	static constexpr bool NON_SECURE = true;

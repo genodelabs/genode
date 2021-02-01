@@ -18,16 +18,19 @@ extern "C" void *    _start_setup_stack;   /* entrypoint for non-boot CPUs */
 
 using namespace Board;
 
+
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { RAM_BASE, RAM_SIZE }),
-  late_ram_regions(Memory_region { }),
-  core_mmio(Memory_region { UART_BASE, UART_SIZE },
-            Memory_region { Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
-                            Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE },
-            Memory_region { Cpu_mmio::IRQ_CONTROLLER_CPU_BASE,
-                            Cpu_mmio::IRQ_CONTROLLER_CPU_SIZE },
-            Memory_region { Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE,
-                            Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_SIZE }) {}
+:
+	early_ram_regions(Memory_region { RAM_BASE, RAM_SIZE }),
+	late_ram_regions(Memory_region { }),
+	core_mmio(Memory_region { UART_BASE, UART_SIZE },
+	          Memory_region { Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
+	                          Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE },
+	          Memory_region { Cpu_mmio::IRQ_CONTROLLER_CPU_BASE,
+	                          Cpu_mmio::IRQ_CONTROLLER_CPU_SIZE },
+	          Memory_region { Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE,
+	                          Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_SIZE })
+{ }
 
 
 static inline void switch_to_supervisor_mode(unsigned cpu_id)

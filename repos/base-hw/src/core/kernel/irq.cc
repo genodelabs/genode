@@ -17,12 +17,16 @@
 #include <kernel/irq.h>
 
 
-void Kernel::Irq::disable() const {
-	cpu_pool().executing_cpu().pic().mask(_irq_nr); }
+void Kernel::Irq::disable() const
+{
+	cpu_pool().executing_cpu().pic().mask(_irq_nr);
+}
 
 
-void Kernel::Irq::enable() const {
-	cpu_pool().executing_cpu().pic().unmask(_irq_nr, Cpu::executing_id()); }
+void Kernel::Irq::enable() const
+{
+	cpu_pool().executing_cpu().pic().unmask(_irq_nr, Cpu::executing_id());
+}
 
 
 Kernel::Irq::Pool &Kernel::User_irq::_pool()
@@ -36,7 +40,8 @@ Kernel::User_irq::User_irq(unsigned const                irq,
                            Genode::Irq_session::Trigger  trigger,
                            Genode::Irq_session::Polarity polarity,
                            Signal_context              & context)
-: Irq(irq, _pool()), _context(context)
+:
+	Irq(irq, _pool()), _context(context)
 {
 	disable();
 	cpu_pool().executing_cpu().pic().irq_mode(_irq_nr, trigger, polarity);

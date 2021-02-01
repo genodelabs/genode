@@ -19,6 +19,7 @@
 
 namespace Board { class Timer; }
 
+
 struct Board::Timer
 {
 	unsigned long _freq();

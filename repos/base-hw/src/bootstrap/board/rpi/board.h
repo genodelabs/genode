@@ -21,8 +21,7 @@
 namespace Board { using namespace Hw::Rpi_board; }
 
 
-constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
-	return 0; }
+constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() { return 0; }
 
 
 constexpr bool Hw::Page_table::Descriptor_base::_smp() { return false; }

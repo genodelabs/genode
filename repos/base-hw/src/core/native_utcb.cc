@@ -16,6 +16,7 @@
 
 #include <hw/memory_map.h>
 
+
 Genode::Native_utcb * Genode::utcb_main_thread() {
 	return (Genode::Native_utcb*) Hw::Mm::core_utcb_main_thread().base; }
 

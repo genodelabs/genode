@@ -20,10 +20,12 @@ extern "C" void * _start_setup_stack;   /* entrypoint for non-boot CPUs */
 
 using namespace Board;
 
+
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE }),
-  core_mmio(Memory_region { IRQ_CONTROLLER_BASE, IRQ_CONTROLLER_SIZE },
-            Memory_region { UART_1_MMIO_BASE, UART_1_MMIO_SIZE })
+:
+	early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE }),
+	core_mmio(Memory_region { IRQ_CONTROLLER_BASE, IRQ_CONTROLLER_SIZE },
+	          Memory_region { UART_1_MMIO_BASE, UART_1_MMIO_SIZE })
 {
 	Aipstz aipstz_1(AIPS_1_MMIO_BASE);
 	Aipstz aipstz_2(AIPS_2_MMIO_BASE);

@@ -18,6 +18,7 @@
 using namespace Genode;
 using State = Genode::Pd_session::Managing_system_state;
 
+
 State Pd_session_component::managing_system(State const & s)
 {
 	State ret;
@@ -31,6 +32,7 @@ State Pd_session_component::managing_system(State const & s)
  ***************************/
 
 bool Pd_session_component::assign_pci(addr_t, uint16_t) { return true; }
+
 
 void Pd_session_component::map(addr_t, addr_t) { }
 

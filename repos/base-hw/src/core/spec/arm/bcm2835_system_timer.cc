@@ -24,7 +24,9 @@ using Device = Board::Timer;
 
 
 Board::Timer::Timer(unsigned)
-: Mmio(Platform::mmio_to_virt(Board::SYSTEM_TIMER_MMIO_BASE)) { }
+:
+	Mmio(Platform::mmio_to_virt(Board::SYSTEM_TIMER_MMIO_BASE))
+{ }
 
 
 void Timer::_start_one_shot(time_t const ticks)

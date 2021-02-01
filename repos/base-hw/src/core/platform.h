@@ -41,6 +41,7 @@ namespace Genode {
 	class Platform;
 };
 
+
 class Genode::Platform : public Genode::Platform_generic
 {
 	private:

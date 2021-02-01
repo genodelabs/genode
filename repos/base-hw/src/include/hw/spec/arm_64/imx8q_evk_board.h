@@ -18,6 +18,7 @@
 #include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Imx8q_evk_board {
+
 	using Serial = Genode::Imx_uart;
 
 	enum {

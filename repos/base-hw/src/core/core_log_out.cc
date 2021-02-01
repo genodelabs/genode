@@ -23,5 +23,8 @@
 void Genode::Core_log::out(char const c) { Kernel::log(c); }
 
 
-void Genode::raw_write_string(char const *str) {
-	while (char c = *str++) Kernel::log(c); }
+void Genode::raw_write_string(char const *str)
+{
+	while (char c = *str++)
+		Kernel::log(c);
+}

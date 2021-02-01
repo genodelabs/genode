@@ -18,6 +18,7 @@
 
 namespace Hw { struct X86_64_cpu; }
 
+
 struct Hw::X86_64_cpu
 {
 	X86_64_CR_REGISTER(Cr0, cr0,

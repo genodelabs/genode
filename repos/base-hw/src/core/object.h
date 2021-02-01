@@ -25,6 +25,7 @@
 #include <kernel/object.h>
 
 namespace Genode {
+
 	/**
 	 * Represents a kernel object in core
 	 *
@@ -50,10 +51,12 @@ class Genode::Kernel_object : public Genode::Constructible<Kernel::Core_object<T
 		 */
 		template <typename... ARGS>
 		Kernel_object(bool syscall, ARGS &&... args)
-		: _cap(Capability_space::import(syscall ? T::syscall_create(*this, args...)
-		                                        : Kernel::cap_id_invalid()))
+		:
+			_cap(Capability_space::import(syscall ? T::syscall_create(*this, args...)
+			                                      : Kernel::cap_id_invalid()))
 		{
-			if (!syscall) Genode::Constructible<Kernel::Core_object<T>>::construct(args...);
+			if (!syscall)
+				Genode::Constructible<Kernel::Core_object<T>>::construct(args...);
 		}
 
 		~Kernel_object()

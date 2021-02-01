@@ -44,11 +44,14 @@ using namespace Genode;
 Hw::Boot_info<Board::Boot_info> const & Platform::_boot_info() {
 	return *reinterpret_cast<Hw::Boot_info<Board::Boot_info>*>(Hw::Mm::boot_info().base); }
 
+
 addr_t Platform::mmio_to_virt(addr_t mmio) {
 	return _boot_info().mmio_space.virt_addr(mmio); }
 
+
 addr_t Platform::core_page_table() {
 	return (addr_t)_boot_info().table; }
+
 
 Hw::Page_table::Allocator & Platform::core_page_table_allocator()
 {
@@ -58,6 +61,7 @@ Hw::Page_table::Allocator & Platform::core_page_table_allocator()
 	return *unmanaged_singleton<Array::Allocator>(_boot_info().table_allocator,
 	                                              virt_addr);
 }
+
 
 void Platform::_init_io_mem_alloc()
 {

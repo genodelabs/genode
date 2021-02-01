@@ -19,8 +19,8 @@
 #include <kernel/cpu.h>
 #include <kernel/vm.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/**
 	 * ARM's virtual interrupt controller cpu interface
 	 */
@@ -39,7 +39,9 @@ namespace Kernel
 
 using namespace Kernel;
 
-struct Host_context {
+
+struct Host_context
+{
 	Cpu::Ttbr_64bit::access_t vttbr;
 	Cpu::Hcr::access_t        hcr;
 	Cpu::Hstr::access_t       hstr;
@@ -54,6 +56,7 @@ struct Host_context {
 	Cpu::Mair0::access_t      mair0;
 	Cpu::Dacr::access_t       dacr;
 	Cpu::Vmpidr::access_t     vmpidr;
+
 } vt_host_context;
 
 
@@ -87,7 +90,8 @@ static Host_context & host_context(Cpu & cpu)
 
 
 Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu & cpu)
-: Kernel::Irq(irq, cpu.irq_pool())
+:
+	Kernel::Irq(irq, cpu.irq_pool())
 { }
 
 
@@ -105,12 +109,18 @@ void Board::Vcpu_context::Vm_irq::occurred()
 
 
 Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu & cpu)
-: Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu) {
+:
+	Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu)
+{
 	//FIXME Irq::enable only enables caller cpu
-	cpu.pic().unmask(_irq_nr, cpu.id()); }
+	cpu.pic().unmask(_irq_nr, cpu.id());
+}
+
 
 Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Cpu & cpu)
-: irq(Board::VT_TIMER_IRQ, cpu) {}
+:
+	irq(Board::VT_TIMER_IRQ, cpu)
+{ }
 
 
 void Board::Vcpu_context::Virtual_timer_irq::enable() { irq.enable(); }
@@ -128,12 +138,13 @@ Kernel::Vm::Vm(unsigned                 cpu,
                Genode::Vm_state       & state,
                Kernel::Signal_context & context,
                Identity               & id)
-: Kernel::Object { *this },
-  Cpu_job(Cpu_priority::MIN, 0),
-  _state(state),
-  _context(context),
-  _id(id),
-  _vcpu_context(cpu_pool().cpu(cpu))
+:
+	Kernel::Object { *this },
+	Cpu_job(Cpu_priority::MIN, 0),
+	_state(state),
+	_context(context),
+	_id(id),
+	_vcpu_context(cpu_pool().cpu(cpu))
 {
 	affinity(cpu_pool().cpu(cpu));
 }

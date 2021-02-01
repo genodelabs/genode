@@ -19,6 +19,7 @@
 
 namespace Hw { class Mapping; }
 
+
 class Hw::Mapping
 {
 	protected:
@@ -30,10 +31,10 @@ class Hw::Mapping
 
 	public:
 
-		Mapping() {}
+		Mapping() { }
 
 		Mapping(addr_t phys, addr_t virt, size_t size, Page_flags flags)
-		: _phys(phys, size), _virt(virt), _flags(flags) {}
+		: _phys(phys, size), _virt(virt), _flags(flags) { }
 
 		void print(Genode::Output & out) const
 		{

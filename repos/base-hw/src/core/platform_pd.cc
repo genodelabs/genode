@@ -29,8 +29,10 @@ using Hw::Page_table;
  ** Hw::Address_space implementation **
  **************************************/
 
-Core_mem_allocator &Hw::Address_space::_cma() {
-	return static_cast<Core_mem_allocator &>(platform().core_mem_alloc()); }
+Core_mem_allocator &Hw::Address_space::_cma()
+{
+	return static_cast<Core_mem_allocator &>(platform().core_mem_alloc());
+}
 
 
 void *Hw::Address_space::_table_alloc()
@@ -90,19 +92,23 @@ void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 Hw::Address_space::Address_space(Page_table            & tt,
                                  Page_table::Allocator & tt_alloc,
                                  Platform_pd           & pd)
-: _tt(tt),
-  _tt_phys(Platform::core_page_table()),
-  _tt_alloc(tt_alloc),
-  _kobj(false, *(Page_table*)translation_table_phys(), pd) {}
+:
+	_tt(tt),
+	_tt_phys(Platform::core_page_table()),
+	_tt_alloc(tt_alloc),
+	_kobj(false, *(Page_table*)translation_table_phys(), pd)
+{ }
 
 
 Hw::Address_space::Address_space(Platform_pd & pd)
-: _tt(*construct_at<Page_table>(_table_alloc(), *((Page_table*)Hw::Mm::core_page_tables().base))),
-  _tt_phys((addr_t)_cma().phys_addr(&_tt)),
-  _tt_array(new (_cma()) Array([] (void * virt) {
-    return (addr_t)_cma().phys_addr(virt);})),
-  _tt_alloc(_tt_array->alloc()),
-  _kobj(true, *(Page_table*)translation_table_phys(), pd) { }
+:
+	_tt(*construct_at<Page_table>(_table_alloc(), *((Page_table*)Hw::Mm::core_page_tables().base))),
+	_tt_phys((addr_t)_cma().phys_addr(&_tt)),
+	_tt_array(new (_cma()) Array([] (void * virt) {
+	                             return (addr_t)_cma().phys_addr(virt);})),
+	_tt_alloc(_tt_array->alloc()),
+	_kobj(true, *(Page_table*)translation_table_phys(), pd)
+{ }
 
 
 Hw::Address_space::~Address_space()
@@ -152,17 +158,21 @@ void Platform_pd::assign_parent(Native_capability parent)
 
 Platform_pd::Platform_pd(Page_table & tt,
                          Page_table::Allocator & alloc)
-: Hw::Address_space(tt, alloc, *this), _label("core") { }
+:
+	Hw::Address_space(tt, alloc, *this), _label("core")
+{ }
 
 
 Platform_pd::Platform_pd(Allocator &, char const *label)
-: Hw::Address_space(*this), _label(label)
+:
+	Hw::Address_space(*this), _label(label)
 {
 	if (!_kobj.cap().valid()) {
 		error("failed to create kernel object");
 		throw Service_denied();
 	}
 }
+
 
 Platform_pd::~Platform_pd()
 {
@@ -176,5 +186,7 @@ Platform_pd::~Platform_pd()
  *************************************/
 
 Core_platform_pd::Core_platform_pd()
-: Platform_pd(*(Hw::Page_table*)Hw::Mm::core_page_tables().base,
-              Platform::core_page_table_allocator()) { }
+:
+	Platform_pd(*(Hw::Page_table*)Hw::Mm::core_page_tables().base,
+	            Platform::core_page_table_allocator())
+{ }

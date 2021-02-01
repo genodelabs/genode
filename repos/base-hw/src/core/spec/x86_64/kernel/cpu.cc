@@ -16,6 +16,7 @@
 #include <kernel/cpu.h>
 #include <kernel/kernel.h>
 
+
 void Kernel::Cpu::_arch_init()
 {
 	gdt.init((addr_t)&tss);

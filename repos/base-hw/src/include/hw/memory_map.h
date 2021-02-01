@@ -36,6 +36,7 @@ namespace Hw {
 	}
 }
 
+
 struct Hw::Mmio_space : Hw::Memory_region_array
 {
 	using Hw::Memory_region_array::Memory_region_array;

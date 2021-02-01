@@ -17,6 +17,7 @@
 #include <base/fixed_stdint.h>
 
 namespace Hw {
+
 	struct Acpi_generic;
 	struct Apic_madt;
 
@@ -29,6 +30,7 @@ namespace Hw {
 	template <typename FUNC>
 	void for_each_apic_struct(Acpi_generic &, FUNC);
 }
+
 
 /* ACPI spec 5.2.6 */
 struct Hw::Acpi_generic
@@ -45,6 +47,7 @@ struct Hw::Acpi_generic
 
 } __attribute__((packed));
 
+
 struct Hw::Apic_madt
 {
 	enum { LAPIC = 0, IO_APIC = 1 };
@@ -54,8 +57,8 @@ struct Hw::Apic_madt
 
 	Apic_madt *next() const { return reinterpret_cast<Apic_madt *>((Genode::uint8_t *)this + length); }
 
-	struct Ioapic : Genode::Mmio {
-
+	struct Ioapic : Genode::Mmio
+	{
 		struct Id       : Register <0x02,  8> { };
 		struct Paddr    : Register <0x04, 32> { };
 		struct Gsi_base : Register <0x08, 32> { };
@@ -63,9 +66,9 @@ struct Hw::Apic_madt
 		Ioapic(Apic_madt const * a) : Mmio(reinterpret_cast<Genode::addr_t>(a)) { }
 	};
 
-	struct Lapic : Genode::Mmio {
-
-		struct Flags    : Register <0x04, 32> { enum { VALID = 1 }; };
+	struct Lapic : Genode::Mmio
+	{
+		struct Flags : Register <0x04, 32> { enum { VALID = 1 }; };
 
 		Lapic(Apic_madt const * a) : Mmio(reinterpret_cast<Genode::addr_t>(a)) { }
 
@@ -73,6 +76,7 @@ struct Hw::Apic_madt
 	};
 
 } __attribute__((packed));
+
 
 template <typename FUNC>
 void Hw::for_each_rsdt_entry(Hw::Acpi_generic &rsdt, FUNC fn)
@@ -90,6 +94,7 @@ void Hw::for_each_rsdt_entry(Hw::Acpi_generic &rsdt, FUNC fn)
 		fn(entries[i]);
 }
 
+
 template <typename FUNC>
 void Hw::for_each_xsdt_entry(Hw::Acpi_generic &xsdt, FUNC fn)
 {
@@ -105,6 +110,7 @@ void Hw::for_each_xsdt_entry(Hw::Acpi_generic &xsdt, FUNC fn)
 	for (unsigned i = 0; i < entry_count; i++)
 		fn(entries[i]);
 }
+
 
 template <typename FUNC>
 void Hw::for_each_apic_struct(Hw::Acpi_generic &apic_madt, FUNC fn)

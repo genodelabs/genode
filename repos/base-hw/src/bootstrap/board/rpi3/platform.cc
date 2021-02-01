@@ -18,17 +18,20 @@
  * some code does not feel happy with addresses being zero
  */
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { ::Board::RAM_BASE + 0x1000,
-                                    ::Board::RAM_SIZE - 0x1000 }),
-  late_ram_regions(Memory_region { ::Board::RAM_BASE, 0x1000 }),
-  core_mmio(Memory_region { ::Board::UART_BASE, ::Board::UART_SIZE },
-            Memory_region { ::Board::LOCAL_IRQ_CONTROLLER_BASE,
-                            ::Board::LOCAL_IRQ_CONTROLLER_SIZE },
-            Memory_region { ::Board::IRQ_CONTROLLER_BASE,
-                            ::Board::IRQ_CONTROLLER_SIZE }) {}
+:
+	early_ram_regions(Memory_region { ::Board::RAM_BASE + 0x1000,
+	                                  ::Board::RAM_SIZE - 0x1000 }),
+	late_ram_regions(Memory_region { ::Board::RAM_BASE, 0x1000 }),
+	core_mmio(Memory_region { ::Board::UART_BASE, ::Board::UART_SIZE },
+	          Memory_region { ::Board::LOCAL_IRQ_CONTROLLER_BASE,
+	                          ::Board::LOCAL_IRQ_CONTROLLER_SIZE },
+	          Memory_region { ::Board::IRQ_CONTROLLER_BASE,
+	                          ::Board::IRQ_CONTROLLER_SIZE })
+{ }
 
 
 extern unsigned int _crt0_qemu_start_secondary_cpus;
+
 
 void Board::Cpu::wake_up_all_cpus(void * ip)
 {

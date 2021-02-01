@@ -16,10 +16,13 @@
 
 #include <hw/spec/arm/page_table.h>
 
+
 constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
 	return 2; }
 
+
 constexpr bool Hw::Page_table::Descriptor_base::_smp() { return false; }
+
 
 void Hw::Page_table::_table_changed(unsigned long, unsigned long) { }
 

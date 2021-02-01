@@ -21,6 +21,7 @@
 #include <spec/arm/cpu.h>
 
 namespace Board {
+
 	using namespace Hw::Usb_armory_board;
 
 	using Hw::Pic;

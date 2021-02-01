@@ -15,7 +15,6 @@
 #define _SRC__CORE__SPEC__VIRT_QEMU_64_H_
 
 #include <hw/spec/arm/virt_qemu_board.h>
-//#include <hw/spec/arm/gicv3.h>
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/virtualization/gicv3.h>
 #include <spec/arm_64/cpu/vm_state_virtualization.h>
@@ -24,6 +23,7 @@
 #include <kernel/irq.h>
 
 namespace Board {
+
 	using namespace Hw::Virt_qemu_board;
 
 	enum {
@@ -42,10 +42,12 @@ namespace Board {
 	using Vm_state = Genode::Vm_state;
 };
 
+
 namespace Kernel {
 	class Cpu;
 	class Vm;
 };
+
 
 struct Board::Vcpu_context
 {
@@ -77,8 +79,7 @@ struct Board::Vcpu_context
 		void disable();
 	};
 
-	Vcpu_context(Kernel::Cpu & cpu)
-	: pic_irq(cpu), vtimer_irq(cpu) {}
+	Vcpu_context(Kernel::Cpu & cpu) : pic_irq(cpu), vtimer_irq(cpu) { }
 
 	Pic::Virtual_context pic {};
 	Pic_maintainance_irq pic_irq;

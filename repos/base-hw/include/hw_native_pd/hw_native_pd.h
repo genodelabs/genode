@@ -17,6 +17,7 @@
 #include <base/rpc.h>
 #include <pd_session/pd_session.h>
 
+
 struct Genode::Pd_session::Native_pd : Interface
 {
 	virtual void upgrade_cap_slab() = 0;

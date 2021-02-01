@@ -21,6 +21,7 @@
 #include <spec/arm/cpu.h>
 
 namespace Board {
+
 	using namespace Hw::Imx53_qsb_board;
 
 	using Hw::Pic;

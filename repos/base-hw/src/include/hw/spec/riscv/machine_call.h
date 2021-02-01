@@ -35,8 +35,7 @@ namespace Hw {
 	}
 
 	inline void put_char(unsigned long c) {
-		ecall(MCALL_CONSOLE_PUTCHAR, c, /* unused arg */ 0);
-	}
+		ecall(MCALL_CONSOLE_PUTCHAR, c, /* unused arg */ 0); }
 
 	inline void set_sys_timer(unsigned long t) {
 		ecall(MCALL_SET_TIMER, t, /* unused arg */ 0); }

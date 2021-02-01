@@ -101,7 +101,8 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array
 template <Genode::size_t TABLE_SIZE>
 template <unsigned COUNT>
 class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
-: public Hw::Page_table_allocator<TABLE_SIZE>
+:
+	public Hw::Page_table_allocator<TABLE_SIZE>
 {
 	private:
 

@@ -24,8 +24,8 @@
 #include <kernel/inter_processor_work.h>
 #include <kernel/thread.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/**
 	 * Class for kernel data that is needed to manage a specific CPU
 	 */

@@ -18,6 +18,7 @@
 
 namespace Board { class Pic; }
 
+
 class Board::Pic : Genode::Mmio
 {
 	public:
@@ -28,7 +29,6 @@ class Board::Pic : Genode::Mmio
 		};
 
 	private:
-
 
 		template <unsigned CPU_NUM>
 		struct Core_timer_irq_control : Register<0x40+CPU_NUM*0x4, 32>

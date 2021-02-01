@@ -17,8 +17,8 @@
 
 #include <base/internal/page_size.h>
 
-namespace Hw
-{
+namespace Hw {
+
 	using Genode::addr_t;
 	using Genode::size_t;
 	using Genode::get_page_size;
@@ -38,8 +38,8 @@ namespace Hw
 	/**
 	 * Round up to the minimal page-size alignment
 	 */
-	constexpr addr_t round_page(addr_t addr)
-	{ return trunc_page(addr + get_page_size() - 1UL); }
+	constexpr addr_t round_page(addr_t addr) {
+		return trunc_page(addr + get_page_size() - 1UL); }
 
 	/**
 	 * Return an address rounded down to a specific alignment

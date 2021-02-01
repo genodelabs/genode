@@ -19,6 +19,7 @@
 
 namespace Hw { extern Genode::Untyped_capability _parent_cap; }
 
+
 namespace Genode {
 
 	static inline Parent_capability parent_cap()

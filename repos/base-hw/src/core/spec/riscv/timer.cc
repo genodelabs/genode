@@ -26,7 +26,9 @@ Board::Timer::Timer(unsigned)
 	asm volatile ("csrs sie, %0" : : "r"(STIE));
 }
 
+
 time_t Board::Timer::stime() const { return Hw::get_sys_timer(); }
+
 
 void Timer::_start_one_shot(time_t const ticks)
 {
@@ -43,8 +45,7 @@ time_t Timer::us_to_ticks(time_t const us) const {
 	return us * Board::Timer::TICS_PER_MS; }
 
 
-time_t Timer::_max_value() const {
-	return 0xffffffff; }
+time_t Timer::_max_value() const { return 0xffffffff; }
 
 
 time_t Timer::_duration() const

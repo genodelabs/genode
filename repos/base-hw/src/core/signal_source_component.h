@@ -55,8 +55,9 @@ struct Genode::Signal_source_component : private Kernel_object<Kernel::Signal_re
 	using Signal_source_pool::Entry::cap;
 
 	Signal_source_component()
-	: Kernel_object<Kernel::Signal_receiver>(true),
-	  Signal_source_pool::Entry(Kernel_object<Kernel::Signal_receiver>::cap())
+	:
+		Kernel_object<Kernel::Signal_receiver>(true),
+		Signal_source_pool::Entry(Kernel_object<Kernel::Signal_receiver>::cap())
 	{ }
 
 	void submit(Signal_context_component *, unsigned long) { ASSERT_NEVER_CALLED; }

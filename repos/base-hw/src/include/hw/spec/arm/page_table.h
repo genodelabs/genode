@@ -23,6 +23,7 @@
 
 namespace Hw { class Page_table; }
 
+
 class Hw::Page_table
 {
 	private:

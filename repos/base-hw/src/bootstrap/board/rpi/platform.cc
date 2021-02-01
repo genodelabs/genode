@@ -17,22 +17,25 @@
 
 using namespace Rpi;
 
+
 /**
  * Leave out the first page (being 0x0) from bootstraps RAM allocator,
  * some code does not feel happy with addresses being zero
  */
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { RAM_0_BASE + 0x1000,
-                                    RAM_0_SIZE - 0x1000 }),
-  late_ram_regions(Memory_region { RAM_0_BASE, 0x1000 }),
-  core_mmio(Memory_region { PL011_0_MMIO_BASE,
-                            PL011_0_MMIO_SIZE },
-            Memory_region { SYSTEM_TIMER_MMIO_BASE,
-                            SYSTEM_TIMER_MMIO_SIZE },
-            Memory_region { IRQ_CONTROLLER_BASE,
-                            IRQ_CONTROLLER_SIZE },
-            Memory_region { USB_DWC_OTG_BASE,
-                            USB_DWC_OTG_SIZE }) {}
+:
+	early_ram_regions(Memory_region { RAM_0_BASE + 0x1000,
+	                                  RAM_0_SIZE - 0x1000 }),
+	late_ram_regions(Memory_region { RAM_0_BASE, 0x1000 }),
+	core_mmio(Memory_region { PL011_0_MMIO_BASE,
+	                          PL011_0_MMIO_SIZE },
+	          Memory_region { SYSTEM_TIMER_MMIO_BASE,
+	                          SYSTEM_TIMER_MMIO_SIZE },
+	          Memory_region { IRQ_CONTROLLER_BASE,
+	                          IRQ_CONTROLLER_SIZE },
+	          Memory_region { USB_DWC_OTG_BASE,
+	                          USB_DWC_OTG_SIZE })
+{ }
 
 
 unsigned Bootstrap::Platform::enable_mmu()
@@ -43,7 +46,8 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	Cpu::Cpsr::init();
 
-	struct Ctr : Cpu::Ctr {
+	struct Ctr : Cpu::Ctr
+	{
 		struct P : Bitfield<23, 1> { }; /* page mapping restriction on */
 	};
 

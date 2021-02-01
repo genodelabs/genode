@@ -13,14 +13,16 @@
 
 #include <platform.h>
 
+
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { ::Board::RAM_BASE, ::Board::RAM_SIZE }),
-  late_ram_regions(Memory_region { }),
-  core_mmio(Memory_region { ::Board::UART_BASE, ::Board::UART_SIZE },
-            Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
-                            ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE },
-            Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE,
-                            ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE })
+:
+	early_ram_regions(Memory_region { ::Board::RAM_BASE, ::Board::RAM_SIZE }),
+	late_ram_regions(Memory_region { }),
+	core_mmio(Memory_region { ::Board::UART_BASE, ::Board::UART_SIZE },
+	          Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
+	                          ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE },
+	          Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE,
+	                          ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE })
 {
 	::Board::Pic pic {};
 }

@@ -22,11 +22,14 @@
 
 namespace Kernel { struct Thread_fault; }
 
+
 namespace Genode {
+
 	struct Cpu;
 	using sizet_arithm_t = __uint128_t;
 	using uint128_t      = __uint128_t;
 }
+
 
 struct Genode::Cpu : Hw::Arm_64_cpu
 {

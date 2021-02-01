@@ -17,6 +17,7 @@
 #include <cpu/cache.h>
 #include <util/misc_math.h>
 
+
 void Genode::cache_coherent(Genode::addr_t addr, Genode::size_t size)
 {
 	using namespace Genode;

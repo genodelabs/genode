@@ -23,6 +23,7 @@
 
 using namespace Genode;
 
+
 size_t Vm_session_component::_ds_size() {
 	return align_addr(sizeof(Board::Vm_state), get_page_size_log2()); }
 

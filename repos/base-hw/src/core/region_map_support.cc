@@ -31,8 +31,8 @@ void Pager_entrypoint::entry()
 {
 	Untyped_capability cap;
 
-	while (1)
-	{
+	while (1) {
+
 		if (cap.valid()) Kernel::ack_signal(Capability_space::capid(cap));
 
 		/* receive fault */

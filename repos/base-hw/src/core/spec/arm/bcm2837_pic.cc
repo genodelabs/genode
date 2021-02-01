@@ -17,7 +17,9 @@
 
 
 Board::Pic::Pic()
-: Genode::Mmio(Genode::Platform::mmio_to_virt(Board::LOCAL_IRQ_CONTROLLER_BASE)) { }
+:
+	Genode::Mmio(Genode::Platform::mmio_to_virt(Board::LOCAL_IRQ_CONTROLLER_BASE))
+{ }
 
 
 bool Board::Pic::take_request(unsigned & irq)

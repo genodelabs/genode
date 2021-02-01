@@ -114,7 +114,8 @@ void Thread::ipc_copy_msg(Thread &sender)
 Thread::Tlb_invalidation::Tlb_invalidation(Thread & caller, Pd & pd,
                                            addr_t addr, size_t size,
                                            unsigned cnt)
-: caller(caller), pd(pd), addr(addr), size(size), cnt(cnt)
+:
+	caller(caller), pd(pd), addr(addr), size(size), cnt(cnt)
 {
 	cpu_pool().work_list().insert(&_le);
 	caller._become_inactive(AWAITS_RESTART);
@@ -122,7 +123,8 @@ Thread::Tlb_invalidation::Tlb_invalidation(Thread & caller, Pd & pd,
 
 
 Thread::Destroy::Destroy(Thread & caller, Genode::Kernel_object<Thread> & to_delete)
-: caller(caller), thread_to_destroy(to_delete)
+:
+	caller(caller), thread_to_destroy(to_delete)
 {
 	thread_to_destroy->_cpu->work_list().insert(&_le);
 	caller._become_inactive(AWAITS_RESTART);
@@ -229,12 +231,14 @@ void Thread::_deactivate_used_shares()
 		thread._deactivate_used_shares(); });
 }
 
+
 void Thread::_activate_used_shares()
 {
 	Cpu_job::_activate_own_share();
 	_ipc_node.for_each_helper([&] (Thread &thread) {
 		thread._activate_used_shares(); });
 }
+
 
 void Thread::_become_active()
 {
@@ -820,7 +824,8 @@ Thread::Thread(unsigned const priority, unsigned const quota,
 :
 	Kernel::Object { *this },
 	Cpu_job(priority, quota), _ipc_node(*this), _state(AWAITS_START),
-	_label(label), _core(core), regs(core) { }
+	_label(label), _core(core), regs(core)
+{ }
 
 
 Thread::~Thread() { _ipc_free_recv_caps(); }
@@ -842,7 +847,8 @@ Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
  *****************/
 
 Core_thread::Core_thread()
-: Core_object<Thread>("core")
+:
+	Core_object<Thread>("core")
 {
 	using namespace Genode;
 

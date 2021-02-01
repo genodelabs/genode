@@ -20,8 +20,8 @@
 #include <util/misc_math.h>
 #include <util/register.h>
 
-namespace Sv39
-{
+namespace Sv39 {
+
 	using namespace Genode;
 
 	enum {
@@ -49,6 +49,7 @@ namespace Sv39
 	struct Table_descriptor;
 	struct Block_descriptor;
 }
+
 
 struct Sv39::Descriptor : Register<64>
 {
@@ -103,6 +104,7 @@ struct Sv39::Descriptor : Register<64>
 		return V::get(v); }
 };
 
+
 struct Sv39::Table_descriptor : Descriptor
 {
 	static access_t create(void * const pa)
@@ -118,6 +120,7 @@ struct Sv39::Table_descriptor : Descriptor
 	}
 };
 
+
 struct Sv39::Block_descriptor : Descriptor
 {
 	static access_t create(Hw::Page_flags const &f, addr_t const pa)
@@ -132,6 +135,7 @@ struct Sv39::Block_descriptor : Descriptor
 		return desc;
 	}
 };
+
 
 template <typename ENTRY, unsigned BLOCK_SIZE_LOG2, unsigned SIZE_LOG2>
 class Sv39::Level_x_translation_table
@@ -343,6 +347,7 @@ class Sv39::Level_x_translation_table
 		}
 }  __attribute__((aligned(1 << ALIGNM_LOG2)));
 
+
 namespace Sv39 {
 
 	/**
@@ -389,6 +394,7 @@ namespace Sv39 {
 			desc = 0; }
 	};
 }
+
 
 namespace Hw {
 

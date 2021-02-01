@@ -17,4 +17,5 @@
 
 using namespace Genode;
 
+
 addr_t Bios_data_area::_mmio_base_virt() { return Platform::mmio_to_virt(0); }

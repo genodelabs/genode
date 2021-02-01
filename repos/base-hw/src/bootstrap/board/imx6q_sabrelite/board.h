@@ -21,6 +21,7 @@
 #include <hw/spec/arm/gicv2.h>
 
 namespace Board {
+
 	using namespace Hw::Imx6q_sabrelite_board;
 	using Pic = Hw::Gicv2;
 	struct L2_cache;
@@ -169,6 +170,7 @@ namespace Board {
 		{ 0x20c8100, 0x5018d0db }
 	};
 }
+
 
 struct Board::L2_cache : Hw::Pl310
 {

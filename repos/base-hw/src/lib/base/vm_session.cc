@@ -24,14 +24,16 @@ struct Vcpu;
 
 static Genode::Registry<Genode::Registered<Vcpu>> vcpus;
 
-struct Vcpu {
+
+struct Vcpu
+{
 	Vm_session_client::Vcpu_id          const id;
 	Capability<Vm_session::Native_vcpu> const cap;
 
-	Vcpu(Vm_session::Vcpu_id const id,
-	     Capability<Vm_session::Native_vcpu> const cap)
-	: id(id), cap(cap) {}
-	virtual ~Vcpu() {}
+	Vcpu(Vm_session::Vcpu_id id, Capability<Vm_session::Native_vcpu> cap)
+	: id(id), cap(cap) { }
+
+	virtual ~Vcpu() { }
 };
 
 

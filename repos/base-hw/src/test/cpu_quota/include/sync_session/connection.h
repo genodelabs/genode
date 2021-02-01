@@ -23,12 +23,15 @@
 
 namespace Sync { class Connection; }
 
+
 struct Sync::Connection : public Genode::Connection<Session>,
                           public Genode::Rpc_client<Session>
 {
 		explicit Connection(Genode::Env &env)
-		: Genode::Connection<Session>(env, session(env.parent(), "ram_quota=4K")),
-		  Genode::Rpc_client<Session>(cap()) { }
+		:
+			Genode::Connection<Session>(env, session(env.parent(), "ram_quota=4K")),
+			Genode::Rpc_client<Session>(cap())
+		{ }
 
 		void threshold(unsigned threshold)            override { call<Rpc_threshold>(threshold); }
 		void submit(Signal_context_capability signal) override { call<Rpc_submit>(signal); }

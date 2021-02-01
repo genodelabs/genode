@@ -36,17 +36,20 @@ struct Data
 	Data() : idle(0, 0), scheduler(idle, 1000, 100) { }
 };
 
+
 Data * data()
 {
 	static Data d;
 	return &d;
 }
 
+
 void done()
 {
 	Genode::log("done");
 	while (1) ;
 }
+
 
 unsigned share_id(void * const pointer)
 {
@@ -57,11 +60,13 @@ unsigned share_id(void * const pointer)
 	return (address - base) / sizeof(Cpu_share) + 1;
 }
 
+
 Cpu_share * share(unsigned const id)
 {
 	if (!id) { return &data()->idle; }
 	return reinterpret_cast<Cpu_share *>(&data()->shares[id - 1]);
 }
+
 
 void create(unsigned const id)
 {
@@ -82,6 +87,7 @@ void create(unsigned const id)
 	data()->scheduler.insert(*s);
 }
 
+
 void destroy(unsigned const id)
 {
 	Cpu_share * const s = share(id);
@@ -89,11 +95,13 @@ void destroy(unsigned const id)
 	s->~Cpu_share();
 }
 
+
 unsigned time()
 {
 	return data()->scheduler.quota() -
 	       data()->scheduler.residual();
 }
+
 
 void update_check(unsigned const l, unsigned const c, unsigned const t,
                   unsigned const s, unsigned const q)
@@ -116,6 +124,7 @@ void update_check(unsigned const l, unsigned const c, unsigned const t,
 		done();
 	}
 }
+
 
 void ready_check(unsigned const l, unsigned const s, bool const x)
 {

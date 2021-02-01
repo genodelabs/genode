@@ -19,6 +19,7 @@
 namespace Kernel { class Cpu; }
 
 namespace Board {
+
 	using Genode::Vm_state;
 
 	enum { VCPU_MAX = 1 };

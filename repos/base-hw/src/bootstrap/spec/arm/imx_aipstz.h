@@ -17,8 +17,8 @@
 
 #include <util/mmio.h>
 
-namespace Bootstrap
-{
+namespace Bootstrap {
+
 	/**
 	 * AHB to IP Bridge
 	 *
@@ -27,6 +27,7 @@ namespace Bootstrap
 	 */
 	class Aipstz;
 }
+
 
 class Bootstrap::Aipstz : public Genode::Mmio
 {

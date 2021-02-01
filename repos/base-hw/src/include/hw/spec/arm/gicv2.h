@@ -19,6 +19,7 @@
 
 namespace Hw { class Gicv2; }
 
+
 class Hw::Gicv2
 {
 	protected:

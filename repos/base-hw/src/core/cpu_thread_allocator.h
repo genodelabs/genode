@@ -21,54 +21,54 @@
 /* core includes */
 #include <assertion.h>
 
-namespace Genode
+namespace Genode { class Cpu_thread_allocator; }
+
+
+/**
+ * Thread allocator for cores CPU service
+ *
+ * Normally one would use a SLAB for threads because usually they
+ * are tiny objects, but in 'base-hw' they contain the whole kernel
+ * object in addition. Thus we use the given allocator directly.
+ */
+class Genode::Cpu_thread_allocator : public Allocator
 {
-	/**
-	 * Thread allocator for cores CPU service
-	 *
-	 * Normally one would use a SLAB for threads because usually they
-	 * are tiny objects, but in 'base-hw' they contain the whole kernel
-	 * object in addition. Thus we use the given allocator directly.
-	 */
-	class Cpu_thread_allocator : public Allocator
-	{
-		private:
+	private:
 
-			/*
-			 * Noncopyable
-			 */
-			Cpu_thread_allocator(Cpu_thread_allocator const &);
-			Cpu_thread_allocator &operator = (Cpu_thread_allocator const &);
+		/*
+		 * Noncopyable
+		 */
+		Cpu_thread_allocator(Cpu_thread_allocator const &);
+		Cpu_thread_allocator &operator = (Cpu_thread_allocator const &);
 
-			Allocator &_alloc;
+		Allocator &_alloc;
 
-		public:
+	public:
 
-			/**
-			 * Constructor
-			 *
-			 * \param alloc  allocator backend
-			 */
-			Cpu_thread_allocator(Allocator &alloc) : _alloc(alloc) { }
+		/**
+		 * Constructor
+		 *
+		 * \param alloc  allocator backend
+		 */
+		Cpu_thread_allocator(Allocator &alloc) : _alloc(alloc) { }
 
 
-			/*************************
-			 ** Allocator interface **
-			 *************************/
+		/*************************
+		 ** Allocator interface **
+		 *************************/
 
-			bool alloc(size_t size, void **out_addr) override {
-				return _alloc.alloc(size, out_addr); }
+		bool alloc(size_t size, void **out_addr) override {
+			return _alloc.alloc(size, out_addr); }
 
-			void free(void *addr, size_t size) override {
-				_alloc.free(addr, size); }
+		void free(void *addr, size_t size) override {
+			_alloc.free(addr, size); }
 
-			size_t consumed() const override { ASSERT_NEVER_CALLED; }
+		size_t consumed() const override { ASSERT_NEVER_CALLED; }
 
-			size_t overhead(size_t) const override { ASSERT_NEVER_CALLED; }
+		size_t overhead(size_t) const override { ASSERT_NEVER_CALLED; }
 
-			bool need_size_for_free() const override {
-				return _alloc.need_size_for_free(); }
-	};
-}
+		bool need_size_for_free() const override {
+			return _alloc.need_size_for_free(); }
+};
 
 #endif /* _CORE__CPU_THREAD_ALLOCATOR_H_ */

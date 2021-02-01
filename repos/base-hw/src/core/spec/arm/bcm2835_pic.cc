@@ -17,6 +17,7 @@
 
 using namespace Genode;
 
+
 bool Board::Pic::Usb_dwc_otg::_need_trigger_sof(uint32_t host_frame,
                                                 uint32_t scheduled_frame)
 {
@@ -37,7 +38,8 @@ bool Board::Pic::Usb_dwc_otg::_need_trigger_sof(uint32_t host_frame,
 
 
 Board::Pic::Usb_dwc_otg::Usb_dwc_otg()
-: Mmio(Platform::mmio_to_virt(Board::USB_DWC_OTG_BASE))
+:
+	Mmio(Platform::mmio_to_virt(Board::USB_DWC_OTG_BASE))
 {
 	write<Guid::Num>(0);
 	write<Guid::Num_valid>(false);
@@ -71,7 +73,11 @@ bool Board::Pic::Usb_dwc_otg::handle_sof()
 
 
 Board::Pic::Pic()
-: Mmio(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE)) { mask(); }
+:
+	Mmio(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE))
+{
+	mask();
+}
 
 
 bool Board::Pic::take_request(unsigned &irq)

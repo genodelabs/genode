@@ -25,8 +25,8 @@
 #include <kernel/object.h>
 #include <kernel/pd.h>
 
-namespace Hw
-{
+namespace Hw {
+
 	using namespace Kernel;
 	using namespace Genode;
 
@@ -36,8 +36,9 @@ namespace Hw
 	class Address_space;
 }
 
-namespace Genode
-{
+
+namespace Genode {
+
 	class Platform_thread; /* forward declaration */
 
 	class Cap_space;
@@ -72,11 +73,11 @@ class Hw::Address_space : public Genode::Address_space
 		using Table = Hw::Page_table;
 		using Array = Table::Allocator::Array<DEFAULT_TRANSLATION_TABLE_MAX>;
 
-		Genode::Mutex               _mutex { };          /* table lock      */
-		Table                     & _tt;                 /* table virt addr */
-		Genode::addr_t              _tt_phys;            /* table phys addr */
-		Array                     * _tt_array = nullptr;
-		Table::Allocator          & _tt_alloc;           /* table allocator */
+		Genode::Mutex     _mutex { };          /* table lock      */
+		Table            &_tt;                 /* table virt addr */
+		Genode::addr_t    _tt_phys;            /* table phys addr */
+		Array            *_tt_array = nullptr;
+		Table::Allocator &_tt_alloc;           /* table allocator */
 
 		static inline Genode::Core_mem_allocator &_cma();
 

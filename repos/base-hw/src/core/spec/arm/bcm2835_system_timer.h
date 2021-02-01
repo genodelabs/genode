@@ -19,6 +19,7 @@
 
 namespace Board { class Timer; }
 
+
 /**
  * Timer driver for core
  *

@@ -21,8 +21,8 @@
 /* core includes */
 #include <board.h>
 
-namespace Board
-{
+namespace Board {
+
 	/*
 	 * Redirection table entry
 	 */
@@ -41,12 +41,14 @@ namespace Board
 	enum { IRQ_COUNT = 256 };
 }
 
+
 struct Board::Irte : Genode::Register<64>
 {
 	struct Pol  : Bitfield<13, 1> { };
 	struct Trg  : Bitfield<15, 1> { };
 	struct Mask : Bitfield<16, 1> { };
 };
+
 
 class Board::Ioapic : public Genode::Mmio
 {
@@ -133,6 +135,7 @@ class Board::Ioapic : public Genode::Mmio
 		};
 };
 
+
 class Board::Pic : public Genode::Mmio
 {
 	private:
@@ -158,12 +161,15 @@ class Board::Pic : public Genode::Mmio
 		/*
 		 * Interrupt control register
 		 */
-		struct Icr_low  : Register<0x300, 32, true> {
+		struct Icr_low  : Register<0x300, 32, true>
+		{
 			struct Vector          : Bitfield< 0, 8> { };
 			struct Delivery_status : Bitfield<12, 1> { };
 			struct Level_assert    : Bitfield<14, 1> { };
 		};
-		struct Icr_high : Register<0x310, 32, true> {
+
+		struct Icr_high : Register<0x310, 32, true>
+		{
 			struct Destination : Bitfield<24, 8> { };
 		};
 

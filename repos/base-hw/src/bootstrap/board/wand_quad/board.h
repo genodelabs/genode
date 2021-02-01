@@ -21,6 +21,7 @@
 #include <hw/spec/arm/gicv2.h>
 
 namespace Board {
+
 	using namespace Hw::Wand_quad_board;
 
 	using Pic = Hw::Gicv2;
@@ -205,6 +206,7 @@ namespace Board {
 		{ 0x20c8100, 0x5058d01b }
 	};
 }
+
 
 struct Board::L2_cache : Hw::Pl310
 {

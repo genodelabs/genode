@@ -19,6 +19,7 @@
 #include <hw/spec/arm/lpae.h>
 
 namespace Board {
+
 	using namespace Hw::Rpi3_board;
 
 	struct Cpu : Hw::Arm_64_cpu

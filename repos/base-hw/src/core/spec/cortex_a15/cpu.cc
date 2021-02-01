@@ -19,13 +19,17 @@
 
 using Asid_allocator = Genode::Bit_allocator<256>;
 
+
 static Asid_allocator &alloc() {
 	return *unmanaged_singleton<Asid_allocator>(); }
 
 
 Genode::Cpu::Mmu_context::Mmu_context(addr_t table)
-: ttbr0(Ttbr_64bit::Ba::masked((Ttbr_64bit::access_t)table)) {
-	Ttbr_64bit::Asid::set(ttbr0, (Genode::uint8_t)alloc().alloc()); }
+:
+	ttbr0(Ttbr_64bit::Ba::masked((Ttbr_64bit::access_t)table))
+{
+	Ttbr_64bit::Asid::set(ttbr0, (Genode::uint8_t)alloc().alloc());
+}
 
 
 Genode::Cpu::Mmu_context::~Mmu_context()

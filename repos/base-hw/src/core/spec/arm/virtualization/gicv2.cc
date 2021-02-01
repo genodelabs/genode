@@ -18,8 +18,11 @@
 
 using Board::Pic;
 
+
 Pic::Gich::Gich()
-: Genode::Mmio(Genode::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE)) { }
+:
+	Genode::Mmio(Genode::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE))
+{ }
 
 
 bool Pic::ack_virtual_irq(Pic::Virtual_context & c)

@@ -18,6 +18,7 @@
 
 namespace Hw { template <typename> struct Boot_info; }
 
+
 template <typename PLAT_INFO>
 struct Hw::Boot_info
 {
@@ -39,9 +40,11 @@ struct Hw::Boot_info
 	          Mmio_space   const mmio_space,
 	          unsigned     const cpus,
 	          PLAT_INFO    const &plat_info)
-	: table(table), table_allocator(table_alloc),
-	  elf_mappings(elf_mappings), boot_modules(boot_modules),
-	  mmio_space(mmio_space), cpus(cpus), plat_info(plat_info) {}
+	:
+		table(table), table_allocator(table_alloc),
+		elf_mappings(elf_mappings), boot_modules(boot_modules),
+		mmio_space(mmio_space), cpus(cpus), plat_info(plat_info)
+	{ }
 };
 
 #endif /* _SRC__LIB__HW__BOOT_INFO_H_ */

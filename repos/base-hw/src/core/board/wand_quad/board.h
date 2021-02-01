@@ -20,6 +20,7 @@
 #include <spec/arm/cortex_a9_private_timer.h>
 
 namespace Board {
+
 	using namespace Hw::Wand_quad_board;
 
 	using L2_cache = Hw::Pl310;

@@ -1,5 +1,5 @@
 /*
- * \brief   ACPI RSDP structure 
+ * \brief   ACPI RSDP structure
  * \author  Alexander Boettcher
  * \date    2017-08-15
  */
@@ -16,9 +16,8 @@
 
 #include <base/fixed_stdint.h>
 
-namespace Hw {
-	struct Acpi_rsdp;
-}
+namespace Hw { struct Acpi_rsdp; }
+
 
 struct Hw::Acpi_rsdp
 {
@@ -31,10 +30,12 @@ struct Hw::Acpi_rsdp
 	Genode::uint64_t xsdt      { 0 };
 	Genode::uint32_t reserved  { 0 };
 
-	bool valid() {
+	bool valid()
+	{
 		const char sign[] = "RSD PTR ";
 		return signature == *(Genode::uint64_t *)sign;
 	}
+
 } __attribute__((packed));
 
 #endif /* _SRC__LIB__HW__SPEC__X86_64__ACPI_RSDP_H */

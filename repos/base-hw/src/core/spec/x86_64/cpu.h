@@ -33,7 +33,9 @@
 
 namespace Kernel { struct Thread_fault; }
 
+
 namespace Genode {
+
 	class Cpu;
 	using sizet_arithm_t = __uint128_t;
 }
@@ -41,8 +43,6 @@ namespace Genode {
 
 class Genode::Cpu : public Hw::X86_64_cpu
 {
-	protected:
-
 	public:
 
 		/**

@@ -18,10 +18,13 @@
 #include <base/internal/globals.h>
 #include <base/internal/unmanaged_singleton.h>
 
+
 Bootstrap::Platform & Bootstrap::platform() {
 	return *unmanaged_singleton<Bootstrap::Platform>(); }
 
+
 extern "C" void init() __attribute__ ((noreturn));
+
 
 extern "C" void init()
 {

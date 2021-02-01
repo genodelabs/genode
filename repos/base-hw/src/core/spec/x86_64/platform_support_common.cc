@@ -19,6 +19,7 @@
 
 using namespace Genode;
 
+
 void Platform::_init_io_port_alloc()
 {
 	_io_port_alloc.add_range(0, 0x10000);
@@ -28,6 +29,8 @@ void Platform::_init_io_port_alloc()
 long Platform::irq(long const user_irq)
 {
 	/* remap IRQ requests to fit I/O APIC configuration */
-	if (user_irq) return user_irq + Board::VECTOR_REMAP_BASE;
+	if (user_irq)
+		return user_irq + Board::VECTOR_REMAP_BASE;
+
 	return Board::TIMER_VECTOR_USER;
 }

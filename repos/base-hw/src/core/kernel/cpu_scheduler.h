@@ -20,8 +20,8 @@
 #include <kernel/configuration.h>
 #include <kernel/double_list.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/**
 	 * Priority of an unconsumed CPU claim versus other unconsumed CPU claims
 	 */
@@ -37,6 +37,7 @@ namespace Kernel
 	 */
 	class Cpu_scheduler;
 }
+
 
 class Kernel::Cpu_priority
 {
@@ -68,6 +69,7 @@ class Kernel::Cpu_priority
 
 		operator signed() const { return _value; }
 };
+
 
 class Kernel::Cpu_share
 {

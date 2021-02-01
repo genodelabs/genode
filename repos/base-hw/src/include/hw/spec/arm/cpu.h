@@ -18,6 +18,7 @@
 
 namespace Hw { struct Arm_cpu; }
 
+
 struct Hw::Arm_cpu
 {
 	/***************************************

@@ -35,6 +35,7 @@ extern "C" void   hypervisor_enter_vm(addr_t vm, addr_t host,
 static Genode::Vm_state & host_context(Cpu & cpu)
 {
 	static Genode::Constructible<Genode::Vm_state> host_context[NR_OF_CPUS];
+
 	if (!host_context[cpu.id()].constructed()) {
 		host_context[cpu.id()].construct();
 		Genode::Vm_state & c = *host_context[cpu.id()];
@@ -64,7 +65,8 @@ static Genode::Vm_state & host_context(Cpu & cpu)
 
 
 Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu & cpu)
-: Kernel::Irq(irq, cpu.irq_pool())
+:
+	Kernel::Irq(irq, cpu.irq_pool())
 { }
 
 
@@ -82,12 +84,18 @@ void Board::Vcpu_context::Vm_irq::occurred()
 
 
 Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu & cpu)
-: Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu) {
+:
+	Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu)
+{
 	//FIXME Irq::enable only enables caller cpu
-	cpu.pic().unmask(_irq_nr, cpu.id()); }
+	cpu.pic().unmask(_irq_nr, cpu.id());
+}
+
 
 Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Cpu & cpu)
-: irq(Board::VT_TIMER_IRQ, cpu) {}
+:
+	irq(Board::VT_TIMER_IRQ, cpu)
+{ }
 
 
 void Board::Vcpu_context::Virtual_timer_irq::enable() { irq.enable(); }
@@ -105,12 +113,13 @@ Vm::Vm(unsigned                 cpu,
        Genode::Vm_state       & state,
        Kernel::Signal_context & context,
        Identity               & id)
-: Kernel::Object { *this },
-  Cpu_job(Cpu_priority::MIN, 0),
-  _state(state),
-  _context(context),
-  _id(id),
-  _vcpu_context(cpu_pool().cpu(cpu))
+:
+	Kernel::Object { *this },
+	Cpu_job(Cpu_priority::MIN, 0),
+	_state(state),
+	_context(context),
+	_id(id),
+	_vcpu_context(cpu_pool().cpu(cpu))
 {
 	affinity(cpu_pool().cpu(cpu));
 
@@ -188,6 +197,7 @@ void Vm::proceed(Cpu & cpu)
 
 	hypervisor_enter_vm(guest, host, pic, vttbr_el2);
 }
+
 
 void Vm::inject_irq(unsigned irq)
 {

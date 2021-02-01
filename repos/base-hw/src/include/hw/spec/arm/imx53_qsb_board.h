@@ -19,6 +19,7 @@
 #include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Imx53_qsb_board {
+
 	using namespace Imx53_qsb;
 	using Serial = Genode::Imx_uart;
 

@@ -18,6 +18,7 @@
 
 using namespace Genode;
 
+
 void Platform::_init_additional_platform_info(Xml_generator &xml)
 {
 	if (_boot_info().plat_info.efi_system_table != 0) {
@@ -64,4 +65,6 @@ bool Platform::get_msi_params(addr_t, addr_t &, addr_t &, unsigned &) {
 
 
 Board::Serial::Serial(addr_t, size_t, unsigned baudrate)
-:X86_uart(Bios_data_area::singleton()->serial_port(), 0, baudrate) {}
+:
+	X86_uart(Bios_data_area::singleton()->serial_port(), 0, baudrate)
+{ }

@@ -15,6 +15,7 @@
 
 using namespace Kernel;
 
+
 void Cpu::Ipi::occurred()
 {
 	/* lambda to iterate over a work-list and execute all work items */
@@ -39,7 +40,8 @@ void Cpu::Ipi::occurred()
 void Cpu::trigger_ip_interrupt()
 {
 	/* check whether there is still an IPI send */
-	if (_ipi_irq.pending) return;
+	if (_ipi_irq.pending)
+		return;
 
 	_pic.send_ipi(_id);
 	_ipi_irq.pending = true;
@@ -47,5 +49,8 @@ void Cpu::trigger_ip_interrupt()
 
 
 Cpu::Ipi::Ipi(Cpu & cpu)
-: Irq(Board::Pic::IPI, cpu), cpu(cpu) {
-	cpu.pic().unmask(Board::Pic::IPI, cpu.id()); }
+:
+	Irq(Board::Pic::IPI, cpu), cpu(cpu)
+{
+	cpu.pic().unmask(Board::Pic::IPI, cpu.id());
+}

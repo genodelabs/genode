@@ -85,14 +85,17 @@ void Ipc_node::_cancel_inbuf_request()
 
 void Ipc_node::_announced_request_cancelled(Ipc_node &node)
 {
-	if (_caller == &node) _caller = nullptr;
-	else _request_queue.remove(node._request_queue_item);
+	if (_caller == &node)
+		_caller = nullptr;
+	else
+		_request_queue.remove(node._request_queue_item);
 }
 
 
 void Ipc_node::_outbuf_request_cancelled()
 {
-	if (_callee == nullptr) return;
+	if (_callee == nullptr)
+		return;
 
 	_callee = nullptr;
 	_state  = INACTIVE;
@@ -100,7 +103,10 @@ void Ipc_node::_outbuf_request_cancelled()
 }
 
 
-bool Ipc_node::_helps_outbuf_dst() { return (_state == AWAIT_REPLY) && _help; }
+bool Ipc_node::_helps_outbuf_dst()
+{
+	return (_state == AWAIT_REPLY) && _help;
+}
 
 
 bool Ipc_node::can_send_request()
@@ -122,8 +128,10 @@ void Ipc_node::send_request(Ipc_node &callee, bool help)
 }
 
 
-Thread &Ipc_node::helping_sink() {
-	return _helps_outbuf_dst() ? _callee->helping_sink() : _thread; }
+Thread &Ipc_node::helping_sink()
+{
+	return _helps_outbuf_dst() ? _callee->helping_sink() : _thread;
+}
 
 
 bool Ipc_node::can_await_request()

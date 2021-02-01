@@ -25,6 +25,7 @@
 
 namespace Board { class Timer; }
 
+
 /**
  * LAPIC-based timer driver for core
  */
@@ -49,6 +50,7 @@ struct Board::Timer: Genode::Mmio
 		struct Mask       : Bitfield<16, 1> { };
 		struct Timer_mode : Bitfield<17, 2> { };
 	};
+
 	struct Tmr_initial : Register <0x380, 32> { };
 	struct Tmr_current : Register <0x390, 32> { };
 

@@ -22,6 +22,7 @@
 #include <hw/spec/arm/gicv2.h>
 
 namespace Board {
+
 	using namespace Hw::Pbxa9_board;
 
 	using Pic = Hw::Gicv2;

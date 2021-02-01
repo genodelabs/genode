@@ -19,6 +19,7 @@
 
 namespace Bootstrap { struct Csu; }
 
+
 struct Bootstrap::Csu : Genode::Mmio
 {
 	template <Genode::off_t OFF>
@@ -32,6 +33,7 @@ struct Bootstrap::Csu : Genode::Mmio
 		struct Slave_a : Register<OFF, 32>::template Bitfield<0, 9>  { };
 		struct Slave_b : Register<OFF, 32>::template Bitfield<16, 9> { };
 	};
+
 
 	struct Master : public Register<0x218, 32>
 	{

@@ -21,6 +21,7 @@
 #include <hw/spec/arm/gicv2.h>
 
 namespace Board {
+
 	using namespace Hw::Nit6_solox_board;
 	using Pic = Hw::Gicv2;
 	struct L2_cache;
@@ -230,6 +231,7 @@ namespace Board {
 		{ 0x20C8100, 0x5258d0db}
 	};
 }
+
 
 struct Board::L2_cache : Hw::Pl310
 {

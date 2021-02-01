@@ -19,6 +19,7 @@
 #include <spec/x86_64/pit.h>
 
 namespace Board {
+
 	using namespace Hw::Pc_board;
 
 	enum {

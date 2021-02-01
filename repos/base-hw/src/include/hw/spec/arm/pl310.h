@@ -21,6 +21,7 @@
 
 namespace Hw { struct Pl310; }
 
+
 class Hw::Pl310 : public Genode::Mmio
 {
 	protected:

@@ -25,8 +25,8 @@
 /* core includes */
 #include <kernel/signal_receiver.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/**
 	 * Kernel back-end interface of an interrupt
 	 */
@@ -38,8 +38,9 @@ namespace Kernel
 	class User_irq;
 }
 
-namespace Genode
-{
+
+namespace Genode {
+
 	/**
 	 * Core front-end of a user interrupt
 	 */
@@ -78,7 +79,11 @@ class Kernel::Irq : Genode::Avl_node<Irq>
 		 * \param pool  pool this interrupt shall belong to
 		 */
 		Irq(unsigned const irq, Pool &pool)
-		: _irq_nr(irq), _pool(pool) { _pool.insert(this); }
+		:
+			_irq_nr(irq), _pool(pool)
+		{
+			_pool.insert(this);
+		}
 
 		virtual ~Irq() { _pool.remove(this); }
 

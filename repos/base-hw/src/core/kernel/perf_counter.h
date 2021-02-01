@@ -14,8 +14,8 @@
 #ifndef _CORE__KERNEL__PERF_COUNTER_H_
 #define _CORE__KERNEL__PERF_COUNTER_H_
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/**
 	 * Performance counter
 	 */

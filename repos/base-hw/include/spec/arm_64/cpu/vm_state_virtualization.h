@@ -17,8 +17,8 @@
 /* Genode includes */
 #include <cpu/cpu_state.h>
 
-namespace Genode
-{
+namespace Genode {
+
 	/**
 	 * CPU context of a virtual machine
 	 */
@@ -26,6 +26,7 @@ namespace Genode
 
 	using uint128_t = __uint128_t;
 }
+
 
 struct Genode::Vm_state : Genode::Cpu_state
 {

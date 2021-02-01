@@ -16,8 +16,8 @@
 
 #include <kernel/interface.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	enum {
 		DEFAULT_STACK_SIZE = 16 * 1024,
 		DEFAULT_TRANSLATION_TABLE_MAX = 128,

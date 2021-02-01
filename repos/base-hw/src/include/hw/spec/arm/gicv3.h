@@ -34,6 +34,7 @@ namespace Hw     { class Pic; }
 		__VA_ARGS__; \
 	};
 
+
 class Hw::Pic
 {
 	protected:
@@ -102,15 +103,12 @@ class Hw::Pic
 
 			unsigned max_irq() { return 32 * (read<Typer::It_lines_number>() + 1) - 1; }
 
-
-
 			Distributor(Genode::addr_t const base) : Genode::Mmio(base)
 			{ }
 		};
 
 		struct Redistributor : Genode::Mmio
 		{
-
 			struct Ctlr : Register<0x0, 32>
 			{
 				struct Uwp : Bitfield<31, 1> { };
@@ -146,8 +144,7 @@ class Hw::Pic
 			struct Icfgr1 : Register<0xc04, 32> { };
 
 			Redistributor_sgi_ppi(Genode::addr_t const base) : Genode::Mmio(base)
-			{
-			}
+			{ }
 		};
 
 		struct Cpu_interface

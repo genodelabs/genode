@@ -21,6 +21,7 @@
 #include <spec/arm/virtualization/board.h>
 
 namespace Board {
+
 	using namespace Hw::Imx7d_sabre_board;
 
 	struct Virtual_local_pic {};

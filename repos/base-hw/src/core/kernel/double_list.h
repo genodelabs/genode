@@ -14,8 +14,8 @@
 #ifndef _CORE__KERNEL__DOUBLE_LIST_H_
 #define _CORE__KERNEL__DOUBLE_LIST_H_
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/**
 	 * Ability to be an item in a double connected list
 	 */
@@ -28,6 +28,7 @@ namespace Kernel
 	template <typename T>
 	class Double_list;
 }
+
 
 template <typename T>
 class Kernel::Double_list_item
@@ -46,6 +47,7 @@ class Kernel::Double_list_item
 
 		T &payload() { return _payload; }
 };
+
 
 template <typename T>
 class Kernel::Double_list
@@ -129,7 +131,9 @@ class Kernel::Double_list
 		 */
 		void head_to_tail()
 		{
-			if (!_head || _head == _tail) { return; }
+			if (!_head || _head == _tail)
+				return;
+
 			_head->_prev = _tail;
 			_tail->_next = _head;
 			_head = _head->_next;

@@ -18,7 +18,6 @@
 #include <base/native_capability.h>
 
 namespace Genode {
-
 	struct Native_thread;
 	class  Platform_thread;
 }
@@ -26,7 +25,7 @@ namespace Genode {
 
 struct Genode::Native_thread
 {
-	Platform_thread  *platform_thread;
+	Platform_thread *platform_thread;
 	Native_capability cap;
 };
 

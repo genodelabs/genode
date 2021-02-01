@@ -18,6 +18,7 @@
 
 namespace Board { class Pic; }
 
+
 /**
  * Dummy PIC driver for core
  */

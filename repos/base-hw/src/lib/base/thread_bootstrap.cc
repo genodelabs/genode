@@ -69,7 +69,9 @@ void prepare_reinit_main_thread() { prepare_init_main_thread(); }
 __attribute__((optimize("-fno-delete-null-pointer-checks")))
 Native_utcb *Thread::utcb()
 {
-	if (this) { return &_stack->utcb(); }
+	if (this)
+		return &_stack->utcb();
+
 	return utcb_main_thread();
 }
 
@@ -81,6 +83,7 @@ void Thread::_thread_start()
 	Thread::myself()->_join.wakeup();
 	Genode::sleep_forever();
 }
+
 
 void Thread::_thread_bootstrap()
 {

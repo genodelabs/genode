@@ -19,6 +19,7 @@
 #include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Usb_armory_board {
+
 	using namespace Usb_armory;
 
 	using Serial = Genode::Imx_uart;

@@ -18,6 +18,7 @@
 
 namespace Board { struct Cpu; }
 
+
 struct Board::Cpu : Hw::Arm_cpu
 {
 	struct Sctlr : Hw::Arm_cpu::Sctlr

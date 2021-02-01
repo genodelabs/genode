@@ -20,11 +20,12 @@ bool Board::secure_irq(unsigned) { return true; }
 
 
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { RAM0_BASE, RAM0_SIZE },
-                    Memory_region { RAM1_BASE, RAM1_SIZE }),
-  core_mmio(Memory_region { UART_1_MMIO_BASE, UART_1_MMIO_SIZE },
-            Memory_region { EPIT_1_MMIO_BASE, EPIT_1_MMIO_SIZE },
-            Memory_region { IRQ_CONTROLLER_BASE, IRQ_CONTROLLER_SIZE })
+:
+	early_ram_regions(Memory_region { RAM0_BASE, RAM0_SIZE },
+	                  Memory_region { RAM1_BASE, RAM1_SIZE }),
+	core_mmio(Memory_region { UART_1_MMIO_BASE, UART_1_MMIO_SIZE },
+	          Memory_region { EPIT_1_MMIO_BASE, EPIT_1_MMIO_SIZE },
+	          Memory_region { IRQ_CONTROLLER_BASE, IRQ_CONTROLLER_SIZE })
 {
 	Aipstz aipstz_1(AIPS_1_MMIO_BASE);
 	Aipstz aipstz_2(AIPS_2_MMIO_BASE);

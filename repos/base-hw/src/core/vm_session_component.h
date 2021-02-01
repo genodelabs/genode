@@ -29,9 +29,8 @@
 
 #include <trace/source_registry.h>
 
-namespace Genode {
-	class Vm_session_component;
-}
+namespace Genode { class Vm_session_component; }
+
 
 class Genode::Vm_session_component
 :

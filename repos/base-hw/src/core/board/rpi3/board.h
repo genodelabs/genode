@@ -19,6 +19,7 @@
 #include <spec/arm/generic_timer.h>
 
 namespace Board {
+
 	using namespace Hw::Rpi3_board;
 
 	enum { TIMER_IRQ = 1 };

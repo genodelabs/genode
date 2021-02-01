@@ -17,9 +17,7 @@
 #include <util/construct_at.h>
 #include <base/stdint.h>
 
-namespace Genode {
-	template<typename> class Align_at;
-}
+namespace Genode { template<typename> class Align_at; }
 
 
 template <typename T>

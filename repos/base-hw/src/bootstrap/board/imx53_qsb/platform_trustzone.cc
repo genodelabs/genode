@@ -18,6 +18,7 @@
 
 using namespace Board;
 
+
 bool Board::secure_irq(unsigned i)
 {
 	if (i == EPIT_1_IRQ) return true;
@@ -33,12 +34,13 @@ bool Board::secure_irq(unsigned i)
 
 
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { Trustzone::SECURE_RAM_BASE,
-                                    Trustzone::SECURE_RAM_SIZE }),
-  core_mmio(Memory_region { UART_1_MMIO_BASE, UART_1_MMIO_SIZE },
-            Memory_region { EPIT_1_MMIO_BASE, EPIT_1_MMIO_SIZE },
-            Memory_region { IRQ_CONTROLLER_BASE, IRQ_CONTROLLER_SIZE },
-            Memory_region { CSU_BASE, CSU_SIZE })
+:
+	early_ram_regions(Memory_region { Trustzone::SECURE_RAM_BASE,
+	                                  Trustzone::SECURE_RAM_SIZE }),
+	core_mmio(Memory_region { UART_1_MMIO_BASE, UART_1_MMIO_SIZE },
+	          Memory_region { EPIT_1_MMIO_BASE, EPIT_1_MMIO_SIZE },
+	          Memory_region { IRQ_CONTROLLER_BASE, IRQ_CONTROLLER_SIZE },
+	          Memory_region { CSU_BASE, CSU_SIZE })
 {
 	Aipstz aipstz_1(AIPS_1_MMIO_BASE);
 	Aipstz aipstz_2(AIPS_2_MMIO_BASE);

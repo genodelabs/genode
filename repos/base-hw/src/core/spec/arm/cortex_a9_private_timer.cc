@@ -33,7 +33,8 @@ enum {
 
 
 Board::Timer::Timer(unsigned)
-: Mmio(Platform::mmio_to_virt(Board::Cpu_mmio::PRIVATE_TIMER_MMIO_BASE))
+:
+	Mmio(Platform::mmio_to_virt(Board::Cpu_mmio::PRIVATE_TIMER_MMIO_BASE))
 {
 	enum { PRESCALER = Board::CORTEX_A9_PRIVATE_TIMER_DIV - 1 };
 

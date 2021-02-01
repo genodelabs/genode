@@ -17,8 +17,7 @@
 /* Genode includes */
 #include <base/stdint.h>
 
-namespace Kernel
-{
+namespace Kernel {
 	typedef Genode::uint32_t Call_arg;
 	typedef Genode::uint32_t Call_ret;
 	typedef Genode::uint64_t Call_ret_64;

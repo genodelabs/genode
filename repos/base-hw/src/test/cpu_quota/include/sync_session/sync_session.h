@@ -19,13 +19,14 @@
 #include <session/session.h>
 #include <base/signal.h>
 
-namespace Sync
-{
+namespace Sync {
+
 	using Genode::Signal_context_capability;
 
 	struct Session;
 	using  Session_capability = Genode::Capability<Session>;
 }
+
 
 struct Sync::Session : Genode::Session
 {

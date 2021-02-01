@@ -20,6 +20,7 @@
 
 namespace Hw { struct Riscv_uart; }
 
+
 struct Hw::Riscv_uart
 {
 	void put_char(char const c)

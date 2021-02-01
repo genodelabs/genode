@@ -21,6 +21,7 @@
 #include <hw/spec/arm/gicv2.h>
 
 namespace Board {
+
 	using namespace Hw::Zynq_qemu_board;
 	using Pic = Hw::Gicv2;
 	static constexpr bool NON_SECURE = false;

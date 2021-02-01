@@ -18,6 +18,7 @@
 
 namespace Hw { struct Riscv_cpu; }
 
+
 struct Hw::Riscv_cpu
 {
 	/**************************

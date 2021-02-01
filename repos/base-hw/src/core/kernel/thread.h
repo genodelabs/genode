@@ -32,9 +32,7 @@
 /* base-local includes */
 #include <base/internal/native_utcb.h>
 
-
-namespace Kernel
-{
+namespace Kernel {
 	struct Thread_fault;
 	class Thread;
 	class Core_thread;
@@ -114,8 +112,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 
 		enum { START_VERBOSE = 0 };
 
-		enum State
-		{
+		enum State {
 			ACTIVE                      = 1,
 			AWAITS_START                = 2,
 			AWAITS_IPC                  = 3,

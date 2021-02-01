@@ -19,6 +19,7 @@
 extern int __idt;
 extern int __idt_end;
 
+
 /**
  * Pseudo Descriptor
  *
@@ -43,7 +44,7 @@ Genode::Cpu::Context::Context(bool core)
 
 
 Genode::Cpu::Mmu_context::Mmu_context(addr_t const table)
-: cr3(Cr3::Pdb::masked(table)) {}
+: cr3(Cr3::Pdb::masked(table)) { }
 
 
 void Genode::Cpu::Tss::init()

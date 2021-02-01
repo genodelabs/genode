@@ -18,6 +18,7 @@
 
 namespace Hw { template <Genode::addr_t> struct Cortex_a9_mmio; }
 
+
 template <typename Genode::addr_t BASE>
 struct Hw::Cortex_a9_mmio
 {

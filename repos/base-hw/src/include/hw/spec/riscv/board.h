@@ -24,8 +24,11 @@ namespace Hw::Riscv_board {
 	using namespace Riscv;
 
 	enum { UART_BASE, UART_CLOCK };
-	struct Serial : Hw::Riscv_uart {
-		Serial(Genode::addr_t, Genode::size_t, unsigned) {} };
+
+	struct Serial : Hw::Riscv_uart
+	{
+		Serial(Genode::addr_t, Genode::size_t, unsigned) { }
+	};
 }
 
 #endif /* _SRC__INCLUDE__HW__SPEC__RISCV__BOARD_H_ */

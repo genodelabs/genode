@@ -18,6 +18,7 @@
 
 namespace Board { class Pic; };
 
+
 class Board::Pic : public Hw::Pic
 {
 	public:

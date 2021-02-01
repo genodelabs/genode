@@ -28,6 +28,7 @@ namespace Hw {
 	struct Page_flags;
 }
 
+
 struct Hw::Page_flags
 {
 	Writeable               writeable;
@@ -57,6 +58,7 @@ struct Hw::Page_flags
 
 
 namespace Hw {
+
 	static constexpr Page_flags PAGE_FLAGS_KERN_IO
 		{ RW, NO_EXEC, KERN, GLOBAL, DEVICE, Genode::UNCACHED };
 	static constexpr Page_flags PAGE_FLAGS_KERN_DATA

@@ -21,6 +21,7 @@
 #include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Zynq_qemu_board {
+
 	using namespace Zynq_qemu;
 	using L2_cache = Hw::Pl310;
 	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;

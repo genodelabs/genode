@@ -14,8 +14,8 @@
 #ifndef _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_
 #define _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_
 
-namespace Genode
-{
+namespace Genode {
+
 	/**
 	 * Upgrade quota of the PD session's capability slab allocator
 	 */

@@ -13,7 +13,9 @@
 
 #include <board.h>
 
-Hw::Pic::Pic() : Genode::Mmio(Board::IRQ_CONTROLLER_BASE)
+Hw::Pic::Pic()
+:
+	Genode::Mmio(Board::IRQ_CONTROLLER_BASE)
 {
 	for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 		write<Intsec::Nonsecure>(!Board::secure_irq(i), i);

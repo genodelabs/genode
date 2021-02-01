@@ -23,12 +23,12 @@
 
 #include <board.h>
 
-namespace Kernel
-{
+namespace Kernel {
 	class Cpu;
 	class Timeout;
 	class Timer;
 }
+
 
 /**
  * A timeout causes a kernel pass and the call of a timeout specific handle
@@ -52,6 +52,7 @@ class Kernel::Timeout : Genode::List<Timeout>::Element
 
 		virtual ~Timeout() { }
 };
+
 
 /**
  * A timer manages a continuous time and timeouts on it

@@ -25,7 +25,8 @@ class Genode::Multiboot2_info : Mmio
 
 		struct Size : Register <0x0, 32> { };
 
-		struct Tag : Genode::Mmio {
+		struct Tag : Genode::Mmio
+		{
 			enum { LOG2_SIZE = 3 };
 
 			struct Type : Register <0x00, 32>
@@ -55,7 +56,8 @@ class Genode::Multiboot2_info : Mmio
 
 		enum { MAGIC = 0x36d76289UL };
 
-		struct Memory : Genode::Mmio {
+		struct Memory : Genode::Mmio
+		{
 			enum { SIZE = 3 * 8 };
 
 			struct Addr : Register <0x00, 64> { };

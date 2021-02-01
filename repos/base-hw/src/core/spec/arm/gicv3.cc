@@ -17,17 +17,20 @@
 
 using namespace Genode;
 
+
 static inline Genode::addr_t redistributor_addr()
 {
 	return Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE
 	                              + (Cpu::executing_id() * 0x20000));
 };
 
+
 Hw::Pic::Pic()
-: _distr(Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE)),
-  _redistr(redistributor_addr()),
-  _redistr_sgi(redistributor_addr() + 0x10000),
-  _max_irq(_distr.max_irq())
+:
+	_distr(Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE)),
+	_redistr(redistributor_addr()),
+	_redistr_sgi(redistributor_addr() + 0x10000),
+	_max_irq(_distr.max_irq())
 {
 	_redistributor_init();
 	_cpui.init();

@@ -23,9 +23,12 @@ using namespace Genode;
 
 void Platform::_init_io_port_alloc() { }
 
+
 void Platform::_init_additional_platform_info(Genode::Xml_generator&) { }
 
+
 long Platform::irq(long const /* user_irq */) { return 0; }
+
 
 bool Platform::get_msi_params(addr_t /* mmconf */, addr_t & /* address */,
                               addr_t & /* data */, unsigned & /* irq_number */) {

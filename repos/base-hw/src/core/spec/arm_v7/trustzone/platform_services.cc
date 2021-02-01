@@ -23,7 +23,9 @@
 #include <vm_root.h>
 #include <map_local.h>
 
+
 extern int monitor_mode_exception_vector;
+
 
 /*
  * Add TrustZone specific vm service
@@ -35,9 +37,12 @@ void Genode::platform_add_local_services(Rpc_entrypoint         &ep,
 {
 	static addr_t const phys_base =
 		Platform::core_phys_addr((addr_t)&monitor_mode_exception_vector);
+
 	map_local(phys_base, Hw::Mm::system_exception_vector().base, 1,
 	          Hw::PAGE_FLAGS_KERN_TEXT);
+
 	static Vm_root vm_root(ep, sliced_heap, core_env().ram_allocator(),
 	                       core_env().local_rm(), trace_sources);
+
 	static Core_service<Vm_session_component> vm_service(local_services, vm_root);
 }

@@ -16,14 +16,22 @@
 
 using namespace Genode;
 
-void Native_pd_component::upgrade_cap_slab() {
+
+void Native_pd_component::upgrade_cap_slab()
+{
 	_pd_session._pd->upgrade_slab(_pd_session._sliced_heap);
-	//throw Out_of_ram();
 }
 
 
 Native_pd_component::Native_pd_component(Pd_session_component &pd, char const *)
-: _pd_session(pd) { _pd_session._ep.manage(this); }
+:
+	_pd_session(pd)
+{
+	_pd_session._ep.manage(this);
+}
 
 
-Native_pd_component::~Native_pd_component() { _pd_session._ep.dissolve(this); }
+Native_pd_component::~Native_pd_component()
+{
+	_pd_session._ep.dissolve(this);
+}

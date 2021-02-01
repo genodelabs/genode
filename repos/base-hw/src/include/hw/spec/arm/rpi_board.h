@@ -19,6 +19,7 @@
 #include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Rpi_board {
+
 	using namespace Rpi;
 
 	using Serial = Genode::Pl011_uart;

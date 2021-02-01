@@ -29,7 +29,9 @@ using Kernel::Double_list_item;
 
 void * operator new(__SIZE_TYPE__, void * p) { return p; }
 
+
 struct Item_load { char volatile x = 0, y = 0, z = 0; };
+
 
 struct Item : Item_load, Double_list_item<Item>
 {
@@ -39,6 +41,7 @@ struct Item : Item_load, Double_list_item<Item>
 
 	void iteration() { Genode::log(_id); }
 };
+
 
 struct Data
 {
@@ -54,17 +57,20 @@ struct Data
 	}
 };
 
+
 Data * data()
 {
 	static Data d;
 	return &d;
 }
 
+
 void done()
 {
 	Genode::log("done");
 	while (1) ;
 }
+
 
 void check(unsigned i1, unsigned l)
 {
@@ -85,11 +91,13 @@ void check(unsigned i1, unsigned l)
 	}
 }
 
+
 void print_each()
 {
 	Genode::log("print each");
 	data()->list.for_each([] (Item &i) { i.iteration(); });
 }
+
 
 Item * item(unsigned const i) {
 	return reinterpret_cast<Item *>(&data()->items[i - 1]); }

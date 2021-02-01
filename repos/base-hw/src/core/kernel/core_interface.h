@@ -22,8 +22,8 @@
 
 namespace Genode { class Native_utcb; }
 
-namespace Kernel
-{
+namespace Kernel {
+
 	class Pd;
 	class Thread;
 	class Signal_receiver;

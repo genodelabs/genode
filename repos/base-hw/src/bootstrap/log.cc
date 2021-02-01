@@ -55,8 +55,7 @@ struct Buffer
 };
 
 
-Genode::Log &Genode::Log::log() {
-	return unmanaged_singleton<Buffer>()->log; }
+Genode::Log &Genode::Log::log() { return unmanaged_singleton<Buffer>()->log; }
 
 
 void Genode::raw_write_string(char const *str) { log(str); }

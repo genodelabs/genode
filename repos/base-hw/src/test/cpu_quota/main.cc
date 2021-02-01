@@ -22,6 +22,7 @@
 
 using namespace Genode;
 
+
 struct Single_signal
 {
 		Signal_receiver           receiver { };

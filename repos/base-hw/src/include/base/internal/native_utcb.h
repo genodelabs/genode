@@ -28,7 +28,7 @@
 #include <kernel/interface.h>
 
 namespace Genode {
-	
+
 	struct Native_utcb;
 
 	/**
@@ -168,10 +168,13 @@ class Genode::Native_utcb
 		/**
 		 * Set the capability id 'cap_id' at the next index
 		 */
-		void cap_add(Kernel::capid_t cap_id) {
+		void cap_add(Kernel::capid_t cap_id)
+		{
 			if (_header().cap_cnt < MAX_CAP_ARGS)
-				_header().caps[_header().cap_cnt++] = cap_id; }
+				_header().caps[_header().cap_cnt++] = cap_id;
+		}
 };
+
 
 static_assert(sizeof(Genode::Native_utcb) == Genode::get_page_size(),
               "Native_utcb is not page-sized");

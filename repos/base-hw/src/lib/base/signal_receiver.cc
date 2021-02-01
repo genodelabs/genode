@@ -90,6 +90,7 @@ void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 	Kernel::kill_signal_context(Capability_space::capid(c->_cap));
 }
 
+
 void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
 
 
@@ -98,7 +99,8 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 	/* ensure that the context isn't managed already */
 	Mutex::Guard contexts_guard(_contexts_mutex);
 	Mutex::Guard context_guard(c->_mutex);
-	if (c->_receiver) { throw Context_already_in_use(); }
+	if (c->_receiver)
+		throw Context_already_in_use();
 
 	for (;;) {
 
@@ -158,7 +160,8 @@ Signal Signal_receiver::pending_signal()
 	Signal::Data result;
 	_contexts.for_each_locked([&] (Signal_context &context) {
 
-		if (!context._pending) return false;
+		if (!context._pending)
+			return false;
 
 		_contexts.head(context._next);
 		context._pending     = false;
@@ -177,9 +180,8 @@ Signal Signal_receiver::pending_signal()
 	}
 
 	/* look for pending signals */
-	if (Kernel::pending_signal(Capability_space::capid(_cap)) != 0) {
+	if (Kernel::pending_signal(Capability_space::capid(_cap)) != 0)
 		return Signal();
-	}
 
 	/* read signal data */
 	Signal::Data * const data =

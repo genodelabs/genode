@@ -14,6 +14,7 @@
 #include <board.h>
 #include <platform.h>
 
+
 Board::L2_cache & Board::l2_cache()
 {
 	using namespace Genode;

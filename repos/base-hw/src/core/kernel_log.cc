@@ -32,6 +32,9 @@ void Kernel::log(char const c)
 
 	static Serial serial { Genode::Platform::mmio_to_virt(UART_BASE),
 	                       UART_CLOCK, BAUD_RATE };
-	if (c == ASCII_LINE_FEED) serial.put_char(ASCII_CARRIAGE_RETURN);
+
+	if (c == ASCII_LINE_FEED)
+		serial.put_char(ASCII_CARRIAGE_RETURN);
+
 	serial.put_char(c);
 }

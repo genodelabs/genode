@@ -24,7 +24,9 @@
 using namespace Genode;
 using namespace Board;
 
+
 uint8_t Pic::lapic_ids[NR_OF_CPUS];
+
 
 enum {
 	PIC_CMD_MASTER  = 0x20,
@@ -33,7 +35,10 @@ enum {
 	PIC_DATA_SLAVE  = 0xa1,
 };
 
-Pic::Pic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
+
+Pic::Pic()
+:
+	Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
 	/* Start initialization sequence in cascade mode */
 	outb(PIC_CMD_MASTER, 0x11);
@@ -62,6 +67,7 @@ Pic::Pic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 	write<Svr::APIC_enable>(1);
 }
 
+
 bool Pic::take_request(unsigned &irq)
 {
 	irq = get_lowest_bit();
@@ -73,26 +79,31 @@ bool Pic::take_request(unsigned &irq)
 	return true;
 }
 
+
 void Pic::finish_request()
 {
 	write<EOI>(0);
 }
+
 
 void Pic::unmask(unsigned const i, unsigned)
 {
 	ioapic.toggle_mask(i, false);
 }
 
+
 void Pic::mask(unsigned const i)
 {
 	ioapic.toggle_mask(i, true);
 }
+
 
 void Pic::irq_mode(unsigned irq_number, unsigned trigger,
                    unsigned polarity)
 {
 	ioapic.irq_mode(irq_number, trigger, polarity);
 }
+
 
 inline unsigned Pic::get_lowest_bit(void)
 {
@@ -108,8 +119,9 @@ inline unsigned Pic::get_lowest_bit(void)
 	return 0;
 }
 
-void Pic::send_ipi(unsigned const cpu_id) {
 
+void Pic::send_ipi(unsigned const cpu_id)
+{
 	while (read<Icr_low::Delivery_status>())
 		asm volatile("pause" : : : "memory");
 
@@ -124,12 +136,14 @@ void Pic::send_ipi(unsigned const cpu_id) {
 	/* program */
 	write<Icr_high>(icr_high);
 	write<Icr_low>(icr_low);
-
 }
+
 
 Ioapic::Irq_mode Ioapic::_irq_mode[IRQ_COUNT];
 
+
 enum { REMAP_BASE = Board::VECTOR_REMAP_BASE };
+
 
 void Ioapic::irq_mode(unsigned irq_number, unsigned trigger,
                       unsigned polarity)
@@ -198,7 +212,9 @@ Irte::access_t Ioapic::_create_irt_entry(unsigned const irq)
 }
 
 
-Ioapic::Ioapic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_IOAPIC_BASE))
+Ioapic::Ioapic()
+:
+	Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_IOAPIC_BASE))
 {
 	write<Ioregsel>(IOAPICVER);
 	_irte_count = read<Iowin::Maximum_redirection_entry>() + 1;
@@ -231,9 +247,8 @@ void Ioapic::toggle_mask(unsigned const vector, bool const set)
 	/*
 	 * Ignore toggle requests for vectors not handled by the I/O APIC.
 	 */
-	if (vector < REMAP_BASE || vector >= REMAP_BASE + _irte_count) {
+	if (vector < REMAP_BASE || vector >= REMAP_BASE + _irte_count)
 		return;
-	}
 
 	const unsigned irq = vector - REMAP_BASE;
 
@@ -245,7 +260,8 @@ void Ioapic::toggle_mask(unsigned const vector, bool const set)
 	 * flag and edge-triggered interrupts or:
 	 * http://yarchive.net/comp/linux/edge_triggered_interrupts.html
 	 */
-	if (_edge_triggered(irq) && set) { return; }
+	if (_edge_triggered(irq) && set)
+		return;
 
 	write<Ioregsel>(IOREDTBL + (2 * irq));
 	Irte::access_t irte = read<Iowin>();

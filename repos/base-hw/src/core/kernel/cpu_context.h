@@ -19,8 +19,8 @@
 #include <kernel/cpu_scheduler.h>
 #include <kernel/timer.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	class Cpu;
 
 	/**
@@ -28,6 +28,7 @@ namespace Kernel
 	 */
 	class Cpu_job;
 }
+
 
 class Kernel::Cpu_job : private Cpu_share
 {

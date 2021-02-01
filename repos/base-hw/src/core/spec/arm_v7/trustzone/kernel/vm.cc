@@ -24,12 +24,13 @@ Kernel::Vm::Vm(unsigned,
                Genode::Vm_state       & state,
                Kernel::Signal_context & context,
                Identity               & id)
-: Kernel::Object { *this },
-  Cpu_job(Cpu_priority::MIN, 0),
-  _state(state),
-  _context(context),
-  _id(id),
-  _vcpu_context(cpu_pool().primary_cpu())
+:
+	Kernel::Object { *this },
+	Cpu_job(Cpu_priority::MIN, 0),
+	_state(state),
+	_context(context),
+	_id(id),
+	_vcpu_context(cpu_pool().primary_cpu())
 {
 	affinity(cpu_pool().primary_cpu());
 }

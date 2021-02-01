@@ -17,22 +17,26 @@
 
 using namespace Board;
 
+
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { RAM_0_BASE + 0x1000,
-                                    RAM_0_SIZE - 0x1000 }),
-  late_ram_regions(Memory_region { RAM_0_BASE, 0x1000 }),
-  core_mmio(Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
-                            CORTEX_A9_PRIVATE_MEM_SIZE },
-            Memory_region { UART_BASE,
-                            UART_SIZE },
-            Memory_region { PL310_MMIO_BASE,
-                            PL310_MMIO_SIZE }) { }
+:
+	early_ram_regions(Memory_region { RAM_0_BASE + 0x1000,
+	                                  RAM_0_SIZE - 0x1000 }),
+	late_ram_regions(Memory_region { RAM_0_BASE, 0x1000 }),
+	core_mmio(Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
+	                          CORTEX_A9_PRIVATE_MEM_SIZE },
+	          Memory_region { UART_BASE,
+	                          UART_SIZE },
+	          Memory_region { PL310_MMIO_BASE,
+	                          PL310_MMIO_SIZE })
+{ }
 
 
-bool Cpu::errata(Board::Cpu::Errata) {
-	return false; }
+bool Cpu::errata(Board::Cpu::Errata) { return false; }
 
-void Cpu::wake_up_all_cpus(void* ip) {
+
+void Cpu::wake_up_all_cpus(void* ip)
+{
 	struct Wakeup_generator : Genode::Mmio
 	{
 		struct Core1_boot_addr : Register<0x0, 32> { };

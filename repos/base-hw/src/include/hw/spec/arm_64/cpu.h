@@ -33,6 +33,7 @@
 
 namespace Hw { struct Arm_64_cpu; }
 
+
 struct Hw::Arm_64_cpu
 {
 	SYSTEM_REGISTER(64, Actlr_el1, actlr_el1);

@@ -24,6 +24,7 @@ using namespace Genode;
 
 static volatile int spinlock = SPINLOCK_UNLOCKED;
 
+
 static uint8_t ref_counter[1 << (sizeof(Kernel::capid_t)*8)];
 
 
@@ -32,7 +33,8 @@ Native_capability::Native_capability() { }
 
 void Native_capability::_inc()
 {
-	if (!valid()) return;
+	if (!valid())
+		return;
 
 	spinlock_lock(&spinlock);
 	ref_counter[(addr_t)_data]++;
@@ -42,7 +44,8 @@ void Native_capability::_inc()
 
 void Native_capability::_dec()
 {
-	if (!valid()) return;
+	if (!valid())
+		return;
 
 	spinlock_lock(&spinlock);
 	if (!--ref_counter[(addr_t)_data]) { Kernel::delete_cap((addr_t)_data); }
@@ -70,10 +73,11 @@ void Native_capability::print(Genode::Output &out) const
 	using Genode::print;
 
 	print(out, "cap<");
-	if (_data) {
+
+	if (_data)
 		print(out, (addr_t)_data);
-	} else {
+	else
 		print(out, "invalid");
-	}
+
 	print(out, ">");
 }

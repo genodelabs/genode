@@ -18,6 +18,7 @@
 #include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Rpi3_board {
+
 	using Serial   = Genode::Bcm2835_mini_uart;
 
 	enum {

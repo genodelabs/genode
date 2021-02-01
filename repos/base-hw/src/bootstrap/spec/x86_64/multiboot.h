@@ -20,11 +20,13 @@
 
 namespace Genode { class Multiboot_info; }
 
+
 class Genode::Multiboot_info : Mmio
 {
 	private:
 
-		struct Flags      : Register<0x00, 32> {
+		struct Flags : Register<0x00, 32>
+		{
 			struct Mem_map : Bitfield<6, 1> { };
 		};
 
@@ -40,7 +42,8 @@ class Genode::Multiboot_info : Mmio
 		Multiboot_info(addr_t mbi) : Mmio(mbi) { }
 		Multiboot_info(addr_t mbi, bool strip);
 
-		struct Mmap : Genode::Mmio {
+		struct Mmap : Genode::Mmio
+		{
 			struct Size   : Register <0x00, 32> { };
 			struct Addr   : Register <0x04, 64> { };
 			struct Length : Register <0x0c, 64> { };
@@ -52,8 +55,8 @@ class Genode::Multiboot_info : Mmio
 		/**
 		 * Physical ram regions
 		 */
-		addr_t phys_ram_mmap_base(unsigned i, bool solely_within_4k_base = true) {
-
+		addr_t phys_ram_mmap_base(unsigned i, bool solely_within_4k_base = true)
+		{
 			if (!read<Flags::Mem_map>())
 				return 0;
 

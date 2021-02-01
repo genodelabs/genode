@@ -19,27 +19,33 @@
 
 using namespace Kernel;
 
+
 void Thread::exception(Cpu & cpu)
 {
 	using Genode::Cpu_state;
 
 	switch (regs->trapno) {
+
 	case Cpu_state::PAGE_FAULT:
 		_mmu_exception();
 		return;
+
 	case Cpu_state::UNDEFINED_INSTRUCTION:
 		Genode::raw(*this, ": undefined instruction at ip=", (void*)regs->ip);
 		_die();
 		return;
+
 	case Cpu_state::SUPERVISOR_CALL:
 		_call();
 		return;
 	}
+
 	if (regs->trapno >= Cpu_state::INTERRUPTS_START &&
 	    regs->trapno <= Cpu_state::INTERRUPTS_END) {
 		_interrupt(cpu.id());
 		return;
 	}
+
 	Genode::raw(*this, ": triggered unknown exception ", regs->trapno,
 	            " with error code ", regs->errcode, " at ip=", (void*)regs->ip, " sp=", (void*)regs->sp);
 

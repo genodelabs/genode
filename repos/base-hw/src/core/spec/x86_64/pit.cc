@@ -54,7 +54,8 @@ uint32_t Board::Timer::pit_calc_timer_freq(void)
 
 
 Board::Timer::Timer(unsigned)
-: Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
+:
+	Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
 	/* Enable LAPIC timer in one-shot mode */
 	write<Tmr_lvt::Vector>(Board::TIMER_VECTOR_KERNEL);

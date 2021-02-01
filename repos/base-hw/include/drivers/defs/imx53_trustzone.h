@@ -17,8 +17,8 @@
 /* Genode includes */
 #include <drivers/defs/imx53.h>
 
-namespace Trustzone
-{
+namespace Trustzone {
+
 	enum {
 		/**
 		 * Currently, we limit secure RAM to 256 MB only,

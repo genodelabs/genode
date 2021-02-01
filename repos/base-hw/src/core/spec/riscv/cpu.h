@@ -26,8 +26,9 @@
 
 namespace Kernel { struct Thread_fault; }
 
-namespace Genode
-{
+
+namespace Genode {
+
 	/**
 	 * CPU driver for core
 	 */
@@ -36,7 +37,9 @@ namespace Genode
 	typedef __uint128_t sizet_arithm_t;
 }
 
+
 namespace Kernel { class Pd; }
+
 
 class Genode::Cpu : public Hw::Riscv_cpu
 {

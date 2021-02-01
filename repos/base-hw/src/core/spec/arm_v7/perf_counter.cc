@@ -21,6 +21,7 @@
 
 using namespace Genode;
 
+
 /**
  * Performance Monitor Control Register
  */

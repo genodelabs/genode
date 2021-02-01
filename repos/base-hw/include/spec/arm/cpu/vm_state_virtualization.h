@@ -17,13 +17,14 @@
 /* Genode includes */
 #include <cpu/cpu_state.h>
 
-namespace Genode
-{
+namespace Genode {
+
 	/**
 	 * CPU context of a virtual machine
 	 */
 	struct Vm_state;
 }
+
 
 struct Genode::Vm_state : Genode::Cpu_state_modes
 {
@@ -61,7 +62,8 @@ struct Genode::Vm_state : Genode::Cpu_state_modes
 	/**
 	 * Timer related registers
 	 */
-	struct Timer {
+	struct Timer
+	{
 		Genode::uint64_t offset   { 0 };
 		Genode::uint64_t compare  { 0 };
 		Genode::uint32_t control  { 0 };

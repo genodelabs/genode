@@ -21,6 +21,7 @@
 #include <hw/spec/arm/pl310.h>
 
 namespace Hw::Pbxa9_board {
+
 	using namespace Pbxa9;
 
 	using L2_cache = Hw::Pl310;

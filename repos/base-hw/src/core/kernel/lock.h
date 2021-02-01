@@ -15,8 +15,8 @@
 #ifndef _CORE__SPEC__SMP__KERNEL__LOCK_H_
 #define _CORE__SPEC__SMP__KERNEL__LOCK_H_
 
-namespace Kernel
-{
+namespace Kernel {
+
 	class Lock;
 
 	Lock & data_lock();

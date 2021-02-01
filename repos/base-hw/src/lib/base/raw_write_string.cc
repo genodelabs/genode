@@ -14,5 +14,9 @@
 #include <kernel/interface.h>
 #include <base/internal/raw_write_string.h>
 
-void Genode::raw_write_string(char const *str) {
-	while (char c = *str++) Kernel::print_char(c); }
+
+void Genode::raw_write_string(char const *str)
+{
+	while (char c = *str++)
+		Kernel::print_char(c);
+}

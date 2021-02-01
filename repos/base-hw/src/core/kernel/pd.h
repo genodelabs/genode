@@ -24,12 +24,11 @@
 
 #include <util/reconstructible.h>
 
-namespace Genode {
-	class Platform_pd;
-}
+namespace Genode { class Platform_pd; }
 
-namespace Kernel
-{
+
+namespace Kernel {
+
 	class Cpu;
 
 	/**
@@ -68,8 +67,8 @@ class Kernel::Pd
 		 */
 		Pd(Hw::Page_table &table,
 		   Genode::Platform_pd &platform_pd)
-		: _table(table), _platform_pd(platform_pd),
-		  mmu_regs((addr_t)&table)
+		:
+			_table(table), _platform_pd(platform_pd), mmu_regs((addr_t)&table)
 		{
 			capid_t invalid = _capid_alloc.alloc();
 			assert(invalid == cap_id_invalid());
@@ -87,9 +86,9 @@ class Kernel::Pd
 				oir->~Object_identity_reference();
 		}
 
-		static capid_t syscall_create(Genode::Kernel_object<Pd> & p,
-		                              Hw::Page_table            & tt,
-		                              Genode::Platform_pd       & pd)
+		static capid_t syscall_create(Genode::Kernel_object<Pd> &p,
+		                              Hw::Page_table            &tt,
+		                              Genode::Platform_pd       &pd)
 		{
 			return call(call_id_new_pd(), (Call_arg)&p,
 			            (Call_arg)&tt, (Call_arg)&pd);
@@ -120,7 +119,9 @@ class Kernel::Pd
 
 template<>
 inline Kernel::Core_object_identity<Kernel::Pd>::Core_object_identity(Kernel::Pd & pd)
-: Object_identity(pd.kernel_object()),
-  Object_identity_reference(this, pd.core_pd() ? pd : core_pd()) { }
+:
+	Object_identity(pd.kernel_object()),
+	Object_identity_reference(this, pd.core_pd() ? pd : core_pd())
+{ }
 
 #endif /* _CORE__KERNEL__PD_H_ */

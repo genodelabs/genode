@@ -21,6 +21,7 @@
 #include <spec/arm/virtualization/board.h>
 
 namespace Board {
+
 	using namespace Hw::Imx8q_evk_board;
 
 	enum {

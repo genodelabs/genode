@@ -21,6 +21,7 @@
 
 using namespace Genode;
 
+
 Arm_cpu::Context::Context(bool privileged)
 {
 	using Psr = Arm_cpu::Psr;

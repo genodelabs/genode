@@ -17,8 +17,8 @@
 
 #include <hw/util.h>
 
-namespace Genode
-{
+namespace Genode {
+
 	using Hw::get_page_mask;
 	using Hw::trunc_page;
 	using Hw::round_page;

@@ -29,6 +29,7 @@
 
 using namespace Genode;
 
+
 void Platform_thread::_init() { }
 
 

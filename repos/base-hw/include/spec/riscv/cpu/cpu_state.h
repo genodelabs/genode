@@ -19,6 +19,7 @@
 
 namespace Genode { struct Cpu_state; }
 
+
 struct Genode::Cpu_state
 {
 	enum Cpu_exception {

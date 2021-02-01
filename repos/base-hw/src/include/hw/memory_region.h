@@ -19,9 +19,11 @@
 #include <hw/util.h>
 
 namespace Hw {
+
 	struct Memory_region;
 	using Memory_region_array = Array<Memory_region, 16>;
 }
+
 
 struct Hw::Memory_region
 {
@@ -29,8 +31,10 @@ struct Hw::Memory_region
 	Genode::size_t size = 0;
 
 	Memory_region(Genode::addr_t base, Genode::size_t size)
-	: base(trunc(base, get_page_size_log2())),
-	  size(round(size, get_page_size_log2())) {}
+	:
+		base(trunc(base, get_page_size_log2())),
+		size(round(size, get_page_size_log2()))
+	{ }
 
 	Memory_region() {}
 

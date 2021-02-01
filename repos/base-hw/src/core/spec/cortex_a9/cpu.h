@@ -21,6 +21,7 @@
 
 namespace Genode { struct Cpu; }
 
+
 struct Genode::Cpu : Arm_v7_cpu
 {
 	/**

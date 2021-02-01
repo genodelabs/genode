@@ -20,6 +20,7 @@
 #include <hw/spec/arm/lpae.h>
 
 namespace Board {
+
 	using namespace Hw::Imx8q_evk_board;
 
 	struct Cpu : Hw::Arm_64_cpu

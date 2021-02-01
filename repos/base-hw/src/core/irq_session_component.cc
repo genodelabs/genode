@@ -63,12 +63,11 @@ Irq_session_component::~Irq_session_component()
 
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char * const args)
-: _irq_args(args),
-  _irq_number(Platform::irq(_irq_args.irq_number())),
-  _irq_alloc(irq_alloc),
-  _kobj(), _is_msi(false), _address(0), _value(0)
+:
+	_irq_args(args), _irq_number(Platform::irq(_irq_args.irq_number())),
+	_irq_alloc(irq_alloc), _kobj(), _is_msi(false), _address(0), _value(0)
 {
-	const long mmconf =
+	long const mmconf =
 		Arg_string::find_arg(args, "device_config_phys").long_value(0);
 
 	if (mmconf) {

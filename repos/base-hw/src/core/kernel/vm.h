@@ -24,8 +24,8 @@ namespace Genode { class Vm_state; }
 
 #include <board.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/**
 	 * Kernel backend for a virtual machine
 	 */
@@ -128,7 +128,9 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 
 		void pause()
 		{
-			if (_scheduled != INACTIVE) Cpu_job::_deactivate_own_share();
+			if (_scheduled != INACTIVE)
+				Cpu_job::_deactivate_own_share();
+
 			_scheduled = INACTIVE;
 		}
 

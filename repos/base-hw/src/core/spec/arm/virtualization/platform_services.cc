@@ -24,7 +24,9 @@
 #include <vm_root.h>
 #include <platform.h>
 
+
 extern Genode::addr_t hypervisor_exception_vector;
+
 
 /*
  * Add ARM virtualization specific vm service

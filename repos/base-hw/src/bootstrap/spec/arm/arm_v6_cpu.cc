@@ -15,6 +15,7 @@
 
 #include <spec/arm/cpu.h>
 
+
 void Board::Cpu::invalidate_data_cache() {
 	asm volatile ("mcr p15, 0, %[rd], c7, c6, 0" :: [rd]"r"(0) : ); }
 

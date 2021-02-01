@@ -18,8 +18,8 @@
 #include <kernel/types.h>
 #include <kernel/interface_support.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	using addr_t    = Genode::addr_t;
 	using size_t    = Genode::size_t;
 	using capid_t   = Genode::uint16_t;

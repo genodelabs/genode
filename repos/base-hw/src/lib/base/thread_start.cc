@@ -32,6 +32,7 @@ namespace Hw {
 	extern Untyped_capability       _main_thread_cap;
 }
 
+
 /************
  ** Thread **
  ************/
@@ -55,7 +56,8 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	addr_t const utcb_new   = (addr_t)&_stack->utcb() - stack_area;
 	Region_map * const rm   = env_stack_area_region_map;
 
-	if (type == REINITIALIZED_MAIN) { rm->detach(utcb_new); }
+	if (type == REINITIALIZED_MAIN)
+		rm->detach(utcb_new);
 
 	/* remap initial main-thread UTCB according to stack-area spec */
 	try { rm->attach_at(Hw::_main_thread_utcb_ds, utcb_new, utcb_size); }

@@ -36,6 +36,7 @@ namespace Bootstrap {
 	extern Platform & platform();
 }
 
+
 class Bootstrap::Platform
 {
 	private:
@@ -66,8 +67,10 @@ class Bootstrap::Platform
 			public:
 
 				Ram_allocator()
-				: Genode::Allocator_avl_base(&_slab, sizeof(Base::Block)),
-				  _slab(this, (Block *)&_first_slab) {}
+				:
+					Genode::Allocator_avl_base(&_slab, sizeof(Base::Block)),
+					_slab(this, (Block *)&_first_slab)
+				{ }
 
 				void * alloc_aligned(size_t size, unsigned align);
 				bool   alloc(size_t size, void **out_addr) override;

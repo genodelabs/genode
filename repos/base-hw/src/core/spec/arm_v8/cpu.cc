@@ -57,12 +57,14 @@ void Genode::Cpu::mmu_fault(Genode::Cpu::Context &,
 
 using Asid_allocator = Genode::Bit_allocator<65536>;
 
+
 static Asid_allocator &alloc() {
 	return *unmanaged_singleton<Asid_allocator>(); }
 
 
 Genode::Cpu::Mmu_context::Mmu_context(addr_t table)
-: ttbr(Ttbr::Baddr::masked(table))
+:
+	ttbr(Ttbr::Baddr::masked(table))
 {
 	Ttbr::Asid::set(ttbr, (Genode::uint16_t)alloc().alloc());
 }

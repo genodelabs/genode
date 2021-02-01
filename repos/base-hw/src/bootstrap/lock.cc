@@ -32,10 +32,12 @@ void Genode::Lock::lock()
 	_state = LOCKED;
 }
 
+
 void Genode::Mutex::acquire()
 {
 	_lock.lock();
 }
+
 
 void Genode::Mutex::release()
 {

@@ -19,6 +19,7 @@
 #include <kernel/lock.h>
 #include <kernel/kernel.h>
 
+
 Kernel::Lock & Kernel::data_lock()
 {
 	static Kernel::Lock lock;

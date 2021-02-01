@@ -17,14 +17,16 @@
 using namespace Board;
 
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE },
-                    Memory_region { RAM_1_BASE, RAM_1_SIZE }),
-  core_mmio(Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
-                            CORTEX_A9_PRIVATE_MEM_SIZE },
-            Memory_region { PL011_0_MMIO_BASE,
-                            PL011_0_MMIO_SIZE },
-            Memory_region { PL310_MMIO_BASE,
-                            PL310_MMIO_SIZE }) { }
+:
+	early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE },
+	                  Memory_region { RAM_1_BASE, RAM_1_SIZE }),
+	core_mmio(Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
+	                          CORTEX_A9_PRIVATE_MEM_SIZE },
+	          Memory_region { PL011_0_MMIO_BASE,
+	                          PL011_0_MMIO_SIZE },
+	          Memory_region { PL310_MMIO_BASE,
+	                          PL310_MMIO_SIZE })
+{ }
 
 
 bool Board::Cpu::errata(Board::Cpu::Errata) { return false; }

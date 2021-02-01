@@ -53,6 +53,7 @@ void Pager_object::wake_up()
 	if (pt) pt->restart();
 }
 
+
 void Pager_object::start_paging(Kernel_object<Kernel::Signal_receiver> & receiver)
 {
 	using Object = Kernel_object<Kernel::Signal_context>;
@@ -62,7 +63,9 @@ void Pager_object::start_paging(Kernel_object<Kernel::Signal_receiver> & receive
 	Entry::cap(Object::_cap);
 }
 
+
 void Pager_object::exception_handler(Signal_context_capability) { }
+
 
 void Pager_object::unresolved_page_fault_occurred()
 {
@@ -72,6 +75,7 @@ void Pager_object::unresolved_page_fault_occurred()
 		        "' thread='", pt->label(), "' ", pt->fault_info());
 }
 
+
 void Pager_object::print(Output &out) const
 {
 	Platform_thread * const pt = (Platform_thread *)badge();
@@ -79,6 +83,7 @@ void Pager_object::print(Output &out) const
 		Genode::print(out, "pager_object: pd='", pt->pd()->label(),
 		                   "' thread='", pt->label(), "'");
 }
+
 
 Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
                            Thread_capability thread_cap, addr_t const badge,
@@ -106,7 +111,9 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 	Thread(Weight::DEFAULT_WEIGHT, "pager_ep", PAGER_EP_STACK_SIZE,
 	       Type::NORMAL),
 	_kobj(true)
-{ start(); }
+{
+	start();
+}
 
 
 Pager_capability Pager_entrypoint::manage(Pager_object &o)

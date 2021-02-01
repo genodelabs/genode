@@ -19,13 +19,14 @@
 using namespace Board;
 
 Bootstrap::Platform::Board::Board()
-: early_ram_regions(Memory_region { RAM_BASE, RAM_SIZE }),
-  core_mmio(Memory_region { UART_BASE,
-                            UART_SIZE },
-            Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
-                            CORTEX_A9_PRIVATE_MEM_SIZE },
-            Memory_region { PL310_MMIO_BASE,
-                            PL310_MMIO_SIZE })
+:
+	early_ram_regions(Memory_region { RAM_BASE, RAM_SIZE }),
+	core_mmio(Memory_region { UART_BASE,
+	                          UART_SIZE },
+	          Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
+	                          CORTEX_A9_PRIVATE_MEM_SIZE },
+	          Memory_region { PL310_MMIO_BASE,
+	                          PL310_MMIO_SIZE })
 {
 	Aipstz aipstz_1(AIPS_1_MMIO_BASE);
 	Aipstz aipstz_2(AIPS_2_MMIO_BASE);

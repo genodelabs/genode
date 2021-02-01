@@ -18,8 +18,8 @@
 #include <kernel/types.h>
 #include <kernel/interface_support.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	/**
 	 * Kernel names of the kernel calls
 	 */

@@ -16,4 +16,5 @@
 
 using namespace Genode;
 
+
 void Genode::upgrade_capability_slab() { ASSERT_NEVER_CALLED; }

@@ -20,6 +20,7 @@
 
 using namespace Genode;
 
+
 static Board::Vm_page_table_array & dummy_array()
 {
 	static Board::Vm_page_table_array a;
@@ -58,15 +59,16 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint  &ep,
                                            Ram_allocator &ram_alloc,
                                            Region_map &region_map,
                                            unsigned, Trace::Source_registry &)
-: Ram_quota_guard(resources.ram_quota),
-  Cap_quota_guard(resources.cap_quota),
-  _ep(ep),
-  _constrained_md_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-  _sliced_heap(_constrained_md_ram_alloc, region_map),
-  _region_map(region_map),
-  _table(*construct_at<Board::Vm_page_table>(_alloc_table())),
-  _table_array(dummy_array()),
-  _id({id_alloc++, nullptr})
+:
+	Ram_quota_guard(resources.ram_quota),
+	Cap_quota_guard(resources.cap_quota),
+	_ep(ep),
+	_constrained_md_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
+	_sliced_heap(_constrained_md_ram_alloc, region_map),
+	_region_map(region_map),
+	_table(*construct_at<Board::Vm_page_table>(_alloc_table())),
+	_table_array(dummy_array()),
+	_id({id_alloc++, nullptr})
 {
 	if (_id.id) {
 		error("Only one TrustZone VM available!");

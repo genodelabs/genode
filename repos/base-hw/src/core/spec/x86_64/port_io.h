@@ -16,8 +16,8 @@
 
 #include <base/stdint.h>
 
-namespace Genode
-{
+namespace Genode {
+
 	/**
 	 * Read byte from I/O port
 	 */

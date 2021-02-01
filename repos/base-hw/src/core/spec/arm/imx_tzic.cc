@@ -17,4 +17,5 @@
 
 using namespace Genode;
 
+
 Hw::Pic::Pic() : Mmio(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE)) { }

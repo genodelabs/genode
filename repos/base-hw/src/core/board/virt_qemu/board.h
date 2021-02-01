@@ -23,6 +23,7 @@
 namespace Kernel { class Cpu; }
 
 namespace Board {
+
 	using namespace Hw::Virt_qemu_board;
 
 	struct Virtual_local_pic {};

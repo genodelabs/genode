@@ -21,8 +21,8 @@
 #include <kernel/core_interface.h>
 #include <object.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	class Thread;
 
 	/**
@@ -77,6 +77,7 @@ class Kernel::Signal_handler
 		void cancel_waiting();
 };
 
+
 class Kernel::Signal_context_killer
 {
 	friend class Signal_context;
@@ -103,6 +104,7 @@ class Kernel::Signal_context_killer
 		 */
 		void cancel_waiting();
 };
+
 
 class Kernel::Signal_context
 {
@@ -215,6 +217,7 @@ class Kernel::Signal_context
 
 		Object &kernel_object() { return _kernel_object; }
 };
+
 
 class Kernel::Signal_receiver
 {

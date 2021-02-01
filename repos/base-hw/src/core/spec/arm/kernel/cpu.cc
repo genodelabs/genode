@@ -16,6 +16,7 @@
 #include <kernel/cpu.h>
 #include <kernel/perf_counter.h>
 
+
 void Kernel::Cpu::_arch_init()
 {
 	/* enable performance counter */

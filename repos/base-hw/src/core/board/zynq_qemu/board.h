@@ -21,6 +21,7 @@
 #include <spec/arm/cortex_a9_private_timer.h>
 
 namespace Board {
+
 	using namespace Hw::Zynq_qemu_board;
 
 	using Pic = Hw::Gicv2;

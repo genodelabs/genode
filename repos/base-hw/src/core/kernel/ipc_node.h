@@ -18,8 +18,8 @@
 /* Genode includes */
 #include <util/fifo.h>
 
-namespace Kernel
-{
+namespace Kernel {
+
 	class Thread;
 
 	/**
@@ -138,12 +138,15 @@ class Kernel::Ipc_node
 		template <typename F> void for_each_helper(F f)
 		{
 			/* if we have a helper in the receive buffer, call 'f' for it */
-			if (_caller && _caller->_help) f(_caller->_thread);
+			if (_caller && _caller->_help)
+				f(_caller->_thread);
 
 			/* call 'f' for each helper in our request queue */
 			_request_queue.for_each([f] (Queue_item &item) {
 				Ipc_node &node { item.object() };
-				if (node._help) f(node._thread);
+
+				if (node._help)
+					f(node._thread);
 			});
 		}
 

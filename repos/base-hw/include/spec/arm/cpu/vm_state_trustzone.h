@@ -18,13 +18,14 @@
 /* Genode includes */
 #include <cpu/cpu_state.h>
 
-namespace Genode
-{
+namespace Genode {
+
 	/**
 	 * CPU context of a virtual machine
 	 */
 	struct Vm_state;
 }
+
 
 struct Genode::Vm_state : Genode::Cpu_state_modes
 {
