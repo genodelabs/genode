@@ -27,6 +27,7 @@ class Urb : public Usb::Completion
 		urb                  & _urb;
 		Usb::Packet_descriptor _packet {
 			_usb.source()->alloc_packet(_urb.transfer_buffer_length) };
+		bool                   _completed { false };
 
 	public:
 
@@ -79,6 +80,12 @@ class Urb : public Usb::Completion
 			};
 		}
 
+		~Urb()
+		{
+			if (!_completed) 
+				_usb.source()->release_packet(_packet);
+		}
+
 		void send()
 		{
 			_usb.source()->submit_packet(_packet);
@@ -88,6 +95,7 @@ class Urb : public Usb::Completion
 		{
 			if (packet.succeded) {
 				bool ctrl = (usb_pipetype(_urb.pipe) == PIPE_CONTROL);
+				_urb.status = 0;
 				_urb.actual_length = ctrl ? packet.control.actual_size
 				                          : packet.transfer.actual_size;
 
@@ -96,10 +104,44 @@ class Urb : public Usb::Completion
 					Genode::memcpy(_urb.transfer_buffer,
 					               _usb.source()->packet_content(packet),
 					               _urb.actual_length);
+			} else {
+				_urb.actual_length = 0;
+				switch (packet.error) {
+				case Usb::Packet_descriptor::NO_ERROR:
+					Genode::error(__func__, ": got NO_ERROR code in error path");
+					_urb.status = -EIO;
+					break;
+				case Usb::Packet_descriptor::INTERFACE_OR_ENDPOINT_ERROR:
+					_urb.status = -ENOENT;
+					break;
+				case Usb::Packet_descriptor::MEMORY_ERROR:
+					_urb.status = -ENOMEM;
+					break;
+				case Usb::Packet_descriptor::NO_DEVICE_ERROR:
+					_urb.status = -ESHUTDOWN;
+					break;
+				case Usb::Packet_descriptor::PACKET_INVALID_ERROR:
+					_urb.status = -EINVAL;
+					break;
+				case Usb::Packet_descriptor::PROTOCOL_ERROR:
+					_urb.status = -EPROTO;
+					break;
+				case Usb::Packet_descriptor::STALL_ERROR:
+					_urb.status = -EPIPE;
+					break;
+				case Usb::Packet_descriptor::TIMEOUT_ERROR:
+					_urb.status = -ETIMEDOUT;
+					break;
+				case Usb::Packet_descriptor::UNKNOWN_ERROR:
+					Genode::error(__func__, ": got UNKNOWN_ERROR code");
+					_urb.status = -EIO;
+					break;
+				}
 			}
 
 			if (_urb.complete) _urb.complete(&_urb);
-			kfree(_packet.completion);
+
+			_completed = true;
 		}
 };
 
