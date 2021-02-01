@@ -24,7 +24,7 @@ namespace Genode
 	inline Nic_driver_mode read_nic_driver_mode(Xml_node const &driver_cfg)
 	{
 		String<16> const mode_str {
-			driver_cfg.attribute_value("mode", String<16>("")) };
+			driver_cfg.attribute_value("mode", String<16>("default")) };
 
 		if (mode_str == "nic_server") {
 
@@ -34,7 +34,12 @@ namespace Genode
 
 			return Nic_driver_mode::UPLINK_CLIENT;
 		}
-		return Nic_driver_mode::NIC_SERVER;
+		if (mode_str == "default") {
+
+			return Nic_driver_mode::NIC_SERVER;
+		}
+		class Bad_mode { };
+		throw Bad_mode { };
 	}
 }
 
