@@ -69,6 +69,7 @@ tz_vmm
 usb_hid
 usb_hid_raw
 vbox5_genode_usb_hid
+vbox5_genode_usb_hid_raw
 vbox5_ubuntu_16_04_32
 vbox5_ubuntu_16_04_64
 vbox5_vm_ubuntu_16_04_32
