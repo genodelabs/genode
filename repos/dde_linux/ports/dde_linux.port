@@ -75,8 +75,8 @@ URL(dwc_otg) := https://github.com/ssumpf/dwc_otg.git
 REV(dwc_otg) := r3
 DIR(dwc_otg) := $(SRC_DIR_USB)/drivers/usb/host/dwc_otg
 
-URL(dwc_otg_host) := https://github.com/skalk/dwc_otg.git
-REV(dwc_otg_host) := r4
+URL(dwc_otg_host) := https://github.com/cproc/dwc_otg.git
+REV(dwc_otg_host) := r5
 DIR(dwc_otg_host) := $(SRC_DIR_USB_HOST)/drivers/usb/host
 
 
@@ -207,8 +207,9 @@ PATCH_OPT(patches/usb_tv64.patch)        := $(USB_OPT)
 
 # USB HOST
 USB_HOST_OPT = -p1 -d$(SRC_DIR_USB_HOST)
-PATCH_OPT(patches/usb_host_mem.patch)    := $(USB_HOST_OPT)
-PATCH_OPT(patches/usb_host_omap.patch)   := $(USB_HOST_OPT)
+PATCH_OPT(patches/usb_host_mem.patch)     := $(USB_HOST_OPT)
+PATCH_OPT(patches/usb_host_omap.patch)    := $(USB_HOST_OPT)
+PATCH_OPT(patches/usb_host_dwc_otg.patch) := $(USB_HOST_OPT)
 
 # USB HID
 USB_HID_OPT = -p1 -d$(SRC_DIR_USB_HID)
