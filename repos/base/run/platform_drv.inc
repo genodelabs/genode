@@ -76,7 +76,7 @@ proc platform_drv_boot_modules {} {
 	set drv_boot_modules ""
 	lappend_if [have_platform_drv] drv_boot_modules [platform_drv_binary]
 
-	if {[have_spec x86]} {
+	if {[have_board pc]} {
 		lappend drv_boot_modules report_rom
 		lappend drv_boot_modules [acpi_drv_name]
 	}
@@ -92,7 +92,7 @@ proc append_platform_drv_boot_modules {} {
 
 proc platform_drv_policy {} {
 
-	if (![have_spec x86]) {
+	if {![have_board pc]} {
 		return {}
 	}
 
@@ -222,7 +222,7 @@ proc platform_drv_config {} {
 		<provides>
 			<service name="Platform"/>}
 
-		append_if [have_spec x86] drv_config {
+		append_if [have_board pc] drv_config {
 			<service name="Acpi"/>}
 
 		append_if [have_spec arm] drv_config {
@@ -237,7 +237,7 @@ proc platform_drv_config {} {
 		append_if [have_board pc] drv_config {
 			<service name="ROM" label="acpi"> <child name="acpi_report_rom"/> </service>}
 
-		append_if [expr [have_spec x86]] drv_config {
+		append_if [expr [have_board pc]] drv_config {
 			<service name="Report"> <child name="acpi_report_rom"/> </service>}
 
 		append_if [expr [have_board rpi] || [have_board pc]] drv_config {
