@@ -9,7 +9,8 @@ DIR(ipxe) := src/lib/dde_ipxe
 PATCHES   := patches/dde_ipxe.patch \
              patches/intel.patch \
              patches/intel_update.patch \
-             patches/tg3.patch
+             patches/tg3.patch \
+             patches/realtek.patch
 
 PATCH_OPT := -p1 -d ${DIR(ipxe)}
 

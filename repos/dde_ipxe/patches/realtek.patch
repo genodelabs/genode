@@ -1,0 +1,114 @@
+--- a/src/drivers/net/realtek.c
++++ b/src/drivers/net/realtek.c
+@@ -565,6 +565,18 @@
+ }
+ 
+ /**
++ * Return tx descriptor count depending on mode
++ */
++static int rtl_num_tx_desc(struct realtek_nic *rtl) {
++	return (rtl->legacy) ? 4 : RTL_NUM_TX_DESC; }
++
++/**
++ * Return rx descriptor count depending on mode
++ */
++static int rtl_num_rx_desc(struct realtek_nic *rtl) {
++	return (rtl->legacy) ? 4 : RTL_NUM_RX_DESC; }
++
++/**
+  * Refill receive descriptor ring
+  *
+  * @v rtl		Realtek device
+@@ -580,7 +592,7 @@
+ 	if ( rtl->legacy )
+ 		return;
+ 
+-	while ( ( rtl->rx.prod - rtl->rx.cons ) < RTL_NUM_RX_DESC ) {
++	while ( ( rtl->rx.prod - rtl->rx.cons ) < rtl_num_rx_desc(rtl) ) {
+ 
+ 		/* Allocate I/O buffer */
+ 		iobuf = alloc_iob ( RTL_RX_MAX_LEN );
+@@ -590,8 +602,8 @@
+ 		}
+ 
+ 		/* Get next receive descriptor */
+-		rx_idx = ( rtl->rx.prod++ % RTL_NUM_RX_DESC );
+-		is_last = ( rx_idx == ( RTL_NUM_RX_DESC - 1 ) );
++		rx_idx = ( rtl->rx.prod++ % rtl_num_rx_desc(rtl) );
++		is_last = ( rx_idx == ( rtl_num_rx_desc(rtl) - 1 ) );
+ 		rx = &rtl->rx.desc[rx_idx];
+ 
+ 		/* Populate receive descriptor */
+@@ -697,7 +709,7 @@
+ 	realtek_destroy_ring ( rtl, &rtl->rx );
+ 
+ 	/* Discard any unused receive buffers */
+-	for ( i = 0 ; i < RTL_NUM_RX_DESC ; i++ ) {
++	for ( i = 0 ; i < rtl_num_rx_desc(rtl) ; i++ ) {
+ 		if ( rtl->rx_iobuf[i] )
+ 			free_iob ( rtl->rx_iobuf[i] );
+ 		rtl->rx_iobuf[i] = NULL;
+@@ -723,11 +735,11 @@
+ 	int is_last;
+ 
+ 	/* Get next transmit descriptor */
+-	if ( ( rtl->tx.prod - rtl->tx.cons ) >= RTL_NUM_TX_DESC ) {
++	if ( ( rtl->tx.prod - rtl->tx.cons ) >= rtl_num_tx_desc(rtl) ) {
+ 		netdev_tx_defer ( netdev, iobuf );
+ 		return 0;
+ 	}
+-	tx_idx = ( rtl->tx.prod++ % RTL_NUM_TX_DESC );
++	tx_idx = ( rtl->tx.prod++ % rtl_num_tx_desc(rtl) );
+ 
+ 	/* Transmit packet */
+ 	if ( rtl->legacy ) {
+@@ -752,7 +764,7 @@
+ 
+ 		/* Populate transmit descriptor */
+ 		address = virt_to_bus ( iobuf->data );
+-		is_last = ( tx_idx == ( RTL_NUM_TX_DESC - 1 ) );
++		is_last = ( tx_idx == ( rtl_num_tx_desc(rtl) - 1 ) );
+ 		tx = &rtl->tx.desc[tx_idx];
+ 		tx->address = cpu_to_le64 ( address );
+ 		tx->length = cpu_to_le16 ( iob_len ( iobuf ) );
+@@ -788,7 +800,7 @@
+ 	while ( rtl->tx.cons != rtl->tx.prod ) {
+ 
+ 		/* Get next transmit descriptor */
+-		tx_idx = ( rtl->tx.cons % RTL_NUM_TX_DESC );
++		tx_idx = ( rtl->tx.cons % rtl_num_tx_desc(rtl) );
+ 
+ 		/* Stop if descriptor is still in use */
+ 		if ( rtl->legacy ) {
+@@ -892,7 +904,7 @@
+ 	while ( rtl->rx.cons != rtl->rx.prod ) {
+ 
+ 		/* Get next receive descriptor */
+-		rx_idx = ( rtl->rx.cons % RTL_NUM_RX_DESC );
++		rx_idx = ( rtl->rx.cons % rtl_num_rx_desc(rtl) );
+ 		rx = &rtl->rx.desc[rx_idx];
+ 
+ 		/* Stop if descriptor is still in use */
+--- a/src/drivers/net/realtek.h
++++ b/src/drivers/net/realtek.h
+@@ -88,9 +88,9 @@
+ 
+ /** Number of transmit descriptors
+  *
+- * This is a hardware limit when using legacy mode.
++ * 4 is a hardware limit when using legacy mode.
+  */
+-#define RTL_NUM_TX_DESC 4
++#define RTL_NUM_TX_DESC 64
+ 
+ /** Receive Buffer Start Address (dword, 8139 only) */
+ #define RTL_RBSTART 0x30
+@@ -223,7 +223,7 @@
+ #define RTL_RDSAR 0xe4
+ 
+ /** Number of receive descriptors */
+-#define RTL_NUM_RX_DESC 4
++#define RTL_NUM_RX_DESC 64
+ 
+ /** Receive buffer length */
+ #define RTL_RX_MAX_LEN ( ETH_FRAME_LEN + 4 /* VLAN */ + 4 /* CRC */ )
