@@ -185,16 +185,22 @@ static void irq_handler(void *p)
 	/* check for the link-state to change on each interrupt */
 	int link_ok = netdev_link_ok(net_dev);
 
-	/* poll the device for packets and also link-state changes */
-	netdev_poll(net_dev);
+	/* retry the reading of rx data one time (issue #3939) */
+	int processed_rx_data = 0;
+	for (unsigned retry = 0; (retry < 2) && !processed_rx_data; retry++) {
+		/* poll the device for packets and also link-state changes */
+		netdev_poll(net_dev);
 
-	struct io_buffer *iobuf;
-	while ((iobuf = netdev_rx_dequeue(net_dev))) {
-		dde_lock_leave();
-		if (rx_callback)
-			rx_callback(1, iobuf->data, iob_len(iobuf));
-		dde_lock_enter();
-		free_iob(iobuf);
+		struct io_buffer *iobuf;
+		while ((iobuf = netdev_rx_dequeue(net_dev))) {
+			dde_lock_leave();
+			if (rx_callback) {
+				rx_callback(1, iobuf->data, iob_len(iobuf));
+				processed_rx_data = 1;
+			}
+			dde_lock_enter();
+			free_iob(iobuf);
+		}
 	}
 
 	dde_lock_leave();
