@@ -129,7 +129,7 @@ install_config {
 
 	<start name="wm_backdrop" priority="-1">
 		<binary name="backdrop" />
-		<resource name="RAM" quantum="24M"/>
+		<resource name="RAM" quantum="32M"/>
 		<config>
 			<libc/>
 			<vfs>
