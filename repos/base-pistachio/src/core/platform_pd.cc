@@ -17,14 +17,8 @@
 #include <util.h>
 #include <platform_pd.h>
 
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/thread.h>
-#include <l4/sigma0.h>
-#include <l4/schedule.h>
-#include <l4/space.h>
-#include <l4/types.h>
-}
+/* base-internal includes */
+#include <base/internal/pistachio.h>
 
 using namespace Pistachio;
 using namespace Genode;
@@ -214,7 +208,6 @@ void Platform_pd::unbind_thread(Platform_thread &thread)
 	thread.unbind();
 
 	_free_thread(thread_id);
-
 }
 
 
@@ -278,7 +271,7 @@ void Platform_pd::_setup_address_space()
 
 L4_Word_t Platform_pd::_utcb_location(unsigned int thread_id)
 {
-  return _utcb_ptr + thread_id*L4_UtcbSize(get_kip());
+	return _utcb_ptr + thread_id*L4_UtcbSize(get_kip());
 }
 
 
@@ -348,7 +341,8 @@ Platform_pd::Platform_pd(Allocator &, char const *, signed pd_id, bool create)
 Platform_pd::~Platform_pd()
 {
 	/* unbind all threads */
-	while (Platform_thread *t = _next_thread()) unbind_thread(*t);
+	while (Platform_thread *t = _next_thread())
+		unbind_thread(*t);
 
 	_destroy_pd();
 	_free_pd();

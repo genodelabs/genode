@@ -23,6 +23,7 @@
 #include <base/internal/stack_area.h>
 #include <base/internal/capability_space_tpl.h>
 #include <base/internal/globals.h>
+#include <base/internal/pistachio.h>
 
 /* core includes */
 #include <boot_modules.h>
@@ -34,15 +35,6 @@
 #include <util.h>
 #include <kip.h>
 #include <print_l4_thread_id.h>
-
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/kip.h>
-#include <l4/sigma0.h>
-#include <l4/space.h>
-#include <l4/bootinfo.h>
-#include <l4/schedule.h>
-}
 
 using namespace Genode;
 
@@ -60,6 +52,7 @@ static Synced_range_allocator<Allocator_avl> &_core_address_ranges()
 	static Synced_range_allocator<Allocator_avl> _core_address_ranges(nullptr);
 	return _core_address_ranges;
 }
+
 
 enum { PAGER_STACK_ELEMENTS = 512 };
 static unsigned long _core_pager_stack[PAGER_STACK_ELEMENTS];

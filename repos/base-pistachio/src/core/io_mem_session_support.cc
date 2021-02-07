@@ -18,12 +18,8 @@
 #include <io_mem_session_component.h>
 #include <kip.h>
 
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/ipc.h>
-#include <l4/sigma0.h>
-#include <l4/misc.h>
-}
+/* base-internal includes */
+#include <base/internal/pistachio.h>
 
 using namespace Genode;
 
@@ -32,7 +28,7 @@ using namespace Genode;
  * TODO This should take a size parameter and check if the whole
  *      region is "normal" memory.
  */
-bool is_conventional_memory(addr_t base)
+static bool is_conventional_memory(addr_t base)
 {
 	using namespace Pistachio;
 	L4_KernelInterfacePage_t *kip = get_kip();
@@ -53,9 +49,11 @@ bool is_conventional_memory(addr_t base)
 void Io_mem_session_component::_unmap_local(addr_t, size_t) { }
 
 
-static inline bool can_use_super_page(addr_t base, size_t size) {
+static inline bool can_use_super_page(addr_t base, size_t size)
+{
 	return (base & (get_super_page_size() - 1)) == 0
-	    && (size >= get_super_page_size()); }
+	    && (size >= get_super_page_size());
+}
 
 
 addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)

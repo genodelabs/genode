@@ -14,9 +14,11 @@
 /* core includes */
 #include <core_log.h>
 
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/kdebug.h>
-}
+/* base-internal includes */
+#include <base/internal/pistachio.h>
 
-void Genode::Core_log::out(char const c) { Pistachio::L4_KDB_PrintChar(c); }
+
+void Genode::Core_log::out(char const c)
+{
+	Pistachio::L4_KDB_PrintChar(c);
+}

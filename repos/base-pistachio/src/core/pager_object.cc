@@ -16,12 +16,7 @@
 
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
-
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/types.h>
-#include <l4/ipc.h>
-}
+#include <base/internal/pistachio.h>
 
 using namespace Genode;
 

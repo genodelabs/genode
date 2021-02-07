@@ -19,10 +19,7 @@
 #include <irq_root.h>
 #include <util.h>
 
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/ipc.h>
-}
+/* base-internal includes */
 
 using namespace Genode;
 using namespace Pistachio;

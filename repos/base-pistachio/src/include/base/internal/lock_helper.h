@@ -20,11 +20,8 @@
 /* Genode includes */
 #include <base/thread.h>
 
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/schedule.h>
-#include <l4/ipc.h>
-}
+/* base-internal includes */
+#include <base/internal/pistachio.h>
 
 
 extern Pistachio::L4_ThreadId_t main_thread_tid;

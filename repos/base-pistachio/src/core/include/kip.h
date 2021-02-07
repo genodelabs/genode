@@ -14,9 +14,9 @@
 #ifndef _CORE__INCLUDE__KIP_H_
 #define _CORE__INCLUDE__KIP_H_
 
+#include <base/internal/pistachio.h>
+
 namespace Pistachio {
-#include <l4/types.h>
-#include <l4/kip.h>
 
 	/**
 	 * Return a pointer to the kernel info page

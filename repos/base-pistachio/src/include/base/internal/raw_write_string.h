@@ -14,9 +14,7 @@
 #ifndef _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 #define _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 
-namespace Pistachio {
-#include <l4/kdebug.h>
-}
+#include <base/internal/pistachio.h>
 
 namespace Genode {
 

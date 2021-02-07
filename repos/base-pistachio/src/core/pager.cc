@@ -18,18 +18,11 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/capability_space_tpl.h>
+#include <base/internal/pistachio.h>
 
 /* core includes */
 #include <ipc_pager.h>
 #include <pager.h>
-
-namespace Pistachio
-{
-#include <l4/message.h>
-#include <l4/ipc.h>
-#include <l4/schedule.h>
-#include <l4/kdebug.h>
-}
 
 using namespace Genode;
 using namespace Pistachio;
@@ -56,7 +49,10 @@ Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
 }
 
 
-Mapping::Mapping() { _map_item = L4_MapItem(L4_Nilpage, 0); }
+Mapping::Mapping()
+{
+	_map_item = L4_MapItem(L4_Nilpage, 0);
+}
 
 
 /***************

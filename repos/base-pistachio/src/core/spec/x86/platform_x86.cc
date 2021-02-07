@@ -11,18 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* base-internal includes */
+#include <base/internal/pistachio.h>
+
 /* core-local includes */
 #include <kip.h>
-
-#include "platform.h"
-#include "util.h"
-
-namespace Pistachio {
-#include <l4/sigma0.h>
-#include <l4/arch.h>
-}
+#include <platform.h>
+#include <util.h>
 
 using namespace Genode;
+
 
 void Platform::_setup_io_port_alloc()
 {

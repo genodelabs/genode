@@ -17,6 +17,7 @@
 
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
+#include <base/internal/pistachio.h>
 
 /* core includes */
 #include <platform_pd.h>
@@ -24,20 +25,8 @@
 #include <kip.h>
 #include <print_l4_thread_id.h>
 
-/* Pistachio includes */
-namespace Pistachio
-{
-#include <l4/types.h>
-#include <l4/thread.h>
-#include <l4/schedule.h>
-#include <l4/sigma0.h>
-};
-
 using namespace Genode;
 using namespace Pistachio;
-
-static const bool verbose = false;
-static const bool verbose2 = true;
 
 
 void Platform_thread::affinity(Affinity::Location location)
@@ -140,9 +129,9 @@ void Platform_thread::resume()
 void Platform_thread::bind(int thread_id, L4_ThreadId_t l4_thread_id,
                            Platform_pd &pd)
 {
-  _thread_id    = thread_id;
-  _l4_thread_id = l4_thread_id;
-  _platform_pd  = &pd;
+	_thread_id    = thread_id;
+	_l4_thread_id = l4_thread_id;
+	_platform_pd  = &pd;
 }
 
 

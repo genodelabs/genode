@@ -17,10 +17,8 @@
 /* Genode includes */
 #include <base/stdint.h>
 
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/types.h>
-}
+/* base-internal includes */
+#include <base/internal/pistachio.h>
 
 namespace Genode {
 	

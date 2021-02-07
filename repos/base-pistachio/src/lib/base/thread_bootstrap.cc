@@ -18,11 +18,7 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/globals.h>
-
-/* Pistachio includes */
-namespace Pistachio {
-	#include <l4/thread.h>
-}
+#include <base/internal/pistachio.h>
 
 Pistachio::L4_ThreadId_t main_thread_tid;
 
@@ -51,7 +47,10 @@ void Genode::Thread::_thread_bootstrap()
 
 void Genode::Thread::_init_platform_thread(size_t, Type type)
 {
-	if (type == NORMAL) { return; }
-	native_thread().l4id   = main_thread_tid;
+	if (type == NORMAL)
+		return;
+
+	native_thread().l4id = main_thread_tid;
+
 	_thread_cap = main_thread_cap();
 }

@@ -14,10 +14,7 @@
 #ifndef _INCLUDE__BASE__INTERNAL__RPC_DESTINATION_H_
 #define _INCLUDE__BASE__INTERNAL__RPC_DESTINATION_H_
 
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/types.h>
-}
+#include <base/internal/pistachio.h>
 
 namespace Genode {
 

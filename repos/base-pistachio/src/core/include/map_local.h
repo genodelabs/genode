@@ -18,13 +18,8 @@
 #include <platform.h>
 #include <util.h>
 
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/space.h>
-#include <l4/types.h>
-#include <l4/ipc.h>
-#include <l4/kdebug.h>
-}
+/* base-internal includes */
+#include <base/internal/pistachio.h>
 
 namespace Genode {
 

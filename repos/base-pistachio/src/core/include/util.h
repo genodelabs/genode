@@ -22,17 +22,11 @@
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
+#include <base/internal/pistachio.h>
 
 /* core-local includes */
 #include <kip.h>
 #include <print_l4_thread_id.h>
-
-/* Pistachio includes */
-namespace Pistachio {
-#include <l4/types.h>
-#include <l4/ipc.h>
-#include <l4/kdebug.h>
-}
 
 namespace Genode {
 

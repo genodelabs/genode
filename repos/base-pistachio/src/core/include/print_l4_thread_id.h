@@ -16,9 +16,8 @@
 
 #include <base/output.h>
 
-namespace Pistachio {
-#include <l4/types.h>
-}
+/* base-internal includes */
+#include <base/internal/pistachio.h>
 
 namespace Genode { struct Formatted_tid; }
 
