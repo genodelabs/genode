@@ -396,23 +396,29 @@ User_state::Handle_forget_result User_state::forget(View_owner const &owner)
 	_focus.forget(owner);
 
 	bool const need_to_update_all_views = (&owner == _focused);
-	bool const focus_changed = &owner == _focused;
+	bool const focus_vanished = (&owner == _focused);
+	bool const hover_vanished = (&owner == _hovered);
 
-	if (&owner == _focused)      _focused      = nullptr;
-	if (&owner == _next_focused) _next_focused = nullptr;
-	if (&owner == _last_clicked) _last_clicked = nullptr;
+	auto wipe_ptr = [&] (auto &ptr) {
+		if (&owner == ptr)
+			ptr = nullptr; };
+
+	wipe_ptr(_focused);
+	wipe_ptr(_next_focused);
+	wipe_ptr(_last_clicked);
+	wipe_ptr(_hovered);
 
 	Update_hover_result const update_hover_result = update_hover();
 
-	if (_input_receiver == &owner)
-		_input_receiver = nullptr;
+	wipe_ptr(_input_receiver);
 
 	if (need_to_update_all_views)
 		_view_stack.update_all_views();
 
 	return {
-		.hover_changed = update_hover_result.hover_changed,
-		.focus_changed = focus_changed,
+		.hover_changed = update_hover_result.hover_changed
+		               | hover_vanished,
+		.focus_changed = focus_vanished,
 	};
 }
 
