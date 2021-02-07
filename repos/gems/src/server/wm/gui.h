@@ -920,9 +920,21 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		void destroy_view(View_handle handle) override
 		{
 			try {
-				Locked_ptr<View> view(_view_handle_registry.lookup(handle));
-				if (view.valid())
-					_destroy_view_object(*view);
+				/*
+				 * Lookup the view but release the lock to prevent the view
+				 * destructor from taking the lock a second time. The locking
+				 * aspect of the weak ptr is not needed within the wm because
+				 * the component is single-threaded.
+				 */
+				View *view_ptr = nullptr;
+				{
+					Locked_ptr<View> view(_view_handle_registry.lookup(handle));
+					if (view.valid())
+						view_ptr = view.operator->();
+				}
+
+				if (view_ptr)
+					_destroy_view_object(*view_ptr);
 
 				_view_handle_registry.free(handle);
 			} catch (View_handle_registry::Lookup_failed) { }
