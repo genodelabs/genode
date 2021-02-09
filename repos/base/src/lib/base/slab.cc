@@ -416,6 +416,17 @@ void Slab::_free(void *addr)
 }
 
 
+void Slab::free_empty_blocks()
+{
+	for (size_t blocks = _num_blocks; blocks > 0; blocks--) {
+		if (_curr_sb != _initial_sb && _curr_sb->avail() == _entries_per_block)
+			_free_curr_sb();
+		else
+			_curr_sb = _curr_sb->next;
+	}
+}
+
+
 void *Slab::any_used_elem()
 {
 	if (_total_avail == _num_blocks*_entries_per_block)

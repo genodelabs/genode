@@ -208,6 +208,7 @@ _ZN6Genode4Lock4lockEv T
 _ZN6Genode4Lock6unlockEv T
 _ZN6Genode4LockC1ENS0_5StateE T
 _ZN6Genode4Slab13any_used_elemEv T
+_ZN6Genode4Slab17free_empty_blocksEv T
 _ZN6Genode4Slab5Block11_slab_entryEi T
 _ZN6Genode4Slab5Block14any_used_entryEv T
 _ZN6Genode4Slab5Block5allocEv T

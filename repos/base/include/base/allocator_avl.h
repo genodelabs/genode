@@ -340,7 +340,11 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 			_metadata((metadata_chunk_alloc) ? metadata_chunk_alloc : this,
 			          (Block *)&_initial_md_block) { }
 
-		~Allocator_avl_tpl() { _revert_allocations_and_ranges(); }
+		~Allocator_avl_tpl()
+		{
+			_metadata.free_empty_blocks();
+			_revert_allocations_and_ranges();
+		}
 
 		/**
 		 * Return size of slab blocks used for meta data

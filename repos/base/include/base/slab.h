@@ -138,6 +138,12 @@ class Genode::Slab : public Allocator
 		Allocator *backing_store() { return _backing_store; }
 
 
+		/**
+		 * Free memory of empty slab blocks
+		 */
+		void free_empty_blocks();
+
+
 		/*************************
 		 ** Allocator interface **
 		 *************************/
