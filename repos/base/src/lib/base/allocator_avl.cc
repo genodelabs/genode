@@ -108,7 +108,14 @@ Allocator_avl_base::Block *Allocator_avl_base::_alloc_block_metadata()
 bool Allocator_avl_base::_alloc_two_blocks_metadata(Block **dst1, Block **dst2)
 {
 	Block * const b1 = _alloc_block_metadata();
-	Block * const b2 = _alloc_block_metadata();
+	Block * b2 = nullptr;
+
+	try {
+		b2 = _alloc_block_metadata();
+	} catch (...) {
+		if (b1) _md_alloc->free(b1, sizeof(Block));
+		throw;
+	}
 
 	if (b1 && b2) {
 		*dst1 = b1;
