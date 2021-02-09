@@ -73,7 +73,7 @@ foreach binary $guest_os_binaries {
 
 source ${genode_dir}/repos/ports/run/seoul.inc
 
-append qemu_args " -cpu phenom -smp 2 "
+append qemu_args " -cpu phenom "
 append qemu_args " -nographic "
 append_qemu_nic_args
 
