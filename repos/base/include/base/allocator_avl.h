@@ -188,6 +188,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		               addr_t base, size_t size, bool used);
 
 		Block *_find_any_used_block(Block *sub_tree);
+		Block *_find_any_unused_block(Block *sub_tree);
 
 		/**
 		 * Destroy block
@@ -215,6 +216,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 * from the meta-data allocator.
 		 */
 		void _revert_allocations_and_ranges();
+		void _revert_unused_ranges();
 
 		/**
 		 * Find block by specified address
@@ -342,6 +344,7 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 
 		~Allocator_avl_tpl()
 		{
+			_revert_unused_ranges();
 			_metadata.free_empty_blocks();
 			_revert_allocations_and_ranges();
 		}

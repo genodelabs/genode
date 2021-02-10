@@ -187,6 +187,21 @@ void Allocator_avl_base::_cut_from_block(Block *b, addr_t addr, size_t size,
 }
 
 
+void Allocator_avl_base::_revert_unused_ranges()
+{
+	do {
+		Block * const block = _find_any_unused_block(_addr_tree.first());
+		if (!block)
+			break;
+
+		int const error = remove_range(block->addr(), block->size());
+		if (error && block == _find_any_unused_block(_addr_tree.first()))
+			/* if the invocation fails, release the block to break endless loop  */
+			_destroy_block(block);
+	} while (true);
+}
+
+
 void Allocator_avl_base::_revert_allocations_and_ranges()
 {
 	/* revert all allocations */
@@ -387,6 +402,22 @@ size_t Allocator_avl_base::size_at(void const *addr) const
 	Block *b = _find_by_address(reinterpret_cast<addr_t>(addr));
 
 	return (b && b->used()) ? b->size() : 0;
+}
+
+
+Allocator_avl_base::Block *Allocator_avl_base::_find_any_unused_block(Block *sub_tree)
+{
+	if (!sub_tree)
+		return nullptr;
+
+	if (!sub_tree->used())
+		return sub_tree;
+
+	for (unsigned i = 0; i < 2; i++)
+		if (Block *block = _find_any_unused_block(sub_tree->child(i)))
+			return block;
+
+	return nullptr;
 }
 
 
