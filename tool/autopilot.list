@@ -29,11 +29,11 @@ migrate
 moon
 netperf_lwip
 netperf_lwip_bridge
-netperf_lwip_usb30
+netperf_lwip_usb
 netperf_lwip_wifi
 netperf_lxip
 netperf_lxip_bridge
-netperf_lxip_usb30
+netperf_lxip_usb
 netperf_lxip_wifi
 nic_bridge
 nic_bridge_stress
