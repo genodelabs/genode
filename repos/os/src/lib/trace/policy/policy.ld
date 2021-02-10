@@ -8,6 +8,7 @@ SECTIONS {
 		*(.text .text.*)
 		*(.bss)
 		*(.got.plt)
+		*(.got)
 	} : rw
 
 	/DISCARD/ : { *(.*) }
