@@ -7,8 +7,6 @@
 
 include $(BASE_DIR)/lib/mk/base-common.inc
 
-LIBS += syscall-hw
-
 SRC_CC += rpc_dispatch_loop.cc
 SRC_CC += thread.cc thread_myself.cc thread_bootstrap.cc
 SRC_CC += signal_transmitter.cc

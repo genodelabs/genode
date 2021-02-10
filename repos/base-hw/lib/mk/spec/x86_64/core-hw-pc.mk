@@ -8,6 +8,8 @@
 # add include paths
 REP_INC_DIR += src/core/spec/x86_64
 
+LIBS += syscall-hw
+
 # add assembly sources
 SRC_S += spec/x86_64/crt0.s
 SRC_S += spec/x86_64/exception_vector.s

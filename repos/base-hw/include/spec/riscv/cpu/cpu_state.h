@@ -23,20 +23,23 @@ namespace Genode { struct Cpu_state; }
 struct Genode::Cpu_state
 {
 	enum Cpu_exception {
-		INSTRUCTION_UNALIGNED  = 0,
-		INSTRUCTION_PAGE_FAULT = 1,
-		INSTRUCTION_ILLEGAL    = 2,
-		BREAKPOINT             = 3,
-		LOAD_UNALIGNED         = 4,
-		LOAD_PAGE_FAULT        = 5,
-		STORE_UNALIGNED        = 6,
-		STORE_PAGE_FAULT       = 7,
-		ECALL_FROM_USER        = 8,
-		ECALL_FROM_SUPERVISOR  = 9,
-		ECALL_FROM_HYPERVISOR  = 10,
-		ECALL_FROM_MACHINE     = 11,
-		RESET                  = 16,
-		IRQ_FLAG               = 1UL << 63,
+		INSTRUCTION_UNALIGNED    = 0,
+		INSTRUCTION_ACCESS_FAULT = 1,
+		INSTRUCTION_ILLEGAL      = 2,
+		BREAKPOINT               = 3,
+		LOAD_UNALIGNED           = 4,
+		LOAD_ACCESS_FAULT        = 5,
+		STORE_UNALIGNED          = 6,
+		STORE_ACCESS_FAULT       = 7,
+		ECALL_FROM_USER          = 8,
+		ECALL_FROM_SUPERVISOR    = 9,
+		ECALL_FROM_HYPERVISOR    = 10,
+		ECALL_FROM_MACHINE       = 11,
+		INSTRUCTION_PAGE_FAULT   = 12,
+		LOAD_PAGE_FAULT          = 13,
+		STORE_PAGE_FAULT         = 15,
+		RESET                    = 16,
+		IRQ_FLAG                 = 1UL << 63,
 	};
 
 	addr_t ip            = 0;
@@ -72,6 +75,12 @@ struct Genode::Cpu_state
 	addr_t t4            = 0;
 	addr_t t5            = 0;
 	addr_t t6            = 0;
+
+	/*
+	 * Save last instruction fetch-fault needed for MIG-V stval quirk in
+	 * kernel/riscv/thread.cc
+	 */
+	addr_t last_fetch_fault = 0;
 
 	bool      is_irq() { return cpu_exception & IRQ_FLAG; }
 	unsigned  irq()    { return cpu_exception ^ IRQ_FLAG; }

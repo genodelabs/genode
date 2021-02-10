@@ -1,8 +1,0 @@
-LICENSE   := BSD-3-Clause
-VERSION   := git
-DOWNLOADS := bbl.git
-
-URL(bbl) = https://github.com/skalk/bbl-lite.git
-REV(bbl) = 22300f2f0ea72b7f9228ca6743d4ebb12cf5a79b
-DIR(bbl) = src/lib/bbl
-

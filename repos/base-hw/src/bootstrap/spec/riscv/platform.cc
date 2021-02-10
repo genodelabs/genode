@@ -19,15 +19,29 @@ using namespace Board;
 
 Bootstrap::Platform::Board::Board()
 :
-	early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE } ),
+	early_ram_regions(Memory_region { RAM_BASE, RAM_SIZE } ),
 	core_mmio()
 { }
 
-
 unsigned Bootstrap::Platform::enable_mmu()
 {
-	using Sptbr = Hw::Riscv_cpu::Sptbr;
-	Sptbr::write(Sptbr::Ppn::masked((addr_t)core_pd->table_base >> 12));
+	using Satp = Hw::Riscv_cpu::Satp;
+	using Sstatus = Hw::Riscv_cpu::Sstatus;
+
+	/* disable supervisor interrupts */
+	Sstatus::access_t sstatus = Sstatus::read();
+	Sstatus::Sie::set(sstatus, 0);
+	Sstatus::write(sstatus);
+
+	/*  set page table */
+	Satp::access_t satp = 0;
+	Satp::Ppn::set(satp, (addr_t)core_pd->table_base >> 12);
+
+	/* SV39 mode */
+	Satp::Mode::set(satp, 8);
+	Satp::write(satp);
+
+	asm volatile ("sfence.vma" : : : "memory");
 
 	return 0;
 }

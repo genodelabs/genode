@@ -60,6 +60,8 @@ struct Sv39::Descriptor : Register<64>
 	struct X : Bitfield<3, 1> { }; /* executable */
 	struct U : Bitfield<4, 1> { }; /* user */
 	struct G : Bitfield<5, 1> { }; /* global  */
+	struct A : Bitfield<6, 1> { }; /* access bit */
+	struct D : Bitfield<7, 1> { }; /* dirty bit */
 
 	struct Perm : Bitfield<0, 5> { };
 	struct Type : Bitfield<1, 3>
@@ -130,6 +132,15 @@ struct Sv39::Block_descriptor : Descriptor
 
 		Ppn::set(desc, base);
 		Perm::set(desc, permission_bits(f));
+
+		/*
+		 * Always set access and dirty bits because RISC-V may raise a page fault
+		 * (implementation dependend) in case it observes this bits being cleared.
+		 */
+		A::set(desc, 1);
+		if (f.writeable)
+			D::set(desc, 1);
+
 		V::set(desc, 1);
 
 		return desc;

@@ -1,11 +1,4 @@
-#
-# evaluate bbl_dir immediately, otherwise it won't recognize
-# missing ports when checking library dependencies
-#
-
-REP_INC_DIR += src/core/spec/riscv
-
-INC_DIR += $(call select_from_ports,bbl)/src/lib/bbl
+REP_INC_DIR += src/core/spec/riscv src/core/board/riscv_qemu
 
 CC_OPT += -fno-delete-null-pointer-checks
 
@@ -14,10 +7,11 @@ SRC_CC += platform_services.cc
 SRC_CC += kernel/vm_thread_off.cc
 SRC_CC += kernel/cpu_up.cc
 SRC_CC += kernel/lock.cc
-SRC_CC += spec/riscv/cpu.cc
 SRC_CC += spec/riscv/kernel/thread.cc
 SRC_CC += spec/riscv/kernel/cpu.cc
+SRC_CC += spec/riscv/kernel/interface.cc
 SRC_CC += spec/riscv/kernel/pd.cc
+SRC_CC += spec/riscv/cpu.cc
 SRC_CC += spec/riscv/platform_support.cc
 SRC_CC += spec/riscv/timer.cc
 SRC_CC += spec/64bit/memory_map.cc

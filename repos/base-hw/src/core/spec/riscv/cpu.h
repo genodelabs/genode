@@ -52,7 +52,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 
 		struct Mmu_context
 		{
-			Sptbr::access_t sptbr = 0;
+			Satp::access_t  satp  = 0;
 
 			Mmu_context(addr_t page_table_base);
 			~Mmu_context();
@@ -75,7 +75,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 			/*
 			 * Note: In core the address space id must be zero
 			 */
-			asm volatile ("sfence.vm\n");
+			asm volatile ("sfence.vma\n");
 		}
 
 		static void invalidate_tlb_by_pid(unsigned const /* pid */) { sfence(); }

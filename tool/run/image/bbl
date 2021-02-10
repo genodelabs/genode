@@ -1,6 +1,0 @@
-proc run_image {elf_img} {
-	puts "using '$elf_img' as bbl image"
-
-	exec rm -f bbl/image.o
-	exec -ignorestderr make IMAGE_ELF=[pwd]/$elf_img bbl
-}

@@ -1,11 +1,12 @@
 /*
- * \brief  CPU driver
+ * \brief  CPU driver for RISC-V
+ * \author Sebastian Sumpf
  * \author Stefan Kalkowski
  * \date   2017-10-06
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -38,14 +39,15 @@ static Asid_allocator & alloc() {
 
 Mmu_context::Mmu_context(addr_t page_table_base)
 {
-	Sptbr::Asid::set(sptbr, (Genode::uint8_t)alloc().alloc());
-	Sptbr::Ppn::set(sptbr, page_table_base >> 12);
+	Satp::Asid::set(satp, (Genode::uint8_t)alloc().alloc());
+	Satp::Ppn::set(satp, page_table_base >> 12);
+	Satp::Mode::set(satp, 8);
 }
 
 
 Mmu_context::~Mmu_context()
 {
-	unsigned asid = Sptbr::Asid::get(sptbr);
+	unsigned asid = Satp::Asid::get(satp);
 	Cpu::invalidate_tlb_by_pid(asid);
 	alloc().free(asid);
 }
@@ -57,21 +59,22 @@ void Genode::Cpu::switch_to(Mmu_context & context)
 	 * The sstatus register defines to which privilege level
 	 * the machin returns when doing an exception return
 	 */
-	bool user = Sptbr::Asid::get(context.sptbr);
+	bool user = Satp::Asid::get(context.satp);
 	Sstatus::access_t v = Sstatus::read();
 	Sstatus::Spp::set(v, user ? 0 : 1);
 	Sstatus::write(v);
 
 	/* change the translation table when necessary */
-	//Sptbr::access_t sptbr = Sptbr::read();
-	if (user /*&& sptbr != context.sptbr*/)
-		Sptbr::write(context.sptbr);
+	if (user) {
+		Satp::write(context.satp);
+		sfence();
+	}
 }
 
 
 void Genode::Cpu::mmu_fault(Context &, Kernel::Thread_fault & f)
 {
-	f.addr = Genode::Cpu::Sbadaddr::read();
+	f.addr = Genode::Cpu::Stval::read();
 	f.type = Kernel::Thread_fault::PAGE_MISSING;
 }
 

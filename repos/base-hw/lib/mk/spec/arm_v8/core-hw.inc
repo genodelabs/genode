@@ -1,5 +1,7 @@
 REP_INC_DIR += src/core/spec/arm_v8
 
+LIBS += syscall-hw
+
 # add C++ sources
 SRC_CC += kernel/cpu_mp.cc
 SRC_CC += spec/64bit/memory_map.cc

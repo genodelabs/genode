@@ -52,6 +52,7 @@ proc run_power_on { } {
 	if {[have_spec x86_64]} { set qemu "qemu-system-x86_64" }
 	if {[have_spec arm]}    { set qemu "qemu-system-arm" }
 	if {[have_spec arm_64]} { set qemu "qemu-system-aarch64" }
+	if {[have_spec riscv]}  { set qemu "qemu-system-riscv64" }
 
 	#
 	# Only the x86_64 variant of Qemu provides the emulation of hardware
@@ -155,8 +156,14 @@ proc run_power_on { } {
 		append qemu_args " -machine q35 "
 	}
 
-	# on ARM, we supply the boot image as kernel
-	if {[have_spec arm] || [have_spec arm_v8]} { append qemu_args " -kernel [run_dir]/boot/image.elf " }
+	if {[have_board riscv_qemu]} {
+		append qemu_args " -m 128 -machine virt -cpu rv64,priv_spec=v1.10.0 "
+		append qemu_args " -bios default "
+	}
+
+	# on ARM/RISC-V, we supply the boot image as kernel
+	if {[have_spec arm] || [have_spec arm_v8] || [have_spec riscv]} {
+		append qemu_args " -kernel [run_dir]/boot/image.elf " }
 
 	eval spawn $qemu $qemu_args
 	set qemu_spawn_id $spawn_id

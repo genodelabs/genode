@@ -9,4 +9,4 @@ SRC_CC += stack_area_addr.cc
 SRC_CC += native_utcb.cc
 SRC_CC += platform.cc
 
-LIBS += startup-hw base-hw-common cxx timeout-hw
+LIBS += startup-hw base-hw-common syscall-hw cxx timeout-hw

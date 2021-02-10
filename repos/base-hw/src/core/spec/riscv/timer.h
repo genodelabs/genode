@@ -27,9 +27,8 @@ namespace Board { class Timer; }
 struct Board::Timer
 {
 	enum {
-		SPIKE_TIMER_HZ = 1000000,
-		TICS_PER_MS    = SPIKE_TIMER_HZ / 1000,
-		TICS_PER_US    = TICS_PER_MS / 1000,
+		TICKS_PER_MS    = TIMER_HZ / 1000,
+		TICKS_PER_US    = TICKS_PER_MS / 1000,
 	};
 
 	Kernel::time_t timeout = 0;

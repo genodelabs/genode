@@ -25,6 +25,7 @@ void Thread::Tlb_invalidation::execute() {}
 void Thread::exception(Cpu & cpu)
 {
 	using Context = Genode::Cpu::Context;
+	using Stval = Genode::Cpu::Stval;
 
 	if (regs->is_irq()) {
 		/* there are only cpu-local timer interrupts right now */
@@ -33,20 +34,51 @@ void Thread::exception(Cpu & cpu)
 	}
 
 	switch(regs->cpu_exception) {
-	case Context::ECALL_FROM_USER:
 	case Context::ECALL_FROM_SUPERVISOR:
+		_call();
+		break;
+	case Context::ECALL_FROM_USER:
 		_call();
 		regs->ip += 4; /* set to next instruction */
 		break;
 	case Context::INSTRUCTION_PAGE_FAULT:
+
+		/*
+		 * Quirk for MIG-V:
+		 *
+		 * On MIG-V 'stval' does not report the correct address for instructions
+		 * that cross a page boundary.
+		 *
+		 * Spec 1.10: "For instruction-fetch access faults and page faults on RISC-V
+		 * systems with variable-length instructions, stval will point to the
+		 * portion of the instruction that caused the fault while sepc will point to
+		 * the beginning of the instruction."
+		 *
+		 * On MIG-V stval always points to the beginning of the instruction.
+		 *
+		 * Save the last instruction-fetch fault in 'last_fetch_fault', in case the
+		 * next fetch fault occurs at the same IP and is at a page border, set
+		 * page-fault address ('stval') to next page.
+		 */
+		if (regs->last_fetch_fault == regs->ip && (regs->ip & 0xfff) == 0xffe)
+			Stval::write(Stval::read() + 4);
+
+		_mmu_exception();
+		regs->last_fetch_fault = regs->ip;
+
+		break;
+
 	case Context::STORE_PAGE_FAULT:
 	case Context::LOAD_PAGE_FAULT:
+	case Context::INSTRUCTION_ACCESS_FAULT:
+	case Context::LOAD_ACCESS_FAULT:
+	case Context::STORE_ACCESS_FAULT:
 		_mmu_exception();
 		break;
 	default:
 		Genode::raw(*this, ": unhandled exception ", regs->cpu_exception,
 		            " at ip=", (void*)regs->ip,
-		            " addr=", Genode::Hex(Genode::Cpu::Sbadaddr::read()));
+		            " addr=", Genode::Hex(Genode::Cpu::Stval::read()));
 		_die();
 	}
 }

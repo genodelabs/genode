@@ -11,13 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__SPEC__RISCV__BOARD_H_
-#define _CORE__SPEC__RISCV__BOARD_H_
+#ifndef _CORE__SPEC__RISCV_QEMU__BOARD_H_
+#define _CORE__SPEC__RISCV_QEMU__BOARD_H_
 
-#include <hw/spec/riscv/board.h>
+
+#include <hw/spec/riscv/qemu_board.h>
 #include <spec/riscv/pic.h>
-#include <spec/riscv/timer.h>
 
 namespace Board { using namespace Hw::Riscv_board; }
 
-#endif /* _CORE__SPEC__RISCV__BOARD_H_ */
+#include <spec/riscv/timer.h>
+
+
+#endif /* _CORE__SPEC__RISCV_QEMU__BOARD_H_ */

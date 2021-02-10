@@ -7,6 +7,8 @@
 # add include paths
 REP_INC_DIR += src/core/spec/arm
 
+LIBS += syscall-hw
+
 # add C++ sources
 SRC_CC += spec/32bit/memory_map.cc
 SRC_CC += spec/arm/kernel/cpu.cc
