@@ -216,7 +216,7 @@ void netif_start_queue(struct net_device *dev)
 
 void netif_stop_queue(struct net_device *dev)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 void netif_trans_update(struct net_device *dev)
