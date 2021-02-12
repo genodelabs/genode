@@ -28,6 +28,7 @@
 			<resource name="RAM" quantum="1G"/>
 			<config>
 				<arg value="name_of_executeable"/>
+				<env key="WIZARD" value="gandalf"/>
 				<libc stdin="/null" stdout="/log" stderr="/log">
 					<fd id="3" path="/seek_test" readable="yes" seek="5"/>
 				</libc>

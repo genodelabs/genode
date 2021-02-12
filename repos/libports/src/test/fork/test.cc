@@ -38,6 +38,12 @@ int main(int, char **argv)
 
 	printf("pid %d: fork returned %d\n", getpid(), fork_ret);
 
+	/* check the consistency of known environment variable in both processes */
+	if (!getenv("WIZARD") || strcmp(getenv("WIZARD"), "gandalf") != 0) {
+		printf("Error: inheritance of environment variable failed\n");
+		return -1;
+	}
+
 	/* child */
 	if (fork_ret == 0) {
 		printf("pid %d: child says hello\n", getpid());

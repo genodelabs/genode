@@ -19,6 +19,9 @@
 Libc::Kernel * Libc::Kernel::_kernel_ptr;
 
 
+extern char **environ;
+
+
 /**
  * Blockade for main context
  */
@@ -345,6 +348,9 @@ void Libc::Kernel::_clone_state_from_parent()
 	/* fetch heap content */
 	_cloned_heap_ranges.for_each([&] (Cloned_malloc_heap_range &heap_range) {
 		heap_range.import_content(*_clone_connection); });
+
+	/* value of global environ pointer (the env vars are already on the heap) */
+	_clone_connection->memory_content(&environ, sizeof(environ));
 
 	/* fetch user contex of the parent's application */
 	_clone_connection->memory_content(&_user_context, sizeof(_user_context));
