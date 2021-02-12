@@ -849,6 +849,10 @@ void qemu_sglist_destroy(QEMUSGList *sgl) {
 
 int usb_packet_map(USBPacket *p, QEMUSGList *sgl)
 {
+	Qemu::Pci_device::Dma_direction dir =
+		(p->pid == USB_TOKEN_IN) ? Qemu::Pci_device::Dma_direction::IN
+		                         : Qemu::Pci_device::Dma_direction::OUT;
+
 	void *mem;
 
 	for (int i = 0; i < sgl->niov; i++) {
@@ -857,7 +861,7 @@ int usb_packet_map(USBPacket *p, QEMUSGList *sgl)
 
 		while (len) {
 			dma_addr_t xlen = len;
-			mem = _pci_device->map_dma(base, xlen);
+			mem = _pci_device->map_dma(base, xlen, dir);
 			if (verbose_iov)
 				Genode::log("mem: ", mem, " base: ", (void *)base, " len: ",
 				            Genode::Hex(len));
@@ -884,9 +888,14 @@ err:
 
 void usb_packet_unmap(USBPacket *p, QEMUSGList *sgl)
 {
+	Qemu::Pci_device::Dma_direction dir =
+		(p->pid == USB_TOKEN_IN) ? Qemu::Pci_device::Dma_direction::IN
+		                         : Qemu::Pci_device::Dma_direction::OUT;
+
 	for (int i = 0; i < p->iov.niov; i++) {
 		_pci_device->unmap_dma(p->iov.iov[i].iov_base,
-		                       p->iov.iov[i].iov_len);
+		                       p->iov.iov[i].iov_len,
+		                       dir);
 	}
 }
 
