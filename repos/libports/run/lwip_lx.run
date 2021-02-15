@@ -2,17 +2,17 @@
 # To execute this run script on your Linux host you have to do some
 # preparation:
 #
-# !) Setup a TAP device:
+# 1) Setup a TAP device:
 #    ! export USER=[YOUR_USER_NAME]
 #    ! export TAP_DEV=tap0
-#    ! sudo ip tuntap add dev $TAP_DEV mode tap USER $USER
+#    ! sudo ip tuntap add dev $TAP_DEV mode tap user $USER
 #    ! sudo ip address flush dev $TAP_DEV
 #    ! sudo ip address add 10.0.2.1/24 brd 10.0.2.255 dev $TAP_DEV
 #    ! sudo ip link set dev $TAP_DEV addr 02:00:00:ca:fe:01
 #    ! sudo ip link set dev $TAP_DEV up
 #
 # 2) Now, start the test and connect using your favorite HTTP client, e.g.:
-#    ! cd <GENODE_DIR>/build/x86_64
+#    ! cd build/x86_64
 #    ! make run/lwip_lx KERNEL=linux BOARD=linux
 #    ! lynx -dump http://10.0.2.55
 #
