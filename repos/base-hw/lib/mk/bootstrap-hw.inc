@@ -30,7 +30,7 @@ NR_OF_CPUS ?= 1
 CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
 
 TMP         := $(call select_from_repositories,lib/mk/bootstrap-hw.inc)
-BASE_HW_DIR := $(TMP:%lib/mk/bootstrap-hw.inc=%)
+BASE_HW_DIR := $(TMP:%/lib/mk/bootstrap-hw.inc=%)
 
 vpath base/%        $(BASE_HW_DIR)/src
 vpath bootstrap/%   $(BASE_HW_DIR)/src
