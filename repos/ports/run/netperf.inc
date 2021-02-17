@@ -5,6 +5,28 @@
 # \date   2013-04-18
 #
 
+#
+# To execute this run script on your Linux host you have to do some
+# preparation:
+#
+# 1) Setup a TAP device:
+#    ! export USER=[YOUR_USER_NAME]
+#    ! export FLAVOR=[YOUR_TEST_FLAVOR] # e.g. 'lwip_bridge'
+#    ! export TAP_DEV=tap0
+#    ! sudo ip tuntap add dev $TAP_DEV mode tap user $USER
+#    ! sudo ip address flush dev $TAP_DEV
+#    ! sudo ip address add 10.0.2.1/24 brd 10.0.2.255 dev $TAP_DEV
+#    ! sudo ip link set dev $TAP_DEV addr 02:00:00:ca:fe:01
+#    ! sudo ip link set dev $TAP_DEV up
+#
+# 2) Now, start the test:
+#    ! cd build/x86_64
+#    ! make run/netperf_$FLAVOR KERNEL=linux BOARD=linux
+#
+# 3) Clean up your Linux when done testing:
+#    ! sudo ip tuntap delete $TAP_DEV mode tap
+#
+
 if {[have_include "power_on/qemu"]} {
 	puts "\nRun script does not support Qemu.\n"
 	exit 0
@@ -15,13 +37,74 @@ if {[have_board imx53_qsb_tz]} {
 	exit 0
 }
 
-set bridge_mac "02:02:02:02:16:00"
+proc unique_byte_per_platform { } {
 
-# autopilot: configure disjoint mac-address ranges for x86_32, x86_64, and others
-if {[get_cmd_switch --autopilot]} {
-	if {[have_spec x86_32]} { set bridge_mac "02:02:02:02:32:00" }
-	if {[have_spec x86_64]} { set bridge_mac "02:02:02:02:64:00" }
+	if {[expr ![have_include "power_on/qemu"]]} {
+		if {[have_spec arm_v6]}  {
+			if {[have_board rpi]} {
+				if {[have_spec hw]}        { return 0; }
+			}
+		}
+		if {[have_spec arm_v7a]} {
+			if {[have_board imx53_qsb]} {
+				if {[have_spec hw]}        { return 1; }
+			}
+			if {[have_board imx6q_sabrelite]} {
+				if {[have_spec hw]}        { return 2; }
+				if {[have_spec foc]}       { return 3; }
+				if {[have_spec sel4]}      { return 4; }
+			}
+			if {[have_board imx7d_sabre]} {
+				if {[have_spec hw]}        { return 5; }
+				if {[have_spec foc]}       { return 6; }
+				if {[have_spec sel4]}      { return 7; }
+			}
+		}
+		if {[have_spec arm_v8a]} {
+			if {[have_board imx8q_evk]} {
+				if {[have_spec hw]}        { return 8; }
+			}
+		}
+		if {[have_spec x86_32]} {
+			if {[have_board linux]} {
+				if {[have_spec linux]}     { return 9; }
+			}
+			if {[have_board pc]} {
+				if {[have_spec foc]}       { return 10; }
+				if {[have_spec sel4]}      { return 11; }
+				if {[have_spec nova]}      { return 12; }
+				if {[have_spec fiasco]}    { return 13; }
+				if {[have_spec okl4]}      { return 14; }
+				if {[have_spec pistachio]} { return 15; }
+			}
+		}
+		if {[have_spec x86_64]} {
+			if {[have_board linux]} {
+				if {[have_spec linux]}     { return 16; }
+			}
+			if {[have_board pc]} {
+				if {[have_spec hw]}        { return 17; }
+				if {[have_spec foc]}       { return 18; }
+				if {[have_spec sel4]}      { return 19; }
+				if {[have_spec nova]}      { return 20; }
+			}
+		}
+	}
+	puts "Failed to determine unique byte for target."
+	exit -1
 }
+
+proc server_data_port { } {
+
+	return [expr 18000 + [unique_byte_per_platform]];
+}
+
+proc server_ctrl_port { } {
+
+	return 12865;
+}
+
+set bridge_mac "02:02:02:02:16:00"
 
 set version "2.6.0"
 
@@ -279,8 +362,8 @@ append config {
 
 			>
 				<nat domain="server" tcp-ports="100" />
-				<tcp-forward port="12864" domain="server" to="10.0.3.2" />
-				<tcp-forward port="12865" domain="server" to="10.0.3.2" />
+				<tcp-forward port="} [server_data_port] {" domain="server" to="10.0.3.2" />
+				<tcp-forward port="} [server_ctrl_port] {" domain="server" to="10.0.3.2" />
 			</domain>
 
 			<domain name="server" interface="10.0.3.1/24" verbose_packets="no">
@@ -361,12 +444,8 @@ build_boot_image $boot_modules
 # Execute test case
 #
 
-# qemu config
-append qemu_args     "  -nographic "
-append_qemu_nic_args "hostfwd=tcp::12865-:12865,hostfwd=tcp::49153-:49153"
-
 set ip_match_string "nic_router\\\] \\\[uplink\\\] dynamic IP config: interface (\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}).*\n"
-set force_ports "-P 12864,12864"
+set force_ports "-P [server_data_port],[server_data_port]"
 
 if {[have_spec linux]} {
 	run_genode_until {.*family AF_INET.*\n} 60
@@ -376,10 +455,7 @@ if {[have_spec linux]} {
 
 set serial_id [output_spawn_id]
 
-if {[have_include "power_on/qemu"]} {
-	set ip_addr "localhost"
-	set force_ports "-P 49153,49153"
-} elseif [have_spec linux] {
+if [have_spec linux] {
 	set ip_addr $lx_ip_addr
 } else {
 	regexp $ip_match_string $output all ip_addr
