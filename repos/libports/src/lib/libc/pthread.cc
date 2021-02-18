@@ -49,6 +49,8 @@ void Libc::init_pthread_support(Monitor &monitor, Timer_accessor &timer_accessor
 	_main_thread_ptr    = Thread::myself();
 	_monitor_ptr        = &monitor;
 	_timer_accessor_ptr = &timer_accessor;
+
+	Pthread::init_tls_support();
 }
 
 
@@ -66,14 +68,70 @@ namespace { using Fn = Libc::Monitor::Function_result; }
  ** Pthread **
  *************/
 
+size_t Pthread::_stack_virtual_base_mask;
+size_t Pthread::_tls_pointer_offset;
+
+
 void Libc::Pthread::Thread_object::entry()
 {
-	/* obtain stack attributes of new thread */
+	/*
+	 * Obtain stack attributes of new thread for
+	 * 'pthread_attr_get_np()'
+	 */
 	Thread::Stack_info info = Thread::mystack();
 	_stack_addr = (void *)info.base;
 	_stack_size = info.top - info.base;
 
+	_tls_pointer(&info, _pthread);
+
 	pthread_exit(_start_routine(_arg));
+}
+
+
+void Libc::Pthread::_tls_pointer(void *stack_address, Pthread *pthread)
+{
+	addr_t stack_virtual_base = (addr_t)stack_address &
+	                            _stack_virtual_base_mask;
+	*(Pthread**)(stack_virtual_base + _tls_pointer_offset) = pthread;
+}
+
+
+Libc::Pthread::Pthread(Thread &existing_thread, void *stack_address)
+:
+	_thread(existing_thread)
+{
+	/* 
+	 * Obtain stack attributes for 'pthread_attr_get_np()'
+	 *
+	 * Note: the values might be incorrect for VirtualBox EMT threads,
+	 *       which have this constructor called from a different thread
+	 *       than 'existing_thread'.
+	 *
+	 */
+	Thread::Stack_info info = Thread::mystack();
+	_stack_addr = (void *)info.base;
+	_stack_size = info.top - info.base;
+
+	_tls_pointer(stack_address, this);
+
+	pthread_cleanup().cleanup();
+}
+
+
+void Libc::Pthread::init_tls_support()
+{
+	Thread::Stack_info info = Thread::mystack();
+	_tls_pointer_offset = info.libc_tls_pointer_offset;
+	_stack_virtual_base_mask = ~(Thread::stack_virtual_size() - 1);
+}
+
+
+Pthread *Libc::Pthread::myself()
+{
+	int stack_variable;
+	addr_t stack_virtual_base = (addr_t)&stack_variable &
+	                            _stack_virtual_base_mask;
+	return *(Pthread**)(stack_virtual_base + _tls_pointer_offset);
 }
 
 
@@ -110,50 +168,10 @@ void Libc::Pthread::cancel()
 
 
 /*
- * Registry
+ * Cleanup
  */
 
-void Libc::Pthread_registry::insert(Pthread &thread)
-{
-	/* prevent multiple insertions at the same location */
-	static Mutex insert_mutex;
-	Mutex::Guard guard(insert_mutex);
-
-	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++) {
-		if (_array[i] == 0) {
-			_array[i] = &thread;
-			return;
-		}
-	}
-
-	error("pthread registry overflow, pthread_self() might fail");
-}
-
-
-void Libc::Pthread_registry::remove(Pthread &thread)
-{
-	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++) {
-		if (_array[i] == &thread) {
-			_array[i] = 0;
-			return;
-		}
-	}
-
-	error("could not remove unknown pthread from registry");
-}
-
-
-bool Libc::Pthread_registry::contains(Pthread &thread)
-{
-	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++)
-		if (_array[i] == &thread)
-			return true;
-
-	return false;
-}
-
-
-void Libc::Pthread_registry::cleanup(Pthread *new_cleanup_thread)
+void Libc::Pthread_cleanup::cleanup(Pthread *new_cleanup_thread)
 {
 	static Mutex cleanup_mutex;
 	Mutex::Guard guard(cleanup_mutex);
@@ -167,9 +185,9 @@ void Libc::Pthread_registry::cleanup(Pthread *new_cleanup_thread)
 }
 
 
-Libc::Pthread_registry &pthread_registry()
+Libc::Pthread_cleanup &pthread_cleanup()
 {
-	static Libc::Pthread_registry instance;
+	static Libc::Pthread_cleanup instance;
 	return instance;
 }
 
@@ -519,7 +537,99 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 extern "C" int sem_set_clock(sem_t *sem, clockid_t clock_id);
 
 
+/* TLS */
+
+class Key_allocator : public Genode::Bit_allocator<PTHREAD_KEYS_MAX>
+{
+	private:
+
+		Mutex _mutex;
+
+	public:
+
+		addr_t alloc_key()
+		{
+			Mutex::Guard guard(_mutex);
+			return alloc();
+		}
+
+		void free_key(addr_t key)
+		{
+			Mutex::Guard guard(_mutex);
+			free(key);
+		}
+};
+
+
+static Key_allocator &key_allocator()
+{
+	static Key_allocator inst;
+	return inst;
+}
+
+typedef void (*key_destructor_func)(void*);
+static key_destructor_func key_destructors[PTHREAD_KEYS_MAX];
+
 extern "C" {
+
+	int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
+	{
+		if (!key)
+			return EINVAL;
+
+		try {
+			*key = key_allocator().alloc_key();
+			key_destructors[*key] = destructor;
+			return 0;
+		} catch (Key_allocator::Out_of_indices) {
+			return EAGAIN;
+		}
+	}
+
+	typeof(pthread_key_create) _pthread_key_create
+		__attribute__((alias("pthread_key_create")));
+
+
+	int pthread_key_delete(pthread_key_t key)
+	{
+		if (key < 0 || key >= PTHREAD_KEYS_MAX)
+			return EINVAL;
+
+		key_destructors[key] = nullptr;
+		key_allocator().free_key(key);
+		return 0;
+	}
+
+	typeof(pthread_key_delete) _pthread_key_delete
+		__attribute__((alias("pthread_key_delete")));
+
+
+	int pthread_setspecific(pthread_key_t key, const void *value)
+	{
+		if (key < 0 || key >= PTHREAD_KEYS_MAX)
+			return EINVAL;
+
+		pthread_t pthread_myself = pthread_self();
+		pthread_myself->setspecific(key, value);
+		return 0;
+	}
+
+	typeof(pthread_setspecific) _pthread_setspecific
+		__attribute__((alias("pthread_setspecific")));
+
+
+	void *pthread_getspecific(pthread_key_t key)
+	{
+		if (key < 0 || key >= PTHREAD_KEYS_MAX)
+			return nullptr;
+
+		pthread_t pthread_myself = pthread_self();
+		return (void*)pthread_myself->getspecific(key);
+	}
+
+	typeof(pthread_getspecific) _pthread_getspecific
+		__attribute__((alias("pthread_getspecific")));
+
 
 	/* Thread */
 
@@ -577,6 +687,24 @@ extern "C" {
 
 	void pthread_exit(void *value_ptr)
 	{
+		/* call TLS key destructors */
+
+		bool at_least_one_destructor_called;
+
+		do {
+			at_least_one_destructor_called = false;
+			for (pthread_key_t key = 0; key < PTHREAD_KEYS_MAX; key++) {
+				if (key_destructors[key]) {
+					void *value = pthread_getspecific(key);
+					if (value) {
+						pthread_setspecific(key, nullptr);
+						key_destructors[key](value);
+						at_least_one_destructor_called = true;
+					}
+				}
+			}
+		} while (at_least_one_destructor_called);
+
 		pthread_self()->exit(value_ptr);
 	}
 
@@ -593,14 +721,10 @@ extern "C" {
 
 	pthread_t pthread_self(void)
 	{
-		try {
-			pthread_t pthread_myself =
-				static_cast<pthread_t>(&Thread::Tls::Base::tls());
+		pthread_t pthread_myself = static_cast<pthread_t>(Pthread::myself());
 
-			if (pthread_registry().contains(*pthread_myself))
-				return pthread_myself;
-		}
-		catch (Thread::Tls::Base::Undefined) { }
+		if (pthread_myself)
+			return pthread_myself;
 
 		/*
 		 * We pass here if the main thread or an alien thread calls
@@ -620,7 +744,7 @@ extern "C" {
 		 * destruction of the pthread object would also destruct the 'Thread'
 		 * of the main thread.
 		 */
-		return unmanaged_singleton<pthread>(*Thread::myself());
+		return unmanaged_singleton<pthread>(*Thread::myself(), &pthread_myself);
 	}
 
 	typeof(pthread_self) _pthread_self
@@ -1166,136 +1290,6 @@ extern "C" {
 
 	typeof(pthread_cond_broadcast) _pthread_cond_broadcast
 		__attribute__((alias("pthread_cond_broadcast")));
-
-
-	/* TLS */
-
-
-	struct Key_element : List<Key_element>::Element
-	{
-		const void *thread_base;
-		const void *value;
-
-		Key_element(const void *thread_base, const void *value)
-		: thread_base(thread_base),
-		  value(value) { }
-	};
-
-
-	static Mutex &key_list_mutex()
-	{
-		static Mutex inst { };
-		return inst;
-	}
-
-
-	struct Keys
-	{
-		List<Key_element> key[PTHREAD_KEYS_MAX];
-	};
-
-
-	static Keys &keys()
-	{
-		static Keys inst { };
-		return inst;
-	}
-
-
-	int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
-	{
-		if (!key)
-			return EINVAL;
-
-		Mutex::Guard guard(key_list_mutex());
-
-		for (int k = 0; k < PTHREAD_KEYS_MAX; k++) {
-			/*
-			 * Find an empty key slot and insert an element for the current
-			 * thread to mark the key slot as used.
-			 */
-			if (!keys().key[k].first()) {
-				Libc::Allocator alloc { };
-				Key_element *key_element = new (alloc) Key_element(Thread::myself(), 0);
-				keys().key[k].insert(key_element);
-				*key = k;
-				return 0;
-			}
-		}
-
-		return EAGAIN;
-	}
-
-	typeof(pthread_key_create) _pthread_key_create
-		__attribute__((alias("pthread_key_create")));
-
-
-	int pthread_key_delete(pthread_key_t key)
-	{
-		if (key < 0 || key >= PTHREAD_KEYS_MAX || !keys().key[key].first())
-			return EINVAL;
-
-		Mutex::Guard guard(key_list_mutex());
-
-		while (Key_element * element = keys().key[key].first()) {
-			keys().key[key].remove(element);
-			Libc::Allocator alloc { };
-			destroy(alloc, element);
-		}
-
-		return 0;
-	}
-
-	typeof(pthread_key_delete) _pthread_key_delete
-		__attribute__((alias("pthread_key_delete")));
-
-
-	int pthread_setspecific(pthread_key_t key, const void *value)
-	{
-		if (key < 0 || key >= PTHREAD_KEYS_MAX)
-			return EINVAL;
-
-		void *myself = Thread::myself();
-
-		Mutex::Guard guard(key_list_mutex());
-
-		for (Key_element *key_element = keys().key[key].first(); key_element;
-		     key_element = key_element->next())
-			if (key_element->thread_base == myself) {
-				key_element->value = value;
-				return 0;
-			}
-
-		/* key element does not exist yet - create a new one */
-		Libc::Allocator alloc { };
-		Key_element *key_element = new (alloc) Key_element(Thread::myself(), value);
-		keys().key[key].insert(key_element);
-		return 0;
-	}
-
-	typeof(pthread_setspecific) _pthread_setspecific
-		__attribute__((alias("pthread_setspecific")));
-
-
-	void *pthread_getspecific(pthread_key_t key)
-	{
-		if (key < 0 || key >= PTHREAD_KEYS_MAX)
-			return nullptr;
-
-		void *myself = Thread::myself();
-
-		Mutex::Guard guard(key_list_mutex());
-
-		for (Key_element *key_element = keys().key[key].first(); key_element;
-		     key_element = key_element->next())
-			if (key_element->thread_base == myself)
-				return (void*)(key_element->value);
-
-		return 0;
-	}
-
-	typeof(pthread_getspecific) _pthread_getspecific
-		__attribute__((alias("pthread_getspecific")));
 
 
 	int pthread_once(pthread_once_t *once, void (*init_once)(void))

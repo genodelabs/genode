@@ -175,7 +175,8 @@ Thread::Stack_info Thread::mystack()
 {
 	addr_t base = Stack_allocator::addr_to_base(&base);
 	Stack *stack = Stack_allocator::base_to_stack(base);
-	return { stack->base(), stack->top() };
+	return { stack->base(), stack->top(),
+	         stack_virtual_size() - stack->libc_tls_pointer_offset() };
 }
 
 

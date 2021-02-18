@@ -86,6 +86,11 @@ class Genode::Stack
 		 */
 		addr_t _stack[1];
 
+		/*
+		 * TLS pointer for libc pthreads
+		 */
+		addr_t _libc_tls_pointer { };
+
 		/**
 		 * Thread name, used for debugging
 		 */
@@ -151,6 +156,15 @@ class Genode::Stack
 		 * Return base (the "end") of stack
 		 */
 		addr_t base() const { return _base; }
+
+		/**
+		 * Return libc TLS pointer offset relative to end of stack
+		 */
+		addr_t libc_tls_pointer_offset()
+		{
+			return (addr_t)this + sizeof(Stack) -
+			       (addr_t)&_libc_tls_pointer;
+		}
 
 		/**
 		 * Ensure that the stack has a given minimum size

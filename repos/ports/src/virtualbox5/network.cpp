@@ -186,7 +186,7 @@ class Nic_client
 		void _handle_pthread_registration()
 		{
 			Genode::Thread *myself = Genode::Thread::myself();
-			if (!myself || Libc::pthread_create(&_pthread, *myself)) {
+			if (!myself || Libc::pthread_create(&_pthread, *myself, &myself)) {
 				Genode::error("network will not work - thread for pthread "
 				              "registration invalid");
 				return;

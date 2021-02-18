@@ -50,9 +50,8 @@ class Genode::Thread
 		typedef Cpu_session::Name   Name;
 		typedef Cpu_session::Weight Weight;
 
-		struct Stack_info { addr_t base; addr_t top; };
-
-		struct Tls { struct Base; Base *ptr; };
+		struct Stack_info { addr_t base; addr_t top;
+		                    addr_t libc_tls_pointer_offset; };
 
 	private:
 
@@ -151,17 +150,6 @@ class Genode::Thread
 		 * This method is used by the tracing framework internally.
 		 */
 		static Trace::Logger *_logger();
-
-		/**
-		 * Base pointer to thread-local storage
-		 *
-		 * The opaque pointer allows higher-level thread libraries (i.e.,
-		 * pthread) to implement TLS. It should never be used outside such
-		 * libraries.
-		 */
-		Tls _tls { };
-
-		friend class Tls::Base;
 
 		/**
 		 * Hook for platform-specific constructor supplements

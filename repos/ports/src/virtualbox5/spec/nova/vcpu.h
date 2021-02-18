@@ -857,7 +857,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 		:
 			Vmm::Vcpu_dispatcher<Genode::Thread>(env, stack_size, cpu_connection,
 			                                     location, name),
-			_pthread(*this),
+			_pthread(*this, stack_top()),
 			_start_routine(start_routine),
 			_start_routine_arg(arg),
 			_vcpu(cpu_connection, location, pd_vcpu),

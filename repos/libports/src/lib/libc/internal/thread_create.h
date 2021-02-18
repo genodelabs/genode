@@ -32,7 +32,7 @@ namespace Libc {
 	                   size_t stack_size, char const * name,
 	                   Cpu_session * cpu, Affinity::Location location);
 
-	int pthread_create(pthread_t *, Thread &);
+	int pthread_create(pthread_t *, Thread &, void *stack_address);
 }
 
 #endif /* _LIBC__INTERNAL__THREAD_CREATE_H_ */

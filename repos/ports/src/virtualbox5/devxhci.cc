@@ -456,7 +456,7 @@ struct Usb_ep : Genode::Entrypoint
 	void _handle_pthread_registration()
 	{
 		Genode::Thread *myself = Genode::Thread::myself();
-		if (!myself || Libc::pthread_create(&_pthread, *myself)) {
+		if (!myself || Libc::pthread_create(&_pthread, *myself, &myself)) {
 			Genode::error("USB passthough will not work - thread for "
 			              "pthread registration invalid");
 		}

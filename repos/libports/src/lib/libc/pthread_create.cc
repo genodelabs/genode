@@ -104,10 +104,11 @@ int Libc::pthread_create(pthread_t *thread,
 }
 
 
-int Libc::pthread_create(pthread_t *thread, Thread &t)
+int Libc::pthread_create(pthread_t *thread, Thread &t, void *stack_address)
 {
 	Libc::Allocator alloc { };
-	pthread_t thread_obj = new (alloc) pthread(t);
+
+	pthread_t thread_obj = new (alloc) pthread(t, stack_address);
 
 	if (!thread_obj)
 		return EAGAIN;
