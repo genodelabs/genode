@@ -1094,6 +1094,65 @@ static void test_cleanup()
 }
 
 
+static pthread_key_t key;
+static bool key_destructor_func_called = false;
+
+static void test_tls_data()
+{
+	int test;
+
+	if (pthread_setspecific(key, &test) != 0) {
+		Genode::error("pthread_setspecific() failed");
+		exit(-1);
+	}
+
+	if (pthread_getspecific(key) != &test) {
+		Genode::error("pthread_getspecific() failed");
+		exit(-1);
+	}
+}
+
+
+static void key_destructor_func(void *value)
+{
+	key_destructor_func_called = true;
+}
+
+
+static void *thread_tls_func(void *)
+{
+	test_tls_data();
+	return nullptr;
+}
+
+
+static void test_tls()
+{
+	pthread_t t;
+	void *retval;
+
+	if (pthread_key_create(&key, key_destructor_func) != 0) {
+		Genode::error("pthread_key_create() failed");
+		exit(-1);
+	}
+
+	test_tls_data();
+
+	pthread_create(&t, 0, thread_tls_func, nullptr);
+	pthread_join(t, &retval);
+
+	if (pthread_key_delete(key) != 0) {
+		Genode::error("pthread_key_delete() failed");
+		exit(-1);
+	}
+
+	if (!key_destructor_func_called) {
+		Genode::error("TLS key destructor function was not called");
+		exit(-1);
+	}
+}
+
+
 int main(int argc, char **argv)
 {
 	printf("--- pthread test ---\n");
@@ -1111,6 +1170,7 @@ int main(int argc, char **argv)
 	test_lock_and_sleep();
 	test_cond();
 	test_cleanup();
+	test_tls();
 
 	printf("--- returning from main ---\n");
 	return 0;
