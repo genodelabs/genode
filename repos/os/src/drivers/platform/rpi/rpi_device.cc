@@ -66,18 +66,11 @@ void Driver::Rpi_device::release(Session_component & sc)
 }
 
 
-void Driver::Rpi_device::_report_platform_specifics(Genode::Xml_generator     & /*xml*/,
-                                                    Driver::Session_component & /*sc*/)
+void Driver::Rpi_device::_report_platform_specifics(Genode::Xml_generator     &,
+                                                    Driver::Session_component &)
 {
-	//_clock_list.for_each([&] (Clock & c) {
-	//	Avl_string_base * asb =
-	//		sc.env().ccm.tree.first()->find_by_name(c.name.string());
-	//	if (!asb || !c.driver_name.valid()) { return; }
-	//	Driver::Clock & clock =
-	//		static_cast<Driver::Clock::Clock_tree_element*>(asb)->object();
-	//	xml.node("clock", [&] () {
-	//		xml.attribute("rate", clock.get_rate());
-	//		xml.attribute("name", c.driver_name);
-	//	});
-	//});
+	/*
+	 * Normally, the platform driver should report about clock settings of the
+	 * device etc. here. But we do not implement clocking for RPI yet.
+	 */
 }
