@@ -105,6 +105,8 @@ typedef unsigned long phys_addr_t;
 typedef unsigned __poll_t;
 typedef unsigned slab_flags_t;
 
+extern unsigned long loops_per_jiffy;  /* needed by 'dwc_otg_attr.c' */
+
 
 /**********************
  ** linux/compiler.h **

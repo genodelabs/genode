@@ -33,6 +33,8 @@
 #include <lx_emul/impl/slab.h>
 #include <lx_emul/impl/mutex.h>
 
+unsigned long loops_per_jiffy = 1;  /* needed by 'dwc_otg_attr.c' */
+
 namespace Genode {
 	class Slab_backend_alloc;
 	class Slab_alloc;
