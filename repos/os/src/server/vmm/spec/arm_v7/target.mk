@@ -11,7 +11,6 @@ SRC_CC   += main.cc
 SRC_CC   += mmio.cc
 SRC_CC   += pl011.cc
 SRC_CC   += vm.cc
-SRC_CC   += virtio_device.cc
 INC_DIR  += $(PRG_DIR)/../.. $(PRG_DIR)
 
 vpath %.cc $(PRG_DIR)/../..

@@ -51,7 +51,7 @@ void Mmio_register::write(Address_range & access, Cpu & cpu, Register value)
 }
 
 
-Mmio_register::Register Mmio_register::value() { return _value; }
+Mmio_register::Register Mmio_register::value() const { return _value; }
 
 
 void Mmio_register::set(Register value) { _value = value; }

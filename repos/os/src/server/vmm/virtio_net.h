@@ -18,14 +18,14 @@
 
 #include <virtio_device.h>
 
-namespace Vmm
-{
-	class Virtio_net;
-}
+namespace Vmm { class Virtio_net; }
 
-class Vmm::Virtio_net : public Virtio_device
+
+class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 {
 	private:
+
+		enum Queue_id { RX, TX };
 
 		Genode::Env &_env;
 
@@ -59,10 +59,6 @@ class Vmm::Virtio_net : public Virtio_device
 				Nic::Packet_descriptor const rx_packet = _nic.rx()->get_packet();
 
 				size_t sz = Genode::min(size, rx_packet.size() + NIC_HEADER_SIZE);
-
-				if (_queue[RX]->verbose() && sz < rx_packet.size() + NIC_HEADER_SIZE)
-					Genode::warning("[rx] trim packet from ",
-					                 rx_packet.size() + NIC_HEADER_SIZE, " -> ", sz, " bytes");
 
 				Genode::memcpy((void *)(data + NIC_HEADER_SIZE),
 				               _nic.rx()->packet_content(rx_packet),
@@ -121,28 +117,24 @@ class Vmm::Virtio_net : public Virtio_device
 			_rx();
 		}
 
-		Register _device_specific_features() override
-		{
-			enum { VIRTIO_NET_F_MAC = 1u << 5 };
-			return VIRTIO_NET_F_MAC;
-		}
+		enum Device_id { NIC = 0x1 };
 
-		struct ConfigArea : Mmio_register
+		struct Config_area : Reg
 		{
-			Nic::Mac_address &mac;
+			Nic::Mac_address & mac;
 
-			Register read(Address_range& range,  Cpu&) override
+			Register read(Address_range & range,  Cpu&) override
 			{
 				if (range.start > 5) return 0;
 
 				return mac.addr[range.start];
 			}
 
-			ConfigArea(Nic::Mac_address &mac)
-			: Mmio_register("ConfigArea", Mmio_register::RO, 0x100, 8),
+			Config_area(Virtio_net & device, Nic::Mac_address & mac)
+			: Reg(device, "ConfigArea", Mmio_register::RO, 0x100, 8),
 			  mac(mac)
 			{ }
-		} _config_area { _mac };
+		} _config_area { *this, _mac };
 
 	public:
 
@@ -154,14 +146,14 @@ class Vmm::Virtio_net : public Virtio_device
 		           Mmio_bus &bus,
 		           Ram      &ram,
 		           Genode::Env &env)
-		: Virtio_device(name, addr, size, irq, cpu, bus, ram, 1024),
-		  _env(env),
-		  _handler(cpu, _env.ep(), *this, &Virtio_net::_handle)
+		:
+			Virtio_device<Virtio_split_queue, 2>(name, addr, size,
+			                                     irq, cpu, bus, ram, NIC),
+			_env(env),
+			_handler(cpu, _env.ep(), *this, &Virtio_net::_handle)
 		{
-			/* set device ID to network */
-			_device_id(0x1);
-
-			add(_config_area);
+			enum { VIRTIO_NET_F_MAC = 1u << 5 };
+			_dev_feature.set(VIRTIO_NET_F_MAC);
 
 			_nic.tx_channel()->sigh_ready_to_submit(_handler);
 			_nic.tx_channel()->sigh_ack_avail      (_handler);

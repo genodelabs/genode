@@ -18,14 +18,14 @@
 
 #include <virtio_device.h>
 
-namespace Vmm
-{
-	class Virtio_console;
-}
+namespace Vmm { class Virtio_console; }
 
-class Vmm::Virtio_console : public Virtio_device
+
+class Vmm::Virtio_console : public Virtio_device<Virtio_split_queue, 2>
 {
 	private:
+
+		enum Queue_id { RX, TX };
 
 		Terminal::Connection                _terminal;
 		Cpu::Signal_handler<Virtio_console> _handler;
@@ -62,25 +62,24 @@ class Vmm::Virtio_console : public Virtio_device
 				_assert_irq();
 		}
 
-		Register _device_specific_features() override { return 0; }
+		enum Device_id { CONSOLE = 0x3 };
 
 	public:
 
 		Virtio_console(const char * const name,
-		               const uint64_t addr,
-		               const uint64_t size,
-		               unsigned irq,
-		               Cpu      &cpu,
-		               Mmio_bus &bus,
-		               Ram      &ram,
-		               Genode::Env &env)
-		: Virtio_device(name, addr, size, irq, cpu, bus, ram),
-		  _terminal(env, "console"),
-		  _handler(cpu, env.ep(), *this, &Virtio_console::_read)
+		               const uint64_t     addr,
+		               const uint64_t     size,
+		               unsigned           irq,
+		               Cpu              & cpu,
+		               Mmio_bus         & bus,
+		               Ram              & ram,
+		               Genode::Env      & env)
+		:
+			Virtio_device<Virtio_split_queue, 2>(name, addr, size,
+			                                     irq, cpu, bus, ram, CONSOLE),
+			_terminal(env, "console"),
+			_handler(cpu, env.ep(), *this, &Virtio_console::_read)
 		{
-			/* set device ID to console */
-			_device_id(0x3);
-
 			_terminal.read_avail_sigh(_handler);
 		}
 };

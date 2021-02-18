@@ -35,8 +35,8 @@ class Vmm::Mmio_register : public Vmm::Address_range
 
 		virtual Register read(Address_range  & access, Cpu&);
 		virtual void     write(Address_range & access, Cpu&, Register value);
-		void             set(Register value);
-		Register         value();
+		virtual void     set(Register value);
+		virtual Register value() const;
 
 		Mmio_register(Name             name,
 		              Type             type,
