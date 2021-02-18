@@ -9,7 +9,8 @@ if {[have_board rpi3] || [have_board imx53_qsb_tz]} {
 	exit 0
 }
 
-if {[get_cmd_switch --autopilot] && [have_board linux]} {
+if {[get_cmd_switch --autopilot] && ([have_board linux] ||
+                                     [have_board riscv_qemu])} {
 	puts "Autopilot mode is not supported on this platform."
 	exit 0
 }

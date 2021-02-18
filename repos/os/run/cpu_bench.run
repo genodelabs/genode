@@ -1,11 +1,11 @@
-if { [get_cmd_switch --autopilot] } {
+if {[get_cmd_switch --autopilot]} {
 	if {[have_include "power_on/qemu"]} {
 		puts "\nRun script does not support Qemu.\n"
 		exit 0
 	}
 }
 
-if {[have_board linux] || [have_board spike]} {
+if {[have_board linux]} {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
 }

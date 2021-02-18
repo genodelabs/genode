@@ -9,6 +9,11 @@ if {[have_board zynq_qemu]} {
 	exit 0
 }
 
+if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+
 # use SD on Qemu/pbxa9
 set use_sd_card_drv [expr [have_include "power_on/qemu"] && [have_board pbxa9]]
 

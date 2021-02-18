@@ -8,7 +8,8 @@ if {[have_board imx7d_sabre] ||
 	exit 0
 }
 
-if {[get_cmd_switch --autopilot] && [have_spec linux]} {
+if {[get_cmd_switch --autopilot] && ([have_spec linux] ||
+                                     [have_board riscv_qemu])} {
 	puts "\nAutopilot run is not supported on this platform\n"
 	exit 0
 }

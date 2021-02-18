@@ -1,3 +1,8 @@
+if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+
 set build_components {
 	core init timer
 	lib/vfs/lxip

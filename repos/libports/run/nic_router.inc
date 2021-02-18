@@ -1,4 +1,7 @@
-
+if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 set targets "core init timer server/nic_router server/nic_bridge
