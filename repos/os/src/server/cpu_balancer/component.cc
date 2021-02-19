@@ -19,6 +19,7 @@
 
 #include <cpu_session/cpu_session.h>
 #include <timer_session/connection.h>
+#include <pd_session/connection.h>
 
 #include "session.h"
 #include "config.h"
@@ -26,6 +27,8 @@
 
 namespace Cpu {
 	struct Balancer;
+	struct Pd_root;
+	struct Cpu_pd_session;
 
 	using Genode::Affinity;
 	using Genode::Attached_rom_dataspace;
@@ -38,6 +41,7 @@ namespace Cpu {
 	using Genode::Signal_handler;
 	using Genode::Sliced_heap;
 	using Genode::Typed_root;
+	using Genode::Pd_session;
 }
 
 template <typename EXC, typename T, typename FUNC, typename HANDLER>
@@ -68,46 +72,12 @@ auto retry(T &env, FUNC func, HANDLER handler,
 typedef Genode::Registry<Genode::Registered<Cpu::Sleeper> >   Sleeper_list;
 typedef Genode::Tslab<Genode::Registered<Cpu::Sleeper>, 4096> Tslab_sleeper;
 
-struct Cpu::Balancer : Rpc_object<Typed_root<Cpu_session>>
-{
-	Genode::Env            &env;
-	Attached_rom_dataspace  config        { env, "config" };
-	Timer::Connection       timer         { env };
-	Sliced_heap             slice         { env.ram(), env.rm() };
-	Child_list              list          { };
-	Constructible<Trace>    trace         { };
-	Constructible<Reporter> reporter      { };
-	uint64_t                timer_us      { 1000 * 1000UL };
-	Session_label           label         { };
-	unsigned                report_size   { 4096 * 1 };
-	Tslab_sleeper           alloc_thread  { slice };
-	Sleeper_list            sleeper       { };
-	bool                    verbose       { false };
-	bool                    update_report { false };
-	bool                    use_sleeper   { true  };
-
-	Signal_handler<Balancer> signal_config {
-		env.ep(), *this, &Balancer::handle_config };
-
-	void handle_config();
-	void handle_timeout();
-
-	/*
-	 * Need extra EP to avoid dead-lock/live-lock (depending on kernel)
-	 * due to down-calls by this component, e.g. parent.upgrade(...), and
-	 * up-calls by parent using this CPU service, e.g. to create initial thread
-	 *
-	 * Additionally, a list_mutex is required due to having 2 EPs now.
-	 */
-	Entrypoint ep { env, 4 * 4096, "live/dead-lock", Affinity::Location() };
-
-	Signal_handler<Balancer> signal_timeout {
-		ep, *this, &Balancer::handle_timeout };
-
-	Genode::Mutex list_mutex { };
+namespace Cpu {
 
 	template <typename FUNC>
-	Session_capability _withdraw_quota(Root::Session_args const &args, FUNC const &fn)
+	Session_capability withdraw_quota(Sliced_heap &slice,
+	                                  Root::Session_args const &args,
+	                                  FUNC const &fn)
 	{
 		/*
 		 * We need to decrease 'ram_quota' by
@@ -152,6 +122,110 @@ struct Cpu::Balancer : Rpc_object<Typed_root<Cpu_session>>
 
 		return fn(argbuf);
 	}
+}
+
+struct Cpu::Cpu_pd_session
+{
+	Parent::Client parent_client { };
+	Client_id      id;
+
+	Genode::Capability<Pd_session> pd_cap;
+
+	Cpu_pd_session(Genode::Env              &env,
+	               Root::Session_args const &args,
+	               Affinity           const &affinity)
+	:
+		id(parent_client, env.id_space()),
+		pd_cap(env.session<Pd_session>(id.id(), args, affinity))
+	{ }
+
+	virtual ~Cpu_pd_session() { }
+};
+
+struct Cpu::Pd_root : Rpc_object<Typed_root<Pd_session>>
+{
+	Env                                   &env;
+	Sliced_heap                            slice    { env.ram(), env.rm() };
+	Registry<Registered<Cpu_pd_session> >  sessions { };
+
+	Session_capability session(Root::Session_args const &args,
+	                           Affinity const &affinity) override
+	{
+		return withdraw_quota(slice, args,
+		                      [&] (char const * const session_args) {
+			return (new (slice) Registered<Cpu_pd_session>(sessions, env,
+			                                               session_args,
+			                                               affinity))->pd_cap;
+		});
+	}
+
+	void upgrade(Session_capability const, Root::Upgrade_args const &) override
+	{
+		/*
+		 * The PD cap (of the parent) is pass through to the client directly,
+		 * so we should not get any upgrades here.
+		 */
+		Genode::warning("Pd upgrade unexpected");
+	}
+
+	void close(Session_capability const cap) override
+	{
+		if (!cap.valid()) { 
+			Genode::error("unknown cap");
+			return;
+		}
+
+		sessions.for_each([&](auto &session) {
+			if (session.pd_cap == cap)
+				destroy(slice, &session);
+		});
+	}
+
+	Pd_root(Genode::Env &env) : env(env)
+	{
+		env.parent().announce(env.ep().manage(*this));
+	}
+};
+
+struct Cpu::Balancer : Rpc_object<Typed_root<Cpu_session>>
+{
+	Genode::Env            &env;
+	Attached_rom_dataspace  config        { env, "config" };
+	Timer::Connection       timer         { env };
+	Sliced_heap             slice         { env.ram(), env.rm() };
+	Child_list              list          { };
+	Constructible<Trace>    trace         { };
+	Constructible<Reporter> reporter      { };
+	uint64_t                timer_us      { 1000 * 1000UL };
+	Session_label           label         { };
+	unsigned                report_size   { 4096 * 1 };
+	Tslab_sleeper           alloc_thread  { slice };
+	Sleeper_list            sleeper       { };
+	bool                    verbose       { false };
+	bool                    update_report { false };
+	bool                    use_sleeper   { true  };
+
+	Cpu::Pd_root            pd            { env };
+
+	Signal_handler<Balancer> signal_config {
+		env.ep(), *this, &Balancer::handle_config };
+
+	void handle_config();
+	void handle_timeout();
+
+	/*
+	 * Need extra EP to avoid dead-lock/live-lock (depending on kernel)
+	 * due to down-calls by this component, e.g. parent.upgrade(...), and
+	 * up-calls by parent using this CPU service, e.g. to create initial thread
+	 *
+	 * Additionally, a list_mutex is required due to having 2 EPs now.
+	 */
+	Entrypoint ep { env, 4 * 4096, "live/dead-lock", Affinity::Location() };
+
+	Signal_handler<Balancer> signal_timeout {
+		ep, *this, &Balancer::handle_timeout };
+
+	Genode::Mutex list_mutex { };
 
 	/***********************
 	 ** Session interface **
@@ -160,7 +234,8 @@ struct Cpu::Balancer : Rpc_object<Typed_root<Cpu_session>>
 	Session_capability session(Root::Session_args const &args,
 	                           Affinity const &affinity) override
 	{
-		return _withdraw_quota(args, [&] (char const * const session_args) {
+		return withdraw_quota(slice, args,
+		                      [&] (char const * const session_args) {
 			if (verbose)
 				log("new session '", args.string(), "' -> '", session_args, "' ",
 				    affinity.space().width(), "x", affinity.space().height(), " ",

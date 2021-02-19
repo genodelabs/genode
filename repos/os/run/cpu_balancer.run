@@ -24,7 +24,7 @@ create_boot_directory
 import_from_depot [depot_user]/src/report_rom
 
 append config {
-<config prio_levels="2">
+<config prio_levels="2" verbose="yes">
 	<affinity-space width="} $cpu_width {" height="} $cpu_height {"/>
 	<parent-provides>
 		<service name="LOG"/>
@@ -65,7 +65,10 @@ append_if [expr $report_config eq "yes"] config {
 append config {
 	<start name="cpu_balancer">
 		<resource name="RAM" quantum="2M"/>
-		<provides><service name="CPU"/></provides>
+		<provides>
+			<service name="PD"/>
+			<service name="CPU"/>
+		</provides>
 		<config interval_us="2000000"
 		        report="} $report_config {"
 		        trace="} $use_trace {"
@@ -90,6 +93,7 @@ append config {
 		<affinity xpos="1" ypos="0" width="2" height="1"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
+			<service name="PD">  <child name="cpu_balancer"/> </service>
 			<service name="CPU"> <child name="cpu_balancer"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>

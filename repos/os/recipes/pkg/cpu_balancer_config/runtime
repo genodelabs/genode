@@ -1,6 +1,6 @@
 <runtime ram="7M" caps="700" binary="init">
 
-	<provides> <cpu/> </provides>
+	<provides> <pd/> <cpu/> </provides>
 
 	<requires>
 		<trace/>
@@ -10,6 +10,9 @@
 
 	<config>
 
+		<service name="PD">
+			<default-policy> <child name="cpu_balancer"/> </default-policy>
+		</service>
 		<service name="CPU">
 			<default-policy> <child name="cpu_balancer"/> </default-policy>
 		</service>
@@ -50,7 +53,10 @@
 		<start name="cpu_balancer" caps="200">
 			<resource name="RAM" quantum="2M"/>
 
-			<provides><service name="CPU"/></provides>
+			<provides>
+				<service name="PD"/>
+				<service name="CPU"/>
+			</provides>
 <!--
 			<config interval_us="1000000" report="yes" trace="yes"/>
 -->

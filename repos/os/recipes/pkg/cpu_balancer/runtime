@@ -1,6 +1,6 @@
 <runtime ram="2M" caps="150" binary="cpu_balancer">
 
-	<provides> <cpu/> </provides>
+	<provides> <pd/> <cpu/> </provides>
 
 	<requires>
 		<trace/>

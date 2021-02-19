@@ -50,7 +50,8 @@ void Cpu::Session::update_threads(Trace &trace, Session_label const &cpu_balance
 					log("[", _label, "] name='", name, "' at ",
 					    current_loc.xpos(), "x", current_loc.ypos(),
 					    " has ec/sc time ", time.thread_context, "/",
-					                        time.scheduling_context);
+					                        time.scheduling_context,
+					    " policy=", policy.string());
 			});
 		} catch (Genode::Trace::Nonexistent_subject) {
 			/* how could that be ? */
