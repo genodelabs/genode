@@ -48,16 +48,16 @@ proc run_boot_dir {binaries} {
 	set core_arg      ""
 	set ld_arg        ""
 
-	if {![file exists [run_dir]/genode/ld.lib.so]}      { set ld_arg        lib/ld/hw    }
-	if {![file exists [run_dir]/genode/core-hw.o]}      { set core_arg      core/hw      }
-	if {![file exists [run_dir]/genode/bootstrap-hw.o]} { set bootstrap_arg bootstrap/hw }
+	if {![file exists [run_dir]/genode/ld.lib.so]}              { set ld_arg        lib/ld/hw    }
+	if {![file exists [run_dir]/genode/core-hw-[board].o]}      { set core_arg      core/hw      }
+	if {![file exists [run_dir]/genode/bootstrap-hw-[board].o]} { set bootstrap_arg bootstrap/hw }
 
 	set build_args "$bootstrap_arg $core_arg $ld_arg"
 	if {[llength $build_args]} { build $build_args }
 
-	if {$ld_arg        != ""} { file copy -force bin/ld-hw.lib.so   [run_dir]/genode/ld.lib.so }
-	if {$core_arg      != ""} { file copy -force bin/core-hw-[board].o      [run_dir]/genode/core-hw.o }
-	if {$bootstrap_arg != ""} { file copy -force bin/bootstrap-hw-[board].o [run_dir]/genode/bootstrap-hw.o }
+	if {$ld_arg        != ""} { file copy -force bin/ld-hw.lib.so  [run_dir]/genode/ld.lib.so }
+	if {$core_arg      != ""} { file copy -force bin/core-hw-[board].o      [run_dir]/genode/ }
+	if {$bootstrap_arg != ""} { file copy -force bin/bootstrap-hw-[board].o [run_dir]/genode/ }
 
 	#
 	# Copy specified modules to the run directory, excluding core.
@@ -68,8 +68,8 @@ proc run_boot_dir {binaries} {
 
 	puts "core link address is [core_link_address]"
 
-	set core_obj      core-hw.o
-	set bootstrap_obj bootstrap-hw.o
+	set core_obj      core-hw-[board].o
+	set bootstrap_obj bootstrap-hw-[board].o
 
 	# create core and bootstrap binary without modules for debugging
 	if {[file exists debug/core-hw-[board].o]} {
