@@ -41,6 +41,10 @@ namespace Vmm {
 		VIRTIO_NET_MMIO_SIZE      = 0x200,
 		VIRTIO_NET_IRQ            = 49,
 
+		VIRTIO_BLK_MMIO_START     = 0xa000400,
+		VIRTIO_BLK_MMIO_SIZE      = 0x200,
+		VIRTIO_BLK_IRQ            = 50,
+
 		RAM_START                 = 0x40000000,
 		RAM_SIZE                  = 128 * 1024 *1024,
 

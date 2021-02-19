@@ -86,4 +86,11 @@
 		dma-coherent;
 		reg = <0x00 0xa000200 0x00 0x200>;
 	};
+
+	virtio_mmio@a000400 {
+		interrupts = <0x00 0x12 0x01>;
+		compatible = "virtio,mmio";
+		dma-coherent;
+		reg = <0x00 0xa000400 0x00 0x200>;
+	};
 };

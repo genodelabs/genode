@@ -55,7 +55,9 @@ Vm::Vm(Genode::Env & env)
   _virtio_console("HVC", VIRTIO_CONSOLE_MMIO_START, VIRTIO_CONSOLE_MMIO_SIZE,
                   VIRTIO_CONSOLE_IRQ, boot_cpu(), _bus, _ram, env),
   _virtio_net("Net", VIRTIO_NET_MMIO_START, VIRTIO_NET_MMIO_SIZE,
-              VIRTIO_NET_IRQ, boot_cpu(), _bus, _ram, env)
+              VIRTIO_NET_IRQ, boot_cpu(), _bus, _ram, env),
+  _virtio_block("Block", VIRTIO_BLK_MMIO_START, VIRTIO_BLK_MMIO_SIZE,
+                VIRTIO_BLK_IRQ, boot_cpu(), _bus, _ram, env, _heap)
 {
 	_vm.attach(_vm_ram.cap(), RAM_START);
 

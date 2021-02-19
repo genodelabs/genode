@@ -12,16 +12,18 @@ if { ![have_board imx7d_sabre] && ![have_board imx8q_evk] &&
 	exit 0
 }
 
-set build_components {
-	core init timer
-	server/terminal_crosslink
-	test/terminal_expect_send
-	server/log_terminal
-	server/nic_router
-	server/vmm
-}
-build $build_components
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/log_terminal \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/terminal_crosslink \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_block \
+                  [depot_user]/src/vmm
+
+build { test/terminal_expect_send }
 
 install_config {
 <config verbose="yes" prio_levels="2">
@@ -39,10 +41,12 @@ install_config {
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
 	<start name="nic_drv">
 		<binary name="nic_router" />
 		<resource name="RAM" quantum="8M"/>
@@ -57,14 +61,29 @@ install_config {
 			</domain>
 		</config>
 	</start>
+
+	<start name="vfs_block">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Block"/> </provides>
+		<config>
+			<vfs> <rom name="block.img"/> </vfs>
+			<default-policy file="/block.img" block_size="512"/>
+		</config>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
 	<start name="log_terminal">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Terminal"/> </provides>
 	</start>
+
 	<start name="terminal_crosslink">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
 	</start>
+
 	<start name="vmm" caps="200" priority="-1">
 		<resource name="RAM" quantum="256M"/>
 		<route>
@@ -74,10 +93,11 @@ install_config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
+
 	<start name="vm">
 		<binary name="test-terminal_expect_send"/>
 		<resource name="RAM" quantum="1M"/>
-		<config expect="/ #" send="ls" verbose="yes"/>
+		<config expect="/ #" send="mount /dev/vda /root; cp -r /etc /root; ls /root/etc; umount /root" verbose="yes"/>
 		<route>
 			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
 			<any-service><parent/><any-child/></any-service>
@@ -96,7 +116,7 @@ if { [have_spec arm] } {
 
 	if {![file exists bin/dtb]} {
 		puts "Download device tree blob ..."
-			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-20.05/dtb-arm32-virt
+			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-21.02/dtb-arm32-virt
 	}
 
 	if {![file exists bin/initrd]} {
@@ -153,7 +173,7 @@ if { [have_spec arm_64] } {
 
 	if {![file exists bin/dtb]} {
 		puts "Download device tree blob ..."
-			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-20.11/dtb-arm64-virt-smp
+			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-21.02/dtb-arm64-virt-smp
 	}
 
 	if {![file exists bin/initrd]} {
@@ -200,23 +220,21 @@ if { [have_spec arm_64] } {
 #      find . | cpio -H newc -o | gzip > ../initrd
 }
 
-set boot_modules {
-	core ld.lib.so init
-	timer
-	terminal_crosslink
+catch { exec [installed_command dd] if=/dev/zero of=bin/block.img bs=1M count=0 seek=64 }
+exec [installed_command mkfs.vfat] bin/block.img
+
+build_boot_image {
 	test-terminal_expect_send
-	nic_router
-	log_terminal
-	vmm
 	linux
 	dtb
 	initrd
+	block.img
 }
-build_boot_image $boot_modules
 
 #
 # Execute test case
 #
 append qemu_args " -nographic "
-run_genode_until "\[init -> vm\] .*sbin.*" 220
-exec rm bin/linux bin/dtb bin/initrd
+
+run_genode_until "\[init -> vm\] .*resolv.conf.*" 220
+exec rm bin/linux bin/dtb bin/initrd bin/block.img
