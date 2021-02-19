@@ -1,4 +1,4 @@
 LIBS     := core-nova
-CORE_OBJ := core-nova.o
+CORE_LIB := core-nova.a
 
 include $(BASE_DIR)/src/core/target.inc

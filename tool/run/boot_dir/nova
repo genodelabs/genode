@@ -1,5 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-nova.lib.so" }
-proc binary_name_core_o    { } { return "core-nova.o" }
+proc binary_name_core_a    { } { return "core-nova.a" }
 proc binary_name_timer     { } { return "nova_timer_drv" }
 
 proc kernel_files { } { return hypervisor }
@@ -36,14 +36,14 @@ proc run_boot_dir {binaries} {
 	set core_arg   ""
 	set ld_arg     ""
 	if {![file exists [run_dir]/genode/hypervisor]}  { set kernel_arg kernel }
-	if {![file exists [run_dir]/genode/core-nova.o]} { set core_arg   core/nova }
+	if {![file exists [run_dir]/genode/core-nova.a]} { set core_arg   core/nova }
 	if {![file exists [run_dir]/genode/ld.lib.so]}   { set ld_arg     lib/ld/nova }
 
 	set targets "$kernel_arg $core_arg $ld_arg"
 	if {[llength $targets]} { build $targets }
 
 	if {$kernel_arg != ""} { file copy -force bin/hypervisor     [run_dir]/genode/hypervisor }
-	if {$core_arg   != ""} { file copy -force bin/core-nova.o    [run_dir]/genode/core-nova.o }
+	if {$core_arg   != ""} { file copy -force bin/core-nova.a    [run_dir]/genode/core-nova.a }
 	if {$ld_arg     != ""} { file copy -force bin/ld-nova.lib.so [run_dir]/genode/ld.lib.so }
 
 	#

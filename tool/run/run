@@ -969,7 +969,7 @@ proc kernel_files { } { return { } }
 #
 proc build_core_image { modules } {
 
-	set core_obj [kernel_specific_binary core.o]
+	set core_obj [kernel_specific_binary core.a]
 
 	# replace 'core' with actual core-object name in 'modules' list
 	if {[lsearch $modules "core"] != -1} {

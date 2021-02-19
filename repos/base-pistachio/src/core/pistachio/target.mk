@@ -1,4 +1,4 @@
 LIBS     := core-pistachio
-CORE_OBJ := core-pistachio.o
+CORE_LIB := core-pistachio.a
 
 include $(BASE_DIR)/src/core/target.inc

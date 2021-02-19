@@ -1,4 +1,4 @@
 LIBS     := core-sel4
-CORE_OBJ := core-sel4.o
+CORE_LIB := core-sel4.a
 
 include $(BASE_DIR)/src/core/target.inc

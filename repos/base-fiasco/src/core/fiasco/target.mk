@@ -1,4 +1,4 @@
 LIBS     := core-fiasco
-CORE_OBJ := core-fiasco.o
+CORE_LIB := core-fiasco.a
 
 include $(BASE_DIR)/src/core/target.inc

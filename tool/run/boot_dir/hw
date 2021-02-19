@@ -1,5 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-hw.lib.so" }
-proc binary_name_core_o    { } { return "core-hw.o"    }
+proc binary_name_core_a    { } { return "core-hw.a"    }
 proc binary_name_timer     { } { return "hw_timer_drv" }
 
 
@@ -49,14 +49,14 @@ proc run_boot_dir {binaries} {
 	set ld_arg        ""
 
 	if {![file exists [run_dir]/genode/ld.lib.so]}              { set ld_arg        lib/ld/hw    }
-	if {![file exists [run_dir]/genode/core-hw-[board].o]}      { set core_arg      core/hw      }
+	if {![file exists [run_dir]/genode/core-hw-[board].a]}      { set core_arg      core/hw      }
 	if {![file exists [run_dir]/genode/bootstrap-hw-[board].o]} { set bootstrap_arg bootstrap/hw }
 
 	set build_args "$bootstrap_arg $core_arg $ld_arg"
 	if {[llength $build_args]} { build $build_args }
 
 	if {$ld_arg        != ""} { file copy -force bin/ld-hw.lib.so  [run_dir]/genode/ld.lib.so }
-	if {$core_arg      != ""} { file copy -force bin/core-hw-[board].o      [run_dir]/genode/ }
+	if {$core_arg      != ""} { file copy -force bin/core-hw-[board].a      [run_dir]/genode/ }
 	if {$bootstrap_arg != ""} { file copy -force bin/bootstrap-hw-[board].o [run_dir]/genode/ }
 
 	#
@@ -68,12 +68,12 @@ proc run_boot_dir {binaries} {
 
 	puts "core link address is [core_link_address]"
 
-	set core_obj      core-hw-[board].o
+	set core_obj      core-hw-[board].a
 	set bootstrap_obj bootstrap-hw-[board].o
 
 	# create core and bootstrap binary without modules for debugging
 	if {[file exists debug/core-hw-[board].o]} {
-		build_core debug/core-hw-[board].o         {} [run_dir].core      [core_link_address]
+		build_core debug/core-hw-[board].a         {} [run_dir].core      [core_link_address]
 		build_core [run_dir]/genode/$bootstrap_obj {} [run_dir].bootstrap [bootstrap_link_address]
 	}
 
