@@ -9,6 +9,7 @@
 # 'create_builddir' tool within the Genode source tree
 #
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
+export GENODE_CONTRIB_CACHE ?= $(GENODE_DIR)/contrib/cache
 
 include $(GENODE_DIR)/tool/ports/mk/front_end.inc
 include $(GENODE_DIR)/tool/ports/mk/check_port_arg.inc
