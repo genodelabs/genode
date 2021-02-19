@@ -2987,7 +2987,7 @@ applications, most prominently, it serves as the foundation of the KDE project.
 Since the release 9.05, the official distribution of Genode supports Qt4 as a
 regular feature. The document "Portierung von Qt auf Genode" _(german)_
 describes the challenging endeavor of porting this high-complexity C++
-framework to Genode. Major problems to overcome had been the missing C libary
+framework to Genode. Major problems to overcome had been the missing C library
 (at the time when the project started), the integration of the Qt4 project
 files with Genode's build system, the adaption of Qt4 to the basic primitives
 provided by Genode, and the integration of Qt4 with Genode's GUI. In addition
