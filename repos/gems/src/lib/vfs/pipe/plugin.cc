@@ -128,12 +128,12 @@ struct Vfs_pipe::Pipe
 
 	void submit_read_signal()
 	{
-		Genode::Signal_transmitter(_read_notify_handler).submit();
+		_read_notify_handler.local_submit();
 	}
 
 	void submit_write_signal()
 	{
-		Genode::Signal_transmitter(_write_notify_handler).submit();
+		_write_notify_handler.local_submit();
 	}
 
 	/**
@@ -212,7 +212,6 @@ struct Vfs_pipe::Pipe
 		bool notify = buffer.empty();
 
 		if (buffer.avail_capacity() == 0) {
-			submit_read_signal();
 			out_count = 0;
 			return Write_result::WRITE_OK;
 		}
