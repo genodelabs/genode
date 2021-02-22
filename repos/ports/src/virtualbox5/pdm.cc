@@ -90,7 +90,7 @@ int PDMR3LdrGetSymbolR3(PVM pVM, const char *pszModule, const char *pszSymbol,
 	 *
 	 * In this case, it is expected to return the pointer to the symbol
 	 * called 'VBoxDriversRegister', which is normally contained in the
-	 * dynamically loaded VBoxDD module. However, we link the driver
+	 * dynamically loaded VBoxDD module. However, we link the drivers
 	 * statically to the binary. So we return the local pointer.
 	 */
 	if (Genode::strcmp(pszModule, "VBoxDD") == 0) {
