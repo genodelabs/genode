@@ -65,34 +65,24 @@ The source tree is composed of the following subdirectories:
 
 :'doc':
 
-  This directory contains general documentation. Please consider the following
-  document for a quick guide to get started with the framework:
-
-  ! doc/getting_started.txt
-
-  If you are curious about the ready-to-use components that come with the
-  framework, please review the components overview:
-
-  ! doc/components.txt
+  This directory contains general documentation along with a comprehensive
+  collection of release notes.
 
 :'repos':
 
-  This directory contains the so-called source-code repositories of Genode.
-  Please refer to the README file in the 'repos' directory to learn more
-  about the roles of the individual repositories.
+  This directory contains the source code, organized in so-called source-code
+  repositories. Please refer to the README file in the 'repos' directory to
+  learn more about the roles of the individual repositories.
 
 :'tool':
 
   Source-code management tools and scripts. Please refer to the README file
   contained in the directory.
 
-:'depot' and 'public':
+:'depot':
 
-  Local depot and public archive of Genode packages. Please refer to
-
-  ! doc/depot.txt
-
-  for more details.
+  Directory used by Genode's package-management tools. It contains the public
+  keys and download locations of software providers.
 
 
 Additional community-maintained components
