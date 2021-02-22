@@ -1,0 +1,663 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 21.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+Genode 21.02 stays close to the plan laid out on our
+[https://genode.org/about/road-map - road map], featuring a healthy dose
+of optimizations, extends the framework's ARM SoC options, and introduces
+three longed-for new features.
+
+First, we extended our concept of pluggable device drivers to all network
+drivers, including Ethernet and Wifi.
+As reported in Section [Pluggable network device drivers], such drivers can
+now gracefully be started, restarted, removed, and updated at runtime without
+disrupting network-application stacks.
+
+Second, the release features the infrastructure needed for mobile-data
+communication over LTE, which is a prerequisite for our ambition to use Genode
+on the Pinephone. Section [LTE modem stack] gives insights into the involved
+components and the architecture.
+
+Third, we are happy to feature the initial version of VirtualBox 6 for
+Genode. Section [VirtualBox 6.1.14] gives an overview of the already
+supported feature set and the outlook to reach feature-parity to our version
+of VirtualBox 5 soon.
+Speaking of VirtualBox in general (both versions), we were able
+to significantly improve the USB-device pass-through abilities, specifically
+covering audio headsets.
+
+Further noteworthy improvements of the current release range from added
+VirtIO-block device support for virtual machines on ARM
+(Section [VirtIO block devices for virtual machines on ARM]),
+revived developments on RISC-V (Section [RISC-V]),
+over VFS support for named pipes (Section [VFS support for named pipes]),
+to streamlined tooling (Section [Build system and tools]).
+
+
+Pluggable network device drivers
+################################
+
+The results of our approach to
+[https://genode.org/documentation/release-notes/20.08#The_GUI_stack__restacked - pluggable framebuffer and input drivers]
+encouraged us to take on the third major driver category, namely networking
+drivers, which subsumes not only Ethernet drivers but also wireless networking
+drivers and mobile baseband drivers. The latter two are of course particularly
+interesting for mobile communication devices.
+
+Similarly to the story linked above for the framebuffer and input drivers,
+Genode's network drivers used to play the roles of NIC servers, providing a
+network-interface service to network applications. As a consequence, the
+lifetime of a network application was always bound to the lifetime of the
+underlying NIC driver. This is unfortunate because those drivers can be
+obscenely complex, putting the liveliness of the dependent application stack
+at risk.
+
+[image layered_nic_multi_app_risk]
+
+However, in most scenarios, networking applications do not operate directly on
+a network interface because this would prevent the use of the network interface
+by more than one application at a time. Instead, there is usually a NIC
+multiplexing component in-between the driver and one or multiple applications.
+In most contemporary scenarios this is the NIC router that acts as NIC client
+towards the driver and as NIC server towards the applications.
+
+Thus, we contemplated the idea of letting the NIC driver operate as NIC client
+of the NIC router instead. This would decouple the application from the
+driver's lifetime while the driver's special role would be modeled solely by a
+routing policy. However, even though the data channel of the NIC interface is
+bi-directional, we realized that the reversal of the role of the driver does
+not only entail the communication of network payload but also propagation of
+the link state and the MAC address. This prompted us to introduce a new Genode
+session type called "Uplink" that precisely models the NIC-driver-as-client
+scenario.
+
+[image nic_router_services]
+
+In a nutshell, an Uplink session is almost the same as a NIC session with only
+three minor differences. First, the MAC address is given by the client (the
+driver) as an argument at session-creation time. Second, the roles of the TX
+and RX packet streams are interchanged compared to a NIC session. I.e., the
+_client_ transmits via TX and receives through RX while at the server side it's
+vice-versa. And third - as a mere interface optimization - the link state of an
+uplink session is always "up". The session is requested by the client (the
+driver) only in the event of a "link-up" edge. Analogously, whenever the link
+goes "down", the client closes the session again.
+
+With this new session interface in place, the NIC router becomes the only
+long-running component in the scenario. It provides both a NIC and an uplink
+session interface. The NIC session interface is used by network applications.
+The uplink session interface is used by drivers. Inside the router, uplink
+sessions are treated the same as NIC sessions. Therefore, we decided that the
+well known '<policy>' tags in the configuration are now simply applied to both
+session types. This means, that each '<uplink>' tag that connected a driver in a
+router configuration can now be replaced by a '<policy>' tag with a label
+attribute that matches the driver's session request.
+
+[image nic_uplink_multi_app]
+
+We divided the process for this architectural change into the following
+autonomous steps:
+
+# Introduce the uplink session and uplink-session support in the NIC router.
+# Let NIC drivers support both modes, "NIC session server" and "Uplink session
+  client" depending on a new _transitional_ <config>-tag attribute 'mode'.
+  This attribute is optional and has two possible values, 'uplink_client'
+  and 'nic_server', of which it defaults to the latter.
+# Adapt all network scenarios in the basic Genode repositories to use NIC
+  drivers only with '<config mode="uplink_client">'.
+# Remove support for the "NIC session server" mode from all NIC drivers and
+  with it also the transitional 'mode' attribute.
+
+All steps except the last one are completed by now. The transitional 'mode'
+attribute and the "NIC session server" mode will remain available in all NIC
+drivers until the next Genode release in order to give others the opportunity
+to gracefully adapt their NIC drivers and network scenarios to the change.
+
+
+Further information
+-------------------
+
+The overarching topic of pluggable device drivers was covered by our recent
+presentation at [https://fosdem.org/2021/ - FOSDEM 2021]. You can find the
+video recording and the presentation slides at the following link.
+
+:Pluggable device drivers for Genode:
+
+  _presented at FOSDEM 2021_
+
+  [https://fosdem.org/2021/schedule/event/microkernel_pluggable_device_drivers_for_genode/]
+
+
+LTE modem stack
+###############
+
+With the current release, Genode adds LTE broadband modem support for packet data
+connections. This way, it becomes possible to browse the internet using the SIM
+card of your broadband service provider. For a description of the protocols and
+the general terminology when talking about LTE modems, our
+[https://genodians.org/ssumpf/2020-12-04-mbim - LTE modem support for Genode]
+Genodians article is a good starting point.
+
+From the device side, LTE modems register themselves as USB devices at the USB
+host controller. The speciality is that a modem offers two interfaces. First, a USB
+network interface (like NCM or ECM) and second, a
+[https://www.usb.org/document-library/class-definitions-communication-devices-12 - Wireless Mobile Communication Device],
+which is a challenge/response control channel to the modem and used to configure
+the device. For the actual communication through the control channel, there exist two
+binary protocols: Namely, Mobile Broadband Interface Model (MBIM) and Qualcomm
+Mobile Station Interface (QMI). Whereas the former is a USB standard, QMI is a
+proprietary protocol by Qualcomm. Therefore, we picked a modem that supports the
+MBIM standard for our line of work.
+
+
+USB modem support
+=================
+
+In order to enable modem communication, we added the Linux USB modem driver for
+MBIM to our _dde_linux_ device driver environment. This driver implements the
+NCM and WDM interfaces for the modem and provides a network uplink session for
+the NCM network interface and a terminal session for the WDM interface.
+
+[image lte_mbim]
+
+
+MBIM protocol
+=============
+
+MBIM is a binary protocol that is, for example, implemented by
+[https://www.freedesktop.org/wiki/Software/libmbim/ - libmbim]. Therefore, we
+ported _libmbim_ to Genode. Since it requires _glib_, we had to enable features
+and improve our _glib_ support on Genode. The _libmbim_ library offers MBIM command handling only.
+For actually triggering modem-communication, the _mbimcli_ tool is required. We
+ported _mbimcli_ and changed its front end to trigger a modem packet-connection
+sequence via _libmbim_ through the terminal session of the USB modem driver.
+During this sequence, the SIM card is unlocked through the PIN, the packet
+service is attached, and connection information (e.g., IP, gateway, DNS server)
+is retrieved. The connection data is then used by _mbimcli_ to configure the
+uplink of Genode's NIC router, which in turn makes the network connectivity available
+to network applications. The holistic view is shown in image [lte_mbim].
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+NIC router
+==========
+
+The NIC router received two practical features, the consideration of
+multiple DNS server entries on DHCP and an ARP-less mode for domains.
+
+The latter was motivated by the fresh support for LTE modems (see Section
+[LTE modem stack]). An LTE modem normally doesn't respond to ARP. So when
+using it as uplink for the NIC router, the corresponding domain can't request
+IP-to-MAC-address resolutions as usual. This is addressed through the new
+optional attribute 'use_arp' in '<domain>' tags of the NIC router configuration.
+By default, it is set to 'yes', which yields the same behavior as in the past.
+
+However, when set to 'no' for a domain, this domain will prevent sending ARP
+requests in general. This leaves the question how to determine the destination
+MAC address for a packet that shall be sent at this domain when only the
+destination IP address is known. This is solved by the router by simply using
+the source MAC address also as destination MAC address, an approach that we
+could observe also in other IP stacks and that worked just fine in our tests.
+The ARP-less domain mode is demonstrated through the run script
+_repos/os/run/nic_router_disable_arp.run_.
+
+The consideration of multiple DNS-server entries on DHCP comes in two parts.
+First, when acting as DHCP client at a domain, the router will now parse all
+option 6 entries in DHCP ACK replies from the server and memorize them as part
+of the resulting IP config of the domain. These entries will then also be
+reported if '<report config="yes"/>' is set in the router's config. A router
+report with multiple DNS server entries will look like this:
+
+! <state>
+!   <domain name="uplink_1" ipv4="10.0.0.3/24" gw="10.0.0.1">
+!     <dns ip="10.0.0.2"/>
+!     <dns ip="1.1.1.1"/>
+!     <dns ip="8.8.8.8"/>
+!     ...
+!   </domain>
+!   <domain name="uplink_2" ipv4="168.192.0.200/24" gw="168.192.0.1">
+!     <dns ip="168.192.0.10"/>
+!     <dns ip="168.192.0.8"/>
+!     ...
+!   </domain>
+!   ...
+! </state>
+
+On the other hand, when acting as DHCP server at a domain, one has two
+options. Option 1 is to configure the DHCP server to fetch DNS server entries
+automatically from another domain:
+
+! <domain name="downlink" interface="10.0.1.1/24">
+!   <dhcp-server dns_server_from="uplink_1" .../>
+! </domain>
+
+In this case, the router will now reflect not only one but all DNS server
+entries from the source domain ("uplink") through the DHCP replies sent at the
+destination domain ("downlink") without changing the entry order. This approach
+is demonstrated through the new _repos/os/run/nic_router_dhcp_unmanaged.run_
+run script.
+
+Option 2 is to configure the DNS server entries manually at the DHCP
+server:
+
+! <domain name="downlink" interface="10.0.1.1/24">
+!   <dhcp-server ...>
+!     <dns-server ip="10.0.0.2"/>
+!     <dns-server ip="1.1.1.1"/>
+!     <dns-server ip="8.8.8.8"/>
+!   </dhcp-server>
+! </domain>
+
+The order of the '<dns-server>' tags determines the order of
+option 6 entries in the replies of the DHCP server. Besides its use for static
+DNS server configurations, this option can also be used for more sophisticated
+forwarding of DNS server entries through a separate management component. The
+management component could listen to the reported IP config of the source
+domains, apply custom policies like address filters to the result, and
+re-configure the DHCP servers of the destination domains accordingly. This
+approach is demonstrated in the new _repos/os/run/nic_router_dhcp_managed.run_
+run script.
+
+Please note that the former 'dns_server' attribute of the '<dhcp-server>' tag
+is no longer considered by the router as the new '<dns-server>' tag replaces it.
+Thus, you might want to adapt your NIC router scenarios accordingly.
+
+
+VFS support for named pipes
+===========================
+
+The VFS-pipe plugin received new support for named pipes. The main motivation was to
+easily stream data from pure Genode components to libc components via
+file-system sessions that can be attached to stdin, stdout, and stderr. This
+feature further makes it possible to chain the data flow between several components together,
+similarly to how it is done on Unix. Additionally, the thread synchronization
+has been improved so that large data chunks can be transferred without
+blocking.
+
+A named pipe can be created by adding a '<fifo>' sub node to the '<pipe>' node
+of the VFS:
+
+! <vfs>
+!   <pipe>
+!     <fifo name="upstream"/>
+!   </pipe>
+!   ...
+! </vfs>
+
+Each pipe is exposed as a set of pseudo files.
+
+! /upstream
+! /.upstream/in/in
+! /.upstream/out/out
+
+The _/upstream_ pseudo file can be opened either as read-only or write-only
+file. It allows for the access of both ends of the pipe. In contrast, each of
+the pseudo files _/.upstream/in/in_ and _/.upstream/out/out_ represents only
+one end of the pipe, which can be subjected to an individual directory-based
+access-control policy.
+
+Thanks to Sid Hussmann for contributing this valuable feature!
+
+
+Terminal
+========
+
+While
+[https://genode.org/documentation/release-notes/20.08#The_GUI_stack__restacked - revising the GUI stack]
+in Genode 20.08, we largely abolished the use of the framebuffer and input
+session interfaces. The graphical terminal, however, still relied on those
+interfaces instead of the GUI session. In practice, there was always a gui_fb
+component needed as an intermediate between the terminal and the GUI server.
+To complete the GUI-stack transition, we changed the terminal to use the GUI
+session directly and adjusted all current scenarios that use the terminal.
+
+One useful feature of the gui_fb component was the definition of an initial
+window size. This enabled packages such as Sculpt's system shell to present
+terminal windows with a reasonable default size smaller than the entire
+screen.
+To accommodate this special case, the initial terminal size can now be
+explicitly configured in the terminal configuration.
+
+! <config>
+!   <initial width="800" height="600"/>
+!   ...
+! </config>
+
+While we were at it, we also enhanced the terminal with the ability to
+dynamically respond to font changes. So the adjustment of the global font
+settings in Sculpt OS takes immediate effect on all terminal windows.
+
+
+OpenSSL 1.1.1i, curl 7.70.0
+===========================
+
+OpenSSL experienced some quite important security updates during the last
+months. This prompted us to update our port to version 1.1.1i. During
+the porting work, we kept an eye on performance and enabled CPU-specific
+optimizations where feasible. Optimizations are enabled by default on
+x86 and ARMv8. For ARMv7, we enable NEON-based functions only when the
+build SPECS include "neon" to support common SoCs that lack these
+capabilities in the default configuration. Please note, the updated
+port does only provide one combined depot archive "openssl" that
+replaces the former "libcrypto" and "libssl" archives. The libraries
+are still distinct for compatibility with existing applications and
+build systems. As a side effect, we also updated the curl library to
+version 7.70, which is compatible with recent OpenSSL versions.
+
+Thanks to Pirmin Duss for his valuable contribution to this update.
+
+
+Virtualization
+##############
+
+VirtualBox 6.1.14
+=================
+
+Genode supports virtualization with VirtualBox
+[https://genode.org/documentation/release-notes/14.02#VirtualBox_on_top_of_the_NOVA_microhypervisor - since 2014].
+Back then, we enabled VirtualBox version 4 to support use cases with unmodified
+Linux and Windows guests like Sculpt's predecessor
+[https://genode.org/documentation/release-notes/15.11#Genode_as_desktop_OS - "Turmvilla"].
+In 2016, we updated VirtualBox to version 5 to enable recent guest OS
+versions notably Ubuntu 16.04 and Windows 10. VirtualBox 5 is an
+integral part of Sculpt OS since its first release.
+
+As VirtualBox 5 is no longer maintained upstream and also shows its age
+when running recent versions of Windows 10, we accepted the challenge
+to once again enable a new version of this VMM. This time we did not
+go for a NOVA-specific port but exclusively use the kernel-agnostic
+virtualization interfaces introduced in
+[https://genode.org/documentation/release-notes/19.05#Kernel-agnostic_virtual-machine_monitors - Genode 19.05].
+This way, VirtualBox 6 is prepared to run on NOVA, seL4, and Fiasco.OC alike with
+minimal extra efforts.
+
+The first development snapshot we publish with this release is ready to
+run Linux and Windows guests with limited support for multiple cores,
+integrates network and USB-passthrough as well as preliminary support
+for Guest Additions like mouse integration and display. We are
+committed to finalize the feature set and optimize the performance of
+VirtualBox 6 until the upcoming Sculpt release but do not plan to replace
+version 5 completely yet. In fact, the update paves the way to explore
+more experimental grounds like enablement of GPU-based
+acceleration of guest OSes.
+
+As a starting point for exploring VirtualBox 6 on Genode, we recommend the run script
+_ports/run/virtualbox6.run_.
+
+
+VirtualBox 5
+============
+
+With this release, we extended our VirtualBox port and made USB
+pass-through more robust.
+
+So far, we most prominently use VirtualBox on Intel systems that feature
+VT-x. This release enables support for also running 64bit guests on AMD
+systems with SVM.
+
+When it comes to USB pass-through support, we rely on the xHCI device-model
+ported from Qemu. With this release, we updated the 3rd-party sources to
+version 5.2.0 and the type of the exposed device has changed to QEMU xHCI. Due to
+this change, older guest OSes - namely Windows 7 - that relied on the NEC
+xHCI device will no longer work.
+
+Thanks to the update, it becomes possible to use USB devices requiring isochronous
+transfers, in particular audio devices, with Windows 10 guests. For now
+we focused on USB-Audio-Class v1 devices using adaptive
+synchronisation, which enables a variety of popular USB headsets for
+the passthrough use case.
+
+A glimpse into our USB machinery unveils that fine-tuned buffering and USB
+transfer configuration is the key to robust USB passthrough. On one hand, the
+handling of isochronous OUT transfers in our host connection batches multiple
+packets and queues transfers, which helps to smoothen out playback in case other
+Genode components utilize the CPU concurrently. On the other hand, the number of
+IN requests queued is increased but the number of packets per request set to 1.
+We obtained the best results by following this configuration observed in Linux
+and Windows guests alike.
+
+
+VirtIO block devices for virtual machines on ARM
+================================================
+
+With release
+[https://genode.org/documentation/release-notes/20.02#Custom_virtual_machine_monitor_on_ARM - 20.02],
+the first VirtIO device models entered Genode's virtual
+machine monitor for ARM. They enabled a virtual machine to access network and
+terminal services. This time, the VMM got extended with a block device model,
+which again is compliant to the VirtIO 1.1 specification. Moreover, the generic
+model implementation, which is common to all VirtIO devices, got polished fairly.
+
+The new block device model is not configurable yet. By now, the VMM is
+hard-coded to provide exactly one block device. Consequently, one route to a
+Block service needs to be provided to the VMM component.
+
+The execution of the test run-script in _repos/os/run/vmm_arm.run_ shows
+the new VirtIO block device in action.
+
+
+Device drivers
+##############
+
+Power-gating of PCI devices on x86
+==================================
+
+PCI devices have several PCI capabilities that describe the feature set
+the device supports, as defined by the PCI specification. The platform driver - which
+is the gatekeeper of devices on Genode - got extended to power on and power off
+devices whenever the PCI power capability is supported. When powering on, a device reset
+is issued if it is supported by the PCI device. During release of a driver from a
+device, all DMA memory associated to the device is
+flushed from the IO-MMU TLB to avoid any further access.
+
+Additionally, the platform driver has become able to respond to configuration
+changes. Special care must be taken if the configuration of a running device
+driver changes. If the configuration re-evaluation concludes that a driver is no longer
+permitted to use an already assigned PCI device, the Platform session
+will be closed forcefully, making the device inaccessible to the driver.
+
+The extended features of the platform driver supplement our previous work of
+restarting respectively replacing a running graphics driver in Sculpt OS. The driver
+manager, as used by Sculpt, uses Genode's heartbeat monitoring to check for the
+liveliness of the Intel framebuffer driver and restarts it automatically if the
+driver becomes unresponsive. Restarting
+involves closing the Platform session, thereby powering off the Intel device,
+and reopening the Platform session, thereby powering and resetting the
+Intel device into a functional state.
+This self-healing mechanism can be seen in action in the recording of our
+[https://fosdem.org/2021/schedule/event/microkernel_pluggable_device_drivers_for_genode/ - FOSDEM talk]
+about pluggable device drivers.
+
+
+USB drivers
+===========
+
+Additional HID devices
+~~~~~~~~~~~~~~~~~~~~~~
+
+It's a sad truth that some popular USB keyboards and mice do not fully
+comply with the USB HID standard. The Linux kernel comes with dozens
+of special functions to fix up quirks and enable these devices
+for Linux systems also. With the current release, we adopt quirk functions
+for Apple HID devices and mice based on the Holtek chipset (e.g., the
+Sharkoon Drakonia) that are applied automatically if one of these
+devices is plugged.
+
+
+USB robustness
+~~~~~~~~~~~~~~
+
+We improved the robustness of the USB HID driver with regard to device
+reconnection, as well as the robustness of the DWC OTG host driver for
+the Raspberry Pi when used with HID devices.
+
+
+Isochronous transfers
+~~~~~~~~~~~~~~~~~~~~~
+
+While looking more closely into supporting isochronous transfers
+driven by the USB pass-through use-case, we encountered and addressed shortcomings
+in the current implementation in the USB host-controller driver
+when dealing with IN transfers containing multiple isochronous frames.
+However, this is only a first step as we identified significant potential for
+optimization and robustness improvements.
+
+
+Platforms
+#########
+
+Pine-A64-LTS single board computer
+==================================
+
+Our [https://genode.org/about/road-map - road map] envisions
+the use of Genode on the Pinephone by the end of the year. As a first stepping
+stone, the current release adds basic board support for the
+[https://pine64.com/product-category/pine-a64-ltslong-term-supply/ - Pine-A64-LTS]
+single-board computer. We take this line of work as a welcome opportunity to
+thoroughly document the porting process. You can find the work explained in
+great detail in the following article series.
+
+# [https://genodians.org/nfeske/2020-12-10-pine-fun-warmup - Warming up for some Pine fun]
+# [https://genodians.org/nfeske/2020-12-17-pine-fun-serial - Bare-metal serial output]
+# [https://genodians.org/nfeske/2021-01-28-pine-fun-kernel-skeleton - Kernel skeleton]
+# [https://genodians.org/nfeske/2021-02-11-pine-fun-debugging - How did we come here?]
+# [https://genodians.org/nfeske/2021-02-18-pine-fun-user-land - Excursion to the user land]
+
+The latest state of this line of work is available at a dedicated repository:
+
+:Genode board support for Allwinner SoCs:
+
+  [https://github.com/nfeske/genode-allwinner]
+
+
+RISC-V
+======
+
+RISC-V development has been on the hold at Genode Labs for a while. But with the
+current release this has changed. One of the main goals we had for a long time
+is the use of Qemu instead of the Spike emulator for our test infrastructure, since
+every other platform runs on Qemu, Spike causes additional overhead at Genode
+Labs.
+By updating the privileged ISA specification support from 1.9.1 to 1.10,
+we became able to use recent Qemu versions (e.g., 4.2.1).
+Thanks to this change, we could remove the _spike_ board and add a new
+_riscv_qemu_ board to our _base_hw_ kernel implementation.
+
+As another nice side effect, Qemu ships its own OpenSBI machine binary, which
+implements the machine mode and SBI calls. It can be enabled through the "-bios"
+command line option. With a machine mode for ISA 1.10 in place, we were able to
+remove the old [https://github.com/ssumpf/bbl-lite - BBL] machine mode
+implementation from Genode.
+For more information on this topic please refer to the corresponding
+[https://genodians.org/ssumpf/2021-02-24-riscv - Genodians article].
+
+In order to improve development speed, we were able to reduce the link time for
+_core_ and its debugging variant from about 50 to 5 seconds. Additionally, we
+fixed long standing link errors that were caused by mixing up soft float and
+hard float objects as well as misconfigured linker scripts.
+
+
+Removal of Muen separation kernel support
+=========================================
+
+Since
+[https://genode.org/documentation/release-notes/15.08#Genode_on_top_of_the_Muen_Separation_Kernel - version 15.08],
+Genode supported the use of the [https://muen.sk - Muen] separation kernel as
+underlying platform. The driving force behind the original development was the
+joyful collaboration with the Muen developers Adrian-Ken Rueegsegger and Reto
+Buerki and the prospect for products that combine the rigidity of a separation
+kernel with the dynamic workloads enabled by Genode.
+
+However, over the past 5 years, this potential synergy remained untapped.
+In hindsight, the stacking of one microkernel-based system onto another
+microkernel-based system is a tough sell. Hosting dynamic workloads in a Linux
+VM atop Muen is certainly more relatable to Muen users. Vice versa, for Genode
+users, Genode on bare hardware is less complex and more flexible than using
+the framework atop a separation kernel.
+
+Without adoption of the joint platform, neither of both teams can justify the
+ongoing effort needed for the continued maintenance of Genode on Muen. Hence,
+we [https://github.com/genodelabs/genode/issues/3995 - concluded] to remove
+Muen as an officially supported platform.
+
+
+Build system and tools
+######################
+
+Streamlined distinction of boards by build and run tools
+========================================================
+
+In
+[https://genode.org/documentation/release-notes/20.05#Board_support_outside_the_Genode_main_repository - Genode 20.05], 
+we introduced the principle ability to decouple board-support packages from
+the project's main repository. We thereby want to enable developers outside
+the Genode core team to port Genode to diverse hardware platforms.
+With the current release, we further refined the structure of the code base and
+the tooling to largely eliminate remaining points of friction when hosting
+board support in external repositories.
+
+We ultimately removed the use of board-specific SPEC values throughout the
+build system and run scripts. SPEC values are now solely used to refer to
+aspects of an instruction-set architecture, e.g., x86, 64bit, or arm_v8a.
+In run scripts, the new convenience function 'have_board' has become the
+preferred way to distinguish the behavior of run scripts depending on the
+targeted board now. It replaces all former uses of 'have_spec <board>'.
+Moreover, the long deprecated option of the _create_builddir_ tool to create
+board-specific build directories has been removed.
+
+To simplify the hosting of board support in separate source-code repositories,
+board-specific properties have moved from run-tool scripts to the new notion
+of *board property directories*. Such directories named
+_<repo>/board/<board>/_ contain files with board-specific information.
+In particular, the 'image_link_address' file contains the physical
+link address of the system image taking the board's physical memory
+constraints into account, and the 'arch' file contains the CPU
+architecture of the SoC. The run tool picks up this information
+from the board-property files.
+
+Furthermore, the *packaging* of the board-specific base-hw kernel has
+become more formalized by leveraging the board-property directories.
+This makes the packaging vastly simpler. Regardless of where the board-support
+is hosted, the _content.mk_ file for a kernel source archive becomes as simple
+as:
+
+! include $(GENODE_DIR)/repos/base-hw/recipes/src/base-hw_content.inc
+
+The board name is automatically inferred from the path of the src recipe. The
+architecture is determined from _board/<name>/arch_ files. The attempt to
+build a base-hw-<board> binary archive for the wrong architecture is now
+gracefully handled by skipping all targets (using the REQUIRES mechanism).
+
+Besides the improved convenience, the resulting depot archives
+have become much closer tailored to the actual board by omitting files for
+architectures that are not used by the board. E.g., the src/base-hw-pc
+archive does not contain any ARM-related content.
+
+
+Compiler cache
+==============
+
+The [https://ccache.dev - ccache] tool is a fantastic way to accelerate the
+developer workflow when repeatedly building software. Since ccache is -
+strictly speaking - orthogonal to the build system, configuring the Genode
+build system for the use of ccache was left to each developer.
+
+Setting up ccache is not straight-forward though. One must manually create
+hooks (symlinks shadowing the compiler executables), tweak the PATH
+environment variable, and customize the CROSS_DEV_PREFIX in
+_etc/tools.conf_. In short, only seasoned developers jump through those hoops.
+Many others may miss out on the joys of ccache.
+
+With the current release, the build-system front end makes ccache easily
+available by enabling a simple option in the _etc/build.conf_ file:
+
+! CCACHE := yes
+
