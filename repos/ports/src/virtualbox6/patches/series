@@ -1,2 +1,3 @@
 serial.patch
 drvtap.patch
+qemu-xhci.patch

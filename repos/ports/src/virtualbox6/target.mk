@@ -11,6 +11,7 @@ SRC_CC += network.cc
 LIBS  += base
 LIBS  += stdcxx
 LIBS  += libiconv
+LIBS  += qemu-usb
 
 CC_OPT_main = -Wno-multistatement-macros
 CC_OPT += -DProgress=ClientProgress

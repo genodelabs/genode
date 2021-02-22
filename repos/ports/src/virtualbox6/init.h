@@ -21,4 +21,6 @@ namespace Sup { void init(Genode::Env &); }
 
 namespace Network { void init(Genode::Env &); }
 
+namespace Xhci { void init(Genode::Env &); }
+
 #endif /* _INIT_H_ */
