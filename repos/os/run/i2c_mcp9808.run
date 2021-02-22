@@ -1,0 +1,106 @@
+
+assert_spec arm_v8a
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src]
+import_from_depot [depot_user]/src/init
+import_from_depot [depot_user]/src/platform_drv
+
+set build_components {
+	core
+	timer
+	drivers/i2c
+	test/i2c_mcp9808
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+build $build_components
+
+set config  {
+	<config>
+	<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="platform_drv" caps="800" managing_system="yes">
+			<binary name="imx8mq_platform_drv"/>
+			<resource name="RAM" quantum="4M"/>
+			<provides>
+				<service name="Platform"/>
+				<service name="Regulator"/>
+			</provides>
+			<config>
+
+				<device name="i2c2">
+					<!-- I2C ctl register -->
+					<io_mem address="0x30a30000" size="0x10000"/>
+
+					<irq number="68"/>
+					<clock  name="i2c2_clk_root"
+					        driver_name="i2c2_root_clk" parent="system_pll3_clk"/>
+					<clock  name="i2c2_gate"/>
+				</device>
+
+				<policy label_prefix="imx8q_evk_i2c_drv"> <device name="i2c2"/> </policy>
+
+			</config>
+		</start>
+
+		<start name="imx8q_evk_i2c_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="I2c"/> </provides>
+
+			<config bus_no="2" verbose="yes">
+				<policy label_prefix="MCP_9808"  bus_address="0x18"/>
+			</config>
+
+			<route>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+
+		</start>
+
+		<start name="i2c_mcp9808">
+			<resource name="RAM" quantum="1M"/>
+
+			<route>
+				<service name="I2c"> <child name="imx8q_evk_i2c_drv" label="MCP_9808"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+
+		</start>
+
+	</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core
+	timer
+	imx8q_evk_i2c_drv
+	i2c_mcp9808
+}
+
+build_boot_image $boot_modules
+
+run_genode_until forever

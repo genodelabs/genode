@@ -60,8 +60,8 @@ Bootstrap::Platform::Board::Board()
 		{ 0x303301EC, 0x0        },
 		{ 0x303301FC, 0x1        },
 		{ 0x30330200, 0x1        },
-		{ 0x3033021C, 0x5        },
-		{ 0x30330220, 0x5        },
+		{ 0x3033021C, 0x10       }, /* Enable SION I2c2_scl */
+		{ 0x30330220, 0x10       }, /* Enable SION I2c2_sda */
 		{ 0x30330224, 0x10       },
 		{ 0x30330228, 0x10       },
 		{ 0x3033022C, 0x12       },
@@ -126,8 +126,8 @@ Bootstrap::Platform::Board::Board()
 		{ 0x30330464, 0x49       },
 		{ 0x30330468, 0x49       },
 		{ 0x3033046C, 0x16       },
-		{ 0x30330484, 0x16       },
-		{ 0x30330488, 0x16       },
+		{ 0x30330484, 0x67       }, /* I2c2_scl pullup resistor 40 ohm */
+		{ 0x30330488, 0x67       }, /* I2c2_sda pullup resistor 40 ohm */
 		{ 0x3033048C, 0x67       },
 		{ 0x30330490, 0x67       },
 		{ 0x30330494, 0x76       },
