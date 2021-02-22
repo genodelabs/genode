@@ -338,6 +338,8 @@ void Libc::Component::construct(Libc::Env &env)
 	
 		environ = envp;
 
+		Network::init(env);
+
 		/* sidestep 'rtThreadPosixSelectPokeSignal' */
 		uint32_t const fFlags = RTR3INIT_FLAGS_UNOBTRUSIVE;
 

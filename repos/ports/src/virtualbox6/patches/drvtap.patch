@@ -1,0 +1,31 @@
+Disarm check for usable TUN/TAP file. On Genode the DrvTAP is implemented
+by network.cc and uses Genode nic_session directly.
+
+--- a/src/virtualbox6/src/VBox/Main/src-client/ConsoleImpl2.cpp
++++ b/src/virtualbox6/src/VBox/Main/src-client/ConsoleImpl2.cpp
+@@ -5255,18 +5255,24 @@
+                                             "sure that these changes are permanent, especially if you are "
+                                             "using udev"));
+                         default:
++#if 0
+                             AssertMsgFailed(("Could not attach to host interface! Bad!\n"));
+                             return VMSetError(VMR3GetVM(mpUVM), VERR_HOSTIF_INIT_FAILED, RT_SRC_POS, N_(
+                                             "Failed to initialize Host Interface Networking"));
++#else
++                            break;
++#endif
+                     }
+                 }
+ 
++#if 0
+                 Assert((intptr_t)maTapFD[uInstance] >= 0);
+                 if ((intptr_t)maTapFD[uInstance] >= 0)
++#endif
+                 {
+                     InsertConfigString(pLunL0, "Driver", "HostInterface");
+                     InsertConfigNode(pLunL0, "Config", &pCfg);
+-                    InsertConfigInteger(pCfg, "FileHandle", (intptr_t)maTapFD[uInstance]);
++                    InsertConfigInteger(pCfg, "Slot", uInstance);
+                 }
+ 
+ #elif defined(VBOX_WITH_NETFLT)

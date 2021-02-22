@@ -19,4 +19,6 @@ namespace Genode { struct Env; }
 
 namespace Sup { void init(Genode::Env &); }
 
+namespace Network { void init(Genode::Env &); }
+
 #endif /* _INIT_H_ */

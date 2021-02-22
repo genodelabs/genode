@@ -41,7 +41,6 @@ SRC_CC += Devices/Network/DevEEPROM.cpp
 SRC_CC += Devices/Network/DevPCNet.cpp
 SRC_CC += Devices/Network/DrvNetShaper.cpp
 SRC_CC += Devices/Network/DrvNetSniffer.cpp
-SRC_CC += Devices/Network/DrvTAP.cpp
 SRC_CC += Devices/Network/Pcap.cpp
 SRC_CC += Devices/Parallel/DevParallel.cpp
 SRC_CC += Devices/PC/ACPI/VBoxAcpi.cpp

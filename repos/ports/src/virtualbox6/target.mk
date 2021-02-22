@@ -6,6 +6,7 @@ CC_WARN += -Wall
 
 SRC_CC := main.cc drivers.cc vcpu_gim.cc
 SRC_CC += libc.cc unimpl.cc dummies.cc pdm.cc devices.cc nem.cc dynlib.cc
+SRC_CC += network.cc
 
 LIBS  += base
 LIBS  += stdcxx
