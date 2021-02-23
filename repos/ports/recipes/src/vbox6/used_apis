@@ -1,0 +1,16 @@
+base
+blit
+framebuffer_session
+gui_session
+input_session
+libc
+libiconv
+nic_session
+nitpicker_gfx
+os
+report_session
+stdcxx
+timer_session
+usb_session
+vfs
+vm_session

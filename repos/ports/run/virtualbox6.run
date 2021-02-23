@@ -1,0 +1,300 @@
+assert_spec x86_64
+
+set use_net 0
+set use_overlay 0
+set use_serial 1
+set use_top 1
+
+create_boot_directory
+
+
+set depot_archives { }
+
+lappend depot_archives [depot_user]/pkg/[drivers_interactive_pkg]
+lappend depot_archives [depot_user]/pkg/themed_wm
+lappend depot_archives [depot_user]/src/[base_src]
+lappend depot_archives [depot_user]/src/clipboard
+lappend depot_archives [depot_user]/src/init
+lappend depot_archives [depot_user]/src/libc
+lappend depot_archives [depot_user]/src/nitpicker
+lappend depot_archives [depot_user]/src/report_rom
+lappend depot_archives [depot_user]/src/vfs_import
+lappend depot_archives [depot_user]/src/vfs_pipe
+
+lappend_if [expr $use_net] depot_archives [depot_user]/src/ipxe_nic_drv
+lappend_if [expr $use_net] depot_archives [depot_user]/src/nic_router
+
+import_from_depot $depot_archives
+
+
+set build_components { virtualbox6 }
+
+lappend_if [expr $use_top]    build_components app/top
+lappend_if [expr $use_serial] build_components server/log_terminal
+lappend_if [have_spec x86]    build_components drivers/rtc
+
+build $build_components
+
+set config {
+<config prio_levels="4" verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="VM"/>}
+
+append_if [expr $use_top] config {
+		<service name="TRACE"/>}
+
+append config {
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer" priority="0">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>}
+
+
+append_if [expr $use_top] config {
+	<start name="top" priority="0">
+		<resource name="RAM" quantum="2M"/>
+		<config period_ms="15000"/>
+	</start>}
+
+append config {
+	<start name="drivers" caps="1500" managing_system="yes" priority="-1">
+		<binary name="init"/>
+		<resource name="RAM" quantum="64M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Event">   <child name="nitpicker"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="rtc_drv" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Rtc"/>
+		</provides>
+	</start>}
+
+append_if [expr $use_net] config {
+	<start name="nic_router" caps="120" priority="-1">
+		<resource name="RAM" quantum="5M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+			<policy label_prefix="vbox"    domain="downlink"/>
+			<policy label_prefix="nic_drv" domain="uplink"/>
+
+			<domain name="uplink">
+				<nat domain="downlink"
+				     tcp-ports="16384"
+				     udp-ports="16384"
+				     icmp-ids="16384"/>
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24" verbose_packets="no">
+				<dhcp-server ip_first="10.0.3.100" ip_last="10.0.3.200">
+					<dns-server ip="8.8.8.8"/>
+					<dns-server ip="1.1.1.1"/>
+				</dhcp-server>
+				<tcp dst="0.0.0.0/0"> <permit-any domain="uplink"/> </tcp>
+				<udp dst="0.0.0.0/0"> <permit-any domain="uplink"/> </udp>
+				<icmp dst="0.0.0.0/0" domain="uplink"/>
+			</domain>
+		</config>
+	</start>
+
+	<start name="nic_drv" priority="-1">
+		<binary name="ipxe_nic_drv"/>
+		<resource name="RAM" quantum="8M"/>
+		<config mode="uplink_client"/>
+		<route>
+			<service name="Platform"> <child name="drivers"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append_if [expr $use_serial] config {
+	<start name="log_terminal" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Terminal"/>
+		</provides>
+	</start>}
+
+append config {
+	<start name="report_rom" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<policy label="pointer -> hover" report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"  report="nitpicker -> xray"/>
+			<policy label="clipboard -> focus" report="nitpicker -> focus"/>
+		</config>
+	</start>
+
+	<start name="nitpicker" priority="-1">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
+		<config focus="rom">
+			<capture/> <event/>
+
+			<report focus="yes" hover="yes"/>
+
+			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer"/>
+			<domain name="default"  layer="2" content="client" label="no" hover="always"/>
+
+			<policy label_prefix="pointer" domain="pointer"/>
+			<default-policy domain="default"/>
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="pointer" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> </provides>
+		<config shapes="yes"/>
+		<route>
+			<service name="Gui"> <child name="nitpicker"/>  </service>
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
+			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="clipboard" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="ROM"/> <service name="Report"/>
+		</provides>
+		<config verbose="yes" match_labels="yes">
+			<default-policy domain="default"/>
+		</config>
+		<route>
+			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="wm" caps="1000" priority="-1">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<provides>
+			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
+		</provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
+			<service name="ROM"    label_last="clipboard"> <child name="clipboard"/> </service>
+			<service name="Report" label_last="clipboard"> <child name="clipboard"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="vbox1" priority="-2" caps="1800">
+		<binary name="virtualbox6"/>
+		<resource name="RAM" quantum="3000M"/>
+		<config vbox_file="virtualbox6.vbox" vm_name="TestVM">
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc">
+				 <pthread placement="single-cpu"/>
+			</libc>
+			<vfs>
+				<dir name="dev">
+					<log/> <rtc/> <null/> <zero/>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>}
+
+append_if [expr $use_serial] config {
+				<dir name="dev"> <terminal/> </dir>}
+
+append config {
+				<rom name="virtualbox6.vbox"/>
+				<rom name="test.iso"/>}
+append_if [expr $use_overlay] config {
+				<dir name="ram"> <ram/> </dir>
+				<import>
+					<dir name="ram"> <rom name="overlay.vdi"/> </dir>
+				</import>}
+append config {
+			</vfs>
+			<arg value="virtualbox"/>
+			<env key="VBOX_USER_HOME" value="/"/>
+			<env key="VBOX_LOG_DEST" value="file=/dev/log"/>
+			<env key="VBOX_LOG" value="-*.e.l.f"/>
+			<env key="VBOX_RELEASE_LOG_DEST" value="file=/dev/log"/>
+			<env key="VBOX_RELEASE_LOG" value="-*.e.l.f"/>
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="VM"> <parent diag="yes"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM"    label="clipboard"> <child name="wm"/> </service>
+			<service name="Report" label="clipboard"> <child name="wm"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+file copy -force [genode_dir]/repos/ports/run/virtualbox6.vbox bin/
+
+#
+# Instruct vesa_drv to use maximum resolution
+#
+set fd [open bin/fb_drv.config w]
+puts $fd {<config buffered="yes"/>}
+close $fd
+
+#
+# Pin the nitpicker focus to the window manager by providing a static focus ROM
+#
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"wm -> focus\"/>"
+close $fd
+
+set boot_modules {
+	rtc_drv
+	virtualbox6 libc.lib.so vfs.lib.so libm.lib.so libiconv.lib.so stdcxx.lib.so
+	qemu-usb.lib.so
+	fb_drv.config test.iso virtualbox6.vbox
+}
+
+# platform-specific modules
+lappend_if [expr $use_top] boot_modules top
+
+append_if [expr $use_net]     boot_modules { ipxe_nic_drv }
+append_if [expr $use_net]     boot_modules { nic_router }
+append_if [expr $use_serial]  boot_modules { log_terminal }
+append_if [expr $use_overlay] boot_modules { overlay.vdi }
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 3500 -cpu phenom "
+
+run_genode_until forever
