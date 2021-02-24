@@ -1,0 +1,149 @@
+                           The file vault
+                            Martin Stein
+
+Warning
+~~~~~~~
+
+The current version of the file vault is not thought for productive use but
+for mere demonstrational purpose! Please refrain from storing sensitive data
+with it!
+
+
+Brief
+~~~~~
+
+The file vault is a graphical front end for creating and controlling a virtual
+encrypted block device using Genodes Consistent Block Encrypter (CBE). The
+vault also takes care of creating and managing a Trust Anchor for securing
+the block device and formatting the block device with the ext2 file system
+which is then provided to clients through Genodes File System service.
+
+
+Internal structure
+~~~~~~~~~~~~~~~~~~
+
+The file vault uses the Sandbox library to spawn child components according to
+its needs. It starts, closes or adapts children by re-writing the Sandbox
+configuration and listens to the Sandbox state report in order to wait for a
+specific child to finish or recognize resource requests.
+
+One child that is always present is an instance of the Menu View component used
+by the vault to display its dialog window. The user input however is received
+and handled by the vault itself, which, if necessary, then adapts the
+graphical output accordingly by re-writing the Menu View configuration. In
+order to correlate input events to GUI changes, the vault always keeps track
+of the currently hovered GUI element by listening to the hover report of the
+Menu View child.
+
+Whenever possible, the vault doesn't access the back end file systems itself
+but instead spawns helper components like fs_tool or fs_query. This allows the
+vault to remain simple and protected against problems during file system
+access.
+
+In general, the implementation of the file vault tries to set the focus on
+state-driven decisions. The internal state machine of the vault is divided
+into 4 major steps: Setup, Startup, Controls, and Shutdown.
+
+Setup means creating a new Trust Anchor and CBE device as well as formatting
+the CBE device. Startup means bringing up an already existing Trust Anchor
+and CBE device for use. Controls means showing the main window that allows
+manipulating a running CBE device (snapshot management, rekeying, resizing).
+Consequently, the Controls step follows after a successful Setup or Startup
+step. From the Controls step, the user can trigger a transition to the Shutdown
+step. Shutdown means gracefully terminating the use of a running CBE device and
+closing the file vault.
+
+Each of these major steps is subdivided into smaller steps. For instance, the
+startup consists of requesting the user to input the device passphrase,
+unlocking the trust anchor, and starting the CBE device driver. Examining all
+minor steps would be to much in the context of this document but the class
+_File_vault::Main::State_ in _gems/src/app/file_vault/main.cc_ lists them in
+very descriptive way.
+
+When the vault is started, it will first try to read the initial state from
+the _/file_vault/state_ file in the back-end file system. There are basically
+only two results to this: If the file doesn't exist, the Setup step is startet.
+If the file exists, however, it's expected to yield the initial state of the
+Startup step indicating that the Setup step has already been done on this back
+end during a former run of the file vault.
+
+Once the CBE device is up and running, the file vault enters the Controls
+step. This step has several sub-states, for instance the states of rekeying or
+creating a snapshot (_File_vault::Main::Rekeying_state_,
+_File_vault::Main::Create_snapshot_state_, ...). This is because each of these
+operations can be executed independent from each other and in parallel. In
+order to execute the operations, the vault accesses the VFS control interface
+of the CBE (the CBE VFS plugin) spawned in a dedicated VFS server child.
+
+Like with the back-end file systems, the vault doesn't access the CBE VFS
+itself when executing a device operation. It rather spawns an fs_tool instance
+to write to the file that starts the operation and an fs_query instance to
+watch the file that provides the operation progress.
+
+
+Configuration
+~~~~~~~~~~~~~
+
+The file vault should always have the following configuration:
+
+! <config>
+!   <vfs>
+!     <dir name="cbe">
+!       <fs label="cbe"/>
+!     </dir>
+!   </vfs>
+! </config>
+
+The vault doesn't consider any further user configuration.
+
+
+Provided service and session requests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The vault provides a File System service to the ext2 file system once a CBE
+device was successfully created and formatted respectively unlocked. Besides
+the common Genode environment sessions, the vault requests one File System
+session to a fonts file system, one File System session for the back-end
+storage of the Trust Anchor, several File System session for the file system
+that holds the CBE image file and the persistent vault data, one Gui session,
+several timer sessions and an RM session for the Rump kernel it spawns.
+
+
+Further resources
+~~~~~~~~~~~~~~~~~
+
+The _gems/run/file_vault.run_ provides an example on how to manually integrate
+the file vault. It can also be used for analyzing and developing the vault -
+when targeting native Linux execution even with a persistent storage back-end.
+The file vault was also packaged in _gems/recipes/pkg/file_vault_ and can be
+deployed in Sculpt via _+ -> depot -> mstein -> Tools -> File Vault_.
+
+
+Open issues
+~~~~~~~~~~~
+
+* The vault should show the percantage of used and free blocks in the CBE trees
+  in order to enable the user to resize or sync to prevent an out-of-resource
+  situation.
+* Although the Trust Anchor data (private key and superblock hash) can
+  already be stored on a separate device like an USB stick it still has to be
+  exposed to the system (device driver, file system driver, file vault)
+  during operation as the file vault yet can't access "real" Trust-Anchor
+  interfaces like OpenPGP-Smartcard.
+* While some device controls (rekeying, resizing, ...) can be controlled via
+  the vault only in a serial way (the button only shows up again as soon as
+  the operation is done) creating and discarding snapshots is controlled in a
+  fire-and-forget fashion (the button immediately shows up again). This is
+  because the CBE VFS yet doesn't fully propagate the completely asynchronous
+  way of handling requests of the CBE.
+* The creation of the CBE image file is done yet in serial inside the vault
+  itself which causes the GUI to hang till the image creation is done.
+* Shrinking the client FS or the journaling buffer is not yet supported.
+* Creating, discarding, and accessing snapshots isn't supported by now in the
+  file vault, although the underlying CBE and its VFS plugin have full support.
+* The CBE might run into a ressource limit when writing block data or replacing
+  the block encryption key. This is because it doesn't take care yet whether
+  its Free Tree has enough free blocks left for finishing an operation. It will
+  just through an exception in the middle of the operation. This won't affect
+  the integrity of the vault on disk but might lead to the loss of cached
+  block data.

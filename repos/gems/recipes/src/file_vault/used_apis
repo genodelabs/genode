@@ -1,0 +1,11 @@
+base
+os
+cbe
+vfs
+report_session
+gui_session
+input_session
+framebuffer_session
+posix
+libc
+sandbox

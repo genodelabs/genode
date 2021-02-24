@@ -1,0 +1,105 @@
+<runtime ram="220M" caps="2200" binary="init">
+
+	<provides>
+		<file_system/>
+	</provides>
+
+	<requires>
+		<file_system label="data"         writeable="yes"/>
+		<file_system label="trust_anchor" writeable="yes"/>
+		<file_system label="fonts"        writeable="no"/>
+		<rm/>
+		<gui/>
+		<timer/>
+	</requires>
+
+	<content>
+		<rom label="init"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="libpng.lib.so"/>
+		<rom label="zlib.lib.so"/>
+		<rom label="fs_query"/>
+		<rom label="menu_view"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_block"/>
+		<rom label="vfs_jitterentropy.lib.so"/>
+		<rom label="vfs_cbe.lib.so"/>
+		<rom label="vfs_cbe_crypto_aes_cbc.lib.so"/>
+		<rom label="vfs_cbe_trust_anchor.lib.so"/>
+		<rom label="cbe_cxx.lib.so"/>
+		<rom label="cbe_init_cxx.lib.so"/>
+		<rom label="cbe_init"/>
+		<rom label="cbe_init_trust_anchor"/>
+		<rom label="libcrypto.lib.so"/>
+		<rom label="rump.lib.so"/>
+		<rom label="vfs_rump.lib.so"/>
+		<rom label="rump_fs.lib.so"/>
+		<rom label="sandbox.lib.so"/>
+		<rom label="libsparkcrypto.lib.so"/>
+		<rom label="spark.lib.so"/>
+		<rom label="fs_tool"/>
+		<rom label="mke2fs"/>
+		<rom label="resize2fs"/>
+		<rom label="posix.lib.so"/>
+		<rom label="file_vault"/>
+		<rom label="file_vault-sync_to_cbe_vfs_init"/>
+		<rom label="file_vault-truncate_file"/>
+		<rom label="menu_view_styles.tar"/>
+	</content>
+
+	<config>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Gui"/>
+			<service name="Timer"/>
+			<service name="File_system"/>
+		</parent-provides>
+
+		<service name="File_system">
+			<default-policy>
+				<child name="file_vault"/>
+			</default-policy>
+		</service>
+
+		<start name="file_vault" caps="2000">
+			<resource name="RAM" quantum="200M"/>
+			<provides>
+				<service name="File_system"/>
+			</provides>
+			<config>
+				<vfs>
+					<dir name="cbe">
+						<fs label="cbe"/>
+					</dir>
+				</vfs>
+			</config>
+			<route>
+				<service name="File_system" label="cbe_trust_anchor_vfs -> storage_dir"> <parent label="trust_anchor"/> </service>
+				<service name="File_system" label="vfs_block -> ">                       <parent label="data"/> </service>
+				<service name="File_system" label="cbe">                                 <parent label="data"/> </service>
+				<service name="File_system" label="fs_query -> ">                        <parent label="data"/> </service>
+				<service name="File_system" label="image_fs_query -> ">                  <parent label="data"/> </service>
+				<service name="File_system" label="cbe_vfs -> cbe_fs">                   <parent label="data"/> </service>
+				<service name="File_system" label="truncate_file -> cbe">                <parent label="data"/> </service>
+				<service name="File_system" label="menu_view -> fonts">                  <parent label="fonts"/> </service>
+				<service name="Timer">                                                   <parent/> </service>
+				<service name="Gui">                                                     <parent/> </service>
+				<service name="PD">                                                      <parent/> </service>
+				<service name="ROM">                                                     <parent/> </service>
+				<service name="CPU">                                                     <parent/> </service>
+				<service name="LOG">                                                     <parent/> </service>
+				<service name="RM">                                                      <parent/> </service>
+			</route>
+		</start>
+
+	</config>
+
+</runtime>
