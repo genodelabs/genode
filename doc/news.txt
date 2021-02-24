@@ -4,6 +4,35 @@
                                ===========
 
 
+Genode OS Framework release 21.02 | 2021-02-25
+##############################################
+
+| The highlights of version 21.02 are the addition of VirtualBox 6,
+| mobile-data connectivity via LTE, pluggable network drivers, initial
+| support for the Pine-A64-LTS board, and revived work on RISC-V.
+
+Many topics of the current release draw a connection to our overarching goal
+to use Genode on the Pinephone by the end of the year. Besides the obvious
+steps of enabling the hardware - starting with the Pine-A64-LTS board - the
+release introduces mobile-data connectivity as a Genode feature, and changes
+the network-driver architecture in anticipation of dynamic power-management
+schemes.
+
+For PC hardware, the flagship feature of version 21.02 is the addition of
+VirtualBox 6, giving us the prospect to eventually replace the aging port of
+VirtualBox 5. Speaking of VirtualBox, the release comes with profound
+improvements of the USB-device pass-through abilities, most importantly
+covering audio headsets.
+
+Besides these prominent features, the new version comes with many further
+improvements. Just to name a few, virtual machines on ARM have become
+able to provide VirtIO-block devices to guests, named pipes can now
+be used to connect components, Genode's RISC-V support received an
+update to ISA spec 1.10, and OpenSSL has been bumped to version 1.1.1.
+For the full story, please refer to the
+[https:/documentation/release-notes/21.02 - release documentation of version 21.02...]
+
+
 Road Map for 2021 | 2021-01-15
 ##############################
 
