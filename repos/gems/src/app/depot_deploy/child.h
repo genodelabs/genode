@@ -440,6 +440,8 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 					_gen_provides_sub_node(xml, service, "rom",         "ROM");
 					_gen_provides_sub_node(xml, service, "terminal",    "Terminal");
 					_gen_provides_sub_node(xml, service, "timer",       "Timer");
+					_gen_provides_sub_node(xml, service, "pd",          "PD");
+					_gen_provides_sub_node(xml, service, "cpu",         "CPU");
 				});
 			});
 		}
