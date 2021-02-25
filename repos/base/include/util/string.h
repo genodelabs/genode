@@ -439,12 +439,9 @@ namespace Genode {
 		/* handle suffixes */
 		if (i > 0)
 			switch (s[i]) {
-			case 'G': res *= 1024;
-				[[fallthrough]];
-			case 'M': res *= 1024;
-				[[fallthrough]];
-			case 'K': res *= 1024; i++;
-				[[fallthrough]];
+			case 'G': res *= 1024*1024*1024; i++; break;
+			case 'M': res *= 1024*1024;      i++; break;
+			case 'K': res *= 1024;           i++; break;
 			default: break;
 			}
 
