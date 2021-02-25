@@ -579,6 +579,8 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		if (packet.completion) {
 			dynamic_cast<Completion *>(packet.completion)->free();
 		}
+		/* make sure we free the completion only once! */
+		packet.completion = nullptr;
 	}
 
 	Completion *find_valid_completion(USBPacket *p)
