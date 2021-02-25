@@ -39,8 +39,8 @@ time_t Board::Timer::stime() const
 
 void Timer::_start_one_shot(time_t const ticks)
 {
-	_device.timeout = _device.stime() + ticks;
-	Sbi::set_timer(_device.timeout);
+	_device.last_time = _device.stime();
+	Sbi::set_timer(_device.last_time + ticks);
 }
 
 
@@ -58,9 +58,7 @@ time_t Timer::_max_value() const {
 
 time_t Timer::_duration() const
 {
-	addr_t time = _device.stime();
-	return time < _device.timeout ? _device.timeout - time
-	                              : _last_timeout_duration + (time - _device.timeout);
+	return _device.stime() - _device.last_time;
 }
 
 
