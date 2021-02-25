@@ -21,7 +21,8 @@ set use_trace "yes"
 
 create_boot_directory
 
-import_from_depot [depot_user]/src/report_rom
+import_from_depot [depot_user]/src/report_rom \
+                  [depot_user]/src/shim
 
 append config {
 <config prio_levels="2" verbose="yes">
@@ -73,7 +74,7 @@ append config {
 		        report="} $report_config {"
 		        trace="} $use_trace {"
 		        verbose="no">
-			<component label="cpu_burner" default_policy="none">
+			<component label="cpu_burner -> " default_policy="none">
 <!--
 				<thread name="signal handler" policy="pin" xpos="1" ypos="0"/>
 -->
@@ -90,13 +91,24 @@ append config {
 	</start>
 
 	<start name="cpu_burner" priority="-1">
+		<binary name="shim"/>
 		<affinity xpos="1" ypos="0" width="2" height="1"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
+
+			<!-- by shim binary -->
+			<service name="PD"  unscoped_label="cpu_burner"> <parent/> </service>
+			<service name="CPU" unscoped_label="cpu_burner"> <parent/> </service>
+
+			<!-- by child of shim -->
 			<service name="PD">  <child name="cpu_balancer"/> </service>
 			<service name="CPU"> <child name="cpu_balancer"/> </service>
+
+			<service name="ROM" label="binary"> <parent label="cpu_burner"/> </service>
+
 			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
+			<service name="LOG"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
 		</route>
 	</start>
 <!--
