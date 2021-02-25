@@ -44,7 +44,8 @@ struct Sculpt::Component : Noncopyable
 
 	bool blueprint_known = false;
 
-	List_model<Route> routes { };
+	List_model<Route> routes   { };
+	Route             pd_route { "<pd/>" };
 
 	Component(Allocator &alloc, Path const &path, Info const &info,
 	          Affinity::Space const space)
@@ -90,6 +91,22 @@ struct Sculpt::Component : Noncopyable
 			xml.attribute("width",  affinity_location.width());
 			xml.attribute("height", affinity_location.height());
 		});
+	}
+
+	void gen_pd_cpu_route(Xml_generator &xml) const
+	{
+		/* by default pd route goes to parent if nothing is specified */
+		if (!pd_route.selected_service.constructed())
+			return;
+
+		/*
+		 * Until PD & CPU gets merged, enforce on Sculpt that PD and CPU routes
+		 * go to the same server.
+		 */
+		gen_named_node(xml, "service", Sculpt::Service::name_attr(pd_route.required), [&] () {
+			pd_route.selected_service->gen_xml(xml); });
+		gen_named_node(xml, "service", "CPU", [&] () {
+			pd_route.selected_service->gen_xml(xml); });
 	}
 
 	bool all_routes_defined() const

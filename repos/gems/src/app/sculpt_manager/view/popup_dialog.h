@@ -30,6 +30,7 @@
 #include <view/activatable_item.h>
 #include <depot_query.h>
 
+#include <view/pd_route_dialog.h>
 #include <view/resource_dialog.h>
 
 namespace Sculpt { struct Popup_dialog; }
@@ -114,6 +115,7 @@ struct Sculpt::Popup_dialog : Dialog
 	Activatable_item _action_item  { };
 	Activatable_item _install_item { };
 	Hoverable_item   _route_item   { };
+	Pd_route_dialog  _pd_route     { _runtime_config };
 
 	Constructible<Resource_dialog> _resources { };
 
@@ -197,6 +199,8 @@ struct Sculpt::Popup_dialog : Dialog
 			_action_item .match(hover, "frame", "vbox", "button", "name"),
 			_install_item.match(hover, "frame", "vbox", "float", "vbox", "float", "button", "name"),
 			_route_item  .match(hover, "frame", "vbox", "frame", "vbox", "hbox", "name"));
+
+		_pd_route.hover(hover, "frame", "vbox", "frame", "vbox", "hbox", "name");
 
 		if (_resources.constructed() &&
 		    hover_result == Dialog::Hover_result::UNMODIFIED)
@@ -407,6 +411,7 @@ struct Sculpt::Popup_dialog : Dialog
 		_selected_route.destruct();
 		_menu._level = 0;
 		_resources.destruct();
+		_pd_route.reset();
 	}
 
 	Popup_dialog(Env &env, Refresh &refresh,

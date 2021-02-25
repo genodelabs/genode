@@ -46,6 +46,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::RTC:         return "rtc";
 		case Service::Type::PLATFORM:    return "platform";
 		case Service::Type::VM:          return "vm";
+		case Service::Type::PD:          return "pd";
 		case Service::Type::UNDEFINED:   break;
 		}
 		return "undefined";
@@ -72,6 +73,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::RTC:         return "Real-time clock";
 		case Service::Type::PLATFORM:    return "Device access";
 		case Service::Type::VM:          return "Hardware-based virtualization";
+		case Service::Type::PD:          return "Protection domain";
 		case Service::Type::UNDEFINED:   break;
 		}
 		return "<undefined>";

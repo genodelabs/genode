@@ -27,7 +27,7 @@ struct Sculpt::Service
 	enum class Type {
 		AUDIO_IN, AUDIO_OUT, BLOCK, FILE_SYSTEM, NIC, GUI,
 		RM, IO_MEM, IO_PORT, IRQ, REPORT, ROM, TERMINAL, TRACE,
-		USB, RTC, PLATFORM, VM, UNDEFINED };
+		USB, RTC, PLATFORM, VM, PD, UNDEFINED };
 
 	enum class Match_label { EXACT, LAST };
 
@@ -61,6 +61,7 @@ struct Sculpt::Service
 		case Type::RTC:         return "Rtc";
 		case Type::PLATFORM:    return "Platform";
 		case Type::VM:          return "VM";
+		case Type::PD:          return "PD";
 		case Type::UNDEFINED:   break;
 		}
 		return "undefined";

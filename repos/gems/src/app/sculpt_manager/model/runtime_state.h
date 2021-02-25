@@ -157,6 +157,8 @@ class Sculpt::Runtime_state : public Runtime_info
 						construction->gen_affinity_xml(xml);
 
 						xml.node("route", [&] () {
+							construction->gen_pd_cpu_route(xml);
+
 							construction->routes.for_each([&] (Route const &route) {
 								route.gen_xml(xml); }); });
 					}
