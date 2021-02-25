@@ -65,7 +65,6 @@ class Genode::Allocator_avl_base : public Range_allocator
 				addr_t _addr      { 0 };     /* base address    */
 				size_t _size      { 0 };     /* size of block   */
 				bool   _used      { false }; /* block is in use */
-				short  _id        { 0 };     /* for debugging   */
 				size_t _max_avail { 0 };     /* biggest free block size of
 				                                sub tree */
 
@@ -114,7 +113,6 @@ class Genode::Allocator_avl_base : public Range_allocator
 				 ** Accessorors **
 				 *****************/
 
-				inline int    id()        const { return _id; }
 				inline addr_t addr()      const { return _addr; }
 				inline size_t avail()     const { return _used ? 0 : _size; }
 				inline size_t size()      const { return _size; }
@@ -137,12 +135,9 @@ class Genode::Allocator_avl_base : public Range_allocator
 				 * Constructor
 				 */
 				Block(addr_t addr, size_t size, bool used)
-				: _addr(addr), _size(size), _used(used),
-				  _max_avail(used ? 0 : size)
-				{
-					static int num_blocks;
-					_id = ++num_blocks;
-				}
+				:
+					_addr(addr), _size(size), _used(used), _max_avail(used ? 0 : size)
+				{ }
 
 				/**
 				 * Find best-fitting block
