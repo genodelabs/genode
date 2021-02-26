@@ -13,5 +13,8 @@ the following attributes:
 * 'minute' (0 - 59)
 * 'second' (0 - 59)
 
+The same attributes can be set in the configuration node of the driver
+to initially set the RTC to the givven value.
+
 The component will always use 24H mode and relies on the BIOS/firmware
 to do the right thing regarding the year.

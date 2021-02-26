@@ -111,6 +111,9 @@ struct Rtc::Main
 
 	Constructible<Attached_rom_dataspace> _update_rom { };
 
+	struct Invalid_timestamp_xml : Exception {};
+
+	Timestamp _parse_xml(Xml_node);
 	void _handle_update();
 
 	Signal_handler<Main> _update_sigh {
@@ -123,9 +126,61 @@ struct Rtc::Main
 			_update_rom->sigh(_update_sigh);
 		}
 
+		try {
+			Rtc::set_time(env, _parse_xml(_config_rom.xml()));
+		} catch (Invalid_timestamp_xml &) {}
+
 		env.parent().announce(env.ep().manage(root));
 	}
 };
+
+
+Rtc::Timestamp Rtc::Main::_parse_xml(Xml_node node)
+{
+	bool const complete = node.has_attribute("year")
+	                   && node.has_attribute("month")
+	                   && node.has_attribute("day")
+	                   && node.has_attribute("hour")
+	                   && node.has_attribute("minute")
+	                   && node.has_attribute("second");
+
+	if (!complete) { throw Invalid_timestamp_xml(); }
+
+	Timestamp ts { };
+
+	ts.second = node.attribute_value("second", 0u);
+	if (ts.second > 59) {
+		Genode::error("set_rtc: second invalid");
+		throw Invalid_timestamp_xml();
+	}
+
+	ts.minute = node.attribute_value("minute", 0u);
+	if (ts.minute > 59) {
+		Genode::error("set_rtc: minute invalid");
+		throw Invalid_timestamp_xml();
+	}
+
+	ts.hour = node.attribute_value("hour", 0u);
+	if (ts.hour > 23) {
+		Genode::error("set_rtc: hour invalid");
+		throw Invalid_timestamp_xml();
+	}
+
+	ts.day = node.attribute_value("day", 1u);
+	if (ts.day > 31 || ts.day == 0) {
+		Genode::error("set_rtc: day invalid");
+		throw Invalid_timestamp_xml();
+	}
+
+	ts.month = node.attribute_value("month", 1u);
+	if (ts.month > 12 || ts.month == 0) {
+		Genode::error("set_rtc: month invalid");
+		throw Invalid_timestamp_xml();
+	}
+
+	ts.year = node.attribute_value("year", 2019u);
+	return ts;
+}
 
 
 void Rtc::Main::_handle_update()
@@ -136,55 +191,11 @@ void Rtc::Main::_handle_update()
 
 	Genode::Xml_node node = _update_rom->xml();
 
-	bool const complete = node.has_attribute("year")
-	                   && node.has_attribute("month")
-	                   && node.has_attribute("day")
-	                   && node.has_attribute("hour")
-	                   && node.has_attribute("minute")
-	                   && node.has_attribute("second");
-
-	if (!complete) {
-		Genode::warning("set_rtc: ignoring incomplete RTC update");
-		return;
-	}
-
-	Timestamp ts { };
-
-	ts.second = node.attribute_value("second", 0u);
-	if (ts.second > 59) {
-		Genode::error("set_rtc: second invalid");
-		return;
-	}
-
-	ts.minute = node.attribute_value("minute", 0u);
-	if (ts.minute > 59) {
-		Genode::error("set_rtc: minute invalid");
-		return;
-	}
-
-	ts.hour = node.attribute_value("hour", 0u);
-	if (ts.hour > 23) {
-		Genode::error("set_rtc: hour invalid");
-		return;
-	}
-
-	ts.day = node.attribute_value("day", 1u);
-	if (ts.day > 31 || ts.day == 0) {
-		Genode::error("set_rtc: day invalid");
-		return;
-	}
-
-	ts.month = node.attribute_value("month", 1u);
-	if (ts.month > 12 || ts.month == 0) {
-		Genode::error("set_rtc: month invalid");
-		return;
-	}
-
-	ts.year = node.attribute_value("year", 2019u);
-
-	Rtc::set_time(env, ts);
-
-	root.notify_clients();
+	try {
+		Rtc::set_time(env, _parse_xml(node));
+		root.notify_clients();
+	} catch (Invalid_timestamp_xml &) {
+		Genode::warning("set_rtc: ignoring incomplete RTC update"); }
 }
 
 

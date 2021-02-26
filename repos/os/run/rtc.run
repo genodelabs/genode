@@ -1,17 +1,20 @@
 # RTC test
 
-assert_spec x86
-
 create_boot_directory
 
 set depot_pkgs "[depot_user]/src/[base_src] [depot_user]/src/init [depot_user]/src/report_rom"
 
-if [have_spec linux] {
+if [have_board linux] {
 	lappend depot_pkgs [depot_user]/src/linux_rtc_drv
 } else {
-	lappend depot_pkgs [depot_user]/src/rtc_drv
+	if [have_board pc] {
+		lappend depot_pkgs [depot_user]/src/rtc_drv
+	} else  {
+		lappend depot_pkgs [depot_user]/src/dummy_rtc_drv
+	}
 }
 
+puts $depot_pkgs
 import_from_depot $depot_pkgs
 
 # RTC setting tested on Qemu only
@@ -45,10 +48,12 @@ append_if $test_update config {
 			<policy label_suffix="set_rtc" report="test-rtc -> set_rtc"/>
 		</config>
 	</start>}
-append_if [have_spec linux] config {
+append_if [have_board linux] config {
 		<start name="linux_rtc_drv" priority="-1" ld="no">}
-append_if [expr ![have_spec linux]] config {
+append_if [have_board pc] config {
 		<start name="rtc_drv" priority="-1">}
+append_if [expr ![have_board pc] && ![have_board linux]] config {
+		<start name="dummy_rtc_drv" priority="-1">}
 append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Rtc"/></provides>}
