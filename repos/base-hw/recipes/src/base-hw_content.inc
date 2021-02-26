@@ -60,11 +60,11 @@ SRC_LIB_STARTUP_SPECS(x86_64)  := x86_64
 SRC_LIB_STARTUP_SPECS(riscv)   := riscv
 
 # location of hw-ld.mk file
-LD_MK_DIR(arm_v6)  := lib/mk/spec/arm
-LD_MK_DIR(arm_v7a) := lib/mk/spec/arm
-LD_MK_DIR(arm_v8a) := lib/mk/spec/arm_v8
-LD_MK_DIR(x86_64)  := lib/mk/spec/x86_64
-LD_MK_DIR(riscv)   := lib/mk/spec/riscv
+LD_MK_DIRS(arm_v6)  := lib/mk/spec/arm
+LD_MK_DIRS(arm_v7a) := lib/mk/spec/arm
+LD_MK_DIRS(arm_v8a) := lib/mk/spec/arm_v8
+LD_MK_DIRS(x86_64)  := lib/mk/spec/x86_64
+LD_MK_DIRS(riscv)   := lib/mk/spec/riscv
 
 
 #
@@ -80,7 +80,8 @@ arch_undefined:
 	        " missing file $(BOARD_ARCH_PATH)\n\n"
 	false
 else
-ARCH := $(firstword $(shell cat $(BOARD_ARCH_PATH)))
+SHELL := bash
+ARCHS := $(sort $(shell cat $(BOARD_ARCH_PATH)))
 endif
 
 
@@ -88,37 +89,45 @@ endif
 # Enumeration of package content
 #
 
+#
+# Function to obtain the content for the board's supported architectures
+#
+# The parameter is the variable name for one of the subdirectories defined
+# above. The 'sort' is merely used to remove duplicates.
+#
+selected_content = $(sort $(foreach A,$(ARCHS),${$1($A)}))
+
 BASE_DIR    := $(GENODE_DIR)/repos/base
 BASE_HW_DIR := $(GENODE_DIR)/repos/base-hw
 
 SRC_TIMER := target.inc include hw main.cc
 
 SRC_INCLUDE_HW += $(notdir $(wildcard $(BASE_HW_DIR)/src/include/hw/*.h)) \
-                  $(addprefix spec/,${SRC_INCLUDE_HW_SPECS(${ARCH})}) \
+                  $(addprefix spec/,${call selected_content,SRC_INCLUDE_HW_SPECS}) \
                   uart
 
 SRC_BOOTSTRAP += hw env.cc init.cc lock.cc log.cc thread.cc \
                  platform.cc platform.h \
-                 $(addprefix spec/,${SRC_BOOTSTRAP_SPECS(${ARCH})}) \
+                 $(addprefix spec/,${call selected_content,SRC_BOOTSTRAP_SPECS}) \
                  $(addprefix board/,$(BOARD))
 
 SRC_LIB_BASE += $(notdir $(wildcard $(BASE_HW_DIR)/src/lib/base/*.cc)) \
                 $(notdir $(wildcard $(BASE_DIR)/src/lib/base/*.cc)) \
-                ${SRC_LIB_BASE_SPECS(${ARCH})}
+                ${call selected_content,SRC_LIB_BASE_SPECS}
 
 SRC_LIB_STARTUP += init_main_thread.cc _main.cc \
-                   $(addprefix spec/,${SRC_LIB_STARTUP_SPECS(${ARCH})})
+                   $(addprefix spec/,${call selected_content,SRC_LIB_STARTUP_SPECS})
 
 SRC_CORE += $(notdir $(wildcard $(BASE_HW_DIR)/src/core/*.cc)) \
             $(notdir $(wildcard $(BASE_HW_DIR)/src/core/*.h)) \
             $(notdir $(wildcard $(BASE_DIR)/src/core/*.cc)) \
-            $(addprefix spec/,${SRC_CORE_SPECS(${ARCH})}) \
+            $(addprefix spec/,${call selected_content,SRC_CORE_SPECS}) \
             $(addprefix board/,$(BOARD)) \
             version.inc target.inc include hw kernel
 
 LIB_MK := base-hw-common.mk base-hw.mk bootstrap-hw.inc core-hw.inc \
           timeout-hw.mk cxx.mk base.inc base-common.inc startup.inc \
-          $(addprefix spec/,${LIB_MK_SPECS(${ARCH})})
+          $(addprefix spec/,${call selected_content,LIB_MK_SPECS})
 
 CONTENT += $(addprefix src/timer/,$(SRC_TIMER)) \
            $(addprefix src/include/hw/,$(SRC_INCLUDE_HW)) \
@@ -169,7 +178,8 @@ etc/specs.conf:
 content: generalize_target_names
 generalize_target_names: $(CONTENT)
 	# apply kernel-agnostic convention of naming the timer and ld.lib.so
-	mv ${LD_MK_DIR(${ARCH})}/ld-hw.mk ${LD_MK_DIR(${ARCH})}/ld.mk
+	for subdir in ${call selected_content,LD_MK_DIRS}; do \
+		mv $$subdir/ld-hw.mk $$subdir/ld.mk; done
 	sed -i "s/ld-hw/ld/"           src/lib/ld/hw/target.mk
 	sed -i "s/hw_timer_drv/timer/" src/timer/hw/target.mk
 	# supplement BOARD definition that normally comes form the build dir
