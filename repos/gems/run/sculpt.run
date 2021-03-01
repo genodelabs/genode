@@ -542,7 +542,7 @@ if {[have_board pc]} {
 # Note: the string must be exactly 5 bytes long.
 #
 proc sculpt_version { } {
-	return "20.09" }
+	return "21.03" }
 
 # write file with newline (for producing nice output when using 'cat /VERSION')
 set fd [open [run_dir]/genode/VERSION w]
