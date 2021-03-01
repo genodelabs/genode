@@ -9,6 +9,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/vfs_ttf \
                   [depot_user]/src/libc \
+                  [depot_user]/src/shim \
                   [depot_user]/raw/ttf-bitstream-vera-minimal
 
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
@@ -251,6 +252,7 @@ install_config {
 		<route>
 			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
 			<service name="ROM" label_last="init">      <parent/> </service>
+			<service name="ROM" label_last="shim">      <parent/> </service>
 			<service name="ROM" label="config"> <child name="report_rom"/> </service>
 			<service name="ROM" label_last="fonts.config"> <parent/> </service>
 			<service name="ROM" label_last="vimrc">        <parent/> </service>
