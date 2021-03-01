@@ -394,7 +394,7 @@ append_if $use_framebuffer config {
 
 if {!$use_fancy_stuff} {
 append config {
-	<start name="seoul" priority="-3" caps="800">
+	<start name="seoul" priority="-3" caps="1200">
 		<binary name="seoul"/>}
 append config "
 		<resource name=\"RAM\" quantum=\"$memory_vmm_vm\"/>"
