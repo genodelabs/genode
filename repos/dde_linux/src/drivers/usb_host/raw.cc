@@ -55,7 +55,7 @@ struct Device : List<Device>::Element
 		return &_l;
 	}
 
-	static Device * device_product(uint16_t vendor, uint16_t product)
+	static Device * device_by_product(uint16_t vendor, uint16_t product)
 	{
 		for (Device *d = list()->first(); d; d = d->next()) {
 			if (d->udev->descriptor.idVendor == vendor && d->udev->descriptor.idProduct == product)
@@ -66,7 +66,7 @@ struct Device : List<Device>::Element
 	}
 
 
-	static Device * device_bus(long bus, long dev)
+	static Device * device_by_bus(long bus, long dev)
 	{
 		for (Device *d = list()->first(); d; d = d->next()) {
 			if (d->udev->bus->busnum == bus && d->udev->devnum == dev)
@@ -76,11 +76,10 @@ struct Device : List<Device>::Element
 		return nullptr;
 	}
 
-	static Device * device_class(long class_, Session_label label)
+	static Device * device_by_class(long class_value, Session_label label)
 	{
 		for (Device *d = list()->first(); d; d = d->next()) {
-			long c = d->interface(0)->cur_altsetting->desc.bInterfaceClass;
-			if (class_ ==  c && label == d->label())
+			if (class_value ==  d->device_class_value() && label == d->label())
 				return d;
 		}
 
@@ -111,6 +110,90 @@ struct Device : List<Device>::Element
 
 		usb_interface *iface = udev->actconfig->interface[index];
 		return iface;
+	}
+
+	template <typename FN>
+	void _with_interface(unsigned index, FN const &fn)
+	{
+		if (!udev || !udev->actconfig)
+			return;
+
+		if (index >= udev->actconfig->desc.bNumInterfaces)
+			return;
+
+		usb_interface * const interface_ptr = udev->actconfig->interface[index];
+
+		if (!interface_ptr)
+			return;
+
+		fn(*interface_ptr);
+	}
+
+	template <typename FN>
+	void _for_each_interface(FN const &fn)
+	{
+		if (!udev || !udev->actconfig)
+			return;
+
+		for (unsigned i = 0; i < udev->actconfig->desc.bNumInterfaces; i++)
+			_with_interface(i, fn);
+	}
+
+	/**
+	 * Return pseudo device class of USB device
+	 *
+	 * The returned value expresses the type of USB device. If the device
+	 * has at least one HID interface, the value is USB_CLASS_HID. Otherwise,
+	 * the class of the first interface is interpreted at type the device.
+	 *
+	 * Note this classification of USB devices is meant as an interim solution
+	 * only to assist the implementation of access-control policies.
+	 */
+	unsigned device_class_value()
+	{
+		unsigned result = 0;
+
+		_with_interface(0, [&] (usb_interface &interface) {
+			if (interface.cur_altsetting)
+				result = interface.cur_altsetting->desc.bInterfaceClass; });
+
+		_for_each_interface([&] (usb_interface &interface) {
+			if (interface.cur_altsetting)
+				if (interface.cur_altsetting->desc.bInterfaceClass == USB_CLASS_HID)
+					result = USB_CLASS_HID; });
+
+		return result;
+	}
+
+	void report(Xml_generator &xml)
+	{
+		if (!udev || !udev->actconfig)
+			return;
+
+		using namespace Genode;
+
+		using Value = String<64>;
+
+		xml.attribute("label",      label());
+		xml.attribute("vendor_id",  Value(Hex(udev->descriptor.idVendor)));
+		xml.attribute("product_id", Value(Hex(udev->descriptor.idProduct)));
+		xml.attribute("bus",        Value(Hex(udev->bus->busnum)));
+		xml.attribute("dev",        Value(Hex(udev->devnum)));
+		xml.attribute("class",      Value(Hex(device_class_value())));
+
+		_for_each_interface([&] (usb_interface &interface) {
+
+			if (!interface.cur_altsetting)
+				return;
+
+			xml.node("interface", [&] () {
+
+				uint8_t const class_value =
+					interface.cur_altsetting->desc.bInterfaceClass;
+
+				xml.attribute("class", Value(Hex(class_value)));
+			});
+		});
 	}
 
 	usb_host_endpoint *endpoint(usb_interface *iface, unsigned alt_setting,
@@ -838,16 +921,17 @@ class Usb::Session_component : public Session_rpc_object,
 		  _ready_ack(ep, *this, &Session_component::_receive),
 		  _worker(sink()), _tx_ds(tx_ds), _cleaner(cleaner)
 		{
-			Device *device;
+			Device *device_ptr;
 			if (bus && dev) {
-				device = Device::device_bus(bus, dev);
+				device_ptr = Device::device_by_bus(bus, dev);
 			} else if (vendor && product) {
-				device = Device::device_product(_vendor, _product);
-			} else
-				device = Device::device_class(_class, _label);
-			if (device) {
-				state_change(DEVICE_ADD, device);
+				device_ptr = Device::device_by_product(_vendor, _product);
+			} else {
+				device_ptr = Device::device_by_class(_class, _label);
 			}
+
+			if (device_ptr)
+				state_change(DEVICE_ADD, device_ptr);
 
 			/* register signal handlers */
 			_tx.sigh_packet_avail(_packet_avail);
@@ -994,7 +1078,7 @@ class Usb::Session_component : public Session_rpc_object,
 			       || (_bus && _dev && _bus == device->udev->bus->busnum &&
 			           _dev == device->udev->devnum)
 			       || (iface && iface->cur_altsetting &&
-			           _class == iface->cur_altsetting->desc.bInterfaceClass &&
+			           _class == device->device_class_value() &&
 			           _label == device->label())? true : false;
 		}
 
@@ -1193,40 +1277,13 @@ void Device::report_device_list()
 	{
 
 		for (Device *d = list()->first(); d; d = d->next()) {
-			usb_interface *iface = d->interface(0);
 
-			if (!iface || !iface->cur_altsetting || !d->udev || !d->udev->bus) {
+			if (!d->udev || !d->udev->bus) {
 				Genode::warning("device ", d->label().string(), " state incomplete");
 				continue;
 			}
 
-			xml.node("device", [&] ()
-			{
-				char buf[16];
-
-				unsigned const bus = d->udev->bus->busnum;
-				unsigned const dev = d->udev->devnum;
-
-				xml.attribute("label", d->label().string());
-
-				Genode::snprintf(buf, sizeof(buf), "0x%4x",
-				                 d->udev->descriptor.idVendor);
-				xml.attribute("vendor_id", buf);
-
-				Genode::snprintf(buf, sizeof(buf), "0x%4x",
-				                 d->udev->descriptor.idProduct);
-				xml.attribute("product_id", buf);
-
-				Genode::snprintf(buf, sizeof(buf), "0x%4x", bus);
-				xml.attribute("bus", buf);
-
-				Genode::snprintf(buf, sizeof(buf), "0x%4x", dev);
-				xml.attribute("dev", buf);
-
-				Genode::snprintf(buf, sizeof(buf), "0x%02x",
-				                 iface->cur_altsetting->desc.bInterfaceClass);
-				xml.attribute("class", buf);
-			});
+			xml.node("device", [&] () { d->report(xml); });
 		}
 	});
 }
@@ -1256,8 +1313,7 @@ int raw_notify(struct notifier_block *nb, unsigned long action, void *data)
 
 		case USB_DEVICE_REMOVE:
 		{
-			Device *dev = Device::device_bus(udev->bus->busnum,
-			                                 udev->devnum);
+			Device *dev = Device::device_by_bus(udev->bus->busnum, udev->devnum);
 			if (dev) {
 				::Session::list()->state_change(Usb::Session_component::DEVICE_REMOVE, dev);
 				destroy(Lx::Malloc::mem(), dev);
