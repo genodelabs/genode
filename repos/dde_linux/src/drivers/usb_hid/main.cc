@@ -73,7 +73,11 @@ void Driver::Device::register_device()
 		struct usb_interface      * iface = udev->config->interface[i];
 		struct usb_host_interface * alt   = iface->cur_altsetting;
 
+		if (alt->desc.bInterfaceClass != USB_CLASS_HID)
+			continue;
+
 		for (int j = 0; j < alt->desc.bNumEndpoints; ++j) {
+
 			struct usb_host_endpoint * ep = &alt->endpoint[j];
 			int epnum  = usb_endpoint_num(&ep->desc);
 			int is_out = usb_endpoint_dir_out(&ep->desc);
