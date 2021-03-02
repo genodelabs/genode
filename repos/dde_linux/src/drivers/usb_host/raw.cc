@@ -432,6 +432,18 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 					p.error = Packet_descriptor::INTERFACE_OR_ENDPOINT_ERROR;
 				else if ((ret == -ENODEV) || (ret == -ESHUTDOWN))
 					p.error = Packet_descriptor::NO_DEVICE_ERROR;
+				else if (ret == -ENOSPC) {
+					/*
+					 * ENOSPC (no bandwidth) is handled by the USB HID driver
+					 * as return value of submitting an interrupt URB. But
+					 * since the USB session delivers the error asynchronously,
+					 * the error shows up at the HID driver as late as when
+					 * handling the interrupt where this error is not
+					 * anticipated.
+					 */
+					Genode::warning(__func__, ": reflect ENOSPC as STALL_ERROR");
+					p.error = Packet_descriptor::STALL_ERROR;
+				}
 				else {
 					Genode::error(__func__, ": unhandled error: ", ret);
 					p.error = Packet_descriptor::UNKNOWN_ERROR;
