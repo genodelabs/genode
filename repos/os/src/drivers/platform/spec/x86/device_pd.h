@@ -103,7 +103,7 @@ class Platform::Device_pd
 		          Genode::Ram_quota_guard &ram_guard,
 		          Genode::Cap_quota_guard &cap_guard)
 		:
-			_pd(env, label.string(), Genode::Pd_connection::Virt_space::UNCONSTRAIN),
+			_pd(env, "device PD", Genode::Pd_connection::Virt_space::UNCONSTRAIN),
 			_label(label),
 			_address_space(env, _pd, ram_guard, cap_guard)
 		{
