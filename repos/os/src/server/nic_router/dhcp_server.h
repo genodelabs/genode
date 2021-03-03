@@ -100,7 +100,8 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 
 		void alloc_ip(Ipv4_address const &ip);
 
-		void free_ip(Ipv4_address const &ip);
+		void free_ip(Domain       const &domain,
+		             Ipv4_address const &ip);
 
 		bool ready() const;
 

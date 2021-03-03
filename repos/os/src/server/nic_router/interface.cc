@@ -1488,7 +1488,7 @@ void Interface::_ready_to_ack()
 void Interface::_destroy_dhcp_allocation(Dhcp_allocation &allocation,
                                          Domain          &local_domain)
 {
-	try { local_domain.dhcp_server().free_ip(allocation.ip()); }
+	try { local_domain.dhcp_server().free_ip(local_domain, allocation.ip()); }
 	catch (Pointer<Dhcp_server>::Invalid) { }
 	destroy(_alloc, &allocation);
 }

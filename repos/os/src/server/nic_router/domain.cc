@@ -258,16 +258,42 @@ void Domain::init(Domain_tree &domains)
 		if (_ip_config_dynamic) {
 			_invalid("DHCP server and client at once"); }
 
-		Dhcp_server &dhcp_server = *new (_alloc)
-			Dhcp_server(dhcp_server_node, *this, _alloc,
-			            ip_config().interface, domains);
+		try {
+			Dhcp_server &dhcp_server = *new (_alloc)
+				Dhcp_server(dhcp_server_node, *this, _alloc,
+				            ip_config().interface, domains);
 
-		try { dhcp_server.dns_server_from().ip_config_dependents().insert(this); }
-		catch (Pointer<Domain>::Invalid) { }
+			try {
+				dhcp_server.
+					dns_server_from().ip_config_dependents().insert(this);
+			}
+			catch (Pointer<Domain>::Invalid) { }
 
-		_dhcp_server = dhcp_server;
-		if (_config.verbose()) {
-			log("[", *this, "] DHCP server: ", _dhcp_server()); }
+			_dhcp_server = dhcp_server;
+			if (_config.verbose()) {
+				log("[", *this, "] DHCP server: ", _dhcp_server()); }
+		}
+		catch (Bit_allocator_dynamic::Out_of_indices) {
+
+			/*
+			 * This message is printed independent from the routers
+			 * verbosity configuration in order to track down an exception
+			 * of type Bit_allocator_dynamic::Out_of_indices that was
+			 * previously not caught. We have observed this exception once,
+			 * but without a specific use pattern that would
+			 * enable for a systematic reproduction of the issue.
+			 * The uncaught exception was observed in a 21.03 Sculpt OS
+			 * with a manually configured router, re-configuration involved.
+			 */
+			log("[", *this, "] DHCP server: failed to initialize ",
+			    "(IP range: first ",
+			    dhcp_server_node.attribute_value("ip_first", Ipv4_address()),
+			    " last ",
+			    dhcp_server_node.attribute_value("ip_last", Ipv4_address()),
+			    ")");
+
+			throw Dhcp_server::Invalid { };
+		}
 	}
 	catch (Xml_node::Nonexistent_sub_node) { }
 	catch (Dhcp_server::Invalid) { _invalid("invalid DHCP server"); }
