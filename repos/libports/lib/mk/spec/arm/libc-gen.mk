@@ -20,7 +20,7 @@ SRC_C  += $(filter-out $(FILTER_OUT_C),$(notdir $(wildcard $(LIBC_GEN_ARM_DIR)/*
 # ucontext.h header is taken from the libc API archive).
 #
 CC_OPT_makecontext = -I$(call select_from_ports,libc)/include/libc/sys \
-                     $(addprefix -I,$(call select_from_repositories,/include/libc/sys))
+                     $(addprefix -I,$(call select_from_repositories,include/libc/sys))
 
 vpath % $(LIBC_GEN_ARM_DIR)
 
