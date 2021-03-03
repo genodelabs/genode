@@ -121,6 +121,11 @@ namespace {
 		                           Parent::Session_args const &args,
 		                           Affinity             const &affinity) override
 		{
+			if (!args.valid_string()) {
+				warning(name.string(), " session denied because of truncated arguments");
+				throw Service_denied();
+			}
+
 			Mutex::Guard guard(_mutex);
 
 			/*
