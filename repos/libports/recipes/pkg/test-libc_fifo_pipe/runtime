@@ -68,7 +68,7 @@
 								<service name="ROM"/>
 								<service name="Timer"/>
 							</parent-provides>
-							<default caps="110"/>
+							<default caps="120"/>
 
 							<start name="echo">
 								<binary name="test-libc_fifo_pipe"/>
