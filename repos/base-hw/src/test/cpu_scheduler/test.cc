@@ -11,6 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
+#include <util/construct_at.h>
 #include <base/component.h>
 
 /* core includes */
@@ -22,10 +24,10 @@
 
 using Genode::size_t;
 using Genode::addr_t;
+using Genode::construct_at;
 using Kernel::Cpu_share;
 using Kernel::Cpu_scheduler;
 
-void * operator new(__SIZE_TYPE__, void * p) { return p; }
 
 struct Data
 {
@@ -73,15 +75,15 @@ void create(unsigned const id)
 	Cpu_share * const s = share(id);
 	void * const p = (void *)s;
 	switch (id) {
-	case 1: new (p) Cpu_share(2, 230); break;
-	case 2: new (p) Cpu_share(0, 170); break;
-	case 3: new (p) Cpu_share(3, 110); break;
-	case 4: new (p) Cpu_share(1,  90); break;
-	case 5: new (p) Cpu_share(3, 120); break;
-	case 6: new (p) Cpu_share(3,   0); break;
-	case 7: new (p) Cpu_share(2, 180); break;
-	case 8: new (p) Cpu_share(2, 100); break;
-	case 9: new (p) Cpu_share(2,   0); break;
+	case 1: construct_at<Cpu_share>(p, 2, 230); break;
+	case 2: construct_at<Cpu_share>(p, 0, 170); break;
+	case 3: construct_at<Cpu_share>(p, 3, 110); break;
+	case 4: construct_at<Cpu_share>(p, 1,  90); break;
+	case 5: construct_at<Cpu_share>(p, 3, 120); break;
+	case 6: construct_at<Cpu_share>(p, 3,   0); break;
+	case 7: construct_at<Cpu_share>(p, 2, 180); break;
+	case 8: construct_at<Cpu_share>(p, 2, 100); break;
+	case 9: construct_at<Cpu_share>(p, 2,   0); break;
 	default: return;
 	}
 	data()->scheduler.insert(*s);

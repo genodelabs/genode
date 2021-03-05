@@ -12,6 +12,7 @@
  */
 
 /* base includes */
+#include <util/construct_at.h>
 #include <base/component.h>
 #include <base/log.h>
 
@@ -26,8 +27,6 @@
 using Genode::size_t;
 using Kernel::Double_list;
 using Kernel::Double_list_item;
-
-void * operator new(__SIZE_TYPE__, void * p) { return p; }
 
 
 struct Item_load { char volatile x = 0, y = 0, z = 0; };
@@ -53,7 +52,7 @@ struct Data
 	Data()
 	{
 		for (unsigned i = 0; i < nr_of_items; i++) {
-			new (&items[i]) Item(i + 1); }
+			Genode::construct_at<Item>(&items[i], i + 1); }
 	}
 };
 

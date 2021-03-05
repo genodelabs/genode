@@ -86,7 +86,7 @@ class Genode::Cap_index_allocator_tpl : public Cap_index_allocator
 				/* if we found a fitting hole, initialize the objects */
 				if (j == cnt) {
 					for (j = 0; j < cnt; j++)
-						new (&_indices[i+j]) T();
+						construct_at<T>(&_indices[i+j]);
 					return &_indices[i];
 				}
 			}
@@ -102,14 +102,14 @@ class Genode::Cap_index_allocator_tpl : public Cap_index_allocator
 			 * construct the Cap_index pointer from the given
 			 * address in capability space
 			 */
-			T * const obj = reinterpret_cast<T*>(kcap_to_idx(addr));
+			T * const obj_ptr = reinterpret_cast<T*>(kcap_to_idx(addr));
 
-			if (obj < &_indices[0] || obj >= &_indices[SZ]) {
+			if (obj_ptr < &_indices[0] || obj_ptr >= &_indices[SZ]) {
 				ASSERT(0, "cap index out of bounds");
 				throw Index_out_of_bounds();
 			}
 
-			return new (obj) T();
+			return construct_at<T>(obj_ptr);
 		}
 
 		void free(Cap_index* idx, size_t cnt) override
