@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/misc_math.h>
+#include <util/construct_at.h>
 #include <base/log.h>
 
 /* board-specific includes */
@@ -111,29 +112,16 @@ struct Driver::Property_message
 			return 0;
 		}
 
-		template <typename T>
-		struct Placeable : T
-		{
-			template <typename... ARGS>
-			Placeable(ARGS... args) : T(args...) { }
-
-			inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
-		};
-
 		template <typename T, typename... ARGS>
 		void construct_request(typename T::Request *, ARGS... args)
 		{
-			new ((typename T::Request *)payload)
-				Placeable<typename T::Request>(args...);
+			construct_at<typename T::Request>(payload, args...);
 		}
-
-		template <typename>
-		void construct_request(...) { }
 
 		template <typename T>
 		void construct_response(typename T::Response *)
 		{
-			new (payload) Placeable<typename T::Response>;
+			construct_at<typename T::Response>(payload);
 		}
 
 		template <typename>
@@ -159,8 +147,6 @@ struct Driver::Property_message
 			construct_response<TAG>(0);
 			construct_request<TAG>(0, request_args...);
 		}
-
-		inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
 	};
 
 	void reset()
@@ -175,7 +161,7 @@ struct Driver::Property_message
 	template <typename POLICY, typename... REQUEST_ARGS>
 	typename POLICY::Response const &append(REQUEST_ARGS... request_args)
 	{
-		auto *tag = new (buffer + buf_size) Tag<POLICY>(request_args...);
+		auto *tag = construct_at<Tag<POLICY> >(buffer + buf_size, request_args...);
 
 		buf_size += sizeof(Tag<POLICY>) + Tag<POLICY>::payload_size();
 
@@ -185,7 +171,7 @@ struct Driver::Property_message
 	template <typename POLICY, typename... REQUEST_ARGS>
 	void append_no_response(REQUEST_ARGS... request_args)
 	{
-		new (buffer + buf_size) Tag<POLICY>(request_args...);
+		construct_at<Tag<POLICY> >(buffer + buf_size, request_args...);
 
 		buf_size += sizeof(Tag<POLICY>) + Tag<POLICY>::payload_size();
 	}
@@ -218,8 +204,6 @@ struct Driver::Property_message
 			}
 		}
 	}
-
-	inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
 };
 
 #endif /* _SRC__DRIVERS__PLATFORM__RPI__PROPERTY_MESSAGE_H_ */

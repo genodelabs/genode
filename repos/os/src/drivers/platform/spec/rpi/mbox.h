@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/mmio.h>
+#include <util/construct_at.h>
 #include <base/env.h>
 #include <os/attached_mmio.h>
 #include <base/attached_ram_dataspace.h>
@@ -84,7 +85,7 @@ class Mbox : Genode::Attached_mmio
 		template <typename MESSAGE, typename... ARGS>
 		MESSAGE &message(ARGS... args)
 		{
-			return *(new (_msg_buffer.local_addr<void>()) MESSAGE(args...));
+			return *Genode::construct_at<MESSAGE>(_msg_buffer.local_addr<void>(), args...);
 		}
 
 		template <typename MESSAGE>

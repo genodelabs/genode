@@ -56,8 +56,6 @@ struct Platform::Framebuffer_message : Framebuffer_info
 		log(" addr:        ", Genode::Hex(addr));
 		log(" size:        ", Genode::Hex(size));
 	}
-
-	inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
 };
 
 #endif /* _FRAMEBUFFER_MESSAGE_H_ */
