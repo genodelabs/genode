@@ -77,7 +77,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	}
 
 	/* add dataspace information to list of dataspaces */
-	Dataspace *ds  = new (ds_addr) Dataspace(new_ds_cap, local_addr);
+	Dataspace *ds  = construct_at<Dataspace>(ds_addr, new_ds_cap, local_addr);
 	insert(ds);
 
 	return 0;

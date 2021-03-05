@@ -47,20 +47,13 @@ namespace Libc {
 				MAX_CHUNK_SIZE = 1024*1024
 			};
 
-			class Dataspace : public List<Dataspace>::Element
+			struct Dataspace : List<Dataspace>::Element
 			{
-				public:
+				Ram_dataspace_capability cap;
+				void *local_addr;
 
-					Ram_dataspace_capability cap;
-					void *local_addr;
-
-					Dataspace(Ram_dataspace_capability c, void *a)
-					: cap(c), local_addr(a) {}
-
-					inline void * operator new(__SIZE_TYPE__, void* addr) {
-						return addr; }
-
-					inline void operator delete(void*) { }
+				Dataspace(Ram_dataspace_capability c, void *a)
+				: cap(c), local_addr(a) {}
 			};
 
 			class Dataspace_pool : public List<Dataspace>
