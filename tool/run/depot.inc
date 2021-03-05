@@ -214,6 +214,9 @@ proc _depot_auto_update { archives } {
 	append cmd "DEPOT_DIR=[depot_dir] "
 	append cmd "UPDATE_VERSIONS=1 FORCE=1 REBUILD= "
 
+	if {[get_cmd_switch --ccache]} {
+		append cmd "CCACHE=1 " }
+
 	set make_j_arg ""
 	regexp {.*(-j\d*)} [get_cmd_arg_first --make ""] dummy make_j_arg
 	append cmd "$make_j_arg "
