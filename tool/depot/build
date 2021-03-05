@@ -123,7 +123,7 @@ $(BUILD_MK_FILE): checked_source_archives_exist checked_no_uncategorized
 	             echo -e "\nall: \$$(TARGETS)"; \
 	             echo -e "\n\$$(TARGETS):"; \
 	             echo -e "\t\$$(MAKE) -f \$$(TOOL_DIR)/depot/mk/\$${TOOL(\$$@)}" \
-	                     "\$${ARGS(\$$@)} VERBOSE=\$$(VERBOSE)\n"; \
+	                     "\$${ARGS(\$$@)} CCACHE=\$$(CCACHE) VERBOSE=\$$(VERBOSE)\n"; \
 	          ) > $@
 
 

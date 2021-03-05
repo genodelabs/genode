@@ -163,6 +163,7 @@ $(BUILD_CONF): checked_src_archive checked_api_archives
 	$(VERBOSE) \
 	( echo "GENODE_DIR := $(GENODE_DIR)"; \
 	  echo "BASE_DIR := $(GENODE_DIR)/repos/base"; \
+	  echo "override CCACHE := $(if $(CCACHE),yes)"; \
 	  echo "REPOSITORIES := $(SRC_DIR)"; \
 	  for api in $(USED_APIS); do \
 	      echo "REPOSITORIES += $(DEPOT_API_DIR)/$$api"; done \
