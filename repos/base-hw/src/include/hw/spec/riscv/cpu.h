@@ -43,6 +43,14 @@ struct Hw::Riscv_cpu
 		struct Asid : Bitfield<44,16> { };
 		struct Mode : Bitfield<60, 4> { };
 	);
+
+	struct Sie
+	{
+		Sie(Genode::addr_t bits)
+		{
+			asm volatile ("csrs sie, %0" : : "r"(bits));
+		}
+	};
 };
 
 #endif /* _SRC__LIB__HW__SPEC__RISCV__CPU_H_ */

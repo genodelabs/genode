@@ -12,6 +12,7 @@ SRC_CC += spec/riscv/kernel/cpu.cc
 SRC_CC += spec/riscv/kernel/interface.cc
 SRC_CC += spec/riscv/kernel/pd.cc
 SRC_CC += spec/riscv/cpu.cc
+SRC_CC += spec/riscv/pic.cc
 SRC_CC += spec/riscv/platform_support.cc
 SRC_CC += spec/riscv/timer.cc
 SRC_CC += spec/64bit/memory_map.cc

@@ -644,7 +644,7 @@ void Thread::_call_new_irq()
 	}
 
 	Genode::Irq_session::Trigger  trigger  =
-		(Genode::Irq_session::Trigger)  (user_arg_3() & 0b1100);
+		(Genode::Irq_session::Trigger)  ((user_arg_3() >> 2) & 0b11);
 	Genode::Irq_session::Polarity polarity =
 		(Genode::Irq_session::Polarity) (user_arg_3() & 0b11);
 

@@ -24,7 +24,7 @@ Board::Timer::Timer(unsigned)
 {
 	/* enable timer interrupt */
 	enum { STIE = 0x20 };
-	asm volatile ("csrs sie, %0" : : "r"(STIE));
+	Hw::Riscv_cpu::Sie timer(STIE);
 }
 
 
