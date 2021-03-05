@@ -18,18 +18,25 @@
 void Sculpt::Storage::handle_storage_devices_update()
 {
 	bool reconfigure_runtime = false;
+
+	auto process_part_block_report = [&] (Storage_device &dev)
+	{
+		Storage_device::State const orig_state = dev.state;
+
+		dev.process_part_block_report();
+
+		if (dev.state != orig_state
+		 || dev.state == Storage_device::UNKNOWN)
+			reconfigure_runtime = true;
+	};
+
 	{
 		_block_devices_rom.update();
 		Block_device_update_policy policy(_env, _alloc, _storage_device_update_handler);
 		_storage_devices.update_block_devices_from_xml(policy, _block_devices_rom.xml());
 
 		_storage_devices.block_devices.for_each([&] (Block_device &dev) {
-
-			dev.process_part_block_report();
-
-			if (dev.state == Storage_device::UNKNOWN) {
-				reconfigure_runtime = true; };
-		});
+			process_part_block_report(dev); });
 	}
 
 	{
@@ -43,12 +50,8 @@ void Sculpt::Storage::handle_storage_devices_update()
 			reconfigure_runtime = true;
 
 		_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
-
 			dev.process_driver_report();
-			dev.process_part_block_report();
-
-			if (dev.state == Storage_device::UNKNOWN) {
-				reconfigure_runtime = true; };
+			process_part_block_report(dev);
 		});
 	}
 
