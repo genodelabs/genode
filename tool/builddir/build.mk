@@ -31,6 +31,7 @@
 #                 there is no need to change it.
 #
 # CONTRIB_DIR   - location of ported 3rd-party source codes
+# CCACHE        - if set to 'yes', the build system uses the compiler cache
 #
 # REQUIRED_GCC_VERSION - GCC version required for building Genode
 #
@@ -376,6 +377,8 @@ endif
 export CUSTOM_CC  := $(CCACHED_CUSTOM_CC)
 export CUSTOM_CXX := $(CCACHED_CUSTOM_CXX)
 
+RUN_OPT_CCACHE := --ccache
+
 endif
 
 
@@ -398,6 +401,7 @@ run/%: $(call select_from_repositories,run/%.run) $(RUN_ENV)
 	                                     --cross-dev-prefix "$(CROSS_DEV_PREFIX)" \
 	                                     --qemu-args "$(QEMU_OPT)" \
 	                                     --make "$(MAKE)" \
+	                                     $(RUN_OPT_CCACHE) \
 	                                     $(RUN_OPT) \
 	                                     --include $(RUN_SCRIPT)
 
