@@ -39,25 +39,31 @@ struct Dummy::Log_service
 
 	Sliced_heap _heap { _env.ram(), _env.rm() };
 
-	bool const _verbose;
+	struct Args
+	{
+		bool     verbose;
+		unsigned delay_close_ms;
+	};
+
+	Args const _args;
 
 	struct Session_component : Rpc_object<Log_session>
 	{
 		Session_label const _label;
 
-		bool const _verbose;
+		Args const _args;
 
-		Session_component(Session_label const &label, bool verbose)
+		Session_component(Session_label const &label, Args args)
 		:
-			_label(label), _verbose(verbose)
+			_label(label), _args(args)
 		{
-			if (_verbose)
+			if (_args.verbose)
 				log("opening session with label ", _label);
 		}
 
 		~Session_component()
 		{
-			if (_verbose)
+			if (_args.verbose)
 				log("closing session with label ", _label);
 		}
 
@@ -78,16 +84,22 @@ struct Dummy::Log_service
 	{
 		Pd_session &_pd;
 
-		bool const _verbose;
+		Log_service::Args const _service_args;
 
-		Root(Entrypoint &ep, Allocator &alloc, Pd_session &pd, bool verbose)
+		Constructible<Timer::Connection> _timer { };
+
+		Root(Env &env, Allocator &alloc, Pd_session &pd, Log_service::Args args)
 		:
-			Root_component(ep, alloc), _pd(pd), _verbose(verbose)
-		{ }
+			Root_component(env.ep(), alloc), _pd(pd), _service_args(args)
+		{
+			if (args.delay_close_ms)
+				_timer.construct(env);
+		}
 
 		Session_component *_create_session(const char *args, Affinity const &) override
 		{
-			return new (md_alloc()) Session_component(label_from_args(args), _verbose);
+			return new (md_alloc())
+				Session_component(label_from_args(args), _service_args);
 		}
 
 		void _upgrade_session(Session_component *, const char *args) override
@@ -98,11 +110,25 @@ struct Dummy::Log_service
 			if (_pd.avail_ram().value >= ram_quota)
 				log("received session quota upgrade");
 		}
+
+		void _destroy_session(Session_component *session) override
+		{
+			if (_timer.constructed()) {
+				log("delay close by ", _service_args.delay_close_ms, " ms");
+				_timer->msleep(_service_args.delay_close_ms);
+			}
+			else
+			{
+				log("close session without delay");
+			}
+
+			Root_component::_destroy_session(session);
+		}
 	};
 
-	Root _root { _env.ep(), _heap, _env.pd(), _verbose };
+	Root _root { _env, _heap, _env.pd(), _args };
 
-	Log_service(Env &env, bool verbose) : _env(env), _verbose(verbose)
+	Log_service(Env &env, Args args) : _env(env), _args(args)
 	{
 		_env.parent().announce(_env.ep().manage(_root));
 		log("created LOG service");
@@ -311,7 +337,10 @@ struct Dummy::Main
 				_log_connections.destruct();
 
 			if (node.type() == "log_service")
-				_log_service.construct(_env, node.attribute_value("verbose", false));
+				_log_service.construct(_env, Log_service::Args {
+					.verbose        = node.attribute_value("verbose", false),
+					.delay_close_ms = node.attribute_value("delay_close_ms", 0U)
+				});
 
 			if (node.type() == "consume_ram")
 				_ram_consumer.consume(node.attribute_value("amount", Number_of_bytes()));
