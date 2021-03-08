@@ -1,4 +1,4 @@
-build "core init test/sandbox app/dummy"
+build "core init timer test/sandbox app/dummy"
 
 create_boot_directory
 
@@ -9,19 +9,26 @@ install_config {
 			<service name="PD"/>
 			<service name="CPU"/>
 			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
 		</parent-provides>
 		<default-route>
-			<any-service> <parent/> </any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="500"/>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Timer"/> </provides>
+		</start>
 		<start name="test-sandbox">
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
 }
 
-build_boot_image { core ld.lib.so init test-sandbox sandbox.lib.so dummy }
+build_boot_image { core ld.lib.so init timer test-sandbox sandbox.lib.so dummy }
 
 append qemu_args " -nographic "
 
-run_genode_until "child \"dummy\" exited with exit value 0.*\n" 20
+run_genode_until "version=\"5\".*\n" 20

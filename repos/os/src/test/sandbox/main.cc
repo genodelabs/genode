@@ -16,6 +16,7 @@
 #include <base/session_object.h>
 #include <os/buffered_xml.h>
 #include <os/sandbox.h>
+#include <timer_session/connection.h>
 
 namespace Test {
 
@@ -58,6 +59,25 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 
 	Log_service _log_service { _sandbox, *this };
 
+	/*
+	 * Periodically update the child version to stress the child destruction,
+	 * the closing of the session to the local LOG service, and and the child
+	 * re-creation.
+	 */
+	unsigned _dummy_version = 1;
+
+	void _handle_timer(Duration)
+	{
+		_dummy_version++;
+
+		_update_sandbox_config();
+	}
+
+	Timer::Connection _timer { _env };
+
+	Timer::Periodic_timeout<Main> _timeout_handler {
+		_timer, *this, &Main::_handle_timer, Microseconds(250*1000) };
+
 	void _generate_sandbox_config(Xml_generator &xml) const
 	{
 		xml.node("parent-provides", [&] () {
@@ -75,6 +95,7 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 		xml.node("start", [&] () {
 			xml.attribute("name", "dummy");
 			xml.attribute("caps", 100);
+			xml.attribute("version", _dummy_version);
 			xml.node("resource", [&] () {
 				xml.attribute("name", "RAM");
 				xml.attribute("quantum", "2M");
@@ -86,10 +107,8 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 				xml.node("create_log_connections", [&] () {
 					xml.attribute("ram_upgrade", "100K");
 					xml.attribute("count", "1"); });
-				xml.node("destroy_log_connections", [&] () { });
 				xml.node("log", [&] () {
 					xml.attribute("string", "done"); });
-				xml.node("exit", [&] () { });
 			});
 
 			xml.node("route", [&] () {
@@ -101,6 +120,19 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 				xml.node("any-service", [&] () {
 					xml.node("parent", [&] () { }); });
 			});
+		});
+	}
+
+	void _update_sandbox_config()
+	{
+		Buffered_xml const config { _heap, "config", [&] (Xml_generator &xml) {
+			_generate_sandbox_config(xml); } };
+
+		config.with_xml_node([&] (Xml_node const &config) {
+
+			log("generated config: ", config);
+
+			_sandbox.apply_config(config);
 		});
 	}
 
@@ -134,15 +166,7 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 
 	Main(Env &env) : _env(env)
 	{
-		Buffered_xml const config { _heap, "config", [&] (Xml_generator &xml) {
-			_generate_sandbox_config(xml); } };
-
-		config.with_xml_node([&] (Xml_node const &config) {
-
-			log("generated config: ", config);
-
-			_sandbox.apply_config(config);
-		});
+		_update_sandbox_config();
 	}
 };
 

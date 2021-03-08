@@ -574,9 +574,7 @@ void Genode::Sandbox::Local_service_base::_for_each_session_to_close(Close_fn &c
 		case Close_response::CLOSED:
 
 			session.phase = Session_state::CLOSED;
-
-			if (session.closed_callback)
-				session.id_at_parent.construct(session, pending_callbacks);
+			session.id_at_parent.construct(session, pending_callbacks);
 			break;
 
 		case Close_response::DEFERRED:
@@ -593,6 +591,8 @@ void Genode::Sandbox::Local_service_base::_for_each_session_to_close(Close_fn &c
 
 		if (session.closed_callback)
 			session.closed_callback->session_closed(session);
+		else
+			session.destroy();
 	}));
 }
 
