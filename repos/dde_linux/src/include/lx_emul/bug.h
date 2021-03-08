@@ -19,6 +19,8 @@
  ** asm/bug.h **
  ***************/
 
+extern void lx_sleep_forever() __attribute__((noreturn));
+
 #define WARN_ON(condition) ({ \
 	int ret = !!(condition); \
 	if (ret) lx_printf("[%s] WARN_ON(%s) \n", __func__, #condition); \
@@ -31,7 +33,7 @@
 
 #define BUG() do { \
 	lx_printf("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
-	while (1); \
+	lx_sleep_forever(); \
 } while (0)
 
 #define WARN_ON_ONCE WARN_ON

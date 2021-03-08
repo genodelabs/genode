@@ -10,6 +10,7 @@ INC_DIR  += $(REP_DIR)/src/include
 
 # lx_kit
 SRC_CC   += lx_kit/printf.cc
+SRC_CC   += lx_kit/bug.cc
 SRC_CC   += lx_kit/work.cc
 SRC_CC   += lx_kit/timer.cc
 SRC_CC   += lx_kit/scheduler.cc

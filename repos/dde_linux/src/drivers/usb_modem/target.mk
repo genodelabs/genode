@@ -1,7 +1,7 @@
 TARGET  := usb_modem_drv
 SRC_C   := dummies.c lxc.c
 SRC_CC  := main.cc lx_emul.cc component.cc terminal.cc fec_nic.cc
-SRC_CC  += printf.cc timer.cc scheduler.cc malloc.cc env.cc work.cc
+SRC_CC  += printf.cc bug.cc timer.cc scheduler.cc malloc.cc env.cc work.cc
 SRC_CC  += uplink_client.cc
 
 LIBS    := base usb_modem_include lx_kit_setjmp nic_driver

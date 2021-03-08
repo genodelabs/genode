@@ -7,6 +7,7 @@ SRC_C    = dummies.c lx_emul_c.c
 
 # lx_kit
 SRC_CC  += printf.cc \
+           bug.cc \
            env.cc \
            irq.cc \
            malloc.cc \

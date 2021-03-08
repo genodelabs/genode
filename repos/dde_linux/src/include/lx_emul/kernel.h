@@ -71,6 +71,9 @@ static inline int _printk(const char *fmt, ...)
 #define vprintk(...)
 #endif
 
+extern void lx_sleep_forever() __attribute__((noreturn));
+
+
 static inline __printf(1, 2) void panic(const char *fmt, ...) __noreturn;
 static inline void panic(const char *fmt, ...)
 {
@@ -79,7 +82,7 @@ static inline void panic(const char *fmt, ...)
 	lx_vprintf(fmt, args);
 	va_end(args);
 	lx_printf("\npanic()\n");
-	while (1) ;
+	lx_sleep_forever();
 }
 
 /*

@@ -20,7 +20,7 @@ SRC_CC += dummies.cc init.cc lxcc_emul.cc nic.cc socket_call.cc random.cc \
 
 # lx_kit
 SRC_CC += mapped_io_mem_range.cc irq.cc pci.cc malloc.cc scheduler.cc \
-          work.cc timer.cc printf.cc env.cc
+          work.cc timer.cc printf.cc bug.cc env.cc
 
 SRC_C += lxc_emul.c dummies_new.c
 

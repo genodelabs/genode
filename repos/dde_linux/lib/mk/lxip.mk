@@ -28,7 +28,7 @@ CC_CXX_OPT = -fpermissive
 SRC_CC = dummies.cc lxcc_emul.cc nic_handler.cc \
          timer_handler.cc random.cc
 
-SRC_CC += malloc.cc printf.cc env.cc
+SRC_CC += malloc.cc printf.cc bug.cc env.cc
 
 SRC_C += driver.c dummies_c.c lxc_emul.c
 

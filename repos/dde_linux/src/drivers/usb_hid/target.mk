@@ -1,7 +1,7 @@
 TARGET  := usb_hid_drv
 SRC_C   := dummies.c
 SRC_CC  := main.cc lx_emul.cc evdev.cc
-SRC_CC  += printf.cc timer.cc scheduler.cc env.cc work.cc
+SRC_CC  += printf.cc bug.cc timer.cc scheduler.cc env.cc work.cc
 
 LIBS    := base usb_hid_include lx_kit_setjmp
 

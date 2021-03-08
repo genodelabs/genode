@@ -7,7 +7,7 @@ INC_DIR += $(PRG_DIR)/../..
 INC_DIR += $(REP_DIR)/src/drivers/nic
 
 # lx_kit
-SRC_CC  += env.cc irq.cc malloc.cc scheduler.cc timer.cc work.cc printf.cc
+SRC_CC  += env.cc irq.cc malloc.cc scheduler.cc timer.cc work.cc printf.cc bug.cc
 INC_DIR += $(REP_DIR)/src/include
 
 # contrib code

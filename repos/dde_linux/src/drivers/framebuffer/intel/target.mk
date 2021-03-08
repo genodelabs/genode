@@ -11,6 +11,7 @@ SRC_CC  += irq.cc \
            mapped_io_mem_range.cc \
            pci.cc \
            printf.cc \
+           bug.cc \
            scheduler.cc \
            timer.cc \
            work.cc \
