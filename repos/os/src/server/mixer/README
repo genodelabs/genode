@@ -13,12 +13,12 @@ The mixer gets its configuration via a ROM module called 'mixer.config'.
 The following configuration snippet illustrates its structure:
 
 ! <config>
-!   <default out_volume="75" volume="25" muted="0"/>
+!   <default out_volume="75" volume="25" muted="false"/>
 !   <channel_list>
-!     <channel type="input"  label="client" number="0" volume="75"  muted="1"/>
-!     <channel type="input"  label="client" number="1" volume="15"  muted="1"/>
-!     <channel type="output" label="master" number="0" volume="100" muted="0"/>
-!     <channel type="output" label="master" number="1" volume="100" muted="0"/>
+!     <channel type="input"  label="client" number="0" volume="75"  muted="true"/>
+!     <channel type="input"  label="client" number="1" volume="15"  muted="true"/>
+!     <channel type="output" label="master" number="0" volume="100" muted="false"/>
+!     <channel type="output" label="master" number="1" volume="100" muted="false"/>
 !   </channel_list>
 ! </config>
 
@@ -43,12 +43,12 @@ The report contains a `<channel_list>' node that is similar to the one
 used in the 'mixer.config':
 
 ! <channel_list>
-!   <channel type="input" label="client0" name="left"  number="0" active="1" volume="100" muted="0"/>
-!   <channel type="input" label="client0" name="right" number="1" active="1" volume="100" muted="0"/>
-!   <channel type="input" label="client1" name="left"  number="0" active="0" volume="25"  muted="0"/>
-!   <channel type="input" label="client1" name="right" number="1" active="0" volume="25"  muted="0"/>
-!   <channel type="output" label="master" name="left"  number="0" active="1" volume="100" muted="0"/>
-!   <channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+!   <channel type="input" label="client0" name="left"  number="0" active="1" volume="100" muted="false"/>
+!   <channel type="input" label="client0" name="right" number="1" active="1" volume="100" muted="false"/>
+!   <channel type="input" label="client1" name="left"  number="0" active="0" volume="25"  muted="false"/>
+!   <channel type="input" label="client1" name="right" number="1" active="0" volume="25"  muted="false"/>
+!   <channel type="output" label="master" name="left"  number="0" active="1" volume="100" muted="false"/>
+!   <channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="false"/>
 ! </channel_list>
 
 Each channel node features all mandatory attributes as well as a few optional

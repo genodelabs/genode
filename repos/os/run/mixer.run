@@ -38,7 +38,9 @@ set config  {
 		<default-route>
 			<service name="Audio_out"> <child name="mixer"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>}
+		</default-route>
+
+		<default caps="100"/>}
 
 append_platform_drv_config
 
@@ -73,42 +75,42 @@ append config {
 				<rom name="mixer.config">
 					<inline description="client1 plays">
 <mixer.config>
-	<default out_volume="75" volume="42" muted="0"/>
+	<default out_volume="75" volume="42" muted="false"/>
 	<channel_list>
-		<channel type="input" label="client1" name="right" number="1" active="1" volume="70" muted="0"/>
-		<channel type="input" label="client1" name="left" number="0" active="1" volume="70" muted="0"/>
-		<channel type="input" label="client2" name="right" number="1" active="1" volume="0" muted="0"/>
-		<channel type="input" label="client2" name="left" number="0" active="1" volume="0" muted="0"/>
-		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
-		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+		<channel type="input" label="client1" name="right" number="1" active="1" volume="70" muted="false"/>
+		<channel type="input" label="client1" name="left" number="0" active="1" volume="70" muted="false"/>
+		<channel type="input" label="client2" name="right" number="1" active="1" volume="0" muted="false"/>
+		<channel type="input" label="client2" name="left" number="0" active="1" volume="0" muted="false"/>
+		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="false"/>
+		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="false"/>
 	</channel_list>
 </mixer.config>
 					</inline>
 					<sleep milliseconds="10000" />
 					<inline description="client2 plays">
 <mixer.config>
-	<default out_volume="75" volume="42" muted="0"/>
+	<default out_volume="75" volume="42" muted="false"/>
 	<channel_list>
-		<channel type="input" label="client1" name="right" number="1" active="1" volume="0" muted="0"/>
-		<channel type="input" label="client1" name="left" number="0" active="1" volume="0" muted="0"/>
-		<channel type="input" label="client2" name="right" number="1" active="1" volume="70" muted="0"/>
-		<channel type="input" label="client2" name="left" number="0" active="1" volume="70" muted="0"/>
-		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
-		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+		<channel type="input" label="client1" name="right" number="1" active="1" volume="0" muted="false"/>
+		<channel type="input" label="client1" name="left" number="0" active="1" volume="0" muted="false"/>
+		<channel type="input" label="client2" name="right" number="1" active="1" volume="70" muted="false"/>
+		<channel type="input" label="client2" name="left" number="0" active="1" volume="70" muted="false"/>
+		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="false"/>
+		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="false"/>
 	</channel_list>
 </mixer.config>
 					</inline>
 					<sleep milliseconds="10000" />
 					<inline description="both play">
 <mixer.config>
-	<default out_volume="75" volume="42" muted="0"/>
+	<default out_volume="75" volume="42" muted="false"/>
 	<channel_list>
-		<channel type="input" label="client1" name="right" number="1" active="1" volume="50" muted="0"/>
-		<channel type="input" label="client1" name="left" number="0" active="1" volume="50" muted="0"/>
-		<channel type="input" label="client2" name="right" number="1" active="1" volume="50" muted="0"/>
-		<channel type="input" label="client2" name="left" number="0" active="1" volume="50" muted="0"/>
-		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
-		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+		<channel type="input" label="client1" name="right" number="1" active="1" volume="50" muted="false"/>
+		<channel type="input" label="client1" name="left" number="0" active="1" volume="50" muted="false"/>
+		<channel type="input" label="client2" name="right" number="1" active="1" volume="50" muted="false"/>
+		<channel type="input" label="client2" name="left" number="0" active="1" volume="50" muted="false"/>
+		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="false"/>
+		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="false"/>
 	</channel_list>
 </mixer.config>
 					</inline>
@@ -118,7 +120,7 @@ append config {
 		</start>
 
 		<start name="mixer">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Audio_out"/></provides>
 			<route>
 				<service name="Audio_out"> <child name="audio_drv"/> </service>
