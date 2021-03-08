@@ -169,9 +169,9 @@ class Audio_out::Mixer
 		/*
 		 * Default settings used as fallback for new sessions
 		 */
-		float _default_out_volume { 0.f };
-		float _default_volume     { 0.f };
-		bool  _default_muted      { true };
+		float _default_out_volume { 0.5f };
+		float _default_volume     { 1.0f };
+		bool  _default_muted      { false };
 
 		/**
 		 * Remix all exception
@@ -454,7 +454,7 @@ class Audio_out::Mixer
 					     "muted: ",      _default_muted);
 				}
 
-			} catch (...) { Genode::warning("could not read mixer default values"); }
+			} catch (...) { Genode::warning("config invalid"); }
 		}
 
 		/**
