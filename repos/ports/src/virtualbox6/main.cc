@@ -338,6 +338,7 @@ void Libc::Component::construct(Libc::Env &env)
 	
 		environ = envp;
 
+		Pthread::init(env);
 		Network::init(env);
 
 		/* sidestep 'rtThreadPosixSelectPokeSignal' */

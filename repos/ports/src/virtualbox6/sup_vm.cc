@@ -63,7 +63,6 @@ void Sup::Vm::init(PSUPDRVSESSION psession, Cpu_count cpu_count)
 		cpu.hNativeThreadR0 = NIL_RTNATIVETHREAD;
 
 		VM::apCpusR3[i] = &cpu;
-		log(this, ": apCpusR3[", i, "]=", apCpusR3[i]);
 	}
 }
 

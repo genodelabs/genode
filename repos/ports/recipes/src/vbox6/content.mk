@@ -29,21 +29,23 @@ src/virtualbox6_sdk:
 	mkdir -p $(dir $@)
 	cp -r $(PORT_DIR)/$@ $(dir $@)
 
-MIRROR_FROM_LIBPORTS := lib/mk/libc-mem.mk \
-                        lib/mk/libc-common.inc \
-                        src/lib/libc/internal/init.h \
-                        src/lib/libc/internal/mem_alloc.h \
-                        src/lib/libc/internal/monitor.h \
-                        src/lib/libc/internal/pthread.h \
-                        src/lib/libc/internal/thread_create.h \
-                        src/lib/libc/internal/timer.h \
-                        src/lib/libc/internal/types.h \
-                        src/lib/libc/libc_mem_alloc.cc \
-                        lib/import/import-qemu-usb_include.mk \
-                        lib/mk/qemu-usb_include.mk \
-                        lib/mk/qemu-usb.mk \
-                        include/qemu \
-                        src/lib/qemu-usb
+MIRROR_FROM_LIBPORTS := \
+	include/qemu \
+	lib/import/import-qemu-usb_include.mk \
+	lib/mk/libc-common.inc \
+	lib/mk/libc-mem.mk \
+	lib/mk/qemu-usb.mk \
+	lib/mk/qemu-usb_include.mk \
+	src/lib/libc/internal/init.h \
+	src/lib/libc/internal/mem_alloc.h \
+	src/lib/libc/internal/monitor.h \
+	src/lib/libc/internal/pthread.h \
+	src/lib/libc/internal/thread_create.h \
+	src/lib/libc/internal/timer.h \
+	src/lib/libc/internal/types.h \
+	src/lib/libc/libc_mem_alloc.cc \
+	src/lib/libc/spec/x86_64/internal/call_func.h \
+	src/lib/qemu-usb
 
 content: $(MIRROR_FROM_LIBPORTS)
 

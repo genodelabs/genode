@@ -1,3 +1,5 @@
+REQUIRES = x86_64
+
 TARGET = virtualbox6
 
 include $(REP_DIR)/lib/mk/virtualbox6-common.inc
@@ -6,7 +8,7 @@ CC_WARN += -Wall
 
 SRC_CC := main.cc drivers.cc vcpu_gim.cc
 SRC_CC += libc.cc unimpl.cc dummies.cc pdm.cc devices.cc nem.cc dynlib.cc
-SRC_CC += network.cc
+SRC_CC += pthread.cc network.cc
 
 LIBS  += base
 LIBS  += stdcxx
@@ -22,6 +24,7 @@ LIB_MK_FILES := $(notdir $(wildcard $(REP_DIR)/lib/mk/virtualbox6-*.mk) \
 LIBS += $(LIB_MK_FILES:.mk=)
 
 INC_DIR += $(call select_from_repositories,src/lib/libc)
+INC_DIR += $(call select_from_repositories,src/lib/libc)/spec/x86_64
 
 INC_DIR += $(VBOX_DIR)/Runtime/include
 
