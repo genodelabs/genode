@@ -708,6 +708,7 @@ set default_test_pkgs {
 	test-rm_nested
 	test-rm_stress
 	test-rom_filter
+	test-sandbox
 	test-sanitizer
 	test-sequence
 	test-signal

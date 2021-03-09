@@ -1,0 +1,19 @@
+<runtime ram="10M" caps="500" binary="test-sandbox">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<log meaning="succeeded">version="5"</log>
+		<timeout meaning="failed" sec="10" />
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="sandbox.lib.so"/>
+		<rom label="test-sandbox"/>
+		<rom label="dummy"/>
+	</content>
+
+	<config/>
+
+</runtime>
