@@ -1804,6 +1804,8 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 		static bool match_nameserver(char const *name) {
 			return (!strcmp(name, "nameserver")); }
 
+		bool _read_blocked_warning_printed_once = false;
+
 	public:
 
 		File_system(Vfs::Env &vfs_env, Genode::Xml_node config)
@@ -2029,10 +2031,16 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 		 */
 		bool queue_read(Vfs_handle *vfs_handle, file_size) override
 		{
-			if (_netif.ready()) return true;
+			if (_netif.ready())
+				return true;
 
-			/* handle must be woken when the interface comes up */
-			Genode::warning("read blocked until lwIP interface is ready");
+			/* handle must be woken up when the interface comes up */
+
+			if (!_read_blocked_warning_printed_once) {
+				Genode::warning("read blocked until lwIP interface is ready");
+				_read_blocked_warning_printed_once = true;
+			}
+
 			_netif.enqueue(*vfs_handle);
 			return false;
 		}
