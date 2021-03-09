@@ -793,8 +793,8 @@ bool create_emt_vcpu(pthread_t * thread, ::size_t stack_size,
 
 	vcpu_handler_list().insert(vcpu_handler);
 
-	Libc::pthread_create(thread, start_routine, arg,
-	                     stack_size, name, cpu_connection, location);
+	Libc::pthread_create_from_session(thread, start_routine, arg,
+	                                  stack_size, name, cpu_connection, location);
 
 	return true;
 }

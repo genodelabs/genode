@@ -127,9 +127,9 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 	bool const rtthread_timer = rtthread->enmType == RTTHREADTYPE_TIMER;
 
 	if (rtthread_timer) {
-		return Libc::pthread_create(thread, start_routine, arg,
-		                            stack_size, rtthread->szName, nullptr,
-		                            Genode::Affinity::Location());
+		return Libc::pthread_create_from_session(thread, start_routine, arg,
+		                                         stack_size, rtthread->szName, nullptr,
+		                                         Genode::Affinity::Location());
 
 	} else {
 		using namespace Genode;
@@ -137,9 +137,9 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		return cpu->retry_with_upgrade(Ram_quota{8*1024}, Cap_quota{2},
 		                               [&] ()
 		{
-			return Libc::pthread_create(thread, start_routine, arg,
-			                            stack_size, rtthread->szName, cpu,
-			                            Genode::Affinity::Location());
+			return Libc::pthread_create_from_session(thread, start_routine, arg,
+			                                         stack_size, rtthread->szName, cpu,
+			                                         Genode::Affinity::Location());
 		});
 	}
 
