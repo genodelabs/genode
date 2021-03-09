@@ -170,8 +170,9 @@ proc try_query_attr_from_runtime { attr } {
 	return $result
 }
 
-set ram  [try_query_attr_from_runtime ram]
-set caps [try_query_attr_from_runtime caps]
+set ram    [try_query_attr_from_runtime ram]
+set caps   [try_query_attr_from_runtime caps]
+set binary [try_query_attr_from_runtime binary]
 
 if {[catch {
 	set config [query_node /runtime/config $runtime_file]
@@ -289,7 +290,7 @@ install_config {
 
 		<start name="test" priority="-1" caps="} $caps {">
 			<resource name="RAM" quantum="} $ram {"/>
-			<binary name="init"/>
+			<binary name="} $binary {"/>
 			<route>
 				<service name="ROM">   <parent/>    </service>
 				<service name="PD">    <parent/>    </service>
