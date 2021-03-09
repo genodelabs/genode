@@ -28,7 +28,9 @@ static void for_each_inspected_storage_target(Storage_devices const &devices, FN
 
 static void gen_terminal_start(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "terminal", Cap_quota{110}, Ram_quota{18*1024*1024});
+	gen_common_start_content(xml, "terminal",
+	                         Cap_quota{110}, Ram_quota{18*1024*1024},
+	                         Priority::LEITZENTRALE);
 
 	gen_provides<Terminal::Session>(xml);
 
@@ -50,7 +52,9 @@ static void gen_vfs_start(Xml_generator &xml,
                           Storage_devices const &devices,
                           Ram_fs_state const &ram_fs_state)
 {
-	gen_common_start_content(xml, "vfs", Cap_quota{200}, Ram_quota{5*1024*1024});
+	gen_common_start_content(xml, "vfs",
+	                         Cap_quota{200}, Ram_quota{5*1024*1024},
+	                         Priority::LEITZENTRALE);
 
 	gen_provides<::File_system::Session>(xml);
 
@@ -129,7 +133,9 @@ static void gen_vfs_start(Xml_generator &xml,
 
 static void gen_fs_rom_start(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "vfs_rom", Cap_quota{100}, Ram_quota{15*1024*1024});
+	gen_common_start_content(xml, "vfs_rom",
+	                         Cap_quota{100}, Ram_quota{15*1024*1024},
+	                         Priority::LEITZENTRALE);
 
 	gen_named_node(xml, "binary", "cached_fs_rom", [&] () { });
 
@@ -148,7 +154,9 @@ static void gen_fs_rom_start(Xml_generator &xml)
 
 static void gen_bash_start(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "bash", Cap_quota{400}, Ram_quota{15*1024*1024});
+	gen_common_start_content(xml, "bash",
+	                         Cap_quota{400}, Ram_quota{15*1024*1024},
+	                         Priority::LEITZENTRALE);
 
 	gen_named_node(xml, "binary", "/bin/bash", [&] () { });
 
@@ -206,7 +214,8 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 		xml.attribute("version", version.value);
 
 		gen_common_start_content(xml, "inspect",
-		                         Cap_quota{1000}, Ram_quota{76*1024*1024});
+		                         Cap_quota{1000}, Ram_quota{76*1024*1024},
+		                         Priority::LEITZENTRALE);
 
 		gen_named_node(xml, "binary", "init", [&] () { });
 

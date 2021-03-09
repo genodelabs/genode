@@ -19,7 +19,8 @@ void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version versi
 {
 	xml.attribute("version", version.value);
 
-	gen_common_start_content(xml, "fs_tool", Cap_quota{200}, Ram_quota{5*1024*1024});
+	gen_common_start_content(xml, "fs_tool", Cap_quota{200}, Ram_quota{5*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "fs_tool");
 

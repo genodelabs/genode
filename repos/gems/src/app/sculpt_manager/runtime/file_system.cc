@@ -18,7 +18,8 @@ void Sculpt::gen_fs_start_content(Xml_generator        &xml,
                                   File_system::Type     fs_type)
 {
 	gen_common_start_content(xml, target.fs(),
-	                         Cap_quota{400}, Ram_quota{64*1024*1024});
+	                         Cap_quota{400}, Ram_quota{64*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "vfs");
 

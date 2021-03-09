@@ -15,7 +15,9 @@
 
 void Sculpt::gen_update_start_content(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "update", Cap_quota{2000}, Ram_quota{64*1024*1024});
+	gen_common_start_content(xml, "update",
+	                         Cap_quota{2000}, Ram_quota{64*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "init");
 

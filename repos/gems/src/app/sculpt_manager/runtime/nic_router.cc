@@ -21,7 +21,8 @@
 void Sculpt::gen_nic_router_start_content(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "nic_router",
-	                         Cap_quota{300}, Ram_quota{10*1024*1024});
+	                         Cap_quota{300}, Ram_quota{10*1024*1024},
+	                         Priority::NETWORK);
 
 	xml.node("provides", [&] () {
 		xml.node("service", [&] () {

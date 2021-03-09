@@ -66,6 +66,9 @@ struct Depot_deploy::Main
 		_children.apply_config(config);
 		_children.apply_blueprint(_blueprint.xml());
 
+		Child::Prio_levels const prio_levels {
+			config.attribute_value("prio_levels", 0U) };
+
 		/* determine CPU architecture of deployment */
 		typedef String<16> Arch;
 		Arch const arch = config.attribute_value("arch", Arch());
@@ -74,6 +77,9 @@ struct Depot_deploy::Main
 
 		/* generate init config containing all configured start nodes */
 		_init_config_reporter.generate([&] (Xml_generator &xml) {
+
+			if (prio_levels.value)
+				xml.attribute("prio_levels", prio_levels.value);
 
 			Xml_node static_config = config.sub_node("static");
 			static_config.with_raw_content([&] (char const *start, size_t length) {
@@ -123,7 +129,7 @@ struct Depot_deploy::Main
 
 			Child::Depot_rom_server const parent { };
 			_children.gen_start_nodes(xml, config.sub_node("common_routes"),
-			                          parent, parent);
+			                          prio_levels, parent, parent);
 		});
 
 		/* update query for blueprints of all unconfigured start nodes */

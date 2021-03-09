@@ -51,7 +51,7 @@ Menu_view::Menu_view(Env &env, Registry<Child_state> &registry,
                      Session_label const &hover_rom_name)
 :
 	_dialog(dialog),
-	_child_state(registry, name, ram_quota, cap_quota),
+	_child_state(registry, name, Priority::LEITZENTRALE, ram_quota, cap_quota),
 	_dialog_reporter(env, "dialog", dialog_report_name.string()),
 	_hover_rom(env, hover_rom_name.string()),
 	_hover_handler(env.ep(), *this, &Menu_view::_handle_hover)

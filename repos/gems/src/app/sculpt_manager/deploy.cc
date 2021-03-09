@@ -148,7 +148,8 @@ void Sculpt::Deploy::handle_deploy()
 }
 
 
-void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator &xml) const
+void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator &xml,
+                                             Prio_levels prio_levels) const
 {
 	/* depot-ROM instance for regular (immutable) depot content */
 	xml.node("start", [&] () {
@@ -175,5 +176,5 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator &xml) const
 	/* generate start nodes for deployed packages */
 	if (managed_deploy.has_sub_node("common_routes"))
 		_children.gen_start_nodes(xml, managed_deploy.sub_node("common_routes"),
-		                          "depot_rom", "dynamic_depot_rom");
+		                          prio_levels, "depot_rom", "dynamic_depot_rom");
 }

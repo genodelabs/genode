@@ -298,6 +298,8 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Deploy **
 	 ************/
 
+	Deploy::Prio_levels const _prio_levels { 4 };
+
 	Attached_rom_dataspace _launcher_listing_rom {
 		_env, "report -> /runtime/launcher_query/listing" };
 
@@ -789,6 +791,7 @@ struct Sculpt::Main : Input_event_handler,
 
 			Start_name const start_name(name, ".query");
 			_file_browser_state.fs_query.construct(_child_states, start_name,
+			                                       Priority::LEITZENTRALE,
 			                                       Ram_quota{8*1024*1024}, Cap_quota{200});
 
 			Label const rom_label("report -> /runtime/", start_name, "/listing");
@@ -851,6 +854,7 @@ struct Sculpt::Main : Input_event_handler,
 			} else {
 				Start_name const start_name("editor");
 				_file_browser_state.text_area.construct(_child_states, start_name,
+				                                        Priority::LEITZENTRALE,
 				                                        Ram_quota{16*1024*1024}, Cap_quota{250});
 			}
 		}
@@ -1632,6 +1636,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 {
 	xml.attribute("verbose", "yes");
 
+	xml.attribute("prio_levels", _prio_levels.value);
+
 	xml.node("report", [&] () {
 		xml.attribute("init_ram",   "yes");
 		xml.attribute("init_caps",  "yes");
@@ -1728,7 +1734,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.node("start", [&] () {
 			gen_launcher_query_start_content(xml); });
 
-		_deploy.gen_runtime_start_nodes(xml);
+		_deploy.gen_runtime_start_nodes(xml, _prio_levels);
 	}
 }
 

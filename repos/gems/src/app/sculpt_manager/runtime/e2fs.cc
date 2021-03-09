@@ -34,7 +34,8 @@ void Sculpt::gen_e2fs_start_content(Xml_generator        &xml,
                                     GEN_ARGS_FN    const &gen_args_fn)
 {
 	gen_common_start_content(xml, String<64>(target.label(), ".", tool),
-	                         Cap_quota{500}, Ram_quota{100*1024*1024});
+	                         Cap_quota{500}, Ram_quota{100*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", tool);
 

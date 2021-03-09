@@ -47,6 +47,19 @@ namespace Sculpt {
 	typedef Gui::Area  Area;
 
 	enum Writeable { WRITEABLE, READ_ONLY };
+
+	/*
+	 * CPU priorities used within the runtime subsystem
+	 */
+	enum class Priority {
+		BACKGROUND   = -3,
+		DEFAULT      = -2,
+		NETWORK      = DEFAULT,
+		STORAGE      = DEFAULT,
+		MULTIMEDIA   = -1,
+		DRIVER       = 0,
+		LEITZENTRALE = 0         /* only for latency-critical drivers */
+	};
 }
 
 #endif /* _TYPES_H_ */

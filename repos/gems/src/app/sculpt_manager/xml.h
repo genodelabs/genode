@@ -97,10 +97,12 @@ namespace Sculpt {
 	static inline void gen_common_start_content(Xml_generator   &xml,
 	                                            Rom_name  const &name,
 	                                            Cap_quota const  caps,
-	                                            Ram_quota const  ram)
+	                                            Ram_quota const  ram,
+	                                            Priority  const  priority)
 	{
 		xml.attribute("name", name);
 		xml.attribute("caps", caps.value);
+		xml.attribute("priority", (int)priority);
 		gen_named_node(xml, "resource", "RAM", [&] () {
 			xml.attribute("quantum", String<64>(Number_of_bytes(ram.value))); });
 	}

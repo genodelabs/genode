@@ -35,6 +35,8 @@ namespace Sculpt { struct Deploy; }
 
 struct Sculpt::Deploy
 {
+	typedef Depot_deploy::Child::Prio_levels Prio_levels;
+
 	Env &_env;
 
 	Allocator &_alloc;
@@ -58,10 +60,12 @@ struct Sculpt::Deploy
 	Arch _arch { };
 
 	Child_state cached_depot_rom_state {
-		_child_states, "depot_rom", Ram_quota{24*1024*1024}, Cap_quota{200} };
+		_child_states, "depot_rom", Priority::STORAGE,
+		Ram_quota{24*1024*1024}, Cap_quota{200} };
 
 	Child_state uncached_depot_rom_state {
-		_child_states, "dynamic_depot_rom", Ram_quota{8*1024*1024}, Cap_quota{200} };
+		_child_states, "dynamic_depot_rom", Priority::STORAGE,
+		Ram_quota{8*1024*1024}, Cap_quota{200} };
 
 	/*
 	 * Report written to '/config/managed/deploy'
@@ -139,6 +143,7 @@ struct Sculpt::Deploy
 					copy_attribute("caps");
 					copy_attribute("ram");
 					copy_attribute("cpu");
+					copy_attribute("priority");
 					copy_attribute("pkg");
 
 					/* copy start-node content */
@@ -227,7 +232,7 @@ struct Sculpt::Deploy
 
 	void gen_child_diagnostics(Xml_generator &xml) const;
 
-	void gen_runtime_start_nodes(Xml_generator &) const;
+	void gen_runtime_start_nodes(Xml_generator &, Prio_levels) const;
 
 	Signal_handler<Deploy> _managed_deploy_handler {
 		_env.ep(), *this, &Deploy::_handle_managed_deploy };

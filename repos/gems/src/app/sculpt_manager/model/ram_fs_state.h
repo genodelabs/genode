@@ -26,9 +26,16 @@ namespace Sculpt { struct Ram_fs_state; }
 
 struct Sculpt::Ram_fs_state : Child_state, File_system
 {
+	/*
+	 * Use Priority::LEITZENTRALE for the RAM file system to make the
+	 * inspect view available even in conditions when a malfunctioning
+	 * high-priority driver is spinning.
+	 */
+
 	Ram_fs_state(Registry<Child_state> &registry, Start_name const &name)
 	:
-		Child_state(registry, name, Ram_quota{1024*1024}, Cap_quota{300}),
+		Child_state(registry, name, Priority::LEITZENTRALE,
+		            Ram_quota{1024*1024}, Cap_quota{300}),
 		File_system(File_system::UNKNOWN)
 	{ }
 };

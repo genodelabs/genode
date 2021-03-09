@@ -27,7 +27,8 @@ void Sculpt::_gen_gpt_write_start_content(Xml_generator        &xml,
                                           Start_name     const &name,
                                           GEN_ACTIONS_FN const &fn)
 {
-	gen_common_start_content(xml, name, Cap_quota{100}, Ram_quota{2*1024*1024});
+	gen_common_start_content(xml, name, Cap_quota{100}, Ram_quota{2*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "gpt_write");
 

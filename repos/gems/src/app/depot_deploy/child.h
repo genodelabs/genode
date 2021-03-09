@@ -37,6 +37,16 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		typedef String<32>  Depot_rom_server;
 		typedef String<100> Launcher_name;
 
+		struct Prio_levels
+		{
+			unsigned value;
+
+			int min_priority() const
+			{
+				return (value > 0) ? -(int)(value - 1) : 0;
+			}
+		};
+
 	private:
 
 		Allocator &_alloc;
@@ -296,6 +306,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 *                            is assumed to be mutable
 		 */
 		inline void gen_start_node(Xml_generator &, Xml_node common,
+		                           Prio_levels prio_levels,
 		                           Depot_rom_server const &cached_depot_rom,
 		                           Depot_rom_server const &uncached_depot_rom) const;
 
@@ -317,6 +328,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 
 void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
+                                         Prio_levels prio_levels,
                                          Depot_rom_server const &cached_depot_rom,
                                          Depot_rom_server const &uncached_depot_rom) const
 {
@@ -331,27 +343,44 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 		return;
 	}
 
+	Xml_node const launcher_xml = (_defined_by_launcher())
+	                            ? _launcher_xml->xml() : Xml_node("<empty/>");
+
+	Xml_node const start_xml = _start_xml->xml();
+
 	xml.node("start", [&] () {
 
 		xml.attribute("name", _name);
 
-		unsigned long caps = _pkg_cap_quota;
-		if (_defined_by_launcher())
-			caps = _launcher_xml->xml().attribute_value("caps", caps);
-		caps = _start_xml->xml().attribute_value("caps", caps);
+		{
+			unsigned long caps = _pkg_cap_quota;
+			if (_defined_by_launcher())
+				caps = launcher_xml.attribute_value("caps", caps);
+			caps = start_xml.attribute_value("caps", caps);
+			xml.attribute("caps", caps);
+		}
 
-		xml.attribute("caps", caps);
+		{
+			typedef String<64> Version;
+			Version const version = _start_xml->xml().attribute_value("version", Version());
+			if (version.valid())
+				xml.attribute("version", version);
+		}
 
-		typedef String<64> Version;
-		Version const version = _start_xml->xml().attribute_value("version", Version());
-		if (version.valid())
-			xml.attribute("version", version);
+		{
+			long priority = prio_levels.min_priority();
+			if (_defined_by_launcher())
+				priority = launcher_xml.attribute_value("priority", priority);
+			priority = start_xml.attribute_value("priority", priority);
+			if (priority)
+				xml.attribute("priority", priority);
+		}
 
 		bool shim_reroute = false;
 
 		/* lookup if PD/CPU service is configured and use shim in such cases */
-		if (_start_xml->xml().has_sub_node("route")) {
-			Xml_node const route = _start_xml->xml().sub_node("route");
+		if (start_xml.has_sub_node("route")) {
+			Xml_node const route = start_xml.sub_node("route");
 
 			route.for_each_sub_node("service", [&] (Xml_node const &service) {
 				if (service.attribute_value("name", Name()) == "PD" ||
@@ -366,8 +395,8 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 
 		Number_of_bytes ram = _pkg_ram_quota;
 		if (_defined_by_launcher())
-			ram = _launcher_xml->xml().attribute_value("ram", ram);
-		ram = _start_xml->xml().attribute_value("ram", ram);
+			ram = launcher_xml.attribute_value("ram", ram);
+		ram = start_xml.attribute_value("ram", ram);
 
 		xml.node("resource", [&] () {
 			xml.attribute("name", "RAM");
@@ -376,8 +405,8 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 
 		unsigned long cpu_quota = _pkg_cpu_quota;
 		if (_defined_by_launcher())
-			cpu_quota = _launcher_xml->xml().attribute_value("cpu", cpu_quota);
-		cpu_quota = _start_xml->xml().attribute_value("cpu", cpu_quota);
+			cpu_quota = launcher_xml.attribute_value("cpu", cpu_quota);
+		cpu_quota = start_xml.attribute_value("cpu", cpu_quota);
 
 		xml.node("resource", [&] () {
 			xml.attribute("name", "CPU");
@@ -386,20 +415,20 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 
 		/* affinity-location handling */
 		bool const affinity_from_launcher = _defined_by_launcher()
-		                                 && _launcher_xml->xml().has_sub_node("affinity");
+		                                 && launcher_xml.has_sub_node("affinity");
 
-		bool const affinity_from_start = _start_xml->xml().has_sub_node("affinity");
+		bool const affinity_from_start = start_xml.has_sub_node("affinity");
 
 		if (affinity_from_start || affinity_from_launcher) {
 
 			Affinity::Location location { };
 
 			if (affinity_from_launcher)
-				_launcher_xml->xml().with_sub_node("affinity", [&] (Xml_node node) {
+				launcher_xml.with_sub_node("affinity", [&] (Xml_node node) {
 					location = Affinity::Location::from_xml(node); });
 
 			if (affinity_from_start)
-				_start_xml->xml().with_sub_node("affinity", [&] (Xml_node node) {
+				start_xml.with_sub_node("affinity", [&] (Xml_node node) {
 					location = Affinity::Location::from_xml(node); });
 
 			xml.node("affinity", [&] () {
@@ -416,20 +445,21 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 		/*
 		 * Insert inline '<heartbeat>' node if provided by the start node.
 		 */
-		if (_start_xml->xml().has_sub_node("heartbeat")) {
-			_gen_copy_of_sub_node(xml, _start_xml->xml(), "heartbeat");
-		}
+		if (start_xml.has_sub_node("heartbeat"))
+			_gen_copy_of_sub_node(xml, start_xml, "heartbeat");
 
 		/*
 		 * Insert inline '<config>' node if provided by the start node,
 		 * the launcher definition (if a launcher is user), or the
 		 * blueprint. The former is preferred over the latter.
 		 */
-		if (_start_xml->xml().has_sub_node("config")) {
-			_gen_copy_of_sub_node(xml, _start_xml->xml(), "config");
+		if (start_xml.has_sub_node("config")) {
+			_gen_copy_of_sub_node(xml, start_xml, "config");
+
 		} else {
-			if (_defined_by_launcher() && _launcher_xml->xml().has_sub_node("config")) {
-				_gen_copy_of_sub_node(xml, _launcher_xml->xml(), "config");
+
+			if (_defined_by_launcher() && launcher_xml.has_sub_node("config")) {
+				_gen_copy_of_sub_node(xml, launcher_xml, "config");
 			} else {
 				if (runtime.has_sub_node("config"))
 					_gen_copy_of_sub_node(xml, runtime, "config");

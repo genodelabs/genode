@@ -23,7 +23,9 @@ namespace Sculpt {
 
 void Sculpt::gen_prepare_vfs_start(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "vfs", Cap_quota{200}, Ram_quota{5*1024*1024});
+	gen_common_start_content(xml, "vfs",
+	                         Cap_quota{200}, Ram_quota{5*1024*1024},
+	                         Priority::STORAGE);
 
 	char const * const script =
 		"export VERSION=`cat /VERSION`\n"
@@ -79,7 +81,9 @@ void Sculpt::gen_prepare_vfs_start(Xml_generator &xml)
 
 void Sculpt::gen_prepare_fs_rom_start(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "vfs_rom", Cap_quota{100}, Ram_quota{15*1024*1024});
+	gen_common_start_content(xml, "vfs_rom",
+	                         Cap_quota{100}, Ram_quota{15*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "fs_rom", [&] () { });
 
@@ -98,7 +102,9 @@ void Sculpt::gen_prepare_fs_rom_start(Xml_generator &xml)
 
 void Sculpt::gen_prepare_bash_start(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "bash", Cap_quota{400}, Ram_quota{15*1024*1024});
+	gen_common_start_content(xml, "bash",
+	                         Cap_quota{400}, Ram_quota{15*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "/bin/bash", [&] () { });
 
@@ -152,7 +158,9 @@ void Sculpt::gen_prepare_start_content(Xml_generator &xml, Prepare_version versi
 {
 	xml.attribute("version", version.value);
 
-	gen_common_start_content(xml, "prepare", Cap_quota{800}, Ram_quota{100*1024*1024});
+	gen_common_start_content(xml, "prepare",
+	                         Cap_quota{800}, Ram_quota{100*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "init");
 

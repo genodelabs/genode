@@ -16,7 +16,8 @@
 void Sculpt::gen_depot_query_start_content(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "depot_query",
-	                         Cap_quota{200}, Ram_quota{2*1024*1024});
+	                         Cap_quota{200}, Ram_quota{2*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "depot_query");
 

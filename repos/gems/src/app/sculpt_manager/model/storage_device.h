@@ -215,7 +215,8 @@ void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml,
 	xml.attribute("version", _part_block_version);
 
 	gen_common_start_content(xml, Label(label, ".part_block"),
-	                         Cap_quota{100}, Ram_quota{8*1024*1024});
+	                         Cap_quota{100}, Ram_quota{8*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "part_block");
 

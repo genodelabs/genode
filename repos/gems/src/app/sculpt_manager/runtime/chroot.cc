@@ -16,7 +16,9 @@
 void Sculpt::gen_chroot_start_content(Xml_generator &xml, Start_name const &name,
                                       Path const &path, Writeable writable)
 {
-	gen_common_start_content(xml, name, Cap_quota{100}, Ram_quota{2*1024*1024});
+	gen_common_start_content(xml, name,
+	                         Cap_quota{100}, Ram_quota{2*1024*1024},
+	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "chroot");
 

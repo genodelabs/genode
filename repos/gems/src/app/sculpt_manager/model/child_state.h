@@ -35,6 +35,8 @@ struct Sculpt::Child_state : Noncopyable
 
 		Start_name const _name;
 
+		Priority const _priority;
+
 		Ram_quota const _initial_ram_quota;
 		Cap_quota const _initial_cap_quota;
 
@@ -52,10 +54,10 @@ struct Sculpt::Child_state : Noncopyable
 		 * \param cap_quota  initial capability quota
 		 */
 		Child_state(Registry<Child_state> &registry, Start_name const &name,
-		            Ram_quota ram_quota, Cap_quota cap_quota)
+		            Priority priority, Ram_quota ram_quota, Cap_quota cap_quota)
 		:
 			_element(registry, *this),
-			_name(name),
+			_name(name), _priority(priority),
 			_initial_ram_quota(ram_quota), _initial_cap_quota(cap_quota)
 		{ }
 
@@ -79,6 +81,7 @@ struct Sculpt::Child_state : Noncopyable
 			gen_start_node_version(xml);
 
 			xml.attribute("caps", _cap_quota.value);
+			xml.attribute("priority", (int)_priority);
 			gen_named_node(xml, "resource", "RAM", [&] () {
 				Number_of_bytes const bytes(_ram_quota.value);
 				xml.attribute("quantum", String<64>(bytes)); });
