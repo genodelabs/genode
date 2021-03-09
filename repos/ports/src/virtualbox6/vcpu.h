@@ -30,6 +30,8 @@ namespace Sup {
 	struct Vcpu_handler_svm;
 }
 
+namespace Pthread { struct Emt; }
+
 
 class Sup::Vcpu_handler : Genode::Noncopyable
 {
@@ -37,15 +39,18 @@ class Sup::Vcpu_handler : Genode::Noncopyable
 
 		static Genode::Vm_connection::Exit_config const _exit_config;
 
-		Genode::Entrypoint  _ep;
-		Genode::Blockade    _blockade_emt { };
-		Genode::Semaphore   _sem_handler;
+		Pthread::Emt       &_emt;
 		Genode::Vcpu_state *_state { nullptr };
 
 		bool _last_exit_triggered_by_wrmsr = false;
 
+		/* TODO move into Emt */
+		/* halt/wake_up */
 		pthread_cond_t  _cond_wait;
 		pthread_mutex_t _mutex;
+
+		/* TODO move into Emt */
+		timespec _add_timespec_ns(timespec a, ::uint64_t ns) const;
 
 		/* information used for NPT/EPT handling */
 		Genode::addr_t _npt_ept_exit_addr { 0 };
@@ -83,8 +88,6 @@ class Sup::Vcpu_handler : Genode::Noncopyable
 			INTERRUPT_STATE_BLOCKING_BY_MOV_SS = 1U << 1,
 		};
 
-		timespec _add_timespec_ns(timespec a, ::uint64_t ns) const;
-
 		void _update_gim_system_time();
 
 	protected:
@@ -99,8 +102,8 @@ class Sup::Vcpu_handler : Genode::Noncopyable
 		Genode::addr_t _irq_drop    = 0;
 
 		struct {
-			unsigned intr_state;
-			unsigned ctrl[2];
+			unsigned intr_state = 0;
+			unsigned ctrl[2]    = { 0, 0 };
 		} _next_utcb;
 
 		unsigned _ept_fault_addr_type;
@@ -141,9 +144,7 @@ class Sup::Vcpu_handler : Genode::Noncopyable
 			RECALL        = 0xff,
 		};
 
-		Vcpu_handler(Genode::Env &env, size_t stack_size,
-		             Genode::Affinity::Location location,
-		             unsigned int cpu_id);
+		Vcpu_handler(Genode::Env &env, unsigned int cpu_id, Pthread::Emt &emt);
 
 		unsigned int cpu_id() const { return _cpu_id; }
 
@@ -187,9 +188,9 @@ class Sup::Vcpu_handler_vmx : public Vcpu_handler
 
 	public:
 
-		Vcpu_handler_vmx(Genode::Env &env, size_t stack_size,
-		                 Genode::Affinity::Location location,
+		Vcpu_handler_vmx(Genode::Env &env,
 		                 unsigned int cpu_id,
+		                 Pthread::Emt &emt,
 		                 Genode::Vm_connection &vm_connection,
 		                 Genode::Allocator &alloc);
 };
@@ -224,9 +225,9 @@ class Sup::Vcpu_handler_svm : public Vcpu_handler
 
 	public:
 
-		Vcpu_handler_svm(Genode::Env &env, size_t stack_size,
-		                 Genode::Affinity::Location location,
+		Vcpu_handler_svm(Genode::Env &env,
 		                 unsigned int cpu_id,
+		                 Pthread::Emt &emt,
 		                 Genode::Vm_connection &vm_connection,
 		                 Genode::Allocator &alloc);
 };

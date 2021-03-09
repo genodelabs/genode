@@ -29,6 +29,8 @@
 
 namespace Sup { struct Drv; }
 
+namespace Pthread { struct Emt; }
+
 class Sup::Drv
 {
 	public:
@@ -71,7 +73,7 @@ class Sup::Drv
 		/*
 		 * \throw Virtualization_support_missing
 		 */
-		Vcpu_handler &create_vcpu_handler(Cpu_index);
+		Vcpu_handler &create_vcpu_handler(Cpu_index, Pthread::Emt &);
 };
 
 #endif /* _SUP_DRV_H_ */

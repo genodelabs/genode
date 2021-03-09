@@ -34,6 +34,7 @@
 #include <init.h>
 #include <sup_drv.h>
 #include <sup_vm.h>
+#include <pthread_emt.h>
 #include <stub_macros.h>
 
 static bool const debug = true;
@@ -171,20 +172,28 @@ static void ioctl(SUPVTCAPS &request)
 }
 
 
+static void setup_vcpu_handler(Sup::Vm &vm, Sup::Cpu_index cpu)
+{
+	Pthread::Emt &emt = Pthread::emt_for_cpu(cpu);
+
+	Sup::Vcpu_handler &handler = sup_drv->create_vcpu_handler(cpu, emt);
+
+	vm.register_vcpu_handler(cpu, handler);
+}
+
+
 static int vmmr0_gvmm_create_vm(GVMMCREATEVMREQ &request)
 {
 	Sup::Cpu_count cpu_count { request.cCpus };
 
 	Sup::Vm &new_vm = Sup::Vm::create(request.pSession, cpu_count);
 
-	for (unsigned i = 0; i < cpu_count.value; i++) {
+	/*
+	 * The first EMT thread creates the VM and must be registered implicitly.
+	 * Additional EMTs register themselves via vmmr0_gvmm_register_vcpu().
+	 */
 
-		Sup::Cpu_index const index { i };
-
-		Sup::Vcpu_handler &handler = sup_drv->create_vcpu_handler(index);
-
-		new_vm.register_vcpu_handler(index, handler);
-	}
+	setup_vcpu_handler(new_vm, Sup::Cpu_index { 0 });
 
 	request.pVMR3 = &new_vm;
 	request.pVMR0 = (PVMR0)request.pVMR3;
@@ -195,7 +204,7 @@ static int vmmr0_gvmm_create_vm(GVMMCREATEVMREQ &request)
 
 static int vmmr0_gvmm_register_vcpu(PVMR0 pvmr0, uint32_t cpu)
 {
-	warning(__PRETTY_FUNCTION__, " cpu=", cpu);
+	Sup::Vm &vm = *(Sup::Vm *)pvmr0;
 
 	/*
 	 * EMT threads for additional CPUs are registered on initialization.
@@ -205,6 +214,8 @@ static int vmmr0_gvmm_register_vcpu(PVMR0 pvmr0, uint32_t cpu)
 	 *
 	 * pGVM->aCpus[idCpu].hNativeThreadR0 = pGVM->aCpus[idCpu].hEMT = RTThreadNativeSelf();
 	 */
+
+	setup_vcpu_handler(vm, Sup::Cpu_index { cpu });
 
 	return VINF_SUCCESS;
 }

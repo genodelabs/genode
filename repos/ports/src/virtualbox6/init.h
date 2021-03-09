@@ -19,6 +19,8 @@ namespace Genode { struct Env; }
 
 namespace Sup { void init(Genode::Env &); }
 
+namespace Pthread { void init(Genode::Env &); }
+
 namespace Network { void init(Genode::Env &); }
 
 namespace Xhci { void init(Genode::Env &); }
