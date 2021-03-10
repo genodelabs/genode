@@ -1,0 +1,19 @@
+<runtime ram="3M" caps="100" binary="system_rtc">
+
+	<provides>
+		<rtc/>
+	</provides>
+
+	<requires>
+		<rtc/>
+		<timer/>
+	</requires>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="system_rtc"/>
+	</content>
+
+	<config allow_setting_rtc="false"/>
+
+</runtime>
