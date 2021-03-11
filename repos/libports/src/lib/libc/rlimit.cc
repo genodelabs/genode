@@ -37,7 +37,7 @@ extern "C" int __attribute__((weak)) getrlimit(int resource, struct rlimit *rlim
 	/*
 	 * Maximal size of address space
 	 */
-	if (resource == RLIMIT_AS) {
+	if ((resource == RLIMIT_AS) || (resource == RLIMIT_DATA)) {
 		rlim->rlim_cur = LONG_MAX;
 		rlim->rlim_max = LONG_MAX;
 		return 0;
@@ -51,6 +51,11 @@ extern "C" int __attribute__((weak)) getrlimit(int resource, struct rlimit *rlim
 		rlim->rlim_max = MAX_NUM_FDS;
 		return 0;
 	}
+
+	Genode::warning(__func__, " called for unsupported resource ", resource, ", returning 0");
+
+	rlim->rlim_cur = 0;
+	rlim->rlim_max = 0;
 
 	return 0;
 }
