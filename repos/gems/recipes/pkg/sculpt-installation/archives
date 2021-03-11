@@ -19,3 +19,4 @@ _/pkg/fonts_fs
 _/pkg/report_dump
 _/pkg/acpica
 _/pkg/qt5_textedit
+_/pkg/system_clock

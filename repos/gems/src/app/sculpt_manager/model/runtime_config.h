@@ -342,7 +342,7 @@ class Sculpt::Runtime_config
 				_io_mem    { _r, Type::IO_MEM,      "raw hardware access" },
 				_io_port   { _r, Type::IO_PORT,     "raw hardware access" },
 				_irq       { _r, Type::IRQ,         "raw hardware access" },
-				_rtc       { _r, Type::RTC,         "system clock" },
+				_rtc       { _r, Type::RTC,         "hardware clock" },
 				_block     { _r, Type::BLOCK,       "direct block-device access" },
 				_usb       { _r, Type::USB,         "direct USB-device access" },
 				_pci_wifi  { _r, Type::PLATFORM,    "wifi hardware",    "wifi" },
