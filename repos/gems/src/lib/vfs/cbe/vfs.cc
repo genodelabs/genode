@@ -52,6 +52,32 @@ namespace Vfs_cbe {
 
 	class Backend_file;
 	class Wrapper;
+
+	template <typename T>
+	class Pointer
+	{
+		private:
+
+			T *_obj;
+
+		public:
+
+			struct Invalid : Genode::Exception { };
+
+			Pointer() : _obj(nullptr) { }
+
+			Pointer(T &obj) : _obj(&obj) { }
+
+			T &obj() const
+			{
+				if (_obj == nullptr)
+					throw Invalid();
+
+				return *_obj;
+			}
+
+			bool valid() const { return _obj != nullptr; }
+	};
 }
 
 
@@ -226,6 +252,8 @@ class Vfs_cbe::Wrapper
 			.last_result = Extending::Result::NONE,
 		};
 
+		Pointer<Extend_file_system> _extend_fs { };
+
 		/* configuration options */
 		bool _verbose       { false };
 		bool _debug         { false };
@@ -306,6 +334,34 @@ class Vfs_cbe::Wrapper
 
 
 	public:
+
+		void manage_extend_file_system(Extend_file_system &extend_fs)
+		{
+			if (_extend_fs.valid()) {
+
+				class Already_managing_an_extend_file_system { };
+				throw Already_managing_an_extend_file_system { };
+			}
+			_extend_fs = extend_fs;
+		}
+
+		void dissolve_extend_file_system(Extend_file_system &extend_fs)
+		{
+			if (_extend_fs.valid()) {
+
+				if (&_extend_fs.obj() != &extend_fs) {
+
+					class Extend_file_system_not_managed { };
+					throw Extend_file_system_not_managed { };
+				}
+				_extend_fs = Pointer<Extend_file_system> { };
+
+			} else {
+
+				class No_extend_file_system_managed { };
+				throw No_extend_file_system_managed { };
+			}
+		}
 
 		Wrapper(Vfs::Env &env, Xml_node config) : _env(env)
 		{
@@ -531,6 +587,8 @@ class Vfs_cbe::Wrapper
 			return progress;
 		}
 
+		void _extend_fs_trigger_watch_response();
+
 		bool _handle_cbe_frontend(Cbe::Library &cbe, Frontend_request &frontend_request)
 		{
 			if (_helper_read_request.pending()) {
@@ -613,6 +671,8 @@ class Vfs_cbe::Wrapper
 					_extend_obj.last_result =
 						req_sucess ? Extending::Result::SUCCESS
 						           : Extending::Result::FAILED;
+
+					_extend_fs_trigger_watch_response();
 					continue;
 				}
 
@@ -625,6 +685,8 @@ class Vfs_cbe::Wrapper
 					_extend_obj.last_result =
 						req_sucess ? Extending::Result::SUCCESS
 						           : Extending::Result::FAILED;
+
+					_extend_fs_trigger_watch_response();
 					continue;
 				}
 
@@ -1426,15 +1488,23 @@ class Vfs_cbe::Wrapper
 			using ES = Extending::State;
 			if (_extend_obj.state == ES::UNKNOWN && info.valid) {
 				if (info.extending_ft) {
+
 					_extend_obj.state = ES::IN_PROGRESS;
 					_extend_obj.type  = Extending::Type::FT;
+					_extend_fs_trigger_watch_response();
+
 				} else
 
 				if (info.extending_vbd) {
+
 					_extend_obj.state = ES::IN_PROGRESS;
 					_extend_obj.type  = Extending::Type::VBD;
+					_extend_fs_trigger_watch_response();
+
 				} else {
+
 					_extend_obj.state = ES::IDLE;
+					_extend_fs_trigger_watch_response();
 				}
 			}
 			using RS = Rekeying::State;
@@ -1513,6 +1583,7 @@ class Vfs_cbe::Wrapper
 			_extend_obj.type        = type;
 			_extend_obj.state       = Extending::State::IN_PROGRESS;
 			_extend_obj.last_result = Extending::Result::NONE;
+			_extend_fs_trigger_watch_response();
 
 			// XXX kick-off extending
 			handle_frontend_request();
@@ -1854,6 +1925,11 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 {
 	private:
 
+		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
+		typedef Registry<Registered_watch_handle> Watch_handle_registry;
+
+		Watch_handle_registry _handle_registry { };
+
 		Wrapper &_w;
 
 		using Content_string = String<32>;
@@ -1953,11 +2029,47 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
 			                   Node_rwx::rw(), Xml_node("<extend/>")),
 			_w(w)
-		{ }
+		{
+			_w.manage_extend_file_system(*this);
+		}
+
+		~Extend_file_system()
+		{
+			_w.dissolve_extend_file_system(*this);
+		}
 
 		static char const *type_name() { return "extend"; }
 
 		char const *type() override { return type_name(); }
+
+		void trigger_watch_response()
+		{
+			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
+				handle.watch_response(); });
+		}
+
+		Watch_result watch(char const        *path,
+		                   Vfs_watch_handle **handle,
+		                   Allocator         &alloc) override
+		{
+			if (!_single_file(path))
+				return WATCH_ERR_UNACCESSIBLE;
+
+			try {
+				*handle = new (alloc)
+					Registered_watch_handle(_handle_registry, *this, alloc);
+
+				return WATCH_OK;
+			}
+			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+		}
+
+		void close(Vfs_watch_handle *handle) override
+		{
+			destroy(handle->alloc(),
+			        static_cast<Registered_watch_handle *>(handle));
+		}
 
 
 		/*********************************
@@ -3144,4 +3256,12 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 extern "C" int memcmp(const void *s1, const void *s2, Genode::size_t n)
 {
 	return Genode::memcmp(s1, s2, n);
+}
+
+
+void Vfs_cbe::Wrapper::_extend_fs_trigger_watch_response()
+{
+	if (_extend_fs.valid()) {
+		_extend_fs.obj().trigger_watch_response();
+	}
 }
