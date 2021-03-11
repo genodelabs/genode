@@ -250,7 +250,7 @@ struct Vfs_pipe::Pipe
 			if ((num_writers == 0) && !waiting_for_writers)
 				return Read_result::READ_OK; /* EOF */
 
-			io_progress_waiters.enqueue(handle.io_progress_elem);
+			read_ready_waiters.enqueue(handle.io_progress_elem);
 			return Read_result::READ_QUEUED;
 		}
 
