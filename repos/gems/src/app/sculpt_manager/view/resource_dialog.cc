@@ -1,11 +1,12 @@
 /*
  * \brief  Resource assignment dialog
  * \author Alexander Boettcher
+ * \author Norman Feske
  * \date   2020-07-22
  */
 
 /*
- * Copyright (C) 2020 Genode Labs GmbH
+ * Copyright (C) 2020-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -15,66 +16,185 @@
 
 using namespace Sculpt;
 
-void Resource_dialog::_gen_affinity_entry(Xml_generator &xml,
-                                          Start_name const &name) const
+
+void Resource_dialog::_gen_affinity_section(Xml_generator &xml) const
 {
-	gen_named_node(xml, "hbox", name, [&] () {
-		gen_named_node(xml, "float", "center", [&] () {
-			xml.attribute("north", "yes");
-			xml.attribute("south", "yes");
+	unsigned const CELL_WIDTH_EX = 4;
 
-			xml.node("vbox", [&] () {
-				if (_space.height() > 1) {
-					xml.node("label", [&] () {
-						xml.attribute("text", String<12>("Cores 0-", _space.width() - 1));
-					});
-				} else {
-					xml.node("label", [&] () {
-						xml.attribute("text", String<12>("CPUs 0-", _space.width() - 1));
+	using Id = Hoverable_item::Id;
+
+	auto gen_small_label = [] (Xml_generator &xml, auto id, auto fn) {
+		gen_named_node(xml, "label", id, [&] () {
+			xml.attribute("font", "annotation/regular");
+			fn(); }); };
+
+	auto gen_cell_hspacer = [&] (Xml_generator &xml, auto id) {
+		gen_small_label(xml, id, [&] () {
+			xml.attribute("min_ex", CELL_WIDTH_EX); }); };
+
+	auto gen_cell_cpu = [&] (Xml_generator &xml, auto name, bool selected)
+	{
+		gen_named_node(xml, "vbox",  name, [&] () {
+
+			gen_named_node(xml, "button", name, [&] () {
+				xml.attribute("style", "checkbox");
+				_space_item.gen_hovered_attr(xml, name);
+
+				if (selected)
+					xml.attribute("selected", "yes");
+
+				xml.node("hbox", [&] () { });
+			});
+			gen_cell_hspacer(xml, "below");
+		});
+	};
+
+	auto gen_cell_number = [&] (Xml_generator &xml, Id n)
+	{
+		gen_named_node(xml, "vbox", n, [&] () {
+			gen_cell_hspacer(xml, "above");
+			gen_named_node(xml, "float", "number", [&] () {
+				gen_small_label(xml, "number", [&] () {
+					xml.attribute("text", n); }); });
+			gen_cell_hspacer(xml, "below");
+		});
+	};
+
+	auto cpu_selected = [] (Affinity::Location location, unsigned x, unsigned y)
+	{
+		return (unsigned(location.xpos()) <= x)
+		    && (x < location.xpos() + location.width())
+		    && (unsigned(location.ypos()) <= y)
+		    && (y < location.ypos() + location.height());
+	};
+
+	_gen_dialog_section(xml, "affinity", "Affinity", [&] () {
+
+		gen_named_node(xml, "vbox", "selection", [&] () {
+
+			bool const have_hyperthreads = (_space.height() > 1);
+
+			gen_named_node(xml, "hbox", "labeledcores", [&] () {
+				gen_named_node(xml, "vbox", "cores", [&] () {
+
+					for (unsigned y = 0; y < _space.height(); y++) {
+
+						gen_named_node(xml, "hbox", Id("row", y), [&] () {
+
+							for (unsigned x = 0; x < _space.width(); x++)
+								gen_cell_cpu(xml, _cpu_id(x, y),
+								             cpu_selected(_location, x, y));
+
+							if (have_hyperthreads)
+								gen_named_node(xml, "float", "number", [&] () {
+									gen_small_label(xml, "number", [&] () {
+										xml.attribute("min_ex", 2);
+										xml.attribute("text", y); }); });
+						});
+					}
+				});
+				if (have_hyperthreads) {
+					gen_named_node(xml, "float", "hyperthreadslabel", [&] () {
+						xml.node("vbox", [&] () {
+
+							unsigned line = 0;
+
+							auto gen_leftaligned = [&] (auto text) {
+								gen_named_node(xml, "float", Id(line++), [&] () {
+									xml.attribute("west", "yes");
+									gen_small_label(xml, "label", [&] () {
+										xml.attribute("text", text); }); }); };
+
+							gen_leftaligned("Hyper");
+							gen_leftaligned("threads");
+						});
 					});
 				}
-				for (unsigned y = 0; y < _space.height(); y++) {
-					bool const row = unsigned(_location.ypos()) <= y && y < _location.ypos() + _location.height();
-					String<12> const row_id("row", y);
+			});
 
-					gen_named_node(xml, "hbox", row_id, [&] () {
-						if (_space.height() > 1) {
-							xml.node("label", [&] () {
-								xml.attribute("text", String<12>("Thread ", y));
-							});
-						}
-						for (unsigned x = 0; x < _space.width(); x++) {
-							String<12> const name_cpu("cpu", x, "x", y);
-							bool const column = unsigned(_location.xpos()) <= x && x < _location.xpos() + _location.width();
-							gen_named_node(xml, "button", name_cpu, [&] () {
-								if (row && column)
-									xml.attribute("selected", "yes");
+			gen_named_node(xml, "float", "corelabels", [&] () {
+				xml.attribute("west", "yes");
+				xml.node("vbox", [&] () {
 
-								xml.attribute("style", "radio");
-								_space_item.gen_hovered_attr(xml, name_cpu);
-								xml.node("hbox", [&] () { });
-							});
-						}
-					});
-				}
+					xml.node("hbox", [&] () {
+						for (unsigned x = 0; x < _space.width(); x++)
+							gen_cell_number(xml, x); });
+
+					gen_small_label(xml, "cores", [&] () {
+						xml.attribute("text", "Cores"); });
+				});
 			});
 		});
 	});
 }
+
+
+void Resource_dialog::_gen_priority_section(Xml_generator &xml) const
+{
+	_gen_dialog_section(xml, "priority", "Priority", [&] () {
+
+		gen_named_node(xml, "vbox", "selection", [&] () {
+
+			auto gen_radiobutton = [&] (auto id, auto text)
+			{
+				gen_named_node(xml, "hbox", id, [&] () {
+
+					gen_named_node(xml, "float", "left", [&] () {
+						xml.attribute("west", "yes");
+
+						gen_named_node(xml, "hbox", id, [&] () {
+							gen_named_node(xml, "button", "button", [&] () {
+
+								xml.attribute("style", "radio");
+								_priority_item.gen_button_attr(xml, id);
+								xml.node("hbox", [&] () { });
+							});
+							gen_named_node(xml, "label", "name", [&] () {
+								xml.attribute("text", text);
+								xml.attribute("min_ex", 13);
+							});
+						});
+					});
+
+					gen_named_node(xml, "hbox", "right", [&] () { });
+				});
+			};
+
+			gen_radiobutton("driver",     "Driver");
+			gen_radiobutton("multimedia", "Multimedia");
+			gen_radiobutton("default",    "Default");
+			gen_radiobutton("background", "Background");
+		});
+
+		gen_named_node(xml, "hbox", "right", [&] () { });
+	});
+}
+
 
 void Resource_dialog::click(Component &component)
 {
 	if (component.affinity_space.total() <= 1)
 		return;
 
-	Route::Id const clicked_space = _space_item._hovered;
-	if (!clicked_space.valid())
+	Hoverable_item::Id const clicked_space = _space_item._hovered;
+	if (clicked_space.valid()) {
+		_click_space(component, clicked_space);
 		return;
+	}
 
-	for (unsigned y = 0; y < component.affinity_space.height(); y++) {
-		for (unsigned x = 0; x < component.affinity_space.width(); x++) {
-			String<12> const name_cpu("cpu", x, "x", y);
-			if (name_cpu != clicked_space)
+	Hoverable_item::Id const clicked_priority = _priority_item._hovered;
+	if (clicked_priority.valid()) {
+		_click_priority(component, clicked_priority);
+		return;
+	}
+}
+
+
+void Resource_dialog::_click_space(Component &component, Hoverable_item::Id clicked_space)
+{
+	for (unsigned y = 0; y < _space.height(); y++) {
+		for (unsigned x = 0; x < _space.width(); x++) {
+			if (_cpu_id(x, y) != clicked_space)
 				continue;
 
 			unsigned loc_x = _location.xpos();
@@ -144,4 +264,23 @@ void Resource_dialog::click(Component &component)
 			component.affinity_location = _location;
 		}
 	}
+}
+
+
+void Resource_dialog::_click_priority(Component &component, Hoverable_item::Id priority)
+{
+	_priority_item.select(priority);
+
+	/* propagate priority change to component */
+	auto priority_value = [] (Hoverable_item::Id string)
+	{
+		if (string == "background") return Priority::BACKGROUND;
+		if (string == "default")    return Priority::DEFAULT;
+		if (string == "multimedia") return Priority::MULTIMEDIA;
+		if (string == "driver")     return Priority::DRIVER;
+
+		return Priority::BACKGROUND;
+	};
+
+	component.priority = priority_value(priority);
 }

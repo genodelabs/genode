@@ -140,6 +140,11 @@ struct Sculpt::Popup_dialog : Dialog
 		return _selected_route.constructed() && id == _selected_route->string();
 	}
 
+	bool _resource_dialog_selected() const
+	{
+		return _route_selected("resources");
+	}
+
 	template <typename FN>
 	void _apply_to_selected_route(Action &action, FN const &fn)
 	{
@@ -204,7 +209,7 @@ struct Sculpt::Popup_dialog : Dialog
 
 		if (_resources.constructed() &&
 		    hover_result == Dialog::Hover_result::UNMODIFIED)
-			return _resources->hover(hover, "frame", "vbox", "frame", "vbox");
+			return _resources->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox");
 
 		return hover_result;
 	}
@@ -462,9 +467,9 @@ struct Sculpt::Popup_dialog : Dialog
 		if (_state < PKG_REQUESTED)
 			return;
 
-		if (!_resources.constructed())
-			_resources.construct(construction.affinity_space,
-			                     construction.affinity_location);
+		_resources.construct(construction.affinity_space,
+		                     construction.affinity_location,
+		                     construction.priority);
 
 		_pkg_rom_missing = blueprint_rom_missing(blueprint, construction.path);
 		_pkg_missing     = blueprint_missing    (blueprint, construction.path);

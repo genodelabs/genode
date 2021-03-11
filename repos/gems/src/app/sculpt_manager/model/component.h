@@ -41,6 +41,7 @@ struct Sculpt::Component : Noncopyable
 	Affinity::Location    affinity_location { 0, 0,
 	                                          affinity_space.width(),
 	                                          affinity_space.height() };
+	Priority priority = Priority::DEFAULT;
 
 	bool blueprint_known = false;
 
@@ -49,7 +50,9 @@ struct Sculpt::Component : Noncopyable
 
 	Component(Allocator &alloc, Path const &path, Info const &info,
 	          Affinity::Space const space)
-	: _route_update_policy(alloc), path(path), info(info), affinity_space (space) { }
+	:
+		_route_update_policy(alloc), path(path), info(info), affinity_space(space)
+	{ }
 
 	~Component()
 	{
@@ -76,7 +79,12 @@ struct Sculpt::Component : Noncopyable
 		});
 	}
 
-	void gen_affinity_xml(Xml_generator &xml) const
+	void gen_priority(Xml_generator &xml) const
+	{
+		xml.attribute("priority", (int)priority);
+	}
+
+	void gen_affinity(Xml_generator &xml) const
 	{
 		bool const all_cpus = affinity_space.width()  == affinity_location.width()
 		                   && affinity_space.height() == affinity_location.height();
