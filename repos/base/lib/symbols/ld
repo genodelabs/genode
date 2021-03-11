@@ -101,6 +101,8 @@ _ZN6Genode13Vm_connection4Vcpu5pauseEv T
 _ZN6Genode13Vm_connection4Vcpu5stateEv T
 _ZN6Genode13Vm_connection4VcpuC1ERS0_RNS_9AllocatorERNS_17Vcpu_handler_baseERKNS0_11Exit_configE T
 _ZN6Genode13Vm_connection4VcpuC2ERS0_RNS_9AllocatorERNS_17Vcpu_handler_baseERKNS0_11Exit_configE T
+_ZN6Genode13Xml_generator4NodeC1ERS0_PKcRKNS1_3_FnE T
+_ZN6Genode13Xml_generator4NodeC2ERS0_PKcRKNS1_3_FnE T
 _ZN6Genode13sleep_foreverEv T
 _ZN6Genode14Capability_map6insertEmm T
 _ZN6Genode14Dynamic_linker23_for_each_loaded_objectERNS_3EnvERKNS0_11For_each_fnE T
@@ -423,6 +425,7 @@ memmove W
 memset W
 stdout_reconnect T
 wait_for_continue T
+
 
 #
 # C++ runtime

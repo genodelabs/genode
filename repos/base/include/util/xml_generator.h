@@ -223,6 +223,23 @@ class Genode::Xml_generator
 					_out_buffer.advance(content_buffer.used());
 				}
 
+				/*
+				 * Helper used to pass the 'fn' argument of the public 'Node'
+				 * constructor through an ABI to the implementation of the
+				 * private 'Node' constructor.
+				 */
+				struct _Fn : Interface { virtual void call() const = 0; };
+
+				template <typename T>
+				struct _Typed_fn : _Fn
+				{
+					T const &_fn;
+					_Typed_fn(T const &fn) : _fn(fn) { }
+					void call() const override { _fn(); }
+				};
+
+				Node(Xml_generator &, char const *, _Fn const &);
+
 			public:
 
 				void insert_attribute(char const *name, char const *value)
@@ -264,60 +281,11 @@ class Genode::Xml_generator
 					_commit_content(content_buffer);
 				}
 
-				template <typename FUNC>
-				Node(Xml_generator &xml, char const *name, FUNC const &func)
+				template <typename FN>
+				Node(Xml_generator &xml, char const *name, FN const &fn)
 				:
-					_indent_level(xml._curr_indent),
-					_parent_node(xml._curr_node),
-					_parent_was_indented(_parent_node ? _parent_node->is_indented() : false),
-					_parent_had_content (_parent_node ? _parent_node->has_content() : false),
-					_out_buffer(_parent_node ? _parent_node->_content_buffer(true)
-					                         : xml._out_buffer)
-				{
-					_out_buffer.append('\t', _indent_level);
-					_out_buffer.append("<");
-					_out_buffer.append(name);
-					_attr_offset = _out_buffer.used();
-
-					xml._curr_node = this;
-					xml._curr_indent++;
-
-					try {
-						/*
-						 * Process attributes and sub nodes
-						 */
-						func();
-					} catch (...) {
-						/* reset and drop changes by not committing it */
-						xml._curr_node = _parent_node;
-						xml._curr_indent--;
-						if (_parent_node) {
-							_parent_node->_undo_content_buffer(true, _parent_was_indented, _parent_had_content); }
-						throw;
-					}
-
-					xml._curr_node = _parent_node;
-					xml._curr_indent--;
-
-					if (_is_indented) {
-						_out_buffer.append("\n");
-						_out_buffer.append('\t', _indent_level);
-					}
-
-					if (_has_content) {
-						_out_buffer.append("</");
-						_out_buffer.append(name);
-						_out_buffer.append(">");
-					} else
-						_out_buffer.append("/>");
-
-					if (_parent_node)
-						_parent_node->_commit_content(_out_buffer);
-					else
-						xml._out_buffer = _out_buffer;
-
-					_out_buffer.append('\0');
-				}
+					Node(xml, name, static_cast<_Fn const &>(_Typed_fn<FN>(fn)))
+				{ }
 
 				bool has_content() { return _has_content; }
 				bool is_indented() { return _is_indented; }
