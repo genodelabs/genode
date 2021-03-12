@@ -1951,7 +1951,7 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 		Extend_file_system(Wrapper &w)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::wo(), Xml_node("<extend/>")),
+			                   Node_rwx::rw(), Xml_node("<extend/>")),
 			_w(w)
 		{ }
 
@@ -2093,7 +2093,7 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 		Rekey_file_system(Wrapper &w)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::wo(), Xml_node("<rekey/>")),
+			                   Node_rwx::rw(), Xml_node("<rekey/>")),
 			_w(w)
 		{ }
 
