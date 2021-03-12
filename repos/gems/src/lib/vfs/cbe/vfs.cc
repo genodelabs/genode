@@ -1856,6 +1856,35 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 
 		Wrapper &_w;
 
+		using Content_string = String<32>;
+
+		static Content_string content_string(Wrapper const &wrapper)
+		{
+			Wrapper::Extending const & extending_progress {
+				wrapper.extending_progress() };
+
+			bool const in_progress {
+				extending_progress.state ==
+					Wrapper::Extending::State::IN_PROGRESS };
+
+			bool const last_result {
+				!in_progress &&
+				extending_progress.last_result !=
+					Wrapper::Extending::Result::NONE };
+
+			bool const success {
+				extending_progress.last_result ==
+					Wrapper::Extending::Result::SUCCESS };
+
+			Content_string const result {
+				Wrapper::Extending::state_to_cstring(extending_progress.state),
+				" last-result:",
+				last_result ? success ? "success" : "failed" : "none",
+				"\n" };
+
+			return result;
+		}
+
 		struct Vfs_handle : Single_vfs_handle
 		{
 			Wrapper &_w;
@@ -1876,28 +1905,12 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 					out_count = 0;
 					return READ_OK;
 				}
-
-				using Extending = Wrapper::Extending;
-
-				Extending const exp = _w.extending_progress();
-
-				bool const in_progress =
-					exp.state == Extending::State::IN_PROGRESS;
-				bool const last_result =
-					!in_progress && exp.last_result != Extending::Result::NONE;
-				bool const success =
-					exp.last_result == Extending::Result::SUCCESS;
-
-				using Result = Genode::String<32>;
-				Result result {
-					Extending::state_to_cstring(exp.state),
-					" last-result:", last_result ? success ?
-					                 "success" : "failed" : "none",
-					"\n" };
+				Content_string const result { content_string(_w) };
 				copy_cstring(dst, result.string(), count);
 				size_t const length_without_nul = result.length() - 1;
 				out_count = count > length_without_nul - 1 ?
 				            length_without_nul : count;
+
 				return READ_OK;
 			}
 
@@ -1970,6 +1983,7 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
+			out.size = content_string(_w).length() - 1;
 			return result;
 		}
 
@@ -1991,6 +2005,35 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 
 		Wrapper &_w;
 
+		using Content_string = String<32>;
+
+		static Content_string content_string(Wrapper const &wrapper)
+		{
+			Wrapper::Rekeying const & rekeying_progress {
+				wrapper.rekeying_progress() };
+
+			bool const in_progress {
+				rekeying_progress.state ==
+					Wrapper::Rekeying::State::IN_PROGRESS };
+
+			bool const last_result {
+				!in_progress &&
+				rekeying_progress.last_result !=
+					Wrapper::Rekeying::Result::NONE };
+
+			bool const success {
+				rekeying_progress.last_result ==
+					Wrapper::Rekeying::Result::SUCCESS };
+
+			Content_string const result {
+				Wrapper::Rekeying::state_to_cstring(rekeying_progress.state),
+				" last-result:",
+				last_result ? success ? "success" : "failed" : "none",
+				"\n" };
+
+			return result;
+		}
+
 		struct Vfs_handle : Single_vfs_handle
 		{
 			Wrapper &_w;
@@ -2011,28 +2054,12 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 					out_count = 0;
 					return READ_OK;
 				}
-
-				Wrapper::Rekeying const & rkp =
-					_w.rekeying_progress();
-
-				using Result = Genode::String<32>;
-				using Rekeying = Wrapper::Rekeying;
-				bool const in_progress =
-					rkp.state == Rekeying::State::IN_PROGRESS;
-				bool const last_result =
-					!in_progress && rkp.last_result != Rekeying::Result::NONE;
-				bool const success =
-					rkp.last_result == Rekeying::Result::SUCCESS;
-
-				Result result {
-					Rekeying::state_to_cstring(rkp.state),
-					" last-result:", last_result ? success ?
-					                 "success" : "failed" : "none",
-					"\n" };
+				Content_string const result { content_string(_w) };
 				copy_cstring(dst, result.string(), count);
 				size_t const length_without_nul = result.length() - 1;
 				out_count = count > length_without_nul - 1 ?
 				            length_without_nul : count;
+
 				return READ_OK;
 			}
 
@@ -2098,6 +2125,7 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
+			out.size = content_string(_w).length() - 1;
 			return result;
 		}
 
