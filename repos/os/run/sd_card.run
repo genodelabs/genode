@@ -40,13 +40,7 @@ install_config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-		<route>
-			<service name="ROM"> <parent/> </service>
-			<service name="PD">  <parent/> </service>
-			<service name="RM">  <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
+		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 
 	<start name="pl180_sd_card_drv">
