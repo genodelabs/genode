@@ -86,8 +86,9 @@ struct Fs_query::Watched_file
 				if (_rwx.writeable)
 					xml.attribute("writeable", "yes");
 
-				if (query.attribute_value("content", false))
-					_gen_content(xml, alloc, dir);
+				if (_rwx.readable)
+					if (query.attribute_value("content", false))
+						_gen_content(xml, alloc, dir);
 			});
 		}
 		/*
