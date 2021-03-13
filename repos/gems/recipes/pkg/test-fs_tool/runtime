@@ -11,6 +11,10 @@
 			[init -> report_rom]   &lt;listing>
 			[init -> report_rom]   	&lt;dir path="/fs/items">
 			[init -> report_rom]   		&lt;file name="1" writeable="yes">first&lt;/file>
+			[init -> report_rom]   		&lt;file name="5" writeable="yes">fifth&lt;/file>
+			[init -> report_rom]   	&lt;/dir>
+			[init -> report_rom]   	&lt;dir path="/fs/new/file/at/subdir">
+			[init -> report_rom]   		&lt;file name="content" writeable="yes">new file&lt;/file>
 			[init -> report_rom]   	&lt;/dir>
 			[init -> report_rom]   &lt;/listing>
 		</log>
@@ -81,6 +85,26 @@
 					</config>
 				</start>
 
+				<start name="new-file" caps="500">
+					<binary name="fs_tool"/>
+					<config verbose="yes" exit="yes">
+						<vfs>
+							<fs writeable="yes"/>
+						</vfs>
+						<new-file path="/items/5">fifth</new-file>
+						<new-file path="/new/file/at/subdir/content">new file</new-file>
+					</config>
+				</start>
+
+				<start name="sleep" caps="100">
+					<resource name="RAM" quantum="4M"/>
+					<binary name="dummy"/>
+					<config>
+						<sleep ms="500"/>
+						<exit/>
+					</config>
+				</start>
+
 				<start name="remove" caps="500">
 					<binary name="fs_tool"/>
 					<config verbose="yes" exit="yes">
@@ -99,6 +123,7 @@
 					<config>
 						<vfs> <dir name="fs"> <fs/> </dir> </vfs>
 						<query path="/fs/items" content="yes"/>
+						<query path="/fs/new/file/at/subdir" content="yes"/>
 					</config>
 				</start>
 

@@ -5,9 +5,17 @@ configured VFS. The file operations are given the configuration as follows:
 !   <vfs>
 !     ...
 !   </vfs>
+!   <new-file path="/path/to/file">Content to write to the file</new-file>
 !   <remove-file path="/path/to/file" />
 ! </config>
 
 The 'exit="yes"' attribute instructs the component to exit after completing
 the sequence. Otherwise, the component keeps responding to configuration
 changes by executing the operations found in the updated configurations.
+
+The <new-file> operation creates the new file or overwrites the existing file
+given through the 'path' attribute with the content that is given inside the
+tag.
+
+The <remove-file> tag removes the existing file given through the 'path'
+attribute.
