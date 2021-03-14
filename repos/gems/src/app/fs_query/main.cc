@@ -46,11 +46,16 @@ struct Fs_query::Watched_file
 
 	Node_rwx const _rwx;
 
-	Watcher _watcher;
+	Constructible<Watcher> _watcher { };
 
 	Watched_file(Directory const &dir, File_content::Path name, Node_rwx rwx,
 	             Vfs::Watch_response_handler &handler)
-	: _name(name), _rwx(rwx), _watcher(dir, name, handler) { }
+	:
+		_name(name), _rwx(rwx)
+	{
+		if (_rwx.readable)
+			_watcher.construct(dir, name, handler);
+	}
 
 	virtual ~Watched_file() { }
 
