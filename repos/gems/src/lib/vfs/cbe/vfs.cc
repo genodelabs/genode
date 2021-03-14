@@ -253,6 +253,7 @@ class Vfs_cbe::Wrapper
 		};
 
 		Pointer<Extend_file_system> _extend_fs { };
+		Pointer<Rekey_file_system>  _rekey_fs  { };
 
 		/* configuration options */
 		bool _verbose       { false };
@@ -360,6 +361,34 @@ class Vfs_cbe::Wrapper
 
 				class No_extend_file_system_managed { };
 				throw No_extend_file_system_managed { };
+			}
+		}
+
+		void manage_rekey_file_system(Rekey_file_system &rekey_fs)
+		{
+			if (_rekey_fs.valid()) {
+
+				class Already_managing_an_rekey_file_system { };
+				throw Already_managing_an_rekey_file_system { };
+			}
+			_rekey_fs = rekey_fs;
+		}
+
+		void dissolve_rekey_file_system(Rekey_file_system &rekey_fs)
+		{
+			if (_rekey_fs.valid()) {
+
+				if (&_rekey_fs.obj() != &rekey_fs) {
+
+					class Rekey_file_system_not_managed { };
+					throw Rekey_file_system_not_managed { };
+				}
+				_rekey_fs = Pointer<Rekey_file_system> { };
+
+			} else {
+
+				class No_rekey_file_system_managed { };
+				throw No_rekey_file_system_managed { };
 			}
 		}
 
@@ -589,6 +618,8 @@ class Vfs_cbe::Wrapper
 
 		void _extend_fs_trigger_watch_response();
 
+		void _rekey_fs_trigger_watch_response();
+
 		bool _handle_cbe_frontend(Cbe::Library &cbe, Frontend_request &frontend_request)
 		{
 			if (_helper_read_request.pending()) {
@@ -659,6 +690,8 @@ class Vfs_cbe::Wrapper
 					_rekey_obj.state = Rekeying::State::IDLE;
 					_rekey_obj.last_result = req_sucess ? Rekeying::Result::SUCCESS
 					                                    : Rekeying::Result::FAILED;
+
+					_rekey_fs_trigger_watch_response();
 					continue;
 				}
 
@@ -1511,6 +1544,8 @@ class Vfs_cbe::Wrapper
 			if (_rekey_obj.state == RS::UNKNOWN && info.valid) {
 				_rekey_obj.state =
 					info.rekeying ? RS::IN_PROGRESS : RS::IDLE;
+
+				_rekey_fs_trigger_watch_response();
 			}
 		}
 
@@ -1539,6 +1574,7 @@ class Vfs_cbe::Wrapper
 			_cbe->submit_client_request(req, 0);
 			_rekey_obj.state       = Rekeying::State::IN_PROGRESS;
 			_rekey_obj.last_result = Rekeying::Rekeying::FAILED;
+			_rekey_fs_trigger_watch_response();
 
 			// XXX kick-off rekeying
 			handle_frontend_request();
@@ -2115,6 +2151,11 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 {
 	private:
 
+		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
+		typedef Registry<Registered_watch_handle> Watch_handle_registry;
+
+		Watch_handle_registry _handle_registry { };
+
 		Wrapper &_w;
 
 		using Content_string = String<32>;
@@ -2207,11 +2248,47 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
 			                   Node_rwx::rw(), Xml_node("<rekey/>")),
 			_w(w)
-		{ }
+		{
+			_w.manage_rekey_file_system(*this);
+		}
+
+		~Rekey_file_system()
+		{
+			_w.dissolve_rekey_file_system(*this);
+		}
 
 		static char const *type_name() { return "rekey"; }
 
 		char const *type() override { return type_name(); }
+
+		void trigger_watch_response()
+		{
+			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
+				handle.watch_response(); });
+		}
+
+		Watch_result watch(char const        *path,
+		                   Vfs_watch_handle **handle,
+		                   Allocator         &alloc) override
+		{
+			if (!_single_file(path))
+				return WATCH_ERR_UNACCESSIBLE;
+
+			try {
+				*handle = new (alloc)
+					Registered_watch_handle(_handle_registry, *this, alloc);
+
+				return WATCH_OK;
+			}
+			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+		}
+
+		void close(Vfs_watch_handle *handle) override
+		{
+			destroy(handle->alloc(),
+			        static_cast<Registered_watch_handle *>(handle));
+		}
 
 
 		/*********************************
@@ -3263,5 +3340,13 @@ void Vfs_cbe::Wrapper::_extend_fs_trigger_watch_response()
 {
 	if (_extend_fs.valid()) {
 		_extend_fs.obj().trigger_watch_response();
+	}
+}
+
+
+void Vfs_cbe::Wrapper::_rekey_fs_trigger_watch_response()
+{
+	if (_rekey_fs.valid()) {
+		_rekey_fs.obj().trigger_watch_response();
 	}
 }
