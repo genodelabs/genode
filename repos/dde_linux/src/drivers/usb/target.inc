@@ -34,7 +34,7 @@ CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
 CC_C_OPT += -std=gnu89 -Wno-unused-but-set-variable -Wno-pointer-sign -Wno-unused-label
 CC_C_OPT += -include $(LIB_INC_DIR)/lx_emul.h
 
-CC_CXX_OPT = -fpermissive
+CC_CXX_OPT += -fpermissive
 
 #
 # Suffix of global 'module_init' function

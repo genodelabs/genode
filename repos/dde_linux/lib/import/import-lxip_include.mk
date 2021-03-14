@@ -34,5 +34,5 @@ INC_DIR += $(SRC_DIR) \
 INC_DIR += $(REP_DIR)/src/include
 INC_DIR += $(ARCH_SRC_INC_DIR)
 INC_DIR += $(LXIP_CONTRIB_DIR)/include \
-           $(LXIP_CONTRIB_DIR)/include/uapi \
+           $(LXIP_CONTRIB_DIR)/include/uapi
 INC_DIR += $(LIB_CACHE_DIR)/lxip_include/include/include/include

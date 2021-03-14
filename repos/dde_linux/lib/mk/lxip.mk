@@ -23,7 +23,7 @@ CC_C_OPT  += -std=gnu89
 CC_C_OPT  += -Wno-unused-but-set-variable -Wno-pointer-sign
 
 CC_C_OPT  += -include $(LIB_INC_DIR)/lx_emul.h
-CC_CXX_OPT = -fpermissive
+CC_CXX_OPT += -fpermissive
 
 SRC_CC = dummies.cc lxcc_emul.cc nic_handler.cc \
          timer_handler.cc random.cc
@@ -41,9 +41,6 @@ SRC_C += net/sched/sch_generic.c
 SRC_C += lib/checksum.c
 SRC_C += lib/rhashtable.c
 SRC_C += drivers/net/loopback.c
-
-# DHCP support
-SRC_C += net/ipv4/ipconfig.c
 
 #SRC_C = net/ipv4/inet_connection_sock.c
 
