@@ -3007,7 +3007,10 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 
 		file_size num_dirent(char const *path) override
 		{
-			if (_top_dir(path) || _root_dir(path)) {
+			if (_top_dir(path)) {
+				return 1;
+			}
+			if (_root_dir(path)) {
 				_snap_reg.update(_vfs_env);
 				file_size const num = _snap_reg.number_of_snapshots();
 				return num;
