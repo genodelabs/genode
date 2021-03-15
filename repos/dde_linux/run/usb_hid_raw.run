@@ -78,6 +78,7 @@ proc platform_drv_config_non_x86 {} {
 				<clock        name="usb_phy2_gate"/>
 				<property     name="compatible" value="snps,dwc3"/>
 				<property     name="dr_mode"    value="host"/>
+				<property     name="snps,dis_u2_susphy_quirk"/>
 			</device>
 			<policy label="usb_drv -> "> <device name="usb_host_2"/> </policy>
 		}
