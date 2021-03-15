@@ -711,11 +711,24 @@ long __wait_completion(struct completion *work, unsigned long timeout)
 }
 
 
+void reinit_completion(struct completion *work)
+{
+	init_completion(work);
+}
+
+
 /***********************
  ** linux/workqueue.h **
  ***********************/
 
 #include <lx_emul/impl/work.h>
+
+
+bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
+                      unsigned long delay)
+{
+	return queue_delayed_work(wq, dwork, delay);
+}
 
 
 void tasklet_init(struct tasklet_struct *t, void (*f)(unsigned long), unsigned long d)
@@ -1011,6 +1024,15 @@ int device_property_read_string(struct device *dev, const char *propname, const 
 	if (DEBUG_DRIVER) Genode::warning("property ", propname, " not found");
 	*val = 0;
 	return -EINVAL;
+}
+
+
+bool device_property_read_bool(struct device *dev, const char *propname)
+{
+	for (property * p = dev->of_node ? dev->of_node->properties : nullptr; p; p = p->next)
+		if (Genode::strcmp(propname, p->name) == 0) return true;
+
+	return false;
 }
 
 
