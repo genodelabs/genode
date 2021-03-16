@@ -1,8 +1,9 @@
 This library makes the xHCI device model of Qemu available on Genode
 and is used as a back end for such for device models in existing VMMs.
+Additionally a webcam device model attached to the xHCI device is supported.
 
-Usage
-~~~~~
+Usage xHCI model
+~~~~~~~~~~~~~~~~
 
 The user of this library is required to provide certain back end
 functionality, namely a Timer_queue to handle timer events and a Pci_device
@@ -28,3 +29,27 @@ needs to be called to reattach USB devices.
 Timer callbacks that have been registered using the Timer_queue
 interface have to be executed by calling 'Qemu::usb_timer_callback'
 when the timer triggers.
+
+Usage webcam model attached to the xHCI model
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the xHCI model is enabled and used, then the webcam device model can be
+enabled by specifying a XML node in the config ROM:
+
+<config ...>
+	...
+	<webcam width="640" height="480" fps="15" vertical_flip="false" screen_size="false" report="false"/>
+	...
+</config>
+
+The webcam attributes are optional. The values shown above, are the default ones
+when a attribute is not specified. When the webcam node is specified, the model
+will open and will use a Genode capture session to obtain the
+frames in the rate as specified by the frame per secondes (fps) attribute. The
+'vertical_flip' attribute specifies, whether the frames are shown flipped
+for guests. For Windows guests the value has to be false, for Linux guests
+true. The format supported by the model is in BGR3. If the 'screen_size' is set
+to true, the webcam model will try to use the screen size as provided by the
+capture session. If the screen size is invalid (e.g. 0x0), the attribute
+values of 'width' and 'height' will be used instead. If the 'report' attribute
+is set, a report will be generated whenever the guests starts/ends capturing.

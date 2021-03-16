@@ -212,11 +212,25 @@ void qdev_simple_device_unplug_cb(HotplugHandler*, DeviceState*, Error**)
 }
 
 
-char* qdev_get_dev_path(DeviceState*)
+/**
+ * close to original in hw/core/qdev.c
+ */
+char *qdev_get_dev_path(DeviceState *dev)
 {
-	TRACE_AND_STOP;
-	return 0;
+    BusClass *bc;
+
+    if (!dev || !dev->parent_bus) {
+        return nullptr;
+    }
+
+    bc = BUS_GET_CLASS(dev->parent_bus);
+    if (bc->get_dev_path) {
+        return bc->get_dev_path(dev);
+    }
+
+    return nullptr;
 }
+
 
 
 const char* qdev_fw_name(DeviceState*)
@@ -256,7 +270,14 @@ gchar* g_strdup(const gchar*)
 }
 
 
-size_t strlen(const char*)
+/************************
+ ** hw/usb/desc-msos.c **
+ ************************/
+
+struct USBDesc;
+struct USBPacket;
+int usb_desc_msos(const USBDesc *desc, USBPacket *p,
+                  int index, uint8_t *dest, size_t len)
 {
 	TRACE_AND_STOP;
 	return 0;

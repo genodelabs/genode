@@ -32,6 +32,7 @@ typedef signed long    ssize_t;
 #ifndef __cplusplus
 typedef _Bool          bool;
 enum { false = 0, true = 1 };
+typedef __WCHAR_TYPE__ wchar_t;
 #endif
 typedef __SIZE_TYPE__  size_t;
 typedef unsigned long  dma_addr_t;
@@ -74,6 +75,7 @@ char *strchr(const char *s, int c);
 
 #define NULL (void *)0
 #define QEMU_SENTINEL
+#define QEMU_PACKED __attribute__((packed))
 
 #define le32_to_cpu(x) (x)
 #define cpu_to_le32(x) (x)
@@ -240,6 +242,8 @@ struct BusClass            *cast_BusClass(void *);
 struct HotplugHandlerClass *cast_HotplugHandlerClass(void *);
 
 struct USBDeviceClass      *cast_USBDeviceClass(void *);
+struct USBWebcamState;
+struct USBWebcamState      *cast_USBWebcamState(void *);
 
 struct USBBus *cast_USBBus(void *);
 
@@ -254,6 +258,8 @@ struct USBBus *cast_USBBus(void *);
 
 #define OBJECT_GET_CLASS(klass, obj, str) \
 	OBJECT_CHECK(klass, obj, str)
+
+#define BUS_GET_CLASS(obj) OBJECT_GET_CLASS(BusClass, (obj), TYPE_BUS)
 
 #define DECLARE_INSTANCE_CHECKER(InstanceType, OBJ_NAME, TYPENAME) \
 	static inline InstanceType * \
@@ -853,6 +859,18 @@ typedef struct VMStateDescription
 #define trace_usb_xhci_xfer_start(...)     TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_xfer_start", __LINE__)
 #define trace_usb_xhci_xfer_success(...)   TRACE_PRINTF("%s:%d\n", "trace_usb_xhci_xfer_success", __LINE__)
 
+#define trace_usb_desc_device(...)             TRACE_PRINTF("%s:%d\n", "trace_usb_desc_device", __LINE__)
+#define trace_usb_desc_config(...)             TRACE_PRINTF("%s:%d\n", "trace_usb_desc_config", __LINE__)
+#define trace_usb_desc_string(...)             TRACE_PRINTF("%s:%d\n", "trace_usb_desc_string", __LINE__)
+#define trace_usb_desc_device_qualifier(...)   TRACE_PRINTF("%s:%d\n", "trace_usb_desc_device_qualifier", __LINE__)
+#define trace_usb_desc_other_speed_config(...) TRACE_PRINTF("%s:%d\n", "trace_usb_desc_other_speed_config", __LINE__)
+#define trace_usb_desc_bos(...)                TRACE_PRINTF("%s:%d\n", "trace_usb_desc_bos", __LINE__)
+#define trace_usb_set_addr(...)                TRACE_PRINTF("%s:%d\n", "trace_usb_set_addr", __LINE__)
+#define trace_usb_set_config(...)              TRACE_PRINTF("%s:%d\n", "trace_usb_set_config", __LINE__)
+#define trace_usb_clear_device_feature(...)    TRACE_PRINTF("%s:%d\n", "trace_usb_clear_device_feature", __LINE__)
+#define trace_usb_set_device_feature(...)      TRACE_PRINTF("%s:%d\n", "trace_usb_set_device_feature", __LINE__)
+#define trace_usb_set_interface(...)           TRACE_PRINTF("%s:%d\n", "trace_usb_set_interface", __LINE__)
+#define trace_usb_desc_msos(...)               TRACE_PRINTF("%s:%d\n", "trace_usb_desc_msos", __LINE__)
 
 /***********************
  ** library interface **

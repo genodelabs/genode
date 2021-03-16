@@ -494,8 +494,10 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 	pThis->timer_queue = &timer_queue;
 	static Pci_device pci_device(pDevIns);
 
+	Genode::Attached_rom_dataspace config(genode_env(), "config");
+
 	pThis->ctl = Qemu::usb_init(timer_queue, pci_device, *pThis->usb_ep,
-	                            vmm_heap(), genode_env());
+	                            vmm_heap(), genode_env(), config.xml());
 
 	Qemu::Controller::Info const ctl_info = pThis->ctl->info();
 

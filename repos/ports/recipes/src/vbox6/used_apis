@@ -1,5 +1,6 @@
 base
 blit
+capture_session
 framebuffer_session
 gui_session
 input_session

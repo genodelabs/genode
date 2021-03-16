@@ -1,6 +1,7 @@
 audio_in_session
 audio_out_session
 base
+capture_session
 framebuffer_session
 input_session
 libc

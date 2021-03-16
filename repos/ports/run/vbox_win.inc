@@ -23,6 +23,17 @@ set overlay_image "overlay_${flavor}.vdi"
 if {[info exists flavor_extension]} {
 	set vbox_file "vm_${flavor}${flavor_extension}.vbox"
 }
+if {![info exists use_webcam]} {
+	set use_webcam 0
+}
+if {![info exists webcam_vflip]} {
+	set webcam_vflip true
+	if {$use_webcam} {
+		if {[string match "win*" $flavor] } {
+			set webcam_vflip false
+		}
+	}
+}
 
 set build_components {
 	server/nic_router
@@ -267,6 +278,10 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 		<affinity xpos=\"[expr $i]\" width=\"2\" />
 		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"no\" capslock=\"NOROM\">"
 	}
+
+	append_if [expr $use_webcam] config_of_app {
+			<webcam vertical_flip="} $webcam_vflip {" fps="15" report="false" screen_size="false" width="640" height="480" />}
+
 	append config_of_app {
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs>

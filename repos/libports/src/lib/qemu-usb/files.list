@@ -3,6 +3,8 @@ qemu-x.x.x/include/hw/usb/xhci.h
 qemu-x.x.x/include/qemu/queue.h
 qemu-x.x.x/hw/usb/bus.c
 qemu-x.x.x/hw/usb/core.c
+qemu-x.x.x/hw/usb/desc.c
+qemu-x.x.x/hw/usb/desc.h
 qemu-x.x.x/hw/usb/hcd-xhci.c
 qemu-x.x.x/hw/usb/hcd-xhci.h
 qemu-x.x.x/hw/usb/hcd-xhci-nec.c
