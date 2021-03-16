@@ -23,11 +23,14 @@
 
 namespace Cbe {
 
+	enum { INVALID_GENERATION = 0 };
+
 	using namespace Genode;
 	using Number_of_primitives   = size_t;
 	using Physical_block_address = uint64_t;
 	using Virtual_block_address  = uint64_t;
 	using Generation             = uint64_t;
+	using Generation_string      = String<21>;
 	using Height                 = uint32_t;
 	using Number_of_leaves       = uint64_t;
 	using Number_of_leafs        = uint64_t;
