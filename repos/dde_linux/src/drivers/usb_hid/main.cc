@@ -187,7 +187,8 @@ void Driver::main_task_entry(void * arg)
 	module_apple_driver_init();
 	module_ms_driver_init();
 	module_mt_driver_init();
-	module_wacom_driver_init();
+	/* disable wacom driver due to #3997 */
+	// module_wacom_driver_init();
 
 	bool use_report = false;
 
