@@ -75,13 +75,13 @@ class Libc::Vfs_plugin final : public Plugin
 
 		struct Mmap_entry : Registry<Mmap_entry>::Element
 		{
-			void                  * const start;
-			Libc::File_descriptor * const fd;
+			void            * const start;
+			Vfs::Vfs_handle * const reference_handle;
 
 			Mmap_entry(Registry<Mmap_entry> &registry, void *start,
-			           Libc::File_descriptor *fd)
+			           Vfs::Vfs_handle *reference_handle)
 			: Registry<Mmap_entry>::Element(registry, *this), start(start),
-			  fd(fd) { }
+			  reference_handle(reference_handle) { }
 		};
 
 		Genode::Allocator               &_alloc;

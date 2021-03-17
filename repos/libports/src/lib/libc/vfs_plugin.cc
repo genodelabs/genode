@@ -1946,11 +1946,19 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 	} else if (flags & MAP_SHARED) {
 
-		/* duplicate the file descriptor to keep the file open as long as the mapping exists */
+		/* create another VFS handle to keep the file open as long as the mapping exists */
 
-		Libc::File_descriptor *dup_fd = dup(fd);
+		Vfs::Vfs_handle *reference_handle = nullptr;
+		typedef Vfs::Directory_service::Open_result Result;
+		Result vfs_open_result;
+		monitor().monitor([&] {
+			vfs_open_result = _root_fs.open(fd->fd_path, fd->flags,
+			                                &reference_handle, _alloc);
+			return Fn::COMPLETE;
+		});
 
-		if (!dup_fd) {
+		if (vfs_open_result != Result::OPEN_OK) {
+			error("mmap could not create reference VFS handle");
 			errno = ENFILE;
 			return MAP_FAILED;
 		}
@@ -1964,7 +1972,10 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 		if (!ds_cap.valid()) {
 			Genode::error("mmap got invalid dataspace capability");
-			close(dup_fd);
+			monitor().monitor([&] {
+				reference_handle->close();
+				return Fn::COMPLETE;
+			});
 			errno = ENODEV;
 			return MAP_FAILED;
 		}
@@ -1972,12 +1983,15 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 		try {
 			addr = region_map().attach(ds_cap, length, offset);
 		} catch (...) {
-			close(dup_fd);
+			monitor().monitor([&] {
+				reference_handle->close();
+				return Fn::COMPLETE;
+			});
 			errno = ENOMEM;
 			return MAP_FAILED;
 		}
 
-		new (_alloc) Mmap_entry(_mmap_registry, addr, dup_fd);
+		new (_alloc) Mmap_entry(_mmap_registry, addr, reference_handle);
 	}
 
 	return addr;
@@ -1994,20 +2008,23 @@ int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 
 	/* shared mapping */
 
-	Libc::File_descriptor *fd = nullptr;
+	Vfs::Vfs_handle *reference_handle = nullptr;
 
 	_mmap_registry.for_each([&] (Mmap_entry &entry) {
 		if (entry.start == addr) {
-			fd = entry.fd;
+			reference_handle = entry.reference_handle;
 			destroy(_alloc, &entry);
 			region_map().detach(addr);
 		}
 	});
 
-	if (!fd)
+	if (!reference_handle)
 		return Errno(EINVAL);
 
-	close(fd);
+	monitor().monitor([&] {
+		reference_handle->close();
+		return Fn::COMPLETE;
+	});
 
 	return 0;
 }
