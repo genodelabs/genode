@@ -4,7 +4,7 @@ DOWNLOADS := cbe.git
 
 URL(cbe) := https://github.com/m-stein/cbe.git
 DIR(cbe) := cbe
-REV(cbe) := 317ffc7c4c8779a4d3c59140b48ae461ec72df7a
+REV(cbe) := be85ab5bdd7b9d15d7a8ff7fbcd26656e1836582
 
 default: symlinks
 
