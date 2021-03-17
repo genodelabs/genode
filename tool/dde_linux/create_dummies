@@ -1,0 +1,208 @@
+#!/usr/bin/make -f
+#
+# \brief  Function implementation creation tool for DDE Linux
+# \author Stefan Kalkowski
+# \date   2021-03-11
+#
+
+help:
+	$(ECHO) ""
+	$(ECHO) "Create function implementation dummies for DDE Linux"
+	$(ECHO) ""
+	$(ECHO) "usage:"
+	$(ECHO) ""
+	$(ECHO) "  create_dummies <command> [VARIABLES]"
+	$(ECHO) ""
+	$(ECHO) "--- available commands ---"
+	$(ECHO) "help         - shows this help"
+	$(ECHO) "show         - shows missing symbols of given TARGET"
+	$(ECHO) "generate     - generates DUMMY_FILE for given TARGET"
+	$(ECHO) ""
+	$(ECHO) "--- used variables ---"
+	$(ECHO) "TARGET            - denotes the Genode build target"
+	$(ECHO) "BUILD_DIR         - optional path to Genode build directory,"
+	$(ECHO) "                    used to build the TARGET"
+	$(ECHO) "                    (default is the current path)"
+	$(ECHO) "LINUX_KERNEL_DIR  - path to the Linux kernel build"
+	$(ECHO) "DUMMY_FILE        - path to the file that shall be generated"
+	$(ECHO) "ARCH              - is optional, normally it is tried"
+	$(ECHO) "                    to extract it from BUILD_DIR"
+	$(ECHO) ""
+
+
+COMMAND := $(firstword $(MAKECMDGOALS))
+
+SHELL        = bash
+BRIGHT_COL   = \033[01;33m
+DEFAULT_COL  = \033[0m
+ECHO         = @echo -e
+BUILD_DIR   ?= $(PWD)
+
+
+# There are some expensive commands defined underneath,
+# which shouldn't be executed when calling for help
+ifneq ($(COMMAND),help)
+
+#
+# Sanity checks
+#
+
+ifeq ($(TARGET),)
+$(error You have to state a valid build TARGET, try help)
+endif
+
+##
+# Return $(2) if $(1) is empty, "" else
+#
+check_nonempty_f = $(if $(1),,$(info $(2))$(2))
+
+CTAGS_OK = $(call check_nonempty_f,$(shell which ctags),\
+             Need to have ctags installed.)
+
+
+TOOLS_OK = $(CTAGS_OK)
+
+ifneq ($(strip $(TOOLS_OK)),)
+$(error Please install missing tools.)
+endif
+
+ifneq ($(realpath $(BUILD_DIR)/etc/specs.conf),)
+ARCH ?= $(word 3,$(shell grep "SPECS" $(BUILD_DIR)/etc/specs.conf))
+endif
+
+ifeq ($(ARCH),arm_v6)
+TOOL_ARCH = arm
+LX_ARCH   = arm
+else
+ifeq ($(ARCH),arm_v7a)
+TOOL_ARCH = arm
+LX_ARCH   = arm
+else
+ifeq ($(ARCH),arm_v8a)
+TOOL_ARCH = aarch64
+LX_ARCH   = arm64
+else
+ifeq ($(ARCH),x86_32)
+TOOL_ARCH = x86
+LX_ARCH   = x86
+else
+ifeq ($(ARCH),x86_64)
+TOOL_ARCH = x86
+LX_ARCH   = x86
+else
+$(error ARCH=$(ARCH) is not supported)
+endif
+endif
+endif
+endif
+endif
+
+# The following eager commands should only be evaluated when generating dummies
+ifeq ($(COMMAND),generate)
+
+ifeq ($(realpath $(LINUX_KERNEL_DIR)),)
+$(error You have to state a valid LINUX_KERNEL_DIR, try help)
+endif
+
+ifeq ($(DUMMY_FILE),)
+$(error You have to state a DUMMY_FILE, try help)
+endif
+
+#
+# Prepare object database
+#
+
+CROSS_DEV_PREFIX ?= /usr/local/genode/tool/current/bin/genode-$(TOOL_ARCH)-
+NM                = $(CROSS_DEV_PREFIX)nm --print-file-name --defined-only
+C_FILE_DEF       := $(shell $(NM) `find $(LINUX_KERNEL_DIR) -name "*.o" | grep -v vmlinux.o` | grep -i " t " | sed 's/o:[0-f]* [tT] /c:/')
+symbol_to_c_file  = $(firstword $(subst :, ,$(filter %:$(1),$(C_FILE_DEF))))
+
+
+#
+# Ctags database
+#
+
+HEADER_DECL      := $(shell cd $(LINUX_KERNEL_DIR)/include; ctags -R -x --kinds-c=p --_xformat="%N:%F" .)
+GLOBAL_VAR       := $(shell cd $(LINUX_KERNEL_DIR)/include; ctags -R -x --kinds-c=x --_xformat="%N:%F" .)
+func_to_h_file    = $(lastword $(subst :, ,$(filter $(1):%,$(HEADER_DECL))))
+do_func_to_def    = $(subst :, ,$(subst typename:,,$(subst $(1): ,,$(shell ctags -x --kinds-c=f --_xformat="%N: %t %N%S" $(2) | grep "^\<$(1)\>:"))))
+check_func_to_def = $(if $(2),$(call do_func_to_def,$(1),$(2)),)
+func_to_def       = $(call check_func_to_def,$(1),$(call symbol_to_c_file,$(1)))
+
+var_to_h_file     = $(lastword $(subst :, ,$(filter $(1):%,$(GLOBAL_VAR))))
+do_var_to_def     = $(subst ];,] = {};,$(subst \/,/,$(subst extern ,,$(subst $$/,,$(subst $(1): /^,,$(shell ctags -x --kinds-c=x --_xformat="%N: %P" $(LINUX_KERNEL_DIR)/include/$(2) | grep "^\<$(1)\>:"))))))
+check_var_to_def  = $(if $(2),$(call do_var_to_def,$(1),$(2)),)
+var_to_def        = $(call check_var_to_def,$(1),$(call var_to_h_file,$(1)))
+
+endif # COMMAND=generate
+
+#
+# Collect undefined references for target
+#
+
+UNDEF_REFS := $(sort $(subst `,,$(subst ',,$(shell make -C $(BUILD_DIR) $(TARGET) 2>&1 | grep " undefined reference to " | sed -e "s/.* reference to //"))))
+
+define print_file_header
+echo "/*"                                                       > $(2);
+echo " * \\brief  Dummy definitions of Linux Kernel functions" >> $(2);
+echo " * \\author Automatically generated file - do no edit"   >> $(2);
+echo " * \\date   $(1)"                                        >> $(2);
+echo " */"                                                     >> $(2);
+echo ""                                                        >> $(2);
+echo "#include <lx_emul.h>"                                    >> $(2);
+echo ""                                                        >> $(2);
+endef
+
+define print_var
+echo ""                                    >> $(3);
+echo "#include <$(1)>"                     >> $(3);
+echo ""                                    >> $(3);
+echo "$(2)"                                >> $(3);
+echo ""                                    >> $(3);
+endef
+
+define print_func_only
+echo ""                                    >> $(2);
+echo "extern $(1);"                        >> $(2);
+echo "$(1)"                                >> $(2);
+echo "{"                                   >> $(2);
+echo "	lx_emul_trace_and_stop(__func__);" >> $(2);
+echo "}"                                   >> $(2);
+echo ""                                    >> $(2);
+endef
+
+define print_func
+echo ""                                    >> $(3);
+echo "#include <$(1)>"                     >> $(3);
+echo ""                                    >> $(3);
+echo "$(2)"                                >> $(3);
+echo "{"                                   >> $(3);
+echo "	lx_emul_trace_and_stop(__func__);" >> $(3);
+echo "}"                                   >> $(3);
+echo ""                                    >> $(3);
+endef
+
+define print_error
+echo "Cannot create dummy for symbol $(1), maybe a macro?!" >&2;
+endef
+
+check_vdef = $(if $(3),$(call print_var,$(2),$(3),$(DUMMY_FILE)),$(call print_error,$(1)))
+check_var  = $(if $(2),$(call check_vdef,$(1),$(2),$(call var_to_def,$(1))),$(call print_error,$(1)))
+check_not_func = $(call check_var,$(1),$(call var_to_h_file,$(1)))
+check_fdef_only = $(if $(2),$(call print_func_only,$(2),$(DUMMY_FILE)),$(call check_not_func,$(1)))
+check_fdef = $(if $(3),$(call print_func,$(2),$(3),$(DUMMY_FILE)),$(call check_not_func,$(1)))
+check_func = $(if $(2),$(call check_fdef,$(1),$(2),$(call func_to_def,$(1))),$(call check_fdef_only,$(1),$(call func_to_def,$(1))))
+
+show:
+	$(ECHO) "Missing symbols:"
+	@$(foreach sym,$(UNDEF_REFS),echo "$(sym)";)
+	$(ECHO) "Total sum of missing symbols is $(words $(UNDEF_REFS))"
+
+generate:
+	@$(call print_file_header,$(shell date +"%F"),$(DUMMY_FILE))
+	@$(foreach sym,$(UNDEF_REFS),$(call check_func,$(sym),$(call func_to_h_file,$(sym))))
+
+.PHONY: generate show help
+
+# COMMAND!=help
+endif
