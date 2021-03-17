@@ -1736,7 +1736,7 @@ class Vfs_cbe::Wrapper
 				Genode::log("Req: (req: ", _discard_snapshot_request.cbe_request, ")");
 			}
 
-			_cbe->submit_client_request(_discard_snapshot_request.cbe_request, 0);
+			_cbe->submit_client_request(_discard_snapshot_request.cbe_request, id);
 
 			_discard_snapshot_request.state =
 				Frontend_request::State::IN_PROGRESS;
