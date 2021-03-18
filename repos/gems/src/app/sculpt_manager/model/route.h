@@ -31,6 +31,8 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::AUDIO_IN:    return "audio_in";
 		case Service::Type::AUDIO_OUT:   return "audio_out";
 		case Service::Type::BLOCK:       return "block";
+		case Service::Type::EVENT:       return "event";
+		case Service::Type::CAPTURE:     return "capture";
 		case Service::Type::FILE_SYSTEM: return "file_system";
 		case Service::Type::NIC:         return "nic";
 		case Service::Type::GUI:         return "gui";
@@ -58,6 +60,8 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::AUDIO_IN:    return "Audio input";
 		case Service::Type::AUDIO_OUT:   return "Audio output";
 		case Service::Type::BLOCK:       return "Block device";
+		case Service::Type::EVENT:       return "Event";
+		case Service::Type::CAPTURE:     return "Capture";
 		case Service::Type::FILE_SYSTEM: return "File system";
 		case Service::Type::NIC:         return "Network";
 		case Service::Type::GUI:         return "GUI";

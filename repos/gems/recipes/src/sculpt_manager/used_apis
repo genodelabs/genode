@@ -13,3 +13,5 @@ gui_session
 terminal_session
 rtc_session
 input_session
+event_session
+capture_session

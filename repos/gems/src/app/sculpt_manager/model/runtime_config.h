@@ -74,7 +74,9 @@ class Sculpt::Runtime_config
 				                   || (service == "IO_MEM")
 				                   || (service == "Rtc")
 				                   || (service == "IRQ")
-				                   || (service == "TRACE");
+				                   || (service == "TRACE")
+				                   || (service == "Event")
+				                   || (service == "Capture");
 				if (hardware) {
 					result = "hardware";
 					return;
@@ -327,6 +329,10 @@ class Sculpt::Runtime_config
 				_backdrop  { _r, Type::GUI,         "desktop background",             "backdrop" },
 				_lockscreen{ _r, Type::GUI,         "desktop lock screen",            "lock_screen" },
 				_nitpicker { _r, Type::GUI,         "system GUI server" },
+				_lz_event  { _r, Type::EVENT,       "management GUI events",          "leitzentrale" },
+				_event     { _r, Type::EVENT,       "system input events",            "global" },
+				_lz_capture{ _r, Type::CAPTURE,     "management GUI",                 "leitzentrale" },
+				_capture   { _r, Type::CAPTURE,     "system GUI",                     "global" },
 				_config_fs { _r, Type::FILE_SYSTEM, "writeable system configuration", "config" },
 				_report_fs { _r, Type::FILE_SYSTEM, "read-only system reports",       "report" },
 				_capslock  { _r, Type::ROM,         "global capslock state",          "capslock" },
