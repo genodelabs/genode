@@ -1,0 +1,113 @@
+diff --git a/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.c b/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.c
+index 62fc7fb..0725756 100644
+--- a/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.c
++++ b/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.c
+@@ -1188,6 +1188,9 @@ dri2_initialize(_EGLDisplay *disp)
+    case _EGL_PLATFORM_ANDROID:
+       ret = dri2_initialize_android(disp);
+       break;
++   case _EGL_PLATFORM_GENODE:
++      ret = dri2_initialize_genode(disp);
++      break;
+    default:
+       unreachable("Callers ensure we cannot get here.");
+       return EGL_FALSE;
+diff --git a/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.h b/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.h
+index d7f9696..007c630 100644
+--- a/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.h
++++ b/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.h
+@@ -296,6 +296,12 @@ struct dri2_egl_surface
+    int                    format;
+ #endif
+ 
++#ifdef HAVE_GENODE_PLATFORM
++   struct Genode_egl_window *g_win;
++   __DRIbuffer              *dri_buffers[__DRI_BUFFER_COUNT];
++    __DRIimage              *back_image;
++#endif
++
+ #ifdef HAVE_DRM_PLATFORM
+    struct gbm_dri_surface *gbm_surf;
+ #endif
+@@ -516,6 +522,9 @@ dri2_initialize_android(_EGLDisplay *disp)
+ EGLBoolean
+ dri2_initialize_surfaceless(_EGLDisplay *disp);
+ 
++EGLBoolean
++dri2_initialize_genode(_EGLDisplay *disp);
++
+ EGLBoolean
+ dri2_initialize_device(_EGLDisplay *disp);
+ static inline void
+diff --git a/src/lib/mesa/src/egl/main/egldisplay.c b/src/lib/mesa/src/egl/main/egldisplay.c
+index 765618f..be99e17 100644
+--- a/src/lib/mesa/src/egl/main/egldisplay.c
++++ b/src/lib/mesa/src/egl/main/egldisplay.c
+@@ -77,6 +77,7 @@ static const struct {
+    { _EGL_PLATFORM_HAIKU, "haiku" },
+    { _EGL_PLATFORM_SURFACELESS, "surfaceless" },
+    { _EGL_PLATFORM_DEVICE, "device" },
++   { _EGL_PLATFORM_DEVICE, "genode" },
+ };
+ 
+ 
+diff --git a/src/lib/mesa/src/egl/main/egldisplay.h b/src/lib/mesa/src/egl/main/egldisplay.h
+index 4d2afbc..3dd6b72 100644
+--- a/src/lib/mesa/src/egl/main/egldisplay.h
++++ b/src/lib/mesa/src/egl/main/egldisplay.h
+@@ -52,6 +52,7 @@ enum _egl_platform_type {
+    _EGL_PLATFORM_HAIKU,
+    _EGL_PLATFORM_SURFACELESS,
+    _EGL_PLATFORM_DEVICE,
++   _EGL_PLATFORM_GENODE,
+ 
+    _EGL_NUM_PLATFORMS,
+    _EGL_INVALID_PLATFORM = -1
+diff --git a/src/lib/mesa/src/egl/main/egllog.c b/src/lib/mesa/src/egl/main/egllog.c
+index 6a91952..b41b481 100644
+--- a/src/lib/mesa/src/egl/main/egllog.c
++++ b/src/lib/mesa/src/egl/main/egllog.c
+@@ -57,7 +57,7 @@
+ #endif /* HAVE_ANDROID_PLATFORM */
+ 
+ #define MAXSTRING 1000
+-#define FALLBACK_LOG_LEVEL _EGL_WARNING
++#define FALLBACK_LOG_LEVEL _EGL_DEBUG
+ 
+ 
+ static struct {
+diff --git a/src/lib/mesa/src/loader/loader.c b/src/lib/mesa/src/loader/loader.c
+index d64bc7c..9a25398 100644
+--- a/src/lib/mesa/src/loader/loader.c
++++ b/src/lib/mesa/src/loader/loader.c
+@@ -561,7 +561,7 @@ loader_open_driver(const char *driver_name,
+       driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+ #endif
+       if (driver == NULL) {
+-         snprintf(path, sizeof(path), "%.*s/%s_dri.so", len, p, driver_name);
++         snprintf(path, sizeof(path), "%.*s/egl_drv.lib.so", len, p);
+          driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+          if (driver == NULL) {
+             dl_error = dlerror();
+diff --git a/src/lib/mesa/src/util/u_thread.h b/src/lib/mesa/src/util/u_thread.h
+index c5f7fb6..f3166a4 100644
+--- a/src/lib/mesa/src/util/u_thread.h
++++ b/src/lib/mesa/src/util/u_thread.h
+@@ -209,7 +209,7 @@ util_set_current_thread_affinity(const uint32_t *mask,
+ static inline int64_t
+ util_thread_get_time_nano(thrd_t thread)
+ {
+-#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__)
++#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__) && !defined(__GENODE__)
+    struct timespec ts;
+    clockid_t cid;
+ 
+@@ -249,7 +249,7 @@ static inline bool u_thread_is_self(thrd_t thread)
+  * util_barrier
+  */
+ 
+-#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__)
++#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__) && !defined(__GENODE__)
+ 
+ typedef pthread_barrier_t util_barrier;
+ 

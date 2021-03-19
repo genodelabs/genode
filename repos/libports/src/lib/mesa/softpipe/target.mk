@@ -1,0 +1,1 @@
+LIBS = egl_swrast

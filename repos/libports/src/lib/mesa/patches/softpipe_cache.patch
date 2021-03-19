@@ -1,0 +1,100 @@
+Allocate texture cache lazy instead of relying on OS specific VM address space
+reservation via malloc.
+
+diff --git a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_sample.c b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_sample.c
+index 8725930..d36c833 100644
+--- a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_sample.c
++++ b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_sample.c
+@@ -724,7 +724,7 @@ get_texel_buffer_no_border(const struct sp_sampler_view *sp_sview,
+ 
+    tile = sp_get_cached_tile_tex(sp_sview->cache, addr);
+ 
+-   return &tile->data.color[0][x][0];
++   return &tile->data->color[0][x][0];
+ }
+ 
+ 
+@@ -740,7 +740,7 @@ get_texel_2d_no_border(const struct sp_sampler_view *sp_sview,
+ 
+    tile = sp_get_cached_tile_tex(sp_sview->cache, addr);
+ 
+-   return &tile->data.color[y][x][0];
++   return &tile->data->color[y][x][0];
+ }
+ 
+ 
+@@ -927,10 +927,10 @@ get_texel_quad_2d_no_border_single_tile(const struct sp_sampler_view *sp_sview,
+ 
+    tile = sp_get_cached_tile_tex(sp_sview->cache, addr);
+       
+-   out[0] = &tile->data.color[y  ][x  ][0];
+-   out[1] = &tile->data.color[y  ][x+1][0];
+-   out[2] = &tile->data.color[y+1][x  ][0];
+-   out[3] = &tile->data.color[y+1][x+1][0];
++   out[0] = &tile->data->color[y  ][x  ][0];
++   out[1] = &tile->data->color[y  ][x+1][0];
++   out[2] = &tile->data->color[y+1][x  ][0];
++   out[3] = &tile->data->color[y+1][x+1][0];
+ }
+ 
+ 
+@@ -966,7 +966,7 @@ get_texel_3d_no_border(const struct sp_sampler_view *sp_sview,
+ 
+    tile = sp_get_cached_tile_tex(sp_sview->cache, addr);
+ 
+-   return &tile->data.color[y][x][0];
++   return &tile->data->color[y][x][0];
+ }
+ 
+ 
+diff --git a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.c b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.c
+index 7a1009a..78de40a 100644
+--- a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.c
++++ b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.c
+@@ -221,6 +221,9 @@ sp_find_cached_tile_tex(struct softpipe_tex_tile_cache *tc,
+                     pos, x/TILE_SIZE, y/TILE_SIZE, z, face, level,
+                     pos, tile->addr.bits.x, tile->addr.bits.y, tile->z, tile->face, tile->level);
+ #endif
++
++      if (tile->data == NULL)
++         tile->data = malloc(sizeof(struct softpipe_tex_data));
+ 
+       /* check if we need to get a new transfer */
+       if (!tc->tex_trans ||
+@@ -265,7 +268,7 @@ sp_find_cached_tile_tex(struct softpipe_tex_tile_cache *tc,
+                          TEX_TILE_SIZE,
+                          TEX_TILE_SIZE,
+                          tc->format,
+-                         (float *) tile->data.color);
++                         (float *) tile->data->color);
+       tile->addr = addr;
+    }
+ 
+diff --git a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.h b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.h
+index 2e4635f..fa21e1f 100644
+--- a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.h
++++ b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.h
+@@ -60,15 +60,19 @@ union tex_tile_address {
+    uint64_t value;
+ };
+ 
+-
+-struct softpipe_tex_cached_tile
++struct softpipe_tex_data
+ {
+-   union tex_tile_address addr;
+    union {
+       float color[TEX_TILE_SIZE][TEX_TILE_SIZE][4];
+       unsigned int colorui[TEX_TILE_SIZE][TEX_TILE_SIZE][4];
+       int colori[TEX_TILE_SIZE][TEX_TILE_SIZE][4];
+-   } data;
++   };
++};
++
++struct softpipe_tex_cached_tile
++{
++   union tex_tile_address addr;
++   struct softpipe_tex_data *data;
+ };
+ 
+ /*

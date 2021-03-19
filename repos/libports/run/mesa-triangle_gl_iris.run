@@ -1,0 +1,3 @@
+set use_iris    1
+set use_etnaviv 0
+source ${genode_dir}/repos/libports/run/mesa-triangle_gl.inc

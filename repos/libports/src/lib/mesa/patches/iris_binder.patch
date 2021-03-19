@@ -1,0 +1,26 @@
+The binder re-uses vgpu addresses of buffer objects, which are scheduled
+to be deleted, but not yet destroyed. The drm_ioctl backend still have a 
+vgpu mapping of the not yet destroyed buffer object. When the binder reuses
+the vgpu address for a new/another buffer object, the gpu multiplexer will
+complain about an overmap. To avoid that, as workaround, don't reuse vgpu
+addresses immediately in the binder.
+--- a/src/lib/mesa/src/gallium/drivers/iris/iris_binder.c
++++ a/src/lib/mesa/src/gallium/drivers/iris/iris_binder.c
+@@ -71,7 +71,7 @@
+    struct iris_bufmgr *bufmgr = screen->bufmgr;
+    struct iris_binder *binder = &ice->state.binder;
+ 
+-   uint64_t next_address = IRIS_MEMZONE_BINDER_START;
++   static uint64_t next_address = IRIS_MEMZONE_BINDER_START;
+ 
+    if (binder->bo) {
+       /* Place the new binder just after the old binder, unless we've hit the
+@@ -100,6 +100,8 @@
+     */
+    ice->state.dirty |= IRIS_DIRTY_RENDER_BUFFER;
+    ice->state.stage_dirty |= IRIS_ALL_STAGE_DIRTY_BINDINGS;
++
++   next_address += IRIS_BINDER_SIZE;
+ }
+ 
+ static uint32_t
