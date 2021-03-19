@@ -16,8 +16,12 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
+#include <util/avl_tree.h>
 #include <os/reporter.h>
 #include <os/vfs.h>
+
+/* local includes */
+#include <for_each_subdir_name.h>
 
 namespace Fs_query {
 	using namespace Genode;
@@ -31,6 +35,14 @@ namespace Fs_query {
 struct Fs_query::Watched_file
 {
 	File_content::Path const _name;
+
+	/**
+	 * Support for 'sorted_for_each'
+	 */
+	bool higher(Watched_file const &other) const
+	{
+		return (strcmp(other._name.string(), _name.string()) > 0);
+	}
 
 	Node_rwx const _rwx;
 
@@ -136,12 +148,11 @@ struct Fs_query::Watched_directory
 		xml.node("dir", [&] () {
 			xml.attribute("path", _rel_path);
 
-			_dir.for_each_entry([&] (Directory::Entry const &entry) {
-				if (entry.dir())
-					xml.node("dir", [&] () {
-						xml.attribute("name", entry.name()); }); });
+			for_each_subdir_name(_alloc, _dir, [&] (Directory::Entry::Name const &name) {
+				xml.node("dir", [&] () {
+					xml.attribute("name", name); }); });
 
-			_files.for_each([&] (Watched_file const &file) {
+			sorted_for_each(_alloc, _files, [&] (Watched_file const &file) {
 				file.gen_query_response(xml, query, _alloc, _dir); });
 		});
 	}
@@ -172,9 +183,9 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 
 		Vfs_env(Main &main) : _main(main) { }
 
-		Genode::Env                 &env()           override { return _main._env; }
-		Allocator                   &alloc()         override { return _main._heap; }
-		Vfs::File_system            &root_dir()      override { return _main._root_dir_fs; }
+		Genode::Env      &env()      override { return _main._env; }
+		Allocator        &alloc()    override { return _main._heap; }
+		Vfs::File_system &root_dir() override { return _main._root_dir_fs; }
 
 	} _vfs_env { *this };
 

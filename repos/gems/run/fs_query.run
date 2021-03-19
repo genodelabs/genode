@@ -202,10 +202,10 @@ regsub {.*report 'fs_query -> listing'} $output {} output
 compare_output_to {
 [init -> report_rom]   <listing>
 [init -> report_rom]   	<dir path="/fs/items">
-[init -> report_rom]   		<file name="4" writeable="yes">fourth</file>
 [init -> report_rom]   		<file name="1" writeable="yes">first</file>
 [init -> report_rom]   		<file name="3" writeable="yes">updated
 [init -> report_rom]   </file>
+[init -> report_rom]   		<file name="4" writeable="yes">fourth</file>
 [init -> report_rom]   	</dir>
 [init -> report_rom]   </listing>
 }
