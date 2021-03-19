@@ -105,7 +105,6 @@ install_config {
 						<rom name="event_filter" label="event_filter.config"/>
 						<inline name="depot_query"><query/></inline>
 					</dir>
-					<rom name="event_filter"  label="event_filter.config"/>
 					<rom name="fb_drv"        label="fb_drv.config"/>
 					<rom name="nitpicker"     label="nitpicker.config"/>
 					<rom name="numlock_remap" label="numlock_remap.config"/>

@@ -109,14 +109,42 @@ struct Sculpt::Main : Input_event_handler,
 									_font_size_px = px; }); } }); } }); });
 
 		_handle_gui_mode();
+
+		/* visibility of fonts section of settings dialog may have changed */
+		_settings_menu_view.generate();
+
+		/* visibility of settings button may have changed */
+		_refresh_panel_and_window_layout();
 	}
 
 	Managed_config<Main> _event_filter_config {
 		_env, "config", "event_filter", *this, &Main::_handle_event_filter_config };
 
+	void _generate_event_filter_config(Xml_generator &);
+
 	void _handle_event_filter_config(Xml_node)
 	{
-		_event_filter_config.try_generate_manually_managed();
+		_update_event_filter_config();
+	}
+
+	void _update_event_filter_config()
+	{
+		bool const orig_settings_available = _settings.interactive_settings_available();
+
+		_settings.manual_event_filter_config =
+			_event_filter_config.try_generate_manually_managed();
+
+		if (!_settings.manual_event_filter_config)
+			_event_filter_config.generate([&] (Xml_generator &xml) {
+				_generate_event_filter_config(xml); });
+
+		_settings_menu_view.generate();
+
+		/* visibility of the settings dialog may have changed */
+		if (orig_settings_available != _settings.interactive_settings_available()) {
+			_refresh_panel_and_window_layout();
+			_handle_gui_mode();
+		}
 	}
 
 
@@ -347,7 +375,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Global **
 	 ************/
 
-	Font_size _font_size = Font_size::MEDIUM;
+	Settings _settings { };
 
 	float _font_size_px = 14;
 
@@ -377,6 +405,8 @@ struct Sculpt::Main : Input_event_handler,
 	bool inspect_tab_visible() const override { return _storage.any_file_system_inspected(); }
 
 	Panel_dialog::Tab selected_tab() const override { return _selected_tab; }
+
+	bool settings_available() const override { return _settings.interactive_settings_available(); }
 
 	/**
 	 * Dialog interface
@@ -734,10 +764,26 @@ struct Sculpt::Main : Input_event_handler,
 	/*
 	 * Settings_dialog::Action interface
 	 */
-	void select_font_size(Font_size font_size) override
+	void select_font_size(Settings::Font_size font_size) override
 	{
-		_font_size = font_size;
+		if (_settings.font_size == font_size)
+			return;
+
+		_settings.font_size = font_size;
 		_handle_gui_mode();
+	}
+
+	/*
+	 * Settings_dialog::Action interface
+	 */
+	void select_keyboard_layout(Settings::Keyboard_layout::Name const &keyboard_layout) override
+	{
+		if (_settings.keyboard_layout == keyboard_layout)
+			return;
+
+		_settings.keyboard_layout = keyboard_layout;
+
+		_update_event_filter_config();
 	}
 
 	Signal_handler<Main> _fs_query_result_handler {
@@ -974,7 +1020,7 @@ struct Sculpt::Main : Input_event_handler,
 	                             Ram_quota{4*1024*1024}, Cap_quota{150},
 	                             "panel_dialog", "panel_view_hover" };
 
-	Settings_dialog _settings_dialog { _font_size };
+	Settings_dialog _settings_dialog { _settings };
 
 	Menu_view _settings_menu_view { _env, _child_states, _settings_dialog, "settings_view",
 	                                Ram_quota{4*1024*1024}, Cap_quota{150},
@@ -1073,6 +1119,7 @@ struct Sculpt::Main : Input_event_handler,
 		 * Generate initial configurations
 		 */
 		_network.wifi_disconnect();
+		_update_event_filter_config();
 
 		/*
 		 * Import initial report content
@@ -1219,7 +1266,9 @@ void Sculpt::Main::_handle_window_layout()
 			Point const pos  = _settings_visible
 			                 ? Point(0, avail.y1())
 			                 : Point(-size.w(), avail.y1());
-			gen_window(win, Rect(pos, size));
+
+			if (_settings.interactive_settings_available())
+				gen_window(win, Rect(pos, size));
 		});
 
 		_with_window(window_list, network_view_label, [&] (Xml_node win) {
@@ -1330,7 +1379,9 @@ void Sculpt::Main::_handle_gui_mode()
 
 	_handle_window_layout();
 
-	if (!_fonts_config.try_generate_manually_managed()) {
+	_settings.manual_fonts_config = _fonts_config.try_generate_manually_managed();
+
+	if (!_settings.manual_fonts_config) {
 
 		_font_size_px = (float)mode.area.h() / 60.0;
 
@@ -1340,8 +1391,8 @@ void Sculpt::Main::_handle_gui_mode()
 		 */
 		_font_size_px = max(_font_size_px, 2.0);
 
-		if (_font_size == Font_size::SMALL) _font_size_px *= 0.85;
-		if (_font_size == Font_size::LARGE) _font_size_px *= 1.35;
+		if (_settings.font_size == Settings::Font_size::SMALL) _font_size_px *= 0.85;
+		if (_settings.font_size == Settings::Font_size::LARGE) _font_size_px *= 1.35;
 
 		_fonts_config.generate([&] (Xml_generator &xml) {
 			xml.attribute("copy",  true);
@@ -1740,6 +1791,97 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 
 		_deploy.gen_runtime_start_nodes(xml, _prio_levels);
 	}
+}
+
+
+void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
+{
+	auto gen_include = [&] (auto rom) {
+		xml.node("include", [&] () {
+			xml.attribute("rom", rom); }); };
+
+	xml.node("output", [&] () {
+		xml.node("chargen", [&] () {
+			xml.node("remap", [&] () {
+
+				auto gen_key = [&] (auto from, auto to) {
+					xml.node("key", [&] () {
+						xml.attribute("name", from);
+						xml.attribute("to",   to); }); };
+
+				gen_key("KEY_CAPSLOCK", "KEY_CAPSLOCK");
+				gen_key("KEY_F12",      "KEY_DASHBOARD");
+				gen_key("KEY_LEFTMETA", "KEY_SCREEN");
+				gen_include("numlock.remap");
+
+				xml.node("merge", [&] () {
+
+					auto gen_input = [&] (auto name) {
+						xml.node("input", [&] () {
+							xml.attribute("name", name); }); };
+
+					xml.node("accelerate", [&] () {
+						xml.attribute("max",                   50);
+						xml.attribute("sensitivity_percent", 1000);
+						xml.attribute("curve",                127);
+
+						xml.node("button-scroll", [&] () {
+							gen_input("ps2");
+
+							xml.node("vertical", [&] () {
+								xml.attribute("button", "BTN_MIDDLE");
+								xml.attribute("speed_percent", -10); });
+
+							xml.node("horizontal", [&] () {
+								xml.attribute("button", "BTN_MIDDLE");
+								xml.attribute("speed_percent", -10); });
+						});
+					});
+
+					gen_input("usb");
+					gen_input("touch");
+				});
+			});
+
+			auto gen_key = [&] (auto key) {
+				gen_named_node(xml, "key", key, [&] () {}); };
+
+			xml.node("mod1", [&] () {
+				gen_key("KEY_LEFTSHIFT");
+				gen_key("KEY_RIGHTSHIFT"); });
+
+			xml.node("mod2", [&] () {
+				gen_key("KEY_LEFTCTRL");
+				gen_key("KEY_RIGHTCTRL"); });
+
+			xml.node("mod3", [&] () {
+				gen_key("KEY_RIGHTALT");  /* AltGr */ });
+
+			xml.node("mod4", [&] () {
+				xml.node("rom", [&] () {
+					xml.attribute("name", "capslock"); }); });
+
+			xml.node("repeat", [&] () {
+				xml.attribute("delay_ms", 230);
+				xml.attribute("rate_ms",   40); });
+
+			using Keyboard_layout = Settings::Keyboard_layout;
+			Keyboard_layout::for_each([&] (Keyboard_layout const &layout) {
+				if (layout.name == _settings.keyboard_layout)
+					gen_include(layout.chargen_file); });
+
+			gen_include("special.chargen");
+		});
+	});
+
+	auto gen_policy = [&] (auto label) {
+		xml.node("policy", [&] () {
+			xml.attribute("label", label);
+			xml.attribute("input", label); }); };
+
+	gen_policy("ps2");
+	gen_policy("usb");
+	gen_policy("touch");
 }
 
 

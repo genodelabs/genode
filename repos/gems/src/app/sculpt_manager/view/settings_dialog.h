@@ -15,6 +15,7 @@
 #define _VIEW__SETTINGS_DIALOG_H_
 
 #include <view/dialog.h>
+#include <view/radio_choice_dialog.h>
 #include <model/settings.h>
 
 namespace Sculpt { struct Settings_dialog; }
@@ -22,86 +23,116 @@ namespace Sculpt { struct Settings_dialog; }
 
 struct Sculpt::Settings_dialog : Noncopyable, Dialog
 {
-	Font_size const &_current_font_size;
+	Settings const &_settings;
 
-	Hoverable_item _item   { };
+	Hoverable_item _section { };
 
-	static Hoverable_item::Id _font_size_id(Font_size font_size)
+	Radio_choice_dialog::Min_ex const _ratio { .left = 10, .right = 24 };
+
+	Radio_choice_dialog _font_size_choice       { "Font size", _ratio };
+	Radio_choice_dialog _keyboard_layout_choice { "Keyboard",  _ratio };
+
+	static Radio_choice_dialog::Id _font_size_id(Settings::Font_size font_size)
 	{
 		switch (font_size) {
-		case Font_size::SMALL:  return "small";
-		case Font_size::MEDIUM: return "medium";
-		case Font_size::LARGE:  return "large";
+		case Settings::Font_size::SMALL:  return "Small";
+		case Settings::Font_size::MEDIUM: return "Medium";
+		case Settings::Font_size::LARGE:  return "Large";
 		}
-		return Hoverable_item::Id();
+		return Radio_choice_dialog::Id();
+	}
+
+	static Settings::Font_size _font_size(Radio_choice_dialog::Id id)
+	{
+		if (id == "Small")  return Settings::Font_size::SMALL;
+		if (id == "Medium") return Settings::Font_size::MEDIUM;
+		if (id == "Large")  return Settings::Font_size::LARGE;
+
+		return Settings::Font_size::MEDIUM;
 	}
 
 	Hover_result hover(Xml_node hover) override
 	{
 		return any_hover_changed(
-			_item.match(hover, "frame", "vbox", "hbox", "button", "name"));
+			_section.match(hover, "frame", "vbox", "hbox", "name"),
+			_font_size_choice.match_sub_dialog(hover, "frame", "vbox"),
+			_keyboard_layout_choice.match_sub_dialog(hover, "frame", "vbox"));
 	}
 
 	void reset() override { }
 
 	struct Action : Interface, Noncopyable
 	{
-		virtual void select_font_size(Font_size) = 0;
+		virtual void select_font_size(Settings::Font_size) = 0;
+
+		virtual void select_keyboard_layout(Settings::Keyboard_layout::Name const &) = 0;
 	};
 
 	void generate(Xml_generator &xml) const override
 	{
-		gen_named_node(xml, "frame", "network", [&] () {
+		gen_named_node(xml, "frame", "settings", [&] () {
 			xml.node("vbox", [&] () {
-				gen_named_node(xml, "hbox", "font_size", [&] () {
-					gen_named_node(xml, "label", "label", [&] () {
-						xml.attribute("text", " Font size "); });
 
-					auto gen_font_size_button = [&] (Font_size font_size)
-					{
-						Label const label = _font_size_id(font_size);
-						gen_named_node(xml, "button", label, [&] () {
-							_item.gen_hovered_attr(xml, label);
+				using Choice = Radio_choice_dialog::Choice;
 
-							if (font_size == _current_font_size)
-								xml.attribute("selected", true);
+				if (!_settings.manual_fonts_config) {
+					_font_size_choice.generate(xml, _font_size_id(_settings.font_size),
+					                           [&] (Choice const &choice) {
+						choice.generate("Small");
+						choice.generate("Medium");
+						choice.generate("Large");
+					});
+				}
 
-							xml.node("label", [&] () {
-								xml.attribute("text", label); });
-						});
-					};
-
-					gen_font_size_button(Font_size::SMALL);
-					gen_font_size_button(Font_size::MEDIUM);
-					gen_font_size_button(Font_size::LARGE);
-				});
+				if (!_settings.manual_event_filter_config) {
+					_keyboard_layout_choice.generate(xml, _settings.keyboard_layout,
+					                                 [&] (Choice const &choice) {
+						using Keyboard_layout = Settings::Keyboard_layout;
+						Keyboard_layout::for_each([&] (Keyboard_layout const &layout) {
+							choice.generate(layout.name); });
+					});
+				}
 			});
 		});
 	}
 
 	Click_result click(Action &action)
 	{
+		_font_size_choice.reset();
+		_keyboard_layout_choice.reset();
+
 		Click_result result = Click_result::IGNORED;
 
-		auto apply_font_size = [&] (Font_size font_size)
+		auto handle_section = [&] (Radio_choice_dialog &dialog, auto fn_clicked)
 		{
-			if (_item.hovered(_font_size_id(font_size))) {
-				action.select_font_size(font_size);
-				result = Click_result::CONSUMED;
-			}
+			if (result == Click_result::CONSUMED || !_section.hovered(dialog._id))
+				return;
+
+			/* unfold radio choice */
+			dialog.click();
+
+			auto selection = dialog.hovered_choice();
+			if (selection == "")
+				return;
+
+			fn_clicked(selection);
+
+			result = Click_result::CONSUMED;
 		};
 
-		apply_font_size(Font_size::SMALL);
-		apply_font_size(Font_size::MEDIUM);
-		apply_font_size(Font_size::LARGE);
+		handle_section(_font_size_choice, [&] (auto selection) {
+			action.select_font_size(_font_size(selection)); });
+
+		handle_section(_keyboard_layout_choice, [&] (auto selection) {
+			using Keyboard_layout = Settings::Keyboard_layout;
+			Keyboard_layout::for_each([&] (Keyboard_layout const &layout) {
+				if (selection == layout.name)
+					action.select_keyboard_layout(selection); }); });
 
 		return result;
 	}
 
-	Settings_dialog(Font_size const &current_font_size)
-	:
-		_current_font_size(current_font_size)
-	{ }
+	Settings_dialog(Settings const &settings) : _settings(settings) { }
 };
 
 #endif /* _VIEW__RAM_FS_DIALOG_H_ */
