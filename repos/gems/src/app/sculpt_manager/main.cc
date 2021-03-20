@@ -1870,7 +1870,7 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 				if (layout.name == _settings.keyboard_layout)
 					gen_include(layout.chargen_file); });
 
-			gen_include("special.chargen");
+			gen_include("keyboard/special");
 		});
 	});
 

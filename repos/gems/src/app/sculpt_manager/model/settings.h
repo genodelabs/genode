@@ -40,11 +40,11 @@ struct Sculpt::Settings
 		static void for_each(FN const &fn)
 		{
 			static Keyboard_layout layouts[] = {
-				{ .name = "French",       .chargen_file = "fr_fr.chargen" },
-				{ .name = "German",       .chargen_file = "de_de.chargen" },
-				{ .name = "Swiss French", .chargen_file = "fr_ch.chargen" },
-				{ .name = "Swiss German", .chargen_file = "de_ch.chargen" },
-				{ .name = "US English",   .chargen_file = "en_us.chargen" },
+				{ .name = "French",       .chargen_file = "keyboard/fr_fr" },
+				{ .name = "German",       .chargen_file = "keyboard/de_de" },
+				{ .name = "Swiss French", .chargen_file = "keyboard/fr_ch" },
+				{ .name = "Swiss German", .chargen_file = "keyboard/de_ch" },
+				{ .name = "US English",   .chargen_file = "keyboard/en_us" },
 			};
 
 			for (auto layout : layouts)

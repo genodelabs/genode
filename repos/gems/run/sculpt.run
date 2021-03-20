@@ -105,6 +105,14 @@ install_config {
 						<rom name="event_filter" label="event_filter.config"/>
 						<inline name="depot_query"><query/></inline>
 					</dir>
+					<dir name="keyboard">
+						<rom name="en_us"   label="en_us.chargen"/>
+						<rom name="de_ch"   label="de_ch.chargen"/>
+						<rom name="de_de"   label="de_de.chargen"/>
+						<rom name="fr_ch"   label="fr_ch.chargen"/>
+						<rom name="fr_fr"   label="fr_fr.chargen"/>
+						<rom name="special" label="special.chargen"/>
+					</dir>
 					<rom name="fb_drv"        label="fb_drv.config"/>
 					<rom name="nitpicker"     label="nitpicker.config"/>
 					<rom name="numlock_remap" label="numlock_remap.config"/>
@@ -113,12 +121,6 @@ install_config {
 					<rom name="deploy"        label="manual_deploy.config"/>
 					<rom name="usb"           label="usb.config"/>
 					<rom name="clipboard"     label="clipboard.config"/>
-					<rom name="en_us.chargen"/>
-					<rom name="de_ch.chargen"/>
-					<rom name="de_de.chargen"/>
-					<rom name="fr_ch.chargen"/>
-					<rom name="fr_fr.chargen"/>
-					<rom name="special.chargen"/>
 					<rom name="vimrc"/>
 					<tar name="launcher.tar"/>
 					<inline name="system">} [config_system_content] {
@@ -248,7 +250,7 @@ install_config {
 			<service name="ROM" label_last="capslock"> <child name="report_rom"/> </service>
 			<service name="ROM" label_last="event_filter.config">
 				<child name="config_fs_rom" label="managed/event_filter"/> </service>
-			<service name="ROM" label_prefix="event_filter" label_suffix=".chargen">
+			<service name="ROM" label_prefix="event_filter -> keyboard/">
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label_last="fb_drv.config">
 				<child name="config_fs_rom" label="managed/fb_drv"/> </service>
