@@ -20,6 +20,9 @@
 #include <depot/archive.h>
 #include <gems/lru_cache.h>
 
+/* fs_query includes */
+#include <for_each_subdir_name.h>
+
 namespace Depot_query {
 
 	using namespace Depot;
@@ -472,9 +475,9 @@ struct Depot_query::Main : private Rom_query
 		_gen_versioned_report(_scan_reporter, version, [&] (Xml_generator &xml) {
 			query.for_each_sub_node("scan", [&] (Xml_node node) {
 				if (node.attribute_value("users", false)) {
-					_depot_dir.for_each_entry([&] (Directory::Entry const &entry) {
+					for_each_subdir_name(_heap, _depot_dir, [&] (auto name) {
 						xml.node("user", [&] () {
-							xml.attribute("name", entry.name()); }); }); } }); });
+							xml.attribute("name", name); }); }); } }); });
 
 		_gen_versioned_report(_blueprint_reporter, version, [&] (Xml_generator &xml) {
 			query.for_each_sub_node("blueprint", [&] (Xml_node node) {
