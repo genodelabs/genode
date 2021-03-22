@@ -51,6 +51,7 @@ MIRROR_FROM_REP_DIR := \
 	src/app/cbe_check \
 	src/app/cbe_dump \
 	src/app/cbe_init \
+	src/app/cbe_init_trust_anchor \
 	src/app/cbe_tester \
 	include/cbe
 
