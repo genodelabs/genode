@@ -285,6 +285,7 @@ namespace Util {
 
 		bool completed() const { return _complete; }
 		bool succeeded() const { return _success; }
+		Operation op() const { return _op; }
 
 		void print(Genode::Output &out) const
 		{

@@ -105,7 +105,7 @@ class Trust_anchor
 		};
 		Job _job { Job::NONE };
 
-		enum class Job_state { NONE, PENDING, IN_PROGRESS, COMPLETE };
+		enum class Job_state { NONE, PENDING, IN_PROGRESS, FINAL_SYNC, COMPLETE };
 		Job_state _job_state { Job_state::NONE };
 
 		bool _job_success { false };
@@ -351,7 +351,18 @@ class Trust_anchor
 			}
 			[[fallthrough]];
 			case Job_state::IN_PROGRESS:
-				if (!_write_hash_file_finished()) {
+				if (!_write_op_on_hash_file_is_in_final_sync_step()) {
+					break;
+				}
+
+				_job_state   = Job_state::FINAL_SYNC;
+				_job_success = true;
+
+				progress |= true;
+			[[fallthrough]];
+			case Job_state::FINAL_SYNC:
+
+				if (!_final_sync_of_write_op_on_hash_file_finished()) {
 					break;
 				}
 
@@ -610,9 +621,6 @@ class Trust_anchor
 			if (!_hash_io_job.constructed()) {
 				return true;
 			}
-
-			// XXX trigger sync
-
 			bool const progress  = _hash_io_job->execute();
 			bool const completed = _hash_io_job->completed();
 			if (completed) {
@@ -622,6 +630,12 @@ class Trust_anchor
 			}
 
 			return progress && completed;
+		}
+
+		void _start_sync_at_hash_io_job()
+		{
+			_hash_io_job.construct(*_hash_handle, Util::Io_job::Operation::SYNC,
+			                       _hash_io_job_buffer, 0);
 		}
 
 		void _close_hash_handle()
@@ -665,25 +679,34 @@ class Trust_anchor
 			                      _hash_io_job_buffer, 0);
 
 			if (_hash_io_job->execute() && _hash_io_job->completed()) {
-				_close_hash_handle();
+				_start_sync_at_hash_io_job();
 			}
 			return true;
 		}
 
-		bool _write_hash_file_finished()
+		bool _write_op_on_hash_file_is_in_final_sync_step()
+		{
+			if (_hash_io_job->op() == Util::Io_job::Operation::SYNC) {
+				return true;
+			}
+			bool const progress  = _hash_io_job->execute();
+			bool const completed = _hash_io_job->completed();
+			if (completed) {
+				_start_sync_at_hash_io_job();
+			}
+			return progress && completed;
+		}
+
+		bool _final_sync_of_write_op_on_hash_file_finished()
 		{
 			if (!_hash_io_job.constructed()) {
 				return true;
 			}
-
-			// XXX trigger sync
-
 			bool const progress  = _hash_io_job->execute();
 			bool const completed = _hash_io_job->completed();
 			if (completed) {
 				_close_hash_handle();
 			}
-
 			return progress && completed;
 		}
 
