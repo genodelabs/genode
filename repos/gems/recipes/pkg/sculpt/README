@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 20.08
+                      Sculpt Operating System 21.03
                       =============================
 
 
@@ -58,7 +58,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at
-[https://genode.org/documentation/sculpt-20-08.pdf].
+[https://genode.org/documentation/sculpt-21-03.pdf].
 
 
 Hardware requirements and preparations
@@ -280,12 +280,12 @@ in a window (Figure [sculpt_20_08_system_shell]).
 
 [image sculpt_20_08_system_shell 60%]
 
-When selecting the "system system" component in the graph, the
+When selecting the "system shell" component in the graph, the
 relationship to the other components of the system is presented. This provides
 a convenient way to reveal the _trusted computing base_ of the selected
 component (Figure [sculpt_20_08_system_shell_selected]).
 For example, since there is no connection from _system shell_ to the
-_nic_router_ we know that this component is isolated from the network. The
+_nic_router_, we know that this component is isolated from the network. The
 network-related components are outside the trusted computing base of the
 system shell.
 
@@ -457,7 +457,7 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 20.08 features a command-line
+Alternatively to the "Files" tab, Sculpt 21.03 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
 "Inspect" appears, which hosts the command-line interface
@@ -496,7 +496,7 @@ Interactive file browser
 
 The "Files" tab of the panel switches the main screen area to a simple file
 browser that lists all file systems available, in particular the _config_
-and _report_ file systems (Figure [sculpt_20_08_files_tab]).
+and _report_ file systems (Figure [sculpt_21_03_files_tab]).
 By toggling one of the file-system buttons, the
 respective directory hierarchy can be browsed. When hovering a file, an "Edit"
 or "View" button appears, which can be used to open the file in a text area
@@ -504,7 +504,7 @@ that appears on the right side of the file browser. The editor supports the
 usual notepad-like motions, operations, and shortcuts (control-c for copy,
 control-v for paste, control-s for save).
 
-[image sculpt_20_08_files_tab 80%]
+[image sculpt_21_03_files_tab 80%]
 
 _Note that the file browser as the most recent addition to Sculpt does not_
 _yet support file operations like the copying, renaming, or removal of_
@@ -540,25 +540,33 @@ you should be comfortable with the following operations:
 Adjusting the user-input handling
 ---------------------------------
 
-By default, Sculpt uses the US-English keyboard layout with a functioning
-capslock key. You may possibly want to adjust the former and - as a Vim
-user - most likely discharge the latter. As mentioned in Section
-[System overview], user input is processed by the event-filter component.
-You can edit this component's configuration via
+By default, Sculpt uses the US-English keyboard layout but it offers a few
+alternative keyboard layouts like French and German in the settings menu at
+the upper left corner. A change of this setting is reflected in the
+_config/managed/event_filter_ file, which is the configuration for the
+event-filter component mentioned in Section [System overview]. For tweaking
+the input processing beyond the keyboard-layout setting, copy this file to
+_config/event_filter_.
+
+! inspect:/> cp /config/managed/event_filter /config/event_filter
+
+With the _config/event_filter_ file in place, you may notice that the
+keyboard-layout menu has vanished. This is because now you have taken over
+manual control. (BTW, you can get the menu back at any time by removing the
+file).
+
+As a Vim user, you most likely want to remap the useless capslock key to
+escape, don't you? You can accomplish this by editing your
+_/config/event_filter_ file.
 
 ! inspect:/> vim /config/event_filter
 
-To change the keyboard layout to German, change "en_us.chargen" to
-"de_de.chargen" and save the file. The change becomes effective immediately at
-saving time.
-
-To remap the capslock key to escape - a key often needed while using Vim -
-uncomment the corresponding '<remap>' rule
-
+To remap the capslock key to escape, change the following line
+! <key name="KEY_CAPSLOCK" to="KEY_CAPSLOCK"/>
+to
 ! <key name="KEY_CAPSLOCK" to="KEY_ESC"/>
 
-After saving the file, a Vim user's life suddenly becomes much more
-pleasant.
+After saving the file, a Vim user's life suddenly becomes much more pleasant.
 
 [image event_filter 80%]
   Filter chain for user-input events
@@ -650,13 +658,63 @@ as options.
    Resource type            | Interface      | Built-in options
   ----------------------------------------------------------------------------
   ----------------------------------------------------------------------------
-   GUI                      | 'Nitpicker'    | keyboard focus
+   Audio input              | 'Audio_in'     |
+  ----------------------------------------------------------------------------
+   Audio output             | 'Audio_out'    |
+  ----------------------------------------------------------------------------
+   Block device             | 'Block'        | direct block-device access
+  ----------------------------------------------------------------------------
+   Capture                  | 'Capture'      | system GUI
+  ----------------------------------------------------------------------------
+                            |                | management GUI
+  ----------------------------------------------------------------------------
+   Device access            | 'Platform'     | wifi hardware
+  ----------------------------------------------------------------------------
+                            |                | network hardware
+  ----------------------------------------------------------------------------
+                            |                | audio hardware
+  ----------------------------------------------------------------------------
+                            |                | ACPI
+  ----------------------------------------------------------------------------
+   Direct memory-mapped I/O | 'IO_MEM'       | raw hardware access
+  ----------------------------------------------------------------------------
+   Direct port I/O          | 'IO_PORT'      | raw hardware access
+  ----------------------------------------------------------------------------
+   Direct device interrupts | 'IRQ'          | raw hardware access
+  ----------------------------------------------------------------------------
+   Event                    | 'Event'        | system input events
+  ----------------------------------------------------------------------------
+                            |                | management GUI events
+  ----------------------------------------------------------------------------
+   File system              | 'File_system'  | writeable system configuration
+  ----------------------------------------------------------------------------
+                            |                | read-only system reports
+  ----------------------------------------------------------------------------
+                            |                | used file system
+  ----------------------------------------------------------------------------
+   GUI                      | 'Gui'          | keyboard focus
   ----------------------------------------------------------------------------
                             |                | desktop lock screen
   ----------------------------------------------------------------------------
                             |                | desktop background
   ----------------------------------------------------------------------------
                             |                | system GUI server
+  ----------------------------------------------------------------------------
+   Hardware virtualization  | 'VM'           | virtualization hardware
+  ----------------------------------------------------------------------------
+   Network                  | 'Nic'          |
+  ----------------------------------------------------------------------------
+   Protection domain        | 'PD'           | system PD service
+  ----------------------------------------------------------------------------
+   Real-time clock          | 'Rtc'          | system clock
+  ----------------------------------------------------------------------------
+   Region maps              | 'RM'           | custom virtual memory objects
+  ----------------------------------------------------------------------------
+   Report                   | 'Report'       | system reports
+  ----------------------------------------------------------------------------
+                            |                | pointer shape
+  ----------------------------------------------------------------------------
+                            |                | global clipboard
   ----------------------------------------------------------------------------
    ROM                      | 'ROM'          | global capslock state
   ----------------------------------------------------------------------------
@@ -670,51 +728,13 @@ as options.
   ----------------------------------------------------------------------------
                             |                | global clipboard
   ----------------------------------------------------------------------------
-   Report                   | 'Report'       | system reports
-  ----------------------------------------------------------------------------
-                            |                | pointer shape
-  ----------------------------------------------------------------------------
-                            |                | global clipboard
-  ----------------------------------------------------------------------------
-   File system              | 'File_system'  | writeable system configuration
-  ----------------------------------------------------------------------------
-                            |                | read-only system reports
-  ----------------------------------------------------------------------------
-                            |                | used file system
-  ----------------------------------------------------------------------------
-   Real-time clock          | 'Rtc'          | system clock
-  ----------------------------------------------------------------------------
-   Block device             | 'Block'        | direct block-device access
-  ----------------------------------------------------------------------------
-   USB                      | 'Usb'          | direct USB-device access
-  ----------------------------------------------------------------------------
-   Device access            | 'Platform'     | wifi hardware
-  ----------------------------------------------------------------------------
-                            |                | network hardware
-  ----------------------------------------------------------------------------
-                            |                | audio hardware
-  ----------------------------------------------------------------------------
-                            |                | ACPI
-  ----------------------------------------------------------------------------
-   Region maps              | 'RM'           | custom virtual memory objects
-  ----------------------------------------------------------------------------
-   Direct memory-mapped I/O | 'IO_MEM'       | raw hardware access
-  ----------------------------------------------------------------------------
-   Direct port I/O          | 'IO_PORT'      | raw hardware access
-  ----------------------------------------------------------------------------
-   Direct device interrupts | 'IRQ'          | raw hardware access
+   Terminal                 | 'Terminal'     |
   ----------------------------------------------------------------------------
    Tracing                  | 'TRACE'        | system-global tracing
   ----------------------------------------------------------------------------
-   Hardware virtualization  | 'VM'           | virtualization hardware
-  ----------------------------------------------------------------------------
-   Network                  | 'Nic'          |
-  ----------------------------------------------------------------------------
-   Terminal                 | 'Terminal'     |
-  ----------------------------------------------------------------------------
-   Audio input              | 'Audio_in'     |
-  ----------------------------------------------------------------------------
-   Audio output             | 'Audio_out'    |
+   USB                      | 'Usb'          | direct USB-device access
+
+
 
 [table resources]
   Overview of system resources
@@ -978,18 +998,31 @@ The hardware-virtualization service allows virtual machine monitors to
 leverage virtualization technology (Intel VT).
 
 
+Protection domain
+~~~~~~~~~~~~~~~~~
+
+By default, each component implicitly relies on the protection-domain (PD)
+mechanism provided by the operating-system kernel. However, Sculpt OS allows
+for the optional interception of a component's interplay with this low-level
+mechanism through another component. This is useful for dynamic CPU-load
+balancing, debugging, or statistical profiling.
+
+The option to select a protection-domain service is only displayed in the
+presence of at least one component that provides a PD service. Note that
+a PD service is able to exercise full control over each component that uses
+the service.
+
+
 Network
 ~~~~~~~
 
 Network services provide an interface for sending and receiving network
-packets. Note that the base system does not provide such a service. However,
-Sculpt's Leitzentrale conveniently manages drivers for wireless (wifi drv) and
-wired (nic drv) networking as well as the user-level network routing component
-(nic router). So you usually see those options. The drivers should not be
-used directly while the NIC router is running because they only accept
-one client at a time. However, the NIC router multiplexes the network access
-and multiple network applications can be connected to the NIC router to
-reach the network.
+packets. Sculpt's Leitzentrale conveniently manages drivers for wireless (wifi
+drv) and wired (nic drv) networking as well as the user-level network routing
+component (nic router). So you usually see the NIC router as an option. The
+NIC router multiplexes the network access among multiple network applications.
+By default, it acts as a virtual NAT router, handing out a distinct IP address
+to each client.
 
 
 Terminal, audio input, and audio output
@@ -1005,20 +1038,74 @@ audio infrastructure like drivers and a mixer can be installed as regular
 components.
 
 
+Capture and event
+~~~~~~~~~~~~~~~~~
+
+The capture and event interfaces serve as counter parts of the GUI interface.
+Whereas the GUI interface allows a client to put pixels on screen and receive
+input events, the capture and event interfaces allow a client to capture the
+screen and inject user-input events into the system. Normally, these
+interfaces are used by graphics and input-device drivers. However, they
+are also useful for remote-desktop scenarios, virtual keyboards, or for
+taking screen shots.
+
+Note that those interfaces are _security critical_. When handing out a
+capture interface to a component, the component becomes able to observe the
+screen content of all applications present at the GUI server. Vice versa, by
+handing out an event interface to a component, the component becomes able to
+inject user-input events to the GUI server, acting on behalf of the user. The
+built-in choices allow a component to be connected to either the system-global
+GUI server, or specifically to the management GUI.
+
+
 CPU-resource assignment
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-[image sculpt_20_08_affinity 40%]
+[image sculpt_21_03_affinity 40%]
 
 You may already have noticed the additional item "Resource assignment ..."
-in the component-configuration dialog (Figure [sculpt_20_08_affinity]).
-It leads to a sub menu for restricting
-the CPU usage of the new component. The configuration dialog shows a matrix of
-CPU cores where the x-axis denotes the physical cores and the y-axis the
-hyperthreads. By default, all available CPU cores are selected. You can toggle
-the nodes by clicking on them. The dialog ensures that the selection is always
-a rectangular area. So one click may affect nodes other than only the clicked
-one.
+in the component-configuration dialog (Figure [sculpt_21_03_affinity]).
+It leads to a sub menu for restricting the CPU usage of the new component. The
+configuration dialog shows a matrix of CPU cores where the x-axis denotes the
+physical cores and the y-axis the hyperthreads. By default, all available CPU
+cores are selected. You can toggle the nodes by clicking on them. The dialog
+ensures that the selection is always a rectangular area. So one click may
+affect nodes other than only the clicked one.
+
+Below the CPU-affinity matrix, the dialog allows for the selection of the
+component's scheduling priority. Note that here the notion of priority refers
+to hard static priorities as opposed to nice levels. That is, a high-priority
+activity prevents all lower-level priorities from executing. Consequently, the
+assignment of a high priority comes at the risk of starving lower-priority
+components. The dialog presents four options:
+
+:Driver:
+
+  The highest priority should be preserved to latency-critical device drivers
+  such as audio drivers. This option is also a sensible choice for trusted
+  components that must stay somewhat responsive under any condition. For
+  example, the components of the leitzentrale GUI operate on this priority to
+  preserve the user's control over the system even in the event of a rampaging
+  high-priority device driver.
+
+:Multimedia:
+
+  The second-highest priority is recommended for latency-sensitive
+  applications such as audio and video players as well as their dependencies.
+  For example, it is the appropriate priority for window-management
+  components.
+
+:Default:
+
+  The default priority is suitable for all regular applications as well as
+  storage and networking components.
+
+:Background:
+
+  The lowest priority is designated for non-interactive best-effort workloads
+  such as long-running computations. By assigning the background priority to
+  such components, they won't impede the user's perception of the
+  responsiveness of the system.
 
 
 Runtime management
@@ -1194,6 +1281,7 @@ work flows and configuration tweaks are largely automated. For example,
 * The creation of file-system components for used or inspected file systems,
 * The selection and configuration of network access,
 * Font size selection depending on the screen resolution,
+* Keyboard-layout selection, or
 * Triggering the download of missing depot content on demand.
 
 This convenience comes at the price of built-in policy, which may stand in
@@ -1250,18 +1338,18 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-20.08 sculpt-20.08
+  ! git checkout -b sculpt-21.03 sculpt-21.03
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2020-09-17
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2021-03-11
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
 
 # Download all ingredients for the Sculpt boot image
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2020-09-18
+  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt-pc/2021-03-24
 
 # Create a build directory
 
@@ -1319,13 +1407,13 @@ toolchain. You can build and install it by using the following commands:
 ! <GENODE-DIR>/tool/tool_chain_qt5 build
 ! <GENODE-DIR>/tool/tool_chain_qt5 install
 
-The ingredients of the boot image are subsumed by the 'pkg/sculpt' package.
+The ingredients of the boot image are subsumed by the 'pkg/sculpt-pc' package.
 The default set of software installed by the update runtime is defined by
 the 'pkg/sculpt-installation' package. You can find the depot recipes for
 these packages at _repos/gems/recipes/pkg/_.
 
 The _repos/gems/run/sculpt.run_ script can be executed to build a boot image.
-By default, the boot image refers to 'genodelabs/pkg/sculpt' and to
+By default, the boot image refers to 'genodelabs/pkg/sculpt-pc' and to
 'genodelabs/pkg/sculpt-installation' for the runtime-installed software. You
 may want to install your version of these packages instead by changing the
 package provider from 'genodelabs' to '<YOU>' by adding the line
@@ -1338,7 +1426,7 @@ To build the packages for the boot image:
 
 ! <GENODE-DIR>/tool/depot/create \
 !      UPDATE_VERSIONS=1 FORCE=1 REBUILD= \
-!      <YOU>/pkg/x86_64/sculpt \
+!      <YOU>/pkg/x86_64/sculpt-pc \
 !      <YOU>/bin/x86_64/base-nova
 
 The 'FORCE=1' argument ensures that source archives are re-created and
@@ -1358,7 +1446,7 @@ your source tree at all times.
 
 ! RUN_OPT += --depot-auto-update
 
-Building the 'sculpt-installation' package works analogously to the 'sculpt'
+Building the 'sculpt-installation' package works analogously to the 'sculpt-pc'
 package.
 
 ! <GENODE-DIR>/tool/depot/create \
