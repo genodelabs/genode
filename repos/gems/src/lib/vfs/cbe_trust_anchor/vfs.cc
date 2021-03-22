@@ -428,6 +428,12 @@ class Trust_anchor
 
 		Io_response_handler _io_response_handler { _io_handler };
 
+		void _close_handle(Vfs::Vfs_handle **handle)
+		{
+			(*handle)->close();
+			(*handle) = nullptr;
+		}
+
 		/* key */
 
 		Vfs::Vfs_handle *_key_handle  { nullptr };
@@ -489,8 +495,7 @@ class Trust_anchor
 			                      Util::Io_job::Partial_result::ALLOW);
 			if (_key_io_job->execute() && _key_io_job->completed()) {
 				_state = State::INITIALIZED;
-				_vfs_env.root_dir().close(_key_handle);
-				_key_handle = nullptr;
+				_close_handle(&_key_handle);
 				return true;
 			}
 			return true;
@@ -508,8 +513,7 @@ class Trust_anchor
 			bool const completed = _key_io_job->completed();
 			if (completed) {
 				_state = State::INITIALIZED;
-				_vfs_env.root_dir().close(_key_handle);
-				_key_handle = nullptr;
+				_close_handle(&_key_handle);
 				_key_io_job.destruct();
 			}
 
@@ -539,8 +543,7 @@ class Trust_anchor
 			                      _key_io_job_buffer, 0);
 			if (_key_io_job->execute() && _key_io_job->completed()) {
 				_state = State::INITIALIZED;
-				_vfs_env.root_dir().close(_key_handle);
-				_key_handle = nullptr;
+				_close_handle(&_key_handle);
 				_key_io_job.destruct();
 				return true;
 			}
@@ -559,8 +562,7 @@ class Trust_anchor
 			bool const completed = _key_io_job->completed();
 			if (completed) {
 				_state = State::INITIALIZED;
-				_vfs_env.root_dir().close(_key_handle);
-				_key_handle = nullptr;
+				_close_handle(&_key_handle);
 				_key_io_job.destruct();
 			}
 
@@ -608,8 +610,7 @@ class Trust_anchor
 			                       _hash_io_job_buffer, 0,
 			                       Util::Io_job::Partial_result::ALLOW);
 			if (_hash_io_job->execute() && _hash_io_job->completed()) {
-				_vfs_env.root_dir().close(_hash_handle);
-				_hash_handle = nullptr;
+				_close_handle(&_hash_handle);
 				_hash_io_job.destruct();
 				return true;
 			}
@@ -624,8 +625,7 @@ class Trust_anchor
 			bool const progress  = _hash_io_job->execute();
 			bool const completed = _hash_io_job->completed();
 			if (completed) {
-				_vfs_env.root_dir().close(_hash_handle);
-				_hash_handle = nullptr;
+				_close_handle(&_hash_handle);
 				_hash_io_job.destruct();
 			}
 
@@ -636,14 +636,6 @@ class Trust_anchor
 		{
 			_hash_io_job.construct(*_hash_handle, Util::Io_job::Operation::SYNC,
 			                       _hash_io_job_buffer, 0);
-		}
-
-		void _close_hash_handle()
-		{
-			_vfs_env.root_dir().close(_hash_handle);
-			Genode::destroy(_hash_handle->alloc(), _hash_handle);
-			_hash_handle = nullptr;
-			_hash_io_job.destruct();
 		}
 
 		bool _open_hash_file_and_write(Path const &path)
@@ -705,7 +697,8 @@ class Trust_anchor
 			bool const progress  = _hash_io_job->execute();
 			bool const completed = _hash_io_job->completed();
 			if (completed) {
-				_close_hash_handle();
+				_close_handle(&_hash_handle);
+				_hash_io_job.destruct();
 			}
 			return progress && completed;
 		}
