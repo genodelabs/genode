@@ -12,6 +12,7 @@
 		<rom    label="clipboard"/>
 		<rm/>
 		<rtc/>
+		<timer/>
 		<rom label="usb_devices"/>
 		<usb/>
 	</requires>
@@ -20,7 +21,6 @@
 		<rom label="init.config"/>
 		<rom label="ld.lib.so"/>
 		<rom label="init"/>
-		<rom label="timer"/>
 		<rom label="virtualbox5-nova"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>

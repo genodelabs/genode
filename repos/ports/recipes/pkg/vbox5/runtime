@@ -1,4 +1,4 @@
-<runtime ram="4300M" caps="1500" binary="init">
+<runtime ram="4300M" caps="2500" binary="init">
 
 	<requires>
 		<file_system label="vm"/>
@@ -18,7 +18,7 @@
 		<usb/>
 	</requires>
 
-	<config verbose="yes" prio_levels="2">
+	<config verbose="yes">
 
 		<parent-provides>
 			<service name="ROM"/>
@@ -40,7 +40,7 @@
 
 		<default caps="100"/>
 
-		<start name="vbox" priority="-1" caps="1000">
+		<start name="vbox" caps="2000">
 			<binary name="virtualbox5" />
 			<resource name="RAM" quantum="8G"/>
 			<exit propagate="yes"/>
