@@ -26,6 +26,12 @@ struct Services
 {
 	Genode::Env &env;
 
+	/* Controller types */
+	bool uhci = true; /* 1.0 */
+	bool ohci = true;
+	bool ehci = true; /* 2.0 */
+	bool xhci = true; /* 3.0 */
+
 	/* report generation */
 	bool raw_report_device_list = false;
 
@@ -39,6 +45,11 @@ struct Services
 			Genode::Xml_node node_report = config_node.sub_node("report");
 			raw_report_device_list = node_report.attribute_value("devices", false);
 		} catch (...) { }
+
+		uhci = config_node.attribute_value("uhci", uhci);
+		ohci = config_node.attribute_value("ohci", ohci);
+		ehci = config_node.attribute_value("ehci", ehci);
+		xhci = config_node.attribute_value("xhci", xhci);
 	}
 };
 
