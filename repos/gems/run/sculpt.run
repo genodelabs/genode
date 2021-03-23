@@ -584,9 +584,7 @@ append manual_deploy_config {
 <config arch="} [depot_spec] {">
 
 	<common_routes>
-		<service name="ROM" label_last="ld.lib.so">  <parent/> </service>
-		<service name="ROM" label_last="vfs.lib.so"> <parent/> </service>
-		<service name="ROM" label_last="init">       <parent/> </service>
+		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
 		<service name="CPU">   <parent/> </service>
 		<service name="PD">    <parent/> </service>
 		<service name="LOG">   <parent/> </service>

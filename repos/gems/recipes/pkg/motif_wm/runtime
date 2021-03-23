@@ -12,6 +12,7 @@
 	<provides> <gui/> <report/> <rom/> </provides>
 
 	<content>
+		<rom label="init"/>
 		<rom label="ld.lib.so"/>
 		<rom label="report_rom"/>
 		<rom label="decorator"/>

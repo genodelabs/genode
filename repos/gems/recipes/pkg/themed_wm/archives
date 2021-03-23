@@ -1,5 +1,6 @@
 _/pkg/motif_wm
 _/raw/themed_wm
+_/src/init
 _/src/themed_decorator
 _/src/libc
 _/src/libpng
