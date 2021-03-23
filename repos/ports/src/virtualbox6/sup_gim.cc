@@ -35,13 +35,13 @@
 #include <VBox/vmm/vmcc.h>
 
 /* local includes */
-#include <vcpu.h>
+#include <sup.h>
 
 using namespace Genode;
 
 
 /*
- * This function must be called by the VCPU handler when detecting an MSR-write
+ * This function must be called by the vCPU handler when detecting an MSR-write
  * VM exit for MSR_KVM_SYSTEM_TIME_NEW before entering the VirtualBox code
  * (which calls gimKvmWriteMsr). Since we are never executing any R0 code, the
  * pKvmCpu value would remain undefined when arriving the the following
@@ -52,7 +52,7 @@ using namespace Genode;
  *
  * The implementation roughly corresponds to 'gimR0KvmUpdateSystemTime'
  */
-void Sup::Vcpu_handler::_update_gim_system_time()
+void Sup::update_gim_system_time(VM &vm, VMCPU &vmcpu)
 {
 	using ::uint64_t;
 
@@ -64,9 +64,9 @@ void Sup::Vcpu_handler::_update_gim_system_time()
 	 */
 	for (unsigned round = 1; ; ++round) {
 
-		uTsc                      = TMCpuTickGetNoCheck(_vcpu) | UINT64_C(1);
-		uVirtNanoTS               = TMVirtualGetNoCheck(_vm)   | UINT64_C(1);
-		uint64_t const uTsc_again = TMCpuTickGetNoCheck(_vcpu) | UINT64_C(1);
+		uTsc                      = TMCpuTickGetNoCheck(&vmcpu) | UINT64_C(1);
+		uVirtNanoTS               = TMVirtualGetNoCheck(&vm)    | UINT64_C(1);
+		uint64_t const uTsc_again = TMCpuTickGetNoCheck(&vmcpu) | UINT64_C(1);
 
 		enum { MAX_MEASUREMENT_DURATION = 200U };
 
@@ -78,9 +78,9 @@ void Sup::Vcpu_handler::_update_gim_system_time()
 			        " uTsc_again=", uTsc_again, " uVirtNanoTS=", uVirtNanoTS);
 	}
 
-	for (VMCPUID idCpu = 0; idCpu < _vm->cCpus; idCpu++) {
+	for (VMCPUID idCpu = 0; idCpu < vm.cCpus; idCpu++) {
 
-		PGIMKVMCPU pKvmCpu = &VMCC_GET_CPU(_vm, idCpu)->gim.s.u.KvmCpu;
+		PGIMKVMCPU pKvmCpu = &VMCC_GET_CPU(&vm, idCpu)->gim.s.u.KvmCpu;
 
 		if (!pKvmCpu->uTsc && !pKvmCpu->uVirtNanoTS) {
 			pKvmCpu->uTsc        = uTsc;

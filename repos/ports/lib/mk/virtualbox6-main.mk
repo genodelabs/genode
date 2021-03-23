@@ -77,7 +77,6 @@ VBOX_CC_OPT += -DIN_VBOXSVC
 
 INC_DIR += $(VBOX_DIR)/Main/xml
 INC_DIR += $(VBOX_DIR)/Main/include
-INC_DIR += $(REP_DIR)/src/virtualbox6/frontend
 INC_DIR += $(VIRTUALBOX_DIR)/VBoxAPIWrap
 INC_DIR += $(VIRTUALBOX_DIR)/include/VBox/Graphics
 

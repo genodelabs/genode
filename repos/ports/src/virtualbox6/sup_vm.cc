@@ -21,7 +21,7 @@
 
 /* local includes */
 #include <sup_vm.h>
-#include <vcpu.h>
+#include <sup_vcpu.h>
 
 
 static size_t gvm_size(Sup::Cpu_count cpu_count)
@@ -85,17 +85,17 @@ Sup::Vm & Sup::Vm::create(PSUPDRVSESSION psession, Cpu_count cpu_count)
 }
 
 
-void Sup::Vm::register_vcpu_handler(Cpu_index cpu_index, Vcpu_handler &handler)
+void Sup::Vm::register_vcpu(Cpu_index cpu_index, Vcpu &vcpu)
 {
 	if (cpu_index.value >= VM::cCpus)
 		throw Cpu_index_out_of_range();
 
-	VMCPU &cpu = GVM::aCpus[cpu_index.value];
+	VMCPU &vmcpu = GVM::aCpus[cpu_index.value];
 
 	/*
 	 * We misuse the pVCpuR0ForVtg member for storing the pointer
-	 * to the CPU's corresponding Vcpu_handler.
+	 * to the CPU's corresponding Vcpu.
 	 */
-	cpu.pVCpuR0ForVtg = (RTR0PTR)&handler;
+	vmcpu.pVCpuR0ForVtg = (RTR0PTR)&vcpu;
 }
 

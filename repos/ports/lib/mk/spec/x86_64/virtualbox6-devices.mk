@@ -107,9 +107,6 @@ SRC_CC += GuestHost/DragAndDrop/DnDDroppedFiles.cpp
 SRC_CC += GuestHost/DragAndDrop/DnDMIME.cpp
 SRC_CC += GuestHost/DragAndDrop/DnDPath.cpp
 
-SRC_CC  += devxhci.cc
-INC_DIR += $(call select_from_repositories,src/lib/libc)
-
 INC_DIR += $(VBOX_DIR)/Devices/build
 INC_DIR += $(VBOX_DIR)/Devices/Bus
 INC_DIR += $(VIRTUALBOX_DIR)/include/VBox/Graphics
@@ -158,6 +155,5 @@ vboxssdt_cpuhotplug.hex: vbox-cpuhotplug.dsl
 	)
 
 vpath %.dsl $(VBOX_DIR)/Devices/PC
-vpath devxhci.cc $(REP_DIR)/src/virtualbox6
 
 CC_CXX_WARN_STRICT =

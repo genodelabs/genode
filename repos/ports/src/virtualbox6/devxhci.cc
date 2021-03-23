@@ -414,8 +414,6 @@ PDMBOTHCBDECL(VBOXSTRICTRC) xhciMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGC
  */
 static DECLCALLBACK(void) xhciR3Reset(PPDMDEVINS pDevIns)
 {
-	PXHCI pThis = PDMINS_2_DATA(pDevIns, PXHCI);
-
 	Qemu::usb_reset();
 	Qemu::usb_update_devices();
 }

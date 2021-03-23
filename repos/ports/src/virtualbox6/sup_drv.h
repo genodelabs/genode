@@ -20,7 +20,7 @@
 #include <sup.h>
 #include <sup_gip.h>
 #include <sup_gmm.h>
-#include <vcpu.h>
+#include <sup_vcpu.h>
 
 /* Genode includes */
 #include <base/env.h>
@@ -73,7 +73,7 @@ class Sup::Drv
 		/*
 		 * \throw Virtualization_support_missing
 		 */
-		Vcpu_handler &create_vcpu_handler(Cpu_index, Pthread::Emt &);
+		Vcpu & create_vcpu(VM &, Cpu_index, Pthread::Emt &);
 };
 
 #endif /* _SUP_DRV_H_ */

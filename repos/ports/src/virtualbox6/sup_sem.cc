@@ -81,8 +81,6 @@ int SUPSemEventMultiCreate(PSUPDRVSESSION pSession,
 {
 	AssertPtrReturn(phEventMulti, VERR_INVALID_POINTER);
 
-	RTSEMEVENTMULTI sem;
-
 	return RTSemEventMultiCreate((RTSEMEVENTMULTI*)phEventMulti);
 }
 

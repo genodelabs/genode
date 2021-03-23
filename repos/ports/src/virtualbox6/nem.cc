@@ -31,7 +31,7 @@
 /* local includes */
 #include <stub_macros.h>
 #include <sup.h>
-#include <vcpu.h>
+#include <sup_vcpu.h>
 #include <sup_gmm.h>
 #include <sup_vm.h>
 
@@ -246,9 +246,8 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
 	nem_ptr->commit_range();
 
 	VBOXSTRICTRC result = 0;
-	vm.with_vcpu_handler(Cpu_index { pVCpu->idCpu }, [&] (Sup::Vcpu_handler &handler) {
-		result = handler.run_hw(vm);
-	});
+	vm.with_vcpu(Cpu_index { pVCpu->idCpu }, [&] (Sup::Vcpu &vcpu) {
+		result = vcpu.run(); });
 
 	return result;
 }
@@ -280,8 +279,8 @@ void nemR3NativeNotifyFF(PVM pVM, PVMCPU pVCpu, ::uint32_t fFlags)
 	if (fFlags & VMNOTIFYFF_FLAGS_POKE) {
 		Sup::Vm &vm = *(Sup::Vm *)pVM;
 
-		vm.with_vcpu_handler(Sup::Cpu_index { pVCpu->idCpu }, [&] (Sup::Vcpu_handler &handler) {
-			handler.recall(vm); });
+		vm.with_vcpu(Sup::Cpu_index { pVCpu->idCpu }, [&] (Sup::Vcpu &vcpu) {
+			vcpu.pause(); });
 	}
 }
 
