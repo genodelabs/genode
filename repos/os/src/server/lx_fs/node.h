@@ -2,11 +2,15 @@
  * \brief  File-system node
  * \author Norman Feske
  * \author Christian Helmuth
+ * \author Emery Hemingway
+ * \author Sid Hussmann
+ * \author Pirmin Duss
  * \date   2013-11-11
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2020 Genode Labs GmbH
+ * Copyright (C) 2020 gapfruit AG
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -20,7 +24,13 @@
 
 
 namespace Lx_fs {
+
 	using namespace File_system;
+
+	enum { MAX_ABSOLUTE_PATH_LEN = 2048 };
+
+	using Absolute_path = Genode::Path<MAX_ABSOLUTE_PATH_LEN>;
+
 	class Node;
 	class File;
 }
@@ -29,6 +39,7 @@ class Lx_fs::Node : public File_system::Node_base
 {
 	public:
 
+		using Path = Genode::Path<MAX_PATH_LEN>;
 		typedef char Name[128];
 
 	private:
@@ -38,10 +49,14 @@ class Lx_fs::Node : public File_system::Node_base
 
 	public:
 
-		Node(unsigned long inode) : _inode(inode) { _name[0] = 0; }
+		Node(unsigned long inode)
+		: _inode { inode }
+		{
+			_name[0] = 0;
+		}
 
-		unsigned long inode() const { return _inode; }
-		char   const *name()  const { return _name; }
+		unsigned long  inode()     const { return _inode; }
+		char   const  *name()      const { return _name; }
 
 		/**
 		 * Assign name
@@ -73,6 +88,8 @@ class Lx_fs::Node : public File_system::Node_base
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
 			return nullptr;
 		}
+
+		virtual Path path() const  { return Path { }; }
 };
 
 #endif /* _NODE_H_ */

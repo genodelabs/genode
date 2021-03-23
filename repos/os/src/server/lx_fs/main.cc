@@ -1,28 +1,34 @@
 /*
- * \brief  RAM file system
+ * \brief  Linux host file system
  * \author Norman Feske
+ * \author Emery Hemingway
+ * \author Sid Hussmann
+ * \author Pirmin Duss
  * \date   2012-04-11
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2020 Genode Labs GmbH
+ * Copyright (C) 2020 gapfruit AG
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
-#include <base/attached_rom_dataspace.h>
-#include <root/component.h>
 #include <file_system_session/rpc_object.h>
 #include <os/session_policy.h>
+#include <root/component.h>
 #include <util/xml_node.h>
 
 /* local includes */
-#include <directory.h>
-#include <open_node.h>
+#include "directory.h"
+#include "node.h"
+#include "open_node.h"
+
 
 namespace Lx_fs {
 
@@ -47,6 +53,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 		Directory                   &_root;
 		Id_space<File_system::Node>  _open_node_registry { };
 		bool                         _writable;
+		Absolute_path const          _root_dir;
 
 		Signal_handler<Session_component> _process_packet_dispatcher;
 
@@ -88,8 +95,6 @@ class Lx_fs::Session_component : public Session_rpc_object
 
 					/* File system session can't handle partial writes */
 					if (res_length != length) {
-						Genode::error("partial write detected ",
-						              res_length, " vs ", length);
 						/* don't acknowledge */
 						return;
 					}
@@ -206,6 +211,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 			_md_alloc(md_alloc),
 			_root(*new (&_md_alloc) Directory(_md_alloc, root_dir, false)),
 			_writable(writable),
+			_root_dir(root_dir),
 			_process_packet_dispatcher(env.ep(), *this, &Session_component::_process_packets)
 		{
 			/*
@@ -263,6 +269,9 @@ class Lx_fs::Session_component : public Session_rpc_object
 
 		Symlink_handle symlink(Dir_handle, Name const &, bool /* create */) override
 		{
+			/*
+			 * We do not support symbolic links for security reasons.
+			 */
 			Genode::error(__func__, " not implemented");
 			throw Permission_denied();
 		}
@@ -337,9 +346,59 @@ class Lx_fs::Session_component : public Session_rpc_object
 			Genode::error(__func__, " not implemented");
 		}
 
-		void unlink(Dir_handle, Name const &) override
+		void unlink(Dir_handle dir_handle, Name const &name) override
 		{
-			Genode::error(__func__, " not implemented");
+			if (!valid_name(name.string()))
+				throw Invalid_name();
+
+			if (!_writable)
+				throw Permission_denied();
+
+			auto unlink_fn = [&] (Open_node &open_node) {
+
+				Absolute_path absolute_path("/");
+
+				try {
+					absolute_path.append(open_node.node().path().string());
+					absolute_path.append("/");
+					absolute_path.append(name.string());
+				} catch (Path_base::Path_too_long const &) {
+					Genode::error("Path too long. path=", absolute_path);
+					throw Invalid_name();
+				}
+
+				char const *path_str = absolute_path.string();
+				_assert_valid_path(path_str);
+
+				/* skip leading '/' */
+				path_str++;
+
+				struct stat s;
+				int ret = lstat(path_str, &s);
+				if (ret == -1) {
+					throw Lookup_failed();
+				}
+
+				if (S_ISDIR(s.st_mode)) {
+					ret = rmdir(path_str);
+				} else if (S_ISREG(s.st_mode) || S_ISLNK(s.st_mode)) {
+					ret = ::unlink(path_str);
+				} else {
+					throw Lookup_failed();
+				}
+
+				if (ret == -1) {
+					auto err = errno;
+					if (err == EACCES)
+						throw Permission_denied();
+				}
+			};
+
+			try {
+				_open_node_registry.apply<Open_node>(dir_handle, unlink_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
 		}
 
 		void truncate(File_handle file_handle, file_size_t size) override

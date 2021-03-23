@@ -119,10 +119,10 @@ static void test(Genode::Xml_node node)
 	for (unsigned int i = 0; i < iterations; i++) {
 
 		/* create directory given with a trailing slash */
-		CALL_AND_CHECK(ret, mkdir(trailing_slash_dir_name, 0777), (ret == 0), "dir_name=%s", dir_name);
+		CALL_AND_CHECK(ret, mkdir(trailing_slash_dir_name, 0777), (ret == 0), "dir_name=%s", trailing_slash_dir_name);
 
 		/* remove directory given with a trailing slash */
-		CALL_AND_CHECK(ret, rmdir(trailing_slash_dir_name), (ret == 0), "dir_name=%s", dir_name);
+		CALL_AND_CHECK(ret, rmdir(trailing_slash_dir_name), (ret == 0), "dir_name=%s", trailing_slash_dir_name);
 
 		/* create directory (short name) */
 		CALL_AND_CHECK(ret, mkdir(dir_name, 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", dir_name);

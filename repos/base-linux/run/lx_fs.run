@@ -51,9 +51,10 @@ install_config {
 }
 
 #
-# Create test-directory structure
+# Create test-directory structure and ensure it is empty
 #
 
+exec rm -rf bin/libc_vfs
 exec mkdir -p bin/libc_vfs
 
 #

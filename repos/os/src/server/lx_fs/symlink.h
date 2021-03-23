@@ -2,13 +2,17 @@
  * \brief  Symlink file-system node
  * \author Norman Feske
  * \author Christian Helmuth
+ * \author Emery Hemingway
+ * \author Sid Hussmann
+ * \author Pirmin Duss
  * \date   2013-11-11
  *
  * FIXME unfinished
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2020 Genode Labs GmbH
+ * Copyright (C) 2020 gapfruit AG
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,16 +22,16 @@
 #define _SYMLINK_H_
 
 /* local includes */
-#include <node.h>
-#include <lx_util.h>
+#include "node.h"
+#include "lx_util.h"
 
 
-namespace File_system {
+namespace Lx_fs {
 	class Symlink;
 }
 
 
-class File_system::Symlink : public Node
+class Lx_fs::Symlink : public Node
 {
 	private:
 
@@ -37,11 +41,16 @@ class File_system::Symlink : public Node
 
 	public:
 
-		Symlink(char const *name) { Node::name(name); }
-
-		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
+		Symlink(char const *name)
+		:
+			Node { 0 }
 		{
-			size_t count = min(len, sizeof(_link_to) + 1);
+			Node::name(basename(name));
+		}
+
+		size_t read(char *dst, size_t len, seek_off_t /*seek_offset*/) override
+		{
+			size_t count = min(len, _length());
 			Genode::copy_cstring(dst, _link_to, count);
 			return count;
 		}
@@ -51,7 +60,7 @@ class File_system::Symlink : public Node
 			/* Ideal symlink operations are atomic. */
 			if (seek_offset) return 0;
 
-			size_t count = min(len, sizeof(_link_to) + 1);
+			size_t count = min(len, _length());
 			Genode::copy_cstring(_link_to, src, count);
 			return count;
 		}
