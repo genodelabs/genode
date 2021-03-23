@@ -145,7 +145,7 @@ class Sup::Gip
 			SUPGIPCPU *cpu = _gip.aCPUs;
 
 			/* XXX in SUPGIPMODE_SYNC_TSC only the first CPU's TSC is updated */
-			Entrypoint &ep = *new Entrypoint(env, cpu, cpu_hz);
+			new Entrypoint(env, cpu, cpu_hz);
 
 			for (unsigned i = 0; i < cpu_count.value; ++i) {
 				cpu[i].u32TransactionId        = 0;

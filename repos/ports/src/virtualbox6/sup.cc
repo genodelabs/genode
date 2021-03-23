@@ -176,9 +176,9 @@ static void setup_vcpu_handler(Sup::Vm &vm, Sup::Cpu_index cpu)
 {
 	Pthread::Emt &emt = Pthread::emt_for_cpu(cpu);
 
-	Sup::Vcpu_handler &handler = sup_drv->create_vcpu_handler(cpu, emt);
+	Sup::Vcpu &vcpu = sup_drv->create_vcpu(vm, cpu, emt);
 
-	vm.register_vcpu_handler(cpu, handler);
+	vm.register_vcpu(cpu, vcpu);
 }
 
 
@@ -238,9 +238,8 @@ static int vmmr0_gvmm_sched_halt(PVMR0 pvmr0, ::uint32_t cpu, ::uint64_t expire_
 		ns_diff = RT_NS_1SEC;
 	}
 
-	vm.with_vcpu_handler(Sup::Cpu_index { cpu }, [&] (Sup::Vcpu_handler &handler) {
-		handler.halt(ns_diff);
-	});
+	vm.with_vcpu(Sup::Cpu_index { cpu }, [&] (Sup::Vcpu &vcpu) {
+		vcpu.halt(ns_diff); });
 
 	/*
 	 * returns VINF_SUCCESS      on normal wakeup (timeout or kicked by other thread)
@@ -254,9 +253,8 @@ static int vmmr0_gvmm_wake_up(PVMR0 pvmr0, uint32_t cpu)
 {
 	Sup::Vm &vm = *(Sup::Vm *)pvmr0;
 
-	vm.with_vcpu_handler(Sup::Cpu_index { cpu }, [&] (Sup::Vcpu_handler &handler) {
-		handler.wake_up();
-	});
+	vm.with_vcpu(Sup::Cpu_index { cpu }, [&] (Sup::Vcpu &vcpu) {
+		vcpu.wake_up(); });
 
 	return VINF_SUCCESS;
 }
@@ -543,8 +541,6 @@ static int vmmr0_pgm_allocate_handy_pages(PVMR0 pvmr0)
 
 static int vmmr0_vmmr0_init(PVMR0 pvmr0)
 {
-	Sup::Vm &vm = *(Sup::Vm *)pvmr0;
-
 	/* produces
 	 *
 	 * [init -> vbox1] EMT      VMM: Thread-context hooks unavailable
@@ -558,8 +554,6 @@ static int vmmr0_vmmr0_init(PVMR0 pvmr0)
 
 static int vmmr0_vmmr0_init_emt(PVMR0 pvmr0, uint32_t cpu)
 {
-	Sup::Vm &vm = *(Sup::Vm *)pvmr0;
-
 	return VINF_SUCCESS;
 }
 

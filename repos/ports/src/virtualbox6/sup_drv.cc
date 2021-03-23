@@ -55,26 +55,15 @@ Sup::Drv::Cpu_virt Sup::Drv::_cpu_virt_from_rom()
 }
 
 
-Sup::Vcpu_handler &Sup::Drv::create_vcpu_handler(Cpu_index cpu_index,
-                                                 Pthread::Emt &emt)
+Sup::Vcpu & Sup::Drv::create_vcpu(VM &vm, Cpu_index cpu_index, Pthread::Emt &emt)
 {
-	Libc::Allocator alloc { };
-
 	switch (_cpu_virt) {
 
 	case Cpu_virt::VMX:
-		return *new Vcpu_handler_vmx(_env,
-		                             cpu_index.value,
-		                             emt,
-		                             _vm_connection,
-		                             alloc);
+		return Vcpu::create_vmx(_env, vm, _vm_connection, cpu_index, emt);
 
 	case Cpu_virt::SVM:
-		return *new Vcpu_handler_svm(_env,
-		                             cpu_index.value,
-		                             emt,
-		                             _vm_connection,
-		                             alloc);
+		return Vcpu::create_svm(_env, vm, _vm_connection, cpu_index, emt);
 
 	case Cpu_virt::NONE:
 		break;

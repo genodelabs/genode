@@ -24,7 +24,7 @@
 
 namespace Sup {
 	struct Vm;
-	struct Vcpu_handler;
+	struct Vcpu;
 }
 
 struct Sup::Vm : GVM
@@ -35,21 +35,21 @@ struct Sup::Vm : GVM
 
 	class Cpu_index_out_of_range : Exception { };
 
-	void register_vcpu_handler(Cpu_index cpu_index, Vcpu_handler &handler);
+	void register_vcpu(Cpu_index cpu_index, Vcpu &vcpu);
 
 	template <typename FN>
-	void with_vcpu_handler(Cpu_index cpu_index, FN const &fn)
+	void with_vcpu(Cpu_index cpu_index, FN const &fn)
 	{
 		if (cpu_index.value >= VM::cCpus)
 			throw Cpu_index_out_of_range();
 
-		VMCPU &cpu = GVM::aCpus[cpu_index.value];
+		VMCPU &vmcpu = GVM::aCpus[cpu_index.value];
 
-		Vcpu_handler * const handler_ptr = (Vcpu_handler *)cpu.pVCpuR0ForVtg;
+		Vcpu * const vcpu_ptr = (Vcpu *)vmcpu.pVCpuR0ForVtg;
 
-		Assert(handler_ptr);
+		Assert(vcpu_ptr);
 
-		fn(*handler_ptr);
+		fn(*vcpu_ptr);
 	}
 };
 

@@ -29,6 +29,8 @@ namespace Sup {
 
 	struct Gmm;
 	void nem_init(Gmm &);
+
+	void update_gim_system_time(VM &, VMCPU &);
 }
 
 #endif /* _SUP_H_ */
