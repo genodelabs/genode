@@ -4,6 +4,56 @@
                                ===========
 
 
+Sculpt OS release 21.03 | 2021-03-24
+####################################
+
+| Version 21.03 of the Sculpt operating system makes the system resilient
+| against classes of driver failures, adds configurable real-time priorities,
+| and introduces interfaces for screen capturing and user-event injection.
+
+Sculpt OS 21.03 incorporates the many improvements of the latest two Genode
+releases. Thanks to Genode's concept of
+[https://genode.org/documentation/release-notes/21.02#Pluggable_network_device_drivers - pluggable device drivers],
+the system has reached a new level of robustness against malfunctioning
+drivers. For example, if the Intel graphics driver trips over an unsupported
+external display, the driver gets automatically restarted while all graphical
+applications keep running. Or as another example, should the overly complex
+Wifi driver have a hick-up, it can be restarted with a simple mouse click
+without harming the networking stacks running on top.
+
+Even though Genode supports static-priority scheduling since more than a
+decade, Sculpt did not make this feature available to end users so far. The
+new version changes that. For each component, the user can now take a
+deliberate decision about the hard scheduling priority, e.g., prioritizing
+latency-critical multi-media applications over computational workloads or
+virtual machines.
+
+Speaking of workloads, to push the limits of what is possible with Sculpt OS,
+the new version introduces additional interfaces that can be assigned to
+components. First, it has become possible to redirect the interaction of a
+component with the kernel through another component, thereby enabling features
+like dynamic CPU-load balancing to be implemented as plain user-level
+services. Second, there are new interfaces for capturing the screen and for
+injecting input events. The latter interfaces pave the ground for virtual
+keyboards, screen-sharing application, or remote administration scenarios.
+
+Under the hood, there are plenty of improvements that make the life of
+Sculpt users better. The keyboard layout can now be picked from a menu.
+The Chromium-based Falkon web browser runs circles around the previous
+version. Menu items and file lists appear nicely sorted. Terminal windows
+immediately respond to global font-size changes. On modern Intel machines,
+Sculpt leverages Intel Hardware P-states (HWP) for power and thermal
+management now. You can find an illustrated tour of these and more changes in
+a dedicated
+[https://genodians.org/nfeske/2021-03-24-sculpt-os - article at Genodians.org].
+
+The updated [https://genode.org/documentation/articles/sculpt-21-03 - manual]
+goes into detail about the use of the new system.
+
+The ready-to-use system image for version 21.03 is available at the
+[https://genode.org/download/sculpt - Sculpt download page].
+
+
 Genode OS Framework release 21.02 | 2021-02-25
 ##############################################
 
