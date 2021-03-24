@@ -1,11 +1,11 @@
-  XKB to Genode input_filter configuration
+  XKB to Genode event_filter character-generator configuration
 
   Christian Helmuth
 
 
-This tool generates Genode input_filter XML configuration files from
-X11 XKB configuration. It must be built and run on Linux with
-libxkbcommon development packages installed.
+This tool generates Genode event_filter character-generator XML
+configuration files from X11 XKB configuration. It must be built and
+run on Linux with libxkbcommon development packages installed.
 
 For pragmatic (and realistic reasons) this tool assumes a standard
 105-keys PC keyboard. This assumption automatically includes US
