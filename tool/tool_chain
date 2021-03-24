@@ -182,15 +182,6 @@ export PATH := $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin:$(PATH)
 
 LOCAL_INSTALL_LOCATION = $(BUILD_LOCATION)/install
 
-#
-# Local install location for gmp, mpfr, and mpc libraries. These libraries are
-# requried at build time of gcc. We install them locally before invoking the
-# gcc build. Because the libs do not need to be included in the tool-chain
-# package (they are statically linked against gcc), we install them to a
-# different install location as gcc.
-#
-LOCAL_LIB_INSTALL_LOCATION = $(BUILD_LOCATION)/lib-install
-
 TARGET_NAME_x86        = x86_64-pc-elf
 TARGET_NAME_arm        = arm-none-eabi
 TARGET_NAME_riscv      = riscv64-unknown-elf
@@ -221,7 +212,6 @@ endif
 
 GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
                         --enable-languages=c,c++,ada \
-                        --disable-bootstrap \
                         --disable-libatomic \
                         --disable-libcilkrts \
                         --disable-libgomp \
@@ -230,9 +220,7 @@ GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
                         --disable-libsanitizer \
                         --disable-libquadmath \
                         --disable-libssp \
-                        --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
-                        --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION) \
-                        --with-mpc=$(LOCAL_LIB_INSTALL_LOCATION)
+                        --disable-lto
 
 COMMON_CONFIG = $(CONFIG_QUIET) \
                 --prefix=$(LOCAL_INSTALL_LOCATION) \
@@ -283,9 +271,6 @@ GCC_CONFIG += $(COMMON_CONFIG) \
               --enable-shared \
               --enable-multiarch \
               --disable-sjlj-exceptions \
-              --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
-              --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION) \
-              --with-mpc=$(LOCAL_LIB_INSTALL_LOCATION) \
               CFLAGS_FOR_TARGET="-I$(GENODE_DIR)/tool -DUSE_PT_GNU_EH_FRAME -Dinhibit_libc -fPIC" \
               CXXFLAGS_FOR_TARGET="-fPIC"
 
@@ -339,24 +324,6 @@ ALI2DEP_INSTALLED_BINARY    = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-a
 
 build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES) $(ALI2DEP_INSTALLED_BINARY)
 
-GMP_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gmp)/src/lib/gmp
-
-$(GMP_CONTRIB_DIR)/configure:
-	$(ECHO) "$(BRIGHT_COL)preparing gmp...$(DEFAULT_COL)"
-	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port gmp
-
-MPFR_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current mpfr)/src/lib/mpfr
-
-$(MPFR_CONTRIB_DIR)/configure:
-	$(ECHO) "$(BRIGHT_COL)preparing mpfr...$(DEFAULT_COL)"
-	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port mpfr
-
-MPC_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current mpc)/src/lib/mpc
-
-$(MPC_CONTRIB_DIR)/configure:
-	$(ECHO) "$(BRIGHT_COL)preparing mpc...$(DEFAULT_COL)"
-	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port mpc
-
 GCC_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gcc)/src/noux-pkg/gcc
 
 $(GCC_CONTRIB_DIR)/configure:
@@ -400,55 +367,8 @@ $(BINUTILS_INSTALLED_BINARIES): $(BINUTILS_BINARIES)
 		$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/binutils/$$i install-strip $(MAKE_OPT); done
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/binutils/libiberty install $(MAKE_OPT)
 
-COMMON_LIB_CONFIG = --prefix=$(LOCAL_LIB_INSTALL_LOCATION) \
-                    --disable-shared --enable-static
-
-GMP_CONFIG  = $(COMMON_LIB_CONFIG)
-MPFR_CONFIG = $(COMMON_LIB_CONFIG) --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION)
-MPC_CONFIG  = $(COMMON_LIB_CONFIG) --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
-                                   --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION)
-
-$(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a:  $(BUILD_LOCATION)/gmp/Makefile
-$(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a: $(BUILD_LOCATION)/mpfr/Makefile
-$(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a:  $(BUILD_LOCATION)/mpc/Makefile
-
-# rule to build libgmp, libmpfr, and libmpc
-$(LOCAL_LIB_INSTALL_LOCATION)/lib/lib%.a:
-	$(ECHO) "$(BRIGHT_COL)building lib$*...$(DEFAULT_COL)"
-	$(VERBOSE)make -C $(BUILD_LOCATION)/$* all install
-
-$(BUILD_LOCATION)/gmp/Makefile: $(GMP_CONTRIB_DIR)/configure
-
-$(BUILD_LOCATION)/gmp/Makefile:
-	$(ECHO) "$(BRIGHT_COL)configuring libgmp...$(DEFAULT_COL)"
-	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)cd $(dir $@); \
-		$(GMP_CONTRIB_DIR)/configure $(GMP_CONFIG)
-
-$(BUILD_LOCATION)/mpfr/Makefile: $(MPFR_CONTRIB_DIR)/configure \
-                                 $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a
-
-$(BUILD_LOCATION)/mpfr/Makefile:
-	$(ECHO) "$(BRIGHT_COL)configuring libmpfr...$(DEFAULT_COL)"
-	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)cd $(dir $@); \
-		$(MPFR_CONTRIB_DIR)/configure $(MPFR_CONFIG)
-
-$(BUILD_LOCATION)/mpc/Makefile: $(MPC_CONTRIB_DIR)/configure \
-                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
-                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a
-
-$(BUILD_LOCATION)/mpc/Makefile:
-	$(ECHO) "$(BRIGHT_COL)configuring libmpc...$(DEFAULT_COL)"
-	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)cd $(dir $@); \
-		$(MPC_CONTRIB_DIR)/configure $(MPC_CONFIG)
-
 $(BUILD_LOCATION)/bootstrap/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
-                                          $(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES) \
-                                          $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
-                                          $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a \
-                                          $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a
+                                          $(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES)
 
 $(BUILD_LOCATION)/bootstrap/gcc/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring bootstrap gcc...$(DEFAULT_COL)"
@@ -464,10 +384,7 @@ $(GCC_BOOTSTRAP_INSTALLED_BINARIES): $(GCC_BOOTSTRAP_BINARIES)
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/bootstrap/gcc $(GCC_INSTALL_RULE)
 
 $(BUILD_LOCATION)/$(PLATFORM)/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
-                                            $(BINUTILS_INSTALLED_BINARIES) \
-                                            $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
-                                            $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a \
-                                            $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a
+                                            $(BINUTILS_INSTALLED_BINARIES)
 
 $(BUILD_LOCATION)/$(PLATFORM)/gcc/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring gcc...$(DEFAULT_COL)"

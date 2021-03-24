@@ -21,6 +21,10 @@ $(call check_tool,autogen)
 
 default: _patch
 	@#
+	@# Download prerequisites
+	@#
+	$(VERBOSE)cd ${DIR(gcc)}; contrib/download_prerequisites
+	@#
 	@# Re-generate configure scripts
 	@#
 	$(VERBOSE)cd ${DIR(gcc)}; autogen Makefile.def

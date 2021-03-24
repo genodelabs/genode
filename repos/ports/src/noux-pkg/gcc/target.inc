@@ -45,14 +45,12 @@ CXXFLAGS += -fpermissive
 # To satisfy the linker, we provide dummy archives.
 #
 
-LIBS = gmp mpfr mpc
-
 LDFLAGS += -L$(PWD)
 
 .SECONDARY: dummy_libs
-dummy_libs: libgmp.a libmpfr.a libmpc.a libc.a
+dummy_libs: libc.a
 
-libgmp.a libmpfr.a libmpc.a libc.a:
+libc.a:
 	$(VERBOSE)$(AR) -rc $@
 
 Makefile: dummy_libs
