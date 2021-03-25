@@ -81,7 +81,9 @@ install_config {
 			<resource name="RAM" quantum="2M"/>
 			<config>
 				<vfs> <dir name="fs"> <fs writeable="yes"/> </dir> </vfs>
+				<query path="/fs/items/non_existent_1"/>
 				<query path="/fs/items" content="yes"/>
+				<query path="/fs/non_existent_2" content="yes"/>
 			</config>
 		</start>
 
@@ -138,6 +140,19 @@ install_config {
 						<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
 						<arg value="/bin/sleep"/>
 						<arg value="0.5"/>
+					</config>
+				</start>
+
+				<start name="/bin/bash" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"/>
+						<vfs>
+							<dir name="fs"> <fs writeable="yes"/> </dir>
+							<dir name="dev"> <log/> <null/> </dir>
+						</vfs>
+						<arg value="/bin/bash"/>
+						<arg value="-c"/>
+						<arg value="echo updated > /fs/items/3"/>
 					</config>
 				</start>
 

@@ -234,7 +234,12 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 
 		config.for_each_sub_node("query", [&] (Xml_node query) {
 			Directory::Path const path = query.attribute_value("path", Directory::Path());
-			new (_heap) Registered<Watched_directory>(_dirs, _heap, _root_dir, path, *this);
+			try {
+				new (_heap)
+					Registered<Watched_directory>(
+						_dirs, _heap, _root_dir, path, *this);
+			}
+			catch (Genode::Directory::Nonexistent_directory) { }
 		});
 
 		_reporter.generate([&] (Xml_generator &xml) {
