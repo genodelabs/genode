@@ -116,6 +116,7 @@ des_cipher T
 des_setkey T
 difftime T
 digittoint T
+dirfd T
 dirname T
 div T
 dladdr T
