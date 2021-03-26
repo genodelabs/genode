@@ -328,8 +328,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 	void upgrade(const char *args)
 	{
-		size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-		_gui_session.upgrade_ram(ram_quota);
+		_gui_session.upgrade(Genode::session_resources_from_args(args));
 	}
 
 	Pointer::Position last_observed_pointer_pos() const

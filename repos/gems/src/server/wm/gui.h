@@ -813,8 +813,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		void upgrade(char const *args)
 		{
-			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			_session.upgrade_ram(ram_quota);
+			_session.upgrade(Genode::session_resources_from_args(args));
 		}
 
 		void try_to_init_real_child_views()
