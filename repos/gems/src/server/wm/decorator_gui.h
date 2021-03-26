@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <util/string.h>
 #include <base/attached_dataspace.h>
-#include <os/reporter.h>
 #include <gui_session/connection.h>
 #include <input_session/client.h>
 #include <input/event.h>
@@ -25,7 +24,7 @@
 
 /* local includes */
 #include <window_registry.h>
-#include <last_motion.h>
+#include <pointer.h>
 
 namespace Wm { class Main;
 	using Genode::size_t;
@@ -173,17 +172,11 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 	Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
-	Point _pointer_position { };
-
-	Reporter &_pointer_reporter;
-
-	Last_motion &_last_motion;
+	Pointer::State _pointer_state;
 
 	Input::Session_component &_window_layouter_input;
 
 	Decorator_content_callback &_content_callback;
-
-	unsigned _key_cnt = 0;
 
 	/* XXX don't allocate content-registry entries from heap */
 	Decorator_content_registry _content_registry { _heap };
@@ -206,15 +199,13 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 	Decorator_gui_session(Genode::Env &env,
 	                      Genode::Ram_allocator &ram,
 	                      Allocator &md_alloc,
-	                      Reporter &pointer_reporter,
-	                      Last_motion &last_motion,
+	                      Pointer::Tracker &pointer_tracker,
 	                      Input::Session_component &window_layouter_input,
 	                      Decorator_content_callback &content_callback)
 	:
 		_env(env),
 		_ram(ram),
-		_pointer_reporter(pointer_reporter),
-		_last_motion(last_motion),
+		_pointer_state(pointer_tracker),
 		_window_layouter_input(window_layouter_input),
 		_content_callback(content_callback),
 		_md_alloc(md_alloc)
@@ -229,62 +220,10 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 	void _handle_input()
 	{
-		auto report_pointer_position = [&] () {
-			Reporter::Xml_generator xml(_pointer_reporter, [&] ()
-			{
-				xml.attribute("xpos", _pointer_position.x());
-				xml.attribute("ypos", _pointer_position.y());
-			});
-		};
-
 		while (_gui_session.input()->pending())
 			_gui_session.input()->for_each_event([&] (Input::Event const &ev) {
-
-				if (ev.press()) _key_cnt++;
-
-				if (ev.release()) {
-					_key_cnt--;
-
-					/*
-					 * When returning from a drag operation to idle state, the
-					 * pointer position may have moved to another window
-					 * element. Propagate the least recent pointer position to
-					 * the decorator to update its hover model.
-					 */
-					if (_key_cnt == 0)
-						report_pointer_position();
-				}
-
-				ev.handle_absolute_motion([&] (int x, int y) {
-
-					_last_motion = LAST_MOTION_DECORATOR;
-
-					_pointer_position = Point(x, y);
-
-					/* update pointer model, but only when hovering */
-					if (_key_cnt == 0)
-						report_pointer_position();
-				});
-
-				if (ev.hover_leave()) {
-
-					/*
-					 * Invalidate pointer as reported to the decorator if the
-					 * pointer moved from a window decoration to a position
-					 * with no window known to the window manager. If the last
-					 * motion referred to one of the regular client session,
-					 * this is not needed because the respective session will
-					 * update the pointer model with the entered position
-					 * already.
-					 */
-					if (_last_motion == LAST_MOTION_DECORATOR) {
-						Reporter::Xml_generator xml(_pointer_reporter, [&] ()
-						{ });
-					}
-				}
-
-				_window_layouter_input.submit(ev);
-			});
+				_pointer_state.apply_event(ev);
+				_window_layouter_input.submit(ev); });
 	}
 
 	void _execute_command(Command const &cmd)
@@ -391,6 +330,11 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 	{
 		size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 		_gui_session.upgrade_ram(ram_quota);
+	}
+
+	Pointer::Position last_observed_pointer_pos() const
+	{
+		return _pointer_state.last_observed_pos();
 	}
 
 

@@ -37,7 +37,7 @@ namespace Wm {
 }
 
 
-struct Wm::Main
+struct Wm::Main : Pointer::Tracker
 {
 	Genode::Env &env;
 
@@ -63,7 +63,7 @@ struct Wm::Main
 	Gui::Connection focus_gui_session { env };
 
 	Gui::Root gui_root { env, window_registry, heap, env.ram(),
-	                     pointer_reporter, focus_request_reporter,
+	                     *this, focus_request_reporter,
 	                     focus_gui_session };
 
 	void handle_focus_update()
@@ -111,6 +111,22 @@ struct Wm::Main
 
 	Report_forwarder _report_forwarder { env, heap };
 	Rom_forwarder    _rom_forwarder    { env, heap };
+
+	/**
+	 * Pointer::Tracker interface
+	 */
+	void update_pointer_report() override
+	{
+		Pointer::Position pos = gui_root.last_observed_pointer_pos();
+
+		Reporter::Xml_generator xml(pointer_reporter, [&] ()
+		{
+			if (pos.valid) {
+				xml.attribute("xpos", pos.value.x());
+				xml.attribute("ypos", pos.value.y());
+			}
+		});
+	}
 
 	Main(Genode::Env &env) : env(env)
 	{

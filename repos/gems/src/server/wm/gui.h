@@ -85,7 +85,6 @@ namespace Wm { namespace Gui {
 struct Wm::Gui::Click_handler : Interface
 {
 	virtual void handle_click(Point pos) = 0;
-	virtual void handle_enter(Point pos) = 0;
 };
 
 
@@ -491,6 +490,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		Area                         _requested_size { };
 		bool                         _resize_requested = false;
 		bool                         _has_alpha = false;
+		Pointer::State               _pointer_state;
 		Point                  const _initial_pointer_pos { -1, -1 };
 		Point                        _pointer_pos = _initial_pointer_pos;
 		Point                        _virtual_pointer_pos { };
@@ -594,29 +594,32 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 						_click_handler.handle_click(_pointer_pos);
 
 					/*
-					 * Reset pointer model for the decorator once the pointer
-					 * enters the application area of a window.
+					 * Hide application-local motion events from the pointer
+					 * position shared with the decorator. The position is
+					 * propagated only when entering/leaving an application's
+					 * screen area or when finishing a drag operation.
 					 */
+					bool propagate_to_pointer_state = false;
+
+					/* pointer enters application area */
 					if (ev.absolute_motion() && _first_motion && _key_cnt == 0) {
-						_click_handler.handle_enter(_pointer_pos);
+						propagate_to_pointer_state = true;
 						_first_motion = false;
 					}
 
-					/*
-					 * We may leave the dragged state on another window than
-					 * the clicked one. During the dragging, the decorator
-					 * remained unaware of pointer movements. Now, when leaving
-					 * the drag stage, we need to make the decorator aware of
-					 * the most recent pointer position to update the hover
-					 * model.
-					 */
+					/* may be end of drag operation */
 					if (ev.release() && _key_cnt == 0)
-						_click_handler.handle_enter(_pointer_pos);
+						propagate_to_pointer_state = true;
 
+					/* pointer has left the application area */
 					if (ev.hover_leave()) {
 						_pointer_pos  = _initial_pointer_pos;
 						_first_motion = true;
+						propagate_to_pointer_state = true;
 					}
+
+					if (propagate_to_pointer_state)
+						_pointer_state.apply_event(ev);
 
 					/* submit event to the client */
 					_input_session.submit(_translate_event(ev, input_origin));
@@ -775,6 +778,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		                  Window_registry       &window_registry,
 		                  Allocator             &session_alloc,
 		                  Session_label   const &session_label,
+		                  Pointer::Tracker      &pointer_tracker,
 		                  Click_handler         &click_handler,
 		                  Session_control_fn    &session_control_fn)
 		:
@@ -787,6 +791,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			_child_view_alloc(&session_alloc),
 			_input_session_cap(env.ep().manage(_input_session)),
 			_click_handler(click_handler),
+			_pointer_state(pointer_tracker),
 			_view_handle_registry(session_alloc)
 		{
 			_gui_input.sigh(_input_handler);
@@ -884,6 +889,11 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		{
 			for (Top_level_view *v = _top_level_views.first(); v; v = v->next())
 				v->hidden(hidden);
+		}
+
+		Pointer::Position last_observed_pointer_pos() const
+		{
+			return _pointer_state.last_observed_pos();
 		}
 
 		/**
@@ -1070,13 +1080,11 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 
 		enum { STACK_SIZE = 1024*sizeof(long) };
 
-		Reporter &_pointer_reporter;
+		Pointer::Tracker &_pointer_tracker;
 
 		Reporter &_focus_request_reporter;
 
 		unsigned _focus_request_cnt = 0;
-
-		Last_motion _last_motion = LAST_MOTION_DECORATOR;
 
 		Window_registry &_window_registry;
 
@@ -1088,32 +1096,9 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 		struct Click_handler : Gui::Click_handler
 		{
 			Input::Session_component &window_layouter_input;
-			Reporter                 &pointer_reporter;
-			Last_motion              &last_motion;
-
-			void handle_enter(Gui::Point pos) override
-			{
-				last_motion = LAST_MOTION_NITPICKER;
-
-				Reporter::Xml_generator xml(pointer_reporter, [&] ()
-				{
-					xml.attribute("xpos", pos.x());
-					xml.attribute("ypos", pos.y());
-				});
-			}
 
 			void handle_click(Gui::Point pos) override
 			{
-				/*
-				 * Propagate clicked-at position to decorator such that it can
-				 * update its hover model.
-				 */
-				Reporter::Xml_generator xml(pointer_reporter, [&] ()
-				{
-					xml.attribute("xpos", pos.x());
-					xml.attribute("ypos", pos.y());
-				});
-
 				/*
 				 * Supply artificial mouse click to the decorator's input session
 				 * (which is routed to the layouter).
@@ -1123,17 +1108,10 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 				window_layouter_input.submit(Input::Release{Input::BTN_LEFT});
 			}
 
-			Click_handler(Input::Session_component &window_layouter_input,
-			              Reporter                 &pointer_reporter,
-			              Last_motion              &last_motion)
-			:
-				window_layouter_input(window_layouter_input),
-				pointer_reporter(pointer_reporter),
-				last_motion(last_motion)
-			{ }
+			Click_handler(Input::Session_component &window_layouter_input)
+			: window_layouter_input(window_layouter_input) { }
 
-		} _click_handler { _window_layouter_input, _pointer_reporter,
-		                   _last_motion };
+		} _click_handler { _window_layouter_input };
 
 		/**
 		 * List of regular sessions
@@ -1157,12 +1135,12 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 		Root(Genode::Env &env,
 		     Window_registry &window_registry, Allocator &md_alloc,
 		     Genode::Ram_allocator &ram,
-		     Reporter &pointer_reporter, Reporter &focus_request_reporter,
+		     Pointer::Tracker &pointer_tracker, Reporter &focus_request_reporter,
 		     Gui::Session &focus_gui_session)
 		:
 			_env(env),
 			_md_alloc(md_alloc), _ram(ram),
-			_pointer_reporter(pointer_reporter),
+			_pointer_tracker(pointer_tracker),
 			_focus_request_reporter(focus_request_reporter),
 			_window_registry(window_registry),
 			_focus_gui_session(focus_gui_session)
@@ -1170,6 +1148,24 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 			_window_layouter_input.event_queue().enabled(true);
 
 			env.parent().announce(env.ep().manage(*this));
+		}
+
+		Pointer::Position last_observed_pointer_pos() const
+		{
+			Pointer::Position pos { };
+
+			for (Decorator_gui_session const *s = _decorator_sessions.first(); s; s = s->next()) {
+				if (!pos.valid)
+					pos = s->last_observed_pointer_pos(); };
+
+			if (pos.valid)
+				return pos;
+
+			for (Session_component const *s = _sessions.first(); s; s = s->next()) {
+				if (!pos.valid)
+					pos = s->last_observed_pointer_pos(); };
+
+			return pos;
 		}
 
 
@@ -1215,6 +1211,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 					auto session = new (_md_alloc)
 						Session_component(_env, _ram, _window_registry,
 						                  _md_alloc, session_label,
+						                  _pointer_tracker,
 						                  _click_handler, *this);
 					_sessions.insert(session);
 					return _env.ep().manage(*session);
@@ -1224,8 +1221,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 				{
 					auto session = new (_md_alloc)
 						Decorator_gui_session(_env, _ram, _md_alloc,
-						                      _pointer_reporter,
-						                      _last_motion,
+						                      _pointer_tracker,
 						                      _window_layouter_input,
 						                      *this);
 					_decorator_sessions.insert(session);
