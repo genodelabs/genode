@@ -39,7 +39,7 @@ Kernel::Vm::Vm(unsigned,
 void Vm::exception(Cpu & cpu)
 {
 	switch(_state.cpu_exception) {
-	case Genode::Cpu_state::INTERRUPT_REQUEST: [[fallthrough]]
+	case Genode::Cpu_state::INTERRUPT_REQUEST: [[fallthrough]];
 	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
 		_interrupt(cpu.id());
 		return;
