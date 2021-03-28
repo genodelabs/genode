@@ -208,21 +208,28 @@ class Trust_anchor
 					break;
 				}
 
-				Private_key key { };
+				if (_key_io_job_buffer.size == _passphrase_buffer.size &&
+					Genode::memcmp(_key_io_job_buffer.base,
+					               _passphrase_buffer.base,
+					               _passphrase_buffer.size) == 0) {
 
-				/* copy passphrase to key object */
-				size_t const key_len =
-					Genode::min(_key_io_job_buffer.size,
-					            sizeof (key.value));
+					Genode::memset(_private_key.value, 0xa5,
+					               sizeof (_private_key.value));
 
-				Genode::memset(key.value, 0xa5, sizeof (key.value));
-				Genode::memcpy(key.value, _key_io_job_buffer.buffer, key_len);
+					Genode::memcpy(_private_key.value,
+					               _key_io_job_buffer.buffer,
+					               _key_io_job_buffer.size);
 
-				_job_state   = Job_state::COMPLETE;
-				_job_success = Genode::memcmp(_private_key.value, key.value,
-				                              sizeof (key.value));
+					_job_state   = Job_state::COMPLETE;
+					_job_success = true;
+					progress = true;
 
-				progress |= true;
+				} else {
+
+					_job_state   = Job_state::COMPLETE;
+					_job_success = false;
+					progress = true;
+				}
 			}
 
 			[[fallthrough]];
@@ -451,6 +458,7 @@ class Trust_anchor
 		};
 
 		Key_io_job_buffer _key_io_job_buffer { };
+		Key_io_job_buffer _passphrase_buffer { };
 
 		bool _check_key_file(Path const &path)
 		{
@@ -514,6 +522,7 @@ class Trust_anchor
 			if (completed) {
 				_state = State::INITIALIZED;
 				_close_handle(&_key_handle);
+				_key_io_job_buffer.size = _key_io_job->current_offset();
 				_key_io_job.destruct();
 			}
 
@@ -790,14 +799,14 @@ class Trust_anchor
 				return true;
 			}
 
-			if (len > _key_io_job_buffer.size) {
-				len = _key_io_job_buffer.size;
+			if (len > sizeof(_passphrase_buffer.buffer)) {
+				len = sizeof(_passphrase_buffer.buffer);
 			}
 
-			_key_io_job_buffer.size = len;
+			_passphrase_buffer.size = len;
 
-			Genode::memcpy(_key_io_job_buffer.buffer, src,
-			               _key_io_job_buffer.size);
+			Genode::memcpy(_passphrase_buffer.buffer, src,
+			               _passphrase_buffer.size);
 
 			_job       = Job::UNLOCK;
 			_job_state = Job_state::PENDING;

@@ -308,6 +308,8 @@ namespace Util {
 			default:        return false;
 			}
 		}
+
+		Genode::size_t current_offset() const { return _current_offset; }
 	};
 
 } /* namespace Util */
