@@ -29,12 +29,17 @@
 #include "verbose.h"
 #include "led_state.h"
 
-namespace Ps2 { struct Main; }
+namespace Ps2 {
+
+	using namespace Genode;
+
+	struct Main;
+}
 
 
 struct Ps2::Main
 {
-	Genode::Env &_env;
+	Env &_env;
 
 	Event::Connection _event { _env };
 
@@ -55,9 +60,11 @@ struct Ps2::Main
 	I8042 _i8042 { _device_ps2.io_port(REG_IOPORT_DATA),
 	               _device_ps2.io_port(REG_IOPORT_STATUS) };
 
-	Genode::Attached_rom_dataspace _config { _env, "config" };
+	Attached_rom_dataspace _config { _env, "config" };
 
-	Genode::Reconstructible<Verbose> _verbose { _config.xml() };
+	Constructible<Attached_rom_dataspace> _system { };
+
+	Reconstructible<Verbose> _verbose { _config.xml() };
 
 	Keyboard _keyboard { _i8042.kbd_interface(), _i8042.kbd_xlate(), *_verbose };
 
@@ -74,7 +81,23 @@ struct Ps2::Main
 	{
 		_config.update();
 
-		Genode::Xml_node config = _config.xml();
+		Xml_node config = _config.xml();
+
+		bool const system_was_constructed = _system.constructed();
+
+		_system.conditional(config.attribute_value("system", false), _env, "system");
+
+		if (_system.constructed() && !system_was_constructed)
+			_system->sigh(_config_handler);
+
+		if (_system.constructed()) {
+			_system->update();
+
+			if (_system->xml().attribute_value("state", String<16>()) == "reset") {
+				log("trying to perform system reset via PS/2 port 0x64");
+				_i8042.cpu_reset();
+			}
+		}
 
 		_verbose.construct(config);
 
@@ -87,10 +110,10 @@ struct Ps2::Main
 		_keyboard.led_enabled(Keyboard::SCRLOCK_LED,  _scrlock .enabled());
 	}
 
-	Genode::Signal_handler<Main> _config_handler {
+	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
-	Main(Genode::Env &env) : _env(env)
+	Main(Env &env) : _env(env)
 	{
 		_config.sigh(_config_handler);
 		_handle_config();

@@ -70,6 +70,8 @@ class I8042
 		CMD_KBD_TEST     = 0xab,
 
 		CMD_AUX_WRITE    = 0xd4,
+
+		CMD_CPU_RESET    = 0xfe,
 	};
 
 	enum Return
@@ -334,6 +336,11 @@ class I8042
 		 * Request serial mouse interface
 		 */
 		Serial_interface &aux_interface() { return _aux_interface; }
+
+		/**
+		 * Issue CPU reset
+		 */
+		void cpu_reset() { _command(CMD_CPU_RESET); }
 };
 
 #endif /* _DRIVERS__INPUT__SPEC__PS2__X86__I8042_H_ */
