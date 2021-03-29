@@ -61,27 +61,6 @@ extern "C" int pthread_getschedparam(pthread_t thread, int *policy,
                           struct sched_param *param) TRACE(0)
 
 
-static void print(Output &o, RTTHREADTYPE type)
-{
-	switch (type) {
-	case RTTHREADTYPE_INFREQUENT_POLLER: print(o, "POLLER");            return;
-	case RTTHREADTYPE_MAIN_HEAVY_WORKER: print(o, "MAIN_HEAVY_WORKER"); return;
-	case RTTHREADTYPE_EMULATION:         print(o, "EMULATION");         return;
-	case RTTHREADTYPE_DEFAULT:           print(o, "DEFAULT");           return;
-	case RTTHREADTYPE_GUI:               print(o, "GUI");               return;
-	case RTTHREADTYPE_MAIN_WORKER:       print(o, "MAIN_WORKER");       return;
-	case RTTHREADTYPE_VRDP_IO:           print(o, "VRDP_IO");           return;
-	case RTTHREADTYPE_DEBUGGER:          print(o, "DEBUGGER");          return;
-	case RTTHREADTYPE_MSG_PUMP:          print(o, "MSG_PUMP");          return;
-	case RTTHREADTYPE_IO:                print(o, "IO");                return;
-	case RTTHREADTYPE_TIMER:             print(o, "TIMER");             return;
-
-	case RTTHREADTYPE_INVALID: print(o, "invalid?"); return;
-	case RTTHREADTYPE_END:     print(o, "end?");     return;
-	}
-}
-
-
 namespace Pthread {
 
 	struct Entrypoint;
@@ -251,10 +230,6 @@ static int create_emt_thread(pthread_t *thread, const pthread_attr_t *attr,
 {
 	PUVMCPU pUVCpu = (PUVMCPU)rtthread->pvUser;
 
-	log("************ ", __func__, ":"
-	   , " idCpu=", pUVCpu->idCpu
-	   );
-
 	Sup::Cpu_index const cpu { pUVCpu->idCpu };
 
 	size_t stack_size = 0;
@@ -279,12 +254,6 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                               void *(*start_routine) (void *), void *arg)
 {
 	PRTTHREADINT rtthread = reinterpret_cast<PRTTHREADINT>(arg);
-
-error("************ ", __func__, ":"
-     , " szName='", Cstring(rtthread->szName), "'"
-     , " enmType=", rtthread->enmType
-     , " cbStack=", rtthread->cbStack
-     );
 
 	/*
 	 * Emulation threads (EMT) represent the guest CPU, so we implement them in
