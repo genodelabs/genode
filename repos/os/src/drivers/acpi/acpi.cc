@@ -307,7 +307,9 @@ struct Fadt : Genode::Mmio
 {
 	Fadt(addr_t a) : Genode::Mmio(a) { }
 
-	struct Dsdt : Register<0x28, 32> { };
+	struct Dsdt        : Register<0x28, 32> { };
+	struct Reset_reg   : Register<0x78, 64> { };
+	struct Reset_value : Register<0x80,  8> { };
 
 	static uint32_t size() { return Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
 };
@@ -1201,6 +1203,14 @@ class Acpi_table
 		Genode::Allocator &_alloc;
 		Acpi::Memory       _memory;
 
+		struct Reset_info
+		{
+			Genode::uint16_t io_port;
+			Genode::uint8_t  value;
+		};
+
+		Genode::Constructible<Reset_info> _reset_info { };
+
 		/* BIOS range to scan for RSDP */
 		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
 
@@ -1276,6 +1286,12 @@ class Acpi_table
 					if (table.is_facp() && Fadt::size() <= table->size) {
 						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature));
 						dsdt = fadt.read<Fadt::Dsdt>();
+
+						uint16_t const reset_io_port = fadt.read<Fadt::Reset_reg>() & 0xffffu;
+						uint8_t  const reset_value   = fadt.read<Fadt::Reset_value>();
+
+						_reset_info.construct(Reset_info { .io_port = reset_io_port,
+						                                   .value   = reset_value });
 					}
 
 					if (table.is_searched()) {
@@ -1398,6 +1414,17 @@ class Acpi_table
 			/* free up io memory */
 			_memory.free_io_memory();
 		}
+
+		void generate_reset_info(Xml_generator &xml) const
+		{
+			if (!_reset_info.constructed())
+				return;
+
+			xml.node("reset", [&] () {
+				xml.attribute("io_port", String<32>(Hex(_reset_info->io_port)));
+				xml.attribute("value",   _reset_info->value);
+			});
+		}
 };
 
 
@@ -1420,6 +1447,9 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 	acpi.enabled(true);
 
 	Genode::Reporter::Xml_generator xml(acpi, [&] () {
+
+		acpi_table.generate_reset_info(xml);
+
 		if (root_bridge_bdf != INVALID_ROOT_BRIDGE) {
 			xml.node("root_bridge", [&] () {
 				attribute_hex(xml, "bdf", root_bridge_bdf);
