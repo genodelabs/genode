@@ -501,7 +501,8 @@ static int vmmr0_pdm_device_create(PDMDEVICECREATEREQ &request)
 
 static int vmmr0_pdm_device_gen_call(PDMDEVICEGENCALLREQ &request)
 {
-	warning("PDMDEVICEGENCALLREQ PDMDEVICEGENCALL=", (int)request.enmCall, " not implemented");
+	if (false)
+		warning("PDMDEVICEGENCALLREQ PDMDEVICEGENCALL=", (int)request.enmCall, " not implemented");
 
 	return VINF_SUCCESS;
 }
@@ -713,7 +714,7 @@ int suplibOsInit(PSUPLIBDATA pThis, bool fPreInited, bool fUnrestricted,
 }
 
 
-int suplibOsTerm(PSUPLIBDATA pThis) TRACE(VINF_SUCCESS)
+int suplibOsTerm(PSUPLIBDATA) { return VINF_SUCCESS; }
 
 
 int suplibOsInstall(void) TRACE(VERR_NOT_IMPLEMENTED)

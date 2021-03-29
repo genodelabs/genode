@@ -35,7 +35,7 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance,
 
 int com::VBoxLogRelCreate(char const*, char const*, unsigned int, char const*,
                           char const*, unsigned int, unsigned int, unsigned int,
-                          unsigned int, unsigned long, RTERRINFO*) TRACE(NS_OK)
+                          unsigned int, unsigned long, RTERRINFO*) { return NS_OK; }
 
 
 /* DisplayPNGUtil.cpp */
@@ -50,7 +50,7 @@ int DisplayMakePNG(uint8_t *, uint32_t, uint32_t, uint8_t **, uint32_t *,
 
 #include "VBox/com/com.h"
 
-HRESULT com::Initialize(uint32_t) TRACE(S_OK)
+HRESULT com::Initialize(uint32_t) { return S_OK; }
 HRESULT com::Shutdown()           STOP
 
 
@@ -102,15 +102,15 @@ USBProxyService::~USBProxyService() { }
 
 HRESULT       USBProxyService::init() { return VINF_SUCCESS; }
 RWLockHandle *USBProxyService::lockHandle() const                                  STOP
-HRESULT       USBProxyService::autoCaptureDevicesForVM(SessionMachine *)           TRACE(S_OK)
+HRESULT       USBProxyService::autoCaptureDevicesForVM(SessionMachine *)           { return S_OK; }
 HRESULT       USBProxyService::captureDeviceForVM(SessionMachine *, IN_GUID,
                                                   com::Utf8Str const&)             STOP
 HRESULT       USBProxyService::detachAllDevicesFromVM(SessionMachine*, bool, bool) STOP
 HRESULT       USBProxyService::detachDeviceFromVM(SessionMachine*, IN_GUID, bool)  STOP
 void         *USBProxyService::insertFilter(PCUSBFILTER aFilter)                   STOP
 void          USBProxyService::removeFilter(void *aId)                             STOP
-int           USBProxyService::getLastError()                                      TRACE(VINF_SUCCESS)
-bool          USBProxyService::isActive()                                          TRACE(false)
+int           USBProxyService::getLastError()                                      { return VINF_SUCCESS; }
+bool          USBProxyService::isActive()                                          { return false; }
 HRESULT       USBProxyService::removeUSBDeviceSource(com::Utf8Str const&)          STOP
 HRESULT       USBProxyService::addUSBDeviceSource(com::Utf8Str const&,
                                                   com::Utf8Str const&,
@@ -124,7 +124,7 @@ using USBDeviceSourceList =
 	std::__cxx11::list<settings::USBDeviceSource, std::allocator<settings::USBDeviceSource> >;
 
 HRESULT USBProxyService::i_saveSettings(USBDeviceSourceList &)       TRACE(VINF_SUCCESS)
-HRESULT USBProxyService::i_loadSettings(USBDeviceSourceList const &) TRACE(VINF_SUCCESS)
+HRESULT USBProxyService::i_loadSettings(USBDeviceSourceList const &) { return VINF_SUCCESS; }
 
 
 /* USBFilter.cpp */
@@ -144,12 +144,12 @@ HRESULT VirtualBox::createAppliance(ComPtr<IAppliance> &) STOP
 
 #include "CloudProviderManagerImpl.h"
 
-CloudProviderManager::CloudProviderManager() TRACE()
+CloudProviderManager::CloudProviderManager() { }
 CloudProviderManager::~CloudProviderManager() { }
 
-HRESULT CloudProviderManager::FinalConstruct() TRACE(VINF_SUCCESS)
+HRESULT CloudProviderManager::FinalConstruct() { return VINF_SUCCESS; }
 void    CloudProviderManager::FinalRelease()   TRACE()
-HRESULT CloudProviderManager::init()           TRACE(VINF_SUCCESS)
+HRESULT CloudProviderManager::init()           { return VINF_SUCCESS; }
 void    CloudProviderManager::uninit()         STOP
 HRESULT CloudProviderManager::getProviderById       (com::Guid    const&, ComPtr<ICloudProvider>&) STOP
 HRESULT CloudProviderManager::getProviderByName     (com::Utf8Str const&, ComPtr<ICloudProvider>&) STOP
@@ -167,7 +167,7 @@ int NetIfGetLinkSpeed(const char *, uint32_t *) STOP
 int NetIfGetState(const char *, NETIFSTATUS *)  STOP
 int NetIfRemoveHostOnlyNetworkInterface(VirtualBox *, const Guid &, IProgress **) STOP
 int NetIfList(std::__cxx11::list<ComObjPtr<HostNetworkInterface>,
-              std::allocator<ComObjPtr<HostNetworkInterface> > >&) TRACE(VINF_SUCCESS)
+              std::allocator<ComObjPtr<HostNetworkInterface> > >&) { return VINF_SUCCESS; }
 
 
 /* fatvfs.cpp */
@@ -214,7 +214,7 @@ RTDECL(int) RTSystemQueryTotalRam(uint64_t *pcb) STOP
 
 HostDnsServiceResolvConf::~HostDnsServiceResolvConf() { }
 
-HRESULT HostDnsServiceResolvConf::init(HostDnsMonitorProxy*, char const*) TRACE(VINF_SUCCESS)
+HRESULT HostDnsServiceResolvConf::init(HostDnsMonitorProxy*, char const*) { return VINF_SUCCESS; }
 void    HostDnsServiceResolvConf::uninit() STOP
 
 
@@ -253,9 +253,9 @@ int AutostartDb::addAutostopVM    (char const *) STOP
 int AutostartDb::removeAutostopVM (char const *) STOP
 int AutostartDb::removeAutostartVM(char const *) STOP
 
-AutostartDb::AutostartDb() TRACE()
-AutostartDb::~AutostartDb() { }
-int AutostartDb::setAutostartDbPath(char const*) TRACE(VINF_SUCCESS)
+AutostartDb::AutostartDb()                       { }
+AutostartDb::~AutostartDb()                      { }
+int AutostartDb::setAutostartDbPath(char const*) { return VINF_SUCCESS; }
 
 RT_C_DECLS_BEGIN
 
@@ -263,28 +263,28 @@ static_assert(sizeof(RTR0PTR) == sizeof(RTR3PTR), "pointer transformation bug");
 static_assert(sizeof(RTR0PTR) == sizeof(void *) , "pointer transformation bug");
 static_assert(sizeof(RTR3PTR) == sizeof(RTR0PTR), "pointer transformation bug");
 
-int  emR3InitDbg(PVM)                   TRACE(VINF_SUCCESS)
-int  SELMR3Init(PVM)                    TRACE(VINF_SUCCESS)
-int  SELMR3Term(PVM)                    TRACE(VINF_SUCCESS)
-void SELMR3Relocate(PVM)                TRACE()
-void SELMR3Reset(PVM)                   TRACE()
+int  emR3InitDbg(PVM)    { return VINF_SUCCESS; }
+int  SELMR3Init(PVM)     { return VINF_SUCCESS; }
+int  SELMR3Term(PVM)     { return VINF_SUCCESS; }
+void SELMR3Relocate(PVM) { }
+void SELMR3Reset(PVM)    { }
 
 /* module loader of pluggable device manager */
-int  pdmR3LdrInitU(PUVM)                              TRACE(VINF_SUCCESS)
-int  PDMR3LdrLoadVMMR0U(PUVM)                         TRACE(VINF_SUCCESS)
-void PDMR3LdrRelocateU(PUVM, RTGCINTPTR)              TRACE()
-int  pdmR3LoadR3U(PUVM, const char *, const char *)   TRACE(VINF_SUCCESS)
+int  pdmR3LdrInitU(PUVM)                              { return VINF_SUCCESS; }
+int  PDMR3LdrLoadVMMR0U(PUVM)                         { return VINF_SUCCESS; }
+void PDMR3LdrRelocateU(PUVM, RTGCINTPTR)              { }
+int  pdmR3LoadR3U(PUVM, const char *, const char *)   { return VINF_SUCCESS; }
 void pdmR3LdrTermU(PUVM)                              TRACE()
-int  PDMR3LdrLoadR0(PUVM, const char *, const char *) TRACE(VINF_SUCCESS)
+int  PDMR3LdrLoadR0(PUVM, const char *, const char *) { return VINF_SUCCESS; }
 
 char *pdmR3FileR3(const char * file, bool)
 {
 	char * pv = reinterpret_cast<char *>(RTMemTmpAllocZ(1));
 
-	if (debug)
+	if (false)
 		Genode::log(__func__, ": file ", file, " ", (void *)pv, " ", __builtin_return_address(0));
 
-	TRACE(pv)
+	return pv;
 }
 
 const char * RTBldCfgRevisionStr(void)
@@ -294,7 +294,7 @@ const char * RTBldCfgRevisionStr(void)
 
 DECLHIDDEN(int) rtProcInitExePath(char *pszPath, size_t cchPath)
 {
-	Genode::copy_cstring(pszPath, "/undefined_ProcInitExePath", cchPath);
+	Genode::copy_cstring(pszPath, "/virtualbox6", cchPath);
 
 	return VINF_SUCCESS;
 }
@@ -306,7 +306,7 @@ RT_C_DECLS_END
 
 #include "HostHardwareLinux.h"
 
-int VBoxMainDriveInfo::updateDVDs() TRACE(VINF_SUCCESS)
+int VBoxMainDriveInfo::updateDVDs() { return VINF_SUCCESS; }
 
 
 /* buildconfig.cpp */
@@ -321,7 +321,7 @@ uint32_t RTBldCfgVersionMinor(void) { return ~0; }
 
 /* VDIfTcpNet.cpp */
 
-VBOXDDU_DECL(int) VDIfTcpNetInstDefaultCreate(PVDIFINST, PVDINTERFACE *) TRACE(VINF_SUCCESS)
+VBOXDDU_DECL(int) VDIfTcpNetInstDefaultCreate(PVDIFINST, PVDINTERFACE *) { return VINF_SUCCESS; }
 
 
 /* SharedFolderImpl.cpp */
@@ -344,12 +344,12 @@ HRESULT Console::i_teleporterTrg(PUVM, IMachine *, Utf8Str *, bool, Progress *, 
 
 #include <DBGFInternal.h>
 
-int dbgfR3BpInit(VM*) TRACE(VINF_SUCCESS)
+int dbgfR3BpInit(VM*) { return VINF_SUCCESS; }
 
 
 /* DBGFR3BugCheck.cpp */
 
-int dbgfR3BugCheckInit(VM*) TRACE(VINF_SUCCESS)
+int dbgfR3BugCheckInit(VM*) { return VINF_SUCCESS; }
 
 
 /* dbgcfg.cpp */
@@ -371,9 +371,9 @@ uint32_t RTDbgAsRelease(RTDBGAS) { return 1; /* fake reference counter */ }
 
 /* DBGFAddrSpace.cpp */
 
-int  dbgfR3AsInit(PUVM) TRACE(VINF_SUCCESS)
+int  dbgfR3AsInit(PUVM) { return VINF_SUCCESS; }
 void dbgfR3AsTerm(PUVM) { }
-void dbgfR3AsRelocate(PUVM, RTGCUINTPTR) TRACE()
+void dbgfR3AsRelocate(PUVM, RTGCUINTPTR) { }
 
 int DBGFR3AsSymbolByAddr(PUVM, RTDBGAS, PCDBGFADDRESS, uint32_t,
                          PRTGCINTPTR, PRTDBGSYMBOL, PRTDBGMOD) TRACE(VERR_NOT_IMPLEMENTED)
@@ -406,7 +406,7 @@ VMMR3DECL(int) PGMR3MappingsSize(PVM pVM, uint32_t *pcb)
 
 #include <PGMInternal.h>
 
-int  pgmR3InitSavedState(PVM, uint64_t) TRACE(VINF_SUCCESS)
+int  pgmR3InitSavedState(PVM, uint64_t) { return VINF_SUCCESS; }
 
 
 /* nsProxyRelease.cpp */

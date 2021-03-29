@@ -15,6 +15,7 @@
 #define _STUB_MACROS_H_
 
 #include <base/log.h>
+#include <base/sleep.h>
 
 #define TRACE(retval) \
 	{ \
@@ -29,22 +30,8 @@
 		Genode::error(__PRETTY_FUNCTION__, " called (", __FILE__, ":", __LINE__, "), " \
 		              "not implemented, eip=", \
 		              __builtin_return_address(0)); \
-		while (1); \
-		\
-		class Not_implemented { }; \
-		throw Not_implemented(); /* sparing the need for a return value */ \
-	}
-
-#define DUMMY_STATIC(X) \
-	{ \
-		static X dummy; \
-		Genode::error("static ", __PRETTY_FUNCTION__, " called (", __FILE__, "), " \
-		              "not implemented, eip=", \
-		              __builtin_return_address(0)); \
-		while (1) \
-			asm volatile ("ud2a"); \
-		\
-		return dummy; \
+		/* noreturn function sparing the need for a return value */ \
+		Genode::sleep_forever(); \
 	}
 
 #endif /* _STUB_MACROS_H_ */
