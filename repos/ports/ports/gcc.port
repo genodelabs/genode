@@ -1,9 +1,9 @@
 LICENSE   := GPLv3
-VERSION   := 8.3.0
+VERSION   := 10.3.0
 DOWNLOADS := gcc.archive
 
 URL(gcc)  := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(gcc)  := 64baadfe6cc0f4947a84cb12d7f0dfaf45bb58b7e92461639596c21e02d97d2c
+SHA(gcc)  := 64f404c1a650f27fc33da242e1f2df54952e3963a49e06e73f6940f3223ac344
 SIG(gcc)  := ${URL(gcc)}.sig
 KEY(gcc)  := GNU
 DIR(gcc)  := src/noux-pkg/gcc
@@ -14,7 +14,9 @@ PATCH_OPT := -p1 -d ${DIR(gcc)}
 
 HASH_INPUT += $(REP_DIR)/${DIR(gcc)}/patches/series
 
-AUTOCONF := autoconf2.64
+# Required version is 2.69, but there is no versioned binary name on
+# Ubuntu right now like there has been for version 2.64.
+AUTOCONF := autoconf
 
 $(call check_tool,$(AUTOCONF))
 $(call check_tool,autogen)

@@ -8,10 +8,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 6 insertions(+)
 
 diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
-index dd8cee9..8cae772 100644
+index 851e7657d..5417143b5 100644
 --- a/libgcc/Makefile.in
 +++ b/libgcc/Makefile.in
-@@ -948,7 +948,11 @@ all: libunwind.a
+@@ -957,7 +957,11 @@ all: libunwind.a
  endif
  
  ifeq ($(enable_shared),yes)
@@ -23,7 +23,7 @@ index dd8cee9..8cae772 100644
  ifneq ($(LIBUNWIND),)
  all: libunwind$(SHLIB_EXT)
  libgcc_s$(SHLIB_EXT): libunwind$(SHLIB_EXT)
-@@ -1154,9 +1158,11 @@ install-shared:
+@@ -1163,9 +1167,11 @@ install-shared:
  	chmod 644 $(DESTDIR)$(inst_libdir)/libgcc_eh.a
  	$(RANLIB) $(DESTDIR)$(inst_libdir)/libgcc_eh.a
  

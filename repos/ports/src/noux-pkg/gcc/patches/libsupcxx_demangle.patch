@@ -10,7 +10,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  3 files changed, 25 insertions(+), 2 deletions(-)
 
 diff --git a/include/libiberty.h b/include/libiberty.h
-index dc09e79..2726453 100644
+index 141cb886a..0a8b54db5 100644
 --- a/include/libiberty.h
 +++ b/include/libiberty.h
 @@ -46,7 +46,11 @@ extern "C" {
@@ -26,7 +26,7 @@ index dc09e79..2726453 100644
  /* If the OS supports it, ensure that the supplied stream is setup to
     avoid any multi-threaded locking.  Otherwise leave the FILE pointer
 diff --git a/libiberty/cp-demangle.c b/libiberty/cp-demangle.c
-index 3f2a097..0d4a83d 100644
+index cbfb2f937..a58820ae5 100644
 --- a/libiberty/cp-demangle.c
 +++ b/libiberty/cp-demangle.c
 @@ -106,7 +106,9 @@
@@ -39,7 +39,7 @@ index 3f2a097..0d4a83d 100644
  
  #ifdef HAVE_STDLIB_H
  #include <stdlib.h>
-@@ -6309,7 +6311,7 @@ d_demangle (const char *mangled, int options, size_t *palc)
+@@ -6390,7 +6392,7 @@ d_demangle (const char *mangled, int options, size_t *palc)
    return dgs.buf;
  }
  
@@ -49,10 +49,10 @@ index 3f2a097..0d4a83d 100644
  extern char *__cxa_demangle (const char *, char *, size_t *, int *);
  
 diff --git a/libstdc++-v3/libsupc++/Makefile.in b/libstdc++-v3/libsupc++/Makefile.in
-index 37644e8..1ec97bb 100644
+index a0a500eab..8c37ec251 100644
 --- a/libstdc++-v3/libsupc++/Makefile.in
 +++ b/libstdc++-v3/libsupc++/Makefile.in
-@@ -131,7 +131,11 @@ am__objects_1 = array_type_info.lo atexit_arm.lo atexit_thread.lo \
+@@ -168,7 +168,11 @@ am__objects_1 = array_type_info.lo atexit_arm.lo atexit_thread.lo \
  	del_opvsa.lo pbase_type_info.lo pmem_type_info.lo \
  	pointer_type_info.lo pure.lo si_class_type_info.lo tinfo.lo \
  	tinfo2.lo vec.lo vmi_class_type_info.lo vterminate.lo
@@ -64,7 +64,7 @@ index 37644e8..1ec97bb 100644
  @ENABLE_VTABLE_VERIFY_TRUE@@VTV_CYGMIN_FALSE@am__objects_3 =  \
  @ENABLE_VTABLE_VERIFY_TRUE@@VTV_CYGMIN_FALSE@	vtv_stubs.lo
  am_libsupc___la_OBJECTS = $(am__objects_1) $(am__objects_2) \
-@@ -404,8 +408,14 @@ bits_HEADERS = \
+@@ -491,8 +495,14 @@ bits_HEADERS = \
  	exception_defines.h exception_ptr.h hash_bytes.h nested_exception.h exception.h cxxabi_init_exception.h
  
  headers = $(std_HEADERS) $(bits_HEADERS)
@@ -80,7 +80,7 @@ index 37644e8..1ec97bb 100644
  
  sources = \
  	array_type_info.cc \
-@@ -856,10 +866,17 @@ uninstall-am: uninstall-bitsHEADERS uninstall-stdHEADERS \
+@@ -951,10 +961,17 @@ uninstall-am: uninstall-bitsHEADERS uninstall-stdHEADERS \
  cp-demangle.c:
  	rm -f $@
  	$(LN_S) $(toplevel_srcdir)/libiberty/cp-demangle.c $@

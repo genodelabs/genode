@@ -1,0 +1,192 @@
+revert_gcov_name_mangling.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gcc/coverage.c |   28 ++--------------------------
+ gcc/gcov-io.c  |   49 -------------------------------------------------
+ gcc/gcov-io.h  |    1 -
+ gcc/gcov.c     |   49 +++++++++++++++++++++++++++++++++++++++++--------
+ 4 files changed, 43 insertions(+), 84 deletions(-)
+
+diff --git a/gcc/coverage.c b/gcc/coverage.c
+index 7d82e44c1..8bb46e8f0 100644
+--- a/gcc/coverage.c
++++ b/gcc/coverage.c
+@@ -1215,32 +1215,8 @@ coverage_init (const char *filename)
+     g->get_passes ()->get_pass_profile ()->static_pass_number;
+   g->get_dumps ()->dump_start (profile_pass_num, NULL);
+ 
+-  if (!IS_ABSOLUTE_PATH (filename))
+-    {
+-      /* When a profile_data_prefix is provided, then mangle full path
+-	 of filename in order to prevent file path clashing.  */
+-      if (profile_data_prefix)
+-	{
+-	  filename = concat (getpwd (), separator, filename, NULL);
+-	  if (profile_prefix_path)
+-	    {
+-	      if (!strncmp (filename, profile_prefix_path,
+-			    strlen (profile_prefix_path)))
+-		{
+-		  filename += strlen (profile_prefix_path);
+-		  while (*filename == *separator)
+-		    filename++;
+-		}
+-	      else
+-		warning (0, "filename %qs does not start with profile "
+-			 "prefix %qs", filename, profile_prefix_path);
+-	    }
+-	  filename = mangle_path (filename);
+-	  len = strlen (filename);
+-	}
+-      else
+-	profile_data_prefix = getpwd ();
+-    }
++  if (!profile_data_prefix && !IS_ABSOLUTE_PATH (filename))
++    profile_data_prefix = getpwd ();
+ 
+   if (profile_data_prefix)
+     prefix_len = strlen (profile_data_prefix);
+diff --git a/gcc/gcov-io.c b/gcc/gcov-io.c
+index ac60f9baf..4aefeac05 100644
+--- a/gcc/gcov-io.c
++++ b/gcc/gcov-io.c
+@@ -538,55 +538,6 @@ gcov_read_counter (void)
+   return value;
+ }
+ 
+-/* Mangle filename path of BASE and output new allocated pointer with
+-   mangled path.  */
+-
+-char *
+-mangle_path (char const *base)
+-{
+-  /* Convert '/' to '#', convert '..' to '^',
+-     convert ':' to '~' on DOS based file system.  */
+-  const char *probe;
+-  char *buffer = (char *)xmalloc (strlen (base) + 1);
+-  char *ptr = buffer;
+-
+-#if HAVE_DOS_BASED_FILE_SYSTEM
+-  if (base[0] && base[1] == ':')
+-    {
+-      ptr[0] = base[0];
+-      ptr[1] = '~';
+-      ptr += 2;
+-      base += 2;
+-    }
+-#endif
+-  for (; *base; base = probe)
+-    {
+-      size_t len;
+-
+-      for (probe = base; *probe; probe++)
+-	if (*probe == '/')
+-	  break;
+-      len = probe - base;
+-      if (len == 2 && base[0] == '.' && base[1] == '.')
+-	*ptr++ = '^';
+-      else
+-	{
+-	  memcpy (ptr, base, len);
+-	  ptr += len;
+-	}
+-      if (*probe)
+-	{
+-	  *ptr++ = '#';
+-	  probe++;
+-	}
+-    }
+-
+-  /* Terminate the string.  */
+-  *ptr = '\0';
+-
+-  return buffer;
+-}
+-
+ /* We need to expose the below function when compiling for gcov-tool.  */
+ 
+ #if !IN_LIBGCOV || defined (IN_GCOV_TOOL)
+diff --git a/gcc/gcov-io.h b/gcc/gcov-io.h
+index 4391d6d50..552c90dcd 100644
+--- a/gcc/gcov-io.h
++++ b/gcc/gcov-io.h
+@@ -340,7 +340,6 @@ GCOV_LINKAGE void gcov_read_summary (struct gcov_summary *) ATTRIBUTE_HIDDEN;
+ GCOV_LINKAGE const char *gcov_read_string (void);
+ GCOV_LINKAGE void gcov_sync (gcov_position_t /*base*/,
+ 			     gcov_unsigned_t /*length */);
+-char *mangle_path (char const *base);
+ 
+ #if !IN_GCOV
+ /* Available outside gcov */
+diff --git a/gcc/gcov.c b/gcc/gcov.c
+index a291bac3e..9bf31d5e3 100644
+--- a/gcc/gcov.c
++++ b/gcc/gcov.c
+@@ -2560,9 +2560,6 @@ make_gcov_file_name (const char *input_name, const char *src_name)
+   return result;
+ }
+ 
+-/* Mangle BASE name, copy it at the beginning of PTR buffer and
+-   return address of the \0 character of the buffer.  */
+-
+ static char *
+ mangle_name (char const *base, char *ptr)
+ {
+@@ -2570,13 +2567,49 @@ mangle_name (char const *base, char *ptr)
+ 
+   /* Generate the source filename part.  */
+   if (!flag_preserve_paths)
+-    base = lbasename (base);
++    {
++      base = lbasename (base);
++      len = strlen (base);
++      memcpy (ptr, base, len);
++      ptr += len;
++    }
+   else
+-    base = mangle_path (base);
++    {
++      /* Convert '/' to '#', convert '..' to '^',
++	 convert ':' to '~' on DOS based file system.  */
++      const char *probe;
+ 
+-  len = strlen (base);
+-  memcpy (ptr, base, len);
+-  ptr += len;
++#if HAVE_DOS_BASED_FILE_SYSTEM
++      if (base[0] && base[1] == ':')
++	{
++	  ptr[0] = base[0];
++	  ptr[1] = '~';
++	  ptr += 2;
++	  base += 2;
++	}
++#endif
++      for (; *base; base = probe)
++	{
++	  size_t len;
++
++	  for (probe = base; *probe; probe++)
++	    if (*probe == '/')
++	      break;
++	  len = probe - base;
++	  if (len == 2 && base[0] == '.' && base[1] == '.')
++	    *ptr++ = '^';
++	  else
++	    {
++	      memcpy (ptr, base, len);
++	      ptr += len;
++	    }
++	  if (*probe)
++	    {
++	      *ptr++ = '#';
++	      probe++;
++	    }
++	}
++    }
+ 
+   return ptr;
+ }

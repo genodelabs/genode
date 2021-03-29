@@ -1,12 +1,23 @@
 config.patch
 
 From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+
+
 ---
+ gcc/config.gcc               |    2 +-
+ gcc/config/arm/arm.h         |    4 ++--
+ gcc/config/arm/unknown-elf.h |   13 +++++++++++++
+ gcc/config/i386/x86-64.h     |   19 +++++++++++++++++--
+ gcc/config/riscv/elf.h       |    2 ++
+ gcc/config/riscv/riscv.h     |   17 +++++++++++++++--
+ libgcc/config.host           |   16 ++++++++++++----
+ 7 files changed, 62 insertions(+), 11 deletions(-)
+
 diff --git a/gcc/config.gcc b/gcc/config.gcc
-index 7af8e028..3c87dfb0 100644
+index 6a349965c..d0e8646c0 100644
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
-@@ -1184,7 +1184,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems* | arm*-*-fuchsia*)
+@@ -1310,7 +1310,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems* | arm*-*-fuchsia*)
  	case ${target} in
  	arm*-*-eabi*)
  	  tm_file="$tm_file newlib-stdint.h"
@@ -16,10 +27,10 @@ index 7af8e028..3c87dfb0 100644
  	  ;;
  	arm*-*-fuchsia*)
 diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
-index 942bb4ca..c36b8eea 100644
+index 30e1d6dc9..de4e7b7d9 100644
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
-@@ -668,11 +668,11 @@ extern int arm_arch_cmse;
+@@ -746,11 +746,11 @@ extern const int arm_arch_cde_coproc_bits[];
  #define MAX_FIXED_MODE_SIZE 64
  
  #ifndef SIZE_TYPE
@@ -34,13 +45,15 @@ index 942bb4ca..c36b8eea 100644
  
  /* AAPCS requires that structure alignment is affected by bitfields.  */
 diff --git a/gcc/config/arm/unknown-elf.h b/gcc/config/arm/unknown-elf.h
-index 12dd0931..ec0a72e7 100644
+index 9ad294750..cb5575a75 100644
 --- a/gcc/config/arm/unknown-elf.h
 +++ b/gcc/config/arm/unknown-elf.h
-@@ -94,3 +94,19 @@
+@@ -93,4 +93,17 @@
+    udivmoddi4, which will depend on the exception unwind routines,
     which will depend on abort, which is defined in libc.  */ 
  #undef LINK_GCC_C_SEQUENCE_SPEC
- #define LINK_GCC_C_SEQUENCE_SPEC "--start-group %G %L --end-group"
++
+ #define LINK_GCC_C_SEQUENCE_SPEC "--start-group %G %{!nolibc:%L} --end-group"
 +
 +/* genode.h */
 +
@@ -53,12 +66,8 @@ index 12dd0931..ec0a72e7 100644
 +#define LINK_SPEC \
 +  "%(shared:-shared) \
 +   %{!static:--eh-frame-hdr}"
-+
-+/* Don't assume anything about the header files.  */
-+/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
-+#define NO_IMPLICIT_EXTERN_C
 diff --git a/gcc/config/i386/x86-64.h b/gcc/config/i386/x86-64.h
-index e2a8306c..1c5e2e15 100644
+index 88db428f5..2d2adc627 100644
 --- a/gcc/config/i386/x86-64.h
 +++ b/gcc/config/i386/x86-64.h
 @@ -37,10 +37,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
@@ -74,7 +83,7 @@ index e2a8306c..1c5e2e15 100644
  
  #undef WCHAR_TYPE
  #define WCHAR_TYPE "int"
-@@ -106,3 +106,22 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+@@ -102,3 +102,18 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
  
  #undef TARGET_SECTION_TYPE_FLAGS
  #define TARGET_SECTION_TYPE_FLAGS  x86_64_elf_section_type_flags
@@ -93,12 +102,8 @@ index e2a8306c..1c5e2e15 100644
 +   %{m32:-m elf_i386} \
 +   %{shared:-shared} \
 +   %{!static:--eh-frame-hdr}"
-+
-+/* Don't assume anything about the header files.  */
-+/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
-+#define NO_IMPLICIT_EXTERN_C
 diff --git a/gcc/config/riscv/elf.h b/gcc/config/riscv/elf.h
-index a8357bb6..cd33bb28 100644
+index 4e2d6464d..72399e5a8 100644
 --- a/gcc/config/riscv/elf.h
 +++ b/gcc/config/riscv/elf.h
 @@ -17,10 +17,12 @@ You should have received a copy of the GNU General Public License
@@ -115,10 +120,10 @@ index a8357bb6..cd33bb28 100644
  /* Link against Newlib libraries, because the ELF backend assumes Newlib.
     Handle the circular dependence between libc and libgloss. */
 diff --git a/gcc/config/riscv/riscv.h b/gcc/config/riscv/riscv.h
-index 62279ff2..fdf77645 100644
+index 567c23380..1b75709b8 100644
 --- a/gcc/config/riscv/riscv.h
 +++ b/gcc/config/riscv/riscv.h
-@@ -819,10 +819,10 @@ while (0)
+@@ -851,10 +851,10 @@ while (0)
  #define ASM_COMMENT_START "#"
  
  #undef SIZE_TYPE
@@ -129,11 +134,11 @@ index 62279ff2..fdf77645 100644
 -#define PTRDIFF_TYPE (POINTER_SIZE == 64 ? "long int" : "int")
 +#define PTRDIFF_TYPE (POINTER_SIZE == 64 ? "long int" : "long int")
  
- /* The maximum number of bytes copied by one iteration of a movmemsi loop.  */
+ /* The maximum number of bytes copied by one iteration of a cpymemsi loop.  */
  
-@@ -902,4 +902,17 @@ extern unsigned riscv_stack_boundary;
- #define SWSP_REACH (4LL << C_SxSP_BITS)
- #define SDSP_REACH (8LL << C_SxSP_BITS)
+@@ -935,4 +935,17 @@ extern void riscv_remove_unneeded_save_restore_calls (void);
+ 
+ #define HARD_REGNO_RENAME_OK(FROM, TO) riscv_hard_regno_rename_ok (FROM, TO)
  
 + /* genode.h */
 +
@@ -150,10 +155,10 @@ index 62279ff2..fdf77645 100644
 +
  #endif /* ! GCC_RISCV_H */
 diff --git a/libgcc/config.host b/libgcc/config.host
-index 11b4acaf..5e9cfa86 100644
+index c529cc40f..1907fb871 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
-@@ -312,7 +312,7 @@ case ${host} in
+@@ -328,7 +328,7 @@ case ${host} in
    tmake_file=t-vxworks
    ;;
  *-*-elf)
@@ -162,7 +167,7 @@ index 11b4acaf..5e9cfa86 100644
    ;;
  esac
  
-@@ -449,8 +449,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+@@ -498,8 +498,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
  	tm_file="$tm_file arm/bpabi-lib.h"
  	case ${host} in
  	arm*-*-eabi* | arm*-*-rtems*)
@@ -176,7 +181,7 @@ index 11b4acaf..5e9cfa86 100644
  	  ;;
  	arm*-*-symbianelf*)
  	  tmake_file="${tmake_file} arm/t-symbian t-slibgcc-nolc-override"
-@@ -610,6 +614,10 @@ i[34567]86-*-elf*)
+@@ -701,6 +705,10 @@ i[34567]86-*-elf*)
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
  	;;
  x86_64-*-elf* | x86_64-*-rtems*)
@@ -185,9 +190,9 @@ index 11b4acaf..5e9cfa86 100644
 +	# needed for the exception handling on Genode in the presence of shared libraries.
 +	tmake_file="$tmake_file t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
- 	;;
- x86_64-*-fuchsia*)
-@@ -1133,8 +1141,8 @@ riscv*-*-freebsd*)
+ 	case ${host} in
+ 	  x86_64-*-rtems*)
+@@ -1268,8 +1276,8 @@ riscv*-*-freebsd*)
  	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o crtendS.o crtbeginT.o"
  	;;
  riscv*-*-*)

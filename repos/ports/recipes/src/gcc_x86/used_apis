@@ -1,7 +1,4 @@
-gmp
 libc
-mpc
-mpfr
 noux
 posix
 stdcxx

@@ -54,8 +54,8 @@ GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 # version numbers
 #
 
-TOOL_CHAIN_VERSION = 19.05
-GCC_VERSION        = 8.3.0
+TOOL_CHAIN_VERSION = 21.05
+GCC_VERSION        = 10.3.0
 BINUTILS_VERSION   = 2.32
 
 #
@@ -93,7 +93,10 @@ SUDO        ?= sudo
 #
 # Check if 'autoconf' is installed
 #
-AUTOCONF_VERSION = 2.64
+# Required version is 2.69, but there is no versioned binary name on Ubuntu
+# right now like there has been for version 2.64.
+#
+AUTOCONF_VERSION =
 
 AUTOCONF_VERSION_STRING = "autoconf (GNU Autoconf) $(AUTOCONF_VERSION)"
 ifeq ($(shell autoconf -V | grep $(AUTOCONF_VERSION_STRING)),)
@@ -476,5 +479,5 @@ install: build_all
 	$(VERBOSE)$(SUDO) cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
 	$(VERBOSE)$(LIB_GCC)
 ifeq ($(INSTALL_LOCATION),$(DEFAULT_INSTALL_LOCATION))
-	$(VERBOSE)$(SUDO) ln -snf $(TOOL_CHAIN_VERSION) $(dir $(INSTALL_LOCATION))/current
+	$(VERBOSE)$(SUDO) ln -snf $(TOOL_CHAIN_VERSION) $(dir $(INSTALL_LOCATION))current
 endif

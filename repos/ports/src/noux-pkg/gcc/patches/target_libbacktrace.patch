@@ -8,10 +8,10 @@ Don't build libbacktrace, which needs a libc.
  1 file changed, 1 deletion(-)
 
 diff --git a/configure.ac b/configure.ac
-index c343333..87428a5 100644
+index c78d9cbea..2a25449de 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -146,7 +146,6 @@ host_tools="texinfo flex bison binutils gas ld fixincludes gcc cgen sid sim gdb
+@@ -145,7 +145,6 @@ host_tools="texinfo flex bison binutils gas ld fixincludes gcc cgen sid sim gdb
  # the host libraries and the host tools (which may be a cross compiler)
  # Note that libiberty is not a target library.
  target_libraries="target-libgcc \

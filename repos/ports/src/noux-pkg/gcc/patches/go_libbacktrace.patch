@@ -8,7 +8,7 @@ Remove the dependency on libbacktrace, which needs a libc.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gcc/go/config-lang.in b/gcc/go/config-lang.in
-index 79ee2e2..22eed3f 100644
+index 4e8aabbd0..92ff23753 100644
 --- a/gcc/go/config-lang.in
 +++ b/gcc/go/config-lang.in
 @@ -28,7 +28,7 @@ language="go"

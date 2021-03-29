@@ -9,10 +9,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  2 files changed, 3 insertions(+), 6 deletions(-)
 
 diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
-index da8196f..c36b8ee 100644
+index 72503dcab..e5f23add3 100644
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
-@@ -862,7 +862,7 @@ extern int arm_arch_cmse;
+@@ -945,7 +945,7 @@ extern const int arm_arch_cde_coproc_bits[];
  #define EH_RETURN_STACKADJ_RTX	gen_rtx_REG (SImode, ARM_EH_STACKADJ_REGNUM)
  
  #ifndef ARM_TARGET2_DWARF_FORMAT
@@ -21,7 +21,7 @@ index da8196f..c36b8ee 100644
  #endif
  
  /* ttype entries (the only interesting data references used)
-@@ -2196,10 +2196,7 @@ extern const char *arm_target_thumb_only (int argc, const char **argv);
+@@ -2343,10 +2343,7 @@ extern const char *arm_target_thumb_only (int argc, const char **argv);
  /* -mcpu=native handling only makes sense with compiler running on
     an ARM chip.  */
  #if defined(__arm__)
@@ -34,13 +34,13 @@ index da8196f..c36b8ee 100644
     " %{march=native:%<march=native %:local_cpu_detect(arch)}"	\
     " %{mcpu=native:%<mcpu=native %:local_cpu_detect(cpu)}"	\
 diff --git a/libgcc/config/arm/unwind-arm.h b/libgcc/config/arm/unwind-arm.h
-index 9f7d3f2..a576367 100644
+index e77b769d7..52d4a6448 100644
 --- a/libgcc/config/arm/unwind-arm.h
 +++ b/libgcc/config/arm/unwind-arm.h
-@@ -49,7 +49,7 @@ extern "C" {
- 	return 0;
- 
- #if (defined(linux) && !defined(__uClinux__)) || defined(__NetBSD__) \
+@@ -74,7 +74,7 @@ static inline _Unwind_Ptr _Unwind_gnu_Find_got (_Unwind_Ptr ptr)
+       tmp += _Unwind_gnu_Find_got (ptr);
+       tmp = *(_Unwind_Word *) tmp;
+ #elif (defined(linux) && !defined(__uClinux__)) || defined(__NetBSD__) \
 -    || defined(__FreeBSD__) || defined(__fuchsia__)
 +    || defined(__FreeBSD__) || defined(__fuchsia__) || 1
        /* Pc-relative indirect.  */

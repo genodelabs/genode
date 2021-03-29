@@ -8,10 +8,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 6 insertions(+)
 
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index 60152a5..7d7279b 100644
+index 18659a216..9217e7390 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
-@@ -89,9 +89,11 @@ CXXFLAGS="$save_CXXFLAGS"
+@@ -90,9 +90,11 @@ AC_SYS_LARGEFILE
  GLIBCXX_CONFIGURE
  
  # Libtool setup.
@@ -23,7 +23,7 @@ index 60152a5..7d7279b 100644
  AM_PROG_LIBTOOL
  ACX_LT_HOST_FLAGS
  AC_SUBST(enable_shared)
-@@ -209,7 +211,9 @@ AC_CHECK_HEADERS(fenv.h complex.h)
+@@ -211,7 +213,9 @@ AC_CHECK_HEADERS(fenv.h complex.h)
  GLIBCXX_CHECK_C99_TR1
  
  # For the EOF, SEEK_CUR, and SEEK_END integer constants.
@@ -33,7 +33,7 @@ index 60152a5..7d7279b 100644
  
  # For gettimeofday support.
  GLIBCXX_CHECK_GETTIMEOFDAY
-@@ -370,7 +374,9 @@ GCC_CHECK_UNWIND_GETIPINFO
+@@ -388,7 +392,9 @@ GCC_CHECK_UNWIND_GETIPINFO
  
  GCC_LINUX_FUTEX([AC_DEFINE(HAVE_LINUX_FUTEX, 1, [Define if futex syscall is available.])])
  

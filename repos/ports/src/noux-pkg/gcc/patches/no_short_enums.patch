@@ -8,10 +8,10 @@ Ensure -fno-short-enums as default.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
-index 2476cb3..da8196f 100644
+index de4e7b7d9..72503dcab 100644
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
-@@ -361,7 +361,7 @@ extern int arm_fpu_attr;
+@@ -417,7 +417,7 @@ extern int arm_fpu_attr;
  /* AAPCS based ABIs use short enums by default.  */
  #ifndef ARM_DEFAULT_SHORT_ENUMS
  #define ARM_DEFAULT_SHORT_ENUMS \

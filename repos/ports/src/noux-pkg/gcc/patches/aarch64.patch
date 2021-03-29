@@ -1,5 +1,17 @@
+
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gcc/config.host              |    2 +-
+ gcc/config/aarch64/aarch64.h |   12 ++++++++++++
+ gcc/config/aarch64/t-aarch64 |    2 +-
+ libgcc/config.host           |    3 ++-
+ 4 files changed, 16 insertions(+), 3 deletions(-)
+
 diff --git a/gcc/config.host b/gcc/config.host
-index b5a4eb1..64a85dc 100644
+index a14d7086e..3f5a781e1 100644
 --- a/gcc/config.host
 +++ b/gcc/config.host
 @@ -99,7 +99,7 @@ case ${host} in
@@ -12,12 +24,12 @@ index b5a4eb1..64a85dc 100644
        aarch64*-*-*)
  	host_extra_gcc_objs="driver-aarch64.o"
 diff --git a/gcc/config/aarch64/aarch64.h b/gcc/config/aarch64/aarch64.h
-index 976f9af..3c150d1 100644
+index 1ce23c687..f9d1f5c89 100644
 --- a/gcc/config/aarch64/aarch64.h
 +++ b/gcc/config/aarch64/aarch64.h
-@@ -1061,4 +1061,20 @@ extern poly_uint16 aarch64_sve_vg;
- 
- #define REGMODE_NATURAL_SIZE(MODE) aarch64_regmode_natural_size (MODE)
+@@ -1257,4 +1257,16 @@ extern poly_uint16 aarch64_sve_vg;
+ 		STACK_BOUNDARY / BITS_PER_UNIT)		   \
+     : (crtl->outgoing_args_size + STACK_POINTER_OFFSET))
  
 +/* genode.h */
 +
@@ -31,16 +43,25 @@ index 976f9af..3c150d1 100644
 +  "%(shared:-shared) \
 +   %{!static:--eh-frame-hdr}"
 +
-+/* Don't assume anything about the header files.  */
-+/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
-+#define NO_IMPLICIT_EXTERN_C
-+
  #endif /* GCC_AARCH64_H */
+diff --git a/gcc/config/aarch64/t-aarch64 b/gcc/config/aarch64/t-aarch64
+index 11d20b7be..2568aa887 100644
+--- a/gcc/config/aarch64/t-aarch64
++++ b/gcc/config/aarch64/t-aarch64
+@@ -136,7 +136,7 @@ aarch64-speculation.o: $(srcdir)/config/aarch64/aarch64-speculation.cc \
+     $(TARGET_H) \
+     $(RTL_BASE_H) \
+     $(TREE_PASS_H)
+-	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_SPPFLAGS) $(INCLUDES) \
++	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+ 	  $(srcdir)/config/aarch64/aarch64-speculation.cc
+ 
+ falkor-tag-collision-avoidance.o: \
 diff --git a/libgcc/config.host b/libgcc/config.host
-index 5e9cfa8..58af2f0 100644
+index 1907fb871..c2cfdb151 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
-@@ -334,8 +334,9 @@ esac
+@@ -360,8 +360,9 @@ esac
  
  case ${host} in
  aarch64*-*-elf | aarch64*-*-rtems*)
@@ -49,5 +70,5 @@ index 5e9cfa8..58af2f0 100644
  	extra_parts="$extra_parts crtfastmath.o"
 +	tmake_file="$tmake_file t-freebsd t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
  	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
+ 	tmake_file="${tmake_file} ${cpu_type}/t-lse t-slibgcc-libgcc"
  	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
- 	md_unwind_header=aarch64/aarch64-unwind.h

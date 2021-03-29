@@ -244,7 +244,7 @@ install_config {
 # Boot modules
 #
 
-append  boot_modules { bash_profile genode.tar gmp.lib.so mpfr.lib.so mpc.lib.so }
+append  boot_modules { bash_profile genode.tar }
 lappend boot_modules "$binutils.tar" "$gcc.tar"
 lappend boot_modules libc.lib.so vfs.lib.so vfs_pipe.lib.so vfs
 

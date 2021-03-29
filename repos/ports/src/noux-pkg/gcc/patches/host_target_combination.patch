@@ -14,11 +14,11 @@ compiler as much as possible.
  1 file changed, 1 deletion(-)
 
 diff --git a/libstdc++-v3/crossconfig.m4 b/libstdc++-v3/crossconfig.m4
-index cb6e3af..a1cc79a 100644
+index fe1828835..3c7bdb87d 100644
 --- a/libstdc++-v3/crossconfig.m4
 +++ b/libstdc++-v3/crossconfig.m4
-@@ -292,7 +292,6 @@ case "${host}" in
-     AC_DEFINE(HAVE_TANHF)
+@@ -306,7 +306,6 @@ dnl # long_double_math_on_this_cpu in configure.ac, right after
+ dnl # the expansion of the present macro.
      ;;
    *)
 -    AC_MSG_ERROR([No support for this host/target combination.])
