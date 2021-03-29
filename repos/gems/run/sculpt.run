@@ -258,6 +258,8 @@ install_config {
 				<child name="config_fs_rom" label="numlock_remap"/> </service>
 			<service name="ROM" label_last="usb_policy">
 				<child name="config_fs_rom" label="usb"/> </service>
+			<service name="ROM" label_last="system">
+				<child name="config_fs_rom" label="system"/> </service>
 			<service name="ROM" label_last="numlock">  <child name="report_rom"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
