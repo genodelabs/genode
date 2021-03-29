@@ -924,7 +924,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 			for (unsigned i = 0; i < xml_acpi.num_sub_nodes(); i++) {
 				Xml_node node = xml_acpi.sub_node(i);
 
-				if (node.has_type("bdf"))
+				if (node.has_type("bdf") || node.has_type("reset"))
 					continue;
 
 				if (node.has_type("irq_override")) {

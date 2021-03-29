@@ -305,11 +305,41 @@ struct Ivrs : Genode::Mmio
 /* Fixed ACPI description table (FADT) */
 struct Fadt : Genode::Mmio
 {
-	Fadt(addr_t a) : Genode::Mmio(a) { }
+	size_t const size;
 
-	struct Dsdt : Register<0x28, 32> { };
+	Fadt(addr_t mmio, size_t size) : Genode::Mmio(mmio), size(size) { }
 
-	static uint32_t size() { return Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
+	struct Dsdt           : Register<0x28, 32> { };
+	struct Features       : Register<0x70, 32> {
+		/* Table 5-35 Fixed ACPI Description Table Fixed Feature Flags */
+		struct Reset : Bitfield<10, 1> { };
+	};
+	struct Reset_type     : Register<0x74, 32> {
+		/* ACPI spec - 5.2.3.2 Generic Address Structure */
+		struct Address_space : Bitfield<0, 8> { enum { SYSTEM_IO = 1 }; };
+		struct Access_size   : Bitfield<24,8> {
+			enum { UNDEFINED = 0, BYTE = 1, WORD = 2, DWORD = 3, QWORD = 4}; };
+	};
+	struct Reset_reg      : Register<0x78, 64> { };
+	struct Reset_value    : Register<0x80,  8> { };
+
+	bool dsdt_valid() {
+		 return size >= Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
+
+	bool io_reset_supported()
+	{
+		if (size < Reset_value::OFFSET + Reset_value::ACCESS_WIDTH / 8)
+			return false;
+
+		if (!read<Features::Reset>())
+			return false;
+
+		if (read<Reset_type::Address_space>() == Reset_type::Address_space::SYSTEM_IO)
+			return true;
+
+		warning("unsupported reset mode ", read<Reset_type::Address_space>());
+		return false;
+	}
 };
 
 
@@ -1201,6 +1231,14 @@ class Acpi_table
 		Genode::Allocator &_alloc;
 		Acpi::Memory       _memory;
 
+		struct Reset_info
+		{
+			Genode::uint16_t io_port;
+			Genode::uint8_t  value;
+		};
+
+		Genode::Constructible<Reset_info> _reset_info { };
+
 		/* BIOS range to scan for RSDP */
 		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
 
@@ -1273,9 +1311,19 @@ class Acpi_table
 						ivrs.parse(alloc);
 					}
 
-					if (table.is_facp() && Fadt::size() <= table->size) {
-						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature));
-						dsdt = fadt.read<Fadt::Dsdt>();
+					if (table.is_facp()) {
+						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature), table->size);
+
+						if (fadt.dsdt_valid())
+							dsdt = fadt.read<Fadt::Dsdt>();
+
+						if (fadt.io_reset_supported()) {
+							uint16_t const reset_io_port = fadt.read<Fadt::Reset_reg>() & 0xffffu;
+							uint8_t  const reset_value   = fadt.read<Fadt::Reset_value>();
+
+							_reset_info.construct(Reset_info { .io_port = reset_io_port,
+							                                   .value   = reset_value });
+						}
 					}
 
 					if (table.is_searched()) {
@@ -1398,6 +1446,17 @@ class Acpi_table
 			/* free up io memory */
 			_memory.free_io_memory();
 		}
+
+		void generate_reset_info(Xml_generator &xml) const
+		{
+			if (!_reset_info.constructed())
+				return;
+
+			xml.node("reset", [&] () {
+				xml.attribute("io_port", String<32>(Hex(_reset_info->io_port)));
+				xml.attribute("value",   _reset_info->value);
+			});
+		}
 };
 
 
@@ -1420,6 +1479,9 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 	acpi.enabled(true);
 
 	Genode::Reporter::Xml_generator xml(acpi, [&] () {
+
+		acpi_table.generate_reset_info(xml);
+
 		if (root_bridge_bdf != INVALID_ROOT_BRIDGE) {
 			xml.node("root_bridge", [&] () {
 				attribute_hex(xml, "bdf", root_bridge_bdf);
