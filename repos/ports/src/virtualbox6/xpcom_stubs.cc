@@ -19,7 +19,7 @@ static bool const debug = true;
 #include <SpecialSystemDirectory.h>
 
 nsresult GetSpecialSystemDirectory(SystemDirectories, nsILocalFile**) STOP
-void StartupSpecialSystemDirectory() TRACE()
+void StartupSpecialSystemDirectory() { }
 
 
 #include <nsFastLoadService.h>
@@ -54,19 +54,19 @@ nsresult nsStringInputStreamConstructor(nsISupports*, nsID const&, void**) STOP
 
 #include <xptinfo.h>
 
-nsIInterfaceInfoManager *XPTI_GetInterfaceInfoManager() TRACE(nullptr)
+nsIInterfaceInfoManager *XPTI_GetInterfaceInfoManager() { return nullptr; }
 
 
 extern "C" {
 #include <_freebsd.h>
 #include <primpl.h>
 
-void _MD_EarlyInit(void)      TRACE()
-void _PR_InitCPUs(void)       TRACE()
-void _pr_init_ipv6(void)      TRACE()
-void _PR_InitLayerCache(void) TRACE()
-void _PR_InitLinker(void)     TRACE()
-void _PR_InitSegs(void)       TRACE()
-void _PR_InitStacks(void)     TRACE()
+void _MD_EarlyInit(void)      { }
+void _PR_InitCPUs(void)       { }
+void _pr_init_ipv6(void)      { }
+void _PR_InitLayerCache(void) { }
+void _PR_InitLinker(void)     { }
+void _PR_InitSegs(void)       { }
+void _PR_InitStacks(void)     { }
 }
 

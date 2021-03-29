@@ -56,8 +56,9 @@ void Sup::Gmm::_update_pool_size()
 	size_t const new_size_pages = _reservation_pages.value + _alloc_ex_pages.value;
 
 	if (new_size_pages <= size_pages) {
-		warning("Can't shrink guest memory pool from ",
-		        size_pages, " to ", new_size_pages, " pages");
+		if (false)
+			warning("Can't shrink guest memory pool from ",
+			        size_pages, " to ", new_size_pages, " pages");
 		return;
 	}
 

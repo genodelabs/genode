@@ -506,7 +506,6 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 
 	uint32_t const mmio_flags = IOMMMIO_FLAGS_READ_DWORD
 	                          | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED;
-                              // | IOMMMIO_FLAGS_DBGSTOP_ON_COMPLICATED_WRITE;
 
 	rc = PDMDevHlpPCIIORegionCreateMmio(pDevIns, 0, pThis->ctl->mmio_size(),
 	                                    PCI_ADDRESS_SPACE_MEM,
@@ -529,7 +528,7 @@ const PDMDEVREG g_DeviceXHCI =
     /* .cMaxInstances = */          ~0U,
     /* .uSharedVersion = */         42,
     /* .cbInstanceShared = */       sizeof(XHCI),
-    /* .cbInstanceCC = */           0, //sizeof(XHCICC),
+    /* .cbInstanceCC = */           0, /* sizeof(XHCICC) */
     /* .cbInstanceRC = */           0,
     /* .cMaxPciDevices = */         1,
     /* .cMaxMsixVectors = */        0,

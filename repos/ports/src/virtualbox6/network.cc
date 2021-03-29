@@ -288,8 +288,6 @@ static DECLCALLBACK(int) drvNicNetworkUp_BeginXmit(PPDMINETWORKUP pInterface, bo
 static DECLCALLBACK(int) drvNicNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, size_t cbMin,
                                                   PCPDMNETWORKGSO pGso, PPPDMSCATTERGATHER ppSgBuf)
 {
-//	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
-
 	/*
 	 * Allocate a scatter / gather buffer descriptor that is immediately
 	 * followed by the buffer space of its single segment.  The GSO context
@@ -329,7 +327,6 @@ static DECLCALLBACK(int) drvNicNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, siz
  */
 static DECLCALLBACK(int) drvNicNetworkUp_FreeBuf(PPDMINETWORKUP pInterface, PPDMSCATTERGATHER pSgBuf)
 {
-//	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
 	if (pSgBuf)
 	{
 		Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
@@ -350,9 +347,6 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
 
 	AssertPtr(pSgBuf);
 	Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
-
-	/* Set an FTM checkpoint as this operation changes the state permanently. */
-//	PDMDrvHlpFTSetCheckpoint(pThis->pDrvIns, FTMCHECKPOINTTYPE_NETWORK);
 
 	int rc;
 	if (!pSgBuf->pvUser)
@@ -397,7 +391,6 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
  */
 static DECLCALLBACK(void) drvNicNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
 {
-//	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
 }
 
 
