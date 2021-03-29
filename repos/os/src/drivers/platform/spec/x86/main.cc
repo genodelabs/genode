@@ -54,6 +54,8 @@ struct Platform::Main
 	bool const _acpi_platform;
 	bool _acpi_ready    = false;
 
+	void _attempt_acpi_reset();
+
 	void acpi_update()
 	{
 		if (!root.constructed()) {
@@ -114,6 +116,19 @@ struct Platform::Main
 		if (!root_cap.valid())
 			acpi_update();
 
+		bool const system_state_was_constructed = system_state.constructed();
+
+		system_state.conditional(_config.xml().attribute_value("system", false),
+		                         _env, "system");
+
+		if (system_state.constructed() && !system_state_was_constructed)
+			system_state->sigh(_config_handler);
+
+		if (system_state.constructed()) {
+			system_state->update();
+			if (system_state->xml().attribute_value("state", String<16>()) == "reset")
+				_attempt_acpi_reset();
+		}
 
 		if (root.constructed()) {
 			root->generate_pci_report();
@@ -154,11 +169,38 @@ struct Platform::Main
 		/* wait for the first valid acpi report */
 		acpi_rom.construct(env, "acpi");
 		acpi_rom->sigh(_acpi_report);
+
 		/* check if already valid */
+		config_update();
 		acpi_update();
 		system_update();
 	}
 };
+
+
+void Platform::Main::_attempt_acpi_reset()
+{
+	using namespace Genode;
+
+	if (!acpi_rom.constructed())
+		return;
+
+	acpi_rom->xml().with_sub_node("reset", [&] (Xml_node reset) {
+
+		uint16_t const io_port = reset.attribute_value("io_port", (uint16_t)0);
+		uint8_t  const value   = reset.attribute_value("value",   (uint8_t)0);
+
+		log("trigger reset by writing value ", value, " to I/O port ", Hex(io_port));
+
+		try {
+			Io_port_connection reset_port { _env, io_port, 1 };
+			reset_port.outb(io_port, value);
+		}
+		catch (...) {
+			error("unable to access reset I/O port ", Hex(io_port));
+		}
+	});
+}
 
 
 void Component::construct(Genode::Env &env)
