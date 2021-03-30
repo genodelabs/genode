@@ -204,7 +204,7 @@ _file_name = $(call _prefer,$(NAME($1)),$(notdir $(URL($1))))
 	$(VERBOSE)test -n "$(URL($*))" ||\
 		($(ECHO) "Error: Undefined URL for $(call _file_name,$*)"; false);
 	$(VERBOSE)mkdir -p $(dir $(call _file_name,$*))
-	$(VERBOSE)name=$(call _file_name,$*); cached_name=$(GENODE_CONTRIB_CACHE)/$(SHA($*))_$$name; \
+	$(VERBOSE)name=$(call _file_name,$*); cached_name=$(GENODE_CONTRIB_CACHE)/$(SHA($*))_`basename $$name`; \
 		(test -f $$name || ! test -f $$cached_name || cp $$cached_name $$name); \
 		(test -f $$name || $(MSG_DOWNLOAD)$(URL($*))); \
 		(test -f $$name || wget --quiet --no-check-certificate $(URL($*)) -O $$name) || \
@@ -213,7 +213,7 @@ _file_name = $(call _prefer,$(NAME($1)),$(notdir $(URL($1))))
 		($(ECHO) "$(SHA($*))  $(call _file_name,$*)" |\
 		sha256sum -c > /dev/null 2> /dev/null) || \
 			($(ECHO) Error: Hash sum check for $* failed; false)
-	$(VERBOSE)name=$(call _file_name,$*); cached_name=$(GENODE_CONTRIB_CACHE)/$(SHA($*))_$$name; \
+	$(VERBOSE)name=$(call _file_name,$*); cached_name=$(GENODE_CONTRIB_CACHE)/$(SHA($*))_`basename $$name`; \
 		mkdir -p $(GENODE_CONTRIB_CACHE); \
 		(test -f $$cached_name || (cp $$name $$cached_name.tmp && mv $$cached_name.tmp $$cached_name))
 
