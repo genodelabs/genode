@@ -298,8 +298,8 @@ struct Util::Trust_anchor_vfs
 				}
 
 				_decrypt_io_buffer = {
-					.base = _job.cipher.value,
-					.size = sizeof (_job.cipher)
+					.base = _job.plain.value,
+					.size = sizeof (_job.plain)
 				};
 
 				job.type  = Job::Type::DECRYPT_READ;
