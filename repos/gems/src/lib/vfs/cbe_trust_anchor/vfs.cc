@@ -269,7 +269,18 @@ class Trust_anchor
 
 			[[fallthrough]];
 			case Job_state::IN_PROGRESS:
-				if (!_write_key_file_finished()) {
+				if (!_write_op_on_key_file_is_in_final_sync_step()) {
+					break;
+				}
+
+				_job_state   = Job_state::FINAL_SYNC;
+				_job_success = true;
+
+				progress |= true;
+			[[fallthrough]];
+			case Job_state::FINAL_SYNC:
+
+				if (!_final_sync_of_write_op_on_key_file_finished()) {
 					break;
 				}
 
@@ -551,31 +562,9 @@ class Trust_anchor
 			_key_io_job.construct(*_key_handle, Util::Io_job::Operation::WRITE,
 			                      _key_io_job_buffer, 0);
 			if (_key_io_job->execute() && _key_io_job->completed()) {
-				_state = State::INITIALIZED;
-				_close_handle(&_key_handle);
-				_key_io_job.destruct();
-				return true;
+				_start_sync_at_key_io_job();
 			}
 			return true;
-		}
-
-		bool _write_key_file_finished()
-		{
-			if (!_key_io_job.constructed()) {
-				return true;
-			}
-
-			// XXX trigger sync
-
-			bool const progress  = _key_io_job->execute();
-			bool const completed = _key_io_job->completed();
-			if (completed) {
-				_state = State::INITIALIZED;
-				_close_handle(&_key_handle);
-				_key_io_job.destruct();
-			}
-
-			return progress && completed;
 		}
 
 
@@ -647,6 +636,12 @@ class Trust_anchor
 			                       _hash_io_job_buffer, 0);
 		}
 
+		void _start_sync_at_key_io_job()
+		{
+			_key_io_job.construct(*_key_handle, Util::Io_job::Operation::SYNC,
+			                      _key_io_job_buffer, 0);
+		}
+
 		bool _open_hash_file_and_write(Path const &path)
 		{
 			using Result = Vfs::Directory_service::Open_result;
@@ -708,6 +703,34 @@ class Trust_anchor
 			if (completed) {
 				_close_handle(&_hash_handle);
 				_hash_io_job.destruct();
+			}
+			return progress && completed;
+		}
+
+		bool _write_op_on_key_file_is_in_final_sync_step()
+		{
+			if (_key_io_job->op() == Util::Io_job::Operation::SYNC) {
+				return true;
+			}
+			bool const progress  = _key_io_job->execute();
+			bool const completed = _key_io_job->completed();
+			if (completed) {
+				_start_sync_at_key_io_job();
+			}
+			return progress && completed;
+		}
+
+		bool _final_sync_of_write_op_on_key_file_finished()
+		{
+			if (!_key_io_job.constructed()) {
+				return true;
+			}
+			bool const progress  = _key_io_job->execute();
+			bool const completed = _key_io_job->completed();
+			if (completed) {
+				_state = State::INITIALIZED;
+				_close_handle(&_key_handle);
+				_key_io_job.destruct();
 			}
 			return progress && completed;
 		}
