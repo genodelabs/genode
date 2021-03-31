@@ -105,7 +105,7 @@ RWLockHandle *USBProxyService::lockHandle() const                               
 HRESULT       USBProxyService::autoCaptureDevicesForVM(SessionMachine *)           { return S_OK; }
 HRESULT       USBProxyService::captureDeviceForVM(SessionMachine *, IN_GUID,
                                                   com::Utf8Str const&)             STOP
-HRESULT       USBProxyService::detachAllDevicesFromVM(SessionMachine*, bool, bool) STOP
+HRESULT       USBProxyService::detachAllDevicesFromVM(SessionMachine*, bool, bool) { return S_OK; }
 HRESULT       USBProxyService::detachDeviceFromVM(SessionMachine*, IN_GUID, bool)  STOP
 void         *USBProxyService::insertFilter(PCUSBFILTER aFilter)                   STOP
 void          USBProxyService::removeFilter(void *aId)                             STOP
