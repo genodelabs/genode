@@ -94,7 +94,7 @@ install_config {
 				<config initial_width="500" initial_height="400" />
 			</launcher>
 			<launcher name="nitpicker" ram_quota="1M" caps="100">
-				<config>
+				<config request_framebuffer="yes" request_input="yes">
 					<domain name="default" layer="2" content="client"
 					        label="no" hover="always" focus="click"/>
 					<default-policy domain="default"/>
