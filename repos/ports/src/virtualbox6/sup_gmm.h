@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/attached_dataspace.h>
+#include <base/mutex.h>
 #include <rm_session/connection.h>
 #include <vm_session/connection.h>
 #include <region_map/client.h>
@@ -92,6 +93,8 @@ class Sup::Gmm
 		static constexpr Bytes _slice_size {     128*1024*1024ul };
 		static constexpr Bytes _map_size   { 32*1024*1024*1024ul };
 		static constexpr auto  _num_slices { _map_size.value / _slice_size.value };
+
+		Mutex _mutex { };
 
 		Dataspace_capability _slices[_num_slices];
 
