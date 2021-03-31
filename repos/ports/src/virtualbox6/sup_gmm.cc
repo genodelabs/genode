@@ -95,6 +95,8 @@ Sup::Gmm::Vmm_addr Sup::Gmm::_alloc_pages(Pages pages)
 
 void Sup::Gmm::reservation_pages(Pages pages)
 {
+	Mutex::Guard guard(_mutex);
+
 	_reservation_pages = pages;
 
 	_update_pool_size();
@@ -103,6 +105,8 @@ void Sup::Gmm::reservation_pages(Pages pages)
 
 Sup::Gmm::Vmm_addr Sup::Gmm::alloc_ex(Pages pages)
 {
+	Mutex::Guard guard(_mutex);
+
 	_alloc_ex_pages = { _alloc_ex_pages.value + pages.value };
 
 	_update_pool_size();
@@ -113,12 +117,16 @@ Sup::Gmm::Vmm_addr Sup::Gmm::alloc_ex(Pages pages)
 
 Sup::Gmm::Vmm_addr Sup::Gmm::alloc_from_reservation(Pages pages)
 {
+	Mutex::Guard guard(_mutex);
+
 	return _alloc_pages(pages);
 }
 
 
 Sup::Gmm::Page_id Sup::Gmm::page_id(Vmm_addr addr)
 {
+	Mutex::Guard guard(_mutex);
+
 	bool const inside_map = (addr.value >= _map.base.value)
 	                     && (addr.value <= _map.end.value);
 
@@ -143,6 +151,8 @@ uint32_t Sup::Gmm::page_id_as_uint32(Page_id page_id)
 
 Sup::Gmm::Vmm_addr Sup::Gmm::vmm_addr(Page_id page_id)
 {
+	Mutex::Guard guard(_mutex);
+
 	/* NIL_GMM_CHUNKID kept unused - so offset 0 is chunk ID 1 */
 	addr_t const addr = _map.base.value
 	                  + ((page_id.value - (1u << GMM_CHUNKID_SHIFT)) << PAGE_SHIFT);
@@ -159,6 +169,8 @@ Sup::Gmm::Vmm_addr Sup::Gmm::vmm_addr(Page_id page_id)
 
 void Sup::Gmm::map_to_guest(Vmm_addr from, Guest_addr to, Pages pages, Protection prot)
 {
+	Mutex::Guard guard(_mutex);
+
 	/* revoke existing mappings to avoid overmap */
 	_vm_connection.detach(to.value, pages.value << PAGE_SHIFT);
 

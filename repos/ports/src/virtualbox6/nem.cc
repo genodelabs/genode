@@ -28,6 +28,9 @@
 #include <VBox/vmm/em.h>
 #include <VBox/err.h>
 
+/* Genode includes */
+#include <base/mutex.h>
+
 /* local includes */
 #include <stub_macros.h>
 #include <sup.h>
@@ -104,10 +107,11 @@ struct Sup::Nem
 		}
 	};
 
+	Mutex mutex       { };
 	Range host_range  { };
 	Range guest_range { };
 
-	void commit_range()
+	void commit_range_unsynchronized()
 	{
 		/* ignore commit of invalid ranges */
 		if (!host_range.valid())
@@ -124,8 +128,17 @@ struct Sup::Nem
 		guest_range = { };
 	}
 
+	void commit_range()
+	{
+		Mutex::Guard guard(mutex);
+
+		commit_range_unsynchronized();
+	}
+
 	void map_to_guest(addr_t host_addr, addr_t guest_addr, size_t size, Protection prot)
 	{
+		Mutex::Guard guard(mutex);
+
 		Range new_host_range  { host_addr,  host_addr  + (size - 1), prot };
 		Range new_guest_range { guest_addr, guest_addr + (size - 1), prot };
 
@@ -144,7 +157,7 @@ struct Sup::Nem
 		}
 
 		/* new page starts a new range */
-		commit_range();
+		commit_range_unsynchronized();
 
 		/* start over with new page */
 		host_range  = { host_addr,  host_addr  + (size - 1), prot };
