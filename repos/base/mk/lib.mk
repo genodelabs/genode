@@ -165,6 +165,11 @@ all: $(LIB_TAG)
 #
 $(LIB_TAG) $(OBJECTS): $(HOST_TOOLS)
 
+#
+# Trigger build of additional library specific targets
+#
+$(LIB_TAG): $(CUSTOM_TARGET_DEPS)
+
 $(LIB_TAG): $(LIB_A) $(LIB_SO) $(LIB_CHECKED) $(ABI_SO) $(INSTALL_SO) $(DEBUG_SO)
 	@touch $@
 

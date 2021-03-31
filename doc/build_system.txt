@@ -362,6 +362,20 @@ in its 'LIBS' declaration and refers to the tools relative to
 '$(BUILD_BASE_DIR)'.
 
 
+Building additional custom targets accompanying library or program
+==================================================================
+
+There are cases when it is important to build additional targets
+besides standard files built for library or program. Of course there
+is no problem with writing specific make rules for commands that
+generate those target files but for them to be built a proper
+dependency must be specified. To achieve it those additional targets
+should be added to 'CUSTOM_TARGET_DEPS' variable like e.g. in
+iwl_firmware library from dde_linux repository:
+
+! CUSTOM_TARGET_DEPS += $(addprefix $(BIN_DIR)/,$(IMAGES))
+
+
 Automated integration and testing
 #################################
 
