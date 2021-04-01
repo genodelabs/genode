@@ -276,7 +276,8 @@ void Timeout_scheduler::_schedule_periodic_timeout(Timeout         &timeout,
 
 	/* prevent using a period of 0 */
 	if (period.value == 0) {
-		period.value = 1;
+		error("attempt to schedule a periodic timeout of 0");
+		return;
 	}
 	_schedule_timeout(timeout, Microseconds { 0 }, period, handler);
 }

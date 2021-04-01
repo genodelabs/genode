@@ -65,8 +65,8 @@ class Timer::Session_component : public  Genode::Rpc_object<Session>,
 		 ** Timer::Session **
 		 ********************/
 
-		void trigger_once(uint64_t us) override {
-
+		void trigger_once(uint64_t us) override
+		{
 			/*
 			 * FIXME Workaround for the problem that Alarm scheduler may
 			 *       categorize big timeouts into the wrong time counter
@@ -80,8 +80,13 @@ class Timer::Session_component : public  Genode::Rpc_object<Session>,
 			_timeout.schedule_one_shot(typed_us, *this);
 		}
 
-		void trigger_periodic(uint64_t us) override {
-			_timeout.schedule_periodic(Microseconds(us), *this); }
+		void trigger_periodic(uint64_t us) override
+		{
+			if (us)
+				_timeout.schedule_periodic(Microseconds(us), *this);
+			else
+				_timeout.discard();
+		}
 
 		void sigh(Signal_context_capability sigh) override
 		{
