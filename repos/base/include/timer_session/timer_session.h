@@ -49,7 +49,8 @@ struct Timer::Session : Genode::Session
 	 * Program periodic timeout (in microseconds)
 	 *
 	 * The first period will be triggered after 'us' at the latest,
-	 * but it might be triggered earlier as well.
+	 * but it might be triggered earlier as well. The 'us' value 0
+	 * disables periodic timeouts.
 	 */
 	virtual void trigger_periodic(uint64_t us) = 0;
 
