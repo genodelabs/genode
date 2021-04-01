@@ -64,6 +64,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		typedef Resource_limit_accessor<Ram_quota> Ram_limit_accessor;
 		typedef Resource_limit_accessor<Cap_quota> Cap_limit_accessor;
 
+		enum class Sample_state_result { CHANGED, UNCHANGED };
+
 	private:
 
 		friend class Child_registry;
@@ -446,7 +448,34 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		bool _exited     { false };
 		int  _exit_value { -1 };
 
+		/**
+		 * Return true if it's safe to call the PD for requesting resource
+		 * information
+		 */
+		bool _pd_alive() const
+		{
+			return !abandoned() && !_exited;
+		}
+
 		void _destroy_services();
+
+		struct Sampled_state
+		{
+			Ram_info ram;
+			Cap_info caps;
+
+			static Sampled_state from_pd(Pd_session &pd)
+			{
+				return { .ram  = Ram_info::from_pd(pd),
+				         .caps = Cap_info::from_pd(pd) };
+			}
+
+			bool operator != (Sampled_state const &other) const
+			{
+				return (ram != other.ram) || (caps != other.caps);
+			}
+
+		} _sampled_state { };
 
 	public:
 
@@ -581,7 +610,9 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			return _heartbeat_expected() ? _child.skipped_heartbeats() : 0;
 		}
 
-		void report_state(Xml_generator &xml, Report_detail const &detail) const;
+		void report_state(Xml_generator &, Report_detail const &) const;
+
+		Sample_state_result sample_state();
 
 
 		/****************************

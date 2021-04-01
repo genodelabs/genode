@@ -39,6 +39,8 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	using Alias          = ::Sandbox::Alias;
 	using Child          = ::Sandbox::Child;
 	using Prio_levels    = ::Sandbox::Prio_levels;
+	using Ram_info       = ::Sandbox::Ram_info;
+	using Cap_info       = ::Sandbox::Cap_info;
 
 	Env  &_env;
 	Heap &_heap;
@@ -122,13 +124,18 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	void produce_state_report(Xml_generator &xml, Report_detail const &detail) const override
 	{
 		if (detail.init_ram())
-			xml.node("ram",  [&] () { ::Sandbox::generate_ram_info (xml, _env.pd()); });
+			xml.node("ram",  [&] () { Ram_info::from_pd(_env.pd()).generate(xml); });
 
 		if (detail.init_caps())
-			xml.node("caps", [&] () { ::Sandbox::generate_caps_info(xml, _env.pd()); });
+			xml.node("caps", [&] () { Cap_info::from_pd(_env.pd()).generate(xml); });
 
 		if (detail.children())
 			_children.report_state(xml, detail);
+	}
+
+	Child::Sample_state_result sample_children_state() override
+	{
+		return _children.sample_state();
 	}
 
 	/**
@@ -630,4 +637,3 @@ Genode::Sandbox::Sandbox(Env &env, State_handler &state_handler)
 	_heap(env.ram(), env.rm()),
 	_library(*new (_heap) Library(env, _heap, _local_services, state_handler))
 { }
-
