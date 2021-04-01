@@ -29,6 +29,49 @@ namespace Sandbox {
 	struct Prio_levels { long value; };
 
 	typedef List<List_element<Child> > Child_list;
+
+	template <typename T>
+	struct Resource_info
+	{
+		T quota, used, avail;
+
+		static Resource_info from_pd(Pd_session const &pd);
+
+		void generate(Xml_generator &xml) const
+		{
+			typedef String<32> Value;
+			xml.attribute("quota", Value(quota));
+			xml.attribute("used",  Value(used));
+			xml.attribute("avail", Value(avail));
+		}
+
+		bool operator != (Resource_info const &other) const
+		{
+			return quota.value != other.quota.value
+			    || used.value  != other.used.value
+			    || avail.value != other.avail.value;
+		}
+	};
+
+	typedef Resource_info<Ram_quota> Ram_info;
+	typedef Resource_info<Cap_quota> Cap_info;
+
+	template <>
+	inline Ram_info Ram_info::from_pd(Pd_session const &pd)
+	{
+		return { .quota = pd.ram_quota(),
+		         .used  = pd.used_ram(),
+		         .avail = pd.avail_ram() };
+	}
+
+	template <>
+	inline Cap_info Cap_info::from_pd(Pd_session const &pd)
+	{
+		return { .quota = pd.cap_quota(),
+		         .used  = pd.used_caps(),
+		         .avail = pd.avail_caps() };
+	}
+
 }
 
 #endif /* _LIB__SANDBOX__TYPES_H_ */

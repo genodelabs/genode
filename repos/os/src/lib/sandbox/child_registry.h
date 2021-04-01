@@ -136,6 +136,17 @@ class Sandbox::Child_registry : public Name_registry, Child_list
 			}
 		}
 
+		Child::Sample_state_result sample_state()
+		{
+			auto result = Child::Sample_state_result::UNCHANGED;
+
+			for_each_child([&] (Child &child) {
+				if (result == Child::Sample_state_result::UNCHANGED)
+					result = child.sample_state(); });
+
+			return result;
+		}
+
 		Child::Name deref_alias(Child::Name const &name) override
 		{
 			for (Alias const *a = _aliases.first(); a; a = a->next())

@@ -357,7 +357,7 @@ void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detai
 					Number_of_bytes(_resources.assigned_ram_quota.value) });
 
 				if (pd_alive)
-					generate_ram_info(xml, _child.pd());
+					Ram_info::from_pd(_child.pd()).generate(xml);
 
 				if (_requested_resources.constructed() && _requested_resources->ram.value)
 					xml.attribute("requested", String<32>(_requested_resources->ram));
@@ -370,7 +370,7 @@ void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detai
 				xml.attribute("assigned", String<32>(_resources.assigned_cap_quota));
 
 				if (pd_alive)
-					generate_caps_info(xml, _child.pd());
+					Cap_info::from_pd(_child.pd()).generate(xml);
 
 				if (_requested_resources.constructed() && _requested_resources->caps.value)
 					xml.attribute("requested", String<32>(_requested_resources->caps));
@@ -399,6 +399,17 @@ void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detai
 			});
 		}
 	});
+}
+
+
+Sandbox::Child::Sample_state_result Sandbox::Child::sample_state()
+{
+	Sampled_state const orig_state = _sampled_state;
+
+	_sampled_state = Sampled_state::from_pd(_child.pd());
+
+	return (orig_state != _sampled_state) ? Sample_state_result::CHANGED
+	                                      : Sample_state_result::UNCHANGED;
 }
 
 
