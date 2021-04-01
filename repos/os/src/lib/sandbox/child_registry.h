@@ -29,29 +29,7 @@ class Sandbox::Child_registry : public Name_registry, Child_list
 
 		List<Alias> _aliases { };
 
-		bool _unique(const char *name) const
-		{
-			/* check for name clash with an existing child */
-			List_element<Child> const *curr = first();
-			for (; curr; curr = curr->next())
-				if (curr->object()->has_name(name))
-					return false;
-
-			/* check for name clash with an existing alias */
-			for (Alias const *a = _aliases.first(); a; a = a->next()) {
-				if (Alias::Name(name) == a->name)
-					return false;
-			}
-
-			return true;
-		}
-
 	public:
-
-		/**
-		 * Exception type
-		 */
-		class Alias_name_is_not_unique { };
 
 		/**
 		 * Register child
@@ -74,10 +52,6 @@ class Sandbox::Child_registry : public Name_registry, Child_list
 		 */
 		void insert_alias(Alias *alias)
 		{
-			if (!_unique(alias->name.string())) {
-				error("alias name ", alias->name, " is not unique");
-				throw Alias_name_is_not_unique();
-			}
 			_aliases.insert(alias);
 		}
 
@@ -87,22 +61,6 @@ class Sandbox::Child_registry : public Name_registry, Child_list
 		void remove_alias(Alias *alias)
 		{
 			_aliases.remove(alias);
-		}
-
-		/**
-		 * Return any of the registered children, or 0 if no child exists
-		 */
-		Child *any()
-		{
-			return first() ? first()->object() : 0;
-		}
-
-		/**
-		 * Return any of the registered aliases, or 0 if no alias exists
-		 */
-		Alias *any_alias()
-		{
-			return _aliases.first() ? _aliases.first() : 0;
 		}
 
 		template <typename FN>
@@ -127,7 +85,6 @@ class Sandbox::Child_registry : public Name_registry, Child_list
 		{
 			for_each_child([&] (Child &child) { child.report_state(xml, detail); });
 
-			/* check for name clash with an existing alias */
 			for (Alias const *a = _aliases.first(); a; a = a->next()) {
 				xml.node("alias", [&] () {
 					xml.attribute("name", a->name);

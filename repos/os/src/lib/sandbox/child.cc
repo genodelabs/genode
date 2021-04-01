@@ -11,6 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <vm_session/vm_session.h>
 
 /* local includes */
@@ -28,14 +29,14 @@ void Sandbox::Child::destroy_services()
 Sandbox::Child::Apply_config_result
 Sandbox::Child::apply_config(Xml_node start_node)
 {
-	if (_state == STATE_ABANDONED || _exited)
+	if (abandoned() || stuck() || restart_scheduled() || _exited)
 		return NO_SIDE_EFFECTS;
 
 	/*
-	 * If the child's environment is incomplete, restart it to attempt
-	 * the re-routing of its environment sessions.
+	 * If the child was started but its environment is incomplete, mark it as
+	 * being stuck in order to restart it once the environment changes.
 	 */
-	{
+	if (_state != State::INITIAL) {
 		bool env_log_exists = false, env_binary_exists = false;
 		_child.for_each_session([&] (Session_state const &session) {
 			Parent::Client::Id const id = session.id_at_client();
@@ -44,8 +45,8 @@ Sandbox::Child::apply_config(Xml_node start_node)
 		});
 
 		if (!env_binary_exists || !env_log_exists) {
-			abandon();
-			return MAY_HAVE_SIDE_EFFECTS;
+			_state = State::STUCK;
+			return NO_SIDE_EFFECTS;
 		}
 	}
 
@@ -62,13 +63,23 @@ Sandbox::Child::apply_config(Xml_node start_node)
 	if (start_node.differs_from(_start_node->xml())) {
 
 		/*
-		 * Start node changed
-		 *
+		 * The <route> node may affect the availability or unavailability
+		 * of dependencies.
+		 */
+		start_node.with_sub_node("route", [&] (Xml_node const &route) {
+			_start_node->xml().with_sub_node("route", [&] (Xml_node const &orig) {
+				if (route.differs_from(orig))
+					_uncertain_dependencies = true; }); });
+
+		/*
 		 * Determine how the inline config is affected.
 		 */
 		char const * const tag = "config";
 		bool const config_was_present = _start_node->xml().has_sub_node(tag);
 		bool const config_is_present  = start_node.has_sub_node(tag);
+
+		if (config_was_present != config_is_present)
+			_uncertain_dependencies = true;
 
 		if (config_was_present && !config_is_present)
 			config_update = CONFIG_VANISHED;
@@ -125,7 +136,10 @@ Sandbox::Child::apply_config(Xml_node start_node)
 		 * the binary's ROM session, triggering the restart of the
 		 * child.
 		 */
+		Binary_name const orig_binary_name = _binary_name;
 		_binary_name = _binary_from_xml(start_node, _unique_name);
+		if (orig_binary_name != _binary_name)
+			_uncertain_dependencies = true;
 
 		_heartbeat_enabled = start_node.has_sub_node("heartbeat");
 
@@ -136,8 +150,8 @@ Sandbox::Child::apply_config(Xml_node start_node)
 	/*
 	 * Apply change to '_config_rom_service'. This will
 	 * potentially result in a change of the "config" ROM route, which
-	 * may in turn prompt the routing-check below to abandon (restart)
-	 * the child.
+	 * may in turn prompt the routing-check by 'evaluate_dependencies'
+	 * to restart the child.
 	 */
 	switch (config_update) {
 	case CONFIG_UNCHANGED:                                       break;
@@ -146,23 +160,36 @@ Sandbox::Child::apply_config(Xml_node start_node)
 	case CONFIG_VANISHED: _config_rom_service->abandon();        break;
 	}
 
-	/* validate that the routes of all existing sessions remain intact */
-	{
-		bool routing_changed = false;
-		_child.for_each_session([&] (Session_state const &session) {
-			if (!_route_valid(session))
-				routing_changed = true; });
-
-		if (routing_changed) {
-			abandon();
-			return MAY_HAVE_SIDE_EFFECTS;
-		}
-	}
-
 	if (provided_services_changed)
-		return MAY_HAVE_SIDE_EFFECTS;
+		return PROVIDED_SERVICES_CHANGED;
 
 	return NO_SIDE_EFFECTS;
+}
+
+
+void Sandbox::Child::evaluate_dependencies()
+{
+	bool any_route_changed     = false;
+	bool any_route_unavailable = false;
+
+	_child.for_each_session([&] (Session_state const &session) {
+
+		switch (_route_valid(session)) {
+		case Route_state::VALID:       break;
+		case Route_state::UNAVAILABLE: any_route_unavailable = true; break;
+		case Route_state::MISMATCH:    any_route_changed     = true; break;
+		}
+	});
+
+	_uncertain_dependencies = false;
+
+	if (any_route_unavailable) {
+		_state = State::STUCK;
+		return;
+	}
+
+	if (any_route_changed || stuck())
+		_schedule_restart();
 }
 
 
@@ -338,7 +365,7 @@ void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detai
 		if (detail.ids())
 			xml.attribute("id", _id.value);
 
-		if (!_child.active())
+		if (stuck() || _state == State::RAM_INITIALIZED)
 			xml.attribute("state", "incomplete");
 
 		if (_exited)
@@ -420,11 +447,29 @@ void Sandbox::Child::init(Pd_session &session, Pd_session_capability cap)
 	size_t const initial_session_costs =
 		session_alloc_batch_size()*_child.session_factory().session_costs();
 
-	Ram_quota const ram_quota { _resources.effective_ram_quota().value > initial_session_costs
-	                          ? _resources.effective_ram_quota().value - initial_session_costs
-	                          : 0 };
+	Ram_quota ram_quota { _resources.effective_ram_quota().value > initial_session_costs
+	                    ? _resources.effective_ram_quota().value - initial_session_costs
+	                    : 0 };
 
-	Cap_quota const cap_quota { _resources.effective_cap_quota().value };
+	Ram_quota avail_ram = _ram_limit_accessor.resource_limit(Ram_quota());
+
+	avail_ram = Genode::Child::effective_quota(avail_ram);
+
+	if (ram_quota.value > avail_ram.value) {
+		warning(name(), ": configured RAM exceeds available RAM, proceed with ", avail_ram);
+		ram_quota = avail_ram;
+	}
+
+	Cap_quota cap_quota { _resources.effective_cap_quota().value };
+
+	Cap_quota avail_caps = _cap_limit_accessor.resource_limit(avail_caps);
+
+	avail_caps = Genode::Child::effective_quota(avail_caps);
+
+	if (cap_quota.value > avail_caps.value) {
+		warning(name(), ": configured caps exceed available caps, proceed with ", avail_caps);
+		cap_quota = avail_caps;
+	}
 
 	try { _env.pd().transfer_quota(cap, cap_quota); }
 	catch (Out_of_caps) {
@@ -718,8 +763,6 @@ Sandbox::Child::Child(Env                      &env,
                       Default_route_accessor   &default_route_accessor,
                       Default_caps_accessor    &default_caps_accessor,
                       Name_registry            &name_registry,
-                      Ram_quota                 ram_limit,
-                      Cap_quota                 cap_limit,
                       Ram_limit_accessor       &ram_limit_accessor,
                       Cap_limit_accessor       &cap_limit_accessor,
                       Prio_levels               prio_levels,
@@ -739,8 +782,7 @@ Sandbox::Child::Child(Env                      &env,
 	_name_registry(name_registry),
 	_heartbeat_enabled(start_node.has_sub_node("heartbeat")),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,
-	                                      default_caps_accessor.default_caps(), cap_limit)),
-	_resources_clamped_to_limit((_clamp_resources(ram_limit, cap_limit), true)),
+	                                      default_caps_accessor.default_caps())),
 	_parent_services(parent_services),
 	_child_services(child_services),
 	_local_services(local_services),

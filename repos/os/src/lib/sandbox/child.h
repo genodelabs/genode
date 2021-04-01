@@ -78,10 +78,34 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		Id const _id;
 
-		enum State { STATE_INITIAL, STATE_RAM_INITIALIZED, STATE_ALIVE,
-		             STATE_ABANDONED };
+		enum class State {
 
-		State _state = STATE_INITIAL;
+			/*
+			 * States modelling the child's boostrap phase
+			 */
+			INITIAL, RAM_INITIALIZED, ALIVE,
+
+			/*
+			 * The child is present in the config model but its bootstrapping
+			 * permanently failed.
+			 */
+			STUCK,
+
+			/*
+			 * The child must be restarted because a fundamental dependency
+			 * changed. While the child is in this state, it is still
+			 * referenced by the config model.
+			 */
+			RESTART_SCHEDULED,
+
+			/*
+			 * The child is no longer referenced by config model and can
+			 * safely be destructed.
+			 */
+			ABANDONED
+		};
+
+		State _state = State::INITIAL;
 
 		Report_update_trigger &_report_update_trigger;
 
@@ -93,6 +117,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 * Version attribute of the start node, used to force child restarts.
 		 */
 		Version _version { _start_node->xml().attribute_value("version", Version()) };
+
+		bool _uncertain_dependencies = false;
 
 		/*
 		 * True if the binary is loaded with ld.lib.so
@@ -117,7 +143,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			if (name.valid())
 				return name;
 
-			warning("missint 'name' attribute in '<start>' entry");
+			warning("missing 'name' attribute in '<start>' entry");
 			throw Missing_name_attribute();
 		}
 
@@ -151,7 +177,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		bool _heartbeat_expected() const
 		{
 			/* don't expect heartbeats from a child that is not yet complete */
-			return _heartbeat_enabled && (_state == STATE_ALIVE);
+			return _heartbeat_enabled && (_state == State::ALIVE);
 		}
 
 		/**
@@ -193,9 +219,10 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			}
 		};
 
+		static
 		Resources _resources_from_start_node(Xml_node start_node, Prio_levels prio_levels,
 		                                     Affinity::Space const &affinity_space,
-		                                     Cap_quota default_cap_quota, Cap_quota)
+		                                     Cap_quota default_cap_quota)
 		{
 			size_t          cpu_quota_pc   = 0;
 			Number_of_bytes ram_bytes      = 0;
@@ -208,7 +235,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 				Name const name = rsc.attribute_value("name", Name());
 
 				if (name == "RAM") {
-					ram_bytes      = rsc.attribute_value("quantum", ram_bytes);
+					ram_bytes = rsc.attribute_value("quantum", ram_bytes);
 				}
 
 				if (name == "CPU") {
@@ -231,28 +258,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		Resources _resources;
 
-		/**
-		 * Print diagnostic information on misconfiguration
-		 */
-		void _clamp_resources(Ram_quota ram_limit, Cap_quota cap_limit)
-		{
-			if (_resources.assigned_ram_quota.value > ram_limit.value) {
-				warning(name(), " assigned RAM (", _resources.assigned_ram_quota, ") "
-				        "exceeds available RAM (", ram_limit, ")");
-				_resources.assigned_ram_quota = ram_limit;
-			}
-
-			if (_resources.assigned_cap_quota.value > cap_limit.value) {
-				warning(name(), " assigned caps (", _resources.assigned_cap_quota, ") "
-				        "exceed available caps (", cap_limit, ")");
-				_resources.assigned_cap_quota = cap_limit;
-			}
-		}
-
 		Ram_quota _configured_ram_quota() const;
 		Cap_quota _configured_cap_quota() const;
-
-		bool const _resources_clamped_to_limit;
 
 		using Local_service = Genode::Sandbox::Local_service_base;
 
@@ -375,6 +382,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			_session_requester.trigger_update();
 		}
 
+		enum class Route_state { VALID, MISMATCH, UNAVAILABLE };
+
 		/**
 		 * Return true if the policy results in the current route of the session
 		 *
@@ -382,7 +391,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 * client session of a child, i.e., to determine whether the child must
 		 * be restarted.
 		 */
-		bool _route_valid(Session_state const &session)
+		Route_state _route_valid(Session_state const &session)
 		{
 			try {
 				Route const route =
@@ -390,10 +399,12 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 					                        session.client_label(),
 					                        session.diag());
 
-				return (session.service() == route.service)
-				    && (route.label == session.label());
+				bool const valid = (session.service() == route.service)
+				                && (route.label == session.label());
+
+				return valid ? Route_state::VALID : Route_state::MISMATCH;
 			}
-			catch (Service_denied) { return false; }
+			catch (Service_denied) { return Route_state::UNAVAILABLE; }
 		}
 
 		static Xml_node _provides_sub_node(Xml_node start_node)
@@ -421,7 +432,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 				    service.name() == node.attribute_value("name", Service::Name()))
 					exists = true; });
 
-			return exists && !abandoned();
+			return exists && !abandoned() && !restart_scheduled();
 		}
 
 		void _add_service(Xml_node service)
@@ -454,7 +465,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 */
 		bool _pd_alive() const
 		{
-			return !abandoned() && !_exited;
+			return !abandoned() && !restart_scheduled() && !_exited;
 		}
 
 		void _destroy_services();
@@ -476,6 +487,19 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			}
 
 		} _sampled_state { };
+
+		void _abandon_services()
+		{
+			_child_services.for_each([&] (Routed_service &service) {
+				if (service.has_id_space(_session_requester.id_space()))
+					service.abandon(); });
+		}
+
+		void _schedule_restart()
+		{
+			_state = State::RESTART_SCHEDULED;
+			_abandon_services();
+		}
 
 	public:
 
@@ -505,8 +529,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		      Default_route_accessor   &default_route_accessor,
 		      Default_caps_accessor    &default_caps_accessor,
 		      Name_registry            &name_registry,
-		      Ram_quota                 ram_limit,
-		      Cap_quota                 cap_limit,
 		      Ram_limit_accessor       &ram_limit_accessor,
 		      Cap_limit_accessor       &cap_limit_accessor,
 		      Prio_levels               prio_levels,
@@ -527,50 +549,55 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		Ram_quota ram_quota() const { return _resources.assigned_ram_quota; }
 		Cap_quota cap_quota() const { return _resources.assigned_cap_quota; }
 
-		void initiate_env_pd_session()
+		void try_start()
 		{
-			if (_state == STATE_INITIAL) {
+			if (_state == State::INITIAL) {
 				_child.initiate_env_pd_session();
-				_state = STATE_RAM_INITIALIZED;
+				_state = State::RAM_INITIALIZED;
 			}
-		}
 
-		void initiate_env_sessions()
-		{
-			if (_state == STATE_RAM_INITIALIZED) {
+			/*
+			 * Update the state if async env sessions have brought the child to
+			 * life. Otherwise, we would wrongly call 'initiate_env_sessions()'
+			 * another time.
+			 */
+			if (_state == State::RAM_INITIALIZED && _child.active())
+				_state = State::ALIVE;
 
+			if (_state == State::RAM_INITIALIZED) {
 				_child.initiate_env_sessions();
 
-				/* check for completeness of the child's environment */
-				if (_verbose.enabled())
-					_child.for_each_session([&] (Session_state const &session) {
-						if (!session.alive())
-							warning(name(), ": incomplete environment ",
-							        session.service().name(), " session "
-							        "(", session.label(), ")"); });
-
-				_state = STATE_ALIVE;
+				if (_child.active())
+					_state = State::ALIVE;
+				else
+					_uncertain_dependencies = true;
 			}
 		}
 
+		/*
+		 * Mark child as to be removed because its was dropped from the
+		 * config model. Either <start> node disappeared or 'restart_scheduled'
+		 * was handled.
+		 */
 		void abandon()
 		{
-			_state = STATE_ABANDONED;
-
-			_child_services.for_each([&] (Routed_service &service) {
-				if (service.has_id_space(_session_requester.id_space()))
-					service.abandon(); });
+			_state = State::ABANDONED;
+			_abandon_services();
 		}
 
 		void destroy_services();
 
 		void close_all_sessions() { _child.close_all_sessions(); }
 
-		bool abandoned() const { return _state == STATE_ABANDONED; }
+		bool abandoned() const { return _state == State::ABANDONED; }
+
+		bool restart_scheduled() const { return _state == State::RESTART_SCHEDULED; }
+
+		bool stuck() const { return _state == State::STUCK; }
 
 		bool env_sessions_closed() const { return _child.env_sessions_closed(); }
 
-		enum Apply_config_result { MAY_HAVE_SIDE_EFFECTS, NO_SIDE_EFFECTS };
+		enum Apply_config_result { PROVIDED_SERVICES_CHANGED, NO_SIDE_EFFECTS };
 
 		/**
 		 * Apply new configuration to child
@@ -579,6 +606,15 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 *                                  config
 		 */
 		Apply_config_result apply_config(Xml_node start_node);
+
+		bool uncertain_dependencies() const { return _uncertain_dependencies; }
+
+		/**
+		 * Validate that the routes of all existing sessions remain intact
+		 *
+		 * The child may become scheduled for restart or get stuck.
+		 */
+		void evaluate_dependencies();
 
 		/* common code for upgrading RAM and caps */
 		template <typename QUOTA, typename LIMIT_ACCESSOR>

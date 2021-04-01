@@ -29,6 +29,8 @@ class Sandbox::State_reporter : public Report_update_trigger
 {
 	public:
 
+		typedef String<64> Version;
+
 		struct Producer : Interface
 		{
 			virtual void produce_state_report(Xml_generator &xml,
@@ -53,7 +55,6 @@ class Sandbox::State_reporter : public Report_update_trigger
 		uint64_t _report_period_ms = 0;
 
 		/* version string from config, to be reflected in the report */
-		typedef String<64> Version;
 		Version _version { };
 
 		Constructible<Timer::Connection> _timer          { };
@@ -111,22 +112,18 @@ class Sandbox::State_reporter : public Report_update_trigger
 				_producer.produce_state_report(xml, *_report_detail);
 		}
 
-		void apply_config(Xml_node config)
+		void apply_config(Version const &version, Xml_node const &report)
 		{
-			try {
-				Xml_node report = config.sub_node("report");
-
+			if (report.type() == "report") {
 				_report_detail.construct(report);
 				_report_delay_ms = report.attribute_value("delay_ms", 100UL);
-			}
-			catch (Xml_node::Nonexistent_sub_node) {
+			} else {
 				_report_detail.construct();
 				_report_delay_ms = 0;
 			}
 
 			bool trigger_update = false;
 
-			Version const version = config.attribute_value("version", Version());
 			if (version != _version) {
 				_version = version;
 				trigger_update = true;

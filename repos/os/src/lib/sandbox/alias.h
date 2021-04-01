@@ -19,34 +19,28 @@
 
 namespace Sandbox { struct Alias; }
 
-struct Sandbox::Alias : List<Alias>::Element
+struct Sandbox::Alias : List<Alias>::Element, Noncopyable
 {
-	typedef String<128> Name;
-	typedef String<128> Child;
+	typedef Child_policy::Name Name;
+	typedef Child_policy::Name Child;
 
-	Name  name;
-	Child child;
+	Name const name;
 
-	/**
-	 * Exception types
+	Child child { }; /* defined by 'update' */
+
+	Alias(Name const &name) : name(name) { }
+
+	class Child_attribute_missing : Exception { };
+
+	/*
+	 * \throw Child_attribute_missing
 	 */
-	class Name_is_missing  : Exception { };
-	class Child_is_missing : Exception { };
-
-	/**
-	 * Constructor
-	 *
-	 * \throw Name_is_missing
-	 * \throw Child_is_missing
-	 */
-	Alias(Genode::Xml_node alias)
-	:
-		name (alias.attribute_value("name",  Name())),
-		child(alias.attribute_value("child", Child()))
+	void update(Xml_node const &alias)
 	{
+		if (!alias.has_attribute("child"))
+			warning("alias node \"", name, "\" lacks child attribute");
 
-		if (!name.valid())  throw Name_is_missing();
-		if (!child.valid()) throw Child_is_missing();
+		child = alias.attribute_value("child", Child());
 	}
 };
 
