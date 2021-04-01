@@ -124,7 +124,8 @@ namespace Sandbox {
 		/* count number of services with the specified name */
 		unsigned cnt = 0;
 		services.for_each([&] (T const &service) {
-			cnt += (service.name() == name); });
+			if (!service.abandoned())
+				cnt += (service.name() == name); });
 
 		return cnt > 1;
 	}
@@ -164,7 +165,7 @@ namespace Sandbox {
 	/**
 	 * Read priority-levels declaration from config
 	 */
-	inline Prio_levels prio_levels_from_xml(Xml_node config)
+	inline Prio_levels prio_levels_from_xml(Xml_node const &config)
 	{
 		long const prio_levels = config.attribute_value("prio_levels", 0UL);
 
@@ -232,24 +233,6 @@ namespace Sandbox {
 			                min((unsigned)(y2 - y1 + 1), space.height()));
 		}
 		catch (...) { return Location(0, 0, space.width(), space.height()); }
-	}
-
-
-	/**
-	 * Read affinity-space parameters from config
-	 *
-	 * If no affinity space is declared, construct a space with a single element,
-	 * width and height being 1. If only one of both dimensions is specified, the
-	 * other dimension is set to 1.
-	 */
-	inline Affinity::Space affinity_space_from_xml(Xml_node config)
-	{
-		try {
-			Xml_node node = config.sub_node("affinity-space");
-			return Affinity::Space(node.attribute_value<unsigned long>("width",  1),
-			                       node.attribute_value<unsigned long>("height", 1));
-		} catch (...) {
-			return Affinity::Space(1, 1); }
 	}
 }
 

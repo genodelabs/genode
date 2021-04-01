@@ -64,23 +64,23 @@ class Sandbox::Heartbeat : Noncopyable
 			_timer_handler(_env.ep(), *this, &Heartbeat::_handle_timer)
 		{ }
 
-		void apply_config(Xml_node config)
+		void disable()
 		{
-			bool const enabled = config.has_sub_node("heartbeat");
+			_timer.destruct();
+			_rate_ms = 0;
+		}
 
-			_timer.conditional(enabled, _env);
-
-			if (!enabled) {
-				_rate_ms = 0;
-				return;
+		void apply_config(Xml_node heartbeat)
+		{
+			if (!_timer.constructed()) {
+				_timer.construct(_env);
+				_timer->sigh(_timer_handler);
 			}
 
-			unsigned const rate_ms =
-				config.sub_node("heartbeat").attribute_value("rate_ms", 1000UL);
+			unsigned const rate_ms = heartbeat.attribute_value("rate_ms", 1000UL);
 
 			if (rate_ms != _rate_ms) {
 				_rate_ms = rate_ms;
-				_timer->sigh(_timer_handler);
 				_timer->trigger_periodic(_rate_ms*1000);
 			}
 		}

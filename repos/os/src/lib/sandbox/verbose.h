@@ -34,7 +34,7 @@ class Sandbox::Verbose : Genode::Noncopyable
 
 		Verbose() { }
 
-		Verbose(Genode::Xml_node config)
+		Verbose(Xml_node const &config)
 		: _enabled(config.attribute_value("verbose", false)) { }
 
 		bool enabled() const { return _enabled; }

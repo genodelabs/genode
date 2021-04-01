@@ -19,15 +19,17 @@
 #include <os/buffered_xml.h>
 
 /* local includes */
-#include "types.h"
-#include "service.h"
-#include "state_reporter.h"
+#include <types.h>
+#include <service.h>
+#include <state_reporter.h>
+#include <config_model.h>
 
 namespace Sandbox { class Server; }
 
 
 class Sandbox::Server : Session_state::Ready_callback,
-                        Session_state::Closed_callback
+                        Session_state::Closed_callback,
+                        public Service_model::Factory
 {
 	private:
 
@@ -113,7 +115,17 @@ class Sandbox::Server : Session_state::Ready_callback,
 			_report_update_trigger(report_update_trigger)
 		{ }
 
-		void apply_config(Xml_node);
+		void apply_updated_policy();
+
+		/**
+		 * Service_model::Factory
+		 */
+		Service_model &create_service(Xml_node const &) override;
+
+		/**
+		 * Service_model::Factory
+		 */
+		void destroy_service(Service_model &) override;
 };
 
 #endif /* _LIB__SANDBOX__SERVER_H_ */

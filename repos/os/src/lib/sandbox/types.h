@@ -14,9 +14,9 @@
 #ifndef _LIB__SANDBOX__TYPES_H_
 #define _LIB__SANDBOX__TYPES_H_
 
-#include <util/string.h>
 #include <util/list.h>
-#include <session/session.h>
+#include <util/xml_generator.h>
+#include <pd_session/pd_session.h>
 
 namespace Sandbox {
 
@@ -72,6 +72,22 @@ namespace Sandbox {
 		         .avail = pd.avail_caps() };
 	}
 
+	struct Preservation : private Noncopyable
+	{
+		static Ram_quota default_ram()  { return { 40*sizeof(long)*1024 }; }
+		static Cap_quota default_caps() { return { 20 }; }
+
+		Ram_quota ram  { };
+		Cap_quota caps { };
+
+		void reset()
+		{
+			ram  = default_ram();
+			caps = default_caps();
+		}
+
+		Preservation() { reset(); }
+	};
 }
 
 #endif /* _LIB__SANDBOX__TYPES_H_ */

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2020 Genode Labs GmbH
+ * Copyright (C) 2010-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -20,12 +20,15 @@
 #include <alias.h>
 #include <server.h>
 #include <heartbeat.h>
+#include <config_model.h>
 
 struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
                                   ::Sandbox::Child::Default_route_accessor,
                                   ::Sandbox::Child::Default_caps_accessor,
                                   ::Sandbox::Child::Ram_limit_accessor,
-                                  ::Sandbox::Child::Cap_limit_accessor
+                                  ::Sandbox::Child::Cap_limit_accessor,
+                                  ::Sandbox::Start_model::Factory,
+                                  ::Sandbox::Parent_provides_model::Factory
 {
 	using Routed_service = ::Sandbox::Routed_service;
 	using Parent_service = ::Sandbox::Parent_service;
@@ -41,6 +44,9 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	using Prio_levels    = ::Sandbox::Prio_levels;
 	using Ram_info       = ::Sandbox::Ram_info;
 	using Cap_info       = ::Sandbox::Cap_info;
+	using Config_model   = ::Sandbox::Config_model;
+	using Start_model    = ::Sandbox::Start_model;
+	using Preservation   = ::Sandbox::Preservation;
 
 	Env  &_env;
 	Heap &_heap;
@@ -50,77 +56,81 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	Registry<Local_service>  &_local_services;
 	Child_registry            _children        { };
 
-	Reconstructible<Verbose> _verbose { };
+	/*
+	 * Global parameters obtained from config
+	 */
+	Reconstructible<Verbose>       _verbose        { };
+	Config_model::Version          _version        { };
+	Constructible<Buffered_xml>    _default_route  { };
+	Cap_quota                      _default_caps   { 0 };
+	Prio_levels                    _prio_levels    { };
+	Constructible<Affinity::Space> _affinity_space { };
+	Preservation                   _preservation   { };
 
-	Constructible<Buffered_xml> _default_route { };
-
-	Cap_quota _default_caps { 0 };
-
-	unsigned _child_cnt = 0;
-
-	static Ram_quota _preserved_ram_from_config(Xml_node config)
+	Affinity::Space _effective_affinity_space() const
 	{
-		Number_of_bytes preserve { 40*sizeof(long)*1024 };
-
-		config.for_each_sub_node("resource", [&] (Xml_node node) {
-			if (node.attribute_value("name", String<16>()) == "RAM")
-				preserve = node.attribute_value("preserve", preserve); });
-
-		return Ram_quota { preserve };
+		return _affinity_space.constructed() ? *_affinity_space : Affinity::Space { };
 	}
 
-	Ram_quota _preserved_ram  { 0 };
-	Cap_quota _preserved_caps { 0 };
+	State_reporter _state_reporter;
+
+	Heartbeat _heartbeat { _env, _children, _state_reporter };
+
+	/*
+	 * Internal representation of the XML configuration
+	 */
+	Config_model _config_model { };
+
+	/*
+	 * Variables for tracking the side effects of updating the config model
+	 */
+	bool _server_appeared_or_disappeared = false;
+	bool _state_report_outdated          = false;
+
+	unsigned _child_cnt = 0;
 
 	Ram_quota _avail_ram() const
 	{
 		Ram_quota avail_ram = _env.pd().avail_ram();
 
-		if (_preserved_ram.value > avail_ram.value) {
+		if (_preservation.ram.value > avail_ram.value) {
 			error("RAM preservation exceeds available memory");
 			return Ram_quota { 0 };
 		}
 
 		/* deduce preserved quota from available quota */
-		return Ram_quota { avail_ram.value - _preserved_ram.value };
-	}
-
-	static Cap_quota _preserved_caps_from_config(Xml_node config)
-	{
-		size_t preserve = 20;
-
-		config.for_each_sub_node("resource", [&] (Xml_node node) {
-			if (node.attribute_value("name", String<16>()) == "CAP")
-				preserve = node.attribute_value("preserve", preserve); });
-
-		return Cap_quota { preserve };
+		return Ram_quota { avail_ram.value - _preservation.ram.value };
 	}
 
 	Cap_quota _avail_caps() const
 	{
 		Cap_quota avail_caps { _env.pd().avail_caps().value };
 
-		if (_preserved_caps.value > avail_caps.value) {
+		if (_preservation.caps.value > avail_caps.value) {
 			error("Capability preservation exceeds available capabilities");
 			return Cap_quota { 0 };
 		}
 
 		/* deduce preserved quota from available quota */
-		return Cap_quota { avail_caps.value - _preserved_caps.value };
+		return Cap_quota { avail_caps.value - _preservation.caps.value };
 	}
 
 	/**
 	 * Child::Ram_limit_accessor interface
 	 */
-	Ram_quota resource_limit(Ram_quota const &) const override { return _avail_ram(); }
+	Ram_quota resource_limit(Ram_quota const &) const override
+	{
+		return _avail_ram();
+	}
 
 	/**
 	 * Child::Cap_limit_accessor interface
 	 */
 	Cap_quota resource_limit(Cap_quota const &) const override { return _avail_caps(); }
 
-	void _handle_resource_avail() { }
-
+	/**
+	 * State_reporter::Producer interface
+	 */
 	void produce_state_report(Xml_generator &xml, Report_detail const &detail) const override
 	{
 		if (detail.init_ram())
@@ -133,6 +143,9 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 			_children.report_state(xml, detail);
 	}
 
+	/**
+	 * State_reporter::Producer interface
+	 */
 	Child::Sample_state_result sample_children_state() override
 	{
 		return _children.sample_state();
@@ -152,17 +165,56 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	 */
 	Cap_quota default_caps() override { return _default_caps; }
 
-	State_reporter _state_reporter;
-
-	Heartbeat _heartbeat { _env, _children, _state_reporter };
-
 	void _update_aliases_from_config(Xml_node const &);
 	void _update_parent_services_from_config(Xml_node const &);
-	void _abandon_obsolete_children(Xml_node const &);
 	void _update_children_config(Xml_node const &);
 	void _destroy_abandoned_parent_services();
+	void _destroy_abandoned_children();
 
 	Server _server { _env, _heap, _child_services, _state_reporter };
+
+	/**
+	 * Sandbox::Start_model::Factory
+	 */
+	Child &create_child(Xml_node const &) override;
+
+	/**
+	 * Sandbox::Start_model::Factory
+	 */
+	void update_child(Child &, Xml_node const &) override;
+
+	/**
+	 * Sandbox::Start_model::Factory
+	 */
+	Alias &create_alias(Child_policy::Name const &name) override
+	{
+		Alias &alias = *new (_heap) Alias(name);
+		_children.insert_alias(&alias);
+		return alias;
+	}
+
+	/**
+	 * Sandbox::Start_model::Factory
+	 */
+	void destroy_alias(Alias &alias) override
+	{
+		_children.remove_alias(&alias);
+		destroy(_heap, &alias);
+	}
+
+	/**
+	 * Sandbox::Start_model::Factory
+	 */
+	bool ready_to_create_child(Start_model::Name    const &,
+	                           Start_model::Version const &) const override;
+
+	/**
+	 * Sandbox::Parent_provides_model::Factory
+	 */
+	Parent_service &create_parent_service(Service::Name const &name) override
+	{
+		return *new (_heap) Parent_service(_parent_services, _env, name);
+	}
 
 	Library(Env &env, Heap &heap, Registry<Local_service> &local_services,
 	        State_handler &state_handler)
@@ -180,52 +232,6 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 };
 
 
-void Genode::Sandbox::Library::_update_parent_services_from_config(Xml_node const &config)
-{
-	Xml_node const node = config.has_sub_node("parent-provides")
-	                    ? config.sub_node("parent-provides")
-	                    : Xml_node("<empty/>");
-
-	/* remove services that are no longer present in config */
-	_parent_services.for_each([&] (Parent_service &service) {
-
-		Service::Name const name = service.name();
-
-		bool obsolete = true;
-		node.for_each_sub_node("service", [&] (Xml_node service) {
-			if (name == service.attribute_value("name", Service::Name())) {
-				obsolete = false; }});
-
-		if (obsolete)
-			service.abandon();
-	});
-
-	/* used to prepend the list of new parent services with title */
-	bool first_log = true;
-
-	/* register new services */
-	node.for_each_sub_node("service", [&] (Xml_node service) {
-
-		Service::Name const name = service.attribute_value("name", Service::Name());
-
-		bool registered = false;
-		_parent_services.for_each([&] (Parent_service const &service) {
-			if (service.name() == name)
-				registered = true; });
-
-		if (!registered) {
-			new (_heap) ::Sandbox::Parent_service(_parent_services, _env, name);
-			if (_verbose->enabled()) {
-				if (first_log)
-					log("parent provides");
-				log("  service \"", name, "\"");
-				first_log = false;
-			}
-		}
-	});
-}
-
-
 void Genode::Sandbox::Library::_destroy_abandoned_parent_services()
 {
 	_parent_services.for_each([&] (Parent_service &service) {
@@ -234,109 +240,8 @@ void Genode::Sandbox::Library::_destroy_abandoned_parent_services()
 }
 
 
-void Genode::Sandbox::Library::_update_aliases_from_config(Xml_node const &config)
+void Genode::Sandbox::Library::_destroy_abandoned_children()
 {
-	/* remove all known aliases */
-	while (_children.any_alias()) {
-		::Sandbox::Alias *alias = _children.any_alias();
-		_children.remove_alias(alias);
-		destroy(_heap, alias);
-	}
-
-	/* create aliases */
-	config.for_each_sub_node("alias", [&] (Xml_node alias_node) {
-
-		try {
-			_children.insert_alias(new (_heap) Alias(alias_node)); }
-		catch (Alias::Name_is_missing) {
-			warning("missing 'name' attribute in '<alias>' entry"); }
-		catch (Alias::Child_is_missing) {
-			warning("missing 'child' attribute in '<alias>' entry"); }
-	});
-}
-
-
-void Genode::Sandbox::Library::_abandon_obsolete_children(Xml_node const &config)
-{
-	_children.for_each_child([&] (Child &child) {
-
-		bool obsolete = true;
-		config.for_each_sub_node("start", [&] (Xml_node node) {
-			if (child.has_name   (node.attribute_value("name", Child_policy::Name()))
-			 && child.has_version(node.attribute_value("version", Child::Version())))
-				obsolete = false; });
-
-		if (obsolete)
-			child.abandon();
-	});
-}
-
-
-void Genode::Sandbox::Library::_update_children_config(Xml_node const &config)
-{
-	for (;;) {
-
-		/*
-		 * Children are abandoned if any of their client sessions can no longer
-		 * be routed or result in a different route. As each child may be a
-		 * service, an avalanche effect may occur. It stops if no update causes
-		 * a potential side effect in one iteration over all chilren.
-		 */
-		bool side_effects = false;
-
-		config.for_each_sub_node("start", [&] (Xml_node node) {
-
-			Child_policy::Name const start_node_name =
-				node.attribute_value("name", Child_policy::Name());
-
-			_children.for_each_child([&] (Child &child) {
-				if (!child.abandoned() && child.name() == start_node_name) {
-					switch (child.apply_config(node)) {
-					case Child::NO_SIDE_EFFECTS: break;
-					case Child::MAY_HAVE_SIDE_EFFECTS: side_effects = true; break;
-					};
-				}
-			});
-		});
-
-		if (!side_effects)
-			break;
-	}
-}
-
-
-void Genode::Sandbox::Library::apply_config(Xml_node const &config)
-{
-	bool update_state_report = false;
-
-	_preserved_ram  = _preserved_ram_from_config(config);
-	_preserved_caps = _preserved_caps_from_config(config);
-
-	_verbose.construct(config);
-	_state_reporter.apply_config(config);
-	_heartbeat.apply_config(config);
-
-	/* determine default route for resolving service requests */
-	try {
-		_default_route.construct(_heap, config.sub_node("default-route")); }
-	catch (...) { }
-
-	_default_caps = Cap_quota { 0 };
-	try {
-		_default_caps = Cap_quota { config.sub_node("default")
-		                                  .attribute_value("caps", 0UL) }; }
-	catch (...) { }
-
-	Prio_levels     const prio_levels    = ::Sandbox::prio_levels_from_xml(config);
-	Affinity::Space const affinity_space = ::Sandbox::affinity_space_from_xml(config);
-	bool            const space_defined  = config.has_sub_node("affinity-space");
-
-	_update_aliases_from_config(config);
-	_update_parent_services_from_config(config);
-	_abandon_obsolete_children(config);
-	_update_children_config(config);
-
-	/* kill abandoned children */
 	_children.for_each_child([&] (Child &child) {
 
 		if (!child.abandoned())
@@ -345,7 +250,7 @@ void Genode::Sandbox::Library::apply_config(Xml_node const &config)
 		/* make the child's services unavailable */
 		child.destroy_services();
 		child.close_all_sessions();
-		update_state_report = true;
+		_state_report_outdated = true;
 
 		/* destroy child once all environment sessions are gone */
 		if (child.env_sessions_closed()) {
@@ -353,123 +258,174 @@ void Genode::Sandbox::Library::apply_config(Xml_node const &config)
 			destroy(_heap, &child);
 		}
 	});
+}
 
-	_destroy_abandoned_parent_services();
 
-	/* initial RAM and caps limit before starting new children */
-	Ram_quota const avail_ram  = _avail_ram();
-	Cap_quota const avail_caps = _avail_caps();
+bool Genode::Sandbox::Library::ready_to_create_child(Start_model::Name    const &name,
+                                                     Start_model::Version const &version) const
+{
+	bool exists = false;
 
-	/* variable used to track the RAM and caps taken by new started children */
-	Ram_quota used_ram  { 0 };
-	Cap_quota used_caps { 0 };
+	unsigned num_abandoned = 0;
 
-	/* create new children */
+	_children.for_each_child([&] (Child const &child) {
+		if (child.name() == name && child.has_version(version)) {
+			if (child.abandoned())
+				num_abandoned++;
+			else
+				exists = true;
+		}
+	});
+
+	/* defer child creation if corresponding child already exists */
+	if (exists)
+		return false;
+
+	/* prevent queuing up abandoned children with the same name */
+	if (num_abandoned > 1)
+		return false;
+
+	return true;
+}
+
+
+::Sandbox::Child &Genode::Sandbox::Library::create_child(Xml_node const &start_node)
+{
+	if (!_affinity_space.constructed() && start_node.has_sub_node("affinity"))
+		warning("affinity-space configuration missing, "
+		        "but affinity defined for child ",
+		        start_node.attribute_value("name", Child_policy::Name()));
+
 	try {
-		config.for_each_sub_node("start", [&] (Xml_node start_node) {
+		Child &child = *new (_heap)
+			Child(_env, _heap, *_verbose,
+			      Child::Id { ++_child_cnt }, _state_reporter,
+			      start_node, *this, *this, _children,
+			      *this, *this, _prio_levels, _effective_affinity_space(),
+			      _parent_services, _child_services, _local_services);
+		_children.insert(&child);
 
-			bool exists = false;
+		if (start_node.has_sub_node("provides"))
+			_server_appeared_or_disappeared = true;
 
-			unsigned num_abandoned = 0;
+		_state_report_outdated = true;
 
-			typedef Child_policy::Name Name;
-			Name const child_name = start_node.attribute_value("name", Name());
-
-			_children.for_each_child([&] (Child const &child) {
-				if (child.name() == child_name) {
-					if (child.abandoned())
-						num_abandoned++;
-					else
-						exists = true;
-				}
-			});
-
-			/* skip start node if corresponding child already exists */
-			if (exists)
-				return;
-
-			/* prevent queuing up abandoned children with the same name */
-			if (num_abandoned > 1)
-				return;
-
-			if (used_ram.value > avail_ram.value) {
-				error("RAM exhausted while starting child: ", child_name);
-				return;
-			}
-
-			if (used_caps.value > avail_caps.value) {
-				error("capabilities exhausted while starting child: ", child_name);
-				return;
-			}
-
-			if (!space_defined && start_node.has_sub_node("affinity")) {
-				warning("affinity-space configuration missing, "
-				        "but affinity defined for child: ", child_name);
-			}
-
-			try {
-				Child &child = *new (_heap)
-					Child(_env, _heap, *_verbose,
-					      Child::Id { ++_child_cnt }, _state_reporter,
-					      start_node, *this, *this, _children,
-					      Ram_quota { avail_ram.value  - used_ram.value },
-					      Cap_quota { avail_caps.value - used_caps.value },
-					       *this, *this, prio_levels, affinity_space,
-					      _parent_services, _child_services, _local_services);
-				_children.insert(&child);
-
-				update_state_report = true;
-
-				/* account for the start XML node buffered in the child */
-				size_t const metadata_overhead = start_node.size() + sizeof(Child);
-
-				/* track used memory and RAM limit */
-				used_ram = Ram_quota { used_ram.value
-				                     + child.ram_quota().value
-				                     + metadata_overhead };
-
-				used_caps = Cap_quota { used_caps.value
-				                      + child.cap_quota().value };
-			}
-			catch (Rom_connection::Rom_connection_failed) {
-				/*
-				 * The binary does not exist. An error message is printed
-				 * by the Rom_connection constructor.
-				 */
-			}
-			catch (Out_of_ram) {
-				warning("memory exhausted during child creation"); }
-			catch (Out_of_caps) {
-				warning("local capabilities exhausted during child creation"); }
-			catch (Child::Missing_name_attribute) {
-				warning("skipped startup of nameless child"); }
-			catch (Region_map::Region_conflict) {
-				warning("failed to attach dataspace to local address space "
-				        "during child construction"); }
-			catch (Region_map::Invalid_dataspace) {
-				warning("attempt to attach invalid dataspace to local address space "
-				        "during child construction"); }
-			catch (Service_denied) {
-				warning("failed to create session during child construction"); }
-		});
+		return child;
 	}
-	catch (Xml_node::Nonexistent_sub_node) { error("no children to start"); }
-	catch (Xml_node::Invalid_syntax) { error("config has invalid syntax"); }
-	catch (Child_registry::Alias_name_is_not_unique) { }
+	catch (Rom_connection::Rom_connection_failed) {
+		/*
+		 * The binary does not exist. An error message is printed
+		 * by the Rom_connection constructor.
+		 */
+	}
+	catch (Out_of_ram) {
+		warning("memory exhausted during child creation"); }
+	catch (Out_of_caps) {
+		warning("local capabilities exhausted during child creation"); }
+	catch (Child::Missing_name_attribute) {
+		warning("skipped startup of nameless child"); }
+	catch (Region_map::Region_conflict) {
+		warning("failed to attach dataspace to local address space "
+		        "during child construction"); }
+	catch (Region_map::Invalid_dataspace) {
+		warning("attempt to attach invalid dataspace to local address space "
+		        "during child construction"); }
+	catch (Service_denied) {
+		warning("failed to create session during child construction"); }
+
+	throw ::Sandbox::Start_model::Factory::Creation_failed();
+}
+
+
+void Genode::Sandbox::Library::update_child(Child &child, Xml_node const &start)
+{
+	if (child.abandoned())
+		return;
+
+	switch (child.apply_config(start)) {
+
+	case Child::NO_SIDE_EFFECTS: break;
+
+	case Child::PROVIDED_SERVICES_CHANGED:
+		_server_appeared_or_disappeared = true;
+		_state_report_outdated = true;
+		break;
+	};
+}
+
+
+void Genode::Sandbox::Library::apply_config(Xml_node const &config)
+{
+	_server_appeared_or_disappeared = false;
+	_state_report_outdated          = false;
+
+	_config_model.update_from_xml(config,
+	                              _heap,
+	                              _verbose,
+	                              _version,
+	                              _preservation,
+	                              _default_route,
+	                              _default_caps,
+	                              _prio_levels,
+	                              _affinity_space,
+	                              *this, *this, _server,
+	                              _state_reporter,
+	                              _heartbeat);
 
 	/*
-	 * Initiate RAM sessions of all new children
+	 * After importing the new configuration, servers may have disappeared
+	 * (STATE_ABANDONED) or become new available.
+	 *
+	 * Re-evaluate the dependencies of the existing children.
+	 *
+	 * - Stuck children (STATE_STUCK) may become alive.
+	 * - Children with broken dependencies may have become stuck.
+	 * - Children with changed dependencies need a restart.
+	 *
+	 * Children are restarted if any of their client sessions can no longer be
+	 * routed or result in a different route. As each child may be a service,
+	 * an avalanche effect may occur. It stops if no child gets scheduled to be
+	 * restarted in one iteration over all children.
 	 */
-	_children.for_each_child([&] (Child &child) {
-		if (!child.abandoned())
-			child.initiate_env_pd_session(); });
+	while (true) {
 
-	/*
-	 * Initiate remaining environment sessions of all new children
-	 */
-	_children.for_each_child([&] (Child &child) {
-		if (!child.abandoned())
-			child.initiate_env_sessions(); });
+		bool any_restart_scheduled = false;
+
+		_children.for_each_child([&] (Child &child) {
+
+			if (child.abandoned())
+				return;
+
+			if (child.restart_scheduled()) {
+				any_restart_scheduled = true;
+				return;
+			}
+
+			if (_server_appeared_or_disappeared || child.uncertain_dependencies())
+				child.evaluate_dependencies();
+
+			if (child.restart_scheduled())
+				any_restart_scheduled = true;
+		});
+
+		/*
+		 * Release resources captured by abandoned children before starting
+		 * new children. The children must be started in the order of their
+		 * start nodes for the assignment of slack RAM.
+		 */
+		_destroy_abandoned_parent_services();
+		_destroy_abandoned_children();
+
+		_config_model.trigger_start_children();
+
+		if (any_restart_scheduled)
+			_config_model.apply_children_restart(config);
+
+		if (!any_restart_scheduled)
+			break;
+	}
+
+	_server.apply_updated_policy();
 
 	/*
 	 * (Re-)distribute RAM and capability quota among the children, given their
@@ -480,9 +436,7 @@ void Genode::Sandbox::Library::apply_config(Xml_node const &config)
 	_children.for_each_child([&] (Child &child) { child.apply_downgrade(); });
 	_children.for_each_child([&] (Child &child) { child.apply_upgrade(); });
 
-	_server.apply_config(config);
-
-	if (update_state_report)
+	if (_state_report_outdated)
 		_state_reporter.trigger_immediate_report_update();
 }
 

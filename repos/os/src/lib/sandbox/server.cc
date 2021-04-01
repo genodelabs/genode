@@ -21,19 +21,21 @@
 
 /******************************
  ** Sandbox::Server::Service **
- **********...*****************/
+ ******************************/
 
-struct Sandbox::Server::Service
+struct Sandbox::Server::Service : Service_model
 {
+	typedef Genode::Service::Name Name;
+
+	Name const _name;
+
 	Registry<Service>::Element _registry_element;
 
-	Buffered_xml _service_node;
-
-	typedef Genode::Service::Name Name;
+	Allocator &_alloc;
 
 	Registry<Routed_service> &_child_services;
 
-	Name const _name { _service_node.xml().attribute_value("name", Name()) };
+	Constructible<Buffered_xml> _service_node { };
 
 	/**
 	 * Constructor
@@ -45,10 +47,27 @@ struct Sandbox::Server::Service
 	        Xml_node                  service_node,
 	        Registry<Routed_service> &child_services)
 	:
+		_name(service_node.attribute_value("name", Name())),
 		_registry_element(services, *this),
-		_service_node(alloc, service_node),
+		_alloc(alloc),
 		_child_services(child_services)
 	{ }
+
+	/**
+	 * Service_model interface
+	 */
+	void update_from_xml(Xml_node const &service_node) override
+	{
+		_service_node.construct(_alloc, service_node);
+	}
+
+	/**
+	 * Service_model interface
+	 */
+	bool matches(Xml_node const &service_node) override
+	{
+		return _name == service_node.attribute_value("name", Name());
+	}
 
 	/**
 	 * Determine route to child service for a given label according
@@ -65,8 +84,11 @@ struct Sandbox::Server::Service
 Sandbox::Server::Route
 Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 {
+	if (!_service_node.constructed())
+		throw Service_denied();
+
 	try {
-		Session_policy policy(label, _service_node.xml());
+		Session_policy policy(label, _service_node->xml());
 
 		if (!policy.has_sub_node("child"))
 			throw Service_denied();
@@ -365,13 +387,20 @@ void Sandbox::Server::_handle_session_requests()
 }
 
 
-void Sandbox::Server::apply_config(Xml_node config)
+Sandbox::Service_model &Sandbox::Server::create_service(Xml_node const &node)
 {
-	_services.for_each([&] (Service &service) { destroy(_alloc, &service); });
+	return *new (_alloc) Service(_services, _alloc, node, _child_services);
+}
 
-	config.for_each_sub_node("service", [&] (Xml_node node) {
-		new (_alloc) Service(_services, _alloc, node, _child_services); });
 
+void Sandbox::Server::destroy_service(Service_model &service)
+{
+	destroy(_alloc, &service);
+}
+
+
+void Sandbox::Server::apply_updated_policy()
+{
 	/*
 	 * Construct mechanics for responding to our parent's session requests
 	 * on demand.
