@@ -481,21 +481,186 @@ Configuration example (shows default values of attributes):
 !            quota="yes"
 !            config="yes"
 !            config_triggers="no"
+!            link_state="yes"
+!            link_state_triggers="no"
 !            interval_sec="5"/>
 ! </config>
 
 If the 'report' tag is not available, no reports are send.
-The attributes of the 'report' tag:
+A complete state report of the NIC router is structured the following way
+(example):
 
-'bytes'           : Boolean : Whether to report sent bytes and received bytes
-                              per domain
-'stats'           : Boolean : Whether to report statistics about session objects
-'quota'           : Boolean : Whether to report quota and its utilization
-'config'          : Boolean : Whether to report IPv4 interface and gateway per
-                              domain
-'config_triggers' : Boolean : Wether to force a report each time the IPv4
-                              config changes
-'interval_sec'    : 1..3600 : Interval of sending reports in seconds
+! <state>
+!   <ram quota="15715577" used="7589888" shared="16384"/>
+!   <cap quota="431" used="184" shared="4"/>
+!
+!   <domain name="domain_1" rx_bytes="17597" tx_bytes="7788"
+!           ipv4="100.200.0.10/24" gw="100.200.0.1">
+!
+!     <dns ip="100.200.0.8"/>
+!     <dns ip="1.1.1.1"/>
+!     <dns ip="8.8.8.8"/>
+!     ...
+!
+!     <interface label="component_1 -> nic_session" link_state="true">
+!       <ram-quota used="458752" limit="658613" avail="199861"/>
+!       <cap-quota used="4" limit="7" avail="3"/>
+!
+!       <udp-links>
+!         <opening value="5"/>
+!         <open value="10"/>
+!         <closing value="3"/>
+!         <closed value="21"/>
+!         <refused_for_ram value="2"/>
+!         <refused_for_ports value="1"/>
+!         <dissolved_timeout_opening value="1"/>
+!         <dissolved_timeout_open value="2"/>
+!         <dissolved_timeout_closing value="4"/>
+!         <dissolved_timeout_closed value="9"/>
+!         <dissolved_no_timeout value="1"/>
+!         <destroyed value="1"/>
+!       </udp-links>
+!       <tcp-links> ... </tcp-links>
+!       <icmp-links> ... </icmp-links>
+!
+!       <dhcp-allocations>
+!         <alive value="2"/>
+!         <destroyed value="4"/>
+!       </dhcp-allocations>
+!       <arp-waiters> ... </arp-waiters>
+!
+!     </interface>
+!     <interface ...> ... </interface>
+!     ...
+!
+!     <udp-links>
+!       <refused_for_ram value="3"/>
+!       <refused_for_ports value="10"/>
+!       <destroyed value="237"/>
+!     </udp-links>
+!     <tcp-links> ... </tcp-links>
+!     <icmp-links> ... </icmp-links>
+!
+!     <dhcp-allocations>
+!       <destroyed value="16"/>
+!     </dhcp-allocations>
+!     <arp-waiters> ... </arp-waiters>
+!
+!   </domain>
+!   <domain ...> ... </domain>
+!   ...
+!
+! </state>
+
+The attributes of the <report> tag correspond to the report content as
+described below:
+
+'bytes'
+
+A boolean value that controls whether the attributes 'rx_bytes' and 'tx_bytes'
+of the <domain> tag in the state report are generated. These attributes
+provide the number of bytes that were sent respectively recieved at all
+sessions/interfaces of that domain beginning with the creation of the domain.
+
+'stats'
+
+A boolean value that controls whether the subtags <udp-links>, <tcp-links>,
+<icmp-links>, <dhcp-allocations>, and <arp-waiters> are generated in the tags
+<domain> and <interface>. In the <interface> tag, these subtags provide further
+subtags <opening>, <open>, <closing>, <closed> that provide the number of links
+of the protocol type that are currently in the denominated protocol state (a
+missing subtag denominates a number of 0).
+
+Furthermore, there are subtags <dissolved_*> that provide the number of links
+of the protocol type that were already dissolved by the router (i.e., they are
+already non-effective) but that weren't destructed so far. Thereby, the
+different <dissolved_*> tags group the links according to the reason why they
+have been dissolved (<dissolved_no_timeout> thereby means that the protocol
+itself terminated the connection).
+
+The <destroyed> subtag can occur in <*-links> subtags in both the <interface>
+and the <domain> tag. It shows the number of links of the protocol type that
+once existed but were already destroyed. In case of the <interface> tag, the
+corresponding session/interface still exists at that domain. Once the
+session/interface gets destroyed or disconnected from the domain, the number is
+transferred to the <destroyed> subtag in the <*-links> subtag in the <domain>
+tag. I.e. the <destroyed> subtags in <*-links> subtags in the <domain> tag
+provide the number of destroyed links that can't be correlated anymore to any
+session/interface of the domain.
+
+The same applies for the <refused_*> subtags of <*-links> tags. They show the
+number of links that couldn't be established through the router because of the
+lack of a certain quota. Thereby, <refused_for_ram> refers to a lack of RAM
+quota at the source session/interface of the link. The <refused_for_ports>, at
+the other hand, refers to a lack of UDP/TCP-NAT-ports respectively
+ICMP-NAT-IDs at the target domain (see section [Configuring NAT]).
+
+The subtags <arp-waiters>, and <dhcp-allocations> list the number of still
+active (<active> subtag) and already destroyed (<destroyed> subtag) objects
+for pending ARP requests respectively DHCP-address allocations at a
+session/interface when in an <interface> tag. When in a <domain> tag, they
+only list the number of already destroyed objects of these types that can't
+be correlated anymore to any session/interface of the domain.
+
+'quota'
+
+A boolean value that controls whether the subtags <ram> and <cap> of the
+<state> tag and the subtags <ram-quota> and <cap-quota> of the <interface>
+tag are generated.
+
+The former two show the capability quota respectively RAM quota of the router
+that isn't accounted to any of the sessions/interfaces connected to the router
+(i.e., the routers "own" quota). The 'quota' attribute denotes the total amount
+of quota available to the router, the 'used' attribute the part of the total
+amount of quota that is currently spent or in use, and the 'shared' attribute
+the part of the spent quota that, although it was spent for session/interface-
+specific things, can't be accounted to one session/interface technical reasons.
+
+The subtags <ram-quota> and <cap-quota> in the <interface> tag, however, show
+the capability quota respectively RAM quota accounted to that
+session/interface. The 'limit' and 'used' attributes are equal to the 'quota'
+and 'used' attributes of the <ram> and <cap> subtags of the <state> tag. The
+'avail' attribute contains simply the 'limit' value minus the 'used' value.
+
+'config'
+
+A boolean value that controls whether the attributes 'ipv4' and 'gw' of the
+<domain> tag and the subtag <dns> in the <domain> tag are generated. The
+attribute 'ipv4' contains the current IPv4 address of the router in this domain
+suffixed by the length of the subnet prefix in bits. The 'gw' attribute
+contains the IPv4 address of the gateway in this domain. Each <dns> subtag of a
+<domain> tag shows the IPv4 address of a DNS server known to this domain. The
+<dns> subtags have the same order that the addresses had when the router
+received them (i.e., the order of DHCP option 6 entries in the corresponding
+DHCP replies or the order of <dns> entries in the corresponding router
+configuration).
+
+'config_triggers'
+
+A boolean value that controls whether to enforce sending a report each time the
+state that is controlled through the 'config' attribute of the <report> tag
+changes. I.e., whenever the IP configuration of any domain has changed.
+
+'link_state'
+
+A boolean value that controls whether the attribute 'link_state' of the
+<interface> tag is generated. The 'link_state' attribute shows the current real
+link state of the session/interface. Note, that in case of a NIC session, this
+is not necessarily the same value as the one that the session client sees. For
+more information about that, refer to [Behavior regarding the NIC-session link
+state].
+
+'link_state_triggers'
+
+A boolean value that controls whether to enforce sending a report each time the
+state that is controlled through the 'link_state' attribute of the <report> tag
+changes. I.e., whenever the real link state of any session/interface at the
+router has changed.
+
+'interval_sec'
+
+Defines the interval in seconds in which to unconditionally send a report.
+Must not be 0.
 
 
 Verbosity
