@@ -448,6 +448,15 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		bool _exited     { false };
 		int  _exit_value { -1 };
 
+		/**
+		 * Return true if it's safe to call the PD for requesting resource
+		 * information
+		 */
+		bool _pd_alive() const
+		{
+			return !abandoned() && !_exited;
+		}
+
 		void _destroy_services();
 
 		struct Sampled_state
