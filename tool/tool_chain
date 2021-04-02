@@ -445,7 +445,7 @@ $(GPRBUILD_BOOTSTRAP_INSTALLED_BINARIES): $(BUILD_LOCATION)/bootstrap/gprbuild/M
 
 $(BUILD_LOCATION)/ali2dep/build/build.gpr:
 	$(ECHO) "$(BRIGHT_COL)preparing ali2dep...$(DEFAULT_COL)"
-	$(VERBOSE)git clone https://github.com/Componolit/ali2dep.git $(BUILD_LOCATION)/ali2dep
+	$(VERBOSE)git clone -b gcc_10_3_0 https://github.com/cproc/ali2dep.git $(BUILD_LOCATION)/ali2dep
 	$(VERBOSE)sed -i -e '/Create_Missing_Dirs/d' $@
 
 $(ALI2DEP_BINARY): $(GCC_BOOTSTRAP_INSTALLED_BINARIES) $(GPRBUILD_BOOTSTRAP_INSTALLED_BINARIES) $(BUILD_LOCATION)/ali2dep/build/build.gpr
