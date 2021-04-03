@@ -221,7 +221,12 @@ namespace Genode {
 	 * \param dst   destination buffer
 	 * \param i     byte value
 	 * \param size  buffer size in bytes
+	 *
+	 * The compiler attribute is needed to prevent the
+	 * generation of a 'memset()' call in the 'while' loop
+	 * with gcc 10.
 	 */
+	 __attribute((optimize("no-tree-loop-distribute-patterns")))
 	inline void *memset(void *dst, int i, size_t size)
 	{
 		while (size--) ((char *)dst)[size] = i;

@@ -196,6 +196,9 @@ SRC_NOLINK += accessors.c \
               vnode_if.c \
               xlat_mbr_fstype.c
 
+# prevent the generation of a 'memset()' call in 'memset()'
+CC_OPT_memset = -fno-tree-loop-distribute-patterns
+
 INC_DIR += $(REP_DIR)/src/include \
            $(RUMP_BASE)/include \
            $(RUMP_PORT_DIR)/src/lib/libc/include \
