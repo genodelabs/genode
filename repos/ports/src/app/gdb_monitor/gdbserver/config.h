@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _GDBSERVER_CONFIG_H_
+#define _GDBSERVER_CONFIG_H_
+
 #define HAVE_ARPA_INET_H 1
 #define HAVE_ERRNO_H 1
 #define HAVE_FCNTL_H 1
@@ -25,7 +28,11 @@
 #define HAVE_LINUX_REGSETS 1
 #define HAVE_LINUX_USRREGS 1
 
+#ifndef __GENODE__
 #define __GENODE__
+#endif
 
 /* first process id */
 #define GENODE_MAIN_LWPID 1
+
+#endif /* _GDBSERVER_CONFIG_H_ */
