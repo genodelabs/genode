@@ -5,3 +5,4 @@ _/src/libc
 _/src/posix
 _/src/stdcxx
 _/src/vfs
+_/src/zlib

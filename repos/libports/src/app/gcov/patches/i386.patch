@@ -1,0 +1,43 @@
+i386.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gcc/config/i386/i386.h |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/gcc/config/i386/i386.h b/gcc/config/i386/i386.h
+index 4ff8b5e65..96409d759 100644
+--- a/gcc/config/i386/i386.h
++++ b/gcc/config/i386/i386.h
+@@ -2482,6 +2482,7 @@ const wide_int_bitmask PTA_TREMONT = PTA_GOLDMONT_PLUS | PTA_CLWB
+ const wide_int_bitmask PTA_KNM = PTA_KNL | PTA_AVX5124VNNIW
+   | PTA_AVX5124FMAPS | PTA_AVX512VPOPCNTDQ;
+ 
++#if 0
+ #ifndef GENERATOR_FILE
+ 
+ #include "insn-attr-common.h"
+@@ -2499,6 +2500,7 @@ extern const pta processor_alias_table[];
+ extern int const pta_size;
+ #endif
+ 
++#endif
+ #endif
+ 
+ extern enum processor_type ix86_tune;
+@@ -2955,11 +2957,13 @@ extern void debug_dispatch_window (int);
+ 
+ #define TARGET_SUPPORTS_WIDE_INT 1
+ 
++#if 0
+ #if !defined(GENERATOR_FILE) && !defined(IN_LIBGCC2)
+ extern enum attr_cpu ix86_schedule;
+ 
+ #define NUM_X86_64_MS_CLOBBERED_REGS 12
+ #endif
++#endif
+ 
+ /*
+ Local variables:

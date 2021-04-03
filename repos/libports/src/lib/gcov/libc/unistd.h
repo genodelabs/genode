@@ -17,4 +17,6 @@
 
 #define F_OK 0
 
+int getpid();
+
 #endif

@@ -3,3 +3,4 @@ gmp
 libc
 posix
 stdcxx
+zlib

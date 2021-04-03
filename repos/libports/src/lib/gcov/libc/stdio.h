@@ -32,6 +32,7 @@ int fseek(FILE *stream, long offset, int whence);
 long ftell(FILE *stream);
 size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 void setbuf(FILE *stream, char *buf);
+int sprintf(char *str, const char *format, ...);
 int vfprintf(FILE *stream, const char *format, va_list ap);
 
 #endif

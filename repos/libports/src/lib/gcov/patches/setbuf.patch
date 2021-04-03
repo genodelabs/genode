@@ -8,7 +8,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/gcc/gcov-io.c b/gcc/gcov-io.c
-index 3fe1e61..c4cc246 100644
+index ac60f9baf..f35fcca1f 100644
 --- a/gcc/gcov-io.c
 +++ b/gcc/gcov-io.c
 @@ -192,7 +192,9 @@ gcov_open (const char *name, int mode)

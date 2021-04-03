@@ -10,14 +10,16 @@ SRC_CC = diagnostic.cc \
          hash-table.cc \
          input.cc \
          intl.cc \
+         json.cc \
          memory-block.cc \
          pretty-print.cc \
+         sort.cc \
          vec.cc \
          version.cc
 
 CC_OPT += -DIN_GCC
 
-CC_OPT_version += -DBASEVER="\"6.3.0\"" \
+CC_OPT_version += -DBASEVER="\"10.3.0\"" \
                   -DDATESTAMP="\"\"" \
                   -DREVISION="\"\"" \
                   -DDEVPHASE="\"\"" \

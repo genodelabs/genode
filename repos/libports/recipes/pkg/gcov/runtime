@@ -16,6 +16,7 @@
 		<rom label="posix.lib.so"/>
 		<rom label="stdcxx.lib.so"/>
 		<rom label="vfs.lib.so"/>
+		<rom label="zlib.lib.so"/>
 	</content>
 
 	<config>

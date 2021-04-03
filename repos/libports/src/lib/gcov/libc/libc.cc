@@ -75,6 +75,13 @@ extern "C" int atoi(const char *nptr)
 }
 
 
+extern "C" void exit(int status)
+{
+	gcov_env->env.parent().exit(status);
+	Genode::sleep_forever();
+}
+
+
 extern "C" int fclose(FILE *stream)
 {
 	gcov_env->fs.close(*(gcov_env->file_handle));
@@ -246,11 +253,64 @@ extern "C" char *getenv(const char *name)
 }
 
 
+extern "C" int getpid()
+{
+	return 1;
+}
+
+
 extern "C" void *malloc(size_t size)
 {
 	void *res = nullptr;
 	gcov_env->heap.alloc(size, &res);
 	return res;
+}
+
+
+extern "C" int sprintf(char *str, const char *format, ...)
+{
+	using namespace Genode;
+
+	va_list list;
+	va_start(list, format);
+
+	String_console sc {str, 1024 };
+	sc.vprintf(format, list);
+
+	va_end(list);
+	return sc.len();
+}
+
+
+extern "C" char *strcat(char *dest, const char *src)
+{
+	while (*dest != '\0')
+		dest++;
+
+	while (*src != '\0') {
+		*dest = *src;
+		src++;
+		dest++;
+	}
+
+	*dest = '\0';
+
+	return dest;
+}
+
+
+extern "C" char *strchr(const char *s, int c)
+{
+	while (*s != '\0') {
+		if (*s == c)
+			return (char*)s;
+		s++;
+	}
+
+	if (c == '\0')
+		return (char*)s;
+
+	return nullptr;
 }
 
 
@@ -275,7 +335,7 @@ extern "C" int vfprintf(FILE *stream, const char *format, va_list list)
 
 	using namespace Genode;
 
-	char buf[128] { };
+	char buf[1024] { };
 	String_console sc { buf, sizeof(buf) };
 	sc.vprintf(format, list);
 	log(Cstring(buf));

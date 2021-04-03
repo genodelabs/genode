@@ -16,7 +16,8 @@ LIBGCOV_MERGE = _gcov_merge_add \
                 _gcov_merge_delta \
                 _gcov_merge_ior \
                 _gcov_merge_time_profile \
-                _gcov_merge_icall_topn
+                _gcov_merge_icall_topn \
+                _gcov_merge_topn
 
 LIBGCOV_PROFILER = _gcov_interval_profiler \
                    _gcov_pow2_profiler \

@@ -10,6 +10,7 @@ SRC_C = argv.c \
         filename_cmp.c \
         fopen_unlocked.c \
         hashtab.c \
+        hex.c \
         lbasename.c \
         md5.c \
         obstack.c \
@@ -20,6 +21,7 @@ SRC_C = argv.c \
         xexit.c \
         xmalloc.c \
         xmemdup.c \
+        xasprintf.c \
         xstrdup.c \
         xstrerror.c \
         xstrndup.c \

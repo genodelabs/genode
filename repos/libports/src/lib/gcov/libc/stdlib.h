@@ -18,6 +18,7 @@
 void abort(void);
 void atexit(void (*func)(void));
 int atoi(const char *nptr);
+void exit(int status);
 void free(void *ptr);
 char *getenv(const char *name);
 void *malloc(size_t size);

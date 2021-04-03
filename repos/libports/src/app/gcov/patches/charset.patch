@@ -1,0 +1,32 @@
+charset.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ libcpp/charset.c |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/libcpp/charset.c b/libcpp/charset.c
+index d9281c5fb..e10cbc218 100644
+--- a/libcpp/charset.c
++++ b/libcpp/charset.c
+@@ -2350,9 +2350,10 @@ cpp_display_column_to_byte_column (const char *data, int data_length,
+    are not highly optimized, but for the present purpose of outputting
+    diagnostics, they are sufficient.  */
+ 
+-#include "generated_cpp_wcwidth.h"
++//#include "generated_cpp_wcwidth.h"
+ int cpp_wcwidth (cppchar_t c)
+ {
++#if 0
+   if (__builtin_expect (c <= wcwidth_range_ends[0], true))
+     return wcwidth_widths[0];
+ 
+@@ -2376,5 +2377,6 @@ int cpp_wcwidth (cppchar_t c)
+ 
+   if (__builtin_expect (begin != end, true))
+     return wcwidth_widths[begin];
++#endif
+   return 1;
+ }

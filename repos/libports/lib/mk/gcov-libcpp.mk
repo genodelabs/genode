@@ -2,9 +2,11 @@ GCOV_PORT_DIR := $(call select_from_ports,gcov)
 
 GCOV_DIR := $(GCOV_PORT_DIR)/src/gcov
 
-SRC_CC = line-map.cc
+SRC_CC = charset.cc \
+         errors.cc \
+         line-map.cc
 
-LIBS += libc
+LIBS += libc stdcxx
 
 INC_DIR += $(GCOV_DIR)/include \
            $(GCOV_DIR)/libcpp/include

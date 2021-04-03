@@ -224,6 +224,10 @@ $(TARGET).stripped: $(TARGET)
 
 $(INSTALL_DIR)/$(TARGET): $(TARGET).stripped
 	$(VERBOSE)ln -sf $(CURDIR)/$< $@
+ifeq ($(COVERAGE),yes)
+	$(VERBOSE)mkdir -p $(INSTALL_DIR)/gcov_data/$(TARGET)
+	$(VERBOSE)ln -sf $(CURDIR)/*.gcno $(INSTALL_DIR)/gcov_data/$(TARGET)/
+endif
 
 ifneq ($(DEBUG_DIR),)
 $(DEBUG_DIR)/$(TARGET): $(TARGET)

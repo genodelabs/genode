@@ -9,7 +9,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  2 files changed, 10 insertions(+), 3 deletions(-)
 
 diff --git a/gcc/diagnostic-show-locus.c b/gcc/diagnostic-show-locus.c
-index 9c567bd..c307120 100644
+index 4618b4edb..6b15b0740 100644
 --- a/gcc/diagnostic-show-locus.c
 +++ b/gcc/diagnostic-show-locus.c
 @@ -24,7 +24,9 @@ along with GCC; see the file COPYING3.  If not see
@@ -23,7 +23,7 @@ index 9c567bd..c307120 100644
  #include "diagnostic-color.h"
  #include "gcc-rich-location.h"
 diff --git a/gcc/diagnostic.c b/gcc/diagnostic.c
-index c61e0c4..fea960f 100644
+index ed52bc03d..a5d949d14 100644
 --- a/gcc/diagnostic.c
 +++ b/gcc/diagnostic.c
 @@ -28,7 +28,9 @@ along with GCC; see the file COPYING3.  If not see
@@ -35,8 +35,8 @@ index c61e0c4..fea960f 100644
 +#endif
  #include "diagnostic.h"
  #include "diagnostic-color.h"
- #include "edit-context.h"
-@@ -376,7 +378,7 @@ static const char * const bt_stop[] =
+ #include "diagnostic-url.h"
+@@ -438,7 +440,7 @@ static const char * const bt_stop[] =
  };
  
  /* A callback function passed to the backtrace_full function.  */
@@ -45,7 +45,7 @@ index c61e0c4..fea960f 100644
  static int
  bt_callback (void *data, uintptr_t pc, const char *filename, int lineno,
  	     const char *function)
-@@ -456,7 +458,7 @@ bt_err_callback (void *data ATTRIBUTE_UNUSED, const char *msg, int errnum)
+@@ -518,7 +520,7 @@ bt_err_callback (void *data ATTRIBUTE_UNUSED, const char *msg, int errnum)
    fprintf (stderr, "%s%s%s\n", msg, errnum == 0 ? "" : ": ",
  	   errnum == 0 ? "" : xstrerror (errnum));
  }
@@ -54,7 +54,7 @@ index c61e0c4..fea960f 100644
  /* Check if we've met the maximum error limit, and if so fatally exit
     with a message.  CONTEXT is the context to check, and FLUSH
     indicates whether a diagnostic_finish call is needed.  */
-@@ -511,14 +513,17 @@ diagnostic_action_after_output (diagnostic_context *context,
+@@ -573,14 +575,17 @@ diagnostic_action_after_output (diagnostic_context *context,
      case DK_ICE:
      case DK_ICE_NOBT:
        {
