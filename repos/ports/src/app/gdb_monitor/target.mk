@@ -90,19 +90,29 @@ vpath %.cc $(GDB_CONTRIB_DIR)/gdb
 vpath %.cc $(PRG_DIR)/gdbserver
 
 #
-# Files from init
+# Files from sandbox library
 #
 # Because the 'server.h' file exists both in gdb and in init and both gdb's
 # 'server.c' and init's 'server.cc' are compiled to a 'server.o' file, the
 # parent directory of the init source is used as reference.
 #
 
-SANDBOX_PARENT_DIR = $(abspath $(dir $(call select_from_repositories,src/lib/sandbox/server.cc))/..)
-
-INC_DIR += $(SANDBOX_PARENT_DIR)
+SANDBOX_SRC_DIR    = $(call select_from_repositories,src/lib/sandbox)
+SANDBOX_PARENT_DIR = $(abspath $(addsuffix /..,$(SANDBOX_SRC_DIR)))
 
 SRC_CC += sandbox/server.cc
 
+# needed to compile gdbserver/genode-low.cc
+INC_DIR += $(SANDBOX_PARENT_DIR)
+
 vpath sandbox/%.cc $(SANDBOX_PARENT_DIR)
+
+# import selected headers needed from sandbox library
+SANDBOX_HEADERS = types.h verbose.h report.h name_registry.h service.h utils.h
+
+genode-low.o sandbox/server.o: $(SANDBOX_HEADERS)
+
+%.h: $(SANDBOX_SRC_DIR)/%.h
+	ln -sf $< $@
 
 CC_CXX_WARN_STRICT =
