@@ -171,6 +171,21 @@ extern "C" char *strcat(char *, const char *)
 }
 
 
+extern "C" char *strchr(const char *s, int c)
+{
+	while (*s != '\0') {
+		if (*s == c)
+			return (char*)s;
+		s++;
+	}
+
+	if (c == '\0')
+		return (char*)s;
+
+	return nullptr;
+}
+
+
 extern "C" int strncmp(const char *s1, const char *s2, size_t n)
 {
 	return Genode::strcmp(s1, s2, n);
