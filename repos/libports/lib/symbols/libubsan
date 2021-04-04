@@ -8,7 +8,7 @@ _ZN7__ubsan12ScopedReportD1Ev T
 _ZN7__ubsan12ScopedReportD2Ev T
 _ZN7__ubsan12ignoreReportENS_14SourceLocationENS_13ReportOptionsENS_9ErrorTypeE T
 _ZN7__ubsan14IsPCSuppressedENS_9ErrorTypeEmPKc T
-_ZN7__ubsan14TypeCheckKindsE D 88
+_ZN7__ubsan14TypeCheckKindsE D 96
 _ZN7__ubsan15InitializeFlagsEv T
 _ZN7__ubsan16InitAsStandaloneEv T
 _ZN7__ubsan16checkDynamicTypeEPvS0_m T
