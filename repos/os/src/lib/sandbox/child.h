@@ -29,6 +29,7 @@
 #include <name_registry.h>
 #include <service.h>
 #include <utils.h>
+#include <route_model.h>
 
 namespace Sandbox { class Child; }
 
@@ -112,6 +113,21 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		List_element<Child> _list_element;
 
 		Reconstructible<Buffered_xml> _start_node;
+
+		Constructible<Route_model> _route_model { };
+
+		void _construct_route_model_from_start_node(Xml_node const &start)
+		{
+			_route_model.destruct();
+
+			start.with_sub_node("route", [&] (Xml_node const &route) {
+				_route_model.construct(_alloc, route); });
+
+			if (_route_model.constructed())
+				return;
+
+			_route_model.construct(_alloc, _default_route_accessor.default_route());
+		}
 
 		/*
 		 * Version attribute of the start node, used to force child restarts.
