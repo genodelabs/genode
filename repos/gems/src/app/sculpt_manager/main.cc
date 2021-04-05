@@ -73,6 +73,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Gui::Connection _gui { _env, "input" };
 
+	bool _gui_mode_ready = false;  /* becomes true once the graphics driver is up */
+
 	Gui::Root _gui_root { _env, _heap, *this };
 
 	Signal_handler<Main> _input_handler {
@@ -1151,6 +1153,10 @@ struct Sculpt::Main : Input_event_handler,
 
 void Sculpt::Main::_handle_window_layout()
 {
+	/* skip window-layout handling (and decorator activity) while booting */
+	if (!_gui_mode_ready)
+		return;
+
 	struct Decorator_margins
 	{
 		unsigned top = 0, bottom = 0, left = 0, right = 0;
@@ -1376,6 +1382,9 @@ void Sculpt::Main::_handle_window_layout()
 void Sculpt::Main::_handle_gui_mode()
 {
 	Framebuffer::Mode const mode = _gui.mode();
+
+	if (mode.area.count() > 1)
+		_gui_mode_ready = true;
 
 	_handle_window_layout();
 
