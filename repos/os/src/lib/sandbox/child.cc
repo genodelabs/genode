@@ -68,8 +68,9 @@ Sandbox::Child::apply_config(Xml_node start_node)
 		 */
 		start_node.with_sub_node("route", [&] (Xml_node const &route) {
 			_start_node->xml().with_sub_node("route", [&] (Xml_node const &orig) {
-				if (route.differs_from(orig))
-					_uncertain_dependencies = true; }); });
+				if (route.differs_from(orig)) {
+					_construct_route_model_from_start_node(start_node);
+					_uncertain_dependencies = true; } }); });
 
 		/*
 		 * Determine how the inline config is affected.
@@ -505,9 +506,10 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
                                         Session_label const &label,
                                         Session::Diag const  diag)
 {
+	bool const rom_service = (service_name == Rom_session::service_name());
+
 	/* check for "config" ROM request */
-	if (service_name == Rom_session::service_name() &&
-	    label.last_element() == "config") {
+	if (rom_service && label.last_element() == "config") {
 
 		if (_config_rom_service.constructed() &&
 		   !_config_rom_service->abandoned())
@@ -529,113 +531,89 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 	 * we resolve the session request with the binary name as label.
 	 * Otherwise the regular routing is applied.
 	 */
-	if (service_name == Rom_session::service_name() &&
-	    label == _unique_name && _unique_name != _binary_name)
+	if (rom_service && label == _unique_name && _unique_name != _binary_name)
 		return resolve_session_request(service_name, _binary_name, diag);
 
 	/* supply binary as dynamic linker if '<start ld="no">' */
-	if (!_use_ld && service_name == Rom_session::service_name() && label == "ld.lib.so")
+	if (rom_service && !_use_ld && label == "ld.lib.so")
 		return resolve_session_request(service_name, _binary_name, diag);
 
 	/* check for "session_requests" ROM request */
-	if (service_name == Rom_session::service_name()
-	 && label.last_element() == Session_requester::rom_name())
+	if (rom_service && label.last_element() == Session_requester::rom_name())
 		return Route { _session_requester.service(), Session::Label(), diag };
 
-	try {
-		Xml_node route_node = _default_route_accessor.default_route();
-		try {
-			route_node = _start_node->xml().sub_node("route"); }
-		catch (...) { }
-		Xml_node service_node = route_node.sub_node();
+	auto resolve_at_target = [&] (Xml_node const &target) -> Route
+	{
+		/*
+		 * Determine session label to be provided to the server
+		 *
+		 * By default, the client's identity (accompanied with the a
+		 * client-provided label) is presented as session label to the
+		 * server. However, the target node can explicitly override the
+		 * client's identity by a custom label via the 'label'
+		 * attribute.
+		 */
+		typedef String<Session_label::capacity()> Label;
+		Label const target_label =
+			target.attribute_value("label", Label(label.string()));
 
-		for (; ; service_node = service_node.next()) {
+		Session::Diag const
+			target_diag { target.attribute_value("diag", diag.enabled) };
 
-			bool service_wildcard = service_node.has_type("any-service");
+		auto no_filter = [] (Service &) -> bool { return false; };
 
-			if (!service_node_matches(service_node, label, name(), service_name))
-				continue;
+		if (target.has_type("parent")) {
 
-			Xml_node target = service_node.sub_node();
-			for (; ; target = target.next()) {
-
-				/*
-				 * Determine session label to be provided to the server
-				 *
-				 * By default, the client's identity (accompanied with the a
-				 * client-provided label) is presented as session label to the
-				 * server. However, the target node can explicitly override the
-				 * client's identity by a custom label via the 'label'
-				 * attribute.
-				 */
-				typedef String<Session_label::capacity()> Label;
-				Label const target_label =
-					target.attribute_value("label", Label(label.string()));
-
-				Session::Diag const
-					target_diag { target.attribute_value("diag", diag.enabled) };
-
-				auto no_filter = [] (Service &) -> bool { return false; };
-
-				if (target.has_type("parent")) {
-
-					try {
-						return Route { find_service(_parent_services, service_name, no_filter),
-						               target_label, target_diag };
-					} catch (Service_denied) { }
-				}
-
-				if (target.has_type("local")) {
-
-					try {
-						return Route { find_service(_local_services, service_name, no_filter),
-						               target_label, target_diag };
-					} catch (Service_denied) { }
-				}
-
-				if (target.has_type("child")) {
-
-					typedef Name_registry::Name Name;
-					Name server_name = target.attribute_value("name", Name());
-					server_name = _name_registry.deref_alias(server_name);
-
-					auto filter_server_name = [&] (Routed_service &s) -> bool {
-						return s.child_name() != server_name; };
-
-					try {
-						return Route { find_service(_child_services, service_name, filter_server_name),
-						               target_label, target_diag };
-
-					} catch (Service_denied) { }
-				}
-
-				if (target.has_type("any-child")) {
-
-					if (is_ambiguous(_child_services, service_name)) {
-						error(name(), ": ambiguous routes to "
-						      "service \"", service_name, "\"");
-						throw Service_denied();
-					}
-					try {
-						return Route { find_service(_child_services, service_name, no_filter),
-						               target_label, target_diag };
-
-					} catch (Service_denied) { }
-				}
-
-				if (!service_wildcard) {
-					warning(name(), ": lookup for service \"", service_name, "\" failed");
-					throw Service_denied();
-				}
-
-				if (target.last())
-					break;
-			}
+			try {
+				return Route { find_service(_parent_services, service_name, no_filter),
+				               target_label, target_diag };
+			} catch (Service_denied) { }
 		}
-	} catch (Xml_node::Nonexistent_sub_node) { }
 
-	warning(name(), ": no route to service \"", service_name, "\" (label=\"", label, "\")");
-	throw Service_denied();
+		if (target.has_type("local")) {
+
+			try {
+				return Route { find_service(_local_services, service_name, no_filter),
+				               target_label, target_diag };
+			} catch (Service_denied) { }
+		}
+
+		if (target.has_type("child")) {
+
+			typedef Name_registry::Name Name;
+			Name server_name = target.attribute_value("name", Name());
+			server_name = _name_registry.deref_alias(server_name);
+
+			auto filter_server_name = [&] (Routed_service &s) -> bool {
+				return s.child_name() != server_name; };
+
+			try {
+				return Route { find_service(_child_services, service_name,
+				               filter_server_name), target_label, target_diag };
+
+			} catch (Service_denied) { }
+		}
+
+		if (target.has_type("any-child")) {
+
+			if (is_ambiguous(_child_services, service_name)) {
+				error(name(), ": ambiguous routes to "
+				      "service \"", service_name, "\"");
+				throw Service_denied();
+			}
+			try {
+				return Route { find_service(_child_services, service_name,
+				               no_filter), target_label, target_diag };
+
+			} catch (Service_denied) { }
+		}
+
+		throw Service_denied();
+	};
+
+	Route_model::Query const query(name(), service_name, label);
+
+	return _route_model->resolve(query, resolve_at_target);
 }
 
 
@@ -795,6 +773,8 @@ Sandbox::Child::Child(Env                      &env,
 		log("  ELF binary: ", _binary_name);
 		log("  priority:   ", _resources.priority);
 	}
+
+	_construct_route_model_from_start_node(start_node);
 
 	/*
 	 * Determine services provided by the child
