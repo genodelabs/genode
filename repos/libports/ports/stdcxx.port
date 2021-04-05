@@ -1,9 +1,9 @@
 LICENSE   := LGPL
-VERSION   := 8.3.0
+VERSION   := 10.3.0
 DOWNLOADS := gcc.archive
 
 URL(gcc) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(gcc) := 64baadfe6cc0f4947a84cb12d7f0dfaf45bb58b7e92461639596c21e02d97d2c
+SHA(gcc) := 64f404c1a650f27fc33da242e1f2df54952e3963a49e06e73f6940f3223ac344
 DIR(gcc) := src/lib/stdcxx
 SIG(gcc) := ${URL(gcc)}
 KEY(gcc) := GNU
