@@ -83,10 +83,7 @@ class Rtc::Root : public Genode::Root_component<Session_component>
 		:
 			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env)
-		{
-			/* trigger initial RTC read */
-			Rtc::get_time(_env);
-		}
+		{ }
 
 		void notify_clients()
 		{
