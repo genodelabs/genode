@@ -166,6 +166,8 @@ struct Genode::Range_allocator : Allocator
 		bool error() const { return !ok(); }
 	};
 
+	struct Range { addr_t start, end; };
+
 	/**
 	 * Allocate block
 	 *
@@ -174,8 +176,18 @@ struct Genode::Range_allocator : Allocator
 	 *                  undefined in the error case
 	 * \param align     alignment of new block specified
 	 *                  as the power of two
+	 * \param range     address-range constraint for the allocation
 	 */
-	virtual Alloc_return alloc_aligned(size_t size, void **out_addr, int align, addr_t from=0, addr_t to = ~0UL) = 0;
+	virtual Alloc_return alloc_aligned(size_t size, void **out_addr,
+	                                   unsigned align, Range range) = 0;
+
+	/**
+	 * Allocate block without constraining the address range
+	 */
+	Alloc_return alloc_aligned(size_t size, void **out_addr, unsigned align)
+	{
+		return alloc_aligned(size, out_addr, align, Range { .start = 0, .end = ~0UL });
+	}
 
 	/**
 	 * Allocate block at address

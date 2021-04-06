@@ -662,6 +662,8 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		typedef typename POLICY::Ack_queue    Ack_queue;
 		typedef typename POLICY::Content_type Content_type;
 
+		enum { PACKET_ALIGNMENT = POLICY::Packet_descriptor::PACKET_ALIGNMENT };
+
 		Genode::Range_allocator &_packet_alloc;
 
 		Packet_descriptor_transmitter<Submit_queue> _submit_transmitter;
@@ -765,7 +767,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 * \return       packet descriptor with an assigned range within the
 		 *               bulk buffer shared between source and sink
 		 */
-		Packet_descriptor alloc_packet(Genode::size_t size, int align = POLICY::Packet_descriptor::PACKET_ALIGNMENT)
+		Packet_descriptor alloc_packet(Genode::size_t size, unsigned align = PACKET_ALIGNMENT)
 		{
 			void *base = 0;
 			if (size && _packet_alloc.alloc_aligned(size, &base, align).error())

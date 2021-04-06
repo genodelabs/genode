@@ -165,14 +165,15 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 
 		int add_range(addr_t, size_t) override { return -1; }
 		int remove_range(addr_t, size_t) override { return -1; }
-		Alloc_return alloc_aligned(size_t, void **, int, addr_t from = 0,
-		                           addr_t to = ~0UL) override;
+		Alloc_return alloc_aligned(size_t, void **, unsigned, Range) override;
 		Alloc_return alloc_addr(size_t, addr_t) override {
 			return Alloc_return::RANGE_CONFLICT; }
-		void         free(void *) override;
-		size_t       avail() const override { return _phys_alloc->avail(); }
-		bool         valid_addr(addr_t addr) const override {
+		void free(void *) override;
+		size_t avail() const override { return _phys_alloc->avail(); }
+		bool valid_addr(addr_t addr) const override {
 			return _virt_alloc->valid_addr(addr); }
+
+		using Range_allocator::alloc_aligned; /* import overloads */
 
 
 		/*************************
@@ -280,11 +281,11 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		Alloc_return alloc_addr(size_t, addr_t) override {
 			return Alloc_return::RANGE_CONFLICT; }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
-		                           addr_t from = 0, addr_t to = ~0UL) override
+		Alloc_return alloc_aligned(size_t size, void **out_addr,
+		                           unsigned align, Range range) override
 		{
 			Mutex::Guard lock_guard(_mutex);
-			return _mem_alloc.alloc_aligned(size, out_addr, align, from, to);
+			return _mem_alloc.alloc_aligned(size, out_addr, align, range);
 		}
 
 		void free(void *addr) override
@@ -296,6 +297,8 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		size_t avail() const override { return _phys_alloc.avail(); }
 
 		bool valid_addr(addr_t addr) const override { return _virt_alloc.valid_addr(addr); }
+
+		using Range_allocator::alloc_aligned; /* import overloads */
 
 
 		/*************************

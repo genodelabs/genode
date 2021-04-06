@@ -75,7 +75,7 @@ class Genode::Platform : public Platform_generic
 			bool   valid_addr(addr_t )     const override { ASSERT_NEVER_CALLED; }
 			bool   alloc(size_t, void **)        override { ASSERT_NEVER_CALLED; }
 
-			Alloc_return alloc_aligned(size_t, void **, int, addr_t, addr_t) override
+			Alloc_return alloc_aligned(size_t, void **, unsigned, Range) override
 			{ ASSERT_NEVER_CALLED; }
 
 			Alloc_return alloc_addr(size_t, addr_t) override
@@ -94,10 +94,9 @@ class Genode::Platform : public Platform_generic
 				return true;
 			}
 
-			Alloc_return alloc_aligned(size_t, void **out_addr, int,
-			                           addr_t, addr_t) override
+			Alloc_return alloc_aligned(size_t, void **out, unsigned, Range) override
 			{
-				*out_addr = 0;
+				*out = 0;
 				return Alloc_return::OK;
 			}
 
