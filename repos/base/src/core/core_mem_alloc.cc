@@ -34,7 +34,8 @@ void * Mapped_avl_allocator::map_addr(void * addr)
 
 
 Range_allocator::Alloc_return
-Mapped_mem_allocator::alloc_aligned(size_t size, void **out_addr, int align, addr_t from, addr_t to)
+Mapped_mem_allocator::alloc_aligned(size_t size, void **out_addr,
+                                    unsigned align, Range range)
 {
 	size_t page_rounded_size = align_addr(size, get_page_size_log2());
 	void  *phys_addr = 0;
@@ -42,7 +43,7 @@ Mapped_mem_allocator::alloc_aligned(size_t size, void **out_addr, int align, add
 
 	/* allocate physical pages */
 	Alloc_return ret1 = _phys_alloc->alloc_aligned(page_rounded_size,
-	                                               &phys_addr, align, from, to);
+	                                               &phys_addr, align, range);
 	if (!ret1.ok()) {
 		error("Could not allocate physical memory region of size ",
 		      page_rounded_size);

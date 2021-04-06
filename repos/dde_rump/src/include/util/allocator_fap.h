@@ -142,7 +142,7 @@ namespace Allocator {
 				return _range.alloc(size, out_addr);
 			}
 
-			void *alloc_aligned(size_t size, int align = 0)
+			void *alloc_aligned(size_t size, unsigned align = 0)
 			{
 				void *addr;
 
@@ -207,7 +207,7 @@ namespace Allocator {
 			Fap(bool cached)
 			: _back_allocator(cached ? CACHED : UNCACHED) { }
 
-			void *alloc(size_t size, int align = 0)
+			void *alloc(size_t size, unsigned align = 0)
 			{
 				return _back_allocator.alloc_aligned(size, align);
 			}

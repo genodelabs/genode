@@ -93,9 +93,9 @@ class Genode::Synced_range_allocator : public Range_allocator
 		int remove_range(addr_t base, size_t size) override {
 			return _synced_object()->remove_range(base, size); }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
-		                           addr_t from = 0, addr_t to = ~0UL) override {
-			return _synced_object()->alloc_aligned(size, out_addr, align, from, to); }
+		Alloc_return alloc_aligned(size_t size, void **out_addr,
+		                           unsigned align, Range range) override {
+			return _synced_object()->alloc_aligned(size, out_addr, align, range); }
 
 		Alloc_return alloc_addr(size_t size, addr_t addr) override {
 			return _synced_object()->alloc_addr(size, addr); }
@@ -108,6 +108,8 @@ class Genode::Synced_range_allocator : public Range_allocator
 
 		bool valid_addr(addr_t addr) const override {
 			return _synced_object()->valid_addr(addr); }
+
+		using Range_allocator::alloc_aligned; /* import overloads */
 };
 
 #endif /* _CORE__INCLUDE__SYNCED_RANGE_ALLOCATOR_H_ */

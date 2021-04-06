@@ -79,18 +79,15 @@ class Genode::Allocator_avl_base : public Range_allocator
 				 * Query if block can hold a specified subblock
 				 *
 				 * \param n       number of bytes
-				 * \param from    minimum start address of subblock
-				 * \param to      maximum end address of subblock
+				 * \param range   address constraint of subblock
 				 * \param align   alignment (power of two)
 				 * \return        true if block fits
 				 */
-				inline bool _fits(size_t n, unsigned align,
-				                  addr_t from, addr_t to)
+				inline bool _fits(size_t n, unsigned align, Range range)
 				{
-					addr_t a = align_addr(addr() < from ? from : addr(),
-					                      align);
+					addr_t a = align_addr(max(addr(), range.start), align);
 					return (a >= addr()) && _sum_in_range(a, n) &&
-					       (a - addr() + n <= avail()) && (a + n - 1 <= to);
+					       (a - addr() + n <= avail()) && (a + n - 1 <= range.end);
 				}
 
 				/*
@@ -150,8 +147,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 				/**
 				 * Find best-fitting block
 				 */
-				Block *find_best_fit(size_t size, unsigned align,
-				                     addr_t from = 0UL, addr_t to = ~0UL);
+				Block *find_best_fit(size_t size, unsigned align, Range);
 
 				/**
 				 * Find block that contains the specified address range
@@ -264,12 +260,13 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 		int          add_range(addr_t base, size_t size) override;
 		int          remove_range(addr_t base, size_t size) override;
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,
-		                           addr_t from = 0, addr_t to = ~0UL) override;
+		Alloc_return alloc_aligned(size_t, void **, unsigned, Range) override;
 		Alloc_return alloc_addr(size_t size, addr_t addr) override;
 		void         free(void *addr) override;
 		size_t       avail() const override;
 		bool         valid_addr(addr_t addr) const override;
+
+		using Range_allocator::alloc_aligned; /* import overloads */
 
 
 		/*************************

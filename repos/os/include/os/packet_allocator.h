@@ -116,8 +116,8 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			return 0;
 		}
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int, addr_t,
-			                       addr_t) override
+		Alloc_return alloc_aligned(size_t size, void **out_addr, unsigned,
+		                           Range) override
 		{
 			return alloc(size, out_addr) ? Alloc_return::OK
 			                             : Alloc_return::RANGE_CONFLICT;

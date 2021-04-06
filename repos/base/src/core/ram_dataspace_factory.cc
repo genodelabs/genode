@@ -47,10 +47,12 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache_attribute cached)
 	 * constraints.
 	 */
 	if (_phys_range.start == 0 && _phys_range.end == ~0UL) {
-		addr_t const high_start = (sizeof(void *) == 4 ? 3UL : 4UL) << 30;
+
+		addr_t     const high_start = (sizeof(void *) == 4 ? 3UL : 4UL) << 30;
+		Phys_range const range { .start = high_start, .end = _phys_range.end };
+
 		for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
-			if (_phys_alloc.alloc_aligned(ds_size, &ds_addr, align_log2,
-			                              high_start, _phys_range.end).ok()) {
+			if (_phys_alloc.alloc_aligned(ds_size, &ds_addr, align_log2, range).ok()) {
 				alloc_succeeded = true;
 				break;
 			}
@@ -61,7 +63,7 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache_attribute cached)
 	if (!alloc_succeeded) {
 		for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
 			if (_phys_alloc.alloc_aligned(ds_size, &ds_addr, align_log2,
-			                              _phys_range.start, _phys_range.end).ok()) {
+			                              _phys_range).ok()) {
 				alloc_succeeded = true;
 				break;
 			}
