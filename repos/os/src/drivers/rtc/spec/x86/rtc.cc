@@ -13,9 +13,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode */
+/* Genode includes */
 #include <io_port_session/connection.h>
 
+/* local includes */
 #include "rtc.h"
 
 using namespace Genode;
@@ -66,24 +67,35 @@ enum RTC
 };
 
 
-static inline unsigned cmos_read(Io_port_connection &rtc_ports, unsigned char addr)
-{
-	unsigned char val;
-	rtc_ports.outb(RTC_PORT_ADDR, addr);
-//	iodelay();
-	val = rtc_ports.inb(RTC_PORT_DATA);
-//	iodelay();
-	return val;
-}
+namespace Rtc { struct Driver; }
 
 
-static inline void cmos_write(Io_port_connection &rtc_ports, unsigned char addr,
-                              unsigned char value)
+struct Rtc::Driver : Noncopyable
 {
-	rtc_ports.outb(RTC_PORT_ADDR, addr);
-	// iodelay();
-	rtc_ports.outb(RTC_PORT_DATA, value);
-}
+	Env &_env;
+
+	Io_port_connection _ports { _env, RTC_PORT_BASE, RTC_PORT_SIZE };
+
+	uint8_t _cmos_read(uint8_t addr)
+	{
+		_ports.outb(RTC_PORT_ADDR, addr);
+		return _ports.inb(RTC_PORT_DATA);
+	}
+
+	void _cmos_write(uint8_t addr, uint8_t value)
+	{
+		_ports.outb(RTC_PORT_ADDR, addr);
+		_ports.outb(RTC_PORT_DATA, value);
+	}
+
+	Driver(Env &env) : _env(env) { }
+
+	static void init_singleton(Env &);
+
+	Timestamp read_timestamp();
+
+	void write_timestamp(Timestamp);
+};
 
 
 #define RTC_ALWAYS_BCD   1 /* RTC operates in binary mode */
@@ -91,46 +103,44 @@ static inline void cmos_write(Io_port_connection &rtc_ports, unsigned char addr,
 #define BIN_TO_BCD(val)  ((val) = (((val)/10) << 4) + (val) % 10)
 
 
-static Io_port_connection &rtc_ports(Env *env = nullptr)
+Rtc::Timestamp Rtc::Driver::read_timestamp()
 {
-       static Io_port_connection inst(*env, RTC_PORT_BASE, RTC_PORT_SIZE);
-       return inst;
-}
-
-
-Rtc::Timestamp Rtc::get_time(Env &env)
-{
-	/*
-	 * Our RTC port session
-	 */
-	rtc_ports(&env);
-
-	unsigned year, mon, day, hour, min, sec;
-	int i;
-
 	/* The Linux interpretation of the CMOS clock register contents:
 	 * When the Update-In-Progress (UIP) flag goes from 1 to 0, the
 	 * RTC registers show the second which has precisely just started.
 	 * Let's hope other operating systems interpret the RTC the same way. */
 
 	/* read RTC exactly on falling edge of update flag */
-	for (i = 0 ; i < 1000000 ; i++)
-		if (cmos_read(rtc_ports(), RTC_FREQ_SELECT) & RTC_UIP) break;
 
-	for (i = 0 ; i < 1000000 ; i++)
-		if (!(cmos_read(rtc_ports(), RTC_FREQ_SELECT) & RTC_UIP)) break;
+	unsigned const MAX_ITERATIONS = 1000000;
+	unsigned i;
+	for (i = 0; i < MAX_ITERATIONS; i++)
+		if (_cmos_read(RTC_FREQ_SELECT) & RTC_UIP)
+			break;
+
+	if (i == MAX_ITERATIONS)
+		warning("polling of RTC_UIP failed");
+
+	for (i = 0; i < MAX_ITERATIONS; i++)
+		if (!(_cmos_read(RTC_FREQ_SELECT) & RTC_UIP))
+			break;
+
+	if (i == MAX_ITERATIONS)
+		warning("polling of !RTC_UIP failed");
+
+	unsigned year, mon, day, hour, min, sec;
 
 	do {
-		sec  = cmos_read(rtc_ports(), RTC_SECONDS);
-		min  = cmos_read(rtc_ports(), RTC_MINUTES);
-		hour = cmos_read(rtc_ports(), RTC_HOURS);
-		day  = cmos_read(rtc_ports(), RTC_DAY_OF_MONTH);
-		mon  = cmos_read(rtc_ports(), RTC_MONTH);
-		year = cmos_read(rtc_ports(), RTC_YEAR);
-	} while (sec != cmos_read(rtc_ports(), RTC_SECONDS));
+		sec  = _cmos_read(RTC_SECONDS);
+		min  = _cmos_read(RTC_MINUTES);
+		hour = _cmos_read(RTC_HOURS);
+		day  = _cmos_read(RTC_DAY_OF_MONTH);
+		mon  = _cmos_read(RTC_MONTH);
+		year = _cmos_read(RTC_YEAR);
+	} while (sec != _cmos_read(RTC_SECONDS));
 
 	/* convert BCD to binary format if needed */
-	if (!(cmos_read(rtc_ports(), RTC_CONTROL) & RTC_DM_BINARY) || RTC_ALWAYS_BCD) {
+	if (!(_cmos_read(RTC_CONTROL) & RTC_DM_BINARY) || RTC_ALWAYS_BCD) {
 		BCD_TO_BIN(sec);
 		BCD_TO_BIN(min);
 		BCD_TO_BIN(hour);
@@ -145,15 +155,10 @@ Rtc::Timestamp Rtc::get_time(Env &env)
 }
 
 
-void Rtc::set_time(Env &env, Timestamp ts)
+void Rtc::Driver::write_timestamp(Timestamp ts)
 {
-	/*
-	 * Our RTC port session
-	 */
-	rtc_ports(&env);
-
-	unsigned const ctl  = cmos_read(rtc_ports(), RTC_CONTROL);
-	unsigned const freq = cmos_read(rtc_ports(), RTC_FREQ_SELECT);
+	unsigned const ctl  = _cmos_read(RTC_CONTROL);
+	unsigned const freq = _cmos_read(RTC_FREQ_SELECT);
 	bool     const bcd  = (!(ctl & RTC_DM_BINARY) || RTC_ALWAYS_BCD);
 
 	/* ignore century and hope for the best */
@@ -167,17 +172,59 @@ void Rtc::set_time(Env &env, Timestamp ts)
 	unsigned const year = bcd ? BIN_TO_BCD(ts.year)   : ts.year;
 
 	/* disable updating */
-	cmos_write(rtc_ports(), RTC_CONTROL, ctl | RTC_SET);
-	cmos_write(rtc_ports(), RTC_FREQ_SELECT, freq | RTC_DIV_RESET2);
+	_cmos_write(RTC_CONTROL, ctl | RTC_SET);
+	_cmos_write(RTC_FREQ_SELECT, freq | RTC_DIV_RESET2);
 
-	cmos_write(rtc_ports(), RTC_SECONDS,      sec);
-	cmos_write(rtc_ports(), RTC_MINUTES,      min);
-	cmos_write(rtc_ports(), RTC_HOURS,        hour);
-	cmos_write(rtc_ports(), RTC_DAY_OF_MONTH, day);
-	cmos_write(rtc_ports(), RTC_MONTH,        mon);
-	cmos_write(rtc_ports(), RTC_YEAR,         year);
+	_cmos_write(RTC_SECONDS,      sec);
+	_cmos_write(RTC_MINUTES,      min);
+	_cmos_write(RTC_HOURS,        hour);
+	_cmos_write(RTC_DAY_OF_MONTH, day);
+	_cmos_write(RTC_MONTH,        mon);
+	_cmos_write(RTC_YEAR,         year);
 
 	/* enable updating */
-	cmos_write(rtc_ports(), RTC_CONTROL, ctl);
-	cmos_write(rtc_ports(), RTC_FREQ_SELECT, freq);
+	_cmos_write(RTC_CONTROL, ctl);
+	_cmos_write(RTC_FREQ_SELECT, freq);
+}
+
+
+static Rtc::Driver *_rtc_driver_ptr;
+
+
+void Rtc::Driver::init_singleton(Env &env)
+{
+	static Rtc::Driver inst(env);
+
+	_rtc_driver_ptr = &inst;
+}
+
+
+template <typename FN>
+static void with_driver(FN const &fn)
+{
+	if (_rtc_driver_ptr)
+		fn(*_rtc_driver_ptr);
+	else
+		error("missing call of 'Rtc::Driver::init_singleton");
+}
+
+
+Rtc::Timestamp Rtc::get_time(Env &env)
+{
+	Driver::init_singleton(env);
+
+	Timestamp result { };
+	with_driver([&] (Driver &driver) {
+		result = driver.read_timestamp(); });
+
+	return result;
+}
+
+
+void Rtc::set_time(Env &env, Timestamp ts)
+{
+	Driver::init_singleton(env);
+
+	with_driver([&] (Driver &driver) {
+		driver.write_timestamp(ts); });
 }
