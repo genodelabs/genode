@@ -572,6 +572,14 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 				_state = State::RAM_INITIALIZED;
 			}
 
+			/*
+			 * Update the state if async env sessions have brought the child to
+			 * life. Otherwise, we would wrongly call 'initiate_env_sessions()'
+			 * another time.
+			 */
+			if (_state == State::RAM_INITIALIZED && _child.active())
+				_state = State::ALIVE;
+
 			if (_state == State::RAM_INITIALIZED) {
 				_child.initiate_env_sessions();
 
