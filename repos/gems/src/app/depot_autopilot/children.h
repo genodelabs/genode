@@ -33,7 +33,7 @@ class Depot_deploy::Children
 
 		Genode::Allocator                       &_alloc;
 		Timer::Connection                       &_timer;
-		Genode::Signal_context_capability const &_config_handler;
+		Genode::Signal_context_capability const  _config_handler;
 		Local::Const_pointer<Child>              _curr_child { };
 
 		List_model<Child> _children { };
@@ -79,7 +79,7 @@ class Depot_deploy::Children
 
 		Children(Genode::Allocator                       &alloc,
 		         Timer::Connection                       &timer,
-		         Genode::Signal_context_capability const &config_handler)
+		         Genode::Signal_context_capability const  config_handler)
 		:
 			_alloc          { alloc },
 			_timer          { timer },
