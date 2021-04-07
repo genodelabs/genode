@@ -80,7 +80,7 @@ struct Platform::Session : Genode::Session
 	/**
 	 * Return the bus address of the previously allocated DMA memory
 	 */
-	virtual addr_t bus_addr_dma_buffer(Ram_dataspace_capability) = 0;
+	virtual addr_t dma_addr(Ram_dataspace_capability) = 0;
 
 
 	/*********************
@@ -97,12 +97,12 @@ struct Platform::Session : Genode::Session
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Fatal), size_t);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Ram_dataspace_capability);
-	GENODE_RPC(Rpc_bus_addr_dma_buffer, addr_t, bus_addr_dma_buffer,
+	GENODE_RPC(Rpc_dma_addr, addr_t, dma_addr,
 	           Ram_dataspace_capability);
 
 	GENODE_RPC_INTERFACE(Rpc_devices_rom, Rpc_acquire_device, Rpc_release_device,
 	                     Rpc_alloc_dma_buffer, Rpc_free_dma_buffer,
-	                     Rpc_bus_addr_dma_buffer);
+	                     Rpc_dma_addr);
 };
 
 #endif /* _INCLUDE__SPEC__ARM__PLATFORM_SESSION__PLATFORM_SESSION_H_ */

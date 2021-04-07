@@ -45,8 +45,8 @@ struct Platform::Client : public Genode::Rpc_client<Session>
 	void free_dma_buffer(Ram_dataspace_capability cap) override {
 		call<Rpc_free_dma_buffer>(cap); }
 
-	addr_t bus_addr_dma_buffer(Ram_dataspace_capability cap) override {
-		return call<Rpc_bus_addr_dma_buffer>(cap); }
+	addr_t dma_addr(Ram_dataspace_capability cap) override {
+		return call<Rpc_dma_addr>(cap); }
 };
 
 #endif /* _INCLUDE__SPEC__ARM__PLATFORM_SESSION__CLIENT_H_ */

@@ -71,7 +71,7 @@ class Driver::Session_component :
 		void release_device(Device_capability) override;
 		Ram_dataspace_capability alloc_dma_buffer(size_t const) override;
 		void free_dma_buffer(Ram_dataspace_capability ram_cap) override;
-		addr_t bus_addr_dma_buffer(Ram_dataspace_capability) override;
+		addr_t dma_addr(Ram_dataspace_capability) override;
 
 	private:
 
