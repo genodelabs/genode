@@ -32,8 +32,8 @@ void backend_alloc_init(Genode::Env&, Genode::Ram_allocator&,
 
 
 Genode::Ram_dataspace_capability
-Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached) {
-	return Lx_kit::env().env().ram().alloc(size, cached); }
+Lx::backend_alloc(Genode::addr_t size, Genode::Cache cache) {
+	return Lx_kit::env().env().ram().alloc(size, cache); }
 
 
 void Lx::backend_free(Genode::Ram_dataspace_capability cap) {

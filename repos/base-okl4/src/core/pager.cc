@@ -65,7 +65,7 @@ static inline L4_ThreadId_t thread_get_my_global_id()
  ** Mapping **
  *************/
 
-Mapping::Mapping(addr_t dst_addr, addr_t src_addr, Cache_attribute, bool,
+Mapping::Mapping(addr_t dst_addr, addr_t src_addr, Cache, bool,
                  unsigned l2size, bool rw, bool)
 :
 	_fpage(L4_FpageLog2(dst_addr, l2size)),

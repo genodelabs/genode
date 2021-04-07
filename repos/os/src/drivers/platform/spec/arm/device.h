@@ -82,7 +82,7 @@ class Driver::Device : private List_model<Device>::Element
 
 		Irq_session_capability    irq(unsigned idx,
 		                              Session_component & session);
-		Io_mem_session_capability io_mem(unsigned idx, Cache_attribute,
+		Io_mem_session_capability io_mem(unsigned idx, Cache,
 		                                 Session_component & session);
 
 		void report(Xml_generator &, Session_component &);

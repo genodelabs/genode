@@ -39,7 +39,7 @@ class Genode::Attached_ram_dataspace
 		Region_map               *_rm   = nullptr;
 		Ram_dataspace_capability  _ds { };
 		void                     *_local_addr = nullptr;
-		Cache_attribute const     _cached = CACHED;
+		Cache               const _cache = CACHED;
 
 		template <typename T>
 		static void _swap(T &v1, T &v2) { T tmp = v1; v1 = v2; v2 = tmp; }
@@ -58,7 +58,7 @@ class Genode::Attached_ram_dataspace
 			if (!_size) return;
 
 			try {
-				_ds         = _ram->alloc(_size, _cached);
+				_ds         = _ram->alloc(_size, _cache);
 				_local_addr = _rm->attach(_ds);
 			}
 			/* revert allocation if attaching the dataspace failed */
@@ -75,7 +75,7 @@ class Genode::Attached_ram_dataspace
 			 * work-around for this issues, we eagerly map the whole
 			 * dataspace before writing actual content to it.
 			 */
-			if (_cached != CACHED) {
+			if (_cache != CACHED) {
 				enum { PAGE_SIZE = 4096 };
 				unsigned char volatile *base = (unsigned char volatile *)_local_addr;
 				for (size_t i = 0; i < _size; i += PAGE_SIZE)
@@ -100,9 +100,9 @@ class Genode::Attached_ram_dataspace
 		 * \throw Region_map::Invalid_dataspace
 		 */
 		Attached_ram_dataspace(Ram_allocator &ram, Region_map &rm,
-		                       size_t size, Cache_attribute cached = CACHED)
+		                       size_t size, Cache cache = CACHED)
 		:
-			_size(size), _ram(&ram), _rm(&rm), _cached(cached)
+			_size(size), _ram(&ram), _rm(&rm), _cache(cache)
 		{
 			_alloc_and_attach();
 		}

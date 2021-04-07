@@ -31,9 +31,9 @@ class Genode::Mapping
 {
 	private:
 
-		addr_t          const _dst_addr;
-		Cache_attribute const _attr;
-		Nova::Mem_crd   const _mem_crd;
+		addr_t        const _dst_addr;
+		Cache         const _cache;
+		Nova::Mem_crd const _mem_crd;
 
 		enum { PAGE_SIZE_LOG2 = 12 };
 
@@ -43,12 +43,12 @@ class Genode::Mapping
 		 * Constructor
 		 */
 		Mapping(addr_t dst_addr, addr_t source_addr,
-		        Cache_attribute c, bool /* io_mem */,
+		        Cache cache, bool /* io_mem */,
 		        unsigned size_log2,
 		        bool writeable, bool executable)
 		:
 			_dst_addr(dst_addr),
-			_attr(c),
+			_cache(cache),
 			_mem_crd(source_addr >> PAGE_SIZE_LOG2,
 			         size_log2 - PAGE_SIZE_LOG2,
 			         Nova::Rights(true, writeable, executable))
@@ -56,12 +56,10 @@ class Genode::Mapping
 
 		void prepare_map_operation() { }
 
-		Nova::Mem_crd mem_crd() const { return _mem_crd; }
-
-		bool dma() { return _attr != CACHED; };
-		bool write_combined() { return _attr == WRITE_COMBINED; };
-
-		addr_t dst_addr() { return _dst_addr; }
+		Nova::Mem_crd mem_crd()        const { return _mem_crd; }
+		bool          dma()            const { return _cache != CACHED; };
+		bool          write_combined() const { return _cache == WRITE_COMBINED; };
+		addr_t        dst_addr()       const { return _dst_addr; }
 };
 
 

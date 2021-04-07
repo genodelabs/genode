@@ -26,7 +26,7 @@ static long map_page_table(Genode::Cap_sel const pagetable,
 
 long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
                                  Genode::addr_t  const virt,
-                                 Cache_attribute const cacheability,
+                                 Cache           const cacheability,
                                  bool            const writable,
                                  bool            const executable,
                                  bool)

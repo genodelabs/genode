@@ -40,7 +40,7 @@ namespace Lx
 	              Genode::Allocator&,
 	              Genode::Nic_driver_mode);
 
-	Genode::Ram_dataspace_capability backend_alloc(Genode::addr_t, Genode::Cache_attribute);
+	Genode::Ram_dataspace_capability backend_alloc(Genode::addr_t, Genode::Cache);
 	void backend_free(Genode::Ram_dataspace_capability);
 
 	void get_mac_address(unsigned char *);

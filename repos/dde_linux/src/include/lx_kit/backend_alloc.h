@@ -25,8 +25,7 @@ namespace Lx {
 
 	using namespace Genode;
 
-	Ram_dataspace_capability backend_alloc(addr_t size,
-	                                       Cache_attribute cached);
+	Ram_dataspace_capability backend_alloc(addr_t size, Cache);
 	void backend_free(Ram_dataspace_capability cap);
 }
 

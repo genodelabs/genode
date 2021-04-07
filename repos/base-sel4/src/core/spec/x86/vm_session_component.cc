@@ -54,7 +54,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	_ep(ep),
 	_ram_alloc(ram_alloc),
 	_ds_cap (_ram_alloc.alloc(align_addr(sizeof(Genode::Vcpu_state), 12),
-	                          Cache_attribute::CACHED))
+	                          Cache::CACHED))
 {
 	try {
 		/* notification cap */

@@ -40,7 +40,7 @@ addr_t Io_mem_session_component::get_arg_phys(const char *args)
 }
 
 
-Cache_attribute Io_mem_session_component::get_arg_wc(const char *args)
+Cache Io_mem_session_component::get_arg_wc(const char *args)
 {
 	Arg const a = Arg_string::find_arg("wc", args);
 	if (a.valid() && a.bool_value(0)) {

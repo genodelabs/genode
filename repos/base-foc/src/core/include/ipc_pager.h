@@ -42,21 +42,20 @@ class Genode::Mapping
 {
 	private:
 
-		addr_t             _dst_addr;
+		addr_t          _dst_addr;
 		Foc::l4_fpage_t _fpage { };
-		Cache_attribute    _cacheability;
-		bool               _iomem;
+		Cache           _cacheability;
+		bool            _iomem;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Mapping(addr_t dst_addr, addr_t src_addr,
-		        Cache_attribute c, bool io_mem,
+		Mapping(addr_t dst_addr, addr_t src_addr, Cache cache, bool io_mem,
 		        unsigned log2size, bool write, bool executable)
 		:
-			_dst_addr(dst_addr), _cacheability(c), _iomem(io_mem)
+			_dst_addr(dst_addr), _cacheability(cache), _iomem(io_mem)
 		{
 			typedef Foc::L4_fpage_rights Rights;
 			Rights rights = ( write &&  executable) ? Foc::L4_FPAGE_RWX :
@@ -73,11 +72,12 @@ class Genode::Mapping
 		Mapping() : _dst_addr(0), _fpage(Foc::l4_fpage_invalid()),
 		            _cacheability(UNCACHED), _iomem(false) { }
 
-		Foc::l4_umword_t dst_addr() const { return _dst_addr; }
-		bool                grant()    const { return false; }
-		Foc::l4_fpage_t  fpage()    const { return _fpage; }
-		Cache_attribute cacheability() const { return _cacheability; }
-		bool iomem()                   const { return _iomem; }
+		Foc::l4_umword_t dst_addr()     const { return _dst_addr; }
+		bool             grant()        const { return false; }
+		Foc::l4_fpage_t  fpage()        const { return _fpage; }
+		Cache            cacheability() const { return _cacheability; }
+		bool             iomem()        const { return _iomem; }
+
 		/**
 		 * Prepare map operation is not needed on Fiasco.OC, since we clear the
 		 * dataspace before this function is called.

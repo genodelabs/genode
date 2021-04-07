@@ -93,8 +93,7 @@ Genode::Irq_session_capability Driver::Device::irq(unsigned idx,
 
 
 Genode::Io_mem_session_capability
-Driver::Device::io_mem(unsigned idx, Cache_attribute attr,
-                       Session_component & sc)
+Driver::Device::io_mem(unsigned idx, Cache cache, Session_component & sc)
 {
 	Io_mem_session_capability cap;
 
@@ -108,7 +107,7 @@ Driver::Device::io_mem(unsigned idx, Cache_attribute attr,
 		if (!io_mem.io_mem) {
 			io_mem.io_mem = new (sc.heap())
 				Io_mem_connection(sc.env().env, io_mem.base, io_mem.size,
-				                          (attr == WRITE_COMBINED));
+				                          (cache == WRITE_COMBINED));
 		}
 		cap = io_mem.io_mem->cap();
 	});

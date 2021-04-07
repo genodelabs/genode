@@ -65,7 +65,7 @@ namespace Allocator {
 			typedef Genode::Allocator_avl Allocator_avl;
 
 			addr_t                   _base;              /* virt. base address */
-			Cache_attribute          _cached;            /* non-/cached RAM */
+			Cache                    _cache;             /* non-/cached RAM */
 			Ram_dataspace_capability _ds_cap[ELEMENTS];  /* dataspaces to put in VM */
 			addr_t                   _ds_phys[ELEMENTS]; /* physical bases of dataspaces */
 			int                      _index = 0;         /* current index in ds_cap */
@@ -85,7 +85,7 @@ namespace Allocator {
 				Policy_guard<POLICY> guard;
 
 				try {
-					_ds_cap[_index] =  Rump::env().env().ram().alloc(BLOCK_SIZE, _cached);
+					_ds_cap[_index] =  Rump::env().env().ram().alloc(BLOCK_SIZE, _cache);
 					/* attach at index * BLOCK_SIZE */
 					Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 					/* lookup phys. address */
@@ -114,11 +114,11 @@ namespace Allocator {
 
 		public:
 
-			Backend_alloc(Cache_attribute cached)
+			Backend_alloc(Cache cache)
 			:
 				Rm_connection(Rump::env().env()),
 				Region_map_client(Rm_connection::create(VM_SIZE)),
-				_cached(cached),
+				_cache(cache),
 				_range(&Rump::env().heap())
 			{
 				/* reserver attach us, anywere */
@@ -204,8 +204,7 @@ namespace Allocator {
 
 		public:
 
-			Fap(bool cached)
-			: _back_allocator(cached ? CACHED : UNCACHED) { }
+			Fap(bool cache) : _back_allocator(cache ? CACHED : UNCACHED) { }
 
 			void *alloc(size_t size, unsigned align = 0)
 			{

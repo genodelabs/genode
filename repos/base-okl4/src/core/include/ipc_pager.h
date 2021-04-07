@@ -41,8 +41,7 @@ class Genode::Mapping
 		/**
 		 * Constructor
 		 */
-		Mapping(addr_t dst_addr, addr_t src_addr,
-		        Cache_attribute cacheability, bool io_mem,
+		Mapping(addr_t dst_addr, addr_t src_addr, Cache, bool io_mem,
 		        unsigned l2size, bool rw, bool executable);
 
 		/**

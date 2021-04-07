@@ -38,7 +38,7 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 	Expanding_pd_session_client(Parent &parent, Pd_session_capability cap)
 	: Pd_session_client(cap), _parent(parent) { }
 
-	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = UNCACHED) override
+	Ram_dataspace_capability alloc(size_t size, Cache cache = UNCACHED) override
 	{
 		/*
 		 * If the RAM session runs out of quota, issue a resource request
@@ -49,7 +49,7 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 		return retry<Out_of_ram>(
 			[&] () {
 				return retry<Out_of_caps>(
-					[&] () { return Pd_session_client::alloc(size, cached); },
+					[&] () { return Pd_session_client::alloc(size, cache); },
 					[&] () { _request_caps_from_parent(UPGRADE_CAPS); },
 					NUM_ATTEMPTS);
 			},

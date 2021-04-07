@@ -48,7 +48,7 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 		};
 
 		addr_t                           _base;              /* virt. base address */
-		Genode::Cache_attribute          _cached;            /* non-/cached RAM */
+		Genode::Cache                    _cache;             /* non-/cached RAM */
 		Genode::Ram_dataspace_capability _ds_cap[ELEMENTS];  /* dataspaces to put in VM */
 		addr_t                           _ds_phys[ELEMENTS]; /* physical bases of dataspaces */
 		int                              _index;             /* current index in ds_cap */
@@ -62,7 +62,7 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 			}
 
 			try {
-				_ds_cap[_index] = Lx::backend_alloc(P_BLOCK_SIZE, _cached);
+				_ds_cap[_index] = Lx::backend_alloc(P_BLOCK_SIZE, _cache);
 				/* attach at index * V_BLOCK_SIZE */
 				Region_map_client::attach_at(_ds_cap[_index], _index * V_BLOCK_SIZE, P_BLOCK_SIZE, 0);
 
@@ -81,11 +81,11 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 	public:
 
 		Slab_backend_alloc(Genode::Env &env, Genode::Allocator &md_alloc,
-		                   Genode::Cache_attribute cached)
+		                   Genode::Cache cache)
 		:
 			Rm_connection(env),
 			Region_map_client(Rm_connection::create(VM_SIZE)),
-			_cached(cached), _index(0), _range(&md_alloc)
+			_cache(cache), _index(0), _range(&md_alloc)
 		{
 			/* reserver attach us, anywere */
 			_base = env.rm().attach(dataspace());
@@ -170,7 +170,7 @@ class Lx_kit::Malloc : public Lx::Malloc
 
 		Slab_backend_alloc                &_back_allocator;
 		Genode::Constructible<Slab_alloc>  _allocator[NUM_SLABS];
-		Genode::Cache_attribute            _cached; /* cached or un-cached memory */
+		Genode::Cache                      _cache;  /* cached or un-cached memory */
 		addr_t                             _start;  /* VM region of this allocator */
 		addr_t                             _end;
 
@@ -217,9 +217,9 @@ class Lx_kit::Malloc : public Lx::Malloc
 
 	public:
 
-		Malloc(Slab_backend_alloc &alloc, Genode::Cache_attribute cached)
+		Malloc(Slab_backend_alloc &alloc, Genode::Cache cache)
 		:
-			_back_allocator(alloc), _cached(cached), _start(alloc.start()),
+			_back_allocator(alloc), _cache(cache), _start(alloc.start()),
 			_end(alloc.end())
 		{
 			/* init slab allocators */
@@ -253,7 +253,7 @@ class Lx_kit::Malloc : public Lx::Malloc
 
 			if (msb > SLAB_STOP_LOG2) {
 				Genode::error("slab too large ",
-				              1UL << msb, " requested ", size, " cached ", (int)_cached);
+				              1UL << msb, " requested ", size, " cached ", (int)_cache);
 				return 0;
 			}
 

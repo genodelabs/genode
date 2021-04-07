@@ -113,14 +113,14 @@ Lx::Pci_dev_registry *Lx::pci_dev_registry(Genode::Env *env)
  *********************************/
 
 Genode::Ram_dataspace_capability
-Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
+Lx::backend_alloc(Genode::addr_t size, Genode::Cache cache)
 {
 	using namespace Genode;
 	using namespace Lx_kit;
 
 	Memory_object_base *obj;
 	Genode::Ram_dataspace_capability cap;
-	if (cached == CACHED) {
+	if (cache == CACHED) {
 		cap = _global_ram->alloc(size);
 		obj = new (_global_md_alloc) Ram_object(*_global_ram, cap);
 	} else {

@@ -128,22 +128,31 @@ struct Lx_driver
 	}
 };
 
+
 struct task_struct *current;
 struct workqueue_struct *system_wq;
 unsigned long jiffies;
 
-Genode::Ram_dataspace_capability Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached) {
-	return Lx_kit::env().env().ram().alloc(size, cached); }
+
+Genode::Ram_dataspace_capability Lx::backend_alloc(Genode::addr_t size,
+                                                   Genode::Cache cache)
+{
+	return Lx_kit::env().env().ram().alloc(size, cache);
+}
+
 
 const char *dev_name(const struct device *dev) { return dev->name; }
 
+
 size_t strlen(const char *s) { return Genode::strlen(s); }
+
 
 int  mutex_lock_interruptible(struct mutex *m)
 {
 	mutex_lock(m);
 	return 0;
 }
+
 
 int driver_register(struct device_driver *drv)
 {

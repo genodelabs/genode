@@ -80,7 +80,7 @@ class Nonpci::Ps2 : public Platform::Device_component
 		}
 
 		Genode::Io_mem_session_capability io_mem(Genode::uint8_t,
-		                                         Genode::Cache_attribute,
+		                                         Genode::Cache,
 		                                         Genode::addr_t,
 		                                         Genode::size_t) override
 		{

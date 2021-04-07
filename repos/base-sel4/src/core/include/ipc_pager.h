@@ -30,13 +30,13 @@ class Genode::Mapping
 
 	private:
 
-		addr_t          _from_phys_addr { 0 };
-		addr_t          _to_virt_addr   { 0 };
-		Cache_attribute _attr           { CACHED };
-		size_t          _num_pages      { 0 };
-		addr_t          _fault_type     { 0 };
-		bool            _writeable      { false };
-		bool            _executable     { false };
+		addr_t _from_phys_addr { 0 };
+		addr_t _to_virt_addr   { 0 };
+		Cache  _cache          { CACHED };
+		size_t _num_pages      { 0 };
+		addr_t _fault_type     { 0 };
+		bool   _writeable      { false };
+		bool   _executable     { false };
 
 		enum { PAGE_SIZE_LOG2 = 12 };
 
@@ -45,13 +45,12 @@ class Genode::Mapping
 		/**
 		 * Constructor
 		 */
-		Mapping(addr_t dst_addr, addr_t src_addr,
-		        Cache_attribute const cacheability, bool,
+		Mapping(addr_t dst_addr, addr_t src_addr, Cache const cache, bool,
 		        unsigned l2size, bool rw, bool executable)
 		:
 			_from_phys_addr(src_addr),
 			_to_virt_addr(dst_addr),
-			_attr(cacheability),
+			_cache(cache),
 			_num_pages(1 << (l2size - PAGE_SIZE_LOG2)),
 			_writeable(rw), _executable(executable)
 		{ }
@@ -69,13 +68,13 @@ class Genode::Mapping
 		 */
 		void prepare_map_operation() { }
 
-		addr_t from_phys() const { return _from_phys_addr; }
-		addr_t to_virt()   const { return _to_virt_addr; }
-		size_t num_pages() const { return _num_pages; }
-		bool   writeable() const { return _writeable; }
-		bool   executable() const { return _executable; }
-		Cache_attribute cacheability() const { return _attr; }
-		addr_t fault_type() const { return _fault_type; }
+		addr_t from_phys()    const { return _from_phys_addr; }
+		addr_t to_virt()      const { return _to_virt_addr; }
+		size_t num_pages()    const { return _num_pages; }
+		bool   writeable()    const { return _writeable; }
+		bool   executable()   const { return _executable; }
+		Cache  cacheability() const { return _cache; }
+		addr_t fault_type()   const { return _fault_type; }
 };
 
 

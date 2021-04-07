@@ -33,9 +33,7 @@ struct Platform::Device_client : Genode::Rpc_client<Device>
 	}
 
 	Genode::Io_mem_session_capability
-	io_mem(unsigned id = 0,
-	       Genode::Cache_attribute caching =
-	       Genode::Cache_attribute::UNCACHED) override
+	io_mem(unsigned id = 0, Genode::Cache caching = Genode::Cache::UNCACHED) override
 	{
 		return call<Rpc_io_mem>(id, caching);
 	}
@@ -46,11 +44,9 @@ struct Platform::Device_client : Genode::Rpc_client<Device>
 	 ***************************/
 
 	Genode::Io_mem_dataspace_capability
-	io_mem_dataspace(unsigned id = 0,
-	                 Genode::Cache_attribute caching =
-	                 Genode::Cache_attribute::UNCACHED)
+	io_mem_dataspace(unsigned id = 0, Genode::Cache cache = Genode::Cache::UNCACHED)
 	{
-		Genode::Io_mem_session_client session(io_mem(id, caching));
+		Genode::Io_mem_session_client session(io_mem(id, cache));
 			return session.dataspace();
 	}
 };

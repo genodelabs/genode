@@ -34,9 +34,9 @@ class Genode::Io_mem_session_component : public Rpc_object<Io_mem_session>
 		Rpc_entrypoint &_ds_ep;
 		Io_mem_dataspace_capability _ds_cap;
 
-		size_t get_arg_size(const char *);
-		addr_t get_arg_phys(const char *);
-		Cache_attribute get_arg_wc(const char *);
+		size_t get_arg_size(char const *);
+		addr_t get_arg_phys(char const *);
+		Cache  get_arg_wc  (char const *);
 
 	public:
 

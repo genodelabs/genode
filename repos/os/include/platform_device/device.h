@@ -31,8 +31,7 @@ struct Platform::Abstract_device : Genode::Interface
 	/**
 	 * Get IO mem session capability of specified resource id
 	 */
-	virtual Genode::Io_mem_session_capability io_mem(Genode::uint8_t,
-	                                                 Genode::Cache_attribute,
+	virtual Genode::Io_mem_session_capability io_mem(Genode::uint8_t, Genode::Cache,
 	                                                 Genode::addr_t, Genode::size_t) = 0;
 };
 

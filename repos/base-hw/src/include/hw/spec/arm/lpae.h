@@ -199,8 +199,8 @@ class Hw::Long_translation_table
 			struct Attribute_index : Base::template Bitfield<2, 3>
 			{
 				enum {
-					UNCACHED = Genode::Cache_attribute::UNCACHED,
-					CACHED   = Genode::Cache_attribute::CACHED,
+					UNCACHED = Genode::Cache::UNCACHED,
+					CACHED   = Genode::Cache::CACHED,
 					DEVICE
 				};
 

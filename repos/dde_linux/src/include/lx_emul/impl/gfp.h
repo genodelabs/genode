@@ -20,16 +20,16 @@
 
 struct page *alloc_pages(gfp_t const gfp_mask, unsigned int order)
 {
-	using Genode::Cache_attribute;
+	using Genode::Cache;
 
 	struct page *page = (struct page *)kzalloc(sizeof(struct page), 0);
 
 	size_t size = PAGE_SIZE << order;
 
 	gfp_t const dma_mask = (GFP_DMA | GFP_LX_DMA | GFP_DMA32);
-	Cache_attribute const cached = (gfp_mask & dma_mask) ? Genode::UNCACHED
-	                                                     : Genode::CACHED;
-	Genode::Ram_dataspace_capability ds_cap = Lx::backend_alloc(size, cached);
+	Cache const cache    = (gfp_mask & dma_mask) ? Genode::UNCACHED
+	                                             : Genode::CACHED;
+	Genode::Ram_dataspace_capability ds_cap = Lx::backend_alloc(size, cache);
 	page->addr = Lx_kit::env().rm().attach(ds_cap);
 	page->paddr = Genode::Dataspace_client(ds_cap).phys_addr();
 

@@ -24,7 +24,7 @@ namespace Lx {
 
 	using namespace Genode;
 
-	void *ioremap(addr_t, unsigned long, Cache_attribute);
+	void *ioremap(addr_t, unsigned long, Cache);
 	void  iounmap(volatile void*);
 	Dataspace_capability ioremap_lookup(addr_t, Genode::size_t);
 }

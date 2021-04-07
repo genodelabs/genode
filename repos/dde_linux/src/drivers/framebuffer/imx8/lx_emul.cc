@@ -1198,7 +1198,7 @@ struct Dma_wc_dataspace : Genode::Attached_ram_dataspace,
 	: Genode::Attached_ram_dataspace(Lx_kit::env().ram(),
 	                                 Lx_kit::env().rm(),
 	                                 size,
-	                                 Genode::Cache_attribute::WRITE_COMBINED) { }
+	                                 Genode::Cache::WRITE_COMBINED) { }
 };
 
 static Genode::List<Dma_wc_dataspace> &_dma_wc_ds_list()

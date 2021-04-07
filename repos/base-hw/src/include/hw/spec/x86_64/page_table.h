@@ -122,7 +122,7 @@ class Hw::Level_4_translation_table
 
 			static access_t create(Page_flags const &flags, addr_t const pa)
 			{
-				bool const wc = flags.cacheable == Genode::Cache_attribute::WRITE_COMBINED;
+				bool const wc = flags.cacheable == Genode::Cache::WRITE_COMBINED;
 
 				return Common::create(flags)
 					| G::bits(flags.global)
@@ -303,7 +303,7 @@ class Hw::Page_directory
 			static typename Base::access_t create(Page_flags const &flags,
 			                                      addr_t const pa)
 			{
-				bool const wc = flags.cacheable == Genode::Cache_attribute::WRITE_COMBINED;
+				bool const wc = flags.cacheable == Genode::Cache::WRITE_COMBINED;
 
 				return Base::create(flags)
 				     | Base::Ps::bits(1)

@@ -60,13 +60,13 @@ struct Genode::Mapping : Hw::Mapping
 {
 	Mapping() {}
 
-	Mapping(addr_t virt,
-	        addr_t phys,
-	        Cache_attribute cacheable,
-	        bool io,
+	Mapping(addr_t   virt,
+	        addr_t   phys,
+	        Cache    cacheable,
+	        bool     io,
 	        unsigned size_log2,
-	        bool writeable,
-	        bool executable)
+	        bool     writeable,
+	        bool     executable)
 	:
 		Hw::Mapping(phys, virt, 1 << size_log2,
 		            { writeable  ? Hw::RW   : Hw::RO,
