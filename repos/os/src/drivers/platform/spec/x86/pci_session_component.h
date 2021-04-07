@@ -120,6 +120,8 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 			return Genode::Io_mem_dataspace_capability();
 		}
 
+		addr_t start() const { return _start; }
+
 		void add(Bdf * bdf) { _bdf_list.insert(bdf); }
 
 		static Genode::List<Rmrr> *list()
@@ -208,6 +210,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Genode::Env                       &_env;
 		Genode::Attached_rom_dataspace    &_config;
 		Genode::Attached_io_mem_dataspace &_pciconf;
+		Genode::addr_t               const _pciconf_base;
 		Genode::Ram_quota_guard            _ram_guard;
 		Genode::Cap_quota_guard            _cap_guard;
 		Genode::Constrained_ram_allocator  _env_ram {
@@ -229,6 +232,15 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 		void _insert(Ram_capability cap) {
 			_ram_caps.insert(new (_md_alloc) Platform::Ram_dataspace(cap)); }
+
+		bool _owned(Ram_capability cap)
+		{
+			for (Ram_dataspace *ds = _ram_caps.first(); ds; ds = ds->next())
+				if (ds->match(cap))
+					return true;
+
+			return false;
+		}
 
 		bool _remove(Ram_capability cap)
 		{
@@ -469,6 +481,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Session_component(Genode::Env                       &env,
 		                  Genode::Attached_rom_dataspace    &config,
 		                  Genode::Attached_io_mem_dataspace &pciconf,
+		                  Genode::addr_t                     pciconf_base,
 		                  Platform::Pci_buses               &buses,
 		                  Genode::Heap                      &global_heap,
 		                  Pci::Config::Delayer              &delayer,
@@ -479,6 +492,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_env(env),
 			_config(config),
 			_pciconf(pciconf),
+			_pciconf_base(pciconf_base),
 			_ram_guard(Genode::ram_quota_from_args(args)),
 			_cap_guard(Genode::cap_quota_from_args(args)),
 			_md_alloc(_env_ram, env.rm()),
@@ -792,7 +806,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				return;
 
 			try {
-				addr_t const base_ecam = Dataspace_client(_pciconf.cap()).phys_addr();
+				addr_t const base_ecam = _pciconf_base;
 				addr_t const base_offset = 0x1000UL * device->device_config().bdf().value();
 
 				if (base_ecam + base_offset != device->config_space())
@@ -801,7 +815,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
 					Io_mem_dataspace_capability rmrr_cap = r->match(_env, device->device_config());
 					if (rmrr_cap.valid())
-						_device_pd.attach_dma_mem(rmrr_cap);
+						_device_pd.attach_dma_mem(rmrr_cap, r->start());
 				}
 
 				_device_pd.assign_pci(_pciconf.cap(), base_offset,
@@ -819,12 +833,13 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Ram_capability alloc_dma_buffer(Genode::size_t const size) override
 		{
 			Ram_capability ram_cap = _env_ram.alloc(size, Genode::UNCACHED);
+			addr_t  const dma_addr = Dataspace_client(ram_cap).phys_addr();
 
 			if (!ram_cap.valid())
 				return ram_cap;
 
 			try {
-				_device_pd.attach_dma_mem(ram_cap);
+				_device_pd.attach_dma_mem(ram_cap, dma_addr);
 				_insert(ram_cap);
 			} catch (Out_of_ram)  {
 				_env_ram.free(ram_cap);
@@ -845,6 +860,14 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_env_ram.free(ram_cap);
 		}
 
+		Genode::addr_t dma_addr(Ram_capability ram_cap) override
+		{
+			if (!ram_cap.valid() || !_owned(ram_cap))
+				return 0;
+
+			return Dataspace_client(ram_cap).phys_addr();
+		}
+
 		Device_capability device(String const &name) override;
 };
 
@@ -857,6 +880,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		Genode::Attached_rom_dataspace &_config;
 
 		Genode::Constructible<Genode::Attached_io_mem_dataspace> _pci_confspace { };
+		Genode::addr_t _pci_confspace_base = 0;
 
 		Genode::Constructible<Genode::Expanding_reporter> _pci_reporter { };
 
@@ -913,6 +937,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				log("ECAM/MMCONF range ", bdf_first, "-", bdf_last, " - addr ",
 				    Hex_range<addr_t>(base, memory_size));
 
+				_pci_confspace_base = base;
 				_pci_confspace.construct(env, base, memory_size);
 			});
 
@@ -1020,7 +1045,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		void _construct_buses()
 		{
 			Genode::Dataspace_client ds_pci_mmio(_pci_confspace->cap());
-			uint64_t const phys_addr = ds_pci_mmio.phys_addr();
+			uint64_t const phys_addr = _pci_confspace_base;
 			uint64_t const phys_size = ds_pci_mmio.size();
 			uint64_t       mmio_size = 0x10000000UL; /* max MMCONF memory */
 
@@ -1065,6 +1090,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					Genode::Registered<Session_component>(_sessions, _env,
 					                                      _config,
 					                                      *_pci_confspace,
+					                                       _pci_confspace_base,
 					                                      *_buses, _heap,
 					                                      _delayer,
 					                                      _devices_bars, args,

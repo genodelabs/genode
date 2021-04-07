@@ -68,13 +68,13 @@ struct Platform::Session : Genode::Session
 	typedef Genode::Rpc_in_buffer<8> String;
 
 	/**
-	 * Provide non-PCI device known by unique name.
+	 * Provide non-PCI device known by unique name
 	 */
 	virtual Device_capability device(String const &string) = 0;
 
 	/**
-	  * Allocate memory suitable for DMA.
-	  */
+	 * Allocate memory suitable for DMA
+	 */
 	virtual Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t) = 0;
 
 	/**
@@ -82,6 +82,10 @@ struct Platform::Session : Genode::Session
 	 */
 	virtual void free_dma_buffer(Genode::Ram_dataspace_capability) = 0;
 
+	/**
+	 * Return the bus address of the previously allocated DMA memory
+	 */
+	virtual Genode::addr_t dma_addr(Genode::Ram_dataspace_capability) = 0;
 
 	/*********************
 	 ** RPC declaration **
@@ -100,13 +104,15 @@ struct Platform::Session : Genode::Session
 	                 Genode::size_t);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Genode::Ram_dataspace_capability);
+	GENODE_RPC(Rpc_dma_addr, Genode::addr_t, dma_addr,
+	           Genode::Ram_dataspace_capability);
 	GENODE_RPC_THROW(Rpc_device, Device_capability, device,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 String const &);
 
 	GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device,
 	                     Rpc_release_device, Rpc_alloc_dma_buffer,
-	                     Rpc_free_dma_buffer, Rpc_device);
+	                     Rpc_free_dma_buffer, Rpc_dma_addr, Rpc_device);
 };
 
 #endif /* _INCLUDE__SPEC__X86__PLATFORM_SESSION__PLATFORM_SESSION_H_ */

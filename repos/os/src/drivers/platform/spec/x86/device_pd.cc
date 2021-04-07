@@ -20,19 +20,19 @@
 
 #include "device_pd.h"
 
-void Platform::Device_pd::attach_dma_mem(Genode::Dataspace_capability ds_cap)
+void Platform::Device_pd::attach_dma_mem(Genode::Dataspace_capability ds_cap,
+                                         Genode::addr_t const dma_addr)
 {
 	using namespace Genode;
 
 	Dataspace_client ds_client(ds_cap);
 
-	addr_t const phys = ds_client.phys_addr();
 	size_t const size = ds_client.size();
 
 	addr_t page = ~0UL;
 
 	try {
-		page = _address_space.attach_at(ds_cap, phys);
+		page = _address_space.attach_at(ds_cap, dma_addr);
 		/* trigger eager mapping of memory */
 		_pd.map(page, size);
 	}
@@ -42,18 +42,19 @@ void Platform::Device_pd::attach_dma_mem(Genode::Dataspace_capability ds_cap)
 		/*
 		 * DMA memory already attached before.
 		 */
-		page = phys;
+		page = dma_addr;
 	} catch (...) {
 		error(_label, ": attach_at or map failed");
 	}
 
 	/* sanity check */
-	if ((page == ~0UL) || (page != phys)) {
+	if ((page == ~0UL) || (page != dma_addr)) {
 		if (page != ~0UL)
 			_address_space.detach(page);
 
 		Genode::error(_label, ": attachment of DMA memory @ ",
-		              Genode::Hex(phys), "+", Genode::Hex(size), " failed page=", Genode::Hex(page));
+		              Genode::Hex(dma_addr), "+", Genode::Hex(size), " "
+		              "failed page=", Genode::Hex(page));
 		return;
 	}
 }
@@ -93,7 +94,6 @@ void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability const i
 	/* try to assign pci device to this protection domain */
 	if (!_pd.assign_pci(page, rid))
 		Genode::error(_label, ": assignment of PCI device ", Rid(rid), " failed ",
-		              "phys=", Genode::Hex(ds_client.phys_addr() + offset), " "
 		              "virt=", Genode::Hex(page));
 	else
 		Genode::log(_label,": assignment of PCI device ", Rid(rid), " succeeded");
