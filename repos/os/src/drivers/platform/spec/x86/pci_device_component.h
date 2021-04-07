@@ -71,9 +71,15 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 
 			public:
 
-				Io_mem (Genode::Env &env, Genode::addr_t base,
-				        Genode::size_t size, bool wc)
-				: Genode::Io_mem_connection(env, base, size, wc) { }
+				Genode::addr_t const base;
+				Genode::size_t const size;
+
+				Io_mem(Genode::Env &env, Genode::addr_t base,
+				       Genode::size_t size, bool wc)
+				:
+					Genode::Io_mem_connection(env, base, size, wc),
+					base(base), size(size)
+				{ }
 		};
 
 		enum {
@@ -309,13 +315,11 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 
 				for (Io_mem * io_mem = _io_mem[i].first(); io_mem; io_mem = io_mem->next()) {
 
-					Dataspace_client ds_client(io_mem->dataspace());
-
-					if (!(ds_client.phys_addr() <= msix_table_phys &&
-					      msix_table_phys + msix_table_size <= ds_client.phys_addr() + ds_client.size()))
+					if (!(io_mem->base <= msix_table_phys &&
+					      msix_table_phys + msix_table_size <= io_mem->base + io_mem->size))
 						continue;
 
-					Genode::size_t const offset = msix_table_phys - ds_client.phys_addr();
+					Genode::size_t const offset = msix_table_phys - io_mem->base;
 
 					Attached_dataspace mem_io(_env.rm(), io_mem->dataspace());
 

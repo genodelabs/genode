@@ -110,7 +110,7 @@ class Platform::Device_pd
 			_pd.ref_account(env.pd_session_cap());
 		}
 
-		void attach_dma_mem(Genode::Dataspace_capability);
+		void attach_dma_mem(Genode::Dataspace_capability, Genode::addr_t dma_addr);
 		void assign_pci(Genode::Io_mem_dataspace_capability const,
 		                Genode::addr_t const, Genode::uint16_t const);
 };
