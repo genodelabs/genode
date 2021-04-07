@@ -62,10 +62,10 @@ class Lx::Pci_dev_registry
 
 		Pci_dev* first() { return _devs.first(); }
 
-		Genode::Io_mem_dataspace_capability io_mem(Genode::addr_t          phys,
-		                                           Genode::Cache_attribute cache_attribute,
-		                                           Genode::size_t          size,
-		                                           Genode::addr_t         &offset)
+		Genode::Io_mem_dataspace_capability io_mem(Genode::addr_t  phys,
+		                                           Genode::Cache   cache,
+		                                           Genode::size_t  size,
+		                                           Genode::addr_t &offset)
 		{
 			enum { PCI_ROM_RESOURCE = 6 };
 
@@ -85,7 +85,7 @@ class Lx::Pci_dev_registry
 				offset = phys - pci_resource_start(d, bar);
 
 				Genode::Io_mem_session_capability io_mem_cap =
-					d->io_mem(bar, cache_attribute);
+					d->io_mem(bar, cache);
 
 				return Genode::Io_mem_session_client(io_mem_cap).dataspace();
 			}

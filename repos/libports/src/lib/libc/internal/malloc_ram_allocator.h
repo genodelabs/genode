@@ -53,9 +53,9 @@ struct Libc::Malloc_ram_allocator : Ram_allocator
 			_release(ds); });
 	}
 
-	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
+	Ram_dataspace_capability alloc(size_t size, Cache cache) override
 	{
-		Ram_dataspace_capability cap = _ram.alloc(size, cached);
+		Ram_dataspace_capability cap = _ram.alloc(size, cache);
 		new (_md_alloc) Registered<Dataspace>(_dataspaces, cap);
 		return cap;
 	}

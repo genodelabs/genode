@@ -21,7 +21,7 @@ using namespace Genode;
 
 
 Ram_dataspace_capability
-Ram_dataspace_factory::alloc(size_t ds_size, Cache_attribute cached)
+Ram_dataspace_factory::alloc(size_t ds_size, Cache cache)
 {
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size) return Ram_dataspace_capability();
@@ -118,7 +118,7 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache_attribute cached)
 	 * \throw Out_of_caps
 	 */
 	Dataspace_component &ds = *new (_ds_slab)
-		Dataspace_component(ds_size, (addr_t)ds_addr, cached, true, this);
+		Dataspace_component(ds_size, (addr_t)ds_addr, cache, true, this);
 
 	/* create native shared memory representation of dataspace */
 	try { _export_ram_ds(ds); }

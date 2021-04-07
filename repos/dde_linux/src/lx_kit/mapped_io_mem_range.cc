@@ -94,8 +94,7 @@ static Lx_kit::List<Lx_kit::Mapped_io_mem_range> ranges;
 static Genode::Constructible<Genode::Rm_connection> _global_rm;
 
 
-void *Lx::ioremap(addr_t phys_addr, unsigned long size,
-                  Genode::Cache_attribute cache_attribute)
+void *Lx::ioremap(addr_t phys_addr, unsigned long size, Genode::Cache cache)
 {
 	using namespace Genode;
 
@@ -112,8 +111,7 @@ void *Lx::ioremap(addr_t phys_addr, unsigned long size,
 
 	addr_t offset = 0;
 	Io_mem_dataspace_capability ds_cap =
-		Lx::pci_dev_registry()->io_mem(phys_addr, cache_attribute,
-		                               size, offset);
+		Lx::pci_dev_registry()->io_mem(phys_addr, cache, size, offset);
 
 	if (!ds_cap.valid()) {
 		error("failed to request I/O memory: ",

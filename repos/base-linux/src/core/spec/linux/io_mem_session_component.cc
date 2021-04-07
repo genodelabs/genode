@@ -53,7 +53,7 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc
 }
 
 
-Cache_attribute Io_mem_session_component::get_arg_wc(const char *)
+Cache Io_mem_session_component::get_arg_wc(const char *)
 {
 	warning(__func__, " not implemented");
 	return UNCACHED;

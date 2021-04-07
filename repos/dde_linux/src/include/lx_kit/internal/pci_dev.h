@@ -198,15 +198,14 @@ class Lx::Pci_dev : public pci_dev, public Lx_kit::List<Pci_dev>::Element
 
 		Io_port &io_port() { return _io_port; }
 
-		Genode::Io_mem_session_capability io_mem(unsigned bar,
-		                                         Genode::Cache_attribute cache_attribute)
+		Genode::Io_mem_session_capability io_mem(unsigned bar, Genode::Cache cache)
 		{
 			if (bar >= DEVICE_COUNT_RESOURCE)
 				return Genode::Io_mem_session_capability();
 
 			if (!_io_mem[bar].valid())
 				_io_mem[bar] = _client.io_mem(_client.phys_bar_to_virt(bar),
-				                              cache_attribute);
+				                              cache);
 
 			return _io_mem[bar];
 		}

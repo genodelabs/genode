@@ -44,9 +44,9 @@ Genode::Io_port_session_capability Platform::Device_component::io_port(Genode::u
 }
 
 Genode::Io_mem_session_capability Platform::Device_component::io_mem(Genode::uint8_t const v_id,
-                                                                     Genode::Cache_attribute const caching,
-                                                                     Genode::addr_t const offset,
-                                                                     Genode::size_t const size)
+                                                                     Genode::Cache   const caching,
+                                                                     Genode::addr_t  const offset,
+                                                                     Genode::size_t  const size)
 {
 	Genode::uint8_t max = sizeof(_io_mem) / sizeof(_io_mem[0]);
 	Genode::uint8_t r_id = 0;
@@ -77,7 +77,7 @@ Genode::Io_mem_session_capability Platform::Device_component::io_mem(Genode::uin
 		}
 
 		try {
-			bool const wc = caching == Genode::Cache_attribute::WRITE_COMBINED;
+			bool const wc = caching == Genode::Cache::WRITE_COMBINED;
 			Io_mem * io_mem = new (_slab_iomem) Io_mem(_env,
 			                                           res.base() + offset,
 			                                           res_size, wc);

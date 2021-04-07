@@ -182,7 +182,7 @@ class Genode::Vm_space
 
 		template <typename FN>
 		bool _map_frame(addr_t const from_phys, addr_t const to_dest,
-		                Cache_attribute const cacheability,
+		                Cache const cacheability,
 		                bool const writable, bool const executable,
 		                bool const flush_support, bool guest, FN const &fn)
 		{
@@ -242,9 +242,9 @@ class Genode::Vm_space
 		/**
 		 * Platform specific map/unmap of a page frame
 		 */
-		long _map_page(Genode::Cap_sel const &idx, Genode::addr_t const virt,
-		               Cache_attribute const cacheability, bool const write,
-		               bool const writable, bool guest);
+		long _map_page(Genode::Cap_sel const &idx, addr_t virt,
+		               Cache cacheability, bool const write,
+		               bool writable, bool guest);
 		long _unmap_page(Genode::Cap_sel const &idx);
 		long _invalidate_page(Genode::Cap_sel const &, seL4_Word const,
 		                      seL4_Word const);
@@ -380,7 +380,7 @@ class Genode::Vm_space
 		}
 
 		bool map(addr_t const from_phys, addr_t const to_virt,
-		         size_t const num_pages, Cache_attribute const cacheability,
+		         size_t const num_pages, Cache const cacheability,
 		         bool const writable, bool const executable, bool flush_support)
 		{
 			auto fn_unmap = [&] (Cap_sel const &idx, addr_t const v_addr)
@@ -430,7 +430,7 @@ class Genode::Vm_space
 		}
 
 		void map_guest(addr_t const from_phys, addr_t const guest_phys,
-		               size_t const num_pages, Cache_attribute const cacheability,
+		               size_t const num_pages, Cache const cacheability,
 		               bool const writable, bool const executable, bool flush_support)
 		{
 			auto fn_unmap = [&] (Cap_sel const &idx, addr_t const) {

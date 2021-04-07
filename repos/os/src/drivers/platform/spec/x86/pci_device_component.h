@@ -603,7 +603,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		Genode::Io_port_session_capability io_port(Genode::uint8_t) override;
 
 		Genode::Io_mem_session_capability io_mem(Genode::uint8_t,
-		                                         Genode::Cache_attribute,
+		                                         Genode::Cache,
 		                                         Genode::addr_t,
 		                                         Genode::size_t) override;
 };

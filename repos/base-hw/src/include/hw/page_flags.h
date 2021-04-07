@@ -31,12 +31,12 @@ namespace Hw {
 
 struct Hw::Page_flags
 {
-	Writeable               writeable;
-	Executeable             executable;
-	Privileged              privileged;
-	Global                  global;
-	Type                    type;
-	Genode::Cache_attribute cacheable;
+	Writeable     writeable;
+	Executeable   executable;
+	Privileged    privileged;
+	Global        global;
+	Type          type;
+	Genode::Cache cacheable;
 
 	void print(Genode::Output & out) const
 	{

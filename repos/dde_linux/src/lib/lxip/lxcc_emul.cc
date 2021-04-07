@@ -73,7 +73,7 @@ struct Memory_object_base : Genode::Object_pool<Memory_object_base>::Entry
 
 
 Genode::Ram_dataspace_capability
-Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
+Lx::backend_alloc(Genode::addr_t size, Genode::Cache)
 {
 	using namespace Genode;
 

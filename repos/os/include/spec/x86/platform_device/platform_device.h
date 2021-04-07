@@ -251,7 +251,7 @@ struct Platform::Device : Platform::Abstract_device
 	                 Genode::uint8_t);
 	GENODE_RPC_THROW(Rpc_io_mem, Genode::Io_mem_session_capability, io_mem,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
-	                 Genode::uint8_t, Genode::Cache_attribute,
+	                 Genode::uint8_t, Genode::Cache,
 	                 Genode::addr_t, Genode::size_t);
 
 	GENODE_RPC_INTERFACE(Rpc_bus_address, Rpc_vendor_id, Rpc_device_id,

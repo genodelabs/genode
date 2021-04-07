@@ -36,17 +36,16 @@ struct Genode::Ram_allocator : Interface
 	/**
 	 * Allocate RAM dataspace
 	 *
-	 * \param  size    size of RAM dataspace
-	 * \param  cached  selects cacheability attributes of the memory,
-	 *                 uncached memory, i.e., for DMA buffers
+	 * \param  size   size of RAM dataspace
+	 * \param  cache  selects cacheability attributes of the memory,
+	 *                uncached memory, i.e., for DMA buffers
 	 *
 	 * \throw  Out_of_ram
 	 * \throw  Out_of_caps
 	 *
 	 * \return capability to new RAM dataspace
 	 */
-	virtual Ram_dataspace_capability alloc(size_t size,
-	                                       Cache_attribute cached = CACHED) = 0;
+	virtual Ram_dataspace_capability alloc(size_t size, Cache cache = CACHED) = 0;
 
 	/**
 	 * Free RAM dataspace
@@ -82,7 +81,7 @@ class Genode::Constrained_ram_allocator : public Ram_allocator
 			_ram_alloc(ram_alloc), _ram_guard(ram_guard), _cap_guard(cap_guard)
 		{ }
 
-		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = CACHED) override
+		Ram_dataspace_capability alloc(size_t size, Cache cache = CACHED) override
 		{
 			size_t page_aligned_size = align_addr(size, 12);
 
@@ -92,7 +91,7 @@ class Genode::Constrained_ram_allocator : public Ram_allocator
 			/*
 			 * \throw Out_of_caps, Out_of_ram
 			 */
-			Ram_dataspace_capability ds = _ram_alloc.alloc(page_aligned_size, cached);
+			Ram_dataspace_capability ds = _ram_alloc.alloc(page_aligned_size, cache);
 
 			ram. acknowledge();
 			caps.acknowledge();

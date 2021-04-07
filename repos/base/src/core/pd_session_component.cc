@@ -21,7 +21,7 @@ using namespace Genode;
 
 
 Ram_dataspace_capability
-Pd_session_component::alloc(size_t ds_size, Cache_attribute cached)
+Pd_session_component::alloc(size_t ds_size, Cache cache)
 {
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size) return Ram_dataspace_capability();
@@ -62,7 +62,7 @@ Pd_session_component::alloc(size_t ds_size, Cache_attribute cached)
 	 * \throw Out_of_ram
 	 * \throw Out_of_caps
 	 */
-	Ram_dataspace_capability ram_ds = _ram_ds_factory.alloc(ds_size, cached);
+	Ram_dataspace_capability ram_ds = _ram_ds_factory.alloc(ds_size, cache);
 
 	/*
 	 * We returned from '_ram_ds_factory.alloc' with a valid dataspace.

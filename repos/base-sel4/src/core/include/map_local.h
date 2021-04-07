@@ -40,7 +40,7 @@ namespace Genode {
 		try {
 			platform = platform ? platform : &platform_specific();
 			platform->core_vm_space().map(from_phys, to_virt, num_pages,
-			                              Cache_attribute::CACHED,
+			                              Cache::CACHED,
 			                              WRITEABLE, NON_EXECUTABLE,
 			                              DONT_FLUSH);
 		} catch (Page_table_registry::Mapping_cache_full) {

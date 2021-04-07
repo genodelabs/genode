@@ -45,7 +45,7 @@ namespace Genode {
 			/*
 			 * Access memory cached, write-combined, or uncached respectively
 			 */
-			Cache_attribute const _cache { CACHED };
+			Cache const _cache { CACHED };
 
 			List<Rm_region> _regions { }; /* regions this is attached to */
 			Mutex           _mutex   { };
@@ -79,7 +79,7 @@ namespace Genode {
 			 * This constructor is used by RAM and ROM dataspaces.
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
-			                    Cache_attribute cache, bool writable,
+			                    Cache cache, bool writable,
 			                    Dataspace_owner *owner)
 			:
 				_phys_addr(core_local_addr), _core_local_addr(core_local_addr),
@@ -98,7 +98,7 @@ namespace Genode {
 			 * space is needed to send a mapping to another address space.
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
-			                    addr_t phys_addr, Cache_attribute cache,
+			                    addr_t phys_addr, Cache cache,
 			                    bool writable, Dataspace_owner *owner)
 			:
 				_phys_addr(phys_addr), _core_local_addr(core_local_addr),
@@ -117,9 +117,9 @@ namespace Genode {
 			 */
 			virtual Native_capability sub_rm() { return Dataspace_capability(); }
 
-			addr_t core_local_addr()       const { return _core_local_addr; }
-			bool io_mem()                  const { return _io_mem; }
-			Cache_attribute cacheability() const { return _cache; }
+			addr_t core_local_addr() const { return _core_local_addr; }
+			bool   io_mem()          const { return _io_mem; }
+			Cache  cacheability()    const { return _cache; }
 
 			/**
 			 * Return dataspace base address to be used for map operations

@@ -38,8 +38,7 @@ struct Platform::Device : Genode::Session
 	/**
 	 * Get IO mem session capability of specified resource id
 	 */
-	virtual Genode::Io_mem_session_capability
-		io_mem(unsigned id, Genode::Cache_attribute attr) = 0;
+	virtual Genode::Io_mem_session_capability io_mem(unsigned id, Genode::Cache) = 0;
 
 
 	/*********************
@@ -48,7 +47,7 @@ struct Platform::Device : Genode::Session
 
 	GENODE_RPC(Rpc_irq, Genode::Irq_session_capability, irq, unsigned);
 	GENODE_RPC(Rpc_io_mem, Genode::Io_mem_session_capability, io_mem,
-	           unsigned, Genode::Cache_attribute);
+	           unsigned, Genode::Cache);
 
 	GENODE_RPC_INTERFACE(Rpc_irq, Rpc_io_mem);
 };

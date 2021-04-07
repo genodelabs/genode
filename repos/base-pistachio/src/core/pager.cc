@@ -32,9 +32,8 @@ using namespace Pistachio;
  ** Mapping **
  *************/
 
-Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
-                 Cache_attribute, bool, unsigned l2size,
-                 bool rw, bool)
+Mapping::Mapping(addr_t dst_addr, addr_t src_addr, Cache, bool,
+                 unsigned l2size, bool rw, bool)
 {
 	bool const grant = false;
 

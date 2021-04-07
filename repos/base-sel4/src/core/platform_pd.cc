@@ -101,7 +101,7 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 	enum { WRITABLE = true, ONE_PAGE = 1, FLUSHABLE = true, NON_EXECUTABLE = false };
 	_vm_space.alloc_page_tables(utcb, get_page_size());
 	_vm_space.map(thread._info.ipc_buffer_phys, utcb, ONE_PAGE,
-	              Cache_attribute::CACHED, WRITABLE, NON_EXECUTABLE, FLUSHABLE);
+	              Cache::CACHED, WRITABLE, NON_EXECUTABLE, FLUSHABLE);
 	return true;
 }
 

@@ -74,8 +74,7 @@ class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
 		/**
 		 * Constructor
 		 */
-		Dataspace_component(size_t size, addr_t addr,
-		                    Cache_attribute, bool writable,
+		Dataspace_component(size_t size, addr_t addr, Cache, bool writable,
 		                    Dataspace_owner * owner)
 		:
 			_size(size), _addr(addr), _cap(), _writable(writable), _owner(owner)
@@ -94,7 +93,7 @@ class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
 		 * reasons and should not be used.
 		 */
 		Dataspace_component(size_t size, addr_t, addr_t phys_addr,
-		                    Cache_attribute, bool writable, Dataspace_owner *_owner);
+		                    Cache, bool writable, Dataspace_owner *_owner);
 
 		/**
 		 * This constructor is especially used for ROM dataspaces

@@ -35,10 +35,10 @@ namespace Genode {
 			 */
 			struct Dataspace_attr
 			{
-				size_t          size            { 0 };
-				addr_t          core_local_addr { 0 };
-				addr_t          phys_addr       { 0 };
-				Cache_attribute cacheable       { UNCACHED };
+				size_t size            { 0 };
+				addr_t core_local_addr { 0 };
+				addr_t phys_addr       { 0 };
+				Cache  cacheable       { UNCACHED };
 
 				/**
 				 * Base address of request used for freeing mem-ranges
@@ -59,7 +59,7 @@ namespace Genode {
 				 * An invalid dataspace is represented by setting all
 				 * arguments to zero.
 				 */
-				Dataspace_attr(size_t s, addr_t cla, addr_t pa, Cache_attribute c,
+				Dataspace_attr(size_t s, addr_t cla, addr_t pa, Cache c,
 				               addr_t req_base)
 				:
 					size(s), core_local_addr(cla), phys_addr(pa),
@@ -88,7 +88,7 @@ namespace Genode {
 			Io_dataspace_component      _ds;
 			Rpc_entrypoint             &_ds_ep;
 			Io_mem_dataspace_capability _ds_cap    { };
-			Cache_attribute             _cacheable { UNCACHED };
+			Cache                       _cacheable { UNCACHED };
 
 			Dataspace_attr _prepare_io_mem(const char *args, Range_allocator &ram_alloc);
 

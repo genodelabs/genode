@@ -209,9 +209,12 @@ struct task_struct *current;
 struct workqueue_struct *system_wq;
 unsigned long jiffies;
 
-Genode::Ram_dataspace_capability Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached) {
-	return Lx_kit::env().env().ram().alloc(size, cached); }
 
+Genode::Ram_dataspace_capability Lx::backend_alloc(Genode::addr_t size,
+                                                   Genode::Cache cache)
+{
+	return Lx_kit::env().env().ram().alloc(size, cache);
+}
 
 
 int usb_register_driver(struct usb_driver * driver, struct module *, const char *)

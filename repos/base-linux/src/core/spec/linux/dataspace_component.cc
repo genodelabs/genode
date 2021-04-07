@@ -73,7 +73,7 @@ Dataspace_component::Dataspace_component(const char *args)
 
 
 Dataspace_component::Dataspace_component(size_t size, addr_t, addr_t phys_addr,
-                                         Cache_attribute, bool, Dataspace_owner *_owner)
+                                         Cache, bool, Dataspace_owner *_owner)
 :
 	_size(size), _addr(phys_addr), _cap(), _writable(false), _owner(_owner)
 {
