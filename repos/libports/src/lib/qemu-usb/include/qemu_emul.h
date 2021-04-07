@@ -786,7 +786,7 @@ typedef struct VMStateDescription
 
 #define assert(cond) do { \
 	if (!(cond)) { \
-		qemu_printf("assertion faied: %s:%d\n", __FILE__, __LINE__); \
+		qemu_printf("assertion failed: %s:%d\n", __FILE__, __LINE__); \
 		int *d = (int *)0x0; \
 		*d = 1; \
 	}} while (0)
