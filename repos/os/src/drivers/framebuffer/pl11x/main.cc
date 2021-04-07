@@ -198,7 +198,7 @@ void Pl11x_driver::Main::_init_device()
 	reg_write(PL11X_REG_TIMING3, tim3);
 
 	/* set framebuffer address and ctrl register */
-	addr_t const fb_dma_base = (addr_t)_platform.bus_addr_dma_buffer(_fb_ds_cap);
+	addr_t const fb_dma_base = (addr_t)_platform.dma_addr(_fb_ds_cap);
 	reg_write(PL11X_REG_UPBASE, fb_dma_base);
 	reg_write(PL11X_REG_LPBASE, 0);
 	reg_write(PL11X_REG_IMSC,   0);

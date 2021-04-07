@@ -143,7 +143,7 @@ void Session_component::free_dma_buffer(Ram_dataspace_capability ram_cap)
 }
 
 
-Genode::addr_t Session_component::bus_addr_dma_buffer(Ram_dataspace_capability ram_cap)
+Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 {
 	if (!ram_cap.valid()) { return 0; }
 
