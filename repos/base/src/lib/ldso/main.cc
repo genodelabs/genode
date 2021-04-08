@@ -69,6 +69,12 @@ Genode::Mutex &Linker::mutex()
 }
 
 
+Genode::Mutex &Linker::shared_object_mutex()
+{
+	static Mutex _mutex;
+	return _mutex;
+}
+
 /**************************************************************
  ** ELF object types (shared object, dynamic binaries, ldso  **
  **************************************************************/
