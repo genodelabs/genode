@@ -129,6 +129,11 @@ namespace Linker {
 	 * Global ELF access mutex
 	 */
 	Mutex &mutex();
+
+	/**
+	 * Mutex that protects shared object list
+	 */
+	Mutex &shared_object_mutex();
 }
 
 

@@ -25,17 +25,6 @@ static Linker::Root_object const &to_root(void *h)
 }
 
 
-/**
- * Needed during shared object creation and destruction, since global lists are
- * manipulated
- */
-static Genode::Mutex & shared_object_lock()
-{
-	static Genode::Mutex _lock;
-	return _lock;
-}
-
-
 static Linker::Object *find_obj(Genode::addr_t addr)
 {
 	for (Linker::Object *e = Linker::obj_list_head(); e; e = e->next_obj())
@@ -61,7 +50,7 @@ Genode::Shared_object::Shared_object(Env &env, Allocator &md_alloc,
 		log("LD: open '", file ? file : "binary", "'");
 
 	try {
-		Mutex::Guard guard(shared_object_lock());
+		Mutex::Guard guard(Linker::shared_object_mutex());
 
 		_handle = new (md_alloc)
 			Root_object(env, md_alloc, file ? file : binary_name(),
@@ -121,7 +110,7 @@ Genode::Shared_object::~Shared_object()
 	if (verbose_shared)
 		log("LD: close shared object");
 
-	Mutex::Guard guard(shared_object_lock());
+	Mutex::Guard guard(Linker::shared_object_mutex());
 	destroy(_md_alloc, &const_cast<Root_object &>(to_root(_handle)));
 }
 
