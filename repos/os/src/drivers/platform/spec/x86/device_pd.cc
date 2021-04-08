@@ -20,8 +20,8 @@
 
 #include "device_pd.h"
 
-void Platform::Device_pd::attach_dma_mem(Genode::Dataspace_capability ds_cap,
-                                         Genode::addr_t const dma_addr)
+void Platform::Device_pd::attach_dma_mem(Dataspace_capability ds_cap,
+                                         addr_t const dma_addr)
 {
 	using namespace Genode;
 
@@ -52,19 +52,15 @@ void Platform::Device_pd::attach_dma_mem(Genode::Dataspace_capability ds_cap,
 		if (page != ~0UL)
 			_address_space.detach(page);
 
-		Genode::error(_label, ": attachment of DMA memory @ ",
-		              Genode::Hex(dma_addr), "+", Genode::Hex(size), " "
-		              "failed page=", Genode::Hex(page));
+		error(_label, ": attachment of DMA memory @ ",
+		      Hex(dma_addr), "+", Hex(size), " " "failed page=", Hex(page));
 		return;
 	}
 }
 
-void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability const io_mem_cap,
-                                     Genode::addr_t const   offset,
-                                     Genode::uint16_t const rid)
+void Platform::Device_pd::assign_pci(Io_mem_dataspace_capability const io_mem_cap,
+                                     addr_t const offset, uint16_t const rid)
 {
-	using namespace Genode;
-
 	Dataspace_client ds_client(io_mem_cap);
 
 	addr_t page = _address_space.attach(io_mem_cap, 0x1000, offset);
@@ -79,12 +75,11 @@ void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability const i
 	/* utility to print rid value */
 	struct Rid
 	{
-		Genode::uint16_t const v;
-		explicit Rid(Genode::uint16_t rid) : v(rid) { }
-		void print(Genode::Output &out) const
+		uint16_t const v;
+		explicit Rid(uint16_t rid) : v(rid) { }
+		void print(Output &out) const
 		{
 			using Genode::print;
-			using Genode::Hex;
 			print(out, Hex((uint8_t)(v >> 8), Hex::Prefix::OMIT_PREFIX, Hex::PAD), ":",
 			      Hex((uint8_t)((v >> 3) & 0x1f), Hex::Prefix::OMIT_PREFIX, Hex::PAD), ".",
 			      Hex(v & 0x7, Hex::Prefix::OMIT_PREFIX));
@@ -93,10 +88,10 @@ void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability const i
 
 	/* try to assign pci device to this protection domain */
 	if (!_pd.assign_pci(page, rid))
-		Genode::error(_label, ": assignment of PCI device ", Rid(rid), " failed ",
-		              "virt=", Genode::Hex(page));
+		error(_label, ": assignment of PCI device ", Rid(rid), " failed ",
+		      "virt=", Hex(page));
 	else
-		Genode::log(_label,": assignment of PCI device ", Rid(rid), " succeeded");
+		log(_label,": assignment of PCI device ", Rid(rid), " succeeded");
 
 	/* we don't need the mapping anymore */
 	_address_space.detach(page);

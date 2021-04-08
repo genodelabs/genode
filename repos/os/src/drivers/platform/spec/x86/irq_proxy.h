@@ -23,20 +23,20 @@ namespace Platform {
 }
 
 
-class Platform::Irq_sigh : public Genode::Signal_context_capability,
-                           public Genode::List<Platform::Irq_sigh>::Element
+class Platform::Irq_sigh : public Signal_context_capability,
+                           public List<Platform::Irq_sigh>::Element
 {
 	public:
 
-		Irq_sigh & operator= (const Genode::Signal_context_capability &cap)
+		Irq_sigh & operator= (Signal_context_capability const &cap)
 		{
-			Genode::Signal_context_capability::operator=(cap);
+			Signal_context_capability::operator=(cap);
 			return *this;
 		}
 
 		Irq_sigh() { }
 
-		void notify() { Genode::Signal_transmitter(*this).submit(1); }
+		void notify() { Signal_transmitter(*this).submit(1); }
 };
 
 
@@ -46,33 +46,29 @@ class Platform::Irq_sigh : public Genode::Signal_context_capability,
  *
  * XXX resources are not accounted as the interrupt is shared
  */
-class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
+class Platform::Irq_proxy : private List<Platform::Irq_proxy>::Element
 {
 	private:
 
-		friend class Genode::List<Platform::Irq_proxy>;
+		friend class List<Platform::Irq_proxy>;
 
 	protected:
 
-		unsigned      _irq_number;
-		Genode::Mutex _mutex { };         /* protects this object */
-		int           _num_sharers;       /* number of clients sharing this IRQ */
+		unsigned const _irq_number;
 
-		Genode::List<Irq_sigh> _sigh_list { };
+		List<Irq_sigh> _sigh_list { };
 
-		int          _num_acknowledgers; /* number of currently blocked clients */
-		bool         _woken_up;          /* client decided to wake me up -
-		                                    this prevents multiple wakeups
-		                                    to happen during initialization */
+		Mutex _mutex { };             /* protects this object */
+		int   _num_sharers = 0;       /* number of clients sharing this IRQ */
+		int   _num_acknowledgers = 0; /* number of currently blocked clients */
+		bool  _woken_up = false;      /* client decided to wake me up -
+		                                 this prevents multiple wakeups
+		                                 to happen during initialization */
 	public:
 
-		using Genode::List<Platform::Irq_proxy>::Element::next;
+		using List<Platform::Irq_proxy>::Element::next;
 
-		Irq_proxy(unsigned irq_number)
-		:
-			_irq_number(irq_number), _num_sharers(0),
-			_num_acknowledgers(0), _woken_up(false)
-		{ }
+		Irq_proxy(unsigned irq_number) : _irq_number(irq_number) { }
 
 		virtual ~Irq_proxy() { }
 
@@ -81,7 +77,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 		 */
 		virtual bool ack_irq()
 		{
-			Genode::Mutex::Guard mutex_guard(_mutex);
+			Mutex::Guard mutex_guard(_mutex);
 
 			_num_acknowledgers++;
 
@@ -101,7 +97,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 		 */
 		void notify_about_irq()
 		{
-			Genode::Mutex::Guard mutex_guard(_mutex);
+			Mutex::Guard mutex_guard(_mutex);
 
 			/* reset acknowledger state */
 			_num_acknowledgers = 0;
@@ -116,7 +112,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 
 		virtual bool add_sharer(Irq_sigh *s)
 		{
-			Genode::Mutex::Guard mutex_guard(_mutex);
+			Mutex::Guard mutex_guard(_mutex);
 
 			++_num_sharers;
 			_sigh_list.insert(s);
@@ -126,7 +122,7 @@ class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 
 		virtual bool remove_sharer(Irq_sigh *s)
 		{
-			Genode::Mutex::Guard mutex_guard(_mutex);
+			Mutex::Guard mutex_guard(_mutex);
 
 			_sigh_list.remove(s);
 			--_num_sharers;

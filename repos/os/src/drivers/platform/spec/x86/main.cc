@@ -21,9 +21,8 @@
 #include "pci_device_config.h"
 #include "device_pd.h"
 
-namespace Platform {
-	struct Main;
-};
+namespace Platform { struct Main; };
+
 
 struct Platform::Main
 {
@@ -31,16 +30,16 @@ struct Platform::Main
 	 * Use sliced heap to allocate each session component at a separate
 	 * dataspace.
 	 */
-	Genode::Env &_env;
-	Genode::Sliced_heap sliced_heap { _env.ram(), _env.rm() };
+	Env &_env;
+	Sliced_heap sliced_heap { _env.ram(), _env.rm() };
 
-	Genode::Attached_rom_dataspace _config { _env, "config" };
+	Attached_rom_dataspace _config { _env, "config" };
 
-	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_rom { };
-	Genode::Constructible<Platform::Root> root { };
+	Constructible<Attached_rom_dataspace> acpi_rom { };
+	Constructible<Platform::Root> root { };
 
-	Genode::Constructible<Genode::Attached_rom_dataspace> system_state { };
-	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_ready { };
+	Constructible<Attached_rom_dataspace> system_state { };
+	Constructible<Attached_rom_dataspace> acpi_ready { };
 
 	Signal_handler<Main> _acpi_report    { _env.ep(), *this,
 	                                       &Main::acpi_update };
@@ -49,7 +48,7 @@ struct Platform::Main
 	Signal_handler<Main> _config_handler { _env.ep(), *this,
 	                                       &Main::config_update };
 
-	Genode::Capability<Genode::Typed_root<Platform::Session_component> > root_cap { };
+	Capability<Typed_root<Platform::Session_component> > root_cap { };
 
 	bool const _acpi_platform;
 	bool _acpi_ready    = false;
@@ -78,7 +77,7 @@ struct Platform::Main
 		root_cap = _env.ep().manage(*root);
 
 		if (_acpi_ready) {
-			Genode::Parent::Service_name announce_for_acpi("Acpi");
+			Parent::Service_name announce_for_acpi("Acpi");
 			_env.parent().announce(announce_for_acpi, root_cap);
 		} else
 			_env.parent().announce(root_cap);
@@ -93,15 +92,14 @@ struct Platform::Main
 			return;
 
 		if (acpi_ready.constructed() && acpi_ready->valid()) {
-			Genode::Xml_node system(acpi_ready->local_addr<char>(),
-			                        acpi_ready->size());
+			Xml_node system(acpi_ready->local_addr<char>(), acpi_ready->size());
 
-			typedef Genode::String<16> Value;
+			typedef String<16> Value;
 			const Value state = system.attribute_value("state", Value("unknown"));
 
 			if (state == "acpi_ready" && root_cap.valid()) {
 				_env.parent().announce(root_cap);
-				root_cap = Genode::Capability<Genode::Typed_root<Platform::Session_component> > ();
+				root_cap = Capability<Typed_root<Platform::Session_component> > ();
 			}
 		}
 	}
@@ -136,11 +134,11 @@ struct Platform::Main
 		}
 	}
 
-	static bool acpi_platform(Genode::Env & env)
+	static bool acpi_platform(Env & env)
 	{
 		using Name = String<32>;
 		try {
-			Genode::Attached_rom_dataspace info { env, "platform_info" };
+			Attached_rom_dataspace info { env, "platform_info" };
 			Name kernel =
 				info.xml().sub_node("kernel").attribute_value("name", Name());
 			if (kernel == "hw"   ||
@@ -151,7 +149,7 @@ struct Platform::Main
 		return false;
 	}
 
-	Main(Genode::Env &env)
+	Main(Env &env)
 	:
 		_env(env),
 		_acpi_platform(acpi_platform(env))
@@ -180,8 +178,6 @@ struct Platform::Main
 
 void Platform::Main::_attempt_acpi_reset()
 {
-	using namespace Genode;
-
 	if (!acpi_rom.constructed())
 		return;
 

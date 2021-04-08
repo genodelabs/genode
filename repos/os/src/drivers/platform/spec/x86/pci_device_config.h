@@ -20,17 +20,14 @@
 #include "pci_config_access.h"
 
 
-namespace Platform { namespace Pci {
-
-	struct Resource;
-} }
+namespace Platform { namespace Pci { struct Resource; } }
 
 
 class Platform::Pci::Resource
 {
 	public:
 
-		struct Bar : Genode::Register<32>
+		struct Bar : Register<32>
 		{
 			struct Space : Bitfield<0,1> { enum { MEM = 0, PORT = 1 }; };
 
@@ -61,7 +58,8 @@ class Platform::Pci::Resource
 
 	/* PORT or MEM32 resource */
 	Resource(uint32_t bar, uint32_t size)
-	: _bar{bar, 0}, _size(mem() ? Bar::mem_size(size, ~0) : Bar::port_size(size))
+	:
+		_bar{bar, 0}, _size(mem() ? Bar::mem_size(size, ~0) : Bar::port_size(size))
 	{ }
 
 	/* MEM64 resource */
@@ -84,9 +82,9 @@ class Platform::Pci::Resource
 		return Device::Resource((unsigned)_bar[0], (unsigned)_size);
 	}
 
-	void print(Genode::Output &out) const
+	void print(Output &out) const
 	{
-		Genode::print(out, Genode::Hex_range(base(), size()));
+		Genode::print(out, Hex_range(base(), size()));
 	}
 };
 
@@ -271,7 +269,7 @@ namespace Platform {
 			 */
 			Pci::Bdf bdf() const { return _bdf; }
 
-			void print(Genode::Output &out) const { Genode::print(out, bdf()); }
+			void print(Output &out) const { Genode::print(out, bdf()); }
 
 			/**
 			 * Accessor functions for device information
@@ -366,26 +364,25 @@ namespace Platform {
 			}
 	};
 
-	class Config_space : private Genode::List<Config_space>::Element
+	class Config_space : private List<Config_space>::Element
 	{
 		private:
 
-			friend class Genode::List<Config_space>;
+			friend class List<Config_space>;
 
-			Genode::uint32_t _bdf_start;
-			Genode::uint32_t _func_count;
-			Genode::addr_t   _base;
+			uint32_t _bdf_start;
+			uint32_t _func_count;
+			addr_t   _base;
 
 		public:
 
-			using Genode::List<Config_space>::Element::next;
+			using List<Config_space>::Element::next;
 
-			Config_space(Genode::uint32_t bdf_start,
-			             Genode::uint32_t func_count, Genode::addr_t base)
+			Config_space(uint32_t bdf_start, uint32_t func_count, addr_t base)
 			:
 				_bdf_start(bdf_start), _func_count(func_count), _base(base) {}
 
-			Genode::addr_t lookup_config_space(Pci::Bdf const bdf)
+			addr_t lookup_config_space(Pci::Bdf const bdf)
 			{
 				if ((_bdf_start <= bdf.value()) && (bdf.value() <= _bdf_start + _func_count - 1))
 					return _base + (unsigned(bdf.value()) << 12);
