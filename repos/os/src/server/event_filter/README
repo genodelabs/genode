@@ -27,6 +27,10 @@ one of the following filters:
   the key name as 'name' attribute, may feature an optional 'to' attribute
   with the name of the key that should be reported instead of 'name'.
 
+  It may also contain any number of '<ignore-key>' nodes to completely mute
+  certain keys. Each of those nodes has the key name as 'name' attribute.
+  This rule is applied before remapping.
+
   A '<remap>' node may contain '<include>' nodes, which include further
   content into the '<remap>' node. The included ROM must have a '<remap>'
   top-level node.
