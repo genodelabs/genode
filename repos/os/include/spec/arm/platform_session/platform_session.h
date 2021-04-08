@@ -16,6 +16,7 @@
 
 #include <base/quota_guard.h>
 #include <base/rpc_args.h>
+#include <base/cache.h>
 #include <dataspace/capability.h>
 #include <platform_device/capability.h>
 #include <platform_device/platform_device.h>
@@ -23,6 +24,7 @@
 #include <session/session.h>
 
 namespace Platform {
+
 	using namespace Genode;
 
 	struct Session;
@@ -31,12 +33,6 @@ namespace Platform {
 
 struct Platform::Session : Genode::Session
 {
-	/*********************
-	 ** Exception types **
-	 *********************/
-
-	class Fatal : public Out_of_ram { };
-
 	/**
 	 * \noapi
 	 */
@@ -70,7 +66,7 @@ struct Platform::Session : Genode::Session
 	/**
 	  * Allocate memory suitable for DMA.
 	  */
-	virtual Ram_dataspace_capability alloc_dma_buffer(size_t) = 0;
+	virtual Ram_dataspace_capability alloc_dma_buffer(size_t, Cache) = 0;
 
 	/**
 	 * Free previously allocated DMA memory
@@ -94,7 +90,7 @@ struct Platform::Session : Genode::Session
 	GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
 	GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Ram_dataspace_capability,
 	                 alloc_dma_buffer,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Fatal), size_t);
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), size_t, Cache);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Ram_dataspace_capability);
 	GENODE_RPC(Rpc_dma_addr, addr_t, dma_addr,

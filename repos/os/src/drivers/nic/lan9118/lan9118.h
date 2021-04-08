@@ -450,7 +450,7 @@ class Lan9118 : public Nic::Session_component,
 		        Genode::Allocator                 & rx_block_md_alloc,
 		        Genode::Env                       & env)
 		:
-			Session_component               { tx_buf_size, rx_buf_size, Genode::CACHED,
+			Session_component               { tx_buf_size, rx_buf_size, Genode::UNCACHED,
 			                                  rx_block_md_alloc, env },
 			Genode::Signal_handler<Lan9118> { env.ep(), *this, &Lan9118::_handle_irq },
 			Lan9118_base                    { ds_cap, irq_cap, *this, env }

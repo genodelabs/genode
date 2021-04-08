@@ -54,7 +54,7 @@ class Block::Session_component_base
 		Session_component_base(Driver_factory &factory, size_t tx_buf_size)
 		: _driver_factory(factory),
 		  _driver(*factory.create()),
-		  _rq_ds(_driver.alloc_dma_buffer(tx_buf_size)) {}
+		  _rq_ds(_driver.alloc_dma_buffer(tx_buf_size, UNCACHED)) {}
 
 		~Session_component_base()
 		{

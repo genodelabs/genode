@@ -298,8 +298,8 @@ class Sd_card::Driver : public  Driver_base,
 
 		bool dma_enabled() override { return true; }
 
-		Ram_dataspace_capability alloc_dma_buffer(size_t size) override {
-			return _env.ram().alloc(size, UNCACHED); }
+		Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override {
+			return _env.ram().alloc(size, cache); }
 };
 
 #endif /* _SRC__DRIVERS__SD_CARD__SPEC__IMX__DRIVER_H_ */

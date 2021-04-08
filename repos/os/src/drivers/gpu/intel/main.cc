@@ -171,7 +171,7 @@ struct Igd::Device
 			_pci.upgrade_ram(size);
 			try {
 				return _pci.with_upgrade([&] () {
-					return _pci.alloc_dma_buffer(size); });
+					return _pci.alloc_dma_buffer(size, Genode::UNCACHED); });
 			}
 			catch (Platform::Out_of_ram) {
 				throw Out_of_ram(); }

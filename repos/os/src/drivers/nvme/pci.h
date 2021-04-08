@@ -126,7 +126,7 @@ struct Nvme::Pci : Platform::Connection,
 		return retry<Out_of_ram>(
 			[&] () {
 				return retry<Out_of_caps>(
-					[&] () { return Pci::Connection::alloc_dma_buffer(size); },
+					[&] () { return Pci::Connection::alloc_dma_buffer(size, UNCACHED); },
 					[&] () { upgrade_caps(2); });
 			},
 			[&] () {

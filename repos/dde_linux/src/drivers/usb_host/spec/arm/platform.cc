@@ -174,7 +174,7 @@ void backend_alloc_init(Env & env, Ram_allocator&, Allocator&)
 
 Ram_dataspace_capability Lx::backend_alloc(addr_t size, Cache)
 {
-	return resource_env().platform.alloc_dma_buffer(size);
+	return resource_env().platform.alloc_dma_buffer(size, UNCACHED);
 }
 
 

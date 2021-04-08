@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <session/session.h>
 #include <base/ram_allocator.h>
+#include <base/cache.h>
 
 /* os includes */
 #include <platform_device/platform_device.h>
@@ -69,7 +70,7 @@ struct Platform::Session : Genode::Session
 	/**
 	 * Allocate memory suitable for DMA
 	 */
-	virtual Ram_dataspace_capability alloc_dma_buffer(size_t) = 0;
+	virtual Ram_dataspace_capability alloc_dma_buffer(size_t, Cache) = 0;
 
 	/**
 	 * Free previously allocated DMA memory
@@ -95,7 +96,7 @@ struct Platform::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Ram_dataspace_capability,
 	                 alloc_dma_buffer,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
-	                 size_t);
+	                 size_t, Cache);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Ram_dataspace_capability);
 	GENODE_RPC(Rpc_dma_addr, addr_t, dma_addr, Ram_dataspace_capability);

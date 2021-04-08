@@ -94,7 +94,7 @@ struct Pl11x_driver::Main
 	Attached_dataspace       _sys_mem    { _env.rm(),
 	                                       _sp810_dev.io_mem_dataspace() };
 	Ram_dataspace_capability _fb_ds_cap  {
-		_platform.alloc_dma_buffer(FRAMEBUFFER_SIZE) };
+		_platform.alloc_dma_buffer(FRAMEBUFFER_SIZE, UNCACHED) };
 	Attached_dataspace       _fb_ds      { _env.rm(), _fb_ds_cap };
 
 	void _init_device();

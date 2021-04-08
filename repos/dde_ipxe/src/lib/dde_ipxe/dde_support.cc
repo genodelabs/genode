@@ -245,7 +245,7 @@ struct Pci_driver
 				retry<Out_of_ram>(
 					[&] () {
 						return retry<Out_of_caps>(
-							[&] () { return _pci.alloc_dma_buffer(size); },
+							[&] () { return _pci.alloc_dma_buffer(size, UNCACHED); },
 							[&] () { _pci.upgrade_caps(2); });
 					},
 					[&] () {

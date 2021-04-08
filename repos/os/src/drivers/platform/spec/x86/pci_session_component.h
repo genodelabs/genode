@@ -807,9 +807,9 @@ class Platform::Session_component : public Rpc_object<Session>
 		 * De-/Allocation of dma capable dataspaces
 		 */
 
-		Ram_dataspace_capability alloc_dma_buffer(size_t const size) override
+		Ram_dataspace_capability alloc_dma_buffer(size_t const size, Cache cache) override
 		{
-			Ram_dataspace_capability ram_cap = _env_ram.alloc(size, UNCACHED);
+			Ram_dataspace_capability ram_cap = _env_ram.alloc(size, cache);
 			addr_t const dma_addr = Dataspace_client(ram_cap).phys_addr();
 
 			if (!ram_cap.valid())

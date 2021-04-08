@@ -128,7 +128,7 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache cache)
 		cap = retry<Genode::Out_of_ram>(
 			[&] () {
 				return retry<Genode::Out_of_caps>(
-					[&] () { return _global_pci->alloc_dma_buffer(size); },
+					[&] () { return _global_pci->alloc_dma_buffer(size, UNCACHED); },
 					[&] () { _global_pci->upgrade_caps(2); });
 			},
 			[&] () {
