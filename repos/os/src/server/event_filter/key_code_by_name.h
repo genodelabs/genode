@@ -36,6 +36,24 @@ namespace Event_filter {
 		}
 		throw Unknown_key();
 	}
+
+	/*
+	 * \throw Unknown_key
+	 */
+	template<typename FN>
+	void for_each_key_with_name(Key_name const &name, FN const &fn)
+	{
+		bool found = false;
+		for (unsigned i = 0; i < Input::KEY_MAX; i++) {
+			Input::Keycode const code = Input::Keycode(i);
+			if (name == Input::key_name(code)) {
+				fn(code);
+				found = true;
+			}
+		}
+		if (!found)
+			throw Unknown_key();
+	}
 }
 
 #endif /* _EVENT_FILTER__KEY_CODE_BY_NAME_H_ */

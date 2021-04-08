@@ -106,13 +106,13 @@ class Event_filter::Remap_source : public Source, Source::Filter
 				Key_name const key_name = node.attribute_value("name", Key_name());
 
 				try {
-					Input::Keycode const code = key_code_by_name(key_name);
-
-					if (node.has_attribute("to")) {
-						Key_name const to = node.attribute_value("to", Key_name());
-						try { _keys[code].code = key_code_by_name(to); }
-						catch (Unknown_key) { warning("ignoring remap rule ", node); }
-					}
+					for_each_key_with_name(key_name, [&] (Input::Keycode code) {
+						if (node.has_attribute("to")) {
+							Key_name const to = node.attribute_value("to", Key_name());
+							try { _keys[code].code = key_code_by_name(to); }
+							catch (Unknown_key) { warning("ignoring remap rule ", node); }
+						}
+					});
 				}
 				catch (Unknown_key) {
 					warning("invalid key name ", key_name); }
