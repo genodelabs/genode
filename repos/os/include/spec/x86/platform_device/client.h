@@ -22,10 +22,10 @@
 namespace Platform { struct Device_client; }
 
 
-struct Platform::Device_client : public Genode::Rpc_client<Device>
+struct Platform::Device_client : public Rpc_client<Device>
 {
 	Device_client(Device_capability device)
-	: Genode::Rpc_client<Device>(device) { }
+	: Rpc_client<Device>(device) { }
 
 	void bus_address(unsigned char *bus, unsigned char *dev, unsigned char *fn) override {
 		call<Rpc_bus_address>(bus, dev, fn); }
@@ -48,16 +48,16 @@ struct Platform::Device_client : public Genode::Rpc_client<Device>
 	void config_write(unsigned char address, unsigned value, Access_size size) override {
 		call<Rpc_config_write>(address, value, size); }
 
-	Genode::Irq_session_capability irq(Genode::uint8_t id) override {
+	Irq_session_capability irq(uint8_t id) override {
 		return call<Rpc_irq>(id); }
 
-	Genode::Io_port_session_capability io_port(Genode::uint8_t id) override {
+	Io_port_session_capability io_port(uint8_t id) override {
 		return call<Rpc_io_port>(id); }
 
-	Genode::Io_mem_session_capability io_mem(Genode::uint8_t id,
-	                                         Genode::Cache cache = Genode::Cache::UNCACHED,
-	                                         Genode::addr_t offset = 0,
-	                                         Genode::size_t size = ~0UL) override {
+	Io_mem_session_capability io_mem(uint8_t id,
+	                                 Cache   cache  = Cache::UNCACHED,
+	                                 addr_t  offset = 0,
+	                                 size_t  size   = ~0UL) override {
 		return call<Rpc_io_mem>(id, cache, offset, size); }
 };
 

@@ -27,9 +27,6 @@ namespace Platform {
 }
 
 
-using Genode::size_t;
-using Genode::addr_t;
-
 /**
  * A simple allocator implementation used by the Irq_proxy
  */
@@ -43,8 +40,8 @@ class Platform::Irq_allocator
 		 */
 		enum { LEGACY = 40, MSI = 64, LEGACY_ARRAY = 64 };
 
-		Genode::Bit_array<LEGACY_ARRAY> _legacy { };
-		Genode::Bit_allocator<MSI>      _msi    { };
+		Bit_array<LEGACY_ARRAY> _legacy { };
+		Bit_allocator<MSI>      _msi    { };
 
 	public:
 
@@ -58,7 +55,7 @@ class Platform::Irq_allocator
 		{
 			try {
 				 return _msi.alloc();
-			} catch (Genode::Bit_allocator<MSI>::Out_of_indices) { return ~0U; }
+			} catch (Bit_allocator<MSI>::Out_of_indices) { return ~0U; }
 		}
 
 		void free_msi(unsigned msi) { _msi.free(msi); }
@@ -89,8 +86,8 @@ class Platform::Irq_component : public Platform::Irq_proxy
 {
 	private:
 
-		Genode::Irq_connection _irq;
-		Genode::Signal_handler<Platform::Irq_component> _irq_dispatcher;
+		Irq_connection _irq;
+		Signal_handler<Platform::Irq_component> _irq_dispatcher;
 
 		bool _associated;
 
@@ -117,15 +114,15 @@ class Platform::Irq_component : public Platform::Irq_proxy
 
 			/* De-associate handler. */
 			_associated = false;
-			_irq.sigh(Genode::Signal_context_capability());
+			_irq.sigh(Signal_context_capability());
 			return true;
 		}
 
 	public:
 
-		Irq_component(Genode::Env &env, unsigned gsi,
-		              Genode::Irq_session::Trigger trigger,
-		              Genode::Irq_session::Polarity polarity)
+		Irq_component(Env &env, unsigned gsi,
+		              Irq_session::Trigger trigger,
+		              Irq_session::Polarity polarity)
 		:
 			Irq_proxy(gsi),
 			_irq(env, gsi, trigger, polarity),
@@ -135,15 +132,15 @@ class Platform::Irq_component : public Platform::Irq_proxy
 
 		static Irq_component *get_irq_proxy(unsigned irq_number,
 		                                    Irq_allocator *irq_alloc = nullptr,
-		                                    Genode::Irq_session::Trigger trigger = Genode::Irq_session::TRIGGER_UNCHANGED,
-		                                    Genode::Irq_session::Polarity polarity = Genode::Irq_session::POLARITY_UNCHANGED,
-		                                    Genode::Env *env = nullptr,
-		                                    Genode::Allocator *heap = nullptr)
+		                                    Irq_session::Trigger trigger = Irq_session::TRIGGER_UNCHANGED,
+		                                    Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED,
+		                                    Env *env = nullptr,
+		                                    Allocator *heap = nullptr)
 		{
-			static Genode::List<Irq_proxy> proxies;
-			static Genode::Mutex           proxies_mutex;
+			static List<Irq_proxy> proxies;
+			static Mutex           proxies_mutex;
 
-			Genode::Mutex::Guard mutex_guard(proxies_mutex);
+			Mutex::Guard mutex_guard(proxies_mutex);
 
 			/* lookup proxy in database */
 			for (Irq_proxy *p = proxies.first(); p; p = p->next())
@@ -177,7 +174,7 @@ void Platform::Irq_session_component::ack_irq()
 	/* shared irq handling */
 	Irq_component *irq_obj = Irq_component::get_irq_proxy(_gsi);
 	if (!irq_obj) {
-		Genode::error("expected to find IRQ proxy for IRQ ", Genode::Hex(_gsi));
+		error("expected to find IRQ proxy for IRQ ", Hex(_gsi));
 		return;
 	}
 
@@ -186,10 +183,10 @@ void Platform::Irq_session_component::ack_irq()
 }
 
 
-Platform::Irq_session_component::Irq_session_component(unsigned irq,
-                                                       addr_t pci_config_space,
-                                                       Genode::Env       &env,
-                                                       Genode::Allocator &heap)
+Platform::Irq_session_component::Irq_session_component(unsigned   irq,
+                                                       addr_t     pci_config_space,
+                                                       Env       &env,
+                                                       Allocator &heap)
 :
 	_gsi(irq)
 {
@@ -209,7 +206,7 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 					_gsi = msi;
 					return;
 				}
-			} catch (Genode::Service_denied) { }
+			} catch (Service_denied) { }
 
 			irq_alloc.free_msi(msi);
 		}
@@ -219,15 +216,15 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 	if (_gsi >= INVALID_IRQ)
 		return;
 
-	Genode::Irq_session::Trigger  trigger;
-	Genode::Irq_session::Polarity polarity;
+	Irq_session::Trigger  trigger;
+	Irq_session::Polarity polarity;
 
 	_gsi = Platform::Irq_override::irq_override(_gsi, trigger, polarity);
-	if (_gsi != irq || trigger != Genode::Irq_session::TRIGGER_UNCHANGED ||
+	if (_gsi != irq || trigger != Irq_session::TRIGGER_UNCHANGED ||
 	    polarity != POLARITY_UNCHANGED) {
 
-		Genode::log("IRQ override ", irq, "->", _gsi, ", "
-		            "trigger mode: ", trigger, ", ", "polarity: ", polarity);
+		log("IRQ override ", irq, "->", _gsi, ", "
+		    "trigger mode: ", trigger, ", ", "polarity: ", polarity);
 	}
 
 	try {
@@ -235,16 +232,16 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 		if (Irq_component::get_irq_proxy(_gsi, &irq_alloc, trigger,
 		                                 polarity, &env, &heap))
 			return;
-	} catch (Genode::Service_denied) { }
+	} catch (Service_denied) { }
 
-	Genode::error("unavailable IRQ ", Genode::Hex(_gsi), " requested");
+	error("unavailable IRQ ", Hex(_gsi), " requested");
 }
 
 
 Platform::Irq_session_component::~Irq_session_component()
 {
 	if (msi()) {
-		_irq_conn->sigh(Genode::Signal_context_capability());
+		_irq_conn->sigh(Signal_context_capability());
 
 		irq_alloc.free_msi(_gsi);
 		return;
@@ -259,7 +256,7 @@ Platform::Irq_session_component::~Irq_session_component()
 }
 
 
-void Platform::Irq_session_component::sigh(Genode::Signal_context_capability sigh)
+void Platform::Irq_session_component::sigh(Signal_context_capability sigh)
 {
 	if (_irq_conn.constructed()) {
 		/* register signal handler for msi directly at parent */
@@ -270,11 +267,11 @@ void Platform::Irq_session_component::sigh(Genode::Signal_context_capability sig
 	/* shared irq handling */
 	Irq_component *irq_obj = Irq_component::get_irq_proxy(_gsi);
 	if (!irq_obj) {
-		Genode::error("signal handler got not registered - irq object unavailable");
+		error("signal handler got not registered - irq object unavailable");
 		return;
 	}
 
-	Genode::Signal_context_capability old = _irq_sigh;
+	Signal_context_capability old = _irq_sigh;
 
 	if (old.valid() && !sigh.valid())
 		irq_obj->remove_sharer(&_irq_sigh);

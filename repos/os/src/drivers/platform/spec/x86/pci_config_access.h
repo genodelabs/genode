@@ -1,12 +1,11 @@
 /*
- * \brief  Interface for accessing PCI configuration registers
+ * \brief  PCI configuration access for the platform driver
  * \author Norman Feske
- * \author Reto Buerki
- * \date   2008-01-29
+ * \date   2008-01-28
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -20,8 +19,6 @@
 #include <platform_device/platform_device.h>
 #include <util/bit_array.h>
 #include <util/mmio.h>
-
-using namespace Genode;
 
 namespace Platform { namespace Pci { struct Bdf; struct Config; } }
 
@@ -43,10 +40,9 @@ struct Platform::Pci::Bdf
 	bool operator == (Bdf const &other) const {
 		return value() == other.value(); }
 
-	void print(Genode::Output &out) const
+	void print(Output &out) const
 	{
 		using Genode::print;
-		using Genode::Hex;
 		print(out, Hex(bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
 		      ":", Hex(device, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
 		      ".", Hex(function, Hex::Prefix::OMIT_PREFIX));
@@ -61,7 +57,8 @@ namespace Platform {
 		private:
 
 			Attached_io_mem_dataspace &_pciconf;
-			Genode::size_t const       _pciconf_size;
+
+			size_t const _pciconf_size;
 
 			/**
 			 * Calculate device offset from BDF
@@ -73,7 +70,7 @@ namespace Platform {
 				return unsigned(bdf.value()) << 12;
 			}
 
-			Genode::Bit_array<256> _used { };
+			Bit_array<256> _used { };
 
 			void _use_register(unsigned char addr, unsigned short width)
 			{
@@ -84,7 +81,7 @@ namespace Platform {
 
 		public:
 
-			class Invalid_mmio_access : Genode::Exception { };
+			class Invalid_mmio_access : Exception { };
 
 			Config_access(Attached_io_mem_dataspace &pciconf)
 			:

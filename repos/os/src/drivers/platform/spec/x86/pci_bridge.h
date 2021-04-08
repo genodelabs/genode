@@ -11,17 +11,18 @@
   * under the terms of the GNU Affero General Public License version 3.
   */
 
-#pragma once
-
-namespace Platform { class Bridge; }
+#ifndef _PCI_BRIDGE_H_
+#define _PCI_BRIDGE_H_
 
 #include <util/list.h>
+
+namespace Platform { class Bridge; }
 
 
 /**
  * List of PCI-bridge devices
  */
-class Platform::Bridge : public Genode::List<Bridge>::Element
+class Platform::Bridge : public List<Bridge>::Element
 {
 	private:
 
@@ -57,3 +58,5 @@ class Platform::Bridge : public Genode::List<Bridge>::Element
 		enum { INVALID_ROOT_BRIDGE = 0x10000U };
 		static unsigned root_bridge_bdf;
 };
+
+#endif /* _PCI_BRIDGE_H_ */

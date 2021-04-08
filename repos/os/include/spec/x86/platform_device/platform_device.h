@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__SPEC__X86__PLATFORM_DEVICE__PLATFORM_DEVICE_H_
 #define _INCLUDE__SPEC__X86__PLATFORM_DEVICE__PLATFORM_DEVICE_H_
 
+/* Genode includes */
 #include <base/rpc.h>
 #include <base/signal.h>
 #include <base/exception.h>
@@ -27,10 +28,9 @@
 
 namespace Platform {
 
-	struct Device;
+	using namespace Genode;
 
-	using Genode::Out_of_caps;
-	using Genode::Out_of_ram;
+	struct Device;
 }
 
 
@@ -178,7 +178,7 @@ struct Platform::Device : Platform::Abstract_device
 	 * \throw Out_of_ram
 	 * \throw Out_of_caps
 	 */
-	virtual Genode::Io_port_session_capability io_port(Genode::uint8_t id) = 0;
+	virtual Io_port_session_capability io_port(uint8_t id) = 0;
 
 	/*
 	 * The base classes are defined as follows:
@@ -214,9 +214,9 @@ struct Platform::Device : Platform::Abstract_device
 	 * virtual one usable with the io_port and io_mem methods. The virtual id
 	 * is solely valid for the specific BAR type.
 	 */
-	Genode::uint8_t phys_bar_to_virt(Genode::uint8_t phys_bar)
+	uint8_t phys_bar_to_virt(uint8_t phys_bar)
 	{
-		Genode::uint8_t virt_io_port = 0, virt_io_mem = 0;
+		uint8_t virt_io_port = 0, virt_io_mem = 0;
 
 		for (unsigned i = 0; i < phys_bar; i++) {
 			Resource::Type type = resource(i).type();
@@ -245,14 +245,13 @@ struct Platform::Device : Platform::Abstract_device
 	GENODE_RPC_THROW(Rpc_config_write, void, config_write,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 unsigned char, unsigned, Access_size);
-	GENODE_RPC(Rpc_irq, Genode::Irq_session_capability, irq, Genode::uint8_t);
-	GENODE_RPC_THROW(Rpc_io_port, Genode::Io_port_session_capability, io_port,
+	GENODE_RPC(Rpc_irq, Irq_session_capability, irq, uint8_t);
+	GENODE_RPC_THROW(Rpc_io_port, Io_port_session_capability, io_port,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
-	                 Genode::uint8_t);
-	GENODE_RPC_THROW(Rpc_io_mem, Genode::Io_mem_session_capability, io_mem,
+	                 uint8_t);
+	GENODE_RPC_THROW(Rpc_io_mem, Io_mem_session_capability, io_mem,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
-	                 Genode::uint8_t, Genode::Cache,
-	                 Genode::addr_t, Genode::size_t);
+	                 uint8_t, Cache, addr_t, size_t);
 
 	GENODE_RPC_INTERFACE(Rpc_bus_address, Rpc_vendor_id, Rpc_device_id,
 	                     Rpc_class_code, Rpc_resource, Rpc_config_read,

@@ -39,7 +39,7 @@ unsigned short Platform::bridge_bdf(unsigned char bus)
 }
 
 void Platform::Pci_buses::scan_bus(Config_access &config_access,
-                                   Genode::Allocator &heap,
+                                   Allocator &heap,
                                    Device_bars_pool &devices_bars,
                                    unsigned char bus)
 {
@@ -131,6 +131,5 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 
 
 using Platform::Session_component;
-using Genode::Bit_array;
 
-Bit_array<Session_component::MAX_PCI_DEVICES> Session_component::bdf_in_use;
+Genode::Bit_array<Session_component::MAX_PCI_DEVICES> Session_component::bdf_in_use;

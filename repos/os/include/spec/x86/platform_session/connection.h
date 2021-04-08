@@ -11,7 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#pragma once
+#ifndef _INCLUDE__SPEC__X86__PLATFORM_SESSION__CONNECTION_H_
+#define _INCLUDE__SPEC__X86__PLATFORM_SESSION__CONNECTION_H_
 
 #include <util/retry.h>
 #include <base/connection.h>
@@ -25,7 +26,7 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	/**
 	 * Constructor
 	 */
-	Connection(Genode::Env &env)
+	Connection(Env &env)
 	:
 		Genode::Connection<Session>(env, session(env.parent(),
 		                                         "ram_quota=16K, cap_quota=%u",
@@ -36,9 +37,9 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	template <typename FUNC>
 	auto with_upgrade(FUNC func) -> decltype(func())
 	{
-		return Genode::retry<Genode::Out_of_ram>(
+		return retry<Out_of_ram>(
 			[&] () {
-				return Genode::retry<Genode::Out_of_caps>(
+				return retry<Out_of_caps>(
 					[&] () { return func(); },
 					[&] () { this->upgrade_caps(2); });
 			},
@@ -46,3 +47,5 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 		);
 	}
 };
+
+#endif /* _INCLUDE__SPEC__X86__PLATFORM_SESSION__CONNECTION_H_ */
