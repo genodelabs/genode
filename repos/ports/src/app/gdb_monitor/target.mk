@@ -107,8 +107,12 @@ INC_DIR += $(SANDBOX_PARENT_DIR)
 
 vpath sandbox/%.cc $(SANDBOX_PARENT_DIR)
 
-# import selected headers needed from sandbox library
-SANDBOX_HEADERS = types.h verbose.h report.h name_registry.h service.h utils.h
+#
+# Import headers needed from sandbox library, but exclude server.h because it
+# collides with the GDB server's server.h
+#
+SANDBOX_HEADERS := $(notdir $(wildcard $(addsuffix /*.h,$(SANDBOX_SRC_DIR))))
+SANDBOX_HEADERS := $(filter-out server.h,$(SANDBOX_HEADERS))
 
 genode-low.o sandbox/server.o: $(SANDBOX_HEADERS)
 

@@ -346,7 +346,7 @@ class Gdb_monitor::App_child : public Child_policy,
 					});
 				});
 
-				_server.apply_config(Xml_node(server_config));
+				_server.apply_updated_policy();
 
 			} catch(Xml_generator::Buffer_exceeded &) {
 				error("XML buffer for server configuration exceeded");
