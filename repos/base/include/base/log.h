@@ -19,10 +19,10 @@
 #include <trace/timestamp.h>
 
 namespace Genode {
-
 	class Log;
 	class Raw;
 	class Trace_output;
+	class Log_tsc_probe;
 }
 
 
@@ -183,5 +183,145 @@ namespace Genode {
 	void trace(ARGS && ... args) {
 		Trace_output::trace_output().output(Trace::timestamp(), ": ", args...); }
 }
+
+
+/*
+ * Helper for the 'GENODE_LOG_TSC' utility
+ */
+class Genode::Log_tsc_probe : Noncopyable
+{
+	private:
+
+		typedef Trace::Timestamp Timestamp;
+
+		struct Pretty_tsc
+		{
+			Timestamp value;
+
+			void print(Output &out) const
+			{
+				Timestamp const K = 1000, M = 1000*K, G = 1000*M;
+
+				using Genode::print;
+
+				if      (value > 100*G) print(out, value/G, "G");
+				else if (value > 100*M) print(out, value/M, "M");
+				else if (value > 100*K) print(out, value/K, "K");
+				else                    print(out, value);
+			}
+		};
+
+	public:
+
+		class Stats : Noncopyable
+		{
+			private:
+
+				friend class Log_tsc_probe;
+
+				/* rate of log messages in number of calls */
+				unsigned const _sample_rate;
+
+				Timestamp _tsc_sum     = 0;  /* accumulated TSC ticks spent */
+				unsigned  _calls       = 0;  /* number of executions */
+				unsigned  _cycle_count = 0;  /* track sample rate */
+				unsigned  _num_entered = 0;  /* recursion depth */
+				Mutex     _mutex { };        /* protect stats */
+
+				void enter()
+				{
+					Mutex::Guard guard(_mutex);
+
+					_num_entered++;
+				}
+
+				void leave(char const * const name, Timestamp duration)
+				{
+					Mutex::Guard guard(_mutex);
+
+					/*
+					 * If the probed scope is executed recursively or
+					 * concurrently by multiple threads, defer the accounting
+					 * until the scope is completely left.
+					 */
+					_num_entered--;
+					if (_num_entered > 0)
+						return;
+
+					_tsc_sum = _tsc_sum + duration;
+
+					_calls++;
+					_cycle_count++;
+
+					if (_cycle_count < _sample_rate)
+						return;
+
+					log(" TSC ", name, ": ", Pretty_tsc { _tsc_sum }, " "
+					    "(", _calls, " calls, last ", Pretty_tsc { duration }, ")");
+					_cycle_count = 0;
+				}
+
+			public:
+
+				Stats(unsigned sample_rate) : _sample_rate(sample_rate) { }
+		};
+
+	private:
+
+		Stats &_stats;
+
+		Timestamp const _start = Trace::timestamp();
+
+		struct { char const *_name; };
+
+	public:
+
+		Log_tsc_probe(Stats &stats, char const *name)
+		:
+			_stats(stats), _name(name)
+		{
+			_stats.enter();
+		}
+
+		~Log_tsc_probe()
+		{
+			_stats.leave(_name, Trace::timestamp() - _start);
+		}
+};
+
+
+/**
+ * Print TSC (time-stamp counter) ticks consumed by the calling function
+ *
+ * The macro captures the TSC ticks spent in the current scope and prints the
+ * statistics about the accumulated cycles spent and the total number of calls.
+ * For example,
+ *
+ *   TSC apply_config: 7072M (52 calls, last 314M)
+ *
+ * When this line appears in the log, the 'apply_config' function was executed
+ * 52 times and consumed 7072 million TSC ticks. The last call took 314 million
+ * ticks.
+ *
+ * The argument 'n' specifies the amount of calls after which the statistics
+ * are printed. It allows for the tuning of the amount of output depending on
+ * the instrumented function.
+ */
+#define GENODE_LOG_TSC(n) \
+	static Genode::Log_tsc_probe::Stats genode_log_tsc_stats { n }; \
+	Genode::Log_tsc_probe genode_log_tsc_probe(genode_log_tsc_stats, __func__);
+
+
+/**
+ * Variant of 'GENODE_LOG_TSC' that accepts the name of the probe as argument
+ *
+ * This variant is useful to disambiguate multiple scopes within one function
+ * or when placing probes in methods that have the same name, e.g., overloads
+ * within the same class or same-named methods of different classes.
+ */
+#define GENODE_LOG_TSC_NAMED(n, name) \
+	static Genode::Log_tsc_probe::Stats genode_log_tsc_stats { n }; \
+	Genode::Log_tsc_probe genode_log_tsc_probe(genode_log_tsc_stats, name);
+
 
 #endif /* _INCLUDE__BASE__LOG_H_ */
