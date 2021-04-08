@@ -193,8 +193,8 @@ class Block::Driver : Genode::Interface
 		 * Note: has to be overriden by DMA-capable devices
 		 */
 		virtual Genode::Ram_dataspace_capability
-		alloc_dma_buffer(Genode::size_t size) {
-			return _ram.alloc(size); }
+		alloc_dma_buffer(Genode::size_t size, Genode::Cache cache) {
+			return _ram.alloc(size, cache); }
 
 		/**
 		 * Free buffer which is suitable for DMA.

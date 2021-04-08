@@ -69,7 +69,7 @@ class Driver::Session_component :
 		Rom_session_capability devices_rom() override;
 		Device_capability acquire_device(String const &) override;
 		void release_device(Device_capability) override;
-		Ram_dataspace_capability alloc_dma_buffer(size_t const) override;
+		Ram_dataspace_capability alloc_dma_buffer(size_t, Cache) override;
 		void free_dma_buffer(Ram_dataspace_capability ram_cap) override;
 		addr_t dma_addr(Ram_dataspace_capability) override;
 

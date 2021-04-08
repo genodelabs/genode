@@ -107,9 +107,9 @@ void Session_component::release_device(Platform::Device_capability device_cap)
 
 
 Genode::Ram_dataspace_capability
-Session_component::alloc_dma_buffer(size_t const size)
+Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 {
-	Ram_dataspace_capability ram_cap = _env_ram.alloc(size, UNCACHED);
+	Ram_dataspace_capability ram_cap = _env_ram.alloc(size, cache);
 
 	if (!ram_cap.valid()) return ram_cap;
 

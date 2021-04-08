@@ -138,7 +138,7 @@ class Pci_driver : public Bsd::Bus_driver
 			return Genode::retry<Genode::Out_of_ram>(
 				[&] () {
 					return Genode::retry<Genode::Out_of_caps>(
-						[&] () { return _pci.alloc_dma_buffer(size); },
+						[&] () { return _pci.alloc_dma_buffer(size, Genode::UNCACHED); },
 						[&] () { _pci.upgrade_caps(2); });
 				},
 				[&] () {

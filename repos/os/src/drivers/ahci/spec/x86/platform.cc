@@ -71,7 +71,7 @@ Genode::Ram_dataspace_capability Ahci::Platform::alloc_dma_buffer(size_t size)
 	return retry<Genode::Out_of_ram>(
 		[&] () {
 			return retry<Genode::Out_of_caps>(
-				[&] () { return _data.pci.alloc_dma_buffer(size); },
+				[&] () { return _data.pci.alloc_dma_buffer(size, Genode::UNCACHED); },
 				[&] () { _data.pci.upgrade_caps(2); });
 		},
 		[&] () {

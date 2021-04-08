@@ -39,8 +39,8 @@ struct Platform::Client : public Genode::Rpc_client<Session>
 	void release_device(Device_capability device) override {
 		call<Rpc_release_device>(device); }
 
-	Ram_dataspace_capability alloc_dma_buffer(size_t size) override {
-		return call<Rpc_alloc_dma_buffer>(size); }
+	Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override {
+		return call<Rpc_alloc_dma_buffer>(size, cache); }
 
 	void free_dma_buffer(Ram_dataspace_capability cap) override {
 		call<Rpc_free_dma_buffer>(cap); }
