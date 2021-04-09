@@ -18,6 +18,9 @@
 #include <util/arg_string.h>
 #include <util/xml_generator.h>
 
+/* OpenSSL includes */
+#include <openssl/sha.h>
+
 /* CBE includes */
 #include <cbe/vfs/io_job.h>
 
@@ -216,10 +219,10 @@ class Trust_anchor
 					break;
 				}
 
-				if (_key_io_job_buffer.size == _passphrase_buffer.size &&
+				if (_key_io_job_buffer.size == _passphrase_hash_buffer.size &&
 					Genode::memcmp(_key_io_job_buffer.base,
-					               _passphrase_buffer.base,
-					               _passphrase_buffer.size) == 0) {
+					               _passphrase_hash_buffer.base,
+					               _passphrase_hash_buffer.size) == 0) {
 
 					Genode::memset(_private_key.value, 0xa5,
 					               sizeof (_private_key.value));
@@ -482,7 +485,7 @@ class Trust_anchor
 
 		struct Key_io_job_buffer : Util::Io_job::Buffer
 		{
-			char buffer[64] { };
+			char buffer[SHA256_DIGEST_LENGTH] { };
 
 			Key_io_job_buffer()
 			{
@@ -492,7 +495,7 @@ class Trust_anchor
 		};
 
 		Key_io_job_buffer _key_io_job_buffer { };
-		Key_io_job_buffer _passphrase_buffer { };
+		Key_io_job_buffer _passphrase_hash_buffer { };
 
 		bool _check_key_file(Path const &path)
 		{
@@ -848,15 +851,10 @@ class Trust_anchor
 			if (_state != State::UNINITIALIZED) {
 				return false;
 			}
+			SHA256((unsigned char const *)src, len,
+			       (unsigned char *)_key_io_job_buffer.base);
 
-			if (len > _key_io_job_buffer.size) {
-				len = _key_io_job_buffer.size;
-			}
-
-			_key_io_job_buffer.size = len;
-
-			Genode::memcpy(_key_io_job_buffer.buffer, src,
-			               _key_io_job_buffer.size);
+			_key_io_job_buffer.size = SHA256_DIGEST_LENGTH;
 
 			_job       = Job::INIT;
 			_job_state = Job_state::PENDING;
@@ -893,14 +891,10 @@ class Trust_anchor
 				return true;
 			}
 
-			if (len > sizeof(_passphrase_buffer.buffer)) {
-				len = sizeof(_passphrase_buffer.buffer);
-			}
+			SHA256((unsigned char const *)src, len,
+			       (unsigned char *)_passphrase_hash_buffer.base);
 
-			_passphrase_buffer.size = len;
-
-			Genode::memcpy(_passphrase_buffer.buffer, src,
-			               _passphrase_buffer.size);
+			_passphrase_hash_buffer.size = SHA256_DIGEST_LENGTH;
 
 			_job       = Job::UNLOCK;
 			_job_state = Job_state::PENDING;
