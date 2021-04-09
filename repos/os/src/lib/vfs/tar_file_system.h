@@ -558,9 +558,6 @@ class Vfs::Tar_file_system : public File_system
 			_root_node("", 0),
 			_cached_num_dirent(_root_node)
 		{
-			Genode::log("tar archive '", _rom_name, "' "
-			            "local at ", (void *)_tar_base, ", size is ", _tar_size);
-
 			_for_each_tar_record_do(Add_node_action(_alloc, _root_node));
 		}
 
