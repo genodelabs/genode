@@ -229,8 +229,9 @@ void Chroot::Main::handle_session_request(Xml_node request)
 		server_id_space.apply<Session>(server_id, [&] (Session &session) {
 
 			size_t ram_quota = request.attribute_value("ram_quota", 0UL);
+			size_t cap_quota = request.attribute_value("cap_quota", 0UL);
 
-			String<64> args("ram_quota=", ram_quota);
+			String<128> args("ram_quota=", ram_quota, ", cap_quota=", cap_quota);
 
 			env.upgrade(session.client_id.id(), args.string());
 			env.parent().session_response(server_id, Parent::SESSION_OK);
