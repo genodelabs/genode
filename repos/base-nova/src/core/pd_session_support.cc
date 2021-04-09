@@ -66,34 +66,31 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 		uint8_t err = Nova::NOVA_PD_OOM;
 		do {
 			utcb.set_msg_word(0);
-			bool res = utcb.append_item(mapping.mem_crd(), 0, true, false,
-			                            false, mapping.dma(),
-			                            mapping.write_combined());
+
+			bool res = utcb.append_item(nova_src_crd(mapping), 0, true, false,
+			                            false,
+			                            mapping.dma_buffer,
+			                            mapping.write_combined);
+
 			/* one item ever fits on the UTCB */
 			(void)res;
 
-			Nova::Rights const map_rights (true,
-			                               region->write() && dsc->writable(),
-			                              region->executable());
+			err = Nova::delegate(pd_core, pd_dst, nova_dst_crd(mapping));
 
-			/* receive window in destination pd */
-			Nova::Mem_crd crd_mem(mapping.dst_addr() >> 12,
-			                      mapping.mem_crd().order(), map_rights);
-
-			err = Nova::delegate(pd_core, pd_dst, crd_mem);
 		} while (err == Nova::NOVA_PD_OOM &&
 		         Nova::NOVA_OK == Pager_object::handle_oom(Pager_object::SRC_CORE_PD,
 		                                                   _pd->pd_sel(),
 		                                                   "core", "ep",
 		                                                   Pager_object::Policy::UPGRADE_CORE_TO_DST));
 
-		addr_t const map_crd_size = 1UL << (mapping.mem_crd().order() + 12);
-		addr_t const mapped   = mapping.dst_addr() + map_crd_size - virt;
+		addr_t const map_size = 1UL << mapping.size_log2;
+		addr_t const mapped = mapping.dst_addr + map_size - virt;
 
-		if (err != Nova::NOVA_OK)
+		if (err != Nova::NOVA_OK) {
 			error("could not map memory ",
-			      Hex_range<addr_t>(mapping.dst_addr(), map_crd_size) , " "
+			      Hex_range<addr_t>(mapping.dst_addr, map_size) , " "
 			      "eagerly error=", err);
+		}
 
 		return mapped;
 	};

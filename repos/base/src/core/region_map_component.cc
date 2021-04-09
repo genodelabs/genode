@@ -314,16 +314,16 @@ Mapping Region_map_component::create_map_item(Region_map_component *,
                                               Rm_region            &region,
                                               addr_t const          ds_offset,
                                               addr_t const          region_offset,
-                                              Dataspace_component  &dsc,
+                                              Dataspace_component  &dataspace,
                                               addr_t const          page_addr,
                                               addr_t const          dst_region_size)
 {
-	addr_t const ds_base = dsc.map_src_addr();
+	addr_t const ds_base = dataspace.map_src_addr();
 
 	Fault_area src_fault_area(ds_base + ds_offset);
 	Fault_area dst_fault_area(page_addr);
 
-	src_fault_area.constrain(ds_base, dsc.size());
+	src_fault_area.constrain(ds_base, dataspace.size());
 	dst_fault_area.constrain(region_offset + region.base(), dst_region_size);
 
 	/*
@@ -339,11 +339,16 @@ Mapping Region_map_component::create_map_item(Region_map_component *,
 	if (!src_fault_area.valid() || !dst_fault_area.valid())
 		error("invalid mapping");
 
-	return Mapping(dst_fault_area.base(), src_fault_area.base(),
-	               dsc.cacheability(), dsc.io_mem(),
-	               map_size_log2, region.write() && dsc.writable(),
-	               region.executable());
-};
+	return Mapping { .dst_addr       = dst_fault_area.base(),
+	                 .src_addr       = src_fault_area.base(),
+	                 .size_log2      = map_size_log2,
+	                 .cached         = dataspace.cacheability() == CACHED,
+	                 .io_mem         = dataspace.io_mem(),
+	                 .dma_buffer     = dataspace.cacheability() != CACHED,
+	                 .write_combined = dataspace.cacheability() == WRITE_COMBINED,
+	                 .writeable      = region.write() && dataspace.writable(),
+	                 .executable     = region.executable() };
+}
 
 
 Region_map::Local_addr

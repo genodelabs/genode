@@ -27,6 +27,7 @@
 /* core-local includes */
 #include <kernel/signal_receiver.h>
 #include <hw/mapping.h>
+#include <mapping.h>
 #include <object.h>
 #include <rpc_cap_factory.h>
 
@@ -54,28 +55,6 @@ namespace Genode {
 
 	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 }
-
-
-struct Genode::Mapping : Hw::Mapping
-{
-	Mapping() {}
-
-	Mapping(addr_t   virt,
-	        addr_t   phys,
-	        Cache    cacheable,
-	        bool     io,
-	        unsigned size_log2,
-	        bool     writeable,
-	        bool     executable)
-	:
-		Hw::Mapping(phys, virt, 1 << size_log2,
-		            { writeable  ? Hw::RW   : Hw::RO,
-		              executable ? Hw::EXEC : Hw::NO_EXEC, Hw::USER,
-		              Hw::NO_GLOBAL, io ? Hw::DEVICE : Hw::RAM, cacheable })
-	{ }
-
-	void prepare_map_operation() const {}
-};
 
 
 class Genode::Ipc_pager

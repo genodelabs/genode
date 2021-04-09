@@ -27,10 +27,13 @@
 
 using namespace Genode;
 
+
+void Mapping::prepare_map_operation() const { }
+
+
 /***************
  ** IPC pager **
  ***************/
-
 
 void Ipc_pager::wait_for_fault()
 {
@@ -47,11 +50,13 @@ void Ipc_pager::wait_for_fault()
 	reply_and_wait_for_fault();
 }
 
+
 bool Ipc_pager::install_mapping()
 {
 	_badge = Genode::install_mapping(_reply_mapping, _badge);
 	return _badge;
 }
+
 
 void Ipc_pager::reply_and_wait_for_fault()
 {
@@ -77,10 +82,25 @@ void Ipc_pager::reply_and_wait_for_fault()
 	_pf_addr    = fault_info.pf;
 	_pf_write   = fault_info.write;
 	_pf_exec    = fault_info.exec_fault();
-	_fault_type = seL4_MessageInfo_get_label(page_fault_msg_info);
 	_pf_align   = fault_info.align_fault();
+	_badge      = badge;
 
-	_badge = badge;
+	addr_t const fault_type = seL4_MessageInfo_get_label(page_fault_msg_info);
+
+	auto fault_name = [] (addr_t type)
+	{
+		switch (type) {
+		case seL4_Fault_NullFault:      return "seL4_Fault_NullFault";
+		case seL4_Fault_CapFault:       return "seL4_Fault_CapFault";
+		case seL4_Fault_UnknownSyscall: return "seL4_Fault_UnknownSyscall";
+		case seL4_Fault_UserException:  return "seL4_Fault_UserException";
+		case seL4_Fault_VMFault:        return "seL4_Fault_VMFault";
+		}
+		return "unknown";
+	};
+
+	if (fault_type != seL4_Fault_VMFault)
+		error("unexpected exception during fault '", fault_name(fault_type), "'");
 }
 
 

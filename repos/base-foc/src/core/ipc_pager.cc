@@ -29,6 +29,13 @@ using namespace Genode;
 using namespace Foc;
 
 
+/*
+ * There is no preparation needed because the entire physical memory is known
+ * to be mapped within core.
+ */
+void Mapping::prepare_map_operation() const { }
+
+
 void Ipc_pager::_parse(unsigned long label)
 {
 	_badge = label & ~0x3;
@@ -94,31 +101,35 @@ void Ipc_pager::reply_and_wait_for_fault()
 	l4_umword_t label;
 	l4_msgtag_t snd_tag = l4_msgtag(0, 0, 1, 0);
 
-	l4_umword_t grant   = _reply_mapping.grant() ? L4_MAP_ITEM_GRANT : 0;
-	l4_utcb_mr()->mr[0] = _reply_mapping.dst_addr() | L4_ITEM_MAP | grant;
+	l4_utcb_mr()->mr[0] = _reply_mapping.dst_addr | L4_ITEM_MAP;
 
-	switch (_reply_mapping.cacheability()) {
+	l4_fpage_cacheability_opt_t
+		cacheability = _reply_mapping.cached ? L4_FPAGE_CACHEABLE
+		                                     : L4_FPAGE_UNCACHEABLE;
 
-	case WRITE_COMBINED:
-		l4_utcb_mr()->mr[0] |= L4_FPAGE_BUFFERABLE << 4;
-		break;
+	if (_reply_mapping.write_combined)
+		cacheability= L4_FPAGE_BUFFERABLE;
 
-	case CACHED:
-		l4_utcb_mr()->mr[0] |= L4_FPAGE_CACHEABLE << 4;
-		break;
+	l4_utcb_mr()->mr[0] |= cacheability << 4;
 
-	case UNCACHED:
-		if (!_reply_mapping.iomem())
-			l4_utcb_mr()->mr[0] |= L4_FPAGE_BUFFERABLE << 4;
-		else
-			l4_utcb_mr()->mr[0] |= L4_FPAGE_UNCACHEABLE << 4;
-		break;
-	}
-	l4_utcb_mr()->mr[1] = _reply_mapping.fpage().raw;
+	auto rights = [] (bool writeable, bool executable)
+	{
+		if ( writeable &&  executable) return L4_FPAGE_RWX;
+		if ( writeable && !executable) return L4_FPAGE_RW;
+		if (!writeable && !executable) return L4_FPAGE_RO;
+		return L4_FPAGE_RX;
+	};
+
+	l4_fpage_t const fpage = l4_fpage(_reply_mapping.src_addr,
+	                                  _reply_mapping.size_log2,
+	                                  rights(_reply_mapping.writeable,
+	                                         _reply_mapping.executable));
+
+	l4_utcb_mr()->mr[1] = fpage.raw;
 
 	_tag = l4_ipc_send_and_wait(_last.kcap, l4_utcb(), snd_tag,
 	                            &label, L4_IPC_SEND_TIMEOUT_0);
-	int err = l4_ipc_error(_tag, l4_utcb());
+	int const err = l4_ipc_error(_tag, l4_utcb());
 	if (err) {
 		error("Ipc error ", err, " in pagefault from ", Hex(label & ~0x3));
 		wait_for_fault();

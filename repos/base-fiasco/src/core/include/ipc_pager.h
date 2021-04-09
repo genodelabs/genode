@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <base/cache.h>
 #include <base/ipc.h>
-#include <base/stdint.h>
 #include <base/native_capability.h>
 #include <util/touch.h>
 
@@ -26,66 +25,12 @@
 
 /* core includes */
 #include <util.h>
+#include <mapping.h>
 
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-namespace Genode {
-
-	class Mapping;
-	class Ipc_pager;
-}
-
-
-class Genode::Mapping
-{
-	private:
-
-		addr_t             _dst_addr;
-		Fiasco::l4_fpage_t _fpage;
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Mapping(addr_t dst_addr, addr_t src_addr, Cache cacheability, bool,
-		        unsigned l2size, bool rw, bool)
-		:
-			_dst_addr(dst_addr),
-			_fpage(Fiasco::l4_fpage(src_addr, l2size, rw, false))
-		{
-			if (cacheability == WRITE_COMBINED)
-				_fpage.fp.cache = Fiasco::L4_FPAGE_BUFFERABLE;
-		}
-
-		/**
-		 * Construct invalid flexpage
-		 */
-		Mapping() : _dst_addr(0), _fpage(Fiasco::l4_fpage(0, 0, 0, 0)) { }
-
-		Fiasco::l4_umword_t dst_addr() const { return _dst_addr; }
-		Fiasco::l4_fpage_t  fpage()    const { return _fpage; }
-
-		/**
-		 * Prepare map operation
-		 *
-		 * On Fiasco, we need to map a page locally to be able to map it to
-		 * another address space.
-		 */
-		void prepare_map_operation()
-		{
-			addr_t core_local_addr = _fpage.fp.page << 12;
-			size_t mapping_size    = 1 << _fpage.fp.size;
-
-			for (addr_t i = 0; i < mapping_size; i += L4_PAGESIZE) {
-				if (_fpage.fp.write)
-					touch_read_write((unsigned char volatile *)(core_local_addr + i));
-				else
-					touch_read((unsigned char const volatile *)(core_local_addr + i));
-			}
-		}
-};
+namespace Genode { class Ipc_pager; }
 
 
 class Genode::Ipc_pager

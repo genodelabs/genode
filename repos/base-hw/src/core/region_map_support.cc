@@ -61,11 +61,24 @@ void Pager_entrypoint::entry()
 			if (!locked_ptr.valid()) continue;
 
 			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
-			as->insert_translation(_mapping.virt(), _mapping.phys(),
-			                       _mapping.size(), _mapping.flags());
+
+			Hw::Page_flags const flags {
+				.writeable  = _mapping.writeable  ? Hw::RW   : Hw::RO,
+				.executable = _mapping.executable ? Hw::EXEC : Hw::NO_EXEC,
+				.privileged = Hw::USER,
+				.global     = Hw::NO_GLOBAL,
+				.type       = _mapping.io_mem ? Hw::DEVICE : Hw::RAM,
+				.cacheable  = _mapping.cached ? Genode::CACHED : Genode::UNCACHED
+			};
+
+			as->insert_translation(_mapping.dst_addr, _mapping.src_addr,
+			                       1UL << _mapping.size_log2, flags);
 		}
 
 		/* let pager object go back to no-fault state */
 		po->wake_up();
 	}
 }
+
+
+void Mapping::prepare_map_operation() const { }
