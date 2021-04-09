@@ -61,24 +61,11 @@ static inline L4_ThreadId_t thread_get_my_global_id()
 }
 
 
-/*************
- ** Mapping **
- *************/
-
-Mapping::Mapping(addr_t dst_addr, addr_t src_addr, Cache, bool,
-                 unsigned l2size, bool rw, bool)
-:
-	_fpage(L4_FpageLog2(dst_addr, l2size)),
-	/*
-	 * OKL4 does not support write-combining as mapping attribute.
-	 */
-	_phys_desc(L4_PhysDesc(src_addr, 0))
-{
-	L4_Set_Rights(&_fpage, rw ? L4_ReadWriteOnly : L4_ReadeXecOnly);
-}
-
-
-Mapping::Mapping() { }
+/*
+ * On OKL4, we do not need to map a page core-locally to be able to map it into
+ * another address space. Therefore, we can leave this method blank.
+ */
+void Mapping::prepare_map_operation() const { }
 
 
 /***************
@@ -121,10 +108,21 @@ void Ipc_pager::reply_and_wait_for_fault()
 	L4_SpaceId_t to_space;
 	to_space.raw = L4_ThreadNo(_last) >> Thread_id_bits::THREAD;
 
-	/* map page to faulting space */
-	int ret = L4_MapFpage(to_space, _reply_mapping.fpage(),
-	                                _reply_mapping.phys_desc());
+	/* flexpage describing the virtual destination address */
+	Okl4::L4_Fpage_t fpage { L4_FpageLog2(_reply_mapping.dst_addr,
+	                                      _reply_mapping.size_log2) };
 
+	L4_Set_Rights(&fpage, _reply_mapping.writeable ? L4_ReadWriteOnly
+	                                               : L4_ReadeXecOnly);
+	/*
+	 * Note that OKL4 does not support write-combining as mapping attribute.
+	 */
+
+	/* physical-memory descriptor describing the source location */
+	Okl4::L4_PhysDesc_t phys_desc { L4_PhysDesc(_reply_mapping.src_addr, 0) };
+
+	/* map page to faulting space */
+	int ret = L4_MapFpage(to_space, fpage, phys_desc);
 	if (ret != 1)
 		error("L4_MapFpage returned ", ret, ", error=", L4_ErrorCode());
 

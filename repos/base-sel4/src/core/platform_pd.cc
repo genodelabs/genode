@@ -98,10 +98,14 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 	addr_t const utcb = (thread._utcb) ? thread._utcb
 	                                    : (addr_t)thread.INITIAL_IPC_BUFFER_VIRT;
 
-	enum { WRITABLE = true, ONE_PAGE = 1, FLUSHABLE = true, NON_EXECUTABLE = false };
+	Vm_space::Map_attr const attr { .cached         = true,
+	                                .write_combined = false,
+	                                .writeable      = true,
+	                                .executable     = false,
+	                                .flush_support  = true };
+	enum { ONE_PAGE = 1 };
 	_vm_space.alloc_page_tables(utcb, get_page_size());
-	_vm_space.map(thread._info.ipc_buffer_phys, utcb, ONE_PAGE,
-	              Cache::CACHED, WRITABLE, NON_EXECUTABLE, FLUSHABLE);
+	_vm_space.map(thread._info.ipc_buffer_phys, utcb, ONE_PAGE, attr);
 	return true;
 }
 
@@ -159,51 +163,23 @@ void Platform_pd::free_sel(Cap_sel sel)
 bool Platform_pd::install_mapping(Mapping const &mapping,
                                   const char *thread_name)
 {
-	enum { FLUSHABLE = true };
+	size_t const num_bytes = 1UL << mapping.size_log2;
+	size_t const num_pages = num_bytes >> get_page_size_log2();
 
-	try {
-		if (mapping.fault_type() != seL4_Fault_VMFault)
-			throw 1;
+	_vm_space.alloc_page_tables(mapping.dst_addr, num_bytes);
 
-		_vm_space.alloc_page_tables(mapping.to_virt(),
-		                            mapping.num_pages() * get_page_size());
+	Vm_space::Map_attr const attr { .cached         = mapping.cached,
+	                                .write_combined = mapping.write_combined,
+	                                .writeable      = mapping.writeable,
+	                                .executable     = mapping.executable,
+	                                .flush_support  = true };
 
-		if (_vm_space.map(mapping.from_phys(), mapping.to_virt(),
-		                  mapping.num_pages(), mapping.cacheability(),
-		                  mapping.writeable(), mapping.executable(), FLUSHABLE))
-			return true;
+	if (_vm_space.map(mapping.src_addr, mapping.dst_addr, num_pages, attr))
+		return true;
 
-		Genode::warning("mapping failure for thread '", thread_name,
-		                "' in pd '", _vm_space.pd_label(), "'");
-		return false;
-	} catch (...) {
-		char const * fault_name = "unknown";
-
-		switch (mapping.fault_type()) {
-		case seL4_Fault_NullFault:
-			fault_name = "seL4_Fault_NullFault";
-			break;
-		case seL4_Fault_CapFault:
-			fault_name = "seL4_Fault_CapFault";
-			break;
-		case seL4_Fault_UnknownSyscall:
-			fault_name = "seL4_Fault_UnknownSyscall";
-			break;
-		case seL4_Fault_UserException:
-			fault_name = "seL4_Fault_UserException";
-			break;
-		case seL4_Fault_VMFault:
-			fault_name = "seL4_Fault_VMFault";
-			break;
-		}
-
-		Genode::error("unexpected exception during fault '", fault_name, "'",
-		              " - thread '", thread_name, "' in pd '",
-		              _vm_space.pd_label(),"' stopped");
-
-		/* catched by Pager_entrypoint::entry() in base-sel4/pager.cc */
-		throw;
-	}
+	warning("mapping failure for thread '", thread_name,
+	        "' in pd '", _vm_space.pd_label(), "'");
+	return false;
 }
 
 

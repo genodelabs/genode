@@ -16,7 +16,6 @@
 #define _CORE__INCLUDE__IPC_PAGER_H_
 
 /* Genode includes */
-#include <base/cache.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
 #include <base/native_capability.h>
@@ -28,67 +27,15 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 
+/* core-local includes */
+#include <mapping.h>
+
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-namespace Genode {
-
-	class Mapping;
-	class Ipc_pager;
-}
+namespace Genode { class Ipc_pager; }
 
 
-class Genode::Mapping
-{
-	private:
-
-		addr_t          _dst_addr;
-		Foc::l4_fpage_t _fpage { };
-		Cache           _cacheability;
-		bool            _iomem;
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Mapping(addr_t dst_addr, addr_t src_addr, Cache cache, bool io_mem,
-		        unsigned log2size, bool write, bool executable)
-		:
-			_dst_addr(dst_addr), _cacheability(cache), _iomem(io_mem)
-		{
-			typedef Foc::L4_fpage_rights Rights;
-			Rights rights = ( write &&  executable) ? Foc::L4_FPAGE_RWX :
-			                ( write && !executable) ? Foc::L4_FPAGE_RW  :
-			                (!write && !executable) ? Foc::L4_FPAGE_RO  :
-			                                          Foc::L4_FPAGE_RX;
-
-			_fpage = Foc::l4_fpage(src_addr, log2size, rights);
-		}
-
-		/**
-		 * Construct invalid flexpage
-		 */
-		Mapping() : _dst_addr(0), _fpage(Foc::l4_fpage_invalid()),
-		            _cacheability(UNCACHED), _iomem(false) { }
-
-		Foc::l4_umword_t dst_addr()     const { return _dst_addr; }
-		bool             grant()        const { return false; }
-		Foc::l4_fpage_t  fpage()        const { return _fpage; }
-		Cache            cacheability() const { return _cacheability; }
-		bool             iomem()        const { return _iomem; }
-
-		/**
-		 * Prepare map operation is not needed on Fiasco.OC, since we clear the
-		 * dataspace before this function is called.
-		 */
-		void prepare_map_operation() { }
-};
-
-
-/**
- * Special paging server class
- */
 class Genode::Ipc_pager : public Native_capability
 {
 	public:
@@ -97,14 +44,14 @@ class Genode::Ipc_pager : public Native_capability
 
 	private:
 
-		Native_thread         _last    { };        /* origin of last fault     */
-		addr_t                _pf_addr { 0 };      /* page-fault address       */
-		addr_t                _pf_ip   { 0 };      /* ip of faulter            */
-		Mapping               _reply_mapping { };  /* page-fault answer        */
-		unsigned long         _badge;              /* badge of faulting thread */
+		Native_thread      _last    { };        /* origin of last fault     */
+		addr_t             _pf_addr { 0 };      /* page-fault address       */
+		addr_t             _pf_ip   { 0 };      /* ip of faulter            */
+		Mapping            _reply_mapping { };  /* page-fault answer        */
+		unsigned long      _badge;              /* badge of faulting thread */
 		Foc::l4_msgtag_t   _tag  { };           /* receive message tag      */
 		Foc::l4_exc_regs_t _regs { };           /* exception registers      */
-		Msg_type              _type { PAGEFAULT };
+		Msg_type           _type { PAGEFAULT };
 
 		void _parse_msg_type(void);
 		void _parse_exception(void);

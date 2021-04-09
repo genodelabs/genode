@@ -16,19 +16,20 @@
 
 long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
                                  Genode::addr_t  const virt,
-                                 Cache           const cacheability,
-                                 bool            const writable,
-                                 bool            const, bool ept)
+                                 Map_attr        const map_attr,
+                                 bool            const ept)
 {
 	seL4_X86_Page          const service = _idx_to_sel(idx.value());
 	seL4_X86_PageDirectory const pd      = _pd_sel.value();
-	seL4_CapRights_t       const rights  = writable ? seL4_ReadWrite : seL4_CanRead;
-	seL4_X86_VMAttributes        attr    = seL4_X86_Default_VMAttributes;
+	seL4_CapRights_t       const rights  = map_attr.writeable ? seL4_ReadWrite
+	                                                          : seL4_CanRead;
 
-	if (cacheability == UNCACHED)
+	seL4_X86_VMAttributes attr = seL4_X86_Default_VMAttributes;
+
+	if (!map_attr.cached)
 		attr = seL4_X86_Uncacheable;
-	else
-	if (cacheability == WRITE_COMBINED)
+
+	if (map_attr.write_combined)
 		attr = seL4_X86_WriteCombining;
 
 	if (ept)

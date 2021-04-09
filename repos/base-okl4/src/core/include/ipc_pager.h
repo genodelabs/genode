@@ -14,60 +14,16 @@
 #ifndef _CORE__INCLUDE__IPC_PAGER_H_
 #define _CORE__INCLUDE__IPC_PAGER_H_
 
-#include <base/cache.h>
+/* Genode includes */
 #include <base/ipc.h>
-#include <base/stdint.h>
 
 /* base-internal includes */
 #include <base/internal/okl4.h>
 
-namespace Genode {
+/* core-local includes */
+#include <mapping.h>
 
-	class Mapping;
-	class Ipc_pager;
-}
-
-
-class Genode::Mapping
-{
-	private:
-
-		addr_t              _phys_addr { 0 };
-		Okl4::L4_Fpage_t    _fpage     { };
-		Okl4::L4_PhysDesc_t _phys_desc { };
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Mapping(addr_t dst_addr, addr_t src_addr, Cache, bool io_mem,
-		        unsigned l2size, bool rw, bool executable);
-
-		/**
-		 * Construct invalid mapping
-		 */
-		Mapping();
-
-		/**
-		 * Return flexpage describing the virtual destination address
-		 */
-		Okl4::L4_Fpage_t fpage() const { return _fpage; }
-
-		/**
-		 * Return physical-memory descriptor describing the source location
-		 */
-		Okl4::L4_PhysDesc_t phys_desc() const { return _phys_desc; }
-
-		/**
-		 * Prepare map operation
-		 *
-		 * On OKL4, we do not need to map a page core-locally to be able to
-		 * map it into another address space. Therefore, we can leave this
-		 * function blank.
-		 */
-		void prepare_map_operation() { }
-};
+namespace Genode { class Ipc_pager; }
 
 
 class Genode::Ipc_pager

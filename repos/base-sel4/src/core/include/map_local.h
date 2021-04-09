@@ -36,13 +36,14 @@ namespace Genode {
 	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
 	                      Platform * platform = nullptr)
 	{
-		enum { DONT_FLUSH = false, WRITEABLE = true, NON_EXECUTABLE = false };
+		Vm_space::Map_attr const attr { .cached         = true,
+		                                .write_combined = false,
+		                                .writeable      = true,
+		                                .executable     = false,
+		                                .flush_support  = false };
 		try {
 			platform = platform ? platform : &platform_specific();
-			platform->core_vm_space().map(from_phys, to_virt, num_pages,
-			                              Cache::CACHED,
-			                              WRITEABLE, NON_EXECUTABLE,
-			                              DONT_FLUSH);
+			platform->core_vm_space().map(from_phys, to_virt, num_pages, attr);
 		} catch (Page_table_registry::Mapping_cache_full) {
 			return false;
 		}

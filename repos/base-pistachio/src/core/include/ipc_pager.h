@@ -22,64 +22,12 @@
 
 /* core-local includes */
 #include <kip.h>
+#include <mapping.h>
 
 /* base-internal includes */
 #include <base/internal/pistachio.h>
 
-namespace Genode {
-
-	class Mapping;
-	class Ipc_pager;
-}
-
-
-class Genode::Mapping
-{
-	private:
-
-		union {
-			Pistachio::L4_MapItem_t   _map_item;
-			Pistachio::L4_GrantItem_t _grant_item;
-		};
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Mapping(addr_t dst_addr, addr_t src_addr, Cache, bool io_mem,
-		        unsigned l2size, bool rw, bool executable);
-
-		/**
-		 * Construct invalid mapping
-		 */
-		Mapping();
-
-		addr_t _dst_addr() const { return Pistachio::L4_SndBase(_map_item); }
-
-		Pistachio::L4_Fpage_t fpage() const {
-			return Pistachio::L4_MapItemSndFpage(_map_item); }
-
-		Pistachio::L4_MapItem_t map_item() const { return _map_item; };
-
-		/**
-		 * Prepare map operation
-		 *
-		 * On Pistachio, we need to map a page locally to be able to map it
-		 * to another address space.
-		 */
-		void prepare_map_operation()
-		{
-			using namespace Pistachio;
-			unsigned char volatile *core_local_addr =
-				(unsigned char volatile *)L4_Address(_map_item.X.snd_fpage);
-
-			if (L4_Rights(_map_item.X.snd_fpage) & L4_Writable)
-				touch_read_write(core_local_addr);
-			else
-				touch_read(core_local_addr);
-		}
-};
+namespace Genode { class Ipc_pager; }
 
 
 class Genode::Ipc_pager
@@ -133,7 +81,16 @@ class Genode::Ipc_pager
 		/**
 		 * Set parameters for next reply
 		 */
-		void set_reply_mapping(Mapping m) { _map_item = m.map_item(); }
+		void set_reply_mapping(Mapping const &mapping)
+		{
+			using namespace Pistachio;
+
+			L4_Fpage_t fpage = L4_FpageLog2(mapping.src_addr, mapping.size_log2);
+
+			fpage += mapping.writeable ? L4_FullyAccessible : L4_Readable;
+
+			_map_item = L4_MapItem(fpage, mapping.dst_addr);
+		}
 
 		/**
 		 * Set destination for next reply

@@ -23,6 +23,10 @@
 
 using namespace Genode;
 
+
+void Mapping::prepare_map_operation() const { }
+
+
 Ipc_pager::Ipc_pager(Nova::Utcb &utcb, addr_t pd_dst, addr_t pd_core)
 :
 	_pd_dst(pd_dst),
@@ -44,23 +48,20 @@ Ipc_pager::Ipc_pager(Nova::Utcb &utcb, addr_t pd_dst, addr_t pd_core)
 }
 
 
-void Ipc_pager::set_reply_mapping(Mapping m)
+void Ipc_pager::set_reply_mapping(Mapping const mapping)
 {
 	Nova::Utcb &utcb = *(Nova::Utcb *)Thread::myself()->utcb();
 
 	utcb.set_msg_word(0);
-	bool res = utcb.append_item(m.mem_crd(), 0, true, false,
-	                            false, m.dma(), m.write_combined());
-	/* one item ever fits on the UTCB */
+
+	bool res = utcb.append_item(nova_src_crd(mapping), 0, true, false, false,
+	                            mapping.dma_buffer, mapping.write_combined);
+
+	/* one item always fits in the UTCB */
 	(void)res;
 
-	/* receive window in destination pd */
-	Nova::Mem_crd crd_mem(m.dst_addr() >> 12, m.mem_crd().order(),
-	                      Nova::Rights(m.mem_crd().rights().readable(),
-	                                   m.mem_crd().rights().writeable(),
-	                                   m.mem_crd().rights().executable()));
 	/* asynchronously map memory */
-	_syscall_res = Nova::delegate(_pd_core, _pd_dst, crd_mem);
+	_syscall_res = Nova::delegate(_pd_core, _pd_dst, nova_dst_crd(mapping));
 }
 
 

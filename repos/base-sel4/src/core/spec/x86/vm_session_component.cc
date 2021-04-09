@@ -248,6 +248,13 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              addr_t const guest_phys,
                                              Attach_attr const attribute)
 {
+	Vm_space::Map_attr const attr {
+		.cached         = (dsc.cacheability() == CACHED),
+		.write_combined = (dsc.cacheability() == WRITE_COMBINED),
+		.writeable      = dsc.writable() && attribute.writeable,
+		.executable     = attribute.executable,
+		.flush_support  = false };
+
 	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
 	                       guest_phys, attribute.size, guest_phys);
 
@@ -257,11 +264,9 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 		try {
 			try {
 				_vm_space.alloc_guest_page_tables(page.hotspot, 1 << page.log2_order);
+
 				_vm_space.map_guest(page.addr, page.hotspot,
-				                    (1 << page.log2_order) / 4096,
-				                    dsc.cacheability(),
-				                    dsc.writable() && attribute.writeable,
-				                    attribute.executable, NO_FLUSH);
+				                    (1 << page.log2_order) / 4096, attr);
 			} catch (Page_table_registry::Mapping_cache_full full) {
 				if (full.reason == Page_table_registry::Mapping_cache_full::MEMORY) {
 					if (_ram_quota_guard().limit().value > 4 * 1024 * 1024)
@@ -294,10 +299,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 			}
 
 			_vm_space.map_guest(page.addr, page.hotspot,
-			                    (1 << page.log2_order) / 4096,
-			                    dsc.cacheability(),
-			                    dsc.writable() && attribute.writeable,
-			                    attribute.executable, FLUSH);
+			                    (1 << page.log2_order) / 4096, attr);
 		} catch (Vm_space::Alloc_page_table_failed) {
 			Genode::error("alloc page table failed");
 			return;

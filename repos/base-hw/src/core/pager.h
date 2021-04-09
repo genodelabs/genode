@@ -56,25 +56,19 @@ namespace Genode {
 }
 
 
-struct Genode::Mapping : Hw::Mapping
+struct Genode::Mapping
 {
-	Mapping() {}
+	addr_t dst_addr;
+	addr_t src_addr;
+	size_t size_log2;
+	bool   cached;           /* RAM caching policy */
+	bool   io_mem;           /* IO_MEM dataspace */
+	bool   dma_buffer;       /* must be mapped in IOMMU page tables */
+	bool   write_combined;   /* write-combined IO_MEM dataspace */
+	bool   writeable;
+	bool   executable;
 
-	Mapping(addr_t   virt,
-	        addr_t   phys,
-	        Cache    cacheable,
-	        bool     io,
-	        unsigned size_log2,
-	        bool     writeable,
-	        bool     executable)
-	:
-		Hw::Mapping(phys, virt, 1 << size_log2,
-		            { writeable  ? Hw::RW   : Hw::RO,
-		              executable ? Hw::EXEC : Hw::NO_EXEC, Hw::USER,
-		              Hw::NO_GLOBAL, io ? Hw::DEVICE : Hw::RAM, cacheable })
-	{ }
-
-	void prepare_map_operation() const {}
+	void prepare_map_operation() const;
 };
 
 

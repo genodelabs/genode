@@ -32,25 +32,20 @@ using namespace Pistachio;
  ** Mapping **
  *************/
 
-Mapping::Mapping(addr_t dst_addr, addr_t src_addr, Cache, bool,
-                 unsigned l2size, bool rw, bool)
+/**
+ * Prepare map operation
+ *
+ * On Pistachio, we need to map a page locally to be able to map it to another
+ * address space.
+ */
+void Mapping::prepare_map_operation() const
 {
-	bool const grant = false;
+	uint8_t * const core_local_addr = (uint8_t *)src_addr;
 
-	L4_Fpage_t fpage = L4_FpageLog2(src_addr, l2size);
-
-	fpage += rw ? L4_FullyAccessible : L4_Readable;
-
-	if (grant)
-		_grant_item = L4_GrantItem(fpage, dst_addr);
+	if (writeable)
+		touch_read_write(core_local_addr);
 	else
-		_map_item = L4_MapItem(fpage, dst_addr);
-}
-
-
-Mapping::Mapping()
-{
-	_map_item = L4_MapItem(L4_Nilpage, 0);
+		touch_read(core_local_addr);
 }
 
 
