@@ -304,11 +304,11 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 			catch (Watch_failed) { }
 
 			try { return _read_dataspace(update_only); }
-			catch (Lookup_failed)     { log(_file_path, " ROM file is missing"); }
-			catch (Invalid_handle)    { error(_file_path, ": invalid handle"); }
-			catch (Invalid_name)      { error(_file_path, ": invalid name"); }
-			catch (Permission_denied) { error(_file_path, ": permission denied"); }
-			catch (...)               { error(_file_path, ": unhandled error"); };
+			catch (Lookup_failed)     { /* missing but may appear anytime soon */ }
+			catch (Invalid_handle)    { warning(_file_path, ": invalid handle"); }
+			catch (Invalid_name)      { warning(_file_path, ": invalid name"); }
+			catch (Permission_denied) { warning(_file_path, ": permission denied"); }
+			catch (...)               { warning(_file_path, ": unhandled error"); };
 
 			return false;
 		}
