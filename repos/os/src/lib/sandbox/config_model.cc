@@ -324,7 +324,7 @@ void Config_model::update_from_xml(Xml_node                 const &xml,
 
 	prio_levels = ::Sandbox::prio_levels_from_xml(xml);
 
-	affinity_space.construct(1, 1);
+	affinity_space.destruct();
 
 	verbose.construct(xml);
 

@@ -69,7 +69,8 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 
 	Affinity::Space _effective_affinity_space() const
 	{
-		return _affinity_space.constructed() ? *_affinity_space : Affinity::Space { };
+		return _affinity_space.constructed() ? *_affinity_space
+		                                     : Affinity::Space { 1, 1 };
 	}
 
 	State_reporter _state_reporter;
