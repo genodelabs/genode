@@ -144,14 +144,25 @@ class Genode::Expanding_parent_client : public Parent_client
 			 * immediately. The second upgrade attempt may fail too if the
 			 * parent handles the resource request asynchronously. In this
 			 * case, we escalate the problem to caller by propagating the
-			 * 'Out_of_ram' exception. Now, it is the job of the caller to
-			 * issue (and respond to) a resource request.
+			 * 'Out_of_ram' or 'Out_of_caps' exception. Now, it is the job of
+			 * the caller to issue (and respond to) a resource request.
 			 */
-			enum { NUM_ATTEMPTS = 2 };
+			Session::Resources const amount = session_resources_from_args(args.string());
+			using Arg = String<64>;
+
 			return retry<Out_of_ram>(
-				[&] () { return Parent_client::upgrade(id, args); },
-				[&] () { resource_request(Resource_args(args.string())); },
-				NUM_ATTEMPTS);
+				[&] () {
+					return retry<Out_of_caps>(
+						[&] () { return Parent_client::upgrade(id, args); },
+						[&] () {
+							Arg cap_arg("cap_quota=", amount.cap_quota);
+							resource_request(Resource_args(cap_arg.string()));
+						});
+				},
+				[&] () {
+					Arg ram_arg("ram_quota=", amount.ram_quota);
+					resource_request(Resource_args(ram_arg.string()));
+				});
 		}
 
 		void resource_avail_sigh(Signal_context_capability sigh) override
