@@ -218,8 +218,8 @@ class Sd_card::Driver : public  Driver_base,
 		           char const               *buffer,
 		           Block::Packet_descriptor &packet) override;
 
-		Ram_dataspace_capability alloc_dma_buffer(size_t size) override {
-			return _env.ram().alloc(size, UNCACHED); }
+		Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override {
+			return _env.ram().alloc(size, cache); }
 };
 
 #endif /* _DRIVER_H_ */
