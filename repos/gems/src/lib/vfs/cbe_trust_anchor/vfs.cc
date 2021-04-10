@@ -20,9 +20,89 @@
 
 /* OpenSSL includes */
 #include <openssl/sha.h>
+#include <openssl/aes.h>
 
 /* CBE includes */
 #include <cbe/vfs/io_job.h>
+
+namespace Aes_cbc
+{
+	struct Iv
+	{
+		unsigned char values[16];
+	};
+
+	void encrypt_without_iv(unsigned char       *ciphertext_base,
+	                        size_t               ciphertext_size,
+	                        unsigned char const *plaintext_base,
+	                        unsigned char const *key_base,
+	                        size_t               key_size);
+
+	void decrypt_without_iv(unsigned char       *plaintext_base,
+	                        size_t               plaintext_size,
+	                        unsigned char const *ciphertext_base,
+	                        unsigned char const *key_base,
+	                        size_t               key_size);
+}
+
+
+/**
+ * Clean up crypto relevant data which would stay on the stack otherwise
+ */
+template <typename T, typename S>
+static void inline cleanup_crypto_data(T &t, S &s)
+{
+	Genode::memset(&t,  0, sizeof(t));
+	Genode::memset(&s,  0, sizeof(s));
+
+	/* trigger compiler to not drop the memsets */
+	asm volatile(""::"r"(&t),"r"(&s):"memory");
+}
+
+
+void Aes_cbc::encrypt_without_iv(unsigned char       *ciphertext_base,
+                                 size_t               ciphertext_size,
+                                 unsigned char const *plaintext_base,
+                                 unsigned char const *key_base,
+                                 size_t               key_size)
+{
+	AES_KEY aes_key;
+	if (AES_set_encrypt_key(key_base, key_size * 8, &aes_key)) {
+		class Failed_to_set_key { };
+		throw Failed_to_set_key { };
+	}
+	Aes_cbc::Iv iv { };
+	Genode::memset(iv.values, 0, sizeof(iv.values));
+	AES_cbc_encrypt(
+		plaintext_base, ciphertext_base, ciphertext_size, &aes_key, iv.values,
+		AES_ENCRYPT);
+
+	cleanup_crypto_data(aes_key, iv);
+}
+
+
+void Aes_cbc::decrypt_without_iv(unsigned char       *plaintext_base,
+                                 size_t               plaintext_size,
+                                 unsigned char const *ciphertext_base,
+                                 unsigned char const *key_base,
+                                 size_t               key_size)
+{
+	AES_KEY aes_key;
+	if (AES_set_decrypt_key(key_base, key_size * 8, &aes_key)) {
+		class Failed_to_set_key { };
+		throw Failed_to_set_key { };
+	}
+	Aes_cbc::Iv iv { };
+	Genode::memset(iv.values, 0, sizeof(iv.values));
+	AES_cbc_encrypt(
+		ciphertext_base, plaintext_base, plaintext_size, &aes_key, iv.values,
+		AES_DECRYPT);
+
+	cleanup_crypto_data(aes_key, iv);
+}
+
+
+enum { PRIVATE_KEY_SIZE = 32 };
 
 
 static void xor_bytes(unsigned char const *p, int p_len,
@@ -96,15 +176,24 @@ class Trust_anchor
 		};
 		Job _job { Job::NONE };
 
-		enum class Job_state { NONE, PENDING, IN_PROGRESS, FINAL_SYNC, COMPLETE };
+		enum class Job_state
+		{
+			NONE,
+			INIT_READ_JITTERENTROPY_PENDING,
+			INIT_READ_JITTERENTROPY_IN_PROGRESS,
+			PENDING,
+			IN_PROGRESS,
+			FINAL_SYNC,
+			COMPLETE
+		};
+
 		Job_state _job_state { Job_state::NONE };
 
 		bool _job_success { false };
 
 		struct Private_key
 		{
-			enum { KEY_LEN = 32 };
-			unsigned char value[KEY_LEN] { };
+			unsigned char value[PRIVATE_KEY_SIZE] { };
 		};
 		Private_key _private_key { };
 
@@ -128,7 +217,7 @@ class Trust_anchor
 
 		void _xcrypt_key(Private_key const &priv_key, Key &key)
 		{
-			xor_bytes(priv_key.value, (int)Private_key::KEY_LEN,
+			xor_bytes(priv_key.value, (int)PRIVATE_KEY_SIZE,
 			          key.value,      (int)Key::KEY_LEN);
 		}
 
@@ -218,18 +307,14 @@ class Trust_anchor
 				if (!_read_key_file_finished()) {
 					break;
 				}
+				if (_key_io_job_buffer.size == PRIVATE_KEY_SIZE) {
 
-				if (_key_io_job_buffer.size == _passphrase_hash_buffer.size &&
-					Genode::memcmp(_key_io_job_buffer.base,
-					               _passphrase_hash_buffer.base,
-					               _passphrase_hash_buffer.size) == 0) {
-
-					Genode::memset(_private_key.value, 0xa5,
-					               sizeof (_private_key.value));
-
-					Genode::memcpy(_private_key.value,
-					               _key_io_job_buffer.buffer,
-					               _key_io_job_buffer.size);
+					Aes_cbc::decrypt_without_iv(
+						_private_key.value,
+						PRIVATE_KEY_SIZE,
+						(unsigned char *)_key_io_job_buffer.base,
+						(unsigned char *)_passphrase_hash_buffer.base,
+						_passphrase_hash_buffer.size);
 
 					_job_state   = Job_state::COMPLETE;
 					_job_success = true;
@@ -259,6 +344,41 @@ class Trust_anchor
 			bool progress = false;
 
 			switch (_job_state) {
+			case Job_state::INIT_READ_JITTERENTROPY_PENDING:
+			{
+				if (!_open_private_key_file_and_queue_read()) {
+					break;
+				}
+				_job_state = Job_state::INIT_READ_JITTERENTROPY_IN_PROGRESS;
+				progress = true;
+			}
+			[[fallthrough]];
+			case Job_state::INIT_READ_JITTERENTROPY_IN_PROGRESS:
+			{
+				if (!_read_private_key_file_finished()) {
+					break;
+				}
+				if (_private_key_io_job_buffer.size != (size_t)PRIVATE_KEY_SIZE) {
+					class Bad_private_key_io_buffer_size { };
+					throw Bad_private_key_io_buffer_size { };
+				}
+				Genode::memcpy(
+					_private_key.value,
+					_private_key_io_job_buffer.base,
+					_private_key_io_job_buffer.size);
+
+				_key_io_job_buffer.size = PRIVATE_KEY_SIZE;
+				Aes_cbc::encrypt_without_iv(
+					(unsigned char *)_key_io_job_buffer.base,
+					_key_io_job_buffer.size,
+					(unsigned char *)_private_key_io_job_buffer.base,
+					(unsigned char *)_passphrase_hash_buffer.base,
+					_passphrase_hash_buffer.size);
+
+				_job_state = Job_state::PENDING;
+				progress = true;
+			}
+			[[fallthrough]];
 			case Job_state::PENDING:
 			{
 				if (!_open_key_file_and_write(_base_path)) {
@@ -266,13 +386,6 @@ class Trust_anchor
 					_job_success = false;
 					return true;
 				}
-
-				/* copy passphrase to key object */
-				size_t const key_len =
-					Genode::min(_key_io_job_buffer.size,
-					            sizeof (_private_key.value));
-				Genode::memset(_private_key.value, 0xa5, sizeof (_private_key.value));
-				Genode::memcpy(_private_key.value, _key_io_job_buffer.buffer, key_len);
 
 				_job_state = Job_state::IN_PROGRESS;
 				progress |= true;
@@ -478,6 +591,22 @@ class Trust_anchor
 		Genode::Constructible<Util::Io_job> _jitterentropy_io_job { };
 		Jitterentropy_io_job_buffer _jitterentropy_io_job_buffer { };
 
+
+		struct Private_key_io_job_buffer : Util::Io_job::Buffer
+		{
+			char buffer[PRIVATE_KEY_SIZE] { };
+
+			Private_key_io_job_buffer()
+			{
+				Buffer::base = buffer;
+				Buffer::size = sizeof (buffer);
+			}
+		};
+
+		Vfs::Vfs_handle *_private_key_handle { nullptr };
+		Genode::Constructible<Util::Io_job> _private_key_io_job { };
+		Private_key_io_job_buffer _private_key_io_job_buffer { };
+
 		/* key */
 
 		Vfs::Vfs_handle *_key_handle  { nullptr };
@@ -485,7 +614,7 @@ class Trust_anchor
 
 		struct Key_io_job_buffer : Util::Io_job::Buffer
 		{
-			char buffer[SHA256_DIGEST_LENGTH] { };
+			char buffer[PRIVATE_KEY_SIZE] { };
 
 			Key_io_job_buffer()
 			{
@@ -515,6 +644,35 @@ class Trust_anchor
 			}
 			_state = State::UNINITIALIZED;
 			return false;
+		}
+
+		bool _open_private_key_file_and_queue_read()
+		{
+			Path file_path = "/dev/jitterentropy";
+			using Result = Vfs::Directory_service::Open_result;
+
+			Result const res =
+				_vfs_env.root_dir().open(file_path.string(),
+				                         Vfs::Directory_service::OPEN_MODE_RDONLY,
+				                         (Vfs::Vfs_handle **)&_private_key_handle,
+				                         _vfs_env.alloc());
+			if (res != Result::OPEN_OK) {
+				Genode::error("could not open '", file_path.string(), "'");
+				return false;
+			}
+
+			_private_key_handle->handler(&_io_response_handler);
+			_private_key_io_job.construct(*_private_key_handle, Util::Io_job::Operation::READ,
+			                      _private_key_io_job_buffer, 0,
+			                      Util::Io_job::Partial_result::ALLOW);
+
+			if (_private_key_io_job->execute() && _private_key_io_job->completed()) {
+				_close_handle(&_private_key_handle);
+				_private_key_io_job_buffer.size = _private_key_io_job->current_offset();
+				_private_key_io_job.destruct();
+				return true;
+			}
+			return true;
 		}
 
 		bool _open_jitterentropy_file_and_queue_read()
@@ -573,6 +731,25 @@ class Trust_anchor
 				return true;
 			}
 			return true;
+		}
+
+		bool _read_private_key_file_finished()
+		{
+			if (!_private_key_io_job.constructed()) {
+				return true;
+			}
+
+			// XXX trigger sync
+
+			bool const progress  = _private_key_io_job->execute();
+			bool const completed = _private_key_io_job->completed();
+			if (completed) {
+				_close_handle(&_private_key_handle);
+				_private_key_io_job_buffer.size = _private_key_io_job->current_offset();
+				_private_key_io_job.destruct();
+			}
+
+			return progress && completed;
 		}
 
 		bool _read_jitterentropy_file_finished()
@@ -852,12 +1029,12 @@ class Trust_anchor
 				return false;
 			}
 			SHA256((unsigned char const *)src, len,
-			       (unsigned char *)_key_io_job_buffer.base);
+			       (unsigned char *)_passphrase_hash_buffer.base);
 
-			_key_io_job_buffer.size = SHA256_DIGEST_LENGTH;
+			_passphrase_hash_buffer.size = SHA256_DIGEST_LENGTH;
 
 			_job       = Job::INIT;
-			_job_state = Job_state::PENDING;
+			_job_state = Job_state::INIT_READ_JITTERENTROPY_PENDING;
 			return true;
 		}
 
