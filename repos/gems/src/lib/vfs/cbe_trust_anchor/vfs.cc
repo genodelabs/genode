@@ -105,15 +105,6 @@ void Aes_cbc::decrypt_without_iv(unsigned char       *plaintext_base,
 enum { PRIVATE_KEY_SIZE = 32 };
 
 
-static void xor_bytes(unsigned char const *p, int p_len,
-                      unsigned char *k, int k_len)
-{
-	for (int i = 0; i < k_len; i++) {
-		k[i] ^= p[i % p_len];
-	}
-}
-
-
 namespace Vfs_cbe_trust_anchor {
 
 	using namespace Vfs;
@@ -215,20 +206,58 @@ class Trust_anchor
 		Key _encrypt_key   { };
 		Key _generated_key { };
 
-		void _xcrypt_key(Private_key const &priv_key, Key &key)
-		{
-			xor_bytes(priv_key.value, (int)PRIVATE_KEY_SIZE,
-			          key.value,      (int)Key::KEY_LEN);
-		}
-
-		bool _execute_xcrypt(Key &key)
+		bool _execute_encrypt()
 		{
 			switch (_job_state) {
 			case Job_state::PENDING:
-				_xcrypt_key(_private_key, key);
+			{
+				Key key_plaintext { };
+				Genode::memcpy(
+					key_plaintext.value, _encrypt_key.value, Key::KEY_LEN);
+
+				Aes_cbc::encrypt_without_iv(
+					_encrypt_key.value,
+					Key::KEY_LEN,
+					key_plaintext.value,
+					_private_key.value,
+					PRIVATE_KEY_SIZE);
+
 				_job_state = Job_state::COMPLETE;
 				_job_success = true;
 				[[fallthrough]];
+			}
+			case Job_state::COMPLETE:
+				return true;
+
+			case Job_state::IN_PROGRESS: [[fallthrough]];
+			case Job_state::NONE:        [[fallthrough]];
+			default:                     return false;
+			}
+
+			/* never reached */
+			return false;
+		}
+
+		bool _execute_decrypt()
+		{
+			switch (_job_state) {
+			case Job_state::PENDING:
+			{
+				Key key_ciphertext { };
+				Genode::memcpy(
+					key_ciphertext.value, _decrypt_key.value, Key::KEY_LEN);
+
+				Aes_cbc::decrypt_without_iv(
+					_decrypt_key.value,
+					Key::KEY_LEN,
+					key_ciphertext.value,
+					_private_key.value,
+					PRIVATE_KEY_SIZE);
+
+				_job_state = Job_state::COMPLETE;
+				_job_success = true;
+				[[fallthrough]];
+			}
 			case Job_state::COMPLETE:
 				return true;
 
@@ -526,8 +555,8 @@ class Trust_anchor
 		bool _execute()
 		{
 			switch (_job) {
-			case Job::DECRYPT:     return _execute_xcrypt(_decrypt_key);
-			case Job::ENCRYPT:     return _execute_xcrypt(_encrypt_key);
+			case Job::DECRYPT:     return _execute_decrypt();
+			case Job::ENCRYPT:     return _execute_encrypt();
 			case Job::GENERATE:    return _execute_generate(_generated_key);
 			case Job::INIT:        return _execute_init();
 			case Job::READ_HASH:   return _execute_read_hash();
