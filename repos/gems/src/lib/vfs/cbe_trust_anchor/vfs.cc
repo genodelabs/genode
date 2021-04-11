@@ -127,7 +127,7 @@ class Trust_anchor
 
 		using Path = Genode::Path<256>;
 
-		Path const key_file_name  { "keyfile" };
+		Path const key_file_name  { "encrypted_private_key" };
 		Path const hash_file_name { "secured_superblock" };
 
 		struct Complete_request

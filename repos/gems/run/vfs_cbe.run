@@ -141,7 +141,7 @@ append config {
 			<vfs>
 				<ram/>
 				<import>
-					<rom name="keyfile"/>
+					<rom name="encrypted_private_key"/>
 					<rom name="secured_superblock"/>
 				</import>
 
@@ -333,7 +333,7 @@ append boot_modules {
 }
 
 append boot_modules {
-	keyfile secured_superblock
+	encrypted_private_key secured_superblock
 }
 append boot_modules [cbe_image_file]
 

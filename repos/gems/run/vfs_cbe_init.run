@@ -172,5 +172,5 @@ build_boot_image $boot_modules
 
 run_genode_until {.*child "initialize_cbe" exited with exit value 0.*\n} 240
 
-exec cp [run_dir]/genode/keyfile bin
+exec cp [run_dir]/genode/encrypted_private_key bin
 exec cp [run_dir]/genode/secured_superblock bin
