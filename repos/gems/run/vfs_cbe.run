@@ -142,7 +142,7 @@ append config {
 				<ram/>
 				<import>
 					<rom name="encrypted_private_key"/>
-					<rom name="secured_superblock"/>
+					<rom name="superblock_hash"/>
 				</import>
 
 				<dir name="dev">
@@ -333,7 +333,7 @@ append boot_modules {
 }
 
 append boot_modules {
-	encrypted_private_key secured_superblock
+	encrypted_private_key superblock_hash
 }
 append boot_modules [cbe_image_file]
 
