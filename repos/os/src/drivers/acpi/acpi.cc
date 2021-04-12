@@ -1442,11 +1442,9 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 	/* parse table */
 	Acpi_table acpi_table(env, alloc);
 
-	enum { REPORT_SIZE = 4 * 4096 };
-	static Reporter acpi(env, "acpi", "acpi", REPORT_SIZE);
-	acpi.enabled(true);
+	static Expanding_reporter acpi(env, "acpi", "acpi");
 
-	Genode::Reporter::Xml_generator xml(acpi, [&] () {
+	acpi.generate([&] (Genode::Xml_generator &xml) {
 
 		acpi_table.generate_reset_info(xml);
 
