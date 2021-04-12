@@ -27,6 +27,7 @@
 /* core-local includes */
 #include <kernel/signal_receiver.h>
 #include <hw/mapping.h>
+#include <mapping.h>
 #include <object.h>
 #include <rpc_cap_factory.h>
 
@@ -54,22 +55,6 @@ namespace Genode {
 
 	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 }
-
-
-struct Genode::Mapping
-{
-	addr_t dst_addr;
-	addr_t src_addr;
-	size_t size_log2;
-	bool   cached;           /* RAM caching policy */
-	bool   io_mem;           /* IO_MEM dataspace */
-	bool   dma_buffer;       /* must be mapped in IOMMU page tables */
-	bool   write_combined;   /* write-combined IO_MEM dataspace */
-	bool   writeable;
-	bool   executable;
-
-	void prepare_map_operation() const;
-};
 
 
 class Genode::Ipc_pager
