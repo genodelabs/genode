@@ -208,7 +208,7 @@ struct Faulting_loader_grand_child_test
 
 	void start_iteration(Env &env, Signal_context_capability fault_sigh)
 	{
-		loader.construct(env, Ram_quota{4*1024*1024}, Cap_quota{120});
+		loader.construct(env, Ram_quota{4*1024*1024}, Cap_quota{130});
 
 		/* import config into loader session */
 		{
