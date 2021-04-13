@@ -13,40 +13,44 @@
 
 /* core includes */
 #include <vm_space.h>
-
-#include "arch_kernel_object.h"
+#include <arch_kernel_object.h>
 
 static long map_page_table(Genode::Cap_sel const pagetable,
                            Genode::Cap_sel const vroot,
-                           Genode::addr_t const virt)
+                           Genode::addr_t  const virt)
 {
 	return seL4_ARM_PageTable_Map(pagetable.value(), vroot.value(), virt,
 	                              seL4_ARM_Default_VMAttributes);
 }
 
+
 long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
                                  Genode::addr_t  const virt,
-                                 Cache           const cacheability,
-                                 bool            const writable,
-                                 bool            const executable,
+                                 Map_attr        const map_attr,
                                  bool)
 {
 	seL4_ARM_Page          const service = _idx_to_sel(idx.value());
 	seL4_ARM_PageDirectory const pd      = _pd_sel.value();
-	seL4_CapRights_t       const rights  = writable ? seL4_ReadWrite : seL4_CanRead;
-	seL4_ARM_VMAttributes        attr    = executable ? seL4_ARM_Default_VMAttributes : seL4_ARM_Default_VMAttributes_NoExecute;
+	seL4_CapRights_t       const rights  = map_attr.writeable
+	                                     ? seL4_ReadWrite : seL4_CanRead;
 
-	if (cacheability == UNCACHED)
+	seL4_ARM_VMAttributes attr = map_attr.executable
+	                           ? seL4_ARM_Default_VMAttributes
+	                           : seL4_ARM_Default_VMAttributes_NoExecute;
+
+	if (!map_attr.cached)
 		attr = seL4_ARM_Uncacheable;
 
 	return seL4_ARM_Page_Map(service, pd, virt, rights, attr);
 }
+
 
 long Genode::Vm_space::_unmap_page(Genode::Cap_sel const &idx)
 {
 	seL4_ARM_Page const service = _idx_to_sel(idx.value());
 	return seL4_ARM_Page_Unmap(service);
 }
+
 
 long Genode::Vm_space::_invalidate_page(Genode::Cap_sel const &idx,
                                         seL4_Word const start,
@@ -62,6 +66,7 @@ long Genode::Vm_space::_invalidate_page(Genode::Cap_sel const &idx,
 
 	return error;
 }
+
 
 void Genode::Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
                                                         addr_t const size)
