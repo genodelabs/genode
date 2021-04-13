@@ -27,9 +27,16 @@ static Linker::Root_object const &to_root(void *h)
 
 static Linker::Object *find_obj(Genode::addr_t addr)
 {
-	for (Linker::Object *e = Linker::obj_list_head(); e; e = e->next_obj())
-		if (addr >= e->link_map().addr  && addr < e->link_map().addr + e->size())
-			return e;
+	Linker::Object *elf = 0;
+	Linker::for_each_object([&] (Linker::Object &e) {
+		if (elf) return;
+
+		if (addr >= e.link_map().addr  && addr < e.link_map().addr + e.size())
+			elf = &e;
+	});
+
+	if (elf)
+		return elf;
 
 	throw Genode::Address_info::Invalid_address();
 }
