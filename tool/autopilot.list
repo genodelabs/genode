@@ -25,6 +25,7 @@ lwip
 lx_hybrid_ctors
 lx_hybrid_exception
 lx_hybrid_pthread_ipc
+lx_fs_import
 microcode
 migrate
 moon
