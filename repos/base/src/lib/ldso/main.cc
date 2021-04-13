@@ -75,9 +75,17 @@ Genode::Mutex &Linker::shared_object_mutex()
 	return _mutex;
 }
 
+
 /**************************************************************
  ** ELF object types (shared object, dynamic binaries, ldso  **
  **************************************************************/
+
+Object::Object_list &Object::_object_list()
+{
+	static Object_list _list;
+	return _list;
+}
+
 
 /**
  * The actual ELF object, one per file
@@ -134,7 +142,8 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 		{
 			/* register for static construction and relocation */
 			Init::list()->insert(this);
-			obj_list()->enqueue(*this);
+			with_object_list([&] (Object_list &list) {
+				list.enqueue(*this); });
 
 			/* add to link map */
 			Debug::state_change(Debug::ADD, nullptr);
@@ -156,7 +165,8 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 			Debug::state_change(Debug::CONSISTENT, nullptr);
 
 			/* remove from loaded objects list */
-			obj_list()->remove(*this);
+			with_object_list([&] (Object_list &list) {
+				list.remove(*this); });
 			Init::list()->remove(this);
 		}
 
@@ -201,7 +211,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 			Link_map::make_first(&_map);
 		}
 
-		void force_keep() { _keep = KEEP; }
+		void force_keep() override { _keep = KEEP; }
 
 		Link_map const &link_map() const override { return _map; }
 		Dynamic  const &dynamic()  const override { return _dyn; }
@@ -233,22 +243,6 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 		 * Next in initializion list
 		 */
 		Object *next_init() const override { return _next_object(); }
-
-		/**
-		 * Next in object list
-		 */
-		Object *next_obj() const override {
-			return Fifo<Elf_object>::Element::next();
-		}
-
-		/**
-		 * Object list
-		 */
-		static Fifo<Elf_object> *obj_list()
-		{
-			static Fifo<Elf_object> _list;
-			return &_list;
-		}
 
 		void load()   override { _ref_count++; }
 		bool unload() override { return (_keep == DONT_KEEP) && !(--_ref_count); }
@@ -331,7 +325,8 @@ Linker::Ld &Linker::Ld::linker()
 	{
 		Ld_vtable()
 		{
-			Elf_object::obj_list()->enqueue(*this);
+			with_object_list([&] (Object_list &list) {
+				list.enqueue(*this); });
 			plt_setup();
 		}
 	};
@@ -543,29 +538,25 @@ Object &Linker::load(Env &env, Allocator &md_alloc, char const *path,
                      Dependency &dep, Keep keep)
 {
 	Object *result = nullptr;
-	Elf_object::obj_list()->for_each([&] (Object &e) {
-		if (result == nullptr) {
-			if (verbose_loading)
-				log("LOAD: ", Linker::file(path), " == ", e.name());
+	Object::with_object_list([&] (Object::Object_list &list) {
+		list.for_each([&] (Object &obj) {
 
-			if (!strcmp(Linker::file(path), e.name())) {
-				e.load();
-				result = &e;
+			if (result == nullptr) {
+				if (verbose_loading)
+					log("LOAD: ", Linker::file(path), " == ", obj.name());
+
+				if (!strcmp(Linker::file(path), obj.name())) {
+					obj.load();
+					result = &obj;
+				}
 			}
-		}
+		});
 	});
+
 	if (result == nullptr)
 		result = new (md_alloc) Elf_object(env, md_alloc, path, dep, keep);
+
 	return *result;
-}
-
-
-Object *Linker::obj_list_head()
-{
-	Object *result = nullptr;
-	Elf_object::obj_list()->head([&result] (Object &obj) {
-		result = &obj; });
-	return result;
 }
 
 
@@ -748,22 +739,24 @@ void Genode::exec_static_constructors()
 
 void Genode::Dynamic_linker::_for_each_loaded_object(Env &, For_each_fn const &fn)
 {
-	Elf_object::obj_list()->for_each([&] (Object const &obj) {
+	Object::with_object_list([&] (Object::Object_list &list) {
+		list.for_each([&] (Object const &obj) {
 
-		Elf_file const *elf_file_ptr =
-			obj.file() ? dynamic_cast<Elf_file const *>(obj.file()) : nullptr;
+			Elf_file const *elf_file_ptr =
+				obj.file() ? dynamic_cast<Elf_file const *>(obj.file()) : nullptr;
 
-		if (!elf_file_ptr)
-			return;
+			if (!elf_file_ptr)
+				return;
 
-		elf_file_ptr->with_rw_phdr([&] (Elf::Phdr const &phdr) {
+			elf_file_ptr->with_rw_phdr([&] (Elf::Phdr const &phdr) {
 
-			Object_info info { .name     = obj.name(),
-			                   .ds_cap   = elf_file_ptr->rom_cap,
-			                   .rw_start = (void *)(obj.reloc_base() + phdr.p_vaddr),
-			                   .rw_size  = phdr.p_memsz };
+				Object_info info { .name     = obj.name(),
+				                   .ds_cap   = elf_file_ptr->rom_cap,
+				                   .rw_start = (void *)(obj.reloc_base() + phdr.p_vaddr),
+				                   .rw_size  = phdr.p_memsz };
 
-			fn.supply_object_info(info);
+				fn.supply_object_info(info);
+			});
 		});
 	});
 }
@@ -771,9 +764,11 @@ void Genode::Dynamic_linker::_for_each_loaded_object(Env &, For_each_fn const &f
 
 void Dynamic_linker::keep(Env &, char const *binary)
 {
-	Elf_object::obj_list()->for_each([&] (Elf_object &obj) {
-		if (Object::Name(binary) == obj.name())
-			obj.force_keep(); });
+	Object::with_object_list([&] (Object::Object_list &list) {
+		list.for_each([&] (Object &obj) {
+			if (Object::Name(binary) == obj.name())
+				obj.force_keep(); });
+	});
 }
 
 
@@ -829,8 +824,10 @@ void Component::construct(Genode::Env &env)
 			    " .. ", Hex(Thread::stack_area_virtual_base() +
 			                Thread::stack_area_virtual_size() - 1),
 			    ": stack area");
-			Elf_object::obj_list()->for_each([] (Object const &obj) {
-				dump_link_map(obj); });
+			Object::with_object_list([] (Object::Object_list &list) {
+				list.for_each([] (Object const &obj) {
+					dump_link_map(obj); });
+			});
 		}
 	} catch (...) {  }
 

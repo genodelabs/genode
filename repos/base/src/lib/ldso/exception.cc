@@ -38,22 +38,22 @@ extern "C" int dl_iterate_phdr(int (*callback) (Phdr_info *info, size_t size, vo
 	int err = 0;
 	Phdr_info info;
 
-	/* forbid object list manipulation during traversal */
-	Mutex::Guard guard(Linker::shared_object_mutex());
+	bool last = false;
+	Linker::for_each_object([&] (Linker::Object &obj) {
 
-	for (Object *e = obj_list_head();e; e = e->next_obj()) {
+		if (last) return;
 
-		info.addr  = e->reloc_base();
-		info.name  = e->name();
-		info.phdr  = e->file()->phdr.phdr;
-		info.phnum = e->file()->phdr.count;
+		info.addr  = obj.reloc_base();
+		info.name  = obj.name();
+		info.phdr  = obj.file()->phdr.phdr;
+		info.phnum = obj.file()->phdr.count;
 
 		if (verbose_exception)
-			log(e->name(), " reloc ", Hex(e->reloc_base()));
+			log(obj.name(), " reloc ", Hex(obj.reloc_base()));
 
 		if ((err = callback(&info, sizeof(Phdr_info), data)))
-			break;
-	}
+			last = true;
+	});
 
 	return err;
 }
@@ -89,27 +89,28 @@ extern "C" unsigned long dl_unwind_find_exidx(unsigned long pc, int *pcount)
 	enum { EXIDX_ENTRY_SIZE = 8 };
 	*pcount = 0;
 
-	/* forbid object list manipulation during traversal */
-	Mutex::Guard guard(Linker::shared_object_mutex());
+	unsigned long value = 0;
 
-	for (Object *e = obj_list_head(); e; e = e->next_obj()) {
+	Linker::for_each_object([&] (Object &obj) {
+
+		if (value) return;
 
 		/* address of first PT_LOAD header */
-		addr_t base = e->reloc_base() + e->file()->start;
+		addr_t base = obj.reloc_base() + obj.file()->start;
 
 		/* is the 'pc' somewhere within this ELF image */
-		if ((pc < base) || (pc >= base + e->file()->size))
-			continue;
+		if ((pc < base) || (pc >= base + obj.file()->size))
+			return;
 
 		/* retrieve PHDR of exception-table segment */
-		Elf::Phdr const *exidx = phdr_exidx(e->file());
+		Elf::Phdr const *exidx = phdr_exidx(obj.file());
 		if (!exidx)
-			continue;
+			return;
 
 		*pcount = exidx->p_memsz / EXIDX_ENTRY_SIZE;
-		return exidx->p_vaddr + e->reloc_base();
-	}
+		value = exidx->p_vaddr + obj.reloc_base();
+	});
 
-	return 0;
+	return value;
 }
 
