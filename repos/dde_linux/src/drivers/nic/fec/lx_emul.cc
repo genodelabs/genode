@@ -21,8 +21,7 @@
 #include <base/snprintf.h>
 #include <gpio_session/connection.h>
 #include <irq_session/client.h>
-#include <platform_session/connection.h>
-#include <platform_device/client.h>
+#include <platform_session/device.h>
 
 #include <component.h>
 #include <lx_emul.h>
@@ -104,6 +103,37 @@ struct Device : Genode::List<Device>::Element
 	{
 		static Genode::List<Device> _list;
 		return &_list;
+	}
+};
+
+
+namespace Platform {
+
+	struct Device_client;
+
+	using Device_capability = Genode::Capability<Platform::Device_interface>;
+}
+
+
+struct Platform::Device_client : Rpc_client<Device_interface>
+{
+	Device_client(Device_capability cap)
+	: Rpc_client<Device_interface>(cap) { }
+
+	Irq_session_capability irq(unsigned id = 0)
+	{
+		return call<Rpc_irq>(id);
+	}
+
+	Io_mem_session_capability io_mem(unsigned id, Range &range, Cache cache)
+	{
+		return call<Rpc_io_mem>(id, range, cache);
+	}
+
+	Dataspace_capability io_mem_dataspace(unsigned id = 0)
+	{
+		Range range { };
+		return Io_mem_session_client(io_mem(id, range, UNCACHED)).dataspace();
 	}
 };
 

@@ -21,7 +21,7 @@
 #include <base/env.h>
 #include <base/heap.h>
 #include <nic/component.h>
-#include <platform_session/connection.h>
+#include <platform_session/device.h>
 #include <root/component.h>
 
 /* NIC driver includes */
@@ -36,8 +36,10 @@ class Nic_root : public Root_component<Lan9118, Single_client>
 {
 	private:
 
-		Env                     &_env;
-		Platform::Device_client &_device;
+		Env &_env;
+
+		Platform::Device::Mmio &_mmio;
+		Platform::Device::Irq  &_irq;
 
 
 		/********************
@@ -62,19 +64,18 @@ class Nic_root : public Root_component<Lan9118, Single_client>
 			}
 
 			return new (md_alloc())
-				Lan9118(_device.io_mem_dataspace(), _device.irq(),
-			            tx_buf_size, rx_buf_size, *md_alloc(), _env);
+				Lan9118(_mmio, _irq, tx_buf_size, rx_buf_size, *md_alloc(), _env);
 		}
 
 	public:
 
-		Nic_root(Env                     &env,
-		         Allocator               &md_alloc,
-		         Platform::Device_client &device)
+		Nic_root(Env                    &env,
+		         Allocator              &md_alloc,
+		         Platform::Device::Mmio &mmio,
+		         Platform::Device::Irq  &irq)
 		:
 			Root_component<Lan9118, Genode::Single_client> { env.ep(), md_alloc },
-			_env                                           { env },
-			_device                                        { device }
+			_env(env), _mmio(mmio), _irq(irq)
 		{ }
 };
 
@@ -85,7 +86,9 @@ class Main
 		Env                          &_env;
 		Heap                          _heap          { _env.ram(), _env.rm() };
 		Platform::Connection          _platform      { _env };
-		Platform::Device_client       _device        { _platform.device_by_index(0) };
+		Platform::Device              _device        { _platform };
+		Platform::Device::Mmio        _mmio          { _device };
+		Platform::Device::Irq         _irq           { _device };
 		Constructible<Nic_root>       _nic_root      { };
 		Constructible<Uplink_client>  _uplink_client { };
 
@@ -104,14 +107,13 @@ class Main
 			switch (mode) {
 			case Nic_driver_mode::NIC_SERVER:
 
-				_nic_root.construct(_env, _heap, _device);
+				_nic_root.construct(_env, _heap, _mmio, _irq);
 				_env.parent().announce(_env.ep().manage(*_nic_root));
 				break;
 
 			case Nic_driver_mode::UPLINK_CLIENT:
 
-				_uplink_client.construct(
-					_env, _heap, _device.io_mem_dataspace(), _device.irq());
+				_uplink_client.construct(_env, _heap, _mmio, _irq);
 
 				break;
 			}

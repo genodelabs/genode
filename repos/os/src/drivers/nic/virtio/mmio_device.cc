@@ -22,6 +22,7 @@
 
 /* local includes */
 #include "component.h"
+#include "platform_device.h"
 
 namespace Virtio_mmio_nic {
 	using namespace Genode;

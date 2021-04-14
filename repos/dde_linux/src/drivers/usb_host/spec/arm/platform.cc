@@ -11,7 +11,7 @@
  * version 2.
  */
 
-#include <platform_session/connection.h>
+#include <platform_session/device.h>
 #include <platform.h>
 
 #include <lx_emul.h>
@@ -95,8 +95,11 @@ void lx_platform_device_init()
 		{
 			Device::Name name = node.attribute_value("name", Device::Name());
 			Device::Name type = node.attribute_value("type", Device::Name());
-			Platform::Device_client device {
-				resource_env().platform.acquire_device(name.string()) };
+
+			using Platform::Device_interface;
+
+			Capability<Device_interface> device_cap =
+				resource_env().platform.acquire_device(name);
 
 			platform_device *pdev = (platform_device *)kzalloc(sizeof(platform_device), 0);
 			pdev->name = (char *)kzalloc(64,0);
@@ -108,13 +111,17 @@ void lx_platform_device_init()
 
 			node.for_each_sub_node("io_mem", [&] (Xml_node node)
 			{
-				if (res_count >= MAX_RESOURCES) { return; }
+				if (res_count >= MAX_RESOURCES)
+					return;
 
-				unsigned id    = node.attribute_value("id", res_count);
-				size_t   sz    = node.attribute_value("size", (size_t)0);
-				addr_t   p_off = node.attribute_value("page_offset", (addr_t)0);
+				Device_interface::Range range { };
+				Io_mem_session_client io_mem_client {
+					device_cap.call<Device_interface::Rpc_io_mem>(res_count, range, UNCACHED) };
+
 				Io_mem & iom = *new (Lx_kit::env().heap())
-					Io_mem(device.io_mem_dataspace(id), p_off, sz, resource_env().io_mem_list);
+					Io_mem(io_mem_client.dataspace(), range.start, range.size,
+					       resource_env().io_mem_list);
+
 				pdev->resource[res_count++] = { iom.start, iom.start+iom.size-1,
 				                                "io_mem", IORESOURCE_MEM };
 			});
@@ -124,11 +131,15 @@ void lx_platform_device_init()
 
 			node.for_each_sub_node("irq", [&] (Xml_node node)
 			{
-				if (res_count+pdev->num_resources >= MAX_RESOURCES) { return; }
+				if (res_count+pdev->num_resources >= MAX_RESOURCES)
+					return;
 
-				unsigned id = node.attribute_value("id", res_count);
+				Irq_session_capability irq_cap =
+					device_cap.call<Device_interface::Rpc_irq>(res_count);
+
 				Irq & irq = *new (Lx_kit::env().heap())
-					Irq(device.irq(id), resource_env().irq_list);
+					Irq(irq_cap, resource_env().irq_list);
+
 				pdev->resource[pdev->num_resources+res_count++] =
 					{ irq.nr, irq.nr, "irq", IORESOURCE_IRQ };
 			});

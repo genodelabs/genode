@@ -15,12 +15,12 @@
 #ifndef _I2C_MMIO_H_
 #define _I2C_MMIO_H_
 
-#include <util/mmio.h>
+#include <platform_session/device.h>
 
 namespace I2c { struct Mmio; }
 
 
-struct I2c::Mmio: Genode::Mmio
+struct I2c::Mmio: Platform::Device::Mmio
 {
 	struct Address : Mmio::Register<0x0, 16> {
 		struct Adr : Mmio::Register<0x0, 16>::Bitfield<1, 7> {};
@@ -49,7 +49,7 @@ struct I2c::Mmio: Genode::Mmio
 
 	struct Data : Mmio::Register<0x10, 16> {};
 
-	Mmio(Genode::addr_t base) : Genode::Mmio { base } { }
+	Mmio(Platform::Device &device) : Platform::Device::Mmio { device } { }
 };
 
 #endif /* _I2C_MMIO_H_ */

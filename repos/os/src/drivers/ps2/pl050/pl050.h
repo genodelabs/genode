@@ -67,9 +67,7 @@ class Pl050
 			_Channel(_Channel const &);
 			_Channel &operator = (_Channel const &);
 
-			Genode::Mutex                 _mutex { };
-			Genode::Attached_dataspace    _io_mem_ds;
-			volatile Genode::uint32_t   * _reg_base;
+			volatile Genode::uint32_t * _reg_base;
 
 			/**
 			 * Return true if input is available
@@ -79,11 +77,9 @@ class Pl050
 
 		public:
 
-			_Channel(Genode::Env                       & env,
-			         Genode::Io_mem_dataspace_capability cap)
+			_Channel(Platform::Device::Mmio &mmio)
 			:
-				_io_mem_ds(env.rm(), cap),
-				_reg_base(_io_mem_ds.local_addr<Genode::uint32_t>())
+				_reg_base(mmio.local_addr<Genode::uint32_t>())
 			{ }
 
 			/**
@@ -91,8 +87,6 @@ class Pl050
 			 */
 			unsigned char read() override
 			{
-				Genode::Mutex::Guard guard(_mutex);
-
 				while (empty())
 					if (_input_pending())
 						add(_reg_base[PL050_REG_DATA]);
@@ -103,6 +97,7 @@ class Pl050
 			void write(unsigned char value) override
 			{
 				while (!(_reg_base[PL050_REG_STATUS] & PL050_STATUS_TX_EMPTY));
+
 				_reg_base[PL050_REG_DATA] = value;
 			}
 
@@ -124,11 +119,10 @@ class Pl050
 
 	public:
 
-		Pl050(Genode::Env                       & env,
-		      Genode::Io_mem_dataspace_capability keyb_cap,
-		      Genode::Io_mem_dataspace_capability mouse_cap) :
-			_kbd(env, keyb_cap),
-			_aux(env, mouse_cap)
+		Pl050(Platform::Device::Mmio &keyboard_mmio,
+		      Platform::Device::Mmio &mouse_mmio)
+		:
+			_kbd(keyboard_mmio), _aux(mouse_mmio)
 		{
 			_kbd.enable_irq();
 			_aux.enable_irq();

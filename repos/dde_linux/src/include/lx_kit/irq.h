@@ -18,10 +18,10 @@
 
 /* Genode includes */
 #include <base/allocator.h>
-#include <platform_device/platform_device.h>
-
+#include <irq_session/capability.h>
 
 namespace Lx { class Irq; }
+
 
 class Lx::Irq
 {

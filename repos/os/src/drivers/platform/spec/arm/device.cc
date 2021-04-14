@@ -96,7 +96,7 @@ Genode::Irq_session_capability Driver::Device::irq(unsigned idx,
 
 
 Genode::Io_mem_session_capability
-Driver::Device::io_mem(unsigned idx, Cache cache, Session_component & sc)
+Driver::Device::io_mem(unsigned idx, Range &range, Cache cache, Session_component & sc)
 {
 	Io_mem_session_capability cap;
 
@@ -106,6 +106,9 @@ Driver::Device::io_mem(unsigned idx, Cache cache, Session_component & sc)
 	_io_mem_list.for_each([&] (Io_mem & io_mem)
 	{
 		if (i++ != idx) return;
+
+		range = Range { .start = io_mem.base & 0xfff,
+		                .size  = io_mem.size };
 
 		if (!io_mem.io_mem) {
 			io_mem.io_mem = new (sc.heap())

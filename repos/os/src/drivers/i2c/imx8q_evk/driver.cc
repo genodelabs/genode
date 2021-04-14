@@ -104,7 +104,7 @@ void I2c::Driver::_bus_write(uint8_t data)
 	while (!_mmio.read<Mmio::Status::Irq>());
 
 	_mmio.write<Mmio::Status::Irq>(0);
-	_irq.ack_irq();
+	_irq.ack();
 
 	if (_mmio.read<Mmio::Status::Rcv_ack>()) {
 		_bus_stop();
@@ -158,7 +158,7 @@ void I2c::Driver::read(uint8_t address, uint8_t *buffer_out, size_t const buffer
 		}
 
 		buffer_out[i] = _mmio.read<Mmio::Data>();
-		_irq.ack_irq();
+		_irq.ack();
 	}
 
 	_bus_stop();
