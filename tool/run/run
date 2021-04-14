@@ -241,6 +241,7 @@ proc build_boot_image {binaries} {
 		}
 	}
 	# determine which XSD file to use for the init config
+	set init_xsd_file ""
 	foreach xsd_file $xsd_files {
 		set filename [file tail $xsd_file]
 		if {$filename == "init.xsd"} {
