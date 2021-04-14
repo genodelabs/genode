@@ -139,12 +139,12 @@ void Driver::_write_data(unsigned    length,
 
 
 Driver::Driver(Env &env, Platform::Connection & platform)
-: Block::Driver(env.ram()),
-  Platform::Device_client(platform.device_by_index(0)),
-  Attached_dataspace(env.rm(), Device_client::io_mem_dataspace()),
-  Mmio((addr_t)local_addr<void>()),
-  _platform(platform),
-  _timer(env)
+:
+	Block::Driver(env.ram()),
+	Platform::Device(platform, Platform::Device::Index { 0 }),
+	Platform::Device::Mmio(*this, Platform::Device::Mmio::Index { 0 }),
+	_platform(platform),
+	_timer(env)
 {
 	enum { POWER_UP = 2, POWER_ON = 3 };
 
@@ -190,8 +190,7 @@ Driver::Driver(Env &env, Platform::Connection & platform)
 }
 
 
-Driver::~Driver() {
-	_platform.release_device(Platform::Device_client::rpc_cap()); }
+Driver::~Driver() { }
 
 
 void Driver::read(Block::sector_t           block_number,

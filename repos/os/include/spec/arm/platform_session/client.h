@@ -15,17 +15,12 @@
 #define _INCLUDE__SPEC__ARM__PLATFORM_SESSION__CLIENT_H_
 
 #include <base/rpc_client.h>
-#include <platform_device/client.h>
 #include <platform_session/capability.h>
 
-namespace Platform {
-	using namespace Genode;
-
-	struct Client;
-}
+namespace Platform { struct Client; }
 
 
-struct Platform::Client : public Genode::Rpc_client<Session>
+struct Platform::Client : Genode::Rpc_client<Session>
 {
 	Client(Session_capability session)
 	: Rpc_client<Session>(session) { }
@@ -33,10 +28,10 @@ struct Platform::Client : public Genode::Rpc_client<Session>
 	Rom_session_capability devices_rom() override {
 		return call<Rpc_devices_rom>(); }
 
-	Device_capability acquire_device(String const &device) override {
-		return call<Rpc_acquire_device>(device); }
+	Capability<Device_interface> acquire_device(Device_name const &name) override {
+		return call<Rpc_acquire_device>(name); }
 
-	void release_device(Device_capability device) override {
+	void release_device(Capability<Device_interface> device) override {
 		call<Rpc_release_device>(device); }
 
 	Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override {

@@ -74,8 +74,8 @@ Genode::Rom_session_capability Session_component::devices_rom() {
 	return _rom_session.cap(); }
 
 
-Platform::Device_capability
-Session_component::acquire_device(Platform::Session::String const &name)
+Genode::Capability<Platform::Device_interface>
+Session_component::acquire_device(Platform::Session::Device_name const &name)
 {
 	for (Device_list_element * e = _device_list.first(); e; e = e->next()) {
 		if (e->object()->device() != name.string()) { continue; }
@@ -92,11 +92,11 @@ Session_component::acquire_device(Platform::Session::String const &name)
 		return _env.env.ep().rpc_ep().manage(e->object());
 	}
 
-	return Platform::Device_capability();
+	return Capability<Platform::Device_interface>();
 }
 
 
-void Session_component::release_device(Platform::Device_capability device_cap)
+void Session_component::release_device(Capability<Platform::Device_interface> device_cap)
 {
 	_env.env.ep().rpc_ep().apply(device_cap, [&] (Device_component * dc) {
 		_env.env.ep().rpc_ep().dissolve(dc);

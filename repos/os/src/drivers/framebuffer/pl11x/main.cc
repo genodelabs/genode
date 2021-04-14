@@ -16,8 +16,7 @@
 #include <base/attached_dataspace.h>
 #include <base/component.h>
 #include <base/log.h>
-#include <platform_session/connection.h>
-#include <platform_device/client.h>
+#include <platform_session/device.h>
 #include <timer_session/connection.h>
 #include <capture_session/connection.h>
 #include <blit/painter.h>
@@ -84,15 +83,17 @@ struct Pl11x_driver::Main
 	 * Driver
 	 */
 
-	Platform::Connection     _platform   { _env };
-	Platform::Device_client  _pl11x_dev  { _platform.device_by_type("arm,pl111") };
-	Platform::Device_client  _sp810_dev  { _platform.device_by_type("arm,sp810") };
-	Attached_dataspace       _lcd_io_mem { _env.rm(),
-	                                       _pl11x_dev.io_mem_dataspace() };
-	Attached_dataspace       _sys_mem    { _env.rm(),
-	                                       _sp810_dev.io_mem_dataspace() };
+	using Type = Platform::Device::Type;
+
+	Platform::Connection     _platform  { _env };
+	Platform::Device         _pl11x_dev { _platform, Type { "arm,pl111" } };
+	Platform::Device         _sp810_dev { _platform, Type { "arm,sp810" } };
+	Platform::Device::Mmio  _lcd_io_mem { _pl11x_dev };
+	Platform::Device::Mmio  _sys_mem    { _sp810_dev };
+
 	Ram_dataspace_capability _fb_ds_cap  {
 		_platform.alloc_dma_buffer(FRAMEBUFFER_SIZE, UNCACHED) };
+
 	Attached_dataspace       _fb_ds      { _env.rm(), _fb_ds_cap };
 
 	void _init_device();

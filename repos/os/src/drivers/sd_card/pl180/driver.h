@@ -16,11 +16,9 @@
 #define _DRIVER_H_
 
 /* local includes */
-#include <base/attached_dataspace.h>
 #include <block/driver.h>
-#include <platform_session/connection.h>
+#include <platform_session/device.h>
 #include <timer_session/connection.h>
-#include <util/mmio.h>
 
 namespace Sd_card {
 
@@ -31,9 +29,8 @@ namespace Sd_card {
 
 
 class Sd_card::Driver : public  Block::Driver,
-                        private Platform::Device_client,
-                        private Attached_dataspace,
-                        private Mmio
+                        private Platform::Device,
+                        private Platform::Device::Mmio
 {
 	private:
 
@@ -120,6 +117,19 @@ class Sd_card::Driver : public  Block::Driver,
 		 */
 		size_t          const _block_size  = 512;
 		Block::sector_t const _block_count = 0x20000000 / _block_size;
+
+		Dataspace_capability _io_mem_ds(Platform::Connection &platform)
+		{
+			using Device = Platform::Device_interface;
+
+			Capability<Device> device_cap = platform.device_by_index(0);
+
+			Device::Range range { };
+			Io_mem_session_client io_mem {
+				device_cap.call<Device::Rpc_io_mem>(1, range, UNCACHED) };
+
+			return io_mem.dataspace();
+		}
 
 	public:
 

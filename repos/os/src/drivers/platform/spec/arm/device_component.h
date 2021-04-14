@@ -16,7 +16,7 @@
 
 #include <base/rpc_server.h>
 #include <platform_session/platform_session.h>
-#include <platform_device/platform_device.h>
+#include <platform_session/device.h>
 
 #include <env.h>
 #include <device.h>
@@ -27,7 +27,8 @@ namespace Driver {
 }
 
 
-class Driver::Device_component : public Rpc_object<Platform::Device>
+class Driver::Device_component : public Rpc_object<Platform::Device_interface,
+                                                   Device_component>
 {
 	public:
 
@@ -44,21 +45,21 @@ class Driver::Device_component : public Rpc_object<Platform::Device>
 		void report(Xml_generator&);
 
 
-		/**************************
-		 ** Platform::Device API **
-		 **************************/
+		/************************************
+		 ** Platform::Device RPC functions **
+		 ************************************/
 
-		Irq_session_capability    irq(unsigned) override;
-		Io_mem_session_capability io_mem(unsigned, Cache) override;
+		Irq_session_capability    irq(unsigned);
+		Io_mem_session_capability io_mem(unsigned, Range &, Cache);
 
 	private:
 
 		friend class Session_component;
 
-		Session_component                    & _session;
-		Driver::Device::Name             const _device;
-		Platform::Device_capability            _cap {};
-		List_element<Device_component>         _list_elem { this };
+		Session_component            & _session;
+		Driver::Device::Name     const _device;
+		Capability<Platform::Device>   _cap {};
+		List_element<Device_component> _list_elem { this };
 
 		/*
 		 * Noncopyable

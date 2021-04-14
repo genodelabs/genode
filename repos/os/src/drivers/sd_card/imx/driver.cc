@@ -92,7 +92,7 @@ int Driver::_stop_transmission()
 
 void Driver::_handle_irq()
 {
-	_irq.ack_irq();
+	_irq.ack();
 
 	/* the handler is only for block transfers, on other commands we poll */
 	if (!_block_transfer.pending) {
@@ -284,7 +284,7 @@ Card_info Driver::_init()
 {
 	/* install IRQ signal */
 	_irq.sigh(_irq_handler);
-	_irq.ack_irq();
+	_irq.ack();
 
 	/* configure host for initialization stage */
 	if (_reset()) {
@@ -522,17 +522,16 @@ void Driver::_clock(Clock clock)
 
 
 Driver::Driver(Env & env, Platform::Connection & platform)
-: Driver_base(env.ram()),
-  Platform::Device_client(platform.device_by_index(0)),
-  Attached_dataspace(env.rm(), Device_client::io_mem_dataspace()),
-  Mmio((addr_t)local_addr<void>()),
-  _env(env),
-  _platform(platform),
-  _irq(Device_client::irq())
+:
+	Driver_base(env.ram()),
+	Platform::Device(platform),
+	Platform::Device::Mmio(*static_cast<Platform::Device *>(this)),
+	_env(env),
+	_platform(platform)
 {
 	log("SD card detected");
 	log("capacity: ", card_info().capacity_mb(), " MiB");
 }
 
 
-Driver::~Driver() { _platform.release_device(rpc_cap()); }
+Driver::~Driver() { }

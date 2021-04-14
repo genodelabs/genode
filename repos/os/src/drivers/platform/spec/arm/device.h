@@ -17,13 +17,14 @@
 #include <base/allocator.h>
 #include <io_mem_session/connection.h>
 #include <irq_session/connection.h>
-#include <platform_session/platform_session.h>
+#include <platform_session/device.h>
 #include <util/list.h>
 #include <util/list_model.h>
 #include <util/reconstructible.h>
 #include <util/xml_generator.h>
 
 namespace Driver {
+
 	using namespace Genode;
 
 	class  Env;
@@ -70,8 +71,9 @@ class Driver::Device : private List_model<Device>::Element
 			: name(name), value(value) {}
 		};
 
-		using Name = Genode::String<64>;
-		using Type = Genode::String<64>;
+		using Name  = Genode::String<64>;
+		using Type  = Genode::String<64>;
+		using Range = Platform::Device_interface::Range;
 
 		Device(Name name, Type type);
 		virtual ~Device();
@@ -82,10 +84,9 @@ class Driver::Device : private List_model<Device>::Element
 		virtual bool acquire(Session_component &);
 		virtual void release(Session_component &);
 
-		Irq_session_capability    irq(unsigned idx,
-		                              Session_component & session);
-		Io_mem_session_capability io_mem(unsigned idx, Cache,
-		                                 Session_component & session);
+		Irq_session_capability    irq(unsigned idx, Session_component &);
+		Io_mem_session_capability io_mem(unsigned idx, Range &, Cache,
+		                                 Session_component &);
 
 		void report(Xml_generator &, Session_component &);
 

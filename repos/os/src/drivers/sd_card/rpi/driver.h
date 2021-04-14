@@ -17,11 +17,8 @@
 #define _DRIVER_H_
 
 /* Genode includes */
-#include <base/attached_dataspace.h>
-#include <irq_session/client.h>
-#include <platform_session/connection.h>
+#include <platform_session/device.h>
 #include <timer_session/connection.h>
-#include <util/mmio.h>
 
 /* local includes */
 #include <driver_base.h>
@@ -30,9 +27,8 @@ namespace Sd_card { class Driver; }
 
 
 class Sd_card::Driver : public  Driver_base,
-                        private Platform::Device_client,
-                        private Attached_dataspace,
-                        private Mmio
+                        private Platform::Device,
+                        private Platform::Device::Mmio
 {
 	private:
 
@@ -161,7 +157,7 @@ class Sd_card::Driver : public  Driver_base,
 		Env                  & _env;
 		Platform::Connection & _platform;
 		Timer_delayer          _delayer   { _env };
-		Irq_session_client     _irq;
+		Platform::Device::Irq  _irq       { *this };
 		Card_info              _card_info { _init() };
 
 		template <typename REG>

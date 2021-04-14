@@ -41,12 +41,12 @@ void Driver::Device_component::release()
 
 
 Genode::Io_mem_session_capability
-Device_component::io_mem(unsigned idx, Cache cache)
+Device_component::io_mem(unsigned idx, Range &range, Cache cache)
 {
 	Io_mem_session_capability cap;
 	_session.env().devices.for_each([&] (Driver::Device & device) {
 		if (device.name() == _device) {
-			cap = device.io_mem(idx, cache, _session); }});
+			cap = device.io_mem(idx, range, cache, _session); }});
 	return cap;
 }
 

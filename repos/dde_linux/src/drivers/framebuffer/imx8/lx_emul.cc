@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <base/attached_dataspace.h>
-#include <platform_session/connection.h>
+#include <platform_session/device.h>
 
 /* local includes */
 #include <driver.h>
@@ -56,6 +56,33 @@
 #include <lx_kit/malloc.h>
 
 enum Device_id { DCSS, HDMI, MIPI, SRC, UNKNOWN };
+
+
+namespace Platform { struct Device_client; }
+
+
+struct Platform::Device_client : Rpc_client<Device_interface>
+{
+	Device_client(Capability<Device_interface> cap)
+	: Rpc_client<Device_interface>(cap) { }
+
+	Irq_session_capability irq(unsigned id = 0)
+	{
+		return call<Rpc_irq>(id);
+	}
+
+	Io_mem_session_capability io_mem(unsigned id, Range &range, Cache cache)
+	{
+		return call<Rpc_io_mem>(id, range, cache);
+	}
+
+	Dataspace_capability io_mem_dataspace(unsigned id = 0)
+	{
+		Range range { };
+		return Io_mem_session_client(io_mem(id, range, UNCACHED)).dataspace();
+	}
+};
+
 
 namespace Lx_kit {
 	Platform::Connection    & platform_connection();

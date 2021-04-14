@@ -50,15 +50,10 @@ class I2c::Driver: public I2c::Driver_base
 		Env       &_env;
 		Args const _args;
 
-		Platform::Connection    _platform_connection { _env };
-		Platform::Device_client _device { _platform_connection.device_by_index(0) };
-
-		/* iomem region for I2C control register */
-		Attached_dataspace _i2c_ctl_ds { _env.rm(), _device.io_mem_dataspace(0) };
-		I2c::Mmio          _mmio { reinterpret_cast<addr_t>(_i2c_ctl_ds.local_addr<uint16_t>()) };
-
-		/* interrupt handler */
-		Irq_session_client        _irq { _device.irq() };
+		Platform::Connection      _platform { _env };
+		Platform::Device          _device   { _platform };
+		I2c::Mmio                 _mmio     { _device };
+		Platform::Device::Irq     _irq      { _device };
 		Io_signal_handler<Driver> _irq_handler;
 
 		unsigned          _sem_cnt = 1;
@@ -82,7 +77,7 @@ class I2c::Driver: public I2c::Driver_base
 		{
 			_irq.sigh(_irq_handler);
 			_irq_handle();
-			_irq.ack_irq();
+			_irq.ack();
 		}
 
 		void write(uint8_t, uint8_t const *, size_t) override;

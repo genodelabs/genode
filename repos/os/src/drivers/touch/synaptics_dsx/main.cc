@@ -18,10 +18,45 @@
 
 #include <event_session/connection.h>
 #include <gpio_session/connection.h>
-#include <platform_session/connection.h>
+#include <platform_session/device.h>
 #include <i2c.h>
 
 using namespace Genode;
+
+
+namespace Platform {
+
+	using Device_capability = Capability<Device_interface>;
+
+	struct Device_client;
+}
+
+
+/*
+ * Transitionally wrapper for accessing platform devices used until
+ * the migration to Platform::Device::Mmio API is completed.
+ */
+struct Platform::Device_client : Rpc_client<Device_interface>
+{
+	Device_client(Capability<Device_interface> cap)
+	: Rpc_client<Device_interface>(cap) { }
+
+	Irq_session_capability irq(unsigned id = 0)
+	{
+		return call<Rpc_irq>(id);
+	}
+
+	Io_mem_session_capability io_mem(unsigned id, Range &range, Cache cache)
+	{
+		return call<Rpc_io_mem>(id, range, cache);
+	}
+
+	Dataspace_capability io_mem_dataspace(unsigned id = 0)
+	{
+		Range range { };
+		return Io_mem_session_client(io_mem(id, range, UNCACHED)).dataspace();
+	}
+};
 
 
 struct Finger_data
