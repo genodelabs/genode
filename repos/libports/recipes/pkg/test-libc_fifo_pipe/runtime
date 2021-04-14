@@ -146,7 +146,7 @@
 			</route>
 		</start>
 
-		<start name="init" caps="200">
+		<start name="init" caps="250">
 			<resource name="RAM" quantum="16M"/>
 			<route>
 				<service name="ROM" label="config">    <child name="report_rom" label="init.config"/> </service>
