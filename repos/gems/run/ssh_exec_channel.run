@@ -273,18 +273,17 @@ build_boot_image $boot_modules
 append qemu_args     " -m 512 -nographic "
 append_qemu_nic_args "hostfwd=tcp::5555-:22"
 
-set lxip_match_string "ipaddr=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
+set nic_router_match_string ".uplink. dynamic IP config. interface (\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
 
 if {[get_cmd_switch --autopilot]} {
-	run_genode_until $lxip_match_string 60
+	run_genode_until $nic_router_match_string 60
 	set serial_id [output_spawn_id]
 
 	if {[have_include "power_on/qemu"]} {
 		set host "localhost"
 		set port "5555"
 	} else {
-		regexp $lxip_match_string $output all host
-		puts ""
+		regexp $nic_router_match_string $output all host
 		set port "22"
 	}
 	# wait for ssh_terminal to come up
