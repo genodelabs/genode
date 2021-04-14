@@ -1,0 +1,50 @@
+From 3e83f89990e356b02b227cd883d32ccafa283127 Mon Sep 17 00:00:00 2001
+From: Simon Shields <simon.shields@data61.csiro.au>
+Date: Tue, 17 Sep 2019 11:54:22 +1000
+Subject: [PATCH] x86: avoid -Waddress-of-packed-member
+
+It's safe to take the address of this member, since it's the
+first thing in a cacheline-aligned struct.
+---
+ include/arch/x86/arch/32/mode/stack.h | 7 ++++++-
+ src/arch/x86/kernel/vspace.c          | 9 +++++++--
+ 2 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/include/arch/x86/arch/32/mode/stack.h b/include/arch/x86/arch/32/mode/stack.h
+index 93304b96fa..e8e7f1c254 100644
+--- src/kernel/sel4/include/arch/x86/arch/32/mode/stack.h
++++ src/kernel/sel4/include/arch/x86/arch/32/mode/stack.h
+@@ -45,7 +45,12 @@ static inline void setKernelEntryStackPointer(tcb_t *target_thread)
+     /* The first item to be pushed onto the stack should always be SS */
+     register_context_top = (word_t)&target_thread->tcbArch.tcbContext.registers[SS + 1];
+ 
+-    tss_ptr_set_esp0(&x86KSGlobalState[CURRENT_CPU_INDEX()].x86KStss.tss, register_context_top);
++    /*
++     * Work around -Waddress-of-packed-member. TSS is the first thing
++     * in the struct and so it's safe to take its address.
++     */
++    void *tss = &x86KSGlobalState[CURRENT_CPU_INDEX()].x86KStss.tss;
++    tss_ptr_set_esp0(tss, register_context_top);
+ 
+     if (config_set(CONFIG_HARDWARE_DEBUG_API)) {
+         x86_wrmsr(IA32_SYSENTER_ESP_MSR, register_context_top);
+diff --git a/src/arch/x86/kernel/vspace.c b/src/arch/x86/kernel/vspace.c
+index 0ff6d30fff..be9d5f6266 100644
+--- src/kernel/sel4/src/arch/x86/kernel/vspace.c
++++ src/kernel/sel4/src/arch/x86/kernel/vspace.c
+@@ -493,8 +493,13 @@ BOOT_CODE bool_t init_vm_state(void)
+         SMP_COND_STATEMENT(return false);
+     }
+ 
+-    init_tss(&x86KSGlobalState[CURRENT_CPU_INDEX()].x86KStss.tss);
+-    init_gdt(x86KSGlobalState[CURRENT_CPU_INDEX()].x86KSgdt, &x86KSGlobalState[CURRENT_CPU_INDEX()].x86KStss.tss);
++    /*
++     * Work around -Waddress-of-packed-member. TSS is the first thing
++     * in the struct and so it's safe to take its address.
++     */
++    void *tss_ptr = &x86KSGlobalState[CURRENT_CPU_INDEX()].x86KStss.tss;
++    init_tss(tss_ptr);
++    init_gdt(x86KSGlobalState[CURRENT_CPU_INDEX()].x86KSgdt, tss_ptr);
+     init_idt(x86KSGlobalState[CURRENT_CPU_INDEX()].x86KSidt);
+     return true;
+ }
