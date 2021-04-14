@@ -648,10 +648,15 @@ proc kernel_specific_binary { binary {silent ""} } {
 }
 
 
+proc copy_file {src dst} {
+	file copy -force $src $dst
+}
+
+
 proc copy_genode_binaries_to_run_dir { binaries } {
 
 	foreach binary $binaries {
-		file copy -force bin/[kernel_specific_binary $binary] [run_dir]/genode/$binary
+		copy_file bin/[kernel_specific_binary $binary] [run_dir]/genode/$binary
 	}
 }
 

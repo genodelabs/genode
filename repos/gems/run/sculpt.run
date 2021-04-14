@@ -506,7 +506,7 @@ install_config {
 </config>}
 
 foreach file [glob "[genode_dir]/repos/gems/run/sculpt/*.config"] {
-	file copy -force $file [run_dir]/genode/ }
+	copy_file $file [run_dir]/genode/ }
 
 
 #
@@ -516,29 +516,29 @@ foreach file [glob "[genode_dir]/repos/gems/run/sculpt/*.config"] {
 # files. This is just a hack to accelerate the work flow.
 #
 
-file copy -force [genode_dir]/repos/gems/recipes/pkg/sculpt/README [run_dir]/genode/
+copy_file [genode_dir]/repos/gems/recipes/pkg/sculpt/README [run_dir]/genode/
 
-file copy -force [genode_dir]/repos/gems/run/sculpt/vimrc [run_dir]/genode/
+copy_file [genode_dir]/repos/gems/run/sculpt/vimrc [run_dir]/genode/
 
 foreach file { en_us.chargen de_ch.chargen de_de.chargen fr_ch.chargen fr_fr.chargen special.chargen } {
-	file copy -force [genode_dir]/repos/os/src/server/event_filter/$file \
+	copy_file [genode_dir]/repos/os/src/server/event_filter/$file \
 		[run_dir]/genode/$file }
 
-file copy -force [genode_dir]/repos/gems/recipes/raw/depot_download/depot_download.config \
+copy_file [genode_dir]/repos/gems/recipes/raw/depot_download/depot_download.config \
 	[run_dir]/genode/depot_download.config
 
-file copy -force [genode_dir]/VERSION [run_dir]/genode/
+copy_file [genode_dir]/VERSION [run_dir]/genode/
 
-file copy -force [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
-file copy -force [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/
+copy_file [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
+copy_file [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/
 
 if {[have_board pc]} {
-	file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/event_filter.config \
-	[run_dir]/genode/event_filter.config
+	copy_file [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/event_filter.config \
+		[run_dir]/genode/event_filter.config
 
-	file copy -force [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genode/
+	copy_file [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genode/
 
-	file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
+	copy_file [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
 		[run_dir]/genode/drivers.config
 
 	exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/genode/machine.vdi

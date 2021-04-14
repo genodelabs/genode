@@ -15,9 +15,9 @@ if { [get_cmd_switch --autopilot] } {
 	assert_spec nova
 
 	if { [have_spec x86_64] } {
-		file copy -force $path_microcode/06-3c-03 bin/micro.code
+		copy_file $path_microcode/06-3c-03 bin/micro.code
 	} else {
-		file copy -force $path_microcode/06-17-06 bin/micro.code
+		copy_file $path_microcode/06-17-06 bin/micro.code
 	}
 }
 
@@ -52,7 +52,8 @@ install_config {
 	</config>
 }
 
-file copy -force {*}$microcode_files bin/
+foreach file $microcode_files {
+	copy_file $file bin/ }
 
 
 set boot_modules { core ld.lib.so init test-microcode }

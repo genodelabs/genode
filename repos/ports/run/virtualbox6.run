@@ -262,7 +262,7 @@ append config {
 
 install_config $config
 
-file copy -force [genode_dir]/repos/ports/run/virtualbox6.vbox bin/
+copy_file [genode_dir]/repos/ports/run/virtualbox6.vbox bin/
 
 #
 # Instruct vesa_drv to use maximum resolution

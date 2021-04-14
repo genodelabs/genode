@@ -258,7 +258,7 @@ build $sorted_build_targets
 create_boot_directory
 
 foreach file $files_from_raw_archives {
-	file copy -force $file [run_dir]/genode/ }
+	copy_file $file [run_dir]/genode/ }
 
 install_config {
 	<config prio_levels="2">

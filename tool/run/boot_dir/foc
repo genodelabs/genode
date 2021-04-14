@@ -71,9 +71,9 @@ proc run_boot_dir_x86 {binaries} {
 	if {[llength $targets]} { build $targets }
 
 	if {$kernel_arg != ""} {
-		file copy -force [pwd]/bin/foc-[board]           [run_dir]/genode/foc
-		file copy -force [pwd]/bin/sigma0-foc-[board]    [run_dir]/genode/sigma0-foc
-		file copy -force [pwd]/bin/bootstrap-foc-[board] [run_dir]/genode/bootstrap-foc
+		copy_file [pwd]/bin/foc-[board]           [run_dir]/genode/foc
+		copy_file [pwd]/bin/sigma0-foc-[board]    [run_dir]/genode/sigma0-foc
+		copy_file [pwd]/bin/bootstrap-foc-[board] [run_dir]/genode/bootstrap-foc
 	}
 
 	build_core_image $binaries
@@ -83,9 +83,9 @@ proc run_boot_dir_x86 {binaries} {
 	# we can remove [run_dir]/genode after the core image has been built.
 	#
 	exec mkdir -p [run_dir]/boot
-	file copy -force [run_dir]/genode/foc           [run_dir]/boot/kernel
-	file copy -force [run_dir]/genode/sigma0-foc    [run_dir]/boot/sigma0
-	file copy -force [run_dir]/genode/bootstrap-foc [run_dir]/boot/bootstrap
+	copy_file [run_dir]/genode/foc           [run_dir]/boot/kernel
+	copy_file [run_dir]/genode/sigma0-foc    [run_dir]/boot/sigma0
+	copy_file [run_dir]/genode/bootstrap-foc [run_dir]/boot/bootstrap
 	remove_genode_dir
 
 	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf

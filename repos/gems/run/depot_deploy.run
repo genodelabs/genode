@@ -270,8 +270,8 @@ install_config {
 
 build { app/depot_query app/depot_deploy }
 
-file copy -force [genode_dir]/repos/gems/run/sculpt/fonts.config [run_dir]/genode/
-file copy -force [genode_dir]/repos/ports/recipes/raw/system_shell/system_shell.config [run_dir]/genode/
+copy_file [genode_dir]/repos/gems/run/sculpt/fonts.config [run_dir]/genode/
+copy_file [genode_dir]/repos/ports/recipes/raw/system_shell/system_shell.config [run_dir]/genode/
 
 #
 # Pin the nitpicker focus to the window manager by providing a static focus ROM

@@ -120,7 +120,7 @@ proc run_boot_dir {binaries} {
 	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     lib/ld/okl4 }
 	set targets "$kernel_arg $ld_arg"
 	if {[llength $targets]} { build $targets }
-	if {$kernel_arg != ""} { file copy -force bin/okl4 [run_dir]/genode/okl4 }
+	if {$kernel_arg != ""} { copy_file bin/okl4 [run_dir]/genode/okl4 }
 
 	build_core_image $binaries
 	exec mv [run_dir]/image.elf [run_dir].image

@@ -42,9 +42,9 @@ proc run_boot_dir {binaries} {
 	set targets "$kernel_arg $core_arg $ld_arg"
 	if {[llength $targets]} { build $targets }
 
-	if {$kernel_arg != ""} { file copy -force bin/hypervisor     [run_dir]/genode/hypervisor }
-	if {$core_arg   != ""} { file copy -force bin/core-nova.a    [run_dir]/genode/core-nova.a }
-	if {$ld_arg     != ""} { file copy -force bin/ld-nova.lib.so [run_dir]/genode/ld.lib.so }
+	if {$kernel_arg != ""} { copy_file bin/hypervisor     [run_dir]/genode/hypervisor }
+	if {$core_arg   != ""} { copy_file bin/core-nova.a    [run_dir]/genode/core-nova.a }
+	if {$ld_arg     != ""} { copy_file bin/ld-nova.lib.so [run_dir]/genode/ld.lib.so }
 
 	#
 	# Collect contents of the ISO image

@@ -164,8 +164,8 @@ close $fd
 
 install_config $config
 
-file copy -force [genode_dir]/repos/gems/recipes/raw/depot_download/depot_download.config \
-                 [run_dir]/genode/depot_download.config
+copy_file [genode_dir]/repos/gems/recipes/raw/depot_download/depot_download.config \
+          [run_dir]/genode/depot_download.config
 
 build { app/depot_download_manager app/depot_query }
 
