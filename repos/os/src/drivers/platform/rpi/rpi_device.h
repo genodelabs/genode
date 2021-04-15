@@ -42,7 +42,8 @@ class Driver::Rpi_device : public Driver::Device
 		bool acquire(Session_component &) override;
 		void release(Session_component &) override;
 
-		Rpi_device(Device::Name name) : Device(name) {}
+		Rpi_device(Device::Name name, Device::Type type)
+		: Device(name, type) {}
 
 	protected:
 
