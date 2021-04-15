@@ -101,8 +101,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 			return cap;
 		}
 
-		Device_capability device_by_property(char const * property,
-		                                     char const * value)
+		Device_capability device_by_type(char const * type)
 		{
 			using String = Genode::String<64>;
 
@@ -113,23 +112,15 @@ class Platform::Connection : public Genode::Connection<Session>,
 					/* already found a device? */
 					if (cap.valid()) { return; }
 
-					bool found = false;
-					node.for_each_sub_node("property", [&] (Xml_node node) {
-						if ((node.attribute_value("name", String()) == property) &&
-						    (node.attribute_value("value", String()) == value)) {
-							found = true;
-						}
-					});
+					if (node.attribute_value("type", String()) != type) {
+						return; }
 
-					if (found) {
-						Device::Name name = node.attribute_value("name",
-						                                         Device::Name());
-						cap = acquire_device(name.string());
-					}
+					Device::Name name = node.attribute_value("name",
+					                                         Device::Name());
+					cap = acquire_device(name.string());
 				});
 				if (!cap.valid()) {
-					error(__func__, ": property=", property, " value=",
-					              value, " not found!");
+					error(__func__, ": type=", type, " not found!");
 					error("device ROM content: ", xml);
 				}
 			});

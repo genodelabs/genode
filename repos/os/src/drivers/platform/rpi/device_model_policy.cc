@@ -49,7 +49,8 @@ void Device_model::destroy_element(Device & dev)
 Device & Device_model::create_element(Genode::Xml_node node)
 {
 	Device::Name name = node.attribute_value("name", Device::Name());
-	return *(new (_env.heap) Rpi_device(name));
+	Device::Type type = node.attribute_value("type", Device::Type());
+	return *(new (_env.heap) Rpi_device(name, type));
 }
 
 

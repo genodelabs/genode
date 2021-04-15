@@ -17,6 +17,9 @@
 Driver::Device::Name Driver::Device::name() const { return _name; }
 
 
+Driver::Device::Type Driver::Device::type() const { return _type; }
+
+
 bool Driver::Device::acquire(Session_component & sc)
 {
 	if (_session.valid() && _session != sc.label()) { return false; }
@@ -125,6 +128,7 @@ void Driver::Device::report(Xml_generator & xml, Session_component & sc)
 
 	xml.node("device", [&] () {
 		xml.attribute("name", name());
+		xml.attribute("type", type());
 		_io_mem_list.for_each([&] (Io_mem & io_mem) {
 			xml.node("io_mem", [&] () {
 				xml.attribute("id",   io_mem_id++);
@@ -166,8 +170,8 @@ Genode::size_t Driver::Device::_ram_quota_required()
 }
 
 
-Driver::Device::Device(Name name)
-: _name(name) { }
+Driver::Device::Device(Name name, Type type)
+: _name(name), _type(type) { }
 
 
 Driver::Device::~Device()

@@ -60,7 +60,7 @@ if { [get_cmd_switch --autopilot] &&
 proc platform_drv_config_non_x86 {} {
 	if {[have_board imx8q_evk]} {
 		return {
-			<device name="usb_host_2">
+			<device name="usb_host_2" type="snps,dwc3">
 				<io_mem       address="0x38200000" size="0x10000"/>
 				<irq          number="73"/>
 				<power-domain name="usb_otg_2"/>
@@ -76,7 +76,6 @@ proc platform_drv_config_non_x86 {} {
 				              rate="500000000"/>
 				<clock        name="usb_ctrl2_gate"/>
 				<clock        name="usb_phy2_gate"/>
-				<property     name="compatible" value="snps,dwc3"/>
 				<property     name="dr_mode"    value="host"/>
 				<property     name="snps,dis_u2_susphy_quirk"/>
 			</device>
@@ -85,20 +84,17 @@ proc platform_drv_config_non_x86 {} {
 	}
 	if {[have_board imx6q_sabrelite]} {
 		return {
-			<device name="mxs_phy">
+			<device name="mxs_phy" type="fsl,imx6q-usbphy">
 				<io_mem address="0x020ca000" size="0xfff"/>
 				<irq    number="77"/>
-				<property name="compatible" value="fsl,imx6q-usbphy"/>
 				<property name="fsl,anatop" value="0xdeaddead"/>
 			</device>
-			<device name="usbmisc_imx">
+			<device name="usbmisc_imx" type="fsl,imx6q-usbmisc">
 				<io_mem address="0x02184800" size="0x1ff"/>
-				<property name="compatible" value="fsl,imx6q-usbmisc"/>
 			</device>
-			<device name="imx_usb">
+			<device name="imx_usb" type="fsl,imx6q-usb">
 				<io_mem address="0x02184200" size="0x1ff"/>
 				<irq    number="72"/>
-				<property  name="compatible"  value="fsl,imx6q-usb"/>
 				<property  name="fsl,usbmisc" value="usbmisc_imx"/>
 				<property  name="dr_mode"     value="host"/>
 			</device>
@@ -111,11 +107,10 @@ proc platform_drv_config_non_x86 {} {
 	}
 	if {[have_board rpi]} {
 		return {
-			<device name="dwc_otg">
+			<device name="dwc_otg" type="brcm,bcm2835-usb">
 				<io_mem       address="0x20980000" size="0x10000"/>
 				<irq          number="9"/>
 				<power-domain name="usb"/>
-				<property     name="compatible" value="brcm,bcm2835-usb"/>
 			</device>
 			<policy label="usb_drv -> "> <device name="dwc_otg"/> </policy>
 		}
