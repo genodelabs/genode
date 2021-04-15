@@ -309,15 +309,37 @@ struct Fadt : Genode::Mmio
 
 	Fadt(addr_t mmio, size_t size) : Genode::Mmio(mmio), size(size) { }
 
-	struct Dsdt        : Register<0x28, 32> { };
-	struct Reset_reg   : Register<0x78, 64> { };
-	struct Reset_value : Register<0x80,  8> { };
+	struct Dsdt           : Register<0x28, 32> { };
+	struct Features       : Register<0x70, 32> {
+		/* Table 5-35 Fixed ACPI Description Table Fixed Feature Flags */
+		struct Reset : Bitfield<10, 1> { };
+	};
+	struct Reset_type     : Register<0x74, 32> {
+		/* ACPI spec - 5.2.3.2 Generic Address Structure */
+		struct Address_space : Bitfield<0, 8> { enum { SYSTEM_IO = 1 }; };
+		struct Access_size   : Bitfield<24,8> {
+			enum { UNDEFINED = 0, BYTE = 1, WORD = 2, DWORD = 3, QWORD = 4}; };
+	};
+	struct Reset_reg      : Register<0x78, 64> { };
+	struct Reset_value    : Register<0x80,  8> { };
 
 	bool dsdt_valid() {
 		 return size >= Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
 
-	bool reset_supported() {
-		 return size >= Reset_value::OFFSET + Reset_value::ACCESS_WIDTH / 8; }
+	bool io_reset_supported()
+	{
+		if (size < Reset_value::OFFSET + Reset_value::ACCESS_WIDTH / 8)
+			return false;
+
+		if (!read<Features::Reset>())
+			return false;
+
+		if (read<Reset_type::Address_space>() == Reset_type::Address_space::SYSTEM_IO)
+			return true;
+
+		warning("unsupported reset mode ", read<Reset_type::Address_space>());
+		return false;
+	}
 };
 
 
@@ -1295,7 +1317,7 @@ class Acpi_table
 						if (fadt.dsdt_valid())
 							dsdt = fadt.read<Fadt::Dsdt>();
 
-						if (fadt.reset_supported()) {
+						if (fadt.io_reset_supported()) {
 							uint16_t const reset_io_port = fadt.read<Fadt::Reset_reg>() & 0xffffu;
 							uint8_t  const reset_value   = fadt.read<Fadt::Reset_value>();
 
