@@ -1,0 +1,15 @@
+Don't build unneeded apps (missing 'memove()' with GCC 10)
+
+diff --git a/user/Makefile.in b/user/Makefile.in
+index 4b84e01..3b38c56 100644
+--- a/user/Makefile.in
++++ b/user/Makefile.in
+@@ -76,7 +76,7 @@ HEADER_FILES=	l4io.h \
+ 		l4/powerpc64/types.h \
+ 		l4/powerpc64/vregs.h
+ 
+-SUBDIRS=	lib serv apps util contrib
++SUBDIRS=	lib serv util contrib
+ 
+ pre-all:
+ 	@if test ! -e ./include; then \
