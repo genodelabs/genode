@@ -1,0 +1,234 @@
+From f29031cdbe8cebf6c39d02a72dd50c736cec3a69 Mon Sep 17 00:00:00 2001
+
+From: =?UTF-8?q?Jakub=20Jerm=C3=A1=C5=99?= <jakub.jermar@kernkonzept.com>
+
+Subject: [PATCH] amd64: Split _syscall_entry into code and data
+
+This change makes the entire syscall entry table smaller, sparing 32
+bytes per a statically configured CPU. Note that some padding is still
+used to achieve cacheline alignment of the per-CPU entries of the data
+part of the table.
+
+Furthemore, by moving the two data members into a data section and
+allowing to modify the handler offset from JDB only, the amd64 kernel is
+easier to make completely W^X in the future. The handler entry offset
+remains a part of the jump instruction opcode (there is no data
+indirection) and JDB is enhanced to be able to patch it when needed.
+
+Change-Id: I22b91f9fd2b108d99e3ceea6611a15ab3db26bb6
+
+Edit for Genode: UX changes not included because of more dependencies
+---
+ src/jdb/ia32/jdb_trace_set-ia32-ux.cpp |    4 +-
+ src/kern/ia32/64/cpu-64.cpp            |   31 +++++-------------
+ src/kern/ia32/64/entry.S               |   29 +++++++++++++++++
+ src/kern/ia32/64/syscall_entry.cpp     |   54 +++++---------------------------
+ 4 files changed, 48 insertions(+), 70 deletions(-)
+
+diff --git a/src/jdb/ia32/jdb_trace_set-ia32-ux.cpp b/src/jdb/ia32/jdb_trace_set-ia32-ux.cpp
+index ec23322..0a2f309 100644
+--- a/src/jdb/ia32/jdb_trace_set-ia32-ux.cpp
++++ b/src/jdb/ia32/jdb_trace_set-ia32-ux.cpp
+@@ -39,7 +39,7 @@ Jdb_set_trace::set_ipc_vector()
+ 
+   Idt::set_entry(0x30, (Address) int30_entry, true);
+   Jdb::on_each_cpu([fast_entry](Cpu_number cpu){
+-    Cpu::cpus.cpu(cpu).set_fast_entry(fast_entry);
++    //Cpu::cpus.cpu(cpu).set_fast_entry(fast_entry);
+   });
+ 
+   if (Jdb_ipc_trace::_trace)
+@@ -98,7 +98,7 @@ struct Jdb_ipc_log_pm : Pm_object
+     else
+       fast_entry  = entry_sys_fast_ipc_c;
+ 
+-    Cpu::cpus.cpu(cpu).set_fast_entry(fast_entry);
++    //Cpu::cpus.cpu(cpu).set_fast_entry(fast_entry);
+   }
+ 
+   void pm_on_suspend(Cpu_number) override {}
+diff --git a/src/kern/ia32/64/cpu-64.cpp b/src/kern/ia32/64/cpu-64.cpp
+index 974c677..d18ad16 100644
+--- a/src/kern/ia32/64/cpu-64.cpp
++++ b/src/kern/ia32/64/cpu-64.cpp
+@@ -4,7 +4,8 @@ INTERFACE [amd64 && !kernel_isolation]:
+ 
+ EXTENSION class Cpu
+ {
+-  static Per_cpu_array<Syscall_entry> _syscall_entry;
++  static Per_cpu_array<Syscall_entry_data>
++    _syscall_entry_data asm("syscall_entry_data");
+ };
+ 
+ 
+@@ -13,14 +14,7 @@ IMPLEMENTATION[amd64 && !kernel_isolation]:
+ #include "mem_layout.h"
+ #include "tss.h"
+ 
+-Per_cpu_array<Syscall_entry> Cpu::_syscall_entry;
+-
+-PUBLIC
+-void
+-Cpu::set_fast_entry(void (*func)())
+-{
+-  _syscall_entry[id()].set_entry(func);
+-}
++Per_cpu_array<Syscall_entry_data> Cpu::_syscall_entry_data;
+ 
+ IMPLEMENT inline NEEDS["tss.h"]
+ Address volatile &
+@@ -31,11 +25,13 @@ PUBLIC inline
+ void
+ Cpu::setup_sysenter()
+ {
++  extern Per_cpu_array<Syscall_entry_text> syscall_entry_text;
++
+   wrmsr(0, GDT_CODE_KERNEL | ((GDT_CODE_USER32 | 3) << 16), MSR_STAR);
+-  wrmsr((Unsigned64)&_syscall_entry[id()], MSR_LSTAR);
+-  wrmsr((Unsigned64)&_syscall_entry[id()], MSR_CSTAR);
++  wrmsr((Unsigned64)&syscall_entry_text[id()], MSR_LSTAR);
++  wrmsr((Unsigned64)&syscall_entry_text[id()], MSR_CSTAR);
+   wrmsr(~0U, MSR_SFMASK);
+-  _syscall_entry[id()].set_rsp((Address)&kernel_sp());
++  _syscall_entry_data[id()].set_rsp((Address)&kernel_sp());
+ }
+ 
+ IMPLEMENTATION[amd64 && kernel_isolation]:
+@@ -43,16 +39,6 @@ IMPLEMENTATION[amd64 && kernel_isolation]:
+ #include "mem_layout.h"
+ #include "tss.h"
+ 
+-PUBLIC
+-void
+-Cpu::set_fast_entry(void (*func)())
+-{
+-  extern char const syscall_entry_code[];
+-  extern char const syscall_entry_reloc[];
+-  auto ofs = syscall_entry_reloc - syscall_entry_code + 3; // 3 byte movebas
+-  *reinterpret_cast<Signed32 *>(Mem_layout::Mem_layout::Kentry_cpu_page + ofs + 0xa0) = (Signed32)(Signed64)func;
+-}
+-
+ PUBLIC inline
+ void
+ Cpu::setup_sysenter() const
+@@ -78,7 +64,6 @@ Cpu::init_sysenter()
+ {
+   setup_sysenter();
+   wrmsr(rdmsr(MSR_EFER) | 1, MSR_EFER);
+-  set_fast_entry(entry_sys_fast_ipc_c);
+ }
+ 
+ 
+diff --git a/src/kern/ia32/64/entry.S b/src/kern/ia32/64/entry.S
+index 1cb8137..ed5a04c 100644
+--- a/src/kern/ia32/64/entry.S
++++ b/src/kern/ia32/64/entry.S
+@@ -372,7 +372,36 @@ entry_\name:
+ 	jmp	all_syscalls
+ .endm
+ 
++#ifndef CONFIG_KERNEL_ISOLATION
++#ifdef CONFIG_MP
++MAX_NUM_CPUS = CONFIG_MP_MAX_CPUS
++#else
++MAX_NUM_CPUS = 1
++#endif
++
++#define SYSCALL_ENTRY_DATA_SIZE 64
++#define SYSCALL_ENTRY_TEXT_SIZE (0f - 0b)
++#define SYSCALL_ENTRY_OFFSET ((0b - syscall_entry_text) / SYSCALL_ENTRY_TEXT_SIZE)
++#define SYSCALL_ENTRY_DATA (syscall_entry_data + SYSCALL_ENTRY_OFFSET * SYSCALL_ENTRY_DATA_SIZE)
++#define KERN_SP (SYSCALL_ENTRY_DATA + 0)
++#define USER_SP (SYSCALL_ENTRY_DATA + 8)
+ 	.section ".entry.text.syscalls", "ax", @progbits
++	.global syscall_entry_text
++	.align 64
++syscall_entry_text:
++.rept MAX_NUM_CPUS
++0:
++	mov %rsp, USER_SP(%rip)
++	mov KERN_SP(%rip), %rsp
++	mov (%rsp), %rsp
++	pushq $GDT_DATA_USER | 3
++	pushq USER_SP(%rip)
++	jmp entry_sys_fast_ipc_c
++	.align 32
++0:
++.endr
++#endif /* !CONFIG_KERNEL_ISOLATION */
++
+ 	.p2align 4
+ 	.type	all_syscalls,@function
+ all_syscalls:
+diff --git a/src/kern/ia32/64/syscall_entry.cpp b/src/kern/ia32/64/syscall_entry.cpp
+index b03d1ad..3dd7db3 100644
+--- a/src/kern/ia32/64/syscall_entry.cpp
++++ b/src/kern/ia32/64/syscall_entry.cpp
+@@ -2,58 +2,22 @@ INTERFACE [amd64]:
+ 
+ #include "types.h"
+ 
+-class Syscall_entry
++class Syscall_entry_data
+ {
+-private:
+-  template<int INSN_LEN>
+-  struct Mem_insn
+-  {
+-    Unsigned32 _insn:INSN_LEN * 8;
+-    Unsigned32 _offset;
+-    Mem_insn(Unsigned32 insn, void *mem)
+-    : _insn(insn),
+-      _offset((Address)mem - (Address)(&_offset + 1))
+-    {}
+-  } __attribute__((packed));
+-
+-  Mem_insn<3> _mov_rsp_user_sp;
+-  Mem_insn<3> _mov_kern_sp_rsp;
+-  Unsigned32 _mov_rsp_rsp;
+-  Unsigned8 _push_ss, _ss_value;
+-  Mem_insn<2> _push_user_rsp;
+-  Unsigned8 _jmp;
+-  Signed32 _entry_offset;
+-  Unsigned8 _pading[33]; // pad to the next 64 byte boundary
+-  Unsigned64 _kern_sp;
+-  Unsigned64 _user_sp;
+-} __attribute__((packed, aligned(64)));
++  Unsigned64 _kern_sp = 0;
++  Unsigned64 _user_sp = 0;
++} __attribute__((packed, aligned(64))); // Enforce cacheline alignment
+ 
++struct Syscall_entry_text
++{
++  char _res[32]; // Keep this in sync with code in syscall_entry_text!
++} __attribute__((packed, aligned(32)));
+ 
+ IMPLEMENTATION [amd64]:
+ 
+-#include "config_gdt.h"
+-
+-PUBLIC inline NEEDS["config_gdt.h"]
+-Syscall_entry::Syscall_entry()
+-: /* mov %rsp, _user_sp(%rip) */ _mov_rsp_user_sp(0x258948, &_user_sp),
+-  /* mov _kern_sp(%rip), %rsp */ _mov_kern_sp_rsp(0x258b48, &_kern_sp),
+-  /* mov (%rsp), %rsp */         _mov_rsp_rsp(0x24248b48),
+-  /* pushq GDT_DATA_USER | 3 */  _push_ss(0x6a), _ss_value(GDT_DATA_USER | 3),
+-  /* pushq _user_sp(%rip) */     _push_user_rsp(0x35ff, &_user_sp),
+-  /* jmp *_entry_offset */       _jmp(0xe9)
+-{}
+-
+-PUBLIC inline
+-void
+-Syscall_entry::set_entry(void (*func)(void))
+-{
+-  _entry_offset = (Address)func
+-                  - ((Address)&_entry_offset + sizeof(_entry_offset));
+-}
+-
+ PUBLIC inline
+ void
+-Syscall_entry::set_rsp(Address rsp)
++Syscall_entry_data::set_rsp(Address rsp)
+ {
+   _kern_sp = rsp;
+ }

@@ -1,0 +1,94 @@
+ARM: link bootstrap as ET_REL not ET_EXEC
+
+From: Frank Mehnert <frank.mehnert@kernkonzept.com>
+
+Support for linking of ET_EXEC section was deprecated in binutils 2.35
+and dropped in binutils 2.36.
+
+Instead, extract the raw section of the fully linked bootstrap object
+and create a relocatable object which can be linked to the kernel. The
+required symbols for the linker are extracted separately.
+
+Fixes ticket #CD-301.
+
+Change-Id: I0cdc2aacb5dbd01677d93e2bb1103940ac60e848
+
+Edit: fixed merge error for Genode
+---
+ src/Makeconf.arm              |    6 ++++++
+ src/kern/arm/Makerules.KERNEL |   20 ++++++++++++++++----
+ src/kernel.arm.ld             |    4 ++--
+ 3 files changed, 24 insertions(+), 6 deletions(-)
+
+diff --git a/src/Makeconf.arm b/src/Makeconf.arm
+index 7c66a8d..89b9e7d 100644
+--- a/src/Makeconf.arm
++++ b/src/Makeconf.arm
+@@ -31,3 +31,9 @@ LDFLAGS                           += $(LDFLAGS-y)
+ LD_EMULATION_CHOICE-$(CONFIG_BIT32) := armelf armelf_linux_eabi armelf_fbsd
+ LD_EMULATION_CHOICE-$(CONFIG_BIT64) := aarch64linux aarch64elf
+ LD_EMULATION_CHOICE := $(LD_EMULATION_CHOICE-y)
++OBJCOPY_BFDNAME-$(CONFIG_BIT32)   := elf32-littlearm
++OBJCOPY_BFDNAME-$(CONFIG_BIT64)   := elf64-littleaarch64
++OBJCOPY_BFDNAME                   := $(OBJCOPY_BFDNAME-y)
++OBJCOPY_BFDARCH-$(CONFIG_BIT32)   := arm
++OBJCOPY_BFDARCH-$(CONFIG_BIT64)   := aarch64
++OBJCOPY_BFDARCH                   := $(OBJCOPY_BFDARCH-y)
+diff --git a/src/kern/arm/Makerules.KERNEL b/src/kern/arm/Makerules.KERNEL
+index d706444..fae3013 100644
+--- a/src/kern/arm/Makerules.KERNEL
++++ b/src/kern/arm/Makerules.KERNEL
+@@ -21,16 +21,28 @@ bootstrap_ldflags += -T$(bootstrap_lds)
+ 
+ bootstrap_export   = _start start_of_loader end_of_bootstrap_info
+ bootstrap_strip    = --strip-all $(addprefix --keep-symbol=,$(bootstrap_export))
++bootstrap_syms     = end_of_bootstrap_info|_start|start_of_loader
++bootstrap_sed      = 's/^0*([0-9a-f]*) [a-zA-Z] ($(bootstrap_syms))/\2 = 0x\1;/p'
+ 
+ bootstrap.$(KERNEL).pre.o: $(OBJ_BOOTSTRAP) $(LIBGCC) $(bootstrap_lds)
+ 	$(LINK_MESSAGE)
+ 	$(VERBOSE)$(LD) $(bootstrap_ldflags) $(OBJ_BOOTSTRAP) $(LIBGCC) -o $@
+ 
+-bootstrap.$(KERNEL).o: bootstrap.$(KERNEL).pre.o
+-	$(LINK_MESSAGE)
+-	$(VERBOSE)$(OBJCOPY) $(bootstrap_strip) $< $@
++bootstrap.$(KERNEL).bin: bootstrap.$(KERNEL).pre.o
++	$(COMP_MESSAGE)
++	$(VERBOSE)$(OBJCOPY) -O binary --only-section=.bootstrap.text $< $@
++
++bootstrap.$(KERNEL).rel: bootstrap.$(KERNEL).bin
++	$(COMP_MESSAGE)
++	$(VERBOSE)$(OBJCOPY) -I binary -O $(OBJCOPY_BFDNAME) -B $(OBJCOPY_BFDARCH) \
++	--rename-section .data=.bootstrap.text $< $@
++
++# The linker will treat this file as linker script.
++bootstrap.$(KERNEL).sym: bootstrap.$(KERNEL).pre.o
++	$(COMP_MESSAGE)
++	$(VERBOSE)$(NM) $< | sed -n -E $(bootstrap_sed) > $@
+ 
+-$(KERNEL).image: kernel.arm.lds $(CRT0) bootstrap.$(KERNEL).o $(OBJ_KERNEL_noboot) $(JDB) $(LIBK) $(KERNEL_EXTRA_LIBS) $(LIBDISASM) $(ABI) libdrivers.a $(LIBUART) $(CXXLIB) $(MINILIBC) $(LIBGCC) $(MINILIBC) libgluedriverslibc.a
++$(KERNEL).image: kernel.arm.lds $(CRT0) bootstrap.$(KERNEL).rel bootstrap.$(KERNEL).sym $(OBJ_KERNEL_noboot) $(JDB) $(LIBK) $(KERNEL_EXTRA_LIBS) $(LIBDISASM) $(ABI) libdrivers.a $(LIBUART) $(CXXLIB) $(MINILIBC) $(LIBGCC) $(MINILIBC) libgluedriverslibc.a
+ 	$(LINK_MESSAGE)
+ 	$(VERBOSE)$(LD) $(LDFLAGS) -m $(LD_EMULATION) $(KERNEL_LDFLAGS) -N -defsym kernel_load_addr=$(CONFIG_KERNEL_LOAD_ADDR) \
+           -T $< -o $@ $(filter-out $<,$+)
+diff --git a/src/kernel.arm.ld b/src/kernel.arm.ld
+index 1e3ec75..86c16b3 100644
+--- a/src/kernel.arm.ld
++++ b/src/kernel.arm.ld
+@@ -61,14 +61,14 @@ SECTIONS {
+ 	      
+   . = kernel_load_addr + 0x1000;
+ 	      
+-  .text : {
++  .text kernel_load_addr + 0x1000 : {
+     MWORD(_start_kernel)
+     MWORD(my_kernel_info_page)
+     KEEP(*(.bootstrap.info))
+     ASSERT (ABSOLUTE(.) == end_of_bootstrap_info, "invalid size of bootstrap.info");
+ 
+     . = ABSOLUTE(start_of_loader);
+-    *(.bootstrap.text)
++    KEEP(*(.bootstrap.text))
+   } :bstrap
+ 
+   . = ALIGN(4K);

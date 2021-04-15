@@ -1,0 +1,162 @@
+From dd8842dbdae2bb11d4f726f8a49a6ecb4d5d6870 Mon Sep 17 00:00:00 2001
+
+From: Frank Mehnert <frank.mehnert@kernkonzept.com>
+
+Subject: [PATCH] Do not depend on any libstdc++ feature
+
+The libc_minimal library does not provide support for libstdc++ so use
+the normal libc headers instead and do not use any 'std' functions.
+
+Change-Id: I9b4e04ddba0e3f366550265a2c30ef0f37df5534
+---
+ server/src/boot_modules.cc        |    2 +-
+ server/src/multiboot2.cc          |   24 ++++++++++++------------
+ server/src/platform/exynos.cc     |    2 +-
+ server/src/platform/x86_pc-base.h |    4 ++--
+ server/src/platform_common.cc     |    2 +-
+ server/src/support.h              |    4 ++--
+ 6 files changed, 19 insertions(+), 19 deletions(-)
+
+diff --git a/server/src/boot_modules.cc b/server/src/boot_modules.cc
+index 2446967..6100749 100644
+--- a/server/src/boot_modules.cc
++++ b/server/src/boot_modules.cc
+@@ -1,6 +1,6 @@
+ #include "support.h"
+ #include "panic.h"
+-#include <cassert>
++#include <assert.h>
+ #include "mod_info.h"
+ #ifdef COMPRESS
+ #include "uncompress.h"
+diff --git a/server/src/multiboot2.cc b/server/src/multiboot2.cc
+index c7255a3..17a2fdd 100644
+--- a/server/src/multiboot2.cc
++++ b/server/src/multiboot2.cc
+@@ -18,7 +18,7 @@
+ #include <l4/sys/consts.h>
+ #include <l4/cxx/minmax>
+ 
+-#include <cstring>
++#include <string.h>
+ 
+ #include <assert.h>
+ #include <stddef.h>
+@@ -62,7 +62,7 @@ public:
+   // by some other tag type)
+   void process_modules(l4util_mb2_tag_t *tag)
+   {
+-    std::size_t cnt = 0;
++    size_t cnt = 0;
+ 
+     while (tag->type == L4UTIL_MB2_MODULE_INFO_TAG)
+       {
+@@ -146,8 +146,8 @@ public:
+   void finalize()
+   {
+     assert(sizeof(_mbi) <= _size);
+-    std::memcpy(_buf, &_mbi, sizeof(_mbi));
+-    std::memset(_buf + sizeof(_mbi), 0, _size - sizeof(_mbi));
++    memcpy(_buf, &_mbi, sizeof(_mbi));
++    memset(_buf + sizeof(_mbi), 0, _size - sizeof(_mbi));
+   }
+ 
+ private:
+@@ -157,25 +157,25 @@ private:
+   {
+     char buf[1024];
+ 
+-    std::size_t size = l4_round_size(tag->size, L4UTIL_MB2_TAG_ALIGN_SHIFT);
++    size_t size = l4_round_size(tag->size, L4UTIL_MB2_TAG_ALIGN_SHIFT);
+     l4util_mb2_tag_t *dst_tag =
+       reinterpret_cast<l4util_mb2_tag_t *>(end() - size);
+     char *_src = reinterpret_cast<char *>(tag);
+ 
+     while (size)
+       {
+-        std::size_t copied = cxx::min(sizeof(buf), size);
++        size_t copied = cxx::min(sizeof(buf), size);
+         char *_dst = end() - copied;
+-        std::memcpy(buf, _src, copied);
+-        std::memmove(_src, _src + copied, (end() - _src) - copied);
+-        std::memcpy(_dst, buf, copied);
++        memcpy(buf, _src, copied);
++        memmove(_src, _src + copied, (end() - _src) - copied);
++        memcpy(_dst, buf, copied);
+         size -= copied;
+       }
+ 
+     return dst_tag;
+   }
+ 
+-  void reserve_from_end(std::size_t size)
++  void reserve_from_end(size_t size)
+   {
+     size = l4_round_size(size, L4UTIL_MB2_TAG_ALIGN_SHIFT);
+     assert(_size >= size);
+@@ -183,8 +183,8 @@ private:
+   }
+ 
+   char *_buf;
+-  std::size_t _size;
+-  const std::size_t _total_size;
++  size_t _size;
++  const size_t _total_size;
+ 
+   l4util_mb_info_t _mbi;
+ };
+diff --git a/server/src/platform/exynos.cc b/server/src/platform/exynos.cc
+index d10d70d..bcd6d02 100644
+--- a/server/src/platform/exynos.cc
++++ b/server/src/platform/exynos.cc
+@@ -17,7 +17,7 @@
+ #include "support.h"
+ #include <l4/drivers/uart_s3c2410.h>
+ 
+-#include <cstdio>
++#include <stdio.h>
+ 
+ namespace {
+ class Platform_arm_exynos : public Platform_single_region_ram
+diff --git a/server/src/platform/x86_pc-base.h b/server/src/platform/x86_pc-base.h
+index d5d53bf..fe0e0dd 100644
+--- a/server/src/platform/x86_pc-base.h
++++ b/server/src/platform/x86_pc-base.h
+@@ -12,8 +12,8 @@
+ #include <l4/util/port_io.h>
+ #include <l4/cxx/static_container>
+ 
+-#include <cassert>
+-#include <cstdio>
++#include <assert.h>
++#include <stdio.h>
+ 
+ /** VGA console output */
+ 
+diff --git a/server/src/platform_common.cc b/server/src/platform_common.cc
+index 0503802..26ae0a9 100644
+--- a/server/src/platform_common.cc
++++ b/server/src/platform_common.cc
+@@ -1,6 +1,6 @@
+ #include "support.h"
+ #include <l4/cxx/minmax>
+-#include <cassert>
++#include <assert.h>
+ 
+ #ifdef RAM_SIZE_MB
+ 
+diff --git a/server/src/support.h b/server/src/support.h
+index 472e40e..20d2c04 100644
+--- a/server/src/support.h
++++ b/server/src/support.h
+@@ -21,8 +21,8 @@
+ #include <l4/util/mb_info.h>
+ #include <stdio.h>
+ #include "region.h"
+-#include <cstring>
+-#include <cstdlib>
++#include <string.h>
++#include <stdlib.h>
+ 
+ L4::Uart *uart();
+ void set_stdio_uart(L4::Uart *uart);

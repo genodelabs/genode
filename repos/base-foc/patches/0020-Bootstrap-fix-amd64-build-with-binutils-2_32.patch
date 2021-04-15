@@ -1,0 +1,25 @@
+From a4d6d7877c0050308a9c28308fa8a233c86902e1 Mon Sep 17 00:00:00 2001
+From: Alexander Warg <alexander.warg@kernkonzept.com>
+Date: Mon, 29 Jul 2019 00:00:00 +0000
+Subject: [PATCH] Fix amd64 build with binutils 2.32+
+
+We have to make sure that a linker script is not given twice to ld.
+
+Change-Id: Ibd0f8972083f665fb7824df2a65b319183d7b1e7
+---
+ server/src/Make.rules | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/server/src/Make.rules b/server/src/Make.rules
+index 43e8775..c1bbfec 100644
+--- a/server/src/Make.rules
++++ b/server/src/Make.rules
+@@ -439,7 +439,7 @@ $(OBJ_DIR)/ARCH-amd64/libc32/OBJ-$(ARCH)_$(CPU)/libc32.a: FORCE
+ bootstrap32.elf: $(OBJ32) bootstrap32.bin $(SRC_DIR)/ARCH-amd64/boot32/bootstrap32.ld $(OBJ_DIR)/ARCH-amd64/libc32/OBJ-$(ARCH)_$(CPU)/libc32.a
+ 	@$(LINK_MESSAGE)
+ 	$(VERBOSE)$(CC32) -o $@ -nostdlib -static \
+-	  -Wl,-T,$(SRC_DIR)/ARCH-amd64/boot32/bootstrap32.ld,--gc-sections $^ -lgcc
++	  -Wl,-T,$(SRC_DIR)/ARCH-amd64/boot32/bootstrap32.ld,--gc-sections $(filter-out %/bootstrap32.ld,$^) -lgcc
+ 	$(VERBOSE)chmod 755 $@
+ 
+ bootstrap: bootstrap32.elf
