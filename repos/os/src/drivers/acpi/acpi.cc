@@ -305,13 +305,19 @@ struct Ivrs : Genode::Mmio
 /* Fixed ACPI description table (FADT) */
 struct Fadt : Genode::Mmio
 {
-	Fadt(addr_t a) : Genode::Mmio(a) { }
+	size_t const size;
+
+	Fadt(addr_t mmio, size_t size) : Genode::Mmio(mmio), size(size) { }
 
 	struct Dsdt        : Register<0x28, 32> { };
 	struct Reset_reg   : Register<0x78, 64> { };
 	struct Reset_value : Register<0x80,  8> { };
 
-	static uint32_t size() { return Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
+	bool dsdt_valid() {
+		 return size >= Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
+
+	bool reset_supported() {
+		 return size >= Reset_value::OFFSET + Reset_value::ACCESS_WIDTH / 8; }
 };
 
 
@@ -1283,15 +1289,19 @@ class Acpi_table
 						ivrs.parse(alloc);
 					}
 
-					if (table.is_facp() && Fadt::size() <= table->size) {
-						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature));
-						dsdt = fadt.read<Fadt::Dsdt>();
+					if (table.is_facp()) {
+						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature), table->size);
 
-						uint16_t const reset_io_port = fadt.read<Fadt::Reset_reg>() & 0xffffu;
-						uint8_t  const reset_value   = fadt.read<Fadt::Reset_value>();
+						if (fadt.dsdt_valid())
+							dsdt = fadt.read<Fadt::Dsdt>();
 
-						_reset_info.construct(Reset_info { .io_port = reset_io_port,
-						                                   .value   = reset_value });
+						if (fadt.reset_supported()) {
+							uint16_t const reset_io_port = fadt.read<Fadt::Reset_reg>() & 0xffffu;
+							uint8_t  const reset_value   = fadt.read<Fadt::Reset_value>();
+
+							_reset_info.construct(Reset_info { .io_port = reset_io_port,
+							                                   .value   = reset_value });
+						}
 					}
 
 					if (table.is_searched()) {
