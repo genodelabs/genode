@@ -249,9 +249,8 @@ struct Fec : public Genode::List<Fec>::Element
 			{
 				using namespace Genode;
 
+				phy_driver = xml.attribute_value("type", String());
 				xml.for_each_sub_node("property", [&] (Xml_node node) {
-					if (String("compatible") == node.attribute_value("name", String())) {
-						phy_driver = node.attribute_value("value", String()); }
 					if (String("mdio_bus") == node.attribute_value("name", String())) {
 						mdio_bus = node.attribute_value("value", String()); }
 					if (String("mdio_reg") == node.attribute_value("name", String())) {
@@ -292,9 +291,8 @@ struct Fec : public Genode::List<Fec>::Element
 	{
 		using namespace Genode;
 
+		type = xml.attribute_value("type", String());
 		xml.for_each_sub_node("property", [&] (Xml_node node) {
-			if (String("compatible") == node.attribute_value("name", String())) {
-				type = node.attribute_value("value", String()); }
 			if (String("mii") == node.attribute_value("name", String())) {
 				phy_mode = node.attribute_value("value", String()); }
 			if (String("phy") == node.attribute_value("name", String())) {
@@ -376,14 +374,11 @@ int platform_driver_register(struct platform_driver * drv)
 		xml.for_each_sub_node("device", [&] (Xml_node node) {
 
 			String name = node.attribute_value("name", String());
-			String compatible;
-			node.for_each_sub_node("property", [&] (Xml_node node) {
-				if (String("compatible") == node.attribute_value("name", String())) {
-					compatible = node.attribute_value("value", String()); }});
+			String type = node.attribute_value("type", String());
 
-			if (compatible == "fsl,imx6q-fec"  ||
-			    compatible == "fsl,imx6sx-fec" ||
-			    compatible == "fsl,imx25-fec") {
+			if (type == "fsl,imx6q-fec"  ||
+			    type == "fsl,imx6sx-fec" ||
+			    type == "fsl,imx25-fec") {
 				Fec * f = new (Lx_kit::env().heap())
 					Fec(name, node, platform_connection().acquire_device(name.string()));
 
@@ -396,7 +391,7 @@ int platform_driver_register(struct platform_driver * drv)
 				return;
 			}
 
-			if (compatible == "ethernet-phy-ieee802.3-c22") {
+			if (type == "ethernet-phy-ieee802.3-c22") {
 				Fec::Mdio::Phy * p = new (Lx_kit::env().heap())
 					Fec::Mdio::Phy(name, node, platform_connection().acquire_device(name.string()));
 				for (Fec * f = fec_devices().first(); f; f = f->next()) {

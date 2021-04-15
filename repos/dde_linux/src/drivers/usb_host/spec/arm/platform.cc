@@ -94,6 +94,7 @@ void lx_platform_device_init()
 		xml.for_each_sub_node("device", [&] (Xml_node node)
 		{
 			Device::Name name = node.attribute_value("name", Device::Name());
+			Device::Name type = node.attribute_value("type", Device::Name());
 			Platform::Device_client device {
 				resource_env().platform.acquire_device(name.string()) };
 
@@ -137,6 +138,12 @@ void lx_platform_device_init()
 			pdev->dev.of_node = (device_node*)kzalloc(sizeof(device_node), 0);
 			pdev->dev.of_node->dev = &pdev->dev;
 			property ** prop = &pdev->dev.of_node->properties;
+
+			*prop           = (property*) kzalloc(sizeof(property), 0);
+			(*prop)->name   = "compatible";
+			(*prop)->value  = kzalloc(64,0);
+			copy_cstring((char*)(*prop)->value, type.string(), 64);
+			prop            = &(*prop)->next;
 
 			node.for_each_sub_node("property", [&] (Xml_node node) {
 				*prop           = (property*) kzalloc(sizeof(property), 0);

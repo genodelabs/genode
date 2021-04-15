@@ -74,22 +74,19 @@ Platform::Device_client & Lx_kit::platform_device(Device_id id)
 {
 	if (id == DCSS) {
 		static Platform::Device_client dcss {
-			platform_connection().device_by_property("compatible",
-			                                         "nxp,imx8mq-dcss") };
+			platform_connection().device_by_type("nxp,imx8mq-dcss") };
 		return dcss;
 	}
 
 	if (id == HDMI) {
 		static Platform::Device_client hdmi {
-			platform_connection().device_by_property("compatible",
-			                                         "fsl,imx8mq-hdmi") };
+			platform_connection().device_by_type("fsl,imx8mq-hdmi") };
 		return hdmi;
 	}
 
 	if (id == MIPI) {
 		static Platform::Device_client mipi {
-			platform_connection().device_by_property("compatible",
-			                                         "fsl,imx8mq-mipi-dsi_drm") };
+			platform_connection().device_by_type("fsl,imx8mq-mipi-dsi_drm") };
 		static bool update = true;
 		if (update) {
 			platform_connection().update();

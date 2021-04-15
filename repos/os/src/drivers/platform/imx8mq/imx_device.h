@@ -58,7 +58,8 @@ class Driver::Imx_device : public Driver::Device
 		bool acquire(Session_component &) override;
 		void release(Session_component &) override;
 
-		Imx_device(Device::Name name) : Device(name) {}
+		Imx_device(Device::Name name, Device::Type type)
+		: Device(name, type) {}
 
 	protected:
 

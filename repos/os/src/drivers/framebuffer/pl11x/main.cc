@@ -85,10 +85,8 @@ struct Pl11x_driver::Main
 	 */
 
 	Platform::Connection     _platform   { _env };
-	Platform::Device_client  _pl11x_dev  {
-		_platform.device_by_property("compatible", "arm,pl111") };
-	Platform::Device_client  _sp810_dev  {
-		_platform.device_by_property("compatible", "arm,sp810") };
+	Platform::Device_client  _pl11x_dev  { _platform.device_by_type("arm,pl111") };
+	Platform::Device_client  _sp810_dev  { _platform.device_by_type("arm,sp810") };
 	Attached_dataspace       _lcd_io_mem { _env.rm(),
 	                                       _pl11x_dev.io_mem_dataspace() };
 	Attached_dataspace       _sys_mem    { _env.rm(),
