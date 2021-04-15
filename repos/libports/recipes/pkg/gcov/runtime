@@ -29,7 +29,7 @@
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<default caps="150"/>
+		<default caps="175"/>
 		<start name="gcov">
 			<resource name="RAM" quantum="10M"/>
 			<config>
