@@ -150,7 +150,6 @@ class Genode::Expanding_parent_client : public Parent_client
 			Session::Resources const amount = session_resources_from_args(args.string());
 			using Arg = String<64>;
 
-			enum { NUM_ATTEMPTS = 2 };
 			return retry<Out_of_ram>(
 				[&] () {
 					return retry<Out_of_caps>(
@@ -158,14 +157,12 @@ class Genode::Expanding_parent_client : public Parent_client
 						[&] () {
 							Arg cap_arg("cap_quota=", amount.cap_quota);
 							resource_request(Resource_args(cap_arg.string()));
-						},
-						NUM_ATTEMPTS);
+						});
 				},
 				[&] () {
 					Arg ram_arg("ram_quota=", amount.ram_quota);
 					resource_request(Resource_args(ram_arg.string()));
-				},
-				NUM_ATTEMPTS);
+				});
 		}
 
 		void resource_avail_sigh(Signal_context_capability sigh) override
