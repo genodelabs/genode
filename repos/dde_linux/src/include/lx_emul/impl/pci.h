@@ -37,12 +37,17 @@ extern "C" int pci_register_driver(struct pci_driver *driver)
 
 		/* request device ID from platform driver */
 		unsigned const device_id = client.device_id();
+		unsigned const subdevice_id = client.config_read(0x2e,
+		                                                 Platform::Device::ACCESS_16BIT);
 
 		/* look if we find the device ID in the driver's 'id_table' */
 		pci_device_id const *matching_id = nullptr;
 		for (pci_device_id const *id = id_table; id->device; id++) {
-			if (id->device == device_id)
+			if ((id->device == device_id) &&
+			    (id->subdevice == PCI_ANY_ID || id->subdevice == subdevice_id)) {
 				matching_id = id;
+				break;
+			}
 		}
 
 		/* skip device that is not handled by driver */
