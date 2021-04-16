@@ -14,9 +14,7 @@
 #ifndef _INCLUDE__VIRTIO__MMIO_DEVICE_H_
 #define _INCLUDE__VIRTIO__MMIO_DEVICE_H_
 
-#include <base/attached_dataspace.h>
-#include <os/attached_mmio.h>
-#include <util/mmio.h>
+#include <platform_session/device.h>
 #include <virtio/queue.h>
 
 
@@ -26,7 +24,7 @@ namespace Virtio {
 }
 
 
-class Virtio::Device : Genode::Attached_dataspace, Genode::Mmio
+class Virtio::Device : Platform::Device::Mmio
 {
 	public:
 
@@ -97,13 +95,13 @@ class Virtio::Device : Genode::Attached_dataspace, Genode::Mmio
 		Device(Device const &) = delete;
 		Device &operator = (Device const &) = delete;
 
+		Platform::Device::Irq _irq;
+
 	public:
 
-		Device(Genode::Env                         &env,
-		       Genode::Io_mem_dataspace_capability  io_mem_ds,
-		       size_t                               offset)
-		: Attached_dataspace(env.rm(), io_mem_ds)
-		, Mmio((addr_t)local_addr<void>() + offset)
+		Device(Platform::Device & device)
+		:
+			Platform::Device::Mmio(device), _irq(device, {0})
 		{
 			if (read<Magic>() != VIRTIO_MMIO_MAGIC) {
 				throw Invalid_device(); }
@@ -196,6 +194,11 @@ class Virtio::Device : Genode::Attached_dataspace, Genode::Mmio
 			write<InterruptAck>(isr);
 			return isr;
 		}
+
+		void irq_sigh(Signal_context_capability cap) {
+			_irq.sigh(cap); }
+
+		void irq_ack() { _irq.ack(); }
 };
 
 #endif /* _INCLUDE__VIRTIO__MMIO_DEVICE_H_ */

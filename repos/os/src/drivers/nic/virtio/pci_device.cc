@@ -62,9 +62,7 @@ struct Virtio_pci_nic::Main
 		switch (mode) {
 		case Nic_driver_mode::NIC_SERVER:
 
-			root.construct(
-				env, heap, virtio_device, platform_device.irq(0),
-				config_rom);
+			root.construct(env, heap, virtio_device, config_rom);
 
 			env.parent().announce(env.ep().manage(*root));
 			break;
@@ -72,8 +70,7 @@ struct Virtio_pci_nic::Main
 		case Nic_driver_mode::UPLINK_CLIENT:
 
 			uplink_client.construct(
-				env, heap, virtio_device, platform_device.irq(0),
-				config_rom.xml());
+				env, heap, virtio_device, config_rom.xml());
 
 			break;
 		}

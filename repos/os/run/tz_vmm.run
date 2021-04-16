@@ -155,7 +155,7 @@ append_if $trusted_led config {
 				<io_mem address="0x50004000" size="0x4000"/>
 				<irq    number="1"/>
 			</device>
-			<policy label="imx_gpio_drv -> "> <device name="gpio"/> </policy>
+			<policy label="imx_gpio_drv -> " info="yes"> <device name="gpio"/> </policy>
 			<policy label="sd_card_drv -> "> <device name="sd_card"/> </policy>
 		</config>
 	</start>

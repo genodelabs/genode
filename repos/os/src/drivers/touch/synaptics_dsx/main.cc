@@ -23,42 +23,6 @@
 
 using namespace Genode;
 
-
-namespace Platform {
-
-	using Device_capability = Capability<Device_interface>;
-
-	struct Device_client;
-}
-
-
-/*
- * Transitionally wrapper for accessing platform devices used until
- * the migration to Platform::Device::Mmio API is completed.
- */
-struct Platform::Device_client : Rpc_client<Device_interface>
-{
-	Device_client(Capability<Device_interface> cap)
-	: Rpc_client<Device_interface>(cap) { }
-
-	Irq_session_capability irq(unsigned id = 0)
-	{
-		return call<Rpc_irq>(id);
-	}
-
-	Io_mem_session_capability io_mem(unsigned id, Range &range, Cache cache)
-	{
-		return call<Rpc_io_mem>(id, range, cache);
-	}
-
-	Dataspace_capability io_mem_dataspace(unsigned id = 0)
-	{
-		Range range { };
-		return Io_mem_session_client(io_mem(id, range, UNCACHED)).dataspace();
-	}
-};
-
-
 struct Finger_data
 {
 	uint8_t status;
@@ -97,9 +61,7 @@ struct Synaptics
 	enum Gpio_irq { IRQ = 135 };
 
 	Genode::Env &env;
-	Irq_handler                  _i2c_irq_handler;
-	Attached_dataspace           _i2c_ds;
-	I2c::I2c                     _i2c { (addr_t)_i2c_ds.local_addr<addr_t>(), _i2c_irq_handler };
+	I2c::I2c                     _i2c;
 	Gpio::Connection             _gpio { env, IRQ };
 	Irq_session_client           _irq { _gpio.irq_session(Gpio::Session::LOW_LEVEL) };
 	Io_signal_handler<Synaptics> _irq_dispatcher { env.ep(), *this, &Synaptics::_handle_irq };
@@ -153,11 +115,8 @@ struct Synaptics
 		_irq.ack_irq();
 	}
 
-	Synaptics(Env &env, Dataspace_capability io_mem,
-	          Irq_session_capability irq)
-	: env(env),
-	 _i2c_irq_handler(env, irq),
-	 _i2c_ds(env.rm(), io_mem)
+	Synaptics(Env &env, Platform::Device & i2c_dev)
+	: env(env), _i2c(env, i2c_dev)
 	{
 
 		/* set page 0 */
@@ -186,42 +145,12 @@ struct Synaptics
 
 struct Main
 {
-	Platform::Connection     _platform_connection;
-	Constructible<Synaptics> _synaptics { };
+	Genode::Env        & _env;
+	Platform::Connection _platform  { _env          };
+	Platform::Device     _device    { _platform     };
+	Synaptics            _synaptics { _env, _device };
 
-	Main(Env &env)
-	: _platform_connection(env)
-	{
-		using namespace Platform;
-
-		Device_capability cap;
-		try {
-			cap = _platform_connection.device_by_index(0);
-		} catch (...) {
-			error("Could not acquire device resources");
-			return;
-		}
-
-		if (cap.valid() == false) {
-			return;
-		}
-
-		Device_client device { cap };
-
-		Dataspace_capability io_mem  = device.io_mem_dataspace();
-		if (io_mem.valid() == false) {
-			Genode::warning("No 'io_mem' node present ... skipping");
-			return;
-		}
-
-		Irq_session_capability irq = device.irq();
-		if (irq.valid() == false) {
-			Genode::warning("No 'irq' node present ... skipping");
-			return;
-		}
-
-		_synaptics.construct(env, io_mem, irq);
-	}
+	Main(Env &env) : _env(env) { }
 };
 
 void Component::construct(Genode::Env &env) { static Main main(env); }

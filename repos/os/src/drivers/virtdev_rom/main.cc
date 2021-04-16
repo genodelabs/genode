@@ -161,16 +161,13 @@ struct Virtdev_rom::Main
 					static char name[DEVICE_NAME_LEN];
 					snprintf(name, sizeof(name), "%s%u", _name_for_id(id), device_type_idx[id - 1]++);
 					xml.attribute("name", name);
+					xml.attribute("type", _name_for_id(id));
 					xml.node("io_mem", [&] () {
 						xml.attribute("address", addr);
 						xml.attribute("size", DEVICE_SIZE);
 					});
 					xml.node("irq", [&] () {
 						xml.attribute("number", IRQ_BASE + idx);
-					});
-					xml.node("property", [&] () {
-						xml.attribute("name", "type");
-						xml.attribute("value", _name_for_id(id));
 					});
 				});
 			}

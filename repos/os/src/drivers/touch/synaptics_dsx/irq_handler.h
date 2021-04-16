@@ -15,39 +15,38 @@
 #define _IRQ_HANDLER_H_
 
 /* Genode includes */
-#include <irq_session/client.h>
+#include <platform_session/device.h>
 
 class Irq_handler
 {
 	private:
 
-		Genode::Env                           &_env;
-		Genode::Irq_session_client             _irq;
-		Genode::Io_signal_handler<Irq_handler> _handler;
-
 		unsigned _sem_cnt = 1;
 
 		void _handle() { _sem_cnt = 0; }
 
+		Platform::Device::Irq                  _irq;
+		Genode::Entrypoint                   & _ep;
+		Genode::Io_signal_handler<Irq_handler> _handler { _ep, *this, &Irq_handler::_handle };
+
 	public:
 
-		Irq_handler(Genode::Env &env, Genode::Irq_session_capability irq)
+		Irq_handler(Genode::Env & env, Platform::Device & dev)
 		:
-			_env(env), _irq(irq),
-			_handler(env.ep(), *this, &Irq_handler::_handle)
+			_irq(dev, { 0 }), _ep(env.ep())
 		{
 			_irq.sigh(_handler);
-			_irq.ack_irq();
+			_irq.ack();
 		}
 
 		void wait()
 		{
 			_sem_cnt++;
 			while (_sem_cnt > 0)
-				_env.ep().wait_and_dispatch_one_io_signal();
+				_ep.wait_and_dispatch_one_io_signal();
 		}
 
-		void ack() { _irq.ack_irq(); }
+		void ack() { _irq.ack(); }
 };
 
 #endif /* _IRQ_HANDLER_H_ */

@@ -122,7 +122,7 @@ class Sd_card::Driver : public  Block::Driver,
 		{
 			using Device = Platform::Device_interface;
 
-			Capability<Device> device_cap = platform.device_by_index(0);
+			Capability<Device> device_cap = platform.acquire_device();
 
 			Device::Range range { };
 			Io_mem_session_client io_mem {

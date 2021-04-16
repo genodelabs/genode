@@ -40,14 +40,13 @@ struct Ps2::Main
 
 	using Device = Platform::Device;
 
-	Device _device_keyboard { _platform, Device::Index { 0 } };
-	Device _device_mouse    { _platform, Device::Index { 1 } };
+	Device _device { _platform };
 
-	Device::Mmio _mmio_keyboard { _device_keyboard };
-	Device::Mmio _mmio_mouse    { _device_mouse    };
+	Device::Mmio _mmio_keyboard { _device, { 0 } };
+	Device::Mmio _mmio_mouse    { _device, { 1 } };
 
-	Device::Irq _irq_keyboard { _device_keyboard };
-	Device::Irq _irq_mouse    { _device_mouse    };
+	Device::Irq _irq_keyboard { _device, { 0 } };
+	Device::Irq _irq_mouse    { _device, { 1 } };
 
 	Pl050 _pl050 { _mmio_keyboard, _mmio_mouse };
 

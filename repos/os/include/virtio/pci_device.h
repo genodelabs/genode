@@ -15,6 +15,7 @@
 #define _INCLUDE__VIRTIO__PCI_DEVICE_H_
 
 #include <os/attached_mmio.h>
+#include <irq_session/client.h>
 #include <platform_device/client.h>
 #include <virtio/queue.h>
 
@@ -96,6 +97,7 @@ class Virtio::Device
 
 		Genode::Env                        &_env;
 		Platform::Device_client            &_device;
+		Genode::Irq_session_client          _irq { _device.irq(0) };
 		uint32_t                            _notify_offset_multiplier = 0;
 		Genode::Constructible<Device_mmio>  _cfg_common { };
 		Genode::Constructible<Device_mmio>  _dev_config { };
@@ -277,6 +279,11 @@ class Virtio::Device
 
 		uint32_t read_isr() {
 			return _isr->read<Device_mmio::IrqReason>(); }
+
+		void irq_sigh(Signal_context_capability cap) {
+			_irq.sigh(cap); }
+
+		void irq_ack() { _irq.ack_irq(); }
 };
 
 #endif /* _INCLUDE__VIRTIO__PCI_DEVICE_H_ */

@@ -73,6 +73,11 @@ struct Platform::Session : Genode::Session
 	virtual Capability<Device_interface> acquire_device(Device_name const &name) = 0;
 
 	/**
+	 * Acquire the first resp. single device of this session
+	 */
+	virtual Capability<Device_interface> acquire_single_device() = 0;
+
+	/**
 	 * Free server-internal data structures representing the device
 	 *
 	 * Use this method to relax the resource-allocation of the Platform session.
@@ -103,6 +108,8 @@ struct Platform::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_acquire_device, Capability<Device_interface>, acquire_device,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Device_name const &);
+	GENODE_RPC_THROW(Rpc_acquire_single_device, Capability<Device_interface>,
+	                 acquire_single_device, GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
 	GENODE_RPC(Rpc_release_device, void, release_device, Capability<Device_interface>);
 	GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Ram_dataspace_capability,
 	                 alloc_dma_buffer,
@@ -112,8 +119,8 @@ struct Platform::Session : Genode::Session
 	GENODE_RPC(Rpc_dma_addr, addr_t, dma_addr,
 	           Ram_dataspace_capability);
 
-	GENODE_RPC_INTERFACE(Rpc_devices_rom, Rpc_acquire_device, Rpc_release_device,
-	                     Rpc_alloc_dma_buffer, Rpc_free_dma_buffer,
+	GENODE_RPC_INTERFACE(Rpc_devices_rom, Rpc_acquire_device, Rpc_acquire_single_device,
+	                     Rpc_release_device, Rpc_alloc_dma_buffer, Rpc_free_dma_buffer,
 	                     Rpc_dma_addr);
 };
 

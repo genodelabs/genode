@@ -58,9 +58,9 @@ class Platform::Device : Interface, Noncopyable
 
 		struct Index { unsigned value; };
 
-		Device(Connection &platform, Index index)
+		explicit Device(Connection &platform)
 		:
-			_platform(platform), _cap(platform.device_by_index(index.value))
+			_platform(platform), _cap(platform.acquire_device())
 		{ }
 
 		struct Type { String<64> name; };
@@ -69,8 +69,6 @@ class Platform::Device : Interface, Noncopyable
 		:
 			_platform(platform), _cap(platform.device_by_type(type.name.string()))
 		{ }
-
-		explicit Device(Connection &platform) : Device(platform, Index { 0 }) { }
 
 		~Device() { _platform.release_device(_cap); }
 };

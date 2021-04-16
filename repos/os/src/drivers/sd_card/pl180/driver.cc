@@ -141,8 +141,8 @@ void Driver::_write_data(unsigned    length,
 Driver::Driver(Env &env, Platform::Connection & platform)
 :
 	Block::Driver(env.ram()),
-	Platform::Device(platform, Platform::Device::Index { 0 }),
-	Platform::Device::Mmio(*this, Platform::Device::Mmio::Index { 0 }),
+	Platform::Device(platform),
+	Platform::Device::Mmio(*this, { 0 }),
 	_platform(platform),
 	_timer(env)
 {

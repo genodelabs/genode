@@ -124,25 +124,19 @@ Driver::Device::io_mem(unsigned idx, Range &range, Cache cache, Session_componen
 
 void Driver::Device::report(Xml_generator & xml, Session_component & sc)
 {
-	unsigned io_mem_id = 0;
-	unsigned irq_id    = 0;
-
-	static constexpr addr_t page_off_mask = (addr_t)((1 << 12) - 1);
-
 	xml.node("device", [&] () {
 		xml.attribute("name", name());
 		xml.attribute("type", type());
 		_io_mem_list.for_each([&] (Io_mem & io_mem) {
 			xml.node("io_mem", [&] () {
-				xml.attribute("id",   io_mem_id++);
-				xml.attribute("size", io_mem.size);
-				xml.attribute("page_offset",
-				              io_mem.base & page_off_mask);
+				xml.attribute("phys_addr", String<16>(Hex(io_mem.base)));
+				xml.attribute("size",      String<16>(Hex(io_mem.size)));
 			});
 		});
-		_irq_list.for_each([&] (Irq &) {
+		_irq_list.for_each([&] (Irq & irq) {
 			xml.node("irq", [&] () {
-				xml.attribute("id", irq_id++); });
+				xml.attribute("number", irq.number);
+			});
 		});
 		_property_list.for_each([&] (Property & p) {
 			xml.node("property", [&] () {

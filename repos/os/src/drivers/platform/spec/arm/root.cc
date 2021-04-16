@@ -48,17 +48,18 @@ Driver::Session_component * Driver::Root::_create_session(const char *args)
 	Session_component * sc = nullptr;
 
 	try {
-		sc = new (md_alloc()) Session_component(_env,
-		                                        _sessions,
-		                                        session_label_from_args(args),
-		                                        session_resources_from_args(args),
-		                                        session_diag_from_args(args));
+		Session::Label const label  { session_label_from_args(args) };
+		Session_policy const policy { label, _env.config.xml()      };
 
-		Session_policy const policy { sc->_label, _env.config.xml() };
+		sc = new (md_alloc())
+			Session_component(_env, _sessions, label,
+			                  session_resources_from_args(args),
+			                  session_diag_from_args(args),
+			                  policy.attribute_value("info", false));
+
 		policy.for_each_sub_node("device", [&] (Xml_node node) {
 			sc->add(node.attribute_value("name", Driver::Device::Name())); });
 	} catch (Session_policy::No_policy_defined) {
-		if (sc) { Genode::destroy(md_alloc(), sc); }
 		error("Invalid session request, no matching policy for ",
 		      "'", label_from_args(args).string(), "'");
 		throw Service_denied();

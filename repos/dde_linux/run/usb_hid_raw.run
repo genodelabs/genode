@@ -79,7 +79,7 @@ proc platform_drv_config_non_x86 {} {
 				<property     name="dr_mode"    value="host"/>
 				<property     name="snps,dis_u2_susphy_quirk"/>
 			</device>
-			<policy label="usb_drv -> "> <device name="usb_host_2"/> </policy>
+			<policy label="usb_drv -> " info="yes"> <device name="usb_host_2"/> </policy>
 		}
 	}
 	if {[have_board imx6q_sabrelite]} {
@@ -98,7 +98,7 @@ proc platform_drv_config_non_x86 {} {
 				<property  name="fsl,usbmisc" value="usbmisc_imx"/>
 				<property  name="dr_mode"     value="host"/>
 			</device>
-			<policy label="usb_drv -> ">
+			<policy label="usb_drv -> " info="yes">
 				<device name="mxs_phy"/>
 				<device name="usbmisc_imx"/>
 				<device name="imx_usb"/>
@@ -112,7 +112,7 @@ proc platform_drv_config_non_x86 {} {
 				<irq          number="9"/>
 				<power-domain name="usb"/>
 			</device>
-			<policy label="usb_drv -> "> <device name="dwc_otg"/> </policy>
+			<policy label="usb_drv -> " info="yes"> <device name="dwc_otg"/> </policy>
 		}
 	}
 	return ""

@@ -76,6 +76,12 @@ class Platform::Connection : public Genode::Connection<Session>,
 				return Client::acquire_device(name); });
 		}
 
+		Capability<Device_interface> acquire_device()
+		{
+			return retry_with_upgrade(Ram_quota{6*1024}, Cap_quota{6}, [&] () {
+				return Client::acquire_single_device(); });
+		}
+
 		Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override
 		{
 			return retry_with_upgrade(Ram_quota{size}, Cap_quota{2}, [&] () {
@@ -92,25 +98,6 @@ class Platform::Connection : public Genode::Connection<Session>,
 				}
 			}  catch (Xml_node::Invalid_syntax) {
 				warning("Devices rom has invalid XML syntax"); }
-		}
-
-		Capability<Device_interface> device_by_index(unsigned idx)
-		{
-			Capability<Device_interface> cap;
-
-			with_xml([&] (Xml_node & xml) {
-				try {
-					Xml_node node = xml.sub_node(idx);
-					Device_name name = node.attribute_value("name",
-					                                         Device_name());
-					cap = acquire_device(name.string());
-				} catch(Xml_node::Nonexistent_sub_node) {
-					error(__func__, ": invalid device index ", idx);
-					error("device ROM content: ", xml);
-				}
-			});
-
-			return cap;
 		}
 
 		Capability<Device_interface> device_by_type(char const * type)

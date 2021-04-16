@@ -31,6 +31,9 @@ struct Platform::Client : Genode::Rpc_client<Session>
 	Capability<Device_interface> acquire_device(Device_name const &name) override {
 		return call<Rpc_acquire_device>(name); }
 
+	Capability<Device_interface> acquire_single_device() override {
+		return call<Rpc_acquire_single_device>(); }
+
 	void release_device(Capability<Device_interface> device) override {
 		call<Rpc_release_device>(device); }
 

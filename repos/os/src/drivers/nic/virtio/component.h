@@ -17,7 +17,6 @@
 #include <base/heap.h>
 #include <base/log.h>
 #include <base/signal.h>
-#include <irq_session/client.h>
 #include <nic/component.h>
 #include <root/component.h>
 #include <util/misc_math.h>
@@ -154,7 +153,6 @@ class Virtio_nic::Device : Noncopyable
 		Hardware_features   const _hw_features;
 		Rx_queue_type             _rx_vq;
 		Tx_queue_type             _tx_vq;
-		Irq_session_client        _irq;
 
 		void _init_virtio_device()
 		{
@@ -294,7 +292,6 @@ class Virtio_nic::Device : Noncopyable
 
 		Device(Genode::Env             &env,
 		       Virtio::Device          &device,
-		       Irq_session_capability   irq_cap,
 		       Genode::Xml_node  const &xml)
 		try :
 			_verbose     { xml.attribute_value("verbose", false) },
@@ -305,8 +302,7 @@ class Virtio_nic::Device : Noncopyable
 			               _buf_size(RX_VQ, xml, "rx_buffer_size") },
 			_tx_vq       { env.ram(), env.rm(),
 			               _vq_size(TX_VQ, xml, "tx_queue_size"),
-			               _buf_size(TX_VQ, xml, "tx_buffer_size") },
-			_irq         { irq_cap }
+			               _buf_size(TX_VQ, xml, "tx_buffer_size") }
 		{ }
 		catch (Tx_queue_type::Invalid_buffer_size)
 		{
@@ -345,7 +341,7 @@ class Virtio_nic::Device : Noncopyable
 			if ((reasons & IRQ_CONFIG_CHANGE) && _hw_features.link_status_available) {
 				handle_link_state();
 			}
-			_irq.ack_irq();
+			_device.irq_ack();
 		}
 
 		bool tx_vq_write_pkt(char     const *pkt_base,
@@ -409,8 +405,8 @@ class Virtio_nic::Device : Noncopyable
 		void init(Genode::Signal_context_capability irq_handler)
 		{
 			_setup_virtio_queues();
-			_irq.sigh(irq_handler);
-			_irq.ack_irq();
+			_device.irq_sigh(irq_handler);
+			_device.irq_ack();
 		}
 };
 
@@ -528,14 +524,13 @@ class Virtio_nic::Session_component : public Nic::Session_component,
 		Session_component(Genode::Env             &env,
 		                  Genode::Allocator       &rx_block_md_alloc,
 		                  Virtio::Device          &device,
-                          Irq_session_capability   irq_cap,
 		                  Genode::Xml_node  const &xml,
 		                  Genode::size_t    const  tx_buf_size,
 		                  Genode::size_t    const  rx_buf_size)
 		:
 			Nic::Session_component { tx_buf_size, rx_buf_size, Genode::CACHED,
 			                         rx_block_md_alloc, env },
-			Device                 { env, device, irq_cap, xml },
+			Device                 { env, device, xml },
 			_irq_handler           { env.ep(), *this, &Session_component::_handle_irq },
 			_link_up               { link_state() }
 		{
@@ -562,7 +557,6 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 		Genode::Env            &_env;
 		Virtio::Device         &_device;
 		Attached_rom_dataspace &_config_rom;
-		Irq_session_capability  _irq_cap;
 
 		Session_component *_create_session(const char *args) override
 		{
@@ -583,7 +577,7 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 
 			try {
 				return new (md_alloc()) Session_component(
-					_env, *md_alloc(), _device, _irq_cap, _config_rom.xml(),
+					_env, *md_alloc(), _device, _config_rom.xml(),
 					tx_buf_size, rx_buf_size);
 			} catch (...) { throw Service_denied(); }
 		}
@@ -593,15 +587,13 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 		Root(Env                    &env,
 		     Allocator              &md_alloc,
 		     Virtio::Device         &device,
-		     Irq_session_capability  irq_cap,
 		     Attached_rom_dataspace &config_rom)
 		:
 			Root_component<Session_component,
 			               Genode::Single_client> { env.ep(), md_alloc },
 			_env                                  { env },
 			_device                               { device },
-			_config_rom                           { config_rom },
-			_irq_cap                              { irq_cap }
+			_config_rom                           { config_rom }
 		{ }
 };
 
@@ -681,10 +673,9 @@ class Genode::Uplink_client : public Virtio_nic::Device,
 		Uplink_client(Env                         &env,
 		              Allocator                   &alloc,
 		              Virtio::Device              &device,
-		              Irq_session_capability       irq_cap,
 		              Genode::Xml_node      const &xml)
 		:
-			Device             { env, device, irq_cap, xml },
+			Device             { env, device, xml },
 			Uplink_client_base { env, alloc, read_mac_address() },
 			_irq_handler       { env.ep(), *this, &Uplink_client::_handle_irq }
 		{

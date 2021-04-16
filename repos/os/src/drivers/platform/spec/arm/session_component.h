@@ -45,7 +45,8 @@ class Driver::Session_component
 		                  Session_registry & registry,
 		                  Label      const & label,
 		                  Resources  const & resources,
-		                  Diag       const & diag);
+		                  Diag       const & diag,
+		                  bool       const   info);
 		~Session_component();
 
 		Heap         & heap();
@@ -69,6 +70,7 @@ class Driver::Session_component
 
 		Rom_session_capability devices_rom() override;
 		Device_capability acquire_device(Device_name const &) override;
+		Device_capability acquire_single_device() override;
 		void release_device(Device_capability) override;
 		Ram_dataspace_capability alloc_dma_buffer(size_t, Cache) override;
 		void free_dma_buffer(Ram_dataspace_capability ram_cap) override;
@@ -98,6 +100,7 @@ class Driver::Session_component
 		List<Dma_buffer>          _buffer_list { };
 		Dynamic_rom_session       _rom_session { _env.env.ep(), _env.env.ram(),
 		                                         _env.env.rm(), *this    };
+		bool const                _info;
 
 		/*
 		 * Noncopyable
