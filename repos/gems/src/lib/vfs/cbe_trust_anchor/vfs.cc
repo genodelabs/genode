@@ -20,89 +20,15 @@
 
 /* OpenSSL includes */
 #include <openssl/sha.h>
-#include <openssl/aes.h>
 
 /* CBE includes */
 #include <cbe/vfs/io_job.h>
 
-namespace Aes_cbc
-{
-	struct Iv
-	{
-		unsigned char values[16];
-	};
-
-	void encrypt_without_iv(unsigned char       *ciphertext_base,
-	                        size_t               ciphertext_size,
-	                        unsigned char const *plaintext_base,
-	                        unsigned char const *key_base,
-	                        size_t               key_size);
-
-	void decrypt_without_iv(unsigned char       *plaintext_base,
-	                        size_t               plaintext_size,
-	                        unsigned char const *ciphertext_base,
-	                        unsigned char const *key_base,
-	                        size_t               key_size);
-}
-
-
-/**
- * Clean up crypto relevant data which would stay on the stack otherwise
- */
-template <typename T, typename S>
-static void inline cleanup_crypto_data(T &t, S &s)
-{
-	Genode::memset(&t,  0, sizeof(t));
-	Genode::memset(&s,  0, sizeof(s));
-
-	/* trigger compiler to not drop the memsets */
-	asm volatile(""::"r"(&t),"r"(&s):"memory");
-}
-
-
-void Aes_cbc::encrypt_without_iv(unsigned char       *ciphertext_base,
-                                 size_t               ciphertext_size,
-                                 unsigned char const *plaintext_base,
-                                 unsigned char const *key_base,
-                                 size_t               key_size)
-{
-	AES_KEY aes_key;
-	if (AES_set_encrypt_key(key_base, key_size * 8, &aes_key)) {
-		class Failed_to_set_key { };
-		throw Failed_to_set_key { };
-	}
-	Aes_cbc::Iv iv { };
-	Genode::memset(iv.values, 0, sizeof(iv.values));
-	AES_cbc_encrypt(
-		plaintext_base, ciphertext_base, ciphertext_size, &aes_key, iv.values,
-		AES_ENCRYPT);
-
-	cleanup_crypto_data(aes_key, iv);
-}
-
-
-void Aes_cbc::decrypt_without_iv(unsigned char       *plaintext_base,
-                                 size_t               plaintext_size,
-                                 unsigned char const *ciphertext_base,
-                                 unsigned char const *key_base,
-                                 size_t               key_size)
-{
-	AES_KEY aes_key;
-	if (AES_set_decrypt_key(key_base, key_size * 8, &aes_key)) {
-		class Failed_to_set_key { };
-		throw Failed_to_set_key { };
-	}
-	Aes_cbc::Iv iv { };
-	Genode::memset(iv.values, 0, sizeof(iv.values));
-	AES_cbc_encrypt(
-		ciphertext_base, plaintext_base, plaintext_size, &aes_key, iv.values,
-		AES_DECRYPT);
-
-	cleanup_crypto_data(aes_key, iv);
-}
-
+/* local includes */
+#include <aes_256.h>
 
 enum { PRIVATE_KEY_SIZE = 32 };
+enum { PASSPHRASE_HASH_SIZE = 32 };
 
 
 namespace Vfs_cbe_trust_anchor {
@@ -215,7 +141,7 @@ class Trust_anchor
 				Genode::memcpy(
 					key_plaintext.value, _encrypt_key.value, Key::KEY_LEN);
 
-				Aes_cbc::encrypt_without_iv(
+				Aes_256::encrypt_with_zeroed_iv(
 					_encrypt_key.value,
 					Key::KEY_LEN,
 					key_plaintext.value,
@@ -247,7 +173,7 @@ class Trust_anchor
 				Genode::memcpy(
 					key_ciphertext.value, _decrypt_key.value, Key::KEY_LEN);
 
-				Aes_cbc::decrypt_without_iv(
+				Aes_256::decrypt_with_zeroed_iv(
 					_decrypt_key.value,
 					Key::KEY_LEN,
 					key_ciphertext.value,
@@ -336,20 +262,35 @@ class Trust_anchor
 				if (!_read_key_file_finished()) {
 					break;
 				}
-				if (_key_io_job_buffer.size == PRIVATE_KEY_SIZE) {
+				if (_key_io_job_buffer.size == Aes_256_key_wrap::CIPHERTEXT_SIZE) {
 
-					Aes_cbc::decrypt_without_iv(
+					bool private_key_corrupt;
+					Aes_256_key_wrap::unwrap_key(
 						_private_key.value,
-						PRIVATE_KEY_SIZE,
+						sizeof(_private_key.value),
+						private_key_corrupt,
 						(unsigned char *)_key_io_job_buffer.base,
+						_key_io_job_buffer.size,
 						(unsigned char *)_passphrase_hash_buffer.base,
 						_passphrase_hash_buffer.size);
 
-					_job_state   = Job_state::COMPLETE;
-					_job_success = true;
+					if (private_key_corrupt) {
+
+						Genode::error("failed to unwrap the private key");
+						_job_success = false;
+
+					} else {
+
+						_job_success = true;
+					}
+					_job_state = Job_state::COMPLETE;
 					progress = true;
 
 				} else {
+
+					Genode::error(
+						"content read from file 'encrypted_private_key' "
+						"has unexpected size");
 
 					_job_state   = Job_state::COMPLETE;
 					_job_success = false;
@@ -396,11 +337,12 @@ class Trust_anchor
 					_private_key_io_job_buffer.base,
 					_private_key_io_job_buffer.size);
 
-				_key_io_job_buffer.size = PRIVATE_KEY_SIZE;
-				Aes_cbc::encrypt_without_iv(
+				_key_io_job_buffer.size = Aes_256_key_wrap::CIPHERTEXT_SIZE;
+				Aes_256_key_wrap::wrap_key(
 					(unsigned char *)_key_io_job_buffer.base,
 					_key_io_job_buffer.size,
 					(unsigned char *)_private_key_io_job_buffer.base,
+					_private_key_io_job_buffer.size,
 					(unsigned char *)_passphrase_hash_buffer.base,
 					_passphrase_hash_buffer.size);
 
@@ -643,7 +585,7 @@ class Trust_anchor
 
 		struct Key_io_job_buffer : Util::Io_job::Buffer
 		{
-			char buffer[PRIVATE_KEY_SIZE] { };
+			char buffer[Aes_256_key_wrap::CIPHERTEXT_SIZE] { };
 
 			Key_io_job_buffer()
 			{
@@ -652,8 +594,19 @@ class Trust_anchor
 			}
 		};
 
-		Key_io_job_buffer _key_io_job_buffer { };
-		Key_io_job_buffer _passphrase_hash_buffer { };
+		struct Passphrase_hash_buffer : Util::Io_job::Buffer
+		{
+			char buffer[PASSPHRASE_HASH_SIZE] { };
+
+			Passphrase_hash_buffer()
+			{
+				Buffer::base = buffer;
+				Buffer::size = sizeof (buffer);
+			}
+		};
+
+		Key_io_job_buffer      _key_io_job_buffer      { };
+		Passphrase_hash_buffer _passphrase_hash_buffer { };
 
 		bool _check_key_file(Path const &path)
 		{
