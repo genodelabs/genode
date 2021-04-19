@@ -92,11 +92,11 @@ class Lan9118_base
 			{ }
 		};
 
-		Genode::Attached_dataspace            _mmio;
-		volatile Genode::uint32_t            *_reg_base;
-		Timer::Connection                     _timer;
-		Nic::Mac_address                      _mac_addr { };
-		Genode::Irq_session_client            _irq;
+		Platform::Device::Mmio    &_mmio;
+		Platform::Device::Irq     &_irq;
+		volatile Genode::uint32_t *_reg_base { _mmio.local_addr<Genode::uint32_t>() };
+		Timer::Connection          _timer;
+		Nic::Mac_address           _mac_addr { };
 
 		/**
 		 * Read 32-bit wide MMIO register
@@ -249,7 +249,7 @@ class Lan9118_base
 			/* acknowledge all pending irqs */
 			_reg_write(INT_STS, ~0);
 
-			_irq.ack_irq();
+			_irq.ack();
 		}
 
 		void _drv_rx_copy_pkt(Genode::size_t    size,
@@ -279,18 +279,15 @@ class Lan9118_base
 		 */
 		class Device_not_supported { };
 
-		Lan9118_base(Genode::Io_mem_dataspace_capability ds_cap,
-		             Genode::Irq_session_capability      irq_cap,
-		             Genode::Signal_context_capability   irq_handler,
-		             Genode::Env                       & env)
+		Lan9118_base(Platform::Device::Mmio           &mmio,
+		             Platform::Device::Irq            &irq,
+		             Genode::Signal_context_capability irq_handler,
+		             Genode::Env                      &env)
 		:
-			_mmio        { env.rm(), ds_cap },
-			_reg_base    { _mmio.local_addr<Genode::uint32_t>() },
-			_timer       { env },
-			_irq         { irq_cap }
+			_mmio(mmio), _irq(irq), _timer(env)
 		{
 			_irq.sigh(irq_handler);
-			_irq.ack_irq();
+			_irq.ack();
 
 			unsigned long const id_rev     = _reg_read(ID_REV),
 			                    byte_order = _reg_read(BYTE_TEST);
@@ -443,17 +440,17 @@ class Lan9118 : public Nic::Session_component,
 		 *
 		 * \throw  Device_not_supported
 		 */
-		Lan9118(Genode::Io_mem_dataspace_capability ds_cap,
-		        Genode::Irq_session_capability      irq_cap,
-		        Genode::size_t const                tx_buf_size,
-		        Genode::size_t const                rx_buf_size,
-		        Genode::Allocator                 & rx_block_md_alloc,
-		        Genode::Env                       & env)
+		Lan9118(Platform::Device::Mmio &mmio,
+		        Platform::Device::Irq  &irq,
+		        Genode::size_t   const  tx_buf_size,
+		        Genode::size_t   const  rx_buf_size,
+		        Genode::Allocator      &rx_block_md_alloc,
+		        Genode::Env            &env)
 		:
 			Session_component               { tx_buf_size, rx_buf_size, Genode::UNCACHED,
 			                                  rx_block_md_alloc, env },
 			Genode::Signal_handler<Lan9118> { env.ep(), *this, &Lan9118::_handle_irq },
-			Lan9118_base                    { ds_cap, irq_cap, *this, env }
+			Lan9118_base                    { mmio, irq, *this, env }
 		{ }
 
 		/**************************************
@@ -553,13 +550,13 @@ class Genode::Uplink_client : public Signal_handler<Uplink_client>,
 
 	public:
 
-		Uplink_client(Env                         &env,
-		              Allocator                   &alloc,
-		              Io_mem_dataspace_capability  ds_cap,
-		              Irq_session_capability       irq_cap)
+		Uplink_client(Env                    &env,
+		              Allocator              &alloc,
+		              Platform::Device::Mmio &mmio,
+		              Platform::Device::Irq  &irq)
 		:
 			Signal_handler<Uplink_client> { env.ep(), *this, &Uplink_client::_handle_irq },
-			Lan9118_base                  { ds_cap, irq_cap, *this, env },
+			Lan9118_base                  { mmio, irq, *this, env },
 			Uplink_client_base            { env, alloc, _mac_addr }
 		{
 			_drv_handle_link_state(true);
