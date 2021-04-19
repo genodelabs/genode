@@ -4,7 +4,7 @@ LIBC_GEN_ARM_DIR = $(LIBC_DIR)/lib/libc/arm/gen
 
 #FILTER_OUT_S += rfork_thread.S sigsetjmp.S setjmp.S _setjmp.S divsi3.S
 FILTER_OUT_S += rfork_thread.S divsi3.S setjmp.S _setjmp.S
-FILTER_OUT_C += _set_tp.c fabs.c frexp.c modf.c
+FILTER_OUT_C += _set_tp.c fabs.c frexp.c modf.c arm_initfini.c
 
 INC_DIR += $(LIBC_DIR)/lib/libc/arm/softfloat
 INC_DIR += $(LIBC_DIR)/lib/libc/softfloat
