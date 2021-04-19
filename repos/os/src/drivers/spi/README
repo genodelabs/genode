@@ -1,0 +1,113 @@
+This directory contains the implementation of the Spi driver component.
+
+Brief
+=====
+
+The Serial Protocol Interface driver supports master mode ecspi only for imx8q
+based board. A platform connection is used to retrieve device's capabilities.
+The platform driver is expected to be configured the following way:
+
+!<!-- Spi controller ecspi bus 1 -->
+!<config>
+!  <device name="ecspi1">
+!    <!-- ecspi1 iomem ctl register -->
+!    <io_mem address="0x30820000" size="0x1000"/>
+!
+!    <!-- ecspi1 irq -->
+!    <irq number="63"/>
+!
+!    <!-- ecspi bus1 clock -->
+!    <clock  name="ecspi1_clk_root"
+!            driver_name="ecspi1_root_clk"
+!            parent="system_pll3_clk"/>
+!    <clock  name="ecspi1_gate"/>
+!  </device>
+!
+!  <policy label_prefix="imx8q_evk_spi_drv"> <device name="ecspi1"/> </policy>
+!</config>
+
+The io_mem and the irq_number may change from one bus to another.
+
+The driver can be extended to another platform. The specific platform
+implementation is expected to define
+'Spi::Driver *Spi::initialize(Genode::Env &, Xml_node const &);' symbol declared
+in 'spi_driver.h'. The initialize function is in-charge of initializing the
+platform's specific driver that must implement the 'Spi::Driver' interface
+which is also declared in 'spi_driver.h'. An example of the initialize function
+can be found in 'os/src/drivers/spi/imx8q/imx8q_spi_init.cc' and driver
+implementation in 'os/src/drivers/spi/imx8q/ecspi/ecspi_driver.h'.
+
+The driver can be extended to support more features of the Spi controller. Thus
+the initialize function can choose to use one backend or another depending of
+the driver configuration. Currently only the Enhanced Configurable Serial Protocol
+Interface (aka ecspi) FIFO transfer is supported on Imx8q. Other backends could
+be created to support ecspi DMA transfer or even Quad Spi. Specialized backend
+reside in there respective platform directory. The ecspi FIFO backend for imx8q
+can be found in 'os/src/drivers/spi/imx8q/ecspi/ecspi_driver.h'.
+
+Configuration
+=============
+
+The driver acts as a multiplexer that transfers burst between slaves and the
+client components through an 'Spi::Session'. A client component can create a
+new spi session using an 'Spi::Connection'. The slave select is configured per
+session as well as settings of the bus that may change from one slave device to
+another. Here is how to create a session_policy:
+
+!<start name="imx8q_spi_drv">
+!  <resource name="RAM" quantum="1M"/>
+!  <provides> <service name="Spi"/> </provides>
+!
+!  <config loopback="yes" verbose="no">
+!    <!-- Session policy -->
+!    <policy label_prefix="Loopback"
+!            slave_select="0x0"
+!            clock_phase="1"
+!            data_idle_state="1"/>
+!  </config>
+!
+!  <route>
+!    <any-service> <parent/> <any-child/> </any-service>
+!  </route>
+!</start>
+
+The driver's config accepts four non mandatory attributes, 'loopback' which is
+boolean (default: no) and allow you to specify that you want every transmitted
+burst to be shift out on the RX line of the spi controller. The 'verbose' boolean
+attribute (default: no) allows you to configure log verbosity. And finally the
+timeout attribute (default: 1000) that allows you to set a timeout in milliseconds
+for bus operations. The 'clock_divider' attribute (default: 0) allow you to set
+a clock divider, on imx8q platform, the first 4 bits are the pre_divider and the
+next 4 bits are the post_divider.
+
+Each session policy has two mandatory attributes, 'label_prefix' and 'slave_select'
+which correspond to the spi's 'slave_select' line number where your slave device
+is connected. The session policy can contain multiple non obligatory arguments:
+ - mode                  : Control the relation between clk phase and polarity
+ - clock_idle_state      : Control clock line inactive state
+ - data_lines_idle_state : Control data lines inactive state
+ - ss_line_active_state  : Control the slave select line active state
+
+More details about the session setting can be found in
+'os/include/spi_session/spi_session.h'.
+
+Limitation & pitfalls
+=====================
+
+The imx8q's ecspi driver is fully synchronous.
+
+It is known that on the imx8q_evk board only one slave select is supported, it
+is line 0. Multiple 'slave select' lines can be emulated using GPIO instead.
+This implies that the client component manage the 'slave select' line by itself
+and set it to an appropriate value before calling the spi transfer RPC.
+Also, it is needed to take in consideration that the client component responsible
+of managing slave select state must support setting of the line
+('slave_select_polarity' has no effect on GPIOs), and guaranteeing that no other
+lines are active at the same time.
+
+Example
+=======
+
+An example of how to use the Spi component driver can be found in the test script
+'os/run/spi.run' and the test component that demonstrate how to interact with it
+here 'os/src/test/spi_shiftregister/'.

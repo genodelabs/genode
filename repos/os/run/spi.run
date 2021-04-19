@@ -1,0 +1,105 @@
+
+assert_spec arm_v8a
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src]
+import_from_depot [depot_user]/src/init
+import_from_depot [depot_user]/src/platform_drv
+
+set build_components {
+	core
+	timer
+	drivers/spi
+	test/spi_shiftregister
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+build $build_components
+
+set config  {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="platform_drv" caps="800" managing_system="yes">
+		<binary name="imx8mq_platform_drv"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Platform"/>
+			<service name="Regulator"/>
+		</provides>
+
+		<config>
+			<device name="ecspi1">
+				<!-- ecspi1 ctl register -->
+				<io_mem address="0x30820000" size="0x1000"/>
+				<irq number="63"/>
+				<clock  name="ecspi1_clk_root"
+				        driver_name="ecspi1_root_clk" parent="system_pll3_clk"/>
+				<clock  name="ecspi1_gate"/>
+			</device>
+
+			<policy label_prefix="imx8q_spi_drv"> <device name="ecspi1"/> </policy>
+		</config>
+	</start>
+
+	<start name="imx8q_spi_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Spi"/> </provides>
+
+		<config loopback="yes" verbose="no">
+			<policy label_prefix="Loopback"
+			        slave_select="0x0"
+			        mode="0"
+			        clock_idle_state="0"
+			        data_lines_idle_state="0"
+			        ss_line_active_state="1"/>
+		</config>
+		<route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="spi_shiftregister">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Spi"> <child name="imx8q_spi_drv" label="Loopback"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core
+	timer
+	imx8q_spi_drv
+	spi_shiftregister
+}
+
+build_boot_image $boot_modules
+
+run_genode_until forever

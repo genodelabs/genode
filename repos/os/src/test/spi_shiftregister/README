@@ -1,0 +1,8 @@
+spi_shiftregister uses loopback ability of the spi controller to shift any
+burst from the TX line to the RX line of that same controller. This enables us to
+test the spi driver without any device connected to the bus.
+
+The client does not require any specific configuration. As explained in the spi readme
+the session policy can predefine session's settings. Those settings can also be
+set programmatically by the client. Please have a look at the spi driver RPC's interface
+in 'os/include/spi_session/spi_session.h'.

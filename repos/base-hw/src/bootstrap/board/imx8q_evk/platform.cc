@@ -58,8 +58,10 @@ Bootstrap::Platform::Board::Board()
 		{ 0x303301C8, 0x0        },
 		{ 0x303301E8, 0x0        },
 		{ 0x303301EC, 0x0        },
-		{ 0x303301FC, 0x1        },
-		{ 0x30330200, 0x1        },
+		{ 0x303301F4, 0x8        }, /* ECSPI1_SCLK set SION 1 */
+		{ 0x303301F8, 0x8        }, /* ECSPI1_MOSI set SION 1 */
+		{ 0x303301FC, 0x9        }, /* ECSPI1_MISO set SION 1 */
+		{ 0x30330200, 0x9        }, /* ECSPI1_SS0  set SION 1 */
 		{ 0x3033021C, 0x10       }, /* Enable SION I2c2_scl */
 		{ 0x30330220, 0x10       }, /* Enable SION I2c2_sda */
 		{ 0x30330224, 0x10       },
