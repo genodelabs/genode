@@ -67,7 +67,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="vfs_block">
+	<start name="vfs_block" caps="120">
 		<resource name="RAM" quantum="5M"/>
 		<provides> <service name="Block"/> </provides>
 		<config>
