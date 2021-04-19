@@ -22,7 +22,6 @@
 
 /* local includes */
 #include "component.h"
-#include "platform_device.h"
 
 namespace Virtio_pci_nic {
 	using namespace Genode;
