@@ -221,7 +221,8 @@ class Platform::Session_component : public Rpc_object<Session>
 		Pci::Config::Delayer      &_delayer;
 		Device_bars_pool          &_devices_bars;
 		bool                       _iommu;
-		bool                       _msi_usage { true };
+		bool                       _msi_usage  { true };
+		bool                       _msix_usage { true };
 
 		/**
 		 * Registry of RAM dataspaces allocated by the session
@@ -499,8 +500,9 @@ class Platform::Session_component : public Rpc_object<Session>
 		{
 			Session_policy const policy { _label, _config.xml() };
 
-			typedef String<10> Mode;
-			_msi_usage = policy.attribute_value("irq_mode", Mode()) != "nomsi";
+			_msi_usage  = policy.attribute_value("msi", _msi_usage);
+			_msix_usage = _msi_usage &&
+			              policy.attribute_value("msix", _msix_usage);
 
 			/* check policy for non-pci devices */
 			policy.for_each_sub_node("device", [&] (Xml_node device_node) {
@@ -655,6 +657,11 @@ class Platform::Session_component : public Rpc_object<Session>
 		 */
 		bool msi_usage() const { return _msi_usage; }
 
+
+		/**
+		 * Check whether msi-x usage was explicitly switched off
+		 */
+		bool msix_usage() const { return _msix_usage; }
 
 		/***************************
 		 ** PCI session interface **

@@ -107,7 +107,7 @@ proc platform_drv_policy {} {
 			<policy label_prefix="ps2_drv">  <device name="PS2"/> </policy>
 			<policy label_prefix="nic_drv">  <pci class="ETHERNET"/> </policy>
 			<policy label_prefix="fb_drv">   <pci class="VGA"/> </policy>
-			<policy label_prefix="wifi_drv"> <pci class="WIFI"/> </policy>
+			<policy label_prefix="wifi_drv" msix="false"> <pci class="WIFI"/> </policy>
 			<policy label_prefix="usb_drv">  <pci class="USB"/> </policy>
 			<policy label_prefix="ahci_drv"> <pci class="AHCI"/> </policy>
 			<policy label_prefix="nvme_drv"> <pci class="NVME"/> </policy>

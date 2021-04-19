@@ -175,10 +175,11 @@ Genode::Irq_session_capability Platform::Device_component::irq(uint8_t id)
 
 	uint16_t const msi_cap  = _msi_cap();
 	uint16_t const msix_cap = _msix_cap();
-
+	bool const try_msi_msix = (_session.msi_usage()  && msi_cap) ||
+	                          (_session.msix_usage() && msix_cap);
 	_irq_session = construct_at<Irq_session_component>(_mem_irq_component,
 	                                                   _configure_irq(_irq_line, msi_cap, msix_cap),
-	                                                   (!_session.msi_usage() || (!msi_cap && !msix_cap)) ? ~0UL : _config_space,
+	                                                   try_msi_msix ? _config_space : ~0UL,
 	                                                   _env, _global_heap);
 	_env.ep().rpc_ep().manage(_irq_session);
 
@@ -186,7 +187,7 @@ Genode::Irq_session_capability Platform::Device_component::irq(uint8_t id)
 	bool msi_used = false;
 
 	if (_irq_session->msi()) {
-		if (msix_cap)
+		if (_session.msix_usage() && msix_cap)
 			msix_used = _setup_msix(msix_cap);
 		if (!msix_used && msi_cap)
 			msi_used = _setup_msi(msi_cap);

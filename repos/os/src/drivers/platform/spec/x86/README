@@ -66,13 +66,15 @@ the device specified by the triple, the device will not appear during device
 discovery by the client with the fuzzy pci class policy.
 
 
-By default the driver will try to use MSIs if the device and the used kernel
-supports it. This behaviour can be overwritten:
+By default the driver will try to use first MSI-X, then MSI and finally GSI.
+However, the MSI-X/MSI feature depends on the support by the used kernel and
+the PCI capabilities of the device. The MSI and MSI-X feature can be disabled
+explicitly by configuration, e.g.:
 
 !<start name="platform_drv" managing_system="yes">
 ! <resource name="RAM" quantum="8M"/>
 ! <config>
-!  <policy label_prefix="nic_drv" irq_mode="nomsi">
+!  <policy label_prefix="nic_drv" msi="false" msix="false">
 !  ...
 !  </policy>
 ! </config>

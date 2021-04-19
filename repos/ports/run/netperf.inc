@@ -180,7 +180,7 @@ source ${genode_dir}/repos/base/run/platform_drv.inc
 proc platform_drv_policy {} {
 	global use_wifi_driver
 	if { $use_wifi_driver } {
-		return {<policy label_prefix="nic_drv"> <pci class="WIFI"/> </policy>}}
+		return {<policy label_prefix="nic_drv" msix="false"> <pci class="WIFI"/> </policy>}}
 	return {<policy label_prefix="usb_host_drv"> <pci class="USB"/> </policy>}
 }
 
