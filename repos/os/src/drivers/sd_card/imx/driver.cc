@@ -284,7 +284,6 @@ Card_info Driver::_init()
 {
 	/* install IRQ signal */
 	_irq.sigh(_irq_handler);
-	_irq.ack();
 
 	/* configure host for initialization stage */
 	if (_reset()) {

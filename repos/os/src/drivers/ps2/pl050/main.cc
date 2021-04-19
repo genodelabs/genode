@@ -107,9 +107,6 @@ struct Ps2::Main
 
 		_irq_keyboard.sigh(_keyboard_irq_handler);
 		_irq_mouse   .sigh(_mouse_irq_handler);
-
-		_handle_irq_keyboard();
-		_handle_irq_mouse();
 	}
 };
 

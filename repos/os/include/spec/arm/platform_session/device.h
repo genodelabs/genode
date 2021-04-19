@@ -125,13 +125,31 @@ class Platform::Device::Irq : Noncopyable
 
 		/**
 		 * Acknowledge interrupt
+		 *
+		 * This method must be called by the interrupt handler.
 		 */
 		void ack() { _irq.ack_irq(); }
 
 		/**
 		 * Register interrupt signal handler
+		 *
+		 * The call of this method implies a one-time trigger of the interrupt
+		 * handler once the driver component becomes receptive to signals. This
+		 * artificial interrupt signal alleviates the need to place an explicit
+		 * 'Irq::ack' respectively a manual call of the interrupt handler
+		 * routine during the driver initialization.
+		 *
+		 * Furthermore, this artificial interrupt reforces drivers to be robust
+		 * against spurious interrupts.
 		 */
-		void sigh(Signal_context_capability sigh) { _irq.sigh(sigh); }
+		void sigh(Signal_context_capability sigh)
+		{
+			_irq.sigh(sigh);
+
+			/* trigger initial interrupt */
+			if (sigh.valid())
+				Signal_transmitter(sigh).submit();
+		}
 };
 
 #endif /* _INCLUDE__SPEC__ARM__PLATFORM_SESSION__DEVICE_H_ */

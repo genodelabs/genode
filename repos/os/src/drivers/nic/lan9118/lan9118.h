@@ -287,7 +287,6 @@ class Lan9118_base
 			_mmio(mmio), _irq(irq), _timer(env)
 		{
 			_irq.sigh(irq_handler);
-			_irq.ack();
 
 			unsigned long const id_rev     = _reg_read(ID_REV),
 			                    byte_order = _reg_read(BYTE_TEST);
