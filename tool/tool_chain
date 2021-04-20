@@ -165,15 +165,9 @@ HOST_GCC_VERSION := $(shell gcc -dumpfullversion -dumpversion)
 GNAT_OK = $(call check_equal_f,$(shell gnatmake --version | sed -n -e 's/GNATMAKE //p'),$(HOST_GCC_VERSION),\
             Need to have GNAT installed and the GNAT version must match the GCC version (found GCC $(HOST_GCC_VERSION)).)
 
-#
-# Check if 'gprbuild' is installed
-#
-GPRBUILD_OK = $(call check_nonempty_f,$(shell which gprbuild),\
-                Need to have 'gprbuild' installed.)
-
 TOOLS_OK = $(AUTOCONF_OK) $(AUTOCONFINST_OK) $(PKG_CONFIG_OK) $(CURSES_OK) \
            $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK) $(EXPAT_OK) \
-           $(GNAT_OK) $(GPRBUILD_OK)
+           $(GNAT_OK)
 
 ifneq ($(strip $(TOOLS_OK)),)
 $(error Please install missing tools.)
@@ -324,11 +318,15 @@ GCC_MAKE_OPT += $(MAKE_OPT) $(GCC_MAKE_OPT_$(PLATFORM))
 # We use the binaries 'objdump' and 'g++' as representatives for expressing
 # dependencies. All other programs will be generated as side effect.
 #
+# The 'gprbuild' tool is built from source because of a bug in the version
+# that comes with Ubuntu 18.04 (fixed by commit 361d080 on github).
+#
 
 BINUTILS_BOOTSTRAP_BINARIES           = $(BUILD_LOCATION)/bootstrap/binutils/binutils/objdump
 BINUTILS_BOOTSTRAP_INSTALLED_BINARIES = $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/objdump
 GCC_BOOTSTRAP_BINARIES                = $(BUILD_LOCATION)/bootstrap/gcc/gcc/xg++
 GCC_BOOTSTRAP_INSTALLED_BINARIES      = $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/g++
+GPRBUILD_BOOTSTRAP_INSTALLED_BINARIES = $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gprbuild
 
 BINUTILS_BINARIES           = $(BUILD_LOCATION)/$(PLATFORM)/binutils/binutils/objdump
 BINUTILS_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-objdump
@@ -510,18 +508,29 @@ $(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/gdb install $(MAKE_OPT) MAKEINFO=true
 	$(VEBOSE)strip $@
 
+
+$(BUILD_LOCATION)/bootstrap/gprbuild/Makefile:
+	$(ECHO) "$(BRIGHT_COL)preparing bootstrap gprbuild...$(DEFAULT_COL)"
+	$(VERBOSE)git clone -b v21.0.0 https://github.com/AdaCore/gprbuild.git $(dir $@)
+	$(VERBOSE)git clone -b v21.0.0 https://github.com/AdaCore/xmlada.git $(dir $@)/xmlada
+	$(VERBOSE)git clone -b v21.0.0 https://github.com/AdaCore/gprconfig_kb.git $(dir $@)/gprconfig_kb
+	$(VERBOSE)sed -i -e '/\<target name="\^\.\*-gnueabihf$$" \/>/d' $(dir $@)/gprconfig_kb/db/linker.xml
+	$(VERBOSE)sed -i -e '/\<target name="\^\.\*-linux\.\*" \/>/d' $(dir $@)/gprconfig_kb/db/linker.xml
+
+$(GPRBUILD_BOOTSTRAP_INSTALLED_BINARIES): $(BUILD_LOCATION)/bootstrap/gprbuild/Makefile $(GCC_BOOTSTRAP_INSTALLED_BINARIES)
+	$(ECHO) "$(BRIGHT_COL)building bootstrap gprbuild...$(DEFAULT_COL)"
+	$(VERBOSE)cd $(dir $<); CC=$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gcc ./bootstrap.sh \
+	          --with-xmlada=./xmlada --with-kb=./gprconfig_kb --prefix=$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)
+
+
 $(BUILD_LOCATION)/ali2dep/build/build.gpr:
 	$(ECHO) "$(BRIGHT_COL)preparing ali2dep...$(DEFAULT_COL)"
 	$(VERBOSE)git clone https://github.com/Componolit/ali2dep.git $(BUILD_LOCATION)/ali2dep
 	$(VERBOSE)sed -i -e '/Create_Missing_Dirs/d' $@
 
-#
-# Ubuntu 16.04 'gprconfig' looks for 'gnatgcc', so we create a symlink to 'gcc'
-#
-$(ALI2DEP_BINARY): $(GCC_BOOTSTRAP_INSTALLED_BINARIES) $(BUILD_LOCATION)/ali2dep/build/build.gpr
+$(ALI2DEP_BINARY): $(GCC_BOOTSTRAP_INSTALLED_BINARIES) $(GPRBUILD_BOOTSTRAP_INSTALLED_BINARIES) $(BUILD_LOCATION)/ali2dep/build/build.gpr
 	$(ECHO) "$(BRIGHT_COL)building ali2dep...$(DEFAULT_COL)"
-	$(VERBOSE)ln -sf gcc $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatgcc
-	$(VERBOSE)gprconfig --batch \
+	$(VERBOSE)$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gprconfig --batch --target=all \
 	          --config=Ada,,default,$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin,GNAT \
 	          --config=C,,,$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/,GCC \
 	          -o $(BUILD_LOCATION)/ali2dep/genode_bootstrap_tool_chain.cgpr
