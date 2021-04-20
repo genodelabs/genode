@@ -1,4 +1,4 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="16M" caps="200" binary="test-resource_yield">
 
 	<requires> <timer/> </requires>
 
@@ -13,26 +13,6 @@
 		<rom label="test-resource_yield"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-resource_yield" caps="200">
-			<resource name="RAM" quantum="16M"/>
-			<provides> <service name="ROM" /> </provides>
-			<config/>
-		</start>
-	</config>
+	<config/>
+
 </runtime>

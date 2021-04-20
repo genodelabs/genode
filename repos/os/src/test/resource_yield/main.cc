@@ -30,10 +30,10 @@
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/log.h>
-#include <base/signal.h>
 #include <timer_session/connection.h>
 #include <os/static_parent_services.h>
-#include <os/slave.h>
+#include <os/dynamic_rom_session.h>
+#include <base/child.h>
 
 namespace Test {
 	class Child;
@@ -274,30 +274,84 @@ class Test::Parent
 		Signal_handler<Parent> _timeout_handler {
 			_env.ep(), *this, &Parent::_handle_timeout };
 
-		struct Policy
-		:
-			private Static_parent_services<Pd_session, Cpu_session, Rom_session,
-			                               Log_session, Timer::Session>,
-			public Slave::Policy
+		struct Policy : public Genode::Child_policy
 		{
+			Env &_env;
+
 			Parent &_parent;
 
-			enum { SLAVE_CAPS = 50, SLAVE_RAM = 10*1024*1024 };
+			Static_parent_services<Pd_session, Cpu_session, Rom_session,
+			                       Log_session, Timer::Session>
+				_parent_services { _env };
+
+			Cap_quota   const _cap_quota { 50 };
+			Ram_quota   const _ram_quota { 10*1024*1024 };
+			Binary_name const _binary_name { "test-resource_yield" };
+
+			/*
+			 * Config ROM service
+			 */
+
+			struct Config_producer : Dynamic_rom_session::Content_producer
+			{
+				void produce_content(char *dst, Genode::size_t dst_len) override
+				{
+					Xml_generator xml(dst, dst_len, "config", [&] () {
+						xml.attribute("child", "yes"); });
+				}
+			} _config_producer { };
+
+			Dynamic_rom_session _config_session { _env.ep().rpc_ep(),
+			                                      ref_pd(), _env.rm(),
+			                                      _config_producer };
+
+			typedef Genode::Local_service<Dynamic_rom_session> Config_service;
+
+			Config_service::Single_session_factory _config_factory { _config_session };
+			Config_service                         _config_service { _config_factory };
 
 			void yield_response() override
 			{
 				_parent._yield_response();
 			}
 
-			Policy(Parent &parent, Env &env)
-			:
-				Static_parent_services(env),
-				Slave::Policy(env, Label("child"), "test-resource_yield",
-				              *this, env.ep().rpc_ep(),
-				              Cap_quota{SLAVE_CAPS}, Ram_quota{SLAVE_RAM}),
-				_parent(parent)
+			Policy(Parent &parent, Env &env) : _env(env), _parent(parent) { }
+
+			Name name() const override { return "child"; }
+
+			Binary_name binary_name() const override { return _binary_name; }
+
+			Pd_session           &ref_pd()           override { return _env.pd(); }
+			Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+
+			void init(Pd_session &pd, Pd_session_capability pd_cap) override
 			{
-				configure("<config child=\"yes\" />");
+				pd.ref_account(ref_pd_cap());
+				ref_pd().transfer_quota(pd_cap, _cap_quota);
+				ref_pd().transfer_quota(pd_cap, _ram_quota);
+			}
+
+			Route resolve_session_request(Service::Name const &service_name,
+			                              Session_label const &label,
+			                              Session::Diag const  diag) override
+			{
+				auto route = [&] (Service &service) {
+					return Route { .service = service,
+					               .label   = label,
+					               .diag    = diag }; };
+
+				if (service_name == "ROM" && label == "child -> config")
+					return route(_config_service);
+
+				Service *service_ptr = nullptr;
+				_parent_services.for_each([&] (Service &s) {
+					if (!service_ptr && service_name == s.name())
+						service_ptr = &s; });
+
+				if (!service_ptr)
+					throw Service_denied();
+
+				return route(*service_ptr);
 			}
 		};
 
