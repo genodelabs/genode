@@ -655,7 +655,6 @@ set default_test_pkgs {
 	test-ds_ownership
 	test-dynamic_config
 	test-dynamic_config_loader
-	test-dynamic_config_slave
 	test-entrypoint
 	test-expat
 	test-fault_detection
