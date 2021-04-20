@@ -29,7 +29,7 @@ screen absolute coordinates. The screen resolution is not determined
 automatically by the HID driver, but can be configured:
 
 !...
-!<config touchscreen width="1024" height="768" multitouch="no"/>
+!<config width="1024" height="768" multitouch="no"/>
 !...
 
 If a touchscreen is multi-touch-capable than the multitouch attribute gears
