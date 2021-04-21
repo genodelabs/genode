@@ -24,6 +24,7 @@
   <index name="Virtual machines">
     <pkg path="vbox5" info="VBox5 for running Linux (generic version)"/>
     <pkg path="vbox5-nova-sculpt" info="VBox5 for running Linux (NOVA version)" />
+    <pkg path="vbox5-nova-capture" info="VBox5 + Webcam (NOVA version)" />
   </index>
 
 </index>

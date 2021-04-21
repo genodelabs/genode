@@ -8,6 +8,7 @@ _/pkg/rom_reporter
 _/pkg/nic_router-nat
 _/pkg/vbox5-nova-sculpt
 _/pkg/vbox5
+_/pkg/vbox5-nova-capture
 _/pkg/wm
 _/pkg/themed_wm
 _/pkg/themed_decorator
