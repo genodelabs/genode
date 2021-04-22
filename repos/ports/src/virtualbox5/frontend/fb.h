@@ -145,10 +145,13 @@ class Genodefb :
 			/* save the new bitmap reference */
 			_display->QuerySourceBitmap(screen, _display_bitmap.asOutParam());
 
-			bool ok = (w <= (ULONG)_fb_mode.area.w()) &&
-			          (h <= (ULONG)_fb_mode.area.h());
+			bool const ok = (w <= (ULONG)_fb_mode.area.w()) &&
+			                (h <= (ULONG)_fb_mode.area.h());
 
-			if (ok) {
+			bool const changed = (w != (ULONG)_virtual_fb_mode.area.w()) ||
+			                     (h != (ULONG)_virtual_fb_mode.area.h());
+
+			if (ok && changed) {
 				Genode::log("fb resize : [", screen, "] ",
 				            _virtual_fb_mode.area, " -> ",
 				            w, "x", h,
@@ -163,7 +166,7 @@ class Genodefb :
 				_virtual_fb_mode = Fb_Genode::Mode { .area = { w, h } };
 
 				result = S_OK;
-			} else {
+			} else if (changed) {
 				Genode::log("fb resize : [", screen, "] ",
 				            _virtual_fb_mode.area, " -> ",
 				            w, "x", h, " ignored"
