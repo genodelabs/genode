@@ -93,7 +93,6 @@ void fireRuntimeErrorEvent(IEventSource* aSource, BOOL a_fatal,
 
 void Console::i_onAdditionsStateChange()
 {
-	dynamic_cast<GenodeConsole *>(this)->update_video_mode();
 }
 
 void GenodeConsole::update_video_mode()
