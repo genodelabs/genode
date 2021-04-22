@@ -1,0 +1,10 @@
+LICENSE   := BSD-3-Clause
+VERSION   := git
+DOWNLOADS := libyuv.git
+
+URL(libyuv) := https://chromium.googlesource.com/libyuv/libyuv
+DIR(libyuv) := libyuv
+REV(libyuv) := 8c8d907d29255ae0630f414e0e09ee9cca8f4bfc
+
+PATCHES     := src/lib/libyuv/constraints.patch
+
