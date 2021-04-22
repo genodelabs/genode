@@ -86,6 +86,11 @@ class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio
 			return io_mem.dataspace();
 		}
 
+		addr_t _local_addr()
+		{
+			return (addr_t)Attached_dataspace::local_addr<char>() + Range::start;
+		}
+
 	public:
 
 		struct Index { unsigned value; };
@@ -93,7 +98,7 @@ class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio
 		Mmio(Device &device, Index index)
 		:
 			Attached_dataspace(device._rm(), _ds_cap(device, index.value)),
-			Genode::Mmio((addr_t)(local_addr<char>() + Range::start))
+			Genode::Mmio(_local_addr())
 		{ }
 
 		explicit Mmio(Device &device) : Mmio(device, Index { 0 }) { }
@@ -101,11 +106,7 @@ class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio
 		size_t size() const { return Range::size; }
 
 		template <typename T>
-		T *local_addr()
-		{
-			void *ptr = Attached_dataspace::local_addr<char>() + Range::start;
-			return reinterpret_cast<T *>(ptr);
-		}
+		T *local_addr() { return reinterpret_cast<T *>(_local_addr()); }
 };
 
 
