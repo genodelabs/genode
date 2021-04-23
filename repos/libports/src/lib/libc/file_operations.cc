@@ -226,6 +226,9 @@ static void resolve_symlinks_except_last_element(char const *path, Absolute_path
 
 extern "C" int access(const char *path, int amode)
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks(path, resolved_path);
@@ -239,6 +242,9 @@ extern "C" int access(const char *path, int amode)
 
 extern "C" int chdir(const char *path)
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	struct stat stat_buf;
 	if ((stat(path, &stat_buf) == -1) ||
 	    (!S_ISDIR(stat_buf.st_mode))) {
@@ -338,6 +344,9 @@ __SYS_(int, fstat, (int libc_fd, struct stat *buf),
 
 __SYS_(int, fstatat, (int libc_fd, char const *path, struct stat *buf, int flags),
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	if (*path == '/') {
 		if (flags & AT_SYMLINK_NOFOLLOW)
 			return lstat(path, buf);
@@ -394,6 +403,9 @@ __SYS_(::off_t, lseek, (int libc_fd, ::off_t offset, int whence), {
 
 extern "C" int lstat(const char *path, struct stat *buf)
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(path, resolved_path);
@@ -407,6 +419,9 @@ extern "C" int lstat(const char *path, struct stat *buf)
 
 extern "C" int mkdir(const char *path, mode_t mode)
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(path, resolved_path);
@@ -519,6 +534,9 @@ __SYS_(int, msync, (void *start, ::size_t len, int flags),
 
 __SYS_(int, open, (const char *pathname, int flags, ...),
 {
+	if (!pathname)
+		return Errno(EFAULT);
+
 	Absolute_path resolved_path;
 
 	Plugin *plugin;
@@ -564,6 +582,9 @@ __SYS_(int, open, (const char *pathname, int flags, ...),
 
 __SYS_(int, openat, (int libc_fd, const char *path, int flags, ...),
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	va_list ap;
 	va_start(ap, flags);
 	mode_t mode = va_arg(ap, unsigned);
@@ -633,6 +654,9 @@ __SYS_(ssize_t, read, (int libc_fd, void *buf, ::size_t count), {
 
 extern "C" ssize_t readlink(const char *path, char *buf, ::size_t bufsiz)
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(path, resolved_path);
@@ -645,6 +669,9 @@ extern "C" ssize_t readlink(const char *path, char *buf, ::size_t bufsiz)
 
 extern "C" int rename(const char *oldpath, const char *newpath)
 {
+	if (!oldpath || !newpath)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_oldpath, resolved_newpath;
 		resolve_symlinks_except_last_element(oldpath, resolved_oldpath);
@@ -662,6 +689,9 @@ extern "C" int rename(const char *oldpath, const char *newpath)
 
 extern "C" int rmdir(const char *path)
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(path, resolved_path);
@@ -686,6 +716,9 @@ extern "C" int rmdir(const char *path)
 
 extern "C" int stat(const char *path, struct stat *buf)
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks(path, resolved_path);
