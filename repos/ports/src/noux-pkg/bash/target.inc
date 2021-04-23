@@ -19,4 +19,7 @@ CFLAGS += -DNO_MAIN_ENV_ARG=1
 # Prevent interactions with nonexisting tty driver
 CFLAGS += -DNO_TTY_DRIVER
 
+# Prevent link error with GCC 10, which defaults to -fno-common
+CFLAGS += -fcommon
+
 include $(call select_from_repositories,mk/noux.mk)
