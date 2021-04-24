@@ -88,6 +88,9 @@ struct Fs_query::Watched_file
 			xml.node("file", [&] () {
 				xml.attribute("name", _name);
 
+				if (query.attribute_value("size", false))
+					xml.attribute("size", dir.file_size(_name));
+
 				if (_rwx.writeable)
 					xml.attribute("writeable", "yes");
 

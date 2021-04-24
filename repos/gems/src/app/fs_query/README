@@ -12,3 +12,7 @@ content of the queried files is supplemented as body of the '<file>' nodes.
 The reported content is limited to 4 KiB per file. If the content is valid
 XML, the '<file>' node contains an attribute 'xml="yes"' indicating that
 the XML information is inserted as is. Otherwise, the content is sanitized.
+
+Furthermore, a query can contain a 'size="yes"' attribute. If set, the size of
+each queried file is reported as number of bytes through an attribute 'size' in
+the corresponding '<file>' node.
