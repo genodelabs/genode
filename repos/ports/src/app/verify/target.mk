@@ -23,6 +23,9 @@ CC_OPT += -DGPGRT_ENABLE_ES_MACROS \
           -DVERSION='"$(< $(GNUPG_SRC_DIR)/../VERSION)"' \
           -DGPG_USE_RSA
 
+# Prevent link error with GCC 10, which defaults to -fno-common
+CC_OPT += -fcommon
+
 CC_OPT_armor        += -Wno-pointer-sign
 CC_OPT_iobuf        += -Wno-pointer-sign
 CC_OPT_stringhelp   += -Wno-pointer-sign
