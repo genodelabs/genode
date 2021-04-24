@@ -23,6 +23,9 @@ CC_WARN = -Wall -Wno-address
 CC_OPT += $(addprefix -fno-builtin-, putchar toupper tolower)
 CC_C_OPT += -DARCH=i386 -DPLATFORM=pcbios -include compiler.h -DOBJECT=$(notdir $(*:.o=))
 
+# Prevent link error with GCC 10, which defaults to -fno-common
+CC_OPT += -fcommon
+
 #
 # Enable debugging of any iPXE object here via '-Ddebug_<object name>=<level>'.
 # 'level' may be one of 1, 3, 7.
