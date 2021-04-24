@@ -456,7 +456,6 @@ core_initcall(sock_init);
 struct net init_net;
 
 unsigned long *sysctl_local_reserved_ports;
-struct pernet_operations loopback_net_ops;
 
 
 /**
