@@ -35,6 +35,13 @@ one of the following filters:
   content into the '<remap>' node. The included ROM must have a '<remap>'
   top-level node.
 
+:<log>:
+
+  Logs debug information about key presses and releases to the component's 'Log'
+  session. An optional 'prefix' attribute can be provided in order to
+  distinguish multiple '<log>' filters. The given prefix is placed at the
+  beginning of each log message.
+
 :<merge>:
 
   Merges the results of any number of filters that appear as child nodes.

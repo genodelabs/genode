@@ -46,7 +46,8 @@ class Event_filter::Source
 			    || node.type() == "chargen"
 			    || node.type() == "merge"
 			    || node.type() == "button-scroll"
-			    || node.type() == "accelerate";
+			    || node.type() == "accelerate"
+			    || node.type() == "log";
 
 			return false;
 		}
