@@ -87,7 +87,18 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	 * This method is called as response to a failed USB-block-driver
 	 * initialization.
 	 */
-	void discard_usb_block_drv() { Storage_device::state = FAILED; }
+	void discard_usb_block_drv()
+	{
+		Storage_device::state = FAILED;
+
+		/*
+		 * Exclude device from set of inspected file systems. This is needed
+		 * whenever the USB block driver fails sometime after an inspect button
+		 * is activated.
+		 */
+		for_each_partition([&] (Partition &partition) {
+			partition.file_system.inspected = false; });
+	}
 
 	bool discarded() const { return Storage_device::state == FAILED; }
 
