@@ -29,6 +29,7 @@
 
 enum { PRIVATE_KEY_SIZE = 32 };
 enum { PASSPHRASE_HASH_SIZE = 32 };
+enum { VERBOSE = 0 };
 
 
 namespace Vfs_cbe_trust_anchor {
@@ -987,7 +988,9 @@ class Trust_anchor
 				}
 			}
 			else {
-				Genode::log("No key file found, TA not initialized");
+				if (VERBOSE) {
+					Genode::log("No key file found, TA not initialized");
+				}
 			}
 		}
 

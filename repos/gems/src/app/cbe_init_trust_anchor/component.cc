@@ -25,7 +25,6 @@
 /* CBE includes */
 #include <cbe/vfs/io_job.h>
 
-
 using namespace Genode;
 
 class Main
@@ -215,9 +214,6 @@ class Main
 				if (result.complete) {
 					_init_file->drop_io_job();
 					_init_file.destruct();
-
-					Genode::log("Initialization finished successfully");
-
 					_env.parent().exit(result.success ? 0 : 1);
 					return;
 				}

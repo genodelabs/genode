@@ -27,6 +27,7 @@
 #include <cbe/init/configuration.h>
 #include <cbe/vfs/trust_anchor_vfs.h>
 
+enum { VERBOSE = 0 };
 
 using namespace Genode;
 
@@ -61,6 +62,7 @@ class Main
 				node.attribute_value("trust_anchor_dir", String_path());
 
 			if (!path.valid()) {
+
 				error("missing mandatory 'trust_anchor_dir' config attribute");
 				struct Missing_config_attribute { };
 				throw Missing_config_attribute();
@@ -196,7 +198,9 @@ class Main
 				if (req.valid()) {
 					_cbe_init.drop_completed_client_request(req);
 					if (req.success()) {
-						log("CBE initialization finished");
+						if (VERBOSE) {
+							log("CBE initialization finished");
+						}
 						_env.parent().exit(0);
 					} else {
 						error("request was not successful");;
