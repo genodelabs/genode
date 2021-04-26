@@ -77,7 +77,7 @@ struct Terminal::Main : Character_consumer
 		 * at construction time.
 		 */
 		if (_font.constructed())
-			_handle_config();
+			_config_handler.local_submit();
 	}
 
 	Watch_handler<Main> _glyphs_changed_handler {
