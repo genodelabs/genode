@@ -38,17 +38,19 @@ class Net::Port_allocator
 
 	private:
 
-		Genode::Bit_allocator<COUNT> _alloc { };
+		Genode::Bit_allocator<COUNT> _alloc            { };
+		Genode::uint16_t             _next_port_offset { 0 };
 
 	public:
 
 		struct Allocation_conflict : Genode::Exception { };
+		struct Out_of_indices      : Genode::Exception { };
 
-		Port alloc() { return Port(_alloc.alloc() + FIRST); }
+		Port alloc();
 
 		void alloc(Port const port);
 
-		void free(Port const port) { _alloc.free(port.value - FIRST); }
+		void free(Port const port);
 };
 
 
@@ -70,7 +72,9 @@ class Net::Port_allocator_guard
 
 		void free(Port const port);
 
-		Port_allocator_guard(Port_allocator & port_alloc, unsigned const max);
+		Port_allocator_guard(Port_allocator &port_alloc,
+		                     unsigned const  max,
+		                     bool     const  verbose);
 
 		unsigned max() const { return _max; }
 };

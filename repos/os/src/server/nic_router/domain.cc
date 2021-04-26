@@ -313,7 +313,7 @@ void Domain::init(Domain_tree &domains)
 		try {
 			Nat_rule &rule = *new (_alloc)
 				Nat_rule(domains, _tcp_port_alloc, _udp_port_alloc,
-				         _icmp_port_alloc, node);
+				         _icmp_port_alloc, node, _config.verbose());
 			_nat_rules.insert(&rule);
 			if (_config.verbose()) {
 				log("[", *this, "] NAT rule: ", rule); }

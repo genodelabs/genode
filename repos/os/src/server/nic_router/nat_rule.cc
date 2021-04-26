@@ -47,12 +47,13 @@ Nat_rule::Nat_rule(Domain_tree    &domains,
                    Port_allocator &tcp_port_alloc,
                    Port_allocator &udp_port_alloc,
                    Port_allocator &icmp_port_alloc,
-                   Xml_node const  node)
+                   Xml_node const  node,
+                   bool     const  verbose)
 :
 	_domain(_find_domain(domains, node)),
-	_tcp_port_alloc (tcp_port_alloc,  node.attribute_value("tcp-ports", 0UL)),
-	_udp_port_alloc (udp_port_alloc,  node.attribute_value("udp-ports", 0UL)),
-	_icmp_port_alloc(icmp_port_alloc, node.attribute_value("icmp-ids", 0UL))
+	_tcp_port_alloc (tcp_port_alloc,  node.attribute_value("tcp-ports", 0UL), verbose),
+	_udp_port_alloc (udp_port_alloc,  node.attribute_value("udp-ports", 0UL), verbose),
+	_icmp_port_alloc(icmp_port_alloc, node.attribute_value("icmp-ids", 0UL), verbose)
 { }
 
 
