@@ -26,8 +26,6 @@ enum {
 	MAX_VIRTUAL_MEMORY = (sizeof(void *) == 4 ? 256UL : 4096UL) * 1024 * 1024
 };
 
-static bool verbose = false;
-
 /* upcalls to rump kernel */
 struct rumpuser_hyperup _rump_upcalls;
 
@@ -202,7 +200,6 @@ int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 
 		/* convert to string */
 		Genode::snprintf((char *)buf, buflen, "%zu", rump_ram);
-		Genode::log("asserting rump kernel ", rump_ram / 1024, " KB of RAM");
 		return 0;
 	}
 
@@ -285,10 +282,6 @@ int rumpuser_malloc(size_t len, int alignment, void **memp)
 	int align = alignment ? Genode::log2(alignment) : 0;
 	*memp     = allocator()->alloc(len, align);
 
-	if (verbose)
-		Genode::log("ALLOC: p: ", *memp, ", s: ", len, ", a: ", align, " ", alignment);
-
-
 	return *memp ? 0 : -1;
 }
 
@@ -298,9 +291,6 @@ void rumpuser_free(void *mem, size_t len)
 	Genode::Mutex::Guard guard(alloc_mutex());
 
 	allocator()->free(mem, len);
-
-	if (verbose)
-		Genode::warning("FREE: p: ", mem, ", s: ", len);
 }
 
 
