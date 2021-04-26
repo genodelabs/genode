@@ -94,6 +94,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		bool                   _wrap = false;
 
+		bool                   _overflowed = false;
+
 		enum { DEFAULT_COLOR_INDEX_BG = 0, DEFAULT_COLOR_INDEX = 7, DEFAULT_TAB_SIZE = 8 };
 
 		struct Cursor_guard
@@ -116,8 +118,14 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				cs._char_cell_array.cursor(old_cursor_pos, true);
 
 				/* if cursor position changed, move cursor */
-				Terminal::Position &new_cursor_pos = cs._cursor_pos;
+				Terminal::Position       &new_cursor_pos = cs._cursor_pos;
+				Terminal::Boundary const &boundary       = cs._boundary;
 				if (old_cursor_pos != new_cursor_pos) {
+					cs._overflowed = (new_cursor_pos.x >= boundary.width);
+
+					/* make sure cursor pos is within range */
+					new_cursor_pos.constrain(boundary);
+
 					cs._char_cell_array.cursor(old_cursor_pos, false, true);
 					cs._char_cell_array.cursor(
 						new_cursor_pos, cs._cursor_visibility != CURSOR_INVISIBLE,  true);
@@ -179,8 +187,9 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void cursor_pos(Terminal::Position pos)
 		{
-			_cursor_pos.x = Genode::min(_boundary.width  - 1, pos.x);
-			_cursor_pos.y = Genode::min(_boundary.height - 1, pos.y);
+			Cursor_guard guard(*this);
+
+			_cursor_pos = pos;
 		}
 
 		void output(Terminal::Character c) override
@@ -219,7 +228,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				}
 
 			default:
-				if (c.value > 0x1f) {
+				if (c.value > 0x1f && !_overflowed) {
 					Cursor_guard guard(*this);
 					_char_cell_array.set_cell(_cursor_pos.x, _cursor_pos.y,
 					                          Char_cell(c, Font_face::REGULAR,
@@ -229,19 +238,17 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				break;
 			}
 
-			if (_cursor_pos.x >= _boundary.width) {
-				if (_wrap) {
-					_new_line();
-				} else {
-					_cursor_pos.x = _boundary.width-1;
-				}
+			if (_wrap && _overflowed) {
+				_new_line();
 			}
 		}
 
 		void cha(int pn) override
 		{
+			using namespace Genode;
+
 			Cursor_guard guard(*this);
-			_cursor_pos.x = Genode::max(pn - 1, _boundary.width);
+			_cursor_pos.x = pn - 1;
 		}
 
 		void civis() override
@@ -280,7 +287,6 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			Cursor_guard guard(*this);
 
 			_cursor_pos.x -= dx;
-			_cursor_pos.x = Genode::max(0, _cursor_pos.x);
 		}
 
 		void cud(int dy) override
@@ -288,7 +294,6 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			Cursor_guard guard(*this);
 
 			_cursor_pos.y += dy;
-			_cursor_pos.y = Genode::min(_boundary.height - 1, _cursor_pos.y);
 		}
 
 		void cuf(int dx) override
@@ -296,7 +301,6 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			Cursor_guard guard(*this);
 
 			_cursor_pos.x += dx;
-			_cursor_pos.x = Genode::min(_boundary.width - 1, _cursor_pos.x);
 		}
 
 		void cup(int y, int x) override
@@ -307,10 +311,6 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			x--;
 			y--;
 
-			using namespace Genode;
-			x = max(0, min(x, _boundary.width  - 1));
-			y = max(0, min(y, _boundary.height - 1));
-
 			_cursor_pos = Terminal::Position(x, y);
 		}
 
@@ -319,7 +319,6 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			Cursor_guard guard(*this);
 
 			_cursor_pos.y -= dy;
-			_cursor_pos.y = Genode::max(0, _cursor_pos.y);
 		}
 
 		void da(int) override { _missing(__func__); }
@@ -429,7 +428,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void ich(int pn) override
 		{
-			pn = Genode::min(_boundary.width - _cursor_pos.x, pn);
+			using namespace Genode;
+			pn = max(0, min(_boundary.width - _cursor_pos.x, pn));
 
 			for (int x = _boundary.width-1; _cursor_pos.x+pn < x; --x) {
 				_char_cell_array.set_cell(x, _cursor_pos.y,
@@ -565,13 +565,13 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		void vpa(int pn) override
 		{
 			Cursor_guard guard(*this);
-			_cursor_pos.x = pn;
+			_cursor_pos.y = pn - 1;
 		}
 
 		void vpb(int pn) override
 		{
 			Cursor_guard guard(*this);
-			_cursor_pos.x = Genode::min(0, _cursor_pos.x - pn);
+			_cursor_pos.y -= pn;
 		}
 
 		void decsc() override

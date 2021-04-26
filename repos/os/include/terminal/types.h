@@ -102,6 +102,16 @@ struct Terminal::Position
 		    && y >= 0 && y < boundary.height;
 	}
 
+	/**
+	 * Make sure that position lies within specified boundaries
+	 */
+	void constrain(Boundary const &boundary)
+	{
+		using namespace Genode;
+		x = max(0, min(boundary.width - 1, x));
+		y = max(0, min(boundary.height - 1, y));
+	}
+
 	void print(Genode::Output &out) const {
 		Genode::print(out, y, ",", x); }
 };
