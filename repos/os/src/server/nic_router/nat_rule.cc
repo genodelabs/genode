@@ -84,9 +84,9 @@ Nat_rule &Nat_rule_tree::find_by_domain(Domain &domain)
 void Nat_rule::print(Output &output) const
 {
 	Genode::print(output, "domain ", _domain,
-	                  " tcp-ports ", _tcp_port_alloc.max(),
-	                  " udp-ports ", _udp_port_alloc.max(),
-	                   " icmp-ids ", _icmp_port_alloc.max());
+	                  " tcp-ports ", _tcp_port_alloc.max_nr_of_ports(),
+	                  " udp-ports ", _udp_port_alloc.max_nr_of_ports(),
+	                   " icmp-ids ", _icmp_port_alloc.max_nr_of_ports());
 }
 
 
