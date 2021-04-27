@@ -483,6 +483,68 @@ append config {
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
 			<expect_press code="KEY_A" char="b"/> <expect_release code="KEY_A"/>
 
+			<message string="test remap of KEY_UNKNOWN"/>
+
+			<filter_config>
+				<output>
+					<remap>
+						<key name="KEY_UNKNOWN" to="KEY_A"/>
+						<input name="usb"/>
+					</remap>
+				</output>
+				<policy label_suffix="usb" input="usb"/>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<press code="KEY_UNKNOWN" />
+				<release code="KEY_UNKNOWN"/>
+			</usb>
+			<expect_press code="KEY_A" />
+			<expect_release code="KEY_A" />
+
+			<message string="test ignore-key"/>
+
+			<filter_config>
+				<output>
+					<remap>
+						<key name="KEY_UNKNOWN" to="KEY_A"/>
+						<ignore-key name="KEY_UNKNOWN"/>
+						<input name="usb"/>
+					</remap>
+				</output>
+				<policy label_suffix="usb" input="usb"/>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<press code="KEY_UNKNOWN" />
+				<release code="KEY_UNKNOWN"/>
+				<press code="KEY_B" />
+				<release code="KEY_B"/>
+			</usb>
+			<not_expect_press code="KEY_A" />
+			<not_expect_release code="KEY_A" />
+
+			<message string="test log output"/>
+
+			<filter_config>
+				<output>
+					<log prefix="Remapped ">
+						<remap>
+							<key name="KEY_UNKNOWN" to="KEY_A"/>
+							<log prefix="Unremapped ">
+								<input name="usb"/>
+							</log>
+						</remap>
+					</log>
+				</output>
+				<policy label_suffix="usb" input="usb"/>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<press code="KEY_UNKNOWN" />
+				<release code="KEY_UNKNOWN"/>
+			</usb>
+
 		</config>
 		<route>
 			<service name="Event">  <child name="event_filter"/> </service>
@@ -508,4 +570,11 @@ build_boot_image $boot_modules
 append qemu_args " -nographic "
 
 run_genode_until {.*child "test-event_filter" exited with exit value 0.*} 60
-
+grep_output {mapped event}
+unify_output {\t} { }
+compare_output_to {
+[init -> event_filter] Unremapped event #0 PRESS KEY_UNKNOWN 65534 key count: 1
+[init -> event_filter] Remapped event #0 PRESS KEY_A 65534 key count: 1
+[init -> event_filter] Unremapped event #1 RELEASE KEY_UNKNOWN key count: 0
+[init -> event_filter] Remapped event #1 RELEASE KEY_A key count: 0
+}

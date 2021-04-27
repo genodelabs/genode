@@ -335,6 +335,8 @@ struct Test::Main : Input_from_filter::Event_handler
 
 			_input_from_filter.input_expected(step.type() == "expect_press"   ||
 			                                  step.type() == "expect_release" ||
+			                                  step.type() == "not_expect_press" ||
+			                                  step.type() == "not_expect_release" ||
 			                                  step.type() == "expect_char"    ||
 			                                  step.type() == "expect_motion"  ||
 			                                  step.type() == "expect_wheel");
@@ -396,6 +398,7 @@ struct Test::Main : Input_from_filter::Event_handler
 			}
 
 			if (step.type() == "expect_press" || step.type() == "expect_release"
+			 || step.type() == "not_expect_press" || step.type() == "not_expect_release"
 			 || step.type() == "expect_char"  || step.type() == "expect_motion"
 			 || step.type() == "expect_wheel")
 				return;
@@ -424,6 +427,7 @@ struct Test::Main : Input_from_filter::Event_handler
 		Xml_node const step = _curr_step_xml();
 
 		bool step_succeeded = false;
+		bool step_failed    = false;
 
 		ev.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
 
@@ -438,12 +442,30 @@ struct Test::Main : Input_from_filter::Event_handler
 			 && ((!step.has_attribute("char") && !step.has_attribute("codepoint")) ||
 			     codepoint_of_step(step).value == codepoint.value))
 				step_succeeded = true;
+
+			if (step.type() == "not_expect_press") {
+				if (step.attribute_value("code", Value()) == Input::key_name(key)
+			    && ((!step.has_attribute("char") && !step.has_attribute("codepoint")) ||
+			        codepoint_of_step(step).value == codepoint.value))
+					step_failed = true;
+				else
+					step_succeeded = true;
+			}
 		});
 
 		ev.handle_release([&] (Input::Keycode key) {
 			if (step.type() == "expect_release"
 			 && step.attribute_value("code", Value()) == Input::key_name(key))
-				step_succeeded = true; });
+				step_succeeded = true;
+
+			if (step.type() == "not_expect_release") {
+				if (step.attribute_value("code", Value()) == Input::key_name(key))
+					step_failed = true;
+				else
+					step_succeeded = true;
+			}
+
+		});
 
 		ev.handle_wheel([&] (int x, int y) {
 			if (step.type() == "expect_wheel"
@@ -462,6 +484,11 @@ struct Test::Main : Input_from_filter::Event_handler
 			 && (!step.has_attribute("ax") || step.attribute_value("ax", 0L) == x)
 			 && (!step.has_attribute("ay") || step.attribute_value("ay", 0L) == y))
 				step_succeeded = true; });
+
+		if (step_failed) {
+			error("got unexpected event: ", step);
+			throw Exception();
+		}
 
 		if (step_succeeded) {
 			_advance_step();
