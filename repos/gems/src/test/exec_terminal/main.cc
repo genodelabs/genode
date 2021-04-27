@@ -87,9 +87,7 @@ void Exec_terminal::Main::_handle_config()
 
 	_init_config_reporter.generate([&] (Xml_generator &xml) {
 
-		if (config.has_attribute("exit"))
-			xml.node("empty");
-		else
+		if (!config.has_attribute("exit"))
 			_gen_init_config(xml, config);
 	});
 }
