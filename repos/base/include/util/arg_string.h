@@ -186,7 +186,8 @@ class Genode::Arg
 
 			/* unpack string to dst */
 			size_t num_chars = min(dst_len - 1, _value.len());
-			unpack_string(_value.start(), dst, num_chars);
+			if (unpack_string(_value.start(), dst, num_chars) < 0)
+				copy_cstring(dst, default_string, dst_len);
 		}
 
 		/**
