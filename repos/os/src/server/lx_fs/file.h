@@ -39,8 +39,12 @@ class Lx_fs::File : public Node
 			if (create) {
 				mode_t ugo = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 				ret = mknodat(dir, name, S_IFREG | ugo, 0);
+
 				if (ret == -1 && errno != EEXIST)
 					throw No_space();
+
+				if (errno == EEXIST)
+					throw Node_already_exists();
 			}
 
 			struct stat s;
