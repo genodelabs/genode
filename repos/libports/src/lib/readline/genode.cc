@@ -19,15 +19,6 @@
 using namespace Genode;
 
 
-/********************************************
- ** External references declared in tcap.h **
- ********************************************/
-
-char PC;
-char *BC = 0;
-char *UP = 0;
-
-
 extern "C" int tgetnum(char *s);
 int tgetnum(char *s)
 {
