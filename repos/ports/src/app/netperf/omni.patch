@@ -1,5 +1,8 @@
+diff --git src/app/netperf/src/netserver.c src/app/netperf/src/netserver.c
+index 379a106..eba61b8 100644
+--- src/app/netperf/src/netserver.c
 +++ src/app/netperf/src/netserver.c
-@@ -567,7 +567,7 @@
+@@ -567,7 +567,7 @@ setup_listens(char name[], char port[], int af) {
    int do_inet;
    int no_name = 0;
  #ifdef AF_INET6
@@ -8,8 +11,46 @@
  #endif
  
    if (debug) {
-+++ src/app/netperf/src/nettest_omni.c	(working copy)
-@@ -3348,7 +3348,7 @@
+diff --git src/app/netperf/src/nettest_bsd.c src/app/netperf/src/nettest_bsd.c
+index 7d8287c..68bbe73 100644
+--- src/app/netperf/src/nettest_bsd.c
++++ src/app/netperf/src/nettest_bsd.c
+@@ -1066,7 +1066,7 @@ set_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr, int family, voi
+ 
+ /* pull the port and address out of the sockaddr in host format */
+ int
+-get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr, int family, void *addr, int *port)
++get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr, int family, void *addr, uint32_t *port)
+ {
+   struct sockaddr_in *sin = (struct sockaddr_in *)sockaddr;
+ 
+diff --git src/app/netperf/src/nettest_bsd.h src/app/netperf/src/nettest_bsd.h
+index 2ff7456..905289d 100644
+--- src/app/netperf/src/nettest_bsd.h
++++ src/app/netperf/src/nettest_bsd.h
+@@ -617,7 +617,7 @@ extern void set_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr,
+ extern int  get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr,
+ 					  int family,
+ 					  void *addr,
+-					  int *port);
++					  uint32_t *port);
+ extern void send_tcp_mss(char remote_host[]);
+ extern void send_tcp_stream(char remote_host[]);
+ extern void send_tcp_maerts(char remote_host[]);
+diff --git src/app/netperf/src/nettest_omni.c src/app/netperf/src/nettest_omni.c
+index 826167a..3c10d0a 100644
+--- src/app/netperf/src/nettest_omni.c
++++ src/app/netperf/src/nettest_omni.c
+@@ -451,7 +451,7 @@ static int client_port_max = 65535;
+ 
+  /* different options for the sockets				*/
+ 
+-int
++extern int
+   loc_nodelay,		/* don't/do use NODELAY	locally		*/
+   rem_nodelay,		/* don't/do use NODELAY remotely	*/
+   loc_sndavoid,		/* avoid send copies locally		*/
+@@ -3348,7 +3348,7 @@ static void
  get_transport_cong_control(SOCKET socket, int protocol, char cong_control[], int len)
  {
  #ifdef TCP_CONGESTION
@@ -18,7 +59,7 @@
    if (protocol != IPPROTO_TCP) {
      strncpy(cong_control,"TCP Only",len);
    }
-@@ -3477,7 +3477,7 @@
+@@ -3477,7 +3477,7 @@ send_omni_inner(char remote_host[], unsigned int legacy_caller, char header_str[
  
    struct sockaddr_storage remote_addr;
    struct sockaddr_storage my_addr;
@@ -27,7 +68,7 @@
    netperf_socklen_t       my_addr_len = sizeof(my_addr);
  
    SOCKET	data_socket;
-@@ -4892,11 +4892,11 @@
+@@ -4892,11 +4892,11 @@ recv_omni()
  
    struct sockaddr_storage myaddr_in, peeraddr_in;
    int peeraddr_set = 0;
@@ -42,7 +83,7 @@
  
    int	timed_out = 0;
    int   pad_time = 0;
-@@ -5312,6 +5312,28 @@
+@@ -5312,6 +5312,28 @@ recv_omni()
        need_to_accept = 0;
        connected = 1;
  
@@ -71,23 +112,3 @@
  #ifdef KLUDGE_SOCKET_OPTIONS
        /* this is for those systems which *INCORRECTLY* fail to pass
  	 attributes across an accept() call. Including this goes
-+++ src/app/netperf/src/nettest_bsd.h
-@@ -617,7 +617,7 @@
- extern int  get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr,
- 					  int family,
- 					  void *addr,
--					  int *port);
-+					  uint32_t *port);
- extern void send_tcp_mss(char remote_host[]);
- extern void send_tcp_stream(char remote_host[]);
- extern void send_tcp_maerts(char remote_host[]);
-+++ src/app/netperf/src/nettest_bsd.c
-@@ -1066,7 +1066,7 @@
- 
- /* pull the port and address out of the sockaddr in host format */
- int
--get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr, int family, void *addr, int *port)
-+get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr, int family, void *addr, uint32_t *port)
- {
-   struct sockaddr_in *sin = (struct sockaddr_in *)sockaddr;
- 
