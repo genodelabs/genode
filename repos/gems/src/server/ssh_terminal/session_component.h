@@ -86,16 +86,16 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 		Genode::size_t _write(Genode::size_t num)
 		{
 			ssize_t written = 0;
-			Libc::with_libc([&] () {
-				char *buf = _io_buffer.local_addr<char>();
-				num = Genode::min(num, _io_buffer.size());
-				written = Ssh::Terminal::write(buf, num);
 
-				if (written < 0) {
-					Genode::error("write error, dropping data");
-					written = 0;
-				}
-			});
+			char *buf = _io_buffer.local_addr<char>();
+			num = Genode::min(num, _io_buffer.size());
+			written = Ssh::Terminal::write(buf, num);
+
+			if (written < 0) {
+				Genode::error("write error, dropping data");
+				written = 0;
+			}
+
 			return written;
 		}
 };

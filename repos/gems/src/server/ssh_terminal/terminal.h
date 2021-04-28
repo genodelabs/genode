@@ -37,15 +37,16 @@ namespace Ssh
 
 class Ssh::Terminal
 {
-	public:
-
-		Util::Buffer<4096u> read_buf { };
-
-		int write_avail_fd { -1 };
-
 	private:
 
-		Util::Buffer<4096u> _write_buf { };
+		typedef Util::Buffer<4096u> Buffer;
+
+		Mutex   _write_buf_swap    { };
+
+		Buffer  _write_buf_a       { };
+		Buffer  _write_buf_b       { };
+		Buffer *_write_buf_ep      { &_write_buf_a };
+		Buffer *_write_buf_pthread { &_write_buf_b };
 
 		::Terminal::Session::Size _size { 0, 0 };
 
@@ -59,6 +60,10 @@ class Ssh::Terminal
 		unsigned _pending_channels  { 0u };
 
 	public:
+
+		Buffer read_buf { };
+
+		int write_avail_fd { -1 };
 
 		/**
 		 * Constructor
@@ -159,15 +164,27 @@ class Ssh::Terminal
 		 */
 		void send(ssh_channel channel)
 		{
-			Mutex::Guard guard(_write_buf.mutex());
+			{
+				/* swap write buffers if current is empty */
+				Mutex::Guard guard(_write_buf_swap);
 
-			if (!_write_buf.read_avail()) { return; }
+				if (!_write_buf_pthread->read_avail()) {
+					auto buffer_tmp    = _write_buf_ep;
+					_write_buf_ep      = _write_buf_pthread;
+					_write_buf_pthread = buffer_tmp;
+				}
+			}
+
+			/* write buffer for pthread is used w/o mutex, it's not used by EP */
+			Buffer &write_buf = *_write_buf_pthread;
+
+			if (!write_buf.read_avail()) { return; }
 
 			/* ignore send request */
 			if (!channel || !ssh_channel_is_open(channel)) { return; }
 
-			char const *src     = _write_buf.content();
-			size_t const len    = _write_buf.read_avail();
+			char const *src     = write_buf.content();
+			size_t const len    = write_buf.read_avail();
 			/* XXX we do not handle partial writes */
 			int const num_bytes = ssh_channel_write(channel, src, len);
 
@@ -176,7 +193,7 @@ class Ssh::Terminal
 			}
 
 			if (++_pending_channels >= _attached_channels) {
-				_write_buf.reset();
+				write_buf.reset();
 			}
 
 			/* at this point the client might have disconnected */
@@ -214,24 +231,28 @@ class Ssh::Terminal
 		 */
 		size_t write(char const *src, Genode::size_t src_len)
 		{
-			Mutex::Guard g(_write_buf.mutex());
-
 			size_t num_bytes = 0;
-			size_t i = 0;
-			Libc::with_libc([&] {
-				while (_write_buf.write_avail() > 0 && i < src_len) {
+
+			{
+				Mutex::Guard guard(_write_buf_swap);
+
+				Buffer &write_buf = *_write_buf_ep;
+
+				size_t i = 0;
+
+				while (write_buf.write_avail() > 0 && i < src_len) {
 
 					char c = src[i];
 					if (c == '\n') {
-						_write_buf.append('\r');
+						write_buf.append('\r');
 					}
 
-					_write_buf.append(c);
+					write_buf.append(c);
 					num_bytes++;
 
 					i++;
 				}
-			});
+			}
 
 			/* wake the event loop up */
 			Libc::with_libc([&] {
