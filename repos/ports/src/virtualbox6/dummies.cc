@@ -210,6 +210,7 @@ RTDECL(int) RTSystemQueryTotalRam(uint64_t *pcb) STOP
 
 /* HostDnsServiceResolvConf.cpp */
 
+#include <string>
 #include "HostDnsService.h"
 
 HostDnsServiceResolvConf::~HostDnsServiceResolvConf() { }

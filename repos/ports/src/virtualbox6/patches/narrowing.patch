@@ -1,0 +1,15 @@
+Fix 'narrowing conversion' error
+
+diff --git a/src/virtualbox6/src/VBox/Main/src-client/ConsoleImpl2.cpp b/src/virtualbox6/src/VBox/Main/src-client/ConsoleImpl2.cpp
+index 3693927..6975ed2 100644
+--- a/src/virtualbox6/src/VBox/Main/src-client/ConsoleImpl2.cpp
++++ b/src/virtualbox6/src/VBox/Main/src-client/ConsoleImpl2.cpp
+@@ -5262,7 +5262,7 @@ int Console::i_configNetwork(const char *pszDevice,
+                 {
+                     switch (hrc)
+                     {
+-                        case VERR_ACCESS_DENIED:
++                        case E_ACCESSDENIED:
+                             return VMSetError(VMR3GetVM(mpUVM), VERR_HOSTIF_INIT_FAILED, RT_SRC_POS,  N_(
+                                             "Failed to open '/dev/net/tun' for read/write access. Please check the "
+                                             "permissions of that node. Either run 'chmod 0666 /dev/net/tun' or "
