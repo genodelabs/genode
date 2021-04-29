@@ -72,7 +72,7 @@ set config {
 		</route>
 	</start>
 
-	<start name="nic_drv">
+	<start name="nic_drv" caps="120">
 		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<config mode="uplink_client"/>
