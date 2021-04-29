@@ -167,7 +167,9 @@ void GenodeConsole::_handle_input()
 		auto curr_mouse_button_bits = [&] () {
 			return (_key_status[Input::BTN_LEFT]   ? MouseButtonState_LeftButton   : 0)
 			     | (_key_status[Input::BTN_RIGHT]  ? MouseButtonState_RightButton  : 0)
-			     | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0);
+			     | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0)
+			     | (_key_status[Input::BTN_SIDE]   ? MouseButtonState_XButton1     : 0)
+			     | (_key_status[Input::BTN_EXTRA]  ? MouseButtonState_XButton2     : 0);
 		};
 
 		unsigned const old_mouse_button_bits = curr_mouse_button_bits();

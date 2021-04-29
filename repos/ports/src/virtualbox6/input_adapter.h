@@ -42,7 +42,9 @@ struct Input_adapter
 		{
 			return keycode == Input::BTN_LEFT
 			    || keycode == Input::BTN_RIGHT
-			    || keycode == Input::BTN_MIDDLE;
+			    || keycode == Input::BTN_MIDDLE
+			    || keycode == Input::BTN_SIDE
+			    || keycode == Input::BTN_EXTRA;
 		}
 
 		void handle_input_event(Input::Event const &);
@@ -105,7 +107,9 @@ void Input_adapter::Mouse::handle_input_event(Input::Event const &ev)
 	auto curr_mouse_button_bits = [&] () {
 		return (_key_status[Input::BTN_LEFT]   ? MouseButtonState_LeftButton   : 0)
 		     | (_key_status[Input::BTN_RIGHT]  ? MouseButtonState_RightButton  : 0)
-		     | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0);
+		     | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0)
+		     | (_key_status[Input::BTN_SIDE]   ? MouseButtonState_XButton1     : 0)
+		     | (_key_status[Input::BTN_EXTRA]  ? MouseButtonState_XButton2     : 0);
 	};
 
 	unsigned const old_mouse_button_bits = curr_mouse_button_bits();
