@@ -19,6 +19,10 @@
 #include "sup.h"
 #include "vmm.h"
 
+/* stdcxx includes */
+#include <cstdio>
+#include <cstdlib>
+
 /* VirtualBox includes */
 #include <iprt/ldr.h>
 #include <iprt/thread.h>

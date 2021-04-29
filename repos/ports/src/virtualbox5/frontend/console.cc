@@ -15,6 +15,8 @@
 #include <libc/component.h>
 #include <util/xml_node.h>
 
+#include <cstdlib>
+
 #include <VBox/settings.h>
 #include <SharedClipboard/VBoxClipboard.h>
 #include <VBox/HostServices/VBoxClipboardSvc.h>
