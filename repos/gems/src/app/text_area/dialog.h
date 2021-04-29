@@ -89,6 +89,12 @@ struct Text_area::Dialog : private Dynamic_rom_session::Xml_producer
 
 			Position(Position const &other) : x(other.x), y(other.y) { }
 
+			Position &operator = (Position const &other)
+			{
+				x = other.x, y = other.y;
+				return *this;
+			}
+
 			bool operator != (Position const &other) const
 			{
 				return (x.value != other.x.value) || (y.value != other.y.value);
