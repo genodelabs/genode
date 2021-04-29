@@ -417,7 +417,7 @@ User_state::Handle_forget_result User_state::forget(View_owner const &owner)
 
 	return {
 		.hover_changed = update_hover_result.hover_changed
-		               | hover_vanished,
+		               || hover_vanished,
 		.focus_changed = focus_vanished,
 	};
 }
