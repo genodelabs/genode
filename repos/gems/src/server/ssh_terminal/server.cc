@@ -378,6 +378,12 @@ void Ssh::Server::detach_terminal(Ssh::Terminal &conn)
 	auto invalidate_terminal = [&] (Session &sess) {
 		if (sess.terminal != &conn) { return; }
 		sess.terminal_detached = true;
+
+		/* flush before destroying the terminal */
+		Libc::with_libc([&] {
+			try { sess.terminal->send(sess.channel); }
+			catch (...) { }
+		});
 	};
 	_sessions.for_each(invalidate_terminal);
 
