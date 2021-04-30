@@ -222,9 +222,9 @@ class Lx_fs::Directory : public Node
 			e = {
 				.inode = (unsigned long)dent->d_ino,
 				.type  = type(dent->d_type),
-				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
-				           .writeable  = (st.st_mode & S_IWUSR),
-				           .executable = (st.st_mode & S_IXUSR) },
+				.rwx   = { .readable   = (st.st_mode & S_IRUSR) != 0,
+				           .writeable  = (st.st_mode & S_IWUSR) != 0,
+				           .executable = (st.st_mode & S_IXUSR) != 0},
 				.name  = { dent->d_name }
 			};
 
@@ -254,9 +254,9 @@ class Lx_fs::Directory : public Node
 			return {
 				.size  = _num_entries() * sizeof(File_system::Directory_entry),
 				.type  = Node_type::DIRECTORY,
-				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
-				           .writeable  = (st.st_mode & S_IWUSR),
-				           .executable = (st.st_mode & S_IXUSR) },
+				.rwx   = { .readable   = (st.st_mode & S_IRUSR) != 0,
+				           .writeable  = (st.st_mode & S_IWUSR) != 0,
+				           .executable = (st.st_mode & S_IXUSR) != 0},
 				.inode = inode(),
 				.modification_time = { st.st_mtime }
 			};
