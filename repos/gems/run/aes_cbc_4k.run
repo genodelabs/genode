@@ -139,5 +139,5 @@ build_boot_image $boot_modules
 
 append qemu_args "-nographic "
 
-run_genode_until "Test succeeded.*\n" 20
+run_genode_until "Test succeeded.*\n" 25
 
