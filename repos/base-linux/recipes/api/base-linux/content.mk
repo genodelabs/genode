@@ -1,4 +1,4 @@
-FROM_BASE_LINUX          := etc src/lib/syscall src/lib/lx_hybrid lib/import
+FROM_BASE_LINUX          := etc src/lib/syscall src/lib/lx_hybrid lib/import include
 FROM_BASE_LINUX_AND_BASE := lib/mk src/lib/base src/include
 FROM_BASE                := src/lib/timeout
 
