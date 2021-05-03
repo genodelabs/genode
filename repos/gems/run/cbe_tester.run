@@ -58,6 +58,7 @@ append build_components {
 	lib/vfs/cbe_crypto/aes_cbc
 	lib/vfs/cbe_trust_anchor
 	lib/vfs/import
+	lib/vfs/jitterentropy
 }
 
 build $build_components
@@ -124,6 +125,7 @@ append config {
 				</dir>
 
 				<dir name="dev">
+					<jitterentropy name="jitterentropy"/>
 					<cbe_trust_anchor name="cbe_trust_anchor"
 					                  storage_dir="/storage"/>
 				</dir>
@@ -1046,6 +1048,7 @@ append boot_modules {
 	vfs_cbe_trust_anchor.lib.so
 	vfs_cbe_crypto_aes_cbc.lib.so
 	vfs_import.lib.so
+	vfs_jitterentropy.lib.so
 }
 
 append boot_modules [cbe_image_name]

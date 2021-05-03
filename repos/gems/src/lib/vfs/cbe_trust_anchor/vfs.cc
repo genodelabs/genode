@@ -31,18 +31,6 @@ static void xor_bytes(unsigned char const *p, int p_len,
 }
 
 
-static void fill_bytes(unsigned char *v, int v_len)
-{
-	static unsigned char _fill_counter = 0x23;
-
-	for (int i = 0; i < v_len; i++) {
-		v[i] = _fill_counter;
-	}
-
-	++_fill_counter;
-}
-
-
 namespace Vfs_cbe_trust_anchor {
 
 	using namespace Vfs;
@@ -141,11 +129,6 @@ class Trust_anchor
 			          key.value,      (int)Key::KEY_LEN);
 		}
 
-		void _fill_key(Key &key)
-		{
-			fill_bytes(key.value, (int)Key::KEY_LEN);
-		}
-
 		bool _execute_xcrypt(Key &key)
 		{
 			switch (_job_state) {
@@ -168,22 +151,47 @@ class Trust_anchor
 
 		bool _execute_generate(Key &key)
 		{
+			bool progress = false;
+
 			switch (_job_state) {
 			case Job_state::PENDING:
-				_fill_key(key);
+			{
+				if (!_open_jitterentropy_file_and_queue_read()) {
+					break;
+				}
+				_job_state = Job_state::IN_PROGRESS;
+				progress = true;
+			}
+			[[fallthrough]];
+
+			case Job_state::IN_PROGRESS:
+			{
+				if (!_read_jitterentropy_file_finished()) {
+					break;
+				}
+				if (_jitterentropy_io_job_buffer.size != (size_t)Key::KEY_LEN) {
+					class Bad_jitterentropy_io_buffer_size { };
+					throw Bad_jitterentropy_io_buffer_size { };
+				}
+				Genode::memcpy(key.value,
+				               _jitterentropy_io_job_buffer.base,
+				               _jitterentropy_io_job_buffer.size);
+
 				_job_state = Job_state::COMPLETE;
 				_job_success = true;
-				[[fallthrough]];
+				progress = true;
+			}
+
+			[[fallthrough]];
 			case Job_state::COMPLETE:
 				return true;
 
-			case Job_state::IN_PROGRESS: [[fallthrough]];
 			case Job_state::NONE:        [[fallthrough]];
-			default:                     return false;
+			default:                     break;
 			}
 
 			/* never reached */
-			return false;
+			return progress;
 		}
 
 		bool _execute_unlock()
@@ -452,6 +460,21 @@ class Trust_anchor
 			(*handle) = nullptr;
 		}
 
+		struct Jitterentropy_io_job_buffer : Util::Io_job::Buffer
+		{
+			char buffer[32] { };
+
+			Jitterentropy_io_job_buffer()
+			{
+				Buffer::base = buffer;
+				Buffer::size = sizeof (buffer);
+			}
+		};
+
+		Vfs::Vfs_handle *_jitterentropy_handle  { nullptr };
+		Genode::Constructible<Util::Io_job> _jitterentropy_io_job { };
+		Jitterentropy_io_job_buffer _jitterentropy_io_job_buffer { };
+
 		/* key */
 
 		Vfs::Vfs_handle *_key_handle  { nullptr };
@@ -491,6 +514,35 @@ class Trust_anchor
 			return false;
 		}
 
+		bool _open_jitterentropy_file_and_queue_read()
+		{
+			Path file_path = "/dev/jitterentropy";
+			using Result = Vfs::Directory_service::Open_result;
+
+			Result const res =
+				_vfs_env.root_dir().open(file_path.string(),
+				                         Vfs::Directory_service::OPEN_MODE_RDONLY,
+				                         (Vfs::Vfs_handle **)&_jitterentropy_handle,
+				                         _vfs_env.alloc());
+			if (res != Result::OPEN_OK) {
+				Genode::error("could not open '", file_path.string(), "'");
+				return false;
+			}
+
+			_jitterentropy_handle->handler(&_io_response_handler);
+			_jitterentropy_io_job.construct(*_jitterentropy_handle, Util::Io_job::Operation::READ,
+			                      _jitterentropy_io_job_buffer, 0,
+			                      Util::Io_job::Partial_result::ALLOW);
+
+			if (_jitterentropy_io_job->execute() && _jitterentropy_io_job->completed()) {
+				_close_handle(&_jitterentropy_handle);
+				_jitterentropy_io_job_buffer.size = _jitterentropy_io_job->current_offset();
+				_jitterentropy_io_job.destruct();
+				return true;
+			}
+			return true;
+		}
+
 		bool _open_key_file_and_queue_read(Path const &path)
 		{
 			Path file_path = path;
@@ -518,6 +570,25 @@ class Trust_anchor
 				return true;
 			}
 			return true;
+		}
+
+		bool _read_jitterentropy_file_finished()
+		{
+			if (!_jitterentropy_io_job.constructed()) {
+				return true;
+			}
+
+			// XXX trigger sync
+
+			bool const progress  = _jitterentropy_io_job->execute();
+			bool const completed = _jitterentropy_io_job->completed();
+			if (completed) {
+				_close_handle(&_jitterentropy_handle);
+				_jitterentropy_io_job_buffer.size = _jitterentropy_io_job->current_offset();
+				_jitterentropy_io_job.destruct();
+			}
+
+			return progress && completed;
 		}
 
 		bool _read_key_file_finished()
