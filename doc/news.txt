@@ -4,6 +4,29 @@
                                ===========
 
 
+Sculpt OS 21.03 boots now in 2.5 seconds | 2021-05-03
+#####################################################
+
+| We have released an updated Sculpt 21.03 image featuring several
+| hardware-compatibility tweaks and performance improvements.
+
+Since the official Sculpt OS 21.03 release end of March, we continued our
+efforts with refining the user experience and broadening hardware
+compatibility, thanks to the user feedback we received. We have now released
+an updated system image that includes those refinements as well as several
+performance optimizations that boost the boot time of Sculpt to less than 2.5
+seconds from the first life sign of the kernel to the graphical user
+interface (measured on a 5-years old Lenovo x250 laptop).
+
+You can get the new version of the system image named sculpt-21-03b at the
+[https://genode.org/download/sculpt - Sculpt OS download] page.
+It is binary compatible with the original release version. So you can use it
+as a drop-in-replacement.
+
+For manually reproducing the image, please refer to the corresponding
+[https://github.com/chelmuth/genode/commits/sculpt_21_03b - Git branch].
+
+
 Sculpt OS release 21.03 | 2021-03-24
 ####################################
 
