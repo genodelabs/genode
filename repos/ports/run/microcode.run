@@ -1,7 +1,6 @@
 assert_spec x86
 
-set ::env(MAKEFLAGS) s
-set path_microcode "[exec [genode_dir]/tool/ports/current microcode_intel]/src/app/intel/intel-ucode"
+set path_microcode "[exec [genode_dir]/tool/ports/current --no-print-directory microcode_intel]/src/app/intel/intel-ucode"
 set microcode_files [glob -nocomplain -dir $path_microcode *-*-*]
 
 if { [get_cmd_switch --autopilot] } {
