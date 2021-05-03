@@ -17,19 +17,27 @@
 using namespace Net;
 using namespace Genode;
 
+struct Packed_uint8
+{
+	Genode::uint8_t value;
 
-uint16_t Net::internet_checksum(uint16_t const *addr,
-                                size_t          size,
-                                addr_t          init_sum)
+} __attribute__((packed));
+
+
+uint16_t Net::internet_checksum(Packed_uint16 const *addr,
+                                size_t               size,
+                                addr_t               init_sum)
 {
 	/* add up bytes in pairs */
 	addr_t sum = init_sum;
-	for (; size > 1; size -= 2)
-		sum += *addr++;
+	for (; size > 1; size -= sizeof(Packed_uint16)) {
+		sum += addr->value;
+		addr++;
+	}
 
 	/* add left-over byte, if any */
 	if (size > 0)
-		sum += *(uint8_t *)addr;
+		sum += ((Packed_uint8 const *)addr)->value;
 
 	/* fold sum to 16-bit value */
 	while (addr_t const sum_rsh = sum >> 16)
@@ -40,7 +48,7 @@ uint16_t Net::internet_checksum(uint16_t const *addr,
 }
 
 
-uint16_t Net::internet_checksum_pseudo_ip(uint16_t        const *ip_data,
+uint16_t Net::internet_checksum_pseudo_ip(Packed_uint16   const *ip_data,
                                           size_t                 ip_data_sz,
                                           uint16_t               ip_data_sz_be,
                                           Ipv4_packet::Protocol  ip_prot,

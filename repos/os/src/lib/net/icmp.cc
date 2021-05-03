@@ -30,11 +30,11 @@ void Net::Icmp_packet::print(Output &output) const
 void Icmp_packet::update_checksum(size_t data_sz)
 {
 	_checksum = 0;
-	_checksum = internet_checksum((uint16_t *)this, sizeof(Icmp_packet) + data_sz);
+	_checksum = internet_checksum((Packed_uint16 *)this, sizeof(Icmp_packet) + data_sz);
 }
 
 
 bool Icmp_packet::checksum_error(size_t data_sz) const
 {
-	return internet_checksum((uint16_t *)this, sizeof(Icmp_packet) + data_sz);
+	return internet_checksum((Packed_uint16 *)this, sizeof(Icmp_packet) + data_sz);
 }

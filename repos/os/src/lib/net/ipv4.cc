@@ -138,13 +138,13 @@ Ipv4_address Ipv4_packet::ip_from_string(const char *ip)
 void Ipv4_packet::update_checksum()
 {
 	_checksum = 0;
-	_checksum = internet_checksum((uint16_t *)this, sizeof(Ipv4_packet));
+	_checksum = internet_checksum((Packed_uint16 *)this, sizeof(Ipv4_packet));
 }
 
 
 bool Ipv4_packet::checksum_error() const
 {
-	return internet_checksum((uint16_t *)this, sizeof(Ipv4_packet));
+	return internet_checksum((Packed_uint16 *)this, sizeof(Ipv4_packet));
 }
 
 

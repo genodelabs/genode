@@ -20,16 +20,38 @@
 
 namespace Net {
 
-	Genode::uint16_t internet_checksum(Genode::uint16_t const *addr,
-	                                   Genode::size_t          size,
-	                                   Genode::addr_t          init_sum = 0);
+	/**
+	 * This struct helps avoiding the following compiler warning when using
+	 * the internet checksum functions on packet classes (like
+	 * Net::Ipv4_packet):
+	 *
+	 * warning: converting a packed ‘Net::[PACKET_CLASS]’ pointer
+	 *          (alignment 1) to a ‘const uint16_t’ {aka ‘const short
+	 *          unsigned int’} pointer (alignment 2) may result in an
+	 *          unaligned pointer value
+	 *
+	 * Apparently, the 'packed' attribute normally used on packet classes sets
+	 * the alignment of the packet class to 1. However, for the purpose of the
+	 * internet-checksum functions, we can assume that the packet data has no
+	 * alignment. This is expressed by casting the packet-object pointer to a
+	 * Packed_uint16 pointer instead of a uint16_t pointer.
+	 */
+	struct Packed_uint16
+	{
+		Genode::uint16_t value;
 
-	Genode::uint16_t internet_checksum_pseudo_ip(Genode::uint16_t const *addr,
-	                                             Genode::size_t          size,
-	                                             Genode::uint16_t        size_be,
-	                                             Ipv4_packet::Protocol   ip_prot,
-	                                             Ipv4_address           &ip_src,
-	                                             Ipv4_address           &ip_dst);
+	} __attribute__((packed));
+
+	Genode::uint16_t internet_checksum(Packed_uint16 const *addr,
+	                                   Genode::size_t       size,
+	                                   Genode::addr_t       init_sum = 0);
+
+	Genode::uint16_t internet_checksum_pseudo_ip(Packed_uint16 const   *addr,
+	                                             Genode::size_t         size,
+	                                             Genode::uint16_t       size_be,
+	                                             Ipv4_packet::Protocol  ip_prot,
+	                                             Ipv4_address          &ip_src,
+	                                             Ipv4_address          &ip_dst);
 }
 
 #endif /* _NET__INTERNET_CHECKSUM_H_ */
