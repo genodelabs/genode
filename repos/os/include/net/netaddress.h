@@ -52,7 +52,7 @@ struct Net::Network_address
 	 ** Helper methods  **
 	 *********************/
 
-	void copy(void *dst) { Genode::memcpy(dst, addr, LEN); }
+	void copy(void *dst) { Genode::memcpy(dst, &addr[0], LEN); }
 
 	void print(Genode::Output &output) const
 	{
