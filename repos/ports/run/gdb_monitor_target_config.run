@@ -61,8 +61,8 @@ set config {
 			<policy label_prefix="gdb_monitor" uart="1"/>
 		</config>
 	</start>
-	<start name="gdb_monitor" caps="200">
-		<resource name="RAM" quantum="8M"/>
+	<start name="gdb_monitor" caps="1000">
+		<resource name="RAM" quantum="9M"/>
 		<config>
 			<target name="test-gdb_monitor_target_config">
 				<config>
@@ -71,7 +71,7 @@ set config {
 					<test_config_subnode/>
 				</config>
 			</target>
-			<preserve name="RAM" quantum="3M"/>
+			<preserve name="RAM" quantum="5M"/>
 			<vfs>
 				<dir name="dev"> <log/> <terminal/> </dir>
 				<dir name="pipe"> <pipe/> </dir>
@@ -144,7 +144,7 @@ append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 # continue execution
 append gdb_cmds {-ex "c" }
 
-exec [terminal] -e "bash -lc \"[gdb] debug/ld.lib.so $gdb_cmds\"" &
+exec [terminal] -e "bash -lc \'[gdb] debug/ld.lib.so $gdb_cmds\'" &
 
 interact -i [output_spawn_id]
 
