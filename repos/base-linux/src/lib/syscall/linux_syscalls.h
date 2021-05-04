@@ -84,8 +84,7 @@ extern "C" void wait_for_continue(void);
  *********************************************************/
 
 extern "C" long lx_syscall(int number, ...);
-extern "C" int  lx_clone(int (*fn)(void *), void *child_stack,
-                         int flags, void *arg);
+extern "C" int  lx_clone(int (*fn)(), void *child_stack, int flags);
 
 
 /*****************************************
@@ -404,18 +403,12 @@ inline int lx_sigaltstack(void *signal_stack, Genode::size_t stack_size)
 }
 
 
-inline int lx_create_thread(void (*entry)(), void *stack, void *arg)
+inline int lx_create_thread(void (*entry)(), void *stack)
 {
 	int flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND
 	          | CLONE_THREAD | CLONE_SYSVSEM;
 
-	/*
-	 * The syscall binding for clone does not exist in the FreeBSD libc, which
-	 * we are using as libc for Genode. In glibc, clone is implemented as a
-	 * assembler binding without external libc references. Hence, we are safe
-	 * to rely on the glibc version of 'clone' here.
-	 */
-	return lx_clone((int (*)(void *))entry, stack, flags, arg);
+	return lx_clone((int (*)())entry, stack, flags);
 }
 
 

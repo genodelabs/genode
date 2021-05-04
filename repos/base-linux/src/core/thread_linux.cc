@@ -66,6 +66,6 @@ void Thread::_deinit_platform_thread() { }
 
 void Thread::start()
 {
-	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top(), this);
+	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top());
 	native_thread().pid = lx_getpid();
 }

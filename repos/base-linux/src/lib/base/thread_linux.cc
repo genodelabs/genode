@@ -160,7 +160,7 @@ void Thread::start()
 		threadlib_initialized = true;
 	}
 
-	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top(), this);
+	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top());
 	native_thread().pid = lx_getpid();
 
 	/* wait until the 'thread_start' function got entered */

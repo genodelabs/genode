@@ -15,6 +15,7 @@
 #include <util/arg_string.h>
 #include <base/log.h>
 #include <base/snprintf.h>
+#include <cpu/consts.h>
 
 /* core-local includes */
 #include <pd_session_component.h>
@@ -35,33 +36,48 @@ using namespace Genode;
  ***************/
 
 /**
- * Argument frame for passing 'execve' paremeters through 'clone'
+ * Argument frame and initial stack for passing 'execve' parameters through 'clone'
  */
-struct Execve_args
+struct Execve_args_and_stack
 {
-	char   const *filename;
-	char * const *argv;
-	char * const *envp;
-	Lx_sd  const parent_sd;
+	struct Args
+	{
+		char const *filename;
+		char      **argv;
+		char      **envp;
+		Lx_sd       parent_sd;
+	};
 
-	Execve_args(char   const *filename,
-	            char * const *argv,
-	            char * const *envp,
-	            Lx_sd         parent_sd)
-	:
-		filename(filename), argv(argv), envp(envp), parent_sd(parent_sd)
-	{ }
+	Args args;
+
+	/* initial stack used by the child until calling 'execve' */
+	enum { STACK_SIZE = 4096 };
+	char stack[STACK_SIZE];
+
+	void *initial_sp()
+	{
+		return (void *)Abi::stack_align((addr_t)(stack + STACK_SIZE));
+	}
 };
+
+
+static Execve_args_and_stack &_execve_args_and_stack()
+{
+	static Execve_args_and_stack inst { };
+	return inst;
+}
 
 
 /**
  * Startup code of the new child process
  */
-static int _exec_child(Execve_args *arg)
+static int _exec_child()
 {
-	lx_dup2(arg->parent_sd.value, PARENT_SOCKET_HANDLE);
+	auto const &args = _execve_args_and_stack().args;
 
-	return lx_execve(arg->filename, arg->argv, arg->envp);
+	lx_dup2(args.parent_sd.value, PARENT_SOCKET_HANDLE);
+
+	return lx_execve(args.filename, args.argv, args.envp);
 }
 
 
@@ -148,31 +164,15 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	argv_buf[0] = pname_buf;
 	argv_buf[1] = 0;
 
-	/*
-	 * We cannot create the new process via 'fork()' because all our used
-	 * memory including stack memory is backed by dataspaces, which had been
-	 * mapped with the 'MAP_SHARED' flag. Therefore, after being created, the
-	 * new process starts using the stack with the same physical memory pages
-	 * as used by parent process. This would ultimately lead to stack
-	 * corruption. To prevent both processes from concurrently accessing the
-	 * same stack, we pause the execution of the parent until the child calls
-	 * 'execve'. From then on, the child has its private memory layout. The
-	 * desired behaviour is normally provided by 'vfork' but we use the more
-	 * modern 'clone' call for this purpose.
-	 */
-	enum { STACK_SIZE = 4096 };
-	static char stack[STACK_SIZE];    /* initial stack used by the child until
-	                                     calling 'execve' */
+	_execve_args_and_stack().args = Execve_args_and_stack::Args {
+		.filename  = filename,
+		.argv      = argv_buf,
+		.envp      = env,
+		.parent_sd = Capability_space::ipc_cap_data(_pd_session._parent).dst.socket
+	};
 
-	/*
-	 * Argument frame as passed to 'clone'. Because, we can only pass a single
-	 * pointer, all arguments are embedded within the 'execve_args' struct.
-	 */
-	Execve_args arg(filename, argv_buf, env,
-	                Capability_space::ipc_cap_data(_pd_session._parent).dst.socket);
-
-	_pid = lx_create_process((int (*)(void *))_exec_child,
-	                         stack + STACK_SIZE - sizeof(umword_t), &arg);
+	_pid = lx_create_process((int (*)())_exec_child,
+	                         _execve_args_and_stack().initial_sp());
 
 	if (strcmp(filename, tmp_filename) == 0)
 		lx_unlink(filename);

@@ -119,7 +119,7 @@ inline int lx_kill(int pid, int signal)
 }
 
 
-inline int lx_create_process(int (*entry)(void *), void *stack, void *arg)
+inline int lx_create_process(int (*entry)(), void *stack)
 {
 	/*
 	 * The low byte of the flags denotes the signal to be sent to the parent
@@ -127,7 +127,7 @@ inline int lx_create_process(int (*entry)(void *), void *stack, void *arg)
 	 * this condition.
 	 */
 	int const flags = CLONE_VFORK | LX_SIGCHLD;
-	return lx_clone((int (*)(void *))entry, stack, flags, arg);
+	return lx_clone((int (*)())entry, stack, flags);
 }
 
 
