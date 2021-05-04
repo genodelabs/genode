@@ -32,7 +32,7 @@
 
 inline int lx_mkdir(char const *pathname, mode_t mode)
 {
-	return lx_syscall(SYS_mkdir, pathname, mode);
+	return lx_syscall(SYS_mkdirat, AT_FDCWD, pathname, mode);
 }
 
 
@@ -44,7 +44,7 @@ inline int lx_ftruncate(int fd, unsigned long length)
 
 inline int lx_unlink(const char *fname)
 {
-	return lx_syscall(SYS_unlink, fname);
+	return lx_syscall(SYS_unlinkat, AT_FDCWD, fname, 0);
 }
 
 
@@ -52,19 +52,24 @@ inline int lx_unlink(const char *fname)
  ** Functions used by core's rom-session support code **
  *******************************************************/
 
-inline int lx_open(const char *pathname, int flags, mode_t mode = 0)
+inline int lx_open(char const *pathname, int flags, mode_t mode = 0)
 {
-	return lx_syscall(SYS_open, pathname, flags, mode);
+	return lx_syscall(SYS_openat, AT_FDCWD, pathname, flags, mode);
 }
 
 
-inline int lx_stat(const char *path, struct stat64 *buf)
+inline int lx_stat_size(char const *path, Genode::uint64_t &out_size)
 {
 #ifdef _LP64
-	return lx_syscall(SYS_stat, path, buf);
+	struct stat buf { };
+	int result = lx_syscall(SYS_stat, path, &buf);
+	out_size = buf.st_size;
 #else
-	return lx_syscall(SYS_stat64, path, buf);
+	struct stat64 buf { };
+	int result = lx_syscall(SYS_stat64, path, &buf);
+	out_size = buf.st_size;
 #endif
+	return result;
 }
 
 
@@ -253,7 +258,7 @@ inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
 
 inline int lx_pipe(int pipefd[2])
 {
-	return lx_syscall(SYS_pipe, pipefd);
+	return lx_syscall(SYS_pipe2, pipefd, 0);
 }
 
 

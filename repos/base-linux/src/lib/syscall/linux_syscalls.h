@@ -117,7 +117,7 @@ inline int lx_dup(int fd)
 
 inline int lx_dup2(int fd, int to)
 {
-	return lx_syscall(SYS_dup2, fd, to);
+	return lx_syscall(SYS_dup3, fd, to, 0);
 }
 
 
@@ -236,7 +236,7 @@ struct Lx_socketpair
 
 inline Lx_epoll_sd lx_epoll_create()
 {
-	int const ret = lx_syscall(SYS_epoll_create, 1);
+	int const ret = lx_syscall(SYS_epoll_create1, 0);
 	if (ret < 0) {
 		/*
 		 * No recovery possible, just leave a diagnostic message and block
@@ -258,7 +258,7 @@ inline int lx_epoll_ctl(Lx_epoll_sd epoll, int op, Lx_sd fd, epoll_event *event)
 inline int lx_epoll_wait(Lx_epoll_sd epoll, struct epoll_event *events,
                          int maxevents, int timeout)
 {
-	return lx_syscall(SYS_epoll_wait, epoll.value, events, maxevents, timeout);
+	return lx_syscall(SYS_epoll_pwait, epoll.value, events, maxevents, timeout, 0);
 }
 
 

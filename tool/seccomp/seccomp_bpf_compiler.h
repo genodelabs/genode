@@ -90,9 +90,9 @@ class Filter
 			_add_allow_rule(SCMP_SYS(recvmsg));
 			_add_allow_rule(SCMP_SYS(write));
 			_add_allow_rule(SCMP_SYS(poll));
-			_add_allow_rule(SCMP_SYS(epoll_create));
+			_add_allow_rule(SCMP_SYS(epoll_create1));
 			_add_allow_rule(SCMP_SYS(epoll_ctl));
-			_add_allow_rule(SCMP_SYS(epoll_wait));
+			_add_allow_rule(SCMP_SYS(epoll_pwait));
 			_add_allow_rule(SCMP_SYS(close));
 			_add_allow_rule(SCMP_SYS(munmap));
 			_add_allow_rule(SCMP_SYS(dup));

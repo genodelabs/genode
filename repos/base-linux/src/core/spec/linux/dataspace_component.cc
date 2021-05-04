@@ -54,10 +54,11 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 
 size_t Dataspace_component::_file_size()
 {
-	struct stat64 s;
-	if (lx_stat(_fname.buf, &s) < 0) throw Service_denied();
+	uint64_t size = 0;
+	if (lx_stat_size(_fname.buf, size) < 0)
+		throw Service_denied();
 
-	return align_addr(s.st_size, 12);
+	return align_addr(size, 12);
 }
 
 
