@@ -123,10 +123,12 @@ struct Sculpt::File_browser_dialog : Noncopyable, Dialog
 
 				xml.node("hbox", [&] () {
 					if (!_state.modified) {
-						gen_named_node(xml, "button", "button", [&] () {
-							xml.attribute("style", "back");
-							_entry.gen_hovered_attr(xml, "back");
-							xml.node("hbox", [&] () { });
+						gen_named_node(xml, "float", "button", [&] () {
+							gen_named_node(xml, "button", "button", [&] () {
+								xml.attribute("style", "back");
+								_entry.gen_hovered_attr(xml, "back");
+								xml.node("hbox", [&] () { });
+							});
 						});
 					}
 
