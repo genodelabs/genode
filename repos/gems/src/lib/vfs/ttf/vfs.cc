@@ -64,9 +64,23 @@ struct Vfs_ttf::Font_from_file
 };
 
 
-struct Vfs_ttf::Local_factory : File_system_factory
+struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 {
 	Vfs::Env &_env;
+
+	struct Font_config
+	{
+		Directory::Path    path;
+		float              size;
+		Cached_font::Limit cache_limit;
+
+		Font_config(Xml_node const &config)
+		:
+			path(config.attribute_value("path", Directory::Path())),
+			size(config.attribute_value("size_px", 16.0)),
+			cache_limit({config.attribute_value("cache", Number_of_bytes())})
+		{ }
+	} _font_config;
 
 	struct Font
 	{
@@ -74,12 +88,12 @@ struct Vfs_ttf::Local_factory : File_system_factory
 		Cached_font::Limit cache_limit;
 		Cached_font        cached_font;
 
-		Font(Vfs::Env &env, Xml_node config)
+		Font(Vfs::Env &env, Font_config &config)
 		:
 			font(env,
-			     config.attribute_value("path", Directory::Path()),
-			     config.attribute_value("size_px", 16.0)),
-			cache_limit({config.attribute_value("cache", Number_of_bytes())}),
+			     config.path,
+			     config.size),
+			cache_limit(config.cache_limit),
 			cached_font(env.alloc(), font.font(), cache_limit)
 		{ }
 	};
@@ -93,6 +107,8 @@ struct Vfs_ttf::Local_factory : File_system_factory
 	Readonly_value_file_system<unsigned> _max_width_fs  { "max_width",  0 };
 	Readonly_value_file_system<unsigned> _max_height_fs { "max_height", 0 };
 
+	Watcher _watcher;
+
 	void _update_attributes()
 	{
 		_baseline_fs  .value(_font->font.font().baseline());
@@ -103,7 +119,10 @@ struct Vfs_ttf::Local_factory : File_system_factory
 
 	Local_factory(Vfs::Env &env, Xml_node config)
 	:
-		_env(env), _font(env, config)
+		_env(env),
+		_font_config(config),
+		_font(env, _font_config),
+		_watcher(env, _font_config.path, *this)
 	{
 		_update_attributes();
 	}
@@ -125,7 +144,15 @@ struct Vfs_ttf::Local_factory : File_system_factory
 
 	void apply_config(Xml_node const &config)
 	{
-		_font.construct(_env, config);
+		_font_config = Font_config(config);
+		_font.construct(_env, _font_config);
+		_update_attributes();
+		_glyphs_fs.trigger_watch_response();
+	}
+
+	void watch_response() override
+	{
+		_font.construct(_env, _font_config);
 		_update_attributes();
 		_glyphs_fs.trigger_watch_response();
 	}
