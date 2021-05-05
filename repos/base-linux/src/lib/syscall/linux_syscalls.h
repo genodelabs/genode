@@ -356,7 +356,7 @@ inline int lx_sigaction(int signum, void (*handler)(int), bool altstack)
 	 * with EINTR. We therefore set the SA_RESTART flag in signal handlers.
 	 */
 
-#ifdef _LP64
+#ifdef __x86_64__
 	/*
 	 * The SA_RESTORER flag is not officially documented, but used internally
 	 * by the glibc implementation of sigaction(). Without specifying this flag

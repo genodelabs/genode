@@ -1,6 +1,8 @@
 .DEFAULT_GOAL := seccomp_bpf_filters
 
-seccomp_bpf_filters: seccomp_bpf_policy_x86_32.bin seccomp_bpf_policy_x86_64.bin seccomp_bpf_policy_arm.bin
+ARCHS := x86_32 x86_64 arm_32 arm_64
+
+seccomp_bpf_filters: $(foreach A,$(ARCHS),seccomp_bpf_policy_$A.bin)
 
 seccomp_bpf_policy_%.bin: seccomp_bpf_compiler_%.prg
 	./$< > $@

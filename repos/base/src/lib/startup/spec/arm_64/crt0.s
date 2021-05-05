@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -23,6 +23,12 @@
 	_start:
 	.global _start_initial_stack
 	_start_initial_stack:
+
+        /* save initial SP value, used to pass the environment on base-linux */
+	adrp x4, :got:__initial_sp
+	ldr  x4, [x4, #:got_lo12:__initial_sp]
+	mov  x1, sp
+	str  x1, [x4]
 
 	/*
 	 * Install initial temporary environment that is replaced later by the
@@ -53,6 +59,10 @@
  *********************************/
 
 .bss
+	/* initial value of the SP register */
+	.global __initial_sp
+	__initial_sp:
+	.space 8
 
 	/* stack of the temporary initial environment */
 	.p2align 8

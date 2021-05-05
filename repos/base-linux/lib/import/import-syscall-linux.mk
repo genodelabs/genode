@@ -11,6 +11,7 @@ HOST_INC_DIR += /usr/include/$(shell $(CUSTOM_HOST_CC) -dumpmachine)
 #
 HOST_INC_DIR += /usr/include/i386-linux-gnu
 HOST_INC_DIR += /usr/include/x86_64-linux-gnu
+HOST_INC_DIR += /usr/include/aarch64-linux-gnu
 
 #
 # Some header files installed on GNU/Linux test for the GNU compiler. For

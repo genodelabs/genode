@@ -74,7 +74,7 @@ EXT_OBJECTS += $(shell $(CUSTOM_CC) $(CC_MARCH) -print-file-name=crtbegin.o)
 EXT_OBJECTS += $(shell $(CUSTOM_CC) $(CC_MARCH) -print-file-name=crtend.o)
 EXT_OBJECTS += $(shell $(CUSTOM_HOST_CC) $(CC_MARCH) -print-file-name=crtn.o)
 
-LX_LIBS_OPT += -lgcc -lgcc_s -lsupc++ -lc -lpthread
+LX_LIBS_OPT += -lgcc_s -lsupc++ -lc -lpthread -lgcc
 
 USE_HOST_LD_SCRIPT = yes
 
@@ -96,6 +96,11 @@ endif
 ifeq (arm,$(findstring arm,$(SPECS)))
 CXX_LINK_OPT    += -Wl,--dynamic-linker=/lib/ld-linux.so.3
 LD_SCRIPT_STATIC = ldscripts/armelf_linux_eabi.xc
+endif
+
+ifeq (arm_64,$(findstring arm_64,$(SPECS)))
+CXX_LINK_OPT    += -Wl,--dynamic-linker=/lib/ld-linux-aarch64.so.1
+LD_SCRIPT_STATIC = /usr/lib/aarch64-linux-gnu/ldscripts/aarch64elf.xc
 endif
 
 #

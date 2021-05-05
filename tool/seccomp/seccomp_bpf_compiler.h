@@ -122,8 +122,9 @@ class Filter
 			_add_allow_rule(SCMP_SYS(gettimeofday));
 			_add_allow_rule(SCMP_SYS(getpeername));
 
-			int clone_flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND
-			                | CLONE_THREAD | CLONE_SYSVSEM;
+			unsigned long clone_flags = CLONE_VM | CLONE_FS | CLONE_FILES
+			                          | CLONE_SIGHAND | CLONE_THREAD
+			                          | CLONE_SYSVSEM;
 
 			switch (_arch)
 			{
@@ -193,6 +194,16 @@ class Filter
 						_add_allow_rule(SCMP_SYS(cacheflush));
 
 						/* returning from signal handlers is safe */
+						_add_allow_rule(SCMP_SYS(sigreturn));
+					}
+					break;
+				case SCMP_ARCH_AARCH64:
+					 {
+						_add_allow_rule(SCMP_SYS(tgkill), SCMP_CMP32(0, SCMP_CMP_EQ, 0xCAFEAFFE),
+						                                  SCMP_CMP32(2, SCMP_CMP_EQ, SIGRTMIN));
+						_add_allow_rule(SCMP_SYS(clone), SCMP_CMP32(0, SCMP_CMP_EQ, clone_flags));
+						_add_allow_rule(SCMP_SYS(mmap));
+						_add_allow_rule(SCMP_SYS(cacheflush));
 						_add_allow_rule(SCMP_SYS(sigreturn));
 					}
 					break;

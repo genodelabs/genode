@@ -60,6 +60,11 @@ inline int lx_open(char const *pathname, int flags, mode_t mode = 0)
 
 inline int lx_stat_size(char const *path, Genode::uint64_t &out_size)
 {
+#ifdef __aarch64__
+	struct statx buf { };
+	int result = lx_syscall(SYS_statx, AT_FDCWD, path, 0, STATX_SIZE, &buf);
+	out_size = buf.stx_size;
+#else
 #ifdef _LP64
 	struct stat buf { };
 	int result = lx_syscall(SYS_stat, path, &buf);
@@ -68,6 +73,7 @@ inline int lx_stat_size(char const *path, Genode::uint64_t &out_size)
 	struct stat64 buf { };
 	int result = lx_syscall(SYS_stat64, path, &buf);
 	out_size = buf.st_size;
+#endif
 #endif
 	return result;
 }
