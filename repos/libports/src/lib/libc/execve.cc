@@ -445,4 +445,4 @@ extern "C" int execve(char const *filename,
 	call_func(_user_stack_ptr, (void *)user_entry, nullptr);
 }
 
-extern "C" int _execve(char const *, char *const[], char *const[]) __attribute__((weak, alias("execve")));
+extern "C" int _execve(char const *, char *const[], char *const[]) __attribute__((weak, alias("execve"), nothrow));

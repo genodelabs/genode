@@ -2234,7 +2234,9 @@ class Main
 				log("List snapshots (command ID ", cmd.id(), ")");
 				for (unsigned idx { 0 }; idx < sizeof(ids.values) / sizeof(ids.values[0]); idx++) {
 					if (ids.values[idx] != 0) {
-						log("   Snapshot #", snap_nr, " is generation ", ids.values[idx]);
+						log("   Snapshot #", snap_nr, " is generation ",
+						    (uint64_t)ids.values[idx]);
+
 						snap_nr++;
 					}
 				}

@@ -709,7 +709,7 @@ extern "C" {
 	}
 
 	typeof(pthread_exit) _pthread_exit
-		__attribute__((alias("pthread_exit")));
+		__attribute__((alias("pthread_exit"), noreturn));
 
 
 	/* special non-POSIX function (for example used in libresolv) */
