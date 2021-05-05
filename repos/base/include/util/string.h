@@ -552,7 +552,7 @@ class Genode::Cstring
 			 * null once we reach 'max_len'.
 			 */
 			size_t res = 0;
-			for (; str && *str && res < max_len; str++, res++);
+			for (;  res < max_len && str && *str; str++, res++);
 			return res;
 		}
 
