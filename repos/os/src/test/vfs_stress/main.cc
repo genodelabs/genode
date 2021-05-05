@@ -204,6 +204,7 @@ struct Mkdir_test : public Stress_test
 	{
 		try { mkdir_a(1); } catch (...) {
 			error("failed at '", path, "' after ", count, " directories");
+			throw;
 		}
 	}
 
@@ -248,8 +249,7 @@ struct Populate_test : public Stress_test
 			return;
 
 		default:
-			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
-			error("bad directory '", dir_name, "' at the end of '", path, "'");
+			error("bad directory '", Char(dir_type), "' at the end of '", path, "'");
 			throw Exception();
 		}
 	}
@@ -267,6 +267,7 @@ struct Populate_test : public Stress_test
 			populate(1);
 		} catch (...) {
 			error("failed at '", path, "' after ", count, " files");
+			throw;
 		}
 	}
 
@@ -321,8 +322,7 @@ struct Write_test : public Stress_test
 			return;
 
 		default:
-			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
-			error("bad directory ",dir_name," at the end of '", path, "'");
+			error("bad directory ", Char(dir_type), " at the end of '", path, "'");
 			throw Exception();
 		}
 	}
@@ -341,6 +341,7 @@ struct Write_test : public Stress_test
 			write(1);
 		} catch (...) {
 			error("failed at ",path," after writing ",count," bytes");
+			throw;
 		}
 	}
 
@@ -403,8 +404,7 @@ struct Read_test : public Stress_test
 			return;
 
 		default:
-			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
-			error("bad directory ",dir_name," at the end of '", path, "'");
+			error("bad directory ", Char(dir_type), " at the end of '", path, "'");
 			throw Exception();
 		}
 	}
@@ -423,6 +423,7 @@ struct Read_test : public Stress_test
 			read(1);
 		} catch (...) {
 			error("failed at ",path," after reading ",count," bytes");
+			throw;
 		}
 	}
 
@@ -505,6 +506,7 @@ struct Unlink_test : public Stress_test
 			assert_unlink(r);
 		} catch (...) {
 			error("unlink ",path," failed");
+			throw;
 		}
 	}
 
