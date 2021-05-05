@@ -45,7 +45,7 @@ struct Usb_ep
 	void _handle_pthread_registration()
 	{
 		Genode::Thread *myself = Genode::Thread::myself();
-		if (!myself || Libc::pthread_create(&_pthread, *myself, &myself)) {
+		if (!myself || Libc::pthread_create_from_thread(&_pthread, *myself, &myself)) {
 			Genode::error("cannot register thread for pthread");
 			return;
 		}
@@ -105,6 +105,8 @@ struct Usb_device
 		Genode::Io_signal_handler<Usb_device> _state_changed_handler {
 			genode_env().ep(), *this, &Usb_device::_handle_state_changed };
 
+		unsigned _open { 0 };
+
 		void _handle_state_changed()
 		{
 			/*
@@ -116,34 +118,36 @@ struct Usb_device
 		Genode::Io_signal_handler<Usb_device> _ack_avail_handler {
 			ep(), *this, &Usb_device::_handle_ack_avail };
 
-		struct Alt_setting
-		{
-			bool finished;
-			bool succeded;
-		};
-
-		Alt_setting _change_alt_setting { };
-
 		void _handle_ack_avail()
 		{
+			struct libusb_context *ctx = nullptr;
+
 			while (usb_connection.source()->ack_avail()) {
 
 				Usb::Packet_descriptor p =
 					usb_connection.source()->get_acked_packet();
 
 				if (p.type == Usb::Packet_descriptor::ALT_SETTING) {
-					_change_alt_setting.finished = true;
-					_change_alt_setting.succeded = p.succeded;
 					usb_connection.source()->release_packet(p);
-					return;
+					continue;
 				}
 
 				Completion *completion = static_cast<Completion*>(p.completion);
 				struct usbi_transfer *itransfer = completion->itransfer;
+
+				if (_open)
+					ctx = ITRANSFER_CTX(itransfer);
+
 				destroy(libc_alloc, completion);
 
-				if (!p.succeded) {
-					Genode::error("USB transfer failed");
+				if (_open == 0) {
+					usb_connection.source()->release_packet(p);
+					continue;
+				}
+
+				if (!p.succeded || itransfer->flags & USBI_TRANSFER_CANCELLING) {
+					if (!p.succeded)
+						Genode::error("USB transfer failed: ", (unsigned)p.type);
 					itransfer->transferred = 0;
 					usb_connection.source()->release_packet(p);
 					usbi_signal_transfer_completion(itransfer);
@@ -227,6 +231,9 @@ struct Usb_device
 
 				usbi_signal_transfer_completion(itransfer);
 			}
+
+			if (ctx != nullptr)
+				usbi_signal_event(ctx);
 		}
 
 	public:
@@ -289,8 +296,6 @@ struct Usb_device
 
 		bool altsetting(int number, int alt_setting)
 		{
-			_change_alt_setting.finished = false;
-
 			Usb::Packet_descriptor p =
 				usb_connection.source()->alloc_packet(0);
 
@@ -300,23 +305,11 @@ struct Usb_device
 
 			usb_connection.source()->submit_packet(p);
 
-			while (!usb_connection.source()->ack_avail() && !_change_alt_setting.finished) {
-				genode_env().ep().wait_and_dispatch_one_io_signal();
-			}
-
-			bool succeded = false;
-			if (_change_alt_setting.finished) {
-				succeded = _change_alt_setting.succeded;
-			}
-
-			if (!succeded) {
-				Genode::error("could not set altsetting to number: ",
-				number, " alt: ", alt_setting);
-				return false;
-			}
-
 			return true;
 		}
+
+		void close() { _open--; }
+		void open()  { _open++; }
 };
 
 static Usb_device *device_instance;
@@ -412,12 +405,17 @@ int genode_get_device_list(struct libusb_context *ctx,
 
 static int genode_open(struct libusb_device_handle *dev_handle)
 {
+	if (device_instance)
+		device_instance->open();
+
 	return LIBUSB_SUCCESS;
 }
 
 
 static void genode_close(struct libusb_device_handle *dev_handle)
 {
+	if (device_instance)
+		device_instance->close();
 }
 
 
@@ -538,6 +536,9 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 
 	Usb_device *usb_device = *(Usb_device**)transfer->dev_handle->dev->os_priv;
 
+	if (!usb_device->usb_connection.source()->ready_to_submit())
+		return LIBUSB_ERROR_BUSY;
+
 	switch (transfer->type) {
 
 		case LIBUSB_TRANSFER_TYPE_CONTROL: {
@@ -550,7 +551,6 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			try {
 				p = usb_device->usb_connection.source()->alloc_packet(transfer->length);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
-				Genode::error(__PRETTY_FUNCTION__, ": packet allocation failed");
 				return LIBUSB_ERROR_BUSY;
 			}
 
@@ -574,12 +574,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 				               setup->wLength);
 			}
 
-			try {
-				usb_device->usb_connection.source()->submit_packet(p);
-			} catch (...) {
-				Genode::error(__PRETTY_FUNCTION__,
-				              ": could not submit packet");
-			}
+			usb_device->usb_connection.source()->submit_packet(p);
 
 			return LIBUSB_SUCCESS;
 		}
@@ -600,8 +595,6 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			try {
 				p = usb_device->usb_connection.source()->alloc_packet(transfer->length);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
-				Genode::error(__PRETTY_FUNCTION__,
-				              ": packet allocation failed");
 				return LIBUSB_ERROR_BUSY;
 			}
 
@@ -622,12 +615,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 				               transfer->length);
 			}
 
-			try {
-				usb_device->usb_connection.source()->submit_packet(p);
-			} catch (...) {
-				Genode::error(__PRETTY_FUNCTION__,
-				              ": could not submit packet");
-			}
+			usb_device->usb_connection.source()->submit_packet(p);
 
 			return LIBUSB_SUCCESS;
 		}
@@ -643,8 +631,6 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			try {
 				p = usb_device->usb_connection.source()->alloc_packet(total_length);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
-				Genode::error(__func__,
-				              ": packet allocation failed: ", total_length);
 				return LIBUSB_ERROR_BUSY;
 			}
 
@@ -667,13 +653,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 				               transfer->length);
 			}
 
-			try {
-				usb_device->usb_connection.source()->submit_packet(p);
-			} catch (...) {
-				Genode::error(__PRETTY_FUNCTION__,
-				              ": could not submit packet");
-			}
-
+			usb_device->usb_connection.source()->submit_packet(p);
 
 			return LIBUSB_SUCCESS;
 		}
@@ -688,7 +668,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 
 static int genode_cancel_transfer(struct usbi_transfer * itransfer)
 {
-	return LIBUSB_ERROR_NOT_SUPPORTED;
+	return LIBUSB_SUCCESS;
 }
 
 
@@ -697,8 +677,13 @@ static void genode_clear_transfer_priv(struct usbi_transfer * itransfer) { }
 
 static int genode_handle_transfer_completion(struct usbi_transfer * itransfer)
 {
+	enum libusb_transfer_status status = LIBUSB_TRANSFER_COMPLETED;
+
+	if (itransfer->flags & USBI_TRANSFER_CANCELLING)
+		status = LIBUSB_TRANSFER_CANCELLED;
+
 	return usbi_handle_transfer_completion(itransfer,
-	                                       LIBUSB_TRANSFER_COMPLETED);
+	                                       status);
 }
 
 
