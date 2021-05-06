@@ -165,9 +165,9 @@ class Nano3d::Scene
 			template <typename T>
 			void _clear(Genode::Surface<T> &surface)
 			{
-				Genode::size_t n = (surface.size().count()*sizeof(T))/sizeof(long);
-				for (long *dst = (long *)surface.addr(); n--; dst++)
-					*dst = 0;
+				Genode::size_t n = surface.size().count();
+				for (T *dst = surface.addr(); n--; dst++)
+					*dst = { };
 			}
 
 			void clear()
