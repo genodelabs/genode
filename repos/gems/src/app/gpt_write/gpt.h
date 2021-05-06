@@ -111,13 +111,13 @@ namespace Gpt {
 	 */
 	struct Entry
 	{
-		enum { NAME_LEN = 36 };
-		Uuid     type;           /* partition type GUID */
-		Uuid     guid;           /* unique partition GUID */
-		uint64_t lba_start;      /* start of partition */
-		uint64_t lba_end;        /* end of partition */
-		uint64_t attributes;     /* partition attributes */
-		uint16_t name[NAME_LEN]; /* partition name in UTF-16LE */
+		enum { NAME_BYTES = 36 * 2 };
+		Uuid     type;             /* partition type GUID */
+		Uuid     guid;             /* unique partition GUID */
+		uint64_t lba_start;        /* start of partition */
+		uint64_t lba_end;          /* end of partition */
+		uint64_t attributes;       /* partition attributes */
+		uint8_t  name[NAME_BYTES]; /* partition name in UTF-16LE */
 
 		bool valid() const { return type.valid(); }
 
@@ -126,7 +126,7 @@ namespace Gpt {
 		 */
 		bool read_name(char *dest, size_t dest_len) const
 		{
-			return !!Util::extract_ascii(dest, dest_len, name, NAME_LEN);
+			return !!Util::extract_ascii(dest, dest_len, name, NAME_BYTES);
 		}
 
 		/**
@@ -134,7 +134,7 @@ namespace Gpt {
 		 */
 		bool write_name(Label const &label)
 		{
-			return !!Util::convert_ascii(name, NAME_LEN,
+			return !!Util::convert_ascii(name, NAME_BYTES,
 			                             (uint8_t*)label.string(),
 			                             label.length() - 1);
 		}

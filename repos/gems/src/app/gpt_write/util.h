@@ -41,8 +41,8 @@ namespace Util {
 	struct Block_io;
 
 	uint32_t crc32(void const * const, size_t);
-	size_t extract_ascii(char *, size_t, uint16_t const *, size_t);
-	size_t convert_ascii(uint16_t *, size_t, uint8_t const *, size_t);
+	size_t extract_ascii(char *, size_t, uint8_t const *, size_t);
+	size_t convert_ascii(uint8_t *, size_t, uint8_t const *, size_t);
 
 	/*
 	 * Wrapper to get suffixed uint64_t values

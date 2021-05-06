@@ -166,21 +166,27 @@ Genode::uint32_t Util::crc32(void const * const buf, Genode::size_t size)
  * \return length of resulting ASCII string
  */
 Genode::size_t Util::extract_ascii(char *dest, size_t dest_len,
-                                   uint16_t const *src, size_t src_len)
+                                   uint8_t const *src, size_t src_len)
 {
 	char *p = dest;
 	size_t j = 0;
 	size_t i = 0;
 
-	for (size_t u = 0; u < src_len && src[u] != 0; u++) {
-		uint32_t utfchar = src[i++];
+	for (size_t u = 0; u < src_len; u += 2) {
+		uint16_t const nul = src[u] | (src[u+1] << 8);
+		if (!nul) { break; }
+
+		uint16_t const v = src[i] | (src[i+1] << 8);
+		i+=2;
+
+		uint32_t utfchar = v;
 
 		if ((utfchar & 0xf800) == 0xd800) {
-			unsigned int c = src[i];
+			uint32_t c = src[i] | (src[i+1] << 8);
 			if ((utfchar & 0x400) != 0 || (c & 0xfc00) != 0xdc00) {
 				utfchar = 0xfffd;
 			} else {
-				i++;
+				i+=2;
 			}
 		}
 
@@ -201,26 +207,27 @@ Genode::size_t Util::extract_ascii(char *dest, size_t dest_len,
  * truncate the input string if it does not fit.
  *
  * \param dest      pointer to destination buffer
- * \param dest_len  length of the destination buffer in 16bit words
+ * \param dest_len  length of the destination buffer in bytes
  * \param src       pointer to source buffer
  * \param dest_len  length of the source buffer in 8bit words
  *
  * \return length of resulting UTF-16 string
  */
-Genode::size_t Util::convert_ascii(uint16_t *dest, size_t dest_len,
+Genode::size_t Util::convert_ascii(uint8_t *dest, size_t dest_len,
                                    uint8_t const *src, size_t src_len)
 {
-	Genode::memset(dest, 0, dest_len * sizeof(uint16_t));
+	Genode::memset(dest, 0, dest_len);
 
-	if (src_len / sizeof(uint16_t) > dest_len) {
+	if (src_len > dest_len) {
 		Genode::warning("input too long, will be truncated");
 		src_len = dest_len;
 	}
 
 	size_t i = 0;
+	size_t j = 0;
 	for (; i < src_len; i++) {
-		uint16_t const utfchar = src[i];
-		dest[i] = utfchar;
+		dest[j++] = src[i];
+		dest[j++] = 0;
 	}
 
 	return i;
