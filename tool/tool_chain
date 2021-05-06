@@ -270,7 +270,7 @@ BINUTILS_CONFIG += $(BINUTILS_CONFIG_$(PLATFORM))
 #
 # GDB configure arguments
 #
-GDB_CONFIG += $(COMMON_CONFIG) --disable-werror
+GDB_CONFIG += $(COMMON_CONFIG) --disable-werror --disable-sim
 
 GCC_CONFIG += $(COMMON_CONFIG) \
               --enable-languages=$(LANGUAGES),go \
