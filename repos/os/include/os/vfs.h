@@ -494,7 +494,21 @@ class Genode::File_content
 		:
 			_buffer(alloc, min(dir.file_size(rel_path), (Vfs::file_size)limit.value))
 		{
-			if (Readonly_file(dir, rel_path).read(_buffer.ptr, _buffer.size) != _buffer.size)
+			Readonly_file file {dir, rel_path};
+
+			size_t total_read = 0;
+			while (total_read < _buffer.size) {
+				size_t read_bytes = file.read(Readonly_file::At{total_read},
+				                              _buffer.ptr  + total_read,
+				                              _buffer.size - total_read);
+
+				if (read_bytes == 0)
+					break;
+
+				total_read += read_bytes;
+			}
+
+			if (total_read != _buffer.size)
 				throw Truncated_during_read();
 		}
 
