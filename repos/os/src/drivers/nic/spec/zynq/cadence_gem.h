@@ -343,6 +343,20 @@ namespace Genode
 				struct Counter : Bitfield<0, 16> { };
 			};
 
+			/**
+			 * These two structs help avoiding the following compile errors in
+			 * places where the driver has to convert MAC addresses pointers
+			 * to integer pointers:
+			 *
+			 * error: taking address of packed member of ‘Net::Mac_address’
+			 *        may result in an unaligned pointer value
+			 *
+			 * As the MAC address type is packed and therefore has alignment 1,
+			 * we have to ensure that the pointer type we convert it to also
+			 * has alignment 1, i.e., that it is also packed.
+			 */
+			struct Packed_uint16 { uint16_t value; } __attribute__((packed));
+			struct Packed_uint32 { uint32_t value; } __attribute__((packed));
 
 			class Phy_timeout_for_idle : public Genode::Exception {};
 			class Unkown_ethernet_speed : public Genode::Exception {};
@@ -437,11 +451,11 @@ namespace Genode
 			Nic::Mac_address read_mac_address()
 			{
 				Nic::Mac_address mac;
-				uint32_t* const low_addr_pointer = reinterpret_cast<uint32_t*>(&mac.addr[0]);
-				uint16_t* const high_addr_pointer = reinterpret_cast<uint16_t*>(&mac.addr[4]);
+				Packed_uint32 * const low_addr_pointer  = reinterpret_cast<Packed_uint32 *>(&mac.addr[0]);
+				Packed_uint16 * const high_addr_pointer = reinterpret_cast<Packed_uint16 *>(&mac.addr[4]);
 
-				*low_addr_pointer = read<Mac_addr_1::Low_addr>();
-				*high_addr_pointer = read<Mac_addr_1::High_addr>();
+				low_addr_pointer->value = read<Mac_addr_1::Low_addr>();
+				high_addr_pointer->value = read<Mac_addr_1::High_addr>();
 
 				return mac;
 			}
@@ -676,11 +690,11 @@ namespace Genode
 
 			void write_mac_address(const Nic::Mac_address &mac)
 			{
-				const uint32_t* const low_addr_pointer = reinterpret_cast<const uint32_t*>(&mac.addr[0]);
-				const uint16_t* const high_addr_pointer = reinterpret_cast<const uint16_t*>(&mac.addr[4]);
+				Packed_uint32 const * const low_addr_pointer  = reinterpret_cast<Packed_uint32 const *>(&mac.addr[0]);
+				Packed_uint16 const * const high_addr_pointer = reinterpret_cast<Packed_uint16 const *>(&mac.addr[4]);
 
-				write<Mac_addr_1::Low_addr>(*low_addr_pointer);
-				write<Mac_addr_1::High_addr>(*high_addr_pointer);
+				write<Mac_addr_1::Low_addr>(low_addr_pointer->value);
+				write<Mac_addr_1::High_addr>(high_addr_pointer->value);
 			}
 
 			void rx_buffer_reset_pkt(Nic::Packet_descriptor pkt)
