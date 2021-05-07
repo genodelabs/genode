@@ -44,6 +44,9 @@ void Driver<POLICY>::Policy::sync(const typename POLICY::Element *e, char *dst)
 	}
 }
 
+/* explicit instantiation for external reference */
+template void Driver<Policy>::Policy::sync(const typename Policy::Element *, char *);
+
 
 struct Main
 {
