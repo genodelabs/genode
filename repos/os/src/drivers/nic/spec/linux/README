@@ -1,0 +1,20 @@
+This directory contains the implementation of the Linux TAP based NIC driver.
+
+The driver is a Linux hybrid component that uses the C library to
+access the virtual TUN/TAP network devices. Therefore it requires
+read-write access to /dev/net/tun and a TAP device configured to be
+controlled by the user executing the component. The TAP device
+defaults to tap0 and can be set up as follows.
+
+! sudo ip tuntap add dev tap0 mode tap user $USER
+
+The used TAP device can be changed in the component configuration like
+follows.
+
+! <config tap="tap1"/>
+
+The virtual NIC's MAC address defaults to 02-00-00-00-00-01 and can be
+changed via
+
+! <config mac="12:23:34:45:56:67"/>
+

@@ -67,7 +67,6 @@ set config {
 
 	<start name="linux_nic_drv" ld="no">
 		<resource name="RAM" quantum="8M"/>
-		<config mode="uplink_client"/>
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> </any-service>
