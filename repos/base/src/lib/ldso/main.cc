@@ -127,7 +127,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 	public:
 
 		Elf_object(Dependency const &dep, Object::Name const &name,
-		           Elf::Addr reloc_base)
+		           Elf::Addr reloc_base) SELF_RELOC
 		:
 			_elf_object_initialized(_object_init(name, reloc_base)),
 			_dyn(dep)
@@ -261,7 +261,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
  */
 struct Linker::Ld : private Dependency, Elf_object
 {
-	Ld() :
+	Ld() SELF_RELOC :
 		Dependency(*this, nullptr),
 		Elf_object(*this, linker_name(), relocation_address())
 	{ }
@@ -651,9 +651,6 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const &dep,
  */
 extern "C" void init_rtld()
 {
-	/* init cxa guard mechanism before any local static variables are used */
-	init_cxx_guard();
-
 	/*
 	 * Allocate on stack, since the linker has not been relocated yet, the vtable
 	 * type relocation might produce a wrong vtable pointer (at least on ARM), do
@@ -661,6 +658,9 @@ extern "C" void init_rtld()
 	 */
 	Ld linker_on_stack;
 	linker_on_stack.relocate(BIND_LAZY);
+
+	/* init cxa guard mechanism before any local static variables are used */
+	init_cxx_guard();
 
 	/*
 	 * Create actual linker object with different vtable type and set PLT to new

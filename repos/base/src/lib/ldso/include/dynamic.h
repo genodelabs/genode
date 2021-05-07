@@ -179,7 +179,7 @@ class Linker::Dynamic
 
 		enum Pass { FIRST_PASS, SECOND_PASS };
 
-		Dynamic(Dependency const &dep)
+		Dynamic(Dependency const &dep) SELF_RELOC
 		:
 			_dep(&dep), _obj(dep.obj()), _dynamic(*(Elf::Dyn *)dynamic_address())
 		{
@@ -339,7 +339,7 @@ class Linker::Dynamic
 				Plt_got r(*_dep, _pltgot);
 		}
 
-		void relocate_non_plt(Bind bind, Pass pass)
+		void relocate_non_plt(Bind bind, Pass pass) SELF_RELOC
 		{
 			if (_reloca)
 				Reloc_non_plt r(*_dep, _reloca, _reloca_size, pass == SECOND_PASS);
