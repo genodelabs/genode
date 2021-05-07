@@ -209,7 +209,7 @@ class Ssh::Terminal
 		 */
 		size_t read(char *dst, size_t dst_len)
 		{
-			Mutex::Guard guard(read_buf.mutex());
+			Util::Pthread_mutex::Guard guard(read_buf.mutex());
 
 			size_t const num_bytes = min(dst_len, read_buf.read_avail());
 			Genode::memcpy(dst, read_buf.content(), num_bytes);
@@ -268,8 +268,14 @@ class Ssh::Terminal
 		 */
 		bool read_buffer_empty()
 		{
-			Mutex::Guard guard(read_buf.mutex());
-			return !read_buf.read_avail();
+			bool empty = true;
+
+			Libc::with_libc([&] {
+				Util::Pthread_mutex::Guard guard(read_buf.mutex());
+				empty = !read_buf.read_avail();
+			});
+
+			return empty;
 		}
 };
 

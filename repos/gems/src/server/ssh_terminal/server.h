@@ -61,14 +61,6 @@ struct Ssh::Session : Genode::Registry<Session>::Element
 	Ssh::Terminal *terminal          { nullptr };
 	bool           terminal_detached { false };
 
-	Genode::Mutex  _access_mutex { };
-	Genode::Mutex &mutex_terminal()
-	{
-		return _access_mutex;
-	}
-
-	bool spawn_terminal { false };
-
 	Session(Genode::Registry<Session> &reg,
 	        ssh_session s,
 	        ssh_channel_callbacks ccb,
@@ -111,8 +103,8 @@ struct Ssh::Terminal_session : Genode::Registry<Terminal_session>::Element
 
 struct Ssh::Terminal_registry : Genode::Registry<Terminal_session>
 {
-	Genode::Mutex _mutex { };
-	Genode::Mutex &mutex() { return _mutex; }
+	Util::Pthread_mutex _mutex { };
+	Util::Pthread_mutex &mutex() { return _mutex; }
 };
 
 
