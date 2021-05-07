@@ -90,7 +90,7 @@ _create_surface(_EGLDriver *drv, _EGLDisplay *disp,
 		dri2_surf->back_image = dri2_dpy->image->createImage(dri2_dpy->dri_screen,
 		                                                     dri2_surf->base.Width,
 		                                                     dri2_surf->base.Height,
-		                                                     __DRI_IMAGE_FORMAT_RGB565,
+		                                                     __DRI_IMAGE_FORMAT_ARGB8888,
 		                                                     dri2_dpy->is_different_gpu ?
 		                                                     0 : __DRI_IMAGE_USE_SHARE,
 		                                                     NULL);
