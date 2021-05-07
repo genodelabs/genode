@@ -1,3 +1,4 @@
 bfd.patch
+merge_sections.patch
 arm.patch
 riscv.patch

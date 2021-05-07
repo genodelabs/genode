@@ -1,0 +1,17 @@
+Revert to old behavior where sections with the same name are augmented
+
+Sebastian Sumpf
+
+diff --git a/ld/ldlang.c b/ld/ldlang.c
+index 8cbeda6..10ccc98 100644
+--- a/ld/ldlang.c
++++ b/ld/ldlang.c
+@@ -7414,7 +7414,7 @@ lang_enter_output_section_statement (const char *output_section_statement_name,
+   lang_output_section_statement_type *os;
+ 
+   os = lang_output_section_statement_lookup (output_section_statement_name,
+-					     constraint, 2);
++					     constraint, 1);
+   current_section = os;
+ 
+   if (os->addr_tree == NULL)
