@@ -87,6 +87,7 @@
 		<rom label="stdcxx.lib.so"/>
 		<rom label="vfs.lib.so"/>
 		<rom label="vfs_pipe.lib.so"/>
+		<rom label="jpeg.lib.so"/>
 	</content>
 
 </runtime>

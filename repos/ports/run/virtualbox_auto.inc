@@ -24,7 +24,8 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/vfs_pipe
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/jpeg
 
 if {$use_vms > 1} {
 	import_from_depot [depot_user]/pkg/themed_wm
