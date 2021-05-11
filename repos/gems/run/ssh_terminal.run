@@ -240,7 +240,7 @@ build_boot_image $boot_modules
 # Execute test
 #
 
-append qemu_args     " -m 512 -nographic "
+append qemu_args     " -nographic "
 append_qemu_nic_args "hostfwd=tcp::5555-:22"
 
 set lxip_match_string "ipaddr=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"

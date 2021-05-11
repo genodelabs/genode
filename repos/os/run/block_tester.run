@@ -355,7 +355,7 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic -m 512 -nographic"
+append qemu_args " -nographic -nographic"
 append qemu_args " -drive id=disk,file=bin/block0.raw,format=raw,if=none \
                    -drive id=disk2,file=bin/block1.raw,format=raw,if=none \
                    -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 \

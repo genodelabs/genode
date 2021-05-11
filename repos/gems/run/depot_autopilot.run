@@ -456,7 +456,7 @@ proc prepare_to_run_genode { } {
 	set serial_id -1
 	set timeout 40
 
-	append qemu_args "-m 768 -nographic "
+	append qemu_args "-m 800 -nographic "
 }
 
 

@@ -309,7 +309,7 @@ if {[have_include "power_on/qemu"]} {
 	if {[expr $use_gui]} {
 		append qemu_args " -m 2048 "
 	} else {
-		append qemu_args " -m 768 "
+		append qemu_args " -m 1024 "
 	}
 
 	append qemu_args " -cpu phenom "

@@ -121,14 +121,28 @@ proc run_power_on { } {
 
 	# on x86, we support booting via pxe or iso/disk image
 	if {[have_board pc]} {
-		if {![regexp -- {-m} $qemu_args dummy]} {
-			if {[have_spec okl4]} {
-				# okl4 system integration specifies RAM from 32 to 800 MiB
-				append qemu_args " -m 800 "
-			} else {
-				append qemu_args " -m 512 "
+		if {[have_spec okl4]} {
+			# okl4 system integration specifies RAM from 32 to 800 MiB
+			set qemu_ram 800
+		} else {
+			set qemu_ram 512
+		}
+
+		if {[regexp -- {-m} $qemu_args dummy]} {
+			set qemu_ram [regexp -inline {\-m.[0-9]+} $qemu_args]
+			set qemu_ram [regexp -inline {[0-9]+} $qemu_ram]
+		}
+
+		if {[have_spec okl4]} {
+			if {$qemu_ram < 800} {
+				puts "Configured memory ($qemu_ram) for OKL4 on Qemu must be at least 800M\n"
+				exit 1
 			}
 		}
+
+		append qemu_args " -m $qemu_ram "
+
+
 		if {[have_include "load/tftp"]} {
 			append qemu_args " -boot n -tftp [run_dir] -bootp boot/pulsar -no-reboot -no-shutdown "
 		} else {

@@ -62,6 +62,6 @@ install_config {
 build_boot_image { core init timer block_tester test-block_request_stream ld.lib.so }
 
 
-append qemu_args " -nographic -m 512 "
+append qemu_args " -nographic "
 
 run_genode_until {.*child "block_tester" exited with exit value 0.*\n} 360

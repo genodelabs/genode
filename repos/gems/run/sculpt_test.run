@@ -4,7 +4,7 @@ source ${genode_dir}/repos/gems/run/sculpt.run
 
 # enable Qemu networking, usable via the nic_drv
 append_qemu_nic_args
-append qemu_args " -m 768 "
+append qemu_args " -m 1024 "
 
 # attach small SATA disk to Qemu to experiment with file-system access
 set disk_image "bin/sculpt-ahci.raw"

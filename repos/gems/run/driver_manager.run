@@ -164,7 +164,6 @@ if {[have_include "power_on/qemu"]} {
 #
 # Qemu opts for supplying hdd_disk.raw as AHCI disk
 #
-append qemu_args " -m 128 "
 append qemu_args " -nographic "
 append qemu_args " -device ahci,id=ahci "
 append qemu_args " -drive id=hdd,file=bin/hdd_disk.raw,format=raw,if=none -device ide-hd,drive=hdd,bus=ahci.1 "

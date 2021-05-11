@@ -251,7 +251,7 @@ lappend boot_modules libc.lib.so vfs.lib.so vfs_pipe.lib.so vfs
 build_boot_image $boot_modules
 
 
-append qemu_args " -nographic -m 768 "
+append qemu_args " -nographic -m 800 "
 
 # wait until Noux started
 run_genode_until {.*\[init -> vfs\] creating build directory\.\.\..*\n} $boot_timeout

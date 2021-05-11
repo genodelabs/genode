@@ -194,7 +194,7 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic -m 512 "
+append qemu_args " -nographic "
 append qemu_args " -drive id=nvme0,file=bin/nvme.raw,format=raw,if=none "
 append qemu_args " -device nvme,drive=nvme0,serial=fnord,id=nvme0n1 "
 
