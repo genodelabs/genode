@@ -12,7 +12,7 @@
 #
 
 # normalize sort order across platforms
-set env(LC_COLLATE) C
+set env(LC_ALL) C
 
 set lib_path [lindex $argv 0]
 set abi_path [lindex $argv 1]

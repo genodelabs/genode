@@ -34,7 +34,7 @@ endif
 #
 # \param $1  absolute file path
 #
-sorted_file_content = $(if $(wildcard $1),$(shell cat $1 | sort -u),\
+sorted_file_content = $(if $(wildcard $1),$(shell cat $1 | $(SORT) -u),\
                                           $(error Failed to read file $1))
 
 #

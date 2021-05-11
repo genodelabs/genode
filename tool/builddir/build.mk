@@ -67,9 +67,6 @@ export ECHO             ?= echo -e
 export CONTRIB_DIR
 export BOARD
 
-# Force stable sorting order
-export LC_COLLATE=C
-
 #
 # Convert user-defined directories to absolute directories
 #

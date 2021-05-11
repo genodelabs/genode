@@ -32,4 +32,4 @@ EMPTY :=
 file_content = $(if $(wildcard $1),$(shell cat $1),)
 
 # Force stable sorting order
-export LC_COLLATE=C
+SORT := LC_ALL=C sort

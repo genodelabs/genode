@@ -11,7 +11,7 @@
 #
 
 # normalize sort order across platforms
-set env(LC_COLLATE) C
+set env(LC_ALL) C
 
 # obtain symbol information via 'nm'
 set symbols [exec nm --format posix --dynamic $argv | sort]

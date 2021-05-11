@@ -214,8 +214,8 @@ _check_hash: $(DEPOT_ARCHIVE_DIR).hash checked_recipe_hash_value_exists
 # command).
 #
 HASH_CMD := cd $(DEPOT_ARCHIVE_DIR); \
-            (find . -type f | sort; \
-             find . -type f | sort | xargs -d '\n' cat) \
+            (find . -type f | $(SORT); \
+             find . -type f | $(SORT) | xargs -d '\n' cat) \
             | $(HASHSUM) | sed "s/ .*//"
 
 #

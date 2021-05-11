@@ -28,9 +28,6 @@ MSG_GENERATE   := $(MSG_PREFIX)"generate "
 MSG_EXTRACT    := $(MSG_PREFIX)"extract "
 MSG_GIT        := $(MSG_PREFIX_TXT)git 
 
-# Force stable sorting order
-export LC_COLLATE=C
-
 #
 # Utility to check if a tool is installed
 #
