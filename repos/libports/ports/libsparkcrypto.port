@@ -8,4 +8,4 @@ REV(libsparkcrypto) := a8d7086714d90aa772829c69064a7236bddec6d9
 
 URL(libsparkcrypto-alis) := https://github.com/m-stein/libsparkcrypto-alis.git
 DIR(libsparkcrypto-alis) := libsparkcrypto-alis
-REV(libsparkcrypto-alis) := b16d45ad204d252b4327ac3c062dcccebaac9380
+REV(libsparkcrypto-alis) := 7d18b6bdbf131e95eb891de7ed9f7ba4d35b26b9
