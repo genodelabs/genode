@@ -210,6 +210,7 @@ USB_HOST_OPT = -p1 -d$(SRC_DIR_USB_HOST)
 PATCH_OPT(patches/usb_host_mem.patch)     := $(USB_HOST_OPT)
 PATCH_OPT(patches/usb_host_omap.patch)    := $(USB_HOST_OPT)
 PATCH_OPT(patches/usb_host_dwc_otg.patch) := $(USB_HOST_OPT)
+PATCH_OPT(patches/usb_host_isoc_bei.patch):= $(USB_HOST_OPT)
 
 # USB HID
 USB_HID_OPT = -p1 -d$(SRC_DIR_USB_HID)
