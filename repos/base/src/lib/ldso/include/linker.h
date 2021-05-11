@@ -229,6 +229,11 @@ class Linker::Object : private Fifo<Object>::Element,
 		virtual bool unload() { return false;}
 
 		/**
+		 * Did this ELF require loading or was it present already
+		 */
+		virtual bool already_present() const { return false; }
+
+		/**
 		 * Next object in initialization list
 		 */
 		virtual Object *next_init() const = 0;

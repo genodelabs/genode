@@ -247,6 +247,8 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 		void load()   override { _ref_count++; }
 		bool unload() override { return (_keep == DONT_KEEP) && !(--_ref_count); }
 
+		bool already_present() const override { return _ref_count > 1; }
+
 		bool keep() const override { return _keep == KEEP; }
 
 		bool is_linker() const override { return false; }

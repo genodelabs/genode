@@ -59,16 +59,20 @@ Genode::Shared_object::Shared_object(Env &env, Allocator &md_alloc,
 	try {
 		Mutex::Guard guard(Linker::shared_object_mutex());
 
-		_handle = new (md_alloc)
+		Root_object *root  = new (md_alloc)
 			Root_object(env, md_alloc, file ? file : binary_name(),
 			            bind == BIND_NOW ? Linker::BIND_NOW : Linker::BIND_LAZY,
 			            keep == KEEP     ? Linker::KEEP     : Linker::DONT_KEEP);
 
+		_handle = root;
+
 		/* print loaded object information */
-		try {
-			if (Linker::verbose)
-				Linker::dump_link_map(to_root(_handle).first_dep()->obj());
-		} catch (...) {  }
+		if (Linker::verbose) {
+			root->deps().for_each([] (Linker::Dependency const &dep) {
+				if (dep.obj().already_present()) return;
+				Linker::dump_link_map(dep.obj());
+			});
+		}
 
 	} catch(Linker::Not_found &symbol) {
 		warning("LD: symbol not found: '", symbol, "'");
