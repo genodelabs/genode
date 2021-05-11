@@ -30,7 +30,7 @@ if { [get_cmd_switch --autopilot] } {
 		set run [expr [have_spec nova] || [have_spec hw]]
 	}
 	if {[have_board imx8q_evk]} {
-		set config_wo 10000
+		set config_wo 9000
 		set run 1
 	}
 	if {[have_board linux]} {
