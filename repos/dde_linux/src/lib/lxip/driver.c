@@ -119,7 +119,7 @@ void net_driver_rx(void *addr, unsigned long size)
 	enum {
 		ADDITIONAL_HEADROOM = 4, /* smallest value found by trial & error */
 	};
-	struct sk_buff *skb = dev_alloc_skb(size + ADDITIONAL_HEADROOM);
+	struct sk_buff *skb = netdev_alloc_skb_ip_align(_dev, size + ADDITIONAL_HEADROOM);
 	if (!skb) {
 		printk(KERN_NOTICE "genode_net_rx: low on mem - packet dropped!\n");
 		stats->rx_dropped++;
