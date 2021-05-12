@@ -16,9 +16,11 @@
  */
 
 /* Genode includes */
+#include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
+#include <base/log.h>
 #include <file_system_session/rpc_object.h>
 #include <os/session_policy.h>
 #include <root/component.h>
@@ -35,27 +37,68 @@ namespace Lx_fs {
 	using namespace File_system;
 	using File_system::Packet_descriptor;
 	using File_system::Path;
+	using Genode::Attached_ram_dataspace;
+	using Genode::Attached_rom_dataspace;
 
 	struct Main;
-	struct Session_component;
-	struct Root;
+	class Session_resources;
+	class Session_component;
+	class Root;
+
+	/**
+	 * Convenience utities for parsing quotas
+	 */
+	Genode::Ram_quota parse_ram_quota(char const *args) {
+		return Genode::Ram_quota{ Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0)}; }
+	Genode::Cap_quota parse_cap_quota(char const *args) {
+		return Genode::Cap_quota{ Genode::Arg_string::find_arg(args, "cap_quota").ulong_value(0)}; }
+	Genode::size_t parse_tx_buf_size(char const *args) {
+		return Genode::Arg_string::find_arg(args, "tx_buf_size").ulong_value(0); }
 }
 
 
-class Lx_fs::Session_component : public Session_rpc_object
+/**
+ * Base class to manage session quotas and allocations
+ */
+class Lx_fs::Session_resources
+{
+	protected:
+
+		Genode::Ram_quota_guard           _ram_guard;
+		Genode::Cap_quota_guard           _cap_guard;
+		Genode::Constrained_ram_allocator _ram_alloc;
+		Genode::Attached_ram_dataspace    _packet_ds;
+		Genode::Heap                      _alloc;
+
+		Session_resources(Genode::Ram_allocator &ram,
+		                  Genode::Region_map    &region_map,
+		                  Genode::Ram_quota     ram_quota,
+		                  Genode::Cap_quota     cap_quota,
+		                  Genode::size_t        buffer_size)
+		:
+			_ram_guard(ram_quota), _cap_guard(cap_quota),
+			_ram_alloc(ram, _ram_guard, _cap_guard),
+			_packet_ds(_ram_alloc, region_map, buffer_size),
+			_alloc(_ram_alloc, region_map)
+		{ }
+};
+
+
+class Lx_fs::Session_component : private Session_resources,
+                                 public Session_rpc_object
 {
 	private:
 
-		typedef File_system::Open_node<Node> Open_node;
+		using Open_node      = File_system::Open_node<Node>;
+		using Signal_handler = Genode::Signal_handler<Session_component>;
 
 		Genode::Env                 &_env;
-		Allocator                   &_md_alloc;
 		Directory                   &_root;
 		Id_space<File_system::Node>  _open_node_registry { };
 		bool                         _writable;
 		Absolute_path const          _root_dir;
 
-		Signal_handler<Session_component> _process_packet_dispatcher;
+		Signal_handler               _process_packet_dispatcher;
 
 
 		/******************************
@@ -69,7 +112,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 		 */
 		void _process_packet_op(Packet_descriptor &packet, Open_node &open_node)
 		{
-			size_t     const length  = packet.length();
+			size_t const length  = packet.length();
 
 			/* resulting length */
 			size_t res_length = 0;
@@ -200,19 +243,20 @@ class Lx_fs::Session_component : public Session_rpc_object
 		/**
 		 * Constructor
 		 */
-		Session_component(size_t       tx_buf_size,
-		                  Genode::Env &env,
-		                  char const  *root_dir,
-		                  bool         writable,
-		                  Allocator   &md_alloc)
+		Session_component(Genode::Env         &env,
+		                  Genode::Ram_quota    ram_quota,
+		                  Genode::Cap_quota    cap_quota,
+		                  size_t               tx_buf_size,
+		                  char const          *root_dir,
+		                  bool                 writable)
 		:
-			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
-			_env(env),
-			_md_alloc(md_alloc),
-			_root(*new (&_md_alloc) Directory(_md_alloc, root_dir, false)),
-			_writable(writable),
-			_root_dir(root_dir),
-			_process_packet_dispatcher(env.ep(), *this, &Session_component::_process_packets)
+			Session_resources { env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size },
+			Session_rpc_object {_packet_ds.cap(), env.rm(), env.ep().rpc_ep() },
+			_env { env },
+			_root { *new (&_alloc) Directory { _alloc, root_dir, false } },
+			_writable { writable },
+			_root_dir { root_dir },
+			_process_packet_dispatcher { env.ep(), *this, &Session_component::_process_packets }
 		{
 			/*
 			 * Register '_process_packets' dispatch function as signal
@@ -227,11 +271,37 @@ class Lx_fs::Session_component : public Session_rpc_object
 		 */
 		~Session_component()
 		{
-			Dataspace_capability ds = tx_sink()->dataspace();
-			_env.ram().free(static_cap_cast<Ram_dataspace>(ds));
-			destroy(&_md_alloc, &_root);
+			List<List_element<Open_node>> node_list;
+
+			auto collect_fn = [&node_list, this] (Open_node &open_node) {
+				node_list.insert(new (_alloc) List_element<Open_node>{ &open_node });
+			};
+
+			try {
+				_open_node_registry.for_each<Open_node>(collect_fn);
+
+				while (node_list.first()) {
+
+					auto *e = node_list.first();
+					Node &node = e->object()->node();
+					destroy(_alloc, e->object());
+					destroy(_alloc, &node);
+					node_list.remove(e);
+					destroy(_alloc, e);
+				}
+
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				error("invalid handle while cleaning up");
+			}
+
+			destroy(&_alloc, &_root);
 		}
 
+		/**
+		 * Increase quotas
+		 */
+		void upgrade(Genode::Ram_quota ram)  { _ram_guard.upgrade(ram); }
+		void upgrade(Genode::Cap_quota caps) { _cap_guard.upgrade(caps); }
 
 		/***************************
 		 ** File_system interface **
@@ -253,7 +323,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 				File *file = dir.file(name.string(), mode, create);
 
 				Open_node *open_file =
-					new (_md_alloc) Open_node(*file, _open_node_registry);
+					new (_alloc) Open_node(*file, _open_node_registry);
 
 				return open_file->id();
 			};
@@ -294,7 +364,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 			Directory *dir = _root.subdir(path_str, create);
 
 			Open_node *open_dir =
-				new (_md_alloc) Open_node(*dir, _open_node_registry);
+				new (_alloc) Open_node(*dir, _open_node_registry);
 
 			return Dir_handle { open_dir->id().value };
 		}
@@ -308,7 +378,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 			Node *node = _root.node(path_str + 1);
 
 			Open_node *open_node =
-				new (_md_alloc) Open_node(*node, _open_node_registry);
+				new (_alloc) Open_node(*node, _open_node_registry);
 
 			return open_node->id();
 		}
@@ -317,8 +387,8 @@ class Lx_fs::Session_component : public Session_rpc_object
 		{
 			auto close_fn = [&] (Open_node &open_node) {
 				Node &node = open_node.node();
-				destroy(_md_alloc, &open_node);
-				destroy(_md_alloc, &node);
+				destroy(_alloc, &open_node);
+				destroy(_alloc, &node);
 			};
 
 			try {
@@ -369,9 +439,6 @@ class Lx_fs::Session_component : public Session_rpc_object
 
 				char const *path_str = absolute_path.string();
 				_assert_valid_path(path_str);
-
-				/* skip leading '/' */
-				path_str++;
 
 				struct stat s;
 				int ret = lstat(path_str, &s);
@@ -451,9 +518,8 @@ class Lx_fs::Root : public Root_component<Session_component>
 {
 	private:
 
-		Genode::Env &_env;
-
-		Genode::Attached_rom_dataspace _config { _env, "config" };
+		Genode::Env                    &_env;
+		Genode::Attached_rom_dataspace  _config   { _env, "config" };
 
 		static inline bool writeable_from_args(char const *args)
 		{
@@ -509,10 +575,11 @@ class Lx_fs::Root : public Root_component<Session_component>
 			writeable = policy.attribute_value("writeable", false) &&
 			            writeable_from_args(args);
 
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-			size_t tx_buf_size =
-				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+			auto const initial_ram_usage { _env.pd().used_ram().value };
+			auto const initial_cap_usage { _env.pd().used_caps().value };
+			auto const ram_quota         { parse_ram_quota(args).value };
+			auto const cap_quota         { parse_cap_quota(args).value };
+			auto const tx_buf_size       { parse_tx_buf_size(args) };
 
 			if (!tx_buf_size) {
 				Genode::error(label, " requested a session with a zero length transmission buffer");
@@ -531,14 +598,57 @@ class Lx_fs::Root : public Root_component<Session_component>
 			}
 
 			try {
-				return new (md_alloc())
-				       Session_component(tx_buf_size, _env, root_dir, writeable, *md_alloc());
+				auto session = new (md_alloc())
+				       Session_component { _env,
+				                           Genode::Ram_quota { ram_quota },
+				                           Genode::Cap_quota { cap_quota },
+				                           tx_buf_size,
+				                           absolute_root_directory(root_dir).string(),
+				                           writeable };
+
+				auto ram_used { _env.pd().used_ram().value - initial_ram_usage };
+				auto cap_used { _env.pd().used_caps().value - initial_cap_usage };
+
+				if ((ram_used > ram_quota) || (cap_used > cap_quota)) {
+					if (ram_used > ram_quota)
+						Genode::warning("ram donation is ", ram_quota,
+						                " but used RAM is ", ram_used, "B"
+						                ", '", label, "'");
+					if (cap_used > cap_quota)
+						Genode::warning("cap donation is ", cap_quota,
+						                " but used caps is ", cap_used,
+						                ", '", label, "'");
+				}
+
+				return session;
 			}
 			catch (Lookup_failed) {
 				Genode::error("session root directory \"", root, "\" "
 				              "does not exist");
 				throw Service_denied();
 			}
+		}
+
+		void _destroy_session(Session_component *session) override
+		{
+			Genode::destroy(md_alloc(), session);
+		}
+
+		/**
+		 * Session upgrades are important for the lx_fs server,
+		 * this allows sessions to open arbitrarily large amounts
+		 * of handles without starving other sessions.
+		 */
+		void _upgrade_session(Session_component *session,
+		                      char        const *args) override
+		{
+			Genode::Ram_quota more_ram  { parse_ram_quota(args) };
+			Genode::Cap_quota more_caps { parse_cap_quota(args) };
+
+			if (more_ram.value > 0)
+				session->upgrade(more_ram);
+			if (more_caps.value > 0)
+				session->upgrade(more_caps);
 		}
 
 	public:
