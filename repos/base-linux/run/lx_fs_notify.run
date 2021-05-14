@@ -1,0 +1,436 @@
+#
+# \brief  Test for using the lx_fs_notify plugin with the Linux file system
+# \author Pirmin Duss
+# \date   2019-12-05
+#
+
+assert_spec linux
+
+#
+# Build
+#
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src]
+import_from_depot [depot_user]/src/chroot
+import_from_depot [depot_user]/src/fs_rom
+import_from_depot [depot_user]/src/init
+import_from_depot [depot_user]/src/libc
+import_from_depot [depot_user]/src/stdcxx
+import_from_depot [depot_user]/src/posix
+import_from_depot [depot_user]/src/vfs
+
+build {
+	server/lx_fs
+	test/lx_fs_notify/rom_log
+	test/lx_fs_notify/file_writer
+}
+
+#
+# init config
+#
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="lx_fs" caps="200" ld="no">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<policy label_prefix="fs_rom_config" root="/lx_fs_notify"           writeable="no"/>
+			<policy label_prefix="fs_rom_test"   root="/lx_fs_notify/test"      writeable="no"/>
+			<policy label_suffix="templates"     root="/lx_fs_notify/templates" writeable="yes"/>
+			<policy label_suffix="test"          root="/lx_fs_notify/test"      writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="fs_rom_config">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="ROM"/> </provides>
+		<route>
+			<service name="File_system"> <child name="lx_fs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="fs_rom_test">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="40M"/>
+		<provides> <service name="ROM"/> </provides>
+		<route>
+			<service name="File_system"> <child name="lx_fs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="test-rom_log">
+		<resource name="RAM" quantum="8M"/>
+		<route>
+			<service name="ROM" label="outfile.txt"> <child name="fs_rom_test"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="init" caps="4000">
+		<resource name="RAM" quantum="300M"/>
+		<route>
+			<service name="File_system"> <child name="lx_fs"/> </service>
+			<service name="ROM" label="config"> <child name="fs_rom_config" label="init.config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>
+}
+
+#
+# configurations for the sub init
+#
+set init_run_fwrite_test {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+		<service name="Timer"/>
+		<service name="File_system"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="test-file_writer" caps="300" version="1">
+		<resource name="RAM" quantum="16M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<null/>
+				</dir>
+				<dir name="templates"> <fs label="templates"/> </dir>
+				<dir name="test">      <fs label="test"/> </dir>
+			</vfs>
+			<arg value="test-file_writer"/>
+			<arg value="--fwrite"/>
+			<arg value="templates/infile.txt"/>
+			<arg value="test/outfile.txt"/>
+		</config>
+	</start>
+</config>
+}
+
+set init_run_write_test {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+		<service name="Timer"/>
+		<service name="File_system"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="test-file_writer" caps="300" version="2">
+		<resource name="RAM" quantum="16M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<null/>
+				</dir>
+				<dir name="templates"> <fs label="templates"/> </dir>
+				<dir name="test">      <fs label="test"/> </dir>
+			</vfs>
+			<arg value="test-file_writer"/>
+			<arg value="--write"/>
+			<arg value="templates/infile.txt"/>
+			<arg value="test/outfile.txt"/>
+		</config>
+	</start>
+</config>
+}
+
+set test_iterations  10
+set input_file_name  "bin/lx_fs_notify/templates/infile.txt"
+set output_file_name "bin/lx_fs_notify/test/outfile.txt"
+
+#
+# print text in colors
+#
+proc color {foreground text} {
+	# tput is a little Unix utility that lets you use the termcap database
+	# *much* more easily...
+	return [exec tput setaf $foreground]$text[exec tput sgr0]
+}
+
+#
+# write the desired config for the sub init
+#
+proc write_init_config { config } {
+	set fd [open "bin/lx_fs_notify/init.config" "w"]
+	puts $fd $config
+	close $fd
+}
+
+#
+# clear the content of the init config
+#
+proc write_empty_init_config { } {
+	set fd [open "bin/lx_fs_notify/init.config" "w"]
+	puts $fd ""
+	close $fd
+}
+
+#
+# wait for an update to the test file and check
+#
+proc wait_file_changed { file_size additional_filter } {
+	global spawn_id
+
+	puts [color 3 "wait for file change with size=$file_size"]
+	set timeout 5
+	expect {
+		-i $spawn_id -re ".*init -> test-rom_log.*updated ROM content: size=$file_size.*\n" { }
+		timeout {
+			puts [color 1 "ERROR no file change or wrong file size reported. expected size was $file_size"]
+			exit -4
+		}
+	}
+
+	if { $additional_filter != {} } {
+		set wait_re ".*$additional_filter\n"
+		set timeout 3
+		expect {
+			-i $spawn_id -re $wait_re { }
+			timeout { }
+		}
+	}
+}
+
+#
+# wait for a defined time
+#
+proc wait_and_consume_log { delay_sec } {
+	global spawn_id
+
+	set timeout $delay_sec
+	expect {
+		-i $spawn_id -re { text that never is printed during the test } { }
+		timeout { }
+	}
+	after 10
+}
+
+#
+# create the input file for a test
+#
+proc create_test_file { input_file_name } {
+	exec seq -w [expr int(rand()*4000)+1] > $input_file_name
+	set file_size [exec stat -c%s $input_file_name]
+	return $file_size
+}
+
+#
+# create output file
+#
+proc create_output_file { output_file_name } {
+	exec seq -w [expr int(rand()*400)+1] > $output_file_name
+	set file_size [exec stat -c%s $output_file_name]
+	return $file_size
+}
+
+#
+# compute the size of the ROM from the file size
+#
+proc rom_size { file_size } {
+	if { [expr $file_size % 4096] == 0 } {
+		return $file_size
+	} else {
+		return [expr $file_size + (4096 - ($file_size % 4096))]
+	}
+}
+
+#
+# Create test-directory structure
+#
+exec rm -Rf bin/lx_fs_notify
+exec mkdir -p bin/lx_fs_notify/templates
+exec mkdir -p bin/lx_fs_notify/test
+exec mkdir -p bin/lx_fs_notify/mnt
+
+#
+# Boot modules
+#
+build_boot_image { lx_fs test-rom_log test-file_writer lx_fs_notify }
+
+#
+# build the test program for Linux
+# this wil bel located in /tmp/bin
+#
+exec make -C [genode_dir]/repos/os/src/test/lx_fs_notify/file_writer/
+
+#
+# Test cases
+#
+proc test_libc_fwrite_in_genode { test_iterations init_run_fwrite_test input_file_name output_file_name } {
+	puts [color 2 ">>> run libc fwrite test in Genode ($test_iterations iterations)"]
+	set size [create_output_file $output_file_name]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		set size [create_test_file $input_file_name]
+		wait_and_consume_log 1
+		write_init_config $init_run_fwrite_test
+		wait_file_changed $size {child "test-file_writer" exited with exit value 0}
+		write_empty_init_config
+	}
+}
+
+proc test_libc_write_in_genode { test_iterations init_run_write_test input_file_name output_file_name } {
+	puts [color 2 ">>> run libc write test in Genode ($test_iterations iterations)"]
+	set size [create_output_file $output_file_name]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		set size [expr max([create_test_file $input_file_name], $size)]
+		wait_and_consume_log 1
+		write_init_config $init_run_write_test
+		wait_file_changed $size {child "test-file_writer" exited with exit value 0}
+		write_empty_init_config
+	}
+}
+
+proc test_libc_fwrite_on_linux { test_iterations input_file_name output_file_name } {
+	puts [color 2 ">>> run libc fwrite test on Linux ($test_iterations iterations)"]
+	write_empty_init_config
+	create_output_file $output_file_name
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		set size [create_test_file $input_file_name]
+		wait_and_consume_log 1
+		exec /tmp/bin/file_writer --fwrite [run_dir]/genode/lx_fs_notify/templates/infile.txt [run_dir]/genode/lx_fs_notify/test/outfile.txt
+		wait_file_changed $size {}
+	}
+}
+
+proc test_libc_write_on_linux { test_iterations input_file_name output_file_name } {
+	puts [color 2 ">>> run libc write test on Linux ($test_iterations iterations)"]
+	write_empty_init_config
+	set size [create_output_file $output_file_name]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		set size [expr max([create_test_file $input_file_name], $size)]
+		wait_and_consume_log 1
+		exec /tmp/bin/file_writer --write [run_dir]/genode/lx_fs_notify/templates/infile.txt [run_dir]/genode/lx_fs_notify/test/outfile.txt
+		wait_file_changed $size {}
+	}
+}
+
+proc test_tcl_file_copy { test_iterations input_file_name output_file_name} {
+	puts [color 2 ">>> run TCL 'file copy' test ($test_iterations iterations)"]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		set size [create_test_file $input_file_name]
+		file copy -force $input_file_name $output_file_name
+		wait_file_changed $size {}
+	}
+}
+
+proc test_shell_cp { test_iterations input_file_name output_file_name } {
+	puts [color 2 ">>> run shell 'cp' test ($test_iterations iterations)"]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		set size [create_test_file $input_file_name]
+		exec cp -f $input_file_name $output_file_name
+		wait_file_changed $size {}
+	}
+}
+
+proc test_shell_mv_overwrite { test_iterations input_file_name output_file_name } {
+	create_output_file $output_file_name
+	puts [color 2 ">>> run shell 'mv' overwrite test ($test_iterations iterations)"]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		set size [create_test_file $input_file_name]
+		exec mv  $input_file_name $output_file_name
+		wait_file_changed $size {}
+	}
+}
+
+proc test_shell_mv_rename { test_iterations } {
+	global output_file_name
+	puts [color 2 ">>> run 'mv' rename watched file test ($test_iterations iterations)"]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		puts "create watched file"
+		set size [create_output_file $output_file_name]
+		wait_file_changed $size {}
+		puts "move watched file away"
+		exec mv $output_file_name $output_file_name.out
+		wait_file_changed 0 {}
+	}
+}
+
+proc test_shell_mv_move_other_dir { test_iterations } {
+	global input_file_name
+	global output_file_name
+	puts [color 2 ">>> run 'mv' move watched file to other directory test ($test_iterations iterations)"]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		puts "create watched file"
+		set size [create_output_file $output_file_name]
+		wait_file_changed $size {}
+		puts "move watched file away"
+		exec mv $output_file_name $input_file_name
+		wait_file_changed 0 {}
+	}
+}
+
+proc test_shell_rm { test_iterations output_file_name } {
+	puts [color 2 ">>> run 'rm' remove watched file test ($test_iterations iterations)"]
+	for { set it 0 } { $it < $test_iterations } { incr it } {
+		puts "create watched file"
+		set size [create_output_file $output_file_name]
+		wait_file_changed $size {}
+		puts "remove watched file"
+		exec rm -f $output_file_name
+		wait_file_changed 0 {}
+	}
+}
+
+#
+# Execute test cases
+#
+# wait until the test program has started
+run_genode_until ".*wait for ROM update.*\n" 6
+set spawn_id [output_spawn_id]
+wait_and_consume_log 3
+
+test_libc_fwrite_in_genode     $test_iterations $init_run_fwrite_test $input_file_name $output_file_name
+test_libc_write_in_genode      $test_iterations $init_run_write_test $input_file_name $output_file_name
+test_libc_fwrite_on_linux      $test_iterations $input_file_name $output_file_name
+test_libc_write_on_linux       $test_iterations $input_file_name $output_file_name
+test_tcl_file_copy             $test_iterations $input_file_name $output_file_name
+test_shell_cp $test_iterations $input_file_name $output_file_name
+test_shell_mv_overwrite        $test_iterations $input_file_name $output_file_name
+test_shell_mv_rename           $test_iterations
+test_shell_mv_move_other_dir   $test_iterations
+test_shell_rm $test_iterations $output_file_name
+
+#
+# Cleanup test-directory structure
+#
+exec rm -Rf bin/lx_fs_notify
+
+# vi: set ft=tcl :

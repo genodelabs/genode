@@ -49,34 +49,7 @@ namespace Lx_fs {
 	 *                    session.
 	 *
 	 */
-	Path_string absolute_root_directory(char const *root_path);
+	Path_string absolute_root_dir(char const *root_path);
 }
-
-
-int File_system::access_mode(File_system::Mode const &mode)
-{
-	switch (mode) {
-	case STAT_ONLY:
-	case READ_ONLY:  return O_RDONLY;
-	case WRITE_ONLY: return O_WRONLY;
-	case READ_WRITE: return O_RDWR;
-	}
-
-	return O_RDONLY;
-}
-
-
-Lx_fs::Path_string Lx_fs::absolute_root_directory(char const *root_path)
-{
-	char cwd[PATH_MAX];
-	char real_path[PATH_MAX];
-
-	getcwd(cwd, PATH_MAX);
-
-	realpath(Path_string { cwd, "/", root_path }.string(), real_path);
-
-	return Path_string { real_path };
-}
-
 
 #endif  /* _LX_UTIL_H_ */

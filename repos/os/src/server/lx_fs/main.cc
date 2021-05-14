@@ -28,8 +28,13 @@
 
 /* local includes */
 #include "directory.h"
-#include "node.h"
+#include "notifier.h"
 #include "open_node.h"
+#include "watch.h"
+
+/* libc includes */
+#include <signal.h>
+#include <string.h>
 
 
 namespace Lx_fs {
@@ -85,7 +90,8 @@ class Lx_fs::Session_resources
 
 
 class Lx_fs::Session_component : private Session_resources,
-                                 public Session_rpc_object
+                                 public Session_rpc_object,
+                                 private Watch_node::Response_handler
 {
 	private:
 
@@ -97,9 +103,8 @@ class Lx_fs::Session_component : private Session_resources,
 		Id_space<File_system::Node>  _open_node_registry { };
 		bool                         _writable;
 		Absolute_path const          _root_dir;
-
 		Signal_handler               _process_packet_dispatcher;
-
+		Notifier                    &_notifier;
 
 		/******************************
 		 ** Packet-stream processing **
@@ -238,6 +243,16 @@ class Lx_fs::Session_component : private Session_resources,
 			}
 		}
 
+		/**
+		 * Watch_node::Response_handler interface
+		 */
+		void handle_watch_node_response(Lx_fs::Watch_node &node) override
+		{
+			using Fs_node = File_system::Open_node<Lx_fs::Node>;
+			_process_packet_op(node.acked_packet(),
+			                   *(reinterpret_cast<Fs_node*>(node.open_node())));
+		}
+
 	public:
 
 		/**
@@ -248,7 +263,8 @@ class Lx_fs::Session_component : private Session_resources,
 		                  Genode::Cap_quota    cap_quota,
 		                  size_t               tx_buf_size,
 		                  char const          *root_dir,
-		                  bool                 writable)
+		                  bool                 writable,
+		                  Notifier            &notifier)
 		:
 			Session_resources { env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size },
 			Session_rpc_object {_packet_ds.cap(), env.rm(), env.ep().rpc_ep() },
@@ -256,7 +272,8 @@ class Lx_fs::Session_component : private Session_resources,
 			_root { *new (&_alloc) Directory { _alloc, root_dir, false } },
 			_writable { writable },
 			_root_dir { root_dir },
-			_process_packet_dispatcher { env.ep(), *this, &Session_component::_process_packets }
+			_process_packet_dispatcher { env.ep(), *this, &Session_component::_process_packets },
+			_notifier { notifier }
 		{
 			/*
 			 * Register '_process_packets' dispatch function as signal
@@ -381,6 +398,24 @@ class Lx_fs::Session_component : private Session_resources,
 				new (_alloc) Open_node(*node, _open_node_registry);
 
 			return open_node->id();
+		}
+
+		Watch_handle watch(Path const &path) override
+		{
+			_assert_valid_path(path.string());
+
+			/* re-root the path */
+			Path_string watch_path { _root.path().string(), path.string() };
+
+			Watch_node *watch =
+				new (_alloc) Watch_node { _env, watch_path.string(), *this, _notifier };
+			Lx_fs::Open_node<Watch_node>  *open_watch =
+				new (_alloc) Lx_fs::Open_node<Watch_node>(*watch, _open_node_registry);
+
+			Watch_handle handle { open_watch->id().value };
+			watch->open_node(open_watch);
+
+			return handle;
 		}
 
 		void close(Node_handle handle) override
@@ -520,6 +555,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 
 		Genode::Env                    &_env;
 		Genode::Attached_rom_dataspace  _config   { _env, "config" };
+		Notifier                        _notifier { _env };
 
 		static inline bool writeable_from_args(char const *args)
 		{
@@ -603,8 +639,8 @@ class Lx_fs::Root : public Root_component<Session_component>
 				                           Genode::Ram_quota { ram_quota },
 				                           Genode::Cap_quota { cap_quota },
 				                           tx_buf_size,
-				                           absolute_root_directory(root_dir).string(),
-				                           writeable };
+				                           absolute_root_dir(root_dir).string(),
+				                           writeable, _notifier };
 
 				auto ram_used { _env.pd().used_ram().value - initial_ram_usage };
 				auto cap_used { _env.pd().used_caps().value - initial_cap_usage };

@@ -32,13 +32,12 @@ optional 'writeable' attribute grants the permission to modify the file system.
 Example
 ~~~~~~~
 
-To illustrate the use of lx_fs, refer to the 'base-linux/run/lx_fs.run'
-script.
+To illustrate the use of lx_fs, refer to the 'base-linux/run/lx_fs.run' or
+'base-linux/run/lx_fs_notify.run' scripts.
 
 
 Notes
 ~~~~~
 
-If the Linux file system experiences changes from other processes
-'inotify' may help to keep the servers cache up-to-date. This is not
-implemented yet.
+'inotify' is used to track changes to the file system that are caused
+by non Genode components.
