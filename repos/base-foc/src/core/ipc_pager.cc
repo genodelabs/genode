@@ -150,7 +150,7 @@ void Ipc_pager::acknowledge_wakeup()
 
 void Ipc_pager::acknowledge_exception()
 {
-	_regs = *l4_utcb_exc();
+	*l4_utcb_exc() = _regs;
 	l4_cap_idx_t dst = Foc::Capability::valid(_last.kcap)
 	                 ? _last.kcap : (l4_cap_idx_t)L4_SYSF_REPLY;
 	Foc::l4_msgtag_t const msg_tag =
