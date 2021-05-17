@@ -1603,7 +1603,7 @@ namespace std
 
 /* Define if /dev/random and /dev/urandom are available for
    std::random_device. */
-/* #undef _GLIBCXX_USE_DEV_RANDOM */
+#define _GLIBCXX_USE_DEV_RANDOM 1
 
 /* Define if fchmod is available in <sys/stat.h>. */
 #define _GLIBCXX_USE_FCHMOD 1
