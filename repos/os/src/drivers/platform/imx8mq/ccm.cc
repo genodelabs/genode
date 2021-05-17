@@ -293,15 +293,20 @@ void Driver::Ccm::Root_clock::disable()
  ** Gate immplementation **
  **************************/
 
-void Driver::Ccm::Root_clock_divider::set_rate(unsigned long)
+void Driver::Ccm::Root_clock_divider::set_rate(unsigned long rate)
 {
-	warning(__func__, " not implemented yet!");
+	unsigned long div = _parent.get_rate() / rate;
+	if (!div || div > 64) {
+		Genode::error("Cannot set divider ", name(), " to ", div);
+		return;
+	}
+	write<Target_reg::Post_div>(div-1);
 }
 
 
 unsigned long Driver::Ccm::Root_clock_divider::get_rate() const
 {
-	return _parent.get_rate() / read<Target_reg::Post_div>();
+	return _parent.get_rate() / (read<Target_reg::Post_div>()+1);
 };
 
 
