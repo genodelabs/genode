@@ -149,6 +149,17 @@ class Platform::Device::Irq : Noncopyable
 			if (sigh.valid())
 				Signal_transmitter(sigh).submit();
 		}
+
+		/**
+		 * Register interrupt signal handler
+		 *
+		 * This call omits the one-time trigger of the interrupt
+		 * handler for ported drivers that cannot handle it sufficiently.
+		 */
+		void sigh_omit_initial_signal(Signal_context_capability sigh)
+		{
+			_irq.sigh(sigh);
+		}
 };
 
 #endif /* _INCLUDE__SPEC__ARM__PLATFORM_SESSION__DEVICE_H_ */
