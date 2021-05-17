@@ -13,7 +13,8 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
-                  [depot_user]/src/nitpicker
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/vfs_import
 
 if {$use_fs_rump} {
 	import_from_depot [depot_user]/src/vfs \
