@@ -59,7 +59,8 @@ import_from_depot [depot_user]/src/libc
 import_from_depot [depot_user]/src/posix
 import_from_depot [depot_user]/src/stdcxx
 import_from_depot [depot_user]/src/vfs
-import_from_depot [depot_user]/src/vfs_pipe
+import_from_depot [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/vfs_jitterentropy
 
 build $build_components
 
@@ -98,6 +99,7 @@ append config {
 				<dir name="dev">
 					<log/>
 					<inline name="rtc">2019-08-20 15:01</inline>
+					<jitterentropy name="urandom"/>
 					<dir name="pipe">
 						<pipe/>
 					</dir>
