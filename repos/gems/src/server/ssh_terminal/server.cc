@@ -48,16 +48,28 @@ Ssh::Terminal_session::Terminal_session(Genode::Registry<Terminal_session> &reg,
 :
 	Element(reg, *this), conn(conn), _event_loop(event_loop)
 {
-	if (pipe(_fds) ||
-		ssh_event_add_fd(_event_loop,
-		                 _fds[0],
-		                 POLLIN,
-		                 write_avail_cb,
-		                 this) != SSH_OK ) {
+	if (pipe(_fds)) {
 		Genode::error("Failed to create wakeup pipe");
 		throw -1;
 	}
 	conn.write_avail_fd = _fds[1];
+
+	_state = PIPE_INITIALIZED;
+}
+
+void Ssh::Terminal_session::initialize_ssh_event_fds()
+{
+	if (_state != PIPE_INITIALIZED ||
+	    ssh_event_add_fd(_event_loop,
+	                     _fds[0],
+	                     POLLIN,
+	                     write_avail_cb,
+	                     this) != SSH_OK) {
+		Genode::error("Failed to initialize ssh event file descriptors");
+		throw -1;
+	}
+
+	_state = SSH_INITIALIZED;
 }
 
 
@@ -596,7 +608,22 @@ void Ssh::Server::loop()
 		{
 			Util::Pthread_mutex::Guard guard(_terminals.mutex());
 
-			/* first remove all stale sessions */
+			/* finish pending initialization of terminal sessions */
+			auto initialize = [&] (Terminal_session &t) {
+				try {
+					if (t._state == Terminal_session::PIPE_INITIALIZED) {
+						t.initialize_ssh_event_fds();
+					}
+				} catch (...) {
+					/* Not sure what to do here - terminal is "almost" attached.
+					   Previously service was denied in that case but as
+					   descriptor handling must be performed in ssh loop thread
+					   it is too late for that. */
+				}
+			};
+			_terminals.for_each(initialize);
+
+			/* remove all stale sessions */
 			auto cleanup = [&] (Session &s) {
 				if (s.terminal_detached) {
 					Terminal_session *p = nullptr;

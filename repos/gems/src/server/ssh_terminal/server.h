@@ -88,16 +88,30 @@ struct Ssh::Terminal_session : Genode::Registry<Terminal_session>::Element
 
 	int _fds[2] { -1, -1 };
 
+	enum State { UNINITIALIZED,
+	             PIPE_INITIALIZED,
+	             SSH_INITIALIZED } _state = UNINITIALIZED;
+
 	Terminal_session(Genode::Registry<Terminal_session> &reg,
 	                 Ssh::Terminal &conn,
 	                 ssh_event event_loop);
 
 	~Terminal_session()
 	{
-		ssh_event_remove_fd(_event_loop, _fds[0]);
-		close(_fds[0]);
-		close(_fds[1]);
+		switch (_state) {
+		case SSH_INITIALIZED:
+			ssh_event_remove_fd(_event_loop, _fds[0]);
+			[[fallthrough]];
+		case PIPE_INITIALIZED:
+			close(_fds[0]);
+			close(_fds[1]);
+			[[fallthrough]];
+		case UNINITIALIZED:
+			break;
+		}
 	}
+
+	void initialize_ssh_event_fds();
 };
 
 
