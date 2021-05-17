@@ -117,11 +117,6 @@ Ssh::Server::Server(Genode::Env &env,
 			throw Init_failed();
 		}
 
-		if (pthread_create(&_event_thread, nullptr, _server_loop, this)) {
-			Genode::error("could not create event thread");
-			throw Init_failed();
-		}
-
 		/* add pipe to wake up loop on late connecting terminal */
 		if (pipe(_server_fds) ||
 			ssh_event_add_fd(_event_loop,
@@ -131,6 +126,11 @@ Ssh::Server::Server(Genode::Env &env,
 			                 this) != SSH_OK ) {
 			Genode::error("Failed to create wakeup pipe");
 			throw -1;
+		}
+
+		if (pthread_create(&_event_thread, nullptr, _server_loop, this)) {
+			Genode::error("could not create event thread");
+			throw Init_failed();
 		}
 
 		Genode::log("Listen on port: ", _port);
