@@ -103,12 +103,12 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 	l4_utcb_mr()->mr[0] = _reply_mapping.dst_addr | L4_ITEM_MAP;
 
-	l4_fpage_cacheability_opt_t
-		cacheability = _reply_mapping.cached ? L4_FPAGE_CACHEABLE
-		                                     : L4_FPAGE_UNCACHEABLE;
+	bool const bufferable = !_reply_mapping.io_mem || _reply_mapping.write_combined;
 
-	if (_reply_mapping.write_combined)
-		cacheability= L4_FPAGE_BUFFERABLE;
+	l4_fpage_cacheability_opt_t const
+		cacheability = _reply_mapping.cached ? L4_FPAGE_CACHEABLE
+		             : bufferable            ? L4_FPAGE_BUFFERABLE
+		             :                         L4_FPAGE_UNCACHEABLE;
 
 	l4_utcb_mr()->mr[0] |= cacheability << 4;
 
