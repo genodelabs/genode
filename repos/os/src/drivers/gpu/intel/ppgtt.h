@@ -150,8 +150,7 @@ namespace Genode
 	{
 		private:
 
-			Genode::Allocator_guard &_guard;
-			Utils::Backend_alloc    &_backend;
+			Utils::Backend_alloc &_backend;
 
 		public:
 
@@ -174,32 +173,31 @@ namespace Genode
 			Page pd   { };
 			Page pdp  { };
 
-			Scratch(Genode::Allocator_guard &guard,
-			        Utils::Backend_alloc    &backend)
+			Scratch(Utils::Backend_alloc &backend)
 			:
-				_guard(guard), _backend(backend)
+				_backend(backend)
 			{
 				/* XXX addr PAT helper instead of hardcoding */
-				page.ds    = _backend.alloc(_guard, PAGE_SIZE);
+				page.ds    = _backend.alloc(PAGE_SIZE);
 				page.addr  = Genode::Dataspace_client(page.ds).phys_addr();
 				page.addr |= 1;
 				page.addr |= 1 << 1;
 				page.next  = nullptr;
 
-				pt.ds      = _backend.alloc(_guard, PAGE_SIZE);
+				pt.ds      = _backend.alloc(PAGE_SIZE);
 				pt.addr    = Genode::Dataspace_client(pt.ds).phys_addr();
 				pt.addr   |= 1;
 				pt.addr   |= 1 << 1;
 				pt.addr   |= 1 << 7;
 				pt.next    = &page;
 
-				pd.ds      = _backend.alloc(_guard, PAGE_SIZE);
+				pd.ds      = _backend.alloc(PAGE_SIZE);
 				pd.addr    = Genode::Dataspace_client(pd.ds).phys_addr();
 				pd.addr   |= 1;
 				pd.addr   |= 1 << 1;
 				pd.next    = &pt;
 
-				pdp.ds     = _backend.alloc(_guard, PAGE_SIZE);
+				pdp.ds     = _backend.alloc(PAGE_SIZE);
 				pdp.addr   = Genode::Dataspace_client(pdp.ds).phys_addr();
 				pdp.addr  |= 1;
 				pdp.addr  |= 1 << 1;
@@ -208,10 +206,10 @@ namespace Genode
 
 			virtual ~Scratch()
 			{
-				_backend.free(_guard, pdp.ds);
-				_backend.free(_guard, pd.ds);
-				_backend.free(_guard, pt.ds);
-				_backend.free(_guard, page.ds);
+				_backend.free(pdp.ds);
+				_backend.free(pd.ds);
+				_backend.free(pt.ds);
+				_backend.free(page.ds);
 			}
 	};
 }
@@ -832,9 +830,8 @@ struct Igd::Ppgtt : public Genode::Pml4_table
  */
 struct Igd::Ppgtt_scratch : public Genode::Scratch
 {
-		Ppgtt_scratch(Genode::Allocator_guard &guard,
-		              Utils::Backend_alloc    &backend)
-		: Scratch(guard, backend) { }
+		Ppgtt_scratch(Utils::Backend_alloc &backend)
+		: Scratch(backend) { }
 };
 
 #endif /* _PPGTT_H_ */

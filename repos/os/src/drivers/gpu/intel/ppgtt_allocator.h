@@ -17,7 +17,6 @@
 /* local includes */
 #include <types.h>
 #include <utils.h>
-#include <allocator_guard.h>
 
 
 namespace Igd {
@@ -31,7 +30,6 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 	private:
 
 		Genode::Region_map      &_rm;
-		Genode::Allocator_guard &_guard;
 		Utils::Backend_alloc    &_backend;
 
 		enum { ELEMENTS = 256, };
@@ -40,9 +38,8 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 	public:
 
 		Ppgtt_allocator(Genode::Region_map      &rm,
-		                Genode::Allocator_guard &guard,
 		                Utils::Backend_alloc    &backend)
-		: _rm(rm), _guard(guard), _backend(backend) { }
+		: _rm(rm), _backend(backend) { }
 
 		/*************************
 		 ** Allocator interface **
@@ -50,7 +47,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 
 		bool alloc(size_t size, void **out_addr) override
 		{
-			Genode::Ram_dataspace_capability ds = _backend.alloc(_guard, size);
+			Genode::Ram_dataspace_capability ds = _backend.alloc(size);
 			if (!ds.valid()) { return false; }
 
 			*out_addr = _rm.attach(ds);
@@ -68,7 +65,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 			}
 
 			_rm.detach(addr);
-			_backend.free(_guard, cap);
+			_backend.free(cap);
 		}
 
 		bool   need_size_for_free() const override { return false; }

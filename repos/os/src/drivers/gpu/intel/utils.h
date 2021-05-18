@@ -29,8 +29,8 @@ namespace Utils {
 	 */
 	struct Backend_alloc : Genode::Interface
 	{
-		virtual Ram alloc(Genode::Allocator_guard &, Genode::size_t) = 0;
-		virtual void free(Genode::Allocator_guard &, Ram) = 0;
+		virtual Ram alloc(Genode::size_t) = 0;
+		virtual void free(Ram) = 0;
 	};
 
 	template <unsigned int ELEMENTS> class Address_map;
