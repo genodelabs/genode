@@ -615,18 +615,14 @@ struct Igd::Device
 		/* free ring memory */
 		{
 			_env.rm().detach(engine->ring_vaddr);
-			_unmap_dataspace_ggtt(md_alloc, engine->ring_ds);
+			_unmap_dataspace_ggtt(md_alloc, engine->ring_map.cap);
 			_free_dataspace(md_alloc, engine->ring_ds);
-			size_t const offset = (engine->ring_gmaddr / PAGE_SIZE) - 1;
-			_ggtt->remove_pte_range(offset, Engine<CONTEXT>::RING_PAGES);
 		}
 		/* free context memory */
 		{
 			_env.rm().detach(engine->ctx_vaddr - PAGE_SIZE);
-			_unmap_dataspace_ggtt(md_alloc, engine->ctx_ds);
+			_unmap_dataspace_ggtt(md_alloc, engine->ctx_map.cap);
 			_free_dataspace(md_alloc, engine->ctx_ds);
-			size_t const offset = (engine->ctx_gmaddr / PAGE_SIZE) - 1;
-			_ggtt->remove_pte_range(offset, Engine<CONTEXT>::CONTEXT_PAGES);
 		}
 		/* free engine */
 		Genode::destroy(&md_alloc, engine);
