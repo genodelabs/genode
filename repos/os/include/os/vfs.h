@@ -25,11 +25,12 @@ namespace Genode {
 	struct Directory;
 	struct Root_directory;
 	struct File;
-	struct Readonly_file;
-	struct File_content;
-	struct Watcher;
+	class  Readonly_file;
+	class  File_content;
+	class  New_file;
+	class  Watcher;
 	template <typename>
-	struct Watch_handler;
+	class  Watch_handler;
 }
 
 
@@ -117,6 +118,7 @@ struct Genode::Directory : Noncopyable, Interface
 		friend class Readonly_file;
 		friend class Root_directory;
 		friend class Watcher;
+		friend class New_file;
 
 		/*
 		 * Operations such as 'file_size' that are expected to be 'const' at
@@ -613,6 +615,144 @@ class Genode::File_content
 		{
 			if (_buffer.size)
 				fn((char const *)_buffer.ptr, _buffer.size);
+		}
+};
+
+
+/**
+ * Utility for writing data to a file via the Genode VFS library
+ */
+class Genode::New_file : Noncopyable
+{
+	public:
+
+		struct Create_failed : Exception { };
+
+	private:
+
+		Entrypoint       &_ep;
+		Allocator        &_alloc;
+		Vfs::File_system &_fs;
+		Vfs::Vfs_handle  &_handle;
+
+		Vfs::Vfs_handle &_init_handle(Directory &dir, Directory::Path const &rel_path)
+		{
+			/* create compound directory */
+			{
+				Genode::Path<Vfs::MAX_PATH_LEN> dir_path { rel_path };
+				dir_path.strip_last_element();
+				dir.create_sub_directory(dir_path.string());
+			}
+
+			unsigned mode = Vfs::Directory_service::OPEN_MODE_WRONLY;
+
+			Directory::Path const path = Directory::join(dir._path, rel_path);
+
+			if (!dir.file_exists(path))
+				mode |= Vfs::Directory_service::OPEN_MODE_CREATE;
+
+			Vfs::Vfs_handle *handle_ptr = nullptr;
+			Vfs::Directory_service::Open_result const res =
+				_fs.open(path.string(), mode, &handle_ptr, _alloc);
+
+			if (res != Vfs::Directory_service::OPEN_OK || (handle_ptr == nullptr)) {
+				error("failed to create file '", path, "', res=", (int)res);
+				throw Create_failed();
+			}
+
+			handle_ptr->fs().ftruncate(handle_ptr, 0);
+
+			return *handle_ptr;
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \throw Create_failed
+		 */
+		New_file(Directory &dir, Directory::Path const &path)
+		:
+			_ep(dir._ep), _alloc(dir._alloc), _fs(dir._fs),
+			_handle(_init_handle(dir, path))
+		{ }
+
+		~New_file()
+		{
+			while (_handle.fs().queue_sync(&_handle) == false)
+				_ep.wait_and_dispatch_one_io_signal();
+
+			for (bool sync_done = false; !sync_done; ) {
+
+				switch (_handle.fs().complete_sync(&_handle)) {
+
+				case Vfs::File_io_service::SYNC_QUEUED:
+					break;
+
+				case Vfs::File_io_service::SYNC_ERR_INVALID:
+					warning("could not complete file sync operation");
+					sync_done = true;
+					break;
+
+				case Vfs::File_io_service::SYNC_OK:
+					sync_done = true;
+					break;
+				}
+
+				if (!sync_done)
+					_ep.wait_and_dispatch_one_io_signal();
+			}
+			_handle.ds().close(&_handle);
+		}
+
+		enum class Append_result { OK, WRITE_ERROR };
+
+		Append_result append(char const *src, size_t size)
+		{
+			bool write_error = false;
+
+			size_t remaining_bytes = size;
+
+			while (remaining_bytes > 0 && !write_error) {
+
+				bool stalled = false;
+
+				try {
+					Vfs::file_size out_count = 0;
+
+					using Write_result = Vfs::File_io_service::Write_result;
+
+					switch (_handle.fs().write(&_handle, src, remaining_bytes,
+					                           out_count)) {
+
+					case Write_result::WRITE_ERR_AGAIN:
+					case Write_result::WRITE_ERR_WOULD_BLOCK:
+						stalled = true;
+						break;
+
+					case Write_result::WRITE_ERR_INVALID:
+					case Write_result::WRITE_ERR_IO:
+					case Write_result::WRITE_ERR_INTERRUPT:
+						write_error = true;
+						break;
+
+					case Write_result::WRITE_OK:
+						out_count = min(remaining_bytes, out_count);
+						remaining_bytes -= out_count;
+						src             += out_count;
+						_handle.advance_seek(out_count);
+						break;
+					};
+				}
+				catch (Vfs::File_io_service::Insufficient_buffer) {
+					stalled = true; }
+
+				if (stalled)
+					_ep.wait_and_dispatch_one_io_signal();
+			}
+			return write_error ? Append_result::WRITE_ERROR
+			                   : Append_result::OK;
 		}
 };
 

@@ -26,7 +26,6 @@
 #include <gui.h>
 #include <report.h>
 #include <dialog.h>
-#include <new_file.h>
 #include <child_state.h>
 
 namespace Text_area { struct Main; }
