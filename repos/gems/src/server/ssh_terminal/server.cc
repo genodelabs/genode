@@ -477,30 +477,15 @@ void Ssh::Server::incoming_connection(ssh_session s)
 		throw -1;
 	}
 
-	new (&_heap) Session(_sessions, s, &_channel_cb, ++_session_id);
-
-	ssh_set_server_callbacks(s, &_session_cb);
-
-	int auth_methods = SSH_AUTH_METHOD_UNKNOWN;
-	auth_methods += _allow_password  ? SSH_AUTH_METHOD_PASSWORD  : 0;
-	auth_methods += _allow_publickey ? SSH_AUTH_METHOD_PUBLICKEY : 0;
-	ssh_set_auth_methods(s, auth_methods);
-
 	/*
-	 * Normally we would check the result of the key exchange
-	 * function but for better or worse using callbacks leads to
-	 * a false negative. So ignore any result and move on in hope
-	 * that the callsbacks will handle the situation.
-	 *
-	 * FIXME investigate why it somtimes fails in the first place.
+	 * Queue up new ssh_session to be enabled later in pthread ssh loop.
+	 * We can't directly add the new Session object to the _session registry,
+	 * because this ssh callback may be invoked from within a
+	 * _session.for_each(...) invocation. The internal _session Genode::Mutex
+	 * is taken during _session.for_each(...) and during a 'new' here,
+	 * which would lead to a deadlock.
 	 */
-	int key_exchange_result = ssh_handle_key_exchange(s);
-
-	if (SSH_OK != key_exchange_result) {
-		Genode::warning("key exchange returned ", key_exchange_result);
-	}
-
-	ssh_event_add_session(_event_loop, s);
+	new (&_heap) Session(_new_sessions, s, &_channel_cb, ++_session_id);
 }
 
 
@@ -664,6 +649,45 @@ void Ssh::Server::loop()
 			};
 			_sessions.for_each(send);
 		}
+
+		/* enable all new sessions that got added by ssh callbacks */
+		auto activate = [&] (Session &inactive_session) {
+			/* re-queue session object */
+			new (&_heap) Session(_sessions,
+			                     inactive_session.session,
+			                     inactive_session.channel_cb,
+			                     inactive_session.id());
+
+			ssh_session s = inactive_session.session;
+
+			/* remove temporary object */
+			Genode::destroy(&_heap, &inactive_session);
+
+			/* activate session */
+			ssh_set_server_callbacks(s, &_session_cb);
+
+			int auth_methods = SSH_AUTH_METHOD_UNKNOWN;
+			auth_methods += _allow_password  ? SSH_AUTH_METHOD_PASSWORD  : 0;
+			auth_methods += _allow_publickey ? SSH_AUTH_METHOD_PUBLICKEY : 0;
+			ssh_set_auth_methods(s, auth_methods);
+
+			/*
+			 * Normally we would check the result of the key exchange
+			 * function but for better or worse using callbacks leads to
+			 * a false negative. So ignore any result and move on in hope
+			 * that the callsbacks will handle the situation.
+			 *
+			 * FIXME investigate why it somtimes fails in the first place.
+			 */
+			int key_exchange_result = ssh_handle_key_exchange(s);
+
+			if (SSH_OK != key_exchange_result) {
+				Genode::warning("key exchange returned ", key_exchange_result);
+			}
+
+			ssh_event_add_session(_event_loop, s);
+		};
+		_new_sessions.for_each(activate);
 	}
 }
 

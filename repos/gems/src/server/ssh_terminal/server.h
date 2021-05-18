@@ -170,8 +170,9 @@ class Ssh::Server
 		ssh_server_callbacks_struct  _session_cb { };
 		ssh_bind_callbacks_struct    _bind_cb    { };
 
-		Session_registry _sessions   { };
-		uint32_t         _session_id { 0 };
+		Session_registry _sessions     { };
+		Session_registry _new_sessions { };
+		uint32_t         _session_id   { 0 };
 
 		void _initialize_channel_callbacks();
 		void _initialize_session_callbacks();
