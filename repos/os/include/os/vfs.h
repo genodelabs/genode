@@ -309,6 +309,43 @@ struct Genode::Directory : Noncopyable, Interface
 		{
 			_fs.unlink(join(_path, rel_path).string());
 		}
+
+		/**
+		 * Attempt to create sub directory
+		 *
+		 * This operation may fail. Its success can be checked by calling
+		 * 'directory_exists'.
+		 */
+		void create_sub_directory(Path const &sub_path)
+		{
+			using namespace Genode;
+
+			for (size_t sub_path_len = 0; ; sub_path_len++) {
+
+				char const c = sub_path.string()[sub_path_len];
+
+				bool const end_of_path = (c == 0);
+				bool const end_of_elem = (c == '/');
+
+				if (!end_of_elem && !end_of_path)
+					continue;
+
+				Path path = join(_path, Path(Cstring(sub_path.string(), sub_path_len)));
+
+				if (!directory_exists(path)) {
+					Vfs::Vfs_handle *handle_ptr = nullptr;
+					(void)_fs.opendir(path.string(), true, &handle_ptr, _alloc);
+					if (handle_ptr)
+						handle_ptr->close();
+				}
+
+				if (end_of_path)
+					break;
+
+				/* skip '/' */
+				sub_path_len++;
+			}
+		}
 };
 
 
