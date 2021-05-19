@@ -1,0 +1,470 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Extract subtree from device-tree source
+# \author Norman Feske
+# \date   2021-05-17
+#
+
+##
+# Return true if command-line switch was specified
+#
+proc get_cmd_switch { arg_name } {
+	global argv
+	return [expr [lsearch $argv $arg_name] >= 0]
+}
+
+
+##
+# Return command-line argument value
+#
+# If a argument name is specified multiple times, a
+# list of argument values is returned.
+#
+proc get_cmd_arg { arg_name default_value } {
+	global argv
+
+	# find argument name in argv list
+	set arg_idx_list [lsearch -all $argv $arg_name]
+
+	if {[llength $arg_idx_list] == 0} { return $default_value }
+
+	set result {}
+	foreach arg_idx $arg_idx_list {
+		set next_idx [expr $arg_idx + 1]
+
+		# stop if argv ends with the argument name
+		if {$next_idx >= [llength $argv]} continue
+
+		# return list element following the argument name
+		lappend result [lindex $argv $next_idx]
+	}
+
+	# if argument occurred only once, return its value
+	if {[llength $result] == 1} { return [lindex $result 0] }
+
+	# if argument occurred multiple times, contain list of arguments
+	return $result
+}
+
+
+#################################################
+## Read input and fill internal representation ##
+#################################################
+
+##
+# Find location of 'parse'
+#
+# We expect to find 'parse' in the same directory as we are located. The
+# question is: Where are we?
+##
+proc parse_file { } {
+	global argv0
+
+	set path $argv0
+
+	if {[file type $path] == "link"} {
+		set path [file readlink $path] }
+
+	set parse_file "[file dirname $path]/parse"
+
+	if {![file exists $parse_file]} {
+		puts stderr "Error: Could not find 'parse' in '$path'."
+		exit -1
+	}
+	return $parse_file
+}
+
+
+set input_source [lindex $argv end]
+if {[catch {
+		set tokens [exec [parse_file] $input_source]
+}]} {
+	foreach line {
+	        ""
+	        "Extract subtree from device-tree source"
+	        "\n  usage: extract \[options\] <dts_file>"
+	        ""
+	        "Supported options are:"
+	        ""
+	        " --nodes           Print list of DTS nodes"
+	        " --labels          Print list of labels with their DTS paths"
+	        " --references      Print referenced labels for each DTS node"
+	        " --dot-graph       Generate dot file for graphviz"
+	        " --select <label>  Print DTS related to specified label,"
+	        "                   can be specified multiple times"
+	        ""
+	        "Alternatively to specifying a dts file as argument, the input"
+	        "data can be passed via standard input by specifying '-' as"
+	        "file name."
+	        ""
+	        "The result of the conversion will be written to stdout."
+	        ""
+	} { puts stderr $line }
+	exit -1;
+}
+
+
+foreach token $tokens {
+	set name [lindex $token 0]
+	set line [lindex $token 1]
+	set text [lindex $token 2]
+	set tok_text($name) "$text"
+	set tok_line($name) $line
+}
+
+if {![info exists tok_text(content0)]} {
+	puts stderr "Error: input contains no root token 'content0'."
+	exit -1
+}
+
+
+proc tok_type {token} {
+	regexp {[a-z]+} $token type
+	return $type
+}
+
+
+##
+# Find and return a sub token of the specified type
+#
+proc sub_token {token token_type} {
+	global tok_text
+
+	if {$token == ""} { return "" }
+	if {[regexp "§($token_type\\d+)°" $tok_text($token) dummy sub_token]} {
+		return $sub_token
+	} else {
+		return ""
+	}
+}
+
+
+##
+# Return label references present at the specified node of the syntax tree
+#
+proc labels_referenced_by_node {token} {
+	global tok_text
+
+	set output $tok_text($token)
+
+	set result {}
+
+	while {$output != ""} {
+
+		# consume plain text
+		if {[regexp {^[^§]+} $output plain]} {
+			regsub {^[^§]+} $output "" output }
+
+		# consume token
+		if {[regexp {§(.+?)°} $output dummy subtoken]} {
+
+			# collect label reference
+			if {[tok_type $subtoken] == "reflabelname"} {
+				lappend result $tok_text($subtoken) }
+
+			# search tree for label references but don't traverse sub nodes
+			if {[tok_type $subtoken] != "node"} {
+				set result [concat $result [labels_referenced_by_node $subtoken]]
+			}
+			regsub {§(.+?)°} $output "" output
+		}
+	}
+	return [lsort -unique $result]
+}
+
+
+proc joined_path {curr_path path_elem} {
+
+	if {$curr_path == "" && $path_elem == "/"} {
+		return "/" }
+
+	if {$curr_path == "/"} {
+		return "/$path_elem" }
+
+	return "$curr_path/$path_elem"
+}
+
+
+proc collect_label_and_references_of_node {token path} {
+	global tok_text
+	global labels
+	global references
+	global selected
+
+	set node_text $tok_text($token)
+
+	foreach ref [labels_referenced_by_node $token] {
+		lappend references($path) $ref }
+
+	set selected($path) 0
+
+	if {[regexp {§(labeldef\d+)°} $node_text dummy]} {
+		set label_name $tok_text([sub_token [sub_token $token labeldef] labelname])
+		set labels($label_name) $path
+	}
+
+	collect_labels_and_references [sub_token $token block] $path
+}
+
+
+##
+# Return path of sub node if token refers to a node or nodesupplement
+#
+# Otherwise the path is returned unmodified
+#
+proc sub_node_path {token path} {
+	global tok_text
+	global labels
+
+	if {[tok_type $token] == "node"} {
+		set path_elem $tok_text([sub_token $token nodename])
+		set path [joined_path $path $path_elem]
+	}
+
+	if {[tok_type $token] == "nodesupplement"} {
+		set label_name $tok_text([sub_token [sub_token $token reflabel] reflabelname])
+		if {[info exists labels($label_name)]} {
+			set path $labels($label_name) }
+	}
+
+	return $path
+}
+
+
+##
+# Populate the global 'labels' and 'references' arrays
+#
+# This function also initializes the 'selected' array with a key for
+# each path found and the value to 0. So the existing paths can be
+# queried by iterating over the 'selected' array names.
+#
+proc collect_labels_and_references {{token content0} {curr_path ""}} {
+	global tok_text
+
+	set output $tok_text($token)
+
+	while {$output != ""} {
+
+		# consume plain text
+		if {[regexp {^[^§]+} $output plain]} {
+			regsub {^[^§]+} $output "" output }
+
+		# consume token
+		if {[regexp {§(.+?)°} $output dummy token]} {
+
+			# try to enter node or nodesupplement
+			set path [sub_node_path $token $curr_path]
+
+			if {$path != $curr_path} {
+				collect_label_and_references_of_node $token $path }
+
+			regsub {§(.+?)°} $output "" output
+		}
+	}
+}
+
+
+proc dump_selected_source {{token content0} {curr_path ""}} {
+	global tok_text
+	global selected
+
+	set output $tok_text($token)
+
+	while {$output != ""} {
+
+		# consume plain text
+		if {[regexp {^[^§]+} $output plain]} {
+			regsub -all {³}  $plain "\\&" plain
+
+			if {[info exists selected($curr_path)] && $selected($curr_path)} {
+				puts -nonewline $plain }
+
+			regsub {^[^§]+} $output "" output
+		}
+
+		# consume token
+		if {[regexp {§(.+?)°} $output dummy token]} {
+			dump_selected_source $token [sub_node_path $token $curr_path]
+			regsub {§(.+?)°} $output "" output
+		}
+	}
+}
+
+
+proc children {parent_path} {
+	global selected
+
+	set result {}
+	foreach path [array names selected] {
+		if {[string match "$parent_path*" $path]} {
+			lappend result $path } }
+
+	return $result
+}
+
+
+##
+# Return most specific label for the given node
+#
+proc label_of_path {path} {
+	global labels
+
+	set longest_match 0
+	set label ""
+	foreach l [array names labels] {
+
+		if {$labels($l) == $path} {
+			return $l }
+
+		if {[string match "$labels($l)*" $path]} {
+			set len [string length $l]
+			if {$len > $longest_match} {
+				set longest_match $len
+				set label $l
+			}
+		}
+	}
+	return $label
+}
+
+
+proc select_children {parent_path} {
+	global selected
+
+	foreach path [children $parent_path] {
+		select $path }
+}
+
+
+proc select_dependencies {path} {
+	global references
+	global labels
+
+	if {![info exists references($path)]} {
+		return }
+
+	foreach label $references($path) {
+		select $labels($label) }
+}
+
+
+proc select {path} {
+	global selected
+
+	if {!$selected($path)} {
+		set selected($path) 1
+		select_children $path
+		select_dependencies $path
+	}
+}
+
+
+###############
+## Front end ##
+###############
+
+collect_labels_and_references
+
+
+foreach arg [get_cmd_arg --select {}] {
+
+	# distinguish DTS path argument (starting with /) from label argument
+	if {[string match "/*" $arg]} {
+
+		if {![info exists selected($arg)]} {
+			puts stderr "Error: path '$arg' not present in device-tree source"
+			exit -1
+		}
+		set path $arg
+
+	} else {
+
+		if {![info exists labels($arg)]} {
+			puts stderr "Error: label '$arg' not present in device-tree source"
+			exit -1
+		}
+		set path $labels($arg)
+	}
+
+	select $path
+}
+
+
+# select all nodes between each selected node and the root
+foreach path [array names selected] {
+	if {$selected($path)} {
+		while {[regexp {(.*)/.+$} $path dummy parent]} {
+			set selected($parent) 1
+			select_dependencies $parent
+			set path $parent
+		}
+		set selected(/) 1
+		select_dependencies /
+	}
+}
+
+
+if {[get_cmd_switch --labels]} {
+	foreach n [lsort [array names labels]] {
+		puts "$n\t$labels($n)" } }
+
+
+if {[get_cmd_switch --nodes]} {
+	foreach n [lsort [array names selected]] {
+		puts "$n" } }
+
+
+if {[get_cmd_switch --references]} {
+	foreach n [lsort [array names references]] {
+		puts "$n\t$references($n)" } }
+
+
+if {[get_cmd_switch --dot-graph]} {
+	puts "digraph {"
+	puts {  rankdir=LR; nodesep=0.01;}
+	puts {  node[shape=polygon, height=0, color=gray, fontsize=12, margin="0.1,0.01"];}
+
+	# declare nodes using the DTS label as node name
+	foreach l [array names labels] {
+		puts "  \"$l\"" }
+
+	set relations {}
+
+	# gather label-reference dependencies
+	foreach l [array names labels] {
+		set path $labels($l)
+
+		set subtree_nodes $path
+		foreach child_path [children $path] {
+			lappend subtree_nodes $child_path }
+
+		foreach path $subtree_nodes {
+			set label [label_of_path $path]
+			if {[info exists references($path)]} {
+				foreach ref $references($path) {
+					if {$label != $ref} {
+						lappend relations "\"$label\" -> \"$ref\"" } } }
+		}
+	}
+
+	# gather parent-child dependencies
+	foreach path [array names selected] {
+		set label [label_of_path $path]
+		while {[regexp {(.*)/.+$} $path dummy parent]} {
+
+			set parent_label [label_of_path $parent]
+			if {$parent_label != "" && $parent_label != $label} {
+				lappend relations "\"$parent_label\" -> \"$label\"" }
+
+			set path $parent
+		}
+	}
+
+	foreach relation [lsort -unique $relations] {
+		puts "  $relation" }
+
+	puts "}"
+}
+
+dump_selected_source

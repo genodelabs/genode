@@ -1,0 +1,261 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Regular-expression-based device-tree source parser
+# \author Norman Feske
+# \date   2021-05-14
+#
+
+# read file
+set input_pathname [lindex $argv 0]
+if {[catch {
+
+	#
+	# Create root node of the syntax tree
+	#
+	set txt(0) [exec cat $input_pathname]
+	set typ(0) content
+	set num 1
+}]} {
+	foreach line {
+		""
+		"Parse device-tree source file and output syntax tree."
+		""
+		"  usage: parse <source_file>"
+		""
+	} { puts stderr $line }
+
+	exit -1;
+}
+
+# do not stop parsing (this variable is only used for debugging)
+set stop 0
+
+#
+# Replace all '&' characters from the original input
+# because they cause trouble with the regexp command.
+#
+regsub -all {&} $txt(0) "³" txt(0)
+
+
+##
+# Extract expression from content
+#
+# All expressions that occur in the token types 'typelist'
+# and that match the 'subexpr' criterion get replaced in
+# their original token by a reference tag and form a new
+# token of the type 'newtype'.
+#
+# The reference is coded as §<token_type><token_id>°.
+# Since the reference has the type coded in, we can
+# match sub tokens of specific types via plain regular
+# expressions.
+##
+proc extract {newtype subexpr typelist} {
+	global num txt typ stop
+	set old_num $num
+
+	if {$stop} { return }
+
+	for {set i 0} {$i < $old_num} {incr i} {
+		if {[lsearch $typelist $typ($i)] > -1} {
+			while {[regexp $subexpr $txt($i) mid]} {
+
+				# new sub text #
+				set typ($num) $newtype
+				set txt($num) $mid
+
+				# substitute expression by a reference #
+				regsub $subexpr $txt($i)  "§$newtype$num°" txt($i)
+				incr num
+			}
+		}
+	}
+}
+
+
+#####################################################
+## Rules for splitting the input into its elements ##
+#####################################################
+
+#
+# Starting with only the root token (content0) of the syntax tree
+# containing the whole source code as one string, we extract
+# typed sub tokens to partition the string into parts of distinct
+# meanings (token types).  In the process of subsequently
+# applying extraction rules to specific token types, a syntax
+# tree is formed.
+#
+
+# extract C-style line comments
+extract lcomment {/\*[^\n]*?\*/} content
+
+# extract C-style multi-line comments
+extract mlcomment {/\*.*?\*/} content
+
+# extract strings
+#
+# Strings may contain quoted '"' characters.
+#
+extract string {\"([^\"]|\")*?\"} content
+
+# extract labels and references to labels
+extract labeldef     {[\w_][\w\d_-]*:}          {content}
+extract labelname    {^[\w_][\w\d_-]*(?=(:|$))} {labeldef}
+extract reflabel     {³[\w_][\w\d_-]*}          {content}
+extract reflabelname {[\w_][\w\d_-]*$}          {reflabel}
+
+# fold parenthesis and blocks
+extract parenblk {\([^()]*?\)} {content parenblk}
+extract block    {\{[^{}]*?\}} {content parenblk block}
+extract cell     {\<[^<>]*?\>} {content parenblk block}
+extract openbrace  "\{" block
+extract closebrace "\}" block
+extract openparen  {\(} parenblk
+extract closeparen {\)} parenblk
+
+# property assignments
+extract property      {[\w_#][\w\d_\-,.+?#]*\s*=[^;]*;\n?} {block}
+extract propertyname  {^[\w_#][\w\d_\-,.+?#]*(?=\s*=)}     {property}
+extract propertyvalue {§(cell|string)\d+°}                 {property}
+
+# root nodes
+extract node     {\s*/\s*§block\d+°;\n?} {content}
+extract nodename {/(?=\s*§block)}        {node}
+
+# nodes
+extract node     {(/omit-if-no-ref/)?\s*(§labeldef\d+°\s*)?\s*[\w_][\w\d_\-,.+@]*\s*§block\d+°;\n?} {content block}
+extract nodename {[\w_][\w\d_\-,.+@]*(?=\s*§block)} {node}
+
+# supplemental node content provided via '&label { ... }' at the top level
+extract nodesupplement {§reflabel\d+°\s*§block\d+°;\n?} {content}
+
+
+###############################
+## Back-end helper functions ##
+###############################
+
+##
+# Return name of reference token with specified index
+##
+proc token_by_idx {idx} {
+	global typ;
+	return "$typ($idx)$idx"
+}
+
+
+##
+# Return index of specified reference token
+##
+proc idx_of_token {token} {
+	regexp {[0-9]+} $token idx
+	return $idx
+}
+
+
+##
+# Return type of specified reference token
+##
+proc type_of_token {token} {
+	regexp {[a-z]+} $token type
+	return $type
+}
+
+
+##
+# Return marker for reference token
+##
+proc marker {token} {
+	return "§$token°"
+}
+
+
+##
+# Return text referenced by token
+##
+proc token_text {token} {
+	global txt
+	return $txt([idx_of_token $token])
+}
+
+
+##
+# Assign a line number to each reference token
+#
+# To be able to provide error messages including line numbers, we
+# determine the line number for each reference token and store it
+# as an attribute.
+#
+# The result of the function is stored in the global 'ln' array.
+##
+proc assign_line_numbers {{token content0}} {
+	global ln curr_ln
+
+	if {$token == "content0"} { set curr_ln 1 }
+
+	# assign current line number to current token
+	set ln([idx_of_token $token]) $curr_ln
+
+	# count occurrences of line breaks
+	if {[type_of_token $token] == "line"} { incr curr_ln }
+	if {$token == "\n"} { incr curr_ln }
+
+	# count lines for all sub-tokens
+	set tex [token_text $token]
+	while {$tex != ""} {
+
+		# count and eat raw line breaks (needed if 'whitespace' option is disabled)
+		if {[regexp {^\n} $tex dummy]} {
+			incr curr_ln
+			regsub {\n} $tex "" tex
+		}
+
+		# ignore plain text
+		if {[regexp {^[^§\n]+} $tex plain]} {
+			regsub {^[^§\n]+} $tex "" tex }
+
+		# traverse into token
+		if {[regexp {^§(.+?)°} $tex dummy token]} {
+			assign_line_numbers $token
+			regsub {§(.+?)°} $tex "" tex
+		}
+	}
+}
+
+
+##
+# Look up line number of specified reference token
+##
+proc line_number {token} {
+	global ln
+	return $ln([idx_of_token $token])
+}
+
+
+##
+# Output tokens as valid Tcl List
+#
+# The result of this function can be used directly
+# as input by another Tcl script.
+##
+proc dump_tokens { } {
+	global num typ txt
+	set tokens [list]
+
+	for {set i 0} {($i < $num)} {incr i} {
+		set token [token_by_idx $i]
+		set text $txt($i)
+
+		lappend tokens [list $token [line_number $token] $text]
+	}
+	puts $tokens
+}
+
+
+##################
+## Main program ##
+##################
+
+assign_line_numbers
+
+dump_tokens

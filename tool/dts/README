@@ -1,0 +1,26 @@
+
+       Utilities for extracting information from device-tree sources
+
+Device trees are prominently used in the Linux world for describing the
+structure of SoCs as for the parametrisation of device drivers. The utilities
+found in this directory ease the extraction of interesting information from
+device-tree files.
+
+The utilities found in this directory operate on device-tree source (dts)
+files as opposed to device-tree binaries (dtb) because dts files contain
+information about the inter-dependencies between nodes in textual form
+(labels) instead of mere numbers (phandles).
+
+In the Linux source tree, dts files can be found at _arch/<arch>/boot/dts/_.
+Most dts files leverage the C preprocessor to include fragments in the form of
+dtsi files. To generate the complete device-tree source information for a
+given dts file, the C preprocessor must be invoked as follows:
+
+! cpp -Iinclude -x assembler-with-cpp -P <dts-file>
+
+The _parse_ tool generates a syntax tree from a dts file. It is not meant to
+be invoked directly but it is used as a helper by other tools.
+
+The _extract_ tool can be used to query structural information from a dts
+file and to prune a device tree specifically for a subset of devices. For
+usage information, execute the tool without arguments.
