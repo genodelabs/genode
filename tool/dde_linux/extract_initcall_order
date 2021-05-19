@@ -1,0 +1,73 @@
+#!/usr/bin/make -f
+#
+# \brief  Initcall order extraction tool for DDE Linux
+# \author Stefan Kalkowski
+# \date   2021-05-16
+#
+
+help:
+	$(ECHO) ""
+	$(ECHO) "Extracts initcall order into header file for DDE Linux"
+	$(ECHO) ""
+	$(ECHO) "usage:"
+	$(ECHO) ""
+	$(ECHO) "  extract_initcall_order <command> [VARIABLES]"
+	$(ECHO) ""
+	$(ECHO) "--- available commands ---"
+	$(ECHO) "help        - shows this help"
+	$(ECHO) "extract     - extracts initcall order to HEADER_FILE"
+	$(ECHO) ""
+	$(ECHO) "--- used variables ---"
+	$(ECHO) "LINUX_KERNEL_DIR  - path to the Linux kernel build"
+	$(ECHO) "HEADER_FILE       - path to the file that shall be generated"
+	$(ECHO) ""
+
+
+COMMAND := $(firstword $(MAKECMDGOALS))
+
+SHELL        = bash
+BRIGHT_COL   = \033[01;33m
+DEFAULT_COL  = \033[0m
+ECHO         = @echo -e
+
+
+ifeq ($(COMMAND),extract)
+ifeq ($(realpath $(LINUX_KERNEL_DIR)),)
+$(error You have to state a valid LINUX_KERNEL_DIR, try help)
+endif
+
+ifeq ($(HEADER_FILE),)
+$(error You have to state a HEADER_FILE, try help)
+endif
+endif
+
+define print_file_header
+echo "/*"                                                          > $(2);
+echo " * \\brief  Array defining order of Linux Kernel initcalls" >> $(2);
+echo " * \\author Automatically generated file - do no edit"      >> $(2);
+echo " * \\date   $(1)"                                           >> $(2);
+echo " */"                                                        >> $(2);
+echo ""                                                           >> $(2);
+echo "#pragma once"                                               >> $(2);
+echo ""                                                           >> $(2);
+echo "static const char * lx_emul_initcall_order[] = {"           >> $(2);
+endef
+
+define print_symbol
+echo "	\"$(1)\"," >> $(2);
+endef
+
+define print_file_footer
+echo "	\"END_OF_INITCALL_ORDER_ARRAY_DUMMY_ENTRY\"" >> $(1);
+echo "};" >> $(1);
+endef
+
+INITCALLS = $(shell grep -i "^[0-9a-f]* [t] __initcall_" $(LINUX_KERNEL_DIR)/System.map | awk '{print $$3}')
+
+extract:
+	@$(call print_file_header,$(shell date +"%F"),$(HEADER_FILE))
+	@$(foreach sym,$(INITCALLS),$(call print_symbol,$(sym),$(HEADER_FILE)))
+	@$(call print_file_footer,$(HEADER_FILE))
+
+
+.PHONY: extract help
