@@ -305,7 +305,7 @@ struct Igd::Device
 		return ds;
 	}
 
-	void _free_dataspace(Ram_dataspace_capability const cap)
+	void free_dataspace(Ram_dataspace_capability const cap)
 	{
 		if (!cap.valid()) { return; }
 
@@ -330,9 +330,9 @@ struct Igd::Device
 
 	Genode::Registry<Genode::Registered<Ggtt_mmio_mapping>> _ggtt_mmio_mapping_registry { };
 
-	Ggtt_mmio_mapping const &_map_dataspace_ggtt(Genode::Allocator &alloc,
-	                                             Genode::Dataspace_capability cap,
-	                                             Ggtt::Offset offset)
+	Ggtt_mmio_mapping const &map_dataspace_ggtt(Genode::Allocator &alloc,
+	                                            Genode::Dataspace_capability cap,
+	                                            Ggtt::Offset offset)
 	{
 		Genode::Dataspace_client client(cap);
 		addr_t const phys_addr = client.phys_addr();
@@ -356,7 +356,7 @@ struct Igd::Device
 		return *mem;
 	}
 
-	void _unmap_dataspace_ggtt(Genode::Allocator &alloc, Genode::Dataspace_capability cap)
+	void unmap_dataspace_ggtt(Genode::Allocator &alloc, Genode::Dataspace_capability cap)
 	{
 		size_t const num = Genode::Dataspace_client(cap).size() / PAGE_SIZE;
 
@@ -445,6 +445,68 @@ struct Igd::Device
 		void dump() { _elem0.dump(); }
 	};
 
+	struct Ggtt_map_memory
+	{
+		struct Dataspace_guard {
+			Device                         &device;
+			Ram_dataspace_capability const  ds;
+
+			Dataspace_guard(Device &device, Ram_dataspace_capability ds)
+			: device(device), ds(ds)
+			{ }
+
+			~Dataspace_guard()
+			{
+				if (ds.valid())
+					device.free_dataspace(ds);
+			}
+		};
+
+		struct Mapping_guard {
+			Device              &device;
+			Allocator           &alloc;
+			Ggtt::Mapping const &map;
+
+			Mapping_guard(Device &device, Ggtt_map_memory &gmm, Allocator &alloc)
+			:
+				device(device),
+				alloc(alloc),
+				map(device.map_dataspace_ggtt(alloc, gmm.ram_ds.ds, gmm.offset))
+			{ }
+
+			~Mapping_guard() { device.unmap_dataspace_ggtt(alloc, map.cap); }
+		};
+
+		Device             const &device;
+		Allocator          const &alloc;
+		Ggtt::Offset       const  offset;
+		Ggtt::Offset       const  skip;
+		Dataspace_guard    const  ram_ds;
+		Mapping_guard      const  map;
+		Attached_dataspace const  ram;
+
+		addr_t vaddr() const
+		{
+			return reinterpret_cast<addr_t>(ram.local_addr<addr_t>())
+			       + (skip * PAGE_SIZE);
+		}
+
+		addr_t gmaddr() const { /* graphics memory address */
+			return (offset + skip) * PAGE_SIZE; }
+
+		Ggtt_map_memory(Region_map &rm, Allocator &alloc, Device &device,
+		                Ggtt::Offset const pages, Ggtt::Offset const skip_pages)
+		:
+			device(device),
+			alloc(alloc),
+			offset(device._ggtt->find_free(pages, true)),
+			skip(skip_pages),
+			ram_ds(device, device._alloc_dataspace(pages * PAGE_SIZE)),
+			map(device, *this, alloc),
+			ram(rm, map.map.cap)
+		{ }
+	};
+
 	template <typename CONTEXT>
 	struct Engine
 	{
@@ -453,72 +515,68 @@ struct Igd::Device
 			RING_PAGES    = CONTEXT::RING_PAGES,
 		};
 
-		Genode::Ram_dataspace_capability ctx_ds;
-		Ggtt::Mapping const &ctx_map;
-		addr_t const         ctx_vaddr;
-		addr_t const         ctx_gmaddr;
+		Ggtt_map_memory ctx;  /* context memory */
+		Ggtt_map_memory ring; /* ring memory */
 
-		Genode::Ram_dataspace_capability ring_ds;
-		Ggtt::Mapping const &ring_map;
-		addr_t const         ring_vaddr;
-		addr_t const         ring_gmaddr;
-
-		Ppgtt_allocator &ppgtt_allocator;
-		Ppgtt           *ppgtt;
-		Ppgtt_scratch   *ppgtt_scratch;
+		Ppgtt_allocator  ppgtt_allocator;
+		Ppgtt_scratch    ppgtt_scratch;
+		Ppgtt           *ppgtt { nullptr };
 
 		Genode::Constructible<CONTEXT>  context  { };
 		Genode::Constructible<Execlist> execlist { };
 
-		Engine(uint32_t             id,
-		       Ram                  ctx_ds,
-		       Ggtt::Mapping const &ctx_map,
-		       addr_t const         ctx_vaddr,
-		       addr_t const         ctx_gmaddr,
-		       Ram                  ring_ds,
-		       Ggtt::Mapping const &ring_map,
-		       addr_t const          ring_vaddr,
-		       addr_t const          ring_gmaddr,
-		       Ppgtt_allocator      &ppgtt_allocator,
-		       Ppgtt                *ppgtt,
-		       Ppgtt_scratch        *ppgtt_scratch,
-		       addr_t const          pml4)
+		Engine(Igd::Device         &device,
+		       uint32_t             id,
+		       Allocator           &alloc)
 		:
-			ctx_ds(ctx_ds),
-			ctx_map(ctx_map),
-			ctx_vaddr(ctx_vaddr),
-			ctx_gmaddr(ctx_gmaddr),
-			ring_ds(ring_ds),
-			ring_map(ring_map),
-			ring_vaddr(ring_vaddr),
-			ring_gmaddr(ring_gmaddr),
-			ppgtt_allocator(ppgtt_allocator),
-			ppgtt(ppgtt),
-			ppgtt_scratch(ppgtt_scratch)
+			ctx (device._env.rm(), alloc, device, CONTEXT::CONTEXT_PAGES, 1 /* omit GuC page */),
+			ring(device._env.rm(), alloc, device, CONTEXT::RING_PAGES, 0),
+			ppgtt_allocator(device._env.rm(), device._pci_backend_alloc),
+			ppgtt_scratch(device._pci_backend_alloc)
 		{
-			size_t const ring_size = RING_PAGES * PAGE_SIZE;
+			/* PPGTT */
+			device._populate_scratch(ppgtt_scratch);
 
-			/* setup context */
-			context.construct(ctx_vaddr, ring_gmaddr, ring_size, pml4);
+			ppgtt = new (ppgtt_allocator) Igd::Ppgtt(&ppgtt_scratch.pdp);
 
-			/* setup execlist */
-			execlist.construct(id, ctx_gmaddr, ring_vaddr, ring_size);
-			execlist->ring_reset();
+			try {
+				size_t const ring_size = RING_PAGES * PAGE_SIZE;
+
+				/* get PML4 address */
+				addr_t const ppgtt_phys_addr = _ppgtt_phys_addr(ppgtt_allocator,
+				                                                ppgtt);
+				addr_t const pml4 = ppgtt_phys_addr | 1;
+
+				/* setup context */
+				context.construct(ctx.vaddr(), ring.gmaddr(), ring_size, pml4);
+
+				/* setup execlist */
+				execlist.construct(id, ctx.gmaddr(), ring.vaddr(), ring_size);
+				execlist->ring_reset();
+			} catch (...) {
+				_destruct();
+				throw;
+			}
 		}
 
-		~Engine()
+		~Engine() { _destruct(); };
+
+		void _destruct()
 		{
+			if (ppgtt)
+				Genode::destroy(ppgtt_allocator, ppgtt);
+
 			execlist.destruct();
 			context.destruct();
 		}
 
 		size_t ring_size() const { return RING_PAGES * PAGE_SIZE; }
 
-		addr_t hw_status_page() const { return ctx_gmaddr; }
+		addr_t hw_status_page() const { return ctx.gmaddr(); }
 
 		uint64_t seqno() const {
-			Utils::clflush((uint32_t*)(ctx_vaddr + 0xc0));
-			return *(uint32_t*)(ctx_vaddr + 0xc0); }
+			Utils::clflush((uint32_t*)(ctx.vaddr() + 0xc0));
+			return *(uint32_t*)(ctx.vaddr() + 0xc0); }
 
 		private:
 
@@ -531,79 +589,32 @@ struct Igd::Device
 
 	void _fill_page(Genode::Ram_dataspace_capability ds, addr_t v)
 	{
-		uint64_t * const p = _env.rm().attach(ds);
+		Attached_dataspace ram(_env.rm(), ds);
+		uint64_t * const p = ram.local_addr<uint64_t>();
+
 		for (size_t i = 0; i < Ppgtt_scratch::MAX_ENTRIES; i++) {
 			p[i] = v;
 		}
-		_env.rm().detach(p);
 	}
 
-	void _populate_scratch(Ppgtt_scratch *scratch)
+	void _populate_scratch(Ppgtt_scratch &scratch)
 	{
-		_fill_page(scratch->pt.ds,  scratch->page.addr);
-		_fill_page(scratch->pd.ds,  scratch->pt.addr);
-		_fill_page(scratch->pdp.ds, scratch->pd.addr);
+		_fill_page(scratch.pt.ds,  scratch.page.addr);
+		_fill_page(scratch.pd.ds,  scratch.pt.addr);
+		_fill_page(scratch.pdp.ds, scratch.pd.addr);
 	}
+
 
 	template <typename CONTEXT>
 	Engine<CONTEXT> *_alloc_engine(Allocator &md_alloc, uint32_t const id)
 	{
-		/* alloc context memory */
-		size_t const ctx_offset      = _ggtt->find_free(CONTEXT::CONTEXT_PAGES, true);
-		size_t const ctx_size        = CONTEXT::CONTEXT_PAGES * PAGE_SIZE;
-		Ram ctx_ds                   = _alloc_dataspace(ctx_size);
-		Ggtt::Mapping const &ctx_map = _map_dataspace_ggtt(md_alloc, ctx_ds, ctx_offset);
-		addr_t const ctx_vaddr       = (addr_t)_env.rm().attach(ctx_map.cap) + PAGE_SIZE /* omit GuC page */;
-		addr_t const ctx_gmaddr      = (ctx_offset + 1 /* omit GuC page */) * PAGE_SIZE;
-
-		/* alloc ring memory */
-		size_t const ring_offset      = _ggtt->find_free(Rcs_context::RING_PAGES, true);
-		size_t const ring_size        = CONTEXT::RING_PAGES * PAGE_SIZE;
-		Ram ring_ds                   = _alloc_dataspace(ring_size);
-		Ggtt::Mapping const &ring_map = _map_dataspace_ggtt(md_alloc, ring_ds, ring_offset);
-		addr_t const ring_vaddr       = _env.rm().attach(ring_map.cap);
-		addr_t const ring_gmaddr      = ring_offset * PAGE_SIZE;
-
-		/* PPGTT */
-		Igd::Ppgtt_allocator *ppgtt_allocator =
-			new (&md_alloc) Igd::Ppgtt_allocator(_env.rm(), _pci_backend_alloc);
-
-		Igd::Ppgtt_scratch *scratch =
-			new (&md_alloc) Igd::Ppgtt_scratch(_pci_backend_alloc);
-		_populate_scratch(scratch);
-
-		Igd::Ppgtt *ppgtt =
-			new (ppgtt_allocator) Igd::Ppgtt(&scratch->pdp);
-
-		/* get PML4 address */
-		addr_t const ppgtt_phys_addr = _ppgtt_phys_addr(*ppgtt_allocator, ppgtt);
-		addr_t const pml4 = ppgtt_phys_addr | 1;
-
-		return new (&md_alloc) Engine<CONTEXT>(id + CONTEXT::HW_ID,
-		                                       ctx_ds, ctx_map, ctx_vaddr, ctx_gmaddr,
-		                                       ring_ds, ring_map, ring_vaddr, ring_gmaddr,
-		                                       *ppgtt_allocator, ppgtt, scratch, pml4);
+		return new (&md_alloc) Engine<CONTEXT>(*this, id + CONTEXT::HW_ID,
+		                                       md_alloc);
 	}
 
 	template <typename CONTEXT>
 	void _free_engine(Allocator &md_alloc, Engine<CONTEXT> *engine)
 	{
-		/* free PPGTT */
-		Genode::destroy(&md_alloc, engine->ppgtt_scratch);
-		Genode::destroy(&engine->ppgtt_allocator, engine->ppgtt);
-		Genode::destroy(&md_alloc, &engine->ppgtt_allocator);
-		/* free ring memory */
-		{
-			_env.rm().detach(engine->ring_vaddr);
-			_unmap_dataspace_ggtt(md_alloc, engine->ring_map.cap);
-			_free_dataspace(engine->ring_ds);
-		}
-		/* free context memory */
-		{
-			_env.rm().detach(engine->ctx_vaddr - PAGE_SIZE);
-			_unmap_dataspace_ggtt(md_alloc, engine->ctx_map.cap);
-			_free_dataspace(engine->ctx_ds);
-		}
 		/* free engine */
 		Genode::destroy(&md_alloc, engine);
 	}
@@ -783,7 +794,7 @@ struct Igd::Device
 			try {
 				rcs.ppgtt->insert_translation(vo, pa, size, pf,
 				                              &rcs.ppgtt_allocator,
-				                              &rcs.ppgtt_scratch->pdp);
+				                              &rcs.ppgtt_scratch.pdp);
 			} catch (Igd::Ppgtt_allocator::Out_of_memory) {
 				throw Igd::Device::Out_of_ram();
 			} catch (...) {
@@ -796,7 +807,7 @@ struct Igd::Device
 		{
 			rcs.ppgtt->remove_translation(vo, size,
 			                              &rcs.ppgtt_allocator,
-			                              &rcs.ppgtt_scratch->pdp);
+			                              &rcs.ppgtt_scratch.pdp);
 		}
 	};
 
@@ -1254,7 +1265,7 @@ struct Igd::Device
 		try {
 			size_t const num = size / PAGE_SIZE;
 			Ggtt::Offset const offset = _ggtt->find_free(num, aperture);
-			return _map_dataspace_ggtt(guard, cap, offset);
+			return map_dataspace_ggtt(guard, cap, offset);
 		} catch (...) {
 			throw Could_not_map_buffer();
 		}
@@ -1268,7 +1279,7 @@ struct Igd::Device
 	 */
 	void unmap_buffer(Genode::Allocator &guard, Ggtt::Mapping mapping)
 	{
-		_unmap_dataspace_ggtt(guard, mapping.cap);
+		unmap_dataspace_ggtt(guard, mapping.cap);
 	}
 
 	/**
