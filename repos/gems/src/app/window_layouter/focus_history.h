@@ -76,7 +76,7 @@ class Window_layouter::Focus_history
 
 			Entry * const entry = _lookup(window_id);
 			if (!entry)
-				return Window_id();
+				return first->window_id;
 
 			Entry * const next  = entry->next();
 			return next ? next->window_id : first->window_id;
