@@ -211,7 +211,7 @@ class Vfs::Rump_file_system : public File_system
 
 					Node_rwx const rwx { .readable   = true,
 					                     .writeable  = true,
-					                     .executable = (s.st_mode & S_IXUSR) };
+					                     .executable = (s.st_mode & S_IXUSR) != 0 };
 
 					vfs_dir = {
 						.fileno = s.st_ino,
@@ -702,7 +702,7 @@ class Vfs::Rump_file_system : public File_system
 				.type   = type(sb.st_mode),
 				.rwx    = { .readable   = true,
 				            .writeable  = true,
-				            .executable = (sb.st_mode & S_IXUSR) },
+				            .executable = (sb.st_mode & S_IXUSR) != 0 },
 				.inode  = sb.st_ino,
 				.device = sb.st_dev,
 
