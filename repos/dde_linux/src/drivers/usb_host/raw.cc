@@ -613,6 +613,8 @@ class Device : public List<Device>::Element
 			wait_queue_head_t wait;
 			_wait_event(wait, ready());
 
+			report_device_list();
+
 			if (_sigh_ready.valid())
 				Signal_transmitter(_sigh_ready).submit();
 
@@ -636,8 +638,6 @@ class Device : public List<Device>::Element
 
 			if (!Lx::scheduler().active()) {
 				Lx::scheduler().schedule(); }
-
-			report_device_list();
 		}
 
 		~Device()
@@ -873,6 +873,17 @@ class Usb::Session_component : public Session_rpc_object,
 		Usb::Cleaner                      &_cleaner;
 
 
+		void _drain_packet_stream()
+		{
+			while (sink()->packet_avail() && sink()->ready_to_ack()) {
+				Packet_descriptor p = sink()->get_packet();
+				p.succeded = false;
+				p.error    = Packet_descriptor::NO_DEVICE_ERROR;
+				sink()->acknowledge_packet(p);
+			}
+		}
+
+
 		void _signal_state_change()
 		{
 			if (_sigh_state_change.valid())
@@ -881,10 +892,13 @@ class Usb::Session_component : public Session_rpc_object,
 
 		void _receive()
 		{
-			if (!_device) return;
+			if (!_device) {
+				_drain_packet_stream();
+				return;
+			}
 
+			_device->packet_avail();
 			if (!Lx::scheduler().active()) {
-				_device->packet_avail();
 				Lx::scheduler().schedule();
 			}
 		}
@@ -1091,7 +1105,7 @@ class Usb::Session_component : public Session_rpc_object,
 					return true;
 
 				case DEVICE_REMOVE:
-					if (!session_device(device))
+					if (device != _device)
 						return false;
 
 					_device = nullptr;
@@ -1106,8 +1120,10 @@ class Usb::Session_component : public Session_rpc_object,
 		{
 			_sigh_state_change = sigh;
 
-			if (_device && _device->ready())
+			if (_device && _device->ready()) {
 				Signal_transmitter(_sigh_state_change).submit();
+			} else if (_device)
+				_device->sigh_ready(sigh);
 		}
 
 		Ram_dataspace_capability tx_ds() { return _tx_ds; }
