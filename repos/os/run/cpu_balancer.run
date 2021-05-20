@@ -90,10 +90,10 @@ append config {
 		</route>
 	</start>
 
-	<start name="cpu_burner" priority="-1">
+	<start name="cpu_burner" priority="-1" caps="120">
 		<binary name="shim"/>
 		<affinity xpos="1" ypos="0" width="2" height="1"/>
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="3M"/>
 		<route>
 
 			<!-- by shim binary -->
