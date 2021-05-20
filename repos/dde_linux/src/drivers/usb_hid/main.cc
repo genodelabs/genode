@@ -160,8 +160,6 @@ Driver::Device::~Device()
 
 bool Driver::Device::deinit()
 {
-	if (udev) unregister_device();
-
 	return !udev && !state_task.handling_signal && !urb_task.handling_signal;
 }
 
@@ -224,8 +222,9 @@ void Driver::scan_report()
 	if (!report_rom.constructed()) {
 		report_rom.construct(env, "report");
 		report_rom->sigh(main_task->handler);
-	} else
-		report_rom->update();
+	}
+
+	report_rom->update();
 
 	devices.for_each([&] (Device & d) { d.updated = false; });
 
