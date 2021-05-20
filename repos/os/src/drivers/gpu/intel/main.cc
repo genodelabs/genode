@@ -380,18 +380,6 @@ struct Igd::Device
 		return reinterpret_cast<addr_t>(p);
 	}
 
-	/**********
-	 ** MISC **
-	 **********/
-
-	uint32_t _id_alloc()
-	{
-		static uint32_t id = 1;
-
-		uint32_t const v = id++;
-		return v << 8;
-	}
-
 	/************
 	 ** ENGINE **
 	 ************/
@@ -605,20 +593,6 @@ struct Igd::Device
 	}
 
 
-	template <typename CONTEXT>
-	Engine<CONTEXT> *_alloc_engine(Allocator &md_alloc, uint32_t const id)
-	{
-		return new (&md_alloc) Engine<CONTEXT>(*this, id + CONTEXT::HW_ID,
-		                                       md_alloc);
-	}
-
-	template <typename CONTEXT>
-	void _free_engine(Allocator &md_alloc, Engine<CONTEXT> *engine)
-	{
-		/* free engine */
-		Genode::destroy(&md_alloc, engine);
-	}
-
 	/**********
 	 ** Vgpu **
 	 **********/
@@ -632,17 +606,34 @@ struct Igd::Device
 			MAX_FENCES    = 4,
 		};
 
-		uint32_t active_fences { 0 };
+		Device                          &_device;
+		Signal_context_capability        _completion_sigh { };
+		uint32_t                  const  _id;
+		Engine<Rcs_context>              rcs;
+		uint32_t                         active_fences  { 0 };
+		uint64_t                         _current_seqno { 0 };
 
-		Genode::Signal_context_capability _completion_sigh { };
+		uint32_t _id_alloc()
+		{
+			static uint32_t id = 1;
 
-		uint64_t _current_seqno { 0 };
+			uint32_t const v = id++;
+			return v << 8;
+		}
 
-		uint32_t const       _id;
-		Engine<Rcs_context> &rcs;
+		Vgpu(Device &device, Allocator &alloc)
+		:
+			_device(device),
+			_id(_id_alloc()),
+			rcs(_device, _id + Rcs_context::HW_ID, alloc)
+		{
+			_device.vgpu_created();
+		}
 
-		Vgpu(uint32_t const id, Engine<Rcs_context> &rcs)
-		: _id(id), rcs(rcs) { }
+		~Vgpu()
+		{
+			_device.vgpu_released();
+		}
 
 		uint32_t id() const { return _id; }
 
@@ -810,26 +801,6 @@ struct Igd::Device
 			                              &rcs.ppgtt_scratch.pdp);
 		}
 	};
-
-	Vgpu* _alloc_vgpu(Allocator &alloc)
-	{
-		uint32_t const id = _id_alloc();
-
-		Engine<Rcs_context> *rcs = _alloc_engine<Rcs_context>(alloc, id);
-
-		Vgpu *gpu = new (&alloc) Vgpu(id, *rcs);
-		_vgpu_avail--;
-		return gpu;
-	}
-
-	void _free_vgpu(Allocator &md_alloc, Vgpu &vgpu)
-	{
-		Engine<Rcs_context> *rcs = &vgpu.rcs;
-		_free_engine(md_alloc, rcs);
-
-		Genode::destroy(&md_alloc, &vgpu);
-		_vgpu_avail++;
-	}
 
 	/****************
 	 ** SCHEDULING **
@@ -1146,32 +1117,6 @@ struct Igd::Device
 	 *******************/
 
 	/**
-	 * Allocate new vGPU
-	 *
-	 * \param alloc  resource allocator and guard
-	 *
-	 * \return reference to new vGPU
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
-	 */
-	Vgpu& alloc_vgpu(Allocator &alloc)
-	{
-		return *_alloc_vgpu(alloc);
-	}
-
-	/**
-	 * Free vGPU
-	 *
-	 * \param alloc  reference to resource allocator
-	 * \param vgpu   reference to vGPU
-	 */
-	void free_vgpu(Allocator &alloc, Vgpu &vgpu)
-	{
-		_free_vgpu(alloc, vgpu);
-	}
-
-	/**
 	 * Add vGPU to scheduling list
 	 *
 	 * \param vgpu  reference to vGPU
@@ -1198,6 +1143,12 @@ struct Igd::Device
 	 * \return true if slot is free, otherwise false is returned
 	 */
 	bool vgpu_avail() const { return _vgpu_avail; }
+
+	/**
+	 * Increase/decrease available vGPU count.
+	 */
+	void vgpu_created()  { _vgpu_avail --; }
+	void vgpu_released() { _vgpu_avail ++; }
 
 	/**
 	 * Check if vGPU is currently scheduled
@@ -1346,7 +1297,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		Heap                      _heap { _ram, _rm };
 
 		Igd::Device       &_device;
-		Igd::Device::Vgpu &_vgpu;
+		Igd::Device::Vgpu  _vgpu;
 
 		struct Buffer
 		{
@@ -1413,13 +1364,13 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			Session_object(ep, resources, label, diag),
 			_rm(rm),
 			_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
-			_device(device), _vgpu(_device.alloc_vgpu(_heap))
+			_device(device),
+			_vgpu(_device, _heap)
 		{ }
 
 		~Session_component()
 		{
 			_free_buffers();
-			_device.free_vgpu(_heap, _vgpu);
 		}
 
 		/*********************************
