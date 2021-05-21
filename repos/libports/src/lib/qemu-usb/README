@@ -48,8 +48,13 @@ will open and will use a Genode capture session to obtain the
 frames in the rate as specified by the frame per secondes (fps) attribute. The
 'vertical_flip' attribute specifies, whether the frames are shown flipped
 for guests. For Windows guests the value has to be false, for Linux guests
-true. The format supported by the model is in BGR3. If the 'screen_size' is set
+true. The format supported by the model is YUV2 or BGR3. If the 'screen_size' is set
 to true, the webcam model will try to use the screen size as provided by the
 capture session. If the screen size is invalid (e.g. 0x0), the attribute
 values of 'width' and 'height' will be used instead. If the 'report' attribute
-is set, a report will be generated whenever the guests starts/ends capturing.
+is set, a report will be generated whenever the guests starts/ends capturing and
+if the capturing format choosen by the guest changes,
+
+<capture enabled="..." format="BGR3"/>
+or
+<capture enabled="..." format="YUV2"/>

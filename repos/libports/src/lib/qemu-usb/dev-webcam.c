@@ -533,10 +533,13 @@ static void webcam_timeout(void *opague)
 	USBDevice      *dev   = (USBDevice *)opague;
 	USBWebcamState *state = USB_WEBCAM(opague);
 
+	if (!state->capture)
+		return;
+
 	if (!state->delayed_packet) {
 		unsigned const fps = 10000000u / formats[active_format()].interval;
-		/* capture off detection - after 2s or if in delay_packet state */
-		if (state->delay_packet || (state->watchdog && state->watchdog >= fps * 2)) {
+		/* capture off detection - after 1s or if in delay_packet state */
+		if (state->delay_packet || (state->watchdog && state->watchdog >= fps)) {
 			state->capture      = false;
 			state->delay_packet = false;
 			usb_webcam_capture_state_changed(state->capture);
@@ -601,11 +604,24 @@ static void usb_webcam_handle_control(USBDevice * const dev,
 		if (length || (index != (USB_DIR_IN | DEVICE_EP_ID)))
 			break;
 
-		/* release packets on feature == 0 endpoint clear request */
-		if (!value) {
+		/* endpoint clear request with feature == 0 */
+		if (value == 0) {
+			/*
+			 * UVC standard does not specify how to signal stopping of capture
+			 * on a bulk endpoint.
+			 * According to comment in Linux, drivers/media/usb/uvc/uvc_video.c
+			 * uvc_video_stop_streaming(), a clear request with feature == 0
+			 * is used as stop signal as used by Windows.
+			 */
 			USBWebcamState *state = USB_WEBCAM(dev);
-			if (state && state->delayed_packet)
-				state->delayed_packet = 0;
+			if (state) {
+				if (state->delayed_packet)
+					state->delayed_packet = 0;
+				if (state->capture) {
+					state->capture = false;
+					usb_webcam_capture_state_changed(state->capture);
+				}
+			}
 			stall = false;
 		}
 		break;
