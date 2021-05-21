@@ -28,24 +28,9 @@ struct I2c::Session_client : Rpc_client<I2c::Session>
 		Rpc_client<I2c::Session>(session)
 	{ }
 
-	void write_8bits(uint8_t byte) override
+	void transmit(Transaction & transaction) override
 	{
-		call<Rpc_write_8bits>(byte);
-	}
-
-	uint8_t read_8bits() override
-	{
-		return call<Rpc_read_8bits>();
-	}
-
-	void write_16bits(uint16_t word) override
-	{
-		call<Rpc_write_16bits>(word);
-	}
-
-	uint16_t read_16bits() override
-	{
-		return call<Rpc_read_16bits>();
+		call<Rpc_transmit>(transaction);
 	}
 };
 

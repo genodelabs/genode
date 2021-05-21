@@ -28,6 +28,32 @@ struct I2c::Connection : Genode::Connection<I2c::Session>, I2c::Session_client
 		Genode::Connection<Session>(env, session(env.parent(), "ram_quota=8K, label=%s", label)),
 		Session_client(cap())
 	{ }
+
+	void write_8bits(uint8_t byte)
+	{
+		Transaction t { Message(Message::WRITE, byte) };
+		transmit(t);
+	}
+
+	uint8_t read_8bits()
+	{
+		Transaction t { Message(Message::READ, 0) };
+		transmit(t);
+		return t.value(0).value(0);
+	}
+
+	void write_16bits(uint16_t word)
+	{
+		Transaction t { Message(Message::WRITE, word & 0xff, word >> 8) };
+		transmit(t);
+	}
+
+	uint16_t read_16bits()
+	{
+		Transaction t { Message(Message::READ, 0, 0) };
+		transmit(t);
+		return t.value(0).value(0) | (t.value(0).value(1) << 8);
+	}
 };
 
 #endif /* _INCLUDE__I2C_SESSION__CONNECTION_H_ */

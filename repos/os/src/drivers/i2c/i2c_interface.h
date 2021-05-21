@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <i2c_session/i2c_session.h>
 #include <util/xml_node.h>
 
 namespace I2c {
@@ -34,33 +35,21 @@ namespace I2c {
  * The driver read/write bytes to memory in the order they are
  * read/write to the bus.
  * It is the responsability of the component interacting with
- * a slave device on the bus to figure out how to interpret the data. 
+ * a slave device on the bus to figure out how to interpret the data.
  */
 struct I2c::Driver_base : Interface
 {
 	class Bad_bus_no: Exception {};
 
 	/**
-	 * Write to the I2C bus
+	 * Transaction on the I2C bus
 	 *
-	 * \param address     device address
-	 * \param buffer_in   buffer containing data to be send
-	 * \param buffer_size size of the buffer to be send
-	 *
-	 * \throw I2c::Session::Bus_error An error occured while performing an operation on the bus
-	 */
-	virtual void write(uint8_t address, uint8_t const *buffer_in, size_t buffer_size) = 0;
-
-	/**
-	 * Read from the I2C bus
-	 *
-	 * \param address     device address
-	 * \param buffer_out  preallocated buffer to store the data in
-	 * \param buffer_size size of the buffer and to be read
+	 * \param address  device address
+	 * \param t        transaction to perform
 	 *
 	 * \throw I2c::Session::Bus_error An error occure while performing an operation on the bus
 	 */
-	virtual void read(uint8_t address, uint8_t *buffer_out, size_t buffer_size) = 0;
+	virtual void transmit(uint8_t address, I2c::Session::Transaction & t) = 0;
 
 	/**
 	 * Driver name getter

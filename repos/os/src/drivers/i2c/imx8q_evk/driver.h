@@ -68,6 +68,9 @@ class I2c::Driver: public I2c::Driver_base
 		void _wait_for_irq();
 		void _irq_handle() { _sem_cnt = 0; }
 
+		void _write(uint8_t, I2c::Session::Message&);
+		void _read(uint8_t, I2c::Session::Message&);
+
 	public:
 
 		Driver(Env &env, Args const &args)
@@ -78,10 +81,10 @@ class I2c::Driver: public I2c::Driver_base
 			_irq.sigh(_irq_handler);
 			_irq_handle();
 			_irq.ack();
+			_bus_reset();
 		}
 
-		void write(uint8_t, uint8_t const *, size_t) override;
-		void read(uint8_t, uint8_t *, size_t) override;
+		void transmit(uint8_t address, I2c::Session::Transaction & t) override;
 };
 
 #endif /* _I2C_DRIVER__IMX8Q_EVK_H_ */

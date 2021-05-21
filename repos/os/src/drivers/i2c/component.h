@@ -44,29 +44,8 @@ class I2c::Session_component : public Rpc_object<I2c::Session>
 			_ep(ep), _driver(driver), _device_address(device_address)
 		{ }
 
-		void write_8bits(uint8_t byte) override
-		{
-			_driver.write(_device_address, &byte, sizeof(byte));
-		}
-
-		uint8_t read_8bits() override
-		{
-			uint8_t data = 0;
-			_driver.read(_device_address, reinterpret_cast<uint8_t*>(&data), sizeof(data));
-			return data;
-		}
-
-		void write_16bits(uint16_t word) override
-		{
-			_driver.write(_device_address, reinterpret_cast<uint8_t const *>(&word), sizeof(word));
-		}
-
-		uint16_t read_16bits() override
-		{
-			uint16_t data = 0;
-			_driver.read(_device_address, reinterpret_cast<uint8_t*>(&data), sizeof(data));
-			return data;
-		}
+		void transmit(Transaction & t) override {
+			_driver.transmit(_device_address, t); }
 };
 
 
