@@ -1,0 +1,11 @@
+--- a/config-top.h
++++ b/config-top.h
+@@ -84,7 +84,7 @@
+ #define KSH_COMPATIBLE_SELECT
+ 
+ /* Default interactive shell startup file. */
+-#define DEFAULT_BASHRC "~/.bashrc"
++#define DEFAULT_BASHRC "/share/bash/bashrc"
+ 
+ /* System-wide .bashrc file for interactive shells. */
+ /* #define SYS_BASHRC "/etc/bash.bashrc" */
