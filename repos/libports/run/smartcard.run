@@ -24,7 +24,7 @@ proc smartcard_product_id {} { return "0x5116" }
 
 set build_components {
 	core init timer
-	drivers/usb
+	drivers/usb_host
 	test/smartcard
 	lib/vfs/pipe
 }
@@ -73,14 +73,13 @@ append config {
 	</start>
 
 	<start name="usb_drv" caps="200">
+		<binary name="} [usb_host_drv_binary] {"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Usb"/></provides>
 		<config uhci="yes" ehci="yes" xhci="yes" bios_handoff="yes">
-			<raw>
-				<report devices="yes"/>
-				<policy label="test-smartcard -> usb_device"
-				        vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>
-			</raw>
+			<report devices="yes"/>
+			<policy label="test-smartcard -> usb_device"
+			        vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>
 		</config>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -114,11 +113,13 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer usb_drv test-smartcard
+	core init timer test-smartcard
 	ld.lib.so pcsc-lite.lib.so ccid.lib.so libusb.lib.so
 	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
 	Info.plist vfs_pipe.lib.so
 }
+
+lappend boot_modules [usb_host_drv_binary]
 
 append_platform_drv_boot_modules
 
