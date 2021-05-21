@@ -22,7 +22,7 @@ namespace Hw { template <typename> struct Boot_info; }
 template <typename PLAT_INFO>
 struct Hw::Boot_info
 {
-	using Mapping_pool = Array<Mapping, 32>;
+	using Mapping_pool = Genode::Array<Mapping, 32>;
 
 	addr_t        const table;
 	addr_t        const table_allocator;

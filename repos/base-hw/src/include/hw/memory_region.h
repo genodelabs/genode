@@ -15,13 +15,13 @@
 #define _SRC__LIB__HW__MEMORY_REGION_H_
 
 #include <base/output.h>
-#include <hw/array.h>
+#include <util/array.h>
 #include <hw/util.h>
 
 namespace Hw {
 
 	struct Memory_region;
-	using Memory_region_array = Array<Memory_region, 16>;
+	using Memory_region_array = Genode::Array<Memory_region, 16>;
 }
 
 

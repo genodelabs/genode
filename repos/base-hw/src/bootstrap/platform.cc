@@ -175,7 +175,7 @@ Platform::Platform()
 	using namespace Genode;
 
 	/* prepare the ram allocator */
-	board.early_ram_regions.for_each([this] (Memory_region const & region) {
+	board.early_ram_regions.for_each([this] (unsigned, Memory_region const & region) {
 		ram_alloc.add(region); });
 	ram_alloc.remove(bootstrap_region);
 
@@ -207,6 +207,6 @@ Platform::Platform()
 	/* add all left RAM to bootinfo */
 	ram_alloc.for_each_free_region([&] (Memory_region const & r) {
 		bootinfo.ram_regions.add(r); });
-	board.late_ram_regions.for_each([&] (Memory_region const & r) {
+	board.late_ram_regions.for_each([&] (unsigned, Memory_region const & r) {
 		bootinfo.ram_regions.add(r); });
 }

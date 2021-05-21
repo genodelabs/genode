@@ -67,7 +67,7 @@ void Platform::_init_io_mem_alloc()
 {
 	/* add entire adress space minus the RAM memory regions */
 	_io_mem_alloc.add_range(0, ~0x0UL);
-	_boot_info().ram_regions.for_each([this] (Hw::Memory_region const &r) {
+	_boot_info().ram_regions.for_each([this] (unsigned, Hw::Memory_region const &r) {
 		_io_mem_alloc.remove_range(r.base, r.size); });
 };
 
@@ -82,7 +82,7 @@ Hw::Memory_region_array const & Platform::_core_virt_regions()
 addr_t Platform::core_phys_addr(addr_t virt)
 {
 	addr_t ret = 0;
-	_boot_info().elf_mappings.for_each([&] (Hw::Mapping const & m)
+	_boot_info().elf_mappings.for_each([&] (unsigned, Hw::Mapping const & m)
 	{
 		if (virt >= m.virt() && virt < (m.virt() + m.size()))
 			ret = (virt - m.virt()) + m.phys();
@@ -165,11 +165,11 @@ Platform::Platform()
 
 	_core_mem_alloc.virt_alloc().add_range(Hw::Mm::core_heap().base,
 	                                       Hw::Mm::core_heap().size);
-	_core_virt_regions().for_each([this] (Hw::Memory_region const & r) {
+	_core_virt_regions().for_each([this] (unsigned, Hw::Memory_region const & r) {
 		_core_mem_alloc.virt_alloc().remove_range(r.base, r.size); });
-	_boot_info().elf_mappings.for_each([this] (Hw::Mapping const & m) {
+	_boot_info().elf_mappings.for_each([this] (unsigned, Hw::Mapping const & m) {
 		_core_mem_alloc.virt_alloc().remove_range(m.virt(), m.size()); });
-	_boot_info().ram_regions.for_each([this] (Hw::Memory_region const & region) {
+	_boot_info().ram_regions.for_each([this] (unsigned, Hw::Memory_region const & region) {
 		_core_mem_alloc.phys_alloc().add_range(region.base, region.size); });
 
 	_init_io_port_alloc();
