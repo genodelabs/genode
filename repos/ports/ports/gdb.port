@@ -1,9 +1,9 @@
 LICENSE   := GPLv3
-VERSION   := 8.2.1
+VERSION   := 10.2
 DOWNLOADS := gdb.archive
 
 URL(gdb)  := ftp://ftp.fu-berlin.de/gnu/gdb/gdb-$(VERSION).tar.xz
-SHA(gdb)  := 0a6a432907a03c5c8eaad3c3cffd50c00a40c3a5e3c4039440624bae703f2202
+SHA(gdb)  := aaa1223d534c9b700a8bec952d9748ee1977513f178727e1bee520ee000b4f29
 SIG(gdb)  := ${URL(gdb)}.sig
 KEY(gdb)  := GNU
 DIR(gdb)  := src/noux-pkg/gdb
@@ -20,53 +20,10 @@ default: symlinks
 symlinks: $(DOWNLOADS)
 	$(VERBOSE)ln -s amd64.c             ${DIR(gdb)}/gdb/arch/amd64.cc
 	$(VERBOSE)ln -s i386.c              ${DIR(gdb)}/gdb/arch/i386.cc
-	$(VERBOSE)ln -s agent.c             ${DIR(gdb)}/gdb/common/agent.cc
-	$(VERBOSE)ln -s buffer.c            ${DIR(gdb)}/gdb/common/buffer.cc
-	$(VERBOSE)ln -s cleanups.c          ${DIR(gdb)}/gdb/common/cleanups.cc
-	$(VERBOSE)ln -s common-debug.c      ${DIR(gdb)}/gdb/common/common-debug.cc
-	$(VERBOSE)ln -s common-exceptions.c ${DIR(gdb)}/gdb/common/common-exceptions.cc
-	$(VERBOSE)ln -s common-utils.c      ${DIR(gdb)}/gdb/common/common-utils.cc
-	$(VERBOSE)ln -s environ.c           ${DIR(gdb)}/gdb/common/environ.cc
-	$(VERBOSE)ln -s errors.c            ${DIR(gdb)}/gdb/common/errors.cc
-	$(VERBOSE)ln -s filestuff.c         ${DIR(gdb)}/gdb/common/filestuff.cc
-	$(VERBOSE)ln -s format.c            ${DIR(gdb)}/gdb/common/format.cc
-	$(VERBOSE)ln -s gdb_tilde_expand.c  ${DIR(gdb)}/gdb/common/gdb_tilde_expand.cc
-	$(VERBOSE)ln -s gdb_vecs.c          ${DIR(gdb)}/gdb/common/gdb_vecs.cc
-	$(VERBOSE)ln -s job-control.c       ${DIR(gdb)}/gdb/common/job-control.cc
-	$(VERBOSE)ln -s pathstuff.c         ${DIR(gdb)}/gdb/common/pathstuff.cc
-	$(VERBOSE)ln -s posix-strerror.c    ${DIR(gdb)}/gdb/common/posix-strerror.cc
-	$(VERBOSE)ln -s print-utils.c       ${DIR(gdb)}/gdb/common/print-utils.cc
-	$(VERBOSE)ln -s ptid.c              ${DIR(gdb)}/gdb/common/ptid.cc
-	$(VERBOSE)ln -s rsp-low.c           ${DIR(gdb)}/gdb/common/rsp-low.cc
-	$(VERBOSE)ln -s signals.c           ${DIR(gdb)}/gdb/common/signals.cc
-	$(VERBOSE)ln -s tdesc.c             ${DIR(gdb)}/gdb/common/tdesc.cc
-	$(VERBOSE)ln -s vec.c               ${DIR(gdb)}/gdb/common/vec.cc
-	$(VERBOSE)ln -s xml-utils.c         ${DIR(gdb)}/gdb/common/xml-utils.cc
-	$(VERBOSE)ln -s ax.c                ${DIR(gdb)}/gdb/gdbserver/ax.cc
-	$(VERBOSE)ln -s debug.c             ${DIR(gdb)}/gdb/gdbserver/debug.cc
-	$(VERBOSE)ln -s dll.c               ${DIR(gdb)}/gdb/gdbserver/dll.cc
-	$(VERBOSE)ln -s event-loop.c        ${DIR(gdb)}/gdb/gdbserver/event-loop.cc
-	$(VERBOSE)ln -s fork-child.c        ${DIR(gdb)}/gdb/gdbserver/fork-child.cc
-	$(VERBOSE)ln -s hostio.c            ${DIR(gdb)}/gdb/gdbserver/hostio.cc
-	$(VERBOSE)ln -s i387-fp.c           ${DIR(gdb)}/gdb/gdbserver/i387-fp.cc
-	$(VERBOSE)ln -s inferiors.c         ${DIR(gdb)}/gdb/gdbserver/inferiors.cc
-	$(VERBOSE)ln -s linux-low.c         ${DIR(gdb)}/gdb/gdbserver/linux-low.cc
-	$(VERBOSE)ln -s linux-x86-low.c     ${DIR(gdb)}/gdb/gdbserver/linux-x86-low.cc
-	$(VERBOSE)ln -s linux-x86-tdesc.c   ${DIR(gdb)}/gdb/gdbserver/linux-x86-tdesc.cc
-	$(VERBOSE)ln -s mem-break.c         ${DIR(gdb)}/gdb/gdbserver/mem-break.cc
-	$(VERBOSE)ln -s notif.c             ${DIR(gdb)}/gdb/gdbserver/notif.cc
-	$(VERBOSE)ln -s regcache.c          ${DIR(gdb)}/gdb/gdbserver/regcache.cc
-	$(VERBOSE)ln -s remote-utils.c      ${DIR(gdb)}/gdb/gdbserver/remote-utils.cc
-	$(VERBOSE)ln -s server.c            ${DIR(gdb)}/gdb/gdbserver/server.cc
-	$(VERBOSE)ln -s symbol.c            ${DIR(gdb)}/gdb/gdbserver/symbol.cc
-	$(VERBOSE)ln -s target.c            ${DIR(gdb)}/gdb/gdbserver/target.cc
-	$(VERBOSE)ln -s tdesc.c             ${DIR(gdb)}/gdb/gdbserver/tdesc.cc
-	$(VERBOSE)ln -s tracepoint.c        ${DIR(gdb)}/gdb/gdbserver/tracepoint.cc
-	$(VERBOSE)ln -s utils.c             ${DIR(gdb)}/gdb/gdbserver/utils.cc
-	$(VERBOSE)ln -s x86-low.c           ${DIR(gdb)}/gdb/gdbserver/x86-low.cc
 	$(VERBOSE)ln -s fork-inferior.c     ${DIR(gdb)}/gdb/nat/fork-inferior.cc
 	$(VERBOSE)ln -s linux-ptrace.c      ${DIR(gdb)}/gdb/nat/linux-ptrace.cc
 	$(VERBOSE)ln -s x86-dregs.c         ${DIR(gdb)}/gdb/nat/x86-dregs.cc
 	$(VERBOSE)ln -s x86-linux.c         ${DIR(gdb)}/gdb/nat/x86-linux.cc
 	$(VERBOSE)ln -s x86-linux-dregs.c   ${DIR(gdb)}/gdb/nat/x86-linux-dregs.cc
 	$(VERBOSE)ln -s waitstatus.c        ${DIR(gdb)}/gdb/target/waitstatus.cc
+	$(VERBOSE)ln -s alloc.c             ${DIR(gdb)}/gdb/alloc.cc

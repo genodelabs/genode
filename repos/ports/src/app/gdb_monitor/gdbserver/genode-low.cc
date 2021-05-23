@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -30,8 +30,6 @@
 #include "genode-low.h"
 #include "server.h"
 #include "linux-low.h"
-
-void linux_detach_one_lwp (struct lwp_info *lwp);
 
 static bool verbose = false;
 
@@ -302,7 +300,7 @@ pid_t my_waitpid(pid_t pid, int *status, int flags)
 
 				if (cc == 1 && c == '\003' && current_thread != NULL) {
 					/* this causes a SIGINT to be delivered to one of the threads */
-					(*the_target->request_interrupt)();
+					the_target->request_interrupt();
 					continue;
 				} else {
 					if (verbose)
@@ -591,8 +589,8 @@ void genode_remove_thread(unsigned long lwpid)
 {
 	struct thread_info *thread_info =
 		find_thread_ptid(ptid_t(GENODE_MAIN_LWPID, lwpid, 0));
-	struct lwp_info *lwp = get_thread_lwp(thread_info);
-	linux_detach_one_lwp(lwp);
+	lwp_info *lwp = get_thread_lwp(thread_info);
+	the_linux_target->detach_one_lwp(lwp);
 }
 
 
@@ -610,7 +608,7 @@ void genode_resume_all_threads()
 }
 
 
-int genode_detach(int pid)
+static int genode_detach(int)
 {
     genode_resume_all_threads();
 
@@ -618,12 +616,18 @@ int genode_detach(int pid)
 }
 
 
-int genode_kill(int pid)
+int linux_process_target::detach(process_info *process)
+{
+    return genode_detach(process->pid);
+}
+
+
+int linux_process_target::kill(process_info *process)
 {
     /* TODO */
     if (verbose) warning(__func__, " not implemented, just detaching instead...");
 
-    return genode_detach(pid);
+    return genode_detach(process->pid);
 }
 
 
@@ -643,9 +647,9 @@ void genode_continue_thread(unsigned long lwpid, int single_step)
 }
 
 
-void genode_fetch_registers(struct regcache *regcache, int regno)
+void linux_process_target::fetch_registers(regcache *regcache, int regno)
 {
-	const struct regs_info *regs_info = (*the_low_target.regs_info) ();
+	const struct regs_info *regs_info = get_regs_info();
 
 	unsigned long reg_content = 0;
 
@@ -665,11 +669,11 @@ void genode_fetch_registers(struct regcache *regcache, int regno)
 }
 
 
-void genode_store_registers(struct regcache *regcache, int regno)
+void linux_process_target::store_registers(regcache *regcache, int regno)
 {
 	if (verbose) log(__func__, ": regno=", regno);
 
-	const struct regs_info *regs_info = (*the_low_target.regs_info) ();
+	const struct regs_info *regs_info = get_regs_info();
 
 	unsigned long reg_content = 0;
 
@@ -714,13 +718,20 @@ int genode_read_memory(CORE_ADDR memaddr, unsigned char *myaddr, int len)
 }
 
 
+int linux_process_target::read_memory(CORE_ADDR memaddr,
+                                      unsigned char *myaddr, int len)
+{
+	return genode_read_memory(memaddr, myaddr, len);
+}
+
+
 void genode_write_memory_byte(void *addr, unsigned char value)
 {
 	memory_model().write(addr, value);
 }
 
 
-int genode_write_memory (CORE_ADDR memaddr, const unsigned char *myaddr, int len)
+int genode_write_memory(CORE_ADDR memaddr, const unsigned char *myaddr, int len)
 {
 	if (verbose)
 		log(__func__, "(", Hex(memaddr), ", ", myaddr, ", ", len, ")");
@@ -748,4 +759,73 @@ int genode_write_memory (CORE_ADDR memaddr, const unsigned char *myaddr, int len
 	}
 
 	return 0;
+}
+
+
+int linux_process_target::write_memory(CORE_ADDR memaddr,
+                                        const unsigned char *myaddr, int len)
+{
+	return genode_write_memory(memaddr, myaddr, len);
+}
+
+
+LONGEST linux_common_xfer_osdata(char const*, gdb_byte*, ULONGEST, ULONGEST)
+{
+	Genode::error(__func__, " called, not implemented");
+	return -1;
+}
+
+
+int linux_common_core_of_thread(ptid_t)
+{
+	return 0;
+}
+
+
+bool linux_process_target::supports_qxfer_libraries_svr4()
+{
+  return false;
+}
+
+
+int linux_process_target::qxfer_libraries_svr4(const char *,
+                                               unsigned char *,
+                                               unsigned const char *,
+                                               CORE_ADDR, int)
+{
+	Genode::error(__func__, " called, not implemented");
+	return -1;
+}
+
+
+char *linux_proc_pid_to_exec_file(int)
+{
+	return nullptr;
+}
+
+
+ssize_t linux_mntns_readlink(pid_t, const char *, char *, size_t)
+{
+	Genode::error(__func__, " called, not implemented");
+	return -1;
+}
+
+
+int linux_mntns_unlink (pid_t, const char *)
+{
+	Genode::error(__func__, " called, not implemented");
+	return -1;
+}
+
+
+int linux_mntns_open_cloexec(pid_t, const char *, int, mode_t)
+{
+	Genode::error(__func__, " called, not implemented");
+	return -1;
+}
+
+
+const char *linux_proc_tid_get_name(ptid_t)
+{
+	return "";
 }

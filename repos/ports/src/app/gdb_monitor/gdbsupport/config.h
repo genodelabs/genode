@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,6 +17,7 @@
 #define HAVE_ARPA_INET_H 1
 #define HAVE_ERRNO_H 1
 #define HAVE_FCNTL_H 1
+#define HAVE_NETDB_H 1
 #define HAVE_NETINET_IN_H 1
 #define HAVE_NETINET_TCP_H 1
 #define HAVE_SIGNAL_H 1

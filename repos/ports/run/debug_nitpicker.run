@@ -20,7 +20,6 @@ if {![have_include "power_on/qemu"] ||
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
-                  [depot_user]/src/nitpicker \
                   [depot_user]/src/demo \
                   [depot_user]/src/init \
                   [depot_user]/src/vfs_pipe
@@ -29,6 +28,7 @@ set build_components {
 	drivers/uart
 	app/gdb_monitor
 	test/gdb_monitor
+	lib/ld server/nitpicker
 }
 lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"
 build $build_components
@@ -97,10 +97,14 @@ install_config {
 			</target>
 			<preserve name="RAM" quantum="2M"/>
 			<vfs>
-				<dir name="dev"> <log/> <terminal/> </dir>
+				<dir name="dev">
+					<log/>
+					<terminal raw="yes"/>
+					<inline name="rtc">2021-01-01 00:01</inline>
+				</dir>
 				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 		</config>
 	</start>
 
@@ -124,6 +128,7 @@ build_boot_image {
 	stdcxx.lib.so libc.lib.so libm.lib.so vfs.lib.so
 	pc_uart_drv
 	gdb_monitor gdbserver_platform.lib.so
+	ld.lib.so nitpicker
 }
 
 #
@@ -168,7 +173,7 @@ append gdb_cmds {-ex "set interactive-mode auto" }
 
 puts "command: [gdb] debug/ld.lib.so $gdb_cmds"
 
-exec [terminal] -e "bash -lc \"[gdb] debug/ld.lib.so $gdb_cmds\"" &
+exec [terminal] -e "bash -lc \'[gdb] debug/ld.lib.so $gdb_cmds\'" &
 
 interact -i [output_spawn_id]
 

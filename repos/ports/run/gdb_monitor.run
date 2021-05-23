@@ -77,10 +77,14 @@ set config {
 			</target>
 			<preserve name="RAM" quantum="5M"/>
 			<vfs>
-				<dir name="dev"> <log/> <terminal/> </dir>
+				<dir name="dev">
+					<log/>
+					<terminal raw="yes"/>
+					<inline name="rtc">2021-01-01 00:01</inline>
+				</dir>
 				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 		</config>
 	</start>
 </config>
@@ -140,6 +144,7 @@ set gdb_target_binary "test-gdb_monitor"
 # sequence of GDB commands to execute at startup
 set gdb_cmds ""
 append gdb_cmds {-ex "target remote localhost:$local_port" }
+append gdb_cmds {-ex "set style enabled off" }
 append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 
 # run GDB
@@ -248,10 +253,10 @@ if {![regexp {Breakpoint 4, test_thread_start} $output]} {
 send "info threads\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
-if {![regexp {\* 4    Thread 4          test_thread_start} $output] ||
-    ![regexp {  3    Thread 3} $output] ||
-    ![regexp {  2    Thread 2} $output] ||
-    ![regexp {  1    Thread 1} $output]} {
+if {![regexp {\* 4    Thread 1.4        test_thread_start} $output] ||
+    ![regexp {  3    Thread 1.3} $output] ||
+    ![regexp {  2    Thread 1.2} $output] ||
+    ![regexp {  1    Thread 1.1} $output]} {
 	puts stderr "*** Error: Thread info is not as expected"
 	exit -1
 }

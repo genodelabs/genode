@@ -5,15 +5,16 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  gdb/configure             |   10 +++++-----
- gdb/dwarf-index-write.c   |    2 +-
+ gdb/dwarf2/index-write.c  |    2 +-
+ gnulib/config.in          |    2 ++
  sim/common/Make-common.in |    2 +-
- 3 files changed, 7 insertions(+), 7 deletions(-)
+ 4 files changed, 9 insertions(+), 7 deletions(-)
 
 diff --git a/gdb/configure b/gdb/configure
-index 28756ed..a3d6fc2 100755
+index 03464ae5..6f705fc7 100755
 --- a/gdb/configure
 +++ b/gdb/configure
-@@ -6608,11 +6608,11 @@ fi
+@@ -6699,11 +6699,11 @@ fi
  # configuration.
  gdb_host_obs=posix-hdep.o
  
@@ -29,7 +30,7 @@ index 28756ed..a3d6fc2 100755
  
  . $srcdir/configure.host
  
-@@ -13785,7 +13785,7 @@ sigjmp_buf env; while (! sigsetjmp (env, 1)) siglongjmp (env, 1);
+@@ -14353,7 +14353,7 @@ sigjmp_buf env; while (! sigsetjmp (env, 1)) siglongjmp (env, 1);
    return 0;
  }
  _ACEOF
@@ -38,11 +39,11 @@ index 28756ed..a3d6fc2 100755
    gdb_cv_func_sigsetjmp=yes
  else
    gdb_cv_func_sigsetjmp=no
-diff --git a/gdb/dwarf-index-write.c b/gdb/dwarf-index-write.c
-index d283146..55bef80 100644
---- a/gdb/dwarf-index-write.c
-+++ b/gdb/dwarf-index-write.c
-@@ -705,7 +705,7 @@ public:
+diff --git a/gdb/dwarf2/index-write.c b/gdb/dwarf2/index-write.c
+index 0079c0fe..376a9151 100644
+--- a/gdb/dwarf2/index-write.c
++++ b/gdb/dwarf2/index-write.c
+@@ -777,7 +777,7 @@ class debug_names
      gdb_assert (m_abbrev_table.empty ());
      const size_t name_count = m_name_to_value_set.size ();
      m_bucket_table.resize
@@ -51,8 +52,28 @@ index d283146..55bef80 100644
      m_hash_table.reserve (name_count);
      m_name_table_string_offs.reserve (name_count);
      m_name_table_entry_offs.reserve (name_count);
+diff --git a/gnulib/config.in b/gnulib/config.in
+index d8a5e8be..cc1cc9fc 100644
+--- a/gnulib/config.in
++++ b/gnulib/config.in
+@@ -1192,6 +1192,7 @@
+ /* Define to 1 to make NetBSD features available. MINIX 3 needs this. */
+ #undef _NETBSD_SOURCE
+ 
++#if 0
+ /* The _Noreturn keyword of C11.  */
+ #ifndef _Noreturn
+ # if (defined __cplusplus \
+@@ -1220,6 +1221,7 @@
+ #  define _Noreturn
+ # endif
+ #endif
++#endif
+ 
+ 
+ /* Define to 2 if the system does not provide POSIX.1 features except with
 diff --git a/sim/common/Make-common.in b/sim/common/Make-common.in
-index 1e61927..6263ece 100644
+index 21e1d991..2ea1ab60 100644
 --- a/sim/common/Make-common.in
 +++ b/sim/common/Make-common.in
 @@ -236,7 +236,7 @@ CSEARCH = -I. -I$(srcdir) -I../common -I$(srccom) \
