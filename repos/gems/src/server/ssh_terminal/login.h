@@ -19,6 +19,7 @@
 /* Genode includes */
 #include <util/string.h>
 #include <base/heap.h>
+#include <base/registry.h>
 
 /* libssh includes */
 #include <libssh/libssh.h>
