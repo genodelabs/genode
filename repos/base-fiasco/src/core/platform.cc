@@ -16,6 +16,7 @@
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
+#include <util/xml_generator.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
@@ -465,6 +466,29 @@ Platform::Platform()
 		                                                 "core_log"));
 
 		init_core_log(Core_log_range { core_local_addr, log_size } );
+	}
+
+	/* export platform specific infos */
+	{
+		void * phys_ptr    = nullptr;
+		size_t const size  = 1 << get_page_size_log2();
+
+		if (ram_alloc().alloc_aligned(size, &phys_ptr,
+			                          get_page_size_log2()).ok()) {
+			addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+			addr_t const core_local_addr = phys_addr;
+
+			region_alloc().remove_range(core_local_addr, size);
+
+			Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
+			                          size, "platform_info", [&] ()
+			{
+				xml.node("kernel", [&] () { xml.attribute("name", "fiasco"); });
+			});
+
+			_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
+			                                                 "platform_info"));
+		}
 	}
 }
 

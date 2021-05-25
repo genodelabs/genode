@@ -16,6 +16,7 @@
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
+#include <util/xml_generator.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
@@ -207,6 +208,33 @@ Platform::Platform()
 		                                                 "core_log"));
 
 		init_core_log(Core_log_range { core_local_addr, log_size } );
+	}
+
+	/* export platform specific infos */
+	{
+		void * core_local_ptr = nullptr;
+		void * phys_ptr       = nullptr;
+		unsigned const pages  = 1;
+		size_t   const size   = pages << get_page_size_log2();
+
+		if (ram_alloc().alloc_aligned(size, &phys_ptr, get_page_size_log2()).ok()) {
+			addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+
+			/* let one page free after the log buffer */
+			region_alloc().alloc_aligned(size, &core_local_ptr, get_page_size_log2());
+			addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+
+			if (map_local(phys_addr, core_local_addr, pages)) {
+
+				Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
+				                          size, "platform_info", [&] () {
+					xml.node("kernel", [&] () { xml.attribute("name", "okl4"); });
+				});
+
+				_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
+				                                                 "platform_info"));
+			}
+		}
 	}
 }
 
