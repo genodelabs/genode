@@ -47,6 +47,11 @@ void Device_model::destroy_element(Device & dev)
 		device._power_domain_list.destroy_all_elements(policy);
 	}
 
+	{
+		Reset_domain_update_policy policy(_env.heap);
+		device._reset_domain_list.destroy_all_elements(policy);
+	}
+
 	Genode::destroy(_env.heap, &device);
 }
 
@@ -87,5 +92,10 @@ void Device_model::update_element(Device & dev,
 	{
 		Power_domain_update_policy policy(_env.heap);
 		device._power_domain_list.update_from_xml(policy, node);
+	}
+
+	{
+		Reset_domain_update_policy policy(_env.heap);
+		device._reset_domain_list.update_from_xml(policy, node);
 	}
 }

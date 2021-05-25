@@ -22,6 +22,7 @@ namespace Driver {
 	class  Imx_device;
 	struct Clock_update_policy;
 	struct Power_domain_update_policy;
+	struct Reset_domain_update_policy;
 }
 
 
@@ -55,6 +56,15 @@ class Driver::Imx_device : public Driver::Device
 			Power_domain(Name name) : name(name) {}
 		};
 
+		struct Reset_domain : List_model<Reset_domain>::Element
+		{
+			using Name = Genode::String<64>;
+
+			Name name;
+
+			Reset_domain(Name name) : name(name) {}
+		};
+
 		bool acquire(Session_component &) override;
 		void release(Session_component &) override;
 
@@ -71,6 +81,7 @@ class Driver::Imx_device : public Driver::Device
 
 		List_model<Clock>        _clock_list {};
 		List_model<Power_domain> _power_domain_list {};
+		List_model<Reset_domain> _reset_domain_list {};
 };
 
 
@@ -135,6 +146,37 @@ struct Driver::Power_domain_update_policy
 	static bool node_is_element(Genode::Xml_node node)
 	{
 		return node.has_type("power-domain");
+	}
+};
+
+
+struct Driver::Reset_domain_update_policy
+: Genode::List_model<Imx_device::Reset_domain>::Update_policy
+{
+	Genode::Allocator & alloc;
+
+	Reset_domain_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
+
+	void destroy_element(Element & pd) {
+		Genode::destroy(alloc, &pd); }
+
+	Element & create_element(Genode::Xml_node node)
+	{
+		Element::Name name = node.attribute_value("name", Element::Name());
+		return *(new (alloc) Element(name));
+	}
+
+	void update_element(Element &, Genode::Xml_node) {}
+
+	static bool element_matches_xml_node(Element const & pd, Genode::Xml_node node)
+	{
+		Element::Name name = node.attribute_value("name", Element::Name());
+		return name == pd.name;
+	}
+
+	static bool node_is_element(Genode::Xml_node node)
+	{
+		return node.has_type("reset-domain");
 	}
 };
 

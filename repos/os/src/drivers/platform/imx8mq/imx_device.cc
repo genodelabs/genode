@@ -23,6 +23,8 @@ bool Driver::Imx_device::acquire(Driver::Session_component & sc)
 	if (ret) {
 		_power_domain_list.for_each([&] (Power_domain & p) {
 			sc.env().gpc.enable(p.name); });
+		_reset_domain_list.for_each([&] (Reset_domain & r) {
+			sc.env().src.enable(r.name); });
 		_clock_list.for_each([&] (Clock & c) {
 			Avl_string_base * asb =
 				sc.env().ccm.tree.first()->find_by_name(c.name.string());
@@ -46,6 +48,8 @@ bool Driver::Imx_device::acquire(Driver::Session_component & sc)
 
 void Driver::Imx_device::release(Session_component & sc)
 {
+	_reset_domain_list.for_each([&] (Reset_domain & r) {
+		sc.env().src.disable(r.name); });
 	_power_domain_list.for_each([&] (Power_domain & p) {
 		sc.env().gpc.disable(p.name); });
 	_clock_list.for_each([&] (Clock & c) {

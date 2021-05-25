@@ -20,6 +20,7 @@
 
 #include <ccm.h>
 #include <gpc.h>
+#include <src.h>
 #include <device.h>
 
 namespace Driver {
@@ -37,6 +38,7 @@ struct Driver::Env
 	Attached_rom_dataspace config      { env, "config"       };
 	Ccm                    ccm         { env                 };
 	Gpc                    gpc         { env                 };
+	Src                    src         { env                 };
 	Device_model           devices     { *this               };
 
 	Env(Genode::Env &env) : env(env) { }
