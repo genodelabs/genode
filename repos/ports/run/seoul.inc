@@ -375,7 +375,6 @@ append_if $use_nic_session config {
 	<start name="nic_drv" priority="-2">
 		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
-		<config mode="uplink_client"/>
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>
 			<any-service><parent/><any-child/></any-service>

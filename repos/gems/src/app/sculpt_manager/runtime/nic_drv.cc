@@ -22,7 +22,7 @@ void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 
 	gen_named_node(xml, "resource", "CPU", [&] () { xml.attribute("quantum", "50"); });
 
-	xml.node("config", [&] () { xml.attribute("mode", "uplink_client"); });
+	xml.node("config", [&] () { });
 
 	xml.node("route", [&] () {
 

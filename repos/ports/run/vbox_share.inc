@@ -129,7 +129,6 @@ set config_of_app {
 	<start name="nic_drv" priority="-1">
 		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
-		<config mode="uplink_client"/>
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>
 			<any-service> <parent/> <any-child/> </any-service>

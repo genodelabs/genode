@@ -1,7 +1,5 @@
 <runtime ram="16M" caps="300" binary="ipxe_nic_drv">
 
-	<provides> <nic/> </provides>
-
 	<config/>
 
 	<content>
