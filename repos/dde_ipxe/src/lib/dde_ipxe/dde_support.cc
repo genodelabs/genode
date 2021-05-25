@@ -94,20 +94,20 @@ extern "C" void dde_printf(const char *fmt, ...)
  ** Timer **
  ***********/
 
-static Genode::Constructible<Timer::Connection> _timer;
+static Timer::Connection & timer()
+{
+	static Timer::Connection _timer { *_global_env };
+	return _timer;
+}
 
 
 extern "C" void dde_udelay(unsigned long usecs)
 {
-	if (!_timer.constructed()) {
-		_timer.construct(*_global_env);
-	}
-
 	/*
 	 * This function is called only once during rdtsc calibration (usecs will be
 	 * 10000, see dde.c 'udelay'.
 	 */
-	_timer->usleep(usecs);
+	timer().usleep(usecs);
 }
 
 
@@ -118,23 +118,23 @@ extern "C" void dde_udelay(unsigned long usecs)
 /**
  * DDE iPXE mutual exclusion lock
  */
-static Genode::Mutex _ipxe_mutex;
+static Genode::Mutex & ipxe_mutex()
+{
+	static Genode::Mutex _ipxe_mutex;
+	return _ipxe_mutex;
+}
 
-extern "C" void dde_lock_enter(void) { _ipxe_mutex.acquire(); }
-extern "C" void dde_lock_leave(void) { _ipxe_mutex.release(); }
+extern "C" void dde_lock_enter(void) { ipxe_mutex().acquire(); }
+extern "C" void dde_lock_leave(void) { ipxe_mutex().release(); }
 
 
 extern "C" void dde_mdelay(unsigned long msecs)
 {
-	if (!_timer.constructed()) {
-		_timer.construct(*_global_env);
-	}
-
 	/*
 	 * This function is only called while initializing the device
 	 * and only be the same thread.
 	 */
-	_timer->msleep(msecs);
+	timer().msleep(msecs);
 }
 
 
@@ -341,11 +341,10 @@ struct Irq_handler
 };
 
 
-static Genode::Constructible<Irq_handler> _irq_handler;
-
-
 extern "C" int dde_interrupt_attach(void(*handler)(void *), void *priv)
 {
+	static Genode::Constructible<Irq_handler> _irq_handler;
+
 	if (_irq_handler.constructed()) {
 		Genode::error("Irq_handler already registered");
 		return -1;
@@ -414,44 +413,48 @@ extern "C" dde_addr_t dde_dma_get_physaddr(void *virt) {
  ** I/O port **
  **************/
 
-static Genode::Constructible<Genode::Io_port_session_client> _io_port;
+static Genode::Constructible<Genode::Io_port_session_client> & io_port()
+{
+	static Genode::Constructible<Genode::Io_port_session_client> _io_port;
+	return _io_port;
+}
 
 
 extern "C" void dde_request_io(dde_uint8_t virt_bar_ioport)
 {
 	using namespace Genode;
 
-	if (_io_port.constructed()) { _io_port.destruct(); }
+	if (io_port().constructed()) { io_port().destruct(); }
 
 	Platform::Device_client device(pci_drv()._cap);
 	Io_port_session_capability cap = device.io_port(virt_bar_ioport);
 
-	_io_port.construct(cap);
+	io_port().construct(cap);
 }
 
 
 extern "C" dde_uint8_t dde_inb(dde_addr_t port) {
-	return _io_port->inb(port); }
+	return io_port()->inb(port); }
 
 
 extern "C" dde_uint16_t dde_inw(dde_addr_t port) {
-	return _io_port->inw(port); }
+	return io_port()->inw(port); }
 
 
 extern "C" dde_uint32_t dde_inl(dde_addr_t port) {
-	return _io_port->inl(port); }
+	return io_port()->inl(port); }
 
 
 extern "C" void dde_outb(dde_addr_t port, dde_uint8_t data) {
-	_io_port->outb(port, data); }
+	io_port()->outb(port, data); }
 
 
 extern "C" void dde_outw(dde_addr_t port, dde_uint16_t data) {
-	_io_port->outw(port, data); }
+	io_port()->outw(port, data); }
 
 
 extern "C" void dde_outl(dde_addr_t port, dde_uint32_t data) {
-	_io_port->outl(port, data); }
+	io_port()->outl(port, data); }
 
 
 /**********************
@@ -668,12 +671,16 @@ struct Io_memory
 };
 
 
-static Genode::Constructible<Io_memory> _io_mem;
+static Genode::Constructible<Io_memory> & io_mem()
+{
+	static Genode::Constructible<Io_memory> _io_mem;
+	return _io_mem;
+}
 
 
 extern "C" int dde_request_iomem(dde_addr_t start, dde_addr_t *vaddr)
 {
-	if (_io_mem.constructed()) {
+	if (io_mem().constructed()) {
 		Genode::error("Io_memory already requested");
 		return -1;
 	}
@@ -696,10 +703,10 @@ extern "C" int dde_request_iomem(dde_addr_t start, dde_addr_t *vaddr)
 	if (!cap.valid()) { return -1; }
 
 	try {
-		_io_mem.construct(_global_env->rm(), start, cap);
+		io_mem().construct(_global_env->rm(), start, cap);
 	} catch (...) { return -1; }
 
-	*vaddr = _io_mem->vaddr();
+	*vaddr = io_mem()->vaddr();
 	return 0;
 }
 
@@ -707,7 +714,7 @@ extern "C" int dde_request_iomem(dde_addr_t start, dde_addr_t *vaddr)
 extern "C" int dde_release_iomem(dde_addr_t start, dde_size_t size)
 {
 	try {
-		_io_mem.destruct();
+		io_mem().destruct();
 		return 0;
 	} catch (...) { return -1; }
 }

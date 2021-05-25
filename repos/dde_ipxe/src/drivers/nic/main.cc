@@ -264,10 +264,5 @@ struct Main
 	}
 };
 
-void Component::construct(Env &env)
-{
-	/* XXX execute constructors of global statics */
-	env.exec_static_constructors();
 
-	static Main main(env);
-}
+void Component::construct(Env &env) { static Main main(env); }
