@@ -19,6 +19,7 @@
 #include <base/log.h>
 #include <uplink_session/connection.h>
 #include <base/attached_rom_dataspace.h>
+#include <os/reporter.h>
 
 /* NIC driver includes */
 #include <drivers/nic/uplink_client_base.h>
@@ -104,6 +105,8 @@ class Uplink_client : public Uplink_client_base
 			dde_ipxe_nic_unregister_callbacks();
 			instance = nullptr;
 		}
+
+		Net::Mac_address mac_address() const { return _drv_mac_addr; }
 };
 
 
@@ -116,7 +119,7 @@ struct Main
 	Heap                         _heap       { _env.ram(), _env.rm() };
 	Attached_rom_dataspace       _config_rom { _env, "config" };
 	Constructible<Uplink_client> _uplink     { };
-
+	Constructible<Reporter>      _reporter   { };
 
 	Main(Env &env) : _env(env)
 	{
@@ -129,6 +132,23 @@ struct Main
 		}
 
 		_uplink.construct(_env, _heap);
+
+		_config_rom.xml().with_sub_node("report", [&] (Xml_node const &xml) {
+			bool const report_mac_address =
+				xml.attribute_value("mac_address", false);
+
+			if (!report_mac_address)
+				return;
+
+			_reporter.construct(_env, "devices");
+			_reporter->enabled(true);
+
+			Reporter::Xml_generator report(*_reporter, [&] () {
+				report.node("nic", [&] () {
+					report.attribute("mac_address", String<32>(_uplink->mac_address()));
+				});
+			});
+		});
 	}
 };
 
