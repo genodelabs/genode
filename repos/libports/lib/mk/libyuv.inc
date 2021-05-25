@@ -1,8 +1,11 @@
-YUV_DIR = $(call select_from_ports,libyuv)/libyuv
+SHARED_LIB = yes
+
+YUV_PORT = $(call select_from_ports,libyuv)
+YUV_DIR  = $(YUV_PORT)/src/lib/libyuv
 
 LIBS = libc stdcxx jpeg
 
-INC_DIR += $(YUV_DIR)/include
+INC_DIR += $(YUV_PORT)/include
 
 SRC_CC = $(notdir $(wildcard $(YUV_DIR)/source/*.cc))
 

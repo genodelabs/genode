@@ -281,7 +281,7 @@ close $fd
 set boot_modules {
 	rtc_drv
 	virtualbox6 libc.lib.so vfs.lib.so libm.lib.so libiconv.lib.so stdcxx.lib.so
-	qemu-usb.lib.so
+	qemu-usb.lib.so libyuv.lib.so jpeg.lib.so
 	fb_drv.config test.iso virtualbox6.vbox
 }
 

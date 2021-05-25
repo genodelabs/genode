@@ -51,10 +51,6 @@ MIRROR_FROM_LIBPORTS := lib/mk/libc-mem.mk \
                         lib/mk/spec/x86_64/qemu-usb.mk \
                         include/qemu \
                         src/lib/qemu-usb \
-                        lib/import/import-libyuv.mk \
-                        lib/mk/libyuv.inc \
-                        lib/mk/spec/x86_32/libyuv.mk \
-                        lib/mk/spec/x86_64/libyuv.mk
 
 content: $(MIRROR_FROM_LIBPORTS)
 
@@ -71,16 +67,6 @@ content: $(MIRROR_FROM_QEMU_USB_PORT_DIR)
 $(MIRROR_FROM_QEMU_USB_PORT_DIR):
 	mkdir -p $(dir $@)
 	cp -r $(QEMU_USB_PORT_DIR)/$@ $(dir $@)
-
-LIBYUV_PORT_DIR := $(call port_dir,$(GENODE_DIR)/repos/libports/ports/libyuv)
-
-MIRROR_FROM_LIBYUV_PORT_DIR := libyuv
-
-content: $(MIRROR_FROM_LIBYUV_PORT_DIR)
-
-$(MIRROR_FROM_LIBYUV_PORT_DIR):
-	mkdir -p $(dir $@)
-	cp -r $(LIBYUV_PORT_DIR)/$@ $(dir $@)
 
 MIRROR_FROM_OS := src/drivers/ps2/scan_code_set_1.h \
                   include/pointer/shape_report.h \

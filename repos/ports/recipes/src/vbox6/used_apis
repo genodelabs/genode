@@ -15,4 +15,4 @@ timer_session
 usb_session
 vfs
 vm_session
-jpeg
+libyuv

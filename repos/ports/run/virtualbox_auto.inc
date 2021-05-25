@@ -405,6 +405,7 @@ install_config $config
 append boot_modules {
 	ahci_drv
 	qemu-usb.lib.so
+	libyuv.lib.so
 }
 
 lappend_if [expr $use_serial] boot_modules log_terminal

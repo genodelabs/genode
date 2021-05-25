@@ -19,4 +19,4 @@ usb_session
 vfs
 nitpicker_gfx
 blit
-jpeg
+libyuv

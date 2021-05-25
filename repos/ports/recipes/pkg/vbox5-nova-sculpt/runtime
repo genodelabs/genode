@@ -25,6 +25,7 @@
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
 		<rom label="libiconv.lib.so"/>
+		<rom label="libyuv.lib.so"/>
 		<rom label="qemu-usb.lib.so"/>
 		<rom label="stdcxx.lib.so"/>
 		<rom label="vfs.lib.so"/>

@@ -6,6 +6,7 @@ _/src/init
 _/src/posix
 _/src/zlib
 _/src/libiconv
+_/src/libyuv
 _/src/stdcxx
 _/src/vfs
 _/src/jpeg

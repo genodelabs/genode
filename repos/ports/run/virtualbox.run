@@ -295,6 +295,7 @@ lappend_if [expr         $use_gui] boot_modules report_rom
 append boot_modules {
 	libiconv.lib.so
 	qemu-usb.lib.so
+	libyuv.lib.so
 }
 
 append_if [expr $use_net]          boot_modules { ipxe_nic_drv }

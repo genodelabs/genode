@@ -3,8 +3,13 @@ VERSION   := git
 DOWNLOADS := libyuv.git
 
 URL(libyuv) := https://chromium.googlesource.com/libyuv/libyuv
-DIR(libyuv) := libyuv
+DIR(libyuv) := src/lib/libyuv
 REV(libyuv) := 8c8d907d29255ae0630f414e0e09ee9cca8f4bfc
 
-PATCHES     := src/lib/libyuv/constraints.patch
+DIRS                        := include include/libyuv
+DIR_CONTENT(include)        := src/lib/libyuv/include/libyuv.h
+DIR_CONTENT(include/libyuv) := src/lib/libyuv/include/libyuv/*.h
+
+PATCHES   := src/lib/libyuv/constraints.patch
+PATCH_OPT := -d src/lib/libyuv -p1
 
