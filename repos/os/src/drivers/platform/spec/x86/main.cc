@@ -50,7 +50,6 @@ struct Platform::Main
 
 	Capability<Typed_root<Platform::Session_component> > root_cap { };
 
-	bool const _acpi_platform;
 	bool _acpi_ready    = false;
 
 	void _attempt_acpi_reset();
@@ -63,8 +62,20 @@ struct Platform::Main
 			if (!acpi_rom->valid())
 				return;
 
+			bool msi_platform  = false;
+			bool acpi_platform = false;
+
+			try {
+				Attached_rom_dataspace info { _env, "platform_info" };
+				info.xml().with_sub_node("kernel", [&] (Xml_node const &node) {
+					acpi_platform = node.attribute_value("acpi", acpi_platform);
+					msi_platform  = node.attribute_value("msi" , msi_platform);
+				});
+			} catch (...) { }
+
 			root.construct(_env, sliced_heap, _config,
-			               acpi_rom->local_addr<const char>(), _acpi_platform);
+			               acpi_rom->local_addr<const char>(), acpi_platform,
+			               msi_platform);
 		}
 
 		if (root_cap.valid())
@@ -134,25 +145,7 @@ struct Platform::Main
 		}
 	}
 
-	static bool acpi_platform(Env & env)
-	{
-		using Name = String<32>;
-		try {
-			Attached_rom_dataspace info { env, "platform_info" };
-			Name kernel =
-				info.xml().sub_node("kernel").attribute_value("name", Name());
-			if (kernel == "hw"   ||
-			    kernel == "nova" ||
-			    kernel == "foc"  ||
-			    kernel == "sel4") { return true; }
-		} catch (...) {}
-		return false;
-	}
-
-	Main(Env &env)
-	:
-		_env(env),
-		_acpi_platform(acpi_platform(env))
+	Main(Env &env) : _env(env)
 	{
 		_config.sigh(_config_handler);
 

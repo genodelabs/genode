@@ -680,7 +680,11 @@ Platform::Platform()
 				                          pages << get_page_size_log2(),
 				                          "platform_info", [&] ()
 				{
-					xml.node("kernel", [&] () { xml.attribute("name", "nova"); });
+					xml.node("kernel", [&] () {
+						xml.attribute("name", "nova");
+						xml.attribute("acpi", true);
+						xml.attribute("msi" , true);
+					});
 					if (efi_sys_tab_phy) {
 						xml.node("efi-system-table", [&] () {
 							xml.attribute("address", String<32>(Hex(efi_sys_tab_phy)));

@@ -493,7 +493,11 @@ Platform::Platform()
 		                  pages << get_page_size_log2(),
 		                  "platform_info", [&] ()
 		{
-			xml.node("kernel", [&] () { xml.attribute("name", "foc"); });
+			xml.node("kernel", [&] () {
+				xml.attribute("name", "foc");
+				xml.attribute("acpi", true);
+				xml.attribute("msi" , true);
+			});
 			xml.node("hardware", [&] () {
 				_setup_platform_info(xml, sigma0_map_kip()); });
 

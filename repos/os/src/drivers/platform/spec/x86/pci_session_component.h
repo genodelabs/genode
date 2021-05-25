@@ -220,7 +220,8 @@ class Platform::Session_component : public Rpc_object<Session>
 		Heap                      &_global_heap;
 		Pci::Config::Delayer      &_delayer;
 		Device_bars_pool          &_devices_bars;
-		bool                       _iommu;
+		bool const                 _iommu;
+		bool const                 _msi_avail;
 		bool                       _msi_usage  { true };
 		bool                       _msix_usage { true };
 
@@ -474,7 +475,8 @@ class Platform::Session_component : public Rpc_object<Session>
 		                  Pci::Config::Delayer      &delayer,
 		                  Device_bars_pool          &devices_bars,
 		                  char               const *args,
-		                  bool               const  iommu)
+		                  bool               const  iommu,
+		                  bool               const  msi)
 		:
 			_env(env),
 			_config(config),
@@ -488,7 +490,8 @@ class Platform::Session_component : public Rpc_object<Session>
 			_global_heap(global_heap),
 			_delayer(delayer),
 			_devices_bars(devices_bars),
-			_iommu(iommu)
+			_iommu(iommu),
+			_msi_avail(msi)
 		{
 			/* subtract the RPC session and session dataspace capabilities */
 			_cap_guard.withdraw(Cap_quota{2});
@@ -500,9 +503,12 @@ class Platform::Session_component : public Rpc_object<Session>
 		{
 			Session_policy const policy { _label, _config.xml() };
 
-			_msi_usage  = policy.attribute_value("msi", _msi_usage);
-			_msix_usage = _msi_usage &&
-			              policy.attribute_value("msix", _msix_usage);
+			if (_msi_avail) {
+				_msi_usage  = policy.attribute_value("msi", _msi_usage);
+				_msix_usage = _msi_usage &&
+				              policy.attribute_value("msix", _msix_usage);
+			} else
+				_msi_usage = _msix_usage = false;
 
 			/* check policy for non-pci devices */
 			policy.for_each_sub_node("device", [&] (Xml_node device_node) {
@@ -875,6 +881,7 @@ class Platform::Root : public Root_component<Session_component>
 
 		bool _iommu        { false };
 		bool _pci_reported { false };
+		bool _msi_platform;
 
 		struct Timer_delayer : Pci::Config::Delayer, Timer::Connection
 		{
@@ -1074,7 +1081,8 @@ class Platform::Root : public Root_component<Session_component>
 					                              *_pci_confspace,
 					                               _pci_confspace_base,
 					                              *_buses, _heap, _delayer,
-					                              _devices_bars, args, _iommu);
+					                              _devices_bars, args, _iommu,
+					                              _msi_platform);
 			}
 			catch (Session_policy::No_policy_defined) {
 				error("Invalid session request, no matching policy for ",
@@ -1097,10 +1105,12 @@ class Platform::Root : public Root_component<Session_component>
 		 *                  components and PCI-device components
 		 */
 		Root(Env &env, Allocator &md_alloc, Attached_rom_dataspace &config,
-		     char const *acpi_rom, bool acpi_platform)
+		     char const *acpi_rom, bool acpi_platform, bool msi_platform)
 		:
 			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
-			_env(env), _config(config)
+			_env(env),
+			_config(config),
+			_msi_platform(msi_platform)
 		{
 			try {
 				_parse_report_rom(env, acpi_rom, acpi_platform);
