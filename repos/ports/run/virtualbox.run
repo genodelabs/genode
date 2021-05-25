@@ -1,6 +1,5 @@
 set use_net 0
-set use_ps2 1
-set use_usb 0
+set use_usb_qemu 0
 set use_serial 1
 set use_top 1
 
@@ -26,24 +25,21 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
+                  [depot_user]/src/jpeg \
+                  [depot_user]/src/libc \
                   [depot_user]/src/nitpicker \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/vfs \
                   [depot_user]/src/vfs_pipe \
-                  [depot_user]/src/jpeg
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-# override defaults of platform_drv.inc
-proc platform_drv_priority {} { return { priority="-1"} }
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/pkg/themed_wm
 
 lappend_if [expr $use_top]    build_components app/top
-lappend_if [expr $use_ps2]    build_components drivers/ps2
-lappend_if [expr $use_usb]    build_components drivers/usb
 lappend_if [expr $use_serial] build_components server/log_terminal
 lappend_if [have_spec x86]    build_components drivers/rtc
 
 lappend_if [expr $use_net]    build_components drivers/nic
 lappend_if [expr $use_net]    build_components server/nic_router
-
-append_platform_drv_build_components
 
 build $build_components
 
@@ -80,39 +76,19 @@ append_if [expr $use_top] config {
 		<config period_ms="15000"/>
 	</start>}
 
-append_platform_drv_config
+append config {
+	<start name="drivers" caps="1500" managing_system="yes" priority="-1">
+		<binary name="init"/>
+		<resource name="RAM" quantum="64M"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Event">   <child name="nitpicker"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
 
-append_if [expr $use_ps2] config {
-	<start name="ps2_drv" priority="-1">
-		<resource name="RAM" quantum="2M"/>
-		<config/>
-	</start>}
-
-append_if [expr $use_usb] config {
-	<start name="usb_drv" priority="-1" caps="120">
-		<resource name="RAM" quantum="12M"/>}
-
-append_if [expr $use_usb] config {
-		<config uhci="yes" ehci="yes" xhci="yes">
-			<hid/>
-		</config>
-	</start>}
-
-append_if [have_board pc] config {
-	<start name="fb_drv" priority="-1" caps="150">
-		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="12M"/>}
-append_if [expr [have_board pc] && [have_include power_on/qemu]] config {
-		<config width="1280" height="1024" buffered="yes"/>}
-append_if [have_board pc] config {
-	</start>}
-
-append_if [have_board linux] config {
-	<start name="fb_sdl" priority="-1" ld="no">
-		<resource name="RAM" quantum="4M"/>
-	</start>}
-
-append_if [have_spec x86] config {
 	<start name="rtc_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
@@ -220,6 +196,22 @@ append config {
 			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
+	</start>
+
+	<start name="wm" caps="1000" priority="-1">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<provides>
+			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
+		</provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
+			<service name="ROM"    label_last="clipboard"> <child name="clipboard"/> </service>
+			<service name="Report" label_last="clipboard"> <child name="clipboard"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>}
 
 append_if [expr $use_gui] config {
@@ -230,7 +222,12 @@ append_if [expr $use_gui] config {
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
-					<log/> <rtc/>
+					<log/> <rtc/>}
+
+append_if [expr $use_gui && $use_serial] config {
+					<terminal/>}
+
+append_if [expr $use_gui] config {
 				</dir>
 				<dir name="pipe"> <pipe/> </dir>
 				<rom name="test.vbox" />
@@ -239,7 +236,11 @@ append_if [expr $use_gui] config {
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>
-			<service name="Report" label="shape"> <child name="pointer" label="gui_fb2 -> shape"/> </service>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="VM"> <parent diag="yes"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM"    label="clipboard"> <child name="wm"/> </service>
+			<service name="Report" label="clipboard"> <child name="wm"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
@@ -267,7 +268,11 @@ append config {
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>
-			<service name="Report" label="shape"> <child name="pointer" label="gui_fb1 -> shape"/> </service>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="VM"> <parent diag="yes"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM"    label="clipboard"> <child name="wm"/> </service>
+			<service name="Report" label="clipboard"> <child name="wm"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
@@ -284,25 +289,18 @@ set boot_modules { test.iso test.vbox }
 append boot_modules $virtualbox_binary
 
 # platform-specific modules
-lappend_if [expr         $use_usb] boot_modules usb_drv
-lappend_if [expr         $use_ps2] boot_modules ps2_drv
-lappend_if [have_board pc] boot_modules vesa_fb_drv
-lappend_if [have_board linux] boot_modules fb_sdl
 lappend_if [have_spec         x86] boot_modules rtc_drv
 lappend_if [expr         $use_top] boot_modules top
 lappend_if [expr         $use_gui] boot_modules report_rom
 
 append boot_modules {
-	libc.lib.so vfs.lib.so libm.lib.so
-	libiconv.lib.so stdcxx.lib.so
+	libiconv.lib.so
 	qemu-usb.lib.so
 }
 
 append_if [expr $use_net]          boot_modules { ipxe_nic_drv }
 append_if [expr $use_net]          boot_modules { nic_router }
 append_if [expr $use_serial]       boot_modules { log_terminal }
-
-append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
@@ -314,7 +312,7 @@ if {[have_include "power_on/qemu"]} {
 	}
 
 	append qemu_args " -cpu phenom "
-	if {[expr $use_usb]} {
+	if {[expr $use_usb_qemu]} {
 		append qemu_args " -usbdevice mouse -usbdevice keyboard"
 	}
 }

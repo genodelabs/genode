@@ -23,8 +23,6 @@ set use_part_block    0
 
 set use_nic_session   1
 
-set use_usb           0
-
 set use_framebuffer   1
 set use_fancy_stuff   1
 set use_top           0

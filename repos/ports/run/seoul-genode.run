@@ -21,8 +21,6 @@ set use_part_block    0
 
 set use_nic_session   1
 
-set use_usb           0
-
 set use_framebuffer   1
 set use_fancy_stuff   0
 set use_top           1
@@ -65,10 +63,20 @@ foreach line $vm {
 		}
 
 		set file_type [exec file $run_script_path$label_file]
+		if {[regexp "gzip" $file_type]} {
+			exec gunzip --keep $run_script_path$label_file -c >file.tmp
+			set file_type [exec file file.tmp]
+			exec rm file.tmp
+		}
+
 		if {[regexp "ELF 64-bit" $file_type]} {
 			puts "Seoul supports only 32bit guests - choose a 32bit Genode platform"
 			puts "Exit reason: $file_type"
 			exit 2
+		}
+		if {[regexp "No such" $file_type]} {
+			puts "$file_type"
+			exit 3
 		}
 
 		if {$binary_cmdline eq ""} {

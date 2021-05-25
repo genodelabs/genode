@@ -152,6 +152,7 @@ set config_of_app {
 			<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
 			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>}
 append config_of_app {
+			<policy label="usb_hid_drv -> report"               report="usb_drv -> devices"/>
 			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
 			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
 			<policy label="vbox1 -> usb_devices"                report="usb_report_filter -> usb_devices"/>}

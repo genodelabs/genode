@@ -22,28 +22,39 @@ if {[have_spec nova]} {
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/fs_rom \
                   [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libiconv \
                   [depot_user]/src/nitpicker \
+                  [depot_user]/src/part_block \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/vfs \
                   [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/vfs_import \
                   [depot_user]/src/jpeg
 
 if {$use_vms > 1} {
 	import_from_depot [depot_user]/pkg/themed_wm
 }
 
+if {$use_usb} {
+	import_from_depot [depot_user]/src/usb_host_drv \
+	                  [depot_user]/src/usb_hid_drv
+}
+
+if {$use_rumpfs} {
+	import_from_depot [depot_user]/src/rump
+}
+
 append build_components {
-	server/part_block
-	server/fs_rom
 	drivers/ahci
 	drivers/framebuffer
 }
 
 lappend_if [expr $use_serial] build_components server/log_terminal
-lappend_if [expr $use_rumpfs] build_components lib/vfs/rump
-lappend_if [expr $use_rumpfs] build_components server/vfs
 lappend_if [expr $use_vbox5]  build_components virtualbox5
 lappend_if [expr $use_ps2]    build_components drivers/ps2
-lappend_if [expr $use_usb]    build_components drivers/usb
 lappend_if [expr $use_usb]    build_components app/usb_report_filter
 lappend_if [have_spec x86]    build_components drivers/rtc
 lappend_if [expr $use_ram_fs || $use_usb] build_components lib/vfs/import
@@ -270,10 +281,8 @@ append_if [expr $use_usb] config {
 				<import>
 					<inline name="usb_drv.config">
 <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
-	<hid/>
-	<raw>
-		<report devices="yes"/>
-	</raw>
+	<report devices="yes"/>
+	<policy label_prefix="usb_hid_drv" class="0x3"/>
 </config>
 					</inline>
 					<inline name="usb_report_filter.config">
@@ -338,18 +347,29 @@ append_if [expr $use_usb] config {
 		</route>
 	</start>
 
-	<start name="usb_drv" priority="-1" caps="120">
+	<start name="usb_drv" caps="200">
+		<binary name="x86_pc_usb_host_drv"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Event"> <child name="event_filter" label="usb_hid"/> </service>
 			<service name="ROM" label="config">
 				<child name="usb_config_rom" label="usb_drv.config"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
-}
+
+	<start name="usb_hid_drv" priority="-1" caps="140">
+		<resource name="RAM" quantum="11M"/>
+		<config use_report="yes"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Event"> <child name="event_filter" label="usb_hid"/> </service>
+			<service name="ROM" label="report"> <child name="report_rom"/> </service>
+			<service name="Usb"> <child name="usb_drv"/> </service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>}
 
 append_if [have_board pc] config {
 	<start name="fb_drv" priority="-1" caps="150">
@@ -383,18 +403,12 @@ append config {
 install_config $config
 
 append boot_modules {
-	part_block ahci_drv fs_rom vfs
-	libc.lib.so vfs.lib.so libm.lib.so
-	libiconv.lib.so stdcxx.lib.so
+	ahci_drv
 	qemu-usb.lib.so
 }
 
-lappend_if [expr $use_rumpfs] boot_modules rump.lib.so
-lappend_if [expr $use_rumpfs] boot_modules rump_fs.lib.so
-lappend_if [expr $use_rumpfs] boot_modules vfs_rump.lib.so
 lappend_if [expr $use_serial] boot_modules log_terminal
 lappend_if [expr $use_vbox5] boot_modules $virtualbox5_binary
-lappend_if [expr $use_ram_fs || $use_usb] boot_modules vfs_import.lib.so
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image
 lappend_if [expr $use_cpu_load] boot_modules trace_subject_reporter
 lappend_if [expr $use_cpu_load] boot_modules cpu_load_display
@@ -403,7 +417,6 @@ lappend_if [have_spec nova] boot_modules log_core
 
 # platform-specific modules
 lappend_if [expr $use_ps2] boot_modules ps2_drv
-lappend_if [expr $use_usb] boot_modules usb_drv
 lappend_if [expr $use_usb] boot_modules usb_report_filter
 lappend_if [have_board pc] boot_modules vesa_fb_drv
 lappend_if [have_spec x86] boot_modules rtc_drv
