@@ -129,7 +129,7 @@ DIR_CONTENT(include/libc/sys) := \
                 utsname.h elf.h mtio.h _stdint.h atomic_common.h _ucontext.h \
                 _cpuset.h _bitset.h bitset.h _stdarg.h _uio.h auxv.h random.h \
                 _sockaddr_storage.h termios.h _termios.h _umtx.h kerneldump.h \
-                conf.h disk_zone.h counter.h soundcard.h)
+                conf.h disk_zone.h counter.h soundcard.h pciio.h)
 
 DIRS += include/libc/sys/disk
 DIR_CONTENT(include/libc/sys/disk) := $(D)/sys/sys/disk/*h
