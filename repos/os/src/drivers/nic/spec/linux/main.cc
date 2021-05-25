@@ -21,6 +21,7 @@
 #include <base/thread.h>
 #include <base/log.h>
 #include <base/blockade.h>
+#include <os/reporter.h>
 
 /* NIC driver includes */
 #include <drivers/nic/uplink_client_base.h>
@@ -204,7 +205,28 @@ struct Main
 
 	Uplink_client _uplink { _env, _heap, _tap_name, _mac_address };
 
-	Main(Env &env) : _env(env) { }
+	Constructible<Reporter> _reporter { };
+
+	Main(Env &env) : _env(env)
+	{
+		_config_rom.xml().with_sub_node("report", [&] (Xml_node const &xml) {
+			bool const report_mac_address =
+				xml.attribute_value("mac_address", false);
+
+			if (!report_mac_address)
+				return;
+
+			_reporter.construct(_env, "devices");
+			_reporter->enabled(true);
+
+			Reporter::Xml_generator report(*_reporter, [&] () {
+				report.node("nic", [&] () {
+					report.attribute("label", _tap_name);
+					report.attribute("mac_address", String<32>(_mac_address));
+				});
+			});
+		});
+	}
 };
 
 

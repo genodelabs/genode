@@ -32,6 +32,7 @@ build {
 	test/lwip/http_srv
 	lib/vfs/lwip
 	server/nic_router
+	server/report_rom
 }
 
 create_boot_directory
@@ -65,10 +66,21 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
+	<start name="devices_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1200K"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
 	<start name="linux_nic_drv" ld="no">
 		<resource name="RAM" quantum="8M"/>
+		<config>
+			<report mac_address="true"/>
+		</config>
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>
+			<service name="Report"> <child name="devices_report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -124,7 +136,7 @@ install_config $config
 set boot_modules {
 	core init timer linux_nic_drv
 	ld.lib.so libc.lib.so vfs.lib.so vfs_lwip.lib.so test-lwip_httpsrv
-	nic_router
+	nic_router report_rom
 }
 
 build_boot_image $boot_modules

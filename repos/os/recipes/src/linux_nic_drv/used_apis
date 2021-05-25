@@ -1,6 +1,7 @@
 base
 base-linux
-os
-nic_session
-uplink_session
 nic_driver
+nic_session
+os
+report_session
+uplink_session

@@ -18,3 +18,9 @@ changed via
 
 ! <config mac="12:23:34:45:56:67"/>
 
+The driver optionally reports the following information under the
+label "devices" if requested in the config as depicted.
+
+! <config> <report mac_address="true"/> </config>
+
+! <devices> <nic label="tap0" mac_address="02:00:00:00:00:01"/> </devices>
