@@ -1,0 +1,817 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 21.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+The most prominent user-visible features of Genode 21.05 are the support for
+webcams and an easy-to-use component for file encryption on
+[https://genode.org/download/sculpt - Sculpt OS]. Both topics greatly benefit
+from Genode's component architecture. The video-conferencing scenario
+described in Section [Webcam support] sandboxes the webcam driver in a
+disposable Genode component while using a second instance of the nitpicker GUI
+server as a video bridge. This design strikes a beautiful combination of
+simplicity, robustness, and flexibility.
+
+The new file vault described in Section
+[File vault based on the CBE block encrypter] leverages Genode's dynamic
+sandboxing capabilities to manage the creation and operation of an encrypted
+file store. Even though the underpinnings can be described as nothing less
+than sophisticated machinery, the package presented to the user combines ease
+of use with a great sense of control.
+
+The second focus of the current release are the manifold improvements of
+Genode's driver and platform support as described in Sections [Device drivers]
+and [Platforms]. Our USB support received the attention needed to accommodate
+the webcam scenario, the arsenal of i.MX8 drivers got enriched with I2C and
+power-domain control, the Pine-A64 board support is growing, Genode has become
+able to run on 64-bit ARM Linux, and we enabled principle networking for
+RISC-V.
+
+Speaking of platforms, this release features the first version of a new
+"Genode Platforms" documentation (Section [Updated and new documentation])
+that aids the porting of Genode to new ARM SoCs. With this document, we share
+our former in-house know-how and methodology about the porting and development
+of drivers with developers outside of Genode Labs.
+
+The release is rounded up by several performance optimizations
+(Section [Performance optimizations]) to the benefit of most Genode system
+scenarios. Furthermore, it is accompanied with an updated tool chain,
+following our established two-years rhythm
+(Section [Tool-chain update to GCC 10.3 and binutils 2.36]).
+
+
+Webcam support
+##############
+
+During 2020, the amount of home office and remote work took an unexpected turn.
+Video conferences and video chats have become the norm, which people and
+companies rely upon. Even though, not to be found on our
+[https://genode.org/about/road-map - road map] for 2021, this development
+prompted the Genode team to explore the field of webcam and video chat support
+on Genode.
+
+Webcams are generally connected via USB to a host device and implement the USB
+video device class
+([https://www.usb.org/sites/default/files/USB_Video_Class_1_5.zip - UVC spec]).
+Therefore, it is possible to drive many different webcam devices using the
+same USB interface. To support this protocol, we enabled
+[https://ken.tossell.net/libuvc/doc - libuvc], which offers fine-grained control
+over UVC exporting USB devices. In order to enable _libuvc_ on Genode, we
+simply integrated the library into Genode's port system with no further
+changes required. _libuvc_ depends on [https://libusb.info - libusb] as a back
+end to access the actual webcam device. While there exists a port of _libusb_
+for Genode - that connects through Genode's USB session interface to the USB
+host controller - the port still lacked support for isochronous USB transfers
+as required by UVC devices. Isochronous transfers represent a continuous
+stream of data (either input or output) with a constant rate without delivery
+guarantees. We extended _libusb_ to handle isochronous transfers, which were
+already supported by Genode's USB session. Observing that this kind of
+transfers can cause high load within the USB host driver, we optimized
+isochronous transfer support at the host driver level (Section [USB]).
+
+At the front-end side, we created a small _usb_webcam_ component that uses
+_libuvc_ in order to enable, disable, and configure the camera. The component
+connects to a GUI session, and thus, can be interfaced directly, for example,
+to the Nitpicker component for rendering webcam images natively on screen.
+Whereas Genode's pixel format is 32 bit RGB, webcams stream data in the YUV2,
+MJPEG, or H.264 formats. To handle the conversion of these formats to Genode's
+pixel format, we utilize the
+[https://chromium.googlesource.com/libyuv/libyuv - libyuv] library and thereby
+support the YUV2 as well as the MJPEG pixel format for webcams.
+
+Additionally, we wanted to be able to transfer the webcam data directly into
+our VirtualBox port, thus enabling, sophisticated video conference systems
+like Jitsi or Skype.
+
+[image webcam]
+
+Our USB host-controller support for VirtualBox is based on the ported Qemu USB
+3.0 (XHCI) controller model. Since no USB webcam device model is available for
+Qemu, we were required to develop a one from scratch. The new USB webcam model
+is attached to the QEMU USB XHCI controller and operates as a bulk endpoint.
+In contrast to an isochronous endpoint, the model causes less CPU load and
+fewer virtual interrupts. The supported formats offered to the guest are YUV2
+and BGR3. By enabling the USB webcam model within the Genode VirtualBox
+configuration, a _Capture_ session is used to capture pictures at the rate of
+a configured _fps_ value. The following snippet shows the default values of
+the supported configuration attributes.
+
+!<config ...>
+!  ...
+!  <webcam width="640" height="480" fps="15" vertical_flip="false"
+!          screen_size="false" report="false"/>
+!  ...
+!</config>
+
+If the _screen_size_ attribute is set to _true_, the device model determines
+the resolution from the established capture session. Otherwise, the specified
+_width_ and _height_ values are used. The _vertical_flip_ attribute is useful
+for the BGR3 format, which is - when interpreted by Linux guests - flipped
+vertically and can be flipped back by setting the attribute to _true_.
+
+If the _report_ attribute is set to _true_, a report will be generated
+whenever the guest changes the state of the webcam model, either by switching
+capturing on/off or by changing the pixel format.
+
+! <capture enabled="true/false" format="YUV2/BGR3"/>
+
+[image webcam_chat]
+
+Finally, our developers, croc and lion, setup the Webcam scenario in Sculpt
+and test drive the new feature fascinated. The picture shows a session via
+Jitsi, on the right side croc participates at the meeting via a Win10 VM on
+Sculpt and lion sitting left joined via an Android tablet.
+
+
+Performance optimizations
+#########################
+
+One of the overarching topics of this year's
+[https://genode.org/about/road-map - roadmap] is optimization.
+As part of working on the Sculpt OS
+[https://genode.org/news/sculpt-os-21.03-boots-now-in-2.5-seconds - version 21.03],
+we identified several optimization vectors with the potential for user-visible
+improvements. In particular, while interacting with the system, a few effects
+made us curious.
+
+Operations that involved changes to the runtime subsystem, e.g., adding or
+reconfiguring a component, seemed to interfere with multi-media workloads.
+When running a graphical animation, we could see it stutter in such
+situations. Another direction of our curiosity was the boot time of the
+system. The boot time of Sculpt OS has always been relatively quick compared
+to commodity operating systems. E.g., on a 5-years old laptop like a Lenovo
+x260, the system used to boot in about 5 seconds to the graphical user
+interface. However, with the anticipation of Sculpt OS on lower-end platforms
+like the Pinephone and with the vision of instant-on systems, we wondered
+about the potential for improvement.
+
+While gathering a CPU-load profile of the boot process using the top tool, we
+learned that the boot time was bounded not by I/O but by the CPU load (the
+kernel's idle thread did not appear in the profile). Interestingly, a
+significant portion of the cycles were consumed by various instances of the
+init component, which prompted us to turn our attention to the implementation
+of init.
+
+
+Clock-cycle measurements
+------------------------
+
+The next natural step was the benchmarking of various code paths of init using
+a cycle-accurate time-stamp counter (TSC). Even though Genode has a
+'Trace::timestamp' utility readily available, it remains barely used for
+manual instrumentation because such instrumentations require too much labor:
+allocation of state variables for gathering the statistics, computing time
+differences, traffic-shaping of the debug noise (needed whenever investigating
+highly frequently called code). These tasks should better be covered by a
+utility so that friction-less performance analysis can become a regular part
+of our development work. As a side effect of our investigation, we came up
+with a new utility called GENODE_LOG_TSC. This utility is covered by a
+dedicated article.
+
+:Performance analysis made easy:
+
+  [https://genodians.org/nfeske/2021-04-07-performance]
+
+Thanks to GENODE_LOG_TSC, we were able to identify three concrete
+opportunities for optimization in a course of one evening. First, the dynamic
+reconfiguration of init apparently did not scale well with a growing number of
+components. The code for analysing differences of configuration versions
+relied on doubly nested loops in order to stay as simple as possible. With the
+typical number of 30 or more components/subsystems hosted in Sculpt's runtime,
+we passed a tipping point where quadratic time complexity is justifiable.
+Second, during a configuration update, the XML data is evaluated in multiple
+passes, which puts pressure on the efficiency of Genode's XML parser. This
+pressure could in principle be relieved. Third, the process of taking
+session-routing decisions involved XML parsing. In scenarios as sophisticated
+as Sculpt, the routing rules can become quite elaborate. Since the rules are
+consulted for each session route, the costs for the rule evaluations stack up.
+
+
+Init optimizations
+------------------
+
+These realizations motivated us to replace the hand-crafted configuration
+processing by the use of Genode's generic 'List_model' utility. This way, the
+parsing follows a common formalism that makes the code easier to maintain and
+to understand while reducing the XML parsing to a single pass. The increased
+formality cleared the way for further optimizations. In particular, init
+became able to skip the re-evaluation of the session routing whenever no
+service is affected by the configuration change. This is actually the common
+case in Sculpt.
+
+To alleviate the costs for evaluating session routes, we introduced an
+internal data model for the routing rules that is optimized for the matching
+of routes. With this model, the detection of a definite mismatch (the common
+case) comes down to a comparison of a single numeric value.
+
+Combined, those optimizations yield a great effect. In a typical Sculpt
+system, the time of a dynamic reconfiguration got reduced by factor 10 to the
+order of 10 to 20 milliseconds. Hence, the visual stuttering we observed
+during structural changes of the runtime are completely eliminated.
+
+Besides the major optimization of init, we were able to shave off a few
+milliseconds from the boot procedure here and there. For example, by deferring
+the initialization of the real-time clock driver to its first use, we avoid a
+potentially expensive active polling loop during the highly contended boot
+phase. Another obvious heuristic improvement is the skipping of the GUI
+handling until the framebuffer driver is up because all the nice pixels would
+not be visible anyway.
+
+Combined, these optimizations were able to reduce the boot time of Sculpt from
+the entering of the kernel up to the graphical user interface down to only 2.3
+seconds. The improved performance of init is impactful beyond Sculpt OS
+because it is a central component of all Genode systems large and small.
+
+
+Updated and new documentation
+#############################
+
+Genode Platforms
+----------------
+
+We are proud to introduce the first version of a new "Genode Platforms"
+document, which complements the existing Genode Foundations book with
+low-level hardware-related topics. It is primarily intended for integrators
+and developers of device drivers.
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-platforms-title.png">
+:   </a>
+:  </div>
+: </p>
+
+In this first edition, the document features a practical guide for the steps
+needed to bring Genode to a new ARM SoC. The content is based on the ongoing
+Pine Fun article series at [https://genodians.org - Genodians.org].
+We plan to continuously extend it with further practical topics as we go.
+
+:Initial revision of the Genode Platforms document:
+
+  [https://genode.org/documentation/genode-platforms-21-05.pdf]
+
+
+Genode Foundations
+------------------
+
+The "Genode Foundations" book received its annual update. It is available at
+the [https://genode.org] website as a PDF document and an online version.
+The most noteworthy additions and changes are:
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:  </div>
+: </p>
+
+* Adaptation to the re-stacked GUI stack introduced in
+  [https://genode.org/documentation/release-notes/20.08#The_GUI_stack__restacked - version 20.08]
+* Coverage of the new uplink, capture, and event session interfaces
+* Updated API documentation
+
+: <div class="visualClear"><!-- --></div>
+
+To examine the changes in detail, please refer to the book's
+[https://github.com/nfeske/genode-manual/commits/master - revision history].
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+API refinements
+===============
+
+VFS-access utilities
+--------------------
+
+Low-complexity native Genode components do not depend on a C runtime. To allow
+such components to still enjoy the power and flexibility of the Genode's VFS
+infrastructure, we provide an evolving front-end API
+[https://github.com/genodelabs/genode/blob/master/repos/os/include/os/vfs.h - os/vfs.h]
+first introduced in version
+[https://genode.org/documentation/release-notes/19.11#Virtual_file-system_infrastructure - 19.11].
+
+The API is tailored and refined according to the relatively simple use cases
+of low-complexity Genode components. The current release introduces a new
+utility for the creation of new files, appropriately named 'New_file'. The
+change is accompanied by a new 'Directory::create_sub_directory' method for
+the easy creation of directory hierarchies.
+
+
+Safeguarded arrays
+------------------
+
+To handle arrays in a safe and C++-like fashion, a new helper class has become
+available at _base/include/util/array.h_. It accommodates an increasingly used
+pattern where elements are dynamically added at construction time but stay the
+same once the array is constructed.
+
+
+Cosmetic changes
+----------------
+
+We refined the 'Range_allocator::alloc_aligned' interface to make it more
+safe. The former 'from' and 'to' arguments are replaced by a single 'range'
+argument. The distinction of the use cases of regular allocations vs.
+address-constrained allocations is now covered by a dedicated overload instead
+of relying on a default argument. The 'align' argument has been changed from
+'int' to 'unsigned' to be better compatible with 'addr_t' and 'size_t'.
+
+The 'Cache_attribute' type has been renamed to 'Cache'.
+
+
+Input-event handling
+====================
+
+A central component for Genode's input-event handling functionality is the
+event filter. It merges input events from multiple event sources and passes
+them to the event sink (typically the GUI server). In between, it performs
+low-level key remapping and applies character mapping rules. Character mapping
+rules are essential for supporting different keyboard layouts (including
+dead-key sequences). Low-level key remapping is, for instance, used for
+changing the emitted key codes of the Num Pad keys according to the Num Lock
+state. The different filter functionalities can be arbitrarily assembled into
+a filter chain and provided as a dynamic config ROM to the event filter
+component. The event sink then receives and processes the filtered events.
+
+Some input devices emit unusual and/or extra key codes in certain situations,
+which impedes the event sink's ability to detect key combos correctly. We
+therefore added the functionality to completely mute certain key codes. In
+order to ignore all unknown key codes for instance, we can now add an
+'<ignore-key>' node to the config of the event filter.
+
+! <remap>
+!   <ignore-key name="KEY_UNKNOWN"/>
+!   ...
+! </remap>
+
+Note, that '<ignore-key>' is part of the '<remap>' filter. The name attribute
+refers to the low-level key name before any remapping rule has been applied.
+
+As a second addition, we implemented a '<log>' filter that allows low-level
+debugging of the event-filter component and its configuration. The '<log>'
+filter can appear at each stage in the filter chain. For instance, we can log
+the input events before and after the remap filter as follows.
+
+! <log prefix="REMAPPED ">
+!   <remap>
+!     <log prefix="RAW ">
+!       ...
+!     </log>
+!   </remap>
+! </log>
+
+The optional 'prefix' attribute thereby helps to distinguish the log output
+from different stages.
+
+
+File-system helpers
+===================
+
+The
+[https://genode.org/documentation/release-notes/18.08#New_component_for_querying_information_from_a_file_system - fs_query]
+component is a simple helper to query information from a file system. E.g., it
+is used by the file browser of Sculpt OS to obtain the directory structure.
+The component received two welcomed improvements. First, directory content is
+now reported in alphabetic order. Thereby, all consumers of the reports become
+able to rely on deterministic output. For example, the file browser of Sculpt
+OS, the launcher menu items, and the depot-selection items will appear in a
+predictable way. Second, the size of files can be queried now. By adding an
+attribute 'size="yes"' to a query, fs_query is instructed to report the size
+of each queried file as attribute 'size' of the corresponding 'file' node.
+
+Whereas fs_query inspects a file system without changing it, its sister
+component fs_tool is able to perform file-system modifications. The new
+version adds a '<new-file path="...">' operation, which writes the content of
+the XML node into the file specified as 'path' attribute. The directory
+structure leading to the file is implicitly created if needed. Should a file
+with the specified name already exist, the original file will be overwritten.
+
+
+Applications
+############
+
+File vault based on the CBE block encrypter
+===========================================
+
+Over several releases
+([https://genode.org/documentation/release-notes/19.11#Preliminary_block-device_encrypter - 19.11],
+[https://genode.org/documentation/release-notes/20.05#Feature-completeness_of_the_consistent_block_encrypter - 20.05],
+[https://genode.org/documentation/release-notes/20.08#Consistent_Block_Encrypter - 20.08],
+[https://genode.org/documentation/release-notes/20.11#Consistent_Block_Encrypter__CBE_ - 20.11]),
+we persistently worked at a native solution for modern block encryption - the
+SPARK-based CBE-library - and its integration into Genode's VFS. Even though,
+this work was already suitable for real-world scenarios like
+[https://genodians.org/m-stein/2020-06-12-cbe-linux-vm - hosting a Linux VM on top of an encrypted block device],
+it still lacked stress-testing by a regular user base because its integration
+into an end-user system - like Sculpt - required tedious low-level wizardry.
+
+This situation had to change because we want to encourage as many people as
+possible to expose the codebase around the CBE to their workflows and let it
+mature. Therefore, we came up with a new package called file vault that can be
+readily deployed on Sculpt OS. It is a graphical front end that aims at making
+the creation, use, and maintenance of a CBE-based encrypted file store as
+intuitive and secure as possible.
+
+:Introducing the file vault:
+
+  [https://genodians.org/m-stein/2021-05-17-introducing-the-file-vault]
+
+[image file_vault_setup]
+
+The file vault only requires two file-system sessions from you (the trust
+anchor is stored separately from the payload data). With that, it will
+automatically create and connect a trust anchor, set up a CBE image, prepare
+an ext2 FS on top of the CBE image and provide it through a file system
+service - ready to be used like a simple directory. The directory can be
+locked by closing the file vault and unlocked by starting the file vault on
+the same trust anchor and entering the correct user passphrase. All controls
+for the file vault's underlying CBE encrypter - like for its re-sizing and
+re-keying functionality - are presented through a simple and guiding UI that
+also provides you with the most relevant status information of your vault.
+
+The file vault package is accompanied by some notable improvements regarding
+CBE's key management. Whereas in the previous release, this aspect was still
+merely a prototype with almost no protective value, the current implementation
+embraces well-known algorithms to generate and encrypt the keys used within
+the CBE respectively the file vault. This is explained in detail in the
+aforementioned article.
+
+As a note of caution, the primary purpose of the current version of the file
+vault is to lift native block encryption in Genode from the development stage
+to product quality. At the current stage, it is neither time-tested nor
+reviewed by independent cryptography experts. Consequently, you should use it
+with a healthy dose of suspicion, for non-critical data only! We would be more
+than happy to receive feedback on your experience with the file vault.
+
+
+VirtualBox
+==========
+
+Since the previous release, we continued the enablement of VirtualBox 6 on
+Genode and put efforts into stabilizing the port. Therefore, we updated to
+version 6.1.18 and reorganized the internal structure for a more
+comprehensible execution model with fewer threads. Further, we improved
+synchronization in multi-processor use cases and added a Sculpt runtime
+package for vbox6.
+
+Finally, as a little treat, our ports of VirtualBox now support to pass extra
+buttons of five-button mice to the guest.
+
+
+Device drivers
+##############
+
+Platform driver on ARM
+======================
+
+The current release streamlines Genode's API for interacting with the platform
+driver on ARM platforms. It eases the access to memory-mapped I/O registers
+and interrupts by introducing the notions of
+
+:'Platform::Device': one device obtained from a platform session
+
+:'Platform::Device::Mmio': locally-mapped MMIO registers of a device
+
+:'Platform::Device::Irq': interface for receiving device interrupts
+
+The API is covered in detail by the following article.
+
+:One Platform driver to rule them all:
+
+  [https://genodians.org/nfeske/2021-04-29-platform-driver]
+
+It goes without saying that this change touches most ARM-specific drivers.
+Closely related, we also revised the concept of the XML based device-info
+mechanism provided by the platform driver to accommodate both complex drivers
+operating on multiple devices simultaneously such as driver stacks ported from
+Linux as well as low-complexity drivers for simple devices. In the new
+version, the device XML-information dataspace is only provided if the client's
+session policy states 'info="yes"'. The format of the XML information got
+refined to include the physical resource names (I/O memory and IRQ addresses)
+instead of virtual IDs and page offsets and by using a 'type' attribute
+instead of a '<compatible>' node to uniquely identify devices.
+
+
+Changes specific to i.MX8
+-------------------------
+
+The platform driver incarnation specific to i.MX8 got slightly improved. It
+can handle the configuration of reset-pins now. Analogously to the already
+existent power domains, one can assign reset domains per device. Whenever a
+device with a reset domain gets acquired, its reset-pins are de-asserted. When
+the device gets released again, its reset-pins are asserted to put it into
+reset state. A sample configuration looks as follows:
+
+! <device name="mipi_dsi>
+!   <reset-domain name="mipi_dsi_pclk"/>
+!   ...
+! </device>
+
+Technically, those reset domains map to pin settings of the System Reset
+Controller (SRC) that is part of the i.MX8 SoC. The SRC is under control of
+the platform driver now. Currently, only the pins for the MIPI DSI Phy get
+exported. They are used by the graphical subsystem to handle panels connected
+via MIPI DSI.
+
+
+I2C driver for i.MX8
+====================
+
+Thanks to Jean-Adrien Domage from [https://www.gapfruit.com - gapfruit], an
+API for I2C bus transactions and a new I2C bus driver for the i.MX8 SoC
+entered our framework. Coincidentally, the need to use the new I2C API more
+intensively arose soon after his initial contribution. As a consequence, the
+API got extended a bit. The result is a nice joint venture, and looks like the
+following:
+
+! void transmit(Transaction & t);
+
+Hereby a 'Transaction' is a simple array of 'Message' objects, and a 'Message'
+is an array of bytes that are either read or written. For very simple
+use-cases, e.g., a client that polls single bytes from a temperature sensor,
+some convenience utilities are incorporated into the 'I2c::Connection'.
+
+
+USB
+===
+
+The USB-driver system has received quite a few refinements, performance
+improvements, and robustness handling efforts during the current release
+cycle. The HID subsystem is now capable of handling devices where the HID USB
+interface is at an arbitrary location within the device descriptors - as
+opposed to the assumption that the HID interface is always at the first
+position in the interface list of the device. Also, the HID driver now handles
+session destruction more gracefully and supports unlimited plug and unplug
+events of an associated HID device.
+
+For the USB host driver, various fixes of newer Linux kernel versions have
+been back ported, which concern the handling of DMA memory. Error code and
+timeout handling have been improved in order to support more corner cases, and
+the USB session handles outstanding USB requests (synchronous and
+asynchronous) on sudden session disconnects gracefully now.
+
+The CPU usage of the host driver for isochronous transfers has been reduced
+significantly for Intel XHCI controllers by adding a fix that reduces the
+triggering of an interrupt for every completed isochronous packet to one
+interrupt per eight packets, bringing the worst case scenario down to 1000
+interrupts per second from a possible 8000 IRQs before.
+
+
+NIC drivers
+===========
+
+Drivers for iPXE-supported Ethernet devices, Wifi adapters, and Linux TAP
+devices now support the reporting of the MAC address of detected adapters.
+The feature can be enabled by a '<report>' node in the driver configuration as
+follows, prompting the driver to request a report session with the label
+_devices_.
+
+! <config>
+!   <report mac_address="true"/>
+! </config>
+
+The resulting report is depicted below.
+
+! <devices>
+!   <nic mac_address="02:00:00:00:00:01"/>
+! </devices>
+
+
+Platforms
+#########
+
+Genode/Linux on 64-bit ARM
+==========================
+
+The release introduces the support for running the Linux version of Genode on
+64-bit ARM platforms. As a part of this line of work, Genode's system call
+bindings for Linux underwent a modernization to harmonize the system calls
+across the supported CPU architectures. Furthermore, we took the opportunity
+to simplify the use of the clone system call by eliminating the need for
+passing a TLS pointer.
+
+Expecting that the 64-bit Genode/Linux version will remain a niche use case of
+Genode in the foreseeable future, we do not provide a pre-built tool chain.
+Hence, as a preparatory step for using this version of Genode, the tool chain
+must be built manually via Genode's _tool/tool_chain_ script.
+
+As a known limitation, Genode's 'Trace::timestamp' function is not available
+on this version of Genode because Linux prevents the user land from accessing
+the cycle counter (pmccntr_el0). So the accuracy of timing is somewhat impeded
+to the order of milliseconds. Also, the jitterentropy random-number generator
+cannot be used.
+
+Those limitations notwithstanding, one can successfully execute scenarios as
+complex as _leitzentrale.run_. When using AARCH64 Linux as host, run scripts
+can be executed with the same convenience as on Linux on a PC.
+
+! $ make run/<script> KERNEL=linux BOARD=linux
+
+
+Pine-A64-LTS single board computer
+==================================
+
+The current release continues
+[https://genode.org/documentation/release-notes/21.02#Pine-A64-LTS_single_board_computer - our story]
+of porting Genode to the
+[https://pine64.com/product-category/pine-a64-ltslong-term-supply/ - Pine-A64-LTS]
+board. We document the progress in great detail as we go.
+
+# [https://genodians.org/nfeske/2021-03-05-pine-fun-testing - Kernel packaging and testing]
+# [https://genodians.org/nfeske/2021-03-17-pine-fun-device-access - Device access from the user level]
+# [https://genodians.org/nfeske/2021-04-29-platform-driver - One Platform driver to rule them all]
+# [https://genodians.org/nfeske/2021-05-12-pine-fun-linux - Taking Linux out for a Walk]
+# [https://genodians.org/nfeske/2021-05-19-pine-dts-pruning - Pruning device trees]
+
+The accumulated material forms the basis for the evolving Genode Platforms
+document introduced in Section [Updated and new documentation].
+
+The code of this line of work is available at a dedicated repository:
+
+:Genode board support for Allwinner SoCs:
+
+  [https://github.com/nfeske/genode-allwinner]
+
+
+RISC-V
+======
+
+The support for the RISC-V architecture has further been developed into the
+direction of a fully supported Genode platform. With this release, we wanted
+to enable basic device driver support, which requires a working interrupt
+controller. Since the "platform-level interrupt controller" (PLIC) is now
+present on most hardware as well as on the Qemu emulator, we have added
+support for the PLIC within our base-hw kernel.
+
+With the interrupt controller in place, we implemented a driver for the
+[https://opencores.org - OpenCores] Ethernet device as present on the
+[https://hensoldt-cyber.com/mig-v - MiG-V] board. The driver component runs on
+Qemu (with OpenCores enabled) as well as on the MiG-V board itself. Our RISC-V
+board specific line of work can now be found within a separate
+[https://github.com/ssumpf/genode-riscv - repository].
+
+With driver support in place, the final step for full RISC-V support in Genode
+is to extend our C library for this architecture.
+
+
+Build system and tools
+######################
+
+Tool-chain update to GCC 10.3 and binutils 2.36
+===============================================
+
+About every two years, we update our tailored Genode tool chain to recent
+versions. This year's update includes GCC 10.3.0, binutils 2.36.1 and GDB 10.2
+together with their corresponding Genode libraries and tools (stdcxx, ADA
+runtime, libsparkcrypto, gcov, sanitizer).
+
+Feature-wise, changes are not as significant this time as with the
+[https://genode.org/documentation/release-notes/19.05#Tool_chain_based_on_GCC_8.3.0_and_binutils_2.32 - previous update],
+nevertheless we had to overcome some hurdles worth noting.
+
+* The _gprbuild_ tool, which is needed to build the _ali2dep_
+  tool had a bug in the version provided by Ubuntu 18.04, which prevented it
+  from building _ali2dep_ with GCC/GNAT 10. To still be able to build the
+  tool chain on Ubuntu 18.04, the _gprbuild_ tool is now built from
+  source (of a newer version) when running the _tool_chain_ script.
+
+* When building the tool chain on armhf Linux, errors occurred because
+  of mismatching float-abi compiler flags used when building the
+  dependency libraries (_gmp_, _mpc_, _mpfr_) with the host tool chain and
+  when building the Genode tool chain with the intermediate bootstrap
+  tool chain. To solve this problem, the dependency libraries are now
+  downloaded and built using the GCC build system. This also had the
+  effect that the _mpc_ and _mpfr_ Genode ports were not needed anymore
+  and got removed.
+
+* GCC 10 reports more compile errors, which had to be fixed. The most common
+  errors related to narrowing conversions and potential unaligned pointers
+  from packed members.
+
+* GCC 10 has the _-fno-common_ option set by default, which caused link
+  errors especially with some 3rd party ports.
+
+* GCC 10 generated 'memset()' calls in implementations of 'memset()',
+  which caused stack overflows from this recursion.
+
+* The ARM compiler generates more VFP instructions now, especially when
+  building for armv6, so we had to update the 'setjmp()' and 'longjmp()'
+  functions used by _dde_linux_ drivers to additionally save and restore the
+  FPU registers on ARM.
+
+* With the new binutils version, linker sections with the same name in
+  multiple linker scripts are not merged anymore. Since we rely on this
+  behavior when building _core_ for NOVA, we reverted the corresponding change
+  with a patch.
+
+* With the new binutils version, executable files are not allowed as input
+  when linking executable output files anymore. The build process of the
+  Fiasco.OC kernel relied on this behavior and needed to be adapted by the
+  upstream developers.
+
+The new tool chain has not been enabled for RISC-V yet, because of an unsolved
+issue on initialization (resp. initial relocation) of our dynamic linker.
+Until we finalized the RISC-V support, we recommend using the tool chain
+version 19.05 for this CPU architecture by adding the following two lines to
+your build directory's _etc/tools.conf_.
+
+! CROSS_DEV_PREFIX = /usr/local/genode/tool/19.05/bin/genode-riscv-
+! REQUIRED_GCC_VERSION = 8.3.0
+
+The updated tool chain can be built from source or downloaded in binary form
+as described in this [https://genode.org/download/tool-chain - document].
+
+
+Utilities for porting Linux drivers
+===================================
+
+Dummy-function generator
+------------------------
+
+While porting device drivers from the Linux kernel to Genode, one has to
+tailor the environment that replaces the original kernel code. Thereby, tons
+of missing function and variable implementations have to be written. Most of
+them won't even be called by the driver under normal circumstances, but
+nonetheless they are needed to link the executable binary.
+
+The production of these dummy functions in the first place is a tiresome and
+somewhat annoying work. To free developers from this burden, a new tool
+entered the Genode framework under _tool/dde_linux/create_dummies_. Apart from
+the creation of missing kernel functions and variables, it can also be used to
+easily summarize all missing symbols during the porting work.
+
+For a more detailed explanation of the new tool, please have a look at the
+following article.
+
+:Linux device driver ports - Breaking new ground:
+
+  [https://genodians.org/skalk/2021-04-08-dde-linux-experiments-1]
+
+
+Device-tree source processing
+-----------------------------
+
+Device-tree source files as featured in the source tree of the Linux kernel
+contain valuable information about the structure and parameters of SoCs and
+boards. The porting and implementation of device drivers for Genode calls for
+tooling that is able to extract and convert this information into digestible
+forms. The current release introduces the first version of a new tool set at
+_tools/dts/_ for this purpose.
+
+[image dts_extract]
+
+The tool aids the understanding of the hardware and allows for the pruning of
+device trees down to a manageable complexity. As an illustration, the
+spiderweb on the left shows the device-interdependencies of the Pine-A64-LTS
+board. On the right, the device tree is pruned to cover only what's needed to
+use Ethernet. The tool is covered in more detail by the following dedicated
+article.
+
+:Pruning device trees:
+
+  [https://genodians.org/nfeske/2021-05-19-pine-dts-pruning]
+
+
+Cache for downloaded ports
+==========================
+
+When working with ports, it is not uncommon that a port hash is changed due to
+some minor change like the addition of a patch. A subsequent call of
+'prepare_port' would download the same files that were already downloaded
+while preparing a previous version of the port even if the downloaded content
+remains the same. This wastes internet bandwidth and developer time. The
+current release introduces a simple cache for downloaded archives, which
+alleviates these costs.
+
+_Thanks to Tomasz Gajewski for his continuous contributions to improve our_
+_development workflows._
+
+
+Common hook for custom build rules
+==================================
+
+There are cases that call for building custom targets in addition to a regular
+library or program. For example, the executable binary of an application may
+be accompanied by generated data files. The creation of such build artifacts
+can be expressed by custom make rules. However, a rule is triggered only if it
+is a dependency of the build target. This can now be achieved by adding the
+rule to the 'CUSTOM_TARGET_DEPS' variable. For example,
+
+! CUSTOM_TARGET_DEPS += menu_view_styles.tar
+!
+! menu_view_styles.tar:
+! 	$(VERBOSE)cd $(PRG_DIR); tar cf $(PWD)/bin/$@ styles
+
+_Thanks to Tomasz Gajewski for this welcome contribution._
+
