@@ -1,0 +1,5 @@
+USB webcam driver + Nitpicker video bridge. The configuration can be adjusted
+in _recipes/raw/usb_webcam/usb_webcam.config_. The package offers a Report and a
+Capture session. The report is used in order to enable and disable the webcam,
+the format must be the same as given by the Qemu webcam model. From the Capture
+session, the webcam images can be retrieved.

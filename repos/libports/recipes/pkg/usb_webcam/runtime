@@ -1,0 +1,22 @@
+<runtime binary="init" caps="800" ram="64M" config="usb_webcam.config">
+	<provides> <capture /> <report /> </provides>
+	<requires> <timer /> <usb /> <rm /> </requires>
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="init"/>
+		<rom label="jpeg.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_pipe.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="usb_webcam"/>
+		<rom label="libyuv.lib.so"/>
+		<rom label="libusb.lib.so"/>
+		<rom label="libuvc.lib.so"/>
+		<rom label="stdcxx.lib.so"/>
+		<rom label="usb_webcam.config"/>
+		<rom label="nitpicker"/>
+		<rom label="report_rom"/>
+		<rom label="rom_filter"/>
+	</content>
+</runtime>

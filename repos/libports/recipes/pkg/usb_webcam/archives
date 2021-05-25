@@ -1,0 +1,15 @@
+_/src/usb_webcam
+_/raw/usb_webcam
+_/src/init
+_/src/jpeg
+_/src/libc
+_/src/libusb
+_/src/libuvc
+_/src/libyuv
+_/src/nitpicker
+_/src/rom_filter
+_/src/report_rom
+_/src/stdcxx
+_/src/vfs
+_/src/vfs_pipe
+
