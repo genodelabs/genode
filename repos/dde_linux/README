@@ -285,6 +285,13 @@ On certain cards, e.g. Intel Wireless 6200 ABG, it may be necessary to disable
 the 11n mode. This can be achieved by setting the 'use_11n' attribute in
 the 'wifi_config' node to 'no'.
 
+The driver optionally reports the following information under the
+label "devices" if requested in the config as depicted.
+
+! <config> <report mac_address="true"/> </config>
+
+! <devices> <nic mac_address="02:00:00:00:00:01"/> </devices>
+
 
 lx_kit
 ######

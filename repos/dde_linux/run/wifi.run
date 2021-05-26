@@ -195,9 +195,17 @@ append config {
 		</config>
 	</start>
 
+	<start name="devices_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1200K"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
 	<start name="wifi_drv" caps="220">
 		<resource name="RAM" quantum="28M"/>
 		<config ld_verbose="yes">
+			<report mac_address="true"/>
 			<libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev"> <log/> <null/> <rtc/>
@@ -211,6 +219,7 @@ append config {
 			<service name="Rtc"> <any-child/> </service>
 			<service name="Report" label="accesspoints"> <child name="accesspoints_report_rom"/> </service>
 			<service name="Report" label="state"> <child name="state_report_rom"/> </service>
+			<service name="Report" label="devices"> <child name="devices_report_rom"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>

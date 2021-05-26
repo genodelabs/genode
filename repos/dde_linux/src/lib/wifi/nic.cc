@@ -18,6 +18,7 @@
 #include <base/snprintf.h>
 #include <base/tslab.h>
 #include <base/registry.h>
+#include <os/reporter.h>
 #include <util/xml_node.h>
 #include <uplink_session/connection.h>
 
@@ -111,6 +112,8 @@ class Genode::Wifi_uplink
 
 		net_device *_device  { nullptr };
 
+		Constructible<Reporter> _reporter { };
+
 		static Wifi_uplink *_instance;
 
 		class Uplink_client : public Uplink_client_base
@@ -174,6 +177,8 @@ class Genode::Wifi_uplink
 					_drv_handle_link_state(
 						!(_ndev.state & 1UL << __LINK_STATE_NOCARRIER));
 				}
+
+				Net::Mac_address mac_address() const { return _drv_mac_addr; }
 
 				void handle_driver_link_state(bool state)
 				{
@@ -241,6 +246,23 @@ class Genode::Wifi_uplink
 		void activate()
 		{
 			_client.construct(_env, _alloc, device());
+
+			Lx_kit::env().config_rom().xml().with_sub_node("report", [&] (Xml_node const &xml) {
+				bool const report_mac_address =
+					xml.attribute_value("mac_address", false);
+
+				if (!report_mac_address)
+					return;
+
+				_reporter.construct(_env, "devices");
+				_reporter->enabled(true);
+
+				Reporter::Xml_generator report(*_reporter, [&] () {
+					report.node("nic", [&] () {
+						report.attribute("mac_address", String<32>(_client->mac_address()));
+					});
+				});
+			});
 		}
 
 		void handle_driver_rx_packet(struct sk_buff *skb)
