@@ -130,6 +130,7 @@ ssh_buffer_pass_bytes_end T
 ssh_buffer_prepend_data T
 ssh_buffer_reinit T
 ssh_buffer_set_secure T
+ssh_buffer_swap T
 ssh_buffer_unpack_va T
 ssh_buffer_validate_length T
 ssh_channel_accept_forward T

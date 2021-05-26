@@ -1,0 +1,77 @@
+--- a/include/libssh/buffer.h
++++ b/include/libssh/buffer.h
+@@ -74,4 +74,8 @@
+ uint32_t ssh_buffer_pass_bytes_end(ssh_buffer buffer, uint32_t len);
+ uint32_t ssh_buffer_pass_bytes(ssh_buffer buffer, uint32_t len);
+ 
++/* ssh_buffer_swap replaces contents of two buffers */
++void ssh_buffer_swap(struct ssh_buffer_struct *buffer1,
++                     struct ssh_buffer_struct *buffer2);
++
+ #endif /* BUFFER_H_ */
+--- a/include/libssh/sftp.h
++++ b/include/libssh/sftp.h
+@@ -73,6 +73,10 @@
+ typedef struct sftp_status_message_struct* sftp_status_message;
+ typedef struct sftp_statvfs_struct* sftp_statvfs_t;
+ 
++typedef int (*sftp_packet_write_override)(sftp_session sftp, uint8_t type,
++                                          ssh_buffer payload, void *userdata);
++typedef sftp_packet (*sftp_packet_read_override)(sftp_session sftp, void *userdata);
++
+ struct sftp_session_struct {
+     ssh_session session;
+     ssh_channel channel;
+@@ -85,6 +89,10 @@
+     void **handles;
+     sftp_ext ext;
+     sftp_packet read_packet;
++
++    void *userdata;
++    sftp_packet_write_override sftp_packet_write_function;
++    sftp_packet_read_override sftp_packet_read_function;
+ };
+ 
+ struct sftp_packet_struct {
+--- a/src/buffer.c
++++ b/src/buffer.c
+@@ -1332,4 +1332,14 @@
+     return rc;
+ }
+ 
++
++void ssh_buffer_swap(struct ssh_buffer_struct *buffer1,
++                     struct ssh_buffer_struct *buffer2)
++{
++    struct ssh_buffer_struct tmp;
++    tmp = *buffer2;
++    *buffer2 = *buffer1;
++    *buffer1 = tmp;
++}
++
+ /** @} */
+--- a/src/sftp.c
++++ b/src/sftp.c
+@@ -344,6 +344,11 @@
+     return -1;
+   }
+ 
++  /* override for packet write (payload already prepared) */
++	if (sftp->sftp_packet_write_function) {
++		return (*(sftp->sftp_packet_write_function))(sftp, type, payload, sftp->userdata);
++	}
++
+   size = ssh_channel_write(sftp->channel, ssh_buffer_get(payload),
+       ssh_buffer_get_len(payload));
+   if (size < 0) {
+@@ -360,6 +365,10 @@
+ 
+ sftp_packet sftp_packet_read(sftp_session sftp)
+ {
++    if (sftp->sftp_packet_read_function) {
++	    return (*(sftp->sftp_packet_read_function))(sftp, sftp->userdata);
++    }
++
+     uint8_t buffer[SFTP_BUFFER_SIZE_MAX];
+     sftp_packet packet = sftp->read_packet;
+     uint32_t size;
