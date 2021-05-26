@@ -53,9 +53,6 @@
 #include <util/interface.h>
 #include <util/xml_node.h>
 
-/* NIC driver includes */
-#include <drivers/nic/mode.h>
-
 /* rep includes */
 #include <wifi/ctrl.h>
 #include <wifi/rfkill.h>
@@ -363,8 +360,6 @@ struct Wifi::Frontend
 
 	Genode::Attached_rom_dataspace         _config_rom;
 	Genode::Signal_handler<Wifi::Frontend> _config_sigh;
-
-	Genode::Nic_driver_mode const _mode;
 
 	bool _verbose       { false };
 	bool _verbose_state { false };
@@ -1565,9 +1560,6 @@ struct Wifi::Frontend
 		_rfkill_handler(env.ep(), *this, &Wifi::Frontend::_handle_rfkill),
 		_config_rom(env, "wifi_config"),
 		_config_sigh(env.ep(), *this, &Wifi::Frontend::_handle_config_update),
-		_mode(
-			read_nic_driver_mode(
-				Genode::Attached_rom_dataspace(env, "config").xml())),
 		_scan_timer(env),
 		_scan_timer_sigh(env.ep(), *this, &Wifi::Frontend::_handle_scan_timer),
 		_events_handler(env.ep(), *this, &Wifi::Frontend::_handle_events),
@@ -1659,8 +1651,6 @@ struct Wifi::Frontend
 	 * Used for communication between front end and wpa_supplicant.
 	 */
 	Msg_buffer &msg_buffer() { return _msg; }
-
-	Genode::Nic_driver_mode mode() const { return _mode; }
 };
 
 #endif /* _WIFI_FRONTEND_H_ */

@@ -1,7 +1,6 @@
 <runtime ram="32M" caps="300" binary="wifi_drv">
 
 	<requires> <rom label="wifi_config"/> </requires>
-	<provides> <nic/> </provides>
 
 	<config ld_verbose="yes" verbose="no">
 		<vfs>

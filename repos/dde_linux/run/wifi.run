@@ -195,9 +195,9 @@ append config {
 		</config>
 	</start>
 
-	<start name="wifi_drv" caps="200">
-		<resource name="RAM" quantum="24M"/>
-		<config ld_verbose="yes" mode="uplink_client">
+	<start name="wifi_drv" caps="220">
+		<resource name="RAM" quantum="28M"/>
+		<config ld_verbose="yes">
 			<libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev"> <log/> <null/> <rtc/>

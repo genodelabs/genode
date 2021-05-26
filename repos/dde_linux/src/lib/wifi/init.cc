@@ -183,8 +183,7 @@ unsigned long jiffies;
 void wifi_init(Genode::Env                       &env,
                Genode::Blockade                  &blockade,
                bool                               disable_11n,
-               Genode::Signal_context_capability  rfkill,
-               Genode::Nic_driver_mode            mode)
+               Genode::Signal_context_capability  rfkill)
 {
 	Lx_kit::construct_env(env);
 
@@ -211,7 +210,7 @@ void wifi_init(Genode::Env                       &env,
 	Lx::Work::work_queue(&Lx_kit::env().heap());
 
 	Lx::socket_init(env.ep(), Lx_kit::env().heap());
-	Lx::nic_init(env, Lx_kit::env().heap(), mode);
+	Lx::nic_init(env, Lx_kit::env().heap());
 
 	Lx::pci_init(env, env.ram(), Lx_kit::env().heap());
 	Lx::malloc_init(env, Lx_kit::env().heap());

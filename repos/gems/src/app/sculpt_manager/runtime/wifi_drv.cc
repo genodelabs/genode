@@ -21,8 +21,6 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 
 	xml.node("config", [&] () {
 
-		xml.attribute("mode", "uplink_client");
-
 		xml.node("vfs", [&] () {
 			gen_named_node(xml, "dir", "dev", [&] () {
 				xml.node("null", [&] () {});

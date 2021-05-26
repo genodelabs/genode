@@ -247,7 +247,7 @@ append  config { </wifi_config>
 	<start name="nic_drv" caps="300">
 		<binary name="wifi_drv"/>
 		<resource name="RAM" quantum="32M"/>
-		<config mode="uplink_client">
+		<config>
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">

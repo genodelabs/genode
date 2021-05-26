@@ -85,7 +85,7 @@ append config {
 
 	<start name="wifi_drv" caps="300" priority="-1">
 		<resource name="RAM" quantum="24M"/>
-		<config mode="uplink_client" ld_verbose="no">
+		<config ld_verbose="no">
 			<vfs>
 				<dir name="dev"> <log/> <rtc/> <null/>
 					<jitterentropy name="random"/>

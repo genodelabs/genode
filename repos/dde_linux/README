@@ -180,7 +180,7 @@ library named 'lxip.lib.so'. The IP stack can be interfaced using Genode's
 version of 'libc' by linking your application to 'lxip_libc' plugin in your
 'target.mk' file.
 
-WIFI
+WiFi
 ####
 
 The wifi_drv component is a port of the Linux mac802.11 stack, including the

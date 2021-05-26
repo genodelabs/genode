@@ -96,8 +96,7 @@ void *wifi_get_buffer(void)
 extern void wifi_init(Genode::Env&,
                       Genode::Blockade&,
                       bool,
-                      Genode::Signal_context_capability,
-                      Genode::Nic_driver_mode);
+                      Genode::Signal_context_capability);
 
 
 struct Main
@@ -122,7 +121,7 @@ struct Main
 		 */
 		bool const disable_11n = !_frontend->use_11n();
 		wifi_init(env, _wpa_startup_blockade, disable_11n,
-		          _frontend->rfkill_sigh(), _frontend->mode());
+		          _frontend->rfkill_sigh());
 	}
 };
 
