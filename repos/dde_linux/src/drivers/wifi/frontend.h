@@ -955,7 +955,7 @@ struct Wifi::Frontend
 		char const *bssid = valid ? _processed_ap->bssid.string() : "";
 
 		_submit_cmd(Cmd_str("SET_NETWORK ", _processed_ap->id,
-		                     " bssid \"", bssid, "\""));
+		                     " bssid ", bssid));
 	}
 
 	void _network_set_psk()
