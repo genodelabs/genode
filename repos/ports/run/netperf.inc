@@ -273,7 +273,7 @@ append  config { </wifi_config>
 	append_platform_drv_config
 	append config {
 
-	<start name="usb_host_drv" caps="120"> }
+	<start name="usb_host_drv" caps="130"> }
 
 	append config "<binary name=\"[usb_host_drv_binary]\"/>"
 	append config {
