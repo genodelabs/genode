@@ -38,8 +38,10 @@
 #define WEAK_ALIAS(x,y)
 #define RET                mov pc, lr
 #define _JB_MAGIC__SETJMP  0x4278f500
+#define _JB_REG_FPSCR      13
+#define _JB_REG_R4         14
+#define _JB_REG_D8         32
 
-#define __SOFTFP__ 1
 #define _STANDALONE
 /* end of <machine/asm.h> */
 
@@ -60,20 +62,21 @@ __FBSDID("$FreeBSD: release/8.2.0/lib/libc/arm/gen/_setjmp.S 193145 2009-05-31 0
 
 ENTRY(_setjmp)
 	ldr	r1, .L_setjmp_magic
-	str	r1, [r0], #4
-#ifdef __SOFTFP__
-	add	r0, r0, #52
-#else
-	/* Store fp registers */
-	sfm	f4, 4, [r0], #48
-	/* Store fpsr */
-	rfs	r1
-	str	r1, [r0], #0x0004
-#endif	/* __SOFTFP__ */
-	/* Store integer registers */
-        stmia	r0, {r4-r14}
 
-        mov	r0, #0x00000000
+#if __ARM_ARCH >= 6
+	add	r2, r0, #(_JB_REG_D8 * 4)
+	vstmia	r2, {d8-d15}
+	vmrs	r2, fpscr
+	str	r2, [r0, #(_JB_REG_FPSCR * 4)]
+#endif
+
+	str	r1, [r0]
+
+	add	r0, r0, #(_JB_REG_R4 * 4)
+	/* Store integer registers */
+	stmia	r0, {r4-r14}
+
+	mov	r0, #0x00000000
 	RET
 
 .L_setjmp_magic:
@@ -81,22 +84,21 @@ ENTRY(_setjmp)
 
 WEAK_ALIAS(___longjmp, _longjmp)
 ENTRY(_longjmp)
-	ldr	r2, .L_setjmp_magic
-	ldr	r3, [r0], #4
-	teq	r2, r3
-	bne	botch
+	ldr	r2, [r0]			/* get magic from jmp_buf */
+	ldr	ip, .L_setjmp_magic		/* load magic */
+	teq	ip, r2				/* magic correct? */
+	bne	botch				/*   no, botch */
 
-#ifdef __SOFTFP__
-	add	r0, r0, #52
-#else
-	/* Restore fp registers */
-	lfm	f4, 4, [r0], #48
-	/* Restore fpsr */
-	ldr	r4, [r0], #0x0004
-	wfs	r4
-#endif	/* __SOFTFP__ */
-       	/* Restore integer registers */
-        ldmia	r0, {r4-r14}
+#if __ARM_ARCH >= 6
+	add	ip, r0, #(_JB_REG_D8 * 4)
+	vldmia	ip, {d8-d15}
+	ldr	ip, [r0, #(_JB_REG_FPSCR * 4)]
+	vmsr	fpscr, ip
+#endif
+
+	add	r0, r0, #(_JB_REG_R4 * 4)
+	/* Restore integer registers */
+	ldmia	r0, {r4-r14}
 
 	/* Validate sp and r14 */
 	teq	sp, #0
