@@ -67,7 +67,7 @@
 					<fs writeable="yes"/>
 				</vfs>
 				<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
-				<webcam vertical_flip="true" fps="15" report="true" screen_size="false" width="1024" height="768"/>
+				<webcam vertical_flip="true" fps="30" report="true" screen_size="false" width="640" height="480"/>
 			</config>
 			<route>
 				<service name="Audio_out"> <parent/> </service>
