@@ -1,4 +1,5 @@
-INCLUDE_SUB_DIRS := os util packet_stream_rx packet_stream_tx
+INCLUDE_SUB_DIRS := os util packet_stream_rx packet_stream_tx spec/x86_64/os \
+                    spec/arm/os spec/x86_32/os spec/arm_64/os
 
 MIRRORED_FROM_REP_DIR := $(addprefix include/,$(INCLUDE_SUB_DIRS)) lib/symbols
 
