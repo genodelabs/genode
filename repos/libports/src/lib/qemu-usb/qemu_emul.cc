@@ -277,8 +277,9 @@ struct Object_pool
 		USB_BUS,         /* bus driver */
 		USB_DEVICE,      /* USB device driver */
 		USB_HOST_DEVICE, /* USB host device driver */
-		USB_WEBCAM,      /* USB host device driver */
-		MAX = 10          /* host devices (USB_HOST_DEVICE - MAX) */
+		USB_WEBCAM,      /* USB webcam device driver */
+		USB_FIRST_FREE,  /* first free device */
+		MAX = 14         /* host devices (USB_FIRST_FREE to MAX) */
 	};
 
 	bool used[MAX];
@@ -286,7 +287,7 @@ struct Object_pool
 
 	Wrapper *create_object()
 	{
-		for (unsigned i = USB_HOST_DEVICE + 1; i < MAX; i++) {
+		for (unsigned i = USB_FIRST_FREE; i < MAX; i++) {
 			if (used[i] == false) {
 				used[i] = true;
 				return &obj[i];
@@ -297,7 +298,7 @@ struct Object_pool
 
 	void free_object(Wrapper *w)
 	{
-		for (unsigned i = USB_HOST_DEVICE + 1; i < MAX; i++)
+		for (unsigned i = USB_FIRST_FREE; i < MAX; i++)
 			if (w == &obj[i]) {
 				used[i] = false;
 				break;
