@@ -4,6 +4,36 @@
                                ===========
 
 
+Genode OS Framework release 21.05 | 2021-05-31
+##############################################
+
+| Version 21.05 introduces webcam support, features an encrypted file vault
+| for Sculpt OS, and adds new drivers for the i.MX8 SoC and Pine-A64.
+| Furthermore, it is accompanied with a new tool chain based on GCC 10
+| and new guidance documentation for driver development.
+
+Device-driver support remains a prominent topic for almost every release.
+The just released version 21.05 is no exception, touching hardware topics
+ranging from USB, over I2C on i.MX8, over GPIO on Pine-A64, to networking on
+RISC-V. Until now, such nitty-gritty driver-development work has been pursued
+almost exclusively by the core team at Genode Labs. To encourage developers
+outside the inner circle to join the fun, the release is accompanied with the
+initial version of a comprehensive guidance documentation for
+hardware-related topics.
+
+Feature-wise the two highlights of the new version are webcam support and an
+easy-to-use encrypted file store based on our custom CBE block encrypter.
+As detailed by the release documentation, both features leverage Genode's
+architecture in unique ways to attain high flexibility without an inflation of
+complexity.
+
+The release is rounded up by a new tool chain based on GCC 10 and Binutils
+2.36, profound performance optimizations, framework refinements, and new
+assistive tooling for porting Linux drivers. All the details of the new
+version are covered by the official
+[https:/documentation/release-notes/21.05 - release documentation of version 21.05...]
+
+
 Sculpt OS 21.03 boots now in 2.5 seconds | 2021-05-03
 #####################################################
 
