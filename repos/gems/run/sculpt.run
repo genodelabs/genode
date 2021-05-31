@@ -1,4 +1,4 @@
-if {![have_board pc] && ![have_board imx8q_evk]} {
+if {![have_board pc] && ![have_board imx8q_evk] && ![have_board mnt_reform2]} {
 	puts "Platform is unsupported.";
 	exit 0;
 }
@@ -18,8 +18,9 @@ proc config_system_content {} { return {\
 <system state=""/>} }
 
 proc nic_drv {} {
-	if {[have_board pc]}        { return ipxe_nic_drv }
-	if {[have_board imx8q_evk]} { return fec_nic_drv  }
+	if {[have_board pc]}          { return ipxe_nic_drv }
+	if {[have_board imx8q_evk]}   { return fec_nic_drv  }
+	if {[have_board mnt_reform2]} { return fec_nic_drv  }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
