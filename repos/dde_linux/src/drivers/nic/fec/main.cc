@@ -17,12 +17,8 @@
 #include <base/component.h>
 #include <base/heap.h>
 
-/* NIC driver includes */
-#include <drivers/nic/mode.h>
-
 /* local includes */
 #include <uplink_client.h>
-#include <component.h>
 
 /* Linux emulation environment includes */
 #include <lx_emul.h>
@@ -48,13 +44,11 @@ unsigned long jiffies;
 
 struct Main
 {
-	Genode::Env                          &env;
-	Genode::Entrypoint                   &ep            { env.ep() };
-	Genode::Attached_rom_dataspace        config_rom    { env, "config" };
-	Genode::Nic_driver_mode const         mode          { read_nic_driver_mode(config_rom.xml()) };
-	Genode::Heap                          heap          { env.ram(), env.rm() };
-	Genode::Constructible<Root>           root          { };
-	Genode::Constructible<Genode::Uplink_client>  uplink_client { };
+	Genode::Env                                & env;
+	Genode::Entrypoint                         & ep            { env.ep() };
+	Genode::Attached_rom_dataspace               config_rom    { env, "config" };
+	Genode::Heap                                 heap          { env.ram(), env.rm() };
+	Genode::Constructible<Genode::Uplink_client> uplink_client { };
 
 	/* Linux task that handles the initialization */
 	Genode::Constructible<Lx::Task> linux;
@@ -62,11 +56,6 @@ struct Main
 	Main(Genode::Env &env) : env(env)
 	{
 		Genode::log("--- freescale ethernet driver ---");
-
-		if (mode == Genode::Nic_driver_mode::NIC_SERVER) {
-
-			root.construct(env, heap);
-		}
 
 		Lx_kit::construct_env(env);
 
@@ -96,20 +85,9 @@ struct Main
 
 	void announce()
 	{
-		switch (mode) {
-		case Genode::Nic_driver_mode::NIC_SERVER:
-
-			env.parent().announce(ep.manage(*root));
-			break;
-
-		case Genode::Nic_driver_mode::UPLINK_CLIENT:
-
-			uplink_client.construct(
-				env, heap,
-				config_rom.xml().attribute_value(
-					"uplink_label", Genode::Session_label::String { "" }));
-			break;
-		}
+		uplink_client.construct( env, heap,
+			config_rom.xml().attribute_value(
+				"uplink_label", Genode::Session_label::String { "" }));
 	}
 
 	Lx::Task &linux_task() { return *linux; }

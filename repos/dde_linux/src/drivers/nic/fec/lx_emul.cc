@@ -23,7 +23,7 @@
 #include <irq_session/client.h>
 #include <platform_session/device.h>
 
-#include <component.h>
+#include <uplink_client.h>
 #include <lx_emul.h>
 
 #if DEBUG
