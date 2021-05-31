@@ -154,7 +154,11 @@ struct Timer_queue : public Qemu::Timer_queue
 		if (TMTimerIsActive(tm_timer))
 			TMTimerStop(tm_timer);
 
-		TMTimerSetNano(tm_timer, min->timeout_abs_ns - TMTimerGetNano(tm_timer));
+		uint64_t const now = TMTimerGetNano(tm_timer);
+		if (min->timeout_abs_ns < now)
+			TMTimerSetNano(tm_timer, 0);
+		else
+			TMTimerSetNano(tm_timer, min->timeout_abs_ns - now);
 	}
 
 	void _deactivate_timer(void *qtimer)
