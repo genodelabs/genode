@@ -1,18 +1,17 @@
 include $(REP_DIR)/lib/mk/virtualbox6-common.inc
 
+SRC_CC += Devices/Audio/AudioHlp.cpp
 SRC_CC += Devices/Audio/AudioMixBuffer.cpp
 SRC_CC += Devices/Audio/AudioMixer.cpp
-SRC_CC += Devices/Audio/DevHDA.cpp
-SRC_CC += Devices/Audio/DevHDACommon.cpp
+SRC_CC += Devices/Audio/DevHda.cpp
+SRC_CC += Devices/Audio/DevHdaCodec.cpp
+SRC_CC += Devices/Audio/DevHdaCommon.cpp
+SRC_CC += Devices/Audio/DevHdaStream.cpp
+SRC_CC += Devices/Audio/DevHdaStreamChannel.cpp
+SRC_CC += Devices/Audio/DevHdaStreamMap.cpp
 SRC_CC += Devices/Audio/DevIchAc97.cpp
-SRC_CC += Devices/Audio/DrvAudioCommon.cpp
 SRC_CC += Devices/Audio/DrvAudio.cpp
-SRC_CC += Devices/Audio/DrvHostNullAudio.cpp
-SRC_CC += Devices/Audio/HDACodec.cpp
-SRC_CC += Devices/Audio/HDAStream.cpp
-SRC_CC += Devices/Audio/HDAStreamChannel.cpp
-SRC_CC += Devices/Audio/HDAStreamMap.cpp
-SRC_CC += Devices/Audio/HDAStreamPeriod.cpp
+SRC_CC += Devices/Audio/DrvHostAudioNull.cpp
 SRC_CC += Devices/Bus/DevPCI.cpp
 SRC_CC += Devices/Bus/DevPciIch9.cpp
 SRC_CC += Devices/Bus/MsiCommon.cpp

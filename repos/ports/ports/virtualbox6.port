@@ -1,17 +1,17 @@
 LICENSE         := GPLv2
-VERSION         := 6.1.18
+VERSION         := 6.1.22
 DOWNLOADS       := virtualbox.archive virtualbox_sdk.archive
 
 VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION).tar.bz2
-VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-142142.zip
+VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-144080.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/virtualbox6
-SHA(virtualbox) := 108d42b9b391b7a332a33df1662cf7b0e9d9a80f3079d16288d8b9487f427d40
+SHA(virtualbox) := 99816d2a15205d49362a31e8ffeb8262d2fa0678c751dfd0a7c43b2faca8be49
 
 URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
 DIR(virtualbox_sdk) := src/virtualbox6_sdk
-SHA(virtualbox_sdk) := 49f8396e2a3295682f36250df91f4ffd64696cbc661ad03e8e3726459ac49b7f
+SHA(virtualbox_sdk) := 15e0829259e2cb2a976da1957c69fabdfaf6e1d4b2a169ec7c243a6c757332b2
 
 PATCHES_DIR := src/virtualbox6/patches
 PATCHES     := $(addprefix $(PATCHES_DIR)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR)/series))

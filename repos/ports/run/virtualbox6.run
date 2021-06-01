@@ -15,6 +15,7 @@ lappend depot_archives [depot_user]/pkg/themed_wm
 lappend depot_archives [depot_user]/src/[base_src]
 lappend depot_archives [depot_user]/src/clipboard
 lappend depot_archives [depot_user]/src/init
+lappend depot_archives [depot_user]/src/jpeg
 lappend depot_archives [depot_user]/src/libc
 lappend depot_archives [depot_user]/src/nitpicker
 lappend depot_archives [depot_user]/src/report_rom
