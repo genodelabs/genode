@@ -1,0 +1,80 @@
+network.patch
+
+--- a/src/virtualbox6/src/VBox/Devices/Network/DevE1000.cpp
++++ b/src/virtualbox6/src/VBox/Devices/Network/DevE1000.cpp
+@@ -7992,6 +7992,33 @@ static DECLCALLBACK(int) e1kR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
+             pDevIns->fR0Enabled ? "enabled" : "disabled",
+             pDevIns->fRCEnabled ? "enabled" : "disabled"));
+ 
++    /* For Genode attach already here to be able to overwrite mac address */
++    /* Network driver */
++    rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThisCC->IBase, &pThisCC->pDrvBase, "Network Port");
++    if (RT_SUCCESS(rc))
++    {
++        /* Genode: read out the mac address from nic_session interface */
++        PPDMINETWORKCONFIG  pDrvConfig = PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMINETWORKCONFIG);
++        Assert(pDrvConfig && pDrvConfig->pfnGetMac);
++        pDrvConfig->pfnGetMac(pDrvConfig, &pThis->macConfigured);
++
++        pThisCC->pDrvR3 = PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMINETWORKUP);
++        AssertMsgReturn(pThisCC->pDrvR3, ("Failed to obtain the PDMINETWORKUP interface!\n"), VERR_PDM_MISSING_INTERFACE_BELOW);
++
++#if 0 /** @todo @bugref{9218} ring-0 driver stuff */
++        pThisR0->pDrvR0 = PDMIBASER0_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMIBASER0), PDMINETWORKUP);
++        pThisRC->pDrvRC = PDMIBASERC_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMIBASERC), PDMINETWORKUP);
++#endif
++    }
++    else if (   rc == VERR_PDM_NO_ATTACHED_DRIVER
++             || rc == VERR_PDM_CFG_MISSING_DRIVER_NAME)
++    {
++        /* No error! */
++        E1kLog(("%s This adapter is not attached to any network!\n", pThis->szPrf));
++    }
++    else
++        return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the network LUN"));
++
+     /*
+      * Initialize sub-components and register everything with the VMM.
+      */
+@@ -8131,27 +8158,6 @@ static DECLCALLBACK(int) e1kR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
+         return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the status LUN"));
+     pThisCC->pLedsConnector = PDMIBASE_QUERY_INTERFACE(pBase, PDMILEDCONNECTORS);
+ 
+-    /* Network driver */
+-    rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThisCC->IBase, &pThisCC->pDrvBase, "Network Port");
+-    if (RT_SUCCESS(rc))
+-    {
+-        pThisCC->pDrvR3 = PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMINETWORKUP);
+-        AssertMsgReturn(pThisCC->pDrvR3, ("Failed to obtain the PDMINETWORKUP interface!\n"), VERR_PDM_MISSING_INTERFACE_BELOW);
+-
+-#if 0 /** @todo @bugref{9218} ring-0 driver stuff */
+-        pThisR0->pDrvR0 = PDMIBASER0_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMIBASER0), PDMINETWORKUP);
+-        pThisRC->pDrvRC = PDMIBASERC_QUERY_INTERFACE(PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMIBASERC), PDMINETWORKUP);
+-#endif
+-    }
+-    else if (   rc == VERR_PDM_NO_ATTACHED_DRIVER
+-             || rc == VERR_PDM_CFG_MISSING_DRIVER_NAME)
+-    {
+-        /* No error! */
+-        E1kLog(("%s This adapter is not attached to any network!\n", pThis->szPrf));
+-    }
+-    else
+-        return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the network LUN"));
+-
+     rc = PDMDevHlpSUPSemEventCreate(pDevIns, &pThis->hEventMoreRxDescAvail);
+     AssertRCReturn(rc, rc);
+ 
+--- a/src/virtualbox6/src/VBox/Devices/Network/DevPCNet.cpp
++++ b/src/virtualbox6/src/VBox/Devices/Network/DevPCNet.cpp
+@@ -5340,6 +5340,11 @@ static DECLCALLBACK(int) pcnetR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
+     rc = PDMDevHlpDriverAttach(pDevIns, 0, &pThisCC->IBase, &pThisCC->pDrvBase, "Network Port");
+     if (RT_SUCCESS(rc))
+     {
++        /* Genode: read out the mac address from nic_session interface */
++        PPDMINETWORKCONFIG pDrvConfig = PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMINETWORKCONFIG);
++        Assert(pDrvConfig && pDrvConfig->pfnGetMac);
++        pDrvConfig->pfnGetMac(pDrvConfig, &pThis->MacConfigured);
++
+         pThisCC->pDrv = PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMINETWORKUP);
+         AssertMsgReturn(pThisCC->pDrv, ("Failed to obtain the PDMINETWORKUP interface!\n"),
+                         VERR_PDM_MISSING_INTERFACE_BELOW);
