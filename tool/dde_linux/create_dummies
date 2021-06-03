@@ -108,9 +108,14 @@ ifeq ($(DUMMY_FILE),)
 $(error You have to state a DUMMY_FILE, try help)
 endif
 
+endif # COMMAND=generate
+
+
 #
-# Prepare object database
+# Prepare object database whenever LINUX_KERNEL_DIR is specified
 #
+
+ifneq ($(realpath $(LINUX_KERNEL_DIR)),)
 
 CROSS_DEV_PREFIX ?= /usr/local/genode/tool/current/bin/genode-$(TOOL_ARCH)-
 NM                = $(CROSS_DEV_PREFIX)nm --print-file-name --defined-only
@@ -134,7 +139,8 @@ do_var_to_def     = $(subst ];,] = {};,$(subst \/,/,$(subst extern ,,$(subst $$/
 check_var_to_def  = $(if $(2),$(call do_var_to_def,$(1),$(2)),)
 var_to_def        = $(call check_var_to_def,$(1),$(call var_to_h_file,$(1)))
 
-endif # COMMAND=generate
+endif # LINUX_KERNEL_DIR specified
+
 
 #
 # Collect undefined references for target
@@ -193,9 +199,15 @@ check_fdef_only = $(if $(2),$(call print_func_only,$(2),$(DUMMY_FILE)),$(call ch
 check_fdef = $(if $(3),$(call print_func,$(2),$(3),$(DUMMY_FILE)),$(call check_not_func,$(1)))
 check_func = $(if $(2),$(call check_fdef,$(1),$(2),$(call func_to_def,$(1))),$(call check_fdef_only,$(1),$(call func_to_def,$(1))))
 
+ifeq ($(realpath $(LINUX_KERNEL_DIR)),)
+show_symbol = "$1"
+else
+show_symbol = "$1 $(foreach F,$(call symbol_to_c_file,$1),(found at $(F:.c=.o)))"
+endif
+
 show:
 	$(ECHO) "Missing symbols:"
-	@$(foreach sym,$(UNDEF_REFS),echo "$(sym)";)
+	@$(foreach sym,$(UNDEF_REFS),echo $(call show_symbol,$(sym));)
 	$(ECHO) "Total sum of missing symbols is $(words $(UNDEF_REFS))"
 
 generate:
