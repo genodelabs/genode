@@ -201,9 +201,8 @@ append config {
 		</config>
 	</start>
 
-	<start name="usb_drv" caps="150"> }
-append config "<binary name=\"[usb_host_drv_binary]\"/>"
-append config {
+	<start name="usb_drv" caps="150">
+		<binary name="} [usb_host_drv_binary] {"/>
 		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="Usb"/> </provides>
 		<config bios_handoff="yes">
