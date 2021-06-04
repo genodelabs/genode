@@ -127,7 +127,7 @@ CROSS_DEV_PREFIX ?= /usr/local/genode/tool/current/bin/genode-$(TOOL_ARCH)-
 
 # gather list of <path.c>:<symbol> pairs, strip first path element (build dir)
 NM          = $(CROSS_DEV_PREFIX)nm --print-file-name --defined-only
-C_FILE_DEF := $(shell cd $(LINUX_KERNEL_DIR); $(NM) `find -name "*.o" -printf "%P\n" | grep -v vmlinux.o` | grep -i " t " | sed -e 's/o:[0-f]* [tT] /c:/')
+C_FILE_DEF := $(shell cd $(LINUX_KERNEL_DIR); $(NM) `find -name "*.o" -printf "%P\n" | grep -v vmlinux.o` | grep -i " [tD] " | sed -e 's/o:[0-f]* [tTD] /c:/')
 
 # query C_FILE_DEF database for a given symbol
 symbol_to_c_file  = $(addprefix $(LINUX_SRC_DIR)/, $(firstword $(subst :, ,$(filter %:$(1),$(C_FILE_DEF)))))
