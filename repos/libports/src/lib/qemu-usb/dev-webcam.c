@@ -42,6 +42,7 @@ typedef struct USBWebcamState {
 	uint8_t    frame_toggle_bit;
 	bool       delay_packet;
 	bool       capture;
+	bool       timer_active;
 	uint8_t    watchdog;
 	uint8_t   *frame_pixel;
 } USBWebcamState;
@@ -202,8 +203,8 @@ static struct {
 	uint8_t  bpp;
 	uint16_t width;
 	uint16_t height;
-	uint32_t interval; /* dwFrameInterval */
-	void (*capture)(void *);
+	uint32_t interval; /* dwFrameInterval in 100ns units */
+	bool (*capture)(void *);
 } formats [2];
 
 static unsigned active_format()
@@ -400,7 +401,8 @@ static Property webcam_properties[] = {
 
 static void webcam_start_timer(USBWebcamState * const state)
 {
-	int64_t const now_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+	state->timer_active = true;
+	uint64_t const now_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
 	timer_mod(state->timer, now_ns + 100ull * formats[active_format()].interval);
 }
 
@@ -420,6 +422,7 @@ static void usb_webcam_init_state(USBWebcamState *state)
 	state->delay_packet     = false;
 	state->capture          = false;
 	state->watchdog         = 0;
+	state->timer_active     = false;
 }
 
 static void usb_webcam_handle_reset(USBDevice *dev)
@@ -448,7 +451,6 @@ static void usb_webcam_setup_packet(USBWebcamState * const state, USBPacket * co
 {
 	unsigned packet_size           = vs_commit_state.dwMaxPayLoadTransferSize;
 	struct   payload_header header = { .length = 0, .bfh = 0 };
-	bool     start_timer           = !state->bytes_frame;
 
 	if (p->iov.size < packet_size)
 		packet_size = p->iov.size;
@@ -470,19 +472,16 @@ static void usb_webcam_setup_packet(USBWebcamState * const state, USBPacket * co
 	}
 
 	/* reset capture watchdog */
-	if (state->watchdog) {
+	if (state->watchdog)
 		state->watchdog = 0;
-		start_timer     = true;
-	}
 
 	/* check for capture state change */
 	if (!state->capture) {
 		state->capture = true;
-		start_timer    = true;
 		usb_webcam_capture_state_changed(state->capture);
 	}
 
-	if (start_timer)
+	if (!state->timer_active)
 		webcam_start_timer(state);
 
 	/* payload header */
@@ -533,6 +532,8 @@ static void webcam_timeout(void *opague)
 	USBDevice      *dev   = (USBDevice *)opague;
 	USBWebcamState *state = USB_WEBCAM(opague);
 
+	state->timer_active = false;
+
 	if (!state->capture)
 		return;
 
@@ -550,13 +551,17 @@ static void webcam_timeout(void *opague)
 		return;
 	}
 
+	/* start timer before requesting new frame to account the cpu time */
+	webcam_start_timer(state);
+
+	/* request next frame pixel buffer */
+	if (!formats[active_format()].capture(state->frame_pixel))
+		return;
+
 	USBPacket *p = state->delayed_packet;
 
 	state->delayed_packet = 0;
 	state->delay_packet   = false;
-
-	/* request next frame pixel buffer */
-	formats[active_format()].capture(state->frame_pixel);
 
 	/* continue usb transmission with new frame */
 	usb_webcam_setup_packet(state, p);

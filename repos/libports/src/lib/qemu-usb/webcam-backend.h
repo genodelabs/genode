@@ -18,8 +18,8 @@ struct webcam_config {
 };
 
 extern void webcam_backend_config(struct webcam_config *);
-extern void capture_bgr_frame(void * pixel);
-extern void capture_yuv_frame(void * pixel);
+extern bool capture_bgr_frame(void * pixel);
+extern bool capture_yuv_frame(void * pixel);
 extern void capture_state_changed(bool on, char const * format);
 
 #endif /* _WEBCAM_BACKEND_H_ */

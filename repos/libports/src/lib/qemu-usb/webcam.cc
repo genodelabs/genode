@@ -34,6 +34,7 @@ struct Capture_webcam
 	Gui::Area            const  _area;
 	bool                 const  _vflip;
 	uint8_t              const  _fps;
+	bool                        _force_update { false };
 	Attached_dataspace          _ds { _env.rm(), _capture.dataspace() };
 	Constructible<Reporter>     _reporter { };
 
@@ -54,9 +55,18 @@ struct Capture_webcam
 		return area;
 	}
 
-	void update_yuv(void *frame)
+
+	bool update_yuv(void *frame)
 	{
-		_capture.capture_at(Capture::Point(0, 0));
+		if (!_area.valid())
+			return false;
+
+		bool changed = _force_update;
+		_capture.capture_at(Capture::Point(0, 0)).for_each_rect([&](auto) {
+			changed = true; });
+
+		if (!changed)
+			return false;
 
 		int const src_stride_argb = _area.w() * 4;
 		int const dst_stride_yuy2 = _area.w() * 2;
@@ -64,30 +74,55 @@ struct Capture_webcam
 		libyuv::ARGBToYUY2(_ds.local_addr<uint8_t>(), src_stride_argb,
 		                   reinterpret_cast<uint8_t*>(frame), dst_stride_yuy2,
 		                   _area.w(), _area.h());
+
+		if (_force_update)
+			_force_update = false;
+
+		return true;
 	}
 
-	void update_bgr(void *frame)
+	bool update_bgr(void *frame)
 	{
-		_capture.capture_at(Capture::Point(0, 0));
+		if (!_area.valid())
+			return false;
 
-		uint8_t * const bgr  = reinterpret_cast<uint8_t *>(frame);
-		Pixel_rgb888 *  data = reinterpret_cast<Pixel_rgb888 *>(_ds.local_addr<void>());
+		bool changed = false;
 
-		for (int y = 0; y < _area.h(); y++) {
-			unsigned const row = _vflip ? y : _area.h() - 1 - y;
-			unsigned const row_byte = (row * _area.w() * 3);
-			for (int x = 0; x < _area.w(); x++) {
-				bgr[row_byte + x * 3 + 0] = data->b();
-				bgr[row_byte + x * 3 + 1] = data->g();
-				bgr[row_byte + x * 3 + 2] = data->r();
+		uint8_t            * const bgr  = reinterpret_cast<uint8_t *>(frame);
+		Pixel_rgb888 const * const data = _ds.local_addr<Pixel_rgb888>();
 
-				data++;
+		auto const &update_fn = ([&](auto &rect) {
+			changed = true;
+			for (int y = rect.y1(); y <= rect.y2(); y++) {
+				unsigned const row      = _vflip ? y : _area.h() - 1 - y;
+				unsigned const row_byte = (row * _area.w() * 3);
+
+				for (int x = rect.x1(); x < rect.x2(); x++) {
+					auto &pixel = data[y * _area.w() + x];
+					bgr[row_byte + x * 3 + 0] = pixel.b();
+					bgr[row_byte + x * 3 + 1] = pixel.g();
+					bgr[row_byte + x * 3 + 2] = pixel.r();
+				}
 			}
-		}
+		});
+
+		if (_force_update) {
+			/* update whole frame */
+			_force_update = false;
+			Rect const whole(Point(0,0), _area);
+			_capture.capture_at(Capture::Point(0, 0));
+			update_fn(whole);
+		} else
+			_capture.capture_at(Capture::Point(0, 0)).for_each_rect(update_fn);
+
+		return changed;
 	}
 
 	void capture_state_changed(bool on, char const * format)
 	{
+		/* next time update whole frame due to format changes or on/off */
+		_force_update = true;
+
 		if (!_reporter.constructed())
 			return;
 
@@ -123,14 +158,14 @@ extern "C" void capture_state_changed(bool on, char const * format)
 	capture->capture_state_changed(on, format);
 }
 
-extern "C" void capture_bgr_frame(void * pixel)
+extern "C" bool capture_bgr_frame(void * pixel)
 {
-	capture->update_bgr(pixel);
+	return capture->update_bgr(pixel);
 }
 
-extern "C" void capture_yuv_frame(void * pixel)
+extern "C" bool capture_yuv_frame(void * pixel)
 {
-	capture->update_yuv(pixel);
+	return capture->update_yuv(pixel);
 }
 
 
