@@ -68,7 +68,6 @@ timeout
 timeout_smp
 timer_accuracy
 tz_vmm
-usb_hid
 usb_hid_raw
 vbox5_genode_usb_hid_raw
 vbox5_ubuntu_16_04_32

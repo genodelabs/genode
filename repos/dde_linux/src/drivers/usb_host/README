@@ -1,14 +1,15 @@
 USB host controller driver
 ##########################
 
-Allows access to USB devices via the 'Usb' session interface.
-
-Configuration snippet:
+The driver will start all USB controller types a platform offers
+(USB 1.0/2.0/3.0). Controllers can be disabled as attribute in the config node
+of the driver. Supported attributes are: 'uhci', 'ohci', 'ehci', and 'xhci'.
 
 !<start name="usb_host_drv">
+!  <binary name="platform_specific_usb_host_drv_name"/>
 !  <resource name="RAM" quantum="10M"/>
 !  <provides><service name="Usb"/></provides>
-!  <config>
+!  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !     <report devices="yes"/>
 !  </config>
 !</start>
@@ -28,14 +29,12 @@ USB device. Only devices that have a valid policy configured at the USB driver
 can be accessed by a client. The following configuration allows 'comp1' to
 access the device 'usb-1-6':
 
-!<start name="usb_drv">
+!<start name="usb_host_drv">
 !  <resource name="RAM" quantum="12M"/>
 !  <provides><service name="Usb"/></provides>
-!  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
-!    <raw>
-!        <report devices="yes"/>
-!        <policy label="comp1 -> usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>
-!    </raw>
+!  <config>
+!    <report devices="yes"/>
+!    <policy label="comp1 -> usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>
 !  </config>
 !</start>
 

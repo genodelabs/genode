@@ -1,6 +1,6 @@
 LICENSE     := GPLv2
 VERSION     := 2
-DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
+DOWNLOADS   := intel_fb.archive lxip.archive \
                wifi.archive fec.archive libnl.archive wpa_supplicant.git \
                fw.archive usb_host.archive dwc_otg_host.git usb_hid.archive \
                usb_modem.archive usb_net.archive imx8_fb.archive
@@ -18,20 +18,8 @@ YACC = bison
 # The git checkout checks for the existence of SRC_DIR, which is created by the
 # Linux extraction, therefore make sure to checkout the GIT sources first.
 #
-usb.archive: dwc_otg.git
 usb_host.archive: dwc_otg_host.git
 
-
-#
-# USB
-#
-SRC_DIR_USB  := src/lib/usb
-VERSION_USB  := 4.4.3
-URL(usb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB).tar.xz
-SHA(usb)     := 0b379cb19bbd7e38fc5a9a000ea927db55cce519a7400ec7fa705c581a6491dd
-DIR(usb)     := $(SRC_DIR_USB)
-TAR_OPT(usb) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION_USB)/g' $(REP_DIR)/usb.list)
-HASH_INPUT   += $(REP_DIR)/usb.list
 
 #
 # USB host controller
@@ -71,10 +59,6 @@ HASH_INPUT         += $(REP_DIR)/usb_modem.list
 #
 # Raspberry Pi USB controller
 #
-URL(dwc_otg) := https://github.com/ssumpf/dwc_otg.git
-REV(dwc_otg) := r3
-DIR(dwc_otg) := $(SRC_DIR_USB)/drivers/usb/host/dwc_otg
-
 URL(dwc_otg_host) := https://github.com/cproc/dwc_otg.git
 REV(dwc_otg_host) := r5
 DIR(dwc_otg_host) := $(SRC_DIR_USB_HOST)/drivers/usb/host
@@ -193,17 +177,6 @@ PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
 
 # WPA supplicant
 PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}
-
-# USB
-USB_OPT = -p1 -d$(SRC_DIR_USB)
-PATCH_OPT(patches/usb_ax88179.patch)     := $(USB_OPT)
-PATCH_OPT(patches/usb_csum.patch)        := $(USB_OPT)
-PATCH_OPT(patches/usb_evdev.patch)       := $(USB_OPT)
-PATCH_OPT(patches/usb_input_mt.patch)    := $(USB_OPT)
-PATCH_OPT(patches/usb_mem.patch)         := $(USB_OPT)
-PATCH_OPT(patches/usb_usbnet.patch)      := $(USB_OPT)
-PATCH_OPT(patches/usb_rndis.patch)       := $(USB_OPT)
-PATCH_OPT(patches/usb_tv64.patch)        := $(USB_OPT)
 
 # USB HOST
 USB_HOST_OPT = -p1 -d$(SRC_DIR_USB_HOST)

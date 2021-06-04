@@ -3,174 +3,27 @@ Device drivers ported from the Linux kernel
 USB
 ###
 
-Controller configuration
-~~~~~~~~~~~~~~~~~~~~~~~~
+Host controller
+~~~~~~~~~~~~~~~
 
-The driver can be started using different or all USB controller types a platform
-offers (USB 1.0/2.0/3.0). Note that not all controllers are supported by all
-platforms.  Controllers can be enabled as attribute in the config node of the
-driver.  Supported attributes are: 'uhci', 'ohci', 'ehci', and 'xhci'.
+The driver will start all USB controller types a platform offers.
 
-
-Configuration snippet to enable UHCI and EHCI
-
-! <config uhci="yes" ehci="yes">
-
-BIOS Handoff
-~~~~~~~~~~~~
-
-Per default the USB driver performs a hand off of the USB controller from the
-BIOS, since it still may access the controller when booting, for example, from
-a USB device. The BIOS hand off induces the execution of BIOS/SMM USB driver
-code and potentially DMA operations. Unfortunately, some ACPI tables report
-wrong RMRR information, which implicates IOMMU faults on illegal DMA
-operations and consequently the hand off may fail after noticeably long
-timeouts. Therefore, the hand off can be disabled in the USB driver
-configuration like follows.
-
-! <config bios_handoff="no"/>
+Please consult repos/dde_linux/drivers/usb_host/README for a description.
 
 HID
 ~~~
 
-Supports keyboard and mouse. A run script can be found under 'run/usb_hid.run'.
-
-Configuration snippet:
-
-!<start name="usb_drv">
-!  <resource name="RAM" quantum="12M"/>
-!  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
-!    <hid/>
-!  </config>
-!</start>
-
-With '<hid>' config node in place, the USB driver requests an "Event" session
-for reporting input events.
-
-Note: It has been observed that certain 1.0 versions of Qemu do not generate
-mouse interrupts. The mouse driver should work correctly on Qemu 1.0.93 and
-above.
-
-HID - Touchscreen support
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Touchscreen absolute coordinates must be calibrated (e.g. re-calculated) to
-screen absolute coordinates. The screen resolution is not determined
-automatically by the USB driver, but can be configured as sub node of the
-hid xml tag:
-
-!...
-!<hid>
-!  <touchscreen width="1024" height="768" multitouch="no"/>
-!</hid>
-!...
-
-If a touchscreen is multi-touch-capable than the multitouch attribute gears
-which type of Genode input events are generated. If set to  'no' (default)
-than absolute events are generated and no multitouch events. If set to 'yes'
-solely multitouch events are generated.
+Please consult repos/dde_linux/drivers/usb_hid/README for a description.
 
 Storage
 ~~~~~~~
 
-Currently supports one USB storage device. Hot plugging has not been tested. A
-run script can be found under 'run/usb_storage.run'.
-
-Configuration snippet:
-
-!<start name="usb_drv">
-!  <resource name="RAM" quantum="12M"/>
-!  <provides> <service name="Block"/> </provides>
-!  <config><storage /></config>
-!</start>
-
+Please consult repos/os/src/drivers/usb_block/README for a description.
 
 Network (Nic)
 ~~~~~~~~~~~~~
 
-Configuration snippet:
-
-!<start name="usb_drv">
-!  <resource name="RAM" quantum="12M"/>
-!  <provides>
-!    <service name="Nic"/>
-!  </provides>
-!  <config ehci="yes" xhci="yes">
-!    <nic mac="2e:60:90:0c:4e:01" />
-!    <hid/>
-!  </config>
-!</start>
-
-Please observe that this setup starts the HID and Nic service at the same time.
-Also there is the 'mac' attribute where one can specify the hardware address of
-the network interface. This is necessary in case the EEPROM of the network card
-cannot be accessed via the host controller making it impossible to retrieve the
-devices hardware address. If this is the case and no 'mac' attribute is given a
-fallback address will be assigned to the network device. Note that the fallback
-address will always be the same.
-
-
-RAW
-~~~
-
-Allows raw access to USB devices via the 'Usb' session interface.
-
-Configuration snippet:
-
-!<start name="usb_drv">
-!  <resource name="RAM" quantum="12M"/>
-!  <provides><service name="Usb"/></provides>
-!  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
-!    <raw>
-!        <report devices="yes"/>
-!    </raw>
-!  </config>
-!</start>
-
-The optional 'devices' report lists the connected devices and gets updated
-when devices are added or removed.
-
-Example report:
-
-!<devices>
-!  <device label="usb-1-7" vendor_id="0x1f75" product_id="0x0917" bus="0x0001" dev="0x0007"/>
-!  <device label="usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>
-!  <device label="usb-1-4" vendor_id="0x17ef" product_id="0x4816" bus="0x0001" dev="0x0004"/>
-!  <device label="usb-1-3" vendor_id="0x0a5c" product_id="0x217f" bus="0x0001" dev="0x0003"/>
-!  <device label="usb-2-2" vendor_id="0x8087" product_id="0x0020" bus="0x0002" dev="0x0002"/>
-!  <device label="usb-1-2" vendor_id="0x8087" product_id="0x0020" bus="0x0001" dev="0x0002"/>
-!  <device label="usb-2-1" vendor_id="0x1d6b" product_id="0x0002" bus="0x0002" dev="0x0001"/>
-!  <device label="usb-1-1" vendor_id="0x1d6b" product_id="0x0002" bus="0x0001" dev="0x0001"/>
-!</devices>
-
-For every device a unique identifier is generated that is used to access the
-USB device. Only devices that have a valid policy configured at the USB driver
-can be accessed by a client. The following configuration allows 'comp1' to
-access the device 'usb-1-6':
-
-!<start name="usb_drv">
-!  <resource name="RAM" quantum="12M"/>
-!  <provides><service name="Usb"/></provides>
-!  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
-!    <raw>
-!        <report devices="yes"/>
-!        <policy label="comp1 -> usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>
-!    </raw>
-!  </config>
-!</start>
-
-In addition to the mandatory 'label' attribute the policy node also
-contains optional attribute tuples of which at least one has to be present.
-The 'vendor_id' and 'product_id' tuple selects a device regardless of its
-location on the USB bus and is mostly used in static configurations. The
-'bus' and 'dev' tuple selects a specific device via its bus locations and
-device address. It is mostly used in dynamic configurations because the device
-address is not fixed and may change every time the same device is plugged in.
-
-The configuration of the USB driver can be changed at runtime to satisfy
-dynamic configurations or rather policies when using the 'Usb' session
-interface.
-
+Please consolut repos/dde_linux/src/drivers/usb_net/README for a description.
 
 LXIP
 ####

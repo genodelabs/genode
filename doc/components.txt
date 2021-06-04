@@ -162,10 +162,6 @@ capture-session and event-session interfaces respectively.
 :_dde_linux/src/drivers/usb_hid/_:
   USB Human Interface Device driver using the USB session interface.
 
-:_os/src/drivers/usb_block/_:
-  USB storage driver that uses the USB session interface and provides
-  a block-session interface.
-
 
 Timer drivers
 =============
@@ -220,11 +216,6 @@ _os/include/block_session/_.
 :_os/src/drivers/sd_card/spec/rpi/_:
   Driver for SD-cards connected to the Raspberry Pi.
 
-:_dde_linux/src/drivers/usb/_:
-  USB driver that makes USB storage devices available as block sessions.
-  For an example of using this driver, refer to the run script at
-  _dde_linux/run/usb_storage.run_.
-
 :_os/src/drivers/ahci/_:
   Driver for SATA disks and CD-ROMs on x86 PCs.
 
@@ -232,7 +223,8 @@ _os/include/block_session/_.
   Driver for NVMe block devices on x86 PCs.
 
 :_os/src/drivers/usb_block/_:
-  USB Mass Storage Bulk-Only driver using the USB session interface.
+  USB Mass Storage Bulk-Only driver using the USB session interface and provides
+  a block-session interface.
 
 
 Network interface drivers
@@ -257,8 +249,8 @@ defined at _os/include/nic_session/_.
   The wifi_drv component is a port of the Linux mac802.11 stack, including the
   iwlwifi driver. It enables the use of Intel Wireless 6xxx and 7xxx cards.
 
-:_dde_linux/src/drivers/usb/_:
-  For the OMAP4 platform, the USB driver contains the networking driver.
+:_dde_linux/src/drivers/usb_net/_:
+  USB network driver using the USB session interface.
 
 :_dde_linux/src/drivers/nic/fec/_:
   Driver for ethernet NICs of the i.MX SoC family.

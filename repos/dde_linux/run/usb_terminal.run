@@ -17,7 +17,7 @@ if {[have_include power_on/qemu]} {
 #
 set build_components {
 	core init timer
-	drivers/usb
+	drivers/usb_host
 	server/usb_terminal
 	test/terminal_echo
 }
@@ -57,13 +57,12 @@ append config {
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="usb_drv">
+	<start name="usb_drv" caps="120">
+		<binary name="} [usb_host_drv_binary] {"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="Usb"/></provides>
-		<config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
-			<raw>
-				<policy label="usb_terminal -> usb_serial" vendor_id="0x67b" product_id="0x2303"/>
-			</raw>
+		<config>
+			<policy label="usb_terminal -> usb_serial" vendor_id="0x67b" product_id="0x2303"/>
 		</config>
 	</start>
 	<start name="usb_terminal">
@@ -83,9 +82,10 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer usb_drv test-terminal_echo
+	core ld.lib.so init timer test-terminal_echo
 	usb_terminal
 }
+append boot_modules [usb_host_drv_binary]
 
 append_platform_drv_boot_modules
 
