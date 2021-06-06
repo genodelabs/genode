@@ -7,7 +7,7 @@
 # Collect object files and avoid duplicates (by using 'sort')
 #
 SRC_O  += $(addprefix binary_,$(addsuffix .o,$(notdir $(SRC_BIN))))
-SRC     = $(sort $(SRC_C) $(SRC_CC) $(SRC_ADB) $(SRC_ADS) $(SRC_RS) $(SRC_S) $(SRC_O))
+SRC     = $(sort $(SRC_C) $(SRC_CC) $(SRC_ADB) $(SRC_ADS) $(SRC_RS) $(SRC_S) $(SRC_O) $(SRC_GO))
 OBJECTS = $(addsuffix .o,$(basename $(SRC)))
 
 #
@@ -68,6 +68,16 @@ endif
 %.o: %.s
 	$(MSG_ASSEM)$@
 	$(VERBOSE)$(CC) $(CC_DEF) $(CC_C_OPT) $(INCLUDES) -c $< -o $@
+
+#
+# Compiling Go sources
+#
+%.o: %.go
+	$(MSG_COMP)$@
+	$(VERBOSE)$(GOLANG) $(CUSTOM_GO_FLAGS) -c -o $@ $<
+
+CUSTOM_GO	?= $(CROSS_DEV_PREFIX)gccgo
+GOLANG   = $(CUSTOM_GO)
 
 #
 # Compiling Ada source codes
