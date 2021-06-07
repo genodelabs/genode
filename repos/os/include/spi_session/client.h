@@ -19,6 +19,7 @@
 #include <base/rpc_client.h>
 #include <base/attached_dataspace.h>
 #include <util/string.h>
+#include <util/misc_math.h>
 
 #include <spi_session/spi_session.h>
 
@@ -51,7 +52,9 @@ public:
 		}
 		memcpy(_io_buffer.local_addr<char>(), buffer, buffer_size);
 		size_t const bytes_count = call<Rpc_transfer>(buffer_size);
-		memcpy(buffer, _io_buffer.local_addr<char>(), buffer_size);
+		memcpy(buffer,
+		       _io_buffer.local_addr<char>(),
+		       min(bytes_count, buffer_size));
 		return bytes_count;
 	}
 
