@@ -160,7 +160,7 @@ class GenodeConsole : public Console {
 			_input_sticky_keys_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_sticky_keys)
 		{
 			for (unsigned i = 0; i <= Input::KEY_MAX; i++)
-				_key_status[i] = 0;
+				_key_status[i] = false;
 
 			_input.sigh(_input_signal_dispatcher);
 
