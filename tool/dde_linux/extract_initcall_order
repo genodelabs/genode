@@ -62,7 +62,16 @@ echo "	\"END_OF_INITCALL_ORDER_ARRAY_DUMMY_ENTRY\"" >> $(1);
 echo "};" >> $(1);
 endef
 
-INITCALLS = $(shell grep -i "^[0-9a-f]* [t] __initcall_" $(LINUX_KERNEL_DIR)/System.map | awk '{print $$3}')
+#
+# Linux 5.12 upwards generates data symbols featuring an '__initcall_id'
+# including a counter value and __LINE__ information. Discard this information
+# when collecting the 'lx_emul_initcall_order'.
+#
+strip_kmod_prefix = sed "s/__initcall__.*__[0-9]\+_[0-9]\+/__initcall/"
+
+INITCALLS = $(shell grep -i "^[0-9a-f]* [td] __initcall_" $(LINUX_KERNEL_DIR)/System.map |\
+                    $(strip_kmod_prefix) |\
+                    awk '{print $$3}')
 
 extract:
 	@$(call print_file_header,$(shell date +"%F"),$(HEADER_FILE))
