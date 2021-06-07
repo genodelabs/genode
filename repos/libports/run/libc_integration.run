@@ -26,8 +26,9 @@ if { [get_cmd_switch --autopilot] } {
 	set run_script_timeout 1200
 
 	if {[have_board pc]} {
-		set config_wo 10000
 		set run [expr [have_spec nova] || [have_spec hw]]
+
+		if {[have_spec x86_32]} { set config_wo 8000 }
 	}
 	if {[have_board imx8q_evk]} {
 		set config_wo 9000
