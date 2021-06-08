@@ -21,6 +21,7 @@
 #include <lx_emul.h>
 #include <lx_emul/extern_c_begin.h>
 #include <linux/usb.h>
+#include <linux/usb/hcd.h>
 #include "raw.h"
 #include <lx_emul/extern_c_end.h>
 #include <signal.h>
@@ -101,6 +102,11 @@ class Device : public List<Device>::Element
 				sink.acknowledge_packet(p);
 				_p_in_flight--;
 			});
+		}
+
+		usb_host_endpoint *_host_ep(uint8_t ep)
+		{
+			return ep & USB_DIR_IN ? _udev.ep_in[ep & 0xf] : _udev.ep_out[ep & 0xf];
 		}
 
 		/**
@@ -359,8 +365,7 @@ class Device : public List<Device>::Element
 
 			if (p.transfer.polling_interval == Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL) {
 
-				usb_host_endpoint *ep = read ? _udev.ep_in[p.transfer.ep & 0x0f]
-				                             : _udev.ep_out[p.transfer.ep & 0x0f];
+				usb_host_endpoint *ep = _host_ep(p.transfer.ep);
 
 				if (!ep) {
 					error("could not get ep: ", p.transfer.ep);
@@ -415,16 +420,14 @@ class Device : public List<Device>::Element
 		bool _isoc(Packet_descriptor &p, bool read)
 		{
 			unsigned           pipe;
-			usb_host_endpoint *ep;
+			usb_host_endpoint *ep  = _host_ep(p.transfer.ep);
 			void              *buf = dma_malloc(p.size());
 
 			if (read) {
 				pipe = usb_rcvisocpipe(&_udev, p.transfer.ep);
-				ep   = _udev.ep_in[p.transfer.ep & 0x0f];
 			}
 			else {
 				pipe = usb_sndisocpipe(&_udev, p.transfer.ep);
-				ep   = _udev.ep_out[p.transfer.ep & 0x0f];
 				Genode::memcpy(buf, _sink->packet_content(p), p.size());
 			}
 
@@ -536,6 +539,23 @@ class Device : public List<Device>::Element
 		}
 
 		/**
+		 * Flush all pending URBs for endpoint
+		 */
+		void _flush_endpoint(Packet_descriptor &p)
+		{
+			usb_host_endpoint *ep = _host_ep(p.number);
+
+			if (!ep) {
+				error("could net get ep: ", p.number);
+				p.error = Usb::Packet_descriptor::INTERFACE_OR_ENDPOINT_ERROR;
+				return;
+			}
+
+			usb_hcd_flush_endpoint(&_udev, ep);
+			p.succeded = true;
+		}
+
+		/**
 		 * Dispatch incoming packet types
 		 */
 		void _dispatch()
@@ -596,6 +616,10 @@ class Device : public List<Device>::Element
 
 					case Packet_descriptor::RELEASE_IF:
 						_release_interface(p);
+						break;
+
+					case Packet_descriptor::FLUSH_TRANSFERS:
+						_flush_endpoint(p);
 						break;
 				}
 

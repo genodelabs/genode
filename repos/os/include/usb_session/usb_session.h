@@ -33,7 +33,7 @@ namespace Usb {
  */
 struct Usb::Packet_descriptor : Genode::Packet_descriptor
 {
-	enum Type { STRING, CTRL, BULK, IRQ, ISOC, ALT_SETTING, CONFIG, RELEASE_IF };
+	enum Type { STRING, CTRL, BULK, IRQ, ISOC, ALT_SETTING, CONFIG, RELEASE_IF, FLUSH_TRANSFERS };
 	enum Iso  { MAX_PACKETS = 32 };
 
 	/* use the polling interval stated in the endpoint descriptor */
