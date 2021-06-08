@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/semaphore.h>
 #include <irq_session/client.h>
 #include <os/ring_buffer.h>
 #include <platform_session/connection.h>
@@ -60,9 +59,16 @@ private:
 	Attached_dataspace _spi_ctl_ds{ _env.rm(), _device.io_mem_dataspace(0) };
 	Spi::Mmio          _mmio{ reinterpret_cast<addr_t>(_spi_ctl_ds.local_addr<uint16_t>()) };
 
+	/* driver state */
+	enum State {
+		IDLE,
+		TRANSMITTING,
+	};
+
+	volatile State _state { State::IDLE };
+
 	/* interrupt handler */
-	Genode::Semaphore               _sem_exchange { 1 };
-	Irq_session_client              _irq{ _device.irq() };
+	Irq_session_client              _irq { _device.irq() };
 	Io_signal_handler<Ecspi_driver> _irq_handler;
 
 	void _irq_handle();

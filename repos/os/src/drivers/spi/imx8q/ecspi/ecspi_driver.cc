@@ -53,7 +53,7 @@ void Spi::Ecspi_driver::_irq_handle()
 		}
 		/* tx_complete must be cleared. Reset value = 1 */
 		_mmio.write<Mmio::Status::Tx_complete>(1);
-		_sem_exchange.up();
+		_state = State::IDLE;
 	}
 
 	_irq.ack_irq();
@@ -107,17 +107,17 @@ void Spi::Ecspi_driver::_bus_disable()
 
 void Spi::Ecspi_driver::_bus_execute_transaction()
 {
-	_sem_exchange.down();
 
 	/* set the exchange bit which tell the hardware to start executing the transaction */
+	_state = State::TRANSMITTING;
 	_mmio.write<Mmio::Control::Exchange>(1);
 
 	uint64_t const start_time = _timer.elapsed_ms();
 	/* wait the Tx_complete irq to notify us */
-	while (_sem_exchange.cnt() == 0) {
+	while (_state == State::TRANSMITTING) {
 		uint64_t const current = _timer.elapsed_ms();
 		if (current - start_time > _config.timeout) {
-			_sem_exchange.up();
+			_state = State::IDLE;
 			_bus_disable();
 			if (_config.verbose) {
 				error("Bus timeout");
