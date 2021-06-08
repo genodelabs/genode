@@ -34,7 +34,6 @@ using Packet_alloc_failed = Usb::Session::Tx::Source::Packet_alloc_failed;
 using Packet_type         = Usb::Packet_descriptor::Type;
 using Packet_error        = Usb::Packet_descriptor::Error;
 
-
 static unsigned endpoint_number(USBEndpoint const *usb_ep)
 {
 		bool in = usb_ep->pid == USB_TOKEN_IN;
@@ -342,12 +341,8 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			Usb::Packet_descriptor packet = usb_raw.source()->get_acked_packet();
 			Completion *c = dynamic_cast<Completion *>(packet.completion);
 
-			if ((packet.type == Packet_type::ISOC && !packet.read_transfer())) {
-				free_packet(packet);
-				_isoch_out_pending--;
-				continue;
-			}
-			if ((c && c->state == Completion::CANCELED)) {
+			if ((packet.type == Packet_type::ISOC && !packet.read_transfer()) ||
+			    (c && c->state == Completion::CANCELED)) {
 				free_packet(packet);
 				continue;
 			}
@@ -355,12 +350,11 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			char *content = usb_raw.source()->packet_content(packet);
 
 			if (packet.type != Packet_type::ISOC) {
-				c->complete(packet, content);
+				if (c) c->complete(packet, content);
 				free_packet(packet);
 			} else {
 				/* isochronous in */
 				free_completion(packet);
-				_isoc_in_pending--;
 				Isoc_packet *new_packet = new (_alloc)
 					Isoc_packet(packet, content);
 				isoc_read_queue.enqueue(*new_packet);
@@ -393,9 +387,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	bool isoc_new_packet()
 	{
-		unsigned count = 0;
-		isoc_read_queue.for_each([&count] (Isoc_packet&) { count++; });
-		return (count + _isoc_in_pending) < 32 ? true : false;
+		return _isoc_in_pending < 32 ? true : false;
 	}
 
 	void isoc_in_packet(USBPacket *usb_packet)
@@ -403,8 +395,9 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		enum { NUMBER_OF_PACKETS = 1 };
 		isoc_read(usb_packet);
 
-		if (!isoc_new_packet())
+		if (!isoc_new_packet()) {
 			return;
+		}
 
 		size_t size = usb_packet->ep->max_packet_size * NUMBER_OF_PACKETS;
 		try {
@@ -424,7 +417,6 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			c->endpoint   = endpoint_number(usb_packet->ep);
 
 			_isoc_in_pending++;
-
 			submit(packet);
 		} catch (Packet_alloc_failed) {
 			if (verbose_warnings)
@@ -553,6 +545,11 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	void free_packet(Usb::Packet_descriptor &packet)
 	{
+		if (packet.type == Packet_type::ISOC) {
+			if (packet.read_transfer()) _isoc_in_pending--;
+			else _isoch_out_pending--;
+		}
+
 		free_completion(packet);
 		usb_raw.source()->release_packet(packet);
 	}
@@ -651,6 +648,20 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			if (verbose_warnings)
 				warning(__func__, " packet allocation failed");
 			p->status = USB_RET_NAK;
+		}
+	}
+
+
+	void flush_transfers(uint8_t ep)
+	{
+		try {
+			Usb::Packet_descriptor packet = alloc_packet(0, false);
+			packet.type                   = Usb::Packet_descriptor::FLUSH_TRANSFERS;
+			packet.number                 = ep;
+			submit(packet);
+		} catch (...) {
+			if (verbose_warnings)
+				warning(__func__, " packet allocation failed");
 		}
 	}
 
@@ -877,10 +888,14 @@ static void usb_host_ep_stopped(USBDevice *udev, USBEndpoint *usb_ep)
 	bool     in = usb_ep->pid == USB_TOKEN_IN;
 	unsigned ep = endpoint_number(usb_ep);
 
+	/* flush pending transfers */
+	dev->flush_transfers(ep);
+
 	switch (usb_ep->type) {
 	case USB_ENDPOINT_XFER_ISOC:
-		if (in)
-			dev->isoc_in_flush(ep);
+		if (in) {
+			dev->isoc_in_flush(ep, true);
+		}
 	default:
 		return;
 	}
