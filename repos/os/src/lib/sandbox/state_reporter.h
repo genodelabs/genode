@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <timer_session/connection.h>
-#include <os/sandbox.h>
+#include <sandbox/sandbox.h>
 
 /* local includes */
 #include "report.h"

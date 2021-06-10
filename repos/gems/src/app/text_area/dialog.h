@@ -18,7 +18,7 @@
 #include <base/component.h>
 #include <base/session_object.h>
 #include <os/buffered_xml.h>
-#include <os/sandbox.h>
+#include <sandbox/sandbox.h>
 #include <os/dynamic_rom_session.h>
 #include <input/event.h>
 #include <util/utf8.h>

@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
-#include <os/sandbox.h>
+#include <sandbox/sandbox.h>
 
 /* local includes */
 #include <child.h>

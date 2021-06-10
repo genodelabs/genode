@@ -15,7 +15,7 @@
 #include <log_session/log_session.h>
 #include <base/session_object.h>
 #include <os/buffered_xml.h>
-#include <os/sandbox.h>
+#include <sandbox/sandbox.h>
 #include <timer_session/connection.h>
 
 namespace Test {

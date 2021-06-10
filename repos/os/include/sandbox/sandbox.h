@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__OS__SANDBOX_H_
-#define _INCLUDE__OS__SANDBOX_H_
+#ifndef _INCLUDE__SANDBOX__SANDBOX_H_
+#define _INCLUDE__SANDBOX__SANDBOX_H_
 
 #include <util/xml_node.h>
 #include <util/noncopyable.h>
@@ -276,4 +276,4 @@ struct Genode::Sandbox::Local_service : private Local_service_base
 	}
 };
 
-#endif /* _INCLUDE__OS__SANDBOX_H_ */
+#endif /* _INCLUDE__SANDBOX__SANDBOX_H_ */

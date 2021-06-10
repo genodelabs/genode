@@ -20,7 +20,7 @@
 #include <os/session_requester.h>
 #include <os/session_policy.h>
 #include <os/buffered_xml.h>
-#include <os/sandbox.h>
+#include <sandbox/sandbox.h>
 
 /* local includes */
 #include <types.h>

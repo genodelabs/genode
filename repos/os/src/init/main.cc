@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/sandbox.h>
+#include <sandbox/sandbox.h>
 #include <os/reporter.h>
 
 namespace Init {
