@@ -44,7 +44,7 @@
 			<binary name="virtualbox6" />
 			<resource name="RAM" quantum="8G"/>
 			<exit propagate="yes"/>
-			<config vbox_file="machine.vbox" xhci="yes" vm_name="linux" capslock="ROM">
+			<config vbox_file="machine.vbox" xhci="yes" vm_name="linux" capslock="rom">
 				<vfs>
 					<dir name="dev">
 						<log/> <rtc/> <null/> <zero/>

@@ -207,19 +207,63 @@ struct Main : Event_handler
 		}
 	} _idisplay { _iconsole };
 
+	Signal_handler<Main> _capslock_handler { _env.ep(), *this, &Main::_handle_capslock };
+
+	void _handle_capslock();
+
+	struct Capslock
+	{
+		enum class Mode { RAW, ROM } const mode;
+
+		bool _host  { false };
+		bool _guest { false };
+
+		Constructible<Attached_rom_dataspace> _rom;
+
+		Capslock(Env &env, Xml_node config, Signal_context_capability sigh)
+		:
+			mode(config.attribute_value("capslock", String<4>()) == "rom"
+			   ? Mode::ROM : Mode::RAW)
+		{
+			if (mode == Mode::ROM) {
+				_rom.construct(env, "capslock");
+				_rom->sigh(sigh);
+			}
+		}
+
+		void update_guest(bool enabled) { _guest = enabled; }
+
+		bool update_from_rom()
+		{
+			_rom->update();
+
+			bool const rom = _rom->xml().attribute_value("enabled", _guest);
+
+			bool trigger = false;
+
+			/*
+			 * If guest didn't respond with led change last time, we have to
+			 * trigger CapsLock change - mainly assuming that guest don't use the
+			 * led to externalize its internal state.
+			 */
+			if (rom != _host && _host != _guest)
+				trigger = true;
+
+			if (rom != _guest)
+				trigger = true;
+
+			/* remember last seen host capslock state */
+			_host = rom;
+
+			return trigger;
+		}
+	} _capslock { _env, _config.xml(), _capslock_handler };
+
 	Registry<Registered<Gui::Connection>> _gui_connections { };
 
 	Signal_handler<Main> _input_handler { _env.ep(), *this, &Main::_handle_input };
 
-	void _handle_input_event(Input::Event const &);
-
-	void _handle_input()
-	{
-		Libc::with_libc([&] {
-			_gui_connections.for_each([&] (Gui::Connection &gui) {
-				gui.input()->for_each_event([&] (Input::Event const &ev) {
-					_handle_input_event(ev); }); }); });
-	}
+	void _handle_input();
 
 	Input_adapter _input_adapter { _iconsole };
 
@@ -296,9 +340,34 @@ struct Main : Event_handler
 };
 
 
-void Main::_handle_input_event(Input::Event const &ev)
+void Main::_handle_capslock()
 {
-	_input_adapter.handle_input_event(ev);
+	if (_capslock.update_from_rom()) {
+		Libc::with_libc([&] {
+			_input_adapter.handle_input_event(Input::Event { Input::Press   { Input::KEY_CAPSLOCK } });
+			_input_adapter.handle_input_event(Input::Event { Input::Release { Input::KEY_CAPSLOCK } });
+		});
+	}
+}
+
+
+void Main::_handle_input()
+{
+	auto handle_one_event = [&] (Input::Event const &ev) {
+		/* don't confuse guests and drop CapsLock events in ROM mode  */
+		if (_capslock.mode == Capslock::Mode::ROM) {
+			if (ev.key_press(Input::KEY_CAPSLOCK)
+			 || ev.key_release(Input::KEY_CAPSLOCK))
+				return;
+		}
+
+		_input_adapter.handle_input_event(ev);
+	};
+
+	Libc::with_libc([&] {
+		_gui_connections.for_each([&] (Gui::Connection &gui) {
+			gui.input()->for_each_event([&] (Input::Event const &ev) {
+				handle_one_event(ev); }); }); });
 }
 
 
@@ -314,7 +383,14 @@ void Main::handle_vbox_event(VBoxEventType_T ev_type, IEvent &ev)
 		} break;
 
 	case VBoxEventType_OnMousePointerShapeChanged: break;
-	case VBoxEventType_OnKeyboardLedsChanged:      break;
+
+	case VBoxEventType_OnKeyboardLedsChanged:
+		{
+			ComPtr<IKeyboardLedsChangedEvent> led_ev = &ev;
+			BOOL capslock;
+			led_ev->COMGETTER(CapsLock)(&capslock);
+			_capslock.update_guest(!!capslock);
+		} break;
 
 	default: /* ignore other events */ break;
 	}
@@ -335,7 +411,7 @@ void Libc::Component::construct(Libc::Env &env)
 		char **envp = nullptr;
 
 		populate_args_and_env(env, argc, argv, envp);
-	
+
 		environ = envp;
 
 		Pthread::init(env);

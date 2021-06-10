@@ -1,0 +1,32 @@
+VirtualBox configuration options
+================================
+
+The configuration requires an attribute named vbox_file with the name of the
+vbox configuration to be used (.vbox).
+
+<config vbox_file="file.vbox">
+
+XHCI controller
+~~~~~~~~~~~~~~~
+
+The virtual XHCI controller can be enabled with the following
+configuration option:
+
+<config xhci="yes">
+
+CapsLock
+~~~~~~~~
+
+Per default CapsLock key events are send unmodified to guest
+operating systems. As guest and host state may diverge, the event
+filter optionally reports the capslock state as ROM, which can be
+monitored by VirtualBox if configured like follows.
+
+<config capslock="rom">
+
+VirtualBox requests a "capslock" ROM, which is interpreted as XML. The
+top-level node attribute 'enabled' is expected boolean and represents
+the CapsLock state. If ROM and VM-internal CapsLock state differ, the
+VMM sends aritifical CapsLock key events to the VM. In this mode,
+incoming KEY_CAPSLOCK input events a dropped and not sent to the guest
+to prevent the state divergence.
