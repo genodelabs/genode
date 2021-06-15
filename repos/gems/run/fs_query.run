@@ -45,6 +45,13 @@ install_config {
 			<config verbose="yes"/>
 		</start>
 
+		<start name="report_rom_empty_vfs">
+			<binary name="report_rom"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config verbose="yes"/>
+		</start>
+
 		<start name="vfs">
 			<resource name="RAM" quantum="10M"/>
 			<provides><service name="File_system"/></provides>
@@ -77,14 +84,41 @@ install_config {
 			</route>
 		</start>
 
+		<start name="fs_query_empty_vfs" caps="120">
+			<binary name="fs_query"/>
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs/>
+				<query path="/non_existent_1"/>
+				<query path="/non_existent_1/non_existent_2"/>
+				<query path="/"/>
+			</config>
+			<route>
+				<service name="Report">
+					<child name="report_rom_empty_vfs"/>
+				</service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
 		<start name="fs_query" caps="120">
 			<resource name="RAM" quantum="2M"/>
 			<config>
-				<vfs> <dir name="fs"> <fs writeable="yes"/> </dir> </vfs>
+				<vfs>
+					<dir name="empty"/>
+					<dir name="fs"> <fs writeable="yes"/> </dir>
+				</vfs>
 				<query path="/fs/items/non_existent_1"/>
 				<query path="/fs/items" content="yes"/>
 				<query path="/fs/non_existent_2" content="yes"/>
+				<query path="/empty" content="yes"/>
 			</config>
+			<route>
+				<service name="Report">
+					<child name="report_rom"/>
+				</service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
 		</start>
 
 		<start name="test" caps="700">
@@ -197,6 +231,8 @@ append qemu_args " -nographic "
 
 run_genode_until {.*child "test" exited with exit value 0.*\n} 50
 
+set original_output $output
+
 grep_output {\[init -> report_rom\].*}
 
 set num_listings [regexp -all {report 'fs_query -> listing'} $output dummy]
@@ -222,5 +258,17 @@ compare_output_to {
 [init -> report_rom]   </file>
 [init -> report_rom]   		<file name="4" writeable="yes">fourth</file>
 [init -> report_rom]   	</dir>
+[init -> report_rom]   	<dir path="/empty"/>
 [init -> report_rom]   </listing>
+}
+
+set output $original_output
+
+grep_output {\[init -> report_rom_empty_vfs\].*}
+
+compare_output_to {
+[init -> report_rom_empty_vfs] report 'fs_query_empty_vfs -> listing'
+[init -> report_rom_empty_vfs]   <listing>
+[init -> report_rom_empty_vfs]   	<dir path="/"/>
+[init -> report_rom_empty_vfs]   </listing>
 }

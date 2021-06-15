@@ -617,7 +617,31 @@ class Vfs::Dir_file_system : public File_system
 		Opendir_result open_composite_dirs(char const *sub_path,
 		                                   Dir_vfs_handle &dir_vfs_handle)
 		{
-			Opendir_result res = OPENDIR_ERR_LOOKUP_FAILED;
+			Opendir_result res;
+			if (strcmp(sub_path, "/")) {
+
+				/*
+				 * If there are still directory names in the sub-path, we have
+				 * not reached the leaf node of the original path so far.
+				 * Therefore, if the current directory is empty, this means
+				 * that the original path refers to a directory that doesn't
+				 * exist. Consequently, the result defaults to a
+				 * "lookup failed" error.
+				 */
+				res = OPENDIR_ERR_LOOKUP_FAILED;
+
+			} else {
+
+				/*
+				 * We have reached the leaf node of the original path.
+				 * Therefore the directory referenced by the original path is
+				 * the one that we are at. Consequently, we can let the result
+				 * default to "success" regardless of whether the directory is
+				 * empty. However, if there are any sub-file-systems, we will
+				 * go on and store handles for them in the registry.
+				 */
+				res = OPENDIR_OK;
+			}
 			try {
 				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
 					Vfs_handle *sub_dir_handle = nullptr;
