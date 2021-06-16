@@ -7,7 +7,8 @@ Currently there is support for MBIM (Mobile Broadband Interface Model) devices
 only. QMI devices might be supported in the future.
 
 Tested devices:
-Huawai ME906s (P/V: 12d1:15c1)
+Huawai ME906s      (P/V: 12d1:15c1)
+Fibocom L830-EB-00 (P/V: 2cb7:0210)
 
 Other devices can be added by enabling the MBIM configuration profile for the
 USB device in ' Driver::Device::set_config' (main.cc) of this driver.
@@ -16,11 +17,13 @@ Configuration snippet:
 
 !<start name="usb_modem_drv">
 !  <resource name="RAM" quantum="10M"/>
+!  <requires>
+!    <service name="Uplink"/>
+!  </requires>
 !  <provides>
-!    <service name="Nic"/>
 !    <service name="Terminal"/>
 !  </provides>
-!  <config mac="02:00:00:00:01:01" />
+!  <config mac="02:00:00:00:01:01" mode="uplink_client"/>
 !</start>
 
 The driver offers two Genode sessions: The first one is a terminal session where
