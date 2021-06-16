@@ -8,16 +8,16 @@ DIR(ffi) := src/lib/ffi
 
 $(call check_tool,sed)
 
-DIRS := include/ffi/x86_64 include/ffi/arm include/ffi/arm_64
-DIR_CONTENT(include/ffi/x86_64) := src/lib/ffi/src/x86/ffitarget.h
-DIR_CONTENT(include/ffi/arm)    := src/lib/ffi/src/arm/ffitarget.h
-DIR_CONTENT(include/ffi/arm_64) := src/lib/ffi/src/aarch64/ffitarget.h
+DIRS := include/ffi/spec/x86_64 include/ffi/spec/arm include/ffi/spec/arm_64
+DIR_CONTENT(include/ffi/spec/x86_64) := src/lib/ffi/src/x86/ffitarget.h
+DIR_CONTENT(include/ffi/spec/arm)    := src/lib/ffi/src/arm/ffitarget.h
+DIR_CONTENT(include/ffi/spec/arm_64) := src/lib/ffi/src/aarch64/ffitarget.h
 
 gen_inc   := ffi.h
 
-gen_files := $(addprefix include/ffi/x86_64/,$(gen_inc)) \
-             $(addprefix include/ffi/arm/,$(gen_inc)) \
-             $(addprefix include/ffi/arm_64/,$(gen_inc))
+gen_files := $(addprefix include/ffi/spec/x86_64/,$(gen_inc)) \
+             $(addprefix include/ffi/spec/arm/,$(gen_inc)) \
+             $(addprefix include/ffi/spec/arm_64/,$(gen_inc))
 
 default: $(gen_files)
 
@@ -43,17 +43,17 @@ subst_ARM_64 := \
 
 apply_substitutions = $(VERBOSE)for i in $(2); do sed -i "s/$$i/g" $(1); done
 
-include/ffi/x86_64/ffi.h:
+include/ffi/spec/x86_64/ffi.h:
 	@$(MSG_GENERATE)$@
 	$(VERBOSE)cp src/lib/ffi/include/ffi.h.in $@
 	$(call apply_substitutions,$@,$(subst_x86_64))
 
-include/ffi/arm/ffi.h:
+include/ffi/spec/arm/ffi.h:
 	@$(MSG_GENERATE)$@
 	$(VERBOSE)cp src/lib/ffi/include/ffi.h.in $@
 	$(call apply_substitutions,$@,$(subst_ARM))
 
-include/ffi/arm_64/ffi.h:
+include/ffi/spec/arm_64/ffi.h:
 	@$(MSG_GENERATE)$@
 	$(VERBOSE)cp src/lib/ffi/include/ffi.h.in $@
 	$(call apply_substitutions,$@,$(subst_ARM_64))

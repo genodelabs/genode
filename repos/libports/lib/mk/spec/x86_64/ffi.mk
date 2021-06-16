@@ -6,7 +6,7 @@ FFI_PORT = $(call select_from_ports,ffi)/src/lib/ffi
 
 INC_DIR = $(FFI_PORT)/include
 
-INC_DIR += $(call select_from_ports,ffi)/include/ffi/x86_64 \
+INC_DIR += $(call select_from_ports,ffi)/include/ffi/spec/x86_64 \
            $(REP_DIR)/src/lib/ffi
 
 CC_OPT = -DFFI_NATAIVE_RAW_API=1 -DFFI_NO_RAW_API=0

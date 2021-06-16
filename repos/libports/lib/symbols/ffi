@@ -1,0 +1,27 @@
+__gnu_Unwind_Find_exidx T
+dl_unwind_find_exidx W
+ffi_call T
+ffi_call_unix64 T
+ffi_closure_unix64 T
+ffi_closure_unix64_inner T
+ffi_prep_cif T
+ffi_prep_cif_machdep T
+ffi_prep_cif_var T
+ffi_prep_closure T
+ffi_prep_closure_loc T
+ffi_type_complex_double D 24
+ffi_type_complex_float D 24
+ffi_type_complex_longdouble D 24
+ffi_type_double R 24
+ffi_type_float R 24
+ffi_type_longdouble R 24
+ffi_type_pointer R 24
+ffi_type_sint16 R 24
+ffi_type_sint32 R 24
+ffi_type_sint64 R 24
+ffi_type_sint8 R 24
+ffi_type_uint16 R 24
+ffi_type_uint32 R 24
+ffi_type_uint64 R 24
+ffi_type_uint8 R 24
+ffi_type_void R 24
