@@ -1443,8 +1443,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			 *     => better construct Buffer object as whole
 			 */
 
-			/* roundup to next page size and add guarding page */
-			size = ((size + 0xffful) & ~0xffful) + 0x1000;
+			/* roundup to next page size */
+			size = ((size + 0xffful) & ~0xffful);
 
 			try {
 				Genode::Dataspace_capability cap = _device.alloc_buffer(_heap, size);

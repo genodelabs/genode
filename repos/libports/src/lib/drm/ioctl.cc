@@ -380,7 +380,8 @@ class Drm_call
 		{
 			drm_i915_gem_create * const p = reinterpret_cast<drm_i915_gem_create*>(arg);
 
-			uint64_t const size = (p->size + 0xfff) & ~0xfff;
+			/* roundup to next page size and add guarding page */
+			uint64_t const size = ((p->size + 0xfff) & ~0xfff) + 0x1000;
 			Handle handle       = _alloc_buffer(size);
 			if (handle == INVALID_HANDLE) { return -1; }
 
