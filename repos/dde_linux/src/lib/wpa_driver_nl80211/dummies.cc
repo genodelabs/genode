@@ -54,6 +54,5 @@ DUMMY(0, getprotobynumber)
 DUMMY(0, nl_addr_get_binary_addr)
 DUMMY(0, nl_addr_get_len)
 DUMMY(0, nl_hash_any)
-DUMMY(0, rint)
 
 } /* extern "C" */

@@ -247,6 +247,7 @@ ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags)
 	w_msg.msg_name    = msg->msg_name;
 	w_msg.msg_namelen = msg->msg_namelen;
 	w_msg.msg_iovlen  = msg->msg_iovlen;
+	w_msg.msg_count   = 0;
 	for (unsigned i = 0; i < w_msg.msg_iovlen; ++i) {
 		w_msg.msg_iov[i].iov_base = msg->msg_iov[i].iov_base;
 		w_msg.msg_iov[i].iov_len  = msg->msg_iov[i].iov_len;
@@ -306,6 +307,7 @@ ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags)
 	w_msg.msg_name    = msg->msg_name;
 	w_msg.msg_namelen = msg->msg_namelen;
 	w_msg.msg_iovlen  = msg->msg_iovlen;
+	w_msg.msg_count   = 0;
 	for (unsigned i = 0; i < w_msg.msg_iovlen; ++i) {
 		w_msg.msg_iov[i].iov_base = msg->msg_iov[i].iov_base;
 		w_msg.msg_iov[i].iov_len  = msg->msg_iov[i].iov_len;

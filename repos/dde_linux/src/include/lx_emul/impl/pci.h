@@ -44,7 +44,8 @@ extern "C" int pci_register_driver(struct pci_driver *driver)
 		pci_device_id const *matching_id = nullptr;
 		for (pci_device_id const *id = id_table; id->device; id++) {
 			if ((id->device == device_id) &&
-			    (id->subdevice == PCI_ANY_ID || id->subdevice == subdevice_id)) {
+			    (id->subdevice == (unsigned int)PCI_ANY_ID ||
+			     id->subdevice == subdevice_id)) {
 				matching_id = id;
 				break;
 			}

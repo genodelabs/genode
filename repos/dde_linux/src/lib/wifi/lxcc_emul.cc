@@ -1551,7 +1551,7 @@ struct Idr
 		if (_barray.get(index, 1)) { return false; }
 
 		_barray.set(index, 1);
-		_ptr[index] = ptr;
+		_ptr[index] = (addr_t)ptr;
 		return true;
 	}
 

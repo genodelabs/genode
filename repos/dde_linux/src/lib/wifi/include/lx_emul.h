@@ -353,7 +353,7 @@ struct page
 	atomic_t _count;
 	void     *addr;
 	unsigned long private;
-} __attribute((packed));
+};
 
 
 /**********************

@@ -35,6 +35,7 @@
 /* rep includes */
 #include <wifi/ctrl.h>
 
+typedef unsigned unaligned_unsigned __attribute__ ((aligned (1)));
 
 struct ctrl_iface_priv {
 	struct wpa_supplicant *wpa_s;
@@ -42,19 +43,19 @@ struct ctrl_iface_priv {
 	int level;
 
 	/* TODO replace w/ Msg_buffer */
-	char     *send_buffer;
-	size_t    send_buffer_size;
-	unsigned *send_id;
+	char               *send_buffer;
+	size_t              send_buffer_size;
+	unaligned_unsigned *send_id;
 
-	char     *recv_buffer;
-	size_t    recv_buffer_size;
-	unsigned *recv_id;
+	char               *recv_buffer;
+	size_t              recv_buffer_size;
+	unaligned_unsigned *recv_id;
 
 	unsigned last_recv_id;
 
-	char     *event_buffer;
-	size_t    event_buffer_size;
-	unsigned *event_id;
+	char               *event_buffer;
+	size_t              event_buffer_size;
+	unaligned_unsigned *event_id;
 };
 
 
