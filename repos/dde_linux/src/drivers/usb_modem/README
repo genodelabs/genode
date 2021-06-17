@@ -23,11 +23,11 @@ Configuration snippet:
 !  <provides>
 !    <service name="Terminal"/>
 !  </provides>
-!  <config mac="02:00:00:00:01:01" mode="uplink_client"/>
+!  <config mac="02:00:00:00:01:01"/>
 !</start>
 
 The driver offers two Genode sessions: The first one is a terminal session where
 raw packet data, for example, MBIM packets can be send to the device via CDC WDM
 (wireless communication device class). An example can be found in Genode World
 (_src/app/mbimcli_). Once a data connection is established via the Terminal
-session, the NIC session can be used to transfer ethernet frames.
+session, the Uplink session can be used to transfer Ethernet frames.

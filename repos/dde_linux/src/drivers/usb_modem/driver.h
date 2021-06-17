@@ -24,7 +24,6 @@
 
 /* local includes */
 #include <uplink_client.h>
-#include <component.h>
 #include <terminal.h>
 
 /* Linux emulation environment includes */
@@ -33,9 +32,6 @@
 #include <lx_emul/extern_c_begin.h>
 #include <linux/usb.h>
 #include <lx_emul/extern_c_end.h>
-
-/* NIC driver includes */
-#include <drivers/nic/mode.h>
 
 struct usb_device_id;
 struct usb_interface;
@@ -156,10 +152,8 @@ struct Driver
 	Genode::Env                                           &env;
 	Genode::Entrypoint                                    &ep             { env.ep() };
 	Genode::Attached_rom_dataspace                         config_rom     { env, "config" };
-	Genode::Nic_driver_mode const                          mode           { read_nic_driver_mode(config_rom.xml()) };
 	Genode::Heap                                           heap           { env.ram(), env.rm() };
 	Genode::Allocator_avl                                  alloc          { &heap };
-	Genode::Constructible<Root>                            root           { };
 	Genode::Constructible<Genode::Uplink_client>           uplink_client  { };
 	Terminal::Root                                         terminal_root  { env, heap };
 	Genode::Constructible<Task>                            main_task;
@@ -169,20 +163,10 @@ struct Driver
 
 	void activate_network_session()
 	{
-		switch (mode) {
-		case Genode::Nic_driver_mode::NIC_SERVER:
-
-			env.parent().announce(ep.manage(*root));
-			break;
-
-		case Genode::Nic_driver_mode::UPLINK_CLIENT:
-
-			uplink_client.construct(
-				env, heap,
-				config_rom.xml().attribute_value(
-					"uplink_label", Genode::Session_label::String { "" }));
-			break;
-		}
+		uplink_client.construct(
+			env, heap,
+			config_rom.xml().attribute_value(
+				"uplink_label", Genode::Session_label::String { "" }));
 	}
 
 	static void main_task_entry(void *);
