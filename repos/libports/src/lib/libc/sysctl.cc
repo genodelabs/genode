@@ -87,6 +87,7 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 		switch(index_a) {
 		case CTL_HW: switch(index_b) {
 
+			case HW_REALMEM:
 			case HW_PHYSMEM:
 			case HW_USERMEM:
 				switch (*oldlenp) {
