@@ -1,0 +1,75 @@
+#!/usr/bin/make -f
+#
+# \brief  Dependencies list tool for DDE Linux
+# \author Stefan Kalkowski
+# \date   2021-06-16
+#
+
+help:
+	$(ECHO) ""
+	$(ECHO) "Create dependency list for DDE Linux"
+	$(ECHO) ""
+	$(ECHO) "This tool analyzes all dependencies of a DDE Linux port to Genode."
+	$(ECHO) "It extracts all referenced files from the given Linux kernel,"
+	$(ECHO) "and prints the results into a file. Thereby, it leaves out all files"
+	$(ECHO) "that gets already build by the Genode target, which have to be"
+	$(ECHO) "listed in a separate given sources file."
+	$(ECHO) ""
+	$(ECHO) "usage:"
+	$(ECHO) ""
+	$(ECHO) "  list_dependencies <command> [VARIABLES]"
+	$(ECHO) ""
+	$(ECHO) "--- available commands ---"
+	$(ECHO) "help         - shows this help"
+	$(ECHO) "generate     - generates DEP_LIST_FILE for given TARGET_DIR"
+	$(ECHO) ""
+	$(ECHO) "--- used variables ---"
+	$(ECHO) "TARGET_DIR        - path to the Genode build target"
+	$(ECHO) "LINUX_KERNEL_DIR  - path to the Linux kernel build"
+	$(ECHO) "SOURCE_LIST_FILE  - path to the file with all contrib sources listed"
+	$(ECHO) "DEP_LIST_FILE     - path to the file that shall be generated"
+	$(ECHO) ""
+
+
+COMMAND := $(firstword $(MAKECMDGOALS))
+
+SHELL = bash
+ECHO  = @echo -e
+
+#
+# Sanity checks
+#
+
+ifeq ($(COMMAND),generate)
+
+ifeq ($(realpath $(TARGET_DIR)),)
+$(error You have to state a valid build TARGET_DIR, try help)
+endif
+TARGET_ABS := $(shell realpath $(TARGET_DIR))
+
+ifeq ($(realpath $(LINUX_KERNEL_DIR)),)
+$(error You have to state a valid LINUX_KERNEL_DIR, try help)
+endif
+LINUX_KERNEL_DIR_ABS := $(realpath $(LINUX_KERNEL_DIR))
+
+ifeq ($(realpath $(SOURCE_LIST_FILE)),)
+$(error You have to state a valid SOURCE_LIST_FILE, try help)
+endif
+
+ifeq ($(DEP_LIST_FILE),)
+$(error You have to state a DEP_LIST_FILE, try help)
+endif
+
+ALL_SRCS := $(shell cat $(SOURCE_LIST_FILE))
+ALL_DEPS := $(subst $(LINUX_KERNEL_DIR_ABS)/,,$(shell find $(TARGET_ABS) -name "*.d" | xargs sed -e 's/.*://' -e 's/ \\$$//' | grep "$(LINUX_KERNEL_DIR_ABS)" | grep -v "/generated/" | xargs realpath -s | sort -u))
+
+is_src_file = $(firstword $(filter $(1),$(ALL_SRCS)))
+
+generate:
+	$(shell rm -f $(DEP_LIST_FILE))
+	$(foreach dep,$(ALL_DEPS),$(if $(call is_src_file,$(dep)),,$(shell echo $(dep) >> $(DEP_LIST_FILE))))
+	@touch $(DEP_LIST_FILE)
+
+.PHONY: generate help
+
+endif
