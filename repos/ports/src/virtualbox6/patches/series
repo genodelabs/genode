@@ -3,3 +3,4 @@ drvtap.patch
 qemu-xhci.patch
 narrowing.patch
 network.patch
+devahci.patch
