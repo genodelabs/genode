@@ -1366,15 +1366,16 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		struct Buffer
 		{
 			Genode::Dataspace_capability cap;
-			Gpu::addr_t ppgtt_va;
 
-			enum { INVALID_FENCE = 0xff, };
-			Genode::uint32_t fenced;
+			Gpu::addr_t ppgtt_va       { };
+			bool        ppgtt_va_valid { false };
+
+			enum { INVALID_FENCE = 0xff };
+			Genode::uint32_t fenced { INVALID_FENCE };
 
 			Igd::Ggtt::Mapping map { };
 
-			Buffer(Genode::Dataspace_capability cap)
-			: cap(cap), ppgtt_va(0), fenced(INVALID_FENCE) { }
+			Buffer(Genode::Dataspace_capability cap) : cap(cap) { }
 
 			virtual ~Buffer() { }
 		};
@@ -1457,31 +1458,37 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		Info info() const override
 		{
 			Genode::size_t const aperture_size = Igd::Device::Vgpu::APERTURE_SIZE;
-			return Info(_device.id(), _device.features(), aperture_size, _vgpu.id());
+			return Info(_device.id(), _device.features(), aperture_size,
+			            _vgpu.id(), { .id = _vgpu.complete_seqno() });
 		}
 
-		void exec_buffer(Genode::Dataspace_capability cap, Genode::size_t) override
+		Gpu::Info::Execution_buffer_sequence exec_buffer(Genode::Dataspace_capability cap,
+		                                                 Genode::size_t) override
 		{
-			Igd::addr_t ppgtt_va = 0;
+			bool found = false;
 
-			auto lookup = [&] (Buffer &buffer) {
+			_buffer_registry.for_each([&] (Buffer &buffer) {
 				if (!(buffer.cap == cap)) { return; }
-				ppgtt_va = buffer.ppgtt_va;
-			};
-			_buffer_registry.for_each(lookup);
 
-			if (!ppgtt_va) {
-				Genode::error("Invalid execbuffer");
-				Genode::Signal_transmitter(_vgpu.completion_sigh()).submit();
-				return;
-			}
+				if (!buffer.ppgtt_va_valid) {
+					Genode::error("Invalid execbuffer");
+					Genode::Signal_transmitter(_vgpu.completion_sigh()).submit();
+					throw Gpu::Session::Invalid_state();
+				}
 
-			_vgpu.setup_ring_buffer(ppgtt_va, _device._ggtt->scratch_page());
+				_vgpu.setup_ring_buffer(buffer.ppgtt_va, _device._ggtt->scratch_page());
+				found = true;
+			});
+
+			if (!found)
+				throw Gpu::Session::Invalid_state();
 
 			try {
 				_device.vgpu_enqueue(_vgpu);
+				return { .id = _vgpu.current_seqno() };
 			} catch (Igd::Device::Already_scheduled &e) {
 				Genode::error("vGPU already scheduled");
+				return { .id = _vgpu.current_seqno() }; /* XXX */
 			}
 		}
 
@@ -1604,7 +1611,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			auto lookup_and_map = [&] (Buffer &buffer) {
 				if (!(buffer.cap == cap)) { return; }
 
-				if (buffer.ppgtt_va != 0) {
+				if (buffer.ppgtt_va_valid) {
 					Genode::error("buffer already mapped");
 					return;
 				}
@@ -1616,6 +1623,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					Genode::addr_t const phys_addr   = buf.phys_addr();
 					_vgpu.rcs_map_ppgtt(va, phys_addr, actual_size);
 					buffer.ppgtt_va = va;
+					buffer.ppgtt_va_valid = true;
 					result = true;
 				} catch (Igd::Device::Could_not_map_buffer) {
 					/* FIXME do not result in Out_of_ram */
@@ -1643,7 +1651,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			auto lookup_and_unmap = [&] (Buffer &buffer) {
 				if (!(buffer.cap == cap)) { return; }
 
-				if (buffer.ppgtt_va == 0) {
+				if (!buffer.ppgtt_va_valid) {
 					Genode::error("buffer not mapped");
 					return;
 				}
@@ -1656,7 +1664,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				Genode::Dataspace_client buf(cap);
 				Genode::size_t const actual_size = buf.size();
 				_vgpu.rcs_unmap_ppgtt(va, actual_size);
-				buffer.ppgtt_va = 0;
+				buffer.ppgtt_va_valid = false;
 			};
 			_buffer_registry.for_each(lookup_and_unmap);
 		}

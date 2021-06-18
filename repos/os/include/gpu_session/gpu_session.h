@@ -42,11 +42,17 @@ struct Gpu::Info
 	size_t     aperture_size;
 	Context_id ctx_id;
 
-	Info(Chip_id chip_id, Features features,
-	     size_t aperture_size, Context_id ctx_id)
+	struct Execution_buffer_sequence {
+		Genode::uint64_t id;
+	} last_completed;
+
+
+	Info(Chip_id chip_id, Features features, size_t aperture_size,
+	     Context_id ctx_id, Execution_buffer_sequence last)
 	:
 		chip_id(chip_id), features(features),
-		aperture_size(aperture_size), ctx_id(ctx_id)
+		aperture_size(aperture_size), ctx_id(ctx_id),
+		last_completed(last)
 	{ }
 };
 
@@ -56,8 +62,9 @@ struct Gpu::Info
  */
 struct Gpu::Session : public Genode::Session
 {
-	struct Out_of_ram             : Genode::Exception { };
-	struct Out_of_caps            : Genode::Exception { };
+	struct Out_of_ram    : Genode::Exception { };
+	struct Out_of_caps   : Genode::Exception { };
+	struct Invalid_state : Genode::Exception { };
 
 	enum { REQUIRED_QUOTA = 1024 * 1024, CAP_QUOTA = 8, };
 
@@ -79,8 +86,12 @@ struct Gpu::Session : public Genode::Session
 	 *
 	 * \param cap   capability to buffer object containing the exec buffer
 	 * \param size  size of the batch buffer in bytes
+	 *
+	 * \return execution buffer sequence number for complete checks
+	 *
+	 * \throw Invalid_state is thrown if the provided buffer is not valid, e.g not mapped
 	 */
-	virtual void exec_buffer(Genode::Dataspace_capability cap, Genode::size_t size) = 0;
+	virtual Gpu::Info::Execution_buffer_sequence exec_buffer(Genode::Dataspace_capability cap, Genode::size_t size) = 0;
 
 	/**
 	 * Register completion signal handler
@@ -153,8 +164,9 @@ struct Gpu::Session : public Genode::Session
 	 *******************/
 
 	GENODE_RPC(Rpc_info, Info, info);
-	GENODE_RPC(Rpc_exec_buffer, void, exec_buffer, Genode::Dataspace_capability,
-	           Genode::size_t);
+	GENODE_RPC_THROW(Rpc_exec_buffer, Gpu::Info::Execution_buffer_sequence, exec_buffer,
+	                 GENODE_TYPE_LIST(Invalid_state),
+	                 Genode::Dataspace_capability, Genode::size_t);
 	GENODE_RPC(Rpc_completion_sigh, void, completion_sigh,
 	           Genode::Signal_context_capability);
 	GENODE_RPC_THROW(Rpc_alloc_buffer, Genode::Dataspace_capability, alloc_buffer,
