@@ -106,3 +106,19 @@ index 584d50f..c1224fb 100644
  
  /* Function name is used for debug output. Non-ANSI, compiler-dependent */
  
+diff --git src/lib/acpica/source/components/utilities/utclib.c b/acpica-5c1c548586f9a754f192a04b7931acabeb4c7239.memset_fix/src/lib/acpica/source/components/utilities/utclib.c
+index 25c20fa..00b44d5 100644
+--- src/lib/acpica/source/components/utilities/utclib.c
++++ src/lib/acpica/source/components/utilities/utclib.c
+@@ -232,6 +232,11 @@
+  *
+  ******************************************************************************/
+ 
++/*
++ * The compiler attribute is required to prevent the generation of a 'memset()'
++ * call in the 'while' loop with gcc 10.
++ */
++__attribute((optimize("no-tree-loop-distribute-patterns")))
+ void *
+ memset (
+     void                    *Dest,
