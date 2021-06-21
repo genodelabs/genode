@@ -214,7 +214,7 @@ CXX_LINK_OPT       += $(LD_OPT_NOSTDLIB)
 #
 # Linker script for dynamically linked programs
 #
-LD_SCRIPT_DYN = $(BASE_DIR)/src/ld/genode_dyn.ld
+LD_SCRIPT_DYN ?= $(BASE_DIR)/src/ld/genode_dyn.ld
 
 #
 # Linker script for shared libraries
