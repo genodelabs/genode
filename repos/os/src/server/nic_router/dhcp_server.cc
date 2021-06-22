@@ -153,23 +153,23 @@ void Dhcp_server::alloc_ip(Ipv4_address const &ip)
 void Dhcp_server::free_ip(Domain       const &domain,
                           Ipv4_address const &ip)
 {
+	/*
+	 * The messages in the catch directives are printed as errors and
+	 * independent from the routers verbosity configuration because the
+	 * exceptions they indicate should never be thrown.
+	 */
 	try {
 		_ip_alloc.free(ip.to_uint32_little_endian() - _ip_first_raw);
 	}
 	catch (Bit_allocator_dynamic::Out_of_indices) {
 
-		/*
-		 * This message is printed independent from the routers
-		 * verbosity configuration in order to track down an exception
-		 * of type Bit_allocator_dynamic::Out_of_indices that was
-		 * previously not caught. We have observed this exception once,
-		 * but without a specific use pattern that would
-		 * enable for a systematic reproduction of the issue.
-		 * The uncaught exception was observed in a 21.03 Sculpt OS
-		 * with a manually configured router, re-configuration involved.
-		 */
-		log("[", domain, "] DHCP server: failed to free IP ",
-		    ip, " (IP range: first ", _ip_first, " last ", _ip_last, ")");
+		error("[", domain, "] DHCP server: out of indices while freeing IP ",
+		      ip, " (IP range: first ", _ip_first, " last ", _ip_last, ")");
+	}
+	catch (Bit_array_dynamic::Invalid_index_access) {
+
+		error("[", domain, "] DHCP server: invalid index while freeing IP ",
+		      ip, " (IP range: first ", _ip_first, " last ", _ip_last, ")");
 	}
 }
 
