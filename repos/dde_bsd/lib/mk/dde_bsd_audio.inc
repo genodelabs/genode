@@ -21,7 +21,8 @@ CC_OPT += -Wno-unused-but-set-variable
 
 # disable builtins
 CC_OPT += -fno-builtin-printf -fno-builtin-snprintf -fno-builtin-vsnprintf \
-          -fno-builtin-malloc -fno-builtin-free -fno-builtin-log -fno-builtin-log2
+          -fno-builtin-malloc -fno-builtin-free -fno-builtin-log -fno-builtin-log2 \
+          -fno-builtin-bzero
 
 CC_OPT += -D_KERNEL
 
