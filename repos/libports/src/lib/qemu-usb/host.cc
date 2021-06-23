@@ -1040,6 +1040,7 @@ struct Usb_devices : List<Usb_host_device>
 	: _ep(ep), _env(env), _alloc(alloc)
 	{
 		_devices_rom.sigh(_device_dispatcher);
+		_devices_update();
 	}
 
 	void destroy()
