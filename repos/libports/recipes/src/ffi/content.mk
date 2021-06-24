@@ -1,5 +1,6 @@
 MIRROR_FROM_REP_DIR := lib/mk/spec/arm/ffi.mk \
                        lib/mk/spec/arm_64/ffi.mk \
+                       lib/mk/spec/x86_32/ffi.mk \
                        lib/mk/spec/x86_64/ffi.mk
 content: src/lib/ffi $(MIRROR_FROM_REP_DIR) LICENSE
 
