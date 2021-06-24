@@ -436,7 +436,7 @@ class Net::Interface : private Interface_list::Element
 
 		void attach_to_domain();
 
-		void detach_from_ip_config();
+		void detach_from_ip_config(Domain &domain);
 
 		void attach_to_ip_config(Domain            &domain,
 		                         Ipv4_config const &ip_config);

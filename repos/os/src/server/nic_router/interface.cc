@@ -412,10 +412,9 @@ void Interface::attach_to_ip_config(Domain            &domain,
 }
 
 
-void Interface::detach_from_ip_config()
+void Interface::detach_from_ip_config(Domain &domain)
 {
 	/* destroy our own ARP waiters */
-	Domain &domain = _domain();
 	while (_own_arp_waiters.first()) {
 		cancel_arp_waiting(*_own_arp_waiters.first()->object());
 	}
@@ -453,7 +452,7 @@ void Interface::attach_to_remote_ip_config()
 void Interface::_detach_from_domain()
 {
 	try {
-		detach_from_ip_config();
+		detach_from_ip_config(domain());
 		_detach_from_domain_raw();
 	}
 	catch (Pointer<Domain>::Invalid) { }
@@ -2086,7 +2085,7 @@ void Interface::handle_config_3()
 
 		/* if the IP configs differ, detach completely from the IP config */
 		if (old_domain.ip_config() != new_domain.ip_config()) {
-			detach_from_ip_config();
+			detach_from_ip_config(old_domain);
 			attach_to_domain_finish();
 			return;
 		}

@@ -73,7 +73,7 @@ void Domain::_prepare_reconstructing_ip_config()
 
 		/* detach all dependent interfaces from old IP config */
 		_interfaces.for_each([&] (Interface &interface) {
-			interface.detach_from_ip_config();
+			interface.detach_from_ip_config(*this);
 		});
 		_ip_config_dependents.for_each([&] (Domain &domain) {
 			domain._interfaces.for_each([&] (Interface &interface) {

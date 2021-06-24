@@ -71,7 +71,7 @@ append config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3000"/>
+				<sleep milliseconds="2000"/>
 				<inline>
 
 					<config>
@@ -93,17 +93,17 @@ append config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3000"/>
+				<sleep milliseconds="2000"/>
 				<inline>
 
 					<config>
 
 						<policy label="nic_router_2 -> " domain="downlink"/>
 
-						<domain name="downlink" interface="10.2.3.1/24">
+						<domain name="downlink" interface="10.2.4.1/24">
 
-							<dhcp-server ip_first="10.2.3.2"
-							             ip_last="10.2.3.2">
+							<dhcp-server ip_first="10.2.4.2"
+							             ip_last="10.2.4.2">
 
 								<dns-server ip="6.7.8.9"/>
 
@@ -114,7 +114,26 @@ append config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3000"/>
+				<sleep milliseconds="2000"/>
+				<inline>
+
+					<config>
+
+						<policy label="nic_router_2 -> " domain="downlink"/>
+
+						<domain name="downlink" interface="10.2.4.1/24">
+
+							<dhcp-server ip_first="10.2.4.200"
+							             ip_last="10.2.4.200">
+
+							</dhcp-server>
+
+						</domain>
+
+					</config>
+
+				</inline>
+				<sleep milliseconds="2000"/>
 				<inline>
 
 					<config>
@@ -133,7 +152,7 @@ append config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3000"/>
+				<sleep milliseconds="2000"/>
 
 			</rom>
 		</config>
@@ -273,6 +292,10 @@ append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
 append done_string ".*  Router: 10.0.3.1.*\n"
 append done_string ".*  DNS server #1: 6.7.8.9.*\n"
+append done_string ".*DHCP request completed:.*\n"
+append done_string ".*  IP lease time: 3600 seconds.*\n"
+append done_string ".*  Interface: 10.0.3.2/24.*\n"
+append done_string ".*  Router: 10.0.3.1.*\n"
 append done_string ".*DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
