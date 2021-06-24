@@ -14,8 +14,14 @@
 #include <cpu/cache.h>
 
 /*
- * This function needs to be implemented only for base platforms with ARM
+ * These functions need to be implemented only for base platforms with ARM
  * support right now, so the default implementation does nothing.
  */
+
 void Genode::cache_coherent(Genode::addr_t, Genode::size_t) { }
 
+
+void Genode::cache_clean_invalidate_data(Genode::addr_t, Genode::size_t) { }
+
+
+void Genode::cache_invalidate_data(Genode::addr_t, Genode::size_t) { }

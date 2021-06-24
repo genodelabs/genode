@@ -35,6 +35,12 @@ void Kernel::Thread::Tlb_invalidation::execute()
 void Kernel::Thread::_call_cache_coherent_region() { }
 
 
+void Kernel::Thread::_call_cache_clean_invalidate_data_region() { }
+
+
+void Kernel::Thread::_call_cache_invalidate_data_region() { }
+
+
 void Kernel::Thread::proceed(Cpu & cpu)
 {
 	cpu.switch_to(*regs, pd().mmu_regs);

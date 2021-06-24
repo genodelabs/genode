@@ -152,16 +152,24 @@ void Arm_cpu::cache_coherent_region(addr_t const base,
 }
 
 
-void Arm_cpu::clean_data_cache_by_virt_region(addr_t const base,
-                                              size_t const size)
+void Arm_cpu::cache_invalidate_data_region(addr_t const base,
+                                           size_t const size)
+{
+	auto lambda = [] (addr_t const base) { Dcimvac::write(base); };
+	cache_maintainance(base, size, Cpu::data_cache_line_size(), lambda);
+}
+
+
+void Arm_cpu::cache_clean_data_region(addr_t const base,
+                                      size_t const size)
 {
 	auto lambda = [] (addr_t const base) { Dccmvac::write(base); };
 	cache_maintainance(base, size, Cpu::data_cache_line_size(), lambda);
 }
 
 
-void Arm_cpu::clean_invalidate_data_cache_by_virt_region(addr_t const base,
-                                                         size_t const size)
+void Arm_cpu::cache_clean_invalidate_data_region(addr_t const base,
+                                                 size_t const size)
 {
 	auto lambda = [] (addr_t const base) { Dccimvac::write(base); };
 	cache_maintainance(base, size, Cpu::data_cache_line_size(), lambda);
@@ -197,7 +205,7 @@ void Arm_cpu::clear_memory_region(addr_t const addr,
 	 * DMA memory, which needs to be evicted from the D-cache
 	 */
 	if (changed_cache_properties) {
-		Cpu::clean_invalidate_data_cache_by_virt_region(addr, size);
+		Cpu::cache_clean_invalidate_data_region(addr, size);
 	}
 
 	/**

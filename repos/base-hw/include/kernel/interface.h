@@ -37,13 +37,15 @@ namespace Kernel {
 	constexpr Call_arg call_id_ack_signal()               { return 11; }
 	constexpr Call_arg call_id_print_char()               { return 12; }
 	constexpr Call_arg call_id_cache_coherent_region()    { return 13; }
-	constexpr Call_arg call_id_ack_cap()                  { return 14; }
-	constexpr Call_arg call_id_delete_cap()               { return 15; }
-	constexpr Call_arg call_id_timeout()                  { return 16; }
-	constexpr Call_arg call_id_timeout_max_us()           { return 17; }
-	constexpr Call_arg call_id_time()                     { return 18; }
-	constexpr Call_arg call_id_run_vm()                   { return 19; }
-	constexpr Call_arg call_id_pause_vm()                 { return 20; }
+	constexpr Call_arg call_id_cache_clean_inv_region()   { return 14; }
+	constexpr Call_arg call_id_cache_inv_region()         { return 15; }
+	constexpr Call_arg call_id_ack_cap()                  { return 16; }
+	constexpr Call_arg call_id_delete_cap()               { return 17; }
+	constexpr Call_arg call_id_timeout()                  { return 18; }
+	constexpr Call_arg call_id_timeout_max_us()           { return 19; }
+	constexpr Call_arg call_id_time()                     { return 20; }
+	constexpr Call_arg call_id_run_vm()                   { return 21; }
+	constexpr Call_arg call_id_pause_vm()                 { return 22; }
 
 
 	/*****************************************************************
@@ -185,6 +187,32 @@ namespace Kernel {
 	inline void cache_coherent_region(addr_t const base, size_t const size)
 	{
 		call(call_id_cache_coherent_region(), (Call_arg)base, (Call_arg)size);
+	}
+
+
+	/**
+	 * Clean and invalidate D-Cache lines of the given memory region
+	 *
+	 * \param base  base of the region within the current domain
+	 * \param size  size of the region
+	 */
+	inline void cache_clean_invalidate_data_region(addr_t const base,
+	                                               size_t const size)
+	{
+		call(call_id_cache_clean_inv_region(), (Call_arg)base, (Call_arg)size);
+	}
+
+
+	/**
+	 * Invalidate D-Cache lines of the given memory region
+	 *
+	 * \param base  base of the region within the current domain
+	 * \param size  size of the region
+	 */
+	inline void cache_invalidate_data_region(addr_t const base,
+	                                         size_t const size)
+	{
+		call(call_id_cache_inv_region(), (Call_arg)base, (Call_arg)size);
 	}
 
 

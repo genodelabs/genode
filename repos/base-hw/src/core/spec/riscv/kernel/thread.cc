@@ -92,6 +92,12 @@ void Thread::exception(Cpu & cpu)
 void Thread::_call_cache_coherent_region() { }
 
 
+void Kernel::Thread::_call_cache_clean_invalidate_data_region() { }
+
+
+void Kernel::Thread::_call_cache_invalidate_data_region() { }
+
+
 void Kernel::Thread::proceed(Cpu & cpu)
 {
 	cpu.switch_to(_pd->mmu_regs);

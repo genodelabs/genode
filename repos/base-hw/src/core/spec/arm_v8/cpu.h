@@ -95,6 +95,10 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 
 	static void cache_coherent_region(addr_t const addr,
 	                                  size_t const size);
+	static void cache_clean_invalidate_data_region(addr_t const addr,
+	                                               size_t const size);
+	static void cache_invalidate_data_region(addr_t const addr,
+	                                         size_t const size);
 };
 
 #endif /* _CORE__SPEC__ARM_V8__CPU_H_ */

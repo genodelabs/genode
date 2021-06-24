@@ -101,7 +101,7 @@ static inline void cache_maintainance(Genode::addr_t const base,
 
 
 void Genode::Cpu::cache_coherent_region(addr_t const base,
-                                size_t const size)
+                                        size_t const size)
 {
 	Genode::memory_barrier();
 
@@ -109,6 +109,36 @@ void Genode::Cpu::cache_coherent_region(addr_t const base,
 		asm volatile("dc cvau, %0" :: "r" (base));
 		asm volatile("dsb ish");
 		asm volatile("ic ivau, %0" :: "r" (base));
+		asm volatile("dsb ish");
+		asm volatile("isb");
+	};
+
+	cache_maintainance(base, size, lambda);
+}
+
+
+void Genode::Cpu::cache_clean_invalidate_data_region(addr_t const base,
+                                                     size_t const size)
+{
+	Genode::memory_barrier();
+
+	auto lambda = [] (addr_t const base) {
+		asm volatile("dc civac, %0" :: "r" (base));
+		asm volatile("dsb ish");
+		asm volatile("isb");
+	};
+
+	cache_maintainance(base, size, lambda);
+}
+
+
+void Genode::Cpu::cache_invalidate_data_region(addr_t const base,
+                                               size_t const size)
+{
+	Genode::memory_barrier();
+
+	auto lambda = [] (addr_t const base) {
+		asm volatile("dc ivac, %0" :: "r" (base));
 		asm volatile("dsb ish");
 		asm volatile("isb");
 	};
