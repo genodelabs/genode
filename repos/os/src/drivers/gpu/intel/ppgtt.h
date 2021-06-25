@@ -226,6 +226,7 @@ class Genode::Level_4_translation_table
 		static constexpr size_t PAGE_MASK      = ~((1UL << PAGE_SIZE_LOG2) - 1);
 
 		class Misaligned {};
+		class Invalid_address {};
 		class Invalid_range {};
 		class Double_insertion {};
 
@@ -308,6 +309,9 @@ class Genode::Level_4_translation_table
 			     i = vo >> PAGE_SIZE_LOG2) {
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = min(size, end-vo);
+
+				if (i >= MAX_ENTRIES)
+					throw Invalid_address();
 
 				func(vo, pa, sz, _entries[i]);
 
@@ -398,6 +402,7 @@ class Genode::Page_directory
 		static constexpr size_t PAGE_MASK   = ~((1UL << PAGE_SIZE_LOG2) - 1);
 
 		class Misaligned {};
+		class Invalid_address {};
 		class Invalid_range {};
 		class Double_insertion {};
 
@@ -563,6 +568,9 @@ class Genode::Page_directory
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = min(size, end-vo);
 
+				if (i >= MAX_ENTRIES)
+					throw Invalid_address();
+
 				func(vo, pa, sz, _entries[i]);
 
 				/* check whether we wrap */
@@ -649,6 +657,7 @@ class Genode::Pml4_table
 		static constexpr uint64_t PAGE_MASK    = ~((1ULL << PAGE_SIZE_LOG2) - 1);
 
 		class Misaligned {};
+		class Invalid_address {};
 		class Invalid_range {};
 
 		struct Descriptor : Common_descriptor
@@ -746,8 +755,12 @@ class Genode::Pml4_table
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2) {
+
 				addr_t const end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t const sz  = min(size, end-vo);
+
+				if (i >= MAX_ENTRIES)
+					throw Invalid_address();
 
 				func(vo, pa, sz, _entries[i]);
 
