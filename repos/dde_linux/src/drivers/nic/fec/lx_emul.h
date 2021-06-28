@@ -532,7 +532,7 @@ struct page
 	dma_addr_t paddr;
 	unsigned long private;
 	unsigned long size;
-} __attribute((packed));
+};
 
 static inline struct page *compound_head(struct page *page) { return page; }
 
