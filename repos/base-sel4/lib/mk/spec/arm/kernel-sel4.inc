@@ -12,6 +12,12 @@ else
 all:
 endif
 
+ifeq ($(CCACHE),yes)
+SEL4_CCACHE=ccache
+else
+SEL4_CCACHE=
+endif
+
 elfloader/elfloader.o:
 	$(VERBOSE)cp -r $(TOOLS_DIR)/elfloader-tool $(LIB_CACHE_DIR)/$(LIB)/elfloader
 	$(VERBOSE)mkdir -p $(LIB_CACHE_DIR)/$(LIB)/elfloader/tools/kbuild
@@ -25,7 +31,8 @@ elfloader/elfloader.o:
 	          ARCH=arm PLAT=$(PLAT) ARMV=armv7-a __ARM_32__="y" \
 	          CPU=$(CPU) ASFLAGS="-march=armv7-a" \
 	          CFLAGS="-march=armv7-a -D__KERNEL_32__ -fno-builtin" \
-	          SEL4_COMMON=.  SOURCE_DIR=.  STAGE_DIR=.  srctree=.
+	          SEL4_COMMON=. CCACHE=$(SEL4_CCACHE) SOURCE_DIR=. STAGE_DIR=. \
+	          srctree=.
 
 build_kernel: elfloader/elfloader.o
 	$(VERBOSE)$(MAKE) \
