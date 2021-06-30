@@ -516,5 +516,8 @@ void nemHCNativeNotifyPhysPageProtChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS H
 
 void nemHCNativeNotifyPhysPageChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS HCPhysPrev,
                                       RTHCPHYS HCPhysNew, ::uint32_t fPageProt,
-                                      PGMPAGETYPE enmType, ::uint8_t *pu2State) STOP
+                                      PGMPAGETYPE enmType, ::uint8_t *pu2State)
+{
+	nemHCNativeNotifyPhysPageProtChanged(pVM, GCPhys, HCPhysNew, fPageProt, enmType, pu2State);
+}
 

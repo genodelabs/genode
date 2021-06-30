@@ -31,7 +31,7 @@
 namespace Sup { struct Gmm; }
 
 /**
- * Global (guest-memory) manager.(GMM)
+ * Global (guest-memory) manager (GMM)
  *
  * Layers in this pool are (top-down)
  *
