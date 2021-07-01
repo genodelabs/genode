@@ -45,7 +45,7 @@ static void for_cachelines(addr_t           base,
 		fn(base, size);
 	} else {
 		Genode::raw(thread, " tried to make invalid address ",
-		            base, " cache coherent");
+		            (void*)base, " cache coherent");
 	}
 }
 
