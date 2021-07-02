@@ -1,4 +1,4 @@
-content: include/libc-plugin src/lib/libc/target.mk lib/mk LICENSE src/lib/openlibm
+content: include/libc-plugin src/lib/libc/target.mk lib/mk LICENSE
 
 LIBC_PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libc)
 LIBM_PORT_DIR := $(LIBC_PORT_DIR)
@@ -7,10 +7,6 @@ src/lib/libc:
 	mkdir -p $@
 	cp -r $(LIBC_PORT_DIR)/src/lib/libc/* $@
 	cp -r $(REP_DIR)/src/lib/libc/* $@
-
-src/lib/openlibm:
-	mkdir -p $@
-	cp -r $(LIBM_PORT_DIR)/$@/* $@
 
 # target.mk for triggering the build of both libraries libc and libm
 src/lib/libc/target.mk: src/lib/libc

@@ -1480,16 +1480,16 @@ DBL_MAX_EXP = 1024
 LDBL_MAX_EXP = 16384
 
 FLT_EPSILON = 1.19209e-07 = 0x1p-23
-DBL_EPSILON = 2.22044e-16 = 0x1p-52
-LDBL_EPSILON = 1.92592e-34 = 0x1p-112
+DBL_EPSILON = 2.22045e-16 = 0x1p-52
+LDBL_EPSILON = 1.92593e-34 = 0x1p-112
 
-FLT_MIN = 1.1755e-38 = 0x1p-126
-DBL_MIN = 2.22508e-308 = 0x1p-1022
-LDBL_MIN = 3.36211e-4932 = 0x1p-16382
+FLT_MIN = 1.17549e-38 = 0x1p-126
+DBL_MIN = 2.22507e-308 = 0x1p-1022
+LDBL_MIN = 3.3621e-4932 = 0x1p-16382
 
-FLT_MAX = 3.40283e+38 = 0x1.fffffep+127
-DBL_MAX = 1.7977e+308 = 0x1.fffffffffffffp+1023
-LDBL_MAX = 1.18974e+4932 = 0x1.ffffffffffffffffffffffffffffp+16383
+FLT_MAX = 3.40282e+38 = 0x1.fffffep+127
+DBL_MAX = 1.79769e+308 = 0x1.fffffffffffffp+1023
+LDBL_MAX = 1.18973e+4932 = 0x1.ffffffffffffffffffffffffffffp+16383
 
 sizeof(float) = 4
 sizeof(double) = 8
@@ -1498,7 +1498,7 @@ sizeof(long double) = 16
 x + y, with x = 9007199254740994.0 and y = 1.0 - 1/65536.0 (type double).
 The IEEE-754 result is 9007199254740994 with double precision.
 The IEEE-754 result is 9007199254740996 with extended precision.
-The obtained result is 9007199254740996.
+The obtained result is 9007199254740994.
 
 NAN != NAN --> 1 (should be 1)
 isnan(NAN) --> 1 (should be 1)

@@ -1,20 +1,12 @@
 LICENSE   = BSD
 VERSION   = 12.0.0
-DOWNLOADS = libc.archive openlibm.archive
+DOWNLOADS = libc.archive
 
 D = src/lib/libc
 
 URL(libc) = http://ftp.freebsd.org/pub/FreeBSD/releases/amd64/12.0-RELEASE/src.txz
 SHA(libc) = 0da393ac2174168a71c1c527d1453e07372295187d05c288250800cb152a889b
 DIR(libc) = $(D)
-
-OWNER := JuliaMath
-REPO  := openlibm
-REV   := a96f0740e32c3d8aaa0a34c3988201018dfa90ce
-
-URL(openlibm) := https://github.com/$(OWNER)/$(REPO)/archive/$(REV).tar.gz
-SHA(openlibm) := a9c7d4450c3e9a8b92ec1e20c7a9fd2682e900743dff37f163c9a9ac68b4f471
-DIR(openlibm) := src/lib/openlibm
 
 TAR_OPT(libc) = --strip-components=2
 
@@ -53,10 +45,7 @@ PATCHES := $(sort $(wildcard $(REP_DIR)/$(D)/patches/*.patch))
 #
 # Generic headers
 #
-
-DIRS := include/libc include/openlibm
-
-DIR_CONTENT(include/openlibm) = src/lib/openlibm/include/*
+DIRS := include/libc
 
 DIR_CONTENT(include/libc) := \
     $(addprefix $(D)/include/,\
@@ -215,7 +204,7 @@ DIR_CONTENT(include/spec/arm/libc) := \
 DIRS += include/spec/arm/libc/machine
 DIR_CONTENT(include/spec/arm/libc/machine) := \
     $(call common_include_libc_arch_machine_content,arm) \
-    $(addprefix $(D)/sys/arm/include/, armreg.h atomic-v6.h ieee.h sysreg.h sigframe.h)
+    $(addprefix $(D)/sys/arm/include/, acle-compat.h armreg.h atomic-v6.h ieee.h sysreg.h sigframe.h)
 
 
 #

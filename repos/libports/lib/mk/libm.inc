@@ -1,55 +1,65 @@
-PORT_DIR := $(call select_from_ports,libc)
-
-# Depot hack
-ifneq ($(PORT_DIR),)
-LIBM_PORT_DIR = $(PORT_DIR)/
-endif
-
-LIBM_SRC_DIR := $(LIBM_PORT_DIR)src/lib/openlibm
+LIBC_PORT_DIR := $(call select_from_ports,libc)
+LIBC_DIR      := $(LIBC_PORT_DIR)/src/lib/libc
+LIBM_DIR      := $(LIBC_DIR)/lib/msun
 
 SHARED_LIB = yes
-LIBS += libc
 
-CC_C_OPT += -fno-gnu89-inline
-CC_C_OPT += -std=c99 -DASSEMBLER -D__BSD_VISIBLE -Wno-implicit-function-declaration
+LIBS = libc
 
-CC_OPT += -include sys/cdefs.h
+#
+# finding 'math_private.h'
+#
+INC_DIR += $(LIBM_DIR)/src
 
-INC_DIR += $(REP_DIR)/include/openlibm
-INC_DIR += $(LIBM_SRC_DIR)
-INC_DIR += $(LIBM_SRC_DIR)/src
-INC_DIR += $(LIBM_PORT_DIR)include/openlibm
-INC_DIR += $(LIBM_SRC_DIR)/include
+#
+# finding 'fpmath.h', included by 'invtrig.h'
+#
+INC_DIR += $(LIBC_DIR)/lib/libc/include
 
-SUBDIRS = src $(ARCH) bsdsrc
-# Add ld80 directory on x86 and x64
-ifneq ($(filter $(ARCH),i387 amd64),)
-SUBDIRS += ld80
-else
-ifneq ($(filter $(ARCH),aarch64),)
-SUBDIRS += ld128
-else
+FILTER_OUT += s_exp2l.c
+
+#
+# Files that are included by other sources (e.g., 's_sin.c'). Hence, we need
+# to remove them from the build. Otherwise, we would end up with doubly
+# defined symbols (and compiler warnings since those files are apparently
+# not meant to be compiled individually).
+#
+FILTER_OUT += e_rem_pio2.c e_rem_pio2f.c
+
+#
+# Use default warning level rather than -Wall because we do not want to touch
+# the imported source code to improve build aesthetics.
+#
+CC_WARN =
+
+SRC_C  = $(wildcard $(LIBM_DIR)/src/*.c) \
+         $(wildcard $(LIBM_DIR)/bsdsrc/*.c)
+
+#
+# 128 bit quadruple precision format
+#
+ifeq ($(LIBM_LD128),yes)
+INC_DIR += $(LIBM_DIR)/ld128
+SRC_C   += $(wildcard $(LIBM_DIR)/ld128/*.c)
+
+vpath %.c $(LIBM_DIR)/ld128
 endif
+
+#
+# 80 bit extented precision format
+#
+ifeq ($(LIBM_LD80),yes)
+INC_DIR += $(LIBM_DIR)/ld80
+SRC_C   += $(wildcard $(LIBM_DIR)/ld80/*.c)
+
+vpath %.c $(LIBM_DIR)/ld80
 endif
 
-define INC_template
-TEST=test
-override CUR_SRCS = $(1)_SRCS
--include $(LIBM_SRC_DIR)/$(1)/Make.files
-SRCS += $$(addprefix $(1)/,$$($(1)_SRCS))
-endef
+SRC_C := $(filter-out $(FILTER_OUT),$(notdir $(SRC_C)))
 
-$(foreach dir,$(SUBDIRS),$(eval $(call INC_template,$(dir))))
+vpath %.c $(LIBM_DIR)/src
+vpath %.c $(LIBM_DIR)/bsdsrc
 
-DUPLICATE_NAMES = $(filter $(patsubst %.S,%,$($(ARCH)_SRCS)),$(patsubst %.c,%,$(src_SRCS)))
-DUPLICATE_SRCS = $(addsuffix .c,$(DUPLICATE_NAMES))
+CC_CXX_WARN_STRICT =
 
-CLEAN_SRCS = $(filter-out $(DUPLICATE_SRCS),$(notdir $(SRCS)))
-
-SRC_C += $(filter %.c,$(CLEAN_SRCS))
-SRC_S += $(filter %.S,$(CLEAN_SRCS))
-
-$(foreach dir,$(SUBDIRS),$(eval vpath %.c $(LIBM_SRC_DIR)/$(dir)))
-$(foreach dir,$(SUBDIRS),$(eval vpath %.S $(LIBM_SRC_DIR)/$(dir)))
-
-$(foreach dir,$(SUBDIRS),$(eval INC_DIR += $(LIBM_SRC_DIR)/$(dir)))
+# vi: set ft=make :
