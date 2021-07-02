@@ -56,7 +56,8 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 	struct alignas(16) Fpu_state
 	{
 		Genode::uint128_t q[32];
-		Genode::uint32_t  fpsr;
+		Genode::uint64_t  fpsr;
+		Genode::uint64_t  fpcr;
 	};
 
 	struct alignas(8) Context : Cpu_state

@@ -60,8 +60,9 @@ _kernel_entry:
 	stp  q26, q27, [x0], #32
 	stp  q28, q29, [x0], #32
 	stp  q30, q31, [x0], #32
+	mrs  x1,  fpcr
 	mrs  x2,  fpsr
-	str  x2,  [x0]
+	stp  x1,  x2,  [x0], #16
 	msr  fpsr, xzr
 	ldr  x0,  [sp, #-16]
 	ldr  x1,  [sp, #-32]
@@ -111,8 +112,9 @@ _kernel_entry:
 	ldp  q26, q27, [x1], #32
 	ldp  q28, q29, [x1], #32
 	ldp  q30, q31, [x1], #32
-	ldr  x1,  [x1]
-	msr  fpsr, x1
+	ldp  x2,  x3,  [x1], #16
+	msr  fpcr, x2
+	msr  fpsr, x3
 	add  x0,  x0,  #8
 	ldp  x1,  x2,  [x0], #16
 	ldp  x3,  x4,  [x0], #16
