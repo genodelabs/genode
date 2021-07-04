@@ -1,0 +1,51 @@
+--- a/include/libssh/sftp.h	2021-07-04 21:26:20.445524952 +0200
++++ b/include/libssh/sftp.h	2021-07-04 20:19:16.752749814 +0200
+@@ -854,6 +854,13 @@
+  * @return             0 on success, < 0 on error.
+  */
+ LIBSSH_API int sftp_server_init(sftp_session sftp);
++
++/**
++ * @brief Close and deallocate a sftp server session.
++ *
++ * @param sftp          The sftp session handle to free.
++ */
++LIBSSH_API void sftp_server_free(sftp_session sftp);
+ #endif  /* WITH_SERVER */
+ 
+ /* this is not a public interface */
+--- a/src/sftp.c	2021-07-04 21:26:20.445524952 +0200
++++ b/src/sftp.c	2021-07-04 20:18:14.310652966 +0200
+@@ -299,6 +299,32 @@
+ 
+   return 0;
+ }
++
++void sftp_server_free(sftp_session sftp)
++{
++    sftp_request_queue ptr;
++
++    if (sftp == NULL) {
++        return;
++    }
++
++    ptr = sftp->queue;
++    while(ptr) {
++        sftp_request_queue old;
++        sftp_message_free(ptr->message);
++        old = ptr->next;
++        SAFE_FREE(ptr);
++        ptr = old;
++    }
++
++    SAFE_FREE(sftp->handles);
++    SSH_BUFFER_FREE(sftp->read_packet->payload);
++    SAFE_FREE(sftp->read_packet);
++
++    sftp_ext_free(sftp->ext);
++
++    SAFE_FREE(sftp);
++}
+ #endif /* WITH_SERVER */
+ 
+ void sftp_free(sftp_session sftp)

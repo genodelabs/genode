@@ -57,6 +57,7 @@ sftp_rmdir T
 sftp_seek T
 sftp_seek64 T
 sftp_send_client_message T
+sftp_server_free T
 sftp_server_init T
 sftp_server_new T
 sftp_server_version T
