@@ -1,0 +1,14 @@
+The libc <machine/param.h> header contains a different ALIGN
+macro.
+--- a/src/lib/libdrm/util_math.h
++++ b/src/lib/libdrm/util_math.h
+@@ -29,6 +29,9 @@
+ #define MAX3( A, B, C ) ((A) > (B) ? MAX2(A, C) : MAX2(B, C))
+ 
+ #define __align_mask(value, mask)  (((value) + (mask)) & ~(mask))
++#ifdef ALIGN
++#undef ALIGN
++#endif
+ #define ALIGN(value, alignment)    __align_mask(value, (__typeof__(value))((alignment) - 1))
+ 
+ #endif /*_UTIL_MATH_H_*/

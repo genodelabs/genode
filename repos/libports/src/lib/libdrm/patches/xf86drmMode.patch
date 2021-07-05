@@ -1,0 +1,11 @@
+The <sys/sysctl.h> neads 'u_int' that is pulled in via <sys/types.h>
+--- a/src/lib/libdrm/xf86drmMode.c
++++ b/src/lib/libdrm/xf86drmMode.c
+@@ -37,6 +37,7 @@
+ #include <stdint.h>
+ #include <stdlib.h>
+ #include <sys/ioctl.h>
++#include <sys/types.h>
+ #if HAVE_SYS_SYSCTL_H
+ #include <sys/sysctl.h>
+ #endif
