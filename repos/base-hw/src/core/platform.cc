@@ -23,6 +23,7 @@
 #include <hw/page_flags.h>
 #include <hw/util.h>
 #include <translation_table.h>
+#include <kernel/main.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
@@ -34,11 +35,6 @@
 #include <trace/source_registry.h>
 
 using namespace Genode;
-
-namespace Kernel {
-
-	time_t read_idle_thread_execution_time(unsigned cpu_idx);
-}
 
 
 /**************
@@ -236,7 +232,7 @@ Platform::Platform()
 			Info trace_source_info() const override
 			{
 				Trace::Execution_time execution_time {
-					Kernel::read_idle_thread_execution_time(
+					Kernel::main_read_idle_thread_execution_time(
 						_affinity.xpos()), 0 };
 
 				return { Session_label("kernel"), "idle",

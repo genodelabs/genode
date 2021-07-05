@@ -18,6 +18,7 @@
 #include <platform_pd.h>
 #include <kernel/cpu.h>
 #include <kernel/vm.h>
+#include <kernel/main.h>
 
 namespace Kernel {
 
@@ -60,8 +61,7 @@ struct Host_context
 } vt_host_context;
 
 
-extern "C" void   kernel();
-extern "C" void   hypervisor_enter_vm(Genode::Vm_state&, Host_context&);
+extern "C" void hypervisor_enter_vm(Genode::Vm_state&, Host_context&);
 
 
 static Host_context & host_context(Cpu & cpu)
@@ -78,7 +78,7 @@ static Host_context & host_context(Cpu & cpu)
 		c.mair0  = Cpu::Mair0::read();
 		c.dacr   = Cpu::Dacr::read();
 		c.vmpidr = Cpu::Mpidr::read();
-		c.ip     = (addr_t) &kernel;
+		c.ip     = (addr_t)&Kernel::main_handle_kernel_entry;
 		c.vttbr  = 0;
 		c.hcr    = 0;
 		c.hstr   = 0;

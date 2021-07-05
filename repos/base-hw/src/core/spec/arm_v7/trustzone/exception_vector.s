@@ -99,7 +99,7 @@ monitor_mode_exception_vector:
 	ldr   lr, [lr]
 	subs  pc, lr, #0              /* jump back into kernel           */
 
-	_kernel_entry: .long kernel
+	_kernel_entry: .long _ZN6Kernel24main_handle_kernel_entryEv
 
 
 /* jump to this point to switch to TrustZone's normal world */

@@ -49,7 +49,7 @@ _kernel_entry:
 	la x30, kernel_stack_size
 	ld x30, (x30)
 	add sp, x29, x30
-	la x30, kernel
+	la x30, _ZN6Kernel24main_handle_kernel_entryEv
 
 	jalr x30
 

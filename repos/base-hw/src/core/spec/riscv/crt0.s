@@ -24,7 +24,7 @@
 	la x30, kernel_stack_size
 	ld x30, (x30)
 	add sp, x29, x30
-	la x30, kernel_init
+	la x30, _ZN6Kernel39main_initialize_and_handle_kernel_entryEv
 
 	jalr x30
 

@@ -133,7 +133,7 @@
 	addq $KERNEL_STACK_OFFSET, %rax
 	movq (%rax), %rsp
 
-	_load_address kernel rcx
+	_load_address _ZN6Kernel24main_handle_kernel_entryEv rcx
 	jmp *%rcx
 
 

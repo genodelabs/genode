@@ -21,12 +21,12 @@
 #include <platform_pd.h>
 #include <kernel/cpu.h>
 #include <kernel/vm.h>
+#include <kernel/main.h>
 
 using Genode::addr_t;
 using Kernel::Cpu;
 using Kernel::Vm;
 
-extern "C" void   kernel();
 extern     void * kernel_stack;
 extern "C" void   hypervisor_enter_vm(addr_t vm, addr_t host,
                                       addr_t pic, addr_t guest_table);
@@ -40,7 +40,7 @@ static Genode::Vm_state & host_context(Cpu & cpu)
 		host_context[cpu.id()].construct();
 		Genode::Vm_state & c = *host_context[cpu.id()];
 		c.sp_el1    = cpu.stack_start();
-		c.ip        = (addr_t) &kernel;
+		c.ip        = (addr_t)&Kernel::main_handle_kernel_entry;
 		c.pstate    = 0;
 		Cpu::Spsr::Sp::set(c.pstate, 1); /* select non-el0 stack pointer */
 		Cpu::Spsr::El::set(c.pstate, Cpu::Current_el::EL1);

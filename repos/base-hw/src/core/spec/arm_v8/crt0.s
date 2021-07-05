@@ -31,7 +31,7 @@
 	add   sp, r1, r0*/
 
 	/* jump into init C code */
-	b kernel_init
+	b _ZN6Kernel39main_initialize_and_handle_kernel_entryEv
 
 	_kernel_stack:      .quad kernel_stack
 	_kernel_stack_size: .quad kernel_stack_size

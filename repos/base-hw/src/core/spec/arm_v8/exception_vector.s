@@ -67,7 +67,7 @@ _kernel_entry:
 	ldr  x0,  [sp, #-16]
 	ldr  x1,  [sp, #-32]
 	str  x1,  [x0]
-	bl kernel
+	bl _ZN6Kernel24main_handle_kernel_entryEv
 
 
 .section .text

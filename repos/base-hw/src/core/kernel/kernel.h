@@ -15,12 +15,6 @@
 #ifndef _CORE__KERNEL__KERNEL_H_
 #define _CORE__KERNEL__KERNEL_H_
 
-/**
- * Main routine of every kernel pass
- */
-extern "C" void kernel();
-
-
 namespace Kernel {
 
 	class Pd;
