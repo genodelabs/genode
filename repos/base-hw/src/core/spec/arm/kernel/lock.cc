@@ -11,20 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/lock_guard.h>
+/* Genode includes */
 #include <cpu/atomic.h>
 #include <cpu/memory_barrier.h>
 
+/* base-hw Core includes */
 #include <kernel/cpu.h>
 #include <kernel/lock.h>
-#include <kernel/kernel.h>
-
-
-Kernel::Lock & Kernel::data_lock()
-{
-	static Kernel::Lock lock;
-	return lock;
-}
 
 
 void Kernel::Lock::lock()
