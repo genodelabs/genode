@@ -89,7 +89,7 @@ class Genode::Platform_thread : Noncopyable
 
 		unsigned _scale_priority(unsigned virt_prio)
 		{
-			return Cpu_session::scale_priority(Kernel::Cpu_priority::MAX,
+			return Cpu_session::scale_priority(Kernel::Cpu_priority::max(),
 			                                   virt_prio);
 		}
 

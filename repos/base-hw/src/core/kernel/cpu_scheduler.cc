@@ -34,7 +34,7 @@ void Cpu_scheduler::_reset_claims(unsigned const p)
 void Cpu_scheduler::_next_round()
 {
 	_residual = _quota;
-	_for_each_prio([&] (unsigned const p) { _reset_claims(p); });
+	_for_each_prio([&] (Cpu_priority const p, bool &) { _reset_claims(p); });
 }
 
 
@@ -90,21 +90,23 @@ void Cpu_scheduler::_head_filled(unsigned const r)
 
 bool Cpu_scheduler::_claim_for_head()
 {
-	for (signed p = Prio::MAX; p > Prio::MIN - 1; p--) {
+	bool result { false };
+	_for_each_prio([&] (Cpu_priority const p, bool &cancel_for_each_prio) {
 		Double_list_item<Cpu_share> *const item { _rcl[p].head() };
 
 		if (!item)
-			continue;
+			return;
 
 		Cpu_share &share { item->payload() };
 
 		if (!share._claim)
-			continue;
+			return;
 
 		_set_head(share, share._claim, 1);
-		return 1;
-	}
-	return 0;
+		result = true;
+		cancel_for_each_prio = true;
+	});
+	return result;
 }
 
 

@@ -26,7 +26,7 @@ Kernel::Vm::Vm(unsigned,
                Identity               & id)
 :
 	Kernel::Object { *this },
-	Cpu_job(Cpu_priority::MIN, 0),
+	Cpu_job(Cpu_priority::min(), 0),
 	_state(state),
 	_context(context),
 	_id(id),

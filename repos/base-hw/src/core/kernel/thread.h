@@ -293,7 +293,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 * \param label  debugging label
 		 */
 		Thread(char const * const label)
-		: Thread(Cpu_priority::MIN, 0, label, true) { }
+		: Thread(Cpu_priority::min(), 0, label, true) { }
 
 		~Thread();
 
