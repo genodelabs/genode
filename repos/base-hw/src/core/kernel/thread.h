@@ -33,6 +33,8 @@
 #include <base/internal/native_utcb.h>
 
 namespace Kernel {
+
+	class Cpu_pool;
 	struct Thread_fault;
 	class Thread;
 	class Core_main_thread;
@@ -69,14 +71,19 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 */
 		struct Tlb_invalidation : Inter_processor_work
 		{
-			Thread & caller; /* the caller gets blocked until all finished */
-			Pd     & pd;     /* the corresponding pd */
-			addr_t   addr;
-			size_t   size;
-			unsigned cnt;    /* count of cpus left */
+			Inter_processor_work_list &global_work_list;
+			Thread                    &caller; /* the caller gets blocked until all finished */
+			Pd                        &pd;     /* the corresponding pd */
+			addr_t                     addr;
+			size_t                     size;
+			unsigned                   cnt;    /* count of cpus left */
 
-			Tlb_invalidation(Thread & caller, Pd & pd, addr_t addr, size_t size,
-			                 unsigned cnt);
+			Tlb_invalidation(Inter_processor_work_list &global_work_list,
+			                 Thread                    &caller,
+			                 Pd                        &pd,
+			                 addr_t                     addr,
+			                 size_t                     size,
+			                 unsigned                   cnt);
 
 			/************************************
 			 ** Inter_processor_work interface **
@@ -124,6 +131,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 
 		enum { MAX_RCV_CAPS = Genode::Msgbuf_base::MAX_CAPS_PER_MSG };
 
+		Cpu_pool              &_cpu_pool;
 		void                  *_obj_id_ref_ptr[MAX_RCV_CAPS] { nullptr };
 		Ipc_node               _ipc_node;
 		capid_t                _ipc_capid                { cap_id_invalid() };
@@ -284,16 +292,22 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 * \param label     debugging label
 		 * \param core      whether it is a core thread or not
 		 */
-		Thread(unsigned const priority, unsigned const quota,
-		       char const * const label, bool core = false);
+		Thread(Cpu_pool          &cpu_pool,
+		       unsigned    const  priority,
+		       unsigned    const  quota,
+		       char const *const  label,
+		       bool               core = false);
 
 		/**
 		 * Constructor for core/kernel thread
 		 *
 		 * \param label  debugging label
 		 */
-		Thread(char const * const label)
-		: Thread(Cpu_priority::min(), 0, label, true) { }
+		Thread(Cpu_pool          &cpu_pool,
+		       char const *const  label)
+		:
+			Thread(cpu_pool, Cpu_priority::min(), 0, label, true)
+		{ }
 
 		~Thread();
 
@@ -422,11 +436,19 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 /**
  * The first core thread in the system bootstrapped by the Kernel
  */
-struct Kernel::Core_main_thread : Core_object<Kernel::Thread>
+class Kernel::Core_main_thread : public Core_object<Kernel::Thread>
 {
-	Core_main_thread();
+	private:
 
-	static Thread & singleton();
+		static Core_main_thread *_instance;
+
+	public:
+
+		Core_main_thread(Cpu_pool &cpu_pool);
+
+		static void initialize_instance(Cpu_pool &cpu_pool);
+
+		static Thread &instance() { return *_instance; };
 };
 
 #endif /* _CORE__KERNEL__THREAD_H_ */

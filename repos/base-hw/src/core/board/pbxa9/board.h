@@ -22,7 +22,7 @@ namespace Board {
 
 	using namespace Hw::Pbxa9_board;
 
-	using Pic = Hw::Gicv2;
+	class Pic : public Hw::Gicv2 { };
 
 	L2_cache & l2_cache();
 }

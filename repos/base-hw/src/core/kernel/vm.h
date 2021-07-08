@@ -71,7 +71,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		 * \param state    initial CPU state
 		 * \param context  signal for VM exceptions other than interrupts
 		 */
-		Vm(unsigned           cpu,
+		Vm(Cpu              & cpu,
 		   State            & state,
 		   Signal_context   & context,
 		   Identity         & id);

@@ -19,4 +19,7 @@ void Kernel::Cpu::Ipi::occurred() { }
 void Kernel::Cpu::trigger_ip_interrupt() { }
 
 
-Kernel::Cpu::Ipi::Ipi(Kernel::Cpu & cpu) : Irq(~0U, cpu), cpu(cpu) { }
+Kernel::Cpu::Ipi::Ipi(Kernel::Cpu & cpu)
+:
+	Irq(~0U, cpu, cpu.pic()), cpu(cpu)
+{ }

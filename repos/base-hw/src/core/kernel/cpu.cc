@@ -22,13 +22,7 @@
 #include <hw/assert.h>
 #include <hw/boot_info.h>
 
-/* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 using namespace Kernel;
-
-
-Kernel::Cpu_pool &Kernel::cpu_pool() { return *unmanaged_singleton<Cpu_pool>(); }
 
 
 /*************
@@ -110,9 +104,10 @@ Cpu_job::~Cpu_job()
 extern "C" void idle_thread_main(void);
 
 
-Cpu::Idle_thread::Idle_thread(Cpu &cpu)
+Cpu::Idle_thread::Idle_thread(Cpu_pool &cpu_pool,
+                              Cpu      &cpu)
 :
-	Thread("idle")
+	Thread { cpu_pool, "idle" }
 {
 	regs->ip = (addr_t)&idle_thread_main;
 
@@ -177,12 +172,15 @@ addr_t Cpu::stack_start()
 }
 
 
-Cpu::Cpu(unsigned const id, Inter_processor_work_list & global_work_list)
+Cpu::Cpu(unsigned const  id,
+         Cpu_pool       &cpu_pool)
 :
-	_id(id), _timer(*this),
-	_scheduler(_idle, _quota(), _fill()), _idle(*this),
-	_ipi_irq(*this),
-	_global_work_list(global_work_list)
+	_id               { id },
+	_timer            { *this },
+	_scheduler        { _idle, _quota(), _fill() },
+	_idle             { cpu_pool, *this },
+	_ipi_irq          { *this },
+	_global_work_list { cpu_pool.work_list() }
 {
 	_arch_init();
 }
@@ -195,7 +193,7 @@ Cpu::Cpu(unsigned const id, Inter_processor_work_list & global_work_list)
 bool Cpu_pool::initialize()
 {
 	unsigned id = Cpu::executing_id();
-	_cpus[id].construct(id, _global_work_list);
+	_cpus[id].construct(id, *this);
 	return --_initialized == 0;
 }
 

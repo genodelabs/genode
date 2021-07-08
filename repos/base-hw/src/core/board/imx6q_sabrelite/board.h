@@ -22,7 +22,8 @@ namespace Board {
 
 	using namespace Hw::Imx6q_sabrelite_board;
 
-	using Pic      = Hw::Gicv2;
+	class Pic : public Hw::Gicv2 { };
+
 	using L2_cache = Hw::Pl310;
 
 	L2_cache & l2_cache();

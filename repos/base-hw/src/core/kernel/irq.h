@@ -19,11 +19,14 @@
 #include <irq_session/irq_session.h>
 #include <util/avl_tree.h>
 
-/* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 /* core includes */
 #include <kernel/signal_receiver.h>
+
+namespace Board {
+
+	class Pic;
+}
+
 
 namespace Kernel {
 
@@ -67,8 +70,9 @@ class Kernel::Irq : Genode::Avl_node<Irq>
 
 	protected:
 
-		unsigned _irq_nr; /* kernel name of the interrupt */
-		Pool    &_pool;
+		unsigned    _irq_nr; /* kernel name of the interrupt */
+		Pool       &_pool;
+		Board::Pic &_pic;
 
 	public:
 
@@ -78,9 +82,13 @@ class Kernel::Irq : Genode::Avl_node<Irq>
 		 * \param irq   interrupt number
 		 * \param pool  pool this interrupt shall belong to
 		 */
-		Irq(unsigned const irq, Pool &pool)
+		Irq(unsigned const  irq,
+		    Pool           &pool,
+		    Board::Pic     &pic)
 		:
-			_irq_nr(irq), _pool(pool)
+			_irq_nr { irq },
+			_pool   { pool },
+			_pic    { pic }
 		{
 			_pool.insert(this);
 		}
@@ -141,10 +149,11 @@ class Kernel::User_irq : public Kernel::Irq
 		/**
 		 * Construct object that signals interrupt 'irq' via signal 'context'
 		 */
-		User_irq(unsigned const                irq,
-		         Genode::Irq_session::Trigger  trigger,
-		         Genode::Irq_session::Polarity polarity,
-		         Signal_context              & context);
+		User_irq(unsigned                const  irq,
+		         Genode::Irq_session::Trigger   trigger,
+		         Genode::Irq_session::Polarity  polarity,
+		         Signal_context                &context,
+		         Board::Pic                    &pic);
 
 		/**
 		 * Destructor

@@ -111,13 +111,22 @@ void Thread::ipc_copy_msg(Thread &sender)
 }
 
 
-Thread::Tlb_invalidation::Tlb_invalidation(Thread & caller, Pd & pd,
-                                           addr_t addr, size_t size,
-                                           unsigned cnt)
+Thread::
+Tlb_invalidation::Tlb_invalidation(Inter_processor_work_list &global_work_list,
+                                   Thread                    &caller,
+                                   Pd                        &pd,
+                                   addr_t                     addr,
+                                   size_t                     size,
+                                   unsigned                   cnt)
 :
-	caller(caller), pd(pd), addr(addr), size(size), cnt(cnt)
+	global_work_list { global_work_list },
+	caller           { caller },
+	pd               { pd },
+	addr             { addr },
+	size             { size },
+	cnt              { cnt }
 {
-	cpu_pool().work_list().insert(&_le);
+	global_work_list.insert(&_le);
 	caller._become_inactive(AWAITS_RESTART);
 }
 
@@ -131,10 +140,11 @@ Thread::Destroy::Destroy(Thread & caller, Genode::Kernel_object<Thread> & to_del
 }
 
 
-void Thread::Destroy::execute()
+void
+Thread::Destroy::execute()
 {
+	thread_to_destroy->_cpu->work_list().remove(&_le);
 	thread_to_destroy.destruct();
-	cpu_pool().executing_cpu().work_list().remove(&_le);
 	caller._restart();
 }
 
@@ -280,7 +290,7 @@ void Thread::_call_thread_quota()
 void Thread::_call_start_thread()
 {
 	/* lookup CPU */
-	Cpu & cpu = cpu_pool().cpu(user_arg_2());
+	Cpu & cpu = _cpu_pool.cpu(user_arg_2());
 	user_arg_0(0);
 	Thread &thread = *(Thread*)user_arg_1();
 
@@ -648,7 +658,9 @@ void Thread::_call_new_irq()
 	Genode::Irq_session::Polarity polarity =
 		(Genode::Irq_session::Polarity) (user_arg_3() & 0b11);
 
-	_call_new<User_irq>((unsigned)user_arg_2(), trigger, polarity, *c);
+	_call_new<User_irq>(
+		(unsigned)user_arg_2(), trigger, polarity, *c,
+		_cpu_pool.executing_cpu().pic());
 }
 
 
@@ -709,12 +721,15 @@ void Kernel::Thread::_call_invalidate_tlb()
 	size_t size   = (size_t) user_arg_3();
 	unsigned cnt = 0;
 
-	cpu_pool().for_each_cpu([&] (Cpu & cpu) {
+	_cpu_pool.for_each_cpu([&] (Cpu & cpu) {
 		/* if a cpu needs to update increase the counter */
 		if (pd->invalidate_tlb(cpu, addr, size)) cnt++; });
 
 	/* insert the work item in the list if there are outstanding cpus */
-	if (cnt) _tlb_invalidation.construct(*this, *pd, addr, size, cnt);
+	if (cnt) {
+		_tlb_invalidation.construct(
+			_cpu_pool.work_list(), *this, *pd, addr, size, cnt);
+	}
 }
 
 
@@ -759,12 +774,12 @@ void Thread::_call()
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
 	case call_id_new_thread():
-		_call_new<Thread>((unsigned) user_arg_2(),
+		_call_new<Thread>(_cpu_pool, (unsigned) user_arg_2(),
 		                  (unsigned) _core_to_kernel_quota(user_arg_3()),
 		                  (char const *) user_arg_4());
 		return;
 	case call_id_new_core_thread():
-		_call_new<Thread>((char const *) user_arg_2());
+		_call_new<Thread>(_cpu_pool, (char const *) user_arg_2());
 		return;
 	case call_id_thread_quota():           _call_thread_quota(); return;
 	case call_id_delete_thread():          _call_delete_thread(); return;
@@ -821,12 +836,20 @@ void Thread::_mmu_exception()
 }
 
 
-Thread::Thread(unsigned const priority, unsigned const quota,
-               char const * const label, bool core)
+Thread::Thread(Cpu_pool          &cpu_pool,
+               unsigned    const  priority,
+               unsigned    const  quota,
+               char const *const  label,
+               bool               core)
 :
 	Kernel::Object { *this },
-	Cpu_job(priority, quota), _ipc_node(*this), _state(AWAITS_START),
-	_label(label), _core(core), regs(core)
+	Cpu_job        { priority, quota },
+	_cpu_pool      { cpu_pool },
+	_ipc_node      { *this },
+	_state         { AWAITS_START },
+	_label         { label },
+	_core          { core },
+	regs           { core }
 { }
 
 
@@ -848,9 +871,9 @@ Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
  ** Core_main_thread **
  **********************/
 
-Core_main_thread::Core_main_thread()
+Core_main_thread::Core_main_thread(Cpu_pool &cpu_pool)
 :
-	Core_object<Thread>("core")
+	Core_object<Thread>(cpu_pool, "core")
 {
 	using namespace Genode;
 
@@ -870,15 +893,18 @@ Core_main_thread::Core_main_thread()
 	regs->sp = (addr_t)&__initial_stack_base[0] + DEFAULT_STACK_SIZE;
 	regs->ip = (addr_t)&_core_start;
 
-	affinity(cpu_pool().primary_cpu());
+	affinity(_cpu_pool.primary_cpu());
 	_utcb       = utcb;
 	Thread::_pd = &core_pd();
 	_become_active();
 }
 
 
-Thread & Core_main_thread::singleton()
+Core_main_thread *Core_main_thread::_instance;
+
+
+void Core_main_thread::initialize_instance(Cpu_pool &cpu_pool)
 {
-	static Core_main_thread cmt;
-	return cmt;
+	static Core_main_thread instance { cpu_pool };
+	_instance = &instance;
 }

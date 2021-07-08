@@ -66,20 +66,20 @@ static Genode::Vm_state & host_context(Cpu & cpu)
 
 Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu & cpu)
 :
-	Kernel::Irq(irq, cpu.irq_pool())
+	Kernel::Irq { irq, cpu.irq_pool(), cpu.pic() },
+	_cpu        { cpu }
 { }
 
 
-void Board::Vcpu_context::Vm_irq::handle(Cpu &, Vm & vm, unsigned irq) {
+void Board::Vcpu_context::Vm_irq::handle(Vm & vm, unsigned irq) {
 	vm.inject_irq(irq); }
 
 
 void Board::Vcpu_context::Vm_irq::occurred()
 {
-	Cpu & cpu = Kernel::cpu_pool().executing_cpu();
-	Vm *vm = dynamic_cast<Vm*>(&cpu.scheduled_job());
+	Vm *vm = dynamic_cast<Vm*>(&_cpu.scheduled_job());
 	if (!vm) Genode::raw("VM interrupt while VM is not runnning!");
-	else     handle(cpu, *vm, _irq_nr);
+	else     handle(*vm, _irq_nr);
 }
 
 
@@ -109,7 +109,7 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 }
 
 
-Vm::Vm(unsigned                 cpu,
+Vm::Vm(Cpu                    & cpu,
        Genode::Vm_state       & state,
        Kernel::Signal_context & context,
        Identity               & id)
@@ -119,9 +119,9 @@ Vm::Vm(unsigned                 cpu,
 	_state(state),
 	_context(context),
 	_id(id),
-	_vcpu_context(cpu_pool().cpu(cpu))
+	_vcpu_context(cpu)
 {
-	affinity(cpu_pool().cpu(cpu));
+	affinity(cpu);
 
 	_state.id_aa64isar0_el1 = Cpu::Id_aa64isar0_el1::read();
 	_state.id_aa64isar1_el1 = Cpu::Id_aa64isar1_el1::read();

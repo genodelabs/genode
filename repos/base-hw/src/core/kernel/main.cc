@@ -33,10 +33,12 @@ class Kernel::Main
 
 		friend void main_handle_kernel_entry();
 		friend void main_initialize_and_handle_kernel_entry();
+		friend time_t main_read_idle_thread_execution_time(unsigned cpu_idx);
 
 		static Main *_instance;
 
-		Lock _data_lock { };
+		Lock     _data_lock { };
+		Cpu_pool _cpu_pool  { };
 
 		void _handle_kernel_entry();
 };
@@ -47,7 +49,7 @@ Kernel::Main *Kernel::Main::_instance;
 
 void Kernel::Main::_handle_kernel_entry()
 {
-	Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
+	Cpu &cpu = _cpu_pool.cpu(Cpu::executing_id());
 	Cpu_job * new_job;
 
 	{
@@ -98,7 +100,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		instance_initialized = true;
 
 		/* initialize current cpu */
-		pool_ready = cpu_pool().initialize();
+		pool_ready = Main::_instance->_cpu_pool.initialize();
 	};
 
 	/* wait until all cpus have initialized their corresponding cpu object */
@@ -112,7 +114,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		Boot_info &boot_info {
 			*reinterpret_cast<Boot_info*>(Hw::Mm::boot_info().base) };
 
-		cpu_pool().for_each_cpu([&] (Kernel::Cpu &cpu) {
+		Main::_instance->_cpu_pool.for_each_cpu([&] (Kernel::Cpu &cpu) {
 			boot_info.kernel_irqs.add(cpu.timer().interrupt_id());
 		});
 		boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
@@ -120,7 +122,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		Genode::log("");
 		Genode::log("kernel initialized");
 
-		Core_main_thread::singleton();
+		Core_main_thread::initialize_instance(Main::_instance->_cpu_pool);
 		kernel_ready = true;
 	} else {
 		/* secondary cpus spin until the kernel is initialized */
@@ -133,5 +135,5 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 
 Kernel::time_t Kernel::main_read_idle_thread_execution_time(unsigned cpu_idx)
 {
-	return cpu_pool().cpu(cpu_idx).idle_thread().execution_time();
+	return Main::_instance->_cpu_pool.cpu(cpu_idx).idle_thread().execution_time();
 }

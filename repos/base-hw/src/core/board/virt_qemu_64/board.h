@@ -51,13 +51,21 @@ namespace Kernel {
 
 struct Board::Vcpu_context
 {
-	struct Vm_irq : Kernel::Irq
+	class Vm_irq : public Kernel::Irq
 	{
-		Vm_irq(unsigned const irq, Kernel::Cpu &);
-		virtual ~Vm_irq() {};
+		private:
 
-		virtual void handle(Kernel::Cpu &, Kernel::Vm & vm, unsigned irq);
-		void occurred() override;
+			Kernel::Cpu &_cpu;
+
+		public:
+
+			Vm_irq(unsigned const irq, Kernel::Cpu &cpu);
+
+			virtual ~Vm_irq() {};
+
+			virtual void handle(Kernel::Vm &vm, unsigned irq);
+
+			void occurred() override;
 	};
 
 
@@ -65,7 +73,7 @@ struct Board::Vcpu_context
 	{
 		Pic_maintainance_irq(Kernel::Cpu &);
 
-		void handle(Kernel::Cpu &, Kernel::Vm &, unsigned) override { }
+		void handle(Kernel::Vm &, unsigned) override { }
 	};
 
 

@@ -35,11 +35,6 @@ namespace Kernel {
 	 * Provides a CPU object for every available CPU
 	 */
 	class Cpu_pool;
-
-	/**
-	 * Return singleton of CPU pool
-	 */
-	Cpu_pool &cpu_pool();
 }
 
 
@@ -107,7 +102,8 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			/**
 			 * Construct idle context for CPU 'cpu'
 			 */
-			Idle_thread(Cpu &cpu);
+			Idle_thread(Cpu_pool &cpu_pool,
+			            Cpu      &cpu);
 		};
 
 
@@ -132,8 +128,8 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		/**
 		 * Construct object for CPU 'id'
 		 */
-		Cpu(unsigned const id,
-		    Inter_processor_work_list & global_work_list);
+		Cpu(unsigned const  id,
+		    Cpu_pool       &cpu_pool);
 
 		static inline unsigned primary_id() { return 0; }
 

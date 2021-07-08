@@ -24,8 +24,9 @@ namespace Board {
 	using namespace Hw::Wand_quad_board;
 
 	using L2_cache = Hw::Pl310;
-	using Pic      = Hw::Gicv2;
-	
+
+	class Pic : public Hw::Gicv2 { };
+
 	L2_cache & l2_cache();
 
 	enum {

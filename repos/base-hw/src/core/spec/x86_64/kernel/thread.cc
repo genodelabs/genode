@@ -26,7 +26,7 @@ void Kernel::Thread::Tlb_invalidation::execute()
 
 	/* if this is the last cpu, wake up the caller thread */
 	if (--cnt == 0) {
-		cpu_pool().work_list().remove(&_le);
+		global_work_list.remove(&_le);
 		caller._restart();
 	}
 };

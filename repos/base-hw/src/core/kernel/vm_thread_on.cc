@@ -14,6 +14,7 @@
 /* core includes */
 #include <kernel/thread.h>
 #include <kernel/vm.h>
+#include <kernel/cpu.h>
 
 void Kernel::Thread::_call_new_vm()
 {
@@ -24,7 +25,8 @@ void Kernel::Thread::_call_new_vm()
 		return;
 	}
 
-	_call_new<Vm>((unsigned)user_arg_2(), *(Board::Vm_state*)user_arg_3(),
+	_call_new<Vm>(_cpu_pool.cpu((unsigned)user_arg_2()),
+	              *(Board::Vm_state*)user_arg_3(),
 	              *context, *(Vm::Identity*)user_arg_4());
 }
 

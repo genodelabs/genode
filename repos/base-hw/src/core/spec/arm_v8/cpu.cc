@@ -11,11 +11,17 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* base includes */
+#include <util/bit_allocator.h>
+#include <cpu/memory_barrier.h>
+
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
+
+/* base-hw Core includes */
 #include <board.h>
 #include <cpu.h>
 #include <kernel/thread.h>
-#include <cpu/memory_barrier.h>
-#include <util/bit_allocator.h>
 
 
 Genode::Cpu::Context::Context(bool privileged)

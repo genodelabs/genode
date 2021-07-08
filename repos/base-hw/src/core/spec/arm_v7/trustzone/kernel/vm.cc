@@ -20,7 +20,7 @@
 using namespace Kernel;
 
 
-Kernel::Vm::Vm(unsigned,
+Kernel::Vm::Vm(Cpu                    & cpu,
                Genode::Vm_state       & state,
                Kernel::Signal_context & context,
                Identity               & id)
@@ -30,9 +30,9 @@ Kernel::Vm::Vm(unsigned,
 	_state(state),
 	_context(context),
 	_id(id),
-	_vcpu_context(cpu_pool().primary_cpu())
+	_vcpu_context(cpu)
 {
-	affinity(cpu_pool().primary_cpu());
+	affinity(cpu);
 }
 
 
