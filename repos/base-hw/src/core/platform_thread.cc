@@ -68,7 +68,7 @@ Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
 	_utcb_pd_addr(&utcb),
 	_main_thread(false),
 	_location(Affinity::Location()),
-	_kobj(true, _label.string())
+	_kobj(_kobj.CALLED_FROM_CORE, _label.string())
 {
 	/* create UTCB for a core thread */
 	void *utcb_phys;
@@ -95,7 +95,7 @@ Platform_thread::Platform_thread(size_t             const  quota,
 	_quota(quota),
 	_main_thread(false),
 	_location(location),
-	_kobj(true, _priority, _quota, _label.string())
+	_kobj(_kobj.CALLED_FROM_CORE, _priority, _quota, _label.string())
 {
 	try {
 		_utcb = core_env().pd_session()->alloc(sizeof(Native_utcb), CACHED);

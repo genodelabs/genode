@@ -44,19 +44,29 @@ class Genode::Kernel_object : public Genode::Constructible<Kernel::Core_object<T
 
 	public:
 
+		enum Called_from_core   { CALLED_FROM_CORE };
+		enum Called_from_kernel { CALLED_FROM_KERNEL };
+
 		Kernel_object() {}
 
 		/**
-		 * Creates a kernel object either via a syscall or directly
+		 * Creates a kernel object via a syscall
 		 */
 		template <typename... ARGS>
-		Kernel_object(bool syscall, ARGS &&... args)
+		Kernel_object(Called_from_core, ARGS &&... args)
 		:
-			_cap(Capability_space::import(syscall ? T::syscall_create(*this, args...)
-			                                      : Kernel::cap_id_invalid()))
+			_cap(Capability_space::import(T::syscall_create(*this, args...)))
+		{ }
+
+		/**
+		 * Creates a kernel object directly
+		 */
+		template <typename... ARGS>
+		Kernel_object(Called_from_kernel, ARGS &&... args)
+		:
+			_cap(Capability_space::import(Kernel::cap_id_invalid()))
 		{
-			if (!syscall)
-				Genode::Constructible<Kernel::Core_object<T>>::construct(args...);
+			Genode::Constructible<Kernel::Core_object<T>>::construct(args...);
 		}
 
 		~Kernel_object()

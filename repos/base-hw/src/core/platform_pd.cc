@@ -96,7 +96,9 @@ Hw::Address_space::Address_space(Page_table            & tt,
 	_tt(tt),
 	_tt_phys(Platform::core_page_table()),
 	_tt_alloc(tt_alloc),
-	_kobj(false, *(Page_table*)translation_table_phys(), pd)
+	_kobj(_kobj.CALLED_FROM_KERNEL,
+	      *(Page_table*)translation_table_phys(),
+	      pd)
 { }
 
 
@@ -107,7 +109,9 @@ Hw::Address_space::Address_space(Platform_pd & pd)
 	_tt_array(new (_cma()) Array([] (void * virt) {
 	                             return (addr_t)_cma().phys_addr(virt);})),
 	_tt_alloc(_tt_array->alloc()),
-	_kobj(true, *(Page_table*)translation_table_phys(), pd)
+	_kobj(_kobj.CALLED_FROM_CORE,
+	      *(Page_table*)translation_table_phys(),
+	      pd)
 { }
 
 

@@ -110,7 +110,8 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 :
 	Thread(Weight::DEFAULT_WEIGHT, "pager_ep", PAGER_EP_STACK_SIZE,
 	       Type::NORMAL),
-	_kobj(true)
+
+	_kobj(_kobj.CALLED_FROM_CORE)
 {
 	start();
 }
