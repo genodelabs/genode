@@ -23,10 +23,12 @@ template <typename PLAT_INFO>
 struct Hw::Boot_info
 {
 	using Mapping_pool = Genode::Array<Mapping, 32>;
+	using Kernel_irqs  = Genode::Array<unsigned, NR_OF_CPUS + 1>;
 
 	addr_t        const table;
 	addr_t        const table_allocator;
 	Mapping_pool  const elf_mappings;
+	Kernel_irqs         kernel_irqs { };
 	Mapping       const boot_modules;
 	Mmio_space    const mmio_space;
 	Memory_region_array ram_regions { };

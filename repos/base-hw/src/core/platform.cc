@@ -177,14 +177,12 @@ Platform::Platform()
 	/* make all non-kernel interrupts available to the interrupt allocator */
 	for (unsigned i = 0; i < Board::Pic::NR_OF_IRQ; i++) {
 		bool kernel_resource = false;
-		Kernel::cpu_pool().for_each_cpu([&] (Kernel::Cpu & cpu) {
-			if (i == cpu.timer().interrupt_id()) {
+		_boot_info().kernel_irqs.for_each([&] (unsigned /*idx*/,
+		                                       unsigned kernel_irq) {
+			if (i == kernel_irq) {
 				kernel_resource = true;
 			}
 		});
-		if (i == Board::Pic::IPI) {
-			kernel_resource = true;
-		}
 		if (kernel_resource) {
 			continue;
 		}

@@ -20,6 +20,7 @@
 #include <platform_pd.h>
 #include <board.h>
 #include <platform_thread.h>
+#include <hw/boot_info.h>
 
 /* base includes */
 #include <base/internal/unmanaged_singleton.h>
@@ -70,6 +71,15 @@ extern "C" void kernel_init()
 	/* the boot-cpu initializes the rest of the kernel */
 	if (Cpu::executing_id() == Cpu::primary_id()) {
 		Lock::Guard guard(data_lock());
+
+		using Boot_info = Hw::Boot_info<Board::Boot_info>;
+		Boot_info &boot_info {
+			*reinterpret_cast<Boot_info*>(Hw::Mm::boot_info().base) };
+
+		cpu_pool().for_each_cpu([&] (Kernel::Cpu &cpu) {
+			boot_info.kernel_irqs.add(cpu.timer().interrupt_id());
+		});
+		boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
 
 		Genode::log("");
 		Genode::log("kernel initialized");
