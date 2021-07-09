@@ -17,6 +17,17 @@
 #include <kernel/lock.h>
 #include <kernel/kernel.h>
 
+namespace Kernel {
+
+	time_t read_idle_thread_execution_time(unsigned cpu_idx);
+}
+
+
+Kernel::time_t Kernel::read_idle_thread_execution_time(unsigned cpu_idx)
+{
+	return cpu_pool().cpu(cpu_idx).idle_thread().execution_time();
+}
+
 
 extern "C" void kernel()
 {

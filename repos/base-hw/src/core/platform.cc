@@ -22,19 +22,23 @@
 #include <platform_pd.h>
 #include <hw/page_flags.h>
 #include <hw/util.h>
-#include <kernel/kernel.h>
 #include <translation_table.h>
-#include <kernel/cpu.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
+#include <base/internal/unmanaged_singleton.h>
 
 /* Genode includes */
 #include <base/log.h>
 #include <trace/source_registry.h>
 
 using namespace Genode;
+
+namespace Kernel {
+
+	time_t read_idle_thread_execution_time(unsigned cpu_idx);
+}
 
 
 /**************
@@ -216,14 +220,13 @@ Platform::Platform()
 		init_core_log(Core_log_range { core_local_addr, log_size } );
 	}
 
-	class Trace_source : public  Trace::Source::Info_accessor,
-	                     private Trace::Control,
-	                     private Trace::Source
+	class Idle_thread_trace_source : public  Trace::Source::Info_accessor,
+	                                 private Trace::Control,
+	                                 private Trace::Source
 	{
 		private:
 
-			Kernel::Thread           &_thread;
-			Affinity::Location const  _affinity;
+			Affinity::Location const _affinity;
 
 		public:
 
@@ -233,18 +236,18 @@ Platform::Platform()
 			Info trace_source_info() const override
 			{
 				Trace::Execution_time execution_time {
-					_thread.execution_time(), 0 };
+					Kernel::read_idle_thread_execution_time(
+						_affinity.xpos()), 0 };
 
-				return { Session_label("kernel"), _thread.label(),
+				return { Session_label("kernel"), "idle",
 				         execution_time, _affinity };
 			}
 
-			Trace_source(Trace::Source_registry &registry,
-			             Kernel::Thread &thread, Affinity::Location affinity)
+			Idle_thread_trace_source(Trace::Source_registry &registry,
+			                         Affinity::Location affinity)
 			:
 				Trace::Control { },
 				Trace::Source  { *this, *this },
-				_thread        { thread },
 				_affinity      { affinity }
 			{
 				registry.insert(this);
@@ -252,10 +255,12 @@ Platform::Platform()
 	};
 
 	/* create trace sources for idle threads */
-	Kernel::cpu_pool().for_each_cpu([&] (Kernel::Cpu & cpu) {
-		new (core_mem_alloc()) Trace_source(Trace::sources(), cpu.idle_thread(),
-		                                    Affinity::Location(cpu.id(), 0));
-	});
+	for (unsigned cpu_idx = 0; cpu_idx < _boot_info().cpus; cpu_idx++) {
+
+		new (core_mem_alloc())
+			Idle_thread_trace_source(
+				Trace::sources(), Affinity::Location(cpu_idx, 0));
+	}
 
 	log(_rom_fs);
 }
