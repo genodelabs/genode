@@ -79,7 +79,6 @@ struct Igd::Device
 	struct Initialization_failed : Genode::Exception { };
 	struct Unsupported_device    : Genode::Exception { };
 	struct Out_of_ram            : Genode::Exception { };
-	struct Already_scheduled     : Genode::Exception { };
 	struct Could_not_map_buffer  : Genode::Exception { };
 
 	Env       &_env;
@@ -610,8 +609,9 @@ struct Igd::Device
 		Signal_context_capability        _completion_sigh { };
 		uint32_t                  const  _id;
 		Engine<Rcs_context>              rcs;
-		uint32_t                         active_fences  { 0 };
-		uint64_t                         _current_seqno { 0 };
+		uint32_t                         active_fences    { 0 };
+		uint64_t                         _current_seqno   { 0 };
+		uint64_t                         _completed_seqno { 0 };
 
 		uint32_t _id_alloc()
 		{
@@ -645,7 +645,13 @@ struct Igd::Device
 
 		uint64_t current_seqno() const { return _current_seqno; }
 
-		uint64_t complete_seqno() const { return rcs.seqno(); }
+		uint64_t completed_seqno() const { return _completed_seqno; }
+
+		void user_complete()
+		{
+			/* remember last completed seqno for info object */
+			_completed_seqno = rcs.seqno();
+		}
 
 		void setup_ring_buffer(Genode::addr_t const buffer_addr,
 		                       Genode::addr_t const scratch_addr)
@@ -816,14 +822,6 @@ struct Igd::Device
 	Genode::Fifo<Vgpu>  _vgpu_list { };
 	Vgpu               *_active_vgpu { nullptr };
 
-	bool _vgpu_already_scheduled(Vgpu &vgpu) const
-	{
-		bool result = false;
-		_vgpu_list.for_each([&] (Vgpu const &v) {
-			result |= (&v == &vgpu); });
-		return result;
-	}
-
 	void _submit_execlist(Engine<Rcs_context> &engine)
 	{
 		Execlist &el = *engine.execlist;
@@ -894,25 +892,25 @@ struct Igd::Device
 		_mmio->write_post<Mmio::GT_0_INTERRUPT_IIR>(v);
 	}
 
-	Vgpu *_last_scheduled = nullptr;
-
-	void _notify_complete(Vgpu *gpu)
+	/**
+	 * \return true, if Vgpu is done and has not further work
+	 */
+	bool _notify_complete(Vgpu *gpu)
 	{
-		if (!gpu) { return; }
+		if (!gpu) { return true; }
 
 		uint64_t const curr_seqno = gpu->current_seqno();
-		uint64_t const comp_seqno = gpu->complete_seqno();
-
-		if (curr_seqno != comp_seqno) {
-			Genode::error(__func__, "sequence numbers (", curr_seqno, "/", comp_seqno, ") do not match");
-			_last_scheduled = gpu;
-			return;
-		}
+		uint64_t const comp_seqno = gpu->completed_seqno();
 
 		Execlist &el = *gpu->rcs.execlist;
 		el.ring_update_head(gpu->rcs.context->head_offset());
 
+		if (curr_seqno != comp_seqno)
+			return false;
+
 		Genode::Signal_transmitter(gpu->completion_sigh()).submit();
+
+		return true;
 	}
 
 	void _handle_irq()
@@ -928,7 +926,11 @@ struct Igd::Device
 		if (v) { _clear_rcs_iir(v); }
 
 		Vgpu *notify_gpu = nullptr;
-		if (user_complete) { notify_gpu = _current_vgpu(); }
+		if (user_complete) {
+			notify_gpu = _current_vgpu();
+			if (notify_gpu)
+				notify_gpu->user_complete();
+		}
 
 		bool const fault_valid = _mmio->fault_regs_valid();
 		if (fault_valid) { Genode::error("FAULT_REG valid"); }
@@ -939,7 +941,10 @@ struct Igd::Device
 			_unschedule_current_vgpu();
 			_active_vgpu = nullptr;
 
-			if (notify_gpu) { _notify_complete(notify_gpu); }
+			if (notify_gpu) {
+				if (!_notify_complete(notify_gpu))
+					_vgpu_list.enqueue(*notify_gpu);
+			}
 
 			/* keep the ball rolling...  */
 			if (_current_vgpu()) {
@@ -988,21 +993,21 @@ struct Igd::Device
 	{
 		if (!_active_vgpu) { return; }
 
-		Genode::error("watchdog triggered: engine stuck");
+		Genode::error("watchdog triggered: engine stuck,"
+		              " vGPU=", _active_vgpu->id());
 		_mmio->dump();
 		_mmio->error_dump();
 		_mmio->fault_dump();
 		_mmio->execlist_status_dump();
-		Vgpu *gpu = _current_vgpu();
-		gpu = gpu ? gpu : _last_scheduled;
-		gpu->rcs.context->dump();
-		gpu->rcs.context->dump_hw_status_page();
-		Execlist const &el = *gpu->rcs.execlist;
+
+		_active_vgpu->rcs.context->dump();
+		_active_vgpu->rcs.context->dump_hw_status_page();
+		Execlist const &el = *_active_vgpu->rcs.execlist;
 		el.ring_dump(52);
 
 		_device_reset_and_init();
 
-		if (_active_vgpu == gpu) {
+		if (_active_vgpu == _current_vgpu()) {
 			_unschedule_current_vgpu();
 		}
 
@@ -1122,15 +1127,14 @@ struct Igd::Device
 	 *******************/
 
 	/**
-	 * Add vGPU to scheduling list
+	 * Add vGPU to scheduling list if not enqueued already
 	 *
 	 * \param vgpu  reference to vGPU
-	 *
-	 * \throw Already_scheduled
 	 */
-	void vgpu_enqueue(Vgpu &vgpu)
+	void vgpu_activate(Vgpu &vgpu)
 	{
-		if (_vgpu_already_scheduled(vgpu)) { throw Already_scheduled(); }
+		if (vgpu.enqueued())
+			return;
 
 		Vgpu const *pending = _current_vgpu();
 
@@ -1395,7 +1399,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		{
 			Genode::size_t const aperture_size = Igd::Device::Vgpu::APERTURE_SIZE;
 			return Info(_device.id(), _device.features(), aperture_size,
-			            _vgpu.id(), { .id = _vgpu.complete_seqno() });
+			            _vgpu.id(), { .id = _vgpu.completed_seqno() });
 		}
 
 		Gpu::Info::Execution_buffer_sequence exec_buffer(Genode::Dataspace_capability cap,
@@ -1419,13 +1423,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			if (!found)
 				throw Gpu::Session::Invalid_state();
 
-			try {
-				_device.vgpu_enqueue(_vgpu);
-				return { .id = _vgpu.current_seqno() };
-			} catch (Igd::Device::Already_scheduled &e) {
-				Genode::error("vGPU already scheduled");
-				return { .id = _vgpu.current_seqno() }; /* XXX */
-			}
+			_device.vgpu_activate(_vgpu);
+			return { .id = _vgpu.current_seqno() };
 		}
 
 		void completion_sigh(Genode::Signal_context_capability sigh) override
