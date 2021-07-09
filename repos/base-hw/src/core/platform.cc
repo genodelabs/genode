@@ -216,32 +216,39 @@ Platform::Platform()
 		init_core_log(Core_log_range { core_local_addr, log_size } );
 	}
 
-	struct Trace_source : public  Trace::Source::Info_accessor,
-	                      private Trace::Control,
-	                      private Trace::Source
+	class Trace_source : public  Trace::Source::Info_accessor,
+	                     private Trace::Control,
+	                     private Trace::Source
 	{
-		Kernel::Thread          &thread;
-		Affinity::Location const affinity;
+		private:
 
-		/**
-		 * Trace::Source::Info_accessor interface
-		 */
-		Info trace_source_info() const override
-		{
-			Trace::Execution_time execution_time { thread.execution_time(), 0 };
-			return { Session_label("kernel"), thread.label(), execution_time,
-			         affinity };
-		}
+			Kernel::Thread           &_thread;
+			Affinity::Location const  _affinity;
 
-		Trace_source(Trace::Source_registry &registry,
-		             Kernel::Thread &thread, Affinity::Location affinity)
-		:
-			Trace::Control(),
-			Trace::Source(*this, *this),
-			thread(thread), affinity(affinity)
-		{
-			registry.insert(this);
-		}
+		public:
+
+			/**
+			 * Trace::Source::Info_accessor interface
+			 */
+			Info trace_source_info() const override
+			{
+				Trace::Execution_time execution_time {
+					_thread.execution_time(), 0 };
+
+				return { Session_label("kernel"), _thread.label(),
+				         execution_time, _affinity };
+			}
+
+			Trace_source(Trace::Source_registry &registry,
+			             Kernel::Thread &thread, Affinity::Location affinity)
+			:
+				Trace::Control { },
+				Trace::Source  { *this, *this },
+				_thread        { thread },
+				_affinity      { affinity }
+			{
+				registry.insert(this);
+			}
 	};
 
 	/* create trace sources for idle threads */
