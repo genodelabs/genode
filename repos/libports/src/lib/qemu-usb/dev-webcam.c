@@ -624,6 +624,7 @@ static void usb_webcam_handle_control(USBDevice * const dev,
 					state->delayed_packet = 0;
 				if (state->capture) {
 					state->capture = false;
+					state->delay_packet = false;
 					usb_webcam_capture_state_changed(state->capture);
 				}
 			}
