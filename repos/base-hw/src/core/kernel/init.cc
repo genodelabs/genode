@@ -84,7 +84,7 @@ extern "C" void kernel_init()
 		Genode::log("");
 		Genode::log("kernel initialized");
 
-		Core_thread::singleton();
+		Core_main_thread::singleton();
 		kernel_ready = true;
 	} else {
 		/* secondary cpus spin until the kernel is initialized */

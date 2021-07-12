@@ -35,7 +35,7 @@
 namespace Kernel {
 	struct Thread_fault;
 	class Thread;
-	class Core_thread;
+	class Core_main_thread;
 }
 
 
@@ -422,9 +422,9 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 /**
  * The first core thread in the system bootstrapped by the Kernel
  */
-struct Kernel::Core_thread : Core_object<Kernel::Thread>
+struct Kernel::Core_main_thread : Core_object<Kernel::Thread>
 {
-	Core_thread();
+	Core_main_thread();
 
 	static Thread & singleton();
 };

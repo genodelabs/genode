@@ -844,11 +844,11 @@ void Thread::print(Genode::Output &out) const
 Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
 
 
-/*****************
- ** Core_thread **
- *****************/
+/**********************
+ ** Core_main_thread **
+ **********************/
 
-Core_thread::Core_thread()
+Core_main_thread::Core_main_thread()
 :
 	Core_object<Thread>("core")
 {
@@ -877,8 +877,8 @@ Core_thread::Core_thread()
 }
 
 
-Thread & Core_thread::singleton()
+Thread & Core_main_thread::singleton()
 {
-	static Core_thread ct;
-	return ct;
+	static Core_main_thread cmt;
+	return cmt;
 }

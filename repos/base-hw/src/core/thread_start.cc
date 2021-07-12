@@ -93,7 +93,7 @@ void Thread::_init_platform_thread(size_t, Type type)
 	}
 
 	/* remap initial main-thread UTCB according to stack-area spec */
-	Genode::map_local(Platform::core_phys_addr((addr_t)Kernel::Core_thread::singleton().utcb()),
+	Genode::map_local(Platform::core_phys_addr((addr_t)Kernel::Core_main_thread::singleton().utcb()),
 	                  (addr_t)&_stack->utcb(),
 	                  max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 
