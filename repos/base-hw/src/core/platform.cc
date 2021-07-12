@@ -63,6 +63,11 @@ Hw::Page_table::Allocator & Platform::core_page_table_allocator()
 }
 
 
+addr_t Platform::core_main_thread_phys_utcb()
+{
+	return core_phys_addr(_boot_info().core_main_thread_utcb);
+}
+
 void Platform::_init_io_mem_alloc()
 {
 	/* add entire adress space minus the RAM memory regions */

@@ -143,6 +143,8 @@ class Genode::Platform : public Genode::Platform_generic
 		 * by core's local capability space.
 		 */
 		size_t max_caps() const override { return Kernel::Pd::max_cap_ids; }
+
+		static addr_t core_main_thread_phys_utcb();
 };
 
 #endif /* _CORE__PLATFORM_H_ */

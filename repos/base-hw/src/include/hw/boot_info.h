@@ -27,6 +27,7 @@ struct Hw::Boot_info
 
 	addr_t        const table;
 	addr_t        const table_allocator;
+	addr_t              core_main_thread_utcb { 0 };
 	Mapping_pool  const elf_mappings;
 	Kernel_irqs         kernel_irqs { };
 	Mapping       const boot_modules;

@@ -438,17 +438,9 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
  */
 class Kernel::Core_main_thread : public Core_object<Kernel::Thread>
 {
-	private:
-
-		static Core_main_thread *_instance;
-
 	public:
 
 		Core_main_thread(Cpu_pool &cpu_pool);
-
-		static void initialize_instance(Cpu_pool &cpu_pool);
-
-		static Thread &instance() { return *_instance; };
 };
 
 #endif /* _CORE__KERNEL__THREAD_H_ */

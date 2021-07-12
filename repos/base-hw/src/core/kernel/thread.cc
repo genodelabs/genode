@@ -898,13 +898,3 @@ Core_main_thread::Core_main_thread(Cpu_pool &cpu_pool)
 	Thread::_pd = &core_pd();
 	_become_active();
 }
-
-
-Core_main_thread *Core_main_thread::_instance;
-
-
-void Core_main_thread::initialize_instance(Cpu_pool &cpu_pool)
-{
-	static Core_main_thread instance { cpu_pool };
-	_instance = &instance;
-}
