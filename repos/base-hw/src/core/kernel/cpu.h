@@ -193,15 +193,14 @@ class Kernel::Cpu_pool
 	private:
 
 		Inter_processor_work_list  _global_work_list {};
-		unsigned                   _count;
-		unsigned                   _initialized { _count };
+		unsigned                   _nr_of_cpus;
 		Genode::Constructible<Cpu> _cpus[NR_OF_CPUS];
 
 	public:
 
-		Cpu_pool();
+		Cpu_pool(unsigned nr_of_cpus);
 
-		bool initialize();
+		void initialize_executing_cpu();
 
 		/**
 		 * Return object of CPU 'id'
@@ -221,11 +220,13 @@ class Kernel::Cpu_pool
 		template <typename FUNC>
 		void for_each_cpu(FUNC const &func)
 		{
-			for (unsigned i = 0; i < _count; i++) func(cpu(i));
+			for (unsigned i = 0; i < _nr_of_cpus; i++) func(cpu(i));
 		}
 
 		Inter_processor_work_list & work_list() {
 			return _global_work_list; }
+
+		unsigned nr_of_cpus() { return _nr_of_cpus; }
 };
 
 #endif /* _CORE__KERNEL__CPU_H_ */

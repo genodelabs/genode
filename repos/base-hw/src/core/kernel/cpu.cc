@@ -190,17 +190,16 @@ Cpu::Cpu(unsigned const  id,
  ** Cpu_pool **
  **************/
 
-bool Cpu_pool::initialize()
+void Cpu_pool::initialize_executing_cpu()
 {
 	unsigned id = Cpu::executing_id();
 	_cpus[id].construct(id, *this);
-	return --_initialized == 0;
 }
 
 
 Cpu & Cpu_pool::cpu(unsigned const id)
 {
-	assert(id < _count && _cpus[id].constructed());
+	assert(id < _nr_of_cpus && _cpus[id].constructed());
 	return *_cpus[id];
 }
 
@@ -208,7 +207,7 @@ Cpu & Cpu_pool::cpu(unsigned const id)
 using Boot_info = Hw::Boot_info<Board::Boot_info>;
 
 
-Cpu_pool::Cpu_pool()
+Cpu_pool::Cpu_pool(unsigned nr_of_cpus)
 :
-	_count(reinterpret_cast<Boot_info*>(Hw::Mm::boot_info().base)->cpus)
+	_nr_of_cpus(nr_of_cpus)
 { }
