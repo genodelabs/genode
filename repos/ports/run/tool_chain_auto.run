@@ -86,6 +86,7 @@ build $build_components
 # write default .bash_profile file
 set bash_profile_fd [open bin/bash_profile w]
 puts $bash_profile_fd {
+ln -s a /home/b ; rm /home/b    # regression test for issue #4219
 echo 'creating build directory...'
 mkdir -p "/home/build"
 cp -r /genode/depot /home/build
