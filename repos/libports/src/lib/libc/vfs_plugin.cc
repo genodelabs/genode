@@ -1675,76 +1675,88 @@ int Libc::Vfs_plugin::fsync(File_descriptor *fd)
 
 int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 {
-	enum class Stage { OPEN, WRITE, SYNC };
-
-	Stage                stage     { Stage::OPEN };
 	Vfs::Vfs_handle     *handle    { nullptr };
 	Constructible<Sync>  sync;
 	Vfs::file_size const count     { ::strlen(target_path) + 1 };
 	Vfs::file_size       out_count { 0 };
 
+	{
+		bool succeeded { false };
+		int result_errno { 0 };
+		monitor().monitor([&] {
 
-	bool succeeded { false };
-	int result_errno { 0 };
-	monitor().monitor([&] {
+			typedef Vfs::Directory_service::Openlink_result Openlink_result;
 
-		switch (stage) {
-		case Stage::OPEN:
-			{
-				typedef Vfs::Directory_service::Openlink_result Openlink_result;
+			Openlink_result openlink_result =
+				_root_fs.openlink(link_path, true, &handle, _alloc);
 
-				Openlink_result openlink_result =
-					_root_fs.openlink(link_path, true, &handle, _alloc);
+			switch (openlink_result) {
+			case Openlink_result::OPENLINK_ERR_LOOKUP_FAILED:
+				result_errno = ENOENT; return Fn::COMPLETE;
+			case Openlink_result::OPENLINK_ERR_NAME_TOO_LONG:
+				result_errno = ENAMETOOLONG; return Fn::COMPLETE;
+			case Openlink_result::OPENLINK_ERR_NODE_ALREADY_EXISTS:
+				result_errno = EEXIST; return Fn::COMPLETE;
+			case Openlink_result::OPENLINK_ERR_NO_SPACE:
+				result_errno = ENOSPC; return Fn::COMPLETE;
+			case Openlink_result::OPENLINK_ERR_OUT_OF_RAM:
+				result_errno = ENOSPC; return Fn::COMPLETE;
+			case Openlink_result::OPENLINK_ERR_OUT_OF_CAPS:
+				result_errno = ENOSPC; return Fn::COMPLETE;
+			case Vfs::Directory_service::OPENLINK_ERR_PERMISSION_DENIED:
+				result_errno = EPERM; return Fn::COMPLETE;
+			case Openlink_result::OPENLINK_OK:
+				break;
+			}
 
-				switch (openlink_result) {
-				case Openlink_result::OPENLINK_ERR_LOOKUP_FAILED:
-					result_errno = ENOENT; return Fn::COMPLETE;
-				case Openlink_result::OPENLINK_ERR_NAME_TOO_LONG:
-					result_errno = ENAMETOOLONG; return Fn::COMPLETE;
-				case Openlink_result::OPENLINK_ERR_NODE_ALREADY_EXISTS:
-					result_errno = EEXIST; return Fn::COMPLETE;
-				case Openlink_result::OPENLINK_ERR_NO_SPACE:
-					result_errno = ENOSPC; return Fn::COMPLETE;
-				case Openlink_result::OPENLINK_ERR_OUT_OF_RAM:
-					result_errno = ENOSPC; return Fn::COMPLETE;
-				case Openlink_result::OPENLINK_ERR_OUT_OF_CAPS:
-					result_errno = ENOSPC; return Fn::COMPLETE;
-				case Vfs::Directory_service::OPENLINK_ERR_PERMISSION_DENIED:
-					result_errno = EPERM; return Fn::COMPLETE;
-				case Openlink_result::OPENLINK_OK:
-					break;
-				}
-
-				handle->handler(&_response_handler);
-				sync.construct(*handle, _update_mtime, _current_real_time);
-			} stage = Stage::WRITE; [[fallthrough]];
-
-		case Stage::WRITE:
-			{
-				try {
-					handle->fs().write(handle, target_path, count, out_count);
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
-					return Fn::INCOMPLETE;
-				}
-			} stage = Stage::SYNC; [[fallthrough]];
-
-		case Stage::SYNC:
-			{
-				if (!sync->complete())
-					return Fn::INCOMPLETE;
-				handle->close();
-			} break;
-		}
-
-		if (out_count != count)
-			result_errno = ENAMETOOLONG;
-		else
+			handle->handler(&_response_handler);
 			succeeded = true;
-		return Fn::COMPLETE;
-	});
+			return Fn::COMPLETE;
+		});
 
-	if (!succeeded)
+		if (!succeeded)
+			return Errno(result_errno);
+	}
+
+	/* must be done outside the monitor because constructor needs libc I/O */
+	sync.construct(*handle, _update_mtime, _current_real_time);
+
+	{
+		bool succeeded { false };
+		int result_errno { 0 };
+		enum class Stage { WRITE, SYNC } stage = Stage::WRITE;
+
+		monitor().monitor([&] {
+
+			switch (stage) {
+
+			case Stage::WRITE:
+				{
+					try {
+						handle->fs().write(handle, target_path, count, out_count);
+					} catch (Vfs::File_io_service::Insufficient_buffer) {
+						return Fn::INCOMPLETE;
+					}
+				} stage = Stage::SYNC; [[fallthrough]];
+
+			case Stage::SYNC:
+				{
+					if (!sync->complete())
+						return Fn::INCOMPLETE;
+					handle->close();
+				} break;
+			}
+
+			if (out_count != count)
+				result_errno = ENAMETOOLONG;
+			else
+				succeeded = true;
+			return Fn::COMPLETE;
+		});
+
+		if (!succeeded)
 		return Errno(result_errno);
+	}
 
 	return 0;
 }
