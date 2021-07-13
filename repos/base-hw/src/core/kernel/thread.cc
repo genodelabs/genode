@@ -660,7 +660,7 @@ void Thread::_call_new_irq()
 
 	_call_new<User_irq>(
 		(unsigned)user_arg_2(), trigger, polarity, *c,
-		_cpu_pool.executing_cpu().pic());
+		_cpu_pool.executing_cpu().pic(), _user_irq_pool);
 }
 
 
@@ -774,12 +774,13 @@ void Thread::_call()
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
 	case call_id_new_thread():
-		_call_new<Thread>(_cpu_pool, (unsigned) user_arg_2(),
+		_call_new<Thread>(_user_irq_pool, _cpu_pool, (unsigned) user_arg_2(),
 		                  (unsigned) _core_to_kernel_quota(user_arg_3()),
 		                  (char const *) user_arg_4());
 		return;
 	case call_id_new_core_thread():
-		_call_new<Thread>(_cpu_pool, (char const *) user_arg_2());
+		_call_new<Thread>(_user_irq_pool, _cpu_pool,
+		                  (char const *) user_arg_2());
 		return;
 	case call_id_thread_quota():           _call_thread_quota(); return;
 	case call_id_delete_thread():          _call_delete_thread(); return;
@@ -836,7 +837,8 @@ void Thread::_mmu_exception()
 }
 
 
-Thread::Thread(Cpu_pool          &cpu_pool,
+Thread::Thread(Irq::Pool         &user_irq_pool,
+               Cpu_pool          &cpu_pool,
                unsigned    const  priority,
                unsigned    const  quota,
                char const *const  label,
@@ -844,6 +846,7 @@ Thread::Thread(Cpu_pool          &cpu_pool,
 :
 	Kernel::Object { *this },
 	Cpu_job        { priority, quota },
+	_user_irq_pool { user_irq_pool },
 	_cpu_pool      { cpu_pool },
 	_ipc_node      { *this },
 	_state         { AWAITS_START },
@@ -871,9 +874,9 @@ Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
  ** Core_main_thread **
  **********************/
 
-Core_main_thread::Core_main_thread(Cpu_pool &cpu_pool)
+Core_main_thread::Core_main_thread(Irq::Pool &user_irq_pool, Cpu_pool &cpu_pool)
 :
-	Core_object<Thread>(cpu_pool, "core")
+	Core_object<Thread>(user_irq_pool, cpu_pool, "core")
 {
 	using namespace Genode;
 

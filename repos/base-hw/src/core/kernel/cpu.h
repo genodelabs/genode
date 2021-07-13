@@ -102,8 +102,9 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			/**
 			 * Construct idle context for CPU 'cpu'
 			 */
-			Idle_thread(Cpu_pool &cpu_pool,
-			            Cpu      &cpu);
+			Idle_thread(Irq::Pool &user_irq_pool,
+			            Cpu_pool  &cpu_pool,
+			            Cpu       &cpu);
 		};
 
 
@@ -129,6 +130,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		 * Construct object for CPU 'id'
 		 */
 		Cpu(unsigned const  id,
+		    Irq::Pool      &user_irq_pool,
 		    Cpu_pool       &cpu_pool);
 
 		static inline unsigned primary_id() { return 0; }
@@ -144,7 +146,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		 * \param irq_id  id of the interrupt that occured
 		 * \returns true if the interrupt belongs to this CPU, otherwise false
 		 */
-		bool interrupt(unsigned const irq_id);
+		bool handle_if_cpu_local_interrupt(unsigned const irq_id);
 
 		/**
 		 * Schedule 'job' at this CPU
@@ -200,7 +202,7 @@ class Kernel::Cpu_pool
 
 		Cpu_pool(unsigned nr_of_cpus);
 
-		void initialize_executing_cpu();
+		void initialize_executing_cpu(Irq::Pool &user_irq_pool);
 
 		/**
 		 * Return object of CPU 'id'

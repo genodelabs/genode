@@ -51,7 +51,7 @@ class Kernel::Cpu_job : private Cpu_share
 		/**
 		 * Handle interrupt exception that occured during execution on CPU 'id'
 		 */
-		void _interrupt(unsigned const id);
+		void _interrupt(Irq::Pool &user_irq_pool, unsigned const id);
 
 		/**
 		 * Activate our own CPU-share

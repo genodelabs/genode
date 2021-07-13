@@ -42,6 +42,7 @@ class Kernel::Main
 
 		Lock                                    _data_lock        { };
 		Cpu_pool                                _cpu_pool;
+		Irq::Pool                               _user_irq_pool    { };
 		Genode::Constructible<Core_main_thread> _core_main_thread { };
 
 		void _handle_kernel_entry();
@@ -119,7 +120,9 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		 */
 		Lock::Guard guard(Main::_instance->_data_lock);
 		instance_initialized = true;
-		Main::_instance->_cpu_pool.initialize_executing_cpu();
+		Main::_instance->_cpu_pool.initialize_executing_cpu(
+			Main::_instance->_user_irq_pool);
+
 		nr_of_initialized_cpus++;
 	};
 
@@ -144,6 +147,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
 
 		Main::_instance->_core_main_thread.construct(
+			Main::_instance->_user_irq_pool,
 			Main::_instance->_cpu_pool);
 
 		boot_info.core_main_thread_utcb =

@@ -134,13 +134,15 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 }
 
 
-Kernel::Vm::Vm(Cpu                    & cpu,
+Kernel::Vm::Vm(Irq::Pool              & user_irq_pool,
+               Cpu                    & cpu,
                Genode::Vm_state       & state,
                Kernel::Signal_context & context,
                Identity               & id)
 :
 	Kernel::Object { *this },
 	Cpu_job(Cpu_priority::min(), 0),
+	_user_irq_pool(user_irq_pool),
 	_state(state),
 	_context(context),
 	_id(id),
@@ -155,7 +157,7 @@ void Kernel::Vm::exception(Cpu & cpu)
 	switch(_state.cpu_exception) {
 	case Genode::Cpu_state::INTERRUPT_REQUEST:
 	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-		_interrupt(cpu.id());
+		_interrupt(_user_irq_pool, cpu.id());
 		break;
 	default:
 		pause();

@@ -37,7 +37,7 @@ void Thread::exception(Cpu & cpu)
 		return;
 	case Cpu::Context::INTERRUPT_REQUEST:
 	case Cpu::Context::FAST_INTERRUPT_REQUEST:
-		_interrupt(cpu.id());
+		_interrupt(_user_irq_pool, cpu.id());
 		return;
 	case Cpu::Context::UNDEFINED_INSTRUCTION:
 		Genode::raw(*this, ": undefined instruction at ip=",

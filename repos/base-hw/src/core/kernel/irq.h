@@ -71,7 +71,7 @@ class Kernel::Irq : Genode::Avl_node<Irq>
 	protected:
 
 		unsigned    _irq_nr; /* kernel name of the interrupt */
-		Pool       &_pool;
+		Pool       &_irq_pool;
 		Board::Pic &_pic;
 
 	public:
@@ -83,17 +83,17 @@ class Kernel::Irq : Genode::Avl_node<Irq>
 		 * \param pool  pool this interrupt shall belong to
 		 */
 		Irq(unsigned const  irq,
-		    Pool           &pool,
+		    Pool           &irq_pool,
 		    Board::Pic     &pic)
 		:
-			_irq_nr { irq },
-			_pool   { pool },
-			_pic    { pic }
+			_irq_nr   { irq },
+			_irq_pool { irq_pool },
+			_pic      { pic }
 		{
-			_pool.insert(this);
+			_irq_pool.insert(this);
 		}
 
-		virtual ~Irq() { _pool.remove(this); }
+		virtual ~Irq() { _irq_pool.remove(this); }
 
 		/**
 		 * Handle occurence of the interrupt
@@ -139,11 +139,6 @@ class Kernel::User_irq : public Kernel::Irq
 		Kernel::Object  _kernel_object { *this };
 		Signal_context &_context;
 
-		/**
-		 * Get map that provides all user interrupts by their kernel names
-		 */
-		static Irq::Pool &_pool();
-
 	public:
 
 		/**
@@ -153,7 +148,8 @@ class Kernel::User_irq : public Kernel::Irq
 		         Genode::Irq_session::Trigger   trigger,
 		         Genode::Irq_session::Polarity  polarity,
 		         Signal_context                &context,
-		         Board::Pic                    &pic);
+		         Board::Pic                    &pic,
+		         Irq::Pool                     &user_irq_pool);
 
 		/**
 		 * Destructor
@@ -174,8 +170,8 @@ class Kernel::User_irq : public Kernel::Irq
 		/**
 		 * Handle occurence of interrupt 'irq'
 		 */
-		static User_irq * object(unsigned const irq) {
-			return dynamic_cast<User_irq*>(_pool().object(irq)); }
+		static User_irq * object(Irq::Pool &user_irq_pool, unsigned const irq) {
+			return dynamic_cast<User_irq*>(user_irq_pool.object(irq)); }
 
 		/**
 		 * Syscall to create user irq object

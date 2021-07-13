@@ -46,22 +46,22 @@ void Cpu_job::_yield()
 }
 
 
-void Cpu_job::_interrupt(unsigned const /* cpu_id */)
+void Cpu_job::_interrupt(Irq::Pool &user_irq_pool, unsigned const /* cpu_id */)
 {
-	/* determine handling for specific interrupt */
+	/* let the IRQ controller take a pending IRQ for handling, if any */
 	unsigned irq_id;
 	if (_cpu->pic().take_request(irq_id))
 
-		/* is the interrupt a cpu-local one */
-		if (!_cpu->interrupt(irq_id)) {
+		/* let the CPU of this job handle the IRQ if it is a CPU-local one */
+		if (!_cpu->handle_if_cpu_local_interrupt(irq_id)) {
 
-			/* it needs to be a user interrupt */
-			User_irq * irq = User_irq::object(irq_id);
+			/* it isn't a CPU-local IRQ, so, it must be a user IRQ */
+			User_irq * irq = User_irq::object(user_irq_pool, irq_id);
 			if (irq) irq->occurred();
 			else Genode::raw("Unknown interrupt ", irq_id);
 		}
 
-	/* end interrupt request at controller */
+	/* let the IRQ controller finish the currently taken IRQ */
 	_cpu->pic().finish_request();
 }
 
@@ -104,10 +104,11 @@ Cpu_job::~Cpu_job()
 extern "C" void idle_thread_main(void);
 
 
-Cpu::Idle_thread::Idle_thread(Cpu_pool &cpu_pool,
-                              Cpu      &cpu)
+Cpu::Idle_thread::Idle_thread(Irq::Pool &user_irq_pool,
+                              Cpu_pool  &cpu_pool,
+                              Cpu       &cpu)
 :
-	Thread { cpu_pool, "idle" }
+	Thread { user_irq_pool, cpu_pool, "idle" }
 {
 	regs->ip = (addr_t)&idle_thread_main;
 
@@ -129,7 +130,7 @@ void Cpu::schedule(Job * const job)
 }
 
 
-bool Cpu::interrupt(unsigned const irq_id)
+bool Cpu::handle_if_cpu_local_interrupt(unsigned const irq_id)
 {
 	Irq * const irq = object(irq_id);
 
@@ -173,12 +174,13 @@ addr_t Cpu::stack_start()
 
 
 Cpu::Cpu(unsigned const  id,
+         Irq::Pool      &user_irq_pool,
          Cpu_pool       &cpu_pool)
 :
 	_id               { id },
 	_timer            { *this },
 	_scheduler        { _idle, _quota(), _fill() },
-	_idle             { cpu_pool, *this },
+	_idle             { user_irq_pool, cpu_pool, *this },
 	_ipi_irq          { *this },
 	_global_work_list { cpu_pool.work_list() }
 {
@@ -190,10 +192,10 @@ Cpu::Cpu(unsigned const  id,
  ** Cpu_pool **
  **************/
 
-void Cpu_pool::initialize_executing_cpu()
+void Cpu_pool::initialize_executing_cpu(Irq::Pool &user_irq_pool)
 {
 	unsigned id = Cpu::executing_id();
-	_cpus[id].construct(id, *this);
+	_cpus[id].construct(id, user_irq_pool, *this);
 }
 
 

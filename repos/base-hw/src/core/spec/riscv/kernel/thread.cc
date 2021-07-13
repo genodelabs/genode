@@ -30,10 +30,10 @@ void Thread::exception(Cpu & cpu)
 	if (regs->is_irq()) {
 		/* cpu-local timer interrupt */
 		if (regs->irq() == cpu.timer().interrupt_id()) {
-			cpu.interrupt(cpu.timer().interrupt_id());
+			cpu.handle_if_cpu_local_interrupt(cpu.timer().interrupt_id());
 		} else {
 			/* interrupt controller */
-			_interrupt(0);
+			_interrupt(_user_irq_pool, 0);
 		}
 		return;
 	}

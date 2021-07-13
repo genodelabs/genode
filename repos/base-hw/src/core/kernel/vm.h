@@ -55,6 +55,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 
 		enum Scheduler_state { ACTIVE, INACTIVE };
 
+		Irq::Pool                 & _user_irq_pool;
 		Object                      _kernel_object { *this };
 		State                     & _state;
 		Signal_context            & _context;
@@ -71,10 +72,11 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		 * \param state    initial CPU state
 		 * \param context  signal for VM exceptions other than interrupts
 		 */
-		Vm(Cpu              & cpu,
-		   State            & state,
-		   Signal_context   & context,
-		   Identity         & id);
+		Vm(Irq::Pool              & user_irq_pool,
+		   Cpu                    & cpu,
+		   Genode::Vm_state       & state,
+		   Kernel::Signal_context & context,
+		   Identity               & id);
 
 		/**
 		 * Inject an interrupt to this VM

@@ -42,7 +42,7 @@ void Thread::exception(Cpu & cpu)
 
 	if (regs->trapno >= Cpu_state::INTERRUPTS_START &&
 	    regs->trapno <= Cpu_state::INTERRUPTS_END) {
-		_interrupt(cpu.id());
+		_interrupt(_user_irq_pool, cpu.id());
 		return;
 	}
 

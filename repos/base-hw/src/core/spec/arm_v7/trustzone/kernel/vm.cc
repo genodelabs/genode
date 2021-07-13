@@ -20,13 +20,15 @@
 using namespace Kernel;
 
 
-Kernel::Vm::Vm(Cpu                    & cpu,
-               Genode::Vm_state       & state,
-               Kernel::Signal_context & context,
-               Identity               & id)
+Vm::Vm(Irq::Pool              & user_irq_pool,
+       Cpu                    & cpu,
+       Genode::Vm_state       & state,
+       Kernel::Signal_context & context,
+       Identity               & id)
 :
 	Kernel::Object { *this },
 	Cpu_job(Cpu_priority::min(), 0),
+	_user_irq_pool(user_irq_pool),
 	_state(state),
 	_context(context),
 	_id(id),
@@ -41,7 +43,7 @@ void Vm::exception(Cpu & cpu)
 	switch(_state.cpu_exception) {
 	case Genode::Cpu_state::INTERRUPT_REQUEST: [[fallthrough]];
 	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-		_interrupt(cpu.id());
+		_interrupt(_user_irq_pool, cpu.id());
 		return;
 	case Genode::Cpu_state::DATA_ABORT:
 		_state.dfar = Cpu::Dfar::read();

@@ -29,20 +29,14 @@ void Kernel::Irq::enable() const
 }
 
 
-Kernel::Irq::Pool &Kernel::User_irq::_pool()
-{
-	static Irq::Pool p;
-	return p;
-}
-
-
 Kernel::User_irq::User_irq(unsigned                const  irq,
                            Genode::Irq_session::Trigger   trigger,
                            Genode::Irq_session::Polarity  polarity,
                            Signal_context                &context,
-                           Board::Pic                    &pic)
+                           Board::Pic                    &pic,
+                           Irq::Pool                     &user_irq_pool)
 :
-	Irq      { irq, _pool(), pic },
+	Irq      { irq, user_irq_pool, pic },
 	_context { context }
 {
 	disable();
