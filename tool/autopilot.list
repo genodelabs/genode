@@ -20,6 +20,7 @@ init_smp
 event_filter
 libc_integration
 libc_vfs_fs_ext2
+libc_vfs_fs_fat
 log_core
 lwip
 lx_hybrid_ctors

@@ -14,7 +14,7 @@
 # \arg test_boot_modules
 #
 
-if {[have_board zynq_qemu]} {
+if {[have_board zynq_qemu] || [have_board virt_qemu]} {
 	puts "Run script does not support this platform."
 	exit 0
 }
