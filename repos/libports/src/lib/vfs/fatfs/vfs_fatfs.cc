@@ -312,38 +312,13 @@ class Fatfs::File_system : public Vfs::File_system
 		: _vfs_env(env)
 		{
 			{
-				static unsigned codepage = 0;
-				unsigned const cp = config.attribute_value<unsigned>(
-					"codepage", 0);
-
-				if (codepage != 0 && codepage != cp) {
-					Genode::error(
-						"cannot reinitialize codepage for FAT library, please "
-						"use additional VFS instances for additional codepages");
-					throw ~0;
-				}
-
-				if (f_setcp(cp) != FR_OK) {
-					Genode::error("invalid OEM code page '", cp, "'");
+				if (f_setcp(0) != FR_OK) {
+					Genode::error("failed to set codepage to 0");
 					throw FR_INVALID_PARAMETER;
 				}
-				codepage = cp;
 			}
-
-			auto const drive_num = config.attribute_value(
-				"drive", Genode::String<4>("0"));
-
-#if _USE_MKFS == 1
-			if (config.attribute_value("format", false)) {
-				Genode::log("formatting drive ", drive_num, "...");
-				if (f_mkfs((const TCHAR*)drive_num.string(), 1, 0) != FR_OK) {
-					Genode::error("format of drive ", drive_num, " failed");
-					throw ~0;
-				}
-			}
-#endif
-
 			/* mount the file system */
+			Genode::String<4> const drive_num { "0" };
 			switch (f_mount(&_fatfs, (const TCHAR*)drive_num.string(), 1)) {
 			case FR_OK: {
 				TCHAR label[24] = { '\0' };
@@ -827,22 +802,10 @@ class Fatfs::File_system : public Vfs::File_system
 
 struct Fatfs_factory : Vfs::File_system_factory
 {
-	struct Inner : Vfs::File_system_factory
-	{
-		Inner(Genode::Env &env, Genode::Allocator &alloc) {
-			Fatfs::block_init(env, alloc); }
-
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node node) override
-		{ 
-			return new (env.alloc())
-				Fatfs::File_system(env, node);
-		}
-	};
-
 	Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Xml_node node) override
 	{
-		static Inner factory(vfs_env.env(), vfs_env.alloc());
-		return factory.create(vfs_env, node);
+		Fatfs::block_init(vfs_env.env(), vfs_env.alloc());
+		return new (vfs_env.alloc()) Fatfs::File_system(vfs_env, node);
 	}
 };
 
