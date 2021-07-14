@@ -51,10 +51,13 @@ extern "C" {
 		}
 	};
 
-	static Constructible<Platform> _platform;
+	static Platform *_platform;
 
-	void block_init(Genode::Env &env, Genode::Allocator &alloc) {
-		_platform.construct(env, alloc); }
+	void block_init(Genode::Env &env, Genode::Allocator &alloc)
+	{
+		static Platform platform { env, alloc };
+		_platform = &platform;
+	}
 
 	struct Drive : private Block::Connection<>
 	{
@@ -208,7 +211,7 @@ extern "C" DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
 		*((WORD*)buff) = drive.info.block_size;
 		return RES_OK;
 
-	case GET_BLOCK_SIZE	:
+	case GET_BLOCK_SIZE:
 		*((DWORD*)buff) = 1;
 		return RES_OK;
 
