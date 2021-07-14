@@ -88,6 +88,9 @@ struct Igd::Common_context_regs : public Genode::Mmio
 	template <long int OFFSET, size_t NUM>
 	struct Common_register_array : Register_array<OFFSET * sizeof(uint32_t), 32, NUM, 32> { };
 
+	template <long int OFFSET, size_t NUM>
+	struct Common_register_array_64 : Register_array<OFFSET * sizeof(uint32_t), 32, NUM, 64> { };
+
 	addr_t _base;
 
 	Common_context_regs(addr_t base) : Genode::Mmio(base), _base(base) { }
@@ -677,8 +680,11 @@ class Igd::Hardware_status_page : public Igd::Common_context_regs
 		/*
 		 * See CTXT_ST_BUF
 		 */
-		enum { CONTEXT_STATUS_DWORDS_NUM = 12, };
-		struct Context_status_dwords : Common_register_array<16, CONTEXT_STATUS_DWORDS_NUM> { };
+		enum {
+			CONTEXT_STATUS_DWORDS_NUM = 12,
+			CONTEXT_STATUS_REGISTERS  = CONTEXT_STATUS_DWORDS_NUM / 2,
+		};
+		struct Context_status_dwords : Common_register_array_64<16, CONTEXT_STATUS_REGISTERS> { };
 		struct Last_written_status_offset : Common_register<31> { };
 
 		Hardware_status_page(addr_t base)
@@ -851,14 +857,29 @@ class Igd::Rcs_context
 				log("   Ring_head_ptr_storage: ",
 				    Hex(_hw_status_page.read<H::Ring_head_ptr_storage>(),
 				        Hex::PREFIX, Hex::PAD));
-				for (int i = 0; i < H::CONTEXT_STATUS_DWORDS_NUM; i++) {
-					log("   Context_status_dwords: ",
-				        Hex(_hw_status_page.read<H::Context_status_dwords>(i),
-				            Hex::PREFIX, Hex::PAD));
-				}
+
+				auto const cs_last = _hw_status_page.read<H::Last_written_status_offset>();
+
 				log("   Last_written_status_offset: ",
-				    Hex(_hw_status_page.read<H::Last_written_status_offset>(),
-				        Hex::PREFIX, Hex::PAD));
+				    Hex(cs_last, Hex::PREFIX, Hex::PAD));
+
+				for (unsigned i = 0; i < H::CONTEXT_STATUS_REGISTERS; i++) {
+					Igd::Context_status_qword::access_t v = _hw_status_page.read<H::Context_status_dwords>(i);
+					log("   Context_status ", i);
+					log("    Context_id:          ", Igd::Context_status_qword::Context_id::get(v));
+					log("    Lite_restore:        ", Igd::Context_status_qword::Lite_restore::get(v));
+					log("    Display_plane:       ", Igd::Context_status_qword::Display_plane::get(v));
+					log("    Semaphore_wait_mode: ", Igd::Context_status_qword::Semaphore_wait_mode::get(v));
+					log("    Wait_on_scanline:    ", Igd::Context_status_qword::Wait_on_scanline::get(v));
+					log("    Wait_on_semaphore:   ", Igd::Context_status_qword::Wait_on_semaphore::get(v));
+					log("    Wait_on_v_blank:     ", Igd::Context_status_qword::Wait_on_v_blank::get(v));
+					log("    Wait_on_sync_flip:   ", Igd::Context_status_qword::Wait_on_sync_flip::get(v));
+					log("    Context_complete:    ", Igd::Context_status_qword::Context_complete::get(v));
+					log("    Active_to_idle:      ", Igd::Context_status_qword::Active_to_idle::get(v));
+					log("    Element_switch:      ", Igd::Context_status_qword::Element_switch::get(v));
+					log("    Preempted:           ", Igd::Context_status_qword::Preempted::get(v));
+					log("    Idle_to_active:      ", Igd::Context_status_qword::Idle_to_active::get(v));
+				}
 			}
 		}
 
