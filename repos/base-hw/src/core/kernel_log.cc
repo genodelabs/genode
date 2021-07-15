@@ -12,9 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
+/* base-hw Core includes */
 #include <board.h>
 #include <platform.h>
 #include <kernel/log.h>

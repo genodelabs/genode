@@ -16,8 +16,6 @@
 #include <board.h>
 #include <cpu.h>
 
-#include <base/internal/unmanaged_singleton.h>
-
 using namespace Genode;
 
 

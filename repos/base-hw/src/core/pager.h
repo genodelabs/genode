@@ -21,9 +21,6 @@
 #include <base/signal.h>
 #include <pager/capability.h>
 
-/* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 /* core-local includes */
 #include <kernel/signal_receiver.h>
 #include <hw/mapping.h>

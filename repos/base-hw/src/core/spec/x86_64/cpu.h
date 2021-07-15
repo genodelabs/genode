@@ -26,7 +26,6 @@
 
 /* base includes */
 #include <base/internal/align_at.h>
-#include <base/internal/unmanaged_singleton.h>
 
 /* core includes */
 #include <fpu.h>

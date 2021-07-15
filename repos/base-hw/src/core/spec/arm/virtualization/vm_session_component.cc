@@ -14,6 +14,9 @@
 /* Genode includes */
 #include <util/construct_at.h>
 
+/* base internal includes */
+#include <base/internal/unmanaged_singleton.h>
+
 /* core includes */
 #include <kernel/core_interface.h>
 #include <vm_session_component.h>
