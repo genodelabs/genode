@@ -917,6 +917,7 @@ void Interface::handle_interface_link_state()
 			domain_.discard_ip_config();
 		}
 	}
+	catch (Pointer<Domain>::Invalid) { }
 	catch (Domain::Ip_config_static) { }
 	catch (Keep_ip_config) { }
 
