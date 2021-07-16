@@ -116,12 +116,4 @@ class Kernel::Pd
 		bool                 core_pd() const       { return _core_pd;     }
 };
 
-
-template<>
-inline Kernel::Core_object_identity<Kernel::Pd>::Core_object_identity(Kernel::Pd & pd)
-:
-	Object_identity(pd.kernel_object()),
-	Object_identity_reference(this, pd.core_pd() ? pd : core_pd())
-{ }
-
 #endif /* _CORE__KERNEL__PD_H_ */

@@ -88,7 +88,7 @@ class Hw::Address_space : public Genode::Address_space
 		Kernel_object<Kernel::Pd> _kobj;
 
 		/**
-		 * Core-specific constructor
+		 * Constructor used for the Core PD object
 		 *
 		 * \param tt        reference to translation table
 		 * \param tt_alloc  reference to translation table allocator
@@ -101,7 +101,7 @@ class Hw::Address_space : public Genode::Address_space
 	public:
 
 		/**
-		 * Constructor
+		 * Constructor used for objects other than the Core PD
 		 *
 		 * \param pd    reference to platform pd object
 		 */
@@ -182,7 +182,7 @@ class Genode::Platform_pd : public  Hw::Address_space,
 	protected:
 
 		/**
-		 * Constructor for core pd
+		 * Constructor used for the Core PD object
 		 *
 		 * \param tt        translation table address
 		 * \param tt_alloc  translation table allocator
@@ -193,7 +193,7 @@ class Genode::Platform_pd : public  Hw::Address_space,
 	public:
 
 		/**
-		 * Constructor for non-core pd
+		 * Constructor used for objects other than the Core PD
 		 *
 		 * \param label  name of protection domain
 		 */

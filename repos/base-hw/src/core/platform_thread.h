@@ -93,6 +93,8 @@ class Genode::Platform_thread : Noncopyable
 			                                   virt_prio);
 		}
 
+		Platform_pd &_kernel_main_get_core_platform_pd();
+
 	public:
 
 		/**

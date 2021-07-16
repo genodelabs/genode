@@ -24,7 +24,6 @@
 
 /* local includes */
 #include <kernel/interface_support.h>
-#include <kernel/kernel.h>
 #include <board.h>
 #include <util.h>
 

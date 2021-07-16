@@ -14,7 +14,6 @@
 #include <platform_pd.h>
 
 #include <kernel/cpu.h>
-#include <kernel/kernel.h>
 #include <kernel/pd.h>
 #include <kernel/thread.h>
 

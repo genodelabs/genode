@@ -12,11 +12,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* base includes */
 #include <cpu/memory_barrier.h>
 
+/* base-hw Core includes */
 #include <platform_pd.h>
 #include <kernel/cpu.h>
-#include <kernel/kernel.h>
 #include <kernel/pd.h>
 #include <kernel/thread.h>
 

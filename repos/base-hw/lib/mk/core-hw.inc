@@ -51,7 +51,6 @@ SRC_CC += pager.cc
 SRC_CC += _main.cc
 SRC_CC += kernel/cpu.cc
 SRC_CC += kernel/cpu_scheduler.cc
-SRC_CC += kernel/init.cc
 SRC_CC += kernel/ipc_node.cc
 SRC_CC += kernel/irq.cc
 SRC_CC += kernel/main.cc

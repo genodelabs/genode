@@ -14,7 +14,6 @@
 
 /* core includes */
 #include <kernel/cpu.h>
-#include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>
 #include <kernel/pd.h>
@@ -106,14 +105,15 @@ extern "C" void idle_thread_main(void);
 
 Cpu::Idle_thread::Idle_thread(Irq::Pool &user_irq_pool,
                               Cpu_pool  &cpu_pool,
-                              Cpu       &cpu)
+                              Cpu       &cpu,
+                              Pd        &core_pd)
 :
-	Thread { user_irq_pool, cpu_pool, "idle" }
+	Thread { user_irq_pool, cpu_pool, core_pd, "idle" }
 {
 	regs->ip = (addr_t)&idle_thread_main;
 
 	affinity(cpu);
-	Thread::_pd = &core_pd();
+	Thread::_pd = &core_pd;
 }
 
 
@@ -175,12 +175,13 @@ addr_t Cpu::stack_start()
 
 Cpu::Cpu(unsigned const  id,
          Irq::Pool      &user_irq_pool,
-         Cpu_pool       &cpu_pool)
+         Cpu_pool       &cpu_pool,
+         Pd             &core_pd)
 :
 	_id               { id },
 	_timer            { *this },
 	_scheduler        { _idle, _quota(), _fill() },
-	_idle             { user_irq_pool, cpu_pool, *this },
+	_idle             { user_irq_pool, cpu_pool, *this, core_pd },
 	_ipi_irq          { *this },
 	_global_work_list { cpu_pool.work_list() }
 {
@@ -192,10 +193,11 @@ Cpu::Cpu(unsigned const  id,
  ** Cpu_pool **
  **************/
 
-void Cpu_pool::initialize_executing_cpu(Irq::Pool &user_irq_pool)
+void Cpu_pool::initialize_executing_cpu(Irq::Pool &user_irq_pool,
+                                        Pd        &core_pd)
 {
 	unsigned id = Cpu::executing_id();
-	_cpus[id].construct(id, user_irq_pool, *this);
+	_cpus[id].construct(id, user_irq_pool, *this, core_pd);
 }
 
 

@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* base-hw Core includes */
 #include <kernel/cpu.h>
-#include <kernel/kernel.h>
 
 
 void Kernel::panic(Genode::Cpu_state * state) {

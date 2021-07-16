@@ -12,7 +12,6 @@
  */
 
 /* core includes */
-#include <kernel/kernel.h>
 #include <kernel/cpu.h>
 #include <kernel/irq.h>
 

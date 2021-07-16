@@ -24,7 +24,6 @@
 /* core includes */
 #include <hw/assert.h>
 #include <kernel/cpu.h>
-#include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>
 #include <kernel/log.h>
@@ -98,7 +97,7 @@ void Thread::ipc_copy_msg(Thread &sender)
 		Reference *dst_oir = oir->find(pd());
 
 		/* if it is not found, and the target is not core, create a reference */
-		if (!dst_oir && (&pd() != &core_pd())) {
+		if (!dst_oir && (&pd() != &_core_pd)) {
 			dst_oir = oir->factory(_obj_id_ref_ptr[i], pd());
 			if (dst_oir) _obj_id_ref_ptr[i] = nullptr;
 		}
@@ -683,7 +682,7 @@ void Thread::_call_new_obj()
 
 	using Thread_identity = Genode::Constructible<Core_object_identity<Thread>>;
 	Thread_identity & coi = *(Thread_identity*)user_arg_1();
-	coi.construct(*thread);
+	coi.construct(_core_pd, *thread);
 	user_arg_0(coi->core_capid());
 }
 
@@ -774,12 +773,13 @@ void Thread::_call()
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
 	case call_id_new_thread():
-		_call_new<Thread>(_user_irq_pool, _cpu_pool, (unsigned) user_arg_2(),
+		_call_new<Thread>(_user_irq_pool, _cpu_pool, _core_pd,
+		                  (unsigned) user_arg_2(),
 		                  (unsigned) _core_to_kernel_quota(user_arg_3()),
 		                  (char const *) user_arg_4());
 		return;
 	case call_id_new_core_thread():
-		_call_new<Thread>(_user_irq_pool, _cpu_pool,
+		_call_new<Thread>(_user_irq_pool, _cpu_pool, _core_pd,
 		                  (char const *) user_arg_2());
 		return;
 	case call_id_thread_quota():           _call_thread_quota(); return;
@@ -839,6 +839,7 @@ void Thread::_mmu_exception()
 
 Thread::Thread(Irq::Pool         &user_irq_pool,
                Cpu_pool          &cpu_pool,
+               Pd                &core_pd,
                unsigned    const  priority,
                unsigned    const  quota,
                char const *const  label,
@@ -848,6 +849,7 @@ Thread::Thread(Irq::Pool         &user_irq_pool,
 	Cpu_job        { priority, quota },
 	_user_irq_pool { user_irq_pool },
 	_cpu_pool      { cpu_pool },
+	_core_pd       { core_pd },
 	_ipc_node      { *this },
 	_state         { AWAITS_START },
 	_label         { label },
@@ -874,9 +876,11 @@ Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
  ** Core_main_thread **
  **********************/
 
-Core_main_thread::Core_main_thread(Irq::Pool &user_irq_pool, Cpu_pool &cpu_pool)
+Core_main_thread::Core_main_thread(Irq::Pool &user_irq_pool,
+                                   Cpu_pool  &cpu_pool,
+                                   Pd        &core_pd)
 :
-	Core_object<Thread>(user_irq_pool, cpu_pool, "core")
+	Core_object<Thread>(core_pd, user_irq_pool, cpu_pool, core_pd, "core")
 {
 	using namespace Genode;
 
@@ -898,6 +902,6 @@ Core_main_thread::Core_main_thread(Irq::Pool &user_irq_pool, Cpu_pool &cpu_pool)
 
 	affinity(_cpu_pool.primary_cpu());
 	_utcb       = utcb;
-	Thread::_pd = &core_pd();
+	Thread::_pd = &core_pd;
 	_become_active();
 }

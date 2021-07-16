@@ -23,7 +23,6 @@
 /* core includes */
 #include <kernel/core_interface.h>
 #include <kernel/interface.h>
-#include <kernel/kernel.h>
 
 namespace Kernel {
 
@@ -228,9 +227,24 @@ class Kernel::Core_object_identity : public Object_identity,
 {
 	public:
 
-		Core_object_identity(T & object)
-		: Object_identity(object.kernel_object()),
-		  Object_identity_reference(this, core_pd()) { }
+		/**
+		 * Constructor used for objects other than the Core PD
+		 */
+		Core_object_identity(Pd &core_pd,
+		                     T  &object)
+		:
+			Object_identity(object.kernel_object()),
+			Object_identity_reference(this, core_pd)
+		{ }
+
+		/**
+		 * Constructor used for Core PD object
+		 */
+		Core_object_identity(T &core_pd)
+		:
+			Object_identity(core_pd.kernel_object()),
+			Object_identity_reference(this, core_pd)
+		{ }
 
 		capid_t core_capid() { return capid(); }
 
@@ -248,9 +262,26 @@ class Kernel::Core_object : public T, Kernel::Core_object_identity<T>
 {
 	public:
 
+		/**
+		 * Constructor used for objects other than the Core PD
+		 */
+		template <typename... ARGS>
+		Core_object(Pd         &core_pd,
+		            ARGS &&...  args)
+		:
+			T(args...),
+			Core_object_identity<T>(core_pd, *static_cast<T*>(this))
+		{ }
+
+		/**
+		 * Constructor used for Core PD object
+		 */
 		template <typename... ARGS>
 		Core_object(ARGS &&... args)
-		: T(args...), Core_object_identity<T>(*static_cast<T*>(this)) { }
+		:
+			T(args...),
+			Core_object_identity<T>(*static_cast<T*>(this))
+		{ }
 
 		using Kernel::Core_object_identity<T>::core_capid;
 		using Kernel::Core_object_identity<T>::capid;

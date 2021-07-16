@@ -25,7 +25,7 @@
 
 /* kernel includes */
 #include <kernel/pd.h>
-#include <kernel/kernel.h>
+#include <kernel/main.h>
 
 using namespace Genode;
 
@@ -62,7 +62,7 @@ void Platform_thread::quota(size_t const quota)
 Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
 :
 	_label(label),
-	_pd(&Kernel::core_pd().platform_pd()),
+	_pd(&_kernel_main_get_core_platform_pd()),
 	_pager(nullptr),
 	_utcb_core_addr(&utcb),
 	_utcb_pd_addr(&utcb),

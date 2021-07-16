@@ -20,7 +20,6 @@
 
 /* core includes */
 #include <kernel/ipc_node.h>
-#include <kernel/kernel.h>
 #include <kernel/thread.h>
 
 using namespace Kernel;

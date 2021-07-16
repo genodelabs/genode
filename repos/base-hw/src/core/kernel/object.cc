@@ -1,6 +1,5 @@
 #include <kernel/object.h>
 #include <kernel/pd.h>
-#include <kernel/kernel.h>
 
 #include <util/construct_at.h>
 

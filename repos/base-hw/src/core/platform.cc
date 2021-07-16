@@ -271,23 +271,6 @@ Platform::Platform()
  ** Support for core memory management **
  ****************************************/
 
-bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
-                       Page_flags flags)
-{
-	Platform_pd &pd = Kernel::core_pd().platform_pd();
-	return pd.insert_translation(to_virt, from_phys,
-	                             num_pages * get_page_size(), flags);
-}
-
-
-bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
-{
-	Platform_pd &pd = Kernel::core_pd().platform_pd();
-	pd.flush(virt_addr, num_pages * get_page_size());
-	return true;
-}
-
-
 bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
                                       unsigned size) {
 	return ::map_local(phys_addr, virt_addr, size / get_page_size()); }

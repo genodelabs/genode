@@ -23,7 +23,6 @@
 
 /* core includes */
 #include <map_local.h>
-#include <kernel/kernel.h>
 #include <platform.h>
 #include <platform_thread.h>
 #include <trace/source_registry.h>

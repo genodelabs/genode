@@ -133,6 +133,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 
 		Irq::Pool             &_user_irq_pool;
 		Cpu_pool              &_cpu_pool;
+		Pd                    &_core_pd;
 		void                  *_obj_id_ref_ptr[MAX_RCV_CAPS] { nullptr };
 		Ipc_node               _ipc_node;
 		capid_t                _ipc_capid                { cap_id_invalid() };
@@ -264,7 +265,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		{
 			Genode::Kernel_object<T> & kobj =
 				*(Genode::Kernel_object<T>*)user_arg_1();
-			kobj.construct(args...);
+			kobj.construct(_core_pd, args...);
 			user_arg_0(kobj->core_capid());
 		}
 
@@ -295,6 +296,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 */
 		Thread(Irq::Pool         &user_irq_pool,
 		       Cpu_pool          &cpu_pool,
+		       Pd                &core_pd,
 		       unsigned    const  priority,
 		       unsigned    const  quota,
 		       char const *const  label,
@@ -307,9 +309,11 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 */
 		Thread(Irq::Pool         &user_irq_pool,
 		       Cpu_pool          &cpu_pool,
+		       Pd                &core_pd,
 		       char const *const  label)
 		:
-			Thread(user_irq_pool, cpu_pool, Cpu_priority::min(), 0, label, true)
+			Thread(user_irq_pool, cpu_pool, core_pd, Cpu_priority::min(), 0,
+			       label, true)
 		{ }
 
 		~Thread();
@@ -443,7 +447,9 @@ class Kernel::Core_main_thread : public Core_object<Kernel::Thread>
 {
 	public:
 
-		Core_main_thread(Irq::Pool &user_irq_pool, Cpu_pool &cpu_pool);
+		Core_main_thread(Irq::Pool &user_irq_pool,
+		                 Cpu_pool  &cpu_pool,
+		                 Pd        &core_pd);
 };
 
 #endif /* _CORE__KERNEL__THREAD_H_ */
