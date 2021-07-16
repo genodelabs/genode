@@ -75,16 +75,20 @@ class Igd::Mmio : public Genode::Mmio
 			struct Audio_codec_interrupts_pending : Bitfield<24, 1> { };
 			struct De_pch_interrupts_pending      : Bitfield<23, 1> { };
 			struct De_misc_interrupts_pending     : Bitfield<22, 1> { };
+			struct De_pch_misc                    : Bitfield<22, 2> { };
 			struct De_port_interrupts_pending     : Bitfield<20, 1> { };
 			struct De_pipe_c_interrupts_pending   : Bitfield<18, 1> { };
 			struct De_pipe_b_interrupts_pending   : Bitfield<17, 1> { };
 			struct De_pipe_a_interrupts_pending   : Bitfield<16, 1> { };
+			struct De_pipe                        : Bitfield<16, 3> { };
 			struct Vebox_interrupts_pending       : Bitfield< 6, 1> { };
 			struct Gtpm_interrupts_pending        : Bitfield< 4, 1> { };
 			struct Vcs2_interrupts_pending        : Bitfield< 3, 1> { };
 			struct Vcs1_interrupts_pending        : Bitfield< 2, 1> { };
 			struct Blitter_interrupts_pending     : Bitfield< 1, 1> { };
 			struct Render_interrupts_pending      : Bitfield< 0, 1> { };
+			struct De_interrupts_pending :
+				Genode::Bitset_3<De_pipe, De_port_interrupts_pending, De_pch_misc> { };
 		};
 
 		/*
@@ -1213,7 +1217,7 @@ class Igd::Mmio : public Genode::Mmio
 		{
 			RCS_RING_CONTEXT_STATUS_PTR::access_t const wp = read<RCS_RING_CONTEXT_STATUS_PTR::Write_pointer>();
 			if (wp > 0x05) {
-				Genode::warning("ring context status write-pointer invalid");
+				Genode::warning("ring context status write-pointer invalid", Genode::Hex(wp));
 				return;
 			}
 

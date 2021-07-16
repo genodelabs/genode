@@ -40,6 +40,8 @@
 #include <ggtt.h>
 #include <context.h>
 #include <context_descriptor.h>
+#include <resources.h>
+#include <platform_session.h>
 #include <ring_buffer.h>
 
 
@@ -76,7 +78,6 @@ static Igd::Device_info _supported_devices[] = {
 
 struct Igd::Device
 {
-	struct Initialization_failed : Genode::Exception { };
 	struct Unsupported_device    : Genode::Exception { };
 	struct Out_of_ram            : Genode::Exception { };
 	struct Could_not_map_buffer  : Genode::Exception { };
@@ -105,54 +106,8 @@ struct Igd::Device
 	 ** PCI **
 	 *********/
 
-	/*
-	 * Config space utility methods
-	 */
-
-	template <typename T>
-	static Platform::Device::Access_size _access_size(T)
-	{
-		switch (sizeof(T)) {
-			case 1:  return Platform::Device::ACCESS_8BIT;
-			case 2:  return Platform::Device::ACCESS_16BIT;
-			default: return Platform::Device::ACCESS_32BIT;
-		}
-	}
-
-	template <typename FUNC>
-	void _retry_func(FUNC const &func)
-	{
-		Genode::size_t donate = PAGE_SIZE;
-		Genode::retry<Platform::Out_of_ram>(
-			func,
-			[&] () {
-				_pci.upgrade_ram(donate);
-				donate *= 2;
-			}, 2);
-	}
-
-	template <typename T>
-	T _config_read(unsigned int const devfn)
-	{
-		T val = 0;
-		_retry_func([&] () {
-			val = _device.config_read(devfn, _access_size(val));
-		});
-
-		return val;
-	}
-
-	template <typename T>
-	void _config_write(unsigned int const devfn, T val)
-	{
-		_retry_func([&] () {
-			_device.config_write(devfn, val, _access_size(val));
-		});
-	}
-
-	Platform::Connection        &_pci;
-	Platform::Device_capability  _pci_cap;
-	Platform::Device_client      _device { _pci_cap };
+	Resources &_resources;
+	Platform::Device_client &_device { _resources.gpu_client() };
 
 	struct Pci_backend_alloc : Utils::Backend_alloc
 	{
@@ -176,58 +131,8 @@ struct Igd::Device
 			_pci.free_dma_buffer(cap);
 		}
 
-	} _pci_backend_alloc { _pci };
+	} _pci_backend_alloc { _resources.platform() };
 
-	enum {
-		PCI_NUM_RES    = 6,
-		PCI_CMD_REG    = 4,
-		PCI_BUS_MASTER = 1<<2,
-
-		GTTMMADR = 0,
-		GMADR    = 2,
-	};
-	Genode::Constructible<Genode::Io_mem_connection> _res[PCI_NUM_RES];
-	addr_t                                           _res_base[PCI_NUM_RES];
-	size_t                                           _res_size[PCI_NUM_RES];
-	Genode::Io_mem_dataspace_capability              _res_ds[PCI_NUM_RES];
-
-	Genode::Constructible<Genode::Irq_session_client> _irq { };
-
-	void _poke_pci_resource(unsigned const id)
-	{
-		if (id >= PCI_NUM_RES)      { throw -1; }
-		if (_res[id].constructed()) { throw -2; }
-
-		Platform::Device::Resource const res = _device.resource(id);
-		_res_base[id] = res.base();
-		_res_size[id] = res.size();
-	}
-
-	addr_t _map_pci_resource(unsigned const id)
-	{
-		_poke_pci_resource(id);
-
-		_res[id].construct(_env, _res_base[id], _res_size[id]);
-		_res_ds[id] = _res[id]->dataspace();
-		if (!_res_ds[id].valid()) { throw Initialization_failed(); }
-
-		addr_t addr = (addr_t)(_env.rm().attach(_res_ds[id], _res_size[id]));
-
-		using namespace Genode;
-		log("Map res:", id,
-		    " base:", Hex(_res_base[id]),
-		    " size:", Hex(_res_size[id]),
-		    " vaddr:", Hex(addr));
-
-		return addr;
-	}
-
-	void _enable_pci_bus_master()
-	{
-		uint16_t cmd  = _config_read<uint16_t>(PCI_CMD_REG);
-		         cmd |= PCI_BUS_MASTER;
-		_config_write(PCI_CMD_REG, cmd);
-	}
 
 	Device_info _info { };
 
@@ -247,6 +152,7 @@ struct Igd::Device
 		    Hex(dev, Hex::OMIT_PREFIX), ".",
 		    Hex(fun, Hex::OMIT_PREFIX), ")");
 
+		enum { PCI_NUM_RES = 6 };
 		for (int i = 0; i < PCI_NUM_RES; i++) {
 
 			using Resource = Platform::Device::Resource;
@@ -342,7 +248,7 @@ struct Igd::Device
 		 * so we do not have to rollback when the allocation failes.
 		 */
 
-		addr_t const base = _res_base[GMADR] + _ggtt->addr(offset);
+		addr_t const base = _resources.gmadr_base() + _ggtt->addr(offset);
 		Genode::Registered<Ggtt_mmio_mapping> *mem = new (&alloc)
 			Genode::Registered<Ggtt_mmio_mapping>(_ggtt_mmio_mapping_registry,
 			                                      _env, base, size, offset);
@@ -913,51 +819,7 @@ struct Igd::Device
 		return true;
 	}
 
-	void _handle_irq()
-	{
-		_mmio->disable_master_irq();
 
-		Mmio::GT_0_INTERRUPT_IIR::access_t const v = _mmio->read<Mmio::GT_0_INTERRUPT_IIR>();
-
-		bool const ctx_switch    = Mmio::GT_0_INTERRUPT_IIR::Cs_ctx_switch_interrupt::get(v);
-		(void)ctx_switch;
-		bool const user_complete = Mmio::GT_0_INTERRUPT_IIR::Cs_mi_user_interrupt::get(v);
-
-		if (v) { _clear_rcs_iir(v); }
-
-		Vgpu *notify_gpu = nullptr;
-		if (user_complete) {
-			notify_gpu = _current_vgpu();
-			if (notify_gpu)
-				notify_gpu->user_complete();
-		}
-
-		bool const fault_valid = _mmio->fault_regs_valid();
-		if (fault_valid) { Genode::error("FAULT_REG valid"); }
-
-		_mmio->update_context_status_pointer();
-
-		if (user_complete) {
-			_unschedule_current_vgpu();
-			_active_vgpu = nullptr;
-
-			if (notify_gpu) {
-				if (!_notify_complete(notify_gpu))
-					_vgpu_list.enqueue(*notify_gpu);
-			}
-
-			/* keep the ball rolling...  */
-			if (_current_vgpu()) {
-				_schedule_current_vgpu();
-			}
-		}
-
-		_mmio->enable_master_irq();
-		_irq->ack_irq();
-	}
-
-	Genode::Signal_handler<Device> _irq_dispatcher {
-		_env.ep(), *this, &Device::_handle_irq };
 
 	/************
 	 ** FENCES **
@@ -1033,18 +895,13 @@ struct Igd::Device
 	 */
 	Device(Genode::Env                 &env,
 	       Genode::Allocator           &alloc,
-	       Platform::Connection        &pci,
-	       Platform::Device_capability  cap,
-	       Genode::Xml_node             config)
+	       Resources                   &resources)
 	:
-		_env(env), _md_alloc(alloc), _pci(pci), _pci_cap(cap)
+		_env(env), _md_alloc(alloc), _resources(resources)
 	{
 		using namespace Genode;
 
 		if (!_supported()) { throw Unsupported_device(); }
-
-		/* trigger device_pd assignment */
-		_enable_pci_bus_master();
 
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 1068
@@ -1058,7 +915,7 @@ struct Igd::Device
 			struct Ggc_lock                           : Bitfield<0, 1> { };
 		};
 		enum { PCI_GMCH_CTL = 0x50, };
-		MGGC_0_2_0_PCI::access_t v = _config_read<uint16_t>(PCI_GMCH_CTL);
+		MGGC_0_2_0_PCI::access_t v = _resources.config_read<uint16_t>(PCI_GMCH_CTL);
 
 		{
 			log("MGGC_0_2_0_PCI");
@@ -1070,32 +927,26 @@ struct Igd::Device
 		}
 
 		/* map PCI resources */
-		_poke_pci_resource(GMADR);
-
-		addr_t gttmmadr_base = _map_pci_resource(GTTMMADR);
+		addr_t gttmmadr_base = _resources.map_gttmmadr();
 		_mmio.construct(_delayer, gttmmadr_base);
 
 		/* GGTT */
-		Number_of_bytes const fb_size =
-			config.attribute_value("fb_size", 32u<<20);
-		log("Reserve beginning ", fb_size, " in GGTT for framebuffer");
-
 		Ram_dataspace_capability scratch_page_ds = _pci_backend_alloc.alloc(PAGE_SIZE);
 		addr_t const scratch_page = Dataspace_client(scratch_page_ds).phys_addr();
 
+		/* reserverd size for framebuffer */
+		size_t const aperture_reserved = resources.gmadr_platform_size();
+
 		size_t const ggtt_size = (1u << MGGC_0_2_0_PCI::Gtt_graphics_memory_size::get(v)) << 20;
-		addr_t const ggtt_base = gttmmadr_base + (_res_size[GTTMMADR] / 2);
-		size_t const gmadr_size = _res_size[GMADR];
-		_ggtt.construct(*_mmio, ggtt_base, ggtt_size, gmadr_size, scratch_page, fb_size);
+		addr_t const ggtt_base = gttmmadr_base + (_resources.gttmmadr_size() / 2);
+		size_t const gmadr_size = _resources.gmadr_size();
+		_ggtt.construct(*_mmio, ggtt_base, ggtt_size, gmadr_size, scratch_page, aperture_reserved);
 		_ggtt->dump();
 
-		_vgpu_avail = (gmadr_size - fb_size) / Vgpu::APERTURE_SIZE;
+		_vgpu_avail = (gmadr_size - aperture_reserved) / Vgpu::APERTURE_SIZE;
 
 		_device_reset_and_init();
 
-		_irq.construct(_device.irq(0));
-		_irq->sigh(_irq_dispatcher);
-		_irq->ack_irq();
 
 		_mmio->dump();
 		_mmio->context_status_pointer_dump();
@@ -1257,9 +1108,8 @@ struct Igd::Device
 		uint32_t const id = _mmio->find_free_fence();
 		if (id == INVALID_FENCE) {
 			Genode::warning("could not find free FENCE");
-			return false;
+			return id;
 		}
-
 		addr_t   const lower = start * PAGE_SIZE;
 		addr_t   const upper = lower + size;
 		uint32_t const pitch = ((mode & 0xffff0000) >> 16) / 128 - 1;
@@ -1277,6 +1127,56 @@ struct Igd::Device
 	{
 		_clear_fence(id);
 	}
+
+	unsigned handle_irq()
+	{
+		Mmio::MASTER_INT_CTL::access_t master = _mmio->read<Mmio::MASTER_INT_CTL>();
+
+		/* handle render interrupts only */
+		if (Mmio::MASTER_INT_CTL::Render_interrupts_pending::get(master) == 0)
+			return master;
+
+		_mmio->disable_master_irq();
+
+		Mmio::GT_0_INTERRUPT_IIR::access_t const v = _mmio->read<Mmio::GT_0_INTERRUPT_IIR>();
+
+		bool const ctx_switch    = Mmio::GT_0_INTERRUPT_IIR::Cs_ctx_switch_interrupt::get(v);
+		(void)ctx_switch;
+		bool const user_complete = Mmio::GT_0_INTERRUPT_IIR::Cs_mi_user_interrupt::get(v);
+
+		if (v) { _clear_rcs_iir(v); }
+
+		Vgpu *notify_gpu = nullptr;
+		if (user_complete) {
+			notify_gpu = _current_vgpu();
+			if (notify_gpu)
+				notify_gpu->user_complete();
+		}
+
+		bool const fault_valid = _mmio->fault_regs_valid();
+		if (fault_valid) { Genode::error("FAULT_REG valid"); }
+
+		_mmio->update_context_status_pointer();
+
+		if (user_complete) {
+			_unschedule_current_vgpu();
+			_active_vgpu = nullptr;
+
+			if (notify_gpu) {
+				if (!_notify_complete(notify_gpu))
+					_vgpu_list.enqueue(*notify_gpu);
+			}
+
+			/* keep the ball rolling...  */
+			if (_current_vgpu()) {
+				_schedule_current_vgpu();
+			}
+		}
+
+		return master;
+	}
+
+	void enable_master_irq() { _mmio->enable_master_irq(); }
 
 	private:
 
@@ -1630,9 +1530,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			Igd::size_t const size = Genode::Dataspace_client(b->cap).size();
 			Genode::uint32_t const fenced = _device.set_tiling(b->map.offset, size, mode);
+
 			b->fenced = fenced;
 			if (fenced != Buffer::INVALID_FENCE) { _vgpu.active_fences++; }
-			return fenced;
+			return fenced != Buffer::INVALID_FENCE;
 		}
 };
 
@@ -1716,125 +1617,37 @@ struct Main
 	Genode::Env &_env;
 
 	/*********
-	 ** Pci **
-	 *********/
-
-	Platform::Connection         _pci;
-	Platform::Device_capability  _pci_cap { };
-
-	Platform::Device_capability _find_gpu_device()
-	{
-		using namespace Platform;
-
-		auto _scan_pci = [&] (Platform::Connection    &pci,
-		                      Device_capability const &prev) {
-			Device_capability cap = Genode::retry<Platform::Out_of_ram>(
-				[&] () { return pci.next_device(prev, 0, 0); },
-				[&] () { pci.upgrade_ram(4096); }, 8);
-
-			if (prev.valid()) { pci.release_device(prev); }
-			return cap;
-		};
-
-		Device_capability cap;
-
-		while ((cap = _scan_pci(_pci, cap)).valid()) {
-			Device_client device(cap);
-
-			enum { BDW_DEVICE_ID = 0x1600, };
-			if ((device.class_code() >> 8) == 0x0300
-			    && (device.device_id() & 0xff00) == BDW_DEVICE_ID) {
-				return cap;
-			}
-		}
-
-		return Device_capability();
-	}
-
-	Platform::Device_capability _find_bridge()
-	{
-		using namespace Platform;
-
-		auto _scan_pci = [&] (Platform::Connection    &pci,
-		                      Device_capability const &prev) {
-			Device_capability cap;
-
-			cap = Genode::retry<Platform::Out_of_ram>(
-				[&] () { return pci.next_device(prev, 0, 0); },
-				[&] () { pci.upgrade_ram(4096); }, 8);
-
-			if (prev.valid()) { pci.release_device(prev); }
-			return cap;
-		};
-
-		Device_capability cap;
-
-		unsigned char bus = 0xff, dev = 0xff, func = 0xff;
-		while ((cap = _scan_pci(_pci, cap)).valid()) {
-			Device_client device(cap);
-
-			device.bus_address(&bus, &dev, &func);
-
-			if (bus == 0 && dev == 0 && func == 0) {
-				return cap;
-			}
-		}
-
-		return Device_capability();
-	}
-
-	bool _mch_enabled()
-	{
-		using namespace Platform;
-
-		Device_capability cap = _find_bridge();
-		if (!cap.valid()) { return false; }
-
-		Device_client device(cap);
-
-		/*
-		 * 5th Gen Core Processor datasheet vol 2 p. 48
-		 */
-		enum { MCHBAR_OFFSET = 0x48, };
-		struct MCHBAR : Genode::Register<64>
-		{
-			struct Mchbaren : Bitfield<0, 1> { };
-		};
-
-		MCHBAR::access_t const v = device.config_read(MCHBAR_OFFSET,
-		                                              Device::ACCESS_32BIT);
-		return MCHBAR::Mchbaren::get(v);
-	}
-
-	/*********
 	 ** Gpu **
 	 *********/
 
 	Genode::Sliced_heap _root_heap { _env.ram(), _env.rm() };
 	Gpu::Root           _gpu_root  { _env, _root_heap };
 
-	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
-
 	Genode::Heap                       _device_md_alloc;
 	Genode::Constructible<Igd::Device> _device { };
+	Igd::Resources                     _gpu_resources { _env, *this, &Main::ack_irq };
+
+	Genode::Irq_session_client     _irq { _gpu_resources.gpu_client().irq(0) };
+	Genode::Signal_handler<Main>   _irq_dispatcher {
+		_env.ep(), *this, &Main::handle_irq };
+
+	Constructible<Platform::Root> _platform_root { };
 
 	Main(Genode::Env &env)
 	:
-		_env(env), _pci(env), _device_md_alloc(_env.ram(), _env.rm())
+		_env(env), _device_md_alloc(_env.ram(), _env.rm())
 	{
-		/* initial donation for device pd */
-		_pci.upgrade_ram(1024*1024);
+		/* IRQ */
+		_irq.sigh(_irq_dispatcher);
+		_irq.ack_irq();
 
-		_pci_cap = _find_gpu_device();
-		if (!_pci_cap.valid() || !_mch_enabled()) {
-			throw Igd::Device::Initialization_failed();
-		}
+		/* platform service */
+		_platform_root.construct(_env, _device_md_alloc, _gpu_resources);
 
+		/* GPU */
 		try {
-			_device.construct(_env, _device_md_alloc, _pci, _pci_cap,
-			                  _config_rom.xml());
+			_device.construct(_env, _device_md_alloc, _gpu_resources);
 		} catch (...) {
-			_env.parent().exit(1);
 			return;
 		}
 
@@ -1842,7 +1655,37 @@ struct Main
 		_env.parent().announce(_env.ep().manage(_gpu_root));
 	}
 
-	~Main() { _pci.release_device(_pci_cap); }
+	void handle_irq()
+	{
+		unsigned master = 0;
+		if (_device.constructed())
+			master = _device->handle_irq();
+		/* GPU not present forward all IRQs to platform client */
+		else {
+			_platform_root->handle_irq();
+			return;
+		}
+
+		/*
+		 * GPU present check for display engine related IRQs before calling platform
+		 * client
+		 */
+		using Master = Igd::Mmio::MASTER_INT_CTL;
+		if (Master::De_interrupts_pending::get(master) &&
+		    (_platform_root->handle_irq()))
+			return;
+
+		ack_irq();
+	}
+
+	void ack_irq()
+	{
+		if (_device.constructed()) {
+			_device->enable_master_irq();
+		}
+
+		_irq.ack_irq();
+	}
 };
 
 
