@@ -21,14 +21,14 @@
 #include <lx_emul.h>
 #include <platform.h>
 
-#include <lx_kit/env.h>
-#include <lx_kit/irq.h>
-#include <lx_kit/pci_dev_registry.h>
-#include <lx_kit/malloc.h>
-#include <lx_kit/mapped_io_mem_range.h>
+#include <legacy/lx_kit/env.h>
+#include <legacy/lx_kit/irq.h>
+#include <legacy/lx_kit/pci_dev_registry.h>
+#include <legacy/lx_kit/malloc.h>
+#include <legacy/lx_kit/mapped_io_mem_range.h>
 
-#include <lx_emul/impl/io.h>
-#include <lx_emul/impl/pci_resource.h>
+#include <legacy/lx_emul/impl/io.h>
+#include <legacy/lx_emul/impl/pci_resource.h>
 
 
 /**

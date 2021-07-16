@@ -17,11 +17,11 @@
 #include <driver.h>
 #include <lx_emul.h>
 
-#include <lx_kit/env.h>
-#include <lx_kit/malloc.h>
-#include <lx_kit/scheduler.h>
-#include <lx_kit/timer.h>
-#include <lx_kit/work.h>
+#include <legacy/lx_kit/env.h>
+#include <legacy/lx_kit/malloc.h>
+#include <legacy/lx_kit/scheduler.h>
+#include <legacy/lx_kit/timer.h>
+#include <legacy/lx_kit/work.h>
 
 struct workqueue_struct *tasklet_wq;
 

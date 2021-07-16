@@ -13,7 +13,7 @@
 #include <stdarg.h>
 #include <base/fixed_stdint.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 
 /*****************
  ** asm/param.h **
@@ -23,10 +23,10 @@ enum { HZ = 100UL };
 
 #define DEBUG_LINUX_PRINTK 0
 
-#include <lx_emul/compiler.h>
-#include <lx_emul/printf.h>
-#include <lx_emul/bug.h>
-#include <lx_emul/atomic.h>
+#include <legacy/lx_emul/compiler.h>
+#include <legacy/lx_emul/printf.h>
+#include <legacy/lx_emul/bug.h>
+#include <legacy/lx_emul/atomic.h>
 
 static inline void atomic_or(int i, atomic_t *v) {
 	v->counter = v->counter | i; }
@@ -38,8 +38,8 @@ void atomic_andnot(int, atomic_t *);
 void atomic_set_mask(unsigned int mask, atomic_t *v);
 #define atomic_set_release(v, i) atomic_set((v), (i))
 
-#include <lx_emul/barrier.h>
-#include <lx_emul/types.h>
+#include <legacy/lx_emul/barrier.h>
+#include <legacy/lx_emul/types.h>
 
 typedef unsigned long kernel_ulong_t;
 typedef unsigned int  u_int;
@@ -139,7 +139,7 @@ struct page *virt_to_page(const void *addr);
 
 dma_addr_t page_to_phys(struct page *page);
 
-#include <lx_emul/bitops.h>
+#include <legacy/lx_emul/bitops.h>
 
 extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
                                    size, unsigned long offset);
@@ -168,12 +168,12 @@ extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
 #include <asm-generic/getorder.h>
 
 
-#include <lx_emul/errno.h>
+#include <legacy/lx_emul/errno.h>
 
 /* needed by 'virt_to_phys', which is needed by agp/generic.c */
 typedef unsigned long phys_addr_t;
 
-#include <lx_emul/string.h>
+#include <legacy/lx_emul/string.h>
 
 void *memchr_inv(const void *s, int c, size_t n);
 
@@ -181,7 +181,7 @@ void *memchr_inv(const void *s, int c, size_t n);
  ** linux/compiler.h **
  **********************/
 
-#include <lx_emul/compiler.h>
+#include <legacy/lx_emul/compiler.h>
 
 #define prefetchw(x) __builtin_prefetch(x,1)
 
@@ -215,8 +215,8 @@ static inline void __read_once_size(const volatile void *p, void *res, int size)
 })
 #endif
 
-#include <lx_emul/list.h>
-#include <lx_emul/kernel.h>
+#include <legacy/lx_emul/list.h>
+#include <legacy/lx_emul/kernel.h>
 
 #define SIZE_MAX (~(size_t)0)
 #define U64_MAX  ((u64)~0ULL)
@@ -300,7 +300,7 @@ int hex_dump_to_buffer(const void *buf, size_t len,
                        char *linebuf, size_t linebuflen, bool ascii);
 
 
-#include <lx_emul/module.h>
+#include <legacy/lx_emul/module.h>
 
 #define MODULE_ALIAS_MISCDEV(x)  /* needed by agp/backend.c */
 
@@ -372,7 +372,7 @@ unsigned int kref_read(const struct kref*);
  ** linux/jiffies.h **
  *********************/
 
-#include <lx_emul/jiffies.h>
+#include <legacy/lx_emul/jiffies.h>
 
 #define time_before(a,b)	time_after(b,a)
 #define time_before_eq(a,b)	time_after_eq(b,a)
@@ -386,10 +386,10 @@ extern u64 nsecs_to_jiffies64(u64 n);
 
 static inline u64 get_jiffies_64(void) { return jiffies; }
 
-#include <lx_emul/spinlock.h>
-#include <lx_emul/semaphore.h>
+#include <legacy/lx_emul/spinlock.h>
+#include <legacy/lx_emul/semaphore.h>
 
-#include <lx_emul/mutex.h>
+#include <legacy/lx_emul/mutex.h>
 
 LX_MUTEX_INIT_DECLARE(bridge_lock);
 LX_MUTEX_INIT_DECLARE(core_lock);
@@ -440,7 +440,7 @@ struct ww_mutex {
  ** linux/time.h **
  ******************/
 
-#include <lx_emul/time.h>
+#include <legacy/lx_emul/time.h>
 
 void getrawmonotonic(struct timespec *ts);
 
@@ -457,13 +457,13 @@ s64 timespec_to_ns(const struct timespec *ts);
 
 typedef int clockid_t;
 
-#include <lx_emul/timer.h>
+#include <legacy/lx_emul/timer.h>
 
 #define del_singleshot_timer_sync(t) del_timer_sync(t)
 
 void timer_setup(struct timer_list *, void (*func)(struct timer_list *), unsigned int);
 
-#include <lx_emul/work.h>
+#include <legacy/lx_emul/work.h>
 
 extern bool flush_delayed_work(struct delayed_work *dwork);
 
@@ -576,7 +576,7 @@ int sched_setscheduler_nocheck(struct task_struct *, int, const struct sched_par
  ** linux/completion.h **
  ************************/
 
-#include <lx_emul/completion.h>
+#include <legacy/lx_emul/completion.h>
 
 struct completion {
 	unsigned done;
@@ -627,7 +627,7 @@ void usleep_range(unsigned long min, unsigned long max); /* intel_dp.c */
 
 struct scatterlist;
 
-#include <lx_emul/kobject.h>
+#include <legacy/lx_emul/kobject.h>
 
 enum kobject_action {
 	KOBJ_CHANGE,
@@ -911,7 +911,7 @@ static inline void kmemleak_free(const void *ptr) { }
  ** linux/byteorder/ **
  **********************/
 
-#include <lx_emul/byteorder.h>
+#include <legacy/lx_emul/byteorder.h>
 
 
 /******************
@@ -932,7 +932,7 @@ static inline void  kunmap_atomic(void *addr) { return; }
 struct page *kmap_to_page(void *);
 
 
-#include <lx_emul/gfp.h>
+#include <legacy/lx_emul/gfp.h>
 
 void __free_pages(struct page *page, unsigned int order);
 
@@ -1086,7 +1086,7 @@ void sysfs_remove_link(struct kobject *kobj, const char *name);
  ** linux/pm.h **
  ****************/
 
-#include <lx_emul/pm.h>
+#include <legacy/lx_emul/pm.h>
 
 enum {
 	PM_EVENT_QUIESCE = 0x0008,
@@ -1362,7 +1362,7 @@ int dma_set_coherent_mask(struct device *dev, u64 mask);
 
 #define pgprot_noncached(prot) prot
 
-#include <lx_emul/mmio.h>
+#include <legacy/lx_emul/mmio.h>
 
 
 /********************
@@ -1377,7 +1377,7 @@ unsigned long get_random_long(void);
  ** linux/ioport.h **
  ********************/
 
-#include <lx_emul/ioport.h>
+#include <legacy/lx_emul/ioport.h>
 
 extern struct resource iomem_resource;
 
@@ -1424,7 +1424,7 @@ struct pci_device_id {
 	unsigned long driver_data;
 };
 
-#include <lx_emul/pci.h>
+#include <legacy/lx_emul/pci.h>
 
 struct pci_dev *pci_get_bus_and_slot(unsigned int bus, unsigned int devfn);
 int pci_bus_alloc_resource(struct pci_bus *bus,
@@ -1504,7 +1504,7 @@ void pci_iounmap(struct pci_dev *dev, void __iomem *p);
  ** linux/irqreturn.h **
  ***********************/
 
-#include <lx_emul/irq.h>
+#include <legacy/lx_emul/irq.h>
 
 /********************
  ** linux/of_irq.h **
@@ -2727,6 +2727,6 @@ void disable_irq(unsigned int);
 
 #include <linux/math64.h>
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #endif /* _LX_EMUL_H_ */

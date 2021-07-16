@@ -27,11 +27,11 @@
 #include <terminal.h>
 
 /* Linux emulation environment includes */
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/scheduler.h>
 #include <lx_emul.h>
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 #include <linux/usb.h>
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 struct usb_device_id;
 struct usb_interface;

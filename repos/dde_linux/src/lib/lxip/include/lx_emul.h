@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include <base/fixed_stdint.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 
 #define DEBUG_PRINTK 1
 #define DEBUG_SLAB   0
@@ -41,14 +41,14 @@ enum { HZ = 100UL };
  ** asm/atomic.h **
  ******************/
 
-#include <lx_emul/atomic.h>
+#include <legacy/lx_emul/atomic.h>
 
 
 /*******************
  ** linux/types.h **
  *******************/
 
-#include <lx_emul/types.h>
+#include <legacy/lx_emul/types.h>
 
 typedef __u8  u_int8_t;
 
@@ -71,14 +71,14 @@ typedef __u32 __wsum;
  ** linux/compiler.h **
  **********************/
 
-#include <lx_emul/compiler.h>
+#include <legacy/lx_emul/compiler.h>
 
 
 /**************************
  ** asm-generic/bitops.h **
  **************************/
 
-#include <lx_emul/bitops.h>
+#include <legacy/lx_emul/bitops.h>
 
 #define ffz(x) __ffs(~(x))
 
@@ -142,14 +142,14 @@ struct callback_head {
  ** linux/errno.h and friends **
  *******************************/
 
-#include <lx_emul/errno.h>
+#include <legacy/lx_emul/errno.h>
 
 
 /********************
  ** linux/module.h **
  ********************/
 
-#include <lx_emul/module.h>
+#include <legacy/lx_emul/module.h>
 
 #ifdef __setup
 #undef __setup
@@ -171,7 +171,7 @@ struct callback_head {
  ** asm/barrier.h **
  *******************/
 
-#include <lx_emul/barrier.h>
+#include <legacy/lx_emul/barrier.h>
 
 #define smp_load_acquire(p)     *(p)
 #define smp_store_release(p, v) *(p) = v;
@@ -190,7 +190,7 @@ struct callback_head {
  ** linux/compiler.h **
  **********************/
 
-#include <lx_emul/compiler.h>
+#include <legacy/lx_emul/compiler.h>
 
 #define __deprecated
 
@@ -241,14 +241,14 @@ static inline void __read_once_size(const volatile void *p, void *res, int size)
  ** asm/bug.h **
  ***************/
 
-#include <lx_emul/bug.h>
+#include <legacy/lx_emul/bug.h>
 
 
 /********************
  ** linux/printk.h **
  ********************/
 
-#include <lx_emul/printf.h>
+#include <legacy/lx_emul/printf.h>
 
 #define pr_crit(fmt, ...)       lx_printf(KERN_CRIT fmt, ##__VA_ARGS__)
 #define pr_emerg(fmt, ...)      lx_printf(KERN_EMERG fmt, ##__VA_ARGS__)
@@ -274,7 +274,7 @@ static inline __printf(1, 2) int no_printk(const char *fmt, ...) { return 0; }
  ** linux/kernel.h **
  ********************/
 
-#include <lx_emul/kernel.h>
+#include <legacy/lx_emul/kernel.h>
 
 #define KERN_CONT   ""
 
@@ -325,7 +325,7 @@ int kstrtou8(const char *s, unsigned int base, u8 *res);
  ** linux/jiffies.h **
  *********************/
 
-#include <lx_emul/jiffies.h>
+#include <legacy/lx_emul/jiffies.h>
 
 enum {
 	INITIAL_JIFFIES = 0,
@@ -407,7 +407,7 @@ void *current_text_addr(void);
  ** linux/byteorder/little_endian.h **
  *************************************/
 
-#include <lx_emul/byteorder.h>
+#include <legacy/lx_emul/byteorder.h>
 
 #define htons(x) __cpu_to_be16(x)
 #define ntohs(x) __be16_to_cpu(x)
@@ -559,7 +559,7 @@ bool static_key_enabled(struct static_key *);
  ** linux/poison.h **
  ********************/
 
-#include <lx_emul/list.h>
+#include <legacy/lx_emul/list.h>
 
 
 /****************
@@ -760,7 +760,7 @@ unsigned long nr_free_buffer_pages(void);
  ** linux/gfp.h **
  *****************/
 
-#include <lx_emul/gfp.h>
+#include <legacy/lx_emul/gfp.h>
 
 enum {
 	__GFP_COLD   = 0x00000100u,
@@ -868,14 +868,14 @@ void debug_check_no_locks_freed(const void *from, unsigned long len);
  ** linux/spinlock.h **
  **********************/
 
-#include <lx_emul/spinlock.h>
+#include <legacy/lx_emul/spinlock.h>
 
 
 /*******************
  ** linux/mutex.h **
  *******************/
 
-#include <lx_emul/mutex.h>
+#include <legacy/lx_emul/mutex.h>
 
 LX_MUTEX_INIT_DECLARE(dst_gc_mutex);
 LX_MUTEX_INIT_DECLARE(proto_list_mutex);
@@ -912,7 +912,7 @@ void read_unlock_bh(rwlock_t *);
  ** linux/rwsem.h **
  *******************/
 
-#include <lx_emul/semaphore.h>
+#include <legacy/lx_emul/semaphore.h>
 
 
 /*********************
@@ -1501,7 +1501,7 @@ void local_bh_enable(void);
  ** linux/string.h **
  ********************/
 
-#include <lx_emul/string.h>
+#include <legacy/lx_emul/string.h>
 
 char *strnchr(const char *, size_t, int);
 
@@ -1727,7 +1727,7 @@ enum {
  ** linux/workqueue.h **
  ***********************/
 
-#include <lx_emul/work.h>
+#include <legacy/lx_emul/work.h>
 
 #define wait_queue_t wait_queue_entry_t
 
@@ -3439,6 +3439,6 @@ void log_sock(struct socket *sock);
 
 void lx_trace_event(char const *, ...) __attribute__((format(printf, 1, 2)));
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #endif /* _LX_EMUL_H_ */

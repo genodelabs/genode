@@ -22,7 +22,7 @@
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>
 
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/scheduler.h>
 
 namespace Terminal {
 	class Session_component;

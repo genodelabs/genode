@@ -25,12 +25,12 @@
 
 /* Linux emulation environment includes */
 #include <lx_emul.h>
-#include <lx_kit/env.h>
-#include <lx_kit/malloc.h>
-#include <lx_kit/scheduler.h>
-#include <lx_kit/timer.h>
-#include <lx_kit/irq.h>
-#include <lx_kit/work.h>
+#include <legacy/lx_kit/env.h>
+#include <legacy/lx_kit/malloc.h>
+#include <legacy/lx_kit/scheduler.h>
+#include <legacy/lx_kit/timer.h>
+#include <legacy/lx_kit/irq.h>
+#include <legacy/lx_kit/work.h>
 
 /* Linux module functions */
 extern "C" void radix_tree_init();        /* called by start_kernel(void) normally */

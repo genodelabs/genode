@@ -19,15 +19,15 @@
 #include <util/list.h>
 
 #include <lx_emul.h>
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
 #include "raw.h"
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 #include <signal.h>
 
-#include <lx_kit/malloc.h>
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/malloc.h>
+#include <legacy/lx_kit/scheduler.h>
 
 using namespace Genode;
 

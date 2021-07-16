@@ -31,7 +31,7 @@
 		} \
 	} while (0)
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 
 struct drm_device;
 struct drm_framebuffer;
@@ -57,6 +57,6 @@ void   lx_c_set_mode(struct drm_device *, struct drm_connector *,
 void   lx_c_set_driver(struct drm_device *, void *);
 void * lx_c_get_driver(struct drm_device *);
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #endif /* _LX_EMUL_C_H_ */

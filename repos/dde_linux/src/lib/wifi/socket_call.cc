@@ -19,11 +19,11 @@
 #include <lx.h>
 #include <lx_emul.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 # include <linux/socket.h>
 # include <linux/net.h>
 # include <net/sock.h>
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #include <wifi/socket_call.h>
 

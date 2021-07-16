@@ -19,7 +19,7 @@
 #include <base/heap.h>
 #include <usb_session/connection.h>
 #include <event_session/connection.h>
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/scheduler.h>
 
 struct usb_device_id;
 struct usb_interface;

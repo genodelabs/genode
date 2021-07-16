@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include <base/fixed_stdint.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 
 #define KBUILD_MODNAME "mod-noname"
 
@@ -32,14 +32,14 @@ enum { HZ = 100 };
 
 #define DEBUG_LINUX_PRINTK 1
 
-#include <lx_emul/printf.h>
+#include <legacy/lx_emul/printf.h>
 
 
 /***************
  ** asm/bug.h **
  ***************/
 
-#include <lx_emul/bug.h>
+#include <legacy/lx_emul/bug.h>
 
 
 /*********************
@@ -53,7 +53,7 @@ void cpu_relax(void);
  ** asm/atomic.h **
  ******************/
 
-#include <lx_emul/atomic.h>
+#include <legacy/lx_emul/atomic.h>
 
 // static inline int atomic_dec_if_positive(atomic_t *v)
 // {
@@ -87,7 +87,7 @@ static inline int atomic_long_cmpxchg(atomic_long_t *v, long old, long n)
  ** linux/types.h **
  *******************/
 
-#include <lx_emul/types.h>
+#include <legacy/lx_emul/types.h>
 
 typedef int clockid_t;
 
@@ -161,7 +161,7 @@ struct callback_head {
  ** asm/barrier.h **
  *******************/
 
-#include <lx_emul/barrier.h>
+#include <legacy/lx_emul/barrier.h>
 
 #define smp_load_acquire(p)     *(p)
 #define smp_store_release(p, v) *(p) = v;
@@ -172,7 +172,7 @@ struct callback_head {
  ** asm-generic/io.h **
  **********************/
 
-#include <lx_emul/mmio.h>
+#include <legacy/lx_emul/mmio.h>
 
 #define mmiowb() barrier()
 struct device;
@@ -195,7 +195,7 @@ void *phys_to_virt(unsigned long address);
  ** linux/compiler.h **
  **********************/
 
-#include <lx_emul/compiler.h>
+#include <legacy/lx_emul/compiler.h>
 
 #define __cond_lock(x,c) (c)
 
@@ -289,7 +289,7 @@ bool refcount_sub_and_test(unsigned int i, refcount_t *r);
  ** linux/module.h **
  ********************/
 
-#include <lx_emul/module.h>
+#include <legacy/lx_emul/module.h>
 
 static inline bool module_sig_ok(struct module *module) { return true; }
 
@@ -310,7 +310,7 @@ static inline void kernel_param_unlock(struct module *mod) { }
  ** linux/errno.h **
  *******************/
 
-#include <lx_emul/errno.h>
+#include <legacy/lx_emul/errno.h>
 
 
 /*****************
@@ -328,7 +328,7 @@ static inline int PTR_ERR_OR_ZERO(const void *ptr)
  ** linux/poison.h **
  ********************/
 
-#include <lx_emul/list.h>
+#include <legacy/lx_emul/list.h>
 
 
 /****************
@@ -427,7 +427,7 @@ struct page_frag_cache
  ** linux/gfp.h **
  *****************/
 
-#include <lx_emul/gfp.h>
+#include <legacy/lx_emul/gfp.h>
 
 struct page *alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order);
 
@@ -459,7 +459,7 @@ void *page_frag_alloc(struct page_frag_cache *nc, unsigned int fragsz, gfp_t gfp
  ** linux/string.h **
  ********************/
 
-#include <lx_emul/string.h>
+#include <legacy/lx_emul/string.h>
 
 void memzero_explicit(void *s, size_t count);
 
@@ -470,7 +470,7 @@ bool sysfs_streq(const char *s1, const char *s2);
  ** linux/spinlock.h **
  **********************/
 
-#include <lx_emul/spinlock.h>
+#include <legacy/lx_emul/spinlock.h>
 
 int spin_is_locked(spinlock_t *lock);
 void free_bucket_spinlocks(spinlock_t *locks);
@@ -482,7 +482,7 @@ int alloc_bucket_spinlocks(spinlock_t **locks, unsigned int *locks_mask,
  ** linux/mutex.h **
  *******************/
 
-#include <lx_emul/mutex.h>
+#include <legacy/lx_emul/mutex.h>
 
 LX_MUTEX_INIT_DECLARE(crypto_default_rng_lock);
 LX_MUTEX_INIT_DECLARE(fanout_mutex);
@@ -507,14 +507,14 @@ LX_MUTEX_INIT_DECLARE(rtnl_mutex);
  ** linux/rwsem.h **
  *******************/
 
-#include <lx_emul/semaphore.h>
+#include <legacy/lx_emul/semaphore.h>
 
 
 /********************
  ** linux/kernel.h **
  ********************/
 
-#include <lx_emul/kernel.h>
+#include <legacy/lx_emul/kernel.h>
 
 #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
@@ -564,7 +564,7 @@ int sscanf(const char *, const char *, ...);
  ** linux/jiffies.h **
  *********************/
 
-#include <lx_emul/jiffies.h>
+#include <legacy/lx_emul/jiffies.h>
 
 static inline unsigned int jiffies_to_usecs(const unsigned long j) { return j * JIFFIES_TICK_US; }
 
@@ -575,7 +575,7 @@ static inline unsigned int jiffies_to_usecs(const unsigned long j) { return j * 
  ** linux/time.h **
  ******************/
 
-#include <lx_emul/time.h>
+#include <legacy/lx_emul/time.h>
 
 enum {
 	MSEC_PER_SEC  = 1000L,
@@ -611,7 +611,7 @@ static inline void ktime_get_ts(struct timespec *ts)
  ** linux/timer.h **
  *******************/
 
-#include <lx_emul/timer.h>
+#include <legacy/lx_emul/timer.h>
 
 #define from_timer(var, callback_timer, timer_fieldname) \
 	container_of(callback_timer, typeof(*var), timer_fieldname)
@@ -632,7 +632,7 @@ enum {
  ** linux/byteorder/generic.h **
  *******************************/
 
-#include <lx_emul/byteorder.h>
+#include <legacy/lx_emul/byteorder.h>
 
 #define cpu_to_be64  __cpu_to_be64
 #define be64_to_cpup __be64_to_cpup
@@ -751,7 +751,7 @@ unsigned int hweight64(__u64 w);
  ** linux/bitops.h, asm/bitops.h **
  **********************************/
 
-#include <lx_emul/bitops.h>
+#include <legacy/lx_emul/bitops.h>
 
 static inline unsigned long hweight_long(unsigned long w) {
 	return sizeof(w) == 4 ? hweight32(w) : hweight64(w); }
@@ -831,7 +831,7 @@ unsigned int memalloc_noreclaim_save(void);
  ** linux/kobject.h **
  *********************/
 
-#include <lx_emul/kobject.h>
+#include <legacy/lx_emul/kobject.h>
 
 enum kobject_action
 {
@@ -987,7 +987,7 @@ unsigned long int_sqrt(unsigned long);
  ** linux/workqueue.h **
  ***********************/
 
-#include <lx_emul/work.h>
+#include <legacy/lx_emul/work.h>
 
 extern struct workqueue_struct *system_power_efficient_wq;
 
@@ -1069,7 +1069,7 @@ void sysfs_remove_link(struct kobject *kobj, const char *name);
  ** linux/pm.h **
  ****************/
 
-#include <lx_emul/pm.h>
+#include <legacy/lx_emul/pm.h>
 
 #define PM_EVENT_HIBERNATE 0x0004
 #define PM_EVENT_SLEEP     (PM_EVENT_SUSPEND | PM_EVENT_HIBERNATE)
@@ -3459,14 +3459,14 @@ int request_firmware_nowait( struct module *module, bool uevent, const char *nam
  ** linux/ioport.h **
  ********************/
 
-#include <lx_emul/ioport.h>
+#include <legacy/lx_emul/ioport.h>
 
 
 /***********************
  ** linux/irqreturn.h **
  ***********************/
 
-#include <lx_emul/irq.h>
+#include <legacy/lx_emul/irq.h>
 
 /***********************
  ** linux/interrupt.h **
@@ -3531,7 +3531,7 @@ struct pci_dev {
 	u16 pcie_flags_reg;
 };
 
-#include <lx_emul/pci.h>
+#include <legacy/lx_emul/pci.h>
 
 void pci_set_drvdata(struct pci_dev *pdev, void *data);
 
@@ -5635,7 +5635,7 @@ unsigned long rlimit(unsigned int limit);
 
 int device_property_read_string(struct device *dev, const char *propname, const char **val);
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 
 /******************************

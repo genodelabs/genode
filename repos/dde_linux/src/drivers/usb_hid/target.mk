@@ -38,4 +38,4 @@ CC_C_OPT += -Wno-unused-but-set-variable -Wno-pointer-sign \
 CC_CXX_WARN_STRICT =
 
 vpath %.c  $(USB_CONTRIB_DIR)
-vpath %.cc $(REP_DIR)/src/lx_kit
+vpath %.cc $(REP_DIR)/src/lib/legacy/lx_kit

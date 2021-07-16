@@ -15,8 +15,8 @@
 
 #include <base/ram_allocator.h>
 
-#include <lx_kit/backend_alloc.h>
-#include <lx_kit/env.h>
+#include <legacy/lx_kit/backend_alloc.h>
+#include <legacy/lx_kit/env.h>
 
 
 /****************************

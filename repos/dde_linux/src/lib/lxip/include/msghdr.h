@@ -14,9 +14,9 @@
 #ifndef _MSGHDR_H_
 #define _MSGHDR_H_
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 #include <linux/socket.h>
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 
 static inline msghdr create_msghdr(void *name, int namelen, size_t datalen,

@@ -32,4 +32,4 @@ CC_CXX_WARN_STRICT =
 
 vpath linux_network_session_base.cc $(REP_DIR)/src/drivers/nic
 vpath %.c  $(USB_CONTRIB_DIR)
-vpath %.cc $(REP_DIR)/src/lx_kit
+vpath %.cc $(REP_DIR)/src/lib/legacy/lx_kit

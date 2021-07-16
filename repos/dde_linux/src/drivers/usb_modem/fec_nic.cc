@@ -12,7 +12,7 @@
  */
 
 #include <fec_nic.h>
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/scheduler.h>
 #include <lx_emul.h>
 
 

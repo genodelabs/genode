@@ -20,13 +20,13 @@
 #include <signal.h>
 #include <lx_emul.h>
 
-#include <lx_kit/env.h>
-#include <lx_kit/pci.h>
-#include <lx_kit/irq.h>
-#include <lx_kit/malloc.h>
-#include <lx_kit/scheduler.h>
-#include <lx_kit/timer.h>
-#include <lx_kit/work.h>
+#include <legacy/lx_kit/env.h>
+#include <legacy/lx_kit/pci.h>
+#include <legacy/lx_kit/irq.h>
+#include <legacy/lx_kit/malloc.h>
+#include <legacy/lx_kit/scheduler.h>
+#include <legacy/lx_kit/timer.h>
+#include <legacy/lx_kit/work.h>
 
 
 using namespace Genode;

@@ -21,7 +21,7 @@
 #include <stdarg.h>
 #include <base/fixed_stdint.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 
 #define DEBUG_COMPLETION   0
 #define DEBUG_DMA          0
@@ -41,7 +41,7 @@
 #define KBUILD_MODNAME "mod-noname"
 
 /* lx_printf */
-#include <lx_emul/printf.h>
+#include <legacy/lx_emul/printf.h>
 
 
 /*******************
@@ -62,7 +62,7 @@
  ** asm/bug.h **
  ***************/
 
-#include <lx_emul/bug.h>
+#include <legacy/lx_emul/bug.h>
 
 /*****************
  ** asm/param.h **
@@ -75,14 +75,14 @@ enum { HZ = 100UL };
  ** asm/atomic.h **
  ******************/
 
-#include <lx_emul/atomic.h>
+#include <legacy/lx_emul/atomic.h>
 
 
 /*******************
  ** linux/types.h **
  *******************/
 
-#include <lx_emul/types.h>
+#include <legacy/lx_emul/types.h>
 
 typedef __u16 __le16;
 typedef __u32 __le32;
@@ -112,8 +112,8 @@ extern unsigned long loops_per_jiffy;  /* needed by 'dwc_otg_attr.c' */
  ** linux/compiler.h **
  **********************/
 
-#include <lx_emul/barrier.h>
-#include <lx_emul/compiler.h>
+#include <legacy/lx_emul/barrier.h>
+#include <legacy/lx_emul/compiler.h>
 
 #define __must_hold(x)
 
@@ -158,7 +158,7 @@ typedef struct { __u8 b[16]; } uuid_le;
  ** linux/byteorder/generic.h **
  *******************************/
 
-#include <lx_emul/byteorder.h>
+#include <legacy/lx_emul/byteorder.h>
 
 struct __una_u16 { u16 x; } __attribute__((packed));
 struct __una_u32 { u32 x; } __attribute__((packed));
@@ -202,7 +202,7 @@ struct page
  ** linux/errno.h and friends **
  *******************************/
 
-#include <lx_emul/errno.h>
+#include <legacy/lx_emul/errno.h>
 
 enum {
 	EISDIR        = 21,
@@ -219,7 +219,7 @@ enum {
  ** linux/kernel.h **
  ********************/
 
-#include <lx_emul/kernel.h>
+#include <legacy/lx_emul/kernel.h>
 
 char *kasprintf(gfp_t gfp, const char *fmt, ...);
 int   kstrtouint(const char *s, unsigned int base, unsigned int *res);
@@ -251,7 +251,7 @@ bool in_softirq(void);
  ** linux/jiffies.h **
  *********************/
 
-#include <lx_emul/jiffies.h>
+#include <legacy/lx_emul/jiffies.h>
 
 
 /*********************
@@ -353,7 +353,7 @@ static inline unsigned long find_next_zero_bit_le(const unsigned long *addr, uns
  ** linux/string.h **
  ********************/
 
-#include <lx_emul/string.h>
+#include <legacy/lx_emul/string.h>
 
 int strtobool(const char *, bool *);
 
@@ -377,7 +377,7 @@ int utf16s_to_utf8s(const wchar_t *pwcs, int len, enum utf16_endian endian, u8 *
  ** linux/init.h **
  ******************/
 
-#include <lx_emul/module.h>
+#include <legacy/lx_emul/module.h>
 
 #define __initconst
 
@@ -430,14 +430,14 @@ void *kmalloc_array(size_t n, size_t size, gfp_t flags);
  ** linux/spinlock.h **
  **********************/
 
-#include <lx_emul/spinlock.h>
+#include <legacy/lx_emul/spinlock.h>
 
 
 /*******************
  ** linux/mutex.h **
  *******************/
 
-#include <lx_emul/mutex.h>
+#include <legacy/lx_emul/mutex.h>
 
 LX_MUTEX_INIT_DECLARE(init_usb_class_mutex);
 LX_MUTEX_INIT_DECLARE(usb_bus_idr_lock);
@@ -454,21 +454,21 @@ LX_MUTEX_INIT_DECLARE(usbfs_mutex);
  ** linux/rwsem.h **
  *******************/
 
-#include <lx_emul/semaphore.h>
+#include <legacy/lx_emul/semaphore.h>
 
 
 /******************
  ** linux/time.h **
  ******************/
 
-#include <lx_emul/time.h>
+#include <legacy/lx_emul/time.h>
 
 
 /*******************
  ** linux/timer.h **
  *******************/
 
-#include <lx_emul/timer.h>
+#include <legacy/lx_emul/timer.h>
 
 #define from_timer(var, callback_timer, timer_fieldname) \
 	container_of(callback_timer, typeof(*var), timer_fieldname)
@@ -487,7 +487,7 @@ void usleep_range(unsigned long min, unsigned long max);
  ** linux/workquque.h **
  ***********************/
 
-#include <lx_emul/work.h>
+#include <legacy/lx_emul/work.h>
 
 enum {
 	WORK_STRUCT_PENDING_BIT = 0,
@@ -598,7 +598,7 @@ int atomic_notifier_chain_unregister(struct atomic_notifier_head *nh, struct not
  ** linux/scatterlist.h **
  *************************/
 
-#include <lx_emul/scatterlist.h>
+#include <legacy/lx_emul/scatterlist.h>
 
 size_t sg_pcopy_from_buffer(struct scatterlist *sgl, unsigned int nents, const void *buf, size_t buflen, off_t skip);
 size_t sg_pcopy_to_buffer(struct scatterlist *sgl, unsigned int nents, void *buf, size_t buflen, off_t skip);
@@ -608,7 +608,7 @@ size_t sg_pcopy_to_buffer(struct scatterlist *sgl, unsigned int nents, void *buf
  ** linux/kobject.h **
  *********************/
 
-#include <lx_emul/kobject.h>
+#include <legacy/lx_emul/kobject.h>
 
 
 /*******************
@@ -645,7 +645,7 @@ void sysfs_remove_link(struct kobject *kobj, const char *name);
  ** linux/pm.h **
  ****************/
 
-#include <lx_emul/pm.h>
+#include <legacy/lx_emul/pm.h>
 
 #define PMSG_AUTO_SUSPEND ((struct pm_message) \
                            { .event = PM_EVENT_AUTO_SUSPEND, })
@@ -1111,7 +1111,7 @@ struct seq_file { int dummy; };
  ** linux/gfp.h **
  *****************/
 
-#include <lx_emul/gfp.h>
+#include <legacy/lx_emul/gfp.h>
 
 enum {
 	GFP_NOIO     = GFP_LX_DMA,
@@ -1155,7 +1155,7 @@ int    is_vmalloc_addr(const void *x);
  ** asm-generic/io.h **
  **********************/
 
-#include <lx_emul/mmio.h>
+#include <legacy/lx_emul/mmio.h>
 
 void *ioremap(phys_addr_t addr, unsigned long size);
 void  iounmap(volatile void *addr);
@@ -1188,14 +1188,14 @@ static inline u32 inl_p(u32 port) { u32 ret = inl(port); native_io_delay(); retu
  ** linux/ioport.h **
  ********************/
 
-#include <lx_emul/ioport.h>
+#include <legacy/lx_emul/ioport.h>
 
 
 /***********************
  ** linux/irqreturn.h **
  ***********************/
 
-#include <lx_emul/irq.h>
+#include <legacy/lx_emul/irq.h>
 
 #define IRQ_RETVAL(x) ((x) != IRQ_NONE)
 
@@ -1277,7 +1277,7 @@ struct pci_fixup {
 	void (*hook)(struct pci_dev *dev);
 };
 
-#include <lx_emul/pci.h>
+#include <legacy/lx_emul/pci.h>
 #include <linux/mod_devicetable.h>
 
 #define PCI_DEVICE_CLASS(dev_class,dev_class_mask) \
@@ -1402,7 +1402,7 @@ struct new_utsname *init_utsname(void);
  ** linux/completion.h **
  ************************/
 
-#include <lx_emul/completion.h>
+#include <legacy/lx_emul/completion.h>
 
 struct completion { unsigned int done; void *task; };
 long  __wait_completion(struct completion *work, unsigned long timeout);;
@@ -1413,7 +1413,7 @@ void reinit_completion(struct completion *x);
  ** linux/list.h **
  ******************/
 
-#include <lx_emul/list.h>
+#include <legacy/lx_emul/list.h>
 
 
 /********************
@@ -1828,6 +1828,6 @@ static inline void trace_xhci_dbg_address(struct va_format *v) {}
 void lx_backtrace(void);
 void lx_platform_device_init(void);
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #endif /* _LX_EMUL_H_ */

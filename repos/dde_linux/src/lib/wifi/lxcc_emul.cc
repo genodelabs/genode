@@ -29,9 +29,9 @@
 #include <lx.h>
 #include <lx_emul.h>
 
-#include <lx_kit/env.h>
-#include <lx_kit/malloc.h>
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/env.h>
+#include <legacy/lx_kit/malloc.h>
+#include <legacy/lx_kit/scheduler.h>
 
 
 typedef ::size_t       size_t;
@@ -393,7 +393,7 @@ extern "C" int memcpy_fromiovecend(unsigned char *kdata, const struct iovec *iov
  ** Memory allocation *
  **********************/
 
-#include <lx_emul/impl/slab.h>
+#include <legacy/lx_emul/impl/slab.h>
 
 void *kvmalloc(size_t size, gfp_t flags)
 {
@@ -614,7 +614,7 @@ int strict_strtoul(const char *s, unsigned int base, unsigned long *res)
  ** linux/delay.h **
  *******************/
 
-#include <lx_emul/impl/delay.h>
+#include <legacy/lx_emul/impl/delay.h>
 
 
 void usleep_range(unsigned long min, unsigned long max)
@@ -1254,7 +1254,7 @@ int request_module(char const* format, ...)
  ** kernel/locking/mutex.c **
  ****************************/
 
-#include <lx_emul/impl/mutex.h>
+#include <legacy/lx_emul/impl/mutex.h>
 
 
 /******************
@@ -1283,7 +1283,7 @@ void *kthread_run(int (*threadfn)(void *), void *data, char const *name)
  ** linux/pci.h **
  *****************/
 
-#include <lx_emul/impl/pci.h>
+#include <legacy/lx_emul/impl/pci.h>
 
 
 void *pci_get_drvdata(struct pci_dev *pdev)
@@ -1326,7 +1326,7 @@ void * const *pcim_iomap_table(struct pci_dev *pdev)
  ** linux/interrupt.h **
  ***********************/
 
-#include <lx_kit/irq.h>
+#include <legacy/lx_kit/irq.h>
 
 
 int request_irq(unsigned int irq, irq_handler_t handler,
@@ -1359,7 +1359,7 @@ void pci_dev_put(struct pci_dev *pci_dev)
  ** linux/workqueue.h **
  ***********************/
 
-#include <lx_emul/impl/work.h>
+#include <legacy/lx_emul/impl/work.h>
 
 
 bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
@@ -1473,7 +1473,7 @@ void tasklet_schedule(struct tasklet_struct *tasklet)
  ** linux/completion.h **
  ************************/
 
-#include <lx_emul/impl/completion.h>
+#include <legacy/lx_emul/impl/completion.h>
 
 
 long __wait_completion(struct completion *work, unsigned long timeout) {
@@ -1499,14 +1499,14 @@ long wait_for_completion_killable_timeout(struct completion *work,
  ** linux/wait.h **
  ******************/
 
-#include <lx_emul/impl/wait.h>
+#include <legacy/lx_emul/impl/wait.h>
 
 
 /*******************
  ** linux/timer.h **
  *******************/
 
-#include <lx_emul/impl/timer.h>
+#include <legacy/lx_emul/impl/timer.h>
 
 
 void init_timer_deferrable(struct timer_list *timer) { /* XXX */ }
@@ -1522,7 +1522,7 @@ int wake_up_process(struct task_struct *tsk) { return 0; }
  ** linux/sched.h **
  *******************/
 
-#include <lx_emul/impl/sched.h>
+#include <legacy/lx_emul/impl/sched.h>
 
 
 /*****************

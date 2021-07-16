@@ -24,7 +24,7 @@
 #include <lx_emul_c.h>
 
 /* DRM-specific includes */
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 #include <drm/drmP.h>
 #include <drm/drm_fb_cma_helper.h>
 #include <drm/drm_gem_cma_helper.h>
@@ -36,24 +36,24 @@
 #include <linux/component.h>
 #include <linux/phy/phy.h>
 #include <video/videomode.h>
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
-#include <lx_kit/scheduler.h> /* dependency of lx_emul/impl/completion.h */
+#include <legacy/lx_kit/scheduler.h> /* dependency of lx_emul/impl/completion.h */
 
-#include <lx_emul/impl/completion.h>
-#include <lx_emul/impl/delay.h>
-#include <lx_emul/impl/gfp.h>
-#include <lx_emul/impl/kernel.h>
-#include <lx_emul/impl/mutex.h>
-#include <lx_emul/impl/sched.h>
-#include <lx_emul/impl/slab.h>
-#include <lx_emul/impl/spinlock.h>
-#include <lx_emul/impl/timer.h>
-#include <lx_emul/impl/wait.h> /* dependency of lx_emul/impl/work.h */
-#include <lx_emul/impl/work.h>
+#include <legacy/lx_emul/impl/completion.h>
+#include <legacy/lx_emul/impl/delay.h>
+#include <legacy/lx_emul/impl/gfp.h>
+#include <legacy/lx_emul/impl/kernel.h>
+#include <legacy/lx_emul/impl/mutex.h>
+#include <legacy/lx_emul/impl/sched.h>
+#include <legacy/lx_emul/impl/slab.h>
+#include <legacy/lx_emul/impl/spinlock.h>
+#include <legacy/lx_emul/impl/timer.h>
+#include <legacy/lx_emul/impl/wait.h> /* dependency of lx_emul/impl/work.h */
+#include <legacy/lx_emul/impl/work.h>
 
-#include <lx_kit/irq.h>
-#include <lx_kit/malloc.h>
+#include <legacy/lx_kit/irq.h>
+#include <legacy/lx_kit/malloc.h>
 
 enum Device_id { DCSS, HDMI, MIPI, SRC, UNKNOWN };
 

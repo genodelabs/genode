@@ -45,6 +45,6 @@ vpath %.c  $(LX_CONTRIB_DIR)/net/core
 vpath %.c  $(LX_CONTRIB_DIR)/net/ethernet
 vpath %.c  $(PRG_DIR)/../..
 vpath %.cc $(PRG_DIR)/../..
-vpath %.cc $(REP_DIR)/src/lx_kit
+vpath %.cc $(REP_DIR)/src/lib/legacy/lx_kit
 
 CC_CXX_WARN_STRICT =

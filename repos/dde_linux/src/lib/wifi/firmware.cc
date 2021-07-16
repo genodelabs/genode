@@ -15,7 +15,7 @@
 #include <base/log.h>
 
 /* local includes */
-#include <lx_kit/env.h>
+#include <legacy/lx_kit/env.h>
 #include <firmware_list.h>
 #include <lx_emul.h>
 

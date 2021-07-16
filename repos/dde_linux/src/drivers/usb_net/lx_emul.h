@@ -17,28 +17,28 @@
 #include <base/fixed_stdint.h>
 #include <stdarg.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 
 #define __KERNEL__ 1
 
-#include <lx_emul/compiler.h>
-#include <lx_emul/printf.h>
-#include <lx_emul/types.h>
-#include <lx_emul/kernel.h>
+#include <legacy/lx_emul/compiler.h>
+#include <legacy/lx_emul/printf.h>
+#include <legacy/lx_emul/types.h>
+#include <legacy/lx_emul/kernel.h>
 
 #define __KERNEL_DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
 enum { HZ = 100UL };
 
-#include <lx_emul/jiffies.h>
-#include <lx_emul/time.h>
-#include <lx_emul/bitops.h>
+#include <legacy/lx_emul/jiffies.h>
+#include <legacy/lx_emul/time.h>
+#include <legacy/lx_emul/bitops.h>
 
 typedef int clockid_t;
 
-#include <lx_emul/timer.h>
-#include <lx_emul/spinlock.h>
-#include <lx_emul/mutex.h>
+#include <legacy/lx_emul/timer.h>
+#include <legacy/lx_emul/spinlock.h>
+#include <legacy/lx_emul/mutex.h>
 
 typedef __u16 __le16;
 typedef __u32 __le32;
@@ -47,12 +47,12 @@ typedef __u64 __be64;
 
 #define __aligned_u64 __u64 __attribute__((aligned(8)))
 
-#include <lx_emul/byteorder.h>
-#include <lx_emul/atomic.h>
-#include <lx_emul/work.h>
-#include <lx_emul/bug.h>
-#include <lx_emul/errno.h>
-#include <lx_emul/module.h>
+#include <legacy/lx_emul/byteorder.h>
+#include <legacy/lx_emul/atomic.h>
+#include <legacy/lx_emul/work.h>
+#include <legacy/lx_emul/bug.h>
+#include <legacy/lx_emul/errno.h>
+#include <legacy/lx_emul/module.h>
 //#define __init
 //#define __exit
 //#define THIS_MODULE 0
@@ -66,17 +66,17 @@ typedef __u64 __be64;
 //#define MODULE_VERSION(x)
 //#define MODULE_PARM_DESC(_parm, desc)
 //#define module_param(name, type, perm)
-#include <lx_emul/gfp.h>
-#include <lx_emul/barrier.h>
+#include <legacy/lx_emul/gfp.h>
+#include <legacy/lx_emul/barrier.h>
 
 #define READ_ONCE(x) x
 
-#include <lx_emul/list.h>
-#include <lx_emul/string.h>
-#include <lx_emul/kobject.h>
-#include <lx_emul/completion.h>
-#include <lx_emul/pm.h>
-#include <lx_emul/scatterlist.h>
+#include <legacy/lx_emul/list.h>
+#include <legacy/lx_emul/string.h>
+#include <legacy/lx_emul/kobject.h>
+#include <legacy/lx_emul/completion.h>
+#include <legacy/lx_emul/pm.h>
+#include <legacy/lx_emul/scatterlist.h>
 
 struct user_namespace {};
 
@@ -1289,6 +1289,6 @@ int module_rndis_driver_init();
 #include <linux/skbuff.h>
 #include <linux/rculist.h>
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #endif /* _SRC__DRIVERS__USB_HID__LX_EMUL_H_ */

@@ -21,27 +21,27 @@
 #include <driver.h>
 #include <lx_emul.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 #include <linux/usb.h>
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #define TRACE do { ; } while (0)
 
-#include <lx_emul/impl/delay.h>
-#include <lx_emul/impl/slab.h>
-#include <lx_emul/impl/work.h>
-#include <lx_emul/impl/spinlock.h>
-#include <lx_emul/impl/mutex.h>
-#include <lx_emul/impl/sched.h>
-#include <lx_emul/impl/timer.h>
-#include <lx_emul/impl/completion.h>
-#include <lx_emul/impl/wait.h>
-#include <lx_emul/impl/usb.h>
+#include <legacy/lx_emul/impl/delay.h>
+#include <legacy/lx_emul/impl/slab.h>
+#include <legacy/lx_emul/impl/work.h>
+#include <legacy/lx_emul/impl/spinlock.h>
+#include <legacy/lx_emul/impl/mutex.h>
+#include <legacy/lx_emul/impl/sched.h>
+#include <legacy/lx_emul/impl/timer.h>
+#include <legacy/lx_emul/impl/completion.h>
+#include <legacy/lx_emul/impl/wait.h>
+#include <legacy/lx_emul/impl/usb.h>
 
-#include <lx_kit/backend_alloc.h>
+#include <legacy/lx_kit/backend_alloc.h>
 
-#include <lx_emul/extern_c_begin.h>
-#include <lx_emul/impl/kernel.h>
+#include <legacy/lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/impl/kernel.h>
 
 #include <linux/mii.h>
 
@@ -130,7 +130,7 @@ int usb_match_one_id(struct usb_interface *interface,
 	return usb_match_one_id_intf(dev, intf, id);
 }
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 
 class Addr_to_page_mapping : public Genode::List<Addr_to_page_mapping>::Element

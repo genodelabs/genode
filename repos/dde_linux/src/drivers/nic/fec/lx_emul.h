@@ -17,12 +17,12 @@
 #include <base/fixed_stdint.h>
 #include <stdarg.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 
-#include <lx_emul/barrier.h>
-#include <lx_emul/compiler.h>
-#include <lx_emul/printf.h>
-#include <lx_emul/types.h>
+#include <legacy/lx_emul/barrier.h>
+#include <legacy/lx_emul/compiler.h>
+#include <legacy/lx_emul/printf.h>
+#include <legacy/lx_emul/types.h>
 
 static inline void __read_once_size(const volatile void *p, void *res, int size)
 {
@@ -54,7 +54,7 @@ static inline void __read_once_size(const volatile void *p, void *res, int size)
 #endif
 
 
-#include <lx_emul/list.h>
+#include <legacy/lx_emul/list.h>
 
 void lx_backtrace(void);
 
@@ -135,16 +135,16 @@ size_t iov_iter_count(struct iov_iter *i);
 #define netdev_warn(dev, fmt, args...) lx_printf("netdev_warn: " fmt, ##args)
 #define netdev_info(dev, fmt, args...) lx_printf("netdev_info: " fmt, ##args)
 
-#include <lx_emul/kernel.h>
-#include <lx_emul/irq.h>
-#include <lx_emul/jiffies.h>
-#include <lx_emul/time.h>
-#include <lx_emul/timer.h>
+#include <legacy/lx_emul/kernel.h>
+#include <legacy/lx_emul/irq.h>
+#include <legacy/lx_emul/jiffies.h>
+#include <legacy/lx_emul/time.h>
+#include <legacy/lx_emul/timer.h>
 
 #define from_timer(var, callback_timer, timer_fieldname) \
 	container_of(callback_timer, typeof(*var), timer_fieldname)
 
-#include <lx_emul/mutex.h>
+#include <legacy/lx_emul/mutex.h>
 
 LX_MUTEX_INIT_DECLARE(mdio_board_lock);
 LX_MUTEX_INIT_DECLARE(phy_fixup_lock);
@@ -152,15 +152,15 @@ LX_MUTEX_INIT_DECLARE(phy_fixup_lock);
 #define mdio_board_lock LX_MUTEX(mdio_board_lock)
 #define phy_fixup_lock LX_MUTEX(phy_fixup_lock)
 
-#include <lx_emul/bitops.h>
-#include <lx_emul/atomic.h>
-#include <lx_emul/spinlock.h>
-#include <lx_emul/work.h>
-#include <lx_emul/errno.h>
-#include <lx_emul/string.h>
-#include <lx_emul/module.h>
-#include <lx_emul/bug.h>
-#include <lx_emul/gfp.h>
+#include <legacy/lx_emul/bitops.h>
+#include <legacy/lx_emul/atomic.h>
+#include <legacy/lx_emul/spinlock.h>
+#include <legacy/lx_emul/work.h>
+#include <legacy/lx_emul/errno.h>
+#include <legacy/lx_emul/string.h>
+#include <legacy/lx_emul/module.h>
+#include <legacy/lx_emul/bug.h>
+#include <legacy/lx_emul/gfp.h>
 
 enum {
 	__GFP_COLD   = 0x00000100u,
@@ -168,14 +168,14 @@ enum {
 };
 
 #include <uapi/linux/swab.h>
-#include <lx_emul/byteorder.h>
-#include <lx_emul/completion.h>
-#include <lx_emul/ioport.h>
+#include <legacy/lx_emul/byteorder.h>
+#include <legacy/lx_emul/completion.h>
+#include <legacy/lx_emul/ioport.h>
 #include <uapi/linux/net_tstamp.h>
 #include <uapi/linux/ptp_clock.h>
-#include <lx_emul/pm.h>
-#include <lx_emul/scatterlist.h>
-#include <lx_emul/kobject.h>
+#include <legacy/lx_emul/pm.h>
+#include <legacy/lx_emul/scatterlist.h>
+#include <legacy/lx_emul/kobject.h>
 
 enum {
 	ETH_HLEN      = 14,
@@ -1933,6 +1933,6 @@ void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp);
 
 struct pm_qos_request {};
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #endif /* _SRC__DRIVERS__NIC__FEC__LX_EMUL_H_ */

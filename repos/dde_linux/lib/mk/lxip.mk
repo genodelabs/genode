@@ -49,6 +49,6 @@ net/ethernet/eth.o: SETUP_SUFFIX="_eth"
 vpath %.c $(LX_CONTRIB_DIR)
 vpath %.c $(LIB_DIR)
 vpath %.cc $(LIB_DIR)
-vpath %.cc $(REP_DIR)/src/lx_kit
+vpath %.cc $(REP_DIR)/src/lib/legacy/lx_kit
 
 CC_CXX_WARN_STRICT =

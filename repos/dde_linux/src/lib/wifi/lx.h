@@ -21,7 +21,7 @@
 #include <drivers/nic/mode.h>
 
 /* local includes */
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/scheduler.h>
 
 
 #define DEBUG_PRINTK     1

@@ -30,15 +30,15 @@
 #include <lx.h>
 
 /* Lx_kit */
-#include <lx_kit/env.h>
-#include <lx_kit/malloc.h>
+#include <legacy/lx_kit/env.h>
+#include <legacy/lx_kit/malloc.h>
 
 
 namespace Linux {
 	#include <lx_emul.h>
 	#include <msghdr.h>
 
-	#include <lx_emul/extern_c_begin.h>
+	#include <legacy/lx_emul/extern_c_begin.h>
 	#include <linux/socket.h>
 	#include <uapi/linux/in.h>
 	#include <uapi/linux/if.h>
@@ -49,7 +49,7 @@ namespace Linux {
 	                           int op, char __user *optval,
 	                           int __user *optlen);
 	socket *sock_alloc(void);
-	#include <lx_emul/extern_c_end.h>
+	#include <legacy/lx_emul/extern_c_end.h>
 
 	enum {
 		POLLIN_SET  = (POLLRDNORM | POLLRDBAND | POLLIN | POLLHUP | POLLERR),

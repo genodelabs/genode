@@ -20,7 +20,7 @@
 #include <util/xml_node.h>
 #include <irq_session/capability.h>
 
-#include <lx_kit/env.h>
+#include <legacy/lx_kit/env.h>
 
 struct Services
 {

@@ -21,7 +21,7 @@
 #include <util/reconstructible.h>
 
 /* Linux kit includes */
-#include <lx_kit/internal/list.h>
+#include <legacy/lx_kit/internal/list.h>
 
 /* local includes */
 #include <lx_emul.h>

@@ -14,7 +14,7 @@
 #ifndef _SRC__DRIVERS__NIC__LINUX_NETWORK_SESSION_BASE_H_
 #define _SRC__DRIVERS__NIC__LINUX_NETWORK_SESSION_BASE_H_
 
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/scheduler.h>
 
 /* forward declarations */
 extern "C" {

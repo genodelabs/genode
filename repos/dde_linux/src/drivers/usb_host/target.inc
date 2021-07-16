@@ -65,5 +65,5 @@ CC_C_OPT += -Wno-format
 vpath lib/ctype.c    $(LX_CONTRIB_DIR)
 vpath lib/find_bit.c $(LX_CONTRIB_DIR)
 vpath %.c            $(LX_CONTRIB_DIR)/drivers
-vpath %.cc           $(REP_DIR)/src
+vpath %.cc           $(REP_DIR)/src/lib/legacy
 vpath %              $(REP_DIR)/src/drivers/usb_host

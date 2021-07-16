@@ -29,13 +29,13 @@
 #include <lx.h>
 #include <lx_emul.h>
 
-#include <lx_kit/env.h>
+#include <legacy/lx_kit/env.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 # include <linux/skbuff.h>
 # include <net/cfg80211.h>
 # include <lxc.h>
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 
 enum {

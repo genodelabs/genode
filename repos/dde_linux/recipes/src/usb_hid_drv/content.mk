@@ -6,7 +6,8 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_linux)
 MIRROR_FROM_REP_DIR := $(LIB_MK) \
                        lib/import/import-usb_hid_include.mk \
                        lib/import/import-usb_arch_include.mk \
-                       src/include src/lx_kit \
+                       src/include/legacy src/lib/legacy/lx_kit \
+                       $(foreach SPEC,arm arm_64 arm_v6 arm_v7 x86 x86_32 x86_64,src/include/spec/$(SPEC)/legacy) \
                        $(shell cd $(REP_DIR); find src/drivers/usb_hid -type f)
 
 MIRROR_FROM_PORT_DIR := $(shell cd $(PORT_DIR); find src/drivers/usb_hid -type f | grep -v ".git")

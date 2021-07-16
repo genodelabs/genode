@@ -26,7 +26,7 @@
 #include <component.h>
 
 /* Linux emulation environment includes */
-#include <lx_kit/scheduler.h>
+#include <legacy/lx_kit/scheduler.h>
 
 /* NIC driver includes */
 #include <drivers/nic/mode.h>

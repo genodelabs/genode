@@ -11,7 +11,9 @@ MIRROR_FROM_REP_DIR := $(LIB_MK) \
                        lib/import/import-wifi_include.mk \
                        lib/import/import-libnl_include.mk \
                        lib/import/import-libnl.mk \
-                       include/wifi src/include src/lx_kit \
+                       include/wifi src/include/legacy src/lib/legacy/lx_kit \
+                       $(foreach SPEC, x86 x86_32 x86_64, \
+                                 src/include/spec/$(SPEC)/legacy) \
                        $(shell cd $(REP_DIR); find src/drivers/wifi -type f) \
                        $(shell cd $(REP_DIR); find src/lib/libnl -type f) \
                        $(shell cd $(REP_DIR); find src/lib/wifi -type f) \

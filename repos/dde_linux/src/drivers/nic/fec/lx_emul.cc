@@ -30,16 +30,16 @@
 #include <os/backtrace.h>
 #endif
 
-#include <lx_emul/impl/kernel.h>
-#include <lx_emul/impl/delay.h>
-#include <lx_emul/impl/slab.h>
-#include <lx_emul/impl/work.h>
-#include <lx_emul/impl/spinlock.h>
-#include <lx_emul/impl/mutex.h>
-#include <lx_emul/impl/sched.h>
-#include <lx_emul/impl/timer.h>
-#include <lx_emul/impl/completion.h>
-#include <lx_kit/irq.h>
+#include <legacy/lx_emul/impl/kernel.h>
+#include <legacy/lx_emul/impl/delay.h>
+#include <legacy/lx_emul/impl/slab.h>
+#include <legacy/lx_emul/impl/work.h>
+#include <legacy/lx_emul/impl/spinlock.h>
+#include <legacy/lx_emul/impl/mutex.h>
+#include <legacy/lx_emul/impl/sched.h>
+#include <legacy/lx_emul/impl/timer.h>
+#include <legacy/lx_emul/impl/completion.h>
+#include <legacy/lx_kit/irq.h>
 
 extern "C" { struct page; }
 
@@ -372,10 +372,10 @@ _register_session(Linux_network_session_base &session,
 }
 
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 #include <linux/phy.h>
 #include <linux/timecounter.h>
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 extern "C" {
 

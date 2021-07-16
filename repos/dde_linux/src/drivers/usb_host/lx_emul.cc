@@ -24,14 +24,14 @@
 #include "signal.h"
 #include "lx_emul.h"
 
-#include <lx_kit/backend_alloc.h>
-#include <lx_kit/irq.h>
-#include <lx_kit/scheduler.h>
-#include <lx_kit/work.h>
+#include <legacy/lx_kit/backend_alloc.h>
+#include <legacy/lx_kit/irq.h>
+#include <legacy/lx_kit/scheduler.h>
+#include <legacy/lx_kit/work.h>
 
 
-#include <lx_emul/impl/slab.h>
-#include <lx_emul/impl/mutex.h>
+#include <legacy/lx_emul/impl/slab.h>
+#include <legacy/lx_emul/impl/mutex.h>
 
 unsigned long loops_per_jiffy = 1;  /* needed by 'dwc_otg_attr.c' */
 
@@ -415,7 +415,7 @@ int fls(int x)
  ** linux/delay.h **
  *******************/
 
-#include <lx_emul/impl/delay.h>
+#include <legacy/lx_emul/impl/delay.h>
 
 void usleep_range(unsigned long min, unsigned long max)
 {
@@ -666,8 +666,8 @@ int blocking_notifier_call_chain(struct blocking_notifier_head *nh,
  ** linux/timer.h **
  *******************/
 
-#include <lx_emul/impl/timer.h>
-#include <lx_emul/impl/sched.h>
+#include <legacy/lx_emul/impl/timer.h>
+#include <legacy/lx_emul/impl/sched.h>
 
 signed long schedule_timeout_uninterruptible(signed long timeout)
 {
@@ -681,7 +681,7 @@ signed long schedule_timeout_uninterruptible(signed long timeout)
  ** linux/completion.h **
  ************************/
 
-#include <lx_emul/impl/completion.h>
+#include <legacy/lx_emul/impl/completion.h>
 
 
 long __wait_completion(struct completion *work, unsigned long timeout)
@@ -721,7 +721,7 @@ void reinit_completion(struct completion *work)
  ** linux/workqueue.h **
  ***********************/
 
-#include <lx_emul/impl/work.h>
+#include <legacy/lx_emul/impl/work.h>
 
 
 bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
@@ -773,7 +773,7 @@ struct workqueue_struct *alloc_workqueue(const char *fmt, unsigned int flags,
  ** linux/wait.h **
  ******************/
 
-#include <lx_emul/impl/wait.h>
+#include <legacy/lx_emul/impl/wait.h>
 
 
 static Genode::Bit_allocator<1024> id_allocator;

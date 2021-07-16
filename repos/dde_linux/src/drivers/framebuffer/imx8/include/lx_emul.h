@@ -19,15 +19,15 @@
 #include <stdarg.h>
 #include <base/fixed_stdint.h>
 
-#include <lx_emul/extern_c_begin.h>
+#include <legacy/lx_emul/extern_c_begin.h>
 
-#include <lx_emul/irq.h>      /* dependency of lx_kit/irq.h */
+#include <legacy/lx_emul/irq.h>      /* dependency of lx_kit/irq.h */
 
-#include <lx_emul/atomic.h>   /* dependency of lx_emul/work.h */
-#include <lx_emul/compiler.h> /* dependency of lx_emul/kernel.h */
-#include <lx_emul/printf.h>   /* dependency of lx_emul/kernel.h */
-#include <lx_emul/kernel.h>   /* dependency of lx_emul/jiffies.h */
-#include <lx_emul/types.h>    /* dependency of lx_emul/jiffies.h */
+#include <legacy/lx_emul/atomic.h>   /* dependency of lx_emul/work.h */
+#include <legacy/lx_emul/compiler.h> /* dependency of lx_emul/kernel.h */
+#include <legacy/lx_emul/printf.h>   /* dependency of lx_emul/kernel.h */
+#include <legacy/lx_emul/kernel.h>   /* dependency of lx_emul/jiffies.h */
+#include <legacy/lx_emul/types.h>    /* dependency of lx_emul/jiffies.h */
 
 /*****************
  ** asm/param.h **
@@ -36,8 +36,8 @@
 enum { HZ = 100UL };          /* dependency of lx_emul/jiffies.h */
 
 
-#include <lx_emul/jiffies.h>  /* dependency of lx_emul/time.h */
-#include <lx_emul/time.h>     /* dependency of lx_emul/timer.h */
+#include <legacy/lx_emul/jiffies.h>  /* dependency of lx_emul/time.h */
+#include <legacy/lx_emul/time.h>     /* dependency of lx_emul/timer.h */
 
 
 /*******************
@@ -54,8 +54,8 @@ struct timer_list;
 void setup_timer(struct timer_list *timer, void (*function)(unsigned long),
                  unsigned long data);
 
-#include <lx_emul/timer.h>    /* dependency of lx_emul/work.h */
-#include <lx_emul/bitops.h>   /* dependency of lx_emul/work.h */
+#include <legacy/lx_emul/timer.h>    /* dependency of lx_emul/work.h */
+#include <legacy/lx_emul/bitops.h>   /* dependency of lx_emul/work.h */
 
 
 /***********************
@@ -86,22 +86,22 @@ int devm_request_threaded_irq(struct device *dev, unsigned int irq,
 			      unsigned long irqflags, const char *devname,
 			      void *dev_id);
 
-#include <lx_emul/spinlock.h> /* dependency of lx_emul/work.h */
-#include <lx_emul/work.h>     /* dependency of lx_kit/work.h */
+#include <legacy/lx_emul/spinlock.h> /* dependency of lx_emul/work.h */
+#include <legacy/lx_emul/work.h>     /* dependency of lx_kit/work.h */
 
-#include <lx_emul/mutex.h>    /* dependency of lx_emul/kobject.h */
-#include <lx_emul/kobject.h>
-#include <lx_emul/completion.h>
-#include <lx_emul/errno.h>
-#include <lx_emul/barrier.h>
-#include <lx_emul/bug.h>
-#include <lx_emul/gfp.h>
-#include <lx_emul/ioport.h>
-#include <lx_emul/module.h>
-#include <lx_emul/pm.h>
-#include <lx_emul/scatterlist.h>
-#include <lx_emul/semaphore.h>
-#include <lx_emul/string.h>
+#include <legacy/lx_emul/mutex.h>    /* dependency of lx_emul/kobject.h */
+#include <legacy/lx_emul/kobject.h>
+#include <legacy/lx_emul/completion.h>
+#include <legacy/lx_emul/errno.h>
+#include <legacy/lx_emul/barrier.h>
+#include <legacy/lx_emul/bug.h>
+#include <legacy/lx_emul/gfp.h>
+#include <legacy/lx_emul/ioport.h>
+#include <legacy/lx_emul/module.h>
+#include <legacy/lx_emul/pm.h>
+#include <legacy/lx_emul/scatterlist.h>
+#include <legacy/lx_emul/semaphore.h>
+#include <legacy/lx_emul/string.h>
 
 LX_MUTEX_INIT_DECLARE(component_mutex);
 #define component_mutex LX_MUTEX(component_mutex)
@@ -111,7 +111,7 @@ LX_MUTEX_INIT_DECLARE(component_mutex);
  ** asm-generic/io.h **
  **********************/
 
-#include <lx_emul/mmio.h>
+#include <legacy/lx_emul/mmio.h>
 
 
 static inline u32 __raw_readl(const volatile void __iomem *addr)
@@ -298,7 +298,7 @@ static inline void __read_once_size(const volatile void *p, void *res, int size)
 })
 #endif
 
-#include <lx_emul/list.h>
+#include <legacy/lx_emul/list.h>
 
 #define ULLONG_MAX	(~0ULL)
 #define SIZE_MAX (~(size_t)0)
@@ -630,7 +630,7 @@ static inline void kmemleak_update_trace(const void *ptr) { }
  ** linux/byteorder/ **
  **********************/
 
-#include <lx_emul/byteorder.h>
+#include <legacy/lx_emul/byteorder.h>
 
 /******************
  ** linux/swab.h **
@@ -1965,6 +1965,6 @@ LX_MUTEX_INIT_DECLARE(host_lock);
 
 #define host_lock LX_MUTEX(host_lock)
 
-#include <lx_emul/extern_c_end.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 #endif /* _LX_EMUL_H_ */

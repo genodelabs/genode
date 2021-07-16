@@ -29,13 +29,13 @@
 
 
 /* Lx_kit */
-#include <lx_kit/env.h>
+#include <legacy/lx_kit/env.h>
 
 /*********************************
  ** Lx::Backend_alloc interface **
  *********************************/
 
-#include <lx_kit/backend_alloc.h>
+#include <legacy/lx_kit/backend_alloc.h>
 
 struct Memory_object_base;
 
@@ -106,7 +106,7 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
  ** Memory allocation, linux/slab.h **
  *************************************/
 
-#include <lx_emul/impl/slab.h>
+#include <legacy/lx_emul/impl/slab.h>
 
 
 void *alloc_large_system_hash(const char *tablename,
