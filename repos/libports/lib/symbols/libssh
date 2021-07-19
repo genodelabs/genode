@@ -228,6 +228,7 @@ ssh_event_add_connector T
 ssh_event_add_fd T
 ssh_event_add_poll T
 ssh_event_add_session T
+ssh_event_set_dopoll_immediate T
 ssh_event_dopoll T
 ssh_event_free T
 ssh_event_new T

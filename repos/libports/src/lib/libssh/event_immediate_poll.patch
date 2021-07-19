@@ -1,0 +1,57 @@
+--- a/include/libssh/libssh.h
++++ b/include/libssh/libssh.h
+@@ -790,6 +790,7 @@
+                                     ssh_event_callback cb, void *userdata);
+ LIBSSH_API int ssh_event_add_session(ssh_event event, ssh_session session);
+ LIBSSH_API int ssh_event_add_connector(ssh_event event, ssh_connector connector);
++LIBSSH_API void ssh_event_set_dopoll_immediate(ssh_event event, int immediate);
+ LIBSSH_API int ssh_event_dopoll(ssh_event event, int timeout);
+ LIBSSH_API int ssh_event_remove_fd(ssh_event event, socket_t fd);
+ LIBSSH_API int ssh_event_remove_session(ssh_event event, ssh_session session);
+diff -r -u a/src/poll.c b/src/poll.c
+--- a/src/poll.c
++++ b/src/poll.c
+@@ -79,6 +79,9 @@
+   size_t polls_allocated;
+   size_t polls_used;
+   size_t chunk_size;
++  /* if set causes immediate exit of ssh_poll_ctx_dopoll with */
++  /* SSH_AGAIN to avoid any packet processing. */
++  int poll_immediate;
+ };
+ 
+ #ifdef HAVE_POLL
+@@ -604,6 +607,9 @@
+   if (!ctx->polls_used)
+     return SSH_ERROR;
+ 
++  if (ctx->poll_immediate)
++    return SSH_AGAIN;
++
+   ssh_timestamp_init(&ts);
+   do {
+     int tm = ssh_timeout_update(&ts, timeout);
+@@ -866,6 +872,23 @@
+ }
+ 
+ /**
++ * @brief Sets poll immediate mode.
++ *
++ * Effectively disables polling and causes immediate return with
++ * SSH_AGAIN.
++ *
++ * @param  event        The ssh_event object to set polling mode.
++ *
++ * @param  immediate    Immediate mode value.
++ */
++void ssh_event_set_dopoll_immediate(ssh_event event, int immediate) {
++    if(event == NULL || event->ctx == NULL) {
++        return;
++    }
++    event->ctx->poll_immediate = immediate;
++}
++
++/**
+  * @brief Poll all the sockets and sessions associated through an event object.i
+  *
+  * If any of the events are set after the poll, the call back functions of the

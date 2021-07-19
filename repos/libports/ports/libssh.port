@@ -11,5 +11,6 @@ DIR_CONTENT(include) := src/lib/libssh/include/libssh
 
 PATCHES   := src/lib/libssh/event_bind.patch \
              src/lib/libssh/sftp_support.patch \
-             src/lib/libssh/sftp_server_free.patch
+             src/lib/libssh/sftp_server_free.patch \
+             src/lib/libssh/event_immediate_poll.patch
 PATCH_OPT := -p1 -d src/lib/libssh
