@@ -276,12 +276,17 @@ struct Fetchurl::Main
 			curl_easy_setopt(_curl, CURLOPT_PROXY, _fetch.proxy.string());
 		}
 
+		curl_easy_setopt(_curl, CURLOPT_USERAGENT, "fetchurl/" LIBCURL_VERSION);
+
 		CURLcode res = curl_easy_perform(_curl);
 		close(_fetch.fd);
 		_fetch.fd = -1;
 
-		if (res != CURLE_OK)
-			Genode::error(curl_easy_strerror(res), ", failed to fetch ", _fetch.url);
+		if (res != CURLE_OK) {
+			unsigned long response_code = -1;
+			curl_easy_getinfo(_curl, CURLINFO_RESPONSE_CODE, &response_code);
+			Genode::error(curl_easy_strerror(res), " (code=", response_code, "), failed to fetch ", _fetch.url);
+		}
 		return res;
 	}
 
