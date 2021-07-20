@@ -1994,4 +1994,11 @@ int acpi_reconfig_notifier_register(struct notifier_block *nb)
 	return 0;
 }
 
+
+void aperture_exit()
+{
+	Genode::error("Error: no space in aperture left");
+	Lx_kit::env().env().parent().exit(1);
+}
+
 } /* extern "C" */

@@ -2725,6 +2725,8 @@ void tasklet_disable(struct tasklet_struct *);
 void enable_irq(unsigned int);
 void disable_irq(unsigned int);
 
+void aperture_exit(void);
+
 #include <linux/math64.h>
 
 #include <legacy/lx_emul/extern_c_end.h>

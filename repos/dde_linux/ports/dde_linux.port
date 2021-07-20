@@ -207,6 +207,7 @@ PATCH_OPT(patches/intel_fb_drm.patch)       := -p1 -d$(SRC_DIR_INTEL_FB)
 PATCH_OPT(patches/intel_fb_early.patch)     := -p1 -d$(SRC_DIR_INTEL_FB)
 # drop it when https://bugs.freedesktop.org/show_bug.cgi?id=107125 gets fixed
 PATCH_OPT(patches/intel_fb_hotplug.patch)   := -p1 -d$(SRC_DIR_INTEL_FB)
+PATCH_OPT(patches/intel_fb_aperture_de_irq.patch):= -p1 -d$(SRC_DIR_INTEL_FB)
 
 # Freescale NIC
 PATCH_OPT(patches/fec_skbuff_cast.patch) := -p1 -d$(SRC_DIR_FEC)
