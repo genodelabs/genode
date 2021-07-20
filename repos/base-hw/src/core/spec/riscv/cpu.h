@@ -27,6 +27,9 @@
 namespace Kernel { struct Thread_fault; }
 
 
+namespace Board { class Address_space_id_allocator; }
+
+
 namespace Genode {
 
 	/**
@@ -50,12 +53,20 @@ class Genode::Cpu : public Hw::Riscv_cpu
 			Context(bool);
 		};
 
-		struct Mmu_context
+		class Mmu_context
 		{
-			Satp::access_t  satp  = 0;
+			private:
 
-			Mmu_context(addr_t page_table_base);
-			~Mmu_context();
+				Board::Address_space_id_allocator &_addr_space_id_alloc;
+
+			public:
+
+				Satp::access_t satp = 0;
+
+				Mmu_context(addr_t                             page_table_base,
+				            Board::Address_space_id_allocator &addr_space_id_alloc);
+
+				~Mmu_context();
 		};
 
 

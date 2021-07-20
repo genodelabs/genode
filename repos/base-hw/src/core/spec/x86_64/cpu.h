@@ -33,6 +33,9 @@
 namespace Kernel { struct Thread_fault; }
 
 
+namespace Board { class Address_space_id_allocator; }
+
+
 namespace Genode {
 
 	class Cpu;
@@ -107,7 +110,8 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		{
 			addr_t cr3;
 
-			Mmu_context(addr_t page_table_base);
+			Mmu_context(addr_t page_table_base,
+			            Board::Address_space_id_allocator &);
 		};
 
 		/**

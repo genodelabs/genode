@@ -89,16 +89,18 @@ void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 }
 
 
-Hw::Address_space::Address_space(Page_table            & tt,
-                                 Page_table::Allocator & tt_alloc,
-                                 Platform_pd           & pd)
+Hw::Address_space::
+Address_space(Page_table                        &tt,
+              Page_table::Allocator             &tt_alloc,
+              Platform_pd                       &pd,
+              Board::Address_space_id_allocator &addr_space_id_alloc)
 :
 	_tt(tt),
 	_tt_phys(Platform::core_page_table()),
 	_tt_alloc(tt_alloc),
 	_kobj(_kobj.CALLED_FROM_KERNEL,
 	      *(Page_table*)translation_table_phys(),
-	      pd)
+	      pd, addr_space_id_alloc)
 { }
 
 
@@ -160,10 +162,12 @@ void Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-Platform_pd::Platform_pd(Page_table & tt,
-                         Page_table::Allocator & alloc)
+Platform_pd::
+Platform_pd(Page_table                        &tt,
+            Page_table::Allocator             &alloc,
+            Board::Address_space_id_allocator &addr_space_id_alloc)
 :
-	Hw::Address_space(tt, alloc, *this), _label("core")
+	Hw::Address_space(tt, alloc, *this, addr_space_id_alloc), _label("core")
 { }
 
 
@@ -189,8 +193,9 @@ Platform_pd::~Platform_pd()
  ** Core_platform_pd implementation **
  *************************************/
 
-Core_platform_pd::Core_platform_pd()
+Core_platform_pd::
+Core_platform_pd(Board::Address_space_id_allocator &addr_space_id_alloc)
 :
 	Platform_pd(*(Hw::Page_table*)Hw::Mm::core_page_tables().base,
-	            Platform::core_page_table_allocator())
+	            Platform::core_page_table_allocator(), addr_space_id_alloc)
 { }

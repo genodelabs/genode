@@ -14,9 +14,13 @@
 #ifndef _CORE__SPEC__RPI3__BOARD_H_
 #define _CORE__SPEC__RPI3__BOARD_H_
 
+/* base-hw internal includes */
 #include <hw/spec/arm_64/rpi3_board.h>
+
+/* base-hw Core includes */
 #include <spec/arm/bcm2837_pic.h>
 #include <spec/arm/generic_timer.h>
+#include <spec/arm_v8/address_space_id_allocator.h>
 
 namespace Board {
 

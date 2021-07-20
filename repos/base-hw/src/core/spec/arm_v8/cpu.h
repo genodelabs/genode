@@ -23,6 +23,9 @@
 namespace Kernel { struct Thread_fault; }
 
 
+namespace Board { class Address_space_id_allocator; }
+
+
 namespace Genode {
 
 	struct Cpu;
@@ -69,15 +72,23 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 		Context(bool privileged);
 	};
 
-	struct Mmu_context
+	class Mmu_context
 	{
-		Ttbr::access_t ttbr;
+		private:
 
-		Mmu_context(addr_t page_table_base);
-		~Mmu_context();
+			Board::Address_space_id_allocator &_addr_space_id_alloc;
 
-		Genode::uint16_t id() {
-			return Ttbr::Asid::get(ttbr); }
+		public:
+
+			Ttbr::access_t ttbr;
+
+			Mmu_context(addr_t                             page_table_base,
+			            Board::Address_space_id_allocator &addr_space_id_alloc);
+
+			~Mmu_context();
+
+			Genode::uint16_t id() {
+				return Ttbr::Asid::get(ttbr); }
 	};
 
 	void switch_to(Context&, Mmu_context &);

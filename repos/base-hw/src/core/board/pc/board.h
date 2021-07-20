@@ -17,9 +17,10 @@
 /* base-hw internal includes */
 #include <hw/spec/x86_64/pc_board.h>
 
-/* base-hw internal includes */
+/* base-hw Core includes */
 #include <spec/x86_64/pic.h>
 #include <spec/x86_64/pit.h>
+#include <spec/x86_64/address_space_id_allocator.h>
 
 namespace Board {
 

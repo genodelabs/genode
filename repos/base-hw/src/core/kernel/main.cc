@@ -45,11 +45,12 @@ class Kernel::Main
 
 		static Main *_instance;
 
-		Lock                                    _data_lock        { };
+		Lock                                    _data_lock           { };
 		Cpu_pool                                _cpu_pool;
-		Irq::Pool                               _user_irq_pool    { };
-		Genode::Core_platform_pd                _core_platform_pd { };
-		Genode::Constructible<Core_main_thread> _core_main_thread { };
+		Irq::Pool                               _user_irq_pool       { };
+		Board::Address_space_id_allocator       _addr_space_id_alloc { };
+		Genode::Core_platform_pd                _core_platform_pd    { _addr_space_id_alloc };
+		Genode::Constructible<Core_main_thread> _core_main_thread    { };
 
 		void _handle_kernel_entry();
 
@@ -134,6 +135,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		Lock::Guard guard(Main::_instance->_data_lock);
 		instance_initialized = true;
 		Main::_instance->_cpu_pool.initialize_executing_cpu(
+			Main::_instance->_addr_space_id_alloc,
 			Main::_instance->_user_irq_pool,
 			Main::_instance->_core_platform_pd.kernel_pd());
 
@@ -161,6 +163,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
 
 		Main::_instance->_core_main_thread.construct(
+			Main::_instance->_addr_space_id_alloc,
 			Main::_instance->_user_irq_pool,
 			Main::_instance->_cpu_pool,
 			Main::_instance->_core_platform_pd.kernel_pd());

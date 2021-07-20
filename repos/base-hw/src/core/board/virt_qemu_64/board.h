@@ -14,13 +14,21 @@
 #ifndef _SRC__CORE__SPEC__VIRT_QEMU_64_H_
 #define _SRC__CORE__SPEC__VIRT_QEMU_64_H_
 
+/* base-hw internal includes */
 #include <hw/spec/arm/virt_qemu_board.h>
+
+/* base-hw Core includes */
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/virtualization/gicv3.h>
+
+/* base-hw includes */
 #include <spec/arm_64/cpu/vm_state_virtualization.h>
+
+/* base-hw Core includes */
 #include <translation_table.h>
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
+#include <spec/arm_v8/address_space_id_allocator.h>
 
 namespace Board {
 

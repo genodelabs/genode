@@ -12,15 +12,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/internal/unmanaged_singleton.h>
-
+/* base-hw internal includes */
 #include <hw/assert.h>
+
+/* base-hw Core includes */
 #include <platform_pd.h>
 #include <kernel/cpu.h>
 #include <kernel/pd.h>
 
 using Mmu_context = Genode::Cpu::Mmu_context;
-using Asid_allocator = Genode::Bit_allocator<256>;
 
 
 Genode::Cpu::Context::Context(bool)
@@ -33,13 +33,13 @@ Genode::Cpu::Context::Context(bool)
 }
 
 
-static Asid_allocator & alloc() {
-	return *unmanaged_singleton<Asid_allocator>(); }
-
-
-Mmu_context::Mmu_context(addr_t page_table_base)
+Mmu_context::
+Mmu_context(addr_t                             page_table_base,
+            Board::Address_space_id_allocator &addr_space_id_alloc)
+:
+	_addr_space_id_alloc(addr_space_id_alloc)
 {
-	Satp::Asid::set(satp, (Genode::uint8_t)alloc().alloc());
+	Satp::Asid::set(satp, (Genode::uint8_t)_addr_space_id_alloc.alloc());
 	Satp::Ppn::set(satp, page_table_base >> 12);
 	Satp::Mode::set(satp, 8);
 }
@@ -49,7 +49,7 @@ Mmu_context::~Mmu_context()
 {
 	unsigned asid = Satp::Asid::get(satp);
 	Cpu::invalidate_tlb_by_pid(asid);
-	alloc().free(asid);
+	_addr_space_id_alloc.free(asid);
 }
 
 

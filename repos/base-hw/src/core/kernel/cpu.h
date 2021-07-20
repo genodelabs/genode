@@ -102,10 +102,11 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			/**
 			 * Construct idle context for CPU 'cpu'
 			 */
-			Idle_thread(Irq::Pool &user_irq_pool,
-			            Cpu_pool  &cpu_pool,
-			            Cpu       &cpu,
-			            Pd        &core_pd);
+			Idle_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
+			            Irq::Pool                         &user_irq_pool,
+			            Cpu_pool                          &cpu_pool,
+			            Cpu                               &cpu,
+			            Pd                                &core_pd);
 		};
 
 
@@ -130,10 +131,11 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		/**
 		 * Construct object for CPU 'id'
 		 */
-		Cpu(unsigned const  id,
-		    Irq::Pool      &user_irq_pool,
-		    Cpu_pool       &cpu_pool,
-		    Pd             &core_pd);
+		Cpu(unsigned                    const  id,
+		    Board::Address_space_id_allocator &addr_space_id_alloc,
+		    Irq::Pool                         &user_irq_pool,
+		    Cpu_pool                          &cpu_pool,
+		    Pd                                &core_pd);
 
 		static inline unsigned primary_id() { return 0; }
 
@@ -204,8 +206,10 @@ class Kernel::Cpu_pool
 
 		Cpu_pool(unsigned nr_of_cpus);
 
-		void initialize_executing_cpu(Irq::Pool &user_irq_pool,
-		                              Pd        &core_pd);
+		void
+		initialize_executing_cpu(Board::Address_space_id_allocator &addr_space_id_alloc,
+		                         Irq::Pool                         &user_irq_pool,
+		                         Pd                                &core_pd);
 
 		/**
 		 * Return object of CPU 'id'

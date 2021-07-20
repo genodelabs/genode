@@ -85,14 +85,25 @@ class Genode::Cpu : public Arm_v7_cpu
 		/**
 		 * An usermode execution state
 		 */
-		struct Mmu_context
+		class Mmu_context
 		{
-			Ttbr_64bit::access_t ttbr0;
+			private:
 
-			Mmu_context(addr_t const table);
-			~Mmu_context();
+				Board::Address_space_id_allocator &_addr_space_id_alloc;
 
-			Genode::uint8_t id() const { return Ttbr_64bit::Asid::get(ttbr0); }
+			public:
+
+				Ttbr_64bit::access_t ttbr0;
+
+				Mmu_context(addr_t                             table,
+				            Board::Address_space_id_allocator &addr_space_id_alloc);
+
+				~Mmu_context();
+
+				Genode::uint8_t id() const
+				{
+					return Ttbr_64bit::Asid::get(ttbr0);
+				}
 		};
 
 		static void mmu_fault_status(Fsr::access_t fsr,

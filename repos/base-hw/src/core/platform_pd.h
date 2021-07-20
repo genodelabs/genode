@@ -94,9 +94,10 @@ class Hw::Address_space : public Genode::Address_space
 		 * \param tt_alloc  reference to translation table allocator
 		 * \param pd        reference to platform pd object
 		 */
-		Address_space(Hw::Page_table            & tt,
-		              Hw::Page_table::Allocator & tt_alloc,
-		              Platform_pd               & pd);
+		Address_space(Hw::Page_table                    &tt,
+		              Hw::Page_table::Allocator         &tt_alloc,
+		              Platform_pd                       &pd,
+		              Board::Address_space_id_allocator &addr_space_id_alloc);
 
 	public:
 
@@ -187,8 +188,9 @@ class Genode::Platform_pd : public  Hw::Address_space,
 		 * \param tt        translation table address
 		 * \param tt_alloc  translation table allocator
 		 */
-		Platform_pd(Hw::Page_table            & tt,
-		            Hw::Page_table::Allocator & tt_alloc);
+		Platform_pd(Hw::Page_table                    &tt,
+		            Hw::Page_table::Allocator         &tt_alloc,
+		            Board::Address_space_id_allocator &addr_space_id_alloc);
 
 	public:
 
@@ -229,7 +231,7 @@ class Genode::Platform_pd : public  Hw::Address_space,
 
 struct Genode::Core_platform_pd : Genode::Platform_pd
 {
-	Core_platform_pd();
+	Core_platform_pd(Board::Address_space_id_allocator &addr_space_id_alloc);
 };
 
 #endif /* _CORE__PLATFORM_PD_H_ */

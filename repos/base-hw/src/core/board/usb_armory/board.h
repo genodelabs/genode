@@ -15,10 +15,14 @@
 #ifndef _CORE__SPEC__USB_ARMORY__BOARD_H_
 #define _CORE__SPEC__USB_ARMORY__BOARD_H_
 
+/* base-hw internal includes */
 #include <hw/spec/arm/imx_tzic.h>
 #include <hw/spec/arm/usb_armory_board.h>
+
+/* base-hw Core includes */
 #include <spec/arm/imx_epit.h>
 #include <spec/arm/trustzone_board.h>
+#include <spec/arm/address_space_id_allocator.h>
 
 namespace Board { using namespace Hw::Usb_armory_board; }
 

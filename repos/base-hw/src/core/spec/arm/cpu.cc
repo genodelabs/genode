@@ -11,10 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <util/bit_allocator.h>
+/* base includes */
 #include <cpu/memory_barrier.h>
-#include <base/internal/unmanaged_singleton.h>
 
+/* base-hw Core includes */
 #include <kernel/cpu.h>
 #include <kernel/thread.h>
 #include <spec/arm/cpu_support.h>
@@ -36,21 +36,21 @@ Arm_cpu::Context::Context(bool privileged)
 }
 
 
-using Asid_allocator = Bit_allocator<256>;
-
-static Asid_allocator &alloc() {
-	return *unmanaged_singleton<Asid_allocator>(); }
-
-
-Arm_cpu::Mmu_context::Mmu_context(addr_t table)
-: cidr((uint8_t)alloc().alloc()), ttbr0(Ttbr::init(table)) { }
+Arm_cpu::Mmu_context::
+Mmu_context(addr_t                             table,
+            Board::Address_space_id_allocator &addr_space_id_alloc)
+:
+	_addr_space_id_alloc(addr_space_id_alloc),
+	cidr((uint8_t)_addr_space_id_alloc.alloc()),
+	ttbr0(Ttbr::init(table))
+{ }
 
 
 Genode::Arm_cpu::Mmu_context::~Mmu_context()
 {
 	/* flush TLB by ASID */
 	Cpu::Tlbiasid::write(id());
-	alloc().free(id());
+	_addr_space_id_alloc.free(id());
 }
 
 

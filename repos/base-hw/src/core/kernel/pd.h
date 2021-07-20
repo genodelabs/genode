@@ -65,10 +65,13 @@ class Kernel::Pd
 		 * \param table        translation table of the PD
 		 * \param platform_pd  core object of the PD
 		 */
-		Pd(Hw::Page_table &table,
-		   Genode::Platform_pd &platform_pd)
+		Pd(Hw::Page_table                    &table,
+		   Genode::Platform_pd               &platform_pd,
+		   Board::Address_space_id_allocator &addr_space_id_alloc)
 		:
-			_table(table), _platform_pd(platform_pd), mmu_regs((addr_t)&table)
+			_table(table),
+			_platform_pd(platform_pd),
+			mmu_regs((addr_t)&table, addr_space_id_alloc)
 		{
 			capid_t invalid = _capid_alloc.alloc();
 			assert(invalid == cap_id_invalid());

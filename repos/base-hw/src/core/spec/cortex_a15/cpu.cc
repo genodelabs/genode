@@ -11,24 +11,19 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <util/bit_allocator.h>
-#include <base/internal/unmanaged_singleton.h>
-
+/* base-hw Core includes */
 #include <kernel/thread.h>
 #include <spec/cortex_a15/cpu.h>
 
-using Asid_allocator = Genode::Bit_allocator<256>;
 
-
-static Asid_allocator &alloc() {
-	return *unmanaged_singleton<Asid_allocator>(); }
-
-
-Genode::Cpu::Mmu_context::Mmu_context(addr_t table)
+Genode::Cpu::Mmu_context::
+Mmu_context(addr_t                             table,
+            Board::Address_space_id_allocator &addr_space_id_alloc)
 :
+	_addr_space_id_alloc(addr_space_id_alloc),
 	ttbr0(Ttbr_64bit::Ba::masked((Ttbr_64bit::access_t)table))
 {
-	Ttbr_64bit::Asid::set(ttbr0, (Genode::uint8_t)alloc().alloc());
+	Ttbr_64bit::Asid::set(ttbr0, (Genode::uint8_t)addr_space_id_alloc.alloc());
 }
 
 
@@ -36,7 +31,7 @@ Genode::Cpu::Mmu_context::~Mmu_context()
 {
 	/* flush TLB by ASID */
 	Cpu::Tlbiasid::write(id());
-	alloc().free(id());
+	_addr_space_id_alloc.free(id());
 }
 
 

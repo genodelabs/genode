@@ -14,11 +14,15 @@
 #ifndef _CORE__SPEC__IMX7D_SABRE__BOARD_H_
 #define _CORE__SPEC__IMX7D_SABRE__BOARD_H_
 
+/* base-hw internal includes */
 #include <hw/spec/arm/imx7d_sabre_board.h>
+
+/* base-hw Core includes */
 #include <spec/arm/virtualization/gicv2.h>
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/cpu/vm_state_virtualization.h>
 #include <spec/arm/virtualization/board.h>
+#include <spec/arm/address_space_id_allocator.h>
 
 namespace Board {
 

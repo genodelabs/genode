@@ -771,14 +771,14 @@ void Thread::_call()
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
 	case call_id_new_thread():
-		_call_new<Thread>(_user_irq_pool, _cpu_pool, _core_pd,
-		                  (unsigned) user_arg_2(),
+		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
+		                  _core_pd, (unsigned) user_arg_2(),
 		                  (unsigned) _core_to_kernel_quota(user_arg_3()),
 		                  (char const *) user_arg_4());
 		return;
 	case call_id_new_core_thread():
-		_call_new<Thread>(_user_irq_pool, _cpu_pool, _core_pd,
-		                  (char const *) user_arg_2());
+		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
+		                  _core_pd, (char const *) user_arg_2());
 		return;
 	case call_id_thread_quota():           _call_thread_quota(); return;
 	case call_id_delete_thread():          _call_delete_thread(); return;
@@ -788,7 +788,8 @@ void Thread::_call()
 	case call_id_invalidate_tlb():         _call_invalidate_tlb(); return;
 	case call_id_new_pd():
 		_call_new<Pd>(*(Hw::Page_table *)      user_arg_2(),
-		              *(Genode::Platform_pd *) user_arg_3());
+		              *(Genode::Platform_pd *) user_arg_3(),
+		              _addr_space_id_alloc);
 		return;
 	case call_id_delete_pd():              _call_delete<Pd>(); return;
 	case call_id_new_signal_receiver():    _call_new<Signal_receiver>(); return;
@@ -835,24 +836,26 @@ void Thread::_mmu_exception()
 }
 
 
-Thread::Thread(Irq::Pool         &user_irq_pool,
-               Cpu_pool          &cpu_pool,
-               Pd                &core_pd,
-               unsigned    const  priority,
-               unsigned    const  quota,
-               char const *const  label,
-               bool               core)
+Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
+               Irq::Pool                         &user_irq_pool,
+               Cpu_pool                          &cpu_pool,
+               Pd                                &core_pd,
+               unsigned                    const  priority,
+               unsigned                    const  quota,
+               char                 const *const  label,
+               bool                               core)
 :
-	Kernel::Object { *this },
-	Cpu_job        { priority, quota },
-	_user_irq_pool { user_irq_pool },
-	_cpu_pool      { cpu_pool },
-	_core_pd       { core_pd },
-	_ipc_node      { *this },
-	_state         { AWAITS_START },
-	_label         { label },
-	_core          { core },
-	regs           { core }
+	Kernel::Object       { *this },
+	Cpu_job              { priority, quota },
+	_addr_space_id_alloc { addr_space_id_alloc },
+	_user_irq_pool       { user_irq_pool },
+	_cpu_pool            { cpu_pool },
+	_core_pd             { core_pd },
+	_ipc_node            { *this },
+	_state               { AWAITS_START },
+	_label               { label },
+	_core                { core },
+	regs                 { core }
 { }
 
 
@@ -874,11 +877,14 @@ Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
  ** Core_main_thread **
  **********************/
 
-Core_main_thread::Core_main_thread(Irq::Pool &user_irq_pool,
-                                   Cpu_pool  &cpu_pool,
-                                   Pd        &core_pd)
+Core_main_thread::
+Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
+                 Irq::Pool                         &user_irq_pool,
+                 Cpu_pool                          &cpu_pool,
+                 Pd                                &core_pd)
 :
-	Core_object<Thread>(core_pd, user_irq_pool, cpu_pool, core_pd, "core")
+	Core_object<Thread>(
+		core_pd, addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd, "core")
 {
 	using namespace Genode;
 

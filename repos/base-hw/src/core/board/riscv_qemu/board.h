@@ -14,12 +14,16 @@
 #ifndef _CORE__SPEC__RISCV_QEMU__BOARD_H_
 #define _CORE__SPEC__RISCV_QEMU__BOARD_H_
 
-
+/* base-hw internal includes */
 #include <hw/spec/riscv/qemu_board.h>
+
+/* base-hw Core includes */
 #include <spec/riscv/pic.h>
+#include <spec/riscv/address_space_id_allocator.h>
 
 namespace Board { using namespace Hw::Riscv_board; }
 
+/* base-hw Core includes */
 #include <spec/riscv/timer.h>
 
 

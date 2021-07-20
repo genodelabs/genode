@@ -16,9 +16,13 @@
 #ifndef _CORE__SPEC__ZYNQ_QEMU__BOARD_H_
 #define _CORE__SPEC__ZYNQ_QEMU__BOARD_H_
 
+/* base-hw internal includes */
 #include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/zynq_qemu_board.h>
+
+/* base-hw Core includes */
 #include <spec/arm/cortex_a9_private_timer.h>
+#include <spec/arm/address_space_id_allocator.h>
 
 namespace Board {
 

@@ -103,12 +103,13 @@ Cpu_job::~Cpu_job()
 extern "C" void idle_thread_main(void);
 
 
-Cpu::Idle_thread::Idle_thread(Irq::Pool &user_irq_pool,
-                              Cpu_pool  &cpu_pool,
-                              Cpu       &cpu,
-                              Pd        &core_pd)
+Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
+                              Irq::Pool                         &user_irq_pool,
+                              Cpu_pool                          &cpu_pool,
+                              Cpu                               &cpu,
+                              Pd                                &core_pd)
 :
-	Thread { user_irq_pool, cpu_pool, core_pd, "idle" }
+	Thread { addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd, "idle" }
 {
 	regs->ip = (addr_t)&idle_thread_main;
 
@@ -173,15 +174,17 @@ addr_t Cpu::stack_start()
 }
 
 
-Cpu::Cpu(unsigned const  id,
-         Irq::Pool      &user_irq_pool,
-         Cpu_pool       &cpu_pool,
-         Pd             &core_pd)
+Cpu::Cpu(unsigned                    const  id,
+         Board::Address_space_id_allocator &addr_space_id_alloc,
+         Irq::Pool                         &user_irq_pool,
+         Cpu_pool                          &cpu_pool,
+         Pd                                &core_pd)
 :
 	_id               { id },
 	_timer            { *this },
 	_scheduler        { _idle, _quota(), _fill() },
-	_idle             { user_irq_pool, cpu_pool, *this, core_pd },
+	_idle             { addr_space_id_alloc, user_irq_pool, cpu_pool, *this,
+	                    core_pd },
 	_ipi_irq          { *this },
 	_global_work_list { cpu_pool.work_list() }
 {
@@ -193,11 +196,15 @@ Cpu::Cpu(unsigned const  id,
  ** Cpu_pool **
  **************/
 
-void Cpu_pool::initialize_executing_cpu(Irq::Pool &user_irq_pool,
-                                        Pd        &core_pd)
+void
+Cpu_pool::
+initialize_executing_cpu(Board::Address_space_id_allocator &addr_space_id_alloc,
+                         Irq::Pool                         &user_irq_pool,
+                         Pd                                &core_pd)
 {
 	unsigned id = Cpu::executing_id();
-	_cpus[id].construct(id, user_irq_pool, *this, core_pd);
+	_cpus[id].construct(
+		id, addr_space_id_alloc, user_irq_pool, *this, core_pd);
 }
 
 

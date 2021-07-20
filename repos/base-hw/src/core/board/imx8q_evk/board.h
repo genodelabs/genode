@@ -14,10 +14,18 @@
 #ifndef _CORE__SPEC__IMX8Q_EVK__BOARD_H_
 #define _CORE__SPEC__IMX8Q_EVK__BOARD_H_
 
+/* base-hw internal includes */
 #include <hw/spec/arm_64/imx8q_evk_board.h>
+
+/* base-hw Core includes */
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/virtualization/gicv3.h>
+#include <spec/arm_v8/address_space_id_allocator.h>
+
+/* base-hw includes */
 #include <spec/arm_64/cpu/vm_state_virtualization.h>
+
+/* base-hw Core includes */
 #include <spec/arm/virtualization/board.h>
 
 namespace Board {

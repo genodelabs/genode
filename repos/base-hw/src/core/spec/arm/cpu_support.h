@@ -52,15 +52,23 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	/**
 	 * This class comprises ARM specific protection domain attributes
 	 */
-	struct Mmu_context
+	class Mmu_context
 	{
-		Cidr::access_t  cidr;
-		Ttbr0::access_t ttbr0;
+		private:
 
-		Mmu_context(addr_t page_table_base);
-		~Mmu_context();
+			Board::Address_space_id_allocator &_addr_space_id_alloc;
 
-		uint8_t id() { return cidr; }
+		public:
+
+			Cidr::access_t  cidr;
+			Ttbr0::access_t ttbr0;
+
+			Mmu_context(addr_t                             page_table_base,
+			            Board::Address_space_id_allocator &addr_space_id_alloc);
+
+			~Mmu_context();
+
+			uint8_t id() { return cidr; }
 	};
 
 	/**

@@ -15,9 +15,13 @@
 #ifndef _CORE__SPEC__RPI__BOARD_H_
 #define _CORE__SPEC__RPI__BOARD_H_
 
+/* base-hw internal includes */
 #include <hw/spec/arm/rpi_board.h>
+
+/* base-hw Core includes */
 #include <spec/arm/bcm2835_pic.h>
 #include <spec/arm/bcm2835_system_timer.h>
+#include <spec/arm/address_space_id_allocator.h>
 
 namespace Board { using namespace Hw::Rpi_board; };
 

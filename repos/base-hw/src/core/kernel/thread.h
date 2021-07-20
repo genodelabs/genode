@@ -131,25 +131,26 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 
 		enum { MAX_RCV_CAPS = Genode::Msgbuf_base::MAX_CAPS_PER_MSG };
 
-		Irq::Pool             &_user_irq_pool;
-		Cpu_pool              &_cpu_pool;
-		Pd                    &_core_pd;
-		void                  *_obj_id_ref_ptr[MAX_RCV_CAPS] { nullptr };
-		Ipc_node               _ipc_node;
-		capid_t                _ipc_capid                { cap_id_invalid() };
-		size_t                 _ipc_rcv_caps             { 0 };
-		Genode::Native_utcb   *_utcb                     { nullptr };
-		Pd                    *_pd                       { nullptr };
-		Signal_context        *_pager                    { nullptr };
-		Thread_fault           _fault                    { };
-		State                  _state;
-		Signal_handler         _signal_handler           { *this };
-		Signal_context_killer  _signal_context_killer    { *this };
-		char   const *const    _label;
-		capid_t                _timeout_sigid            { 0 };
-		bool                   _paused                   { false };
-		bool                   _cancel_next_await_signal { false };
-		bool const             _core                     { false };
+		Board::Address_space_id_allocator &_addr_space_id_alloc;
+		Irq::Pool                         &_user_irq_pool;
+		Cpu_pool                          &_cpu_pool;
+		Pd                                &_core_pd;
+		void                              *_obj_id_ref_ptr[MAX_RCV_CAPS] { nullptr };
+		Ipc_node                           _ipc_node;
+		capid_t                            _ipc_capid                { cap_id_invalid() };
+		size_t                             _ipc_rcv_caps             { 0 };
+		Genode::Native_utcb               *_utcb                     { nullptr };
+		Pd                                *_pd                       { nullptr };
+		Signal_context                    *_pager                    { nullptr };
+		Thread_fault                       _fault                    { };
+		State                              _state;
+		Signal_handler                     _signal_handler           { *this };
+		Signal_context_killer              _signal_context_killer    { *this };
+		char   const *const                _label;
+		capid_t                            _timeout_sigid            { 0 };
+		bool                               _paused                   { false };
+		bool                               _cancel_next_await_signal { false };
+		bool const                         _core                     { false };
 
 		Genode::Constructible<Tlb_invalidation> _tlb_invalidation {};
 		Genode::Constructible<Destroy>          _destroy {};
@@ -294,26 +295,28 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 * \param label     debugging label
 		 * \param core      whether it is a core thread or not
 		 */
-		Thread(Irq::Pool         &user_irq_pool,
-		       Cpu_pool          &cpu_pool,
-		       Pd                &core_pd,
-		       unsigned    const  priority,
-		       unsigned    const  quota,
-		       char const *const  label,
-		       bool               core = false);
+		Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
+		       Irq::Pool                         &user_irq_pool,
+		       Cpu_pool                          &cpu_pool,
+		       Pd                                &core_pd,
+		       unsigned                    const  priority,
+		       unsigned                    const  quota,
+		       char                 const *const  label,
+		       bool                               core = false);
 
 		/**
 		 * Constructor for core/kernel thread
 		 *
 		 * \param label  debugging label
 		 */
-		Thread(Irq::Pool         &user_irq_pool,
-		       Cpu_pool          &cpu_pool,
-		       Pd                &core_pd,
-		       char const *const  label)
+		Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
+		       Irq::Pool                         &user_irq_pool,
+		       Cpu_pool                          &cpu_pool,
+		       Pd                                &core_pd,
+		       char                 const *const  label)
 		:
-			Thread(user_irq_pool, cpu_pool, core_pd, Cpu_priority::min(), 0,
-			       label, true)
+			Thread(addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd,
+			       Cpu_priority::min(), 0, label, true)
 		{ }
 
 		~Thread();
@@ -451,9 +454,10 @@ class Kernel::Core_main_thread : public Core_object<Kernel::Thread>
 
 	public:
 
-		Core_main_thread(Irq::Pool &user_irq_pool,
-		                 Cpu_pool  &cpu_pool,
-		                 Pd        &core_pd);
+		Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
+		                 Irq::Pool                         &user_irq_pool,
+		                 Cpu_pool                          &cpu_pool,
+		                 Pd                                &core_pd);
 };
 
 #endif /* _CORE__KERNEL__THREAD_H_ */

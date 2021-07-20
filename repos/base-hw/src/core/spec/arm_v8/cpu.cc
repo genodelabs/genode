@@ -15,9 +15,6 @@
 #include <util/bit_allocator.h>
 #include <cpu/memory_barrier.h>
 
-/* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 /* base-hw Core includes */
 #include <board.h>
 #include <cpu.h>
@@ -61,24 +58,20 @@ void Genode::Cpu::mmu_fault(Genode::Cpu::Context &,
 }
 
 
-using Asid_allocator = Genode::Bit_allocator<65536>;
-
-
-static Asid_allocator &alloc() {
-	return *unmanaged_singleton<Asid_allocator>(); }
-
-
-Genode::Cpu::Mmu_context::Mmu_context(addr_t table)
+Genode::Cpu::Mmu_context::
+Mmu_context(addr_t                             table,
+            Board::Address_space_id_allocator &addr_space_id_alloc)
 :
+	_addr_space_id_alloc(addr_space_id_alloc),
 	ttbr(Ttbr::Baddr::masked(table))
 {
-	Ttbr::Asid::set(ttbr, (Genode::uint16_t)alloc().alloc());
+	Ttbr::Asid::set(ttbr, (Genode::uint16_t)_addr_space_id_alloc.alloc());
 }
 
 
 Genode::Cpu::Mmu_context::~Mmu_context()
 {
-	alloc().free(id());
+	_addr_space_id_alloc.free(id());
 }
 
 
