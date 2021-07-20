@@ -445,6 +445,10 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
  */
 class Kernel::Core_main_thread : public Core_object<Kernel::Thread>
 {
+	private:
+
+		Native_utcb _utcb_instance alignas(Hw::get_page_size()) { };
+
 	public:
 
 		Core_main_thread(Irq::Pool &user_irq_pool,

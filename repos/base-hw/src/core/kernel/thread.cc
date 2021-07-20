@@ -17,8 +17,6 @@
 #include <cpu_session/cpu_session.h>
 
 /* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-#include <base/internal/native_utcb.h>
 #include <base/internal/crt0.h>
 
 /* core includes */
@@ -884,24 +882,20 @@ Core_main_thread::Core_main_thread(Irq::Pool &user_irq_pool,
 {
 	using namespace Genode;
 
-	static Native_utcb * const utcb =
-		unmanaged_singleton<Native_utcb, get_page_size()>();
-	static addr_t const utcb_phys = Platform::core_phys_addr((addr_t)utcb);
-
-	/* map UTCB */
-	Genode::map_local(utcb_phys, (addr_t)utcb_main_thread(),
+	Genode::map_local(Platform::core_phys_addr((addr_t)&_utcb_instance),
+	                  (addr_t)utcb_main_thread(),
 	                  sizeof(Native_utcb) / get_page_size());
 
-	utcb->cap_add(core_capid());
-	utcb->cap_add(cap_id_invalid());
-	utcb->cap_add(cap_id_invalid());
+	_utcb_instance.cap_add(core_capid());
+	_utcb_instance.cap_add(cap_id_invalid());
+	_utcb_instance.cap_add(cap_id_invalid());
 
 	/* start thread with stack pointer at the top of stack */
 	regs->sp = (addr_t)&__initial_stack_base[0] + DEFAULT_STACK_SIZE;
 	regs->ip = (addr_t)&_core_start;
 
 	affinity(_cpu_pool.primary_cpu());
-	_utcb       = utcb;
+	_utcb       = &_utcb_instance;
 	Thread::_pd = &core_pd;
 	_become_active();
 }
