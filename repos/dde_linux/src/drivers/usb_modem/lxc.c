@@ -30,7 +30,7 @@ struct Skb skb_helper(struct sk_buff *skb)
 	skb_push(skb, ETH_HLEN);
 
 	helper.packet      = skb->data;
-	helper.packet_size = ETH_HLEN;
+	helper.packet_size = skb->len;
 	helper.frag        = 0;
 	helper.frag_size   = 0;
 
@@ -47,9 +47,9 @@ struct Skb skb_helper(struct sk_buff *skb)
 		skb_frag_t *f    = &skb_shinfo(skb)->frags[0];
 		helper.frag      = skb_frag_address(f);
 		helper.frag_size = skb_frag_size(f);
+		/* fragment contains payload but header is still found in packet */
+		helper.packet_size = ETH_HLEN;
 	}
-	else
-		helper.packet_size += skb->len;
 
 	return helper;
 }
