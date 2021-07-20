@@ -32,7 +32,7 @@ void Net::Tcp_packet::print(Genode::Output &output) const
 	if (ack()) { Genode::print(output, "a"); }
 	if (urg()) { Genode::print(output, "u"); }
 	if (ece()) { Genode::print(output, "e"); }
-	if (crw()) { Genode::print(output, "c"); }
+	if (cwr()) { Genode::print(output, "c"); }
 	if (ns())  { Genode::print(output, "n"); }
 	Genode::print(output, "' ");
 }

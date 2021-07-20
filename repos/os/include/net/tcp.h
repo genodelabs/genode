@@ -46,10 +46,7 @@ class Net::Tcp_packet
 		uint16_t _dst_port;
 		uint32_t _seq_nr;
 		uint32_t _ack_nr;
-		unsigned _data_offset : 4;
-		unsigned _reserved    : 3;
-		unsigned _flags_msb   : 1;
-		uint8_t  _flags_lsb;
+		uint16_t _flags;
 		uint16_t _window_size;
 		uint16_t _checksum;
 		uint16_t _urgent_ptr;
@@ -57,15 +54,16 @@ class Net::Tcp_packet
 
 		struct Flags : Genode::Register<16>
 		{
-			struct Fin : Bitfield<0, 1> { };
-			struct Syn : Bitfield<1, 1> { };
-			struct Rst : Bitfield<2, 1> { };
-			struct Psh : Bitfield<3, 1> { };
-			struct Ack : Bitfield<4, 1> { };
-			struct Urg : Bitfield<5, 1> { };
-			struct Ece : Bitfield<6, 1> { };
-			struct Crw : Bitfield<7, 1> { };
-			struct Ns  : Bitfield<8, 1> { };
+			struct Fin         : Bitfield<0, 1>  { };
+			struct Syn         : Bitfield<1, 1>  { };
+			struct Rst         : Bitfield<2, 1>  { };
+			struct Psh         : Bitfield<3, 1>  { };
+			struct Ack         : Bitfield<4, 1>  { };
+			struct Urg         : Bitfield<5, 1>  { };
+			struct Ece         : Bitfield<6, 1>  { };
+			struct Cwr         : Bitfield<7, 1>  { };
+			struct Ns          : Bitfield<8, 1>  { };
+			struct Data_offset : Bitfield<12, 4> { };
 		};
 
 	public:
@@ -83,14 +81,14 @@ class Net::Tcp_packet
 		Port     dst_port()    const { return Port(host_to_big_endian(_dst_port)); }
 		uint32_t seq_nr()      const { return host_to_big_endian(_seq_nr); }
 		uint32_t ack_nr()      const { return host_to_big_endian(_ack_nr); }
-		uint8_t  data_offset() const { return _data_offset; }
-		uint16_t flags()       const { return _flags_lsb | _flags_msb << 8; }
+		uint8_t  data_offset() const { return Flags::Data_offset::get(flags()); }
+		uint16_t flags()       const { return host_to_big_endian(_flags); }
 		uint16_t window_size() const { return host_to_big_endian(_window_size); }
 		uint16_t checksum()    const { return host_to_big_endian(_checksum); }
 		uint16_t urgent_ptr()  const { return host_to_big_endian(_urgent_ptr); }
 		bool     ns()          const { return Flags::Ns::get(flags()); };
 		bool     ece()         const { return Flags::Ece::get(flags()); };
-		bool     crw()         const { return Flags::Crw::get(flags()); };
+		bool     cwr()         const { return Flags::Cwr::get(flags()); };
 		bool     fin()         const { return Flags::Fin::get(flags()); };
 		bool     syn()         const { return Flags::Syn::get(flags()); };
 		bool     rst()         const { return Flags::Rst::get(flags()); };
