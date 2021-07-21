@@ -304,7 +304,6 @@ if { $inversepath_linux } {
 	send -i $serial_id "sleep 5\n"
 
 	# test network
-	send -i $serial_id "wget http://genode.org/\n"
-	run_genode_until "Connecting to genode.org" 10 $serial_id
-	run_genode_until {.*\/ #.*} 30 $serial_id
+	send -i $serial_id "ping 1.1.1.1\n"
+	run_genode_until "64 bytes from 1.1.1.1:.*\n" 30 $serial_id
 }
