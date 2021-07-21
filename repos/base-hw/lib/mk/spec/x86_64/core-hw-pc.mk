@@ -6,6 +6,7 @@
 #
 
 # add include paths
+REP_INC_DIR += src/core/board/pc
 REP_INC_DIR += src/core/spec/x86_64
 
 LIBS += syscall-hw

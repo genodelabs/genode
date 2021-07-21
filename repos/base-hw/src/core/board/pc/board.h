@@ -11,10 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__SPEC__X86_64__BOARD_H_
-#define _CORE__SPEC__X86_64__BOARD_H_
+#ifndef _BOARD_H_
+#define _BOARD_H_
 
+/* base-hw internal includes */
 #include <hw/spec/x86_64/pc_board.h>
+
+/* base-hw internal includes */
 #include <spec/x86_64/pic.h>
 #include <spec/x86_64/pit.h>
 
@@ -30,4 +33,4 @@ namespace Board {
 	};
 }
 
-#endif /* _CORE__SPEC__X86_64__BOARD_H_ */
+#endif /* _BOARD_H_ */
