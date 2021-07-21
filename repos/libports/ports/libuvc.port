@@ -9,6 +9,9 @@ DIR(libuvc) := src/lib/libuvc
 DIRS := include/libuvc
 DIR_CONTENT(include/libuvc) := src/lib/libuvc/include/libuvc/libuvc.h
 
+PATCHES := src/lib/libuvc/uvc150.patch
+PATCH_OPT := -p1 -d src/lib/libuvc
+
 default: include/libuvc/libuvc_config.h
 
 include/libuvc/libuvc_config.h: _dirs
