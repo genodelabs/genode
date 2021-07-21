@@ -549,7 +549,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			Usb::Packet_descriptor p;
 
 			try {
-				p = usb_device->usb_connection.source()->alloc_packet(transfer->length);
+				p = usb_device->usb_connection.source()->alloc_packet(setup->wLength);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 				return LIBUSB_ERROR_BUSY;
 			}
