@@ -50,10 +50,7 @@ struct Sculpt::Storage_target
 
 	void gen_block_session_route(Xml_generator &xml) const
 	{
-		bool const ahci = (Label(Cstring(device.string(), 4)) == "ahci");
-		bool const nvme = (Label(Cstring(device.string(), 4)) == "nvme");
-		bool const usb  = (Label(Cstring(device.string(), 3)) == "usb");
-
+		bool const usb          = (Label(Cstring(device.string(), 3)) == "usb");
 		bool const whole_device = !partition.valid();
 
 		xml.node("service", [&] () {
@@ -61,14 +58,13 @@ struct Sculpt::Storage_target
 
 			if (whole_device) {
 
-				if (ahci || nvme)
-					xml.node("parent", [&] () { xml.attribute("label", device); });
-
 				if (usb)
 					xml.node("child", [&] () {
 						xml.attribute("name",  Label(device, ".drv"));
 						xml.attribute("label", partition);
 					});
+				else
+					xml.node("parent", [&] () { xml.attribute("label", device); });
 			}
 
 			/* access partition */
