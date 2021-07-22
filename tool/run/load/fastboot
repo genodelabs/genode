@@ -7,15 +7,25 @@
 
 source [genode_dir]/tool/run/load.inc
 
-proc load_fastboot_device { } { return [get_cmd_arg --load-fastboot-device 1] }
+proc load_fastboot_device { } { return [get_cmd_arg --load-fastboot-device ""] }
+
+
+proc check_fastboot_supported { } {
+
+	if {![have_installed fastboot]} {
+		puts stderr "Missing installation of fastboot utility"
+		exit -1 }
+
+	if {![have_spec arm] && ![have_spec arm_64]} {
+		puts stderr "Fastboot not supported on this CPU architecture"
+		exit -1 }
+}
+
 
 proc run_load { } {
 	global load_spawn_id
 
-	if {![have_spec arm] || ![have_installed fastboot]} {
-		puts "No support for fastboot detected."
-		exit -1
-	}
+	check_fastboot_supported
 
 	if {![have_include "image/uboot"]} {
 		puts stderr "Cannot load via fastboot without a u-boot image"
@@ -27,7 +37,13 @@ proc run_load { } {
 	# sleep a bit, board might need some time to come up
 	sleep 8
 
-	eval spawn fastboot -s $device boot $uimg
+	set fastboot_cmd [list fastboot]
+	if {$device != ""} {
+		lappend fastboot_cmd -s $device }
+	lappend fastboot_cmd boot $uimg
+
+	eval spawn {*}$fastboot_cmd
+
 	set load_spawn_id $spawn_id
 	set timeout 80
 	expect {
