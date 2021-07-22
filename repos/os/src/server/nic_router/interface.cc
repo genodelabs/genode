@@ -43,6 +43,24 @@ using Genode::Signal_transmitter;
  ** Utilities **
  ***************/
 
+enum {
+
+	ETHERNET_HEADER_SIZE = sizeof(Ethernet_frame),
+
+	ETHERNET_DATA_SIZE_WITH_ARP =
+		sizeof(Arp_packet) + ETHERNET_HEADER_SIZE < Ethernet_frame::MIN_SIZE ?
+			Ethernet_frame::MIN_SIZE - ETHERNET_HEADER_SIZE :
+			sizeof(Arp_packet),
+
+	ETHERNET_CRC_SIZE = sizeof(Genode::uint32_t),
+
+	ARP_PACKET_SIZE =
+		ETHERNET_HEADER_SIZE +
+		ETHERNET_DATA_SIZE_WITH_ARP +
+		ETHERNET_CRC_SIZE,
+};
+
+
 template <typename LINK_TYPE>
 static void _destroy_dissolved_links(Link_list   &dissolved_links,
                                      Deallocator &dealloc)
@@ -1265,15 +1283,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 void Interface::_broadcast_arp_request(Ipv4_address const &src_ip,
                                        Ipv4_address const &dst_ip)
 {
-	enum {
-		ETH_HDR_SZ = sizeof(Ethernet_frame),
-		ETH_DAT_SZ = sizeof(Arp_packet) + ETH_HDR_SZ >= Ethernet_frame::MIN_SIZE ?
-		             sizeof(Arp_packet) :
-		             Ethernet_frame::MIN_SIZE - ETH_HDR_SZ,
-		ETH_CRC_SZ = sizeof(Genode::uint32_t),
-		PKT_SIZE   = ETH_HDR_SZ + ETH_DAT_SZ + ETH_CRC_SZ,
-	};
-	send(PKT_SIZE, [&] (void *pkt_base, Size_guard &size_guard) {
+	send(ARP_PACKET_SIZE, [&] (void *pkt_base, Size_guard &size_guard) {
 
 		/* write Ethernet header */
 		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
@@ -1340,22 +1350,31 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
 }
 
 
-void Interface::_send_arp_reply(Ethernet_frame &eth,
-                                Size_guard     &size_guard,
-                                Arp_packet     &arp)
+void Interface::_send_arp_reply(Ethernet_frame &request_eth,
+                                Arp_packet     &request_arp)
 {
-	/* interchange source and destination MAC and IP addresses */
-	Ipv4_address dst_ip = arp.dst_ip();
-	arp.dst_ip(arp.src_ip());
-	arp.dst_mac(arp.src_mac());
-	eth.dst(eth.src());
-	arp.src_ip(dst_ip);
-	arp.src_mac(_router_mac);
-	eth.src(_router_mac);
+	send(ARP_PACKET_SIZE, [&] (void *reply_base, Size_guard &reply_guard) {
 
-	/* mark packet as reply and send it back to its sender */
-	arp.opcode(Arp_packet::REPLY);
-	send(eth, size_guard);
+		Ethernet_frame &reply_eth {
+			Ethernet_frame::construct_at(reply_base, reply_guard) };
+
+		reply_eth.dst(request_eth.src());
+		reply_eth.src(_router_mac);
+		reply_eth.type(Ethernet_frame::Type::ARP);
+
+		Arp_packet &reply_arp {
+			reply_eth.construct_at_data<Arp_packet>(reply_guard) };
+
+		reply_arp.hardware_address_type(Arp_packet::ETHERNET);
+		reply_arp.protocol_address_type(Arp_packet::IPV4);
+		reply_arp.hardware_address_size(sizeof(Mac_address));
+		reply_arp.protocol_address_size(sizeof(Ipv4_address));
+		reply_arp.opcode(Arp_packet::REPLY);
+		reply_arp.src_mac(_router_mac);
+		reply_arp.src_ip(request_arp.dst_ip());
+		reply_arp.dst_mac(request_arp.src_mac());
+		reply_arp.dst_ip(request_arp.src_ip());
+	});
 }
 
 
@@ -1380,7 +1399,7 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 			if (_config().verbose()) {
 				log("[", local_domain, "] answer ARP request for router IP "
 				    "with router MAC"); }
-			_send_arp_reply(eth, size_guard, arp);
+			_send_arp_reply(eth, arp);
 
 		} else {
 
@@ -1405,7 +1424,7 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 			if (_config().verbose()) {
 				log("[", local_domain, "] answer ARP request for foreign IP "
 				    "with router MAC"); }
-			_send_arp_reply(eth, size_guard, arp);
+			_send_arp_reply(eth, arp);
 		}
 	}
 }

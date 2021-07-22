@@ -217,9 +217,8 @@ class Net::Interface : private Interface_list::Element
 		                         Arp_packet           &arp,
 		                         Domain               &local_domain);
 
-		void _send_arp_reply(Ethernet_frame       &eth,
-		                     Size_guard           &size_guard,
-		                     Arp_packet           &arp);
+		void _send_arp_reply(Ethernet_frame &request_eth,
+		                     Arp_packet     &request_arp);
 
 		void _handle_dhcp_request(Ethernet_frame &eth,
 		                          Dhcp_packet    &dhcp,
