@@ -19,6 +19,7 @@
 #include <block_session/block_session.h>
 #include <rm_session/rm_session.h>
 #include <capture_session/capture_session.h>
+#include <gpu_session/gpu_session.h>
 #include <io_mem_session/io_mem_session.h>
 #include <io_port_session/io_port_session.h>
 #include <timer_session/timer_session.h>
@@ -31,6 +32,7 @@ namespace Driver_manager {
 	struct Main;
 	struct Block_devices_generator;
 	struct Device_driver;
+	struct Intel_gpu_driver;
 	struct Intel_fb_driver;
 	struct Vesa_fb_driver;
 	struct Boot_fb_driver;
@@ -124,12 +126,40 @@ class Driver_manager::Device_driver : Noncopyable
 };
 
 
-struct Driver_manager::Intel_fb_driver : Device_driver
+struct Driver_manager::Intel_gpu_driver : Device_driver
 {
 	Version version { 0 };
 
 	void generate_start_node(Xml_generator &xml) const override
 	{
+		xml.node("start", [&] () {
+			_gen_common_start_node_content(xml, "intel_gpu_drv", "intel_gpu_drv",
+			                               Ram_quota{32*1024*1024}, Cap_quota{800},
+			                               Priority{0}, version);
+			xml.node("provides", [&] () {
+				xml.node("service", [&] () {
+					xml.attribute("name", Gpu::Session::service_name()); });
+				xml.node("service", [&] () {
+					xml.attribute("name", Platform::Session::service_name()); });
+			});
+			xml.node("route", [&] () {
+				_gen_default_parent_route(xml);
+			});
+		});
+	}
+};
+
+
+struct Driver_manager::Intel_fb_driver : Device_driver
+{
+	Intel_gpu_driver intel_gpu_driver { };
+
+	Version version { 0 };
+
+	void generate_start_node(Xml_generator &xml) const override
+	{
+		intel_gpu_driver.generate_start_node(xml);
+
 		xml.node("start", [&] () {
 			_gen_common_start_node_content(xml, "intel_fb_drv", "intel_fb_drv",
 			                               Ram_quota{42*1024*1024}, Cap_quota{800},
@@ -137,6 +167,12 @@ struct Driver_manager::Intel_fb_driver : Device_driver
 			xml.node("heartbeat", [&] () { });
 			xml.node("route", [&] () {
 				_gen_config_route(xml, "fb_drv.config");
+				xml.node("service", [&] () {
+					xml.attribute("name", Platform::Session::service_name());
+						xml.node("child", [&] () {
+							xml.attribute("name", "intel_gpu_drv");
+						});
+				});
 				_gen_default_parent_route(xml);
 			});
 		});
@@ -369,9 +405,9 @@ struct Driver_manager::Main : private Block_devices_generator
 		_env.ep(), *this, &Main::_handle_nvme_ns_update };
 
 	Signal_handler<Main> _dynamic_state_handler {
-		_env.ep(), *this, &Main::_handle_dyanmic_state };
+		_env.ep(), *this, &Main::_handle_dynamic_state };
 
-	void _handle_dyanmic_state();
+	void _handle_dynamic_state();
 
 	static void _gen_parent_service_xml(Xml_generator &xml, char const *name)
 	{
@@ -728,7 +764,7 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 }
 
 
-void Driver_manager::Main::_handle_dyanmic_state()
+void Driver_manager::Main::_handle_dynamic_state()
 {
 	_dynamic_state.update();
 

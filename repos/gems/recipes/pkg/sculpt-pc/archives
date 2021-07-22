@@ -4,4 +4,5 @@ _/pkg/wifi
 _/src/rtc_drv
 _/src/ipxe_nic_drv
 _/src/nvme_drv
+_/src/intel_gpu_drv
 

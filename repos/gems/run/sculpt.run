@@ -240,8 +240,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="drivers" caps="3150" priority="-1" managing_system="yes">
-		<resource name="RAM" quantum="128M"/>
+	<start name="drivers" caps="4000" priority="-1" managing_system="yes">
+		<resource name="RAM" quantum="160M"/>
 		<resource name="CPU" quantum="40"/>
 		<binary name="init"/>
 		<route>
