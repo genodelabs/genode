@@ -15,7 +15,6 @@
 #define _KERNEL__TYPES_H_
 
 /* base-hw includes */
-#include <kernel/types.h>
 #include <kernel/interface_support.h>
 
 namespace Kernel {
