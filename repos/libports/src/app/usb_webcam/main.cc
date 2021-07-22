@@ -194,8 +194,41 @@ class Webcam
 					return -5;
 				}
 
-				/* e.g., turn on auto exposure */
-				uvc_set_ae_mode(_handle, 1);
+				/**
+ 				 *  Turn on auto exposure if not already set.
+ 				 *  There are three auto exposure modes (0x2, 0x4, 0x8), which we
+ 				 *  must first check whether supported by the device.
+ 				 */
+				uint8_t aemode = 0;
+				if (uvc_get_ae_mode(_handle, &aemode, UVC_GET_CUR) != UVC_SUCCESS) {
+					error("uvc_get_ae_mode() failed");
+					return 0;
+				}
+
+				enum {
+					MANUAL    = 0x1,
+					FULL_AUTO = 0x2,
+					IRIS_AUTO = 0x4,
+					TIME_AUTO = 0x8
+				};
+
+				/* manual focus mode active? */
+				if (aemode == MANUAL) {
+					uint8_t aemodes_avail = 0;
+					/* get available modes */
+					if (uvc_get_ae_mode(_handle, &aemodes_avail, UVC_GET_RES) != UVC_SUCCESS) {
+						error("uvc_get_ae_mode(UVC_GET_RES) failed");
+						return 0;
+					}
+
+					if (aemodes_avail & FULL_AUTO)
+						uvc_set_ae_mode(_handle, FULL_AUTO);
+					else if (aemodes_avail & IRIS_AUTO)
+						uvc_set_ae_mode(_handle, IRIS_AUTO);
+					else if (aemodes_avail & TIME_AUTO)
+						uvc_set_ae_mode(_handle, TIME_AUTO);
+				}
+
 				return 0;
 			});
 
