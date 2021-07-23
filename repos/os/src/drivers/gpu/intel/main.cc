@@ -57,7 +57,12 @@ namespace Igd {
 
 struct Igd::Device_info
 {
+	enum Platform { UNKNOWN, BROADWELL, SKYLAKE, KABYLAKE };
+	enum Stepping { A0, B0, C0, D0, D1, E0, F0, G0 };
+
 	uint16_t    id;
+	uint8_t     generation;
+	Platform    platform;
 	char const *descr;
 	uint64_t    features;
 };
@@ -67,10 +72,13 @@ struct Igd::Device_info
  * IHD-OS-BDW-Vol 4-11.15 p. 9
  */
 static Igd::Device_info _supported_devices[] = {
-	{ 0x1606, "HD Graphics (BDW GT1 ULT)", 0ull },
-	{ 0x1616, "HD Graphics 5500 (BDW GT2 ULT)", 0ull },
+	{ 0x1606, 8, Igd::Device_info::Platform::BROADWELL, "HD Graphics (BDW GT1 ULT)", 0ull },
+	{ 0x1616, 8, Igd::Device_info::Platform::BROADWELL, "HD Graphics 5500 (BDW GT2 ULT)", 0ull },
 	/* TODO proper eDRAM probing + caching */
-	{ 0x1622, "Iris Pro Graphics 6200 (BDW GT3e)", 0ull },
+	{ 0x1622, 8, Igd::Device_info::Platform::BROADWELL, "Iris Pro Graphics 6200 (BDW GT3e)", 0ull },
+	{ 0x1916, 9, Igd::Device_info::Platform::SKYLAKE,   "HD Graphics 520 (Skylake, Gen9)", 0ull },
+	{ 0x191b, 9, Igd::Device_info::Platform::SKYLAKE,   "HD Graphics 530 (Skylake, Gen9)", 0ull },
+	{ 0x5917, 9, Igd::Device_info::Platform::KABYLAKE,  "UHD Graphics 620 (Kaby Lake, Gen9p5)", 0ull },
 };
 
 #define ELEM_NUMBER(x) (sizeof((x)) / sizeof((x)[0]))
@@ -91,7 +99,7 @@ struct Igd::Device
 	 ** PCI **
 	 *********/
 
-	Resources &_resources;
+	Resources               &_resources;
 	Platform::Device_client &_device { _resources.gpu_client() };
 
 	struct Pci_backend_alloc : Utils::Backend_alloc
@@ -120,18 +128,20 @@ struct Igd::Device
 
 
 	Device_info _info { };
+	uint8_t     _revision { };
 
 	void _pci_info(char const *descr)
 	{
 		using namespace Genode;
 
-		uint16_t const vendor_id  = _device.vendor_id();
-		uint16_t const device_id  = _device.device_id();
+		uint16_t const vendor_id = _device.vendor_id();
+		uint16_t const device_id = _device.device_id();
 
 		uint8_t bus = 0, dev = 0, fun = 0;
 		_device.bus_address(&bus, &dev, &fun);
 
-		log("Found: '", descr, "' ",
+		log("Found: '", descr, "' gen=", _info.generation,
+		    " rev=", _revision, " ",
 		    "[", Hex(vendor_id), ":", Hex(device_id), "] (",
 		    Hex(bus, Hex::OMIT_PREFIX), ":",
 		    Hex(dev, Hex::OMIT_PREFIX), ".",
@@ -159,7 +169,8 @@ struct Igd::Device
 		uint16_t const id = _device.device_id();
 		for (size_t i = 0; i < ELEM_NUMBER(_supported_devices); i++) {
 			if (_supported_devices[i].id == id) {
-				_info = _supported_devices[i];
+				_info     = _supported_devices[i];
+				_revision = _resources.config_read<uint8_t>(8);
 				_pci_info(_supported_devices[i].descr);
 				return true;
 			}
@@ -946,14 +957,52 @@ struct Igd::Device
 	void reset() { _device_reset_and_init(); }
 
 	/**
-	 * Get chip id of the phyiscal device
+	 * Get chip id of the physical device
 	 */
 	uint16_t id() const { return _info.id; }
 
 	/**
-	 * Get features of the phyiscal device
+	 * Get features of the physical device
 	 */
 	uint32_t features() const { return _info.features; }
+
+	/**
+	 * Get generation of the physical device
+	 */
+	Igd::Generation generation() const {
+		return Igd::Generation { _info.generation }; }
+
+	bool match(Device_info::Platform const platform,
+	           Device_info::Stepping const stepping_start,
+	           Device_info::Stepping const stepping_end)
+	{
+		if (_info.platform != platform)
+			return false;
+
+		/* XXX only limited support, for now just kabylake */
+		if (platform != Device_info::Platform::KABYLAKE) {
+			Genode::warning("unsupported platform match request");
+			return false;
+		}
+
+		Device_info::Stepping stepping = Device_info::Stepping::A0;
+
+		switch (_revision) {
+		case 0: stepping = Device_info::Stepping::A0; break;
+		case 1: stepping = Device_info::Stepping::B0; break;
+		case 2: stepping = Device_info::Stepping::C0; break;
+		case 3: stepping = Device_info::Stepping::D0; break;
+		case 4: stepping = Device_info::Stepping::F0; break;
+		case 5: stepping = Device_info::Stepping::C0; break;
+		case 6: stepping = Device_info::Stepping::D1; break;
+		case 7: stepping = Device_info::Stepping::G0; break;
+		default:
+			Genode::error("unsupported KABYLAKE revision detected");
+			break;
+		}
+
+		return stepping_start <= stepping && stepping <= stepping_end;
+	}
 
 	/*******************
 	 ** Vgpu handling **

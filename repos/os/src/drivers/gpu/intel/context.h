@@ -29,6 +29,8 @@ namespace Igd {
 
 	struct Common_context_regs;
 
+	struct Generation;
+
 	struct Hardware_status_page;
 	template <addr_t RING_BASE> class Execlist_context;
 	template <addr_t RING_BASE> class Ppgtt_context;
@@ -39,6 +41,7 @@ namespace Igd {
 	class Rcs_context;
 }
 
+struct Igd::Generation { unsigned value; };
 
 /*
  * IHD-OS-BDW-Vol 6-11.15 p. 8
