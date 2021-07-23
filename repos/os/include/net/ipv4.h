@@ -20,6 +20,7 @@
 #include <util/token.h>
 #include <util/construct_at.h>
 #include <util/endian.h>
+#include <util/register.h>
 #include <net/netaddress.h>
 #include <net/size_guard.h>
 
@@ -101,20 +102,37 @@ class Net::Ipv4_packet
 		 ** IPv4 header fields **
 		 ************************/
 
-		unsigned         _header_length   : 4;
-		unsigned         _version         : 4;
-		unsigned         _diff_service    : 6;
-		unsigned         _ecn             : 2;
+		struct Offset_6_u16 : Genode::Register<16>
+		{
+			struct Fragment_offset : Bitfield<0, 13> { };
+			struct Flags           : Bitfield<13, 3>  { };
+			struct More_fragments  : Bitfield<13, 1>  { };
+			struct Dont_fragment   : Bitfield<14, 1>  { };
+		};
+
+		struct Offset_0_u8 : Genode::Register<8>
+		{
+			struct Ihl     : Bitfield<0, 4> { }; /* Internet Header Length */
+			struct Version : Bitfield<4, 4> { };
+		};
+
+		struct Offset_1_u8 : Genode::Register<8>
+		{
+			struct Ecn  : Bitfield<0, 2> { }; /* Explicit Congestion Notification */
+			struct Dscp : Bitfield<2, 6> { }; /* Differentiated Services Code Point */
+		};
+
+		Genode::uint8_t  _offset_0_u8;
+		Genode::uint8_t  _offset_1_u8;
 		Genode::uint16_t _total_length;
 		Genode::uint16_t _identification;
-		unsigned         _flags           : 3;
-		unsigned         _fragment_offset : 13;
+		Genode::uint16_t _offset_6_u16;
 		Genode::uint8_t  _time_to_live;
 		Genode::uint8_t  _protocol;
 		Genode::uint16_t _checksum;
 		Genode::uint8_t  _src[ADDR_LEN];
 		Genode::uint8_t  _dst[ADDR_LEN];
-		unsigned         _data[0];
+		unsigned _data[0];
 
 	public:
 
@@ -153,33 +171,61 @@ class Net::Ipv4_packet
 		 ** Accessors **
 		 ***************/
 
-		Genode::size_t   header_length()   const { return _header_length; }
-		Genode::uint8_t  version()         const { return _version; }
-		Genode::uint8_t  diff_service()    const { return _diff_service; }
-		Genode::uint8_t  ecn()             const { return _ecn; }
-		Genode::size_t   total_length()    const { return host_to_big_endian(_total_length); }
-		Genode::uint16_t identification()  const { return host_to_big_endian(_identification); }
-		Genode::uint8_t  flags()           const { return _flags; }
-		Genode::size_t   fragment_offset() const { return _fragment_offset; }
-		Genode::uint8_t  time_to_live()    const { return _time_to_live; }
-		Protocol         protocol()        const { return (Protocol)_protocol; }
-		Genode::uint16_t checksum()        const { return host_to_big_endian(_checksum); }
-		Ipv4_address     src()             const { return Ipv4_address((void *)&_src); }
-		Ipv4_address     dst()             const { return Ipv4_address((void *)&_dst); }
+		Genode::size_t       header_length()   const { return Offset_0_u8::Ihl::get(_offset_0_u8); }
+		Genode::uint8_t      version()         const { return Offset_0_u8::Version::get(_offset_0_u8); }
+		Genode::uint8_t      diff_service()    const { return Offset_1_u8::Dscp::get(_offset_1_u8); }
+		Genode::uint8_t      ecn()             const { return Offset_1_u8::Ecn::get(_offset_1_u8); }
+		Genode::size_t       total_length()    const { return host_to_big_endian(_total_length); }
+		Genode::uint16_t     identification()  const { return host_to_big_endian(_identification); }
+		Genode::uint8_t      flags()           const { return (Genode::uint8_t)Offset_6_u16::Flags::get(host_to_big_endian(_offset_6_u16)); }
+		bool                 dont_fragment()   const { return Offset_6_u16::Dont_fragment::get(host_to_big_endian(_offset_6_u16)); }
+		bool                 more_fragments()  const { return Offset_6_u16::More_fragments::get(host_to_big_endian(_offset_6_u16)); }
+		Genode::size_t       fragment_offset() const { return Offset_6_u16::Fragment_offset::get(host_to_big_endian(_offset_6_u16)); }
+		Genode::uint8_t      time_to_live()    const { return _time_to_live; }
+		Protocol             protocol()        const { return (Protocol)_protocol; }
+		Genode::uint16_t     checksum()        const { return host_to_big_endian(_checksum); }
+		Ipv4_address         src()             const { return Ipv4_address((void *)&_src); }
+		Ipv4_address         dst()             const { return Ipv4_address((void *)&_dst); }
 
-		void header_length(Genode::size_t v)     { _header_length = v; }
-		void version(Genode::uint8_t v)          { _version = v; }
-		void diff_service(Genode::uint8_t v)     { _diff_service = v; ; }
-		void ecn(Genode::uint8_t v)              { _ecn = v; ; }
+		void header_length(Genode::size_t v)     { Offset_0_u8::Ihl::set(_offset_0_u8, v); }
+		void version(Genode::uint8_t v)          { Offset_0_u8::Version::set(_offset_0_u8, v); }
+		void diff_service(Genode::uint8_t v)     { Offset_1_u8::Dscp::set(_offset_1_u8, v); }
+		void ecn(Genode::uint8_t v)              { Offset_1_u8::Ecn::set(_offset_1_u8, v); }
 		void total_length(Genode::size_t v)      { _total_length = host_to_big_endian((Genode::uint16_t)v); }
 		void identification(Genode::uint16_t v)  { _identification = host_to_big_endian(v); }
-		void flags(Genode::uint8_t v)            { _flags = v; ; }
-		void fragment_offset(Genode::size_t v)   { _fragment_offset = v; ; }
 		void time_to_live(Genode::uint8_t v)     { _time_to_live = v; }
 		void protocol(Protocol v)                { _protocol = (Genode::uint8_t)v; }
 		void checksum(Genode::uint16_t checksum) { _checksum = host_to_big_endian(checksum); }
 		void src(Ipv4_address v)                 { v.copy(&_src); }
 		void dst(Ipv4_address v)                 { v.copy(&_dst); }
+
+		void flags(Genode::uint8_t v)
+		{
+			Genode::uint16_t be = host_to_big_endian(_offset_6_u16);
+			Offset_6_u16::Flags::set(be, v);
+			_offset_6_u16 = host_to_big_endian(be);
+		}
+
+		void fragment_offset(Genode::size_t v)
+		{
+			Genode::uint16_t be = host_to_big_endian(_offset_6_u16);
+			Offset_6_u16::Fragment_offset::set(be, v);
+			_offset_6_u16 = host_to_big_endian(be);
+		}
+
+		void dont_fragment(bool v)
+		{
+			Genode::uint16_t be = host_to_big_endian(_offset_6_u16);
+			Offset_6_u16::Dont_fragment::set(be, v);
+			_offset_6_u16 = host_to_big_endian(be);
+		}
+
+		void more_fragments(bool v)
+		{
+			Genode::uint16_t be = host_to_big_endian(_offset_6_u16);
+			Offset_6_u16::More_fragments::set(be, v);
+			_offset_6_u16 = host_to_big_endian(be);
+		}
 
 
 		/*********
