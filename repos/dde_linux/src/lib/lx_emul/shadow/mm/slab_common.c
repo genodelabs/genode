@@ -25,9 +25,19 @@ void * krealloc(const void * p,size_t new_size,gfp_t flags)
 	if (!new_size) {
 		kfree(p);
 		return NULL;
-	}
 
-	lx_emul_trace_and_stop(__func__);
+	} else {
+
+		unsigned long const old_size = ksize(p);
+		void *ret;
+
+		if (new_size <= old_size)
+			return p;
+
+		ret = kmalloc(new_size, flags);
+		memcpy(ret, p, old_size);
+		return ret;
+	}
 }
 
 
