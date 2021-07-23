@@ -31,8 +31,22 @@ class Igd::Resources : Genode::Noncopyable
 
 		using Io_mem_connection = Genode::Io_mem_connection;
 		using Io_mem_dataspace_capability = Genode::Io_mem_dataspace_capability;
+		using Ram_dataspace_capability = Genode::Ram_dataspace_capability;
 
-		Genode::Env &_env;
+		Genode::Env  &_env;
+		Genode::Heap &_heap;
+
+		/* timer */
+		Timer::Connection         _timer { _env };
+
+		struct Timer_delayer : Genode::Mmio::Delayer
+		{
+			Timer::Connection &_timer;
+			Timer_delayer(Timer::Connection &timer) : _timer(timer) { }
+
+			void usleep(uint64_t us) override { _timer.usleep(us); }
+
+		} _delayer { _timer };
 
 		/* irq callback */
 		Main        &_obj;
@@ -43,15 +57,26 @@ class Igd::Resources : Genode::Noncopyable
 
 		Platform::Device_capability _gpu_cap { };
 		Platform::Device_capability _host_bridge_cap { };
+		Platform::Device_capability _isa_bridge_cap { };
 		Genode::Constructible<Platform::Device_client> _gpu_client { };
 
-		/* mmio + gtt */
+		/* mmio + ggtt */
 		Platform::Device::Resource               _gttmmadr { };
 		Io_mem_dataspace_capability              _gttmmadr_ds { };
 		Genode::Constructible<Io_mem_connection> _gttmmadr_io { };
+		addr_t                                   _gttmmadr_local { 0 };
+
+		Genode::Constructible<Igd::Mmio> _mmio { };
+
+		/* scratch page for ggtt */
+		Ram_dataspace_capability _scratch_page_ds {
+			_platform.with_upgrade([&] () {
+				return _platform.alloc_dma_buffer(PAGE_SIZE, Genode::UNCACHED); }) };
+
+		addr_t _scratch_page {
+			Genode::Dataspace_client(_scratch_page_ds).phys_addr() };
 
 		/* aperture */
-		Platform::Device::Resource _gmadr { };
 		enum {
 			/* reserved aperture for platform service */
 			APERTURE_RESERVED = 64u<<20,
@@ -59,13 +84,11 @@ class Igd::Resources : Genode::Noncopyable
 			GTT_RESERVED      = (APERTURE_RESERVED/PAGE_SIZE) * 8,
 		};
 
+		Platform::Device::Resource _gmadr { };
+
 		/* managed dataspace for local platform service */
 		Genode::Rm_connection _rm_connection { _env };
 		Genode::Constructible<Genode::Region_map_client> _gttmmadr_rm { };
-
-		/**********
-		 ** Mmio **
-		 **********/
 
 		void _create_gttmmadr_rm()
 		{
@@ -135,6 +158,12 @@ class Igd::Resources : Genode::Noncopyable
 					continue;
 				}
 
+				if (device.class_code() == isa_bridge_class()) {
+					_isa_bridge_cap = cap;
+					release = false;
+					continue;
+				}
+
 				release = true;
 			}
 		}
@@ -185,9 +214,10 @@ class Igd::Resources : Genode::Noncopyable
 
 	public:
 
-		Resources(Genode::Env &env, Main &obj, void (Main::*ack_irq) ())
+		Resources(Genode::Env &env, Genode::Heap &heap,
+		          Main &obj, void (Main::*ack_irq) ())
 		:
-		  _env(env), _obj(obj), _ack_irq(ack_irq)
+		  _env(env), _heap(heap), _obj(obj), _ack_irq(ack_irq)
 		{
 			/* initial donation for device pd */
 			_platform.upgrade_ram(1024*1024);
@@ -207,9 +237,9 @@ class Igd::Resources : Genode::Noncopyable
 
 			_enable_pci_bus_master();
 
-			Genode::log("Reserved beginning ",
-			            Genode::Number_of_bytes(APERTURE_RESERVED),
-			            " of aperture for platform service");
+			log("Reserved beginning ",
+			    Genode::Number_of_bytes(APERTURE_RESERVED),
+			    " of aperture for platform service");
 		}
 
 		~Resources()
@@ -223,14 +253,16 @@ class Igd::Resources : Genode::Noncopyable
 			if (!_gttmmadr_ds.valid())
 				throw Initialization_failed();
 
-			addr_t addr = (addr_t)(_env.rm().attach(_gttmmadr_ds, _gttmmadr.size()));
+			if (_gttmmadr_local) return _gttmmadr_local;
+
+			_gttmmadr_local = (addr_t)(_env.rm().attach(_gttmmadr_ds, _gttmmadr.size()));
 
 			log("Map res:", 0,
 			    " base:", Genode::Hex(_gttmmadr.base()),
 			    " size:", Genode::Hex(_gttmmadr.size()),
-			    " vaddr:", Genode::Hex(addr));
+			    " vaddr:", Genode::Hex(_gttmmadr_local));
 
-			return addr;
+			return _gttmmadr_local;
 		}
 
 		template <typename T>
@@ -254,18 +286,23 @@ class Igd::Resources : Genode::Noncopyable
 
 		void ack_irq() { (_obj.*_ack_irq)(); }
 
+		Genode::Heap      &heap()               { return _heap; }
+		Timer::Connection &timer()              { return _timer; };
+		addr_t             scratch_page() const { return _scratch_page; }
+
 		Platform::Connection       &platform()        { return _platform; }
 		Platform::Device_client    &gpu_client()      { return *_gpu_client; }
 		Platform::Device_capability host_bridge_cap() { return _host_bridge_cap; }
+		Platform::Device_capability isa_bridge_cap()  { return _isa_bridge_cap; }
+		unsigned                    isa_bridge_class() const { return 0x601u << 8; }
 
 		addr_t gmadr_base()    const { return _gmadr.base(); }
 		size_t gmadr_size()    const { return _gmadr.size(); }
 		addr_t gttmmadr_base() const { return _gttmmadr.base(); }
-		addr_t gttmmadr_size() const { return _gttmmadr.size(); }
+		size_t gttmmadr_size() const { return _gttmmadr.size(); }
 
 		size_t gmadr_platform_size()    const { return APERTURE_RESERVED; }
 		size_t gttmmadr_platform_size() const { return GTT_RESERVED; }
-
 
 		Io_mem_dataspace_capability gttmmadr_platform_ds()
 		{
@@ -275,6 +312,20 @@ class Igd::Resources : Genode::Noncopyable
 				_create_gttmmadr_rm();
 
 			return static_cap_cast<Io_mem_dataspace>(_gttmmadr_rm->dataspace());
+		}
+
+		void gtt_platform_reset()
+		{
+			addr_t const base = map_gttmmadr() + (gttmmadr_size() / 2);
+			Igd::Ggtt(mmio(), base, gttmmadr_platform_size(), 0, scratch_page(), 0);
+		}
+
+		Igd::Mmio &mmio()
+		{
+			if (!_mmio.constructed())
+				_mmio.construct(_delayer, map_gttmmadr());
+
+			return *_mmio;
 		}
 };
 

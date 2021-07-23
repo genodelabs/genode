@@ -1,7 +1,6 @@
 /*
  * \brief  Platform service implementation
  * \author Sebastian Sumpf
- * \author Josef Soentgen
  * \date   2021-07-16
  */
 
@@ -196,6 +195,23 @@ class Platform::Session_component : public Rpc_object<Session>
 		Device_component  _device_component;
 		Connection       &_platform;
 		Device_capability _bridge;
+		Igd::Resources   &_resources;
+
+		struct Dma_cap
+		{
+			Ram_dataspace_capability cap;
+
+			Dma_cap(Ram_dataspace_capability cap)
+			  : cap(cap) { }
+
+			virtual ~Dma_cap() { }
+		};
+
+		/*
+		 * track DMA memory allocations so we can free them at session
+		 * destruction
+		 */
+		Registry<Registered<Dma_cap>> _dma_registry { };
 
 	public:
 
@@ -204,7 +220,8 @@ class Platform::Session_component : public Rpc_object<Session>
 		  _env(env),
 		  _device_component(env, resources),
 		  _platform(resources.platform()),
-		  _bridge(resources.host_bridge_cap())
+		  _bridge(resources.host_bridge_cap()),
+		  _resources(resources)
 		{
 			_env.ep().rpc_ep().manage(&_device_component);
 		}
@@ -212,13 +229,21 @@ class Platform::Session_component : public Rpc_object<Session>
 		~Session_component()
 		{
 			_env.ep().rpc_ep().dissolve(&_device_component);
+
+			/* clear ggtt */
+			_resources.gtt_platform_reset();
+
+			/* free DMA allocations */
+			_dma_registry.for_each([&](Dma_cap &dma) {
+				_platform.free_dma_buffer(dma.cap);
+				destroy(&_resources.heap(), &dma);
+			});
 		}
 
-		Device_capability first_device(unsigned device_class, unsigned class_mask) override
+		Device_capability first_device(unsigned device_class, unsigned) override
 		{
-			enum { ISA_BRIDGE = 0x601u << 8 };
-			if (device_class == ISA_BRIDGE)
-				return _platform.first_device(device_class, class_mask);
+			if (device_class == _resources.isa_bridge_class())
+				return _resources.isa_bridge_cap();
 
 			return _bridge;
 		}
@@ -232,14 +257,9 @@ class Platform::Session_component : public Rpc_object<Session>
 			return Device_capability();
 		}
 
-		void release_device(Device_capability device) override
+		void release_device(Device_capability) override
 		{
-			if (device.valid() == false) return;
-
-			if (_device_component.cap() == device || device == _bridge) {
-				return;
-			}
-			_platform.release_device(device);
+			return;
 		}
 
 		Device_capability device(Device_name const & /* string */) override
@@ -250,12 +270,20 @@ class Platform::Session_component : public Rpc_object<Session>
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override
 		{
-			return _platform.alloc_dma_buffer(size, cache);
+			Ram_dataspace_capability cap = _platform.alloc_dma_buffer(size, cache);
+			new (&_resources.heap()) Registered<Dma_cap>(_dma_registry, cap);
+			return cap;
 		}
 
 		void free_dma_buffer(Ram_dataspace_capability cap) override
 		{
-			_platform.free_dma_buffer(cap);
+			if (!cap.valid()) return;
+
+			_dma_registry.for_each([&](Dma_cap &dma) {
+				if ((dma.cap == cap) == false) return;
+				_platform.free_dma_buffer(cap);
+				destroy(&_resources.heap(), &dma);
+			});
 		}
 
 		addr_t dma_addr(Ram_dataspace_capability cap) override

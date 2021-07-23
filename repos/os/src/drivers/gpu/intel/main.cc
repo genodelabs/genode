@@ -85,22 +85,7 @@ struct Igd::Device
 	Env       &_env;
 	Allocator &_md_alloc;
 
-	/***********
-	 ** Timer **
-	 ***********/
-
-	Timer::Connection         _timer { _env };
-
 	enum { WATCHDOG_TIMEOUT = 1*1000*1000, };
-
-	struct Timer_delayer : Genode::Mmio::Delayer
-	{
-		Timer::Connection &_timer;
-		Timer_delayer(Timer::Connection &timer) : _timer(timer) { }
-
-		void usleep(uint64_t us) override { _timer.usleep(us); }
-
-	} _delayer { _timer };
 
 	/*********
 	 ** PCI **
@@ -193,7 +178,7 @@ struct Igd::Device
 	 ** MMIO **
 	 **********/
 
-	Genode::Constructible<Igd::Mmio> _mmio { };
+	Igd::Mmio &_mmio { _resources.mmio() };
 
 	/************
 	 ** MEMORY **
@@ -732,7 +717,7 @@ struct Igd::Device
 	{
 		Execlist &el = *engine.execlist;
 
-		int const port = _mmio->read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
+		int const port = _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
 
 		el.schedule(port);
 
@@ -742,10 +727,10 @@ struct Igd::Device
 		desc[1] = el.elem0().high();
 		desc[0] = el.elem0().low();
 
-		_mmio->write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[3]);
-		_mmio->write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[2]);
-		_mmio->write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[1]);
-		_mmio->write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[0]);
+		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[3]);
+		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[2]);
+		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[1]);
+		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[0]);
 	}
 
 	Vgpu *_unschedule_current_vgpu()
@@ -774,19 +759,19 @@ struct Igd::Device
 
 		Engine<Rcs_context> &rcs = gpu->rcs;
 
-		_mmio->flush_gfx_tlb();
+		_mmio.flush_gfx_tlb();
 
 		/*
 		 * XXX check if HWSP is shared across contexts and if not when
 		 *     we actually need to write the register
 		 */
 		Mmio::HWS_PGA_RCSUNIT::access_t const addr = rcs.hw_status_page();
-		_mmio->write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
+		_mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
 
 		_submit_execlist(rcs);
 
 		_active_vgpu = gpu;
-		_timer.trigger_once(WATCHDOG_TIMEOUT);
+		_resources.timer().trigger_once(WATCHDOG_TIMEOUT);
 	}
 
 	/**********
@@ -795,7 +780,7 @@ struct Igd::Device
 
 	void _clear_rcs_iir(Mmio::GT_0_INTERRUPT_IIR::access_t const v)
 	{
-		_mmio->write_post<Mmio::GT_0_INTERRUPT_IIR>(v);
+		_mmio.write_post<Mmio::GT_0_INTERRUPT_IIR>(v);
 	}
 
 	/**
@@ -830,7 +815,7 @@ struct Igd::Device
 
 	uint32_t _get_free_fence()
 	{
-		return _mmio->find_free_fence();
+		return _mmio.find_free_fence();
 	}
 
 	uint32_t _update_fence(uint32_t const id,
@@ -839,12 +824,12 @@ struct Igd::Device
 	                       uint32_t const pitch,
 	                       bool     const tile_x)
 	{
-		return _mmio->update_fence(id, lower, upper, pitch, tile_x);
+		return _mmio.update_fence(id, lower, upper, pitch, tile_x);
 	}
 
 	void _clear_fence(uint32_t const id)
 	{
-		_mmio->clear_fence(id);
+		_mmio.clear_fence(id);
 	}
 
 	/**********************
@@ -857,10 +842,10 @@ struct Igd::Device
 
 		Genode::error("watchdog triggered: engine stuck,"
 		              " vGPU=", _active_vgpu->id());
-		_mmio->dump();
-		_mmio->error_dump();
-		_mmio->fault_dump();
-		_mmio->execlist_status_dump();
+		_mmio.dump();
+		_mmio.error_dump();
+		_mmio.fault_dump();
+		_mmio.execlist_status_dump();
 
 		_active_vgpu->rcs.context->dump();
 		_active_vgpu->rcs.context->dump_hw_status_page();
@@ -883,11 +868,11 @@ struct Igd::Device
 
 	void _device_reset_and_init()
 	{
-		_mmio->reset();
-		_mmio->clear_errors();
-		_mmio->init();
-		_mmio->enable_intr();
-		_mmio->forcewake_enable();
+		_mmio.reset();
+		_mmio.clear_errors();
+		_mmio.init();
+		_mmio.enable_intr();
+		_mmio.forcewake_enable();
 	}
 
 	/**
@@ -928,11 +913,9 @@ struct Igd::Device
 
 		/* map PCI resources */
 		addr_t gttmmadr_base = _resources.map_gttmmadr();
-		_mmio.construct(_delayer, gttmmadr_base);
 
 		/* GGTT */
-		Ram_dataspace_capability scratch_page_ds = _pci_backend_alloc.alloc(PAGE_SIZE);
-		addr_t const scratch_page = Dataspace_client(scratch_page_ds).phys_addr();
+		addr_t const scratch_page = _resources.scratch_page();
 
 		/* reserverd size for framebuffer */
 		size_t const aperture_reserved = resources.gmadr_platform_size();
@@ -940,18 +923,17 @@ struct Igd::Device
 		size_t const ggtt_size = (1u << MGGC_0_2_0_PCI::Gtt_graphics_memory_size::get(v)) << 20;
 		addr_t const ggtt_base = gttmmadr_base + (_resources.gttmmadr_size() / 2);
 		size_t const gmadr_size = _resources.gmadr_size();
-		_ggtt.construct(*_mmio, ggtt_base, ggtt_size, gmadr_size, scratch_page, aperture_reserved);
+		_ggtt.construct(_mmio, ggtt_base, ggtt_size, gmadr_size, scratch_page, aperture_reserved);
 		_ggtt->dump();
 
 		_vgpu_avail = (gmadr_size - aperture_reserved) / Vgpu::APERTURE_SIZE;
 
 		_device_reset_and_init();
 
+		_mmio.dump();
+		_mmio.context_status_pointer_dump();
 
-		_mmio->dump();
-		_mmio->context_status_pointer_dump();
-
-		_timer.sigh(_watchdog_timeout_sigh);
+		_resources.timer().sigh(_watchdog_timeout_sigh);
 	}
 
 	/*********************
@@ -1105,7 +1087,7 @@ struct Igd::Device
 	uint32_t set_tiling(Ggtt::Offset const start, size_t const size,
 	                    uint32_t const mode)
 	{
-		uint32_t const id = _mmio->find_free_fence();
+		uint32_t const id = _mmio.find_free_fence();
 		if (id == INVALID_FENCE) {
 			Genode::warning("could not find free FENCE");
 			return id;
@@ -1130,15 +1112,15 @@ struct Igd::Device
 
 	unsigned handle_irq()
 	{
-		Mmio::MASTER_INT_CTL::access_t master = _mmio->read<Mmio::MASTER_INT_CTL>();
+		Mmio::MASTER_INT_CTL::access_t master = _mmio.read<Mmio::MASTER_INT_CTL>();
 
 		/* handle render interrupts only */
 		if (Mmio::MASTER_INT_CTL::Render_interrupts_pending::get(master) == 0)
 			return master;
 
-		_mmio->disable_master_irq();
+		_mmio.disable_master_irq();
 
-		Mmio::GT_0_INTERRUPT_IIR::access_t const v = _mmio->read<Mmio::GT_0_INTERRUPT_IIR>();
+		Mmio::GT_0_INTERRUPT_IIR::access_t const v = _mmio.read<Mmio::GT_0_INTERRUPT_IIR>();
 
 		bool const ctx_switch    = Mmio::GT_0_INTERRUPT_IIR::Cs_ctx_switch_interrupt::get(v);
 		(void)ctx_switch;
@@ -1153,10 +1135,10 @@ struct Igd::Device
 				notify_gpu->user_complete();
 		}
 
-		bool const fault_valid = _mmio->fault_regs_valid();
+		bool const fault_valid = _mmio.fault_regs_valid();
 		if (fault_valid) { Genode::error("FAULT_REG valid"); }
 
-		_mmio->update_context_status_pointer();
+		_mmio.update_context_status_pointer();
 
 		if (user_complete) {
 			_unschedule_current_vgpu();
@@ -1176,7 +1158,7 @@ struct Igd::Device
 		return master;
 	}
 
-	void enable_master_irq() { _mmio->enable_master_irq(); }
+	void enable_master_irq() { _mmio.enable_master_irq(); }
 
 	private:
 
@@ -1623,9 +1605,10 @@ struct Main
 	Genode::Sliced_heap _root_heap { _env.ram(), _env.rm() };
 	Gpu::Root           _gpu_root  { _env, _root_heap };
 
-	Genode::Heap                       _device_md_alloc;
+	Genode::Heap                       _device_md_alloc { _env.ram(), _env.rm() };
 	Genode::Constructible<Igd::Device> _device { };
-	Igd::Resources                     _gpu_resources { _env, *this, &Main::ack_irq };
+	Igd::Resources                     _gpu_resources { _env, _device_md_alloc,
+	                                                   *this, &Main::ack_irq };
 
 	Genode::Irq_session_client     _irq { _gpu_resources.gpu_client().irq(0) };
 	Genode::Signal_handler<Main>   _irq_dispatcher {
@@ -1635,24 +1618,21 @@ struct Main
 
 	Main(Genode::Env &env)
 	:
-		_env(env), _device_md_alloc(_env.ram(), _env.rm())
+		_env(env)
 	{
 		/* IRQ */
 		_irq.sigh(_irq_dispatcher);
 		_irq.ack_irq();
 
-		/* platform service */
-		_platform_root.construct(_env, _device_md_alloc, _gpu_resources);
-
 		/* GPU */
 		try {
 			_device.construct(_env, _device_md_alloc, _gpu_resources);
-		} catch (...) {
-			return;
-		}
+			_gpu_root.manage(*_device);
+			_env.parent().announce(_env.ep().manage(_gpu_root));
+		} catch (...) { }
 
-		_gpu_root.manage(*_device);
-		_env.parent().announce(_env.ep().manage(_gpu_root));
+		/* platform service */
+		_platform_root.construct(_env, _device_md_alloc, _gpu_resources);
 	}
 
 	void handle_irq()
