@@ -36,7 +36,12 @@ append config {
 append_platform_drv_config
 
 append config {
-
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+		<route> <any-service> <parent/> </any-service> </route>
+	</start>
+	
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
@@ -61,7 +66,7 @@ install_config $config
 
 set boot_modules {
 	report_rom
-	core init ld.lib.so
+	core init timer ld.lib.so
 	smbios_decoder
 }
 
