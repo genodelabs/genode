@@ -5,131 +5,22 @@
 # \date   2012-06-25
 #
 
-#
-# On USB Armory
-# #############
-#
-# Create bootable microSD card
-# ============================
-#
-# :User settings:
-#
-#   ! export TARGET_DEV=/dev/sdX                 # empty boot medium
-#   ! export TARGET_MNT=/mnt                     # where to mount the boot medium
-#   ! export GENODE_DIR=/path/genode             # root of the Genode sources
-#   ! export BUILD_DIR=/path/build/usb_armory # Genode build directory
-#
-# :Format microSD card:
-#
-#   ! sudo parted $TARGET_DEV --script mklabel msdos
-#   ! sudo parted $TARGET_DEV --script mkpart primary ext4 10M 110M
-#   ! sudo parted $TARGET_DEV --script mkpart primary ext4 110M 2105M
-#   ! sudo mkfs.ext4 ${TARGET_DEV}1
-#   ! sudo mkfs.ext4 ${TARGET_DEV}2
-#
-# :Install bootloader:
-#
-#   ! cd $GENODE_DIR
-#   ! ./tool/create_uboot usb_armory
-#   ! sudo dd if=contrib/uboot/build/usb_armory/mmc_img of=$TARGET_DEV bs=1K seek=1 conv=fsync
-#
-# :Install Genode:
-#
-#   ! cd $BUILD_DIR
-#   ! echo "RUN_OPT += --include image/uboot" >> etc/build.conf
-#   ! make run/tz_vmm
-#   ! sudo mount ${TARGET_DEV}1 $TARGET_MNT
-#   ! sudo cp var/run/tz_vmm/uImage $TARGET_MNT
-#   ! sudo umount $TARGET_MNT
-#
-# :Install Linux rootfs:
-#
-#   ! sudo partclone.extfs -r -d -s var/run/tz_vmm/rootfs -o ${TARGET_DEV}2
-#
-# :Insert microSD card into USB Armory:
-#
-#   [https://github.com/inversepath/usbarmory/wiki/microSD-compatibility]
-#
-# :Connect USB Armory to host machine via USB-to-TTL serial cable:
-#
-#   [https://github.com/inversepath/usbarmory/wiki/GPIOs#breakout-header]
-#
-# :Connect to USB Armory COM port:
-#
-#   ! sudo picocom -b 115200 -r -l /dev/ttyUSB0
-#
-# :Insert USB Armory into host USB slot and interrupt auto boot on COM port:
-#
-# :Send bootloader commands on COM port:
-#
-#   ! ext2load mmc 0:1 0x74000000 /uImage
-#   ! bootm 0x74000000
-#
-# :Linux login:
-#
-#   The login and password of the Linux guest are both "usbarmory"
-#
-# :Communicate with Linux via CDC Ethernet:
-#
-#   [https://github.com/inversepath/usbarmory/wiki/Host-communication#cdc-ethernet]
-#
-# Further information
-# ===================
-#
-# :Tutorial on how to reproduce the Linux images:
-#
-#   [http://genode.org/files/release-15.11/usb_armory_tz_vmm/README]
-#
-# :Wiki about the USB Armory and the Linux:
-#
-#   [https://github.com/inversepath/usbarmory/wiki]
-#
-
 assert_spec hw
 
-if {[expr ![have_board imx53_qsb_tz] && ![have_board usb_armory]]} {
+if {![have_board imx53_qsb_tz]} {
 
 	puts "\n Run script is not supported on this platform. \n"
 	exit 0
 }
 
-# determine platform specific configuration
-set trusted_led       [have_board usb_armory]
-set inversepath_linux [have_board usb_armory]
-set freescale_linux   [have_board imx53_qsb_tz]
-set initrd_rootfs     $freescale_linux
-set mmc_rootfs        $inversepath_linux
-set dtb               $inversepath_linux
-
-set targets { core init server/tz_vmm }
-
-proc tz_vmm_binary {} {
-	if {[have_board usb_armory]}   { return usb_armory_tz_vmm }
-	if {[have_board imx53_qsb_tz]} { return imx53_qsb_tz_vmm }
-	return no_tz_vmm_binary
-}
-
-if { $mmc_rootfs } {
-
-	# choose interrupt for paravirtualized block
-	if { [have_board imx53_qsb_tz] } { set tz_vmm_block_irq 92 }
-
-	# add targets that enable MMC access via paravirtualized block
-	lappend targets timer
-	lappend targets drivers/platform
-	lappend targets drivers/sd_card/imx53
-	lappend targets server/part_block
-}
-
-lappend_if $trusted_led targets drivers/gpio
-
-build $targets
+build { core init server/tz_vmm }
 
 create_boot_directory
 
 # compose config
-set config {
+install_config {
 <config verbose="yes">
+
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -144,95 +35,17 @@ set config {
 	<default-route>
 		<any-service><any-child/><parent/></any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_if $trusted_led config {
-	<start name="platform_drv" caps="150">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Platform"/> </provides>
-		<config>
-			<device name="gpio">
-				<io_mem address="0x53f90000" size="0x4000"/>
-				<irq number="56"/>
-				<irq number="57"/>
-			</device>
-			<device name="sd_card">
-				<io_mem address="0x50004000" size="0x4000"/>
-				<irq    number="1"/>
-			</device>
-			<policy label="imx_gpio_drv -> " info="yes"> <device name="gpio"/> </policy>
-			<policy label="sd_card_drv -> "> <device name="sd_card"/> </policy>
-		</config>
+	<start name="imx53_qsb_tz_vmm">
+		<resource name="RAM" quantum="10M"/>
 	</start>
 
-	<start name="imx_gpio_drv">
-		<resource name="RAM" quantum="3M"/>
-		<provides><service name="Gpio"/></provides>
-		<config/>
-		<route>
-			<service name="Platform"><child name="platform_drv" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>}
-
-append_if $mmc_rootfs config {
-	<start name="timer">
-		<resource name="RAM" quantum="3M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="sd_card_drv">
-		<binary name="imx53_sd_card_drv"/>
-		<resource name="RAM" quantum="3M"/>
-		<provides><service name="Block"/></provides>
-		<route>
-			<service name="Platform"> <child name="platform_drv"/> </service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-	<start name="part_block">
-		<resource name="RAM" quantum="10M" />
-		<provides><service name="Block" /></provides>
-		<route>
-			<service name="Block"><child name="imx53_sd_card_drv" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-		<config>
-			<policy label="tz_vmm -> sda1" partition="2"/>
-		</config>
-	</start> }
-
-append config {
-	<start name="tz_vmm">
-		<binary name="} [tz_vmm_binary] {"/>
-		<resource name="RAM" quantum="10M"/> }
-
-if { $mmc_rootfs } {
-	append config "
-		<config>
-			<block name=\"sda1\" irq=\"$tz_vmm_block_irq\"/>
-		</config>
-		<route>
-			<service name=\"Block\"><child name=\"part_block\" /></service>
-			<any-service><any-child/><parent/></any-service>
-		</route> "
-}
-
-append config {
-	</start>
 </config> }
-
-install_config $config
 
 # download and add linux
 cd bin
-if { $inversepath_linux } {
-
-	set linux_uri "http://genode.org/files/release-15.11/usb_armory_tz_vmm/linux"
-
-}  elseif { $freescale_linux } {
-
-	set linux_uri "http://genode.org/files/images/imx53_qsb/linux_trustzone.bin"
-}
+set linux_uri "http://genode.org/files/images/imx53_qsb/linux_trustzone.bin"
 if {![file exists linux]} {
 	puts "Download linux binary ..."
 	exec >& /dev/null wget -c -O linux $linux_uri
@@ -240,75 +53,25 @@ if {![file exists linux]} {
 exec >& /dev/null wget -O linux.md5 $linux_uri.md5
 exec md5sum -c linux.md5
 
-set boot_modules { core ld.lib.so init linux }
-lappend boot_modules [tz_vmm_binary]
-
-if { $dtb } {
-
-	# download and add DTB
-	set dtb_uri "http://genode.org/files/release-15.11/usb_armory_tz_vmm/dtb"
-	if {![file exists dtb]} {
-		puts "Download device tree ..."
-		exec >& /dev/null wget -c -O dtb $dtb_uri
-	}
-	exec >& /dev/null wget -O dtb.md5 $dtb_uri.md5
-	exec md5sum -c dtb.md5
-	lappend boot_modules dtb
+# download and add initrd
+set initrd_uri  "http://genode.org/files/images/imx53_qsb/initrd.gz"
+if {![file exists initrd.gz]} {
+	puts "Download initramfs ..."
+	exec >& /dev/null wget -c -O initrd.gz $initrd_uri
 }
-
-if { $mmc_rootfs } {
-
-	# add components that enable MMC access via parvirtualized block
-	lappend boot_modules timer
-	lappend boot_modules imx53_sd_card_drv
-	lappend boot_modules part_block
-
-	# download and add rootfs
-	set rootfs_uri "http://genode.org/files/release-15.11/usb_armory_tz_vmm/rootfs"
-	if {![file exists rootfs]} {
-		puts "Download rootfs ..."
-		exec >& /dev/null wget -c -O rootfs.gz $rootfs_uri.gz
-		puts "Extract rootfs ..."
-		exec >& /dev/null gunzip rootfs.gz
-	}
-	exec >& /dev/null wget -O rootfs.md5 $rootfs_uri.md5
-	exec md5sum -c rootfs.md5
-	exec ln -sf ../../../bin/rootfs $env(PWD)/[run_dir]/rootfs
-
-} elseif { $initrd_rootfs } {
-
-	# download and add initrd
-	set initrd_uri  "http://genode.org/files/images/imx53_qsb/initrd.gz"
-	if {![file exists initrd.gz]} {
-		puts "Download initramfs ..."
-		exec >& /dev/null wget -c -O initrd.gz $initrd_uri
-	}
-	exec >& /dev/null wget -O initrd.gz.md5 $initrd_uri.md5
-	exec md5sum -c initrd.gz.md5
-	lappend boot_modules initrd.gz
-}
+exec >& /dev/null wget -O initrd.gz.md5 $initrd_uri.md5
+exec md5sum -c initrd.gz.md5
 cd ..
 
-lappend_if $trusted_led boot_modules imx_gpio_drv
-lappend_if $trusted_led boot_modules platform_drv
+build_boot_image { core ld.lib.so init linux imx53_qsb_tz_vmm initrd.gz }
 
-build_boot_image [join $boot_modules " "]
+# execute and wait for console
+run_genode_until {.*\/ #.*} 220
+set serial_id [output_spawn_id]
 
-if { $inversepath_linux } {
+# wait for network to settle down
+send -i $serial_id "sleep 5\n"
 
-	# execute and wait for console
-	run_genode_until "Debian GNU/Linux 7 usbarmory console\n" 220
-
-} elseif { $freescale_linux } {
-
-	# execute and wait for console
-	run_genode_until {.*\/ #.*} 220
-	set serial_id [output_spawn_id]
-
-	# wait for network to settle down
-	send -i $serial_id "sleep 5\n"
-
-	# test network
-	send -i $serial_id "ping 1.1.1.1\n"
-	run_genode_until "64 bytes from 1.1.1.1:.*\n" 30 $serial_id
-}
+# test network
+send -i $serial_id "ping 1.1.1.1\n"
+run_genode_until "64 bytes from 1.1.1.1:.*\n" 30 $serial_id
