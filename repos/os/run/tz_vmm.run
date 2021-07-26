@@ -86,7 +86,12 @@
 #
 
 assert_spec hw
-assert_spec imx53_qsb_tz
+
+if {[expr ![have_board imx53_qsb_tz] && ![have_board usb_armory]]} {
+
+	puts "\n Run script is not supported on this platform. \n"
+	exit 0
+}
 
 # determine platform specific configuration
 set trusted_led       [have_board usb_armory]
@@ -99,8 +104,8 @@ set dtb               $inversepath_linux
 set targets { core init server/tz_vmm }
 
 proc tz_vmm_binary {} {
-	if {[have_board usb_armory]} { return usb_armory_tz_vmm }
-	if {[have_board imx53_qsb]}  { return imx53_qsb_tz_vmm }
+	if {[have_board usb_armory]}   { return usb_armory_tz_vmm }
+	if {[have_board imx53_qsb_tz]} { return imx53_qsb_tz_vmm }
 	return no_tz_vmm_binary
 }
 
