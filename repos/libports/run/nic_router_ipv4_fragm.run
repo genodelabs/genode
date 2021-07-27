@@ -1,0 +1,161 @@
+#
+# To execute this run script on your Linux host you have to do some
+# preparation:
+#
+# 1) Setup a TAP device:
+#    ! sudo ip tuntap add dev tap0 mode tap user $USER
+#    ! sudo ip address flush dev tap0
+#    ! sudo ip address add 10.0.2.1/24 brd 10.0.2.255 dev tap0
+#    ! sudo ip link set dev tap0 addr 02:00:00:ca:fe:01
+#    ! sudo ip link set dev tap0 up
+#
+# 2) Ensure that 'nping' is installed and that it is permitted run
+#    UDP mode as user (examplary for Ubuntu 18.04):
+#    ! sudo apt install nmap
+#    ! sudo setcap cap_net_raw=+ep /usr/bin/nping
+#
+# 3) Now, start the test:
+#    ! cd build/x86_64
+#    ! make run/nic_router_ipv4_fragm KERNEL=linux BOARD=linux
+#
+# 4) Clean up your Linux when done testing:
+#    ! sudo ip tuntap delete tap0 mode tap
+#
+
+if {![have_board linux]} {
+	puts "Run script is not supported on this platform."
+	exit 0
+}
+
+set nping_missing [catch {
+	spawn nping --version
+	expect {
+		{Nping version}  { }
+		eof { return }
+		timeout { return }
+	}
+}]
+
+if {$nping_missing} {
+	puts "\nPlease install 'nping' and try again\n"
+	exit 1;
+}
+
+create_boot_directory
+
+import_from_depot [depot_user]/pkg/[drivers_nic_pkg]
+
+build { core init timer server/nic_router app/ping test/lwip/udp }
+
+append config {
+
+<config>
+
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="drivers" caps="1000" managing_system="yes">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config dhcp_discover_timeout_sec="1"
+		        verbose_packets="yes"
+		        verbose_packet_drop="yes">
+
+			<policy label_prefix="drivers"              domain="uplink"/>
+			<policy label_prefix="test-lwip-udp-server" domain="downlink"/>
+
+			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
+
+				<nat domain="downlink" udp-ports="100"/>
+				<udp-forward port="8000" domain="downlink" to="10.0.3.100"/>
+
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.100" ip_last="10.0.3.100"/>
+
+			</domain>
+
+		</config>
+	</start>
+
+	<start name="test-lwip-udp-server">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config port="8000">
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<dir name="socket">
+					<lwip ip_addr="10.0.3.100" gateway="10.0.3.1" netmask="255.255.255.0"/>
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"
+			      ip_addr="10.0.3.100" gateway="10.0.3.1" netmask="255.255.255.0"/>
+		</config>
+	</start>
+
+</config> }
+
+install_config $config
+build_boot_image {
+	core init timer nic_router ping test-lwip-udp-server ld.lib.so libc.lib.so
+	libm.lib.so vfs.lib.so vfs_lwip.lib.so }
+
+# wait for server ip stack to come up
+run_genode_until {.*lwIP Nic interface up.*\n} 30
+set genode_id [output_spawn_id]
+
+# ping server without ipv4 fragmentation (should succeed)
+spawn nping -c 1 --privileged --udp --data-length 160 --mtu 800 -p 8000 10.0.2.55
+set pattern_string ""
+append pattern_string {.*RCVD .* UDP 10\.0\.2\.55:8000 > 10\.0\.2\.1:53 .*\n}
+append pattern_string {.*Raw packets sent: 1 (188B) | Rcvd: 1 (188B) | Lost: 0.*\n}
+run_genode_until $pattern_string 30 $spawn_id
+
+# ping server with ipv4 fragmentation (should fail)
+spawn nping -c 1 --privileged --udp --data-length 1600 --mtu 800 -p 8000 10.0.2.55
+set pattern_string ""
+expect eof
+
+# check that the nic router dropped the ipv4 fragments of the second ping
+set pattern_string ""
+append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
+append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
+append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
+run_genode_until $pattern_string 30 $genode_id

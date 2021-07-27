@@ -42,6 +42,7 @@ nic_bridge
 nic_bridge_stress
 nic_dump
 nic_router
+nic_router_ipv4_fragm
 nic_router_disable_arp
 nic_router_dhcp_managed
 nic_router_dhcp_unmanaged

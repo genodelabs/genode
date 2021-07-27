@@ -1115,11 +1115,15 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
                            Packet_descriptor const &pkt,
                            Domain                  &local_domain)
 {
-	/* read packet information */
+	/* drop fragmented IPv4 as it isn't supported */
 	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
-	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface;
+	if (ip.more_fragments() ||
+	    ip.fragment_offset() != 0) {
 
+		throw Drop_packet("fragmented IPv4 not supported");
+	}
 	/* try handling subnet-local IP packets */
+	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface;
 	if (local_intf.prefix_matches(ip.dst()) &&
 	    ip.dst() != local_intf.address)
 	{
