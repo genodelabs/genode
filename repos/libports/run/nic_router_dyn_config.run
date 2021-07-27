@@ -231,7 +231,7 @@ append config {
 
 	<report/>
 
-	<uplink domain="uplink"/>
+	<nic-client domain="uplink"/>
 
 	<domain name="uplink"
 	        interface="10.0.2.55/24"
@@ -269,7 +269,7 @@ append config {
         tcp_idle_timeout_sec="30"
         tcp_max_segm_lifetime_sec="15">
 
-	<uplink domain="uplink"/>
+	<nic-client domain="uplink"/>
 
 	<domain name="uplink"
 	        interface="10.0.2.55/24"
@@ -311,7 +311,7 @@ append config {
 
 	<report interval_sec="2" bytes="yes" config="no" />
 
-	<uplink domain="uplink"/>
+	<nic-client domain="uplink"/>
 
 	<domain name="uplink"
 	        interface="10.0.2.55/24"
@@ -345,7 +345,7 @@ append config {
 
 	<report interval_sec="2" bytes="yes" config="no" />
 
-	<uplink domain="uplink"/>
+	<nic-client domain="uplink"/>
 
 	<domain name="uplink"
 	        interface="10.0.2.55/24"

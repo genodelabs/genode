@@ -186,7 +186,7 @@ append_if [expr ![nic_router_2_managed]] config {
 		<config verbose_packets="no">
 
 			<policy label="test_client -> " domain="downlink"/>
-			<uplink                         domain="uplink"/>
+			<nic-client                     domain="uplink"/>
 
 			<domain name="uplink"/>
 			<domain name="downlink" interface="10.0.3.1/24">

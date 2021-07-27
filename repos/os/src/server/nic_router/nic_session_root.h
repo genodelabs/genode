@@ -1,5 +1,5 @@
 /*
- * \brief  NIC session server role of the NIC router
+ * \brief  Interface back-end using NIC sessions provided by the NIC router
  * \author Martin Stein
  * \date   2016-08-23
  */

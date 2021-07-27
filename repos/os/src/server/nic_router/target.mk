@@ -12,7 +12,7 @@ SRC_CC += \
 	nat_rule.cc \
 	main.cc \
 	ipv4_config.cc \
-	uplink.cc \
+	nic_client.cc \
 	interface.cc \
 	arp_cache.cc \
 	configuration.cc \

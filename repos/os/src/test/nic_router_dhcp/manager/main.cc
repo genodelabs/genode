@@ -147,7 +147,7 @@ void Local::Main::_handle_router_state()
 				xml.attribute("label", "test_client -> ");
 				xml.attribute("domain", "downlink");
 			});
-			xml.node("uplink", [&] () {
+			xml.node("nic-client", [&] () {
 				xml.attribute("domain", "uplink");
 			});
 			xml.node("domain", [&] () {

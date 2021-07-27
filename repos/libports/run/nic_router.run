@@ -196,7 +196,7 @@ proc test_7_config { } {
 				<config>
 
 					<policy label_prefix="t7_d1" domain="downlink" />
-					<uplink                      domain="uplink"   />
+					<nic-client                  domain="uplink"   />
 
 					<domain name="uplink">
 						<nat domain="downlink" tcp-ports="6" />
@@ -312,7 +312,7 @@ append config {
 			        link_state_triggers="yes"
 			        interval_sec="60" />
 
-			<uplink domain="uplink"/>
+			<nic-client domain="uplink"/>
 
 			<domain name="uplink"
 			        interface="10.0.2.55/24"

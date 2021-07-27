@@ -84,12 +84,12 @@
 					</xs:complexType>
 				</xs:element><!-- policy -->
 
-				<xs:element name="uplink">
+				<xs:element name="nic-client">
 					<xs:complexType>
 						<xs:attribute name="label"  type="Session_label" />
 						<xs:attribute name="domain" type="Domain_name" />
 					</xs:complexType>
-				</xs:element><!-- uplink -->
+				</xs:element><!-- nic-client -->
 
 				<xs:element name="domain">
 					<xs:complexType>

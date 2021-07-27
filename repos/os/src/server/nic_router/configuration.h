@@ -17,7 +17,7 @@
 /* local includes */
 #include <domain.h>
 #include <report.h>
-#include <uplink.h>
+#include <nic_client.h>
 
 /* Genode includes */
 #include <base/duration.h>
@@ -47,14 +47,14 @@ class Net::Configuration
 		Genode::Microseconds const  _udp_idle_timeout;
 		Genode::Microseconds const  _tcp_idle_timeout;
 		Genode::Microseconds const  _tcp_max_segm_lifetime;
-		Pointer<Report>             _report   { };
-		Pointer<Genode::Reporter>   _reporter { };
-		Domain_tree                 _domains  { };
-		Uplink_tree                 _uplinks  { };
+		Pointer<Report>             _report      { };
+		Pointer<Genode::Reporter>   _reporter    { };
+		Domain_tree                 _domains     { };
+		Nic_client_tree             _nic_clients { };
 		Genode::Xml_node     const  _node;
 
-		void _invalid_uplink(Uplink     &uplink,
-		                     char const *reason);
+		void _invalid_nic_client(Nic_client &nic_client,
+		                         char const *reason);
 
 		void _invalid_domain(Domain     &domain,
 		                     char const *reason);

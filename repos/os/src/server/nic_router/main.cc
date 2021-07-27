@@ -20,7 +20,6 @@
 /* local includes */
 #include <nic_session_root.h>
 #include <uplink_session_root.h>
-#include <uplink.h>
 #include <configuration.h>
 
 using namespace Net;

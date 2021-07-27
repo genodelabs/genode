@@ -48,14 +48,14 @@ Configuration::Configuration(Xml_node const  node,
 { }
 
 
-void Configuration::_invalid_uplink(Uplink     &uplink,
-                                    char const *reason)
+void Configuration::_invalid_nic_client(Nic_client &nic_client,
+                                        char const *reason)
 {
 	if (_verbose) {
-		log("[", uplink.domain(), "] invalid uplink: ", uplink, " (", reason, ")"); }
+		log("[", nic_client.domain(), "] invalid NIC client: ", nic_client, " (", reason, ")"); }
 
-	_uplinks.remove(uplink);
-	destroy(_alloc, &uplink);
+	_nic_clients.remove(nic_client);
+	destroy(_alloc, &nic_client);
 }
 
 
@@ -160,26 +160,26 @@ Configuration::Configuration(Env               &env,
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
 
-	/* initialize uplinks */
-	_node.for_each_sub_node("uplink", [&] (Xml_node const node) {
+	/* initialize NIC clients */
+	_node.for_each_sub_node("nic-client", [&] (Xml_node const node) {
 		try {
-			Uplink &uplink = *new (_alloc)
-				Uplink { node, alloc, old_config._uplinks, env, timer,
-				         interfaces, *this };
+			Nic_client &nic_client = *new (_alloc)
+				Nic_client { node, alloc, old_config._nic_clients, env, timer,
+				             interfaces, *this };
 
-			try { _uplinks.insert(uplink); }
-			catch (Uplink_tree::Name_not_unique exception) {
-				_invalid_uplink(uplink,           "label not unique");
-				_invalid_uplink(exception.object, "label not unique");
+			try { _nic_clients.insert(nic_client); }
+			catch (Nic_client_tree::Name_not_unique exception) {
+				_invalid_nic_client(nic_client,       "label not unique");
+				_invalid_nic_client(exception.object, "label not unique");
 			}
 		}
-		catch (Uplink::Invalid) { }
+		catch (Nic_client::Invalid) { }
 	});
 	/*
-	 * Destroy old uplinks to ensure that uplink interfaces that were not
+	 * Destroy old NIC clients to ensure that NIC client interfaces that were not
 	 * re-used are not re-attached to the new domains.
 	 */
-	old_config._uplinks.destroy_each(_alloc);
+	old_config._nic_clients.destroy_each(_alloc);
 }
 
 
@@ -203,8 +203,8 @@ void Configuration::start_reporting()
 
 Configuration::~Configuration()
 {
-	/* destroy uplinks */
-	_uplinks.destroy_each(_alloc);
+	/* destroy NIC clients */
+	_nic_clients.destroy_each(_alloc);
 
 	/* destroy reporter */
 	try { destroy(_alloc, &_reporter()); }

@@ -1,5 +1,5 @@
 /*
- * \brief  Downlink interface in form of an Uplink session component
+ * \brief  Interface back-end using Uplink sessions provided by the NIC router
  * \author Martin Stein
  * \date   2016-08-23
  */
