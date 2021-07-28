@@ -348,6 +348,11 @@ class Igd::Mmio : public Genode::Mmio
 		 *********************/
 
 		/*
+		 * Ancient (2008) Volume 1: Graphics Core p. 225
+		 */
+		struct HW_MEMRD : Register<0x2060, 32> { };
+
+		/*
 		 * Ancient (2008) Volume 1: Graphics Core p. 228
 		 */
 		struct IPEIR : Register<0x2064, 32>
@@ -429,6 +434,16 @@ class Igd::Mmio : public Genode::Mmio
 		};
 
 		struct RCS_ACTHD : ACTHD_BASE<0x2000> { };
+
+		/*
+		 * Ancient (2008) Volume 1: Graphics Core p. 232
+		 */
+		struct DMA_FADD_PREF : Register<0x2078, 32> { };
+
+		/*
+		 * Ancient (2008) Volume 1: Graphics Core p. 235
+		 */
+		struct NOP_ID : Register<0x2094, 32> { };
 
 		/*
 		 * Ancient (2008) Volume 1: Graphics Core p. 205
@@ -621,6 +636,8 @@ class Igd::Mmio : public Genode::Mmio
 		struct HWS_PGA_VCSUNIT1 : Register<0x1C080, 32> { };
 		struct HWS_PGA_BCSUNIT  : Register<0x22080, 32> { };
 
+		struct PWRCTXA  : Register<0x02088, 32> { };
+
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 1370
 		 */
@@ -672,6 +689,14 @@ class Igd::Mmio : public Genode::Mmio
 			struct Force_wake_request_for_thread_1  : Bitfield< 1, 1> { };
 			struct Force_wake_request_for_thread_0  : Bitfield< 0, 1> { };
 		};
+
+		struct DRIVER_RENDER_FWAKE_ACK : Register<0x0D84, 32> {
+			struct Rcs_force_wake_enable_mask : Bitfield<16, 1> { };
+			struct Rcs_force_wake_enable      : Bitfield< 0, 1> { };
+		};
+
+		struct ELEM_DESCRIPTOR1 : Register<0x4400, 32> { };
+		struct ELEM_DESCRIPTOR2 : Register<0x4404, 32> { };
 
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 703
@@ -812,6 +837,28 @@ class Igd::Mmio : public Genode::Mmio
 		struct CTXT_ST_BUF_RCSUNIT : CTXT_ST_BUF_BASE<0x2000> { };
 
 		struct PGTBL_CTL2 : Register<0x20C4, 32> { };
+
+		/*
+		 * Ancient (2008) Volume 1: Graphics Core p. 252
+		 */
+		struct INSTPM : Register<0x20c0, 32> { };
+
+		/*
+		 * Ancient (2008) Volume 1: Graphics Core p. 252
+		 */
+		struct Cache_Mode_0 : Register<0x2120, 32> { };
+		struct Cache_Mode_1 : Register<0x2124, 32> { };
+		struct CTXT_SR_CTL  : Register<0x2714, 32> { };
+		struct BB_STATE     : Register<0x2110, 32> { };
+		struct BB_ADDR      : Register<0x2140, 32> { };
+		struct CCID         : Register<0x2180, 32> { };
+		struct CXT_SIZE       : Register<0x21A0, 32> { };
+		struct CXT_SIZE_NOEXT : Register<0x21A4, 32> { };
+		struct MI_DISP_PWR_DWN : Register<0x20E0, 32> { };
+		struct MI_ARB_STATE    : Register<0x20E4, 32> { };
+		struct MI_RDRET_STATE  : Register<0x20FC, 32> { };
+		struct MI_MODE         : Register<0x209c, 32> { };
+		struct ECOSKPD         : Register<0x21D0, 32> { };
 
 	private:
 
