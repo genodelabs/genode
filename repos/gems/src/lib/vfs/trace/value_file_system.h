@@ -196,7 +196,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
-			out.size = BUF_SIZE + 1;
+			out.size = _buffer.length();
 			return result;
 		}
 
