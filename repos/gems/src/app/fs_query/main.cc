@@ -107,6 +107,8 @@ struct Fs_query::Watched_file
 			warning("could not obtain content of nonexistent file ", _name); }
 		catch (File::Open_failed) {
 			warning("cannot open file ", _name, " for reading"); }
+		catch (File::Truncated_during_read) {
+			warning("file ", _name, " truncated during read"); }
 		catch (Xml_generator::Buffer_exceeded) { throw; }
 	}
 };
