@@ -88,15 +88,17 @@ class Igd::Ggtt
 				_array.clear(index, 1);
 			}
 
-			bool word_free(size_t const word) const
+			unsigned free_index(unsigned start_index, unsigned end_index,
+			                    size_t const num) const
 			{
-				try {
-					size_t const bits = sizeof(size_t) * 8;
-					size_t const index = word * sizeof(size_t);
-					return !_array.get(index, bits);
-				} catch (...) { }
+				for (unsigned index = start_index; index < end_index; index += num) {
+					if (index + num >= end_index)
+						throw Could_not_find_free();
+					if (!_array.get(index, num))
+						return index;
+				}
 
-				return false;
+				throw Could_not_find_free();
 			}
 
 			size_t used() const { return _used; }
@@ -222,17 +224,12 @@ class Igd::Ggtt
 		 *
 		 * \throw Could_not_find_free
 		 */
-		Offset find_free(size_t /* num */, bool aperture = false) const
+		Offset find_free(size_t num, bool aperture = false) const
 		{
 			size_t const start_index = aperture ?                 0 : _aperture_entries;
 			size_t const end_index   = aperture ? _aperture_entries : _num_entries;
 
-			for (size_t i = start_index; i < end_index; i++) {
-				bool const f = _space.word_free(i);
-				if (f) { return i * (sizeof(size_t)); }
-			}
-
-			throw Could_not_find_free();
+			return _space.free_index(start_index, end_index, num);
 		}
 
 		/**
