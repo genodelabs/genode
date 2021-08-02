@@ -65,6 +65,7 @@
 						<xs:attribute name="link_state_triggers" type="Boolean" />
 						<xs:attribute name="quota"               type="Boolean" />
 						<xs:attribute name="interval_sec"        type="Seconds" />
+						<xs:attribute name="dropped_fragm_ipv4"  type="Boolean" />
 					</xs:complexType>
 				</xs:element><!-- report -->
 

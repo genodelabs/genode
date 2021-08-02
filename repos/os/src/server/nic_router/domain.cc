@@ -417,6 +417,12 @@ void Domain::report(Xml_generator &xml)
 			try { xml.node("arp-waiters",      [&] () { _arp_stats.report(xml);  }); empty = false; } catch (Report::Empty) { }
 			try { xml.node("dhcp-allocations", [&] () { _dhcp_stats.report(xml); }); empty = false; } catch (Report::Empty) { }
 		}
+		if (_config.report().dropped_fragm_ipv4() && _dropped_fragm_ipv4) {
+			xml.node("dropped-fragm-ipv4", [&] () {
+				xml.attribute("value", _dropped_fragm_ipv4);
+			});
+			empty = false;
+		}
 		_interfaces.for_each([&] (Interface &interface) {
 			try {
 				interface.report(xml);
@@ -426,6 +432,12 @@ void Domain::report(Xml_generator &xml)
 		if (empty) {
 			throw Report::Empty(); }
 	});
+}
+
+
+void Domain::add_dropped_fragm_ipv4(unsigned long dropped_fragm_ipv4)
+{
+	_dropped_fragm_ipv4 += dropped_fragm_ipv4;
 }
 
 

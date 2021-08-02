@@ -163,6 +163,7 @@ class Net::Interface : private Interface_list::Element
 		Interface_link_stats                  _icmp_stats                { };
 		Interface_object_stats                _arp_stats                 { };
 		Interface_object_stats                _dhcp_stats                { };
+		unsigned long                         _dropped_fragm_ipv4        { 0 };
 
 		void _new_link(L3_protocol             const  protocol,
 		               Link_side_id            const &local_id,

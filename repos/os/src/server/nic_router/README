@@ -528,6 +528,7 @@ Configuration example (shows default values of attributes):
 ! <config>
 !    <report bytes="yes"
 !            stats="yes"
+!            dropped_fragm_ipv4="yes"
 !            quota="yes"
 !            config="yes"
 !            config_triggers="no"
@@ -578,6 +579,7 @@ A complete state report of the NIC router is structured the following way
 !         <destroyed value="4"/>
 !       </dhcp-allocations>
 !       <arp-waiters> ... </arp-waiters>
+!       <dropped-fragm-ipv4 value="3"/>
 !
 !     </interface>
 !     <interface ...> ... </interface>
@@ -595,6 +597,7 @@ A complete state report of the NIC router is structured the following way
 !       <destroyed value="16"/>
 !     </dhcp-allocations>
 !     <arp-waiters> ... </arp-waiters>
+!     <dropped-fragm-ipv4 value="1"/>
 !
 !   </domain>
 !   <domain ...> ... </domain>
@@ -651,6 +654,15 @@ pending ARP requests respectively DHCP-address allocations at an interface when
 in an <interface> tag. When in a <domain> tag, they only list the number of
 already destroyed objects of these types that can't be correlated anymore to
 any interface of the domain.
+
+'dropped-fragm-ipv4'
+
+A boolean value that controls whether the subtag <dropped-fragm-ipv4> is
+generated in the tags <interface> and <domain>. When in an <interface> tag, the
+value shows the number of packets that were dropped at the corresponding
+interface because they were fragmented IPv4 (which is not supported). When in a
+<domain> tag, the value refers to the number of dropped fragmented IPv4 packets
+that can't be correlated to any interface of the domain anymore.
 
 'quota'
 

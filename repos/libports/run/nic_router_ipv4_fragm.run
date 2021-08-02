@@ -45,7 +45,9 @@ create_boot_directory
 
 import_from_depot [depot_user]/pkg/[drivers_nic_pkg]
 
-build { core init timer server/nic_router app/ping test/lwip/udp }
+build {
+	core init timer server/nic_router app/ping test/lwip/udp
+	server/report_rom }
 
 append config {
 
@@ -83,6 +85,12 @@ append config {
 		</route>
 	</start>
 
+	<start name="report_rom">
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
 	<start name="nic_router" caps="200">
 		<resource name="RAM" quantum="10M"/>
 		<provides>
@@ -95,6 +103,9 @@ append config {
 
 			<policy label_prefix="drivers"              domain="uplink"/>
 			<policy label_prefix="test-lwip-udp-server" domain="downlink"/>
+
+			<report interval_sec="1" config="no" bytes="no" stats="no"
+			        quota="no" dropped_fragm_ipv4="yes"/>
 
 			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
 
@@ -135,7 +146,7 @@ append config {
 install_config $config
 build_boot_image {
 	core init timer nic_router ping test-lwip-udp-server ld.lib.so libc.lib.so
-	libm.lib.so vfs.lib.so vfs_lwip.lib.so }
+	libm.lib.so vfs.lib.so vfs_lwip.lib.so report_rom }
 
 # wait for server ip stack to come up
 run_genode_until {.*lwIP Nic interface up.*\n} 30
@@ -158,4 +169,5 @@ set pattern_string ""
 append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
 append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
 append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
+append pattern_string {.*<dropped-fragm-ipv4 value="3"\/>.*\n}
 run_genode_until $pattern_string 30 $genode_id

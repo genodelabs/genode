@@ -354,6 +354,7 @@ void Interface::_detach_from_domain_raw()
 	_domain = Pointer<Domain>();
 	_policy.interface_unready();
 
+	domain.add_dropped_fragm_ipv4(_dropped_fragm_ipv4);
 	domain.tcp_stats().dissolve_interface(_tcp_stats);
 	domain.udp_stats().dissolve_interface(_udp_stats);
 	domain.icmp_stats().dissolve_interface(_icmp_stats);
@@ -371,6 +372,7 @@ void Interface::_update_domain_object(Domain &new_domain) {
 	_domain = Pointer<Domain>();
 	_policy.interface_unready();
 
+	old_domain.add_dropped_fragm_ipv4(_dropped_fragm_ipv4);
 	old_domain.tcp_stats().dissolve_interface(_tcp_stats);
 	old_domain.udp_stats().dissolve_interface(_udp_stats);
 	old_domain.icmp_stats().dissolve_interface(_icmp_stats);
@@ -1120,6 +1122,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	if (ip.more_fragments() ||
 	    ip.fragment_offset() != 0) {
 
+		_dropped_fragm_ipv4++;
 		throw Drop_packet("fragmented IPv4 not supported");
 	}
 	/* try handling subnet-local IP packets */
@@ -2190,6 +2193,12 @@ void Interface::report(Genode::Xml_generator &xml)
 			try { xml.node("icmp-links",       [&] () { _icmp_stats.report(xml); }); empty = false; } catch (Report::Empty) { }
 			try { xml.node("arp-waiters",      [&] () { _arp_stats.report(xml);  }); empty = false; } catch (Report::Empty) { }
 			try { xml.node("dhcp-allocations", [&] () { _dhcp_stats.report(xml); }); empty = false; } catch (Report::Empty) { }
+		}
+		if (_config().report().dropped_fragm_ipv4() && _dropped_fragm_ipv4) {
+			xml.node("dropped-fragm-ipv4", [&] () {
+				xml.attribute("value", _dropped_fragm_ipv4);
+			});
+			empty = false;
 		}
 		if (empty) { throw Report::Empty(); }
 	});

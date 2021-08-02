@@ -126,6 +126,7 @@ class Net::Domain : public Domain_base,
 		Domain_link_stats                     _icmp_stats           { };
 		Domain_object_stats                   _arp_stats            { };
 		Domain_object_stats                   _dhcp_stats           { };
+		unsigned long                         _dropped_fragm_ipv4   { 0 };
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,
@@ -194,6 +195,8 @@ class Net::Domain : public Domain_base,
 		void raise_tx_bytes(Genode::size_t bytes) { _tx_bytes += bytes; }
 
 		void report(Genode::Xml_generator &xml);
+
+		void add_dropped_fragm_ipv4(unsigned long dropped_fragm_ipv4);
 
 
 		/*********

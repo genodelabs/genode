@@ -48,6 +48,7 @@ class Net::Report
 		bool                      const  _config_triggers;
 		bool                      const  _bytes;
 		bool                      const  _stats;
+		bool                      const  _dropped_fragm_ipv4;
 		bool                      const  _link_state;
 		bool                      const  _link_state_triggers;
 		bool                      const  _quota;
@@ -85,6 +86,7 @@ class Net::Report
 		bool config()               const { return _config; }
 		bool bytes()                const { return _bytes; }
 		bool stats()                const { return _stats; }
+		bool dropped_fragm_ipv4()   const { return _dropped_fragm_ipv4; }
 		bool link_state()           const { return _link_state; }
 		bool link_state_triggers()  const { return _link_state_triggers; }
 };
