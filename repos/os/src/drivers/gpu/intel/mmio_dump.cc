@@ -78,6 +78,21 @@ void Igd::Mmio::error_dump()
 	}
 
 	log("RCS_EIR:        ", Hex(read<RCS_EIR>()));
+	if (read<RCS_EIR::Error_identity_bits>()) {
+		if (read<RCS_EIR::Error_instruction>())
+			log("  Error_instruction");
+		if (read<RCS_EIR::Error_mem_refresh>())
+			log("  Error_mem_refresh");
+		if (read<RCS_EIR::Error_page_table>())
+			log("  Error_page_table");
+
+		auto type = read<RCS_EIR::Error_identity_bits>();
+		if (type != (RCS_EIR::Error_page_table::masked(type) |
+		             RCS_EIR::Error_mem_refresh::masked(type) |
+		             RCS_EIR::Error_instruction::masked(type)))
+			log("  some unknown error bits are set");
+	}
+
 	log("RCS_ESR:        ", Hex(read<RCS_ESR>()));
 	log("RCS_EMR:        ", Hex(read<RCS_EMR>()));
 	log("RCS_INSTDONE:   ", Hex(read<RCS_INSTDONE>()));

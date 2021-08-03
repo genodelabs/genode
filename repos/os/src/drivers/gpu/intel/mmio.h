@@ -481,6 +481,10 @@ class Igd::Mmio : public Genode::Mmio
 
 			struct Reserved            : B::template Bitfield<16, 16> { }; /* MBZ */
 			struct Error_identity_bits : B::template Bitfield< 0, 16> { };
+
+			struct Error_instruction : B::template Bitfield<0, 1>  { };
+			struct Error_mem_refresh : B::template Bitfield<1, 1>  { };
+			struct Error_page_table  : B::template Bitfield<4, 1>  { };
 		};
 
 		struct RCS_EIR : EIR_BASE<0x2000> { };
