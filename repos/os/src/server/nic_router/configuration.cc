@@ -30,21 +30,22 @@ using namespace Genode;
 Configuration::Configuration(Xml_node const  node,
                              Allocator      &alloc)
 :
-	_alloc                  { alloc },
-	_max_packets_per_signal { 0 },
-	_verbose                { false },
-	_verbose_packets        { false },
-	_verbose_packet_drop    { false },
-	_verbose_domain_state   { false },
-	_icmp_echo_server       { false },
-	_dhcp_discover_timeout  { 0 },
-	_dhcp_request_timeout   { 0 },
-	_dhcp_offer_timeout     { 0 },
-	_icmp_idle_timeout      { 0 },
-	_udp_idle_timeout       { 0 },
-	_tcp_idle_timeout       { 0 },
-	_tcp_max_segm_lifetime  { 0 },
-	_node                   { node }
+	_alloc                          { alloc },
+	_max_packets_per_signal         { 0 },
+	_verbose                        { false },
+	_verbose_packets                { false },
+	_verbose_packet_drop            { false },
+	_verbose_domain_state           { false },
+	_icmp_echo_server               { false },
+	_icmp_type_3_code_on_fragm_ipv4 { 0 },
+	_dhcp_discover_timeout          { 0 },
+	_dhcp_request_timeout           { 0 },
+	_dhcp_offer_timeout             { 0 },
+	_icmp_idle_timeout              { 0 },
+	_udp_idle_timeout               { 0 },
+	_tcp_idle_timeout               { 0 },
+	_tcp_max_segm_lifetime          { 0 },
+	_node                           { node }
 { }
 
 
@@ -70,6 +71,37 @@ void Configuration::_invalid_domain(Domain     &domain,
 }
 
 
+Icmp_packet::Code
+Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Xml_node const &node) const
+{
+	char const *const attr_name { "icmp_type_3_code_on_fragm_ipv4" };
+	try {
+		Xml_attribute const &attr { node.attribute(attr_name) };
+		if (attr.has_value("no")) {
+			return Icmp_packet::Code::INVALID;
+		}
+		uint8_t attr_val { };
+		bool const attr_transl_succeeded { attr.value<uint8_t>(attr_val) };
+		Icmp_packet::Code const result {
+			Icmp_packet::code_from_uint8(
+				Icmp_packet::Type::DST_UNREACHABLE, attr_val) };
+
+		if (!attr_transl_succeeded ||
+		    result == Icmp_packet::Code::INVALID) {
+
+			warning("attribute 'icmp_type_3_code_on_fragm_ipv4' has invalid "
+			        "value, assuming value \"no\"");
+
+			return Icmp_packet::Code::INVALID;
+		}
+		return result;
+	}
+	catch (Xml_node::Nonexistent_attribute) {
+		return Icmp_packet::Code::INVALID;
+	}
+}
+
+
 Configuration::Configuration(Env               &env,
                              Xml_node    const  node,
                              Allocator         &alloc,
@@ -78,21 +110,22 @@ Configuration::Configuration(Env               &env,
                              Quota       const &shared_quota,
                              Interface_list    &interfaces)
 :
-	_alloc                  { alloc },
-	_max_packets_per_signal { node.attribute_value("max_packets_per_signal",    (unsigned long)32) },
-	_verbose                { node.attribute_value("verbose",                   false) },
-	_verbose_packets        { node.attribute_value("verbose_packets",           false) },
-	_verbose_packet_drop    { node.attribute_value("verbose_packet_drop",       false) },
-	_verbose_domain_state   { node.attribute_value("verbose_domain_state",      false) },
-	_icmp_echo_server       { node.attribute_value("icmp_echo_server",          true) },
-	_dhcp_discover_timeout  { read_sec_attr(node,  "dhcp_discover_timeout_sec", 10) },
-	_dhcp_request_timeout   { read_sec_attr(node,  "dhcp_request_timeout_sec",  10) },
-	_dhcp_offer_timeout     { read_sec_attr(node,  "dhcp_offer_timeout_sec",    10) },
-	_icmp_idle_timeout      { read_sec_attr(node,  "icmp_idle_timeout_sec",     10) },
-	_udp_idle_timeout       { read_sec_attr(node,  "udp_idle_timeout_sec",      30) },
-	_tcp_idle_timeout       { read_sec_attr(node,  "tcp_idle_timeout_sec",      600) },
-	_tcp_max_segm_lifetime  { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", 30) },
-	_node                   { node }
+	_alloc                          { alloc },
+	_max_packets_per_signal         { node.attribute_value("max_packets_per_signal",    (unsigned long)32) },
+	_verbose                        { node.attribute_value("verbose",                   false) },
+	_verbose_packets                { node.attribute_value("verbose_packets",           false) },
+	_verbose_packet_drop            { node.attribute_value("verbose_packet_drop",       false) },
+	_verbose_domain_state           { node.attribute_value("verbose_domain_state",      false) },
+	_icmp_echo_server               { node.attribute_value("icmp_echo_server",          true) },
+	_icmp_type_3_code_on_fragm_ipv4 { _init_icmp_type_3_code_on_fragm_ipv4(node) },
+	_dhcp_discover_timeout          { read_sec_attr(node,  "dhcp_discover_timeout_sec", 10) },
+	_dhcp_request_timeout           { read_sec_attr(node,  "dhcp_request_timeout_sec",  10) },
+	_dhcp_offer_timeout             { read_sec_attr(node,  "dhcp_offer_timeout_sec",    10) },
+	_icmp_idle_timeout              { read_sec_attr(node,  "icmp_idle_timeout_sec",     10) },
+	_udp_idle_timeout               { read_sec_attr(node,  "udp_idle_timeout_sec",      30) },
+	_tcp_idle_timeout               { read_sec_attr(node,  "tcp_idle_timeout_sec",      600) },
+	_tcp_max_segm_lifetime          { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", 30) },
+	_node                           { node }
 {
 	/* do parts of domain initialization that do not lookup other domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {

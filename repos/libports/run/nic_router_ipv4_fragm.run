@@ -99,7 +99,8 @@ append config {
 		</provides>
 		<config dhcp_discover_timeout_sec="1"
 		        verbose_packets="yes"
-		        verbose_packet_drop="yes">
+		        verbose_packet_drop="yes"
+		        icmp_type_3_code_on_fragm_ipv4="4">
 
 			<policy label_prefix="drivers"              domain="uplink"/>
 			<policy label_prefix="test-lwip-udp-server" domain="downlink"/>
@@ -162,12 +163,18 @@ run_genode_until $pattern_string 30 $spawn_id
 # ping server with ipv4 fragmentation (should fail)
 spawn nping -c 1 --privileged --udp --data-length 1600 --mtu 800 -p 8000 10.0.2.55
 set pattern_string ""
-expect eof
+append pattern_string {.*RCVD .* ICMP .*10\.0\.2\.55 > 10\.0\.2\.1 Fragmentation required.*\n}
+append pattern_string {.*RCVD .* ICMP .*10\.0\.2\.55 > 10\.0\.2\.1 Fragmentation required.*\n}
+append pattern_string {.*RCVD .* ICMP .*10\.0\.2\.55 > 10\.0\.2\.1 Fragmentation required.*\n}
+run_genode_until $pattern_string 30 $spawn_id
 
 # check that the nic router dropped the ipv4 fragments of the second ping
 set pattern_string ""
+append pattern_string {.*snd .*IPV4.* 10\.0\.2\.55 > 10\.0\.2\.1 .*ICMP.* 3 4.*\n}
 append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
+append pattern_string {.*snd .*IPV4.* 10\.0\.2\.55 > 10\.0\.2\.1 .*ICMP.* 3 4.*\n}
 append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
+append pattern_string {.*snd .*IPV4.* 10\.0\.2\.55 > 10\.0\.2\.1 .*ICMP.* 3 4.*\n}
 append pattern_string {.*drop packet .fragmented IPv4 not supported.*\n}
 append pattern_string {.*<dropped-fragm-ipv4 value="3"\/>.*\n}
 run_genode_until $pattern_string 30 $genode_id

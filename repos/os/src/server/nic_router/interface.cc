@@ -1119,14 +1119,18 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 {
 	/* drop fragmented IPv4 as it isn't supported */
 	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
+	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface;
 	if (ip.more_fragments() ||
 	    ip.fragment_offset() != 0) {
 
 		_dropped_fragm_ipv4++;
+		if (_config().icmp_type_3_code_on_fragm_ipv4() != Icmp_packet::Code::INVALID) {
+			_send_icmp_dst_unreachable(
+				local_intf, eth, ip, _config().icmp_type_3_code_on_fragm_ipv4());
+		}
 		throw Drop_packet("fragmented IPv4 not supported");
 	}
 	/* try handling subnet-local IP packets */
-	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface;
 	if (local_intf.prefix_matches(ip.dst()) &&
 	    ip.dst() != local_intf.address)
 	{

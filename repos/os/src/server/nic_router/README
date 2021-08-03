@@ -758,6 +758,24 @@ interfaces assigned, current IPv4 config).
 Other configuration attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+ICMP response to dropped fragmented IPv4
+----------------------------------------
+
+The NIC router can notify the sender of a fragmented IPv4 that was dropped by
+the router (because fragmented IPv4 isn't supported) via an ICMP type-3
+(destination unreachable) packet. This is the attribute that controls this
+functionality:
+
+! <config icmp_type_3_code_on_fragm_ipv4="4">
+
+If not set, the value of the attribute defaults to "no" which results in not
+sending the above mentioned packets on dropped fragmented IPv4 (i.e.,
+fragmented IPv4 gets dropped silently). If the value is set to a number in the
+range from 0 to 15, the above mentioned ICMP responses are sent and the value
+indicates which value the ICMP code field should have in the responses. If the
+value is set to something else than "no" or a number in the range from 0 to 15,
+the router prints a warning to the log and assumes value "no".
+
 
 Maximum number of packets handled per signal
 --------------------------------------------
