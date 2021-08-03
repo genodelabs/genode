@@ -51,9 +51,66 @@ class Net::Icmp_packet
 		enum class Code
 		{
 			DST_NET_UNREACHABLE = 0,
-			ECHO_REQUEST        = 0,
-			ECHO_REPLY          = 0,
+			DST_HOST_UNREACHABLE = 1,
+			DST_PROTOCOL_UNREACHABLE = 2,
+			DST_PORT_UNREACHABLE = 3,
+			FRAGM_REQUIRED_AND_DF_FLAG_SET = 4,
+			SOURCE_ROUTE_FAILED = 5,
+			DST_NET_UNKNOWN = 6,
+			DST_HOST_UNKNOWN = 7,
+			SOURCE_HOST_ISOLATED = 8,
+			NET_ADMINISTRATIVELY_PROHIB = 9,
+			HOST_ADMINISTRATIVELY_PROHIB = 10,
+			NET_UNREACHABLE_FOR_TOS = 11,
+			HOST_UNREACHABLE_FOR_TOS = 12,
+			COM_ADMINISTRATIVELY_PROHIB = 13,
+			HOST_PRECEDENCE_VIOLATION = 14,
+			PRECEDENCE_CUTOFF_IN_EFFECT = 15,
+			ECHO_REQUEST = 0,
+			ECHO_REPLY = 0,
+			INVALID = 255,
 		};
+
+		static Code code_from_uint8(Type            type,
+		                            Genode::uint8_t code)
+		{
+			switch (type) {
+			case Type::DST_UNREACHABLE:
+				switch (code) {
+				case 0:  return Code::DST_NET_UNREACHABLE;
+				case 1:  return Code::DST_HOST_UNREACHABLE;
+				case 2:  return Code::DST_PROTOCOL_UNREACHABLE;
+				case 3:  return Code::DST_PORT_UNREACHABLE;
+				case 4:  return Code::FRAGM_REQUIRED_AND_DF_FLAG_SET;
+				case 5:  return Code::SOURCE_ROUTE_FAILED;
+				case 6:  return Code::DST_NET_UNKNOWN;
+				case 7:  return Code::DST_HOST_UNKNOWN;
+				case 8:  return Code::SOURCE_HOST_ISOLATED;
+				case 9:  return Code::NET_ADMINISTRATIVELY_PROHIB;
+				case 10: return Code::HOST_ADMINISTRATIVELY_PROHIB;
+				case 11: return Code::NET_UNREACHABLE_FOR_TOS;
+				case 12: return Code::HOST_UNREACHABLE_FOR_TOS;
+				case 13: return Code::COM_ADMINISTRATIVELY_PROHIB;
+				case 14: return Code::HOST_PRECEDENCE_VIOLATION;
+				case 15: return Code::PRECEDENCE_CUTOFF_IN_EFFECT;
+				default: break;
+				}
+				break;
+			case Type::ECHO_REPLY:
+				switch (code) {
+				case 0:  return Code::ECHO_REPLY;
+				default: break;
+				}
+				break;
+			case Type::ECHO_REQUEST:
+				switch (code) {
+				case 0:  return Code::ECHO_REQUEST;
+				default: break;
+				}
+				break;
+			}
+			return Code::INVALID;
+		}
 
 		void update_checksum(Genode::size_t data_sz);
 
