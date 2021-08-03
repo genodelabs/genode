@@ -188,7 +188,6 @@ namespace Genode
 				pt.addr    = Genode::Dataspace_client(pt.ds).phys_addr();
 				pt.addr   |= 1;
 				pt.addr   |= 1 << 1;
-				pt.addr   |= 1 << 7;
 				pt.next    = &page;
 
 				pd.ds      = _backend.alloc(PAGE_SIZE);
@@ -235,9 +234,7 @@ class Genode::Level_4_translation_table
 			using Common = Common_descriptor;
 
 			struct Pat : Bitfield<7, 1> { };          /* page attribute table */
-			struct G   : Bitfield<8, 1> { };          /* global               */
 			struct Pa  : Bitfield<12, 36> { };        /* physical address     */
-			struct Mt  : Bitset_3<Pwt, Pcd, Pat> { }; /* memory type          */
 
 			static access_t create(Page_flags const &flags, addr_t const pa)
 			{
@@ -246,9 +243,9 @@ class Genode::Level_4_translation_table
 			}
 
 			static bool scratch(typename Descriptor::access_t desc,
-			                    addr_t scratch_addr)
+			                    addr_t const scratch_addr)
 			{
-				return desc == scratch_addr;
+				return Pa::masked(desc) == Pa::masked(scratch_addr);
 			}
 		};
 
@@ -277,8 +274,7 @@ class Genode::Level_4_translation_table
 				Descriptor::access_t table_entry =
 					Descriptor::create(flags, pa);
 
-				if (    Descriptor::present(desc)
-				    && !Descriptor::scratch(desc, scratch->addr)) {
+				if (!Descriptor::scratch(desc, scratch->addr)) {
 					throw Double_insertion();
 				}
 				desc = table_entry;
@@ -409,10 +405,6 @@ class Genode::Page_directory
 		struct Base_descriptor : Common_descriptor
 		{
 			using Common = Common_descriptor;
-
-			struct Ps : Common::template Bitfield<7, 1> { };  /* page size */
-
-			static bool maps_page(access_t const v) { return Ps::get(v); }
 		};
 
 		struct Page_descriptor : Base_descriptor
@@ -420,26 +412,9 @@ class Genode::Page_directory
 			using Base = Base_descriptor;
 
 			/**
-			 * Global attribute
-			 */
-			struct G : Base::template Bitfield<8, 1> { };
-
-			/**
-			 * Page attribute table
-			 */
-			struct Pat : Base::template Bitfield<12, 1> { };
-
-			/**
 			 * Physical address
 			 */
-			struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
-			                                     48 - PAGE_SIZE_LOG2> { };
-
-			/**
-			 * Memory type
-			 */
-			struct Mt : Base::template Bitset_3<Base::Pwt,
-			                                    Base::Pcd, Pat> { };
+			struct Pa : Base::template Bitfield<12, 36> { };
 
 			static typename Base::access_t create(Page_flags const &flags,
 			                                      addr_t const pa)
@@ -449,9 +424,9 @@ class Genode::Page_directory
 			}
 
 			static bool scratch(typename Page_descriptor::access_t desc,
-			                    addr_t scratch_addr)
+			                    addr_t const scratch_addr)
 			{
-				return desc == scratch_addr;
+				return Pa::masked(desc) == Pa::masked(scratch_addr);
 			}
 		};
 
@@ -463,12 +438,6 @@ class Genode::Page_directory
 			 * Physical address
 			 */
 			struct Pa : Base::template Bitfield<12, 36> { };
-
-			/**
-			 * Memory types
-			 */
-			struct Mt : Base::template Bitset_2<Base::Pwt,
-			                                    Base::Pcd> { };
 
 			static typename Base::access_t create(Page_flags const &flags,
 			                                      addr_t const pa)
@@ -508,8 +477,6 @@ class Genode::Page_directory
 					addr_t const pa = (addr_t)(phys_addr ? phys_addr : table);
 					desc = (typename Base_descriptor::access_t) Table_descriptor::create(flags, pa);
 
-				} else if (Base_descriptor::maps_page(desc)) {
-					throw Double_insertion();
 				} else {
 					Base_descriptor::merge_access_rights(desc, flags);
 					ENTRY * phys_addr = (ENTRY*) Table_descriptor::Pa::masked(desc);
@@ -536,24 +503,18 @@ class Genode::Page_directory
 				                  size_t const size,
 				                  typename Base_descriptor::access_t &desc)
 				{
-					if (Base_descriptor::present(desc) &&
-					    !Page_descriptor::scratch(desc, scratch->addr)) {
+					if (!Page_descriptor::scratch(desc, scratch->addr)) {
+						/* use allocator to retrieve virt address of table */
+						ENTRY *phys_addr = (ENTRY*)
+							Table_descriptor::Pa::masked(desc);
+						ENTRY *table = (ENTRY*) alloc->virt_addr(phys_addr);
+						if (!table) { table = (ENTRY*) phys_addr; }
 
-						if (Base_descriptor::maps_page(desc)) {
+						addr_t const table_vo = vo - (vo & PAGE_MASK);
+						table->remove_translation(table_vo, size, alloc, scratch->next);
+						if (table->empty(scratch->next->addr)) {
+							destroy(alloc, table);
 							desc = scratch->addr;
-						} else {
-							/* use allocator to retrieve virt address of table */
-							ENTRY *phys_addr = (ENTRY*)
-								Table_descriptor::Pa::masked(desc);
-							ENTRY *table = (ENTRY*) alloc->virt_addr(phys_addr);
-							if (!table) { table = (ENTRY*) phys_addr; }
-
-							addr_t const table_vo = vo - (vo & PAGE_MASK);
-							table->remove_translation(table_vo, size, alloc, scratch->next);
-							if (table->empty(scratch->next->addr)) {
-								destroy(alloc, table);
-								desc = scratch->addr;
-							}
 						}
 					}
 				}
@@ -663,7 +624,6 @@ class Genode::Pml4_table
 		struct Descriptor : Common_descriptor
 		{
 			struct Pa : Bitfield<12, 36> { };    /* physical address */
-			struct Mt : Bitset_2<Pwt, Pcd> { };  /* memory type      */
 
 			static access_t create(Page_flags const &flags, addr_t const pa)
 			{
@@ -673,7 +633,7 @@ class Genode::Pml4_table
 
 			static bool scratch(Descriptor::access_t desc, addr_t const pa)
 			{
-				return desc == pa;
+				return Pa::masked(desc) == Pa::masked(pa);
 			}
 		};
 
