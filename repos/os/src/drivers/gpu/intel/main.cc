@@ -437,7 +437,7 @@ struct Igd::Device
 				addr_t const pml4 = ppgtt_phys_addr | 1;
 
 				/* setup context */
-				context.construct(ctx.vaddr(), ring.gmaddr(), ring_size, pml4);
+				context.construct(ctx.vaddr(), ring.gmaddr(), ring_size, pml4, device.generation());
 
 				/* setup execlist */
 				execlist.construct(id, ctx.gmaddr(), ring.vaddr(), ring_size);

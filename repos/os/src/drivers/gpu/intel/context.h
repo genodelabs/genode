@@ -142,8 +142,11 @@ class Igd::Execlist_context : public Igd::Common_context_regs
 
 			struct Mask_bits : R::template Bitfield<16, 16> { };
 
-			struct Inhibit_syn_context_switch_mask : R::template Bitfield<18, 1> { };
+			struct Inhibit_syn_context_switch_mask : R::template Bitfield<19, 1> { };
 			struct Inhibit_syn_context_switch      : R::template Bitfield< 3, 1> { };
+
+			struct Engine_context_save_inhibit_mask : R::template Bitfield< 18, 1> { };
+			struct Engine_context_save_inhibit : R::template Bitfield< 2, 1> { };
 
 			struct Rs_context_enable_mask : R::template Bitfield<17, 1> { };
 			struct Rs_context_enable      : R::template Bitfield< 1, 1> { };
@@ -356,10 +359,11 @@ class Igd::Execlist_context : public Igd::Common_context_regs
 
 	public:
 
-		Execlist_context(addr_t base,
-		                 addr_t ring_buffer_start,
-		                 size_t ring_buffer_length,
-		                 uint32_t immediate_header)
+		Execlist_context(addr_t     const base,
+		                 addr_t     const ring_buffer_start,
+		                 size_t     const ring_buffer_length,
+		                 uint32_t   const immediate_header,
+		                 Generation const gen)
 		:
 			Common_context_regs(base)
 		{
@@ -371,6 +375,12 @@ class Igd::Execlist_context : public Igd::Common_context_regs
 				Context_control_value::Engine_context_restore_inhibit::set(v, 1);
 				Context_control_value::Inhibit_syn_context_switch_mask::set(v, 1);
 				Context_control_value::Inhibit_syn_context_switch::set(v, 1);
+				if (gen.value < 11) {
+					Context_control_value::Engine_context_save_inhibit_mask::set(v, 1);
+					Context_control_value::Engine_context_save_inhibit::set(v, 0);
+					Context_control_value::Rs_context_enable_mask::set(v, 1);
+					Context_control_value::Rs_context_enable::set(v, 0);
+				}
 				write<Context_control_value>(v);
 			}
 			write_offset<Ring_buffer_head_mmio>(RING_BASE);
@@ -747,15 +757,16 @@ class Igd::Rcs_context
 
 	public:
 
-		Rcs_context(addr_t   map_base,
-		            addr_t   ring_buffer_start,
-		            size_t   ring_buffer_length,
-		            uint64_t plm4_addr)
+		Rcs_context(addr_t     const map_base,
+		            addr_t     const ring_buffer_start,
+		            size_t     const ring_buffer_length,
+		            uint64_t   const plm4_addr,
+		            Generation const gen)
 		:
 			_hw_status_page(map_base),
 			_execlist_context((addr_t)(map_base + HW_STATUS_PAGE_SIZE),
 			                  ring_buffer_start, ring_buffer_length,
-			                  EXECLIST_CTX_IH),
+			                  EXECLIST_CTX_IH, gen),
 			_ppgtt_context((addr_t)(map_base + HW_STATUS_PAGE_SIZE), plm4_addr),
 			_engine_context(),
 			_ext_engine_context(),
