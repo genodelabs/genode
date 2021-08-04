@@ -568,8 +568,9 @@ struct Igd::Device
 
 			Ring_buffer::Index advance = 0;
 
-			size_t const need = 4 /* batchbuffer cmd */ + 6 /* prolog */ + 16 /* epilog + w/a */
-			                  + (_device.generation().value == 9) ? 6 : 0;
+			size_t const need = 4 /* batchbuffer cmd */ + 6 /* prolog */
+			                  + ((_device.generation().value == 9) ? 6 : 0)
+			                  + ((_device.generation().value == 8) ? 20 : 22); /* epilog + w/a */
 			if (!el.ring_avail(need)) { el.ring_reset_and_fill_zero(); }
 
 			/* save old tail */
@@ -612,40 +613,94 @@ struct Igd::Device
 				tmp |= Igd::Pipe_control::CONST_CACHE_INVALIDATE;
 				tmp |= Igd::Pipe_control::STATE_CACHE_INVALIDATE;
 				tmp |= Igd::Pipe_control::QW_WRITE;
+				tmp |= Igd::Pipe_control::STORE_DATA_INDEX;
+
+/*
 				tmp |= Igd::Pipe_control::GLOBAL_GTT_IVB;
 				tmp |= Igd::Pipe_control::DC_FLUSH_ENABLE;
 				tmp |= Igd::Pipe_control::INDIRECT_STATE_DISABLE;
 				tmp |= Igd::Pipe_control::MEDIA_STATE_CLEAR;
+*/
 
 				cmd[1] = tmp;
 				cmd[2] = scratch_addr;
-				cmd[3] = 0;
-				cmd[4] = 0;
-				cmd[5] = 0;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
 				}
 			}
 
-			/* batch-buffer commands */
-			if (1)
+			#define MI_INSTR(opcode, flags) (((opcode) << 23) | (flags))
+			#define MI_NOOP          MI_INSTR(0u, 0)
+			#define MI_ARB_ON_OFF    MI_INSTR(0x08u, 0)
+			#define   MI_ARB_ENABLE     (1u<<0)
+			#define   MI_ARB_DISABLE    (0u<<0)
+			#define MI_ARB_CHECK     MI_INSTR(0x05u, 0)
+
+			/*
+			 * gen8_emit_bb_start_noarb, gen8 and render engine
+			 *
+			 * batch-buffer commands
+			 */
+			if (_device.generation().value == 8)
 			{
-				enum { CMD_NUM = 4, };
+				enum { CMD_NUM = 4 };
 				Genode::uint32_t cmd[CMD_NUM] = {};
 				Igd::Mi_batch_buffer_start mi;
 
-				cmd[0] = mi.value;
-				cmd[1] = buffer_addr & 0xffffffff;
-				cmd[2] = (buffer_addr >> 32) & 0xffff;
-				cmd[3] = 0; /* MI_NOOP */
+				cmd[0] = MI_ARB_ON_OFF | MI_ARB_DISABLE;
+				cmd[1] = mi.value;
+				cmd[2] = buffer_addr & 0xffffffff;
+				cmd[3] = (buffer_addr >> 32) & 0xffff;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
 				}
 			}
 
-			/* epilog */
+			/*
+			 * gen8_emit_bb_start, gen9
+			 *
+			 * batch-buffer commands
+			 */
+			if (_device.generation().value >= 9)
+			{
+				enum { CMD_NUM = 6 };
+				Genode::uint32_t cmd[CMD_NUM] = {};
+				Igd::Mi_batch_buffer_start mi;
+
+				cmd[0] = MI_ARB_ON_OFF | MI_ARB_ENABLE;
+				cmd[1] = mi.value;
+				cmd[2] = buffer_addr & 0xffffffff;
+				cmd[3] = (buffer_addr >> 32) & 0xffff;
+				cmd[4] = MI_ARB_ON_OFF | MI_ARB_DISABLE;
+				cmd[5] = MI_NOOP;
+
+				for (size_t i = 0; i < CMD_NUM; i++) {
+					advance += el.ring_append(cmd[i]);
+				}
+			}
+
+			/* epilog 1/3 - gen8_emit_fini_breadcrumb_rcs, gen8_emit_pipe_control */
+			if (1)
+			{
+				enum { CMD_NUM = 6 };
+				Genode::uint32_t cmd[CMD_NUM] = {};
+				Igd::Pipe_control pc(CMD_NUM);
+				cmd[0] = pc.value;
+				Genode::uint32_t tmp = 0;
+				tmp |= Igd::Pipe_control::RENDER_TARGET_CACHE_FLUSH;
+				tmp |= Igd::Pipe_control::DEPTH_CACHE_FLUSH;
+				tmp |= Igd::Pipe_control::DC_FLUSH_ENABLE;
+
+				cmd[1] = tmp;
+
+				for (size_t i = 0; i < CMD_NUM; i++) {
+					advance += el.ring_append(cmd[i]);
+				}
+			}
+
+			/* epilog 2/3 - gen8_emit_fini_breadcrumb_rcs, gen8_emit_ggtt_write_rcs */
 			if (1)
 			{
 				enum { CMD_NUM = 6, HWS_DATA = 0xc0, };
@@ -654,16 +709,15 @@ struct Igd::Device
 				cmd[0] = pc.value;
 				Genode::uint32_t tmp = 0;
 				tmp |= Igd::Pipe_control::CS_STALL;
-				tmp |= Igd::Pipe_control::RENDER_TARGET_CACHE_FLUSH;
-				tmp |= Igd::Pipe_control::DEPTH_CACHE_FLUSH;
-				tmp |= Igd::Pipe_control::DC_FLUSH_ENABLE;
 				tmp |= Igd::Pipe_control::FLUSH_ENABLE;
+				tmp |= Igd::Pipe_control::GLOBAL_GTT_IVB;
+				tmp |= Igd::Pipe_control::QW_WRITE;
 
 				cmd[1] = tmp;
-				cmd[2] = scratch_addr;
-				cmd[3] = 0;
-				cmd[4] = 0;
-				cmd[5] = 0;
+				cmd[2] = (rcs.hw_status_page() + HWS_DATA) & 0xffffffff;
+				cmd[3] = 0; /* upper addr 0 */
+				cmd[4] = _current_seqno & 0xffffffff;
+				cmd[5] = _current_seqno >> 32;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
@@ -671,40 +725,37 @@ struct Igd::Device
 			}
 
 			/*
+			 * epilog 3/3 - gen8_emit_fini_breadcrumb_rcs, gen8_emit_fini_breadcrumb_tail
+			 *
 			 * IHD-OS-BDW-Vol 2d-11.15 p. 199 ff.
 			 *
 			 * HWS page layout dword 48 - 1023 for driver usage
 			 */
+
 			if (1)
 			{
-				enum { CMD_NUM = 8, HWS_DATA = 0xc0, };
-				Genode::uint32_t cmd[8] = {};
-				Igd::Pipe_control pc(6);
-				cmd[0] = pc.value;
-				Genode::uint32_t tmp = 0;
-				tmp |= Igd::Pipe_control::GLOBAL_GTT_IVB;
-				tmp |= Igd::Pipe_control::CS_STALL;
-				tmp |= Igd::Pipe_control::QW_WRITE;
-				cmd[1] = tmp;
-				cmd[2] = (rcs.hw_status_page() + HWS_DATA) & 0xffffffff;
-				cmd[3] = 0; /* upper addr 0 */
-				cmd[4] = _current_seqno & 0xffffffff;
-				cmd[5] = _current_seqno >> 32;
+				enum { CMD_NUM = 2 };
+				Genode::uint32_t cmd[2] = {};
 				Igd::Mi_user_interrupt ui;
-				cmd[6] = ui.value;
-				cmd[7] = 0; /* MI_NOOP */
+				cmd[0] = ui.value;
+				cmd[1] = MI_ARB_ON_OFF | MI_ARB_ENABLE;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
 				}
 			}
 
-			/* w/a */
 			if (1)
 			{
-				enum { CMD_NUM = 2, };
+				/* gen8_emit_fini_breadcrumb_tail -> gen8_emit_wa_tail */
+				enum { CMD_NUM = 2 };
+				Genode::uint32_t cmd[2] = {};
+				Igd::Mi_user_interrupt ui;
+				cmd[0] = MI_ARB_CHECK;
+				cmd[1] = MI_NOOP;
+
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(0);
+					advance += el.ring_append(cmd[i]);
 				}
 			}
 
