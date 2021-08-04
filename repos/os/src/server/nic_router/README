@@ -469,10 +469,10 @@ be in the subnet defined by the 'interface' attribute of the <domain> tag and
 must not cover the IPv4 address given by this attribute.
 
 The <dns-server> sub-tags from the first example statically provide a list of
-DNS server addresses that shall be propagated by the DHCP server through DHCP
-option 6 entries to its clients. These addresses might be of any IP subnet. The
-DHCP option 6 entries in the DHCP replies will have the same order as the
-<dns-server> tags in the configuration.
+DNS server addresses that shall be propagated by the DHCP server through a DHCP
+option 6 entry to its clients. These addresses might be of any IP subnet. The
+addresses in the DHCP option 6 entry in the DHCP replies will have the same
+order as the <dns-server> tags in the configuration.
 
 The 'dns_server_from' attribute from the second example takes effect only when
 the <dhcp-server> tag does not contain any <dns-server> sub-tags. The attribute
@@ -484,8 +484,8 @@ dynamically through the DHCP client of another domain. An implication of the
 domain with the DHCP server becomes bound to the validity of the IP config of
 the domain that is stated in the attribute.
 
-The lifetime of an assignment that was yet only offered to the client can be
-configured for all domains in the <config> tag of the router:
+The lifetime of an IP address assignment that was yet only offered to the
+client can be configured for all domains in the <config> tag of the router:
 
 ! <config dhcp_offer_timeout_sec="6">
 
@@ -692,10 +692,9 @@ attribute 'ipv4' contains the current IPv4 address of the router in this domain
 suffixed by the length of the subnet prefix in bits. The 'gw' attribute
 contains the IPv4 address of the gateway in this domain. Each <dns> subtag of a
 <domain> tag shows the IPv4 address of a DNS server known to this domain. The
-<dns> subtags have the same order that the addresses had when the router
-received them (i.e., the order of DHCP option 6 entries in the corresponding
-DHCP replies or the order of <dns> entries in the corresponding router
-configuration).
+<dns> subtags have the same order that the addresses had in the DHCP option 6
+entry of the DHCP reply that the router received and that led to the current
+IPv4 configuration of the domain.
 
 'config_triggers'
 

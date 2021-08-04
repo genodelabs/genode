@@ -201,6 +201,32 @@ class Net::Dhcp_packet
 			Parameter_request_list(Genode::size_t len) : Option(CODE, len) { }
 		};
 
+		/**
+		 * Domain name server option
+		 */
+		class Dns_server : public Option
+		{
+			private:
+
+				Ipv4_address _dns_servers[0];
+
+			public:
+
+				static constexpr Code CODE = Code::DNS_SERVER;
+
+				Dns_server(Genode::size_t len) : Option(CODE, len) { }
+
+				template <typename FUNC>
+				void for_each_address(FUNC && func) const
+				{
+					for (unsigned idx = 0;
+					     idx < len() / sizeof(_dns_servers[0]); idx++) {
+
+						func(_dns_servers[idx]);
+					}
+				}
+		};
+
 		enum class Message_type : Genode::uint8_t {
 			DISCOVER  = 1,
 			OFFER     = 2,
@@ -341,6 +367,36 @@ class Net::Dhcp_packet
 						Genode::size_t size() const { return _size; }
 				};
 
+				class Dns_server_data
+				{
+					private:
+
+						Ipv4_address *const  _addr_array;
+						Genode::size_t       _addr_idx { 0 };
+						SIZE_GUARD          &_pkt_size_guard;
+
+					public:
+
+						Dns_server_data(Ipv4_address *addr_array,
+						                SIZE_GUARD   &pkt_size_guard)
+						:
+							_addr_array     { addr_array },
+							_pkt_size_guard { pkt_size_guard }
+						{ }
+
+						void append_address(Ipv4_address const &addr)
+						{
+							_pkt_size_guard.consume_head(sizeof(_addr_array[0]));
+							_addr_array[_addr_idx] = addr;
+							_addr_idx++;
+						}
+
+						Genode::size_t size() const
+						{
+							return _addr_idx * sizeof(Ipv4_address);
+						}
+				};
+
 				Options_aggregator(Dhcp_packet &packet,
 				                   SIZE_GUARD  &size_guard)
 				:
@@ -370,6 +426,21 @@ class Net::Dhcp_packet
 					                                             data.size());
 
 					_base += sizeof(Parameter_request_list) + data.size();
+				}
+
+				template <typename INIT_DATA>
+				void append_dns_server(INIT_DATA && init_data)
+				{
+					Genode::size_t const header_size { sizeof(Dns_server) };
+					_size_guard.consume_head(header_size);
+					Dns_server_data data {
+						(Ipv4_address *)(_base + header_size), _size_guard };
+
+					init_data(data);
+					Genode::construct_at<Dns_server>(
+						(void *)_base, data.size());
+
+					_base += header_size + data.size();
 				}
 		};
 

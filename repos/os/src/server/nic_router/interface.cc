@@ -37,6 +37,7 @@ using Genode::Constructible;
 using Genode::Reconstructible;
 using Genode::Signal_context_capability;
 using Genode::Signal_transmitter;
+using Dhcp_options = Dhcp_packet::Options_aggregator<Size_guard>;
 
 
 /***************
@@ -671,8 +672,11 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 		dhcp_opts.append_option<Dhcp_packet::Ip_lease_time>(dhcp_srv.ip_lease_time().value / 1000 / 1000);
 		dhcp_opts.append_option<Dhcp_packet::Subnet_mask>(local_intf.subnet_mask());
 		dhcp_opts.append_option<Dhcp_packet::Router_ipv4>(local_intf.address);
-		dhcp_srv.for_each_dns_server_ip([&] (Ipv4_address const &dns_server_ip) {
-			dhcp_opts.append_option<Dhcp_packet::Dns_server_ipv4>(dns_server_ip);
+
+		dhcp_opts.append_dns_server([&] (Dhcp_options::Dns_server_data &data) {
+			dhcp_srv.for_each_dns_server_ip([&] (Ipv4_address const &addr) {
+				data.append_address(addr);
+			});
 		});
 		dhcp_opts.append_option<Dhcp_packet::Broadcast_addr>(local_intf.broadcast_address());
 		dhcp_opts.append_option<Dhcp_packet::Options_end>();

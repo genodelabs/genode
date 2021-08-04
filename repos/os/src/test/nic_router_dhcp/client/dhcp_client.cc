@@ -170,24 +170,28 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 			log("  Interface: ", Ipv4_address_prefix(dhcp.yiaddr(), dhcp.option<Dhcp_packet::Subnet_mask>().value()));
 			log("  Router: ", dhcp.option<Dhcp_packet::Router_ipv4>().value());
 
-			Ipv4_address dns_server { };
+			Ipv4_address dns_server_addr { };
 			unsigned idx { 1 };
-			dhcp.for_each_option([&] (Dhcp_packet::Option const &opt)
-			{
-				if (!dns_server.valid()) {
-					dns_server = reinterpret_cast<Dhcp_packet::Dns_server_ipv4 const *>(&opt)->value();
-				}
-				if (opt.code() != Dhcp_packet::Option::Code::DNS_SERVER) {
-					return;
-				}
-				log("  DNS server #", idx++, ": ", reinterpret_cast<Dhcp_packet::Dns_server_ipv4 const *>(&opt)->value());
-			});
+			try {
+				Dhcp_packet::Dns_server const &dns_server {
+					dhcp.option<Dhcp_packet::Dns_server>() };
+
+				dns_server.for_each_address([&] (Ipv4_address const &addr) {
+
+					if (!dns_server_addr.valid()) {
+						dns_server_addr = addr;
+					}
+					log("  DNS server #", idx++, ": ", addr);
+				});
+			}
+			catch (Dhcp_packet::Option_not_found) { }
+
 			Ipv4_config ip_config(
 				Ipv4_address_prefix(
 					dhcp.yiaddr(),
 					dhcp.option<Dhcp_packet::Subnet_mask>().value()),
 				dhcp.option<Dhcp_packet::Router_ipv4>().value(),
-				dns_server);
+				dns_server_addr);
 
 			_handler.ip_config(ip_config);
 			break;

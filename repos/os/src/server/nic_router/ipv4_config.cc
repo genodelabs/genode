@@ -60,18 +60,16 @@ Ipv4_config::Ipv4_config(Dhcp_packet &dhcp_ack,
 	             dhcp_ipv4_option<Dhcp_packet::Subnet_mask>(dhcp_ack) },
 	gateway    { dhcp_ipv4_option<Dhcp_packet::Router_ipv4>(dhcp_ack) }
 {
-	dhcp_ack.for_each_option([&] (Dhcp_packet::Option const &opt)
-	{
-		if (opt.code() != Dhcp_packet::Option::Code::DNS_SERVER) {
-			return;
-		}
-		try {
-			dns_servers.insert_as_tail(*new (alloc)
-				Dns_server(
-					reinterpret_cast<Dhcp_packet::Dns_server_ipv4 const *>(&opt)->value()));
-		}
-		catch (Dns_server::Invalid) { }
-	});
+
+	try {
+		Dhcp_packet::Dns_server const &dns_server {
+			dhcp_ack.option<Dhcp_packet::Dns_server>() };
+
+		dns_server.for_each_address([&] (Ipv4_address const &addr) {
+			dns_servers.insert_as_tail(*new (alloc) Dns_server(addr));
+		});
+	}
+	catch (Dhcp_packet::Option_not_found) { }
 }
 
 
