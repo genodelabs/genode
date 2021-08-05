@@ -24,56 +24,70 @@
 
 namespace Net { class Ipv4_config; }
 
-struct Net::Ipv4_config
+class Net::Ipv4_config
 {
-	Genode::Allocator           &alloc;
-	Ipv4_address_prefix   const  interface;
-	bool                  const  interface_valid { interface.valid() };
-	Ipv4_address          const  gateway;
-	bool                  const  gateway_valid   { gateway.valid() };
-	bool                  const  point_to_point  { gateway_valid &&
-	                                               interface_valid &&
-	                                               interface.prefix == 32 };
-	Net::List<Dns_server>        dns_servers     { };
-	bool                  const  valid           { point_to_point ||
-	                                               (interface_valid &&
-	                                                (!gateway_valid ||
-	                                                 interface.prefix_matches(gateway))) };
+	private:
 
-	Ipv4_config(Net::Dhcp_packet  &dhcp_ack,
-	            Genode::Allocator &alloc);
+		Genode::Allocator           &_alloc;
+		Ipv4_address_prefix   const  _interface;
+		bool                  const  _interface_valid { _interface.valid() };
+		Ipv4_address          const  _gateway;
+		bool                  const  _gateway_valid   { _gateway.valid() };
+		bool                  const  _point_to_point  { _gateway_valid &&
+		                                               _interface_valid &&
+		                                               _interface.prefix == 32 };
+		Net::List<Dns_server>        _dns_servers     { };
+		bool                  const  _valid           { _point_to_point ||
+		                                               (_interface_valid &&
+		                                                (!_gateway_valid ||
+		                                                 _interface.prefix_matches(_gateway))) };
 
-	Ipv4_config(Genode::Xml_node const &domain_node,
-	            Genode::Allocator      &alloc);
+	public:
 
-	Ipv4_config(Ipv4_config const &ip_config,
-	            Genode::Allocator &alloc);
+		Ipv4_config(Net::Dhcp_packet  &dhcp_ack,
+		            Genode::Allocator &alloc);
 
-	Ipv4_config(Genode::Allocator &alloc);
+		Ipv4_config(Genode::Xml_node const &domain_node,
+		            Genode::Allocator      &alloc);
 
-	~Ipv4_config();
+		Ipv4_config(Ipv4_config const &ip_config,
+		            Genode::Allocator &alloc);
 
-	bool operator != (Ipv4_config const &other) const
-	{
-		return interface  != other.interface ||
-		       gateway    != other.gateway ||
-		       !dns_servers.equal_to(other.dns_servers);
-	}
+		Ipv4_config(Genode::Allocator &alloc);
 
-	template <typename FUNC>
-	void for_each_dns_server(FUNC && functor) const
-	{
-		dns_servers.for_each([&] (Dns_server const &dns_server) {
-			functor(dns_server);
-		});
-	}
+		~Ipv4_config();
+
+		bool operator != (Ipv4_config const &other) const
+		{
+			return _interface  != other._interface ||
+			       _gateway    != other._gateway ||
+			       !_dns_servers.equal_to(other._dns_servers);
+		}
+
+		template <typename FUNC>
+		void for_each_dns_server(FUNC && functor) const
+		{
+			_dns_servers.for_each([&] (Dns_server const &dns_server) {
+				functor(dns_server);
+			});
+		}
 
 
-	/*********
-	 ** log **
-	 *********/
+		/*********
+		 ** log **
+		 *********/
 
-	void print(Genode::Output &output) const;
+		void print(Genode::Output &output) const;
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		bool                       valid()         const { return _valid; }
+		Ipv4_address_prefix const &interface()     const { return _interface; }
+		Ipv4_address        const &gateway()       const { return _gateway; }
+		bool                       gateway_valid() const { return _gateway_valid; }
 };
 
 #endif /* _IPV4_CONFIG_H_ */

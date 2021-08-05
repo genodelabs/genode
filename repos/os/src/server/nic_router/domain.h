@@ -107,7 +107,7 @@ class Net::Domain : public Domain_base,
 		unsigned long                         _interface_cnt        { 0 };
 		Pointer<Dhcp_server>                  _dhcp_server          { };
 		Genode::Reconstructible<Ipv4_config>  _ip_config;
-		bool                            const _ip_config_dynamic    { !ip_config().valid };
+		bool                            const _ip_config_dynamic    { !ip_config().valid() };
 		List<Domain>                          _ip_config_dependents { };
 		Arp_cache                             _arp_cache            { *this };
 		Arp_waiter_list                       _foreign_arp_waiters  { };

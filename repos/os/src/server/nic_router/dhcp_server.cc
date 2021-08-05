@@ -196,7 +196,7 @@ bool Dhcp_server::ready() const
 	if (!_dns_servers.empty()) {
 		return true;
 	}
-	try { return _dns_server_from().ip_config().valid; }
+	try { return _dns_server_from().ip_config().valid(); }
 	catch (Pointer<Domain>::Invalid) { }
 	return true;
 }

@@ -72,7 +72,7 @@ void Dhcp_client::discover()
 void Dhcp_client::_rerequest(State next_state)
 {
 	_set_state(next_state, _rerequest_timeout(2));
-	Ipv4_address const client_ip = _domain().ip_config().interface.address;
+	Ipv4_address const client_ip = _domain().ip_config().interface().address;
 	_send(Message_type::REQUEST, client_ip, Ipv4_address(), client_ip);
 }
 

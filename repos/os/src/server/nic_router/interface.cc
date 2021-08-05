@@ -414,7 +414,7 @@ void Interface::attach_to_domain_finish()
 	/* if domain has yet no IP config, participate in requesting one */
 	Domain &domain = _domain();
 	Ipv4_config const &ip_config = domain.ip_config();
-	if (!ip_config.valid) {
+	if (!ip_config.valid()) {
 		_dhcp_client->discover();
 		return;
 	}
@@ -427,7 +427,7 @@ void Interface::attach_to_ip_config(Domain            &domain,
 {
 	/* if others wait for ARP at the domain, participate in requesting it */
 	domain.foreign_arp_waiters().for_each([&] (Arp_waiter_list_element &le) {
-		_broadcast_arp_request(ip_config.interface.address,
+		_broadcast_arp_request(ip_config.interface().address,
 		                       le.object()->ip());
 	});
 }
@@ -555,7 +555,7 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
                            Domain                  &remote_domain)
 {
 	Ipv4_config const &remote_ip_cfg = remote_domain.ip_config();
-	if (!remote_ip_cfg.valid) {
+	if (!remote_ip_cfg.valid()) {
 		throw Drop_packet("target domain has yet no IP config");
 	}
 	if (remote_domain.use_arp()) {
@@ -564,7 +564,7 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
 		try { eth.dst(remote_domain.arp_cache().find_by_ip(hop_ip).mac()); }
 		catch (Arp_cache::No_match) {
 			remote_domain.interfaces().for_each([&] (Interface &interface) {
-				interface._broadcast_arp_request(remote_ip_cfg.interface.address,
+				interface._broadcast_arp_request(remote_ip_cfg.interface().address,
 				                                 hop_ip);
 			});
 			try { new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt }; }
@@ -595,7 +595,7 @@ void Interface::_nat_link_and_pass(Ethernet_frame        &eth,
 				log("[", local_domain, "] using NAT rule: ", nat); }
 
 			_src_port(prot, prot_base, nat.port_alloc(prot).alloc());
-			ip.src(remote_domain.ip_config().interface.address);
+			ip.src(remote_domain.ip_config().interface().address);
 			remote_port_alloc = nat.port_alloc(prot);
 		}
 		catch (Nat_rule_tree::No_match) { }
@@ -718,7 +718,7 @@ void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
 		                 allocation.ip(),
 		                 Dhcp_packet::Message_type::OFFER,
 		                 dhcp.xid(),
-		                 local_domain.ip_config().interface);
+		                 local_domain.ip_config().interface());
 	}
 	catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(); }
 	catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(); }
@@ -743,7 +743,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 				_dhcp_allocations.find_by_mac(dhcp.client_mac());
 
 			Ipv4_address_prefix const &local_intf =
-				local_domain.ip_config().interface;
+				local_domain.ip_config().interface();
 
 			switch (msg_type) {
 			case Dhcp_packet::Message_type::DISCOVER:
@@ -915,7 +915,7 @@ void Interface::handle_interface_link_state()
 
 		/* if the whole domain is down, discard IP config */
 		Domain &domain_ = domain();
-		if (!link_state() && domain_.ip_config().valid) {
+		if (!link_state() && domain_.ip_config().valid()) {
 			domain_.interfaces().for_each([&] (Interface &interface) {
 				if (interface.link_state()) {
 					throw Keep_ip_config(); }
@@ -1051,7 +1051,7 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
 		}
 		/* adapt source and destination of Ethernet frame and IP packet */
 		_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
-		if (remote_side.dst_ip() == remote_domain.ip_config().interface.address) {
+		if (remote_side.dst_ip() == remote_domain.ip_config().interface().address) {
 			ip.src(remote_side.dst_ip());
 		}
 		ip.dst(remote_side.src_ip());
@@ -1123,7 +1123,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 {
 	/* drop fragmented IPv4 as it isn't supported */
 	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
-	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface;
+	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface();
 	if (ip.more_fragments() ||
 	    ip.fragment_offset() != 0) {
 
@@ -1350,7 +1350,7 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
 			destroy(waiter.src()._alloc, &waiter);
 		}
 	}
-	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface;
+	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface();
 	if (local_intf.prefix_matches(arp.dst_ip()) &&
 	    arp.dst_ip() != local_intf.address)
 	{
@@ -1400,7 +1400,7 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
                                     Domain         &local_domain)
 {
 	Ipv4_config         const &local_ip_cfg = local_domain.ip_config();
-	Ipv4_address_prefix const &local_intf   = local_ip_cfg.interface;
+	Ipv4_address_prefix const &local_intf   = local_ip_cfg.interface();
 	if (local_intf.prefix_matches(arp.dst_ip())) {
 
 		/* ARP request for an IP local to the domain's subnet */
@@ -1429,7 +1429,7 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 	} else {
 
 		/* ARP request for an IP foreign to the domain's subnet */
-		if (local_ip_cfg.gateway_valid) {
+		if (local_ip_cfg.gateway_valid()) {
 
 			/* leave request up to the gateway of the domain */
 			throw Drop_packet("leave ARP request up to gateway");
@@ -1542,7 +1542,7 @@ void Interface::_handle_eth(Ethernet_frame           &eth,
                             Packet_descriptor  const &pkt,
                             Domain                   &local_domain)
 {
-	if (local_domain.ip_config().valid) {
+	if (local_domain.ip_config().valid()) {
 
 		switch (eth.type()) {
 		case Ethernet_frame::Type::ARP:  _handle_arp(eth, size_guard, local_domain);     break;
@@ -1801,7 +1801,7 @@ void Interface::_update_link_check_nat(Link        &link,
 		return;
 	}
 	try {
-		if (link.server().dst_ip() != new_srv_dom.ip_config().interface.address) {
+		if (link.server().dst_ip() != new_srv_dom.ip_config().interface().address) {
 			_dismiss_link_log(link, "NAT IP");
 			throw Dismiss_link();
 		}
@@ -2125,7 +2125,7 @@ void Interface::handle_config_3()
 			return;
 		}
 		/* if there was/is no IP config, there is nothing more to update */
-		if (!new_domain.ip_config().valid) {
+		if (!new_domain.ip_config().valid()) {
 			return;
 		}
 		/* update state objects */

@@ -42,20 +42,9 @@ Domain_base::Domain_base(Xml_node const node)
 
 void Domain::_log_ip_config() const
 {
-	Ipv4_config const &ip_config = *_ip_config;
-	if (_config.verbose()) {
-		if (!ip_config.valid &&
-			(ip_config.interface_valid ||
-			 ip_config.gateway_valid ||
-			 !ip_config.dns_servers.empty()))
-		{
-			log("[", *this, "] malformed ", _ip_config_dynamic ? "dynamic" :
-			    "static", "IP config: ", ip_config);
-		}
-	}
 	if (_config.verbose_domain_state()) {
 		log("[", *this, "] ", _ip_config_dynamic ? "dynamic" : "static",
-		    " IP config: ", ip_config);
+		    " IP config: ", *_ip_config);
 	}
 }
 
@@ -66,7 +55,7 @@ void Domain::_prepare_reconstructing_ip_config()
 		throw Ip_config_static(); }
 
 	/* discard old IP config if any */
-	if (ip_config().valid) {
+	if (ip_config().valid()) {
 
 		/* mark IP config invalid */
 		_ip_config.construct(_alloc);
@@ -94,7 +83,7 @@ void Domain::_finish_reconstructing_ip_config()
 	_log_ip_config();
 
 	/* attach all dependent interfaces to new IP config if it is valid */
-	if (ip_config().valid) {
+	if (ip_config().valid()) {
 		_interfaces.for_each([&] (Interface &interface) {
 			interface.attach_to_ip_config(*this, ip_config());
 		});
@@ -130,9 +119,9 @@ void Domain::ip_config_from_dhcp_ack(Dhcp_packet &dhcp_ack)
 
 void Domain::try_reuse_ip_config(Domain const &domain)
 {
-	if (ip_config().valid ||
+	if (ip_config().valid() ||
 	    !_ip_config_dynamic ||
-	    !domain.ip_config().valid ||
+	    !domain.ip_config().valid() ||
 	    !domain._ip_config_dynamic)
 	{
 		return;
@@ -261,7 +250,7 @@ void Domain::init(Domain_tree &domains)
 		try {
 			Dhcp_server &dhcp_server = *new (_alloc)
 				Dhcp_server(dhcp_server_node, *this, _alloc,
-				            ip_config().interface, domains);
+				            ip_config().interface(), domains);
 
 			try {
 				dhcp_server.
@@ -355,8 +344,8 @@ void Domain::deinit()
 
 Ipv4_address const &Domain::next_hop(Ipv4_address const &ip) const
 {
-	if (ip_config().interface.prefix_matches(ip)) { return ip; }
-	if (ip_config().gateway_valid) { return ip_config().gateway; }
+	if (ip_config().interface().prefix_matches(ip)) { return ip; }
+	if (ip_config().gateway_valid()) { return ip_config().gateway(); }
 	throw No_next_hop();
 }
 
@@ -401,8 +390,8 @@ void Domain::report(Xml_generator &xml)
 			empty = false;
 		}
 		if (_config.report().config()) {
-			xml.attribute("ipv4", String<19>(ip_config().interface));
-			xml.attribute("gw",   String<16>(ip_config().gateway));
+			xml.attribute("ipv4", String<19>(ip_config().interface()));
+			xml.attribute("gw",   String<16>(ip_config().gateway()));
 			ip_config().for_each_dns_server([&] (Dns_server const &dns_server) {
 				xml.node("dns", [&] () {
 					xml.attribute("ip", String<16>(dns_server.ip()));
