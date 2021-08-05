@@ -559,7 +559,7 @@ struct Igd::Device
 			_completed_seqno = rcs.seqno();
 		}
 
-		void setup_ring_buffer(Genode::addr_t const buffer_addr,
+		bool setup_ring_buffer(Genode::addr_t const buffer_addr,
 		                       Genode::addr_t const scratch_addr)
 		{
 			_current_seqno++;
@@ -708,8 +708,19 @@ struct Igd::Device
 				}
 			}
 
-			addr_t const offset = (((tail + advance) * sizeof(uint32_t)) >> 3) - 1;
-			rcs.context->tail_offset(offset % ((4*4096)>>3));
+			addr_t const offset = ((tail + advance) * sizeof(uint32_t));
+
+			if (offset % 8) {
+				Genode::error("ring offset misaligned - abort");
+				return false;
+			}
+
+			el.ring_flush(tail, tail + advance);
+
+			/* tail_offset must be specified in qword */
+			rcs.context->tail_offset((offset % (rcs.ring_size())) / 8);
+
+			return true;
 		}
 
 		void rcs_map_ppgtt(addr_t vo, addr_t pa, size_t size)
@@ -1433,7 +1444,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			bool found = false;
 
 			_buffer_registry.for_each([&] (Buffer &buffer) {
-				if (!(buffer.cap == cap)) { return; }
+				if (found || !(buffer.cap == cap)) { return; }
 
 				if (!buffer.ppgtt_va_valid) {
 					Genode::error("Invalid execbuffer");
@@ -1441,8 +1452,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					throw Gpu::Session::Invalid_state();
 				}
 
-				_vgpu.setup_ring_buffer(buffer.ppgtt_va, _device._ggtt->scratch_page());
-				found = true;
+				found = _vgpu.setup_ring_buffer(buffer.ppgtt_va, _device._ggtt->scratch_page());
 			});
 
 			if (!found)
