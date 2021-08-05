@@ -821,6 +821,11 @@ class Igd::Rcs_context
 			_execlist_context.tail_offset(offset);
 		}
 
+		addr_t tail_offset()
+		{
+			return _execlist_context.tail_offset();
+		}
+
 		/*********************
 		 ** Debug interface **
 		 *********************/

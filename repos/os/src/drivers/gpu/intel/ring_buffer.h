@@ -186,19 +186,23 @@ class Igd::Ring_buffer
 		 ** Debug interface **
 		 *********************/
 
-		void dump(size_t dw_limit = 0) const
+		void dump(size_t dw_limit, unsigned const hw_tail, unsigned const hw_head) const
 		{
 			using namespace Genode;
 
 			size_t const max = dw_limit ? dw_limit : _max;
 
-			log("Ring_buffer: ", Hex(*_dwords), " max: ", _max, " (limit: ", max, ")");
+			log("Ring_buffer: ", Hex(*_dwords), " max: ", _max, " (limit: ", max, ")",
+			    " hardware read: tail=", Genode::Hex(hw_tail),
+			    " head=", Genode::Hex(hw_head));
 
 			for (size_t i = 0; i < max; i++) {
 				log(Hex(i*4, Hex::PREFIX, Hex::PAD), " ",
 				    Hex(_dwords[i], Hex::PREFIX, Hex::PAD),
 				    i == _tail ? " T " : "   ",
-				    i == _head ? " H " : "   "
+				    i == _head ? " H " : "   ",
+				    i == hw_tail ? " T_HW " : "   ",
+				    i == hw_head ? " H_HW " : "   "
 				);
 			}
 		}

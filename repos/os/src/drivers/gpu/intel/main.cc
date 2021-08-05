@@ -329,7 +329,7 @@ struct Igd::Device
 			_ring.flush(from, to);
 		}
 
-		void ring_dump(size_t limit = 0) const { _ring.dump(limit); }
+		void ring_dump(size_t limit, unsigned hw_tail, unsigned hw_head) const { _ring.dump(limit, hw_tail, hw_head); }
 
 		/*********************
 		 ** Debug interface **
@@ -891,8 +891,10 @@ struct Igd::Device
 
 		_active_vgpu->rcs.context->dump();
 		_active_vgpu->rcs.context->dump_hw_status_page();
-		Execlist const &el = *_active_vgpu->rcs.execlist;
-		el.ring_dump(52);
+		Execlist &el = *_active_vgpu->rcs.execlist;
+		el.ring_update_head(_active_vgpu->rcs.context->head_offset());
+		el.ring_dump(4096, _active_vgpu->rcs.context->tail_offset() * 2,
+		                   _active_vgpu->rcs.context->head_offset());
 
 		_device_reset_and_init();
 
