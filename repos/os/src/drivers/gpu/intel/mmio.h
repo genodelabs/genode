@@ -752,6 +752,27 @@ class Igd::Mmio : public Genode::Mmio
 		};
 
 		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1062 ff.
+		 * IHD-OS-SKL-Vol 2c-05.16 part 2 p. 516 ff.
+		 * IHD-OS-KBL-Vol 2c-1.17  part 2 p. 402 ff.
+		 */
+		struct FUSE2 : Register<0x09120, 32>
+		{
+			struct Gt_subslice_disable_fuse_gen8: Bitfield<21, 3> { };
+			struct Gt_subslice_disable_fuse_gen9: Bitfield<20, 4> { };
+			struct Gt_slice_enable_fuse:     Bitfield<25, 3> { };
+		};
+
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1057 ff.
+		 * IHD-OS-SKL-Vol 2c-05.16 part 2 p. 398 ff.
+		 * IHD-OS-KBL-Vol 2c-1.17  part2 p. 397 ff.
+		 *
+		 * 0x9134, 0x9138, 0x913c
+		 */
+		struct EU_DISABLE : Register_array<0x9134, 32, 12, 8> { };
+
+		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 611 ff.
 		 */
 		struct FENCE_REG : Register_array<0x100000, 64, NUM_FENCES, 64>

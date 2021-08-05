@@ -46,13 +46,25 @@ struct Gpu::Info
 		Genode::uint64_t id;
 	} last_completed;
 
+	struct Revision      { Genode::uint8_t value; } revision;
+	struct Slice_mask    { unsigned value; }        slice_mask;
+	struct Subslice_mask { unsigned value; }        subslice_mask;
+	struct Eu_total      { unsigned value; }        eus;
+	struct Subslices     { unsigned value; }        subslices;
 
 	Info(Chip_id chip_id, Features features, size_t aperture_size,
-	     Context_id ctx_id, Execution_buffer_sequence last)
+	     Context_id ctx_id, Execution_buffer_sequence last,
+	     Revision rev, Slice_mask s_mask, Subslice_mask ss_mask,
+	     Eu_total eu, Subslices subslice)
 	:
 		chip_id(chip_id), features(features),
 		aperture_size(aperture_size), ctx_id(ctx_id),
-		last_completed(last)
+		last_completed(last),
+		revision(rev),
+		slice_mask(s_mask),
+		subslice_mask(ss_mask),
+		eus(eu),
+		subslices(subslice)
 	{ }
 };
 

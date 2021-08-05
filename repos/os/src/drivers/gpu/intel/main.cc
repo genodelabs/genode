@@ -127,8 +127,12 @@ struct Igd::Device
 	} _pci_backend_alloc { _resources.platform() };
 
 
-	Device_info _info { };
-	uint8_t     _revision { };
+	Device_info              _info          { };
+	Gpu::Info::Revision      _revision      { };
+	Gpu::Info::Slice_mask    _slice_mask    { };
+	Gpu::Info::Subslice_mask _subslice_mask { };
+	Gpu::Info::Eu_total      _eus           { };
+	Gpu::Info::Subslices     _subslices     { };
 
 	void _pci_info(char const *descr)
 	{
@@ -141,7 +145,7 @@ struct Igd::Device
 		_device.bus_address(&bus, &dev, &fun);
 
 		log("Found: '", descr, "' gen=", _info.generation,
-		    " rev=", _revision, " ",
+		    " rev=", _revision.value, " ",
 		    "[", Hex(vendor_id), ":", Hex(device_id), "] (",
 		    Hex(bus, Hex::OMIT_PREFIX), ":",
 		    Hex(dev, Hex::OMIT_PREFIX), ".",
@@ -170,7 +174,7 @@ struct Igd::Device
 		for (size_t i = 0; i < ELEM_NUMBER(_supported_devices); i++) {
 			if (_supported_devices[i].id == id) {
 				_info     = _supported_devices[i];
-				_revision = _resources.config_read<uint8_t>(8);
+				_revision.value = _resources.config_read<uint8_t>(8);
 				_pci_info(_supported_devices[i].descr);
 				return true;
 			}
@@ -960,7 +964,76 @@ struct Igd::Device
 		_mmio.dump();
 		_mmio.context_status_pointer_dump();
 
-		_resources.timer().sigh(_watchdog_timeout_sigh);
+		_mmio->dump();
+		_mmio->context_status_pointer_dump();
+
+		/* read out slice, subslice, EUs information depending on platform */
+		if (_info.platform == Device_info::Platform::BROADWELL) {
+			enum { SUBSLICE_MAX = 3 };
+			_subslice_mask.value = (1u << SUBSLICE_MAX) - 1;
+			_subslice_mask.value &= ~_mmio->read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen8>();
+
+			for (unsigned i=0; i < SUBSLICE_MAX; i++)
+				if (_subslice_mask.value & (1u << i))
+					_subslices.value ++;
+
+			_init_eu_total(3, SUBSLICE_MAX, 8);
+
+		} else
+		if (_info.generation == 9) {
+			enum { SUBSLICE_MAX = 4 };
+			_subslice_mask.value = (1u << SUBSLICE_MAX) - 1;
+			_subslice_mask.value &= ~_mmio->read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen9>();
+
+			for (unsigned i=0; i < SUBSLICE_MAX; i++)
+				if (_subslice_mask.value & (1u << i))
+					_subslices.value ++;
+
+			_init_eu_total(3, SUBSLICE_MAX, 8);
+		} else
+			Genode::error("unsupported platform ", (int)_info.platform);
+
+		_timer.sigh(_watchdog_timeout_sigh);
+	}
+
+	void _init_eu_total(uint8_t const max_slices,
+	                    uint8_t const max_subslices,
+	                    uint8_t const max_eus_per_subslice)
+	{
+		if (max_eus_per_subslice != 8) {
+			Genode::error("wrong eu_total calculation");
+		}
+
+		_slice_mask.value = _mmio->read<Igd::Mmio::FUSE2::Gt_slice_enable_fuse>();
+
+		unsigned eu_total = 0;
+
+		/* determine total amount of available EUs */
+		for (unsigned disable_byte = 0; disable_byte < 12; disable_byte++) {
+			unsigned const fuse_bits = disable_byte * 8;
+			unsigned const slice     = fuse_bits / (max_subslices * max_eus_per_subslice);
+			unsigned const subslice  = fuse_bits / max_eus_per_subslice;
+
+			if (fuse_bits >= max_slices * max_subslices * max_eus_per_subslice)
+				break;
+
+			if (!(_subslice_mask.value & (1u << subslice)))
+				continue;
+
+			if (!(_slice_mask.value & (1u << slice)))
+				continue;
+
+			auto const disabled = _mmio->read<Igd::Mmio::EU_DISABLE>(disable_byte);
+
+			for (unsigned b = 0; b < 8; b++) {
+				if (disabled & (1u << b))
+					continue;
+				eu_total ++;
+			}
+
+		}
+
+		_eus = Gpu::Info::Eu_total { eu_total };
 	}
 
 	/*********************
@@ -1003,7 +1076,7 @@ struct Igd::Device
 
 		Device_info::Stepping stepping = Device_info::Stepping::A0;
 
-		switch (_revision) {
+		switch (_revision.value) {
 		case 0: stepping = Device_info::Stepping::A0; break;
 		case 1: stepping = Device_info::Stepping::B0; break;
 		case 2: stepping = Device_info::Stepping::C0; break;
@@ -1346,7 +1419,12 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		{
 			Genode::size_t const aperture_size = Igd::Device::Vgpu::APERTURE_SIZE;
 			return Info(_device.id(), _device.features(), aperture_size,
-			            _vgpu.id(), { .id = _vgpu.completed_seqno() });
+			            _vgpu.id(), { .id = _vgpu.completed_seqno() },
+			            _device._revision,
+			            _device._slice_mask,
+			            _device._subslice_mask,
+			            _device._eus,
+			            _device._subslices);
 		}
 
 		Gpu::Info::Execution_buffer_sequence exec_buffer(Genode::Dataspace_capability cap,
