@@ -254,7 +254,7 @@ void Domain::init(Domain_tree &domains)
 
 			try {
 				dhcp_server.
-					dns_server_from().ip_config_dependents().insert(this);
+					dns_config_from().ip_config_dependents().insert(this);
 			}
 			catch (Pointer<Domain>::Invalid) { }
 
@@ -334,7 +334,7 @@ void Domain::deinit()
 	try {
 		Dhcp_server &dhcp_server = _dhcp_server();
 		_dhcp_server = Pointer<Dhcp_server>();
-		try { dhcp_server.dns_server_from().ip_config_dependents().remove(this); }
+		try { dhcp_server.dns_config_from().ip_config_dependents().remove(this); }
 		catch (Pointer<Domain>::Invalid) { }
 		destroy(_alloc, &dhcp_server);
 	}

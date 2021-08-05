@@ -112,7 +112,7 @@ install_config {
 
 			<domain name="downlink" interface="10.0.3.1/24">
 
-				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2" dns_server_from="uplink"/>
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2" dns_config_from="uplink"/>
 
 				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
 				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>

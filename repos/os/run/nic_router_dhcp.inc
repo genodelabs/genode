@@ -193,7 +193,7 @@ append_if [expr ![nic_router_2_managed]] config {
 
 				<dhcp-server ip_first="10.0.3.2"
 				             ip_last="10.0.3.2"
-				             dns_server_from="uplink"/>
+				             dns_config_from="uplink"/>
 
 			</domain>
 

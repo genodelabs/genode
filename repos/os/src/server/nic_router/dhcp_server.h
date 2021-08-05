@@ -68,7 +68,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 {
 	private:
 
-		Pointer<Domain>      const    _dns_server_from;
+		Pointer<Domain>      const    _dns_config_from;
 		Genode::Microseconds const    _ip_lease_time;
 		Ipv4_address         const    _ip_first;
 		Ipv4_address         const    _ip_last;
@@ -78,10 +78,10 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 
 		Genode::Microseconds _init_ip_lease_time(Genode::Xml_node const node);
 
-		Pointer<Domain> _init_dns_server_from(Genode::Xml_node const  node,
+		Pointer<Domain> _init_dns_config_from(Genode::Xml_node const  node,
 		                                      Domain_tree            &domains);
 
-		Ipv4_config const &_resolve_dns_server_from() const;
+		Ipv4_config const &_resolve_dns_config_from() const;
 
 	public:
 
@@ -108,9 +108,9 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		template <typename FUNC>
 		void for_each_dns_server_ip(FUNC && functor) const
 		{
-			if (_dns_server_from.valid()) {
+			if (_dns_config_from.valid()) {
 
-				_resolve_dns_server_from().for_each_dns_server(
+				_resolve_dns_config_from().for_each_dns_server(
 					[&] (Dns_server const &dns_server) {
 						functor(dns_server.ip());
 					});
@@ -138,7 +138,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		 ** Accessors **
 		 ***************/
 
-		Domain               &dns_server_from()     { return _dns_server_from(); }
+		Domain               &dns_config_from()     { return _dns_config_from(); }
 		Genode::Microseconds  ip_lease_time() const { return _ip_lease_time; }
 };
 

@@ -457,7 +457,7 @@ or like this:
 !     <dhcp-server ip_first="10.0.1.80"
 !                  ip_last="10.0.1.100"
 !                  ip_lease_time_sec="3600"
-!                  dns_server_from="home_lan" />
+!                  dns_config_from="home_lan" />
 !     ...
 !
 ! </domain>
@@ -474,13 +474,13 @@ option 6 entry to its clients. These addresses might be of any IP subnet. The
 addresses in the DHCP option 6 entry in the DHCP replies will have the same
 order as the <dns-server> tags in the configuration.
 
-The 'dns_server_from' attribute from the second example takes effect only when
+The 'dns_config_from' attribute from the second example takes effect only when
 the <dhcp-server> tag does not contain any <dns-server> sub-tags. The attribute
 states the domain from whose IP config to take the list of propagated DNS
 server addresses. Note that the order of DNS server adresses is not altered
 thereby. This is useful in scenarios where these addresses must be obtained
 dynamically through the DHCP client of another domain. An implication of the
-'dns_server_from' attribute is that the link state of all interfaces at the
+'dns_config_from' attribute is that the link state of all interfaces at the
 domain with the DHCP server becomes bound to the validity of the IP config of
 the domain that is stated in the attribute.
 

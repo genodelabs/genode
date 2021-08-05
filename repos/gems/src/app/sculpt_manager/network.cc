@@ -101,7 +101,7 @@ void Sculpt::Network::_generate_nic_router_config()
 				xml.attribute("ip_first", "10.0.1.2");
 				xml.attribute("ip_last",  "10.0.1.200");
 				if (_nic_target.type() != Nic_target::LOCAL) {
-					xml.attribute("dns_server_from", "uplink"); }
+					xml.attribute("dns_config_from", "uplink"); }
 			});
 
 			if (uplink_exists) {
