@@ -112,7 +112,7 @@ class Igd::Ring_buffer
 			_dwords[index] = cmd.value;
 			_tail++;
 
-			if (_tail > _max) {
+			if (_tail >= _max) {
 				Genode::warning("ring buffer wrapped ",
 				                "_tail: ", _tail, " ", "_max: ", _max);
 				_tail = 0;
