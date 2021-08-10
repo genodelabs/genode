@@ -678,6 +678,11 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 				data.append_address(addr);
 			});
 		});
+		dhcp_srv.dns_domain_name().with_string(
+			[&] (Dns_domain_name::String const &str)
+		{
+			dhcp_opts.append_domain_name(str.string(), str.length());
+		});
 		dhcp_opts.append_option<Dhcp_packet::Broadcast_addr>(local_intf.broadcast_address());
 		dhcp_opts.append_option<Dhcp_packet::Options_end>();
 
@@ -1908,12 +1913,7 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 	try {
 		Dhcp_server &old_dhcp_srv = old_domain.dhcp_server();
 		Dhcp_server &new_dhcp_srv = new_domain.dhcp_server();
-		if (!old_dhcp_srv.dns_servers_equal_to_those_of(new_dhcp_srv)) {
-			throw Pointer<Dhcp_server>::Invalid();
-		}
-		if (old_dhcp_srv.ip_lease_time().value !=
-		    new_dhcp_srv.ip_lease_time().value)
-		{
+		if (!old_dhcp_srv.config_equal_to_that_of(new_dhcp_srv)) {
 			throw Pointer<Dhcp_server>::Invalid();
 		}
 		_dhcp_allocations.for_each([&] (Dhcp_allocation &allocation) {

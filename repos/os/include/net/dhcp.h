@@ -127,6 +127,7 @@ class Net::Dhcp_packet
 					SUBNET_MASK    = 1,
 					ROUTER         = 3,
 					DNS_SERVER     = 6,
+					DOMAIN_NAME    = 15,
 					BROADCAST_ADDR = 28,
 					REQ_IP_ADDR    = 50,
 					IP_LEASE_TIME  = 51,
@@ -224,6 +225,28 @@ class Net::Dhcp_packet
 
 						func(_dns_servers[idx]);
 					}
+				}
+		};
+
+		/**
+		 * Domain name option
+		 */
+		class Domain_name : public Option
+		{
+			private:
+
+				char _name[0];
+
+			public:
+
+				static constexpr Code CODE = Code::DOMAIN_NAME;
+
+				Domain_name (Genode::size_t len) : Option(CODE, len) { }
+
+				template <typename FUNC>
+				void with_string(FUNC && func) const
+				{
+					func(_name, Option::len());
 				}
 		};
 
@@ -441,6 +464,16 @@ class Net::Dhcp_packet
 						(void *)_base, data.size());
 
 					_base += header_size + data.size();
+				}
+
+				void append_domain_name(char     const *data_src,
+				                        Genode::size_t  data_size)
+				{
+					Genode::size_t const header_size { sizeof(Domain_name) };
+					_size_guard.consume_head(header_size + data_size);
+					Genode::memcpy((char *)(_base + header_size), data_src, data_size);
+					Genode::construct_at<Domain_name>((void *)_base, data_size);
+					_base += header_size + data_size;
 				}
 		};
 

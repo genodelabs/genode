@@ -73,6 +73,8 @@ class Net::Const_pointer
 
 			return *_obj;
 		}
+
+		bool valid() const { return _obj != nullptr; }
 };
 
 #endif /* _POINTER_H_ */

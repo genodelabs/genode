@@ -22,14 +22,13 @@ SRC_CC += \
 	link.cc \
 	transport_rule.cc \
 	permit_rule.cc \
-	dns_server.cc \
+	dns.cc \
 	dhcp_client.cc \
 	dhcp_server.cc \
 	report.cc \
 	xml_node.cc \
 	uplink_session_root.cc \
 	communication_buffer.cc \
-
 
 INC_DIR += $(PRG_DIR)
 

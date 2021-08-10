@@ -63,6 +63,7 @@ append config {
 								<dns-server ip="1.2.3.4"/>
 								<dns-server ip="2.3.4.5"/>
 								<dns-server ip="3.4.5.6"/>
+								<dns-domain name="genode.org"/>
 
 							</dhcp-server>
 
@@ -96,7 +97,7 @@ append config {
 				<sleep milliseconds="2000"/>
 				<inline>
 
-					<config>
+					<config verbose="yes">
 
 						<policy label="nic_router_2 -> " domain="downlink"/>
 
@@ -106,6 +107,7 @@ append config {
 							             ip_last="10.2.4.2">
 
 								<dns-server ip="6.7.8.9"/>
+								<dns-domain name="this_is_a_way_to_long_dns_domain_name_that_should_be_rejected_by_the_router_and_cause_the_corresponding_dhcp_option_to_disappear_but_you_never_know_and_so_we_better_test_it"/>
 
 							</dhcp-server>
 
@@ -126,6 +128,8 @@ append config {
 							<dhcp-server ip_first="10.2.4.200"
 							             ip_last="10.2.4.200">
 
+								<dns-domain name="genodians.org"/>
+
 							</dhcp-server>
 
 						</domain>
@@ -144,6 +148,8 @@ append config {
 
 							<dhcp-server ip_first="10.2.3.2"
 							             ip_last="10.2.3.2">
+
+								<dns-domain name="genodians.org"/>
 
 							</dhcp-server>
 
@@ -281,6 +287,7 @@ append done_string ".*  Router: 10.0.3.1.*\n"
 append done_string ".*  DNS server #1: 1.2.3.4.*\n"
 append done_string ".*  DNS server #2: 2.3.4.5.*\n"
 append done_string ".*  DNS server #3: 3.4.5.6.*\n"
+append done_string ".*  DNS domain name: genode.org.*\n"
 append done_string ".*DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
@@ -296,10 +303,12 @@ append done_string ".*DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
 append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS domain name: genodians.org.*\n"
 append done_string ".*DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
 append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS domain name: genodians.org.*\n"
 append done_string ".*DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
@@ -307,5 +316,6 @@ append done_string ".*  Router: 10.0.3.1.*\n"
 append done_string ".*  DNS server #1: 1.2.3.4.*\n"
 append done_string ".*  DNS server #2: 2.3.4.5.*\n"
 append done_string ".*  DNS server #3: 3.4.5.6.*\n"
+append done_string ".*  DNS domain name: genode.org.*\n"
 
 run_genode_until $done_string 30

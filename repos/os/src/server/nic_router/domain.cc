@@ -113,7 +113,7 @@ void Domain::discard_ip_config()
 void Domain::ip_config_from_dhcp_ack(Dhcp_packet &dhcp_ack)
 {
 	_reconstruct_ip_config([&] (Reconstructible<Ipv4_config> &ip_config) {
-		ip_config.construct(dhcp_ack, _alloc); });
+		ip_config.construct(dhcp_ack, _alloc, *this); });
 }
 
 
@@ -395,6 +395,13 @@ void Domain::report(Xml_generator &xml)
 			ip_config().for_each_dns_server([&] (Dns_server const &dns_server) {
 				xml.node("dns", [&] () {
 					xml.attribute("ip", String<16>(dns_server.ip()));
+				});
+			});
+			ip_config().dns_domain_name().with_string(
+				[&] (Dns_domain_name::String const &str)
+			{
+				xml.node("dns-domain", [&] () {
+					xml.attribute("name", str);
 				});
 			});
 			empty = false;

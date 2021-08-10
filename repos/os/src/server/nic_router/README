@@ -441,6 +441,7 @@ this:
 !                  ip_last="10.0.1.100"
 !                  ip_lease_time_sec="3600">
 !
+!         <dns-domain name="genodians.org" />
 !         <dns-server ip="8.8.8.8" />
 !         <dns-server ip="1.1.1.1" />
 !         ...
@@ -468,6 +469,10 @@ lifetime of an IPv4 address assignment in seconds. The IPv4 address range must
 be in the subnet defined by the 'interface' attribute of the <domain> tag and
 must not cover the IPv4 address given by this attribute.
 
+The <dns-domain> sub-tag from the first example statically provides a DNS
+domain name that shall be propagated by the DHCP server through a DHCP option
+15 entry to its clients.
+
 The <dns-server> sub-tags from the first example statically provide a list of
 DNS server addresses that shall be propagated by the DHCP server through a DHCP
 option 6 entry to its clients. These addresses might be of any IP subnet. The
@@ -475,14 +480,15 @@ addresses in the DHCP option 6 entry in the DHCP replies will have the same
 order as the <dns-server> tags in the configuration.
 
 The 'dns_config_from' attribute from the second example takes effect only when
-the <dhcp-server> tag does not contain any <dns-server> sub-tags. The attribute
-states the domain from whose IP config to take the list of propagated DNS
-server addresses. Note that the order of DNS server adresses is not altered
-thereby. This is useful in scenarios where these addresses must be obtained
-dynamically through the DHCP client of another domain. An implication of the
-'dns_config_from' attribute is that the link state of all interfaces at the
-domain with the DHCP server becomes bound to the validity of the IP config of
-the domain that is stated in the attribute.
+the <dhcp-server> tag does not contain any <dns-domain> or <dns-server>
+sub-tags. The attribute states the domain from whose IP config to take the DNS
+domain name and the list of DNS server addresses that shall be propagated. Note
+that the order of DNS server adresses is not altered thereby. This is useful in
+scenarios where these addresses must be obtained dynamically through the DHCP
+client of another domain. An implication of the 'dns_config_from' attribute is
+that the link state of all interfaces at the domain with the DHCP server
+becomes bound to the validity of the IP config of the domain that is stated in
+the attribute.
 
 The lifetime of an IP address assignment that was yet only offered to the
 client can be configured for all domains in the <config> tag of the router:
@@ -548,6 +554,7 @@ A complete state report of the NIC router is structured the following way
 !   <domain name="domain_1" rx_bytes="17597" tx_bytes="7788"
 !           ipv4="100.200.0.10/24" gw="100.200.0.1">
 !
+!     <dns-domain name="genodians.org"/>
 !     <dns ip="100.200.0.8"/>
 !     <dns ip="1.1.1.1"/>
 !     <dns ip="8.8.8.8"/>
@@ -687,14 +694,15 @@ simply the 'limit' value minus the 'used' value.
 'config'
 
 A boolean value that controls whether the attributes 'ipv4' and 'gw' of the
-<domain> tag and the subtag <dns> in the <domain> tag are generated. The
-attribute 'ipv4' contains the current IPv4 address of the router in this domain
-suffixed by the length of the subnet prefix in bits. The 'gw' attribute
-contains the IPv4 address of the gateway in this domain. Each <dns> subtag of a
-<domain> tag shows the IPv4 address of a DNS server known to this domain. The
-<dns> subtags have the same order that the addresses had in the DHCP option 6
-entry of the DHCP reply that the router received and that led to the current
-IPv4 configuration of the domain.
+<domain> tag and the subtags <dns> and <dns-domain> in the <domain> tag are
+generated. The attribute 'ipv4' contains the current IPv4 address of the router
+in this domain suffixed by the length of the subnet prefix in bits. The 'gw'
+attribute contains the IPv4 address of the gateway in this domain. Each <dns>
+subtag of a <domain> tag shows the IPv4 address of a DNS server known to this
+domain. The <dns> subtags have the same order that the addresses had in the
+DHCP option 6 entry of the DHCP reply that the router received and that led to
+the current IPv4 configuration of the domain. The <dns-domain> subtag of the
+<domain> tag states the DNS domain name of this domain if any.
 
 'config_triggers'
 

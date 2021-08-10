@@ -24,6 +24,16 @@ namespace Genode {
 	Microseconds read_sec_attr(Xml_node const  node,
 	                           char     const *name,
 	                           uint64_t const  default_sec);
+
+	template <typename FUNC>
+	void xml_node_with_attribute(Xml_node const  node,
+	                             char     const *name,
+	                             FUNC        &&  func)
+	{
+		if (node.has_attribute(name)) {
+			func(node.attribute(name));
+		}
+	}
 }
 
 #endif /* _XML_NODE_H_ */

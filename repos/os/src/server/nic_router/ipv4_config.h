@@ -17,12 +17,16 @@
 /* local includes */
 #include <ipv4_address_prefix.h>
 #include <dhcp.h>
-#include <dns_server.h>
+#include <dns.h>
 
 /* Genode includes */
 #include <util/xml_node.h>
 
-namespace Net { class Ipv4_config; }
+namespace Net {
+
+	class Domain;
+	class Ipv4_config;
+}
 
 class Net::Ipv4_config
 {
@@ -36,7 +40,8 @@ class Net::Ipv4_config
 		bool                  const  _point_to_point  { _gateway_valid &&
 		                                               _interface_valid &&
 		                                               _interface.prefix == 32 };
-		Net::List<Dns_server>        _dns_servers     { };
+		Dns_server_list              _dns_servers     { };
+		Dns_domain_name              _dns_domain_name { _alloc };
 		bool                  const  _valid           { _point_to_point ||
 		                                               (_interface_valid &&
 		                                                (!_gateway_valid ||
@@ -45,7 +50,8 @@ class Net::Ipv4_config
 	public:
 
 		Ipv4_config(Net::Dhcp_packet  &dhcp_ack,
-		            Genode::Allocator &alloc);
+		            Genode::Allocator &alloc,
+		            Domain      const &domain);
 
 		Ipv4_config(Genode::Xml_node const &domain_node,
 		            Genode::Allocator      &alloc);
@@ -59,16 +65,17 @@ class Net::Ipv4_config
 
 		bool operator != (Ipv4_config const &other) const
 		{
-			return _interface  != other._interface ||
-			       _gateway    != other._gateway ||
-			       !_dns_servers.equal_to(other._dns_servers);
+			return _interface != other._interface             ||
+			       _gateway   != other._gateway               ||
+			       !_dns_servers.equal_to(other._dns_servers) ||
+			       !_dns_domain_name.equal_to(other._dns_domain_name);
 		}
 
 		template <typename FUNC>
-		void for_each_dns_server(FUNC && functor) const
+		void for_each_dns_server(FUNC && func) const
 		{
 			_dns_servers.for_each([&] (Dns_server const &dns_server) {
-				functor(dns_server);
+				func(dns_server);
 			});
 		}
 
@@ -84,10 +91,11 @@ class Net::Ipv4_config
 		 ** Accessors **
 		 ***************/
 
-		bool                       valid()         const { return _valid; }
-		Ipv4_address_prefix const &interface()     const { return _interface; }
-		Ipv4_address        const &gateway()       const { return _gateway; }
-		bool                       gateway_valid() const { return _gateway_valid; }
+		bool                       valid()           const { return _valid; }
+		Ipv4_address_prefix const &interface()       const { return _interface; }
+		Ipv4_address        const &gateway()         const { return _gateway; }
+		bool                       gateway_valid()   const { return _gateway_valid; }
+		Dns_domain_name     const &dns_domain_name() const { return _dns_domain_name; }
 };
 
 #endif /* _IPV4_CONFIG_H_ */

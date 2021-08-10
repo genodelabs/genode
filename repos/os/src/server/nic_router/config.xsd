@@ -12,6 +12,12 @@
 		</xs:restriction>
 	</xs:simpleType><!-- Domain_name -->
 
+	<xs:simpleType name="Dns_domain_name">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Dns_domain_name -->
+
 	<xs:simpleType name="Icmp_type_3_code_attribute">
 		<xs:restriction base="xs:string">
 			<xs:enumeration value="no" />
@@ -139,6 +145,12 @@
 												<xs:attribute name="ip" type="Ipv4_address" />
 											</xs:complexType>
 										</xs:element><!-- dns-server -->
+
+										<xs:element name="dns-domain">
+											<xs:complexType>
+												<xs:attribute name="name" type="Dns_domain_name" />
+											</xs:complexType>
+										</xs:element><!-- dns-domain -->
 
 									</xs:choice>
 									<xs:attribute name="ip_first"          type="Ipv4_address" />

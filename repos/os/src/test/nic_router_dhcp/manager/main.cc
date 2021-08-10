@@ -20,7 +20,10 @@
 
 /* local includes */
 #include <ipv4_address_prefix.h>
-#include <dns_server.h>
+
+/* NIC router includes */
+#include <dns.h>
+#include <xml_node.h>
 
 using namespace Net;
 using namespace Genode;
@@ -39,7 +42,8 @@ class Local::Main
 		Signal_handler<Main>    _router_state_handler   { _env.ep(), *this, &Main::_handle_router_state };
 		Expanding_reporter      _router_config_reporter { _env, "config",  "router_config" };
 		bool                    _router_config_outdated { true };
-		Local::List<Dns_server> _dns_servers            { };
+		Dns_server_list         _dns_servers            { };
+		Dns_domain_name         _dns_domain_name        { _heap };
 
 		void _handle_router_state();
 
@@ -99,7 +103,7 @@ void Local::Main::_handle_router_state()
 			 * Read out all DNS servers from the new uplink state
 			 * and memorize them in a function-local list.
 			 */
-			Local::List<Dns_server> dns_servers { };
+			Dns_server_list dns_servers { };
 			domain_node.for_each_sub_node(
 				"dns",
 				[&] (Xml_node const &dns_node)
@@ -110,8 +114,8 @@ void Local::Main::_handle_router_state()
 			});
 
 			/*
-			 * If the new list of DNS servers differs our member list,
-			 * update the member list, and remember to write out a new router
+			 * If the new list of DNS servers differs from the stored list,
+			 * update the stored list, and remember to write out a new router
 			 * configuration.
 			 */
 			if (!_dns_servers.equal_to(dns_servers)) {
@@ -124,6 +128,19 @@ void Local::Main::_handle_router_state()
 				_router_config_outdated = true;
 			}
 			dns_servers.destroy_each(_heap);
+
+			/* read out new DNS domain name */
+			Dns_domain_name dns_domain_name { _heap };
+			domain_node.with_sub_node("dns-domain", [&] (Xml_node const &sub_node) {
+				xml_node_with_attribute(sub_node, "name", [&] (Xml_attribute const &attr) {
+					dns_domain_name.set_to(attr);
+				});
+			});
+			/* update stored DNS domain name if necessary */
+			if (!_dns_domain_name.equal_to(dns_domain_name)) {
+				_dns_domain_name.set_to(dns_domain_name);
+				_router_config_outdated = true;
+			}
 		}
 	});
 
@@ -162,6 +179,13 @@ void Local::Main::_handle_router_state()
 					_dns_servers.for_each([&] (Dns_server const &dns_server) {
 						xml.node("dns-server", [&] () {
 							xml.attribute("ip", String<16>(dns_server.ip()));
+						});
+					});
+					_dns_domain_name.with_string(
+						[&] (Dns_domain_name::String const &str)
+					{
+						xml.node("dns-domain", [&] () {
+							xml.attribute("name", str);
 						});
 					});
 				});

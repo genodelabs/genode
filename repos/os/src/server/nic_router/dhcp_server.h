@@ -18,7 +18,7 @@
 #include <bit_allocator_dynamic.h>
 #include <list.h>
 #include <pointer.h>
-#include <dns_server.h>
+#include <dns.h>
 #include <ipv4_config.h>
 
 /* Genode includes */
@@ -47,8 +47,9 @@ class Net::Dhcp_server_base
 {
 	protected:
 
-		Genode::Allocator     &_alloc;
-		Net::List<Dns_server>  _dns_servers { };
+		Genode::Allocator &_alloc;
+		Dns_server_list    _dns_servers     { };
+		Dns_domain_name    _dns_domain_name { _alloc };
 
 		void _invalid(Domain const &domain,
 		              char   const *reason);
@@ -123,8 +124,15 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 			}
 		}
 
-		bool
-		dns_servers_equal_to_those_of(Dhcp_server const &dhcp_server) const;
+		Dns_domain_name const &dns_domain_name() const
+		{
+			if (_dns_config_from.valid()) {
+				return _resolve_dns_config_from().dns_domain_name();
+			}
+			return _dns_domain_name;
+		}
+
+		bool config_equal_to_that_of(Dhcp_server const &dhcp_server) const;
 
 
 		/*********

@@ -185,6 +185,15 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 				});
 			}
 			catch (Dhcp_packet::Option_not_found) { }
+			try {
+				Dhcp_packet::Domain_name const &domain_name {
+					dhcp.option<Dhcp_packet::Domain_name>() };
+
+				domain_name.with_string([&] (char const *base, size_t size) {
+					log("  DNS domain name: ", Cstring { base, size });
+				});
+			}
+			catch (Dhcp_packet::Option_not_found) { }
 
 			Ipv4_config ip_config(
 				Ipv4_address_prefix(
