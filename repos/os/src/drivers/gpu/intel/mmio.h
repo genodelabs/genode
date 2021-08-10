@@ -698,6 +698,47 @@ class Igd::Mmio : public Genode::Mmio
 		struct ELEM_DESCRIPTOR1 : Register<0x4400, 32> { };
 		struct ELEM_DESCRIPTOR2 : Register<0x4404, 32> { };
 
+		/**
+		 * Forcewake for GEN9 & GEN10, lx 5.13
+		 */
+		struct FORCEWAKE_GT_GEN9     : Register<0x0a188, 32> {
+			struct Fallback_kernel_mask : Bitfield<31, 1> { };
+			struct Kernel_mask          : Bitfield<16, 1> { };
+			struct Fallback_kernel      : Bitfield<15, 1> { };
+			struct Kernel               : Bitfield< 0, 1> { };
+		};
+		struct FORCEWAKE_MEDIA_GEN9  : Register<0x0a270, 32> {
+			struct Fallback_kernel_mask : Bitfield<31, 1> { };
+			struct Kernel_mask          : Bitfield<16, 1> { };
+			struct Fallback_kernel      : Bitfield<15, 1> { };
+			struct Kernel               : Bitfield< 0, 1> { };
+		};
+		struct FORCEWAKE_RENDER_GEN9 : Register<0x0a278, 32> {
+			struct Fallback_kernel_mask : Bitfield<31, 1> { };
+			struct Kernel_mask          : Bitfield<16, 1> { };
+			struct Fallback_kernel      : Bitfield<15, 1> { };
+			struct Kernel               : Bitfield< 0, 1> { };
+		};
+
+		struct FORCEWAKE_GEN9_RENDER_ACK : Register<0x000D84, 32> {
+			struct Fallback_kernel_mask : Bitfield<31, 1> { };
+			struct Kernel_mask          : Bitfield<16, 1> { };
+			struct Fallback_kernel      : Bitfield<15, 1> { };
+			struct Kernel               : Bitfield< 0, 1> { };
+		};
+		struct FORCEWAKE_GEN9_MEDIA_ACK  : Register<0x000D88, 32> {
+			struct Fallback_kernel_mask : Bitfield<31, 1> { };
+			struct Kernel_mask          : Bitfield<16, 1> { };
+			struct Fallback_kernel      : Bitfield<15, 1> { };
+			struct Kernel               : Bitfield< 0, 1> { };
+		};
+		struct FORCEWAKE_GEN9_GT_ACK     : Register<0x130044, 32> {
+			struct Fallback_kernel_mask : Bitfield<31, 1> { };
+			struct Kernel_mask          : Bitfield<16, 1> { };
+			struct Fallback_kernel      : Bitfield<15, 1> { };
+			struct Kernel               : Bitfield< 0, 1> { };
+		};
+
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 703
 		 *
@@ -722,20 +763,32 @@ class Igd::Mmio : public Genode::Mmio
 		{
 			using B = Register<BASE + 0xD0, 32>;
 
-			struct Mask_bits       : B::template Bitfield<16, 15> { };
+			struct Mask_bits       : B::template Bitfield<16, 16> { };
 			struct Ready_for_reset : B::template Bitfield< 1,  1> { };
 			struct Request_reset   : B::template Bitfield< 0,  1> { };
+		};
+
+		template <unsigned long BASE>
+		struct MI_MODE_CTRL_BASE : Register<BASE + 0x9c, 32>
+		{
+			using F = Register<BASE + 0x9c, 32>;
+
+			struct Rings_idle      : F::template Bitfield<     9, 1> { };
+			struct Stop_rings_mask : F::template Bitfield<16 + 8, 1> { };
+			struct Stop_rings      : F::template Bitfield<     8, 1> { };
 		};
 
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 288
 		 */
-		struct CS_RESET_CTRL : RESET_CTRL_BASE<0x02000> { };
+		struct CS_RESET_CTRL   : RESET_CTRL_BASE  <0x02000> { };
+		struct CS_MI_MODE_CTRL : MI_MODE_CTRL_BASE<0x02000> { };
 
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 165
 		 */
-		struct BCS_RESET_CTRL : RESET_CTRL_BASE<0x22000> { };
+		struct BCS_RESET_CTRL   : RESET_CTRL_BASE  <0x22000> { };
+		struct BCS_MI_MODE_CTRL : MI_MODE_CTRL_BASE<0x22000> { };
 
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 609 ff.
@@ -885,7 +938,7 @@ class Igd::Mmio : public Genode::Mmio
 
 		Mmio::Delayer &_delayer;
 
-		void _fw_reset()
+		void _fw_reset_gen8()
 		{
 			using namespace Genode;
 
@@ -940,6 +993,107 @@ class Igd::Mmio : public Genode::Mmio
 				error("could not disable force-wake engine");
 			}
 		}
+
+		void _fw_reset_gen9()
+		{
+			write_post<FORCEWAKE_MEDIA_GEN9>(FORCEWAKE_MT::RESET);
+			write_post<FORCEWAKE_RENDER_GEN9>(FORCEWAKE_MT::RESET);
+			write_post<FORCEWAKE_GT_GEN9>(FORCEWAKE_MT::RESET);
+		}
+
+		/**
+		 * Set forcewake state, i.e., prevent from powering down
+		 */
+		void _fw_enable_media() {
+			_fw_enable<FORCEWAKE_MEDIA_GEN9, FORCEWAKE_GEN9_MEDIA_ACK>(); }
+
+		void _fw_enable_gt() {
+			_fw_enable<FORCEWAKE_GT_GEN9, FORCEWAKE_GEN9_GT_ACK>(); }
+
+		void _fw_enable_render() {
+			_fw_enable<FORCEWAKE_RENDER_GEN9, FORCEWAKE_GEN9_RENDER_ACK>(); }
+
+		template <typename REG, typename REG_ACK>
+		void _fw_enable()
+		{
+			using namespace Genode;
+
+			while (read<typename REG_ACK::Kernel>()) {
+				log(__func__, " ", __LINE__, " wait ", Hex(read<REG_ACK>()));
+				_delayer.usleep(500 * 1000);
+
+				_fw_enable_wa<REG, REG_ACK>();
+			}
+
+			typename REG::access_t v = 0;
+			REG::Kernel_mask::set(v, 1);
+			REG::Kernel     ::set(v, 1);
+			write<REG>(v);
+
+			try {
+				wait_for(Attempts(50), Microseconds(1000), _delayer,
+				         typename REG_ACK::Equal(1));
+			} catch (Polling_timeout) {
+				error(__func__, " could not enable force-wake");
+			}
+		}
+
+		template <typename REG, typename REG_ACK>
+		void _fw_enable_wa()
+		{
+			using namespace Genode;
+
+			while (read<typename REG_ACK::Fallback_kernel>()) {
+				log(__func__, " ", __LINE__, " wait ", Hex(read<REG_ACK>()));
+				_delayer.usleep(500 * 1000);
+			}
+
+			typename REG::access_t v_set = 0;
+			REG::Fallback_kernel_mask::set(v_set, 1);
+			REG::Fallback_kernel     ::set(v_set, 1);
+			write<REG>(v_set);
+
+			_delayer.usleep(100 * 1000);
+
+			log(__func__, " ", __LINE__, " ",
+			    Genode::Hex(read<REG>()), " ",
+			    Genode::Hex(read<REG_ACK>()));
+
+			while (!(read<typename REG_ACK::Fallback_kernel>())) {
+				log(__func__, " ", __LINE__, " wait ", Hex(read<REG_ACK>()));
+				_delayer.usleep(500 * 1000);
+			}
+
+			typename REG::access_t v_clear = 0;
+			REG::Fallback_kernel_mask::set(v_clear, 1);
+			REG::Fallback_kernel     ::set(v_clear, 0);
+			write<REG>(v_clear);
+		}
+
+		void _fw_disable_media() {
+			_fw_disable<FORCEWAKE_MEDIA_GEN9, FORCEWAKE_GEN9_MEDIA_ACK>(); }
+
+		void _fw_disable_gt() {
+			_fw_enable<FORCEWAKE_GT_GEN9, FORCEWAKE_GEN9_GT_ACK>(); }
+
+		void _fw_disable_render() {
+			_fw_disable<FORCEWAKE_RENDER_GEN9, FORCEWAKE_GEN9_RENDER_ACK>(); }
+
+		template <typename REG, typename REG_ACK>
+		void _fw_disable()
+		{
+			typename REG::access_t v = 0;
+			REG::Kernel_mask::set(v, 1);
+			REG::Kernel     ::set(v, 0);
+			write<REG>(v);
+
+			while (read<typename REG_ACK::Kernel>()) {
+				Genode::log(__func__, " ", __LINE__, " wait ",
+				            Genode::Hex(read<REG_ACK>()));
+				_delayer.usleep(500 * 1000);
+			}
+		}
+
 
 		/**
 		 * Reset interrupts
@@ -1140,11 +1294,44 @@ class Igd::Mmio : public Genode::Mmio
 		}
 
 		/**
+		 * Stop engine
+		 */
+		template <typename REG, typename REG_MI_MODE>
+		bool _stop_engine()
+		{
+			auto mi_mode = read<REG_MI_MODE>();
+
+			unsigned loop = 0;
+
+			while (loop < 10 && !(REG_MI_MODE::Rings_idle::get(mi_mode))) {
+				REG_MI_MODE::Stop_rings_mask::set(mi_mode, 1);
+				REG_MI_MODE::Stop_rings::set(mi_mode, 1);
+				write_post<REG_MI_MODE>(mi_mode);
+
+				_delayer.usleep(10 * loop);
+
+				mi_mode = read<REG_MI_MODE>();
+
+				loop ++;
+			}
+
+			if (!(REG_MI_MODE::Rings_idle::get(mi_mode))) {
+				Genode::error("could not stop engine");
+				return false;
+			}
+
+			return true;
+		}
+
+		/**
 		 * Reset engine
 		 */
-		template <typename REG>
+		template <typename REG, typename REG_MI_MODE>
 		bool _reset_engine()
 		{
+			if (!_stop_engine<REG, REG_MI_MODE>())
+				return false;
+
 			typename REG::access_t v = 0;
 			REG::Mask_bits::set(v, 1);
 			REG::Request_reset::set(v, 1);
@@ -1156,6 +1343,7 @@ class Igd::Mmio : public Genode::Mmio
 				Genode::error("could not reset engine");
 				return false;
 			}
+
 			return true;
 		}
 
@@ -1167,18 +1355,23 @@ class Igd::Mmio : public Genode::Mmio
 		bool _reset_engine(unsigned id)
 		{
 			switch (id) {
-			case RCS_ID: return _reset_engine<CS_RESET_CTRL>();
-			case BCS_ID: return _reset_engine<BCS_RESET_CTRL>();
+			case RCS_ID: return _reset_engine<CS_RESET_CTRL, CS_MI_MODE_CTRL>();
+			case BCS_ID: return _reset_engine<BCS_RESET_CTRL, BCS_MI_MODE_CTRL>();
 			default: return true;
 			}
 		}
 
 		bool _reset_engines()
 		{
+			bool reset_failed = false;
+
 			for (int i = 0; i < NUM_ENGINES; i++) {
-				if (!_reset_engine(i)) { return false; }
+				if (!_reset_engine(i)) {
+					reset_failed = true;
+					Genode::warning("engine ", i, " reset failed");
+				}
 			}
-			return true;
+			return !reset_failed;
 		}
 
 		/**
@@ -1186,8 +1379,6 @@ class Igd::Mmio : public Genode::Mmio
 		 */
 		void _reset_device()
 		{
-			_fw_enable(FORCEWAKE_ID_RENDER);
-
 			bool res = _reset_engines();
 			if (!res) {
 				Genode::warning("cannot reset device, engines not ready");
@@ -1201,8 +1392,6 @@ class Igd::Mmio : public Genode::Mmio
 			} catch (Mmio::Polling_timeout) {
 				Genode::error("resetting device failed");
 			}
-
-			_fw_disable(FORCEWAKE_ID_RENDER);
 		}
 
 		/**
@@ -1240,18 +1429,86 @@ class Igd::Mmio : public Genode::Mmio
 			(void)read<T>();
 		}
 
-		void forcewake_enable() { _fw_enable(FORCEWAKE_ID_RENDER); }
-		void forcewake_disable() { _fw_disable(FORCEWAKE_ID_RENDER); }
+		void forcewake_gen8_enable() { _fw_enable(FORCEWAKE_ID_RENDER); }
+		void forcewake_gen8_disable() { _fw_disable(FORCEWAKE_ID_RENDER); }
 
-		void reset()
+		void forcewake_gen9_enable()
+		{
+			_fw_enable_gt();
+			_fw_enable_render();
+			_fw_enable_media();
+		}
+
+		void forcewake_gen9_disable()
+		{
+			_fw_disable_media();
+			_fw_disable_render();
+			_fw_disable_gt();
+		}
+
+		void forcewake_enable(unsigned const generation)
+		{
+			switch (generation) {
+			case 8:
+				forcewake_gen8_enable();
+				return;
+			case 9:
+				forcewake_gen9_enable();
+				return;
+			default:
+				Genode::error(__func__, " unsupported generation ", generation);
+			}
+		}
+
+		void forcewake_disable(unsigned const generation)
+		{
+			switch (generation) {
+			case 8:
+				forcewake_gen8_disable();
+				return;
+			case 9:
+				forcewake_gen9_disable();
+				return;
+			default:
+				Genode::error(__func__, " unsupported generation ", generation);
+			}
+		}
+
+		void reset(unsigned const generation)
+		{
+			switch (generation) {
+			case 8:
+				reset_gen8();
+				return;
+			case 9:
+				reset_gen9();
+				return;
+			default:
+				Genode::error(__func__, " unsupported generation ", generation);
+			}
+		}
+
+		void reset_gen8()
 		{
 			_intr_reset();
+			_fw_reset_gen8();
+			forcewake_gen8_enable();
 			_reset_device();
-			_fw_reset();
 			_reset_fences();
 
 			_disable_nde_handshake();
+			_set_page_attributes();
+		}
 
+		void reset_gen9()
+		{
+			_intr_reset();
+			_fw_reset_gen9();
+			forcewake_gen9_enable();
+			_reset_device();
+			_reset_fences();
+
+			_disable_nde_handshake();
 			_set_page_attributes();
 		}
 

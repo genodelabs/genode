@@ -912,11 +912,10 @@ struct Igd::Device
 
 	void _device_reset_and_init()
 	{
-		_mmio.reset();
+		_mmio.reset(_info.generation);
 		_mmio.clear_errors();
 		_mmio.init();
 		_mmio.enable_intr();
-		_mmio.forcewake_enable();
 	}
 
 	/**
@@ -976,14 +975,14 @@ struct Igd::Device
 
 		_clock_gating();
 
-		_mmio->dump();
-		_mmio->context_status_pointer_dump();
+		_mmio.dump();
+		_mmio.context_status_pointer_dump();
 
 		/* read out slice, subslice, EUs information depending on platform */
 		if (_info.platform == Device_info::Platform::BROADWELL) {
 			enum { SUBSLICE_MAX = 3 };
 			_subslice_mask.value = (1u << SUBSLICE_MAX) - 1;
-			_subslice_mask.value &= ~_mmio->read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen8>();
+			_subslice_mask.value &= ~_mmio.read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen8>();
 
 			for (unsigned i=0; i < SUBSLICE_MAX; i++)
 				if (_subslice_mask.value & (1u << i))
@@ -995,7 +994,7 @@ struct Igd::Device
 		if (_info.generation == 9) {
 			enum { SUBSLICE_MAX = 4 };
 			_subslice_mask.value = (1u << SUBSLICE_MAX) - 1;
-			_subslice_mask.value &= ~_mmio->read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen9>();
+			_subslice_mask.value &= ~_mmio.read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen9>();
 
 			for (unsigned i=0; i < SUBSLICE_MAX; i++)
 				if (_subslice_mask.value & (1u << i))
@@ -1005,13 +1004,13 @@ struct Igd::Device
 		} else
 			Genode::error("unsupported platform ", (int)_info.platform);
 
-		_timer.sigh(_watchdog_timeout_sigh);
+		_resources.timer().sigh(_watchdog_timeout_sigh);
 	}
 
 	void _clock_gating()
 	{
 		if (_info.platform == Device_info::Platform::KABYLAKE) {
-			_mmio->kbl_clock_gating();
+			_mmio.kbl_clock_gating();
 		} else
 			Genode::warning("no clock gating");
 	}
@@ -1024,7 +1023,7 @@ struct Igd::Device
 			Genode::error("wrong eu_total calculation");
 		}
 
-		_slice_mask.value = _mmio->read<Igd::Mmio::FUSE2::Gt_slice_enable_fuse>();
+		_slice_mask.value = _mmio.read<Igd::Mmio::FUSE2::Gt_slice_enable_fuse>();
 
 		unsigned eu_total = 0;
 
@@ -1043,7 +1042,7 @@ struct Igd::Device
 			if (!(_slice_mask.value & (1u << slice)))
 				continue;
 
-			auto const disabled = _mmio->read<Igd::Mmio::EU_DISABLE>(disable_byte);
+			auto const disabled = _mmio.read<Igd::Mmio::EU_DISABLE>(disable_byte);
 
 			for (unsigned b = 0; b < 8; b++) {
 				if (disabled & (1u << b))
