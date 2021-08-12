@@ -16,7 +16,8 @@
 #include <pic.h>
 #include <platform.h>
 
-Board::Pic::Pic() :
+Board::Pic::Pic(Global_interrupt_controller &)
+:
 	_plic(Genode::Platform::mmio_to_virt(Board::PLIC_BASE))
 {
 	/* enable external interrupts */

@@ -16,7 +16,11 @@
 
 #include <util/mmio.h>
 
-namespace Board { class Pic; }
+namespace Board {
+
+	class Global_interrupt_controller { };
+	class Pic;
+}
 
 
 class Board::Pic : Genode::Mmio
@@ -54,7 +58,7 @@ class Board::Pic : Genode::Mmio
 
 	public:
 
-		Pic();
+		Pic(Global_interrupt_controller &);
 
 		bool take_request(unsigned &irq);
 		void finish_request() { }

@@ -26,7 +26,8 @@ namespace Board {
 
 	using namespace Hw::Pbxa9_board;
 
-	class Pic : public Hw::Gicv2 { };
+	class Global_interrupt_controller { };
+	class Pic : public Hw::Gicv2 { public: Pic(Global_interrupt_controller &) { } };
 
 	L2_cache & l2_cache();
 }

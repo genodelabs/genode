@@ -17,7 +17,25 @@
 /* Genode includes */
 #include <util/mmio.h>
 
-namespace Board { class Pic; }
+namespace Board {
+
+	class Global_interrupt_controller;
+	class Pic;
+}
+
+
+class Board::Global_interrupt_controller
+{
+	private:
+
+		int _sof_cnt { 0 };
+
+	public:
+
+		int increment_and_return_sof_cnt() { return ++_sof_cnt; }
+
+		void reset_sof_cnt() { _sof_cnt = 0; }
+};
 
 
 class Board::Pic : Genode::Mmio
@@ -80,6 +98,8 @@ class Board::Pic : Genode::Mmio
 					struct Num : Bitfield<0, 14> { };
 				};
 
+				Global_interrupt_controller &_global_irq_ctrl;
+
 				bool _is_sof() const
 				{
 					return read<Core_irq_status::Sof>();
@@ -90,12 +110,12 @@ class Board::Pic : Genode::Mmio
 
 			public:
 
-				Usb_dwc_otg();
+				Usb_dwc_otg(Global_interrupt_controller &global_irq_ctrl);
 
 				bool handle_sof();
 		};
 
-		Usb_dwc_otg _usb { };
+		Usb_dwc_otg _usb;
 
 		/**
 		 * Return true if specified interrupt is pending
@@ -108,7 +128,7 @@ class Board::Pic : Genode::Mmio
 
 	public:
 
-		Pic();
+		Pic(Global_interrupt_controller &global_irq_ctrl);
 
 		bool take_request(unsigned &irq);
 		void finish_request() { }

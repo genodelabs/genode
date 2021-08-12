@@ -16,7 +16,7 @@
 #include <platform.h>
 
 
-Board::Pic::Pic()
+Board::Pic::Pic(Global_interrupt_controller &)
 :
 	Genode::Mmio(Genode::Platform::mmio_to_virt(Board::LOCAL_IRQ_CONTROLLER_BASE))
 { }

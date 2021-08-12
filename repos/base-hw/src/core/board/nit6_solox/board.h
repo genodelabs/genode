@@ -26,7 +26,8 @@ namespace Board {
 
 	using namespace Hw::Nit6_solox_board;
 
-	class Pic : public Hw::Gicv2 { };
+	class Global_interrupt_controller { };
+	class Pic : public Hw::Gicv2 { public: Pic(Global_interrupt_controller &) { } };
 
 	using L2_cache = Hw::Pl310;
 

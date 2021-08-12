@@ -20,7 +20,11 @@
 #include <util/mmio.h>
 #include <plic.h>
 
-namespace Board { class Pic; }
+namespace Board {
+
+	class Global_interrupt_controller { };
+	class Pic;
+}
 
 
 /**
@@ -44,7 +48,7 @@ class Board::Pic
 			NR_OF_IRQ = Plic::NR_OF_IRQ,
 		};
 
-		Pic();
+		Pic(Global_interrupt_controller &);
 
 		bool take_request(unsigned & irq)
 		{

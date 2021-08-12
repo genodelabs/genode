@@ -16,7 +16,11 @@
 
 #include <hw/spec/arm/gicv3.h>
 
-namespace Board { class Pic; };
+namespace Board {
+
+	class Global_interrupt_controller { };
+	class Pic;
+};
 
 
 class Board::Pic : public Hw::Pic
@@ -51,6 +55,8 @@ class Board::Pic : public Hw::Pic
 
 			c.lr     = irq | 1ULL << 41 | 1ULL << 60 | 1ULL << 62;
 		}
+
+		Pic(Global_interrupt_controller &) { }
 };
 
 #endif /* _CORE__SPEC__ARM__VIRTUALIZATION__GICV3_H_ */

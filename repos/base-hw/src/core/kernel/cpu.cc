@@ -174,13 +174,15 @@ addr_t Cpu::stack_start()
 }
 
 
-Cpu::Cpu(unsigned                    const  id,
-         Board::Address_space_id_allocator &addr_space_id_alloc,
-         Irq::Pool                         &user_irq_pool,
-         Cpu_pool                          &cpu_pool,
-         Pd                                &core_pd)
+Cpu::Cpu(unsigned                     const  id,
+         Board::Address_space_id_allocator  &addr_space_id_alloc,
+         Irq::Pool                          &user_irq_pool,
+         Cpu_pool                           &cpu_pool,
+         Pd                                 &core_pd,
+         Board::Global_interrupt_controller &global_irq_ctrl)
 :
 	_id               { id },
+	_pic              { global_irq_ctrl },
 	_timer            { *this },
 	_scheduler        { _idle, _quota(), _fill() },
 	_idle             { addr_space_id_alloc, user_irq_pool, cpu_pool, *this,
@@ -198,13 +200,14 @@ Cpu::Cpu(unsigned                    const  id,
 
 void
 Cpu_pool::
-initialize_executing_cpu(Board::Address_space_id_allocator &addr_space_id_alloc,
-                         Irq::Pool                         &user_irq_pool,
-                         Pd                                &core_pd)
+initialize_executing_cpu(Board::Address_space_id_allocator  &addr_space_id_alloc,
+                         Irq::Pool                          &user_irq_pool,
+                         Pd                                 &core_pd,
+                         Board::Global_interrupt_controller &global_irq_ctrl)
 {
 	unsigned id = Cpu::executing_id();
 	_cpus[id].construct(
-		id, addr_space_id_alloc, user_irq_pool, *this, core_pd);
+		id, addr_space_id_alloc, user_irq_pool, *this, core_pd, global_irq_ctrl);
 }
 
 

@@ -16,7 +16,11 @@
 
 #include <hw/spec/arm/gicv2.h>
 
-namespace Board { struct Pic; };
+namespace Board {
+
+	class Global_interrupt_controller { };
+	class Pic;
+};
 
 
 class Board::Pic : public Hw::Gicv2
@@ -50,6 +54,8 @@ class Board::Pic : public Hw::Gicv2
 
 		bool ack_virtual_irq(Virtual_context & c);
 		void insert_virtual_irq(Virtual_context & c, unsigned irq);
+
+		Pic(Global_interrupt_controller &) { }
 };
 
 #endif /* _CORE__SPEC__ARM__VIRTUALIZATION__GICV2_H_ */
