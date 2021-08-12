@@ -196,6 +196,7 @@ struct Test_tracing
 	typedef Genode::String<64> String;
 	String policy_label  { };
 	String policy_module { };
+	String policy_thread { };
 
 	Rom_dataspace_capability  policy_module_rom_ds { };
 
@@ -232,6 +233,7 @@ struct Test_tracing
 			Xml_node policy = config.xml().sub_node("trace_policy");
 			policy.attribute("label").value(policy_label);
 			policy.attribute("module").value(policy_module);
+			policy.attribute("thread").value(policy_thread);
 
 			Rom_connection policy_rom(env, policy_module.string());
 			policy_module_rom_ds = policy_rom.dataspace();
@@ -281,12 +283,20 @@ struct Test_tracing
 
 		for_each_subject(subjects, num_subjects, print_info);
 
+		auto check_untraced = [this] (Trace::Subject_id id, Trace::Subject_info info) {
+
+			if (info.state() != Trace::Subject_info::UNTRACED)
+				error("Subject ", id.id, " is not UNTRACED");
+		};
+
+		for_each_subject(subjects, num_subjects, check_untraced);
+
 		/* enable tracing for test-thread */
 		auto enable_tracing = [this, &env] (Trace::Subject_id id,
 		                                    Trace::Subject_info info) {
 
 			if (   info.session_label() != policy_label
-			    || info.thread_name()   != "test-thread") {
+			    || info.thread_name()   != policy_thread) {
 				return;
 			}
 
@@ -320,7 +330,7 @@ struct Test_tracing
 			log("passed Tracing test");
 		}
 		else
-			error("Thread '", thread_name, "' not found for session ", policy_label);
+			error("Thread '", policy_thread, "' not found for session ", policy_label);
 	}
 };
 

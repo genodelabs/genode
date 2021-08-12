@@ -4,7 +4,7 @@
 
 	<events>
 		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">child "test-trace" exited with exit value 0</log>
+		<log meaning="succeeded">child "sequence" exited with exit value 0</log>
 		<log meaning="failed">Error: </log>
 	</events>
 
@@ -12,6 +12,7 @@
 		<rom label="ld.lib.so"/>
 		<rom label="top"/>
 		<rom label="test-trace"/>
+		<rom label="sequence"/>
 		<rom label="null"/>
 	</content>
 
@@ -31,11 +32,30 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
-		<start name="test-trace">
-			<resource name="RAM" quantum="10M"/>
+		<default caps="200"/>
+		<start name="sequence">
+			<resource name="RAM" quantum="15M"/>
 			<config>
-				<trace_policy label="init -> dynamic -> test-trace -> test-trace" module="null" />
+				<start name="test-trace">
+					<resource name="RAM" quantum="10M"/>
+					<config>
+						<trace_policy label="init -> dynamic -> test-trace -> sequence -> test-trace" thread="test-thread" module="null" />
+					</config>
+				</start>
+
+				<start name="test-trace">
+					<resource name="RAM" quantum="10M"/>
+					<config>
+						<trace_policy label="init -> dynamic -> test-trace -> top" thread="ep" module="null" />
+					</config>
+				</start>
+
+				<start name="test-trace">
+					<resource name="RAM" quantum="10M"/>
+					<config>
+						<trace_policy label="init -> dynamic -> test-trace -> top" thread="ep" module="null" />
+					</config>
+				</start>
 			</config>
 		</start>
 		<start name="top">
