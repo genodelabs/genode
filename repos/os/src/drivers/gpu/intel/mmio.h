@@ -1350,6 +1350,97 @@ class Igd::Mmio : public Genode::Mmio
 			return result;
 		}
 
+		/******************
+		 ** clock gating **
+		 ******************/
+
+		/*
+		 * gen9_init_clock_gating, lx 5.13
+		 */
+		struct CHICKEN_PAR1_1      : Register<0x42080, 32> {
+			struct SKL_DE_COMPRESSED_HASH_MODE : Bitfield<15, 1> {};
+			struct SKL_EDP_PSR_FIX_RDWRAP      : Bitfield< 3, 1> {};
+		};
+		struct GEN8_CHICKEN_DCPR_1 : Register<0x46430, 32> {
+			struct MASK_WAKEMEM : Bitfield<13, 1> {};
+		};
+		struct DISP_ARB_CTL        : Register<0x45000, 32> {
+			struct DISP_FBC_MEMORY_WAKE : Bitfield<31, 1> {};
+			struct DISP_FBC_WM_DIS      : Bitfield<15, 1> {};
+		};
+
+		void gen9_clock_gating()
+		{
+			{
+				auto v = read<CHICKEN_PAR1_1>();
+				CHICKEN_PAR1_1::SKL_DE_COMPRESSED_HASH_MODE::set(v, 1);
+				write<CHICKEN_PAR1_1>(v);
+			}
+
+			{
+				auto v = read<CHICKEN_PAR1_1>();
+				CHICKEN_PAR1_1::SKL_EDP_PSR_FIX_RDWRAP::set(v, 1);
+				write<CHICKEN_PAR1_1>(v);
+			}
+
+			{
+				auto v = read<GEN8_CHICKEN_DCPR_1>();
+				GEN8_CHICKEN_DCPR_1::MASK_WAKEMEM::set(v, 1);
+				write<GEN8_CHICKEN_DCPR_1>(v);
+			}
+
+			{
+				auto v = read<DISP_ARB_CTL>();
+				DISP_ARB_CTL::DISP_FBC_MEMORY_WAKE::set(v, 1);
+				write<DISP_ARB_CTL>(v);
+			}
+		}
+
+		/*
+		 * kbl_init_clock_gating, lx 5.13
+		 */
+		struct FBC_LLC_READ_CTRL : Register<0x09044, 32> {
+			struct FBC_LLC_FULLY_OPEN : Bitfield<30, 1> {};
+		};
+		struct ILK_DPFC_CHICKEN  : Register<0x43224, 32> {
+			struct ILK_DPFC_NUKE_ON_ANY_MODIFICATION : Bitfield<23, 1> {};
+		};
+
+		void kbl_clock_gating()
+		{
+			gen9_clock_gating();
+
+			{
+				/* WAC6entrylatency:kbl */
+				auto v = read<FBC_LLC_READ_CTRL>();
+				FBC_LLC_READ_CTRL::FBC_LLC_FULLY_OPEN::set(v, 1);
+				write<FBC_LLC_READ_CTRL>(v);
+			}
+
+			/* WaDisableSDEUnitClockGating:kbl 0-STEP_B0 */
+			/* WaDisableGamClockGating:kbl     0-STEP_B0 */
+
+			{
+				/*
+				 * WaFbcTurnOffFbcWatermark:kbl
+				 * Display WA #0562: kbl
+				 */
+				auto v = read<DISP_ARB_CTL>();
+				DISP_ARB_CTL::DISP_FBC_WM_DIS::set(v, 1);
+				write<DISP_ARB_CTL>(v);
+			}
+
+			{
+				/*
+				 * WaFbcNukeOnHostModify:kbl
+				 * Display WA #0873: kbl
+				 */
+				auto v = read<ILK_DPFC_CHICKEN>();
+				ILK_DPFC_CHICKEN::ILK_DPFC_NUKE_ON_ANY_MODIFICATION::set(v, 1);
+				write<ILK_DPFC_CHICKEN>(v);
+			}
+		}
+
 		/*********************
 		 ** DEBUG interface **
 		 *********************/
