@@ -261,8 +261,8 @@ struct Test_tracing
 		/* wait some time before querying the subjects */
 		timer.msleep(3000);
 
-		Trace::Subject_id subjects[32];
-		size_t num_subjects = trace.subjects(subjects, 32);
+		Trace::Subject_id subjects[64];
+		size_t num_subjects = trace.subjects(subjects, 64);
 
 		log(num_subjects, " tracing subjects present");
 
@@ -317,9 +317,10 @@ struct Test_tracing
 		if (test_monitor.constructed()) {
 			test_monitor->dump();
 			test_monitor.destruct();
+			log("passed Tracing test");
 		}
-
-		log("passed Tracing test");
+		else
+			error("Thread '", thread_name, "' not found for session ", policy_label);
 	}
 };
 
