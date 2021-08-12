@@ -190,6 +190,19 @@ class Genode::Trace::Subject
 		{ }
 
 		/**
+		 * Destructor, releases ownership of associated source
+		 */
+		~Subject()
+		{
+			Locked_ptr<Source> source(_source);
+
+			if (source.valid()) {
+				source->disable();
+				source->release_ownership(*this);
+			}
+		}
+
+		/**
 		 * Return registry-local ID
 		 */
 		Subject_id id() const { return _id; }

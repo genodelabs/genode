@@ -60,11 +60,6 @@ bool Trace::Logger::_evaluate_control()
 
 			/* unload policy */
 			if (policy_module) {
-
-				/* revoke relocations */
-				for (unsigned i = 0; i < sizeof(Trace::Policy_module)/sizeof(void *); i++) {
-					((addr_t *)policy_module)[i] -= (addr_t)(policy_module);
-				}
 				_env().rm().detach(policy_module);
 				policy_module = 0;
 			}
@@ -81,7 +76,6 @@ bool Trace::Logger::_evaluate_control()
 		}
 
 		else if (control->to_be_enabled()) {
-
 			control->acknowledge_enabled();
 			enabled = true;
 		}
