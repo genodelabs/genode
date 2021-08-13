@@ -19,11 +19,15 @@
 
 namespace Kernel {
 
+	void main_print_char(char const c);
+
 	void main_handle_kernel_entry();
 
 	void main_initialize_and_handle_kernel_entry();
 
 	time_t main_read_idle_thread_execution_time(unsigned cpu_idx);
+
+	void main_print_char(char c);
 }
 
 #endif /* _KERNEL__MAIN_H_ */

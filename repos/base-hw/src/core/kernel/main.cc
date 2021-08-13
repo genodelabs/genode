@@ -42,6 +42,9 @@ class Kernel::Main
 		friend void main_handle_kernel_entry();
 		friend void main_initialize_and_handle_kernel_entry();
 		friend time_t main_read_idle_thread_execution_time(unsigned cpu_idx);
+		friend void main_print_char(char c);
+
+		enum { SERIAL_BAUD_RATE = 115200 };
 
 		static Main *_instance;
 
@@ -52,6 +55,9 @@ class Kernel::Main
 		Genode::Core_platform_pd                _core_platform_pd    { _addr_space_id_alloc };
 		Genode::Constructible<Core_main_thread> _core_main_thread    { };
 		Board::Global_interrupt_controller      _global_irq_ctrl     { };
+		Board::Serial                           _serial              { Genode::Platform::mmio_to_virt(Board::UART_BASE),
+		                                                               Board::UART_CLOCK,
+		                                                               SERIAL_BAUD_RATE };
 
 		void _handle_kernel_entry();
 
@@ -193,6 +199,12 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 Genode::Platform_pd &Kernel::Main::core_platform_pd()
 {
 	return _instance->_core_platform_pd;
+}
+
+
+void Kernel::main_print_char(char c)
+{
+	Main::_instance->_serial.put_char(c);
 }
 
 
