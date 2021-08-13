@@ -26,16 +26,19 @@ namespace Genode { namespace Trace {
 	{
 		uint64_t t;
 		__asm__ __volatile__ (
-				"pushl %%ebx\n\t"
-				"xorl %%eax,%%eax\n\t"
-				"cpuid\n\t"
+				"pushl %%ebx\n\t"       /* ebx is reserved in PIC mode, but clobbered by cpuid */
+				"xorl %%eax,%%eax\n\t"  /* provide constant argument to cpuid to reduce variance */
+				"cpuid\n\t"             /* synchronise, i.e. finish all preceeding instructions */
 				"popl %%ebx\n\t"
 				:
 				:
 				: "%eax", "%ecx", "%edx"
 				);
 		__asm__ __volatile__ (
-				"rdtsc" : "=A" (t)
+				"rdtsc"
+				: "=A" (t)
+				:
+				: "memory"               /* prevent reordering of asm statements */
 				);
 
 		return t;
