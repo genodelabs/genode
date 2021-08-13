@@ -53,7 +53,6 @@ class Kernel::Pd
 		Genode::Platform_pd           &_platform_pd;
 		Capid_allocator                _capid_alloc { };
 		Object_identity_reference_tree _cap_tree    { };
-		bool                           _core_pd     { false };
 
 	public:
 
@@ -75,12 +74,6 @@ class Kernel::Pd
 		{
 			capid_t invalid = _capid_alloc.alloc();
 			assert(invalid == cap_id_invalid());
-
-			static bool first_pd = true;
-			if (first_pd) {
-				_core_pd = true;
-				first_pd = false;
-			}
 		}
 
 		~Pd()
@@ -116,7 +109,6 @@ class Kernel::Pd
 		Hw::Page_table      &translation_table()   { return _table;       }
 		Capid_allocator     &capid_alloc()         { return _capid_alloc; }
 		Object_identity_reference_tree &cap_tree() { return _cap_tree;    }
-		bool                 core_pd() const       { return _core_pd;     }
 };
 
 #endif /* _CORE__KERNEL__PD_H_ */
