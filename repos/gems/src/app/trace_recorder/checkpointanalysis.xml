@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmfxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="xmlDefinition.xsd">
+
+	<pattern version="1" id="genode.checkpointpattern">
+		<head>
+			<label value="Genode Checkpoint Duration" />
+			<viewLabelPrefix value="Checkpoint Duration"/>
+		</head>
+
+		<patternHandler>
+
+			<test id="start_condition">
+				<if>
+					<condition>
+						<stateValue type="eventField" value="type"/>
+						<stateValue type="long" value="1"/>
+					</condition>
+				</if>
+			</test>
+
+			<test id="end_condition">
+				<if>
+					<and>
+						<condition>
+							<stateValue type="eventField" value="type"/>
+							<stateValue type="long" value="2"/>
+						</condition>
+						<condition>
+							<stateValue type="eventField" value="name"/>
+							<stateValue type="query">
+								<stateAttribute type="constant" value="#CurrentScenario"/>
+								<stateAttribute type="constant" value="name"/>
+							</stateValue>
+						</condition>
+						<condition>
+							<stateValue type="eventField" value="context.session_label"/>
+							<stateValue type="query">
+								<stateAttribute type="constant" value="#CurrentScenario"/>
+								<stateAttribute type="constant" value="component"/>
+							</stateValue>
+						</condition>
+						<condition>
+							<stateValue type="eventField" value="context.thread_name"/>
+							<stateValue type="query">
+								<stateAttribute type="constant" value="#CurrentScenario"/>
+								<stateAttribute type="constant" value="thread"/>
+							</stateValue>
+						</condition>
+					</and>
+				</if>
+			</test>
+
+			<action id="start">
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="name"/>
+					<stateValue type="eventField" value="name"/>
+				</stateChange>
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="component"/>
+					<stateValue type="eventField" value="context.session_label"/>
+				</stateChange>
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="thread"/>
+					<stateValue type="eventField" value="context.thread_name"/>
+				</stateChange>
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="startTime"/>
+					<stateValue type="eventField" value="timestamp"/>
+				</stateChange>
+			</action>
+
+			<action id="emit">
+				<segment>
+					<segType>
+						<segName>
+							<stateValue type="eventField" value="name"/>
+						</segName>
+					</segType>
+					<segContent>
+						<segField name="component" type="string">
+							<stateValue type="eventField" value="context.session_label" />
+						</segField>
+						<segField name="thread" type="string">
+							<stateValue type="eventField" value="context.thread_name" />
+						</segField>
+					</segContent>
+				</segment>
+			</action>
+
+			<fsm id="duration" initial="idle">
+				<precondition event="Checkpoint"/>
+				<state id="idle">
+					<transition event="Checkpoint" cond="start_condition" action="start" target="started"/>
+				</state>
+				<state id="started">
+					<transition event="Checkpoint" cond="end_condition" target="idle" action="emit"/>
+				</state>
+			</fsm>
+
+		</patternHandler>
+
+	</pattern>
+
+</tmfxml>
