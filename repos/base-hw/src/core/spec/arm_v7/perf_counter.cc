@@ -168,7 +168,7 @@ struct Pmuseren : Register<32>
 };
 
 
-void Kernel::Perf_counter::enable()
+void Kernel::enable_performance_counter()
 {
 	/* program PMU and enable all counters */
 	Pmcr::write(Pmcr::enable_and_reset());
@@ -178,11 +178,4 @@ void Kernel::Perf_counter::enable()
 	/* enable user-mode access to counters and disable overflow interrupt. */
 	Pmuseren::write(Pmuseren::enable());
 	Pmintenclr::write(Pmintenclr::disable_overflow_intr());
-}
-
-
-Kernel::Perf_counter* Kernel::perf_counter()
-{
-	static Kernel::Perf_counter inst;
-	return &inst;
 }

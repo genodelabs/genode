@@ -16,21 +16,7 @@
 
 namespace Kernel {
 
-	/**
-	 * Performance counter
-	 */
-	class Perf_counter
-	{
-		public:
-
-			/**
-			 * Enable counting
-			 */
-			void enable();
-	};
-
-
-	extern Perf_counter * perf_counter();
+	void enable_performance_counter();
 }
 
 #endif /* _CORE__KERNEL__PERF_COUNTER_H_ */

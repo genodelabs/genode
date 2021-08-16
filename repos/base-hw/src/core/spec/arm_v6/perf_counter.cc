@@ -93,7 +93,7 @@ struct Accvalctlr : Register<32>
 };
 
 
-void Kernel::Perf_counter::enable()
+void Kernel::enable_performance_counter()
 {
 	/* enable counters and disable overflow interrupt. */
 	Pmcr::access_t v = Pmcr::enable_and_reset();
@@ -104,11 +104,4 @@ void Kernel::Perf_counter::enable()
 
 	/* enable user-mode access */
 	Accvalctlr::write(Accvalctlr::enable_user_access());
-}
-
-
-Kernel::Perf_counter* Kernel::perf_counter()
-{
-	static Kernel::Perf_counter inst;
-	return &inst;
 }
