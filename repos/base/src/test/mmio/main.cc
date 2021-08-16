@@ -69,6 +69,10 @@ struct Test_mmio : public Mmio
 		struct Bits_2 : Bitfield<44,4> { };
 		struct Bits_3 : Bitfield<0,24> { };
 		struct Bits_4 : Bitfield<60,4> { };
+		struct Bits_5 : Bitfield<0,64> { };
+		struct Bits_6 : Bitfield<16,64> { };
+		struct Bits_7 : Bitfield<12,90> { };
+		struct Bits_8 : Bitfield<0,72> { };
 	};
 	struct Bitset_64_0 : Bitset_2<Reg_64::Bits_0, Reg_64::Bits_1> { };
 	struct Bitset_64_1 : Bitset_3<Reg_64::Bits_4, Reg_64::Bits_3, Reg_64::Bits_2> { };
@@ -462,6 +466,44 @@ void Component::construct(Genode::Env &env)
 		if (mmio.read<Reg::Bits_2>() != BITS_2) { failed(__LINE__, env); }
 		if (mmio.read<Reg::Bits_3>() != BITS_3) { failed(__LINE__, env); }
 		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { failed(__LINE__, env); }
+
+		/* test bitfields that are at least as wide as the register */
+		{
+			uint64_t const value_1 { 0x0123456789abcdef };
+			uint64_t const value_2 { 0x0123456789abcdef };
+			uint64_t const value_3 { 0x0123456789abcdef };
+			zero_mem(mmio_mem, MMIO_SIZE);
+			mmio.write<Reg::Bits_5>(value_1);
+			if (mmio.read<Reg::Bits_5>() != value_2) { failed(__LINE__, env); }
+			if (compare_mem(mmio_mem, (uint8_t *)&value_3, MMIO_SIZE)) { failed(__LINE__, env); }
+		}
+		{
+			uint64_t const value_1 { 0x0123456789abcdef };
+			uint64_t const value_2 { 0x0000456789abcdef };
+			uint64_t const value_3 { 0x456789abcdef0000 };
+			zero_mem(mmio_mem, MMIO_SIZE);
+			mmio.write<Reg::Bits_6>(value_1);
+			if (mmio.read<Reg::Bits_6>() != value_2) { failed(__LINE__, env); }
+			if (compare_mem(mmio_mem, (uint8_t *)&value_3, MMIO_SIZE)) { failed(__LINE__, env); }
+		}
+		{
+			uint64_t const value_1 { 0x0123456789abcdef };
+			uint64_t const value_2 { 0x0003456789abcdef };
+			uint64_t const value_3 { 0x3456789abcdef000 };
+			zero_mem(mmio_mem, MMIO_SIZE);
+			mmio.write<Reg::Bits_7>(value_1);
+			if (mmio.read<Reg::Bits_7>() != value_2) { failed(__LINE__, env); }
+			if (compare_mem(mmio_mem, (uint8_t *)&value_3, MMIO_SIZE)) { failed(__LINE__, env); }
+		}
+		{
+			uint64_t const value_1 { 0x0123456789abcdef };
+			uint64_t const value_2 { 0x0123456789abcdef };
+			uint64_t const value_3 { 0x0123456789abcdef };
+			zero_mem(mmio_mem, MMIO_SIZE);
+			mmio.write<Reg::Bits_8>(value_1);
+			if (mmio.read<Reg::Bits_8>() != value_2) { failed(__LINE__, env); }
+			if (compare_mem(mmio_mem, (uint8_t *)&value_3, MMIO_SIZE)) { failed(__LINE__, env); }
+		}
 
 		/* bitsets */
 		typedef Test_mmio::Bitset_64 Bitset;

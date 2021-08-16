@@ -149,7 +149,15 @@ struct Genode::Register
 		/**
 		 * Get an unshifted mask of this field
 		 */
-		static constexpr access_t mask() { return ((access_t)1 << WIDTH) - 1; }
+		static constexpr access_t mask()
+		{
+			/* prevent compile error "left shift count >= width of type" */
+			if (_WIDTH < _ACCESS_WIDTH) {
+				return ((access_t)1 << _WIDTH) - 1;
+			} else {
+				return ~(access_t)0;
+			}
+		}
 
 		/**
 		 * Get a mask of this field shifted by its shift in the register
