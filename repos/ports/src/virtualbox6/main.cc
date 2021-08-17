@@ -265,6 +265,10 @@ struct Main : Event_handler
 
 	void _handle_input();
 
+	Signal_handler<Main> _fb_mode_handler { _env.ep(), *this, &Main::_handle_fb_mode };
+
+	void _handle_fb_mode();
+
 	Input_adapter _input_adapter { _iconsole };
 
 	bool const _genode_gui_attached = ( _attach_genode_gui(), true );
@@ -275,9 +279,12 @@ struct Main : Event_handler
 
 		for (unsigned i = 0; i < num_monitors.value; i++) {
 
-			Gui::Connection &gui = *new Registered<Gui::Connection>(_gui_connections, _env);
+			String<3> label { i };
+
+			Gui::Connection &gui = *new Registered<Gui::Connection>(_gui_connections, _env, label.string());
 
 			gui.input()->sigh(_input_handler);
+			gui.mode_sigh(_fb_mode_handler);
 
 			Genodefb *fb = new Genodefb(_env, gui, _idisplay);
 
@@ -368,6 +375,35 @@ void Main::_handle_input()
 		_gui_connections.for_each([&] (Gui::Connection &gui) {
 			gui.input()->for_each_event([&] (Input::Event const &ev) {
 				handle_one_event(ev); }); }); });
+}
+
+
+void Main::_handle_fb_mode()
+{
+	Libc::with_libc([&] {
+		_gui_connections.for_each([&] (Gui::Connection &gui) {
+			IFramebuffer *pFramebuffer = NULL;
+			HRESULT rc = _idisplay->QueryFramebuffer(0, &pFramebuffer);
+			Assert(SUCCEEDED(rc) && pFramebuffer);
+
+			Genodefb *fb = dynamic_cast<Genodefb *>(pFramebuffer);
+
+			fb->update_mode(gui.mode());
+
+			if ((fb->w() <= 1) && (fb->h() <= 1)) {
+				/* interpret a size of 0x0 as indication to quit VirtualBox */
+				if (_iconsole->PowerButton() != S_OK)
+					Genode::error("ACPI shutdown failed");
+				return;
+			}
+
+			_idisplay->SetVideoModeHint(0 /*=display*/,
+			                            true /*=enabled*/, false /*=changeOrigin*/,
+			                            0 /*=originX*/, 0 /*=originY*/,
+			                            fb->w(), fb->h(),
+			                            32, true);
+		});
+	});
 }
 
 
