@@ -1,0 +1,6 @@
+-m 2048
+-global virtio-mmio.force-legacy=false
+-device virtio-mouse-device
+-device virtio-keyboard-device
+arm_v8a: -M virt,virtualization=true,gic-version=3 -cpu cortex-a53 -smp 4
+arm_v7a: -M virt,virtualization=true -cpu cortex-a15 -smp 2

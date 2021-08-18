@@ -36,12 +36,51 @@ proc check_version {qemu_version qemu_min qemu_max} {
 }
 
 ##
+#
+#
+proc board_qemu_args { } {
+
+	set qemu_args_file [file join "board" [board] "qemu_args"]
+
+	set repo [repository_contains $qemu_args_file]
+
+	if {$repo == ""} {
+		return ""
+	}
+
+	set fh [open [file join $repo $qemu_args_file] "RDONLY"]
+	set file_content [read $fh]
+	close $fh
+
+	##
+	# Each line is appended to qemu_args.
+	# Arguments might be general or restricted to a particular spec as follows:
+	#   general arguments
+	#   arm_v7a: arguments for arm_v7a
+	#
+	set qemu_args ""
+	foreach line [split $file_content "\n"] {
+		if {[regexp {^([\w]+):(.*)$} $line dummy spec arg]} {
+			if {[have_spec $spec]} { append qemu_args " $arg" }
+		} else {
+			# general arguments
+			append qemu_args " $line"
+		}
+	}
+
+	return $qemu_args
+}
+
+##
 # Execute scenario using Qemu
 #
 proc run_power_on { } {
 	global qemu_args
 	global qemu
 	global qemu_spawn_id
+
+	# save original qemu_args to support retrying
+	set original_qemu_args $qemu_args
 
 	#
 	# Back out on platforms w/o Qemu support
@@ -91,35 +130,6 @@ proc run_power_on { } {
 			puts "Known good Qemu versions are until $qemu_good_old and starting with $qemu_good_new\n"
 			exit 1
 		}
-	}
-
-	# tweak emulated platform for specific platforms
-	if {[have_board pbxa9]}  {
-		#
-		# For PBXA9 qemu adjusts provided RAM chips to the -m arg. Thus we
-		# filter user values and force value that enables all chips that Genode
-		# expects to be available. Not doing so leads to inexplicable errors.
-		#
-		regsub -all {\-m ([0-9])+} $qemu_args "" qemu_args
-		append qemu_args " -m 768"
-		append qemu_args " -M realview-pbx-a9"
-	}
-	if {[have_board vpb926]} { append qemu_args " -M versatilepb     -m 128 " }
-	if {[have_board zynq_qemu]}   { append qemu_args " -M xilinx-zynq-a9 -cpu cortex-a9 -m 256 " }
-	if {[have_board rpi3]}   { append qemu_args " -M raspi3 -m 512 " }
-
-	if {[have_board virt_qemu]} {
-		append qemu_args " -M virt,virtualization=true"
-		if {[have_spec arm_v8a]} {
-			append qemu_args ",gic-version=3 -cpu cortex-a53 -smp 4"
-		}
-		if {[have_spec arm_v7a]} {
-			append qemu_args " -cpu cortex-a15 -smp 2"
-		}
-		append qemu_args " -m 2048"
-		append qemu_args " -global virtio-mmio.force-legacy=false "
-		append qemu_args " -device virtio-mouse-device"
-		append qemu_args " -device virtio-keyboard-device"
 	}
 
 	# on x86, we support booting via pxe or iso/disk image
@@ -174,21 +184,28 @@ proc run_power_on { } {
 			puts "Aborting, cannot execute Qemu without a ISO or disk image"
 			exit -4
 		} } } }
-
-		append qemu_args " -machine q35 "
-	}
-
-	if {[have_board riscv_qemu]} {
-		append qemu_args " -m 128 -machine virt -cpu rv64,priv_spec=v1.10.0 "
-		append qemu_args " -bios default "
 	}
 
 	# on ARM/RISC-V, we supply the boot image as kernel
 	if {[have_spec arm] || [have_spec arm_v8] || [have_spec riscv]} {
 		append qemu_args " -kernel [run_dir]/boot/image.elf " }
 
+	set board_qemu_args [board_qemu_args]
+
+	##
+	# remove any -m arguments from qemu args if specified by board_qemu_args
+	# note, that we must not match/remove -machine, but allow -m size=1G,slots=3,maxmem=4G
+	if {[regexp -- {-m\s+} $board_qemu_args dummy]} {
+		regsub -all {\-m\s+\S+} $qemu_args "" qemu_args }
+
+	# append custom board-specific qemu_args
+	append qemu_args " $board_qemu_args"
+
 	eval spawn $qemu $qemu_args
 	set qemu_spawn_id $spawn_id
+
+	# restore original qemu_args to support retrying
+	set qemu_args $original_qemu_args
 
 	return true
 }
