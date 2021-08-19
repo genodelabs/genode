@@ -1,10 +1,11 @@
 _/src/init
+_/src/jpeg
 _/src/libc
 _/src/libiconv
+_/src/libyuv
 _/src/posix
 _/src/stdcxx
 _/src/vbox6
 _/src/vfs
 _/src/vfs_pipe
 _/src/zlib
-_/src/jpeg
