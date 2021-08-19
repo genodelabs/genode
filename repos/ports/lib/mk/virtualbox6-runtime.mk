@@ -49,6 +49,7 @@ SRC_CC += Runtime/common/vfs/vfschain.cpp
 SRC_CC += Runtime/common/vfs/vfsstddir.cpp
 SRC_CC += Runtime/common/vfs/vfsstdfile.cpp
 SRC_CC += Runtime/common/zip/zip.cpp
+SRC_CC += Runtime/r3/freebsd/systemmem-freebsd.cpp
 SRC_CC += Runtime/r3/generic/dirrel-r3-generic.cpp
 SRC_CC += Runtime/r3/generic/semspinmutex-r3-generic.cpp
 SRC_CC += Runtime/r3/posix/dir-posix.cpp

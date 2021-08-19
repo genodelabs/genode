@@ -201,13 +201,6 @@ int NetIfCreateHostOnlyNetworkInterface(VirtualBox *, IHostNetworkInterface **,
                                         IProgress **, const char *) STOP
 
 
-/* systemmem-freebsd.cpp */
-
-#include "iprt/system.h"
-
-RTDECL(int) RTSystemQueryTotalRam(uint64_t *pcb) STOP
-
-
 /* HostDnsServiceResolvConf.cpp */
 
 #include <string>
