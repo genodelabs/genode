@@ -45,3 +45,10 @@ void clk_disable(struct clk * clk) { }
 
 
 void clk_unprepare(struct clk * clk) { }
+
+
+struct of_device_id;
+
+
+void of_clk_init(const struct of_device_id *matches) { }
+

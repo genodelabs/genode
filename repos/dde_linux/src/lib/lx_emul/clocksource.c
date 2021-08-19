@@ -15,8 +15,10 @@
 #include <linux/clocksource.h>
 #include <linux/sched_clock.h>
 #include <linux/smp.h>
+#include <linux/of_clk.h>
 #include <lx_emul/debug.h>
 #include <lx_emul/time.h>
+#include <lx_emul/init.h>
 
 static u32 dde_timer_rate = 1000000; /* we use microseconds as rate */
 
@@ -93,6 +95,10 @@ void lx_emul_time_init()
 	timecounter_init(&timecounter, &cyclecounter, start_count);
 	clockevents_config_and_register(&clock_event_device, dde_timer_rate, 0xf, 0x7fffffff);
 	sched_clock_register(dde_timer_read_counter, 64, dde_timer_rate);
+
+	/* execute setup calls of clock providers in __clk_of_table */
+	of_clk_init(NULL);
+
 }
 
 
@@ -102,4 +108,25 @@ void lx_emul_time_handle(void)
 }
 
 
-struct of_device_id __clk_of_table[] = { };
+enum { LX_EMUL_MAX_OF_CLOCK_PROVIDERS = 256 };
+
+
+struct of_device_id __clk_of_table[LX_EMUL_MAX_OF_CLOCK_PROVIDERS] = { };
+
+
+void lx_emul_register_of_clk_initcall(char const *compat, void *fn)
+{
+	static unsigned count;
+
+	if (count == LX_EMUL_MAX_OF_CLOCK_PROVIDERS) {
+		printk("lx_emul_register_of_clk_initcall: __clk_of_table exhausted\n");
+		return;
+	}
+
+	strncpy(__clk_of_table[count].compatible, compat,
+	        sizeof(__clk_of_table[count].compatible));
+
+	__clk_of_table[count].data = fn;
+
+	count++;
+}
