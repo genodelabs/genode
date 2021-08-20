@@ -134,16 +134,32 @@ static int __init dde_irqchip_init(struct device_node *node,
 }
 
 
-struct of_device_id __irqchip_of_table[] = {
-	{
-		.compatible = "arm,gic-v3",
-		.data       = dde_irqchip_init
-	},
-	{
-		.compatible = "arm,gic-400",
-		.data       = dde_irqchip_init
+enum { LX_EMUL_MAX_OF_IRQ_CHIPS = 16 };
+
+
+struct of_device_id __irqchip_of_table[LX_EMUL_MAX_OF_IRQ_CHIPS] = { };
+
+
+void lx_emul_register_of_irqchip_initcall(char const *compat, void *fn)
+{
+	static unsigned count;
+
+	if (count == LX_EMUL_MAX_OF_IRQ_CHIPS) {
+		printk("lx_emul_register_of_irqchip_initcall: __irqchip_of_table exhausted\n");
+		return;
 	}
-};
+
+	strncpy(__irqchip_of_table[count].compatible, compat,
+	        sizeof(__irqchip_of_table[count].compatible));
+
+	__irqchip_of_table[count].data = fn;
+
+	count++;
+}
+
+
+IRQCHIP_DECLARE(dde_gic_v3,  "arm,gic-v3",  dde_irqchip_init);
+IRQCHIP_DECLARE(dde_gic_400, "arm,gic-400", dde_irqchip_init);
 
 
 int lx_emul_irq_task_function(void * data)

@@ -18,8 +18,16 @@
 #include      <lx_emul/init.h>
 
 #undef OF_DECLARE_1
+#undef OF_DECLARE_2
 
+/* used to populate __clk_of_table */
 #define OF_DECLARE_1(table, name, compat, fn) \
+	static void __of_declare_initcall_##fn##name(void)__attribute__((constructor)); \
+	static void __of_declare_initcall_##fn##name() { \
+			lx_emul_register_of_##table##_initcall(compat, fn); };
+
+/* used to populate __irqchip_of_table */
+#define OF_DECLARE_2(table, name, compat, fn) \
 	static void __of_declare_initcall_##fn##name(void)__attribute__((constructor)); \
 	static void __of_declare_initcall_##fn##name() { \
 			lx_emul_register_of_##table##_initcall(compat, fn); };

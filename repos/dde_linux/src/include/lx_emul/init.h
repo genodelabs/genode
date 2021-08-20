@@ -30,6 +30,8 @@ extern void * lx_emul_init_task_struct;
 
 void lx_emul_register_of_clk_initcall(char const *compat, void *fn);
 
+void lx_emul_register_of_irqchip_initcall(char const *compat, void *fn);
+
 #ifdef __cplusplus
 }
 #endif
