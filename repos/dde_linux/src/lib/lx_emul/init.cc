@@ -29,6 +29,14 @@ extern "C" void lx_emul_initcalls()
 extern "C" void lx_emul_register_initcall(int (*initcall)(void),
                                           const char * name)
 {
+	/*
+	 * Filter out 'late_initcall_sync(clk_disable_unused)' in clk/clk.c to
+	 * hold back a driver with access to the clock controller from affecting
+	 * devices of other drivers.
+	 */
+	if (Genode::strcmp(name, "__initcall_clk_disable_unused7s") == 0)
+		return;
+
 	for (unsigned i = 0; i < (sizeof(lx_emul_initcall_order) / sizeof(char*));
 	     i++) {
 		if (Genode::strcmp(name, lx_emul_initcall_order[i]) == 0) {
