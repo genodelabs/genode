@@ -20,15 +20,12 @@ lappend imports [depot_user]/pkg/drivers_interactive-[board]
 }
 
 lappend imports [depot_user]/src/nitpicker
-lappend imports [depot_user]/src/gui_fb
-lappend imports [depot_user]/src/demo
 lappend imports [depot_user]/src/report_rom
 
 import_from_depot $imports
 
 set build_components {
 	drivers/gpu/intel
-	drivers/framebuffer/intel
 	lib/mesa/softpipe
 	core init timer
 }
@@ -107,58 +104,23 @@ set backend_library egl_swrast.lib.so
 if {$use_iris}    { set backend_library egl_iris.lib.so }
 if {$use_etnaviv} { set backend_library egl_etnaviv.lib.so }
 
-set launchpad_config {
-<config>
-	<launcher name="init" ram_quota="1G" caps="2000">
-		<config verbose="yes">
-			<parent-provides>
-				<service name="ROM"/>
-				<service name="IRQ"/>
-				<service name="IO_MEM"/>
-				<service name="IO_PORT"/>
-				<service name="PD"/>
-				<service name="RM"/>
-				<service name="CPU"/>
-				<service name="LOG"/>
-				<service name="Gui"/>
-				<service name="Timer"/>
-				<service name="Gpu"/>
-			</parent-provides>
+append config "
+	<start name=\"$demo_binary\" caps=\"$demo_caps\">
+		<resource name=\"RAM\" quantum=\"$demo_ram_quota\"/>"
 
-			<start name="liquid_fb" caps="200">
-				<resource name="RAM" quantum="16M"/>
-				<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-				<config resize_handle="off" animate="off" title="gears" width="600" height="600" xpos="100" ypos="100"/>
-				<route>
-				<any-service> <parent/> <any-child/> </any-service>
-				</route>
-			</start>}
+append config $demo_config
 
-append launchpad_config "
-			<start name=\"$demo_binary\" caps=\"$demo_caps\">
-				<resource name=\"RAM\" quantum=\"$demo_ram_quota\"/>"
-
-append launchpad_config $demo_config
-
-append launchpad_config "
-				<route>
-					<service name=\"ROM\" label=\"egl_drv.lib.so\">
-						<parent label=\"$backend_library\"/>
-					</service>"
-append launchpad_config {
-					<any-service> <parent/> <any-child/> </any-service>
-				</route>
-			</start>
-			</config>
-	</launcher>
-</config>}
-
+append config "
+		<route>
+			<service name=\"ROM\" label=\"egl_drv.lib.so\">
+				<parent label=\"$backend_library\"/>
+			</service>"
 append config {
-	<start name="launchpad" caps="3000">
-		<resource name="RAM" quantum="512M"/>}
-append config $launchpad_config
-append config {
-	</start>}
+			<service name="Gui"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+}
 
 append_if $use_iris config {
 	<start name="intel_gpu_drv" caps="2000">
@@ -172,13 +134,7 @@ append_if $use_iris config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="intel_fb_drv" caps="1000">
-		<resource name="RAM" quantum="96M"/>
-		<route>
-			<service name="Platform"> <child name="intel_gpu_drv"/> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
+}
 
 append_if $use_etnaviv config {
 	<start name="imx8q_gpu_drv" caps="200">
@@ -206,7 +162,7 @@ set boot_modules {
 
 append_if $use_iris boot_modules {
 	egl_iris.lib.so libdrm.lib.so
-	intel_gpu_drv intel_fb_drv
+	intel_gpu_drv
 }
 
 append_if $use_etnaviv boot_modules {

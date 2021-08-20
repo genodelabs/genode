@@ -1,7 +1,7 @@
 set demo_component test/mesa_demo/gears
 set demo_binary    gears
-set demo_ram_quota 256M
-set demo_caps      1500
+set demo_ram_quota 32M
+set demo_caps      300
 
 set demo_config {
 <config ld_verbose="true">
