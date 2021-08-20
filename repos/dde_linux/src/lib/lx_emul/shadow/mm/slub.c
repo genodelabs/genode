@@ -32,8 +32,14 @@ void kfree(const void * x)
 
 void * __kmalloc(size_t size, gfp_t flags)
 {
+	/* Linux expects a non-NULL return value for size 0 */
+	if (size == 0)
+		size = 1;
+
 	/* DMA memory is not implemented yet */
-	if (flags & GFP_DMA) lx_emul_trace_and_stop(__func__);
+	if (flags & GFP_DMA)
+		lx_emul_trace_and_stop(__func__);
+
 	return lx_emul_mem_alloc(size);
 }
 
