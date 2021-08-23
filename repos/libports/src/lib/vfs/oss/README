@@ -1,39 +1,56 @@
 The VFS OSS plugin offers access to Genode's Audio_out session by providing a
 file-system that can be mounted at arbitrary location within the VFS of a
-component. It exposes a data file that can by used as 'dsp' file, e.g., _/dev/dsp_
+component. It exposes a data file that can be used as 'dsp' file, e.g., _/dev/dsp_
 as is common with OSS. The support I/O control operations or rather the
-properties of the pseudo-device are provide in form of a structured 'info'
+properties of the pseudo-device are provided in form of a structured 'info'
 file located in the directory named after the data file, e.g., _/dev/.dsp/info_.
 
 This file may by used to query the configured parameters and has the following
 structure:
 
 ! <oss channels="2" sample_rate="44000" format="16"
-!      queue_size="256" frag_size="1024" frag_avail="256"/>
+!      ofrag_total="256" ofrag_size="2048" ofrag_avail="256"
+|      optr_samples="0" optr_fifo_samples="0" play_underruns="0"/>
 
 Each parameter can also be accessed via its own file. The following list
 presents all files:
 
-  * :channels: number of available channels. Set to 2 (stereo).
+  * :channels (ro): number of available channels. Set to 2 (stereo).
+    Corresponding OSS commands: 'SNDCTL_DSP_CHANNELS'
 
-  * :sample_rate: sample rate of the underlying Audio_out session.
+  * :sample_rate (ro): sample rate of the underlying Audio_out session.
+    Corresponding OSS commands: 'SNDCTL_DSP_SPEED'
 
-  * :format: sample format, e.g. s16le. Defaults to AFMT_S16_LE.
+  * :format (ro): sample format, e.g. s16le. Defaults to AFMT_S16_LE.
+    Corresponding OSS commands: 'SNDCTL_DSP_SAMPLESIZE'
 
-  * :queue_size: number of packets in the underlying Audio_out session's
-    packet-stream.
+  * :ofrag_total (rw): total number of output fragments. Set to number of packets
+    in the underlying Audio_out session's packet-stream by default.
+    Corresponding OSS commands: 'SNDCTL_DSP_SETFRAGMENT', 'SNDCTL_DSP_GETOSPACE'
 
-  * :frag_size: size of a fragment. Set to 1024 (number of channels times
-    size of Audio_out period times size of s16le sample).
+  * :ofrag_size (rw): size of an output fragment. Set to 2048 (number of channels
+    times size of Audio_out period times size of s16le sample) by default.
+    Corresponding OSS commands: 'SNDCTL_DSP_SETFRAGMENT', 'SNDCTL_DSP_GETOSPACE'
 
-  * :frag_avail: number of available bytes. Initially set to queue size
-    times frag size.
+  * :ofrag_avail (ro): number of available output fragments. Initially set to total
+    fragment count.
+    Corresponding OSS commands: 'SNDCTL_DSP_GETOSPACE'
 
-In its current state it is merely enough to use simply applications requiring
-nothing more than a minimal set of the OSSv3 API. It does not allow altering
-of parameters. Therefore it will only work when 44000Hz/s16le is used.
+  * :optr_samples (ro): total number of samples submitted to the Audio_out session
+    Corresponding OSS commands: 'SNDCTL_DSP_CURRENT_OPTR'
 
-The following config snippets illustrates its configuration:
+  * :optr_fifo_samples (ro): number of samples residing in the Audio_out stream
+    Corresponding OSS commands: 'SNDCTL_DSP_CURRENT_OPTR'
+
+  * :play_underruns (rw): number of detected underrun errors, Writing anything
+    into this file resets the value to zero 
+    Corresponding OSS commands: 'SNDCTL_DSP_GETERROR'
+
+In its current state it is merely enough to use simple applications requiring
+nothing more than a minimal set of the OSSv4 API. It does not allow altering
+of all parameters and will only work when 44100Hz/s16le is used.
+
+The following config snippet illustrates its configuration:
 
 ! <vfs>
 !   <dir name="dev">

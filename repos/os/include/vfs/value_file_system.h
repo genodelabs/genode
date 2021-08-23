@@ -75,7 +75,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 					return WRITE_ERR_INVALID;
 
 				Genode::size_t const len = min(BUF_SIZE- seek(), count);
-				_buffer = Buffer(Cstring(src, len));
+				_buffer = Buffer(Genode::Cstring(src, len));
 				out_count = len;
 
 				/* inform watchers */

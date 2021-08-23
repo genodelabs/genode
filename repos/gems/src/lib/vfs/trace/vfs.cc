@@ -14,6 +14,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <vfs/dir_file_system.h>
 #include <vfs/single_file_system.h>
+#include <vfs/value_file_system.h>
 
 #include <os/vfs.h>
 #include <util/xml_generator.h>
@@ -22,7 +23,6 @@
 
 #include "directory_tree.h"
 #include "trace_buffer.h"
-#include "value_file_system.h"
 
 
 namespace Vfs_trace {
