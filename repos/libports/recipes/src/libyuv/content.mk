@@ -1,5 +1,8 @@
-MIRROR_FROM_REP_DIR := lib/mk/libyuv.inc  lib/mk/spec/x86_32/libyuv.mk \
-                       lib/mk/spec/x86_64/libyuv.mk lib/import/import-libyuv.mk
+MIRROR_FROM_REP_DIR := lib/mk/libyuv.inc \
+                       lib/mk/spec/arm_v8/libyuv.mk \
+                       lib/mk/spec/x86_32/libyuv.mk \
+                       lib/mk/spec/x86_64/libyuv.mk \
+                       lib/import/import-libyuv.mk
 
 content: src/lib/libyuv include LICENSE $(MIRROR_FROM_REP_DIR)
 
