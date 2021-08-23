@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _TRACE_BUFFER_H_
-#define _TRACE_BUFFER_H_
+#ifndef _TRACE__TRACE_BUFFER_H_
+#define _TRACE__TRACE_BUFFER_H_
 
 /* Genode includes */
 #include <base/trace/buffer.h>
@@ -37,7 +37,7 @@ class Trace_buffer
 		 * Call functor for each entry that wasn't yet processed
 		 */
 		template <typename FUNC>
-		void for_each_new_entry(FUNC && functor)
+		void for_each_new_entry(FUNC && functor, bool update = true)
 		{
 			using namespace Genode;
 
@@ -50,7 +50,8 @@ class Trace_buffer
 				_wrapped_count = _buffer.wrapped();
 			}
 
-			Trace::Buffer::Entry entry { _curr };
+			Trace::Buffer::Entry new_curr { _curr };
+			Trace::Buffer::Entry entry    { _curr };
 
 			/**
 			 * If '_curr' is marked 'last' (i.e., the entry pointer it contains
@@ -73,8 +74,7 @@ class Trace_buffer
 				entry = _buffer.next(entry);
 
 			/* iterate over all entries that were not processed yet */
-			for (; wrapped || !entry.last(); entry = _buffer.next(entry))
-			{
+			for (; wrapped || !entry.last(); entry = _buffer.next(entry)) {
 				/* if buffer wrapped, we pass the last entry once and continue at first entry */
 				if (wrapped && entry.last()) {
 					wrapped = false;
@@ -83,12 +83,18 @@ class Trace_buffer
 						break;
 				}
 
-				/* remember the last processed entry in _curr */
-				_curr = entry;
-				functor(_curr);
+				if (!functor(entry))
+					break;
+
+				new_curr = entry;
 			}
+
+			/* remember the last processed entry in _curr */
+			if (update) _curr = new_curr;
 		}
+
+		void * address()        const { return &_buffer; }
 };
 
 
-#endif /* _TRACE_BUFFER_H_ */
+#endif /* _TRACE__TRACE_BUFFER_H_ */

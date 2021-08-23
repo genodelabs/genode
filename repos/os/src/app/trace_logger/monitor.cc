@@ -118,7 +118,7 @@ void Monitor::print(bool activity, bool affinity)
 		/* get readable data length and skip empty entries */
 		size_t length = min(entry.length(), (unsigned)MAX_ENTRY_LENGTH - 1);
 		if (!length)
-			return;
+			return true;
 
 		/* copy entry data from buffer and add terminating '0' */
 		memcpy(_curr_entry_data, entry.data(), length);
@@ -134,6 +134,8 @@ void Monitor::print(bool activity, bool affinity)
 			printed_buf_entries = true;
 		}
 		log(Cstring(_curr_entry_data));
+
+		return true;
 	});
 	/* print end tags */
 	if (printed_buf_entries)

@@ -16,10 +16,10 @@
 
 /* local includes */
 #include <avl_tree.h>
-#include <trace_buffer.h>
 
 /* Genode includes */
 #include <base/trace/types.h>
+#include <trace/trace_buffer.h>
 
 namespace Genode { namespace Trace { class Connection; } }
 
