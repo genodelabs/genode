@@ -1,0 +1,16 @@
+<runtime ram="8M" caps="100" binary="black_hole">
+
+	<provides>
+		<audio_out/>
+	</provides>
+
+	<config>
+		<audio_out/>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="black_hole"/>
+	</content>
+
+</runtime>

@@ -1,0 +1,9 @@
+The 'black_hole' component provides dummy implementations of common
+session interfaces.
+
+At this time, only the 'Audio_out' session is provided if enabled
+in the configuration of the component:
+
+<config>
+	<audio_out/>
+</config>
