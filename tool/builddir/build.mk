@@ -370,6 +370,9 @@ ifneq ($(filter /%,$(CUSTOM_CXX)),)
 export CCACHE_PATH := $(dir $(CUSTOM_CXX)):$(PATH)
 endif
 
+# force preprocessor mode
+export CCACHE_NODIRECT=1
+
 # override CUSTOM_CC and CUSTOM_CXX to point to the ccache symlinks
 export CUSTOM_CC  := $(CCACHED_CUSTOM_CC)
 export CUSTOM_CXX := $(CCACHED_CUSTOM_CXX)
