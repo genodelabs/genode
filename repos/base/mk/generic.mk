@@ -26,7 +26,12 @@ $(SUB_DIRS):
 #
 # Make sure that we rebuild object files and host tools after Makefile changes
 #
-$(wildcard $(OBJECTS)) $(HOST_TOOLS): $(filter-out $(LIB_PROGRESS_LOG),$(MAKEFILE_LIST))
+# The 'GLOBAL_DEPS' variable contains a list of files with side effects on the
+# build result that not captured by the regular .d-file mechanism. Changes of
+# such files - in particular build-description files - trigger a whole rebuild.
+#
+GLOBAL_DEPS += $(filter-out $(LIB_PROGRESS_LOG),$(MAKEFILE_LIST))
+$(wildcard $(OBJECTS)) $(HOST_TOOLS): $(GLOBAL_DEPS)
 
 INCLUDES := $(addprefix -I,$(wildcard $(ALL_INC_DIR)))
 
