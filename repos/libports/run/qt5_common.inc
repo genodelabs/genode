@@ -7,6 +7,7 @@ import_from_depot [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/src/expat \
                   [depot_user]/src/global_keys_handler \
                   [depot_user]/src/init \
+                  [depot_user]/src/libdrm \
                   [depot_user]/src/libc \
                   [depot_user]/src/mesa \
                   [depot_user]/src/nitpicker \
