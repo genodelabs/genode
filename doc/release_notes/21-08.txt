@@ -1,0 +1,671 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 21.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+Genode 21.08 puts device drivers into the spotlight. It attacks the costs of
+porting drivers from the Linux kernel and takes a leap forward with respect to
+GPU support. This low-level work is complemented by several topics that
+contribute to our vision of hosting video-conferencing scenarios natively on
+Genode.
+
+For those of you who follow Genode's release notes over the years, the
+so-called DDE-Linux is a recurring topic. DDE is short for device-driver
+environment and denotes our principal approach of running unmodified Linux
+device-driver code inside Genode components. For over a decade, we iterated
+many times to find a sustainable and scalable solution for satisfying Genode's
+driver needs. Thanks to this enduring work, Genode enjoys support for modern
+hardware such as Intel wireless chips or Intel graphics devices. However, when
+looking beyond PC hardware, in particular at the plethora of ARM SoCs as
+potential target platforms for Genode, we found our existing DDE-Linux
+approach increasingly prohibitive because the investment of manual labour per
+driver would become unbearable. It was time to recollect, draw from our
+collective experience gathered over the past years, and re-envision what
+DDE-Linux could be. Section [Linux-device-driver environment re-imagined]
+presents the results of this recent line of development that promises to dwarf
+the costs of driver-porting work compared to our time-tested approach. The
+results have an immediate impact on our ambition to bring Genode to the
+Pinephone as our added network and framebuffer drivers for the Allwinner A64
+SoC leverage the new DDE already.
+
+The challenge of using hardware-accelerated graphics (GPUs) on Genode makes a
+guest appearance in the release notes on-and-off since version
+[https://genode.org/documentation/release-notes/10.08#Gallium3D_and_Intel_s_Graphics_Execution_Manager - 10.08].
+However, until now, GPU support has not become a commodity for Genode yet.
+With the work presented in Section [Advancing GPU driver stack], we hope to
+change that. For the first time, we identified a clear path to the
+architectural integration of GPU support in sophisticated Genode scenarios
+such as Sculpt OS. This outlook prompted us to revive the GPU stack in a
+holistic way, including our custom Intel GPU multiplexer as well as the Mesa
+stack.
+
+Further highlights of the current release are an improved and updated version
+of VirtualBox 6, refined user-level networking, the maturing integration with
+host file systems when running Genode on top of Linux, and new media-playback
+capabilities for our port of the Chromium web engine.
+
+
+Linux-device-driver environment re-imagined
+###########################################
+
+Over more than a decade, the domestication of Linux device drivers for Genode
+has evolved into a quest of almost epic proportions. This long-winded story
+has been covered by a recent series of Genodians articles
+([https://genodians.org/skalk/2021-04-06-dde-linux-experiments - first],
+[https://genodians.org/skalk/2021-04-08-dde-linux-experiments-1 - second],
+[https://genodians.org/skalk/2021-06-21-dde-linux-experiments-2 - third]),
+which also goes into a technical deep dive of our recent developments.
+
+On the one hand, we draw an enormous value from the device drivers of the
+Linux kernel. Genode would be nowhere as useful without the Intel wireless
+stack, USB host-controller drivers, or the Intel graphics driver that we
+ported over from Linux. On the other hand, those porting efforts are draining
+a lot of our energy. Linux kernel code is not designed for microkernel-based
+systems after all. Consequently, the transplantation of such code does not
+only require a solid understanding of Linux kernel internals, but also ways to
+overcome the friction between two radically different operating-system-design
+schools (monolithic and component-based) and friction between implementation
+languages (C and C++).
+
+Even though we are not short of evidence of successful driver ports, we are
+very well aware of several elephants in the room:
+
+Economically, each driver port must be understood as a distinct project of
+non-trivial costs. E.g., the port of the i.MX8 graphics driver took us two
+months. That's certainly minuscule compared to a driver written from scratch.
+But it is still expensive and we feel that those expenses hold us back.
+
+Second, once ported, later updates of drivers to a new kernel version are
+costly and risky. But such updates are unavoidable to keep up with new
+hardware. The larger the arsenal of device drivers, the bigger this problem
+becomes.
+
+Third, the skill set of the porting work is the cross point of Linux kernel
+competence and Genode competence. In other words, it's rare. To make Genode
+compatible to a broader spectrum of hardware in the long run, driver porting
+must become an easily attainable skill rather than black art.
+
+With the current release, we introduce a vastly improved approach to the reuse
+of Linux device drivers on Genode. It entails three aspects:
+
+:Code: Reusable building blocks for crafting custom runtime environments
+  to bring Linux kernel code to fly, and for interfacing Genode's session
+  interfaces with Linux kernel interfaces.
+
+:Tooling: A custom tool set that automates repetitive work such as generating
+  dummy implementations of Linux kernel functions.
+
+:Methodology: Consistent patterns and exemplary test scenarios serving as
+  guiding rails for the development work.
+
+The following illustration maps out the first aspect, the various pieces of
+code involved in hosting unmodified Linux driver code on Genode.
+The clear separation of those parts reinforces a degree of formalism - in
+particular about separating C and C++ - that was absent in our previous takes.
+
+[image dde_linux_parts]
+
+A driver is a Genode component. So the outer border of the picture is Genode's
+bare-bones C++ API. At the lower end, the API provides access to device
+resources such as interrupts and memory-mapped device registers. At the higher
+end, the API allows the driver to play the role of a service for other
+components through one of Genode's session interfaces.
+
+The lower (blueish) part of the picture is concerned with the runtime
+environment needed to make the Linux kernel code feel right at home. The gap
+between Genode's API and Linux kernel interfaces is closed in two steps.
+First, the so-called *lx_kit* library implements handy mechanisms for building
+the meaty parts of the runtime in C++. For example, it provides a user-level
+task scheduling model that satisfies the semantic needs of Linux. The lx_kit
+is located at _dde_linux/src/include/lx_kit_ and _dde_linux/src/lib/lx_kit/_
+
+Second, the *lx_emul* (short for Linux emulation) code wraps the lx_kit
+functionality into C interfaces. The functions of those interfaces are
+prefixed with 'lx_emul_' and serve as basic primitives for re-implementing
+(parts of) the original Linux kernel-internal ABI. Although the previous
+version of DDE Linux already featured the principle lx_kit and lx_emul
+fragments, the new design applies the underlying idea much more stringent,
+fostering the almost galvanic separation between C and C++ code. In
+particular, C++ code never includes any Linux headers. The lx_emul code also
+comprises driver-specific dummy implementations of unused kernel functions.
+The handy tool at _tool/dde_linux/create_dummies_ automates the creation of
+those dummy implementations now. Finally, the lx_emul code drives the startup
+of the Linux kernel code by executing initcalls in the correct order. The
+reusable building blocks of lx_emul are located at
+_dde_linux/src/include/lx_emul/_ and _dde_linux/src/lib/lx_emul/_
+
+When looking from the upper (greenish) end, the *genode_c_api* library is a
+thin wrapper around Genode's session interfaces. It enables C code to
+implement a Genode service such as block driver or network driver. The
+genode_c_api library is located at _os/include/genode_c_api/_ and
+_os/src/lib/genode_c_api/_.
+
+The red area contains sole C code, most of which is unmodified Linux kernel
+code. It is supplemented with a small *lx_user* part that uses both the
+genode_c_api as well as Linux kernel interfaces to connect the unmodified
+Linux kernel code with the Genode universe.
+
+We address the second aspect - the tooling - by the growing tool set at
+_tool/dde_linux/_. The biggest time saver is the _create_dummies_ tool, which
+automates the formerly manual task of implementing dummy functions to quickly
+attain a linkable binary. It is complemented with the _extract_initcall_order_
+tool, which supplements lx_emul with the information needed to perform all
+Linux initialization steps in the exact same order as a Linux kernel would do.
+
+The third aspect - the methodology - is embodied in two source-code
+repositories that leverage the new DDE-Linux approach for two distinct ARM
+SoCs, namely i.MX8MQ and Allwinner A64.
+
+:Genode support for i.MX8MQ SoC:
+
+  [https://github.com/skalk/genode-imx8mq]
+
+:Genode support for Allwinner A64 SoC:
+
+  [https://github.com/nfeske/genode-allwinner]
+
+The most pivotal methodological change is the way how we deal with the
+Linux-internal API now. In our previous work, we used to mimic the content of
+kernel headers by a custom-tailored emulation header _lx_emul.h_ per driver.
+Whereas these driver-specific API flavors catered our urge to keep transitive
+code complexity at bay, they required significant and boring manual labour.
+Now we changed our minds to reusing the original Linux headers, thereby
+greatly reducing the amount of repetitive work while reducing the likelihood
+for subtle bugs.
+
+
+Success stories
+---------------
+
+Both repositories linked above employ the re-imagined DDE-Linux approach to
+resounding success. The i.MX8MQ repository features drivers for framebuffer
+output and SD-card access,
+[https://genodians.org/skalk/2021-08-02-mnt-reform2-sdcard - targeting the MNT Reform laptop].
+The Allwinner repository contains a network driver for the Pine-A64-LTS board
+and a new framebuffer driver for the Pinephone. No single line of Linux code
+had to be changed.
+
+We found that the development of those driver components took only a fraction
+of time compared to our past experiences. The most unnerving aspects of the
+driver porting work have simply vanished: Subtle incompatibilities between C
+and C++ are ruled out by design now. The hunt for missing initcalls is no
+more. No dummy function must be written by hand. The compilation of arbitrary
+Linux compilation units works instantly without manual labour.
+This - in turn - brings the experimental addition or removal of kernel
+subsystems down from hours to seconds, turning the development work into an
+exploratory experience.
+
+That said, it is not all roses. Components based on Linux drivers have to
+carry substantial Linux-specific bureaucracy along with them. The resulting
+components tend to be somewhat obese given their relatively narrow purpose.
+E.g., the executable binary of the framebuffer driver for the Pinephone is
+1.5 MiB in size, most of which is presumably dead weight.
+
+
+Transition
+----------
+
+Our existing and time-tested Linux-based drivers located in the _dde_linux_
+repository have remained untouched by the current release.
+We plan to successively update or replace those drivers using the new
+approach. Until then, the original components refer to the old approach as
+"legacy". E.g., the former implementation of lx_emul has been moved to
+_dde_linux/src/include/legacy/lx_emul/_.
+
+
+Advancing GPU driver stack
+##########################
+
+With release 21.08, we take a major leap towards 3D and GPU support on Genode.
+This topic has been on the slow burner for a while now and we were happy to be
+able to finally revive this topic. On the Mesa front, we conducted an update
+to version 21.0.0 (Section [Mesa update]), while adding more features and new
+platforms to our
+[https://genode.org/documentation/release-notes/17.08 - Intel GPU multiplexer].
+On Intel platforms, there exists no hardware distinction between the display
+controller and 3D acceleration, as both functions are provided by the GPU.
+Other platforms, e.g. ARM based SoCs, often contain a separate display and a
+GPU device, making it possible to isolate display configuration within a
+separate driver. Therefore, we are glad to report that we found a solution on
+how to separate display and 3D acceleration on Intel systems.
+
+
+Mesa update
+-----------
+
+Genode's port of the
+[https://www.mesa3d.org - Mesa 3D graphics library] dates back to version
+11.2.2 that was released in 2016 while the current version is past 21 by now.
+Because of this version gap, we decided to start with a fresh port of Mesa
+instead of solely updating from version 11. The more recent version enabled us
+to switch from Mesa's DRI drivers (i965) to the
+[https://de.wikipedia.org/wiki/Gallium3D - Gallium] version (Iris) for Intel
+GPUs.
+[https://xdc2018.x.org/slides/optimizing-i965-for-the-future.pdf - Iris]
+is Intel's redesigned version of the dated i965 driver that aims to lower CPU
+usage and improved performance. It is the only driver that supports Gen 12
+(Intel's current Xe GPU architecture) while also removing support for old
+Intel generations. As Genode supports Gen 8 (Broadwell) platforms only, we
+felt that Iris is the driver of choice for the future.
+
+
+GPU multiplexer improvements
+----------------------------
+
+The GPU multiplexer received stability improvements, new features required by
+Mesa's Iris driver, i.e. context isolation and sync objects, and bug fixes
+prompted by supporting newer GPU generations. These generations include Gen 9
+(Skylake) and Gen 9.5 (Kaby Lake), with more versions to come. Please note
+that this line of work is not finished and is as of now in a preliminary state
+with ongoing efforts.
+
+
+The GPU multiplexer as a platform service
+-----------------------------------------
+
+As stated at the beginning of this chapter, Intel PC platforms have no
+distinction between the display device and the 3D rendering. Both functions
+are integrated into the GPU as display engine and render engine. This implies
+that Genode's Intel framebuffer/display driver has to share resources with the
+GPU multiplexer. The co-location of both drivers in one component, however,
+violates Genode's core principle of a minimally-complex trusted computing
+base. Whereas the complex display driver should best be a disposable component
+([https://fosdem.org/2021/schedule/event/microkernel_pluggable_device_drivers_for_genode/ - FOSDEM talk]),
+the GPU driver must ideally be realized as a low-complexity resource
+multiplexer.
+
+We eventually found a way to solve this contradiction: On Genode, each driver
+requests the hardware resources to program a device from the platform driver
+via the platform session. As these resources cannot be shared, we came up with
+the idea that the GPU multiplexer requests all GPU resources and itself
+provides a platform service for the display driver. It hands out the subset of
+resources that are related to display handling and forwards display
+interrupts. This approach is completely transparent to Genode's Intel display
+driver.
+
+[image gpu_architecture]
+  System integration of the GPU driver/multiplexer and the framebuffer driver
+  as distinct components
+
+We already have implemented this solution for Gen 8 and are working on newer
+generations.
+
+
+Future prospects
+----------------
+
+In the current state, we are still working on newer Intel (Gen9+) GPU support
+and are planning to integrate this line of work into Sculpt release 21.09 with
+a small demo scenario (e.g., [https://github.com/glmark2/glmark2 - Glmark2]
+that is now available in Genode world).
+
+Additionally, there is ongoing work to support
+[https://www.verisilicon.com/en/IPPortfolio/VivanteGPUIP - Vivante] GPUs as
+utilized by i.MX SoCs. As of now Mesa's etnaviv driver is included in our
+Mesa update and a GPU multiplexer component based on the Linux DRM driver is
+available as a preview on
+[https://github.com/cnuke/genode/commits/21.08-etnaviv - this] topic branch.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Revised cache-maintenance interface
+===================================
+
+The base library used to expose a single cache-maintenance function to
+user-level components, namely 'cache_coherent'. It is primarily needed to
+accommodate self-modifying code, e.g., for JIT compilers, to write back
+data-cache lines, and invalidate the corresponding instruction-cache lines.
+However, we found that the proper support for cached DMA buffers in Linux
+device-driver ports calls for two additional semantic flavours.
+
+One is needed whenever driver code initially writes data to a DMA buffer
+before handing over the buffer to the device. Linux driver code usually issues
+a 'dma_map_*' call in this case to ensure that data gets written out to memory
+and the data cache is invalidated. This scenario is now covered by the new
+'cache_clean_invalidate_data' function.
+
+The other flavor is needed to invalidate data-cache lines before reading
+device-generated content from a DMA buffer. Linux driver code usually calls a
+'dma_unmap_*' function in this case. This case is now covered by the new
+'cache_invalidate_data' function.
+
+Both functions are provided for the base-hw and Fiasco.OC kernels on the ARM
+architecture.
+
+
+Improved host file-system access on Genode/Linux
+================================================
+
+Genode has included a component for host file-system access on Linux for
+years, but the state of the implementation and the feature set limited its
+application to mere debugging or development scenarios. This release improves
+*lx_fs* in certain areas to permit common use cases and scenarios.
+
+First, the file-system server gets support for the unlinking of files, which
+was left out in the past to prevent accidental deletion of files on the host.
+The current version includes a robust implementation of the feature, which is
+confined to the configured sub-directory.
+Further, sessions track client-specific consumption of resources (namely RAM
+and capabilities) and also support dynamic resource upgrades. Last, we added
+file-watching support to lx_fs, which enables monitoring files for changes
+based on the inotify interface of the Linux kernel. The implementation is
+prepared to handle bursts of changes by limiting the rate of notifications to
+the client.
+
+These improvements were contributed by Pirmin Duss.
+
+
+New black-hole component
+========================
+
+A commonly requested feature for Sculpt OS is that it would be nice to have
+the ability to wire up various sessions of a deployed component to a dummy
+version of the required service. This way, the user could easily start an
+application that would normally require, for example, an audio-out session but
+connect it to a "black hole" component that simply drops all audio data. This
+would be especially useful if no hardware driver for a specific device is
+available on a particular platform, but would also allow for more fine-grained
+privacy control.
+
+For this release, we created a first version of the black-hole component,
+which provides a dummy implementation of the audio-out session when enabled in
+the configuration:
+
+! <config>
+!   <audio_out/>
+! </config>
+
+More session types are intended to be added in future releases.
+
+
+NIC router
+==========
+
+With this release, the NIC router receives an enhancement of its feature for
+forwarding DNS configurations via DHCP, a sensible way of dealing with
+fragmented IPv4 packets, and some minor cleanups regarding its configuration
+interface. The update changes the configuration interface of the NIC router in
+a non-compatible way. Hence, systems that integrate the router might require
+adaptation. At the end of this section, you can find an overview of how to
+adapt systems properly.
+
+The NIC router now interprets the IPv4 flags "More Fragments" and "Fragment
+Offset" in order to determine whether an IPv4 packet is fragmented or not.
+Fragmented packets are dropped safely while the unfragmented ones are routed
+as usual. The decision to drop fragmented packets by default is the result of
+a long discussion among users and developers of the NIC router. That
+discussion came to the conclusion that the complexity overhead and security
+risks of routing fragmented IPv4 outrun its relevance in modern world
+networks. Therefore, we assume that for the common user of the router, a
+simple rejection of fragmented IPv4 is the better deal.
+
+The consideration of IPv4 fragmentation is accompanied by several ways of
+communicating the router's decision to drop fragmented packets. If the config
+flag 'verbose_packet_drop' is set, the router prints a message "drop packet
+(fragmented IPv4 not supported)" for each dropped fragment to the log. If the
+new attribute 'dropped_fragm_ipv4' in the config tag '<report>' is set, the
+router will report the number of packets dropped due to fragmentation. Last
+but not least, the NIC router can also be instructed to inform the sender of a
+dropped IPv4 fragment by sending an ICMP "destination unreachable" reply. Like
+the other feedback mechanisms, this is deactivated by default and can be
+activated by setting the new config attribute 'icmp_type_3_code_on_fragm_ipv4'.
+The attribute must be set to a valid ICMP code number that is then used for
+the replies.
+
+The run script 'nic_router_ipv4_fragm' demonstrates the router's behavior
+regarding fragmented IPv4.
+
+For many years, the DHCP server of the NIC router is capable of sending DNS
+configuration attributes with its replies. At first, this was only a single
+DNS server address. With
+[https://genode.org/documentation/release-notes/21.02#NIC_router - Genode 21.02],
+this has been extended to a list of DNS server addresses. Sending such address
+lists has now been made more conforming to the RFCs in that the server will
+list them all in one option 6 field instead of adding one option 6 field per
+address. Consequently, the DHCP client of the router now also considers only
+the first option 6 field of a reply but may parse multiple addresses from it.
+
+Another new feature is that the DHCP client of the router now remembers the
+domain name (option 15) of a DHCP reply that leads to an IPv4 configuration.
+Analogously, the DHCP server will send a domain name with DHCP replies if such
+a name is at hand. As with DNS server addresses, the DHCP server can obtain
+the domain name either statically through its configuration (new config tag
+'<dns-domain>') or dynamically from the results of a DHCP client of another
+domain. The latter is achieved by setting the new config attribute
+'dns_config_from' that replaces the former attribute 'dns_server_from'. If
+'dns_config_from' is set to the name of another domain, the DHCP server will
+use both the DNS server addresses and the DNS domain name of the domain.
+
+DNS domain names that were stored with a dynamic IPv4 configuration in the
+router are also reported via the new report tag '<dns-domain>' whenever the
+'config' attribute in the config tag '<report>' is set. As with DNS server
+addresses, this allows for manual forwarding and filtering through individual
+management components (see
+[https://genode.org/documentation/release-notes/21.02#NIC_router - Genode 21.02]).
+
+As a delayed adaption to the
+[https://genode.org/documentation/release-notes/21.02#Pluggable_network_device_drivers - introduction of the Uplink session]
+two Genode releases ago, the term "Uplink", that was used in combination with
+the NIC router to refer to NIC sessions that the router requested itself, has
+been re-named more accurately to "NIC client". This is meant to prevent
+confusion with the new session type and, most notable to users, implies that
+the tag '<uplink>' in router configurations got re-named to '<nic-client>'.
+
+
+How to adjust Genode 21.05 systems to the new NIC router
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* At each occurrence of the '<uplink ...>' tag in a NIC router configuration,
+  replace the tag name 'uplink' with 'nic-client'. The rest of the tag stays
+  the same. This does not yield any semantic changes.
+
+* At each occurrence of the 'dns_server_from' attribute in a NIC router
+  configuration, replace the attribute name with 'dns_config_from'. The
+  attribute value remains unaltered. Be aware that this will add forwarding of
+  DNS domain names to your system. Forwarding DNS server addresses but not DNS
+  domain names is not supported anymore.
+
+
+RAM framebuffer driver for Qemu
+===============================
+
+During graphical application development on ARMv8, it became obvious that
+Genode still lacked framebuffer-driver support on Qemu for ARMv8, thus
+rendering test execution on real hardware mandatory. In order to speedup test
+and development time for graphical applications, we enabled RAM framebuffer
+support for the "virt_qemu" board by adding a 'driver_interactive-virt_qemu'
+package. The package contains a 'ram_fb_drv' that configures a RAM framebuffer
+through Qemu's firmware interface and uses the capture session interface to
+provide access to the framebuffer.
+
+To test drive the driver, you can execute any Genode run script that requires
+graphical applications. The following example shows how to execute the demo
+run script in Qemu:
+
+* In _<genode_dir>/build/arm_v8a/etc/build.conf_ change
+  ! # use time-tested graphics backend
+  ! QEMU_OPT += -display sdl
+
+  to
+
+  ! QEMU_OPT += -device ramfb
+
+* In _<genode_dir>/build/arm_v8a_ execute
+  ! make KERNEL=hw BOARD=virt_qemu run/demo
+
+
+Sandbox API
+===========
+
+When using [https://github.com/nfeske/goa - Goa], we noticed that using the os
+API caused binaries to be always linked against 'sandbox.lib.so' because its
+symbols were part of the api archive as well. We therefore decided to separate
+the sandbox API from the os API by moving the header files to
+_repos/os/include/sandbox/_ and providing them in a distinct api archive along
+with the library symbols.
+
+
+Libraries and applications
+##########################
+
+Updated and improved VirtualBox
+===============================
+
+Our ongoing development efforts with VirtualBox 6.1 extended the
+implementation in various aspects. With this release, we updated the version
+to 6.1.26 published in July to stay in sync with upstream developments. This
+version especially improves the audio back end for the OSS interface and
+graphics.
+
+On the integration side, VirtualBox 6 now supports dynamic framebuffer
+resolutions and the capslock ROM mode. The latter is important to provide the
+user a consistent system-wide capslock state, which is controlled by a global
+capslock ROM and virtual KEY_CAPSLOCK events forwarded to guest operating
+systems. Per default, a raw mode is used and capslock input events are sent
+unfiltered to the guest. For ROM mode, VirtualBox may be configured like
+follows.
+
+!<config capslock="rom">
+
+The network-device model in VirtualBox 5 uses the MAC address from the
+connected NIC session. We added this behavior also to VirtualBox 6. During the
+past months, we also observed significant performance issues with the AHCI
+model, which we address in this release. The background is that our port of
+VirtualBox 6 limits changes to the original code and execution model to a bare
+minimum. This renders updates of the upstream version less expensive, but on
+the other hand, uncovers some inherent assumptions about the runtime behavior
+(i.e., scheduling of threads) in the original implementation that must be
+addressed.
+
+
+Qt5 and QtWebEngine
+===================
+
+In this release, we enabled SSL server certificate validation and support for
+multimedia playback in our ports of QtWebEngine and the Falkon web browser.
+
+More specifically, we ported the 'nss' library for the SSL certificate
+validation and the 'sndio' library as back end for the audio playback
+functionality and enhanced our OSS audio VFS plugin accordingly.
+
+The following screenshot shows an example use case of Falkon as a private
+multimedia browser, which stores all session data, like cookies, in RAM only.
+In the future, we also want to enable support for multimedia input and,
+consequently, private video conferences.
+
+[image falkon_youtube]
+
+
+Modular integration of LTE modem stack in Sculpt OS
+===================================================
+
+In version [https://genode.org/documentation/release-notes/21.02#LTE_modem_stack - 21.02],
+we announced the LTE modem support as a prerequisite for using Genode on the
+Pinephone. Since most of our development laptops also come with LTE modems or
+an extension slot for installing one, we explored ways to augment the Sculpt
+scenario with mobile networking on demand, i.e., by the installation of
+additional components. The result is documented by means of an
+[https://genodians.org/jschlatow/2021-07-21-mobile-network - article on genodians.org].
+
+
+Webcam improvements using libuvc
+================================
+
+With webcam support added by the previous release, we discovered some
+complications with devices that implement the UVC spec in version 1.5. We
+found one of those devices in a Thinkpad T490s. Since
+[https://ken.tossell.net/libuvc/doc - libuvc] did not fully implement this
+version of the spec, we added a patch for this. The main issue was the
+different size of the video probe and commit control messages. Interestingly,
+the problematic device is quite picky in this regard and only responds when
+the size was set correctly. In connection with this, we fixed a bug in our
+[https://libusb.info - libusb] back end, which caused the size of USB control
+messages being wrongly calculated.
+
+Apart from these device-specific issues, the webcam driver now enables auto
+exposure in order to adapt to different lighting conditions.
+
+
+Sndio audio library
+===================
+
+To complement the VFS OSS-plugin introduced in release
+[https://genode.org/documentation/release-notes/20.11 - 20.11], we ported the
+[https://sndio.org - sndio] library to Genode. It contains an OSS back end
+that prompted us to broaden the functionality of our VFS plugin to satisfy
+the requirements of the library. This is in line with the envisioned plan to
+extend the OSS plugin incrementally to cover more use cases.
+
+The sndio framework features a server component besides the library but for
+the moment, we focus solely on using sndio in a client context. Here the
+component, e.g., cmus and Falkon, uses the library to access the sound device
+directly.
+
+
+Build system and tools
+######################
+
+Tool-chain support for RISC-V
+=============================
+
+As one might have noticed, Genode's RISC-V tool chain is absent in tool-chain
+release
+[https://sourceforge.net/projects/genode/files/genode-toolchain/21.05/genode-toolchain-21.05-x86_64.tar.xz/download - 21.05]
+because it still had issues at the release time. These issues, namely the
+problem of the dynamic linker's self relocation during program startup have
+been resolved during this release cycle. The RISC-V tool chain can now be
+built manually using Genode's regular 'tool_chain' script:
+
+! <genode-dir>/tool/tool_chain riscv ENABLE_FEATURES="c c++ gdb"
+
+
+Run tool
+========
+
+Genode's custom workflow automation tool called 'run' received the following
+enhancements.
+
+To ease the hosting of driver packages outside of Genode's main repository -
+an emerging pattern for supporting new SoCs - we replaced the formerly
+built-in names of board-specific 'drivers_nic' and 'drivers_interactive' depot
+packages by the convention of appending the board name as a suffix, e.g.,
+'drivers_nic-pine_a64lts'. Hence, new hardware support can now be added
+without touching the run tool.
+
+The ARM fastboot plugin can now be used on 64-bit ARM platforms in addition to
+32-bit ARM. Its formerly mandatory parameter '--load-fastboot-device' has
+become optional and can be omitted if only one device is present.
+
+A new _image/uboot_fit_ plugin enables the use of U-Boot's new FIT (flattened
+image tree) image format (carrying the extension 'itb'), which supersedes the
+uImage format. The new format simplifies the booting of a Linux system, which
+typically requires not only a kernel image but also a device-tree binary and a
+RAM disk. A FIT image combines all ingredients into a single file and adds
+some metadata like checksums. Note, however, that booting an _image.itb_,
+which doesn't contain a device-tree binary may cause U-Boot's 'bootm' command
+to fail. A workaround for this is to execute the individual boot steps
+separately, which skips the Linux-specific preparatory steps that depend on
+the device-tree binary:
+
+! bootm start
+! bootm loados
+! bootm go
+
+
+Removal of deprecated components
+################################
+
+In the release notes of version
+[https://genode.org/documentation/release-notes/20.11#Retiring_the_monolithic_USB_driver - 20.11],
+we announced the retirement of our traditional monolithic USB-driver
+component, which used to combine host-controller drivers together with USB
+storage, HID, and networking drivers in a single component. With the current
+release, we ultimately completed the transition to our multi-component USB
+stack and removed the deprecated monolithic USB driver.
