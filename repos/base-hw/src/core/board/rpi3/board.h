@@ -25,6 +25,7 @@
 namespace Board {
 
 	using namespace Hw::Rpi3_board;
+	class Pic : public Bcm2837_pic { };
 
 	enum { TIMER_IRQ = 1 };
 };

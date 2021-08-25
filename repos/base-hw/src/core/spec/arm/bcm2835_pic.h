@@ -20,7 +20,7 @@
 namespace Board {
 
 	class Global_interrupt_controller;
-	class Pic;
+	class Bcm2835_pic;
 }
 
 
@@ -38,7 +38,7 @@ class Board::Global_interrupt_controller
 };
 
 
-class Board::Pic : Genode::Mmio
+class Board::Bcm2835_pic : Genode::Mmio
 {
 	public:
 
@@ -128,7 +128,8 @@ class Board::Pic : Genode::Mmio
 
 	public:
 
-		Pic(Global_interrupt_controller &global_irq_ctrl);
+		Bcm2835_pic(Global_interrupt_controller &global_irq_ctrl,
+		            Genode::addr_t irq_ctrl_base = 0);
 
 		bool take_request(unsigned &irq);
 		void finish_request() { }

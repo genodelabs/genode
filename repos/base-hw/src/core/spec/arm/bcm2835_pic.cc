@@ -18,8 +18,8 @@
 using namespace Genode;
 
 
-bool Board::Pic::Usb_dwc_otg::_need_trigger_sof(uint32_t host_frame,
-                                                uint32_t scheduled_frame)
+bool Board::Bcm2835_pic::Usb_dwc_otg::_need_trigger_sof(uint32_t host_frame,
+                                                        uint32_t scheduled_frame)
 {
 	uint32_t const max_frame = 0x3fff;
 
@@ -37,7 +37,7 @@ bool Board::Pic::Usb_dwc_otg::_need_trigger_sof(uint32_t host_frame,
 }
 
 
-Board::Pic::
+Board::Bcm2835_pic::
 Usb_dwc_otg::Usb_dwc_otg(Global_interrupt_controller &global_irq_ctrl)
 :
 	Mmio             { Platform::mmio_to_virt(Board::USB_DWC_OTG_BASE) },
@@ -49,7 +49,7 @@ Usb_dwc_otg::Usb_dwc_otg(Global_interrupt_controller &global_irq_ctrl)
 }
 
 
-bool Board::Pic::Usb_dwc_otg::handle_sof()
+bool Board::Bcm2835_pic::Usb_dwc_otg::handle_sof()
 {
 	if (!_is_sof())
 		return false;
@@ -72,16 +72,18 @@ bool Board::Pic::Usb_dwc_otg::handle_sof()
 }
 
 
-Board::Pic::Pic(Global_interrupt_controller &global_irq_ctrl)
+Board::Bcm2835_pic::Bcm2835_pic(Global_interrupt_controller &global_irq_ctrl,
+                                Genode::addr_t irq_ctrl_base)
 :
-	Mmio { Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE) },
+	Mmio(Platform::mmio_to_virt(irq_ctrl_base ? irq_ctrl_base
+	                            : (Genode::addr_t) Board::IRQ_CONTROLLER_BASE)),
 	_usb { global_irq_ctrl }
 {
 	mask();
 }
 
 
-bool Board::Pic::take_request(unsigned &irq)
+bool Board::Bcm2835_pic::take_request(unsigned &irq)
 {
 	/* read GPU IRQ status mask */
 	uint32_t const p1 = read<Irq_pending_gpu_1>(),
@@ -89,6 +91,7 @@ bool Board::Pic::take_request(unsigned &irq)
 
 	/* search for lowest set bit in pending masks */
 	for (unsigned i = 0; i < NR_OF_IRQ; i++) {
+
 		if (!_is_pending(i, p1, p2))
 			continue;
 
@@ -106,7 +109,7 @@ bool Board::Pic::take_request(unsigned &irq)
 }
 
 
-void Board::Pic::mask()
+void Board::Bcm2835_pic::mask()
 {
 	write<Irq_disable_basic>(~0);
 	write<Irq_disable_gpu_1>(~0);
@@ -114,18 +117,18 @@ void Board::Pic::mask()
 }
 
 
-void Board::Pic::unmask(unsigned const i, unsigned)
+void Board::Bcm2835_pic::unmask(unsigned const i, unsigned)
 {
 	if (i < 32) { write<Irq_enable_gpu_1>(1 << i); }
 	else        { write<Irq_enable_gpu_2>(1 << (i - 32)); }
 }
 
 
-void Board::Pic::mask(unsigned const i)
+void Board::Bcm2835_pic::mask(unsigned const i)
 {
 	if (i < 32) { write<Irq_disable_gpu_1>(1 << i); }
 	else        { write<Irq_disable_gpu_2>(1 << (i - 32)); }
 }
 
 
-void Board::Pic::irq_mode(unsigned, unsigned, unsigned) { }
+void Board::Bcm2835_pic::irq_mode(unsigned, unsigned, unsigned) { }

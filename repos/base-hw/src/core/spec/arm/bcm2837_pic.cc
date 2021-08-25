@@ -16,13 +16,14 @@
 #include <platform.h>
 
 
-Board::Pic::Pic(Global_interrupt_controller &)
+Board::Bcm2837_pic::Bcm2837_pic(Global_interrupt_controller &global_irq_ctrl)
 :
-	Genode::Mmio(Genode::Platform::mmio_to_virt(Board::LOCAL_IRQ_CONTROLLER_BASE))
+	Genode::Mmio(Genode::Platform::mmio_to_virt(Board::LOCAL_IRQ_CONTROLLER_BASE)),
+	_bcm2835_pic(global_irq_ctrl, Board::IRQ_CONTROLLER_BASE)
 { }
 
 
-bool Board::Pic::take_request(unsigned & irq)
+bool Board::Bcm2837_pic::take_request(unsigned & irq)
 {
 	unsigned cpu = Genode::Cpu::executing_id();
 	Core_irq_source<0>::access_t src = 0;
@@ -49,11 +50,17 @@ bool Board::Pic::take_request(unsigned & irq)
 		return true;
 	}
 
+	// Gpu interrupt
+	if (cpu == 0 && Core_irq_source<0>::Gpu::get(src)) {
+		auto result = _bcm2835_pic.take_request(irq);
+		return result;
+	}
+
 	return false;
 }
 
 
-void Board::Pic::_timer_irq(unsigned cpu, bool enable)
+void Board::Bcm2837_pic::_timer_irq(unsigned cpu, bool enable)
 {
 	unsigned v = enable ? 1 : 0;
 	switch (cpu) {
@@ -74,7 +81,7 @@ void Board::Pic::_timer_irq(unsigned cpu, bool enable)
 }
 
 
-void Board::Pic::_ipi(unsigned cpu, bool enable)
+void Board::Bcm2837_pic::_ipi(unsigned cpu, bool enable)
 {
 	unsigned v = enable ? 1 : 0;
 	switch (cpu) {
@@ -95,33 +102,31 @@ void Board::Pic::_ipi(unsigned cpu, bool enable)
 }
 
 
-void Board::Pic::unmask(unsigned const i, unsigned cpu)
+void Board::Bcm2837_pic::unmask(unsigned const i, unsigned cpu)
 {
 	switch (i) {
 		case TIMER_IRQ: _timer_irq(cpu, true); return;
 		case IPI:       _ipi(cpu, true);       return;
 	}
-
-	Genode::raw("irq of peripherals != timer not implemented yet! (irq=", i, ")");
+	if (cpu == 0) _bcm2835_pic.unmask(i, cpu);
 }
 
 
-void Board::Pic::mask(unsigned const i)
+void Board::Bcm2837_pic::mask(unsigned const i)
 {
 	unsigned cpu = Genode::Cpu::executing_id();
 	switch (i) {
 		case TIMER_IRQ: _timer_irq(cpu, false); return;
 		case IPI:       _ipi(cpu, false);       return;
 	}
-
-	Genode::raw("irq of peripherals != timer not implemented yet! (irq=", i, ")");
+	if (cpu == 0) _bcm2835_pic.mask(i);
 }
 
 
-void Board::Pic::irq_mode(unsigned, unsigned, unsigned) { }
+void Board::Bcm2837_pic::irq_mode(unsigned, unsigned, unsigned) { }
 
 
-void Board::Pic::send_ipi(unsigned cpu_target)
+void Board::Bcm2837_pic::send_ipi(unsigned cpu_target)
 {
 	switch (cpu_target) {
 	case 0: write<Core_mailbox_set<0>>(1); return;
