@@ -806,7 +806,11 @@ class Device : public List<Device>::Element
 					uint8_t const class_value =
 						interface.cur_altsetting->desc.bInterfaceClass;
 
+					uint8_t const protocol_value =
+						interface.cur_altsetting->desc.bInterfaceProtocol;
+
 					xml.attribute("class", Value(Hex(class_value)));
+					xml.attribute("protocol", Value(Hex(protocol_value)));
 				});
 			});
 		}
