@@ -25,6 +25,7 @@
 		<rom label="libpng.lib.so"/>
 		<rom label="libqgenode.lib.so"/>
 		<rom label="mesa.lib.so"/>
+		<rom label="libdrm.lib.so"/>
 		<rom label="qt5_dejavusans.tar"/>
 		<rom label="qt5_libqgenode.tar"/>
 		<rom label="stdcxx.lib.so"/>

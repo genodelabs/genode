@@ -3,6 +3,7 @@ _/src/expat
 _/src/freetype
 _/src/jpeg
 _/src/libc
+_/src/libdrm
 _/src/libpng
 _/src/mesa
 _/src/qt5_base
