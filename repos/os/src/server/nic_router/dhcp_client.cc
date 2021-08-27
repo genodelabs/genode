@@ -37,6 +37,7 @@ void append_param_req_list(Dhcp_options &dhcp_opts)
 		data.append_param_req<Dhcp_packet::Server_ipv4>();
 		data.append_param_req<Dhcp_packet::Ip_lease_time>();
 		data.append_param_req<Dhcp_packet::Dns_server_ipv4>();
+		data.append_param_req<Dhcp_packet::Domain_name>();
 		data.append_param_req<Dhcp_packet::Subnet_mask>();
 		data.append_param_req<Dhcp_packet::Router_ipv4>();
 	});
