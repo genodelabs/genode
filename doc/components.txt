@@ -442,6 +442,9 @@ Separate components
   A wrapper for nitpicker's GUI session interface that applies alpha-blending
   to the of views a GUI client.
 
+:_os/src/server/black_hole/_:
+  Mockup implementation of Genode session interfaces.
+
 
 VFS plugins
 ===========
