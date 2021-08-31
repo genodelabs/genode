@@ -4,6 +4,44 @@
                                ===========
 
 
+Genode OS Framework release 21.08 | 2021-08-31
+##############################################
+
+| The highlights of Genode 21.08 are revamped GPU support as well as new
+| drivers for the Pinephone and MNT-Reform laptop based on a new streamlined
+| approach for porting Linux kernel code. Further topics range from VirtualBox
+| improvements, over media playback in the native web browser, to LTE
+| connectivity in Sculpt OS.
+
+For complex driver stacks, Genode largely relies on code ported from other
+operating systems. The Linux kernel plays a special role because - being the
+basis for Android - it is the de-facto reference for driving the peripherals
+of most ARM SoCs. Up to now, however, the porting efforts of driver code from
+Linux to Genode used to be a time-intensive affair, which forced a narrow
+focus on very few SoCs on us. With the streamlined porting approach introduced
+with the new release, we become able to dramatically reduce the costs,
+creating the prospect of a much broader hardware support. The first success
+stories of the new way of porting are added graphics drivers for the Pinephone
+and the MNT-Reform laptop, a network driver for the Pine-A64-LTS board, and an
+SD-card driver for the MNT-Reform.
+
+The second spotlight of the release is the largely revamped support for Intel
+GPUs. In contrast to our experimental GPU-related work of the past, we have
+now identified a way to cleanly integrate GPU support into the GUI
+architecture of sophisticated Genode systems such as Sculpt OS. This work is
+accompanied with an up-to-date version of the Mesa library stack. In
+combination with the improvements of our custom GPU multiplexer, we are now on
+a good track to make the use of hardware-accelerated graphics a commodity on
+Genode.
+
+Even though most topics of the current release revolve around low-level
+driver-related work, the new version improves higher-level functionality as
+well. In particular, it adds the modular integration of mobile-data
+connectivity to Sculpt OS and enables media playback for our port of the
+Chromium web engine. Those and more topics are described in the detailed
+[https:/documentation/release-notes/21.08 - release documentation of version 21.08...]
+
+
 Genode OS Framework release 21.05 | 2021-05-31
 ##############################################
 
