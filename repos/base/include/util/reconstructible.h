@@ -15,6 +15,7 @@
 #define _INCLUDE__UTIL__RECONSTRUCTIBLE_H_
 
 #include <util/construct_at.h>
+#include <util/misc_math.h>
 #include <base/stdint.h>
 #include <util/noncopyable.h>
 
@@ -36,14 +37,15 @@ namespace Genode {
  * \param  MT type
  */
 template <typename MT>
-class Genode::Reconstructible : Noncopyable
+class alignas(Genode::max(alignof(MT), sizeof(Genode::addr_t)))
+Genode::Reconstructible : Noncopyable
 {
 	private:
 
 		/**
 		 * Static reservation of memory for the embedded object
 		 */
-		char _space[sizeof(MT)] __attribute__((aligned(sizeof(addr_t))));
+		char _space[sizeof(MT)] alignas(sizeof(addr_t));
 
 		/**
 		 * True if the volatile object contains a constructed object
