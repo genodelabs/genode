@@ -73,8 +73,16 @@ __attribute__((weak)) void operator delete (void *) noexcept
 	              "A working implementation is available in the 'stdcxx' library.");
 }
 
+
 __attribute__((weak)) void operator delete (void *, unsigned long)
 {
 	Genode::error("cxx: operator delete (void *, unsigned long) called - not implemented. "
+	              "A working implementation is available in the 'stdcxx' library.");
+}
+
+
+__attribute__((weak)) void operator delete (void *, unsigned long, std::align_val_t)
+{
+	Genode::error("cxx: operator delete (void *, unsigned long, std::align_val_t) called - not implemented. "
 	              "A working implementation is available in the 'stdcxx' library.");
 }
