@@ -1698,6 +1698,10 @@ class Igd::Mmio : public Genode::Mmio
 			}
 		}
 
+		struct Arbiter_control : Register<0xb004, 32> {
+			struct Gaps_tsv_enable : Bitfield<7, 1> {};
+		};
+
 		/*********************
 		 ** DEBUG interface **
 		 *********************/

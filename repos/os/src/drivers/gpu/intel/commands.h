@@ -25,7 +25,10 @@
 namespace Igd {
 
 	struct Cmd_header;
+	struct Mi_cmd;
 	struct Mi_noop;
+	struct Mi_arb_check;
+	struct Mi_arb_on_off;
 	struct Mi_user_interrupt;
 	struct Mi_batch_buffer_start;
 	struct Pipe_control;
@@ -57,11 +60,12 @@ struct Igd::Cmd_header : Genode::Register<32>
 	 */
 	struct Mi_cmd_opcode : Bitfield<23, 6>
 	{
-		enum {
+		enum Opcode {
 			MI_NOOP                 = 0x00,
 			MI_USER_INTERRUPT       = 0x02,
 			MI_WAIT_FOR_EVENT       = 0x03,
 			MI_FLUSH                = 0x04,
+			MI_ARB_CHECK            = 0x05,
 			MI_REPORT_HEAD          = 0x07,
 			MI_ARB_ON_OFF           = 0x08,
 			MI_BATCH_BUFFER_END     = 0x0A,
@@ -94,33 +98,65 @@ struct Igd::Cmd_header : Genode::Register<32>
 };
 
 
+struct Igd::Mi_cmd : Cmd_header
+{
+	Mi_cmd(Mi_cmd_opcode::Opcode opcode)
+	{
+		Cmd_type::set(value, Cmd_type::MI_COMMAND);
+		Mi_cmd_opcode::set(value, opcode);
+	};
+};
+
+
 /*
  * IHD-OS-BDW-Vol 2a-11.15 p. 870
  */
-struct Igd::Mi_noop : Cmd_header
+struct Igd::Mi_noop : Mi_cmd
 {
 	Mi_noop()
-	{
-		Cmd_header::Cmd_type::set(Cmd_header::value,
-		                          Cmd_header::Cmd_type::MI_COMMAND);
-		Cmd_header::Mi_cmd_opcode::set(Cmd_header::value,
-		                               Cmd_header::Mi_cmd_opcode::MI_NOOP);
-	}
+	:
+	  Mi_cmd(Mi_cmd_opcode::MI_NOOP)
+	{ }
 };
 
 
 /*
  * IHD-OS-BDW-Vol 2a-11.15 p. 948 ff.
  */
-struct Igd::Mi_user_interrupt : Cmd_header
+struct Igd::Mi_user_interrupt : Mi_cmd
 {
 
 	Mi_user_interrupt()
+	:
+	  Mi_cmd(Mi_cmd_opcode::MI_USER_INTERRUPT)
+	{ }
+};
+
+
+/*
+ * IHD-OS-BDW-Vol 2a-11.15 p. 777 ff.
+ */
+struct Igd::Mi_arb_check : Mi_cmd
+{
+	Mi_arb_check()
+	:
+	  Mi_cmd(Mi_cmd_opcode::MI_ARB_CHECK)
+	{ }
+};
+
+
+/*
+ * IHD-OS-BDW-Vol 2a-11.15 p. 781 ff.
+ */
+struct Igd::Mi_arb_on_off : Mi_cmd
+{
+	struct Enable : Bitfield<0, 1> { };
+
+	Mi_arb_on_off(bool enable)
+	:
+	  Mi_cmd(Mi_cmd_opcode::MI_ARB_ON_OFF)
 	{
-		Cmd_header::Cmd_type::set(Cmd_header::value,
-		                          Cmd_header::Cmd_type::MI_COMMAND);
-		Cmd_header::Mi_cmd_opcode::set(Cmd_header::value,
-		                               Cmd_header::Mi_cmd_opcode::MI_USER_INTERRUPT);
+		Enable::set(value, enable ? 1 : 0);
 	}
 };
 
@@ -128,7 +164,7 @@ struct Igd::Mi_user_interrupt : Cmd_header
 /*
  * IHD-OS-BDW-Vol 2a-11.15 p. 793 ff.
  */
-struct Igd::Mi_batch_buffer_start : Cmd_header
+struct Igd::Mi_batch_buffer_start : Mi_cmd
 {
 	struct Address_space_indicator : Bitfield<8, 1>
 	{
@@ -138,11 +174,9 @@ struct Igd::Mi_batch_buffer_start : Cmd_header
 	struct Dword_length : Bitfield<0, 8> { };
 
 	Mi_batch_buffer_start()
+	:
+	  Mi_cmd(Mi_cmd_opcode::MI_BATCH_BUFFER_START)
 	{
-		Cmd_header::Cmd_type::set(Cmd_header::value,
-		                          Cmd_header::Cmd_type::MI_COMMAND);
-		Cmd_header::Mi_cmd_opcode::set(Cmd_header::value,
-		                               Cmd_header::Mi_cmd_opcode::MI_BATCH_BUFFER_START);
 		Address_space_indicator::set(Cmd_header::value, Address_space_indicator::PPGTT);
 
 		Dword_length::set(Cmd_header::value, 1);

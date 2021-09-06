@@ -36,7 +36,7 @@ void Igd::Mmio::dump()
 	log("0x2064 - IPEIR:          ", Hex(read<IPEIR>()));
 	log("0x2068 - IPEHR:          ", Hex(read<IPEHR>()));
 	log("0x206C - RCS_INSTDONE:   ", Hex(read<RCS_INSTDONE>()));
-	log("0x207C - RCS_ACTHD:      ", Hex(read<RCS_ACTHD>()));
+	log("0x2074 - RCS_ACTHD:      ", Hex(read<RCS_ACTHD>()));
 	log("0x2078 - DMA_FADD_PREF:  ", Hex(read<DMA_FADD_PREF>()));
 	log("0x207C - RCS_INSTDONE_1: ", Hex(read<RCS_INSTDONE_1>()));
 	log("0x2094 - NOP_ID:         ", Hex(read<NOP_ID>()));

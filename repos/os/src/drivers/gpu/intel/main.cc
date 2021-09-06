@@ -43,6 +43,7 @@
 #include <resources.h>
 #include <platform_session.h>
 #include <ring_buffer.h>
+#include <workarounds.h>
 
 
 using namespace Genode;
@@ -467,9 +468,6 @@ struct Igd::Device
 
 		addr_t hw_status_page() const { return ctx.gmaddr(); }
 
-		uint64_t seqno() const {
-			Utils::clflush((uint32_t*)(ctx.vaddr() + 0xc0));
-			return *(uint32_t*)(ctx.vaddr() + 0xc0); }
 
 		private:
 
@@ -504,11 +502,15 @@ struct Igd::Device
 
 	uint32_t _vgpu_avail { 0 };
 
+	/* global hardware-status page */
+	Constructible<Ggtt_map_memory>      _hw_status_ctx  { };
+	Constructible<Hardware_status_page> _hw_status_page { };
+
 	struct Vgpu : Genode::Fifo<Vgpu>::Element
 	{
 		enum {
 			APERTURE_SIZE = 32u << 20,
-			MAX_FENCES    = 4,
+			MAX_FENCES    = 16,
 		};
 
 		Device                          &_device;
@@ -556,11 +558,10 @@ struct Igd::Device
 		void user_complete()
 		{
 			/* remember last completed seqno for info object */
-			_completed_seqno = rcs.seqno();
+			_completed_seqno = _device.seqno();
 		}
 
-		bool setup_ring_buffer(Genode::addr_t const buffer_addr,
-		                       Genode::addr_t const scratch_addr)
+		bool setup_ring_buffer(Genode::addr_t const buffer_addr)
 		{
 			_current_seqno++;
 
@@ -632,15 +633,12 @@ struct Igd::Device
 				tmp |= Igd::Pipe_control::QW_WRITE;
 				tmp |= Igd::Pipe_control::STORE_DATA_INDEX;
 
-/*
-				tmp |= Igd::Pipe_control::GLOBAL_GTT_IVB;
-				tmp |= Igd::Pipe_control::DC_FLUSH_ENABLE;
-				tmp |= Igd::Pipe_control::INDIRECT_STATE_DISABLE;
-				tmp |= Igd::Pipe_control::MEDIA_STATE_CLEAR;
-*/
-
 				cmd[1] = tmp;
-				cmd[2] = scratch_addr;
+				/*
+				 * PP-Hardware status page (base GLOBAL_GTT_IVB is disabled)
+				 * offset (dword 52) because STORE_DATA_INDEX is enabled.
+				 */
+				cmd[2] = 0x34 * 4;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
@@ -659,13 +657,6 @@ struct Igd::Device
 				}
 			}
 
-			#define MI_INSTR(opcode, flags) (((opcode) << 23) | (flags))
-			#define MI_NOOP          MI_INSTR(0u, 0)
-			#define MI_ARB_ON_OFF    MI_INSTR(0x08u, 0)
-			#define   MI_ARB_ENABLE     (1u<<0)
-			#define   MI_ARB_DISABLE    (0u<<0)
-			#define MI_ARB_CHECK     MI_INSTR(0x05u, 0)
-
 			/*
 			 * gen8_emit_bb_start_noarb, gen8 and render engine
 			 *
@@ -677,7 +668,7 @@ struct Igd::Device
 				Genode::uint32_t cmd[CMD_NUM] = {};
 				Igd::Mi_batch_buffer_start mi;
 
-				cmd[0] = MI_ARB_ON_OFF | MI_ARB_DISABLE;
+				cmd[0] = Mi_arb_on_off(false).value;
 				cmd[1] = mi.value;
 				cmd[2] = buffer_addr & 0xffffffff;
 				cmd[3] = (buffer_addr >> 32) & 0xffff;
@@ -698,12 +689,12 @@ struct Igd::Device
 				Genode::uint32_t cmd[CMD_NUM] = {};
 				Igd::Mi_batch_buffer_start mi;
 
-				cmd[0] = MI_ARB_ON_OFF | MI_ARB_ENABLE;
+				cmd[0] = Mi_arb_on_off(true).value;
 				cmd[1] = mi.value;
 				cmd[2] = buffer_addr & 0xffffffff;
 				cmd[3] = (buffer_addr >> 32) & 0xffff;
-				cmd[4] = MI_ARB_ON_OFF | MI_ARB_DISABLE;
-				cmd[5] = MI_NOOP;
+				cmd[4] = Mi_arb_on_off(false).value;
+				cmd[5] = Mi_noop().value;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
@@ -721,7 +712,6 @@ struct Igd::Device
 				tmp |= Igd::Pipe_control::RENDER_TARGET_CACHE_FLUSH;
 				tmp |= Igd::Pipe_control::DEPTH_CACHE_FLUSH;
 				tmp |= Igd::Pipe_control::DC_FLUSH_ENABLE;
-
 				cmd[1] = tmp;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
@@ -741,9 +731,10 @@ struct Igd::Device
 				tmp |= Igd::Pipe_control::FLUSH_ENABLE;
 				tmp |= Igd::Pipe_control::GLOBAL_GTT_IVB;
 				tmp |= Igd::Pipe_control::QW_WRITE;
+				tmp |= Igd::Pipe_control::STORE_DATA_INDEX;
 
 				cmd[1] = tmp;
-				cmd[2] = (rcs.hw_status_page() + HWS_DATA) & 0xffffffff;
+				cmd[2] = HWS_DATA;
 				cmd[3] = 0; /* upper addr 0 */
 				cmd[4] = _current_seqno & 0xffffffff;
 				cmd[5] = _current_seqno >> 32;
@@ -767,7 +758,7 @@ struct Igd::Device
 				Genode::uint32_t cmd[2] = {};
 				Igd::Mi_user_interrupt ui;
 				cmd[0] = ui.value;
-				cmd[1] = MI_ARB_ON_OFF | MI_ARB_ENABLE;
+				cmd[1] = Mi_arb_on_off(true).value;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
@@ -779,9 +770,8 @@ struct Igd::Device
 				/* gen8_emit_fini_breadcrumb_tail -> gen8_emit_wa_tail */
 				enum { CMD_NUM = 2 };
 				Genode::uint32_t cmd[2] = {};
-				Igd::Mi_user_interrupt ui;
-				cmd[0] = MI_ARB_CHECK;
-				cmd[1] = MI_NOOP;
+				cmd[0] = Mi_arb_check().value;
+				cmd[1] = Mi_noop().value;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
@@ -841,6 +831,11 @@ struct Igd::Device
 
 		int const port = _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
 
+		if (_mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_0_valid>() ||
+		    _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_1_valid>())
+			return;
+
+
 		el.schedule(port);
 
 		uint32_t desc[4];
@@ -882,13 +877,6 @@ struct Igd::Device
 		Engine<Rcs_context> &rcs = gpu->rcs;
 
 		_mmio.flush_gfx_tlb();
-
-		/*
-		 * XXX check if HWSP is shared across contexts and if not when
-		 *     we actually need to write the register
-		 */
-		Mmio::HWS_PGA_RCSUNIT::access_t const addr = rcs.hw_status_page();
-		_mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
 
 		_submit_execlist(rcs);
 
@@ -970,7 +958,7 @@ struct Igd::Device
 		_mmio.execlist_status_dump();
 
 		_active_vgpu->rcs.context->dump();
-		_active_vgpu->rcs.context->dump_hw_status_page();
+		_hw_status_page->dump();
 		Execlist &el = *_active_vgpu->rcs.execlist;
 		el.ring_update_head(_active_vgpu->rcs.context->head_offset());
 		el.ring_dump(4096, _active_vgpu->rcs.context->tail_offset() * 2,
@@ -1055,8 +1043,12 @@ struct Igd::Device
 
 		_clock_gating();
 
-		_mmio.dump();
-		_mmio.context_status_pointer_dump();
+		/* setup global hardware status page */
+		_hw_status_ctx.construct(env.rm(), alloc, *this, 1, 0);
+		_hw_status_page.construct(_hw_status_ctx->vaddr());
+
+		Mmio::HWS_PGA_RCSUNIT::access_t const addr = _hw_status_ctx->gmaddr();
+		_mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
 
 		/* read out slice, subslice, EUs information depending on platform */
 		if (_info.platform == Device_info::Platform::BROADWELL) {
@@ -1083,6 +1075,9 @@ struct Igd::Device
 			_init_eu_total(3, SUBSLICE_MAX, 8);
 		} else
 			Genode::error("unsupported platform ", (int)_info.platform);
+
+		/* apply generation specific workarounds */
+		apply_workarounds(_mmio, _info.generation);
 
 		_resources.timer().sigh(_watchdog_timeout_sigh);
 	}
@@ -1191,6 +1186,20 @@ struct Igd::Device
 
 		return stepping_start <= stepping && stepping <= stepping_end;
 	}
+
+
+	/**************************
+	 ** Hardware status page **
+	 **************************/
+
+	addr_t hw_status_page() const { return _hw_status_ctx->gmaddr(); }
+
+	uint64_t seqno() const
+	{
+		Utils::clflush((uint32_t*)(_hw_status_ctx->vaddr() + 0xc0));
+		return *(uint32_t*)(_hw_status_ctx->vaddr() + 0xc0);
+	}
+
 
 	/*******************
 	 ** Vgpu handling **
@@ -1324,7 +1333,7 @@ struct Igd::Device
 	uint32_t set_tiling(Ggtt::Offset const start, size_t const size,
 	                    uint32_t const mode)
 	{
-		uint32_t const id = _mmio.find_free_fence();
+		uint32_t const id = _get_free_fence();
 		if (id == INVALID_FENCE) {
 			Genode::warning("could not find free FENCE");
 			return id;
@@ -1360,7 +1369,6 @@ struct Igd::Device
 		Mmio::GT_0_INTERRUPT_IIR::access_t const v = _mmio.read<Mmio::GT_0_INTERRUPT_IIR>();
 
 		bool const ctx_switch    = Mmio::GT_0_INTERRUPT_IIR::Cs_ctx_switch_interrupt::get(v);
-		(void)ctx_switch;
 		bool const user_complete = Mmio::GT_0_INTERRUPT_IIR::Cs_mi_user_interrupt::get(v);
 
 		if (v) { _clear_rcs_iir(v); }
@@ -1375,15 +1383,17 @@ struct Igd::Device
 		bool const fault_valid = _mmio.fault_regs_valid();
 		if (fault_valid) { Genode::error("FAULT_REG valid"); }
 
-		_mmio.update_context_status_pointer();
+		if (ctx_switch)
+			_mmio.update_context_status_pointer();
 
 		if (user_complete) {
 			_unschedule_current_vgpu();
 			_active_vgpu = nullptr;
 
 			if (notify_gpu) {
-				if (!_notify_complete(notify_gpu))
+				if (!_notify_complete(notify_gpu)) {
 					_vgpu_list.enqueue(*notify_gpu);
+				}
 			}
 
 			/* keep the ball rolling...  */
@@ -1540,7 +1550,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					throw Gpu::Session::Invalid_state();
 				}
 
-				found = _vgpu.setup_ring_buffer(buffer.ppgtt_va, _device._ggtt->scratch_page());
+				found = _vgpu.setup_ring_buffer(buffer.ppgtt_va);
 			});
 
 			if (!found)
@@ -1751,6 +1761,9 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				return false;
 			}
 
+			//XXX: support change of already fenced bo's fencing mode
+			if (b->fenced) return true;
+
 			Igd::size_t const size = Genode::Dataspace_client(b->cap).size();
 			Genode::uint32_t const fenced = _device.set_tiling(b->map.offset, size, mode);
 
@@ -1910,7 +1923,16 @@ struct Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Main main(env); }
+void Component::construct(Genode::Env &env)
+{
+	static Constructible<Main> main;
+	try {
+		main.construct(env);
+	} catch (Igd::Resources::Initialization_failed) {
+		Genode::warning("Intel GPU resources not found.");
+		env.parent().exit(0);
+	}
+}
 
 
 Genode::size_t Component::stack_size() { return 32UL*1024*sizeof(long); }

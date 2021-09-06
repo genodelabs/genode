@@ -32,6 +32,7 @@ namespace Igd {
 	struct Generation;
 
 	struct Hardware_status_page;
+	class  Pphardware_status_page;
 	template <addr_t RING_BASE> class Execlist_context;
 	template <addr_t RING_BASE> class Ppgtt_context;
 	class Engine_context;
@@ -92,7 +93,7 @@ struct Igd::Common_context_regs : public Genode::Mmio
 	struct Common_register_array : Register_array<OFFSET * sizeof(uint32_t), 32, NUM, 32> { };
 
 	template <long int OFFSET, size_t NUM>
-	struct Common_register_array_64 : Register_array<OFFSET * sizeof(uint32_t), 32, NUM, 64> { };
+	struct Common_register_array_64 : Register_array<OFFSET * sizeof(uint32_t), 64, NUM, 64> { };
 
 	addr_t _base;
 
@@ -397,7 +398,7 @@ class Igd::Execlist_context : public Igd::Common_context_regs
 			{
 				typename Ring_buffer_control_value::access_t v = read<Ring_buffer_control_value>();
 				/* length is given in number of pages */
-				Ring_buffer_control_value::Buffer_length::set(v, ring_buffer_length / PAGE_SIZE);
+				Ring_buffer_control_value::Buffer_length::set(v, (ring_buffer_length / PAGE_SIZE) - 1);
 				/* according to the PRM it should be disable b/c of the amount of reports generated */
 				Ring_buffer_control_value::Arhp::set(v, Ring_buffer_control_value::Arhp::MI_AUTOREPORT_OFF);
 				Ring_buffer_control_value::Ring_buffer_enable::set(v, 1);
@@ -702,6 +703,72 @@ class Igd::Hardware_status_page : public Igd::Common_context_regs
 
 		Hardware_status_page(addr_t base)
 		: Common_context_regs(base) { }
+
+		void dump(bool raw = false)
+		{
+			using namespace Genode;
+
+			if (raw) {
+				uint32_t const *p = (uint32_t const *)base();
+				for (uint32_t i = 0; i < PAGE_SIZE / sizeof(uint32_t); i += 8) {
+					log(Hex(i, Hex::PREFIX, Hex::PAD), "  ",
+					    Hex(p[i  ], Hex::PREFIX, Hex::PAD), " ",
+					    Hex(p[i+1], Hex::PREFIX, Hex::PAD), " ",
+					    Hex(p[i+2], Hex::PREFIX, Hex::PAD), " ",
+					    Hex(p[i+3], Hex::PREFIX, Hex::PAD), " ",
+					    Hex(p[i+4], Hex::PREFIX, Hex::PAD), " ",
+					    Hex(p[i+5], Hex::PREFIX, Hex::PAD), " ",
+					    Hex(p[i+6], Hex::PREFIX, Hex::PAD), " ",
+					    Hex(p[i+7], Hex::PREFIX, Hex::PAD));
+				}
+			} else {
+				log("Hardware_status_page");
+				log("   Interrupt_status_register_storage: ",
+				    Hex(read<Interrupt_status_register_storage>(),
+				        Hex::PREFIX, Hex::PAD));
+				log("   Ring_head_ptr_storage: ",
+				    Hex(read<Ring_head_ptr_storage>(),
+				        Hex::PREFIX, Hex::PAD));
+
+				auto const cs_last = read<Last_written_status_offset>();
+
+				log("   Last_written_status_offset: ",
+				    Hex(cs_last, Hex::PREFIX, Hex::PAD));
+
+				for (unsigned i = 0; i < CONTEXT_STATUS_REGISTERS; i++) {
+					using C = Igd::Context_status_qword;
+					C::access_t v = read<Context_status_dwords>(i);
+					log("   Context_status ", i);
+					log("    Context_id:          ", C::Context_id::get(v));
+					log("    Lite_restore:        ", C::Lite_restore::get(v));
+					log("    Display_plane:       ", C::Display_plane::get(v));
+					log("    Semaphore_wait_mode: ", C::Semaphore_wait_mode::get(v));
+					log("    Wait_on_scanline:    ", C::Wait_on_scanline::get(v));
+					log("    Wait_on_semaphore:   ", C::Wait_on_semaphore::get(v));
+					log("    Wait_on_v_blank:     ", C::Wait_on_v_blank::get(v));
+					log("    Wait_on_sync_flip:   ", C::Wait_on_sync_flip::get(v));
+					log("    Context_complete:    ", C::Context_complete::get(v));
+					log("    Active_to_idle:      ", C::Active_to_idle::get(v));
+					log("    Element_switch:      ", C::Element_switch::get(v));
+					log("    Preempted:           ", C::Preempted::get(v));
+					log("    Idle_to_active:      ", C::Idle_to_active::get(v));
+				}
+			}
+		}
+};
+
+
+/*
+ * IHD-OS-BDW-Vol 2d-11.15 p. 303
+ */
+class Igd::Pphardware_status_page : public Igd::Common_context_regs
+{
+	public:
+
+		struct Ring_head_ptr_storage : Common_register<4> { };
+
+		Pphardware_status_page(addr_t base)
+		: Common_context_regs(base) { }
 };
 
 
@@ -713,7 +780,7 @@ class Igd::Rcs_context
 
 		enum {
 			HW_ID         = 0,
-			CONTEXT_PAGES = 20 /* ctx */ + 1 /* GuC */,
+			CONTEXT_PAGES = 22 /* ctx */ + 1 /* GuC */,
 			RING_PAGES    = 4,
 
 			RCS_RING_BASE = 0x2000,
@@ -731,7 +798,8 @@ class Igd::Rcs_context
 			PPGTT_CTX_START = EXECLIST_CTX_END,
 			PPGTT_CTX_END   = 0x0050,
 			PPGTT_CTX_SIZE  = (PPGTT_CTX_END - PPGTT_CTX_START) * sizeof(uint32_t),
-			PPGTT_CTX_IH    = 0x11000001,
+			PPGTT_CTX_IH    = 0x11001011,
+			PPGTT_CTX_IH_2  = 0x11000001,
 
 			ENGINE_CTX_START = PPGTT_CTX_END,
 			ENGINE_CTX_END   = 0x0EC0,
@@ -748,7 +816,7 @@ class Igd::Rcs_context
 
 	private:
 
-		Hardware_status_page            _hw_status_page;
+		Pphardware_status_page          _hw_status_page;
 		Execlist_context<RCS_RING_BASE> _execlist_context;
 		Ppgtt_context<RCS_RING_BASE>    _ppgtt_context;
 		Engine_context                  _engine_context;
@@ -808,7 +876,8 @@ class Igd::Rcs_context
 
 			using P = Ppgtt_context<RCS_RING_BASE>;
 
-			_ppgtt_context.write<P::Load_immediate_header_2>(PPGTT_CTX_IH);
+			_ppgtt_context.write<P::Load_immediate_header>(PPGTT_CTX_IH);
+			_ppgtt_context.write<P::Load_immediate_header_2>(PPGTT_CTX_IH_2);
 		}
 
 		size_t head_offset()
@@ -848,58 +917,6 @@ class Igd::Rcs_context
 			log("  Rcs_indirect_ctx_offset: ", Hex(_execlist_context.read<C::Rcs_indirect_ctx_offset_value>(), Hex::PREFIX, Hex::PAD));
 
 			_ppgtt_context.dump();
-		}
-
-		void dump_hw_status_page(bool raw = false)
-		{
-			using namespace Genode;
-
-			if (raw) {
-				uint32_t const *p = (uint32_t const *)_hw_status_page.base();
-				for (uint32_t i = 0; i < HW_STATUS_PAGE_SIZE / sizeof(uint32_t); i += 8) {
-					log(Hex(i, Hex::PREFIX, Hex::PAD), "  ",
-					    Hex(p[i  ], Hex::PREFIX, Hex::PAD), " ",
-					    Hex(p[i+1], Hex::PREFIX, Hex::PAD), " ",
-					    Hex(p[i+2], Hex::PREFIX, Hex::PAD), " ",
-					    Hex(p[i+3], Hex::PREFIX, Hex::PAD), " ",
-					    Hex(p[i+4], Hex::PREFIX, Hex::PAD), " ",
-					    Hex(p[i+5], Hex::PREFIX, Hex::PAD), " ",
-					    Hex(p[i+6], Hex::PREFIX, Hex::PAD), " ",
-					    Hex(p[i+7], Hex::PREFIX, Hex::PAD));
-				}
-			} else {
-				using H = Hardware_status_page;
-				log("Hardware_status_page");
-				log("   Interrupt_status_register_storage: ",
-				    Hex(_hw_status_page.read<H::Interrupt_status_register_storage>(),
-				        Hex::PREFIX, Hex::PAD));
-				log("   Ring_head_ptr_storage: ",
-				    Hex(_hw_status_page.read<H::Ring_head_ptr_storage>(),
-				        Hex::PREFIX, Hex::PAD));
-
-				auto const cs_last = _hw_status_page.read<H::Last_written_status_offset>();
-
-				log("   Last_written_status_offset: ",
-				    Hex(cs_last, Hex::PREFIX, Hex::PAD));
-
-				for (unsigned i = 0; i < H::CONTEXT_STATUS_REGISTERS; i++) {
-					Igd::Context_status_qword::access_t v = _hw_status_page.read<H::Context_status_dwords>(i);
-					log("   Context_status ", i);
-					log("    Context_id:          ", Igd::Context_status_qword::Context_id::get(v));
-					log("    Lite_restore:        ", Igd::Context_status_qword::Lite_restore::get(v));
-					log("    Display_plane:       ", Igd::Context_status_qword::Display_plane::get(v));
-					log("    Semaphore_wait_mode: ", Igd::Context_status_qword::Semaphore_wait_mode::get(v));
-					log("    Wait_on_scanline:    ", Igd::Context_status_qword::Wait_on_scanline::get(v));
-					log("    Wait_on_semaphore:   ", Igd::Context_status_qword::Wait_on_semaphore::get(v));
-					log("    Wait_on_v_blank:     ", Igd::Context_status_qword::Wait_on_v_blank::get(v));
-					log("    Wait_on_sync_flip:   ", Igd::Context_status_qword::Wait_on_sync_flip::get(v));
-					log("    Context_complete:    ", Igd::Context_status_qword::Context_complete::get(v));
-					log("    Active_to_idle:      ", Igd::Context_status_qword::Active_to_idle::get(v));
-					log("    Element_switch:      ", Igd::Context_status_qword::Element_switch::get(v));
-					log("    Preempted:           ", Igd::Context_status_qword::Preempted::get(v));
-					log("    Idle_to_active:      ", Igd::Context_status_qword::Idle_to_active::get(v));
-				}
-			}
 		}
 
 		void dump_execlist_context()
