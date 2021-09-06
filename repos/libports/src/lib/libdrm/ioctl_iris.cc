@@ -133,6 +133,7 @@ static const char *command_name(unsigned long request)
 	case DRM_I915_REG_READ:              return "DRM_I915_REG_READ";
 	case DRM_I915_GET_RESET_STATS:       return "DRM_I915_GET_RESET_STATS";
 	case DRM_I915_GEM_CONTEXT_CREATE:    return "DRM_I915_GEM_CONTEXT_CREATE";
+	case DRM_I915_GEM_CONTEXT_DESTROY:   return "DRM_I915_GEM_CONTEXT_DESTROY";
 	default:
 		return "<unknown driver>";
 	}
@@ -387,7 +388,9 @@ class Drm_call
 		 ** execbuffer completion **
 		 ***************************/
 
-		void _handle_completion() {
+		void _handle_completion()
+		{
+			/* wake up possible waiters */
 			_completion_lock.wakeup();
 		}
 
@@ -536,7 +539,8 @@ class Drm_call
 				*value = _gpu_info.revision.value;
 				return 0;
 			case I915_PARAM_CS_TIMESTAMP_FREQUENCY:
-				Genode::error("I915_PARAM_CS_TIMESTAMP_FREQUENCY not supported");
+				if (verbose_ioctl)
+					Genode::error("I915_PARAM_CS_TIMESTAMP_FREQUENCY not supported");
 				return -1;
 			case I915_PARAM_SLICE_MASK:
 				*value = _gpu_info.slice_mask.value;
@@ -552,7 +556,8 @@ class Drm_call
 				return 0;
 			case I915_PARAM_MMAP_GTT_VERSION:
 				*value = 0; /* XXX */
-				Genode::warning("I915_PARAM_MMAP_GTT_VERSION ", *value);
+				if (verbose_ioctl)
+					Genode::warning("I915_PARAM_MMAP_GTT_VERSION ", *value);
 				return 0;
 			default:
 				Genode::error("Unhandled device param:", Genode::Hex(param));
@@ -568,7 +573,6 @@ class Drm_call
 
 			drm_i915_gem_context_create * const p = reinterpret_cast<drm_i915_gem_context_create*>(arg);
 			p->ctx_id = _gpu_info.ctx_id + cnt;
-			Genode::error("create gem context ", p->ctx_id);
 			cnt ++;
 			return 0;
 		}
@@ -579,13 +583,10 @@ class Drm_call
 
 			switch (p->param) {
 			case I915_CONTEXT_PARAM_PRIORITY:
-				Genode::error(__func__, " context=", p->ctx_id, " priority:=", p->value);
 				return 0;
 			case I915_CONTEXT_PARAM_RECOVERABLE:
-				Genode::error(__func__, " context=", p->ctx_id, " recoverable:=", p->value);
 				return 0;
 			default:
-				Genode::error(__func__, " ctx=", p->ctx_id, " param=", p->param, " size=", p->size, " value=", Genode::Hex(p->value));
 				Genode::error(__func__, " unknown param=", p->param);
 				return -1;
 			};
@@ -597,8 +598,6 @@ class Drm_call
 
 			switch (p->param) {
 			case I915_CONTEXT_PARAM_SSEU:
-			Genode::error("get ", p->ctx_id, " ", p->param, " ", p->size, " ", Genode::Hex(p->value));
-				Genode::error(__func__, " sseu ");
 				return 0;
 			default:
 				Genode::error(__func__, " ctx=", p->ctx_id, " param=", p->param, " size=", p->size, " value=", Genode::Hex(p->value));
@@ -771,6 +770,17 @@ class Drm_call
 				});
 			}
 
+			/*
+			 * Always wait for buffer to complete to avoid race between map and unmap
+			 * of signal ep, the original drm_i915_gem_wait simply 0 now
+			 */
+			struct drm_i915_gem_wait wait = {
+				.bo_handle = (__u32)command_buffer->handle.id().value,
+				.flags = 0,
+				.timeout_ns = -1LL
+			};
+
+			_device_gem_wait(&wait);
 			return 0;
 		}
 
@@ -833,15 +843,9 @@ class Drm_call
 		{
 			auto const query = reinterpret_cast<drm_i915_query*>(arg);
 
-			if (query->num_items == 1) {
-				auto const items = reinterpret_cast<drm_i915_query_item*>(query->items_ptr);
-				Genode::error(__func__, " query_id=", items->query_id,
-				              items->query_id == DRM_I915_QUERY_TOPOLOGY_INFO ? " query_topology_info" : "",
-				              items->query_id == 3 /*DRM_I915_QUERY_PERF_CONFIG*/ ? " query_perf_config" : "");
-			}
-
-			Genode::error("device specific iocall DRM_I915_QUERY not supported"
-			              " - num_items=", query->num_items);
+			if (verbose_ioctl)
+				Genode::error("device specific iocall DRM_I915_QUERY not supported"
+				              " - num_items=", query->num_items);
 
 			return -1;
 		}
@@ -866,12 +870,17 @@ class Drm_call
 			case DRM_I915_GEM_EXECBUFFER2:    return _device_gem_execbuffer2(arg);
 			case DRM_I915_GEM_BUSY:           return _device_gem_busy(arg);
 			case DRM_I915_GEM_MADVISE:        return _device_gem_madvise(arg);
-			case DRM_I915_GEM_WAIT:           return _device_gem_wait(arg);
+			case DRM_I915_GEM_WAIT:           return 0;
 			case DRM_I915_QUERY:              return _device_query(arg);
 			case DRM_I915_GEM_CONTEXT_SETPARAM: return _device_gem_context_set_param(arg);
 			case DRM_I915_GEM_CONTEXT_GETPARAM: return _device_gem_context_get_param(arg);
+			case DRM_I915_GEM_CONTEXT_DESTROY:
+				if(verbose_ioctl)
+					Genode::warning("DRM_IOCTL_I915_GEM_CONTEXT_DESTROY not supported");
+				return 0;
 			default:
-				Genode::error("Unhandled device specific ioctl:", Genode::Hex(cmd));
+				if (verbose_ioctl)
+					Genode::error("Unhandled device specific ioctl:", Genode::Hex(cmd));
 				break;
 			}
 
@@ -909,10 +918,11 @@ class Drm_call
 		{
 			auto &p = *reinterpret_cast<drm_syncobj_wait *>(arg);
 
-			Genode::error(__func__, " ", p.count_handles, " ",
-			              Genode::Hex(p.handles),
-			              " tiemout_nsec=", p.timeout_nsec,
-			              " flags=", p.flags);
+			if (verbose_ioctl)
+				Genode::error(__func__, " ", p.count_handles, " ",
+				              Genode::Hex(p.handles),
+				              " tiemout_nsec=", p.timeout_nsec,
+				              " flags=", p.flags);
 
 			if (p.count_handles > 1) {
 				Genode::error(__func__, " count handles > 1 - not supported");
@@ -970,7 +980,6 @@ class Drm_call
 			auto const p = reinterpret_cast<drm_get_cap *>(arg);
 
 			if (p->capability == DRM_CAP_PRIME) {
-				Genode::error("cap ", p->capability, " ", DRM_CAP_PRIME, " XXXXX");
 				/* XXX fd == 43 check */
 				p->value = DRM_PRIME_CAP_IMPORT;
 				return 0;
@@ -1142,6 +1151,12 @@ class Drm_call
 				if (!h.busy) return;
 				if (h.seqno.id > gpu_info.last_completed.id) return;
 				h.busy = false;
+
+				/*
+				 * Because bo object map/unmap is not supported correctly right now
+				 * (reference counting), we unmap and map the buffers on for each frame
+				 */
+				_unmap_buffer_ppgtt(h);
 			});
 
 		}
