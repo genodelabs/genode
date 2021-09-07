@@ -30,4 +30,6 @@ pte_t pte_swp_clear_soft_dirty(pte_t pte);
 
 pte_t ptep_get(pte_t *ptep);
 
+static inline int is_zero_pfn(unsigned long pfn) { return 0; }
+
 #endif /* __LINUX_PGTABLE_H */

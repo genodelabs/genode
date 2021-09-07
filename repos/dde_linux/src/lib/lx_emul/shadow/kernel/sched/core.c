@@ -21,11 +21,25 @@
 #include <linux/sched/debug.h>
 #include <linux/sched/stat.h>
 #include <linux/sched/nohz.h>
+#include <linux/version.h>
 
 #include <lx_emul/debug.h>
 #include <lx_emul/task.h>
 
 #include <../kernel/sched/sched.h>
+
+
+/*
+ * Type changes between kernel versions
+ */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,14,1)
+typedef unsigned long nr_iowait_cpu_return_t;
+typedef long          wait_task_inactive_match_state_t;
+#else
+typedef unsigned int  nr_iowait_cpu_return_t;
+typedef unsigned int  wait_task_inactive_match_state_t;
+#endif
+
 
 void set_user_nice(struct task_struct * p, long nice)
 {
@@ -118,7 +132,7 @@ asmlinkage __visible void __sched notrace preempt_schedule_notrace(void)
 }
 
 
-unsigned long nr_iowait_cpu(int cpu)
+nr_iowait_cpu_return_t nr_iowait_cpu(int cpu)
 {
 	return 0;
 }
@@ -143,7 +157,8 @@ int sched_setscheduler_nocheck(struct task_struct * p, int policy,
 }
 
 
-unsigned long wait_task_inactive(struct task_struct * p,long match_state)
+unsigned long wait_task_inactive(struct task_struct * p,
+                                 wait_task_inactive_match_state_t match_state)
 {
 	struct rq *rq = task_rq(p);
 
