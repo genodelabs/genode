@@ -554,7 +554,7 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_irq_window(
 	_irq_window = false;
 
 	/* request current tpr state from guest, it may block IRQs */
-	APICSetTpr(pVCpu, state.tpr_threshold.value());
+	APICSetTpr(pVCpu, state.tpr.value());
 
 	if (!TRPMHasTrap(pVCpu)) {
 
@@ -567,16 +567,15 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_irq_window(
 
 			uint8_t irq;
 			int rc = PDMGetInterrupt(pVCpu, &irq);
-			Assert(RT_SUCCESS(rc));
-
-			rc = TRPMAssertTrap(pVCpu, irq, TRPM_HARDWARE_INT);
-			Assert(RT_SUCCESS(rc));
+			if (RT_SUCCESS(rc)) {
+				rc = TRPMAssertTrap(pVCpu, irq, TRPM_HARDWARE_INT);
+				Assert(RT_SUCCESS(rc));
+			}
 		}
 
 		if (!TRPMHasTrap(pVCpu)) {
 			/* happens if APICSetTpr (see above) mask IRQ */
 			state.inj_info.charge(VMX_ENTRY_INT_INFO_NONE);
-			Genode::error("virq window pthread aaaaaaa while loop");
 			return PAUSED;
 		}
 	}
