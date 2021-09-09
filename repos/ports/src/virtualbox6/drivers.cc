@@ -40,6 +40,7 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
 	REGISTER(g_DrvHostInterface);
 	REGISTER(g_DrvAUDIO);
 	REGISTER(g_DrvHostNullAudio);
+	REGISTER(g_DrvHostOSSAudio);
 	REGISTER(g_DrvACPI);
 	REGISTER(g_DrvAcpiCpu);
 	REGISTER(g_DrvVUSBRootHub);

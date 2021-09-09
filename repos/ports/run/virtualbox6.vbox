@@ -68,7 +68,7 @@
         <Port slot="0" enabled="false" IOBase="0x378" IRQ="7"/>
         <Port slot="1" enabled="false" IOBase="0x378" IRQ="7"/>
       </LPT>
-      <AudioAdapter controller="AC97" driver="Pulse" enabled="false"/>
+      <AudioAdapter controller="AC97" driver="OSS" enabled="true"/>
       <RTC localOrUTC="UTC"/>
       <SharedFolders/>
       <Clipboard mode="Disabled"/>

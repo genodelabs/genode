@@ -21,6 +21,7 @@ lappend depot_archives [depot_user]/src/nitpicker
 lappend depot_archives [depot_user]/src/report_rom
 lappend depot_archives [depot_user]/src/vfs_import
 lappend depot_archives [depot_user]/src/vfs_pipe
+lappend depot_archives [depot_user]/src/vfs_oss
 
 lappend_if [expr $use_net] depot_archives [depot_user]/src/ipxe_nic_drv
 lappend_if [expr $use_net] depot_archives [depot_user]/src/nic_router
@@ -33,6 +34,8 @@ set build_components { virtualbox6 }
 lappend_if [expr $use_top]    build_components app/top
 lappend_if [expr $use_serial] build_components server/log_terminal
 lappend_if [have_spec x86]    build_components drivers/rtc
+
+lappend  build_components drivers/audio
 
 build $build_components
 
@@ -216,13 +219,13 @@ append config {
 	<start name="vbox1" priority="-2" caps="1800">
 		<binary name="virtualbox6"/>
 		<resource name="RAM" quantum="3000M"/>
-		<config vbox_file="virtualbox6.vbox" vm_name="TestVM">
+		<config vbox_file="virtualbox6.vbox" vm_name="TestVM" ld_verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc">
 				 <pthread placement="single-cpu"/>
 			</libc>
 			<vfs>
 				<dir name="dev">
-					<log/> <rtc/> <null/> <zero/>
+					<log/> <rtc/> <null/> <zero/> <oss name="dsp"/>
 				</dir>
 				<dir name="pipe"> <pipe/> </dir>}
 
@@ -257,6 +260,20 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
+	<start name="audio_drv" priority="-1">
+		<binary name="pci_audio_drv"/>
+		<resource name="RAM" quantum="9M"/>
+		<provides>
+			<service name="Audio_out"/>
+			<service name="Audio_in"/>
+		</provides>
+		<config recording="yes">
+			<mixer field="outputs.master" value="255"/>
+			<mixer field="record.adc-0:1_source" value="sel2"/>
+			<mixer field="record.adc-0:1" value="255"/>
+		</config>
+	</start>
 </config>
 }
 
@@ -268,7 +285,7 @@ copy_file [genode_dir]/repos/ports/run/virtualbox6.vbox bin/
 # Instruct vesa_drv to use maximum resolution
 #
 set fd [open bin/fb_drv.config w]
-puts $fd {<config buffered="yes"/>}
+puts $fd {<config buffered="yes" width="1280" height="1024"/>}
 close $fd
 
 #
@@ -292,6 +309,8 @@ append_if [expr $use_net]     boot_modules { ipxe_nic_drv }
 append_if [expr $use_net]     boot_modules { nic_router }
 append_if [expr $use_serial]  boot_modules { log_terminal }
 append_if [expr $use_overlay] boot_modules { overlay.vdi }
+
+lappend boot_modules pci_audio_drv
 
 build_boot_image $boot_modules
 

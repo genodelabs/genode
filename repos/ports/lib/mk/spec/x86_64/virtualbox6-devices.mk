@@ -9,6 +9,7 @@ SRC_CC += Devices/Audio/DevHdaStream.cpp
 SRC_CC += Devices/Audio/DevIchAc97.cpp
 SRC_CC += Devices/Audio/DrvAudio.cpp
 SRC_CC += Devices/Audio/DrvHostAudioNull.cpp
+SRC_CC += Devices/Audio/DrvHostAudioOss.cpp
 SRC_CC += Devices/Bus/DevPCI.cpp
 SRC_CC += Devices/Bus/DevPciIch9.cpp
 SRC_CC += Devices/Bus/MsiCommon.cpp

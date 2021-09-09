@@ -16,6 +16,7 @@
 		<rtc/>
 		<rom label="usb_devices"/>
 		<usb/>
+		<audio_out/>
 	</requires>
 
 	<config verbose="yes">
@@ -34,6 +35,8 @@
 			<service name="File_system"/>
 			<service name="Usb"/>
 			<service name="Nic"/>
+			<service name="Audio_out"/>
+			<service name="Audio_in"/>
 		</parent-provides>
 
 		<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
@@ -44,11 +47,12 @@
 			<binary name="virtualbox6" />
 			<resource name="RAM" quantum="8G"/>
 			<exit propagate="yes"/>
-			<config vbox_file="machine.vbox" xhci="yes" vm_name="linux" capslock="rom">
+			<config vbox_file="machine.vbox" xhci="yes" vm_name="linux" capslock="rom" ld_verbose="yes">
 				<vfs>
 					<dir name="dev">
-						<log/> <rtc/> <null/> <zero/>
+						<log/> <rtc/> <null/> <zero/> <oss name="dsp"/>
 					</dir>
+					<oss name="dsp"/>
 					<dir name="pipe"> <pipe/> </dir>
 					<dir name="shared"> <fs label="shared" writeable="yes"/> </dir>
 					<fs writeable="yes"/>
@@ -58,6 +62,12 @@
 				</libc>
 				<arg value="virtualbox"/>
 				<env key="VBOX_USER_HOME" value="/"/>
+				<env key="VBOX_LOG_DEST"          value="file=/dev/log"/>
+				<env key="VBOX_LOG"               value="+drv_host_audio"/>
+				<env key="VBOX_LOG_FLAGS"         value="thread"/>
+				<env key="VBOX_RELEASE_LOG_DEST"  value="file=/dev/log"/>
+				<env key="VBOX_RELEASE_LOG"       value=""/>
+				<env key="VBOX_RELEASE_LOG_FLAGS" value="thread"/>
 			</config>
 			<route>
 				<service name="Audio_out">                  <parent/>                       </service>
@@ -88,6 +98,7 @@
 		<rom label="qemu-usb.lib.so"/>
 		<rom label="stdcxx.lib.so"/>
 		<rom label="vfs.lib.so"/>
+		<rom label="vfs_oss.lib.so"/>
 		<rom label="vfs_pipe.lib.so"/>
 	</content>
 
