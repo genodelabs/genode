@@ -1173,16 +1173,13 @@ Libc::Vfs_plugin::_ioctl_dio(File_descriptor *fd, unsigned long request, char *a
 Libc::Vfs_plugin::Ioctl_result
 Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char *argp)
 {
-	if (!argp)
-		return { true, EINVAL };
-
 	bool handled = false;
 	/*
 	 * Initialize to "success" and any ioctl is required to set
 	 * in case of error.
 	 *
 	 * This method will either return handled equals true if the I/O control
-	 * was handled successfully or failed and the result is not successfull
+	 * was handled successfully or failed and the result is not successful
 	 * (see the end of this method).
 	 * 
 	 */
@@ -1190,11 +1187,15 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 	if (request == OSS_GETVERSION) {
 
+		if (!argp) return { true, EINVAL };
+
 		*(int *)argp = SOUND_VERSION;
 
 		handled = true;
 
 	} else if (request == SNDCTL_DSP_CHANNELS) {
+
+		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
 			_with_info(*fd, [&] (Xml_node info) {
@@ -1230,6 +1231,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 	} else if (request == SNDCTL_DSP_CURRENT_OPTR) {
 
+		if (!argp) return { true, EINVAL };
+
 		monitor().monitor([&] {
 			_with_info(*fd, [&] (Xml_node info) {
 
@@ -1257,6 +1260,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		});
 
 	} else if (request == SNDCTL_DSP_GETERROR) {
+
+		if (!argp) return { true, EINVAL };
 
 		int play_underruns = 0;
 
@@ -1305,6 +1310,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 	} else if (request == SNDCTL_DSP_GETISPACE) {
 
+		if (!argp) return { true, EINVAL };
+
 		/* dummy implementation */
 
 		audio_buf_info &abinfo = *(audio_buf_info *)argp;
@@ -1319,6 +1326,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 	} else if (request == SNDCTL_DSP_GETOPTR) {
 
+		if (!argp) return { true, EINVAL };
+
 		/* dummy implementation */
 
 		count_info &ci = *(count_info *)argp;
@@ -1331,6 +1340,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		handled = true;
 
 	} else if (request == SNDCTL_DSP_GETOSPACE) {
+
+		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
 			_with_info(*fd, [&] (Xml_node info) {
@@ -1373,6 +1384,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 	} else if (request == SNDCTL_DSP_GETPLAYVOL) {
 
+		if (!argp) return { true, EINVAL };
+
 		/* dummy implementation */
 
 		int *vol = (int *)argp;
@@ -1382,6 +1395,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		handled = true;
 
 	} else if (request == SNDCTL_DSP_LOW_WATER) {
+
+		if (!argp) return { true, EINVAL };
 
 		/* dummy implementation */
 
@@ -1404,8 +1419,11 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 	} else if (request == SNDCTL_DSP_RESET) {
 
 		handled = true;
+		warning("SNDCTL_DSP_RESET handled=", handled, " result=", result);
 
 	} else if (request == SNDCTL_DSP_SAMPLESIZE) {
+
+		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
 			_with_info(*fd, [&] (Xml_node info) {
@@ -1434,6 +1452,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		});
 
 	} else if (request == SNDCTL_DSP_SETFRAGMENT) {
+
+		if (!argp) return { true, EINVAL };
 
 		int *frag = (int *)argp;
 		int max_fragments = *frag >> 16;
@@ -1492,6 +1512,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 	} else if (request == SNDCTL_DSP_SETPLAYVOL) {
 
+		if (!argp) return { true, EINVAL };
+
 		/* dummy implementation */
 
 		int *vol = (int *)argp;
@@ -1502,11 +1524,15 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 	} else if (request == SNDCTL_DSP_SETTRIGGER) {
 
+		if (!argp) return { true, EINVAL };
+
 		/* dummy implementation */
 
 		handled = true;
 
 	} else if (request == SNDCTL_DSP_SPEED) {
+
+		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
 			_with_info(*fd, [&] (Xml_node info) {
@@ -1540,7 +1566,40 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 			return Fn::COMPLETE;
 		});
 
+	} else if (request == SNDCTL_DSP_SYNC) {
+
+		/*
+		 * SNDCTL_DSP_SYNC should be implemented like follows, but we disabled
+		 * the implementation and just return for two reasons. The VirtualBox 6
+		 * backend requires the sync operation to complete with very tight
+		 * timing in a special thread, which our current implementation can't
+		 * assure. Also, the OSS documentation (and examples) advise against the
+		 * use of this feature in new programs.
+		 */
+		if (0) monitor().monitor([&] {
+
+			auto result = Fn::INCOMPLETE;
+
+			_with_info(*fd, [&] (Xml_node info) {
+
+				if (info.type() != "oss") return;
+
+				unsigned int const ofrag_avail =
+					info.attribute_value("ofrag_avail", 0U);
+				unsigned int const ofrag_total =
+					info.attribute_value("ofrag_total", 0U);
+
+				result = (ofrag_avail == ofrag_total ? Fn::COMPLETE : Fn::INCOMPLETE);
+			});
+
+			return result;
+		});
+
+		handled = true;
+
 	} else if (request == SNDCTL_SYSINFO) {
+
+		if (!argp) return { true, EINVAL };
 
 		/* dummy implementation */
 
@@ -1554,6 +1613,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 	 * Either handled or a failed attempt will mark the I/O control
 	 * as handled.
 	 */
+	if (request == SNDCTL_DSP_RESET)
+		warning("SNDCTL_DSP_RESET handled=", handled, " result=", result);
 	return { handled || result != 0, result };
 }
 
@@ -1590,6 +1651,7 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 	case SNDCTL_DSP_SETPLAYVOL:
 	case SNDCTL_DSP_SETTRIGGER:
 	case SNDCTL_DSP_SPEED:
+	case SNDCTL_DSP_SYNC:
 	case SNDCTL_SYSINFO:
 		result = _ioctl_sndctl(fd, request, argp);
 		break;
@@ -1598,6 +1660,8 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 	}
 
 	if (result.handled) {
+		if (result.error)
+			error("XXXXX error=", result.error, " request=", Hex(request), "/", (request==SNDCTL_DSP_RESET?"":"!"), "SNDCTL_DSP_RESET");
 		return result.error ? Errno(result.error) : 0;
 	}
 
