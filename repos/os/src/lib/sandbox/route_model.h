@@ -87,7 +87,7 @@ class Sandbox::Route_model : Noncopyable
 
 				friend class List<Rule>;
 				friend class Route_model;
-				friend void destroy<Rule>(Allocator &, Rule *);
+				friend void Genode::destroy<Rule>(Allocator &, Rule *);
 
 				Allocator &_alloc;
 
