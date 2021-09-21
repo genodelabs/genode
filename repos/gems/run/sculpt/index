@@ -10,6 +10,10 @@
     <pkg path="window_layouter"      info="default window layouter"/>
   </index>
 
+  <index name="Mesa 3D">
+    <pkg path="gpu-cpu" info="SWRAST Mesa driver"/>
+  </index>
+
   <index name="Tools">
     <pkg path="system_shell" info="command-line interface to the system"/>
     <pkg path="system_clock" info="system-clock service"/>
