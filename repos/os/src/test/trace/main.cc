@@ -28,10 +28,11 @@ struct Test_thread : Thread
 {
 	Env               &env;
 	Timer::Connection  timer { env };
+	bool               stop  { false };
 
 	void entry() override
 	{
-		for (unsigned i = 0; ; i++) {
+		for (unsigned i = 0; !stop; i++) {
 			if (i & 0x3) {
 				Ram_dataspace_capability ds_cap = env.ram().alloc(1024);
 				env.ram().free(ds_cap);
@@ -42,6 +43,13 @@ struct Test_thread : Thread
 
 	Test_thread(Env &env, Name &name)
 	: Thread(env, name, 1024 * sizeof(addr_t)), env(env) { start(); }
+
+	~Test_thread()
+	{
+		stop = true;
+		this->join();
+	}
+
 };
 
 
@@ -227,6 +235,8 @@ struct Test_tracing
 
 	Test_tracing(Env &env) : env(env)
 	{
+		enum { MAX_SUBJECTS = 128 };
+
 		log("test Tracing");
 
 		try {
@@ -261,12 +271,15 @@ struct Test_tracing
 		}
 
 		/* wait some time before querying the subjects */
-		timer.msleep(3000);
+		timer.msleep(1500);
 
-		Trace::Subject_id subjects[64];
-		size_t num_subjects = trace.subjects(subjects, 64);
+		Trace::Subject_id subjects[MAX_SUBJECTS];
+		size_t num_subjects = trace.subjects(subjects, MAX_SUBJECTS);
 
 		log(num_subjects, " tracing subjects present");
+
+		if (num_subjects == MAX_SUBJECTS)
+			error("Seems we reached the maximum number of subjects.");
 
 		auto print_info = [this] (Trace::Subject_id id, Trace::Subject_info info) {
 
@@ -319,7 +332,7 @@ struct Test_tracing
 		for_each_subject(subjects, num_subjects, enable_tracing);
 
 		/* give the test thread some time to run */
-		timer.msleep(3000);
+		timer.msleep(1000);
 
 		for_each_subject(subjects, num_subjects, print_info);
 
