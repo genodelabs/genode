@@ -230,7 +230,7 @@ class Genode::Uplink_client_base : Noncopyable
 
 			} catch (...) {
 
-				warning("exception while trying to forward packet from driver"
+				warning("exception while trying to forward packet from driver "
 				        "to Uplink connection TX");
 
 				return;
