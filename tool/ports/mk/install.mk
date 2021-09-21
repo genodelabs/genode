@@ -231,12 +231,12 @@ _unzip_opt = $(call _prefer,$(UNZIP_OPT($1)),$(UNZIP_OPT))
 #
 # Archive extraction functions for various archive types
 #
-_extract_function(tar)     = tar xf  $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
-_extract_function(tgz)     = tar xfz $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
-_extract_function(tar.gz)  = tar xfz $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
-_extract_function(tar.xz)  = tar xfJ $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
-_extract_function(tar.bz2) = tar xfj $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
-_extract_function(txz)     = tar xfJ $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
+_extract_function(tar)     = tar xmf  $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
+_extract_function(tgz)     = tar xmfz $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
+_extract_function(tar.gz)  = tar xmfz $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
+_extract_function(tar.xz)  = tar xmfJ $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
+_extract_function(tar.bz2) = tar xmfj $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
+_extract_function(txz)     = tar xmfJ $(ARCHIVE) -C $(DIR) $(call _tar_opt,$1)
 _extract_function(zip)     = unzip -o -q -d $(DIR) $(call _unzip_opt,$1) $(ARCHIVE)
 
 _ARCHIVE_EXTS := tar tar.gz tar.xz tgz tar.bz2 txz zip
