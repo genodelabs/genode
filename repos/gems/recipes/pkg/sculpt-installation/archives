@@ -22,3 +22,4 @@ _/pkg/acpica
 _/pkg/qt5_textedit
 _/pkg/system_clock
 _/pkg/gpu-cpu
+_/pkg/gpu-iris

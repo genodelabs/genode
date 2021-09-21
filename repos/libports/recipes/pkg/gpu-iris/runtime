@@ -1,0 +1,49 @@
+<runtime ram="12M" caps="300" binary="init">
+
+	<provides>
+		<rom/>
+	</provides>
+
+	<content>
+		<rom label="egl_iris.lib.so"/>
+		<rom label="fs_rom"/>
+		<rom label="init"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
+	</content>
+
+	<config verbose="yes">
+
+		<service name="ROM">
+			<default-policy> <child name="fs_rom" label="egl_iris.lib.so"/> </default-policy>
+		</service>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+
+		<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
+
+		<start name="vfs" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config verbose="yes">
+				<vfs>
+					<rom name="egl_iris.lib.so"/>
+				</vfs>
+				<default-policy root="/" writeable="no"/>
+			</config>
+		</start>
+
+		<start name="fs_rom" caps="100">
+			<resource name="RAM" quantum="9M"/>
+			<provides> <service name="ROM"/> </provides>
+			<config/>
+		</start>
+	</config>
+
+</runtime>
