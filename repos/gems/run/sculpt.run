@@ -240,8 +240,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="drivers" caps="4000" priority="-1" managing_system="yes">
-		<resource name="RAM" quantum="160M"/>
+	<start name="drivers" caps="4600" priority="-1" managing_system="yes">
+		<resource name="RAM" quantum="200M"/>
 		<resource name="CPU" quantum="40"/>
 		<binary name="init"/>
 		<route>
@@ -273,6 +273,7 @@ install_config {
 			<service name="Usb"/>
 			<service name="Platform"/>
 			<service name="Rtc"/>
+			<service name="Gpu"/>
 		</provides>
 	</start>
 
@@ -474,6 +475,7 @@ install_config {
 			<service name="Gui" label="lock_screen">
 				<child name="nitpicker" label="lock_screen"/> </service>
 			<service name="Gui"> <child name="nitpicker"/> </service>
+			<service name="Gpu"> <child name="drivers"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
 			<service name="Report" label="inspect -> clipboard">

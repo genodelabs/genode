@@ -329,6 +329,7 @@ class Sculpt::Runtime_config
 				_backdrop  { _r, Type::GUI,         "desktop background",             "backdrop" },
 				_lockscreen{ _r, Type::GUI,         "desktop lock screen",            "lock_screen" },
 				_nitpicker { _r, Type::GUI,         "system GUI server" },
+				_gpu       { _r, Type::GPU,         "system GPU" },
 				_lz_event  { _r, Type::EVENT,       "management GUI events",          "leitzentrale" },
 				_event     { _r, Type::EVENT,       "system input events",            "global" },
 				_lz_capture{ _r, Type::CAPTURE,     "management GUI",                 "leitzentrale" },

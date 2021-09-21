@@ -132,9 +132,11 @@ struct Driver_manager::Intel_gpu_driver : Device_driver
 
 	void generate_start_node(Xml_generator &xml) const override
 	{
+		_gen_forwarded_service<Gpu::Session>(xml, "intel_gpu_drv");
+
 		xml.node("start", [&] () {
 			_gen_common_start_node_content(xml, "intel_gpu_drv", "intel_gpu_drv",
-			                               Ram_quota{32*1024*1024}, Cap_quota{800},
+			                               Ram_quota{64*1024*1024}, Cap_quota{1400},
 			                               Priority{0}, version);
 			xml.node("provides", [&] () {
 				xml.node("service", [&] () {

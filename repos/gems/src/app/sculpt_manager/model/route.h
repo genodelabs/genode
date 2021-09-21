@@ -36,6 +36,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::FILE_SYSTEM: return "file_system";
 		case Service::Type::NIC:         return "nic";
 		case Service::Type::GUI:         return "gui";
+		case Service::Type::GPU:         return "gpu";
 		case Service::Type::RM:          return "rm";
 		case Service::Type::IO_MEM:      return "io_mem";
 		case Service::Type::IO_PORT:     return "io_port";
@@ -65,6 +66,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::FILE_SYSTEM: return "File system";
 		case Service::Type::NIC:         return "Network";
 		case Service::Type::GUI:         return "GUI";
+		case Service::Type::GPU:         return "GPU";
 		case Service::Type::RM:          return "Region maps";
 		case Service::Type::IO_MEM:      return "Direct memory-mapped I/O";
 		case Service::Type::IO_PORT:     return "Direct port I/O";
