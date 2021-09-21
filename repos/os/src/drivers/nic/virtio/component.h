@@ -128,10 +128,10 @@ class Virtio_nic::Device : Noncopyable
 		 * a power of 2. Each VirtIO queue needs some additional space for the descriptor table,
 		 * available and used rings. The default VirtIO queue parameter values defined here have
 		 * been selected to make Ram_dataspace used by both TX and RX VirtIO queues consume around
-		 * 32Kb of RAM.
+		 * 256kB of RAM.
 		 */
-		static const uint16_t DEFAULT_VQ_SIZE = 16;
-		static const uint16_t DEFAULT_VQ_BUF_SIZE = 2020;
+		static const uint16_t DEFAULT_VQ_SIZE = 64;
+		static const uint16_t DEFAULT_VQ_BUF_SIZE = 2016;
 
 		struct Rx_queue_traits
 		{
