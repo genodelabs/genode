@@ -376,6 +376,16 @@ class Virtio_nic::Device : Noncopyable
 				_tx_vq.ack_all_transfers();
 		}
 
+		/**
+		 * Tell the device we have some buffers for it to process and wait
+		 * until its done with at least one of them.
+		 */
+		void tx_vq_flush()
+		{
+			_device.notify_buffers_available(TX_VQ);
+			while (!_tx_vq.has_used_buffers());
+		}
+
 		bool read_link_state()
 		{
 			/**
@@ -652,15 +662,19 @@ class Genode::Uplink_client : public Virtio_nic::Device,
 		                  size_t      conn_rx_pkt_size) override
 		{
 			rx_vq_ack_pkts();
-			if (tx_vq_write_pkt(conn_rx_pkt_base, conn_rx_pkt_size)) {
+			if (!tx_vq_write_pkt(conn_rx_pkt_base, conn_rx_pkt_size)) {
+				/*
+				 * VirtIO transmit queue is full, flush it and retry sending the pkt.
+				 */
+				tx_vq_flush();
 
-				return Transmit_result::ACCEPTED;
-
-			} else {
-
-				warning("Failed to push packet into tx VirtIO queue!");
-				return Transmit_result::RETRY;
+				if (!tx_vq_write_pkt(conn_rx_pkt_base, conn_rx_pkt_size)) {
+					warning("Failed to send packet after flushing VirtIO queue!");
+					return Transmit_result::REJECTED;
+				}
 			}
+
+			return Transmit_result::ACCEPTED;
 		}
 
 		void _drv_finish_transmitted_pkts() override
