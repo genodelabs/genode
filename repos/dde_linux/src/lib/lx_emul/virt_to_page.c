@@ -29,7 +29,7 @@ struct page *lx_emul_virt_to_pages(void const *virt, unsigned count)
 		page = p;
 		for (i = 0; i < count; i++, p++) {
 			p->virtual = (void*)((uintptr_t)page_aligned_virt + i*PAGE_SIZE);
-			init_page_count(page);
+			init_page_count(p);
 			lx_emul_associate_page_with_virt_addr(p, p->virtual);
 		}
 
