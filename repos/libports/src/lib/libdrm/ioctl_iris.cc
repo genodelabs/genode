@@ -160,8 +160,8 @@ class Drm_call
 		Genode::Heap      _heap               { _env.ram(), _env.rm() };
 		Gpu::Connection   _gpu_session        { _env };
 		Gpu::Info         _gpu_info           { _gpu_session.info() };
-		Genode::Blockade  _completion_lock    { };
 		size_t            _available_gtt_size { _gpu_info.aperture_size };
+		bool              _complete           { false };
 
 		using Offset = unsigned long;
 
@@ -391,7 +391,7 @@ class Drm_call
 		void _handle_completion()
 		{
 			/* wake up possible waiters */
-			_completion_lock.wakeup();
+			_complete = true;
 		}
 
 		Genode::Io_signal_handler<Drm_call> _completion_sigh {
@@ -1052,9 +1052,8 @@ class Drm_call
 
 	public:
 
-		Drm_call(Genode::Env &env, Genode::Entrypoint &signal_ep)
-		: _env(env),
-			_completion_sigh(signal_ep, *this, &Drm_call::_handle_completion)
+		Drm_call(Genode::Env &env)
+		: _env(env)
 		{
 			/* make handle id 0 unavailable, handled as invalid by iris */
 			drm_syncobj_create reserve_id_0 { };
@@ -1141,8 +1140,12 @@ class Drm_call
 			              : _generic_ioctl(command_number(request), arg);
 		}
 
-		void wait_for_completion() {
-			_completion_lock.block();
+		void wait_for_completion()
+		{
+			_complete = false;
+
+			while (_complete == false)
+				_env.ep().wait_and_dispatch_one_io_signal();
 
 			/* make done buffer objects */
 			Gpu::Info gpu_info { _gpu_session.info() };
@@ -1166,9 +1169,9 @@ class Drm_call
 static Genode::Constructible<Drm_call> _call;
 
 
-void drm_init(Genode::Env &env, Genode::Entrypoint &signal_ep)
+void drm_init(Genode::Env &env)
 {
-	_call.construct(env, signal_ep);
+	_call.construct(env);
 }
 
 

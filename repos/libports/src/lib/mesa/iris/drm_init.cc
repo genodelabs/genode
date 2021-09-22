@@ -18,10 +18,9 @@ extern "C" {
 #include <platform.h>
 }
 
-extern Genode::Entrypoint &genode_entrypoint();
-extern void drm_init(Genode::Env &env, Genode::Entrypoint &ep);
+extern void drm_init(Genode::Env &env);
 
 void genode_drm_init()
 {
-	drm_init(*genode_env, genode_entrypoint());
+	drm_init(*genode_env);
 }

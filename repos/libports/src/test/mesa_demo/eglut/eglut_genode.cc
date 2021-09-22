@@ -41,14 +41,6 @@ extern "C" {
 
 Genode::Env *genode_env;
 
-static Genode::Constructible<Genode::Entrypoint> signal_ep;
-
-Genode::Entrypoint &genode_entrypoint()
-{
-	return *signal_ep;
-}
-
-
 struct Window : Genode_egl_window
 {
 	using View_handle = Gui::Session::View_handle;
@@ -183,7 +175,5 @@ static void construct_component(Libc::Env &env)
 void Libc::Component::construct(Libc::Env &env)
 {
 	genode_env = &env;
-	signal_ep.construct(env, 1024*sizeof(long), "eglut_signal_ep",
-	                    Genode::Affinity::Location());
 	Libc::with_libc([&] () { construct_component(env); });
 }
