@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -40,8 +40,8 @@ class Gpu::Session_client : public Genode::Rpc_client<Session>
 		Info info() const override {
 			return call<Rpc_info>(); }
 
-		Gpu::Info::Execution_buffer_sequence exec_buffer(Buffer_id id,
-		                                                 Genode::size_t size) override {
+		Gpu::Sequence_number exec_buffer(Buffer_id id,
+		                                 Genode::size_t size) override {
 			return call<Rpc_exec_buffer>(id, size); }
 
 		void completion_sigh(Genode::Signal_context_capability sigh) override {

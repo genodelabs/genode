@@ -176,8 +176,8 @@ struct Gpu::Buffer
 	Genode::Dataspace_capability map_cap    { };
 	Offset                       map_offset { 0 };
 
-	Gpu_virtual_address                  gpu_vaddr { };
-	Gpu::Info::Execution_buffer_sequence seqno { };
+	Gpu_virtual_address  gpu_vaddr { };
+	Gpu::Sequence_number seqno { };
 
 	bool                         gpu_vaddr_valid { false };
 	bool                         busy            { false };
@@ -1149,7 +1149,7 @@ class Drm_call
 
 			_buffer_space.for_each<Buffer>([&] (Buffer &h) {
 				if (!h.busy) return;
-				if (h.seqno.id > gpu_info.last_completed.id) return;
+				if (h.seqno.value > gpu_info.last_completed.value) return;
 				h.busy = false;
 
 				/*

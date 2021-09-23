@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -24,9 +24,18 @@ namespace Gpu {
 	struct Buffer;
 	using Buffer_id = Genode::Id_space<Buffer>::Id;
 
+	struct Sequence_number;
 	struct Info;
 	struct Session;
 }
+
+/*
+ * Execution buffer sequence number
+ */
+struct Gpu::Sequence_number
+{
+	Genode::uint64_t value;
+};
 
 
 /*
@@ -46,9 +55,7 @@ struct Gpu::Info
 	size_t     aperture_size;
 	Context_id ctx_id;
 
-	struct Execution_buffer_sequence {
-		Genode::uint64_t id;
-	} last_completed;
+	Sequence_number last_completed;
 
 	struct Revision      { Genode::uint8_t value; } revision;
 	struct Slice_mask    { unsigned value; }        slice_mask;
@@ -57,7 +64,7 @@ struct Gpu::Info
 	struct Subslices     { unsigned value; }        subslices;
 
 	Info(Chip_id chip_id, Features features, size_t aperture_size,
-	     Context_id ctx_id, Execution_buffer_sequence last,
+	     Context_id ctx_id, Sequence_number last,
 	     Revision rev, Slice_mask s_mask, Subslice_mask ss_mask,
 	     Eu_total eu, Subslices subslice)
 	:
@@ -109,7 +116,7 @@ struct Gpu::Session : public Genode::Session
 	 *
 	 * \throw Invalid_state is thrown if the provided buffer is not valid, e.g not mapped
 	 */
-	virtual Gpu::Info::Execution_buffer_sequence exec_buffer(Buffer_id id, Genode::size_t size) = 0;
+	virtual Gpu::Sequence_number exec_buffer(Buffer_id id, Genode::size_t size) = 0;
 
 	/**
 	 * Register completion signal handler
@@ -188,7 +195,7 @@ struct Gpu::Session : public Genode::Session
 	 *******************/
 
 	GENODE_RPC(Rpc_info, Info, info);
-	GENODE_RPC_THROW(Rpc_exec_buffer, Gpu::Info::Execution_buffer_sequence, exec_buffer,
+	GENODE_RPC_THROW(Rpc_exec_buffer, Gpu::Sequence_number, exec_buffer,
 	                 GENODE_TYPE_LIST(Invalid_state),
 	                 Gpu::Buffer_id, Genode::size_t);
 	GENODE_RPC(Rpc_completion_sigh, void, completion_sigh,

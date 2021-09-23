@@ -1565,7 +1565,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		{
 			Genode::size_t const aperture_size = Igd::Device::Vgpu::APERTURE_SIZE;
 			return Info(_device.id(), _device.features(), aperture_size,
-			            _vgpu.id(), { .id = _vgpu.completed_seqno() },
+			            _vgpu.id(), { .value = _vgpu.completed_seqno() },
 			            _device._revision,
 			            _device._slice_mask,
 			            _device._subslice_mask,
@@ -1573,8 +1573,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			            _device._subslices);
 		}
 
-		Gpu::Info::Execution_buffer_sequence exec_buffer(Buffer_id id,
-		                                                 Genode::size_t) override
+		Gpu::Sequence_number exec_buffer(Buffer_id id,
+		                                 Genode::size_t) override
 		{
 			bool found = false;
 
@@ -1593,7 +1593,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				throw Gpu::Session::Invalid_state();
 
 			_device.vgpu_activate(_vgpu);
-			return { .id = _vgpu.current_seqno() };
+			return { .value = _vgpu.current_seqno() };
 		}
 
 		void completion_sigh(Genode::Signal_context_capability sigh) override
