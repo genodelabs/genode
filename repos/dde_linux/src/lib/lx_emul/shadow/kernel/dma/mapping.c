@@ -100,6 +100,9 @@ void dma_unmap_sg_attrs(struct device         * dev,
 	int i;
 	struct scatterlist *sg;
 
+	if (dir != DMA_FROM_DEVICE)
+		return;
+
 	for_each_sg(sgl, sg, nents, i) {
 		lx_emul_mem_cache_invalidate(page_address(sg_page(sg)) + sg->offset,
 		                             sg->length);
