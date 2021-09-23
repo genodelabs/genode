@@ -94,13 +94,18 @@ class Igd::Resources : Genode::Noncopyable
 		{
 			using off_t = Genode::off_t;
 
+			size_t const gttm_half_size = gttmmadr_size() / 2;
+			/* GTT starts at half of the mmio memory */
+			off_t  const gtt_offset = gttm_half_size;
+
+			if (gttm_half_size < GTT_RESERVED) {
+				Genode::error("GTTM size too small");
+				return;
+			}
+
 			_gttmmadr_rm.construct(_rm_connection.create((gttmmadr_size())));
 
-			/* GTT starts at half of the mmio memory, assumed size is 8 MB */
-			off_t  const gtt_offset = gttmmadr_size() / 2;
-			size_t const gtt_size = 8ul << 20;
-
-			/* attach actual iomem + reserved =  8 MB */
+			/* attach actual iomem + reserved */
 			_gttmmadr_rm->attach_at(_gttmmadr_ds, 0, gtt_offset);
 
 			/* attach beginning of GTT */
@@ -108,13 +113,14 @@ class Igd::Resources : Genode::Noncopyable
 
 			/* attach the rest of the GTT as dummy RAM */
 			Genode::Ram_dataspace_capability dummmy_gtt_ds { _env.ram().alloc(PAGE_SIZE) };
-			size_t remainder = gtt_size - GTT_RESERVED;
+			size_t remainder = gttm_half_size - GTT_RESERVED;
 			for (off_t offset = gtt_offset + GTT_RESERVED;
 			     remainder > 0;
 			     offset += PAGE_SIZE, remainder -= PAGE_SIZE) {
 				_rm_connection.retry_with_upgrade(Genode::Ram_quota{4096},
 				                                  Genode::Cap_quota{8}, [&]() {
-					_gttmmadr_rm->attach_at(dummmy_gtt_ds, offset, PAGE_SIZE); });
+					_gttmmadr_rm->attach_at(dummmy_gtt_ds, offset, PAGE_SIZE);
+				 });
 			}
 		}
 
@@ -310,6 +316,9 @@ class Igd::Resources : Genode::Noncopyable
 
 			if (!_gttmmadr_rm.constructed())
 				_create_gttmmadr_rm();
+
+			if (!_gttmmadr_rm.constructed())
+				return { };
 
 			return static_cap_cast<Io_mem_dataspace>(_gttmmadr_rm->dataspace());
 		}
