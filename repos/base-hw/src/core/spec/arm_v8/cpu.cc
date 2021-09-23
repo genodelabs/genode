@@ -121,12 +121,12 @@ void Genode::Cpu::cache_clean_invalidate_data_region(addr_t const base,
 	Genode::memory_barrier();
 
 	auto lambda = [] (addr_t const base) {
-		asm volatile("dc civac, %0" :: "r" (base));
-		asm volatile("dsb ish");
-		asm volatile("isb");
-	};
+		asm volatile("dc civac, %0" :: "r" (base)); };
 
 	cache_maintainance(base, size, lambda);
+
+	asm volatile("dsb sy");
+	asm volatile("isb");
 }
 
 
@@ -136,12 +136,12 @@ void Genode::Cpu::cache_invalidate_data_region(addr_t const base,
 	Genode::memory_barrier();
 
 	auto lambda = [] (addr_t const base) {
-		asm volatile("dc ivac, %0" :: "r" (base));
-		asm volatile("dsb ish");
-		asm volatile("isb");
-	};
+		asm volatile("dc ivac, %0" :: "r" (base)); };
 
 	cache_maintainance(base, size, lambda);
+
+	asm volatile("dsb sy");
+	asm volatile("isb");
 }
 
 
