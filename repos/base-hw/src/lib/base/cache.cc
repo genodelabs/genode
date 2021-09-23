@@ -16,6 +16,7 @@
 #include <base/internal/page_size.h>
 #include <cpu/cache.h>
 #include <util/misc_math.h>
+#include <util/touch.h>
 
 using namespace Genode;
 
@@ -32,6 +33,7 @@ static void for_cachelines(addr_t addr, size_t size, FN const & fn)
 	while (size) {
 		addr_t next_page = align_addr(addr+1, get_page_size_log2());
 		size_t s = min(size, next_page - addr);
+		touch_read(reinterpret_cast<unsigned char *>(addr));
 		fn(addr, s);
 		addr += s;
 		size -= s;
