@@ -23,7 +23,8 @@
   </index>
 
   <index name="Demos">
-    <pkg path="nano3d" info="simple software-rendering demo"/>
+    <pkg path="nano3d"     info="simple software-rendering demo"/>
+    <pkg path="mesa_gears" info="Mesa gears demo"/>
   </index>
 
   <index name="Virtual machines">

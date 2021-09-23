@@ -1,0 +1,7 @@
+base
+os
+framebuffer_session
+input_session
+mesa
+gui_session
+libc

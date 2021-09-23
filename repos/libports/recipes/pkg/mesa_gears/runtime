@@ -1,0 +1,34 @@
+<runtime ram="32M" caps="300" binary="gears">
+
+	<requires>
+		<gui/>
+		<gpu/>
+		<timer/>
+		<rom label="egl_drv.lib.so"/>
+	</requires>
+
+	<content>
+ 		<rom label="egl.lib.so"/>
+		<rom label="expat.lib.so"/>
+		<rom label="gears"/>
+		<rom label="glapi.lib.so"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libdrm.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="mesa.lib.so"/>
+		<rom label="stdcxx.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="zlib.lib.so"/>
+	</content>
+
+	<config>
+		<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
+		<vfs>
+			<dir name="dev">
+				<log/> <inline name="rtc">2000-01-01 00:00</inline>
+			</dir>
+		</vfs>
+	</config>
+
+</runtime>

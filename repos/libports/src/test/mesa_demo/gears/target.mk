@@ -1,5 +1,5 @@
 TARGET = gears
-LIBS   = libm libc egl mesa
+LIBS   = base libc libm mesa egl
 
 SRC_C     = eglgears.c eglut.c
 SRC_CC    = eglut_genode.cc
