@@ -257,10 +257,10 @@ entry to init's 'config' file, which is located at 'build/bin/config'.
 !   <default-route>
 !     <any-service> <parent/> <any-child/> </any-service>
 !   </default-route>
-!   <default caps="50"/>
+!   <default caps="60"/>
 !   <start name="hello_server">
 !     <resource name="RAM" quantum="1M"/>
-!     <provides><service name="Hello"/></provides>
+!     <provides> <service name="Hello"/> </provides>
 !   </start>
 ! </config>
 
@@ -408,7 +408,7 @@ script, which can be executed directly from within your build directory.
 A run script for the hello client-server scenario should be placed
 at the _run/hello.run_ and look as follows:
 
-!build { core ld.lib.so init hello }
+!build { core init hello }
 !
 !create_boot_directory
 !
@@ -420,7 +420,7 @@ at the _run/hello.run_ and look as follows:
 !  <default-route>
 !    <any-service> <parent/> <any-child/> </any-service>
 !  </default-route>
-!  <default caps="50"/>
+!  <default caps="60"/>
 !  <start name="hello_server">
 !    <resource name="RAM" quantum="1M"/>
 !    <provides> <service name="Hello"/> </provides>
@@ -430,7 +430,7 @@ at the _run/hello.run_ and look as follows:
 !  </start>
 !</config>}
 !
-!build_boot_image { core init hello_client hello_server }
+!build_boot_image { core ld.lib.so init hello_client hello_server }
 !
 !append qemu_args " -nographic "
 !
