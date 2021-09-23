@@ -24,6 +24,30 @@ namespace Gpu {
 	struct Buffer;
 	using Buffer_id = Genode::Id_space<Buffer>::Id;
 
+	/*
+	 * Attributes for mapping a buffer
+	 */
+	struct Mapping_attributes
+	{
+		bool readable;
+		bool writeable;
+
+		static Mapping_attributes ro()
+		{
+			return { .readable = true, .writeable = false };
+		}
+
+		static Mapping_attributes rw()
+		{
+			return { .readable = true, .writeable = true };
+		}
+
+		static Mapping_attributes wo()
+		{
+			return { .readable = false, .writeable = true };
+		}
+	};
+
 	struct Sequence_number;
 	struct Session;
 }
@@ -118,11 +142,13 @@ struct Gpu::Session : public Genode::Session
 	 * \param id        buffer id
 	 * \param aperture  if true create CPU accessible mapping through
 	 *                  GGTT window, otherwise create PPGTT mapping
+	 * \param attrs     specify how the buffer is mapped
 	 *
 	 * \throw Mapping_buffer_failed
 	 */
 	virtual Genode::Dataspace_capability map_buffer(Buffer_id id,
-	                                                bool aperture) = 0;
+	                                                bool aperture,
+	                                                Mapping_attributes attrs) = 0;
 
 	/**
 	 * Unmap buffer
@@ -175,7 +201,7 @@ struct Gpu::Session : public Genode::Session
 	GENODE_RPC(Rpc_free_buffer, void, free_buffer, Gpu::Buffer_id);
 	GENODE_RPC_THROW(Rpc_map_buffer, Genode::Dataspace_capability, map_buffer,
 	                 GENODE_TYPE_LIST(Mapping_buffer_failed, Out_of_ram),
-	                 Gpu::Buffer_id, bool);
+	                 Gpu::Buffer_id, bool, Gpu::Mapping_attributes);
 	GENODE_RPC(Rpc_unmap_buffer, void, unmap_buffer,
 	           Gpu::Buffer_id);
 	GENODE_RPC_THROW(Rpc_map_buffer_ppgtt, bool, map_buffer_ppgtt,

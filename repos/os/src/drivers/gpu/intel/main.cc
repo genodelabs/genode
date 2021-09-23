@@ -1676,8 +1676,13 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		}
 
 		Genode::Dataspace_capability map_buffer(Gpu::Buffer_id id,
-		                                        bool aperture) override
+		                                        bool aperture,
+		                                        Gpu::Mapping_attributes attrs) override
 		{
+			/* treat GGTT mapped buffers as rw */
+			if (!(attrs.readable && attrs.writeable))
+				return Genode::Dataspace_capability();
+
 			Genode::Dataspace_capability map_cap;
 
 			auto lookup_and_map = [&] (Buffer &buffer) {
