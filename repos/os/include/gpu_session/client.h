@@ -40,35 +40,34 @@ class Gpu::Session_client : public Genode::Rpc_client<Session>
 		Info info() const override {
 			return call<Rpc_info>(); }
 
-		Gpu::Info::Execution_buffer_sequence exec_buffer(Genode::Dataspace_capability cap,
+		Gpu::Info::Execution_buffer_sequence exec_buffer(Buffer_id id,
 		                                                 Genode::size_t size) override {
-			return call<Rpc_exec_buffer>(cap, size); }
+			return call<Rpc_exec_buffer>(id, size); }
 
 		void completion_sigh(Genode::Signal_context_capability sigh) override {
 			call<Rpc_completion_sigh>(sigh); }
 
-		Genode::Dataspace_capability alloc_buffer(Genode::size_t size) override {
-			return call<Rpc_alloc_buffer>(size); }
+		Genode::Dataspace_capability alloc_buffer(Buffer_id id, Genode::size_t size) override {
+			return call<Rpc_alloc_buffer>(id, size); }
 
-		void free_buffer(Genode::Dataspace_capability ds) override {
-			call<Rpc_free_buffer>(ds); }
+		void free_buffer(Gpu::Buffer_id id) override {
+			call<Rpc_free_buffer>(id); }
 
-		Genode::Dataspace_capability map_buffer(Genode::Dataspace_capability ds,
+		Genode::Dataspace_capability map_buffer(Buffer_id id,
 		                                        bool aperture) override {
-			return call<Rpc_map_buffer>(ds, aperture); }
+			return call<Rpc_map_buffer>(id, aperture); }
 
-		void unmap_buffer(Genode::Dataspace_capability ds) override {
-			call<Rpc_unmap_buffer>(ds); }
+		void unmap_buffer(Buffer_id id) override {
+			call<Rpc_unmap_buffer>(id); }
 
-		bool map_buffer_ppgtt(Genode::Dataspace_capability ds,
-		                      Gpu::addr_t va) override {
-			return call<Rpc_map_buffer_ppgtt>(ds, va); }
+		bool map_buffer_ppgtt(Buffer_id id, Gpu::addr_t va) override {
+			return call<Rpc_map_buffer_ppgtt>(id, va); }
 
-		void unmap_buffer_ppgtt(Genode::Dataspace_capability ds, Gpu::addr_t va) override {
-			call<Rpc_unmap_buffer_ppgtt>(ds, va); }
+		void unmap_buffer_ppgtt(Buffer_id id, Gpu::addr_t va) override {
+			call<Rpc_unmap_buffer_ppgtt>(id, va); }
 
-		bool set_tiling(Genode::Dataspace_capability ds, unsigned mode) override {
-			return call<Rpc_set_tiling>(ds, mode); }
+		bool set_tiling(Buffer_id id, unsigned mode) override {
+			return call<Rpc_set_tiling>(id, mode); }
 };
 
 #endif /* _INCLUDE__GPU_SESSION__CLIENT_H_ */
