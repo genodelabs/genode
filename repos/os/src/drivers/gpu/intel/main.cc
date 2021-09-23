@@ -58,7 +58,7 @@ namespace Igd {
 
 struct Igd::Device_info
 {
-	enum Platform { UNKNOWN, BROADWELL, SKYLAKE, KABYLAKE };
+	enum Platform { UNKNOWN, BROADWELL, SKYLAKE, KABYLAKE, WHISKEYLAKE };
 	enum Stepping { A0, B0, C0, D0, D1, E0, F0, G0 };
 
 	uint16_t    id;
@@ -79,7 +79,10 @@ static Igd::Device_info _supported_devices[] = {
 	{ 0x1622, 8, Igd::Device_info::Platform::BROADWELL, "Iris Pro Graphics 6200 (BDW GT3e)", 0ull },
 	{ 0x1916, 9, Igd::Device_info::Platform::SKYLAKE,   "HD Graphics 520 (Skylake, Gen9)", 0ull },
 	{ 0x191b, 9, Igd::Device_info::Platform::SKYLAKE,   "HD Graphics 530 (Skylake, Gen9)", 0ull },
+	{ 0x5916, 9, Igd::Device_info::Platform::KABYLAKE,  "HD Graphics 620 (Kaby Lake, Gen9p5)", 0ull },
 	{ 0x5917, 9, Igd::Device_info::Platform::KABYLAKE,  "UHD Graphics 620 (Kaby Lake, Gen9p5)", 0ull },
+	{ 0x591b, 9, Igd::Device_info::Platform::KABYLAKE,  "HD Graphics 630 (Kaby Lake, Gen9p5)", 0ull },
+	{ 0x3ea0, 9, Igd::Device_info::Platform::WHISKEYLAKE, "UHD Graphics 620 (Whiskey Lake, Gen9p5)", 0ull },
 };
 
 #define ELEM_NUMBER(x) (sizeof((x)) / sizeof((x)[0]))
@@ -1883,7 +1886,11 @@ struct Main
 			_device.construct(_env, _device_md_alloc, _gpu_resources);
 			_gpu_root.manage(*_device);
 			_env.parent().announce(_env.ep().manage(_gpu_root));
-		} catch (...) { }
+		} catch (Igd::Device::Unsupported_device) {
+			Genode::warning("No supported Intel GPU detected - no GPU service");
+		} catch (...) {
+			Genode::error("Unknown error occurred - no GPU service");
+		}
 
 		/* platform service */
 		_platform_root.construct(_env, _device_md_alloc, _gpu_resources);
