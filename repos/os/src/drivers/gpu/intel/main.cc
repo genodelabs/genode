@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/log.h>
@@ -22,6 +23,7 @@
 #include <base/session_object.h>
 #include <dataspace/client.h>
 #include <gpu_session/gpu_session.h>
+#include <gpu/info_intel.h>
 #include <io_mem_session/connection.h>
 #include <irq_session/connection.h>
 #include <platform_device/client.h>
@@ -112,12 +114,12 @@ struct Igd::Device
 	} _pci_backend_alloc { _resources.platform() };
 
 
-	Device_info              _info          { };
-	Gpu::Info::Revision      _revision      { };
-	Gpu::Info::Slice_mask    _slice_mask    { };
-	Gpu::Info::Subslice_mask _subslice_mask { };
-	Gpu::Info::Eu_total      _eus           { };
-	Gpu::Info::Subslices     _subslices     { };
+	Device_info                    _info          { };
+	Gpu::Info_intel::Revision      _revision      { };
+	Gpu::Info_intel::Slice_mask    _slice_mask    { };
+	Gpu::Info_intel::Subslice_mask _subslice_mask { };
+	Gpu::Info_intel::Eu_total      _eus           { };
+	Gpu::Info_intel::Subslices     _subslices     { };
 
 	void _pci_info(String<64> const &descr) const
 	{
@@ -533,6 +535,8 @@ struct Igd::Device
 		enum {
 			APERTURE_SIZE = 32u << 20,
 			MAX_FENCES    = 16,
+
+			INFO_SIZE = 4096,
 		};
 
 		Device                          &_device;
@@ -541,7 +545,10 @@ struct Igd::Device
 		Engine<Rcs_context>              rcs;
 		uint32_t                         active_fences    { 0 };
 		uint64_t                         _current_seqno   { 0 };
-		uint64_t                         _completed_seqno { 0 };
+
+		Genode::Attached_ram_dataspace  _info_dataspace;
+		Gpu::Info_intel                &_info {
+			*_info_dataspace.local_addr<Gpu::Info_intel>() };
 
 		uint32_t _id_alloc()
 		{
@@ -551,18 +558,34 @@ struct Igd::Device
 			return v << 8;
 		}
 
-		Vgpu(Device &device, Allocator &alloc)
+		Vgpu(Device &device, Allocator &alloc,
+		     Ram_allocator &ram, Region_map &rm)
 		:
 			_device(device),
 			_id(_id_alloc()),
-			rcs(_device, _id + Rcs_context::HW_ID, alloc)
+			rcs(_device, _id + Rcs_context::HW_ID, alloc),
+			_info_dataspace(ram, rm, INFO_SIZE)
 		{
 			_device.vgpu_created();
+
+			_info = Gpu::Info_intel(_device.id(), _device.features(),
+			                        APERTURE_SIZE,
+			                        _id, Gpu::Sequence_number { .value = 0 },
+			                        _device._revision,
+			                        _device._slice_mask,
+			                        _device._subslice_mask,
+			                        _device._eus,
+			                        _device._subslices);
 		}
 
 		~Vgpu()
 		{
 			_device.vgpu_released();
+		}
+
+		Genode::Dataspace_capability info_dataspace() const
+		{
+			return _info_dataspace.cap();
 		}
 
 		uint32_t id() const { return _id; }
@@ -575,12 +598,12 @@ struct Igd::Device
 
 		uint64_t current_seqno() const { return _current_seqno; }
 
-		uint64_t completed_seqno() const { return _completed_seqno; }
+		uint64_t completed_seqno() const { return _info.last_completed.value; }
 
 		void user_complete()
 		{
-			/* remember last completed seqno for info object */
-			_completed_seqno = _device.seqno();
+			_info.last_completed =
+				Gpu::Sequence_number { .value = _device.seqno() };
 		}
 
 		bool setup_ring_buffer(Gpu::addr_t const buffer_addr)
@@ -1150,7 +1173,7 @@ struct Igd::Device
 
 		}
 
-		_eus = Gpu::Info::Eu_total { eu_total };
+		_eus = Gpu::Info_intel::Eu_total { eu_total };
 	}
 
 	/*********************
@@ -1540,7 +1563,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			_rm(rm),
 			_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
 			_device(device),
-			_vgpu(_device, _heap)
+			_vgpu(_device, _heap, ram, rm)
 		{ }
 
 		~Session_component()
@@ -1561,16 +1584,9 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		 ** Gpu session interface **
 		 ***************************/
 
-		Info info() const override
+		Genode::Dataspace_capability info_dataspace() const override
 		{
-			Genode::size_t const aperture_size = Igd::Device::Vgpu::APERTURE_SIZE;
-			return Info(_device.id(), _device.features(), aperture_size,
-			            _vgpu.id(), { .value = _vgpu.completed_seqno() },
-			            _device._revision,
-			            _device._slice_mask,
-			            _device._subslice_mask,
-			            _device._eus,
-			            _device._subslices);
+			return _vgpu.info_dataspace();
 		}
 
 		Gpu::Sequence_number exec_buffer(Buffer_id id,

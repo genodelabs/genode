@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,11 +17,19 @@
 #include <gpu_session/client.h>
 #include <base/connection.h>
 #include <base/allocator.h>
+#include <base/attached_dataspace.h>
 
 namespace Gpu { struct Connection; }
 
 struct Gpu::Connection : Genode::Connection<Session>, Session_client
 {
+	/**
+	 * Attached GPU information dataspace
+	 *
+	 * \noapi
+	 */
+	Genode::Attached_dataspace _info_dataspace;
+
 	/**
 	 * Issue session request
 	 *
@@ -45,8 +53,20 @@ struct Gpu::Connection : Genode::Connection<Session>, Session_client
 	           const char     *label = "")
 	:
 		Genode::Connection<Session>(env, _session(env.parent(), label, quota)),
-		Session_client(cap())
+		Session_client(cap()),
+		_info_dataspace(env.rm(), info_dataspace())
 	{ }
+
+	/**
+	 * Get typed pointer to the information dataspace
+	 *
+	 * \return typed pointer
+	 */
+	template <typename T>
+	T const *attached_info() const
+	{
+		return _info_dataspace.local_addr<T>();
+	}
 };
 
 #endif /* _INCLUDE__GPU_SESSION__CONNECTION_H_ */

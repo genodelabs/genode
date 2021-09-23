@@ -37,8 +37,8 @@ class Gpu::Session_client : public Genode::Rpc_client<Session>
 		 ** Session interface **
 		 ***********************/
 
-		Info info() const override {
-			return call<Rpc_info>(); }
+		Genode::Dataspace_capability info_dataspace() const override {
+			return call<Rpc_info_dataspace>(); }
 
 		Gpu::Sequence_number exec_buffer(Buffer_id id,
 		                                 Genode::size_t size) override {

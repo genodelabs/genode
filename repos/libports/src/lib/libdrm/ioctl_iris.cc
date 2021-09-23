@@ -21,6 +21,7 @@
 #include <base/sleep.h>
 
 #include <gpu_session/connection.h>
+#include <gpu/info_intel.h>
 #include <util/retry.h>
 
 extern "C" {
@@ -223,7 +224,8 @@ class Drm_call
 		Genode::Env      &_env;
 		Genode::Heap      _heap               { _env.ram(), _env.rm() };
 		Gpu::Connection   _gpu_session        { _env };
-		Gpu::Info         _gpu_info           { _gpu_session.info() };
+		Gpu::Info_intel  const &_gpu_info {
+			*_gpu_session.attached_info<Gpu::Info_intel>() };
 		size_t            _available_gtt_size { _gpu_info.aperture_size };
 		bool              _complete           { false };
 
@@ -1144,12 +1146,11 @@ class Drm_call
 			while (_complete == false)
 				_env.ep().wait_and_dispatch_one_io_signal();
 
-			/* make done buffer objects */
-			Gpu::Info gpu_info { _gpu_session.info() };
+			/* mark done buffer objects */
 
 			_buffer_space.for_each<Buffer>([&] (Buffer &h) {
 				if (!h.busy) return;
-				if (h.seqno.value > gpu_info.last_completed.value) return;
+				if (h.seqno.value > _gpu_info.last_completed.value) return;
 				h.busy = false;
 
 				/*
