@@ -51,6 +51,7 @@ proc help { } {
 		                   [-r <run-script> ...]
 		                   [-d <test-dir>] [-j <make-jobs>]
 		                   [-i <info-file-name>]
+		                   [-a <repo-dir> ...]
 		                   [--help] [--cleanup] [--force] [--keep]
 		                   [--stdout] [--skip-clean-rules]
 		                   [--enable-ccache]
@@ -62,6 +63,7 @@ proc help { } {
 		  -k <kernel>         kernel to use on all platforms configured via -p
 		  -r <run-script>     run scenario to test on all configured targets resp.
 		                      platform-kernel pairs
+		  -a <repo-dir>       add repo-dir to REPOSITORIES in build.conf
 
 		  --cleanup           remove test directory at exit
 		  --enable-ccache     use ccache instead of plain gcc
@@ -362,6 +364,14 @@ proc append_run_opt { build_conf } {
 }
 
 
+proc append_repos { build_conf } {
+	foreach_cmdline_arg a {
+		global build_conf
+		exec echo "REPOSITORIES += $a" >> $build_conf
+	}
+}
+
+
 # create build directories
 foreach arch $architectures {
 
@@ -385,6 +395,9 @@ foreach arch $architectures {
 
 	# enable all repositories
 	exec sed -i "/^#REPOSITORIES/s/^#//" $build_conf
+
+	# optionally add repositories
+	append_repos $build_conf
 
 	# enable parallel build
 	exec echo "MAKE += -j$make_jobs" >> $build_conf
