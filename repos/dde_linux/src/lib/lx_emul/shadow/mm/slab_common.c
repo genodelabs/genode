@@ -32,7 +32,7 @@ void * krealloc(const void * p,size_t new_size,gfp_t flags)
 		void *ret;
 
 		if (new_size <= old_size)
-			return p;
+			return (void*) p;
 
 		ret = kmalloc(new_size, flags);
 		memcpy(ret, p, old_size);

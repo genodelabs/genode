@@ -11,6 +11,7 @@
  * version 2.
  */
 
+#include <linux/slab.h>
 #include <linux/memblock.h>
 #include <lx_emul/alloc.h>
 
@@ -20,5 +21,6 @@ void * __init memblock_alloc_try_nid(phys_addr_t size,
                                      phys_addr_t max_addr,
                                      int nid)
 {
+	align = max(align, (phys_addr_t)KMALLOC_MIN_SIZE);
 	return lx_emul_mem_alloc_aligned(size, align);
 }

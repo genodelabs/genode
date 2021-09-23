@@ -40,7 +40,7 @@ void * __kmalloc(size_t size, gfp_t flags)
 	if (flags & GFP_DMA)
 		lx_emul_trace_and_stop(__func__);
 
-	return lx_emul_mem_alloc(size);
+	return lx_emul_mem_alloc_aligned(size, ARCH_KMALLOC_MINALIGN);
 }
 
 
@@ -106,9 +106,13 @@ void __init kmem_cache_init(void)
 
 void * kmem_cache_alloc(struct kmem_cache * s, gfp_t flags)
 {
+	unsigned long align;
+
 	if (!s)
 		lx_emul_trace_and_stop(__func__);
-	return lx_emul_mem_alloc_aligned(s->size, s->align ? s->align : 32);
+
+	align = max(s->align, (unsigned int)ARCH_KMALLOC_MINALIGN);
+	return lx_emul_mem_alloc_aligned(s->size, align);
 }
 
 

@@ -25,28 +25,9 @@ extern "C" void * lx_emul_mem_alloc_aligned(unsigned long size, unsigned long al
 };
 
 
-extern "C" void * lx_emul_mem_alloc(unsigned long size)
-{
-	/* always align memory objects to 32 bytes, like malloc, heap etc. */
-	void * const ptr = Lx_kit::env().memory.alloc(size, 32);
-	lx_emul_forget_pages(ptr, size);
-	return ptr;
-};
-
-
-extern "C" void * lx_emul_mem_alloc_uncached(unsigned long size)
-{
-	/* always align memory objects to 32 bytes, like malloc, heap etc. */
-	void * const ptr = Lx_kit::env().uncached_memory.alloc(size, 32);
-	lx_emul_forget_pages(ptr, size);
-	return ptr;
-};
-
-
 extern "C" void * lx_emul_mem_alloc_aligned_uncached(unsigned long size,
                                                      unsigned long align)
 {
-	/* always align memory objects to 32 bytes, like malloc, heap etc. */
 	void * const ptr = Lx_kit::env().uncached_memory.alloc(size, align);
 	lx_emul_forget_pages(ptr, size);
 	return ptr;

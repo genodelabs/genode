@@ -12,10 +12,12 @@
  */
 
 #include <linux/percpu.h>
+#include <linux/slab.h>
 #include <lx_emul/alloc.h>
 
 void __percpu * __alloc_percpu(size_t size, size_t align)
 {
+	align = max(align, (size_t)KMALLOC_MIN_SIZE);
 	return lx_emul_mem_alloc_aligned(size, align);
 }
 
