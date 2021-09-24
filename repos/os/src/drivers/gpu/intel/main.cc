@@ -564,7 +564,7 @@ struct Igd::Device
 			_completed_seqno = _device.seqno();
 		}
 
-		bool setup_ring_buffer(Genode::addr_t const buffer_addr)
+		bool setup_ring_buffer(Gpu::addr_t const buffer_addr)
 		{
 			_current_seqno++;
 
