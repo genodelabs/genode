@@ -91,8 +91,10 @@ dri2_genode_etnaviv_swap_buffers(_EGLDisplay *disp, _EGLSurface *draw)
 		dri2_genode_etnaviv_put_image(dri2_surf->dri_drawable, 0, 0, 0,
 			dri2_surf->base.Width, dri2_surf->base.Height,
 			(char *)data, (void *)dri2_surf);
+
+		dri2_dpy->image->unmapImage(dri2_ctx->dri_context,
+		                            dri2_surf->back_image, map_data);
 	}
-	dri2_dpy->image->unmapImage(dri2_ctx->dri_context, dri2_surf->back_image, map_data);
 
 	return EGL_TRUE;
 }
