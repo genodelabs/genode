@@ -115,6 +115,7 @@ install_config {
 						<rom name="special" label="special.chargen"/>
 					</dir>
 					<rom name="fb_drv"        label="fb_drv.config"/>
+					<rom name="gpu_drv"       label="gpu_drv.config"/>
 					<rom name="nitpicker"     label="nitpicker.config"/>
 					<rom name="numlock_remap" label="numlock_remap.config"/>
 					<rom name="leitzentrale"  label="leitzentrale.config"/>
@@ -255,6 +256,8 @@ install_config {
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label_last="fb_drv.config">
 				<child name="config_fs_rom" label="managed/fb_drv"/> </service>
+			<service name="ROM" label_last="gpu_drv.config">
+				<child name="config_fs_rom" label="gpu_drv"/> </service>
 			<service name="ROM" label_last="numlock_remap.config">
 				<child name="config_fs_rom" label="numlock_remap"/> </service>
 			<service name="ROM" label_last="usb_policy">
@@ -538,6 +541,9 @@ copy_file [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/gen
 if {[have_board pc]} {
 	copy_file [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/event_filter.config \
 		[run_dir]/genode/event_filter.config
+
+	copy_file [genode_dir]/repos/os/src/drivers/gpu/intel/gpu_drv.config \
+		[run_dir]/genode/gpu_drv.config
 
 	copy_file [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genode/
 

@@ -145,6 +145,7 @@ struct Driver_manager::Intel_gpu_driver : Device_driver
 					xml.attribute("name", Platform::Session::service_name()); });
 			});
 			xml.node("route", [&] () {
+				_gen_config_route(xml, "gpu_drv.config");
 				_gen_default_parent_route(xml);
 			});
 		});

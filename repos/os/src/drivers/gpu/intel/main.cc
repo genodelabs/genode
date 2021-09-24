@@ -64,28 +64,9 @@ struct Igd::Device_info
 	uint16_t    id;
 	uint8_t     generation;
 	Platform    platform;
-	char const *descr;
 	uint64_t    features;
 };
 
-
-/*
- * IHD-OS-BDW-Vol 4-11.15 p. 9
- */
-static Igd::Device_info _supported_devices[] = {
-	{ 0x1606, 8, Igd::Device_info::Platform::BROADWELL, "HD Graphics (BDW GT1 ULT)", 0ull },
-	{ 0x1616, 8, Igd::Device_info::Platform::BROADWELL, "HD Graphics 5500 (BDW GT2 ULT)", 0ull },
-	/* TODO proper eDRAM probing + caching */
-	{ 0x1622, 8, Igd::Device_info::Platform::BROADWELL, "Iris Pro Graphics 6200 (BDW GT3e)", 0ull },
-	{ 0x1916, 9, Igd::Device_info::Platform::SKYLAKE,   "HD Graphics 520 (Skylake, Gen9)", 0ull },
-	{ 0x191b, 9, Igd::Device_info::Platform::SKYLAKE,   "HD Graphics 530 (Skylake, Gen9)", 0ull },
-	{ 0x5916, 9, Igd::Device_info::Platform::KABYLAKE,  "HD Graphics 620 (Kaby Lake, Gen9p5)", 0ull },
-	{ 0x5917, 9, Igd::Device_info::Platform::KABYLAKE,  "UHD Graphics 620 (Kaby Lake, Gen9p5)", 0ull },
-	{ 0x591b, 9, Igd::Device_info::Platform::KABYLAKE,  "HD Graphics 630 (Kaby Lake, Gen9p5)", 0ull },
-	{ 0x3ea0, 9, Igd::Device_info::Platform::WHISKEYLAKE, "UHD Graphics 620 (Whiskey Lake, Gen9p5)", 0ull },
-};
-
-#define ELEM_NUMBER(x) (sizeof((x)) / sizeof((x)[0]))
 
 
 struct Igd::Device
@@ -138,7 +119,7 @@ struct Igd::Device
 	Gpu::Info::Eu_total      _eus           { };
 	Gpu::Info::Subslices     _subslices     { };
 
-	void _pci_info(char const *descr)
+	void _pci_info(String<64> const &descr) const
 	{
 		using namespace Genode;
 
@@ -172,19 +153,57 @@ struct Igd::Device
 		}
 	}
 
-	bool _supported()
+	bool _supported(Xml_node &supported)
 	{
-		uint16_t const id = _device.device_id();
-		for (size_t i = 0; i < ELEM_NUMBER(_supported_devices); i++) {
-			if (_supported_devices[i].id == id) {
-				_info     = _supported_devices[i];
+		bool found = false;
+
+		supported.for_each_sub_node("device", [&] (Xml_node node) {
+			if (found)
+				return;
+
+			uint16_t   const vendor     = node.attribute_value("vendor", 0U);
+			uint16_t   const device     = node.attribute_value("device", 0U);
+			uint8_t    const generation = node.attribute_value("generation", 0U);
+			String<16> const platform   = node.attribute_value("platform", String<16>("unknown"));
+			String<64> const desc       = node.attribute_value("description", String<64>("unknown"));
+
+			if (vendor != 0x8086 /* Intel */ || generation < 8)
+				return;
+
+			struct Igd::Device_info const info {
+				.id          = device,
+				.generation  = generation,
+				.platform    = platform_type(platform),
+				.features    = 0
+			};
+
+			if (info.platform == Igd::Device_info::Platform::UNKNOWN)
+				return;
+
+			if (info.id == _device.device_id()) {
+				_info = info;
 				_revision.value = _resources.config_read<uint8_t>(8);
-				_pci_info(_supported_devices[i].descr);
-				return true;
+				_pci_info(desc.string());
+
+				found = true;
+				return;
 			}
-		}
-		_pci_info("<Unsupported device>");
-		return false;
+		});
+
+		return found;
+	}
+
+	Igd::Device_info::Platform platform_type(String<16> const &platform) const
+	{
+		if (platform == "broadwell")
+			return Igd::Device_info::Platform::BROADWELL;
+		if (platform == "skylake")
+			return Igd::Device_info::Platform::SKYLAKE;
+		if (platform == "kabylake")
+			return Igd::Device_info::Platform::KABYLAKE;
+		if (platform == "whiskeylake")
+			return Igd::Device_info::Platform::WHISKEYLAKE;
+		return Igd::Device_info::UNKNOWN;
 	}
 
 	/**********
@@ -994,13 +1013,14 @@ struct Igd::Device
 	 */
 	Device(Genode::Env                 &env,
 	       Genode::Allocator           &alloc,
-	       Resources                   &resources)
+	       Resources                   &resources,
+	       Genode::Xml_node            &supported)
 	:
 		_env(env), _md_alloc(alloc), _resources(resources)
 	{
 		using namespace Genode;
 
-		if (!_supported()) { throw Unsupported_device(); }
+		if (!_supported(supported)) { throw Unsupported_device(); }
 
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 1068
@@ -1859,8 +1879,9 @@ struct Main
 	 ** Gpu **
 	 *********/
 
-	Genode::Sliced_heap _root_heap { _env.ram(), _env.rm() };
-	Gpu::Root           _gpu_root  { _env, _root_heap };
+	Genode::Sliced_heap            _root_heap  { _env.ram(), _env.rm() };
+	Gpu::Root                      _gpu_root   { _env, _root_heap };
+	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
 	Genode::Heap                       _device_md_alloc { _env.ram(), _env.rm() };
 	Genode::Constructible<Igd::Device> _device { };
@@ -1873,17 +1894,39 @@ struct Main
 
 	Constructible<Platform::Root> _platform_root { };
 
+	Genode::Signal_handler<Main> _config_sigh {
+		_env.ep(), *this, &Main::_handle_config_update };
+
 	Main(Genode::Env &env)
 	:
 		_env(env)
 	{
+		_config_rom.sigh(_config_sigh);
+
 		/* IRQ */
 		_irq.sigh(_irq_dispatcher);
 		_irq.ack_irq();
 
 		/* GPU */
+		_handle_config_update();
+
+		/* platform service */
+		_platform_root.construct(_env, _device_md_alloc, _gpu_resources);
+	}
+
+	void _handle_config_update()
+	{
+		_config_rom.update();
+
+		if (!_config_rom.valid()) { return; }
+
+		if (_device.constructed()) {
+			Genode::log("gpu device already initialized - ignore");
+			return;
+		}
+
 		try {
-			_device.construct(_env, _device_md_alloc, _gpu_resources);
+			_device.construct(_env, _device_md_alloc, _gpu_resources, _config_rom.xml());
 			_gpu_root.manage(*_device);
 			_env.parent().announce(_env.ep().manage(_gpu_root));
 		} catch (Igd::Device::Unsupported_device) {
@@ -1891,9 +1934,6 @@ struct Main
 		} catch (...) {
 			Genode::error("Unknown error occurred - no GPU service");
 		}
-
-		/* platform service */
-		_platform_root.construct(_env, _device_md_alloc, _gpu_resources);
 	}
 
 	void handle_irq()
