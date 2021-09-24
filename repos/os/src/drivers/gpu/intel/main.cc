@@ -1612,6 +1612,11 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			return { .value = _vgpu.current_seqno() };
 		}
 
+		bool complete(Gpu::Sequence_number seqno) override
+		{
+			return _vgpu.completed_seqno() >= seqno.value;
+		}
+
 		void completion_sigh(Genode::Signal_context_capability sigh) override
 		{
 			_vgpu.completion_sigh(sigh);
