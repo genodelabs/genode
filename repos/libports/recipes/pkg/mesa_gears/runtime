@@ -1,10 +1,10 @@
-<runtime ram="32M" caps="300" binary="gears">
+<runtime ram="34M" caps="400" binary="init">
 
 	<requires>
 		<gui/>
 		<gpu/>
 		<timer/>
-		<rom label="egl_drv.lib.so"/>
+		<rom label="mesa_gpu_drv.lib.so"/>
 	</requires>
 
 	<content>
@@ -12,6 +12,7 @@
 		<rom label="expat.lib.so"/>
 		<rom label="gears"/>
 		<rom label="glapi.lib.so"/>
+		<rom label="init"/>
 		<rom label="ld.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libdrm.lib.so"/>
@@ -23,12 +24,34 @@
 	</content>
 
 	<config>
-		<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
-		<vfs>
-			<dir name="dev">
-				<log/> <inline name="rtc">2000-01-01 00:00</inline>
-			</dir>
-		</vfs>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+			<service name="Gpu"/>
+			<service name="Gui"/>
+		</parent-provides>
+
+		<start name="gears" caps="300">
+			<resource name="RAM" quantum="32M"/>
+			<config>
+				<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
+				<vfs>
+					<dir name="dev">
+						<log/> <inline name="rtc">2000-01-01 00:00</inline>
+					</dir>
+				</vfs>
+			</config>
+			<route>
+				<service name="ROM" label="egl_drv.lib.so">
+					<parent label="mesa_gpu_drv.lib.so"/>
+				</service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
 	</config>
 
 </runtime>

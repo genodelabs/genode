@@ -11,8 +11,8 @@
   </index>
 
   <index name="Mesa 3D">
-    <pkg path="gpu-cpu" info="SWRAST Mesa driver"/>
-    <pkg path="gpu-iris" info="Intel IRIS Mesa driver"/>
+    <pkg path="mesa_gpu-cpu"   info="SWRAST Mesa driver"/>
+    <pkg path="mesa_gpu-intel" info="Intel IRIS Mesa driver"/>
   </index>
 
   <index name="Tools">

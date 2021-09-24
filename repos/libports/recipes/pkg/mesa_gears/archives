@@ -1,5 +1,6 @@
 _/src/mesa_gears
 _/src/mesa
+_/src/init
 _/src/libdrm
 _/src/libc
 _/src/vfs
