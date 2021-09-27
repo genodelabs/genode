@@ -315,6 +315,8 @@ class Drm_call
 					bh.gpu_vaddr_valid = false;
 				}
 				_gpu_session.free_buffer(bh.cap);
+
+				Genode::destroy(&_heap, &bh);
 			});
 
 			if (!handled) {
