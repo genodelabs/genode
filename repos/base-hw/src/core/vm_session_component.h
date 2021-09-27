@@ -14,21 +14,22 @@
 #ifndef _CORE__VM_SESSION_COMPONENT_H_
 #define _CORE__VM_SESSION_COMPONENT_H_
 
-/* Genode includes */
+/* base includes */
 #include <base/allocator.h>
 #include <base/allocator_avl.h>
 #include <base/session_object.h>
 #include <vm_session/vm_session.h>
 #include <dataspace/capability.h>
 
+/* base-hw includes */
 #include <hw_native_vcpu/hw_native_vcpu.h>
 
-/* Core includes */
+/* base-hw Core includes */
 #include <object.h>
 #include <region_map_component.h>
-#include <translation_table.h>
 #include <kernel/vm.h>
 
+/* base Core includes */
 #include <trace/source_registry.h>
 
 namespace Genode { class Vm_session_component; }

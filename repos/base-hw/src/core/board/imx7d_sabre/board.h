@@ -23,6 +23,8 @@
 #include <spec/arm/cpu/vm_state_virtualization.h>
 #include <spec/arm/virtualization/board.h>
 #include <spec/arm/address_space_id_allocator.h>
+#include <spec/cortex_a15/cpu.h>
+#include <spec/cortex_a15/translation_table.h>
 
 namespace Board {
 

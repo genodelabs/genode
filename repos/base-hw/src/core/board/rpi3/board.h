@@ -21,6 +21,8 @@
 #include <spec/arm/bcm2837_pic.h>
 #include <spec/arm/generic_timer.h>
 #include <spec/arm_v8/address_space_id_allocator.h>
+#include <spec/arm_v8/cpu.h>
+#include <spec/arm_v8/translation_table.h>
 
 namespace Board {
 

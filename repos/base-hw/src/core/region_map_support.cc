@@ -12,13 +12,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core includes */
+/* base-hw Core includes */
 #include <pager.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
-#include <translation_table.h>
-
-/* base-internal includes */
 
 using namespace Genode;
 

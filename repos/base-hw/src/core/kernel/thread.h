@@ -19,8 +19,7 @@
 #include <base/signal.h>
 #include <util/reconstructible.h>
 
-/* core includes */
-#include <cpu.h>
+/* base-hw Core includes */
 #include <kernel/cpu_context.h>
 #include <kernel/inter_processor_work.h>
 #include <kernel/signal_receiver.h>
@@ -29,7 +28,7 @@
 #include <kernel/interface.h>
 #include <assertion.h>
 
-/* base-local includes */
+/* base internal includes */
 #include <base/internal/native_utcb.h>
 
 namespace Kernel {

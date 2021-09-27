@@ -17,7 +17,6 @@
 
 /* base-hw Core includes */
 #include <board.h>
-#include <cpu.h>
 #include <kernel/thread.h>
 
 

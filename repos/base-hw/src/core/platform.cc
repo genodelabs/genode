@@ -13,24 +13,27 @@
  */
 
 
-/* core includes */
+/* base Core includes */
 #include <boot_modules.h>
 #include <core_log.h>
-#include <hw/memory_region.h>
+
+/* base-hw Core includes */
 #include <map_local.h>
 #include <platform.h>
 #include <platform_pd.h>
-#include <hw/page_flags.h>
-#include <hw/util.h>
-#include <translation_table.h>
 #include <kernel/main.h>
 
-/* base-internal includes */
+/* base-hw internal includes */
+#include <hw/page_flags.h>
+#include <hw/util.h>
+#include <hw/memory_region.h>
+
+/* base internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
 #include <base/internal/unmanaged_singleton.h>
 
-/* Genode includes */
+/* base includes */
 #include <base/log.h>
 #include <trace/source_registry.h>
 

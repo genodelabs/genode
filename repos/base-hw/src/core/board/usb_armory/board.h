@@ -23,6 +23,8 @@
 #include <spec/arm/imx_epit.h>
 #include <spec/arm/trustzone_board.h>
 #include <spec/arm/address_space_id_allocator.h>
+#include <spec/cortex_a8/cpu.h>
+#include <spec/cortex_a8/translation_table.h>
 
 namespace Board { using namespace Hw::Usb_armory_board; }
 

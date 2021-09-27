@@ -15,13 +15,13 @@
 #ifndef _CORE__KERNEL__PD_H_
 #define _CORE__KERNEL__PD_H_
 
-/* core includes */
+/* base-hw Core includes */
 #include <hw/assert.h>
-#include <cpu.h>
 #include <kernel/core_interface.h>
 #include <object.h>
-#include <translation_table.h>
+#include <board.h>
 
+/* base includes */
 #include <util/reconstructible.h>
 
 namespace Genode { class Platform_pd; }

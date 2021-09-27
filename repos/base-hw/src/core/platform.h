@@ -15,24 +15,25 @@
 #ifndef _CORE__PLATFORM_H_
 #define _CORE__PLATFORM_H_
 
-/* Genode includes */
+/* base includes */
 #include <base/synced_allocator.h>
 #include <base/allocator_avl.h>
 #include <irq_session/irq_session.h>
 #include <util/xml_generator.h>
 
-/* base-hw includes */
+/* base-hw internal includes */
 #include <hw/boot_info.h>
 #include <hw/memory_region.h>
+
+/* base-hw includes */
 #include <kernel/configuration.h>
 #include <kernel/core_interface.h>
 #include <kernel/pd.h>
 
-/* core includes */
+/* base-hw Core includes */
 #include <platform_generic.h>
 #include <core_region_map.h>
 #include <core_mem_alloc.h>
-#include <translation_table.h>
 #include <assertion.h>
 #include <board.h>
 

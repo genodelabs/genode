@@ -20,6 +20,8 @@
 /* base-hw Core includes */
 #include <spec/riscv/pic.h>
 #include <spec/riscv/address_space_id_allocator.h>
+#include <spec/riscv/cpu.h>
+#include <spec/riscv/translation_table.h>
 
 namespace Board { using namespace Hw::Riscv_board; }
 

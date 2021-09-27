@@ -15,10 +15,11 @@
 #ifndef _CORE__SPEC__CORTEX_A8__TRANSLATION_TABLE_H_
 #define _CORE__SPEC__CORTEX_A8__TRANSLATION_TABLE_H_
 
+/* base-hw internal includes */
 #include <hw/spec/arm/page_table.h>
-#include <kernel/interface.h>
 
-#include <cpu.h>
+/* base-hw Core includes */
+#include <kernel/interface.h>
 
 
 constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {

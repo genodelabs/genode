@@ -21,6 +21,8 @@
 #include <spec/x86_64/pic.h>
 #include <spec/x86_64/pit.h>
 #include <spec/x86_64/address_space_id_allocator.h>
+#include <spec/x86_64/cpu.h>
+#include <spec/x86_64/translation_table.h>
 
 namespace Board {
 

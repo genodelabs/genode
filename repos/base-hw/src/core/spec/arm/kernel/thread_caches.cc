@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <cpu.h>
+/* base-hw Core includes */
 #include <platform_pd.h>
 #include <kernel/pd.h>
 #include <kernel/thread.h>

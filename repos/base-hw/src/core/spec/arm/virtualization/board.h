@@ -14,9 +14,12 @@
 #ifndef _CORE__SPEC__ARM__VIRTUALIZATION__BOARD_H_
 #define _CORE__SPEC__ARM__VIRTUALIZATION__BOARD_H_
 
-#include <translation_table.h>
+/* base-hw Core includes */
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
+
+/* base-hw internal includes */
+#include <hw/spec/arm/lpae.h>
 
 namespace Board {
 

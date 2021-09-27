@@ -4,9 +4,6 @@
 # \date   2014-09-02
 #
 
-# add include paths
-REP_INC_DIR += src/core/spec/cortex_a9
-
 # add C++ sources
 SRC_CC += spec/cortex_a9/board.cc
 SRC_CC += spec/cortex_a9/cpu.cc

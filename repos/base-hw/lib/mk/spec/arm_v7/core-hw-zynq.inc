@@ -4,9 +4,6 @@
 # \date   2014-12-15
 #
 
-# add include paths
-REP_INC_DIR += src/core/spec/zynq
-
 # add C++ sources
 SRC_CC += platform_services.cc
 

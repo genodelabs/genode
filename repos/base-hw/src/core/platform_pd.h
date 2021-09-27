@@ -15,15 +15,16 @@
 #ifndef _CORE__PLATFORM_PD_H_
 #define _CORE__PLATFORM_PD_H_
 
-/* Core includes */
-#include <translation_table.h>
+/* base-hw Core includes */
 #include <platform.h>
 #include <address_space.h>
-#include <hw/page_table_allocator.h>
 #include <object.h>
 #include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <kernel/pd.h>
+
+/* base-hw internal includes */
+#include <hw/page_table_allocator.h>
 
 namespace Hw {
 

@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* base-hw Core includes */
 #include <board.h>
-#include <cpu.h>
 #include <platform.h>
 
 

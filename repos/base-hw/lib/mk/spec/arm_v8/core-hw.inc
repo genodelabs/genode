@@ -1,5 +1,10 @@
-REP_INC_DIR += src/core/spec/arm_v8
+#
+# \brief  Build config for Genodes core process
+# \author Stefan Kalkowski
+# \date   2019-05-21
+#
 
+# add libraries
 LIBS += syscall-hw
 
 # add C++ sources

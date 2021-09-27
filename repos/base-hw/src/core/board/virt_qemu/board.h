@@ -27,6 +27,8 @@
 /* base-hw Core includes */
 #include <spec/arm/virtualization/board.h>
 #include <spec/arm/address_space_id_allocator.h>
+#include <spec/cortex_a15/cpu.h>
+#include <spec/cortex_a15/translation_table.h>
 
 namespace Kernel { class Cpu; }
 
