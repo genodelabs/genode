@@ -64,6 +64,17 @@ extern "C" unsigned long lx_emul_mem_dma_addr(void * addr)
 }
 
 
+extern "C" unsigned long lx_emul_mem_virt_addr(void * dma_addr)
+{
+	unsigned long ret = Lx_kit::env().memory.virt_addr(dma_addr);
+	if (ret)
+		return ret;
+	if (!(ret = Lx_kit::env().uncached_memory.virt_addr(dma_addr)))
+		Genode::error(__func__, " called with invalid addr ", dma_addr);
+	return ret;
+}
+
+
 extern "C" void lx_emul_mem_free(const void * ptr)
 {
 	if (!ptr)

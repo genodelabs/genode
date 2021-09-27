@@ -19,6 +19,8 @@
 
 /* local includes */
 #include <lx_kit/memory.h>
+#include <lx_kit/map.h>
+#include <lx_kit/byte_range.h>
 
 
 Genode::Attached_dataspace & Lx_kit::Mem_allocator::alloc_dataspace(size_t size)
@@ -26,17 +28,18 @@ Genode::Attached_dataspace & Lx_kit::Mem_allocator::alloc_dataspace(size_t size)
 	Ram_dataspace_capability ds_cap;
 
 	try {
-		size_t ds_size  = align_addr(size, 12);
-		ds_cap          = _platform.alloc_dma_buffer(ds_size, _cache_attr);
-		addr_t dma_addr = _platform.dma_addr(ds_cap);
+		Ram_dataspace_capability ds_cap =
+			_platform.alloc_dma_buffer(align_addr(size, 12), _cache_attr);
 
 		Buffer & buffer = *new (_heap)
-			Registered<Buffer>(_buffers, _env.rm(), ds_cap, dma_addr);
-		addr_t addr     = (addr_t)buffer.ds().local_addr<void>();
+			Buffer(_env.rm(), ds_cap, _platform.dma_addr(ds_cap));
 
 		/* map eager by touching all pages once */
-		for (size_t sz = 0; sz < ds_size; sz += 4096) {
-			touch_read((unsigned char const volatile*)(addr + sz)); }
+		for (size_t sz = 0; sz < buffer.size(); sz += 4096) {
+			touch_read((unsigned char const volatile*)(buffer.virt_addr() + sz)); }
+
+		_virt_to_dma.insert(buffer.virt_addr(), buffer);
+		_dma_to_virt.insert(buffer.dma_addr(), buffer);
 
 		return buffer.ds();
 	} catch (Out_of_caps) {
@@ -70,7 +73,8 @@ void * Lx_kit::Mem_allocator::alloc(size_t size, size_t align)
 		 * and physical addresses of a multi-page allocation are always
 		 * contiguous.
 		 */
-		Attached_dataspace & ds = alloc_dataspace(max(size + 1, min_buffer_size));
+		Attached_dataspace & ds = alloc_dataspace(max(size + 1,
+		                                          min_buffer_size));
 
 		_mem.add_range((addr_t)ds.local_addr<void>(), ds.size() - 1);
 
@@ -93,15 +97,24 @@ Genode::addr_t Lx_kit::Mem_allocator::dma_addr(void * addr)
 {
 	addr_t ret = 0UL;
 
-	_buffers.for_each([&] (Buffer & b) {
-		addr_t other = (addr_t)addr;
-		addr_t addr  = (addr_t)b.ds().local_addr<void>();
-		if (addr > other || (addr+b.ds().size()) <= other)
-			return;
+	_virt_to_dma.apply(Buffer_info::Query_addr(addr),
+	                   [&] (Buffer_info const & info) {
+		addr_t const offset = (addr_t)addr - info.buffer.virt_addr();
+		ret = info.buffer.dma_addr() + offset;
+	});
 
-		/* byte offset of 'addr' from start of block */
-		addr_t const offset = other - addr;
-		ret = b.dma_addr() + offset;
+	return ret;
+}
+
+
+Genode::addr_t Lx_kit::Mem_allocator::virt_addr(void * dma_addr)
+{
+	addr_t ret = 0UL;
+
+	_dma_to_virt.apply(Buffer_info::Query_addr(dma_addr),
+	                   [&] (Buffer_info const & info) {
+		addr_t const offset = (addr_t)dma_addr - info.buffer.dma_addr();
+		ret = info.buffer.virt_addr() + offset;
 	});
 
 	return ret;
@@ -115,21 +128,6 @@ bool Lx_kit::Mem_allocator::free(const void * ptr)
 
 	_mem.free(const_cast<void*>(ptr));
 	return true;
-}
-
-
-void Lx_kit::Mem_allocator::free(Attached_dataspace * ds)
-{
-	Dataspace_capability cap = ds->cap();
-
-	Registered<Buffer> * buffer = nullptr;
-	_buffers.for_each([&] (Buffer & b) {
-		if (&b.ds() == ds)
-			buffer = static_cast<Registered<Buffer>*>(&b);
-	});
-
-	destroy(_heap, buffer);
-	_platform.free_dma_buffer(static_cap_cast<Ram_dataspace>(cap));
 }
 
 
