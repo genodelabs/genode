@@ -14,7 +14,7 @@ Patch for DevAHCI model to really kick the consumer of requests (WiP)
  {
      LogFlowFunc(("Signal event semaphore\n"));
      int rc = PDMDevHlpSUPSemEventSignal(pDevIns, pAhciPort->hEvtProcess);
-+    PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, RT_INDEFINITE_WAIT);
++    PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, 15 /* ms */);
      AssertRC(rc);
  }
  
@@ -22,7 +22,7 @@ Patch for DevAHCI model to really kick the consumer of requests (WiP)
                      ASMAtomicOrU32(&pAhciPort->u32TasksNew, pAhciPort->regCI);
                      LogFlowFunc(("Signal event semaphore\n"));
                      int rc = PDMDevHlpSUPSemEventSignal(pDevIns, pAhciPort->hEvtProcess);
-+                    PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, RT_INDEFINITE_WAIT);
++                    PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, 15 /* ms */);
                      AssertRC(rc);
                  }
              }
@@ -33,7 +33,7 @@ Patch for DevAHCI model to really kick the consumer of requests (WiP)
 +	if (pAhciPort->regIS == 0) {
 +		if (pAhciPort->hEvtProcess != NIL_SUPSEMEVENT) {
 +			PDMDevHlpSUPSemEventSignal(pDevIns, pAhciPort->hEvtProcess);
-+			PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, RT_INDEFINITE_WAIT);
++			PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, 15 /* ms */);
 +		}
 +	}
 +
@@ -54,7 +54,7 @@ Patch for DevAHCI model to really kick the consumer of requests (WiP)
      PAHCIPORT   pAhciPort   = &RT_SAFE_SUBSCRIPT(pThis->aPorts, pAhciPortR3->iLUN);
 -    return PDMDevHlpSUPSemEventSignal(pDevIns, pAhciPort->hEvtProcess);
 +    int rc = PDMDevHlpSUPSemEventSignal(pDevIns, pAhciPort->hEvtProcess);
-+    PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, RT_INDEFINITE_WAIT);
++    PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, 15 /* ms */);
 +    return rc;
  }
  
@@ -63,7 +63,7 @@ Patch for DevAHCI model to really kick the consumer of requests (WiP)
  
              /* Notify the async IO thread. */
              int rc = PDMDevHlpSUPSemEventSignal(pDevIns, pAhciPort->hEvtProcess);
-+            PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, RT_INDEFINITE_WAIT);
++            PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pAhciPort->hEvtProcessAck, 15 /* ms */);
              AssertRC(rc);
          }
      }
