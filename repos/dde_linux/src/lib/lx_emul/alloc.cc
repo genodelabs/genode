@@ -43,6 +43,16 @@ extern "C" void * lx_emul_mem_alloc_uncached(unsigned long size)
 };
 
 
+extern "C" void * lx_emul_mem_alloc_aligned_uncached(unsigned long size,
+                                                     unsigned long align)
+{
+	/* always align memory objects to 32 bytes, like malloc, heap etc. */
+	void * const ptr = Lx_kit::env().uncached_memory.alloc(size, align);
+	lx_emul_forget_pages(ptr, size);
+	return ptr;
+};
+
+
 extern "C" unsigned long lx_emul_mem_dma_addr(void * addr)
 {
 	unsigned long ret = Lx_kit::env().memory.dma_addr(addr);

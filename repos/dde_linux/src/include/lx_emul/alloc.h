@@ -21,6 +21,7 @@ extern "C" {
 void * lx_emul_mem_alloc(unsigned long size);
 void * lx_emul_mem_alloc_uncached(unsigned long size);
 void * lx_emul_mem_alloc_aligned(unsigned long size, unsigned long align);
+void * lx_emul_mem_alloc_aligned_uncached(unsigned long size, unsigned long align);
 unsigned long lx_emul_mem_dma_addr(void * addr);
 void   lx_emul_mem_free(const void * ptr);
 unsigned long lx_emul_mem_size(const void * ptr);
