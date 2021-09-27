@@ -25,6 +25,7 @@
 
 #include <lx_emul/debug.h>
 #include <lx_emul/task.h>
+#include <lx_emul/time.h>
 
 #include <../kernel/sched/sched.h>
 
@@ -87,7 +88,7 @@ int default_wake_function(wait_queue_entry_t *curr,
 }
 
 
-asmlinkage __visible void __sched schedule(void)
+static void __schedule(void)
 {
 	if (preempt_count()) {
 		printk("schedule: unexpected preempt_count=%d\n", preempt_count());
@@ -95,6 +96,26 @@ asmlinkage __visible void __sched schedule(void)
 	}
 
 	lx_emul_task_schedule(current->state != TASK_RUNNING);
+}
+
+#include "../kernel/workqueue_internal.h"
+
+asmlinkage __visible void __sched schedule(void)
+{
+	if (current->state) {
+		unsigned int task_flags = current->flags;
+		if (task_flags & PF_WQ_WORKER) {
+			tick_nohz_idle_enter();
+			lx_emul_time_handle();
+			tick_nohz_idle_exit();
+			wq_worker_sleeping(current);
+		}
+	}
+
+	__schedule();
+
+	if (current->flags & PF_WQ_WORKER)
+		wq_worker_running(current);
 }
 
 
@@ -119,7 +140,7 @@ asmlinkage __visible void __sched notrace preempt_schedule(void)
 	if (likely(!preemptible()))
 		return;
 
-	schedule();
+	__schedule();
 }
 
 
@@ -128,7 +149,7 @@ asmlinkage __visible void __sched notrace preempt_schedule_notrace(void)
 	if (likely(!preemptible()))
 		return;
 
-	schedule();
+	__schedule();
 }
 
 
