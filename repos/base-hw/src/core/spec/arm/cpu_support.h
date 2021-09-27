@@ -15,16 +15,19 @@
 #ifndef _CORE__SPEC__ARM__CPU_SUPPORT_H_
 #define _CORE__SPEC__ARM__CPU_SUPPORT_H_
 
-/* Genode includes */
+/* base includes */
 #include <util/register.h>
 #include <cpu/cpu_state.h>
+
+/* base internal includes */
 #include <base/internal/align_at.h>
 
+/* base-hw internal includes */
 #include <hw/spec/arm/cpu.h>
 
-/* local includes */
+/* base-hw Core includes */
+#include <spec/arm/address_space_id_allocator.h>
 #include <kernel/interface_support.h>
-#include <board.h>
 #include <util.h>
 
 namespace Kernel { struct Thread_fault; }

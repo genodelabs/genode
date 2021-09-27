@@ -21,7 +21,6 @@
 
 /* core includes */
 #include <port_io.h>
-#include <board.h>
 
 namespace Board { class Timer; }
 
