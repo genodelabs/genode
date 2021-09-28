@@ -22,9 +22,7 @@
 
 /* base-hw Core includes */
 #include <spec/arm/cortex_a9_private_timer.h>
-#include <spec/arm/address_space_id_allocator.h>
 #include <spec/cortex_a9/cpu.h>
-#include <spec/cortex_a9/translation_table.h>
 
 namespace Board {
 

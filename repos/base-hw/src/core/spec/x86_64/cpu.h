@@ -17,18 +17,21 @@
 #ifndef _CORE__SPEC__X86_64__CPU_H_
 #define _CORE__SPEC__X86_64__CPU_H_
 
-/* Genode includes */
+/* base includes */
 #include <util/register.h>
 #include <kernel/interface_support.h>
 #include <cpu/cpu_state.h>
 
+/* base-hw internal includes */
 #include <hw/spec/x86_64/cpu.h>
 
-/* base includes */
+/* base internal includes */
 #include <base/internal/align_at.h>
 
-/* core includes */
-#include <fpu.h>
+/* base-hw Core includes */
+#include <spec/x86_64/fpu.h>
+#include <spec/x86_64/address_space_id_allocator.h>
+#include <spec/x86_64/translation_table.h>
 
 namespace Kernel { struct Thread_fault; }
 

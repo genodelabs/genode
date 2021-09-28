@@ -20,9 +20,7 @@
 /* base-hw Core includes */
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/virtualization/gicv3.h>
-#include <spec/arm_v8/address_space_id_allocator.h>
 #include <spec/arm_v8/cpu.h>
-#include <spec/arm_v8/translation_table.h>
 
 /* base-hw includes */
 #include <spec/arm_64/cpu/vm_state_virtualization.h>

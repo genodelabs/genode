@@ -15,8 +15,9 @@
 #ifndef _CORE__SPEC__ARM_V6__CPU_H_
 #define _CORE__SPEC__ARM_V6__CPU_H_
 
-/* core includes */
+/* base-hw Core includes */
 #include <spec/arm/cpu_support.h>
+#include <spec/arm_v6/translation_table.h>
 
 namespace Genode { struct Cpu; }
 

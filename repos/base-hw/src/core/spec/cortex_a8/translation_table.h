@@ -19,7 +19,7 @@
 #include <hw/spec/arm/page_table.h>
 
 /* base-hw Core includes */
-#include <kernel/interface.h>
+#include <spec/arm/cpu_support.h>
 
 
 constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
@@ -38,7 +38,7 @@ void Hw::Page_table::_table_changed(unsigned long addr, unsigned long size)
 	 * page table entry is added. We only do this as core as the kernel
 	 * adds translations solely before MMU and caches are enabled.
 	 */
-	Genode::Cpu::cache_clean_data_region(addr, size);
+	Genode::Arm_cpu::cache_clean_data_region(addr, size);
 }
 
 #endif /* _CORE__SPEC__CORTEX_A8__TRANSLATION_TABLE_H_ */

@@ -27,9 +27,7 @@
 /* base-hw Core includes */
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
-#include <spec/arm_v8/address_space_id_allocator.h>
 #include <spec/arm_v8/cpu.h>
-#include <spec/arm_v8/translation_table.h>
 
 namespace Board {
 

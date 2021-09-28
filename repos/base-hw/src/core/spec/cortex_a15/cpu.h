@@ -15,8 +15,9 @@
 #ifndef _CORE__SPEC__CORTEX_A15__CPU_H_
 #define _CORE__SPEC__CORTEX_A15__CPU_H_
 
-/* core includes */
+/* base-hw Core includes */
 #include <spec/arm_v7/cpu_support.h>
+#include <spec/cortex_a15/translation_table.h>
 
 namespace Genode { class Cpu; }
 

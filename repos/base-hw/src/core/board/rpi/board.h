@@ -21,9 +21,7 @@
 /* base-hw Core includes */
 #include <spec/arm/bcm2835_pic.h>
 #include <spec/arm/bcm2835_system_timer.h>
-#include <spec/arm/address_space_id_allocator.h>
 #include <spec/arm_v6/cpu.h>
-#include <spec/arm_v6/translation_table.h>
 
 namespace Board { using namespace Hw::Rpi_board; };
 

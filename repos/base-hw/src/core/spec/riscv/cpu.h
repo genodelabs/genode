@@ -14,15 +14,21 @@
 #ifndef _CORE__SPEC__RISCV__CPU_H_
 #define _CORE__SPEC__RISCV__CPU_H_
 
-/* Genode includes */
+/* base includes */
 #include <base/stdint.h>
 #include <cpu/cpu_state.h>
 #include <util/register.h>
 
+/* base internal includes */
 #include <base/internal/align_at.h>
 
-#include <kernel/interface.h>
+/* base-hw internal includes */
 #include <hw/spec/riscv/cpu.h>
+#include <hw/spec/riscv/page_table.h>
+
+/* base-hw Core includes */
+#include <kernel/interface.h>
+#include <spec/riscv/address_space_id_allocator.h>
 
 namespace Kernel { struct Thread_fault; }
 
@@ -100,5 +106,13 @@ class Genode::Cpu : public Hw::Riscv_cpu
 		                                size_t const size,
 		                                bool changed_cache_properties);
 };
+
+
+template <typename E, unsigned B, unsigned S>
+void Sv39::Level_x_translation_table<E, B, S>::_translation_added(addr_t, size_t)
+{
+	Genode::Cpu::sfence();
+}
+
 
 #endif /* _CORE__SPEC__RISCV__CPU_H_ */

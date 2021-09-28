@@ -17,6 +17,7 @@
 
 /* base-hw Core includes */
 #include <spec/arm_v7/cpu_support.h>
+#include <spec/cortex_a9/translation_table.h>
 
 namespace Genode { struct Cpu; }
 

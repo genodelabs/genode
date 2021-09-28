@@ -19,14 +19,9 @@
 
 /* base-hw Core includes */
 #include <spec/riscv/pic.h>
-#include <spec/riscv/address_space_id_allocator.h>
 #include <spec/riscv/cpu.h>
-#include <spec/riscv/translation_table.h>
-
-namespace Board { using namespace Hw::Riscv_board; }
-
-/* base-hw Core includes */
 #include <spec/riscv/timer.h>
 
+namespace Board { using namespace Hw::Riscv_board; }
 
 #endif /* _CORE__SPEC__RISCV_QEMU__BOARD_H_ */

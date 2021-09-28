@@ -14,11 +14,19 @@
 #ifndef _CORE__SPEC__ARM_V8__CPU_H_
 #define _CORE__SPEC__ARM_V8__CPU_H_
 
-/* Genode includes */
+/* base includes */
 #include <util/register.h>
 #include <cpu/cpu_state.h>
+
+/* base internal includes */
 #include <base/internal/align_at.h>
+
+/* base-hw internal includes */
 #include <hw/spec/arm_64/cpu.h>
+
+/* base-hw Core includes */
+#include <spec/arm_v8/address_space_id_allocator.h>
+#include <spec/arm_v8/translation_table.h>
 
 namespace Kernel { struct Thread_fault; }
 
