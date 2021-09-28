@@ -132,7 +132,7 @@ proc sub_token {token token_type} {
 	global tok_text
 
 	if {$token == ""} { return "" }
-	if {[regexp "Â§($token_type\\d+)Â°" $tok_text($token) dummy sub_token]} {
+	if {[regexp "§($token_type\\d+)°" $tok_text($token) dummy sub_token]} {
 		return $sub_token
 	} else {
 		return ""
@@ -153,11 +153,11 @@ proc labels_referenced_by_node {token} {
 	while {$output != ""} {
 
 		# consume plain text
-		if {[regexp {^[^Â§]+} $output plain]} {
-			regsub {^[^Â§]+} $output "" output }
+		if {[regexp {^[^§]+} $output plain]} {
+			regsub {^[^§]+} $output "" output }
 
 		# consume token
-		if {[regexp {Â§(.+?)Â°} $output dummy subtoken]} {
+		if {[regexp {§(.+?)°} $output dummy subtoken]} {
 
 			# collect label reference
 			if {[tok_type $subtoken] == "reflabelname"} {
@@ -167,7 +167,7 @@ proc labels_referenced_by_node {token} {
 			if {[tok_type $subtoken] != "node"} {
 				set result [concat $result [labels_referenced_by_node $subtoken]]
 			}
-			regsub {Â§(.+?)Â°} $output "" output
+			regsub {§(.+?)°} $output "" output
 		}
 	}
 	return [lsort -unique $result]
@@ -199,7 +199,7 @@ proc collect_label_and_references_of_node {token path} {
 
 	set selected($path) 0
 
-	if {[regexp {Â§(labeldef\d+)Â°} $node_text dummy]} {
+	if {[regexp {§(labeldef\d+)°} $node_text dummy]} {
 		set label_name $tok_text([sub_token [sub_token $token labeldef] labelname])
 		set labels($label_name) $path
 	}
@@ -247,11 +247,11 @@ proc collect_labels_and_references {{token content0} {curr_path ""}} {
 	while {$output != ""} {
 
 		# consume plain text
-		if {[regexp {^[^Â§]+} $output plain]} {
-			regsub {^[^Â§]+} $output "" output }
+		if {[regexp {^[^§]+} $output plain]} {
+			regsub {^[^§]+} $output "" output }
 
 		# consume token
-		if {[regexp {Â§(.+?)Â°} $output dummy token]} {
+		if {[regexp {§(.+?)°} $output dummy token]} {
 
 			# try to enter node or nodesupplement
 			set path [sub_node_path $token $curr_path]
@@ -259,7 +259,7 @@ proc collect_labels_and_references {{token content0} {curr_path ""}} {
 			if {$path != $curr_path} {
 				collect_label_and_references_of_node $token $path }
 
-			regsub {Â§(.+?)Â°} $output "" output
+			regsub {§(.+?)°} $output "" output
 		}
 	}
 }
@@ -274,19 +274,19 @@ proc dump_selected_source {{token content0} {curr_path ""}} {
 	while {$output != ""} {
 
 		# consume plain text
-		if {[regexp {^[^Â§]+} $output plain]} {
-			regsub -all {Â³}  $plain "\\&" plain
+		if {[regexp {^[^§]+} $output plain]} {
+			regsub -all {³}  $plain "\\&" plain
 
 			if {[info exists selected($curr_path)] && $selected($curr_path)} {
 				puts -nonewline $plain }
 
-			regsub {^[^Â§]+} $output "" output
+			regsub {^[^§]+} $output "" output
 		}
 
 		# consume token
-		if {[regexp {Â§(.+?)Â°} $output dummy token]} {
+		if {[regexp {§(.+?)°} $output dummy token]} {
 			dump_selected_source $token [sub_node_path $token $curr_path]
-			regsub {Â§(.+?)Â°} $output "" output
+			regsub {§(.+?)°} $output "" output
 		}
 	}
 }
