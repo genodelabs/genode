@@ -150,6 +150,7 @@ struct Sequence::Child : Genode::Child_policy
 	void exit(int exit_value) override
 	{
 		_exit_value = exit_value;
+		_child.close_all_sessions();
 		_exit_transmitter.submit();
 	}
 
