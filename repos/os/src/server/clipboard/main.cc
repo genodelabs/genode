@@ -65,6 +65,11 @@ struct Rom::Registry : Rom::Registry_for_reader, Rom::Registry_for_writer
 	:
 		module(ram, rm, "clipboard", read_policy, write_policy)
 	{ }
+
+	void notify_reader_on_focus()
+	{
+		module._notify_permitted_readers();
+	}
 };
 
 
@@ -120,6 +125,8 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 			_focused_domain = focus.attribute_value("domain", Domain());
 			_focused_label  = focus.attribute_value("label",  Label());
 		}
+
+		_rom_registry.notify_reader_on_focus();
 	}
 
 	Domain _domain(Genode::Session_label const &label) const

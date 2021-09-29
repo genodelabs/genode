@@ -53,19 +53,28 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 		Constructible<Genode::Attached_ram_dataspace> _ds { };
 
-		size_t _content_size = 0;
-
 		/**
-		 * Keep state of valid content to notify the client only once when
-		 * the ROM module becomes invalid.
+		 * Size of content delivered to the client
+		 *
+		 * Zero-sized content means invalidated ROM state was delivered to the
+		 * client.
 		 */
-		bool _valid = false;
+		size_t _content_size = 0;
 
 		Genode::Signal_context_capability _sigh { };
 
+		/*
+		 * Keep track of the last version handed out to the client (at the
+		 * time of the last 'Rom_session::update' RPC call, and the newest
+		 * version that is available. If the client version is out of date
+		 * when the client registers a signal handler, submit a signal
+		 * immediately.
+		 */
+		unsigned _current_version = 0, _client_version = 0;
+
 		void _notify_client()
 		{
-			if (_sigh.valid())
+			if (_sigh.valid() && (_current_version != _client_version))
 				Genode::Signal_transmitter(_sigh).submit();
 		}
 
@@ -90,19 +99,19 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 		{
 			using namespace Genode;
 
-				/* replace dataspace by new one */
-				/* XXX we could keep the old dataspace if the size fits */
-				_ds.construct(_ram, _rm, _module.size());
+			/* replace dataspace by new one */
+			/* XXX we could keep the old dataspace if the size fits */
+			_ds.construct(_ram, _rm, _module.size());
 
-				/* fill dataspace content with report contained in module */
-				_content_size =
-					_module.read_content(*this, _ds->local_addr<char>(), _ds->size());
+			/* fill dataspace content with report contained in module */
+			_content_size =
+				_module.read_content(*this, _ds->local_addr<char>(), _ds->size());
 
-				_valid = _content_size > 0;
+			_client_version = _current_version;
 
-				/* cast RAM into ROM dataspace capability */
-				Dataspace_capability ds_cap = static_cap_cast<Dataspace>(_ds->cap());
-				return static_cap_cast<Rom_dataspace>(ds_cap);
+			/* cast RAM into ROM dataspace capability */
+			Dataspace_capability ds_cap = static_cap_cast<Dataspace>(_ds->cap());
+			return static_cap_cast<Rom_dataspace>(ds_cap);
 		}
 
 		bool update() override
@@ -120,7 +129,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 			_content_size = new_content_size;
 
-			_valid = _content_size > 0;
+			_client_version = _current_version;
 
 			return true;
 		}
@@ -140,23 +149,22 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 		/**
 		 * Reader interface
 		 */
-		void notify_module_changed() override
+		void mark_as_outdated() override { _current_version++; }
+
+		/**
+		 * Reader interface
+		 */
+		void mark_as_invalidated() override
 		{
-			_notify_client();
+			/* increase version only if we delivered valid content last */
+			if (_content_size > 0)
+				_current_version++;
 		}
 
 		/**
 		 * Reader interface
 		 */
-		void notify_module_invalidated() override
-		{
-			/* deliver a signal for an invalidated module only once */
-			if (!_valid)
-				return;
-
-			_valid = false;
-			_notify_client();
-		}
+		void notify_client() override { _notify_client(); }
 };
 
 

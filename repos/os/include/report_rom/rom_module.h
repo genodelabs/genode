@@ -52,8 +52,9 @@ struct Rom::Reader : private Reader_list::Element, Interface
 	friend class Genode::List<Reader>;
 	using Reader_list::Element::next;
 
-	virtual void notify_module_changed()     = 0;
-	virtual void notify_module_invalidated() = 0;
+	virtual void mark_as_outdated()    = 0;
+	virtual void mark_as_invalidated() = 0;
+	virtual void notify_client()       = 0;
 };
 
 
@@ -244,6 +245,17 @@ struct Rom::Module : private Module_list::Element, Readable_module
 			return cnt;
 		}
 
+		void _notify_permitted_readers()
+		{
+			if (!_last_writer)
+				return;
+
+			for (Reader *r = _readers.first(); r; r = r->next()) {
+				if (_read_policy.read_permitted(*this, *_last_writer, *r))
+					r->notify_client();
+			}
+		}
+
 	public:
 
 		/**
@@ -281,9 +293,10 @@ struct Rom::Module : private Module_list::Element, Readable_module
 			for (Reader *r = _readers.first(); r; r = r->next()) {
 
 				if (_read_policy.read_permitted(*this, *_last_writer, *r))
-					r->notify_module_changed();
+					r->mark_as_outdated();
 				else
-					r->notify_module_invalidated();
+					r->mark_as_invalidated();
+				r->notify_client();
 			}
 		}
 

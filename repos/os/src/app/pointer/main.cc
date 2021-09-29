@@ -115,20 +115,14 @@ class Pointer::Main : public Rom::Reader
 		void _handle_hover();
 		void _handle_xray();
 
-	public:
-
 		/**
 		 * Reader interface
 		 */
-		void notify_module_changed() override
-		{
-			_update_pointer();
-		}
+		void mark_as_outdated()    override { }
+		void mark_as_invalidated() override { }
+		void notify_client()       override { _update_pointer(); }
 
-		void notify_module_invalidated() override
-		{
-			_update_pointer();
-		}
+	public:
 
 		Main(Genode::Env &);
 };
