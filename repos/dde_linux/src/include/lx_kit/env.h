@@ -48,7 +48,7 @@ struct Lx_kit::Env
 	Mem_allocator        memory          { env, heap, platform, CACHED   };
 	Mem_allocator        uncached_memory { env, heap, platform, UNCACHED };
 	Scheduler            scheduler       { };
-	Device_list          devices         { heap, platform   };
+	Device_list          devices         { env.ep(), heap, platform };
 	Lx_kit::Timeout      timeout         { timer, scheduler };
 	unsigned int         last_irq        { 0 };
 

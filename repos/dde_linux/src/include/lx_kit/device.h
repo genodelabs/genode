@@ -59,39 +59,19 @@ class Lx_kit::Device : List<Device>::Element
 			: idx{idx}, addr(addr), size(size) {}
 		};
 
-		struct Irq_handler
-		{
-			private:
-
-				Irq_handler(Irq_handler const &);
-				Irq_handler &operator = (Irq_handler const &);
-
-				Platform::Device::Irq          _irq;
-				Io_signal_handler<Irq_handler> _handler;
-				unsigned                       _number;
-
-				void _handle();
-
-			public:
-
-				Irq_handler(Platform::Device & dev,
-				            Platform::Device::Irq::Index idx,
-				            unsigned number);
-
-				void ack() { _irq.ack(); }
-		};
-
 		struct Irq : List<Irq>::Element
 		{
 			using Index = Platform::Device::Irq::Index;
 
-			Index    idx;
-			unsigned number;
+			Index                  idx;
+			unsigned               number;
+			Io_signal_handler<Irq> handler;
 
-			Constructible<Irq_handler> handler {};
+			Constructible<Platform::Device::Irq> session {};
 
-			Irq(unsigned idx, unsigned number)
-			: idx{idx}, number(number) {}
+			Irq(Entrypoint & ep, unsigned idx, unsigned number);
+
+			void handle();
 		};
 
 		struct Clock : List<Clock>::Element
@@ -104,7 +84,8 @@ class Lx_kit::Device : List<Device>::Element
 			: idx(idx), name(name), lx_clock{0} {}
 		};
 
-		Device(Platform::Connection & plat,
+		Device(Entrypoint           & ep,
+		       Platform::Connection & plat,
 		       Xml_node             & xml,
 		       Heap                 & heap);
 
@@ -156,7 +137,9 @@ class Lx_kit::Device_list : List<Device>
 		void for_each(FN const & fn) {
 			for (Device * d = first(); d; d = d->next()) fn(*d); }
 
-		Device_list(Heap & heap, Platform::Connection & platform);
+		Device_list(Entrypoint           & ep,
+		            Heap                 & heap,
+		            Platform::Connection & platform);
 };
 
 #endif /* _LX_KIT__DEVICE_H_ */

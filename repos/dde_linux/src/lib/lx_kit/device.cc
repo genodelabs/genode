@@ -27,29 +27,23 @@ bool Device::Io_mem::match(addr_t addr, size_t size)
 }
 
 
-/*************************
- ** Device::Irq_handler **
- *************************/
+/****************
+ ** Device::Irq**
+ ****************/
 
-void Device::Irq_handler::_handle()
+void Device::Irq::handle()
 {
-	env().last_irq = _number;
+	env().last_irq = number;
 	env().scheduler.unblock_irq_handler();
 	env().scheduler.schedule();
 }
 
 
-Device::Irq_handler::Irq_handler(Platform::Device & dev,
-                                 Platform::Device::Irq::Index idx,
-                                 unsigned number)
+Device::Irq::Irq(Entrypoint & ep, unsigned idx, unsigned number)
 :
-	_irq(dev, idx),
-	_handler(Lx_kit::env().env.ep(), *this, &Irq_handler::_handle),
-	_number(number)
-{
-	_irq.sigh_omit_initial_signal(_handler);
-	_irq.ack();
-}
+	idx{idx},
+	number(number),
+	handler(ep, *this, &Irq::handle) { }
 
 
 /************
@@ -132,13 +126,15 @@ bool Device::irq_unmask(unsigned number)
 		if (irq.number != number)
 			return;
 
+		ret = true;
 		enable();
 
-		if (irq.handler.constructed())
+		if (irq.session.constructed())
 			return;
 
-		irq.handler.construct(*_pdev, irq.idx, number);
-		ret = true;
+		irq.session.construct(*_pdev, irq.idx);
+		irq.session->sigh_omit_initial_signal(irq.handler);
+		irq.session->ack();
 	});
 
 	return ret;
@@ -153,7 +149,7 @@ void Device::irq_mask(unsigned number)
 	_for_each_irq([&] (Irq & irq) {
 		if (irq.number != number)
 			return;
-		irq.handler.destruct();
+		irq.session.destruct();
 	});
 
 }
@@ -165,9 +161,9 @@ void Device::irq_ack(unsigned number)
 		return;
 
 	_for_each_irq([&] (Irq & irq) {
-		if (irq.number != number)
+		if (irq.number != number || !irq.session.constructed())
 			return;
-		irq.handler->ack();
+		irq.session->ack();
 	});
 }
 
@@ -196,7 +192,8 @@ void Device::enable()
 }
 
 
-Device::Device(Platform::Connection & plat,
+Device::Device(Entrypoint           & ep,
+               Platform::Connection & plat,
                Xml_node             & xml,
                Heap                 & heap)
 :
@@ -213,7 +210,7 @@ Device::Device(Platform::Connection & plat,
 
 	i = 0;
 	xml.for_each_sub_node("irq", [&] (Xml_node node) {
-		_irqs.insert(new (heap) Irq(i++, node.attribute_value("number", 0U)));
+		_irqs.insert(new (heap) Irq(ep, i++, node.attribute_value("number", 0U)));
 	});
 
 	i = 0;
@@ -228,13 +225,15 @@ Device::Device(Platform::Connection & plat,
  ** Device_list **
  *****************/
 
-Device_list::Device_list(Heap & heap, Platform::Connection & platform)
+Device_list::Device_list(Entrypoint           & ep,
+                         Heap                 & heap,
+                         Platform::Connection & platform)
 :
 	_platform(platform)
 {
 	_platform.with_xml([&] (Xml_node & xml) {
 		xml.for_each_sub_node("device", [&] (Xml_node node) {
-			insert(new (heap) Device(_platform, node, heap));
+			insert(new (heap) Device(ep, _platform, node, heap));
 		});
 	});
 }
