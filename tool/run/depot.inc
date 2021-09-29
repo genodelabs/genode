@@ -108,7 +108,7 @@ proc _copy_directory_content_to_run_dir { dir } {
 		exit 1
 	}
 
-	foreach file [glob -directory $dir *] { copy_file $file [run_dir]/genode/ }
+	foreach file [glob -nocomplain -directory $dir *] { copy_file $file [run_dir]/genode/ }
 }
 
 
