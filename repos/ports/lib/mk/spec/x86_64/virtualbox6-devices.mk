@@ -84,7 +84,6 @@ SRC_CC += Devices/Trace/DrvIfsTrace.cpp
 SRC_CC += Devices/Trace/DrvIfsTrace-serial.cpp
 SRC_CC += Devices/USB/DevOHCI.cpp
 SRC_CC += Devices/USB/DrvVUSBRootHub.cpp
-SRC_CC += Devices/USB/USBProxyDevice.cpp
 SRC_CC += Devices/USB/VUSBDevice.cpp
 SRC_CC += Devices/USB/VUSBSniffer.cpp
 SRC_CC += Devices/USB/VUSBSnifferPcapNg.cpp

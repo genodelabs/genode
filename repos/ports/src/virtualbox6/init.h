@@ -25,4 +25,6 @@ namespace Network { void init(Genode::Env &); }
 
 namespace Xhci { void init(Genode::Env &); }
 
+namespace Services { void init(Genode::Env &); }
+
 #endif /* _INIT_H_ */

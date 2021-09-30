@@ -44,6 +44,15 @@ int aio_suspend(const struct aiocb * const aiocb_list[],
                        int nitems, const struct timespec *timeout) STOP
 int lio_listio(int mode, struct aiocb *const aiocb_list[],
                int nitems, struct sigevent *sevp) STOP
+int gethostbyname_r(const char *name,
+                    struct hostent *ret, char *buf, size_t buflen,
+                    struct hostent **result, int *h_errnop) STOP
+int gethostbyname2_r(const char *name, int af,
+                     struct hostent *ret, char *buf, size_t buflen,
+                     struct hostent **result, int *h_errnop) STOP
+int getprotobynumber_r(int proto,
+                       struct protoent *result_buf, char *buf,
+                       size_t buflen, struct protoent **result) STOP
 
 } /* extern "C" */
 

@@ -9,10 +9,10 @@ include $(REP_DIR)/lib/mk/virtualbox6-common.inc
 CC_WARN += -Wall
 
 SRC_CC := main.cc drivers.cc
-SRC_CC += libc.cc unimpl.cc dummies.cc pdm.cc devices.cc nem.cc dynlib.cc
+SRC_CC += libc.cc unimpl.cc dummies.cc pdm.cc devices.cc nem.cc
 SRC_CC += pthread.cc network.cc devxhci.cc
 SRC_CC += sup.cc sup_sem.cc sup_gmm.cc sup_drv.cc sup_vm.cc sup_vcpu.cc sup_gim.cc
-SRC_CC += HostServices/common/message.cpp
+SRC_CC += HostServices/common/message.cpp services/services.cc
 
 LIBS  += base
 LIBS  += stdcxx
@@ -22,10 +22,20 @@ LIBS  += qemu-usb
 CC_OPT_main = -Wno-multistatement-macros
 CC_OPT += -DProgress=ClientProgress
 
-LIB_MK_FILES := $(notdir $(wildcard $(REP_DIR)/lib/mk/virtualbox6-*.mk) \
-                         $(wildcard $(REP_DIR)/lib/mk/spec/x86_64/virtualbox6-*.mk))
-
-LIBS += $(LIB_MK_FILES:.mk=)
+LIBS += virtualbox6-dis
+LIBS += virtualbox6-sup
+LIBS += virtualbox6-devices
+LIBS += virtualbox6-vmm
+LIBS += virtualbox6-main
+LIBS += virtualbox6-xpcom
+LIBS += virtualbox6-liblzf
+LIBS += virtualbox6-xml
+LIBS += virtualbox6-bios
+LIBS += virtualbox6-zlib
+LIBS += virtualbox6-storage
+LIBS += virtualbox6-runtime
+LIBS += virtualbox6-apiwrap
+LIBS += virtualbox6-client
 
 INC_DIR += $(call select_from_repositories,src/lib/libc)
 INC_DIR += $(call select_from_repositories,src/lib/libc)/spec/x86_64
@@ -43,6 +53,9 @@ INC_DIR += $(VIRTUALBOX_DIR)/include/VBox/Graphics
 
 # search path to 'scan_code_set_1.h'
 INC_DIR += $(call select_from_repositories,src/drivers/ps2)
+
+# export VirtualBox symbols to shared objects (e.g., VBoxSharedClipboard.so)
+LD_OPT = --export-dynamic
 
 LIBS += blit
 

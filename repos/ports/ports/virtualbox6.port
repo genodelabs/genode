@@ -64,6 +64,7 @@ VBOX_MAIN_SRV += HostImpl GraphicsAdapterImpl RecordingScreenSettingsImpl
 VBOX_MAIN_SRV += HostDnsService HostNetworkInterfaceImpl MediumIOImpl
 VBOX_MAIN_SRV += DataStreamImpl HostPower ProgressProxyImpl
 VBOX_MAIN_SRV += os2/PerformanceOs2 ClientWatcher
+VBOX_MAIN_SRV += generic/NetIf-generic
 
 VBOX_MAIN_INC := AdditionsFacilityImpl AudioAdapterImpl AuthLibrary
 VBOX_MAIN_INC += AutoCaller AutostartDb AutoStateDep BandwidthControlImpl
@@ -99,7 +100,7 @@ VBOX_MAIN_INC += RecordingScreenSettingsImpl DataStreamImpl
 VBOX_MAIN_INC += GuestDnDSourceImpl GuestDnDTargetImpl GuestDnDPrivate
 VBOX_MAIN_INC += VirtualBoxBase VirtualBoxErrorInfoImpl
 
-VBOX_SRC_VBOX := VMM Devices Runtime GuestHost/HGSMI GuestHost/DragAndDrop
+VBOX_SRC_VBOX := VMM Devices Runtime GuestHost
 VBOX_SRC_VBOX += Storage Disassembler
 VBOX_SRC_VBOX += HostDrivers/Support
 VBOX_SRC_VBOX += HostServices/SharedFolders Main/xml/Settings.cpp

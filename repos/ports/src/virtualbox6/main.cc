@@ -474,6 +474,7 @@ void Libc::Component::construct(Libc::Env &env)
 
 		Sup::init(env);
 		Xhci::init(env);
+		Services::init(env);
 
 		try {
 			static Main main(env);

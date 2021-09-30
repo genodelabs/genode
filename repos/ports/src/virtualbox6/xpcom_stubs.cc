@@ -16,12 +16,6 @@
 static bool const debug = true;
 
 
-#include <SpecialSystemDirectory.h>
-
-nsresult GetSpecialSystemDirectory(SystemDirectories, nsILocalFile**) STOP
-void StartupSpecialSystemDirectory() { }
-
-
 #include <nsFastLoadService.h>
 
 nsresult nsFastLoadService::Create(nsISupports*, nsID const&, void**) STOP
@@ -40,6 +34,7 @@ nsresult nsPersistentProperties::Create(nsISupports*, nsID const&, void**) STOP
 #include <nsProxyEventPrivate.h>
 
 nsresult nsProxyObjectManager::Create(nsISupports*, nsID const&, void**) STOP
+void nsProxyObjectManager::Shutdown() STOP
 
 
 #include <nsScriptableInputStream.h>
@@ -55,11 +50,15 @@ nsresult nsStringInputStreamConstructor(nsISupports*, nsID const&, void**) STOP
 #include <xptinfo.h>
 
 nsIInterfaceInfoManager *XPTI_GetInterfaceInfoManager() { return nullptr; }
+void XPTI_FreeInterfaceInfoManager() { }
 
 
 extern "C" {
 #include <_freebsd.h>
 #include <primpl.h>
+
+PRBool _pr_ipv6_is_present;
+PRBool _pr_push_ipv6toipv4_layer;
 
 void _MD_EarlyInit(void)      { }
 void _PR_InitCPUs(void)       { }
