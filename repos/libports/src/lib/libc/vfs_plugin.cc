@@ -1308,6 +1308,31 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 		handled = true;
 
+	} else if (request == SNDCTL_DSP_GETFMTS) {
+
+		if (!argp) return { true, EINVAL };
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() != "oss") {
+					return;
+				}
+
+				unsigned int const format =
+					info.attribute_value("format", 0U);
+				if (format == 0U) {
+					result = EINVAL;
+					return;
+				}
+
+				*(int *)argp = format;
+
+				handled = true;
+			});
+
+			return Fn::COMPLETE;
+		});
+
 	} else if (request == SNDCTL_DSP_GETISPACE) {
 
 		if (!argp) return { true, EINVAL };
@@ -1638,6 +1663,7 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 	case SNDCTL_DSP_CHANNELS:
 	case SNDCTL_DSP_CURRENT_OPTR:
 	case SNDCTL_DSP_GETERROR:
+	case SNDCTL_DSP_GETFMTS:
 	case SNDCTL_DSP_GETISPACE:
 	case SNDCTL_DSP_GETOPTR:
 	case SNDCTL_DSP_GETOSPACE:
