@@ -76,7 +76,7 @@ append config {
 			<service name="Report" label="shape">
 				<child name="pointer" label="wm -> qt_launchpad -> shape"/>
 			</service>
-			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<service name="ROM" label="mesa_gpu_drv.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>

@@ -85,7 +85,7 @@ index d64bc7c..9a25398 100644
  #endif
        if (driver == NULL) {
 -         snprintf(path, sizeof(path), "%.*s/%s_dri.so", len, p, driver_name);
-+         snprintf(path, sizeof(path), "%.*s/egl_drv.lib.so", len, p);
++         snprintf(path, sizeof(path), "%.*s/mesa_gpu_drv.lib.so", len, p);
           driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
           if (driver == NULL) {
              dl_error = dlerror();

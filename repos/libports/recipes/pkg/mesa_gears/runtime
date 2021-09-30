@@ -1,4 +1,4 @@
-<runtime ram="34M" caps="400" binary="init">
+<runtime ram="34M" caps="400" binary="gears">
 
 	<requires>
 		<gui/>
@@ -24,34 +24,12 @@
 	</content>
 
 	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-			<service name="Gpu"/>
-			<service name="Gui"/>
-		</parent-provides>
-
-		<start name="gears" caps="300">
-			<resource name="RAM" quantum="32M"/>
-			<config>
-				<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
-				<vfs>
-					<dir name="dev">
-						<log/> <inline name="rtc">2000-01-01 00:00</inline>
-					</dir>
-				</vfs>
-			</config>
-			<route>
-				<service name="ROM" label="egl_drv.lib.so">
-					<parent label="mesa_gpu_drv.lib.so"/>
-				</service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
+		<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
+		<vfs>
+			<dir name="dev">
+				<log/> <inline name="rtc">2000-01-01 00:00</inline>
+			</dir>
+		</vfs>
 	</config>
 
 </runtime>

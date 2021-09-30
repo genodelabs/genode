@@ -100,9 +100,9 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 	</start>}
 
-set backend_library egl_swrast.lib.so
-if {$use_iris}    { set backend_library egl_iris.lib.so }
-if {$use_etnaviv} { set backend_library egl_etnaviv.lib.so }
+set backend_library mesa_gpu-softpipe.lib.so
+if {$use_iris}    { set backend_library mesa_gpu-iris.lib.so }
+if {$use_etnaviv} { set backend_library mesa_gpu-etnaviv.lib.so }
 
 append config "
 	<start name=\"$demo_binary\" caps=\"$demo_caps\">
@@ -112,7 +112,7 @@ append config $demo_config
 
 append config "
 		<route>
-			<service name=\"ROM\" label=\"egl_drv.lib.so\">
+			<service name=\"ROM\" label=\"mesa_gpu_drv.lib.so\">
 				<parent label=\"$backend_library\"/>
 			</service>"
 append config {
@@ -156,17 +156,17 @@ set boot_modules {
 	libc.lib.so vfs.lib.so libm.lib.so
 	egl.lib.so mesa.lib.so stdcxx.lib.so
 	expat.lib.so glapi.lib.so zlib.lib.so
-	core init ld.lib.so timer egl_swrast.lib.so
+	core init ld.lib.so timer mesa_gpu-softpipe.lib.so
 	libdrm.lib.so
 }
 
 append_if $use_iris boot_modules {
-	egl_iris.lib.so libdrm.lib.so
+	mesa_gpu-iris.lib.so libdrm.lib.so
 	intel_gpu_drv
 }
 
 append_if $use_etnaviv boot_modules {
-	egl_etnaviv.lib.so libdrm.lib.so
+	mesa_gpu-etnaviv.lib.so libdrm.lib.so
 
 	imx8q_gpu_drv
 }

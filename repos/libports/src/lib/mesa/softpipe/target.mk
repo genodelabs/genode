@@ -1,1 +1,1 @@
-LIBS = egl_swrast
+LIBS := mesa_gpu-softpipe

@@ -5,7 +5,7 @@
 	</provides>
 
 	<content>
-		<rom label="egl_swrast.lib.so"/>
+		<rom label="mesa_gpu-softpipe.lib.so"/>
 		<rom label="fs_rom"/>
 		<rom label="init"/>
 		<rom label="vfs"/>
@@ -15,7 +15,7 @@
 	<config>
 
 		<service name="ROM">
-			<default-policy> <child name="fs_rom" label="egl_swrast.lib.so"/> </default-policy>
+			<default-policy> <child name="fs_rom" label="mesa_gpu-softpipe.lib.so"/> </default-policy>
 		</service>
 
 		<parent-provides>
@@ -33,7 +33,7 @@
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs>
-					<rom name="egl_swrast.lib.so"/>
+					<rom name="mesa_gpu-softpipe.lib.so"/>
 				</vfs>
 				<default-policy root="/" writeable="no"/>
 			</config>

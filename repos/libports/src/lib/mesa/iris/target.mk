@@ -1,2 +1,2 @@
-TARGET = dummy-egl_iris
-LIBS   = egl_iris
+TARGET = dummy-mesa_gpu-iris
+LIBS   = mesa_gpu-iris

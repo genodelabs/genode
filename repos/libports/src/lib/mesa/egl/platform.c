@@ -162,8 +162,8 @@ EGLBoolean dri2_initialize_genode(_EGLDisplay *disp)
 {
 	void *handle;
 
-	if (!(handle = dlopen("egl_drv.lib.so", 0))) {
-		printf("Error: could not open EGL back end driver ('egl_drv.lib.so')\n");
+	if (!(handle = dlopen("mesa_gpu_drv.lib.so", 0))) {
+		printf("Error: could not open EGL back end driver ('mesa_gpu_drv.lib.so')\n");
 		return EGL_FALSE;
 	}
 

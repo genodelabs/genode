@@ -55,7 +55,9 @@ append config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
-			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<service name="ROM" label="mesa_gpu_drv.lib.so">
+				<parent label="mesa_gpu-softpipe.lib.so" />
+			</service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
@@ -78,7 +80,9 @@ append config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
-			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<service name="ROM" label="mesa_gpu_drv.lib.so">
+				<parent label="mesa_gpu-softpipe.lib.so" />
+			</service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>

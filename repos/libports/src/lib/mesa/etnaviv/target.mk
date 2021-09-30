@@ -1,1 +1,1 @@
-LIBS = egl_etnaviv
+LIBS := mesa_gpu-etnaviv

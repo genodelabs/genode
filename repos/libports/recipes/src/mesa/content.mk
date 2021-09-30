@@ -1,7 +1,7 @@
 MIRROR_FROM_REP_DIR := \
                        lib/mk/egl.mk \
-                       lib/mk/egl_etnaviv.mk \
-                       lib/mk/egl_swrast.mk \
+                       lib/mk/mesa_gpu-etnaviv.mk \
+                       lib/mk/mesa_gpu-softpipe.mk \
                        lib/mk/etnaviv.mk \
                        lib/mk/iris_gen.inc \
                        lib/mk/isl_gen.inc \
@@ -11,7 +11,7 @@ MIRROR_FROM_REP_DIR := \
                        lib/mk/mesa-common.inc \
                        lib/mk/softpipe.mk \
                        lib/mk/spec/arm_v8/mesa.mk \
-                       lib/mk/spec/x86/egl_iris.mk \
+                       lib/mk/spec/x86/mesa_gpu-iris.mk \
                        lib/mk/spec/x86/iris.mk \
                        lib/mk/spec/x86/iris_gen110.mk \
                        lib/mk/spec/x86/iris_gen120.mk \
