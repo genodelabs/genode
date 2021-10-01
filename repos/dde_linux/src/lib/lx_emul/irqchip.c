@@ -172,6 +172,8 @@ int lx_emul_irq_task_function(void * data)
 		if (!dde_irq_domain)
 			continue;
 
+		irq_enter();
+
 		irq = irq_find_mapping(dde_irq_domain, lx_emul_irq_last());
 
 		if (!irq) {
@@ -180,6 +182,8 @@ int lx_emul_irq_task_function(void * data)
 		} else {
 			generic_handle_irq(irq);
 		}
+
+		irq_exit();
 	}
 
 	return 0;

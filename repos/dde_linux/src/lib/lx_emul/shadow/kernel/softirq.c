@@ -72,3 +72,12 @@ void __local_bh_enable_ip(unsigned long ip,unsigned int cnt)
 	 */
 	__preempt_count_sub(cnt);
 }
+
+
+void __init softirq_init(void) {}
+
+
+void irq_enter(void) {}
+
+
+void irq_exit(void) {}

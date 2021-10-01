@@ -107,6 +107,7 @@ int lx_emul_init_task_function(void * dtb)
 	tick_init();
 	init_timers();
 	hrtimers_init();
+	softirq_init();
 	timekeeping_init();
 
 	/* arch/arm64/kernel/time.c */
