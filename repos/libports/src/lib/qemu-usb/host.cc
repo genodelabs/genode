@@ -136,6 +136,16 @@ struct Completion : Usb::Completion
 		switch (packet.type) {
 		case Packet_type::CTRL:
 			actual_size = packet.control.actual_size;
+
+			/*
+			 * Disable remote wakeup (bit 5) in 'bmAttributes' (content[7]) in reported
+			 * configuration descriptor. On some systems (e.g., Windows) this will
+			 * cause devices to stop working.
+			 */
+			if (packet.control.request == USB_REQ_GET_DESCRIPTOR
+			    && actual_size >= 8 && content[1] == USB_DT_CONFIG)
+				content[7] &= ~USB_CFG_ATT_WAKEUP;
+
 			break;
 		case Packet_type::BULK:
 		case Packet_type::IRQ:
