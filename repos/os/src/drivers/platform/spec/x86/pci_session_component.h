@@ -822,6 +822,19 @@ class Platform::Session_component : public Rpc_object<Session>
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t const size, Cache cache) override
 		{
+			/*
+			 * Check available quota beforehand and reflect the state back
+			 * to the client because the 'Expanding_pd_session_client' will
+			 * ask its parent otherwise.
+			 */
+			enum { WATERMARK_CAP_QUOTA = 8, };
+			if (_env.pd().avail_caps().value < WATERMARK_CAP_QUOTA)
+				throw Out_of_caps();
+
+			enum { WATERMARK_RAM_QUOTA = 4096, };
+			if (_env.pd().avail_ram().value < WATERMARK_RAM_QUOTA)
+				throw Out_of_ram();
+
 			Ram_dataspace_capability ram_cap = _env_ram.alloc(size, cache);
 			addr_t const dma_addr = Dataspace_client(ram_cap).phys_addr();
 
