@@ -254,6 +254,8 @@ struct Test::Main
 	{
 		_init_state.sigh(_init_state_handler);
 
+		_handle_init_state();
+
 		generate_init_config();
 	}
 };
