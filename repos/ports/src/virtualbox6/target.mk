@@ -8,7 +8,7 @@ include $(REP_DIR)/lib/mk/virtualbox6-common.inc
 
 CC_WARN += -Wall
 
-SRC_CC := main.cc drivers.cc
+SRC_CC := main.cc drivers.cc glx_x11.cc
 SRC_CC += libc.cc unimpl.cc dummies.cc pdm.cc devices.cc nem.cc
 SRC_CC += pthread.cc network.cc devxhci.cc
 SRC_CC += sup.cc sup_sem.cc sup_gmm.cc sup_drv.cc sup_vm.cc sup_vcpu.cc sup_gim.cc
@@ -18,6 +18,7 @@ LIBS  += base
 LIBS  += stdcxx
 LIBS  += libiconv
 LIBS  += qemu-usb
+LIBS  += mesa
 
 CC_OPT_main = -Wno-multistatement-macros
 CC_OPT += -DProgress=ClientProgress

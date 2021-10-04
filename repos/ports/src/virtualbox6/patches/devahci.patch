@@ -1,4 +1,4 @@
-Patch for DevAHCI model to really kick the consumer of requests (WiP)
+Patch for DevAHCI model to really kick the consumer of requests
 
 +++ a/src/virtualbox6/src/VBox/Devices/Storage/DevAHCI.cpp
 +++ b/src/virtualbox6/src/VBox/Devices/Storage/DevAHCI.cpp
