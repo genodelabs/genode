@@ -66,6 +66,11 @@ class Genode::Uplink_client_base : Noncopyable
 
 		void _conn_tx_handle_ack_avail()
 		{
+			if (_custom_conn_tx_ack_avail_handler()) {
+				_custom_conn_tx_handle_ack_avail();
+				return;
+			}
+
 			while (_conn->tx()->ack_avail()) {
 
 				_conn->tx()->release_packet(_conn->tx()->get_acked_packet());
@@ -310,7 +315,15 @@ class Genode::Uplink_client_base : Noncopyable
 			throw Unexpected_call { };
 		}
 
+		virtual void _custom_conn_tx_handle_ack_avail()
+		{
+			class Unexpected_call { };
+			throw Unexpected_call { };
+		}
+
 		virtual bool _custom_conn_rx_packet_avail_handler() { return false; }
+
+		virtual bool _custom_conn_tx_ack_avail_handler() { return false; }
 
 	public:
 
