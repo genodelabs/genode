@@ -1,0 +1,5 @@
+#
+# Board-support for Xilinx Zynq-7000 SoC
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/zynq
+
