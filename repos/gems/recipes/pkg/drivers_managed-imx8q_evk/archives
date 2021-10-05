@@ -1,5 +1,4 @@
 _/raw/drivers_managed-imx8q_evk
-_/src/dummy_rtc_drv
 _/src/event_filter
 _/src/imx8_fb_drv
 _/src/imx8q_evk_drivers

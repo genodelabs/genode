@@ -275,7 +275,6 @@ install_config {
 			<service name="Block"/>
 			<service name="Usb"/>
 			<service name="Platform"/>
-			<service name="Rtc"/>
 			<service name="Gpu"/>
 		</provides>
 	</start>
@@ -470,7 +469,6 @@ install_config {
 			<service name="Platform" label_prefix="acpica">
 				<child name="drivers" label="acpica"/> </service>
 			<service name="Platform"> <child name="drivers"/> </service>
-			<service name="Rtc"> <child name="drivers"/> </service>
 			<service name="Gui" label_prefix="leitzentrale">
 				<child name="leitzentrale"/> </service>
 			<service name="Gui" label="backdrop">

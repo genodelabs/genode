@@ -25,11 +25,13 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 			gen_named_node(xml, "dir", "dev", [&] () {
 				xml.node("null", [&] () {});
 				xml.node("zero", [&] () {});
-				xml.node("rtc",  [&] () {});
 				xml.node("log",  [&] () {});
 				xml.node("null", [&] () {});
 				gen_named_node(xml, "jitterentropy", "random");
 				gen_named_node(xml, "jitterentropy", "urandom"); });
+				gen_named_node(xml, "inline", "rtc", [&] () {
+					xml.append("2018-01-01 00:01");
+				});
 		});
 
 		xml.node("libc", [&] () {
