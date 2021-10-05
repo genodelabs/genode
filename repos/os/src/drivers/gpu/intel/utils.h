@@ -30,6 +30,7 @@ namespace Utils {
 	struct Backend_alloc : Genode::Interface
 	{
 		virtual Ram alloc(Genode::size_t) = 0;
+		virtual Ram alloc(Genode::size_t, Genode::Cap_quota_guard &, Genode::Ram_quota_guard&) = 0;
 		virtual void free(Ram) = 0;
 	};
 

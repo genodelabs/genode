@@ -35,11 +35,21 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 		enum { ELEMENTS = 256, };
 		Utils::Address_map<ELEMENTS> _map { };
 
+		Genode::Cap_quota_guard &_caps_guard;
+		Genode::Ram_quota_guard &_ram_guard;
+
 	public:
 
 		Ppgtt_allocator(Genode::Region_map      &rm,
-		                Utils::Backend_alloc    &backend)
-		: _rm(rm), _backend(backend) { }
+		                Utils::Backend_alloc    &backend,
+		                Genode::Cap_quota_guard &caps_guard,
+		                Genode::Ram_quota_guard &ram_guard)
+		:
+			_rm         { rm },
+			_backend    { backend },
+			_caps_guard { caps_guard },
+			_ram_guard  { ram_guard }
+		{ }
 
 		/*************************
 		 ** Allocator interface **
@@ -47,8 +57,8 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 
 		bool alloc(size_t size, void **out_addr) override
 		{
-			Genode::Ram_dataspace_capability ds = _backend.alloc(size);
-			if (!ds.valid()) { return false; }
+			Genode::Ram_dataspace_capability ds =
+				_backend.alloc(size, _caps_guard, _ram_guard);
 
 			*out_addr = _rm.attach(ds);
 			return _map.add(ds, *out_addr);

@@ -74,6 +74,7 @@ struct Igd::Device_info
 struct Igd::Device
 {
 	struct Unsupported_device    : Genode::Exception { };
+	struct Out_of_caps           : Genode::Exception { };
 	struct Out_of_ram            : Genode::Exception { };
 	struct Could_not_map_buffer  : Genode::Exception { };
 
@@ -99,6 +100,43 @@ struct Igd::Device
 		{
 			return _pci.with_upgrade([&] () {
 				return _pci.alloc_dma_buffer(size, Genode::UNCACHED); });
+		}
+
+		Ram_dataspace_capability alloc(size_t size,
+		                               Cap_quota_guard &caps_guard,
+		                               Ram_quota_guard &ram_guard) override
+		{
+			/*
+			 * For now we only reflect quota exceptions on explicit user
+			 * allocations, e.g., buffers.
+			 */
+			try {
+				Genode::size_t donate = size;
+				return retry<Platform::Out_of_ram>(
+					[&] () {
+						return retry<Platform::Out_of_caps>(
+							[&] () {
+								return _pci.alloc_dma_buffer(size, Genode::UNCACHED);
+							},
+							[&] () {
+								enum { UPGRADE_CAP_QUOTA = 2, };
+								Cap_quota const caps { 2 };
+								caps_guard.withdraw(caps);
+								_pci.upgrade_caps(caps.value);
+							}
+						);
+					},
+					[&] () {
+						Ram_quota const ram { donate };
+						ram_guard.withdraw(ram);
+						_pci.upgrade_ram(ram.value);
+					}
+				);
+			} catch (Ram_quota_guard::Limit_exceeded) {
+				throw Out_of_ram();
+			} catch (Cap_quota_guard::Limit_exceeded) {
+				throw Out_of_caps();
+			}
 		}
 
 		void free(Ram_dataspace_capability cap) override
@@ -445,11 +483,13 @@ struct Igd::Device
 
 		Engine(Igd::Device         &device,
 		       uint32_t             id,
-		       Allocator           &alloc)
+		       Allocator           &alloc,
+		       Cap_quota_guard     &caps_guard,
+		       Ram_quota_guard     &ram_guard)
 		:
 			ctx (device._env.rm(), alloc, device, CONTEXT::CONTEXT_PAGES, 1 /* omit GuC page */),
 			ring(device._env.rm(), alloc, device, CONTEXT::RING_PAGES, 0),
-			ppgtt_allocator(device._env.rm(), device._pci_backend_alloc),
+			ppgtt_allocator(device._env.rm(), device._pci_backend_alloc, caps_guard, ram_guard),
 			ppgtt_scratch(device._pci_backend_alloc)
 		{
 			/* PPGTT */
@@ -559,11 +599,13 @@ struct Igd::Device
 		}
 
 		Vgpu(Device &device, Allocator &alloc,
-		     Ram_allocator &ram, Region_map &rm)
+		     Ram_allocator &ram, Region_map &rm,
+		     Cap_quota_guard &caps_guard,
+		     Ram_quota_guard &ram_guard)
 		:
 			_device(device),
 			_id(_id_alloc()),
-			rcs(_device, _id + Rcs_context::HW_ID, alloc),
+			rcs(_device, _id + Rcs_context::HW_ID, alloc, caps_guard, ram_guard),
 			_info_dataspace(ram, rm, INFO_SIZE)
 		{
 			_device.vgpu_created();
@@ -843,16 +885,9 @@ struct Igd::Device
 			Genode::Page_flags pf;
 			pf.writeable = Genode::Writeable::RW;
 
-			try {
-				rcs.ppgtt->insert_translation(vo, pa, size, pf,
-				                              &rcs.ppgtt_allocator,
-				                              &rcs.ppgtt_scratch.pdp);
-			} catch (Igd::Ppgtt_allocator::Out_of_memory) {
-				throw Igd::Device::Out_of_ram();
-			} catch (...) {
-				/* Double_insertion and the like */
-				throw Igd::Device::Could_not_map_buffer();
-			}
+			rcs.ppgtt->insert_translation(vo, pa, size, pf,
+			                              &rcs.ppgtt_allocator,
+			                              &rcs.ppgtt_scratch.pdp);
 		}
 
 		void rcs_unmap_ppgtt(addr_t vo, size_t size)
@@ -1313,9 +1348,11 @@ struct Igd::Device
 	 * \throw Out_of_memory
 	 */
 	Genode::Dataspace_capability alloc_buffer(Allocator &,
-	                                          size_t const size)
+	                                          size_t const size,
+	                                          Cap_quota_guard &cap_guard,
+	                                          Ram_quota_guard &ram_guard)
 	{
-		return _pci_backend_alloc.alloc(size);
+		return _pci_backend_alloc.alloc(size, cap_guard, ram_guard);
 	}
 
 	/**
@@ -1347,13 +1384,9 @@ struct Igd::Device
 	                                Genode::Dataspace_capability cap, bool aperture)
 	{
 		size_t const size = Genode::Dataspace_client(cap).size();
-		try {
-			size_t const num = size / PAGE_SIZE;
-			Ggtt::Offset const offset = _ggtt->find_free(num, aperture);
-			return map_dataspace_ggtt(guard, cap, offset);
-		} catch (...) {
-			throw Could_not_map_buffer();
-		}
+		size_t const num = size / PAGE_SIZE;
+		Ggtt::Offset const offset = _ggtt->find_free(num, aperture);
+		return map_dataspace_ggtt(guard, cap, offset);
 	}
 
 	/**
@@ -1453,6 +1486,8 @@ struct Igd::Device
 
 	void enable_master_irq() { _mmio.enable_master_irq(); }
 
+	Resources &resources() { return _resources; }
+
 	private:
 
 		/*
@@ -1541,6 +1576,19 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			_buffer_registry.for_each(lookup_and_free);
 		}
 
+		void _throw_if_avail_quota_insufficient(Cap_quota caps, Ram_quota ram)
+		{
+			Cap_quota const c = _cap_quota_guard().avail();
+			if (c.value < caps.value)
+				throw Out_of_caps();
+
+			Ram_quota const r = _ram_quota_guard().avail();
+			enum { MINIMAL_RAM_AMOUNT = 4096, };
+			if (r.value < ram.value)
+				throw Out_of_ram();
+		}
+
+
 	public:
 
 		/**
@@ -1563,7 +1611,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			_rm(rm),
 			_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
 			_device(device),
-			_vgpu(_device, _heap, ram, rm)
+			_vgpu(_device, _heap, ram, rm, _cap_quota_guard(), _ram_quota_guard())
 		{ }
 
 		~Session_component()
@@ -1643,7 +1691,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			size = ((size + 0xffful) & ~0xffful);
 
 			try {
-				Genode::Dataspace_capability cap = _device.alloc_buffer(_heap, size);
+				Genode::Dataspace_capability cap =
+					_device.alloc_buffer(_heap, size, _cap_quota_guard(), _ram_quota_guard());
 
 				try {
 					new (&_heap) Genode::Registered<Buffer>(_buffer_registry, id, cap);
@@ -1653,6 +1702,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					throw Gpu::Session_component::Out_of_ram();
 				}
 				return cap;
+			} catch (Igd::Device::Out_of_caps) {
+				throw Gpu::Session_component::Out_of_caps();
 			} catch (Igd::Device::Out_of_ram) {
 				throw Gpu::Session_component::Out_of_ram();
 			}
@@ -1679,6 +1730,13 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		                                        bool aperture,
 		                                        Gpu::Mapping_attributes attrs) override
 		{
+			enum {
+				CAP_AMOUNT = 2,
+				RAM_AMOUNT = 4096,
+			};
+			_throw_if_avail_quota_insufficient(Cap_quota { CAP_AMOUNT },
+			                                   Ram_quota { RAM_AMOUNT });
+
 			/* treat GGTT mapped buffers as rw */
 			if (!(attrs.readable && attrs.writeable))
 				return Genode::Dataspace_capability();
@@ -1698,8 +1756,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					buffer.map.cap    = map.cap;
 					buffer.map.offset = map.offset;
 					map_cap           = buffer.map.cap;
-				} catch (Igd::Device::Could_not_map_buffer) {
-					Genode::error("could not map buffer object");
+				} catch (Ram_quota_guard::Limit_exceeded) {
 					throw Gpu::Session::Out_of_ram();
 				}
 			};
@@ -1731,7 +1788,19 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 		bool map_buffer_ppgtt(Gpu::Buffer_id id, Gpu::addr_t va) override
 		{
-			enum { ALLOC_FAILED, MAP_FAILED, OK } result = ALLOC_FAILED;
+			enum {
+				CAP_AMOUNT = 32,
+				RAM_AMOUNT = 8192,
+			};
+			_throw_if_avail_quota_insufficient(Cap_quota { CAP_AMOUNT },
+			                                   Ram_quota { RAM_AMOUNT });
+
+			enum {
+				ALLOC_FAILED_RAM,
+				ALLOC_FAILED_CAPS,
+				MAP_FAILED,
+				OK
+			} result = ALLOC_FAILED_RAM;
 
 			auto lookup_and_map = [&] (Buffer &buffer) {
 
@@ -1749,21 +1818,25 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					buffer.ppgtt_va = va;
 					buffer.ppgtt_va_valid = true;
 					result = OK;
-				} catch (Igd::Device::Could_not_map_buffer) {
+				} catch (Igd::Device::Out_of_caps) {
+					result = ALLOC_FAILED_CAPS;
+					return;
+				} catch (Igd::Device::Out_of_ram) {
+					result = ALLOC_FAILED_RAM;
+					return;
+				} catch (...) {
+					/* double inseration where the addresses do not match up */
 					Genode::error("could not map buffer object (", Genode::Hex(va), ") into PPGTT");
 					result = MAP_FAILED;
-					return;
-				}
-				catch (Igd::Device::Out_of_ram) {
-					result = ALLOC_FAILED;
 					return;
 				}
 			};
 			_apply_buffer(id, lookup_and_map);
 
 			switch (result) {
-			case ALLOC_FAILED: throw Gpu::Session::Out_of_ram();
-			case MAP_FAILED:   throw Gpu::Session::Mapping_buffer_failed();
+			case ALLOC_FAILED_CAPS: throw Gpu::Session::Out_of_caps();
+			case ALLOC_FAILED_RAM:  throw Gpu::Session::Out_of_ram();
+			case MAP_FAILED:        throw Gpu::Session::Mapping_buffer_failed();
 			case OK: return true;
 			default:
 				return false;
@@ -1864,12 +1937,22 @@ class Gpu::Root : public Gpu::Root_component
 				throw Session::Out_of_ram();
 			}
 
+			Genode::Session::Resources resources = session_resources_from_args(args);
+			Cap_quota const minimal_caps { 220 };
+			resources.cap_quota.value -= minimal_caps.value;
+			_device->resources().platform().upgrade_caps(minimal_caps.value);
+
+			Ram_quota const minimal_ram { 128u << 10 };
+			resources.ram_quota.value -= minimal_ram.value;
+			_device->resources().platform().upgrade_ram(minimal_ram.value);
+
 			try {
+
 				using namespace Genode;
 
 				return new (md_alloc())
 					Session_component(_env.ep(), _env.ram(), _env.rm(),
-					                  session_resources_from_args(args),
+					                  resources,
 					                  session_label_from_args(args),
 					                  session_diag_from_args(args),
 					                  *_device);
@@ -1878,8 +1961,13 @@ class Gpu::Root : public Gpu::Root_component
 
 		void _upgrade_session(Session_component *s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			Genode::Ram_quota ram_quota  = ram_quota_from_args(args);
+			ram_quota.value /= 2;
+			Genode::Cap_quota caps_quota = cap_quota_from_args(args);
+			caps_quota.value /= 2;
+
+			s->upgrade(ram_quota);
+			s->upgrade(caps_quota);
 		}
 
 		void _destroy_session(Session_component *s) override

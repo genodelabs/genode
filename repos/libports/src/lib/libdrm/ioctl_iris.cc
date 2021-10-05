@@ -253,12 +253,20 @@ class Drm_call
 				                Genode::Hex(buffer.gpu_vaddr.addr), " vs ",
 				                Genode::Hex(vaddr.addr));
 
-/* XXX out of cap XXX */
 			bool const ppgtt = Genode::retry<Gpu::Session::Out_of_ram>(
-				[&]() { return _gpu_session.map_buffer_ppgtt(buffer.id(),
-				                                             Utils::limit_to_48bit(vaddr.addr)); },
-				[&]() { _gpu_session.upgrade_ram(4096); }
-			);
+			[&]() {
+				return Genode::retry<Gpu::Session::Out_of_caps>(
+				[&] () {
+					return _gpu_session.map_buffer_ppgtt(buffer.id(),
+						Utils::limit_to_48bit(vaddr.addr));
+				},
+				[&] () {
+					_gpu_session.upgrade_caps(2);
+				});
+			},
+			[&] () {
+				_gpu_session.upgrade_ram(4096);
+			});
 
 			if (!ppgtt) {
 				Genode::error("could not insert buffer into PPGTT");
@@ -286,12 +294,17 @@ class Drm_call
 			Buffer *buffer = nullptr;
 			Genode::retry<Gpu::Session::Out_of_ram>(
 			[&] () {
-				buffer =
-					new (&_heap) Buffer(_gpu_session, size, _buffer_space);
+				Genode::retry<Gpu::Session::Out_of_caps>(
+				[&] () {
+					buffer =
+						new (&_heap) Buffer(_gpu_session, size, _buffer_space);
+				},
+				[&] () {
+					_gpu_session.upgrade_caps(2);
+				});
 			},
 			[&] () {
 				_gpu_session.upgrade_ram(donate);
-				donate /= 4;
 			});
 
 			if (buffer)
@@ -339,13 +352,25 @@ class Drm_call
 			}
 
 			try {
-				_gpu_session.upgrade_ram(4096);
-				b.map_cap    = _gpu_session.map_buffer(b.id(), true,
-				                                       Gpu::Mapping_attributes::rw());
-				b.map_offset = static_cast<Offset>(_env.rm().attach(b.map_cap));
-				offset       = b.map_offset;
+				Genode::retry<Gpu::Session::Out_of_ram>(
+				[&]() {
+					Genode::retry<Gpu::Session::Out_of_caps>(
+					[&] () {
+						b.map_cap    = _gpu_session.map_buffer(b.id(), true,
+						                                       Gpu::Mapping_attributes::rw());
+						b.map_offset = static_cast<Offset>(_env.rm().attach(b.map_cap));
+						offset       = b.map_offset;
 
-				_available_gtt_size -= b.size;
+						_available_gtt_size -= b.size;
+					},
+					[&] () {
+						_gpu_session.upgrade_caps(2);
+					});
+				},
+				[&] () {
+					_gpu_session.upgrade_ram(4096);
+				});
+
 			} catch (...) {
 				if (b.map_cap.valid())
 					_gpu_session.unmap_buffer(b.id());

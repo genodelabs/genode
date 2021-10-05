@@ -273,7 +273,9 @@ class Genode::Level_4_translation_table
 				Descriptor::access_t table_entry =
 					Descriptor::create(flags, pa);
 
-				if (!Descriptor::scratch(desc, scratch->addr)) {
+				/* only complain if we overmap */
+				if (   !Descriptor::scratch(desc, scratch->addr)
+				    && !Descriptor::scratch(desc, pa)) {
 					throw Double_insertion();
 				}
 				desc = table_entry;
@@ -469,8 +471,7 @@ class Genode::Page_directory
 					if (!alloc) { throw Allocator::Out_of_memory(); }
 
 					/* create and link next level table */
-					try { table = new (alloc) ENTRY(scratch->next); }
-					catch (...) { throw Allocator::Out_of_memory(); }
+					table = new (alloc) ENTRY(scratch->next);
 					ENTRY * phys_addr = (ENTRY*) alloc->phys_addr(table);
 
 					Gpu::addr_t const pa = (Gpu::addr_t)(phys_addr ? phys_addr : table);
@@ -661,8 +662,7 @@ class Genode::Pml4_table
 						if (!alloc) { throw Allocator::Out_of_memory(); }
 
 						/* create and link next level table */
-						try { table = new (alloc) ENTRY(scratch->next); }
-						catch (...) { throw Allocator::Out_of_memory(); }
+						table = new (alloc) ENTRY(scratch->next);
 
 						ENTRY * phys_addr = (ENTRY*) alloc->phys_addr(table);
 						Gpu::addr_t const pa = (Gpu::addr_t)(phys_addr ? phys_addr : table);
