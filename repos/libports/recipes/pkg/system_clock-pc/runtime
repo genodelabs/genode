@@ -1,0 +1,54 @@
+<runtime ram="4M" caps="300" binary="init">
+
+	<provides> <rtc/> </provides>
+
+	<requires> <timer/> <irq/> <io_port/> </requires>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="init"/>
+		<rom label="rtc_drv"/>
+		<rom label="system_rtc"/>
+	</content>
+
+	<config>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default caps="100"/>
+
+		<service name="Rtc">
+			<default-policy> <child name="system_rtc"/> </default-policy> </service>
+
+		<start name="rtc_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Rtc"/> </provides>
+			<config/>
+			<route>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="system_rtc">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Rtc"/> </provides>
+			<config/>
+			<route>
+				<service name="Rtc"> <child name="rtc_drv"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+	</config>
+
+</runtime>
