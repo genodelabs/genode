@@ -679,9 +679,14 @@ close $fd
 #
 # Add current depot index of [depot_user] as generated above.
 #
-set depot_users_files [exec sh -c "cd [genode_dir]; \
-                                   find depot -maxdepth 3 -name pubkey \
-                                                      -or -name download"]
+set depot_selection { genodelabs cnuke alex-ab mstein nfeske cproc chelmuth
+                      jschlatow ssumpf skalk }
+
+set depot_users_files {}
+foreach user $depot_selection {
+	lappend depot_users_files [file join depot $user pubkey] \
+	                          [file join depot $user download] }
+
 exec sh -c "tar cf [run_dir]/genode/depot_users.tar -C [genode_dir] \
                    [join $depot_users_files]"
 
