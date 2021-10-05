@@ -38,6 +38,7 @@
 #include <init.h>
 #include <fb.h>
 #include <input_adapter.h>
+#include <mouse_shape.h>
 
 using namespace Genode;
 
@@ -259,6 +260,8 @@ struct Main : Event_handler
 		}
 	} _capslock { _env, _config.xml(), _capslock_handler };
 
+	Mouse_shape _mouse_shape { _env };
+
 	Registry<Registered<Gui::Connection>> _gui_connections { };
 
 	Signal_handler<Main> _input_handler { _env.ep(), *this, &Main::_handle_input };
@@ -418,7 +421,25 @@ void Main::handle_vbox_event(VBoxEventType_T ev_type, IEvent &ev)
 			_input_adapter.mouse_absolute(!!absolute);
 		} break;
 
-	case VBoxEventType_OnMousePointerShapeChanged: break;
+	case VBoxEventType_OnMousePointerShapeChanged:
+		{
+			ComPtr<IMousePointerShapeChangedEvent> shape_ev = &ev;
+			BOOL  visible, alpha;
+			ULONG xHot, yHot, width, height;
+			com::SafeArray <BYTE> shape;
+
+			shape_ev->COMGETTER(Visible)(&visible);
+			shape_ev->COMGETTER(Alpha)(&alpha);
+			shape_ev->COMGETTER(Xhot)(&xHot);
+			shape_ev->COMGETTER(Yhot)(&yHot);
+			shape_ev->COMGETTER(Width)(&width);
+			shape_ev->COMGETTER(Height)(&height);
+			shape_ev->COMGETTER(Shape)(ComSafeArrayAsOutParam(shape));
+
+			_mouse_shape.update(visible, alpha, xHot, yHot, width, height,
+			                    ComSafeArrayAsInParam(shape));
+
+		} break;
 
 	case VBoxEventType_OnKeyboardLedsChanged:
 		{
