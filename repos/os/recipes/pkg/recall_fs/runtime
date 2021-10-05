@@ -1,0 +1,13 @@
+<runtime ram="1M" caps="100" binary="chroot">
+
+	<requires> <file_system/> </requires>
+	<provides> <file_system/> </provides>
+
+	<config> <default-policy path_prefix="/recall" writeable="yes"/> </config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="chroot"/>
+	</content>
+
+</runtime>
