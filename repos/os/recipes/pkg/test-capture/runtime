@@ -1,6 +1,6 @@
 <runtime ram="8M" caps="200" binary="test-capture">
 
-	<requires> <gui/> <capture/> <timer/> </requires>
+	<requires> <capture/> <gui/> <timer/> </requires>
 
 	<config period_ms="20" width="1024" height="768">
 		<view/>

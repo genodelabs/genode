@@ -1,5 +1,8 @@
 <index>
 
+  <supports arch="x86_64"/>
+  <supports arch="arm_v8a"/>
+
   <index name="GUI">
     <pkg path="sticks_blue_backdrop" info="default desktop background"/>
     <pkg path="themed_wm"            info="ready-to-use window manager"/>
@@ -10,27 +13,34 @@
     <pkg path="window_layouter"      info="default window layouter"/>
   </index>
 
-  <index name="Mesa 3D">
-    <pkg path="mesa_gpu-cpu"   info="SWRAST Mesa driver"/>
-    <pkg path="mesa_gpu-intel" info="Intel IRIS Mesa driver"/>
-  </index>
-
   <index name="Tools">
-    <pkg path="system_shell" info="command-line interface to the system"/>
-    <pkg path="system_clock" info="system-clock service"/>
-    <pkg path="qt5_textedit" info="Qt5-based text editor"/>
-    <pkg path="report_dump"  info="save periodic snapshots of the report fs"/>
+    <pkg path="system_shell"    info="command-line interface to the system"/>
+    <pkg path="system_clock-pc" info="real-time-clock service" arch="x86_64"/>
+    <pkg path="qt5_textedit"    info="Qt5-based text editor"/>
+    <pkg path="report_dump"     info="save periodic snapshots of the report fs"/>
+    <pkg path="recall_fs"       info="component-specific file-system view"/>
+    <pkg path="file_vault"      info="encrypted file store"/>
+    <pkg path="black_hole"      info="pseudo service provider"/>
+    <pkg path="usb_webcam"      info="USB webcam"/>
+    <pkg path="bsd_audio_drv"   info="audio driver" arch="x86_64"/>
+    <pkg path="mixer"           info="audio mixer"/>
   </index>
 
   <index name="Demos">
-    <pkg path="nano3d"     info="simple software-rendering demo"/>
-    <pkg path="mesa_gears" info="Mesa gears demo"/>
+    <pkg path="nano3d"       info="simple software-rendering demo"/>
+    <pkg path="mesa_gears"   info="Mesa gears demo"/>
+    <pkg path="test-capture" info="test for displaying a capture session"/>
   </index>
 
-  <index name="Virtual machines">
-    <pkg path="vbox5" info="VBox5 for running Linux (generic version)"/>
+  <index name="Virtual machines" arch="x86_64">
+    <pkg path="vbox6"             info="VBox6 for running Linux"/>
+    <pkg path="vbox6-capture"     info="VBox6 + webcam support"/>
     <pkg path="vbox5-nova-sculpt" info="VBox5 for running Linux (NOVA version)" />
-    <pkg path="vbox5-nova-capture" info="VBox5 + Webcam (NOVA version)" />
+  </index>
+
+  <index name="Mesa 3D">
+    <pkg path="mesa_gpu-cpu"   info="software-rendering driver"/>
+    <pkg path="mesa_gpu-intel" info="Intel GPU driver (IRIS)" arch="x86_64"/>
   </index>
 
 </index>
