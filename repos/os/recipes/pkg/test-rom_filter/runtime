@@ -6,13 +6,13 @@
 		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
 			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config>&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> rom_logger]   &lt;config color="transparent">&lt;!-- ... fallback ... -->&lt;/config>*
 			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config>&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> rom_logger]   &lt;config color="transparent">&lt;!-- ... fallback ... -->&lt;/config>*
 			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config>&lt;!-- xray enabled -->&lt;/config>*
+			[init -> rom_logger]   &lt;config color="yellow">&lt;!-- xray enabled -->&lt;/config>*
 			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config message="system locked">&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> rom_logger]   &lt;config message="system locked" color="transparent">&lt;!-- ... fallback ... -->&lt;/config>*
 			[init -> dynamic_rom] xray: change (finished)
 		</log>
 		<log meaning="failed">Error: </log>
@@ -54,7 +54,9 @@
 					</inline>
 					<sleep milliseconds="1000" />
 					<inline description="enable X-ray mode">
-						<xray enabled="yes"/>
+						<xray enabled="yes">
+							<style color="yellow"/>
+						</xray>
 					</inline>
 					<sleep milliseconds="1000" />
 					<inline description="leave X-ray mode undefined">
@@ -80,6 +82,13 @@
 					<attribute name="enabled" />
 				</input>
 
+				<!-- test fallback to default value -->
+				<input name="color" rom="xray" node="xray" default="transparent">
+					<node type="style">
+						<attribute name="color" />
+					</node>
+				</input>
+
 				<input name="diagnostic_message" rom="xray" node="xray">
 					<node type="details">
 						<node type="message" attribute="reason" value="no access">
@@ -90,6 +99,7 @@
 
 				<output node="config">
 					<attribute name="message" input="diagnostic_message"/>
+					<attribute name="color"   input="color"/>
 					<if>
 						<has_value input="xray_enabled" value="yes" />
 						<then>

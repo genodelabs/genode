@@ -17,6 +17,9 @@ attribute. The 'rom' attribute specifies the ROM module to take the input
 from. If not specified, the 'name' is used as the ROM name. The type of the
 top-level XML node can be specified via the 'node' attribute. If not present,
 the top-level XML node is expected to correspond to the 'name' attribute.
+The optional 'default' attribute defines the input value used whenever the
+ROM module lacks the structure or attribute expected by the '<input>'.
+
 The '<input>' node may contain a hierarchy of '<node type="type">' nodes that
 denote a path within the XML input. If specified, the optional attributes
 'attribute' and 'value' constrain the selection of the input depending of the

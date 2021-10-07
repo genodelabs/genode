@@ -233,6 +233,9 @@ class Rom_filter::Input_rom_registry
 
 					} catch (...) { }
 
+					if (input_node.has_attribute("default"))
+						return input_node.attribute_value("default", Input_value(""));
+
 					throw Nonexistent_input_value();
 				}
 
