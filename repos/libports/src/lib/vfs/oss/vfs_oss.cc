@@ -169,7 +169,7 @@ struct Vfs::Oss_file_system::Audio
 			_info.channels    = CHANNELS;
 			_info.format      = (unsigned)AFMT_S16_LE;
 			_info.sample_rate = Audio_out::SAMPLE_RATE;
-			_info.ofrag_total = Audio_out::QUEUE_SIZE;
+			_info.ofrag_total = Audio_out::QUEUE_SIZE - 2;
 			_info.ofrag_size  =
 				(unsigned)Audio_out::PERIOD * (unsigned)CHANNELS
 				                            * sizeof (int16_t);
@@ -558,7 +558,8 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_play_underruns_changed };
 
-	static constexpr size_t _native_stream_size { Audio_out::QUEUE_SIZE * _stream_packet_size };
+	static constexpr size_t _native_stream_size { (Audio_out::QUEUE_SIZE - 2) *
+	                                              _stream_packet_size };
 	static constexpr size_t _ofrag_total_min { 2 };
 	static constexpr size_t _ofrag_size_min { _stream_packet_size };
 	static constexpr size_t _ofrag_total_max { _native_stream_size / _ofrag_size_min };
