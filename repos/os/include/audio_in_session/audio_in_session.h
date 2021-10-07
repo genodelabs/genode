@@ -36,10 +36,14 @@ namespace Audio_in {
 
 	enum {
 		QUEUE_SIZE  = 431,            /* buffer queue size (~5s) */
-		PERIOD      = 512,            /* samples per periode (~11.6ms) */
 		SAMPLE_RATE = 44100,
 		SAMPLE_SIZE = sizeof(float),
 	};
+
+	/**
+	 * Samples per period (~11.6ms)
+	 */
+	static constexpr Genode::size_t PERIOD = 512;
 }
 
 
@@ -265,7 +269,7 @@ class Audio_in::Session : public Genode::Session
 {
 	protected:
 
-		Stream *_stream;
+		Stream *_stream { nullptr };
 
 	public:
 
