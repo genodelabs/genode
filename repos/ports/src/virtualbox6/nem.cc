@@ -228,7 +228,7 @@ int nemR3NativeInitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 }
 
 
-int nemR3NativeTerm(PVM pVM) STOP
+int nemR3NativeTerm(PVM pVM) TRACE(VINF_SUCCESS)
 
 
 /**

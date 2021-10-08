@@ -232,6 +232,8 @@ struct Main : Event_handler
 			}
 		}
 
+		void destruct_rom() { _rom.destruct(); }
+
 		void update_guest(bool enabled) { _guest = enabled; }
 
 		bool update_from_rom()
@@ -261,6 +263,8 @@ struct Main : Event_handler
 	} _capslock { _env, _config.xml(), _capslock_handler };
 
 	Mouse_shape _mouse_shape { _env };
+
+	Signal_handler<Main> _exit_handler { _env.ep(), *this, &Main::_handle_exit };
 
 	Registry<Registered<Gui::Connection>> _gui_connections { };
 
@@ -324,6 +328,20 @@ struct Main : Event_handler
 		}
 	}
 
+	void _power_down_machine()
+	{
+		_capslock.destruct_rom();
+
+		_gui_connections.for_each([&] (Gui::Connection &gui) {
+			delete &gui;
+		});
+
+		/* signal exit to main entrypoint */
+		_exit_handler.local_submit();
+	}
+
+	void _handle_exit() { _env.parent().exit(0); }
+
 	void handle_vbox_event(VBoxEventType_T, IEvent &) override;
 
 	bool const _vbox_event_handler_installed = ( _install_vbox_event_handler(), true );
@@ -342,6 +360,7 @@ struct Main : Event_handler
 		event_types.push_back(VBoxEventType_OnMouseCapabilityChanged);
 		event_types.push_back(VBoxEventType_OnMousePointerShapeChanged);
 		event_types.push_back(VBoxEventType_OnKeyboardLedsChanged);
+		event_types.push_back(VBoxEventType_OnStateChanged);
 
 		ievent_source->RegisterListener(listener, ComSafeArrayAsInParam(event_types), true);
 	}
@@ -447,6 +466,17 @@ void Main::handle_vbox_event(VBoxEventType_T ev_type, IEvent &ev)
 			BOOL capslock;
 			led_ev->COMGETTER(CapsLock)(&capslock);
 			_capslock.update_guest(!!capslock);
+		} break;
+
+	case VBoxEventType_OnStateChanged:
+		{
+			ComPtr<IStateChangedEvent> state_change_ev = &ev;
+			MachineState_T machineState;
+			state_change_ev->COMGETTER(State)(&machineState);
+
+			if (machineState == MachineState_PoweredOff)
+				_power_down_machine();
+
 		} break;
 
 	default: /* ignore other events */ break;

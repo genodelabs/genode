@@ -631,6 +631,15 @@ static void ioctl(SUPCALLVMMR0 &request)
 		rc = vmmr0_vmmr0_init_emt(request.u.In.pVMR0, request.u.In.idCpu);
 		return;
 
+	/* XXX ignore ioctls called during poweroff */
+	case VMMR0_DO_GVMM_DEREGISTER_VMCPU:
+	case VMMR0_DO_VMMR0_TERM:
+	case VMMR0_DO_PGM_FLUSH_HANDY_PAGES:
+	case VMMR0_DO_GMM_BALLOONED_PAGES:
+	case VMMR0_DO_GMM_RESET_SHARED_MODULES:
+		rc = VINF_SUCCESS;
+		return;
+
 	default:
 		error(__func__, " operation=", (int)operation);
 		rc = VERR_NOT_IMPLEMENTED;
@@ -664,6 +673,13 @@ static void ioctl(SUPGETPAGINGMODE &request)
 		out.enmMode = sizeof(long) == 32 ? SUPPAGINGMODE_32_BIT_GLOBAL
 		                                 : SUPPAGINGMODE_AMD64_GLOBAL_NX;
 	});
+}
+
+
+static void ioctl(SUPPAGEFREE &request)
+{
+	warning("SUPPAGEFREE called");
+	request.Hdr.rc = VINF_SUCCESS;
 }
 
 
@@ -739,6 +755,7 @@ int suplibOsIOCtl(PSUPLIBDATA pThis, uintptr_t opcode, void *req, size_t len)
 	case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_GET_PAGING_MODE):      ioctl(*(SUPGETPAGINGMODE *)req); break;
 	case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_PAGE_ALLOC_EX):        ioctl(*(SUPPAGEALLOCEX   *)req); break;
 	case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_SET_VM_FOR_FAST):      ioctl(*(SUPSETVMFORFAST  *)req); break;
+	case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_PAGE_FREE):            ioctl(*(SUPPAGEFREE      *)req); break;
 
 	default:
 
