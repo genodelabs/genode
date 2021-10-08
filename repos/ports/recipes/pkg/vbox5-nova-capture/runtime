@@ -5,7 +5,6 @@
 		<file_system label="shared"/>
 		<nic/>
 		<capture/>
-		<report label="capture"/>
 		<gui/>
 		<rom label="capslock"/>
 		<report label="shape"/>
@@ -67,7 +66,7 @@
 					<fs writeable="yes"/>
 				</vfs>
 				<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
-				<webcam vertical_flip="true" fps="30" report="true" screen_size="false" width="640" height="480"/>
+				<webcam vertical_flip="true" fps="30" screen_size="false" width="640" height="480"/>
 			</config>
 			<route>
 				<service name="Audio_out"> <parent/> </service>
@@ -81,7 +80,6 @@
 				<service name="Report" label="shape"> <parent label="shape"/> </service>
 				<service name="ROM"    label="clipboard"> <parent label="clipboard"/> </service>
 				<service name="Report" label="clipboard"> <parent label="clipboard"/> </service>
-				<service name="Report" label="capture">   <parent label="capture"/>   </service>
 				<service name="Gui"> <parent label=""/> </service>
 				<any-service> <parent/> </any-service>
 			</route>

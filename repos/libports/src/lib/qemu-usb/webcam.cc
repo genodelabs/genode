@@ -30,28 +30,27 @@ using namespace Genode;
 struct Capture_webcam
 {
 	Env                        &_env;
-	Capture::Connection         _capture { _env, "webcam" };
 	Gui::Area            const  _area;
 	bool                 const  _vflip;
 	uint8_t              const  _fps;
 	bool                        _force_update { false };
-	Attached_dataspace          _ds { _env.rm(), _capture.dataspace() };
-	Constructible<Reporter>     _reporter { };
 
+	Constructible<Capture::Connection> _capture;
+	Constructible<Attached_dataspace>  _ds;
 
-	Gui::Area setup_area(Gui::Area const area_in, bool const auto_area)
+	Gui::Area _setup_area(Gui::Area const area_in, bool const auto_area)
 	{
 		Gui::Area area = area_in;
 
 		if (auto_area) {
-			area = _capture.screen_size();
+			Capture::Connection probe { _env, "webcam" };
+
+			area = probe.screen_size();
 
 			if (!area.valid())
 				area = area_in;
 		}
 
-		/* request setup of dataspace by server */
-		_capture.buffer(area);
 		return area;
 	}
 
@@ -62,7 +61,7 @@ struct Capture_webcam
 			return false;
 
 		bool changed = _force_update;
-		_capture.capture_at(Capture::Point(0, 0)).for_each_rect([&](auto) {
+		_capture->capture_at(Capture::Point(0, 0)).for_each_rect([&](auto) {
 			changed = true; });
 
 		if (!changed)
@@ -71,7 +70,7 @@ struct Capture_webcam
 		int const src_stride_argb = _area.w() * 4;
 		int const dst_stride_yuy2 = _area.w() * 2;
 
-		libyuv::ARGBToYUY2(_ds.local_addr<uint8_t>(), src_stride_argb,
+		libyuv::ARGBToYUY2(_ds->local_addr<uint8_t>(), src_stride_argb,
 		                   reinterpret_cast<uint8_t*>(frame), dst_stride_yuy2,
 		                   _area.w(), _area.h());
 
@@ -89,7 +88,7 @@ struct Capture_webcam
 		bool changed = false;
 
 		uint8_t            * const bgr  = reinterpret_cast<uint8_t *>(frame);
-		Pixel_rgb888 const * const data = _ds.local_addr<Pixel_rgb888>();
+		Pixel_rgb888 const * const data = _ds->local_addr<Pixel_rgb888>();
 
 		auto const &update_fn = ([&](auto &rect) {
 			changed = true;
@@ -110,52 +109,47 @@ struct Capture_webcam
 			/* update whole frame */
 			_force_update = false;
 			Rect const whole(Point(0,0), _area);
-			_capture.capture_at(Capture::Point(0, 0));
+			_capture->capture_at(Capture::Point(0, 0));
 			update_fn(whole);
 		} else
-			_capture.capture_at(Capture::Point(0, 0)).for_each_rect(update_fn);
+			_capture->capture_at(Capture::Point(0, 0)).for_each_rect(update_fn);
 
 		return changed;
 	}
 
-	void capture_state_changed(bool on, char const * format)
+	void capture_state_changed(bool on)
 	{
 		/* next time update whole frame due to format changes or on/off */
 		_force_update = true;
 
-		if (!_reporter.constructed())
-			return;
-
-		Reporter::Xml_generator xml(*_reporter, [&] () {
-			xml.attribute("enabled", on);
-			xml.attribute("format", format);
-		});
+		/* construct/destruct capture connection and dataspace */
+		if (on) {
+			_capture.construct(_env, "webcam");
+			_capture->buffer(_area);
+			_ds.construct(_env.rm(), _capture->dataspace());
+		} else {
+			_ds.destruct();
+			_capture.destruct();
+		}
 	}
 
-	Capture_webcam (Env &env, Gui::Area area, bool auto_area, bool flip,
-	                uint8_t fps, bool report)
+	Capture_webcam(Env &env, Gui::Area area, bool auto_area, bool flip, uint8_t fps)
 	:
 		_env(env),
-		_area(setup_area(area, auto_area)),
+		_area(_setup_area(area, auto_area)),
 		_vflip(flip),
 		_fps(fps)
 	{
-		if (report) {
-			_reporter.construct(_env, "capture");
-			_reporter->enabled(true);
-		}
-
 		log("USB webcam ", _area, " fps=", _fps, " vertical_flip=",
-		    _vflip ? "yes" : "no",
-		    " report=", _reporter.constructed() ? "enabled" : "disabled");
+		    _vflip ? "yes" : "no");
 	}
 };
 
 static Genode::Constructible<Capture_webcam> capture;
 
-extern "C" void capture_state_changed(bool on, char const * format)
+extern "C" void capture_state_changed(bool on)
 {
-	capture->capture_state_changed(on, format);
+	capture->capture_state_changed(on);
 }
 
 extern "C" bool capture_bgr_frame(void * pixel)
@@ -187,8 +181,7 @@ extern "C" void _type_init_host_webcam_register_types(Env &env,
 	                                 webcam.attribute_value("height", 480u)),
 	                  webcam.attribute_value("screen_size", false),
 	                  webcam.attribute_value("vertical_flip", false),
-	                  webcam.attribute_value("fps", 15u),
-	                  webcam.attribute_value("report", false));
+	                  webcam.attribute_value("fps", 15u));
 
 	/* register webcam model, which will call webcam_backend_config() */
 	_type_init_usb_webcam_register_types();

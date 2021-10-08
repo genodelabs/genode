@@ -280,7 +280,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 	}
 
 	append_if [expr $use_webcam] config_of_app {
-			<webcam vertical_flip="} $webcam_vflip {" fps="15" report="false" screen_size="false" width="640" height="480" />}
+			<webcam vertical_flip="} $webcam_vflip {" fps="15" screen_size="false" width="640" height="480"/>}
 
 	append config_of_app {
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>

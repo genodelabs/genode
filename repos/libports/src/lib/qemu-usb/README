@@ -33,28 +33,21 @@ when the timer triggers.
 Usage webcam model attached to the xHCI model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If the xHCI model is enabled and used, then the webcam device model can be
-enabled by specifying a XML node in the config ROM:
+If the xHCI model is enabled and used, the webcam device model can be
+enabled by specifying a XML node in the config ROM.
 
 <config ...>
-	...
-	<webcam width="640" height="480" fps="15" vertical_flip="false" screen_size="false" report="false"/>
-	...
+  ...
+  <webcam width="640" height="480" fps="15" vertical_flip="false" screen_size="false"/>
+  ...
 </config>
 
-The webcam attributes are optional. The values shown above, are the default ones
-when a attribute is not specified. When the webcam node is specified, the model
-will open and will use a Genode capture session to obtain the
-frames in the rate as specified by the frame per secondes (fps) attribute. The
-'vertical_flip' attribute specifies, whether the frames are shown flipped
-for guests. For Windows guests the value has to be false, for Linux guests
-true. The format supported by the model is YUV2 or BGR3. If the 'screen_size' is set
-to true, the webcam model will try to use the screen size as provided by the
-capture session. If the screen size is invalid (e.g. 0x0), the attribute
-values of 'width' and 'height' will be used instead. If the 'report' attribute
-is set, a report will be generated whenever the guests starts/ends capturing and
-if the capturing format choosen by the guest changes,
-
-<capture enabled="..." format="BGR3"/>
-or
-<capture enabled="..." format="YUV2"/>
+Webcam attributes are optional, default values are depicted above. The model
+supports YUV2 and BGR3 image formats reported to the guest via bFormatIndex.
+It requests a Genode capture session to obtain the frames in the rate as
+specified by the 'fps' (frame per seconds) attribute. The 'vertical_flip'
+attribute specifies, whether the frames are shown flipped vertically for
+guests. For Windows guests the value has to be false, for Linux guests true.
+If the 'screen_size' attribute is set to true, the webcam model configures the
+initial screen size to the size provided by the capture session. If the screen
+size is invalid (e.g. 0x0), 'width' and 'height' will be used as fallback.
