@@ -30,6 +30,7 @@
 				<log/> <inline name="rtc">2000-01-01 00:00</inline>
 			</dir>
 		</vfs>
+		<env key="GALLIUM_HUD" value="fps"/>
 	</config>
 
 </runtime>
