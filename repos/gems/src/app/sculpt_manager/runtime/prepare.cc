@@ -166,6 +166,8 @@ void Sculpt::gen_prepare_start_content(Xml_generator &xml, Prepare_version versi
 
 	xml.node("config", [&] () {
 
+		xml.attribute("prio_levels", 4);
+
 		xml.node("parent-provides", [&] () {
 			gen_parent_service<Rom_session>(xml);
 			gen_parent_service<Cpu_session>(xml);
