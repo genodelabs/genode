@@ -183,7 +183,7 @@ void Sup::Vmx::_handle_invalid(Vcpu_state const &state)
 void Sup::Vmx::_handle_default(Vcpu_state &state)
 {
 	Assert(state.actv_state.value() == VMX_VMCS_GUEST_ACTIVITY_ACTIVE);
-	Assert(!VMX_ENTRY_INT_INFO_IS_VALID(state.inj_info.value()));
+	Assert(!VMX_EXIT_INT_INFO_IS_VALID(state.inj_info.value()));
 }
 
 

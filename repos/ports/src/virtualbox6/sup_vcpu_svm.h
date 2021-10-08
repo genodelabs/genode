@@ -193,7 +193,7 @@ Sup::Handle_exit_result Sup::Svm::handle_exit(Vcpu_state &state)
 	case SVM_EXIT_RDTSCP:
 	case SVM_EXIT_WBINVD:
 		Assert(state.actv_state.value() == VMX_VMCS_GUEST_ACTIVITY_ACTIVE);
-		Assert(!VMX_ENTRY_INT_INFO_IS_VALID(state.inj_info.value()));
+		Assert(!VMX_EXIT_INT_INFO_IS_VALID(state.inj_info.value()));
 		return { Exit_state::DEFAULT, VINF_EM_RAW_EMULATE_INSTR };
 
 	case SVM_EXIT_VINTR:
