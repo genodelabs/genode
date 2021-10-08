@@ -114,6 +114,12 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 		                           Affinity             const &aff) override {
 			return _env.session(name, id, args, aff); }
 
+		Session_capability try_session(Parent::Service_name const &name,
+		                               Parent::Client::Id id,
+		                               Parent::Session_args const &args,
+		                               Affinity             const &aff) override {
+			return _env.try_session(name, id, args, aff); }
+
 		void upgrade(Parent::Client::Id id,
 		             Parent::Upgrade_args const &args) override {
 			return _env.upgrade(id, args); }

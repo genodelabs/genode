@@ -40,7 +40,7 @@ class Sandbox::Abandonable : Interface
 };
 
 
-class Sandbox::Parent_service : public Genode::Parent_service, public Abandonable
+class Sandbox::Parent_service : public Genode::Try_parent_service, public Abandonable
 {
 	private:
 
@@ -51,7 +51,7 @@ class Sandbox::Parent_service : public Genode::Parent_service, public Abandonabl
 		Parent_service(Registry<Parent_service> &registry, Env &env,
 		               Service::Name const &name)
 		:
-			Genode::Parent_service(env, name), _reg_elem(registry, *this)
+			Genode::Try_parent_service(env, name), _reg_elem(registry, *this)
 		{ }
 };
 

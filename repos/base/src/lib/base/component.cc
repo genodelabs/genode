@@ -116,10 +116,10 @@ namespace {
 			_session_blockade->block();
 		}
 
-		Session_capability session(Parent::Service_name const &name,
-		                           Parent::Client::Id          id,
-		                           Parent::Session_args const &args,
-		                           Affinity             const &affinity) override
+		Session_capability try_session(Parent::Service_name const &name,
+		                               Parent::Client::Id          id,
+		                               Parent::Session_args const &args,
+		                               Affinity             const &affinity) override
 		{
 			if (!args.valid_string()) {
 				warning(name.string(), " session denied because of truncated arguments");
@@ -128,6 +128,20 @@ namespace {
 
 			Mutex::Guard guard(_mutex);
 
+			Session_capability cap = _parent.session(id, name, args, affinity);
+
+			if (cap.valid())
+				return cap;
+
+			_block_for_session();
+			return _parent.session_cap(id);
+		}
+
+		Session_capability session(Parent::Service_name const &name,
+		                           Parent::Client::Id          id,
+		                           Parent::Session_args const &args,
+		                           Affinity             const &affinity) override
+		{
 			/*
 			 * Since we account for the backing store for session meta data on
 			 * the route between client and server, the session quota provided
@@ -154,14 +168,7 @@ namespace {
 					Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota",
 					                    String<32>(cap_quota).string());
 
-					Session_capability cap =
-						_parent.session(id, name, Parent::Session_args(argbuf), affinity);
-
-					if (cap.valid())
-						return cap;
-
-					_block_for_session();
-					return _parent.session_cap(id);
+					return try_session(name, id, Parent::Session_args(argbuf), affinity);
 				}
 
 				catch (Insufficient_ram_quota) {

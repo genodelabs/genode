@@ -27,6 +27,7 @@ namespace Genode {
 	class Service;
 	template <typename> class Session_factory;
 	template <typename> class Local_service;
+	class Try_parent_service;
 	class Parent_service;
 	class Async_service;
 	class Child_service;
@@ -230,9 +231,14 @@ class Genode::Local_service : public Service
 
 
 /**
- * Representation of a service provided by our parent
+ * Representation of a strictly accounted service provided by our parent
+ *
+ * The 'Try_parent_service' reflects the local depletion of RAM or cap quotas
+ * during 'initiate_request' via 'Out_of_ram' or 'Out_of_caps' exceptions.
+ * This is appropriate in situations that demand strict accounting of resource
+ * use per child, e.g., child components hosted by the init component.
  */
-class Genode::Parent_service : public Service
+class Genode::Try_parent_service : public Service
 {
 	private:
 
@@ -240,12 +246,13 @@ class Genode::Parent_service : public Service
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Parent_service(Env &env, Service::Name const &name)
+		Try_parent_service(Env &env, Service::Name const &name)
 		: Service(name), _env(env) { }
 
+		/*
+		 * \throw Out_of_ram
+		 * \throw Out_of_caps
+		 */
 		void initiate_request(Session_state &session) override
 		{
 			switch (session.phase) {
@@ -256,32 +263,35 @@ class Genode::Parent_service : public Service
 				                               _env.id_space());
 				try {
 
-					session.cap = _env.session(name().string(),
-					                           session.id_at_parent->id(),
-					                           Session_state::Server_args(session).string(),
-					                           session.affinity());
+					session.cap = _env.try_session(name().string(),
+					                               session.id_at_parent->id(),
+					                               Session_state::Server_args(session).string(),
+					                               session.affinity());
 
 					session.phase = Session_state::AVAILABLE;
 				}
 				catch (Out_of_ram) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::SERVICE_DENIED; }
-
+					session.phase = Session_state::CLOSED;
+					throw;
+				}
 				catch (Out_of_caps) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::SERVICE_DENIED; }
-
+					session.phase = Session_state::CLOSED;
+					throw;
+				}
 				catch (Insufficient_ram_quota) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; }
-
+					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA;
+				}
 				catch (Insufficient_cap_quota) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; }
-
+					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA;
+				}
 				catch (Service_denied) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::SERVICE_DENIED; }
+					session.phase = Session_state::SERVICE_DENIED;
+				}
 
 				break;
 
@@ -322,6 +332,50 @@ class Genode::Parent_service : public Service
 			case Session_state::CLOSED:
 				break;
 			}
+		}
+};
+
+
+/**
+ * Representation of a service provided by our parent
+ *
+ * In contrast to 'Try_parent_service', the 'Parent_service' handles the
+ * exhaution of the local RAM or cap quotas by issuing resource requests.
+ * This is useful in situations where the parent is unconditionally willing
+ * to satisfy the resource needs of its children.
+ */
+class Genode::Parent_service : public Try_parent_service
+{
+	private:
+
+		Env &_env;
+
+	public:
+
+		Parent_service(Env &env, Service::Name const &name)
+		: Try_parent_service(env, name), _env(env) { }
+
+		void initiate_request(Session_state &session) override
+		{
+			for (unsigned i = 0; i < 10; i++) {
+
+				try {
+					Try_parent_service::initiate_request(session);
+					return;
+				}
+				catch (Out_of_ram) {
+					Ram_quota ram_quota { ram_quota_from_args(session.args().string()) };
+					Parent::Resource_args args(String<64>("ram_quota=", ram_quota));
+					_env.parent().resource_request(args);
+				}
+				catch (Out_of_caps) {
+					Cap_quota cap_quota { cap_quota_from_args(session.args().string()) };
+					Parent::Resource_args args(String<64>("cap_quota=", cap_quota));
+					_env.parent().resource_request(args);
+				}
+			}
+
+			error("parent-session request repeatedly failed");
 		}
 };
 

@@ -78,10 +78,22 @@ class Gdb_monitor::App_child : public Child_policy,
 			                           Parent::Client::Id id,
 			                           Parent::Session_args const &session_args,
 			                           Affinity             const &affinity) override
-			{ return genode_env.session(service_name, id, session_args, affinity); }
+			{
+				return genode_env.session(service_name, id, session_args, affinity);
+			}
+
+			Session_capability try_session(Parent::Service_name const &service_name,
+			                               Parent::Client::Id id,
+			                               Parent::Session_args const &session_args,
+			                               Affinity             const &affinity) override
+			{
+				return genode_env.session(service_name, id, session_args, affinity);
+			}
 
 			void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args) override
-			{ return genode_env.upgrade(id, args); }
+			{
+				return genode_env.upgrade(id, args);
+			}
 
 			void close(Parent::Client::Id id) override { return genode_env.close(id); }
 
