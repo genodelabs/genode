@@ -798,6 +798,7 @@ struct Usb::Block_driver : Usb::Completion
 		reporter.enabled(true);
 
 		/* USB device gets initialized by handle_state_change() */
+		handle_state_change();
 	}
 
 	~Block_driver()
