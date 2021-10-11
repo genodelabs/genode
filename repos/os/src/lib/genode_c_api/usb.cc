@@ -55,12 +55,9 @@ class genode_usb_session : public Usb::Session_rpc_object
 
 		friend class ::Root;
 
-		enum { MAX_PACKETS_IN_FLY = 32 };
+		enum { MAX_PACKETS_IN_FLY = 10 };
 
-		struct Packet {
-			enum State { FREE, USED } state;
-			Usb::Packet_descriptor    pd;
-		} packets[MAX_PACKETS_IN_FLY] { Packet::FREE, {} };
+		Constructible<Usb::Packet_descriptor> packets[MAX_PACKETS_IN_FLY] { };
 
 		::Root                         & _root;
 		Attached_dataspace             & _ds;
@@ -354,7 +351,7 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 
 	/* find free packet slot */
 	for (idx = 0; idx < MAX_PACKETS_IN_FLY; idx++) {
-		if (packets[idx].state == Packet::FREE)
+		if (!packets[idx].constructed())
 			break;
 	}
 	if (idx == MAX_PACKETS_IN_FLY)
@@ -389,20 +386,17 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 		                   addr, p.size(), data), p);
 		break;
 	case Packet_descriptor::BULK:
-		packets[idx].state = Packet::USED;
-		packets[idx].pd    = p;
+		packets[idx].construct(p);
 		req.transfer_fn((genode_usb_request_transfer*)&p.transfer, BULK,
 		                _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::IRQ:
-		packets[idx].state = Packet::USED;
-		packets[idx].pd    = p;
+		packets[idx].construct(p);
 		req.transfer_fn((genode_usb_request_transfer*)&p.transfer, IRQ,
 		                _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::ISOC:
-		packets[idx].state = Packet::USED;
-		packets[idx].pd    = p;
+		packets[idx].construct(p);
 		req.transfer_fn((genode_usb_request_transfer*)&p.transfer, ISOC,
 		                _id, idx, addr, p.size(), data);
 		break;
@@ -429,9 +423,10 @@ void genode_usb_session::handle_response(genode_usb_request_handle_t id,
                                          genode_usb_response_t       callback,
                                          void                      * callback_data)
 {
-	Usb::Packet_descriptor p = packets[id].pd;
-	_ack(callback((genode_usb_request_transfer*)&p.transfer, callback_data), p);
-	packets[id].state = Packet::FREE;
+	Usb::Packet_descriptor p = *packets[id];
+	_ack(callback((genode_usb_request_transfer*)&p.transfer,
+	              callback_data), p);
+	packets[id].destruct();
 }
 
 
