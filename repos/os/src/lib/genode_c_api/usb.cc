@@ -453,20 +453,22 @@ genode_usb_session::genode_usb_session(::Root                  & root,
 
 bool ::Root::_matches(Device & d, genode_usb_session & s)
 {
-	Session_policy const policy(s._label, _config.xml());
+	try {
+		Session_policy const policy(s._label, _config.xml());
 
-	unsigned long vendor  = policy.attribute_value<unsigned long>("vendor_id", 0);
-	unsigned long product = policy.attribute_value<unsigned long>("product_id", 0);
-	unsigned long bus     = policy.attribute_value<unsigned long>("bus", 0);
-	unsigned long dev     = policy.attribute_value<unsigned long>("dev", 0);
-	unsigned long cla     = policy.attribute_value<unsigned long>("class", 0);
+		unsigned long vendor  = policy.attribute_value<unsigned long>("vendor_id", 0);
+		unsigned long product = policy.attribute_value<unsigned long>("product_id", 0);
+		unsigned long bus     = policy.attribute_value<unsigned long>("bus", 0);
+		unsigned long dev     = policy.attribute_value<unsigned long>("dev", 0);
+		unsigned long cla     = policy.attribute_value<unsigned long>("class", 0);
 
-	if (bus && dev)
-		return (bus == d.bus) && (dev == d.dev);
-	if (vendor && product)
-		return (vendor == d.vendor) && (product == d.product);
-	if (cla)
-		return (cla == d.cla) && (d.label() == s._label.last_element());
+		if (bus && dev)
+			return (bus == d.bus) && (dev == d.dev);
+		if (vendor && product)
+			return (vendor == d.vendor) && (product == d.product);
+		if (cla)
+			return (cla == d.cla) && (d.label() == s._label.last_element());
+	} catch(Session_policy::No_policy_defined) {}
 
 	return false;
 }
