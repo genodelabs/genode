@@ -32,6 +32,7 @@ class Igd::Resources : Genode::Noncopyable
 		using Io_mem_connection = Genode::Io_mem_connection;
 		using Io_mem_dataspace_capability = Genode::Io_mem_dataspace_capability;
 		using Ram_dataspace_capability = Genode::Ram_dataspace_capability;
+		using Dataspace_capability = Genode::Dataspace_capability;
 
 		Genode::Env  &_env;
 		Genode::Heap &_heap;
@@ -84,10 +85,15 @@ class Igd::Resources : Genode::Noncopyable
 			GTT_RESERVED      = (APERTURE_RESERVED/PAGE_SIZE) * 8,
 		};
 
-		Platform::Device::Resource _gmadr { };
+		Genode::Rm_connection _rm_connection { _env };
+
+		Platform::Device::Resource               _gmadr { };
+		Io_mem_dataspace_capability              _gmadr_ds { };
+		Genode::Constructible<Io_mem_connection> _gmadr_io { };
+		Genode::Region_map_client                _gmadr_rm { _rm_connection.create(APERTURE_RESERVED) };
+
 
 		/* managed dataspace for local platform service */
-		Genode::Rm_connection _rm_connection { _env };
 		Genode::Constructible<Genode::Region_map_client> _gttmmadr_rm { };
 
 		void _create_gttmmadr_rm()
@@ -236,10 +242,13 @@ class Igd::Resources : Genode::Noncopyable
 			_gpu_client.construct(_gpu_cap);
 
 			_gttmmadr = _gpu_client->resource(0);
-			_gmadr    = _gpu_client->resource(2);
-
 			_gttmmadr_io.construct(_env, _gttmmadr.base(), _gttmmadr.size());
 			_gttmmadr_ds = _gttmmadr_io->dataspace();
+
+			_gmadr = _gpu_client->resource(2);
+			_gmadr_io.construct(_env, _gmadr.base(), _gmadr.size(), true);
+			_gmadr_ds = _gmadr_io->dataspace();
+			_gmadr_rm.attach_at(_gmadr_ds, 0, APERTURE_RESERVED);
 
 			_enable_pci_bus_master();
 
@@ -253,6 +262,8 @@ class Igd::Resources : Genode::Noncopyable
 			_platform.release_device(_gpu_cap);
 			_platform.release_device(_host_bridge_cap);
 		}
+
+		Genode::Rm_connection &rm() { return _rm_connection; }
 
 		addr_t map_gttmmadr()
 		{
@@ -302,8 +313,10 @@ class Igd::Resources : Genode::Noncopyable
 		Platform::Device_capability isa_bridge_cap()  { return _isa_bridge_cap; }
 		unsigned                    isa_bridge_class() const { return 0x601u << 8; }
 
-		addr_t gmadr_base()    const { return _gmadr.base(); }
-		size_t gmadr_size()    const { return _gmadr.size(); }
+		addr_t               gmadr_base() const { return _gmadr.base(); }
+		size_t               gmadr_size() const { return _gmadr.size(); }
+		Dataspace_capability gmadr_ds()   const { return _gmadr_ds; }
+
 		addr_t gttmmadr_base() const { return _gttmmadr.base(); }
 		size_t gttmmadr_size() const { return _gttmmadr.size(); }
 
@@ -321,6 +334,12 @@ class Igd::Resources : Genode::Noncopyable
 				return { };
 
 			return static_cap_cast<Io_mem_dataspace>(_gttmmadr_rm->dataspace());
+		}
+
+		Io_mem_dataspace_capability gmadr_platform_ds()
+		{
+			using namespace Genode;
+			return static_cap_cast<Io_mem_dataspace>(_gmadr_rm.dataspace());
 		}
 
 		void gtt_platform_reset()

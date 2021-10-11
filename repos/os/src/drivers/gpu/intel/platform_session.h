@@ -17,6 +17,7 @@ namespace Platform {
 class Device_component;
 class Session_component;
 class Io_mem_session_component;
+class Io_mem_session_component_gmadr;
 class Irq_session_component;
 class Root;
 }
@@ -80,6 +81,25 @@ class Platform::Io_mem_session_component : public Rpc_object<Io_mem_session>
 };
 
 
+class Platform::Io_mem_session_component_gmadr : public Rpc_object<Io_mem_session>
+{
+	private:
+
+		Igd::Resources &_resources;
+
+	public:
+
+		Io_mem_session_component_gmadr(Igd::Resources &resources)
+		:
+		  _resources(resources) { }
+
+		Io_mem_dataspace_capability dataspace() override
+		{
+			return _resources.gmadr_platform_ds();
+		}
+};
+
+
 class Platform::Device_component : public Rpc_object<Device>
 {
 	private:
@@ -88,9 +108,9 @@ class Platform::Device_component : public Rpc_object<Device>
 		Igd::Resources      &_resources;
 		Device_client       &_device { _resources.gpu_client() };
 
-		Io_mem_session_component         _gttmmadr_io { _resources };
-		Constructible<Io_mem_connection> _gmadr_io { };
-		Irq_session_component            _irq { _resources };
+		Io_mem_session_component       _gttmmadr_io { _resources };
+		Io_mem_session_component_gmadr _gmadr_io    { _resources };
+		Irq_session_component          _irq         { _resources };
 
 	public:
 
@@ -99,12 +119,14 @@ class Platform::Device_component : public Rpc_object<Device>
 		  _env(env), _resources(resources)
 		{
 			_env.ep().rpc_ep().manage(&_gttmmadr_io);
+			_env.ep().rpc_ep().manage(&_gmadr_io);
 			_env.ep().rpc_ep().manage(&_irq);
 		}
 
 		~Device_component()
 		{
 			_env.ep().rpc_ep().dissolve(&_gttmmadr_io);
+			_env.ep().rpc_ep().dissolve(&_gmadr_io);
 			_env.ep().rpc_ep().dissolve(&_irq);
 		}
 
@@ -113,22 +135,15 @@ class Platform::Device_component : public Rpc_object<Device>
 			return _irq.cap();
 		}
 
-		Io_mem_session_capability io_mem(uint8_t v_id, Cache caching,
+		Io_mem_session_capability io_mem(uint8_t v_id, Cache /* caching */,
 		                                 addr_t /* offset */,
 		                                 size_t /* size */) override
 		{
 			if (v_id == 0)
 				return _gttmmadr_io.cap();
 
-			if (v_id == 1) {
-				if (!_gmadr_io.constructed()) {
-					bool write_combined = (caching == WRITE_COMBINED) ? true : false;
-					_gmadr_io.construct(_env, _resources.gmadr_base(),
-					                    _resources.gmadr_platform_size(), write_combined);
-				}
-
-				return _gmadr_io->cap();
-			}
+			if (v_id == 1)
+				return _gmadr_io.cap();
 
 			return Io_mem_session_capability();
 		}

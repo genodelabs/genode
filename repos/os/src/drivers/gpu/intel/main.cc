@@ -282,14 +282,14 @@ struct Igd::Device
 
 	struct Ggtt_mmio_mapping : Ggtt::Mapping
 	{
-		Genode::Io_mem_connection mmio;
+		Region_map_client _rm;
 
-		Ggtt_mmio_mapping(Genode::Env &env, addr_t base, size_t size,
-		                  Ggtt::Offset offset)
+		Ggtt_mmio_mapping(Resources &resources, Ggtt::Offset offset, size_t size)
 		:
-			mmio(env, base, size)
+			_rm(resources.rm().create(size))
 		{
-			Ggtt::Mapping::cap    = mmio.dataspace();
+			_rm.attach_at(resources.gmadr_ds(), 0, size, offset * PAGE_SIZE);
+			Ggtt::Mapping::cap    = _rm.dataspace();
 			Ggtt::Mapping::offset = offset;
 		}
 
@@ -310,12 +310,9 @@ struct Igd::Device
 		 * Create the mapping first and insert the entries afterwards
 		 * so we do not have to rollback when the allocation failes.
 		 */
-
-		addr_t const base = _resources.gmadr_base() + _ggtt->addr(offset);
 		Genode::Registered<Ggtt_mmio_mapping> *mem = new (&alloc)
 			Genode::Registered<Ggtt_mmio_mapping>(_ggtt_mmio_mapping_registry,
-			                                      _env, base, size, offset);
-
+			                                      _resources, offset, size);
 		for (size_t i = 0; i < size; i += PAGE_SIZE) {
 			addr_t const pa = phys_addr + i;
 			_ggtt->insert_pte(pa, offset + (i / PAGE_SIZE));
@@ -1383,6 +1380,11 @@ struct Igd::Device
 	Ggtt::Mapping const &map_buffer(Genode::Allocator &guard,
 	                                Genode::Dataspace_capability cap, bool aperture)
 	{
+		if (aperture == false) {
+			error("GGTT mapping outside aperture");
+			throw Could_not_map_buffer();
+		}
+
 		size_t const size = Genode::Dataspace_client(cap).size();
 		size_t const num = size / PAGE_SIZE;
 		Ggtt::Offset const offset = _ggtt->find_free(num, aperture);
