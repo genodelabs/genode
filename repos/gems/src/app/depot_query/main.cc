@@ -415,6 +415,8 @@ struct Depot_query::Main : private Rom_query
 	void _collect_source_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
 	void _collect_binary_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
 	void _query_user(Archive::User const &, Xml_generator &);
+	void _gen_index_node_rec(Xml_generator &, Xml_node const &, unsigned) const;
+	void _gen_index_for_arch(Xml_generator &, Xml_node const &) const;
 	void _query_index(Archive::User const &, Archive::Version const &, bool, Xml_generator &);
 
 	void _handle_config()
@@ -800,6 +802,58 @@ void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xm
 }
 
 
+void Depot_query::Main::_gen_index_node_rec(Xml_generator  &xml,
+                                            Xml_node const &node,
+                                            unsigned max_depth) const
+{
+	if (max_depth == 0) {
+		warning("index has too many nesting levels");
+		return;
+	}
+
+	node.for_each_sub_node([&] (Xml_node const &node) {
+
+		/* check if single index entry is compatible with architecture */
+		bool const arch_compatible =
+			!node.has_attribute("arch") ||
+			(node.attribute_value("arch", Architecture()) == _architecture);
+
+		if (!arch_compatible)
+			return;
+
+		if (node.has_type("index")) {
+			xml.node("index", [&] () {
+				xml.attribute("name", node.attribute_value("name", String<100>()));
+				_gen_index_node_rec(xml, node, max_depth - 1);
+			});
+		}
+
+		if (node.has_type("pkg")) {
+			xml.node("pkg", [&] () {
+				xml.attribute("path", node.attribute_value("path", Archive::Path()));
+				xml.attribute("info", node.attribute_value("info", String<200>()));
+			});
+		}
+	});
+};
+
+
+void Depot_query::Main::_gen_index_for_arch(Xml_generator &xml,
+                                            Xml_node const &node) const
+{
+	/* check of architecture is supported by the index */
+	bool supports_arch = false;
+	node.for_each_sub_node("supports", [&] (Xml_node const &supports) {
+		if (supports.attribute_value("arch", Architecture()) == _architecture)
+			supports_arch = true; });
+
+	if (!supports_arch)
+		return;
+
+	_gen_index_node_rec(xml, node, 10);
+}
+
+
 void Depot_query::Main::_query_index(Archive::User    const &user,
                                      Archive::Version const &version,
                                      bool const content, Xml_generator &xml)
@@ -823,8 +877,7 @@ void Depot_query::Main::_query_index(Archive::User    const &user,
 					file(_heap, _root, index_path, File_content::Limit{16*1024});
 
 				file.xml([&] (Xml_node node) {
-					node.with_raw_content([&] (char const *start, size_t lenght) {
-						xml.append(start, lenght); }); });
+					_gen_index_for_arch(xml, node); });
 
 			} catch (Directory::Nonexistent_file) { }
 		}
