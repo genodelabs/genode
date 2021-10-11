@@ -64,7 +64,7 @@ append_if [expr $report_config eq "yes"] config {
 	</start>}
 
 append config {
-	<start name="cpu_balancer">
+	<start name="cpu_balancer" caps="120">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="PD"/>
