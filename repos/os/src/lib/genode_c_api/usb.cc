@@ -140,6 +140,8 @@ class Root : public Root_component<genode_usb_session>
 		Env                     & _env;
 		Signal_context_capability _sigh_cap;
 		Attached_rom_dataspace    _config   { _env, "config"  };
+		Signal_handler<Root>      _config_handler { _env.ep(), *this,
+		                                            &Root::_announce_service };
 		Reporter                  _reporter { _env, "devices" };
 		Constructible<Device>     _devices[MAX_DEVICES];
 		List<List_element<genode_usb_session>> _sessions {};
@@ -179,6 +181,8 @@ class Root : public Root_component<genode_usb_session>
 		 * Returns true if given device matches the session's policy
 		 */
 		bool _matches(Device & d, genode_usb_session & s);
+
+		void _announce_service();
 
 	public:
 
@@ -546,6 +550,27 @@ void ::Root::_report()
 }
 
 
+void ::Root::_announce_service()
+{
+	/*
+	 * Defer the startup of the USB driver until the first configuration
+	 * becomes available. This is needed in scenarios where the configuration
+	 * is dynamically generated and supplied to the USB driver via the
+	 * report-ROM service.
+	 */
+	_config.update();
+
+	if (_announced)
+		return;
+
+	if (_config.xml().type() == "config") {
+		log(_config.xml());
+		_env.parent().announce(_env.ep().manage(*this));
+		_announced = true;
+	}
+}
+
+
 void ::Root::announce_device(unsigned long vendor,
                              unsigned long product,
                              unsigned long cla,
@@ -557,10 +582,7 @@ void ::Root::announce_device(unsigned long vendor,
 			continue;
 
 		_devices[idx].construct(vendor, product, cla, bus, dev);
-		if (!_announced) {
-			_env.parent().announce(_env.ep().manage(*this));
-			_announced = true;
-		}
+		_announce_service();
 		_report();
 
 		_for_each_session([&] (genode_usb_session & s) {
@@ -637,6 +659,7 @@ bool ::Root::device_associated(genode_usb_session * session,
 {
 	/* Reserve id zero which is invalid */
 	_id_alloc.alloc();
+	_config.sigh(_config_handler);
 }
 
 
