@@ -17,6 +17,7 @@
 		<rom label="usb_devices"/>
 		<usb/>
 		<audio_out/>
+		<audio_in/>
 	</requires>
 
 	<config verbose="yes">
