@@ -105,11 +105,9 @@ void User_state::_handle_input_event(Input::Event ev)
 	ev.handle_absolute_motion([&] (int x, int y) {
 		_pointer_pos = Point(x, y); });
 
-	bool const drag = _key_cnt > 0;
-
 	/* count keys */
-	if (ev.press())           _key_cnt++;
-	if (ev.release() && drag) _key_cnt--;
+	if (ev.press()) _key_cnt++;
+	if (ev.release() && (_key_cnt > 0)) _key_cnt--;
 
 	/* track key states */
 	ev.handle_press([&] (Keycode key, Codepoint) {
@@ -124,8 +122,24 @@ void User_state::_handle_input_event(Input::Event ev)
 		_key_array.pressed(key, false);
 	});
 
-	if (ev.absolute_motion() || ev.relative_motion())
+	if (ev.absolute_motion() || ev.relative_motion()) {
 		update_hover();
+
+		if (_key_cnt > 0) {
+			_drag = true;
+
+			/*
+			 * Submit leave event to the originally hovered client if motion
+			 * occurs while a key is held. Otherwise, both the hovered client
+			 * and the receiver of the key sequence would observe a motion
+			 * event last, each appearing as being hovered at the same time.
+			 */
+			if (_hovered && (_input_receiver != _hovered)) {
+				_hovered->submit_input_event(Hover_leave());
+				_hovered = nullptr; /* updated when _key_cnt reaches 0 */
+			}
+		}
+	}
 
 	/*
 	 * Handle start of a key sequence
@@ -252,11 +266,21 @@ void User_state::_handle_input_event(Input::Event ev)
 		_input_receiver->submit_input_event(ev);
 
 	/*
-	 * Detect end of global key sequence
+	 * Detect end of key sequence
 	 */
-	if (ev.release() && (_key_cnt == 0) && _global_key_sequence) {
-		_input_receiver      = _focused;
-		_global_key_sequence = false;
+	if (ev.release() && (_key_cnt == 0)) {
+
+		update_hover();
+
+		if (_drag && _input_receiver && (_input_receiver != _hovered))
+			_input_receiver->submit_input_event(Hover_leave());
+
+		_drag = false;
+
+		if (_global_key_sequence) {
+			_input_receiver      = _focused;
+			_global_key_sequence = false;
+		}
 	}
 }
 

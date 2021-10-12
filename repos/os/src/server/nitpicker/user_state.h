@@ -53,6 +53,11 @@ class Nitpicker::User_state
 		bool _global_key_sequence = false;
 
 		/*
+		 * True if motion events occur while a key is presse
+		 */
+		bool _drag = false;
+
+		/*
 		 * True if the input focus should change directly whenever the user
 		 * clicks on an unfocused client. This is the traditional behaviour
 		 * of nitpicker. This builtin policy is now superseded by the use of an
