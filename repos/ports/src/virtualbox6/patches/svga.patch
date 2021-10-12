@@ -1,0 +1,10 @@
+--- virtualbox6-0cabc6a3f8e2884326dabeb1768916704dfdd115/src/virtualbox6/src/VBox/Devices/Graphics/DevVGA-SVGA3d-internal.h	2021-01-07 16:39:17.000000000 +0100
++++ virtualbox6-devel-gpu/src/virtualbox6/src/VBox/Devices/Graphics/DevVGA-SVGA3d-internal.h	2021-10-12 12:06:58.895163551 +0200
+@@ -88,6 +88,7 @@
+ 
+ #include "vmsvga/svga3d_shaderdefs.h"
+ #ifdef VMSVGA3D_OPENGL
++#undef GL_GLEXT_VERSION
+ # include "vmsvga_glext/glext.h"
+ # include "shaderlib/shaderlib.h"
+ #endif

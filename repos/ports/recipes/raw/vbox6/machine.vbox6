@@ -17,7 +17,14 @@
       </CPU>
       <Memory RAMSize="4096"/>
       <HID Pointing="PS2Mouse"/>
+      <!-- normal operation -->
       <Display VRAMSize="20" monitorCount="1" controller="VBoxSVGA"/>
+      <!-- 3D Linux
+      <Display controller="VMSVGA" VRAMSize="256" accelerate3D="true"/>
+      -->
+      <!-- 3D Windows
+      <Display VRAMSize="128" monitorCount="1" controller="VBoxSVGA" accelerate3D="true"/>
+      -->
       <RemoteDisplay enabled="false"/>
       <Paravirt provider="KVM"/>
       <BIOS>

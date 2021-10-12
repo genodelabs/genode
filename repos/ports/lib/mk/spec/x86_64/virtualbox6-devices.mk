@@ -1,6 +1,6 @@
 include $(REP_DIR)/lib/mk/virtualbox6-common.inc
 
-LIBS += stdcxx mesa
+LIBS += stdcxx mesa egl virtualbox6-shaderlib
 
 SRC_CC += Devices/Audio/AudioHlp.cpp
 SRC_CC += Devices/Audio/AudioMixBuffer.cpp
@@ -34,15 +34,6 @@ SRC_CC += Devices/Graphics/DevVGA_VBVA.cpp
 SRC_CC += Devices/Graphics/DevVGA_VDMA.cpp
 SRC_CC += Devices/Graphics/HGSMI/HGSMIHost.cpp
 SRC_CC += Devices/Graphics/HGSMI/SHGSMIHost.cpp
-SRC_C  += Devices/Graphics/shaderlib/directx.c
-SRC_C  += Devices/Graphics/shaderlib/glsl_shader.c
-SRC_C  += Devices/Graphics/shaderlib/libWineStub/debug.c
-SRC_C  += Devices/Graphics/shaderlib/shader.c
-SRC_C  += Devices/Graphics/shaderlib/shader_sm1.c
-SRC_C  += Devices/Graphics/shaderlib/shader_sm4.c
-SRC_C  += Devices/Graphics/shaderlib/shaderapi.c
-SRC_C  += Devices/Graphics/shaderlib/stateblock.c
-SRC_C  += Devices/Graphics/shaderlib/utils.c
 SRC_CC += Devices/Input/DevPS2.cpp
 SRC_CC += Devices/Input/DevPS2K.cpp
 SRC_CC += Devices/Input/DevPS2M.cpp
@@ -128,23 +119,6 @@ INC_DIR += $(VIRTUALBOX_DIR)/include/VBox/Graphics
 
 # found in src/VBox/Devices/Makefile.kmk
 CC_OPT += -DVBOX_HGCM_HOST_CODE
-
-# SVGA3D/wine specific config
-WINE_CC_OPT := -D__WINESRC__ -DWINE_NOWINSOCK -D_USE_MATH_DEFINES \
-               -DVBOX_USING_WINDDK_W7_OR_LATER \
-               -DVBOX_WINE_WITH_SINGLE_SWAPCHAIN_CONTEXT \
-               -DVBOX_WINE_WITH_IPRT \
-               -UVBOX_WITH_WDDM
-
-CC_OPT_Devices/Graphics/shaderlib/directx           = $(WINE_CC_OPT)
-CC_OPT_Devices/Graphics/shaderlib/glsl_shader       = $(WINE_CC_OPT)
-CC_OPT_Devices/Graphics/shaderlib/libWineStub/debug = $(WINE_CC_OPT)
-CC_OPT_Devices/Graphics/shaderlib/shader            = $(WINE_CC_OPT)
-CC_OPT_Devices/Graphics/shaderlib/shader_sm1        = $(WINE_CC_OPT)
-CC_OPT_Devices/Graphics/shaderlib/shader_sm4        = $(WINE_CC_OPT)
-CC_OPT_Devices/Graphics/shaderlib/shaderapi         = $(WINE_CC_OPT)
-CC_OPT_Devices/Graphics/shaderlib/stateblock        = $(WINE_CC_OPT)
-CC_OPT_Devices/Graphics/shaderlib/utils             = $(WINE_CC_OPT)
 
 Devices/Graphics/DevVGA.o: vbetables.h
 

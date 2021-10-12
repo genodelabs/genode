@@ -1,0 +1,43 @@
+diff --git a/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/shader.c b/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/shader.c
+index 19da2bc..1510e67 100644
+--- a/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/shader.c
++++ b/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/shader.c
+@@ -745,7 +745,8 @@ static HRESULT shader_get_registers_used(IWineD3DBaseShader *iface, const struct
+ 
+                     /* Fake sampler usage, only set reserved bit and type. */
+                     sampler_idx = dst_param.reg.idx;
+-                    AssertReturn(sampler_idx < RT_ELEMENTS(reg_maps->sampler_type), E_INVALIDARG);
++                    /* triggers in native VirtualBox6 as well */
++                    //AssertReturn(sampler_idx < RT_ELEMENTS(reg_maps->sampler_type), E_INVALIDARG);
+ 
+                     TRACE("Setting fake 2D sampler for 1.x pixelshader.\n");
+                     reg_maps->sampler_type[sampler_idx] = WINED3DSTT_2D;
+diff --git a/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/wined3d_gl.h b/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/wined3d_gl.h
+index 2fa9b12..99bd0d9 100644
+--- a/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/wined3d_gl.h
++++ b/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/wined3d_gl.h
+@@ -64,6 +64,11 @@
+ #define WINE_GLAPI
+ #endif
+ 
++#ifdef DECLSPEC_HIDDEN
++#undef DECLSPEC_HIDDEN
++#endif
++#define DECLSPEC_HIDDEN __attribute__((visibility("hidden")))
++
+ /****************************************************
+  * OpenGL 1.0/1.1/1.2/1.3
+  *     types, #defines and function pointers
+diff --git a/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/wined3d_private.h b/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/wined3d_private.h
+index 3c7e750..bc23da2 100644
+--- a/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/wined3d_private.h
++++ b/src/virtualbox6/src/VBox/Devices/Graphics/shaderlib/wined3d_private.h
+@@ -1323,7 +1323,7 @@ struct wined3d_context *context_create(IWineD3DSwapChainImpl *swapchain, IWineD3
+                 , struct VBOXUHGSMI *pHgsmi
+ #endif
+         ) DECLSPEC_HIDDEN;
+-struct IWineD3DDeviceImpl *context_get_device(const struct wined3d_context *context); DECLSPEC_HIDDEN;
++struct IWineD3DDeviceImpl *context_get_device(const struct wined3d_context *context) DECLSPEC_HIDDEN;
+ #ifdef VBOX_WITH_WDDM
+ struct wined3d_context *context_find_create(IWineD3DDeviceImpl *device, IWineD3DSwapChainImpl *swapchain, IWineD3DSurfaceImpl *target,
+         const struct wined3d_format_desc *ds_format_desc) DECLSPEC_HIDDEN;
