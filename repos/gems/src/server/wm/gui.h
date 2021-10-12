@@ -608,7 +608,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 					}
 
 					/* may be end of drag operation */
-					if (ev.release() && _key_cnt == 0)
+					if (ev.press() || ev.release())
 						propagate_to_pointer_state = true;
 
 					/* pointer has left the application area */
