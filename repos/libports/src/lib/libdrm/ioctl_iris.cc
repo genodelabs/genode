@@ -620,36 +620,8 @@ class Drm_call
 
 		int _device_gem_set_tiling(void *arg)
 		{
-			auto      const p  = reinterpret_cast<drm_i915_gem_set_tiling*>(arg);
-			Gpu::Buffer_id const id { .value = p->handle };
-			uint32_t  const mode    = p->tiling_mode;
-			uint32_t  const stride  = p->stride;
-			uint32_t  const swizzle = p->swizzle_mode;
-
-			if (verbose_ioctl) {
-				Genode::error(__func__, ": ",
-				                "handle: ", id.value, " "
-				                "mode: ", mode, " "
-				                "stride: ", stride , " "
-				                "swizzle: ", swizzle);
-			}
-
-			bool ok = false;
-			try {
-				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
-
-					/* we need a valid GGTT mapping for fencing */
-					if (!b.map_cap.valid() && !_map_buffer(b))
-						return;
-
-					uint32_t const m = (stride << 16) | (mode == 1 ? 1 : 0);
-					ok = _gpu_session.set_tiling(b.id(), m);
-				});
-			} catch (Genode::Id_space<Buffer>::Unknown_id) {
-				Genode::error(__func__, ": invalid handle: ", id.value);
-			}
-
-			return ok ? 0 : -1;
+			(void)arg;
+			return 0;
 		}
 
 		int _device_gem_sw_finish(void *)
