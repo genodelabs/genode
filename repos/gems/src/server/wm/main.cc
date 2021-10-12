@@ -112,10 +112,10 @@ struct Wm::Main : Pointer::Tracker
 	Report_forwarder _report_forwarder { env, heap };
 	Rom_forwarder    _rom_forwarder    { env, heap };
 
-	/**
-	 * Pointer::Tracker interface
-	 */
-	void update_pointer_report() override
+	Genode::Signal_handler<Main> _update_pointer_report_handler =
+		{ env.ep(), *this, &Main::_handle_update_pointer_report };
+
+	void _handle_update_pointer_report()
 	{
 		Pointer::Position pos = gui_root.last_observed_pointer_pos();
 
@@ -126,6 +126,21 @@ struct Wm::Main : Pointer::Tracker
 				xml.attribute("ypos", pos.value.y());
 			}
 		});
+	}
+
+	/**
+	 * Pointer::Tracker interface
+	 *
+	 * This method is called during the event handling, which may affect
+	 * multiple 'Pointer::State' instances. Hence, at call time, not all
+	 * pointer states may be up to date. To ensure the consistency of all
+	 * pointer states when creating the report, we merely schedule a call
+	 * of '_handle_update_pointer_report' that is executed after the event
+	 * handling is finished.
+	 */
+	void update_pointer_report() override
+	{
+		_update_pointer_report_handler.local_submit();
 	}
 
 	Main(Genode::Env &env) : env(env)
