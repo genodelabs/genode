@@ -58,9 +58,12 @@ void Sup::Vm::init(PSUPDRVSESSION psession, Cpu_count cpu_count)
 	for (uint32_t i = 0; i < cpu_count.value; ++i) {
 		VMCPU &cpu = GVM::aCpus[i];
 
+		cpu.idCpu           = i;
 		cpu.pVMR3           = this;
 		cpu.idHostCpu       = NIL_RTCPUID;
+		cpu.hNativeThread   = NIL_RTNATIVETHREAD;
 		cpu.hNativeThreadR0 = NIL_RTNATIVETHREAD;
+		cpu.enmState        = VMCPUSTATE_STOPPED;
 
 		VM::apCpusR3[i] = &cpu;
 	}
