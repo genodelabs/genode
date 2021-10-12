@@ -223,7 +223,7 @@ GDB_INSTALLED_BINARIES =
 endif
 
 GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
-                        --enable-languages=$(LANGUAGES) \
+                        --enable-languages=$(filter-out go,$(LANGUAGES)) \
                         --disable-libatomic \
                         --disable-libcilkrts \
                         --disable-libgomp \
