@@ -9,3 +9,5 @@ tm_poke.patch
 exec_state.patch
 rttimer.patch
 devsvga.patch
+shaderlib.patch
+svga.patch

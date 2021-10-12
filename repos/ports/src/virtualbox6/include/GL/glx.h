@@ -4,7 +4,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <GL/gl.h>
-
+#include <EGL/egl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,10 +23,13 @@ extern "C" {
 #define GLX_WINDOW_BIT          0x00000001
 #define GLX_DRAWABLE_TYPE       0x8010
 
-typedef struct _GLXContext  { void *dummy; } * GLXContext;
+typedef struct _GLXContext
+{
+	EGLContext context;
+} * GLXContext;
 typedef struct _GLXFBConfig { void *dummy; } * GLXFBConfig;
 
-typedef XID GLXDrawable;
+typedef Window GLXDrawable;
 
 extern void (*glXGetProcAddress(const GLubyte *procname))(void);
 

@@ -1,6 +1,8 @@
 #ifndef _X11__X_H_
 #define _X11__X_H_
 
+#include <EGL/egl.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -8,9 +10,11 @@ extern "C" {
 /* originally in X11/Xmd.h */
 typedef unsigned int CARD32;
 
+struct _Window;
+
 typedef CARD32 XID;
 typedef CARD32 VisualID;
-typedef XID    Window;
+typedef struct _Window* Window;
 typedef XID    Colormap;
 
 #define None        0L
