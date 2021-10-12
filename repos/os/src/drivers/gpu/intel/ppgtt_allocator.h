@@ -35,20 +35,13 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 		enum { ELEMENTS = 256, };
 		Utils::Address_map<ELEMENTS> _map { };
 
-		Genode::Cap_quota_guard &_caps_guard;
-		Genode::Ram_quota_guard &_ram_guard;
-
 	public:
 
 		Ppgtt_allocator(Genode::Region_map      &rm,
-		                Utils::Backend_alloc    &backend,
-		                Genode::Cap_quota_guard &caps_guard,
-		                Genode::Ram_quota_guard &ram_guard)
+		                Utils::Backend_alloc    &backend)
 		:
 			_rm         { rm },
-			_backend    { backend },
-			_caps_guard { caps_guard },
-			_ram_guard  { ram_guard }
+			_backend    { backend }
 		{ }
 
 		/*************************
