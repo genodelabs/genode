@@ -52,7 +52,6 @@
 					<dir name="dev">
 						<log/> <rtc/> <null/> <zero/> <oss name="dsp"/>
 					</dir>
-					<oss name="dsp"/>
 					<dir name="pipe"> <pipe/> </dir>
 					<dir name="shared"> <fs label="shared" writeable="yes"/> </dir>
 					<rom name="VBoxSharedClipboard.so"/>
