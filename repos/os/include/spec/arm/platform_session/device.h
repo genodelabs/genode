@@ -70,6 +70,11 @@ class Platform::Device : Interface, Noncopyable
 			_platform(platform), _cap(platform.device_by_type(type.name.string()))
 		{ }
 
+		Device(Connection &platform, Name name)
+		:
+			_platform(platform), _cap(platform.acquire_device(name))
+		{ }
+
 		~Device() { _platform.release_device(_cap); }
 };
 

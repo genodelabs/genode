@@ -35,7 +35,8 @@ struct Virtio_mmio_nic::Main
 	Env                           & env;
 	Heap                            heap            { env.ram(), env.rm() };
 	Platform::Connection            platform        { env                 };
-	Platform::Device                platform_device { platform, { "nic" } };
+	Platform::Device                platform_device { platform,
+	                                                  Platform::Device::Type { "nic" } };
 	Virtio::Device                  device          { platform_device     };
 	Attached_rom_dataspace          config_rom      { env, "config"       };
 	Constructible<Virtio_nic::Root> root            { };
