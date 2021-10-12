@@ -173,7 +173,7 @@ void Device::enable()
 	if (_pdev.constructed())
 		return;
 
-	_pdev.construct(_platform, _type);
+	_pdev.construct(_platform, _name);
 
 	_platform.update();
 	_platform.with_xml([&] (Xml_node & xml) {
