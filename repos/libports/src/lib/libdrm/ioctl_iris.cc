@@ -190,7 +190,7 @@ struct Gpu::Buffer
 		_gpu   { gpu },
 		_elem  { *this, space },
 		cap    { _gpu.alloc_buffer(_elem.id(), size) },
-		size   { size }
+		size   { Genode::Dataspace_client(cap).size() }
 	{ }
 
 	virtual ~Buffer()
@@ -221,6 +221,9 @@ class Drm_call
 {
 	private:
 
+		using Cap_quota = Genode::Cap_quota;
+		using Ram_quota = Genode::Ram_quota;
+
 		Genode::Env      &_env;
 		Genode::Heap      _heap               { _env.ram(), _env.rm() };
 		Gpu::Connection   _gpu_session        { _env };
@@ -228,9 +231,296 @@ class Drm_call
 			*_gpu_session.attached_info<Gpu::Info_intel>() };
 		size_t            _available_gtt_size { _gpu_info.aperture_size };
 
-		using Buffer = Gpu::Buffer;
+		using Buffer       = Gpu::Buffer;
+		using Buffer_space = Genode::Id_space<Buffer>;
 
-		Genode::Id_space<Gpu::Buffer> _buffer_space { };
+		Buffer_space _buffer_space { };
+
+		struct Resource_guard
+		{
+			struct Upgrade_failed     : Genode::Exception { };
+			struct Invalid_accounting : Genode::Exception { };
+
+			Gpu::Connection &_gpu;
+
+			Cap_quota cap_donated;
+			Ram_quota ram_donated;
+
+			Cap_quota cap_used;
+			Ram_quota ram_used;
+
+			Genode::int64_t cap_count { 0 };
+			Genode::int64_t ram_count { 0 };
+			Genode::int64_t map_count { 0 };
+			Genode::int64_t map_ppgtt_count { 0 };
+			Genode::int64_t alloc_count { 0 };
+
+			bool _available(Cap_quota needed) const {
+				return cap_donated.value - cap_used.value >= needed.value; }
+
+			bool _available(Ram_quota needed) const {
+				return ram_donated.value - ram_used.value >= needed.value; }
+
+			void _upgrade(Cap_quota caps)
+			{
+				_gpu.upgrade_caps(caps.value);
+				cap_donated.value += caps.value;
+			}
+
+			void _upgrade(Ram_quota ram)
+			{
+				_gpu.upgrade_ram(ram.value);
+				ram_donated.value += ram.value;
+			}
+
+			void _withdraw(Cap_quota caps)
+			{
+				if (caps.value == 0)
+					return;
+
+				Cap_quota const avail { cap_donated.value - cap_used.value };
+				if (caps.value > avail.value) {
+					Genode::error(__func__, ": assert CAP amount failed, ",
+					              "caps: ", caps.value, " avail: ", avail,
+					              " count: ", cap_count);
+					throw Invalid_accounting();
+				}
+				cap_used.value += caps.value;
+				cap_count++;
+			}
+
+			void _withdraw(Ram_quota ram)
+			{
+				if (ram.value == 0)
+					return;
+
+				Ram_quota const avail { ram_donated.value - ram_used.value };
+				if (ram.value > avail.value) {
+					Genode::error(__func__, ": assert CAP amount failed, ",
+					              "ram: ", ram.value, " avail: ", avail,
+					              " count: ", ram_count);
+					throw Invalid_accounting();
+				}
+				ram_used.value += ram.value;
+				ram_count++;
+			}
+
+			void _replenish(Cap_quota caps)
+			{
+				if (caps.value == 0)
+					return;
+
+				if (cap_used.value < caps.value) {
+					Genode::error(__func__, ": assert CAP amount failed, ",
+					              "used: ", cap_used.value, " caps: ",
+					              caps.value, " count: ", cap_count);
+					throw Invalid_accounting();
+				}
+				cap_used.value -= caps.value;
+
+				cap_count--;
+			}
+
+			void _replenish(Ram_quota ram)
+			{
+				if (ram.value == 0)
+					return;
+
+				if (ram_used.value < ram.value) {
+					Genode::error(__func__, ": assert RAM amount failed, ",
+					              "used: ", ram_used.value, " ram: ", ram.value,
+					              " count: ", ram_count);
+					throw Invalid_accounting();
+				}
+				ram_used.value -= ram.value;
+
+				ram_count--;
+			}
+
+			enum {
+				ALLOC_BUFFER_CAP_AMOUNT     = 4,
+				MAP_BUFFER_PPGTT_CAP_AMOUNT = 2,
+				MAP_BUFFER_CAP_AMOUNT       = 2,
+				MAP_BUFFER_RAM_AMOUNT       = 1024,
+			};
+
+			Resource_guard(Gpu::Connection &gpu)
+			:
+				_gpu { gpu },
+
+				cap_donated { 0 },
+				ram_donated { 0 },
+				cap_used    { 0 },
+				ram_used    { 0 }
+			{ }
+
+			template <typename FN> void _perform_gpu_op(Cap_quota caps, Ram_quota ram,
+			                                            FN const &fn)
+			{
+				Cap_quota donated_caps { caps.value };
+				if (!_available(caps)) {
+					_upgrade(caps);
+					caps.value /= 2;
+				}
+
+				Ram_quota donated_ram { ram.value };
+				if (!_available(ram)) {
+					_upgrade(ram);
+					ram.value /= 2;
+				}
+
+				Genode::retry<Gpu::Session::Out_of_ram>(
+				[&] () {
+					Genode::retry<Gpu::Session::Out_of_caps>(
+					[&] () {
+						fn();
+					},
+					[&] () {
+						if (caps.value == 0)
+							throw Upgrade_failed();
+
+						_upgrade(caps);
+						donated_caps.value += caps.value;
+						caps.value /= 2;
+					});
+				},
+				[&] () {
+					if (ram.value == 0)
+						throw Upgrade_failed();
+
+					_upgrade(ram);
+					donated_ram.value += ram.value;
+					ram.value /= 2;
+				});
+
+				_withdraw(donated_caps);
+				_withdraw(donated_ram);
+			}
+
+			Buffer *alloc_buffer(Genode::Allocator &alloc, Buffer_space &buffer_space,
+			                     Genode::size_t size)
+			{
+				/* round to next page size */
+				size = ((size + 0xffful) & ~0xffful);
+
+				Cap_quota caps { ALLOC_BUFFER_CAP_AMOUNT };
+				Ram_quota ram { size };
+
+				Buffer *buffer = nullptr;
+				try {
+					_perform_gpu_op(caps, ram, [&] () {
+						buffer = new (alloc) Buffer(_gpu, size, buffer_space);
+					});
+				} catch (Upgrade_failed) {
+					return nullptr;
+				}
+				alloc_count++;
+				return buffer;
+			}
+
+			void free_buffer(Genode::size_t size)
+			{
+				alloc_count--;
+				Cap_quota const caps { ALLOC_BUFFER_CAP_AMOUNT };
+				_replenish(caps);
+				_replenish(Ram_quota { size });
+			}
+
+			bool map_buffer_ppgtt(Buffer &buffer, Gpu_virtual_address vaddr)
+			{
+				Cap_quota caps { MAP_BUFFER_PPGTT_CAP_AMOUNT };
+
+				/* round to next page size */
+				Genode::size_t size = buffer.size;
+				size /= 512;
+				size = ((size + 0xffful) & ~0xffful);
+
+				Ram_quota ram { size };
+
+				bool successful = false;
+				try {
+					_perform_gpu_op(caps, ram, [&] () {
+						successful = _gpu.map_buffer_ppgtt(buffer.id(),
+						                                   Utils::limit_to_48bit(vaddr.addr));
+						if (successful) {
+							buffer.gpu_vaddr       = vaddr;
+							buffer.gpu_vaddr_valid = true;
+						}
+					});
+				} catch (Upgrade_failed) {
+					return false;
+				}
+
+				map_ppgtt_count++;
+				return successful;
+			}
+
+			void unmap_buffer_ppgtt(Buffer &buffer)
+			{
+				if (!buffer.gpu_vaddr_valid)
+					return;
+
+				map_ppgtt_count--;
+
+				Cap_quota const caps { MAP_BUFFER_PPGTT_CAP_AMOUNT };
+				_replenish(caps);
+
+				/* round to next page size */
+				Genode::size_t size = buffer.size;
+				size /= 512;
+				size = ((size + 0xffful) & ~0xffful);
+
+				Ram_quota const ram { size };
+				_replenish(ram);
+
+				_gpu.unmap_buffer_ppgtt(buffer.id(), buffer.gpu_vaddr.addr);
+				buffer.gpu_vaddr_valid = false;
+			}
+
+			bool map_buffer(Buffer &buffer)
+			{
+				Cap_quota caps { MAP_BUFFER_CAP_AMOUNT };
+				Ram_quota ram { MAP_BUFFER_RAM_AMOUNT };
+
+				try {
+					_perform_gpu_op(caps, ram, [&] () {
+						buffer.map_cap =
+							_gpu.map_buffer(buffer.id(), true,
+							                Gpu::Mapping_attributes::rw());
+					});
+				} catch (Upgrade_failed) {
+					return false;
+				}
+
+				return true;
+			}
+
+			void unmap_buffer(Buffer &buffer)
+			{
+				map_count--;
+				Cap_quota const caps { MAP_BUFFER_CAP_AMOUNT };
+				_replenish(caps);
+
+				Ram_quota const ram { MAP_BUFFER_RAM_AMOUNT };
+				_replenish(ram);
+
+				_gpu.unmap_buffer(buffer.id());
+			}
+
+			void dump()
+			{
+				Genode::error("Resource_guard: ",
+				              "caps: ", cap_used.value, "/", cap_donated.value, " "
+				              "ram: ", ram_used.value, "/", ram_donated.value, " "
+				              "counter: ", alloc_count, "/", map_count, "/", map_ppgtt_count);
+			}
+		};
+
+		/*
+		 * The initial connection quota is needed for bringup,
+		 * start from 0 for all other allocations.
+		 */
+		Resource_guard _resources { _gpu_session };
 
 		struct Sync_obj
 		{
@@ -253,93 +543,17 @@ class Drm_call
 				                Genode::Hex(buffer.gpu_vaddr.addr), " vs ",
 				                Genode::Hex(vaddr.addr));
 
-			bool const ppgtt = Genode::retry<Gpu::Session::Out_of_ram>(
-			[&]() {
-				return Genode::retry<Gpu::Session::Out_of_caps>(
-				[&] () {
-					return _gpu_session.map_buffer_ppgtt(buffer.id(),
-						Utils::limit_to_48bit(vaddr.addr));
-				},
-				[&] () {
-					_gpu_session.upgrade_caps(2);
-				});
-			},
-			[&] () {
-				_gpu_session.upgrade_ram(4096);
-			});
-
-			if (!ppgtt) {
+			if (!_resources.map_buffer_ppgtt(buffer, vaddr)) {
 				Genode::error("could not insert buffer into PPGTT");
 				return false;
 			}
 
-			buffer.gpu_vaddr       = vaddr;
-			buffer.gpu_vaddr_valid = true;
 			return true;
 		}
 
 		void _unmap_buffer_ppgtt(Buffer &buffer)
 		{
-			if (!buffer.gpu_vaddr_valid) return;
-
-			_gpu_session.unmap_buffer_ppgtt(buffer.id(),
-			             Utils::limit_to_48bit(buffer.gpu_vaddr.addr));
-			buffer.gpu_vaddr_valid = false;
-		}
-
-		template <typename FUNC>
-		void _alloc_buffer(uint64_t const size, FUNC const &fn)
-		{
-			Genode::size_t donate = size;
-			Buffer *buffer = nullptr;
-			Genode::retry<Gpu::Session::Out_of_ram>(
-			[&] () {
-				Genode::retry<Gpu::Session::Out_of_caps>(
-				[&] () {
-					buffer =
-						new (&_heap) Buffer(_gpu_session, size, _buffer_space);
-				},
-				[&] () {
-					_gpu_session.upgrade_caps(2);
-				});
-			},
-			[&] () {
-				_gpu_session.upgrade_ram(donate);
-			});
-
-			if (buffer)
-				fn(*buffer);
-		}
-
-		void _unmap_buffer(Buffer &h)
-		{
-			_env.rm().detach(h.map_offset);
-			h.map_offset = 0;
-
-			_gpu_session.unmap_buffer(h.id());
-			h.map_cap = Genode::Dataspace_capability();
-
-			_available_gtt_size += h.size;
-		}
-
-		int _free_buffer(Gpu::Buffer_id const id)
-		{
-			try {
-				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
-					if (b.map_cap.valid())
-						_unmap_buffer(b);
-
-					if (b.gpu_vaddr_valid) {
-						_gpu_session.unmap_buffer_ppgtt(b.id(), b.gpu_vaddr.addr);
-						b.gpu_vaddr_valid = false;
-					}
-					Genode::destroy(&_heap, &b);
-				});
-				return 0;
-			} catch (Genode::Id_space<Buffer>::Unknown_id) {
-				Genode::error(__func__, ": invalid handle ", id.value);
-				return -1;
-			}
+			_resources.unmap_buffer_ppgtt(buffer);
 		}
 
 		Offset _map_buffer(Buffer &b)
@@ -351,33 +565,21 @@ class Drm_call
 				return offset;
 			}
 
-			try {
-				Genode::retry<Gpu::Session::Out_of_ram>(
-				[&]() {
-					Genode::retry<Gpu::Session::Out_of_caps>(
-					[&] () {
-						b.map_cap    = _gpu_session.map_buffer(b.id(), true,
-						                                       Gpu::Mapping_attributes::rw());
-						b.map_offset = static_cast<Offset>(_env.rm().attach(b.map_cap));
-						offset       = b.map_offset;
+			if (_resources.map_buffer(b)) {
 
-						_available_gtt_size -= b.size;
-					},
-					[&] () {
-						_gpu_session.upgrade_caps(2);
-					});
-				},
-				[&] () {
-					_gpu_session.upgrade_ram(4096);
-				});
+				// XXX attach might faile
+				b.map_offset = static_cast<Offset>(_env.rm().attach(b.map_cap));
+				offset       = b.map_offset;
 
-			} catch (...) {
-				if (b.map_cap.valid())
-					_gpu_session.unmap_buffer(b.id());
+				_available_gtt_size -= b.size;
+			} else {
 
-				b.map_cap = Genode::Dataspace_capability();
-				Genode::error("could not attach GEM buffer handle: ", b.id().value);
-				Genode::sleep_forever();
+				if (b.map_cap.valid()) {
+					_unmap_buffer(b);
+
+					Genode::error("could not attach GEM buffer handle: ", b.id().value);
+					Genode::sleep_forever();
+				}
 			}
 
 			return offset;
@@ -395,6 +597,50 @@ class Drm_call
 				Genode::sleep_forever();
 			}
 			return offset;
+		}
+
+		void _unmap_buffer(Buffer &h)
+		{
+			if (!h.map_cap.valid())
+				return;
+
+			_env.rm().detach(h.map_offset);
+			h.map_offset = 0;
+
+			_resources.unmap_buffer(h);
+
+			h.map_cap = Genode::Dataspace_capability();
+
+			_available_gtt_size += h.size;
+		}
+
+		template <typename FUNC>
+		void _alloc_buffer(uint64_t const size, FUNC const &fn)
+		{
+			Buffer *buffer = _resources.alloc_buffer(_heap, _buffer_space, size);
+
+			if (buffer)
+				fn(*buffer);
+		}
+
+		int _free_buffer(Gpu::Buffer_id const id)
+		{
+			try {
+				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
+
+					/* callee checks for mappings */
+					_unmap_buffer(b);
+					_unmap_buffer_ppgtt(b);
+
+					_resources.free_buffer(b.size);
+
+					Genode::destroy(&_heap, &b);
+				});
+				return 0;
+			} catch (Genode::Id_space<Buffer>::Unknown_id) {
+				Genode::error(__func__, ": invalid handle ", id.value);
+				return -1;
+			}
 		}
 
 		/***************************
@@ -426,20 +672,18 @@ class Drm_call
 
 			uint64_t const size = (p->size + 0xfff) & ~0xfff;
 
-			try {
-				_alloc_buffer(size, [&](Buffer const &b) {
-					p->size   = size;
-					p->handle = b.id().value;
+			bool successful = false;
+			_alloc_buffer(size, [&](Buffer const &b) {
+				p->size   = size;
+				p->handle = b.id().value;
+				successful = true;
 
-					if (verbose_ioctl) {
-						Genode::error(__func__, ": ", "handle: ", b.id().value,
-						              " size: ", size);
-					}
-				});
-				return 0;
-			} catch (...) {
-				return -1;
-			}
+				if (verbose_ioctl) {
+					Genode::error(__func__, ": ", "handle: ", b.id().value,
+					              " size: ", size);
+				}
+			});
+			return successful ? 0 : -1;
 		}
 
 		int _device_gem_mmap(void *arg)
