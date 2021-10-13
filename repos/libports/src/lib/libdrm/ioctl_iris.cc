@@ -177,6 +177,31 @@ struct Gpu::Buffer
 	Genode::Dataspace_capability map_cap    { };
 	Offset                       map_offset { 0 };
 
+	struct Tiling
+	{
+		bool     _valid;
+		uint32_t mode;
+		uint32_t stride;
+		uint32_t swizzle;
+
+		Tiling(uint32_t mode, uint32_t stride, uint32_t swizzle)
+		:
+			_valid  { true },
+			mode    { mode },
+			stride  { stride },
+			swizzle { swizzle }
+		{ }
+
+		Tiling()
+		:
+			_valid { false }, mode { 0 }, stride { 0 }, swizzle { 0 }
+		{ }
+
+		bool valid() const { return _valid; }
+	};
+
+	Tiling tiling { };
+
 	Gpu_virtual_address  gpu_vaddr { };
 	Gpu::Sequence_number seqno { };
 
@@ -725,18 +750,42 @@ class Drm_call
 				              " offset: ", Genode::Hex(p->offset));
 			}
 
-			/*
-			 * We always map a buffer when the tiling is set. Since Mesa
-			 * sets the filing first and maps the buffer afterwards we might
-			 * already have a mapping at this point.
-			 */
-			p->offset = _map_buffer(id);
+			bool successful = true;
+			try {
+				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
+
+					p->offset = _map_buffer(b);
+					if (p->offset == 0) {
+						successful = false;
+						return;
+					}
+
+					/*
+					 * Judging by iris mode == 0 is I915_TILING_NONE for
+					 * which no fencing seems to be necessary.
+					 */
+					if (b.tiling.valid() && b.tiling.mode != 0) {
+						uint32_t const m = (b.tiling.stride << 16) | (b.tiling.mode == 1 ? 1 : 0);
+						successful = _gpu_session.set_tiling(b.id(), m);
+					} else {
+						successful = true;
+					}
+
+					if (!successful) {
+						_unmap_buffer(b);
+						return;
+					}
+
+				});
+			} catch (Genode::Id_space<Buffer>::Unknown_id) { }
 
 			if (verbose_ioctl) {
 				Genode::error(__func__, ": ", "handle: ", id.value,
-				              " offset: ", Genode::Hex(p->offset), " (mapped)");
+				              " offset: ", Genode::Hex(p->offset),
+				              successful ? " (mapped)" : " (failed)");
 			}
-			return p->offset ? 0 : -1;
+
+			return successful ? 0 : -1;
 		}
 
 		char const *_domain_name(uint32_t d)
@@ -864,8 +913,33 @@ class Drm_call
 
 		int _device_gem_set_tiling(void *arg)
 		{
-			(void)arg;
-			return 0;
+			auto      const p  = reinterpret_cast<drm_i915_gem_set_tiling*>(arg);
+			Gpu::Buffer_id const id { .value = p->handle };
+			uint32_t  const mode    = p->tiling_mode;
+			uint32_t  const stride  = p->stride;
+			uint32_t  const swizzle = p->swizzle_mode;
+
+			if (verbose_ioctl) {
+				Genode::error(__func__, ": ",
+				              "handle: ", id.value, " "
+				              "mode: ", mode, " "
+				              "stride: ", stride , " "
+				              "swizzle: ", swizzle);
+			}
+
+			bool ok = false;
+			try {
+				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
+
+					b.tiling = Gpu::Buffer::Tiling(mode, stride, swizzle);
+					ok = true;
+
+				});
+			} catch (Genode::Id_space<Buffer>::Unknown_id) {
+				Genode::error(__func__, ": invalid handle: ", id.value);
+			}
+
+			return ok ? 0 : -1;
 		}
 
 		int _device_gem_sw_finish(void *)
@@ -1333,6 +1407,12 @@ class Drm_call
 					Genode::sleep_forever();
 					return;
 				}
+
+				if (b.tiling.valid())
+					b.tiling = Gpu::Buffer::Tiling();
+
+				if (b.map_cap.valid())
+					_unmap_buffer(b);
 
 				b.buffer_attached.destruct();
 				found = true;
