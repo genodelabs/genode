@@ -405,7 +405,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 				new (heap) Transfer(transfers, *rom, fs, handle, rom->file_size);
 			}
 			catch (...) {
-				Genode::warning("defer transfer of ", rom->path);
 				fs.close(handle);
 				/* retry when next pending transfer completes */
 				return;
