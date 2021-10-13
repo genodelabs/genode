@@ -32,17 +32,30 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 		Genode::Region_map      &_rm;
 		Utils::Backend_alloc    &_backend;
 
-		enum { ELEMENTS = 256, };
+		enum { ELEMENTS = 128, }; /* max 128M for page tables */
 		Utils::Address_map<ELEMENTS> _map { };
+
+		Genode::Allocator_avl    _range;
 
 	public:
 
-		Ppgtt_allocator(Genode::Region_map      &rm,
+		Ppgtt_allocator(Genode::Allocator       &md_alloc,
+		                Genode::Region_map      &rm,
 		                Utils::Backend_alloc    &backend)
 		:
 			_rm         { rm },
-			_backend    { backend }
+			_backend    { backend },
+			_range      { &md_alloc }
 		{ }
+
+		~Ppgtt_allocator()
+		{
+			_map.for_each([&](Utils::Address_map<ELEMENTS>::Element &elem) {
+				_rm.detach(elem.va);
+				_backend.free(elem.ds_cap);
+				elem.invalidate();
+			});
+		}
 
 		/*************************
 		 ** Allocator interface **
@@ -50,10 +63,15 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 
 		Alloc_result try_alloc(size_t size) override
 		{
+			Alloc_result result = _range.alloc_aligned(size, 12);
+			if (result.ok()) return result;
+
 			Genode::Ram_dataspace_capability ds { };
 
+			size_t alloc_size = 1024*1024;
+
 			try {
-				ds = _backend.alloc(size, _caps_guard, _ram_guard);
+				ds = _backend.alloc(alloc_size);
 			}
 			catch (Genode::Out_of_ram)  { return Alloc_error::OUT_OF_RAM;  }
 			catch (Genode::Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
@@ -64,8 +82,11 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 			try {
 				void * const ptr = _rm.attach(ds);
 
-				if (_map.add(ds, ptr))
-					return ptr;
+				if (_map.add(ds, ptr) == true) {
+					_range.add_range((Genode::addr_t)ptr, alloc_size);
+					result = _range.alloc_aligned(size, 12);
+					return result;
+				}
 
 				/* _map.add failed, roll back _rm.attach */
 				_rm.detach(ptr);
@@ -76,22 +97,14 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 
 			/* roll back allocation */
 			_backend.free(ds);
-
 			return alloc_error;
 		}
 
-		void free(void *addr, size_t) override
+		void free(void *addr, size_t size) override
 		{
 			if (addr == nullptr) { return; }
 
-			Genode::Ram_dataspace_capability cap = _map.remove(addr);
-			if (!cap.valid()) {
-				Genode::error("could not lookup capability for addr: ", addr);
-				return;
-			}
-
-			_rm.detach(addr);
-			_backend.free(cap);
+			_range.free(addr, size);
 		}
 
 		bool   need_size_for_free() const override { return false; }
@@ -104,15 +117,15 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 		void *phys_addr(void *va) override
 		{
 			if (va == nullptr) { return nullptr; }
-			typename Utils::Address_map<ELEMENTS>::Element *e = _map.phys_addr(va);
-			return e ? (void*)e->pa : nullptr;
+			addr_t pa = _map.phys_addr(va);
+			return pa ? (void *)pa : nullptr;
 		}
 
 		void *virt_addr(void *pa) override
 		{
 			if (pa == nullptr) { return nullptr; }
-			typename Utils::Address_map<ELEMENTS>::Element *e = _map.virt_addr(pa);
-			return e ? (void*)e->va : nullptr;
+			addr_t virt = _map.virt_addr(pa);
+			return virt ? (void*)virt : nullptr;
 		}
 };
 

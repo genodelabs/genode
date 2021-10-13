@@ -45,29 +45,30 @@ namespace Utils {
 template <unsigned int ELEMENTS>
 class Utils::Address_map
 {
+	using addr_t = Genode::addr_t;
+
 	public:
 
 		struct Element
 		{
-			Ram      ds_cap { };
-			void    *va     { nullptr };
-			void    *pa     { nullptr };
-			uint32_t index  { 0 };
+			Ram      ds_cap {   };
+			addr_t   va     { 0 };
+			addr_t   pa     { 0 };
+			size_t   size   { 0 };
 
 			Element() { }
 
-			Element(uint32_t index, Ram ds_cap, void *va)
+			Element(Ram ds_cap, void *va)
 			:
 				ds_cap(ds_cap),
-				va(va),
-				pa((void *)Genode::Dataspace_client(ds_cap).phys_addr()),
-				index(index)
+				va((addr_t)va),
+				pa(Genode::Dataspace_client(ds_cap).phys_addr()),
+				size(Genode::Dataspace_client(ds_cap).size())
 			{ }
 
 			Element(Element const &other)
 			:
-				ds_cap(other.ds_cap), va(other.va), pa(other.pa),
-				index(other.index)
+				ds_cap(other.ds_cap), va(other.va), pa(other.pa)
 			{ }
 
 			Element &operator = (Element const &other)
@@ -75,11 +76,12 @@ class Utils::Address_map
 				ds_cap = other.ds_cap;
 				va     = other.va;
 				pa     = other.pa;
-				index  = other.index;
+				size   = other.size;
 				return *this;
 			}
 
-			bool valid() { return va && pa; }
+			bool valid()      { return size > 0; }
+			void invalidate() { *this = Element(); };
 		};
 
 	private:
@@ -108,41 +110,46 @@ class Utils::Address_map
 			for (uint32_t i = 0; i < ELEMENTS; i++) {
 				if (_map[i].valid()) { continue; }
 
-				_map[i] = Element(i, ds_cap, va);
+				_map[i] = Element(ds_cap, va);
 				return true;
 			}
 			return false;
 		}
 
-		Ram remove(void *va)
+		template <typename FN>
+		void for_each(FN const &fn)
 		{
-			Ram cap;
-
-			for (uint32_t i = 0; i < ELEMENTS; i++) {
-				if (_map[i].va != va) { continue; }
-
-				cap = _map[i].ds_cap;
-				_map[i] = Element();
-				break;
+			for (unsigned i = 0; i < ELEMENTS; i++) {
+				if (_map[i].valid()) fn(_map[i]);
 			}
-
-			return cap;
 		}
 
-		Element *phys_addr(void *va)
+		addr_t phys_addr(void *va)
 		{
+			addr_t virt = (addr_t)va;
 			for (uint32_t i = 0; i < ELEMENTS; i++) {
-				if (_map[i].va == va) { return &_map[i]; }
+				if (virt >= _map[i].va && virt < (_map[i].va + _map[i].size))
+				{
+					Genode::off_t offset = virt - _map[i].va;
+					return _map[i].pa + offset;
+				}
 			}
-			return nullptr;
+			Genode::error("phys_addr not found for ", va);
+			return 0;
 		}
 
-		Element *virt_addr(void *pa)
+		addr_t virt_addr(void *pa)
 		{
+			addr_t phys = (addr_t)pa;
 			for (uint32_t i = 0; i < ELEMENTS; i++) {
-				if (_map[i].pa == pa) { return &_map[i]; }
+				if (phys >= _map[i].pa && phys < (_map[i].pa + _map[i].size))
+				{
+					Genode::off_t offset = phys - _map[i].pa;
+					return _map[i].va + offset;
+				}
 			}
-			return nullptr;
+			Genode::error("virt_addr not found for ", pa);
+			return 0;
 		}
 };
 

@@ -447,7 +447,7 @@ struct Igd::Device
 		:
 			ctx (device._env.rm(), alloc, device, CONTEXT::CONTEXT_PAGES, 1 /* omit GuC page */),
 			ring(device._env.rm(), alloc, device, CONTEXT::RING_PAGES, 0),
-			ppgtt_allocator(device._env.rm(), device._pci_backend_alloc),
+			ppgtt_allocator(alloc, device._env.rm(), device._pci_backend_alloc),
 			ppgtt_scratch(device._pci_backend_alloc)
 		{
 			/* PPGTT */
@@ -1570,8 +1570,16 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			Igd::Ggtt::Mapping map { };
 
+			addr_t phys_addr { 0 };
+			size_t size { 0 };
+
 			Buffer(Gpu::Buffer_id id, Genode::Dataspace_capability cap)
-			: id { id }, cap { cap } { }
+			: id { id }, cap { cap }
+			{
+				Dataspace_client buf(cap);
+				phys_addr = buf.phys_addr();
+				size = buf.size();
+			}
 
 			virtual ~Buffer() { }
 		};
@@ -1591,7 +1599,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		}
 
 		Genode::uint64_t seqno { 0 };
-
 
 	public:
 
@@ -1867,11 +1874,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 					Resource_guard::Reservation reserve = _resource_guard.map_buffer_ppgtt();
 
-					Genode::Dataspace_client buf(buffer.cap);
-					/* XXX check that actual_size matches alloc_buffer size */
-					Genode::size_t const actual_size = buf.size();
-					Genode::addr_t const phys_addr   = buf.phys_addr();
-					_vgpu.rcs_map_ppgtt(va, phys_addr, actual_size);
+					_vgpu.rcs_map_ppgtt(va, buffer.phys_addr, buffer.size);
 					buffer.ppgtt_va = va;
 					buffer.ppgtt_va_valid = true;
 					result = OK;
