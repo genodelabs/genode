@@ -149,7 +149,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 		Genode::addr_t     _irq_drop    = 0;
 
 		struct {
-			unsigned intr_state;
 			unsigned ctrl[2];
 		} next_utcb;
 
@@ -186,8 +185,9 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 				::memcpy(pCtx->pXStateR3, &fpu, sizeof(X86FXSTATE));
 			});
 
+			_state->discharge();
+
 			if (_vm_state == IRQ_WIN) {
-				_state->discharge();
 				_irq_window_pthread();
 				goto again;
 			} else
@@ -202,7 +202,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 				Genode::addr_t const gp_map_addr = npt_ept_exit_addr & ~((1UL << 12) - 1);
 				int res = attach_memory_to_vm(gp_map_addr, npt_ept_errorcode);
 				if (res == VINF_SUCCESS) {
-					_state->discharge();
 					goto again;
 				}
 			}
@@ -453,12 +452,12 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 
 			/* reset message transfer descriptor for next invocation */
 			Assert (!(_state->inj_info.value() & IRQ_INJ_VALID_MASK));
-			next_utcb.intr_state = _state->intr_state.value();
 			next_utcb.ctrl[0]    = _state->ctrl_primary.value();
 			next_utcb.ctrl[1]    = _state->ctrl_secondary.value();
 
-			if (next_utcb.intr_state & 3) {
-				next_utcb.intr_state &= ~3U;
+			if (_state->intr_state.value() & 3) {
+				_state->intr_state.charge(_state->intr_state.value());
+				_state->actv_state.charge(ACTIVITY_STATE_ACTIVE);
 			}
 
 			VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_TO_R3);
@@ -526,7 +525,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 		{
 			PVMCPU   pVCpu = _vcpu;
 
-			Assert(_state->intr_state.value() == INTERRUPT_STATE_NONE);
 			Assert(_state->flags.value() & X86_EFL_IF);
 			Assert(!VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS));
 			Assert(!(_state->inj_info.value() & IRQ_INJ_VALID_MASK));
@@ -793,9 +791,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 				Genode::error("wrong CPU !?");
 
 			/* take the utcb state prepared during the last exit */
-			_state->inj_info.charge(IRQ_INJ_NONE);
-			_state->intr_state.charge(next_utcb.intr_state);
-			_state->actv_state.charge(ACTIVITY_STATE_ACTIVE);
 			_state->ctrl_primary.charge(next_utcb.ctrl[0]);
 			_state->ctrl_secondary.charge(next_utcb.ctrl[1]);
 
