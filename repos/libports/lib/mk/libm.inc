@@ -35,6 +35,9 @@ CC_WARN =
 SRC_C  = $(wildcard $(LIBM_DIR)/src/*.c) \
          $(wildcard $(LIBM_DIR)/bsdsrc/*.c)
 
+# Provides __isinff and __isinfl used by lib/msun/src/s_cprojf.c
+SRC_C += isinf.c
+
 #
 # 128 bit quadruple precision format
 #
@@ -57,6 +60,7 @@ endif
 
 SRC_C := $(filter-out $(FILTER_OUT),$(notdir $(SRC_C)))
 
+vpath %.c $(LIBC_DIR)/lib/libc/gen/
 vpath %.c $(LIBM_DIR)/src
 vpath %.c $(LIBM_DIR)/bsdsrc
 
