@@ -11,9 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <base/log.h>
 #include <base/allocator.h>
 #include <base/sleep.h>
+
+/* C++ runtime includes */
+#include <new>
 
 using Genode::size_t;
 using Genode::Allocator;
@@ -84,5 +88,11 @@ __attribute__((weak)) void operator delete (void *, unsigned long)
 __attribute__((weak)) void operator delete (void *, unsigned long, std::align_val_t)
 {
 	Genode::error("cxx: operator delete (void *, unsigned long, std::align_val_t) called - not implemented. "
+	              "A working implementation is available in the 'stdcxx' library.");
+}
+
+__attribute__((weak)) void operator delete (void *, std::align_val_t) noexcept
+{
+	Genode::error("cxx: operator delete (void *, std::align_val_t) called - not implemented. "
 	              "A working implementation is available in the 'stdcxx' library.");
 }
