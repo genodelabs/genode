@@ -45,7 +45,7 @@ Genode::Reconstructible : Noncopyable
 		/**
 		 * Static reservation of memory for the embedded object
 		 */
-		char _space[sizeof(MT)] alignas(sizeof(addr_t));
+		alignas(sizeof(addr_t)) char _space[sizeof(MT)];
 
 		/**
 		 * True if the volatile object contains a constructed object
