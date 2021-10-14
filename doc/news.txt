@@ -4,6 +4,53 @@
                                ===========
 
 
+Sculpt OS release 21.10 | 2021-10-14
+####################################
+
+| Sculpt OS version 21.10 introduces GPU-accelerated graphics on Intel,
+| media playback in the web browser, VirtualBox 6, and USB webcam support.
+
+At the first glance, the just released Sculpt 21.10 looks and feels nearly
+identical to the time-tested previous version 21.03. However, a look at the
+installable packages reveals a firework of exciting new features.
+
+First and technically most exciting, the new version enables the use of
+hardware-accelerated graphics on Intel GPUs, paving the ground for
+graphics-intensive applications and games. The GPU support is based on the
+combination of the Mesa library stack with our custom GPU multiplexer
+as featured in
+[https://genode.org/documentation/release-notes/21.08#Advancing_GPU_driver_stack - Genode 21.08].
+_Note that this fresh new feature should best be regarded as experimental_
+_and be used with caution._
+
+Second, our port of the Chromium-based Falkon web browser has become able to
+present media content like videos and sound. Look out for the browser in the
+tools menu of cproc's depot. It is accompanied with a ready-to-use audio
+driver and a mixer component. In cases where audio output is not desired, the
+browser - or any other component that requests audio output - can be connected
+to a new component called black hole, which merely mimics an audio driver
+without any audible effect.
+
+Third, with the addition of the new file-vault component, Sculpt now provides
+an easy way to setup and use an encrypted file store using our custom CBE
+block encrypter as underlying crypto container. The file vault is especially
+useful in combination with the recall-fs component that provides each client
+with a distinct storage compartment.
+
+Finally, the support for USB webcams as introduced with
+[https://genode.org/documentation/release-notes/21.05#Webcam_support - Genode 21.05]
+has entered Sculpt OS in the form of a new webcam package. The webcam support
+can best be combined with our new port of VirtualBox 6 that is available in
+addition to VirtualBox version 5. With Sculpt 21.10, both VirtualBox versions
+can be used in parallel.
+
+Sculpt OS 21.10 is available as ready-to-use system image at the
+[https://genode.org/download/sculpt - Sculpt download page] and is accompanied
+with updated [https://genode.org/documentation/articles/sculpt-21-10 - documentation].
+More details about individual new features of Sculpt 21.10 will be covered
+soon by dedicated articles at [https://genodians.org].
+
+
 Genode OS Framework release 21.08 | 2021-08-31
 ##############################################
 
