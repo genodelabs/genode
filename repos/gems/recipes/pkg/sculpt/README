@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 21.03
+                      Sculpt Operating System 21.10
                       =============================
 
 
@@ -58,7 +58,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at
-[https://genode.org/documentation/sculpt-21-03.pdf].
+[https://genode.org/documentation/sculpt-21-10.pdf].
 
 
 Hardware requirements and preparations
@@ -144,16 +144,16 @@ indicated by the IP address displayed at the bottom of the network dialog
 With a storage location selected and established network connectivity, it is
 time to *install and start* additional components by clicking on the '+'
 button of the components view. Select "Depot ..." from the menu
-(Figure [sculpt_20_08_menu]).
+(Figure [sculpt_21_10_menu]).
 
-[image sculpt_20_08_menu 40%]
+[image sculpt_21_10_menu 40%]
 
 The depot contains software packages, which can be obtained by different
 independent software providers. The selection of software providers is
 completely up to the user and can be defined in the "Selection ..." sub menu
-(Figure [sculpt_20_08_select]).
+(Figure [sculpt_21_10_select]).
 
-[image sculpt_20_08_select 40%]
+[image sculpt_21_10_select 32%]
 
 Select "genodelabs" to download the directory of software officially
 provided by Genode Labs. Note that the other options are not necessarily
@@ -170,7 +170,7 @@ In the "GUI ..." sub menu, a click on the first item named "sticks blue
 backdrop" reveals the option to install the package
 (Figure [sculpt_20_08_install_backdrop]).
 
-[image sculpt_20_08_install_backdrop 40%]
+[image sculpt_20_08_install_backdrop 48%]
 
 A click on the "Install" button triggers the download of the package and its
 dependencies. Once the download is complete, the menu presents a configuration
@@ -319,12 +319,33 @@ For inspiration, please follow the postings at
 
   [https://genodians.org/m-stein/2019-03-07-vm-with-sculpt-ce-preview]
 
+  You may even go a step further by re-using an existing Linux installation
+  inside VirtualBox on Sculpt:
+
+  [https://genodians.org/jschlatow/2021-04-23-start-existing-linux-from-sculpt]
+
 :Disposable Firefox VMs:
 
   Use a minimalistic Tinycore-Linux system to run Firefox in memory without
   access to any persistent storage:
 
   [https://genodians.org/alex-ab/2019-03-06-disposal-browser-vm]
+
+:Advanced window management:
+
+  Let Sculpt remember window positions across reboots, swap out window
+  decorations on the fly, and have fun with manipulating the window layout
+  directly via a textual interface.
+
+  [https://genodians.org/nfeske/2020-03-27-window-management]
+
+:Encrypted file store:
+
+  The file-vault package provides Sculpt users with an easy way to set
+  up and use an encrypted file store using Genode's custom CBE block
+  encrypter.
+
+  [https://genodians.org/m-stein/2021-05-17-introducing-the-file-vault]
 
 
 Base system
@@ -457,7 +478,7 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 21.03 features a command-line
+Alternatively to the "Files" tab, Sculpt 21.10 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
 "Inspect" appears, which hosts the command-line interface
@@ -692,6 +713,8 @@ as options.
   ----------------------------------------------------------------------------
                             |                | used file system
   ----------------------------------------------------------------------------
+   GPU                      | 'Gpu'          | hardware-accelerated graphics
+  ----------------------------------------------------------------------------
    GUI                      | 'Gui'          | keyboard focus
   ----------------------------------------------------------------------------
                             |                | desktop lock screen
@@ -706,7 +729,7 @@ as options.
   ----------------------------------------------------------------------------
    Protection domain        | 'PD'           | system PD service
   ----------------------------------------------------------------------------
-   Real-time clock          | 'Rtc'          | system clock
+   Real-time clock          | 'Rtc'          |
   ----------------------------------------------------------------------------
    Region maps              | 'RM'           | custom virtual memory objects
   ----------------------------------------------------------------------------
@@ -953,7 +976,20 @@ as described in Section
 Real-time clock
 ~~~~~~~~~~~~~~~
 
-The real-time clock enables a component to know what time it is.
+The real-time clock enables a component to know what time it is. The service is
+optionally provided by a package called system clock.
+
+
+GPU
+~~~
+
+Access to the GPU (graphics processing unit) service allows a component to
+utilize hardware-accelerated graphics on machines that feature a GPU supported
+by Sculpt. Supported are Intel GPUs of generation 8 (Broadwell) or newer.
+
+_Note that GPU support is a very recent feature and has thereby not_
+_received intensive testing yet. Please regard it as experimental and_
+_use it with caution._
 
 
 Region maps
@@ -1338,18 +1374,18 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-21.03 sculpt-21.03
+  ! git checkout -b sculpt-21.10 sculpt-21.10
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2021-03-11
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2021-10-14
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
 
 # Download all ingredients for the Sculpt boot image
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt-pc/2021-03-24
+  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt-pc/2021-10-14
 
 # Create a build directory
 
@@ -1393,12 +1429,14 @@ Before building the packages, various ports of 3rd-party software need to
 be prepared. The following command prepares all of them at once:
 
 ! <GENODE-DIR>/tool/ports/prepare_port \
-!      acpica bash coreutils curl dde_ipxe dde_linux \
-!      dde_rump drm e2fsprogs-lib expat freetype gnupg \
-!      jitterentropy jpeg libarchive libc libgcrypt \
-!      libiconv libpng libssh mesa ncurses nova openssl \
-!      qemu-usb qoost qt5 stb stdcxx ttf-bitstream-vera \
-!      vim virtualbox5 x86emu xz zlib
+!      acpica ada-runtime bash cbe coreutils curl \
+!      dde_bsd dde_ipxe dde_linux dde_rump e2fsprogs-lib \
+!      expat freetype gnupg grub2 jitterentropy jpeg \
+!      libarchive libc libdrm libgcrypt libiconv libpng \
+!      libsparkcrypto libssh libusb libuvc libyuv mesa \
+!      ncurses nova openssl qemu-usb qoost qt5 stb \
+!      stdcxx ttf-bitstream-vera vim virtualbox5 \
+!      virtualbox6 x86emu xz zlib
 
 To be able to compile components that are dependent on the QT5-library, the
 corresponding toolchain needs to be installed in addition to the base Genode
@@ -1511,7 +1549,7 @@ the Sculpt scenario.
 :NOVA microhypervisor:
 
   Sculpt's kernel is a derivate of NOVA, maintained by Genode Labs.
-  NOVA was originally created by Udo Steinberg [http://hypervisor.org].
+  NOVA was originally created by Udo Steinberg [https://hypervisor.org].
 
 :Linux kernel:
   [https://kernel.org]
@@ -1541,19 +1579,31 @@ Device drivers
   _(used by the wireless driver)_
 
 :iPXE:
-  [http://ipxe.org]
+  [https://ipxe.org]
   _(basis of the wired network driver)_
 
 :xf86emu:
-  [http://xorg.freedesktop.org/]
+  [https://xorg.freedesktop.org/]
   _(used by the VESA driver)_
+
+:OpenBSD:
+  [https://www.openbsd.org]
+  _(basis for the audio driver)_
+
+:libusb:
+  [https://libusb.info]
+  _(used by the webcam driver)_
+
+:libuvc:
+  [https://ken.tossell.net/libuvc/doc/]
+  _(used by the webcam driver)_
 
 
 Programs and libraries used within the Unix-like subsystems
 -----------------------------------------------------------
 
 :Vim:
-  [http://www.vim.org]
+  [https://www.vim.org]
 
 :ncurses:
   [https://www.gnu.org/software/ncurses/ncurses.html]
@@ -1619,6 +1669,10 @@ Libraries used for the graphical user interface
   [https://github.com/nothings/stb]
   _(used for rasterizing TrueType fonts)_
 
+:Mesa 3D:
+  [https://mesa3d.org]
+  _(used for hardware-accelerated 3D graphics)_
+
 
 Crucial tools used during development
 -------------------------------------
@@ -1641,7 +1695,7 @@ Crucial tools used during development
   [https://www.tcl.tk]
 
 :Expect:
-  [http://expect.sourceforge.net]
+  [https://core.tcl-lang.org/expect/index]
 
 :Qemu:
   [https://www.qemu.org]
