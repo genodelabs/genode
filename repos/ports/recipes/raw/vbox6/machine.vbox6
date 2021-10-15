@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<VirtualBox xmlns="http://www.virtualbox.org/" version="1.14-freebsd">
+<VirtualBox xmlns="http://www.virtualbox.org/" version="1.18-genode">
   <Machine uuid="{37ab43a5-38d8-4491-93f5-5b0b077f5c32}" name="ubuntu_16_04_64" OSType="Ubuntu_64" snapshotFolder="Snapshots" lastStateChange="2018-01-23T18:40:00Z">
     <MediaRegistry>
       <HardDisks>
