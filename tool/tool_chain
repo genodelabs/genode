@@ -224,6 +224,8 @@ endif
 
 GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
                         --enable-languages=$(filter-out go,$(LANGUAGES)) \
+                        --disable-libgo \
+                        --disable-gotools \
                         --disable-libatomic \
                         --disable-libcilkrts \
                         --disable-libgomp \
