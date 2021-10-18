@@ -12,7 +12,6 @@ proc have_platform_drv {} {
 proc usb_host_drv_binary { } {
 	if {[have_board rpi]}             { return rpi_usb_host_drv       }
 	if {[have_board imx6q_sabrelite]} { return imx6q_sabrelite_usb_host_drv }
-	if {[have_board imx8q_evk]}       { return imx8q_evk_usb_host_drv }
 	if {[have_board pc]}              { return x86_pc_usb_host_drv    }
 	return no_usb_drv_available
 }
