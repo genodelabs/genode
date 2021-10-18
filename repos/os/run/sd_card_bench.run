@@ -8,7 +8,6 @@ if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
 
 proc buffer_size_kib {} {
 	if {[have_board pbxa9]}           { return [expr 12 * 1024] }
-	if {[have_board imx8q_evk]}       { return [expr      1024] }
 	if {[have_board imx6q_sabrelite]} { return [expr      1024] }
 	if {[have_board imx53_qsb]}       { return [expr      1024] }
 	if {[have_board imx53_qsb_tz]}    { return [expr      1024] }
@@ -19,7 +18,6 @@ proc buffer_size_kib {} {
 
 proc sd_card_drv {} {
 	if {[have_board pbxa9]}           { return pl180_sd_card_drv }
-	if {[have_board imx8q_evk]}       { return imx8_sd_card_drv  }
 	if {[have_board imx6q_sabrelite]} { return imx6_sd_card_drv  }
 	if {[have_board imx53_qsb]}       { return imx53_sd_card_drv }
 	if {[have_board imx53_qsb_tz]}    { return imx53_sd_card_drv }
@@ -29,7 +27,6 @@ proc sd_card_drv {} {
 }
 
 proc platform_drv {} {
-	if {[have_board imx8q_evk]} { return imx8mq_platform_drv }
 	return platform_drv
 }
 
@@ -38,17 +35,6 @@ proc device {} {
 		return {
 			<device name="card" type="arm,pl18x">
 				<io_mem address="0x10005000" size="0x1000"/>
-			</device>
-		}
-	}
-	if {[have_board imx8q_evk]} {
-		return {
-			<device name="card" type="fsl,imx8mq-usdhc">
-				<io_mem address="0x30b50000" size="0x10000"/>
-				<irq    number="55"/>
-				<clock  name="nand_usdhc_bus_clk_root"/>
-				<clock  name="usdhc2_clk_root"/>
-				<clock  name="usdhc2_gate"/>
 			</device>
 		}
 	}

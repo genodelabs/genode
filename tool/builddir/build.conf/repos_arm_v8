@@ -1,0 +1,4 @@
+#
+# Board support for i.MX SoC family
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/imx
