@@ -459,7 +459,7 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_npt_ept(VBO
 {
 	rc = VINF_EM_RAW_EMULATE_INSTR;
 
-	RTGCPHYS const GCPhys = RT_ALIGN(_vcpu.state().qual_secondary.value(), X86_PAGE_SIZE);
+	RTGCPHYS const GCPhys = PAGE_ADDRESS(_vcpu.state().qual_secondary.value());
 
 	PPGMRAMRANGE const pRam = pgmPhysGetRangeAtOrAbove(&_vm, GCPhys);
 	if (!pRam)
