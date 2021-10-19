@@ -385,6 +385,9 @@ template <typename T> bool Sup::Vcpu_impl<T>::_check_and_request_irq_window()
 {
 	PVMCPU pVCpu = &_vmcpu;
 
+	if (VMCPU_FF_TEST_AND_CLEAR(pVCpu, VMCPU_FF_UPDATE_APIC))
+		APICUpdatePendingInterrupts(pVCpu);
+
 	if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS))
 		return false;
 
