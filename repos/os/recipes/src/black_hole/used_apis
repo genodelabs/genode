@@ -1,2 +1,5 @@
 base
+audio_in_session
 audio_out_session
+capture_session
+os

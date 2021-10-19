@@ -1,9 +1,15 @@
 The 'black_hole' component provides dummy implementations of common
 session interfaces.
 
-At this time, only the 'Audio_out' session is provided if enabled
+At this time, the following sessions are provided if enabled
 in the configuration of the component:
 
+* Audio_in
+* Audio_out
+* Capture
+
 <config>
+	<audio_in/>
 	<audio_out/>
+	<capture/>
 </config>

@@ -1,11 +1,15 @@
 <runtime ram="8M" caps="100" binary="black_hole">
 
 	<provides>
+		<audio_in/>
 		<audio_out/>
+		<capture/>
 	</provides>
 
 	<config>
+		<audio_in/>
 		<audio_out/>
+		<capture/>
 	</config>
 
 	<content>
