@@ -1,0 +1,25 @@
+--- a/src/virtualbox6/src/VBox/VMM/VMMR3/EM.cpp
++++ b/src/virtualbox6/src/VBox/VMM/VMMR3/EM.cpp
+@@ -1845,6 +1845,22 @@
+                 return rc2;
+             }
+             UPDATE_RC();
++
++            /**
++             * If rc2 says to go to WAIT_SIPI state, UPDATE_RC may ignore it
++             * depending on previous rc value, e.g. rc = VINF_EM_HALT. 
++             * The other vCPU got already reset by vmmR3SendInitIpi and can't
++             * just continue, it must go to WAIT_FOR_SIPI. Otherwise, the
++             * following SIPI will be ignored in vmmR3SendStarupIpi. The
++             * vCPU will not wake up and the guest OS will hang (spinning) or
++             * ignore the vCPU.
++             */
++            if (rc2 == VINF_EM_WAIT_SIPI && rc != VINF_EM_WAIT_SIPI) {
++                RTLogPrintf("Force vCPU %u to EM_WAIT_SIPI state, rc=%Rrc\n",
++                            pVCpu->idCpu, rc);
++                return rc2;
++            }
++
+             /** @todo HACK ALERT! The following test is to make sure EM+TM
+              * thinks the VM is stopped/reset before the next VM state change
+              * is made. We need a better solution for this, or at least make it
