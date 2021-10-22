@@ -28,6 +28,7 @@ extern "C" {
 #include <errno.h>
 #include <drm.h>
 #include <i915_drm.h>
+#include <unistd.h>
 
 #define DRM_NUMBER(req) ((req) & 0xff)
 }
@@ -251,7 +252,7 @@ class Drm_call
 
 		Genode::Env      &_env;
 		Genode::Heap      _heap               { _env.ram(), _env.rm() };
-		Gpu::Connection   _gpu_session        { _env };
+		Gpu::Connection   _gpu_session        { _env, 3*1024*1024 };
 		Gpu::Info_intel  const &_gpu_info {
 			*_gpu_session.attached_info<Gpu::Info_intel>() };
 		size_t            _available_gtt_size { _gpu_info.aperture_size };
@@ -1032,9 +1033,6 @@ class Drm_call
 							Genode::warning("handle: ", obj[i].handle, " reused but is busy");
 
 						if (b.gpu_vaddr_valid && b.gpu_vaddr.addr != obj[i].offset) {
-							Genode::error("unmap already mapped ", b.id().value, " ",
-							              Genode::Hex(b.gpu_vaddr.addr), "->",
-							              Genode::Hex(obj[i].offset));
 							_unmap_buffer_ppgtt(b);
 						}
 
@@ -1320,12 +1318,15 @@ class Drm_call
 
 			Gpu::Buffer_id const id { .value = p->handle };
 			try {
-				_buffer_space.apply<Buffer>(id, [&](Buffer const &b) {
+				_buffer_space.apply<Buffer>(id, [&](Buffer const &) {
+
 					if (!prime_handle.value)
 						prime_handle = id;
 
-					if (prime_handle.value != id.value)
-						Genode::error("prime handle changed - ignored ", b.id().value);
+					if (prime_handle.value != id.value) {
+						Genode::warning("prime handle changed: ", id.value);
+						prime_handle = id;
+					}
 				});
 			 } catch (Genode::Id_space<Buffer>::Unknown_id) {
 				return -1;
@@ -1373,6 +1374,19 @@ class Drm_call
 				Genode::warning("syncobject 0 not reserved");
 
 			_gpu_session.completion_sigh(_completion_sigh);
+		}
+
+		int lseek(int fd, off_t offset, int whence)
+		{
+			if (fd != prime_fd || offset || whence != SEEK_END)
+				return -1;
+
+			int size = -1;
+			_buffer_space.apply<Buffer>(prime_handle, [&](Buffer const &b) {
+				size =(int)b.size;
+			});
+
+			return size;
 		}
 
 		bool map_buffer_ggtt(Offset offset, size_t length)
@@ -1451,6 +1465,19 @@ class Drm_call
 			}
 		}
 
+		void unmap_buffer_ppgtt(__u32 handle)
+		{
+			Gpu::Buffer_id const id = { .value = handle };
+			try {
+				_buffer_space.apply<Buffer>(id, [&](Buffer &b) {
+					if (b.busy)
+						return;
+
+					_unmap_buffer_ppgtt(b);
+				});
+			} catch (Genode::Id_space<Buffer>::Unknown_id) { }
+		}
+
 		int ioctl(unsigned long request, void *arg)
 		{
 			bool const device = device_ioctl(request);
@@ -1473,12 +1500,6 @@ class Drm_call
 				if (!h.busy) return;
 				if (h.seqno.value > _gpu_info.last_completed.value) return;
 				h.busy = false;
-
-				/*
-				 * Because bo object map/unmap is not supported correctly right now
-				 * (reference counting), we unmap and map the buffers on for each frame
-				 */
-				_unmap_buffer_ppgtt(h);
 			});
 
 		}
@@ -1515,6 +1536,20 @@ extern "C" int drm_munmap(void *addr, size_t length)
 {
 	_call->unmap_buffer(addr, length);
 	return 0;
+}
+
+
+extern "C" void drm_unmap_ppgtt(__u32 handle)
+{
+	_call->unmap_buffer_ppgtt(handle);
+}
+
+
+extern "C" int drm_lseek(int fd, off_t offset, int whence)
+{
+	if (_call.constructed() == false) { errno = EIO; return -1; }
+
+	return _call->lseek(fd, offset, whence);
 }
 
 
