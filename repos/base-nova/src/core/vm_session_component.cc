@@ -92,7 +92,8 @@ Trace::Source::Info Vm_session_component::Vcpu::trace_source_info() const
 		warning("sc_ctrl failed res=", res);
 
 	return { _label, String<5>("vCPU"),
-	         Trace::Execution_time(sc_time, sc_time),
+	         Trace::Execution_time(sc_time, sc_time,
+	                               Nova::Qpd::DEFAULT_QUANTUM, _priority),
 	         _location };
 }
 
