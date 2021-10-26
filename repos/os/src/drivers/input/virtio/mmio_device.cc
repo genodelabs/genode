@@ -27,7 +27,8 @@ struct Virtio_mmio_input::Main
 {
 	Env                    &env;
 	Platform::Connection    platform        { env };
-	Platform::Device        platform_device { platform, { "input" } };
+	Platform::Device        platform_device { platform,
+	                                          Platform::Device::Type { "input" } };
 	Virtio::Device          virtio_device   { platform_device };
 	Attached_rom_dataspace  config          { env, "config" };
 	Virtio_input::Driver    driver          { env, virtio_device, config.xml() };
