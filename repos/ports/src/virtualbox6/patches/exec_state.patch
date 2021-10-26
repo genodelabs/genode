@@ -1,0 +1,27 @@
+Avoid the race between checking a remote state and the decision.
+--- a/src/virtualbox6/src/VBox/VMM/VMMR3/VMEmt.cpp
++++ b/src/virtualbox6/src/VBox/VMM/VMMR3/VMEmt.cpp
+@@ -864,9 +864,10 @@
+                     AssertRC(rc);
+                 }
+             }
+-            else if (   enmState == VMCPUSTATE_STARTED_EXEC_NEM
+-                     || enmState == VMCPUSTATE_STARTED_EXEC_NEM_WAIT)
++            else {// if (   enmState == VMCPUSTATE_STARTED_EXEC_NEM
++                  //   || enmState == VMCPUSTATE_STARTED_EXEC_NEM_WAIT)
+                 NEMR3NotifyFF(pUVCpu->pVM, pVCpu, fFlags);
++            }
+         }
+     }
+     /* This probably makes little sense: */
+@@ -1006,8 +1007,8 @@
+         if (pVCpu)
+         {
+             VMCPUSTATE enmState = pVCpu->enmState;
+-            if (   enmState == VMCPUSTATE_STARTED_EXEC_NEM
+-                || enmState == VMCPUSTATE_STARTED_EXEC_NEM_WAIT)
++//            if (   enmState == VMCPUSTATE_STARTED_EXEC_NEM
++//                || enmState == VMCPUSTATE_STARTED_EXEC_NEM_WAIT)
+                 NEMR3NotifyFF(pUVCpu->pVM, pVCpu, fFlags);
+         }
+     }

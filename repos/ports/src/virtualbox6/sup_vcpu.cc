@@ -111,7 +111,9 @@ class Sup::Vcpu_impl : public Sup::Vcpu, Genode::Noncopyable
 
 		/* state machine between EMT and vCPU mode */
 		enum Current_state { RUNNING, PAUSED } _current_state { PAUSED };
-		enum Next_state    { PAUSE_EXIT, RUN } _next_state    { RUN };
+
+		Genode::Mutex _nem_guard { };
+		bool _check_force_flags = false;
 
 		/* interrupt-window exit requested */
 		bool _irq_window = false;
@@ -160,10 +162,7 @@ template <typename T> void Sup::Vcpu_impl<T>::_handle_exit()
 {
 	_emt.switch_to_emt();
 
-	if (_next_state == RUN)
-		_vcpu.run(); /* resume vCPU */
-	else
-		_vcpu.pause(); /* cause pause exit */
+	_vcpu.run();
 }
 
 
@@ -621,13 +620,6 @@ template <typename VIRT> VBOXSTRICTRC Sup::Vcpu_impl<VIRT>::_switch_to_hw()
 		/* run vCPU until next exit */
 		_emt.switch_to_vcpu();
 
-		/*
-		 * We left the VM, so we should "run" on next switch_to_vcpu(). Currently,
-		 * this may be changed by Sup::Vcpu::pause(), which induces a synchronized
-		 * "pause" exit on next switch.
-		 */
-		_next_state = RUN;
-
 		result = VIRT::handle_exit(_vcpu.state());
 
 		/* discharge by default */
@@ -715,17 +707,15 @@ template <typename T> void Sup::Vcpu_impl<T>::wake_up()
 
 template <typename T> void Sup::Vcpu_impl<T>::pause()
 {
-	/* skip pause request as we requested interrupt-window exit already */
-	if (_irq_window)
-		return;
+	Genode::Mutex::Guard guard(_nem_guard);
 
-	/* XXX why do we need this special barrier here but nowhere else ? */
-	memory_barrier();
+	PVMCPU     pVCpu    = &_vmcpu;
+	VMCPUSTATE enmState = pVCpu->enmState;
 
-	if (_current_state != PAUSED)
+	if (enmState == VMCPUSTATE_STARTED_EXEC_NEM)
 		_vcpu.pause();
-
-	_next_state = PAUSE_EXIT;
+	else
+		_check_force_flags = true;
 }
 
 
@@ -734,8 +724,18 @@ template <typename T> VBOXSTRICTRC Sup::Vcpu_impl<T>::run()
 	PVMCPU   pVCpu = &_vmcpu;
 	CPUMCTX &ctx   = *CPUMQueryGuestCtxPtr(pVCpu);
 
-	/* mimic state machine implemented in nemHCWinRunGC() etc. */
-	VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM);
+	{
+		Genode::Mutex::Guard guard(_nem_guard);
+
+		if (_check_force_flags) {
+			_check_force_flags = false;
+			if (!Sup::Vcpu_impl<T>::_continue_hw_accelerated())
+				return VINF_SUCCESS;
+		}
+
+		/* mimic state machine implemented in nemHCWinRunGC() etc. */
+		VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM);
+	}
 
 	_transfer_state_to_vcpu(ctx);
 
