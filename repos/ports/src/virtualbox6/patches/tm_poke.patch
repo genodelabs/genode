@@ -1,0 +1,96 @@
+--- a/src/virtualbox6/src/VBox/VMM/VMMAll/TMAllVirtual.cpp
++++ b/src/virtualbox6/src/VBox/VMM/VMMAll/TMAllVirtual.cpp
+@@ -250,7 +250,7 @@
+                 Log5(("TMAllVirtual(%u): FF: %d -> 1\n", __LINE__, VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER)));
+                 VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
+ #ifdef IN_RING3
+-                VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM);
++                VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM | VMNOTIFYFF_FLAGS_POKE);
+ #endif
+             }
+         }
+@@ -408,7 +408,7 @@
+         if (pcNsToDeadline)
+             *pcNsToDeadline = 0;
+ #ifdef IN_RING3
+-        VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM);
++        VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM | VMNOTIFYFF_FLAGS_POKE);
+ #endif
+         STAM_COUNTER_INC(&pVM->tm.s.StatVirtualSyncGetSetFF);
+         STAM_COUNTER_INC(&pVM->tm.s.StatVirtualSyncGetExpired);
+@@ -491,7 +491,7 @@
+         PDMCritSectLeave(&pVM->tm.s.VirtualSyncLock);
+ 
+ #ifdef IN_RING3
+-        VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM);
++        VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM | VMNOTIFYFF_FLAGS_POKE);
+ #endif
+         if (pcNsToDeadline)
+             *pcNsToDeadline = 0;
+@@ -544,7 +544,7 @@
+             Log5(("TMAllVirtual(%u): FF: 0 -> 1\n", __LINE__));
+             VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
+ #ifdef IN_RING3
+-            VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM /** @todo |VMNOTIFYFF_FLAGS_POKE*/);
++            VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM | VMNOTIFYFF_FLAGS_POKE);
+ #endif
+             STAM_COUNTER_INC(&pVM->tm.s.StatVirtualSyncGetSetFF);
+         }
+@@ -711,7 +711,7 @@
+             VM_FF_SET(pVM, VM_FF_TM_VIRTUAL_SYNC); /* Hmm? */
+             VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
+ #ifdef IN_RING3
+-            VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM);
++            VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM | VMNOTIFYFF_FLAGS_POKE);
+ #endif
+             STAM_COUNTER_INC(&pVM->tm.s.StatVirtualSyncGetSetFF);
+             Log4(("TM: %'RU64/-%'8RU64: exp tmr=>ff [NoLock]\n", u64, pVM->tm.s.offVirtualSync - pVM->tm.s.offVirtualSyncGivenUp));
+--- a/src/virtualbox6/src/VBox/VMM/VMMAll/TMAll.cpp
++++ b/src/virtualbox6/src/VBox/VMM/VMMAll/TMAll.cpp
+@@ -292,7 +292,7 @@
+         Log5(("TMAll(%u): FF: 0 -> 1\n", __LINE__));
+         VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
+ #ifdef IN_RING3
+-        VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM);
++        VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM | VMNOTIFYFF_FLAGS_POKE);
+ #endif
+         STAM_COUNTER_INC(&pVM->tm.s.StatScheduleSetFF);
+     }
+@@ -831,6 +831,12 @@
+         {
+             Log5(("TMAll(%u): FF: %d -> 1\n", __LINE__, VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER)));
+             VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
++
++            if (pVCpu->idCpu != pVCpuDst->idCpu) {
++                Log(("FF_TIMER POKE, vCPU=%u -> vCPU=%u line=%u\n", 
++                     pVCpu->idCpu, pVCpuDst->idCpu, __LINE__));
++                VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_POKE);
++            }
+         }
+         LogFlow(("TMTimerPoll: expire1=%'RU64 <= now=%'RU64\n", u64Expire1, u64Now));
+         return tmTimerPollReturnHit(pVM, pVCpu, pVCpuDst, u64Now, pu64Delta, &pVM->tm.s.StatPollVirtual);
+@@ -874,6 +880,12 @@
+                 {
+                     Log5(("TMAll(%u): FF: %d -> 1\n", __LINE__, VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER)));
+                     VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
++
++                    if (pVCpu->idCpu != pVCpuDst->idCpu) {
++                        Log(("FF_TIMER POKE, vCPU=%u -> vCPU=%u line=%u\n", 
++                             pVCpu->idCpu, pVCpuDst->idCpu, __LINE__));
++                        VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_POKE);
++                    }
+                 }
+ 
+                 STAM_COUNTER_INC(&pVM->tm.s.StatPollSimple);
+@@ -970,6 +982,11 @@
+         {
+             Log5(("TMAll(%u): FF: %d -> 1\n", __LINE__, VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER)));
+             VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
++            if (pVCpu->idCpu != pVCpuDst->idCpu) {
++                Log(("FF_TIMER POKE, vCPU=%u -> vCPU=%u line=%u\n", 
++                     pVCpu->idCpu, pVCpuDst->idCpu, __LINE__));
++                VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_POKE);
++            }
+         }
+         STAM_COUNTER_INC(&pVM->tm.s.StatPollVirtualSync);
+         LogFlow(("TMTimerPoll: expire2=%'RU64 <= now=%'RU64\n", u64Expire2, u64Now));

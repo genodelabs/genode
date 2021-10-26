@@ -411,7 +411,8 @@ template <typename T> bool Sup::Vcpu_impl<T>::_continue_hw_accelerated()
 	uint32_t check_vmcpu = VMCPU_FF_HM_TO_R3_MASK
 	                     | VMCPU_FF_PGM_SYNC_CR3
 	                     | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL
-	                     | VMCPU_FF_REQUEST;
+	                     | VMCPU_FF_REQUEST
+	                     | VMCPU_FF_TIMER;
 
 	if (!VM_FF_IS_SET(&_vm, check_vm) &&
 	    !VMCPU_FF_IS_SET(&_vmcpu, check_vmcpu))
@@ -440,8 +441,6 @@ template <typename T> bool Sup::Vcpu_impl<T>::_continue_hw_accelerated()
 	if (false && VMCPU_FF_IS_SET(&_vmcpu, check_vmcpu)) {
 		log("VMCPU_FF=", Hex(_vmcpu.fLocalForcedActions));
 		VERBOSE_VMCPU(VMCPU_FF_TO_R3);
-		/* when this flag gets set, a pause request follows
-		VERBOSE_VMCPU(VMCPU_FF_TIMER); */
 		VERBOSE_VMCPU(VMCPU_FF_PDM_CRITSECT);
 		VERBOSE_VMCPU(VMCPU_FF_PGM_SYNC_CR3);
 		VERBOSE_VMCPU(VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
@@ -497,9 +496,6 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_paused()
 			            " ", Genode::Hex(state.intr_state.value() & 0xf));
 
 		Assert(state.intr_state.value() == VMX_VMCS_GUEST_INT_STATE_NONE);
-
-		if (!_continue_hw_accelerated())
-			warning("unexpected pause exit");
 
 		/*
 		 * We got a pause exit during IRQ injection and the guest is ready for
