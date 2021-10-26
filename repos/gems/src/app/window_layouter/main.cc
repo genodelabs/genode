@@ -386,6 +386,7 @@ struct Window_layouter::Main : Operations,
 		_focus_request.sigh(_focus_request_handler);
 
 		_window_list.initial_import();
+		_handle_decorator_margins();
 		_handle_focus_request();
 
 		/* attach update handler for config */
