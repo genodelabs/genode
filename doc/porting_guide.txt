@@ -289,9 +289,9 @@ Examining the log file leaves us with the following list of source files:
 ! FILTER_OUT_dos  = cdrom_aspi_win32.cpp cdrom_ioctl_linux.cpp cdrom_ioctl_os2.cpp \
 !                   cdrom_ioctl_win32.cpp
 ! SRC_CC_dos      = $(filter-out $(FILTER_OUT_dos), \
-!                   $(notdir $(wildcard $(DOSBOX_DIR)/src/*.cpp)))
+!                   $(notdir $(wildcard $(DOSBOX_DIR)/src/dos/*.cpp)))
 ! […]
-! SRC_CC          = $(DOSBOX_DIR)/src/dosbox.cpp
+! SRC_CC          = $(notdir $(DOSBOX_DIR)/src/dosbox.cpp)
 ! SRC_CC         += $(SRC_CC_cpu) $(SRC_CC_debug) $(SRC_CC_dos) $(SRC_CC_fpu) \
 !                   $(SRC_CC_gui) $(SRC_CC_hw) $(SRC_CC_hw_ser) $(SRC_CC_ints) \
 !                   $(SRC_CC_ints) $(SRC_CC_misc) $(SRC_CC_shell)
