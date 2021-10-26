@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  VirtIO based input driver
  * \author Piotr Tworek
  * \date   2020-02-01
@@ -33,9 +33,9 @@ class Virtio_input::Driver
 {
 	public:
 
-		struct Device_not_found   : Genode::Exception { };
-		struct Device_init_failed : Genode::Exception { };
-		struct Queue_init_failed  : Genode::Exception { };
+		struct Device_not_found   : Exception { };
+		struct Device_init_failed : Exception { };
+		struct Queue_init_failed  : Exception { };
 
 	private:
 
@@ -71,9 +71,9 @@ class Virtio_input::Driver
 			uint16_t version = 0;
 		};
 
-		struct Features : Genode::Register<64> { struct VERSION_1 : Bitfield<32, 1> { }; };
+		struct Features : Register<64> { struct VERSION_1 : Bitfield<32, 1> { }; };
 
-		enum Queue_id : Genode::uint16_t { EVENTS_VQ = 0, STATUS_VQ = 1 };
+		enum Queue_id : uint16_t { EVENTS_VQ = 0, STATUS_VQ = 1 };
 
 		struct Abs_config {
 			struct {
@@ -99,9 +99,9 @@ class Virtio_input::Driver
 				Abs_x       = 0x00,
 				Abs_y       = 0x01,
 			};
-			Genode::uint16_t type;
-			Genode::uint16_t code;
-			Genode::uint32_t value;
+			uint16_t type;
+			uint16_t code;
+			uint32_t value;
 
 			bool operator == (Event const &other) const {
 				return other.type == this->type &&
@@ -128,18 +128,18 @@ class Virtio_input::Driver
 		Driver(Driver const &);
 		Driver &operator = (Driver const &);
 
-		Genode::Env                    &_env;
-		::Event::Connection             _event_session { _env };
-		Virtio::Device                 &_device;
-		Event                           _last_sent_key_event { 0, 0, 0 };
-		Input::Relative_motion          _rel_motion { 0, 0 };
-		Input::Absolute_motion          _abs_motion { -1, -1 };
-		Abs_config                      _abs_config { { 0, 0 }, { 0, 0 }, 0, 0 };
-		Genode::Signal_handler<Driver>  _irq_handler {_env.ep(), *this, &Driver::_handle_irq};
-		Events_virtqueue                _events_vq { _env.ram(), _env.rm(),
-		                                             QUEUE_SIZE, QUEUE_ELM_SIZE };
-		Status_virtqueue                _status_vq { _env.ram(), _env.rm(),
-		                                             QUEUE_SIZE, QUEUE_ELM_SIZE };
+		Env                    &_env;
+		::Event::Connection     _event_session { _env };
+		Virtio::Device         &_device;
+		Event                   _last_sent_key_event { 0, 0, 0 };
+		Input::Relative_motion  _rel_motion { 0, 0 };
+		Input::Absolute_motion  _abs_motion { -1, -1 };
+		Abs_config              _abs_config { { 0, 0 }, { 0, 0 }, 0, 0 };
+		Signal_handler<Driver>  _irq_handler {_env.ep(), *this, &Driver::_handle_irq};
+		Events_virtqueue        _events_vq { _env.ram(), _env.rm(),
+		                                     QUEUE_SIZE, QUEUE_ELM_SIZE };
+		Status_virtqueue        _status_vq { _env.ram(), _env.rm(),
+		                                     QUEUE_SIZE, QUEUE_ELM_SIZE };
 
 
 		void _handle_event(::Event::Session_client::Batch &batch, const Event &evt)
@@ -178,15 +178,18 @@ class Virtio_input::Driver
 
 				case Event::Type::Key:
 				{
-					// Filter out auto-repeat keypress events.
+					/* filter out auto-repeat keypress events */
 					if (_last_sent_key_event == evt)
 						break;
 
-					// It looks like Genode keyboard event codes mirror linux evdev ones.
+					/* Genode keyboard event codes mirror linux evdev ones */
 					Input::Keycode keycode = static_cast<Input::Keycode>(evt.code);
 
-					// Some key events apparently don't send both press and release values.
-					// Fake both press and release to make nitpicker happy.
+					/*
+					 * Some key events apparently don't send both press and
+					 * release values. Fake both press and release to make
+					 * nitpicker happy.
+					 */
 					if ((keycode == Input::BTN_GEAR_UP ||
 					     keycode == Input::BTN_GEAR_DOWN) && !evt.value)
 						batch.submit(Input::Press{keycode});
@@ -208,10 +211,10 @@ class Virtio_input::Driver
 					switch (evt.code) {
 						case Event::Code::Abs_x:
 							_abs_motion.x = (_abs_config.width * evt.value / _abs_config.x.max);
-							_abs_motion.y = Genode::max(0, _abs_motion.y);
+							_abs_motion.y = max(0, _abs_motion.y);
 							break;
 						case Event::Code::Abs_y:
-							_abs_motion.x = Genode::max(0, _abs_motion.x);
+							_abs_motion.x = max(0, _abs_motion.x);
 							_abs_motion.y = (_abs_config.height * evt.value / _abs_config.y.max);
 							break;
 						default:
@@ -228,7 +231,7 @@ class Virtio_input::Driver
 		}
 
 
-		static Product _match_product(Genode::Xml_node const &config)
+		static Product _match_product(Xml_node const &config)
 		{
 			auto product_string = config.attribute_value("match_product", String<10>("any"));
 
@@ -257,7 +260,7 @@ class Virtio_input::Driver
 
 
 		static Abs_config _read_abs_config(Virtio::Device  &device,
-		                                   Genode::Xml_node const &config)
+		                                   Xml_node const &config)
 		{
 			Abs_config cfg { {0, ~0U}, {0, ~0U}, 0, 0};
 
@@ -299,11 +302,11 @@ class Virtio_input::Driver
 		}
 
 
-		template <Genode::size_t SZ>
+		template <size_t SZ>
 		static String<SZ> _read_device_name(Virtio::Device &device)
 		{
 			auto size = _cfg_select(device, Config_id::Name, 0);
-			size = Genode::min(size, SZ);
+			size = min(size, SZ);
 
 			char buf[SZ];
 			memset(buf, 0, sizeof(buf));
@@ -370,7 +373,7 @@ class Virtio_input::Driver
 		}
 
 
-		void _init_driver(Genode::Xml_node const &config)
+		void _init_driver(Xml_node const &config)
 		{
 			using Status = Virtio::Device::Status;
 
@@ -438,11 +441,11 @@ class Virtio_input::Driver
 
 	public:
 
-		Driver(Env                  &env,
-		       Virtio::Device       &device,
-		       Xml_node       const &config)
-		: _env(env),
-		  _device(device)
+		Driver(Env            &env,
+		       Virtio::Device &device,
+		       Xml_node const &config)
+		:
+			_env(env), _device(device)
 		{
 			_init_driver(config);
 			_abs_config = _read_abs_config(_device, config);

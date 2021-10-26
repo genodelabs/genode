@@ -1,5 +1,5 @@
 /*
- * \brief  VirtIO MMIO Framebuffer driver
+ * \brief  VirtIO MMIO input driver
  * \author Piotr Tworek
  * \date   2020-02-14
  */
@@ -18,13 +18,14 @@
 #include "component.h"
 
 namespace Virtio_mmio_input {
-    using namespace Genode;
-    struct Main;
+	using namespace Genode;
+	struct Main;
 }
+
 
 struct Virtio_mmio_input::Main
 {
-	Genode::Env            &env;
+	Env                    &env;
 	Platform::Connection    platform        { env };
 	Platform::Device        platform_device { platform, { "input" } };
 	Virtio::Device          virtio_device   { platform_device };
@@ -35,6 +36,7 @@ struct Virtio_mmio_input::Main
 	try : env(env) { log("--- VirtIO MMIO input driver started ---"); }
 	catch (...) { env.parent().exit(-1); }
 };
+
 
 void Component::construct(Genode::Env &env)
 {
