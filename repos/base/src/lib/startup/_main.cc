@@ -61,6 +61,11 @@ namespace Genode {
 	 */
 	void call_global_static_constructors()
 	{
+		/* Don't do anything if there are no constructors to call */
+		addr_t const ctors_size = (addr_t)&_ctors_end - (addr_t)&_ctors_start;
+		if (ctors_size == 0)
+			return;
+
 		void (**func)();
 		for (func = &_ctors_end; func != &_ctors_start; (*--func)());
 	}
