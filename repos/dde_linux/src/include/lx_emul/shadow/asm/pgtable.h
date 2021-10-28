@@ -69,6 +69,7 @@ int pmd_devmap(pmd_t pmd);
 int pud_devmap(pud_t pud);
 int pud_trans_huge(pud_t pud);
 
+pgprot_t pgprot_noncached(pgprot_t prot);
 pgprot_t pgprot_writecombine(pgprot_t prot);
 
 pte_t mk_pte(struct page * page, pgprot_t prot);
