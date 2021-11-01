@@ -254,8 +254,6 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vcpu(CPUM
 		const uint8_t tpr_priority = (tpr >> 4) & 0xf;
 		if (pending_priority <= tpr_priority)
 			state.tpr_threshold.charge(pending_priority);
-		else
-			state.tpr_threshold.charge(tpr_priority);
 	}
 
 	/* export FPU state */
@@ -563,6 +561,8 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_irq_window(
 			if (RT_SUCCESS(rc)) {
 				rc = TRPMAssertTrap(pVCpu, irq, TRPM_HARDWARE_INT);
 				Assert(RT_SUCCESS(rc));
+			} else if (rc == VERR_APIC_INTR_MASKED_BY_TPR) {
+				state.tpr_threshold.charge(irq >> 4);
 			}
 		}
 
