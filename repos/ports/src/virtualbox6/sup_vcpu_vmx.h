@@ -66,6 +66,7 @@ unsigned Sup::Vmx::ctrl_primary()
 	       | VMX_PROC_CTLS_UNCOND_IO_EXIT
 	       | VMX_PROC_CTLS_USE_TPR_SHADOW
 	       | VMX_PROC_CTLS_RDPMC_EXIT
+	       | VMX_PROC_CTLS_RDTSC_EXIT
 	       ;
 }
 
@@ -196,6 +197,7 @@ Sup::Handle_exit_result Sup::Vmx::handle_exit(Vcpu_state &state)
 	case VMX_EXIT_INIT_SIGNAL:
 	case VMX_EXIT_TASK_SWITCH:
 	case VMX_EXIT_CPUID:
+	case VMX_EXIT_RDTSC:
 	case VMX_EXIT_RDTSCP:
 	case VMX_EXIT_VMCALL:
 	case VMX_EXIT_WBINVD:
