@@ -12,6 +12,7 @@ HASH_INPUT    += $(REP_DIR)/src/lib/qemu-usb/files.list
 PATCHES  := src/lib/qemu-usb/patches/xhci_pci_register.patch \
             src/lib/qemu-usb/patches/usb_bus_nfree.patch \
             src/lib/qemu-usb/patches/hcd-xhci-bei.patch \
+            src/lib/qemu-usb/patches/hcd-xhci-numports.patch \
             src/lib/qemu-usb/patches/xhci_frame_wrap.patch
 
 PATCH_OPT:= -p1

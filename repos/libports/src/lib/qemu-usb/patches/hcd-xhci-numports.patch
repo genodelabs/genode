@@ -1,0 +1,13 @@
+--- a/src/lib/qemu/hw/usb/hcd-xhci.c
++++ b/src/lib/qemu/hw/usb/hcd-xhci.c
+@@ -3577,8 +3594,8 @@
+ static Property xhci_properties[] = {
+     DEFINE_PROP_BIT("streams", XHCIState, flags,
+                     XHCI_FLAG_ENABLE_STREAMS, true),
+-    DEFINE_PROP_UINT32("p2",    XHCIState, numports_2, 4),
+-    DEFINE_PROP_UINT32("p3",    XHCIState, numports_3, 4),
++    DEFINE_PROP_UINT32("p2",    XHCIState, numports_2, 8),
++    DEFINE_PROP_UINT32("p3",    XHCIState, numports_3, 8),
+     DEFINE_PROP_LINK("host",    XHCIState, hostOpaque, TYPE_DEVICE,
+                      DeviceState *),
+     DEFINE_PROP_END_OF_LIST(),

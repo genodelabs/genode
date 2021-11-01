@@ -40,9 +40,15 @@ static bool const verbose_mmio = false;
 namespace {
 
 /* keep in sync with hcd-xhci.c */
+#define MAX_NUMPORTS    (2 * 8)
 #define OFF_OPER        0x40
 #define OFF_RUNTIME     0x1000
 #define OFF_PORTS       (OFF_OPER + 0x400)
+
+constexpr unsigned max_numports()
+{
+	return MAX_NUMPORTS;
+}
 
 bool port_access(Genode::off_t offset)
 {
@@ -56,6 +62,7 @@ uint32_t port_index(Genode::off_t offset)
 	return (offset - OFF_PORTS) / 0x10;
 }
 
+#undef MAX_NUMPORTS
 #undef OFF_OPER
 #undef OFF_RUNTIME
 #undef OFF_PORTS
@@ -279,7 +286,7 @@ struct Object_pool
 		USB_HOST_DEVICE, /* USB host device driver */
 		USB_WEBCAM,      /* USB webcam device driver */
 		USB_FIRST_FREE,  /* first free device */
-		MAX = 14         /* host devices (USB_FIRST_FREE to MAX) */
+		MAX = USB_FIRST_FREE + max_numports() /* host devices (USB_FIRST_FREE to MAX) */
 	};
 
 	bool used[MAX];
@@ -620,7 +627,7 @@ struct Controller : public Qemu::Controller
 		Genode::off_t  offset;
 
 		MemoryRegionOps const *ops;
-	} mmio_regions [16];
+	} mmio_regions [max_numports() + 4 /* number of HC MMIO regions */];
 
 	uint64_t _mmio_size;
 
