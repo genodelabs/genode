@@ -145,6 +145,7 @@ class Genode::Vcpu_state
 
 		Register<uint64_t> tsc;
 		Register<uint64_t> tsc_offset;
+		Register<uint64_t> tsc_aux;
 
 		Register<addr_t>   efer;
 

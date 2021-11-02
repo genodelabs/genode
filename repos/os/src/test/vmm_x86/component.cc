@@ -55,6 +55,13 @@ namespace Vmm {
 	Vm_connection::Exit_config const exit_config {
 		/* ... */
 	};
+
+	static uint32_t rdtscp()
+	{
+		uint32_t lo = 0, hi = 0, tsc_aux = 0;
+		asm volatile ("rdtscp" : "=a" (lo), "=d" (hi), "=c" (tsc_aux) :: "memory");
+		return tsc_aux;
+	}
 }
 
 class Vmm::Vcpu
@@ -82,6 +89,7 @@ class Vmm::Vcpu
 		/* test state end */
 		unsigned _exit_count     { 0 };
 		unsigned _pause_count    { 0 };
+		unsigned _hlt_count      { 0 };
 		unsigned _timer_count    { 0 };
 		unsigned _pause_at_timer { 0 };
 
@@ -90,7 +98,10 @@ class Vmm::Vcpu
 		void _cpu_init()
 		{
 			enum { INTEL_CTRL_PRIMARY_HLT = 1 << 7 };
-			enum { INTEL_CTRL_SECOND_UG = 1 << 7 };
+			enum {
+				INTEL_CTRL_SECOND_UG = 1 << 7,
+				INTEL_CTRL_SECOND_RDTSCP_ENABLE = 1 << 3,
+			};
 			enum { AMD_CTRL_SECOND_VMRUN = 1 << 0 };
 
 			/* http://www.sandpile.org/x86/initial.htm */
@@ -122,13 +133,18 @@ class Vmm::Vcpu
 
 			if (_vmx) {
 				state.ctrl_primary.charge(INTEL_CTRL_PRIMARY_HLT);
-				/* required for seL4 */
-				state.ctrl_secondary.charge(INTEL_CTRL_SECOND_UG);
+				state.ctrl_secondary.charge(INTEL_CTRL_SECOND_UG | /* required for seL4 */
+				                            INTEL_CTRL_SECOND_RDTSCP_ENABLE);
 			}
 			if (_svm) {
 				/* required for native AMD hardware (!= Qemu) for NOVA */
 				state.ctrl_secondary.charge(AMD_CTRL_SECOND_VMRUN);
 			}
+
+			/* Store id of CPU for rdtscp, similar as some OS do and some
+			 * magic number to check for testing purpuse
+			 */
+			state.tsc_aux.charge((0xaffeU << 16) | _id);
 		}
 
 	public:
@@ -276,13 +292,17 @@ class Vmm::Vm
 
 			/* prepare guest memory with some instructions for testing */
 			uint8_t * guest = env.rm().attach(_memory);
-//			*(guest + 0xff0) = 0x0f; /* CPUID instruction */
-//			*(guest + 0xff1) = 0xa2;
-			*(guest + 0xff0) = 0xf4; /* HLT instruction */
-			*(guest + 0xff1) = 0xf4; /* HLT instruction */
-			*(guest + 0xff2) = 0xeb; /* JMP - endless loop to RIP */
-			*(guest + 0xff3) = 0xfe; /* JMP   of -2 byte (size of JMP inst) */
-			*(guest + 0xff4) = 0xf4; /* HLT instruction */
+			unsigned byte = 0xff0;
+
+			guest[byte++] = 0x0f; /* rdtscp */
+			guest[byte++] = 0x01;
+			guest[byte++] = 0xf9;
+
+			guest[byte++] = 0xf4; /* HLT instruction */
+			guest[byte++] = 0xf4; /* HLT instruction */
+			guest[byte++] = 0xeb; /* JMP - endless loop to RIP */
+			guest[byte++] = 0xfe; /* JMP   of -2 byte (size of JMP inst) */
+			guest[byte++] = 0xf4; /* HLT instruction */
 			env.rm().detach(guest);
 
 			log ("let vCPUs run - first EP");
@@ -448,7 +468,16 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 	case Exit::AMD_HLT:
 		log("vcpu ", _id, " : ", _exit_count, ". vm exit - "
 		    " halting vCPU - guest called HLT - ip=", Hex(state.ip.value()));
+
+		if (_hlt_count == 0) {
+			uint32_t const tsc_aux_host = rdtscp();
+
+			log("vcpu ", _id, " : ", _exit_count, ". vm exit -  rdtscp cx"
+			    " guest=", Hex(state.cx.value()), " host=", Hex(tsc_aux_host));
+		}
+
 		_test_state = State::HALTED;
+		_hlt_count ++;
 		return;
 
 	case Exit::INTEL_EPT:
