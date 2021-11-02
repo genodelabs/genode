@@ -161,8 +161,8 @@ Genode::size_t Driver::Device::_cap_quota_required()
 Genode::size_t Driver::Device::_ram_quota_required()
 {
 	size_t total = 0;
-	_io_mem_list.for_each([&] (Io_mem & io_mem) {
-		total += io_mem.size + 2*1024; });
+	_io_mem_list.for_each([&] (Io_mem &) {
+		total += 4096; });
 	return total;
 }
 
