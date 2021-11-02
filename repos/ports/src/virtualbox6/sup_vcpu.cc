@@ -261,6 +261,15 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vcpu(CPUM
 		::memcpy(fpu._buffer, ctx.pXStateR3, sizeof(fpu));
 	});
 
+	{
+		::uint64_t tsc_aux = 0;
+		auto const rcStrict = CPUMQueryGuestMsr(&_vmcpu, MSR_K8_TSC_AUX,
+		                                        &tsc_aux);
+		Assert(rcStrict == VINF_SUCCESS);
+		if (rcStrict == VINF_SUCCESS)
+			state.tsc_aux.charge(tsc_aux);
+	}
+
 	/* do SVM/VMX-specific transfers */
 	VIRT::transfer_state_to_vcpu(state, ctx);
 }

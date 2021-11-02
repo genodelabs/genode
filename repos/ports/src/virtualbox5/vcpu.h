@@ -368,6 +368,15 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 					_state->tpr_threshold.charge(tpr_priority);
 			}
 
+			{
+				::uint64_t tsc_aux = 0;
+				auto const rcStrict = CPUMQueryGuestMsr(pVCpu, MSR_K8_TSC_AUX,
+				                                        &tsc_aux);
+				Assert(rcStrict == VINF_SUCCESS);
+				if (rcStrict == VINF_SUCCESS)
+					_state->tsc_aux.charge(tsc_aux);
+			}
+
 			return true;
 		}
 

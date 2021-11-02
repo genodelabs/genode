@@ -421,6 +421,11 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 		{
 			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
+			::uint64_t tsc_aux = 0;
+			auto const rc_tsc  = CPUMQueryGuestMsr(pVCpu, MSR_K8_TSC_AUX,
+			                                       &tsc_aux);
+			Assert(rc_tsc == VINF_SUCCESS);
+
 			/* avoid utcb corruption by requesting tpr state early */
 			bool interrupt_pending    = false;
 			uint8_t tpr               = 0;
@@ -429,6 +434,11 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 			/* don't call function hereafter which may corrupt the utcb ! */
 			using namespace Nova;
+
+			if (rc_tsc == VINF_SUCCESS) {
+				utcb->mtd |= Mtd::TSC_AUX;
+				utcb->tsc_aux = tsc_aux;
+			}
 
 			utcb->mtd |= Mtd::EIP;
 			utcb->ip   = pCtx->rip;
