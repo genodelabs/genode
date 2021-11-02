@@ -45,10 +45,10 @@ struct Nvme::Pci : Platform::Connection,
 	enum Pci_config { IRQ = 0x3c, CMD = 0x4, CMD_IO = 0x1,
 	                  CMD_MEMORY = 0x2, CMD_MASTER = 0x4 };
 
-	Platform::Device::Resource                     _res        { };
 	Platform::Device_capability                    _device_cap { };
 	Genode::Constructible<Platform::Device_client> _device     { };
 
+	Io_mem_session_capability                         _io_mem_cap { };
 	Genode::Constructible<Genode::Irq_session_client> _irq { };
 
 	/**
@@ -68,14 +68,13 @@ struct Nvme::Pci : Platform::Connection,
 
 		_device.construct(_device_cap);
 
-		_res = _device->resource(NVME_BASE_ID);
-
 		uint16_t cmd  = _device->config_read(Pci_config::CMD, Platform::Device::ACCESS_16BIT);
 		         cmd |= 0x2; /* respond to memory space accesses */
 		         cmd |= 0x4; /* enable bus master */
 
 		_device->config_write(Pci_config::CMD, cmd, Platform::Device::ACCESS_16BIT);
 
+		_io_mem_cap = _device->io_mem(_device->phys_bar_to_virt(NVME_BASE_ID));
 		_irq.construct(_device->irq(0));
 
 		Genode::log("NVMe PCIe controller found (",
@@ -86,12 +85,8 @@ struct Nvme::Pci : Platform::Connection,
 	/**
 	 * Return base address of controller MMIO region
 	 */
-	addr_t base() const { return _res.base(); }
-
-	/**
-	 * Return size of controller MMIO region
-	 */
-	size_t size() const { return _res.size(); }
+	Io_mem_dataspace_capability io_mem_ds() const {
+		return Io_mem_session_client(_io_mem_cap).dataspace(); }
 
 	/**
 	 * Set interrupt signal handler

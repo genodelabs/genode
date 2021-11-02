@@ -449,7 +449,8 @@ struct Nvme::Cq : Nvme::Queue
 /*
  * Controller
  */
-struct Nvme::Controller : public Genode::Attached_mmio
+struct Nvme::Controller : public Genode::Attached_dataspace,
+                          public Genode::Mmio
 {
 	/**********
 	 ** MMIO **
@@ -1057,10 +1058,11 @@ struct Nvme::Controller : public Genode::Attached_mmio
 	 * Constructor
 	 */
 	Controller(Genode::Env &env, Util::Dma_allocator &dma_alloc,
-	           addr_t const base, size_t const size,
+	           Genode::Io_mem_dataspace_capability ds_cap,
 	           Mmio::Delayer &delayer)
 	:
-		Genode::Attached_mmio(env, base, size),
+		Genode::Attached_dataspace(env.rm(), ds_cap),
+		Genode::Mmio((addr_t)local_addr<void>()),
 		_env(env), _dma_alloc(dma_alloc), _delayer(delayer)
 	{ }
 
@@ -1528,8 +1530,8 @@ class Nvme::Driver : Genode::Noncopyable
 			}
 
 			try {
-				_nvme_ctrlr.construct(_env, *_nvme_pci, _nvme_pci->base(),
-				                      _nvme_pci->size(), _delayer);
+				_nvme_ctrlr.construct(_env, *_nvme_pci, _nvme_pci->io_mem_ds(),
+				                      _delayer);
 			} catch (...) {
 				error("could not access NVMe controller MMIO");
 				throw;
