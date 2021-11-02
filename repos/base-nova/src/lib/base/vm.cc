@@ -135,6 +135,7 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 			mtd |= Nova::Mtd::INJ;
 			mtd |= Nova::Mtd::STA;
 			mtd |= Nova::Mtd::TSC;
+			mtd |= Nova::Mtd::TSC_AUX;
 			mtd |= Nova::Mtd::EFER;
 			mtd |= Nova::Mtd::PDPTE;
 			mtd |= Nova::Mtd::SYSCALL_SWAPGS;
@@ -314,6 +315,10 @@ void Nova_vcpu::_read_nova_state(Nova::Utcb &utcb, unsigned exit_reason,
 	if (utcb.mtd & Nova::Mtd::TSC) {
 		state().tsc.charge(utcb.tsc_val);
 		state().tsc_offset.charge(utcb.tsc_off);
+	}
+
+	if (utcb.mtd & Nova::Mtd::TSC_AUX) {
+		state().tsc_aux.charge(utcb.tsc_aux);
 	}
 
 	if (utcb.mtd & Nova::Mtd::EFER) {
@@ -506,6 +511,11 @@ void Nova_vcpu::_write_nova_state(Nova::Utcb &utcb)
 		utcb.mtd     |= Nova::Mtd::TSC;
 		utcb.tsc_val  = state().tsc.value();
 		utcb.tsc_off  = state().tsc_offset.value();
+	}
+
+	if (state().tsc_aux.charged()) {
+		utcb.mtd     |= Nova::Mtd::TSC_AUX;
+		utcb.tsc_aux  = state().tsc_aux.value();
 	}
 
 	if (state().efer.charged()) {

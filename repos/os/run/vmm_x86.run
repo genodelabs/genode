@@ -25,6 +25,9 @@ if { [get_cmd_switch --autopilot] } {
 	}
 }
 
+# ia32_tsc_aux with rdtscp
+set test_rdtscp [have_spec nova]
+
 set build_components {
 	core init
 	timer
@@ -114,6 +117,8 @@ unify_output "vcpu 0 : XX. vm exit - reason 0x4e handled by 'ep'" ""
 unify_output "vcpu 0 : XX. vm exit - reason 0x30 handled by 'ep'" ""
 unify_output "vcpu 0 : XX. vm exit -  guest fault address: 0xfffffff0" ""
 unify_output "vcpu 0 : XX. vm exit - resume vcpu" ""
+# remove rdtscp output from unified output, some kernel don't support tsc_aux
+unify_output {vcpu 0 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
 trim_lines
 set output_0 $output
 
@@ -130,6 +135,8 @@ unify_output "vcpu 1 : XX. vm exit - reason 0x4e handled by 'ep'" ""
 unify_output "vcpu 1 : XX. vm exit - reason 0x30 handled by 'ep'" ""
 unify_output "vcpu 1 : XX. vm exit -  guest fault address: 0xfffffff0" ""
 unify_output "vcpu 1 : XX. vm exit - resume vcpu" ""
+# remove rdtscp output from unified output, some kernel don't support tsc_aux
+unify_output {vcpu 1 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
 trim_lines
 set output_1 $output
 
@@ -146,6 +153,8 @@ unify_output "vcpu 2 : XX. vm exit - reason 0x4e handled by 'second ep'" ""
 unify_output "vcpu 2 : XX. vm exit - reason 0x30 handled by 'second ep'" ""
 unify_output "vcpu 2 : XX. vm exit -  guest fault address: 0xfffffff0" ""
 unify_output "vcpu 2 : XX. vm exit - resume vcpu" ""
+# remove rdtscp output from unified output, some kernel don't support tsc_aux
+unify_output {vcpu 2 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
 trim_lines
 set output_2 $output
 
@@ -162,10 +171,36 @@ unify_output "vcpu 3 : XX. vm exit - reason 0x4e handled by 'second ep'" ""
 unify_output "vcpu 3 : XX. vm exit - reason 0x30 handled by 'second ep'" ""
 unify_output "vcpu 3 : XX. vm exit -  guest fault address: 0xfffffff0" ""
 unify_output "vcpu 3 : XX. vm exit - resume vcpu" ""
+# remove rdtscp output from unified output, some kernel don't support tsc_aux
+unify_output {vcpu 3 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
 trim_lines
 set output_3 $output
 
+if {$test_rdtscp} {
+	set output $output_saved
+	grep_output {^\[init -> vmm\] vcpu [0-9]+ :.*rdtscp cx.*}
+	unify_output {\[init -> vmm\] vcpu 0 : [0-9]+} "vcpu 0 : XX"
+	unify_output {\[init -> vmm\] vcpu 1 : [0-9]+} "vcpu 1 : XX"
+	unify_output {\[init -> vmm\] vcpu 2 : [0-9]+} "vcpu 2 : XX"
+	unify_output {\[init -> vmm\] vcpu 3 : [0-9]+} "vcpu 3 : XX"
+	set output [lsort -stride 11 -index 1 $output]
+	unify_output "vcpu" "\nvcpu"
+	set output_rdtscp $output
+}
+
 puts "\ncomparing output ..."
+
+if {$test_rdtscp} {
+	puts $output_rdtscp
+	puts ""
+	set output $output_rdtscp
+	compare_output_to {
+	vcpu 0 : XX. vm exit - rdtscp cx guest=0xaffe0000 host=0x0
+	vcpu 1 : XX. vm exit - rdtscp cx guest=0xaffe0001 host=0x0
+	vcpu 2 : XX. vm exit - rdtscp cx guest=0xaffe0002 host=0x1
+	vcpu 3 : XX. vm exit - rdtscp cx guest=0xaffe0003 host=0x1
+	}
+}
 
 puts $output_0
 set output $output_0
@@ -173,7 +208,7 @@ compare_output_to {
 [init -> vmm] vcpu 0 : created
 vcpu 0 : XX. vm exit - reason 0xfe handled by 'ep'
 vcpu 0 : XX. vm exit - reason 0x78 handled by 'ep'
-vcpu 0 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 0 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff3
 }
 
 puts $output_1
@@ -182,19 +217,19 @@ compare_output_to {
 [init -> vmm] vcpu 1 : created
 vcpu 1 : XX. vm exit - reason 0xfe handled by 'ep'
 vcpu 1 : XX. vm exit - reason 0x78 handled by 'ep'
-vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff3
 vcpu 1 : XX. vm exit - reason 0xff handled by 'ep'
-vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff0
+vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff3
 vcpu 1 : XX. vm exit - reason 0x78 handled by 'ep'
-vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff3
 vcpu 1 : XX. vm exit - reason 0xff handled by 'ep'
-vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff0
+vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff3
 vcpu 1 : XX. vm exit - reason 0xff handled by 'ep'
-vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff2
+vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff5
 vcpu 1 : XX. vm exit - reason 0x78 handled by 'ep'
-vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff4
+vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff7
 vcpu 1 : XX. vm exit - reason 0xff handled by 'ep'
-vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff4
+vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff7
 }
 
 puts $output_2
@@ -203,17 +238,17 @@ compare_output_to {
 [init -> vmm] vcpu 2 : created
 vcpu 2 : XX. vm exit - reason 0xfe handled by 'second ep'
 vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
-vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff3
 vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
-vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff0
+vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff3
 vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
-vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff3
 vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
-vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff0
+vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff3
 vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
-vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff1
+vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff4
 vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
-vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff1
+vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff4
 }
 
 puts $output_3
@@ -222,7 +257,7 @@ compare_output_to {
 [init -> vmm] vcpu 3 : created
 vcpu 3 : XX. vm exit - reason 0xfe handled by 'second ep'
 vcpu 3 : XX. vm exit - reason 0x78 handled by 'second ep'
-vcpu 3 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 3 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff3
 }
 
 set output $output_saved

@@ -316,6 +316,7 @@ namespace Nova {
 				R8_R15         = 1U << 22,  /* R8 .. R15 */
 				SYSCALL_SWAPGS = 1U << 23,  /* SYSCALL and SWAPGS MSRs */
 				TPR            = 1U << 24,  /* TPR and TPR threshold */
+				TSC_AUX        = 1U << 25,  /* IA32_TSC_AUX used by rdtscp */
 				FPU            = 1U << 31,  /* FPU state */
 
 				IRQ   = EFL | STA | INJ | TSC,
@@ -590,7 +591,7 @@ namespace Nova {
 					mword_t  reserved1;
 #endif
 				} gdtr, idtr;
-				unsigned long long tsc_val, tsc_off;
+				unsigned long long tsc_val, tsc_off, tsc_aux;
 			} __attribute__((packed));
 			mword_t mr[(4096 - 4 * sizeof(mword_t)) / sizeof(mword_t)];
 		};
