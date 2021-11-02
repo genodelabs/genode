@@ -103,6 +103,17 @@ append config {
 		<config>
 			<policy label_prefix="block_tester" writeable="} [writeable] {"/>
 		</config>
+		<route>
+			<service name="Platform"><child name="platform_drv"/> </service>
+			<service name="Timer">   <child name="timer"/>        </service>
+			<service name="RAM">     <parent/>                    </service>
+			<service name="CAP">     <parent/>                    </service>
+			<service name="CPU">     <parent/>                    </service>
+			<service name="ROM">     <parent/>                    </service>
+			<service name="PD">      <parent/>                    </service>
+			<service name="LOG">     <parent/>                    </service>
+			<service name="SIGNAL">  <parent/>                    </service>
+		</route>
 	</start>
 
 	<start name="block_tester" caps="200">
