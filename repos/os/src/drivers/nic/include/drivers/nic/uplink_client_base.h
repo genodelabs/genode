@@ -67,17 +67,13 @@ class Genode::Uplink_client_base : Noncopyable
 		void _conn_tx_handle_ack_avail()
 		{
 			if (_custom_conn_tx_ack_avail_handler()) {
-
 				_custom_conn_tx_handle_ack_avail();
-
+				return;
 			}
-			else {
 
-				while (_conn->tx()->ack_avail()) {
+			while (_conn->tx()->ack_avail()) {
 
-					_conn->tx()->release_packet(_conn->tx()->get_acked_packet());
-				}
-
+				_conn->tx()->release_packet(_conn->tx()->get_acked_packet());
 			}
 		}
 
