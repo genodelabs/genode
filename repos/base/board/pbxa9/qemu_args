@@ -1,1 +1,2 @@
 -m 768 -M realview-pbx-a9
+-net nic,model=lan9118,netdev=net0 -netdev user,id=net0

@@ -1,1 +1,2 @@
 -machine q35
+-net nic,model=e1000,netdev=net0 -netdev user,id=net0
