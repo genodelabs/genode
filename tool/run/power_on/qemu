@@ -198,6 +198,12 @@ proc run_power_on { } {
 	if {[regexp -- {-m\s+} $board_qemu_args dummy]} {
 		regsub -all {\-m\s+\S+} $qemu_args "" qemu_args }
 
+	##
+	# let user override any netdev
+	#
+	if {[regexp -- {-netdev\s+user,id=(\w+)} $qemu_args dummy netdev]} {
+		regsub -all "\\-netdev\\s+user,id=$netdev\\S*" $board_qemu_args "" board_qemu_args }
+
 	# append custom board-specific qemu_args
 	append qemu_args " $board_qemu_args"
 
