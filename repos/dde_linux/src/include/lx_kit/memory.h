@@ -105,6 +105,7 @@ class Lx_kit::Mem_allocator
 		              Cache                  cache_attr);
 
 		Attached_dataspace & alloc_dataspace(size_t size);
+		Dataspace_capability attached_dataspace_cap(void *addr);
 
 		void * alloc(size_t size, size_t align);
 		addr_t dma_addr(void * addr);

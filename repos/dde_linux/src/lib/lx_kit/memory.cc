@@ -49,6 +49,19 @@ Genode::Attached_dataspace & Lx_kit::Mem_allocator::alloc_dataspace(size_t size)
 }
 
 
+Genode::Dataspace_capability Lx_kit::Mem_allocator::attached_dataspace_cap(void * addr)
+{
+	Genode::Dataspace_capability ret { };
+
+	_virt_to_dma.apply(Buffer_info::Query_addr(addr),
+	                   [&] (Buffer_info const & info) {
+		ret = info.buffer.ds().cap();
+	});
+
+	return ret;
+}
+
+
 void * Lx_kit::Mem_allocator::alloc(size_t size, size_t align)
 {
 	if (!size)
