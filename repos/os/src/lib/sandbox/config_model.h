@@ -14,8 +14,10 @@
 #ifndef _CONFIG_MODEL_H_
 #define _CONFIG_MODEL_H_
 
+/* Genode includes */
+#include <util/list_model.h>
+
 /* local includes */
-#include <update_list_model.h>
 #include <heartbeat.h>
 
 namespace Sandbox {
@@ -55,6 +57,8 @@ struct Sandbox::Parent_provides_model : Noncopyable
 			 */
 			service.abandon();
 		}
+
+		static bool type_matches(Xml_node const &) { return true; }
 
 		bool matches(Xml_node const &xml) const
 		{
