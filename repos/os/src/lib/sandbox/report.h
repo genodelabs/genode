@@ -14,8 +14,12 @@
 #ifndef _LIB__SANDBOX__REPORT_H_
 #define _LIB__SANDBOX__REPORT_H_
 
+/* Genode includes */
 #include <util/noncopyable.h>
 #include <util/xml_node.h>
+
+/* local includes */
+#include <types.h>
 
 namespace Sandbox {
 	struct Report_update_trigger;

@@ -21,6 +21,8 @@ struct Config_model::Node : Noncopyable, Interface, private List_model<Node>::El
 	friend class List_model<Node>;
 	friend class List<Node>;
 
+	static bool type_matches(Xml_node const &) { return true; }
+
 	virtual bool matches(Xml_node const &) const = 0;
 
 	virtual void update(Xml_node const &) = 0;
