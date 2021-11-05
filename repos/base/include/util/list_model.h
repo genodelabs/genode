@@ -24,7 +24,18 @@
 #include <util/list.h>
 #include <base/log.h>
 
-namespace Genode { template <typename> class List_model; }
+namespace Genode {
+
+	template <typename> class List_model;
+
+	template <typename CREATE_FN, typename DESTROY_FN, typename UPDATE_FN,
+              typename NODE = decltype(CREATE_FN())>
+	static inline void update_list_model_from_xml(List_model<NODE> &,
+	                                              Xml_node   const &,
+	                                              CREATE_FN  const &,
+	                                              DESTROY_FN const &,
+	                                              UPDATE_FN  const &);
+}
 
 
 template <typename ELEM>
@@ -244,5 +255,47 @@ struct Genode::List_model<ELEM>::Update_policy
 	 */
 	static bool node_is_element(Xml_node) { return true; }
 };
+
+
+template <typename CREATE_FN, typename DESTROY_FN, typename UPDATE_FN, typename NODE>
+void Genode::update_list_model_from_xml(List_model<NODE> &model,
+                                        Xml_node   const &xml,
+                                        CREATE_FN  const &create,
+                                        DESTROY_FN const &destroy,
+                                        UPDATE_FN  const &update)
+{
+	struct Model_update_policy : List_model<NODE>::Update_policy
+	{
+		CREATE_FN  const &_create_fn;
+		DESTROY_FN const &_destroy_fn;
+		UPDATE_FN  const &_update_fn;
+
+		Model_update_policy(CREATE_FN  const &create_fn,
+		                    DESTROY_FN const &destroy_fn,
+		                    UPDATE_FN  const &update_fn)
+		:
+			_create_fn(create_fn), _destroy_fn(destroy_fn), _update_fn(update_fn)
+		{ }
+
+		void destroy_element(NODE &node) { _destroy_fn(node); }
+
+		NODE &create_element(Xml_node xml) { return _create_fn(xml); }
+
+		void update_element(NODE &node, Xml_node xml) { _update_fn(node, xml); }
+
+		static bool element_matches_xml_node(NODE const &node, Xml_node xml)
+		{
+			return node.matches(xml);
+		}
+
+		static bool node_is_element(Xml_node node)
+		{
+			return NODE::type_matches(node);
+		}
+
+	} policy(create, destroy, update);
+
+	model.update_from_xml(policy, xml);
+}
 
 #endif /* _INCLUDE__UTIL__LIST_MODEL_H_ */
