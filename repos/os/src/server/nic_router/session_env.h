@@ -113,18 +113,26 @@ class Genode::Session_env : public Ram_allocator,
 		 ** Ram_allocator **
 		 *******************/
 
-		Ram_dataspace_capability alloc(size_t size, Cache cache) override
+		Alloc_result try_alloc(size_t size, Cache cache) override
 		{
 			enum { MAX_SHARED_CAP           = 1 };
 			enum { MAX_SHARED_RAM           = 4096 };
 			enum { DS_SIZE_GRANULARITY_LOG2 = 12 };
 
+			Alloc_result result = Alloc_error::DENIED;
+
 			size_t const ds_size = align_addr(size, DS_SIZE_GRANULARITY_LOG2);
-			Ram_dataspace_capability ds;
-			_consume(ds_size, MAX_SHARED_RAM, 1, MAX_SHARED_CAP, [&] () {
-				ds = _env.pd().alloc(ds_size, cache);
-			});
-			return ds;
+
+			try {
+				_consume(ds_size, MAX_SHARED_RAM, 1, MAX_SHARED_CAP, [&] ()
+				{
+					result = _env.pd().try_alloc(ds_size, cache);
+				});
+			}
+			catch (Out_of_ram)  { result = Alloc_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { result = Alloc_error::OUT_OF_CAPS; }
+
+			return result;
 		}
 
 

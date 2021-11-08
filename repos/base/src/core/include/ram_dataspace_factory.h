@@ -106,7 +106,7 @@ class Genode::Ram_dataspace_factory : public Ram_allocator,
 		 ** Ram_allocator interface **
 		 *****************************/
 
-		Ram_dataspace_capability alloc(size_t, Cache) override;
+		Alloc_result try_alloc(size_t, Cache) override;
 		void free(Ram_dataspace_capability) override;
 		size_t dataspace_size(Ram_dataspace_capability ds) const override;
 };

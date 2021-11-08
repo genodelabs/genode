@@ -38,36 +38,49 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 	Expanding_pd_session_client(Parent &parent, Pd_session_capability cap)
 	: Pd_session_client(cap), _parent(parent) { }
 
-	Ram_dataspace_capability alloc(size_t size, Cache cache = UNCACHED) override
+	Alloc_result try_alloc(size_t size, Cache cache = UNCACHED) override
 	{
 		/*
-		 * If the RAM session runs out of quota, issue a resource request
+		 * If the PD session runs out of quota, issue a resource request
 		 * to the parent and retry.
 		 */
-		enum { NUM_ATTEMPTS = 10 };
-		enum { UPGRADE_CAPS = 4 };
-		return retry<Out_of_ram>(
-			[&] () {
-				return retry<Out_of_caps>(
-					[&] () { return Pd_session_client::alloc(size, cache); },
-					[&] () { _request_caps_from_parent(UPGRADE_CAPS); },
-					NUM_ATTEMPTS);
-			},
-			[&] () {
-				/*
-				 * The RAM service withdraws the meta data for the allocator
-				 * from the RAM quota. In the worst case, a new slab block
-				 * may be needed. To cover the worst case, we need to take
-				 * this possible overhead into account when requesting
-				 * additional RAM quota from the parent.
-				 *
-				 * Because the worst case almost never happens, we request
-				 * a bit too much quota for the most time.
-				 */
-				enum { OVERHEAD = 4096UL };
-				_request_ram_from_parent(size + OVERHEAD);
-			},
-			NUM_ATTEMPTS);
+		for (;;) {
+			Alloc_result const result = Pd_session_client::try_alloc(size, cache);
+			if (result.ok())
+				return result;
+
+			bool denied = false;
+			result.with_error(
+				[&] (Alloc_error error) {
+					switch (error) {
+
+					case Alloc_error::OUT_OF_RAM:
+						/*
+						 * The RAM service withdraws the meta data for the allocator
+						 * from the RAM quota. In the worst case, a new slab block
+						 * may be needed. To cover the worst case, we need to take
+						 * this possible overhead into account when requesting
+						 * additional RAM quota from the parent.
+						 *
+						 * Because the worst case almost never happens, we request
+						 * a bit too much quota for the most time.
+						 */
+						enum { OVERHEAD = 4096UL };
+						_request_ram_from_parent(size + OVERHEAD);
+						break;
+
+					case Alloc_error::OUT_OF_CAPS:
+						_request_caps_from_parent(4);
+						break;
+
+					case Alloc_error::DENIED:
+						denied = true;
+					}
+				});
+
+			if (denied)
+				return Alloc_error::DENIED;
+		}
 	}
 
 	void transfer_quota(Pd_session_capability pd_session, Ram_quota amount) override

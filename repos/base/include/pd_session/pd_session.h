@@ -15,6 +15,7 @@
 #ifndef _INCLUDE__PD_SESSION__PD_SESSION_H_
 #define _INCLUDE__PD_SESSION__PD_SESSION_H_
 
+#include <util/attempt.h>
 #include <base/exception.h>
 #include <cpu/cpu_state.h>
 #include <session/session.h>
@@ -348,9 +349,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 	GENODE_RPC(Rpc_cap_quota, Cap_quota, cap_quota);
 	GENODE_RPC(Rpc_used_caps, Cap_quota, used_caps);
 
-	GENODE_RPC_THROW(Rpc_alloc, Ram_dataspace_capability, alloc,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Undefined_ref_account),
-	                 size_t, Cache);
+	GENODE_RPC(Rpc_try_alloc, Alloc_result, try_alloc, size_t, Cache);
 	GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
 	GENODE_RPC_THROW(Rpc_transfer_ram_quota, void, transfer_quota,
 	                 GENODE_TYPE_LIST(Out_of_ram, Invalid_session, Undefined_ref_account),
@@ -369,7 +368,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 	                     Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,
 	                     Rpc_stack_area, Rpc_linker_area, Rpc_ref_account,
 	                     Rpc_transfer_cap_quota, Rpc_cap_quota, Rpc_used_caps,
-	                     Rpc_alloc, Rpc_free,
+	                     Rpc_try_alloc, Rpc_free,
 	                     Rpc_transfer_ram_quota, Rpc_ram_quota, Rpc_used_ram,
 	                     Rpc_native_pd, Rpc_managing_system);
 };

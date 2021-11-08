@@ -79,7 +79,7 @@ class Stack_area_region_map : public Genode::Region_map
 
 struct Stack_area_ram_allocator : Genode::Ram_allocator
 {
-	Genode::Ram_dataspace_capability alloc(Genode::size_t, Genode::Cache) override {
+	Alloc_result try_alloc(Genode::size_t, Genode::Cache) override {
 		return Genode::Ram_dataspace_capability(); }
 
 	void free(Genode::Ram_dataspace_capability) override { }

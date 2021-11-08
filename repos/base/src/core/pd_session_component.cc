@@ -20,57 +20,57 @@
 using namespace Genode;
 
 
-Ram_dataspace_capability
-Pd_session_component::alloc(size_t ds_size, Cache cache)
+Ram_allocator::Alloc_result
+Pd_session_component::try_alloc(size_t ds_size, Cache cache)
 {
 	/* zero-sized dataspaces are not allowed */
-	if (!ds_size) return Ram_dataspace_capability();
+	if (!ds_size)
+		return Alloc_error::DENIED;
 
 	/* dataspace allocation granularity is page size */
 	ds_size = align_addr(ds_size, 12);
 
-	/*
-	 * Track quota usage
-	 *
-	 * We use a guard to roll back the withdrawal of the quota whenever
-	 * we leave the method scope via an exception. The withdrawal is
-	 * acknowledge just before successfully leaving the method.
-	 */
-	Ram_quota_guard::Reservation
-		dataspace_ram_costs(_ram_quota_guard(), Ram_quota{ds_size});
+	using Result      = Ram_allocator::Alloc_result;
+	using Reservation = Genode::Reservation;
 
-	/*
-	 * In the worst case, we need to allocate a new slab block for the
-	 * meta data of the dataspace to be created. Therefore, we temporarily
-	 * withdraw the slab block size here to trigger an exception if the
-	 * account does not have enough room for the meta data.
-	 */
-	{
-		Ram_quota const overhead { Ram_dataspace_factory::SLAB_BLOCK_SIZE };
-		Ram_quota_guard::Reservation sbs_ram_costs(_ram_quota_guard(), overhead);
-	}
+	/* track quota use */
+	return _ram_quota_guard().with_reservation<Result>(Ram_quota{ds_size},
 
-	/*
-	 * Each dataspace is an RPC object and thereby consumes a capability.
-	 */
-	Cap_quota_guard::Reservation
-		dataspace_cap_costs(_cap_quota_guard(), Cap_quota{1});
+		[&] (Reservation &ram_reservation) -> Result {
 
-	/*
-	 * Allocate physical dataspace
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
-	 */
-	Ram_dataspace_capability ram_ds = _ram_ds_factory.alloc(ds_size, cache);
+			/*
+			 * In the worst case, we need to allocate a new slab block for
+			 * the meta data of the dataspace to be created. Therefore, we
+			 * temporarily withdraw the slab block size here to trigger an
+			 * exception if the account does not have enough room for the meta
+			 * data.
+			 */
+			Ram_quota const overhead { Ram_dataspace_factory::SLAB_BLOCK_SIZE };
 
-	/*
-	 * We returned from '_ram_ds_factory.alloc' with a valid dataspace.
-	 */
-	dataspace_ram_costs.acknowledge();
-	dataspace_cap_costs.acknowledge();
+			if (!_ram_quota_guard().have_avail(overhead)) {
+				ram_reservation.cancel();
+				return Ram_allocator::Alloc_error::OUT_OF_RAM;
+			}
 
-	return ram_ds;
+			/*
+			 * Each dataspace is an RPC object and thereby consumes a
+			 * capability.
+			 */
+			return _cap_quota_guard().with_reservation<Result>(Cap_quota{1},
+
+				[&] (Genode::Reservation &) -> Result {
+					return _ram_ds_factory.try_alloc(ds_size, cache);
+				},
+				[&] () -> Result {
+					ram_reservation.cancel();
+					return Ram_allocator::Alloc_error::OUT_OF_CAPS;
+				}
+			);
+		},
+		[&] () -> Result {
+			return Ram_allocator::Alloc_error::OUT_OF_RAM;
+		}
+	);
 }
 
 

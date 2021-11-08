@@ -40,6 +40,11 @@ namespace Genode {
 	class Quota_guard_untyped;
 
 	template <typename> class Quota_guard;
+
+	struct Reservation : Interface
+	{
+		virtual void cancel() = 0;
+	};
 }
 
 
@@ -121,6 +126,38 @@ class Genode::Quota_guard_untyped
 			/* clamp lower bound of used value to zero */
 			_used = underflow ? 0 : _used - amount;
 		}
+
+		/**
+		 * Guard for rolling back a quota reservation
+		 */
+		class Reservation_guard : public Reservation, Noncopyable
+		{
+			private:
+
+				Quota_guard_untyped &_quota_guard;
+
+				size_t const _amount;
+
+				bool _canceled = false;
+
+			public:
+
+				Reservation_guard(Quota_guard_untyped &quota_guard, size_t const amount)
+				:
+					_quota_guard(quota_guard), _amount(amount)
+				{ }
+
+				~Reservation_guard()
+				{
+					if (_canceled)
+						_quota_guard.replenish(_amount);
+				}
+
+				/**
+				 * Reservation interface
+				 */
+				void cancel() override { _canceled = true; }
+		};
 };
 
 
@@ -179,6 +216,11 @@ class Genode::Quota_guard
 
 		/**
 		 * Utility used for transactional multi-step resource allocations
+		 *
+		 * \deprecated  Use 'with_reservation' instead
+		 *
+		 * Note that this class is not related to the 'Genode::Reservation'
+		 * interface.
 		 */
 		struct Reservation
 		{
@@ -206,6 +248,33 @@ class Genode::Quota_guard
 
 			void acknowledge() { _ack = true; }
 		};
+
+		template <typename RET, typename FN, typename ERROR_FN>
+		RET with_reservation(UNIT     const amount,
+		                     FN       const &fn,
+		                     ERROR_FN const &error_fn)
+		{
+			if (!_guard.try_withdraw(amount.value))
+				return error_fn();
+
+			/*
+			 * The withdrawal was successful. Use reservation guard to
+			 * rollback the withdrawal depending on 'fn'.
+			 */
+
+			Quota_guard_untyped::Reservation_guard
+				reservation_guard { _guard, amount.value };
+
+			/* expose only the 'Reservation' interface to 'fn' */
+			::Genode::Reservation &interface = reservation_guard;
+
+			return fn(interface);
+		}
+
+		bool have_avail(UNIT const amount) const
+		{
+			return _guard.avail() >= amount.value;
+		}
 };
 
 

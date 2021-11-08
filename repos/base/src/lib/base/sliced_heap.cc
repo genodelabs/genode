@@ -46,8 +46,20 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 	Ram_dataspace_capability ds_cap;
 	Block *block = nullptr;
 
+	_ram_alloc.try_alloc(size).with_result(
+		[&] (Ram_dataspace_capability cap) { ds_cap = cap; },
+		[&] (Ram_allocator::Alloc_error error) {
+			switch (error) {
+			case Ram_allocator::Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+			case Ram_allocator::Alloc_error::OUT_OF_RAM:  break;
+			case Ram_allocator::Alloc_error::DENIED:      break;
+			}
+		});
+
+	if (!ds_cap.valid())
+		return false;
+
 	try {
-		ds_cap = _ram_alloc.alloc(size);
 		block  = _region_map.attach(ds_cap);
 	}
 	catch (Region_map::Region_conflict) {

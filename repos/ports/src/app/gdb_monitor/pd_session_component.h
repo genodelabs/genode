@@ -128,8 +128,8 @@ class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 		Cap_quota cap_quota() const override { return _pd.cap_quota(); }
 		Cap_quota used_caps() const override { return _pd.used_caps(); }
 
-		Ram_dataspace_capability alloc(size_t amount, Cache cache) override {
-			return _pd.alloc(amount, cache); }
+		Alloc_result try_alloc(size_t amount, Cache cache) override {
+			return _pd.try_alloc(amount, cache); }
 
 		void free(Ram_dataspace_capability ds) override { _pd.free(ds); }
 

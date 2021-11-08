@@ -14,10 +14,11 @@
 #ifndef _INCLUDE__BASE__IPC_H_
 #define _INCLUDE__BASE__IPC_H_
 
+#include <util/attempt.h>
+#include <util/meta.h>
 #include <base/ipc_msgbuf.h>
 #include <base/rpc_args.h>
 #include <base/log.h>
-#include <util/meta.h>
 
 namespace Genode {
 
@@ -154,6 +155,18 @@ class Genode::Ipc_unmarshaller : Noncopyable
 			_read_offset += align_natural(sizeof(T));
 
 			return value;
+		}
+
+		/**
+		 * Read 'Attempt' return value from buffer
+		 */
+		template <typename RESULT, typename ERROR>
+		Attempt<RESULT, ERROR> extract(Meta::Overload_selector<Attempt<RESULT, ERROR> >)
+		{
+			bool const ok = extract(Meta::Overload_selector<bool>());
+
+			if (ok) return extract(Meta::Overload_selector<RESULT>());
+			else    return extract(Meta::Overload_selector<ERROR>());
 		}
 
 		Ipc_unmarshaller(Msgbuf_base &rcv_msg) : _rcv_msg(rcv_msg) { }
