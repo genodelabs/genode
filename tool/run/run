@@ -533,11 +533,8 @@ proc have_spec {spec} { global specs; return [expr [lsearch $specs $spec] != -1]
 # Return true if specified program is installed
 #
 proc have_installed {program} {
-	if {[catch { exec which $program }] == 0} { return true; }
-	if {[catch { exec which "/sbin/$program" }] == 0} { return true; }
-	if {[catch { exec which "/usr/sbin/$program" }] == 0} { return true; }
-	if {[catch { exec which "/usr/local/bin/$program" }] == 0} { return true; }
 
+	if {[auto_execok "$program"] != ""} { return true; }
 	return false;
 }
 

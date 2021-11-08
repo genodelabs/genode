@@ -81,7 +81,7 @@ BASE_DIR     := $(realpath $(shell echo $(BASE_DIR)))
 # standard shell is dash, which breaks colored output via its built-in echo
 # command.
 #
-export SHELL := $(shell which bash)
+export SHELL := $(shell sh -c "command -v bash")
 
 #
 # Discharge variables evaluated by ccache mechanism that may be inherited when
@@ -137,7 +137,7 @@ endif
 #
 # Helper function to check if a needed tool is installed
 #
-check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+check_tool = $(if $(shell command -v $(1)),,$(error Need to have '$(1)' installed.))
 
 #
 # Tool chain version check
@@ -363,7 +363,7 @@ gen_deps_and_build_targets: $(CCACHED_CUSTOM_CC) $(CCACHED_CUSTOM_CXX)
 # create ccache symlinks at var/tool/ccache/
 $(CCACHED_CUSTOM_CC) $(CCACHED_CUSTOM_CXX):
 	$(VERBOSE_MK)mkdir -p $(dir $@)
-	$(VERBOSE_MK)ln -sf `which ccache` $@
+	$(VERBOSE_MK)ln -sf `command -v ccache` $@
 
 # supplement tool-chain directory to the search-path variable used by ccache
 ifneq ($(filter /%,$(CUSTOM_CXX)),)
