@@ -49,6 +49,34 @@ Genode::Attached_dataspace & Lx_kit::Mem_allocator::alloc_dataspace(size_t size)
 }
 
 
+void Lx_kit::Mem_allocator::free_dataspace(void * addr)
+{
+	Buffer *buffer = nullptr;
+
+	_virt_to_dma.apply(Buffer_info::Query_addr(addr),
+	                   [&] (Buffer_info const & info) {
+		buffer = &info.buffer;
+	});
+
+	if (!buffer) {
+		warning(__func__, ": no buffer for addr: ", addr, " found");
+		return;
+	}
+
+	void const * virt_addr = (void const *)buffer->virt_addr();
+	void const * dma_addr  = (void const *)buffer->dma_addr();
+
+	_virt_to_dma.remove(Buffer_info::Query_addr(virt_addr));
+	_dma_to_virt.remove(Buffer_info::Query_addr(dma_addr));
+
+	Ram_dataspace_capability ds_cap = buffer->ram_ds_cap();
+
+	destroy(_heap, buffer);
+
+	_platform.free_dma_buffer(ds_cap);
+}
+
+
 Genode::Dataspace_capability Lx_kit::Mem_allocator::attached_dataspace_cap(void * addr)
 {
 	Genode::Dataspace_capability ret { };

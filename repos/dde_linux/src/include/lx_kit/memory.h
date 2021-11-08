@@ -36,15 +36,16 @@ class Lx_kit::Mem_allocator
 		{
 			private:
 
-				Attached_dataspace _ds;
-				addr_t       const _dma_addr;
+				Ram_dataspace_capability _ram_ds_cap;
+				Attached_dataspace       _ds;
+				addr_t             const _dma_addr;
 
 			public:
 
-				Buffer(Region_map         & rm,
-				       Dataspace_capability cap,
-				       addr_t               dma_addr)
-				: _ds(rm, cap), _dma_addr(dma_addr) {}
+				Buffer(Region_map             & rm,
+				       Ram_dataspace_capability cap,
+				       addr_t                   dma_addr)
+				: _ram_ds_cap(cap), _ds(rm, cap), _dma_addr(dma_addr) {}
 
 				size_t dma_addr()  const { return _dma_addr; }
 				size_t size()      const { return _ds.size(); }
@@ -52,6 +53,8 @@ class Lx_kit::Mem_allocator
 					return (addr_t) _ds.local_addr<void*>(); }
 
 				Attached_dataspace & ds() { return _ds; }
+
+				Ram_dataspace_capability ram_ds_cap() { return _ram_ds_cap; }
 		};
 
 		struct Buffer_info
@@ -105,6 +108,7 @@ class Lx_kit::Mem_allocator
 		              Cache                  cache_attr);
 
 		Attached_dataspace & alloc_dataspace(size_t size);
+		void                 free_dataspace(void *addr);
 		Dataspace_capability attached_dataspace_cap(void *addr);
 
 		void * alloc(size_t size, size_t align);
