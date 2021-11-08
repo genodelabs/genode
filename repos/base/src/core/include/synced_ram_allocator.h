@@ -33,10 +33,10 @@ class Genode::Synced_ram_allocator : public Ram_allocator
 
 		Synced_ram_allocator(Ram_allocator &alloc) : _alloc(alloc) { }
 
-		Ram_dataspace_capability alloc(size_t size, Cache cache) override
+		Alloc_result try_alloc(size_t size, Cache cache) override
 		{
 			Mutex::Guard mutex_guard(_mutex);
-			return _alloc.alloc(size, cache);
+			return _alloc.try_alloc(size, cache);
 		}
 
 		void free(Ram_dataspace_capability ds) override

@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__BASE__IPC_MSGBUF_H_
 #define _INCLUDE__BASE__IPC_MSGBUF_H_
 
+#include <util/attempt.h>
 #include <util/noncopyable.h>
 #include <base/capability.h>
 #include <base/exception.h>
@@ -224,6 +225,17 @@ class Genode::Msgbuf_base : Noncopyable
 		{
 			Native_capability untyped_cap = typed_cap;
 			insert(untyped_cap);
+		}
+
+		/**
+		 * Insert 'Attempt' return value into message buffer
+		 */
+		template <typename RESULT, typename ERROR>
+		void insert(Attempt<RESULT, ERROR> const &attempt)
+		{
+			insert(attempt.ok());
+			attempt.with_result([&] (RESULT result) { insert(result); },
+			                    [&] (ERROR  error)  { insert(error);  });
 		}
 };
 

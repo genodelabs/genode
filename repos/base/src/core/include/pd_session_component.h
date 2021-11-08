@@ -315,7 +315,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 ** RAM allocation and accounting **
 		 ***********************************/
 
-		Ram_dataspace_capability alloc(size_t, Cache) override;
+		Alloc_result try_alloc(size_t, Cache) override;
 
 		void free(Ram_dataspace_capability) override;
 

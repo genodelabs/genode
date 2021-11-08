@@ -21,8 +21,8 @@ namespace Genode {
 
 	template <typename> struct Rpc_client;
 
-	/**
-	 * Count capabilities of a RPC_FUNCTION which are out parameters.
+	/*
+	 * Number of capabilities received by RPC_FUNCTION as out parameters
 	 */
 	template <typename T> struct Cap_para_out                  { enum { Value = 0 }; };
 	template <typename T> struct Cap_para_out<Capability<T> *> { enum { Value = 1 }; };
@@ -30,6 +30,9 @@ namespace Genode {
 	template <> struct Cap_para_out<Native_capability *>       { enum { Value = 1 }; };
 	template <> struct Cap_para_out<Native_capability &>       { enum { Value = 1 }; };
 
+	/*
+	 * Presence of capability received as return value from RPC_FUNCTION
+	 */
 	template <typename T> struct Cap_return                  { enum { Value = 0 }; };
 	template <typename T> struct Cap_return<Capability<T> >  { enum { Value = 1 }; };
 	template <typename T> struct Cap_return<Capability<T> *> { enum { Value = 1 }; };
@@ -38,11 +41,17 @@ namespace Genode {
 	template <> struct Cap_return<Native_capability *>       { enum { Value = 1 }; };
 	template <> struct Cap_return<Native_capability &>       { enum { Value = 1 }; };
 
+	/*
+	 * Presence of capability received as 'Attempt' return value from RPC_FUNCTION
+	 */
+	template <typename T, typename E>
+	struct Cap_return<Attempt<T, E> > { enum { Value = Cap_return<T>::Value }; };
+
 	template <typename ARGS>
 	struct Rpc_caps_out {
 		enum { Value = Cap_para_out<typename ARGS::Head>::Value
 		             + Rpc_caps_out<typename ARGS::Tail>::Value }; };
-	
+
 	template <>
 	struct Rpc_caps_out<Meta::Empty> { enum { Value = 0 }; };
 
@@ -50,6 +59,7 @@ namespace Genode {
 	struct Rpc_function_caps_out {
 		enum { Value = Rpc_caps_out<typename RPC_FUNCTION::Server_args>::Value +
 		               Cap_return  <typename RPC_FUNCTION::Ret_type>::Value}; };
+
 
 	/***************************************************
 	 ** Implementation of 'Capability:call' functions **

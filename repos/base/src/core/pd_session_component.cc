@@ -20,11 +20,12 @@
 using namespace Genode;
 
 
-Ram_dataspace_capability
-Pd_session_component::alloc(size_t ds_size, Cache cache)
+Ram_allocator::Alloc_result
+Pd_session_component::try_alloc(size_t ds_size, Cache cache)
 {
 	/* zero-sized dataspaces are not allowed */
-	if (!ds_size) return Ram_dataspace_capability();
+	if (!ds_size)
+		return Alloc_error::DENIED;
 
 	/* dataspace allocation granularity is page size */
 	ds_size = align_addr(ds_size, 12);
@@ -58,11 +59,10 @@ Pd_session_component::alloc(size_t ds_size, Cache cache)
 
 	/*
 	 * Allocate physical dataspace
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
 	 */
-	Ram_dataspace_capability ram_ds = _ram_ds_factory.alloc(ds_size, cache);
+	Alloc_result const result = _ram_ds_factory.try_alloc(ds_size, cache);
+	if (result.failed())
+		return result;
 
 	/*
 	 * We returned from '_ram_ds_factory.alloc' with a valid dataspace.
@@ -70,7 +70,7 @@ Pd_session_component::alloc(size_t ds_size, Cache cache)
 	dataspace_ram_costs.acknowledge();
 	dataspace_cap_costs.acknowledge();
 
-	return ram_ds;
+	return result;
 }
 
 

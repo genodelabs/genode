@@ -20,11 +20,12 @@
 using namespace Genode;
 
 
-Ram_dataspace_capability
-Ram_dataspace_factory::alloc(size_t ds_size, Cache cache)
+Ram_allocator::Alloc_result
+Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 {
 	/* zero-sized dataspaces are not allowed */
-	if (!ds_size) return Ram_dataspace_capability();
+	if (!ds_size)
+			return Alloc_error::DENIED;
 
 	/* dataspace allocation granularity is page size */
 	ds_size = align_addr(ds_size, 12);
@@ -59,7 +60,7 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache cache)
 		}
 	}
 
-	/* apply constraints or re-try because higher memory allocation failed */
+	/* apply constraints, or retry if larger memory allocation failed */
 	if (!alloc_succeeded) {
 		for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
 			if (_phys_alloc.alloc_aligned(ds_size, &ds_addr, align_log2,
@@ -106,19 +107,24 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache cache)
 	if (!alloc_succeeded) {
 		error("out of physical memory while allocating ", ds_size, " bytes ",
 		      "in range [", Hex(_phys_range.start), "-", Hex(_phys_range.end), "]");
-		throw Out_of_ram();
+		return Alloc_error::OUT_OF_RAM;
 	}
 
 	/*
 	 * For non-cached RAM dataspaces, we mark the dataspace as write
 	 * combined and expect the pager to evaluate this dataspace property
 	 * when resolving page faults.
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
 	 */
-	Dataspace_component &ds = *new (_ds_slab)
-		Dataspace_component(ds_size, (addr_t)ds_addr, cache, true, this);
+	Dataspace_component *ds_ptr = nullptr;
+	try {
+		ds_ptr = new (_ds_slab)
+			Dataspace_component(ds_size, (addr_t)ds_addr, cache, true, this);
+	}
+	catch (Out_of_ram)  { return Alloc_error::OUT_OF_RAM; }
+	catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
+	catch (...)         { return Alloc_error::DENIED; }
+
+	Dataspace_component &ds = *ds_ptr;
 
 	/* create native shared memory representation of dataspace */
 	try { _export_ram_ds(ds); }
@@ -127,7 +133,7 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache cache)
 
 		/* cleanup unneeded resources */
 		destroy(_ds_slab, &ds);
-		throw Out_of_ram();
+		return Alloc_error::DENIED;
 	}
 
 	/*
@@ -137,11 +143,11 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache cache)
 	 */
 	_clear_ds(ds);
 
-	Dataspace_capability result = _ep.manage(&ds);
+	Dataspace_capability ds_cap = _ep.manage(&ds);
 
 	phys_alloc_guard.ack = true;
 
-	return static_cap_cast<Ram_dataspace>(result);
+	return static_cap_cast<Ram_dataspace>(ds_cap);
 }
 
 
