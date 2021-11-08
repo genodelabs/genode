@@ -31,4 +31,4 @@ MSG_GIT        := $(MSG_PREFIX_TXT)git
 #
 # Utility to check if a tool is installed
 #
-check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+check_tool = $(if $(shell command -v $(1)),,$(error Need to have '$(1)' installed.))
