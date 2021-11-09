@@ -81,7 +81,7 @@ BASE_DIR     := $(realpath $(shell echo $(BASE_DIR)))
 # standard shell is dash, which breaks colored output via its built-in echo
 # command.
 #
-export SHELL := $(shell command -v bash)
+export SHELL := $(shell sh -c "command -v bash")
 
 #
 # Discharge variables evaluated by ccache mechanism that may be inherited when
