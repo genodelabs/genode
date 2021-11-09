@@ -3,6 +3,7 @@
 -device virtio-net-device,bus=virtio-mmio-bus.0,netdev=net0
 -device virtio-mouse-device
 -device virtio-keyboard-device
+-device ramfb
 -netdev user,id=net0
 arm_v8a: -M virt,virtualization=true,gic-version=3 -cpu cortex-a53 -smp 4
 arm_v7a: -M virt,virtualization=true -cpu cortex-a15 -smp 2
