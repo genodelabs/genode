@@ -427,14 +427,17 @@ void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp)
 void *vmalloc(unsigned long size)
 {
 	size_t real_size = size + sizeof(size_t);
-	size_t *addr;
 	
-	if (!Lx_kit::env().heap().alloc(real_size, (void**)&addr)) {
-		return nullptr;
-	}
+	return Lx_kit::env().heap().try_alloc(real_size).convert<void *>(
 
-	*addr = real_size;
-	return addr + 1;
+		[&] (void *ptr) -> void * {
+			size_t * const base = (size_t)ptr;
+			*base = real_size;
+			return base + 1;
+		},
+
+		[&] (Genode::Allocator::Alloc_error) -> void * {
+			return nullptr; });
 }
 
 
@@ -744,7 +747,7 @@ void *dma_alloc_coherent(struct device *dev, size_t size,
 	bool const large_alloc = size >= DMA_LARGE_ALLOC_SIZE;
 	dma_addr_t dma_addr = 0;
 	void *addr = large_alloc ? Lx::Malloc::dma().alloc_large(size)
-	                         : Lx::Malloc::dma().alloc(size, 12, &dma_addr);
+	                         : Lx::Malloc::dma().malloc(size, 12, &dma_addr);
 
 	if (addr) {
 		*dma_handle = large_alloc ? Lx::Malloc::dma().phys_addr(addr)
@@ -924,7 +927,7 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 
 	size_t size = PAGE_SIZE << order;
 
-	page->addr = Lx::Malloc::dma().alloc(size, 12);
+	page->addr = Lx::Malloc::dma().malloc(size, 12);
 
 	if (!page->addr) {
 		Genode::error("alloc_pages: ", size, " failed");

@@ -19,10 +19,6 @@
 /* local includes */
 #include <sup_gmm.h>
 
-namespace {
-	using Alloc_return = Genode::Range_allocator::Alloc_return;
-}
-
 
 void Sup::Gmm::_add_one_slice()
 {
@@ -78,18 +74,19 @@ void Sup::Gmm::_update_pool_size()
 
 Sup::Gmm::Vmm_addr Sup::Gmm::_alloc_pages(Pages pages)
 {
-	void *out_addr = nullptr;
+	size_t const bytes = pages.value << PAGE_SHIFT;
+	size_t const align = log2(bytes);
 
-	size_t const alloc_size = pages.value << PAGE_SHIFT;
+	return _alloc.alloc_aligned(bytes, align).convert<Vmm_addr>(
 
-	Alloc_return const result = _alloc.alloc_aligned(alloc_size, &out_addr,
-	                                                 log2(alloc_size));
-	if (result.error()) {
-		error("Gmm allocation failed");
-		throw Allocation_failed();
-	}
+		[&] (void *ptr) {
+			return Vmm_addr { _map.base.value + (addr_t)ptr }; },
 
-	return Vmm_addr { _map.base.value + (addr_t)out_addr };
+		[&] (Range_allocator::Alloc_error) -> Vmm_addr {
+			error("Gmm allocation failed");
+			throw Allocation_failed();
+		}
+	);
 }
 
 

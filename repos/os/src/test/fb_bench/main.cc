@@ -39,8 +39,13 @@ struct Test
 	{
 		log("\nTEST ", id, ": ", brief, "\n");
 		for (unsigned i = 0; i < 2; i++) {
-			if (!heap.alloc(fb_ds.size(), (void **)&buf[i])) {
-				env.parent().exit(-1); }
+			heap.try_alloc(fb_ds.size()).with_result(
+				[&] (void *ptr) { buf[i] = (char *)ptr; },
+				[&] (Allocator::Alloc_error e) {
+					env.parent().exit(-1);
+					Allocator::throw_alloc_error(e);
+				}
+			);
 		}
 		/* fill one memory buffer with white pixels */
 		memset(buf[1], ~0, fb_ds.size());

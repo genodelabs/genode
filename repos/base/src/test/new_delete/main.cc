@@ -56,13 +56,13 @@ struct Allocator : Genode::Allocator
 	bool need_size_for_free() const override {
 		return a.need_size_for_free(); }
 
-	bool alloc(Genode::size_t size, void **p) override
+	Alloc_result try_alloc(Genode::size_t size) override
 	{
-		*p = a.alloc(size);
+		Alloc_result const result = a.try_alloc(size);
 
 		log("Allocator::alloc()");
 
-		return *p != 0;
+		return result;
 	}
 
 	void free(void *p, Genode::size_t size) override

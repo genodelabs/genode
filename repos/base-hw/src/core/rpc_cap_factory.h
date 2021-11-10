@@ -86,22 +86,28 @@ class Genode::Rpc_cap_factory
 		{
 			Mutex::Guard guard(_mutex);
 
-			/* allocate kernel object */
-			Kobject * obj;
-			if (!_slab.alloc(sizeof(Kobject), (void**)&obj))
-				throw Allocator::Out_of_memory();
-			construct_at<Kobject>(obj, ep);
+			return _slab.try_alloc(sizeof(Kobject)).convert<Native_capability>(
 
-			if (!obj->cap.valid()) {
-				raw("Invalid entrypoint ", (addr_t)Capability_space::capid(ep),
-				    " for allocating a capability!");
-				destroy(&_slab, obj);
-				return Native_capability();
-			}
+				[&] (void *ptr) {
 
-			/* store it in the list and return result */
-			_list.insert(obj);
-			return obj->cap;
+					/* create kernel object */
+					Kobject &obj = *construct_at<Kobject>(ptr, ep);
+
+					if (!obj.cap.valid()) {
+						raw("Invalid entrypoint ", (addr_t)Capability_space::capid(ep),
+						    " for allocating a capability!");
+						destroy(&_slab, &obj);
+						return Native_capability();
+					}
+
+					/* store it in the list and return result */
+					_list.insert(&obj);
+					return obj.cap;
+				},
+				[&] (Allocator::Alloc_error) -> Native_capability {
+					/* XXX distinguish error conditions */
+					throw Allocator::Out_of_memory();
+				});
 		}
 
 		void free(Native_capability cap)

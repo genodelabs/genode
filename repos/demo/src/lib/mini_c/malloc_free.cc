@@ -40,13 +40,17 @@ extern "C" void *malloc(size_t size)
 	 * the subsequent address. This way, we can retrieve
 	 * the size information when freeing the block.
 	 */
-	unsigned long real_size = size + sizeof(unsigned long);
-	void *addr = 0;
-	if (!alloc().alloc(real_size, &addr))
-		return 0;
+	unsigned long const real_size = size + sizeof(unsigned long);
 
-	*(unsigned long *)addr = real_size;
-	return (unsigned long *)addr + 1;
+	return alloc().try_alloc(real_size).convert<void *>(
+
+		[&] (void *ptr) {
+
+			*(unsigned long *)ptr = real_size;
+			return (unsigned long *)ptr + 1; },
+
+		[&] (Allocator::Alloc_error) {
+			return nullptr; });
 }
 
 

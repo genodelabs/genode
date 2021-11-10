@@ -41,7 +41,7 @@ class Lx::Malloc : public Genode::Allocator
 		/**
 		 * Alloc in slabs
 		 */
-		virtual void *alloc(Genode::size_t size, int align = 0, Genode::addr_t *phys = 0) = 0;
+		virtual void *malloc(Genode::size_t size, int align = 0, Genode::addr_t *phys = 0) = 0;
 
 		virtual void free(void const *a) = 0;
 
@@ -67,11 +67,7 @@ class Lx::Malloc : public Genode::Allocator
 
 		size_t overhead(size_t size) const override { return 0; }
 
-		bool alloc(size_t size, void **out_addr) override
-		{
-			*out_addr = alloc(size);
-			return *out_addr ? true : false;
-		}
+		Alloc_result try_alloc(size_t size) override { return malloc(size); }
 
 		void free(void *addr, size_t size) override { free(addr); }
 

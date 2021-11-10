@@ -63,48 +63,57 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 		    attribute.offset > dsc.size() - attribute.size)
 			throw Invalid_dataspace();
 
-		switch (_map.alloc_addr(attribute.size, guest_phys).value) {
-		case Range_allocator::Alloc_return::OUT_OF_METADATA:
-			throw Out_of_ram();
-		case Range_allocator::Alloc_return::RANGE_CONFLICT:
-		{
-			Rm_region *region_ptr = _map.metadata((void *)guest_phys);
-			if (!region_ptr)
-				throw Region_conflict();
+		using Alloc_error = Range_allocator::Alloc_error;
 
-			Rm_region &region = *region_ptr;
+		_map.alloc_addr(attribute.size, guest_phys).with_result(
 
-			if (!(cap == region.dataspace().cap()))
-				throw Region_conflict();
-			if (guest_phys < region.base() ||
-			    guest_phys > region.base() + region.size() - 1)
-				throw Region_conflict();
+			[&] (void *) {
 
-			/* re-attach all */
-			break;
-		}
-		case Range_allocator::Alloc_return::OK:
-		{
-			/* store attachment info in meta data */
-			try {
-				_map.construct_metadata((void *)guest_phys,
-				                        guest_phys, attribute.size,
-				                        dsc.writable() && attribute.writeable,
-				                        dsc, attribute.offset, *this,
-				                        attribute.executable);
-			} catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
-				error("failed to store attachment info");
-				throw Invalid_dataspace();
+				/* store attachment info in meta data */
+				try {
+					_map.construct_metadata((void *)guest_phys,
+					                        guest_phys, attribute.size,
+					                        dsc.writable() && attribute.writeable,
+					                        dsc, attribute.offset, *this,
+					                        attribute.executable);
+				} catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
+					error("failed to store attachment info");
+					throw Invalid_dataspace();
+				}
+
+				Rm_region &region = *_map.metadata((void *)guest_phys);
+
+				/* inform dataspace about attachment */
+				dsc.attached_to(region);
+			},
+
+			[&] (Alloc_error error) {
+
+				switch (error) {
+
+				case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
+				case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+				case Alloc_error::DENIED:
+					{
+						/*
+						 * Handle attach after partial detach
+						 */
+						Rm_region *region_ptr = _map.metadata((void *)guest_phys);
+						if (!region_ptr)
+							throw Region_conflict();
+
+						Rm_region &region = *region_ptr;
+
+						if (!(cap == region.dataspace().cap()))
+							throw Region_conflict();
+
+						if (guest_phys < region.base() ||
+						    guest_phys > region.base() + region.size() - 1)
+							throw Region_conflict();
+					}
+				};
 			}
-
-			Rm_region &region = *_map.metadata((void *)guest_phys);
-
-			/* inform dataspace about attachment */
-			dsc.attached_to(region);
-
-			break;
-		}
-		};
+		);
 
 		/* kernel specific code to attach memory to guest */
 		_attach_vm_memory(dsc, guest_phys, attribute);

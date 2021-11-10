@@ -223,10 +223,13 @@ Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
 {
 	/* if no initial slab block was specified, try to get one */
 	if (!_curr_sb && _backing_store)
-		_curr_sb = _new_slab_block();
+		_new_slab_block().with_result(
+			[&] (Block *sb) { _curr_sb = sb; },
+			[&] (Alloc_error error) {
+				Allocator::throw_alloc_error(error); });
 
 	if (!_curr_sb)
-		throw Out_of_memory();
+		throw Allocator::Denied();
 
 	/* init first slab block */
 	construct_at<Block>(_curr_sb, *this);
@@ -253,13 +256,19 @@ Slab::~Slab()
 }
 
 
-Slab::Block *Slab::_new_slab_block()
+Slab::New_slab_block_result Slab::_new_slab_block()
 {
-	void *sb = nullptr;
-	if (!_backing_store || !_backing_store->alloc(_block_size, &sb))
-		return nullptr;
+	using Result = New_slab_block_result;
 
-	return construct_at<Block>(sb, *this);
+	if (!_backing_store)
+		return Alloc_error::DENIED;
+
+	Slab &this_slab = *this;
+	return _backing_store->try_alloc(_block_size).convert<Result>(
+		[&] (void *sb) {
+			return construct_at<Block>(sb, this_slab); },
+		[&] (Alloc_error error) {
+			return error; });
 }
 
 
@@ -313,19 +322,51 @@ void Slab::_insert_sb(Block *sb)
 }
 
 
+Slab::Expand_result Slab::_expand()
+{
+	if (!_backing_store || _nested)
+		return Expand_ok();
+
+	/* allocate new block for slab */
+	_nested = true;
+
+	/* reset '_nested' when leaving the scope */
+	struct Nested_guard {
+		bool &_nested;
+		Nested_guard(bool &nested) : _nested(nested) { }
+		~Nested_guard() { _nested = false; }
+	} guard(_nested);
+
+	return _new_slab_block().convert<Expand_result>(
+
+		[&] (Block *sb_ptr) {
+
+			/*
+			 * The new block has the maximum number of available slots.
+			 * Hence, we can insert it at the beginning of the sorted block
+			 * list.
+			 */
+			_insert_sb(sb_ptr);
+			return Expand_ok(); },
+
+		[&] (Alloc_error error) {
+			return error; });
+}
+
+
 void Slab::insert_sb(void *ptr)
 {
 	_insert_sb(construct_at<Block>(ptr, *this));
 }
 
 
-bool Slab::alloc(size_t size, void **out_addr)
+Allocator::Alloc_result Slab::try_alloc(size_t size)
 {
 	/* too large for us ? */
 	if (size > _slab_size) {
 		error("requested size ", size, " is larger then slab size ",
 		      _slab_size);
-		return false;
+		return Alloc_error::DENIED;
 	}
 
 	/*
@@ -336,29 +377,12 @@ bool Slab::alloc(size_t size, void **out_addr)
 	 * new slab block early enough - that is if there are only three free slab
 	 * entries left.
 	 */
-	if (_backing_store && (_total_avail <= 3) && !_nested) {
-
-		/* allocate new block for slab */
-		_nested = true;
-
-		try {
-			Block * const sb = _new_slab_block();
-
-			_nested = false;
-
-			if (!sb) return false;
-
-			/*
-			 * The new block has the maximum number of available slots and
-			 * so we can insert it at the beginning of the sorted block
-			 * list.
-			 */
-			_insert_sb(sb);
-		}
-		catch (...) {
-			_nested = false;
-			throw;
-		}
+	if (_total_avail <= 3) {
+		Expand_result expand_result = _expand();
+		if (expand_result.failed())
+			return expand_result.convert<Alloc_result>(
+				[&] (Expand_ok)         { return Alloc_error::DENIED; },
+				[&] (Alloc_error error) { return error; });
 	}
 
 	/* skip completely occupied slab blocks, detect cycles */
@@ -367,13 +391,13 @@ bool Slab::alloc(size_t size, void **out_addr)
 		if (_curr_sb->next == orig_curr_sb)
 			break;
 
-	*out_addr = _curr_sb->alloc();
-
-	if (*out_addr == nullptr)
-		return false;
+	void *ptr = _curr_sb->alloc();
+	if (!ptr)
+		return Alloc_error::DENIED;
 
 	_total_avail--;
-	return true;
+
+	return ptr;
 }
 
 

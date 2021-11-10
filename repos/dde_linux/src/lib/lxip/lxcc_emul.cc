@@ -123,15 +123,25 @@ void *alloc_large_system_hash(const char *tablename,
 	unsigned long nlog2 = ilog2(elements);
 	nlog2 <<= (1 << nlog2) < elements ? 1 : 0;
 
-	void *table;
-	lx_env->heap().alloc(elements * bucketsize, &table);
 
-	if (_hash_mask)
-		*_hash_mask = (1 << nlog2) - 1;
-	if (_hash_shift)
-		*_hash_shift = nlog2;
+	return lx_env->heap().try_alloc(elements * bucketsize).convert<void *>(
 
-	return table;
+		[&] (void *table_ptr) {
+
+			if (_hash_mask)
+				*_hash_mask = (1 << nlog2) - 1;
+
+			if (_hash_shift)
+				*_hash_shift = nlog2;
+
+			return table_ptr;
+		},
+
+		[&] (Genode::Allocator::Alloc_error) -> void * {
+			Genode::error("alloc_large_system_hash allocation failed");
+			return nullptr;
+		}
+	);
 }
 
 
@@ -148,12 +158,12 @@ void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 
 void *kmem_cache_alloc_node(struct kmem_cache *cache, gfp_t flags, int node)
 {
-	return (void*)cache->alloc();
+	return (void*)cache->alloc_element();
 }
 
 void *kmem_cache_zalloc(struct kmem_cache *cache, gfp_t flags)
 {
-	void *addr = (void*)cache->alloc();
+	void *addr = (void*)cache->alloc_element();
 	if (addr) { memset(addr, 0, cache->size()); }
 
 	return addr;

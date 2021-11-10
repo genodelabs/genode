@@ -261,9 +261,9 @@ extern "C" int getpid()
 
 extern "C" void *malloc(size_t size)
 {
-	void *res = nullptr;
-	gcov_env->heap.alloc(size, &res);
-	return res;
+	return gcov_env->heap.try_alloc(size).convert<void *>(
+		[&] (void *ptr) { return ptr; },
+		[&] (Genode::Allocator::Alloc_error) -> void * { return nullptr; });
 }
 
 

@@ -73,14 +73,17 @@ void Vm_session_component::_detach_vm_memory(addr_t vm_addr, size_t size)
 
 void * Vm_session_component::_alloc_table()
 {
-	void * table;
 	/* get some aligned space for the translation table */
-	if (!cma().alloc_aligned(sizeof(Board::Vm_page_table), (void**)&table,
-	                         Board::Vm_page_table::ALIGNM_LOG2).ok()) {
-		error("failed to allocate kernel object");
-		throw Insufficient_ram_quota();
-	}
-	return table;
+	return cma().alloc_aligned(sizeof(Board::Vm_page_table),
+	                           Board::Vm_page_table::ALIGNM_LOG2).convert<void *>(
+		[&] (void *table_ptr) {
+			return table_ptr; },
+
+		[&] (Range_allocator::Alloc_error) -> void * {
+			/* XXX handle individual error conditions */
+			error("failed to allocate kernel object");
+			throw Insufficient_ram_quota(); }
+	);
 }
 
 

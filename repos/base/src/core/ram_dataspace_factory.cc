@@ -38,8 +38,7 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 	 * If this does not work, we subsequently weaken the alignment constraint
 	 * until the allocation succeeds.
 	 */
-	void *ds_addr = nullptr;
-	bool alloc_succeeded = false;
+	Range_allocator::Alloc_result allocated_range = Allocator::Alloc_error::DENIED;
 
 	/*
 	 * If no physical constraint exists, try to allocate physical memory at
@@ -53,50 +52,20 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 		Phys_range const range { .start = high_start, .end = _phys_range.end };
 
 		for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
-			if (_phys_alloc.alloc_aligned(ds_size, &ds_addr, align_log2, range).ok()) {
-				alloc_succeeded = true;
+			allocated_range = _phys_alloc.alloc_aligned(ds_size, align_log2, range);
+			if (allocated_range.ok())
 				break;
-			}
 		}
 	}
 
 	/* apply constraints, or retry if larger memory allocation failed */
-	if (!alloc_succeeded) {
+	if (!allocated_range.ok()) {
 		for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
-			if (_phys_alloc.alloc_aligned(ds_size, &ds_addr, align_log2,
-			                              _phys_range).ok()) {
-				alloc_succeeded = true;
+			allocated_range = _phys_alloc.alloc_aligned(ds_size, align_log2, _phys_range);
+			if (allocated_range.ok())
 				break;
-			}
 		}
 	}
-
-	/*
-	 * Helper to release the allocated physical memory whenever we leave the
-	 * scope via an exception.
-	 */
-	class Phys_alloc_guard
-	{
-		private:
-
-			/*
-			 * Noncopyable
-			 */
-			Phys_alloc_guard(Phys_alloc_guard const &);
-			Phys_alloc_guard &operator = (Phys_alloc_guard const &);
-
-		public:
-
-			Range_allocator &phys_alloc;
-			void * const ds_addr;
-			bool ack = false;
-
-			Phys_alloc_guard(Range_allocator &phys_alloc, void *ds_addr)
-			: phys_alloc(phys_alloc), ds_addr(ds_addr) { }
-
-			~Phys_alloc_guard() { if (!ack) phys_alloc.free(ds_addr); }
-
-	} phys_alloc_guard(_phys_alloc, ds_addr);
 
 	/*
 	 * Normally, init's quota equals the size of physical memory and this quota
@@ -104,11 +73,35 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 	 * allocating, the allocation should always succeed in theory. However,
 	 * fragmentation could cause a failing allocation.
 	 */
-	if (!alloc_succeeded) {
+	if (allocated_range.failed()) {
 		error("out of physical memory while allocating ", ds_size, " bytes ",
 		      "in range [", Hex(_phys_range.start), "-", Hex(_phys_range.end), "]");
-		return Alloc_error::OUT_OF_RAM;
+
+		return allocated_range.convert<Ram_allocator::Alloc_result>(
+			[&] (void *)            { return Alloc_error::DENIED; },
+			[&] (Alloc_error error) { return error; });
 	}
+
+	/*
+	 * Helper to release the allocated physical memory whenever we leave the
+	 * scope via an exception.
+	 */
+	struct Phys_alloc_guard
+	{
+		Range_allocator &phys_alloc;
+		struct { void * ds_addr = nullptr; };
+		bool keep = false;
+
+		Phys_alloc_guard(Range_allocator &phys_alloc)
+		: phys_alloc(phys_alloc) { }
+
+		~Phys_alloc_guard() { if (!keep && ds_addr) phys_alloc.free(ds_addr); }
+
+	} phys_alloc_guard(_phys_alloc);
+
+	allocated_range.with_result(
+		[&] (void *ptr) { phys_alloc_guard.ds_addr = ptr; },
+		[&] (Alloc_error) { /* already checked above */ });
 
 	/*
 	 * For non-cached RAM dataspaces, we mark the dataspace as write
@@ -118,7 +111,8 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 	Dataspace_component *ds_ptr = nullptr;
 	try {
 		ds_ptr = new (_ds_slab)
-			Dataspace_component(ds_size, (addr_t)ds_addr, cache, true, this);
+			Dataspace_component(ds_size, (addr_t)phys_alloc_guard.ds_addr,
+			                    cache, true, this);
 	}
 	catch (Out_of_ram)  { return Alloc_error::OUT_OF_RAM; }
 	catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
@@ -145,7 +139,7 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 
 	Dataspace_capability ds_cap = _ep.manage(&ds);
 
-	phys_alloc_guard.ack = true;
+	phys_alloc_guard.keep = true;
 
 	return static_cap_cast<Ram_dataspace>(ds_cap);
 }

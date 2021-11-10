@@ -33,42 +33,46 @@ void * Mapped_avl_allocator::map_addr(void * addr)
 }
 
 
-Range_allocator::Alloc_return
-Mapped_mem_allocator::alloc_aligned(size_t size, void **out_addr,
-                                    unsigned align, Range range)
+Range_allocator::Alloc_result
+Mapped_mem_allocator::alloc_aligned(size_t size, unsigned align, Range range)
 {
 	size_t page_rounded_size = align_addr(size, get_page_size_log2());
-	void  *phys_addr = 0;
 	align = max((size_t)align, get_page_size_log2());
 
 	/* allocate physical pages */
-	Alloc_return ret1 = _phys_alloc->alloc_aligned(page_rounded_size,
-	                                               &phys_addr, align, range);
-	if (!ret1.ok()) {
-		error("Could not allocate physical memory region of size ",
-		      page_rounded_size);
-		return ret1;
-	}
+	return _phys_alloc->alloc_aligned(page_rounded_size, align, range)
+	                   .convert<Alloc_result>(
 
-	/* allocate range in core's virtual address space */
-	Alloc_return ret2 = _virt_alloc->alloc_aligned(page_rounded_size,
-	                                               out_addr, align);
-	if (!ret2.ok()) {
-		error("Could not allocate virtual address range in core of size ",
-		     page_rounded_size);
+		[&] (void *phys_addr) -> Alloc_result {
 
-		/* revert physical allocation */
-		_phys_alloc->free(phys_addr);
-		return ret2;
-	}
+			/* allocate range in core's virtual address space */
+			return _virt_alloc->alloc_aligned(page_rounded_size, align)
+			                   .convert<Alloc_result>(
 
-	_phys_alloc->metadata(phys_addr, { *out_addr });
-	_virt_alloc->metadata(*out_addr, { phys_addr });
+				[&] (void *virt_addr) {
 
-	/* make physical page accessible at the designated virtual address */
-	_map_local((addr_t)*out_addr, (addr_t)phys_addr, page_rounded_size);
+					_phys_alloc->metadata(phys_addr, { virt_addr });
+					_virt_alloc->metadata(virt_addr, { phys_addr });
 
-	return Alloc_return::OK;
+					/* make physical page accessible at the designated virtual address */
+					_map_local((addr_t)virt_addr, (addr_t)phys_addr, page_rounded_size);
+
+					return virt_addr;
+				},
+				[&] (Alloc_error e) {
+					error("Could not allocate virtual address range in core of size ",
+					      page_rounded_size, " (error ", (int)e, ")");
+
+					/* revert physical allocation */
+					_phys_alloc->free(phys_addr);
+					return e;
+				});
+		},
+		[&] (Alloc_error e) {
+			error("Could not allocate physical memory region of size ",
+			      page_rounded_size, " (error ", (int)e, ")");
+			return e;
+		});
 }
 
 

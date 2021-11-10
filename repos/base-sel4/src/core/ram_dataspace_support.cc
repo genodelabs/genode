@@ -42,14 +42,15 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 	size_t const page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
 
 	/* allocate one page in core's virtual address space */
-	void *virt_addr_ptr = nullptr;
-	if (!platform().region_alloc().alloc(get_page_size(), &virt_addr_ptr))
-		ASSERT_NEVER_CALLED;
+	auto alloc_one_virt_page = [&] () -> void *
+	{
+		return platform().region_alloc().try_alloc(get_page_size()).convert<void *>(
+			[&] (void *ptr) { return ptr; },
+			[&] (Range_allocator::Alloc_error) -> void * {
+				ASSERT_NEVER_CALLED; });
+	};
 
-	if (!virt_addr_ptr)
-		ASSERT_NEVER_CALLED;
-
-	addr_t const virt_addr = reinterpret_cast<addr_t>(virt_addr_ptr);
+	addr_t const virt_addr = (addr_t)alloc_one_virt_page();
 
 	/* map each page of dataspace one at a time and clear it */
 	for (addr_t offset = 0; offset < page_rounded_size; offset += get_page_size())
@@ -72,5 +73,5 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 	}
 
 	/* free core's virtual address space */
-	platform().region_alloc().free(virt_addr_ptr, get_page_size());
+	platform().region_alloc().free((void *)virt_addr, get_page_size());
 }

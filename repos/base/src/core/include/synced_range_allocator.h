@@ -40,7 +40,7 @@ class Genode::Synced_range_allocator : public Range_allocator
 		friend class Mapped_mem_allocator;
 
 		Mutex                          _default_mutex { };
-		Mutex                         &_mutex;
+		Mutex                         &_mutex { _default_mutex };
 		ALLOC                          _alloc;
 		Synced_interface<ALLOC, Mutex> _synced_object;
 
@@ -54,8 +54,7 @@ class Genode::Synced_range_allocator : public Range_allocator
 
 		template <typename... ARGS>
 		Synced_range_allocator(ARGS &&... args)
-		: _mutex(_default_mutex), _alloc(args...),
-		_synced_object(_mutex, &_alloc) { }
+		: _alloc(args...), _synced_object(_mutex, &_alloc) { }
 
 		Guard operator () ()       { return _synced_object(); }
 		Guard operator () () const { return _synced_object(); }
@@ -67,8 +66,8 @@ class Genode::Synced_range_allocator : public Range_allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) override {
-			return _synced_object()->alloc(size, out_addr); }
+		Alloc_result try_alloc(size_t size) override {
+			return _synced_object()->try_alloc(size); }
 
 		void free(void *addr, size_t size) override {
 			_synced_object()->free(addr, size); }
@@ -87,17 +86,16 @@ class Genode::Synced_range_allocator : public Range_allocator
 		 ** Range-allocator interface **
 		 *******************************/
 
-		int add_range(addr_t base, size_t size) override {
+		Range_result add_range(addr_t base, size_t size) override {
 			return _synced_object()->add_range(base, size); }
 
-		int remove_range(addr_t base, size_t size) override {
+		Range_result remove_range(addr_t base, size_t size) override {
 			return _synced_object()->remove_range(base, size); }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr,
-		                           unsigned align, Range range) override {
-			return _synced_object()->alloc_aligned(size, out_addr, align, range); }
+		Alloc_result alloc_aligned(size_t size, unsigned align, Range range) override {
+			return _synced_object()->alloc_aligned(size, align, range); }
 
-		Alloc_return alloc_addr(size_t size, addr_t addr) override {
+		Alloc_result alloc_addr(size_t size, addr_t addr) override {
 			return _synced_object()->alloc_addr(size, addr); }
 
 		void free(void *addr) override {

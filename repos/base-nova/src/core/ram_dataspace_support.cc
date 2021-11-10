@@ -40,12 +40,17 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 	void *virt_addr = 0;
 	size_t align_log2 = log2(ds.size());
 	for (; align_log2 >= get_page_size_log2(); align_log2--) {
-		if (platform().region_alloc().alloc_aligned(size,
-		                                            &virt_addr, align_log2).ok())
-			break;
+
+		platform().region_alloc().alloc_aligned(size, align_log2).with_result(
+			[&] (void *ptr) { virt_addr = ptr; },
+			[&] (Range_allocator::Alloc_error) { /* try next iteration */ }
+		);
+		if (virt_addr)
+			return virt_addr;
 	}
 
-	return virt_addr;
+	error("alloc_region of size ", size, " unexpectedly failed");
+	return nullptr;
 }
 
 

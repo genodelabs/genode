@@ -285,27 +285,29 @@ void Platform::_init_rom_modules()
 	static Tslab<Rom_module, sizeof(slab_block)>
 		rom_module_slab(core_mem_alloc(), &slab_block);
 
-	/*
-	 * Allocate unused range of phys CNode address space where to make the
-	 * boot modules available.
-	 */
-	void *out_ptr = nullptr;
-	size_t const modules_size = (addr_t)&_boot_modules_binaries_end
-	                          - (addr_t)&_boot_modules_binaries_begin + 1;
+	auto alloc_modules_range = [&] () -> addr_t
+	{
+		/*
+		 * Allocate unused range of phys CNode address space where to make the
+		 * boot modules available.
+		 */
+		size_t const size  = (addr_t)&_boot_modules_binaries_end
+		                   - (addr_t)&_boot_modules_binaries_begin + 1;
+		size_t const align = get_page_size_log2();
 
-	Range_allocator::Alloc_return const alloc_ret =
-		_unused_phys_alloc.alloc_aligned(modules_size, &out_ptr, get_page_size_log2());
-
-	if (alloc_ret.error()) {
-		error("could not reserve phys CNode space for boot modules");
-		struct Init_rom_modules_failed { };
-		throw Init_rom_modules_failed();
-	}
+		return _unused_phys_alloc.alloc_aligned(size, align).convert<addr_t>(
+			[&] (void *ptr) { return (addr_t)ptr; },
+			[&] (Range_allocator::Alloc_error) -> addr_t {
+				error("could not reserve phys CNode space for boot modules");
+				struct Init_rom_modules_failed { };
+				throw Init_rom_modules_failed();
+			});
+	};
 
 	/*
 	 * Calculate frame frame selector used to back the boot modules
 	 */
-	addr_t const unused_range_start      = (addr_t)out_ptr;
+	addr_t const unused_range_start      = alloc_modules_range();
 	addr_t const unused_first_frame_sel  = unused_range_start >> get_page_size_log2();
 	addr_t const modules_start           = (addr_t)&_boot_modules_binaries_begin;
 	addr_t const modules_core_offset     = modules_start
@@ -349,36 +351,10 @@ void Platform::_init_rom_modules()
 			           (const char*)header->name);
 
 		_rom_fs.insert(rom_module);
-	}
+	};
 
-	/* export x86 platform specific infos via 'platform_info' ROM */
-
-	unsigned const  pages    = 1;
-	addr_t   const  rom_size = pages << get_page_size_log2();
-	void           *virt_ptr = nullptr;
-	const char     *rom_name = "platform_info";
-
-	addr_t   const phys_addr = Untyped_memory::alloc_page(ram_alloc());
-	Untyped_memory::convert_to_page_frames(phys_addr, pages);
-
-	if (region_alloc().alloc_aligned(rom_size, &virt_ptr, get_page_size_log2()).error()) {
-		error("could not setup platform_info ROM - region allocation error");
-		Untyped_memory::free_page(ram_alloc(), phys_addr);
-		return;
-	}
-	addr_t const virt_addr = reinterpret_cast<addr_t>(virt_ptr);
-
-	if (!map_local(phys_addr, virt_addr, pages, this)) {
-		error("could not setup platform_info ROM - map error");
-		region_alloc().free(virt_ptr);
-		Untyped_memory::free_page(ram_alloc(), phys_addr);
-		return;
-	}
-
-	Genode::Xml_generator xml(reinterpret_cast<char *>(virt_addr),
-	                          rom_size, rom_name, [&] ()
+	auto gen_platform_info = [&] (Xml_generator &xml)
 	{
-
 		if (!bi.extraLen)
 			return;
 
@@ -489,16 +465,69 @@ void Platform::_init_rom_modules()
 				}
 			});
 		}
-	});
+	};
 
-	if (!unmap_local(virt_addr, pages, this)) {
-		error("could not setup platform_info ROM - unmap error");
-		return;
-	}
-	region_alloc().free(virt_ptr);
+	/* export x86 platform specific infos via 'platform_info' ROM */
+	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
+	{
+		constexpr unsigned const pages = 1;
 
-	_rom_fs.insert(
-		new (core_mem_alloc()) Rom_module(phys_addr, rom_size, rom_name));
+		struct Phys_alloc_guard
+		{
+			Range_allocator &_alloc;
+
+			addr_t const addr = Untyped_memory::alloc_page(_alloc);
+
+			bool keep = false;
+
+			Phys_alloc_guard(Range_allocator &alloc) :_alloc(alloc)
+			{
+				Untyped_memory::convert_to_page_frames(addr, pages);
+			}
+
+			~Phys_alloc_guard()
+			{
+				if (keep)
+					return;
+
+				Untyped_memory::free_page(_alloc, addr);
+			}
+		} phys { ram_alloc() };
+
+		addr_t   const size  = pages << get_page_size_log2();
+		size_t   const align = get_page_size_log2();
+
+		region_alloc().alloc_aligned(size, align).with_result(
+
+			[&] (void *core_local_ptr) {
+
+				if (!map_local(phys.addr, (addr_t)core_local_ptr, pages, this)) {
+					error("could not setup platform_info ROM - map error");
+					region_alloc().free(core_local_ptr);
+					return;
+				}
+
+				memset(core_local_ptr, 0, size);
+				content_fn((char *)core_local_ptr, size);
+
+				_rom_fs.insert(
+					new (core_mem_alloc()) Rom_module(phys.addr, size, rom_name));
+
+				phys.keep = true;
+			},
+
+			[&] (Range_allocator::Alloc_error) {
+				error("could not setup platform_info ROM - region allocation error");
+			}
+		);
+	};
+
+	export_page_as_rom_module("platform_info", [&] (char *ptr, size_t size) {
+		Xml_generator xml(ptr, size, "platform_info", [&] () {
+			gen_platform_info(xml); }); });
+
+	export_page_as_rom_module("core_log", [&] (char *ptr, size_t size) {
+		init_core_log(Core_log_range { (addr_t)ptr, size } ); });
 }
 
 
@@ -560,17 +589,21 @@ Platform::Platform()
 
 	/* add some minor virtual region for dynamic usage by core */
 	addr_t const virt_size = 32 * 1024 * 1024;
-	void * virt_ptr = nullptr;
-	if (_unused_virt_alloc.alloc_aligned(virt_size, &virt_ptr, get_page_size_log2()).ok()) {
+	_unused_virt_alloc.alloc_aligned(virt_size, get_page_size_log2()).with_result(
 
-		addr_t const virt_addr = (addr_t)virt_ptr;
+		[&] (void *virt_ptr) {
+			addr_t const virt_addr = (addr_t)virt_ptr;
 
-		/* add to available virtual region of core */
-		_core_mem_alloc.virt_alloc().add_range(virt_addr, virt_size);
+			/* add to available virtual region of core */
+			_core_mem_alloc.virt_alloc().add_range(virt_addr, virt_size);
 
-		/* back region by page tables */
-		_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size);
-	}
+			/* back region by page tables */
+			_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size);
+		},
+
+		[&] (Range_allocator::Alloc_error) {
+			warning("failed to reserve core virtual memory for dynamic use"); }
+	);
 
 	/* add idle thread trace subjects */
 	for (unsigned cpu_id = 0; cpu_id < affinity_space().width(); cpu_id ++) {
@@ -622,28 +655,6 @@ Platform::Platform()
 
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);
-
-	/* core log as ROM module */
-	{
-		void * core_local_ptr = nullptr;
-		unsigned const pages  = 1;
-		size_t const log_size = pages << get_page_size_log2();
-
-		addr_t   const phys_addr = Untyped_memory::alloc_page(ram_alloc());
-		Untyped_memory::convert_to_page_frames(phys_addr, pages);
-
-		/* let one page free after the log buffer */
-		region_alloc().alloc_aligned(log_size + get_page_size(), &core_local_ptr, get_page_size_log2());
-		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
-
-		map_local(phys_addr, core_local_addr, pages, this);
-		memset(core_local_ptr, 0, log_size);
-
-		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, log_size,
-		                                                 "core_log"));
-
-		init_core_log(Core_log_range { core_local_addr, log_size } );
-	}
 
 	_init_rom_modules();
 

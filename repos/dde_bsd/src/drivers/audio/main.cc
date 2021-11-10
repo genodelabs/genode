@@ -357,7 +357,7 @@ class Audio_in::In
 			float const scale = 32768.0f * 2;
 
 			float * const content = p->content();
-			for (int i = 0; i < 2*Audio_in::PERIOD; i += 2) {
+			for (unsigned long i = 0; i < 2*Audio_in::PERIOD; i += 2) {
 				float sample = data[i] + data[i+1];
 				content[i/2] = sample / scale;
 			}

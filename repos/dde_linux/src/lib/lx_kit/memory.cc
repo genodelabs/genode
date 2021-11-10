@@ -95,42 +95,48 @@ void * Lx_kit::Mem_allocator::alloc(size_t size, size_t align)
 	if (!size)
 		return nullptr;
 
-	void * out_addr = nullptr;
+	return _mem.alloc_aligned(size, log2(align)).convert<void *>(
 
-	if (_mem.alloc_aligned(size, &out_addr, log2(align)).error()) {
+		[&] (void *ptr) {
+			memset(ptr, 0, size);
+			return ptr; },
 
-		/*
-		 * Restrict the minimum buffer size to avoid the creation of
-		 * a separate dataspaces for tiny allocations.
-		 */
-		size_t const min_buffer_size = 256*1024;
+		[&] (Range_allocator::Alloc_error) {
 
-		/*
-		 * Allocate one excess byte that is not officially registered at
-		 * the '_mem' ranges. This way, two virtual consecutive ranges
-		 * (that must be assumed to belong to non-contiguous physical
-		 * ranges) can never be merged when freeing an allocation. Such
-		 * a merge would violate the assumption that a both the virtual
-		 * and physical addresses of a multi-page allocation are always
-		 * contiguous.
-		 */
-		Attached_dataspace & ds = alloc_dataspace(max(size + 1,
-		                                          min_buffer_size));
+			/*
+			 * Restrict the minimum buffer size to avoid the creation of
+			 * a separate dataspaces for tiny allocations.
+			 */
+			size_t const min_buffer_size = 256*1024;
 
-		_mem.add_range((addr_t)ds.local_addr<void>(), ds.size() - 1);
+			/*
+			 * Allocate one excess byte that is not officially registered at
+			 * the '_mem' ranges. This way, two virtual consecutive ranges
+			 * (that must be assumed to belong to non-contiguous physical
+			 * ranges) can never be merged when freeing an allocation. Such
+			 * a merge would violate the assumption that a both the virtual
+			 * and physical addresses of a multi-page allocation are always
+			 * contiguous.
+			 */
+			Attached_dataspace & ds = alloc_dataspace(max(size + 1,
+			                                          min_buffer_size));
 
-		/* re-try allocation */
-		_mem.alloc_aligned(size, &out_addr, log2(align));
-	}
+			_mem.add_range((addr_t)ds.local_addr<void>(), ds.size() - 1);
 
-	if (!out_addr) {
-		error("memory allocation failed for ", size, " align ", align);
-		backtrace();
-	}
-	else
-		memset(out_addr, 0, size);
+			/* re-try allocation */
+			return _mem.alloc_aligned(size, log2(align)).convert<void *>(
 
-	return out_addr;
+				[&] (void *ptr) {
+					memset(ptr, 0, size);
+					return ptr; },
+
+				[&] (Range_allocator::Alloc_error) -> void * {
+					error("memory allocation failed for ", size, " align ", align);
+					backtrace();
+					return nullptr; }
+			);
+		}
+	);
 }
 
 

@@ -189,52 +189,66 @@ Platform::Platform()
 
 	/* core log as ROM module */
 	{
-		void * core_local_ptr = nullptr;
-		void * phys_ptr       = nullptr;
 		unsigned const pages  = 1;
 		size_t const log_size = pages << get_page_size_log2();
+		unsigned const align  = get_page_size_log2();
 
-		ram_alloc().alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
-		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+		ram_alloc().alloc_aligned(log_size, align).with_result(
 
-		/* let one page free after the log buffer */
-		region_alloc().alloc_aligned(log_size, &core_local_ptr, get_page_size_log2());
-		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+			[&] (void *phys) {
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys);
 
-		map_local(phys_addr, core_local_addr, pages);
-		memset(core_local_ptr, 0, log_size);
+				region_alloc().alloc_aligned(log_size, align). with_result(
 
-		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, log_size,
-		                                                 "core_log"));
+					[&] (void *ptr) {
 
-		init_core_log(Core_log_range { core_local_addr, log_size } );
+						map_local(phys_addr, (addr_t)ptr, pages);
+						memset(ptr, 0, log_size);
+
+						_rom_fs.insert(new (core_mem_alloc())
+						               Rom_module(phys_addr, log_size, "core_log"));
+
+						init_core_log(Core_log_range { (addr_t)ptr, log_size } );
+					},
+					[&] (Range_allocator::Alloc_error) { }
+				);
+			},
+			[&] (Range_allocator::Alloc_error) { }
+		);
 	}
 
 	/* export platform specific infos */
 	{
-		void * core_local_ptr = nullptr;
-		void * phys_ptr       = nullptr;
 		unsigned const pages  = 1;
 		size_t   const size   = pages << get_page_size_log2();
 
-		if (ram_alloc().alloc_aligned(size, &phys_ptr, get_page_size_log2()).ok()) {
-			addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+		ram_alloc().alloc_aligned(size, get_page_size_log2()).with_result(
 
-			/* let one page free after the log buffer */
-			region_alloc().alloc_aligned(size, &core_local_ptr, get_page_size_log2());
-			addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+			[&] (void *phys_ptr) {
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
 
-			if (map_local(phys_addr, core_local_addr, pages)) {
+				/* let one page free after the log buffer */
+				region_alloc().alloc_aligned(size, get_page_size_log2()).with_result(
 
-				Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
-				                          size, "platform_info", [&] () {
-					xml.node("kernel", [&] () { xml.attribute("name", "okl4"); });
-				});
+					[&] (void *core_local_ptr) {
+						addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
-				_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
-				                                                 "platform_info"));
-			}
-		}
+						if (map_local(phys_addr, core_local_addr, pages)) {
+
+							Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
+							                  size, "platform_info", [&] () {
+								xml.node("kernel", [&] () { xml.attribute("name", "okl4"); });
+							});
+
+							_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
+							                                                 "platform_info"));
+						}
+					},
+					[&] (Range_allocator::Alloc_error) { }
+				);
+			},
+			[&] (Range_allocator::Alloc_error) { }
+		);
 	}
 }
 

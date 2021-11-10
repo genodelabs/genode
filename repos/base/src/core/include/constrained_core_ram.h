@@ -47,7 +47,7 @@ class Genode::Constrained_core_ram : public Allocator
 			      " in core !");
 		}
 
-		bool alloc(size_t const size, void **ptr) override
+		Alloc_result try_alloc(size_t const size) override
 		{
 			size_t const page_aligned_size = align_addr(size, 12);
 
@@ -56,15 +56,16 @@ class Genode::Constrained_core_ram : public Allocator
 			/* on some kernels we require a cap, on some not XXX */
 			Cap_quota_guard::Reservation caps(_cap_guard, Cap_quota{1});
 
-			if (!_core_mem.alloc(page_aligned_size, ptr))
-				return false;
+			return _core_mem.try_alloc(page_aligned_size).convert<Alloc_result>(
 
-			ram.acknowledge();
-			caps.acknowledge();
+				[&] (void *ptr) {
+					ram.acknowledge();
+					caps.acknowledge();
+					core_mem_allocated += page_aligned_size;
+					return ptr; },
 
-			core_mem_allocated += page_aligned_size;
-
-			return true;
+				[&] (Alloc_error error) {
+					return error; });
 		}
 
 		void free(void *ptr, size_t const size) override

@@ -55,13 +55,36 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) override
+		Alloc_result try_alloc(size_t size) override
 		{
-			Genode::Ram_dataspace_capability ds =
-				_backend.alloc(size, _caps_guard, _ram_guard);
+			Genode::Ram_dataspace_capability ds { };
 
-			*out_addr = _rm.attach(ds);
-			return _map.add(ds, *out_addr);
+			try {
+				ds = _backend.alloc(size, _caps_guard, _ram_guard);
+			}
+			catch (Genode::Out_of_ram)  { return Alloc_error::OUT_OF_RAM;  }
+			catch (Genode::Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
+			catch (...)                 { return Alloc_error::DENIED; }
+
+			Alloc_error alloc_error = Alloc_error::DENIED;
+
+			try {
+				void * const ptr = _rm.attach(ds);
+
+				if (_map.add(ds, ptr))
+					return ptr;
+
+				/* _map.add failed, roll back _rm.attach */
+				_rm.detach(ptr);
+			}
+			catch (Genode::Out_of_ram)  { alloc_error = Alloc_error::OUT_OF_RAM;  }
+			catch (Genode::Out_of_caps) { alloc_error = Alloc_error::OUT_OF_CAPS; }
+			catch (...)                 { alloc_error = Alloc_error::DENIED; }
+
+			/* roll back allocation */
+			_backend.free(ds);
+
+			return alloc_error;
 		}
 
 		void free(void *addr, size_t) override

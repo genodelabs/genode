@@ -44,10 +44,12 @@ class Genode::Slab : public Allocator
 
 		Allocator *_backing_store;
 
+		using New_slab_block_result = Attempt<Block *, Alloc_error>;
+
 		/**
 		 * Allocate and initialize new slab block
 		 */
-		Block *_new_slab_block();
+		New_slab_block_result _new_slab_block();
 
 
 		/*****************************
@@ -58,10 +60,16 @@ class Genode::Slab : public Allocator
 
 		/**
 		 * Insert block into slab block ring
-		 *
-		 * \noapi
 		 */
 		void _insert_sb(Block *);
+
+		struct Expand_ok { };
+		using Expand_result = Attempt<Expand_ok, Alloc_error>;
+
+		/**
+		 * Expand slab by one block
+		 */
+		Expand_result _expand();
 
 		/**
 		 * Release slab block
@@ -88,6 +96,10 @@ class Genode::Slab : public Allocator
 		 * block that is used for the first couple of allocations,
 		 * especially for the allocation of the second slab
 		 * block.
+		 * 
+		 * \throw Out_of_ram
+		 * \throw Out_of_caps
+		 * \throw Allocator::Denied  failed to obtain initial slab block
 		 */
 		Slab(size_t slab_size, size_t block_size, void *initial_sb,
 		     Allocator *backing_store = 0);
@@ -154,7 +166,7 @@ class Genode::Slab : public Allocator
 		 * The 'size' parameter is ignored as only slab entries with
 		 * preconfigured slab-entry size are allocated.
 		 */
-		bool   alloc(size_t size, void **addr) override;
+		Alloc_result try_alloc(size_t size) override;
 		void   free(void *addr, size_t) override { _free(addr); }
 		size_t consumed() const override;
 		size_t overhead(size_t) const override { return _block_size/_entries_per_block; }

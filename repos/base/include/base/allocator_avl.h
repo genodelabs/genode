@@ -163,25 +163,29 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 	private:
 
-		Avl_tree<Block> _addr_tree        { };  /* blocks sorted by base address */
-		Allocator      *_md_alloc { nullptr };  /* meta-data allocator           */
+		Avl_tree<Block> _addr_tree      { };    /* blocks sorted by base address */
+		Allocator      &_md_alloc;              /* meta-data allocator           */
 		size_t          _md_entry_size  { 0 };  /* size of block meta-data entry */
+
+		struct Two_blocks { Block *b1_ptr, *b2_ptr; };
+
+		using Alloc_md_result     = Attempt<Block *,    Alloc_error>;
+		using Alloc_md_two_result = Attempt<Two_blocks, Alloc_error>;
 
 		/**
 		 * Alloc meta-data block
 		 */
-		Block *_alloc_block_metadata();
+		Alloc_md_result _alloc_block_metadata();
 
 		/**
 		 * Alloc two meta-data blocks in a transactional way
 		 */
-		bool _alloc_two_blocks_metadata(Block **dst1, Block **dst2);
+		Alloc_md_two_result _alloc_two_blocks_metadata();
 
 		/**
 		 * Create new block
 		 */
-		int _add_block(Block *block_metadata,
-		               addr_t base, size_t size, bool used);
+		void _add_block(Block &block_metadata, addr_t base, size_t size, bool used);
 
 		Block *_find_any_used_block(Block *sub_tree);
 		Block *_find_any_unused_block(Block *sub_tree);
@@ -189,7 +193,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		/**
 		 * Destroy block
 		 */
-		void _destroy_block(Block *b);
+		void _destroy_block(Block &b);
 
 		/**
 		 * Cut specified area from block
@@ -197,8 +201,13 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 * The original block gets replaced by (up to) two smaller blocks
 		 * with remaining space.
 		 */
-		void _cut_from_block(Block *b, addr_t cut_addr, size_t cut_size,
-		                     Block *dst1, Block *dst2);
+		void _cut_from_block(Block &b, addr_t cut_addr, size_t cut_size, Two_blocks);
+
+		template <typename ANY_BLOCK_FN>
+		void _revert_block_ranges(ANY_BLOCK_FN const &);
+
+		template <typename SEARCH_FN>
+		Alloc_result _allocate(size_t, unsigned, Range, SEARCH_FN const &);
 
 	protected:
 
@@ -234,7 +243,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 * we can attach custom information to block meta data.
 		 */
 		Allocator_avl_base(Allocator *md_alloc, size_t md_entry_size) :
-			_md_alloc(md_alloc), _md_entry_size(md_entry_size) { }
+			_md_alloc(*md_alloc), _md_entry_size(md_entry_size) { }
 
 		~Allocator_avl_base() { _revert_allocations_and_ranges(); }
 
@@ -258,10 +267,10 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 ** Range allocator interface **
 		 *******************************/
 
-		int          add_range(addr_t base, size_t size) override;
-		int          remove_range(addr_t base, size_t size) override;
-		Alloc_return alloc_aligned(size_t, void **, unsigned, Range) override;
-		Alloc_return alloc_addr(size_t size, addr_t addr) override;
+		Range_result add_range(addr_t base, size_t size) override;
+		Range_result remove_range(addr_t base, size_t size) override;
+		Alloc_result alloc_aligned(size_t, unsigned, Range) override;
+		Alloc_result alloc_addr(size_t size, addr_t addr) override;
 		void         free(void *addr) override;
 		size_t       avail() const override;
 		bool         valid_addr(addr_t addr) const override;
@@ -273,10 +282,9 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) override
+		Alloc_result try_alloc(size_t size) override
 		{
-			return (Allocator_avl_base::alloc_aligned(
-				size, out_addr, log2(sizeof(addr_t))).ok());
+			return Allocator_avl_base::alloc_aligned(size, log2(sizeof(addr_t)));
 		}
 
 		void free(void *addr, size_t) override { free(addr); }
@@ -385,7 +393,7 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 			return b && b->used() ? b : 0;
 		}
 
-		int add_range(addr_t base, size_t size) override
+		Range_result add_range(addr_t base, size_t size) override
 		{
 			/*
 			 * We disable the slab block allocation while
@@ -395,9 +403,9 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 			 */
 			Allocator *md_bs = _metadata.backing_store();
 			_metadata.backing_store(0);
-			int ret = Allocator_avl_base::add_range(base, size);
+			Range_result result = Allocator_avl_base::add_range(base, size);
 			_metadata.backing_store(md_bs);
-			return ret;
+			return result;
 		}
 
 		/**

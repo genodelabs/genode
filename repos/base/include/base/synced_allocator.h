@@ -56,8 +56,8 @@ class Genode::Synced_allocator : public Allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) override {
-			return _synced_object()->alloc(size, out_addr); }
+		Alloc_result try_alloc(size_t size) override {
+			return _synced_object()->try_alloc(size); }
 
 		void free(void *addr, size_t size) override {
 			_synced_object()->free(addr, size); }

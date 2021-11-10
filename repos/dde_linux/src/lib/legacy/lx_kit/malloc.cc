@@ -96,20 +96,18 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 		 ** Lx::Slab_backend_alloc interface **
 		 **************************************/
 
-		bool alloc(size_t size, void **out_addr) override
+		Alloc_result try_alloc(size_t size) override
 		{
-			bool done = _range.alloc(size, out_addr);
+			Alloc_result result = _range.try_alloc(size);
+			if (result.ok())
+				return result;
 
-			if (done)
-				return done;
-
-			done = _alloc_block();
-			if (!done) {
+			if (!_alloc_block()) {
 				Genode::error("backend allocator exhausted");
-				return false;
+				return Alloc_error::DENIED;
 			}
 
-			return _range.alloc(size, out_addr);
+			return _range.alloc(size);
 		}
 
 		void free(void *addr) {
@@ -232,7 +230,7 @@ class Lx_kit::Malloc : public Lx::Malloc
 		 ** Lx::Malloc interface **
 		 **************************/
 
-		void *alloc(Genode::size_t size, int align = 0, Genode::addr_t *phys = 0)
+		void *malloc(Genode::size_t size, int align = 0, Genode::addr_t *phys = 0)
 		{
 			using namespace Genode;
 
@@ -257,7 +255,7 @@ class Lx_kit::Malloc : public Lx::Malloc
 				return 0;
 			}
 
-			addr_t addr =  _allocator[msb - SLAB_START_LOG2]->alloc();
+			addr_t addr = (addr_t)_allocator[msb - SLAB_START_LOG2]->alloc_element();
 			if (!addr) {
 				Genode::error("failed to get slab for ", 1 << msb);
 				return 0;
@@ -298,13 +296,14 @@ class Lx_kit::Malloc : public Lx::Malloc
 
 		void *alloc_large(size_t size)
 		{
-			void *addr;
-			if (!_back_allocator.alloc(size, &addr)) {
-				Genode::error("large back end allocation failed (", size, " bytes)");
-				return nullptr;
-			}
+			return _back_allocator.try_alloc(size).convert<void *>(
 
-			return addr;
+				[&] (void *ptr) {
+					return ptr; },
+
+				[&] (Alloc_error) {
+					Genode::error("large back end allocation failed (", size, " bytes)");
+					return (void *)nullptr; });
 		}
 
 		void free_large(void *ptr)

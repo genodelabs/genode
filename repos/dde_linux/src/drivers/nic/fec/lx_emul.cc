@@ -565,7 +565,7 @@ void *dmam_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_handl
 		addr = Lx::Malloc::dma().alloc_large(size);
 		dma_addr = (dma_addr_t) Lx::Malloc::dma().phys_addr(addr);
 	} else
-		addr = Lx::Malloc::dma().alloc(size, 12, &dma_addr);
+		addr = Lx::Malloc::dma().malloc(size, 12, &dma_addr);
 
 	*dma_handle = dma_addr;
 	return addr;
@@ -702,7 +702,7 @@ int register_netdev(struct net_device * d)
 
 void *kmem_cache_alloc_node(struct kmem_cache *cache, gfp_t, int)
 {
-	return (void*)cache->alloc();
+	return (void*)cache->alloc_element();
 }
 
 

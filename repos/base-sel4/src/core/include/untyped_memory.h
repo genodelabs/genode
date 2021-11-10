@@ -33,17 +33,17 @@ struct Genode::Untyped_memory
 
 	static inline addr_t alloc_pages(Range_allocator &phys_alloc, size_t num_pages)
 	{
-		void *out_ptr = nullptr;
-		Range_allocator::Alloc_return alloc_ret =
-			phys_alloc.alloc_aligned(num_pages*get_page_size(), &out_ptr,
-			                         get_page_size_log2());
+		size_t   const size = num_pages*get_page_size();
+		unsigned const align = get_page_size_log2();
 
-		if (alloc_ret.error()) {
-			error(__PRETTY_FUNCTION__, ": allocation of untyped memory failed");
-			throw Phys_alloc_failed();
-		}
+		return phys_alloc.alloc_aligned(size, align).convert<addr_t>(
 
-		return (addr_t)out_ptr;
+			[&] (void *ptr) {
+				return (addr_t)ptr; },
+
+			[&] (Range_allocator::Alloc_error) -> addr_t {
+				error(__PRETTY_FUNCTION__, ": allocation of untyped memory failed");
+				throw Phys_alloc_failed(); });
 	}
 
 

@@ -445,51 +445,42 @@ Platform::Platform()
 	fiasco_register_thread_name(core_thread.native_thread_id(),
 	                            core_thread.name().string());
 
-	/* core log as ROM module */
+	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
 	{
-		void * phys_ptr       = nullptr;
-		unsigned const pages  = 1;
-		size_t const log_size = pages << get_page_size_log2();
+		size_t const size = 1 << get_page_size_log2();
+		ram_alloc().alloc_aligned(size, get_page_size_log2()).with_result(
 
-		ram_alloc().alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
-		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+			[&] (void *phys_ptr) {
 
-		void * const core_local_ptr  = phys_ptr;
-		addr_t const core_local_addr = phys_addr;
+				/* core-local memory is one-to-one mapped physical RAM */
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+				void * const core_local_ptr = phys_ptr;
 
-		/* let one page free after the log buffer */
-		region_alloc().remove_range(core_local_addr, log_size + get_page_size());
+				region_alloc().remove_range((addr_t)core_local_ptr, size);
+				memset(core_local_ptr, 0, size);
+				content_fn(core_local_ptr, size);
 
-		memset(core_local_ptr, 0, log_size);
+				_rom_fs.insert(new (core_mem_alloc())
+				               Rom_module(phys_addr, size, rom_name));
+			},
+			[&] (Range_allocator::Alloc_error) {
+				warning("failed to export ", rom_name, " as ROM module"); }
+		);
+	};
 
-		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, log_size,
-		                                                 "core_log"));
-
-		init_core_log(Core_log_range { core_local_addr, log_size } );
-	}
+	/* core log as ROM module */
+	export_page_as_rom_module("core_log",
+		[&] (void *core_local_ptr, size_t size) {
+			init_core_log(Core_log_range { (addr_t)core_local_ptr, size } ); });
 
 	/* export platform specific infos */
-	{
-		void * phys_ptr    = nullptr;
-		size_t const size  = 1 << get_page_size_log2();
-
-		if (ram_alloc().alloc_aligned(size, &phys_ptr,
-			                          get_page_size_log2()).ok()) {
-			addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-			addr_t const core_local_addr = phys_addr;
-
-			region_alloc().remove_range(core_local_addr, size);
-
-			Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
-			                          size, "platform_info", [&] ()
-			{
-				xml.node("kernel", [&] () { xml.attribute("name", "fiasco"); });
-			});
-
-			_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
-			                                                 "platform_info"));
-		}
-	}
+	export_page_as_rom_module("platform_info",
+		[&] (void *core_local_ptr, size_t size) {
+			Xml_generator xml(reinterpret_cast<char *>(core_local_ptr),
+			                  size, "platform_info",
+				[&] () {
+					xml.node("kernel", [&] () {
+						xml.attribute("name", "fiasco"); }); }); });
 }
 
 

@@ -53,8 +53,13 @@ class Bootstrap::Platform
 		};
 
 
-		class Ram_allocator : public Genode::Allocator_avl_base
+		class Ram_allocator : private Genode::Allocator_avl_base
 		{
+			/*
+			 * 'Ram_allocator' is derived from 'Allocator_avl_base' to access
+			 * the protected 'slab_block_size'.
+			 */
+
 			private:
 
 				using Base = Genode::Allocator_avl_base;
@@ -73,8 +78,7 @@ class Bootstrap::Platform
 				{ }
 
 				void * alloc_aligned(size_t size, unsigned align);
-				bool   alloc(size_t size, void **out_addr) override;
-				void * alloc(size_t size) { return Allocator::alloc(size); }
+				void * alloc(size_t size) { return alloc_aligned(size, 0); }
 
 				void add(Memory_region const &);
 				void remove(Memory_region const &);

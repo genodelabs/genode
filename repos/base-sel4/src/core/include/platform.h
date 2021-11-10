@@ -51,21 +51,17 @@ class Genode::Static_allocator : public Allocator
 
 		class Alloc_failed { };
 
-		bool alloc(size_t size, void **out_addr) override
+		Alloc_result try_alloc(size_t size) override
 		{
-			*out_addr = nullptr;
-
 			if (size > sizeof(Elem_space)) {
 				error("unexpected allocation size of ", size);
-				return false;
+				return Alloc_error::DENIED;
 			}
 
 			try {
-				*out_addr = &_elements[_used.alloc()]; }
+				return &_elements[_used.alloc()]; }
 			catch (typename Bit_allocator<MAX>::Out_of_indices) {
-				return false; }
-
-			return true;
+				return Alloc_error::DENIED; }
 		}
 
 		size_t overhead(size_t) const override { return 0; }

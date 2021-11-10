@@ -77,117 +77,129 @@ int Heap::quota_limit(size_t new_quota_limit)
 }
 
 
-Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
+Heap::Alloc_ds_result
+Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 {
-	Ram_dataspace_capability new_ds_cap;
-	void *ds_addr = 0;
-	void *ds_meta_data_addr = 0;
-	Heap::Dataspace *ds = 0;
+	using Result = Alloc_ds_result;
 
-	/* make new ram dataspace available at our local address space */
-	try {
-		new_ds_cap = _ds_pool.ram_alloc->alloc(size);
-		try { ds_addr = _ds_pool.region_map->attach(new_ds_cap); }
-		catch (Out_of_ram) {
-			_ds_pool.ram_alloc->free(new_ds_cap);
-			return nullptr;
-		}
-		catch (Out_of_caps) {
-			_ds_pool.ram_alloc->free(new_ds_cap);
-			throw;
-		}
-		catch (Region_map::Invalid_dataspace) {
-			warning("heap: attempt to attach invalid dataspace");
-			_ds_pool.ram_alloc->free(new_ds_cap);
-			return nullptr;
-		}
-		catch (Region_map::Region_conflict) {
-			warning("heap: region conflict while allocating dataspace");
-			_ds_pool.ram_alloc->free(new_ds_cap);
-			return nullptr;
-		}
-	}
-	catch (Out_of_ram)  { return nullptr; }
+	return _ds_pool.ram_alloc->try_alloc(size).convert<Result>(
 
-	if (enforce_separate_metadata) {
+		[&] (Ram_dataspace_capability ds_cap) -> Result {
 
-		/* allocate the Dataspace structure */
-		if (!_unsynchronized_alloc(sizeof(Heap::Dataspace), &ds_meta_data_addr)) {
-			warning("could not allocate dataspace meta data");
-			return 0;
-		}
+			struct Alloc_guard
+			{
+				Ram_allocator &ram;
+				Ram_dataspace_capability ds;
+				bool keep = false;
 
-	} else {
+				Alloc_guard(Ram_allocator &ram, Ram_dataspace_capability ds)
+				: ram(ram), ds(ds) { }
 
-		/* add new local address range to our local allocator */
-		_alloc->add_range((addr_t)ds_addr, size);
+				~Alloc_guard() { if (!keep) ram.free(ds); }
 
-		/* allocate the Dataspace structure */
-		if (_alloc->alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(16)).error()) {
-			warning("could not allocate dataspace meta data - this should never happen");
-			return 0;
-		}
-	}
+			} alloc_guard(*_ds_pool.ram_alloc, ds_cap);
 
-	ds = construct_at<Dataspace>(ds_meta_data_addr, new_ds_cap, ds_addr, size);
+			struct Attach_guard
+			{
+				Region_map &rm;
+				struct { void *ptr = nullptr; };
+				bool keep = false;
 
-	_ds_pool.insert(ds);
+				Attach_guard(Region_map &rm) : rm(rm) { }
 
-	return ds;
+				~Attach_guard() { if (!keep && ptr) rm.detach(ptr); }
+
+			} attach_guard(*_ds_pool.region_map);
+
+			try {
+				attach_guard.ptr = _ds_pool.region_map->attach(ds_cap);
+			}
+			catch (Out_of_ram)                    { return Alloc_error::OUT_OF_RAM; }
+			catch (Out_of_caps)                   { return Alloc_error::OUT_OF_CAPS; }
+			catch (Region_map::Invalid_dataspace) { return Alloc_error::DENIED; }
+			catch (Region_map::Region_conflict)   { return Alloc_error::DENIED; }
+
+			Alloc_result metadata = Alloc_error::DENIED;
+
+			/* allocate the 'Dataspace' structure */
+			if (enforce_separate_metadata) {
+				metadata = _unsynchronized_alloc(sizeof(Heap::Dataspace));
+
+			} else {
+
+				/* add new local address range to our local allocator */
+				_alloc->add_range((addr_t)attach_guard.ptr, size).with_result(
+					[&] (Range_allocator::Range_ok) {
+						metadata = _alloc->alloc_aligned(sizeof(Heap::Dataspace), log2(16)); },
+					[&] (Alloc_error error) {
+						metadata = error; });
+			}
+
+			return metadata.convert<Result>(
+				[&] (void *md_ptr) -> Result {
+					Dataspace &ds = *construct_at<Dataspace>(md_ptr, ds_cap,
+					                                         attach_guard.ptr, size);
+					_ds_pool.insert(&ds);
+					alloc_guard.keep = attach_guard.keep = true;
+					return &ds;
+				},
+				[&] (Alloc_error error) {
+					return error; });
+		},
+		[&] (Alloc_error error) {
+			return error; });
 }
 
 
-bool Heap::_try_local_alloc(size_t size, void **out_addr)
+Allocator::Alloc_result Heap::_try_local_alloc(size_t size)
 {
-	if (_alloc->alloc_aligned(size, out_addr, log2(16)).error())
-		return false;
+	return _alloc->alloc_aligned(size, log2(16)).convert<Alloc_result>(
 
-	_quota_used += size;
-	return true;
+		[&] (void *ptr) {
+			_quota_used += size;
+			return ptr; },
+
+		[&] (Alloc_error error) {
+			return error; });
 }
 
 
-bool Heap::_unsynchronized_alloc(size_t size, void **out_addr)
+Allocator::Alloc_result Heap::_unsynchronized_alloc(size_t size)
 {
-	size_t dataspace_size;
-
 	if (size >= BIG_ALLOCATION_THRESHOLD) {
 
 		/*
 		 * big allocation
 		 *
-		 * in this case, we allocate one dataspace without any meta data in it
+		 * In this case, we allocate one dataspace without any meta data in it
 		 * and return its local address without going through the allocator.
 		 */
 
 		/* align to 4K page */
-		dataspace_size = align_addr(size, 12);
+		size_t const dataspace_size = align_addr(size, 12);
 
-		Heap::Dataspace *ds = _allocate_dataspace(dataspace_size, true);
+		return _allocate_dataspace(dataspace_size, true).convert<Alloc_result>(
 
-		if (!ds) {
-			warning("could not allocate dataspace");
-			return false;
-		}
+			[&] (Dataspace *ds_ptr) {
+				_quota_used += ds_ptr->size;
+				return ds_ptr->local_addr; },
 
-		_quota_used += ds->size;
-
-		*out_addr = ds->local_addr;
-
-		return true;
+			[&] (Alloc_error error) {
+				return error; });
 	}
 
 	/* try allocation at our local allocator */
-	if (_try_local_alloc(size, out_addr))
-		return true;
+	{
+		Alloc_result result = _try_local_alloc(size);
+		if (result.ok())
+			return result;
+	}
 
-	/*
-	 * Calculate block size of needed backing store. The block must hold the
-	 * requested 'size' and we add some space for meta data
-	 * ('Dataspace' structures, AVL-node slab blocks).
-	 * Finally, we align the size to a 4K page.
-	 */
-	dataspace_size = size + Allocator_avl::slab_block_size() + sizeof(Heap::Dataspace);
+	size_t dataspace_size = size
+	                      + Allocator_avl::slab_block_size()
+	                      + sizeof(Heap::Dataspace);
+	/* align to 4K page */
+	dataspace_size = align_addr(dataspace_size, 12);
 
 	/*
 	 * '_chunk_size' is a multiple of 4K, so 'dataspace_size' becomes
@@ -195,29 +207,34 @@ bool Heap::_unsynchronized_alloc(size_t size, void **out_addr)
 	 */
 	size_t const request_size = _chunk_size * sizeof(umword_t);
 
-	if ((dataspace_size < request_size) &&
-		_allocate_dataspace(request_size, false)) {
+	Alloc_ds_result result = Alloc_error::DENIED;
 
-		/*
-		 * Exponentially increase chunk size with each allocated chunk until
-		 * we hit 'MAX_CHUNK_SIZE'.
-		 */
-		_chunk_size = min(2*_chunk_size, (size_t)MAX_CHUNK_SIZE);
+	if (dataspace_size < request_size) {
 
+		result = _allocate_dataspace(request_size, false);
+		if (result.ok()) {
+
+			/*
+			 * Exponentially increase chunk size with each allocated chunk until
+			 * we hit 'MAX_CHUNK_SIZE'.
+			 */
+			_chunk_size = min(2*_chunk_size, (size_t)MAX_CHUNK_SIZE);
+		}
 	} else {
-
-		/* align to 4K page */
-		dataspace_size = align_addr(dataspace_size, 12);
-		if (!_allocate_dataspace(dataspace_size, false))
-			return false;
+		result = _allocate_dataspace(dataspace_size, false);
 	}
 
+	if (result.failed())
+		return result.convert<Alloc_result>(
+			[&] (Dataspace *)       { return Alloc_error::DENIED; },
+			[&] (Alloc_error error) { return error; });
+
 	/* allocate originally requested block */
-	return _try_local_alloc(size, out_addr);
+	return _try_local_alloc(size);
 }
 
 
-bool Heap::alloc(size_t size, void **out_addr)
+Allocator::Alloc_result Heap::try_alloc(size_t size)
 {
 	if (size == 0)
 		error("attempt to allocate zero-size block from heap");
@@ -227,9 +244,9 @@ bool Heap::alloc(size_t size, void **out_addr)
 
 	/* check requested allocation against quota limit */
 	if (size + _quota_used > _quota_limit)
-		return false;
+		return Alloc_error::DENIED;
 
-	return _unsynchronized_alloc(size, out_addr);
+	return _unsynchronized_alloc(size);
 }
 
 

@@ -467,75 +467,68 @@ Platform::Platform()
 	core_thread.pager(_sigma0);
 	_core_pd->bind_thread(core_thread);
 
-	/* export x86 platform specific infos */
+	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
 	{
-		void * core_local_ptr = nullptr;
-		void * phys_ptr       = nullptr;
-		unsigned const pages  = 1;
-		size_t const   align  = get_page_size_log2();
-		size_t const   size   = pages << get_page_size_log2();
+		size_t const pages = 1;
+		size_t const align = get_page_size_log2();
+		size_t const bytes = pages << get_page_size_log2();
+		ram_alloc().alloc_aligned(bytes, align).with_result(
 
-		if (ram_alloc().alloc_aligned(size, &phys_ptr, align).error())
-			return;
+			[&] (void *phys_ptr) {
 
-		if (region_alloc().alloc_aligned(size, &core_local_ptr, align).error())
-			return;
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
 
-		addr_t const phys_addr       = reinterpret_cast<addr_t>(phys_ptr);
-		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+				region_alloc().alloc_aligned(bytes, align).with_result(
+					[&] (void *core_local_ptr) {
 
-		if (!map_local(phys_addr, core_local_addr, pages))
-			return;
+						if (!map_local(phys_addr, (addr_t)core_local_ptr, pages)) {
+							warning("map_local failed while exporting ",
+							        rom_name, " as ROM module");
+							ram_alloc().free(phys_ptr, bytes);
+							region_alloc().free(core_local_ptr, bytes);
+							return;
+						}
 
-		memset(core_local_ptr, 0, size);
+						memset(core_local_ptr, 0, bytes);
+						content_fn((char *)core_local_ptr, bytes);
 
-		Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
-		                  pages << get_page_size_log2(),
-		                  "platform_info", [&] ()
-		{
-			xml.node("kernel", [&] () {
-				xml.attribute("name", "foc");
-				xml.attribute("acpi", true);
-				xml.attribute("msi" , true);
+						_rom_fs.insert(new (core_mem_alloc())
+						               Rom_module(phys_addr, bytes, rom_name));
+					},
+					[&] (Range_allocator::Alloc_error) {
+						warning("failed allocate virtual memory to export ",
+						        rom_name, " as ROM module");
+						ram_alloc().free(phys_ptr, bytes);
+					}
+				);
+			},
+			[&] (Range_allocator::Alloc_error) {
+				warning("failed to export ", rom_name, " as ROM module"); }
+		);
+	};
+
+	export_page_as_rom_module("platform_info",
+		[&] (char *core_local_ptr, size_t size) {
+			Xml_generator xml(core_local_ptr, size, "platform_info", [&] ()
+			{
+				xml.node("kernel", [&] () {
+					xml.attribute("name", "foc");
+					xml.attribute("acpi", true);
+					xml.attribute("msi" , true);
+				});
+				xml.node("hardware", [&] () {
+					_setup_platform_info(xml, sigma0_map_kip()); });
+
+				xml.node("affinity-space", [&] () {
+					xml.attribute("width", affinity_space().width());
+					xml.attribute("height", affinity_space().height()); });
 			});
-			xml.node("hardware", [&] () {
-				_setup_platform_info(xml, sigma0_map_kip()); });
+		}
+	);
 
-			xml.node("affinity-space", [&] () {
-				xml.attribute("width", affinity_space().width());
-				xml.attribute("height", affinity_space().height()); });
-		});
-
-		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
-		                                                 "platform_info"));
-	}
-
-	/* core log as ROM module */
-	{
-		void * core_local_ptr = nullptr;
-		void * phys_ptr       = nullptr;
-		unsigned const pages  = 1;
-		size_t const   align  = get_page_size_log2();
-		size_t const   size   = pages << get_page_size_log2();
-
-		if (ram_alloc().alloc_aligned(size, &phys_ptr, align).error())
-			return;
-		if (region_alloc().alloc_aligned(size, &core_local_ptr, align).error())
-			return;
-
-		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
-
-		if (!map_local(phys_addr, core_local_addr, pages))
-			return;
-
-		memset(core_local_ptr, 0, size);
-
-		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
-		                                                 "core_log"));
-
-		init_core_log(Core_log_range { core_local_addr, size } );
-	}
+	export_page_as_rom_module("core_log",
+		[&] (char *core_local_ptr, size_t size) {
+			init_core_log(Core_log_range { (addr_t)core_local_ptr, size } ); });
 
 	Affinity::Space const cpus = affinity_space();
 

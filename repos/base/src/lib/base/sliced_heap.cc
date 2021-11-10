@@ -38,56 +38,64 @@ Sliced_heap::~Sliced_heap()
 }
 
 
-bool Sliced_heap::alloc(size_t size, void **out_addr)
+Allocator::Alloc_result Sliced_heap::try_alloc(size_t size)
 {
 	/* allocation includes space for block meta data and is page-aligned */
 	size = align_addr(size + sizeof(Block), 12);
 
-	Ram_dataspace_capability ds_cap;
-	Block *block = nullptr;
+	return _ram_alloc.try_alloc(size).convert<Alloc_result>(
 
-	_ram_alloc.try_alloc(size).with_result(
-		[&] (Ram_dataspace_capability cap) { ds_cap = cap; },
-		[&] (Ram_allocator::Alloc_error error) {
-			switch (error) {
-			case Ram_allocator::Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-			case Ram_allocator::Alloc_error::OUT_OF_RAM:  break;
-			case Ram_allocator::Alloc_error::DENIED:      break;
+		[&] (Ram_dataspace_capability ds_cap) -> Alloc_result {
+
+			struct Alloc_guard
+			{
+				Ram_allocator &ram;
+				Ram_dataspace_capability ds;
+				bool keep = false;
+
+				Alloc_guard(Ram_allocator &ram, Ram_dataspace_capability ds)
+				: ram(ram), ds(ds) { }
+
+				~Alloc_guard() { if (!keep) ram.free(ds); }
+
+			} alloc_guard(_ram_alloc, ds_cap);
+
+			struct Attach_guard
+			{
+				Region_map &rm;
+				struct { void *ptr = nullptr; };
+				bool keep = false;
+
+				Attach_guard(Region_map &rm) : rm(rm) { }
+
+				~Attach_guard() { if (!keep && ptr) rm.detach(ptr); }
+
+			} attach_guard(_region_map);
+
+			try {
+				attach_guard.ptr = _region_map.attach(ds_cap);
 			}
-		});
+			catch (Out_of_ram)                    { return Alloc_error::OUT_OF_RAM; }
+			catch (Out_of_caps)                   { return Alloc_error::OUT_OF_CAPS; }
+			catch (Region_map::Invalid_dataspace) { return Alloc_error::DENIED; }
+			catch (Region_map::Region_conflict)   { return Alloc_error::DENIED; }
 
-	if (!ds_cap.valid())
-		return false;
+			/* serialize access to block list */
+			Mutex::Guard guard(_mutex);
 
-	try {
-		block  = _region_map.attach(ds_cap);
-	}
-	catch (Region_map::Region_conflict) {
-		error("sliced_heap: region conflict while attaching dataspace");
-		_ram_alloc.free(ds_cap);
-		return false;
-	}
-	catch (Region_map::Invalid_dataspace) {
-		error("sliced_heap: attempt to attach invalid dataspace");
-		_ram_alloc.free(ds_cap);
-		return false;
-	}
-	catch (Out_of_ram) {
-		return false;
-	}
+			Block * const block = construct_at<Block>(attach_guard.ptr, ds_cap, size);
 
-	/* serialize access to block list */
-	Mutex::Guard guard(_mutex);
+			_consumed += size;
+			_blocks.insert(block);
 
-	construct_at<Block>(block, ds_cap, size);
+			alloc_guard.keep = attach_guard.keep = true;
 
-	_consumed += size;
-	_blocks.insert(block);
-
-	/* skip meta data prepended to the payload portion of the block */
-	*out_addr = block + 1;
-
-	return true;
+			/* skip meta data prepended to the payload portion of the block */
+			void *ptr = block + 1;
+			return ptr;
+		},
+		[&] (Alloc_error error) {
+			return error; });
 }
 
 

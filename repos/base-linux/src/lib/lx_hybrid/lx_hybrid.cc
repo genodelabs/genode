@@ -410,11 +410,7 @@ namespace {
 	{
 		typedef Genode::size_t size_t;
 
-		bool alloc(size_t size, void **out_addr) override
-		{
-			*out_addr = malloc(size);
-			return true;
-		}
+		Alloc_result try_alloc(size_t size) override { return malloc(size); }
 
 		void free(void *addr, size_t) override { ::free(addr); }
 

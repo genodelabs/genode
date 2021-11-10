@@ -80,18 +80,21 @@ addr_t Platform::_map_pages(addr_t const phys_addr, addr_t const pages,
 	addr_t const size = pages << get_page_size_log2();
 
 	/* try to reserve contiguous virtual area */
-	void *core_local_ptr = nullptr;
-	if (region_alloc().alloc_aligned(size + (guard_page ? get_page_size() : 0),
-	                                 &core_local_ptr, get_page_size_log2()).error())
-		return 0;
+	return region_alloc().alloc_aligned(size + (guard_page ? get_page_size() : 0),
+	                                    get_page_size_log2()).convert<addr_t>(
+		[&] (void *core_local_ptr) {
 
-	addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+			addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
-	int res = map_local(_core_pd_sel, *__main_thread_utcb, phys_addr,
-	                    core_local_addr, pages,
-	                    Nova::Rights(true, true, false), true);
+			int res = map_local(_core_pd_sel, *__main_thread_utcb, phys_addr,
+			                    core_local_addr, pages,
+			                    Nova::Rights(true, true, false), true);
 
-	return res ? 0 : core_local_addr;
+			return res ? 0 : core_local_addr;
+		},
+
+		[&] (Allocator::Alloc_error) {
+			return 0UL; });
 }
 
 
@@ -661,126 +664,113 @@ Platform::Platform()
 
 	_init_rom_modules();
 
+	auto export_pages_as_rom_module = [&] (auto rom_name, size_t pages, auto content_fn)
 	{
-		/* export x86 platform specific infos */
+		size_t const bytes = pages << get_page_size_log2();
+		ram_alloc().alloc_aligned(bytes, get_page_size_log2()).with_result(
 
-		unsigned const pages = 1;
-		void * phys_ptr = nullptr;
-		if (ram_alloc().alloc_aligned(get_page_size(), &phys_ptr,
-		                              get_page_size_log2()).ok()) {
+			[&] (void *phys_ptr) {
 
-			addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-			addr_t const core_local_addr = _map_pages(phys_addr, pages);
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+				char * const core_local_ptr = (char *)_map_pages(phys_addr, pages);
 
-			if (!core_local_addr) {
-				ram_alloc().free(phys_ptr);
-			} else {
+				if (!core_local_ptr) {
+					warning("failed to export ", rom_name, " as ROM module");
+					ram_alloc().free(phys_ptr, bytes);
+					return;
+				}
 
-				Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
-				                          pages << get_page_size_log2(),
-				                          "platform_info", [&] ()
-				{
-					xml.node("kernel", [&] () {
-						xml.attribute("name", "nova");
-						xml.attribute("acpi", true);
-						xml.attribute("msi" , true);
+				memset(core_local_ptr, 0, bytes);
+				content_fn(core_local_ptr, bytes);
+
+				_rom_fs.insert(new (core_mem_alloc())
+				               Rom_module(phys_addr, bytes, rom_name));
+
+				/* leave the ROM backing store mapped within core */
+			},
+
+			[&] (Range_allocator::Alloc_error) {
+				warning("failed to allocate physical memory for exporting ",
+				        rom_name, " as ROM module"); });
+	};
+
+	export_pages_as_rom_module("platform_info", 1,
+		[&] (char * const ptr, size_t const size) {
+			Xml_generator xml(ptr, size, "platform_info", [&] ()
+			{
+				xml.node("kernel", [&] () {
+					xml.attribute("name", "nova");
+					xml.attribute("acpi", true);
+					xml.attribute("msi" , true);
+				});
+				if (efi_sys_tab_phy) {
+					xml.node("efi-system-table", [&] () {
+						xml.attribute("address", String<32>(Hex(efi_sys_tab_phy)));
 					});
-					if (efi_sys_tab_phy) {
-						xml.node("efi-system-table", [&] () {
-							xml.attribute("address", String<32>(Hex(efi_sys_tab_phy)));
-						});
-					}
-					xml.node("acpi", [&] () {
+				}
+				xml.node("acpi", [&] () {
 
-						xml.attribute("revision", 2); /* XXX */
+					xml.attribute("revision", 2); /* XXX */
 
-						if (rsdt)
-							xml.attribute("rsdt", String<32>(Hex(rsdt)));
+					if (rsdt)
+						xml.attribute("rsdt", String<32>(Hex(rsdt)));
 
-						if (xsdt)
-							xml.attribute("xsdt", String<32>(Hex(xsdt)));
+					if (xsdt)
+						xml.attribute("xsdt", String<32>(Hex(xsdt)));
+				});
+				xml.node("affinity-space", [&] () {
+					xml.attribute("width", _cpus.width());
+					xml.attribute("height", _cpus.height());
+				});
+				xml.node("boot", [&] () {
+					if (!boot_fb)
+						return;
+
+					if (!efi_boot && (Resolution::Type::get(boot_fb->size) != Resolution::Type::VGA_TEXT))
+						return;
+
+					xml.node("framebuffer", [&] () {
+						xml.attribute("phys",   String<32>(Hex(boot_fb->addr)));
+						xml.attribute("width",  Resolution::Width::get(boot_fb->size));
+						xml.attribute("height", Resolution::Height::get(boot_fb->size));
+						xml.attribute("bpp",    Resolution::Bpp::get(boot_fb->size));
+						xml.attribute("type",   Resolution::Type::get(boot_fb->size));
+						xml.attribute("pitch",  boot_fb->aux);
 					});
-					xml.node("affinity-space", [&] () {
-						xml.attribute("width", _cpus.width());
-						xml.attribute("height", _cpus.height());
+				});
+				xml.node("hardware", [&] () {
+					xml.node("features", [&] () {
+						xml.attribute("svm", hip.has_feature_svm());
+						xml.attribute("vmx", hip.has_feature_vmx());
 					});
-					xml.node("boot", [&] () {
-						if (!boot_fb)
-							return;
-
-						if (!efi_boot && (Resolution::Type::get(boot_fb->size) != Resolution::Type::VGA_TEXT))
-							return;
-
-						xml.node("framebuffer", [&] () {
-							xml.attribute("phys",   String<32>(Hex(boot_fb->addr)));
-							xml.attribute("width",  Resolution::Width::get(boot_fb->size));
-							xml.attribute("height", Resolution::Height::get(boot_fb->size));
-							xml.attribute("bpp",    Resolution::Bpp::get(boot_fb->size));
-							xml.attribute("type",   Resolution::Type::get(boot_fb->size));
-							xml.attribute("pitch",  boot_fb->aux);
-						});
+					xml.node("tsc", [&] () {
+						xml.attribute("invariant", cpuid_invariant_tsc());
+						xml.attribute("freq_khz" , hip.tsc_freq);
 					});
-					xml.node("hardware", [&] () {
-						xml.node("features", [&] () {
-							xml.attribute("svm", hip.has_feature_svm());
-							xml.attribute("vmx", hip.has_feature_vmx());
-						});
-						xml.node("tsc", [&] () {
-							xml.attribute("invariant", cpuid_invariant_tsc());
-							xml.attribute("freq_khz" , hip.tsc_freq);
-						});
-						xml.node("cpus", [&] () {
-							hip.for_each_enabled_cpu([&](Hip::Cpu_desc const &cpu, unsigned i) {
-								xml.node("cpu", [&] () {
-									xml.attribute("id",       i);
-									xml.attribute("package",  cpu.package);
-									xml.attribute("core",     cpu.core);
-									xml.attribute("thread",   cpu.thread);
-									xml.attribute("family",   String<5>(Hex(cpu.family)));
-									xml.attribute("model",    String<5>(Hex(cpu.model)));
-									xml.attribute("stepping", String<5>(Hex(cpu.stepping)));
-									xml.attribute("platform", String<5>(Hex(cpu.platform)));
-									xml.attribute("patch",    String<12>(Hex(cpu.patch)));
-								});
+					xml.node("cpus", [&] () {
+						hip.for_each_enabled_cpu([&](Hip::Cpu_desc const &cpu, unsigned i) {
+							xml.node("cpu", [&] () {
+								xml.attribute("id",       i);
+								xml.attribute("package",  cpu.package);
+								xml.attribute("core",     cpu.core);
+								xml.attribute("thread",   cpu.thread);
+								xml.attribute("family",   String<5>(Hex(cpu.family)));
+								xml.attribute("model",    String<5>(Hex(cpu.model)));
+								xml.attribute("stepping", String<5>(Hex(cpu.stepping)));
+								xml.attribute("platform", String<5>(Hex(cpu.platform)));
+								xml.attribute("patch",    String<12>(Hex(cpu.patch)));
 							});
 						});
 					});
 				});
-
-				unmap_local(*__main_thread_utcb, core_local_addr, pages);
-				region_alloc().free(reinterpret_cast<void *>(core_local_addr),
-				                    pages * get_page_size());
-
-				_rom_fs.insert(new (core_mem_alloc())
-				               Rom_module(phys_addr, pages * get_page_size(),
-				               "platform_info"));
-			}
+			});
 		}
-	}
+	);
 
-	/* core log as ROM module */
-	{
-		void * phys_ptr = nullptr;
-		unsigned const pages  = 4;
-		size_t const log_size = pages << get_page_size_log2();
-
-		if (ram_alloc().alloc_aligned(log_size, &phys_ptr,
-		                              get_page_size_log2()).ok()) {
-
-			addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-
-			addr_t const virt = _map_pages(phys_addr, pages, true);
-			if (virt) {
-				memset(reinterpret_cast<void *>(virt), 0, log_size);
-
-				_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, log_size,
-				                                                 "core_log"));
-
-				init_core_log( Core_log_range { virt, log_size } );
-			} else
-				ram_alloc().free(phys_ptr);
-		}
-	}
+	export_pages_as_rom_module("core_log", 4,
+		[&] (char * const ptr, size_t const size) {
+			init_core_log( Core_log_range { (addr_t)ptr, size } );
+	});
 
 	/* export hypervisor log memory */
 	if (hyp_log && hyp_log_size)
@@ -831,8 +821,12 @@ Platform::Platform()
 	for (unsigned i = 0; i < 32; i++)
 	{
 		void * phys_ptr = nullptr;
-		if (ram_alloc().alloc_aligned(get_page_size(), &phys_ptr,
-		                              get_page_size_log2()).error())
+
+		ram_alloc().alloc_aligned(get_page_size(), get_page_size_log2()).with_result(
+			[&] (void *ptr) { phys_ptr = ptr; },
+			[&] (Range_allocator::Alloc_error) { /* covered by nullptr test below */ });
+
+		if (phys_ptr == nullptr)
 			break;
 
 		addr_t phys_addr = reinterpret_cast<addr_t>(phys_ptr);

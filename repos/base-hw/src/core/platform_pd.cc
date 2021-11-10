@@ -37,11 +37,16 @@ Core_mem_allocator &Hw::Address_space::_cma()
 
 void *Hw::Address_space::_table_alloc()
 {
-	void * ret = nullptr;
-	if (!_cma().alloc_aligned(sizeof(Page_table), (void**)&ret,
-	                          Page_table::ALIGNM_LOG2).ok())
-		throw Insufficient_ram_quota();
-	return ret;
+	unsigned const align = Page_table::ALIGNM_LOG2;
+
+	return _cma().alloc_aligned(sizeof(Page_table), align).convert<void *>(
+
+		[&] (void *ptr) {
+			return ptr; },
+
+		[&] (Range_allocator::Alloc_result) -> void * {
+			/* XXX distinguish error conditions */
+			throw Insufficient_ram_quota(); });
 }
 
 
@@ -134,10 +139,15 @@ Cap_space::Cap_space() : _slab(nullptr, &_initial_sb) { }
 
 void Cap_space::upgrade_slab(Allocator &alloc)
 {
-	void * block = nullptr;
-	if (!alloc.alloc(SLAB_SIZE, &block))
-		throw Out_of_ram();
-	_slab.insert_sb(block);
+	alloc.try_alloc(SLAB_SIZE).with_result(
+
+		[&] (void *ptr) {
+			_slab.insert_sb(ptr); },
+
+		[&] (Allocator::Alloc_error) {
+			/* XXX distinguish error conditions */
+			throw Out_of_ram();
+	});
 }
 
 

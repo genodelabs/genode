@@ -365,8 +365,14 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		throw Region_conflict();
 
 	auto lambda = [&] (Dataspace_component *dsc) {
+
+		using Alloc_error = Range_allocator::Alloc_error;
+
 		/* check dataspace validity */
-		if (!dsc) throw Invalid_dataspace();
+		if (!dsc)
+			throw Invalid_dataspace();
+
+		unsigned const min_align_log2 = get_page_size_log2();
 
 		size_t const off = offset;
 		if (off >= dsc->size())
@@ -376,27 +382,25 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 			size = dsc->size() - offset;
 
 		/* work with page granularity */
-		size = align_addr(size, get_page_size_log2());
+		size = align_addr(size, min_align_log2);
 
 		/* deny creation of regions larger then the actual dataspace */
 		if (dsc->size() < size + offset)
 			throw Region_conflict();
 
 		/* allocate region for attachment */
-		void *attach_at = 0;
+		void *attach_at = nullptr;
 		if (use_local_addr) {
-			switch (_map.alloc_addr(size, local_addr).value) {
-
-			case Range_allocator::Alloc_return::OUT_OF_METADATA:
-				throw Out_of_ram();
-
-			case Range_allocator::Alloc_return::RANGE_CONFLICT:
-				throw Region_conflict();
-
-			case Range_allocator::Alloc_return::OK:
-				attach_at = local_addr;
-				break;
-			}
+			_map.alloc_addr(size, local_addr).with_result(
+				[&] (void *ptr) { attach_at = ptr; },
+				[&] (Range_allocator::Alloc_error error) {
+					switch (error) {
+					case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
+					case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+					case Alloc_error::DENIED:      break;
+					}
+					throw Region_conflict();
+				});
 		} else {
 
 			/*
@@ -406,9 +410,10 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 			 */
 			size_t align_log2 = log2(size);
 			if (align_log2 >= sizeof(void *)*8)
-				align_log2 = get_page_size_log2();
+				align_log2 = min_align_log2;
 
-			for (; align_log2 >= get_page_size_log2(); align_log2--) {
+			bool done = false;
+			for (; !done && (align_log2 >= min_align_log2); align_log2--) {
 
 				/*
 				 * Don't use an alignment higher than the alignment of the backing
@@ -419,21 +424,23 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 					continue;
 
 				/* try allocating the align region */
-				Range_allocator::Alloc_return alloc_return =
-					_map.alloc_aligned(size, &attach_at, align_log2);
+				_map.alloc_aligned(size, align_log2).with_result(
 
-				typedef Range_allocator::Alloc_return Alloc_return;
+					[&] (void *ptr) {
+						attach_at = ptr;
+						done      = true; },
 
-				switch (alloc_return.value) {
-				case Alloc_return::OK:              break; /* switch */
-				case Alloc_return::OUT_OF_METADATA: throw Out_of_ram();
-				case Alloc_return::RANGE_CONFLICT:  continue; /* for loop */
-				}
-				break; /* for loop */
-
+					[&] (Range_allocator::Alloc_error error) {
+						switch (error) {
+						case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
+						case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+						case Alloc_error::DENIED:      break; /* no fit */
+						}
+						/* try smaller alignment in next iteration... */
+					});
 			}
 
-			if (align_log2 < get_page_size_log2())
+			if (!done)
 				throw Region_conflict();
 		}
 

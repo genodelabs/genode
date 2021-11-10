@@ -63,8 +63,9 @@ class Libc::Slab_alloc : public Slab
 
 		void *alloc()
 		{
-			void *result;
-			return (Slab::alloc(_object_size, &result) ? result : 0);
+			return Slab::try_alloc(_object_size).convert<void *>(
+				[&] (void *ptr)   { return ptr; },
+				[&] (Alloc_error) { return nullptr; });
 		}
 
 		void free(void *ptr) { Slab::free(ptr, _object_size); }
@@ -167,7 +168,9 @@ class Libc::Malloc
 
 			/* use backing store if requested memory is larger than largest slab */
 			if (msb > SLAB_STOP)
-				_backing_store.alloc(real_size, &alloc_addr);
+				_backing_store.try_alloc(real_size).with_result(
+					[&] (void *ptr) { alloc_addr = ptr; },
+					[&] (Allocator::Alloc_error) { });
 			else
 				alloc_addr = _slabs[msb - SLAB_START]->alloc();
 

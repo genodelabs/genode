@@ -77,29 +77,50 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		 ** Range-allocator interface **
 		 *******************************/
 
-		int add_range(addr_t const base, size_t const size) override
+		Range_result add_range(addr_t const base, size_t const size) override
 		{
-			if (_base || _array) return -1;
+			if (_base || _array)
+				return Alloc_error::DENIED;
 
 			size_t const bits_cnt = _bits_cnt(size);
 
 			_base = base;
-			_bits = (addr_t *)_md_alloc->alloc(bits_cnt / 8);
-			memset(_bits, 0, bits_cnt / 8);
 
-			_array = new (_md_alloc) Bit_array_base(bits_cnt, _bits);
+			Alloc_error error = Alloc_error::DENIED;
 
-			/* reserve bits which are unavailable */
-			size_t const max_cnt = size / _block_size;
-			if (bits_cnt > max_cnt)
-				_array->set(max_cnt, bits_cnt - max_cnt);
+			size_t const bits_bytes = bits_cnt / 8;
 
-			return 0;
+			try {
+				_bits = (addr_t *)_md_alloc->alloc(bits_bytes);
+				memset(_bits, 0, bits_cnt / 8);
+
+				_array = new (_md_alloc) Bit_array_base(bits_cnt, _bits);
+
+				/* reserve bits which are unavailable */
+				size_t const max_cnt = size / _block_size;
+				if (bits_cnt > max_cnt)
+					_array->set(max_cnt, bits_cnt - max_cnt);
+
+				return Range_ok();
+
+			}
+			catch (Out_of_ram)  { error = Alloc_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { error = Alloc_error::OUT_OF_CAPS; }
+			catch (...)         { error = Alloc_error::DENIED; }
+
+			if (_bits)
+				_md_alloc->free(_bits, bits_bytes);
+
+			if (_array)
+				destroy(_md_alloc, _array);
+
+			return error;
 		}
 
-		int remove_range(addr_t base, size_t size) override
+		Range_result remove_range(addr_t base, size_t size) override
 		{
-			if (_base != base) return -1;
+			if (_base != base)
+				return Alloc_error::DENIED;
 
 			_base = _next = 0;
 
@@ -113,17 +134,15 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 				_bits = nullptr;
 			}
 
-			return 0;
+			return Range_ok();
 		}
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr, unsigned,
-		                           Range) override
+		Alloc_result alloc_aligned(size_t size, unsigned, Range) override
 		{
-			return alloc(size, out_addr) ? Alloc_return::OK
-			                             : Alloc_return::RANGE_CONFLICT;
+			return try_alloc(size);
 		}
 
-		bool alloc(size_t size, void **out_addr) override
+		Alloc_result try_alloc(size_t size) override
 		{
 			addr_t const cnt = (size % _block_size) ? size / _block_size + 1
 			                                        : size / _block_size;
@@ -138,9 +157,8 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 
 						_array->set(i, cnt);
 						_next = i + cnt;
-						*out_addr = reinterpret_cast<void *>(i * _block_size
-						                                     + _base);
-						return true;
+						return reinterpret_cast<void *>(i * _block_size
+						                                + _base);
 					}
 				} catch (typename Bit_array_base::Invalid_index_access) { }
 
@@ -149,7 +167,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 
 			} while (max != 0);
 
-			return false;
+			return Alloc_error::DENIED;
 		}
 
 		void free(void *addr, size_t size) override
@@ -171,8 +189,8 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		size_t overhead(size_t) const override {  return 0;}
 		size_t avail() const override { return 0; }
 		bool valid_addr(addr_t) const override { return 0; }
-		Alloc_return alloc_addr(size_t, addr_t) override {
-			return Alloc_return(Alloc_return::OUT_OF_METADATA); }
+		Alloc_result alloc_addr(size_t, addr_t) override {
+			return Alloc_error::DENIED; }
 };
 
 #endif /* _INCLUDE__OS__PACKET_ALLOCATOR__ */

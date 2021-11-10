@@ -43,16 +43,20 @@ void Genode::platform_add_local_services(Rpc_entrypoint         &ep,
 	          Hw::Mm::hypervisor_exception_vector().size / get_page_size(),
 	          Hw::PAGE_FLAGS_KERN_TEXT);
 
-	void * stack = nullptr;
-	assert(platform().ram_alloc().alloc_aligned(Hw::Mm::hypervisor_stack().size,
-	                                             (void**)&stack,
-	                                             get_page_size_log2()).ok());
-	map_local((addr_t)stack,
-	          Hw::Mm::hypervisor_stack().base,
-	          Hw::Mm::hypervisor_stack().size / get_page_size(),
-	          Hw::PAGE_FLAGS_KERN_DATA);
+	platform().ram_alloc().alloc_aligned(Hw::Mm::hypervisor_stack().size,
+	                                     get_page_size_log2()).with_result(
+		[&] (void *stack) {
+			map_local((addr_t)stack,
+			          Hw::Mm::hypervisor_stack().base,
+			          Hw::Mm::hypervisor_stack().size / get_page_size(),
+			          Hw::PAGE_FLAGS_KERN_DATA);
 
-	static Vm_root vm_root(ep, sh, core_env().ram_allocator(),
-	                       core_env().local_rm(), trace_sources);
-	static Core_service<Vm_session_component> vm_service(services, vm_root);
+			static Vm_root vm_root(ep, sh, core_env().ram_allocator(),
+			                       core_env().local_rm(), trace_sources);
+			static Core_service<Vm_session_component> vm_service(services, vm_root);
+		},
+		[&] (Range_allocator::Alloc_error) {
+			warning("failed to allocate hypervisor stack for VM service");
+		}
+	);
 }

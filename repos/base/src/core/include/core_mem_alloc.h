@@ -163,11 +163,10 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 ** Range allocator interface **
 		 *******************************/
 
-		int add_range(addr_t, size_t) override { return -1; }
-		int remove_range(addr_t, size_t) override { return -1; }
-		Alloc_return alloc_aligned(size_t, void **, unsigned, Range) override;
-		Alloc_return alloc_addr(size_t, addr_t) override {
-			return Alloc_return::RANGE_CONFLICT; }
+		Range_result add_range(addr_t, size_t)    override { return Alloc_error::DENIED; }
+		Range_result remove_range(addr_t, size_t) override { return Alloc_error::DENIED; }
+		Alloc_result alloc_aligned(size_t, unsigned, Range) override;
+		Alloc_result alloc_addr(size_t, addr_t) override { return Alloc_error::DENIED; }
 		void free(void *) override;
 		size_t avail() const override { return _phys_alloc->avail(); }
 		bool valid_addr(addr_t addr) const override {
@@ -180,8 +179,8 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 ** Allocator interface **
 		 *************************/
 
-		bool   alloc(size_t size, void **out_addr) override {
-			return alloc_aligned(size, out_addr, log2(sizeof(addr_t))).ok(); }
+		Alloc_result try_alloc(size_t size) override {
+			return alloc_aligned(size, log2(sizeof(addr_t))); }
 		void   free(void *addr, size_t) override;
 		size_t consumed() const override { return _phys_alloc->consumed(); }
 		size_t overhead(size_t size) const override {
@@ -276,16 +275,14 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 ** Range allocator interface **
 		 *******************************/
 
-		int add_range(addr_t, size_t) override { return -1; }
-		int remove_range(addr_t, size_t) override { return -1; }
-		Alloc_return alloc_addr(size_t, addr_t) override {
-			return Alloc_return::RANGE_CONFLICT; }
+		Range_result add_range(addr_t, size_t)    override { return Alloc_error::DENIED; }
+		Range_result remove_range(addr_t, size_t) override { return Alloc_error::DENIED; }
+		Alloc_result alloc_addr(size_t, addr_t)   override { return Alloc_error::DENIED; }
 
-		Alloc_return alloc_aligned(size_t size, void **out_addr,
-		                           unsigned align, Range range) override
+		Alloc_result alloc_aligned(size_t size, unsigned align, Range range) override
 		{
 			Mutex::Guard lock_guard(_mutex);
-			return _mem_alloc.alloc_aligned(size, out_addr, align, range);
+			return _mem_alloc.alloc_aligned(size, align, range);
 		}
 
 		void free(void *addr) override
@@ -305,8 +302,10 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) override {
-			return alloc_aligned(size, out_addr, log2(sizeof(addr_t))).ok(); }
+		Alloc_result try_alloc(size_t size) override
+		{
+			return alloc_aligned(size, log2(sizeof(addr_t)));
+		}
 
 		void free(void *addr, size_t size) override
 		{

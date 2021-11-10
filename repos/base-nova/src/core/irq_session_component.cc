@@ -69,33 +69,36 @@ static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
                 Genode::addr_t &msi_addr, Genode::addr_t &msi_data,
                 Genode::Signal_context_capability sig_cap)
 {
-	void * virt = 0;
-	if (platform().region_alloc().alloc_aligned(4096, &virt, 12).error())
-		return false;
+	return  platform().region_alloc().alloc_aligned(4096, 12).convert<bool>(
 
-	Genode::addr_t virt_addr = reinterpret_cast<Genode::addr_t>(virt);
-	if (!virt_addr)
-		return false;
+		[&] (void *virt_ptr) {
 
-	using Nova::Rights;
-	using Nova::Utcb;
+			addr_t const virt_addr = reinterpret_cast<addr_t>(virt_ptr);
 
-	Nova::Mem_crd phys_crd(phys_mem >> 12,  0, Rights(true, false, false));
-	Nova::Mem_crd virt_crd(virt_addr >> 12, 0, Rights(true, false, false));
-	Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+			using Nova::Rights;
+			using Nova::Utcb;
 
-	if (map_local_phys_to_virt(utcb, phys_crd, virt_crd, platform_specific().core_pd_sel())) {
-		platform().region_alloc().free(virt, 4096);
-		return false;
-	}
+			Nova::Mem_crd phys_crd(phys_mem  >> 12, 0, Rights(true, false, false));
+			Nova::Mem_crd virt_crd(virt_addr >> 12, 0, Rights(true, false, false));
 
-	/* try to assign MSI to device */
-	bool res = associate(irq_sel, msi_addr, msi_data, sig_cap, virt_addr);
+			Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 
-	unmap_local(Nova::Mem_crd(virt_addr >> 12, 0, Rights(true, true, true)));
-	platform().region_alloc().free(virt, 4096);
+			if (map_local_phys_to_virt(utcb, phys_crd, virt_crd, platform_specific().core_pd_sel())) {
+				platform().region_alloc().free(virt_ptr, 4096);
+				return false;
+			}
 
-	return res;
+			/* try to assign MSI to device */
+			bool res = associate(irq_sel, msi_addr, msi_data, sig_cap, virt_addr);
+
+			unmap_local(Nova::Mem_crd(virt_addr >> 12, 0, Rights(true, true, true)));
+			platform().region_alloc().free(virt_ptr, 4096);
+
+			return res;
+		},
+		[&] (Range_allocator::Alloc_error) {
+			return false;
+		});
 }
 
 
@@ -217,7 +220,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 			throw Service_denied();
 	}
 
-	if (irq_alloc.alloc_addr(1, irq_number).error()) {
+	if (irq_alloc.alloc_addr(1, irq_number).failed()) {
 		error("unavailable IRQ ", irq_number, " requested");
 		throw Service_denied();
 	}

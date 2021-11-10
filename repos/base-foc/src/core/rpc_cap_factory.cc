@@ -198,11 +198,9 @@ unsigned long Cap_id_allocator::alloc()
 {
 	Mutex::Guard lock_guard(_mutex);
 
-	void *id = nullptr;
-	if (_id_alloc.alloc(CAP_ID_OFFSET, &id))
-		return (unsigned long) id;
-
-	throw Out_of_ids();
+	return _id_alloc.try_alloc(CAP_ID_OFFSET).convert<unsigned long>(
+		[&] (void *id) { return (unsigned long)id; },
+		[&] (Range_allocator::Alloc_error) -> unsigned long { throw Out_of_ids(); });
 }
 
 

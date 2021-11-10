@@ -34,14 +34,18 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 	                                                   : get_page_size_log2();
 
 	/* find appropriate region for mapping */
-	void *local_base = 0;
-	if (platform().region_alloc().alloc_aligned(size, &local_base, alignment).error())
-		return 0;
+	return platform().region_alloc().alloc_aligned(size, alignment).convert<addr_t>(
 
-	if (!map_local_io(base, (addr_t)local_base, size >> get_page_size_log2())) {
-		error("map_local_io failed");
-		return 0;
-	}
+		[&] (void *local_base) {
+			if (!map_local_io(base, (addr_t)local_base, size >> get_page_size_log2())) {
+				error("map_local_io failed");
+				platform().region_alloc().free(local_base, base);
+				return 0UL;
+			}
+			return (addr_t)local_base;
+		},
 
-	return (addr_t)local_base;
+		[&] (Range_allocator::Alloc_error) {
+			error("allocation of virtual memory for local I/O mapping failed");
+			return 0UL; });
 }

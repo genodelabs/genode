@@ -46,8 +46,16 @@ struct Array_of_slab_elements
 	  elem((void**) alloc.alloc(_elem_array_size()))
 	{
 		log(" allocate ", num_elem, " elements");
-		for (size_t i = 0; i < num_elem; i++)
-			if (!slab.alloc(slab_size, &elem[i])) throw Alloc_failed();
+		for (size_t i = 0; i < num_elem; i++) {
+			slab.try_alloc(slab_size).with_result(
+
+				[&] (void *ptr) {
+					elem[i] = ptr; },
+
+				[&] (Genode::Allocator::Alloc_error) {
+					throw Alloc_failed(); }
+			);
+		}
 	}
 
 	~Array_of_slab_elements()
@@ -85,13 +93,14 @@ void Component::construct(Genode::Env & env)
 
 		Allocator &_alloc;
 
-		bool alloc(size_t size, void **out_addr) override
+		Alloc_result try_alloc(size_t size) override
 		{
-			if (_alloc.alloc(size, out_addr)) {
+			Alloc_result const result = _alloc.try_alloc(size);
+
+			if (result.ok())
 				_consumed += size;
-				return true;
-			}
-			return false;
+
+			return result;
 		}
 
 		void free(void *addr, size_t size) override

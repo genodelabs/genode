@@ -87,8 +87,17 @@ void Http::resolve_uri()
 		throw Http::Uri_error();
 	}
 
-	_heap.alloc(sizeof(struct addrinfo), (void**)&_info);
-	Genode::memcpy(_info, info, sizeof(struct addrinfo));
+	_heap.try_alloc(sizeof(struct addrinfo)).with_result(
+
+		[&] (void *ptr) {
+			_info = (struct addrinfo *)ptr;
+			Genode::memcpy(_info, info, sizeof(struct addrinfo));
+		},
+
+		[&] (Allocator::Alloc_error) {
+			throw Http::Uri_error();
+		}
+	);
 }
 
 
@@ -180,7 +189,9 @@ void Http::do_read(void * buf, size_t size)
 Http::Http(Genode::Heap &heap, ::String const &uri)
 : _heap(heap), _port((char *)"80")
 {
-	_heap.alloc(HTTP_BUF, (void**)&_http_buf);
+	_heap.try_alloc(HTTP_BUF).with_result(
+		[&] (void *ptr) { _http_buf = (char *)ptr; },
+		[&] (Allocator::Alloc_error) { });
 
 	/* parse URI */
 	parse_uri(uri);
@@ -221,11 +232,31 @@ void Http::parse_uri(::String const &u)
 	size_t i;
 	for (i = 0; i < length && uri[i] != '/'; i++) ;
 
-	_heap.alloc(i + 1, (void**)&_host);
-	copy_cstring(_host, uri, i + 1);
+	/*
+	 * \param len  number of cstring bytes w/o null-termination
+	 */
+	auto copied_cstring = [&] (char const *src, size_t len) -> char *
+	{
+		size_t const bytes = len + 1;
 
-	_heap.alloc(length - i + 1, (void**)&_path);
-	copy_cstring(_path, uri + i, length - i + 1);
+		return _heap.try_alloc(bytes).convert<char *>(
+
+			[&] (void *ptr) {
+				char *dst = (char *)ptr;
+				copy_cstring(dst, src, bytes);
+				return dst; },
+
+			[&] (Allocator::Alloc_error) -> char * {
+				return nullptr; });
+	};
+
+	_host = copied_cstring(uri, i);
+	_path = copied_cstring(uri + i, length - i);
+
+	if (!_host || !_path) {
+		error("allocation failure during Http::parse_uri");
+		return;
+	}
 
 	/* look for port */
 	size_t len = Genode::strlen(_host);

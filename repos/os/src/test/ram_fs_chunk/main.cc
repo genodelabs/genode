@@ -67,12 +67,20 @@ struct Allocator_tracer : Allocator
 
 	Allocator_tracer(Allocator &wrapped) : wrapped(wrapped) { }
 
-	bool alloc(size_t size, void **out_addr) override
+	Alloc_result try_alloc(size_t size) override
 	{
-		sum += size;
-		bool result = wrapped.alloc(size, out_addr);
-		new (wrapped) Alloc(allocs, Alloc::Id { (addr_t)*out_addr }, size);
-		return result;
+		return wrapped.try_alloc(size).convert<Alloc_result>(
+
+			[&] (void *ptr) {
+				sum += size;
+				new (wrapped) Alloc(allocs, Alloc::Id { (addr_t)ptr }, size);
+				return ptr;
+			},
+
+			[&] (Allocator::Alloc_error error) {
+				return error;
+			}
+		);
 	}
 
 	void free(void *addr, size_t size) override

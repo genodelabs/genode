@@ -71,13 +71,18 @@ Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
 	_kobj(_kobj.CALLED_FROM_CORE, _label.string())
 {
 	/* create UTCB for a core thread */
-	void *utcb_phys;
-	if (!platform().ram_alloc().alloc(sizeof(Native_utcb), &utcb_phys)) {
-		error("failed to allocate UTCB");
-		throw Out_of_ram();
-	}
-	map_local((addr_t)utcb_phys, (addr_t)_utcb_core_addr,
-	          sizeof(Native_utcb) / get_page_size());
+	platform().ram_alloc().try_alloc(sizeof(Native_utcb)).with_result(
+
+		[&] (void *utcb_phys) {
+			map_local((addr_t)utcb_phys, (addr_t)_utcb_core_addr,
+			          sizeof(Native_utcb) / get_page_size());
+		},
+		[&] (Range_allocator::Alloc_error) {
+			error("failed to allocate UTCB");
+			/* XXX distinguish error conditions */
+			throw Out_of_ram();
+		}
+	);
 }
 
 

@@ -41,24 +41,16 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 		_cacheable = WRITE_COMBINED;
 
 	/* check for RAM collision */
-	int ret;
-	if ((ret = ram_alloc.remove_range(base, size))) {
+	if (ram_alloc.remove_range(base, size).failed()) {
 		error("I/O memory ", Hex_range<addr_t>(base, size), " "
-		      "used by RAM allocator (", ret, ")");
+		      "used by RAM allocator");
 		return Dataspace_attr();
 	}
 
 	/* allocate region */
-	switch (_io_mem_alloc.alloc_addr(req_size, req_base).value) {
-	case Range_allocator::Alloc_return::RANGE_CONFLICT:
+	if (_io_mem_alloc.alloc_addr(req_size, req_base).failed()) {
 		error("I/O memory ", Hex_range<addr_t>(req_base, req_size), " not available");
 		return Dataspace_attr();
-
-	case Range_allocator::Alloc_return::OUT_OF_METADATA:
-		error("I/O memory allocator ran out of meta data");
-		return Dataspace_attr();
-
-	case Range_allocator::Alloc_return::OK: break;
 	}
 
 	/* request local mapping */

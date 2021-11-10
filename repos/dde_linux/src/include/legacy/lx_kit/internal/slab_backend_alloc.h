@@ -39,7 +39,7 @@ class Lx::Slab_backend_alloc : public Genode::Allocator
 		/**
 		 * Allocate
 		 */
-		virtual bool alloc(Genode::size_t size, void **out_addr) = 0;
+		virtual Alloc_result try_alloc(Genode::size_t size) = 0;
 		virtual void free(void *addr) = 0;
 
 		/**

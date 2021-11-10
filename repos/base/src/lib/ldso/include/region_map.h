@@ -75,15 +75,14 @@ class Linker::Region_map
 
 		/**
 		 * Allocate region anywhere within the region map
+		 *
+		 * XXX propagate OUT_OF_RAM, OUT_OF_CAPS
 		 */
 		addr_t alloc_region(size_t size)
 		{
-			addr_t result = 0;
-			if (_range.alloc_aligned(size, (void **)&result,
-			                         get_page_size_log2()).error())
-				throw Region_conflict();
-
-			return result;
+			return _range.alloc_aligned(size, get_page_size_log2()).convert<addr_t>(
+				[&] (void *ptr)                        { return (addr_t)ptr; },
+				[&] (Allocator::Alloc_error) -> addr_t { throw Region_conflict(); });
 		}
 
 		/**
@@ -91,7 +90,7 @@ class Linker::Region_map
 		 */
 		void alloc_region_at(size_t size, addr_t vaddr)
 		{
-			if (_range.alloc_addr(size, vaddr).error())
+			if (_range.alloc_addr(size, vaddr).failed())
 				throw Region_conflict();
 		}
 

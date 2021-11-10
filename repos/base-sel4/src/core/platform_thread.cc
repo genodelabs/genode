@@ -105,30 +105,34 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
 	size_t const page_rounded_size = get_page_size();
 
 	/* allocate range in core's virtual address space */
-	void *virt_addr;
-	if (!platform().region_alloc().alloc(page_rounded_size, &virt_addr)) {
-		error("could not allocate virtual address range in core of size ",
-		      page_rounded_size);
-		return;
-	}
+	platform().region_alloc().try_alloc(page_rounded_size).with_result(
 
-	/* map the IPC buffer to core-local virtual addresses */
-	map_local(ipc_buffer_phys, (addr_t)virt_addr, 1);
+		[&] (void *virt_ptr) {
 
-	/* populate IPC buffer with thread information */
-	Native_utcb &utcb = *(Native_utcb *)virt_addr;
-	utcb.ep_sel  (ep_sel  .value());
-	utcb.lock_sel(lock_sel.value());
+			/* map the IPC buffer to core-local virtual addresses */
+			map_local(ipc_buffer_phys, (addr_t)virt_ptr, 1);
 
-	/* unmap IPC buffer from core */
-	if (!unmap_local((addr_t)virt_addr, 1)) {
-		error("could not unmap core virtual address ",
-		      virt_addr, " in ", __PRETTY_FUNCTION__);
-		return;
-	}
+			/* populate IPC buffer with thread information */
+			Native_utcb &utcb = *(Native_utcb *)virt_ptr;
+			utcb.ep_sel  (ep_sel  .value());
+			utcb.lock_sel(lock_sel.value());
 
-	/* free core's virtual address space */
-	platform().region_alloc().free(virt_addr, page_rounded_size);
+			/* unmap IPC buffer from core */
+			if (!unmap_local((addr_t)virt_ptr, 1)) {
+				error("could not unmap core virtual address ",
+				      virt_ptr, " in ", __PRETTY_FUNCTION__);
+				return;
+			}
+
+			/* free core's virtual address space */
+			platform().region_alloc().free(virt_ptr, page_rounded_size);
+		},
+
+		[&] (Range_allocator::Alloc_error) {
+			error("could not allocate virtual address range in core of size ",
+			      page_rounded_size);
+		}
+	);
 }
 
 

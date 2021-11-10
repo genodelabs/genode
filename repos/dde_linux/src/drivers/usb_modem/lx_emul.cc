@@ -509,7 +509,7 @@ int netif_carrier_ok(const struct net_device *dev)
 
 void *kmem_cache_alloc_node(struct kmem_cache *cache, gfp_t gfp_flags, int arg)
 {
-	return (void*)cache->alloc();
+	return (void*)cache->alloc_element();
 }
 
 

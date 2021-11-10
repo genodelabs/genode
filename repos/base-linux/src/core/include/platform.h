@@ -64,22 +64,21 @@ class Genode::Platform : public Platform_generic
 
 		struct Dummy_allocator : Range_allocator
 		{
-			void   free(void *, size_t)          override { ASSERT_NEVER_CALLED; }
-			bool   need_size_for_free()    const override { ASSERT_NEVER_CALLED; }
-			size_t consumed()              const override { ASSERT_NEVER_CALLED; }
-			size_t overhead(size_t)        const override { ASSERT_NEVER_CALLED; }
-			int    add_range   (addr_t, size_t ) override { ASSERT_NEVER_CALLED; }
-			int    remove_range(addr_t, size_t ) override { ASSERT_NEVER_CALLED; }
-			void   free(void *)                  override { ASSERT_NEVER_CALLED; }
-			size_t avail()                 const override { ASSERT_NEVER_CALLED; }
-			bool   valid_addr(addr_t )     const override { ASSERT_NEVER_CALLED; }
-			bool   alloc(size_t, void **)        override { ASSERT_NEVER_CALLED; }
+			void         free(void *, size_t)          override { ASSERT_NEVER_CALLED; }
+			bool         need_size_for_free()    const override { ASSERT_NEVER_CALLED; }
+			size_t       consumed()              const override { ASSERT_NEVER_CALLED; }
+			size_t       overhead(size_t)        const override { ASSERT_NEVER_CALLED; }
+			Range_result add_range   (addr_t, size_t ) override { ASSERT_NEVER_CALLED; }
+			Range_result remove_range(addr_t, size_t ) override { ASSERT_NEVER_CALLED; }
+			void         free(void *)                  override { ASSERT_NEVER_CALLED; }
+			size_t       avail()                 const override { ASSERT_NEVER_CALLED; }
+			bool         valid_addr(addr_t )     const override { ASSERT_NEVER_CALLED; }
+			Alloc_result try_alloc(size_t)             override { ASSERT_NEVER_CALLED; }
+			Alloc_result alloc_addr(size_t, addr_t)    override { ASSERT_NEVER_CALLED; }
 
-			Alloc_return alloc_aligned(size_t, void **, unsigned, Range) override
+			Alloc_result alloc_aligned(size_t, unsigned, Range) override
 			{ ASSERT_NEVER_CALLED; }
 
-			Alloc_return alloc_addr(size_t, addr_t) override
-			{ ASSERT_NEVER_CALLED; }
 
 		} _dummy_alloc { };
 
@@ -88,25 +87,31 @@ class Genode::Platform : public Platform_generic
 		 */
 		struct Pseudo_ram_allocator : Range_allocator
 		{
-			bool alloc(size_t, void **out_addr) override
+			Alloc_result try_alloc(size_t) override
 			{
-				*out_addr = 0;
-				return true;
+				return nullptr;
 			}
 
-			Alloc_return alloc_aligned(size_t, void **out, unsigned, Range) override
+			Alloc_result alloc_aligned(size_t, unsigned, Range) override
 			{
-				*out = 0;
-				return Alloc_return::OK;
+				return nullptr;
 			}
 
-			Alloc_return alloc_addr(size_t, addr_t) override
+			Alloc_result alloc_addr(size_t, addr_t) override
 			{
-				return Alloc_return::OK;
+				return nullptr;
 			}
 
-			int    add_range(addr_t, size_t)    override { return 0; }
-			int    remove_range(addr_t, size_t) override { return 0; }
+			Range_result add_range(addr_t, size_t)    override
+			{
+				return Range_ok();
+			}
+
+			Range_result remove_range(addr_t, size_t) override
+			{
+				return Range_ok();
+			}
+
 			void   free(void *)                 override { }
 			void   free(void *, size_t)         override { }
 			size_t avail()                const override { return ram_quota_from_env(); }

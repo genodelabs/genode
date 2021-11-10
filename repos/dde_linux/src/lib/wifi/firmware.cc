@@ -87,8 +87,12 @@ int request_firmware_nowait(struct module *module, bool uevent,
 	}
 
 	/* use allocator because fw is too big for slab */
-	if (!Lx_kit::env().heap().alloc(fwl->size, (void**)&fw->data)) {
-		Genode::error("Could not allocate memory for firmware image");
+	Lx_kit::env().heap().try_alloc(fwl->size).with_result(
+		[&] (void *ptr) { fw->data = (u8 *)ptr; },
+		[&] (Genode::Allocator::Alloc_error) {
+			Genode::error("Could not allocate memory for firmware image"); });
+
+	if (!fw->data) {
 		kfree(fw);
 		return -1;
 	}

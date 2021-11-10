@@ -30,19 +30,16 @@ extern unsigned _bss_end;
 void * Platform::Ram_allocator::alloc_aligned(size_t size, unsigned align)
 {
 	using namespace Genode;
-	using namespace Hw;
 
-	void * ret;
-	assert(Base::alloc_aligned(round_page(size), &ret,
-	                           max(align, get_page_size_log2())).ok());
-	return ret;
-}
+	return Base::alloc_aligned(Hw::round_page(size),
+	                           max(align, get_page_size_log2())).convert<void *>(
 
-
-bool Platform::Ram_allocator::alloc(size_t size, void **out_addr)
-{
-	*out_addr = alloc_aligned(size, 0);
-	return true;
+		[&] (void *ptr) { return ptr; },
+		[&] (Ram_allocator::Alloc_error e) -> void *
+		{
+			error("bootstrap RAM allocation failed, error=", e);
+			assert(false);
+		});
 }
 
 

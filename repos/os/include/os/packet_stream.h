@@ -769,11 +769,16 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 */
 		Packet_descriptor alloc_packet(Genode::size_t size, unsigned align = PACKET_ALIGNMENT)
 		{
-			void *base = 0;
-			if (size && _packet_alloc.alloc_aligned(size, &base, align).error())
-				throw Packet_alloc_failed();
+			if (size == 0)
+				return Packet_descriptor(0, 0);
 
-			return Packet_descriptor((Genode::off_t)base, size);
+			return _packet_alloc.alloc_aligned(size, align).convert<Packet_descriptor>(
+
+				[&] (void *base) {
+					return Packet_descriptor((Genode::off_t)base, size); },
+
+				[&] (Allocator::Alloc_error) -> Packet_descriptor {
+					throw Packet_alloc_failed(); });
 		}
 
 		/**

@@ -59,24 +59,51 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 		Genode::Allocator_avl             _range;             /* manage allocations */
 		Genode::Ram_allocator            &_ram;               /* allocator to allocate ds from */
 
-		bool _alloc_block()
+		struct Extend_ok { };
+		using Extend_result = Genode::Attempt<Extend_ok, Alloc_error>;
+
+		Extend_result _extend_one_block()
 		{
+			using namespace Genode;
+
 			if (_index == ELEMENTS) {
-				Genode::error("Slab-backend exhausted!");
-				return false;
+				error("Slab-backend exhausted!");
+				return Alloc_error::DENIED;
 			}
 
-			try {
-				_ds_cap[_index] = _ram.alloc(BLOCK_SIZE);
-				Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
-			} catch (...) { return false; }
+			return _ram.try_alloc(BLOCK_SIZE).convert<Extend_result>(
 
-			/* return base + offset in VM area */
-			addr_t block_base = _base + (_index * BLOCK_SIZE);
-			++_index;
+				[&] (Ram_dataspace_capability ds) -> Extend_result {
 
-			_range.add_range(block_base, BLOCK_SIZE);
-			return true;
+					_ds_cap[_index] = ds;
+
+					Alloc_error alloc_error = Alloc_error::DENIED;
+
+					try {
+						Region_map_client::attach_at(_ds_cap[_index],
+						                             _index * BLOCK_SIZE,
+						                             BLOCK_SIZE, 0);
+
+						/* return base + offset in VM area */
+						addr_t block_base = _base + (_index * BLOCK_SIZE);
+						++_index;
+
+						_range.add_range(block_base, BLOCK_SIZE);
+
+						return Extend_ok();
+					}
+					catch (Out_of_ram)  { alloc_error = Alloc_error::OUT_OF_RAM; }
+					catch (Out_of_caps) { alloc_error = Alloc_error::OUT_OF_CAPS; }
+					catch (...)         { alloc_error = Alloc_error::DENIED; }
+
+					error("Slab_backend_alloc: local attach_at failed");
+
+					_ram.free(ds);
+					_ds_cap[_index] = { };
+
+					return alloc_error;
+				},
+				[&] (Alloc_error e) -> Extend_result { return e; });
 		}
 
 	public:
@@ -100,20 +127,19 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(Genode::size_t size, void **out_addr)
+		Alloc_result try_alloc(Genode::size_t size) override
 		{
-			bool done = _range.alloc(size, out_addr);
+			Alloc_result result = _range.try_alloc(size);
+			if (result.ok())
+				return result;
 
-			if (done)
-				return done;
+			return _extend_one_block().convert<Alloc_result>(
+				[&] (Extend_ok) {
+					return _range.try_alloc(size); },
 
-			done = _alloc_block();
-			if (!done) {
-				Genode::error("Backend allocator exhausted\n");
-				return false;
-			}
-
-			return _range.alloc(size, out_addr);
+				[&] (Alloc_error e) {
+					Genode::error("Backend allocator exhausted\n");
+					return e; });
 		}
 
 		void           free(void *addr, Genode::size_t size) { _range.free(addr, size); }
@@ -147,8 +173,9 @@ class Bsd::Slab_alloc : public Genode::Slab
 
 		Genode::addr_t alloc()
 		{
-			Genode::addr_t result;
-			return (Slab::alloc(_object_size, (void **)&result) ? result : 0);
+			return Slab::try_alloc(_object_size).convert<Genode::addr_t>(
+				[&] (void *ptr) { return (Genode::addr_t)ptr; },
+				[&] (Alloc_error) -> Genode::addr_t { return 0; });
 		}
 
 		void free(void *ptr) { Slab::free(ptr, _object_size); }

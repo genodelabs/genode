@@ -71,29 +71,37 @@ class Stack_area_region_map : public Region_map
 		{
 			/* allocate physical memory */
 			size = round_page(size);
-			void *phys_base = nullptr;
-			Range_allocator &ra = platform_specific().ram_alloc();
-			if (ra.alloc_aligned(size, &phys_base,
-				                 get_page_size_log2()).error()) {
-				error("could not allocate backing store for new stack");
-				return (addr_t)0;
-			}
 
-			Dataspace_component &ds = *new (&_ds_slab)
-				Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
+			Range_allocator &phys = platform_specific().ram_alloc();
 
-			addr_t const core_local_addr = stack_area_virtual_base() + (addr_t)local_addr;
+			return phys.alloc_aligned(size, get_page_size_log2()).convert<Local_addr>(
 
-			if (!map_local(ds.phys_addr(), core_local_addr,
-			               ds.size() >> get_page_size_log2())) {
-				error("could not map phys ", Hex(ds.phys_addr()),
-				      " at local ", Hex(core_local_addr));
-				return (addr_t)0;
-			}
+				[&] (void *phys_ptr) {
 
-			ds.assign_core_local_addr((void*)core_local_addr);
+					addr_t const phys_base = (addr_t)phys_ptr;
 
-			return local_addr;
+					Dataspace_component &ds = *new (&_ds_slab)
+						Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
+
+					addr_t const core_local_addr = stack_area_virtual_base()
+					                             + (addr_t)local_addr;
+
+					if (!map_local(ds.phys_addr(), core_local_addr,
+					               ds.size() >> get_page_size_log2())) {
+						error("could not map phys ", Hex(ds.phys_addr()),
+						      " at local ", Hex(core_local_addr));
+
+						phys.free(phys_ptr);
+						return Local_addr { (addr_t)0 };
+					}
+
+					ds.assign_core_local_addr((void*)core_local_addr);
+
+					return local_addr;
+				},
+				[&] (Range_allocator::Alloc_error) {
+					error("could not allocate backing store for new stack");
+					return (addr_t)0; });
 		}
 
 		void detach(Local_addr local_addr) override

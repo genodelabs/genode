@@ -50,7 +50,7 @@ Libc::Mem_alloc_impl::Dataspace_pool::~Dataspace_pool()
 int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *alloc)
 {
 	Ram_dataspace_capability new_ds_cap;
-	void *local_addr, *ds_addr = 0;
+	void *local_addr;
 
 	/* make new ram dataspace available at our local address space */
 	try {
@@ -71,16 +71,17 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	alloc->add_range((addr_t)local_addr, size);
 
 	/* now that we have new backing store, allocate Dataspace structure */
-	if (alloc->alloc_aligned(sizeof(Dataspace), &ds_addr, 2).error()) {
-		warning("libc: could not allocate meta data - this should never happen");
-		return -1;
-	}
+	return alloc->alloc_aligned(sizeof(Dataspace), 2).convert<int>(
 
-	/* add dataspace information to list of dataspaces */
-	Dataspace *ds  = construct_at<Dataspace>(ds_addr, new_ds_cap, local_addr);
-	insert(ds);
+		[&] (void *ptr) {
+			/* add dataspace information to list of dataspaces */
+			Dataspace *ds  = construct_at<Dataspace>(ptr, new_ds_cap, local_addr);
+			insert(ds);
+			return 0; },
 
-	return 0;
+		[&] (Allocator::Alloc_error) {
+			warning("libc: could not allocate meta data - this should never happen");
+			return -1; });
 }
 
 
@@ -89,9 +90,14 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 	/* serialize access of heap functions */
 	Mutex::Guard guard(_mutex);
 
+	void *out_addr = nullptr;
+
 	/* try allocation at our local allocator */
-	void *out_addr = 0;
-	if (_alloc.alloc_aligned(size, &out_addr, align_log2).ok())
+	_alloc.alloc_aligned(size, align_log2).with_result(
+		[&] (void *ptr) { out_addr = ptr; },
+		[&] (Allocator::Alloc_error) { });
+
+	if (out_addr)
 		return out_addr;
 
 	/*
@@ -119,7 +125,11 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 	}
 
 	/* allocate originally requested block */
-	return _alloc.alloc_aligned(size, &out_addr, align_log2).ok() ? out_addr : 0;
+	_alloc.alloc_aligned(size, align_log2).with_result(
+		[&] (void *ptr) { out_addr = ptr; },
+		[&] (Allocator::Alloc_error) { });
+
+	return out_addr;
 }
 
 

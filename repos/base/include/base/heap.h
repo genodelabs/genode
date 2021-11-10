@@ -96,32 +96,26 @@ class Genode::Heap : public Allocator
 		size_t                         _quota_used  { 0 };
 		size_t                         _chunk_size  { 0 };
 
+		using Alloc_ds_result = Attempt<Dataspace *, Alloc_error>;
+
 		/**
 		 * Allocate a new dataspace of the specified size
 		 *
 		 * \param size                       number of bytes to allocate
 		 * \param enforce_separate_metadata  if true, the new dataspace
 		 *                                   will not contain any meta data
-		 * \throw                            Region_map::Invalid_dataspace,
-		 *                                   Region_map::Region_conflict
-		 * \return                           0 on success or negative error code
 		 */
-		Heap::Dataspace *_allocate_dataspace(size_t size, bool enforce_separate_metadata);
+		Alloc_ds_result _allocate_dataspace(size_t size, bool enforce_separate_metadata);
 
 		/**
 		 * Try to allocate block at our local allocator
-		 *
-		 * \return true on success
-		 *
-		 * This method is a utility used by '_unsynchronized_alloc' to
-		 * avoid code duplication.
 		 */
-		bool _try_local_alloc(size_t size, void **out_addr);
+		Alloc_result _try_local_alloc(size_t size);
 
 		/**
-		 * Unsynchronized implementation of 'alloc'
+		 * Unsynchronized implementation of 'try_alloc'
 		 */
-		bool _unsynchronized_alloc(size_t size, void **out_addr);
+		Alloc_result _unsynchronized_alloc(size_t size);
 
 	public:
 
@@ -167,11 +161,11 @@ class Genode::Heap : public Allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool   alloc(size_t, void **) override;
-		void   free(void *, size_t) override;
-		size_t consumed() const override { return _quota_used; }
-		size_t overhead(size_t size) const override { return _alloc->overhead(size); }
-		bool   need_size_for_free() const override { return false; }
+		Alloc_result try_alloc(size_t)           override;
+		void         free(void *, size_t)        override;
+		size_t       consumed()            const override { return _quota_used; }
+		size_t       overhead(size_t size) const override { return _alloc->overhead(size); }
+		bool         need_size_for_free()  const override { return false; }
 };
 
 
@@ -222,11 +216,11 @@ class Genode::Sliced_heap : public Allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool   alloc(size_t, void **)      override;
-		void   free(void *, size_t)        override;
-		size_t consumed()            const override { return _consumed; }
-		size_t overhead(size_t size) const override;
-		bool   need_size_for_free()  const override { return false; }
+		Alloc_result try_alloc(size_t)     override;
+		void         free(void *, size_t)        override;
+		size_t       consumed()            const override { return _consumed; }
+		size_t       overhead(size_t size) const override;
+		bool         need_size_for_free()  const override { return false; }
 };
 
 #endif /* _INCLUDE__BASE__HEAP_H_ */

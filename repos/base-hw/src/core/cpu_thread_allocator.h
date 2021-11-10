@@ -57,8 +57,8 @@ class Genode::Cpu_thread_allocator : public Allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr) override {
-			return _alloc.alloc(size, out_addr); }
+		Alloc_result try_alloc(size_t size) override {
+			return _alloc.alloc(size); }
 
 		void free(void *addr, size_t size) override {
 			_alloc.free(addr, size); }

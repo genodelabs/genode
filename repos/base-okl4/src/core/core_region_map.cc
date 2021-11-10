@@ -24,10 +24,8 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
                         off_t offset, bool use_local_addr,
                         Region_map::Local_addr, bool, bool)
 {
-	using namespace Okl4;
+	return _ep.apply(ds_cap, [&] (Dataspace_component *ds) -> void * {
 
-	auto lambda = [&] (Dataspace_component *ds) -> void *
-	{
 		if (!ds)
 			throw Invalid_dataspace();
 
@@ -48,21 +46,25 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 		}
 
 		/* allocate range in core's virtual address space */
-		void *virt_addr;
-		if (!platform().region_alloc().alloc(page_rounded_size, &virt_addr)) {
-			error("could not allocate virtual address range in core of size ",
-			      page_rounded_size);
-			return nullptr;
-		}
+		Range_allocator &virt_alloc = platform().region_alloc();
+		return virt_alloc.try_alloc(page_rounded_size).convert<void *>(
 
-		/* map the dataspace's physical pages to corresponding virtual addresses */
-		unsigned num_pages = page_rounded_size >> get_page_size_log2();
-		if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages))
-			return nullptr;
-		return virt_addr;
-	};
+			[&] (void *virt_addr) -> void * {
 
-	return _ep.apply(ds_cap, lambda);
+				/* map the dataspace's physical pages to virtual memory */
+				unsigned num_pages = page_rounded_size >> get_page_size_log2();
+				if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages))
+					return nullptr;
+
+				return virt_addr;
+			},
+
+			[&] (Range_allocator::Alloc_error) -> void * {
+				error("could not allocate virtual address range in core of size ",
+				      page_rounded_size);
+				return nullptr;
+		});
+	});
 }
 
 

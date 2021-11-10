@@ -89,19 +89,20 @@ extern "C" {
 
 	void *genode_malloc(unsigned long size)
 	{
-		void *ptr = nullptr;
-		return Lwip::_heap->alloc(size, &ptr) ? ptr : 0;
+		return Lwip::_heap->try_alloc(size).convert<void *>(
+			[&] (void *ptr) { return ptr; },
+			[&] (Genode::Allocator::Alloc_error) -> void * { return nullptr; });
 	}
 
 	void *genode_calloc(unsigned long number, unsigned long size)
 	{
-		void *ptr = nullptr;
 		size *= number;
-		if (Lwip::_heap->alloc(size, &ptr)) {
+
+		void * const ptr = genode_malloc(size);
+		if (ptr)
 			Genode::memset(ptr, 0x00, size);
-			return ptr;
-		}
-		return nullptr;
+
+		return ptr;
 	}
 
 	u32_t sys_now(void) {

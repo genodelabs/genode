@@ -171,16 +171,18 @@ extern "C" void *__emutls_get_address(void *obj)
 
 		/* the heap allocates 16-byte aligned */
 		if ((16 % emutls_object->align) != 0)
-			Genode::warning(__func__, ": cannot ensure alignment of ",
-			                emutls_object->align, " bytes");
+			warning(__func__, ": cannot ensure alignment of ",
+			        emutls_object->align, " bytes");
 
 		void *address = nullptr;
 
-		if (!cxx_heap().alloc(emutls_object->size, &address)) {
-			Genode::error(__func__,
-			              ": could not allocate thread-local variable instance");
+		cxx_heap().try_alloc(emutls_object->size).with_result(
+			[&] (void *ptr) { address = ptr; },
+			[&] (Allocator::Alloc_error e) {
+				error(__func__,
+				      ": could not allocate thread-local variable, error ", (int)e); });
+		if (!address)
 			return nullptr;
-		}
 
 		if (emutls_object->templ)
 			memcpy(address, emutls_object->templ, emutls_object->size);

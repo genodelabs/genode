@@ -23,7 +23,7 @@ new file mode 100644
 index 0000000..03b1740
 --- /dev/null
 +++ b/sanitizer_common/sanitizer_genode.cc
-@@ -0,0 +1,331 @@
+@@ -0,0 +1,335 @@
 +/*
 + * \brief  Genode-specific functions from sanitizer_common.h
 + *         and sanitizer_libc.h
@@ -205,14 +205,18 @@ index 0000000..03b1740
 +{
 +	size = RoundUpTo(size, GetPageSizeCached());
 +
-+	void *res = nullptr;
-+	heap().alloc(size, &res);
++	return heap().try_alloc(size).convert<void *>(
 +
-+	if (res == nullptr)
-+		ReportMmapFailureAndDie(size, mem_type, "allocate", 0, raw_report);
++		[&] (void *ptr) {
++			IncreaseTotalMmap(size);
++			return ptr;
++		},
 +
-+	IncreaseTotalMmap(size);
-+	return res;
++		[&] (Genode::Allocator::Alloc_error) -> void * {
++			ReportMmapFailureAndDie(size, mem_type, "allocate", 0, raw_report);
++			return nullptr;
++		}
++	);
 +}
 +
 +

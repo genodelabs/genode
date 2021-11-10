@@ -199,9 +199,12 @@ void kmem_cache_destroy(struct kmem_cache *cache)
 
 void * kmem_cache_alloc(struct kmem_cache *cache, gfp_t flags)
 {
-	void *addr = (void *)cache->alloc();
-	if (addr && cache->ctor) { cache->ctor(addr); }
-	return addr;
+	void * const ptr = cache->alloc_element();
+
+	if (ptr && cache->ctor)
+		cache->ctor(ptr);
+
+	return ptr;
 }
 
 

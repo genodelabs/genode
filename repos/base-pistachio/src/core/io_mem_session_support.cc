@@ -60,28 +60,30 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 {
 	using namespace Pistachio;
 
-	addr_t local_base;
+	auto alloc_virt_range = [&] ()
+	{
+		/* special case for the null page */
+		if (is_conventional_memory(base))
+			return base;
 
-	/* align large I/O dataspaces on a super-page boundary within core */
-	size_t alignment = (size >= get_super_page_size()) ? get_super_page_size_log2()
-	                                                   : get_page_size_log2();
+		/* align large I/O dataspaces on a super-page boundary within core */
+		size_t const align = (size >= get_super_page_size())
+		                   ? get_super_page_size_log2()
+		                   : get_page_size_log2();
 
-	/* special case for the null page */
-	if (is_conventional_memory(base))
-		local_base = base;
+		return platform().region_alloc().alloc_aligned(size, align).convert<addr_t>(
+			[&] (void *ptr) { return (addr_t)ptr; },
+			[&] (Range_allocator::Alloc_error) -> addr_t {
+				error(__func__, ": alloc_aligned failed!");
+				return 0; });
+	};
 
-	else {
+	addr_t const local_base = (addr_t)alloc_virt_range();
 
-		/* find appropriate region for mapping */
-		void *result = 0;
-		if (platform().region_alloc().alloc_aligned(size, &result, alignment).error())
-			error(__func__, ": alloc_aligned failed!");
+	if (!local_base)
+		return 0;
 
-		local_base = (addr_t)result;
-	}
-
-	unsigned offset = 0;
-	while (size) {
+	for (unsigned offset = 0; size; ) {
 
 		size_t page_size = get_page_size();
 		if (can_use_super_page(base + offset, size))

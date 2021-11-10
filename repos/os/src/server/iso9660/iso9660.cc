@@ -311,14 +311,15 @@ class Volume_descriptor : public Iso::Iso_base
 		/* copy the root record */
 		Directory_record *copy_root_record(Genode::Allocator &alloc)
 		{
-			Directory_record *buf;
+			return alloc.try_alloc(ROOT_SIZE).convert<Directory_record *>(
 
-			if (!(alloc.alloc(ROOT_SIZE, &buf)))
-				throw Insufficient_ram_quota();
+				[&] (void *ptr) -> Directory_record * {
+					memcpy(ptr, root_record(), ROOT_SIZE);
+					return (Directory_record *)ptr; },
 
-			memcpy(buf, root_record(), ROOT_SIZE);
-
-			return buf;
+				[&] (Allocator::Alloc_error e) -> Directory_record * {
+					Allocator::throw_alloc_error(e); }
+			);
 		}
 };
 

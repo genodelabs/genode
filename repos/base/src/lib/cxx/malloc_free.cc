@@ -76,9 +76,15 @@ extern "C" void *malloc(size_t size)
 	 * the size information when freeing the block.
 	 */
 	unsigned long real_size = size + sizeof(Block_header);
-	void *addr = 0;
-	if (!cxx_heap().alloc(real_size, &addr))
-		return 0;
+
+	void *addr = nullptr;
+	cxx_heap().try_alloc(real_size).with_result(
+		[&] (void *ptr) { addr = ptr; },
+		[&] (Allocator::Alloc_error error) {
+			Genode::error(__func__,
+			              ": cxx_heap allocation failed with error ", (int)error); });
+	if (!addr)
+		return nullptr;
 
 	*(Block_header *)addr = real_size;
 	return (Block_header *)addr + 1;

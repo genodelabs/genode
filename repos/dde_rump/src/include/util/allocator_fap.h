@@ -128,37 +128,40 @@ namespace Allocator {
 			/**
 			 * Allocate
 			 */
-			bool alloc(size_t size, void **out_addr)
+			Alloc_result try_alloc(size_t size) override
 			{
-				bool done = _range.alloc(size, out_addr);
+				Alloc_result result = _range.try_alloc(size);
+				if (result.ok())
+					return result;
 
-				if (done)
-					return done;
+				if (!_alloc_block())
+					return Alloc_error::DENIED;
 
-				done = _alloc_block();
-				if (!done)
-					return false;
-
-				return _range.alloc(size, out_addr);
+				return _range.try_alloc(size);
 			}
 
 			void *alloc_aligned(size_t size, unsigned align = 0)
 			{
-				void *addr;
-
-				if (!_range.alloc_aligned(size, &addr, align).error())
-					return addr;
+				Alloc_result result = _range.alloc_aligned(size, align);
+				if (result.ok())
+					return result.convert<void *>(
+						[&] (void *ptr) { return ptr; },
+						[&] (Alloc_error) -> void * { return nullptr; });
 
 				if (!_alloc_block())
 					return 0;
 
-				if (_range.alloc_aligned(size, &addr, align).error()) {
-					error("backend allocator: Unable to allocate memory "
-					      "(size: ", size, " align: ", align, ")");
-					return 0;
-				}
+				return _range.alloc_aligned(size, align).convert<void *>(
 
-				return addr;
+					[&] (void *ptr) {
+						return ptr; },
+
+					[&] (Alloc_error e) -> void * {
+						error("backend allocator: Unable to allocate memory "
+						      "(size: ", size, " align: ", align, ")");
+						return nullptr;
+					}
+				);
 			}
 
 			void   free(void *addr, size_t size) override { _range.free(addr, size); }

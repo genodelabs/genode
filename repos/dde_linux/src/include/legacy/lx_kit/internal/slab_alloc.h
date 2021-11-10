@@ -55,10 +55,11 @@ class Lx::Slab_alloc : public Genode::Slab
 			_object_size(object_size)
 		{ }
 
-		Genode::addr_t alloc()
+		void *alloc_element()
 		{
-			Genode::addr_t result;
-			return (Slab::alloc(_object_size, (void **)&result) ? result : 0);
+			return Slab::try_alloc(_object_size).convert<void *>(
+				[&] (void *ptr)   { return ptr; },
+				[&] (Alloc_error) { return (void *)nullptr; });
 		}
 
 		void free(void *ptr)

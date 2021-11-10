@@ -98,24 +98,28 @@ struct Text_area::Dynamic_array
 				size_t const new_capacity =
 					2 * max(_capacity, max(8U, at.value));
 
-				Element *new_array = nullptr;
-				try {
-					(void)_alloc.alloc(sizeof(Element)*new_capacity, &new_array);
+				_alloc.try_alloc(sizeof(Element)*new_capacity).with_result(
 
-					for (unsigned i = 0; i < new_capacity; i++)
-						construct_at<Element>(&new_array[i]);
-				}
-				catch (... /* Out_of_ram, Out_of_caps */ ) { throw; }
+					[&] (void *ptr) {
 
-				if (_array) {
-					for (unsigned i = 0; i < _upper_bound; i++)
-						new_array[i].construct(*_array[i]);
+						Element *new_array = (Element *)ptr;
 
-					_alloc.free(_array, sizeof(Element)*_capacity);
-				}
+						for (unsigned i = 0; i < new_capacity; i++)
+							construct_at<Element>(&new_array[i]);
 
-				_array    = new_array;
-				_capacity = new_capacity;
+						if (_array) {
+							for (unsigned i = 0; i < _upper_bound; i++)
+								new_array[i].construct(*_array[i]);
+
+							_alloc.free(_array, sizeof(Element)*_capacity);
+						}
+
+						_array    = new_array;
+						_capacity = new_capacity;
+					},
+					[&] (Allocator::Alloc_error e) {
+						Allocator::throw_alloc_error(e); }
+				);
 			}
 
 			/* make room for new element */

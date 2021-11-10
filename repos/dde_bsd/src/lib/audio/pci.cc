@@ -94,10 +94,9 @@ class Pci_driver : public Bsd::Bus_driver
 					_dma_initialized = true;
 				}
 
-				void *ptr = nullptr;
-				bool  err = Allocator_avl::alloc_aligned(size, &ptr, align).error();
-
-				return err ? 0 : (addr_t)ptr;
+				return Allocator_avl::alloc_aligned(size, align).convert<Genode::addr_t>(
+					[&] (void *ptr)   { return (addr_t)ptr; },
+					[&] (Alloc_error) { return 0UL; });
 			}
 
 			void free(Genode::addr_t virt, Genode::size_t size) {

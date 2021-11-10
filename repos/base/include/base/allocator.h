@@ -18,6 +18,7 @@
 #include <base/stdint.h>
 #include <base/exception.h>
 #include <base/quota_guard.h>
+#include <base/ram_allocator.h>
 
 namespace Genode {
 
@@ -61,7 +62,14 @@ struct Genode::Allocator : Deallocator
 	/**
 	 * Exception type
 	 */
-	typedef Out_of_ram Out_of_memory;
+	using Out_of_memory = Out_of_ram;
+	using Denied        = Ram_allocator::Denied;
+
+	/**
+	 * Return type of 'try_alloc'
+	 */
+	using Alloc_error  = Ram_allocator::Alloc_error;
+	using Alloc_result = Attempt<void *, Alloc_error>;
 
 	/**
 	 * Destructor
@@ -74,32 +82,8 @@ struct Genode::Allocator : Deallocator
 	 * \param size      block size to allocate
 	 * \param out_addr  resulting pointer to the new block,
 	 *                  undefined in the error case
-	 *
-	 * \throw           Out_of_ram
-	 * \throw           Out_of_caps
-	 *
-	 * \return          true on success
 	 */
-	virtual bool alloc(size_t size, void **out_addr) = 0;
-
-	/**
-	 * Allocate typed block
-	 *
-	 * This template allocates a typed block returned as a pointer to
-	 * a non-void type. By providing this method, we prevent the
-	 * compiler from warning us about "dereferencing type-punned
-	 * pointer will break strict-aliasing rules".
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
-	 */
-	template <typename T> bool alloc(size_t size, T **out_addr)
-	{
-		void *addr = 0;
-		bool ret = alloc(size, &addr);
-		*out_addr = (T *)addr;
-		return ret;
-	}
+	virtual Alloc_result try_alloc(size_t size) = 0;
 
 	/**
 	 * Return total amount of backing store consumed by the allocator
@@ -112,22 +96,35 @@ struct Genode::Allocator : Deallocator
 	virtual size_t overhead(size_t size) const = 0;
 
 	/**
+	 * Raise exception according to the 'error' value
+	 */
+	static void throw_alloc_error(Alloc_error error) __attribute__((noreturn))
+	{
+		switch (error) {
+		case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
+		case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+		case Alloc_error::DENIED:      break;
+		}
+		throw Denied();
+	}
+
+	/**
 	 * Allocate block and signal error as an exception
 	 *
 	 * \param size  block size to allocate
 	 *
 	 * \throw       Out_of_ram
 	 * \throw       Out_of_caps
+	 * \throw       Denied
 	 *
 	 * \return      pointer to the new block
 	 */
 	void *alloc(size_t size)
 	{
-		void *result = 0;
-		if (!alloc(size, &result))
-			throw Out_of_memory();
-
-		return result;
+		return try_alloc(size).convert<void *>(
+			[&] (void *ptr) { return ptr; },
+			[&] (Alloc_error error) -> void * {
+				throw_alloc_error(error); });
 	}
 };
 
@@ -140,31 +137,20 @@ struct Genode::Range_allocator : Allocator
 	virtual ~Range_allocator() { }
 
 	/**
+	 * Return type of range-management operations
+	 */
+	struct Range_ok { };
+	using Range_result = Attempt<Range_ok, Alloc_error>;
+
+	/**
 	 * Add free address range to allocator
 	 */
-	virtual int add_range(addr_t base, size_t size) = 0;
+	virtual Range_result add_range(addr_t base, size_t size) = 0;
 
 	/**
 	 * Remove address range from allocator
 	 */
-	virtual int remove_range(addr_t base, size_t size) = 0;
-
-	/**
-	 * Return value of allocation functons
-	 *
-	 * 'OK'              on success, or
-	 * 'OUT_OF_METADATA' if meta-data allocation failed, or
-	 * 'RANGE_CONFLICT'  if no fitting address range is found
-	 */
-	struct Alloc_return
-	{
-		enum Value { OK = 0, OUT_OF_METADATA = -1, RANGE_CONFLICT = -2 };
-		Value const value;
-		Alloc_return(Value value) : value(value) { }
-
-		bool ok()    const { return value == OK; }
-		bool error() const { return !ok(); }
-	};
+	virtual Range_result remove_range(addr_t base, size_t size) = 0;
 
 	struct Range { addr_t start, end; };
 
@@ -172,21 +158,18 @@ struct Genode::Range_allocator : Allocator
 	 * Allocate block
 	 *
 	 * \param size      size of new block
-	 * \param out_addr  start address of new block,
-	 *                  undefined in the error case
 	 * \param align     alignment of new block specified
 	 *                  as the power of two
 	 * \param range     address-range constraint for the allocation
 	 */
-	virtual Alloc_return alloc_aligned(size_t size, void **out_addr,
-	                                   unsigned align, Range range) = 0;
+	virtual Alloc_result alloc_aligned(size_t size, unsigned align, Range range) = 0;
 
 	/**
 	 * Allocate block without constraining the address range
 	 */
-	Alloc_return alloc_aligned(size_t size, void **out_addr, unsigned align)
+	Alloc_result alloc_aligned(size_t size, unsigned align)
 	{
-		return alloc_aligned(size, out_addr, align, Range { .start = 0, .end = ~0UL });
+		return alloc_aligned(size, align, Range { .start = 0, .end = ~0UL });
 	}
 
 	/**
@@ -194,12 +177,8 @@ struct Genode::Range_allocator : Allocator
 	 *
 	 * \param size   size of new block
 	 * \param addr   desired address of block
-	 *
-	 * \return  'ALLOC_OK' on success, or
-	 *          'OUT_OF_METADATA' if meta-data allocation failed, or
-	 *          'RANGE_CONFLICT' if specified range is occupied
 	 */
-	virtual Alloc_return alloc_addr(size_t size, addr_t addr) = 0;
+	virtual Alloc_result alloc_addr(size_t size, addr_t addr) = 0;
 
 	/**
 	 * Free a previously allocated block
@@ -324,6 +303,34 @@ void Genode::destroy(DEALLOC && dealloc, T *obj)
 	 * this pointer to 'free'.
 	 */
 	operator delete (obj, dealloc);
+}
+
+
+namespace Genode {
+
+	void static inline print(Output &out, Allocator::Alloc_error error)
+	{
+		using Error = Allocator::Alloc_error;
+
+		auto name = [] (Error error)
+		{
+			switch (error) {
+			case Error::OUT_OF_RAM:  return "OUT_OF_RAM";
+			case Error::OUT_OF_CAPS: return "OUT_OF_CAPS";
+			case Error::DENIED:      return "DENIED";
+			}
+			return "<unknown>";
+		};
+
+		Genode::print(out, name(error));
+	}
+
+	void static inline print(Output &out, Allocator::Alloc_result result)
+	{
+		result.with_result(
+			[&] (void *ptr)   { Genode::print(out, ptr); },
+			[&] (auto  error) { Genode::print(out, error); });
+	}
 }
 
 #endif /* _INCLUDE__BASE__ALLOCATOR_H_ */

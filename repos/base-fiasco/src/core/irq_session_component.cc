@@ -130,7 +130,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 	if (msi)
 		throw Service_denied();
 
-	if (irq_alloc.alloc_addr(1, _irq_number).error()) {
+	if (irq_alloc.alloc_addr(1, _irq_number).failed()) {
 		error("unavailable IRQ ", _irq_number, " requested");
 		throw Service_denied();
 	}

@@ -491,7 +491,7 @@ void  dma_pool_free(struct dma_pool *d, void *vaddr, dma_addr_t a)
 
 void *dma_alloc_coherent(struct device *, size_t size, dma_addr_t *dma, gfp_t)
 {
-	void *addr = Lx::Malloc::dma().alloc(size, PAGE_SHIFT, dma);
+	void *addr = Lx::Malloc::dma().malloc(size, PAGE_SHIFT, dma);
 
 	if (!addr)
 		return 0;

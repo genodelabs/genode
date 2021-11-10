@@ -35,10 +35,41 @@ using namespace Kernel;
 
 void Thread::_ipc_alloc_recv_caps(unsigned cap_count)
 {
-	Genode::Allocator &slab = pd().platform_pd().capability_slab();
+	using Allocator = Genode::Allocator;
+
+	Allocator &slab = pd().platform_pd().capability_slab();
 	for (unsigned i = 0; i < cap_count; i++) {
-		if (_obj_id_ref_ptr[i] == nullptr)
-			_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
+		if (_obj_id_ref_ptr[i] != nullptr)
+			continue;
+
+		slab.try_alloc(sizeof(Object_identity_reference)).with_result(
+
+			[&] (void *ptr) {
+				_obj_id_ref_ptr[i] = ptr; },
+
+			[&] (Allocator::Alloc_error e) {
+
+				switch (e) {
+				case Allocator::Alloc_error::DENIED:
+
+					/*
+					 * Slab is exhausted, reflect condition to the client.
+					 */
+					throw Genode::Out_of_ram();
+
+				case Allocator::Alloc_error::OUT_OF_CAPS:
+				case Allocator::Alloc_error::OUT_OF_RAM:
+
+					/*
+					 * These conditions cannot happen because the slab
+					 * does not try to grow automatically. It is
+					 * explicitely expanded by the client as response to
+					 * the 'Out_of_ram' condition above.
+					 */
+					Genode::raw("unexpected recv_caps allocation failure");
+				}
+			}
+		);
 	}
 	_ipc_rcv_caps = cap_count;
 }
