@@ -401,6 +401,9 @@ size_t Allocator_avl_base::size_at(void const *addr) const
 	/* lookup corresponding block */
 	Block *b = _find_by_address(reinterpret_cast<addr_t>(addr));
 
+	if (b && (b->addr() != (addr_t)addr))
+		return 0;
+
 	return (b && b->used()) ? b->size() : 0;
 }
 
