@@ -167,6 +167,9 @@ bool Lx_kit::Mem_allocator::free(const void * ptr)
 	if (!_mem.valid_addr((addr_t)ptr))
 		return false;
 
+	if (!_mem.size_at(ptr))
+		return true;
+
 	_mem.free(const_cast<void*>(ptr));
 	return true;
 }
