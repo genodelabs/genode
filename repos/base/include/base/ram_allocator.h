@@ -116,19 +116,42 @@ class Genode::Constrained_ram_allocator : public Ram_allocator
 
 		Alloc_result try_alloc(size_t size, Cache cache = CACHED) override
 		{
+			using Result = Alloc_result;
+
 			size_t const page_aligned_size = align_addr(size, 12);
 
-			Ram_quota_guard::Reservation ram (_ram_guard, Ram_quota{page_aligned_size});
-			Cap_quota_guard::Reservation caps(_cap_guard, Cap_quota{1});
+			Ram_quota const needed_ram  { page_aligned_size };
+			Cap_quota const needed_caps { 1 };
 
-			return _ram_alloc.try_alloc(page_aligned_size, cache).convert<Alloc_result>(
-				[&] (Ram_dataspace_capability ds) {
-					ram. acknowledge();
-					caps.acknowledge();
-					return ds; },
+			return _ram_guard.with_reservation<Result>(needed_ram,
 
-				[&] (Alloc_error error) {
-					return error; });
+				[&] (Reservation &ram_reservation) {
+
+					return _cap_guard.with_reservation<Result>(needed_caps,
+
+						[&] (Reservation &cap_reservation) -> Result {
+
+							return _ram_alloc.try_alloc(page_aligned_size, cache)
+							                 .convert<Result>(
+
+								[&] (Ram_dataspace_capability ds) -> Result {
+									return ds; },
+
+								[&] (Alloc_error error) {
+									cap_reservation.cancel();
+									ram_reservation.cancel();
+									return error; }
+							);
+						},
+						[&] () -> Result {
+							ram_reservation.cancel();
+							return Alloc_error::OUT_OF_CAPS;
+						}
+					);
+				},
+				[&] () -> Result {
+					return Alloc_error::OUT_OF_RAM; }
+			);
 		}
 
 		void free(Ram_dataspace_capability ds) override
