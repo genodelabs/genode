@@ -48,6 +48,8 @@ struct Test::Monitor
 
 	size_t _ram_quota = 2*1024*1024;
 
+	unsigned _cnt = 0;
+
 	void _gen_service_xml(Xml_generator &xml, char const *name)
 	{
 		xml.node("service", [&] () { xml.attribute("name", name); });
@@ -81,14 +83,25 @@ struct Test::Monitor
 		});
 	}
 
-	size_t _resource_request_from_init_state()
+	size_t _child_ram_attr_value_from_init_state(char const *attr)
 	{
-		try {
-			return _init_state.xml().sub_node("child")
-			                        .sub_node("ram")
-			                        .attribute_value("requested", Number_of_bytes(0));
-		}
-		catch (...) { return 0; }
+		size_t result = 0;
+
+		_init_state.xml().with_sub_node("child", [&] (Xml_node const &child) {
+			child.with_sub_node("ram", [&] (Xml_node const &ram) {
+				result = ram.attribute_value(attr, Number_of_bytes(0)); }); });
+
+		return result;
+	}
+
+	size_t _ram_resource_request_from_init_state()
+	{
+		return _child_ram_attr_value_from_init_state("requested");
+	}
+
+	size_t _assigned_ram_from_init_state()
+	{
+		return _child_ram_attr_value_from_init_state("assigned");
 	}
 
 	Signal_handler<Monitor> _init_state_handler {
@@ -98,13 +111,20 @@ struct Test::Monitor
 	{
 		_init_state.update();
 
-		size_t const requested = _resource_request_from_init_state();
-		if (requested > 0) {
-			log("responding to resource request of ", Number_of_bytes(requested));
+		size_t const requested = _ram_resource_request_from_init_state();
+		if (requested == 0)
+			return;
 
-			_ram_quota += requested;
-			_generate_init_config();
-		}
+		size_t const upgraded_ram_quota = _assigned_ram_from_init_state()
+		                                + requested;
+
+		/* ignore spurious state update */
+		if (upgraded_ram_quota <= _ram_quota)
+			return;
+
+		_ram_quota = upgraded_ram_quota;
+		log("responding to resource request of ", Number_of_bytes(requested), " cnt=", _cnt++);
+		_generate_init_config();
 	}
 
 	Monitor(Env &env) : _env(env)
