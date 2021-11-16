@@ -217,6 +217,35 @@ class Virtio::Queue
 		void *_buffer_local_addr(Descriptor const *d) {
 			return (void *)(_buffer_local_base + (d->addr - _buffer_phys_base)); }
 
+		template <typename REPLY_TYPE, typename REPLY_FN>
+		bool _read_response_data(REPLY_FN const &reply_fn)
+		{
+			static_assert(TRAITS::has_data_payload);
+			static_assert(!TRAITS::device_write_only);
+
+			if (!has_used_buffers())
+				return false;
+
+			Genode::uint16_t const idx = _last_used_idx % _queue_size;
+			auto const *desc = &_desc_table[idx];
+			char const *desc_data = (char *)_buffer_local_addr(desc);
+
+			if (!(desc->flags & Descriptor::Flags::NEXT))
+				return false;
+
+			if (desc->next >= _queue_size)
+				return false;
+
+			desc = &_desc_table[desc->next];
+			desc_data = (char *)_buffer_local_addr(desc);
+
+			if (reply_fn(*reinterpret_cast<REPLY_TYPE const *>(desc_data))) {
+				_last_used_idx++;
+				return true;
+			}
+			return false;
+		}
+
 	public:
 
 		struct Invalid_buffer_size : Genode::Exception { };
@@ -350,6 +379,104 @@ class Virtio::Queue
 			_avail->idx = _avail->idx + 1;
 
 			return header;
+		}
+
+		template <typename REPLY_TYPE, typename WAIT_REPLY_FN, typename REPLY_FN>
+		bool write_data_read_reply(Header_type    const &header,
+		                           char           const *data,
+		                           Genode::size_t        data_size,
+		                           WAIT_REPLY_FN  const &wait_for_reply,
+		                           REPLY_FN       const &read_reply,
+		                           bool                  request_irq = false)
+		{
+			static_assert(!TRAITS::device_write_only);
+			static_assert(TRAITS::has_data_payload);
+
+			int req_desc_count = 1 + (sizeof(header) + data_size) / _buffer_size;
+
+			if (req_desc_count > _avail_capacity())
+				return false;
+
+			/*
+			 * This restriction could be lifted by chaining multiple descriptors to receive
+			 * the reply. Its probably better however to just ensure buffers are large enough
+			 * when configuring the queue instead of adding more complexity to this function.
+			 */
+			if (sizeof(REPLY_TYPE) > _buffer_size)
+				return false;
+
+			Genode::uint16_t avail_idx = _avail->idx;
+			auto *desc = &_desc_table[avail_idx % _queue_size];
+			avail_idx++;
+
+			Genode::memcpy(_buffer_local_addr(desc), (void *)&header, sizeof(header));
+			desc->len = sizeof(header);
+
+			Genode::size_t len = 0;
+
+			if (data != nullptr && data_size > 0) {
+				Genode::size_t len = Genode::min(_buffer_size - sizeof(header), data_size);
+				Genode::memcpy((char *)_buffer_local_addr(desc) + desc->len, data, len);
+				desc->len += len;
+				len = data_size + sizeof(header) - desc->len;
+			}
+
+			if (len == 0) {
+				desc->flags = 0;
+				desc->next = 0;
+			} else {
+				desc->flags = Descriptor::Flags::NEXT;
+				desc->next = avail_idx % _queue_size;
+
+				Genode::size_t data_offset = desc->len;
+				do {
+					desc = &_desc_table[avail_idx % _queue_size];
+					avail_idx++;
+
+					Genode::size_t write_len = Genode::min(_buffer_size, len);
+					Genode::memcpy((char *)_buffer_local_addr(desc),
+					               data + data_offset, write_len);
+
+					desc->len = write_len;
+					desc->flags = len > 0 ? Descriptor::Flags::NEXT : 0;
+					desc->next = len > 0 ? (avail_idx % _queue_size) : 0;
+
+					len -= write_len;
+					data_offset += desc->len;
+				} while (len > 0);
+			}
+
+			/*
+			 * Chain additional descriptor for receiving response.
+			 */
+			desc->flags = Descriptor::Flags::NEXT;
+			desc->next = avail_idx % _queue_size;
+
+			desc = &_desc_table[avail_idx % _queue_size];
+			desc->len = sizeof(REPLY_TYPE);
+			desc->flags = Descriptor::Flags::WRITE;
+			desc->next = 0;
+
+			_avail->flags = request_irq ? 0 : Avail::Flags::NO_INTERRUPT;
+			_avail->idx = avail_idx;
+
+			wait_for_reply();
+
+			/* Make sure wait call did what it was supposed to do. */
+			if (!has_used_buffers())
+				return false;
+
+			return _read_response_data<REPLY_TYPE>(read_reply);
+		}
+
+		template <typename REPLY_TYPE, typename WAIT_REPLY_FN, typename REPLY_FN>
+		bool write_data_read_reply(Header_type    const &header,
+		                           WAIT_REPLY_FN  const &wait_for_reply,
+		                           REPLY_FN       const &read_reply,
+		                           bool                  request_irq = false)
+		{
+			return write_data_read_reply<REPLY_TYPE>(
+				header, nullptr, 0, wait_for_reply, read_reply, request_irq);
 		}
 
 		void print(Genode::Output& output) const
