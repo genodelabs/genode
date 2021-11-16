@@ -1,4 +1,4 @@
-_/src/virt_qemu_drivers
+_/src/virtio_fb_drv
 _/src/virtio_input_drv
 _/src/platform_drv
 _/src/event_filter
