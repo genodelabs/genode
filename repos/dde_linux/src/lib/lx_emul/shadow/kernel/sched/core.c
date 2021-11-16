@@ -30,6 +30,8 @@
 #include <../kernel/sched/sched.h>
 
 
+struct rq runqueues;
+
 /*
  * Type changes between kernel versions
  */
