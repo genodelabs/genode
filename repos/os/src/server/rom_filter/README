@@ -40,7 +40,8 @@ The '<output>' node can contain the following sub nodes:
 
 :'<input>':
   Copies the content of the input specified by the 'name' attribute to the
-  output node.
+  output node. If the optional attribute 'skip_toplevel' is set and evaluates
+  to true, the top-level XML node from the input will not be copied.
 
 :'<attribute>':
   Adds an attribute with the specified 'name' and 'value'. If the node

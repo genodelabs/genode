@@ -434,14 +434,18 @@ class Rom_filter::Input_rom_registry
 		 *
 		 * \throw Nonexistent_input_node
 		 */
-		void gen_xml(Input_name const &input_name, Genode::Xml_generator &xml)
+		void gen_xml(Input_name const &input_name, Genode::Xml_generator &xml, bool skip_toplevel=false)
 		{
 			Entry const *e = _lookup_entry_by_name(input_name);
 			if (!e)
 				throw Nonexistent_input_node();
 
-			e->node().with_raw_node([&] (char const *start, Genode::size_t length) {
-				xml.append(start, length); });
+			if (skip_toplevel)
+				e->node().with_raw_content([&] (char const *start, Genode::size_t length) {
+					xml.append(start, length); });
+			else
+				e->node().with_raw_node([&] (char const *start, Genode::size_t length) {
+					xml.append(start, length); });
 		}
 };
 

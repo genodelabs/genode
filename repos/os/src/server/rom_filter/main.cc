@@ -350,8 +350,11 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 			Input_name const input_name =
 				node.attribute_value("name", Input_name());
 
+			bool const skip_toplevel =
+				node.attribute_value("skip_toplevel", false);
+
 			try {
-				_input_rom_registry.gen_xml(input_name, xml); }
+				_input_rom_registry.gen_xml(input_name, xml, skip_toplevel); }
 			catch (...) { }
 		}
 	};
