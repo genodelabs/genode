@@ -365,7 +365,15 @@ struct Main : Event_handler
 		ievent_source->RegisterListener(listener, ComSafeArrayAsInParam(event_types), true);
 	}
 
-	Main(Genode::Env &env) : _env(env) { }
+	Main(Genode::Env &env) : _env(env)
+	{
+		/*
+		 * Explicitly, adapt to current framebuffer/window size after
+		 * initialization finished. This ensures the use of the correct
+		 * framebuffer dimensions in scenarios without a window manager.
+		 */
+		_handle_fb_mode();
+	}
 };
 
 
