@@ -110,6 +110,8 @@ Session_component::acquire_single_device()
 void Session_component::release_device(Capability<Platform::Device_interface> device_cap)
 {
 	_env.env.ep().rpc_ep().apply(device_cap, [&] (Device_component * dc) {
+		if (!dc)
+			return;
 		_env.env.ep().rpc_ep().dissolve(dc);
 		_cap_quota_guard().replenish(Cap_quota{1});
 		dc->release();
@@ -199,6 +201,7 @@ Session_component::~Session_component()
 {
 	while (_device_list.first()) {
 		Device_list_element * e = _device_list.first();
+		release_device(e->object()->cap());
 		_device_list.remove(e);
 		destroy(_md_alloc, e->object());
 	}

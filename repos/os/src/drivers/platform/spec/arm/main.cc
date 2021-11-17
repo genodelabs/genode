@@ -39,8 +39,15 @@ struct Driver::Main
 void Driver::Main::update_config()
 {
 	env.config.update();
-	env.devices.update(env.config.xml());
+
+	/**
+	 * We must perform the policy update before updating the devices since
+	 * the former may need to release devices and its corresponding Io_mem
+	 * and Irq connections when closing a session that is no longer supposed
+	 * to exist. For doing so, it must access the old device model.
+	 */
 	root.update_policy();
+	env.devices.update(env.config.xml());
 }
 
 void Component::construct(Genode::Env &env) {
