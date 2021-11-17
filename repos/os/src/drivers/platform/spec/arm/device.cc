@@ -51,9 +51,6 @@ void Driver::Device::release(Session_component & sc)
 {
 	if (_session != sc.label()) { return; }
 
-	sc.replenish(Cap_quota{_cap_quota_required()});
-	sc.replenish(Ram_quota{_ram_quota_required()});
-
 	_io_mem_list.for_each([&] (Io_mem & io_mem) {
 		if (io_mem.io_mem) {
 			destroy(sc.heap(), io_mem.io_mem);
@@ -69,6 +66,9 @@ void Driver::Device::release(Session_component & sc)
 	});
 
 	_session = Platform::Session::Label();;
+
+	sc.replenish(Cap_quota{_cap_quota_required()});
+	sc.replenish(Ram_quota{_ram_quota_required()});
 }
 
 
@@ -151,9 +151,12 @@ void Driver::Device::report(Xml_generator & xml, Session_component & sc)
 
 Genode::size_t Driver::Device::_cap_quota_required()
 {
-	size_t total = 0;
+	/* one cap is needed for the device component itself */
+	size_t total = 1;
 	_io_mem_list.for_each([&] (Io_mem &) {
 		total += Io_mem_session::CAP_QUOTA; });
+	_irq_list.for_each([&] (Irq &) {
+		total += Irq_session::CAP_QUOTA; });
 	return total;
 }
 
@@ -162,7 +165,9 @@ Genode::size_t Driver::Device::_ram_quota_required()
 {
 	size_t total = 0;
 	_io_mem_list.for_each([&] (Io_mem &) {
-		total += 4096; });
+		total += Io_mem_session::RAM_QUOTA; });
+	_irq_list.for_each([&] (Irq &) {
+		total += Irq_session::RAM_QUOTA; });
 	return total;
 }
 
