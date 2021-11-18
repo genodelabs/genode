@@ -34,6 +34,7 @@
 #include <VBox/vmm/pdmapi.h>
 #include <VBox/err.h>
 #include <iprt/time.h>
+#include <iprt/semaphore.h>
 
 /* libc includes */
 #include <stdlib.h> /* for exit() */
@@ -106,8 +107,7 @@ class Sup::Vcpu_impl : public Sup::Vcpu, Genode::Noncopyable
 		Vm_connection::Vcpu _vcpu;
 
 		/* halt/wake_up support */
-		pthread_cond_t  _halt_cond;
-		pthread_mutex_t _halt_mutex;
+		RTSEMEVENTMULTI _halt_semevent { NIL_RTSEMEVENTMULTI };
 
 		/* state machine between EMT and vCPU mode */
 		enum Current_state { RUNNING, PAUSED } _current_state { PAUSED };
@@ -400,8 +400,8 @@ template <typename T> bool Sup::Vcpu_impl<T>::_check_and_request_irq_window()
 		return false;
 
 	if (!TRPMHasTrap(pVCpu) &&
-		!VMCPU_FF_IS_SET(pVCpu, (VMCPU_FF_INTERRUPT_APIC |
-		                         VMCPU_FF_INTERRUPT_PIC)))
+		!VMCPU_FF_IS_ANY_SET(pVCpu, (VMCPU_FF_INTERRUPT_APIC |
+		                             VMCPU_FF_INTERRUPT_PIC)))
 		return false;
 
 	_vcpu.state().inj_info.charge(REQ_IRQ_WINDOW_EXIT);
@@ -412,30 +412,31 @@ template <typename T> bool Sup::Vcpu_impl<T>::_check_and_request_irq_window()
 
 template <typename T> bool Sup::Vcpu_impl<T>::_continue_hw_accelerated()
 {
-	uint32_t check_vm = VM_FF_HM_TO_R3_MASK
-	                  | VM_FF_REQUEST
-	                  | VM_FF_PGM_POOL_FLUSH_PENDING
-	                  | VM_FF_PDM_DMA;
-	uint32_t check_vmcpu = VMCPU_FF_HM_TO_R3_MASK
-	                     | VMCPU_FF_PGM_SYNC_CR3
-	                     | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL
-	                     | VMCPU_FF_REQUEST
-	                     | VMCPU_FF_TIMER;
+	::uint32_t check_vm = VM_FF_HM_TO_R3_MASK
+	                    | VM_FF_REQUEST
+	                    | VM_FF_PGM_POOL_FLUSH_PENDING
+	                    | VM_FF_PDM_DMA;
+	/* VMCPU_WITH_64_BIT_FFS is enabled */
+	::uint64_t check_vmcpu = VMCPU_FF_HM_TO_R3_MASK
+	                       | VMCPU_FF_PGM_SYNC_CR3
+	                       | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL
+	                       | VMCPU_FF_REQUEST
+	                       | VMCPU_FF_TIMER;
 
-	if (!VM_FF_IS_SET(&_vm, check_vm) &&
-	    !VMCPU_FF_IS_SET(&_vmcpu, check_vmcpu))
+	if (!VM_FF_IS_ANY_SET(&_vm, check_vm) &&
+	    !VMCPU_FF_IS_ANY_SET(&_vmcpu, check_vmcpu))
 		return true;
 
 	Assert(!(VM_FF_IS_SET(&_vm, VM_FF_PGM_NO_MEMORY)));
 
 #define VERBOSE_VM(flag) \
-	if (VM_FF_IS_SET(&_vm, flag)) log("flag ", #flag, " (", Hex(flag), ") pending")
+	if (VM_FF_IS_SET(&_vm, flag)) LogAlways(("flag %s (%x) pending\n", #flag, flag))
 
 #define VERBOSE_VMCPU(flag) \
-	if (VMCPU_FF_IS_SET(&_vmcpu, flag)) log("flag ", #flag, " (", Hex(flag), ") pending")
+	if (VMCPU_FF_IS_SET(&_vmcpu, flag)) LogAlways(("flag %s (%llx) pending\n", #flag, flag))
 
-	if (false && VM_FF_IS_SET(&_vm, check_vm)) {
-		log("VM_FF=", Hex(_vm.fGlobalForcedActions));
+	if (false && VM_FF_IS_ANY_SET(&_vm, check_vm)) {
+		LogAlways(("VM_FF=%x\n", _vm.fGlobalForcedActions));
 		VERBOSE_VM(VM_FF_TM_VIRTUAL_SYNC);
 		VERBOSE_VM(VM_FF_PGM_NEED_HANDY_PAGES);
 		/* handled by the assertion above
@@ -446,8 +447,8 @@ template <typename T> bool Sup::Vcpu_impl<T>::_continue_hw_accelerated()
 		VERBOSE_VM(VM_FF_PGM_POOL_FLUSH_PENDING);
 		VERBOSE_VM(VM_FF_PDM_DMA);
 	}
-	if (false && VMCPU_FF_IS_SET(&_vmcpu, check_vmcpu)) {
-		log("VMCPU_FF=", Hex(_vmcpu.fLocalForcedActions));
+	if (false && VMCPU_FF_IS_ANY_SET(&_vmcpu, check_vmcpu)) {
+		LogAlways(("VMCPU_FF=%llx\n", _vmcpu.fLocalForcedActions));
 		VERBOSE_VMCPU(VMCPU_FF_TO_R3);
 		VERBOSE_VMCPU(VMCPU_FF_PDM_CRITSECT);
 		VERBOSE_VMCPU(VMCPU_FF_PGM_SYNC_CR3);
@@ -668,49 +669,16 @@ template <typename VIRT> VBOXSTRICTRC Sup::Vcpu_impl<VIRT>::_switch_to_hw()
  ** Vcpu interface **
  ********************/
 
-static timespec add_timespec_ns(timespec a, ::uint64_t ns)
-{
-	enum { NSEC_PER_SEC = 1'000'000'000ull };
-
-	long sec = a.tv_sec;
-
-	while (a.tv_nsec >= NSEC_PER_SEC) {
-		a.tv_nsec -= NSEC_PER_SEC;
-		sec++;
-	}
-	while (ns >= NSEC_PER_SEC) {
-		ns -= NSEC_PER_SEC;
-		sec++;
-	}
-
-	long nsec = a.tv_nsec + ns;
-	while (nsec >= NSEC_PER_SEC) {
-		nsec -= NSEC_PER_SEC;
-		sec++;
-	}
-	return timespec { sec, nsec };
-}
-
-
 template <typename T> void Sup::Vcpu_impl<T>::halt(Genode::uint64_t const wait_ns)
 {
-	/* calculate timeout */
-	timespec ts { 0, 0 };
-	clock_gettime(CLOCK_REALTIME, &ts);
-	ts = add_timespec_ns(ts, wait_ns);
-
-	/* wait for condition or timeout */
-	pthread_mutex_lock(&_halt_mutex);
-	pthread_cond_timedwait(&_halt_cond, &_halt_mutex, &ts);
-	pthread_mutex_unlock(&_halt_mutex);
+	RTSemEventMultiWait(_halt_semevent, wait_ns/RT_NS_1MS);
+	RTSemEventMultiReset(_halt_semevent);
 }
 
 
 template <typename T> void Sup::Vcpu_impl<T>::wake_up()
 {
-	pthread_mutex_lock(&_halt_mutex);
-	pthread_cond_signal(&_halt_cond);
-	pthread_mutex_unlock(&_halt_mutex);
+	RTSemEventMultiSignal(_halt_semevent);
 }
 
 
@@ -793,13 +761,7 @@ Sup::Vcpu_impl<VIRT>::Vcpu_impl(Env &env, VM &vm, Vm_connection &vm_con,
 	_emt(emt), _cpu(cpu), _vm(vm), _vmcpu(*vm.apCpusR3[cpu.value]),
 	_vcpu(vm_con, _alloc, _handler, VIRT::exit_config)
 {
-	pthread_mutexattr_t _attr;
-	pthread_mutexattr_init(&_attr);
-
-	pthread_cond_init(&_halt_cond, nullptr);
-
-	pthread_mutexattr_settype(&_attr, PTHREAD_MUTEX_ERRORCHECK);
-	pthread_mutex_init(&_halt_mutex, &_attr);
+	RTSemEventMultiCreate(&_halt_semevent);
 
 	/* run vCPU until initial startup exception */
 	_vcpu.run();

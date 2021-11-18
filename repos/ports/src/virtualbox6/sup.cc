@@ -249,7 +249,7 @@ static int vmmr0_gvmm_sched_halt(PVMR0 pvmr0, ::uint32_t cpu, ::uint64_t expire_
 }
 
 
-static int vmmr0_gvmm_wake_up(PVMR0 pvmr0, uint32_t cpu)
+static int vmmr0_gvmm_sched_wake_up(PVMR0 pvmr0, uint32_t cpu)
 {
 	Sup::Vm &vm = *(Sup::Vm *)pvmr0;
 
@@ -260,16 +260,14 @@ static int vmmr0_gvmm_wake_up(PVMR0 pvmr0, uint32_t cpu)
 }
 
 
-static int vmmr0_gvmm_sched_poll(PVMR0 pvmr0, uint32_t cpu, bool yield)
+static int vmmr0_gvmm_sched_poll(PVMR0 pvmr0, uint32_t cpu, bool /*yield*/)
 {
 	/*
 	 * GVMMR0SchedPoll() just wakes up waiters on gvmm.s.HaltEventMulti. In our
-	 * case, we could just call vmmr0_gvmm_wake_up(). Note, 'yield' must always
+	 * case, we just call vmmr0_gvmm_sched_wake_up(). Note, 'yield' must always
 	 * be false according to comment in GVMMR0SchedPoll().
 	 */
-
-	/* XXX still not sure if vmmr0_gvmm_wake_up(pvmr0, cpu) makes sense here */
-	return VINF_SUCCESS;
+	return vmmr0_gvmm_sched_wake_up(pvmr0, cpu);
 }
 
 
@@ -580,7 +578,7 @@ static void ioctl(SUPCALLVMMR0 &request)
 		return;
 
 	case VMMR0_DO_GVMM_SCHED_WAKE_UP:
-		rc = vmmr0_gvmm_wake_up(request.u.In.pVMR0, request.u.In.idCpu);
+		rc = vmmr0_gvmm_sched_wake_up(request.u.In.pVMR0, request.u.In.idCpu);
 		return;
 
 	case VMMR0_DO_GVMM_SCHED_POLL:
