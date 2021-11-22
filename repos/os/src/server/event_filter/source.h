@@ -47,7 +47,8 @@ class Event_filter::Source
 			    || node.type() == "merge"
 			    || node.type() == "button-scroll"
 			    || node.type() == "accelerate"
-			    || node.type() == "log";
+			    || node.type() == "log"
+			    || node.type() == "touch-click";
 
 			return false;
 		}

@@ -79,6 +79,13 @@ one of the following filters:
   "0" corresponds to a linear function whereas the maximum value "255" applies
   a curved function. The default value is "127".
 
+:<touch-click>:
+
+  Augments touch events with artificial absolute motion and mouse click/clack
+  events as understood by regular GUI applications that are not aware of
+  touch input. The original touch events are preserved, enabling touch-aware
+  applications to interpet touch gestures.
+
 
 Character generator rules
 -------------------------
