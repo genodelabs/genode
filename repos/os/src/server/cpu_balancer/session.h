@@ -46,8 +46,31 @@ struct Cpu::Thread_client : Interface
 		Thread_capability      _cap    { };
 		Genode::Thread::Name   _name   { };
 		Subject_id             _id     { };
-		Cpu::Policy *          _policy { nullptr };
+
+		enum Policy_type { NONE, PIN, ROUND_ROBIN, MAX_UTIL };
+
+		Policy_type            _type { Policy_type::NONE };
+
+		Policy_pin             _policy_pin  { };
+		Policy_round_robin     _policy_rr   { };
+		Policy_max_utilize     _policy_max  { };
+		Policy_none            _policy_none { };
+
 		bool                   _fix    { false };
+
+		Cpu::Policy & active_policy() {
+			switch (_type) {
+			case Policy_type::PIN:
+				return _policy_pin;
+			case Policy_type::ROUND_ROBIN:
+				return _policy_rr;
+			case Policy_type::MAX_UTIL:
+				return _policy_max;
+			case Policy_type::NONE:
+				return _policy_none;
+			}
+			return _policy_none;
+		}
 };
 
 class Cpu::Session : public Rpc_object<Cpu_session>
@@ -81,24 +104,19 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 		bool                   _verbose;
 		bool                   _by_us   { false };
 
-		void construct_policy(Thread::Name const &name, Cpu::Policy **policy,
-		                      Affinity::Location const loc)
+		void switch_policy(Thread::Name const &name, Thread_client &thread,
+		                   Affinity::Location const loc)
 		{
-			try {
-				if (name == "pin")
-					*policy = new (_md_alloc) Policy_pin();
-				else if (name == "round-robin")
-					*policy = new (_md_alloc) Policy_round_robin();
-				else if (name == "max-utilize")
-					*policy = new (_md_alloc) Policy_max_utilize();
-				else
-					*policy = new (_md_alloc) Policy_none();
+			if (name == "pin")
+				thread._type = Thread_client::Policy_type::PIN;
+			else if (name == "round-robin")
+				thread._type = Thread_client::Policy_type::ROUND_ROBIN;
+			else if (name == "max-utilize")
+				thread._type = Thread_client::Policy_type::MAX_UTIL;
+			else
+				thread._type = Thread_client::Policy_type::NONE;
 
-				(*policy)->location = loc;
-			} catch (Out_of_ram) { _by_us = true; throw;
-			} catch (Out_of_caps) { _by_us = true; throw;
-			} catch (Insufficient_ram_quota) { _by_us = true; throw;
-			} catch (Insufficient_cap_quota) { _by_us = true; throw; }
+			thread.active_policy().location = loc;
 		}
 
 		bool _one_valid_thread() const
@@ -149,9 +167,8 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 				if (!(thread._cap.valid()) || !(thread._cap == cap))
 					return false;
 
-				fn(thread._cap, thread._name, thread._id, *thread._policy);
+				fn(thread._cap, thread._name, thread._id, thread.active_policy());
 
-				destroy(_md_alloc, thread._policy);
 				destroy(_md_alloc, &thread);
 
 				return true;
@@ -166,19 +183,7 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 					return false;
 
 				return fn(thread._cap, thread._name, thread._id,
-				          *thread._policy, thread._fix);
-			});
-		}
-
-		template <typename FUNC>
-		void apply(FUNC const &fn) const
-		{
-			_for_each_thread([&](Thread_client const &thread) {
-				if (!thread._cap.valid())
-					return false;
-
-				return fn(thread._cap, thread._name,
-				          thread._id, *thread._policy, thread._fix);
+				          thread.active_policy(), thread._fix);
 			});
 		}
 
@@ -192,7 +197,7 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 				if (thread._name != name)
 					return false;
 
-				return fn(thread._cap, *thread._policy);
+				return fn(thread._cap, thread.active_policy());
 			});
 		}
 
@@ -215,16 +220,10 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 					return true;
 				}
 
-				if (!thread._policy->same_type(policy_name)) {
-					Cpu::Policy * new_policy = nullptr;
-					construct_policy(policy_name, &new_policy, thread._policy->location);
+				if (!thread.active_policy().same_type(policy_name))
+					switch_policy(policy_name, thread, thread.active_policy().location);
 
-					/* construct policy may throw, so we keep old policy up to here */
-					destroy(_md_alloc, thread._policy);
-					thread._policy = new_policy;
-				}
-
-				fn(thread._cap, *thread._policy);
+				fn(thread._cap, thread.active_policy());
 				done = true;
 				return true;
 			});
@@ -260,9 +259,9 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 				try {
 					thread = new (_md_alloc) Registered<Thread_client>(_threads);
 
-					construct_policy(policy_name, &thread->_policy, Affinity::Location());
+					switch_policy(policy_name, *thread, Affinity::Location());
 
-					fn(thread->_cap, thread->_name, *thread->_policy);
+					fn(thread->_cap, thread->_name, thread->active_policy());
 
 					/* XXX - heuristic */
 					thread->_fix = (thread->_name == _label.last_element()) ||
@@ -270,24 +269,15 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 					               (thread->_name == "signal_proxy") ||
 					               (thread->_name == "root");
 
-					if (thread->_fix) {
-						if (thread->_policy) {
-							destroy(_md_alloc, thread->_policy);
-							thread->_policy = nullptr;
-						}
-						construct_policy("none", &thread->_policy, Affinity::Location());
-					}
+					if (thread->_fix)
+						switch_policy("none", *thread, Affinity::Location());
 				} catch (Out_of_ram) { _by_us = true; throw;
 				} catch (Out_of_caps) { _by_us = true; throw;
 				} catch (Insufficient_ram_quota) { _by_us = true; throw;
 				} catch (Insufficient_cap_quota) { _by_us = true; throw; }
 			} catch (...) {
-				if (thread) {
-					if (thread->_policy)
-						destroy(_md_alloc, thread->_policy);
-
+				if (thread)
 					destroy(_md_alloc, thread);
-				}
 				throw;
 			}
 		}
@@ -363,7 +353,7 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 
 		void update_threads();
 		void update_threads(Trace &, Session_label const &);
-		bool report_state(Xml_generator &) const;
+		bool report_state(Xml_generator &);
 		void reset_report_state() { _report = false; }
 		bool report_update() const { return _report; }
 

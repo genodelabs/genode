@@ -150,8 +150,6 @@ Cpu::Session::Session(Env &env, Affinity const &affinity, char const * args,
 		                               Cpu::Policy &) {});
 
 		_threads.for_each([&](Thread_client &thread) {
-			if (thread._policy)
-				destroy(_md_alloc, thread._policy);
 			destroy(_md_alloc, &thread);
 		});
 
@@ -193,7 +191,7 @@ Capability<Cpu_session::Native_cpu> Cpu::Session::native_cpu()
 	return _parent.native_cpu();
 }
 
-bool Cpu::Session::report_state(Xml_generator &xml) const
+bool Cpu::Session::report_state(Xml_generator &xml)
 {
 	xml.node("component", [&] () {
 		xml.attribute("xpos",   _affinity.location().xpos());
