@@ -15,6 +15,7 @@
 #define _SESSION_H_
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/env.h>
 #include <base/heap.h>
 #include <base/registry.h>
@@ -53,8 +54,9 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 {
 	private:
 
-		Child_list            &_list;
-		Env                   &_env;
+		Child_list             &_list;
+		Env                    &_env;
+		Attached_rom_dataspace &_config;
 
 		Ram_quota_guard        _ram_guard;
 		Cap_quota_guard        _cap_guard;
@@ -195,12 +197,12 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 		}
 
 		template <typename FUNC>
-		void reconstruct(Cpu::Policy::Name const &policy_name,
-		                 Thread::Name const &thread_name,
-		                 FUNC const &fn)
+		bool reconstruct_if_active(Cpu::Policy::Name const &policy_name,
+		                           Thread::Name const &thread_name,
+		                           FUNC const &fn)
 		{
 			if (!thread_name.valid())
-				return;
+				return false;
 
 			bool done = false;
 
@@ -227,7 +229,18 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 				return true;
 			});
 
-			if (done)
+			return done;
+		}
+
+		template <typename FUNC>
+		void reconstruct(Cpu::Policy::Name const &policy_name,
+		                 Thread::Name const &thread_name,
+		                 FUNC const &fn)
+		{
+			if (!thread_name.valid())
+				return;
+
+			if (reconstruct_if_active(policy_name, thread_name, fn))
 				return;
 
 			construct(policy_name, [&](Thread_capability const &cap,
@@ -317,7 +330,8 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 
 	public:
 
-		Session(Env &, Affinity const &, char const *, Child_list &, bool);
+		Session(Env &, Affinity const &, char const *, Child_list &,
+		        Attached_rom_dataspace &, bool);
 		~Session();
 
 		/***************************
@@ -341,8 +355,12 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 		 ** internal interface **
 		 ************************/
 		bool match(Label const &label) const { return _label == label; };
-		void config(Thread::Name const &, Cpu::Policy::Name const &,
+
+		void update(Thread::Name const &, Cpu::Policy::Name const &,
 		            Affinity::Location const &);
+		void update_if_active(Thread::Name const &, Cpu::Policy::Name const &,
+		                      Affinity::Location const &);
+
 		void update_threads();
 		void update_threads(Trace &, Session_label const &);
 		bool report_state(Xml_generator &) const;

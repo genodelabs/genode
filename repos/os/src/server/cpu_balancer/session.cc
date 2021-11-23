@@ -12,6 +12,7 @@
  */
 
 #include "session.h"
+#include "config.h"
 
 using namespace Genode;
 using namespace Cpu;
@@ -36,6 +37,9 @@ Cpu::Session::create_thread(Pd_session_capability const  pd,
 		if (_reclaim_cap.value)
 			throw Out_of_caps();
 	}
+
+	/* read in potential existing policy for thread */
+	Cpu::Config::apply_for_thread(_config.xml(), *this, name);
 
 	lookup(name, [&](Thread_capability &store_cap,
 	                 Cpu::Policy &policy)
@@ -126,13 +130,13 @@ Dataspace_capability Cpu::Session::trace_control()
 	return _parent.trace_control();
 }
 
-Cpu::Session::Session(Env &env,
-                      Affinity const &affinity,
-                      char const * args,
-                      Child_list &list, bool const verbose)
+Cpu::Session::Session(Env &env, Affinity const &affinity, char const * args,
+                      Child_list &list, Attached_rom_dataspace &config,
+                      bool const verbose)
 :
 	_list(list),
 	_env(env),
+	_config(config),
 	_ram_guard(ram_quota_from_args(args)),
 	_cap_guard(cap_quota_from_args(args)),
 	_parent(_env.session<Cpu_session>(_id.id(), _withdraw_quota(args), affinity)),
@@ -141,6 +145,17 @@ Cpu::Session::Session(Env &env,
 	_verbose(verbose)
 {
 	try {
+		/* warm up the heap, we need space for at least one thread object */
+		construct(_default_policy, [&](Thread_capability &, Name &,
+		                               Cpu::Policy &) {});
+
+		_threads.for_each([&](Thread_client &thread) {
+			if (thread._policy)
+				destroy(_md_alloc, thread._policy);
+			destroy(_md_alloc, &thread);
+		});
+
+		/* finally, make object available via rpc */
 		_env.ep().rpc_ep().manage(this);
 	} catch (...) {
 		env.close(_id.id());
@@ -209,7 +224,7 @@ bool Cpu::Session::report_state(Xml_generator &xml) const
 	return _report;
 }
 
-void Cpu::Session::config(Thread::Name const &thread,
+void Cpu::Session::update(Thread::Name const &thread,
                           Cpu::Policy::Name const &policy_name,
                           Affinity::Location const &relativ)
 {
@@ -226,4 +241,28 @@ void Cpu::Session::config(Thread::Name const &thread,
 	});
 
 	_report = true;
+}
+
+void Cpu::Session::update_if_active(Thread::Name const &thread,
+                                    Cpu::Policy::Name const &policy_name,
+                                    Affinity::Location const &location)
+{
+	/*
+	 * Policies for existing threads are updated.
+	 */
+	bool found = reconstruct_if_active(policy_name, thread,
+	                                   [&](Thread_capability const &,
+	                                       Cpu::Policy &policy)
+	{
+		policy.config(location);
+
+		if (_verbose) {
+			String<12> const loc { policy.location.xpos(), "x", policy.location.ypos() };
+			log("[", _label, "] name='", thread, "' "
+			    "update policy to '", policy, "' ", loc);
+		}
+	});
+
+	if (found)
+		_report = true;
 }

@@ -120,7 +120,13 @@ namespace Cpu {
 		Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", remaining_ram_quota.value);
 		Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota", remaining_cap_quota.value);
 
-		return fn(argbuf);
+		try {
+			return fn(argbuf);
+		} catch (Out_of_ram) {
+			throw Insufficient_ram_quota();
+		} catch (Out_of_caps) {
+			throw Insufficient_cap_quota();
+		}
 	}
 }
 
@@ -244,15 +250,9 @@ struct Cpu::Balancer : Rpc_object<Typed_root<Cpu_session>>
 
 			Mutex::Guard guard(list_mutex);
 
-			auto * session = new (slice) Registered<Session>(list, env,
-			                                                 affinity,
-			                                                 session_args,
-			                                                 list, verbose);
-
-			/* check for config of new session */
-			Cpu::Config::apply(config.xml(), list);
-
-			return session->cap();
+			return (new (slice) Registered<Session>(list, env, affinity,
+			                                        session_args, list, config,
+			                                        verbose))->cap();
 		});
 	}
 

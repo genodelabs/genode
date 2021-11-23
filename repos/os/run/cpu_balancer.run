@@ -1,4 +1,4 @@
-build "core init timer server/cpu_balancer app/cpu_burner app/top"
+build "core init timer server/cpu_balancer app/cpu_burner app/top server/dynamic_rom"
 
 if {![have_include "power_on/qemu"]} {
 	puts "Run script is not supported on this platform"
@@ -64,26 +64,63 @@ append_if [expr $report_config eq "yes"] config {
 	</start>}
 
 append config {
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom name="cpu_balancer.config">
+				<inline>
+					<config interval_us="2000000"
+					        report="} $report_config {"
+					        trace="} $use_trace {"
+					        verbose="no">
+						<component label="cpu_burner -> " default_policy="none">
+<!--
+							<thread name="signal handler" policy="pin" xpos="1" ypos="0"/>
+-->
+							<thread name="signal handler" policy="max-utilize"/>
+							<thread name="burn_0x0"       policy="round-robin"/>
+							<thread name="burn_1x0"       policy="round-robin"/>
+						</component>
+					</config>
+				</inline>
+				<sleep milliseconds="2000"/>
+				<inline>
+					<config interval_us="2000000"
+					        report="} $report_config {"
+					        trace="} $use_trace {"
+					        verbose="no">
+						<component label="cpu_burner -> " default_policy="none">
+<!--
+							<thread name="signal handler" policy="pin" xpos="1" ypos="0"/>
+-->
+							<thread name="signal handler" policy="max-utilize"/>
+							<thread name="burn_0x0"       policy="round-robin"/>
+							<thread name="burn_1x0"       policy="round-robin"/>
+							<thread name="not_existent"   policy="round-robin"/>
+						</component>
+					</config>
+				</inline>
+				<sleep milliseconds="2000"/>
+			</rom>
+		</config>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>}
+
+append config {
 	<start name="cpu_balancer" caps="120">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="PD"/>
 			<service name="CPU"/>
 		</provides>
-		<config interval_us="2000000"
-		        report="} $report_config {"
-		        trace="} $use_trace {"
-		        verbose="no">
-			<component label="cpu_burner -> " default_policy="none">
-<!--
-				<thread name="signal handler" policy="pin" xpos="1" ypos="0"/>
--->
-				<thread name="signal handler" policy="max-utilize"/>
-				<thread name="burn_0x0"       policy="round-robin"/>
-				<thread name="burn_1x0"       policy="round-robin"/>
-			</component>
-		</config>
 		<route>
+			<service name="ROM" label="config">
+				<child name="dynamic_rom" label="cpu_balancer.config"/>
+			</service>
 			<service name="Timer">  <child name="timer"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
@@ -125,7 +162,7 @@ append config {
 
 install_config $config
 
-build_boot_image { core ld.lib.so init timer cpu_balancer cpu_burner top }
+build_boot_image { core ld.lib.so init timer cpu_balancer cpu_burner top dynamic_rom }
 
 append qemu_args " -nographic"
 append qemu_args " -smp [expr $cpu_width * $cpu_height],cores=$cpu_width,threads=$cpu_height"

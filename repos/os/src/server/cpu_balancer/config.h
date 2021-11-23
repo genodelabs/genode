@@ -29,6 +29,8 @@ class Cpu::Config {
 	public:
 
 		static void apply(Xml_node const &, Child_list &);
+		static void apply_for_thread(Xml_node const &, Cpu::Session &,
+                                   Thread::Name const &);
 };
 
 #endif /* _CONFIG_H_ */
