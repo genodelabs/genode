@@ -21,8 +21,14 @@ using State = Genode::Pd_session::Managing_system_state;
 
 State Pd_session_component::managing_system(State const & s)
 {
+	static constexpr addr_t SMCCC_NOT_SUPPORTED = 0xffffffffUL;
+
 	State ret;
-	ret.r[0] = Hw::Psci_smc_functor::call(s.r[0], s.r[1], s.r[2], s.r[3]);
+
+	ret.r[0] = (_managing_system == Managing_system::DENIED)
+		? SMCCC_NOT_SUPPORTED
+		: Hw::Psci_smc_functor::call(s.r[0], s.r[1], s.r[2], s.r[3]);
+
 	return ret;
 }
 
