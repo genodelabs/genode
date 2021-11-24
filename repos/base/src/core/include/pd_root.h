@@ -36,14 +36,22 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 		Region_map       &_local_rm;
 		Range_allocator  &_core_mem;
 
+		/**
+		 * The RAM allocations of system management components are getting
+		 * constrained to support older devices with 32-bit physical memory
+		 * address capabilities only, and to by compliant to certain 32-bit
+		 * kernel limitations mapping device memory 1:1 into the lower 3 GB
+		 */
 		static Ram_dataspace_factory::Phys_range _phys_range_from_args(char const *args)
 		{
-			addr_t const start = Arg_string::find_arg(args, "phys_start").ulong_value(0);
-			addr_t const size  = Arg_string::find_arg(args, "phys_size").ulong_value(0);
-			addr_t const end   = start + size - 1;
+			if (_managing_system(args) == Pd_session_component::Managing_system::DENIED)
+				return Ram_dataspace_factory::any_phys_range();
 
-			return (start <= end) ? Ram_dataspace_factory::Phys_range { start, end }
-			                      : Ram_dataspace_factory::any_phys_range();
+			addr_t const start = 0;
+			addr_t const end   = (sizeof(long) == 4) /* 32bit arch ? */
+			                   ? 0xbfffffffUL : 0xffffffffUL;
+
+			return Ram_dataspace_factory::Phys_range { start, end };
 		}
 
 		static Ram_dataspace_factory::Virt_range _virt_range_from_args(char const *args)

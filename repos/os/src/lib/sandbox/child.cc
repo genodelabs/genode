@@ -647,33 +647,32 @@ void Sandbox::Child::filter_session_args(Service::Name const &service,
 	}
 
 	/*
-	 * Remove phys_start and phys_size RAM-session arguments unless
-	 * explicitly permitted by the child configuration.
+	 * Unset the 'managing_system' argument unless explicitly permitted by the
+	 * child configuration.
 	 */
 	if (service == Pd_session::service_name()) {
 
 		/*
-		 * If the child is allowed to constrain physical memory allocations,
-		 * pass the child-provided constraints as session arguments to core.
-		 * If no constraints are specified, we apply the constraints for
-		 * allocating DMA memory (as the only use case for the constrain-phys
-		 * mechanism).
+		 * For an environment PD session created by us for a direct child, the
+		 * client's 'managing_system' argument is inferred from the child's
+		 * <start> node. Otherwise, for PD sessions initiated by a subsystem,
+		 * the argument is provided by the originator of the session request.
 		 */
-		if (_managing_system) {
-			addr_t start = 0;
-			addr_t size  = (sizeof(long) == 4) ? 0xc0000000UL : 0x100000000UL;
+		bool const direct_child = (session_label_from_args(args) == name());
 
-			Arg_string::find_arg(args, "phys_start").ulong_value(start);
-			Arg_string::find_arg(args, "phys_size") .ulong_value(size);
-
-			Arg_string::set_arg(args, args_len, "phys_start", String<32>(Hex(start)).string());
-			Arg_string::set_arg(args, args_len, "phys_size",  String<32>(Hex(size)) .string());
+		if (direct_child && _managing_system)
 			Arg_string::set_arg(args, args_len, "managing_system", "yes");
-		} else {
-			Arg_string::remove_arg(args, "phys_start");
-			Arg_string::remove_arg(args, "phys_size");
+
+		bool const client_arg = Arg_string::find_arg(args, "managing_system").bool_value(false);
+
+		/*
+		 * Preserve the client's wish for a 'managing_system' permission only
+		 * if the <start> node of the subsystem allows.
+		 */
+		bool const permitted = (_managing_system && client_arg);
+
+		if (!permitted)
 			Arg_string::remove_arg(args, "managing_system");
-		}
 	}
 }
 
