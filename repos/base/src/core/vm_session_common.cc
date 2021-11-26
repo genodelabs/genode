@@ -123,26 +123,35 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 
 void Vm_session_component::detach(addr_t guest_phys, size_t size)
 {
-	if (guest_phys & 0xffful) {
-		size += 0x1000 - (guest_phys & 0xffful);
-		guest_phys &= ~0xffful;
+	if (!size || (guest_phys & 0xffful) || (size & 0xffful)) {
+		warning("vm_session: skipping invalid memory detach addr=",
+		        (void *)guest_phys, " size=", (void *)size);
+		return;
 	}
 
-	if (size & 0xffful)
-		size = align_addr(size, 12);
+	addr_t const guest_phys_end = guest_phys + (size - 1);
+	addr_t       addr           = guest_phys;
+	do {
+		Rm_region *region = _map.metadata((void *)addr);
 
-	if (!size)
-		return;
+		/* walk region holes page-by-page */
+		size_t iteration_size = 0x1000;
 
-	{
-		Rm_region *region = _map.metadata(reinterpret_cast<void *>(guest_phys));
-		if (region && guest_phys == region->base() && region->size() <= size) {
+		if (region) {
+			iteration_size = region->size();
+
 			/* inform dataspace */
 			region->dataspace().detached_from(*region);
+
 			/* cleanup metadata */
 			_map.free(reinterpret_cast<void *>(region->base()));
 		}
-	}
+
+		if (addr >= guest_phys_end - (iteration_size - 1))
+			break;
+
+		addr += iteration_size;
+	} while (true);
 
 	/* kernel specific code to detach memory from guest */
 	_detach_vm_memory(guest_phys, size);
