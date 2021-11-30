@@ -4,6 +4,48 @@
                                ===========
 
 
+Genode OS Framework release 21.11 | 2021-11-30
+##############################################
+
+| Genode 21.11 puts the spotlight on device drivers. Interactive Genode
+| scenarios come to the Pinephone, hardware-accelerated graphics becomes
+| available on Intel Gen9+ and Vivante GPUs, and Xilnx Zynq receives
+| new love.
+
+The previous release presented our new take on porting drivers from Linux, and
+the architectural integration of hardware-accelerated graphics in Genode-based
+systems. The just released version 21.11 is the continuation of both topics.
+Thanks to our streamlined approach for transplanting Linux drivers to Genode, we
+were able to reuse the Pinephone's Linux drivers for the display and
+touchscreen without modification. But, in contrast to running those drivers in
+the Linux kernel, we are walking on new ground by confining each driver in a
+separate sandbox.
+
+With our GPU line of work, we followed two major directions during the release
+cycle. For one, we applied our architectural approach to a second GPU vendor
+besides Intel, namely the Vivante GPU as used by the i.MX SoC family.
+Combined with the etnaviv Gallium driver of the Mesa library, Genode thereby
+becomes able to render graphics with hardware acceleration on the MNT Reform
+open-hardware laptop. The second branch is the promised extension of our
+custom Intel GPU multiplexer to GPUs of generation 9 or newer. Thereby, GPU
+support has now become a regular feature of the Genode-based Sculpt OS that
+can be taken for a spin on commodity PC hardware.
+
+Regarding 32-bit ARM platforms, the current release revives our engagement
+with Xilinx Zynq devices, which combine FPGA fabric with a 32-bit ARM CPU.
+In particular, the release brings the framework to the USRP E310 board,
+opening new hardware-software co-design opportunities.
+
+Besides the many hardware-related topics outlined above, two functional
+improvements stand out. First, the Genode version of VirtualBox 6 has reached
+feature parity with version 5. Both versions can now be used interchangeably
+on Sculpt OS. Finally, libSDL2 got upgraded with support for audio and OpenGL,
+which is a nice pathway for hosting games on Genode.
+
+The new version is described in full detail by the
+[https:/documentation/release-notes/21.11 - release documentation of version 21.11...]
+
+
 Sculpt OS release 21.10 | 2021-10-14
 ####################################
 
