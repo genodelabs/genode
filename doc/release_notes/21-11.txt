@@ -1,0 +1,835 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 21.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+Version 21.11 of the Genode OS Framework puts device drivers into the
+spotlight. Where to begin? Back in
+[https://genode.org/news/road-map-for-2021 - January], we envisioned Genode
+running on the Pinephone. With the current release, the first interactive
+Genode scenarios become alive on this platform. Unlike the regular Linux-based
+systems used on the Pinephone, we are walking on new ground by running each
+individual driver in a dedicated sandbox.
+
+Speaking of 64-bit ARM platforms, Genode's support for the i.MX8 SoC family
+received a new USB host driver as well as the first version of the Vivante GPU
+driver. The latter is a continuation of our GPU-related work presented in the
+[https://genode.org/documentation/release-notes/21.08#Advancing_GPU_driver_stack - previous release],
+which proves that our approach of integrating hardware-accelerated graphics
+into the framework's architecture is applicable across different GPU vendors.
+As promised three months ago, we have also taken our custom Intel GPU
+multiplexer to Gen9 or newer devices. In fact, GPU support has now become a
+regular feature of the Genode-based Sculpt OS that can be taken for a spin on
+commodity PC hardware.
+
+Even though most efforts are nowadays spent on 64-bit platforms, we have
+revived Genode's support for Xilinx Zynq devices in aspiration of future
+hardware-software co-design work. Those chips combine FPGA fabric with 32-bit
+ARM cores and thereby allow us to explore the combination of reconfigurable
+hardware with Genode's component architecture.
+
+For users who prefer the comforts of virtual hardware over the tinkering with
+physical devices, new drivers for VirtIO input and graphics open up the use of
+interactive Genode systems on Qemu's "virt" platform.
+
+Besides the predominant device-driver topics of the release, one other
+highlight is the feature completion of Genode's version of VirtualBox 6 on PC
+platforms, which has now reached parity with the time-tested version 5. Now,
+features like shared folders, shared clipboard, sound, or USB pass-through
+have become readily available.
+
+
+A little kingdom for each SoC family
+####################################
+
+With the number of supported boards and CPU architectures growing, our
+existing maintenance structure of the central Genode code repository becomes
+increasingly nonviable. We made the following observations.
+
+First, with respect to drivers ported from Linux, each SoC tends to refer
+to a different _flavour_ of the Linux kernel. This so-called vendor kernel
+may be a specific version with a blessed kernel configuration, or even a
+hard fork. In the past, we tried harmonizing drivers across SoCs by using
+the vanilla Linux kernel as common ground. But in practice, this common
+ground seems to be walked-on by only a few. Devices are shipped with vendor
+kernels after all. To get the best supported drivers for a given hardware,
+we have to port the drivers from the respective vendor kernel.
+This realization, in turn, faces us with the problem of a growing number
+of vendor kernels we have to work with whenever extending Genode's hardware
+support to a new SoC. But there are only so many Linux kernels one can juggle
+with.
+
+Second, when using one monolithic code base for all SoCs, the coordination of
+the code repository becomes a bottleneck when it comes to reviewing and
+merging contributions, and the nurturing of a consistent level of quality
+assurance. In the case of Genode, this responsibility is shared by two head
+maintainers. However, their expertise lies in the Genode framework, not in the
+peculiarities of specific SoC hardware. Hence, the review of such SoC-related
+contributions must remain at surface level. But the burden of responsibility
+still rests on the two.
+
+Third, we ultimately want to encourage 3rd parties - like hardware vendors -
+to supplement SoC support for Genode independently from us. Forcing such
+independent developers to funnel their results into our code base is not
+always natural and may even be legally impeded by Genode's need for a
+[https://genode.org/community/contributions#Genode_Contributors_Agreement - contributor's agreement].
+We want to avoid such artificial friction.
+
+The consequence of these observations is the need to modularize our code base
+around the idea of giving each SoC family a little kingdom of their own. We
+envision a code repository with a different maintainer for each SoC family. As
+a prerequisite, we had to cleanly separate SoC-specific code from the generic
+code that will remain in the main Genode repository. To stress this approach,
+each of four developers picked a dedicated SoC family and went with it. Stefan
+Kalkowski took the i.MX-related code to his
+[https://github.com/skalk/genode-imx - genode-imx] repository,
+Johannes Schlatow took the Xilinx Zynq code to his
+[https://github.com/jschlatow/genode-zynq - genode-zynq] repository,
+Norman Feske
+maintains the Allwinner code for the Pinephone in
+his [https://github.com/nfeske/genode-allwinner - genode-allwinner]
+repository, and Sebastian Sumpf gave the RISC-V support a new home
+at his [https://github.com/ssumpf/genode-riscv - genode-riscv] repository.
+
+By looking at this modularization from four different perspectives at the same
+time, we reached satisfying interfaces between the generic and SoC-specific
+code. We found that this maintenance model works as anticipated. In
+particular, we hoped that each SoC can be shepherded by a single person
+without stress. This turned out to be true.
+
+We also found that the taken approach gives each maintainer a sense of
+autonomy that was not possible with one monolithic code base. This is
+particularly fruitful when drafting generic utilities for the eventual
+inclusion into Genode's main repository. The drafts can first receive a test
+of time at individual SoC repositories before integrating them into the common
+code base, the pin I/O interfaces described in
+Section [Pin I/O session interfaces] being a good example.
+
+The supportive tooling for each SoC tends to differ between vendors, speaking
+of custom system-image formats, boot loaders, or firmware. The SoC-specific
+repositories provide a natural home for hosting such tools, custom work-flow
+scripts, and configurations.
+
+With this exploratory phase completed, we plan to move the SoC-specific
+repositories - that currently reside at each maintainer's GitHub account -
+under the banner of [https://github.com/genodelabs - genodelabs] during the
+next release cycle.
+
+
+NXP i.MX family
+===============
+
+Support for the family of i.MX SoC related boards is located in the
+[https://github.com/skalk/genode-imx - genode-imx] repository.
+By now, it contains far-reaching support for the i.MX 8M Quad evaluation kit,
+and the MNT Reform2.
+
+Besides the basic kernel support for Genode's custom base-hw microkernel,
+it contains drivers for using SD and eMMC cards, HDMI, and MIPI-DSI connected
+displays, Ethernet, and USB connected devices. Moreover, we are proud to
+introduce support for the Vivante GPU used by the i.MX 8M SoC. All mentioned
+device drivers were ported using the
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - re-imagined approach to port Linux drivers]
+that was introduced in the previous release.
+
+To obtain a ready-to-use SD-card when testing an arbitrary run-script
+scenario, it is sufficient to add the following value to the 'RUN_OPT'
+variable:
+
+! RUN_OPT += --include image/imx8mq_mmc
+
+Depending on which board you've chosen, it will build the corresponding u-boot
+bootloader, file system, Genode system image, and integrate those parts into
+one SD-card image.
+
+
+Xilinx Zynq
+===========
+
+Basic platform support for the Zynq-7000 SoC has already been added to Genode
+with
+[https://genode.org/documentation/release-notes/15.11#Xilinx_Zynq-7000 - release 15.11].
+While the virtualized zynq_qemu board support resided in the main Genode
+repository and was regularly tested, support files for real Zynq-hardware were
+living in segregation within the Genode-world repository.
+
+By creating a new realm in form of a
+[https://github.com/jschlatow/genode-zynq - genode-zynq repository], we were
+able to consolidate the Zynq-specific board support and drivers in one place.
+Furthermore, we are currently intensifying our work on this platform and
+documenting the journey on
+[https://genodians.org/jschlatow/2021-11-29-zynq-guide-1 - genodians.org].
+This particularly includes building ready-to-use SD card images with u-boot
+and supporting run-time re-configuration of the FPGA.
+
+In order to use the zynq repository, you only need to create a clone at
+_repos/zynq_, create a new build directory for arm_v7a and uncomment the
+corresponding line in your etc/build.conf. Step-by-step instructions for
+individual boards can be found at _repos/zynq/doc/_.
+
+
+Allwinner A64 (Pinephone)
+=========================
+
+During the release cycle, Genode's support for the Allwinner A64 SoC, and
+the Pinephone in particular, made big leaps forward. The corresponding code
+is hosted in the dedicated
+[https://github.com/nfeske/genode-allwinner - genode-allwinner] repository.
+
+First, the Linux version taken as the basis for ported device drivers has been
+updated to 5.14.1 in order to support the revision v2 of the Pine-A64-LTS
+board, which features a different Ethernet PHY, namely the Motorcomm YT8511
+PHY. Genode's 'pine_a64lts' board supports both board revisions now.
+
+To enable touchscreen input on the Pinephone, the corresponding driver for the
+Goodix touchscreen controller has been ported from the Linux kernel. It
+complements the framebuffer driver that we introduced with the previous
+release. Combined, both drivers enable the use of Genode's regular interactive
+scenarios based on the 'drivers_interactive' package. The biggest technical
+challenge was the untangling of both drivers from the clock, reset, and power
+control units (CCU, RSB, PMIC). Those low-level platform configurations are
+now handled by a new A64-specific version of the platform driver.
+
+[image pinephone_touch]
+  Genode's nano-3D example responding to touch input
+
+The improved driver support is accompanied with new tooling for booting Genode
+on the Pinephone, either via USB fastboot, or via SD-card. Both options are
+described in the following Genodians article.
+
+:Booting Genode on the Pinephone:
+
+  [https://genodians.org/nfeske/2021-09-20-pine-fun-pinephone-boot]
+
+
+RISC-V
+======
+
+RISC-V board support for the base-hw kernel is now located at the
+[https://github.com/ssumpf/genode-riscv - genode-riscv] repository. Currently,
+the repository contains support for the
+[https://hensoldt-cyber.com/mig-v - MiG-V] SoC including kernel specific parts
+as well as a driver for MiG-V's network-interface controller.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+New pattern for C++ error handling
+==================================
+
+Genode employs C++ exceptions for propagating errors, which is true to the
+language. However, the use and the mechanics of C++ exceptions comes with its
+own bag of problems. The current release introduces a new error-handling
+pattern in the form of the so-called 'Attempt' utility. Its name reflects its
+designated use as a carrier for return values. This new utility is described
+by a dedicated article at Genodians.org:
+
+:An 'Attempt' to avoid C++ exceptions:
+
+  [https://genodians.org/nfeske/2021-11-26-attempt-no-exceptions]
+
+During the release cycle, we applied the 'Attempt' pattern to Genode's
+low-level memory-allocation code, namely core's PD session interface (for the
+allocation of RAM dataspaces), and the code related to the generic 'Allocator'
+interface (for the allocation of bytes). The latter is an extensive change,
+touching all implementations of this interface.
+
+To largely uphold compatibility with components using the original
+exception-based interface as a mere client - in particular use cases where an
+'Allocator' is passed to the 'new' operator - the traditional 'alloc' is still
+supported. But it exists merely as a wrapper around the new 'try_alloc'.
+However, the change does not preserve compatibility with the original
+'Range_allocator' interface. So uses of this interface must be adapted.
+
+
+Pin I/O session interfaces
+==========================
+
+On ARM-based SoCs, the use of general-purpose I/O (GPIO) pins is omnipresent.
+Traditionally, Genode features the "Gpio" session interface for this purpose.
+This interface allows a client to access an individual pin. Once assigned to a
+pin, the session grants the client the full responsibility for the pin. In
+particular the direction of the I/O pin is laid into the hands of the client.
+We later realized that the wiring and thereby the direction of a pin is
+ultimately a board-level decision. Wrongly operating an input pin in output
+mode can easily result in a short-circuit. Therefore, the client of an
+individual pin should better not be burdened with the responsibility to
+control the pin direction or pull resistors. To address this concern, it is
+best to split the roles of GPIO pins into clear-cut session interfaces.
+Those roles are:
+
+* The sensing of the state of a GPIO pin, e.g., detecting whether a button is
+  pressed or not: operating a pin as an input signal. This role is now covered
+  by the "Pin_state" session interface with the single RPC function
+
+  ! bool state() const;
+
+  By calling this function, the client can request the state of the pin.
+  That's it.
+
+* Controlling the signal level of a pin: operating a pin as an output signal.
+  This role is now addressed by the "Pin_control" session interface that
+  provides an interface of only one rather unsurprising RPC function
+
+  ! void state(bool);
+
+* Receiving a notification of a change of the signal level of a GPIO pin:
+  operating a pin as an interrupt source. This role can be represented by
+  Genode's existing IRQ session interface - the same interface as provided by
+  Genode's core for GIC interrupts.
+
+Since each pin corresponds to a separate session, per-pin access control
+becomes possible by Genode's regular session-routing mechanisms.
+In contrast to the original GPIO session, the role of each pin as output and
+input becomes explicit. A client can no longer drive a pin that is an input
+signal unless explicitly permitted.
+
+The interfaces were created and time-tested in the context of our
+Pinephone-related development, in particular during the work described in the
+following two articles.
+
+:Device access from the user level:
+
+  [https://genodians.org/nfeske/2021-03-17-pine-fun-device-access]
+
+:One Platform driver to rule them all:
+
+  [https://genodians.org/nfeske/2021-04-29-platform-driver]
+
+
+Pin-driver framework
+--------------------
+
+In real-world system scenarios, a variety of different components must
+decidedly interact with individual GPIO pins. This is where a so-called pin
+driver enters the picture. This component provides the pin-state, pin-control,
+and IRQ services. Analogously to how the platform driver safeguards the access
+to device resources by different - mutually distrusting - device drivers, the
+pin driver's job is the safeguarding of GPIO pins.
+
+To ease the implementation of such pin drivers, the new session interfaces are
+accompanied by a set of new utilities in
+[https://github.com/genodelabs/genode/blob/staging/repos/os/include/os/pin_driver.h -  os/pin_driver.h].
+The use of these utilities is best illustrated by the
+[https://github.com/nfeske/genode-allwinner/tree/master/src/drivers/pin/a64 - pin driver for the A64 SoC].
+
+
+Time-multiplexed pin direction
+------------------------------
+
+There exist rare use cases for changing the direction of an I/O pin during
+runtime. For example, the Goodix touchscreen controller as found in the
+Pinephone monitors the state of its interrupt signal during reset. During its
+normal operation, this signal is driven by the touchscreen controller but
+during reset, it is driven by the host to send one bit of information (I2C
+address selection). We support this time-multiplexed use of one pin as both
+input and output by the means of session lifetimes. The pin driver switches
+the pin into output mode not before a client establishes a pin-control session
+referring to this pin. The client can thereby control the direction by
+creating or closing its pin-control session.
+
+
+Genode C APIs
+=============
+
+USB host-controller service API
+-------------------------------
+
+While porting the Linux driver for the Designware USB host-controller used
+within the i.MX 8M SoC, we introduced a new C API to serve Genode USB clients
+from C driver ports. It enables drivers to:
+
+* Announce and release USB devices,
+* Ask for a session handle of an open session via the bus/device ID pair,
+* Ask for a single USB request via a session handle,
+* Acknowledge a USB request via a session and request handle, and
+* Notify potential USB clients that I/O progress has been made.
+
+You can find the new C API under _repos/os/include/genode_c_api/usb.h_. A
+working example driver can be found within the 'genode-imx' repository under
+_src/drivers/usb_host/imx8mq_.
+
+
+Touchscreen driver API
+----------------------
+
+To accommodate input drivers written in C, like the ones ported from the Linux
+kernel, we need a clean way to connect C code with Genode's event session
+interface.
+The current release introduces a C API to be used by input drivers to generate
+Genode events. The interface is located at
+_repos/os/include/genode_c_api/event.h_ whereas the implementation resides at
+_repos/os/src/lib/genode_c_api/event.cc_.
+The initial version is limited to multitouch events only.
+As of now, it is used by the Goodix touchscreen driver for the Pinephone.
+
+
+Event filter for converting touch to pointer input
+==================================================
+
+Unlike traditional pointer devices, touchscreens have no notion of a pointer
+position, hovering, or mouse buttons. E.g., without touching, there is no
+position. There exists a gap between those devices and regular GUI
+applications, which respond to pointer events in terms of hovering motion (in
+screen coordinates) and mouse clicks. Genode's existing touchscreen drivers
+try to bridge this gap by translating touch input to pointer events in rather
+pragmatic ways. This is not optimal for two reasons.
+
+First, putting the burden of emulating traditional pointer devices on the
+touchscreen drivers not only inflates their complexity but is also unnatural
+when the calibration of touch coordinates to screen coordinates comes into
+play. In this case, the touchscreen driver must be made aware of the display
+resolution. Second, the heuristics of how touch events are best translated
+into pointer events tend to differ from driver to driver, or between Genode
+use cases. Any intelligence that is builtin in the drivers stands in the way
+of interchanging the drivers or enhancing the translation across all drivers
+(e.g., adding two-finger-scroll).
+
+To solve this problem in a clean way, we added a new optional filter for
+translating touch events to pointer events to Genode's event-filter component
+(first introduced in
+[https://genode.org/documentation/release-notes/17.02#Input-event_filter - 17.02]
+as input filter, reworked in
+[https://genode.org/documentation/release-notes/20.08#Replacing_the_input_filter_with_an_event_filter - 20.08]).
+The new filter comes in the form of a new '<touch-click>' node in the filter's
+'<output>' definition. For example, the configuration of the event filter that
+sits in-between the Goodix touchscreen driver for the Pinephone and the
+nitpicker GUI server looks as follows.
+
+! <config>
+!   <output>
+!     <touch-click>
+!       <input name="touch"/>
+!     </touch-click>
+!   </output>
+!   <policy label="touch" input="touch"/>
+! </config>
+
+The filter augments touch events with artificial absolute motion and mouse
+click/clack events as understood by regular GUI applications. The original
+touch events are preserved, enabling touch-aware applications to interpret
+touch gestures.
+
+
+Device drivers
+##############
+
+Hardware-accelerated graphics
+=============================
+
+Generic GPU-session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When we introduced the GPU session initially, it was modeled after the
+perceived requirements of the Linux i915 DRM back end. In the meantime, with
+the enablement of a more recent Mesa version and the addition of Vivante as
+another GPU family, we learned that some of those requirements are obsolete.
+
+First, we replaced the 'info' RPC by an information ROM dataspace to overcome
+the following limitations.
+
+* The amount of data that can be transferred in an RPC is constrained by the
+  underlying base platform,
+* Most information never changes during run time but must be copied
+  nonetheless when using an RPC interface,
+* The information presented differs depending on the used GPU device.
+  With the introduction of Vivante, the original Intel-centric implementation no
+  longer suffices.
+* Sequence numbers of GPU execution buffers are not GPU-specific and, thus,
+  should be part of the generic GPU session interface.
+
+Currently, the GPU-specific information is presented in binary format, which
+is specified in _gpu/info_intel.h_ resp. _gpu/info_etnaviv.h_ for the Vivante
+GPU. We entertain the idea to replace the current representation by an
+XML-based ROM in the future to render the interface binary agnostic and also
+backwards-compatible. The information ROM can be accessed via the
+'attached_info' client API function.
+
+Furthermore, we replaced the usage of heavy-weight dataspace capabilities with
+light-weight client-local identifiers called 'Buffer_id' within the API. In
+case the client requires a capability (e.g., for mapping the buffer in its
+address space) it uses the corresponding ID to request it from the server.
+
+With upcoming support for other driver back ends, we need to take their
+requirements into account as well. We introduced abstractions that further
+encapsulate the device-specific state and operations. The changes in this
+release represent only the first consolidation steps of Genode's GPU support
+and we will continue this work during the next months.
+
+
+Intel GPU support for Gen9 and newer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As mentioned in the
+[https://genode.org/documentation/release-notes/21.08#Advancing_GPU_driver_stack - 21.08]
+release notes, we were fiercely working on Intel GPU Gen9+ support because
+Gen8 (Broadwell) was the only stable running GPU on Genode at the time. For
+Gen9+, we experienced severe GPU hangs after an undefined amount of rendering
+passes. As promised in the previous release, we dove right in and were able to
+identify the main causes of this behavior. This led to working Gen9+ support in
+[https://genode.org/documentation/articles/sculpt-21-10#GPU - Sculpt OS release 21.10].
+To go into a little more detail, we had to look into workarounds as described by the
+[https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-skl-vol16-workarounds_0.pdf - Intel documentation]
+and the Linux kernel driver, and determine known workarounds that only apply
+to Gen9 and above. After many iterations, we found one workaround that fixed
+our GPU hang issue and now apply it during GPU initialization. Additionally,
+we found the hardware context sizes (a memory region where the GPU stores its
+state) vary between GPU generations, where Gen9 requires more space than Gen8.
+
+Additionally, we found that some features like tiling or client mappings
+through the global-graphics translation table are not required by our updated
+Mesa 21.0.0 Iris Gallium driver. Since these resources are global and were
+split between multiple GPU client applications, not using them lifts the
+limits formerly imposed by the partitioning.
+
+For the Sculpt integration, we added GPU-service support and are providing
+various packages. A summary on how to test GPU acceleration on Sculpt can be
+found at the following Genodians article.
+
+:Test driving Sculpt's 3D support:
+
+  [https://genodians.org/ssumpf/2021-10-25-glmark2]
+
+
+
+Vivante GPUs (i.MX8)
+~~~~~~~~~~~~~~~~~~~~
+
+With the previous release, we already foresaw adding support for Vivante
+GPUs as found in i.MX8 SoCs by show-casing a work-in-progress driver
+component based on the Linux 'etnaviv' DRM driver and using the also ported
+'etnaviv' Gallium driver.
+
+This driver component is now available in an updated fashion in the
+[https://github.com/skalk/genode-imx - genode-imx] repository that
+encapsulates support for the family of i.MX8 SoCs for Genode. In contrast to
+our first prototype, the driver now relies completely on the new DDE Linux
+approach and re-uses the existing 'lx_emul' and 'lx_kit' libraries. At the
+moment, the driver does not make use of a C-API to Genode services for
+accessing the GPU service like the other new DDE Linux drivers do but
+implements the session directly. We decided against prematurely introducing
+such an C-API while the GPU session itself is still in flux.
+
+[image glmark_mnt_reform]
+  Glmark running via the ported Vivante GPU driver on the MNT Reform laptop
+
+Briefly touching on the current implementation of the driver, we had to extend
+the 'lx_kit' API slightly to implement the buffer-object allocation. Also, we
+added a special-purpose interface called 'lx_drm' that comprises all Linux DRM
+I/O controls that need to be performed for implementing the GPU session and
+itself is a simple layer on top of 'drm_ioctl'.
+
+The 'lx_drm' functions are executed within the context of an emulated Linux
+kernel thread executed under a cooperative user-level scheduling scheme.
+However, since the GPU session is based on synchronous RPCs and we do not know
+in advance if a call into the ported driver code blocks at some point, we had
+to ensure the RPC returns not before the operation completed. The completion
+of operations may include several blocking states and concurrent event
+handling (e.g., hardware interrupts).
+
+For the time being, the driver component is still being worked on. We are, for
+example, investigating overall performance regressions. Nevertheless, the
+driver is functionally complete and currently supports one client at a time.
+
+In addition to the driver component, we cleaned up the existing 'etnaviv'
+libdrm back end and created a Sculpt pkg called *mesa_gpu-etnaviv* analogous
+to the pkgs for 'iris' and 'softpipe' back ends. The most visible change is
+the switch from the ad-hoc DRM session to the GPU session.
+
+All in all, we are now at a stage were we can work on optimizing the graphics
+stack on the Vivante GPU and are in particular looking forward to porting the
+next Linux driver. After all, by doing so, we can flesh out and maybe
+generalize the 'lx_drm' API so that for other drivers the porting effort gets
+reduced even further.
+
+
+VirtIO input and framebuffer drivers
+====================================
+
+_This section was co-authored by Piotr Tworek who created the_
+_VirtIO driver support. Thanks Piotr for the welcome contribution!_
+
+Over the
+[https://genode.org/documentation/release-notes/21.02#VirtIO_block_devices_for_virtual_machines_on_ARM - previous]
+[https://genode.org/documentation/release-notes/21.08#RAM_framebuffer_driver_for_Qemu - releases]
+of Genode this year, the framework received steadily improved driver support
+for virtual devices as supported by Qemu. The primary motivation behind this
+line of work is the use of virtual hardware as an experimentation ground for
+Genode on the AARCH64 and RISC-V architectures. The use of virtual hardware
+nicely side-steps the costs and (un-)availability of suitable devices, and
+avoids the extra effort that is usually involved when working with real
+hardware. The current release further advances the virtual-device support by
+the introduction of VirtIO input and graphics drivers.
+
+
+VirtIO input
+------------
+
+The new input driver can service Qemu VirtIO mouse, keyboard, and tablet
+devices. The implementation is based on the VirtIO 1.1 device specification,
+Section 5.8 "Input Device". The driver can service three separate device
+types, namely mouse, keyboard, and tablet. The main difference between mouse
+and tablet devices is that the former produces relative events whereas the
+latter produces absolute motion events.
+
+By default, the driver tries to attach to the first VirtIO input device of any
+of the listed types. Such behavior would pose a bit of a problem since in
+Genode, we'd like to know that a specific instance of the driver will attach
+only to a mouse for example. This way, we can define proper policies for it.
+To allow such behavior, the VirtIO input driver has one configuration key
+called 'match_product', which accepts the values of "mouse", "keyboard",
+"tablet", and "any" (default). Using this config key, one can accomplish
+exactly what is needed to tell the driver to only attach to a VirtIO input
+device if it's of "match_product" type.
+
+
+VirtIO framebuffer
+------------------
+
+The new VirtIO framebuffer driver implements the necessary bits to provide 2D
+framebuffer support on top of a VirtIO GPU device as provided by Qemu. Compared
+to the ramfb driver, which was introduced in Genode
+[https://genode.org/documentation/release-notes/21.08#RAM_framebuffer_driver_for_Qemu - 21.08],
+the VirtIO framebuffer driver has one major benefit: It allows the Qemu window
+to be dynamically resized at runtime. The driver will treat this as resolution
+change and act accordingly. In contrast to the VirtIO input driver, the
+framebuffer driver does not support any extra config options.
+
+
+Practical use
+-------------
+
+Thanks to the new drivers, the drivers_interactive package for the 'virt_qemu'
+board has become fully interactively usable. The drivers subsystem spawns two
+instances of virtio_input. One attaches to a keyboard device and the second to
+a mouse. This is what the default virt_qemu board exposes. At this time, the
+tablet device is not instantiated by default but it might become useful in the
+future for testing Genode's touch support.
+
+Make sure that Qemu exposes those new devices in the modern VirtIO 1.0 mode.
+Versions up to Qemu 5.1.0 still use pre-1.0 mode in the default setup.
+
+One thing to keep in mind is that the VirtIO framebuffer driver will change
+the resolution of the virtual display whenever the Qemu window is resized.
+This means that for high resolution screens, one might have to tweak the
+default RAM quota for the driver. The default should be enough for 1080p
+screens, but not much more than that.
+
+
+Linux device-driver environment
+===============================
+
+While working on Linux device-driver ports that use the new DDE Linux
+environment introduced in
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - release 21.08],
+we stumbled across some inaccuracies and missing pieces of the former
+implementation.
+For instance, kworker threads were blocked unconditionally before. But the
+original Linux kernel semantics includes corner-cases that delay kworker
+suspension. By adding them, we circumvent potential deadlocks. The cache
+maintenance operations got optimized by checking the read/write direction of
+the device with regard to DMA memory more accurately. Moreover, we had to
+learn that on ARM the minimal alignment for all allocations within Linux have
+to be of cache-line granularity.
+
+Feature-wise, a new API got introduced to access the pin-control service and
+IRQ sessions offered by it. This is useful when a Linux driver directly
+depends on GPIO settings respectively uses GPIO pins as interrupt source.
+
+
+Libraries and Applications
+##########################
+
+Feature completion of VirtualBox 6
+==================================
+
+With [https://genode.org/documentation/articles/sculpt-21-10 - Sculpt OS 21.10],
+we released VirtualBox version 6 as experimental alternative to the existing
+port of version 5. We also switched to version 6 as daily driver on our
+development machines at Genode Labs. These steps yielded the following
+improvements during the past Genode release cycle.
+
+The integration features shared folders, shared clipboard, and guest
+mouse-pointer shape were fully enabled. Most guest-integration modules in
+VirtualBox are implemented as shared libraries/objects, which are loaded at
+runtime on demand. Following our goal to keep changes to the upstream code
+minimal, our version of VirtualBox 6 now provides VBoxSharedClipboard and
+VBoxSharedFolders as dedicated libraries that must be integrated into the
+system as follows. Note, the libraries are accessed by the VirtualBox code as
+files before loading but must also be available as ROMs to our runtime dynamic
+linker.
+
+! <start name="virtualbox6">
+!   <config vbox_file="machine.vbox6">
+!     <vfs>
+!       <!-- original file names of shared objects -->
+!       <rom name="VBoxSharedClipboard.so"/>
+!       <rom name="VBoxSharedFolders.so"/>
+!     </vfs>
+!   </config>
+!   <route>
+!     <!-- map file names to Genode shared-object naming scheme -->
+!     <service name="ROM" label="VBoxSharedClipboard.so">
+!       <parent label="virtualbox6-sharedclipboard.lib.so"/> </service>
+!     <service name="ROM" label="VBoxSharedFolders.so">
+!       <parent label="virtualbox6-sharedfolders.lib.so"/> </service>
+!   </route>
+! </start>
+
+As depicted in the configuration snippet above, we use the file extension
+_.vbox6_ for VirtualBox 6 configuration files. The background is that there
+are some subtle incompatibilities in VirtualBox 6 with settings we used in
+version 5. For example, the version of the configuration file must be set to
+1.18+ for maximum compatibility of virtual-device configuration and guest
+operating systems. An example configuration is provided by the pkg/vbox6 depot
+archive and specifies the version like follows.
+
+! <VirtualBox xmlns="http://www.virtualbox.org/" version="1.18-genode">
+
+Unlike VirtualBox 5, the current version does not implement a custom Audio
+back end for Genode but uses the existing OSS back end of the original
+implementation. The feature can be enabled in .vbox and runtime configuration.
+We recommend using the HDA controller.
+
+! <AudioAdapter controller="HDA" driver="OSS" enabled="true" enabledOut="true" enabledIn="false"/>
+
+! <start name="virtualbox6">
+!   <config>
+!     <vfs>
+!       <dir name="dev"> <oss name="dsp"/> </dir>
+!     <vfs>
+!   </config>
+! </start>
+
+More device-related improvements are the reporting of mouse-wheel events, the
+support of up to 8 pass-through USB devices via the virtual XHCI USB3
+controller, and a ready-to-use Sculpt package to capture webcam streams in the
+VM (genodelabs/pkg/vbox6-capture).
+
+Finally, this release includes a whole lot of stability improvements to bring
+VirtualBox 6 on par with version 5 in daily use like robust machine state
+handling including the FPU, fixed corner cases in the AHCI model and
+Startup-IPI implementation as well as enhanced timeout and CPU wakeup
+handling.
+
+
+Sculpt OS for 64-bit ARM in addition to x86
+===========================================
+
+Up until now, the Genode-based [https://genode.org/download/sculpt - Sculpt OS]
+was primarily targeted at the 64-bit x86 architecture. However, since the
+hardware support of 64-bit ARM platforms like i.MX8 has reached almost feature
+parity with the PC platform, it was time to introduce the notion of CPU
+architectures to package index files.
+
+In Sculpt OS, software packages are provided in a federated way from any
+number of package providers. Each provider offers a so-called _index_ that
+enlists the available package versions blessed for a specific Sculpt OS
+release. See the release notes for Genode
+[https://genode.org/documentation/release-notes/19.02#Announcing_software_packages - 19.02]
+for more details.
+Starting with [https://genode.org/news/sculpt-os-release-21.10 - Sculpt OS 21.10]
+released in October, each index file features a declaration of the CPU
+architectures supported by the package provider.
+
+! <index>
+!   <supports arch="x86_64"/>
+!   <supports arch="arm_v8a"/>
+!  ...
+
+Sculpt uses this information to decide whether to display the index or not by
+comparing the architecture of the running machine with these declarations.
+Individual entries of an index file can be tagged as being specific for one
+architecture.
+
+! <pkg path="mesa_gpu-intel" info="Intel GPU driver (IRIS)" arch="x86_64"/>
+
+This annotation can also be specified for a sub index.
+
+! <index name="Virtual machines" arch="x86_64">
+!    ...
+! </index>
+
+Thanks to this approach, most packages - which are architecture-agnostic - can
+be offered for both x64_64 and arm_v8a with almost no manual work. In fact,
+starting with Sculpt 21.10, all default packages offered by Genode Labs are
+available for both architectures.
+
+
+Audio and OpenGL support for libSDL2
+====================================
+
+With this release, we extend the features of our SDL2 port by enabling audio
+support via the OSS back end and added basic support for using OpenGL.
+
+Re-using the existing OSS back end via our VFS OSS plugin is in contrast to
+how we enabled audio in our SDL1 port where we use Genode's audio-out
+session directly. Instead of having to add a Genode specific back end to each
+ported software, it is more reasonable to have just one implementation of a
+somewhat common interface for which the back end already exists.
+
+The OpenGL support, on the other hand, has not been thoroughly tested yet
+but works well enough for one or the other game. It still suffers from the
+same limitation as the normal video back end where resizing the window during
+runtime is not supported. This feature is yet to be implemented.
+
+Additionally, we made SDL2 now to use its existing pthread back ends,
+rather than using the generic fallback ones, as we deem the current pthread
+support in Genode sufficient.
+
+
+SSH terminal moved to Genode world repository
+=============================================
+
+The SSH terminal component now resides in the world repository. When we
+initially introduced this component, it complemented the existing TCP
+terminal. Rather than using plain TCP to access a terminal server the
+connection is secured by the SSH protocol.
+
+In the meantime the component itself incorporated more and more features
+that were not anticipated in the initial design. Since we have not used
+the component much ourselves lately, albeit some features are tested in our
+nightly CI, we decided to move it to the world repository.
+
+On a different note, the component now features new support for SFTP that
+enables one to access a Genode file system via SSH. Thanks to Tomasz Gajewski
+for this welcome contribution.
+
+
+Build system and tools
+######################
+
+Moving the platform-specific board support into extra repositories made it
+necessary to review the run tool with respect to virtualized platforms. For
+running Genode within Qemu, the run tool used to assemble the Qemu command
+line depending on the target board. In order to achieve a clean cut between
+the main repository hosting this part of the run tool and the
+platform-specific repositories, we came up with a way to specify the Qemu
+arguments outside the main repository.
+
+The solution follows along our approach of how we already specify the
+architecture and link address of a target board in distinct files within a
+board-property directory _board/<board_name>/_. Similarly, the board-specific
+Qemu arguments are now provided in a _board/<board_name>/qemu_args_ file. This
+file may contain one or multiple lines that will be appended to the command
+line generated by the run tool. Because it is required by virt_qemu, it is
+possible to restrict particular arguments to a certain spec, e.g. arm_v8a, by
+prefixing the line with 'arm_v8a:'. Note, that any '-m *' argument, which
+specifies the amount of RAM, provided within a _qemu_args_ file will override
+any memory setting provided in the run scripts.
+
+Moreover, the _qemu_args_ file is obliged with instantiating a network
+controller since this is also specific to the platform. For the zynq_qemu
+board, e.g., this is achieved by the following arguments:
+
+! -net nic,model=cadence_gem,netdev=net0 -netdev user,id=net0
+
+Always instantiating a network device removes the need to call
+'append_qemu_nic_args' in the run scripts. However, you can still use this
+function to add forwarding rules to the netdev with id _net0_.
