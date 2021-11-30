@@ -18,11 +18,89 @@
 
 using Driver::Session_component;
 
+
+Genode::Capability<Platform::Device_interface>
+Session_component::_acquire(Device & device)
+{
+	Device_component * dc = new (heap())
+		Device_component(_device_registry, *this, device);
+	device.acquire(*this);
+	return _env.env.ep().rpc_ep().manage(dc);
+};
+
+
+void Session_component::_release_device(Device_component & dc)
+{
+	Device::Name name = dc.device();
+	_env.env.ep().rpc_ep().dissolve(&dc);
+	destroy(heap(), &dc);
+
+	_env.devices.for_each([&] (Device & dev) {
+		if (name == dev.name()) dev.release(*this); });
+}
+
+
+void Session_component::_free_dma_buffer(Dma_buffer & buf)
+{
+	Ram_dataspace_capability cap = buf.cap;
+	destroy(heap(), &buf);
+	_env_ram.free(cap);
+}
+
+
+bool Session_component::matches(Device & dev) const
+{
+	bool ret = false;
+
+	try {
+		Session_policy const policy { label(), _env.config.xml() };
+		policy.for_each_sub_node("device", [&] (Xml_node node) {
+			if (dev.name() == node.attribute_value("name", Device::Name()))
+				ret = true;
+		});
+	} catch (Session_policy::No_policy_defined) { }
+
+	return ret;
+};
+
+
+void Session_component::update_policy(bool info)
+{
+	_info = info;
+
+	enum Device_state { AWAY, CHANGED, UNCHANGED };
+
+	_device_registry.for_each([&] (Device_component & dc) {
+		Device_state state = AWAY;
+		_env.devices.for_each([&] (Device & dev) {
+			if (dev.name() != dc.device())
+				return;
+			state = (dev.owner() == _owner_id) ? UNCHANGED : CHANGED;
+		});
+
+		if (state == UNCHANGED)
+			return;
+
+		if (state == AWAY)
+			warning("Device ", dc.device(),
+			        " has changed, will close device session");
+		else
+			warning("Device ", dc.device(),
+			        " unavailable, will close device session");
+		_release_device(dc);
+	});
+
+	update_devices_rom();
+};
+
+
 void Session_component::produce_xml(Xml_generator &xml)
 {
-	if (!_info) { return; }
-	for (Device_list_element * e = _device_list.first(); e; e = e->next()) {
-		e->object()->report(xml); }
+	if (!_info)
+		return;
+
+	_env.devices.for_each([&] (Device & dev) {
+		if (matches(dev)) dev.report(xml, *this); });
 }
 
 
@@ -30,39 +108,6 @@ Genode::Heap & Session_component::heap() { return _md_alloc; }
 
 
 Driver::Env & Session_component::env() { return _env; }
-
-
-void Session_component::add(Device::Name const & device)
-{
-	if (has_device(device)) return;
-
-	Device_component * new_dc =
-		new (_md_alloc) Device_component(*this, device);
-
-	Device_list_element * last = nullptr;
-	for (last = _device_list.first(); last; last = last->next()) {
-		if (!last->next()) break; }
-	_device_list.insert(&new_dc->_list_elem, last);
-}
-
-
-bool Session_component::has_device(Device::Name const & device) const
-{
-	for (Device_list_element const * e = _device_list.first(); e;
-	     e = e->next()) {
-		if (e->object()->device() == device) { return true; }
-	}
-	return false;
-}
-
-
-unsigned Session_component::devices_count() const
-{
-	unsigned counter = 0;
-	for (Device_list_element const * e = _device_list.first();
-	     e; e = e->next()) { counter++; }
-	return counter;
-}
 
 
 void Session_component::update_devices_rom()
@@ -78,40 +123,59 @@ Genode::Rom_session_capability Session_component::devices_rom() {
 Genode::Capability<Platform::Device_interface>
 Session_component::acquire_device(Platform::Session::Device_name const &name)
 {
-	for (Device_list_element * e = _device_list.first(); e; e = e->next()) {
-		if (e->object()->device() != name.string()) { continue; }
+	Capability<Platform::Device_interface> cap;
 
-		if (!e->object()->acquire()) {
-			error("Device ", e->object()->device(),
-			              " already acquired!");
-			break;
-		}
+	/* Search for existing, aquired device session */
+	_device_registry.for_each([&] (Device_component & dc) {
+		if (dc.device() == name)
+			cap = dc.cap();
+	});
 
-		return _env.env.ep().rpc_ep().manage(e->object());
-	}
+	if (cap.valid())
+		return cap;
 
-	return Capability<Platform::Device_interface>();
+	_env.devices.for_each([&] (Device & dev)
+	{
+		if (dev.name() != name || !matches(dev))
+			return;
+		if (dev.owner().valid())
+			warning("Cannot aquire device ", name, " already in use");
+		else
+			cap = _acquire(dev);
+	});
+
+	return cap;
 }
 
 
 Genode::Capability<Platform::Device_interface>
 Session_component::acquire_single_device()
 {
-	Device_list_element * e = _device_list.first();
-	if (!e) { return Capability<Platform::Device_interface>(); }
+	Capability<Platform::Device_interface> cap;
 
-	return acquire_device(e->object()->device());
+	/* Search for existing, aquired device session */
+	_device_registry.for_each([&] (Device_component & dc) {
+		cap = dc.cap(); });
+
+	if (cap.valid())
+		return cap;
+
+	_env.devices.for_each([&] (Device & dev) {
+		if (matches(dev) && !dev.owner().valid())
+			cap = _acquire(dev); });
+
+	return cap;
 }
 
 
 void Session_component::release_device(Capability<Platform::Device_interface> device_cap)
 {
-	_env.env.ep().rpc_ep().apply(device_cap, [&] (Device_component * dc) {
-		if (!dc)
-			return;
-		_env.env.ep().rpc_ep().dissolve(dc);
-		dc->release();
-	});
+	if (!device_cap.valid())
+		return;
+
+	_device_registry.for_each([&] (Device_component & dc) {
+		if (device_cap.local_name() == dc.cap().local_name())
+			_release_device(dc); });
 }
 
 
@@ -123,7 +187,7 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 	if (!ram_cap.valid()) return ram_cap;
 
 	try {
-		_buffer_list.insert(new (_md_alloc) Dma_buffer(ram_cap));
+		new (heap()) Dma_buffer(_buffer_registry, ram_cap);
 	} catch (Out_of_ram)  {
 		_env_ram.free(ram_cap);
 		throw;
@@ -140,31 +204,26 @@ void Session_component::free_dma_buffer(Ram_dataspace_capability ram_cap)
 {
 	if (!ram_cap.valid()) { return; }
 
-	for (Dma_buffer * buf = _buffer_list.first(); buf; buf = buf->next()) {
-
-		if (buf->cap.local_name() != ram_cap.local_name()) continue;
-
-		_buffer_list.remove(buf);
-		destroy(_md_alloc, buf);
-		_env_ram.free(ram_cap);
-		return;
-	}
+	_buffer_registry.for_each([&] (Dma_buffer & buf) {
+		if (buf.cap.local_name() == ram_cap.local_name())
+			_free_dma_buffer(buf); });
 }
 
 
 Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 {
-	if (!ram_cap.valid()) { return 0; }
+	addr_t ret = 0;
 
-	for (Dma_buffer * buf = _buffer_list.first(); buf; buf = buf->next()) {
+	if (!ram_cap.valid())
+		return ret;
 
-		if (buf->cap.local_name() != ram_cap.local_name()) continue;
+	_buffer_registry.for_each([&] (Dma_buffer & buf) {
+		if (buf.cap.local_name() == ram_cap.local_name()) {
+			Dataspace_client dsc(buf.cap);
+			ret = dsc.phys_addr();
+		} });
 
-		Dataspace_client dsc(buf->cap);
-		return dsc.phys_addr();
-	}
-
-	return 0;
+	return ret;
 }
 
 
@@ -188,25 +247,21 @@ Session_component::Session_component(Driver::Env       & env,
 	 *        we account the costs here until the ROM session interface
 	 *        changes.
 	 */
-	_cap_quota_guard().withdraw(Cap_quota{1});
+	_cap_quota_guard().withdraw(Cap_quota{Rom_session::CAP_QUOTA});
 	_ram_quota_guard().withdraw(Ram_quota{5*1024});
 }
 
 
 Session_component::~Session_component()
 {
-	while (_device_list.first()) {
-		Device_list_element * e = _device_list.first();
-		release_device(e->object()->cap());
-		_device_list.remove(e);
-		destroy(_md_alloc, e->object());
-	}
+	_device_registry.for_each([&] (Device_component & dc) {
+		_release_device(dc); });
 
-	/* also free up dma buffers */
-	while (_buffer_list.first())
-		free_dma_buffer(_buffer_list.first()->cap);
+	/* free up dma buffers */
+	_buffer_registry.for_each([&] (Dma_buffer & buf) {
+		_free_dma_buffer(buf); });
 
 	/* replenish quota for rom sessions, see constructor for explanation */
-	_cap_quota_guard().replenish(Cap_quota{1});
+	_cap_quota_guard().replenish(Cap_quota{Rom_session::CAP_QUOTA});
 	_ram_quota_guard().replenish(Ram_quota{5*1024});
 }
