@@ -13,32 +13,22 @@
 
 #include <root.h>
 
+using Version = Driver::Session_component::Policy_version;
+
 void Driver::Root::update_policy()
 {
-	_sessions.for_each([&] (Session_component & sc) {
-
-		bool     policy_changed = false;
-		unsigned device_count   = 0;
-
+	_sessions.for_each([&] (Session_component & sc)
+	{
 		try {
 			Session_policy const policy { sc._label, _env.config.xml() };
-
-			policy.for_each_sub_node("device", [&] (Xml_node node) {
-				device_count++;
-				if (!sc.has_device(node.attribute_value("name",
-				                                        Device::Name()))) {
-					policy_changed = true; }
-			});
-
-			if (device_count != sc.devices_count()) { policy_changed = true; }
+			sc.update_policy(policy.attribute_value("info", false),
+			                 policy.attribute_value("version", Version()));
 		}
 		catch (Session_policy::No_policy_defined) {
-			policy_changed = true;
 			error("No matching policy for '", sc._label.string(),
 			      "' anymore, will close the session!");
+			close(sc.cap());
 		}
-
-		if (policy_changed) { close(sc.cap()); }
 	});
 }
 
@@ -55,10 +45,8 @@ Driver::Session_component * Driver::Root::_create_session(const char *args)
 			Session_component(_env, _sessions, label,
 			                  session_resources_from_args(args),
 			                  session_diag_from_args(args),
-			                  policy.attribute_value("info", false));
-
-		policy.for_each_sub_node("device", [&] (Xml_node node) {
-			sc->add(node.attribute_value("name", Driver::Device::Name())); });
+			                  policy.attribute_value("info", false),
+			                  policy.attribute_value("version", Version()));
 	} catch (Session_policy::No_policy_defined) {
 		error("Invalid session request, no matching policy for ",
 		      "'", label_from_args(args).string(), "'");

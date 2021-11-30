@@ -40,25 +40,28 @@ class Driver::Session_component
 	public:
 
 		using Session_registry = Registry<Session_component>;
+		using Policy_version   = String<64>;
 
-		Session_component(Driver::Env      & env,
-		                  Session_registry & registry,
-		                  Label      const & label,
-		                  Resources  const & resources,
-		                  Diag       const & diag,
-		                  bool       const   info);
+		Session_component(Driver::Env          & env,
+		                  Session_registry     & registry,
+		                  Label          const & label,
+		                  Resources      const & resources,
+		                  Diag           const & diag,
+		                  bool           const   info,
+		                  Policy_version const version);
+
 		~Session_component();
 
 		Heap         & heap();
 		Driver::Env  & env();
 
-		void     add(Device::Name const &);
-		bool     has_device(Device::Name const &) const;
-		unsigned devices_count() const;
-		void     update_devices_rom();
+		bool matches(Device &) const;
+		void update_devices_rom();
 
 		Ram_quota_guard & ram_quota_guard() { return _ram_quota_guard(); }
 		Cap_quota_guard & cap_quota_guard() { return _cap_quota_guard(); }
+
+		void update_policy(bool info, Policy_version version);
 
 
 		/**************************
@@ -80,28 +83,32 @@ class Driver::Session_component
 
 		friend class Root;
 
-		struct Dma_buffer : List<Dma_buffer>::Element
+		struct Dma_buffer : Registry<Dma_buffer>::Element
 		{
 			Ram_dataspace_capability const cap;
 
-			Dma_buffer(Ram_dataspace_capability const cap)
-			: cap(cap) {}
+			Dma_buffer(Registry<Dma_buffer> & registry,
+			           Ram_dataspace_capability const cap)
+			: Registry<Dma_buffer>::Element(registry, *this), cap(cap) {}
 		};
 
-		using Device_list_element = List_element<Device_component>;
-		using Device_list         = List<Device_list_element>;
+		Driver::Env              & _env;
+		Device::Owner              _owner_id    { *this };
+		Constrained_ram_allocator  _env_ram     { _env.env.pd(),
+		                                          _ram_quota_guard(),
+		                                          _cap_quota_guard()  };
+		Heap                       _md_alloc    { _env_ram, _env.env.rm() };
+		Registry<Device_component> _device_registry { };
+		Registry<Dma_buffer>       _buffer_registry { };
+		Dynamic_rom_session        _rom_session { _env.env.ep(), _env.env.ram(),
+		                                          _env.env.rm(), *this    };
+		bool                       _info;
+		Policy_version             _version;
 
-		Driver::Env             & _env;
-		Constrained_ram_allocator _env_ram     { _env.env.pd(),
-		                                         _ram_quota_guard(),
-		                                         _cap_quota_guard()  };
-		Heap                      _md_alloc    { _env_ram, _env.env.rm() };
-		Device_list               _device_list { };
-		List<Dma_buffer>          _buffer_list { };
-		Dynamic_rom_session       _rom_session { _env.env.ep(), _env.env.ram(),
-		                                         _env.env.rm(), *this    };
-		bool const                _info;
-
+		Device_capability _acquire(Device & device);
+		void              _release_device(Device_component & dc);
+		void              _free_dma_buffer(Dma_buffer & buf);
+		
 		/*
 		 * Noncopyable
 		 */

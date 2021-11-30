@@ -15,8 +15,6 @@
 #define _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_H_
 
 #include <base/allocator.h>
-#include <io_mem_session/connection.h>
-#include <irq_session/connection.h>
 #include <platform_session/device.h>
 #include <util/list.h>
 #include <util/list_model.h>
@@ -41,20 +39,34 @@ class Driver::Device : private List_model<Device>::Element
 {
 	public:
 
+		using Name  = Genode::String<64>;
+		using Type  = Genode::String<64>;
+		using Range = Platform::Device_interface::Range;
+
+		struct Owner
+		{
+			void * obj_id;
+
+			Owner() : obj_id(nullptr) {}
+			Owner(Session_component & session);
+
+			bool operator == (Owner const & o) const {
+				return obj_id == o.obj_id; }
+
+			bool valid() const {
+				return obj_id != nullptr; }
+		};
+
 		struct Io_mem : List_model<Io_mem>::Element
 		{
-			addr_t              base;
-			size_t              size;
-			Io_mem_connection * io_mem { nullptr };
+			Range range;
 
-			Io_mem(addr_t base, size_t size)
-			: base(base), size(size) {}
+			Io_mem(Range range) : range(range) {}
 		};
 
 		struct Irq : List_model<Irq>::Element
 		{
-			unsigned         number;
-			Irq_connection * irq { nullptr };
+			unsigned number;
 
 			Irq(unsigned number) : number(number) {}
 		};
@@ -71,22 +83,29 @@ class Driver::Device : private List_model<Device>::Element
 			: name(name), value(value) {}
 		};
 
-		using Name  = Genode::String<64>;
-		using Type  = Genode::String<64>;
-		using Range = Platform::Device_interface::Range;
-
 		Device(Name name, Type type);
 		virtual ~Device();
 
-		Name name() const;
-		Type type() const;
+		Name  name() const;
+		Type  type() const;
+		Owner owner() const;
 
-		virtual bool acquire(Session_component &);
+		virtual void acquire(Session_component &);
 		virtual void release(Session_component &);
 
-		Irq_session_capability    irq(unsigned idx, Session_component &);
-		Io_mem_session_capability io_mem(unsigned idx, Range &, Cache,
-		                                 Session_component &);
+		template <typename FN> void for_each_irq(FN const & fn)
+		{
+			unsigned idx = 0;
+			_irq_list.for_each([&] (Irq const & irq) {
+				fn(idx++, irq.number); });
+		}
+
+		template <typename FN> void for_each_io_mem(FN const & fn)
+		{
+			unsigned idx = 0;
+			_io_mem_list.for_each([&] (Io_mem const & iomem) {
+				fn(idx++, iomem.range); });
+		}
 
 		void report(Xml_generator &, Session_component &);
 
@@ -95,19 +114,16 @@ class Driver::Device : private List_model<Device>::Element
 		virtual void _report_platform_specifics(Xml_generator &,
 		                                        Session_component &) {}
 
-		size_t _cap_quota_required();
-		size_t _ram_quota_required();
-
 		friend class Driver::Device_model;
 		friend class List_model<Device>;
 		friend class List<Device>;
 
-		Name                     _name;
-		Type                     _type;
-		Platform::Session::Label _session {};
-		List_model<Io_mem>       _io_mem_list {};
-		List_model<Irq>          _irq_list {};
-		List_model<Property>     _property_list {};
+		Name                 _name;
+		Type                 _type;
+		Owner                _owner {};
+		List_model<Io_mem>   _io_mem_list {};
+		List_model<Irq>      _irq_list {};
+		List_model<Property> _property_list {};
 
 		/*
 		 * Noncopyable
@@ -201,18 +217,18 @@ struct Driver::Io_mem_update_policy : Genode::List_model<Device::Io_mem>::Update
 
 	Element & create_element(Genode::Xml_node node)
 	{
-		Genode::addr_t base = node.attribute_value<Genode::addr_t>("address", 0);
-		Genode::size_t size = node.attribute_value<Genode::size_t>("size",    0);
-		return *(new (alloc) Element(base, size));
+		Device::Range range { node.attribute_value<Genode::addr_t>("address", 0),
+		                      node.attribute_value<Genode::size_t>("size",    0) };
+		return *(new (alloc) Element(range));
 	}
 
 	void update_element(Element &, Genode::Xml_node) {}
 
 	static bool element_matches_xml_node(Element const & iomem, Genode::Xml_node node)
 	{
-		Genode::addr_t base = node.attribute_value<Genode::addr_t>("address", 0);
-		Genode::size_t size = node.attribute_value<Genode::size_t>("size",    0);
-		return (base == iomem.base) && (size == iomem.size);
+		Device::Range range { node.attribute_value<Genode::addr_t>("address", 0),
+		                      node.attribute_value<Genode::size_t>("size",    0) };
+		return (range.start == iomem.range.start) && (range.size == iomem.range.size);
 	}
 
 	static bool node_is_element(Genode::Xml_node node)

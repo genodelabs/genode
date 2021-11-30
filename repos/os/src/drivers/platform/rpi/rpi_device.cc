@@ -34,21 +34,17 @@ unsigned Driver::Rpi_device::Power_domain::id()
 };
 
 
-bool Driver::Rpi_device::acquire(Driver::Session_component & sc)
+void Driver::Rpi_device::acquire(Driver::Session_component & sc)
 {
-	bool ret = Driver::Device::acquire(sc);
+	Driver::Device::acquire(sc);
 
-	if (ret) {
-		_power_domain_list.for_each([&] (Power_domain & p) {
-			auto & msg = sc.env().mbox.message<Property_message>();
-			msg.append_no_response<Property_command::Set_power_state>(p.id(),
-			                                                          true,
-			                                                          true);
-			sc.env().mbox.call<Property_message>();
-		});
-	}
-
-	return ret;
+	_power_domain_list.for_each([&] (Power_domain & p) {
+		auto & msg = sc.env().mbox.message<Property_message>();
+		msg.append_no_response<Property_command::Set_power_state>(p.id(),
+		                                                          true,
+		                                                          true);
+		sc.env().mbox.call<Property_message>();
+	});
 }
 
 

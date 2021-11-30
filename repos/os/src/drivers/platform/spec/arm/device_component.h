@@ -14,9 +14,13 @@
 #ifndef _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_COMPONENT_H_
 #define _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_COMPONENT_H_
 
+#include <base/registry.h>
 #include <base/rpc_server.h>
-#include <platform_session/platform_session.h>
+#include <io_mem_session/connection.h>
+#include <irq_session/connection.h>
 #include <platform_session/device.h>
+#include <platform_session/platform_session.h>
+#include <util/reconstructible.h>
 
 #include <env.h>
 #include <device.h>
@@ -32,17 +36,41 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 {
 	public:
 
-		Device_component(Session_component        & session,
-		                 Driver::Device::Name const device);
+		struct Irq : Registry<Irq>::Element
+		{
+			unsigned                      idx;
+			unsigned                      number;
+			Constructible<Irq_connection> irq {};
+
+			Irq(Registry<Irq> & registry,
+			    unsigned        idx,
+			    unsigned        number)
+			:
+				Registry<Irq>::Element(registry, *this),
+				idx(idx), number(number) {}
+		};
+
+		struct Io_mem : Registry<Io_mem>::Element
+		{
+			unsigned                         idx;
+			Range                            range;
+			Constructible<Io_mem_connection> io_mem {};
+
+			Io_mem(Registry<Io_mem> & registry,
+			       unsigned           idx,
+			       Range              range)
+			:
+				Registry<Io_mem>::Element(registry, *this),
+				idx(idx), range(range) {}
+		};
+
+		Device_component(Registry<Device_component> & registry,
+		                 Session_component          & session,
+		                 Driver::Device             & device);
 		~Device_component();
 
 		Driver::Device::Name device() const;
 		Session_component  & session();
-
-		bool acquire();
-		void release();
-
-		void report(Xml_generator&);
 
 
 		/************************************
@@ -54,12 +82,15 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 
 	private:
 
-		friend class Session_component;
+		Session_component                 & _session;
+		Driver::Device::Name const          _device;
+		size_t                              _cap_quota { 0 };
+		size_t                              _ram_quota { 0 };
+		Registry<Device_component>::Element _reg_elem;
+		Registry<Irq>                       _irq_registry {};
+		Registry<Io_mem>                    _io_mem_registry {};
 
-		Session_component            & _session;
-		Driver::Device::Name     const _device;
-		Capability<Platform::Device>   _cap {};
-		List_element<Device_component> _list_elem { this };
+		void _release_resources();
 
 		/*
 		 * Noncopyable

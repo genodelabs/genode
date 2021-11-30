@@ -39,7 +39,7 @@ class Driver::Rpi_device : public Driver::Device
 			unsigned id();
 		};
 
-		bool acquire(Session_component &) override;
+		void acquire(Session_component &) override;
 		void release(Session_component &) override;
 
 		Rpi_device(Device::Name name, Device::Type type)
