@@ -18,9 +18,6 @@
 #include <base/stdint.h>
 #include <kernel/types.h>
 
-/* base-hw internal includes */
-#include <hw/spec/riscv/qemu_board.h>
-
 namespace Board { class Timer; }
 
 
