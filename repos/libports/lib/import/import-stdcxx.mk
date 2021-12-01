@@ -17,6 +17,10 @@ ifeq ($(filter-out $(SPECS),arm_64),)
 	INC_DIR += $(STDCXX_INCLUDE_DIR)/../spec/arm_64/stdcxx
 endif
 
+ifeq ($(filter-out $(SPECS),riscv),)
+	INC_DIR += $(STDCXX_INCLUDE_DIR)/../spec/riscv/stdcxx
+endif
+
 ifeq ($(filter-out $(SPECS),x86_32),)
 	INC_DIR += $(STDCXX_INCLUDE_DIR)/../spec/x86_32/stdcxx
 endif
