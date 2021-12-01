@@ -11,6 +11,7 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/stdcxx)
 content: include/stdcxx \
          include/spec/arm/stdcxx \
          include/spec/arm_64/stdcxx \
+         include/spec/riscv/stdcxx \
          include/spec/x86_32/stdcxx \
          include/spec/x86_64/stdcxx
 
@@ -24,6 +25,10 @@ include/spec/arm/stdcxx:
 	cp -r $(REP_DIR)/$@/* $@/
 
 include/spec/arm_64/stdcxx:
+	mkdir -p $@
+	cp -r $(REP_DIR)/$@/* $@/
+
+include/spec/riscv/stdcxx:
 	mkdir -p $@
 	cp -r $(REP_DIR)/$@/* $@/
 
