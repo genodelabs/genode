@@ -222,6 +222,23 @@ DIR_CONTENT(include/spec/arm_64/libc/machine) := \
 
 
 #
+# RISC-V-specific headers
+#
+DIRS += include/spec/riscv/libc
+DIR_CONTENT(include/spec/riscv/libc) := \
+    $(call common_include_libc_arch_content,riscv,riscv) \
+    $(D)/lib/msun/riscv/fenv.h \
+    $(addprefix $(D)/lib/libc/softfloat/, softfloat-for-gcc.h) \
+    $(addprefix $(D)/lib/libc/riscv/softfloat/, milieu.h riscv-gcc.h \
+                softfloat.h)
+
+DIRS += include/spec/riscv/libc/machine
+DIR_CONTENT(include/spec/riscv/libc/machine) := \
+    $(call common_include_libc_arch_machine_content,riscv) \
+    $(addprefix $(D)/sys/riscv/include/, riscvreg.h)
+
+
+#
 # Rules for generating files
 #
 

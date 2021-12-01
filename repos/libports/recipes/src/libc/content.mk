@@ -18,7 +18,7 @@ include/libc-plugin include/libc/sys/ucontext.h:
 lib/mk:
 	mkdir -p $@
 	cp $(addprefix $(REP_DIR)/$@/,libc.mk libc-* libm.inc) $@
-	for spec in x86_32 x86_64 arm arm_64; do \
+	for spec in x86_32 x86_64 arm arm_64 riscv; do \
 	  mkdir -p $@/spec/$$spec; \
 	  cp $(addprefix $(REP_DIR)/$@/spec/$$spec/,libc-* libc.mk libm.mk) $@/spec/$$spec/; done
 
