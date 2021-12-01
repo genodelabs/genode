@@ -1,0 +1,27 @@
+Enable PREC 113 for RISC-V
+
+--- src/lib/libc/lib/libc/riscv/_fpmath.h
++++ src/lib/libc/lib/libc/riscv/_fpmath.h
+@@ -46,6 +46,7 @@ union IEEEl2bits {
+ #define	LDBL_IMPLICIT_NBIT
+ #define	mask_nbit_l(u)	((void)0)
+ 
++#if 0
+ #define	LDBL_MANH_SIZE	20
+ #define	LDBL_MANL_SIZE	32
+ 
+@@ -53,12 +54,13 @@ union IEEEl2bits {
+ 	(a)[0] = (uint32_t)(u).bits.manl;		\
+ 	(a)[1] = (uint32_t)(u).bits.manh;		\
+ } while(0)
++#endif
+ 
+ /*
+  * TODO: Due to compiler problem we are temporary using
+  * LDBL_PREC == 53. Use code below for LDBL_PREC == 113
+  */
+-#if 0
++#if 1
+ #define	LDBL_MANH_SIZE	48
+ #define	LDBL_MANL_SIZE	64
+ 
