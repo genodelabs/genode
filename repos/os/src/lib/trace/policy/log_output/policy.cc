@@ -10,6 +10,11 @@ size_t max_event_size()
 	return MAX_EVENT_SIZE;
 }
 
+size_t checkpoint(char *dst, char const *, unsigned long, void *, unsigned char)
+{
+	return 0;
+}
+
 size_t log_output(char *dst, char const *log_message, size_t len)
 {
 	len = min(len, MAX_EVENT_SIZE);
