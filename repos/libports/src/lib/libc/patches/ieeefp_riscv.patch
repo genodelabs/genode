@@ -1,0 +1,11 @@
+diff --git a/src/lib/libc/sys/riscv/include/ieeefp.h b/src/lib/libc/sys/riscv/include/ieeefp.h
+index ed7381d..44a1c00 100644
+--- src/lib/libc/sys/riscv/include/ieeefp.h
++++ src/lib/libc/sys/riscv/include/ieeefp.h
+@@ -4,5 +4,6 @@
+ #define	_MACHINE_IEEEFP_H_
+ 
+ /* TODO */
++typedef int fp_except;
+ 
+ #endif /* _MACHINE_IEEEFP_H_ */
