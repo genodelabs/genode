@@ -175,12 +175,15 @@ fabsl T
 fdim T
 fdimf T
 fdiml T
+feclearexcept T
 fedisableexcept T
 feenableexcept T
 fegetenv T
 feholdexcept T
 feraiseexcept T
 fesetexceptflag T
+fesetround T
+fetestexcept T
 feupdateenv T
 floor T
 floorf T
