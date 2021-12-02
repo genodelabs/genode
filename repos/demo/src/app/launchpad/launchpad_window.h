@@ -127,8 +127,8 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 		 */
 		void quota(unsigned long quota) override
 		{
-			_status_entry.max_value(initial_quota() / 1024);
-			_status_entry.value(quota / 1024);
+			_status_entry.max_value((int)(initial_quota() / 1024));
+			_status_entry.value((int)(quota / 1024));
 			_status_entry.refresh();
 		}
 
@@ -150,8 +150,8 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 		               Genode::Allocator &alloc) override
 		{
 			Child_entry<PT> *ce;
-			ce = new (alloc) Child_entry<PT>(name, quota / 1024,
-			                                 initial_quota() / 1024,
+			ce = new (alloc) Child_entry<PT>(name, (int)(quota / 1024),
+			                                 (int)(initial_quota() / 1024),
 			                                 *this, launchpad_child);
 			_child_entry_list.insert(ce);
 			_kiddy_section.append(ce);

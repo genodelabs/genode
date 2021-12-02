@@ -144,7 +144,7 @@ struct Main : Scout::Event_handler
 		_user_state.handle_event(ev);
 
 		if (ev.type == Event::TIMER)
-			Tick::handle(_platform.timer_ticks());
+			Tick::handle((Scout::Tick::time)_platform.timer_ticks());
 
 		/* perform periodic redraw */
 		Genode::uint64_t const curr_time = _platform.timer_ticks();

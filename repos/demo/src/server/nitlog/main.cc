@@ -103,15 +103,16 @@ class Log_entry
 {
 	private:
 
-		typedef Genode::Color Color;
+		using Color  = Genode::Color;
+		using size_t = Genode::size_t;
 
-		char  _label[64];
-		char  _text[LOG_W];
-		char  _attr[LOG_W];
-		Color _color { };
-		int   _label_len = 0;
-		int   _text_len  = 0;
-		int   _id        = 0;
+		char   _label[64];
+		char   _text[LOG_W];
+		char   _attr[LOG_W];
+		Color  _color { };
+		size_t _label_len = 0;
+		size_t _text_len  = 0;
+		int    _id        = 0;
 
 	public:
 
@@ -176,8 +177,8 @@ class Log_entry
 		/**
 		 * Accessors
 		 */
-		int label_len() { return _label_len; }
-		int id()        { return _id; }
+		size_t label_len() { return _label_len; }
+		int    id()        { return _id; }
 };
 
 

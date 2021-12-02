@@ -22,6 +22,8 @@ class Section : public Scout::Parent_element
 {
 	private:
 
+		typedef Scout::size_t size_t;
+
 		/*
 		 * Noncopyable
 		 */
@@ -38,7 +40,7 @@ class Section : public Scout::Parent_element
 		Scout::Font *_font;
 		int          _txt_w   = _font->string_width(_txt, Scout::strlen(_txt)).decimal();
 		int          _txt_h   = _font->bounding_box().h();
-		int          _txt_len = Scout::strlen(_txt);
+		size_t       _txt_len = Scout::strlen(_txt);
 		int          _r_add;
 
 	public:
@@ -76,8 +78,11 @@ class Section : public Scout::Parent_element
 			                abs_position.y() + _position.y() + 1,
 			                _size.w() + _r_add, _txt_h - 1, Color(240,240,240,130));
 
-			int _txt_x = abs_position.x() + _position.x() + max((_size.w() - _txt_w)/2, 8UL);
-			int _txt_y = abs_position.y() + _position.y() + max((_STH - _SH - _txt_h)/2, 0) - 1;
+			int _txt_x = abs_position.x() + _position.x()
+			           + (int)max((_size.w() - (size_t)_txt_w)/2, 8UL);
+
+			int _txt_y = abs_position.y() + _position.y()
+			           + max((_STH - _SH - (int)_txt_h)/2, 0) - 1;
 
 			Parent_element::draw(canvas, abs_position);
 

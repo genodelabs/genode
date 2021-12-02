@@ -83,7 +83,9 @@ class Scout::Refracted_icon : public Element
 				} while ((dx < -i) || (dx > _distmap_w - 2 - i)
 				      || (dy < -j) || (dy > _distmap_h - 2 - j));
 
-				_distmap[j*_distmap_w + i] += dy*_distmap_w + dx;
+				DT &entry = _distmap[j*_distmap_w + i];
+
+				entry = (DT)(entry + dy*_distmap_w + dx);
 			}
 		}
 

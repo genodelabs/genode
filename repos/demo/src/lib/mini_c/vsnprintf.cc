@@ -17,5 +17,5 @@ extern "C" int vsnprintf(char *dst, Genode::size_t dst_len, const char *format, 
 {
 	Genode::String_console sc(dst, dst_len);
 	sc.vprintf(format, list);
-	return sc.len();
+	return (int)sc.len();
 }

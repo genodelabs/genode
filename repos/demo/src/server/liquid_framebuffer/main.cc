@@ -191,7 +191,7 @@ class Liquid_fb::Main : public Scout::Event_handler
 		void _init_fb_win()
 		{
 			_fb_win.parent(&_user_state);
-			_fb_win.content_geometry(config_fb_x, config_fb_y,
+			_fb_win.content_geometry((int)config_fb_x, (int)config_fb_y,
 			                         config_fb_width, config_fb_height);
 		}
 
@@ -220,8 +220,8 @@ class Liquid_fb::Main : public Scout::Event_handler
 			_fb_win.config_decoration(config_decoration);
 
 			/* must get called after 'config_decoration()' */
-			_fb_win.content_geometry(config_fb_x, config_fb_y,
-			 config_fb_width, config_fb_height);
+			_fb_win.content_geometry((int)config_fb_x, (int)config_fb_y,
+			                         config_fb_width, config_fb_height);
 			_user_state.update_view_offset();
 		}
 
@@ -247,7 +247,7 @@ class Liquid_fb::Main : public Scout::Event_handler
 				_user_state.handle_event(ev);
 
 			if (ev.type == Event::TIMER) {
-				Scout::Tick::handle(_platform.timer_ticks());
+				Scout::Tick::handle((Scout::Tick::time)_platform.timer_ticks());
 			}
 
 			/* perform periodic redraw */

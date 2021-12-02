@@ -23,5 +23,5 @@ extern "C" int snprintf(char *dst, Genode::size_t dst_len, const char *format, .
 	sc.vprintf(format, list);
 
 	va_end(list);
-	return sc.len();
+	return (int)sc.len();
 }

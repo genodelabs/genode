@@ -17,9 +17,13 @@
 #include <util/geometry.h>
 
 namespace Scout {
+
 	typedef Genode::Point<> Point;
 	typedef Genode::Area<>  Area;
 	typedef Genode::Rect<>  Rect;
+
+	using size_t  = Genode::size_t;
+	using uint8_t = Genode::uint8_t;
 }
 
 #endif /* _INCLUDE__SCOUT__TYPES_H_ */

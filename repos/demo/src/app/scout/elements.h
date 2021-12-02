@@ -89,7 +89,7 @@ class Scout::Token : public Element
 	protected:
 
 		const char  *_str;       /* start  of string   */
-		int          _len;       /* length of string   */
+		size_t       _len;       /* length of string   */
 		Style       *_style;     /* textual style      */
 		Color        _col;       /* current text color */
 		Color        _outline;   /* outline color      */
@@ -99,7 +99,7 @@ class Scout::Token : public Element
 		/**
 		 * Constructor
 		 */
-		Token(Style *style, const char *str, int len);
+		Token(Style *style, const char *str, size_t len);
 
 		/**
 		 * Element interface
@@ -178,7 +178,7 @@ class Scout::Link_token : public Token, private Link, public Event_handler,
 			                _size.w(), 1, Color(0,0,255));
 		}
 
-		void mfocus(int flag) override
+		void mfocus(bool flag) override
 		{
 			/*
 			 * highlight link of all siblings that point to the same link.

@@ -83,7 +83,7 @@ class Scout::Fade_icon : public Fader, public Icon<PT, W, H>
 		/**
 		 * Element interface
 		 */
-		void mfocus(int flag) override
+		void mfocus(bool flag) override
 		{
 			Icon<PT, W, H>::mfocus(flag);
 			int step = _focus_alpha - _default_alpha;

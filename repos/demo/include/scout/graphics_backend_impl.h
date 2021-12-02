@@ -142,8 +142,9 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 			src += offset;
 			dst += offset;
 
-			blit(src, sizeof(PT)*_max_size.w(),
-			     dst, sizeof(PT)*_max_size.w(), sizeof(PT)*rect.w(), rect.h());
+			blit(src, (unsigned)sizeof(PT)*_max_size.w(), dst,
+			     (int)sizeof(PT)*_max_size.w(),
+			     (int)sizeof(PT)*rect.w(), rect.h());
 
 			_refresh_view(rect);
 		}

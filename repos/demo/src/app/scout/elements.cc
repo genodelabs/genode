@@ -221,7 +221,7 @@ void Parent_element::flush_cache(Canvas_base &canvas)
  ** Token **
  ***********/
 
-Token::Token(Style *style, const char *str, int len)
+Token::Token(Style *style, const char *str, size_t len)
 :
 	_str(str),
 	_len(len),
@@ -343,8 +343,8 @@ void Block::format_fixed_width(int w)
 
 			/* indent elements of the line according to the alignment */
 			int dx = 0;
-			if (_align == CENTER) dx = max(0UL, (max_w - max_x)/2);
-			if (_align == RIGHT)  dx = max(0UL, max_w - max_x);
+			if (_align == CENTER) dx = (int)max(0UL, (max_w - max_x)/2);
+			if (_align == RIGHT)  dx = (int)max(0UL, max_w - max_x);
 			for (e = line; e && (e->position().y() == cy); e = e->next)
 				e->geometry(Rect(Point(e->position().x() + dx, e->position().y()),
 				                 e->size()));

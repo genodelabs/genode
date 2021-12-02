@@ -32,8 +32,13 @@ class Scout::Titlebar : public Parent_element
 		Titlebar &operator = (Titlebar const &);
 
 		Icon<PT, 32, 32> _fg { };
+
 		const char *_txt = nullptr;
-		int _txt_w = 0, _txt_h = 0, _txt_len = 0;
+
+		int _txt_w = 0,
+		    _txt_h = 0;
+
+		Scout::size_t _txt_len = 0;
 
 	public:
 
@@ -82,8 +87,12 @@ class Scout::Titlebar : public Parent_element
 			                abs_position.y() + _position.y(),
 			                _size.w(), _size.h(), Color(b, b, b, a));
 
-			int _txt_x = abs_position.x() + _position.x() + max((_size.w() - _txt_w)/2, 8UL);
-			int _txt_y = abs_position.y() + _position.y() + max((_size.h() - _txt_h)/2, 0UL) - 1;
+			int _txt_x = abs_position.x() + _position.x()
+			           + (int)max((_size.w() - _txt_w)/2, 8U);
+
+			int _txt_y = abs_position.y() + _position.y()
+			           + (int)max((_size.h() - _txt_h)/2, 0U) - 1;
+
 			canvas.draw_string(_txt_x , _txt_y, &title_font, Color(0,0,0,200), _txt, strlen(_txt));
 			Parent_element::draw(canvas, abs_position);
 		}

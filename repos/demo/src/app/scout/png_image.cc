@@ -63,7 +63,7 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t len)
 {
 	Png_stream *stream = (Png_stream *)png_get_io_ptr(png_ptr);
 
-	stream->read((char *)data, len);
+	stream->read((char *)data, (int)len);
 }
 
 
