@@ -50,8 +50,8 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 		{
 			_block.append_launchertext(_prg_name.string(), &Scout::link_style, &_launcher);
 
-			_loadbar.max_value(max_quota);
-			_loadbar.value(initial_quota);
+			_loadbar.max_value((int)max_quota);
+			_loadbar.value((int)initial_quota);
 			append(&_loadbar);
 			append(&_block);
 

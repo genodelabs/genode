@@ -59,7 +59,7 @@ Launchpad_window<PT>::Launchpad_window(Genode::Env &env,
 
 	_min_size = Scout::Area(200, 200);
 
-	_status_entry.max_value(initial_quota / 1024);
+	_status_entry.max_value((int)(initial_quota / 1024));
 
 	/* adopt widgets as child elements */
 	_info_section.append(&_status_entry);

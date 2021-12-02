@@ -53,7 +53,7 @@ static inline int filter(int x0, int x1, int x2, int x3, int u)
 		cached_u = u;
 	}
 
-	return (x0*k0 + x1*k1 + x2*k2 + x3*k3)>>8;
+	return (x0*k0 + x1*k1 + x2*k2 + x3*k3) >> 8;
 }
 
 
@@ -74,7 +74,7 @@ static void gen_buf(short tmp[], int noise_w, int noise_h,
 {
 	/* generate noise */
 	for (int i = 0; i < noise_h; i++) for (int j = 0; j < noise_w; j++)
-		dst[i*dst_w + j] = Scout::random()%256 - 128;
+		dst[i*dst_w + j] = (short)(Scout::random()%256 - 128);
 
 	/* interpolate horizontally */
 	for (int j = dst_w - 1; j >= 0; j--) {
@@ -92,7 +92,7 @@ static void gen_buf(short tmp[], int noise_w, int noise_h,
 			int x2 = dst[i*dst_w + x2_idx];
 			int x3 = dst[i*dst_w + x3_idx];
 
-			tmp[i*dst_w + j] = filter(x0, x1, x2, x3, u);
+			tmp[i*dst_w + j] = (short)filter(x0, x1, x2, x3, u);
 		}
 	}
 
@@ -112,7 +112,7 @@ static void gen_buf(short tmp[], int noise_w, int noise_h,
 			int y2 = tmp[y2_idx + j];
 			int y3 = tmp[y3_idx + j];
 
-			dst[i*dst_w + j] = filter(y0, y1, y2, y3, u);
+			dst[i*dst_w + j] = (short)filter(y0, y1, y2, y3, u);
 		}
 	}
 }
@@ -131,7 +131,7 @@ static void normalize_buf(short dst[], int len, int amp)
 	if (max == min) return;
 
 	for (int i = 0; i < len; i++)
-		dst[i] = (amp*(dst[i] - min))/(max - min);
+		dst[i] = (short)((amp*(dst[i] - min))/(max - min));
 }
 
 
@@ -141,7 +141,7 @@ static void normalize_buf(short dst[], int len, int amp)
 static void add_bufs(short src1[], short src2[], short dst[], int len)
 {
 	for (int i = 0; i < len; i++)
-		dst[i] = src1[i] + src2[i];
+		dst[i] = (short)(src1[i] + src2[i]);
 }
 
 /**

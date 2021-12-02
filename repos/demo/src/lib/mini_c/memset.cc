@@ -15,5 +15,5 @@
 
 extern "C" void *memset(void *s, int c, Genode::size_t n)
 {
-	return Genode::memset(s, c, n);
+	return Genode::memset(s, (char)c, n);
 }

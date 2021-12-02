@@ -109,7 +109,7 @@ class Window_content : public Scout::Element
 
 						a += (Genode::Dither_matrix::value(x, y) - 127) >> 4;
 
-						alpha[y*w + x] = Genode::max(alpha_min, Genode::min(a, 255));
+						alpha[y*w + x] = (unsigned char)Genode::max(alpha_min, Genode::min(a, 255));
 					}
 			}
 

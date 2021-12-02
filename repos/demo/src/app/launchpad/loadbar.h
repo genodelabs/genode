@@ -96,7 +96,11 @@ class Loadbar : public Scout::Parent_element
 		int _max_value;
 
 		const char *_txt;
-		int _txt_w, _txt_h, _txt_len;
+
+		int _txt_w, _txt_h;
+
+		Scout::size_t _txt_len;
+
 		Scout::Font *_font;
 
 		void _update_bar_geometry(int w)
@@ -188,8 +192,11 @@ class Loadbar : public Scout::Parent_element
 
 			using namespace Scout;
 
-			int txt_x = abs_position.x() + _position.x() + max((_size.w() - _txt_w)/2, 8UL);
-			int txt_y = abs_position.y() + _position.y() + max((_size.h() - _txt_h)/2, 0UL) - 1;
+			int txt_x = abs_position.x() + _position.x()
+			          + (int)max((_size.w() - (size_t)_txt_w)/2, 8UL);
+
+			int txt_y = abs_position.y() + _position.y()
+			          + (int)max((_size.h() - (size_t)_txt_h)/2, 0UL) - 1;
 
 			/* shrink clipping area to text area (limit too long label) */
 			int cx1 = canvas.clip().x1(), cy1 = canvas.clip().y1();
@@ -207,7 +214,7 @@ class Loadbar : public Scout::Parent_element
 			canvas.clip(Rect(Point(cx1, cy1), Area(cx2 - cx1 + 1, cy2 - cy1 + 1)));
 		}
 
-		void mfocus(int flag) override
+		void mfocus(bool flag) override
 		{
 			if (!_active) return;
 

@@ -41,12 +41,12 @@ class Scout::Element
 		Parent_element *_parent;      /* parent in element hierarchy         */
 		Event_handler  *_evh;         /* event handler object                */
 		struct {
-			int mfocus      : 1;      /* element has mouse focus             */
-			int selected    : 1;      /* element has selected state          */
-			int takes_focus : 1;      /* element highlights mouse focus      */
-			int chapter     : 1;      /* display element as single page      */
-			int findable    : 1;      /* regard element in find function     */
-			int bottom      : 1;      /* place element to the bottom         */
+			unsigned mfocus      : 1;      /* element has mouse focus             */
+			unsigned selected    : 1;      /* element has selected state          */
+			unsigned takes_focus : 1;      /* element highlights mouse focus      */
+			unsigned chapter     : 1;      /* display element as single page      */
+			unsigned findable    : 1;      /* regard element in find function     */
+			unsigned bottom      : 1;      /* place element to the bottom         */
 		} _flags { };
 
 	public:
@@ -78,7 +78,7 @@ class Scout::Element
 		Area  min_size() const { return _min_size; }
 		bool  bottom()   const { return _flags.bottom; }
 
-		void findable(int flag) { _flags.findable = flag; }
+		void findable(bool flag) { _flags.findable = flag; }
 
 		/**
 		 * Set geometry of the element
@@ -95,7 +95,7 @@ class Scout::Element
 		/**
 		 * Set/reset the mouse focus
 		 */
-		virtual void mfocus(int flag)
+		virtual void mfocus(bool flag)
 		{
 			if ((_flags.mfocus == flag) || !_flags.takes_focus) return;
 			_flags.mfocus = flag;

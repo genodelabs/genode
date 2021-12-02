@@ -52,7 +52,7 @@ struct Scout::Canvas_base : Texture_allocator
 	virtual void draw_box(int x, int y, int w, int h, Color c) = 0;
 
 	virtual void draw_string(int x, int y, Font *font, Color color,
-	                         char const *str, int len) = 0;
+	                         char const *str, size_t len) = 0;
 
 	virtual void draw_horizontal_shadow(Rect rect, int intensity) = 0;
 
@@ -99,7 +99,7 @@ class Scout::Canvas : public Canvas_base
 
 		void clip(Rect rect) override { _surface.clip(rect); }
 
-		void draw_string(int x, int y, Font *font, Color color, char const *str, int len) override
+		void draw_string(int x, int y, Font *font, Color color, char const *str, size_t len) override
 		{
 			char buf[len + 1];
 			Genode::copy_cstring(buf, str, len + 1);
@@ -181,7 +181,7 @@ class Scout::Canvas : public Canvas_base
 
 		void set_rgba_texture(Texture_base *texture_base,
 		                      unsigned char const *rgba,
-		                      unsigned len, int y) override
+		                      size_t len, int y) override
 		{
 			Texture<PT> *texture = static_cast<Texture<PT> *>(texture_base);
 

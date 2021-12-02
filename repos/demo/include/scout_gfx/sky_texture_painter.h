@@ -67,7 +67,7 @@ struct Sky_texture_painter
 			static void _multiply_buf(short dst[], int len, int factor)
 			{
 				for (int i = 0; i < len; i++)
-					dst[i] = (dst[i]*factor)>>8;
+					dst[i] = (short)((dst[i]*factor)>>8);
 			}
 
 			static inline int _mix_channel(int value1, int value2, int alpha)

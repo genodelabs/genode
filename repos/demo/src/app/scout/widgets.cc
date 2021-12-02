@@ -106,7 +106,7 @@ void Icon<PT, W, H>::rgba(unsigned char *src, int vshift, int shadow)
 				for (int l = -1; l <=1; l++)
 					v += _alpha[(j + k + H)%H][(i + l + W)%W];
 
-			_shadow[j + 3][i] = v>>shadow;
+			_shadow[j + 3][i] = (unsigned char)(v>>shadow);
 		}
 
 	/* shift vertically */
@@ -122,7 +122,7 @@ void Icon<PT, W, H>::rgba(unsigned char *src, int vshift, int shadow)
 	for (int j = 0; j < H; j++)
 		for (int i = 0; i < W; i++) {
 			_pixel[j][i] = PT::mix(shcol, _pixel[j][i], _alpha[j][i]);
-			_alpha[j][i] = min(255, _alpha[j][i] + _shadow[j][i]);
+			_alpha[j][i] = (unsigned char)min(255, _alpha[j][i] + _shadow[j][i]);
 		}
 }
 
@@ -140,7 +140,7 @@ static inline void blur(unsigned char *src, unsigned char *dst, int w, int h)
 				for (int l = -kernel; l <= kernel; l++)
 					v += src[w*(j + k) + (i + l)];
 
-			dst[w*j + i] = min(v/scale, 255);
+			dst[w*j + i] = (unsigned char)min(v/scale, 255);
 		}
 }
 

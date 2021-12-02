@@ -92,15 +92,15 @@ static void extract_rgba(const unsigned char *src, int w, int h,
 {
 	for (int i = 0; i < w*h; i++, src += 4) {
 
-		int r = src[0];
-		int g = src[1];
-		int b = src[2];
-		int a = src[3];
+		int     r = src[0];
+		int     g = src[1];
+		int     b = src[2];
+		uint8_t a = src[3];
 
 		if (dst_alpha[i]) {
 			PT s(r, g, b);
 			dst_pixel[i] = PT::mix(dst_pixel[i], s, a);
-			dst_alpha[i] = max((int)dst_alpha[i], a);
+			dst_alpha[i] = (uint8_t)max((int)dst_alpha[i], a);
 		} else {
 			dst_pixel[i].rgba(r, g, b);
 			dst_alpha[i] = a;
@@ -298,8 +298,8 @@ Browser_window<PT>::Browser_window(Document *initial_content,
 	using Scout::random;
 	for (int j = 0; j < _PANEL_H; j++)
 		for (int i = 0; i < _PANEL_W; i++) {
-			_panel_fg       [j][i] = _icon_fg       [ICON_INDEX][j][i&0x1];
-			_panel_fg_alpha [j][i] = _icon_fg_alpha [ICON_INDEX][j][i&0x1] + random()%3;
+			_panel_fg       [j][i] =           _icon_fg       [ICON_INDEX][j][i&0x1];
+			_panel_fg_alpha [j][i] = (uint8_t)(_icon_fg_alpha [ICON_INDEX][j][i&0x1] + random()%3);
 		}
 
 	/* init panel background */

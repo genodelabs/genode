@@ -36,7 +36,7 @@ struct Scout::Texture_allocator : Genode::Interface
 
 	virtual void set_rgba_texture(Texture_base *texture,
 	                              unsigned char const *rgba,
-	                              unsigned len, int y) = 0;
+	                              size_t len, int y) = 0;
 };
 
 #endif /* _INCLUDE__SCOUT__TEXTURE_ALLOCATOR_H_ */
