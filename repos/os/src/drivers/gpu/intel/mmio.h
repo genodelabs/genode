@@ -1289,8 +1289,8 @@ class Igd::Mmio : public Genode::Mmio
 				v |= (p[i] & 0xff) << (8 * i);
 			}
 
-			write<PAT_INDEX_L>(v);
-			write<PAT_INDEX_H>(v >> 32);
+			write<PAT_INDEX_L>((uint32_t)(v));
+			write<PAT_INDEX_H>((uint32_t)(v >> 32));
 		}
 
 		/**

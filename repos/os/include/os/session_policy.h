@@ -46,8 +46,8 @@ struct Genode::Xml_node_label_score
 	 * If 0, there is a conflict. If 1, an empty string matched.
 	 */
 	enum { CONFLICT = 0 };
-	unsigned prefix_match = CONFLICT;
-	unsigned suffix_match = CONFLICT;
+	size_t prefix_match = CONFLICT;
+	size_t suffix_match = CONFLICT;
 
 	Xml_node_label_score() { }
 
@@ -74,7 +74,7 @@ struct Genode::Xml_node_label_score
 			Suffix const suffix = node.attribute_value("label_suffix", Suffix());
 
 			if (label.length() >= suffix.length()) {
-				unsigned const offset = label.length() - suffix.length();
+				size_t const offset = label.length() - suffix.length();
 
 				if (!strcmp(label.string() + offset, suffix.string()))
 					suffix_match = suffix.length();

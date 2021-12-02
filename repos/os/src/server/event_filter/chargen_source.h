@@ -269,10 +269,10 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 			}
 
 			if (node.has_attribute("b0")) {
-				char const b0 = node.attribute_value("b0", 0L),
-				           b1 = node.attribute_value("b1", 0L),
-				           b2 = node.attribute_value("b2", 0L),
-				           b3 = node.attribute_value("b3", 0L);
+				char const b0 = (char)node.attribute_value("b0", 0L),
+				           b1 = (char)node.attribute_value("b1", 0L),
+				           b2 = (char)node.attribute_value("b2", 0L),
+				           b3 = (char)node.attribute_value("b3", 0L);
 
 				char const buf[5] { b0, b1, b2, b3, 0 };
 				return Utf8_ptr(buf).codepoint();

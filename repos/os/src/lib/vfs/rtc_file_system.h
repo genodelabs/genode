@@ -63,13 +63,13 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 					char buf[TIMESTAMP_LEN+1];
 					char *b = buf;
-					unsigned n = Genode::snprintf(buf, sizeof(buf), "%04u-%02u-%02u %02u:%02u\n",
-					                              ts.year, ts.month, ts.day, ts.hour, ts.minute);
-					n -= seek();
+					Genode::size_t n = Genode::snprintf(buf, sizeof(buf), "%04u-%02u-%02u %02u:%02u\n",
+					                                    ts.year, ts.month, ts.day, ts.hour, ts.minute);
+					n -= (size_t)seek();
 					b += seek();
 
 					file_size len = count > n ? n : count;
-					Genode::memcpy(dst, b, len);
+					Genode::memcpy(dst, b, (size_t)len);
 					out_count = len;
 
 					return READ_OK;

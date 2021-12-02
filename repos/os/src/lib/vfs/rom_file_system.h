@@ -99,7 +99,7 @@ class Vfs::Rom_file_system : public Single_file_system
 					/* copy-out bytes from ROM dataspace */
 					file_size const num_bytes = end_offset - read_offset;
 
-					memcpy(dst, src, num_bytes);
+					memcpy(dst, src, (size_t)num_bytes);
 
 					out_count = num_bytes;
 					return READ_OK;

@@ -293,10 +293,10 @@ class Virtio_input::Driver
 				throw Device_init_failed();
 			}
 
-			device_id.bus_type = device.read_config(Config::Data + 0, Virtio::Device::ACCESS_16BIT);
-			device_id.vendor   = device.read_config(Config::Data + 2, Virtio::Device::ACCESS_16BIT);
-			device_id.product  = device.read_config(Config::Data + 4, Virtio::Device::ACCESS_16BIT);
-			device_id.version  = device.read_config(Config::Data + 6, Virtio::Device::ACCESS_16BIT);
+			device_id.bus_type = (uint16_t)device.read_config(Config::Data + 0, Virtio::Device::ACCESS_16BIT);
+			device_id.vendor   = (uint16_t)device.read_config(Config::Data + 2, Virtio::Device::ACCESS_16BIT);
+			device_id.product  = (uint16_t)device.read_config(Config::Data + 4, Virtio::Device::ACCESS_16BIT);
+			device_id.version  = (uint16_t)device.read_config(Config::Data + 6, Virtio::Device::ACCESS_16BIT);
 
 			return device_id;
 		}
@@ -312,7 +312,7 @@ class Virtio_input::Driver
 			memset(buf, 0, sizeof(buf));
 
 			for (unsigned i = 0; i < size; ++i)
-				buf[i] = device.read_config(Config::Data + i, Virtio::Device::ACCESS_8BIT);
+				buf[i] = (uint8_t)device.read_config((uint8_t)(Config::Data + i), Virtio::Device::ACCESS_8BIT);
 
 			return String<SZ>(buf);
 		}

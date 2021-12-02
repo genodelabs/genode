@@ -88,9 +88,9 @@ struct Texture_painter
 			 * a plain pixel blit.
 			 */
 			if (texture.alpha() == 0 || !allow_alpha) {
-				blit(src, src_w*sizeof(PT),
-				     dst, dst_w*sizeof(PT),
-				     clipped.w()*sizeof(PT), clipped.h());
+				blit(src, (unsigned)(src_w*sizeof(PT)), dst,
+				     (int)(dst_w*sizeof(PT)),
+				     (int)(clipped.w()*sizeof(PT)), clipped.h());
 				break;
 			}
 

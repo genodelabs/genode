@@ -194,7 +194,7 @@ class Ps2::Keyboard : public Input_driver
 					_press = !(v & 0x80);
 
 					/* keep the remaining bits for scan-code translation */
-					v &= ~0x80;
+					v &= (unsigned char)(~0x80);
 
 					/* convert scan code to unified key code */
 					switch (_type) {
@@ -388,7 +388,9 @@ class Ps2::Keyboard : public Input_driver
 					return;
 				}
 
-				_kbd.write((capslock ? 4:0) | (numlock ? 2:0) | (scrlock ? 1:0));
+				_kbd.write((unsigned char)((capslock ? 4 : 0) |
+				                           (numlock  ? 2 : 0) |
+				                           (scrlock  ? 1 : 0)));
 				if (_kbd.read() != ACK) {
 					Genode::warning("setting of mode indicators failed");
 					return;

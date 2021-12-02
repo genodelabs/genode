@@ -86,7 +86,7 @@ class Uart::Driver_base
 		/**
 		 * Set baud rate for terminal
 		 */
-		virtual void baud_rate(int baud)
+		virtual void baud_rate(size_t baud)
 		{
 			Genode::warning("Setting baudrate to ", baud,
 			                " is not supported. Use default value.");

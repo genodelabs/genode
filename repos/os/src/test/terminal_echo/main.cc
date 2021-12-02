@@ -29,9 +29,9 @@ struct Main
 
 	void handle_read_avail()
 	{
-		unsigned num_bytes = terminal.read(read_buffer, sizeof(read_buffer));
+		size_t num_bytes = terminal.read(read_buffer, sizeof(read_buffer));
 		log("got ", num_bytes, " byte(s)");
-		for (unsigned i = 0; i < num_bytes; i++) {
+		for (size_t i = 0; i < num_bytes; i++) {
 			if (read_buffer[i] == '\r') {
 				terminal.write("\n", 1); }
 			terminal.write(&read_buffer[i], 1);

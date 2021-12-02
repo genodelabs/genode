@@ -246,7 +246,7 @@ void Sandbox::Server::_handle_create_session_request(Xml_node request,
 
 		Ram_quota const forward_ram_quota { ram_quota.value - keep_quota };
 
-		Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", forward_ram_quota.value);
+		Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", (int)forward_ram_quota.value);
 
 		Session::Diag const diag = session_diag_from_args(args.string());
 

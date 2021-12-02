@@ -337,8 +337,8 @@ class Block::Gpt : public Block::Partition_table
 				if (!e.valid())
 					continue;
 
-				uint64_t start  = e.lba_start();
-				uint64_t length = e.lba_end() - e.lba_start() + 1; /* [...) */
+				block_number_t start  = e.lba_start();
+				block_count_t  length = (block_count_t)(e.lba_end() - e.lba_start() + 1); /* [...) */
 
 				_part_list[i].construct(start, length);
 

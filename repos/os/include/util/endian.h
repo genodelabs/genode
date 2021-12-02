@@ -20,9 +20,12 @@ template <typename T>
 inline T host_to_big_endian(T x)
 {
 	Genode::uint8_t v[sizeof(T)];
-	for (unsigned i=0; i<sizeof(T); i++) {
-		unsigned mask = (sizeof(T) - i - 1) * 8;
-		v[i] = (x & (0xff << mask)) >> mask;
+
+	for (unsigned i = 0; i < sizeof(T); i++) {
+
+		unsigned const shift = ((unsigned)sizeof(T) - i - 1) * 8;
+
+		v[i] = (Genode::uint8_t)((x & (0xffu << shift)) >> shift);
 	}
 	return *(T *)v;
 }

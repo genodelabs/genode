@@ -116,7 +116,7 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 			 && _read_number(height) == ';'
 			 && _read_number(width)  == 'R') {
 
-				Genode::log("detected terminal size ", width, "x", height);
+				log("detected terminal size ", width, "x", height);
 				return Size(width, height);
 			}
 
@@ -142,7 +142,7 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 		 ** Uart session interface **
 		 ****************************/
 
-		void baud_rate(Genode::size_t bits_per_second) override
+		void baud_rate(size_t bits_per_second) override
 		{
 			_driver.baud_rate(bits_per_second);
 		}

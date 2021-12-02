@@ -83,8 +83,8 @@ struct Benchmark
 			/* print stats for the current request size */
 			uint64_t const time_after_ms = timer.elapsed_ms();
 			uint64_t const duration_ms   = time_after_ms - time_before_ms;
-			size_t   const kib_per_sec   = (1000 * buf_size_kib) /
-			                                    duration_ms;
+			size_t   const kib_per_sec   = (size_t)((1000 * buf_size_kib)
+			                                        / duration_ms);
 			log("      duration:   ", duration_ms,  " ms");
 			log("      amount:     ", buf_size_kib, " KiB");
 			log("      throughput: ", kib_per_sec,  " KiB/sec");

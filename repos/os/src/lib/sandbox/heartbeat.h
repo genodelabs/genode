@@ -77,7 +77,7 @@ class Sandbox::Heartbeat : Noncopyable
 				_timer->sigh(_timer_handler);
 			}
 
-			unsigned const rate_ms = heartbeat.attribute_value("rate_ms", 1000UL);
+			unsigned const rate_ms = heartbeat.attribute_value("rate_ms", 1000U);
 
 			if (rate_ms != _rate_ms) {
 				_rate_ms = rate_ms;

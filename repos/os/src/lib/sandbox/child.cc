@@ -627,10 +627,10 @@ void Sandbox::Child::filter_session_args(Service::Name const &service,
 	     service == Vm_session::service_name())
 	    && _prio_levels_log2 > 0) {
 
-		unsigned long priority = Arg_string::find_arg(args, "priority").ulong_value(0);
+		unsigned priority = (unsigned)Arg_string::find_arg(args, "priority").ulong_value(0);
 
 		/* clamp priority value to valid range */
-		priority = min((unsigned)Cpu_session::PRIORITY_LIMIT - 1, priority);
+		priority = min((unsigned)(Cpu_session::PRIORITY_LIMIT - 1), priority);
 
 		long discarded_prio_lsb_bits_mask = (1 << _prio_levels_log2) - 1;
 		if (priority & discarded_prio_lsb_bits_mask)
@@ -639,7 +639,8 @@ void Sandbox::Child::filter_session_args(Service::Name const &service,
 		priority >>= _prio_levels_log2;
 
 		/* assign child priority to the most significant priority bits */
-		priority |= _priority*(Cpu_session::PRIORITY_LIMIT >> _prio_levels_log2);
+		priority = priority
+		         | (unsigned)(_priority*(Cpu_session::PRIORITY_LIMIT >> _prio_levels_log2));
 
 		/* override priority when delegating the session request to the parent */
 		String<64> value { Hex(priority) };

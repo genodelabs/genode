@@ -18,7 +18,7 @@
 
 namespace Genode {
 
-	typedef Genode::Pixel_rgba<unsigned char, Genode::Surface_base::ALPHA8,
+	typedef Genode::Pixel_rgba<uint8_t, Genode::Surface_base::ALPHA8,
 	                           0, 0, 0, 0, 0, 0, 0xff, 0>
 	        Pixel_alpha8;
 
@@ -31,7 +31,7 @@ namespace Genode {
 	inline Pixel_alpha8 Pixel_alpha8::mix(Pixel_alpha8 p1, PT, int alpha)
 	{
 		Pixel_alpha8 res;
-		res.pixel = p1.pixel + (((255 - p1.pixel)*alpha) >> 8);
+		res.pixel = (uint8_t)(p1.pixel + (((255 - p1.pixel)*alpha) >> 8));
 		return res;
 	}
 

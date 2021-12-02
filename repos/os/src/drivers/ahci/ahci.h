@@ -235,7 +235,7 @@ namespace Ahci {
 			/* read_dma_ext : write_dma_ext */
 			write<Command>(read ? 0x25 : 0x35);
 			write<Lba>(block_number);
-			write<Sector>(block_count);
+			write<Sector>((uint16_t)(block_count));
 		}
 
 		void fpdma(bool read, block_number_t block_number, block_count_t block_count,
@@ -246,8 +246,8 @@ namespace Ahci {
 			/* read_fpdma : write_fpdma */
 			write<Command>(read ? 0x60 : 0x61);
 			write<Lba>(block_number);
-			write<Features>(block_count);
-			write<Sector0_7::Tag>(slot);
+			write<Features>((uint16_t)block_count);
+			write<Sector0_7::Tag>((uint8_t)slot);
 		}
 
 		void flush_cache_ext()
@@ -269,8 +269,8 @@ namespace Ahci {
 		 */
 		void byte_count(uint16_t bytes)
 		{
-			write<Lba8_15>(bytes & 0xff);
-			write<Lba16_23>(bytes >> 8);
+			write<Lba8_15> ((uint8_t)(bytes        & 0xff));
+			write<Lba16_23>((uint8_t)((bytes >> 8) & 0xff));
 		}
 	};
 
@@ -299,8 +299,8 @@ namespace Ahci {
 		void cmd_table_base(addr_t base_phys)
 		{
 			uint64_t addr = base_phys;
-			write<Ctba0>(addr);
-			write<Ctba0_u0>(addr >> 32);
+			write<Ctba0>((uint32_t)addr);
+			write<Ctba0_u0>((uint32_t)(addr >> 32));
 			write<Prdtl>(1);
 			write<Bits::Cfl>(Command_fis::size() / sizeof(unsigned));
 		}
@@ -364,8 +364,8 @@ namespace Ahci {
 		void read10(block_number_t block_number, block_count_t block_count)
 		{
 			write<Command>(0x28);
-			write<Lba>(block_number);
-			write<Sector>(block_count);
+			write<Lba>((uint32_t)block_number);
+			write<Sector>((uint16_t)block_count);
 		}
 
 		void start_unit()
@@ -393,9 +393,9 @@ namespace Ahci {
 		: Mmio(base)
 		{
 			uint64_t addr = phys;
-			write<Dba>(addr);
-			write<Dbau>(addr >> 32);
-			write<Bits::Dbc>(bytes > 0 ? bytes - 1 : 0);
+			write<Dba>((uint32_t)addr);
+			write<Dbau>((uint32_t)(addr >> 32));
+			write<Bits::Dbc>((uint32_t)(bytes > 0 ? bytes - 1 : 0));
 		}
 
 		static constexpr size_t size() { return 0x10; }
@@ -564,8 +564,8 @@ struct Ahci::Port : private Port_base
 	void command_list_base(addr_t phys)
 	{
 		uint64_t addr = phys;
-		write<Clb>(addr);
-		write<Clbu>(addr >> 32);
+		write<Clb> ((uint32_t)(addr));
+		write<Clbu>((uint32_t)(addr >> 32));
 	}
 
 	/**
@@ -581,8 +581,8 @@ struct Ahci::Port : private Port_base
 	void fis_rcv_base(addr_t phys)
 	{
 		uint64_t addr = phys;
-		write<Fb>(addr);
-		write<Fbu>(addr >> 32);
+		write<Fb> ((uint32_t)(addr));
+		write<Fbu>((uint32_t)(addr >> 32));
 	}
 
 	/**

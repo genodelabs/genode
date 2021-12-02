@@ -42,8 +42,8 @@ class Platform::Pci::Resource
 			static uint64_t mem_address(access_t r0, uint64_t r1) { return (r1 << 32) | Mem_address_mask::masked(r0); }
 			static uint64_t mem_size(access_t r0, uint64_t r1)    { return ~mem_address(r0, r1) + 1; }
 
-			static uint16_t port_address(access_t r) { return Port_address_mask::masked(r); }
-			static uint16_t port_size(access_t r)    { return ~port_address(r) + 1; }
+			static uint16_t port_address(access_t r) { return (uint16_t)Port_address_mask::masked(r); }
+			static uint16_t port_size(access_t r)    { return (uint16_t)(~port_address(r) + 1); }
 		};
 
 	private:
@@ -84,7 +84,7 @@ class Platform::Pci::Resource
 
 	void print(Output &out) const
 	{
-		Genode::print(out, Hex_range(base(), size()));
+		Genode::print(out, Hex_range(base(), (size_t)size()));
 	}
 };
 
@@ -100,7 +100,9 @@ namespace Platform {
 			/*
 			 * Information provided by the PCI config space
 			 */
-			unsigned _vendor_id = 0, _device_id = 0;
+			uint16_t _vendor_id = 0,
+			         _device_id = 0;
+
 			unsigned _class_code = 0;
 			unsigned _header_type = 0;
 
@@ -179,13 +181,13 @@ namespace Platform {
 
 			Device_config(Pci::Bdf bdf, Config_access *pci_config) : _bdf(bdf)
 			{
-				_vendor_id = pci_config->read(bdf, 0, Device::ACCESS_16BIT);
+				_vendor_id = (uint16_t)pci_config->read(bdf, 0, Device::ACCESS_16BIT);
 
 				/* break here if device is invalid */
 				if (_vendor_id == INVALID_VENDOR)
 					return;
 
-				_device_id    = pci_config->read(bdf, 2, Device::ACCESS_16BIT);
+				_device_id    = (uint16_t)pci_config->read(bdf, 2, Device::ACCESS_16BIT);
 				_class_code   = pci_config->read(bdf, 8, Device::ACCESS_32BIT) >> 8;
 				_class_code  &= 0xffffff;
 				_header_type  = pci_config->read(bdf, 0xe, Device::ACCESS_8BIT);
@@ -217,7 +219,7 @@ namespace Platform {
 					using Pci::Resource;
 
 					/* index of base-address register in configuration space */
-					unsigned const bar_idx = 0x10 + 4 * i;
+					uint8_t const bar_idx = (uint8_t)(0x10 + 4 * i);
 
 					/* read base-address register value */
 					unsigned const bar_value =
@@ -246,7 +248,7 @@ namespace Platform {
 						++i;
 					} else {
 						/* also consume next BAR for MEM64 */
-						unsigned const bar2_idx = bar_idx + 4;
+						uint8_t  const bar2_idx = (uint8_t)(bar_idx + 4);
 						unsigned const bar2_value =
 							pci_config->read(bdf, bar2_idx, Device::ACCESS_32BIT);
 						pci_config->write(bdf, bar2_idx, ~0, Device::ACCESS_32BIT);
@@ -274,9 +276,9 @@ namespace Platform {
 			/**
 			 * Accessor functions for device information
 			 */
-			unsigned short device_id() { return _device_id; }
-			unsigned short vendor_id() { return _vendor_id; }
-			unsigned int  class_code() { return _class_code; }
+			uint16_t     device_id()  const { return _device_id; }
+			uint16_t     vendor_id()  const { return _vendor_id; }
+			unsigned int class_code() const { return _class_code; }
 
 			/**
 			 * Return true if device is a PCI bridge
@@ -317,7 +319,7 @@ namespace Platform {
 			           unsigned long value, Device::Access_size size,
 			           bool track = true)
 			{
-				pci_config.write(_bdf, address, value, size, track);
+				pci_config.write(_bdf, address, (uint32_t)value, size, track);
 			}
 
 			bool reg_in_use(Config_access &pci_config, unsigned char address,
@@ -340,7 +342,7 @@ namespace Platform {
 					if (!_resource_id_is_valid(r))
 						break;
 
-					bars.bar_addr[r] = _resource[r].base();
+					bars.bar_addr[r] = (uint32_t)_resource[r].base();
 				}
 
 				return bars;
@@ -353,7 +355,7 @@ namespace Platform {
 						break;
 
 					/* index of base-address register in configuration space */
-					unsigned const bar_idx = 0x10 + 4 * r;
+					uint8_t const bar_idx = (uint8_t)(0x10 + 4 * r);
 
 					/* PCI protocol to write address after requesting size */
 					config.write(_bdf, bar_idx, ~0U, Device::ACCESS_32BIT);

@@ -37,22 +37,23 @@ struct I2c::Connection : Genode::Connection<I2c::Session>, I2c::Session_client
 
 	uint8_t read_8bits()
 	{
-		Transaction t { Message(Message::READ, 0) };
+		Transaction t { Message(Message::READ, (uint8_t)0) };
 		transmit(t);
 		return t.value(0).value(0);
 	}
 
 	void write_16bits(uint16_t word)
 	{
-		Transaction t { Message(Message::WRITE, word & 0xff, word >> 8) };
+		Transaction t { Message(Message::WRITE, (uint8_t)(word & 0xff),
+		                                        (uint8_t)(word >> 8)) };
 		transmit(t);
 	}
 
 	uint16_t read_16bits()
 	{
-		Transaction t { Message(Message::READ, 0, 0) };
+		Transaction t { Message(Message::READ, (uint8_t)0, (uint8_t)0) };
 		transmit(t);
-		return t.value(0).value(0) | (t.value(0).value(1) << 8);
+		return (uint16_t)(t.value(0).value(0) | (t.value(0).value(1) << 8));
 	}
 };
 

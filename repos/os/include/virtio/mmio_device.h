@@ -137,7 +137,7 @@ class Virtio::Device : Platform::Device::Mmio
 			write<QueueSel>(queue_index);
 			if (read<QueueReady>() != 0) {
 				return 0; }
-			return read<QueueNumMax>();
+			return (uint16_t)read<QueueNumMax>();
 		}
 
 		uint32_t read_config(uint8_t offset, Access_size size)
@@ -153,9 +153,9 @@ class Virtio::Device : Platform::Device::Mmio
 		void write_config(uint8_t offset, Access_size size, uint32_t value)
 		{
 			switch (size) {
-			case ACCESS_8BIT:  write<Config_8>(value,  offset);  break;
-			case ACCESS_16BIT: write<Config_16>(value, (offset >> 1)); break;
-			case ACCESS_32BIT: write<Config_32>(value, (offset >> 2)); break;
+			case ACCESS_8BIT:  write<Config_8> ((uint8_t) value,  offset);  break;
+			case ACCESS_16BIT: write<Config_16>((uint16_t)value, (offset >> 1)); break;
+			case ACCESS_32BIT: write<Config_32>(value,           (offset >> 2)); break;
 			}
 		}
 

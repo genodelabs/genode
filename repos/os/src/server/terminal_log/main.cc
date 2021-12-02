@@ -60,7 +60,7 @@ namespace Genode {
 				}
 
 				char const *string = string_buf.string();
-				int len = strlen(string);
+				size_t len = strlen(string);
 
 				/*
 				 * Heuristic: The Log console implementation flushes

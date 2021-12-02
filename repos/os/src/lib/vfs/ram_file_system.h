@@ -113,7 +113,7 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Mutex
 		/**
 		 * Generate unique inode number
 		 */
-		static unsigned _unique_inode()
+		static unsigned long _unique_inode()
 		{
 			static unsigned long inode_count;
 			return ++inode_count;
@@ -126,10 +126,9 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Mutex
 		using Mutex::acquire;
 		using Mutex::release;
 
-		unsigned inode;
+		unsigned long inode;
 
-		Node(char const *node_name)
-		: inode(_unique_inode())
+		Node(char const *node_name) : inode(_unique_inode())
 		{
 			name(node_name);
 		}
@@ -284,7 +283,7 @@ class Vfs_ram::File : public Vfs_ram::Node
 			 * because 'Chunk' may have truncated tailing zeros.
 			 */
 			if (seek_offset + len >= _length)
-				len = _length - seek_offset;
+				len = (size_t)(_length - seek_offset);
 
 			file_size read_len = len;
 
@@ -295,11 +294,11 @@ class Vfs_ram::File : public Vfs_ram::Node
 					read_len = 0;
 			}
 
-			_chunk.read(dst, read_len, seek_offset);
+			_chunk.read(dst, (size_t)read_len, (size_t)seek_offset);
 
 			/* add zero padding if needed */
 			if (read_len < len)
-				memset(dst + read_len, 0, len - read_len);
+				memset(dst + read_len, 0, (size_t)(len - read_len));
 
 			return len;
 		}
@@ -309,7 +308,7 @@ class Vfs_ram::File : public Vfs_ram::Node
 		                                                file_size seek_offset,
 			                                            file_size &out_count) override
 		{
-			out_count = read(dst, count, seek_offset);
+			out_count = read(dst, (size_t)count, (size_t)seek_offset);
 			return Vfs::File_io_service::READ_OK;
 		}
 
@@ -319,7 +318,7 @@ class Vfs_ram::File : public Vfs_ram::Node
 				seek_offset = _chunk.used_size();
 
 			if (seek_offset + len >= Chunk_level_0::SIZE)
-				len = Chunk_level_0::SIZE - (seek_offset + len);
+				len = Chunk_level_0::SIZE - (size_t)(seek_offset + len);
 
 			try { _chunk.write(src, len, (size_t)seek_offset); }
 			catch (Out_of_memory) { return 0; }
@@ -384,7 +383,7 @@ class Vfs_ram::Symlink : public Vfs_ram::Node
 		                                                file_size,
 		                                                file_size &out_count) override
 		{
-			out_count = get(dst, count);
+			out_count = get(dst, (size_t)count);
 			return Vfs::File_io_service::READ_OK;
 		}
 
@@ -909,14 +908,14 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			File *file = dynamic_cast<File *>(node);
 			if (!file) return ds_cap;
 
-			size_t len = file->length();
+			size_t len = (size_t)file->length();
 
 			char *local_addr = nullptr;
 			try {
 				ds_cap = _env.env().ram().alloc(len);
 
 				local_addr = _env.env().rm().attach(ds_cap);
-				file->read(local_addr, file->length(), 0);
+				file->read(local_addr, (size_t)file->length(), 0);
 				_env.env().rm().detach(local_addr);
 
 			} catch(...) {
@@ -976,7 +975,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				static_cast<Vfs_ram::Io_handle *>(vfs_handle);
 
 			Vfs_ram::Node::Guard guard(&handle->node);
-			out = handle->node.write(buf, len, handle->seek());
+			out = handle->node.write(buf, (size_t)len, handle->seek());
 			handle->modifying = true;
 
 			return WRITE_OK;

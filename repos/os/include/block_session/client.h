@@ -64,7 +64,7 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 		 */
 		Packet_descriptor alloc_packet(Genode::size_t size)
 		{
-			return tx()->alloc_packet(size, _info.align_log2);
+			return tx()->alloc_packet(size, (unsigned)_info.align_log2);
 		}
 };
 

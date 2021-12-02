@@ -142,7 +142,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 					Packet_descriptor const p(_curr_operation(), _payload, tag);
 
 					if (_operation.type == Operation::Type::WRITE)
-						_with_offset_and_length(job, [&] (off_t offset, size_t length) {
+						_with_offset_and_length(job, [&] (seek_off_t offset, size_t length) {
 							policy.produce_write_content(job, offset,
 							                             tx.packet_content(p),
 							                             length); });
@@ -306,7 +306,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 			 *                communication buffer shared with the server)
 			 * \param length  size of 'dst' buffer in bytes
 			 */
-			void produce_write_content(Job &, off_t offset,
+			void produce_write_content(Job &, seek_off_t offset,
 			                           char *dst, size_t length);
 
 			/**
@@ -316,7 +316,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 			 * \param src     pointer to received data
 			 * \param length  number of bytes received
 			 */
-			void consume_read_result(Job &, off_t offset,
+			void consume_read_result(Job &, seek_off_t offset,
 			                         char const *src, size_t length);
 
 			/**
@@ -372,7 +372,7 @@ bool Block::Connection<JOB>::_try_process_ack(POLICY &policy, Tx::Source &tx)
 		_tags.template apply<_JOB>(id, [&] (_JOB &job) {
 
 			if (type == Operation::Type::READ)
-				Job::_with_offset_and_length(job, [&] (off_t offset, size_t length) {
+				Job::_with_offset_and_length(job, [&] (seek_off_t offset, size_t length) {
 					policy.consume_read_result(job, offset,
 					                           tx.packet_content(p), length); });
 
@@ -444,7 +444,7 @@ bool Block::Connection<JOB>::_try_submit_pending_job(POLICY &policy, Tx::Source 
 
 			size_t const bytes = _info.block_size * job._curr_operation().count;
 
-			payload = { .offset = tx.alloc_packet(bytes, _info.align_log2).offset(),
+			payload = { .offset = tx.alloc_packet(bytes, (unsigned)_info.align_log2).offset(),
 			            .bytes  = bytes };
 		});
 	}

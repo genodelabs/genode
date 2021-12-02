@@ -34,8 +34,10 @@ struct Platform::Pci::Bdf
 		             .function =  bdf       & 0x07u };
 	}
 
-	uint16_t value() const {
-		return ((bus & 0xff) << 8) | ((device & 0x1f) << 3) | (function & 7); }
+	uint16_t value() const
+	{
+		return (uint16_t)(((bus & 0xff) << 8) | ((device & 0x1f) << 3) | (function & 7));
+	}
 
 	bool operator == (Bdf const &other) const {
 		return value() == other.value(); }
@@ -161,19 +163,19 @@ namespace Platform {
 				case Device::ACCESS_8BIT:
 					if (track)
 						_use_register(addr, 1);
-					*(uint8_t volatile *)field_ptr = value;
+					*(uint8_t volatile *)field_ptr = (uint8_t)value;
 					break;
 
 				case Device::ACCESS_16BIT:
 					if (track)
 						_use_register(addr, 2);
-					*(uint16_t volatile *)field_ptr = value;
+					*(uint16_t volatile *)field_ptr = (uint16_t)value;
 					break;
 
 				case Device::ACCESS_32BIT:
 					if (track)
 						_use_register(addr, 4);
-					*(uint32_t volatile *)field_ptr = value;
+					*(uint32_t volatile *)field_ptr = (uint32_t)value;
 					break;
 				}
 			}
@@ -212,14 +214,21 @@ struct Platform::Pci::Config: Register_set<Platform::Pci::Config>
 		template <typename ACCESS_T>
 		inline ACCESS_T _read(off_t const &offset) const
 		{
-			addr_t const cap = _cap + offset;
+			if (_cap + offset > 0xff) {
+				warning("Pci::Config: unsupported read ", sizeof(ACCESS_T));
+				return 0;
+			}
+
+			uint8_t const cap = (uint8_t)(_cap + offset);
 
 			if (sizeof(ACCESS_T) == 1)
 				return _config.read(_bdf, cap, Device::ACCESS_8BIT);
+
 			if (sizeof(ACCESS_T) == 2)
-				return _config.read(_bdf, cap, Device::ACCESS_16BIT);
+				return (ACCESS_T)_config.read(_bdf, cap, Device::ACCESS_16BIT);
+
 			if (sizeof(ACCESS_T) == 4)
-				return _config.read(_bdf, cap, Device::ACCESS_32BIT);
+				return (ACCESS_T)_config.read(_bdf, cap, Device::ACCESS_32BIT);
 
 			warning("unsupported read ", sizeof(ACCESS_T));
 			return 0;
@@ -228,7 +237,12 @@ struct Platform::Pci::Config: Register_set<Platform::Pci::Config>
 		template <typename ACCESS_T>
 		inline void _write(off_t const offset, ACCESS_T const value)
 		{
-			addr_t const cap = _cap + offset;
+			if (_cap + offset > 0xff) {
+				warning("Pci::Config: unsupported write ", sizeof(ACCESS_T));
+				return;
+			}
+
+			uint8_t const cap = (uint8_t)(_cap + offset);
 
 			switch (sizeof(ACCESS_T)) {
 			case 1 :

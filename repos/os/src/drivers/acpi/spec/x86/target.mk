@@ -8,3 +8,5 @@ INC_DIR  = $(PRG_DIR)/../..
 vpath main.cc                  $(PRG_DIR)/../..
 vpath acpi.cc                  $(PRG_DIR)/../..
 vpath smbios_table_reporter.cc $(PRG_DIR)/../..
+
+CC_CXX_WARN_STRICT_CONVERSION =

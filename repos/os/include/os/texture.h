@@ -57,7 +57,7 @@ class Genode::Texture : public Texture_base
 		/**
 		 * Import rgba data line into texture
 		 */
-		inline void rgba(unsigned char const *rgba, unsigned len, int y);
+		inline void rgba(unsigned char const *rgba, size_t len, int y);
 };
 
 #endif /* _INCLUDE__OS__TEXTURE_H_ */

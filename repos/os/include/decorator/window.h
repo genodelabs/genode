@@ -134,8 +134,8 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 
 		using List_model<Window_base>::Element::next;
 
-		unsigned long id()       const { return _id; }
-		Rect          geometry() const { return _geometry; }
+		unsigned id()       const { return _id; }
+		Rect     geometry() const { return _geometry; }
 
 		void stacking_neighbor(View_handle neighbor)
 		{

@@ -22,6 +22,7 @@
 namespace Uart {
 
 	using namespace Terminal;
+	using namespace Genode;
 
 	struct Session;
 }
@@ -37,14 +38,14 @@ struct Uart::Session : Terminal::Session
 	/**
 	 * Set baud rate
 	 */
-	virtual void baud_rate(Genode::size_t bits_per_second) = 0;
+	virtual void baud_rate(size_t bits_per_second) = 0;
 
 
 	/*******************
 	 ** RPC interface **
 	 *******************/
 
-	GENODE_RPC(Rpc_baud_rate, void, baud_rate, Genode::size_t);
+	GENODE_RPC(Rpc_baud_rate, void, baud_rate, size_t);
 	GENODE_RPC_INTERFACE_INHERIT(Terminal::Session, Rpc_baud_rate);
 };
 

@@ -158,25 +158,40 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 		/**
 		 * Convenience functions to increase readability of code
 		 */
-		uint16_t _read_config_16(uint16_t const cap)
+		uint16_t _read_config_16(uint8_t const cap, uint8_t const offset)
 		{
-			return _device_config.read(_config_access, cap,
-			                           Platform::Device::ACCESS_16BIT);
+			if (cap + offset > 0xff) {
+				warning(_device_config, " _read_config_16 out of range");
+				return 0;
+			}
+
+			return (uint16_t)_device_config.read(_config_access, cap,
+			                                     Platform::Device::ACCESS_16BIT);
 		}
 
-		void _write_config_16(uint16_t const cap, uint16_t const value)
+		void _write_config_16(uint8_t const cap, uint8_t const offset, uint16_t const value)
 		{
-			 _device_config.write(_config_access, cap, value,
+			if (cap + offset > 0xff) {
+				warning(_device_config, " _write_config_16 out of range");
+				return;
+			}
+
+			 _device_config.write(_config_access, (uint8_t)(cap + offset), value,
 			                      Platform::Device::ACCESS_16BIT);
 		}
 
-		uint32_t _read_config_32(uint16_t const cap)
+		uint32_t _read_config_32(uint8_t const cap, uint8_t const offset)
 		{
+			if (cap + offset > 0xff) {
+				warning(_device_config, " _read_config_32 out of range");
+				return 0;
+			}
+
 			return _device_config.read(_config_access, cap,
 			                           Platform::Device::ACCESS_32BIT);
 		}
 
-		void _write_config_32(uint16_t const cap, uint32_t const value)
+		void _write_config_32(uint8_t const cap, uint32_t const value)
 		{
 			 _device_config.write(_config_access, cap, value,
 			                      Platform::Device::ACCESS_32BIT);
@@ -185,13 +200,13 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 		/**
 		 * Read out msi capabilities of the device.
 		 */
-		uint16_t _msi_cap()
+		uint8_t _msi_cap()
 		{
 			enum { CAP_MSI = 0x5 };
 			return _lookup_cap(CAP_MSI);
 		}
 
-		uint16_t _msix_cap()
+		uint8_t _msix_cap()
 		{
 			enum { CAP_MSI_X = 0x11 };
 			return _lookup_cap(CAP_MSI_X);
@@ -204,24 +219,24 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 		}
 
 		/* PCI express cap (not PCI express extended cap!) */
-		uint16_t _pcie_cap()
+		uint8_t _pcie_cap()
 		{
 			enum { CAP_PCIE = 0x10 };
 			return _lookup_cap(CAP_PCIE);
 		}
 
-		uint16_t _lookup_cap(uint16_t const target_cap)
+		uint8_t _lookup_cap(uint8_t const target_cap)
 		{
-			enum { PCI_STATUS = 0x6, PCI_CAP_OFFSET = 0x34 };
+			constexpr uint8_t PCI_STATUS = 0x6, PCI_CAP_OFFSET = 0x34;
 
-			Status::access_t status = Status::read(_read_config_16(PCI_STATUS));
+			Status::access_t status = Status::read((uint8_t)_read_config_16(PCI_STATUS, 0));
 			if (!Status::Capabilities::get(status))
 				return 0;
 
-			uint8_t cap = _read_config_16(PCI_CAP_OFFSET);
+			uint8_t cap = (uint8_t)_read_config_16(PCI_CAP_OFFSET, 0);
 
-			for (uint16_t val = 0; cap; cap = val >> 8) {
-				val = _read_config_16(cap);
+			for (uint16_t val = 0; cap; cap = (uint8_t)(val >> 8)) {
+				val = _read_config_16(cap, 0);
 				if ((val & 0xff) != target_cap)
 					continue;
 
@@ -235,11 +250,11 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 		/**
 		 * Disable MSI/MSI-X if already enabled.
 		 */
-		unsigned _configure_irq(unsigned irq, uint16_t const msi_cap,
-		                        uint16_t const msix_cap)
+		unsigned _configure_irq(unsigned irq, uint8_t const msi_cap,
+		                        uint8_t const msix_cap)
 		{
-			uint8_t pin = _device_config.read(_config_access, PCI_IRQ_PIN,
-			                                  Platform::Device::ACCESS_8BIT);
+			uint8_t pin = (uint8_t)_device_config.read(_config_access, PCI_IRQ_PIN,
+			                                           Platform::Device::ACCESS_8BIT);
 			if (!pin)
 				return Irq_session_component::INVALID_IRQ;
 
@@ -249,26 +264,27 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 				log(_device_config, " adjust IRQ as reported by ACPI: ",
 				    irq, " -> ", irq_r);
 
-				_irq_line = irq = irq_r;
+				_irq_line = irq_r;
+				irq       = irq_r;
 			}
 
 			if (msi_cap) {
-				uint16_t msi = _read_config_16(msi_cap + 2);
+				uint16_t msi = _read_config_16(msi_cap, 2);
 
 				if (msi & MSI_ENABLED)
 					/* disable MSI */
-					_device_config.write(_config_access, msi_cap + 2,
+					_device_config.write(_config_access, (uint8_t)(msi_cap + 2),
 					                     msi ^ MSI_ENABLED,
 					                     Platform::Device::ACCESS_8BIT);
 			}
 
 			if (msix_cap) {
-				uint16_t msix = _read_config_16(msix_cap + 2);
+				uint16_t msix = _read_config_16(msix_cap, 2);
 
 				if (Msix_ctrl::Enable::get(msix)) {
 					Msix_ctrl::Enable::set(msix, 0);
 
-					_write_config_16(msix_cap + 2, msix);
+					_write_config_16(msix_cap, 2, msix);
 				}
 			}
 
@@ -286,14 +302,14 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 			 * as we have no driver which will switch it on again
 			 */
 			if (_device_config.pci_bridge() ||
-			    _device_config.bdf() == Pci::Bdf::from_value(Platform::Bridge::root_bridge_bdf))
+			    _device_config.bdf() == Pci::Bdf::from_value((uint16_t)Platform::Bridge::root_bridge_bdf))
 				return;
 
 			_device_config.disable_bus_master_dma(_config_access);
 		}
 
-		bool _setup_msi(uint16_t);
-		bool _setup_msix(uint16_t);
+		bool _setup_msi(uint8_t);
+		bool _setup_msix(uint8_t);
 
 		template <typename FUNC>
 		void apply_msix_table(Pci::Resource const &lookup,
@@ -477,8 +493,8 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 			_device_config(device_config), _config_space(addr),
 			_config_access(config_access),
 			_session(session),
-			_irq_line(_device_config.read(_config_access, PCI_IRQ_LINE,
-			                              Platform::Device::ACCESS_8BIT)),
+			_irq_line((uint16_t)_device_config.read(_config_access, PCI_IRQ_LINE,
+			                                        Platform::Device::ACCESS_8BIT)),
 			_global_heap(global_heap),
 			_slab_ioport(&md_alloc, &_slab_ioport_block_data),
 			_slab_iomem(&md_alloc, &_slab_iomem_block_data)
@@ -506,7 +522,7 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 			_config_space(~0UL),
 			_config_access(pciconf),
 			_session(session),
-			_irq_line(irq),
+			_irq_line((uint16_t)irq),
 			_global_heap(global_heap),
 			_slab_ioport(nullptr, &_slab_ioport_block_data),
 			_slab_iomem(nullptr, &_slab_iomem_block_data)
@@ -566,9 +582,9 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 		void bus_address(unsigned char *bus, unsigned char *dev,
 		                 unsigned char *fn) override
 		{
-			*bus = _device_config.bdf().bus;
-			*dev = _device_config.bdf().device;
-			*fn  = _device_config.bdf().function;
+			*bus = (uint8_t)_device_config.bdf().bus;
+			*dev = (uint8_t)_device_config.bdf().device;
+			*fn  = (uint8_t)_device_config.bdf().function;
 		}
 
 		unsigned short vendor_id() override { return _device_config.vendor_id(); }

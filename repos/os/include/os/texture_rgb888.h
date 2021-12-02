@@ -22,7 +22,7 @@ namespace Genode {
 
 	template <>
 	inline void
-	Texture<Pixel_rgb888>::rgba(unsigned char const *rgba, unsigned len, int y)
+	Texture<Pixel_rgb888>::rgba(unsigned char const *rgba, size_t len, int y)
 	{
 		if (len > size().w()) len = size().w();
 		if (y < 0 || y >= (int)size().h()) return;
@@ -40,7 +40,7 @@ namespace Genode {
 			dst_pixel[i].rgba(r, g, b);
 
 			if (dst_alpha)
-				dst_alpha[i] = min(a, 255);
+				dst_alpha[i] = (unsigned char)min(a, 255);
 		}
 	}
 }

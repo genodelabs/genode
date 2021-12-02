@@ -67,7 +67,7 @@ struct Cpu_burner
 		if (!_config.valid())
 			return;
 
-		_percent = _config.xml().attribute_value("percent", 100L);
+		_percent = _config.xml().attribute_value("percent", (unsigned short)100);
 		if (_percent > 100)
 			_percent = 100;
 	}

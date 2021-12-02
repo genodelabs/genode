@@ -59,11 +59,13 @@ class Genode::Pixel_rgba
 		 */
 		Pixel_rgba() {}
 
-		Pixel_rgba(int red, int green, int blue, int alpha = 255) :
-			pixel((_shift(red,   r_shift) & r_mask)
-			    | (_shift(green, g_shift) & g_mask)
-			    | (_shift(blue,  b_shift) & b_mask)
-			    | (_shift(alpha, a_shift) & a_mask)) { }
+		Pixel_rgba(int red, int green, int blue, int alpha = 255)
+		:
+			pixel((ST)((_shift(red,   r_shift) & r_mask)
+			         | (_shift(green, g_shift) & g_mask)
+			         | (_shift(blue,  b_shift) & b_mask)
+			         | (_shift(alpha, a_shift) & a_mask)))
+		{ }
 
 		static Surface_base::Pixel_format format() { return FORMAT; }
 

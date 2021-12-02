@@ -167,7 +167,7 @@ struct Cached_fs_rom::Transfer final
 			if (!_fs.tx()->ready_to_submit())
 				throw Packet_alloc_failed();
 
-			size_t chunk_size = min(_size, _fs.tx()->bulk_buffer_size()/4);
+			size_t chunk_size = (size_t)min(_size, _fs.tx()->bulk_buffer_size()/4);
 			return _fs.tx()->alloc_packet(chunk_size);
 		}
 
@@ -219,7 +219,7 @@ struct Cached_fs_rom::Transfer final
 				error("packet seek is ", packet.position(), ", file seek is ", _seek, ", file size is ", _size);
 				_seek = _size;
 			} else {
-				size_t const n = min(packet.length(), _size - pkt_seek);
+				size_t const n = min(packet.length(), (size_t)(_size - pkt_seek));
 				memcpy(_cached_rom.ram_ds.local_addr<char>()+pkt_seek,
 				       _fs.tx()->packet_content(packet), n);
 				_seek = pkt_seek+n;
@@ -380,14 +380,14 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 		if (!rom) {
 			File_system::File_handle handle = try_open(path);
 			File_system::Handle_guard guard(fs, handle);
-			size_t file_size = fs.status(handle).size;
+			File_system::file_size_t file_size = fs.status(handle).size;
 
 			while (env.pd().avail_ram().value < file_size || env.pd().avail_caps().value < 8) {
 				/* drop unused cache entries */
 				if (!cache_evict()) break;
 			}
 
-			rom = new (heap) Cached_rom(cache, env, rm, path, file_size);
+			rom = new (heap) Cached_rom(cache, env, rm, path, (size_t)file_size);
 		}
 
 		if (rom->completed()) {

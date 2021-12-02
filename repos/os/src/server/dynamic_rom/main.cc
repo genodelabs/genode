@@ -140,7 +140,7 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 				exec_state = _execute_step(_rom_node.sub_node(_curr_idx));
 
 				/* advance step index, wrap at the end */
-				_curr_idx = (_curr_idx + 1) % _rom_node.num_sub_nodes();
+				_curr_idx = (_curr_idx + 1) % (unsigned)_rom_node.num_sub_nodes();
 			}
 		}
 

@@ -213,7 +213,7 @@ struct Block::Session : public Genode::Session
 	{
 		return Packet_descriptor(Packet_descriptor(0UL, 0UL),
 		                         Packet_descriptor::SYNC,
-		                         0UL, info.block_count, tag);
+		                         0UL, (block_count_t)info.block_count, tag);
 	}
 
 

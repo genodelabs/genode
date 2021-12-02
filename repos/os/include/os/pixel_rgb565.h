@@ -18,7 +18,7 @@
 
 namespace Genode {
 
-	typedef Pixel_rgba<unsigned short, Surface_base::RGB565,
+	typedef Pixel_rgba<uint16_t, Surface_base::RGB565,
 	                  0xf800, 8, 0x07e0, 3, 0x001f, -3, 0, 0>
 	        Pixel_rgb565;
 
@@ -27,7 +27,8 @@ namespace Genode {
 	inline Pixel_rgb565 Pixel_rgb565::avr(Pixel_rgb565 p1, Pixel_rgb565 p2)
 	{
 		Pixel_rgb565 res;
-		res.pixel = ((p1.pixel&0xf7df)>>1) + ((p2.pixel&0xf7df)>>1);
+		res.pixel = (uint16_t)(((p1.pixel&0xf7df)>>1) +
+		                       ((p2.pixel&0xf7df)>>1));
 		return res;
 	}
 
@@ -36,8 +37,8 @@ namespace Genode {
 	inline Pixel_rgb565 Pixel_rgb565::blend(Pixel_rgb565 src, int alpha)
 	{
 		Pixel_rgb565 res;
-		res.pixel = ((((alpha >> 3) * (src.pixel & 0xf81f)) >> 5) & 0xf81f)
-		          | ((( alpha       * (src.pixel & 0x07c0)) >> 8) & 0x07c0);
+		res.pixel = (uint16_t)(((((alpha >> 3) * (src.pixel & 0xf81f)) >> 5) & 0xf81f) |
+		                       ((( alpha       * (src.pixel & 0x07c0)) >> 8) & 0x07c0));
 		return res;
 	}
 
@@ -53,7 +54,8 @@ namespace Genode {
 		 * error of the blend function when having only 5 bits
 		 * per channel.
 		 */
-		res.pixel = blend(p1, 264 - alpha).pixel + blend(p2, alpha).pixel;
+		res.pixel = (uint16_t)(blend(p1, 264 - alpha).pixel +
+		                       blend(p2, alpha).pixel);
 		return res;
 	}
 }

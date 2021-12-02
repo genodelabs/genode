@@ -62,7 +62,7 @@ static Input::Event translate_event(Input::Event        ev,
 	});
 
 	ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
-		Point p = clamp(translate(Point(x, y)));
+		Point p = clamp(translate(Point((int)x, (int)y)));
 		ev = Input::Touch{id, (float)p.x(), (float)p.y()};
 	});
 
@@ -265,15 +265,15 @@ struct Nit_fb::Main : View_updater
 
 		unsigned width(Framebuffer::Mode const &mode) const
 		{
-			if (_width > 0) return _width;
-			if (_width < 0) return mode.area.w() + _width;
+			if (_width > 0) return (unsigned)_width;
+			if (_width < 0) return (unsigned)(mode.area.w() + _width);
 			return mode.area.w();
 		}
 
 		unsigned height(Framebuffer::Mode const &mode) const
 		{
-			if (_height > 0) return _height;
-			if (_height < 0) return mode.area.h() + _height;
+			if (_height > 0) return (unsigned)_height;
+			if (_height < 0) return (unsigned)(mode.area.h() + _height);
 			return mode.area.h();
 		}
 
@@ -339,8 +339,8 @@ struct Nit_fb::Main : View_updater
 		Framebuffer::Mode const gui_mode = gui.mode();
 
 		position = _coordinate_origin(gui_mode, config)
-		         + Point(config.attribute_value("xpos", 0L),
-		                 config.attribute_value("ypos", 0L));
+		         + Point((int)config.attribute_value("xpos", 0L),
+		                 (int)config.attribute_value("ypos", 0L));
 
 		bool const attr = config.has_attribute("width") ||
 		                  config.has_attribute("height");
@@ -372,7 +372,7 @@ struct Nit_fb::Main : View_updater
 			if (height < 0) height = gui_height + height;
 		}
 
-		fb_session.size(Area(width, height));
+		fb_session.size(Area((unsigned)width, (unsigned)height));
 	}
 
 	void handle_config_update()

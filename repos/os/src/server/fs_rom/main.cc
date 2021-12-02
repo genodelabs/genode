@@ -252,7 +252,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 					return false;
 
 				try {
-					_file_ds.realloc(&_env.ram(), _file_size);
+					_file_ds.realloc(&_env.ram(), (size_t)_file_size);
 				} catch (...) {
 					error("failed to allocate memory for ", _file_path);
 					return false;
@@ -272,7 +272,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 				while (!source.ready_to_submit())
 					_env.ep().wait_and_dispatch_one_io_signal();
 
-				size_t chunk_size = min(_file_size - _file_seek,
+				size_t chunk_size = min((size_t)(_file_size - _file_seek),
 				                        source.bulk_buffer_size() / 2);
 
 				File_system::Packet_descriptor
@@ -287,7 +287,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 				 * for the read request (indicated by a change of the seek
 				 * position).
 				 */
-				size_t const orig_file_seek = _file_seek;
+				File_system::seek_off_t const orig_file_seek = _file_seek;
 				while (_file_seek == orig_file_seek)
 					_env.ep().wait_and_dispatch_one_io_signal();
 			}
@@ -333,7 +333,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 				/* notify if the file is removed */
 				catch (File_system::Lookup_failed) {
 					if (_file_size > 0) {
-						memset(_file_ds.local_addr<char>(), 0x00, _file_size);
+						memset(_file_ds.local_addr<char>(), 0x00, (size_t)_file_size);
 						_file_size = 0;
 						Signal_transmitter(_sigh).submit();
 					}
@@ -455,7 +455,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 					return;
 				}
 
-				size_t const n = min(packet.length(), _file_size - _file_seek);
+				size_t const n = min(packet.length(), (size_t)(_file_size - _file_seek));
 				memcpy(_file_ds.local_addr<char>()+_file_seek,
 				       _fs.tx()->packet_content(packet), n);
 				_file_seek += n;

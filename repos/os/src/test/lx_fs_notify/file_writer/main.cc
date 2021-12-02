@@ -12,14 +12,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-
 /* libc includes */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
+#pragma GCC diagnostic pop
 
 /* stdcxx includes */
 #include <string>

@@ -126,7 +126,7 @@ void I2c::Driver::_write(uint8_t address, I2c::Session::Message & m)
 void I2c::Driver::_read(uint8_t address, I2c::Session::Message & m)
 {
 	/* LSB must be 1 for reading on the bus, address is on the 7 hightest bits */
-	_bus_write(address << 1 | 1);
+	_bus_write((uint8_t)(address << 1 | 1));
 
 	_mmio.write<Mmio::Control::Tx_rx_select>(0);
 	if (m.count() > 1) {
@@ -149,7 +149,7 @@ void I2c::Driver::_read(uint8_t address, I2c::Session::Message & m)
 			_mmio.write<Mmio::Control::Tx_ack_enable>(1);
 		}
 
-		byte = _mmio.read<Mmio::Data>();
+		byte = (uint8_t)_mmio.read<Mmio::Data>();
 		_irq.ack();
 	});
 }

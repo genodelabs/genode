@@ -147,7 +147,7 @@ class Vfs::Fs_file_system : public File_system
 
 				::File_system::Packet_descriptor p;
 				try {
-					p = source.alloc_packet(clipped_count);
+					p = source.alloc_packet((size_t)clipped_count);
 				} catch (::File_system::Session::Tx::Source::Packet_alloc_failed) {
 					return false;
 				}
@@ -155,7 +155,7 @@ class Vfs::Fs_file_system : public File_system
 				::File_system::Packet_descriptor const
 					packet(p, file_handle(),
 					       ::File_system::Packet_descriptor::READ,
-					       clipped_count, seek_offset);
+					       (size_t)clipped_count, seek_offset);
 
 				read_ready_state  = Handle_state::Read_ready_state::IDLE;
 				queued_read_state = Handle_state::Queued_state::QUEUED;
@@ -181,9 +181,9 @@ class Vfs::Fs_file_system : public File_system
 				Read_result result = packet.succeeded() ? READ_OK : READ_ERR_IO;
 
 				if (result == READ_OK) {
-					file_size const read_num_bytes = min(packet.length(), count);
+					file_size const read_num_bytes = min((file_size)packet.length(), count);
 
-					memcpy(dst, source.packet_content(packet), read_num_bytes);
+					memcpy(dst, source.packet_content(packet), (size_t)read_num_bytes);
 
 					out_count  = read_num_bytes;
 				}
@@ -449,10 +449,10 @@ class Vfs::Fs_file_system : public File_system
 
 			/* XXX check if alloc_packet() and submit_packet() will succeed! */
 
-			Packet_descriptor const packet_in(source.alloc_packet(clipped_count),
+			Packet_descriptor const packet_in(source.alloc_packet((size_t)clipped_count),
 			                                  handle.file_handle(),
 			                                  Packet_descriptor::READ,
-			                                  clipped_count,
+			                                  (size_t)clipped_count,
 			                                  seek_offset);
 
 			/* wait until packet was acknowledged */
@@ -481,9 +481,9 @@ class Vfs::Fs_file_system : public File_system
 				catch (::File_system::Unavailable)    { }
 			}
 
-			file_size const read_num_bytes = min(packet_out.length(), count);
+			file_size const read_num_bytes = min((file_size)packet_out.length(), count);
 
-			memcpy(buf, source.packet_content(packet_out), read_num_bytes);
+			memcpy(buf, source.packet_content(packet_out), (size_t)read_num_bytes);
 
 			source.release_packet(packet_out);
 
@@ -514,13 +514,13 @@ class Vfs::Fs_file_system : public File_system
 			}
 
 			try {
-				Packet_descriptor packet_in(source.alloc_packet(count),
+				Packet_descriptor packet_in(source.alloc_packet((size_t)count),
 				                            handle.file_handle(),
 				                            Packet_descriptor::WRITE,
-				                            count,
+				                            (size_t)count,
 				                            seek_offset);
 
-				memcpy(source.packet_content(packet_in), buf, count);
+				memcpy(source.packet_content(packet_in), buf, (size_t)count);
 
 				/* pass packet to server side */
 				source.submit_packet(packet_in);
@@ -630,8 +630,7 @@ class Vfs::Fs_file_system : public File_system
 		Genode::Io_signal_handler<Fs_file_system> _ready_handler {
 			_env.env().ep(), *this, &Fs_file_system::_ready_to_submit };
 
-		static
-		Genode::size_t buffer_size(Genode::Xml_node const &config)
+		static size_t buffer_size(Genode::Xml_node const &config)
 		{
 			Genode::Number_of_bytes fs_default { ::File_system::DEFAULT_TX_BUF_SIZE };
 			return config.attribute_value("buffer_size", fs_default);

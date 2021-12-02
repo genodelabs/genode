@@ -26,6 +26,8 @@ class Platform::Bridge : public List<Bridge>::Element
 {
 	private:
 
+		typedef Genode::uint16_t uint16_t;
+
 		/* PCI config space fields of bridge */
 		unsigned char _bus;
 		unsigned char _dev;
@@ -50,8 +52,8 @@ class Platform::Bridge : public List<Bridge>::Element
 
 		unsigned short bdf()
 		{
-			unsigned short bdf = _bus;
-			bdf = (bdf << 8) | ((_dev & 0x1f) << 3) | (_fun & 0x7);
+			uint16_t bdf = _bus;
+			bdf = (uint16_t)((bdf << 8) | ((_dev & 0x1f) << 3) | (_fun & 0x7));
 			return bdf;
 		}
 

@@ -213,21 +213,21 @@ struct Trace_subject_registry
 
 						Entry const &entry = *load[x][y][i];
 
-						unsigned ec_percent = entry.recent_time[first] * 100   / total_first[x][y];
-						unsigned ec_rest    = entry.recent_time[first] * 10000 / total_first[x][y] - (ec_percent * 100);
+						unsigned ec_percent = (unsigned)(entry.recent_time[first] * 100   / total_first[x][y]);
+						unsigned ec_rest    = (unsigned)(entry.recent_time[first] * 10000 / total_first[x][y] - (ec_percent * 100));
 
 						unsigned sc_percent = 0;
 						unsigned sc_rest    = 0;
 						if (total_second[x][y]) {
-							sc_percent = entry.recent_time[second] * 100   / total_second[x][y];
-							sc_rest    = entry.recent_time[second] * 10000 / total_second[x][y] - (sc_percent * 100);
+							sc_percent = (unsigned)(entry.recent_time[second] * 100   / total_second[x][y]);
+							sc_rest    = (unsigned)(entry.recent_time[second] * 10000 / total_second[x][y] - (sc_percent * 100));
 						}
 
 						enum { NAME_SPACE = 24 };
 						static char space[NAME_SPACE];
 						Genode::memset(space, ' ', NAME_SPACE - 1);
 
-						unsigned thread_name_len = entry.info.thread_name().length();
+						Genode::size_t const thread_name_len = entry.info.thread_name().length();
 						if (!thread_name_len)
 							space[NAME_SPACE - 1] = 0;
 						else

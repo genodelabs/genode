@@ -63,7 +63,7 @@ struct Test::Ping_pong : Test_base
 			throw Constructing_test_failed();
 		}
 
-		size_t const total_bytes = _info.block_count * _info.block_size;
+		size_t const total_bytes = (size_t)_info.block_count * _info.block_size;
 		if (_length > total_bytes - (_start * _info.block_size)) {
 			error("length too large invalid");
 			throw Constructing_test_failed();

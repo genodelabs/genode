@@ -54,7 +54,7 @@ class Platform::Irq_allocator
 		unsigned alloc_msi()
 		{
 			try {
-				 return _msi.alloc();
+				 return (unsigned)_msi.alloc();
 			} catch (Bit_allocator<MSI>::Out_of_indices) { return ~0U; }
 		}
 
@@ -285,7 +285,7 @@ void Platform::Irq_session_component::sigh(Signal_context_capability sigh)
 
 unsigned short Platform::Irq_routing::rewrite(Pci::Bdf const bdf, unsigned char pin)
 {
-	unsigned const bridge_bdf_bus = Platform::bridge_bdf(bdf.bus);
+	unsigned const bridge_bdf_bus = Platform::bridge_bdf((uint8_t)bdf.bus);
 
 	for (Irq_routing *i = list()->first(); i; i = i->next()) {
 		if ((bdf.device == i->_device) && (pin - 1 == i->_device_pin) &&

@@ -83,7 +83,7 @@ struct Trace_subject_registry
 
 		unsigned update_subjects(Genode::Trace::Connection &trace)
 		{
-			return Genode::retry<Genode::Out_of_ram>(
+			return (unsigned)Genode::retry<Genode::Out_of_ram>(
 				[&] () { return trace.subjects(_subjects, MAX_SUBJECTS); },
 				[&] () { trace.upgrade_ram(4096); }
 			);

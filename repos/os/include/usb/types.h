@@ -100,7 +100,7 @@ struct Usb::String
 
 		len = Genode::min(length, len);
 		for (unsigned i = 0; i < len; i++)
-			buffer[i] = string[i] & 0xff;
+			buffer[i] = (char)(string[i] & 0xff);
 
 		buffer[len] = 0;
 		return buffer;

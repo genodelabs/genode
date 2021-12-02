@@ -239,7 +239,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			unsigned next_index = 0;
 			for (long i = 0; i < MAX_SESSIONS; i++) {
 
-				unsigned index = (_wake_up_index + i) % MAX_SESSIONS;
+				unsigned index = (unsigned)((_wake_up_index + i) % MAX_SESSIONS);
 
 				if (!_sessions[index]) continue;
 
@@ -396,7 +396,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		 ** Update_jobs_policy **
 		 ************************/
 
-		void consume_read_result(Job &job, off_t,
+		void consume_read_result(Job &job, seek_off_t,
 		                         char const *src, size_t length)
 		{
 			if (!_sessions[job.number]) return;
@@ -405,7 +405,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			job.offset += length;
 		}
 
-		void produce_write_content(Job &job, off_t, char *dst, size_t length)
+		void produce_write_content(Job &job, seek_off_t, char *dst, size_t length)
 		{
 			memcpy(dst, (void *)(job.addr + job.offset), length);
 			job.offset += length;

@@ -205,7 +205,7 @@ class Uart::Driver : private Genode::Attached_io_mem_dataspace,
 			return !(_read_reg(UARTFR) & UARTFR_RXFE); }
 
 		char get_char() override {
-			return _read_reg(UARTDR); }
+			return (char)_read_reg(UARTDR); }
 };
 
 #endif /* _UART_DRIVER_H_ */

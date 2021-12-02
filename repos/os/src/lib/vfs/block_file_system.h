@@ -78,7 +78,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				char                              *_block_buffer;
 				unsigned                          &_block_buffer_count;
 				Block::Connection<>               &_block;
-				Genode::size_t               const _block_size;
+				size_t                       const _block_size;
 				Block::sector_t              const _block_count;
 				Block::Session::Tx::Source        *_tx_source;
 				bool                         const _writeable;
@@ -113,7 +113,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						try {
 							Mutex::Guard guard(_mutex);
 
-							packet = _block.alloc_packet(packet_size);
+							packet = _block.alloc_packet((size_t)packet_size);
 							break;
 						} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
 							if (!_tx_source->ready_to_submit())
@@ -128,10 +128,10 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 					}
 					Mutex::Guard guard(_mutex);
 
-					Block::Packet_descriptor p(packet, op, nr, packet_count);
+					Block::Packet_descriptor p(packet, op, nr, (size_t)packet_count);
 
 					if (write)
-						Genode::memcpy(_tx_source->packet_content(p), buf, packet_size);
+						Genode::memcpy(_tx_source->packet_content(p), buf, (size_t)packet_size);
 
 					_tx_source->submit_packet(p);
 					p = _tx_source->get_acked_packet();
@@ -143,7 +143,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 					}
 
 					if (!write)
-						Genode::memcpy(buf, _tx_source->packet_content(p), packet_size);
+						Genode::memcpy(buf, _tx_source->packet_content(p), (size_t)packet_size);
 
 					_tx_source->release_packet(p);
 					return packet_size;
@@ -158,7 +158,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				                 char                              *block_buffer,
 				                 unsigned                          &block_buffer_count,
 				                 Block::Connection<>               &block,
-				                 Genode::size_t                     block_size,
+				                 size_t                             block_size,
 				                 Block::sector_t                    block_count,
 				                 Block::Session::Tx::Source        *tx_source,
 				                 bool                               writeable,
@@ -230,7 +230,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 							return READ_ERR_INVALID;
 						}
 
-						Genode::memcpy(dst + read, _block_buffer + displ, length);
+						Genode::memcpy(dst + read, _block_buffer + displ, (size_t)length);
 
 						read  += length;
 						count -= length;
@@ -303,7 +303,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						if (displ > 0 || length < _block_size)
 							_block_io(blk_nr, _block_buffer, _block_size, false);
 
-						Genode::memcpy(_block_buffer + displ, buf + written, length);
+						Genode::memcpy(_block_buffer + displ, buf + written, (size_t)length);
 
 						nbytes = _block_io(blk_nr, _block_buffer, _block_size, true);
 						if ((unsigned)nbytes != _block_size) {
@@ -471,7 +471,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 
 	Readonly_value_file_system<Info>             _info_fs        { "info",        Info { } };
 	Readonly_value_file_system<Genode::uint64_t> _block_count_fs { "block_count", 0 };
-	Readonly_value_file_system<Genode::size_t>   _block_size_fs  { "block_size",  0 };
+	Readonly_value_file_system<size_t>           _block_size_fs  { "block_size",  0 };
 
 	static Name name(Xml_node config)
 	{
@@ -480,7 +480,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 
 	static unsigned buffer_count(Xml_node config)
 	{
-		return config.attribute_value("block_buffer_count", 1UL);
+		return config.attribute_value("block_buffer_count", 1U);
 	}
 
 	Local_factory(Vfs::Env &env, Xml_node config)

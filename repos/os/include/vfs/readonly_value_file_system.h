@@ -59,8 +59,8 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 				if (seek() > _buffer.length())
 					return READ_ERR_INVALID;
 
-				char const *   const src = _buffer.string() + seek();
-				Genode::size_t const len = min(_buffer.length() - seek(), count);
+				char const * const src = _buffer.string() + seek();
+				size_t const len = min((size_t)(_buffer.length() - seek()), (size_t)count);
 				Genode::memcpy(dst, src, len);
 
 				out_count = len;

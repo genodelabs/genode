@@ -222,13 +222,13 @@ namespace Sandbox {
 				width  = node.attribute_value<unsigned long>("width",  default_width),
 				height = node.attribute_value<unsigned long>("height", default_height);
 
-			long const x1 = node.attribute_value<long>("xpos", 0),
-			           y1 = node.attribute_value<long>("ypos", 0),
-			           x2 = x1 + width  - 1,
-			           y2 = y1 + height - 1;
+			int const x1 = (int)node.attribute_value<long>("xpos", 0),
+			          y1 = (int)node.attribute_value<long>("ypos", 0),
+			          x2 = (int)(x1 + width  - 1),
+			          y2 = (int)(y1 + height - 1);
 
 			/* clip location to space boundary */
-			return Location(max(x1, 0L), max(y1, 0L),
+			return Location(max(x1, 0), max(y1, 0),
 			                min((unsigned)(x2 - x1 + 1), space.width()),
 			                min((unsigned)(y2 - y1 + 1), space.height()));
 		}

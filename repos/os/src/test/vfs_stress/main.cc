@@ -208,7 +208,7 @@ struct Mkdir_test : public Stress_test
 		}
 	}
 
-	int wait()
+	Vfs::file_size wait()
 	{
 		return count;
 	}
@@ -271,7 +271,7 @@ struct Populate_test : public Stress_test
 		}
 	}
 
-	int wait()
+	Vfs::file_size wait()
 	{
 		return count;
 	}
@@ -385,7 +385,7 @@ struct Read_test : public Stress_test
 
 			assert_read(read_result);
 
-			if (strcmp(path.base(), tmp, n))
+			if (strcmp(path.base(), tmp, (size_t)n))
 				error("read returned bad data");
 			count += n;
 		}
@@ -510,7 +510,7 @@ struct Unlink_test : public Stress_test
 		}
 	}
 
-	int wait()
+	Vfs::file_size wait()
 	{
 		return count;
 	}
@@ -560,7 +560,7 @@ void Component::construct(Genode::Env &env)
 	 ** Generate directories **
 	 **************************/
 	{
-		int count = 0;
+		Vfs::file_size count = 0;
 		log("generating directory surface...");
 		elapsed_ms = timer.elapsed_ms();
 
@@ -587,7 +587,7 @@ void Component::construct(Genode::Env &env)
 	 ** Generate files **
 	 ********************/
 	{
-		int count = 0;
+		Vfs::file_size count = 0;
 		log("generating files...");
 		elapsed_ms = timer.elapsed_ms();
 
