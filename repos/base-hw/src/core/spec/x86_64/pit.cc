@@ -30,10 +30,10 @@ uint32_t Board::Timer::pit_calc_timer_freq(void)
 {
 	uint32_t t_start, t_end;
 
-	/* Set channel gate high and disable speaker */
-	outb(PIT_CH2_GATE, (inb(0x61) & ~0x02) | 0x01);
+	/* set channel gate high and disable speaker */
+	outb(PIT_CH2_GATE, (uint8_t)((inb(0x61) & ~0x02) | 0x01));
 
-	/* Set timer counter (mode 0, binary count) */
+	/* set timer counter (mode 0, binary count) */
 	outb(PIT_MODE, 0xb0);
 	outb(PIT_CH2_DATA, PIT_SLEEP_TICS & 0xff);
 	outb(PIT_CH2_DATA, PIT_SLEEP_TICS >> 8);
@@ -57,7 +57,7 @@ Board::Timer::Timer(unsigned)
 :
 	Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
-	/* Enable LAPIC timer in one-shot mode */
+	/* enable LAPIC timer in one-shot mode */
 	write<Tmr_lvt::Vector>(Board::TIMER_VECTOR_KERNEL);
 	write<Tmr_lvt::Delivery>(0);
 	write<Tmr_lvt::Mask>(0);
@@ -71,7 +71,7 @@ Board::Timer::Timer(unsigned)
 			raw("Failed to calibrate timer frequency");
 			throw Calibration_failed();
 		}
-		write<Divide_configuration::Divide_value>(div);
+		write<Divide_configuration::Divide_value>((uint8_t)div);
 
 		/* Calculate timer frequency */
 		ticks_per_ms = pit_calc_timer_freq();
@@ -88,7 +88,7 @@ Board::Timer::Timer(unsigned)
 
 
 void Timer::_start_one_shot(time_t const ticks) {
-	_device.write<Board::Timer::Tmr_initial>(ticks); }
+	_device.write<Board::Timer::Tmr_initial>((uint32_t)ticks); }
 
 
 time_t Timer::ticks_to_us(time_t const ticks) const {

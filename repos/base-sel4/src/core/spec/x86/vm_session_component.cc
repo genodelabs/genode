@@ -101,7 +101,7 @@ try
 	_ep(ep),
 	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_heap(_constrained_md_ram_alloc, local_rm),
-	_pd_id(Platform_pd::pd_id_alloc().alloc()),
+	_pd_id((uint32_t)Platform_pd::pd_id_alloc().alloc()),
 	_vm_page_table(platform_specific().core_sel_alloc().alloc()),
 	_vm_space(_vm_page_table,
 	          platform_specific().core_sel_alloc(),

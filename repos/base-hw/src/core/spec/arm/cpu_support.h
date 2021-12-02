@@ -71,7 +71,7 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 
 			~Mmu_context();
 
-			uint8_t id() { return cidr; }
+			uint8_t id() { return (uint8_t)cidr; }
 	};
 
 	/**

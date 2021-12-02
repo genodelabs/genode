@@ -86,7 +86,7 @@ struct Hw::Arm_64_cpu
 
 		struct Iss : Bitfield<0, 25>
 		{
-			struct Abort : Register<32>
+			struct Abort : Register<64>
 			{
 				struct Level : Bitfield<0, 2> {};
 				struct Fsc   : Bitfield<2, 4>
@@ -231,7 +231,7 @@ struct Hw::Arm_64_cpu
 		struct Asid : Bitfield<48, 8>  { };
 	);
 
-	static inline unsigned current_privilege_level() {
+	static Current_el::access_t current_privilege_level() {
 		return Current_el::El::get(Current_el::read()); }
 
 

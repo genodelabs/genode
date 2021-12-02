@@ -31,13 +31,13 @@ namespace Genode {
 	{
 		private:
 
-			addr_t _value;
+			uint32_t _value;
 
 		public:
 
-			explicit Cap_sel(addr_t value) : _value(value) { }
+			explicit Cap_sel(uint32_t value) : _value(value) { }
 
-			addr_t value() const { return _value; }
+			uint32_t value() const { return _value; }
 
 			void print(Output &out) const { Genode::print(out, "sel=", _value); }
 	};
@@ -179,7 +179,7 @@ class Genode::Capability_space_sel4
 		unsigned _index(Data const &data) const
 		{
 			addr_t const offset = (addr_t)&data - (addr_t)_caps_data;
-			return offset / sizeof(_caps_data[0]);
+			return (unsigned)(offset / sizeof(_caps_data[0]));
 		}
 
 		/**

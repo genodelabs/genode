@@ -6,6 +6,9 @@ FIASCO_SRC       = $(L4_SRC_DIR)/kernel/fiasco
 
 KERNEL_BUILD_OUTPUT_FILTER = 2>&1 | sed "s/^/      [fiasco]  /"
 
+KERNEL_CXXFLAGS = -std=gnu++98 -fno-delete-null-pointer-checks $(CXXWARN) \
+                  -Wno-address-of-packed-member
+
 $(FIASCO_BUILD_DIR):
 	$(VERBOSE_MK) set -o pipefail; \
 	              MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
@@ -21,7 +24,7 @@ $(FIASCO_BUILD_DIR):
 $(FIASCO): $(FIASCO_BUILD_DIR)
 	$(VERBOSE_MK) set -o pipefail; \
 	              MAKEFLAGS= CFLAGS="-std=gnu89 $(CWARN)" \
-	              CXXFLAGS="-std=gnu++98 -fno-delete-null-pointer-checks $(CXXWARN)" \
+	              CXXFLAGS="$(KERNEL_CXXFLAGS)" \
 	              $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $(FIASCO_BUILD_DIR) \
 	                                 $(KERNEL_BUILD_OUTPUT_FILTER)

@@ -19,8 +19,11 @@
 #include "testlib.h"
 
 /* Linux includes */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <stdlib.h>
 #include <stdio.h>
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 using namespace Genode;
 

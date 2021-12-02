@@ -19,9 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
-
-/* seL4 includes */
-#include <sel4/sel4.h>
+#include <base/internal/sel4.h>
 
 
 static inline void kernel_debugger_outstring(char const *msg)

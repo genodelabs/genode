@@ -41,7 +41,7 @@ void Signal_source_component::submit(Signal_context_component &context,
                                      unsigned long             cnt)
 {
 	/* enqueue signal to context */
-	context.increment_signal_cnt(cnt);
+	context.increment_signal_cnt((int)cnt);
 
 	if (!context.enqueued()) {
 		_signal_queue.enqueue(context);

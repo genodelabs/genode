@@ -18,7 +18,7 @@
 #include <base/stdint.h>
 
 namespace Genode {
-	
+
 	class String_console;
 
 	/**
@@ -30,8 +30,8 @@ namespace Genode {
 	 *
 	 * \return  number of characters written to destination buffer
 	 */
-	inline int snprintf(char *dst, size_t dst_size, const char *format, ...)
-	           __attribute__((format(printf, 3, 4)));
+	inline size_t snprintf(char *dst, size_t dst_size, const char *format, ...)
+	                       __attribute__((format(printf, 3, 4)));
 }
 
 
@@ -83,7 +83,7 @@ class Genode::String_console : public Console
 };
 
 
-inline int Genode::snprintf(char *dst, size_t dst_len, const char *format, ...)
+inline Genode::size_t Genode::snprintf(char *dst, size_t dst_len, const char *format, ...)
 {
 	va_list list;
 	va_start(list, format);

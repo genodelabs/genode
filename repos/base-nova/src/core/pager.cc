@@ -101,8 +101,10 @@ struct Page_fault_info
 
 	Page_fault_info(char const *pd, char const *thread, unsigned cpu,
 	                addr_t ip, addr_t addr, addr_t sp, unsigned type)
-	: pd(pd), thread(thread), cpu(cpu), ip(ip), addr(addr),
-	  sp(sp), pf_type(type) { }
+	:
+		pd(pd), thread(thread), cpu(cpu), ip(ip), addr(addr),
+		sp(sp), pf_type((uint8_t)type)
+	{ }
 
 	void print(Genode::Output &out) const
 	{
@@ -191,7 +193,7 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 	                                 ipc_pager.fault_ip(),
 	                                 ipc_pager.fault_addr(),
 	                                 ipc_pager.sp(),
-	                                 ipc_pager.fault_type());
+	                                 (uint8_t)ipc_pager.fault_type());
 
 	/* region manager fault - to be handled */
 	log("page fault, ", fault_info, " reason=", error);

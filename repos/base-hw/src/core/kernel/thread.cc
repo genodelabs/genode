@@ -90,7 +90,7 @@ void Thread::_ipc_free_recv_caps()
 void Thread::_ipc_init(Genode::Native_utcb &utcb, Thread &starter)
 {
 	_utcb = &utcb;
-	_ipc_alloc_recv_caps(starter._utcb->cap_cnt());
+	_ipc_alloc_recv_caps((unsigned)(starter._utcb->cap_cnt()));
 	ipc_copy_msg(starter);
 }
 
@@ -311,14 +311,14 @@ size_t Thread::_core_to_kernel_quota(size_t const quota) const
 void Thread::_call_thread_quota()
 {
 	Thread * const thread = (Thread *)user_arg_1();
-	thread->Cpu_job::quota(_core_to_kernel_quota(user_arg_2()));
+	thread->Cpu_job::quota((unsigned)(_core_to_kernel_quota(user_arg_2())));
 }
 
 
 void Thread::_call_start_thread()
 {
 	/* lookup CPU */
-	Cpu & cpu = _cpu_pool.cpu(user_arg_2());
+	Cpu & cpu = _cpu_pool.cpu((unsigned)user_arg_2());
 	user_arg_0(0);
 	Thread &thread = *(Thread*)user_arg_1();
 
@@ -362,7 +362,7 @@ void Thread::_call_stop_thread()
 
 void Thread::_call_restart_thread()
 {
-	Thread *thread_ptr = pd().cap_tree().find<Thread>(user_arg_1());
+	Thread *thread_ptr = pd().cap_tree().find<Thread>((capid_t)user_arg_1());
 
 	if (!thread_ptr)
 		return;
@@ -450,7 +450,7 @@ void Thread::_call_delete_thread()
 void Thread::_call_await_request_msg()
 {
 	if (_ipc_node.can_await_request()) {
-		_ipc_alloc_recv_caps(user_arg_1());
+		_ipc_alloc_recv_caps((unsigned)user_arg_1());
 		_ipc_node.await_request();
 		if (_ipc_node.awaits_request()) {
 			_become_inactive(AWAITS_IPC);
@@ -467,7 +467,7 @@ void Thread::_call_await_request_msg()
 void Thread::_call_timeout()
 {
 	Timer & t = _cpu->timer();
-	_timeout_sigid = user_arg_2();
+	_timeout_sigid = (Kernel::capid_t)user_arg_2();
 	t.set_timeout(this, t.us_to_ticks(user_arg_1()));
 }
 
@@ -499,7 +499,7 @@ void Thread::timeout_triggered()
 
 void Thread::_call_send_request_msg()
 {
-	Object_identity_reference * oir = pd().cap_tree().find(user_arg_1());
+	Object_identity_reference * oir = pd().cap_tree().find((capid_t)user_arg_1());
 	Thread * const dst = (oir) ? oir->object<Thread>() : nullptr;
 	if (!dst) {
 		Genode::raw(*this, ": cannot send to unknown recipient ",
@@ -513,7 +513,7 @@ void Thread::_call_send_request_msg()
 	if (!_ipc_node.can_send_request()) {
 		Genode::raw("IPC send request: bad state");
 	} else {
-		_ipc_alloc_recv_caps(user_arg_2());
+		_ipc_alloc_recv_caps((unsigned)user_arg_2());
 		_ipc_capid    = oir ? oir->capid() : cap_id_invalid();
 		_ipc_node.send_request(dst->_ipc_node, help);
 	}
@@ -536,7 +536,7 @@ void Thread::_call_pager()
 {
 	/* override event route */
 	Thread &thread = *(Thread *)user_arg_1();
-	thread._pager = pd().cap_tree().find<Signal_context>(user_arg_2());
+	thread._pager = pd().cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_2());
 }
 
 
@@ -552,7 +552,7 @@ void Thread::_call_await_signal()
 		return;
 	}
 	/* lookup receiver */
-	Signal_receiver * const r = pd().cap_tree().find<Signal_receiver>(user_arg_1());
+	Signal_receiver * const r = pd().cap_tree().find<Signal_receiver>((Kernel::capid_t)user_arg_1());
 	if (!r) {
 		Genode::raw(*this, ": cannot await, unknown signal receiver ",
 		                (unsigned)user_arg_1());
@@ -573,7 +573,7 @@ void Thread::_call_await_signal()
 void Thread::_call_pending_signal()
 {
 	/* lookup receiver */
-	Signal_receiver * const r = pd().cap_tree().find<Signal_receiver>(user_arg_1());
+	Signal_receiver * const r = pd().cap_tree().find<Signal_receiver>((Kernel::capid_t)user_arg_1());
 	if (!r) {
 		Genode::raw(*this, ": cannot await, unknown signal receiver ",
 		                (unsigned)user_arg_1());
@@ -601,7 +601,7 @@ void Thread::_call_pending_signal()
 void Thread::_call_cancel_next_await_signal()
 {
 	/* kill the caller if the capability of the target thread is invalid */
-	Thread * const thread = pd().cap_tree().find<Thread>(user_arg_1());
+	Thread * const thread = pd().cap_tree().find<Thread>((Kernel::capid_t)user_arg_1());
 	if (!thread || (&pd() != &thread->pd())) {
 		raw(*this, ": failed to lookup thread ", (unsigned)user_arg_1());
 		_die();
@@ -620,7 +620,7 @@ void Thread::_call_cancel_next_await_signal()
 void Thread::_call_submit_signal()
 {
 	/* lookup signal context */
-	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_1());
 	if(!c) {
 		/* cannot submit unknown signal context */
 		user_arg_0(-1);
@@ -628,12 +628,12 @@ void Thread::_call_submit_signal()
 	}
 
 	/* trigger signal context */
-	if (!c->can_submit(user_arg_2())) {
+	if (!c->can_submit((unsigned)user_arg_2())) {
 		Genode::raw("failed to submit signal context");
 		user_arg_0(-1);
 		return;
 	}
-	c->submit(user_arg_2());
+	c->submit((unsigned)user_arg_2());
 	user_arg_0(0);
 }
 
@@ -641,7 +641,7 @@ void Thread::_call_submit_signal()
 void Thread::_call_ack_signal()
 {
 	/* lookup signal context */
-	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_1());
 	if (!c) {
 		Genode::raw(*this, ": cannot ack unknown signal context");
 		return;
@@ -655,7 +655,7 @@ void Thread::_call_ack_signal()
 void Thread::_call_kill_signal_context()
 {
 	/* lookup signal context */
-	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_1());
 	if (!c) {
 		Genode::raw(*this, ": cannot kill unknown signal context");
 		user_arg_0(-1);
@@ -674,7 +674,7 @@ void Thread::_call_kill_signal_context()
 
 void Thread::_call_new_irq()
 {
-	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_4());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_4());
 	if (!c) {
 		Genode::raw(*this, ": invalid signal context for interrupt");
 		user_arg_0(-1);
@@ -699,7 +699,7 @@ void Thread::_call_ack_irq() {
 void Thread::_call_new_obj()
 {
 	/* lookup thread */
-	Object_identity_reference * ref = pd().cap_tree().find(user_arg_2());
+	Object_identity_reference * ref = pd().cap_tree().find((Kernel::capid_t)user_arg_2());
 	Thread * thread = ref ? ref->object<Thread>() : nullptr;
 	if (!thread ||
 		(static_cast<Core_object<Thread>*>(thread)->capid() != ref->capid())) {
@@ -726,14 +726,14 @@ void Thread::_call_delete_obj()
 
 void Thread::_call_ack_cap()
 {
-	Object_identity_reference * oir = pd().cap_tree().find(user_arg_1());
+	Object_identity_reference * oir = pd().cap_tree().find((Kernel::capid_t)user_arg_1());
 	if (oir) oir->remove_from_utcb();
 }
 
 
 void Thread::_call_delete_cap()
 {
-	Object_identity_reference * oir = pd().cap_tree().find(user_arg_1());
+	Object_identity_reference * oir = pd().cap_tree().find((Kernel::capid_t)user_arg_1());
 	if (!oir) return;
 
 	if (oir->in_utcb()) return;
@@ -766,7 +766,7 @@ void Thread::_call()
 	try {
 
 	/* switch over unrestricted kernel calls */
-	unsigned const call_id = user_arg_0();
+	unsigned const call_id = (unsigned)user_arg_0();
 	switch (call_id) {
 	case call_id_cache_coherent_region():    _call_cache_coherent_region(); return;
 	case call_id_cache_clean_inv_region():   _call_cache_clean_invalidate_data_region(); return;

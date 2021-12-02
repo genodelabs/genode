@@ -204,7 +204,7 @@ class Genode::Token
 		/**
 		 * Return length of token
 		 */
-		int _calc_len(size_t max_len) const
+		size_t _calc_len(size_t max_len) const
 		{
 			switch (_type(max_len)) {
 

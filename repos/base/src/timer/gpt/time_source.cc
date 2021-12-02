@@ -21,10 +21,10 @@ void Timer::Time_source::set_timeout(Genode::Microseconds  duration,
                                      Timeout_handler      &handler)
 {
 	_handler = &handler;
-	
+
 	/* set to minimum ticks value to not miss a too short timeout */
-	Genode::uint32_t const ticks =
-		Genode::max(1UL, (duration.value * TICKS_PER_MS) / 1000);
+	uint32_t const ticks =
+		max((uint32_t)1, (uint32_t)((duration.value * TICKS_PER_MS) / 1000));
 
 	/* clear interrupts */
 	if (read<Sr>()) {
@@ -40,15 +40,14 @@ void Timer::Time_source::set_timeout(Genode::Microseconds  duration,
 Duration Timer::Time_source::curr_time()
 {
 	Cnt::access_t cur_cnt = read<Cnt>();
-	Genode::Microseconds us(timer_ticks_to_us(cur_cnt - _last_cnt,
-	                                          TICKS_PER_MS));
+	Genode::Microseconds us(timer_ticks_to_us(cur_cnt - _last_cnt, TICKS_PER_MS));
 	_last_cnt = cur_cnt;
 	_curr_time.add(us);
 	return _curr_time;
 }
 
 
-Genode::Microseconds Timer::Time_source::max_timeout() const
+Microseconds Timer::Time_source::max_timeout() const
 {
 	static unsigned long max = timer_ticks_to_us(0xffffffff, TICKS_PER_MS);
 	return Genode::Microseconds(max);

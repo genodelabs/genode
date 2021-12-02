@@ -11,4 +11,3 @@ SRC_S += spec/arm_v7/trustzone/exception_vector.s
 
 # include less specific configuration
 include $(call select_from_repositories,lib/mk/spec/arm_v7/core-hw-imx53_qsb.inc)
-

@@ -34,7 +34,7 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 	                                                   : get_page_size_log2();
 
 	/* find appropriate region for mapping */
-	return platform().region_alloc().alloc_aligned(size, alignment).convert<addr_t>(
+	return platform().region_alloc().alloc_aligned(size, (unsigned)alignment).convert<addr_t>(
 
 		[&] (void *local_base) {
 			if (!map_local_io(base, (addr_t)local_base, size >> get_page_size_log2())) {

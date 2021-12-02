@@ -81,7 +81,7 @@ class Genode::Constrained_core_ram : public Allocator
 			core_mem_allocated -= page_aligned_size;
 		}
 
-		size_t consumed()           const override { return core_mem_allocated; }
+		size_t consumed()           const override { return (size_t)core_mem_allocated; }
 		size_t overhead(size_t)     const override { return 0; }
 		bool   need_size_for_free() const override { return true; }
 };

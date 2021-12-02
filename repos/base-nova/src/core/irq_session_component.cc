@@ -225,7 +225,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 		throw Service_denied();
 	}
 
-	_irq_number = irq_number;
+	_irq_number = (unsigned)irq_number;
 
 	_irq_object.start(_irq_number, device_phys);
 }

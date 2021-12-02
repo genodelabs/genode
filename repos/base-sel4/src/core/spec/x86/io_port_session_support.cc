@@ -17,14 +17,12 @@
 /* core includes */
 #include <io_port_session_component.h>
 
-#include <sel4/sel4.h>
+/* base-internal includes */
+#include <base/internal/sel4.h>
 
 using namespace Genode;
 
 
-/**************
- ** Port API **
- **************/
 unsigned char Io_port_session_component::inb(unsigned short address)
 {
 	/* check boundaries */

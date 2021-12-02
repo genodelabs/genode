@@ -15,6 +15,10 @@
 #define _BASE__INTERNAL__PISTACHIO_H_
 
 namespace Pistachio {
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include <l4/types.h>
 #include <l4/thread.h>
 #include <l4/message.h>
@@ -27,6 +31,8 @@ namespace Pistachio {
 #include <l4/arch.h>
 #include <l4/bootinfo.h>
 #include <l4/misc.h>
+
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 }
 
 #endif /* _BASE__INTERNAL__PISTACHIO_H_ */

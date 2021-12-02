@@ -96,7 +96,7 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 			~Mmu_context();
 
 			Genode::uint16_t id() {
-				return Ttbr::Asid::get(ttbr); }
+				return Ttbr::Asid::get(ttbr) & 0xffff; }
 	};
 
 	void switch_to(Context&, Mmu_context &);

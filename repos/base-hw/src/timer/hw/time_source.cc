@@ -39,16 +39,16 @@ Timer::Time_source::Time_source(Env &env)
 void Timer::Time_source::set_timeout(Microseconds     duration,
                                      Timeout_handler &handler)
 {
-	Kernel::timeout_t duration_us = duration.value;
+	Kernel::timeout_t duration_us = (Kernel::timeout_t)duration.value;
 	if (duration_us < MIN_TIMEOUT_US) {
 		duration_us = MIN_TIMEOUT_US; }
 
 	if (duration_us > _max_timeout_us) {
-		duration_us = _max_timeout_us; }
+		duration_us = (Kernel::timeout_t)_max_timeout_us; }
 
 	_handler = &handler;
 	Signal_context_capability cap = _signal_handler;
-	Kernel::timeout(duration_us, (addr_t)cap.data());
+	Kernel::timeout(duration_us, (Kernel::capid_t)((addr_t)cap.data() & 0xffff));
 }
 
 

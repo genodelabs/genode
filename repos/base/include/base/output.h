@@ -248,7 +248,7 @@ void Genode::Hex_range<T>::print(Output &out) const
 
 	Hex const from(base, Hex::OMIT_PREFIX, Hex::PAD);
 
-	T const end = base + len;
+	T const end = (T)(base + len);
 
 	/* if end at integer limit, use ']' as closing delimiter */
 	if (base && end == 0) {

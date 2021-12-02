@@ -54,7 +54,7 @@ Platform_thread::~Platform_thread()
 
 void Platform_thread::quota(size_t const quota)
 {
-	_quota = quota;
+	_quota = (unsigned)quota;
 	Kernel::thread_quota(*_kobj, quota);
 }
 
@@ -97,7 +97,7 @@ Platform_thread::Platform_thread(size_t             const  quota,
 	_pager(nullptr),
 	_utcb_pd_addr((Native_utcb *)utcb),
 	_priority(_scale_priority(virt_prio)),
-	_quota(quota),
+	_quota((unsigned)quota),
 	_main_thread(false),
 	_location(location),
 	_kobj(_kobj.CALLED_FROM_CORE, _priority, _quota, _label.string())

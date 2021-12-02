@@ -31,8 +31,8 @@ Io_port_session_component::Io_port_session_component(Range_allocator &io_port_al
 : _io_port_alloc(io_port_alloc)
 {
 	/* parse for port properties */
-	unsigned base = Arg_string::find_arg(args, "io_port_base").ulong_value(0);
-	unsigned size = Arg_string::find_arg(args, "io_port_size").ulong_value(0);
+	uint16_t const base = (uint16_t)Arg_string::find_arg(args, "io_port_base").ulong_value(0);
+	uint16_t const size = (uint16_t)Arg_string::find_arg(args, "io_port_size").ulong_value(0);
 
 	/* allocate region (also checks out-of-bounds regions) */
 	io_port_alloc.alloc_addr(size, base).with_error(

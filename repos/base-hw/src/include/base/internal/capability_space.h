@@ -27,8 +27,7 @@ namespace Genode { namespace Capability_space {
 	 */
 	static inline Kernel::capid_t capid(Native_capability const &cap)
 	{
-		addr_t const index = (addr_t)cap.data();
-		return index;
+		return (Kernel::capid_t)((addr_t)cap.data() & 0xffffU);
 	}
 
 	static inline Native_capability import(Kernel::capid_t capid)

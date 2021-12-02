@@ -45,7 +45,7 @@ struct Linker::Phdr
 	enum { MAX_PHDR = 10 };
 
 	Elf::Phdr  phdr[MAX_PHDR];
-	unsigned   count = 0;
+	uint16_t   count = 0;
 };
 
 

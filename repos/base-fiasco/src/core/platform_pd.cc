@@ -58,10 +58,13 @@ void Platform_pd::init()
 
 void Platform_pd::_create_pd(bool syscall)
 {
+	enum { TASK_ID_MASK     = (1 << 11) - 1,
+	       VERSION_LOW_MASK = (1 << 10) - 1 };
+
 	l4_threadid_t l4t  = l4_myself();
-	l4t.id.task        = _pd_id;
+	l4t.id.task        = _pd_id & TASK_ID_MASK;
 	l4t.id.lthread     = 0;
-	l4t.id.version_low = _version;
+	l4t.id.version_low = _version & VERSION_LOW_MASK;
 
 	l4_taskid_t nt;
 	if (syscall)
@@ -203,8 +206,10 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 	}
 	thread_id = t;
 
+	enum { LTHREAD_MASK = (1 << 7) - 1 };
+
 	l4_thread_id = _l4_task_id;
-	l4_thread_id.id.lthread = thread_id;
+	l4_thread_id.id.lthread = thread_id & LTHREAD_MASK;
 
 	/* finally inform thread about binding */
 	thread.bind(thread_id, l4_thread_id, *this);

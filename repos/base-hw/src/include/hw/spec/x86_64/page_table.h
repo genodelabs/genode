@@ -618,7 +618,7 @@ class Hw::Pml4_table
 		 */
 		static constexpr size_t _count(size_t region, size_t alignment)
 		{
-			return Genode::align_addr<size_t>(region, alignment)
+			return Genode::align_addr<size_t>(region, (int)alignment)
 			       / (1UL << alignment);
 		}
 

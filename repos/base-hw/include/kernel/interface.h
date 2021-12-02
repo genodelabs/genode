@@ -97,7 +97,7 @@ namespace Kernel {
 	 */
 	inline int timeout(timeout_t const duration_us, capid_t const sigid)
 	{
-		return call(call_id_timeout(), duration_us, sigid);
+		return (int)call(call_id_timeout(), duration_us, sigid);
 	}
 
 
@@ -230,7 +230,7 @@ namespace Kernel {
 	 */
 	inline int send_request_msg(capid_t const thread_id, unsigned rcv_caps)
 	{
-		return call(call_id_send_request_msg(), thread_id, rcv_caps);
+		return (int)call(call_id_send_request_msg(), thread_id, rcv_caps);
 	}
 
 
@@ -248,7 +248,7 @@ namespace Kernel {
 	 */
 	inline int await_request_msg(unsigned rcv_caps)
 	{
-		return call(call_id_await_request_msg(), rcv_caps);
+		return (int)call(call_id_await_request_msg(), rcv_caps);
 	}
 
 
@@ -266,7 +266,7 @@ namespace Kernel {
 	 */
 	inline int send_reply_msg(unsigned rcv_caps, bool const await_request_msg)
 	{
-		return call(call_id_send_reply_msg(), rcv_caps, await_request_msg);
+		return (int)call(call_id_send_reply_msg(), rcv_caps, await_request_msg);
 	}
 
 
@@ -302,7 +302,7 @@ namespace Kernel {
 	 */
 	inline int await_signal(capid_t const receiver_id)
 	{
-		return call(call_id_await_signal(), receiver_id);
+		return (int)call(call_id_await_signal(), receiver_id);
 	}
 
 
@@ -320,7 +320,7 @@ namespace Kernel {
 	 */
 	inline int pending_signal(capid_t const receiver_id)
 	{
-		return call(call_id_pending_signal(), receiver_id);
+		return (int)call(call_id_pending_signal(), receiver_id);
 	}
 
 
@@ -352,7 +352,7 @@ namespace Kernel {
 	 */
 	inline int submit_signal(capid_t const context, unsigned const num)
 	{
-		return call(call_id_submit_signal(), context, num);
+		return (int)call(call_id_submit_signal(), context, num);
 	}
 
 
@@ -377,7 +377,7 @@ namespace Kernel {
 	 */
 	inline int kill_signal_context(capid_t const context)
 	{
-		return call(call_id_kill_signal_context(), context);
+		return (int)call(call_id_kill_signal_context(), context);
 	}
 
 	/**

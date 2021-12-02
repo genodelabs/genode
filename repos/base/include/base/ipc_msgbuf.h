@@ -193,7 +193,7 @@ class Genode::Msgbuf_base : Noncopyable
 		/**
 		 * Write bytes to message buffer
 		 */
-		void insert(char const *src_addr, unsigned num_bytes)
+		void insert(char const *src_addr, size_t num_bytes)
 		{
 			/* check buffer range */
 			if (_data_size + num_bytes > _capacity) return;

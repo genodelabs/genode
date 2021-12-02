@@ -190,7 +190,7 @@ class Genode::Capability_map : private Noncopyable
 		 * \param  id the global capability id
 		 * \return    pointer of Cap_index when found, otherwise zero
 		 */
-		Cap_index* find(int id);
+		Cap_index* find(Cap_index::id_t id);
 
 		/**
 		 * Create and insert a new Cap_index with a specific capability id
@@ -203,7 +203,7 @@ class Genode::Capability_map : private Noncopyable
 		 * \return    pointer to the new Cap_index object, or zero
 		 *            when allocation failed
 		 */
-		Cap_index* insert(int id);
+		Cap_index* insert(Cap_index::id_t id);
 
 
 		/**
@@ -217,7 +217,7 @@ class Genode::Capability_map : private Noncopyable
 		 * \return      pointer to the new Cap_index object, or zero
 		 *              when allocation failed
 		 */
-		Cap_index* insert(int id, addr_t kcap);
+		Cap_index* insert(Cap_index::id_t id, addr_t kcap);
 
 		/**
 		 * Create and insert a new Cap_index with a specific capability id
@@ -236,7 +236,7 @@ class Genode::Capability_map : private Noncopyable
 		 *            with the same id exists and it's kernel-object
 		 *            differs to the one given by kcap
 		 */
-		Cap_index *insert_map(int id, addr_t kcap);
+		Cap_index *insert_map(Cap_index::id_t id, addr_t kcap);
 
 		/**
 		 * Remove (resp. invalidate) a Cap_index object

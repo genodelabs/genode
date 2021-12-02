@@ -51,7 +51,7 @@ struct Genode::Session_label : String<160>
 			if (full_len < _separator_len())
 				return full;
 
-			unsigned i = full_len - _separator_len();
+			size_t i = full_len - _separator_len();
 			do {
 				if (!strcmp(_separator(), full + i, _separator_len()))
 					return full + i + _separator_len();
@@ -69,7 +69,7 @@ struct Genode::Session_label : String<160>
 				return Session_label();
 
 			/* search for last occurrence of the separator */
-			unsigned prefix_len = length() - _separator_len() - 1;
+			size_t prefix_len = length() - _separator_len() - 1;
 			char const * const full = string();
 
 			for (; prefix_len > 0; prefix_len--)
@@ -89,7 +89,7 @@ namespace Genode {
 	 */
 	inline Session_label label_from_args(char const *args)
 	{
-		char buf[Session_label::capacity()];
+		char buf[Session_label::capacity()] { };
 		Arg_string::find_arg(args, "label").string(buf, sizeof(buf), "");
 
 		return Session_label(Cstring(buf));

@@ -34,14 +34,14 @@ class Genode::Cnode_base
 	private:
 
 		Cap_sel const _sel;
-		size_t  const _size_log2;
+		uint8_t const _size_log2;
 
 	public:
 
 		typedef Cnode_index Index;
 
 		Cap_sel sel()       const { return _sel; }
-		size_t  size_log2() const { return _size_log2; }
+		uint8_t size_log2() const { return _size_log2; }
 
 		/**
 		 * Copy selector from another CNode
@@ -60,7 +60,7 @@ class Genode::Cnode_base
 			                                src_root, src_index, src_depth, rights);
 			if (ret != 0) {
 				warning(__FUNCTION__, ": seL4_CNode_Copy (",
-				        (void*)from_idx.value(), ") returned ", ret);
+				        Hex(from_idx.value()), ") returned ", ret);
 			}
 		}
 
@@ -113,7 +113,7 @@ class Genode::Cnode_base
 			                                src_root, src_index, src_depth);
 			if (ret != 0) {
 				warning(__FUNCTION__, ": seL4_CNode_Move (",
-				        (void*)from_idx.value(), ") returned ", ret);
+				        Hex(from_idx.value()), ") returned ", ret);
 			}
 		}
 
@@ -122,7 +122,7 @@ class Genode::Cnode_base
 		/**
 		 * Constructor
 		 */
-		Cnode_base(Cap_sel sel, size_t size_log2)
+		Cnode_base(Cap_sel sel, uint8_t size_log2)
 		: _sel(sel), _size_log2(size_log2) { }
 };
 
@@ -154,7 +154,7 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 		 *
 		 * \deprecated
 		 */
-		Cnode(Cap_sel parent_sel, Index dst_idx, size_t size_log2,
+		Cnode(Cap_sel parent_sel, Index dst_idx, uint8_t size_log2,
 		      Range_allocator &phys_alloc)
 		:
 			Cnode_base(dst_idx, size_log2)
@@ -178,7 +178,7 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 		 * \throw Retype_untyped_failed
 		 * \throw Initial_untyped_pool::Initial_untyped_pool_exhausted
 		 */
-		Cnode(Cap_sel parent_sel, Index dst_idx, size_t size_log2,
+		Cnode(Cap_sel parent_sel, Index dst_idx, uint8_t size_log2,
 		      Initial_untyped_pool &untyped_pool)
 		:
 			Cnode_base(dst_idx, size_log2)

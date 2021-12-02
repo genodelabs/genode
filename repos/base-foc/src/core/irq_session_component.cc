@@ -139,7 +139,7 @@ void Irq_object::ack_irq()
 {
 	using namespace Foc;
 
-	int err;
+	l4_umword_t err;
 	l4_msgtag_t tag = l4_irq_unmask(_capability());
 	if ((err = l4_ipc_error(tag, l4_utcb())))
 		error("IRQ unmask: ", err);
@@ -148,7 +148,7 @@ void Irq_object::ack_irq()
 
 Irq_object::Irq_object()
 :
-	 _cap(cap_map().insert(platform_specific().cap_id_alloc().alloc())),
+	 _cap(cap_map().insert((Cap_index::id_t)platform_specific().cap_id_alloc().alloc())),
 	 _trigger(Irq_session::TRIGGER_UNCHANGED),
 	 _polarity(Irq_session::POLARITY_UNCHANGED),
 	 _irq(~0U), _msi_addr(0), _msi_data(0)
@@ -170,7 +170,7 @@ Irq_object::~Irq_object()
 	if (l4_error(l4_irq_detach(_capability())))
 		error("cannot detach IRQ");
 
-	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, irq, _capability())))
+	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, (unsigned)irq, _capability())))
 		error("cannot unbind IRQ");
 
 	cap_map().remove(_cap);
@@ -184,7 +184,7 @@ Irq_object::~Irq_object()
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
+	_irq_number((unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1)),
 	_irq_alloc(irq_alloc), _irq_object()
 {
 	long const msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
@@ -252,7 +252,7 @@ Irq_session::Info Irq_session_component::info()
 
 	return {
 		.type    = Genode::Irq_session::Info::Type::MSI,
-		.address = _irq_object.msi_address(),
+		.address = (addr_t)_irq_object.msi_address(),
 		.value   = _irq_object.msi_value()
 	};
 }
@@ -269,7 +269,7 @@ void Interrupt_handler::entry()
 {
 	using namespace Foc;
 
-	int         err;
+	l4_umword_t err;
 	l4_msgtag_t tag;
 	l4_umword_t label;
 

@@ -300,11 +300,9 @@ Platform::Platform()
  ** Support for core memory management **
  ****************************************/
 
-bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
-                                      unsigned size) {
-	return ::map_local(phys_addr, virt_addr, size / get_page_size()); }
+bool Mapped_mem_allocator::_map_local(addr_t virt, addr_t phys, size_t size) {
+	return ::map_local(phys, virt, size / get_page_size()); }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t,
-                                        unsigned size) {
-	return ::unmap_local(virt_addr, size / get_page_size()); }
+bool Mapped_mem_allocator::_unmap_local(addr_t virt, addr_t, size_t size) {
+	return ::unmap_local(virt, size / get_page_size()); }

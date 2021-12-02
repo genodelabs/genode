@@ -121,7 +121,7 @@ class Genode::Capability_space_tpl : Noncopyable
 		unsigned _index(Data const &data) const
 		{
 			addr_t const offset = (addr_t)&data - (addr_t)_caps_data;
-			return offset / sizeof(_caps_data[0]);
+			return (unsigned)(offset / sizeof(_caps_data[0]));
 		}
 
 		Data *_lookup_unsynchronized(Rpc_obj_key key) const
@@ -186,7 +186,7 @@ class Genode::Capability_space_tpl : Noncopyable
 				 * object.
 				 */
 				if (!data.dst.foreign)
-					lx_close(data.rpc_obj_key().value());
+					lx_close((int)data.rpc_obj_key().value());
 
 			}
 

@@ -100,10 +100,10 @@ namespace Genode {
 				/* convenience function to access pause/recall state */
 				inline bool blocked()          { return _status & BLOCKED;}
 				inline void block()            { _status |= BLOCKED; }
-				inline void unblock()          { _status &= ~BLOCKED; }
+				inline void unblock()          { _status &= (uint8_t)(~BLOCKED); }
 				inline bool blocked_pause_sm() { return _status & BLOCKED_PAUSE_SM;}
-				inline void block_pause_sm()   { _status |= BLOCKED_PAUSE_SM; }
-				inline void unblock_pause_sm() { _status &= ~BLOCKED_PAUSE_SM; }
+				inline void block_pause_sm()   { _status |= (uint8_t)BLOCKED_PAUSE_SM; }
+				inline void unblock_pause_sm() { _status &= (uint8_t)(~BLOCKED_PAUSE_SM); }
 
 				inline void mark_dead() { _status |= DEAD; }
 				inline bool is_dead() { return _status & DEAD; }
@@ -118,10 +118,10 @@ namespace Genode {
 
 				inline bool to_submit() { return _status & SUBMIT_SIGNAL; }
 				inline void submit_signal() { _status |= SUBMIT_SIGNAL; }
-				inline void reset_submit() { _status &= ~SUBMIT_SIGNAL; }
+				inline void reset_submit() { _status &= (uint8_t)(~SUBMIT_SIGNAL); }
 
 				bool migrate() const { return _status & MIGRATE; }
-				void reset_migrate() { _status &= ~MIGRATE; }
+				void reset_migrate() { _status &= (uint8_t)(~MIGRATE); }
 				void request_migrate() { _status |= MIGRATE; }
 			} _state { };
 
@@ -287,7 +287,7 @@ namespace Genode {
 				if (on)
 					_state._status |= _state.SINGLESTEP;
 				else
-					_state._status &= ~_state.SINGLESTEP;
+					_state._status &= (uint8_t)(~_state.SINGLESTEP);
 
 				_state_lock.release();
 

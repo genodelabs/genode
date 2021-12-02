@@ -49,13 +49,13 @@ enum Debug { DEBUG_MSG = 1 };
 
 static inline bool ipc_error(l4_msgtag_t tag, bool print)
 {
-	int const ipc_error = l4_ipc_error(tag, l4_utcb());
+	Foc::l4_umword_t const ipc_error = l4_ipc_error(tag, l4_utcb());
 	if (ipc_error && print) raw("Ipc error: ", ipc_error, " occurred!");
 	return ipc_error;
 }
 
 
-static constexpr unsigned long INVALID_BADGE = ~0UL;
+static constexpr Cap_index::id_t INVALID_BADGE = 0xffff;
 
 
 /**
@@ -63,9 +63,9 @@ static constexpr unsigned long INVALID_BADGE = ~0UL;
  */
 struct Cap_info
 {
-	bool          valid = false;
-	unsigned long sel   = 0;
-	unsigned long badge = 0;
+	bool            valid = false;
+	unsigned long   sel   = 0;
+	Cap_index::id_t badge = 0;
 };
 
 
@@ -74,9 +74,9 @@ struct Cap_info
  *
  * \return  protocol word (local name or exception code)
  */
-static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
-                                           Receive_window &rcv_window,
-                                           Msgbuf_base    &rcv_msg)
+static int extract_msg_from_utcb(l4_msgtag_t     tag,
+                                 Receive_window &rcv_window,
+                                 Msgbuf_base    &rcv_msg)
 {
 	unsigned num_msg_words = l4_msgtag_words(tag);
 
@@ -90,7 +90,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	unsigned long const protocol_word = *msg_words++;
 
 	/* read number of capability arguments from second message word */
-	size_t const num_caps = min(*msg_words, Msgbuf_base::MAX_CAPS_PER_MSG);
+	unsigned const num_caps = (unsigned)min(*msg_words, Msgbuf_base::MAX_CAPS_PER_MSG);
 	msg_words++;
 
 	num_msg_words -= 2;
@@ -114,7 +114,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 
 	for (unsigned i = 0, sel_idx = 0; i < num_caps; i++) {
 
-		unsigned long const badge = *msg_words++;
+		Cap_index::id_t const badge = (Cap_index::id_t)(*msg_words++);
 
 		if (badge == INVALID_BADGE)
 			continue;
@@ -135,7 +135,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	if ((num_msg_words)*sizeof(l4_mword_t) > rcv_msg.capacity()) {
 		if (DEBUG_MSG)
 			raw("receive message buffer too small");
-		num_msg_words = rcv_msg.capacity()/sizeof(l4_mword_t);
+		num_msg_words = (unsigned)(rcv_msg.capacity()/sizeof(l4_mword_t));
 	}
 
 	/* read message payload beginning from the second UTCB message register */
@@ -160,7 +160,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 		}
 	}
 
-	return protocol_word;
+	return (int)protocol_word;
 }
 
 
@@ -175,8 +175,8 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
                                        unsigned long protocol_word)
 {
 
-	unsigned const num_data_words = snd_msg.data_size() / sizeof(l4_mword_t);
-	unsigned const num_caps       = snd_msg.used_caps();
+	unsigned const num_data_words = (unsigned)(snd_msg.data_size() / sizeof(l4_mword_t));
+	unsigned const num_caps       = (unsigned)snd_msg.used_caps();
 
 	/* validate capabilities present in the message buffer */
 	for (unsigned i = 0; i < num_caps; i++) {
@@ -201,7 +201,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 		Native_capability const &cap = snd_msg.cap(i);
 		if (cap.valid()) {
 			caps[i].valid = true;
-			caps[i].badge = cap.local_name();
+			caps[i].badge = (Cap_index::id_t)cap.local_name();
 			caps[i].sel   = cap.data()->kcap();
 		}
 	}

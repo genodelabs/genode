@@ -33,10 +33,13 @@
  */
 
 /* Linux includes */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 /* Genode includes */
 #include <base/thread.h>

@@ -23,9 +23,9 @@
 static inline char ascii(int digit, int uppercase = 0)
 {
 	if (digit > 9)
-		return digit + (uppercase ? 'A' : 'a') - 10;
+		return (char)(digit + (uppercase ? 'A' : 'a') - 10);
 
-	return digit + '0';
+	return (char)(digit + '0');
 }
 
 
@@ -57,7 +57,7 @@ static inline void out_signed(T value, unsigned base, OUT_CHAR_FN const &out_cha
 	/* fill buffer starting with the least significant digits */
 	else
 		for (; value > 0; value /= base)
-			buf[i++] = ascii(value % base);
+			buf[i++] = ascii((int)(value % base));
 
 	/* add sign to buffer for negative values */
 	if (neg)
@@ -93,7 +93,7 @@ static inline void out_unsigned(T value, unsigned base, int pad,
 
 	/* fill buffer starting with the least significant digits */
 	for (; value > 0; value /= base, pad--)
-		buf[i++] = ascii(value % base);
+		buf[i++] = ascii((int)(value % base));
 
 	/* add padding zeros */
 	for (; pad-- > 0; )
@@ -143,11 +143,11 @@ static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_F
 
 	if (length) {
 		do {
-			volatile_value -= integer;
-			volatile_value = volatile_value*base;
+			volatile_value = (T)(volatile_value - (T)integer);
+			volatile_value = (T)(volatile_value * (T)base);
 
 			integer = (int64_t)volatile_value;
-			out_char(ascii(integer));
+			out_char(ascii((int)integer));
 
 			length--;
 		} while (length && (volatile_value > 0.0));

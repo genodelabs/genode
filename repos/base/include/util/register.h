@@ -201,7 +201,7 @@ struct Genode::Register
 		/**
 		 * Get register value 'reg' with this bitfield set to zero
 		 */
-		static inline void clear(access_t & reg) { reg &= clear_mask(); }
+		static inline void clear(access_t & reg) { reg = reg & clear_mask(); }
 
 		/**
 		 * Get register value 'reg' with this bitfield set to 'value'
@@ -209,7 +209,7 @@ struct Genode::Register
 		static inline void set(access_t & reg, access_t const value = ~0)
 		{
 			clear(reg);
-			reg |= (value & mask()) << SHIFT;
+			reg = reg | (access_t)((value & mask()) << SHIFT);
 		};
 	};
 };

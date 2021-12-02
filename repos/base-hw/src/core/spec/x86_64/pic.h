@@ -51,6 +51,8 @@ class Board::Global_interrupt_controller : public Genode::Mmio
 {
 	private:
 
+		using uint8_t = Genode::uint8_t;
+
 		enum {
 			/* Register selectors */
 			IOAPICVER = 0x01,
@@ -82,9 +84,9 @@ class Board::Global_interrupt_controller : public Genode::Mmio
 		    struct Maximum_redirection_entry : Bitfield<16, 8> { };
 		};
 
-		unsigned        _irte_count = 0;       /* number of redirection table entries */
-		Genode::uint8_t _lapic_id[NR_OF_CPUS]; /* unique name of the LAPIC of each CPU */
-		Irq_mode        _irq_mode[IRQ_COUNT];
+		unsigned _irte_count = 0;       /* number of redirection table entries */
+		uint8_t  _lapic_id[NR_OF_CPUS]; /* unique name of the LAPIC of each CPU */
+		Irq_mode _irq_mode[IRQ_COUNT];
 
 		/**
 		 * Return whether 'irq' is an edge-triggered interrupt
@@ -137,10 +139,9 @@ class Board::Global_interrupt_controller : public Genode::Mmio
 		 ** Accessors **
 		 ***************/
 
-		void lapic_id(unsigned        cpu_id,
-		              Genode::uint8_t lapic_id);
+		void lapic_id(unsigned cpu_id, uint8_t lapic_id);
 
-		Genode::uint8_t lapic_id(unsigned cpu_id) const;
+		uint8_t lapic_id(unsigned cpu_id) const;
 };
 
 
@@ -222,7 +223,7 @@ class Board::Local_interrupt_controller : public Genode::Mmio
 		{
 			if (cpu_id < NR_OF_CPUS) {
 				Id::access_t const lapic_id = read<Id>();
-				_global_irq_ctrl.lapic_id(cpu_id, (lapic_id >> 24) & 0xff);
+				_global_irq_ctrl.lapic_id(cpu_id, (unsigned char)((lapic_id >> 24) & 0xff));
 			}
 		}
 

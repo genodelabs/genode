@@ -17,6 +17,9 @@
 #include <util/misc_math.h>
 #include <base/attached_rom_dataspace.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 /* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
@@ -34,6 +37,7 @@ namespace Fiasco {
 #include <l4/sys/kernel.h>
 }
 #endif /* L4_SYS_KIP_H__ */
+#pragma GCC diagnostic pop
 
 /* local includes */
 #include <time_source.h>
@@ -52,17 +56,20 @@ static l4_timeout_s mus_to_timeout(uint64_t mus)
 		return L4_IPC_TIMEOUT_NEVER;
 
 	long e = Genode::log2((unsigned long)mus) - 7;
-	unsigned long m;
+
 	if (e < 0) e = 0;
-	m = mus / (1UL << e);
+
+	uint64_t m = mus / (1UL << e);
+
+	enum { M_MASK = 0x3ff };
 
 	/* check corner case */
-	if ((e > 31 ) || (m > 1023)) {
+	if ((e > 31 ) || (m > M_MASK)) {
 		Genode::warning("invalid timeout ", mus, ", using max. values");
 		e = 0;
-		m = 1023;
+		m = M_MASK;
 	}
-	return l4_timeout_rel(m, e);
+	return l4_timeout_rel(m & M_MASK, (unsigned)e);
 }
 
 

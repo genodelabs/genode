@@ -134,7 +134,7 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 * \param phys_addr  start address of physical range
 		 * \param size       size of range
 		 */
-		bool _map_local(addr_t virt_addr, addr_t phys_addr, unsigned size);
+		bool _map_local(addr_t virt_addr, addr_t phys_addr, size_t size);
 
 		/**
 		 * Destroy mapping between physical and virtual address range
@@ -145,7 +145,7 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 * \param phys_addr  start address of physical range
 		 * \param size       size of range
 		 */
-		bool _unmap_local(addr_t virt_addr, addr_t phys_addr, unsigned size);
+		bool _unmap_local(addr_t virt_addr, addr_t phys_addr, size_t size);
 
 
 		/***********************************
@@ -180,7 +180,7 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 *************************/
 
 		Alloc_result try_alloc(size_t size) override {
-			return alloc_aligned(size, log2(sizeof(addr_t))); }
+			return alloc_aligned(size, (unsigned)log2(sizeof(addr_t))); }
 		void   free(void *addr, size_t) override;
 		size_t consumed() const override { return _phys_alloc->consumed(); }
 		size_t overhead(size_t size) const override {
@@ -304,7 +304,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 
 		Alloc_result try_alloc(size_t size) override
 		{
-			return alloc_aligned(size, log2(sizeof(addr_t)));
+			return alloc_aligned(size, (unsigned)log2(sizeof(addr_t)));
 		}
 
 		void free(void *addr, size_t size) override

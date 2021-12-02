@@ -1,14 +1,5 @@
-#
-# \brief   Diversified test of the Register and MMIO framework
-# \author  Martin Stein
-# \date    2012-04-25
-#
-
-# Set program name
 TARGET = test-mmio
+SRC_CC = main.cc
+LIBS  += base
 
-# Add C++ sources
-SRC_CC += main.cc
-
-# Add libraries
-LIBS += base
+CC_CXX_WARN_STRICT_CONVERSION =

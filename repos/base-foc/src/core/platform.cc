@@ -293,14 +293,14 @@ void Platform::_setup_mem_alloc()
 	for ( ; beg < end; beg += L4_PAGESIZE) (void)(*beg);
 
 	/* request pages of known page size starting with largest */
-	size_t const log2_sizes[] = { L4_LOG2_SUPERPAGESIZE, L4_LOG2_PAGESIZE };
+	unsigned const log2_sizes[] = { L4_LOG2_SUPERPAGESIZE, L4_LOG2_PAGESIZE };
 
 	for (unsigned i = 0; i < sizeof(log2_sizes)/sizeof(*log2_sizes); ++i) {
-		size_t const log2_size = log2_sizes[i];
-		size_t const size      = 1UL << log2_size;
+		unsigned const log2_size = log2_sizes[i];
+		size_t   const size      = 1UL << log2_size;
 
-		int    err       = 0;
-		addr_t addr      = 0;
+		Foc::l4_umword_t err = 0;
+		addr_t addr = 0;
 		Region region;
 
 		/* request any page of current size from sigma0 */

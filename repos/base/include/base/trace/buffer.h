@@ -27,8 +27,8 @@ class Genode::Trace::Buffer
 {
 	private:
 
-		unsigned volatile _head_offset;  /* in bytes, relative to 'entries' */
-		unsigned volatile _size;         /* in bytes */
+		size_t   volatile _head_offset;  /* in bytes, relative to 'entries' */
+		size_t   volatile _size;         /* in bytes */
 		unsigned volatile _wrapped;      /* count of buffer wraps */
 
 		struct _Entry
@@ -105,7 +105,7 @@ class Genode::Trace::Buffer
 				_head_entry()->len = 0;
 		}
 
-		unsigned wrapped() const { return _wrapped; }
+		size_t wrapped() const { return _wrapped; }
 
 
 		/********************************************

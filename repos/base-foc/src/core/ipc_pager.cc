@@ -86,7 +86,7 @@ void Ipc_pager::wait_for_fault()
 
 	do {
 		_tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
-		int err = l4_ipc_error(_tag, l4_utcb());
+		l4_umword_t err = l4_ipc_error(_tag, l4_utcb());
 		if (!err) {
 			_parse(label);
 			return;
@@ -121,7 +121,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 	};
 
 	l4_fpage_t const fpage = l4_fpage(_reply_mapping.src_addr,
-	                                  _reply_mapping.size_log2,
+	                                  (unsigned)_reply_mapping.size_log2,
 	                                  rights(_reply_mapping.writeable,
 	                                         _reply_mapping.executable));
 
@@ -129,7 +129,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 	_tag = l4_ipc_send_and_wait(_last.kcap, l4_utcb(), snd_tag,
 	                            &label, L4_IPC_SEND_TIMEOUT_0);
-	int const err = l4_ipc_error(_tag, l4_utcb());
+	l4_umword_t const err = l4_ipc_error(_tag, l4_utcb());
 	if (err) {
 		error("Ipc error ", err, " in pagefault from ", Hex(label & ~0x3));
 		wait_for_fault();

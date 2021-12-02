@@ -23,7 +23,7 @@ using namespace Genode;
 void Timer::Time_source::set_timeout(Genode::Microseconds     duration,
                                      Genode::Timeout_handler &handler)
 {
-	unsigned long const ticks = (1ULL * duration.value * TICKS_PER_MS) / 1000;
+	unsigned long const ticks = (unsigned long)((1ULL * duration.value * TICKS_PER_MS) / 1000);
 	_handler = &handler;
 	_timer_irq.ack_irq();
 	_cleared_ticks = 0;

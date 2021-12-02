@@ -104,7 +104,7 @@ static inline bool copy_msgbuf_to_utcb(Nova::Utcb                &utcb,
 	for (unsigned i = 0; i < num_data_words; i++)
 		*dst++ = *src++;
 
-	utcb.set_msg_word(num_msg_words);
+	utcb.set_msg_word((unsigned)num_msg_words);
 
 	/* append portal capability selectors */
 	for (unsigned i = 0; i < snd_msg.used_caps(); i++) {

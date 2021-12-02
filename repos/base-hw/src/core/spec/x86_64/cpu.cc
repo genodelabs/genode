@@ -130,7 +130,9 @@ unsigned Genode::Cpu::executing_id()
 	void * const stack_ptr  = nullptr;
 	addr_t const stack_addr = reinterpret_cast<addr_t>(&stack_ptr);
 	addr_t const stack_base = reinterpret_cast<addr_t>(&kernel_stack);
-	unsigned const cpu_id = (stack_addr - stack_base) / kernel_stack_size;
+
+	unsigned const cpu_id = (unsigned)((stack_addr - stack_base) / kernel_stack_size);
+
 	return cpu_id;
 }
 

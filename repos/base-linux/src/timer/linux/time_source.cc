@@ -23,7 +23,7 @@ using namespace Genode;
 
 
 inline int lx_gettimeofday(struct timeval *tv, struct timeval *tz) {
-	return lx_syscall(SYS_gettimeofday, tv, tz); }
+	return (int)lx_syscall(SYS_gettimeofday, tv, tz); }
 
 
 Microseconds Timer::Time_source::max_timeout() const
@@ -44,8 +44,8 @@ Duration Timer::Time_source::curr_time()
 void Timer::Time_source::_usleep(uint64_t us)
 {
 	struct timespec ts;
-	ts.tv_sec  =  us / (1000 * 1000);
-	ts.tv_nsec = (us % (1000 * 1000)) * 1000;
+	ts.tv_sec  = (long)us / (1000 * 1000);
+	ts.tv_nsec = ((long)us % (1000 * 1000)) * 1000;
 
 	if (lx_nanosleep(&ts, &ts) != 0)
 		throw Blocking_canceled();

@@ -83,8 +83,8 @@ void prepare_init_main_thread()
 
 		enum { CAP_RANGES = 32 };
 
-		unsigned index = initial_cap_range().base() +
-		                 initial_cap_range().elements();
+		unsigned index = (unsigned)(initial_cap_range().base() +
+		                            initial_cap_range().elements());
 
 		static char local[CAP_RANGES][sizeof(Cap_range)];
 
@@ -95,7 +95,7 @@ void prepare_init_main_thread()
 
 			cap_map().insert(range);
 
-			index = range.base() + range.elements();
+			index = (unsigned)(range.base() + range.elements());
 		}
 	}
 }

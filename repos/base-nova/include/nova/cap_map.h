@@ -94,13 +94,13 @@ namespace Genode {
 			inline void inc()
 			{
 				if (_range)
-					_range->inc(_local_name - _range->base());
+					_range->inc((unsigned)(_local_name - _range->base()));
 			}
 
 			inline void dec()
 			{
 				if (_range)
-					_range->dec(_local_name - _range->base());
+					_range->dec((unsigned)(_local_name - _range->base()));
 			}
 	};
 

@@ -87,7 +87,7 @@ void Hw::for_each_rsdt_entry(Hw::Acpi_generic &rsdt, FUNC fn)
 	typedef Genode::uint32_t entry_t;
 
 	unsigned const table_size  = rsdt.size;
-	unsigned const entry_count = (table_size - sizeof(rsdt)) / sizeof(entry_t);
+	unsigned const entry_count = (unsigned)((table_size - sizeof(rsdt)) / sizeof(entry_t));
 
 	entry_t * entries = reinterpret_cast<entry_t *>(&rsdt + 1);
 	for (unsigned i = 0; i < entry_count; i++)
@@ -104,7 +104,7 @@ void Hw::for_each_xsdt_entry(Hw::Acpi_generic &xsdt, FUNC fn)
 	typedef Genode::uint64_t entry_t;
 
 	unsigned const table_size  = xsdt.size;
-	unsigned const entry_count = (table_size - sizeof(xsdt)) / sizeof(entry_t);
+	unsigned const entry_count = (unsigned)((table_size - sizeof(xsdt)) / sizeof(entry_t));
 
 	entry_t * entries = reinterpret_cast<entry_t *>(&xsdt + 1);
 	for (unsigned i = 0; i < entry_count; i++)

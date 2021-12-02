@@ -24,7 +24,7 @@
 
 namespace Genode {
 	class Platform;
-	template <Genode::size_t> class Static_allocator;
+	template <auto> class Static_allocator;
 	class Address_space;
 }
 
@@ -36,7 +36,7 @@ namespace Genode {
  *
  * The size of a single ELEM must be a multiple of sizeof(long).
  */
-template <Genode::size_t MAX>
+template <auto MAX>
 class Genode::Static_allocator : public Allocator
 {
 	private:
@@ -69,7 +69,7 @@ class Genode::Static_allocator : public Allocator
 		void free(void *ptr, size_t) override
 		{
 			Elem_space *elem = reinterpret_cast<Elem_space *>(ptr);
-			unsigned const index = elem - &_elements[0];
+			unsigned const index = (unsigned)(elem - &_elements[0]);
 			_used.free(index);
 		}
 
@@ -169,7 +169,7 @@ class Genode::Platform : public Platform_generic
 				Mutex::Guard guard(_mutex);
 
 				try {
-					return Cap_sel(Core_sel_bit_alloc::alloc()); }
+					return Cap_sel((uint32_t)Core_sel_bit_alloc::alloc()); }
 				catch (Bit_allocator::Out_of_indices) {
 					throw Alloc_failed(); }
 			}
@@ -246,7 +246,7 @@ class Genode::Platform : public Platform_generic
 		Rom_fs          &rom_fs()         override { return _rom_fs; }
 
 		Affinity::Space affinity_space() const override {
-			return sel4_boot_info().numNodes; }
+			return (unsigned)sel4_boot_info().numNodes; }
 
 		bool supports_direct_unmap() const override { return true; }
 

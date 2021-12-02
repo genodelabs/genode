@@ -28,13 +28,17 @@
  */
 class Genode::Native_capability::Data : public Avl_node<Data>
 {
+	public:
+
+		using id_t = uint16_t;
+
 	private:
 
 		constexpr static uint16_t INVALID_ID = ~0;
 		constexpr static uint16_t UNUSED     =  0;
 
-		uint8_t  _ref_cnt; /* reference counter    */
-		uint16_t _id;      /* global capability id */
+		uint8_t _ref_cnt; /* reference counter    */
+		id_t    _id;      /* global capability id */
 
 	public:
 
@@ -56,7 +60,7 @@ class Genode::Native_capability::Data : public Avl_node<Data>
 		 ************************/
 
 		bool higher(Data *n);
-		Data *find_by_id(uint16_t id);
+		Data *find_by_id(id_t id);
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__CAPABILITY_DATA_H_ */

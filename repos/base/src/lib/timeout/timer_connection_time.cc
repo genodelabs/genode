@@ -177,8 +177,8 @@ Duration Timer::Connection::curr_time()
 		interpolated_time.add(Microseconds(us_diff));
 
 	} else {
-		Timestamp const us = elapsed_us();
-		Timestamp const us_diff = (us < _us) ? 0 : us - _us;
+		Timestamp const us      = (Timestamp)elapsed_us();
+		Timestamp const us_diff = (Timestamp)((us < _us) ? 0 : us - _us);
 
 		/* use remote timer instead of timestamps */
 		interpolated_time.add(Microseconds(us_diff));

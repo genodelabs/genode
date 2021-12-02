@@ -62,7 +62,7 @@ namespace Nova {
 		              : "+a" (status)
 		              :
 		              : "ecx", "edx", "memory");
-		return status;
+		return (uint8_t)status;
 	}
 
 
@@ -83,7 +83,7 @@ namespace Nova {
 		              :
 		              : "ecx", "edx", "memory");
 		if (p2) *p2 = p1;
-		return status;
+		return (uint8_t)status;
 	}
 
 
@@ -102,7 +102,7 @@ namespace Nova {
 		              : "+a" (status)
 		              : "D" (p1), "S" (p2)
 		              : "ecx", "edx");
-		return status;
+		return (uint8_t)status;
 	}
 
 
@@ -125,7 +125,7 @@ namespace Nova {
 		              : "+a" (status), "+d" (p3)
 		              : "D" (p1), "S" (p2)
 		              : "ecx");
-		return status;
+		return (uint8_t)status;
 	}
 
 
@@ -154,7 +154,7 @@ namespace Nova {
 		              : "+a" (status), "+c" (p3), "+d" (p4)
 		              : "D" (p1), "S" (p2)
 		              : "memory");
-		return status;
+		return (uint8_t)status;
 	}
 
 	ALWAYS_INLINE
@@ -179,7 +179,7 @@ namespace Nova {
 		              : "+a" (status), "+D" (p1), "+S" (p2), "+c" (p3)
 		              :
 		              : "edx", "memory");
-		return status;
+		return (uint8_t)status;
 	}
 
 	ALWAYS_INLINE
@@ -350,7 +350,7 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t sm_ctrl(unsigned sm, Sem_op op, unsigned long long timeout = 0)
 	{
-		return syscall_2(NOVA_SM_CTRL, op, sm, timeout >> 32, timeout);
+		return syscall_2(NOVA_SM_CTRL, op, sm, (mword_t)(timeout >> 32), (mword_t)timeout);
 	}
 
 

@@ -106,9 +106,9 @@ static L4_Word_t extract_msg_from_utcb(L4_MsgTag_t rcv_tag, Msgbuf_base &rcv_msg
  */
 static void copy_msg_to_utcb(Msgbuf_base const &snd_msg, L4_Word_t local_name)
 {
-	unsigned const num_header_words = 3 + 2*snd_msg.used_caps();
-	unsigned const num_data_words   = snd_msg.data_size()/sizeof(L4_Word_t);
-	unsigned const num_msg_words    = num_data_words + num_header_words;
+	uint8_t const num_header_words = (uint8_t)(3 + 2*snd_msg.used_caps());
+	uint8_t const num_data_words   = (uint8_t)(snd_msg.data_size()/sizeof(L4_Word_t));
+	uint8_t const num_msg_words    = num_data_words + num_header_words;
 
 	if (num_msg_words >= L4_GetMessageRegisters()) {
 		raw("Message does not fit into UTCB message registers");
@@ -118,7 +118,7 @@ static void copy_msg_to_utcb(Msgbuf_base const &snd_msg, L4_Word_t local_name)
 
 	L4_MsgTag_t snd_tag;
 	snd_tag.raw = 0;
-	snd_tag.X.u = num_msg_words;
+	snd_tag.X.u = (num_msg_words & 0x3f); /* bitfield X.u has 6 bits */
 
 	L4_LoadMR(0, snd_tag.raw);
 	L4_LoadMR(1, local_name);

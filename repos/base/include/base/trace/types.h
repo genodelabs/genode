@@ -79,19 +79,24 @@ struct Genode::Trace::Subject_id
  */
 struct Genode::Trace::Execution_time
 {
-	uint64_t thread_context;
-	addr_t   scheduling_context;
-	uint16_t quantum { 0 };
-	uint16_t priority { 0 };
+	uint64_t thread_context = 0;
+	uint64_t scheduling_context = 0;
+	unsigned quantum  { 0 };
+	unsigned priority { 0 };
 
-	Execution_time() : thread_context(0), scheduling_context(0) { }
+	Execution_time() { }
+
 	Execution_time(uint64_t thread_context, uint64_t scheduling_context)
-	: thread_context(thread_context), scheduling_context(scheduling_context) { }
+	:
+		thread_context(thread_context), scheduling_context(scheduling_context)
+	{ }
 
 	Execution_time(uint64_t thread_context, uint64_t scheduling_context,
 	               unsigned quantum, unsigned priority)
-	: thread_context(thread_context), scheduling_context(scheduling_context),
-	  quantum(quantum), priority(priority) { }
+	:
+		thread_context(thread_context), scheduling_context(scheduling_context),
+		quantum(quantum), priority(priority)
+	{ }
 };
 
 

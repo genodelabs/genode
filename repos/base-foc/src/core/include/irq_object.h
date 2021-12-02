@@ -38,7 +38,7 @@ class Genode::Irq_object
 		Irq_session::Polarity  _polarity; /* interrupt polarity */
 
 		unsigned               _irq;
-		addr_t                 _msi_addr;
+		uint64_t               _msi_addr;
 		addr_t                 _msi_data;
 
 		Signal_context_capability _sig_cap { };
@@ -53,8 +53,8 @@ class Genode::Irq_object
 		Irq_session::Trigger  trigger()  const { return _trigger; }
 		Irq_session::Polarity polarity() const { return _polarity; }
 
-		Genode::addr_t msi_address() const { return _msi_addr; }
-		Genode::addr_t msi_value()   const { return _msi_data; }
+		uint64_t msi_address() const { return _msi_addr; }
+		addr_t   msi_value()   const { return _msi_data; }
 
 		void sigh(Genode::Signal_context_capability cap) { _sig_cap = cap; }
 		void notify() { Genode::Signal_transmitter(_sig_cap).submit(1); }

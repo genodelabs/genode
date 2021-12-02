@@ -19,7 +19,7 @@
 void Kernel::Thread::_call_new_vm()
 {
 	Signal_context * context =
-		pd().cap_tree().find<Signal_context>(user_arg_5());
+		pd().cap_tree().find<Signal_context>((capid_t)user_arg_5());
 	if (!context) {
 		user_arg_0(cap_id_invalid());
 		return;
@@ -36,7 +36,7 @@ void Kernel::Thread::_call_delete_vm() { _call_delete<Vm>(); }
 
 void Kernel::Thread::_call_run_vm()
 {
-	Object_identity_reference * ref = pd().cap_tree().find(user_arg_1());
+	Object_identity_reference * ref = pd().cap_tree().find((capid_t)user_arg_1());
 	Vm * vm = ref ? ref->object<Vm>() : nullptr;
 
 	if (!vm) {
@@ -52,7 +52,7 @@ void Kernel::Thread::_call_run_vm()
 
 void Kernel::Thread::_call_pause_vm()
 {
-	Object_identity_reference * ref = pd().cap_tree().find(user_arg_1());
+	Object_identity_reference * ref = pd().cap_tree().find((capid_t)user_arg_1());
 	Vm * vm = ref ? ref->object<Vm>() : nullptr;
 
 	if (!vm) {

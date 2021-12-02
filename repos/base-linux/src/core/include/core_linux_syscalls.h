@@ -32,19 +32,19 @@
 
 inline int lx_mkdir(char const *pathname, mode_t mode)
 {
-	return lx_syscall(SYS_mkdirat, AT_FDCWD, pathname, mode);
+	return (int)lx_syscall(SYS_mkdirat, AT_FDCWD, pathname, mode);
 }
 
 
 inline int lx_ftruncate(int fd, unsigned long length)
 {
-	return lx_syscall(SYS_ftruncate, fd, length);
+	return (int)lx_syscall(SYS_ftruncate, fd, length);
 }
 
 
 inline int lx_unlink(const char *fname)
 {
-	return lx_syscall(SYS_unlinkat, AT_FDCWD, fname, 0);
+	return (int)lx_syscall(SYS_unlinkat, AT_FDCWD, fname, 0);
 }
 
 
@@ -54,7 +54,7 @@ inline int lx_unlink(const char *fname)
 
 inline int lx_open(char const *pathname, int flags, mode_t mode = 0)
 {
-	return lx_syscall(SYS_openat, AT_FDCWD, pathname, flags, mode);
+	return (int)lx_syscall(SYS_openat, AT_FDCWD, pathname, flags, mode);
 }
 
 
@@ -62,16 +62,16 @@ inline int lx_stat_size(char const *path, Genode::uint64_t &out_size)
 {
 #ifdef __aarch64__
 	struct statx buf { };
-	int result = lx_syscall(SYS_statx, AT_FDCWD, path, 0, STATX_SIZE, &buf);
+	int result = (int)lx_syscall(SYS_statx, AT_FDCWD, path, 0, STATX_SIZE, &buf);
 	out_size = buf.stx_size;
 #else
 #ifdef _LP64
 	struct stat buf { };
-	int result = lx_syscall(SYS_stat, path, &buf);
+	int result = (int)lx_syscall(SYS_stat, path, &buf);
 	out_size = buf.st_size;
 #else
 	struct stat64 buf { };
-	int result = lx_syscall(SYS_stat64, path, &buf);
+	int result = (int)lx_syscall(SYS_stat64, path, &buf);
 	out_size = buf.st_size;
 #endif
 #endif
@@ -86,7 +86,7 @@ inline int lx_stat_size(char const *path, Genode::uint64_t &out_size)
 #if defined(__x86_64__) || defined(__i386__)
 inline int lx_iopl(int level)
 {
-	return lx_syscall(SYS_iopl, level);
+	return (int)lx_syscall(SYS_iopl, level);
 }
 #endif
 
@@ -103,13 +103,13 @@ inline int lx_ioctl_iomem(int fd, unsigned long phys, Genode::size_t offset)
 		Genode::size_t length;
 	} range = {phys, offset};
 
-	return lx_syscall(SYS_ioctl, fd, _IOW('g', 1, void *), &range);
+	return (int)lx_syscall(SYS_ioctl, fd, _IOW('g', 1, void *), &range);
 }
 
 
 inline int lx_ioctl_irq(int fd, int irq)
 {
-	return lx_syscall(SYS_ioctl, fd, _IOW('g', 2, int*), &irq);
+	return (int)lx_syscall(SYS_ioctl, fd, _IOW('g', 2, int*), &irq);
 }
 
 
@@ -120,13 +120,13 @@ inline int lx_ioctl_irq(int fd, int irq)
 inline int lx_execve(const char *filename, char *const argv[],
                      char *const envp[])
 {
-	return lx_syscall(SYS_execve, filename, argv, envp);
+	return (int)lx_syscall(SYS_execve, filename, argv, envp);
 }
 
 
 inline int lx_kill(int pid, int signal)
 {
-	return lx_syscall(SYS_kill, pid, signal);
+	return (int)lx_syscall(SYS_kill, pid, signal);
 }
 
 
@@ -138,19 +138,19 @@ inline int lx_create_process(int (*entry)(), void *stack)
 	 * this condition.
 	 */
 	int const flags = CLONE_VFORK | LX_SIGCHLD;
-	return lx_clone((int (*)())entry, stack, flags);
+	return (int)lx_clone((int (*)())entry, stack, flags);
 }
 
 
 inline int lx_setuid(unsigned int uid)
 {
-	return lx_syscall(SYS_setuid, uid);
+	return (int)lx_syscall(SYS_setuid, uid);
 }
 
 
 inline int lx_setgid(unsigned int gid)
 {
-	return lx_syscall(SYS_setgid, gid);
+	return (int)lx_syscall(SYS_setgid, gid);
 }
 
 
@@ -164,7 +164,7 @@ inline int lx_setgid(unsigned int gid)
  */
 inline int lx_pollpid()
 {
-	return lx_syscall(SYS_wait4, -1 /* any PID */, (int *)0, 1 /* WNOHANG */, 0);
+	return (int)lx_syscall(SYS_wait4, -1 /* any PID */, (int *)0, 1 /* WNOHANG */, 0);
 }
 
 
@@ -193,7 +193,7 @@ inline void lx_boost_rlimit()
 {
 	rlimit rlimit { };
 
-	if (int const res = lx_syscall(SYS_getrlimit, RLIMIT_NOFILE, &rlimit)) {
+	if (int const res = (int)lx_syscall(SYS_getrlimit, RLIMIT_NOFILE, &rlimit)) {
 		Genode::warning("unable to obtain RLIMIT_NOFILE (", res, "), keeping limit unchanged");
 		return;
 	}
@@ -201,7 +201,7 @@ inline void lx_boost_rlimit()
 	/* increase soft limit to hard limit */
 	rlimit.rlim_cur = rlimit.rlim_max;
 
-	if (int const res = lx_syscall(SYS_setrlimit, RLIMIT_NOFILE, &rlimit))
+	if (int const res = (int)lx_syscall(SYS_setrlimit, RLIMIT_NOFILE, &rlimit))
 		Genode::warning("unable to boost RLIMIT_NOFILE (", res, "), keeping limit unchanged");
 }
 
@@ -215,7 +215,7 @@ inline void lx_boost_rlimit()
 inline int lx_socket(int domain, int type, int protocol)
 {
 	long args[3] = { domain, type, protocol };
-	return lx_socketcall(SYS_SOCKET, args);
+	return (int)lx_socketcall(SYS_SOCKET, args);
 }
 
 
@@ -223,7 +223,7 @@ inline int lx_bind(int sockfd, const struct sockaddr *addr,
                    socklen_t addrlen)
 {
 	long args[3] = { sockfd, (long)addr, (long)addrlen };
-	return lx_socketcall(SYS_BIND, args);
+	return (int)lx_socketcall(SYS_BIND, args);
 }
 
 
@@ -231,28 +231,28 @@ inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
                       socklen_t addrlen)
 {
 	long args[3] = { sockfd, (long)serv_addr, (long)addrlen };
-	return lx_socketcall(SYS_CONNECT, args);
+	return (int)lx_socketcall(SYS_CONNECT, args);
 }
 
 #else
 
 inline int lx_socket(int domain, int type, int protocol)
 {
-	return lx_syscall(SYS_socket, domain, type, protocol);
+	return (int)lx_syscall(SYS_socket, domain, type, protocol);
 }
 
 
 inline int lx_bind(int sockfd, const struct sockaddr *addr,
                    socklen_t addrlen)
 {
-	return lx_syscall(SYS_bind, sockfd, addr, addrlen);
+	return (int)lx_syscall(SYS_bind, sockfd, addr, addrlen);
 }
 
 
 inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
                       socklen_t addrlen)
 {
-	return lx_syscall(SYS_connect, sockfd, serv_addr, addrlen);
+	return (int)lx_syscall(SYS_connect, sockfd, serv_addr, addrlen);
 }
 
 #endif /* SYS_socketcall */
@@ -264,13 +264,13 @@ inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
 
 inline int lx_pipe(int pipefd[2])
 {
-	return lx_syscall(SYS_pipe2, pipefd, 0);
+	return (int)lx_syscall(SYS_pipe2, pipefd, 0);
 }
 
 
 inline int lx_read(int fd, void *buf, Genode::size_t count)
 {
-	return lx_syscall(SYS_read, fd, buf, count);
+	return (int)lx_syscall(SYS_read, fd, buf, count);
 }
 
 #endif /* _CORE__INCLUDE__CORE_LINUX_SYSCALLS_H_ */

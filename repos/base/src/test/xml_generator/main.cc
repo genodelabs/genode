@@ -202,7 +202,7 @@ void Component::construct(Genode::Env &env)
 		/* generate pattern that contains all possible byte values */
 		char pattern[256];
 		for (unsigned i = 0; i < sizeof(pattern); i++)
-			pattern[i] = i;
+			pattern[i] = (char)i;
 
 		/* generate XML with the pattern as content */
 		Xml_generator xml(dst, sizeof(dst), "data", [&] () {

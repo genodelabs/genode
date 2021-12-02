@@ -25,6 +25,12 @@ namespace Genode { class Cap_id_allocator; }
 
 class Genode::Cap_id_allocator
 {
+	public:
+
+		using id_t = uint16_t;
+
+		enum { ID_MASK = 0xffff };
+
 	private:
 
 		enum {
@@ -44,8 +50,8 @@ class Genode::Cap_id_allocator
 
 		Cap_id_allocator(Allocator &);
 
-		unsigned long alloc();
-		void free(unsigned long id);
+		id_t alloc();
+		void free(id_t id);
 };
 
 #endif /* _CORE__INCLUDE__CAP_ID_ALLOC_H_ */

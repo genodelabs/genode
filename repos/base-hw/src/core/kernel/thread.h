@@ -356,8 +356,9 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		                              size_t const                    quota,
 		                              char const * const              label)
 		{
-			return call(call_id_new_thread(), (Call_arg)&t, (Call_arg)priority,
-			            (Call_arg)quota, (Call_arg)label);
+			return (capid_t)call(call_id_new_thread(), (Call_arg)&t,
+			                     (Call_arg)priority, (Call_arg)quota,
+			                     (Call_arg)label);
 		}
 
 		/**
@@ -371,8 +372,8 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		static capid_t syscall_create(Genode::Kernel_object<Thread> & t,
 		                              char const * const              label)
 		{
-			return call(call_id_new_core_thread(), (Call_arg)&t,
-			            (Call_arg)label);
+			return (capid_t)call(call_id_new_core_thread(), (Call_arg)&t,
+			                     (Call_arg)label);
 		}
 
 		/**

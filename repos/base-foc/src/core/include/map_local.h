@@ -45,7 +45,7 @@ namespace Genode {
 			using namespace Foc;
 
 			l4_fpage_t snd_fpage = l4_fpage(from_addr + offset,
-			                                page_size_log2, L4_FPAGE_RW);
+			                                (unsigned)page_size_log2, L4_FPAGE_RW);
 
 			if (l4_msgtag_has_error(l4_task_map(L4_BASE_TASK_CAP,
 			                                    L4_BASE_TASK_CAP,
@@ -95,13 +95,13 @@ namespace Genode {
 			if (can_use_super_page(from_addr + offset, size))
 				page_size_log2 = get_super_page_size_log2();
 			l4_utcb_mr()->mr[1] = l4_fpage(from_addr + offset,
-			                               page_size_log2, L4_FPAGE_RWX).raw;
+			                               (unsigned)page_size_log2, L4_FPAGE_RWX).raw;
 
 			/* open receive window for mapping */
 			l4_utcb_br()->bdr   = 0;
 			l4_utcb_br()->br[0] = L4_ITEM_MAP;
 			l4_utcb_br()->br[1] = l4_fpage((addr_t)to_addr + offset,
-			                               page_size_log2, L4_FPAGE_RWX).raw;
+			                               (unsigned)page_size_log2, L4_FPAGE_RWX).raw;
 
 			l4_msgtag_t tag = l4_msgtag(L4_PROTO_SIGMA0, 2, 0, 0);
 			tag = l4_ipc_call(L4_BASE_PAGER_CAP, l4_utcb(), tag, L4_IPC_NEVER);

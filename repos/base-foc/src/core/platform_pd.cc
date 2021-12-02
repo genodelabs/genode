@@ -122,11 +122,12 @@ void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local)
 
 static Native_capability debug_cap()
 {
-	unsigned long const id = platform_specific().cap_id_alloc().alloc();
+	Cap_index::id_t const id = platform_specific().cap_id_alloc().alloc();
 	static Cap_index * idx = cap_map().insert(id, DEBUG_CAP);
 	static Native_capability debug_cap(reinterpret_cast<Core_cap_index*>(idx));
 	return debug_cap;
 }
+
 
 Platform_pd::Platform_pd(Core_cap_index &ci)
 :

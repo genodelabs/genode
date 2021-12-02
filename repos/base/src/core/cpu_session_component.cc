@@ -270,10 +270,10 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
 {
 	Arg a = Arg_string::find_arg(args, "priority");
 	if (a.valid()) {
-		_priority = a.ulong_value(0);
+		_priority = (unsigned)a.ulong_value(0);
 
 		/* clamp priority value to valid range */
-		_priority = min((unsigned)PRIORITY_LIMIT - 1, _priority);
+		_priority = min((unsigned)(PRIORITY_LIMIT - 1), _priority);
 	}
 }
 

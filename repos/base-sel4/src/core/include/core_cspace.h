@@ -34,13 +34,13 @@ class Genode::Core_cspace
 		};
 
 		/* selectors for initially created CNodes during core bootup */
-		static inline unsigned long top_cnode_sel()      { return sel4_boot_info().empty.start; }
-		static inline unsigned long core_pad_cnode_sel() { return top_cnode_sel() + 1; }
-		static inline unsigned long core_cnode_sel()     { return core_pad_cnode_sel() + 1; }
-		static inline unsigned long phys_cnode_sel()     { return core_cnode_sel() + 1; }
-		static inline unsigned long untyped_cnode_4k()   { return phys_cnode_sel() + 1; }
-		static inline unsigned long untyped_cnode_16k()  { return untyped_cnode_4k() + 1; }
-		static unsigned long core_static_sel_end()       { return untyped_cnode_16k() + 1; }
+		static unsigned top_cnode_sel()       { return (unsigned)sel4_boot_info().empty.start; }
+		static unsigned core_pad_cnode_sel()  { return top_cnode_sel() + 1; }
+		static unsigned core_cnode_sel()      { return core_pad_cnode_sel() + 1; }
+		static unsigned phys_cnode_sel()      { return core_cnode_sel() + 1; }
+		static unsigned untyped_cnode_4k()    { return phys_cnode_sel() + 1; }
+		static unsigned untyped_cnode_16k()   { return untyped_cnode_4k() + 1; }
+		static unsigned core_static_sel_end() { return untyped_cnode_16k() + 1; }
 
 		/* indices within top-level CNode */
 		enum Top_cnode_idx {

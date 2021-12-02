@@ -48,7 +48,7 @@ class Genode::Initial_untyped_pool
 			unsigned const sel;
 
 			/* index into 'untypedSizeBitsList' */
-			unsigned const index = sel - sel4_boot_info().untyped.start;
+			unsigned const index = (unsigned)(sel - sel4_boot_info().untyped.start);
 
 			/* original size of untyped memory range */
 			size_t const size = 1UL << sel4_boot_info().untypedList[index].sizeBits;
@@ -72,7 +72,7 @@ class Genode::Initial_untyped_pool
 		/**
 		 * Calculate free index after allocation
 		 */
-		addr_t _align_offset(Range &range, size_t size_log2)
+		addr_t _align_offset(Range &range, unsigned size_log2)
 		{
 			/*
 			 * The seL4 kernel naturally aligns allocations within untuped
@@ -94,8 +94,8 @@ class Genode::Initial_untyped_pool
 		void for_each_range(FUNC const &func)
 		{
 			seL4_BootInfo const &bi = sel4_boot_info();
-			for (unsigned sel = bi.untyped.start; sel < bi.untyped.end; sel++) {
-				Range range(*this, sel);
+			for (addr_t sel = bi.untyped.start; sel < bi.untyped.end; sel++) {
+				Range range(*this, (unsigned)sel);
 				func(range);
 			}
 		}
@@ -115,7 +115,7 @@ class Genode::Initial_untyped_pool
 		 *
 		 * \throw Initial_untyped_pool_exhausted
 		 */
-		unsigned alloc(size_t size_log2)
+		unsigned alloc(unsigned size_log2)
 		{
 			enum { UNKNOWN = 0 };
 			unsigned sel = UNKNOWN;
@@ -177,10 +177,10 @@ class Genode::Initial_untyped_pool
 		 * objects of size_log2 and up to a maximum as specified by max_memory
 		 */
 		template <typename FUNC>
-		void turn_into_untyped_object(addr_t const node_index,
-		                              FUNC   const & func,
-		                              addr_t const size_log2 = get_page_size_log2(),
-		                              addr_t max_memory = 0UL - 0x1000UL)
+		void turn_into_untyped_object(addr_t  const node_index,
+		                              FUNC    const & func,
+		                              uint8_t const size_log2 = get_page_size_log2(),
+		                              addr_t  max_memory = 0UL - 0x1000UL)
 		{
 			for_each_range([&] (Range &range) {
 
@@ -222,7 +222,9 @@ class Genode::Initial_untyped_pool
 
 					/* XXX skip memory because of limited untyped cnode range */
 					if (node_offset >= (1UL << (32 - get_page_size_log2()))) {
-						Genode::warning(range.device ? "device" : "      ", " memory in range ", Hex_range<addr_t>(range.phys, range.size), " is unavailable (due to limited untyped cnode range)");
+						warning(range.device ? "device" : "      ", " memory in range ",
+						        Hex_range<addr_t>(range.phys, range.size),
+						        " is unavailable (due to limited untyped cnode range)");
 						return;
 					}
 

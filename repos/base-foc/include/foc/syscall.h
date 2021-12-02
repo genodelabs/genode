@@ -14,6 +14,9 @@
 #ifndef _INCLUDE__FOC__SYSCALL_H_
 #define _INCLUDE__FOC__SYSCALL_H_
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 namespace Foc {
 #include <l4/sys/types.h>
 #include <l4/sys/kip>
@@ -32,5 +35,7 @@ namespace Foc {
 #include <l4/sys/scheduler.h>
 #include <l4/sigma0/sigma0.h>
 }
+
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 #endif /* _INCLUDE__FOC__SYSCALL_H_ */

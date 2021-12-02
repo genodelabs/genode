@@ -333,7 +333,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 			                              _constrained_md_ram_alloc,
 			                              _cap_quota_guard(),
 			                              vcpu_id,
-			                              kernel_cpu_id,
+			                              (unsigned)kernel_cpu_id,
 			                              vcpu_location,
 			                              _priority,
 			                              _session_label,

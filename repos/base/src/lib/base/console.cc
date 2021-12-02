@@ -212,7 +212,7 @@ void Console::vprintf(const char *format, va_list list)
 					out_signed<long long>(numeric_arg, cmd.base,
 					                      [&] (char c) { _out_char(c); });
 				else
-					out_signed<long>(numeric_arg, cmd.base,
+					out_signed<long>((long)numeric_arg, cmd.base,
 					                 [&] (char c) { _out_char(c); });
 				break;
 
@@ -228,13 +228,13 @@ void Console::vprintf(const char *format, va_list list)
 
 			case Format_command::PTR:
 
-				out_unsigned<unsigned long>(numeric_arg, cmd.base, cmd.padding,
+				out_unsigned<unsigned long>((long)numeric_arg, cmd.base, cmd.padding,
 				                            [&] (char c) { _out_char(c); });
 				break;
 
 			case Format_command::CHAR:
 
-				_out_char(va_arg(list, int));
+				_out_char((char)va_arg(list, int));
 				break;
 
 			case Format_command::STRING:

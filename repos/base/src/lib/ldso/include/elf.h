@@ -308,7 +308,7 @@ namespace Linker {
 			/**
 			 * Binding information
 			 */
-			unsigned char bind() const { return st_info >> 4; }
+			unsigned char bind() const { return (st_info >> 4) & 0xffu; }
 
 			/**
 			 * Type information
@@ -404,12 +404,12 @@ namespace Linker {
 			/**
 			 * Relocation type
 			 */
-			int type()     const { return info & 0xffffffffL; }
+			int type() const { return (int)(info & 0xffffffffL); }
 
 			/**
 			 * Symbol table index
 			 */
-			unsigned sym() const { return (info >> 16) >> 16; }
+			unsigned sym() const { return (unsigned)((info >> 16) >> 16); }
 		};
 
 		/**
@@ -427,7 +427,7 @@ namespace Linker {
 			/**
 			 * Binding information
 			 */
-			unsigned char bind() const { return st_info >> 4; }
+			unsigned char bind() const { return (st_info >> 4) & 0xffu; }
 
 			/**
 			 * Type information
