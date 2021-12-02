@@ -2,3 +2,5 @@ TARGET = test-pci
 SRC_CC = test.cc
 LIBS   = base
 REQUIRES = x86
+
+CC_CXX_WARN_STRICT_CONVERSION =

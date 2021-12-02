@@ -144,7 +144,7 @@ class I2c::I2c : Platform::Device::Mmio
 				try {
 					_start();
 
-					_write(addr << 1 | 1);
+					_write((Genode::uint8_t)(addr << 1 | 1));
 
 					write<Control::Tx_rx_select>(0);
 					if (num > 1)
@@ -166,7 +166,7 @@ class I2c::I2c : Platform::Device::Mmio
 							write<Control::Tx_ack_enable>(1);
 						}
 
-						buf[i] = read<Data>();
+						buf[i] = (Genode::uint8_t)read<Data>();
 						_irq_handler.ack();
 					}
 

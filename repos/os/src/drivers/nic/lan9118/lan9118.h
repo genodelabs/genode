@@ -317,12 +317,12 @@ class Lan9118_base
 			unsigned mac_addr_lo = _mac_csr_read(MAC_ADDRL),
 			         mac_addr_hi = _mac_csr_read(MAC_ADDRH);
 
-			_mac_addr.addr[5] = (mac_addr_hi >>  8) & 0xff;
-			_mac_addr.addr[4] = (mac_addr_hi >>  0) & 0xff;
-			_mac_addr.addr[3] = (mac_addr_lo >> 24) & 0xff;
-			_mac_addr.addr[2] = (mac_addr_lo >> 16) & 0xff;
-			_mac_addr.addr[1] = (mac_addr_lo >>  8) & 0xff;
-			_mac_addr.addr[0] = (mac_addr_lo >>  0) & 0xff;
+			_mac_addr.addr[5] = (uint8_t)(mac_addr_hi >>  8);
+			_mac_addr.addr[4] = (uint8_t)(mac_addr_hi >>  0);
+			_mac_addr.addr[3] = (uint8_t)(mac_addr_lo >> 24);
+			_mac_addr.addr[2] = (uint8_t)(mac_addr_lo >> 16);
+			_mac_addr.addr[1] = (uint8_t)(mac_addr_lo >>  8);
+			_mac_addr.addr[0] = (uint8_t)(mac_addr_lo >>  0);
 
 			log("MAC address: ", _mac_addr);
 

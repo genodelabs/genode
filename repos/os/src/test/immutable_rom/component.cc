@@ -22,7 +22,7 @@ void Component::construct(Genode::Env &env)
 	Attached_rom_dataspace rom(env, "test");
 	log("--- writing to ROM dataspace ---");
 	for (size_t i = 0; i < rom.size(); ++i) {
-		rom.local_addr<char>()[i] = i;
+		rom.local_addr<char>()[i] = (char)i;
 		log("--- ROM dataspace modified at ", (Hex)i, "! ---");
 	}
 	env.parent().exit(0);

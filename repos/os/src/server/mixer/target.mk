@@ -1,3 +1,5 @@
 TARGET = mixer
 SRC_CC = mixer.cc
-LIBS = base
+LIBS   = base
+
+CC_CXX_WARN_STRICT_CONVERSION =

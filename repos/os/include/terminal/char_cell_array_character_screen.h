@@ -38,8 +38,8 @@ struct Char_cell
 	          int colidx, bool inv, bool highlight)
 	:
 		value(c.value),
-		attr(f.attr_bits() | (inv ? ATTR_INVERSE : 0)
-		                   | (highlight ? ATTR_HIGHLIGHT : 0)),
+		attr((unsigned char)(f.attr_bits() | (inv       ? ATTR_INVERSE   : 0)
+		                                   | (highlight ? ATTR_HIGHLIGHT : 0))),
 		color(colidx & COLOR_MASK)
 	{ }
 
@@ -54,7 +54,7 @@ struct Char_cell
 	bool highlight() const { return attr         & ATTR_HIGHLIGHT;   }
 
 	void set_cursor()   { attr |=  ATTR_CURSOR; }
-	void clear_cursor() { attr &= ~ATTR_CURSOR; }
+	void clear_cursor() { attr &= (unsigned char)(~ATTR_CURSOR); }
 
 	bool has_cursor() const { return attr & ATTR_CURSOR; }
 

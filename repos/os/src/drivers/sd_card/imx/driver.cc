@@ -218,7 +218,7 @@ void Driver::read_dma(Block::sector_t           blk_nr,
 	if (_prepare_dma_mb(packet, true, blk_cnt, buf_phys)) {
 		throw Io_error(); }
 
-	if (!issue_command(Read_multiple_block(blk_nr))) {
+	if (!issue_command(Read_multiple_block((unsigned long)blk_nr))) {
 		throw Io_error(); }
 }
 
@@ -231,7 +231,7 @@ void Driver::write_dma(Block::sector_t           blk_nr,
 	if (_prepare_dma_mb(packet, false, blk_cnt, buf_phys)) {
 		throw Io_error(); }
 
-	if (!issue_command(Write_multiple_block(blk_nr))) {
+	if (!issue_command(Write_multiple_block((unsigned long)blk_nr))) {
 		throw Io_error(); }
 }
 

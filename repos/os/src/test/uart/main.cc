@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/snprintf.h>
+#include <util/string.h>
 #include <base/component.h>
 #include <timer_session/connection.h>
 #include <uart_session/connection.h>
@@ -24,15 +24,14 @@ struct Main
 {
 	Timer::Connection timer;
 	Uart::Connection  uart;
-	char              buf[100];
 
 	Main(Env &env) : timer(env), uart(env)
 	{
 		log("--- UART test started ---");
 
 		for (unsigned i = 0; ; ++i) {
-			int n = snprintf(buf, sizeof(buf), "UART test message %d\n", i);
-			uart.write(buf, n);
+			String<200> const msg("UART test message ", i);
+			uart.write(msg.string(), msg.length() - 1);
 			timer.msleep(2000);
 		}
 	}

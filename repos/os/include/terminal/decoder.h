@@ -94,9 +94,9 @@ class Terminal::Decoder
 						if (type == NUMBER) {
 							Genode::print(out, value);
 						} else if (state == STATE_ESC_ECMA) {
-							Ecma(value).print(out);
+							Ecma((unsigned char)value).print(out);
 						} else {
-							Ascii(value).print(out);
+							Ascii((unsigned char)value).print(out);
 						}
 					}
 
@@ -290,8 +290,8 @@ class Terminal::Decoder
 			 || (_escape_stack[1].type  != Escape_stack::Entry::NUMBER))
 				return false;
 
-			int  const p1      = _escape_stack[1].value;
-			char const command = _escape_stack[2].value;
+			int const p1      = _escape_stack[1].value;
+			int const command = _escape_stack[2].value;
 
 			switch (command) {
 			case 'A': return (_screen.cuu(p1), true);
@@ -330,8 +330,8 @@ class Terminal::Decoder
 			 || (_escape_stack[2].type  != Escape_stack::Entry::NUMBER))
 			 	return false;
 
-			int  const p1      = _escape_stack[2].value;
-			char const command = _escape_stack[3].value;
+			int const p1      = _escape_stack[2].value;
+			int const command = _escape_stack[3].value;
 
 			switch (command) {
 			case 'h': return (_screen.decsm(p1), true);
@@ -508,7 +508,7 @@ class Terminal::Decoder
 						_enter_state_esc_ecma();
 						break;
 					}
-					Genode::error("unknown CSI ESC", Ascii(c));
+					Genode::error("unknown CSI ESC", Ascii((unsigned char)c));
 					_enter_state_idle();
 				}
 
@@ -523,8 +523,8 @@ class Terminal::Decoder
 				 */
 
 				/* check for start of a number argument */
-				if (is_digit(c)) {
-					_append_to_number(c);
+				if (is_digit((char)c)) {
+					_append_to_number((char)c);
 				}
 
 				else /* non-number character of escape sequence */

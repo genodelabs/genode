@@ -299,7 +299,7 @@ class Vfs::Dir_file_system : public File_system
 				 * Determine number of matching directory entries within
 				 * the current file system.
 				 */
-				int const fs_num_dirent = vfs_handle.ds().num_dirent(sub_path);
+				int const fs_num_dirent = (int)vfs_handle.ds().num_dirent(sub_path);
 
 				/*
 				 * Query directory entry if index lies with the file

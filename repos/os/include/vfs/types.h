@@ -48,6 +48,7 @@ namespace Vfs {
 	using Genode::static_cap_cast;
 	using Genode::Interface;
 	using Genode::String;
+	using Genode::size_t;
 
 	struct Timestamp
 	{

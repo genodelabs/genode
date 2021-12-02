@@ -43,11 +43,12 @@ class Event_filter::Accelerate_source : public Source, Source::Filter
 			Lut(long curve)
 			{
 				/* clamp parameter to valid range */
-				curve = min(255, max(0, curve));
+				curve = min(255L, max(0L, curve));
 
 				auto fill_segment = [&] (long x1, long y1, long x2, long /* y2 */)
 				{
-					for (long i = x1 >> 8; i <= (x2 >> 8); i++) values[i] = y1 >> 8;
+					for (long i = x1 >> 8; i <= (x2 >> 8); i++)
+						values[i] = (uint8_t)(y1 >> 8);
 				};
 
 				long const x0 = 0,           y0 = 0,   x1 = curve, y1 = 0,
@@ -75,8 +76,8 @@ class Event_filter::Accelerate_source : public Source, Source::Filter
 		int _apply_acceleration(int v) const
 		{
 			int const sign  = (v < 0) ? -1 : 1,
-			          index = max(0, min(255, (sign*v*_sensitivity_percent)/100)),
-			          accel = (_lut.values[index]*_max)/256;
+			          index = (int)max(0L, min(255L, (sign*v*_sensitivity_percent)/100)),
+			          accel = (int)((_lut.values[index]*_max)/256);
 
 			return v + sign*accel;
 		}

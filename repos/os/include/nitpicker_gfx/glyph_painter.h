@@ -29,7 +29,7 @@ struct Glyph_painter
 	{
 		int value;
 
-		Fixpoint_number(float value) : value(value*256) { };
+		Fixpoint_number(float value) : value((int)(value*256)) { };
 
 		Fixpoint_number(int decimal) : value(decimal << 8) { };
 

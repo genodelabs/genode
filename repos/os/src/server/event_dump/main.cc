@@ -38,7 +38,7 @@ struct Test::Event_session : Rpc_object<Event::Session, Event_session>
 
 	void submit_batch(unsigned count)
 	{
-		size_t const max_events = _ds.size() / sizeof(Input::Event);
+		unsigned const max_events = (unsigned)(_ds.size() / sizeof(Input::Event));
 
 		if (count > max_events)
 			warning("number of events exceeds dataspace capacity");

@@ -48,9 +48,9 @@ struct Blit_painter
 		/* start address of destination pixels */
 		PT * const dst = surface.addr() + clipped.y1()*dst_w + clipped.x1();
 
-		blit(src, src_w*sizeof(PT),
-		     dst, dst_w*sizeof(PT),
-		     clipped.w()*sizeof(PT), clipped.h());
+		blit(src, (unsigned)(src_w*sizeof(PT)),
+		     dst, (unsigned)(dst_w*sizeof(PT)),
+		     (unsigned)(clipped.w()*sizeof(PT)), clipped.h());
 
 		surface.flush_pixels(clipped);
 	}

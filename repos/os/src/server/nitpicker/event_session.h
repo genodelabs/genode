@@ -66,7 +66,7 @@ class Nitpicker::Event_session : public Session_object<Event::Session, Event_ses
 
 		void submit_batch(unsigned const count)
 		{
-			size_t const max_events = _ds.size() / sizeof(Input::Event);
+			unsigned const max_events = (unsigned)(_ds.size() / sizeof(Input::Event));
 
 			if (count > max_events)
 				warning("number of events exceeds dataspace capacity");

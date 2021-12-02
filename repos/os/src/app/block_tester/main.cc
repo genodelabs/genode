@@ -68,9 +68,9 @@ struct Test::Result
 	size_t   triggered    { 0 };
 	bool     success      { false };
 
-	bool  calculate { false };
-	float mibs      { 0.0f };
-	float iops      { 0.0f };
+	bool   calculate { false };
+	double mibs      { 0.0f };
+	double iops      { 0.0f };
 
 	Result() { }
 
@@ -200,7 +200,7 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 		/**
 		 * Block::Connection::Update_jobs_policy
 		 */
-		void produce_write_content(Job &job, off_t offset, char *dst, size_t length)
+		void produce_write_content(Job &job, Block::seek_off_t offset, char *dst, size_t length)
 		{
 			_tx    += length / _info.block_size;
 			_bytes += length;
@@ -215,7 +215,7 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 		/**
 		 * Block::Connection::Update_jobs_policy
 		 */
-		void consume_read_result(Job &job, off_t offset,
+		void consume_read_result(Job &job, Block::seek_off_t offset,
 		                         char const *src, size_t length)
 		{
 			_rx    += length / _info.block_size;

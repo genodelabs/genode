@@ -121,7 +121,7 @@ class Genode::Path_base
 			return 0;
 		}
 
-		static void strip(char *dst, unsigned count)
+		static void strip(char *dst, size_t count)
 		{
 			for (char const *src = dst + count; *src; )
 				*dst++ = *src++;
@@ -178,7 +178,7 @@ class Genode::Path_base
 				_append("/");
 		}
 
-		void _strip_from_begin(unsigned count) { strip(_path, count); }
+		void _strip_from_begin(size_t count) { strip(_path, count); }
 
 	protected:
 
@@ -270,7 +270,7 @@ class Genode::Path_base
 
 		bool strip_prefix(char const *prefix)
 		{
-			unsigned prefix_len = strlen(prefix);
+			size_t prefix_len = strlen(prefix);
 
 			if (strcmp(prefix, _path, prefix_len) != 0)
 				return false;

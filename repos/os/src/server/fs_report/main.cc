@@ -168,7 +168,7 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 						return;
 					}
 
-					offset += n;
+					offset += (size_t)n;
 				}
 
 				_file_size = length;

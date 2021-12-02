@@ -21,12 +21,14 @@
 #include <util/string.h>
 
 /* libc includes */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h> /* perror */
-
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 static bool xml_attr_ok(Genode::Xml_node node, char const *attr)
 {
@@ -118,10 +120,10 @@ class Lx_block_driver : public Block::Driver
 		          char                     *buffer,
 		          Block::Packet_descriptor &packet) override
 		{
-			off_t  const offset = block_number * _info.block_size;
-			size_t const count  = block_count  * _info.block_size;
+			Block::sector_t const offset = block_number * _info.block_size;
+			size_t          const count  = block_count  * _info.block_size;
 
-			ssize_t const n = pread(_fd, buffer, count, offset);
+			ssize_t const n = pread(_fd, buffer, count, (off_t)offset);
 			if (n == -1) {
 				perror("pread");
 				throw Io_error();
@@ -140,10 +142,10 @@ class Lx_block_driver : public Block::Driver
 				throw Io_error();
 			}
 
-			off_t  const offset = block_number * _info.block_size;
-			size_t const count  = block_count  * _info.block_size;
+			Block::sector_t  const offset = block_number * _info.block_size;
+			size_t           const count  = block_count  * _info.block_size;
 
-			ssize_t const n = pwrite(_fd, buffer, count, offset);
+			ssize_t const n = pwrite(_fd, buffer, count, (off_t)offset);
 			if (n == -1) {
 				perror("pwrite");
 				throw Io_error();

@@ -47,7 +47,7 @@ class Trace_buffer
 					warning("buffer wrapped multiple times; you might want to raise buffer size; curr_count=",
 					        _buffer.wrapped(), " last_count=", _wrapped_count);
 				}
-				_wrapped_count = _buffer.wrapped();
+				_wrapped_count = (unsigned)_buffer.wrapped();
 			}
 
 			Trace::Buffer::Entry new_curr { _curr };

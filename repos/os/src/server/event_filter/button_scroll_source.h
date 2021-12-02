@@ -59,7 +59,7 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 			Wheel(Xml_node config)
 			:
 				_button(key_code_by_name(_button_attribute(config).string())),
-				_factor(config.attribute_value("speed_percent", 0L))
+				_factor((int)config.attribute_value("speed_percent", 0L))
 			{ }
 
 			void handle_activation(Input::Event const &event)

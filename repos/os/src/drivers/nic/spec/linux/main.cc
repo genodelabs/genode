@@ -153,7 +153,7 @@ class Uplink_client : public Uplink_client_base
 		_drv_transmit_pkt(const char *conn_rx_pkt_base,
 		                  size_t      conn_rx_pkt_size) override
 		{
-			int ret;
+			ssize_t ret;
 
 			/* non-blocking-write packet to TAP */
 			do {

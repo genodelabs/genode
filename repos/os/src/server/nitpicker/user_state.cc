@@ -308,7 +308,10 @@ User_state::handle_input_events(Input_batch batch)
 			Input::Event curr = *e;
 
 			if (e->absolute_motion() || e->relative_motion()) {
-				unsigned const n = num_consecutive_events(e, batch.count - src_ev_cnt);
+
+				unsigned const n =
+					num_consecutive_events(e, (unsigned)(batch.count - src_ev_cnt));
+
 				curr = merge_motion_events(e, n);
 
 				/* skip merged events */

@@ -51,14 +51,15 @@ class Vfs::Log_file_system : public Single_file_system
 			private:
 
 				char _line_buf[Genode::Log_session::MAX_STRING_LEN];
-				int  _line_pos = 0;
+
+				file_offset _line_pos = 0;
 
 				Genode::Log_session &_log;
 
 				void _flush()
 				{
-					int strip = 0;
-					for (int i = _line_pos - 1; i > 0; --i) {
+					file_offset strip = 0;
+					for (file_offset i = _line_pos - 1; i > 0; --i) {
 						switch(_line_buf[i]) {
 						case '\n':
 						case '\t':
@@ -103,16 +104,16 @@ class Vfs::Log_file_system : public Single_file_system
 
 					/* count does not include the trailing '\0' */
 					while (count > 0) {
-						int curr_count = min(count, ((sizeof(_line_buf) - 1) - _line_pos));
+						file_size curr_count = min(count, (file_size)((sizeof(_line_buf) - 1) - _line_pos));
 
-						for (int i = 0; i < curr_count; ++i) {
+						for (file_size i = 0; i < curr_count; ++i) {
 							if (src[i] == '\n') {
 								curr_count = i + 1;
 								break;
 							}
 						}
 
-						memcpy(_line_buf + _line_pos, src, curr_count);
+						memcpy(_line_buf + _line_pos, src, (size_t)curr_count);
 						_line_pos += curr_count;
 
 						if ((_line_pos == sizeof(_line_buf) - 1) ||

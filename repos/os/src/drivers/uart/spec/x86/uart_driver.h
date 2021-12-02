@@ -28,15 +28,15 @@ class Uart::Driver : public Uart::Driver_base
 {
 	private:
 
-		unsigned                   _port_base;
+		uint16_t                   _port_base;
 		Genode::Io_port_connection _io_port;
 
 		/**
 		 * Return I/O port base for specified UART
 		 */
-		static unsigned _io_port_base(int index)
+		static uint16_t _io_port_base(int index)
 		{
-			static unsigned port_base[] = { 0x3f8, 0x2f8, 0x3e8, 0x2e8 };
+			static uint16_t port_base[] = { 0x3f8, 0x2f8, 0x3e8, 0x2e8 };
 			return port_base[index & 0x3];
 		}
 
@@ -84,17 +84,17 @@ class Uart::Driver : public Uart::Driver_base
 		 *
 		 * Based on 'init_serial' of L4ka::Pistachio's 'kdb/platform/pc99/io.cc'
 		 */
-		void _init_comport(unsigned baud)
+		void _init_comport(size_t baud)
 		{
-			_outb<LCR>(0x80);  /* select bank 1 */
+			_outb<LCR>(0x80u);  /* select bank 1 */
 			for (volatile int i = 10000000; i--; );
-			_outb<DLLO>((115200/baud) >> 0);
-			_outb<DLHI>((115200/baud) >> 8);
-			_outb<LCR>(0x03);  /* set 8,N,1 */
-			_outb<IER>(0x00);  /* disable interrupts */
-			_outb<EIR>(0x07);  /* enable FIFOs */
-			_outb<MCR>(0x0b);  /* force data terminal ready */
-			_outb<IER>(0x01);  /* enable RX interrupts */
+			_outb<DLLO>(((115200/baud) >> 0) && 0xff);
+			_outb<DLHI>(((115200/baud) >> 8) && 0xff);
+			_outb<LCR>(0x03u);  /* set 8,N,1 */
+			_outb<IER>(0x00u);  /* disable interrupts */
+			_outb<EIR>(0x07u);  /* enable FIFOs */
+			_outb<MCR>(0x0bu);  /* force data terminal ready */
+			_outb<IER>(0x01u);  /* enable RX interrupts */
 			_inb<IER>();
 			_inb<EIR>();
 			_inb<LCR>();
@@ -103,7 +103,7 @@ class Uart::Driver : public Uart::Driver_base
 			_inb<MSR>();
 		}
 
-		unsigned _baud_rate(unsigned baud_rate)
+		size_t _baud_rate(size_t baud_rate)
 		{
 			if (baud_rate != BAUD_115200)
 				Genode::warning("baud_rate ", baud_rate,
@@ -113,12 +113,15 @@ class Uart::Driver : public Uart::Driver_base
 
 	public:
 
-		Driver(Genode::Env &env, unsigned index, unsigned baud,
+		Driver(Env &env, unsigned index, size_t baud,
 		       Uart::Char_avail_functor &func)
-		: Driver_base(env, _irq_number(index), func),
-		  _port_base(_io_port_base(index)),
-		  _io_port(env, _port_base, 0xf) {
-			_init_comport(_baud_rate(baud)); }
+		:
+			Driver_base(env, _irq_number(index), func),
+			_port_base(_io_port_base(index)),
+			_io_port(env, _port_base, 0xf)
+		{
+			_init_comport(_baud_rate(baud));
+		}
 
 
 		/***************************
@@ -144,7 +147,7 @@ class Uart::Driver : public Uart::Driver_base
 			return _inb<TRB>();
 		}
 
-		void baud_rate(int bits_per_second) override
+		void baud_rate(size_t bits_per_second) override
 		{
 			_init_comport(bits_per_second);
 		}

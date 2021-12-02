@@ -150,7 +150,7 @@ struct Dummy::Log_connections
 
 	Log_connections(Env &env, Xml_node node) : _env(env)
 	{
-		unsigned const count = node.attribute_value("count", 0UL);
+		unsigned const count = node.attribute_value("count", 0U);
 
 		Number_of_bytes const ram_upgrade =
 			node.attribute_value("ram_upgrade", Number_of_bytes());

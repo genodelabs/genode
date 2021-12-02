@@ -88,7 +88,8 @@ struct Text_painter
 			/**
 			 * Compute width of UTF8 string in pixels when rendered with the font
 			 */
-			Fixpoint_number string_width(Genode::Utf8_ptr utf8, unsigned len = ~0U) const
+			Fixpoint_number string_width(Genode::Utf8_ptr utf8,
+			                             Genode::size_t len = ~0UL) const
 			{
 				Fixpoint_number result { (int)0 };
 

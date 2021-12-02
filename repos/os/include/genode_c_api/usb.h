@@ -19,6 +19,11 @@
 
 struct genode_usb_session; /* definition is private to the implementation */
 
+typedef unsigned short genode_usb_vendor_id_t;
+typedef unsigned short genode_usb_product_id_t;
+typedef unsigned int   genode_usb_bus_num_t;
+typedef unsigned int   genode_usb_dev_num_t;
+typedef unsigned char  genode_usb_class_num_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,34 +50,35 @@ typedef void (*genode_usb_free_peer_buffer_t)
  * Callback to copy over config descriptor for given device
  */
 typedef unsigned (*genode_usb_rpc_config_desc_t)
-	(unsigned long bus, unsigned long dev, void * dev_desc, void * conf_desc);
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev,
+	 void * dev_desc, void * conf_desc);
 
 /**
  * Callback that returns number of alt-settings of an interface for given device
  */
 typedef int (*genode_usb_rpc_alt_settings_t)
-	(unsigned long bus, unsigned long dev, unsigned idx);
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx);
 
 /**
  * Callback to copy over interface descriptor for given device/interface
  */
 typedef int (*genode_usb_rpc_iface_desc_t)
-	(unsigned long bus, unsigned long dev, unsigned idx, unsigned alt,
-     void * buf, unsigned long buf_size, int * active);
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx,
+	 unsigned alt, void * buf, unsigned long buf_size, int * active);
 
 /**
  * Callback to copy over additional vendor specific data of an interface
  */
 typedef int (*genode_usb_rpc_iface_extra_t)
-	(unsigned long bus, unsigned long dev, unsigned idx, unsigned alt,
-     void * buf, unsigned long buf_size);
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx,
+	 unsigned alt, void * buf, unsigned long buf_size);
 
 /**
  * Callback to copy over endpoint descriptor for given device/iface/endpoint
  */
 typedef int (*genode_usb_rpc_endp_desc_t)
-	(unsigned long bus, unsigned long dev, unsigned idx, unsigned alt,
-     unsigned endp, void * buf, unsigned long buf_size);
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx,
+	 unsigned alt, unsigned endp, void * buf, unsigned long buf_size);
 
 struct genode_usb_rpc_callbacks {
 	genode_usb_alloc_peer_buffer_t alloc_fn;
@@ -99,13 +105,14 @@ void genode_usb_init(struct genode_env               * env,
  ** USB device lifetime management **
  ************************************/
 
-void genode_usb_announce_device(unsigned long vendor,
-                                unsigned long product,
-                                unsigned long cla,
-                                unsigned long bus,
-                                unsigned long dev);
+void genode_usb_announce_device(genode_usb_vendor_id_t  vendor,
+                                genode_usb_product_id_t product,
+                                genode_usb_class_num_t  cla,
+                                genode_usb_bus_num_t    bus,
+                                genode_usb_dev_num_t    dev);
 
-void genode_usb_discontinue_device(unsigned long bus, unsigned long dev);
+void genode_usb_discontinue_device(genode_usb_bus_num_t bus,
+                                   genode_usb_dev_num_t dev);
 
 
 /**********************************
@@ -201,8 +208,8 @@ struct genode_usb_request_callbacks {
 	genode_usb_req_flush_t      flush_fn;
 };
 
-genode_usb_session_handle_t genode_usb_session_by_bus_dev(unsigned long bus,
-                                                          unsigned long dev);
+genode_usb_session_handle_t genode_usb_session_by_bus_dev(genode_usb_bus_num_t bus,
+                                                          genode_usb_dev_num_t dev);
 
 int genode_usb_request_by_session(genode_usb_session_handle_t session_handle,
                                   struct genode_usb_request_callbacks * const c,
@@ -220,4 +227,3 @@ void genode_usb_notify_peers(void);
 #endif
 
 #endif /* _GENODE_C_API__USB_H_ */
-

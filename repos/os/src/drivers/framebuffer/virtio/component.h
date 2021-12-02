@@ -473,7 +473,7 @@ class Virtio_fb::Driver
 			Control_header cmd { Control_header::CMD_GET_DISPLAY_INFO };
 
 			auto display_info_cb = [&](Display_info const &info) {
-				for (size_t i = 0; i < _num_scanouts; ++i) {
+				for (uint32_t i = 0; i < _num_scanouts; ++i) {
 					if (info.modes[i].enabled) {
 						if (use_current_scanout && (_selected_scanout_id != i))
 							continue;

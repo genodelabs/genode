@@ -35,7 +35,7 @@ Ahci::Data::Data(Env &env)
 	Io_mem_session_capability iomem_cap = pci_device->io_mem(pci_device->phys_bar_to_virt(AHCI_BASE_ID));
 	iomem.construct(env.rm(), Io_mem_session_client(iomem_cap).dataspace());
 
-	uint16_t cmd = pci_device->config_read(PCI_CMD, ::Platform::Device::ACCESS_16BIT);
+	uint16_t cmd = (uint16_t)pci_device->config_read(PCI_CMD, ::Platform::Device::ACCESS_16BIT);
 	cmd |= 0x2; /* respond to memory space accesses */
 	cmd |= 0x4; /* enable bus master */
 	_config_write(PCI_CMD, cmd, ::Platform::Device::ACCESS_16BIT);

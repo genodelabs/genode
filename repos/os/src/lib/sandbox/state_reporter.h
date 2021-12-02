@@ -153,7 +153,7 @@ class Sandbox::State_reporter : public Report_update_trigger
 			 * the user intends to limit the rate of state reports. If so, we
 			 * use the value of 'delay_ms' as interval.
 			 */
-			uint64_t const period_ms           = max(1000U, _report_delay_ms);
+			uint64_t const period_ms           = max((uint64_t)1000, _report_delay_ms);
 			bool     const period_changed      = (_report_period_ms != period_ms);
 			bool     const report_periodically = _periodic_sampling_needed();
 

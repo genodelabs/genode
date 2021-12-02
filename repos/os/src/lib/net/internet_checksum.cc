@@ -44,7 +44,7 @@ uint16_t Net::internet_checksum(Packed_uint16 const *addr,
 		sum = (sum & 0xffff) + sum_rsh;
 
 	/* return one's complement */
-	return ~sum;
+	return (uint16_t)(~sum);
 }
 
 

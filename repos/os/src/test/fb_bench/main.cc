@@ -51,7 +51,7 @@ struct Test
 		memset(buf[1], ~0, fb_ds.size());
 	}
 
-	void conclusion(unsigned kib, uint64_t start_ms, uint64_t end_ms) {
+	void conclusion(size_t kib, uint64_t start_ms, uint64_t end_ms) {
 		log("throughput: ", kib / (end_ms - start_ms), " MiB/sec"); }
 
 	~Test() { log("\nTEST ", id, " finished\n"); }
@@ -65,13 +65,14 @@ struct Test
 		Test &operator = (Test const &);
 };
 
+
 struct Bytewise_ram_test : Test
 {
 	static constexpr char const *brief = "byte-wise memcpy from RAM to RAM";
 
 	Bytewise_ram_test(Env &env, int id) : Test(env, id, brief)
 	{
-		unsigned       kib      = 0;
+		size_t kib = 0;
 		uint64_t const start_ms = timer.elapsed_ms();
 		for (; timer.elapsed_ms() - start_ms < DURATION_MS;) {
 			memcpy(buf[0], buf[1], fb_ds.size());
@@ -81,13 +82,14 @@ struct Bytewise_ram_test : Test
 	}
 };
 
+
 struct Bytewise_fb_test : Test
 {
 	static constexpr char const *brief = "byte-wise memcpy from RAM to FB";
 
 	Bytewise_fb_test(Env &env, int id) : Test(env, id, brief)
 	{
-		unsigned       kib      = 0;
+		size_t kib = 0;
 		uint64_t const start_ms = timer.elapsed_ms();
 		for (unsigned i = 0; timer.elapsed_ms() - start_ms < DURATION_MS; i++) {
 			memcpy(fb_ds.local_addr<char>(), buf[i % 2], fb_ds.size());
@@ -105,7 +107,7 @@ struct Blit_test : Test
 	{
 		unsigned       kib      = 0;
 		uint64_t const start_ms = timer.elapsed_ms();
-		unsigned const w        = fb_mode.area.w() * fb_mode.bytes_per_pixel();
+		unsigned const w        = (unsigned)(fb_mode.area.w() * fb_mode.bytes_per_pixel());
 		unsigned const h        = fb_mode.area.h();
 		for (unsigned i = 0; timer.elapsed_ms() - start_ms < DURATION_MS; i++) {
 			blit(buf[i % 2], w, fb_ds.local_addr<char>(), w, w, h);
@@ -123,7 +125,7 @@ struct Unaligned_blit_test : Test
 	{
 		unsigned       kib      = 0;
 		uint64_t const start_ms = timer.elapsed_ms();
-		unsigned const w        = fb_mode.area.w() * fb_mode.bytes_per_pixel();
+		unsigned const w        = (unsigned)(fb_mode.area.w() * fb_mode.bytes_per_pixel());
 		unsigned const h        = fb_mode.area.h();
 		for (unsigned i = 0; timer.elapsed_ms() - start_ms < DURATION_MS; i++) {
 			blit(buf[i % 2] + 2, w, fb_ds.local_addr<char>() + 2, w, w - 2, h);

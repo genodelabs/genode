@@ -74,7 +74,7 @@ class Vfs::Inline_file_system : public Single_file_system
 					}
 
 					/* copy-out bytes from ROM dataspace */
-					file_size const num_bytes = end_offset - read_offset;
+					size_t const num_bytes = (size_t)(end_offset - read_offset);
 
 					memcpy(dst, src, num_bytes);
 
@@ -130,7 +130,7 @@ class Vfs::Inline_file_system : public Single_file_system
 			}
 
 			try {
-				_node.with_raw_content([&] (char const *base, Genode::size_t size) {
+				_node.with_raw_content([&] (char const *base, size_t size) {
 					*out_handle = new (alloc)
 						Inline_vfs_handle(*this, *this, alloc, base, size);
 				});
@@ -144,7 +144,7 @@ class Vfs::Inline_file_system : public Single_file_system
 		{
 			Stat_result const result = Single_file_system::stat(path, out);
 
-			_node.with_raw_content([&] (char const *, Genode::size_t size) {
+			_node.with_raw_content([&] (char const *, size_t size) {
 				out.size = size; });
 
 			return result;

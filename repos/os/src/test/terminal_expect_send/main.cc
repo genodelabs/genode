@@ -34,9 +34,9 @@ struct Main
 
 	void handle_read_avail()
 	{
-		unsigned num_bytes = terminal.read(read_buffer, sizeof(read_buffer));
+		size_t num_bytes = terminal.read(read_buffer, sizeof(read_buffer));
 
-		for (unsigned i = 0; i < num_bytes; i++) {
+		for (size_t i = 0; i < num_bytes; i++) {
 
 			/* copy over all characters other than line-end */
 			if (read_buffer[i] != '\n' &&

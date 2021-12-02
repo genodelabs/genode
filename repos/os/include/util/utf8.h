@@ -41,19 +41,19 @@ struct Genode::Codepoint
 			output.out_char(bits( 0, 7));
 		} else
 		if (value < 1<<11) {
-			output.out_char(bits( 6, 5) | 0xc0);
-			output.out_char(bits( 0, 6) | 0x80);
+			output.out_char(bits( 6, 5) | (char)0xc0);
+			output.out_char(bits( 0, 6) | (char)0x80);
 		} else
 		if (value < 1<<16) {
-			output.out_char(bits(12, 4) | 0xe0);
-			output.out_char(bits( 6, 6) | 0x80);
-			output.out_char(bits( 0, 6) | 0x80);
+			output.out_char(bits(12, 4) | (char)0xe0);
+			output.out_char(bits( 6, 6) | (char)0x80);
+			output.out_char(bits( 0, 6) | (char)0x80);
 		} else
 		if (value < 0x11<<16) {
-			output.out_char(bits(18, 3) | 0xf0);
-			output.out_char(bits(12, 6) | 0x80);
-			output.out_char(bits( 6, 6) | 0x80);
-			output.out_char(bits( 0, 6) | 0x80);
+			output.out_char(bits(18, 3) | (char)0xf0);
+			output.out_char(bits(12, 6) | (char)0x80);
+			output.out_char(bits( 6, 6) | (char)0x80);
+			output.out_char(bits( 0, 6) | (char)0x80);
 		}
 	}
 };

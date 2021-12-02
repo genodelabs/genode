@@ -20,7 +20,10 @@
 #include <timer_session/connection.h>
 
 /* Linux includes */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <SDL/SDL.h>
+#pragma GCC diagnostic pop
 
 /* local includes */
 #include "convert_keycode.h"

@@ -34,7 +34,7 @@ struct Chunk_level_0 : Chunk_index<5, Chunk_level_1>
 		if (used_size() > Chunk_level_0::SIZE) {
 			throw Index_out_of_range(); }
 
-		read(read_buf, used_size(), 0);
+		read(read_buf, (size_t)used_size(), 0);
 		Genode::print(out, "content (size=", used_size(), "): ");
 		Genode::print(out, "\"");
 		for (unsigned i = 0; i < used_size(); i++) {

@@ -13,21 +13,10 @@
  */
 
 /* Genode includes */
-#include "base/exception.h"
+#include <base/exception.h>
 #include <base/log.h>
-#include "base/signal.h"
-#include "util/string.h"
-
-/* libc includes */
-#include <errno.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <string.h>      /* strerror */
-#include <sys/inotify.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <base/signal.h>
+#include <util/string.h>
 
 /* local includes */
 #include "fd_set.h"
@@ -53,9 +42,6 @@ namespace Lx_fs
 	struct Libc_signal_thread;
 }
 
-#include <unistd.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
 
 /* do not leak internal function in to global namespace */
 namespace

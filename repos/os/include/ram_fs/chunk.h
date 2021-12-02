@@ -147,7 +147,7 @@ class File_system::Chunk : public Chunk_base
 
 			memcpy(&_data[local_offset], src, len);
 
-			_num_entries = max(_num_entries, local_offset + len);
+			_num_entries = max(_num_entries, (size_t)(local_offset + len));
 		}
 
 		void read(char *dst, size_t len, seek_off_t seek_offset) const
@@ -170,9 +170,9 @@ class File_system::Chunk : public Chunk_base
 			if (local_offset >= _num_entries)
 				return;
 
-			memset(&_data[local_offset], 0, _num_entries - local_offset);
+			memset(&_data[local_offset], 0, (size_t)(_num_entries - local_offset));
 
-			_num_entries = local_offset;
+			_num_entries = (size_t)local_offset;
 		}
 };
 
@@ -257,7 +257,7 @@ class File_system::Chunk_index : public Chunk_base
 		 */
 		unsigned _index_by_offset(seek_off_t offset) const
 		{
-			return (offset - base_offset()) / ENTRY_SIZE;
+			return (unsigned)((offset - base_offset()) / ENTRY_SIZE);
 		}
 
 		/**
@@ -295,11 +295,11 @@ class File_system::Chunk_index : public Chunk_base
 					seek_offset - obj.base_offset() - index*ENTRY_SIZE;
 
 				/* available capacity at 'entry' starting at seek offset */
-				seek_off_t const capacity = ENTRY_SIZE - local_seek_offset;
-				seek_off_t const curr_len = min(len, capacity);
+				size_t const capacity = ENTRY_SIZE - (size_t)local_seek_offset;
+				size_t const curr_len = min(len, capacity);
 
 				/* apply functor (read or write) to entry */
-				func(entry, data, curr_len, seek_offset);
+				func(entry, data, (size_t)curr_len, seek_offset);
 
 				/* advance to next entry */
 				len         -= curr_len;

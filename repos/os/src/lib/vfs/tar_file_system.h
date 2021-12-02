@@ -112,10 +112,10 @@ class Vfs::Tar_file_system : public File_system
 
 			file_size  size() const { return _long_name() ? _next()->size()  : _read(_size);  }
 			long long mtime() const { return _long_name() ? _next()->mtime() : _read(_mtime); }
-			unsigned    uid() const { return _long_name() ? _next()->uid()   : _read(_uid);   }
-			unsigned    gid() const { return _long_name() ? _next()->gid()   : _read(_gid);   }
-			unsigned   mode() const { return _long_name() ? _next()->mode()  : _read(_mode);  }
-			unsigned   type() const { return _long_name() ? _next()->type()  : _read(_type);  }
+			unsigned    uid() const { return _long_name() ? _next()->uid()   : (unsigned)_read(_uid); }
+			unsigned    gid() const { return _long_name() ? _next()->gid()   : (unsigned)_read(_gid); }
+			unsigned   mode() const { return _long_name() ? _next()->mode()  : (unsigned)_read(_mode); }
+			unsigned   type() const { return _long_name() ? _next()->type()  : (unsigned)_read(_type); }
 			void      *data() const { return _long_name() ? _next()->data()  : (void *)_data_begin(); }
 
 			Node_rwx rwx() const
@@ -186,7 +186,7 @@ class Vfs::Tar_file_system : public File_system
 
 			char const *data = (char *)_node->record->data() + seek();
 
-			memcpy(dst, data, count);
+			memcpy(dst, data, (size_t)count);
 
 			out_count = count;
 			return READ_OK;
@@ -205,7 +205,7 @@ class Vfs::Tar_file_system : public File_system
 
 			Dirent &dirent = *(Dirent*)dst;
 
-			file_offset const index = seek() / sizeof(Dirent);
+			unsigned const index = (unsigned)(seek() / sizeof(Dirent));
 
 			Node const *node_ptr = _node->lookup_child(index);
 
@@ -279,7 +279,7 @@ class Vfs::Tar_file_system : public File_system
 
 			file_size const count = min(buf_size, 100ULL);
 
-			memcpy(buf, record->linked_name(), count);
+			memcpy(buf, record->linked_name(), (size_t)count);
 
 			out_count = count;
 
@@ -461,7 +461,7 @@ class Vfs::Tar_file_system : public File_system
 	void _for_each_tar_record_do(Tar_record_action tar_record_action)
 	{
 		/* measure size of archive in blocks */
-		unsigned block_id = 0, block_cnt = _tar_size/Record::BLOCK_LEN;
+		unsigned block_id = 0, block_cnt = (unsigned)(_tar_size/Record::BLOCK_LEN);
 
 		/* scan metablocks of archive */
 		while (block_id < block_cnt) {
@@ -473,7 +473,7 @@ class Vfs::Tar_file_system : public File_system
 			file_size size = record->storage_size();
 
 			/* some datablocks */       /* one metablock */
-			block_id = block_id + (size / Record::BLOCK_LEN) + 1;
+			block_id = block_id + (unsigned)(size / Record::BLOCK_LEN) + 1;
 
 			/* round up */
 			if (size % Record::BLOCK_LEN != 0) block_id++;
@@ -580,10 +580,10 @@ class Vfs::Tar_file_system : public File_system
 
 			try {
 				Ram_dataspace_capability ds_cap =
-					_env.ram().alloc(record->size());
+					_env.ram().alloc((size_t)record->size());
 
 				void *local_addr = _env.rm().attach(ds_cap);
-				memcpy(local_addr, record->data(), record->size());
+				memcpy(local_addr, record->data(), (size_t)record->size());
 				_env.rm().detach(local_addr);
 
 				return ds_cap;

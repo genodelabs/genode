@@ -390,7 +390,9 @@ class Igd::Execlist_context : public Igd::Common_context_regs
 			{
 				typename Ring_buffer_start_value::access_t v = read<Ring_buffer_start_value>();
 				/* shift ring_buffer_start value accordingly */
-				typename Ring_buffer_start_value::access_t const addr = Ring_buffer_start_value::Starting_address::get(ring_buffer_start);
+				typename Ring_buffer_start_value::access_t const addr =
+					(uint32_t)Ring_buffer_start_value::Starting_address::get(ring_buffer_start);
+
 				Ring_buffer_start_value::Starting_address::set(v, addr);
 				write<Ring_buffer_start_value>(v);
 			}

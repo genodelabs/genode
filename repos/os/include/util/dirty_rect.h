@@ -50,7 +50,7 @@ class Genode::Dirty_rect
 		/**
 		 * Return the costs of adding a new to an existing rectangle
 		 */
-		static unsigned _costs(Rect const &existing, Rect const &added)
+		static size_t _costs(Rect const &existing, Rect const &added)
 		{
 			/*
 			 * If 'existing' is unused, using it will cost the area of the

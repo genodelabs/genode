@@ -93,8 +93,8 @@ class Usb_filter::Device_registry
 			}
 		}
 
-		static inline unsigned _get_value(Xml_node node, char const * const attr) {
-			return node.attribute_value<unsigned long>(attr, 0); }
+		static unsigned _get_value(Xml_node node, char const * const attr) {
+			return node.attribute_value<unsigned>(attr, 0U); }
 
 		static bool _config_has_device(Xml_node config, Entry const &entry)
 		{

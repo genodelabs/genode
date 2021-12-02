@@ -66,8 +66,7 @@ namespace Terminal {
 	{
 		unsigned char const _c;
 
-		template <typename T>
-		explicit Ascii(T c) : _c(c) { }
+		explicit Ascii(unsigned char c) : _c(c) { }
 
 		void print(Genode::Output &out) const
 		{
@@ -120,8 +119,7 @@ namespace Terminal {
 	{
 		unsigned char const _c;
 
-		template <typename T>
-		explicit Ecma(T c) : _c(c) { }
+		explicit Ecma(unsigned char c) : _c(c) { }
 
 		void print(Genode::Output &out) const
 		{

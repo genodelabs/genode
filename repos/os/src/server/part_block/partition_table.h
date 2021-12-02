@@ -128,7 +128,7 @@ struct Block::Partition_table : Interface
 					_data.block.update_jobs(*this);
 				}
 
-				void consume_read_result(Block_connection::Job &, off_t,
+				void consume_read_result(Block_connection::Job &, seek_off_t,
 				                         char const *src, size_t length)
 				{
 					_buffer = _data.alloc.alloc(length);
@@ -136,7 +136,8 @@ struct Block::Partition_table : Interface
 					_size = length;
 				}
 
-				void produce_write_content(Block_connection::Job &, off_t, char *, size_t) { }
+				void produce_write_content(Block_connection::Job &, seek_off_t,
+				                           char *, size_t) { }
 
 				void completed(Block_connection::Job &, bool success)
 				{

@@ -27,7 +27,7 @@ namespace Genode {
 	{
 		uint8_t sum { 0 };
 		for (uint8_t idx = 0; idx < size; idx++) {
-			sum += base[idx];
+			sum = (uint8_t)(sum + base[idx]);
 		}
 		return sum == 0;
 	}

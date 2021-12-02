@@ -216,7 +216,7 @@ class Audio_out::Stream
 		 *
 		 * \return  position in stream queue
 		 */
-		unsigned packet_position(Packet *packet) { return packet - &_buf[0]; }
+		unsigned packet_position(Packet *packet) { return (unsigned)(packet - &_buf[0]); }
 
 		/**
 		 * Check if stream queue is full/empty

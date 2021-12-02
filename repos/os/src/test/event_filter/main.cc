@@ -66,7 +66,7 @@ struct Test::Event_session : Rpc_object<Event::Session, Event_session>
 
 	void submit_batch(unsigned count)
 	{
-		size_t const max_events = _ds.size() / sizeof(Input::Event);
+		unsigned const max_events = (unsigned)(_ds.size() / sizeof(Input::Event));
 
 		if (count > max_events)
 			warning("number of events exceeds dataspace capacity");
@@ -300,7 +300,7 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	void _deep_filter_config(Reporter &reporter, Xml_node node)
 	{
-		unsigned const depth = node.attribute_value("depth", 0UL);
+		unsigned const depth = node.attribute_value("depth", 0U);
 
 		Reporter::Xml_generator xml(reporter, [&] () {
 			xml.node("input",  [&] () { xml.attribute("label", "usb"); });
@@ -308,7 +308,7 @@ struct Test::Main : Input_from_filter::Event_handler
 		});
 	}
 
-	unsigned const _num_steps = _config.xml().num_sub_nodes();
+	unsigned const _num_steps = (unsigned)_config.xml().num_sub_nodes();
 	unsigned       _curr_step = 0;
 
 	uint64_t _went_to_sleep_time = 0;

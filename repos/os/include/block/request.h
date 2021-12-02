@@ -23,6 +23,7 @@ namespace Block {
 	typedef Genode::uint64_t block_number_t;
 	typedef Genode::size_t   block_count_t;
 	typedef Genode::off_t    off_t;
+	typedef Genode::uint64_t seek_off_t;
 
 	struct Operation;
 	struct Request;

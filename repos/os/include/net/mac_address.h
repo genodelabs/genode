@@ -53,7 +53,7 @@ Genode::size_t Net::ascii_to(char const *s, Net::Mac_address &mac)
 		if (!is_digit(s[hi], HEX) || !is_digit(s[lo], HEX))
 			throw -1;
 
-		mac_str[i] = (digit(s[hi], HEX) << 4) | digit(s[lo], HEX);
+		mac_str[i] = (char)((digit(s[hi], HEX) << 4) | digit(s[lo], HEX));
 	}
 
 	Genode::memcpy(mac.addr, mac_str, MAC_SIZE);

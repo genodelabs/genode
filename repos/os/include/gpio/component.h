@@ -120,7 +120,7 @@ class Gpio::Root : public Genode::Root_component<Gpio::Session_component>
 
 		Session_component *_create_session(const char *args) override
 		{
-			unsigned pin =
+			unsigned pin = (unsigned)
 				Genode::Arg_string::find_arg(args, "gpio").ulong_value(0);
 			Genode::size_t ram_quota  =
 				Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);

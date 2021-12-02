@@ -89,7 +89,7 @@ class Pl050
 			{
 				while (empty())
 					if (_input_pending())
-						add(_reg_base[PL050_REG_DATA]);
+						add((Genode::uint8_t)_reg_base[PL050_REG_DATA]);
 
 				return get();
 			}

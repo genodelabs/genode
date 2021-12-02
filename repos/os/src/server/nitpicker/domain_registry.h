@@ -200,13 +200,13 @@ class Nitpicker::Domain_registry
 				return;
 			}
 
-			unsigned const layer = domain.attribute_value("layer", ~0UL);
+			unsigned const layer = (unsigned)domain.attribute_value("layer", ~0UL);
 
-			Point const offset(domain.attribute_value("xpos", 0L),
-			                   domain.attribute_value("ypos", 0L));
+			Point const offset((int)domain.attribute_value("xpos", 0L),
+			                   (int)domain.attribute_value("ypos", 0L));
 
-			Point const area(domain.attribute_value("width",  0L),
-			                 domain.attribute_value("height", 0L));
+			Point const area((int)domain.attribute_value("width",  0L),
+			                 (int)domain.attribute_value("height", 0L));
 
 			Color const color = domain.attribute_value("color", white());
 

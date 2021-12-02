@@ -208,7 +208,7 @@ class Virtio::Queue
 			auto const used_idx = _used->idx;
 			auto const avail_idx = _avail->idx;
 			if (avail_idx >= used_idx) {
-				return _queue_size - avail_idx + used_idx;
+				return (Genode::uint16_t)(_queue_size - avail_idx + used_idx);
 			} else {
 				return used_idx - avail_idx;
 			}
@@ -266,7 +266,7 @@ class Virtio::Queue
 			static_assert(!TRAITS::device_write_only);
 			static_assert(TRAITS::has_data_payload);
 
-			const int req_desc_count = 1 + (sizeof(header) + data_size) / _buffer_size;
+			Genode::size_t const req_desc_count = 1 + (sizeof(header) + data_size) / _buffer_size;
 
 			if (req_desc_count > _avail_capacity())
 				return false;
@@ -392,7 +392,7 @@ class Virtio::Queue
 			static_assert(!TRAITS::device_write_only);
 			static_assert(TRAITS::has_data_payload);
 
-			int req_desc_count = 1 + (sizeof(header) + data_size) / _buffer_size;
+			Genode::size_t const req_desc_count = 1 + (sizeof(header) + data_size) / _buffer_size;
 
 			if (req_desc_count > _avail_capacity())
 				return false;
@@ -417,7 +417,7 @@ class Virtio::Queue
 			if (data != nullptr && data_size > 0) {
 				len = Genode::min(_buffer_size - sizeof(header), data_size);
 				Genode::memcpy((char *)_buffer_local_addr(desc) + desc->len, data, len);
-				desc->len += len;
+				desc->len += (Genode::uint32_t)len;
 				len = data_size + sizeof(header) - desc->len;
 			}
 
@@ -433,11 +433,11 @@ class Virtio::Queue
 					desc = &_desc_table[avail_idx % _queue_size];
 					avail_idx++;
 
-					Genode::size_t write_len = Genode::min(_buffer_size, len);
+					Genode::size_t write_len = Genode::min((Genode::size_t)_buffer_size, len);
 					Genode::memcpy((char *)_buffer_local_addr(desc),
 					               data + data_offset, write_len);
 
-					desc->len = write_len;
+					desc->len = (Genode::uint32_t)write_len;
 					desc->flags = len > 0 ? Descriptor::Flags::NEXT : 0;
 					desc->next = len > 0 ? (avail_idx % _queue_size) : 0;
 

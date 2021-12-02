@@ -30,7 +30,7 @@ class Font_face
 
 		static unsigned char attr_mask() { return 3; }
 
-		unsigned char attr_bits() const { return _type & attr_mask(); }
+		unsigned char attr_bits() const { return (unsigned char)(_type & attr_mask()); }
 };
 
 #endif /* _TERMINAL__FONT_FACE_H_ */

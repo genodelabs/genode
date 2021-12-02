@@ -21,9 +21,6 @@
 #include <file_system/util.h>
 #include <os/path.h>
 
-/* libc includes */
-#include <stdio.h>
-
 /* local includes */
 #include "file.h"
 #include "lx_util.h"
@@ -51,7 +48,7 @@ class Lx_fs::Directory : public Node
 		Path       _path;
 		Allocator &_alloc;
 
-		unsigned long _inode(char const *path, bool create)
+		uint64_t _inode(char const *path, bool create)
 		{
 			int ret;
 
@@ -107,7 +104,7 @@ class Lx_fs::Directory : public Node
 			_path(path, "./"),
 			_alloc(alloc)
 		{
-			Node::name(basename(path));
+			Node::name(File_system::basename(path));
 		}
 
 		virtual ~Directory()
@@ -258,7 +255,7 @@ class Lx_fs::Directory : public Node
 				.rwx   = { .readable   = (st.st_mode & S_IRUSR) != 0,
 				           .writeable  = (st.st_mode & S_IWUSR) != 0,
 				           .executable = (st.st_mode & S_IXUSR) != 0},
-				.inode = inode(),
+				.inode = (unsigned long)inode(),
 				.modification_time = { st.st_mtime }
 			};
 		}

@@ -206,7 +206,7 @@ struct Test::Main : Log_message_handler
 		});
 	}
 
-	unsigned const _num_steps = _config.xml().num_sub_nodes();
+	unsigned const _num_steps = (unsigned)_config.xml().num_sub_nodes();
 	unsigned       _curr_step = 0;
 
 	Xml_node _curr_step_xml() const { return _config.xml().sub_node(_curr_step); }

@@ -187,7 +187,7 @@ void Component::construct(Genode::Env &env)
 		for (int j = 0; j < scr_w; j++) {
 			pixels[i*scr_w + j] = PT((3*i)/8, j, i*j/32);
 			if (CONFIG_ALPHA) {
-				alpha[i*scr_w + j] = (i*2) ^ (j*2);
+				alpha[i*scr_w + j] = (unsigned char)((i*2) ^ (j*2));
 				input_mask[i*scr_w + j] = alpha[i*scr_w + j] > 127;
 			}
 		}

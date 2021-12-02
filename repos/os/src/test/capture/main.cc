@@ -68,8 +68,8 @@ struct Test::Main
 
 	static Gui::Point _point_from_xml(Xml_node node)
 	{
-		return Gui::Point(node.attribute_value("xpos", 0L),
-		                  node.attribute_value("ypos", 0L));
+		return Gui::Point((int)node.attribute_value("xpos", 0L),
+		                  (int)node.attribute_value("ypos", 0L));
 	}
 
 	static Gui::Area _area_from_xml(Xml_node node, Gui::Area default_area)

@@ -212,7 +212,7 @@ struct Block::Mbr_partition_table : public Block::Partition_table
 			/* no partition table, use whole disc as partition 0 */
 			if (!mbr_valid && !ahdi_valid)
 				_part_list[0].construct(
-					Partition(0, block.info().block_count - 1));
+					Partition(0, (block_count_t)(block.info().block_count - 1)));
 
 			/* report the partitions */
 			if (reporter.enabled()) {

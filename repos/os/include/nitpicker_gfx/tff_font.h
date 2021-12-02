@@ -168,7 +168,7 @@ class Tff_font : public Text_painter::Font
 				throw Insufficient_glyph_buffer();
 
 			for (unsigned i = 0; i < NUM_GLYPHS; i++)
-				_vertical_metrics[i] = _tff.vertical_metrics(i);
+				_vertical_metrics[i] = _tff.vertical_metrics((unsigned char)i);
 		}
 
 		/**

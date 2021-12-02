@@ -304,7 +304,7 @@ struct Genode::Directory : Noncopyable, Interface
 			if (result != File_io_service::READ_OK)
 				throw Nonexistent_file();
 
-			return Path(Genode::Cstring(buf, out_count));
+			return Path(Genode::Cstring(buf, (size_t)out_count));
 		}
 
 		void unlink(Path const &rel_path)
@@ -471,7 +471,7 @@ class Genode::Readonly_file : public File
 			if (result != Vfs::File_io_service::READ_OK)
 				throw Truncated_during_read();
 
-			return out_count;
+			return (size_t)out_count;
 		}
 
 		/**
@@ -531,7 +531,7 @@ class Genode::File_content
 		File_content(Allocator &alloc, Directory const &dir, Path const &rel_path,
 		             Limit limit)
 		:
-			_buffer(alloc, min(dir.file_size(rel_path), (Vfs::file_size)limit.value))
+			_buffer(alloc, min((size_t)dir.file_size(rel_path), limit.value))
 		{
 			Readonly_file file {dir, rel_path};
 
@@ -738,8 +738,8 @@ class Genode::New_file : Noncopyable
 						break;
 
 					case Write_result::WRITE_OK:
-						out_count = min(remaining_bytes, out_count);
-						remaining_bytes -= out_count;
+						out_count = min((Vfs::file_size)remaining_bytes, out_count);
+						remaining_bytes -= (size_t)out_count;
 						src             += out_count;
 						_handle.advance_seek(out_count);
 						break;

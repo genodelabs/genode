@@ -31,7 +31,10 @@ class Log
 		unsigned short _buf_pos { 0 };
 		unsigned       _rom_pos { 0 };
 
-		unsigned log_size() const { return _rom_ds.size() - sizeof(_rom_pos); }
+		unsigned log_size() const
+		{
+			return (unsigned)(_rom_ds.size() - sizeof(_rom_pos));
+		}
 
 		char const * char_from_rom(unsigned offset = 0) const
 		{

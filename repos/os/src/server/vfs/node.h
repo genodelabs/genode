@@ -383,7 +383,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 			switch (_handle.fs().complete_read(&_handle, _payload_ptr.ptr,
 			                                   _packet.length(), out_count)) {
 			case Read_result::READ_OK:
-				_acknowledge_as_success(out_count);
+				_acknowledge_as_success((size_t)out_count);
 				break;
 
 			case Read_result::READ_ERR_IO:
@@ -404,8 +404,8 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		 *
 		 * \return number of consumed bytes
 		 */
-		file_size _execute_write(char const *src_ptr, size_t length,
-		                         seek_off_t write_pos)
+		size_t _execute_write(char const *src_ptr, size_t length,
+		                      seek_off_t write_pos)
 		{
 			file_size out_count = 0;
 			try {
@@ -430,7 +430,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 
 			_modified = true;
 
-			return out_count;
+			return (size_t)out_count;
 		}
 
 		void _execute_sync()
@@ -815,7 +815,7 @@ class Vfs_server::File : public Io_node
 
 			case Packet_descriptor::WRITE:
 				{
-					size_t       const count    = _packet.length() - _write_pos;
+					size_t       const count    = (size_t)(_packet.length() - _write_pos);
 					char const * const src_ptr  = _payload_ptr.ptr + _write_pos;
 					size_t       const consumed = _execute_write(src_ptr, count,
 					                                             _write_pos);
@@ -936,14 +936,14 @@ struct Vfs_server::Directory : Io_node
 		 *
 		 * \return  size of converted data in bytes
 		 */
-		file_size _convert_vfs_dirents_to_fs_dirents()
+		size_t _convert_vfs_dirents_to_fs_dirents()
 		{
 			static_assert(sizeof(Vfs_dirent) == sizeof(Fs_dirent));
 
-			file_offset const step   = sizeof(Fs_dirent);
-			file_offset const length = _packet.length();
+			size_t const step   = sizeof(Fs_dirent);
+			size_t const length = _packet.length();
 
-			file_size converted_length = 0;
+			size_t converted_length = 0;
 
 			for (file_offset offset = 0; offset + step <= length; offset += step) {
 
@@ -1058,7 +1058,7 @@ struct Vfs_server::Directory : Io_node
 				_execute_read();
 
 				if (_acked_packet_valid) {
-					file_size const length = _convert_vfs_dirents_to_fs_dirents();
+					size_t const length = _convert_vfs_dirents_to_fs_dirents();
 
 					/*
 					 * Overwrite the acknowledgement assigned by

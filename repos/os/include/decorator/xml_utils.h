@@ -31,8 +31,8 @@ namespace Decorator {
  */
 static inline Decorator::Point Decorator::point_attribute(Genode::Xml_node const &point)
 {
-	return Point(point.attribute_value("xpos", 0L),
-	             point.attribute_value("ypos", 0L)); }
+	return Point((int)point.attribute_value("xpos", 0L),
+	             (int)point.attribute_value("ypos", 0L)); }
 
 
 /**
@@ -40,8 +40,8 @@ static inline Decorator::Point Decorator::point_attribute(Genode::Xml_node const
  */
 static inline Decorator::Area Decorator::area_attribute(Genode::Xml_node const &area)
 {
-	return Area(area.attribute_value("width",  0UL),
-	            area.attribute_value("height", 0UL));
+	return Area(area.attribute_value("width",  0U),
+	            area.attribute_value("height", 0U));
 }
 
 

@@ -132,8 +132,8 @@ struct Test::Random : Test_base
 
 		_alternate_access = w && r;
 
-		_size_in_blocks   = _size   / _info.block_size;
-		_length_in_blocks = _length / _info.block_size;
+		_size_in_blocks   = _size / _info.block_size;
+		_length_in_blocks = (size_t)(_length / _info.block_size);
 	}
 
 	void _spawn_job() override

@@ -49,12 +49,12 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		 * array to track the allocations. The bit count is rounded up/aligned
 		 * to the natural machine word bit size.
 		 */
-		inline size_t _bits_cnt(size_t const size)
+		unsigned _bits_cnt(size_t const size)
 		{
-			size_t const bits = sizeof(addr_t)*8;
-			size_t const cnt = size / _block_size;
+			unsigned const bits = (unsigned)sizeof(addr_t)*8;
+			unsigned const cnt  = (unsigned)(size / _block_size);
 
-			size_t bits_aligned = cnt / bits;
+			unsigned bits_aligned = cnt / bits;
 			if (cnt % bits)
 				bits_aligned += 1;
 
@@ -82,7 +82,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			if (_base || _array)
 				return Alloc_error::DENIED;
 
-			size_t const bits_cnt = _bits_cnt(size);
+			unsigned const bits_cnt = _bits_cnt(size);
 
 			_base = base;
 

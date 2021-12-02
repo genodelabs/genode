@@ -157,9 +157,9 @@ Rtc::Timestamp Rtc::Driver::read_timestamp()
 
 void Rtc::Driver::write_timestamp(Timestamp ts)
 {
-	unsigned const ctl  = _cmos_read(RTC_CONTROL);
-	unsigned const freq = _cmos_read(RTC_FREQ_SELECT);
-	bool     const bcd  = (!(ctl & RTC_DM_BINARY) || RTC_ALWAYS_BCD);
+	uint8_t const ctl  = _cmos_read(RTC_CONTROL);
+	uint8_t const freq = _cmos_read(RTC_FREQ_SELECT);
+	bool    const bcd  = (!(ctl & RTC_DM_BINARY) || RTC_ALWAYS_BCD);
 
 	/* ignore century and hope for the best */
 	ts.year %= 100;
@@ -175,12 +175,12 @@ void Rtc::Driver::write_timestamp(Timestamp ts)
 	_cmos_write(RTC_CONTROL, ctl | RTC_SET);
 	_cmos_write(RTC_FREQ_SELECT, freq | RTC_DIV_RESET2);
 
-	_cmos_write(RTC_SECONDS,      sec);
-	_cmos_write(RTC_MINUTES,      min);
-	_cmos_write(RTC_HOURS,        hour);
-	_cmos_write(RTC_DAY_OF_MONTH, day);
-	_cmos_write(RTC_MONTH,        mon);
-	_cmos_write(RTC_YEAR,         year);
+	_cmos_write(RTC_SECONDS,      (uint8_t)sec);
+	_cmos_write(RTC_MINUTES,      (uint8_t)min);
+	_cmos_write(RTC_HOURS,        (uint8_t)hour);
+	_cmos_write(RTC_DAY_OF_MONTH, (uint8_t)day);
+	_cmos_write(RTC_MONTH,        (uint8_t)mon);
+	_cmos_write(RTC_YEAR,         (uint8_t)year);
 
 	/* enable updating */
 	_cmos_write(RTC_CONTROL, ctl);

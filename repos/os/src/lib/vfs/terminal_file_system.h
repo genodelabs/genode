@@ -88,9 +88,11 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 				char buf[buf_size];
 
-				unsigned const received = terminal.read(buf, buf_size);
+				using size_t = Genode::size_t;
 
-				for (unsigned i = 0; i < received; i++) {
+				size_t const received = terminal.read(buf, buf_size);
+
+				for (size_t i = 0; i < received; i++) {
 
 					char const c = buf[i];
 
@@ -159,7 +161,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			Write_result write(char const *src, file_size count,
 			                   file_size &out_count) override
 			{
-				out_count = _terminal.write(src, count);
+				out_count = _terminal.write(src, (size_t)count);
 				return WRITE_OK;
 			}
 		};
