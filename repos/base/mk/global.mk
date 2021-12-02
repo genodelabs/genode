@@ -143,8 +143,11 @@ CC_WARN += -Wno-error=implicit-fallthrough
 #
 # Additional warnings for C++
 #
-CC_CXX_WARN_STRICT ?= -Wextra -Weffc++ -Werror -Wsuggest-override
-CC_CXX_WARN        ?= $(CC_WARN) $(CC_CXX_WARN_STRICT)
+CC_CXX_WARN_STRICT_CONVERSION ?= -Wconversion
+CC_CXX_WARN_STRICT            ?= -Wextra -Weffc++ -Werror -Wsuggest-override \
+                                 $(CC_CXX_WARN_STRICT_CONVERSION)
+
+CC_CXX_WARN ?= $(CC_WARN) $(CC_CXX_WARN_STRICT)
 
 #
 # Additional warnings for Ada/SPARK
