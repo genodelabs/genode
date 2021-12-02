@@ -69,7 +69,7 @@ namespace Genode {
 	inline T align_natural(T value)
 	{
 		T mask = sizeof(long) - 1;
-		return (value + mask) & ~mask;
+		return (T)(value + mask) & (T)(~mask);
 	}
 }
 

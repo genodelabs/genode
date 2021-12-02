@@ -16,7 +16,10 @@
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include <l4/config.h>
 #include <l4/types.h>
 #include <l4/ipc.h>
@@ -28,6 +31,7 @@ namespace Okl4 { extern "C" {
 #include <l4/map.h>
 #include <l4/interrupt.h>
 #include <l4/security.h>
+
 #pragma GCC diagnostic pop
 #undef UTCB_SIZE
 } }

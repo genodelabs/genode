@@ -57,7 +57,7 @@ namespace Nova {
 		              : "+D" (status)
 		              :
 		              : "rcx", "r11", "memory");
-		return status;
+		return  (uint8_t)status;
 	}
 
 
@@ -72,7 +72,7 @@ namespace Nova {
 		              :
 		              : "rcx", "r11", "memory");
 		if (p2) *p2 = p1;
-		return status;
+		return  (uint8_t)status;
 	}
 
 
@@ -86,7 +86,7 @@ namespace Nova {
 		              : "+D" (status)
 		              : "S" (p1), "d" (p2)
 		              : "rcx", "r11", "memory");
-		return status;
+		return  (uint8_t)status;
 	}
 
 
@@ -100,7 +100,7 @@ namespace Nova {
 		              : "+D" (status)
 		              : "S" (p1), "d" (p2), "a" (p3)
 		              : "rcx", "r11", "memory");
-		return status;
+		return  (uint8_t)status;
 	}
 
 
@@ -115,7 +115,7 @@ namespace Nova {
 		              : "+D" (status)
 		              : "S" (p1), "d" (p2), "a" (p3), "r" (r8)
 		              : "rcx", "r11", "memory");
-		return status;
+		return  (uint8_t)status;
 	}
 
 
@@ -129,7 +129,7 @@ namespace Nova {
 		              : "+D" (status), "+S"(p1), "+d"(p2)
 		              : "a" (p3)
 		              : "rcx", "r11", "memory");
-		return status;
+		return  (uint8_t)status;
 	}
 
 
@@ -159,7 +159,7 @@ namespace Nova {
 	inline uint8_t create_pd(mword_t pd0, mword_t pd, Crd crd,
 	                         unsigned lower_limit, unsigned long upper_limit)
 	{
-		return syscall_3(NOVA_CREATE_PD, 0, pd0, pd, crd.value(),
+		return syscall_3(NOVA_CREATE_PD, 0, (unsigned)pd0, pd, crd.value(),
 		                 upper_limit << 32 | lower_limit);
 	}
 
@@ -202,7 +202,7 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t create_sc(mword_t sc, mword_t pd, mword_t ec, Qpd qpd)
 	{
-		return syscall_3(NOVA_CREATE_SC, 0, sc, pd, ec, qpd.value());
+		return syscall_3(NOVA_CREATE_SC, 0, (unsigned)sc, pd, ec, qpd.value());
 	}
 
 
@@ -229,14 +229,14 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t create_sm(mword_t sm, mword_t pd, mword_t cnt)
 	{
-		return syscall_3(NOVA_CREATE_SM, 0, sm, pd, cnt, 0);
+		return syscall_3(NOVA_CREATE_SM, 0, (unsigned)sm, pd, cnt, 0);
 	}
 
 
 	ALWAYS_INLINE
 	inline uint8_t create_si(mword_t si, mword_t pd, mword_t value, mword_t sm)
 	{
-		return syscall_3(NOVA_CREATE_SM, 0, si, pd, value, sm);
+		return syscall_3(NOVA_CREATE_SM, 0, (unsigned)si, pd, value, sm);
 	}
 
 

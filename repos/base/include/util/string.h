@@ -227,9 +227,9 @@ namespace Genode {
 	 * with gcc 10.
 	 */
 	 __attribute((optimize("no-tree-loop-distribute-patterns")))
-	inline void *memset(void *dst, int i, size_t size)
+	inline void *memset(void *dst, uint8_t i, size_t size)
 	{
-		while (size--) ((char *)dst)[size] = i;
+		while (size--) ((uint8_t *)dst)[size] = i;
 		return dst;
 	}
 
@@ -289,9 +289,9 @@ namespace Genode {
 	 * a base of 16 is used, otherwise a base of 10.
 	 */
 	template <typename T>
-	inline size_t ascii_to_unsigned(const char *s, T &result, unsigned base)
+	inline size_t ascii_to_unsigned(const char *s, T &result, uint8_t base)
 	{
-		T i = 0, value = 0;
+		size_t i = 0;
 
 		if (!*s) return i;
 
@@ -307,13 +307,19 @@ namespace Genode {
 		}
 
 		/* read number */
-		for (int d; ; s++, i++) {
+		T value = 0;
+		while (true) {
 
 			/* read digit, stop when hitting a non-digit character */
-			if ((d = digit(*s, base == 16)) < 0) break;
+			int const d = digit(*s, base == 16);
+			if (d < 0)
+				break;
 
 			/* append digit to integer value */
-			value = value*base + d;
+			uint8_t const valid_digit = (uint8_t)d;
+			value = (T)(value*base + valid_digit);
+
+			s++, i++;
 		}
 
 		result = value;
@@ -379,7 +385,7 @@ namespace Genode {
 	 */
 	inline size_t ascii_to(const char *s, unsigned long long &result)
 	{
-		return ascii_to_unsigned(s, result, 0);
+		return ascii_to_unsigned(s, result, 0ULL);
 	}
 
 
@@ -409,12 +415,12 @@ namespace Genode {
 
 		if (*s == '-' || *s == '+') { s++; i++; }
 
-		int j = 0;
 		unsigned long value = 0;
 
-		j = ascii_to_unsigned(s, value, 0);
+		size_t const j = ascii_to_unsigned(s, value, 0);
 
-		if (!j) return i;
+		if (!j)
+			return i;
 
 		result = sign*value;
 		return i + j;
@@ -434,7 +440,7 @@ namespace Genode {
 		unsigned long res = 0;
 
 		/* convert numeric part of string */
-		int i = ascii_to_unsigned(s, res, 0);
+		size_t i = ascii_to_unsigned(s, res, 0);
 
 		/* handle suffixes */
 		if (i > 0)
@@ -504,16 +510,17 @@ namespace Genode {
 	 * \param src   source string including the quotation marks ("...")
 	 * \param dst   destination buffer
 	 *
-	 * \return      number of characters or negative error code
+	 * \return      number of characters or ~0UL on error
 	 */
-	inline int unpack_string(const char *src, char *dst, int dst_len)
+	inline size_t unpack_string(const char *src, char *dst, size_t const dst_len)
 	{
 		/* check if quoted string */
-		if (*src != '"') return -1;
+		if ((*src != '"') || (dst_len < 1))
+			return ~0UL;
 
 		src++;
 
-		int i = 0;
+		size_t i = 0;
 		for (; *src && !end_of_quote(src - 1) && (i < dst_len - 1); i++) {
 
 			/* transform '\"' to '"' */

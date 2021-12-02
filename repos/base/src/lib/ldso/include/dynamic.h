@@ -249,7 +249,7 @@ class Linker::Dynamic
 			if (!h->buckets())
 				return nullptr;
 
-			unsigned long sym_index = h->buckets()[hash % h->nbuckets()];
+			unsigned sym_index = h->buckets()[hash % h->nbuckets()];
 
 			/* traverse hash chain */
 			for (; sym_index != STN_UNDEF; sym_index = h->chains()[sym_index])
@@ -285,7 +285,7 @@ class Linker::Dynamic
 		{
 			addr_t const reloc_base = _obj.reloc_base();
 
-			for (unsigned long i = 0; i < _hash_table->nchains(); i++)
+			for (unsigned i = 0; i < _hash_table->nchains(); i++)
 			{
 				Elf::Sym const *sym = symbol(i);
 				if (!sym)

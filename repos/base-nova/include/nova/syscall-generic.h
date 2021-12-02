@@ -184,7 +184,7 @@ namespace Nova {
 			if (!boot || !is_cpu_enabled(boot_cpu))
 				return false;
 
-			map_cpus[cpu_i++] = boot_cpu;
+			map_cpus[cpu_i++] = (uint8_t)boot_cpu;
 			if (cpu_i >= num_cpus)
 				return true;
 
@@ -204,7 +204,7 @@ namespace Nova {
 							      c->thread == thread))
 								continue;
 
-							map_cpus [cpu_i++] = i;
+							map_cpus[cpu_i++] = (uint8_t)i;
 							if (cpu_i >= num_cpus)
 								return true;
 						}
@@ -376,12 +376,12 @@ namespace Nova {
 				return sel_hotspot << 12;
 			}
 
-			mword_t addr()  const { return base() << BASE_SHIFT; }
-			mword_t base()  const { return _query<BASE_MASK, BASE_SHIFT>(); }
-			mword_t order() const { return _query<ORDER_MASK, ORDER_SHIFT>(); }
-			bool is_null()  const { return (_value & TYPE_MASK) == NULL_CRD_TYPE; }
-			uint8_t type()  const { return _query<TYPE_MASK, TYPE_SHIFT>(); }
-			uint8_t rights() const { return _query<RIGHTS_MASK, RIGHTS_SHIFT>(); }
+			mword_t addr()   const { return base() << BASE_SHIFT; }
+			mword_t base()   const { return _query<BASE_MASK, BASE_SHIFT>(); }
+			mword_t order()  const { return _query<ORDER_MASK, ORDER_SHIFT>(); }
+			bool is_null()   const { return (_value & TYPE_MASK) == NULL_CRD_TYPE; }
+			uint8_t type()   const { return (uint8_t)_query<TYPE_MASK, TYPE_SHIFT>(); }
+			uint8_t rights() const { return (uint8_t)_query<RIGHTS_MASK, RIGHTS_SHIFT>(); }
 	} __attribute__((packed));
 
 
@@ -606,71 +606,73 @@ namespace Nova {
 		};
 
 #ifdef __x86_64__
-		inline mword_t read_r8() { return r8; }
-		inline void write_r8(mword_t value) { r8 = value; }
-		inline mword_t read_r9() { return r9; }
-		inline void write_r9(mword_t value) { r9 = value; }
-		inline mword_t read_r10() { return r10; }
-		inline void write_r10(mword_t value) { r10 = value; }
-		inline mword_t read_r11() { return r11; }
-		inline void write_r11(mword_t value) { r11 = value; }
-		inline mword_t read_r12() { return r12; }
-		inline void write_r12(mword_t value) { r12 = value; }
-		inline mword_t read_r13() { return r13; }
-		inline void write_r13(mword_t value) { r13 = value; }
-		inline mword_t read_r14() { return r14; }
-		inline void write_r14(mword_t value) { r14 = value; }
-		inline mword_t read_r15() { return r15; }
-		inline void write_r15(mword_t value) { r15 = value; }
-		inline mword_t read_efer() { return efer; }
-		inline void write_efer(mword_t value) { efer = value; }
-		inline mword_t read_star() { return star; }
-		inline void write_star(mword_t value) { star = value; }
-		inline mword_t read_lstar() { return lstar; }
-		inline void write_lstar(mword_t value) { lstar = value; }
-		inline mword_t read_cstar() { return cstar; }
-		inline void write_cstar(mword_t value) { cstar = value; }
-		inline mword_t read_fmask() { return fmask; }
-		inline void write_fmask(mword_t value) { fmask = value; }
-		inline mword_t read_kernel_gs_base() { return kernel_gs_base; }
-		inline void write_kernel_gs_base(mword_t value) { kernel_gs_base = value; }
-		inline uint32_t read_tpr() { return tpr; }
-		inline void write_tpr(uint32_t value) { tpr = value; }
-		inline uint32_t read_tpr_threshold() { return tpr_threshold; }
-		inline void write_tpr_threshold(uint32_t value) { tpr_threshold = value; }
+		uint64_t read_r8()             const { return r8; }
+		uint64_t read_r9()             const { return r9; }
+		uint64_t read_r10()            const { return r10; }
+		uint64_t read_r11()            const { return r11; }
+		uint64_t read_r12()            const { return r12; }
+		uint64_t read_r13()            const { return r13; }
+		uint64_t read_r14()            const { return r14; }
+		uint64_t read_r15()            const { return r15; }
+		mword_t  read_efer()           const { return efer; }
+		uint64_t read_star()           const { return star; }
+		uint64_t read_lstar()          const { return lstar; }
+		uint64_t read_cstar()          const { return cstar; }
+		uint64_t read_fmask()          const { return fmask; }
+		uint64_t read_kernel_gs_base() const { return kernel_gs_base; }
+		uint32_t read_tpr()            const { return tpr; }
+		uint32_t read_tpr_threshold()  const { return tpr_threshold; }
+
+		void write_r8             (uint64_t value) { r8             = value; }
+		void write_r9             (uint64_t value) { r9             = value; }
+		void write_r10            (uint64_t value) { r10            = value; }
+		void write_r11            (uint64_t value) { r11            = value; }
+		void write_r12            (uint64_t value) { r12            = value; }
+		void write_r13            (uint64_t value) { r13            = value; }
+		void write_r14            (uint64_t value) { r14            = value; }
+		void write_r15            (uint64_t value) { r15            = value; }
+		void write_efer           (mword_t  value) { efer           = value; }
+		void write_star           (uint64_t value) { star           = value; }
+		void write_lstar          (uint64_t value) { lstar          = value; }
+		void write_cstar          (uint64_t value) { cstar          = value; }
+		void write_fmask          (uint64_t value) { fmask          = value; }
+		void write_kernel_gs_base (uint64_t value) { kernel_gs_base = value; }
+		void write_tpr            (uint32_t value) { tpr            = value; }
+		void write_tpr_threshold  (uint32_t value) { tpr_threshold  = value; }
 #else
-		inline mword_t read_r8() { return 0UL; }
-		inline void write_r8(mword_t) { }
-		inline mword_t read_r9() { return 0UL; }
-		inline void write_r9(mword_t) { }
-		inline mword_t read_r10() { return 0UL; }
-		inline void write_r10(mword_t) { }
-		inline mword_t read_r11() { return 0UL; }
-		inline void write_r11(mword_t) { }
-		inline mword_t read_r12() { return 0UL; }
-		inline void write_r12(mword_t) { }
-		inline mword_t read_r13() { return 0UL; }
-		inline void write_r13(mword_t) { }
-		inline mword_t read_r14() { return 0UL; }
-		inline void write_r14(mword_t) { }
-		inline mword_t read_r15() { return 0UL; }
-		inline void write_r15(mword_t) { }
-		inline mword_t read_efer() { return 0UL; }
-		inline void write_efer(mword_t) { }
-		inline mword_t read_star() { return 0UL; }
-		inline void write_star(mword_t) { }
-		inline mword_t read_lstar() { return 0UL; }
-		inline void write_lstar(mword_t) { }
-		inline mword_t read_cstar() { return 0UL; }
-		inline void write_cstar(mword_t) { }
-		inline mword_t read_fmask() { return 0UL; }
-		inline void write_fmask(mword_t) { }
-		inline mword_t read_kernel_gs_base() { return 0UL; }
-		inline void write_kernel_gs_base(mword_t) { }
-		inline uint32_t read_tpr() { return 0; }
-		inline void write_tpr(uint32_t) { }
-		inline uint32_t read_tpr_threshold() { return 0; }
-		inline void write_tpr_threshold(uint32_t) { }
+		uint64_t read_r8()             const { return 0; }
+		uint64_t read_r9()             const { return 0; }
+		uint64_t read_r10()            const { return 0; }
+		uint64_t read_r11()            const { return 0; }
+		uint64_t read_r12()            const { return 0; }
+		uint64_t read_r13()            const { return 0; }
+		uint64_t read_r14()            const { return 0; }
+		uint64_t read_r15()            const { return 0; }
+		mword_t  read_efer()           const { return 0; }
+		uint64_t read_star()           const { return 0; }
+		uint64_t read_lstar()          const { return 0; }
+		uint64_t read_cstar()          const { return 0; }
+		uint64_t read_fmask()          const { return 0; }
+		uint64_t read_kernel_gs_base() const { return 0; }
+		uint32_t read_tpr()            const { return 0; }
+		uint32_t read_tpr_threshold()  const { return 0; }
+
+		void write_r8             (uint64_t) { }
+		void write_r9             (uint64_t) { }
+		void write_r10            (uint64_t) { }
+		void write_r11            (uint64_t) { }
+		void write_r12            (uint64_t) { }
+		void write_r13            (uint64_t) { }
+		void write_r14            (uint64_t) { }
+		void write_r15            (uint64_t) { }
+		void write_efer           (mword_t)  { }
+		void write_star           (uint64_t) { }
+		void write_lstar          (uint64_t) { }
+		void write_cstar          (uint64_t) { }
+		void write_fmask          (uint64_t) { }
+		void write_kernel_gs_base (uint64_t) { }
+		void write_tpr            (uint32_t) { }
+		void write_tpr_threshold  (uint32_t) { }
 #endif
 
 		/**
@@ -689,7 +691,7 @@ namespace Nova {
 		/**
 		 * Return current number of message items on UTCB
 		 */
-		unsigned msg_items() { return items >> 16; }
+		unsigned msg_items() { return (unsigned)(items >> 16); }
 
 		/**
 		 * Append message-transfer item to message buffer
@@ -749,6 +751,12 @@ namespace Nova {
 		}
 
 		mword_t mtd_value() const { return static_cast<Mtd>(mtd).value(); }
+
+		/**
+		 * Return fault address and type of page-fault message
+		 */
+		mword_t pf_addr() const { return (mword_t)qual[1]; }
+		uint8_t pf_type() const { return (uint8_t)qual[0]; }
 	};
 
 	static_assert(sizeof(Utcb) == 4096, "Unexpected size of UTCB");

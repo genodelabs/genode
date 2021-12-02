@@ -28,7 +28,7 @@ using namespace Genode;
 
 unsigned Irq_session_component::_find_irq_number(const char * const args)
 {
-	return Arg_string::find_arg(args, "irq_number").long_value(-1);
+	return (unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1);
 }
 
 
@@ -64,7 +64,8 @@ Irq_session_component::~Irq_session_component()
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char * const args)
 :
-	_irq_args(args), _irq_number(Platform::irq(_irq_args.irq_number())),
+	_irq_args(args),
+	_irq_number((unsigned)Platform::irq(_irq_args.irq_number())),
 	_irq_alloc(irq_alloc), _kobj(), _is_msi(false), _address(0), _value(0)
 {
 	long const mmconf =

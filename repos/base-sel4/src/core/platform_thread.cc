@@ -222,7 +222,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
 	_utcb(utcb),
 	_pager_obj_sel(platform_specific().core_sel_alloc().alloc()),
 	_location(location),
-	_priority(Cpu_session::scale_priority(CONFIG_NUM_PRIORITIES, priority))
+	_priority((uint16_t)(Cpu_session::scale_priority(CONFIG_NUM_PRIORITIES, priority)))
 
 {
 	static_assert(CONFIG_NUM_PRIORITIES == 256, " unknown priority configuration");

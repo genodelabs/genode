@@ -359,7 +359,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
 	_sel_exc_base(Native_thread::INVALID_INDEX),
 	_location(platform_specific().sanitize(affinity)),
 	_features(0),
-	_priority(scale_priority(prio, name)),
+	_priority((uint8_t)(scale_priority(prio, name))),
 	_name(name)
 { }
 

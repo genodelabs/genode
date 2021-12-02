@@ -35,13 +35,13 @@ struct Genode::Formatted_tid
 
 		if (L4_IsLocalId(tid)) {
 
-			unsigned char const local_id = tid.local.X.local_id;
+			uint8_t const local_id = (uint8_t)tid.local.X.local_id;
 			print(out, "THREAD (local) ",
 			           Hex(local_id, Hex::OMIT_PREFIX, Hex::PAD), " "
 			           "(raw ", Hex(tid.raw, Hex::OMIT_PREFIX, Hex::PAD), ")");
 
 		} else if (L4_IsGlobalId(tid)) {
-			unsigned char const global_id = tid.global.X.thread_no;
+			uint8_t const global_id = (uint8_t)tid.global.X.thread_no;
 			print(out, "THREAD (global) ",
 			           Hex(global_id, Hex::OMIT_PREFIX, Hex::PAD), " "
 			           "(version ", Hex(tid.global.X.version, Hex::OMIT_PREFIX), ") ",

@@ -96,7 +96,7 @@ static Vmid_allocator &alloc()
 		allocator = unmanaged_singleton<Vmid_allocator>();
 
 		/* reserve VM ID 0 for the hypervisor */
-		unsigned id = allocator->alloc();
+		addr_t id = allocator->alloc();
 		assert (id == 0);
 	}
 	return *allocator;

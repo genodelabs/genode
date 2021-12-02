@@ -125,7 +125,7 @@ class Genode::Xml_generator
 				 *
 				 * \return  empty buffer spanning the gap
 				 */
-				Out_buffer insert_gap(unsigned const at, size_t const len)
+				Out_buffer insert_gap(size_t const at, size_t const len)
 				{
 					/* don't allow the insertion into non-populated part */
 					if (at > _used)
@@ -176,7 +176,7 @@ class Genode::Xml_generator
 				/**
 				 * Cursor position of next attribute to insert
 				 */
-				unsigned _attr_offset = 0;
+				size_t _attr_offset = 0;
 
 				/**
 				 * Called by sub node

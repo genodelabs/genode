@@ -101,7 +101,9 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 			copy_msg_to_utcb(snd_msg, *Thread::myself()->utcb());
 
-			switch (Kernel::send_request_msg(Capability_space::capid(dst), rcv_caps)) {
+			switch (Kernel::send_request_msg(Capability_space::capid(dst),
+			                                 (unsigned)rcv_caps)) {
+
 			case -1: throw Blocking_canceled();
 			case -2: throw Allocator::Out_of_memory();
 			default:
@@ -111,7 +113,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		},
 		[&] () { upgrade_capability_slab(); });
 
-	return Rpc_exception_code(utcb.exception_code());
+	return Rpc_exception_code((int)utcb.exception_code());
 }
 
 

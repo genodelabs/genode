@@ -121,8 +121,8 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		Inter_processor_work_list  _local_work_list {};
 
 		void     _arch_init();
-		unsigned _quota() const { return _timer.us_to_ticks(cpu_quota_us); }
-		unsigned _fill() const  { return _timer.us_to_ticks(cpu_fill_us); }
+		unsigned _quota() const { return (unsigned)_timer.us_to_ticks(cpu_quota_us); }
+		unsigned _fill() const  { return (unsigned)_timer.us_to_ticks(cpu_fill_us); }
 
 	public:
 

@@ -34,7 +34,7 @@ void Genode::Platform::_init_core_page_table_registry()
 	seL4_BootInfo const &bi = sel4_boot_info();
 
 	addr_t virt_addr = (addr_t)(&_prog_img_beg);
-	unsigned sel     = bi.userImagePaging.start;
+	unsigned sel     = (unsigned)bi.userImagePaging.start;
 
 	/* we don't know the physical location of some objects XXX */
 	enum { XXX_PHYS_UNKNOWN = ~0UL };

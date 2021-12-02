@@ -195,7 +195,7 @@ void Object_identity_reference::invalidate()
 Object_identity_reference::Object_identity_reference(Object_identity *oi,
                                                      Pd              &pd)
 :
-	_capid(pd.capid_alloc().alloc()), _identity(oi), _pd(pd), _in_utcbs(0)
+	_capid((capid_t)pd.capid_alloc().alloc()), _identity(oi), _pd(pd), _in_utcbs(0)
 {
 	if (_identity)
 		_identity->insert(this);

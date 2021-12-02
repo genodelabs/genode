@@ -58,8 +58,7 @@ extern unsigned _prog_img_beg, _prog_img_end;
  ** Support for core memory management **
  ****************************************/
 
-bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
-                                      unsigned size)
+bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t size)
 {
 	if (platform_in_construction)
 		Genode::warning("need physical memory, but Platform object not constructed yet");
@@ -72,8 +71,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
-                                        unsigned size)
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr, size_t size)
 {
 	if (!unmap_local(virt_addr, size / get_page_size()))
 		return false;
@@ -197,16 +195,16 @@ void Platform::_switch_to_core_cspace()
 	 *
 	 *   <<seL4: Error deriving cap for CNode Copy operation.>>
 	 */
-	for (unsigned sel = bi.untyped.start; sel < bi.untyped.end; sel++)
-		_core_cnode.move(initial_cspace, Cnode_index(sel));
+	for (addr_t sel = bi.untyped.start; sel < bi.untyped.end; sel++)
+		_core_cnode.move(initial_cspace, Cnode_index((uint32_t)sel));
 
 	/* move selectors of core image */
 	addr_t const modules_start = reinterpret_cast<addr_t>(&_boot_modules_binaries_begin);
 	addr_t const modules_end   = reinterpret_cast<addr_t>(&_boot_modules_binaries_end);
 	addr_t virt_addr = (addr_t)(&_prog_img_beg);
 
-	for (unsigned sel = bi.userImageFrames.start;
-	     sel < bi.userImageFrames.end;
+	for (unsigned sel = (unsigned)bi.userImageFrames.start;
+	     sel < (unsigned)bi.userImageFrames.end;
 	     sel++, virt_addr += get_page_size()) {
 
 		/* remove mapping to boot modules, no access required within core */
@@ -336,8 +334,8 @@ void Platform::_init_rom_modules()
 		 */
 		Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
 		for (unsigned i = 0; i < module_num_frames; i++)
-			_phys_cnode.move(initial_cspace, Cnode_index(module_frame_sel + i),
-			                                 Cnode_index(dst_frame + i));
+			_phys_cnode.move(initial_cspace, Cnode_index((uint32_t)module_frame_sel + i),
+			                                 Cnode_index((uint32_t)dst_frame + i));
 
 		log("boot module '", (char const *)header->name, "' "
 		    "(", header->size, " bytes)");

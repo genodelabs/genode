@@ -178,7 +178,7 @@ namespace {
 				if (!cmsg)
 					return 0;
 
-				return (cmsg->cmsg_len - CMSG_ALIGN(sizeof(cmsghdr)))/sizeof(int);
+				return (unsigned)((cmsg->cmsg_len - CMSG_ALIGN(sizeof(cmsghdr)))/sizeof(int));
 			}
 	};
 
@@ -352,7 +352,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 	extract_sds_from_message(0, rcv_msg, rcv_header, rcv_msgbuf);
 
-	return Rpc_exception_code(rcv_header.protocol_word);
+	return Rpc_exception_code((int)rcv_header.protocol_word);
 }
 
 

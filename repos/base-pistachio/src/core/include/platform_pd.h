@@ -54,7 +54,8 @@ class Genode::Platform_pd : public Address_space
 			PD_FIRST     = 0,
 			PD_MAX       = (1 << PD_BITS)      - 1,
 			THREAD_MAX   = (1 << THREAD_BITS)  - 1,
-			VERSION_MAX  = (1 << VERSION_BITS) - 1,
+			VERSION_MASK = (1 << VERSION_BITS) - 1,
+			VERSION_MAX  = VERSION_MASK,
 			PD_INVALID   = -1,
 		};
 
@@ -124,7 +125,7 @@ class Genode::Platform_pd : public Address_space
 			unsigned version  : VERSION_BITS;
 
 			Pd_alloc(bool r, bool f, unsigned v)
-			: reserved(r), free(f), version(v) { }
+			: reserved(r), free(f), version(v & VERSION_MASK) { }
 
 			/*
 			 * Start with version 2 to avoid being mistaken as local or

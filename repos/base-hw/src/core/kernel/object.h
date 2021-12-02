@@ -250,7 +250,7 @@ class Kernel::Core_object_identity : public Object_identity,
 
 		static capid_t syscall_create(Genode::Constructible<Core_object_identity<T>> & t,
 		                              capid_t const cap) {
-			return call(call_id_new_obj(), (Call_arg)&t, (Call_arg)cap); }
+			return (capid_t)call(call_id_new_obj(), (Call_arg)&t, (Call_arg)cap); }
 
 		static void syscall_destroy(Genode::Constructible<Core_object_identity<T>> & t) {
 			call(call_id_delete_obj(), (Call_arg)&t); }

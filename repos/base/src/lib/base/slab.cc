@@ -93,7 +93,7 @@ class Genode::Slab::Block
 		/**
 		 * Request number of available entries in block
 		 */
-		unsigned avail() const { return _avail; }
+		unsigned avail() const { return (unsigned)_avail; }
 
 		/**
 		 * Allocate slab entry from block
@@ -151,16 +151,20 @@ Slab::Entry *Slab::Block::_slab_entry(int idx)
 	 * address.
 	 */
 
-	size_t const entry_size = sizeof(Entry) + _slab._slab_size;
-	return (Entry *)&_data[align_addr(_slab._entries_per_block, log2(sizeof(addr_t)))
-	                            + entry_size*idx];
+	int    const alignment   = (int)log2(sizeof(addr_t));
+	size_t const slots_start = align_addr(_slab._entries_per_block, alignment);
+	size_t const entry_size  = sizeof(Entry) + _slab._slab_size;
+
+	return (Entry *)&_data[slots_start + entry_size*idx];
 }
 
 
 int Slab::Block::_slab_entry_idx(Slab::Entry *e)
 {
-	size_t const entry_size = sizeof(Entry) + _slab._slab_size;
-	return ((addr_t)e - (addr_t)_slab_entry(0))/entry_size;
+	size_t const slot_size   = sizeof(Entry) + _slab._slab_size;
+	addr_t const slot_offset = ((addr_t)e - (addr_t)_slab_entry(0));
+
+	return (int)(slot_offset / slot_size);
 }
 
 

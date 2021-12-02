@@ -307,7 +307,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	/* skip the SMP when ACPI parsing did not reveal the number of CPUs */
 	if (board.cpus <= 1)
-		return cpu_id;
+		return (unsigned)cpu_id;
 
 	Lapic lapic(board.core_mmio.virt_addr(Hw::Cpu_memory_map::lapic_phys_base()));
 
@@ -317,7 +317,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	if (!Cpu::IA32_apic_base::Bsp::get(lapic_msr))
 		/* AP - done */
-		return cpu_id;
+		return (unsigned)cpu_id;
 
 	/* BSP - we're primary CPU - wake now all other CPUs */
 
@@ -329,7 +329,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	/* debates ongoing whether the second SIPI is still required */
 	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12, Lapic::Icr_low::Delivery_mode::SIPI);
 
-	return cpu_id;
+	return (unsigned)cpu_id;
 }
 
 

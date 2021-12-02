@@ -46,6 +46,12 @@
  */
 #define size_t __SIZE_TYPE__
 
+/*
+ * Disable -Wconversion warnings caused by host headers
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 /* Linux includes */
 #include <sys/cdefs.h>   /* include first to avoid double definition of '__always_inline' */
 #include <linux/futex.h>
@@ -60,6 +66,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 #undef size_t
 
@@ -92,32 +99,32 @@ extern "C" int  lx_clone(int (*fn)(), void *child_stack, int flags);
  *****************************************/
 
 
-inline pid_t lx_getpid() { return lx_syscall(SYS_getpid); }
-inline pid_t lx_gettid() { return lx_syscall(SYS_gettid); }
-inline uid_t lx_getuid() { return lx_syscall(SYS_getuid); }
+inline pid_t lx_getpid() { return (pid_t)lx_syscall(SYS_getpid); }
+inline pid_t lx_gettid() { return (pid_t)lx_syscall(SYS_gettid); }
+inline uid_t lx_getuid() { return (uid_t)lx_syscall(SYS_getuid); }
 
 
 inline int lx_write(int fd, const void *buf, Genode::size_t count)
 {
-	return lx_syscall(SYS_write, fd, buf, count);
+	return (int)lx_syscall(SYS_write, fd, buf, count);
 }
 
 
 inline int lx_close(int fd)
 {
-	return lx_syscall(SYS_close, fd);
+	return (int)lx_syscall(SYS_close, fd);
 }
 
 
 inline int lx_dup(int fd)
 {
-	return lx_syscall(SYS_dup, fd);
+	return (int)lx_syscall(SYS_dup, fd);
 }
 
 
 inline int lx_dup2(int fd, int to)
 {
-	return lx_syscall(SYS_dup3, fd, to, 0);
+	return (int)lx_syscall(SYS_dup3, fd, to, 0);
 }
 
 
@@ -192,19 +199,19 @@ inline int lx_recvmsg(Lx_sd sockfd, struct msghdr *msg, int flags)
 
 inline int lx_socketpair(int domain, int type, int protocol, int sd[2])
 {
-	return lx_syscall(SYS_socketpair, domain, type, protocol, (unsigned long)sd);
+	return (int)lx_syscall(SYS_socketpair, domain, type, protocol, (unsigned long)sd);
 }
 
 
 inline int lx_sendmsg(Lx_sd sockfd, const struct msghdr *msg, int flags)
 {
-	return lx_syscall(SYS_sendmsg, sockfd.value, msg, flags);
+	return (int)lx_syscall(SYS_sendmsg, sockfd.value, msg, flags);
 }
 
 
 inline int lx_recvmsg(Lx_sd sockfd, struct msghdr *msg, int flags)
 {
-	return lx_syscall(SYS_recvmsg, sockfd.value, msg, flags);
+	return (int)lx_syscall(SYS_recvmsg, sockfd.value, msg, flags);
 }
 
 /* TODO add missing socket system calls */
@@ -236,7 +243,7 @@ struct Lx_socketpair
 
 inline Lx_epoll_sd lx_epoll_create()
 {
-	int const ret = lx_syscall(SYS_epoll_create1, 0);
+	int const ret = (int)lx_syscall(SYS_epoll_create1, 0);
 	if (ret < 0) {
 		/*
 		 * No recovery possible, just leave a diagnostic message and block
@@ -251,14 +258,14 @@ inline Lx_epoll_sd lx_epoll_create()
 
 inline int lx_epoll_ctl(Lx_epoll_sd epoll, int op, Lx_sd fd, epoll_event *event)
 {
-	return lx_syscall(SYS_epoll_ctl, epoll.value, op, fd.value, event);
+	return (int)lx_syscall(SYS_epoll_ctl, epoll.value, op, fd.value, event);
 }
 
 
 inline int lx_epoll_wait(Lx_epoll_sd epoll, struct epoll_event *events,
                          int maxevents, int timeout)
 {
-	return lx_syscall(SYS_epoll_pwait, epoll.value, events, maxevents, timeout, 0);
+	return (int)lx_syscall(SYS_epoll_pwait, epoll.value, events, maxevents, timeout, 0);
 }
 
 
@@ -298,7 +305,7 @@ inline void *lx_mmap(void *start, Genode::size_t length, int prot, int flags,
 
 inline int lx_munmap(void *addr, Genode::size_t length)
 {
-	return lx_syscall(SYS_munmap, addr, length);
+	return  (int)lx_syscall(SYS_munmap, addr, length);
 }
 
 
@@ -376,7 +383,7 @@ inline int lx_sigaction(int signum, void (*handler)(int), bool altstack)
 
 	lx_sigemptyset(&act.mask);
 
-	return lx_syscall(SYS_rt_sigaction, signum, &act, 0UL, LX_NSIG/8);
+	return (int)lx_syscall(SYS_rt_sigaction, signum, &act, 0UL, LX_NSIG/8);
 }
 
 
@@ -388,7 +395,7 @@ inline int lx_sigaction(int signum, void (*handler)(int), bool altstack)
  */
 inline int lx_tgkill(int pid, int tid, int signal)
 {
-	return lx_syscall(SYS_tgkill, pid, tid, signal);
+	return (int)lx_syscall(SYS_tgkill, pid, tid, signal);
 }
 
 
@@ -399,7 +406,7 @@ inline int lx_sigaltstack(void *signal_stack, Genode::size_t stack_size)
 {
 	stack_t stack { signal_stack, 0, stack_size };
 
-	return lx_syscall(SYS_sigaltstack, &stack, nullptr);
+	return (int)lx_syscall(SYS_sigaltstack, &stack, nullptr);
 }
 
 
@@ -408,7 +415,7 @@ inline int lx_create_thread(void (*entry)(), void *stack)
 	int flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND
 	          | CLONE_THREAD | CLONE_SYSVSEM;
 
-	return lx_clone((int (*)())entry, stack, flags);
+	return (int)lx_clone((int (*)())entry, stack, flags);
 }
 
 
@@ -420,7 +427,7 @@ struct timespec;
 
 inline int lx_nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	return lx_syscall(SYS_nanosleep, req, rem);
+	return (int)lx_syscall(SYS_nanosleep, req, rem);
 }
 
 
@@ -431,7 +438,7 @@ enum {
 
 inline int lx_futex(const int *uaddr, int op, int val)
 {
-	return lx_syscall(SYS_futex, uaddr, op, val, 0, 0, 0);
+	return (int)lx_syscall(SYS_futex, uaddr, op, val, 0, 0, 0);
 }
 
 
@@ -523,13 +530,13 @@ inline bool lx_sigsetmask(int signum, bool state)
 inline int lx_prctl(int option, unsigned long arg2, unsigned long arg3,
                                 unsigned long arg4, unsigned long arg5)
 {
-	return lx_syscall(SYS_prctl, option, arg2, arg3, arg4, arg5);
+	return (int)lx_syscall(SYS_prctl, option, arg2, arg3, arg4, arg5);
 }
 
 
 inline int lx_seccomp(int option, int flag, void* program)
 {
-	return lx_syscall(SYS_seccomp, option, flag, program);
+	return (int)lx_syscall(SYS_seccomp, option, flag, program);
 }
 
 #endif /* _LIB__SYSCALL__LINUX_SYSCALLS_H_ */

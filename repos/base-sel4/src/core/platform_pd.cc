@@ -148,7 +148,7 @@ Cap_sel Platform_pd::alloc_sel()
 {
 	Mutex::Guard guard(_sel_alloc_mutex);
 
-	return Cap_sel(_sel_alloc.alloc());
+	return Cap_sel((uint32_t)_sel_alloc.alloc());
 }
 
 
@@ -191,7 +191,7 @@ void Platform_pd::flush(addr_t virt_addr, size_t size, Core_local_addr)
 
 Platform_pd::Platform_pd(Allocator &md_alloc, char const *label)
 :
-	_id(pd_id_alloc().alloc()),
+	_id((uint32_t)pd_id_alloc().alloc()),
 	_page_table_registry(md_alloc),
 	_page_directory_sel(platform_specific().core_sel_alloc().alloc()),
 	_page_directory(_init_page_directory()),

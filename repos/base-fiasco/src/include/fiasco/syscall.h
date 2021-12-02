@@ -15,6 +15,10 @@
 #define _INCLUDE__FIASCO__SYSCALL_H_
 
 namespace Fiasco {
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include <l4/sys/types.h>
 #include <l4/sys/kdebug.h>
 #include <l4/sys/ipc.h>
@@ -24,6 +28,8 @@ namespace Fiasco {
 #include <l4/sys/ktrace.h>
 #include <l4/sys/syscalls.h>
 #include <l4/sigma0/sigma0.h>
+
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 }
 
 #endif /* _INCLUDE__FIASCO__SYSCALL_H_ */

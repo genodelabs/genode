@@ -40,7 +40,7 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 	size_t align_log2 = log2(ds.size());
 	for (; align_log2 >= get_page_size_log2(); align_log2--) {
 
-		platform().region_alloc().alloc_aligned(size, align_log2).with_result(
+		platform().region_alloc().alloc_aligned(size, (unsigned)align_log2).with_result(
 			[&] (void *ptr) { virt_addr = ptr; },
 			[&] (Allocator::Alloc_error) { });
 

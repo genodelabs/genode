@@ -67,7 +67,7 @@ struct Genode::Untyped_memory
 	                                      addr_t size_log2 = get_page_size_log2())
 	{
 		unsigned const upper_bits = top_idx << Core_cspace::NUM_PHYS_SEL_LOG2;
-		unsigned const lower_bits = phys_addr >> size_log2;
+		unsigned const lower_bits = (unsigned)(phys_addr >> size_log2);
 
 		return Cap_sel(upper_bits | lower_bits);
 	}
@@ -141,7 +141,8 @@ struct Genode::Untyped_memory
 		for (addr_t phys = phys_addr; phys < phys_addr + phys_size;
 		     phys += get_page_size()) {
 
-			int const index = phys >> get_page_size_log2();
+			unsigned const index = (unsigned)(phys >> get_page_size_log2());
+
 			/**
 			 * Without the revoke, one gets sporadically
 			 *  Untyped Retype: Insufficient memory ( xx bytes needed, x bytes

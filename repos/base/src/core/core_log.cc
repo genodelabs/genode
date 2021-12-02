@@ -29,7 +29,7 @@ static void out_mem(char const c)
 		{
 			pos.value       = cur_pos;
 			data[cur_pos++] = c;
-			return cur_pos % (range.size - sizeof(Log_memory::Header));
+			return (unsigned)(cur_pos % (range.size - sizeof(Log_memory::Header)));
 		}
 	} __attribute__((packed)) * mem = reinterpret_cast<Log_memory *>(range.start);
 

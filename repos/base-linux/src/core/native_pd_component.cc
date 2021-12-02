@@ -190,7 +190,7 @@ Native_pd_component::Native_pd_component(Pd_session_component &pd, const char *)
 Native_pd_component::~Native_pd_component()
 {
 	if (_pid)
-		lx_kill(_pid, 9);
+		lx_kill((int)_pid, 9);
 
 	_pd_session._ep.dissolve(this);
 }

@@ -32,9 +32,9 @@ class Msg_header
 	private:
 
 		/* kernel-defined message header */
-		l4_fpage_t   rcv_fpage; /* unused */
-		l4_msgdope_t size_dope;
-		l4_msgdope_t send_dope;
+		l4_fpage_t   _rcv_fpage; /* unused */
+		l4_msgdope_t _size_dope;
+		l4_msgdope_t _send_dope;
 
 	public:
 
@@ -52,6 +52,8 @@ class Msg_header
 
 		enum { MAX_CAPS_PER_MSG = Msgbuf_base::MAX_CAPS_PER_MSG };
 
+		enum { SIZE_DOPE_MASK = 0x3ffff };
+
 		l4_threadid_t _cap_tid        [MAX_CAPS_PER_MSG];
 		unsigned long _cap_local_name [MAX_CAPS_PER_MSG];
 
@@ -68,7 +70,7 @@ class Msg_header
 
 	public:
 
-		void *msg_start() { return &rcv_fpage; }
+		void *msg_start() { return &_rcv_fpage; }
 
 		/**
 		 * Load header fields according to send-message buffer
@@ -79,7 +81,8 @@ class Msg_header
 			num_caps = min((unsigned)MAX_CAPS_PER_MSG, snd_msg.used_caps());
 
 			size_t const snd_words = snd_msg.data_size()/sizeof(l4_umword_t);
-			send_dope = L4_IPC_DOPE(_num_msg_words(snd_words), 0);
+
+			_send_dope = L4_IPC_DOPE(_num_msg_words(snd_words) & SIZE_DOPE_MASK, 0);
 
 			/* reset _cap_tid and _cap_local_name */
 			for (unsigned i = 0; i < MAX_CAPS_PER_MSG; i++) {
@@ -107,7 +110,7 @@ class Msg_header
 		{
 			size_t const rcv_max_words = rcv_msg.capacity()/sizeof(l4_umword_t);
 
-			size_dope = L4_IPC_DOPE(_num_msg_words(rcv_max_words), 0);
+			_size_dope = L4_IPC_DOPE(_num_msg_words(rcv_max_words) & SIZE_DOPE_MASK, 0);
 		}
 
 		/**

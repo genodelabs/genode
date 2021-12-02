@@ -37,7 +37,7 @@ Range_allocator::Alloc_result
 Mapped_mem_allocator::alloc_aligned(size_t size, unsigned align, Range range)
 {
 	size_t page_rounded_size = align_addr(size, get_page_size_log2());
-	align = max((size_t)align, get_page_size_log2());
+	align = max((int)align, (int)get_page_size_log2());
 
 	/* allocate physical pages */
 	return _phys_alloc->alloc_aligned(page_rounded_size, align, range)

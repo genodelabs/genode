@@ -19,7 +19,7 @@ long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
                                  Map_attr        const map_attr,
                                  bool            const ept)
 {
-	seL4_X86_Page          const service = _idx_to_sel(idx.value());
+	seL4_X86_Page          const service = _idx_to_sel(idx.value()).value();
 	seL4_X86_PageDirectory const pd      = _pd_sel.value();
 	seL4_CapRights_t       const rights  = map_attr.writeable ? seL4_ReadWrite
 	                                                          : seL4_CanRead;
@@ -40,7 +40,7 @@ long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
 
 long Genode::Vm_space::_unmap_page(Genode::Cap_sel const &idx)
 {
-	seL4_X86_Page const service = _idx_to_sel(idx.value());
+	seL4_X86_Page const service = _idx_to_sel(idx.value()).value();
 	return seL4_X86_Page_Unmap(service);
 }
 

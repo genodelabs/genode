@@ -27,10 +27,10 @@
 #include <base/internal/native_thread.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/stack.h>
+#include <base/internal/sel4.h>
 
 /* seL4 includes */
 #include <sel4_native_vcpu/sel4_native_vcpu.h>
-#include <sel4/sel4.h>
 #include <sel4/arch/vmenter.h>
 
 using namespace Genode;
@@ -222,7 +222,7 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 				if (res != SEL4_VMENTER_RESULT_FAULT)
 					state.exit_reason = VMEXIT_RECALL;
 				else
-					state.exit_reason = seL4_GetMR(SEL4_VMENTER_FAULT_REASON_MR);
+					state.exit_reason = (unsigned)seL4_GetMR(SEL4_VMENTER_FAULT_REASON_MR);
 
 				_read_sel4_state(service, state);
 
@@ -360,7 +360,7 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 		 * Convert to AMD (and Genode) format comprising 16 bits.
 		 */
 		uint16_t _convert_ar_16(addr_t value) {
-			return ((value & 0x1f000) >> 4) | (value & 0xff); }
+			return (uint16_t)(((value & 0x1f000) >> 4) | (value & 0xff)); }
 
 		void _write_sel4_state(seL4_X86_VCPU const service, Vcpu_state &state)
 		{
@@ -455,7 +455,7 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 				else
 					ctrl_0 &= ~Vmcs::IRQ_WINDOW;
 
-				state.ctrl_primary.charge(ctrl_0);
+				state.ctrl_primary.charge((uint32_t)ctrl_0);
 			}
 
 			if (state.inj_error.charged())
@@ -554,16 +554,16 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 			}
 
 			if (state.pdpte_0.charged())
-				_write_vmcs(service, Vmcs::PDPTE_0, state.pdpte_0.value());
+				_write_vmcs(service, Vmcs::PDPTE_0, (addr_t)state.pdpte_0.value());
 
 			if (state.pdpte_1.charged())
-				_write_vmcs(service, Vmcs::PDPTE_1, state.pdpte_1.value());
+				_write_vmcs(service, Vmcs::PDPTE_1, (addr_t)state.pdpte_1.value());
 
 			if (state.pdpte_2.charged())
-				_write_vmcs(service, Vmcs::PDPTE_2, state.pdpte_2.value());
+				_write_vmcs(service, Vmcs::PDPTE_2, (addr_t)state.pdpte_2.value());
 
 			if (state.pdpte_3.charged())
-				_write_vmcs(service, Vmcs::PDPTE_3, state.pdpte_3.value());
+				_write_vmcs(service, Vmcs::PDPTE_3, (addr_t)state.pdpte_3.value());
 
 			if (state.sysenter_cs.charged())
 				_write_vmcs(service, Vmcs::SYSENTER_CS, state.sysenter_cs.value());
@@ -603,15 +603,15 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 		void _read_sel4_state(seL4_X86_VCPU const service, Vcpu_state &state)
 		{
 			state.ip.charge(seL4_GetMR(SEL4_VMENTER_CALL_EIP_MR));
-			state.ctrl_primary.charge(seL4_GetMR(SEL4_VMENTER_CALL_CONTROL_PPC_MR));
+			state.ctrl_primary.charge((uint32_t)seL4_GetMR(SEL4_VMENTER_CALL_CONTROL_PPC_MR));
 
-			state.ip_len.charge(seL4_GetMR(SEL4_VMENTER_FAULT_INSTRUCTION_LEN_MR));
-			state.qual_primary.charge(seL4_GetMR(SEL4_VMENTER_FAULT_QUALIFICATION_MR));
+			state.ip_len        .charge(seL4_GetMR(SEL4_VMENTER_FAULT_INSTRUCTION_LEN_MR));
+			state.qual_primary  .charge(seL4_GetMR(SEL4_VMENTER_FAULT_QUALIFICATION_MR));
 			state.qual_secondary.charge(seL4_GetMR(SEL4_VMENTER_FAULT_GUEST_PHYSICAL_MR));
 
-			state.flags.charge(seL4_GetMR(SEL4_VMENTER_FAULT_RFLAGS_MR));
-			state.intr_state.charge(seL4_GetMR(SEL4_VMENTER_FAULT_GUEST_INT_MR));
-			state.cr3.charge(seL4_GetMR(SEL4_VMENTER_FAULT_CR3_MR));
+			state.flags     .charge(seL4_GetMR(SEL4_VMENTER_FAULT_RFLAGS_MR));
+			state.intr_state.charge((uint32_t)seL4_GetMR(SEL4_VMENTER_FAULT_GUEST_INT_MR));
+			state.cr3       .charge(seL4_GetMR(SEL4_VMENTER_FAULT_CR3_MR));
 
 			state.ax.charge(seL4_GetMR(SEL4_VMENTER_FAULT_EAX));
 			state.bx.charge(seL4_GetMR(SEL4_VMENTER_FAULT_EBX));
@@ -629,13 +629,13 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 			_recent_gpr.edi = state.di.value();
 			_recent_gpr.ebp = state.bp.value();
 
-			state.sp.charge(_read_vmcs(service, Vmcs::RSP));
+			state.sp .charge(_read_vmcs(service, Vmcs::RSP));
 			state.dr7.charge(_read_vmcs(service, Vmcs::DR7));
 
 			/* r8 - r15 not supported on seL4 */
 
 			{
-				addr_t const cr0 = _read_vmcs(service, Vmcs::CR0);
+				addr_t const cr0        = _read_vmcs(service, Vmcs::CR0);
 				addr_t const cr0_shadow = _read_vmcs(service, Vmcs::CR0_SHADOW);
 				state.cr0.charge((cr0 & ~cr0_mask) | (cr0_shadow & cr0_mask));
 
@@ -647,7 +647,7 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 			state.cr2.charge(state.cr2.value());
 
 			{
-				addr_t const cr4 = _read_vmcs(service, Vmcs::CR4);
+				addr_t const cr4        = _read_vmcs(service, Vmcs::CR4);
 				addr_t const cr4_shadow = _read_vmcs(service, Vmcs::CR4_SHADOW);
 				state.cr4.charge((cr4 & ~cr4_mask) | (cr4_shadow & cr4_mask));
 
@@ -715,15 +715,15 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 			if (state.exit_reason == VMEXIT_INVALID ||
 			    state.exit_reason == VMEXIT_RECALL)
 			{
-				state.inj_info.charge(_read_vmcs(service, Vmcs::INTR_INFO));
-				state.inj_error.charge(_read_vmcs(service, Vmcs::INTR_ERROR));
+				state.inj_info .charge((uint32_t)_read_vmcs(service, Vmcs::INTR_INFO));
+				state.inj_error.charge((uint32_t)_read_vmcs(service, Vmcs::INTR_ERROR));
 			} else {
-				state.inj_info.charge(_read_vmcs(service, Vmcs::IDT_INFO));
-				state.inj_error.charge(_read_vmcs(service, Vmcs::IDT_ERROR));
+				state.inj_info .charge((uint32_t)_read_vmcs(service, Vmcs::IDT_INFO));
+				state.inj_error.charge((uint32_t)_read_vmcs(service, Vmcs::IDT_ERROR));
 			}
 
-			state.intr_state.charge(_read_vmcs(service, Vmcs::STATE_INTR));
-			state.actv_state.charge(_read_vmcs(service, Vmcs::STATE_ACTV));
+			state.intr_state.charge((uint32_t)_read_vmcs(service, Vmcs::STATE_INTR));
+			state.actv_state.charge((uint32_t)_read_vmcs(service, Vmcs::STATE_ACTV));
 
 			state.pdpte_0.charge(_read_vmcs(service, Vmcs::PDPTE_0));
 			state.pdpte_1.charge(_read_vmcs(service, Vmcs::PDPTE_1));

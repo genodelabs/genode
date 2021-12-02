@@ -28,7 +28,7 @@ namespace Genode {
 	 */
 	struct Cnode_index : Cap_sel
 	{
-		explicit Cnode_index(addr_t value) : Cap_sel(value) { }
+		explicit Cnode_index(uint32_t value) : Cap_sel(value) { }
 
 		Cnode_index(Cap_sel sel) : Cap_sel(sel.value()) { }
 	};
@@ -84,16 +84,16 @@ namespace Genode {
 	template <typename KOBJ>
 	static void create(seL4_Untyped const service,
 	                   Cap_sel      const dst_cnode_sel,
-	                   Cnode_index      dst_idx,
-	                   size_t           size_log2 = 0)
+	                   Cnode_index  const dst_idx,
+	                   uint8_t      const size_log2 = 0)
 	{
-		int          const type        = KOBJ::SEL4_TYPE;
-		int          const size_bits   = size_log2;
-		seL4_CNode   const root        = dst_cnode_sel.value();
-		int          const node_index  = 0;
-		int          const node_depth  = 0;
-		int          const node_offset = dst_idx.value();
-		int          const num_objects = 1;
+		unsigned   const type        = KOBJ::SEL4_TYPE;
+		uint8_t    const size_bits   = size_log2;
+		seL4_CNode const root        = dst_cnode_sel.value();
+		unsigned   const node_index  = 0;
+		unsigned   const node_depth  = 0;
+		unsigned   const node_offset = dst_idx.value();
+		unsigned   const num_objects = 1;
 
 		int const ret = seL4_Untyped_Retype(service,
 		                                    type,

@@ -29,9 +29,12 @@
 #include <foc/native_capability.h>
 
 namespace Foc {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <l4/sys/vcpu.h>
 #include <l4/sys/__vm-svm.h>
 #include <l4/sys/__vm-vmx.h>
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 }
 
 using namespace Genode;
@@ -481,7 +484,7 @@ struct Foc_vcpu : Thread, Noncopyable
 		 * Convert to AMD (and Genode) format comprising 16 bits.
 		 */
 		uint16_t _convert_ar_16(addr_t value) {
-			return ((value & 0x1f000) >> 4) | (value & 0xff); }
+			return (uint16_t)(((value & 0x1f000) >> 4) | (value & 0xff)); }
 
 		void _read_intel_state(Vcpu_state &state, void *vmcs,
 		                       Foc::l4_vcpu_state_t *vcpu)
@@ -495,18 +498,15 @@ struct Foc_vcpu : Thread, Noncopyable
 			state.di.charge(vcpu->r.di);
 			state.si.charge(vcpu->r.si);
 
-			state.flags.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::FLAGS));
-
-			state.sp.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::SP));
-
-			state.ip.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::IP));
-			state.ip_len.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::INST_LEN));
-
-			state.dr7.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::DR7));
+			state.flags .charge((addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::FLAGS));
+			state.sp    .charge((addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::SP));
+			state.ip    .charge((addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::IP));
+			state.ip_len.charge((addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::INST_LEN));
+			state.dr7   .charge((addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::DR7));
 
 #ifdef __x86_64__
-			state.r8.charge(vcpu->r.r8);
-			state.r9.charge(vcpu->r.r9);
+			state.r8 .charge(vcpu->r.r8);
+			state.r9 .charge(vcpu->r.r9);
 			state.r10.charge(vcpu->r.r10);
 			state.r11.charge(vcpu->r.r11);
 			state.r12.charge(vcpu->r.r12);
@@ -516,21 +516,25 @@ struct Foc_vcpu : Thread, Noncopyable
 #endif
 
 			{
-				addr_t const cr0 = Foc::l4_vm_vmx_read(vmcs, Vmcs::CR0);
-				addr_t const cr0_shadow = Foc::l4_vm_vmx_read(vmcs, Vmcs::CR0_SHADOW);
+				addr_t const cr0        = (addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::CR0);
+				addr_t const cr0_shadow = (addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::CR0_SHADOW);
+
 				state.cr0.charge((cr0 & ~vmcs_cr0_mask) | (cr0_shadow & vmcs_cr0_mask));
+
 				if (state.cr0.value() != cr0_shadow)
 					Foc::l4_vm_vmx_write(vmcs, Vmcs::CR0_SHADOW, state.cr0.value());
 			}
 
 			unsigned const cr2 = Foc::l4_vm_vmx_get_cr2_index(vmcs);
-			state.cr2.charge(Foc::l4_vm_vmx_read(vmcs, cr2));
-			state.cr3.charge(Foc::l4_vm_vmx_read(vmcs, Vmcs::CR3));
+			state.cr2.charge((addr_t)Foc::l4_vm_vmx_read(vmcs, cr2));
+			state.cr3.charge((addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::CR3));
 
 			{
-				addr_t const cr4 = Foc::l4_vm_vmx_read(vmcs, Vmcs::CR4);
-				addr_t const cr4_shadow = Foc::l4_vm_vmx_read(vmcs, Vmcs::CR4_SHADOW);
+				addr_t const cr4        = (addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::CR4);
+				addr_t const cr4_shadow = (addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::CR4_SHADOW);
+
 				state.cr4.charge((cr4 & ~vmcs_cr4_mask) | (cr4_shadow & vmcs_cr4_mask));
+
 				if (state.cr4.value() != cr4_shadow)
 					Foc::l4_vm_vmx_write(vmcs, Vmcs::CR4_SHADOW,
 					                        state.cr4.value());
@@ -545,7 +549,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			{
 				Segment cs { l4_vm_vmx_read_16(vmcs, Vmcs::CS_SEL),
-				             _convert_ar_16(l4_vm_vmx_read(vmcs, Vmcs::CS_AR)),
+				             _convert_ar_16((addr_t)l4_vm_vmx_read(vmcs, Vmcs::CS_AR)),
 				             l4_vm_vmx_read_32(vmcs, Vmcs::CS_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::CS_BASE) };
 
@@ -554,7 +558,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			{
 				Segment ss { l4_vm_vmx_read_16(vmcs, Vmcs::SS_SEL),
-				            _convert_ar_16(l4_vm_vmx_read(vmcs, Vmcs::SS_AR)),
+				            _convert_ar_16((addr_t)l4_vm_vmx_read(vmcs, Vmcs::SS_AR)),
 				            l4_vm_vmx_read_32(vmcs, Vmcs::SS_LIMIT),
 				            l4_vm_vmx_read_nat(vmcs, Vmcs::SS_BASE) };
 
@@ -563,7 +567,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			{
 				Segment es { l4_vm_vmx_read_16(vmcs, Vmcs::ES_SEL),
-				             _convert_ar_16(l4_vm_vmx_read(vmcs, Vmcs::ES_AR)),
+				             _convert_ar_16((addr_t)l4_vm_vmx_read(vmcs, Vmcs::ES_AR)),
 				             l4_vm_vmx_read_32(vmcs, Vmcs::ES_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::ES_BASE) };
 
@@ -572,7 +576,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			{
 				Segment ds { l4_vm_vmx_read_16(vmcs, Vmcs::DS_SEL),
-				             _convert_ar_16(l4_vm_vmx_read(vmcs, Vmcs::DS_AR)),
+				             _convert_ar_16((addr_t)l4_vm_vmx_read(vmcs, Vmcs::DS_AR)),
 				             l4_vm_vmx_read_32(vmcs, Vmcs::DS_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::DS_BASE) };
 
@@ -581,7 +585,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			{
 				Segment fs { l4_vm_vmx_read_16(vmcs, Vmcs::FS_SEL),
-				             _convert_ar_16(l4_vm_vmx_read(vmcs, Vmcs::FS_AR)),
+				             _convert_ar_16((addr_t)l4_vm_vmx_read(vmcs, Vmcs::FS_AR)),
 				             l4_vm_vmx_read_32(vmcs, Vmcs::FS_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::FS_BASE) };
 
@@ -590,7 +594,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			{
 				Segment gs { l4_vm_vmx_read_16(vmcs, Vmcs::GS_SEL),
-				             _convert_ar_16(l4_vm_vmx_read(vmcs, Vmcs::GS_AR)),
+				             _convert_ar_16((addr_t)l4_vm_vmx_read(vmcs, Vmcs::GS_AR)),
 				             l4_vm_vmx_read_32(vmcs, Vmcs::GS_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::GS_BASE) };
 
@@ -599,7 +603,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			{
 				Segment tr { l4_vm_vmx_read_16(vmcs, Vmcs::TR_SEL),
-				             _convert_ar_16(l4_vm_vmx_read(vmcs, Vmcs::TR_AR)),
+				             _convert_ar_16((addr_t)l4_vm_vmx_read(vmcs, Vmcs::TR_AR)),
 				             l4_vm_vmx_read_32(vmcs, Vmcs::TR_LIMIT),
 				             l4_vm_vmx_read_nat(vmcs, Vmcs::TR_BASE) };
 
@@ -608,7 +612,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			{
 				Segment ldtr { l4_vm_vmx_read_16(vmcs, Vmcs::LDTR_SEL),
-				               _convert_ar_16(l4_vm_vmx_read(vmcs, Vmcs::LDTR_AR)),
+				               _convert_ar_16((addr_t)l4_vm_vmx_read(vmcs, Vmcs::LDTR_AR)),
 				               l4_vm_vmx_read_32(vmcs, Vmcs::LDTR_LIMIT),
 				               l4_vm_vmx_read_nat(vmcs, Vmcs::LDTR_BASE) };
 
@@ -621,35 +625,35 @@ struct Foc_vcpu : Thread, Noncopyable
 			state.idtr.charge(Range{.limit = l4_vm_vmx_read_32(vmcs, Vmcs::IDTR_LIMIT),
 			                        .base  = l4_vm_vmx_read_nat(vmcs, Vmcs::IDTR_BASE)});
 
-			state.sysenter_cs.charge(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_CS));
-			state.sysenter_sp.charge(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_SP));
-			state.sysenter_ip.charge(l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_IP));
+			state.sysenter_cs.charge((addr_t)l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_CS));
+			state.sysenter_sp.charge((addr_t)l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_SP));
+			state.sysenter_ip.charge((addr_t)l4_vm_vmx_read(vmcs, Vmcs::SYSENTER_IP));
 
-			state.qual_primary.charge(l4_vm_vmx_read(vmcs, Vmcs::EXIT_QUAL));
+			state.qual_primary  .charge(l4_vm_vmx_read(vmcs, Vmcs::EXIT_QUAL));
 			state.qual_secondary.charge(l4_vm_vmx_read(vmcs, Vmcs::GUEST_PHYS));
 
-			state.ctrl_primary.charge(l4_vm_vmx_read(vmcs, Vmcs::CTRL_0));
-			state.ctrl_secondary.charge(l4_vm_vmx_read(vmcs, Vmcs::CTRL_1));
+			state.ctrl_primary  .charge((uint32_t)l4_vm_vmx_read(vmcs, Vmcs::CTRL_0));
+			state.ctrl_secondary.charge((uint32_t)l4_vm_vmx_read(vmcs, Vmcs::CTRL_1));
 
 			if (state.exit_reason == INTEL_EXIT_INVALID ||
 			    state.exit_reason == VMEXIT_PAUSED)
 			{
-				state.inj_info.charge(l4_vm_vmx_read(vmcs, Vmcs::INTR_INFO));
-				state.inj_error.charge(l4_vm_vmx_read(vmcs, Vmcs::INTR_ERROR));
+				state.inj_info .charge((uint32_t)l4_vm_vmx_read(vmcs, Vmcs::INTR_INFO));
+				state.inj_error.charge((uint32_t)l4_vm_vmx_read(vmcs, Vmcs::INTR_ERROR));
 			} else {
-				state.inj_info.charge(l4_vm_vmx_read(vmcs, Vmcs::IDT_INFO));
-				state.inj_error.charge(l4_vm_vmx_read(vmcs, Vmcs::IDT_ERROR));
+				state.inj_info .charge((uint32_t)l4_vm_vmx_read(vmcs, Vmcs::IDT_INFO));
+				state.inj_error.charge((uint32_t)l4_vm_vmx_read(vmcs, Vmcs::IDT_ERROR));
 			}
 
-			state.intr_state.charge(l4_vm_vmx_read(vmcs, Vmcs::STATE_INTR));
-			state.actv_state.charge(l4_vm_vmx_read(vmcs, Vmcs::STATE_ACTV));
+			state.intr_state.charge((uint32_t)l4_vm_vmx_read(vmcs, Vmcs::STATE_INTR));
+			state.actv_state.charge((uint32_t)l4_vm_vmx_read(vmcs, Vmcs::STATE_ACTV));
 
 			state.tsc.charge(Trace::timestamp());
 			state.tsc_offset.charge(_tsc_offset);
 
-			state.efer.charge(l4_vm_vmx_read(vmcs, Vmcs::EFER));
+			state.efer.charge((addr_t)l4_vm_vmx_read(vmcs, Vmcs::EFER));
 
-			state.star.charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_STAR));
+			state.star .charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_STAR));
 			state.lstar.charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_LSTAR));
 			state.cstar.charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_CSTAR));
 			state.fmask.charge(l4_vm_vmx_read(vmcs, Vmcs::MSR_FMASK));
@@ -665,7 +669,7 @@ struct Foc_vcpu : Thread, Noncopyable
 		void _read_amd_state(Vcpu_state &state, Foc::l4_vm_svm_vmcb_t *vmcb,
 		                     Foc::l4_vcpu_state_t * const vcpu)
 		{
-			state.ax.charge(vmcb->state_save_area.rax);
+			state.ax.charge((addr_t)vmcb->state_save_area.rax);
 			state.cx.charge(vcpu->r.cx);
 			state.dx.charge(vcpu->r.dx);
 			state.bx.charge(vcpu->r.bx);
@@ -674,18 +678,18 @@ struct Foc_vcpu : Thread, Noncopyable
 			state.si.charge(vcpu->r.si);
 			state.bp.charge(vcpu->r.bp);
 
-			state.flags.charge(vmcb->state_save_area.rflags);
+			state.flags.charge((addr_t)vmcb->state_save_area.rflags);
 
-			state.sp.charge(vmcb->state_save_area.rsp);
+			state.sp.charge((addr_t)vmcb->state_save_area.rsp);
 
-			state.ip.charge(vmcb->state_save_area.rip);
+			state.ip.charge((addr_t)vmcb->state_save_area.rip);
 			state.ip_len.charge(0); /* unsupported on AMD */
 
-			state.dr7.charge(vmcb->state_save_area.dr7);
+			state.dr7.charge((addr_t)vmcb->state_save_area.dr7);
 
 #ifdef __x86_64__
-			state.r8.charge(vcpu->r.r8);
-			state.r9.charge(vcpu->r.r9);
+			state.r8 .charge(vcpu->r.r8);
+			state.r9 .charge(vcpu->r.r9);
 			state.r10.charge(vcpu->r.r10);
 			state.r11.charge(vcpu->r.r11);
 			state.r12.charge(vcpu->r.r12);
@@ -695,15 +699,15 @@ struct Foc_vcpu : Thread, Noncopyable
 #endif
 
 			{
-				addr_t const cr0 = vmcb->state_save_area.cr0;
+				addr_t const cr0 = (addr_t)vmcb->state_save_area.cr0;
 				state.cr0.charge((cr0 & ~vmcb_cr0_mask) | (vmcb_cr0_shadow & vmcb_cr0_mask));
 				if (state.cr0.value() != vmcb_cr0_shadow)
 					vmcb_cr0_shadow = state.cr0.value();
 			}
-			state.cr2.charge(vmcb->state_save_area.cr2);
-			state.cr3.charge(vmcb->state_save_area.cr3);
+			state.cr2.charge((addr_t)vmcb->state_save_area.cr2);
+			state.cr3.charge((addr_t)vmcb->state_save_area.cr3);
 			{
-				addr_t const cr4 = vmcb->state_save_area.cr4;
+				addr_t const cr4 = (addr_t)vmcb->state_save_area.cr4;
 				state.cr4.charge((cr4 & ~vmcb_cr4_mask) | (vmcb_cr4_shadow & vmcb_cr4_mask));
 				if (state.cr4.value() != vmcb_cr4_shadow)
 					vmcb_cr4_shadow = state.cr4.value();
@@ -712,44 +716,44 @@ struct Foc_vcpu : Thread, Noncopyable
 			typedef Vcpu_state::Segment Segment;
 
 			state.cs.charge(Segment{vmcb->state_save_area.cs.selector,
-			                       vmcb->state_save_area.cs.attrib,
-			                       vmcb->state_save_area.cs.limit,
-			                       (addr_t)vmcb->state_save_area.cs.base});
+			                        vmcb->state_save_area.cs.attrib,
+			                        vmcb->state_save_area.cs.limit,
+			                        (addr_t)vmcb->state_save_area.cs.base});
 
 			state.ss.charge(Segment{vmcb->state_save_area.ss.selector,
-			                       vmcb->state_save_area.ss.attrib,
-			                       vmcb->state_save_area.ss.limit,
-			                       (addr_t)vmcb->state_save_area.ss.base});
+			                        vmcb->state_save_area.ss.attrib,
+			                        vmcb->state_save_area.ss.limit,
+			                        (addr_t)vmcb->state_save_area.ss.base});
 
 			state.es.charge(Segment{vmcb->state_save_area.es.selector,
-			                       vmcb->state_save_area.es.attrib,
-			                       vmcb->state_save_area.es.limit,
-			                       (addr_t)vmcb->state_save_area.es.base});
+			                        vmcb->state_save_area.es.attrib,
+			                        vmcb->state_save_area.es.limit,
+			                        (addr_t)vmcb->state_save_area.es.base});
 
 			state.ds.charge(Segment{vmcb->state_save_area.ds.selector,
-			                       vmcb->state_save_area.ds.attrib,
-			                       vmcb->state_save_area.ds.limit,
-			                       (addr_t)vmcb->state_save_area.ds.base});
+			                        vmcb->state_save_area.ds.attrib,
+			                        vmcb->state_save_area.ds.limit,
+			                        (addr_t)vmcb->state_save_area.ds.base});
 
 			state.fs.charge(Segment{vmcb->state_save_area.fs.selector,
-			                       vmcb->state_save_area.fs.attrib,
-			                       vmcb->state_save_area.fs.limit,
-			                       (addr_t)vmcb->state_save_area.fs.base});
+			                        vmcb->state_save_area.fs.attrib,
+			                        vmcb->state_save_area.fs.limit,
+			                        (addr_t)vmcb->state_save_area.fs.base});
 
 			state.gs.charge(Segment{vmcb->state_save_area.gs.selector,
-			                       vmcb->state_save_area.gs.attrib,
-			                       vmcb->state_save_area.gs.limit,
-			                       (addr_t)vmcb->state_save_area.gs.base});
+			                        vmcb->state_save_area.gs.attrib,
+			                        vmcb->state_save_area.gs.limit,
+			                        (addr_t)vmcb->state_save_area.gs.base});
 
 			state.tr.charge(Segment{vmcb->state_save_area.tr.selector,
-			                       vmcb->state_save_area.tr.attrib,
-			                       vmcb->state_save_area.tr.limit,
-			                       (addr_t)vmcb->state_save_area.tr.base});
+			                        vmcb->state_save_area.tr.attrib,
+			                        vmcb->state_save_area.tr.limit,
+			                        (addr_t)vmcb->state_save_area.tr.base});
 
 			state.ldtr.charge(Segment{vmcb->state_save_area.ldtr.selector,
-			                         vmcb->state_save_area.ldtr.attrib,
-			                         vmcb->state_save_area.ldtr.limit,
-			                         (addr_t)vmcb->state_save_area.ldtr.base});
+			                          vmcb->state_save_area.ldtr.attrib,
+			                          vmcb->state_save_area.ldtr.limit,
+			                          (addr_t)vmcb->state_save_area.ldtr.base});
 
 			typedef Vcpu_state::Range Range;
 
@@ -759,11 +763,11 @@ struct Foc_vcpu : Thread, Noncopyable
 			state.idtr.charge(Range{.limit = vmcb->state_save_area.idtr.limit,
 			                        .base  = (addr_t)vmcb->state_save_area.idtr.base });
 
-			state.sysenter_cs.charge(vmcb->state_save_area.sysenter_cs);
-			state.sysenter_sp.charge(vmcb->state_save_area.sysenter_esp);
-			state.sysenter_ip.charge(vmcb->state_save_area.sysenter_eip);
+			state.sysenter_cs.charge((addr_t)vmcb->state_save_area.sysenter_cs);
+			state.sysenter_sp.charge((addr_t)vmcb->state_save_area.sysenter_esp);
+			state.sysenter_ip.charge((addr_t)vmcb->state_save_area.sysenter_eip);
 
-			state.qual_primary.charge(vmcb->control_area.exitinfo1);
+			state.qual_primary  .charge(vmcb->control_area.exitinfo1);
 			state.qual_secondary.charge(vmcb->control_area.exitinfo2);
 
 			uint32_t inj_info = 0;
@@ -771,22 +775,22 @@ struct Foc_vcpu : Thread, Noncopyable
 			if (state.exit_reason == AMD_EXIT_INVALID ||
 			    state.exit_reason == VMEXIT_PAUSED)
 			{
-				inj_info  = vmcb->control_area.eventinj;
-				inj_error = vmcb->control_area.eventinj >> 32;
+				inj_info  = (uint32_t)vmcb->control_area.eventinj;
+				inj_error = (uint32_t)(vmcb->control_area.eventinj >> 32);
 			} else {
-				inj_info  = vmcb->control_area.exitintinfo;
-				inj_error = vmcb->control_area.exitintinfo >> 32;
+				inj_info  = (uint32_t)vmcb->control_area.exitintinfo;
+				inj_error = (uint32_t)(vmcb->control_area.exitintinfo >> 32);
 			}
-			state.inj_info.charge(inj_info);
+			state.inj_info .charge(inj_info);
 			state.inj_error.charge(inj_error);
 
-			state.intr_state.charge(vmcb->control_area.interrupt_shadow);
+			state.intr_state.charge((uint32_t)vmcb->control_area.interrupt_shadow);
 			state.actv_state.charge(0);
 
 			state.tsc.charge(Trace::timestamp());
 			state.tsc_offset.charge(_tsc_offset);
 
-			state.efer.charge(vmcb->state_save_area.efer);
+			state.efer.charge((addr_t)vmcb->state_save_area.efer);
 
 			if (state.pdpte_0.charged() || state.pdpte_1.charged() ||
 			    state.pdpte_2.charged() || state.pdpte_3.charged()) {
@@ -894,9 +898,9 @@ struct Foc_vcpu : Thread, Noncopyable
 			}
 
 			if (state.inj_info.charged() || state.inj_error.charged()) {
-				addr_t ctrl_0 = state.ctrl_primary.charged() ?
-				                state.ctrl_primary.value() :
-				                Foc::l4_vm_vmx_read(vmcs, Vmcs::CTRL_0);
+				addr_t ctrl_0 = state.ctrl_primary.charged()
+				              ? (addr_t)state.ctrl_primary.value()
+				              : (addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::CTRL_0);
 
 				if (state.inj_info.value() & 0x2000)
 					warning("unimplemented ", state.inj_info.value() & 0x1000, " ",

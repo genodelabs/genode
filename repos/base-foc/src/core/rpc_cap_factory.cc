@@ -49,7 +49,7 @@ Cap_index_allocator &Genode::cap_idx_alloc()
 
 Core_cap_index *Cap_mapping::_get_cap()
 {
-	int const id = platform_specific().cap_id_alloc().alloc();
+	Cap_index::id_t const id = platform_specific().cap_id_alloc().alloc();
 	return static_cast<Core_cap_index*>(cap_map().insert(id));
 }
 
@@ -104,7 +104,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 		/*
 		 * Allocate new id, and ipc-gate and set id as gate-label
 		 */
-		unsigned long const id = platform_specific().cap_id_alloc().alloc();
+		Cap_index::id_t const id = platform_specific().cap_id_alloc().alloc();
 		Core_cap_index *idx = static_cast<Core_cap_index*>(cap_map().insert(id));
 
 		if (!idx) {
@@ -194,17 +194,21 @@ Cap_id_allocator::Cap_id_allocator(Allocator &alloc)
 }
 
 
-unsigned long Cap_id_allocator::alloc()
+Cap_id_allocator::id_t Cap_id_allocator::alloc()
 {
 	Mutex::Guard lock_guard(_mutex);
 
-	return _id_alloc.try_alloc(CAP_ID_OFFSET).convert<unsigned long>(
-		[&] (void *id) { return (unsigned long)id; },
-		[&] (Range_allocator::Alloc_error) -> unsigned long { throw Out_of_ids(); });
+	return _id_alloc.try_alloc(CAP_ID_OFFSET).convert<id_t>(
+
+		[&] (void *id) -> id_t {
+			return (addr_t)id & ID_MASK; },
+
+		[&] (Range_allocator::Alloc_error) -> id_t {
+			throw Out_of_ids(); });
 }
 
 
-void Cap_id_allocator::free(unsigned long id)
+void Cap_id_allocator::free(id_t id)
 {
 	Mutex::Guard lock_guard(_mutex);
 

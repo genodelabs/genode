@@ -17,8 +17,8 @@
 #include <hw/spec/arm/psci.h>
 
 #define PSCI_CALL_IMPL(instr) \
-	static inline int call(unsigned int func, unsigned long a0, \
-	                       unsigned int a1, unsigned int a2) { \
+	static inline int call(Genode::umword_t func, Genode::umword_t a0, \
+	                       Genode::umword_t a1,   Genode::umword_t a2) { \
 		unsigned long result = 0; \
 		asm volatile ("mov x0, %1 \n" \
 		              "mov x1, %2 \n" \
@@ -30,7 +30,7 @@
 		               : "r"(func), "r"(a0), "r"(a1), "r"(a2) \
 		               : "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", \
 		                 "x8", "x9", "x10", "x11", "x12", "x13", "x14"); \
-		return result; \
+		return (int)result; \
 	}
 
 namespace Hw {

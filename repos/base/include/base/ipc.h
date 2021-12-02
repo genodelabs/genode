@@ -51,7 +51,7 @@ class Genode::Ipc_unmarshaller : Noncopyable
 	protected:
 
 		Msgbuf_base &_rcv_msg;
-		unsigned     _read_offset = 0;
+		size_t       _read_offset = 0;
 		unsigned     _read_cap_index = 0;
 
 	private:

@@ -26,7 +26,7 @@ namespace Genode { struct Foc_thread_state; }
 struct Genode::Foc_thread_state : Thread_state
 {
 	Foc::l4_cap_idx_t  kcap;         /* thread's gate cap in its PD */
-	int                id;           /* ID of gate capability */
+	uint16_t           id;           /* ID of gate capability */
 	addr_t             utcb;         /* thread's UTCB in its PD */
 
 	/**

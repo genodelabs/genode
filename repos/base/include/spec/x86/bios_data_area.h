@@ -43,7 +43,7 @@ class Genode::Bios_data_area : Mmio
 		/**
 		 * Obtain I/O ports of COM interfaces from BDA
 		 */
-		addr_t serial_port() const
+		uint16_t serial_port() const
 		{
 			Equipment::access_t count = read<Equipment::Serial_count>();
 			return count ? read<Serial_base_com1>() : 0;

@@ -24,8 +24,8 @@ using namespace Genode;
 void Timer::Time_source::_set_counter(uint16_t value)
 {
 	_handled_wrap = false;
-	_io_port.outb(PIT_DATA_PORT_0, value & 0xff);
-	_io_port.outb(PIT_DATA_PORT_0, (value >> 8) & 0xff);
+	_io_port.outb(PIT_DATA_PORT_0, (uint8_t)(value & 0xff));
+	_io_port.outb(PIT_DATA_PORT_0, (uint8_t)((value >> 8) & 0xff));
 }
 
 
@@ -45,7 +45,7 @@ uint16_t Timer::Time_source::_read_counter(bool *wrapped)
 	uint16_t hi = _io_port.inb(PIT_DATA_PORT_0);
 
 	*wrapped = status & PIT_STAT_INT_LINE ? true : false;
-	return (hi << 8) | lo;
+	return (uint16_t)((hi << 8) | lo);
 }
 
 
@@ -69,7 +69,7 @@ void Timer::Time_source::set_timeout(Microseconds     duration,
 			duration_us = max_timeout().value;
 	}
 
-	_counter_init_value = (PIT_TICKS_PER_MSEC * duration_us) / 1000;
+	_counter_init_value = (uint16_t)((PIT_TICKS_PER_MSEC * duration_us) / 1000);
 	_set_counter(_counter_init_value);
 
 	if (duration.value)

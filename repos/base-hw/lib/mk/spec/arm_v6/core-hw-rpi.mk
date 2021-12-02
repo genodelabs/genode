@@ -14,3 +14,5 @@ SRC_CC += spec/arm/bcm2835_system_timer.cc
 
 # include less specific configuration
 include $(call select_from_repositories,lib/mk/spec/arm_v6/core-hw.inc)
+
+CC_CXX_WARN_STRICT_CONVERSION =

@@ -56,9 +56,10 @@ class Genode::X86_uart
 
 	public:
 
-		X86_uart(addr_t const port, unsigned /* clock */,
+		X86_uart(uint16_t const port, unsigned /* clock */,
 		         unsigned const baud_rate)
-		: _port(port)
+		:
+			_port(port)
 		{
 
 			/**
@@ -70,20 +71,20 @@ class Genode::X86_uart
 			if (!port)
 				return;
 
-			const unsigned
-				IER  = port + 1,
-				EIR  = port + 2,
-				LCR  = port + 3,
-				MCR  = port + 4,
-				LSR  = port + 5,
-				MSR  = port + 6,
-				DLLO = port + 0,
-				DLHI = port + 1;
+			uint16_t const
+				IER  = (uint16_t)(port + 1),
+				EIR  = (uint16_t)(port + 2),
+				LCR  = (uint16_t)(port + 3),
+				MCR  = (uint16_t)(port + 4),
+				LSR  = (uint16_t)(port + 5),
+				MSR  = (uint16_t)(port + 6),
+				DLLO = (uint16_t)(port + 0),
+				DLHI = (uint16_t)(port + 1);
 
 			_outb(LCR, 0x80);  /* select bank 1 */
 			for (volatile int i = 10000000; i--; );
-			_outb(DLLO, (115200/baud_rate) >> 0);
-			_outb(DLHI, (115200/baud_rate) >> 8);
+			_outb(DLLO, (uint8_t)((115200/baud_rate) >> 0));
+			_outb(DLHI, (uint8_t)((115200/baud_rate) >> 8));
 			_outb(LCR, 0x03);  /* set 8,N,1 */
 			_outb(IER, 0x00);  /* disable interrupts */
 			_outb(EIR, 0x07);  /* enable FIFOs */
@@ -103,8 +104,8 @@ class Genode::X86_uart
 				return;
 
 			/* wait until serial port is ready */
-			Genode::uint8_t ready = STATUS_THR_EMPTY;
-			while ((_inb(_port + COMPORT_STATUS_OFFSET) & ready) != ready);
+			uint8_t ready = STATUS_THR_EMPTY;
+			while ((_inb((uint16_t)(_port + COMPORT_STATUS_OFFSET)) & ready) != ready);
 
 			/* output character */
 			_outb(_port + COMPORT_DATA_OFFSET, c);

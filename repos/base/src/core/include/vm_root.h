@@ -38,7 +38,7 @@ class Genode::Vm_root : public Root_component<Vm_session_component>
 			unsigned priority = 0;
 			Arg a = Arg_string::find_arg(args, "priority");
 			if (a.valid()) {
-				priority = a.ulong_value(0);
+				priority = (unsigned)a.ulong_value(0);
 
 				/* clamp priority value to valid range */
 				priority = min((unsigned)Cpu_session::PRIORITY_LIMIT - 1, priority);

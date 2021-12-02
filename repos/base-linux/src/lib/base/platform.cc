@@ -61,7 +61,7 @@ void Genode::binary_ready_hook_for_platform()
 	};
 
 	uint64_t flags = SECCOMP_FILTER_FLAG_TSYNC;
-	auto ret = lx_seccomp(SECCOMP_SET_MODE_FILTER, flags, &program);
+	auto ret = lx_seccomp(SECCOMP_SET_MODE_FILTER, (int)flags, &program);
 	if (ret != 0) {
 		error("SECCOMP_SET_MODE_FILTER failed ", ret);
 		throw Exception();

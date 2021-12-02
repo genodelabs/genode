@@ -389,7 +389,7 @@ void Nova_vcpu::_write_nova_state(Nova::Utcb &utcb)
 		utcb.dr7 = state().dr7.value();
 	}
 
-	if (state().r8.charged()  || state().r9.charged() ||
+	if (state().r8 .charged() || state().r9 .charged() ||
 	    state().r10.charged() || state().r11.charged() ||
 	    state().r12.charged() || state().r13.charged() ||
 	    state().r14.charged() || state().r15.charged()) {
@@ -527,10 +527,10 @@ void Nova_vcpu::_write_nova_state(Nova::Utcb &utcb)
 	    state().pdpte_2.charged() || state().pdpte_3.charged()) {
 
 		utcb.mtd |= Nova::Mtd::PDPTE;
-		utcb.pdpte[0] = state().pdpte_0.value();
-		utcb.pdpte[1] = state().pdpte_1.value();
-		utcb.pdpte[2] = state().pdpte_2.value();
-		utcb.pdpte[3] = state().pdpte_3.value();
+		utcb.pdpte[0] = (Nova::mword_t)state().pdpte_0.value();
+		utcb.pdpte[1] = (Nova::mword_t)state().pdpte_1.value();
+		utcb.pdpte[2] = (Nova::mword_t)state().pdpte_2.value();
+		utcb.pdpte[3] = (Nova::mword_t)state().pdpte_3.value();
 	}
 
 	if (state().star.charged() || state().lstar.charged() ||
@@ -538,7 +538,7 @@ void Nova_vcpu::_write_nova_state(Nova::Utcb &utcb)
 	    state().kernel_gs_base.charged()) {
 
 		utcb.mtd  |= Nova::Mtd::SYSCALL_SWAPGS;
-		utcb.write_star(state().star.value());
+		utcb.write_star (state().star.value());
 		utcb.write_lstar(state().lstar.value());
 		utcb.write_cstar(state().cstar.value());
 		utcb.write_fmask(state().fmask.value());
@@ -783,7 +783,7 @@ Nova_vcpu::Nova_vcpu(Env &env, Vm_connection &vm, Allocator &alloc,
 
 		Nova::Mtd mtd = _portal_mtd(i, exit_config);
 		if (mtd.value()) {
-			signal_exit = _create_exit_handler(env.pd(), handler, vcpu_id, i, mtd);
+			signal_exit = _create_exit_handler(env.pd(), handler, vcpu_id, (uint16_t)i, mtd);
 		} else {
 			signal_exit = dontcare_exit;
 		}

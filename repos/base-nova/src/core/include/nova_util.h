@@ -115,7 +115,7 @@ lsb_bit(unsigned long const &value, unsigned char const shift = 0)
 	unsigned long const scan  = value >> shift;
 	if (scan == 0) return 0;
 
-	unsigned char pos = __builtin_ctzl(scan);
+	unsigned char pos = (unsigned char)__builtin_ctzl(scan);
 	unsigned char res = shift ? pos + shift : pos;
 	return res;
 }
@@ -207,7 +207,7 @@ inline void unmap_local(Nova::Utcb &, Genode::addr_t start,
 
 	while (num_pages) {
 		unsigned char const base_bit  = lsb_bit(base);
-		unsigned char const order_bit = min(log2(num_pages), 31U);
+		unsigned char const order_bit = (unsigned char)min(log2(num_pages), 31U);
 		unsigned char const order     = min(order_bit, base_bit);
 
 		Mem_crd const crd(base, order, rwx);

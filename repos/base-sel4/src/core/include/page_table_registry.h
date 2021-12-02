@@ -220,23 +220,23 @@ class Genode::Page_table_registry
 
 		bool page_frame_at(addr_t const vaddr) {
 			return Frame::lookup(_frames, vaddr, LEVEL_0); }
-		bool page_table_at(addr_t const vaddr, addr_t const level_log2) {
+		bool page_table_at(addr_t const vaddr, unsigned const level_log2) {
 			return Table::lookup(_level1, vaddr, level_log2); }
-		bool page_directory_at(addr_t const vaddr, addr_t const level_log2) {
+		bool page_directory_at(addr_t const vaddr, unsigned const level_log2) {
 			return Table::lookup(_level2, vaddr, level_log2); }
-		bool page_level3_at(addr_t const vaddr, addr_t const level_log2) {
+		bool page_level3_at(addr_t const vaddr, unsigned const level_log2) {
 			return Table::lookup(_level3, vaddr, level_log2); }
 
 		void insert_page_frame(addr_t const vaddr, Cap_sel const sel) {
 			_insert(vaddr, sel, Level::FRAME, 0, LEVEL_0); }
 		void insert_page_table(addr_t const vaddr, Cap_sel const sel,
-		                       addr_t const paddr, addr_t const level_log2) {
+		                       addr_t const paddr, unsigned const level_log2) {
 			_insert(vaddr, sel, Level::PAGE_TABLE, paddr, level_log2); }
 		void insert_page_directory(addr_t const vaddr, Cap_sel const sel,
-		                           addr_t const paddr, addr_t const level_log2) {
+		                           addr_t const paddr, unsigned const level_log2) {
 			_insert(vaddr, sel, Level::LEVEL2, paddr, level_log2); }
 		void insert_page_level3(addr_t const vaddr, Cap_sel const sel,
-		                        addr_t const paddr, addr_t const level_log2) {
+		                        addr_t const paddr, unsigned const level_log2) {
 			_insert(vaddr, sel, Level::LEVEL3, paddr, level_log2); }
 
 		/**

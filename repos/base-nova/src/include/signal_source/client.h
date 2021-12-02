@@ -95,7 +95,7 @@ namespace Genode {
 
 				} while (imprint == 0);
 
-				return Signal(imprint, count);
+				return Signal(imprint, (int)count);
 			}
 	};
 }

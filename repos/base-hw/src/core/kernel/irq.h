@@ -188,8 +188,8 @@ class Kernel::User_irq : public Kernel::Irq
 		                              Genode::Irq_session::Polarity     polarity,
 		                              capid_t                           sig)
 		{
-			return call(call_id_new_irq(), (Call_arg)&irq, nr,
-			            (trigger << 2) | polarity, sig);
+			return (capid_t)call(call_id_new_irq(), (Call_arg)&irq, nr,
+			                     (trigger << 2) | polarity, sig);
 		}
 
 		/**

@@ -101,8 +101,8 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		                              capid_t const               signal_context_id,
 		                              Identity                  & id)
 		{
-			return call(call_id_new_vm(), (Call_arg)&vm, (Call_arg)cpu,
-			            (Call_arg)state, (Call_arg)&id, signal_context_id);
+			return (capid_t)call(call_id_new_vm(), (Call_arg)&vm, (Call_arg)cpu,
+			                     (Call_arg)state, (Call_arg)&id, signal_context_id);
 		}
 
 		/**

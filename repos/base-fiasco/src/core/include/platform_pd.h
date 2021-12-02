@@ -46,6 +46,7 @@ class Genode::Platform_pd : public Address_space
 
 		enum {
 			VERSION_BITS   = 10,
+			VERSION_MASK   = (1 << VERSION_BITS) - 1,
 			PD_FIRST       = 0x10,
 			PD_MAX         = (1 << 11) - 1, /* leave 0x7ff free for L4_INVALID_ID */
 			PD_VERSION_MAX = (1 << 10) - 1,
@@ -101,7 +102,7 @@ class Genode::Platform_pd : public Address_space
 			unsigned version  : VERSION_BITS;
 
 			Pd_alloc(bool r, bool f, unsigned v)
-			: reserved(r), free(f), version(v) { }
+			: reserved(r), free(f), version(v & VERSION_MASK) { }
 
 			Pd_alloc() : reserved(0), free(0), version(0) { }
 		};

@@ -83,7 +83,7 @@ struct Genode::Cpu_state
 	addr_t last_fetch_fault = 0;
 
 	bool      is_irq() { return cpu_exception & IRQ_FLAG; }
-	unsigned  irq()    { return cpu_exception ^ IRQ_FLAG; }
+	unsigned  irq()    { return (unsigned)(cpu_exception ^ IRQ_FLAG); }
 };
 
 #endif /* _INCLUDE__RISCV__CPU__CPU_STATE_H_ */

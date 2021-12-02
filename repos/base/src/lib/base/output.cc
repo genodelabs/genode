@@ -96,7 +96,7 @@ void Genode::Hex::print(Output &output) const
 	unsigned long long mask = 0;
 	for (size_t i = 0; i < _digits; ++i) mask = (mask << 4) | 0xf;
 
-	out_unsigned<unsigned long long>(_value & mask, 16, pad_len,
+	out_unsigned<unsigned long long>(_value & mask, 16, (int)pad_len,
 	                                [&] (char c) { output.out_char(c); });
 }
 

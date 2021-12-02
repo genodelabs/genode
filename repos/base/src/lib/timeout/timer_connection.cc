@@ -68,7 +68,7 @@ uint64_t Timer::Connection::_ts_to_us_ratio(Timestamp ts,
 	 * the calculation. This upscaling must be considered when using
 	 * the result.
 	 */
-	Timestamp const result    = (ts << shift) / us;
+	Timestamp const result    = (Timestamp)((ts << shift) / us);
 	uint64_t  const result_ul = (uint64_t)result;
 	if (result != result_ul) {
 		warning("Timestamp-to-time ratio too big");

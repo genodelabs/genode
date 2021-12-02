@@ -171,7 +171,7 @@ Session_capability Child::session(Parent::Client::Id id,
 	Ram_quota const forward_ram_quota { ram_quota.value - keep_ram_quota };
 
 	/* adjust the session information as presented to the server */
-	Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", forward_ram_quota.value);
+	Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", (int)forward_ram_quota.value);
 
 	/* may throw a 'Service_denied' exception */
 	Child_policy::Route route =

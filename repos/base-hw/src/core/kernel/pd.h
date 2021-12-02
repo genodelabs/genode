@@ -72,7 +72,7 @@ class Kernel::Pd
 			_platform_pd(platform_pd),
 			mmu_regs((addr_t)&table, addr_space_id_alloc)
 		{
-			capid_t invalid = _capid_alloc.alloc();
+			capid_t invalid = (capid_t)_capid_alloc.alloc();
 			assert(invalid == cap_id_invalid());
 		}
 
@@ -86,8 +86,8 @@ class Kernel::Pd
 		                              Hw::Page_table            &tt,
 		                              Genode::Platform_pd       &pd)
 		{
-			return call(call_id_new_pd(), (Call_arg)&p,
-			            (Call_arg)&tt, (Call_arg)&pd);
+			return (capid_t)call(call_id_new_pd(), (Call_arg)&p,
+			                     (Call_arg)&tt, (Call_arg)&pd);
 		}
 
 		static void syscall_destroy(Genode::Kernel_object<Pd> & p) {

@@ -101,7 +101,7 @@ Irq_object::Irq_object(unsigned irq)
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
+	_irq_number((unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1)),
 	_irq_alloc(irq_alloc),
 	_irq_object(_irq_number)
 {

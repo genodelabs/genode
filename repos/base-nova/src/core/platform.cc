@@ -113,10 +113,10 @@ static void page_fault_handler()
 {
 	Utcb *utcb = (Utcb *)CORE_PAGER_UTCB_ADDR;
 
-	addr_t pf_addr = utcb->qual[1];
-	addr_t pf_ip   = utcb->ip;
-	addr_t pf_sp   = utcb->sp;
-	addr_t pf_type = utcb->qual[0];
+	addr_t  const pf_addr = utcb->pf_addr();
+	addr_t  const pf_ip   = utcb->ip;
+	addr_t  const pf_sp   = utcb->sp;
+	uint8_t const pf_type = utcb->pf_type();
 
 	error("\nPAGE-FAULT IN CORE addr=", Hex(pf_addr), " ip=", Hex(pf_ip),
 	      " (", (pf_type & Ipc_pager::ERR_W) ? "write" : "read", ")");
@@ -370,7 +370,7 @@ Platform::Platform()
 		      " vs ", sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0]));
 		nova_die();
 	}
-	if (!hip.remap_cpu_ids(map_cpu_ids, boot_cpu())) {
+	if (!hip.remap_cpu_ids(map_cpu_ids, (unsigned)boot_cpu())) {
 		error("re-ording cpu_id failed");
 		nova_die();
 	}
@@ -492,7 +492,7 @@ Platform::Platform()
 	Hip::Mem_desc *boot_fb = nullptr;
 
 	bool efi_boot = false;
-	addr_t kernel_memory = 0;
+	size_t kernel_memory = 0;
 
 	/*
 	 * All "available" ram must be added to our physical allocator before all
@@ -506,13 +506,13 @@ Platform::Platform()
 		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER)
 			boot_fb = mem_desc;
 		if (mem_desc->type == Hip::Mem_desc::MICROHYPERVISOR)
-			kernel_memory += mem_desc->size;
+			kernel_memory += (size_t)mem_desc->size;
 
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
 		if (verbose_boot_info) {
-			addr_t const base = mem_desc->addr;
-			size_t const size = mem_desc->size;
+			uint64_t const base = mem_desc->addr;
+			uint64_t const size = mem_desc->size;
 			log("detected physical memory: ", Hex(base, Hex::PREFIX, Hex::PAD),
 			    " - size: ", Hex(size, Hex::PREFIX, Hex::PAD));
 		}
@@ -522,8 +522,8 @@ Platform::Platform()
 		/* skip regions above 4G on 32 bit, no op on 64 bit */
 		if (mem_desc->addr > ~0UL) continue;
 
-		addr_t base = round_page(mem_desc->addr);
-		size_t size;
+		uint64_t base = round_page(mem_desc->addr);
+		uint64_t size;
 		/* truncate size if base+size larger then natural 32/64 bit boundary */
 		if (mem_desc->addr >= ~0UL - mem_desc->size + 1)
 			size = trunc_page(~0UL - mem_desc->addr + 1);
@@ -534,12 +534,12 @@ Platform::Platform()
 			log("use      physical memory: ", Hex(base, Hex::PREFIX, Hex::PAD),
 			    " - size: ", Hex(size, Hex::PREFIX, Hex::PAD));
 
-		_io_mem_alloc.remove_range(base, size);
-		ram_alloc().add_range(base, size);
+		_io_mem_alloc.remove_range((addr_t)base, (size_t)size);
+		ram_alloc().add_range((addr_t)base, (size_t)size);
 	}
 
-	uint64_t hyp_log = 0;
-	uint64_t hyp_log_size = 0;
+	addr_t hyp_log = 0;
+	size_t hyp_log_size = 0;
 
 	/*
 	 * Exclude all non-available memory from physical allocator AFTER all
@@ -551,16 +551,16 @@ Platform::Platform()
 		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
 		if (mem_desc->type == Hip::Mem_desc::HYPERVISOR_LOG) {
-			hyp_log = mem_desc->addr;
-			hyp_log_size = mem_desc->size;
+			hyp_log      = (addr_t)mem_desc->addr;
+			hyp_log_size = (size_t)mem_desc->size;
 		}
 
-		addr_t base = trunc_page(mem_desc->addr);
-		size_t size = mem_desc->size;
+		uint64_t base = trunc_page(mem_desc->addr);
+		uint64_t size = mem_desc->size;
 
 		/* remove framebuffer from available memory */
 		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER) {
-			uint32_t const height = Resolution::Height::get(mem_desc->size);
+			uint32_t const height = (uint32_t)Resolution::Height::get(mem_desc->size);
 			uint32_t const pitch  = mem_desc->aux;
 			/* calculate size of framebuffer */
 			size = pitch * height;
@@ -585,9 +585,9 @@ Platform::Platform()
 		/* make acpi regions as io_mem available to platform driver */
 		if (mem_desc->type == Hip::Mem_desc::ACPI_RECLAIM_MEMORY ||
 		    mem_desc->type == Hip::Mem_desc::ACPI_NVS_MEMORY)
-			_io_mem_alloc.add_range(base, size);
+			_io_mem_alloc.add_range((addr_t)base, (size_t)size);
 
-		ram_alloc().remove_range(base, size);
+		ram_alloc().remove_range((addr_t)base, (size_t)size);
 	}
 
 	/* needed as I/O memory by the VESA driver */
@@ -634,9 +634,9 @@ Platform::Platform()
 				continue;
 
 			error("region overlap ",
-			      Hex_range<addr_t>(mem_desc->addr, mem_desc->size), " "
+			      Hex_range<addr_t>((addr_t)mem_desc->addr, (size_t)mem_desc->size), " "
 			      "(", (int)mem_desc->type, ") with ",
-			      Hex_range<addr_t>(mem_d->addr, mem_d->size), " "
+			      Hex_range<addr_t>((addr_t)mem_d->addr, (size_t)mem_d->size), " "
 			      "(", (int)mem_d->type, ")");
 			nova_die();
 		}
@@ -842,7 +842,7 @@ Platform::Platform()
 
 		cap_map().insert(range);
 
-		index = range.base() + range.elements();
+		index = (unsigned)(range.base() + range.elements());
 	}
 	_max_caps = index - first_index;
 
@@ -894,15 +894,15 @@ Platform::Platform()
 		};
 
 		new (core_mem_alloc()) Trace_source(Trace::sources(), location,
-		                                    sc_idle_base + kernel_cpu_id,
+		                                    (unsigned)(sc_idle_base + kernel_cpu_id),
 		                                    "idle");
 
 		new (core_mem_alloc()) Trace_source(Trace::sources(), location,
-		                                    sc_idle_base + kernel_cpu_id,
+		                                    (unsigned)(sc_idle_base + kernel_cpu_id),
 		                                    "cross");
 
 		new (core_mem_alloc()) Trace_source(Trace::sources(), location,
-		                                    sc_idle_base + kernel_cpu_id,
+		                                    (unsigned)(sc_idle_base + kernel_cpu_id),
 		                                    "killed");
 	});
 
@@ -988,8 +988,7 @@ unsigned Platform::pager_index(Affinity::Location location) const
  ** Support for core memory management **
  ****************************************/
 
-bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
-                                      unsigned size)
+bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t size)
 {
 	/* platform_specific()->core_pd_sel() deadlocks if called from platform constructor */
 	Hip const &hip  = *(Hip const *)__initial_sp;
@@ -1003,7 +1002,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t, unsigned size)
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t, size_t size)
 {
 	unmap_local(*(Utcb *)Thread::myself()->utcb(),
 	            virt_addr, size / get_page_size());

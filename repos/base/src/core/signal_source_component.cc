@@ -39,7 +39,7 @@ void Signal_source_component::submit(Signal_context_component &context,
 	 * signal will be delivered as result of the next
 	 * 'wait_for_signal' call.
 	 */
-	context.increment_signal_cnt(cnt);
+	context.increment_signal_cnt((int)cnt);
 
 	/*
 	 * If the client is blocking at the signal source (indicated by

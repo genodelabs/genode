@@ -212,7 +212,7 @@ void Global_interrupt_controller::_update_irt_entry(unsigned irq)
 	Irte::Trg::set(irte, _irq_mode[irq].trigger_mode);
 
 	write<Ioregsel>(IOREDTBL + 2 * irq);
-	write<Iowin>(irte);
+	write<Iowin>((Iowin::access_t)(irte));
 }
 
 
@@ -251,9 +251,9 @@ Global_interrupt_controller::Global_interrupt_controller()
 		if (i < _irte_count) {
 			Irte::access_t irte = _create_irt_entry(i);
 			write<Ioregsel>(IOREDTBL + 2 * i + 1);
-			write<Iowin>(irte >> Iowin::ACCESS_WIDTH);
+			write<Iowin>((Iowin::access_t)(irte >> Iowin::ACCESS_WIDTH));
 			write<Ioregsel>(IOREDTBL + 2 * i);
-			write<Iowin>(irte);
+			write<Iowin>((Iowin::access_t)(irte));
 		}
 	}
 };
@@ -284,5 +284,5 @@ void Global_interrupt_controller::toggle_mask(unsigned const vector,
 	write<Ioregsel>(IOREDTBL + (2 * irq));
 	Irte::access_t irte = read<Iowin>();
 	Irte::Mask::set(irte, set);
-	write<Iowin>(irte);
+	write<Iowin>((Iowin::access_t)(irte));
 }

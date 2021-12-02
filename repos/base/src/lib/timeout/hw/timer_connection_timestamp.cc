@@ -25,5 +25,5 @@ using namespace Genode;
 
 Trace::Timestamp Timer::Connection::_timestamp()
 {
-	return Kernel::time();
+	return (Trace::Timestamp)Kernel::time();
 }

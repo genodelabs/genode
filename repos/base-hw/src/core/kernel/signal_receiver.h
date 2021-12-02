@@ -203,8 +203,8 @@ class Kernel::Signal_context
 		                              Signal_receiver & receiver,
 		                              addr_t const imprint)
 		{
-			return call(call_id_new_signal_context(), (Call_arg)&c,
-			            (Call_arg)&receiver, (Call_arg)imprint);
+			return (capid_t)call(call_id_new_signal_context(), (Call_arg)&c,
+			                     (Call_arg)&receiver, (Call_arg)imprint);
 		}
 
 		/**
@@ -283,7 +283,7 @@ class Kernel::Signal_receiver
 		 * \retval capability id of the new kernel object
 		 */
 		static capid_t syscall_create(Genode::Kernel_object<Signal_receiver> &r) {
-			return call(call_id_new_signal_receiver(), (Call_arg)&r); }
+			return (capid_t)call(call_id_new_signal_receiver(), (Call_arg)&r); }
 
 		/**
 		 * Syscall to destruct a signal receiver

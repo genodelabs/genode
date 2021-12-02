@@ -19,8 +19,8 @@ using namespace Genode;
 
 inline void Avl_node_base::_recompute_depth(Policy &policy)
 {
-	unsigned char old_depth = _depth;
-	_depth = max(_child_depth(LEFT), _child_depth(RIGHT)) + 1;
+	uint8_t old_depth = _depth;
+	_depth = (uint8_t)(max(_child_depth(LEFT), _child_depth(RIGHT)) + 1);
 
 	/* if our own value changes, update parent */
 	if (_depth != old_depth && _parent)

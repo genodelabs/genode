@@ -55,7 +55,7 @@ static inline bool ipc_error(l4_msgtag_t tag, bool print)
 }
 
 
-static constexpr unsigned long INVALID_BADGE = ~0UL;
+static constexpr Cap_index::id_t INVALID_BADGE = 0xffff;
 
 
 /**
@@ -63,9 +63,9 @@ static constexpr unsigned long INVALID_BADGE = ~0UL;
  */
 struct Cap_info
 {
-	bool          valid = false;
-	unsigned long sel   = 0;
-	unsigned long badge = 0;
+	bool            valid = false;
+	unsigned long   sel   = 0;
+	Cap_index::id_t badge = 0;
 };
 
 
@@ -114,7 +114,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 
 	for (unsigned i = 0, sel_idx = 0; i < num_caps; i++) {
 
-		unsigned long const badge = *msg_words++;
+		Cap_index::id_t const badge = (Cap_index::id_t)(*msg_words++);
 
 		if (badge == INVALID_BADGE)
 			continue;
@@ -201,7 +201,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 		Native_capability const &cap = snd_msg.cap(i);
 		if (cap.valid()) {
 			caps[i].valid = true;
-			caps[i].badge = cap.local_name();
+			caps[i].badge = (Cap_index::id_t)cap.local_name();
 			caps[i].sel   = cap.data()->kcap();
 		}
 	}

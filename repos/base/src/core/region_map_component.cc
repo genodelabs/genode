@@ -424,7 +424,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 					continue;
 
 				/* try allocating the align region */
-				_map.alloc_aligned(size, align_log2).with_result(
+				_map.alloc_aligned(size, (unsigned)align_log2).with_result(
 
 					[&] (void *ptr) {
 						attach_at = ptr;

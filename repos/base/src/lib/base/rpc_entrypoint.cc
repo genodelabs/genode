@@ -52,7 +52,7 @@ void Rpc_entrypoint::reply_signal_info(Untyped_capability reply_cap,
                                        unsigned long imprint, unsigned long cnt)
 {
 	Msgbuf<sizeof(Signal_source::Signal)> snd_buf;
-	snd_buf.insert(Signal_source::Signal(imprint, cnt));
+	snd_buf.insert(Signal_source::Signal(imprint, (int)cnt));
 	ipc_reply(reply_cap, Rpc_exception_code(Rpc_exception_code::SUCCESS), snd_buf);
 }
 

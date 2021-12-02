@@ -87,8 +87,8 @@ static seL4_MessageInfo_t new_seL4_message(Msgbuf_base const &msg)
 	 * Supply capabilities to kernel IPC message
 	 */
 	seL4_SetMR(MR_IDX_NUM_CAPS, msg.used_caps());
-	size_t sel4_sel_cnt = 0;
-	for (size_t i = 0; i < msg.used_caps(); i++) {
+	unsigned sel4_sel_cnt = 0;
+	for (unsigned i = 0; i < msg.used_caps(); i++) {
 
 		Native_capability const &cap = msg.cap(i);
 
@@ -107,17 +107,17 @@ static seL4_MessageInfo_t new_seL4_message(Msgbuf_base const &msg)
 	 * Pad unused capability slots with invalid capabilities to avoid
 	 * leakage of any information that happens to be in the IPC buffer.
 	 */
-	for (size_t i = msg.used_caps(); i < Msgbuf_base::MAX_CAPS_PER_MSG; i++)
+	for (unsigned i = (unsigned)msg.used_caps(); i < Msgbuf_base::MAX_CAPS_PER_MSG; i++)
 		seL4_SetMR(MR_IDX_CAPS + i, Rpc_obj_key::INVALID);
 
 	/*
 	 * Supply data payload
 	 */
-	size_t const num_data_mwords =
-		align_natural(msg.data_size()) / sizeof(umword_t);
+	unsigned const num_data_mwords =
+		align_natural((unsigned)(msg.data_size() / sizeof(umword_t)));
 
 	umword_t const *src = (umword_t const *)msg.data();
-	for (size_t i = 0; i < num_data_mwords; i++)
+	for (unsigned i = 0; i < num_data_mwords; i++)
 		seL4_SetMR(MR_IDX_DATA + i, *src++);
 
 	seL4_MessageInfo_t const msg_info =
@@ -139,16 +139,17 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 	 * You must not use any Genode primitives which may corrupt the IPCBuffer
 	 * during this step, e.g. Lock or RPC for output !!!
 	 */
-	size_t const num_caps = min(seL4_GetMR(MR_IDX_NUM_CAPS),
-	                            (addr_t)Msgbuf_base::MAX_CAPS_PER_MSG);
-	uint32_t const caps_extra = seL4_MessageInfo_get_extraCaps(msg_info);
-	uint32_t const caps_unwrapped = seL4_MessageInfo_get_capsUnwrapped(msg_info);
-	uint32_t const num_msg_words = seL4_MessageInfo_get_length(msg_info);
+	unsigned const num_caps = min((unsigned)seL4_GetMR(MR_IDX_NUM_CAPS),
+	                              (unsigned)Msgbuf_base::MAX_CAPS_PER_MSG);
+
+	uint32_t const caps_extra     = (uint32_t)seL4_MessageInfo_get_extraCaps(msg_info);
+	uint32_t const caps_unwrapped = (uint32_t)seL4_MessageInfo_get_capsUnwrapped(msg_info);
+	uint32_t const num_msg_words  = (uint32_t)seL4_MessageInfo_get_length(msg_info);
 
 	Rpc_obj_key rpc_obj_keys[Msgbuf_base::MAX_CAPS_PER_MSG];
 	unsigned long arg_badges[Msgbuf_base::MAX_CAPS_PER_MSG];
 
-	for (size_t i = 0; i < num_caps; i++) {
+	for (unsigned i = 0; i < num_caps; i++) {
 		rpc_obj_keys[i] = Rpc_obj_key(seL4_GetMR(MR_IDX_CAPS + i));
 		if (!rpc_obj_keys[i].valid())
 			/*
@@ -169,11 +170,11 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 	if (num_msg_words >= MR_IDX_DATA) {
 
 		/* copy data payload */
-		size_t const max_words      = dst_msg.capacity()/sizeof(umword_t);
-		size_t const num_data_words = min(num_msg_words - MR_IDX_DATA, max_words);
+		unsigned const max_words      = (unsigned)(dst_msg.capacity() / sizeof(umword_t));
+		unsigned const num_data_words = min(num_msg_words - MR_IDX_DATA, max_words);
 
 		umword_t *dst = (umword_t *)dst_msg.data();
-		for (size_t i = 0; i < num_data_words; i++)
+		for (unsigned i = 0; i < num_data_words; i++)
 			*dst++ = seL4_GetMR(MR_IDX_DATA + i);
 
 		dst_msg.data_size(num_data_words*sizeof(umword_t));
@@ -318,7 +319,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 	rcv_msg.reset();
 
-	unsigned const dst_sel = Capability_space::ipc_cap_data(dst).sel.value();
+	unsigned const dst_sel = (unsigned)Capability_space::ipc_cap_data(dst).sel.value();
 
 	/**
 	 * Do not use Genode primitives after this point until the return which may
@@ -327,7 +328,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 	seL4_MessageInfo_t const request = new_seL4_message(snd_msg);
 	seL4_MessageInfo_t const reply_msg_info = seL4_Call(dst_sel, request);
-	Rpc_exception_code const exc_code(seL4_GetMR(MR_IDX_EXC_CODE));
+	Rpc_exception_code const exc_code((int)seL4_GetMR(MR_IDX_EXC_CODE));
 
 	decode_seL4_message(reply_msg_info, rcv_msg);
 

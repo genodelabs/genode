@@ -186,7 +186,7 @@ class Genode::Arg
 
 			/* unpack string to dst */
 			size_t num_chars = min(dst_len - 1, _value.len());
-			if (unpack_string(_value.start(), dst, num_chars) < 0)
+			if (unpack_string(_value.start(), dst, num_chars) == 0UL)
 				copy_cstring(dst, default_string, dst_len);
 		}
 
@@ -240,7 +240,7 @@ class Genode::Arg_string
 		 */
 		static char *_append(char *dst, const char *src)
 		{
-			unsigned src_len = strlen(src);
+			size_t const src_len = strlen(src);
 			while (*dst) dst++;
 			memcpy(dst, src, src_len + 1);
 			return dst + src_len;
@@ -288,13 +288,13 @@ class Genode::Arg_string
 		/**
 		 * Add new argument
 		 */
-		static bool add_arg(char *args, unsigned args_len,
-		                    const char *key, const char *value,
-		                    Token::Type type = Token::Type::IDENT)
+		static bool add_arg(char *args, size_t const args_len,
+		                    const char * const key, const char * const value,
+		                    Token::Type const type = Token::Type::IDENT)
 		{
 			if (!args || !key || !value) return false;
 
-			unsigned old_len = strlen(args);
+			size_t const old_len = strlen(args);
 
 			/* check if args string has enough capacity */
 			if ((type == Token::Type::STRING
@@ -317,7 +317,7 @@ class Genode::Arg_string
 		/**
 		 * Assign new value to argument
 		 */
-		static bool set_arg(char *args, unsigned args_len,
+		static bool set_arg(char *args, size_t args_len,
 		                    const char *key, const char *value)
 		{
 			return remove_arg(args, key) && add_arg(args, args_len, key, value);
@@ -326,7 +326,7 @@ class Genode::Arg_string
 		/**
 		 * Assign new integer argument
 		 */
-		static bool set_arg(char *args, unsigned args_len,
+		static bool set_arg(char *args, size_t args_len,
 		                    const char *key, int value)
 		{
 			enum { STRING_LONG_MAX = 32 };
@@ -338,7 +338,7 @@ class Genode::Arg_string
 		/**
 		 * Assign new string argument
 		 */
-		static bool set_arg_string(char *args, unsigned args_len,
+		static bool set_arg_string(char *args, size_t args_len,
 		                    const char *key, const char *value)
 		{
 			return remove_arg(args, key)

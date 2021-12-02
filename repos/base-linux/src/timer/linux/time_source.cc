@@ -23,7 +23,7 @@ using namespace Genode;
 
 
 inline int lx_gettimeofday(struct timeval *tv, struct timeval *tz) {
-	return lx_syscall(SYS_gettimeofday, tv, tz); }
+	return (int)lx_syscall(SYS_gettimeofday, tv, tz); }
 
 
 Microseconds Timer::Time_source::max_timeout() const

@@ -148,7 +148,7 @@ void Irq_object::ack_irq()
 
 Irq_object::Irq_object()
 :
-	 _cap(cap_map().insert(platform_specific().cap_id_alloc().alloc())),
+	 _cap(cap_map().insert((Cap_index::id_t)platform_specific().cap_id_alloc().alloc())),
 	 _trigger(Irq_session::TRIGGER_UNCHANGED),
 	 _polarity(Irq_session::POLARITY_UNCHANGED),
 	 _irq(~0U), _msi_addr(0), _msi_data(0)
@@ -252,7 +252,7 @@ Irq_session::Info Irq_session_component::info()
 
 	return {
 		.type    = Genode::Irq_session::Info::Type::MSI,
-		.address = _irq_object.msi_address(),
+		.address = (addr_t)_irq_object.msi_address(),
 		.value   = _irq_object.msi_value()
 	};
 }

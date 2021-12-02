@@ -166,8 +166,10 @@ class Genode::Vm_space
 		/**
 		 * Return selector for a capability slot within '_vm_cnodes'
 		 */
-		addr_t _idx_to_sel(addr_t idx) const { return (_id << 20) | idx; }
-
+		Cap_sel _idx_to_sel(addr_t idx) const
+		{
+			return Cap_sel((uint32_t)((_id << 20) | idx));
+		}
 
 		template <typename FN>
 		void _flush(bool const flush_support, FN const &fn)
@@ -201,13 +203,13 @@ class Genode::Vm_space
 				return true;
 			}
 			/* allocate page-table-entry selector */
-			addr_t pte_idx;
-			try { pte_idx = _sel_alloc.alloc(); }
+			uint32_t pte_idx = 0;
+			try { pte_idx = (uint32_t)_sel_alloc.alloc(); }
 			catch (Selector_allocator::Out_of_indices) {
 
 				/* free all page-table-entry selectors and retry once */
 				_flush(attr.flush_support, fn);
-				pte_idx = _sel_alloc.alloc();
+				pte_idx = (uint32_t)_sel_alloc.alloc();
 			}
 
 			/*
@@ -217,7 +219,7 @@ class Genode::Vm_space
 			 * inserted into only a single page table.
 			 */
 			_leaf_cnode(pte_idx).copy(_phys_cnode,
-			                          Cnode_index(from_phys >> get_page_size_log2()),
+			                          Cnode_index((uint32_t)(from_phys >> get_page_size_log2())),
 			                          Cnode_index(_leaf_cnode_entry(pte_idx)));
 
 			/* remember relationship between pte_sel and the virtual address */
@@ -256,11 +258,11 @@ class Genode::Vm_space
 		 */
 		template <typename KOBJ>
 		Cap_sel _alloc_and_map(addr_t const virt,
-			                   long (&map_fn)(Cap_sel, Cap_sel, addr_t),
-			                   addr_t &phys)
+		                       long (&map_fn)(Cap_sel, Cap_sel, addr_t),
+		                       addr_t &phys)
 		{
 			/* allocate page-* selector */
-			addr_t const idx = _sel_alloc.alloc();
+			uint32_t const idx = (uint32_t)_sel_alloc.alloc();
 
 			try {
 				phys = Untyped_memory::alloc_page(_phys_alloc);
@@ -272,7 +274,7 @@ class Genode::Vm_space
 				 throw Alloc_page_table_failed();
 			}
 
-			Cap_sel const pt_sel(_idx_to_sel(idx));
+			Cap_sel const pt_sel = _idx_to_sel(idx);
 
 			long const result = map_fn(pt_sel, _pd_sel, virt);
 			if (result != seL4_NoError)

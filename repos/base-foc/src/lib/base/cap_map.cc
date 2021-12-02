@@ -104,7 +104,7 @@ uint8_t Cap_index::dec()
  **  Capability_map class  **
  ****************************/
 
-Cap_index* Capability_map::find(int id)
+Cap_index* Capability_map::find(Cap_index::id_t id)
 {
 	Lock_guard<Spin_lock> guard(_lock);
 
@@ -112,7 +112,7 @@ Cap_index* Capability_map::find(int id)
 }
 
 
-Cap_index* Capability_map::insert(int id)
+Cap_index* Capability_map::insert(Cap_index::id_t id)
 {
 	Lock_guard<Spin_lock> guard(_lock);
 
@@ -128,7 +128,7 @@ Cap_index* Capability_map::insert(int id)
 }
 
 
-Cap_index* Capability_map::insert(int id, addr_t kcap)
+Cap_index* Capability_map::insert(Cap_index::id_t id, addr_t kcap)
 {
 	Lock_guard<Spin_lock> guard(_lock);
 
@@ -146,7 +146,7 @@ Cap_index* Capability_map::insert(int id, addr_t kcap)
 }
 
 
-Cap_index* Capability_map::insert_map(int id, addr_t kcap)
+Cap_index* Capability_map::insert_map(Cap_index::id_t id, addr_t kcap)
 {
 	using namespace Foc;
 

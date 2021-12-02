@@ -100,9 +100,9 @@ addr_t Cap_range::alloc(size_t const num_log2)
 		do {
 
 			/* align i to num_log2 */
-			unsigned i = ((_base + last + step - 1) & ~(step - 1)) - _base;
+			unsigned i = (unsigned)(((_base + last + step - 1) & ~(step - 1)) - _base);
 			unsigned j;
-			for (; i + step < max; i += step) {
+			for (; i + step < max; i += (unsigned)step) {
 				for (j = 0; j < step; j++)
 					if (_cap_array[i+j])
 						break;
@@ -116,7 +116,7 @@ addr_t Cap_range::alloc(size_t const num_log2)
 				return _base + i;
 			}
 
-			max  = last;
+			max  = (unsigned)last;
 			last = 0;
 
 		} while (max);
@@ -157,7 +157,7 @@ addr_t Capability_map::insert(size_t const num_log_2, addr_t const sel)
 		return ~0UL;
 
 	for (unsigned i = 0; i < 1UL << num_log_2; i++)
-		range->inc(sel + i - range->base());
+		range->inc((unsigned)(sel + i - range->base()));
 
 	return sel;
 }
@@ -170,13 +170,13 @@ void Capability_map::remove(Genode::addr_t const sel, uint8_t num_log_2,
 	if (!range)
 		return;
 
-	range->dec(sel - range->base(), revoke, num_log_2);
+	range->dec((unsigned)(sel - range->base()), revoke, num_log_2);
 
 	Genode::addr_t last_sel   = sel + (1UL << num_log_2);
 	Genode::addr_t last_range = range->base() + range->elements();
 
 	while (last_sel > last_range) {
-		uint8_t left_log2 = log2(last_sel - last_range);
+		uint8_t left_log2 = (uint8_t)log2(last_sel - last_range);
 
 		/* take care for a case which should not happen */
 		if (left_log2 >= sizeof(last_range)*8) {

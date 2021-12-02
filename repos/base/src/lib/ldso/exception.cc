@@ -107,7 +107,7 @@ extern "C" unsigned long dl_unwind_find_exidx(unsigned long pc, int *pcount)
 		if (!exidx)
 			return;
 
-		*pcount = exidx->p_memsz / EXIDX_ENTRY_SIZE;
+		*pcount = (int)(exidx->p_memsz / EXIDX_ENTRY_SIZE);
 		value = exidx->p_vaddr + obj.reloc_base();
 	});
 

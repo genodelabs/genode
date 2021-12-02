@@ -71,7 +71,7 @@ namespace {
 			unsigned alloc()
 			{
 				Mutex::Guard guard(_mutex);
-				return Bit_allocator::alloc();
+				return (unsigned)Bit_allocator::alloc();
 			}
 
 			void free(unsigned sel)

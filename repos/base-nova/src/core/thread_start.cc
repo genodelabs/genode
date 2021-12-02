@@ -96,7 +96,7 @@ void Thread::start()
 	Affinity::Location location = _affinity;
 
 	if (!location.valid())
-		location = Affinity::Location(boot_cpu(), 0);
+		location = Affinity::Location((int)boot_cpu(), 0);
 
 	/* create local EC */
 	enum { LOCAL_THREAD = false };

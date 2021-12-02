@@ -66,7 +66,7 @@ class Hw::Page_table_allocator
 		{
 			static_assert((sizeof(TABLE) == TABLE_SIZE), "unexpected size");
 			table.~TABLE();
-			_free(_offset(table) / sizeof(TABLE));
+			_free((unsigned)(_offset(table) / sizeof(TABLE)));
 		}
 };
 
@@ -114,7 +114,7 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 		unsigned _alloc() override
 		{
 			try {
-				return _free_tables.alloc();
+				return (unsigned)_free_tables.alloc();
 			} catch (typename Bit_allocator::Out_of_indices&) {}
 			throw Out_of_tables();
 		}
