@@ -41,9 +41,9 @@ class Lx_kit::Console
 		static inline char _ascii(int digit, int uppercase = 0)
 		{
 			if (digit > 9)
-				return digit + (uppercase ? 'A' : 'a') - 10;
+				return (char)(digit + (uppercase ? 'A' : 'a') - 10);
 
-			return digit + '0';
+			return (char)(digit + '0');
 		}
 
 		/**
@@ -74,7 +74,7 @@ class Lx_kit::Console
 			/* fill buffer starting with the least significant digits */
 			else
 				for (; value > 0; value /= base)
-					buf[i++] = _ascii(value % base);
+					buf[i++] = _ascii((value % base) & 0xff);
 
 			/* add sign to buffer for negative values */
 			if (neg)
@@ -108,8 +108,8 @@ class Lx_kit::Console
 			}
 
 			/* fill buffer starting with the least significant digits */
-			for (; value > 0; value /= base, pad--)
-				buf[i++] = _ascii(value % base);
+			for (; value > 0; value /= (T)base, pad--)
+				buf[i++] = _ascii((value % base) & 0xff);
 
 			/* add padding zeros */
 			for (; pad-- > 0; )

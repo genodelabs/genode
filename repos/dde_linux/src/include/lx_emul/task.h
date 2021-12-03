@@ -34,7 +34,7 @@ void lx_emul_task_create(struct task_struct * task,
 
 void lx_emul_task_unblock(struct task_struct * task);
 
-void lx_emul_task_priority(struct task_struct * task, unsigned long prio);
+void lx_emul_task_priority(struct task_struct * task, int prio);
 
 void lx_emul_task_schedule(int block);
 
