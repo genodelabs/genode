@@ -95,7 +95,7 @@ void * Lx_kit::Mem_allocator::alloc(size_t size, size_t align)
 	if (!size)
 		return nullptr;
 
-	return _mem.alloc_aligned(size, log2(align)).convert<void *>(
+	return _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
 
 		[&] (void *ptr) {
 			memset(ptr, 0, size);
@@ -124,7 +124,7 @@ void * Lx_kit::Mem_allocator::alloc(size_t size, size_t align)
 			_mem.add_range((addr_t)ds.local_addr<void>(), ds.size() - 1);
 
 			/* re-try allocation */
-			return _mem.alloc_aligned(size, log2(align)).convert<void *>(
+			return _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
 
 				[&] (void *ptr) {
 					memset(ptr, 0, size);

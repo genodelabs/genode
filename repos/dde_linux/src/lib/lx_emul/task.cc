@@ -43,8 +43,7 @@ extern "C" void lx_emul_task_unblock(struct task_struct * t)
 }
 
 
-extern "C" void lx_emul_task_priority(struct task_struct * t,
-                                      unsigned long prio)
+extern "C" void lx_emul_task_priority(struct task_struct * t, int prio)
 {
 	Lx_kit::env().scheduler.task((void*)t).priority(prio);
 }

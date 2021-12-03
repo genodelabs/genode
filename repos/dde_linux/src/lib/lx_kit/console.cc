@@ -275,7 +275,7 @@ void Lx_kit::Console::vprintf(const char *format, va_list list)
 
 			case Format_command::CHAR:
 
-				_out_char(va_arg(list, int));
+				_out_char((char)(va_arg(list, int)));
 				break;
 
 			case Format_command::STRING:
