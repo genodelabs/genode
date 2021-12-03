@@ -73,7 +73,7 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 						Glyph_header const header(glyph);
 
 						char const * const src = (char const *)&header + byte_offset;
-						size_t const len = min(sizeof(header) - byte_offset, count);
+						size_t const len = min(sizeof(header) - (size_t)byte_offset, (size_t)count);
 						memcpy(dst, src, len);
 
 						dst         += len;
@@ -87,12 +87,12 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 					 * continue working with 'alpha_offset', which is the first
 					 * offset of interest within the array of alpha values.
 					 */
-					size_t const alpha_offset = byte_offset - sizeof(Glyph_header);
+					size_t const alpha_offset = (size_t)byte_offset - sizeof(Glyph_header);
 					size_t const alpha_values_len = 4*glyph.width*glyph.height;
 
 					if (alpha_offset < alpha_values_len) {
 						char const * const src = (char const *)glyph.values + alpha_offset;
-						size_t const len = min(alpha_values_len - alpha_offset, count);
+						size_t const len = min(alpha_values_len - alpha_offset, (size_t)count);
 						memcpy(dst, src, len);
 						out_count += len;
 					}

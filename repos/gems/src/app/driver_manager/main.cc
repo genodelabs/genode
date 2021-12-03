@@ -466,8 +466,8 @@ void Driver_manager::Main::_handle_pci_devices_update()
 
 	_pci_devices.xml().for_each_sub_node([&] (Xml_node device) {
 
-		uint16_t const vendor_id  = device.attribute_value("vendor_id",  0UL);
-		uint16_t const class_code = device.attribute_value("class_code", 0UL) >> 8;
+		uint16_t const vendor_id  = (uint16_t)device.attribute_value("vendor_id",  0U);
+		uint16_t const class_code = (uint16_t)(device.attribute_value("class_code", 0U) >> 8);
 
 		enum {
 			VENDOR_VBOX  = 0x80EEU,

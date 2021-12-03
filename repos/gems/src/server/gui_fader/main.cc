@@ -441,14 +441,14 @@ struct Gui_fader::Main
 
 	enum { PERIOD = 20 };
 
-	unsigned long alpha = 0;
+	unsigned alpha = 0;
 
-	unsigned long fade_in_steps  = 0;
-	unsigned long fade_out_steps = 0;
+	unsigned fade_in_steps  = 0;
+	unsigned fade_out_steps = 0;
 
 	bool initial_fade_in = true;
 
-	unsigned long initial_fade_in_steps  = 0;
+	unsigned initial_fade_in_steps  = 0;
 
 	Genode::uint64_t curr_frame() const { return timer.elapsed_ms() / PERIOD; }
 
@@ -471,7 +471,7 @@ struct Gui_fader::Main
 	void handle_timer()
 	{
 		Genode::uint64_t frame = curr_frame();
-		if (gui_session.animate(frame - last_frame))
+		if (gui_session.animate((unsigned)(frame - last_frame)))
 			timer.trigger_once(PERIOD);
 
 		last_frame = frame;
@@ -502,7 +502,7 @@ void Gui_fader::Main::handle_config_update()
 
 	Genode::Xml_node config_xml = config.xml();
 
-	unsigned long new_alpha = alpha;
+	unsigned new_alpha = alpha;
 	if (config_xml.has_attribute("alpha"))
 		config_xml.attribute("alpha").value(new_alpha);
 
@@ -515,7 +515,7 @@ void Gui_fader::Main::handle_config_update()
 
 		bool const fade_in = (new_alpha > alpha);
 
-		int const steps =
+		unsigned const steps =
 			fade_in ? (initial_fade_in ? initial_fade_in_steps : fade_in_steps)
 			        : fade_out_steps;
 

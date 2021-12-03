@@ -101,8 +101,11 @@ struct Backdrop::Main
 		void flush_surface()
 		{
 			/* blit back to front buffer */
-			blit(surface_ds.local_addr<void>(), surface_num_bytes(),
-			     fb_ds.local_addr<void>(), surface_num_bytes(), surface_num_bytes(), 1);
+			blit(surface_ds.local_addr<void>(),
+			     (unsigned)surface_num_bytes(),
+			     fb_ds.local_addr<void>(),
+			     (unsigned)surface_num_bytes(),
+			     (unsigned)surface_num_bytes(), 1);
 		}
 	};
 

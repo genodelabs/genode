@@ -20,7 +20,7 @@
 
 void Sculpt::gen_runtime_view_start_content(Xml_generator &xml,
                                             Child_state const &state,
-                                            float font_size)
+                                            double font_size)
 {
 	state.gen_start_node_content(xml);
 

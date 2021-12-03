@@ -134,7 +134,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 			bool suffix_matches = false;
 			if (label.length() >= _label_suffix.length()) {
-				unsigned const offset = label.length() - _label_suffix.length();
+				unsigned const offset = (unsigned)(label.length() - _label_suffix.length());
 				suffix_matches = !strcmp(_label.string() + offset, _label_suffix.string());
 			}
 

@@ -128,7 +128,7 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 				out_count = 0;
 				_entries.for_each_new_entry([&](Trace::Buffer::Entry entry) {
 					file_size size = min(count - out_count, entry.length());
-					memcpy(dst + out_count, entry.data(), size);
+					memcpy(dst + out_count, entry.data(), (size_t)size);
 					out_count += size;
 
 					if (out_count == count)
@@ -351,7 +351,7 @@ struct Vfs_trace::Local_factory : File_system_factory
 	Trace::Connection  _trace;
 	enum { MAX_SUBJECTS = 128 };
 	Trace::Subject_id  _subjects[MAX_SUBJECTS];
-	unsigned           _subject_count { 0 };
+	size_t             _subject_count { 0 };
 	Trace::Policy_id   _policy_id { 0 };
 
 	Directory_tree     _tree { _env.alloc() };
@@ -402,7 +402,7 @@ struct Vfs_trace::Local_factory : File_system_factory
 			}
 		}
 
-		for (unsigned i = 0; i < _subject_count; i++) {
+		for (size_t i = 0; i < _subject_count; i++) {
 			_tree.insert(_trace.subject_info(_subjects[i]), _subjects[i]);
 		}
 

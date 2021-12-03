@@ -41,7 +41,7 @@ struct Text_area::Dynamic_array
 
 		Element *_array = nullptr;
 
-		unsigned _capacity    = 0;
+		size_t   _capacity    = 0;
 		unsigned _upper_bound = 0; /* index after last used element */
 
 		bool _index_valid(Index at) const

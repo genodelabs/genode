@@ -40,11 +40,11 @@ class Genode::Lru_cache : Noncopyable
 
 		struct Time { unsigned value; };
 
-		Allocator     &_alloc;
-		unsigned const _max_elements;
-		unsigned       _used_elements = 0;
-		Time           _now { 0 };
-		Stats          _stats { };
+		Allocator   &_alloc;
+		size_t  const _max_elements;
+		size_t        _used_elements = 0;
+		Time          _now { 0 };
+		Stats         _stats { };
 
 		class Tag
 		{

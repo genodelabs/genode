@@ -52,7 +52,7 @@ class File_vault::Child_exit_state
 
 					if (child.has_attribute("exited")) {
 						_exited = true;
-						_code = child.attribute_value("exited", 0L);
+						_code = (int)child.attribute_value("exited", 0L);
 					}
 
 					_responsive = (child.attribute_value("skipped_heartbeats", 0U) <= 2);

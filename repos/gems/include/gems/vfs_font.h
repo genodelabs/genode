@@ -43,7 +43,7 @@ class Genode::Vfs_font : public Text_painter::Font
 
 				float _advance() const
 				{
-					float value = 256.0*_advance_decimal + _advance_fractional;
+					float value = 256.0f*_advance_decimal + _advance_fractional;
 					return value/256;
 				}
 
@@ -83,7 +83,7 @@ class Genode::Vfs_font : public Text_painter::Font
 		{
 			Allocator &_alloc;
 
-			unsigned const num_bytes;
+			size_t const num_bytes;
 
 			Glyph_header &header;
 

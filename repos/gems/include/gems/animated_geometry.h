@@ -60,8 +60,8 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 				}
 			}
 
-			int x() const { return _x >> 10; }
-			int y() const { return _y >> 10; }
+			int x() const { return (int)(_x >> 10); }
+			int y() const { return (int)(_y >> 10); }
 		};
 
 		Animated_point _p1 { }, _p2 { };

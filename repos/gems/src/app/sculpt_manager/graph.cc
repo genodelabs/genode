@@ -302,12 +302,12 @@ Dialog::Hover_result Graph::hover(Xml_node hover)
 			if (!dialog.has_type("dialog")) return Rect();
 
 			auto point_from_xml = [] (Xml_node node) {
-				return Point(node.attribute_value("xpos", 0L),
-				             node.attribute_value("ypos", 0L)); };
+				return Point((int)node.attribute_value("xpos", 0L),
+				             (int)node.attribute_value("ypos", 0L)); };
 
 			auto area_from_xml = [] (Xml_node node) {
-				return Area(node.attribute_value("width",  0UL),
-				            node.attribute_value("height", 0UL)); };
+				return Area(node.attribute_value("width",  0U),
+				            node.attribute_value("height", 0U)); };
 
 			if (!dialog.has_sub_node("depgraph")) return Rect();
 			Xml_node const depgraph = dialog.sub_node("depgraph");

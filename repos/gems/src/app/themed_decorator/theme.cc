@@ -124,10 +124,10 @@ struct Margins_from_metadata : Decorator::Theme::Margins
 		Decorator::Theme::Margins()
 	{
 		Genode::Xml_node aura = metadata(alloc).sub_node(sub_node);
-		top    = aura.attribute_value("top",    0UL);
-		bottom = aura.attribute_value("bottom", 0UL);
-		left   = aura.attribute_value("left",   0UL);
-		right  = aura.attribute_value("right",  0UL);
+		top    = aura.attribute_value("top",    0U);
+		bottom = aura.attribute_value("bottom", 0U);
+		left   = aura.attribute_value("left",   0U);
+		right  = aura.attribute_value("right",  0U);
 	}
 };
 

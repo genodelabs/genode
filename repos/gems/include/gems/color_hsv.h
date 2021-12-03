@@ -21,16 +21,17 @@
  */
 static inline Genode::Color color_from_hsv(unsigned h, unsigned s, unsigned v)
 {
-	typedef Genode::Color Color;
+	using Color   = Genode::Color;
+	using uint8_t = Genode::uint8_t;
 
 	if (s == 0)
 		return Color(v, v, v);
 
-	unsigned char const region = h / 43;
-	unsigned char const remainder = (h - (region*43)) * 6;
-	unsigned char const p = (v*(255 - s)) >> 8,
-	                    q = (v*(255 - ((s*remainder) >> 8))) >> 8,
-	                    t = (v*(255 - ((s*(255 - remainder)) >> 8))) >> 8;
+	uint8_t const region    = (uint8_t)(h / 43);
+	uint8_t const remainder = (uint8_t)((h - (region*43)) * 6);
+	uint8_t const p = (uint8_t)((v*(255 - s)) >> 8),
+	              q = (uint8_t)((v*(255 - ((s*remainder) >> 8))) >> 8),
+	              t = (uint8_t)((v*(255 - ((s*(255 - remainder)) >> 8))) >> 8);
 
 	switch (region) {
 	case 0:  return Color(v, t, p);

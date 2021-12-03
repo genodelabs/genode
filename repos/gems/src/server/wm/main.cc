@@ -73,7 +73,7 @@ struct Wm::Main : Pointer::Tracker
 			if (!focus_rom.valid())
 				return;
 
-			unsigned long win_id = 0;
+			unsigned win_id = 0;
 
 			Xml_node(focus_rom.local_addr<char>()).sub_node("window")
 				.attribute("id").value(win_id);
@@ -97,10 +97,10 @@ struct Wm::Main : Pointer::Tracker
 
 		resize_request_rom.xml().for_each_sub_node("window", [&] (Xml_node window) {
 
-			unsigned long const
-				win_id = window.attribute_value("id",     0UL),
-				width  = window.attribute_value("width",  0UL),
-				height = window.attribute_value("height", 0UL);
+			unsigned const
+				win_id = window.attribute_value("id",     0U),
+				width  = window.attribute_value("width",  0U),
+				height = window.attribute_value("height", 0U);
 
 			gui_root.request_resize(win_id, Area(width, height));
 		});

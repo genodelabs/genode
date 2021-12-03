@@ -232,7 +232,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 		case Command::OP_TITLE:
 			{
-				unsigned long id = 0;
+				unsigned id = 0;
 				Genode::ascii_to(cmd.title.title.string(), id);
 
 				if (id > 0)

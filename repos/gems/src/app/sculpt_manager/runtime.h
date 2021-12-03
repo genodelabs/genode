@@ -51,7 +51,7 @@ namespace Sculpt {
 	void gen_launcher_query_start_content(Xml_generator &);
 
 	void gen_runtime_view_start_content(Xml_generator &, Child_state const &,
-	                                    float font_size);
+	                                    double font_size);
 
 	struct Inspect_view_version { unsigned value; };
 	void gen_inspect_view(Xml_generator &, Storage_devices const &,

@@ -48,7 +48,7 @@ class Vfs_replay
 
 		Xml_node _replay_node;
 		Xml_node _request_node { "<empty/>" };
-		unsigned _num_requests { 0 };
+		size_t   _num_requests { 0 };
 		unsigned _curr_request_id { 0 };
 
 		bool _finished { false };

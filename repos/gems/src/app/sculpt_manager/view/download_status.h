@@ -42,9 +42,9 @@ void Sculpt::gen_download_status(Xml_generator &xml, Xml_node state)
 
 					typedef String<16> Info;
 
-					Info        info  = archive.attribute_value("state", Info());
-					float const total = archive.attribute_value("total", 0.0);
-					float const now   = archive.attribute_value("now",   0.0);
+					Info         info  = archive.attribute_value("state", Info());
+					double const total = archive.attribute_value("total", 0.0d);
+					double const now   = archive.attribute_value("now",   0.0d);
 
 					if (info == "download") {
 						if (total > 0.0)

@@ -60,7 +60,7 @@ class Scene : public Nano3d::Scene<PT>
 
 						int const radius = Nano3d::sqrt(dx*dx + dy*dy);
 
-						alpha[y][x] = 250 - (radius*250)/r_max;
+						alpha[y][x] = (unsigned char)(250 - (radius*250)/r_max);
 
 						if ((x&4) ^ (y&4))
 							alpha[y][x] = 0;

@@ -39,6 +39,8 @@ struct Gui_buffer
 
 	typedef Genode::Attached_ram_dataspace Ram_ds;
 
+	using size_t = Genode::size_t;
+
 	Genode::Ram_allocator &ram;
 	Genode::Region_map    &rm;
 
@@ -116,7 +118,7 @@ struct Gui_buffer
 
 		Pixel_rgb888 const gray(127, 127, 127, 255);
 
-		for (unsigned n = num_pixels; n; n--)
+		for (size_t n = num_pixels; n; n--)
 			*dst++ = gray;
 	}
 
@@ -134,7 +136,7 @@ struct Gui_buffer
 
 	void _update_input_mask()
 	{
-		unsigned const num_pixels = size().count();
+		size_t const num_pixels = size().count();
 
 		unsigned char * const alpha_base = fb_ds.local_addr<unsigned char>()
 		                                 + mode.bytes_per_pixel()*num_pixels;

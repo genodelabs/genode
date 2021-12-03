@@ -156,7 +156,7 @@ class Decorator::Config
 			 * We always report at least one window control. Even if none
 			 * was configured, we present a title.
 			 */
-			return Genode::max(_num_window_controls, 1UL);
+			return Genode::max(_num_window_controls, 1U);
 		}
 
 		/**
@@ -178,11 +178,11 @@ class Decorator::Config
 		/**
 		 * Return gradient intensity in percent
 		 */
-		int gradient_percent(Window_title const &title) const
+		unsigned gradient_percent(Window_title const &title) const
 		{
-			unsigned long result =
-				_buffered_config->xml().attribute_value("gradient", 32UL);
-			
+			unsigned result =
+				_buffered_config->xml().attribute_value("gradient", 32U);
+
 			try {
 				Genode::Session_policy policy(title, _buffered_config->xml());
 				result = policy.attribute_value("gradient", result);
