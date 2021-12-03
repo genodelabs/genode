@@ -43,7 +43,7 @@ struct Depot_download_manager::Child_exit_state
 				exists = true;
 				if (child.has_attribute("exited")) {
 					exited = true;
-					code = child.attribute_value("exited", 0L);
+					code = (int)child.attribute_value("exited", 0L);
 				}
 			}
 		});

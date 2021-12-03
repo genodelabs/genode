@@ -351,7 +351,7 @@ struct Vfs_trace::Local_factory : File_system_factory
 	Trace::Connection  _trace;
 	enum { MAX_SUBJECTS = 128 };
 	Trace::Subject_id  _subjects[MAX_SUBJECTS];
-	unsigned           _subject_count { 0 };
+	size_t             _subject_count { 0 };
 	Trace::Policy_id   _policy_id { 0 };
 
 	Directory_tree     _tree { _env.alloc() };
@@ -402,7 +402,7 @@ struct Vfs_trace::Local_factory : File_system_factory
 			}
 		}
 
-		for (unsigned i = 0; i < _subject_count; i++) {
+		for (size_t i = 0; i < _subject_count; i++) {
 			_tree.insert(_trace.subject_info(_subjects[i]), _subjects[i]);
 		}
 

@@ -5,3 +5,5 @@ vpath vfs.cc $(REP_DIR)/src/lib/vfs/cbe_crypto/
 vpath %.cc   $(REP_DIR)/src/lib/vfs/cbe_crypto/memcopy
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT_CONVERSION =

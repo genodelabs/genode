@@ -58,7 +58,7 @@ static inline void Polygon::texturize_rgba(Genode::Point<> start, Genode::Point<
 		int const a = alpha_base[src_offset];
 
 		*dst        = texture_base[src_offset];
-		*dst_alpha += ((255 - *dst_alpha)*a) >> 8;
+		*dst_alpha += (unsigned char)(((255 - *dst_alpha)*a) >> 8);
 
 		/* walk through texture */
 		tx += tx_ascent;

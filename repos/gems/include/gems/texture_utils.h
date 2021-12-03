@@ -45,10 +45,10 @@ static void scale(Genode::Texture<PT> const &src, Genode::Texture<PT> &dst,
 			PT            const pixel = pixel_line[pixel_offset];
 			unsigned char const alpha = alpha_line[pixel_offset];
 
-			*d++ = pixel.r();
-			*d++ = pixel.g();
-			*d++ = pixel.b();
-			*d++ = alpha;
+			*d++ = (unsigned char)pixel.r();
+			*d++ = (unsigned char)pixel.g();
+			*d++ = (unsigned char)pixel.b();
+			*d++ = (unsigned char)alpha;
 		}
 
 		dst.rgba(row, dst.size().w(), y);
@@ -83,10 +83,10 @@ static void convert_pixel_format(Genode::Texture<SRC_PT> const &src,
 		unsigned char *d = row;
 		for (unsigned x = 0; x < w; x++, src_pixel++, src_alpha++) {
 
-			*d++ = src_pixel->r();
-			*d++ = src_pixel->g();
-			*d++ = src_pixel->b();
-			*d++ = (*src_alpha * alpha) >> 8;
+			*d++ = (unsigned char)src_pixel->r();
+			*d++ = (unsigned char)src_pixel->g();
+			*d++ = (unsigned char)src_pixel->b();
+			*d++ = (unsigned char)((*src_alpha * alpha) >> 8);
 		}
 
 		/* assign row to destination texture */

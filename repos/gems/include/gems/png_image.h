@@ -18,7 +18,10 @@
 #include <os/texture.h>
 
 /* libpng include */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <png.h>
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 /* gems includes */
 #include <gems/chunky_texture.h>
@@ -65,7 +68,7 @@ class Png_image
 				png_bytep const data;
 
 				/* read position, maintained by 'read_callback' */
-				unsigned pos = 0;
+				unsigned long pos = 0;
 
 				static void callback(png_structp png_ptr, png_bytep dst, png_size_t len)
 				{

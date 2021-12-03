@@ -185,7 +185,7 @@ struct Decorator::Main : Window_factory_base
 		for (;;) {
 			try {
 				return new (_heap)
-					Window(window_node.attribute_value("id", 0UL),
+					Window(window_node.attribute_value("id", 0U),
 					       _gui, _animator, _decorator_config);
 			}
 			catch (Genode::Out_of_ram) {

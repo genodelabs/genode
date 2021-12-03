@@ -57,7 +57,7 @@ static inline void Polygon::interpolate_rgba(Polygon::Color start,
 
 		/* combine current color value with existing pixel via alpha blending */
 		*dst        = PT::mix(*dst, PT(r>>16, g>>16, b>>16), a>>16);
-		*dst_alpha += ((255 - *dst_alpha)*a) >> (16 + 8);
+		*dst_alpha += (unsigned char)(((255 - *dst_alpha)*a) >> (16 + 8));
 
 		/* increment color-component values by ascent */
 		r += r_ascent;
