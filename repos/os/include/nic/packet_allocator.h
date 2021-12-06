@@ -35,6 +35,33 @@ struct Nic::Packet_allocator : Genode::Packet_allocator
 	 */
 	Packet_allocator(Genode::Allocator *md_alloc)
 	: Genode::Packet_allocator(md_alloc, DEFAULT_PACKET_SIZE) {}
+
+	/**
+	 * Override because ethernet frame headers are 14 bytes (src/dst mac (12) +
+	 * ethertype (2)) causing the IP header to be 2 byte aligned, leading to
+	 * problems on platforms that require load/store operations to be naturally
+	 * aligned when reading, for example, 4 byte IP addresses. Therefore, we align
+	 * the allocation to 2 bytes, so the IP header is aligned to 4.
+	 */
+	Alloc_result try_alloc(Genode::size_t size) override
+	{
+		Alloc_result result = Genode::Packet_allocator::try_alloc(size + 2);
+
+		result.with_result([&] (void *content) {
+			result = Alloc_result { reinterpret_cast<void *>((Genode::uint8_t *)content + 2) };
+			},
+			[](Alloc_error){}
+		);
+
+		return result;
+	}
+
+	void free(void *addr, Genode::size_t size) override
+	{
+		Genode::Packet_allocator::free((Genode::uint8_t *)addr - 2, size + 2);
+	}
+
+
 };
 
 #endif /* _INCLUDE__NIC__PACKET_ALLOCATOR__ */
