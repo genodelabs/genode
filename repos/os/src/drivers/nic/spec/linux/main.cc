@@ -122,15 +122,15 @@ class Uplink_client : public Uplink_client_base
 
 				progress = false;
 				size_t const max_pkt_size {
-					Nic::Packet_allocator::DEFAULT_PACKET_SIZE };
+					Nic::Packet_allocator::OFFSET_PACKET_SIZE };
 
 				_drv_rx_handle_pkt(
 					max_pkt_size,
 					[&] (void   *conn_tx_pkt_base,
 					     size_t &adjusted_conn_tx_pkt_size)
 				{
-					long int const read_result {
-						read(_tap_fd, conn_tx_pkt_base, max_pkt_size) };
+					ssize_t const read_result {
+						::read(_tap_fd, conn_tx_pkt_base, max_pkt_size) };
 
 					if (read_result <= 0) {
 

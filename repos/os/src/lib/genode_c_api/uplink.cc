@@ -98,7 +98,7 @@ struct genode_uplink : private Noncopyable, private Interface
 			typedef Uplink::Packet_descriptor Packet_descriptor;
 
 			Packet_descriptor packet { };
-			size_t const max_bytes = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
+			size_t const max_bytes = Nic::Packet_allocator::OFFSET_PACKET_SIZE;
 
 			try { packet = tx_source.alloc_packet(max_bytes); }
 			catch (Uplink::Session::Tx::Source::Packet_alloc_failed) {
