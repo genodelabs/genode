@@ -106,7 +106,7 @@ extern "C" {
 	}
 
 	u32_t sys_now(void) {
-		return Lwip::sys_timer_ptr->timer.curr_time().trunc_to_plain_ms().value; }
+		return (u32_t)Lwip::sys_timer_ptr->timer.curr_time().trunc_to_plain_ms().value; }
 
 	void genode_memcpy(void *dst, const void *src, size_t len) {
 		Genode::memcpy(dst, src, len); }

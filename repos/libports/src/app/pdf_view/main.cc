@@ -25,6 +25,9 @@
 #include <gui_session/connection.h>
 #include <os/pixel_rgb888.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 /* MuPDF includes */
 extern "C" {
 #include <fitz.h>
@@ -37,6 +40,7 @@ extern "C" {
 #include <dirent.h>
 #include <unistd.h>
 
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 typedef Genode::Pixel_rgb888 pixel_t;
 
@@ -58,7 +62,7 @@ static void copy_line_rgba(const unsigned char *rgba_src,
 static int pdf_select(const struct dirent *d)
 {
 	char const *name = d->d_name;
-	int n = strlen(name);
+	size_t n = strlen(name);
 	return (n > 4)
 		? (!strncmp(&name[n-4], ".pdf", 4))
 		: 0;

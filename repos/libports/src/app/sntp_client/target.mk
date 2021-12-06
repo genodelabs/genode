@@ -15,3 +15,5 @@ SRC_C    = secs_to_tm.c tm_to_secs.c
 INC_DIR += $(MUSL_TM)
 
 vpath %.c $(MUSL_TM)
+
+CC_CXX_WARN_STRICT_CONVERSION =

@@ -9,3 +9,5 @@ LIBS += lwip
 vpath %.cc $(VFS_DIR)
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT_CONVERSION =
