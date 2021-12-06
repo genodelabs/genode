@@ -30,4 +30,4 @@ vpath %.c  $(LIBDRM_PORT_DIR)
 vpath %.c  $(LIB_DIR)
 vpath %.cc $(LIB_DIR)
 
-CC_CXX_WARN_STRICE :=
+CC_CXX_WARN_STRICT_CONVERSION =

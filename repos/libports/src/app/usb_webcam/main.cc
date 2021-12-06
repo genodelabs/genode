@@ -21,6 +21,9 @@
 #include <libc/component.h>
 #include <os/pixel_rgb888.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 /* libuv */
 #include <libyuv/convert_argb.h>
 
@@ -29,6 +32,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 using namespace Genode;
 

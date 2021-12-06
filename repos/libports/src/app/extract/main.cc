@@ -16,12 +16,16 @@
 #include <base/attached_rom_dataspace.h>
 
 /* libc includes */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <fcntl.h>
 #include <sys/stat.h>
 
 /* libarchive includes */
 #include <archive.h>
 #include <archive_entry.h>
+
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 namespace Extract {
 	using namespace Genode;

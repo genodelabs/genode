@@ -1,5 +1,5 @@
 /*
- * \brief  Native fetchurl utility for Nix
+ * \brief  Native fetchurl utility
  * \author Emery Hemingway
  * \date   2016-03-08
  */
@@ -19,14 +19,19 @@
 #include <base/heap.h>
 #include <base/log.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 /* cURL includes */
 #include <curl/curl.h>
 
-/* Libc includes */
+/* libc includes */
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
+
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 namespace Fetchurl {
 	class Fetch;
