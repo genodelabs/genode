@@ -1,5 +1,5 @@
 /*
- * \brief  Platform driver for ARM
+ * \brief  Platform driver for Raspberry Pi 1
  * \author Stefan Kalkowski
  * \date   2020-04-12
  */
@@ -12,6 +12,7 @@
  */
 
 #include <base/component.h>
+#include <power_domains.h>
 #include <root.h>
 
 namespace Driver { struct Main; };
@@ -21,13 +22,16 @@ struct Driver::Main
 	void update_config();
 
 	Env                  & env;
-	Heap                   heap           { env.ram(), env.rm() };
-	Sliced_heap            sliced_heap    { env.ram(), env.rm() };
-	Attached_rom_dataspace config         { env, "config"       };
-	Device_model           devices        { heap                };
+	Heap                   heap           { env.ram(), env.rm()    };
+	Sliced_heap            sliced_heap    { env.ram(), env.rm()    };
+	Attached_rom_dataspace config         { env, "config"          };
+	Device_model           devices        { heap                   };
+	Mbox                   mbox           { env                    };
+	Power_domains          power_domains  { devices.powers(), mbox };
 	Signal_handler<Main>   config_handler { env.ep(), *this,
-	                                      &Main::update_config };
-	Driver::Root           root           { env, sliced_heap, config, devices };
+	                                        &Main::update_config   };
+	Driver::Root           root           { env, sliced_heap,
+	                                        config, devices        };
 
 	Main(Genode::Env & e)
 	: env(e)

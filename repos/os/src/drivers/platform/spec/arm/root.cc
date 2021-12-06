@@ -20,7 +20,7 @@ void Driver::Root::update_policy()
 	_sessions.for_each([&] (Session_component & sc)
 	{
 		try {
-			Session_policy const policy { sc._label, _env.config.xml() };
+			Session_policy const policy { sc._label, _config.xml() };
 			sc.update_policy(policy.attribute_value("info", false),
 			                 policy.attribute_value("version", Version()));
 		}
@@ -39,10 +39,10 @@ Driver::Session_component * Driver::Root::_create_session(const char *args)
 
 	try {
 		Session::Label const label  { session_label_from_args(args) };
-		Session_policy const policy { label, _env.config.xml()      };
+		Session_policy const policy { label, _config.xml()      };
 
 		sc = new (md_alloc())
-			Session_component(_env, _sessions, label,
+			Session_component(_env, _config, _devices, _sessions, label,
 			                  session_resources_from_args(args),
 			                  session_diag_from_args(args),
 			                  policy.attribute_value("info", false),
@@ -67,6 +67,9 @@ void Driver::Root::_upgrade_session(Session_component * sc, const char * args)
 }
 
 
-Driver::Root::Root(Driver::Env & env)
-: Root_component<Session_component>(env.env.ep(), env.sliced_heap),
-  _env(env) { }
+Driver::Root::Root(Env                    & env,
+                   Sliced_heap            & sliced_heap,
+                   Attached_rom_dataspace & config,
+                   Device_model           & devices)
+: Root_component<Session_component>(env.ep(), sliced_heap),
+  _env(env), _config(config), _devices(devices) { }

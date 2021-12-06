@@ -25,17 +25,17 @@ Session_component::_acquire(Device & device)
 	Device_component * dc = new (heap())
 		Device_component(_device_registry, *this, device);
 	device.acquire(*this);
-	return _env.env.ep().rpc_ep().manage(dc);
+	return _env.ep().rpc_ep().manage(dc);
 };
 
 
 void Session_component::_release_device(Device_component & dc)
 {
 	Device::Name name = dc.device();
-	_env.env.ep().rpc_ep().dissolve(&dc);
+	_env.ep().rpc_ep().dissolve(&dc);
 	destroy(heap(), &dc);
 
-	_env.devices.for_each([&] (Device & dev) {
+	_devices.for_each([&] (Device & dev) {
 		if (name == dev.name()) dev.release(*this); });
 }
 
@@ -53,7 +53,7 @@ bool Session_component::matches(Device & dev) const
 	bool ret = false;
 
 	try {
-		Session_policy const policy { label(), _env.config.xml() };
+		Session_policy const policy { label(), _config.xml() };
 		policy.for_each_sub_node("device", [&] (Xml_node node) {
 			if (dev.name() == node.attribute_value("name", Device::Name()))
 				ret = true;
@@ -73,7 +73,7 @@ void Session_component::update_policy(bool info, Policy_version version)
 
 	_device_registry.for_each([&] (Device_component & dc) {
 		Device_state state = AWAY;
-		_env.devices.for_each([&] (Device & dev) {
+		_devices.for_each([&] (Device & dev) {
 			if (dev.name() != dc.device())
 				return;
 			state = (dev.owner() == _owner_id) ? UNCHANGED : CHANGED;
@@ -103,15 +103,18 @@ void Session_component::produce_xml(Xml_generator &xml)
 	if (_version.valid())
 		xml.attribute("version", _version);
 
-	_env.devices.for_each([&] (Device & dev) {
+	_devices.for_each([&] (Device & dev) {
 		if (matches(dev)) dev.report(xml, *this); });
 }
 
 
+Genode::Env & Session_component::env() { return _env; }
+
+
+Driver::Device_model & Session_component::devices() { return _devices; }
+
+
 Genode::Heap & Session_component::heap() { return _md_alloc; }
-
-
-Driver::Env & Session_component::env() { return _env; }
 
 
 void Session_component::update_devices_rom()
@@ -138,7 +141,7 @@ Session_component::acquire_device(Platform::Session::Device_name const &name)
 	if (cap.valid())
 		return cap;
 
-	_env.devices.for_each([&] (Device & dev)
+	_devices.for_each([&] (Device & dev)
 	{
 		if (dev.name() != name || !matches(dev))
 			return;
@@ -164,7 +167,7 @@ Session_component::acquire_single_device()
 	if (cap.valid())
 		return cap;
 
-	_env.devices.for_each([&] (Device & dev) {
+	_devices.for_each([&] (Device & dev) {
 		if (matches(dev) && !dev.owner().valid())
 			cap = _acquire(dev); });
 
@@ -231,18 +234,20 @@ Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 }
 
 
-Session_component::Session_component(Driver::Env          & env,
-                                     Session_registry     & registry,
-                                     Label          const & label,
-                                     Resources      const & resources,
-                                     Diag           const & diag,
-                                     bool           const   info,
-                                     Policy_version const   version)
+Session_component::Session_component(Env                    & env,
+                                     Attached_rom_dataspace & config,
+                                     Device_model           & devices,
+                                     Session_registry       & registry,
+                                     Label          const   & label,
+                                     Resources      const   & resources,
+                                     Diag           const   & diag,
+                                     bool           const     info,
+                                     Policy_version const     version)
 :
-	Session_object<Platform::Session>(env.env.ep(), resources, label, diag),
+	Session_object<Platform::Session>(env.ep(), resources, label, diag),
 	Session_registry::Element(registry, *this),
 	Dynamic_rom_session::Xml_producer("devices"),
-	_env(env), _info(info), _version(version)
+	_env(env), _config(config), _devices(devices), _info(info), _version(version)
 {
 	/*
 	 * FIXME: As the ROM session does not propagate Out_of_*
