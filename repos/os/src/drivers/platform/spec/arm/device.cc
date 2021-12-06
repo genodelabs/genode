@@ -29,12 +29,81 @@ Driver::Device::Type Driver::Device::type() const { return _type; }
 Driver::Device::Owner Driver::Device::owner() const { return _owner; }
 
 
-void Driver::Device::acquire(Session_component & sc) {
-	if (!_owner.valid()) _owner = sc; }
+void Driver::Device::acquire(Session_component & sc)
+{
+	if (!_owner.valid()) _owner = sc;
+
+	_power_domain_list.for_each([&] (Power_domain & p) {
+
+		bool ok = false;
+		sc.devices().powers().apply(p.name, [&] (Driver::Power &power) {
+			power.on();
+			ok = true;
+		});
+
+		if (!ok)
+			warning("power domain ", p.name, " is unknown");
+	});
+
+	_reset_domain_list.for_each([&] (Reset_domain & r) {
+
+		bool ok = false;
+		sc.devices().resets().apply(r.name, [&] (Driver::Reset &reset) {
+			reset.deassert();
+			ok = true;
+		});
+
+		if (!ok)
+			warning("reset domain ", r.name, " is unknown");
+	});
+
+	_clock_list.for_each([&] (Clock &c) {
+
+		bool ok = false;
+		sc.devices().clocks().apply(c.name, [&] (Driver::Clock &clock) {
+
+			if (c.parent.valid())
+				clock.parent(c.parent);
+
+			if (c.rate)
+				clock.rate(Driver::Clock::Rate { c.rate });
+
+			clock.enable();
+			ok = true;
+		});
+
+		if (!ok) {
+			warning("clock ", c.name, " is unknown");
+			return;
+		}
+	});
+
+	sc.update_devices_rom();
+}
 
 
-void Driver::Device::release(Session_component & sc) {
-	if (_owner == sc) _owner = Owner();; }
+void Driver::Device::release(Session_component & sc)
+{
+	_reset_domain_list.for_each([&] (Reset_domain & r)
+	{
+		sc.devices().resets().apply(r.name, [&] (Driver::Reset &reset) {
+			reset.assert(); });
+	});
+
+	_power_domain_list.for_each([&] (Power_domain & p)
+	{
+		sc.devices().powers().apply(p.name, [&] (Driver::Power &power) {
+			power.off(); });
+	});
+
+	_clock_list.for_each([&] (Clock & c)
+	{
+		sc.devices().clocks().apply(c.name, [&] (Driver::Clock &clock) {
+			clock.disable(); });
+	});
+
+	if (_owner == sc) _owner = Owner();
+}
 
 
 void Driver::Device::report(Xml_generator & xml, Session_component & sc)
@@ -59,6 +128,15 @@ void Driver::Device::report(Xml_generator & xml, Session_component & sc)
 				xml.attribute("value", p.value);
 			});
 		});
+		_clock_list.for_each([&] (Clock &c) {
+			sc.devices().clocks().apply(c.name, [&] (Driver::Clock &clock) {
+				xml.node("clock", [&] () {
+					xml.attribute("rate", clock.rate().value);
+					xml.attribute("name", c.driver_name);
+				});
+			});
+		});
+
 		_report_platform_specifics(xml, sc);
 	});
 }

@@ -27,7 +27,10 @@ class Driver::Root : public Root_component<Session_component>
 {
 	public:
 
-		Root(Driver::Env & env);
+		Root(Env                    & env,
+		     Sliced_heap            & sliced_heap,
+		     Attached_rom_dataspace & config,
+		     Device_model           & devices);
 
 		void update_policy();
 
@@ -37,7 +40,9 @@ class Driver::Root : public Root_component<Session_component>
 
 		void _upgrade_session(Session_component *, const char *) override;
 
-		Driver::Env               & _env;
+		Env                       & _env;
+		Attached_rom_dataspace    & _config;
+		Device_model              & _devices;
 		Registry<Session_component> _sessions {};
 };
 

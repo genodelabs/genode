@@ -48,7 +48,7 @@ Device_component::io_mem(unsigned idx, Range &range, Cache cache)
 			return;
 
 		if (!iomem.io_mem.constructed())
-			iomem.io_mem.construct(_session.env().env,
+			iomem.io_mem.construct(_session.env(),
 			                       iomem.range.start,
 			                       iomem.range.size,
 			                       cache == WRITE_COMBINED);
@@ -72,7 +72,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 			return;
 
 		if (!irq.irq.constructed())
-			irq.irq.construct(_session.env().env, irq.number);
+			irq.irq.construct(_session.env(), irq.number);
 
 		cap = irq.irq->cap();
 	});

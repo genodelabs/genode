@@ -15,23 +15,30 @@
 #define _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_H_
 
 #include <base/allocator.h>
+#include <base/heap.h>
 #include <platform_session/device.h>
 #include <util/list.h>
 #include <util/list_model.h>
 #include <util/reconstructible.h>
 #include <util/xml_generator.h>
 
+#include <clock.h>
+#include <reset.h>
+#include <power.h>
+
 namespace Driver {
 
 	using namespace Genode;
 
-	class  Env;
 	class  Device;
 	struct Device_model;
 	class  Session_component;
 	struct Irq_update_policy;
 	struct Io_mem_update_policy;
 	struct Property_update_policy;
+	struct Clock_update_policy;
+	struct Reset_domain_update_policy;
+	struct Power_domain_update_policy;
 }
 
 
@@ -83,6 +90,41 @@ class Driver::Device : private List_model<Device>::Element
 			: name(name), value(value) {}
 		};
 
+		struct Clock : List_model<Clock>::Element
+		{
+			using Name  = Genode::String<64>;
+
+			Name          name;
+			Name          parent;
+			Name          driver_name;
+			unsigned long rate;
+
+			Clock(Name name,
+			      Name parent,
+			      Name driver_name,
+			      unsigned long rate)
+			: name(name), parent(parent),
+			  driver_name(driver_name), rate(rate) {}
+		};
+
+		struct Power_domain : List_model<Power_domain>::Element
+		{
+			using Name = Genode::String<64>;
+
+			Name name;
+
+			Power_domain(Name name) : name(name) {}
+		};
+
+		struct Reset_domain : List_model<Reset_domain>::Element
+		{
+			using Name = Genode::String<64>;
+
+			Name name;
+
+			Reset_domain(Name name) : name(name) {}
+		};
+
 		Device(Name name, Type type);
 		virtual ~Device();
 
@@ -118,12 +160,15 @@ class Driver::Device : private List_model<Device>::Element
 		friend class List_model<Device>;
 		friend class List<Device>;
 
-		Name                 _name;
-		Type                 _type;
-		Owner                _owner {};
-		List_model<Io_mem>   _io_mem_list {};
-		List_model<Irq>      _irq_list {};
-		List_model<Property> _property_list {};
+		Name                     _name;
+		Type                     _type;
+		Owner                    _owner {};
+		List_model<Io_mem>       _io_mem_list {};
+		List_model<Irq>          _irq_list {};
+		List_model<Property>     _property_list {};
+		List_model<Clock>        _clock_list {};
+		List_model<Power_domain> _power_domain_list {};
+		List_model<Reset_domain> _reset_domain_list {};
 
 		/*
 		 * Noncopyable
@@ -138,8 +183,11 @@ class Driver::Device_model :
 {
 	private:
 
-		Driver::Env      & _env;
-		List_model<Device> _model {};
+		Heap             & _heap;
+		List_model<Device> _model  { };
+		Clocks             _clocks { };
+		Resets             _resets { };
+		Powers             _powers { };
 
 	public:
 
@@ -147,8 +195,8 @@ class Driver::Device_model :
 			_model.update_from_xml(*this, node);
 		}
 
-		Device_model(Driver::Env & env)
-		: _env(env) { }
+		Device_model(Heap & heap)
+		: _heap(heap) { }
 
 		~Device_model() {
 			_model.destroy_all_elements(*this); }
@@ -173,6 +221,10 @@ class Driver::Device_model :
 
 		static bool node_is_element(Genode::Xml_node node) {
 			return node.has_type("device"); }
+
+		Clocks & clocks() { return _clocks; };
+		Resets & resets() { return _resets; };
+		Powers & powers() { return _powers; };
 };
 
 
@@ -265,6 +317,103 @@ struct Driver::Property_update_policy : Genode::List_model<Device::Property>::Up
 
 	static bool node_is_element(Genode::Xml_node node) {
 		return node.has_type("property"); }
+};
+
+
+struct Driver::Clock_update_policy
+: Genode::List_model<Device::Clock>::Update_policy
+{
+	Genode::Allocator & alloc;
+
+	Clock_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
+
+	void destroy_element(Element & clock) {
+		Genode::destroy(alloc, &clock); }
+
+	Element & create_element(Genode::Xml_node node)
+	{
+		Element::Name name   = node.attribute_value("name",        Element::Name());
+		Element::Name parent = node.attribute_value("parent",      Element::Name());
+		Element::Name driver = node.attribute_value("driver_name", Element::Name());
+		unsigned long rate   = node.attribute_value<unsigned long >("rate", 0);
+		return *(new (alloc) Element(name, parent, driver, rate));
+	}
+
+	void update_element(Element &, Genode::Xml_node) {}
+
+	static bool element_matches_xml_node(Element const & clock, Genode::Xml_node node)
+	{
+		Element::Name name        = node.attribute_value("name", Element::Name());
+		Element::Name driver_name = node.attribute_value("driver_name", Element::Name());
+		return name == clock.name && driver_name == clock.driver_name;
+	}
+
+	static bool node_is_element(Genode::Xml_node node)
+	{
+		return node.has_type("clock");
+	}
+};
+
+
+struct Driver::Power_domain_update_policy
+: Genode::List_model<Device::Power_domain>::Update_policy
+{
+	Genode::Allocator & alloc;
+
+	Power_domain_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
+
+	void destroy_element(Element & pd) {
+		Genode::destroy(alloc, &pd); }
+
+	Element & create_element(Genode::Xml_node node)
+	{
+		Element::Name name = node.attribute_value("name", Element::Name());
+		return *(new (alloc) Element(name));
+	}
+
+	void update_element(Element &, Genode::Xml_node) {}
+
+	static bool element_matches_xml_node(Element const & pd, Genode::Xml_node node)
+	{
+		Element::Name name = node.attribute_value("name", Element::Name());
+		return name == pd.name;
+	}
+
+	static bool node_is_element(Genode::Xml_node node)
+	{
+		return node.has_type("power-domain");
+	}
+};
+
+
+struct Driver::Reset_domain_update_policy
+: Genode::List_model<Device::Reset_domain>::Update_policy
+{
+	Genode::Allocator & alloc;
+
+	Reset_domain_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
+
+	void destroy_element(Element & pd) {
+		Genode::destroy(alloc, &pd); }
+
+	Element & create_element(Genode::Xml_node node)
+	{
+		Element::Name name = node.attribute_value("name", Element::Name());
+		return *(new (alloc) Element(name));
+	}
+
+	void update_element(Element &, Genode::Xml_node) {}
+
+	static bool element_matches_xml_node(Element const & pd, Genode::Xml_node node)
+	{
+		Element::Name name = node.attribute_value("name", Element::Name());
+		return name == pd.name;
+	}
+
+	static bool node_is_element(Genode::Xml_node node)
+	{
+		return node.has_type("reset-domain");
+	}
 };
 
 #endif /* _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_H_ */

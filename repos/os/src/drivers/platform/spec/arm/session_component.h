@@ -14,6 +14,7 @@
 #ifndef _SRC__DRIVERS__PLATFORM__SPEC__ARM__SESSION_COMPONENT_H_
 #define _SRC__DRIVERS__PLATFORM__SPEC__ARM__SESSION_COMPONENT_H_
 
+#include <base/attached_rom_dataspace.h>
 #include <base/env.h>
 #include <base/heap.h>
 #include <base/quota_guard.h>
@@ -41,16 +42,19 @@ class Driver::Session_component
 
 		using Session_registry = Registry<Session_component>;
 
-		Session_component(Driver::Env      & env,
-		                  Session_registry & registry,
-		                  Label      const & label,
-		                  Resources  const & resources,
-		                  Diag       const & diag,
-		                  bool       const   info);
+		Session_component(Env                    & env,
+		                  Attached_rom_dataspace & config,
+		                  Device_model           & devices,
+		                  Session_registry       & registry,
+		                  Label      const       & label,
+		                  Resources  const       & resources,
+		                  Diag       const       & diag,
+		                  bool       const         info);
 		~Session_component();
 
+		Env          & env();
 		Heap         & heap();
-		Driver::Env  & env();
+		Device_model & devices();
 
 		bool matches(Device &) const;
 		void update_devices_rom();
@@ -89,16 +93,18 @@ class Driver::Session_component
 			: Registry<Dma_buffer>::Element(registry, *this), cap(cap) {}
 		};
 
-		Driver::Env              & _env;
+		Env                      & _env;
+		Attached_rom_dataspace   & _config;
+		Device_model             & _devices;
 		Device::Owner              _owner_id    { *this };
-		Constrained_ram_allocator  _env_ram     { _env.env.pd(),
+		Constrained_ram_allocator  _env_ram     { _env.pd(),
 		                                          _ram_quota_guard(),
 		                                          _cap_quota_guard()  };
-		Heap                       _md_alloc    { _env_ram, _env.env.rm() };
+		Heap                       _md_alloc    { _env_ram, _env.rm() };
 		Registry<Device_component> _device_registry { };
 		Registry<Dma_buffer>       _buffer_registry { };
-		Dynamic_rom_session        _rom_session { _env.env.ep(), _env.env.ram(),
-		                                          _env.env.rm(), *this    };
+		Dynamic_rom_session        _rom_session { _env.ep(), _env.ram(),
+		                                          _env.rm(), *this    };
 		bool                       _info;
 
 		Device_capability _acquire(Device & device);

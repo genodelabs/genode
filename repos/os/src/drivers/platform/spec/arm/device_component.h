@@ -22,7 +22,6 @@
 #include <platform_session/platform_session.h>
 #include <util/reconstructible.h>
 
-#include <env.h>
 #include <device.h>
 
 namespace Driver {
