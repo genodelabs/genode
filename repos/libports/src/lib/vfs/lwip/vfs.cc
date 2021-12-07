@@ -1547,9 +1547,9 @@ class Lwip::Tcp_socket_dir final :
 				break;
 
 			case Lwip_file_handle::LISTEN:
-				if ((state == BOUND) && (count < 7)) {
+				if ((state == BOUND) && (count < 11)) {
 					unsigned long backlog = TCP_DEFAULT_LISTEN_BACKLOG;
-					char buf[8];
+					char buf[12];
 
 					copy_cstring(buf, src, min(count+1, sizeof(buf)));
 					Genode::ascii_to_unsigned(buf, backlog, 10);
