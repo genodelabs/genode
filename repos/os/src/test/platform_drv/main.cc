@@ -80,7 +80,7 @@ struct Main
 					xml.node("io_mem", [&]
 					{
 						xml.attribute("address",
-									  String<16>(Hex(iomem_base + idx*0x1000UL)));
+						              String<16>(Hex(iomem_base + idx*0x1000UL)));
 						xml.attribute("size", String<16>(Hex(0x1000UL)));
 					});
 					xml.node("irq", [&]
@@ -190,7 +190,7 @@ struct Main
 		case 7:
 			{
 				Platform::Device dev (*platform, Platform::Device::Type({"dummy-device"}));
-				if (dev._cap.valid()) { log("Found next valid device of dummy type"); }
+				if (dev._cap.valid()) log("Found next valid device of dummy type");
 				Reporter::Xml_generator xml(config_reporter, [&] () {});
 				break;
 			}
