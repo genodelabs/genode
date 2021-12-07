@@ -132,7 +132,7 @@ struct Libc::Pthread : Noncopyable
 		/*
 		 * The mutex synchronizes the execution of cancel() and join() to
 		 * protect the about-to-exit pthread to be destructed before it leaves
-		 * trigger_monitor_examination(), which uses a 'Signal_transmitter'
+		 * trigger_monitor_examination(), which uses 'Signal_context::local_submit()'
 		 * and, therefore, holds a reference to a signal context capability
 		 * that needs to be released before the thread can be destroyed.
 		 */

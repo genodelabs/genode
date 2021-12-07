@@ -198,7 +198,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		Atexit _atexit { _heap };
 
-		Reconstructible<Io_signal_handler<Kernel>> _resume_main_handler {
+		Io_signal_handler<Kernel> _resume_main_handler {
 			_env.ep(), *this, &Kernel::_resume_main };
 
 		jmp_buf _kernel_context;
@@ -275,7 +275,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		Monitor::Pool _monitors { *this };
 
-		Reconstructible<Io_signal_handler<Kernel>> _execute_monitors {
+		Io_signal_handler<Kernel> _execute_monitors {
 			_env.ep(), *this, &Kernel::_monitors_handler };
 
 		Monitor::Pool::State _execute_monitors_pending = Monitor::Pool::State::ALL_COMPLETE;
@@ -517,7 +517,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				if (_main_context())
 					_resume_main();
 				else
-					Signal_transmitter(*_resume_main_handler).submit();
+					_resume_main_handler.local_submit();
 			}
 
 			_pthreads.resume_all();
@@ -573,7 +573,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			if (_main_context())
 				_monitors_handler();
 			else
-				_execute_monitors->local_submit();
+				_execute_monitors.local_submit();
 		}
 
 		/**
@@ -615,7 +615,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			if (_main_context())
 				_resume_main();
 			else
-				Signal_transmitter(*_resume_main_handler).submit();
+				_resume_main_handler.local_submit();
 		}
 
 		/**
