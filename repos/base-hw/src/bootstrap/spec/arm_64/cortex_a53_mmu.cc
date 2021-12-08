@@ -199,6 +199,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::Sctlr::Sa0::set(sctlr, 1);
 	Cpu::Sctlr::Sa::set(sctlr, 0);
 	Cpu::Sctlr::Uct::set(sctlr, 1);
+	Cpu::Sctlr::Uci::set(sctlr, 1);
 	Cpu::Sctlr_el1::write(sctlr);
 
 	return cpu_id;

@@ -168,6 +168,7 @@ struct Hw::Arm_64_cpu
 		struct I   : Bitfield<12, 1> { };
 		struct Uct : Bitfield<15, 1> { };
 		struct Wxn : Bitfield<19, 1> { };
+		struct Uci : Bitfield<26, 1> { };
 	};
 
 	SYSTEM_REGISTER(64, Sctlr_el1, sctlr_el1);
