@@ -78,9 +78,8 @@ class Net::Ethernet_frame
 			T const &obj = *(T *)(_data);
 
 			/* Ethernet may have a tail whose size must be considered */
-			Genode::size_t const unconsumed = size_guard.unconsumed();
-			size_guard.consume_tail(unconsumed + sizeof(T) -
-			                        obj.size(unconsumed));
+			Genode::size_t const max_obj_sz = size_guard.unconsumed() + sizeof(T);
+			size_guard.consume_tail(max_obj_sz - obj.size(max_obj_sz));
 			return obj;
 		}
 
