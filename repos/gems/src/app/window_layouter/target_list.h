@@ -42,22 +42,22 @@ class Window_layouter::Target_list
 		void _process_rec(Xml_node node, Rect avail, bool row,
 		                  Target::Visible visible)
 		{
-			unsigned long const avail_px = row ? avail.w() : avail.h();
+			unsigned const avail_px = row ? avail.w() : avail.h();
 
 			char const *sub_node_type = row ? "column" : "row";
 			char const *px_size_attr  = row ? "width"  : "height";
 
-			unsigned long px_pos = row ? avail.x1() : avail.y1();
+			unsigned px_pos = row ? avail.x1() : avail.y1();
 
-			unsigned long const default_weight = 1;
+			unsigned const default_weight = 1;
 
 			/*
 			 * Determinine space reserved in pixels, the total weight, and
 			 * number of weighted rows/columns.
 			 */
-			unsigned long preserved_pixels = 0;
-			unsigned long total_weight     = 0;
-			unsigned long num_weighted     = 0;
+			unsigned preserved_pixels = 0;
+			unsigned total_weight     = 0;
+			unsigned num_weighted     = 0;
 
 			/* ignore weight if pixel size is provided */
 			auto weight_attr_value = [&] (Xml_node node) {
@@ -65,7 +65,7 @@ class Window_layouter::Target_list
 				     ? 0 : node.attribute_value("weight", default_weight); };
 
 			node.for_each_sub_node(sub_node_type, [&] (Xml_node child) {
-				preserved_pixels += child.attribute_value(px_size_attr, 0UL);
+				preserved_pixels += child.attribute_value(px_size_attr, 0U);
 				total_weight     += weight_attr_value(child);
 				num_weighted     += child.has_attribute(px_size_attr) ? 0 : 1;
 			});
@@ -76,26 +76,26 @@ class Window_layouter::Target_list
 			}
 
 			/* amount of pixels we can use for weighed columns */
-			unsigned long const weigthed_avail = avail_px - preserved_pixels;
+			unsigned const weigthed_avail = avail_px - preserved_pixels;
 
 			/*
 			 * Calculate positions
 			 */
-			unsigned long count_weighted = 0;
-			unsigned long used_weighted  = 0;
+			unsigned count_weighted = 0;
+			unsigned used_weighted  = 0;
 			node.for_each_sub_node(sub_node_type, [&] (Xml_node child) {
 
 				auto calc_px_size = [&] () {
 
-					unsigned long const px = child.attribute_value(px_size_attr, 0UL);
+					unsigned const px = child.attribute_value(px_size_attr, 0U);
 					if (px)
 						return px;
 
-					unsigned long const weight = weight_attr_value(child);
+					unsigned const weight = weight_attr_value(child);
 					if (weight && total_weight)
 						return (((weight << 16)*weigthed_avail)/total_weight) >> 16;
 
-					return 0UL;
+					return 0U;
 				};
 
 				bool const weighted = !child.has_attribute(px_size_attr);
@@ -107,9 +107,9 @@ class Window_layouter::Target_list
 				bool const last_weighted = weighted
 				                        && (count_weighted == num_weighted);
 
-				unsigned long const px_size = last_weighted
-				                            ? (weigthed_avail - used_weighted)
-				                            : calc_px_size();
+				unsigned const px_size = last_weighted
+				                       ? (weigthed_avail - used_weighted)
+				                       : calc_px_size();
 
 				if (weighted)
 					used_weighted += px_size;

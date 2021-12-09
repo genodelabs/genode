@@ -173,7 +173,7 @@ struct Decorator::Main : Window_factory_base
 		for (;;) {
 			try {
 				return new (_heap)
-					Window(_env, window_node.attribute_value("id", 0UL),
+					Window(_env, window_node.attribute_value("id", 0U),
 					       _gui, _animator, _theme, _decorator_config);
 			}
 			catch (Out_of_ram) {

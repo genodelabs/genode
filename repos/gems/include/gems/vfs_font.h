@@ -83,7 +83,7 @@ class Genode::Vfs_font : public Text_painter::Font
 		{
 			Allocator &_alloc;
 
-			unsigned const num_bytes;
+			size_t const num_bytes;
 
 			Glyph_header &header;
 

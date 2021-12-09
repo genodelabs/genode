@@ -26,10 +26,10 @@ struct Window_layouter::Decorator_margins
 
 	Decorator_margins(Xml_node node)
 	:
-		top   (node.attribute_value("top",    0UL)),
-		bottom(node.attribute_value("bottom", 0UL)),
-		left  (node.attribute_value("left",   0UL)),
-		right (node.attribute_value("right",  0UL))
+		top   (node.attribute_value("top",    0U)),
+		bottom(node.attribute_value("bottom", 0U)),
+		left  (node.attribute_value("left",   0U)),
+		right (node.attribute_value("right",  0U))
 	{ }
 
 	/**

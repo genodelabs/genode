@@ -40,7 +40,7 @@ class Window_layouter::Target : Noncopyable
 		Target(Xml_node target, Rect geometry, Visible visible)
 		:
 			_name (target.attribute_value("name", Name())),
-			_layer(target.attribute_value("layer", 9999UL)),
+			_layer(target.attribute_value("layer", 9999U)),
 			_geometry(geometry),
 			_visible(visible == Visible::YES)
 		{ }

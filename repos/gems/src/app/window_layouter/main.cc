@@ -594,7 +594,7 @@ void Window_layouter::Main::_handle_hover()
 	try {
 		Xml_node const hover_window_xml = _hover.xml().sub_node("window");
 
-		_user_state.hover(hover_window_xml.attribute_value("id", 0UL),
+		_user_state.hover(hover_window_xml.attribute_value("id", 0U),
 		                  _element_from_hover_model(hover_window_xml));
 	}
 
@@ -632,7 +632,7 @@ void Window_layouter::Main::_handle_focus_request()
 {
 	_focus_request.update();
 
-	int const id = _focus_request.xml().attribute_value("id", 0L);
+	int const id = (int)_focus_request.xml().attribute_value("id", 0L);
 
 	/* don't apply the same focus request twice */
 	if (id == _handled_focus_request_id)

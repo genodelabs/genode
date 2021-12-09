@@ -22,11 +22,14 @@
 #include <terminal_session/terminal_session.h>
 
 /* libc includes */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/select.h>
 #include <stdio.h>
 #include <fcntl.h>
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 
 class Open_file

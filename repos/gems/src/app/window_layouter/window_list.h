@@ -71,8 +71,8 @@ class Window_layouter::Window_list
 
 			Window &create_element(Xml_node node)
 			{
-				unsigned long const id           = node.attribute_value("id", 0UL);
-				Area          const initial_size = area_attribute(node);
+				unsigned const id           = node.attribute_value("id", 0U);
+				Area     const initial_size = area_attribute(node);
 
 				Window::Label const label =
 					node.attribute_value("label",Window::Label());
@@ -94,7 +94,7 @@ class Window_layouter::Window_list
 
 			static bool element_matches_xml_node(Window const &elem, Xml_node node)
 			{
-				return elem.has_id(node.attribute_value("id", 0UL));
+				return elem.has_id(node.attribute_value("id", 0U));
 			}
 		};
 

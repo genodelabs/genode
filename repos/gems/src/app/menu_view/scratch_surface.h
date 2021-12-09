@@ -40,7 +40,7 @@ struct Menu_view::Additive_alpha
 	template <typename TPT, typename PT>
 	static void transfer(TPT const &, int src_a, int alpha, PT &dst)
 	{
-		dst.pixel += (alpha*src_a) >> 8;
+		dst.pixel += (uint8_t)((alpha*src_a) >> 8);
 	}
 
 	static Surface_base::Pixel_format format() { return Surface_base::UNKNOWN; }

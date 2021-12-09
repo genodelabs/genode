@@ -43,8 +43,8 @@ struct Line_painter
 			static Fixpoint from_int(long v) { return Fixpoint(v << FRAC_BITS); }
 			static Fixpoint from_raw(long v) { return Fixpoint(v); }
 
-			long integer()    const { return value >> FRAC_BITS; }
-			long fractional() const { return value &  FRAC_MASK; }
+			int integer()    const { return (int)(value >> FRAC_BITS); }
+			int fractional() const { return (int)(value &  FRAC_MASK); }
 	};
 
 	/**
@@ -58,7 +58,7 @@ struct Line_painter
 		{
 			auto fill_segment = [&] (long x1, long y1, long x2, long)
 			{
-				for (long i = x1; i < x2; i++) value[i] = y1;
+				for (long i = x1; i < x2; i++) value[i] = (unsigned char)y1;
 			};
 
 			int const v = 210;

@@ -231,8 +231,8 @@ void Menu_view::Main::_handle_dialog_update()
 
 		_position = Decorator::point_attribute(config);
 
-		_configured_size = Area(config.attribute_value("width",  0UL),
-		                        config.attribute_value("height", 0UL));
+		_configured_size = Area(config.attribute_value("width",  0U),
+		                        config.attribute_value("height", 0U));
 	} catch (...) { }
 
 	_dialog_rom.update();
