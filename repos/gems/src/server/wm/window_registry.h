@@ -213,7 +213,7 @@ class Wm::Window_registry
 
 		Id create()
 		{
-			Window * const win = new (_alloc) Window(_window_ids.alloc());
+			Window * const win = new (_alloc) Window((unsigned)_window_ids.alloc());
 
 			_windows.insert(win);
 
