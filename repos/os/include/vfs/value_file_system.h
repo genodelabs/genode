@@ -61,7 +61,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 					return READ_ERR_INVALID;
 
 				char const *   const src = _buffer.string() + seek();
-				Genode::size_t const len = min(_buffer.length() - seek(), count);
+				Genode::size_t const len = min((size_t)(_buffer.length() - seek()), (size_t)count);
 				Genode::memcpy(dst, src, len);
 
 				out_count = len;
@@ -74,7 +74,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 				if (seek() > BUF_SIZE)
 					return WRITE_ERR_INVALID;
 
-				Genode::size_t const len = min(BUF_SIZE- seek(), count);
+				Genode::size_t const len = min((size_t)(BUF_SIZE- seek()), (size_t)count);
 				_buffer = Buffer(Genode::Cstring(src, len));
 				out_count = len;
 
