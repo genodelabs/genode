@@ -13,10 +13,13 @@
 
 /* libC includes */
 extern "C" {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 }
 
 int main(int, char **)
