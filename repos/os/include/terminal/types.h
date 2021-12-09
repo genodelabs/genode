@@ -29,17 +29,16 @@ namespace Terminal {
 }
 
 
-/*
- * The character definition is wrapped in a compound data structure to make
- * the implementation easily changeable to unicode later.
- */
 struct Terminal::Character
 {
-	Genode::uint16_t value;
+	using value_t = Genode::uint16_t;
 
-	Character() : value(0) { }
+	value_t value = 0;
+
+	Character() { }
+
 	Character(Codepoint cp)
-	: value(cp.value < 1<<16 ? cp.value : 0) { }
+	: value((value_t)(cp.value < (1<<16) ? cp.value : 0)) { }
 
 	bool valid() const { return value != 0; }
 };
