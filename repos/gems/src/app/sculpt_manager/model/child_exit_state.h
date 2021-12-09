@@ -43,7 +43,7 @@ struct Sculpt::Child_exit_state
 
 				if (child.has_attribute("exited")) {
 					exited = true;
-					code = child.attribute_value("exited", 0L);
+					code = (int)child.attribute_value("exited", 0L);
 				}
 
 				responsive = (child.attribute_value("skipped_heartbeats", 0U) <= 2);

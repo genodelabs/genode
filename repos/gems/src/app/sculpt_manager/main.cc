@@ -107,7 +107,7 @@ struct Sculpt::Main : Input_event_handler,
 					dir.for_each_sub_node("dir", [&] (Xml_node type) {
 						if (type.attribute_value("name", String<16>()) == "text") {
 							type.for_each_sub_node("ttf", [&] (Xml_node ttf) {
-								float const px = ttf.attribute_value("size_px", 0.0);
+								double const px = ttf.attribute_value("size_px", 0.0);
 								if (px > 0.0)
 									_font_size_px = px; }); } }); } }); });
 
@@ -380,7 +380,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Settings _settings { };
 
-	float _font_size_px = 14;
+	double _font_size_px = 14;
 
 	Area _screen_size { };
 
@@ -1169,10 +1169,10 @@ void Sculpt::Main::_handle_window_layout()
 
 			Xml_node const floating = node.sub_node("floating");
 
-			top    = floating.attribute_value("top",    0UL);
-			bottom = floating.attribute_value("bottom", 0UL);
-			left   = floating.attribute_value("left",   0UL);
-			right  = floating.attribute_value("right",  0UL);
+			top    = floating.attribute_value("top",    0U);
+			bottom = floating.attribute_value("bottom", 0U);
+			left   = floating.attribute_value("left",   0U);
+			right  = floating.attribute_value("right",  0U);
 		}
 	};
 
@@ -1199,8 +1199,8 @@ void Sculpt::Main::_handle_window_layout()
 	Xml_node const window_list = _window_list.xml();
 
 	auto win_size = [&] (Xml_node win) {
-		return Area(win.attribute_value("width",  0UL),
-		            win.attribute_value("height", 0UL)); };
+		return Area(win.attribute_value("width",  0U),
+		            win.attribute_value("height", 0U)); };
 
 	unsigned panel_height = 0;
 	_with_window(window_list, panel_view_label, [&] (Xml_node win) {
@@ -1393,7 +1393,7 @@ void Sculpt::Main::_handle_gui_mode()
 
 	if (!_settings.manual_fonts_config) {
 
-		_font_size_px = (float)mode.area.h() / 60.0;
+		_font_size_px = (double)mode.area.h() / 60.0;
 
 		/*
 		 * Limit lower bound of font size. Otherwise, the glyph rendering
@@ -1413,7 +1413,7 @@ void Sculpt::Main::_handle_gui_mode()
 				gen_named_node(xml, "dir", "fonts", [&] () {
 
 					auto gen_ttf_dir = [&] (char const *dir_name,
-					                        char const *ttf_path, float size_px) {
+					                        char const *ttf_path, double size_px) {
 
 						gen_named_node(xml, "dir", dir_name, [&] () {
 							gen_named_node(xml, "ttf", "regular", [&] () {
@@ -1450,7 +1450,7 @@ void Sculpt::Main::_handle_gui_mode()
 
 	_screen_size = mode.area;
 	_panel_menu_view.min_width = _screen_size.w();
-	unsigned const menu_width = max(_font_size_px*21, 320.0);
+	unsigned const menu_width = max((unsigned)(_font_size_px*21.0), 320u);
 	_main_menu_view.min_width = menu_width;
 	_network.min_dialog_width(menu_width);
 

@@ -108,7 +108,7 @@ struct Sculpt::Partition : List_model<Partition>::Element
 			Number const number = node.attribute_value("number", Number());
 
 			unsigned long const block_size =
-				node.attribute_value("block_size", 512ULL);
+				node.attribute_value("block_size", 512UL);
 
 			unsigned long long const expandable =
 				node.attribute_value("expandable", 0ULL);

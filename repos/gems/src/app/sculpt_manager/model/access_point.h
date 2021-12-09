@@ -71,7 +71,7 @@ struct Sculpt::Access_point_update_policy : List_model<Access_point>::Update_pol
 
 	void update_element(Access_point &ap, Xml_node node)
 	{
-		ap.quality = node.attribute_value("quality", 0UL);
+		ap.quality = node.attribute_value("quality", 0U);
 	}
 
 	static bool element_matches_xml_node(Access_point const &elem, Xml_node node)
