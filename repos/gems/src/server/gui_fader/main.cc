@@ -471,7 +471,7 @@ struct Gui_fader::Main
 	void handle_timer()
 	{
 		Genode::uint64_t frame = curr_frame();
-		if (gui_session.animate(frame - last_frame))
+		if (gui_session.animate((unsigned)(frame - last_frame)))
 			timer.trigger_once(PERIOD);
 
 		last_frame = frame;

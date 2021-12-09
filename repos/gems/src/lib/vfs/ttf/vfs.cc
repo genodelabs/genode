@@ -77,7 +77,7 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 		Font_config(Xml_node const &config)
 		:
 			path(config.attribute_value("path", Directory::Path())),
-			size(config.attribute_value("size_px", 16.0)),
+			size((float)config.attribute_value("size_px", 16.0d)),
 			cache_limit({config.attribute_value("cache", Number_of_bytes())})
 		{ }
 	} _font_config;

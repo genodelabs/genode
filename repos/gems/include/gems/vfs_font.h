@@ -43,7 +43,7 @@ class Genode::Vfs_font : public Text_painter::Font
 
 				float _advance() const
 				{
-					float value = 256.0*_advance_decimal + _advance_fractional;
+					float value = 256.0f*_advance_decimal + _advance_fractional;
 					return value/256;
 				}
 

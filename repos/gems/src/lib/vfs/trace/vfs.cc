@@ -128,7 +128,7 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 				out_count = 0;
 				_entries.for_each_new_entry([&](Trace::Buffer::Entry entry) {
 					file_size size = min(count - out_count, entry.length());
-					memcpy(dst + out_count, entry.data(), size);
+					memcpy(dst + out_count, entry.data(), (size_t)size);
 					out_count += size;
 
 					if (out_count == count)

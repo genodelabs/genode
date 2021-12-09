@@ -49,9 +49,11 @@ struct Alpha_dither_painter
 
 			for (dst = dst_line, w = clipped.w(); w--; dst++, x++) {
 
-				int const v = Genode::Dither_matrix::value(x, y) << 13;
+				using namespace Genode;
 
-				dst->pixel = Genode::min(255, Genode::max(0, (fade - v) >> 16));
+				int const v = Dither_matrix::value(x, y) << 13;
+
+				dst->pixel = (uint8_t)min(255, max(0, (fade - v) >> 16));
 			}
 
 			y++;
@@ -88,15 +90,17 @@ struct Alpha_dither_painter
 
 			for (dst = dst_line, src = src_line, w = clipped.w(); w--; dst++, src++, x++) {
 
+				using namespace Genode;
+
 				/*
 				 * Multiply texture alpha value with fade value, dither the
 				 * result.
 				 */
 
 				int const a = (((int)src->pixel)*fade);
-				int const v = Genode::Dither_matrix::value(x, y) << 13;
+				int const v = Dither_matrix::value(x, y) << 13;
 
-				dst->pixel = Genode::min(255, Genode::max(0, (a - v) >> 16));
+				dst->pixel = (uint8_t)min(255, max(0, (a - v) >> 16));
 			}
 
 			y++;

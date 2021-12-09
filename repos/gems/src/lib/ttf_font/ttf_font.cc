@@ -26,6 +26,9 @@
  * STB TrueType library
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 static void *local_malloc(Genode::size_t, void *);
 static void  local_free(void *, void *);
 #define STBTT_malloc local_malloc
@@ -37,6 +40,8 @@ static void  local_free(void *, void *);
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
+
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 static void *STBTT_malloc(size_t size, void *userdata)
 {
@@ -83,7 +88,7 @@ struct Ttf_font::Glyph_buffer
 			{
 				auto fill_segment = [&] (long x1, long y1, long x2, long) {
 					for (long i = x1>>8; i < x2>>8; i++)
-						value[i] = Genode::min(255, y1>>8); };
+						value[i] = (unsigned char)Genode::min(255, y1>>8); };
 
 				bezier(0, 0, 0, 130<<8, 256<<8, 260<<8, fill_segment, 7);
 				value[0] = 0;
@@ -198,7 +203,7 @@ Ttf_font::Glyph_buffer::render_shifted(Codepoint      const c,
 	return Glyph { .width   = width,
 	               .height  = height,
 	               .vpos    = (unsigned)((int)baseline + y0),
-	               .advance = scale*advance,
+	               .advance = scale * (float)advance,
 	               .values  = _values + _headroom };
 }
 
@@ -214,13 +219,14 @@ static Text_painter::Area obtain_bounding_box(stbtt_fontinfo const &font, float 
 	int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
 	stbtt_GetFontBoundingBox(&font, &x0, &y0, &x1, &y1);
 
-	int const w = x1 - x0 + 1,
-	          h = y1 - y0 + 1;
+	float const w = (float)(x1 - x0 + 1),
+	            h = (float)(y1 - y0 + 1);
 
 	if (w < 1 || h < 1)
 		throw Ttf_font::Unsupported_data();
 
-	return Text_painter::Area(w*scale + 2*PAD_X, h*scale + 2*PAD_Y);
+	return Text_painter::Area((unsigned)(w*scale) + 2*PAD_X,
+	                          (unsigned)(h*scale) + 2*PAD_Y);
 }
 
 
@@ -229,7 +235,7 @@ static unsigned obtain_baseline(stbtt_fontinfo const &font, float scale)
 	int ascent = 0;
 	stbtt_GetFontVMetrics(&font, &ascent, 0, 0);
 
-	return (unsigned)(ascent*scale);
+	return (unsigned)((float)ascent*scale);
 }
 
 
@@ -253,7 +259,7 @@ Ttf_font::Ttf_font(Allocator &alloc, void const *ttf, float px)
 	_px(px),
 	_scale(stbtt_ScaleForPixelHeight(&_stbtt_font_info, px)),
 	_baseline(obtain_baseline(_stbtt_font_info, _scale)),
-	_height(px + 0.5 /* round to integer */),
+	_height((unsigned)(px + 0.5)),
 	_bounding_box(obtain_bounding_box(_stbtt_font_info, _scale)),
 	_glyph_buffer(*new (alloc) Glyph_buffer(alloc, _bounding_box))
 { }
@@ -284,7 +290,7 @@ void Ttf_font::_apply_glyph(Codepoint c, Apply_fn const &fn) const
 	float best_shift_y = 0;
 	{
 		unsigned sharpest = 0;
-		for (float shift_y = -0.3; shift_y < 0.3; shift_y += 0.066) {
+		for (float shift_y = -0.3f; shift_y < 0.3f; shift_y += 0.066f) {
 
 			Glyph const glyph =
 				_glyph_buffer.render_shifted(c, _stbtt_font_info, _scale,
@@ -311,7 +317,9 @@ Text_painter::Font::Advance_info Ttf_font::advance_info(Codepoint c) const
 	int advance = 0, lsb = 0;
 	stbtt_GetCodepointHMetrics(&_stbtt_font_info, c.value, &advance, &lsb);
 
-	return Font::Advance_info { .width   = (unsigned)(_scale*advance),
-	                            .advance = _scale*advance };
+	float const scaled_advance = _scale * (float)advance;
+
+	return Font::Advance_info { .width   = (unsigned)scaled_advance,
+	                            .advance = scaled_advance };
 }
 
