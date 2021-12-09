@@ -33,3 +33,5 @@ CC_OPT_PIC :=
 vpath %.cc  $(SEOUL_CONTRIB_DIR)
 vpath %.cc  $(REP_DIR)/src/app/seoul
 vpath %.tff $(REP_DIR)/src/app/seoul
+
+CC_CXX_WARN_STRICT_CONVERSION =
