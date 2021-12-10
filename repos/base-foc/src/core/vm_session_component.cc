@@ -49,7 +49,7 @@ Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	}
 
 	try {
-		unsigned const vcpu_id = _vcpu_ids.alloc();
+		unsigned const vcpu_id = (unsigned)_vcpu_ids.alloc();
 		_task_index_client = thread.setup_vcpu(vcpu_id, task_cap, recall_cap(),
 	                                           _foc_vcpu_state);
 		if (_task_index_client == Foc::L4_INVALID_CAP) {
@@ -76,7 +76,7 @@ Vcpu::~Vcpu()
 	}
 
 	if (_foc_vcpu_state) {
-		unsigned const vcpu_id = ((addr_t)_foc_vcpu_state -
+		addr_t const vcpu_id = ((addr_t)_foc_vcpu_state -
 		                          Platform::VCPU_VIRT_EXT_START) / L4_PAGESIZE;
 		_vcpu_ids.free(vcpu_id);
 	}
@@ -187,7 +187,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 
 	Flexpage page = flex.page();
 	while (page.valid()) {
-		l4_fpage_t fp = l4_fpage(page.addr, page.log2_order, flags);
+		l4_fpage_t fp = l4_fpage(page.addr, (unsigned)page.log2_order, flags);
 		l4_msgtag_t msg = l4_task_map(_task_vcpu.local.data()->kcap(),
 		                              L4_BASE_TASK_CAP, fp,
 		                              l4_map_obj_control(page.hotspot,
@@ -210,7 +210,7 @@ void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 		using namespace Foc;
 
 		l4_task_unmap(_task_vcpu.local.data()->kcap(),
-		              l4_fpage(page.addr, page.log2_order, L4_FPAGE_RWX),
+		              l4_fpage(page.addr, (unsigned)page.log2_order, L4_FPAGE_RWX),
 		              L4_FP_ALL_SPACES);
 
 		page = flex.page();

@@ -69,7 +69,7 @@ static l4_timeout_s mus_to_timeout(uint64_t mus)
 		e = 0;
 		m = M_MASK;
 	}
-	return l4_timeout_rel(m & M_MASK, e);
+	return l4_timeout_rel(m & M_MASK, (unsigned)e);
 }
 
 

@@ -139,7 +139,7 @@ void Irq_object::ack_irq()
 {
 	using namespace Foc;
 
-	int err;
+	l4_umword_t err;
 	l4_msgtag_t tag = l4_irq_unmask(_capability());
 	if ((err = l4_ipc_error(tag, l4_utcb())))
 		error("IRQ unmask: ", err);
@@ -170,7 +170,7 @@ Irq_object::~Irq_object()
 	if (l4_error(l4_irq_detach(_capability())))
 		error("cannot detach IRQ");
 
-	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, irq, _capability())))
+	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, (unsigned)irq, _capability())))
 		error("cannot unbind IRQ");
 
 	cap_map().remove(_cap);
@@ -184,7 +184,7 @@ Irq_object::~Irq_object()
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
+	_irq_number((unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1)),
 	_irq_alloc(irq_alloc), _irq_object()
 {
 	long const msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
@@ -269,7 +269,7 @@ void Interrupt_handler::entry()
 {
 	using namespace Foc;
 
-	int         err;
+	l4_umword_t err;
 	l4_msgtag_t tag;
 	l4_umword_t label;
 

@@ -171,14 +171,6 @@ class Genode::Vm_space
 			return Cap_sel((uint32_t)((_id << 20) | idx));
 		}
 
-		/**
-		 * Return selector for a capability slot within '_vm_cnodes'
-		 */
-		seL4_ARM_Page _idx_to_page(addr_t idx) const
-		{
-			return (seL4_ARM_Page)((_id << 20) | idx);
-		}
-
 		template <typename FN>
 		void _flush(bool const flush_support, FN const &fn)
 		{
@@ -191,9 +183,7 @@ class Genode::Vm_space
 			        _pd_label.string());
 
 			_page_table_registry.flush_pages(fn);
-
 		}
-
 
 		template <typename FN>
 		bool _map_frame(addr_t const from_phys, addr_t const to_dest,

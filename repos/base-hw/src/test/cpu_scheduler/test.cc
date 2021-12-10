@@ -59,7 +59,7 @@ unsigned share_id(void * const pointer)
 	addr_t const base = (addr_t)data()->shares;
 	if (address < base || address >= base + sizeof(data()->shares)) {
 		return 0; }
-	return (address - base) / sizeof(Cpu_share) + 1;
+	return (unsigned)((address - base) / sizeof(Cpu_share) + 1);
 }
 
 

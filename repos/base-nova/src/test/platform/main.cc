@@ -673,10 +673,10 @@ Main::Main(Env &env) : env(env)
 	}
 
 	/* upgrade available capability indices for this process */
-	unsigned index = 512 * 1024;
+	addr_t index = 512 * 1024;
 	static char local[128][sizeof(Cap_range)];
 
-	for (unsigned i = 0; i < sizeof(local) / sizeof (local[0]); i++) {
+	for (addr_t i = 0; i < sizeof(local) / sizeof (local[0]); i++) {
 		Cap_range &range = *construct_at<Cap_range>(local[i], index);
 
 		cap_map().insert(range);
