@@ -12,14 +12,11 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* libc includes */
-#include <string.h>
-#include <errno.h>
-
 /* stdcxx includes */
 #include <vector>
 
 /* local includes */
+#include "libc.h"
 #include "thread.h"
 #include "fd_set.h"
 
@@ -104,7 +101,7 @@ void *worker_func(void *ptr)
 	}
 
 	/* simulate output creation requiring some time */
-	usleep(1000ull*random()%300);
+	usleep((unsigned)((1000ull*random()) % 300));
 
 	/* write remaining output bytes */
 	while (bytes_written < data_out.size()) {

@@ -16,16 +16,11 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-
-/* libc includes */
-#include <string.h>
-#include <errno.h>
-#include <sys/select.h>
-
 /* stdcxx includes */
 #include <vector>
 
 /* local includes */
+#include "libc.h"
 #include "definitions.h"
 #include "fd_set.h"
 #include "input_sender.h"
