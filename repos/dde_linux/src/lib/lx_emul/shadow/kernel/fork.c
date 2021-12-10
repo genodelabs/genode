@@ -19,13 +19,19 @@
 #include <lx_emul/task.h>
 #include <linux/sched/task.h>
 
+/*
+ * We accept that we transfer the 4KiB task_struct object via stack in
+ * initialization, therefore mask the warning here
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wframe-larger-than="
 
 pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 {
 	static int pid_counter = FIRST_PID;
 
 	struct task_struct * task = kmalloc(sizeof(struct task_struct), GFP_KERNEL);
-	*task = (struct task_struct){
+	*task = (struct task_struct) {
 	.state           = 0,
 	.usage           = REFCOUNT_INIT(2),
 	.flags           = PF_KTHREAD,
@@ -57,3 +63,5 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 	lx_emul_task_create(task, "kthread", task->pid, fn, arg);
 	return task->pid;
 }
+
+#pragma GCC diagnostic pop
