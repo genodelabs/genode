@@ -60,7 +60,7 @@ void Aes_256::encrypt_with_zeroed_iv(unsigned char       *ciphertext_base,
                                      size_t               key_size)
 {
 	Openssl::AES_KEY aes_key;
-	if (AES_set_encrypt_key(key_base, key_size * 8, &aes_key)) {
+	if (AES_set_encrypt_key(key_base, (int)(key_size * 8), &aes_key)) {
 		class Failed_to_set_key { };
 		throw Failed_to_set_key { };
 	}
@@ -82,7 +82,7 @@ void Aes_256::decrypt_with_zeroed_iv(unsigned char       *plaintext_base,
                                      size_t               key_size)
 {
 	Openssl::AES_KEY aes_key;
-	if (AES_set_decrypt_key(key_base, key_size * 8, &aes_key)) {
+	if (AES_set_decrypt_key(key_base, (int)(key_size * 8), &aes_key)) {
 		class Failed_to_set_key { };
 		throw Failed_to_set_key { };
 	}

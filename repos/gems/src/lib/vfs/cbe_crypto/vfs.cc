@@ -529,7 +529,7 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 				}
 
 				try {
-					Key_file_system const &fs = _key_reg.by_index(index);
+					Key_file_system const &fs = _key_reg.by_index((unsigned)index);
 					Genode::String<32> name { fs.key_id() };
 
 					out = {
