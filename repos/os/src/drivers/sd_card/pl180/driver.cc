@@ -179,7 +179,7 @@ Driver::Driver(Env &env, Platform::Connection & platform)
 
 	/* CMD3: send relative card address (RCA) */
 	_request(3, &resp);
-	unsigned short rca = resp >> 16;
+	unsigned short rca = (short)(resp >> 16);
 
 	/*
 	 * Now, the card is in transfer mode...
@@ -208,7 +208,7 @@ void Driver::read(Block::sector_t           block_number,
 		 * SDSC cards use a byte address as argument while SDHC/SDSC uses a
 		 * block address here.
 		 */
-		_read_request(17, (block_number + i) * _block_size,
+		_read_request(17, (uint32_t)((block_number + i) * _block_size),
 		              length, &resp);
 		_read_data(length, buffer + (i * _block_size));
 	}
@@ -231,7 +231,7 @@ void Driver::write(Block::sector_t           block_number,
 		 * SDSC cards use a byte address as argument while SDHC/SDSC uses a
 		 * block address here.
 		 */
-		_write_request(24, (block_number + i) * _block_size,
+		_write_request(24, (uint32_t)((block_number + i) * _block_size),
 		               length, &resp);
 		_write_data(length, buffer + (i * _block_size));
 	}

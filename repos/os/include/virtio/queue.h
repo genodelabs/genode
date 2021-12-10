@@ -417,7 +417,7 @@ class Virtio::Queue
 			if (data != nullptr && data_size > 0) {
 				len = Genode::min(_buffer_size - sizeof(header), data_size);
 				Genode::memcpy((char *)_buffer_local_addr(desc) + desc->len, data, len);
-				desc->len += len;
+				desc->len += (Genode::uint32_t)len;
 				len = data_size + sizeof(header) - desc->len;
 			}
 

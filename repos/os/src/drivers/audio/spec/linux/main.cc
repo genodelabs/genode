@@ -148,8 +148,8 @@ class Audio_out::Out
 			if (p_left->valid() && p_right->valid()) {
 
 				for (unsigned i = 0; i < 2 * PERIOD; i += 2) {
-					data[i] = p_left->content()[i / 2] * 32767;
-					data[i + 1] = p_right->content()[i / 2] * 32767;
+					data[i]     = (short)(p_left ->content()[i / 2] * 32767.0f);
+					data[i + 1] = (short)(p_right->content()[i / 2] * 32767.0f);
 				}
 
 				p_left->invalidate();
