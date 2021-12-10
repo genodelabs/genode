@@ -25,18 +25,18 @@
 using namespace Genode;
 
 struct Device {
-	unsigned long        vendor;
-	unsigned long        product;
-	unsigned long        cla;
-	unsigned long        bus;
-	unsigned long        dev;
-	genode_usb_session * usb_session { nullptr };
+	genode_usb_vendor_id_t  vendor;
+	genode_usb_product_id_t product;
+	genode_usb_class_num_t  cla;
+	genode_usb_bus_num_t    bus;
+	genode_usb_dev_num_t    dev;
+	genode_usb_session    * usb_session { nullptr };
 
-	Device(unsigned long vendor,
-	       unsigned long product,
-	       unsigned long cla,
-	       unsigned long bus,
-	       unsigned long dev)
+	Device(genode_usb_vendor_id_t  vendor,
+	       genode_usb_product_id_t product,
+	       genode_usb_class_num_t  cla,
+	       genode_usb_bus_num_t    bus,
+	       genode_usb_dev_num_t    dev)
 	: vendor(vendor), product(product),
 	  cla(cla), bus(bus), dev(dev) {}
 
@@ -62,7 +62,7 @@ class genode_usb_session : public Usb::Session_rpc_object
 		::Root                         & _root;
 		Attached_dataspace             & _ds;
 		Signal_context_capability        _sigh_state_cap {};
-		unsigned short                   _id;
+		genode_usb_session_handle_t      _id;
 		Session_label const              _label;
 		List_element<genode_usb_session> _le { this };
 
@@ -72,12 +72,12 @@ class genode_usb_session : public Usb::Session_rpc_object
 
 	public:
 
-		genode_usb_session(::Root                  & root,
-		                   Attached_dataspace      & ds,
-		                   Env                     & env,
-		                   Signal_context_capability cap,
-		                   unsigned short            id,
-		                   Session_label             label);
+		genode_usb_session(::Root                    & root,
+		                   Attached_dataspace        & ds,
+		                   Env                       & env,
+		                   Signal_context_capability   cap,
+		                   genode_usb_session_handle_t id,
+		                   Session_label               label);
 
 		virtual ~genode_usb_session() {}
 
@@ -136,6 +136,15 @@ class Root : public Root_component<genode_usb_session>
 
 		enum { MAX_DEVICES = 32 };
 
+		struct Id_allocator : Bit_allocator<16>
+		{
+			genode_usb_session_handle_t alloc()
+			{
+				/* we can downcast here, because we only use 16 bits */
+				return (genode_usb_session_handle_t)
+					Bit_allocator<16>::alloc();
+			}
+		};
 
 		Env                     & _env;
 		Signal_context_capability _sigh_cap;
@@ -145,7 +154,7 @@ class Root : public Root_component<genode_usb_session>
 		Reporter                  _reporter { _env, "devices" };
 		Constructible<Device>     _devices[MAX_DEVICES];
 		List<List_element<genode_usb_session>> _sessions {};
-		Bit_allocator<16>         _id_alloc {};
+		Id_allocator              _id_alloc {};
 		bool                      _announced { false };
 
 		Root(const Root&);
@@ -188,20 +197,21 @@ class Root : public Root_component<genode_usb_session>
 
 		Root(Env & env, Allocator & alloc, Signal_context_capability);
 
-		void announce_device(unsigned long vendor,
-		                     unsigned long product,
-		                     unsigned long cla,
-		                     unsigned long bus,
-		                     unsigned long dev);
+		void announce_device(genode_usb_vendor_id_t  vendor,
+		                     genode_usb_product_id_t product,
+		                     genode_usb_class_num_t  cla,
+		                     genode_usb_bus_num_t    bus,
+		                     genode_usb_dev_num_t    dev);
 
-		void discontinue_device(unsigned long bus, unsigned long dev);
+		void discontinue_device(genode_usb_bus_num_t bus,
+		                        genode_usb_dev_num_t dev);
 
 		/*
 		 * Returns the session's handle for a given device,
 		 * or an invalid handle if there is no active session for the device
 		 */
-		genode_usb_session_handle_t session(unsigned long bus,
-		                                    unsigned long dev);
+		genode_usb_session_handle_t session(genode_usb_bus_num_t bus,
+		                                    genode_usb_dev_num_t dev);
 
 		/*
 		 * Finds the bus/device numbers of the device associated for a
@@ -209,9 +219,9 @@ class Root : public Root_component<genode_usb_session>
 		 *
 		 * \returns true if a device is associated, otherwise false
 		 */
-		bool device_associated(genode_usb_session * session,
-		                       unsigned long & bus,
-		                       unsigned long & dev);
+		bool device_associated(genode_usb_session   * session,
+		                       genode_usb_bus_num_t & bus,
+		                       genode_usb_dev_num_t & dev);
 
 		/*
 		 * Apply a functor to the session with the given handle
@@ -240,7 +250,8 @@ void genode_usb_session::notify()
 
 bool genode_usb_session::plugged()
 {
-	unsigned long bus, dev;
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
 	return _root.device_associated(this, bus, dev);
 }
 
@@ -248,7 +259,8 @@ bool genode_usb_session::plugged()
 void genode_usb_session::config_descriptor(Usb::Device_descriptor * device_descr,
                                            Usb::Config_descriptor * config_descr)
 {
-	unsigned long bus, dev;
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
 	if (!_root.device_associated(this, bus, dev))
 		throw Device_not_found();
 
@@ -261,7 +273,8 @@ void genode_usb_session::config_descriptor(Usb::Device_descriptor * device_descr
 
 unsigned genode_usb_session::alt_settings(unsigned index)
 {
-	unsigned long bus, dev;
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
 	if (!_root.device_associated(this, bus, dev))
 		throw Device_not_found();
 
@@ -276,7 +289,8 @@ void genode_usb_session::interface_descriptor(unsigned index,
                                               unsigned alt_setting,
                                               Usb::Interface_descriptor * desc)
 {
-	unsigned long bus, dev;
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
 	if (!_root.device_associated(this, bus, dev))
 		throw Device_not_found();
 
@@ -294,17 +308,22 @@ bool genode_usb_session::interface_extra(unsigned index,
                                          unsigned alt_setting,
                                          Usb::Interface_extra * interface_data)
 {
-	unsigned long bus, dev;
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
 	if (!_root.device_associated(this, bus, dev))
 		throw Device_not_found();
 
-	int len = _callbacks->iface_extra_fn(bus, dev, index, alt_setting,
-	                                     (void*)interface_data->data,
-	                                     sizeof(interface_data->data));
+	int len =
+		_callbacks->iface_extra_fn(bus, dev, index, alt_setting,
+	                               (void*)interface_data->data,
+	                               sizeof(interface_data->data));
 	if (len < 0)
 		throw Interface_not_found();
 
-	interface_data->length = len;
+	if (len >= 0xff)
+		error("Unsupported length of alt_setting iface extra!");
+
+	interface_data->length = (uint8_t)len;
 	return len;
 }
 
@@ -314,7 +333,8 @@ void genode_usb_session::endpoint_descriptor(unsigned interface_num,
                                              unsigned endpoint_num,
                                              Usb::Endpoint_descriptor * endp)
 {
-	unsigned long bus, dev;
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
 	if (!_root.device_associated(this, bus, dev))
 		throw Device_not_found();
 
@@ -434,12 +454,12 @@ void genode_usb_session::handle_response(genode_usb_request_handle_t id,
 }
 
 
-genode_usb_session::genode_usb_session(::Root                  & root,
-                                       Attached_dataspace      & ds,
-                                       Env                     & env,
-                                       Signal_context_capability cap,
-                                       unsigned short            id,
-                                       Session_label const       label)
+genode_usb_session::genode_usb_session(::Root                    & root,
+                                       Attached_dataspace        & ds,
+                                       Env                       & env,
+                                       Signal_context_capability   cap,
+                                       genode_usb_session_handle_t id,
+                                       Session_label const         label)
 :
 	Usb::Session_rpc_object(ds.cap(), env.ep().rpc_ep(), env.rm()),
 	_root(root),
@@ -456,11 +476,16 @@ bool ::Root::_matches(Device & d, genode_usb_session & s)
 	try {
 		Session_policy const policy(s._label, _config.xml());
 
-		unsigned long vendor  = policy.attribute_value<unsigned long>("vendor_id", 0);
-		unsigned long product = policy.attribute_value<unsigned long>("product_id", 0);
-		unsigned long bus     = policy.attribute_value<unsigned long>("bus", 0);
-		unsigned long dev     = policy.attribute_value<unsigned long>("dev", 0);
-		unsigned long cla     = policy.attribute_value<unsigned long>("class", 0);
+		genode_usb_vendor_id_t  vendor  =
+			policy.attribute_value<genode_usb_vendor_id_t>("vendor_id", 0);
+		genode_usb_product_id_t product =
+			policy.attribute_value<genode_usb_product_id_t>("product_id", 0);
+		genode_usb_bus_num_t    bus     =
+			policy.attribute_value<genode_usb_bus_num_t>("bus", 0);
+		genode_usb_dev_num_t    dev     =
+			policy.attribute_value<genode_usb_dev_num_t>("dev", 0);
+		genode_usb_class_num_t  cla     =
+			policy.attribute_value<genode_usb_class_num_t>("class", 0);
 
 		if (bus && dev)
 			return (bus == d.bus) && (dev == d.dev);
@@ -523,7 +548,7 @@ void ::Root::_destroy_session(genode_usb_session * session)
 			d.usb_session = nullptr;
 	});
 
-	unsigned short id = session->_id;
+	genode_usb_session_handle_t id = session->_id;
 	Attached_dataspace & ds = session->_ds;
 	_sessions.remove(&session->_le);
 	Genode::destroy(md_alloc(), session);
@@ -573,11 +598,11 @@ void ::Root::_announce_service()
 }
 
 
-void ::Root::announce_device(unsigned long vendor,
-                             unsigned long product,
-                             unsigned long cla,
-                             unsigned long bus,
-                             unsigned long dev)
+void ::Root::announce_device(genode_usb_vendor_id_t  vendor,
+                             genode_usb_product_id_t product,
+                             genode_usb_class_num_t  cla,
+                             genode_usb_bus_num_t    bus,
+                             genode_usb_dev_num_t    dev)
 {
 	for (unsigned idx = 0; idx < MAX_DEVICES; idx++) {
 		if (_devices[idx].constructed())
@@ -600,7 +625,8 @@ void ::Root::announce_device(unsigned long vendor,
 }
 
 
-void ::Root::discontinue_device(unsigned long bus, unsigned long dev)
+void ::Root::discontinue_device(genode_usb_bus_num_t bus,
+                                genode_usb_dev_num_t dev)
 {
 	for (unsigned idx = 0; idx < MAX_DEVICES; idx++) {
 		if (!_devices[idx].constructed() ||
@@ -618,7 +644,8 @@ void ::Root::discontinue_device(unsigned long bus, unsigned long dev)
 }
 
 
-genode_usb_session_handle_t ::Root::session(unsigned long bus, unsigned long dev)
+genode_usb_session_handle_t ::Root::session(genode_usb_bus_num_t bus,
+                                            genode_usb_dev_num_t dev)
 {
 	genode_usb_session * session = nullptr;
 	_for_each_device([&] (Device & d) {
@@ -639,8 +666,9 @@ void ::Root::session(genode_usb_session_handle_t id, FUNC const & fn)
 }
 
 
-bool ::Root::device_associated(genode_usb_session * session,
-                               unsigned long & bus, unsigned long & dev)
+bool ::Root::device_associated(genode_usb_session   * session,
+                               genode_usb_bus_num_t & bus,
+                               genode_usb_dev_num_t & dev)
 {
 	bool ret = false;
 	_for_each_device([&] (Device & d) {
@@ -678,11 +706,11 @@ extern "C" void genode_usb_init(genode_env                   * env_ptr,
 }
 
 
-extern "C" void genode_usb_announce_device(unsigned long vendor,
-                                           unsigned long product,
-                                           unsigned long cla,
-                                           unsigned long bus,
-                                           unsigned long dev)
+extern "C" void genode_usb_announce_device(genode_usb_vendor_id_t  vendor,
+                                           genode_usb_product_id_t product,
+                                           genode_usb_class_num_t  cla,
+                                           genode_usb_bus_num_t    bus,
+                                           genode_usb_dev_num_t    dev)
 {
 	if (!_usb_root)
 		return;
@@ -691,8 +719,8 @@ extern "C" void genode_usb_announce_device(unsigned long vendor,
 }
 
 
-extern "C" void genode_usb_discontinue_device(unsigned long bus,
-                                              unsigned long dev)
+extern "C" void genode_usb_discontinue_device(genode_usb_bus_num_t bus,
+                                              genode_usb_dev_num_t dev)
 {
 	if (_usb_root)
 		_usb_root->discontinue_device(bus, dev);
@@ -700,7 +728,8 @@ extern "C" void genode_usb_discontinue_device(unsigned long bus,
 
 
 extern "C" genode_usb_session_handle_t
-genode_usb_session_by_bus_dev(unsigned long bus, unsigned long dev)
+genode_usb_session_by_bus_dev(genode_usb_bus_num_t bus,
+                              genode_usb_dev_num_t dev)
 {
 	genode_usb_session_handle_t ret = _usb_root ? _usb_root->session(bus, dev) : 0;
 	return ret;
