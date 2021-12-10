@@ -38,3 +38,5 @@ vpath hw/%          $(BASE_HW_DIR)/src/lib
 vpath lib/base/%    $(BASE_HW_DIR)/src
 vpath lib/base/%    $(BASE_DIR)/src
 vpath lib/startup/% $(BASE_DIR)/src
+
+CC_CXX_WARN_STRICT_CONVERSION =
