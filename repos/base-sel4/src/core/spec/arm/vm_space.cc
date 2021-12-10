@@ -29,7 +29,7 @@ long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
                                  Map_attr        const map_attr,
                                  bool)
 {
-	seL4_ARM_Page          const service = _idx_to_sel(idx.value());
+	seL4_ARM_Page          const service = _idx_to_page(idx.value());
 	seL4_ARM_PageDirectory const pd      = _pd_sel.value();
 	seL4_CapRights_t       const rights  = map_attr.writeable
 	                                     ? seL4_ReadWrite : seL4_CanRead;
@@ -47,7 +47,7 @@ long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
 
 long Genode::Vm_space::_unmap_page(Genode::Cap_sel const &idx)
 {
-	seL4_ARM_Page const service = _idx_to_sel(idx.value());
+	seL4_ARM_Page const service = _idx_to_page(idx.value());
 	return seL4_ARM_Page_Unmap(service);
 }
 
@@ -56,7 +56,7 @@ long Genode::Vm_space::_invalidate_page(Genode::Cap_sel const &idx,
                                         seL4_Word const start,
                                         seL4_Word const end)
 {
-	seL4_ARM_Page const service = _idx_to_sel(idx.value());
+	seL4_ARM_Page const service = _idx_to_page(idx.value());
 	long error = seL4_ARM_Page_CleanInvalidate_Data(service, 0, end - start);
 
 	if (error == seL4_NoError) {

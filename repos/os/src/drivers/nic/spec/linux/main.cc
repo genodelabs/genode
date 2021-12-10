@@ -27,12 +27,15 @@
 #include <drivers/nic/uplink_client_base.h>
 
 /* Linux */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <linux/if_tun.h>
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 
 using namespace Genode;

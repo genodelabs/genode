@@ -58,7 +58,7 @@ size_t Dataspace_component::_file_size()
 	if (lx_stat_size(_fname.buf, size) < 0)
 		throw Service_denied();
 
-	return align_addr(size, 12);
+	return align_addr((size_t)size, 12);
 }
 
 
