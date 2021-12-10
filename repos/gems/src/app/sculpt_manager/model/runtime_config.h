@@ -355,6 +355,7 @@ class Sculpt::Runtime_config
 				_pci_net   { _r, Type::PLATFORM,    "network hardware", "nic" },
 				_pci_audio { _r, Type::PLATFORM,    "audio hardware",   "audio" },
 				_pci_acpi  { _r, Type::PLATFORM,    "ACPI",             "acpica" },
+				_hw_gpu    { _r, Type::PLATFORM,    "GPU hardware",     "gpu" },
 				_trace     { _r, Type::TRACE,       "system-global tracing" },
 				_vm        { _r, Type::VM,          "virtualization hardware" },
 				_pd        { _r, Type::PD,          "system PD service" };
