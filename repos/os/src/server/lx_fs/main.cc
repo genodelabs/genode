@@ -32,11 +32,6 @@
 #include "open_node.h"
 #include "watch.h"
 
-/* libc includes */
-#include <signal.h>
-#include <string.h>
-
-
 namespace Lx_fs {
 
 	using namespace File_system;

@@ -22,12 +22,23 @@
 
 /* Linux includes */
 #define _FILE_OFFSET_BITS 64
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>      /* strerror */
+#include <sys/inotify.h>
+#include <sys/select.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
+#pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
 
 namespace File_system {

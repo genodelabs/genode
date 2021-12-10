@@ -31,6 +31,8 @@ namespace Lx_fs {
 
 	using Absolute_path = Genode::Path<MAX_ABSOLUTE_PATH_LEN>;
 
+	using uint64_t = Genode::uint64_t;
+
 	class Node;
 	class File;
 }
@@ -44,19 +46,19 @@ class Lx_fs::Node : public File_system::Node_base
 
 	private:
 
-		Name                _name;
-		unsigned long const _inode;
+		Name _name;
+
+		uint64_t const _inode;
 
 	public:
 
-		Node(unsigned long inode)
-		: _inode { inode }
+		Node(uint64_t inode) : _inode { inode }
 		{
 			_name[0] = 0;
 		}
 
-		unsigned long  inode()     const { return _inode; }
-		char   const  *name()      const { return _name; }
+		uint64_t inode()   const { return _inode; }
+		char const *name() const { return _name; }
 
 		/**
 		 * Assign name

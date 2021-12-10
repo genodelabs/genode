@@ -32,7 +32,7 @@ class Lx_fs::File : public Node
 
 		int _fd;
 
-		unsigned long _inode(int dir, char const *name, bool create)
+		uint64_t _inode(int dir, char const *name, bool create)
 		{
 			int ret;
 
@@ -56,7 +56,7 @@ class Lx_fs::File : public Node
 			return s.st_ino;
 		}
 
-		unsigned long _inode_path(char const *path)
+		uint64_t _inode_path(char const *path)
 		{
 			int         ret;
 			struct stat s;
@@ -104,7 +104,7 @@ class Lx_fs::File : public Node
 			Node(_inode_path(path)),
 			_fd(_open_path(path, mode))
 		{
-			Node::name(basename(path));
+			Node::name(File_system::basename(path));
 		}
 
 		~File()
@@ -125,9 +125,9 @@ class Lx_fs::File : public Node
 
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
-			int ret = pread(_fd, dst, len, seek_offset);
+			size_t ret = pread(_fd, dst, len, seek_offset);
 
-			return ret == -1 ? 0 : ret;
+			return (int)ret == -1 ? 0UL : ret;
 		}
 
 		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
@@ -140,9 +140,9 @@ class Lx_fs::File : public Node
 				seek_offset = off;
 			}
 
-			int ret = pwrite(_fd, src, len, seek_offset);
+			size_t ret = pwrite(_fd, src, len, seek_offset);
 
-			return ret == -1 ? 0 : ret;
+			return (int)ret == -1 ? 0UL : ret;
 		}
 
 		bool sync() override
@@ -166,7 +166,7 @@ class Lx_fs::File : public Node
 				.rwx   = { .readable   = (st.st_mode & S_IRUSR) != 0,
 				           .writeable  = (st.st_mode & S_IWUSR) != 0,
 				           .executable = (st.st_mode & S_IXUSR) != 0},
-				.inode = inode(),
+				.inode = (unsigned long)inode(),
 				.modification_time = { st.st_mtime }
 			};
 		}
