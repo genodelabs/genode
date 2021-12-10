@@ -35,7 +35,7 @@ struct page *lx_emul_associated_page(void const *virt, unsigned long size);
  *
  * If no page struct exists for the virtual address, it is created.
  */
-struct page *lx_emul_virt_to_pages(void const *virt, unsigned num);
+struct page *lx_emul_virt_to_pages(void const *virt, unsigned long num);
 
 
 /**

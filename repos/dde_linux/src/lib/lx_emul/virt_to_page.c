@@ -16,7 +16,7 @@
 #include <lx_emul/page_virt.h>
 
 
-struct page *lx_emul_virt_to_pages(void const *virt, unsigned count)
+struct page *lx_emul_virt_to_pages(void const *virt, unsigned long count)
 {
 	/* sanitize argument */
 	void * const page_aligned_virt = (void *)((uintptr_t)virt & PAGE_MASK);
@@ -24,7 +24,7 @@ struct page *lx_emul_virt_to_pages(void const *virt, unsigned count)
 	struct page *page = lx_emul_associated_page(page_aligned_virt, 1);
 
 	if (!page) {
-		unsigned i;
+		unsigned long i;
 		struct page * p = kzalloc(sizeof(struct page)*count, 0);
 		page = p;
 		for (i = 0; i < count; i++, p++) {
