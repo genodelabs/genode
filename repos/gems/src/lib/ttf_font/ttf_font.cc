@@ -88,7 +88,7 @@ struct Ttf_font::Glyph_buffer
 			{
 				auto fill_segment = [&] (long x1, long y1, long x2, long) {
 					for (long i = x1>>8; i < x2>>8; i++)
-						value[i] = (unsigned char)Genode::min(255, y1>>8); };
+						value[i] = (unsigned char)Genode::min(255l, y1>>8); };
 
 				bezier(0, 0, 0, 130<<8, 256<<8, 260<<8, fill_segment, 7);
 				value[0] = 0;

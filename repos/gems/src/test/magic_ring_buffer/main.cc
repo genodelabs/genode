@@ -26,23 +26,22 @@ void Component::construct(Genode::Env &env)
 
 	log("--- magic ring buffer test, ", ring_buffer.capacity(), " int ring ---");
 
+	size_t const count = ring_buffer.capacity()/3;
 
-	int const count = ring_buffer.capacity()/3;
+	size_t total = 0;
 
-	int total = 0;
-
-	for (int j = 0; j < 99; ++j) {
-		for (int i = 0; i < count; ++i) {
-			ring_buffer.write_addr()[i] = i;
+	for (size_t j = 0; j < 99; ++j) {
+		for (size_t i = 0; i < count; ++i) {
+			ring_buffer.write_addr()[i] = (int)i;
 		}
 
 		ring_buffer.fill(count);
 
-		for (int i = 0; i < count; ++i) {
-			if (ring_buffer.read_addr()[i] != i) {
+		for (size_t i = 0; i < count; ++i) {
+			if (ring_buffer.read_addr()[i] != (int)i) {
 				error("ring buffer corruption, ",
 				      ring_buffer.read_addr()[i], " != ", i);
-				env.parent().exit(total+i);
+				env.parent().exit((int)(total + i));
 				return;
 			}
 		}

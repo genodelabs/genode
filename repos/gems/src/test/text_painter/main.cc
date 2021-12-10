@@ -111,8 +111,9 @@ struct Test::Main
 		/* test horizontal subpixel positioning */
 		_surface.clip(Rect(Point(90, 15), Area(100, 300)));
 		Box_painter::paint(_surface, Rect(Point(0, 0), _size), Color(150, 20, 10));
+		float const font_3_h = (float)_font_3.bounding_box().h();
 
-		for (float x = 90, y = -30; y < (int)_size.h() + 30; x += 0.2, y += _font_3.bounding_box().h())
+		for (float x = 90, y = -30; y < (float)_size.h() + 30; x += 0.2f, y += font_3_h)
 			Text_painter::paint(_surface,
 			                    Text_painter::Position(x, y), _font_3,
 			                    Color(255, 255, 255),
@@ -121,7 +122,7 @@ struct Test::Main
 		_surface.clip(Rect(Point(90, 320), Area(100, 300)));
 		Box_painter::paint(_surface, Rect(Point(0, 0), _size), Color(255, 255, 255));
 
-		for (float x = 90, y = 300; y < (int)_size.h() + 30; x += 0.2, y += _font_3.bounding_box().h())
+		for (float x = 90, y = 300; y < (float)_size.h() + 30; x += 0.2f, y += font_3_h)
 			Text_painter::paint(_surface,
 			                    Text_painter::Position(x, y), _font_3,
 			                    Color(0, 0, 0),
@@ -136,7 +137,8 @@ struct Test::Main
 			{
 				auto fill_segment = [&] (long x1, long y1, long x2, long)
 				{
-					for (long i = x1>>8; i < x2>>8; i++) value[i] = min(255, y1>>8);
+					for (long i = x1>>8; i < x2>>8; i++)
+						value[i] = (unsigned char)min(255, y1>>8);
 				};
 
 				bezier(0, 0, 0, 130<<8, 256<<8, 260<<8, fill_segment, 7);
@@ -170,7 +172,7 @@ struct Test::Main
 			Genode::uint64_t const end_us = timer.elapsed_us();
 			unsigned long num_glyphs = strlen(vfs_text_string)*ITERATIONS;
 
-			log("uncached painting: ", (float)(end_us - start_us)/num_glyphs, " us/glyph");
+			log("uncached painting: ", (float)(end_us - start_us)/(float)num_glyphs, " us/glyph");
 			_refresh();
 		}
 
@@ -194,7 +196,7 @@ struct Test::Main
 			Genode::uint64_t const end_us = timer.elapsed_us();
 			unsigned long num_glyphs = strlen(vfs_text_string)*iterations;
 
-			log("cached painting:   ", (float)(end_us - start_us)/num_glyphs, " us/glyph"
+			log("cached painting:   ", (float)(end_us - start_us)/(float)num_glyphs, " us/glyph"
 			    " (", cached_font.stats(), ")");
 			_refresh();
 		}
