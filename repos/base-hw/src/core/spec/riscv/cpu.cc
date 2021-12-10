@@ -47,7 +47,7 @@ Mmu_context(addr_t                             page_table_base,
 
 Mmu_context::~Mmu_context()
 {
-	unsigned asid = Satp::Asid::get(satp);
+	unsigned asid = (uint16_t)Satp::Asid::get(satp); /* ASID is 16 bit */
 	Cpu::invalidate_tlb_by_pid(asid);
 	_addr_space_id_alloc.free(asid);
 }

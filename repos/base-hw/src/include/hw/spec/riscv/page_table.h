@@ -181,7 +181,7 @@ class Sv39::Level_x_translation_table
 		 * Return how many entries of an alignment fit into region
 		 */
 		static constexpr size_t _count(size_t region, size_t alignment) {
-			return align_addr<size_t>(region, alignment) / (1UL << alignment); }
+			return align_addr<size_t>(region, (unsigned)alignment) / (1UL << alignment); }
 
 
 		template <typename FUNC>
