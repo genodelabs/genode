@@ -48,13 +48,17 @@ class Vmm::Virtio_split_queue
 		{
 			private:
 
-				unsigned _idx : LOG2;
+				uint16_t _idx;
+
+				static_assert((sizeof(uint16_t)*8) >= LOG2);
 
 			public:
 
 				Index(unsigned idx = 0) : _idx(idx % (1 << LOG2)) {}
 
-				void     inc()       { _idx++;      }
+				void inc() {
+					_idx = ((_idx + 1) % (1 << LOG2)); }
+
 				unsigned idx() const { return _idx; }
 
 				bool operator != (Index const & o) const {
