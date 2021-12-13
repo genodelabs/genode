@@ -137,11 +137,11 @@ install_config {
 				<dir name="dev">
 					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
 					<inline name="random">01234567890123456789</inline>
+					<dir name="socket"> } [socket_fs_plugin] { </dir>
 				</dir>
-				<dir name="socket"> } [socket_fs_plugin] { </dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-			      rng="/dev/random" socket="/socket"/>
+			      rng="/dev/random" socket="/dev/socket"/>
 			<fetch url="https://genode.org/about/LICENSE" path="/dev/log" retry="3"/>
 		</config>
 	</start>
