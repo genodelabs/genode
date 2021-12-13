@@ -26,6 +26,7 @@ SRC_C += \
 # dim build noise for contrib code
 CC_OPT_autofit += -Wno-unused-but-set-variable
 CC_OPT_cff     += -Wno-unused-but-set-variable
+CC_OPT_ftcache += -Wno-misleading-indentation
 
 vpath %.c        $(FREETYPE_DIR)/src/base
 vpath truetype.c $(FREETYPE_DIR)/src/truetype
