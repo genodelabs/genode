@@ -4,7 +4,9 @@ INC_DIR += $(call select_from_ports,e2fsprogs-lib)/include/e2fsprogs
 
 LIBS := libc e2fsprogs_host_tools
 
-CC_OPT += -Wno-unused-variable -Wno-unused-function -Wno-maybe-uninitialized
+CC_OPT += -Wno-unused-variable -Wno-unused-function -Wno-maybe-uninitialized \
+          -Wno-format-overflow -Wno-format-truncation -Wno-unused-but-set-variable \
+          -Wno-address-of-packed-member -Wno-sizeof-pointer-memaccess
 
 CC_DEF += -DLOCALEDIR=\"/share/locale\"
 CC_DEF += -DLIBDIR=\"/lib\"
