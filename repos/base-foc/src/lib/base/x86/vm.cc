@@ -221,9 +221,9 @@ struct Foc_vcpu : Thread, Noncopyable
 			CR0_PG = 0 /* 1U << 31 - not needed in case of UG */
 		};
 
-		addr_t const _cr0_mask       { CR0_NM | CR0_CD };
-		addr_t const vmcb_ctrl0      { CTRL0_IO | CTRL0_MSR };
-		addr_t const vmcb_ctrl1      { 0 };
+		addr_t   const _cr0_mask  { CR0_NM | CR0_CD };
+		uint32_t const vmcb_ctrl0 { CTRL0_IO | CTRL0_MSR };
+		uint32_t const vmcb_ctrl1 { 0 };
 
 		addr_t       vmcb_cr0_shadow { 0 };
 		addr_t       vmcb_cr4_shadow { 0 };
@@ -898,9 +898,9 @@ struct Foc_vcpu : Thread, Noncopyable
 			}
 
 			if (state.inj_info.charged() || state.inj_error.charged()) {
-				addr_t ctrl_0 = state.ctrl_primary.charged()
-				              ? (addr_t)state.ctrl_primary.value()
-				              : (addr_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::CTRL_0);
+				uint32_t ctrl_0 = state.ctrl_primary.charged()
+				              ? (uint32_t)state.ctrl_primary.value()
+				              : (uint32_t)Foc::l4_vm_vmx_read(vmcs, Vmcs::CTRL_0);
 
 				if (state.inj_info.value() & 0x2000)
 					warning("unimplemented ", state.inj_info.value() & 0x1000, " ",
