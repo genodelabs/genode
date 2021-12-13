@@ -58,3 +58,5 @@ INC_DIR += $(LIBLZMA_DIR)/../common \
 LIBS += libc
 
 SHARED_LIB = yes
+
+CC_OPT_lz_encoder_mf += -Wno-unused-function
