@@ -193,8 +193,11 @@ namespace Libc {
 	char const *config_nameserver_file() __attribute__((weak));
 	char const *config_nameserver_file()
 	{
+		static Genode::String<Vfs::MAX_PATH_LEN> default_value {
+			config_socket(), "/nameserver" };
+
 		static Config_attr ns_file("nameserver_file",
-		                           "/socket/nameserver");
+		                           default_value.string());
 		return ns_file.string();
 	}
 
