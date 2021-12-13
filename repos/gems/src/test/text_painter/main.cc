@@ -138,7 +138,7 @@ struct Test::Main
 				auto fill_segment = [&] (long x1, long y1, long x2, long)
 				{
 					for (long i = x1>>8; i < x2>>8; i++)
-						value[i] = (unsigned char)min(255, y1>>8);
+						value[i] = (unsigned char)min(255L, y1>>8);
 				};
 
 				bezier(0, 0, 0, 130<<8, 256<<8, 260<<8, fill_segment, 7);
@@ -190,7 +190,7 @@ struct Test::Main
 				Text_painter::paint(_surface,
 				                    Text_painter::Position(260 + (i*83  % 500),
 				                                           320 + (i*153 % 400)),
-				                    cached_font, Color(30, limit_kib, 150 + i*73),
+				                    cached_font, Color(30, (int)limit_kib, 150 + i*73),
 				                    "Glyphs obtained from VFS");
 
 			Genode::uint64_t const end_us = timer.elapsed_us();
