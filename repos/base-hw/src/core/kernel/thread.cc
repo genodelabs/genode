@@ -800,6 +800,7 @@ void Thread::_call()
 	case call_id_cache_coherent_region():    _call_cache_coherent_region(); return;
 	case call_id_cache_clean_inv_region():   _call_cache_clean_invalidate_data_region(); return;
 	case call_id_cache_inv_region():         _call_cache_invalidate_data_region(); return;
+	case call_id_cache_line_size():          _call_cache_line_size(); return;
 	case call_id_stop_thread():              _call_stop_thread(); return;
 	case call_id_restart_thread():           _call_restart_thread(); return;
 	case call_id_yield_thread():             _call_yield_thread(); return;

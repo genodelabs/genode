@@ -72,3 +72,10 @@ void Kernel::Thread::_call_cache_invalidate_data_region()
 	               [] (addr_t addr, size_t size) {
 		Genode::Cpu::cache_invalidate_data_region(addr, size); });
 }
+
+
+void Kernel::Thread::_call_cache_line_size()
+{
+	size_t const cache_line_size = Genode::Cpu::cache_line_size();
+	user_arg_0(cache_line_size);
+}

@@ -38,13 +38,14 @@ namespace Kernel {
 	constexpr Call_arg call_id_cache_coherent_region()    { return 13; }
 	constexpr Call_arg call_id_cache_clean_inv_region()   { return 14; }
 	constexpr Call_arg call_id_cache_inv_region()         { return 15; }
-	constexpr Call_arg call_id_ack_cap()                  { return 16; }
-	constexpr Call_arg call_id_delete_cap()               { return 17; }
-	constexpr Call_arg call_id_timeout()                  { return 18; }
-	constexpr Call_arg call_id_timeout_max_us()           { return 19; }
-	constexpr Call_arg call_id_time()                     { return 20; }
-	constexpr Call_arg call_id_run_vm()                   { return 21; }
-	constexpr Call_arg call_id_pause_vm()                 { return 22; }
+	constexpr Call_arg call_id_cache_line_size()          { return 16; }
+	constexpr Call_arg call_id_ack_cap()                  { return 17; }
+	constexpr Call_arg call_id_delete_cap()               { return 18; }
+	constexpr Call_arg call_id_timeout()                  { return 19; }
+	constexpr Call_arg call_id_timeout_max_us()           { return 20; }
+	constexpr Call_arg call_id_time()                     { return 21; }
+	constexpr Call_arg call_id_run_vm()                   { return 22; }
+	constexpr Call_arg call_id_pause_vm()                 { return 23; }
 
 
 	/*****************************************************************
@@ -211,6 +212,17 @@ namespace Kernel {
 	                                         size_t const size)
 	{
 		call(call_id_cache_inv_region(), (Call_arg)base, (Call_arg)size);
+	}
+
+
+	/**
+	 * Get cache line size
+	 *
+	 * \param vm  pointer to vm kernel object
+	 */
+	inline size_t cache_line_size()
+	{
+		return (size_t)call(call_id_cache_line_size());
 	}
 
 
