@@ -78,7 +78,7 @@ Elf_segment Elf_binary::get_segment(unsigned num)
 {
 	void *start;
 	size_t offset, filesz, memsz;
-	Elf_binary::Flags flags = { 0, 0, 0, 0 };
+	Elf_binary::Flags flags;
 
 	if (!valid()) return Elf_segment();
 
@@ -91,16 +91,16 @@ Elf_segment Elf_binary::get_segment(unsigned num)
 	filesz = phdr->p_filesz;
 	memsz  = phdr->p_memsz;
 
-	flags.r = (phdr->p_flags & PF_R) ? 1 : 0;
-	flags.w = (phdr->p_flags & PF_W) ? 1 : 0;
-	flags.x = (phdr->p_flags & PF_X) ? 1 : 0;
+	flags.r = (phdr->p_flags & PF_R) ? true : false;
+	flags.w = (phdr->p_flags & PF_W) ? true : false;
+	flags.x = (phdr->p_flags & PF_X) ? true : false;
 
 	/*
 	 * Skip loading of ELF segments that are not PT_LOAD or have no memory
 	 * size.
 	 */
 	if (phdr->p_type != PT_LOAD || !memsz)
-		flags.skip = 1;
+		flags.skip = true;
 
 	return Elf_segment(this, start, offset, filesz, memsz, flags);
 }

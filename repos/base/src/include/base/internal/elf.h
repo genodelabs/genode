@@ -42,10 +42,10 @@ class Genode::Elf_binary
 		/* special types */
 
 		struct Flags {
-			unsigned r:1;
-			unsigned w:1;
-			unsigned x:1;
-			unsigned skip:1;
+			bool r    { false };
+			bool w    { false };
+			bool x    { false };
+			bool skip { false };
 		};
 
 		/**
