@@ -131,7 +131,7 @@ class Virtio_nic::Device : Noncopyable
 		 * 256kB of RAM.
 		 */
 		static const uint16_t DEFAULT_VQ_SIZE = 64;
-		static const uint16_t DEFAULT_VQ_BUF_SIZE = 2016;
+		static const uint16_t DEFAULT_VQ_BUF_SIZE = 2048;
 
 		struct Rx_queue_traits
 		{
