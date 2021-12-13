@@ -21,6 +21,8 @@
 
 namespace Virtio
 {
+	using namespace Genode;
+
 	template<typename, typename> class Queue;
 	struct Queue_default_traits;
 	struct Queue_description;
@@ -32,22 +34,22 @@ struct Virtio::Queue_description
 	/**
 	 * Physical address of the descriptor table.
 	 */
-	Genode::addr_t desc;
+	addr_t desc;
 
 	/**
 	 * Physical address of the available descriptor ring.
 	 */
-	Genode::addr_t avail;
+	addr_t avail;
 
 	/**
 	 * Physcical address of the used descriptor ring.
 	 */
-	Genode::addr_t used;
+	addr_t used;
 
 	/**
 	 * The size of the descriptor table (number of elements).
 	 */
-	Genode::uint16_t size;
+	uint16_t size;
 };
 
 
@@ -76,8 +78,8 @@ class Virtio::Queue
 		/*
 		 * Noncopyable
 		 */
-		Queue(Queue const &);
-		Queue &operator = (Queue const &);
+		Queue(Queue const &) = delete;
+		Queue &operator = (Queue const &) = delete;
 
 	protected:
 
@@ -85,59 +87,147 @@ class Virtio::Queue
 
 		struct Descriptor
 		{
-			enum Flags : Genode::uint16_t
+			Descriptor(Descriptor const &) = delete;
+			Descriptor &operator = (Descriptor const &) = delete;
+
+			enum Flags : uint16_t
 			{
 				NEXT  = 1,
 				WRITE = 2,
 			};
 
-			Genode::uint64_t addr;
-			Genode::uint32_t len;
-			Genode::uint16_t flags;
-			Genode::uint16_t next;
+			uint64_t addr;
+			uint32_t len;
+			uint16_t flags;
+			uint16_t next;
 		} __attribute__((packed));
 
 		struct Avail
 		{
-			enum Flags : Genode::uint16_t { NO_INTERRUPT = 1 };
-			Genode::uint16_t flags;
-			Genode::uint16_t idx;
-			Genode::uint16_t ring[];
-			/* Genode::uint16_t used_event; */
+			enum Flags : uint16_t { NO_INTERRUPT = 1 };
+			uint16_t flags;
+			uint16_t idx;
+			uint16_t ring[];
+			/* uint16_t used_event; */
 		} __attribute__((packed));
 
 		struct Used
 		{
-			Genode::uint16_t flags;
-			Genode::uint16_t idx;
+			uint16_t flags;
+			uint16_t idx;
 			struct {
-				Genode::uint32_t id;
-				Genode::uint32_t len;
+				uint32_t id;
+				uint32_t len;
 			} ring[];
-			/* Genode::uint16_t avail_event; */
+			/* uint16_t avail_event; */
 		} __attribute__((packed));
 
-		Genode::uint16_t          const  _queue_size;
-		Genode::uint16_t          const  _buffer_size;
-		Genode::Attached_ram_dataspace   _ram_ds;
-		Descriptor                      *_desc_table = nullptr;
-		Avail                  volatile *_avail = nullptr;
-		Used                   volatile *_used = nullptr;
-		Genode::addr_t                   _buffer_phys_base = 0;
-		Genode::addr_t                   _buffer_local_base = 0;
-		Genode::uint16_t                 _last_used_idx = 0;
-		Queue_description                _description { 0, 0, 0, 0 };
+		/*
+		 * This helper splits one RAM dataspace into multiple, equally sized chunks. The
+		 * number of such chunk is expected to be equal to the number of entries in VirtIO
+		 * descriptor ring. Each chunk will serve as a buffer for single VirtIO descriptor.
+		 */
+		class Buffer_pool
+		{
+			private:
+
+				Buffer_pool(Buffer_pool const &) = delete;
+				Buffer_pool &operator = (Buffer_pool const &) = delete;
+
+				Attached_ram_dataspace    _ram_ds;
+				uint16_t           const  _buffer_count;
+				uint16_t           const  _buffer_size;
+				addr_t             const  _phys_base;
+				uint8_t                  *_local_base;
+
+				static size_t _ds_size(uint16_t buffer_count, uint16_t buffer_size) {
+					return buffer_count * align_natural(buffer_size); }
+
+				static addr_t _phys_addr(Attached_ram_dataspace &ram_ds)
+				{
+					Dataspace_client client(ram_ds.cap());
+					return client.phys_addr();
+				}
+
+			public:
+
+				struct Buffer
+				{
+					uint8_t  *local_addr;
+					addr_t    phys_addr;
+					uint16_t  size;
+				};
+
+				Buffer_pool(Ram_allocator       &ram,
+				            Region_map          &rm,
+				            uint16_t       const buffer_count,
+				            uint16_t       const buffer_size)
+				: _ram_ds(ram, rm, _ds_size(buffer_count, buffer_size))
+				, _buffer_count(buffer_count)
+				, _buffer_size(buffer_size)
+				, _phys_base(_phys_addr(_ram_ds))
+				, _local_base(_ram_ds.local_addr<uint8_t>()) {}
+
+				const Buffer get(uint16_t descriptor_idx) const {
+					descriptor_idx %= _buffer_count;
+					return {
+						_local_base + descriptor_idx * align_natural(_buffer_size),
+						_phys_base  + descriptor_idx * align_natural(_buffer_size),
+						_buffer_size
+					};
+				}
+
+				uint16_t buffer_size() const { return _buffer_size; }
+		};
+
+		class Descriptor_ring
+		{
+			private:
+
+				Descriptor_ring(Descriptor_ring const &) = delete;
+				Descriptor_ring &operator = (Descriptor_ring const &) = delete;
+
+				Descriptor  * const _desc_table;
+				uint16_t      const  _size;
+				uint16_t             _head = 0;
+				uint16_t             _tail = 0;
+
+			public:
+
+				Descriptor_ring(uint8_t const *table, uint16_t ring_size)
+				: _desc_table((Descriptor *)table), _size(ring_size) { }
+
+				uint16_t reserve() { return _head++ % _size; }
+				void free_all() { _tail = _head; }
+
+				uint16_t available_capacity() const {
+					return (uint16_t)((_tail > _head) ? _tail - _head
+					                                  : _size - _head + _tail) - 1; }
+
+				Descriptor& get(uint16_t const idx) const {
+					return _desc_table[idx % _size]; }
+		};
+
+
+		uint16_t                    const _queue_size;
+		Attached_ram_dataspace            _ram_ds;
+		Buffer_pool                       _buffers;
+		Avail            volatile * const _avail;
+		Used             volatile * const _used;
+		Descriptor_ring                   _descriptors;
+		uint16_t                          _last_used_idx = 0;
+		Queue_description           const _description;
 
 
 		/* As defined in section 2.4 of VIRTIO 1.0 specification. */
-		static Genode::size_t _desc_size(Genode::uint16_t queue_size) {
+		static size_t _desc_size(uint16_t queue_size) {
 			return 16 * queue_size; }
-		static Genode::size_t _avail_size(Genode::uint16_t queue_size) {
+		static size_t _avail_size(uint16_t queue_size) {
 			return 6 + 2 * queue_size; }
-		static Genode::size_t _used_size(Genode::uint16_t queue_size) {
+		static size_t _used_size(uint16_t queue_size) {
 			return 6 + 8 * queue_size; }
 
-		Genode::uint16_t _check_buffer_size(Genode::uint16_t buffer_size)
+		static uint16_t _check_buffer_size(uint16_t buffer_size)
 		{
 			/**
 			 * Each buffer in the queue should be big enough to hold
@@ -148,193 +238,197 @@ class Virtio::Queue
 			return buffer_size;
 		}
 
-		static Genode::size_t _ds_size(Genode::uint16_t queue_size,
-		                               Genode::uint16_t buffer_size)
+		static size_t _ds_size(uint16_t queue_size)
 		{
-			Genode::size_t size = _desc_size(queue_size) + _avail_size(queue_size);
-			size = Genode::align_natural(size);
+			size_t size = _desc_size(queue_size) + _avail_size(queue_size);
+			size = align_natural(size);
 			/* See section 2.4 of VirtIO 1.0 specification */
 			size += _used_size(queue_size);
-			size = Genode::align_natural(size);
-			return size + (queue_size * Genode::align_natural(buffer_size));
+			return align_natural(size);
 		}
 
-		void _init_tables()
+		static Queue_description _init_description(
+			uint16_t                 queue_size,
+			Ram_dataspace_capability cap)
 		{
-			using namespace Genode;
+			Dataspace_client ram_ds_client(cap);
 
-			Dataspace_client ram_ds_client(_ram_ds.cap());
+			uint8_t const *base_phys  = (uint8_t *)ram_ds_client.phys_addr();
+			size_t const avail_offset = _desc_size(queue_size);
+			size_t const used_offset  = align_natural(avail_offset + _avail_size(queue_size));
 
-			uint8_t const *base_phys = (uint8_t *)ram_ds_client.phys_addr();
-			uint8_t const *base_local = _ram_ds.local_addr<uint8_t>();
-
-			size_t const avail_offset = _desc_size(_queue_size);
-			size_t const used_offset  = align_natural(avail_offset + _avail_size(_queue_size));
-			size_t const buff_offset  = align_natural(used_offset + _used_size(_queue_size));
-
-			_desc_table = (Descriptor *)base_local;
-			_avail = (Avail *)(base_local + avail_offset);
-			_used = (Used *)(base_local + used_offset);
-			_buffer_local_base = (addr_t)(base_local + buff_offset);
-			_buffer_phys_base  = (addr_t)(base_phys + buff_offset);
-
-			_description.desc  = (addr_t)base_phys;
-			_description.avail = (addr_t)(base_phys + avail_offset);
-			_description.used  = (addr_t)(base_phys + used_offset);
-			_description.size  = _queue_size;
+			return {
+				(addr_t)base_phys,
+				(addr_t)(base_phys + avail_offset),
+				(addr_t)(base_phys + used_offset),
+				queue_size,
+			};
 		}
+
+		static Avail *_init_avail(uint8_t *base_addr, uint16_t queue_size) {
+			return (Avail *)(base_addr + _desc_size(queue_size)); }
+
+		static Used *_init_used(uint8_t *base_addr, uint16_t queue_size) {
+			return (Used *)(base_addr + align_natural(_desc_size(queue_size) + _avail_size(queue_size))); }
 
 		void _fill_descriptor_table()
 		{
-			const Genode::uint16_t flags =
-				TRAITS::device_write_only ? Descriptor::Flags::WRITE : 0;
+			if (!TRAITS::device_write_only)
+				return;
 
-			for (Genode::uint16_t idx = 0; idx < _queue_size; idx++) {
-				_desc_table[idx] = Descriptor {
-					_buffer_phys_base + idx * Genode::align_natural(_buffer_size),
-					_buffer_size, flags, 0 };
+			/*
+			 * When the queue is only writeable by the VirtIO device by we need to push
+			 * all the descriptors to the available ring. The device will then use them
+			 * whenever it wants to send us some data.
+			 */
+			while (_descriptors.available_capacity() > 0) {
+				auto const idx = _descriptors.reserve();
+				auto &desc = _descriptors.get(idx);
+				auto const buffer = _buffers.get(idx);
+
+				desc.addr  = buffer.phys_addr;
+				desc.len   = buffer.size;
+				desc.flags = Descriptor::Flags::WRITE;
+				desc.next  = 0;
+
 				_avail->ring[idx] = idx;
 			}
-
-			/* Expose all available buffers to the device. */
-			if (TRAITS::device_write_only) {
-				_avail->flags = 0;
-				_avail->idx = _queue_size;
-			}
+			_avail->flags = 0;
+			_avail->idx = _queue_size;
 		}
 
-		Genode::uint16_t _avail_capacity() const
-		{
-			auto const used_idx = _used->idx;
-			auto const avail_idx = _avail->idx;
-			if (avail_idx >= used_idx) {
-				return (Genode::uint16_t)(_queue_size - avail_idx + used_idx);
-			} else {
-				return used_idx - avail_idx;
-			}
-		}
+		struct Write_result {
+			uint16_t first_descriptor_idx;
+			uint16_t last_descriptor_idx;
+		};
 
-		void *_buffer_local_addr(Descriptor const *d) {
-			return (void *)(_buffer_local_base + (d->addr - _buffer_phys_base)); }
-
-		template <typename REPLY_TYPE, typename REPLY_FN>
-		bool _read_response_data(REPLY_FN const &reply_fn)
+		/*
+		 * Write header and data (if data_size > 0) to a descirptor, or chain of descriptors.
+		 * Returns the indexes of first and last descriptor in the chain. The caller must
+		 * ensure there are enough descriptors to service the request.
+		 */
+		Write_result _write_data(Header_type    const &header,
+		                         char           const *data,
+		                         size_t                data_size)
 		{
-			static_assert(TRAITS::has_data_payload);
 			static_assert(!TRAITS::device_write_only);
+			static_assert(TRAITS::has_data_payload);
 
-			if (!has_used_buffers())
-				return false;
+			auto const first_desc_idx = _descriptors.reserve();
+			auto &desc  = _descriptors.get(first_desc_idx);
+			auto buffer = _buffers.get(first_desc_idx);
 
-			Genode::uint16_t const idx = _last_used_idx % _queue_size;
-			auto const *desc = &_desc_table[idx];
-			char const *desc_data = (char *)_buffer_local_addr(desc);
+			desc.addr = buffer.phys_addr;
 
-			if (!(desc->flags & Descriptor::Flags::NEXT))
-				return false;
+			memcpy(buffer.local_addr, (void *)&header, sizeof(header));
+			desc.len = sizeof(header);
 
-			if (desc->next >= _queue_size)
-				return false;
-
-			desc = &_desc_table[desc->next];
-			desc_data = (char *)_buffer_local_addr(desc);
-
-			if (reply_fn(*reinterpret_cast<REPLY_TYPE const *>(desc_data))) {
-				_last_used_idx++;
-				return true;
+			if (data_size > 0) {
+				/*
+				 * Try to fit payload data into descriptor which holds the header.
+				 *
+				 * The size of the buffer is uint16_t so the result should also fit in the same quantity.
+				 * The size of the header can never be larger than the size of the buffer, see
+				 * _check_buffer_size function.
+				 */
+				auto const len = (uint16_t)min((size_t)buffer.size - sizeof(header), data_size);
+				memcpy(buffer.local_addr + sizeof(header), data, len);
+				desc.len += len;
 			}
-			return false;
+
+			size_t remaining_data_len = data_size + sizeof(header) - desc.len;
+
+			if (remaining_data_len == 0) {
+				/*
+				 * There is no more data left to send, everything fit into the first descriptor.
+				 */
+				desc.flags = 0;
+				desc.next = 0;
+				return { first_desc_idx, first_desc_idx };
+			}
+
+			/*
+			 * Some data did not fit into the first descriptor. Chain additional ones.
+			 */
+			auto chained_idx = _descriptors.reserve();
+
+			desc.flags = Descriptor::Flags::NEXT;
+			desc.next = chained_idx % _queue_size;
+
+			size_t data_offset = desc.len - sizeof(header);
+			do {
+				auto &chained_desc = _descriptors.get(chained_idx);
+				buffer = _buffers.get(chained_idx);
+
+				/*
+				 * The size of the buffer is specified in uint16_t so the result should also
+				 * fit in the same quantity.
+				 */
+				auto const write_len = (uint16_t)min((size_t)buffer.size, remaining_data_len);
+				memcpy(buffer.local_addr, data + data_offset, write_len);
+
+				chained_desc.addr = buffer.phys_addr;
+				chained_desc.len = write_len;
+
+				remaining_data_len -= write_len;
+				data_offset += write_len;
+
+				if (remaining_data_len > 0) {
+					/*
+					 * There is still more data to send, chain additional descriptor.
+					 */
+					chained_idx = _descriptors.reserve();
+					chained_desc.flags = Descriptor::Flags::NEXT;
+					chained_desc.next = chained_idx;
+				} else {
+					/*
+					 * This was the last descriptor in the chain.
+					 */
+					chained_desc.flags = 0;
+					chained_desc.next = 0;
+				}
+			} while (remaining_data_len > 0);
+
+			return { first_desc_idx, chained_idx};
 		}
 
 	public:
 
-		struct Invalid_buffer_size : Genode::Exception { };
+		struct Invalid_buffer_size : Exception { };
 
 		Queue_description const description() const { return _description; }
 
 		bool has_used_buffers() const { return _last_used_idx != _used->idx; }
 
-		void ack_all_transfers() { _last_used_idx = _used->idx;}
+		void ack_all_transfers()
+		{
+			static_assert(!TRAITS::device_write_only);
 
-		Genode::size_t size() const { return _ds_size(_queue_size, _buffer_size); }
+			_last_used_idx = _used->idx;
+
+			if (!TRAITS::device_write_only)
+				_descriptors.free_all();
+		}
 
 		bool write_data(Header_type    const &header,
 		                char           const *data,
-		                Genode::size_t        data_size,
-		                bool                  request_irq = true)
+		                size_t                data_size)
 		{
 			static_assert(!TRAITS::device_write_only);
 			static_assert(TRAITS::has_data_payload);
 
-			Genode::size_t const req_desc_count = 1 + (sizeof(header) + data_size) / _buffer_size;
-
-			if (req_desc_count > _avail_capacity())
+			int const req_desc_count = 1 + (sizeof(header) + data_size) / _buffers.buffer_size();
+			if (req_desc_count > _descriptors.available_capacity())
 				return false;
 
-			Genode::uint16_t avail_idx = _avail->idx;
-			auto *desc = &_desc_table[avail_idx % _queue_size];
+			auto const write_result = _write_data(header, data, data_size);
 
-			Genode::memcpy(_buffer_local_addr(desc), (void *)&header, sizeof(header));
-			desc->len = sizeof(header);
-
-			Genode::size_t len = Genode::min(_buffer_size - sizeof(header), data_size);
-			Genode::memcpy((char *)_buffer_local_addr(desc) + desc->len, data, len);
-			desc->len += len;
-
-			len = data_size + sizeof(header) - desc->len;
-
-			avail_idx++;
-
-			if (len == 0) {
-				desc->flags = 0;
-				desc->next = 0;
-				_avail->flags = request_irq ? 0 : Avail::Flags::NO_INTERRUPT;
-				_avail->idx = avail_idx;
-				return true;
-			}
-
-			desc->flags = Descriptor::Flags::NEXT;
-			desc->next = avail_idx % _queue_size;
-
-			Genode::size_t data_offset = desc->len;
-			do {
-				desc = &_desc_table[avail_idx % _queue_size];
-				avail_idx++;
-
-				Genode::size_t write_len = Genode::min(_buffer_size, len);
-				Genode::memcpy((char *)_buffer_local_addr(desc), data + data_offset, write_len);
-
-				desc->len = write_len;
-				desc->flags = len > 0 ? Descriptor::Flags::NEXT : 0;
-				desc->next = len > 0 ? (avail_idx % _queue_size) : 0;
-
-				len -= write_len;
-				data_offset += desc->len;
-			} while (len > 0);
-
-			_avail->flags = request_irq ? 0 : Avail::Flags::NO_INTERRUPT;
-			_avail->idx = avail_idx;
-
-			return true;
-		}
-
-		bool write_data(Header_type const &header, bool request_irq = true)
-		{
-			static_assert(!TRAITS::device_write_only);
-			static_assert(!TRAITS::has_data_payload);
-
-			if (_avail_capacity() == 0)
-				return false;
-
-			Genode::uint16_t avail_idx = _avail->idx;
-			auto *desc = &_desc_table[avail_idx % _queue_size];
-
-			Genode::memcpy(_buffer_local_addr(desc), (void *)&header, sizeof(header));
-			desc->len = sizeof(header);
-			desc->flags = 0;
-			desc->next = 0;
-			_avail->flags = request_irq ? 0 : Avail::Flags::NO_INTERRUPT;
-			_avail->idx = ++avail_idx;
+			/*
+			 * Only the first descritor in the chain needs to be pushed to the available ring.
+			 */
+			_avail->ring[_avail->idx % _queue_size] = write_result.first_descriptor_idx;
+			_avail->idx += 1;
+			_avail->flags = Avail::Flags::NO_INTERRUPT;
 
 			return true;
 		}
@@ -342,24 +436,23 @@ class Virtio::Queue
 		template <typename FN>
 		void read_data(FN const &fn)
 		{
-			static_assert(TRAITS::has_data_payload);
-
 			if (!has_used_buffers())
 				return;
 
-			Genode::uint16_t const idx = _last_used_idx % _queue_size;
-			Genode::uint32_t const len = _used->ring[idx].len;
+			auto const used_idx   = _last_used_idx % _queue_size;
+			auto const buffer_idx = (uint16_t)(_used->ring[used_idx].id % _queue_size);
+			auto const len        = _used->ring[used_idx].len;
 
-			auto const *desc = &_desc_table[idx];
-			char const *desc_data = (char *)_buffer_local_addr(desc);
+			auto const buffer = _buffers.get(buffer_idx);
+			char const *desc_data = (char *)buffer.local_addr;
 			Header_type const &header = *((Header_type *)(desc_data));
 			char const *data = desc_data + sizeof(Header_type);
-			Genode::size_t const data_size = len - sizeof(Header_type);
+			size_t const data_size = len - sizeof(Header_type);
 
-			if (fn(header, data, data_size)) {
-				_last_used_idx++;
-				_avail->idx = _avail->idx + 1;
-			}
+			_last_used_idx += 1;
+			_avail->idx = _last_used_idx - 1;
+
+			fn(header, data, data_size);
 		}
 
 		Header_type read_data()
@@ -367,141 +460,124 @@ class Virtio::Queue
 			static_assert(!TRAITS::has_data_payload);
 
 			if (!has_used_buffers())
-				return Header_type();
+				return Header_type{};
 
-			Genode::uint16_t const idx = _last_used_idx % _queue_size;
+			auto const used_idx   = _last_used_idx % _queue_size;
+			auto const buffer_idx = (uint16_t)(_used->ring[used_idx].id % _queue_size);
 
-			auto const *desc = &_desc_table[idx];
-			char const *desc_data = (char *)_buffer_local_addr(desc);
-			Header_type const &header = *((Header_type *)(desc_data));
+			auto const buffer = _buffers.get(buffer_idx);
+			char const *desc_data = (char *)buffer.local_addr;
 
-			_last_used_idx++;
-			_avail->idx = _avail->idx + 1;
+			_last_used_idx += 1;
+			_avail->idx = _last_used_idx - 1;
 
-			return header;
+			return *((Header_type *)(desc_data));
 		}
 
 		template <typename REPLY_TYPE, typename WAIT_REPLY_FN, typename REPLY_FN>
 		bool write_data_read_reply(Header_type    const &header,
 		                           char           const *data,
-		                           Genode::size_t        data_size,
+		                           size_t        data_size,
 		                           WAIT_REPLY_FN  const &wait_for_reply,
-		                           REPLY_FN       const &read_reply,
-		                           bool                  request_irq = false)
+		                           REPLY_FN       const &read_reply)
 		{
 			static_assert(!TRAITS::device_write_only);
 			static_assert(TRAITS::has_data_payload);
-
-			Genode::size_t const req_desc_count = 1 + (sizeof(header) + data_size) / _buffer_size;
-
-			if (req_desc_count > _avail_capacity())
-				return false;
 
 			/*
 			 * This restriction could be lifted by chaining multiple descriptors to receive
 			 * the reply. Its probably better however to just ensure buffers are large enough
 			 * when configuring the queue instead of adding more complexity to this function.
 			 */
-			if (sizeof(REPLY_TYPE) > _buffer_size)
+			if (sizeof(REPLY_TYPE) > _buffers.buffer_size())
 				return false;
 
-			Genode::uint16_t avail_idx = _avail->idx;
-			auto *desc = &_desc_table[avail_idx % _queue_size];
-			avail_idx++;
+			/*
+			 * The value of 2 is not a mistake. One additional desciptor is needed for
+			 * receiving the response.
+			 */
+			auto const req_desc_count = 2 + (sizeof(header) + data_size) / _buffers.buffer_size();
+			if (req_desc_count > _descriptors.available_capacity())
+				return false;
 
-			Genode::memcpy(_buffer_local_addr(desc), (void *)&header, sizeof(header));
-			desc->len = sizeof(header);
-
-			Genode::size_t len = 0;
-
-			if (data != nullptr && data_size > 0) {
-				len = Genode::min(_buffer_size - sizeof(header), data_size);
-				Genode::memcpy((char *)_buffer_local_addr(desc) + desc->len, data, len);
-				desc->len += (Genode::uint32_t)len;
-				len = data_size + sizeof(header) - desc->len;
-			}
-
-			if (len == 0) {
-				desc->flags = 0;
-				desc->next = 0;
-			} else {
-				desc->flags = Descriptor::Flags::NEXT;
-				desc->next = avail_idx % _queue_size;
-
-				Genode::size_t data_offset = desc->len;
-				do {
-					desc = &_desc_table[avail_idx % _queue_size];
-					avail_idx++;
-
-					Genode::size_t write_len = Genode::min((Genode::size_t)_buffer_size, len);
-					Genode::memcpy((char *)_buffer_local_addr(desc),
-					               data + data_offset, write_len);
-
-					desc->len = (Genode::uint32_t)write_len;
-					desc->flags = len > 0 ? Descriptor::Flags::NEXT : 0;
-					desc->next = len > 0 ? (avail_idx % _queue_size) : 0;
-
-					len -= write_len;
-					data_offset += desc->len;
-				} while (len > 0);
-			}
+			auto const write_result = _write_data(header, data, data_size);
+			auto &last_write_desc = _descriptors.get(write_result.last_descriptor_idx);
 
 			/*
 			 * Chain additional descriptor for receiving response.
 			 */
-			desc->flags = Descriptor::Flags::NEXT;
-			desc->next = avail_idx % _queue_size;
+			auto const reply_desc_idx = _descriptors.reserve();
+			auto &reply_desc = _descriptors.get(reply_desc_idx);
+			auto reply_buffer = _buffers.get(reply_desc_idx);
 
-			desc = &_desc_table[avail_idx % _queue_size];
-			desc->len = sizeof(REPLY_TYPE);
-			desc->flags = Descriptor::Flags::WRITE;
-			desc->next = 0;
+			last_write_desc.flags = Descriptor::Flags::NEXT;
+			last_write_desc.next  = reply_desc_idx;
 
-			_avail->flags = request_irq ? 0 : Avail::Flags::NO_INTERRUPT;
-			_avail->idx = avail_idx;
+			reply_desc.addr  = reply_buffer.phys_addr;
+			reply_desc.len   = sizeof(REPLY_TYPE);
+			reply_desc.flags = Descriptor::Flags::WRITE;
+			reply_desc.next  = 0;
+
+			/*
+			 * Only the first descritor in the chain needs to be pushed to the available ring.
+			 */
+			_avail->ring[_avail->idx % _queue_size] = write_result.first_descriptor_idx;
+			_avail->idx += 1;
+			_avail->flags = Avail::Flags::NO_INTERRUPT;
 
 			wait_for_reply();
 
-			/* Make sure wait call did what it was supposed to do. */
+			/*
+			 * Make sure wait call did what it was supposed to do.
+			 */
 			if (!has_used_buffers())
 				return false;
 
-			return _read_response_data<REPLY_TYPE>(read_reply);
+			/*
+			 * We need to ACK the transfers regardless if the user provider read_reply function
+			 * likes the reply or not. From our POV the transfer was succesful. Its irrelevant if
+			 * the user likes the response, or not.
+			 */
+			ack_all_transfers();
+
+			return read_reply(*reinterpret_cast<REPLY_TYPE const *>(reply_buffer.local_addr));
 		}
 
 		template <typename REPLY_TYPE, typename WAIT_REPLY_FN, typename REPLY_FN>
 		bool write_data_read_reply(Header_type    const &header,
 		                           WAIT_REPLY_FN  const &wait_for_reply,
-		                           REPLY_FN       const &read_reply,
-		                           bool                  request_irq = false)
+		                           REPLY_FN       const &read_reply)
 		{
 			return write_data_read_reply<REPLY_TYPE>(
-				header, nullptr, 0, wait_for_reply, read_reply, request_irq);
+				header, nullptr, 0, wait_for_reply, read_reply);
 		}
 
-		void print(Genode::Output& output) const
+		void print(Output& output) const
 		{
-			Genode::print(output, "avail idx: ");
-			Genode::print(output, _avail->idx);
-			Genode::print(output, ", used idx = ");
-			Genode::print(output, _used->idx);
-			Genode::print(output, ", last seen used idx = ");
-			Genode::print(output, _last_used_idx);
-			Genode::print(output, ", capacity = ");
-			Genode::print(output, _avail_capacity());
-			Genode::print(output, ", size = ");
-			Genode::print(output, _queue_size);
+			print(output, "avail idx: ");
+			print(output, _avail->idx % _queue_size);
+			print(output, ", used idx = ");
+			print(output, _used->idx);
+			print(output, ", last seen used idx = ");
+			print(output, _last_used_idx);
+			print(output, ", capacity = ");
+			print(output, _descriptors.available_capacity());
+			print(output, ", size = ");
+			print(output, _queue_size);
 		}
 
-		Queue(Genode::Ram_allocator &ram,
-		      Genode::Region_map    &rm,
-		      Genode::uint16_t       queue_size,
-		      Genode::uint16_t       buffer_size)
+		Queue(Ram_allocator &ram,
+		      Region_map    &rm,
+		      uint16_t       queue_size,
+		      uint16_t       buffer_size)
 		: _queue_size(queue_size),
-		  _buffer_size(_check_buffer_size(buffer_size)),
-		  _ram_ds(ram, rm, _ds_size(queue_size, buffer_size), Genode::UNCACHED)
+		  _ram_ds(ram, rm, _ds_size(queue_size), UNCACHED),
+		  _buffers(ram, rm, queue_size, _check_buffer_size(buffer_size)),
+		  _avail(_init_avail(_ram_ds.local_addr<uint8_t>(), queue_size)),
+		  _used(_init_used(_ram_ds.local_addr<uint8_t>(), queue_size)),
+		  _descriptors(_ram_ds.local_addr<uint8_t>(), queue_size),
+		  _description(_init_description(queue_size, _ram_ds.cap()))
 		{
-			_init_tables();
 			_fill_descriptor_table();
 		}
 };
