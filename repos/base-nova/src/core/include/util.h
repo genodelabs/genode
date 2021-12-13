@@ -28,10 +28,10 @@ namespace Genode {
 	constexpr size_t get_super_page_size()      { return 1 << get_super_page_size_log2(); }
 
 	template <typename T>
-	inline addr_t trunc_page(T addr) { return addr & _align_mask(get_page_size_log2()); }
+	inline T trunc_page(T addr) { return addr & _align_mask(get_page_size_log2()); }
 
 	template <typename T>
-	inline addr_t round_page(T addr) { return trunc_page(addr + get_page_size() - 1); }
+	inline T round_page(T addr) { return trunc_page(addr + get_page_size() - 1); }
 
 	inline addr_t map_src_addr(addr_t /* core_local */, addr_t phys) { return phys; }
 

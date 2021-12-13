@@ -35,9 +35,6 @@ using namespace Genode;
 static bool _init = false;
 
 
-static inline auto bitmask = [] (unsigned bits) { return (1 << bits) - 1; };
-
-
 void Platform_pd::init()
 {
 	if (_init) return;
@@ -61,10 +58,13 @@ void Platform_pd::init()
 
 void Platform_pd::_create_pd(bool syscall)
 {
+	enum { TASK_ID_MASK     = (1 << 11) - 1,
+	       VERSION_LOW_MASK = (1 << 10) - 1 };
+
 	l4_threadid_t l4t  = l4_myself();
-	l4t.id.task        = _pd_id & bitmask(11);
+	l4t.id.task        = _pd_id & TASK_ID_MASK;
 	l4t.id.lthread     = 0;
-	l4t.id.version_low = _version & bitmask(10);
+	l4t.id.version_low = _version & VERSION_LOW_MASK;
 
 	l4_taskid_t nt;
 	if (syscall)
@@ -206,8 +206,10 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 	}
 	thread_id = t;
 
+	enum { LTHREAD_MASK = (1 << 7) - 1 };
+
 	l4_thread_id = _l4_task_id;
-	l4_thread_id.id.lthread = thread_id & bitmask(7);
+	l4_thread_id.id.lthread = thread_id & LTHREAD_MASK;
 
 	/* finally inform thread about binding */
 	thread.bind(thread_id, l4_thread_id, *this);

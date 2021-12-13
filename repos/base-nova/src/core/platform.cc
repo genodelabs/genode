@@ -525,8 +525,8 @@ Platform::Platform()
 		uint64_t base = round_page(mem_desc->addr);
 		uint64_t size;
 		/* truncate size if base+size larger then natural 32/64 bit boundary */
-		if (mem_desc->addr >= ~0UL - mem_desc->size + 1)
-			size = trunc_page(~0UL - mem_desc->addr + 1);
+		if (mem_desc->addr >= ~0ULL - mem_desc->size + 1)
+			size = trunc_page(~0ULL - mem_desc->addr + 1);
 		else
 			size = trunc_page(mem_desc->addr + mem_desc->size) - base;
 
@@ -659,7 +659,7 @@ Platform::Platform()
 		if (!mem_desc->addr || !mem_desc->size) continue;
 
 		/* assume core's ELF image has one-page header */
-		_core_phys_start = trunc_page(mem_desc->addr + get_page_size());
+		_core_phys_start = (addr_t)trunc_page(mem_desc->addr + get_page_size());
 	}
 
 	_init_rom_modules();
