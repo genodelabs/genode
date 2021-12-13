@@ -345,10 +345,10 @@ class Virtio_nic::Device : Noncopyable
 		}
 
 		bool tx_vq_write_pkt(char     const *pkt_base,
-		                      Genode::size_t  pkt_size)
+		                     Genode::size_t  pkt_size)
 		{
 			Virtio_net_header hdr;
-			return _tx_vq.write_data(hdr, pkt_base, pkt_size, false);
+			return _tx_vq.write_data(hdr, pkt_base, pkt_size);
 		}
 
 		template <typename RECEIVE_PKT>
