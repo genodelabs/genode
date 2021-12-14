@@ -1,0 +1,5 @@
+#
+# Board support for RISC-V Qemu / MiG-V
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/riscv
+
