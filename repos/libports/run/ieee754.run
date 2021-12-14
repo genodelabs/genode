@@ -7,11 +7,6 @@ if {[have_board rpi]} {
 	exit 0
 }
 
-if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
-}
-
 build "core init test/ieee754"
 create_boot_directory
 
@@ -71,7 +66,7 @@ append qemu_args "-nographic "
 match_max -d 100000
 
 set exit_line "exited with exit value"
-run_genode_until $exit_line 30
+run_genode_until $exit_line 40
 set serial_id [output_spawn_id]
 while {true} {
 	global output
