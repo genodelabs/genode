@@ -129,7 +129,8 @@ struct Depot_deploy::Main
 
 			Child::Depot_rom_server const parent { };
 			_children.gen_start_nodes(xml, config.sub_node("common_routes"),
-			                          prio_levels, parent, parent);
+			                          prio_levels, Affinity::Space(1, 1),
+			                          parent, parent);
 		});
 
 		/* update query for blueprints of all unconfigured start nodes */

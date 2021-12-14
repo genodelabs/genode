@@ -40,7 +40,7 @@ void Vm_session_component::Vcpu::exception_handler(Signal_context_capability han
 		return;
 	}
 
-	unsigned const cpu = location.valid() ? location.xpos() : 0;
+	unsigned const cpu = location.xpos();
 
 	if (!kobj.create(cpu, ds_addr, Capability_space::capid(handler), id))
 		Genode::warning("Cannot instantiate vm kernel object, ",

@@ -232,7 +232,7 @@ struct Sculpt::Deploy
 
 	void gen_child_diagnostics(Xml_generator &xml) const;
 
-	void gen_runtime_start_nodes(Xml_generator &, Prio_levels) const;
+	void gen_runtime_start_nodes(Xml_generator &, Prio_levels, Affinity::Space) const;
 
 	Signal_handler<Deploy> _managed_deploy_handler {
 		_env.ep(), *this, &Deploy::_handle_managed_deploy };

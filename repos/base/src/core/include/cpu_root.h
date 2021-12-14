@@ -43,6 +43,9 @@ namespace Genode {
 				if (ram_quota < Trace::Control_area::SIZE)
 					throw Insufficient_ram_quota();
 
+				if (!affinity.valid())
+					throw Service_denied();
+
 				return new (md_alloc())
 					Cpu_session_component(*this->ep(),
 					                      session_resources_from_args(args),

@@ -174,8 +174,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 		return -1;
 	}
 
-	unsigned const cpu =
-		_location.valid() ? _location.xpos() : 0;
+	unsigned const cpu = _location.xpos();
 
 	Native_utcb &utcb = *Thread::myself()->utcb();
 

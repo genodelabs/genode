@@ -977,8 +977,6 @@ unsigned Platform::kernel_cpu_id(Affinity::Location location) const
 
 unsigned Platform::pager_index(Affinity::Location location) const
 {
-	if (!location.valid()) return 0;
-
 	return (location.xpos() * _cpus.height() + location.ypos())
 	       % (_cpus.width() * _cpus.height());
 }

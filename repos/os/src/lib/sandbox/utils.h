@@ -210,29 +210,23 @@ namespace Sandbox {
 	affinity_location_from_xml(Affinity::Space const &space, Xml_node start_node)
 	{
 		typedef Affinity::Location Location;
-		try {
-			Xml_node node = start_node.sub_node("affinity");
 
-			/* if no position value is specified, select the whole row/column */
-			unsigned long const
-				default_width  = node.has_attribute("xpos") ? 1 : space.width(),
-				default_height = node.has_attribute("ypos") ? 1 : space.height();
+		Location result = Location(0, 0, space.width(), space.height());
 
-			unsigned long const
-				width  = node.attribute_value<unsigned long>("width",  default_width),
-				height = node.attribute_value<unsigned long>("height", default_height);
+		start_node.with_sub_node("affinity", [&] (Xml_node node) {
 
-			int const x1 = (int)node.attribute_value<long>("xpos", 0),
-			          y1 = (int)node.attribute_value<long>("ypos", 0),
-			          x2 = (int)(x1 + width  - 1),
-			          y2 = (int)(y1 + height - 1);
+			Location const location = Location::from_xml(space, node);
 
-			/* clip location to space boundary */
-			return Location(max(x1, 0), max(y1, 0),
-			                min((unsigned)(x2 - x1 + 1), space.width()),
-			                min((unsigned)(y2 - y1 + 1), space.height()));
-		}
-		catch (...) { return Location(0, 0, space.width(), space.height()); }
+			if (!location.within(space)) {
+				Service::Name const name = start_node.attribute_value("name", Service::Name());
+				warning(name, ": affinity location exceeds affinity-space boundary");
+				return;
+			}
+
+			result = location;
+		});
+
+		return result;
 	}
 }
 

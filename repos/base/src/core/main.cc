@@ -306,7 +306,7 @@ int main()
 		                            {Cpu_session::CAP_QUOTA}},
 		         "core", Session::Diag{false},
 		         core_ram_alloc, local_rm, ep, pager_ep, Trace::sources(), "",
-		         Affinity(), Cpu_session::QUOTA_LIMIT);
+		         Affinity::unrestricted(), Cpu_session::QUOTA_LIMIT);
 
 	Cpu_session_capability core_cpu_cap = core_cpu.cap();
 

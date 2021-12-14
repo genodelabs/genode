@@ -305,8 +305,10 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 *                            the content of the depot user "local", which
 		 *                            is assumed to be mutable
 		 */
-		inline void gen_start_node(Xml_generator &, Xml_node common,
-		                           Prio_levels prio_levels,
+		inline void gen_start_node(Xml_generator          &,
+		                           Xml_node         const &common,
+		                           Prio_levels             prio_levels,
+		                           Affinity::Space         affinity_space,
 		                           Depot_rom_server const &cached_depot_rom,
 		                           Depot_rom_server const &uncached_depot_rom) const;
 
@@ -327,8 +329,10 @@ class Depot_deploy::Child : public List_model<Child>::Element
 };
 
 
-void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
-                                         Prio_levels prio_levels,
+void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
+                                         Xml_node         const &common,
+                                         Prio_levels      const  prio_levels,
+                                         Affinity::Space  const  affinity_space,
                                          Depot_rom_server const &cached_depot_rom,
                                          Depot_rom_server const &uncached_depot_rom) const
 {
@@ -425,11 +429,11 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 
 			if (affinity_from_launcher)
 				launcher_xml.with_sub_node("affinity", [&] (Xml_node node) {
-					location = Affinity::Location::from_xml(node); });
+					location = Affinity::Location::from_xml(affinity_space, node); });
 
 			if (affinity_from_start)
 				start_xml.with_sub_node("affinity", [&] (Xml_node node) {
-					location = Affinity::Location::from_xml(node); });
+					location = Affinity::Location::from_xml(affinity_space, node); });
 
 			xml.node("affinity", [&] () {
 				xml.attribute("xpos",   location.xpos());

@@ -93,14 +93,9 @@ void Thread::start()
 	addr_t sp   = _stack->top();
 	Utcb  &utcb = *reinterpret_cast<Utcb *>(&_stack->utcb());
 
-	Affinity::Location location = _affinity;
-
-	if (!location.valid())
-		location = Affinity::Location((int)boot_cpu(), 0);
-
 	/* create local EC */
 	enum { LOCAL_THREAD = false };
-	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(location);
+	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(_affinity);
 	uint8_t res = create_ec(native_thread().ec_sel,
 	                        platform_specific().core_pd_sel(), kernel_cpu_id,
 	                        (mword_t)&utcb, sp, native_thread().exc_pt_sel, LOCAL_THREAD);

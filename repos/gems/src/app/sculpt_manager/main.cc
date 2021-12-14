@@ -1800,7 +1800,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.node("start", [&] () {
 			gen_launcher_query_start_content(xml); });
 
-		_deploy.gen_runtime_start_nodes(xml, _prio_levels);
+		_deploy.gen_runtime_start_nodes(xml, _prio_levels, _affinity_space);
 	}
 }
 

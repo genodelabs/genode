@@ -116,7 +116,7 @@ class Genode::Affinity
 				/**
 				 * Constructor to express the affinity to a single CPU
 				 */
-				Location(int xpos, unsigned ypos)
+				Location(int xpos, int ypos)
 				: _xpos(xpos), _ypos(ypos), _width(1), _height(1) { }
 
 				/**
@@ -129,7 +129,6 @@ class Genode::Affinity
 				int      ypos()   const { return _ypos; }
 				unsigned width()  const { return _width; }
 				unsigned height() const { return _height; }
-				bool     valid()  const { return _width*_height > 0; }
 
 				Location multiply_position(Space const &space) const
 				{
@@ -142,12 +141,29 @@ class Genode::Affinity
 					return Location(_xpos + dx, _ypos + dy, _width, _height);
 				}
 
-				static Location from_xml(Xml_node const &node)
+				/**
+				 * Return true if the location resides within 'space'
+				 */
+				bool within(Space const &space) const
 				{
+					int const x1 = _xpos,  x2 = _xpos + _width  - 1,
+					          y1 = _ypos,  y2 = _ypos + _height - 1;
+
+					return x1 >= 0 && x1 <= x2 && (unsigned)x2 < space.width()
+					    && y1 >= 0 && y1 <= y2 && (unsigned)y2 < space.height();
+				}
+
+				static Location from_xml(Space const &space, Xml_node const &node)
+				{
+					/* if no position value is specified, select the whole row/column */
+					unsigned const
+						default_width  = node.has_attribute("xpos") ? 1 : space.width(),
+						default_height = node.has_attribute("ypos") ? 1 : space.height();
+
 					return Location(node.attribute_value("xpos",   0U),
 					                node.attribute_value("ypos",   0U),
-					                node.attribute_value("width",  0U),
-					                node.attribute_value("height", 0U));
+					                node.attribute_value("width",  default_width),
+					                node.attribute_value("height", default_height));
 				}
 
 		};
@@ -166,6 +182,7 @@ class Genode::Affinity
 
 		Space    space()    const { return _space; }
 		Location location() const { return _location; }
+		bool     valid()    const { return _location.within(_space); }
 
 		static Affinity from_xml(Xml_node const &node)
 		{
@@ -176,10 +193,15 @@ class Genode::Affinity
 				node.with_sub_node("space", [&] (Xml_node const &node) {
 					space = Space::from_xml(node); });
 				node.with_sub_node("location", [&] (Xml_node const &node) {
-					location = Location::from_xml(node); });
+					location = Location::from_xml(space, node); });
 			});
 
 			return Affinity(space, location);
+		}
+
+		static Affinity unrestricted()
+		{
+			return Affinity(Space(1, 1), Location(0, 0, 1, 1));
 		}
 
 		/**

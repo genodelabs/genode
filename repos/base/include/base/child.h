@@ -579,9 +579,12 @@ class Genode::Child : protected Rpc_object<Parent>,
 						                                       label_from_args(_args.string()),
 						                                       session_diag_from_args(_args.string()));
 					_env_service.construct(_child, route.service);
+
+					Affinity const affinity =
+						_child._policy.filter_session_affinity(Affinity::unrestricted());
+
 					_connection.construct(*_env_service, _child._id_space, _client_id,
-					                      _args, _child._policy.filter_session_affinity(Affinity()),
-					                      route.label, route.diag);
+					                      _args, affinity, route.label, route.diag);
 				}
 				catch (Service_denied) {
 					error(_child._policy.name(), ": ", _service_name(), " "
