@@ -119,7 +119,7 @@ class Platform::Irq_override : public List<Platform::Irq_override>::Element
 
 	public:
 
-		Irq_override(uint16_t irq, uint16_t gsi, unsigned mode)
+		Irq_override(unsigned irq, unsigned gsi, unsigned mode)
 		:
 			_irq(irq), _gsi(gsi),
 			_trigger(_mode2trigger(mode)), _polarity(_mode2polarity(mode))

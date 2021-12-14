@@ -112,14 +112,14 @@ class Platform::Rmrr : public List<Platform::Rmrr>::Element
 				if (_cap.valid())
 					return _cap;
 
-				_io_mem.construct(env, (addr_t)_start, (size_t)(_end - _start + 1));
+				_io_mem.construct(env, _start, _end - _start + 1);
 				_cap = _io_mem->dataspace();
 				return _cap;
 			}
 			return Io_mem_dataspace_capability();
 		}
 
-		uint64_t start() const { return _start; }
+		addr_t start() const { return _start; }
 
 		void add(Bdf * bdf) { _bdf_list.insert(bdf); }
 
@@ -805,7 +805,7 @@ class Platform::Session_component : public Rpc_object<Session>
 				for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
 					Io_mem_dataspace_capability rmrr_cap = r->match(_env, device->device_config());
 					if (rmrr_cap.valid())
-						_device_pd.attach_dma_mem(rmrr_cap, (addr_t)r->start());
+						_device_pd.attach_dma_mem(rmrr_cap, r->start());
 				}
 
 				_device_pd.assign_pci(_pciconf.cap(), base_offset,
@@ -914,9 +914,7 @@ class Platform::Root : public Root_component<Session_component>
 
 			xml_acpi.for_each_sub_node("bdf", [&] (Xml_node &node) {
 
-				constexpr uint16_t DEFAULT_START = 0;
-
-				uint16_t const bdf_start  = node.attribute_value("start", DEFAULT_START);
+				uint32_t const bdf_start  = node.attribute_value("start", 0U);
 				uint32_t const func_count = node.attribute_value("count", 0U);
 				addr_t   const base       = node.attribute_value("base", 0UL);
 
@@ -924,7 +922,8 @@ class Platform::Root : public Root_component<Session_component>
 				                                    base, _heap);
 
 				Device_config const bdf_first(Pci::Bdf::from_value(bdf_start));
-				Device_config const bdf_last(Pci::Bdf::from_value((uint16_t)(bdf_start + func_count - 1)));
+				Device_config const bdf_last(Pci::Bdf::from_value(bdf_start +
+				                                                  func_count - 1));
 
 				addr_t const memory_size = 0x1000UL * func_count;
 
@@ -956,13 +955,8 @@ class Platform::Root : public Root_component<Session_component>
 					continue;
 
 				if (node.has_type("irq_override")) {
-
-					constexpr uint16_t DEFAULT_IRQ = 0xff,
-					                   DEFAULT_GSI = 0xff;
-
-					uint16_t const irq = node.attribute_value("irq", DEFAULT_IRQ);
-					uint16_t const gsi = node.attribute_value("gsi", DEFAULT_GSI);
-
+					unsigned const irq   = node.attribute_value("irq",   0xffU);
+					unsigned const gsi   = node.attribute_value("gsi",   0xffU);
 					unsigned const flags = node.attribute_value("flags", 0xffU);
 
 					if (!acpi_platform) {
@@ -972,7 +966,8 @@ class Platform::Root : public Root_component<Session_component>
 					}
 
 					using Platform::Irq_override;
-					Irq_override * o = new (_heap) Irq_override(irq, gsi, flags);
+					Irq_override * o = new (_heap) Irq_override(irq, gsi,
+					                                            flags);
 					Irq_override::list()->insert(o);
 					continue;
 				}
@@ -998,7 +993,7 @@ class Platform::Root : public Root_component<Session_component>
 						if (!scope.num_sub_nodes() || !scope.has_type("scope"))
 							throw 4;
 
-						uint8_t bus = 0, dev = 0, func = 0;
+						unsigned bus = 0, dev = 0, func = 0;
 						scope.attribute("bus_start").value(bus);
 
 						for (unsigned p = 0; p < scope.num_sub_nodes(); p++) {
@@ -1015,8 +1010,8 @@ class Platform::Root : public Root_component<Session_component>
 							Device_config bridge(bdf, &config_access);
 							if (bridge.pci_bridge())
 								/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
-								bus = (uint8_t)bridge.read(config_access, 0x19,
-								                           Device::ACCESS_8BIT);
+								bus = bridge.read(config_access, 0x19,
+								                  Device::ACCESS_8BIT);
 						}
 
 						rmrr->add(new (_heap) Rmrr::Bdf(bus, dev, func));
@@ -1034,11 +1029,10 @@ class Platform::Root : public Root_component<Session_component>
 					throw __LINE__;
 				}
 
-				uint16_t const gsi        = node.attribute_value<uint16_t>("gsi",        0),
-				               bridge_bdf = node.attribute_value<uint16_t>("bridge_bdf", 0);
-
-				uint8_t  const device     = node.attribute_value<uint8_t>("device",     0),
-				               device_pin = node.attribute_value<uint8_t>("device_pin", 0);
+				unsigned const gsi        = node.attribute_value("gsi",        0U),
+				               bridge_bdf = node.attribute_value("bridge_bdf", 0U),
+				               device     = node.attribute_value("device",     0U),
+				               device_pin = node.attribute_value("device_pin", 0U);
 
 				/* drop routing information on non ACPI platform */
 				if (!acpi_platform)
@@ -1075,8 +1069,7 @@ class Platform::Root : public Root_component<Session_component>
 						try {
 							error(" adjust size from ", Hex(phys_size),
 							      "->", Hex(mmio_size));
-							_pci_confspace.construct(_env, (addr_t)phys_addr,
-							                               (size_t)mmio_size);
+							_pci_confspace.construct(_env, phys_addr, mmio_size);
 							/* got memory - try again */
 							break;
 						} catch (Service_denied) {
@@ -1140,7 +1133,7 @@ class Platform::Root : public Root_component<Session_component>
 			}
 
 			if (Platform::Bridge::root_bridge_bdf < Platform::Bridge::INVALID_ROOT_BRIDGE) {
-				Device_config config(Pci::Bdf::from_value((uint16_t)Platform::Bridge::root_bridge_bdf));
+				Device_config config(Pci::Bdf::from_value(Platform::Bridge::root_bridge_bdf));
 				log("Root bridge: ", config);
 			} else {
 				warning("Root bridge: unknown");
@@ -1192,12 +1185,12 @@ class Platform::Root : public Root_component<Session_component>
 							try {
 								config.read(config_access, PCI_STATUS, Platform::Device::ACCESS_16BIT);
 
-								uint8_t cap = (uint8_t)config.read(config_access,
-								                                   PCI_CAP_OFFSET,
-								                                   Platform::Device::ACCESS_8BIT);
+								uint8_t cap = config.read(config_access,
+								                          PCI_CAP_OFFSET,
+								                          Platform::Device::ACCESS_8BIT);
 
-								for (uint16_t val = 0; cap; cap = (uint8_t)(val >> 8)) {
-									val = (uint16_t)config.read(config_access, cap, Platform::Device::ACCESS_16BIT);
+								for (uint16_t val = 0; cap; cap = val >> 8) {
+									val = config.read(config_access, cap, Platform::Device::ACCESS_16BIT);
 									xml.attribute("cap", String<8>(Hex(val & 0xff)));
 								}
 							} catch (...) {

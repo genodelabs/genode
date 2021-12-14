@@ -35,7 +35,7 @@ unsigned short Platform::bridge_bdf(unsigned char bus)
 			return bridge->bdf();
 	}
 	/* XXX Ideally, this case should never happen */
-	return (unsigned short)Platform::Bridge::root_bridge_bdf;
+	return Platform::Bridge::root_bridge_bdf;
 }
 
 void Platform::Pci_buses::scan_bus(Config_access &config_access,
@@ -43,8 +43,8 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
                                    Device_bars_pool &devices_bars,
                                    unsigned char bus)
 {
-	for (uint8_t dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
-		for (uint8_t fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
+	for (unsigned dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
+		for (unsigned fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
 
 			Pci::Bdf const bdf { .bus = bus, .device = dev, .function = fun };
 
@@ -77,8 +77,8 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 			 * lead to hard hangs on some machines.
 			 */
 			if (config.class_code() >> 8) {
-				uint16_t classcode = (uint16_t)(config.class_code() >> 16);
-				uint16_t subclass  = (uint16_t)((config.class_code() >> 8) & 0xff);
+				uint16_t classcode = config.class_code() >> 16;
+				uint16_t subclass  = (config.class_code() >> 8) & 0xff;
 
 				if ((classcode == 0x2 && subclass == 0x00) /* ETHERNET */) {
 					config.disable_bus_master_dma(config_access);
@@ -98,17 +98,17 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 			/* scan behind bridge */
 			if (config.pci_bridge()) {
 				/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
-				unsigned char sec_bus = (uint8_t)config.read(config_access, 0x19,
-				                                             Device::ACCESS_8BIT);
-				unsigned char sub_bus = (uint8_t)config.read(config_access, 0x20,
-				                                             Device::ACCESS_8BIT);
+				unsigned char sec_bus = config.read(config_access, 0x19,
+				                                    Device::ACCESS_8BIT);
+				unsigned char sub_bus = config.read(config_access, 0x20,
+				                                    Device::ACCESS_8BIT);
 
 				bridges()->insert(new (heap) Bridge(bus, dev, fun, sec_bus,
 				                                    sub_bus));
 
-				uint16_t cmd = (uint16_t)config.read(config_access,
-				                                     Device_config::PCI_CMD_REG,
-				                                     Platform::Device::ACCESS_16BIT);
+				uint16_t cmd = config.read(config_access,
+				                           Device_config::PCI_CMD_REG,
+				                           Platform::Device::ACCESS_16BIT);
 
 				const bool enabled = (cmd & Device_config::PCI_CMD_MASK)
 				                     == Device_config::PCI_CMD_MASK;

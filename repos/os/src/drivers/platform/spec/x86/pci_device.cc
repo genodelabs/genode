@@ -35,7 +35,7 @@ Genode::Io_port_session_capability Platform::Device_component::io_port(uint8_t c
 
 		try {
 			_io_port_conn[v_id] = new (_slab_ioport)
-				Io_port_connection(_env, (unsigned)res.base(), (unsigned)res.size());
+				Io_port_connection(_env, res.base(), res.size());
 			return _io_port_conn[v_id]->cap();
 		} catch (...) {
 			return Io_port_session_capability();
@@ -65,7 +65,7 @@ Genode::Io_mem_session_capability Platform::Device_component::io_mem(uint8_t con
 		}
 
 		/* limit IO_MEM session size to resource size */
-		size_t const res_size = min(size, (size_t)res.size());
+		size_t const res_size = min(size, res.size());
 
 		if (offset >= res.size() || offset > res.size() - res_size)
 			return Io_mem_session_capability();
@@ -79,10 +79,9 @@ Genode::Io_mem_session_capability Platform::Device_component::io_mem(uint8_t con
 
 		try {
 			bool const wc = caching == Cache::WRITE_COMBINED;
-
-			Io_mem * io_mem = new (_slab_iomem)
-				Io_mem(_env, (addr_t)(res.base() + offset), res_size, wc);
-
+			Io_mem * io_mem = new (_slab_iomem) Io_mem(_env,
+			                                           res.base() + offset,
+			                                           res_size, wc);
 			_io_mem[i].insert(io_mem);
 			return io_mem->cap();
 		}
@@ -174,8 +173,8 @@ Genode::Irq_session_capability Platform::Device_component::irq(uint8_t id)
 		return _irq_session->cap();
 	}
 
-	uint8_t const msi_cap  = _msi_cap();
-	uint8_t const msix_cap = _msix_cap();
+	uint16_t const msi_cap  = _msi_cap();
+	uint16_t const msix_cap = _msix_cap();
 	bool const try_msi_msix = (_session.msi_usage()  && msi_cap) ||
 	                          (_session.msix_usage() && msix_cap);
 	_irq_session = construct_at<Irq_session_component>(_mem_irq_component,
@@ -213,39 +212,32 @@ Genode::Irq_session_capability Platform::Device_component::irq(uint8_t id)
 	return _irq_session->cap();
 }
 
-bool Platform::Device_component::_setup_msi(uint8_t const msi_cap)
+bool Platform::Device_component::_setup_msi(uint16_t const msi_cap)
 {
 	try {
 		addr_t const msi_address = _irq_session->msi_address();
-		addr_t const msi_data    = _irq_session->msi_data();
+		uint32_t const msi_value = _irq_session->msi_data();
 
-		if (msi_data > 0xffff) {
-			warning("MSI data larger than 16 bit");
-			return false;
-		}
+		uint16_t msi = _read_config_16(msi_cap + 2);
 
-		uint16_t const msi_value = (uint16_t)msi_data;
-
-		uint16_t msi = (uint16_t)_read_config_16(msi_cap, 2);
-
-		_write_config_32((uint8_t)(msi_cap + 0x4), (uint32_t)msi_address);
+		_write_config_32(msi_cap + 0x4, msi_address);
 
 		if (msi & CAP_MSI_64) {
-			uint16_t upper_address = sizeof(msi_address) > 4
-			                       ? (uint16_t)(msi_address >> 32)
-			                       : (uint16_t)0;
+			uint32_t upper_address = sizeof(msi_address) > 4
+			                       ? uint64_t(msi_address) >> 32
+			                       : 0UL;
 
-			_write_config_16(msi_cap, 0x8, upper_address);
-			_write_config_16(msi_cap, 0xc, msi_value);
+			_write_config_16(msi_cap + 0x8, upper_address);
+			_write_config_16(msi_cap + 0xc, msi_value);
 		} else
-			_write_config_16(msi_cap, 0x8, msi_value);
+			_write_config_16(msi_cap + 0x8, msi_value);
 
 		/* enable MSI */
-		_device_config.write(_config_access, (uint8_t)(msi_cap + 2),
+		_device_config.write(_config_access, msi_cap + 2,
 		                     msi ^ MSI_ENABLED,
 		                     Platform::Device::ACCESS_8BIT);
 
-		msi = _read_config_16(msi_cap, 2);
+		msi = _read_config_16(msi_cap + 2);
 
 		return msi & MSI_ENABLED;
 	} catch (...) { }
@@ -253,7 +245,7 @@ bool Platform::Device_component::_setup_msi(uint8_t const msi_cap)
 	return false;
 }
 
-bool Platform::Device_component::_setup_msix(uint8_t const msix_cap)
+bool Platform::Device_component::_setup_msix(uint16_t const msix_cap)
 {
 	try {
 		struct Table_pba : Register<32>
@@ -263,16 +255,14 @@ bool Platform::Device_component::_setup_msix(uint8_t const msix_cap)
 		};
 
 		addr_t const msi_address = _irq_session->msi_address();
-		addr_t const msi_data    = _irq_session->msi_data();
+		uint32_t const msi_value = _irq_session->msi_data();
 
-		uint32_t const msi_value = (uint32_t)msi_data;
-
-		uint16_t ctrl = _read_config_16(msix_cap, 2);
+		uint16_t ctrl = _read_config_16(msix_cap + 2);
 
 		uint32_t const slots = Msix_ctrl::Slots::get(ctrl) + 1;
 
-		uint32_t const table     = _read_config_32(msix_cap, 4);
-		uint8_t  const table_bir = (uint8_t)Table_pba::Bir::masked(table);
+		uint32_t const table = _read_config_32(msix_cap + 4);
+		uint8_t  const table_bir = Table_pba::Bir::masked(table);
 		uint32_t const table_off = Table_pba::Offset::masked(table);
 
 		enum { SIZEOF_MSI_TABLE_ENTRY = 16, SIZE_IOMEM = 0x1000 };
@@ -287,7 +277,7 @@ bool Platform::Device_component::_setup_msix(uint8_t const msix_cap)
 
 		uint64_t const msix_table_phys = res.base() + table_off;
 
-		apply_msix_table(res, (addr_t)msix_table_phys, SIZE_IOMEM,
+		apply_msix_table(res, msix_table_phys, SIZE_IOMEM,
 		                 [&](addr_t const msix_table)
 		{
 			struct Msi_entry : public Mmio {
@@ -301,13 +291,9 @@ bool Platform::Device_component::_setup_msix(uint8_t const msix_cap)
 				};
 			} msi_entry_0 (msix_table);
 
-			uint32_t const addr_high_value = (sizeof(msi_address) > 4)
-			                               ? (uint32_t)(msi_address >> 32)
-			                               : 0;
-
 			/* setup first msi-x table entry */
-			msi_entry_0.write<Msi_entry::Address_low>((uint32_t)(msi_address & ~(0x3UL)));
-			msi_entry_0.write<Msi_entry::Address_high>(addr_high_value);
+			msi_entry_0.write<Msi_entry::Address_low>(msi_address & ~(0x3UL));
+			msi_entry_0.write<Msi_entry::Address_high>(sizeof(msi_address) == 4 ? 0 : msi_address >> 32);
 			msi_entry_0.write<Msi_entry::Value>(msi_value);
 			msi_entry_0.write<Msi_entry::Vector::Mask>(0);
 
@@ -320,11 +306,11 @@ bool Platform::Device_component::_setup_msix(uint8_t const msix_cap)
 			/* enable MSI-X */
 			Msix_ctrl::Fmask::set(ctrl, 0);
 			Msix_ctrl::Enable::set(ctrl, 1);
-			_write_config_16(msix_cap, 2, ctrl);
+			_write_config_16(msix_cap + 2, ctrl);
 		});
 
 		/* check back that MSI-X got enabled */
-		ctrl = _read_config_16(msix_cap, 2);
+		ctrl = _read_config_16(msix_cap + 2);
 
 		return Msix_ctrl::Enable::get(ctrl);
 	} catch (Out_of_caps) {
