@@ -221,16 +221,6 @@ struct Test_tracing
 		return "undefined";
 	}
 
-	template <typename FUNC>
-	void for_each_subject(Trace::Subject_id subjects[],
-	                      size_t max_subjects, FUNC const &func)
-	{
-		for (size_t i = 0; i < max_subjects; i++) {
-			Trace::Subject_info info = trace.subject_info(subjects[i]);
-			func(subjects[i].id, info);
-		}
-	}
-
 	struct Failed : Genode::Exception { };
 
 	Test_tracing(Env &env) : env(env)
@@ -273,14 +263,6 @@ struct Test_tracing
 		/* wait some time before querying the subjects */
 		timer.msleep(1500);
 
-		Trace::Subject_id subjects[MAX_SUBJECTS];
-		size_t num_subjects = trace.subjects(subjects, MAX_SUBJECTS);
-
-		log(num_subjects, " tracing subjects present");
-
-		if (num_subjects == MAX_SUBJECTS)
-			error("Seems we reached the maximum number of subjects.");
-
 		auto print_info = [this] (Trace::Subject_id id, Trace::Subject_info info) {
 
 			log("ID:",      id.id,                    " "
@@ -294,7 +276,7 @@ struct Test_tracing
 			    "quantum:", info.execution_time().quantum);
 		};
 
-		for_each_subject(subjects, num_subjects, print_info);
+		trace.for_each_subject_info(print_info);
 
 		auto check_untraced = [this] (Trace::Subject_id id, Trace::Subject_info info) {
 
@@ -302,7 +284,7 @@ struct Test_tracing
 				error("Subject ", id.id, " is not UNTRACED");
 		};
 
-		for_each_subject(subjects, num_subjects, check_untraced);
+		trace.for_each_subject_info(check_untraced);
 
 		/* enable tracing for test-thread */
 		auto enable_tracing = [this, &env] (Trace::Subject_id id,
@@ -329,12 +311,12 @@ struct Test_tracing
 			}
 		};
 
-		for_each_subject(subjects, num_subjects, enable_tracing);
+		trace.for_each_subject_info(enable_tracing);
 
 		/* give the test thread some time to run */
 		timer.msleep(1000);
 
-		for_each_subject(subjects, num_subjects, print_info);
+		trace.for_each_subject_info(print_info);
 
 		/* read events from trace buffer */
 		if (test_monitor.constructed()) {

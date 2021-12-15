@@ -65,7 +65,6 @@ struct Migrate
 	Signal_handler<Migrate> timer_handler { env.ep(), *this,
 	                                        &Migrate::check_traces };
 
-	Trace::Subject_id  trace_id { };
 	Affinity::Location location { };
 	unsigned           loc_same { 0 };
 	unsigned           loc_pos  { 0 };
@@ -95,13 +94,12 @@ struct Migrate
 		switch (state) {
 		case LOOKUP_TRACE_ID:
 		{
-			auto count = trace.for_each_subject_info([&](Trace::Subject_id const &id,
+			auto count = trace.for_each_subject_info([&](Trace::Subject_id const &,
 			                                             Trace::Subject_info const &info)
 			{
 				if (info.thread_name() != "migrate")
 					return;
 
-				trace_id = id;
 				location = info.affinity();
 				state    = CHECK_AFFINITY;
 
@@ -116,32 +114,38 @@ struct Migrate
 		}
 		case CHECK_AFFINITY:
 		{
-			Trace::Subject_info const info = trace.subject_info(trace_id);
-
-			loc_same ++;
-
-			if ((location.xpos() == info.affinity().xpos()) &&
-			    (location.ypos() == info.affinity().ypos()) &&
-			    (location.width() == info.affinity().width()) &&
-			    (location.height() == info.affinity().height()))
+			trace.for_each_subject_info([&](Trace::Subject_id const &,
+			                                Trace::Subject_info const &info)
 			{
-				if (loc_same >= 1) {
-					loc_same = 0;
-					state = MIGRATE;
+				if (info.thread_name() != "migrate")
+					return;
+
+				loc_same ++;
+
+				if ((location.xpos() == info.affinity().xpos()) &&
+				    (location.ypos() == info.affinity().ypos()) &&
+				    (location.width() == info.affinity().width()) &&
+				    (location.height() == info.affinity().height()))
+				{
+					if (loc_same >= 1) {
+						loc_same = 0;
+						state = MIGRATE;
+					}
+					log ("[ep] .");
+					return;
 				}
-				log ("[ep] .");
-				break;
-			}
 
-			loc_same = 0;
-			location = info.affinity();
+				loc_same = 0;
+				location = info.affinity();
 
-			log("[ep] thread '", info.thread_name(), "' migrated,",
-			    " location=", location.xpos(), "x", location.ypos());
+				log("[ep] thread '", info.thread_name(), "' migrated,",
+				    " location=", location.xpos(), "x", location.ypos());
 
-			test_rounds ++;
-			if (test_rounds == 4)
-				log("--- test completed successfully ---");
+				test_rounds ++;
+				if (test_rounds == 4)
+					log("--- test completed successfully ---");
+			});
+
 			break;
 		}
 		case MIGRATE:

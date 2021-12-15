@@ -93,12 +93,8 @@ struct Trace_subject_registry
 
 		void update(Genode::Trace::Connection &trace, Genode::Allocator &alloc)
 		{
-			unsigned const num_subjects = update_subjects(trace);
-
-			/* add and update existing entries */
-			for (unsigned i = 0; i < num_subjects; i++) {
-
-				Genode::Trace::Subject_id const id = _subjects[i];
+			trace.for_each_subject_info([&] (Genode::Trace::Subject_id id,
+			                                 Genode::Trace::Subject_info const &info) {
 
 				Entry *e = _lookup(id);
 				if (!e) {
@@ -106,7 +102,7 @@ struct Trace_subject_registry
 					_entries.insert(e);
 				}
 
-				e->update(trace.subject_info(id));
+				e->update(info);
 
 				/* purge dead threads */
 				if (e->info.state() == Genode::Trace::Subject_info::DEAD) {
@@ -114,7 +110,7 @@ struct Trace_subject_registry
 					_entries.remove(e);
 					Genode::destroy(alloc, e);
 				}
-			}
+			});
 
 			_sort_by_recent_execution_time();
 		}

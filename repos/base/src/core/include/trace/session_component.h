@@ -81,7 +81,6 @@ class Genode::Trace::Session_component
 		void rule(Session_label const &, Thread_name const &, Policy_id, size_t) override;
 		void pause(Subject_id) override;
 		void resume(Subject_id) override;
-		Subject_info subject_info(Subject_id) override;
 		Dataspace_capability buffer(Subject_id) override;
 		void free(Subject_id) override;
 };

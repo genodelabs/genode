@@ -126,9 +126,6 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 		void resume(Subject_id subject) override {
 			call<Rpc_resume>(subject); }
 
-		Subject_info subject_info(Subject_id subject) override {
-			return call<Rpc_subject_info>(subject); }
-
 		Dataspace_capability buffer(Subject_id subject) override {
 			return call<Rpc_buffer>(subject); }
 

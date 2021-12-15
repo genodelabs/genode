@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2020 Genode Labs GmbH
+ * Copyright (C) 2020-2021 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -45,14 +45,11 @@ class Cpu::Trace
 
 		enum { MAX_CORES = 64, MAX_THREADS = 2, HISTORY = 4 };
 
-		Subject_id      _idle_id   [MAX_CORES][MAX_THREADS];
 		Execution_time  _idle_times[MAX_CORES][MAX_THREADS][HISTORY];
 		Execution_time  _idle_max  [MAX_CORES][MAX_THREADS];
 		unsigned        _idle_slot { HISTORY - 1 };
 
 		unsigned        _subject_id_reread { 0 };
-
-		void _lookup_missing_idle_id(Affinity::Location const &);
 
 		void _reconstruct(Genode::size_t const upgrade = 4 * 4096)
 		{
@@ -124,14 +121,21 @@ class Cpu::Trace
 		Session_label lookup_my_label();
 
 		template <typename FUNC>
-		void retrieve(Subject_id const id, FUNC const &fn)
+		void retrieve(Subject_id const target_id, FUNC const &fn)
 		{
 			if (!_trace.constructed())
 				return;
 
-			/* Ieegs, XXX, avoid copying whole object */
-			Subject_info info = _trace->subject_info(id);
-			fn(info.execution_time(), info.affinity());
+			auto count = _trace->for_each_subject_info([&](Subject_id const &id,
+			                                               Subject_info const &info) {
+				if (id == target_id)
+					fn(info.execution_time(), info.affinity());
+			});
+
+			if (count.count == count.limit) {
+				Genode::log("reconstruct trace session, subject_count=", count.count);
+				_reconstruct();
+			}
 		}
 
 		Execution_time abs_idle_times(Affinity::Location const &location)

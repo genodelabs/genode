@@ -56,17 +56,16 @@ class Monitor : public Monitor_base,
 		Genode::Trace::Subject_id const  _subject_id;
 		Trace_buffer                     _buffer;
 		unsigned long                    _report_id        { 0 };
-		Genode::Trace::Subject_info      _info             { };
+		Genode::Trace::Subject_info      _info             {   };
 		unsigned long long               _recent_exec_time { 0 };
 		char                             _curr_entry_data[MAX_ENTRY_LENGTH];
 
-		void _update_info();
-
 	public:
 
-		Monitor(Genode::Trace::Connection &trace,
-		        Genode::Region_map        &rm,
-		        Genode::Trace::Subject_id  subject_id);
+		Monitor(Genode::Trace::Connection         &trace,
+		        Genode::Region_map                &rm,
+		        Genode::Trace::Subject_id          subject_id,
+		        Genode::Trace::Subject_info const &info);
 
 		void print(bool activity, bool affinity);
 
@@ -86,6 +85,8 @@ class Monitor : public Monitor_base,
 
 		Genode::Trace::Subject_id          subject_id() const { return _subject_id; }
 		Genode::Trace::Subject_info const &info()       const { return _info; }
+
+		void update_info(Genode::Trace::Subject_info const &);
 };
 
 

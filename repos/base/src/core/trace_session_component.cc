@@ -146,12 +146,6 @@ void Session_component::resume(Subject_id subject_id)
 }
 
 
-Subject_info Session_component::subject_info(Subject_id subject_id)
-{
-	return _subjects.lookup_by_id(subject_id).info();
-}
-
-
 Dataspace_capability Session_component::buffer(Subject_id subject_id)
 {
 	return _subjects.lookup_by_id(subject_id).buffer();

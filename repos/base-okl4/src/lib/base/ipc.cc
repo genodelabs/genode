@@ -111,7 +111,7 @@ static void copy_msg_to_utcb(Msgbuf_base const &snd_msg, L4_Word_t local_name)
 	uint8_t const num_msg_words    = num_data_words + num_header_words;
 
 	if (num_msg_words >= L4_GetMessageRegisters()) {
-		raw("Message does not fit into UTCB message registers");
+		raw("Message does not fit into UTCB message registers, num_msg_words=", num_msg_words);
 		L4_LoadMR(0, 0);
 		return;
 	}

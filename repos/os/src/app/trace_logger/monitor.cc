@@ -58,38 +58,36 @@ Monitor &Monitor::find_by_subject_id(Trace::Subject_id const subject_id)
 }
 
 
-Monitor::Monitor(Trace::Connection &trace,
-                 Region_map        &rm,
-                 Trace::Subject_id  subject_id)
+Monitor::Monitor(Trace::Connection         &trace,
+                 Region_map                &rm,
+                 Trace::Subject_id   const  subject_id,
+                 Trace::Subject_info const &info)
 :
 	Monitor_base(trace, rm, subject_id),
 	_subject_id(subject_id), _buffer(_buffer_raw)
 {
-	_update_info();
+	update_info(info);
 }
 
 
-void Monitor::_update_info()
+void Monitor::update_info(Trace::Subject_info const &info)
 {
 	try {
-		Trace::Subject_info const &info =
-			_trace.subject_info(_subject_id);
-
 		uint64_t const last_execution_time =
 			_info.execution_time().thread_context;
 
 		_info = info;
+
 		_recent_exec_time =
 			_info.execution_time().thread_context - last_execution_time;
 	}
-	catch (Trace::Nonexistent_subject) { warning("Cannot update subject info: Nonexistent_subject"); }
+	catch (Trace::Nonexistent_subject) {
+		warning("Cannot update subject info: Nonexistent_subject"); }
 }
 
 
 void Monitor::print(bool activity, bool affinity)
 {
-	_update_info();
-
 	/* print general subject information */
 	typedef Trace::Subject_info Subject_info;
 	Subject_info::State const state = _info.state();

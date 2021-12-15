@@ -86,13 +86,6 @@ struct Genode::Trace::Session : Genode::Session
 	virtual void resume(Subject_id) = 0;
 
 	/**
-	 * Obtain details about tracing subject
-	 *
-	 * \throw Nonexistent_subject
-	 */
-	virtual Subject_info subject_info(Subject_id) = 0;
-
-	/**
 	 * Obtain trace buffer of given subject
 	 *
 	 * \throw Nonexistent_subject
@@ -144,8 +137,6 @@ struct Genode::Trace::Session : Genode::Session
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
 	GENODE_RPC_THROW(Rpc_subject_infos, size_t, subject_infos,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
-	GENODE_RPC_THROW(Rpc_subject_info, Subject_info, subject_info,
-	                 GENODE_TYPE_LIST(Nonexistent_subject), Subject_id);
 	GENODE_RPC_THROW(Rpc_buffer, Dataspace_capability, buffer,
 	                 GENODE_TYPE_LIST(Nonexistent_subject, Subject_not_traced),
 	                 Subject_id);
@@ -154,7 +145,7 @@ struct Genode::Trace::Session : Genode::Session
 
 	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_alloc_policy, Rpc_policy,
 	                     Rpc_unload_policy, Rpc_trace, Rpc_rule, Rpc_pause,
-	                     Rpc_resume, Rpc_subjects, Rpc_subject_info, Rpc_buffer,
+	                     Rpc_resume, Rpc_subjects, Rpc_buffer,
 	                     Rpc_free, Rpc_subject_infos);
 };
 
