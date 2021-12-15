@@ -256,8 +256,24 @@ _extract_function = $(call _assert,\
 %.archive: ARCHIVE = $(call _archive_name,$*)
 %.archive: DIR     = $(call _archive_dir,$*)
 
+#
+# Quirk for automake
+#
+# If both 'Makefile.in' and 'Makefile.am' are present, and 'Makefile.am'
+# happens to have the more recent timestamp (by chance, using 'tar -m'),
+# a rule in the resulting 'Makefile' make will try to run automake to
+# re-generate 'Makefile.in' from 'Makefile.am'. This step is brittle
+# because it requires a specific automake version on the host.
+#
+# We rename the rule target to discharge this magic and keep using the
+# provided 'Makefile.in'.
+#
+_discharge_automake = ( find $(DIR) -name "Makefile.in" |\
+                        xargs -r sed -i "/Makefile\.in:.*Makefile\.am/s/^/IGNORE-/" )
+
 %.archive: %.file
 	@$(MSG_EXTRACT)"$(ARCHIVE) ($*)"
 	$(VERBOSE)\
 		mkdir -p $(DIR);\
-		$(call _extract_function,$*)
+		$(call _extract_function,$*);\
+		$(_discharge_automake)
