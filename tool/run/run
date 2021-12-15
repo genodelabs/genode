@@ -547,9 +547,10 @@ proc have_installed {program} {
 # \return absolute path of command if found, or exists if not
 #
 proc installed_command {command} {
-	if { [catch {set path [exec which $command]}] == 0} {
-		return $path
-	}
+
+	set path [auto_execok $command]
+	if {$path != ""} {
+		return $path }
 
 	set dir { /sbin /usr/sbin /usr/local/bin }
 
