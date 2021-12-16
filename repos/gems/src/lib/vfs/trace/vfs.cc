@@ -349,11 +349,7 @@ struct Vfs_trace::Local_factory : File_system_factory
 	Vfs::Env          &_env;
 
 	Trace::Connection  _trace;
-	enum { MAX_SUBJECTS = 128 };
-	Trace::Subject_id  _subjects[MAX_SUBJECTS];
-	size_t             _subject_count { 0 };
 	Trace::Policy_id   _policy_id { 0 };
-
 	Directory_tree     _tree { _env.alloc() };
 
 	void _install_null_policy()
@@ -391,20 +387,14 @@ struct Vfs_trace::Local_factory : File_system_factory
 	Local_factory(Vfs::Env &env, Xml_node config)
 	: _env(env), _trace(env.env(), _config_session_ram(config), 512*1024, 0)
 	{
-		bool success = false;
-		while (!success) {
-			try {
-				_subject_count = _trace.subjects(_subjects, MAX_SUBJECTS);
-				success = true;
-			} catch(Genode::Out_of_ram) {
-				_trace.upgrade_ram(4096);
-				success = false;
-			}
-		}
+		_trace.for_each_subject_info([&] (Trace::Subject_id   const id,
+		                                  Trace::Subject_info const &info) {
 
-		for (size_t i = 0; i < _subject_count; i++) {
-			_tree.insert(_trace.subject_info(_subjects[i]), _subjects[i]);
-		}
+			if (info.state() == Trace::Subject_info::DEAD)
+				return;
+
+			_tree.insert(info, id);
+		});
 
 		_install_null_policy();
 	}
