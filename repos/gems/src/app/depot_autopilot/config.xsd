@@ -19,6 +19,7 @@
 			<xs:enumeration value="arm_v6" />
 			<xs:enumeration value="arm_v7a" />
 			<xs:enumeration value="arm_v8a" />
+			<xs:enumeration value="riscv" />
 		</xs:restriction>
 	</xs:simpleType><!-- Architecture -->
 
