@@ -36,7 +36,7 @@
 			<provides><service name="Block"/></provides>
 		</start>
 		<start name="block_cache">
-			<resource name="RAM" quantum="2704K" />
+			<resource name="RAM" quantum="3M" />
 			<provides><service name="Block" /></provides>
 			<route>
 				<service name="Block"><child name="test-block-server" /></service>
