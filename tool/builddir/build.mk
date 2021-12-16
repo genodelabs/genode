@@ -76,6 +76,15 @@ export BOARD
 REPOSITORIES := $(realpath $(shell echo $(REPOSITORIES)))
 BASE_DIR     := $(realpath $(shell echo $(BASE_DIR)))
 
+define nl
+
+
+endef
+
+ifneq ($(words $(REPOSITORIES)),$(words $(sort $(REPOSITORIES))))
+$(error detected duplicates in REPOSITORIES $(foreach p,$(REPOSITORIES),$(nl)    $(p)))
+endif
+
 #
 # Configure shell program before executing any shell commands. On Ubuntu the
 # standard shell is dash, which breaks colored output via its built-in echo
