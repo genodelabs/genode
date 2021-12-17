@@ -195,9 +195,6 @@ struct Test::Roundtrip : Base
 			if (rx_packet.size() != PACKET_SIZE)
 				abort("sent and echoed packets differ in size");
 
-			if (rx_packet.offset() != _expected_packet_offset)
-				abort(__func__, ": unexpected offset of received packet");
-
 			/* compare original and echoed packets */
 			char const * const rx_content = nic.rx()->packet_content(rx_packet);
 			for (unsigned i = 0; i < PACKET_SIZE; i++)

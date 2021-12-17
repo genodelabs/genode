@@ -70,8 +70,6 @@ class Nic_loopback::Session_component : public Nic::Session_component
 
 void Nic_loopback::Session_component::_handle_packet_stream()
 {
-	size_t const alloc_size = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
-
 	/* loop while we can make progress */
 	for (;;) {
 
@@ -111,7 +109,8 @@ void Nic_loopback::Session_component::_handle_packet_stream()
 
 		Packet_descriptor packet_to_client;
 		try {
-			packet_to_client = _rx.source()->alloc_packet(alloc_size); }
+			packet_to_client = _rx.source()->alloc_packet(
+			_tx.sink()->peek_packet().size()); }
 		catch (Session::Rx::Source::Packet_alloc_failed) {
 			continue; }
 
