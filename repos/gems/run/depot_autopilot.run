@@ -769,14 +769,16 @@ set skip_test(test-spark_exception) [expr [have_spec arm]]
 set skip_test(test-tcp_bulk_lwip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
 set skip_test(test-tcp_bulk_lxip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
 
-set skip_test(gcov)                              [expr [have_spec riscv]]
-set skip_test(test-libc_connect_lxip)            [expr [have_spec riscv]]
-set skip_test(test-libc_connect_vfs_server_lxip) [expr [have_spec riscv]]
-set skip_test(test-spark)                        [expr [have_spec riscv]]
-set skip_test(test-spark_exception)              [expr [have_spec riscv]]
-set skip_test(test-spark_secondary_stack)        [expr [have_spec riscv]]
-set skip_test(test-tcp_bulk_lxip)                [expr [have_spec riscv]]
-set skip_test(test-xml_generator)                [expr [have_spec riscv]]
+if {[have_spec riscv]} {
+	set skip_test(gcov)                              true
+	set skip_test(test-libc_connect_lxip)            true
+	set skip_test(test-libc_connect_vfs_server_lxip) true
+	set skip_test(test-spark)                        true
+	set skip_test(test-spark_exception)              true
+	set skip_test(test-spark_secondary_stack)        true
+	set skip_test(test-tcp_bulk_lxip)                true
+	set skip_test(test-xml_generator)                true
+}
 
 #
 # FIXME
