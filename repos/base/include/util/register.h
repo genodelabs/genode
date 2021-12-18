@@ -181,7 +181,7 @@ struct Genode::Register
 		 * bitfields into one operation.
 		 */
 		static inline access_t bits(access_t const value) {
-			return (value & mask()) << SHIFT; }
+			return access_t((value & mask()) << SHIFT); }
 
 		/**
 		 * Get a register value 'reg' masked according to this bitfield
