@@ -33,8 +33,8 @@ class Driver::Power : Powers::Element, Interface
 
 		/* friendships needed to make 'Powers::Element' private */
 		friend class Powers::Element;
-		friend class Avl_node<Power>;
-		friend class Avl_tree<Power>;
+		friend class Genode::Avl_node<Power>;
+		friend class Genode::Avl_tree<Power>;
 
 		Switch<Power> _switch { *this, &Power::_on, &Power::_off };
 

@@ -33,8 +33,8 @@ class Driver::Reset : Resets::Element, Interface
 
 		/* friendships needed to make 'Resets::Element' private */
 		friend class Resets::Element;
-		friend class Avl_node<Reset>;
-		friend class Avl_tree<Reset>;
+		friend class Genode::Avl_node<Reset>;
+		friend class Genode::Avl_tree<Reset>;
 
 		Switch<Reset> _switch { *this, &Reset::_deassert, &Reset::_assert };
 
