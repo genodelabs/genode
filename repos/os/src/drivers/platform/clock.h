@@ -36,8 +36,8 @@ class Driver::Clock : Clocks::Element, Interface
 
 		/* friendships needed to make 'Clocks::Element' private */
 		friend class Clocks::Element;
-		friend class Avl_node<Clock>;
-		friend class Avl_tree<Clock>;
+		friend class Genode::Avl_node<Clock>;
+		friend class Genode::Avl_tree<Clock>;
 
 		Switch<Clock> _switch { *this, &Clock::_enable, &Clock::_disable };
 
