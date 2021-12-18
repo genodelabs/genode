@@ -934,7 +934,7 @@ class Vfs::Fs_file_system : public File_system
 			using namespace ::File_system;
 
 			Watch_result res = WATCH_ERR_UNACCESSIBLE;
-			::File_system::Watch_handle fs_handle { -1U };
+			::File_system::Watch_handle fs_handle { -1UL };
 
 			try { fs_handle = _fs.watch(path); }
 			catch (Unavailable)       { return WATCH_ERR_UNACCESSIBLE; }
