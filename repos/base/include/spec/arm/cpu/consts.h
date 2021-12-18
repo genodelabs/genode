@@ -23,7 +23,7 @@ namespace Abi {
 	 * change the stack pointer, we need no further stack adjustment.
 	 */
 	inline Genode::addr_t stack_align(Genode::addr_t addr) {
-		return (addr & ~0xf); }
+		return (addr & ~0xfUL); }
 
 	/**
 	 * Do ABI specific initialization to a freshly created stack

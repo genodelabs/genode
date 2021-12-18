@@ -33,7 +33,7 @@ namespace Genode {
 	struct Rpc_request
 	{
 		Reply_capability caller { };
-		unsigned long    badge = ~0;
+		unsigned long    badge = ~0UL;
 
 		Rpc_request() { }
 

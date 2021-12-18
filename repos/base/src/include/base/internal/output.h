@@ -146,7 +146,7 @@ static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_F
 			volatile_value = (T)(volatile_value - (T)integer);
 			volatile_value = (T)(volatile_value * (T)base);
 
-			integer = (int64_t)volatile_value;
+			integer = (uint64_t)volatile_value;
 			out_char(ascii((int)integer));
 
 			length--;

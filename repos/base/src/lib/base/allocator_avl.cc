@@ -99,7 +99,7 @@ Allocator_avl_base::Alloc_md_result Allocator_avl_base::_alloc_block_metadata()
 {
 	return _md_alloc.try_alloc(sizeof(Block)).convert<Alloc_md_result>(
 		[&] (void *ptr) {
-			return construct_at<Block>(ptr, 0, 0, 0); },
+			return construct_at<Block>(ptr, 0U, 0U, 0); },
 		[&] (Alloc_error error) {
 			return error; });
 }

@@ -130,7 +130,7 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 				/* add new local address range to our local allocator */
 				_alloc->add_range((addr_t)attach_guard.ptr, size).with_result(
 					[&] (Range_allocator::Range_ok) {
-						metadata = _alloc->alloc_aligned(sizeof(Heap::Dataspace), log2(16)); },
+						metadata = _alloc->alloc_aligned(sizeof(Heap::Dataspace), log2(16U)); },
 					[&] (Alloc_error error) {
 						metadata = error; });
 			}
@@ -153,7 +153,7 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 
 Allocator::Alloc_result Heap::_try_local_alloc(size_t size)
 {
-	return _alloc->alloc_aligned(size, log2(16)).convert<Alloc_result>(
+	return _alloc->alloc_aligned(size, log2(16U)).convert<Alloc_result>(
 
 		[&] (void *ptr) {
 			_quota_used += size;
