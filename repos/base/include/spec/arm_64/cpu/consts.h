@@ -22,7 +22,7 @@ namespace Abi {
 	 * On ARM we align the stack top to 16-byte.
 	 */
 	inline Genode::addr_t stack_align(Genode::addr_t addr) {
-		return (addr & ~0xf); }
+		return (addr & ~0xfUL); }
 
 	/**
 	 * Do ABI specific initialization to a freshly created stack
