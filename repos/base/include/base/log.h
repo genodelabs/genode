@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__LOG_H_
 
 #include <base/output.h>
+#include <base/buffered_output.h>
 #include <base/mutex.h>
 #include <trace/timestamp.h>
 
@@ -107,23 +108,29 @@ class Genode::Trace_output
 {
 	private:
 
-		Mutex _mutex { };
+		struct Write_trace_fn
+		{
+			void operator () (char const *);
+		};
 
-		Output &_output;
-
-		void _acquire();
-		void _release();
+		/* cannot include log_session.h here because of recursion */
+		enum { LOG_SESSION_MAX_STRING_LEN = 232 };
+		typedef Buffered_output<LOG_SESSION_MAX_STRING_LEN,
+		                        Write_trace_fn>
+		        Buffered_trace_output;
 
 	public:
 
-		Trace_output(Output &output) : _output(output) { }
+		Trace_output() { }
 
 		template <typename... ARGS>
 		void output(ARGS &&... args)
 		{
-			_acquire();
-			Output::out_args(_output, args...);
-			_release();
+			Buffered_trace_output buffered_trace_output
+			{ Write_trace_fn() };
+
+			Output::out_args(buffered_trace_output, args...);
+			buffered_trace_output.out_string("\n");
 		}
 
 		/**

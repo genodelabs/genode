@@ -24,6 +24,7 @@ namespace Terminal {
 	class Session_component;
 	class Root_component;
 	class Main;
+	class Buffered_output;
 
 	using namespace Genode;
 };
@@ -32,7 +33,7 @@ namespace Terminal {
 /**
  * Utility for the buffered output of small successive write operations
  */
-class Buffered_output
+class Terminal::Buffered_output
 {
 	private:
 

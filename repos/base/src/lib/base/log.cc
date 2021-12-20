@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/thread.h>
 
 using namespace Genode;
 
@@ -61,18 +62,7 @@ void Raw::_release()
 }
 
 
-void Trace_output::_acquire()
+void Trace_output::Write_trace_fn::operator () (char const *s)
 {
-	_mutex.acquire();
-}
-
-
-void Trace_output::_release()
-{
-	/*
-	 * Add newline
-	 */
-	_output.out_string("\n");
-
-	_mutex.release();
+	Thread::trace(s);
 }

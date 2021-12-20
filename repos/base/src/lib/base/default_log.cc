@@ -114,14 +114,6 @@ void Genode::init_log(Parent &parent)
 	log_ptr = unmanaged_singleton<Log>(*buffered_log_output);
 
 	/* enable trace back end */
-	struct Write_trace_fn { void operator () (char const *s) { Thread::trace(s); } };
-
-	typedef Buffered_output<Log_session::MAX_STRING_LEN, Write_trace_fn>
-	        Buffered_trace_output;
-
-	static Buffered_trace_output *buffered_trace_output =
-		unmanaged_singleton<Buffered_trace_output>(Write_trace_fn());
-
-	trace_ptr = unmanaged_singleton<Trace_output>(*buffered_trace_output);
+	trace_ptr = unmanaged_singleton<Trace_output>();
 }
 
