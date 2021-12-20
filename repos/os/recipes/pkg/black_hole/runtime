@@ -4,12 +4,14 @@
 		<audio_in/>
 		<audio_out/>
 		<capture/>
+		<event/>
 	</provides>
 
 	<config>
 		<audio_in/>
 		<audio_out/>
 		<capture/>
+		<event/>
 	</config>
 
 	<content>

@@ -24,6 +24,7 @@
 #include "audio_in.h"
 #include "audio_out.h"
 #include "capture.h"
+#include "event.h"
 
 
 /***************
@@ -41,6 +42,7 @@ struct Black_hole::Main
 	Genode::Constructible<Audio_in::Root>  audio_in_root  { };
 	Genode::Constructible<Audio_out::Root> audio_out_root { };
 	Genode::Constructible<Capture::Root>   capture_root   { };
+	Genode::Constructible<Event_root>      event_root     { };
 
 	Main(Genode::Env &env) : env(env)
 	{
@@ -59,6 +61,10 @@ struct Black_hole::Main
 		if (_config_rom.xml().has_sub_node("capture")) {
 			capture_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*capture_root));
+		}
+		if (_config_rom.xml().has_sub_node("event")) {
+			event_root.construct(env, heap);
+			env.parent().announce(env.ep().manage(*event_root));
 		}
 	}
 };

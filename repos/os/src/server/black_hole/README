@@ -7,9 +7,11 @@ in the configuration of the component:
 * Audio_in
 * Audio_out
 * Capture
+* Event
 
 <config>
 	<audio_in/>
 	<audio_out/>
 	<capture/>
+	<event/>
 </config>
