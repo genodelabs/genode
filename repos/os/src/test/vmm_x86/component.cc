@@ -102,7 +102,10 @@ class Vmm::Vcpu
 				INTEL_CTRL_SECOND_UG = 1 << 7,
 				INTEL_CTRL_SECOND_RDTSCP_ENABLE = 1 << 3,
 			};
-			enum { AMD_CTRL_SECOND_VMRUN = 1 << 0 };
+			enum {
+				AMD_CTRL_PRIMARY_HLT  = 1 << 24,
+				AMD_CTRL_SECOND_VMRUN = 1 << 0
+			};
 
 			/* http://www.sandpile.org/x86/initial.htm */
 
@@ -137,7 +140,7 @@ class Vmm::Vcpu
 				                            INTEL_CTRL_SECOND_RDTSCP_ENABLE);
 			}
 			if (_svm) {
-				/* required for native AMD hardware (!= Qemu) for NOVA */
+				state.ctrl_primary.charge(AMD_CTRL_PRIMARY_HLT);
 				state.ctrl_secondary.charge(AMD_CTRL_SECOND_VMRUN);
 			}
 
