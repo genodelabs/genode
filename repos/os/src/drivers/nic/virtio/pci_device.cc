@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/heap.h>
-#include <platform_session/connection.h>
+#include <legacy/x86/platform_session/connection.h>
 #include <virtio/pci_device.h>
 
 /* NIC driver includes */

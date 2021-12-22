@@ -18,7 +18,7 @@
 
 /* os includes */
 #include <event_session/connection.h>
-#include <platform_session/connection.h>
+#include <legacy/x86/platform_session/connection.h>
 #include <timer_session/connection.h>
 
 /* local includes */

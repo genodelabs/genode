@@ -16,7 +16,7 @@
 #include <base/log.h>
 #include <base/allocator.h>
 #include <io_mem_session/connection.h>
-#include <platform_session/connection.h>
+#include <legacy/x86/platform_session/connection.h>
 
 /* local includes */
 #include "framebuffer.h"

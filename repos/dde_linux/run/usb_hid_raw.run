@@ -95,7 +95,7 @@ proc platform_drv_config_non_x86 {} {
 
 proc platform_drv_binary_non_x86 {} {
 	if {[have_board imx6q_sabrelite]} { return platform_drv         }
-	if {[have_board rpi]}             { return rpi_new_platform_drv }
+	if {[have_board rpi]}             { return rpi_platform_drv }
 	return no_platform_drv_available
 }
 

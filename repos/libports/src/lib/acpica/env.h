@@ -16,7 +16,7 @@
 
 #include <base/env.h>
 #include <base/allocator.h>
-#include <platform_session/client.h>
+#include <legacy/x86/platform_session/client.h>
 
 namespace Acpica {
 	Genode::Env       & env();

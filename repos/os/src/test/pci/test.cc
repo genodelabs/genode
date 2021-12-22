@@ -13,8 +13,8 @@
 
 #include <base/component.h>
 #include <base/log.h>
-#include <platform_session/connection.h>
-#include <platform_device/client.h>
+#include <legacy/x86/platform_session/connection.h>
+#include <legacy/x86/platform_device/client.h>
 #include <util/retry.h>
 
 using namespace Genode;

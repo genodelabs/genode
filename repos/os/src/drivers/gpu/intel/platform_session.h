@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <platform_session/platform_session.h>
+#include <legacy/x86/platform_session/platform_session.h>
 
 namespace Platform {
 class Device_component;

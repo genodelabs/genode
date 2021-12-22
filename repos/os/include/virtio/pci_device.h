@@ -16,7 +16,7 @@
 
 #include <os/attached_mmio.h>
 #include <irq_session/client.h>
-#include <platform_device/client.h>
+#include <legacy/x86/platform_device/client.h>
 #include <virtio/queue.h>
 
 namespace Virtio {

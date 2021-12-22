@@ -18,7 +18,7 @@
 #include <base/component.h>
 #include <util/reconstructible.h>
 #include <capture_session/connection.h>
-#include <platform_session/connection.h>
+#include <legacy/rpi/platform_session/connection.h>
 #include <blit/blit.h>
 #include <timer_session/connection.h>
 

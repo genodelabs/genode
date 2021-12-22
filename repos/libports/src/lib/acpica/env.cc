@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <util/reconstructible.h>
 #include <acpica/acpica.h>
-#include <platform_session/client.h>
+#include <legacy/x86/platform_session/client.h>
 
 #include "env.h"
 

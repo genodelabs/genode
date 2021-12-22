@@ -18,8 +18,8 @@
 #include <dataspace/client.h>
 #include <io_port_session/connection.h>
 #include <io_mem_session/connection.h>
-#include <platform_session/connection.h>
-#include <platform_device/client.h>
+#include <legacy/x86/platform_session/connection.h>
+#include <legacy/x86/platform_device/client.h>
 #include <util/retry.h>
 
 /* local includes */

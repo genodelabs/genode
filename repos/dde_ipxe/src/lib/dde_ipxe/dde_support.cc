@@ -28,8 +28,8 @@
 #include <io_mem_session/connection.h>
 #include <io_port_session/connection.h>
 #include <irq_session/connection.h>
-#include <platform_device/client.h>
-#include <platform_session/connection.h>
+#include <legacy/x86/platform_device/client.h>
+#include <legacy/x86/platform_session/connection.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 #include <timer_session/connection.h>

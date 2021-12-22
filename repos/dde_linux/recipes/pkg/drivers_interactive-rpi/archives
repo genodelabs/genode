@@ -1,5 +1,6 @@
 _/raw/drivers_interactive-rpi
 _/src/event_filter
+_/src/report_rom
 _/src/rpi_fb_drv
 _/src/platform_drv
 _/src/usb_hid_drv

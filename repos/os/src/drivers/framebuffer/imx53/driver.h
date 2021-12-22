@@ -19,7 +19,7 @@
 #include <drivers/defs/imx53.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <io_mem_session/connection.h>
-#include <platform_session/connection.h>
+#include <legacy/imx53/platform_session/connection.h>
 #include <util/mmio.h>
 #include <capture_session/connection.h>
 

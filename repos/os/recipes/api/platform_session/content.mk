@@ -1,12 +1,9 @@
 INCLUDE_SUB_DIRS := platform_session \
-                    platform_device \
-                    spec/arm_64/platform_session \
-                    spec/arm/platform_session \
-                    spec/imx53/platform_session \
-                    spec/rpi/platform \
-                    spec/rpi/platform_session \
-                    spec/x86/platform_session \
-                    spec/x86/platform_device
+                    legacy/imx53/platform_session \
+                    legacy/rpi/platform \
+                    legacy/rpi/platform_session \
+                    legacy/x86/platform_session \
+                    legacy/x86/platform_device
 
 INCLUDE_DIRS := $(addprefix include/,$(INCLUDE_SUB_DIRS))
 

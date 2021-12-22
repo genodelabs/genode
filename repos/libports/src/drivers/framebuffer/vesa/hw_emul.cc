@@ -33,8 +33,8 @@ static const bool verbose = false;
  ** PCI virtualization **
  ************************/
 
-#include <platform_session/connection.h>
-#include <platform_device/client.h>
+#include <legacy/x86/platform_session/connection.h>
+#include <legacy/x86/platform_device/client.h>
 
 enum {
 	PCI_ADDR_REG = 0xcf8,

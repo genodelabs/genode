@@ -94,6 +94,7 @@
 	</start>
 
 	<start name="platform_drv" caps="400" managing_system="yes">
+		<binary name="legacy_pc_platform_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Platform"/>
