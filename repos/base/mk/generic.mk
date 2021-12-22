@@ -76,9 +76,6 @@ endif
 	$(MSG_COMP)$@
 	$(VERBOSE)$(GOLANG) $(CUSTOM_GO_FLAGS) -c -o $@ $<
 
-CUSTOM_GO	?= $(CROSS_DEV_PREFIX)gccgo
-GOLANG   = $(CUSTOM_GO)
-
 #
 # Compiling Ada source codes
 #
