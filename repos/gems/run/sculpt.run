@@ -1,7 +1,15 @@
-if {![have_board pc] && ![have_board imx8q_evk] && ![have_board mnt_reform2]} {
+proc assert_platform_supported { } {
+
+	if {[have_board pc]}          return
+	if {[have_board imx8q_evk]}   return
+	if {[have_board mnt_reform2]} return
+	if {[have_board linux]}       return
+
 	puts "Platform is unsupported.";
 	exit 0;
 }
+
+assert_platform_supported
 
 if {[have_spec nova]} {
 	proc kernel_output { } { return "novga serial logmem" }
@@ -12,18 +20,92 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/sculpt-[board]
 
-proc config_system_content {} { return {\
-<!-- supported states: "poweroff" or "reset" when acpica started -->
-<!-- Note: power down your persistent Genode applications & VMs beforehand on your own ! -->
-<system state=""/>} }
 
-proc nic_drv {} {
+proc nic_drv { } {
+
 	if {[have_board pc]}          { return ipxe_nic_drv }
 	if {[have_board imx8q_evk]}   { return fec_nic_drv  }
 	if {[have_board mnt_reform2]} { return fec_nic_drv  }
+	if {[have_board linux]}       { return nic_unavailable }
+
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
+
+
+proc log_core_start_node { } {
+
+	if {[have_board linux]} return
+
+	return {
+	<start name="log_core">
+		<resource name="RAM" quantum="1M"/>
+		<config period_ms="2000"/>
+		<route>
+			<service name="ROM" label="log"> <parent label="core_log"/>       </service>
+			<service name="Timer">           <child name="timer"/>            </service>
+			<service name="LOG" label="log"> <child name="log" label="core"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>}
+}
+
+
+proc log_kernel_start_node { } {
+
+	if {[have_board linux]} return
+
+	return {
+	<start name="log_kernel">
+		<binary name="log_core"/>
+		<resource name="RAM" quantum="1M"/>
+		<config period_ms="2000"/>
+		<route>
+			<service name="ROM" label="log"> <parent label="kernel_log"/>       </service>
+			<service name="Timer">           <child name="timer"/>              </service>
+			<service name="LOG" label="log"> <child name="log" label="kernel"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>}
+}
+
+
+proc config_fs_gpu_drv { } {
+
+	if {[have_board linux]} return
+
+	return {<rom name="gpu_drv" label="gpu_drv.config"/>}
+}
+
+
+proc config_fs_system { } {
+
+	return {<inline name="system"><system state=""/>
+<!-- supported states: "poweroff" or "reset" when acpica started -->
+<!-- Note: power down your persistent Genode applications & VMs beforehand on your own ! -->
+</inline>}
+}
+
+
+proc config_fs_numlock_remap { } {
+
+	# the drivers_interactive pkg does not host a numlock_remap_rom component
+	if {[have_board linux]} return
+
+	return {<rom name="numlock_remap" label="numlock_remap.config"/>}
+}
+
+
+proc config_fs_event_filter { } {
+
+	#
+	# Prevent the sculpt manager from generating the event-filter configuration.
+	# Use the configuration provided by drivers_interactive pkg instead.
+	#
+	if {[have_board linux]} {
+		return {<rom name="event_filter" label="event_filter.config"/>} }
+}
+
 
 install_config {
 <config prio_levels="2">
@@ -115,9 +197,7 @@ install_config {
 						<rom name="special" label="special.chargen"/>
 					</dir>
 					<rom name="fb_drv"        label="fb_drv.config"/>
-					<rom name="gpu_drv"       label="gpu_drv.config"/>
 					<rom name="nitpicker"     label="nitpicker.config"/>
-					<rom name="numlock_remap" label="numlock_remap.config"/>
 					<rom name="leitzentrale"  label="leitzentrale.config"/>
 					<rom name="drivers"       label="drivers.config"/>
 					<rom name="deploy"        label="manual_deploy.config"/>
@@ -125,8 +205,9 @@ install_config {
 					<rom name="clipboard"     label="clipboard.config"/>
 					<rom name="vimrc"/>
 					<tar name="launcher.tar"/>
-					<inline name="system">} [config_system_content] {
-					</inline>
+					} [config_fs_gpu_drv] {
+					} [config_fs_system] {
+					} [config_fs_numlock_remap] {
 				</import>
 			</vfs>
 			<policy label="config_fs_rom -> " root="/" />
@@ -208,28 +289,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="log_core">
-		<resource name="RAM" quantum="1M"/>
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" label="log"> <parent label="core_log"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="LOG" label="log"> <child name="log" label="core"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="log_kernel">
-		<binary name="log_core"/>
-		<resource name="RAM" quantum="1M"/>
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" label="log"> <parent label="kernel_log"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="LOG" label="log"> <child name="log" label="kernel"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
+	} [log_core_start_node] {
+	} [log_kernel_start_node] {
 
 	<start name="fs_report">
 		<resource name="RAM" quantum="1M"/>
@@ -249,7 +310,8 @@ install_config {
 			<service name="LOG"> <child name="log"/> </service>
 			<service name="ROM" label="config">
 				<child name="config_fs_rom" label="drivers"/> </service>
-			<service name="ROM" label_last="capslock"> <child name="report_rom"/> </service>
+			<service name="ROM" label_last="capslock">
+				<child name="report_rom" label="drivers -> capslock"/> </service>
 			<service name="ROM" label_last="event_filter.config">
 				<child name="config_fs_rom" label="managed/event_filter"/> </service>
 			<service name="ROM" label_prefix="event_filter -> keyboard/">
@@ -512,7 +574,6 @@ install_config {
 foreach file [glob "[genode_dir]/repos/gems/run/sculpt/*.config"] {
 	copy_file $file [run_dir]/genode/ }
 
-
 #
 # Override files normally obtained from depot archive with the most current
 # version found in the Genode source tree. This way, we don't need to
@@ -553,6 +614,29 @@ if {[have_board pc]} {
 
 
 #
+# Linux-specific tweaks
+#
+if {[have_board linux]} {
+
+	#
+	# The Linux version of core does not export a platform_info ROM module.
+	#
+	install_boot_module "platform_info" {<platform/>}
+
+	#
+	# Managed dataspaces as used by cached_fs_rom are not supported on Linux.
+	#
+	copy_file [run_dir]/genode/fs_rom [run_dir]/genode/cached_fs_rom
+
+	#
+	# The drivers_interactive-linux pkg does not offer a numlock.remap ROM as
+	# referenced by the event-filter config generated by sculpt manager.
+	#
+	install_boot_module "numlock.remap" {<remap/>}
+}
+
+
+#
 # Define 'VERSION' ROM module
 #
 # Note: the string must be exactly 5 bytes long.
@@ -561,9 +645,7 @@ proc sculpt_version { } {
 	return "21.11" }
 
 # write file with newline (for producing nice output when using 'cat /VERSION')
-set fd [open [run_dir]/genode/VERSION w]
-puts $fd "[sculpt_version]"
-close $fd
+install_boot_module VERSION "[sculpt_version]"
 
 
 #
@@ -589,8 +671,7 @@ close $fd
 # parts need to be filled in at run-script execution time, in particular the
 # current versions of the packages to deploy.
 #
-append manual_deploy_config {
-<config arch="} [depot_spec] {">
+install_boot_module "manual_deploy.config" {<config arch="} [depot_spec] {">
 
 	<common_routes>
 		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
@@ -601,10 +682,6 @@ append manual_deploy_config {
 	</common_routes>
 
 </config>}
-
-set fd [open [run_dir]/genode/manual_deploy.config w]
-puts $fd $manual_deploy_config
-close $fd
 
 
 #
