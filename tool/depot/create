@@ -22,7 +22,7 @@ define HELP_MESSAGE
 
   The 'create' tool first invokes the 'extract' tool to create the
   API/source/package/raw archives needed for the specified archives.
-  This step is followed by the invokation of the 'build' tool with
+  This step is followed by the invocation of the 'build' tool with
   archive arguments that match their current versions. Combined
   with the 'UPDATE_VERSIONS=1' argument, it thereby allows for the
   source-archive creation, version updating, and building of binary
