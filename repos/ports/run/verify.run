@@ -50,7 +50,7 @@ build { app/verify }
 
 exec tar cf [run_dir]/genode/test.tar -C [genode_dir]/repos/ports/src/app/verify/test .
 
-copy_file [genode_dir]/depot/nfeske/pubkey [run_dir]/genode/pubkey
+copy_file [select_from_repositories sculpt/depot/nfeske/pubkey] [run_dir]/genode/pubkey
 
 build_boot_image { verify libc.lib.so vfs.lib.so }
 

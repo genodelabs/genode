@@ -687,7 +687,7 @@ foreach user $depot_selection {
 	lappend depot_users_files [file join depot $user pubkey] \
 	                          [file join depot $user download] }
 
-exec sh -c "tar cf [run_dir]/genode/depot_users.tar -C [genode_dir] \
+exec sh -c "tar cf [run_dir]/genode/depot_users.tar -C [genode_dir]/repos/gems/sculpt \
                    [join $depot_users_files]"
 
 

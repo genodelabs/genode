@@ -244,7 +244,7 @@ exec -ignorestderr \
      --cross-dev-prefix "[cross_dev_prefix]" \
      --include boot_dir/nova \
      --include image/iso \
-     --include [repository_contains /run/usb_hid_raw.run]/run/usb_hid_raw.run
+     --include [repository_contains run/usb_hid_raw.run]/run/usb_hid_raw.run
 
 exec ln -sf ${genode_dir}/repos/ports/run/vm_genode_usb_hid_raw.vbox bin/
 exec ln -sf ../../usb_hid_raw.iso bin/

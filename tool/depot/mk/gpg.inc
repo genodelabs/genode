@@ -8,7 +8,10 @@
 GPG ?= gpg
 
 pubkey_filename = $(call archive_user,$1)/pubkey
-pubkey_path     = $(wildcard $(DEPOT_DIR)/$(call pubkey_filename,$1))
+
+pubkey_path = $(firstword \
+                 $(wildcard $(addsuffix /$(call pubkey_filename,$1), \
+                               $(REP_SCULPT_DEPOT_DIRS))))
 
 # obtain key ID of 'depot/<user>/pubkey' to be used to select signing key
 pubkey_id = $(shell pubkey_file=$(call pubkey_path,$1); \
@@ -20,9 +23,9 @@ pubkey_id = $(shell pubkey_file=$(call pubkey_path,$1); \
 MISSING_PUBKEY_FILES := $(sort \
                            $(foreach A,$(ARCHIVES),\
                               $(if $(call pubkey_path,$A),,\
-                                 $(DEPOT_DIR)/$(call pubkey_filename,$A))))
+                                 $(call archive_user,$A))))
 
 missing_pubkey_files:
-	@echo "Error: missing public-key files:";\
+	@echo "Error: missing public-key files for:";\
 	 for i in $(MISSING_PUBKEY_FILES); do echo "       $$i"; done; false
 

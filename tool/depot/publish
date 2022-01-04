@@ -90,7 +90,7 @@ include $(GENODE_DIR)/tool/depot/mk/gpg.inc
 MISSING_PUBKEY_FILES := $(sort \
                            $(foreach A,$(ARCHIVES),\
                               $(if $(call pubkey_path,$A),,\
-                                 $(DEPOT_DIR)/$(call pubkey_filename,$A))))
+                                 $(call pubkey_filename,$A))))
 
 $(PUBLIC_DIR)/%.xz.sig : $(PUBLIC_DIR)/%.xz
 	$(VERBOSE)$(GPG) --detach-sign --digest-algo SHA256 --no-tty --use-agent \

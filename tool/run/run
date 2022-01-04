@@ -572,11 +572,29 @@ proc installed_command {command} {
 ##
 # Return first repository containing the given path
 #
-proc repository_contains {path} {
+proc repository_contains { rep_rel_path } {
+
 	global repositories;
-	foreach i $repositories {
-		if {[file exists $i/$path]} { return $i }
+
+	foreach rep $repositories {
+		if {[file exists [file join $rep $rep_rel_path]]} {
+			return $rep }
 	}
+}
+
+
+##
+# Return path to first file found in the available repositories
+#
+proc select_from_repositories { rep_rel_path } {
+
+	set rep_dir [repository_contains $rep_rel_path]
+
+	if {[llength $rep_dir]} {
+		return [file join $rep_dir $rep_rel_path] }
+
+	puts stderr "Error: $rep_rel_path not present in any repository"
+	exit -8
 }
 
 

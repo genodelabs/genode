@@ -50,10 +50,10 @@ set config {
 	<default caps="100"/>}
 
 proc depot_user_download { user } {
-	return [exec cat [genode_dir]/depot/$user/download] }
+	return [exec cat [select_from_repositories sculpt/depot/$user/download]] }
 
 proc depot_user_pubkey { user } {
-	return [exec cat [genode_dir]/depot/$user/pubkey] }
+	return [exec cat [select_from_repositories sculpt/depot/$user/pubkey]] }
 
 append config {
 	<start name="timer">

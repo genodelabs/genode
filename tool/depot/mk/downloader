@@ -40,7 +40,7 @@ ARCHIVES := $(MAKECMDGOALS)
 include $(GENODE_DIR)/tool/depot/mk/gpg.inc
 
 $(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tar.xz $(PUBLIC_DIR)/%.tar.xz.sig
-	$(VERBOSE)pubkey_file=$(DEPOT_DIR)/$(call archive_user,$*)/pubkey; \
+	$(VERBOSE)pubkey_file=$(call pubkey_path,$*); \
 	          $(GPG) --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
 	          ( $(GPG) --no-tty --no-default-keyring \
 	                --keyring $$pubkey_file.dearmored \
@@ -75,15 +75,22 @@ endif
 
 ORIGINS := $(sort $(foreach A,$(ARCHIVES),$(call archive_user,$A)))
 
+# return 'download' file located side by side of a given 'pubkey' file
+url_file_for_pubkey_file = $(wildcard $(1:pubkey=download))
+
+# return path to 'download' file for a given archive
+url_file_path = $(call url_file_for_pubkey_file,$(call pubkey_path,$1))
+
 quotation_sanitized = $(subst ',,$(strip $1))
+
 
 $(foreach O,$(ORIGINS),\
    $(eval URL($O) := \
       $(call quotation_sanitized,\
-         $(call file_content,$(DEPOT_DIR)/$O/download))))
+         $(call file_content,$(call url_file_path,$O)))))
 
 MISSING_DOWNLOAD_LOCATIONS := $(sort $(foreach O,$(ORIGINS),\
-                                        $(if ${URL($O)},,$(DEPOT_DIR)/$O/download)))
+                                        $(if ${URL($O)},,$O)))
 
 ifneq ($(MISSING_DOWNLOAD_LOCATIONS),)
 $(DOWNLOADED_FILES): missing_download_locations
