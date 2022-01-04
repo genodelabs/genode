@@ -824,8 +824,13 @@ class Vfs::Rump_file_system : public File_system
 		}
 
 		bool update_modification_timestamp(Vfs_handle *vfs_handle,
-		                                   Vfs::Timestamp ts)
+		                                   Vfs::Timestamp ts) override
 		{
+			Rump_vfs_file_handle *handle =
+				dynamic_cast<Rump_vfs_file_handle *>(vfs_handle);
+			if (handle)
+				handle->update_modification_timestamp(ts);
+
 			return true;
 		}
 };
