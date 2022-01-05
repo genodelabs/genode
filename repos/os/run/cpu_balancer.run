@@ -4,12 +4,8 @@ if {![have_include "power_on/qemu"]} {
 	puts "Run script is not supported on this platform"
 	exit 0
 }
-if {[have_spec foc] && ([have_board pbxa9] || [have_board rpi3])} {
-	# foc kernel does detect solely 1 CPU */
-	puts "Run script is not supported on this platform"
-	exit 0
-}
-if {![have_spec nova] && ![have_spec foc] && ![have_spec sel4]} {
+# foc in principle supports migration, but due to bug #4357 foc is not tested
+if {![have_spec nova] && ![have_spec sel4]} {
 	puts "Run script is not supported on this platform"
 	exit 0
 }
