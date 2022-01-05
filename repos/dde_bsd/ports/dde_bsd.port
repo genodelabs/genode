@@ -7,7 +7,7 @@ DOWNLOADS := audio.archive
 #
 SRC_DIR_AUDIO  := src/lib/audio
 VERSION_AUDIO  := 6.6
-BASE_URL       := https://ftp.fau.de/pub/OpenBSD
+BASE_URL       := https://ftp.openbsd.org/pub/OpenBSD
 URL(audio)     := $(BASE_URL)/$(VERSION_AUDIO)/sys.tar.gz
 SHA(audio)     := a1b19665989c02a2017a639d47a042f4fe7f584b6298727e982a5536020b832d
 DIR(audio)     := $(SRC_DIR_AUDIO)
