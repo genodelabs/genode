@@ -32,7 +32,10 @@ using namespace Foc;
 Trace::Execution_time Platform_thread::execution_time() const
 {
 	Foc::l4_kernel_clock_t us = 0;
+	/* syscall does not return ever, if thread is on remote cpu,
+	   see issue #4357
 	l4_thread_stats_time(_thread.local.data()->kcap(), &us);
+	*/
 	return { us, 0, 10000 /* quantum readable ?*/, _prio };
 }
 
