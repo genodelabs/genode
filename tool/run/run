@@ -210,12 +210,22 @@ proc check_config {bin xml_file xsd_file label avail_xsd_files xsd_inc nesting_l
 
 
 ##
+# Install boot module with the given 'name' and content
+#
+proc install_boot_module { name args } {
+
+	set fh [open [file join [run_dir] genode $name] "WRONLY CREAT TRUNC"]
+	puts $fh [join $args {}]
+	close $fh
+}
+
+
+##
 # Install content of specified variable as init config file
 #
 proc install_config { args } {
-	set fh [open "[run_dir]/genode/config" "WRONLY CREAT TRUNC"]
-	puts $fh [join $args {}]
-	close $fh
+
+	install_boot_module "config" [join $args {}]
 }
 
 
