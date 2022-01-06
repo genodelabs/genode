@@ -438,7 +438,8 @@ void Slab::_free(void *addr)
 	_curr_sb = &block;
 	while (_total_avail > 2*_entries_per_block
 	 && _num_blocks > 1
-	 && _curr_sb->avail() == _entries_per_block) {
+	 && _curr_sb->avail() == _entries_per_block
+	 && _backing_store) {
 		_free_curr_sb();
 	}
 }
