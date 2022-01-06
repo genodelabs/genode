@@ -1,9 +1,22 @@
+#
+# \brief  Sculpt OS
+# \author Norman Feske
+# \date   2017-09-07
+#
+
+#
+# Note: the string must be exactly 5 bytes long.
+#
+proc sculpt_version { } { return "21.11" }
+
+
 proc assert_platform_supported { } {
 
 	if {[have_board pc]}          return
 	if {[have_board imx8q_evk]}   return
 	if {[have_board mnt_reform2]} return
 	if {[have_board linux]}       return
+	if {[have_board pinephone]}   return
 
 	puts "Platform is unsupported.";
 	exit 0;
@@ -11,14 +24,130 @@ proc assert_platform_supported { } {
 
 assert_platform_supported
 
+
 if {[have_spec nova]} {
 	proc kernel_output { } { return "novga serial logmem" }
 }
 
+
+##
+## Utilities for querying the ingredients of Sculpt
+##
+
+##
+# Return path to the sculpt definition file that contains the list of
+# ingredients
+#
+proc sculpt_path { } {
+
+	global ::env
+
+	set filename "default-[board].sculpt"
+	if {[info exists ::env(SCULPT)]} {
+		set filename "$::env(SCULPT)-[board].sculpt" }
+
+	return [select_from_repositories [file join sculpt $filename]]
+}
+
+
+##
+# Return list of ingredients of scenario supplied via the 'SCULPT' argument
+#
+# If 'SCULPT' is not specified, use 'sculpt/default.sculpt'.
+#
+proc sculpt_ingredients { } {
+
+	global _sculpt_ingredients
+
+	if {![info exists _sculpt_ingredients]} {
+		set fh [open [sculpt_path] "RDONLY"]
+		set _sculpt_ingredients [split [read $fh] "\n"]
+		close $fh
+	}
+
+	return $_sculpt_ingredients
+}
+
+
+proc ingredients_of_type { type } {
+
+	set result {}
+	set line 1
+	foreach i [sculpt_ingredients] {
+
+		# skip comment lines
+		if {[string match "#*" $i]} {
+			continue }
+
+		# skip empty lines
+		if {[string match "" $i]} {
+			continue }
+
+		regexp {^(.*?):\s*(.*)\s*$} $i dummy tag values
+
+		if {$tag == $type} {
+			lappend result {*}$values}
+
+		incr line
+	}
+	return $result
+}
+
+
+proc single_ingredient { type default } {
+
+	set ingredient [ingredients_of_type $type]
+
+	if {[llength $ingredient] == 0} {
+		return $default }
+
+	if {[llength $ingredient] > 1} {
+		puts stderr "Error: ambigious selection of '$type' in [sculpt_path]"
+		exit
+	}
+	return $ingredient
+}
+
+
+proc ingredient_path { type ingredient } {
+	return [select_from_repositories [file join sculpt $type $ingredient]] }
+
+proc initial_config_dir { } {
+	return [file join [run_dir] initial_config] }
+
+proc initial_config_file { rel_path } {
+	return [file join [initial_config_dir] $rel_path] }
+
+
+##
+## System-image content imported from depot archives
+##
+
 create_boot_directory
 
+
+proc prefixed_with_depot_user { paths } {
+	return [lmap path $paths { file join [depot_user] $path }] }
+
+
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/sculpt-[board]
+                  [depot_user]/pkg/sculpt \
+                  {*}[prefixed_with_depot_user [ingredients_of_type import]]
+
+
+##
+## Static init configuration
+##
+
+proc log_route { } {
+
+	global ::env
+	if {[info exists ::env(LOG)]} {
+		if {$::env(LOG) == "core"} {
+			return {<service name="LOG"> <parent/> </service>} } }
+
+	return {<service name="LOG"> <child name="log"/> </service>}
+}
 
 
 proc nic_drv { } {
@@ -26,10 +155,8 @@ proc nic_drv { } {
 	if {[have_board pc]}          { return ipxe_nic_drv }
 	if {[have_board imx8q_evk]}   { return fec_nic_drv  }
 	if {[have_board mnt_reform2]} { return fec_nic_drv  }
-	if {[have_board linux]}       { return nic_unavailable }
 
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0;
+	return nic_unavailable
 }
 
 
@@ -67,43 +194,6 @@ proc log_kernel_start_node { } {
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>}
-}
-
-
-proc config_fs_gpu_drv { } {
-
-	if {[have_board linux]} return
-
-	return {<rom name="gpu_drv" label="gpu_drv.config"/>}
-}
-
-
-proc config_fs_system { } {
-
-	return {<inline name="system"><system state=""/>
-<!-- supported states: "poweroff" or "reset" when acpica started -->
-<!-- Note: power down your persistent Genode applications & VMs beforehand on your own ! -->
-</inline>}
-}
-
-
-proc config_fs_numlock_remap { } {
-
-	# the drivers_interactive pkg does not host a numlock_remap_rom component
-	if {[have_board linux]} return
-
-	return {<rom name="numlock_remap" label="numlock_remap.config"/>}
-}
-
-
-proc config_fs_event_filter { } {
-
-	#
-	# Prevent the sculpt manager from generating the event-filter configuration.
-	# Use the configuration provided by drivers_interactive pkg instead.
-	#
-	if {[have_board linux]} {
-		return {<rom name="event_filter" label="event_filter.config"/>} }
 }
 
 
@@ -178,37 +268,7 @@ install_config {
 		<config>
 			<vfs>
 				<ram/>
-				<import>
-					<dir name="managed">
-						<rom name="fonts"  label="fonts.config"/>
-						<rom name="fb_drv" label="fb_drv.config"/>
-						<rom name="wifi"   label="wifi.config"/>
-						<rom name="installation"/>
-						<rom name="runtime"      label="empty_runtime.config"/>
-						<rom name="event_filter" label="event_filter.config"/>
-						<inline name="depot_query"><query/></inline>
-					</dir>
-					<dir name="keyboard">
-						<rom name="en_us"   label="en_us.chargen"/>
-						<rom name="de_ch"   label="de_ch.chargen"/>
-						<rom name="de_de"   label="de_de.chargen"/>
-						<rom name="fr_ch"   label="fr_ch.chargen"/>
-						<rom name="fr_fr"   label="fr_fr.chargen"/>
-						<rom name="special" label="special.chargen"/>
-					</dir>
-					<rom name="fb_drv"        label="fb_drv.config"/>
-					<rom name="nitpicker"     label="nitpicker.config"/>
-					<rom name="leitzentrale"  label="leitzentrale.config"/>
-					<rom name="drivers"       label="drivers.config"/>
-					<rom name="deploy"        label="manual_deploy.config"/>
-					<rom name="usb"           label="usb.config"/>
-					<rom name="clipboard"     label="clipboard.config"/>
-					<rom name="vimrc"/>
-					<tar name="launcher.tar"/>
-					} [config_fs_gpu_drv] {
-					} [config_fs_system] {
-					} [config_fs_numlock_remap] {
-				</import>
+				<import> <tar name="initial_config.tar"/> </import>
 			</vfs>
 			<policy label="config_fs_rom -> " root="/" />
 			<policy label="rw"                root="/" writeable="yes" />
@@ -307,7 +367,7 @@ install_config {
 		<resource name="CPU" quantum="40"/>
 		<binary name="init"/>
 		<route>
-			<service name="LOG"> <child name="log"/> </service>
+			} [log_route] {
 			<service name="ROM" label="config">
 				<child name="config_fs_rom" label="drivers"/> </service>
 			<service name="ROM" label_last="capslock">
@@ -421,26 +481,12 @@ install_config {
 
 	<start name="global_keys_handler" priority="-1">
 		<resource name="RAM" quantum="1M"/>
-		<config>
-			<bool name="leitzentrale" initial="yes"/>
-			<bool name="capslock"     initial="no"/>
-			<bool name="numlock"      initial="no"/>
-			<bool name="slides"       initial="no"/>
-
-			<press name="KEY_PRESENTATION" bool="slides"       change="toggle"/>
-			<press name="KEY_DASHBOARD"    bool="leitzentrale" change="toggle"/>
-			<press name="KEY_CAPSLOCK"     bool="capslock"     change="toggle"/>
-			<press name="KEY_NUMLOCK"      bool="numlock"      change="toggle"/>
-
-			<report name="leitzentrale"> <bool name="leitzentrale"/> </report>
-			<report name="capslock">     <bool name="capslock"/>     </report>
-			<report name="numlock">      <bool name="numlock"/>      </report>
-			<report name="slides">       <bool name="slides"/>       </report>
-		</config>
 		<route>
-			<service name="Report">    <child name="report_rom"/> </service>
-			<service name="Gui"> <child name="nitpicker"/>  </service>
-			<service name="Timer">     <child name="timer"/>      </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Gui">    <child name="nitpicker"/>  </service>
+			<service name="Timer">  <child name="timer"/>      </service>
+			<service name="ROM" label="config">
+				<child name="config_fs_rom" label="global_keys"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -483,7 +529,7 @@ install_config {
 			<service name="Report"/>      <!-- view hover reports -->
 		</provides>
 		<route>
-			<service name="LOG"> <child name="log"/> </service>
+			} [log_route] {
 			<service name="ROM" label="config">
 				<child name="leitzentrale_config"/> </service>
 			<service name="ROM" label_prefix="report -> ">
@@ -559,7 +605,7 @@ install_config {
 				<child name="leitzentrale" label="fonts"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
-			<service name="LOG"> <child name="log"/> </service>
+			} [log_route] {
 			<service name="ROM" label="nic_drv"> <parent label="} [nic_drv] {"/> </service>
 			<service name="Event"   label="global">       <child name="nitpicker"/>    </service>
 			<service name="Event"   label="leitzentrale"> <child name="leitzentrale"/> </service>
@@ -571,47 +617,247 @@ install_config {
 
 </config>}
 
-foreach file [glob "[genode_dir]/repos/gems/run/sculpt/*.config"] {
-	copy_file $file [run_dir]/genode/ }
+
+##
+## Initial content of the config file system
+##
 
 #
-# Override files normally obtained from depot archive with the most current
-# version found in the Genode source tree. This way, we don't need to
-# rebuild the corresponding depot archives each time we tweak one of the
-# files. This is just a hack to accelerate the work flow.
+# The directory structure for the initial content is created at the run
+# directory, which is imported as 'initial_config.tar' into the config fs.
 #
 
-copy_file [genode_dir]/repos/gems/recipes/pkg/sculpt/README [run_dir]/genode/
+# directory structure
+foreach subdir { launcher depot managed keyboard } {
+	file mkdir [file join [initial_config_dir] $subdir] }
 
-copy_file [genode_dir]/repos/gems/run/sculpt/vimrc [run_dir]/genode/
-
-foreach file { en_us.chargen de_ch.chargen de_de.chargen fr_ch.chargen fr_fr.chargen special.chargen } {
-	copy_file [genode_dir]/repos/os/src/server/event_filter/$file \
-		[run_dir]/genode/$file }
-
-copy_file [genode_dir]/repos/gems/recipes/raw/depot_download/depot_download.config \
-	[run_dir]/genode/depot_download.config
-
-copy_file [genode_dir]/VERSION [run_dir]/genode/
-
-copy_file [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
-copy_file [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/
-
-if {[have_board pc]} {
-	copy_file [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/event_filter.config \
-		[run_dir]/genode/event_filter.config
-
-	copy_file [genode_dir]/repos/os/src/drivers/gpu/intel/gpu_drv.config \
-		[run_dir]/genode/gpu_drv.config
-
-	copy_file [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genode/
-
-	copy_file [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
-		[run_dir]/genode/drivers.config
-
-	exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/genode/machine.vdi
+# configs that are managed by the sculpt manager if absent
+set optional_configs {
+	fonts
+	nic_router
+	event_filter
+	wifi
+	runtime
+	gpu_drv
 }
 
+foreach config $optional_configs {
+	set ingredient [single_ingredient $config ""]
+	if {$ingredient != ""} {
+		set from [ingredient_path $config $ingredient]
+		set to   [initial_config_file $config]
+		copy_file $from $to } }
+
+# configs that are expected to be always present
+set required_configs {
+	nitpicker
+	deploy
+	fb_drv
+	clipboard
+	drivers
+	numlock_remap
+	global_keys
+	leitzentrale
+	usb
+	system
+	ram_fs
+}
+
+foreach config $required_configs {
+	set ingredient [single_ingredient $config "default"]
+	set from [ingredient_path $config $ingredient]
+	set to   [initial_config_file $config]
+	copy_file $from $to }
+
+# selection of depot users (pubkey and download files) and launchers
+foreach type { depot launcher } {
+	foreach ingredient [ingredients_of_type $type] {
+		set from [ingredient_path $type $ingredient]
+		set to   [file join [initial_config_dir] $type $ingredient]
+		file copy $from $to } }
+
+copy_file [genode_dir]/repos/gems/recipes/pkg/sculpt/README [initial_config_file README]
+copy_file [genode_dir]/repos/gems/run/sculpt/vimrc          [initial_config_file vimrc]
+
+# keyboard layouts
+foreach file { en_us de_ch de_de fr_ch fr_fr special } {
+	set from [genode_dir]/repos/os/src/server/event_filter/$file.chargen
+	set to   [file join [initial_config_dir] keyboard $file]
+	copy_file $from $to }
+
+
+#
+# Pre-populate the managed/ directory of the config fs to avoid diagnostic
+# warnings by components starting up before the sculpt manager has generated
+# the directory content for the first time.
+#
+
+proc managed_config_path { name } {
+	return [file join [initial_config_dir] managed $name] }
+
+set fd [open [managed_config_path installation] w]
+puts $fd "<installation arch=\"[depot_spec]\"/>"
+close $fd
+
+set fd [open [managed_config_path depot_query] w]
+puts $fd "<query/>"
+close $fd
+
+foreach config { fonts wifi runtime event_filter } {
+	file copy [ingredient_path $config default] [managed_config_path $config] }
+
+copy_file [file join [initial_config_dir] fb_drv] [managed_config_path fb_drv]
+
+
+#
+# VERSION file at the root of the config fs, add newline for 'cat /VERSION'
+#
+
+set fd [open [initial_config_file VERSION] w]
+puts $fd "[sculpt_version]"
+close $fd
+
+# supply VERSION as a boot module to the sculpt manager
+file copy [initial_config_file VERSION] [run_dir]/genode/VERSION
+
+
+##
+# Return list of 'pkg' attribute values found in 'type' nodes in an XML file
+#
+proc pkg_attribute_values { xml_file node_path } {
+
+	set xpath "$node_path/attribute::pkg"
+	set values {}
+
+	if {[catch {
+		foreach attr [exec xmllint --xpath $xpath $xml_file] {
+			regexp {^pkg="(.*)"$} $attr dummy value
+			lappend values $value
+		}
+	}]} {
+		# no pkg attribute present in 'xml_file'
+	}
+	return $values
+}
+
+
+##
+# Return list of pkg archives reference by the launchers and deploy config
+#
+proc referenced_pkg_values { } {
+
+	set values {}
+
+	# scan launchers
+	foreach launcher [ingredients_of_type launcher] {
+		set path [file join [initial_config_dir] launcher $launcher]
+		lappend values {*}[pkg_attribute_values $path launcher]
+	}
+
+	# scan deploy config
+	lappend values {*}[pkg_attribute_values [initial_config_file deploy] config/start]
+
+	return [lsort -unique $values]
+}
+
+
+#
+# Replace pkg values of the form "name" by the form "user/pkg/name" suitable as
+# arguments for '_collect_from_depot'.
+#
+proc pkg_archive_paths { values } {
+
+	set result {}
+	foreach value $values {
+		if {[regexp {/} $value dummy]} {
+			lappend result $value
+		} else {
+			lappend result "[depot_user]/pkg/$value"
+		}
+	}
+	return $result
+}
+
+
+#
+# Trigger the creation / updating of referenced depot content
+#
+# This step may update pkg versions if '--depot-auto-update' is enabled.
+#
+_collect_from_depot [pkg_archive_paths [referenced_pkg_values]]
+
+
+#
+# Augment deploy config or launcher file with current package versions
+#
+
+proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
+
+
+#
+# Supplement file with versioned pkg archive paths
+#
+# \path  deploy config or launcher to augment
+# \node  XML node type containing the 'pkg' attribute to modify
+#
+# Each matching XML node is inspected regarding its 'pkg' attribute. If its
+# 'pkg' attribute contains a single identifier (rather than a valid pkg path),
+# the attribute value is replaced by a valid pkg path referring to the current
+# version of the pkg and the [depot_user].
+#
+proc augment_pkg_versions { path node } {
+
+	set fd [open $path r]
+	set content [read $fd]
+	close $fd
+
+	# filter 'pkg' attribute
+	set pattern "(\<$node\[^\>\]+?pkg=\")(\[^/\]+)(\")"
+	while {[regexp $pattern $content dummy head pkg tail]} {
+		set pkg_path [depot_user]/pkg/[current_pkg $pkg]
+		regsub $pattern $content "$head$pkg_path$tail" content
+	}
+
+	# write back the filtered launcher snippet
+	set fd [open $path w]
+	puts $fd $content
+	close $fd
+}
+
+
+# launcher snippets
+foreach launcher [ingredients_of_type launcher] {
+	augment_pkg_versions [file join [initial_config_dir] launcher $launcher] "launcher" }
+
+
+# deploy config
+augment_pkg_versions [initial_config_file deploy] "start"
+
+
+# update arch attribute of deploy config
+exec sed -i "/config/s/arch=\"\"/arch=\"[depot_spec]\"/" [initial_config_file deploy]
+
+
+##
+## Depot content integrated in the Sculpt image
+##
+
+create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
+                               {*}[pkg_archive_paths [referenced_pkg_values]]
+
+
+#
+# Create initial_config.tar to be mounted at the root of the config fs
+#
+
+exec sh -c "tar cf [run_dir]/genode/initial_config.tar -C [initial_config_dir] ."
+
+file delete -force [initial_config_dir]
+
+
+##
+## Auxiliary boot modules
+##
 
 #
 # Linux-specific tweaks
@@ -627,111 +873,18 @@ if {[have_board linux]} {
 	# Managed dataspaces as used by cached_fs_rom are not supported on Linux.
 	#
 	copy_file [run_dir]/genode/fs_rom [run_dir]/genode/cached_fs_rom
-
-	#
-	# The drivers_interactive-linux pkg does not offer a numlock.remap ROM as
-	# referenced by the event-filter config generated by sculpt manager.
-	#
-	install_boot_module "numlock.remap" {<remap/>}
 }
 
 
-#
-# Define 'VERSION' ROM module
-#
-# Note: the string must be exactly 5 bytes long.
-#
-proc sculpt_version { } {
-	return "21.11" }
-
-# write file with newline (for producing nice output when using 'cat /VERSION')
-install_boot_module VERSION "[sculpt_version]"
-
-
-#
-# Depot packages to be included in the default installation
-#
-
-proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
-
-set pkgs_to_install { }
-
-set fd [open [run_dir]/genode/installation w]
-puts $fd "<installation arch=\"[depot_spec]\">"
-foreach pkg $pkgs_to_install {
-	puts $fd " <archive path=\"[depot_user]/pkg/[current_pkg $pkg]\" source=\"false\"/>" }
-puts $fd "</installation>"
-close $fd
-
-
-#
-# Configuration of deploy runtime
-#
-# This configuration is not provided as a file at run/sculpt/ because some
-# parts need to be filled in at run-script execution time, in particular the
-# current versions of the packages to deploy.
-#
-install_boot_module "manual_deploy.config" {<config arch="} [depot_spec] {">
-
-	<common_routes>
-		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-		<service name="CPU">   <parent/> </service>
-		<service name="PD">    <parent/> </service>
-		<service name="LOG">   <parent/> </service>
-		<service name="Timer"> <parent/> </service>
-	</common_routes>
-
-</config>}
-
-
-#
-# Install launcher snippets
-#
-# The launcher snippets are wrapped into a tar archive to be loaded as boot
-# module. This procedure involves the following steps:
-#
-# The launcher snippets are copied from run/sculpt/launcher/ to
-# [run_dir]/genode/launcher. Each launcher is inspected regarding its 'pkg'
-# attribute. If its 'pkg' attribute contains a single identifier (rather than
-# a valid pkg path), the attribute value is replaced by a valid pkg path
-# referring to the current version of the pkg and the [depot_user]. The
-# filtered launchers are archived into 'launcher.tar' and removed from the
-# [run_dir].
-#
-
-set launchers [glob -tails -directory [genode_dir]/repos/gems/run/sculpt/launcher/ *]
-
-foreach file $launchers {
-
-	# skip backup files
-	if {[regexp {~$} $file dummy]} { continue }
-
-	set fd [open [genode_dir]/repos/gems/run/sculpt/launcher/$file r]
-	set content [read $fd]
-	close $fd
-
-	# filter 'pkg' attribute
-	set pattern {(\<launcher[^\>]+?pkg=")([^/]+)(")}
-	if {[regexp $pattern $content dummy head pkg tail]} {
-		set pkg_path [depot_user]/pkg/[current_pkg $pkg]
-		regsub $pattern $content "$head$pkg_path$tail" content
-	}
-
-	# write filtered launcher snippet
-	file mkdir [run_dir]/genode/launcher
-	set fd [open [run_dir]/genode/launcher/$file w]
-	puts $fd $content
-	close $fd
-}
-
-# wrap launcher snippets into tar archive and remove individual snippets
-exec tar cf [run_dir]/genode/launcher.tar -C [run_dir]/genode launcher
-exec rm -r [run_dir]/genode/launcher
+# support for the Leitzentrale GUI
+copy_file [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
+copy_file [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/
 
 
 #
 # Generate depot index from gems/run/sculpt/index
 #
+
 set fd [open [genode_dir]/repos/gems/run/sculpt/index r]
 set pkg_index [read $fd]
 close $fd
@@ -750,28 +903,12 @@ puts $fd $pkg_index
 close $fd
 
 
-#
-# Assemble 'depot_users.tar' with the keys and download locations of the
-# depot user found at genode/depot/.
-#
-# Add current depot index of [depot_user] as generated above.
-#
-set depot_selection { genodelabs cnuke alex-ab mstein nfeske cproc chelmuth
-                      jschlatow ssumpf skalk }
+##
+## Create boot image
+##
 
-set depot_users_files {}
-foreach user $depot_selection {
-	lappend depot_users_files [file join depot $user pubkey] \
-	                          [file join depot $user download] }
+build [ingredients_of_type build]
 
-exec sh -c "tar cf [run_dir]/genode/depot_users.tar -C [genode_dir]/repos/gems/sculpt \
-                   [join $depot_users_files]"
-
-
-#
-# Create boot image
-#
-
-append boot_modules { }
+append boot_modules [build_artifacts]
 
 build_boot_image $boot_modules

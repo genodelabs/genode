@@ -1,0 +1,62 @@
+<config arch="">
+
+	<common_routes>
+		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+		<service name="ROM" label_last="init">      <parent/> </service>
+		<service name="CPU">   <parent/> </service>
+		<service name="PD">    <parent/> </service>
+		<service name="LOG">   <parent/> </service>
+		<service name="Timer"> <parent/> </service>
+	</common_routes>
+
+	<start name="recall_fs" pkg="chroot">
+		<route>
+			<service name="File_system"> <child name="default_fs_rw"/> </service>
+		</route>
+		<config> <default-policy path_prefix="/recall" writeable="yes"/> </config>
+	</start>
+
+	<start name="wm" pkg="wm">
+		<route>
+			<service name="ROM"    label_last="clipboard"> <parent label="clipboard"/> </service>
+			<service name="Report" label_last="clipboard"> <parent label="clipboard"/> </service>
+			<service name="Report" label_last="shape">     <parent label="shape"/>     </service>
+			<service name="Gui"    label="focus">          <parent label="focus"/>     </service>
+			<service name="Gui">                           <parent/>                   </service>
+		</route>
+	</start>
+
+	<start name="window_layouter" pkg="window_layouter">
+		<route>
+			<service name="ROM" label="window_list">       <child name="wm"/> </service>
+			<service name="ROM" label="focus_request">     <child name="wm"/> </service>
+			<service name="ROM" label="hover">             <child name="wm"/> </service>
+			<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
+			<service name="ROM" label="rules">             <child name="wm"/> </service>
+			<service name="Report">                        <child name="wm"/> </service>
+			<service name="Gui">                           <child name="wm"/> </service>
+			<service name="File_system" label="recall">    <child name="recall_fs"/> </service>
+		</route>
+	</start>
+
+	<start name="themed_decorator" pkg="themed_decorator">
+		<route>
+			<service name="ROM" label="window_layout"> <child name="wm"/> </service>
+			<service name="ROM" label="pointer">       <child name="wm"/> </service>
+			<service name="Report">                    <child name="wm"/> </service>
+			<service name="Gui">                       <child name="wm"/> </service>
+		</route>
+	</start>
+
+	<start name="fonts_fs" pkg="fonts_fs">
+		<route>
+			<service name="ROM" label="config">
+				<parent label="config -> managed/fonts"/> </service>
+		</route>
+	</start>
+
+	<start name="sticks_blue_backdrop"/>
+	<start name="nano3d"/>
+	<start name="system_shell"/>
+
+</config>

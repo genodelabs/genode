@@ -22,14 +22,6 @@ void Sculpt::gen_ram_fs_start_content(Xml_generator &xml,
 
 	gen_provides<::File_system::Session>(xml);
 
-	xml.node("config", [&] () {
-		xml.node("vfs", [&] () { xml.node("ram", [&] () { }); });
-		xml.node("default-policy", [&] () {
-			xml.attribute("root",      "/");
-			xml.attribute("writeable", "yes");
-		});
-	});
-
 	xml.node("route", [&] () {
 		gen_parent_rom_route(xml, "vfs");
 		gen_parent_rom_route(xml, "ld.lib.so");
@@ -37,5 +29,7 @@ void Sculpt::gen_ram_fs_start_content(Xml_generator &xml,
 		gen_parent_route<Cpu_session> (xml);
 		gen_parent_route<Pd_session>  (xml);
 		gen_parent_route<Log_session> (xml);
+		gen_parent_rom_route(xml, "config", "config -> ram_fs");
+		gen_parent_route<Rom_session> (xml);
 	});
 }

@@ -1,0 +1,16 @@
+<config>
+	<bool name="leitzentrale" initial="yes"/>
+	<bool name="capslock"     initial="no"/>
+	<bool name="numlock"      initial="no"/>
+	<bool name="slides"       initial="no"/>
+
+	<press name="KEY_PRESENTATION" bool="slides"       change="toggle"/>
+	<press name="KEY_DASHBOARD"    bool="leitzentrale" change="toggle"/>
+	<press name="KEY_CAPSLOCK"     bool="capslock"     change="toggle"/>
+	<press name="KEY_NUMLOCK"      bool="numlock"      change="toggle"/>
+
+	<report name="leitzentrale"> <bool name="leitzentrale"/> </report>
+	<report name="capslock">     <bool name="capslock"/>     </report>
+	<report name="numlock">      <bool name="numlock"/>      </report>
+	<report name="slides">       <bool name="slides"/>       </report>
+</config>

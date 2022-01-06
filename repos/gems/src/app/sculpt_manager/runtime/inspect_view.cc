@@ -77,9 +77,6 @@ static void gen_vfs_start(Xml_generator &xml,
 				});
 			});
 
-			gen_named_node(xml, "dir", "share", [&] () {
-				gen_named_node(xml, "tar", "depot_users.tar"); });
-
 			auto fs_dir = [&] (String<64> const &label) {
 				gen_named_node(xml, "dir", label, [&] () {
 					xml.node("fs", [&] () { xml.attribute("label", label); }); }); };
@@ -271,7 +268,6 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 			gen_parent_rom_route(xml, "vim-minimal.tar");
 			gen_parent_rom_route(xml, "ncurses.lib.so");
 			gen_parent_rom_route(xml, "posix.lib.so");
-			gen_parent_rom_route(xml, "depot_users.tar");
 			gen_parent_rom_route(xml, "vimrc", "config -> vimrc");
 			gen_parent_rom_route(xml, "VERSION");
 			gen_parent_rom_route(xml, "Vera.ttf");

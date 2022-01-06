@@ -1,0 +1,10 @@
+# configuration decisions
+drivers: linux
+deploy:  example
+ram_fs:  depot
+
+# selection of launcher-menu entries
+launcher: sticks_blue_backdrop nano3d system_shell
+
+# supplemental depot content added to the system image
+import: pkg/drivers_interactive-linux

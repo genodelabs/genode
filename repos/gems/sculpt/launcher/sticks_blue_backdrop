@@ -1,0 +1,6 @@
+<launcher name="backdrop" pkg="sticks_blue_backdrop">
+	<route>
+		<service name="Gui"> <parent label="backdrop"/> </service>
+	</route>
+</launcher>
+

@@ -257,6 +257,9 @@ void Graph::generate(Xml_generator &xml) const
 
 			Start_name const name = component.name;
 
+			if (name == "ram_fs")
+				return;
+
 			Runtime_state::Info const info = _runtime_state.info(name);
 
 			bool const show_details = info.tcb;

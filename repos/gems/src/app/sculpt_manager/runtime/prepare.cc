@@ -31,7 +31,7 @@ void Sculpt::gen_prepare_vfs_start(Xml_generator &xml)
 		"export VERSION=`cat /VERSION`\n"
 		"cp -r /rw/config/$VERSION/*  /config/\n"
 		"mkdir -p /rw/depot\n"
-		"cp -r depot/* /rw/depot\n"
+		"cp -r /config/depot/* /rw/depot\n"
 		"exit\n";
 
 	gen_provides<::File_system::Session>(xml);
@@ -41,7 +41,6 @@ void Sculpt::gen_prepare_vfs_start(Xml_generator &xml)
 		xml.node("vfs", [&] () {
 			gen_named_node(xml, "tar", "bash-minimal.tar");
 			gen_named_node(xml, "tar", "coreutils-minimal.tar");
-			gen_named_node(xml, "tar", "depot_users.tar");
 
 			gen_named_node(xml, "inline", ".bash_profile", [&] () {
 				xml.append(script); });

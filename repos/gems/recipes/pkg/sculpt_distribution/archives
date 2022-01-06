@@ -1,6 +1,4 @@
 _/pkg/system_shell
-_/pkg/wifi
-_/pkg/ipxe_nic_drv
 _/pkg/chroot
 _/pkg/recall_fs
 _/pkg/black_hole
@@ -8,9 +6,6 @@ _/pkg/nit_focus
 _/pkg/rom_filter
 _/pkg/rom_reporter
 _/pkg/nic_router-nat
-_/pkg/vbox6
-_/pkg/vbox6-capture
-_/pkg/vbox5-nova-sculpt
 _/pkg/wm
 _/pkg/themed_wm
 _/pkg/themed_decorator
@@ -21,13 +16,8 @@ _/pkg/nano3d
 _/pkg/mesa_gears
 _/pkg/fonts_fs
 _/pkg/report_dump
-_/pkg/acpica
 _/pkg/qt5_textedit
-_/pkg/system_clock-pc
 _/pkg/mesa_gpu-cpu
-_/pkg/mesa_gpu-intel
 _/pkg/usb_webcam
-_/pkg/file_vault
 _/pkg/test-capture
-_/pkg/bsd_audio_drv
 _/pkg/mixer

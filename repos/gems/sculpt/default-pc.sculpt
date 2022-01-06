@@ -1,0 +1,14 @@
+# configuration decisions
+drivers: pc
+system:  pc
+gpu_drv: intel
+
+# supplemental depot content added to the system image
+import: pkg/drivers_managed-pc pkg/wifi src/ipxe_nic_drv
+
+# selection of launcher-menu entries
+launcher: vm_fs shared_fs usb_devices_rom
+
+# selection of accepted depot-package providers
+depot: genodelabs cnuke alex-ab mstein nfeske cproc chelmuth jschlatow
+depot: ssumpf skalk

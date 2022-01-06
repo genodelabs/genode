@@ -1,0 +1,3 @@
+<system state=""/>
+<!-- supported states: "poweroff" or "reset" when acpica started -->
+<!-- Note: power down your persistent Genode applications & VMs beforehand on your own ! -->
