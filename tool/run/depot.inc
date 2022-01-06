@@ -209,6 +209,9 @@ proc _depot_auto_update { archives } {
 	# remove duplicates
 	set archives_to_create [lsort -unique $archives_to_create]
 
+	if {[llength $archives_to_create] == 0} {
+		return }
+
 	set    cmd "[genode_dir]/tool/depot/create $archives_to_create "
 	append cmd "CROSS_DEV_PREFIX=[cross_dev_prefix] "
 	append cmd "DEPOT_DIR=[depot_dir] "
