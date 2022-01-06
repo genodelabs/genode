@@ -10,7 +10,7 @@ MAKEOVERRIDES =
 
 PLATFORM = $(MAKECMDGOALS)
 
-PLATFORMS = arm_v6 arm_v7a arm_v8a riscv x86_32 x86_64 linux
+PLATFORMS = arm_v6 arm_v7a arm_v8a riscv x86_32 x86_64
 
 usage:
 	@echo
@@ -94,7 +94,6 @@ BUILD_CONF(arm_v8a) := run_arm_v8 run_boot_dir repos repos_arm_v8
 BUILD_CONF(riscv)   := run_riscv run_boot_dir repos repos_riscv
 BUILD_CONF(x86_32)  := run_x86_32 $(BUILD_CONF_X86)
 BUILD_CONF(x86_64)  := run_x86_64 $(BUILD_CONF_X86)
-BUILD_CONF(linux)   := run_kernel_linux repos
 
 message: $(BUILD_DIR)/etc/build.conf
 $(BUILD_DIR)/etc/build.conf:
@@ -115,29 +114,15 @@ $(BUILD_DIR)/etc/build.conf: $(BUILD_DIR)/etc
 $(BUILD_DIR)/etc/specs.conf: $(BUILD_DIR)/etc
 
 #
-# Detect host CPU architecture (needed for creating Linux build directory that
-# matches the host system)
-#
-UNAME_MACHINE := $(shell uname -m)
-
-SPEC_ARCH(i686)   := x86_32
-SPEC_ARCH(x86_64) := x86_64
-SPEC_ARCH(armv6l) := armv_v6
-SPEC_ARCH(armv7l) := armv_v7
-
-HOST_SPEC_ARCH := ${SPEC_ARCH(${UNAME_MACHINE})}
-
-#
 # SPECS definitions
 #
 
-SPECS(arm_v6)          := arm_v6
-SPECS(arm_v7a)         := arm_v7a
-SPECS(arm_v8a)         := arm_v8a
-SPECS(riscv)           := riscv
-SPECS(x86_32)          := x86_32
-SPECS(x86_64)          := x86_64
-SPECS(linux)           := $(HOST_SPEC_ARCH)
+SPECS(arm_v6)  := arm_v6
+SPECS(arm_v7a) := arm_v7a
+SPECS(arm_v8a) := arm_v8a
+SPECS(riscv)   := riscv
+SPECS(x86_32)  := x86_32
+SPECS(x86_64)  := x86_64
 
 ifneq (${SPECS(${PLATFORM})},)
 message: $(BUILD_DIR)/etc/specs.conf
