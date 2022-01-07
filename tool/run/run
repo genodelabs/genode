@@ -44,6 +44,8 @@ proc assert_spec {spec} {
 #
 proc build {targets} {
 
+	if {[llength $targets] == 0} return
+
 	if {[get_cmd_switch --skip-build]} return
 
 	regsub -all {\s\s+} $targets " " targets
