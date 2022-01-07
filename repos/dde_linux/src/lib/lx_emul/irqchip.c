@@ -191,7 +191,7 @@ int lx_emul_irq_task_function(void * data)
 
 
 struct task_struct irq_task = {
-	.state           = 0,
+	.__state         = 0,
 	.usage           = REFCOUNT_INIT(2),
 	.flags           = PF_KTHREAD,
 	.prio            = MAX_PRIO - 20,
