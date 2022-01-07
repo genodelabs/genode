@@ -135,7 +135,7 @@ int lx_emul_init_task_function(void * dtb)
 
 
 struct task_struct init_task = {
-	.state           = 0,
+	.__state         = 0,
 	.usage           = REFCOUNT_INIT(2),
 	.flags           = PF_KTHREAD,
 	.prio            = MAX_PRIO - 20,

@@ -13,6 +13,7 @@
 
 #include <linux/clockchips.h>
 #include <linux/clocksource.h>
+#include <linux/timecounter.h>
 #include <linux/sched_clock.h>
 #include <linux/smp.h>
 #include <linux/of_clk.h>

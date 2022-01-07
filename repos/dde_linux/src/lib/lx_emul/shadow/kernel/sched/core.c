@@ -35,7 +35,7 @@ struct rq runqueues;
 /*
  * Type changes between kernel versions
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,14,1)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,14,0)
 typedef unsigned long nr_iowait_cpu_return_t;
 typedef long          wait_task_inactive_match_state_t;
 #else
@@ -53,24 +53,17 @@ void set_user_nice(struct task_struct * p, long nice)
 }
 
 
-int set_cpus_allowed_ptr(struct task_struct * p,
-                         const struct cpumask * new_mask)
-{
-	return 0;
-}
-
-
 static int
 try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 {
 	if (!p) lx_emul_trace_and_stop(__func__);
-	if (!(p->state & state))
+	if (!(p->__state & state))
 		return 0;
 
 	if (p != lx_emul_task_get_current())
 		lx_emul_task_unblock(p);
 
-	p->state = TASK_RUNNING;
+	p->__state = TASK_RUNNING;
 	return 1;
 }
 
@@ -97,14 +90,14 @@ static void __schedule(void)
 		lx_emul_trace_and_stop("abort");
 	}
 
-	lx_emul_task_schedule(current->state != TASK_RUNNING);
+	lx_emul_task_schedule(current->__state != TASK_RUNNING);
 }
 
 #include "../kernel/workqueue_internal.h"
 
 asmlinkage __visible void __sched schedule(void)
 {
-	if (current->state) {
+	if (current->__state) {
 		unsigned int task_flags = current->flags;
 		if (task_flags & PF_WQ_WORKER) {
 			tick_nohz_idle_enter();
@@ -169,7 +162,7 @@ void scheduler_tick(void)
 
 void __sched schedule_preempt_disabled(void)
 {
-	lx_emul_task_schedule(current->state != TASK_RUNNING);
+	lx_emul_task_schedule(current->__state != TASK_RUNNING);
 }
 
 
@@ -179,6 +172,16 @@ int sched_setscheduler_nocheck(struct task_struct * p, int policy,
 	return 0;
 }
 
+
+int wake_up_state(struct task_struct * p, unsigned int state)
+{
+	p->__state = TASK_RUNNING;
+	lx_emul_task_unblock(p);
+	return 0;
+}
+
+
+#ifdef CONFIG_SMP
 
 unsigned long wait_task_inactive(struct task_struct * p,
                                  wait_task_inactive_match_state_t match_state)
@@ -195,15 +198,13 @@ unsigned long wait_task_inactive(struct task_struct * p,
 }
 
 
-int wake_up_state(struct task_struct * p, unsigned int state)
+int set_cpus_allowed_ptr(struct task_struct * p,
+                         const struct cpumask * new_mask)
 {
-	p->state = TASK_RUNNING;
-	lx_emul_task_unblock(p);
 	return 0;
 }
 
 
-#ifdef CONFIG_SMP
 #ifdef CONFIG_NO_HZ_COMMON
 
 int get_nohz_timer_target(void)

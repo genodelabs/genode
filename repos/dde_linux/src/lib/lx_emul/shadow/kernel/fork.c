@@ -32,7 +32,7 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 
 	struct task_struct * task = kmalloc(sizeof(struct task_struct), GFP_KERNEL);
 	*task = (struct task_struct) {
-	.state           = 0,
+	.__state         = 0,
 	.usage           = REFCOUNT_INIT(2),
 	.flags           = PF_KTHREAD,
 	.prio            = MAX_PRIO - 20,
