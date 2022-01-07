@@ -44,6 +44,8 @@ proc assert_spec {spec} {
 #
 proc build {targets} {
 
+	global _collected_build_artifacts
+
 	if {[llength $targets] == 0} return
 
 	if {[get_cmd_switch --skip-build]} return
@@ -57,7 +59,30 @@ proc build {targets} {
 		puts "Error: Genode build failed"
 		exit -4
 	}
+
+	# record the build artifacts created during the build process
+	set artifacts_log [exec sed -n "/^#/s/^# Build artifact //p" progress.log]
+	lappend _collected_build_artifacts {*}[split $artifacts_log "\n"]
+
 	puts "genode build completed"
+}
+
+
+##
+# Return list of build artifacts created during 'build'
+#
+# The returned artifacts can be used as boot-modules arguments for
+# the 'build_boot_image' step.
+#
+proc build_artifacts { } {
+
+	global _collected_build_artifacts
+
+	if {![info exists _collected_build_artifacts]} {
+		return { } }
+
+	# use lsort to remove duplicates
+	return [lsort -unique $_collected_build_artifacts]
 }
 
 
