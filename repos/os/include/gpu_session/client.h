@@ -56,6 +56,12 @@ class Gpu::Session_client : public Genode::Rpc_client<Session>
 		void free_buffer(Gpu::Buffer_id id) override {
 			call<Rpc_free_buffer>(id); }
 
+		Gpu::Buffer_capability export_buffer(Buffer_id id) override {
+			return call<Rpc_export_buffer>(id); }
+
+		void import_buffer(Buffer_capability cap, Buffer_id id) override {
+			call<Rpc_import_buffer>(cap, id); }
+
 		Genode::Dataspace_capability map_buffer(Buffer_id id,
 		                                        bool aperture,
 		                                        Mapping_attributes attrs) override {
