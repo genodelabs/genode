@@ -39,6 +39,7 @@ endif
 append_lib_to_progress_log:
 	@echo "LIBS_READY  += $(LIB)" >> $(LIB_PROGRESS_LOG)
 
+
 LIB_MK_DIRS  = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/mk/spec/,     $(SPECS)) $(REP)/lib/mk)
 SYMBOLS_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/symbols/spec/,$(SPECS)) $(REP)/lib/symbols)
 
@@ -82,7 +83,13 @@ include $(LIB_MK)
 
 ifdef SHARED_LIB
 LIBS += ldso_so_support
+
+# record creation of shared library build artifact
+append_artifact_to_progress_log:
+	@echo -e "\n# Build artifact $(LIB).lib.so\n" >> $(LIB_PROGRESS_LOG)
+append_lib_to_progress_log: append_artifact_to_progress_log
 endif
+
 
 #
 # Hide archive dependencies of shared libraries from users of the shared

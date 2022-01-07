@@ -41,6 +41,11 @@ include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-
 include $(SPEC_FILES)
 
 #
+# Names of build artifacts to appear in the 'progress.log'
+#
+BUILD_ARTIFACTS ?= $(TARGET)
+
+#
 # Determine location of $(TARGET_MK) within 'src/', remove trailing slash
 #
 PRG_REL_DIR := $(subst $(REP_DIR)/src/,,$(PRG_DIR))
@@ -63,7 +68,7 @@ LIBS_TO_VISIT = $(filter-out $(LIBS_READY),$(LIBS))
 #
 # Generate program rule
 #
-gen_prg_rule:
+gen_prg_rule: append_artifact_to_progress_log
 ifneq ($(LIBS),)
 	@for i in $(LIBS_TO_VISIT); do \
 	  $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk REP_DIR=$(REP_DIR) LIB=$$i; done
@@ -111,3 +116,8 @@ ifeq ($(FORCE_BUILD_LIBS),yes)
 	@(echo ""; \
 	  echo "all: \$$(addsuffix .lib,\$$(filter-out \$$(INVALID_DEPS), $(LIBS)))") >> $(LIB_DEP_FILE)
 endif
+
+append_artifact_to_progress_log:
+	@( $(foreach A,$(BUILD_ARTIFACTS),\
+	      echo -e "\n# Build artifact $A\n";) true \
+	) >> $(LIB_PROGRESS_LOG)
