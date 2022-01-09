@@ -224,7 +224,10 @@ void User_state::_handle_input_event(Input::Event ev)
 	/*
 	 * Deliver event to session
 	 */
-	if (ev.absolute_motion() || ev.wheel() || ev.touch() || ev.touch_release()) {
+	bool const forward_to_session = (ev.absolute_motion() || ev.wheel() ||
+	                                 ev.touch() || ev.touch_release() ||
+	                                 ev.seq_number());
+	if (forward_to_session) {
 
 		if (_key_cnt == 0) {
 
