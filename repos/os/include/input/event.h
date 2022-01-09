@@ -39,6 +39,7 @@ namespace Input {
 	struct Relative_motion { int x, y; };
 	struct Touch           { Touch_id id; float x, y; };
 	struct Touch_release   { Touch_id id; };
+	struct Seq_number      { unsigned value; };
 
 	class Event;
 	class Binding;
@@ -50,7 +51,8 @@ class Input::Event
 	private:
 
 		enum Type { INVALID, PRESS, RELEASE, REL_MOTION, ABS_MOTION, WHEEL,
-		            FOCUS_ENTER, FOCUS_LEAVE, HOVER_LEAVE, TOUCH, TOUCH_RELEASE };
+		            FOCUS_ENTER, FOCUS_LEAVE, HOVER_LEAVE, TOUCH, TOUCH_RELEASE,
+		            SEQ_NUMBER };
 
 		Type _type = INVALID;
 
@@ -64,6 +66,7 @@ class Input::Event
 				Relative_motion rel_motion;
 				Touch           touch;
 				Touch_release   touch_release;
+				Seq_number      seq_number;
 			};
 		} _attr { };
 
@@ -103,6 +106,7 @@ class Input::Event
 		Event(Hover_leave)         : _type(HOVER_LEAVE)   { }
 		Event(Touch           arg) : _type(TOUCH)         { _attr.touch = arg; }
 		Event(Touch_release   arg) : _type(TOUCH_RELEASE) { _attr.touch_release = arg; }
+		Event(Seq_number      arg) : _type(SEQ_NUMBER)    { _attr.seq_number = arg; }
 
 
 		/************************************
@@ -120,6 +124,7 @@ class Input::Event
 		bool hover_leave()     const { return _type == HOVER_LEAVE;   }
 		bool touch()           const { return _type == TOUCH;         }
 		bool touch_release()   const { return _type == TOUCH_RELEASE; }
+		bool seq_number()      const { return _type == SEQ_NUMBER;    }
 
 		bool key_press(Keycode key) const
 		{
@@ -187,6 +192,13 @@ class Input::Event
 				fn(_attr.touch_release.id);
 		}
 
+		template <typename FN>
+		void handle_seq_number(FN const &fn) const
+		{
+			if (seq_number())
+				fn(_attr.seq_number);
+		}
+
 		inline void print(Genode::Output &out) const;
 };
 
@@ -208,6 +220,7 @@ void Input::Event::print(Genode::Output &out) const
 	case TOUCH_RELEASE: print(out, "TOUCH_RELEASE ", _attr.touch.id.value); break;
 	case TOUCH:         print(out, "TOUCH ", _attr.touch.id.value, " ",
 	                                         _xy<float>(_attr.touch)); break;
+	case SEQ_NUMBER:    print(out, "SEQ_NUMBER ", _attr.seq_number.value); break;
 	};
 }
 
