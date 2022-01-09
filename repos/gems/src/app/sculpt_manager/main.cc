@@ -62,7 +62,8 @@ struct Sculpt::Main : Input_event_handler,
                       Depot_query,
                       Panel_dialog::State,
                       Dialog,
-                      Popup_dialog::Refresh
+                      Popup_dialog::Refresh,
+                      Menu_view::Hover_update_handler
 {
 	Env &_env;
 
@@ -72,11 +73,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	Registry<Child_state> _child_states { };
 
+	Input::Seq_number _global_input_seq_number { };
+
 	Gui::Connection _gui { _env, "input" };
 
 	bool _gui_mode_ready = false;  /* becomes true once the graphics driver is up */
 
-	Gui::Root _gui_root { _env, _heap, *this };
+	Gui::Root _gui_root { _env, _heap, *this, _global_input_seq_number };
 
 	Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
@@ -209,7 +212,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 
-	Network _network { _env, _heap, _child_states, *this, _runtime_state, _pci_info };
+	Network _network { _env, _heap, _child_states, *this, *this, _runtime_state, _pci_info };
 
 
 	/************
@@ -546,7 +549,136 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Interactive operations **
 	 ****************************/
 
+	/*
+	 * Track nitpicker's "clicked" report to reliably detect clicks outside
+	 * any menu view (closing the popup window).
+	 */
+
+	Attached_rom_dataspace _clicked_rom { _env, "clicked" };
+
+	Signal_handler<Main> _clicked_handler {
+		_env.ep(), *this, &Main::_handle_clicked };
+
+	void _handle_clicked()
+	{
+		_clicked_rom.update();
+		_try_handle_click();
+	}
+
 	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase, *this };
+
+	Constructible<Input::Seq_number> _clicked_seq_number { };
+	Constructible<Input::Seq_number> _clacked_seq_number { };
+
+	void _try_handle_click()
+	{
+		if (!_clicked_seq_number.constructed())
+			return;
+
+		Input::Seq_number const seq = *_clicked_seq_number;
+
+		auto click_outside_popup = [&] ()
+		{
+			Xml_node const clicked = _clicked_rom.xml();
+
+			if (!clicked.has_attribute("seq"))
+				return false;
+
+			if (clicked.attribute_value("seq", 0u) != seq.value)
+				return false;
+
+			Label const popup_label { "wm -> runtime -> leitzentrale -> popup_view" };
+
+			if (clicked.attribute_value("label", Label()) == popup_label)
+				return false;
+
+			return true;
+		};
+
+		/* remove popup dialog when clicking somewhere outside */
+		if (click_outside_popup() && _popup.state == Popup::VISIBLE
+		 && !_graph.add_button_hovered()) {
+
+			_popup.state = Popup::OFF;
+			_popup_dialog.reset();
+			discard_construction();
+
+			/* de-select '+' button */
+			_graph_menu_view.generate();
+
+			/* remove popup window from window layout */
+			_handle_window_layout();
+		}
+
+		if (_main_menu_view.hovered(seq)) {
+			_main_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_graph_menu_view.hovered(seq)) {
+			_graph.click(*this);
+			_graph_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_popup_menu_view.hovered(seq)) {
+			_popup_dialog.click(*this);
+			_popup_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_panel_menu_view.hovered(seq)) {
+			_panel_dialog.click(*this);
+			_clicked_seq_number.destruct();
+		}
+		else if (_settings_menu_view.hovered(seq)) {
+			_settings_dialog.click(*this);
+			_settings_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_network.dialog_hovered(seq)) {
+			_network.dialog.click(_network);
+			_network.update_view();
+			_clicked_seq_number.destruct();
+		}
+		else if (_file_browser_menu_view.hovered(seq)) {
+			_file_browser_dialog.click(*this);
+			_file_browser_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+	}
+
+	void _try_handle_clack()
+	{
+		if (!_clacked_seq_number.constructed())
+			return;
+
+		Input::Seq_number const seq = *_clacked_seq_number;
+
+		if (_main_menu_view.hovered(seq)) {
+			_storage.dialog.clack(_storage);
+			_main_menu_view.generate();
+			_clacked_seq_number.destruct();
+		}
+		else if (_graph_menu_view.hovered(seq)) {
+			_graph.clack(*this, _storage);
+			_graph_menu_view.generate();
+			_clacked_seq_number.destruct();
+		}
+		else if (_popup_menu_view.hovered(seq)) {
+			_popup_dialog.clack(*this);
+			_clacked_seq_number.destruct();
+		}
+	}
+
+	/**
+	 * Menu_view::Hover_update_handler interface
+	 */
+	void menu_view_hover_updated() override
+	{
+		if (_clicked_seq_number.constructed())
+			_try_handle_click();
+
+		if (_clacked_seq_number.constructed())
+			_try_handle_clack();
+	}
 
 	/**
 	 * Input_event_handler interface
@@ -556,60 +688,13 @@ struct Sculpt::Main : Input_event_handler,
 		bool need_generate_dialog = false;
 
 		if (ev.key_press(Input::BTN_LEFT)) {
-
-			/* remove popup dialog when clicking somewhere outside */
-			if (!_popup_menu_view.hovered() && _popup.state == Popup::VISIBLE
-			 && !_graph.add_button_hovered()) {
-
-				_popup.state = Popup::OFF;
-				_popup_dialog.reset();
-				discard_construction();
-
-				/* de-select '+' button */
-				_graph_menu_view.generate();
-
-				/* remove popup window from window layout */
-				_handle_window_layout();
-			}
-
-			if (_main_menu_view.hovered()) {
-				_main_menu_view.generate();
-			}
-			else if (_graph_menu_view.hovered()) {
-				_graph.click(*this);
-				_graph_menu_view.generate();
-			}
-			else if (_popup_menu_view.hovered()) {
-				_popup_dialog.click(*this);
-				_popup_menu_view.generate();
-			}
-			else if (_panel_menu_view.hovered()) {
-				_panel_dialog.click(*this);
-			}
-			else if (_settings_menu_view.hovered()) {
-				_settings_dialog.click(*this);
-				_settings_menu_view.generate();
-			}
-			else if (_network.dialog_hovered()) {
-				_network.dialog.click(_network);
-				_network.update_view();
-			}
-			else if (_file_browser_menu_view.hovered()) {
-				_file_browser_dialog.click(*this);
-				_file_browser_menu_view.generate();
-			}
+			_clicked_seq_number.construct(_global_input_seq_number);
+			_try_handle_click();
 		}
 
 		if (ev.key_release(Input::BTN_LEFT)) {
-			if (_main_menu_view.hovered()) {
-				_storage.dialog.clack(_storage);
-				_main_menu_view.generate();
-			}
-			else if (_graph_menu_view.hovered()) {
-				_graph.clack(*this, _storage);
-				_graph_menu_view.generate();
-			}
-			else if (_popup_menu_view.hovered()) _popup_dialog.clack(*this);
+			_clacked_seq_number.construct(_global_input_seq_number);
+			_try_handle_clack();
 		}
 
 		if (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
@@ -1021,17 +1106,17 @@ struct Sculpt::Main : Input_event_handler,
 
 	Menu_view _panel_menu_view { _env, _child_states, _panel_dialog, "panel_view",
 	                             Ram_quota{4*1024*1024}, Cap_quota{150},
-	                             "panel_dialog", "panel_view_hover" };
+	                             "panel_dialog", "panel_view_hover", *this };
 
 	Settings_dialog _settings_dialog { _settings };
 
 	Menu_view _settings_menu_view { _env, _child_states, _settings_dialog, "settings_view",
 	                                Ram_quota{4*1024*1024}, Cap_quota{150},
-	                                "settings_dialog", "settings_view_hover" };
+	                                "settings_dialog", "settings_view_hover", *this };
 
 	Menu_view _main_menu_view { _env, _child_states, *this, "menu_view",
 	                             Ram_quota{4*1024*1024}, Cap_quota{150},
-	                             "menu_dialog", "menu_view_hover" };
+	                             "menu_dialog", "menu_view_hover", *this };
 
 	Popup_dialog _popup_dialog { _env, *this, _launchers,
 	                             _network._nic_state, _network._nic_target,
@@ -1040,13 +1125,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	Menu_view _popup_menu_view { _env, _child_states, _popup_dialog, "popup_view",
 	                             Ram_quota{4*1024*1024}, Cap_quota{150},
-	                             "popup_dialog", "popup_view_hover" };
+	                             "popup_dialog", "popup_view_hover", *this };
 
 	File_browser_dialog _file_browser_dialog { _cached_runtime_config, _file_browser_state };
 
 	Menu_view _file_browser_menu_view { _env, _child_states, _file_browser_dialog, "file_browser_view",
 	                                    Ram_quota{8*1024*1024}, Cap_quota{150},
-	                                    "file_browser_dialog", "file_browser_view_hover" };
+	                                    "file_browser_dialog", "file_browser_view_hover", *this };
 
 	/**
 	 * Popup_dialog::Refresh interface
@@ -1098,7 +1183,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Menu_view _graph_menu_view { _env, _child_states, _graph, "runtime_view",
 	                             Ram_quota{8*1024*1024}, Cap_quota{200},
-	                             "runtime_dialog", "runtime_view_hover" };
+	                             "runtime_dialog", "runtime_view_hover", *this };
 	Main(Env &env) : _env(env)
 	{
 		_manual_deploy_rom.sigh(_manual_deploy_handler);
@@ -1117,6 +1202,7 @@ struct Sculpt::Main : Input_event_handler,
 		_launcher_listing_rom.sigh(_launcher_listing_handler);
 		_blueprint_rom       .sigh(_blueprint_handler);
 		_editor_saved_rom    .sigh(_editor_saved_handler);
+		_clicked_rom         .sigh(_clicked_handler);
 
 		/*
 		 * Generate initial configurations
@@ -1132,6 +1218,7 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy.handle_deploy();
 		_handle_pci_devices();
 		_handle_runtime_config();
+		_handle_clicked();
 
 		/*
 		 * Read static platform information
@@ -1848,6 +1935,9 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 								xml.attribute("speed_percent", -10); });
 						});
 					});
+
+					xml.node("touch-click", [&] () {
+						gen_input("touch"); });
 
 					gen_input("usb");
 					gen_input("touch");

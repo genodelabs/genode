@@ -37,6 +37,8 @@ struct Sculpt::Network : Network_dialog::Action
 
 	Registry<Child_state> &_child_states;
 
+	Menu_view::Hover_update_handler &_hover_update_handler;
+
 	Runtime_config_generator &_runtime_config_generator;
 
 	Runtime_info const &_runtime_info;
@@ -103,11 +105,12 @@ struct Sculpt::Network : Network_dialog::Action
 
 	Menu_view _menu_view { _env, _child_states, dialog, "network_view",
 	                       Ram_quota{4*1024*1024}, Cap_quota{150},
-	                       "network_dialog", "network_view_hover" };
+	                       "network_dialog", "network_view_hover",
+	                       _hover_update_handler };
 
 	void min_dialog_width(unsigned value) { _menu_view.min_width = value; }
 
-	bool dialog_hovered() const { return _menu_view.hovered(); }
+	bool dialog_hovered(Input::Seq_number seq) const { return _menu_view.hovered(seq); }
 
 	void update_view() { _menu_view.generate(); }
 
@@ -223,10 +226,12 @@ struct Sculpt::Network : Network_dialog::Action
 	}
 
 	Network(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
+	        Menu_view::Hover_update_handler &hover_update_handler,
 	        Runtime_config_generator &runtime_config_generator,
 	        Runtime_info const &runtime_info, Pci_info const &pci_info)
 	:
 		_env(env), _alloc(alloc), _child_states(child_states),
+		_hover_update_handler(hover_update_handler),
 		_runtime_config_generator(runtime_config_generator),
 		_runtime_info(runtime_info), _pci_info(pci_info)
 	{

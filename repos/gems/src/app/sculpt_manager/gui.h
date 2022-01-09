@@ -36,12 +36,13 @@ struct Gui::Root : Genode::Root_component<Session_component>
 {
 	Env &_env;
 	Input_event_handler &_event_handler;
+	Input::Seq_number   &_global_input_seq_number;
 
 	Session_component *_create_session(const char *) override;
 	void               _upgrade_session(Session_component *, const char *) override;
 	void               _destroy_session(Session_component *) override;
 
-	Root(Env &, Allocator &, Input_event_handler &);
+	Root(Env &, Allocator &, Input_event_handler &, Input::Seq_number &);
 
 	~Root();
 };
