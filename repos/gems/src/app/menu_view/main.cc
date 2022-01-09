@@ -135,6 +135,30 @@ struct Menu_view::Main
 	Signal_handler<Main> _config_handler = {
 		_env.ep(), *this, &Main::_handle_config};
 
+	struct Input_seq_number
+	{
+		Constructible<Input::Seq_number> _curr { };
+
+		bool _processed = false;
+
+		void update(Input::Seq_number const &seq_number)
+		{
+			_curr.construct(seq_number);
+			_processed = false;
+		}
+
+		bool changed() const { return _curr.constructed() && !_processed; }
+
+		void mark_as_processed() { _processed = true; }
+
+		void generate(Xml_generator &xml)
+		{
+			if (_curr.constructed())
+				xml.attribute("seq_number", _curr->value);
+		}
+
+	} _input_seq_number { };
+
 	void _handle_input();
 
 	Signal_handler<Main> _input_handler = {
@@ -212,12 +236,17 @@ void Menu_view::Main::_update_hover_report()
 
 	Widget::Hovered const new_hovered = _root_widget.hovered(_hovered_position);
 
-	if (_last_reported_hovered != new_hovered) {
+	bool const hover_changed = (_last_reported_hovered != new_hovered);
+
+	if (hover_changed || _input_seq_number.changed()) {
 
 		Genode::Reporter::Xml_generator xml(_hover_reporter, [&] () {
-			_root_widget.gen_hover_model(xml, _hovered_position); });
+			_input_seq_number.generate(xml);
+			_root_widget.gen_hover_model(xml, _hovered_position);
+		});
 
 		_last_reported_hovered = new_hovered;
+		_input_seq_number.mark_as_processed();
 	}
 }
 
@@ -291,6 +320,10 @@ void Menu_view::Main::_handle_input()
 	bool  const orig_dialog_hovered   = _dialog_hovered;
 
 	_gui.input()->for_each_event([&] (Input::Event const &ev) {
+
+		ev.handle_seq_number([&] (Input::Seq_number seq_number) {
+			_input_seq_number.update(seq_number); });
+
 		ev.handle_absolute_motion([&] (int x, int y) {
 			_dialog_hovered   = true;
 			_hovered_position = Point(x, y) - _position;
@@ -308,7 +341,7 @@ void Menu_view::Main::_handle_input()
 	bool const hover_changed = orig_dialog_hovered   != _dialog_hovered
 	                        || orig_hovered_position != _hovered_position;
 
-	if (hover_changed)
+	if (hover_changed || _input_seq_number.changed())
 		_update_hover_report();
 }
 
