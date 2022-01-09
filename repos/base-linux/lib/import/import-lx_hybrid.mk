@@ -31,10 +31,10 @@ CXX_LINK_OPT += $(addprefix -L,$(HOST_LIB_SEARCH_DIRS))
 # Determine ldconfig executable
 #
 # On Ubuntu, /sbin/ is in the PATH variable. Hence we try using the program
-# found via 'which'. If 'which' does not return anything (i.e., on Debian),
+# found via 'command -v'. If it does not return anything (i.e., on Debian),
 # try using the expected location '/sbin/'.
 #
-LDCONFIG := $(firstword $(wildcard $(shell which ldconfig) /sbin/ldconfig))
+LDCONFIG := $(firstword $(wildcard $(shell command -v ldconfig) /sbin/ldconfig))
 ifeq ($(LDCONFIG),)
 $(error ldconfig is not found)
 endif
