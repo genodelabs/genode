@@ -1033,9 +1033,14 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 		error(__func__, ": socket fs not mounted");
 		return Errno(EACCES);
 	}
-
-	if (((type&7) != SOCK_STREAM || (protocol != 0 && protocol != IPPROTO_TCP))
-	 && ((type&7) != SOCK_DGRAM  || (protocol != 0 && protocol != IPPROTO_UDP))) {
+	/*
+	 * The socket type (in the lower bits) maybe ORed with SOCK_CLOEXEC and
+	 * SOCK_NONBLOCK options (in the higher bits). Currently, supported values
+	 * are SOCK_STREAM (1) and SOCK_DGRAM (2), so just take the lower 2 bits.
+	 */
+	int const sock_type = type & 3;
+	if ((sock_type != SOCK_STREAM || (protocol != 0 && protocol != IPPROTO_TCP))
+	 && (sock_type != SOCK_DGRAM  || (protocol != 0 && protocol != IPPROTO_UDP))) {
 		error(__func__,
 		      ": socket with type=", (Hex)type,
 		      " protocol=", (Hex)protocol, " not supported");
@@ -1044,7 +1049,7 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 
 	/* socket is ensured to be TCP or UDP */
 	typedef Socket_fs::Context::Proto Proto;
-	Proto proto = (type == SOCK_STREAM) ? Proto::TCP : Proto::UDP;
+	Proto proto = (sock_type == SOCK_STREAM) ? Proto::TCP : Proto::UDP;
 	Socket_fs::Context *context = nullptr;
 	try {
 		switch (proto) {
