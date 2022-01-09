@@ -24,6 +24,8 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 
 	Input_event_handler &_event_handler;
 
+	Input::Seq_number &_global_input_seq_number;
+
 	Gui::Connection _connection;
 
 	Input::Session_component _input_component { _env, _env.ram() };
@@ -33,18 +35,24 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 
 	void _handle_input()
 	{
+		_global_input_seq_number.value++;
+		_input_component.submit(_global_input_seq_number);
+
 		_connection.input()->for_each_event([&] (Input::Event ev) {
 
-		 	/* handle event locally within the sculpt manager */
+			/* handle event locally within the sculpt manager */
 			_event_handler.handle_input_event(ev);
 
 			_input_component.submit(ev);
 		});
 	}
 
-	Session_component(Env &env, char const *args, Input_event_handler &event_handler)
+	Session_component(Env &env, char const *args,
+	                  Input_event_handler &event_handler,
+	                  Input::Seq_number   &global_input_seq_number)
 	:
 		_env(env), _event_handler(event_handler),
+		_global_input_seq_number(global_input_seq_number),
 		_connection(env, session_label_from_args(args).string())
 	{
 		_connection.input()->sigh(_input_handler);
@@ -108,7 +116,8 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 
 Gui::Session_component *Gui::Root::_create_session(const char *args)
 {
-	return new (md_alloc()) Session_component(_env, args, _event_handler);
+	return new (md_alloc()) Session_component(_env, args, _event_handler,
+	                                          _global_input_seq_number);
 }
 
 
@@ -124,10 +133,13 @@ void Gui::Root::_destroy_session(Session_component *session)
 }
 
 
-Gui::Root::Root(Env &env, Allocator &md_alloc, Input_event_handler &event_handler)
+Gui::Root::Root(Env &env, Allocator &md_alloc,
+                Input_event_handler &event_handler,
+                Input::Seq_number   &global_input_seq_number)
 :
 	Root_component<Session_component>(env.ep(), md_alloc),
-	_env(env), _event_handler(event_handler)
+	_env(env), _event_handler(event_handler),
+	_global_input_seq_number(global_input_seq_number)
 {
 	env.parent().announce(env.ep().manage(*this));
 }
