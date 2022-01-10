@@ -2,3 +2,13 @@
 # Board support for i.MX SoC family
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/imx
+
+#
+# Board support for Raspberry Pi family
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/rpi
+
+#
+# Board support for Allwinner SoC family
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/allwinner

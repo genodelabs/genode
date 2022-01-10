@@ -86,7 +86,7 @@ $(BUILD_DIR)/etc:
 	@mkdir -p $@
 
 BUILD_CONF_X86      := run_x86 run_boot_dir repos repos_x86
-BUILD_CONF_ARM_V6   := run_arm_v6 run_boot_dir repos
+BUILD_CONF_ARM_V6   := run_arm_v6 run_boot_dir repos repos_arm_v6
 BUILD_CONF_ARM_V7   := run_arm_v7 run_boot_dir repos repos_arm_v7
 BUILD_CONF(arm_v6)  := $(BUILD_CONF_ARM_V6)
 BUILD_CONF(arm_v7a) := $(BUILD_CONF_ARM_V7)

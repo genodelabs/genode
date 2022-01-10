@@ -1,0 +1,4 @@
+#
+# Board support for Raspberry Pi family
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/rpi
