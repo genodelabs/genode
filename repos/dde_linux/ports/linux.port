@@ -1,0 +1,7 @@
+LICENSE   := GPLv2
+VERSION   := 5.14.21
+DOWNLOADS := linux.archive
+
+URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$(VERSION).tar.xz
+SHA(linux) := f41a259cb2002dd2e3286524b2bb4e803f4f982992d092706ecea613584023b3
+DIR(linux) := src/linux
