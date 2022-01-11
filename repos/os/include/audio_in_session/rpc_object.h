@@ -32,8 +32,8 @@ class Audio_in::Session_rpc_object : public Genode::Rpc_object<Audio_in::Session
 		Genode::Attached_ram_dataspace _ds; /* contains Audio_in stream */
 
 		Genode::Signal_context_capability _data_cap;
-		Genode::Signal_context_capability _progress_cap;
-		Genode::Signal_context_capability _overrun_cap;
+		Genode::Signal_context_capability _progress_cap { };
+		Genode::Signal_context_capability _overrun_cap  { };
 
 		bool _stopped; /* state */
 
@@ -52,13 +52,13 @@ class Audio_in::Session_rpc_object : public Genode::Rpc_object<Audio_in::Session
 		 ** Signals  **
 		 **************/
 
-		void progress_sigh(Genode::Signal_context_capability sigh) {
+		void progress_sigh(Genode::Signal_context_capability sigh) override {
 			_progress_cap = sigh; }
 
-		void overrun_sigh(Genode::Signal_context_capability sigh) {
+		void overrun_sigh(Genode::Signal_context_capability sigh) override {
 			_overrun_cap = sigh; }
 
-		Genode::Signal_context_capability data_avail_sigh() {
+		Genode::Signal_context_capability data_avail_sigh() override {
 			return _data_cap; }
 
 
@@ -66,8 +66,8 @@ class Audio_in::Session_rpc_object : public Genode::Rpc_object<Audio_in::Session
 		 ** Session interface **
 		 ***********************/
 
-		void start() { _stopped = false; }
-		void stop()  { _stopped = true; }
+		void start() override { _stopped = false; }
+		void stop()  override { _stopped = true; }
 
 		Genode::Dataspace_capability dataspace() { return _ds.cap(); }
 
