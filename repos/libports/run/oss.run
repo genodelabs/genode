@@ -1,0 +1,98 @@
+if {[have_board linux]} {
+        puts "Run script does not support Linux."
+        exit 0
+}
+
+if {[have_include "power_on/qemu"]} {
+        puts "Run script does not support Qemu"
+        exit 0
+}
+
+set build_components {
+	core init timer
+	drivers/audio
+	lib/vfs/oss test/oss
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="200"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+}
+
+append_platform_drv_config
+
+append config {
+	<start name="audio_drv">
+		<binary name="} [audio_drv_binary] {"/>
+		<resource name="RAM" quantum="8M"/>
+		<provides>
+			<service name="Audio_out"/>
+			<service name="Audio_in"/>
+		</provides>
+		<config verbose="yes">
+			<!-- tested on Lenovo x260 -->
+			<mixer field="outputs.master" value="128"/>
+			<mixer field="record.adc-0:1_source" value="mic"/>
+			<mixer field="record.adc-0:1" value="128"/>
+			<mixer field="record.enable" value="on"/>
+		</config>
+	</start>
+	<start name="test-oss">
+		<resource name="RAM" quantum="10M"/>
+		<config>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<oss name="dsp"/>
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+		</config>
+		<route>
+			<service name="Audio_in"> <child name="audio_drv"/> </service>
+			<service name="Audio_out"> <child name="audio_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init timer test-oss
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
+	posix.lib.so vfs_oss.lib.so
+}
+
+append boot_modules [audio_drv_binary]
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+run_genode_until forever

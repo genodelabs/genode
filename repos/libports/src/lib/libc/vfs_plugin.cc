@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -1340,17 +1340,48 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 		if (!argp) return { true, EINVAL };
 
-		/* dummy implementation */
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() != "oss") {
+					return;
+				}
 
-		audio_buf_info &abinfo = *(audio_buf_info *)argp;
-		abinfo = {
-			.fragments  = 4,
-			.fragstotal = 256,
-			.fragsize   = 2048,
-			.bytes      = 4*2048,
-		};
+				unsigned int const ifrag_size =
+					info.attribute_value("ifrag_size", 0U);
+				unsigned int const ifrag_avail =
+					info.attribute_value("ifrag_avail", 0U);
+				unsigned int const ifrag_total =
+					info.attribute_value("ifrag_total", 0U);
+				unsigned int const ifrag_bytes =
+					info.attribute_value("ifrag_bytes", 0U);
+				if (!ifrag_size || !ifrag_total) {
+					result = ENOTSUP;
+					return;
+				}
 
-		handled = true;
+				int const fragments  = (int)ifrag_avail;
+				int const fragstotal = (int)ifrag_total;
+				int const fragsize   = (int)ifrag_size;
+				int const bytes      = (int)ifrag_bytes;
+				if (fragments < 0 || fragstotal < 0 ||
+				    fragsize < 0 || bytes < 0) {
+					result = EINVAL;
+					return;
+				}
+
+				struct audio_buf_info *buf_info =
+					(struct audio_buf_info *)argp;
+
+				buf_info->fragments  = fragments;
+				buf_info->fragstotal = fragstotal;
+				buf_info->fragsize   = fragsize;
+				buf_info->bytes      = bytes;
+
+				handled = true;
+			});
+
+			return Fn::COMPLETE;
+		});
 
 	} else if (request == SNDCTL_DSP_GETOPTR) {
 
@@ -1383,6 +1414,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 					info.attribute_value("ofrag_avail", 0U);
 				unsigned int const ofrag_total =
 					info.attribute_value("ofrag_total", 0U);
+				unsigned int const ofrag_bytes =
+					info.attribute_value("ofrag_bytes", 0U);
 				if (!ofrag_size || !ofrag_total) {
 					result = ENOTSUP;
 					return;
@@ -1391,7 +1424,9 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 				int const fragments  = (int)ofrag_avail;
 				int const fragstotal = (int)ofrag_total;
 				int const fragsize   = (int)ofrag_size;
-				if (fragments < 0 || fragstotal < 0 || fragsize < 0) {
+				int const bytes      = (int)ofrag_bytes;
+				if (fragments < 0 || fragstotal < 0 ||
+				    fragsize < 0 || bytes < 0) {
 					result = EINVAL;
 					return;
 				}
@@ -1402,7 +1437,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 				buf_info->fragments  = fragments;
 				buf_info->fragstotal = fragstotal;
 				buf_info->fragsize   = fragsize;
-				buf_info->bytes      = fragments * fragsize;
+				buf_info->bytes      = bytes;
 
 				handled = true;
 			});
@@ -1444,10 +1479,37 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 		handled = true;
 
-	} else if (request == SNDCTL_DSP_RESET) {
+	} else if (request == SNDCTL_DSP_HALT) {
+
+		if (((fd->flags & O_ACCMODE) == O_RDONLY) ||
+		    ((fd->flags & O_ACCMODE) == O_RDWR)) {
+
+			char const halt_input_string[] = "1";
+
+			Absolute_path halt_input_path = ioctl_dir(*fd);
+			halt_input_path.append_element("halt_input");
+			File_descriptor *halt_input_fd = open(halt_input_path.base(), O_WRONLY);
+			if (!halt_input_fd)
+				return { true, ENOTSUP };
+			write(halt_input_fd, halt_input_string, sizeof(halt_input_string));
+			close(halt_input_fd);
+		}
+
+		if (((fd->flags & O_ACCMODE) == O_WRONLY) ||
+		    ((fd->flags & O_ACCMODE) == O_RDWR)) {
+
+			char const halt_output_string[] = "1";
+
+			Absolute_path halt_output_path = ioctl_dir(*fd);
+			halt_output_path.append_element("halt_output");
+			File_descriptor *halt_output_fd = open(halt_output_path.base(), O_WRONLY);
+			if (!halt_output_fd)
+				return { true, ENOTSUP };
+			write(halt_output_fd, halt_output_string, sizeof(halt_output_string));
+			close(halt_output_fd);
+		}
 
 		handled = true;
-		warning("SNDCTL_DSP_RESET handled=", handled, " result=", result);
 
 	} else if (request == SNDCTL_DSP_SAMPLESIZE) {
 
@@ -1487,54 +1549,111 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		int max_fragments = *frag >> 16;
 		int size_selector = *frag & ((1<<16) - 1);
 
-		char ofrag_total_string[16];
-		char ofrag_size_string[16];
+		if (((fd->flags & O_ACCMODE) == O_RDONLY) ||
+		    ((fd->flags & O_ACCMODE) == O_RDWR)) {
 
-		::snprintf(ofrag_total_string, sizeof(ofrag_total_string),
-		           "%u", max_fragments);
+			char ifrag_total_string[16];
+			char ifrag_size_string[16];
 
-		::snprintf(ofrag_size_string, sizeof(ofrag_size_string),
-		           "%u", 1 << size_selector);
+			::snprintf(ifrag_total_string, sizeof(ifrag_total_string),
+		           	   "%u", max_fragments);
 
-		Absolute_path ofrag_total_path = ioctl_dir(*fd);
-		ofrag_total_path.append_element("ofrag_total");
-		File_descriptor *ofrag_total_fd = open(ofrag_total_path.base(), O_RDWR);
-		if (!ofrag_total_fd)
-			return { true, ENOTSUP };
-		write(ofrag_total_fd, ofrag_total_string, sizeof(ofrag_total_string));
-		close(ofrag_total_fd);
+			::snprintf(ifrag_size_string, sizeof(ifrag_size_string),
+		           	   "%u", 1 << size_selector);
 
-		Absolute_path ofrag_size_path = ioctl_dir(*fd);
-		ofrag_size_path.append_element("ofrag_size");
-		File_descriptor *ofrag_size_fd = open(ofrag_size_path.base(), O_RDWR);
-		if (!ofrag_size_fd)
-			return { true, ENOTSUP };
-		write(ofrag_size_fd, ofrag_size_string, sizeof(ofrag_size_string));
-		close(ofrag_size_fd);
+			Absolute_path ifrag_total_path = ioctl_dir(*fd);
+			ifrag_total_path.append_element("ifrag_total");
+			File_descriptor *ifrag_total_fd = open(ifrag_total_path.base(), O_RDWR);
+			if (!ifrag_total_fd)
+				return { true, ENOTSUP };
+			write(ifrag_total_fd, ifrag_total_string, sizeof(ifrag_total_string));
+			close(ifrag_total_fd);
 
-		monitor().monitor([&] {
+			Absolute_path ifrag_size_path = ioctl_dir(*fd);
+			ifrag_size_path.append_element("ifrag_size");
+			File_descriptor *ifrag_size_fd = open(ifrag_size_path.base(), O_RDWR);
+			if (!ifrag_size_fd)
+				return { true, ENOTSUP };
+			write(ifrag_size_fd, ifrag_size_string, sizeof(ifrag_size_string));
+			close(ifrag_size_fd);
 
-			_with_info(*fd, [&] (Xml_node info) {
-				if (info.type() != "oss") {
-					return;
-				}
+			monitor().monitor([&] {
 
-				unsigned int const ofrag_size =
-					info.attribute_value("ofrag_size", 0U);
-				unsigned int const ofrag_size_log2 =
-					ofrag_size ? Genode::log2(ofrag_size) : 0;
+				_with_info(*fd, [&] (Xml_node info) {
+					if (info.type() != "oss") {
+						return;
+					}
 
-				unsigned int const ofrag_total =
-					info.attribute_value("ofrag_total", 0U);
+					unsigned int const ifrag_size =
+						info.attribute_value("ifrag_size", 0U);
+					unsigned int const ifrag_size_log2 =
+						ifrag_size ? Genode::log2(ifrag_size) : 0;
 
-				if (!ofrag_total || !ofrag_size_log2) {
-					result = ENOTSUP;
-					return;
-				}
+					unsigned int const ifrag_total =
+						info.attribute_value("ifrag_total", 0U);
+
+					if (!ifrag_total || !ifrag_size_log2) {
+						result = ENOTSUP;
+						return;
+					}
+				});
+				
+				return Fn::COMPLETE;
 			});
+		}
 
-			return Fn::COMPLETE;
-		});
+		if (((fd->flags & O_ACCMODE) == O_WRONLY) ||
+		    ((fd->flags & O_ACCMODE) == O_RDWR)) {
+
+			char ofrag_total_string[16];
+			char ofrag_size_string[16];
+
+			::snprintf(ofrag_total_string, sizeof(ofrag_total_string),
+		           	   "%u", max_fragments);
+
+			::snprintf(ofrag_size_string, sizeof(ofrag_size_string),
+		           	   "%u", 1 << size_selector);
+
+			Absolute_path ofrag_total_path = ioctl_dir(*fd);
+			ofrag_total_path.append_element("ofrag_total");
+			File_descriptor *ofrag_total_fd = open(ofrag_total_path.base(), O_RDWR);
+			if (!ofrag_total_fd)
+				return { true, ENOTSUP };
+			write(ofrag_total_fd, ofrag_total_string, sizeof(ofrag_total_string));
+			close(ofrag_total_fd);
+
+			Absolute_path ofrag_size_path = ioctl_dir(*fd);
+			ofrag_size_path.append_element("ofrag_size");
+			File_descriptor *ofrag_size_fd = open(ofrag_size_path.base(), O_RDWR);
+			if (!ofrag_size_fd)
+				return { true, ENOTSUP };
+			write(ofrag_size_fd, ofrag_size_string, sizeof(ofrag_size_string));
+			close(ofrag_size_fd);
+
+			monitor().monitor([&] {
+
+				_with_info(*fd, [&] (Xml_node info) {
+					if (info.type() != "oss") {
+						return;
+					}
+
+					unsigned int const ofrag_size =
+						info.attribute_value("ofrag_size", 0U);
+					unsigned int const ofrag_size_log2 =
+						ofrag_size ? Genode::log2(ofrag_size) : 0;
+
+					unsigned int const ofrag_total =
+						info.attribute_value("ofrag_total", 0U);
+
+					if (!ofrag_total || !ofrag_size_log2) {
+						result = ENOTSUP;
+						return;
+					}
+				});
+
+				return Fn::COMPLETE;
+			});
+		}
 
 		handled = true;
 
@@ -1641,8 +1760,6 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 	 * Either handled or a failed attempt will mark the I/O control
 	 * as handled.
 	 */
-	if (request == SNDCTL_DSP_RESET)
-		warning("SNDCTL_DSP_RESET handled=", handled, " result=", result);
 	return { handled || result != 0, result };
 }
 
