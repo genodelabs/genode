@@ -199,7 +199,7 @@ class Net::Dhcp_packet
 		{
 			static constexpr Code CODE = Code::PARAM_REQ_LIST;
 
-			Parameter_request_list(Genode::size_t len) : Option(CODE, len) { }
+			Parameter_request_list(Genode::size_t len) : Option(CODE, (Genode::uint8_t)len) { }
 		};
 
 		/**
@@ -215,7 +215,7 @@ class Net::Dhcp_packet
 
 				static constexpr Code CODE = Code::DNS_SERVER;
 
-				Dns_server(Genode::size_t len) : Option(CODE, len) { }
+				Dns_server(Genode::size_t len) : Option(CODE, (Genode::uint8_t)len) { }
 
 				template <typename FUNC>
 				void for_each_address(FUNC && func) const
@@ -241,7 +241,7 @@ class Net::Dhcp_packet
 
 				static constexpr Code CODE = Code::DOMAIN_NAME;
 
-				Domain_name (Genode::size_t len) : Option(CODE, len) { }
+				Domain_name (Genode::size_t len) : Option(CODE, (Genode::uint8_t)len) { }
 
 				template <typename FUNC>
 				void with_string(FUNC && func) const

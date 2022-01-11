@@ -50,7 +50,7 @@ Genode::size_t Net::ascii_to(const char *s, Net::Port &result)
 {
 	using namespace Genode;
 
-	unsigned value = 0;
+	uint16_t value = 0;
 	size_t const consumed = ascii_to_unsigned(s, value, 0);
 	result = Net::Port(value);
 	return consumed;

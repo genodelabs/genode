@@ -187,7 +187,7 @@ class Net::Ipv4_packet
 		Ipv4_address         src()             const { return Ipv4_address((void *)&_src); }
 		Ipv4_address         dst()             const { return Ipv4_address((void *)&_dst); }
 
-		void header_length(Genode::size_t v)     { Offset_0_u8::Ihl::set(_offset_0_u8, v); }
+		void header_length(Genode::size_t v)     { Offset_0_u8::Ihl::set(_offset_0_u8, (Offset_0_u8::access_t)v); }
 		void version(Genode::uint8_t v)          { Offset_0_u8::Version::set(_offset_0_u8, v); }
 		void diff_service(Genode::uint8_t v)     { Offset_1_u8::Dscp::set(_offset_1_u8, v); }
 		void ecn(Genode::uint8_t v)              { Offset_1_u8::Ecn::set(_offset_1_u8, v); }
@@ -209,7 +209,7 @@ class Net::Ipv4_packet
 		void fragment_offset(Genode::size_t v)
 		{
 			Genode::uint16_t be = host_to_big_endian(_offset_6_u16);
-			Offset_6_u16::Fragment_offset::set(be, v);
+			Offset_6_u16::Fragment_offset::set(be, (Offset_6_u16::access_t)v);
 			_offset_6_u16 = host_to_big_endian(be);
 		}
 
