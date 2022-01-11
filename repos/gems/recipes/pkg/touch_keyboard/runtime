@@ -1,0 +1,52 @@
+<runtime ram="12M" caps="350" binary="init">
+
+	<requires>
+		<gui/>
+		<timer/>
+		<event/>
+		<file_system label="fonts" writeable="no"/>
+	</requires>
+
+	<config>
+
+		<parent-provides>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="Gui"/>
+			<service name="Timer"/>
+			<service name="File_system"/>
+			<service name="Event"/>
+		</parent-provides>
+
+		<start name="touch_keyboard" caps="250">
+			<binary name="touch_keyboard"/>
+			<resource name="RAM" quantum="8M"/>
+			<config min_width="720" min_height="480"/>
+			<route>
+				<service name="ROM" label="layout">
+					<parent label="touch_keyboard_layout.config"/> </service>
+				<service name="File_system" label="fonts">
+					<parent label="fonts"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+	</config>
+
+	<content>
+		<rom label="touch_keyboard"/>
+		<rom label="touch_keyboard_layout.config"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="sandbox.lib.so"/>
+		<rom label="menu_view"/>
+		<rom label="menu_view_styles.tar"/>
+		<rom label="libpng.lib.so"/>
+		<rom label="zlib.lib.so"/>
+	</content>
+
+</runtime>

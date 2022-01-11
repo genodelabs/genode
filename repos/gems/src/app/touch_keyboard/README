@@ -1,0 +1,13 @@
+The touch-keyboard component presents a virtual keyboard on screen and emits
+input events when the user touches the virtual keys. It requires a GUI service,
+a "fonts" file-system session, and an event session.
+
+By default, the keyboard is positioned at the top-left corner of the screen
+with the smallest possible size, given the used font. Those defaults can be
+the overridden by the configuration as follows.
+
+! <config min_width="720" min_height="360" xpos="10" ypos="10"/>
+
+The layout of the virtual keyboard is defined by a ROM module requested via
+the label "layout". An example can be found at
+_recipes/raw/touch_keyboard/touch_keyboard_layout.config_.
