@@ -100,6 +100,9 @@ void Menu_view::_gen_start_node_content(Xml_generator &xml) const
 {
 	_child_state.gen_start_node_content(xml);
 
+	gen_named_node(xml, "resource", "CPU", [&] () {
+		xml.attribute("quantum", 10); });
+
 	gen_named_node(xml, "binary", "menu_view");
 
 	xml.node("config", [&] () {

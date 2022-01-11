@@ -225,7 +225,7 @@ install_config {
 
 	<start name="timer" priority="0">
 		<resource name="RAM" quantum="1M"/>
-		<resource name="CPU" quantum="10"/>
+		<resource name="CPU" quantum="5"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
@@ -365,7 +365,7 @@ install_config {
 
 	<start name="drivers" caps="4600" priority="-1" managing_system="yes">
 		<resource name="RAM" quantum="200M"/>
-		<resource name="CPU" quantum="40"/>
+		<resource name="CPU" quantum="10"/>
 		<binary name="init"/>
 		<route>
 			} [log_route] {
@@ -404,6 +404,7 @@ install_config {
 
 	<start name="nitpicker" caps="1000" priority="0">
 		<resource name="RAM" quantum="12M"/>
+		<resource name="CPU" quantum="10"/>
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -520,6 +521,7 @@ install_config {
 	<start name="leitzentrale" caps="2350" priority="-1">
 		<binary name="init"/>
 		<resource name="RAM" quantum="130M"/>
+		<resource name="CPU" quantum="35"/>
 		<affinity xpos="1" width="1"/> <!-- decouple leitzentrale from boot CPU -->
 		<provides>
 			<service name="Gui"/>
