@@ -22,10 +22,30 @@
 #include <blit/blit.h>
 #include <timer_session/connection.h>
 
-namespace Framebuffer {
-	using namespace Genode;
-	struct Main;
-};
+namespace Framebuffer { struct Main; };
+
+using namespace Genode;
+
+
+/**
+ * The blit library is not free of potential mis-aligned pointer access,
+ * which is not a problem with normal memory. But the Rpi framebuffer driver
+ * uses ordered I/O memory as backend, where mis-aligned memory access is a problem.
+ * Therefore, we do not use the blit library here, but implement a simple
+ * blit function ourselves.
+ */
+extern "C" void blit(void const * s, unsigned src_w,
+                     void * d, unsigned dst_w, int w, int h)
+{
+	char const *src = (char const *)s;
+	char       *dst = (char       *)d;
+
+	if (w <= 0 || h <= 0) return;
+
+	for (; h--; src += (src_w-w), dst += (dst_w-w))
+		for (int i = (w >> 2); i--; src += 4, dst += 4)
+			*(uint32_t *)dst = *(uint32_t const *)src;
+}
 
 
 struct Framebuffer::Main
