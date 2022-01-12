@@ -3,18 +3,20 @@
 	<report hover="yes" focus="yes" clicked="yes" keystate="no"/>
 	<background color="#000000"/>
 
-	<domain name="pointer"      layer="1" content="client" label="no" origin="pointer" />
-	<domain name="lock"         layer="2" content="client" label="no" hover="always" focus="click"/>
-	<domain name="leitzentrale" layer="3" content="client" label="no" hover="always" focus="click" />
-	<domain name="slides"       layer="4" content="client" label="no" hover="always" focus="click" />
-	<domain name="default"      layer="5" color="#052944" hover="always" focus="click" />
-	<domain name="decorator"    layer="5" content="client" label="no" hover="always" focus="transient" />
-	<domain name="desktop"      layer="5" content="client" label="no" hover="always" focus="click" />
-	<domain name="background"   layer="6" content="client" label="no" hover="always" focus="transient" />
+	<domain name="pointer"        layer="1" content="client" label="no" origin="pointer" />
+	<domain name="lock"           layer="2" content="client" label="no" hover="always" focus="click"/>
+	<domain name="leitzentrale"   layer="3" content="client" label="no" hover="always" focus="click" />
+	<domain name="slides"         layer="4" content="client" label="no" hover="always" focus="click" />
+	<domain name="touch_keyboard" layer="5" content="client" label="no" hover="always" focus="none" />
+	<domain name="default"        layer="6" color="#052944" hover="always" focus="click" />
+	<domain name="decorator"      layer="6" content="client" label="no" hover="always" focus="transient" />
+	<domain name="desktop"        layer="6" content="client" label="no" hover="always" focus="click" />
+	<domain name="background"     layer="7" content="client" label="no" hover="always" focus="transient" />
 
-	<policy label_suffix="-> decorator"         domain="decorator"/>
-	<policy label_prefix="runtime -> wm"        domain="desktop"/>
-	<policy label_prefix="runtime -> themed_wm" domain="desktop"/>
+	<policy label_suffix="-> decorator"              domain="decorator"/>
+	<policy label_prefix="runtime -> wm"             domain="desktop"/>
+	<policy label_prefix="runtime -> themed_wm"      domain="desktop"/>
+	<policy label_prefix="runtime -> touch_keyboard" domain="touch_keyboard"/>
 
 	<policy label="lock_screen"             domain="lock"/>
 	<policy label_prefix="pointer"          domain="pointer"/>
