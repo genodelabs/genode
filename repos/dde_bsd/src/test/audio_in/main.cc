@@ -36,6 +36,12 @@ class Recording
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Recording(Recording const &);
+		Recording &operator = (Recording const &);
+
 		Genode::Signal_handler<Recording>  _record_progress;
 		Genode::Signal_handler<Recording>  _record_overrun;
 
@@ -58,7 +64,7 @@ class Recording
 
 			for (int c = 0; c < CHANNELS; c++) {
 				float *out = op[c]->content();
-				for (int i = 0; i < Audio_in::PERIOD; i++) {
+				for (int i = 0; i < (int)Audio_in::PERIOD; i++) {
 					out[i] = in[i];
 				}
 			}
