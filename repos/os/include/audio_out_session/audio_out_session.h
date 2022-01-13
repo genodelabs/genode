@@ -156,8 +156,8 @@ class Audio_out::Stream
 {
 	private:
 
-		unsigned  _pos;             /* current playback position */
-		unsigned  _tail;            /* tail pointer used for allocations */
+		unsigned  _pos { 0 };       /* current playback position */
+		unsigned  _tail { 0 };      /* tail pointer used for allocations */
 		Packet    _buf[QUEUE_SIZE]; /* packet queue */
 
 	public:
