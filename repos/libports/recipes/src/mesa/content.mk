@@ -1,3 +1,6 @@
+all: content
+	rm -rf generated/.git
+
 MIRROR_FROM_REP_DIR := \
                        lib/mk/egl.mk \
                        lib/mk/mesa_gpu-etnaviv.mk \
@@ -37,7 +40,7 @@ src/lib/mesa/target.mk:
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/mesa)
 
-MIRROR_FROM_PORT_DIR := src/lib/mesa/src generated \
+MIRROR_FROM_PORT_DIR := src/lib/mesa/src generated
 
 content: $(MIRROR_FROM_PORT_DIR)
 
