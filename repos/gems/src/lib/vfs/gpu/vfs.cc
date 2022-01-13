@@ -21,6 +21,8 @@
 #include <util/xml_generator.h>
 #include <vfs/single_file_system.h>
 
+#include "vfs_gpu.h"
+
 namespace Vfs_gpu
 {
 	using namespace Vfs;
@@ -135,10 +137,9 @@ struct Vfs_gpu::File_system : Single_file_system
 
 static Vfs_gpu::File_system *_fs { nullptr };
 
-
 /**
  * XXX: return GPU session for given ID, retrieved by 'stat->inode'.
- * This function is used, for example, by libdrm via (dlopen/dlsym).
+ * This function is used, for example, by libdrm
  */
 Gpu::Connection *vfs_gpu_connection(unsigned long id)
 {
@@ -149,14 +150,24 @@ Gpu::Connection *vfs_gpu_connection(unsigned long id)
 
 	try {
 		return _fs->_handle_space.apply<Gpu_vfs_handle>(
-		         Id_space::Id { .value = id },
-		         [] (Gpu_vfs_handle &handle) {
-		         return &handle._gpu_session; });
+			Id_space::Id { .value = id },
+			[] (Gpu_vfs_handle &handle)
+			{
+				return &handle._gpu_session;
+			}
+		);
 	} catch (...) { }
 
 	return nullptr;
 }
 
+
+static Vfs::Env *_env { nullptr };
+
+Genode::Env *vfs_gpu_env()
+{
+	return _env ? &_env->env() : nullptr;
+}
 
 /**************************
  ** VFS plugin interface **
@@ -169,6 +180,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 		Vfs::File_system *create(Vfs::Env &vfs_env,
 		                         Genode::Xml_node node) override
 		{
+			_env = &vfs_env;
 			try {
 				_fs = new (vfs_env.alloc()) Vfs_gpu::File_system(vfs_env, node);
 				return _fs;
