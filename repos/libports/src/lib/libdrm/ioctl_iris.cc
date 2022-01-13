@@ -18,12 +18,13 @@
 #include <base/heap.h>
 #include <base/log.h>
 #include <base/registry.h>
-#include <base/shared_object.h>
 #include <base/sleep.h>
 
 #include <gpu_session/connection.h>
 #include <gpu/info_intel.h>
 #include <util/retry.h>
+
+#include <vfs_gpu.h>
 
 extern "C" {
 #include <errno.h>
@@ -522,8 +523,8 @@ class Drm_call
 		using Cap_quota = Genode::Cap_quota;
 		using Ram_quota = Genode::Ram_quota;
 
-		Genode::Env      &_env;
-		Genode::Heap     &_heap;
+		Genode::Env      &_env { *vfs_gpu_env() };
+		Genode::Heap      _heap { _env.ram(), _env.rm() };
 		Gpu::Connection   _gpu_session { _env };
 
 		Gpu::Info_intel  const &_gpu_info {
@@ -537,8 +538,6 @@ class Drm_call
 		using Context_id    = Genode::Id_space<Drm::Context>::Id;
 		using Context_space = Genode::Id_space<Drm::Context>;
 		Context_space _context_space { };
-
-		Gpu::Connection * (*_vfs_gpu_connection)(unsigned long);
 
 		struct Resource_guard
 		{
@@ -1099,7 +1098,7 @@ class Drm_call
 			}
 
 			/* use inode to retrieve GPU connection */
-			Gpu::Connection *gpu = _vfs_gpu_connection(buf.st_ino);
+			Gpu::Connection *gpu = vfs_gpu_connection(buf.st_ino);
 			if (!gpu) {
 				Genode::error("Could not find GPU session for id: ", buf.st_ino);
 				Libc::close(fd);
@@ -1507,31 +1506,12 @@ class Drm_call
 
 	public:
 
-		Drm_call(Genode::Env &env, Genode::Heap &heap)
-		: _env(env), _heap(heap)
+		Drm_call()
 		{
 			/* make handle id 0 unavailable, handled as invalid by iris */
 			drm_syncobj_create reserve_id_0 { };
 			if (_generic_syncobj_create(&reserve_id_0))
 				Genode::warning("syncobject 0 not reserved");
-
-			/**
-			 * XXX: lookup 'vfs_gpu_connection' function in order to retrieve GPU
-			 * connection from VFS plugin
-			 */
-			using Shared_object = Genode::Shared_object;
-			try {
-				Shared_object object { env, heap, "vfs_gpu.lib.so",
-				                       Shared_object::BIND_LAZY,
-				                       Shared_object::DONT_KEEP };
-
-				void *vfs_gpu_connection = object.lookup("_Z18vfs_gpu_connectionm");
-				Genode::log("libdrm (iris): 'vfs_gpu_connection' found at: ", vfs_gpu_connection);
-				_vfs_gpu_connection = (Gpu::Connection * (*)(unsigned long))vfs_gpu_connection;
-			} catch (Shared_object::Invalid_rom_module) {
-				Genode::error("'vfs_gpu.lib.so' plugin not found");
-				throw;
-			}
 		}
 
 		int lseek(int fd, off_t offset, int whence)
@@ -1643,12 +1623,9 @@ class Drm_call
 static Genode::Constructible<Drm_call> _call;
 
 
-void drm_init(Genode::Env &env)
+void drm_init()
 {
-	using namespace Genode;
-
-	static Heap heap { env.ram(), env.rm() };
-	_call.construct(env, heap);
+	_call.construct();
 }
 
 
