@@ -283,7 +283,9 @@ struct Drm::Context
 		}
 	};
 
-	Gpu::Connection &_gpu;
+	Gpu::Connection   &_gpu;
+	Gpu::Connection   &_gpu_master;
+	Genode::Allocator &_alloc;
 
 	Gpu::Info_intel  const &_gpu_info {
 		*_gpu.attached_info<Gpu::Info_intel>() };
@@ -367,9 +369,12 @@ struct Drm::Context
 		buffer.gpu_vaddr_valid = false;
 	}
 
-	Context(Gpu::Connection &gpu, int fd, Genode::Id_space<Context> &space)
+	Context(Gpu::Connection &gpu, Gpu::Connection &gpu_master,
+	        Genode::Allocator &alloc, int fd,
+	        Genode::Id_space<Context> &space)
 	:
-	  _gpu(gpu), _fd(fd), _elem (*this, space) { }
+	  _gpu(gpu), _gpu_master(gpu_master), _alloc(alloc), _fd(fd),
+	  _elem (*this, space) { }
 
 	unsigned long id() const
 	{
@@ -383,8 +388,7 @@ struct Drm::Context
 
 	int fd() const { return _fd; }
 
-	void import_buffer(Genode::Allocator &alloc,
-	                   Gpu::Buffer_capability buffer_cap,
+	void import_buffer(Gpu::Buffer_capability buffer_cap,
 	                   Gpu::Buffer_id id)
 	{
 		Genode::retry<Gpu::Session::Out_of_ram>(
@@ -392,7 +396,7 @@ struct Drm::Context
 			Genode::retry<Gpu::Session::Out_of_caps>(
 			[&] () {
 				_gpu.import_buffer(buffer_cap, id);
-				new (alloc) Buffer(_buffer_space, id);
+				new (_alloc) Buffer(_buffer_space, id);
 			},
 			[&] () {
 				_gpu.upgrade_caps(2);
@@ -403,23 +407,23 @@ struct Drm::Context
 		});
 	}
 
-	void free_buffer(Genode::Allocator &alloc, Gpu::Buffer_id id)
+	void free_buffer(Gpu::Buffer_id id)
 	{
 		try {
 			_buffer_space.apply<Buffer>(Buffer::Id_space::Id { .value = id.value },
 			                            [&] (Buffer &buffer) {
-				destroy(alloc, &buffer);
+				destroy(_alloc, &buffer);
 			});
 		} catch (Buffer::Id_space::Unknown_id) { return; }
 
 		_gpu.free_buffer(id);
 	}
 
-	void free_buffers(Genode::Allocator &alloc)
+	void free_buffers()
 	{
 		while (_buffer_space.apply_any<Buffer>([&] (Buffer &buffer) {
 			Gpu::Buffer_id id = buffer.buffer_id();
-			destroy(alloc, &buffer);
+			destroy(_alloc, &buffer);
 			_gpu.free_buffer(id);
 		})) { }
 	}
@@ -484,7 +488,13 @@ struct Drm::Context
 
 					ret = 0;
 				});
-			} catch (Buffer::Id_space::Unknown_id) { }
+			} catch (Buffer::Id_space::Unknown_id) {
+					Gpu::Buffer_id buffer_id { .value = id.value };
+					Gpu::Buffer_capability buffer_cap = _gpu_master.export_buffer(buffer_id);
+					import_buffer(buffer_cap, buffer_id);
+					i--;
+					continue;
+			}
 
 			if (ret) {
 				Genode::error("handle: ", obj[i].handle, " invalid, ret=", ret);
@@ -854,13 +864,6 @@ class Drm_call
 
 			if (buffer)
 				fn(*buffer);
-
-			Gpu::Buffer_capability buffer_cap = _gpu_session.export_buffer(buffer->id());
-			_context_space.for_each<Drm::Context>([&](Drm::Context &context) {
-				try {
-					context.import_buffer(_heap, buffer_cap, buffer->id());
-				} catch (...) { }
-			});
 		}
 
 		int _free_buffer(Gpu::Buffer_id const id)
@@ -874,7 +877,7 @@ class Drm_call
 					_resources.free_buffer(b.size);
 
 					_context_space.for_each<Drm::Context>([&] (Drm::Context &context) {
-						context.free_buffer(_heap, b.id()); });
+						context.free_buffer(b.id()); });
 					Genode::destroy(&_heap, &b);
 				});
 
@@ -1105,19 +1108,11 @@ class Drm_call
 				return -1;
 			}
 
-			Drm::Context *context = new (_heap) Drm::Context(*gpu, fd, _context_space);
+			Drm::Context *context = new (_heap) Drm::Context(*gpu, _gpu_session, _heap,
+			                                                 fd, _context_space);
 
 			p->ctx_id = context->id();
 
-			/* import all current buffers */
-			_buffer_space.for_each<Buffer>([&](Buffer &b) {
-				Gpu::Buffer_capability buffer_cap = _gpu_session.export_buffer(b.id());
-				try {
-					context->import_buffer(_heap, buffer_cap, b.id());
-				} catch (...) { }
-			});
-
-			Genode::error("CREATE Context: ", p->ctx_id, " gpu: ", gpu);
 			return 0;
 		}
 
@@ -1125,11 +1120,10 @@ class Drm_call
 		{
 			unsigned long ctx_id = reinterpret_cast<drm_i915_gem_context_destroy *>(arg)->ctx_id;
 			Context_id const id  = Drm::Context::id(ctx_id);
-			Genode::error("DESTROY Context: ", ctx_id);
 
 			try {
 				_context_space.apply<Drm::Context>(id, [&] (Drm::Context &context) {
-					context.free_buffers(_heap);
+					context.free_buffers();
 					Libc::close(context.fd());
 					destroy(_heap, &context);
 				});
@@ -1465,7 +1459,8 @@ class Drm_call
 						prime_handle = id;
 
 					if (prime_handle.value != id.value) {
-						Genode::warning("prime handle changed: ", id.value);
+						if (verbose_ioctl)
+							Genode::warning("prime handle changed: ", id.value);
 						prime_handle = id;
 					}
 				});
