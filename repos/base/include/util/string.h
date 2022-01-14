@@ -23,6 +23,7 @@
 namespace Genode {
 
 	class Number_of_bytes;
+	class Byte_range_ptr;
 	class Cstring;
 	template <Genode::size_t> class String;
 }
@@ -64,6 +65,22 @@ class Genode::Number_of_bytes
 			else if (_n % KB == 0) print(output, _n/KB, "K");
 			else                   print(output, _n);
 		}
+};
+
+
+/**
+ * Data structure for describing a byte buffer
+ *
+ * The type is intended to be used as 'Byte_range_ptr const &' argument.
+ * It is deliberately non-copyable.
+ */
+struct Genode::Byte_range_ptr
+{
+	char * const start;
+	size_t const num_bytes;
+
+	Byte_range_ptr(char *start, size_t num_bytes)
+	: start(start), num_bytes(num_bytes) { }
 };
 
 

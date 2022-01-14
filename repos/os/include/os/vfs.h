@@ -31,6 +31,12 @@ namespace Genode {
 	class  Watcher;
 	template <typename>
 	class  Watch_handler;
+	template <typename FN>
+	void with_raw_file_content(Readonly_file const &,
+	                           Byte_range_ptr const &, FN const &);
+	template <typename FN>
+	void with_xml_file_content(Readonly_file const &,
+	                           Byte_range_ptr const &, FN const &);
 }
 
 
@@ -487,6 +493,60 @@ class Genode::Readonly_file : public File
 };
 
 
+/**
+ * Call functor 'fn' with the data pointer and size in bytes
+ *
+ * If the buffer has a size of zero, 'fn' is not called.
+ */
+template <typename FN>
+void Genode::with_raw_file_content(Readonly_file const &file,
+                                   Byte_range_ptr const &range, FN const &fn)
+{
+	if (range.num_bytes == 0)
+		return;
+
+	size_t total_read = 0;
+	while (total_read < range.num_bytes) {
+		size_t read_bytes = file.read(Readonly_file::At{total_read},
+				                      range.start  + total_read,
+				                      range.num_bytes - total_read);
+
+		if (read_bytes == 0)
+			break;
+
+		total_read += read_bytes;
+	}
+
+	if (total_read != range.num_bytes)
+		throw File::Truncated_during_read();
+
+	fn(range.start, range.num_bytes);
+}
+
+
+/**
+ * Call functor 'fn' with content as 'Xml_node' argument
+ *
+ * If the file does not contain valid XML, 'fn' is called with an
+ * '<empty/>' node as argument.
+ */
+template <typename FN>
+void Genode::with_xml_file_content(Readonly_file const &file,
+                                   Byte_range_ptr const &range, FN const &fn)
+{
+	with_raw_file_content(file, range,
+	                      [&] (char const *ptr, size_t num_bytes) {
+		try {
+			fn(Xml_node(ptr, num_bytes));
+			return;
+		}
+		catch (Xml_node::Invalid_syntax) { }
+
+		fn(Xml_node("<empty/>"));
+	});
+}
+
+
 class Genode::File_content
 {
 	private:
@@ -533,22 +593,10 @@ class Genode::File_content
 		:
 			_buffer(alloc, min((size_t)dir.file_size(rel_path), limit.value))
 		{
-			Readonly_file file {dir, rel_path};
-
-			size_t total_read = 0;
-			while (total_read < _buffer.size) {
-				size_t read_bytes = file.read(Readonly_file::At{total_read},
-				                              _buffer.ptr  + total_read,
-				                              _buffer.size - total_read);
-
-				if (read_bytes == 0)
-					break;
-
-				total_read += read_bytes;
-			}
-
-			if (total_read != _buffer.size)
-				throw Truncated_during_read();
+			/* read the file content into the buffer */
+			with_raw_file_content(Readonly_file(dir, rel_path),
+			                      Byte_range_ptr(_buffer.ptr, _buffer.size),
+			                      [] (char const*, size_t) { });
 		}
 
 		/**
