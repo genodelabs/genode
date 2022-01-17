@@ -14,9 +14,11 @@
 
 /* VirtualBox includes */
 #include <VBox/vmm/cpum.h>      /* must be included before CPUMInternal.h */
+#include <VBox/vmm/tm.h>        /* must be included before TMInternal.h */
 #define VMCPU_INCL_CPUM_GST_CTX /* needed for cpum.GstCtx */
 #include <CPUMInternal.h>       /* enable access to cpum.s.* */
 #include <HMInternal.h>         /* enable access to hm.s.* */
+#include <TMInternal.h>         /* enable access to tm.s.* */
 #define RT_OS_WINDOWS           /* needed for definition all nem.s members */
 #include <NEMInternal.h>        /* enable access to nem.s.* */
 #undef RT_OS_WINDOWS
@@ -252,6 +254,30 @@ void nemR3NativeResetCpu(PVMCPU pVCpu, bool fInitIpi) TRACE()
 VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
 {
 	using namespace Sup;
+
+	/*
+	 * Program the watchdog timer near the next expiring virtual sync timeout.
+	 * Without this code the watchdog timer would be programmed to a fixed
+	 * interval (10ms by default), which could be too high or cause too much
+	 * CPU load if set lower. Other hosts use the VMX preemption timer, which
+	 * is currently not available on Genode.
+	 */
+	{
+		static ::uint64_t current_interval_ns { 0 };
+		static Mutex interval_mutex { };
+
+		Mutex::Guard guard(interval_mutex);
+
+		::uint64_t new_interval_ns = TMVirtualSyncGetNsToDeadline(pVM);
+		new_interval_ns = (new_interval_ns / RT_NS_1MS) * RT_NS_1MS;
+		new_interval_ns = max(new_interval_ns, 1 * RT_NS_1MS);
+		new_interval_ns = min(new_interval_ns, 10 * RT_NS_1MS);
+
+		if (new_interval_ns != current_interval_ns) {
+			RTTimerChangeInterval(pVM->tm.s.pTimer, new_interval_ns);
+			current_interval_ns = new_interval_ns;
+		}
+	}
 
 	Vm &vm = *static_cast<Vm *>(pVM);
 

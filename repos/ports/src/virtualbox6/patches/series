@@ -7,3 +7,4 @@ devahci.patch
 smp_sipi.patch
 tm_poke.patch
 exec_state.patch
+rttimer.patch

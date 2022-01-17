@@ -1,0 +1,54 @@
+Implement RTTimerChangeInterval()
+
+diff --git a/src/virtualbox6/src/VBox/Runtime/generic/timer-generic.cpp b/src/virtualbox6/src/VBox/Runtime/generic/timer-generic.cpp
+index 6857bfb..7a32560 100644
+--- a/src/virtualbox6/src/VBox/Runtime/generic/timer-generic.cpp
++++ b/src/virtualbox6/src/VBox/Runtime/generic/timer-generic.cpp
+@@ -223,10 +223,45 @@ RT_EXPORT_SYMBOL(RTTimerStop);
+ 
+ RTDECL(int) RTTimerChangeInterval(PRTTIMER pTimer, uint64_t u64NanoInterval)
+ {
++    /* implementation ported from timerlr-generic.cpp for Genode */
++
+     if (!rtTimerIsValid(pTimer))
+         return VERR_INVALID_HANDLE;
+-    NOREF(u64NanoInterval);
+-    return VERR_NOT_SUPPORTED;
++
++    PRTTIMER pThis = pTimer;
++
++    /*
++     * Do the job accoring to state and caller.
++     */
++    int rc;
++    if (pThis->fSuspended)
++    {
++        /* Stopped: Just update the interval. */
++        ASMAtomicWriteU64(&pThis->u64NanoInterval, u64NanoInterval);
++        rc = VINF_SUCCESS;
++    }
++    else if (RTThreadSelf() == pThis->Thread)
++    {
++        /* Running: Updating interval from the callback. */
++        uint64_t u64Now = RTTimeNanoTS();
++        pThis->iTick           = 0;
++        pThis->u64StartTS      = u64Now;
++        pThis->u64NextTS       = u64Now;
++        ASMAtomicWriteU64(&pThis->u64NanoInterval, u64NanoInterval);
++        rc = VINF_SUCCESS;
++    }
++    else
++    {
++        /* Running: Stopping  */
++        rc = RTTimerStop(pThis);
++        if (RT_SUCCESS(rc))
++        {
++            ASMAtomicWriteU64(&pThis->u64NanoInterval, u64NanoInterval);
++            rc = RTTimerStart(pThis, 0);
++        }
++    }
++
++    return rc;
+ }
+ RT_EXPORT_SYMBOL(RTTimerChangeInterval);
+ 
