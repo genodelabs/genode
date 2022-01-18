@@ -274,6 +274,9 @@ class Device : public List<Device>::Element
 			}
 
 			_ack_packet(p);
+
+			if (_sink && _sink->packet_avail())
+				packet_avail();
 		}
 
 		static void _async_complete(urb *urb)
