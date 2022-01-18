@@ -4,6 +4,35 @@
                                ===========
 
 
+Road Map for 2022 | 2022-01-18
+##############################
+
+| Our plans for 2022 envision the use of Genode for advanced mobile
+| use cases such as video chat.
+
+Following Genode's major technical breakthroughs in the areas of reusing Linux
+drivers, hardware-accelerated graphics, and the native execution of Chromium
+during 2021, we will pursue _mobile usability_ as overarching theme in 2022.
+Specifically, we aspire the routine use of Genode on the Pinephone as a
+platform for video chat, using WireGuard to protect the communications.
+
+This vision motivates a large variety of challenging technical topics.
+To name a few, we have to squeeze good performance out of the
+resource-constrained Pinephone hardware, focus on UI latency and the quality
+of service of audio streaming, come up with a somewhat usable touch-based
+user interface, and get to the guts of power management.
+
+Aside this guiding theme, we put a broad update of our PC drivers on our
+agenda so that Sculpt OS remains a suitable basis for our day-to-day
+computing needs on recent generations of Intel hardware.
+As an additional line of development, we are excited to intensify the
+combination of Genode with reconfigurable hardware.
+
+More information about our review of the past year, this year's focus, and a
+rough schedule are presented at our official
+[https:/about/road-map - road-map page].
+
+
 Genode OS Framework release 21.11 | 2021-11-30
 ##############################################
 
