@@ -3556,16 +3556,16 @@ if {[have_spec x86_32]} {
 	set reference_output $reference_output_x86_32
 }
 
-proc filter_and_compare_output {pattern expected} {
+proc filter_and_compare_output {number expected} {
 	global output
 	set    old_output $output
-	grep_output  "init -> $pattern"
-	unify_output {\[init -> test.\] } {}
+	grep_output  "\\\[init -> test$number\\\]"
+	unify_output "\\\[init -> test$number\\\] " {}
 	compare_output_to $expected
 	set output $old_output
 }
 
-filter_and_compare_output "test1" $reference_output
-filter_and_compare_output "test2" $reference_output
-filter_and_compare_output "test3" $reference_output
-filter_and_compare_output "test4" $reference_output
+filter_and_compare_output "1" $reference_output
+filter_and_compare_output "2" $reference_output
+filter_and_compare_output "3" $reference_output
+filter_and_compare_output "4" $reference_output
