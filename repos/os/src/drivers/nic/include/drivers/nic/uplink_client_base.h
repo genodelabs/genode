@@ -32,13 +32,6 @@ class Genode::Uplink_client_base : Noncopyable
 
 		enum class Write_result { WRITE_SUCCEEDED, WRITE_FAILED };
 
-		enum class Burst_result
-		{
-			BURST_SUCCEEDED,
-			BURST_FAILED,
-			BURST_CONTINUE
-		};
-
 		enum { PKT_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE };
 		enum { BUF_SIZE = Uplink::Session::QUEUE_SIZE * PKT_SIZE };
 
@@ -66,11 +59,6 @@ class Genode::Uplink_client_base : Noncopyable
 
 		void _conn_tx_handle_ack_avail()
 		{
-			if (_custom_conn_tx_ack_avail_handler()) {
-				_custom_conn_tx_handle_ack_avail();
-				return;
-			}
-
 			while (_conn->tx()->ack_avail()) {
 
 				_conn->tx()->release_packet(_conn->tx()->get_acked_packet());
@@ -79,99 +67,55 @@ class Genode::Uplink_client_base : Noncopyable
 
 		void _conn_rx_handle_packet_avail()
 		{
-			if (_custom_conn_rx_packet_avail_handler()) {
+			bool drv_ready_to_transmit_pkt { _drv_link_state };
+			bool pkts_transmitted          { false };
 
-				_custom_conn_rx_handle_packet_avail();
+			while (drv_ready_to_transmit_pkt &&
+			       _conn->rx()->packet_avail() &&
+			       _conn->rx()->ready_to_ack()) {
 
-			} else if (_drv_supports_transmit_pkt_burst()) {
+				Packet_descriptor const conn_rx_pkt {
+					_conn->rx()->get_packet() };
 
-				_drv_transmit_pkt_burst_prepare();
+				if (conn_rx_pkt.size() > 0 &&
+				    _conn->rx()->packet_valid(conn_rx_pkt)) {
 
-				/* submit received packets to lower layer */
-				while (((_conn->rx()->packet_avail() || _save.size()) && _conn->rx()->ready_to_ack())) {
+					const char *const conn_rx_pkt_base {
+						_conn->rx()->packet_content(conn_rx_pkt) };
 
-					Packet_descriptor packet = _save.size() ? _save : _conn->rx()->get_packet();
-					_save                    = Packet_descriptor();
+					switch (_drv_transmit_pkt(conn_rx_pkt_base,
+					                          conn_rx_pkt.size())) {
 
-					if (!packet.size()) {
+					case Transmit_result::ACCEPTED:
 
-						class Invalid_packet { };
-						throw Invalid_packet { };
-					}
+						pkts_transmitted = true;
+						_conn->rx()->acknowledge_packet(conn_rx_pkt);
+						break;
 
-					char const *packet_base {
-						_conn->rx()->packet_content(packet) };
+					case Transmit_result::REJECTED:
 
-					Burst_result const result {
-						_drv_transmit_pkt_burst_step(
-							packet, packet_base, _save) };
+						warning("failed to forward packet from "
+						        "Uplink-connection RX to driver");
 
-					switch (result) {
-					case Burst_result::BURST_FAILED:
-						return;
-					case Burst_result::BURST_CONTINUE:
-						continue;
-					case Burst_result::BURST_SUCCEEDED:
+						_conn->rx()->acknowledge_packet(conn_rx_pkt);
+						break;
+
+					case Transmit_result::RETRY:
+
+						drv_ready_to_transmit_pkt = false;
 						break;
 					}
 
-					/* acknowledge to client */
-					_conn->rx()->acknowledge_packet(packet);
+				} else {
+
+					warning("ignoring invalid packet from Uplink-"
+					        "connection RX");
 				}
-				_drv_transmit_pkt_burst_finish();
+			}
 
-			} else {
+			if (pkts_transmitted) {
 
-				bool drv_ready_to_transmit_pkt { _drv_link_state };
-				bool pkts_transmitted          { false };
-
-				while (drv_ready_to_transmit_pkt &&
-				       _conn->rx()->packet_avail() &&
-				       _conn->rx()->ready_to_ack()) {
-
-					Packet_descriptor const conn_rx_pkt {
-						_conn->rx()->get_packet() };
-
-					if (conn_rx_pkt.size() > 0 &&
-					    _conn->rx()->packet_valid(conn_rx_pkt)) {
-
-						const char *const conn_rx_pkt_base {
-							_conn->rx()->packet_content(conn_rx_pkt) };
-
-						switch (_drv_transmit_pkt(conn_rx_pkt_base,
-						                          conn_rx_pkt.size())) {
-
-						case Transmit_result::ACCEPTED:
-
-							pkts_transmitted = true;
-							_conn->rx()->acknowledge_packet(conn_rx_pkt);
-							break;
-
-						case Transmit_result::REJECTED:
-
-							warning("failed to forward packet from "
-							        "Uplink-connection RX to driver");
-
-							_conn->rx()->acknowledge_packet(conn_rx_pkt);
-							break;
-
-						case Transmit_result::RETRY:
-
-							drv_ready_to_transmit_pkt = false;
-							break;
-						}
-
-					} else {
-
-						warning("ignoring invalid packet from Uplink-"
-						        "connection RX");
-					}
-				}
-
-				if (pkts_transmitted) {
-
-					_drv_finish_transmitted_pkts();
-				}
+				_drv_finish_transmitted_pkts();
 			}
 		}
 
@@ -276,54 +220,9 @@ class Genode::Uplink_client_base : Noncopyable
 
 		virtual void _drv_finish_transmitted_pkts() { }
 
-		virtual bool _drv_supports_transmit_pkt_burst()
-		{
-			return false;
-		}
-
-		virtual void _drv_transmit_pkt_burst_finish()
-		{
-			class Unexpected_call { };
-			throw Unexpected_call { };
-		}
-
-		virtual void _drv_transmit_pkt_burst_prepare()
-		{
-			class Unexpected_call { };
-			throw Unexpected_call { };
-		}
-
-		virtual Burst_result
-		_drv_transmit_pkt_burst_step(Packet_descriptor const &packet,
-		                             char              const *packet_base,
-		                             Packet_descriptor       &save)
-		{
-			(void)packet;
-			(void)packet_base;
-			(void)save;
-			class Unexpected_call { };
-			throw Unexpected_call { };
-		}
-
 		virtual Transmit_result
 		_drv_transmit_pkt(const char *conn_rx_pkt_base,
 		                  size_t      conn_rx_pkt_size) = 0;
-
-		virtual void _custom_conn_rx_handle_packet_avail()
-		{
-			class Unexpected_call { };
-			throw Unexpected_call { };
-		}
-
-		virtual void _custom_conn_tx_handle_ack_avail()
-		{
-			class Unexpected_call { };
-			throw Unexpected_call { };
-		}
-
-		virtual bool _custom_conn_rx_packet_avail_handler() { return false; }
-
-		virtual bool _custom_conn_tx_ack_avail_handler() { return false; }
 
 	public:
 
