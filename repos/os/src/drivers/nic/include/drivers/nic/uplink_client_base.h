@@ -59,6 +59,9 @@ class Genode::Uplink_client_base : Noncopyable
 
 		void _conn_tx_handle_ack_avail()
 		{
+			if (!_conn.constructed()) {
+				return;
+			}
 			while (_conn->tx()->ack_avail()) {
 
 				_conn->tx()->release_packet(_conn->tx()->get_acked_packet());
@@ -67,6 +70,9 @@ class Genode::Uplink_client_base : Noncopyable
 
 		void _conn_rx_handle_packet_avail()
 		{
+			if (!_conn.constructed()) {
+				return;
+			}
 			bool drv_ready_to_transmit_pkt { _drv_link_state };
 			bool pkts_transmitted          { false };
 
