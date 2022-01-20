@@ -1620,6 +1620,14 @@ static Genode::Constructible<Drm_call> _call;
 
 void drm_init()
 {
+	/* make sure VFS is initialized */
+	struct Libc::stat buf;
+	if (stat("/dev/gpu", &buf) < 0) {
+		Genode::error("'/dev/gpu' not accessible: ",
+				          "try configure '<gpu>' in 'dev' directory of VFS'");
+		return;
+	}
+
 	_call.construct();
 }
 
