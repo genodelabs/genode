@@ -414,7 +414,7 @@ void Main::_handle_fb_mode()
 		_gui_connections.for_each([&] (Gui::Connection &gui) {
 			IFramebuffer *pFramebuffer = NULL;
 			HRESULT rc = _idisplay->QueryFramebuffer(0, &pFramebuffer);
-			Assert(SUCCEEDED(rc) && pFramebuffer);
+			Assert(SUCCEEDED(rc) && pFramebuffer); (void)rc;
 
 			Genodefb *fb = dynamic_cast<Genodefb *>(pFramebuffer);
 

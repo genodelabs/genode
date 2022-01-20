@@ -100,7 +100,7 @@ class Genodefb :
 			_display(display)
 		{
 			int rc = RTCritSectInit(&_fb_lock);
-			Assert(rc == VINF_SUCCESS);
+			Assert(rc == VINF_SUCCESS); (void)rc;
 		}
 
 		virtual ~Genodefb() { }
