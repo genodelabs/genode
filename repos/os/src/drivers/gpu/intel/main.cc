@@ -1480,6 +1480,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		Genode::Region_map       &_rm;
 		Constrained_ram_allocator _ram;
 		Heap                      _heap { _ram, _rm };
+		Capability<Gpu::Session>  _session_cap { cap() };
 
 		Igd::Device       &_device;
 		Igd::Device::Vgpu  _vgpu;
@@ -1695,7 +1696,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 				_apply_buffer(buffer_local, [&](Buffer &buffer) {
 
-					if (buffer.owner(cap()) == false) return false;
+					if (buffer.owner(_session_cap) == false) return false;
 
 					if (buffer.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
 						_device.unmap_buffer(_heap, buffer.map);
@@ -1716,7 +1717,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				_free_local_buffer(buffer_local);
 			};
 
-			_buffer_space.for_each<Buffer_local>(lookup_and_free);
+			while(_buffer_space.apply_any<Buffer_local>(
+				[&] (Buffer_local &buffer_local) { lookup_and_free(buffer_local); }));
 		}
 
 		/*********************************
@@ -1810,7 +1812,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				Genode::Dataspace_capability ds_cap =
 					_device.alloc_buffer(_heap, size);
 
-				Buffer *buffer = new (&_heap) Buffer(ds_cap, cap());
+				Buffer *buffer = new (&_heap) Buffer(ds_cap, _session_cap);
 				_env.ep().manage(*buffer);
 				try {
 					new (&_heap) Buffer_local(buffer->cap(), size, _buffer_space, id);
@@ -1843,7 +1845,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 				_apply_buffer(buffer_local, [&](Buffer &buffer) {
 
-					if (buffer.owner(cap()) == false) return false;
+					if (buffer.owner(_session_cap) == false) return false;
 
 					if (buffer.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
 						Genode::error("cannot free mapped buffer");
@@ -1904,7 +1906,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			Genode::Dataspace_capability map_cap;
 
 			auto lookup_and_map = [&] (Buffer &buffer) {
-				if (buffer.owner(cap()) == false) {
+				if (buffer.owner(_session_cap) == false) {
 					Genode::error("GGTT mappings can only be done by buffer owner");
 					return false;
 				}
@@ -1947,7 +1949,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			auto lookup_and_unmap = [&] (Buffer &buffer) {
 
-				if (buffer.owner(cap()) == false) {
+				if (buffer.owner(_session_cap) == false) {
 					Genode::error("GGTT unmappings can only be done by buffer owner");
 					return false;
 				}
@@ -2071,7 +2073,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			Buffer *b = nullptr;
 			auto lookup = [&] (Buffer &buffer) {
-				if (!buffer.map.cap.valid() || !buffer.owner(cap())) { return false; }
+				if (!buffer.map.cap.valid() || !buffer.owner(_session_cap)) { return false; }
 				b = &buffer;
 				return false;
 			};
