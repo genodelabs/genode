@@ -21,6 +21,12 @@ LX_ENABLE += ACPI
 LX_ENABLE += USB_SUPPORT USB USB_ARCH_HAS_HCD USB_XHCI_HCD USB_EHCI_HCD USB_OHCI_HCD
 LX_ENABLE += USB_PCI USB_UHCI_HCD
 
+# Intel framebuffer
+LX_ENABLE += DRM DRM_I915
+
+# to automatically set up screen mode at boot time
+LX_ENABLE += FB
+
 # mandatory fs support
 LX_ENABLE += PROC_FS SYSFS
 

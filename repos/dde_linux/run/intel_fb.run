@@ -2,16 +2,22 @@
 # Build
 #
 
+set use_gpu 1
+set use_top 0
+
 set build_components {
 	core init timer
-	drivers/framebuffer/intel
+	drivers/framebuffer/intel/pc
 	test/framebuffer
 	server/report_rom
 	server/vfs
 	server/fs_rom
-	app/top
 	lib/vfs/import
 }
+
+
+append_if $use_gpu build_components { drivers/gpu/intel }
+append_if $use_top build_components { app/top }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -81,13 +87,15 @@ append config {
 				<any-service> <parent/> <any-child/> </any-service>
 			</default-route>
 			<default caps="100"/>
-			<report init_ram="yes" child_ram="yes" delay_ms="10000"/>
+			<report init_ram="yes" child_ram="yes" delay_ms="10000"/>}
 
+append_if $use_top config {
 			<start name="top">
 				<resource name="RAM" quantum="2M"/>
 				<config period_ms="40000"/>
-			</start>
+			</start>}
 
+append config {
 			<start name="report_rom" priority="-1">
 				<resource name="RAM" quantum="2M"/>
 				<provides> <service name="Report" /> <service name="ROM" /> </provides>
@@ -124,12 +132,42 @@ append config {
 					<service name="File_system"> <child name="config_fs" /> </service>
 					<any-service> <parent/> <any-child/> </any-service>
 				</route>
-			</start>
+			</start>}
 
-			<start name="intel_fb_drv" caps="1000">
-				<binary name="legacy_intel_fb_drv"/>
-				<resource name="RAM" quantum="60M"/>
+append_if $use_gpu config {
+			<start name="intel_gpu_drv" caps="2000">
+				<resource name="RAM" quantum="40M"/>
+				<provides>
+					<service name="Gpu"/>
+					<service name="Platform"/>
+				</provides>
+				<config>
+					<device vendor="0x8086" device="0x1606" generation="8" platform="broadwell" description="HD Graphics (BDW GT1 ULT)"/>
+					<device vendor="0x8086" device="0x1616" generation="8" platform="broadwell" description="HD Graphics 5500 (BDW GT2 ULT)"/>
+					<device vendor="0x8086" device="0x1622" generation="8" platform="broadwell" description="Iris Pro Graphics 6200 (BDW GT3e)"/>
+					<device vendor="0x8086" device="0x1916" generation="9" platform="skylake"  description="HD Graphics 520 (Skylake, Gen9)"/>
+					<device vendor="0x8086" device="0x191b" generation="9" platform="skylake"  description="HD Graphics 530 (Skylake, Gen9)"/>
+					<device vendor="0x8086" device="0x5916" generation="9" platform="kabylake" description="HD Graphics 620 (Kaby Lake, Gen9p5)"/>
+					<device vendor="0x8086" device="0x5917" generation="9" platform="kabylake" description="UHD Graphics 620 (Kaby Lake, Gen9p5)"/>
+					<device vendor="0x8086" device="0x591b" generation="9" platform="kabylake" description="HD Graphics 630 (Kaby Lake, Gen9p5)"/>
+					<device vendor="0x8086" device="0x3ea0" generation="9" platform="whiskeylake" description="UHD Graphics 620 (Whiskey Lake, Gen9p5)"/>
+				</config>
 				<route>
+					<service name="Platform"> <parent/> </service>
+					<any-service> <parent /> <any-child/> </any-service>
+				</route>
+			</start>}
+
+append config {
+			<start name="intel_fb_drv" caps="1000">
+				<binary name="pc_intel_fb_drv"/>
+				<resource name="RAM" quantum="60M"/>
+				<route>}
+
+append_if $use_gpu config {
+					<service name="Platform"> <child name="intel_gpu_drv"/> </service>}
+
+append config {
 					<service name="ROM" label="config">
 						<child name="config_rom" label="fb_drv.config"/> </service>
 					<service name="Report"> <child name="report_rom"/> </service>
@@ -166,10 +204,12 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer legacy_intel_fb_drv intel_fb_controller
+	core ld.lib.so init timer pc_intel_fb_drv intel_fb_controller
 	test-framebuffer report_rom fs_rom vfs vfs.lib.so vfs_import.lib.so
-	top
 }
+
+append_if $use_gpu boot_modules { intel_gpu_drv }
+append_if $use_top boot_modules { top }
 
 append_platform_drv_boot_modules
 

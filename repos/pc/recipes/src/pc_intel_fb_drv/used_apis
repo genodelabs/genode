@@ -1,0 +1,9 @@
+base
+os
+platform_session
+timer_session
+report_session
+capture_session
+blit
+genode_c_api
+pc_linux
