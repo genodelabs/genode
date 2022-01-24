@@ -63,7 +63,7 @@ struct Fs_packet::Main
 
 	Main(Genode::Env &env) : env(env)
 	{
-		fs.sigh_ack_avail(ack_handler);
+		fs.sigh(ack_handler);
 
 		/**********************
 		 ** Stuff the buffer **
