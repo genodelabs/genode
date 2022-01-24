@@ -96,22 +96,23 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 {
 	Native_utcb &utcb = *Thread::myself()->utcb();
 
-	retry<Genode::Allocator::Out_of_memory>(
-		[&] () {
+	/*
+	 * Issue IPC call, upgrade the PD's capability slab on demand.
+	 */
+	for (bool done = false; !done; ) {
 
-			copy_msg_to_utcb(snd_msg, *Thread::myself()->utcb());
+		copy_msg_to_utcb(snd_msg, *Thread::myself()->utcb());
 
-			switch (Kernel::send_request_msg(Capability_space::capid(dst),
-			                                 (unsigned)rcv_caps)) {
+		switch (Kernel::send_request_msg(Capability_space::capid(dst),
+		                                 (unsigned)rcv_caps)) {
 
-			case -1: throw Blocking_canceled();
-			case -2: throw Allocator::Out_of_memory();
-			default:
-				copy_utcb_to_msg(utcb, rcv_msg);
-			}
+		case -1: throw Blocking_canceled();
+		case -2: upgrade_capability_slab(); break;
+		default: done = true; break;
+		}
+	}
 
-		},
-		[&] () { upgrade_capability_slab(); });
+	copy_utcb_to_msg(utcb, rcv_msg);
 
 	return Rpc_exception_code((int)utcb.exception_code());
 }
