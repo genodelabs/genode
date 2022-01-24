@@ -140,24 +140,23 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 {
 	Native_utcb &utcb = *Thread::myself()->utcb();
 
-	retry<Genode::Allocator::Out_of_memory>(
-		[&] () {
-			int ret = 0;
-			if (exc.value != Rpc_exception_code::INVALID_OBJECT) {
-				copy_msg_to_utcb(reply_msg, utcb);
-				utcb.exception_code(exc.value);
-				ret = Kernel::send_reply_msg(Msgbuf_base::MAX_CAPS_PER_MSG, true);
-			} else {
-				ret = Kernel::await_request_msg(Msgbuf_base::MAX_CAPS_PER_MSG);
-			}
+	for (bool done = false; !done; ) {
 
-			switch (ret) {
-			case -1: throw Blocking_canceled();
-			case -2: throw Allocator::Out_of_memory();
-			default: break;
-			}
-		},
-		[&] () { upgrade_capability_slab(); });
+		int ret = 0;
+		if (exc.value != Rpc_exception_code::INVALID_OBJECT) {
+			copy_msg_to_utcb(reply_msg, utcb);
+			utcb.exception_code(exc.value);
+			ret = Kernel::send_reply_msg(Msgbuf_base::MAX_CAPS_PER_MSG, true);
+		} else {
+			ret = Kernel::await_request_msg(Msgbuf_base::MAX_CAPS_PER_MSG);
+		}
+
+		switch (ret) {
+		case -1: throw Blocking_canceled();
+		case -2: upgrade_capability_slab(); break;
+		default: done = true; break;
+		}
+	}
 
 	copy_utcb_to_msg(utcb, request_msg);
 
