@@ -453,7 +453,7 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 
 	Main(Genode::Env &env) : env(env)
 	{
-		fs.sigh_ack_avail(packet_handler);
+		fs.sigh(packet_handler);
 
 		/* process any requests that have already queued */
 		session_requests.schedule();

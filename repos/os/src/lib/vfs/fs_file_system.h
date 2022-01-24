@@ -535,12 +535,6 @@ class Vfs::Fs_file_system : public File_system
 			return count;
 		}
 
-		void _ready_to_submit()
-		{
-			_congested_handles.dequeue_all([] (Fs_vfs_handle &handle) {
-				handle.io_progress_response(); });
-		}
-
 		void _handle_ack()
 		{
 			::File_system::Session::Tx::Source &source = *_fs.tx();
@@ -616,19 +610,17 @@ class Vfs::Fs_file_system : public File_system
 			}
 		}
 
-		void _handle_ack_signal()
+		void _handle_signal()
 		{
 			_handle_ack();
 
-			/* packet buffer space available */
-			_ready_to_submit();
+			_congested_handles.dequeue_all([] (Fs_vfs_handle &handle) {
+				handle.io_progress_response(); });
+
 		}
 
-		Genode::Io_signal_handler<Fs_file_system> _ack_handler {
-			_env.env().ep(), *this, &Fs_file_system::_handle_ack_signal };
-
-		Genode::Io_signal_handler<Fs_file_system> _ready_handler {
-			_env.env().ep(), *this, &Fs_file_system::_ready_to_submit };
+		Genode::Io_signal_handler<Fs_file_system> _signal_handler {
+			_env.env().ep(), *this, &Fs_file_system::_handle_signal };
 
 		static size_t buffer_size(Genode::Xml_node const &config)
 		{
@@ -648,8 +640,7 @@ class Vfs::Fs_file_system : public File_system
 			    config.attribute_value("writeable", true),
 			    buffer_size(config))
 		{
-			_fs.sigh_ack_avail(_ack_handler);
-			_fs.sigh_ready_to_submit(_ready_handler);
+			_fs.sigh(_signal_handler);
 		}
 
 		/*********************************
