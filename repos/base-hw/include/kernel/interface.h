@@ -92,8 +92,7 @@ namespace Kernel {
 	 * \param  duration_us  timeout duration in microseconds
 	 * \param  sigid        local name of signal context to trigger
 	 *
-	 * This call always overwrites the last timeout installed by the thread
-	 * if any.
+	 * This call overwrites the last timeout installed by the thread.
 	 */
 	inline int timeout(timeout_t const duration_us, capid_t const sigid)
 	{
@@ -130,7 +129,7 @@ namespace Kernel {
 	 *
 	 * The stop syscall always targets the calling thread that, therefore must
 	 * be in the 'active' thread state. The thread then switches to the
-	 * 'stopped' thread state in wich it waits for a restart. The restart
+	 * 'stopped' thread state, in which it waits for a restart. The restart
 	 * syscall can only be used on a thread in the 'stopped' or the 'active'
 	 * thread state. The thread then switches back to the 'active' thread
 	 * state and the syscall returns whether the thread was stopped. Both
@@ -151,7 +150,7 @@ namespace Kernel {
 	/**
 	 * End blocking of a stopped thread
 	 *
-	 * \param thread_id  capability id of the targeted thread
+	 * \param thread_id  capability ID of the targeted thread
 	 *
 	 * \return  wether the thread was stopped beforehand
 	 *
@@ -164,9 +163,9 @@ namespace Kernel {
 
 
 	/**
-	 * Yield the callers remaining CPU time for this super period
+	 * Yield the caller's remaining CPU time for this super period
 	 *
-	 * Does its best that the caller is scheduled as few as possible in the
+	 * Tell the kernel to schedule the caller as little as possible in the
 	 * current scheduling super-period without touching the thread or pause
 	 * state of the thread. In the next superperiod, however, the thread is
 	 * scheduled 'normal' again. The syscall is not core-restricted and always
@@ -217,16 +216,16 @@ namespace Kernel {
 
 
 	/**
-	 * Send request message and await receipt of corresponding reply message
+	 * Send request message and await reception of corresponding reply message
 	 *
-	 * \param thread_id  capability id of targeted thread
+	 * \param thread_id  capability ID of targeted thread
 	 *
 	 * \retval  0  succeeded
 	 * \retval -1  failed
 	 * \retval -2  failed due to out-of-memory for capability reception
 	 *
 	 * If the call returns successful, the received message is located at the
-	 * base of the callers userland thread-context.
+	 * base of the caller's userland thread-context.
 	 */
 	inline int send_request_msg(capid_t const thread_id, unsigned rcv_caps)
 	{
@@ -235,7 +234,7 @@ namespace Kernel {
 
 
 	/**
-	 * Await receipt of request message
+	 * Await reception of request message
 	 *
 	 * \param rcv_caps number of capabilities willing to accept
 	 *
@@ -243,8 +242,8 @@ namespace Kernel {
 	 * \retval -1  canceled
 	 * \retval -2  failed due to out-of-memory for capability reception
 	 *
-	 * If the call returns successful, the received message is located at the
-	 * base of the callers userland thread-context.
+	 * If the call returns successfully, the received message is located at the
+	 * base of the caller's userland thread-context.
 	 */
 	inline int await_request_msg(unsigned rcv_caps)
 	{
@@ -253,16 +252,16 @@ namespace Kernel {
 
 
 	/**
-	 * Reply to lastly received request message
+	 * Reply to previously received request message
 	 *
 	 * \param rcv_caps number of capabilities to accept when awaiting again
-	 * \param await_request_msg  wether the call shall await a request message
+	 * \param await_request_msg  whether the call shall await a request message
 	 *
-	 * \retval  0  await_request_msg == 0 or request-message receipt succeeded
-	 * \retval -1  await_request_msg == 1 and request-message receipt failed
+	 * \retval  0  await_request_msg == 0 or request-message received
+	 * \retval -1  await_request_msg == 1 and request-message failed
 	 *
 	 * If the call returns successful and await_request_msg == 1, the received
-	 * message is located at the base of the callers userland thread-context.
+	 * message is located at the base of the caller's userland thread context.
 	 */
 	inline int send_reply_msg(unsigned rcv_caps, bool const await_request_msg)
 	{
@@ -271,9 +270,9 @@ namespace Kernel {
 
 
 	/**
-	 * Print a char c to the kernels serial ouput
+	 * Print a char c to the kernel's serial ouput
 	 *
-	 * If c is set to 0 the kernel prints a table of all threads and their
+	 * If 'c' is set to 0 the kernel prints a table of all threads and their
 	 * current activities to the serial output.
 	 */
 	inline void print_char(char const c)
@@ -285,13 +284,13 @@ namespace Kernel {
 	/**
 	 * Await any context of a receiver and optionally ack a context before
 	 *
-	 * \param receiver_id  capability id of the targeted signal receiver
+	 * \param receiver_id  capability ID of the targeted signal receiver
 	 *
 	 * \retval  0  suceeded
 	 * \retval -1  failed
 	 *
 	 * If this call returns 0, an instance of 'Signal::Data' is located at the
-	 * base of the callers UTCB. Every occurence of a signal is provided
+	 * base of the caller's UTCB. Every occurence of a signal is provided
 	 * through this function until it gets delivered through this function or
 	 * context respectively receiver get destructed. If multiple threads
 	 * listen at the same receiver, and/or multiple contexts of the receiver
@@ -310,7 +309,7 @@ namespace Kernel {
 	 * Check for any pending signal of a context of a receiver the calling
 	 * thread relates to
 	 *
-	 * \param receiver_id  capability id of the targeted signal receiver
+	 * \param receiver_id  capability ID of the targeted signal receiver
 	 *
 	 * \retval  0  suceeded
 	 * \retval -1  failed
@@ -327,7 +326,7 @@ namespace Kernel {
 	/**
 	 * Request to cancel the next signal blocking of a local thread
 	 *
-	 * \param thread_id  capability id of the targeted thread
+	 * \param thread_id  capability ID of the targeted thread
 	 *
 	 * Does not block. Targeted thread must be in the same PD as the caller.
 	 * If the targeted thread is in a signal blocking, cancels the blocking
@@ -344,7 +343,7 @@ namespace Kernel {
 	/**
 	 * Trigger a specific signal context
 	 *
-	 * \param context  capability id of the targeted signal context
+	 * \param context  capability ID of the targeted signal context
 	 * \param num      how often the context shall be triggered by this call
 	 *
 	 * \retval  0  suceeded
@@ -359,7 +358,7 @@ namespace Kernel {
 	/**
 	 * Acknowledge the processing of the last delivery of a signal context
 	 *
-	 * \param context  capability id of the targeted signal context
+	 * \param context  capability ID of the targeted signal context
 	 */
 	inline void ack_signal(capid_t const context)
 	{
@@ -370,7 +369,7 @@ namespace Kernel {
 	/**
 	 * Halt processing of a signal context synchronously
 	 *
-	 * \param context  capability id of the targeted signal context
+	 * \param context  capability ID of the targeted signal context
 	 *
 	 * \retval  0  suceeded
 	 * \retval -1  failed
@@ -383,7 +382,7 @@ namespace Kernel {
 	/**
 	 * Acknowledge reception of a capability
 	 *
-	 * \param cap  capability id to acknowledge
+	 * \param cap  capability ID to acknowledge
 	 */
 	inline void ack_cap(capid_t const cap)
 	{
@@ -391,9 +390,9 @@ namespace Kernel {
 	}
 
 	/**
-	 * Delete a capability id
+	 * Delete a capability ID
 	 *
-	 * \param cap  capability id to delete
+	 * \param cap  capability ID to delete
 	 */
 	inline void delete_cap(capid_t const cap)
 	{
@@ -404,7 +403,7 @@ namespace Kernel {
 	/**
 	 * Execute a virtual-machine (again)
 	 *
-	 * \param vm  pointer to vm kernel object
+	 * \param vm  pointer to VM kernel object
 	 */
 	inline void run_vm(capid_t const cap)
 	{
@@ -415,7 +414,7 @@ namespace Kernel {
 	/**
 	 * Stop execution of a virtual-machine
 	 *
-	 * \param vm  pointer to vm kernel object
+	 * \param vm  pointer to VM kernel object
 	 */
 	inline void pause_vm(capid_t const cap)
 	{
