@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -85,6 +85,17 @@ static Genode::Entrypoint &ep()
 static Libc::Allocator libc_alloc { };
 
 
+/*
+ * Prevent modification of packet allocator
+ * by multiple threads.
+ */
+static Genode::Mutex &usb_packet_allocator_mutex()
+{
+	static Genode::Mutex instance;
+	return instance;
+}
+
+
 struct Completion : Usb::Completion
 {
 	struct usbi_transfer *itransfer;
@@ -128,6 +139,7 @@ struct Usb_device
 					usb_connection.source()->get_acked_packet();
 
 				if (p.type == Usb::Packet_descriptor::ALT_SETTING) {
+					Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
 					usb_connection.source()->release_packet(p);
 					continue;
 				}
@@ -141,6 +153,7 @@ struct Usb_device
 				destroy(libc_alloc, completion);
 
 				if (_open == 0) {
+					Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
 					usb_connection.source()->release_packet(p);
 					continue;
 				}
@@ -149,7 +162,10 @@ struct Usb_device
 					if (!p.succeded)
 						Genode::error("USB transfer failed: ", (unsigned)p.type);
 					itransfer->transferred = 0;
-					usb_connection.source()->release_packet(p);
+					{
+						Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
+						usb_connection.source()->release_packet(p);
+					}
 					usbi_signal_transfer_completion(itransfer);
 					continue;
 				}
@@ -223,11 +239,15 @@ struct Usb_device
 					default:
 						Genode::error(__PRETTY_FUNCTION__,
 						              ": unsupported transfer type");
+						Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
 						usb_connection.source()->release_packet(p);
 						continue;
 				}
 
-				usb_connection.source()->release_packet(p);
+				{
+					Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
+					usb_connection.source()->release_packet(p);
+				}
 
 				usbi_signal_transfer_completion(itransfer);
 			}
@@ -296,6 +316,8 @@ struct Usb_device
 
 		bool altsetting(int number, int alt_setting)
 		{
+			Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
+
 			Usb::Packet_descriptor p =
 				usb_connection.source()->alloc_packet(0);
 
@@ -549,6 +571,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			Usb::Packet_descriptor p;
 
 			try {
+				Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
 				p = usb_device->usb_connection.source()->alloc_packet(setup->wLength);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 				return LIBUSB_ERROR_BUSY;
@@ -593,6 +616,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			Usb::Packet_descriptor p;
 			
 			try {
+				Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
 				p = usb_device->usb_connection.source()->alloc_packet(transfer->length);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 				return LIBUSB_ERROR_BUSY;
@@ -629,6 +653,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 
 			Usb::Packet_descriptor p;
 			try {
+				Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
 				p = usb_device->usb_connection.source()->alloc_packet(total_length);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 				return LIBUSB_ERROR_BUSY;
@@ -777,4 +802,3 @@ void __attribute__((constructor)) init_libc_libusb(void)
 {
 	static Plugin plugin;
 }
-
