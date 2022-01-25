@@ -52,6 +52,10 @@ struct Test::Sequential : Test_base
 		_size_in_blocks   = _size   / _info.block_size;
 		_length_in_blocks = _length / _info.block_size;
 		_end              = _start + _length_in_blocks;
+
+		if (_length == 0 || (_length % _info.block_size) != 0)
+			error("length attribute (", _length, ") must be a multiple of "
+			      "block size (", _info.block_size, ")");
 	}
 
 	void _spawn_job() override
