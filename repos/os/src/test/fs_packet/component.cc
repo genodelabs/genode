@@ -59,7 +59,8 @@ struct Fs_packet::Main
 			if (!(_packet_count % 10))
 				log(_packet_count, " packets remain");
 
-			_tx.submit_packet(packet);
+			if (_tx.ready_to_submit())
+				_tx.submit_packet(packet);
 		}
 	}
 
@@ -67,17 +68,23 @@ struct Fs_packet::Main
 	{
 		_fs.sigh(_signal_handler);
 
-		/**********************
-		 ** Stuff the buffer **
-		 **********************/
+		/*
+		 * Stuff the packet stream until the submit queue or the bulk buffer is
+		 * saturated.
+		 */
 
 		size_t const packet_size =
 			_tx.bulk_buffer_size() / File_system::Session::TX_QUEUE_SIZE;
 
 		for (size_t i = 0; i < _tx.bulk_buffer_size(); i += packet_size) {
+
 			File_system::Packet_descriptor packet(
 				_tx.alloc_packet(packet_size), _file_handle,
 				File_system::Packet_descriptor::READ, packet_size, 0);
+
+			if (!_tx.ready_to_submit())
+				break;
+
 			_tx.submit_packet(packet);
 		}
 
