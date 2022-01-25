@@ -41,7 +41,7 @@ install_config {
 				<sequential copy="no" length="16M" size="8K"/>
 
 				<sequential copy="no" length="3G"  size="16K"  batch="32"/>
-				<sequential copy="no" length="15"  size="64K"  batch="32"/>
+				<sequential copy="no" length="15G" size="64K"  batch="32"/>
 				<sequential copy="no" length="30G" size="128K" batch="32"/>
 
 				<sequential copy="no" length="16M" size="4K"  write="yes"/>
