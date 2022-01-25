@@ -17,6 +17,7 @@
 #include <block_session/connection.h>
 #include <base/allocator_avl.h>
 #include <base/log.h>
+#include <block/request.h>
 
 /* Genode block backend */
 #include <fatfs/block.h>
@@ -34,16 +35,16 @@ extern "C" {
 	struct Drive;
 	struct Platform
 	{
-		Genode::Env &env;
-		Genode::Allocator &alloc;
-		Genode::Allocator_avl tx_alloc { &alloc };
+		Env &env;
+		Allocator &alloc;
+		Allocator_avl tx_alloc { &alloc };
 
 		enum { MAX_DEV_NUM = 8 };
 
 		/* XXX: could make a tree... */
 		Drive* drives[MAX_DEV_NUM];
 
-		Platform(Genode::Env &env, Genode::Allocator &alloc)
+		Platform(Env &env, Allocator &alloc)
 		: env(env), alloc(alloc)
 		{
 			for (int i = 0; i < MAX_DEV_NUM; ++i)
@@ -53,33 +54,101 @@ extern "C" {
 
 	static Platform *_platform;
 
-	void block_init(Genode::Env &env, Genode::Allocator &alloc)
+	void block_init(Env &env, Allocator &alloc)
 	{
 		static Platform platform { env, alloc };
 		_platform = &platform;
 	}
 
+
 	struct Drive : private Block::Connection<>
 	{
+		Entrypoint &_ep;
+
 		Info const info = Block::Connection<>::info();
+
+		Io_signal_handler<Drive> _signal_handler { _ep, *this, &Drive::_update_jobs };
+
+		struct Read_job : Job
+		{
+			char * const dst_ptr;
+
+			Read_job(Drive &drive, char *dst_ptr,
+			         Block::block_number_t sector, Block::block_count_t count)
+			:
+				Job(drive, Block::Operation { .type         = Block::Operation::Type::READ,
+				                              .block_number = sector,
+				                              .count        = count }),
+				dst_ptr(dst_ptr)
+			{ }
+		};
+
+		struct Write_job : Job
+		{
+			char const * const src_ptr;
+
+			Write_job(Drive &drive, char const *src_ptr,
+			          Block::block_number_t sector, Block::block_count_t count)
+			:
+				Job(drive, Block::Operation { .type         = Block::Operation::Type::WRITE,
+				                              .block_number = sector,
+				                              .count        = count }),
+				src_ptr(src_ptr)
+			{ }
+		};
+
+		void _update_jobs()
+		{
+			struct Update_jobs_policy
+			{
+				void produce_write_content(Job &job, Block::seek_off_t offset,
+				                           char *dst, size_t length)
+				{
+					Write_job &write_job = static_cast<Write_job &>(job);
+					memcpy(dst, write_job.src_ptr, length);
+				}
+
+				void consume_read_result(Job &job, Block::seek_off_t offset,
+				                         char const *src, size_t length)
+				{
+					Read_job &read_job = static_cast<Read_job &>(job);
+					memcpy(read_job.dst_ptr, src, length);
+				}
+
+				void completed(Job &, bool success) {
+				}
+			} policy;
+
+			update_jobs(policy);
+		}
 
 		using Block::Connection<>::tx;
 		using Block::Connection<>::alloc_packet;
 
+		void block_for_io()
+		{
+			_update_jobs();
+
+			_ep.wait_and_dispatch_one_io_signal();
+		}
+
 		void sync()
 		{
-			/*
-			 * We don't need to distinguish tags because there can only be one
-			 * outstanding request.
-			 */
-			Block::Session::Tag const tag { 0 };
-			tx()->submit_packet(sync_all_packet_descriptor(info, tag));
-			tx()->get_acked_packet();
+			Block::Operation const operation { .type = Block::Operation::Type::SYNC };
+
+			Job sync_job { *this, operation };
+
+			while (!sync_job.completed())
+				block_for_io();
 		}
 
 		Drive(Platform &platform, char const *label)
-		: Block::Connection<>(platform.env, &platform.tx_alloc, 128*1024, label)
-		{ }
+		:
+			Block::Connection<>(platform.env, &platform.tx_alloc, 128*1024, label),
+			_ep(platform.env.ep())
+		{
+			sigh(_signal_handler);
+		}
 	};
 }
 
@@ -90,7 +159,7 @@ using namespace Fatfs;
 extern "C" Fatfs::DSTATUS disk_initialize (BYTE drv)
 {
 	if (drv >= Platform::MAX_DEV_NUM) {
-		Genode::error("only ", (int)Platform::MAX_DEV_NUM," supported");
+		error("only ", (int)Platform::MAX_DEV_NUM," supported");
 		return STA_NODISK;
 	}
 
@@ -103,7 +172,7 @@ extern "C" Fatfs::DSTATUS disk_initialize (BYTE drv)
 		String<2> label(drv);
 		_platform->drives[drv] = new (_platform->alloc) Drive(*_platform, label.string());
 	} catch(Service_denied) {
-		Genode::error("could not open block connection for drive ", drv);
+		error("could not open block connection for drive ", drv);
 		return STA_NODISK;
 	}
 
@@ -136,25 +205,14 @@ extern "C" DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
 
 	Drive &drive = *_platform->drives[pdrv];
 
-	Genode::size_t const op_len = drive.info.block_size*count;
+	size_t const op_len = drive.info.block_size*count;
 
-	/* allocate packet-descriptor for reading */
-	Block::Packet_descriptor p(drive.alloc_packet(op_len),
-	                           Block::Packet_descriptor::READ, sector, count);
-	drive.tx()->submit_packet(p);
-	p = drive.tx()->get_acked_packet();
+	Drive::Read_job read_job { drive, (char *)buff, sector, count };
 
-	DRESULT res;
-	if (p.succeeded() && p.size() >= op_len) {
-		Genode::memcpy(buff, drive.tx()->packet_content(p), op_len);
-		res = RES_OK;
-	} else {
-		Genode::error(__func__, " failed at sector ", sector, ", count ", count);
-		res = RES_ERROR;
-	}
+	while (!read_job.completed())
+		drive.block_for_io();
 
-	drive.tx()->release_packet(p);
-	return res;
+	return RES_OK;
 }
 
 
@@ -166,27 +224,14 @@ extern "C" DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT c
 
 	Drive &drive = *_platform->drives[pdrv];
 
-	Genode::size_t const op_len = drive.info.block_size*count;
+	size_t const op_len = drive.info.block_size*count;
 
-	/* allocate packet-descriptor for writing */
-	Block::Packet_descriptor p(drive.alloc_packet(op_len),
-	                           Block::Packet_descriptor::WRITE, sector, count);
+	Drive::Write_job write_job { drive, (char const *)buff, sector, count };
 
-	Genode::memcpy(drive.tx()->packet_content(p), buff, op_len);
+	while (!write_job.completed())
+		drive.block_for_io();
 
-	drive.tx()->submit_packet(p);
-	p = drive.tx()->get_acked_packet();
-
-	DRESULT res;
-	if (p.succeeded()) {
-		res = RES_OK;
-	} else {
-		Genode::error(__func__, " failed at sector ", sector, ", count ", count);
-		res = RES_ERROR;
-	}
-
-	drive.tx()->release_packet(p);
-	return res;
+	return RES_OK;
 }
 #endif /* _READONLY */
 
