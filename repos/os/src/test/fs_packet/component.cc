@@ -25,63 +25,68 @@ namespace Fs_packet {
 	struct Main;
 };
 
+
 struct Fs_packet::Main
 {
-	Genode::Env &env;
+	Genode::Env &_env;
 
-	Attached_rom_dataspace config_rom { env, "config" };
+	Attached_rom_dataspace _config { _env, "config" };
 
-	Heap heap { env.pd(), env.rm() };
-	Allocator_avl avl_alloc { &heap };
-	File_system::Connection fs { env, avl_alloc, "", "/", false, 4<<10 };
-	File_system::Session::Tx::Source &pkt_tx { *fs.tx() };
+	int _packet_count = _config.xml().attribute_value("count", 1U << 10);
 
-	Dir_handle dir_handle { fs.dir("/", false) };
-	File_handle file_handle { fs.file(dir_handle, "test", READ_ONLY, false) };
+	Heap                    _heap { _env.pd(), _env.rm() };
+	Allocator_avl           _avl_alloc { &_heap };
+	File_system::Connection _fs { _env, _avl_alloc, "", "/", false, 4<<10 };
 
-	Signal_handler<Main> ack_handler { env.ep(), *this, &Main::handle_ack };
+	File_system::Session::Tx::Source &_tx { *_fs.tx() };
 
-	int pkt_count = config_rom.xml().attribute_value("count", 1U << 10);
+	Dir_handle  _dir_handle  { _fs.dir("/", false) };
+	File_handle _file_handle { _fs.file(_dir_handle, "test", READ_ONLY, false) };
 
-	void handle_ack()
+	Signal_handler<Main> _signal_handler { _env.ep(), *this, &Main::_handle_signal };
+
+	void _handle_signal()
 	{
-		while (pkt_tx.ack_avail()) {
-			auto pkt = pkt_tx.get_acked_packet();
-			--pkt_count;
-			if (pkt_count < 0) {
+		while (_tx.ack_avail()) {
+			auto packet = _tx.get_acked_packet();
+			--_packet_count;
+			if (_packet_count < 0) {
 				log("--- test complete ---");
-				env.parent().exit(0);
+				_env.parent().exit(0);
 				sleep_forever();
 			}
 
-			if (!(pkt_count % 10))
-				Genode::log(pkt_count, " packets remain");
+			if (!(_packet_count % 10))
+				log(_packet_count, " packets remain");
 
-			pkt_tx.submit_packet(pkt);
+			_tx.submit_packet(packet);
 		}
 	}
 
-	Main(Genode::Env &env) : env(env)
+	Main(Genode::Env &env) : _env(env)
 	{
-		fs.sigh(ack_handler);
+		_fs.sigh(_signal_handler);
 
 		/**********************
 		 ** Stuff the buffer **
 		 **********************/
 
-		size_t const pkt_size =
-			pkt_tx.bulk_buffer_size() / File_system::Session::TX_QUEUE_SIZE;
-		for (size_t i = 0; i < pkt_tx.bulk_buffer_size(); i += pkt_size) {
-			File_system::Packet_descriptor pkt(
-				pkt_tx.alloc_packet(pkt_size), file_handle,
-				File_system::Packet_descriptor::READ, pkt_size, 0);
-			pkt_tx.submit_packet(pkt);
+		size_t const packet_size =
+			_tx.bulk_buffer_size() / File_system::Session::TX_QUEUE_SIZE;
+
+		for (size_t i = 0; i < _tx.bulk_buffer_size(); i += packet_size) {
+			File_system::Packet_descriptor packet(
+				_tx.alloc_packet(packet_size), _file_handle,
+				File_system::Packet_descriptor::READ, packet_size, 0);
+			_tx.submit_packet(packet);
 		}
+
+		log("--- submiting ", _packet_count, " packets ---");
 	}
 };
+
 
 void Component::construct(Genode::Env &env)
 {
 	static Fs_packet::Main test(env);
-	Genode::log("--- submiting ", test.pkt_count, " packets ---");
 }
