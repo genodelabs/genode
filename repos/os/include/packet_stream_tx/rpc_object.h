@@ -29,8 +29,8 @@ class Packet_stream_tx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		Genode::Capability<CHANNEL> _cap { };
 		typename CHANNEL::Sink      _sink;
 
-		Genode::Signal_context_capability _sigh_ready_to_ack;
-		Genode::Signal_context_capability _sigh_packet_avail;
+		Genode::Signal_context_capability _sigh_ready_to_ack { };
+		Genode::Signal_context_capability _sigh_packet_avail { };
 
 	public:
 
@@ -46,11 +46,7 @@ class Packet_stream_tx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		           Genode::Region_map     &rm,
 		           Genode::Rpc_entrypoint &ep)
 		:
-			_ep(ep), _sink(ds, rm),
-
-			/* init signal handlers with default handlers of sink */
-			_sigh_ready_to_ack(_sink.sigh_ready_to_ack()),
-			_sigh_packet_avail(_sink.sigh_packet_avail())
+			_ep(ep), _sink(ds, rm)
 		{
 			_cap = _ep.manage(this);
 		}
