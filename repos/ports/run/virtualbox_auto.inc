@@ -287,6 +287,8 @@ append_if [expr $use_usb] config {
 					</inline>
 					<inline name="usb_report_filter.config">
 <config>
+	<vfs> <fs/> </vfs>
+
 	<!-- USB device whitelist -->
 	<client label="vbox1"/>
 	<device vendor_id="0x13fe" product_id="0x5200"/> <!-- platinum stick -->
