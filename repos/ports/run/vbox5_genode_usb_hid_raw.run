@@ -90,6 +90,8 @@ append config {
 					</inline>
 					<inline name="usb_report_filter.config">
 <config>
+	<vfs> <fs/> </vfs>
+
 	<!-- USB device whitelist -->
 	<client label="virtualbox"/>
 	<device vendor_id="0x03eb" product_id="0x204d"/> <!-- 'Pro Micro' test device -->

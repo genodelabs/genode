@@ -10,6 +10,7 @@ Configuration
 A typical example configuration looks as follows:
 
 !<config>
+!  <vfs> <fs/> </vfs>
 !  <client label="component_xyz"/>
 !  <device vendor_id="0x13fe" product_id="0x5200"/>
 !  <device vendor_id="0x148f" product_id="0x2573"/>
