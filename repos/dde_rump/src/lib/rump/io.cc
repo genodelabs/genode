@@ -1,11 +1,11 @@
-/**
+/*
  * \brief  Connect rump kernel to Genode's block interface
  * \author Sebastian Sumpf
  * \date   2013-12-16
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,7 +16,6 @@
 #include <block_session/connection.h>
 #include <rump/env.h>
 #include <rump_fs/fs.h>
-
 
 static const bool verbose = false;
 
@@ -29,21 +28,88 @@ class Backend
 {
 	private:
 
-		Genode::Allocator_avl _alloc { &Rump::env().heap() };
-		Block::Connection<>   _session { Rump::env().env(), &_alloc };
-		Block::Session::Info  _info { _session.info() };
-		Genode::Mutex         _session_mutex;
-
-		void _sync()
+		struct Job : Block::Connection<Job>::Job
 		{
-			using Block::Session;
+			void * const ptr;
 
-			Session::Tag const tag { 0 };
-			_session.tx()->submit_packet(Session::sync_all_packet_descriptor(_info, tag));
-			_session.tx()->get_acked_packet();
+			bool success = false;
+
+			Job(Block::Connection<Job> &conn, void *ptr, Block::Operation operation)
+			:
+				Block::Connection<Job>::Job(conn, operation),
+				ptr(ptr)
+			{ }
+		};
+
+		Genode::Allocator_avl  _alloc   { &Rump::env().heap() };
+		Genode::Entrypoint    &_ep      {  Rump::env().env().ep() };
+		Block::Connection<Job> _session {  Rump::env().env(), &_alloc };
+		Block::Session::Info   _info    { _session.info() };
+		Genode::Mutex          _session_mutex;
+
+		bool _blocked_for_synchronous_io = false;
+
+		Genode::Io_signal_handler<Backend> _signal_handler {
+			_ep, *this, &Backend::_update_jobs };
+
+		void _update_jobs()
+		{
+			struct Update_jobs_policy
+			{
+				void produce_write_content(Job &job, Block::seek_off_t offset,
+				                           char *dst, size_t length)
+				{
+					Genode::memcpy(dst, job.ptr, length);
+				}
+
+				void consume_read_result(Job &job, Block::seek_off_t offset,
+				                         char const *src, size_t length)
+				{
+					Genode::memcpy(job.ptr, src, length);
+				}
+
+				void completed(Job &job, bool success)
+				{
+					job.success = success;
+				}
+
+			} policy;
+
+			_session.update_jobs(policy);
+		}
+
+		bool _synchronous_io(void *ptr, Block::Operation const &operation)
+		{
+			Genode::Constructible<Job> job { };
+
+			{
+				Genode::Mutex::Guard guard(_session_mutex);
+				job.construct(_session, ptr, operation);
+				_blocked_for_synchronous_io = true;
+			}
+
+			_update_jobs();
+
+			while (!job->completed())
+				_ep.wait_and_dispatch_one_io_signal();
+
+			bool const success = job->success;
+
+			{
+				Genode::Mutex::Guard guard(_session_mutex);
+				job.destruct();
+				_blocked_for_synchronous_io = false;
+			}
+
+			return success;
 		}
 
 	public:
+
+		Backend()
+		{
+			_session.sigh(_signal_handler);
+		}
 
 		uint64_t block_count() const { return _info.block_count; }
 		size_t   block_size()  const { return _info.block_size; }
@@ -51,52 +117,32 @@ class Backend
 
 		void sync()
 		{
-			Genode::Mutex::Guard guard(_session_mutex);
-			_sync();
+			Block::Operation const operation { .type = Block::Operation::Type::SYNC };
+
+			(void)_synchronous_io(nullptr, operation);
 		}
 
 		bool submit(int op, int64_t offset, size_t length, void *data)
 		{
 			using namespace Block;
 
-			Genode::Mutex::Guard guard(_session_mutex);
+			Block::Operation const operation {
+				.type         = (op & RUMPUSER_BIO_WRITE)
+				              ? Block::Operation::Type::WRITE
+				              : Block::Operation::Type::READ,
+				.block_number = offset / _info.block_size,
+				.count        = length / _info.block_size };
 
-			Packet_descriptor::Opcode opcode;
-			opcode = op & RUMPUSER_BIO_WRITE ? Packet_descriptor::WRITE :
-			                                   Packet_descriptor::READ;
-			/* allocate packet */
-			try {
-				Packet_descriptor packet( _session.alloc_packet(length),
-				                         opcode, offset / _info.block_size,
-				                         length / _info.block_size);
-
-				/* out packet -> copy data */
-				if (opcode == Packet_descriptor::WRITE)
-					Genode::memcpy(_session.tx()->packet_content(packet), data, length);
-
-				_session.tx()->submit_packet(packet);
-			} catch(Block::Session::Tx::Source::Packet_alloc_failed) {
-				Genode::error("I/O back end: Packet allocation failed!");
-				return false;
-			}
-
-			/* wait and process result */
-			Packet_descriptor packet = _session.tx()->get_acked_packet();
-
-			/* in packet */
-			if (opcode == Packet_descriptor::READ)
-				Genode::memcpy(data, _session.tx()->packet_content(packet), length);
-
-			bool succeeded = packet.succeeded();
-			_session.tx()->release_packet(packet);
+			bool const success = _synchronous_io(data, operation);
 
 			/* sync request */
-			if (op & RUMPUSER_BIO_SYNC) {
-				_sync();
-			}
+			if (op & RUMPUSER_BIO_SYNC)
+				sync();
 
-			return succeeded;
+			return success;
 		}
+
+		bool blocked_for_io() const { return _blocked_for_synchronous_io; }
 };
 
 
@@ -163,6 +209,12 @@ void rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
 void rump_io_backend_sync()
 {
 	backend().sync();
+}
+
+
+bool rump_io_backend_blocked_for_io()
+{
+	return backend().blocked_for_io();
 }
 
 

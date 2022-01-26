@@ -43,6 +43,10 @@ namespace Vfs { struct Rump_file_system; };
 
 static void _rump_sync()
 {
+	/* prevent nested calls into rump */
+	if (rump_io_backend_blocked_for_io())
+		return;
+
 	/* sync through front-end */
 	rump_sys_sync();
 
@@ -658,7 +662,7 @@ class Vfs::Rump_file_system : public File_system
 			}
 			catch (Genode::Out_of_ram) { return OPENLINK_ERR_OUT_OF_RAM; }
 			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
-	    }
+		}
 
 		void close(Vfs_handle *vfs_handle) override
 		{
