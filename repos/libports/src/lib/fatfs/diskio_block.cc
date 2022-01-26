@@ -115,8 +115,8 @@ extern "C" {
 					memcpy(read_job.dst_ptr, src, length);
 				}
 
-				void completed(Job &, bool success) {
-				}
+				void completed(Job &, bool success) { }
+
 			} policy;
 
 			update_jobs(policy);
