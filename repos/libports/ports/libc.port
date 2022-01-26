@@ -96,7 +96,7 @@ DIR_CONTENT(include/libc/vm) := \
 
 DIRS += include/libc/net
 DIR_CONTENT(include/libc/net) := \
-    $(addprefix $(D)/sys/net/, if.h if_dl.h if_tun.h if_types.h \
+    $(addprefix $(D)/sys/net/, if.h if_dl.h if_tun.h if_tap.h if_types.h \
                 radix.h route.h ethernet.h if_arp.h vnet.h)
 
 DIRS += include/libc/netinet

@@ -1,0 +1,143 @@
+#
+# Build
+#
+#
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/vfs_tap
+
+set build_components {
+	core init timer
+	server/nic_router
+	test/libc_vfs_tap
+}
+
+build $build_components
+
+#
+# Generate config
+#
+
+append config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="nic_router">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose="yes" verbose_packets="yes" verbose_domain_state="yes">
+			<policy label_prefix="tap_uplink_client -> "  domain="tap_uplink"/>
+			<policy label_prefix="tap_nic_client -> "     domain="tap_nic"/>
+
+			<domain name="tap_nic">
+			</domain>
+
+			<domain name="tap_uplink">
+			</domain>
+		</config>
+	</start>
+
+	<start name="tap_uplink_client">
+		<binary name="test-libc_vfs_tap"/>
+		<resource name="RAM" quantum="8M"/>
+		<config>
+			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<tap name="tap0" mac="02:02:00:00:00:20" mode="uplink_client"/>
+				</dir>
+			</vfs>
+		</config>
+	</start>
+
+	<start name="tap_nic_client">
+		<binary name="test-libc_vfs_tap"/>
+		<resource name="RAM" quantum="8M"/>
+		<config>
+			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<tap name="tap0"/>
+				</dir>
+			</vfs>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+
+set boot_modules {
+	core init timer test-libc_vfs_tap nic_router
+	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
+}
+
+build_boot_image $boot_modules
+
+append qemu_args "-nographic "
+
+run_genode_until "child \"tap_uplink_client\" exited with exit value 0" 40
+
+set original_output $output
+
+grep_output {\[init -> tap_uplink_client\].*}
+compare_output_to {
+[init -> tap_uplink_client] MAC address 02:02:00:00:00:20
+[init -> tap_uplink_client] Successfully opened device tap0
+[init -> tap_uplink_client] MAC address 02:02:00:00:00:21
+[init -> tap_uplink_client] Warning: unsupported ioctl (request=0x4008745c)
+[init -> tap_uplink_client] Warning: TAPGIFINFO failed
+}
+
+set output $original_output
+grep_output {\[init -> tap_nic_client\].*}
+compare_output_to {
+[init -> tap_nic_client] Successfully opened device tap0
+[init -> tap_nic_client] Warning: unsupported ioctl (request=0x4008745c)
+[init -> tap_nic_client] Warning: TAPGIFINFO failed
+}
+
+# check that nic_router received packages from both clients
+set output $original_output
+grep_output {\[init -> nic_router\] \[tap.*}
+
+set num_uplink_received [regexp -all {.*tap_uplink\] rcv} $output dummy]
+if {$num_uplink_received < 1} {
+	puts "Error: No packet received from tap_uplink_client\n"
+	exit 1
+}
+
+set num_nic_received [regexp -all {.*tap_nic\] rcv} $output dummy]
+if {$num_nic_received < 1} {
+	puts "Error: No packet received from tap_nic_client\n"
+	exit 1
+}
+
+# vi: set ft=tcl :

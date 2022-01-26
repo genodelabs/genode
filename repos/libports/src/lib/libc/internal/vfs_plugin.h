@@ -127,6 +127,11 @@ class Libc::Vfs_plugin final : public Plugin
 		Ioctl_result _ioctl_sndctl(File_descriptor *, unsigned long, char *);
 
 		/**
+		 * Tap related I/O controls
+		 */
+		Ioctl_result _ioctl_tapctl(File_descriptor *, unsigned long, char *);
+
+		/**
 		 * Call functor 'fn' with ioctl info for the given file descriptor 'fd'
 		 *
 		 * The functor is called with an 'Xml_node' of the ioctl information
