@@ -62,6 +62,12 @@ class Genode::Uplink_client_base : Noncopyable
 			if (!_conn.constructed()) {
 				return;
 			}
+
+			if (_custom_conn_tx_ack_avail_handler()) {
+				_custom_conn_tx_handle_ack_avail();
+				return;
+			}
+
 			while (_conn->tx()->ack_avail()) {
 
 				_conn->tx()->release_packet(_conn->tx()->get_acked_packet());
@@ -73,6 +79,12 @@ class Genode::Uplink_client_base : Noncopyable
 			if (!_conn.constructed()) {
 				return;
 			}
+
+			if (_custom_conn_rx_packet_avail_handler()) {
+				_custom_conn_rx_handle_packet_avail();
+				return;
+			}
+
 			bool drv_ready_to_transmit_pkt { _drv_link_state };
 			bool pkts_transmitted          { false };
 
@@ -229,6 +241,22 @@ class Genode::Uplink_client_base : Noncopyable
 		virtual Transmit_result
 		_drv_transmit_pkt(const char *conn_rx_pkt_base,
 		                  size_t      conn_rx_pkt_size) = 0;
+
+		virtual void _custom_conn_rx_handle_packet_avail()
+		{
+			class Unexpected_call { };
+			throw Unexpected_call { };
+		}
+
+		virtual void _custom_conn_tx_handle_ack_avail()
+		{
+			class Unexpected_call { };
+			throw Unexpected_call { };
+		}
+
+		virtual bool _custom_conn_rx_packet_avail_handler() { return false; }
+
+		virtual bool _custom_conn_tx_ack_avail_handler() { return false; }
 
 	public:
 
