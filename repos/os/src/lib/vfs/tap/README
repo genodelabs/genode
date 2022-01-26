@@ -1,0 +1,46 @@
+The VFS TAP plugin offers access to Genode's Uplink or Nic session by providing
+a special file system. It exposes a data file that reflects a _/dev/tap0_
+file. The support of I/O control operations is provided in form of a structured
+'info' file located in the directory named after the data file, e.g.
+_/dev/.tap0/info_.
+
+This file may by used to query the configured parameters and has the following
+structure:
+
+! <tap name="tap0" mac_addr="..."/>
+
+Each parameter can also be accessed via its own file. The following list
+presents all files:
+
+  * :mac_addr (rw): The MAC address of the device (immutable when in Nic mode).
+  * :name (ro):     The name of the device.
+
+When mounting the tap file system, the following optional attributes may
+be provided:
+
+  * :mode:   If set to "uplink_client", the plugin will open an Uplink session
+             instead of a Nic session.
+  * :label:  Sets the session label of the Uplink/Nic session. If not provided,
+             an empty label is used.
+  * :mac:    Sets the default mac address when mode="uplink_client".
+
+The following config snippet illustrates its configuration:
+
+! <vfs>
+!   <dir name="dev">
+!     <tap name="tap0"/>
+!   </dir>
+! </vfs>
+
+Note, that the plugin emulates the tap device and its I/O control operations
+as expected by FreeBSD's libc. On Linux, the tap devices are created by
+performing an I/O control operation on _/dev/net/tun_ after which the opened
+file descriptor can be used for reading/writing. If only a single tap device is
+needed, it is possible to use the tap plugin for _/dev/net/tun_ and just omit
+the ioctl by creating an emulation header file _linux/if_tun.h_ with the
+following content:
+
+! #include <net/if_tap.h>
+! #define TUNSETIFF TAPGIFNAME
+! #define IFF_TAP   0
+! #define IFF_NO_PI 0

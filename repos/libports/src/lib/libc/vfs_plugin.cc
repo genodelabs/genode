@@ -17,6 +17,7 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <vfs/dir_file_system.h>
+#include <net/mac_address.h>
 
 /* libc includes */
 #include <errno.h>
@@ -32,6 +33,8 @@
 #include <sys/disk.h>
 #include <sys/soundcard.h>
 #include <dlfcn.h>
+#include <net/if.h>
+#include <net/if_tap.h>
 
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
@@ -1770,6 +1773,85 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 }
 
 
+Libc::Vfs_plugin::Ioctl_result
+Libc::Vfs_plugin::_ioctl_tapctl(File_descriptor *fd, unsigned long request, char *argp)
+{
+	bool handled = false;
+	int  result  = 0;
+
+	if (request == TAPGIFNAME) {       /* return device name */
+		if (!argp)
+			return { true, EINVAL };
+
+		ifreq *ifr = reinterpret_cast<ifreq*>(argp);
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() == "tap") {
+					String<IFNAMSIZ> name = info.attribute_value("name", String<IFNAMSIZ> { });
+					copy_cstring(ifr->ifr_name, name.string(), IFNAMSIZ);
+					handled = true;
+				}
+			});
+
+			return Fn::COMPLETE;
+		});
+	}
+	else if (request == SIOCGIFADDR) { /* get MAC address */
+		if (!argp)
+			return { true, EINVAL };
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() == "tap") {
+					Net::Mac_address mac = info.attribute_value("mac_addr", Net::Mac_address { });
+					mac.copy(argp);
+					handled = true;
+				}
+			});
+
+			return Fn::COMPLETE;
+		});
+	}
+	else if (request == SIOCSIFADDR) { /* set MAC address */
+		if (!argp)
+			return { true, EINVAL };
+
+		Net::Mac_address new_mac    { argp };
+		String<18>       mac_string { new_mac };
+
+		/* write string into file */
+		Absolute_path mac_addr_path = ioctl_dir(*fd);
+		mac_addr_path.append_element("mac_addr");
+		File_descriptor *mac_addr_fd = open(mac_addr_path.base(), O_RDWR);
+		if (!mac_addr_fd)
+			return { true, ENOTSUP };
+		write(mac_addr_fd, mac_string.string(), mac_string.length());
+		close(mac_addr_fd);
+
+		monitor().monitor([&] {
+			/* check whether mac address changed, return ENOTSUP if not */
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() == "tap") {
+					if (!info.has_attribute("mac_addr"))
+						result = ENOTSUP;
+					else {
+						Net::Mac_address cur_mac = info.attribute_value("mac_addr", Net::Mac_address { });
+						if (cur_mac != new_mac)
+							result = ENOTSUP;
+					}
+
+					handled = true;
+				}
+			});
+
+			return Fn::COMPLETE;
+		});
+	}
+
+	return { handled, result };
+}
+
 int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *argp)
 {
 	Ioctl_result result { false, 0 };
@@ -1806,6 +1888,15 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 	case SNDCTL_DSP_SYNC:
 	case SNDCTL_SYSINFO:
 		result = _ioctl_sndctl(fd, request, argp);
+		break;
+	case TAPSIFINFO:
+	case TAPGIFINFO:
+	case TAPSDEBUG:
+	case TAPGDEBUG:
+	case TAPGIFNAME:
+	case SIOCGIFADDR:
+	case SIOCSIFADDR:
+		result = _ioctl_tapctl(fd, request, argp);
 		break;
 	default:
 		break;
