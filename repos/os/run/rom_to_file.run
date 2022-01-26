@@ -28,6 +28,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -53,7 +54,9 @@ install_config {
 	</start>
 	<start name="rom_to_file">
 		<resource name="RAM" quantum="4M"/>
-		<config rom="test" />
+		<config rom="test">
+			<vfs> <fs/> </vfs>
+		</config>
 		<route>
 			<service name="ROM" label="test"> <child name="dynamic_rom"/> </service>
 			<service name="File_system">      <child name="lx_fs"/> </service>
@@ -73,6 +76,7 @@ build_boot_image { core ld.lib.so init timer
 	rom_to_file
 	lx_fs
 	fs_test
+	vfs.lib.so
 }
 
 append qemu_args " -nographic "

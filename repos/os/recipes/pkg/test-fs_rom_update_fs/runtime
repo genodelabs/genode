@@ -4,7 +4,7 @@
 
 	<events>
 		<timeout meaning="failed" sec="20" />
-		<log     meaning="succeeded">&lt;config iteration="4" /></log>
+		<log     meaning="succeeded">&lt;config iteration="4"/></log>
 	</events>
 
 	<content>
@@ -63,27 +63,29 @@
 			<config verbose="yes">
 				<rom name="dynamic_rom">
 					<inline description="iteration 1">
-						<config iteration="1" />
+						<config iteration="1"/>
 					</inline>
-					<sleep milliseconds="2000" />
+					<sleep milliseconds="2000"/>
 					<inline description="iteration 2">
-						<config iteration="2" />
+						<config iteration="2"/>
 					</inline>
-					<sleep milliseconds="2000" />
+					<sleep milliseconds="2000"/>
 					<inline description="iteration 3">
-						<config iteration="3" />
+						<config iteration="3"/>
 					</inline>
-					<sleep milliseconds="2000" />
+					<sleep milliseconds="2000"/>
 					<inline description="iteration 4">
-						<config iteration="4" />
+						<config iteration="4"/>
 					</inline>
-					<sleep milliseconds="2000" />
+					<sleep milliseconds="2000"/>
 				</rom>
 			</config>
 		</start>
 		<start name="rom_to_file">
 			<resource name="RAM" quantum="2M"/>
-			<config rom="dynamic_rom"/>
+			<config rom="dynamic_rom">
+				<vfs> <fs/> </vfs>
+			</config>
 			<route>
 				<service name="ROM" label="dynamic_rom"> <child name="dynamic_rom"/> </service>
 				<service name="File_system" > <child name="vfs_1"/> </service>
