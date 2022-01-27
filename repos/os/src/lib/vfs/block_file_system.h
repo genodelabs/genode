@@ -59,20 +59,15 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 		Block::Connection<>        &_block;
 		Block::Session::Info const &_info;
-
-
 		Block::Session::Tx::Source *_tx_source;
 
 		bool const _writeable;
-
-		Genode::Signal_receiver           _signal_receiver { };
-		Genode::Signal_context            _signal_context  { };
-		Genode::Signal_context_capability _source_submit_cap;
 
 		class Block_vfs_handle : public Single_vfs_handle
 		{
 			private:
 
+				Genode::Entrypoint                &_ep;
 				Genode::Allocator                 &_alloc;
 				Mutex                             &_mutex;
 				char                              *_block_buffer;
@@ -82,9 +77,12 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				Block::sector_t              const _block_count;
 				Block::Session::Tx::Source        *_tx_source;
 				bool                         const _writeable;
-				Genode::Signal_receiver           &_signal_receiver;
-				Genode::Signal_context            &_signal_context;
-				Genode::Signal_context_capability &_source_submit_cap;
+
+				void _block_for_ack()
+				{
+					while (!_tx_source->ack_avail())
+						_ep.wait_and_dispatch_one_io_signal();
+				}
 
 				/*
 				 * Noncopyable
@@ -116,13 +114,13 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 							packet = _block.alloc_packet((size_t)packet_size);
 							break;
 						} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
-							if (!_tx_source->ready_to_submit())
-								_signal_receiver.wait_for_signal();
-							else {
-								if (packet_count > 1) {
-									packet_size  /= 2;
-									packet_count /= 2;
-								}
+
+							while (!_tx_source->ready_to_submit())
+								_ep.wait_and_dispatch_one_io_signal();
+
+							if (packet_count > 1) {
+								packet_size  /= 2;
+								packet_count /= 2;
 							}
 						}
 					}
@@ -134,6 +132,9 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						Genode::memcpy(_tx_source->packet_content(p), buf, (size_t)packet_size);
 
 					_tx_source->submit_packet(p);
+
+					_block_for_ack();
+
 					p = _tx_source->get_acked_packet();
 
 					if (!p.succeeded()) {
@@ -153,6 +154,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 				Block_vfs_handle(Directory_service                 &ds,
 				                 File_io_service                   &fs,
+				                 Genode::Entrypoint                &ep,
 				                 Genode::Allocator                 &alloc,
 				                 Mutex                             &mutex,
 				                 char                              *block_buffer,
@@ -161,27 +163,23 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				                 size_t                             block_size,
 				                 Block::sector_t                    block_count,
 				                 Block::Session::Tx::Source        *tx_source,
-				                 bool                               writeable,
-				                 Genode::Signal_receiver           &signal_receiver,
-				                 Genode::Signal_context            &signal_context,
-				                 Genode::Signal_context_capability &source_submit_cap)
-				: Single_vfs_handle(ds, fs, alloc, 0),
-				  _alloc(alloc),
-				  _mutex(mutex),
-				  _block_buffer(block_buffer),
-				  _block_buffer_count(block_buffer_count),
-				  _block(block),
-				  _block_size(block_size),
-				  _block_count(block_count),
-				  _tx_source(tx_source),
-				  _writeable(writeable),
-				  _signal_receiver(signal_receiver),
-				  _signal_context(signal_context),
-				  _source_submit_cap(source_submit_cap)
+				                 bool                               writeable)
+				:
+					Single_vfs_handle(ds, fs, alloc, 0),
+					_ep(ep),
+					_alloc(alloc),
+					_mutex(mutex),
+					_block_buffer(block_buffer),
+					_block_buffer_count(block_buffer_count),
+					_block(block),
+					_block_size(block_size),
+					_block_count(block_count),
+					_tx_source(tx_source),
+					_writeable(writeable)
 				{ }
 
 				Read_result read(char *dst, file_size count,
-			                     file_size &out_count) override
+				                 file_size &out_count) override
 				{
 					file_size seek_offset = seek();
 
@@ -339,6 +337,9 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 							_block.info(), Block::Session::Tag { 0 });
 
 					_tx_source->submit_packet(p);
+
+					_block_for_ack();
+
 					p = _tx_source->get_acked_packet();
 					_tx_source->release_packet(p);
 
@@ -370,19 +371,14 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 			_block(block),
 			_info(info),
 			_tx_source(_block.tx()),
-			_writeable(_info.writeable),
-			_source_submit_cap(_signal_receiver.manage(&_signal_context))
+			_writeable(_info.writeable)
 		{
 			_block_buffer = new (_env.alloc())
 				char[_block_buffer_count * _info.block_size];
-
-			_block.tx_channel()->sigh_ready_to_submit(_source_submit_cap);
 		}
 
 		~Data_file_system()
 		{
-			_signal_receiver.dissolve(&_signal_context);
-
 			destroy(_env.alloc(), _block_buffer);
 		}
 
@@ -401,7 +397,9 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				return OPEN_ERR_UNACCESSIBLE;
 
 			try {
-				*out_handle = new (alloc) Block_vfs_handle(*this, *this, alloc,
+				*out_handle = new (alloc) Block_vfs_handle(*this, *this,
+				                                           _env.env().ep(),
+				                                           alloc,
 				                                           _mutex,
 				                                           _block_buffer,
 				                                           _block_buffer_count,
@@ -409,10 +407,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				                                           _info.block_size,
 				                                           _info.block_count,
 				                                           _tx_source,
-				                                           _info.writeable,
-				                                           _signal_receiver,
-				                                           _signal_context,
-				                                           _source_submit_cap);
+				                                           _info.writeable);
 				return OPEN_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
@@ -454,6 +449,11 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 
 	Block::Session::Info const _info { _block.info() };
 
+	Genode::Io_signal_handler<Local_factory> _block_signal_handler {
+		_env.env().ep(), *this, &Local_factory::_handle_block_signal };
+
+	void _handle_block_signal() { }
+
 	Data_file_system _data_fs;
 	
 	struct Info : Block::Session::Info
@@ -490,6 +490,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 		_env     { env },
 		_data_fs { _env, _block, _info, name(config), buffer_count(config) }
 	{
+		_block.sigh(_block_signal_handler);
 		_info_fs       .value(Info { _info });
 		_block_count_fs.value(_info.block_count);
 		_block_size_fs .value(_info.block_size);
