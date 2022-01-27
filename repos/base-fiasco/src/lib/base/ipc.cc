@@ -237,11 +237,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		 * error condition to the user but want to wait for the next proper
 		 * incoming message.
 		 */
-		if (L4_IPC_IS_ERROR(ipc_result)) {
-			error("ipc_reply_and_wait error ", Hex(L4_IPC_ERROR(ipc_result)));
-		} else {
+		if (!L4_IPC_IS_ERROR(ipc_result))
 			need_to_wait = false;
-		}
 	}
 
 	while (need_to_wait) {
