@@ -2,9 +2,6 @@
  * \brief  Log session that writes messages to a file system.
  * \author Emery Hemingway
  * \date   2015-05-16
- *
- * Message writing is fire-and-forget to prevent
- * logging from becoming I/O bound.
  */
 
 /*
@@ -38,17 +35,25 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 		char _label_buf[MAX_LABEL_LEN];
 		Genode::size_t const _label_len;
 
+		Genode::Entrypoint            &_ep;
 		File_system::Session          &_fs;
 		File_system::File_handle const _handle;
 
+		void _block_for_ack()
+		{
+			while (!_fs.tx()->ack_avail())
+				_ep.wait_and_dispatch_one_io_signal();
+		}
+
 	public:
 
-		Session_component(File_system::Session     &fs,
+		Session_component(Genode::Entrypoint       &ep,
+		                  File_system::Session     &fs,
 		                  File_system::File_handle  handle,
 		                  char               const *label)
 		:
 			_label_len(Genode::strlen(label) ? Genode::strlen(label)+3 : 0),
-			_fs(fs), _handle(handle)
+			_ep(ep), _fs(fs), _handle(handle)
 		{
 			if (_label_len)
 				Genode::snprintf(_label_buf, MAX_LABEL_LEN, "[%s] ", label);
@@ -60,15 +65,19 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 
 			File_system::Session::Tx::Source &source = *_fs.tx();
 
-			File_system::Packet_descriptor packet = source.get_acked_packet();
-
-			if (packet.operation() == File_system::Packet_descriptor::SYNC)
-				_fs.close(packet.handle());
+			File_system::Packet_descriptor packet { };
 
 			packet = File_system::Packet_descriptor(
 				packet, _handle, File_system::Packet_descriptor::SYNC, 0, 0);
 
 			source.submit_packet(packet);
+
+			_block_for_ack();
+
+			while (source.ack_avail())
+				source.get_acked_packet();
+
+			_fs.close(_handle);
 		}
 
 
@@ -89,6 +98,8 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 
 			File_system::Session::Tx::Source &source = *_fs.tx();
 
+			_block_for_ack();
+
 			File_system::Packet_descriptor packet = source.get_acked_packet();
 
 			if (packet.operation() == File_system::Packet_descriptor::SYNC)
@@ -106,6 +117,8 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 				if (_label_len+msg_len > Log_session::String::MAX_SIZE) {
 					packet.length(msg_len);
 					source.submit_packet(packet);
+
+					_block_for_ack();
 
 					packet =  File_system::Packet_descriptor(
 						source.get_acked_packet(),

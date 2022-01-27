@@ -13,7 +13,7 @@ When a default-policy node specifies a merge, all sessions are merged into
 the file "/log".
 
 :Example configuration:
-! <start name="log_file">
+! <start name="fs_log">
 !   <resource name="RAM" quantum="1M"/>
 !   <provides><service name="LOG"/></provides>
 !   <config>
