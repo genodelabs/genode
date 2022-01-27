@@ -15,8 +15,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/log.h>
-#include <file_system_session/connection.h>
-#include <file_system/util.h>
+#include <os/vfs.h>
 #include <base/attached_rom_dataspace.h>
 #include <util/xml_generator.h>
 #include <util/xml_node.h>
@@ -27,43 +26,45 @@ using namespace Genode;
 
 struct Framebuffer_controller
 {
-	Attached_rom_dataspace                 rom;
-	Signal_handler<Framebuffer_controller> rom_sigh;
-	Heap                                   heap;
-	Allocator_avl                          fs_alloc;
-	File_system::Connection                fs;
-	Timer::Connection                      timer;
-	Signal_handler<Framebuffer_controller> timer_handler;
+	Env  &_env;
+	Heap  _heap { _env.ram(), _env.rm() };
 
-	void update_connector_config(Xml_generator & xml, Xml_node & node);
-	void update_fb_config(Xml_node const &report);
-	void report_changed();
-	void handle_timer();
+	Attached_rom_dataspace _connectors { _env, "connectors" };
 
-	Framebuffer_controller(Env &env)
-	: rom(env, "connectors"),
-	  rom_sigh(env.ep(), *this, &Framebuffer_controller::report_changed),
-	  heap(env.ram(), env.rm()),
-	  fs_alloc(&heap),
-	  fs(env, fs_alloc, "", "/", true, 128*1024),
-	  timer(env),
-	  timer_handler(env.ep(), *this, &Framebuffer_controller::handle_timer)
+	Signal_handler<Framebuffer_controller> _connectors_handler {
+		_env.ep(), *this, &Framebuffer_controller::_handle_connectors };
+
+	Attached_rom_dataspace _config { _env, "config" };
+
+	uint64_t const _period_ms =
+		_config.xml().attribute_value("artifical_update_ms", (uint64_t)0);
+
+	Root_directory _root_dir { _env, _heap, _config.xml().sub_node("vfs") };
+
+	Timer::Connection                      _timer { _env };
+	Signal_handler<Framebuffer_controller> _timer_handler {
+		_env.ep(), *this, &Framebuffer_controller::_handle_timer };
+
+	void _update_connector_config(Xml_generator & xml, Xml_node & node);
+	void _update_fb_config(Xml_node const &report);
+	void _handle_connectors();
+	void _handle_timer();
+
+	Framebuffer_controller(Env &env) : _env(env)
 	{
-		Attached_rom_dataspace config(env, "config");
-		Genode::uint64_t const period_ms = config.xml().attribute_value("artifical_update_ms", (Genode::uint64_t)0);
+		_connectors.sigh(_connectors_handler);
+		_handle_connectors();
 
-		rom.sigh(rom_sigh);
-
-		if (period_ms) {
-			timer.sigh(timer_handler);
-			timer.trigger_periodic(period_ms * 1000 /* in us */);
+		if (_period_ms) {
+			_timer.sigh(_timer_handler);
+			_timer.trigger_periodic(_period_ms * 1000 /* in us */);
 		}
 	}
 };
 
 
-void Framebuffer_controller::update_connector_config(Xml_generator & xml,
-                                                     Xml_node & node)
+void Framebuffer_controller::_update_connector_config(Xml_generator & xml,
+                                                      Xml_node & node)
 {
 	xml.node("connector", [&] {
 
@@ -96,7 +97,7 @@ void Framebuffer_controller::update_connector_config(Xml_generator & xml,
 }
 
 
-void Framebuffer_controller::update_fb_config(Xml_node const &report)
+void Framebuffer_controller::_update_fb_config(Xml_node const &report)
 {
 	try {
 		static char buf[4096];
@@ -108,34 +109,34 @@ void Framebuffer_controller::update_fb_config(Xml_node const &report)
 			});
 
 			report.for_each_sub_node("connector", [&] (Xml_node &node) {
-			                         update_connector_config(xml, node); });
+			                         _update_connector_config(xml, node); });
 		});
 		buf[xml.used()] = 0;
 
-		File_system::Dir_handle root_dir = fs.dir("/", false);
-		File_system::File_handle file =
-			fs.file(root_dir, "fb_drv.config", File_system::READ_WRITE, false);
-		if (File_system::write(fs, file, buf, xml.used()) == 0)
-			error("Could not write config");
-		fs.close(file);
+		{
+			New_file file { _root_dir, "fb_drv.config" };
+
+			file.append(buf, xml.used());
+		}
+
 	} catch (...) {
 		error("Cannot update config");
 	}
 }
 
 
-void Framebuffer_controller::report_changed()
+void Framebuffer_controller::_handle_connectors()
 {
-	rom.update();
+	_connectors.update();
 
-	update_fb_config(rom.xml());
+	_update_fb_config(_connectors.xml());
 }
 
 
-void Framebuffer_controller::handle_timer()
+void Framebuffer_controller::_handle_timer()
 {
 	/* artificial update */
-	update_fb_config(rom.xml());
+	_update_fb_config(_connectors.xml());
 }
 
 
