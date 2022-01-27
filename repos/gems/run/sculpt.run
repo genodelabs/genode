@@ -667,9 +667,14 @@ foreach config $required_configs {
 	set ingredient [single_ingredient $config "default"]
 	set from [ingredient_path $config $ingredient]
 	set to   [initial_config_file $config]
-	copy_file $from $to }
+	check_xml_syntax $from
+	copy_file $from $to
+}
 
 # selection of depot users (pubkey and download files) and launchers
+foreach ingredient [ingredients_of_type launcher] {
+	check_xml_syntax [ingredient_path launcher $ingredient] }
+
 foreach type { depot launcher } {
 	foreach ingredient [ingredients_of_type $type] {
 		set from [ingredient_path $type $ingredient]
@@ -683,6 +688,7 @@ copy_file [genode_dir]/repos/gems/run/sculpt/vimrc          [initial_config_file
 foreach file { en_us de_ch de_de fr_ch fr_fr special } {
 	set from [genode_dir]/repos/os/src/server/event_filter/$file.chargen
 	set to   [file join [initial_config_dir] keyboard $file]
+	check_xml_syntax $from
 	copy_file $from $to }
 
 
@@ -704,7 +710,9 @@ puts $fd "<query/>"
 close $fd
 
 foreach config { fonts wifi runtime event_filter } {
-	file copy [ingredient_path $config default] [managed_config_path $config] }
+	set from [ingredient_path $config default]
+	check_xml_syntax $from
+	file copy $from [managed_config_path $config] }
 
 copy_file [file join [initial_config_dir] fb_drv] [managed_config_path fb_drv]
 
