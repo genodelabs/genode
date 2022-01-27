@@ -56,6 +56,12 @@ class Fs_log::Root_component :
 		File_system::Connection         _fs
 			{ _env, _tx_alloc, "", "/", true, TX_BUF_SIZE };
 
+		/* enable reception of I/O signals from file-system session */
+		Genode::Io_signal_handler<Root_component> _fs_signal_handler {
+			_env.ep(), *this, &Root_component::_handle_fs_signal };
+
+		void _handle_fs_signal() { };
+
 		void _update_config() { _config_rom.update(); }
 
 		Genode::Signal_handler<Root_component> _config_handler
@@ -148,7 +154,8 @@ class Fs_log::Root_component :
 					                 File_system::WRITE_ONLY, true));
 				}
 
-				return new (md_alloc()) Session_component(_fs, *handle, label_prefix);
+				return new (md_alloc())
+					Session_component(_env.ep(), _fs, *handle, label_prefix);
 			}
 			catch (Permission_denied) {
 				errstr = "permission denied"; }
@@ -181,6 +188,7 @@ class Fs_log::Root_component :
 			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env)
 		{
+			_fs.sigh(_fs_signal_handler);
 			_config_rom.sigh(_config_handler);
 
 			/* fill the ack queue with packets so sessions never need to alloc */
