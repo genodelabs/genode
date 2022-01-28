@@ -19,7 +19,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <drivers/defs/rpi.h>
 #include <gpio/driver.h>
 #include <irq_session/connection.h>
 
@@ -30,6 +29,10 @@ static int verbose = 1;
 
 namespace Gpio { class Rpi_driver; }
 
+namespace Rpi {
+	enum { GPIO_CONTROLLER_BASE = 0x20200000,
+	       GPIO_CONTROLLER_SIZE = 0x1000      };
+};
 
 class Gpio::Rpi_driver : public Driver
 {
