@@ -290,6 +290,9 @@ struct Usb_device
 
 			usb_connection.source()->submit_packet(p);
 
+			while (!usb_connection.source()->ack_avail())
+				genode_env().ep().wait_and_dispatch_one_io_signal();
+
 			p = usb_connection.source()->get_acked_packet();
 
 			if (!p.succeded)
@@ -317,6 +320,9 @@ struct Usb_device
 		bool altsetting(int number, int alt_setting)
 		{
 			Genode::Mutex::Guard guard(usb_packet_allocator_mutex());
+
+			if (!usb_connection.source()->ready_to_submit())
+				return false;
 
 			Usb::Packet_descriptor p =
 				usb_connection.source()->alloc_packet(0);
@@ -547,7 +553,7 @@ static int genode_set_interface_altsetting(struct libusb_device_handle* dev_hand
 	Usb_device *usb_device = *(Usb_device**)dev_handle->dev->os_priv;
 
 	return usb_device->altsetting(interface_number, altsetting) ? LIBUSB_SUCCESS
-	                                                            : LIBUSB_ERROR_OTHER;
+	                                                            : LIBUSB_ERROR_BUSY;
 }
 
 
