@@ -1,7 +1,5 @@
 INCLUDE_SUB_DIRS := platform_session \
                     legacy/imx53/platform_session \
-                    legacy/rpi/platform \
-                    legacy/rpi/platform_session \
                     legacy/x86/platform_session \
                     legacy/x86/platform_device
 
