@@ -18,7 +18,6 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/heap.h>
-#include <drivers/defs/rpi.h>
 #include <gpio/component.h>
 #include <gpio/config.h>
 
