@@ -394,15 +394,18 @@ void Allocator_avl_base::free(void *addr)
 }
 
 
-size_t Allocator_avl_base::size_at(void const *addr) const
+Allocator_avl_base::Size_at_result Allocator_avl_base::size_at(void const *addr) const
 {
 	/* lookup corresponding block */
 	Block *b = _find_by_address(reinterpret_cast<addr_t>(addr));
 
 	if (b && (b->addr() != (addr_t)addr))
-		return 0;
+		return Size_at_error::MISMATCHING_ADDR;
 
-	return (b && b->used()) ? b->size() : 0;
+	if (b && b->used())
+		return b->size();
+
+	return Size_at_error::UNKNOWN_ADDR;
 }
 
 
