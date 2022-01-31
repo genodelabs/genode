@@ -24,7 +24,7 @@ void lx_emul_time_event(unsigned long evt);
 
 void lx_emul_time_stop(void);
 
-unsigned long lx_emul_time_counter(void);
+unsigned long long lx_emul_time_counter(void);
 
 void lx_emul_time_handle(void);
 
