@@ -252,7 +252,7 @@ void Lx_kit::Console::vprintf(const char *format, va_list list)
 				if (cmd.length == Format_command::LONG_LONG)
 					_out_signed<long long>(numeric_arg, cmd.base);
 				else
-					_out_signed<long>(numeric_arg, cmd.base);
+					_out_signed<long>(static_cast<long>(numeric_arg), cmd.base);
 				break;
 
 			case Format_command::UINT:
@@ -270,7 +270,7 @@ void Lx_kit::Console::vprintf(const char *format, va_list list)
 
 			case Format_command::PTR:
 
-				_out_unsigned<unsigned long>(numeric_arg, cmd.base, cmd.padding);
+				_out_unsigned<unsigned long>(static_cast<unsigned long>(numeric_arg), cmd.base, cmd.padding);
 				break;
 
 			case Format_command::CHAR:
