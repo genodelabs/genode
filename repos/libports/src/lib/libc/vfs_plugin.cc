@@ -2429,11 +2429,22 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 {
-	if (mem_alloc()->size_at(addr) > 0) {
+	using Size_at_error = Mem_alloc::Size_at_error;
+
+	Mem_alloc::Size_at_result const size_at_result = mem_alloc()->size_at(addr);
+
+	if (size_at_result.ok()) {
 		/* private mapping */
-		mem_alloc()->free(addr);
+		size_at_result.with_result(
+			[&] (size_t)        { mem_alloc()->free(addr); },
+			[&] (Size_at_error) {                          });
+
 		return 0;
 	}
+
+	/* return error if addr is not a block start address */
+	if (size_at_result == Size_at_error::MISMATCHING_ADDR)
+		return Errno(EINVAL);
 
 	/* shared mapping */
 

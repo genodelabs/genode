@@ -143,7 +143,7 @@ void Libc::Mem_alloc_impl::free(void *addr)
 }
 
 
-size_t Libc::Mem_alloc_impl::size_at(void const *addr) const
+Libc::Mem_alloc::Size_at_result Libc::Mem_alloc_impl::size_at(void const *addr) const
 {
 	/* serialize access of heap functions */
 	Mutex::Guard guard(_mutex);

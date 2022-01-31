@@ -45,6 +45,15 @@ namespace Genode {
 
 class Genode::Allocator_avl_base : public Range_allocator
 {
+	public:
+
+		enum class Size_at_error {
+			UNKNOWN_ADDR,      /* no allocation at specified address */
+			MISMATCHING_ADDR,  /* specified address is not the start of a block */
+		};
+
+		using Size_at_result = Attempt<size_t, Size_at_error>;
+
 	private:
 
 		static bool _sum_in_range(addr_t addr, addr_t offset) {
@@ -287,7 +296,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		/**
 		 * Return size of block at specified address
 		 */
-		size_t size_at(void const *addr) const;
+		Size_at_result size_at(void const *addr) const;
 
 		/**
 		 * Return the memory overhead per Block

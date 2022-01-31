@@ -276,8 +276,14 @@ class Genode::Platform : public Platform_generic
 		 * Determine size of a core local mapping required for a
 		 * core_rm_session detach().
 		 */
-		size_t region_alloc_size_at(void * addr) {
-			return (_core_mem_alloc.virt_alloc())()->size_at(addr); }
+		size_t region_alloc_size_at(void * addr)
+		{
+			using Size_at_error = Allocator_avl::Size_at_error;
+
+			return (_core_mem_alloc.virt_alloc())()->size_at(addr).convert<size_t>(
+				[ ] (size_t s)      { return s;  },
+				[ ] (Size_at_error) { return 0U; });
+		}
 
 		size_t max_caps() const override
 		{

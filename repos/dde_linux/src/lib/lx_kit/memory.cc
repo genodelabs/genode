@@ -173,17 +173,24 @@ bool Lx_kit::Mem_allocator::free(const void * ptr)
 	if (!_mem.valid_addr((addr_t)ptr))
 		return false;
 
-	if (!_mem.size_at(ptr))
-		return true;
+	using Size_at_error = Allocator_avl::Size_at_error;
 
-	_mem.free(const_cast<void*>(ptr));
+	_mem.size_at(ptr).with_result(
+		[&] (size_t)        { _mem.free(const_cast<void*>(ptr)); },
+		[ ] (Size_at_error) {                                    });
+
 	return true;
 }
 
 
 Genode::size_t Lx_kit::Mem_allocator::size(const void * ptr)
 {
-	return ptr ? _mem.size_at(ptr) : 0;
+	if (!ptr) return 0;
+
+	using Size_at_error = Allocator_avl::Size_at_error;
+
+	return _mem.size_at(ptr).convert<size_t>([ ] (size_t s)      { return s;  },
+	                                         [ ] (Size_at_error) { return 0U; });
 }
 
 
