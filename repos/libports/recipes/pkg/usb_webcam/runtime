@@ -6,6 +6,7 @@
 		<rom label="init"/>
 		<rom label="jpeg.lib.so"/>
 		<rom label="vfs.lib.so"/>
+		<rom label="vfs_libusb.lib.so"/>
 		<rom label="vfs_pipe.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
