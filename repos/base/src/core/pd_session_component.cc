@@ -176,3 +176,27 @@ void Pd_session_component::transfer_quota(Capability<Pd_session> pd_cap,
 	});
 }
 
+
+addr_t Pd_session_component::dma_addr(Ram_dataspace_capability ds_cap)
+{
+	if (_managing_system == Managing_system::DENIED)
+		return 0;
+
+	if (this->cap() == ds_cap)
+		return 0;
+
+	return _ram_ds_factory.dataspace_dma_addr(ds_cap);
+}
+
+
+Pd_session::Attach_dma_result
+Pd_session_component::attach_dma(Dataspace_capability ds_cap, addr_t at)
+{
+	if (_managing_system == Managing_system::DENIED)
+		return Attach_dma_error::DENIED;
+
+	if (this->cap() == ds_cap)
+		return Attach_dma_error::DENIED;
+
+	return _address_space.attach_dma(ds_cap, at);
+}

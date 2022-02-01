@@ -185,3 +185,14 @@ size_t Ram_dataspace_factory::dataspace_size(Ram_dataspace_capability ds_cap) co
 
 	return result;
 }
+
+
+addr_t Ram_dataspace_factory::dataspace_dma_addr(Ram_dataspace_capability ds_cap)
+{
+	addr_t result = 0;
+	_ep.apply(ds_cap, [&] (Dataspace_component *c) {
+		if (c && c->owner(*this))
+			result = c->phys_addr(); });
+
+	return result;
+}

@@ -836,7 +836,7 @@ class Platform::Session_component : public Rpc_object<Session>
 				throw Out_of_ram();
 
 			Ram_dataspace_capability ram_cap = _env_ram.alloc(size, cache);
-			addr_t const dma_addr = Dataspace_client(ram_cap).phys_addr();
+			addr_t const dma_addr = _env.pd().dma_addr(ram_cap);
 
 			if (!ram_cap.valid())
 				return ram_cap;
@@ -868,7 +868,7 @@ class Platform::Session_component : public Rpc_object<Session>
 			if (!ram_cap.valid() || !_owned(ram_cap))
 				return 0;
 
-			return Dataspace_client(ram_cap).phys_addr();
+			return _env.pd().dma_addr(ram_cap);
 		}
 
 		Device_capability device(Device_name const &name) override;

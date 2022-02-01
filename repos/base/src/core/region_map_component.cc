@@ -344,7 +344,7 @@ Mapping Region_map_component::create_map_item(Region_map_component *,
 	                 .size_log2      = map_size_log2,
 	                 .cached         = dataspace.cacheability() == CACHED,
 	                 .io_mem         = dataspace.io_mem(),
-	                 .dma_buffer     = dataspace.cacheability() != CACHED,
+	                 .dma_buffer     = region.dma(),
 	                 .write_combined = dataspace.cacheability() == WRITE_COMBINED,
 	                 .writeable      = region.write() && dataspace.writable(),
 	                 .executable     = region.executable() };
@@ -352,16 +352,13 @@ Mapping Region_map_component::create_map_item(Region_map_component *,
 
 
 Region_map::Local_addr
-Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
-                             off_t offset, bool use_local_addr,
-                             Region_map::Local_addr local_addr,
-                             bool executable, bool writeable)
+Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const attr)
 {
 	/* serialize access */
 	Mutex::Guard lock_guard(_mutex);
 
 	/* offset must be positive and page-aligned */
-	if (offset < 0 || align_addr(offset, get_page_size_log2()) != offset)
+	if (attr.offset < 0 || align_addr(attr.offset, get_page_size_log2()) != attr.offset)
 		throw Region_conflict();
 
 	auto lambda = [&] (Dataspace_component *dsc) {
@@ -374,24 +371,26 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 
 		unsigned const min_align_log2 = get_page_size_log2();
 
-		size_t const off = offset;
+		size_t const off = attr.offset;
 		if (off >= dsc->size())
 			throw Region_conflict();
 
+		size_t size = attr.size;
+
 		if (!size)
-			size = dsc->size() - offset;
+			size = dsc->size() - attr.offset;
 
 		/* work with page granularity */
 		size = align_addr(size, min_align_log2);
 
 		/* deny creation of regions larger then the actual dataspace */
-		if (dsc->size() < size + offset)
+		if (dsc->size() < size + attr.offset)
 			throw Region_conflict();
 
 		/* allocate region for attachment */
 		void *attach_at = nullptr;
-		if (use_local_addr) {
-			_map.alloc_addr(size, local_addr).with_result(
+		if (attr.use_local_addr) {
+			_map.alloc_addr(size, attr.local_addr).with_result(
 				[&] (void *ptr) { attach_at = ptr; },
 				[&] (Range_allocator::Alloc_error error) {
 					switch (error) {
@@ -420,7 +419,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 				 * store. The backing store would constrain the mapping size
 				 * anyway such that a higher alignment of the region is of no use.
 				 */
-				if (((dsc->map_src_addr() + offset) & ((1UL << align_log2) - 1)) != 0)
+				if (((dsc->map_src_addr() + attr.offset) & ((1UL << align_log2) - 1)) != 0)
 					continue;
 
 				/* try allocating the align region */
@@ -444,12 +443,19 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 				throw Region_conflict();
 		}
 
+		Rm_region::Attr const region_attr
+		{
+			.base  = (addr_t)attach_at,
+			.size  = size,
+			.write = attr.writeable,
+			.exec  = attr.executable,
+			.off   = attr.offset,
+			.dma   = attr.dma,
+		};
+
 		/* store attachment info in meta data */
 		try {
-			_map.construct_metadata(attach_at,
-			                        (addr_t)attach_at, size,
-			                        dsc->writable() && writeable,
-			                        *dsc, offset, *this, executable);
+			_map.construct_metadata(attach_at, *dsc, *this, region_attr);
 		}
 		catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
 			error("failed to store attachment info");
@@ -524,6 +530,52 @@ void Region_map_component::unmap_region(addr_t base, size_t size)
 		if (ds_size)
 			r->rm().unmap_region(r->base() + ds_base - r->offset(), ds_size);
 	}
+}
+
+
+Region_map::Local_addr
+Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
+                             off_t offset, bool use_local_addr,
+                             Region_map::Local_addr local_addr,
+                             bool executable, bool writeable)
+{
+	Attach_attr const attr {
+		.size           = size,
+		.offset         = offset,
+		.use_local_addr = use_local_addr,
+		.local_addr     = local_addr,
+		.executable     = executable,
+		.writeable      = writeable,
+		.dma            = false,
+	};
+
+	return _attach(ds_cap, attr);
+}
+
+
+Region_map_component::Attach_dma_result
+Region_map_component::attach_dma(Dataspace_capability ds_cap, addr_t at)
+{
+	Attach_attr const attr {
+		.size           = 0,
+		.offset         = 0,
+		.use_local_addr = true,
+		.local_addr     = at,
+		.executable     = false,
+		.writeable      = true,
+		.dma            = true,
+	};
+
+	using Attach_dma_error = Pd_session::Attach_dma_error;
+
+	try {
+		_attach(ds_cap, attr);
+		return Pd_session::Attach_dma_ok();
+	}
+	catch (Invalid_dataspace) { return Attach_dma_error::DENIED; }
+	catch (Region_conflict)   { return Attach_dma_error::DENIED; }
+	catch (Out_of_ram)        { return Attach_dma_error::OUT_OF_RAM; }
+	catch (Out_of_caps)       { return Attach_dma_error::OUT_OF_CAPS; }
 }
 
 
