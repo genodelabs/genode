@@ -122,6 +122,9 @@ class Lx_kit::Device : List<Device>::Element
 		bool   irq_unmask(unsigned irq);
 		void   irq_mask(unsigned irq);
 		void   irq_ack(unsigned irq);
+
+		bool   read_config(unsigned reg, unsigned len, unsigned *val);
+		bool   write_config(unsigned reg, unsigned len, unsigned  val);
 };
 
 
