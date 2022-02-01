@@ -75,7 +75,7 @@ namespace {
 		static void _touch(struct genode_event_submit *myself,
 		                   struct genode_event_touch_args const *args)
 		{
-			Input::Touch_id id { (int)args->finger };
+			Input::Touch_id id { args->finger };
 
 			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
 				batch.submit(Input::Touch { id, (float)args->xpos, (float)args->ypos }); });
@@ -84,7 +84,7 @@ namespace {
 		static void _touch_release(struct genode_event_submit *myself,
 		                           unsigned finger)
 		{
-			Input::Touch_id id { (int)finger };
+			Input::Touch_id id { finger };
 
 			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
 				batch.submit(Input::Touch_release { id }); });

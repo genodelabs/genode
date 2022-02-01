@@ -281,7 +281,7 @@ void Driver::input_callback(Input_event type, unsigned code,
 	case EVENT_TYPE_WHEEL:   submit(Wheel{rx, ry});           break;
 	case EVENT_TYPE_TOUCH:
 		{
-			Touch_id const id { (int)code };
+			Touch_id const id { code };
 
 			if (rx == -1 && ry == -1)
 				submit(Touch_release{id});

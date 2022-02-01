@@ -23,7 +23,7 @@ namespace Input {
 
 	typedef Genode::Codepoint Codepoint;
 
-	struct Touch_id { int value; };
+	struct Touch_id { unsigned value; };
 
 	/*
 	 * Event attributes
