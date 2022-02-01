@@ -26,6 +26,7 @@ set build_components {
 	core init timer
 	drivers/usb_host
 	test/smartcard
+	lib/vfs/libusb
 	lib/vfs/pipe
 }
 
@@ -91,7 +92,11 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<config>
 			<vfs>
-				<dir name="dev"> <log/> <inline name="rtc">2018-01-01 00:01</inline> </dir>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+					<libusb/>
+				</dir>
 				<dir name="pipe"> <pipe/> </dir>
 				<dir name="ifd-ccid.bundle">
 					<dir name="Contents">
@@ -116,7 +121,7 @@ set boot_modules {
 	core init timer test-smartcard
 	ld.lib.so pcsc-lite.lib.so ccid.lib.so libusb.lib.so
 	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
-	Info.plist vfs_pipe.lib.so
+	Info.plist vfs_libusb.lib.so vfs_pipe.lib.so
 }
 
 lappend boot_modules [usb_host_drv_binary]
