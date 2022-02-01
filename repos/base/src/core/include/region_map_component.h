@@ -28,6 +28,7 @@
 #include <base/heap.h>
 #include <util/list.h>
 #include <util/fifo.h>
+#include <pd_session/pd_session.h>
 
 /* core includes */
 #include <platform.h>
@@ -70,39 +71,40 @@ class Genode::Region_map_detach : Genode::Interface
  */
 class Genode::Rm_region : public List<Rm_region>::Element
 {
-	private:
+	public:
 
-		addr_t const _base;
-		size_t const _size;
-		bool   const _write;
-		bool   const _exec;
-		off_t  const _off;
+		struct Attr
+		{
+			addr_t base;
+			size_t size;
+			bool   write;
+			bool   exec;
+			off_t  off;
+			bool   dma;
+		};
+
+	private:
 
 		Dataspace_component  &_dsc;
 		Region_map_detach    &_rm;
 
+		Attr const _attr;
+
 	public:
 
-		Rm_region(addr_t base, size_t size, bool write,
-		          Dataspace_component &dsc, off_t offset,
-		          Region_map_detach &rm, bool exec)
+		Rm_region(Dataspace_component &dsc, Region_map_detach &rm, Attr attr)
 		:
-			_base(base), _size(size), _write(write), _exec(exec), _off(offset),
-			_dsc(dsc), _rm(rm)
+			_dsc(dsc), _rm(rm), _attr(attr)
 		{ }
 
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		addr_t                    base() const { return _base;  }
-		size_t                    size() const { return _size;  }
-		bool                     write() const { return _write; }
-		bool                executable() const { return _exec;  }
-		Dataspace_component &dataspace() const { return _dsc;   }
-		off_t                   offset() const { return _off;   }
-		Region_map_detach          &rm() const { return _rm;    }
+		addr_t                    base() const { return _attr.base;  }
+		size_t                    size() const { return _attr.size;  }
+		bool                     write() const { return _attr.write; }
+		bool                executable() const { return _attr.exec;  }
+		off_t                   offset() const { return _attr.off;   }
+		bool                       dma() const { return _attr.dma;   }
+		Dataspace_component &dataspace() const { return _dsc; }
+		Region_map_detach          &rm() const { return _rm;  }
 };
 
 
@@ -358,6 +360,19 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 		 */
 		addr_t _core_local_addr(Rm_region & r);
 
+		struct Attach_attr
+		{
+			size_t size;
+			off_t  offset;
+			bool   use_local_addr;
+			addr_t local_addr;
+			bool   executable;
+			bool   writeable;
+			bool   dma;
+		};
+
+		Local_addr _attach(Dataspace_capability, Attach_attr);
+
 	public:
 
 		/*
@@ -450,6 +465,11 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 		                               addr_t                region_offset,
 		                               Dataspace_component  &dsc,
 		                               addr_t, addr_t);
+
+		using Attach_dma_result = Pd_session::Attach_dma_result;
+
+		Attach_dma_result attach_dma(Dataspace_capability, addr_t);
+
 
 		/**************************
 		 ** Region map interface **

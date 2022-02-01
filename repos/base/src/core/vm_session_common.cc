@@ -69,13 +69,21 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 
 			[&] (void *) {
 
+				Rm_region::Attr const region_attr
+				{
+					.base  = guest_phys,
+					.size  = attribute.size,
+					.write = dsc.writable() && attribute.writeable,
+					.exec  = attribute.executable,
+					.off   = (off_t)attribute.offset,
+					.dma   = false,
+				};
+
 				/* store attachment info in meta data */
 				try {
 					_map.construct_metadata((void *)guest_phys,
-					                        guest_phys, attribute.size,
-					                        dsc.writable() && attribute.writeable,
-					                        dsc, attribute.offset, *this,
-					                        attribute.executable);
+					                        dsc, *this, region_attr);
+
 				} catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
 					error("failed to store attachment info");
 					throw Invalid_dataspace();

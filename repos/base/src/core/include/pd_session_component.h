@@ -197,6 +197,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 
 		void map(addr_t, addr_t) override;
 
+
 		/****************
 		 ** Signalling **
 		 ****************/
@@ -334,6 +335,15 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 *******************************/
 
 		Managing_system_state managing_system(Managing_system_state const &) override;
+
+
+		/*******************************************
+		 ** Support for user-level device drivers **
+		 *******************************************/
+
+		addr_t dma_addr(Ram_dataspace_capability) override;
+
+		Attach_dma_result attach_dma(Dataspace_capability, addr_t) override;
 };
 
 #endif /* _CORE__INCLUDE__PD_SESSION_COMPONENT_H_ */

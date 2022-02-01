@@ -37,6 +37,21 @@ struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 		                                    RAM_QUOTA, CAP_QUOTA, label, space)),
 		Pd_session_client(cap())
 	{ }
+
+	struct Device_pd { };
+
+	/**
+	 * Constructor used for creating device protection domains
+	 */
+	Pd_connection(Env &env, Device_pd)
+	:
+		Connection<Pd_session>(env, session(env.parent(),
+		                                    "ram_quota=%u, cap_quota=%u, "
+		                                    "label=\"device PD\", virt_space=%u, "
+		                                    "managing_system=yes",
+		                                    RAM_QUOTA, CAP_QUOTA, UNCONSTRAIN)),
+		Pd_session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__PD_SESSION__CONNECTION_H_ */

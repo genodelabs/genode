@@ -106,7 +106,7 @@ class Platform::Device_pd
 		          Ram_quota_guard &ram_guard,
 		          Cap_quota_guard &cap_guard)
 		:
-			_pd(env, "device PD", Pd_connection::Virt_space::UNCONSTRAIN),
+			_pd(env, Pd_connection::Device_pd()),
 			_label(label),
 			_address_space(env, _pd, ram_guard, cap_guard)
 		{

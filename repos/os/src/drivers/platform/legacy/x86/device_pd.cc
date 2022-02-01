@@ -31,21 +31,28 @@ void Platform::Device_pd::attach_dma_mem(Dataspace_capability ds_cap,
 
 	addr_t page = ~0UL;
 
-	try {
-		page = _address_space.attach_at(ds_cap, dma_addr);
-		/* trigger eager mapping of memory */
-		_pd.map(page, size);
-	}
-	catch (Out_of_ram)  { throw; }
-	catch (Out_of_caps) { throw; }
-	catch (Region_map::Region_conflict) {
-		/*
-		 * DMA memory already attached before.
-		 */
-		page = dma_addr;
-	} catch (...) {
-		error(_label, ": attach_at or map failed");
-	}
+
+	using Attach_dma_error = Pd_session::Attach_dma_error;
+
+	_pd.attach_dma(ds_cap, dma_addr).with_result(
+
+		[&] (Pd_session::Attach_dma_ok) {
+
+			page = dma_addr;
+
+			/* trigger eager mapping of memory */
+			_pd.map(page, size);
+		},
+		[&] (Attach_dma_error e) {
+			switch (e) {
+			case Attach_dma_error::OUT_OF_RAM:  throw Out_of_ram();
+			case Attach_dma_error::OUT_OF_CAPS: throw Out_of_caps();
+			case Attach_dma_error::DENIED:
+				warning("Pd_session::attach_dma denied");
+				page = dma_addr;
+				break;
+			}
+		});
 
 	/* sanity check */
 	if ((page == ~0UL) || (page != dma_addr)) {

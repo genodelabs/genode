@@ -66,6 +66,11 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 		Rm_dataspace_component *dataspace_component() { return nullptr; }
 
 		void address_space(Platform_pd *) { }
+
+		using Attach_dma_result = Pd_session::Attach_dma_result;
+
+		Attach_dma_result attach_dma(Dataspace_capability, addr_t) {
+			return Pd_session::Attach_dma_error::DENIED; };
 };
 
 
