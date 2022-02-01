@@ -72,6 +72,12 @@ class Genode::Attempt
 				fail_fn(_error);
 		}
 
+		bool operator == (ERROR const &rhs) const {
+			return failed() && (_error == rhs); }
+
+		bool operator == (RESULT const &rhs) const {
+			return ok()     && (_result == rhs); }
+
 		bool ok()     const { return  _ok; }
 		bool failed() const { return !_ok; }
 };
