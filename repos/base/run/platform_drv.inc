@@ -1,7 +1,5 @@
 proc have_platform_drv {} {
-	return [expr [have_board imx53_qsb] \
-	          || [have_board imx53_qsb_tz] \
-	          || [have_board pc]]
+	return [expr [have_board pc]]
 }
 
 
@@ -63,9 +61,7 @@ proc append_platform_drv_build_components {} {
 }
 
 proc platform_drv_binary {} {
-	if {[have_board imx53_qsb]}    { return legacy_imx53_platform_drv }
-	if {[have_board imx53_qsb_tz]} { return legacy_imx53_platform_drv }
-	if {[have_board pc]}           { return legacy_pc_platform_drv    }
+	if {[have_board pc]} { return legacy_pc_platform_drv }
 	return no_platform_drv_available
 }
 
