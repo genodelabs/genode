@@ -30,8 +30,8 @@ struct page *alloc_pages(gfp_t const gfp_mask, unsigned int order)
 	Cache const cache    = (gfp_mask & dma_mask) ? Genode::UNCACHED
 	                                             : Genode::CACHED;
 	Genode::Ram_dataspace_capability ds_cap = Lx::backend_alloc(size, cache);
-	page->addr = Lx_kit::env().rm().attach(ds_cap);
-	page->paddr = Genode::Dataspace_client(ds_cap).phys_addr();
+	page->addr  = Lx_kit::env().rm().attach(ds_cap);
+	page->paddr = Lx::backend_dma_addr(ds_cap);
 
 	if (!page->addr) {
 		Genode::error("alloc_pages: ", size, " failed");

@@ -1,6 +1,6 @@
 TARGET   = fec_nic_drv
 LIBS     = base lx_kit_setjmp fec_nic_include nic_driver
-SRC_CC  += main.cc platform.cc lx_emul.cc uplink_client.cc
+SRC_CC  += main.cc lx_emul.cc uplink_client.cc
 SRC_CC  += linux_network_session_base.cc
 SRC_C   += dummy.c lxc.c
 INC_DIR += $(PRG_DIR)/../..

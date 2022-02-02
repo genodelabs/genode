@@ -84,7 +84,7 @@ class Pci_driver : public Bsd::Bus_driver
 					try {
 						Ram_dataspace_capability cap = _drv._alloc_dma_memory(BACKING_STORE_SIZE);
 						mapped_base = (addr_t)env.rm().attach(cap);
-						base        = Dataspace_client(cap).phys_addr();
+						base        = _drv._dma_addr(cap);
 
 						Allocator_avl::add_range(mapped_base, BACKING_STORE_SIZE);
 					} catch (...) {
@@ -144,6 +144,14 @@ class Pci_driver : public Bsd::Bus_driver
 					_pci.upgrade_ram(donate);
 					donate = donate * 2 > size ? 4096 : donate * 2;
 				});
+		}
+
+		/**
+		 * Get physical address for DMA dataspace
+		 */
+		Genode::addr_t _dma_addr(Genode::Ram_dataspace_capability ds_cap)
+		{
+			return _pci.dma_addr(ds_cap);
 		}
 
 	public:

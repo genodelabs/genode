@@ -43,6 +43,8 @@ struct Lx_kit::Memory_object_base : Genode::Object_pool<Memory_object_base>::Ent
 
 	virtual void free() = 0;
 
+	virtual Genode::addr_t dma_addr() const { return 0; }
+
 	Genode::Ram_dataspace_capability ram_cap()
 	{
 		using namespace Genode;
@@ -67,11 +69,15 @@ struct Lx_kit::Dma_object : Memory_object_base
 {
 	Platform::Connection &_pci;
 
+	Genode::addr_t const _dma_addr = _pci.dma_addr(ram_cap());
+
 	Dma_object(Platform::Connection &pci,
 	           Genode::Ram_dataspace_capability cap)
-	: Memory_object_base(cap), _pci(pci) {}
+	: Memory_object_base(cap), _pci(pci) { }
 
 	void free() { _pci.free_dma_buffer(ram_cap()); }
+
+	Genode::addr_t dma_addr() const override { return _dma_addr; }
 };
 
 
@@ -158,4 +164,18 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
 		memory_pool.remove(object);
 	});
 	destroy(_global_md_alloc, object);
+}
+
+
+Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability cap)
+{
+	using namespace Genode;
+	using namespace Lx_kit;
+
+	addr_t result = 0;
+	memory_pool.apply(cap, [&] (Dma_object *obj_ptr) {
+		if (obj_ptr)
+			result = obj_ptr->dma_addr(); });
+
+	return result;
 }

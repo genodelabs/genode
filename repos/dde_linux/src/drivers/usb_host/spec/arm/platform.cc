@@ -202,6 +202,12 @@ void Lx::backend_free(Ram_dataspace_capability cap)
 }
 
 
+Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability cap)
+{
+	return resource_env().platform.dma_addr(cap);
+}
+
+
 /**********************
  ** asm-generic/io.h **
  **********************/

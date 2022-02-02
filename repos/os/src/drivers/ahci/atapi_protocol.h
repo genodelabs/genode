@@ -41,9 +41,8 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _read_sense(Port &port)
 		{
-			addr_t phys   = Dataspace_client(port.device_info_ds).phys_addr();
-
-			Command_table table(port.command_table_addr(0), phys, 0x1000);
+			Command_table table(port.command_table_addr(0),
+			                    port.device_info_dma_addr, 0x1000);
 			table.fis.atapi();
 			table.atapi_cmd.read_sense();
 
@@ -61,9 +60,8 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _read_capacity(Port &port)
 		{
-			addr_t phys = Dataspace_client(port.device_info_ds).phys_addr();
-
-			Command_table table(port.command_table_addr(0), phys, 0x1000);
+			Command_table table(port.command_table_addr(0),
+			                    port.device_info_dma_addr, 0x1000);
 			table.fis.atapi();
 			table.fis.byte_count(~0);
 

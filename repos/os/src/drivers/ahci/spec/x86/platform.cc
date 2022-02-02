@@ -85,3 +85,9 @@ void Ahci::Platform::free_dma_buffer(Genode::Ram_dataspace_capability ds)
 {
 	_data.pci.free_dma_buffer(ds);
 }
+
+
+Genode::addr_t Ahci::Platform::dma_addr(Genode::Ram_dataspace_capability ds)
+{
+	return _data.pci.dma_addr(ds);
+}

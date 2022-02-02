@@ -31,6 +31,7 @@ namespace Utils {
 	{
 		virtual Ram alloc(Genode::size_t) = 0;
 		virtual void free(Ram) = 0;
+		virtual Genode::addr_t dma_addr(Ram) = 0;
 	};
 
 	template <unsigned int ELEMENTS> class Address_map;
@@ -58,12 +59,12 @@ class Utils::Address_map
 
 			Element() { }
 
-			Element(Ram ds_cap, void *va)
+			Element(Ram ds_cap, void *pa, void *va, size_t size)
 			:
 				ds_cap(ds_cap),
 				va((addr_t)va),
-				pa(Genode::Dataspace_client(ds_cap).phys_addr()),
-				size(Genode::Dataspace_client(ds_cap).size())
+				pa((addr_t)pa),
+				size(size)
 			{ }
 
 			Element(Element const &other)
@@ -105,12 +106,12 @@ class Utils::Address_map
 			}
 		}
 
-		bool add(Ram ds_cap, void *va)
+		bool add(Ram ds_cap, void *pa, void *va, size_t size)
 		{
 			for (uint32_t i = 0; i < ELEMENTS; i++) {
 				if (_map[i].valid()) { continue; }
 
-				_map[i] = Element(ds_cap, va);
+				_map[i] = Element(ds_cap, pa, va, size);
 				return true;
 			}
 			return false;

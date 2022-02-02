@@ -203,6 +203,12 @@ Genode::Ram_dataspace_capability Lx::backend_alloc(Genode::addr_t size,
 }
 
 
+Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability)
+{
+	return 0;
+}
+
+
 int usb_register_driver(struct usb_driver * driver, struct module *, const char *)
 {
 	INIT_LIST_HEAD(&driver->dynids.list);

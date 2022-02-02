@@ -178,25 +178,25 @@ namespace Genode
 			{
 				/* XXX addr PAT helper instead of hardcoding */
 				page.ds    = _backend.alloc(PAGE_SIZE);
-				page.addr  = Genode::Dataspace_client(page.ds).phys_addr();
+				page.addr  = _backend.dma_addr(page.ds);
 				page.addr |= 1;
 				page.addr |= 1 << 1;
 				page.next  = nullptr;
 
 				pt.ds      = _backend.alloc(PAGE_SIZE);
-				pt.addr    = Genode::Dataspace_client(pt.ds).phys_addr();
+				pt.addr    = _backend.dma_addr(pt.ds);
 				pt.addr   |= 1;
 				pt.addr   |= 1 << 1;
 				pt.next    = &page;
 
 				pd.ds      = _backend.alloc(PAGE_SIZE);
-				pd.addr    = Genode::Dataspace_client(pd.ds).phys_addr();
+				pd.addr    = _backend.dma_addr(pd.ds);
 				pd.addr   |= 1;
 				pd.addr   |= 1 << 1;
 				pd.next    = &pt;
 
 				pdp.ds     = _backend.alloc(PAGE_SIZE);
-				pdp.addr   = Genode::Dataspace_client(pdp.ds).phys_addr();
+				pdp.addr   = _backend.dma_addr(pdp.ds);
 				pdp.addr  |= 1;
 				pdp.addr  |= 1 << 1;
 				pdp.next   = &pd;

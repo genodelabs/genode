@@ -1476,3 +1476,38 @@ int try_module_get(struct module *mod)
 }
 
 }
+
+
+#include <base/ram_allocator.h>
+
+#include <legacy/lx_kit/backend_alloc.h>
+#include <legacy/lx_kit/env.h>
+
+
+/****************************
+ ** lx_kit/backend_alloc.h **
+ ****************************/
+
+void backend_alloc_init(Genode::Env&, Genode::Ram_allocator&,
+                        Genode::Allocator&)
+{
+	/* intentionally left blank */
+}
+
+
+Genode::Ram_dataspace_capability Lx::backend_alloc(addr_t size, Cache cache)
+{
+	return platform_connection().alloc_dma_buffer(size, cache);
+}
+
+
+void Lx::backend_free(Genode::Ram_dataspace_capability cap)
+{
+	return platform_connection().free_dma_buffer(cap);
+}
+
+
+Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability cap)
+{
+	return platform_connection().dma_addr(cap);
+}

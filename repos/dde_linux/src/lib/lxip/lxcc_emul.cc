@@ -102,6 +102,12 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
 }
 
 
+Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability)
+{
+	return 0;
+}
+
+
 /*************************************
  ** Memory allocation, linux/slab.h **
  *************************************/

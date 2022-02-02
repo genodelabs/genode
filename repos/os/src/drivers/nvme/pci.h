@@ -139,6 +139,16 @@ struct Nvme::Pci : Platform::Connection,
 	{
 		Pci::Connection::free_dma_buffer(cap);
 	}
+
+	/**
+	 * Return bus address of DMA buffer
+	 *
+	 * \param cap  RAM dataspace capability
+	 */
+	addr_t dma_addr(Ram_dataspace_capability cap) override
+	{
+		return Pci::Connection::dma_addr(cap);
+	}
 };
 
 #endif /* _NVME_PCI_H_ */

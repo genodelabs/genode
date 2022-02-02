@@ -67,6 +67,7 @@ class Ahci::Platform
 		 */
 		Ram_dataspace_capability alloc_dma_buffer(size_t size);
 		void free_dma_buffer(Ram_dataspace_capability ds);
+		addr_t dma_addr(Ram_dataspace_capability);
 };
 
 /**
@@ -498,6 +499,8 @@ struct Ahci::Port : private Port_base
 	Ram_dataspace_capability cmd_ds         { };
 	Ram_dataspace_capability device_info_ds { };
 
+	addr_t device_info_dma_addr = 0;
+
 	addr_t cmd_list      = 0;
 	addr_t fis_base      = 0;
 	addr_t cmd_table     = 0;
@@ -846,7 +849,7 @@ struct Ahci::Port : private Port_base
 		device_ds  = hba.alloc_dma_buffer(0x1000);
 
 		/* command list 1K */
-		addr_t phys = Dataspace_client(device_ds).phys_addr();
+		addr_t phys = hba.dma_addr(device_ds);
 		cmd_list    = (addr_t)rm.attach(device_ds);
 		command_list_base(phys);
 
@@ -865,7 +868,7 @@ struct Ahci::Port : private Port_base
 		size_t cmd_size = align_addr(cmd_slots * Command_table::size(), 12);
 		cmd_ds          = hba.alloc_dma_buffer(cmd_size);
 		cmd_table       = (addr_t)rm.attach(cmd_ds);
-		phys            = (addr_t)Dataspace_client(cmd_ds).phys_addr();
+		phys            = hba.dma_addr(cmd_ds);
 
 		/* set command table addresses in command list */
 		for (unsigned i = 0; i < cmd_slots; i++) {
@@ -874,8 +877,9 @@ struct Ahci::Port : private Port_base
 		}
 
 		/* dataspace for device info */
-		device_info_ds = hba.alloc_dma_buffer(0x1000);
-		device_info    = rm.attach(device_info_ds);
+		device_info_ds       = hba.alloc_dma_buffer(0x1000);
+		device_info_dma_addr = hba.dma_addr(device_info_ds);
+		device_info          = rm.attach(device_info_ds);
 	}
 
 	addr_t command_table_addr(unsigned slot)
@@ -918,7 +922,7 @@ struct Ahci::Port : private Port_base
 		if (dma_base) return Ram_dataspace_capability();
 
 		Ram_dataspace_capability dma = hba.alloc_dma_buffer(size);
-		dma_base = Dataspace_client(dma).phys_addr();
+		dma_base = hba.dma_addr(dma);
 		return dma;
 	}
 
