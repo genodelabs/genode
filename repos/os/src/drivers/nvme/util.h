@@ -26,8 +26,9 @@ namespace Util {
 	 */
 	struct Dma_allocator : Genode::Interface
 	{
-		virtual Genode::Ram_dataspace_capability alloc(size_t) = 0;
-		virtual void free(Genode::Ram_dataspace_capability) = 0;
+		virtual Ram_dataspace_capability alloc(size_t) = 0;
+		virtual void free(Ram_dataspace_capability) = 0;
+		virtual addr_t dma_addr(Ram_dataspace_capability) = 0;
 	};
 
 	/**

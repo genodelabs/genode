@@ -254,7 +254,7 @@ struct Pci_driver
 					});
 
 			_region.mapped_base = _rm.attach(ram_cap);
-			_region.base = Dataspace_client(ram_cap).phys_addr();
+			_region.base = _pci.dma_addr(ram_cap);
 
 			return _region.mapped_base;
 		} catch (...) {

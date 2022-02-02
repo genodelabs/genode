@@ -783,7 +783,7 @@ struct Nvme::Controller : public Genode::Attached_dataspace,
 	{
 		size_t const size = num * len;
 		q.ds          = _dma_alloc.alloc(size);
-		q.pa          = Dataspace_client(q.ds).phys_addr();
+		q.pa          = _dma_alloc.dma_addr(q.ds);
 		q.va          = (addr_t)_env.rm().attach(q.ds);
 		q.max_entries = num;
 	}
@@ -877,7 +877,8 @@ struct Nvme::Controller : public Genode::Attached_dataspace,
 		if (!_nvme_nslist.va) {
 			Ram_dataspace_capability ds = _dma_alloc.alloc(IDENTIFY_LEN);
 			_nvme_nslist.va = (addr_t)_env.rm().attach(ds);
-			_nvme_nslist.pa = Dataspace_client(ds).phys_addr();
+			_nvme_nslist.pa = _dma_alloc.dma_addr(ds);
+
 		}
 
 		uint32_t *nslist = (uint32_t*)_nvme_nslist.va;
@@ -928,7 +929,7 @@ struct Nvme::Controller : public Genode::Attached_dataspace,
 		if (!_nvme_query_ns[id].va) {
 			Ram_dataspace_capability ds = _dma_alloc.alloc(IDENTIFY_LEN);
 			_nvme_query_ns[id].va = (addr_t)_env.rm().attach(ds);
-			_nvme_query_ns[id].pa = Dataspace_client(ds).phys_addr();
+			_nvme_query_ns[id].pa = _dma_alloc.dma_addr(ds);
 		}
 
 		Sqe_identify b(_admin_command(Opcode::IDENTIFY, ns[id], QUERYNS_CID));
@@ -961,7 +962,7 @@ struct Nvme::Controller : public Genode::Attached_dataspace,
 		if (!_nvme_identify.va) {
 			Ram_dataspace_capability ds = _dma_alloc.alloc(IDENTIFY_LEN);
 			_nvme_identify.va = (addr_t)_env.rm().attach(ds);
-			_nvme_identify.pa = Dataspace_client(ds).phys_addr();
+			_nvme_identify.pa = _dma_alloc.dma_addr(ds);
 		}
 
 		Sqe_identify b(_admin_command(Opcode::IDENTIFY, 0, IDENTIFY_CID));
@@ -1557,7 +1558,7 @@ class Nvme::Driver : Genode::Noncopyable
 					error("could not allocate DMA backing store");
 					throw Nvme::Controller::Initialization_failed();
 				}
-				addr_t const phys_addr = Genode::Dataspace_client(ds).phys_addr();
+				addr_t const phys_addr = _nvme_pci->dma_addr(ds);
 				addr_t const virt_addr = (addr_t)_env.rm().attach(ds);
 				_prp_list_helper.construct(ds, phys_addr, virt_addr);
 
@@ -1620,7 +1621,7 @@ class Nvme::Driver : Genode::Noncopyable
 		Genode::Ram_dataspace_capability dma_alloc(size_t size)
 		{
 			Genode::Ram_dataspace_capability cap = _nvme_pci->alloc(size);
-			_dma_base = Dataspace_client(cap).phys_addr();
+			_dma_base = _nvme_pci->dma_addr(cap);
 			return cap;
 		}
 
