@@ -67,7 +67,6 @@ namespace Allocator {
 			addr_t                   _base;              /* virt. base address */
 			Cache                    _cache;             /* non-/cached RAM */
 			Ram_dataspace_capability _ds_cap[ELEMENTS];  /* dataspaces to put in VM */
-			addr_t                   _ds_phys[ELEMENTS]; /* physical bases of dataspaces */
 			int                      _index = 0;         /* current index in ds_cap */
 			Allocator_avl            _range;             /* manage allocations */
 			bool                     _quota_exceeded = false;
@@ -88,8 +87,6 @@ namespace Allocator {
 					_ds_cap[_index] =  Rump::env().env().ram().alloc(BLOCK_SIZE, _cache);
 					/* attach at index * BLOCK_SIZE */
 					Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
-					/* lookup phys. address */
-					_ds_phys[_index] = Genode::Dataspace_client(_ds_cap[_index]).phys_addr();
 				} catch (Genode::Out_of_ram) {
 					warning("backend allocator exhausted (out of RAM)");
 					_quota_exceeded = true;
@@ -168,27 +165,6 @@ namespace Allocator {
 			size_t overhead(size_t size) const override { return  0; }
 			bool need_size_for_free() const override { return false; }
 
-			/**
-			 * Return phys address for given virtual addr.
-			 */
-			addr_t phys_addr(addr_t addr)
-			{
-				if (addr < _base || addr >= (_base + VM_SIZE))
-					return ~0UL;
-
-				int index = (addr - _base) / BLOCK_SIZE;
-
-				/* physical base of dataspace */
-				addr_t phys = _ds_phys[index];
-
-				if (!phys)
-					return ~0UL;
-
-				/* add offset */
-				phys += (addr - _base - (index * BLOCK_SIZE));
-				return phys;
-			}
-
 			bool inside(addr_t addr) const { return (addr >= _base) && (addr < (_base + VM_SIZE)); }
 	};
 
@@ -217,11 +193,6 @@ namespace Allocator {
 			void free(void *addr, size_t size)
 			{
 				_back_allocator.free(addr, size);
-			}
-
-			addr_t phys_addr(void *addr)
-			{
-				return _back_allocator.phys_addr((addr_t)addr);
 			}
 	};
 } /* namespace Allocator */
