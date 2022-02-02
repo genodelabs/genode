@@ -225,10 +225,8 @@ Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 		return ret;
 
 	_buffer_registry.for_each([&] (Dma_buffer & buf) {
-		if (buf.cap.local_name() == ram_cap.local_name()) {
-			Dataspace_client dsc(buf.cap);
-			ret = dsc.phys_addr();
-		} });
+		if (buf.cap.local_name() == ram_cap.local_name())
+			ret = _env.pd().dma_addr(buf.cap); });
 
 	return ret;
 }
