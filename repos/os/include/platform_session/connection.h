@@ -24,6 +24,7 @@
 namespace Platform {
 
 	struct Device;
+	struct Dma_buffer;
 	struct Connection;
 }
 
@@ -33,7 +34,9 @@ class Platform::Connection : public Genode::Connection<Session>,
 {
 	private:
 
-		friend class Device; /* 'Device' accesses '_rm' */
+		/* 'Device' and 'Dma_buffer' access the '_rm' member */
+		friend class Device;
+		friend class Dma_buffer;
 
 		Region_map                       &_rm;
 		Rom_session_client                _rom {devices_rom()};
