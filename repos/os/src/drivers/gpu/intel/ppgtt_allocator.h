@@ -80,16 +80,17 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 			Alloc_error alloc_error = Alloc_error::DENIED;
 
 			try {
-				void * const ptr = _rm.attach(ds);
+				void * const va = _rm.attach(ds);
+				void * const pa = (void*)_backend.dma_addr(ds);
 
-				if (_map.add(ds, ptr) == true) {
-					_range.add_range((Genode::addr_t)ptr, alloc_size);
+				if (_map.add(ds, pa, va, alloc_size) == true) {
+					_range.add_range((Genode::addr_t)va, alloc_size);
 					result = _range.alloc_aligned(size, 12);
 					return result;
 				}
 
 				/* _map.add failed, roll back _rm.attach */
-				_rm.detach(ptr);
+				_rm.detach(va);
 			}
 			catch (Genode::Out_of_ram)  { alloc_error = Alloc_error::OUT_OF_RAM;  }
 			catch (Genode::Out_of_caps) { alloc_error = Alloc_error::OUT_OF_CAPS; }

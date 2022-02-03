@@ -75,7 +75,7 @@ class Igd::Resources : Genode::Noncopyable
 				return _platform.alloc_dma_buffer(PAGE_SIZE, Genode::UNCACHED); }) };
 
 		addr_t _scratch_page {
-			Genode::Dataspace_client(_scratch_page_ds).phys_addr() };
+			_platform.dma_addr(_scratch_page_ds) };
 
 		/* aperture */
 		enum {

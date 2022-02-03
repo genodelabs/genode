@@ -112,6 +112,11 @@ struct Igd::Device
 			_pci.free_dma_buffer(cap);
 		}
 
+		addr_t dma_addr(Ram_dataspace_capability ds_cap) override
+		{
+			return _pci.dma_addr(ds_cap);
+		}
+
 	} _pci_backend_alloc { _resources.platform() };
 
 
@@ -262,11 +267,11 @@ struct Igd::Device
 	Genode::Registry<Genode::Registered<Ggtt_mmio_mapping>> _ggtt_mmio_mapping_registry { };
 
 	Ggtt_mmio_mapping const &map_dataspace_ggtt(Genode::Allocator &alloc,
-	                                            Genode::Dataspace_capability cap,
+	                                            Genode::Ram_dataspace_capability cap,
 	                                            Ggtt::Offset offset)
 	{
 		Genode::Dataspace_client client(cap);
-		addr_t const phys_addr = client.phys_addr();
+		addr_t const phys_addr = _pci_backend_alloc.dma_addr(cap);
 		size_t const size      = client.size();
 
 		/*
@@ -1303,10 +1308,23 @@ struct Igd::Device
 	 *
 	 * \throw Out_of_memory
 	 */
-	Genode::Dataspace_capability alloc_buffer(Allocator &,
-	                                          size_t const size)
+	Genode::Ram_dataspace_capability alloc_buffer(Allocator &,
+	                                              size_t const size)
 	{
 		return _pci_backend_alloc.alloc(size);
+	}
+
+
+	/**
+	 * Get physical address for DMA buffer
+	 *
+	 * \param ds_cap  ram dataspace capability
+	 *
+	 * \return physical DMA address
+	 */
+	Genode::addr_t dma_addr(Genode::Ram_dataspace_capability ds_cap)
+	{
+		return _pci_backend_alloc.dma_addr(ds_cap);
 	}
 
 	/**
@@ -1335,7 +1353,8 @@ struct Igd::Device
 	 * \throw Could_not_map_buffer
 	 */
 	Ggtt::Mapping const &map_buffer(Genode::Allocator &guard,
-	                                Genode::Dataspace_capability cap, bool aperture)
+	                                Genode::Ram_dataspace_capability cap,
+	                                bool aperture)
 	{
 		if (aperture == false) {
 			error("GGTT mapping outside aperture");
@@ -1569,8 +1588,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		 */
 		struct Buffer : Rpc_object<Gpu::Buffer>
 		{
-			Dataspace_capability ds_cap;
-			Session_capability   owner_cap;
+			Ram_dataspace_capability ds_cap;
+			Session_capability       owner_cap;
 
 			enum { INVALID_FENCE = 0xff };
 			Genode::uint32_t fenced { INVALID_FENCE };
@@ -1580,11 +1599,13 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			addr_t phys_addr { 0 };
 			size_t size { 0 };
 
-			Buffer(Dataspace_capability ds_cap, Session_capability  owner_cap)
-			: ds_cap { ds_cap }, owner_cap { owner_cap }
+			Buffer(Ram_dataspace_capability ds_cap, Genode::addr_t phys_addr,
+			       Session_capability  owner_cap)
+			:
+				ds_cap { ds_cap }, owner_cap { owner_cap },
+				phys_addr { phys_addr }
 			{
 				Dataspace_client buf(ds_cap);
-				phys_addr = buf.phys_addr();
 				size = buf.size();
 			}
 
@@ -1809,10 +1830,11 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				Resource_guard::Reservation reserve =
 					_resource_guard.alloc_buffer(Ram_quota { size });
 
-				Genode::Dataspace_capability ds_cap =
+				Genode::Ram_dataspace_capability ds_cap =
 					_device.alloc_buffer(_heap, size);
+				Genode::addr_t phys_addr = _device.dma_addr(ds_cap);
 
-				Buffer *buffer = new (&_heap) Buffer(ds_cap, _session_cap);
+				Buffer *buffer = new (&_heap) Buffer(ds_cap, phys_addr, _session_cap);
 				_env.ep().manage(*buffer);
 				try {
 					new (&_heap) Buffer_local(buffer->cap(), size, _buffer_space, id);
