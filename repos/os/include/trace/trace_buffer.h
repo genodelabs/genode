@@ -83,6 +83,9 @@ class Trace_buffer
 						break;
 				}
 
+				if (!entry.length())
+					break;
+
 				if (!functor(entry))
 					break;
 
@@ -93,7 +96,7 @@ class Trace_buffer
 			if (update) _curr = new_curr;
 		}
 
-		void * address()        const { return &_buffer; }
+		void * address() const { return &_buffer; }
 };
 
 
