@@ -53,13 +53,14 @@ struct Virtio_mmio_nic::Main
 		switch (mode) {
 		case Nic_driver_mode::NIC_SERVER:
 
-			root.construct( env, heap, device, config_rom);
+			root.construct(env, heap, device, platform, config_rom);
 			env.parent().announce(env.ep().manage(*root));
 			break;
 
 		case Nic_driver_mode::UPLINK_CLIENT:
 
-			uplink_client.construct( env, heap, device, config_rom.xml());
+			uplink_client.construct(env, heap, device, platform,
+			                        config_rom.xml());
 			break;
 		}
 	}
