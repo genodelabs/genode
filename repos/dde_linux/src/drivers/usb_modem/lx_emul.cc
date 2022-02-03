@@ -225,6 +225,12 @@ int usb_register_driver(struct usb_driver * driver, struct module *, const char 
 }
 
 
+Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability)
+{
+	return 0;
+}
+
+
 int usb_driver_claim_interface(struct usb_driver *driver, struct usb_interface *iface, void *priv)
 {
 	usb_device      *udev = interface_to_usbdev(iface);
