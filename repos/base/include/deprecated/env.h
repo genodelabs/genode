@@ -87,34 +87,6 @@ struct Genode::Env_deprecated : Interface
 	 */
 	virtual Pd_session *pd_session() = 0;
 	virtual Pd_session_capability pd_session_cap() = 0;
-
-	/**
-	 * Reload parent capability and reinitialize environment resources
-	 *
-	 * This function is solely used for implementing fork semantics.
-	 * After forking a process, the new child process is executed
-	 * within a copy of the address space of the forking process.
-	 * Thereby, the new process inherits the original 'env' object of
-	 * the forking process, which is meaningless in the context of the
-	 * new process. By calling this function, the new process is able
-	 * to reinitialize its 'env' with meaningful capabilities obtained
-	 * via its updated parent capability.
-	 *
-	 * \noapi
-	 */
-	virtual void reinit(Native_capability::Raw) = 0;
-
-	/**
-	 * Reinitialize main-thread object
-	 *
-	 * \param stack_area_rm  new RM session of the stack area
-	 *
-	 * This function is solely used for implementing fork semantics
-	 * as provided by the Noux environment.
-	 *
-	 * \noapi
-	 */
-	virtual void reinit_main_thread(Capability<Region_map> &stack_area_rm) = 0;
 };
 
 #endif /* _INCLUDE__DEPRECATED__ENV_H_ */

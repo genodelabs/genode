@@ -31,7 +31,6 @@ SRC_CC       := main.cc \
                 core_log.cc \
                 core_log_out.cc \
                 default_log.cc \
-                env_reinit.cc \
                 heartbeat.cc \
                 thread.cc \
                 thread_myself.cc
@@ -61,7 +60,6 @@ vpath heartbeat.cc                 $(GEN_CORE_DIR)
 vpath thread.cc                    $(BASE_DIR)/src/lib/base
 vpath thread_myself.cc             $(BASE_DIR)/src/lib/base
 vpath trace.cc                     $(BASE_DIR)/src/lib/base
-vpath env_reinit.cc                $(REP_DIR)/src/lib/base
 vpath dataspace_component.cc       $(REP_DIR)/src/core/spec/$(BOARD)
 vpath io_mem_session_component.cc  $(REP_DIR)/src/core/spec/$(BOARD)
 vpath irq_session_component.cc     $(REP_DIR)/src/core/spec/$(BOARD)

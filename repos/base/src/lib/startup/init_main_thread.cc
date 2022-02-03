@@ -56,32 +56,24 @@ extern unsigned char __initial_stack_base[];
 /**
  * The first thread in a program
  */
-class Main_thread : public Thread
+struct Main_thread : Thread
 {
-	public:
+	Main_thread()
+	:
+		Thread(Weight::DEFAULT_WEIGHT, "main", MAIN_THREAD_STACK_SIZE, Type::MAIN)
+	{ }
 
-		/**
-		 * Constructor
-		 *
-		 * \param reinit  wether this is called for reinitialization
-		 */
-		Main_thread(bool reinit)
-		:
-			Thread(Weight::DEFAULT_WEIGHT, "main", MAIN_THREAD_STACK_SIZE,
-			       reinit ? Type::REINITIALIZED_MAIN : Type::MAIN)
-		{ }
+	/**********************
+	 ** Thread interface **
+	 **********************/
 
-		/**********************
-		 ** Thread interface **
-		 **********************/
-
-		void entry() override { }
+	void entry() override { }
 };
 
 
 Main_thread * main_thread()
 {
-	static Main_thread s(false);
+	static Main_thread s { };
 	return &s;
 }
 
@@ -134,9 +126,3 @@ extern "C" void init_main_thread()
 		for (;;);
 	}
 }
-
-
-/**
- * Reinitialize main-thread object according to a reinitialized environment
- */
-void reinit_main_thread() { construct_at<Main_thread>(main_thread(), true); }

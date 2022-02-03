@@ -38,14 +38,6 @@ void prepare_init_main_thread()
 }
 
 
-void prepare_reinit_main_thread()
-{
-	construct_at<Capability_map>(&cap_map());
-	cap_idx_alloc().reinit();
-	prepare_init_main_thread();
-}
-
-
 /************
  ** Thread **
  ************/

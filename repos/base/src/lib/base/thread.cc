@@ -204,8 +204,7 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 	_cpu_session(cpu_session),
 	_affinity(affinity),
 	_trace_control(nullptr),
-	_stack(type == REINITIALIZED_MAIN ?
-	       _stack : _alloc_stack(stack_size, name, type == MAIN))
+	_stack(_alloc_stack(stack_size, name, type == MAIN))
 {
 	_init_platform_thread(weight, type);
 }
