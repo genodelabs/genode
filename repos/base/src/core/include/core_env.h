@@ -99,9 +99,6 @@ class Genode::Core_env : public Env_deprecated, Noncopyable
 		Cpu_session            *cpu_session()     override { ASSERT_NEVER_CALLED; }
 		Cpu_session_capability  cpu_session_cap() override { ASSERT_NEVER_CALLED; }
 		Pd_session_capability   pd_session_cap()  override { return _pd_session.cap(); }
-
-		void reinit(Capability<Parent>::Raw) override { }
-		void reinit_main_thread(Capability<Region_map> &) override { }
 };
 
 #endif /* _CORE__INCLUDE__CORE_ENV_H_ */

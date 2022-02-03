@@ -74,14 +74,6 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 	void close(Parent::Client::Id id) override { return genode_env.close(id); }
 
 	void exec_static_constructors() override { }
-
-	void reinit(Native_capability::Raw raw) override {
-		genode_env.reinit(raw);
-	}
-
-	void reinit_main_thread(Capability<Region_map> &stack_area_rm) override {
-		genode_env.reinit_main_thread(stack_area_rm);
-	}
 };
 
 

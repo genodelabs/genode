@@ -91,9 +91,6 @@ class Genode::Platform_env_base : public Env_deprecated
 		Cpu_session_capability  cpu_session_cap() override { return  _cpu_session_cap; }
 		Pd_session             *pd_session()      override { return &_local_pd_session; }
 		Pd_session_capability   pd_session_cap()  override { return  _pd_session_cap; }
-
-		void reinit(Native_capability::Raw) override;
-		void reinit_main_thread(Capability<Region_map> &) override;
 };
 
 
