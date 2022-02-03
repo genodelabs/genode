@@ -689,7 +689,6 @@ set default_test_pkgs {
 	test-libc_vfs_ram
 	test-log
 	test-lx_block
-	test-magic_ring_buffer
 	test-mmio
 	test-new_delete
 	test-nic_loopback
