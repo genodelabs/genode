@@ -13,6 +13,7 @@
 
 #include <base/component.h>
 #include <platform_session/connection.h>
+#include <platform_session/dma_buffer.h>
 #include <virtio/mmio_device.h>
 
 #include "component.h"

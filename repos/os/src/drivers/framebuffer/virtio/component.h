@@ -180,7 +180,7 @@ class Virtio_fb::Driver
 
 		typedef Virtio::Queue<Control_header, Control_queue_traits> Control_queue;
 
-		class Fb_memory_resource
+		class Fb_memory_resource : public Platform::Dma_buffer
 		{
 			private:
 
@@ -190,40 +190,20 @@ class Virtio_fb::Driver
 				Fb_memory_resource(Fb_memory_resource const &) = delete;
 				Fb_memory_resource &operator = (Fb_memory_resource const &) = delete;
 
-				Platform::Connection     &_platform;
-				Attached_dataspace        _attachement;
-
 				static size_t _fb_size(Capture::Area const &area) {
 						return area.w() * area.h() * 4; }
 
 			public:
 
-				addr_t phys_addr()
-				{
-					Dataspace_client client(_attachement.cap());
-					return client.phys_addr();
-				}
-
-				Capture::Pixel *local_addr() { return _attachement.local_addr<Capture::Pixel>(); }
-				size_t size() const { return _attachement.size(); };
-
-				Fb_memory_resource(Region_map                 &rm,
-				                   Platform::Connection       &platform,
+				Fb_memory_resource(Platform::Connection       &platform,
 				                   Capture::Area        const &area)
-				: _platform(platform)
-				, _attachement(rm, _platform.alloc_dma_buffer(_fb_size(area), UNCACHED)) { }
-
-				~Fb_memory_resource()
-				{
-					_platform.free_dma_buffer(static_cap_cast<Ram_dataspace>(_attachement.cap()));
-					_attachement.invalidate();
-				}
+				: Platform::Dma_buffer(platform, _fb_size(area), UNCACHED) {}
 		};
 
 		Env                   &_env;
 		Platform::Connection  &_platform;
 		Virtio::Device        &_device;
-		Control_queue          _ctrl_vq { _env.ram(), _env.rm(), 4, 512 };
+		Control_queue          _ctrl_vq { _env.ram(), _env.rm(), _platform, 4, 512 };
 		uint32_t const         _num_scanouts;
 		Signal_handler<Driver> _irq_handler { _env.ep(), *this, &Driver::_handle_irq };
 
@@ -343,7 +323,7 @@ class Virtio_fb::Driver
 			}
 
 			try {
-				_fb_res.construct(_env.rm(), _platform, _display_area);
+				_fb_res.construct(_platform, _display_area);
 			} catch (...) {
 				error("Failed to allocate framebuffer!");
 				throw;
@@ -352,7 +332,7 @@ class Virtio_fb::Driver
 			{
 				Control_header attach_cmd { Control_header::CMD_RESOURCE_ATTACH_BACKING };
 				Attach_backing attach_data {
-					.addr   = _fb_res->phys_addr(),
+					.addr   = _fb_res->dma_addr(),
 					.length = static_cast<uint32_t>(_fb_res->size())
 				};
 
@@ -445,7 +425,8 @@ class Virtio_fb::Driver
 			if (!_captured_screen.constructed())
 				return;
 
-			Capture::Surface<Pixel> surface(_fb_res->local_addr(), _display_area);
+			Capture::Surface<Pixel> surface(_fb_res->local_addr<Pixel>(),
+			                                _display_area);
 			_captured_screen->apply_to_surface(surface);
 
 			_update_fb();

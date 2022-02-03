@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__VIRTIO__MMIO_DEVICE_H_
 #define _INCLUDE__VIRTIO__MMIO_DEVICE_H_
 
+#include <platform_session/connection.h>
 #include <platform_session/device.h>
 #include <virtio/queue.h>
 

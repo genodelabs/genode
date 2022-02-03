@@ -292,15 +292,16 @@ class Virtio_nic::Device : Noncopyable
 
 		Device(Genode::Env             &env,
 		       Virtio::Device          &device,
+		       Platform::Connection    &plat,
 		       Genode::Xml_node  const &xml)
 		try :
 			_verbose     { xml.attribute_value("verbose", false) },
 			_device      { device },
 			_hw_features { _init_hw_features(xml) },
-			_rx_vq       { env.ram(), env.rm(),
+			_rx_vq       { env.ram(), env.rm(), plat,
 			               _vq_size(RX_VQ, xml, "rx_queue_size"),
 			               _buf_size(RX_VQ, xml, "rx_buffer_size") },
-			_tx_vq       { env.ram(), env.rm(),
+			_tx_vq       { env.ram(), env.rm(), plat,
 			               _vq_size(TX_VQ, xml, "tx_queue_size"),
 			               _buf_size(TX_VQ, xml, "tx_buffer_size") }
 		{ }
@@ -534,13 +535,14 @@ class Virtio_nic::Session_component : public Nic::Session_component,
 		Session_component(Genode::Env             &env,
 		                  Genode::Allocator       &rx_block_md_alloc,
 		                  Virtio::Device          &device,
+		                  Platform::Connection    &plat,
 		                  Genode::Xml_node  const &xml,
 		                  Genode::size_t    const  tx_buf_size,
 		                  Genode::size_t    const  rx_buf_size)
 		:
 			Nic::Session_component { tx_buf_size, rx_buf_size, Genode::CACHED,
 			                         rx_block_md_alloc, env },
-			Device                 { env, device, xml },
+			Device                 { env, device, plat, xml },
 			_irq_handler           { env.ep(), *this, &Session_component::_handle_irq },
 			_link_up               { link_state() }
 		{
@@ -566,6 +568,7 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 
 		Genode::Env            &_env;
 		Virtio::Device         &_device;
+		Platform::Connection   &_plat;
 		Attached_rom_dataspace &_config_rom;
 
 		Session_component *_create_session(const char *args) override
@@ -587,7 +590,7 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 
 			try {
 				return new (md_alloc()) Session_component(
-					_env, *md_alloc(), _device, _config_rom.xml(),
+					_env, *md_alloc(), _device, _plat, _config_rom.xml(),
 					tx_buf_size, rx_buf_size);
 			} catch (...) { throw Service_denied(); }
 		}
@@ -597,12 +600,14 @@ class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode
 		Root(Env                    &env,
 		     Allocator              &md_alloc,
 		     Virtio::Device         &device,
+		     Platform::Connection   &plat,
 		     Attached_rom_dataspace &config_rom)
 		:
 			Root_component<Session_component,
 			               Genode::Single_client> { env.ep(), md_alloc },
 			_env                                  { env },
 			_device                               { device },
+			_plat                                 { plat },
 			_config_rom                           { config_rom }
 		{ }
 };
@@ -687,9 +692,10 @@ class Genode::Uplink_client : public Virtio_nic::Device,
 		Uplink_client(Env                         &env,
 		              Allocator                   &alloc,
 		              Virtio::Device              &device,
+		              Platform::Connection        &plat,
 		              Genode::Xml_node      const &xml)
 		:
-			Device             { env, device, xml },
+			Device             { env, device, plat, xml },
 			Uplink_client_base { env, alloc, read_mac_address() },
 			_irq_handler       { env.ep(), *this, &Uplink_client::_handle_irq }
 		{

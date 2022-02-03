@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__VIRTIO__QUEUE_H_
 #define _INCLUDE__VIRTIO__QUEUE_H_
 
+#include <base/attached_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/stdint.h>
 #include <dataspace/client.h>
@@ -134,20 +135,13 @@ class Virtio::Queue
 				Buffer_pool(Buffer_pool const &) = delete;
 				Buffer_pool &operator = (Buffer_pool const &) = delete;
 
-				Attached_ram_dataspace    _ram_ds;
-				uint16_t           const  _buffer_count;
-				uint16_t           const  _buffer_size;
-				addr_t             const  _phys_base;
-				uint8_t                  *_local_base;
+				Attached_dataspace   _ds;
+				uint16_t       const _buffer_count;
+				uint16_t       const _buffer_size;
+				addr_t         const _phys_base;
 
 				static size_t _ds_size(uint16_t buffer_count, uint16_t buffer_size) {
 					return buffer_count * align_natural(buffer_size); }
-
-				static addr_t _phys_addr(Attached_ram_dataspace &ram_ds)
-				{
-					Dataspace_client client(ram_ds.cap());
-					return client.phys_addr();
-				}
 
 			public:
 
@@ -158,21 +152,25 @@ class Virtio::Queue
 					uint16_t  size;
 				};
 
-				Buffer_pool(Ram_allocator       &ram,
-				            Region_map          &rm,
-				            uint16_t       const buffer_count,
-				            uint16_t       const buffer_size)
-				: _ram_ds(ram, rm, _ds_size(buffer_count, buffer_size))
-				, _buffer_count(buffer_count)
-				, _buffer_size(buffer_size)
-				, _phys_base(_phys_addr(_ram_ds))
-				, _local_base(_ram_ds.local_addr<uint8_t>()) {}
+				Buffer_pool(Platform::Connection & plat,
+				            Region_map           & rm,
+				            uint16_t         const buffer_count,
+				            uint16_t         const buffer_size)
+				:
+					_ds(rm, plat.alloc_dma_buffer(buffer_count *
+					                              align_natural(buffer_size),
+					                              CACHED)),
+					_buffer_count(buffer_count),
+					_buffer_size(buffer_size),
+					_phys_base(plat.dma_addr(static_cap_cast<Ram_dataspace>(_ds.cap()))) {}
 
-				const Buffer get(uint16_t descriptor_idx) const {
+				const Buffer get(uint16_t descriptor_idx) const
+				{
 					descriptor_idx %= _buffer_count;
 					return {
-						_local_base + descriptor_idx * align_natural(_buffer_size),
-						_phys_base  + descriptor_idx * align_natural(_buffer_size),
+						(uint8_t*)((addr_t)_ds.local_addr<uint8_t>() +
+						           descriptor_idx * align_natural(_buffer_size)),
+						_phys_base + descriptor_idx * align_natural(_buffer_size),
 						_buffer_size
 					};
 				}
@@ -566,13 +564,14 @@ class Virtio::Queue
 			print(output, _queue_size);
 		}
 
-		Queue(Ram_allocator &ram,
-		      Region_map    &rm,
-		      uint16_t       queue_size,
-		      uint16_t       buffer_size)
+		Queue(Ram_allocator        & ram,
+		      Region_map           & rm,
+		      Platform::Connection & plat,
+		      uint16_t               queue_size,
+		      uint16_t               buffer_size)
 		: _queue_size(queue_size),
 		  _ram_ds(ram, rm, _ds_size(queue_size), UNCACHED),
-		  _buffers(ram, rm, queue_size, _check_buffer_size(buffer_size)),
+		  _buffers(plat, rm, queue_size, _check_buffer_size(buffer_size)),
 		  _avail(_init_avail(_ram_ds.local_addr<uint8_t>(), queue_size)),
 		  _used(_init_used(_ram_ds.local_addr<uint8_t>(), queue_size)),
 		  _descriptors(_ram_ds.local_addr<uint8_t>(), queue_size),

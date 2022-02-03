@@ -129,6 +129,7 @@ class Virtio_input::Driver
 		Driver &operator = (Driver const &);
 
 		Env                    &_env;
+		Platform::Connection   &_plat;
 		::Event::Connection     _event_session { _env };
 		Virtio::Device         &_device;
 		Event                   _last_sent_key_event { 0, 0, 0 };
@@ -136,9 +137,9 @@ class Virtio_input::Driver
 		Input::Absolute_motion  _abs_motion { -1, -1 };
 		Abs_config              _abs_config { { 0, 0 }, { 0, 0 }, 0, 0 };
 		Signal_handler<Driver>  _irq_handler {_env.ep(), *this, &Driver::_handle_irq};
-		Events_virtqueue        _events_vq { _env.ram(), _env.rm(),
+		Events_virtqueue        _events_vq { _env.ram(), _env.rm(), _plat,
 		                                     QUEUE_SIZE, QUEUE_ELM_SIZE };
-		Status_virtqueue        _status_vq { _env.ram(), _env.rm(),
+		Status_virtqueue        _status_vq { _env.ram(), _env.rm(), _plat,
 		                                     QUEUE_SIZE, QUEUE_ELM_SIZE };
 
 
@@ -441,11 +442,12 @@ class Virtio_input::Driver
 
 	public:
 
-		Driver(Env            &env,
-		       Virtio::Device &device,
-		       Xml_node const &config)
+		Driver(Env                  & env,
+		       Platform::Connection & plat,
+		       Virtio::Device       & device,
+		       Xml_node const       & config)
 		:
-			_env(env), _device(device)
+			_env(env), _plat(plat), _device(device)
 		{
 			_init_driver(config);
 			_abs_config = _read_abs_config(_device, config);
