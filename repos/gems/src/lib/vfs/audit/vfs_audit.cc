@@ -265,13 +265,6 @@ class Vfs_audit::File_system : public Vfs::File_system
 			return h.audit->fs().ftruncate(h.audit, len);
 		}
 
-		bool check_unblock(Vfs_handle *vfs_handle, bool rd, bool wr, bool ex) override
-		{
-			Handle &h = *static_cast<Handle*>(vfs_handle);
-			h.sync_state();
-			return h.audit->fs().check_unblock(h.audit, rd, wr, ex);
-		}
-
 		void register_read_ready_sigh(Vfs_handle *vfs_handle, Signal_context_capability sigh) override
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);

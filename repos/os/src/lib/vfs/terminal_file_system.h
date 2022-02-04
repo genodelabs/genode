@@ -264,11 +264,6 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 		{
 			return FTRUNCATE_OK;
 		}
-
-		bool check_unblock(Vfs_handle *, bool rd, bool wr, bool) override
-		{
-			return ((rd && _terminal.avail()) || wr);
-		}
 };
 
 

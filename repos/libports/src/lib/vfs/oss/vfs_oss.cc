@@ -730,11 +730,6 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 		{
 			return FTRUNCATE_OK;
 		}
-
-		bool check_unblock(Vfs_handle *, bool, bool wr, bool) override
-		{
-			return wr;
-		}
 };
 
 

@@ -2074,12 +2074,6 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			return false;
 		}
 
-		bool check_unblock(Vfs_handle*, bool, bool, bool) override
-		{
-			Genode::error("VFS lwIP: ",__func__," not implemented");
-			return true;
-		}
-
 		Sync_result complete_sync(Vfs_handle *vfs_handle) override
 		{
 			return (dynamic_cast<Lwip_file_handle*>(vfs_handle))
