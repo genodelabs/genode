@@ -5,9 +5,9 @@
 	<events>
 		<timeout meaning="failed" sec="60" />
 		<log meaning="succeeded">
-			--- all tests finished ---*
-			--- all tests finished ---*
-			--- all tests finished ---
+			child "test-part*" exited with exit value 0*
+			child "test-part*" exited with exit value 0*
+			child "test-part*" exited with exit value 0
 		</log>
 		<log meaning="failed">Error: </log>
 	</events>
@@ -17,7 +17,7 @@
 		<rom label="vfs_block"/>
 		<rom label="vfs.lib.so"/>
 		<rom label="part_block"/>
-		<rom label="test-block-client"/>
+		<rom label="block_tester"/>
 		<rom label="report_rom"/>
 		<rom label="ata.mbr.raw"/>
 	</content>
@@ -70,22 +70,37 @@
 			<config verbose="yes"/>
 		</start>
 		<start name="test-part1">
-			<binary name="test-block-client"/>
+			<binary name="block_tester"/>
 			<resource name="RAM" quantum="5M" />
+			<config verbose="no" log="yes" stop_on_error="no">
+				<tests>
+					<sequential length="32K" size="1K" io_buffer="128K" batch="4"/>
+				</tests>
+			</config>
 			<route>
 				<any-service> <child name="part_block" /> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 		<start name="test-part2">
-			<binary name="test-block-client"/>
+			<binary name="block_tester"/>
 			<resource name="RAM" quantum="5M" />
+			<config verbose="no" log="yes" stop_on_error="no">
+				<tests>
+					<sequential length="256K" size="1K" io_buffer="128K" batch="4"/>
+				</tests>
+			</config>
 			<route>
 				<any-service> <child name="part_block" /> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 		<start name="test-part3">
-			<binary name="test-block-client"/>
+			<binary name="block_tester"/>
 			<resource name="RAM" quantum="5M" />
+			<config verbose="no" log="yes" stop_on_error="no">
+				<tests>
+					<sequential length="128K" size="1K" io_buffer="128K" batch="4"/>
+				</tests>
+			</config>
 			<route>
 				<any-service> <child name="part_block" /> <parent/> <any-child/> </any-service>
 			</route>

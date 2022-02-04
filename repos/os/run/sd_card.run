@@ -1,11 +1,14 @@
-assert_spec pbxa9
+if {![have_board pbxa9]} {
+	puts "Test requires board pbxa9"
+	exit
+}
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/platform_drv
 
-build { drivers/sd_card test/block/client }
+build { drivers/sd_card app/block_tester }
 
 install_config {
 <config>
@@ -55,20 +58,19 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-block-client">
-		<resource name="RAM" quantum="1M" />
-		<route>
-			<service name="ROM"> <parent/> </service>
-			<service name="PD">  <parent/> </service>
-			<service name="RM">  <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-			<any-service> <any-child/> </any-service>
-		</route>
+	<start name="block_tester">
+		<resource name="RAM" quantum="64M" />
+		<config verbose="no" report="no" log="yes" stop_on_error="no">
+			<tests>
+				<sequential length="16M" size="1M" io_buffer="8M" batch="4"/>
+				<sequential start="4000" write="yes" length="16M" size="1M" io_buffer="8M" batch="4"/>
+			</tests>
+		</config>
+		<route> <any-service> <any-child/> <parent/> </any-service> </route>
 	</start>
 </config> }
 
-build_boot_image { pl180_sd_card_drv test-block-client }
+build_boot_image { pl180_sd_card_drv block_tester }
 
 set disk_image "bin/sd_card.img"
 if { [file exists $disk_image] == 0 } then {

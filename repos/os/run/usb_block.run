@@ -9,8 +9,7 @@ set build_components {
 	drivers/usb_host
 	drivers/usb_block
 	server/report_rom
-	test/block/client
-	test/block/bench
+	app/block_tester
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -92,21 +91,22 @@ append config {
 	<start name="usb_block_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Block"/> </provides>
-		<config report="yes"/>
+		<config report="yes" writeable="no"/>
 		<route>
 			<service name="Usb"> <child name="usb_drv"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="test-usb">
-		<resource name="RAM" quantum="128M"/>
-		<binary name="test-block-bench"/>
-		<!--binary name="test-block-client"/-->
-		<config>
-			<libc stdout="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+	<start name="block_tester">
+		<resource name="RAM" quantum="64M" />
+		<config verbose="no" report="no" log="yes" stop_on_error="no">
+			<tests>
+				<sequential length="8M" size="1M" io_buffer="8M" batch="4"/>
+
+				<!-- enable 'writeable="yes"' at usb_block_drv for write test -->
+				<!-- <sequential write="yes" start="4000" length="2M" size="1M" io_buffer="8M" batch="4"/> -->
+			</tests>
 		</config>
 		<route>
 			<service name="Block"> <child name="usb_block_drv"/> </service>
@@ -123,8 +123,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer report_rom usb_block_drv
-	test-block-client test-block-bench
+	core init timer report_rom usb_block_drv block_tester
 	ld.lib.so
 }
 
@@ -151,4 +150,4 @@ append qemu_args "  -nographic -M pc -boot order=d "
 append qemu_args " -drive if=none,id=disk,file=$disk_image,format=raw "
 append qemu_args " -device usb-ehci,id=ehci -device usb-storage,bus=ehci.0,drive=disk "
 
-run_genode_until {.*child "test-usb" exited with exit value 0.*} 100
+run_genode_until {.*child "block_tester" exited with exit value 0.*} 100

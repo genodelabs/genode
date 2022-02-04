@@ -30,9 +30,9 @@ set build_components {
 	core init timer
 	drivers/ahci
 	server/lx_block
+	server/report_rom
 	app/block_tester
 	server/part_block
-	test/block/client
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -167,9 +167,13 @@ append config {
 
 append config {
 	<start name="test-part0">
-		<binary name="test-block-client" />
+		<binary name="block_tester" />
 		<resource name="RAM" quantum="32M" />
-		<config test_size="64M" />
+		<config verbose="no" log="yes" stop_on_error="no">
+			<tests>
+				<sequential length="2M" size="256K" io_buffer="8M" batch="4"/>
+			</tests>
+		</config>
 		<route>
 			<service name="Block"><child name="part_block0"/></service>
 			<any-service> <parent/> <any-child /> </any-service>
@@ -251,9 +255,13 @@ append config {
 
 append config {
 	<start name="test-part1">
-		<binary name="test-block-client" />
+		<binary name="block_tester" />
 		<resource name="RAM" quantum="32M" />
-		<config test_size="64M" />
+		<config verbose="no" log="yes" stop_on_error="no">
+			<tests>
+				<sequential length="2M" size="256K" io_buffer="8M" batch="4"/>
+			</tests>
+		</config>
 		<route>
 			<service name="Block"><child name="part_block1"/></service>
 			<any-service> <parent/> <any-child /> </any-service>
@@ -343,8 +351,8 @@ create_disk_image 1
 
 # generic modules
 set boot_modules {
-	core init timer ahci_drv block_tester
-	ld.lib.so test-block-client part_block
+	core init timer ahci_drv block_tester report_rom
+	ld.lib.so part_block
 }
 
 append_if $use_linux boot_modules {
