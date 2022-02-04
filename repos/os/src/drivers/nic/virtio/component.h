@@ -298,10 +298,10 @@ class Virtio_nic::Device : Noncopyable
 			_verbose     { xml.attribute_value("verbose", false) },
 			_device      { device },
 			_hw_features { _init_hw_features(xml) },
-			_rx_vq       { env.ram(), env.rm(), plat,
+			_rx_vq       { env.rm(), plat,
 			               _vq_size(RX_VQ, xml, "rx_queue_size"),
 			               _buf_size(RX_VQ, xml, "rx_buffer_size") },
-			_tx_vq       { env.ram(), env.rm(), plat,
+			_tx_vq       { env.rm(), plat,
 			               _vq_size(TX_VQ, xml, "tx_queue_size"),
 			               _buf_size(TX_VQ, xml, "tx_buffer_size") }
 		{ }

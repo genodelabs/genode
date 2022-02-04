@@ -15,7 +15,6 @@
 #define _INCLUDE__VIRTIO__QUEUE_H_
 
 #include <base/attached_dataspace.h>
-#include <base/attached_ram_dataspace.h>
 #include <base/stdint.h>
 #include <dataspace/client.h>
 #include <util/misc_math.h>
@@ -81,6 +80,10 @@ class Virtio::Queue
 		 */
 		Queue(Queue const &) = delete;
 		Queue &operator = (Queue const &) = delete;
+
+		static addr_t _dma_addr(Platform::Connection & p,
+		                        Dataspace_capability   c) {
+			return p.dma_addr(static_cap_cast<Ram_dataspace>(c)); }
 
 	protected:
 
@@ -162,7 +165,7 @@ class Virtio::Queue
 					                              CACHED)),
 					_buffer_count(buffer_count),
 					_buffer_size(buffer_size),
-					_phys_base(plat.dma_addr(static_cap_cast<Ram_dataspace>(_ds.cap()))) {}
+					_phys_base(_dma_addr(plat, _ds.cap())) {}
 
 				const Buffer get(uint16_t descriptor_idx) const
 				{
@@ -208,7 +211,7 @@ class Virtio::Queue
 
 
 		uint16_t                    const _queue_size;
-		Attached_ram_dataspace            _ram_ds;
+		Attached_dataspace                _ds;
 		Buffer_pool                       _buffers;
 		Avail            volatile * const _avail;
 		Used             volatile * const _used;
@@ -245,15 +248,13 @@ class Virtio::Queue
 			return align_natural(size);
 		}
 
-		static Queue_description _init_description(
-			uint16_t                 queue_size,
-			Ram_dataspace_capability cap)
+		static Queue_description _init_description(uint16_t queue_size,
+		                                           addr_t   phys_addr)
 		{
-			Dataspace_client ram_ds_client(cap);
-
-			uint8_t const *base_phys  = (uint8_t *)ram_ds_client.phys_addr();
+			uint8_t const *base_phys  = (uint8_t *)phys_addr;
 			size_t const avail_offset = _desc_size(queue_size);
-			size_t const used_offset  = align_natural(avail_offset + _avail_size(queue_size));
+			size_t const used_offset  =
+				align_natural(avail_offset + _avail_size(queue_size));
 
 			return {
 				(addr_t)base_phys,
@@ -564,18 +565,18 @@ class Virtio::Queue
 			print(output, _queue_size);
 		}
 
-		Queue(Ram_allocator        & ram,
-		      Region_map           & rm,
+		Queue(Region_map           & rm,
 		      Platform::Connection & plat,
 		      uint16_t               queue_size,
 		      uint16_t               buffer_size)
 		: _queue_size(queue_size),
-		  _ram_ds(ram, rm, _ds_size(queue_size), UNCACHED),
+		  _ds(rm, plat.alloc_dma_buffer(_ds_size(queue_size), UNCACHED)),
 		  _buffers(plat, rm, queue_size, _check_buffer_size(buffer_size)),
-		  _avail(_init_avail(_ram_ds.local_addr<uint8_t>(), queue_size)),
-		  _used(_init_used(_ram_ds.local_addr<uint8_t>(), queue_size)),
-		  _descriptors(_ram_ds.local_addr<uint8_t>(), queue_size),
-		  _description(_init_description(queue_size, _ram_ds.cap()))
+		  _avail(_init_avail(_ds.local_addr<uint8_t>(), queue_size)),
+		  _used(_init_used(_ds.local_addr<uint8_t>(), queue_size)),
+		  _descriptors(_ds.local_addr<uint8_t>(), queue_size),
+		  _description(_init_description(queue_size,
+		                                 _dma_addr(plat, _ds.cap())))
 		{
 			_fill_descriptor_table();
 		}
