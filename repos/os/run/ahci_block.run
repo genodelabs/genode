@@ -10,7 +10,7 @@ set build_components {
 	core init timer
 	drivers/ahci
 	server/report_rom
-	test/block/client
+	app/block_tester
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -73,18 +73,27 @@ append config {
 		</route>
 	</start>
 	<start name="test-ahci">
-		<binary name="test-block-client" />
+		<binary name="block_tester" />
 		<resource name="RAM" quantum="50M" />
-		<config test_size="100M"></config>
+		<config verbose="no" report="no" log="yes" stop_on_error="no">
+			<tests>
+				<sequential length="8M" size="1M" io_buffer="8M" batch="4"/>
+				<sequential start="1000" write="yes" length="2M" size="1M" io_buffer="8M" batch="4"/>
+			</tests>
+		</config>
 		<route>
 			<service name="Block"><child name="ahci_drv"/></service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 	<start name="test-ahci-atapi">
-		<binary name="test-block-client" />
+		<binary name="block_tester" />
 		<resource name="RAM" quantum="50M" />
-		<config test_size="100M"></config>
+		<config verbose="no" report="no" log="yes" stop_on_error="no">
+			<tests>
+				<sequential length="1M" size="1M" io_buffer="8M" batch="4"/>
+			</tests>
+		</config>
 		<route>
 			<service name="Block"><child name="ahci_drv"/></service>
 			<any-service> <parent/> <any-child /> </any-service>
@@ -97,7 +106,7 @@ install_config $config
 #
 # Boot modules
 #
-set boot_modules { core ld.lib.so init timer ahci_drv report_rom test-block-client }
+set boot_modules { core ld.lib.so init timer ahci_drv report_rom block_tester }
 
 append_platform_drv_boot_modules
 
