@@ -23,6 +23,11 @@
 namespace Genode {
 
 	struct Xml_node_label_score;
+
+	template <size_t N, typename MATCH_FN, typename NO_MATCH_FN>
+	void with_matching_policy(String<N> const &, Xml_node const &,
+	                          MATCH_FN const &, NO_MATCH_FN const &);
+
 	class  Session_policy;
 }
 
@@ -156,6 +161,49 @@ struct Genode::Xml_node_label_score
 
 
 /**
+ * Call 'match_fn' with the policy that matches best the given 'label'
+ *
+ * \param policies     XML node that contains potentially many '<policy>'
+ *                     nodes and an optional '<default-policy>' node.
+ * \param match_fn     functor called with best matching policy XML node
+ *                     argmument
+ * \param no_match_fn  functor called if no matching policy exists
+ */
+template <Genode::size_t N, typename MATCH_FN, typename NO_MATCH_FN>
+void Genode::with_matching_policy(String<N>   const &label,
+                                  Xml_node    const &policies,
+                                  MATCH_FN    const &match_fn,
+                                  NO_MATCH_FN const &no_match_fn)
+{
+	/*
+	 * Find policy node that matches best
+	 */
+	Xml_node             best_match("<none/>");
+	Xml_node_label_score best_score;
+
+	policies.for_each_sub_node("policy", [&] (Xml_node const &policy) {
+
+		Xml_node_label_score const score(policy, label);
+
+		if (score.stronger(best_score)) {
+			best_match = policy;
+			best_score = score;
+		}
+	});
+
+	/* fall back to default policy if no match exists */
+	if (best_match.has_type("none"))
+		policies.with_sub_node("default-policy", [&] (Xml_node const &policy) {
+			best_match = policy; });
+
+	if (best_match.has_type("none"))
+		no_match_fn();
+	else
+		match_fn(best_match);
+}
+
+
+/**
  * Query server-side policy for a session request
  */
 class Genode::Session_policy : public Xml_node
@@ -175,33 +223,18 @@ class Genode::Session_policy : public Xml_node
 		template <size_t N>
 		static Xml_node _query_policy(String<N> const &label, Xml_node config)
 		{
-			/*
-			 * Find policy node that matches best
-			 */
-			Xml_node             best_match("<none/>");
-			Xml_node_label_score best_score;
+			Xml_node result("<none/>");
 
-			/*
-			 * Functor to be applied to each policy node
-			 */
-			auto lambda = [&] (Xml_node policy) {
-				Xml_node_label_score const score(policy, label);
-				if (score.stronger(best_score)) {
-					best_match = policy;
-					best_score = score;
-				}
-			};
+			with_matching_policy(label, config,
 
-			config.for_each_sub_node("policy", lambda);
+				[&] (Xml_node const &policy) {
+					result = policy; },
 
-			if (!best_match.has_type("none"))
-				return best_match;
+				[&] () {
+					warning("no policy defined for label '", label, "'");
+					throw No_policy_defined(); });
 
-			try { return config.sub_node("default-policy"); }
-			catch (...) { }
-
-			warning("no policy defined for label '", label, "'");
-			throw No_policy_defined();
+			return result;
 		}
 
 	public:
