@@ -105,17 +105,17 @@ class Trace_buffer_monitor
 			log("overflows: ", _buffer->wrapped());
 			log("read all remaining events");
 
-			for (; !_curr_entry.last(); _curr_entry = _buffer->next(_curr_entry)) {
+			for (; !_curr_entry.head(); _curr_entry = _buffer->next(_curr_entry)) {
+				if (_curr_entry.last())
+					_curr_entry = _buffer->first();
+
 				/* omit empty entries */
-				if (_curr_entry.length() == 0)
+				if (_curr_entry.empty())
 					continue;
 
 				char const * const data = _terminate_entry(_curr_entry);
 				if (data) { log(data); }
 			}
-
-			/* reset after we read all available entries */
-			_curr_entry = _buffer->first();
 		}
 };
 
