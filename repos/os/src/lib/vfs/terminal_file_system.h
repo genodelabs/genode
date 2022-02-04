@@ -137,6 +137,12 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			bool read_ready() override {
 				return !_read_buffer.empty(); }
 
+			bool notify_read_ready() override
+			{
+				notifying = true;
+				return true;
+			}
+
 			Read_result read(char *dst, file_size count,
 			                 file_size &out_count) override
 			{
@@ -248,17 +254,6 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 		/********************************
 		 ** File I/O service interface **
 		 ********************************/
-
-		bool notify_read_ready(Vfs_handle *vfs_handle) override
-		{
-			Terminal_vfs_handle *handle =
-				static_cast<Terminal_vfs_handle*>(vfs_handle);
-			if (!handle)
-				return false;
-
-			handle->notifying = true;
-			return true;
-		}
 
 		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{

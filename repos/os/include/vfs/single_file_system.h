@@ -49,6 +49,8 @@ class Vfs::Single_file_system : public File_system
 			}
 
 			virtual bool read_ready() = 0;
+
+			virtual bool notify_read_ready() { return true; }
 		};
 
 		struct Single_vfs_dir_handle : Single_vfs_handle
@@ -282,6 +284,17 @@ class Vfs::Single_file_system : public File_system
 
 			if (handle)
 				return handle->read_ready();
+
+			return false;
+		}
+
+		bool notify_read_ready(Vfs_handle *vfs_handle) override
+		{
+			Single_vfs_handle *handle =
+				static_cast<Single_vfs_handle*>(vfs_handle);
+
+			if (handle)
+				return handle->notify_read_ready();
 
 			return false;
 		}
