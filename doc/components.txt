@@ -361,9 +361,6 @@ Separate components
 :_os/src/server/log_terminal/_:
   Adapter for forwarding terminal output to a LOG session.
 
-:_os/src/server/fs_log/_:
-  Adapter that writes LOG messages to files on a file system.
-
 :_demo/src/server/nitlog/_:
   Provides a LOG session, printing log output on screen via a GUI session.
 
@@ -376,9 +373,6 @@ Separate components
   other ROM modules steered by the filter configuration, e.g., dynamic
   switching between configuration variants dependent on the state of
   the system.
-
-:_os/src/server/log_terminal/_:
-  Forwards terminal output to a LOG session.
 
 :_gems/src/server/file_terminal/_:
   Provides terminal sessions that target files on a file system.

@@ -3,8 +3,7 @@ of the configured threads on a regular basis for the purpose of statistical
 profiling.
 
 The collected samples are written to the LOG session with an individual label
-for each thread. By using the 'fs_log' component, the sample data can be
-written into separate files if desired.
+for each thread.
 
 Configuration options
 ---------------------
@@ -39,10 +38,9 @@ available at
   ! filter_sampled_addresses_from_log <file containing the Genode log output>
 
   This script extracts the sampled addresses from a file containing the Genode
-  log output and saves them in the file 'sampled_addresses.txt'. It is not
-  needed when the addresses have already been written into a separate file by
-  the 'fs_log' component. The match string (label) in the script might need to
-  be adapted for the specific scenario.
+  log output and saves them in the file 'sampled_addresses.txt'. The match
+  string (label) in the script might need to be adapted for the specific
+  scenario.
 
 * Filtering the shared library load addresses from the Genode log output
 
