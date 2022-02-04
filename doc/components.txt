@@ -395,10 +395,6 @@ Separate components
   The terminal crosslink service allows to terminal clients to talk to each
   other.
 
-:_gems/src/server/http_block/_:
-  A block service that fetches a virtual block device over the network from
-  a HTTP server.
-
 :_os/src/server/fs_rom/_:
   A ROM service that translates the 'File_system' session interface to the
   'ROM' session' interface. Each request for a ROM file is handled by looking
