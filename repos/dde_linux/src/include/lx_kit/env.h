@@ -41,6 +41,7 @@ struct Lx_kit::Env
 	Genode::Env        & env;
 	Genode::Heap         heap            { env.ram(), env.rm() };
 	Initcalls            initcalls       { heap                };
+	Pci_fixup_calls      pci_fixup_calls { heap                };
 	Console              console         { };
 	Platform::Connection platform        { env };
 	Timer::Connection    timer           { env };

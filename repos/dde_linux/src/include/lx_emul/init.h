@@ -34,6 +34,11 @@ void lx_emul_register_of_clk_initcall(char const *compat, void *fn);
 
 void lx_emul_register_of_irqchip_initcall(char const *compat, void *fn);
 
+struct pci_dev;
+void lx_emul_register_pci_fixup(void (*fn)(struct pci_dev*), char const *name);
+
+void lx_emul_execute_pci_fixup(struct pci_dev *pci_dev);
+
 #ifdef __cplusplus
 }
 #endif
