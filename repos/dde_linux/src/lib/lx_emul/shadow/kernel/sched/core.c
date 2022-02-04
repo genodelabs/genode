@@ -214,3 +214,41 @@ int get_nohz_timer_target(void)
 
 #endif
 #endif
+
+
+static bool __wake_q_add(struct wake_q_head *head, struct task_struct *task)
+{
+	struct wake_q_node *node = &task->wake_q;
+
+	smp_mb__before_atomic();
+	if (unlikely(cmpxchg_relaxed(&node->next, NULL, WAKE_Q_TAIL)))
+		return false;
+
+	*head->lastp = node;
+	head->lastp = &node->next;
+	return true;
+}
+
+
+void wake_q_add(struct wake_q_head *head, struct task_struct *task)
+{
+	if (__wake_q_add(head, task))
+		get_task_struct(task);
+}
+
+
+void wake_up_q(struct wake_q_head *head)
+{
+	struct wake_q_node *node = head->first;
+
+	while (node != WAKE_Q_TAIL) {
+		struct task_struct *task;
+
+		task = container_of(node, struct task_struct, wake_q);
+		node = node->next;
+		task->wake_q.next = NULL;
+
+		wake_up_process(task);
+		put_task_struct(task);
+	}
+}
