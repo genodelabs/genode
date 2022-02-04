@@ -93,31 +93,37 @@ class Main
 			_trace.for_each_subject_info([&] (Trace::Subject_id   const id,
 			                                  Trace::Subject_info const &info) {
 
-				try {
-					/* skip dead subjects */
-					if (info.state() == Trace::Subject_info::DEAD)
-						return;
+				/* skip dead subjects */
+				if (info.state() == Trace::Subject_info::DEAD)
+					return;
 
-					/* check if there is a matching policy in the XML config */
-					Session_policy session_policy = _session_policy(info);
-					try {
-						/* lookup monitor by subject ID */
-						Monitor &monitor = old_monitors.find_by_subject_id(id);
+				Session_label const label(info.session_label());
+				with_matching_policy(label, _config,
 
-						monitor.update_info(info);
+					[&] (Xml_node const &policy) {
 
-						/* move monitor from old to new tree */
-						old_monitors.remove(&monitor);
-						new_monitors.insert(&monitor);
+						if (policy.has_attribute("thread"))
+							if (policy.attribute_value("thread", Thread_name()) != info.thread_name())
+								return;
 
-					} catch (Monitor_tree::No_match) {
+						try {
+							/* lookup monitor by subject ID */
+							Monitor &monitor = old_monitors.find_by_subject_id(id);
 
-						/* create monitor for subject in the new tree */
-						_new_monitor(new_monitors, id, info, session_policy);
-					}
-				}
-				catch (Trace::Nonexistent_subject       ) { return; }
-				catch (Session_policy::No_policy_defined) { return; }
+							monitor.update_info(info);
+
+							/* move monitor from old to new tree */
+							old_monitors.remove(&monitor);
+							new_monitors.insert(&monitor);
+
+						} catch (Monitor_tree::No_match) {
+
+							/* create monitor for subject in the new tree */
+							_new_monitor(new_monitors, id, info, policy);
+						}
+					},
+					[&] () { /* no policy matches */ }
+				);
 			});
 
 			/* all monitors in the old tree are deprecated, destroy them */
@@ -147,7 +153,7 @@ class Main
 		void _new_monitor(Monitor_tree              &monitors,
 		                  Trace::Subject_id   const  id,
 		                  Trace::Subject_info const &info,
-		                  Session_policy      const &session_policy)
+		                  Xml_node            const &session_policy)
 		{
 			try {
 				Number_of_bytes const buffer_sz   = session_policy.attribute_value("buffer", _default_buf_sz);
@@ -172,17 +178,6 @@ class Main
 			_num_monitors++;
 			if (_verbose)
 				log("new monitor: subject ", id.id);
-		}
-
-		Session_policy _session_policy(Trace::Subject_info const &info)
-		{
-			Session_label const label(info.session_label());
-			Session_policy policy(label, _config);
-			if (policy.has_attribute("thread"))
-				if (policy.attribute_value("thread", Thread_name()) != info.thread_name())
-					throw Session_policy::No_policy_defined();
-
-			return policy;
 		}
 
 	public:
