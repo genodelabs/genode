@@ -650,7 +650,6 @@ set default_test_pkgs {
 	test-spark_exception
 	test-spark_secondary_stack
 	test-block
-	test-block_cache
 	test-clipboard
 	test-depot_query_index
 	test-ds_ownership
