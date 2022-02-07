@@ -549,6 +549,22 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Interactive operations **
 	 ****************************/
 
+	/*
+	 * Track nitpicker's "clicked" report to reliably detect clicks outside
+	 * any menu view (closing the popup window).
+	 */
+
+	Attached_rom_dataspace _clicked_rom { _env, "clicked" };
+
+	Signal_handler<Main> _clicked_handler {
+		_env.ep(), *this, &Main::_handle_clicked };
+
+	void _handle_clicked()
+	{
+		_clicked_rom.update();
+		_try_handle_click();
+	}
+
 	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase, *this };
 
 	Constructible<Input::Seq_number> _clicked_seq_number { };
@@ -561,8 +577,26 @@ struct Sculpt::Main : Input_event_handler,
 
 		Input::Seq_number const seq = *_clicked_seq_number;
 
+		auto click_outside_popup = [&] ()
+		{
+			Xml_node const clicked = _clicked_rom.xml();
+
+			if (!clicked.has_attribute("seq"))
+				return false;
+
+			if (clicked.attribute_value("seq", 0u) != seq.value)
+				return false;
+
+			Label const popup_label { "wm -> runtime -> leitzentrale -> popup_view" };
+
+			if (clicked.attribute_value("label", Label()) == popup_label)
+				return false;
+
+			return true;
+		};
+
 		/* remove popup dialog when clicking somewhere outside */
-		if (!_popup_menu_view.hovered(seq) && _popup.state == Popup::VISIBLE
+		if (click_outside_popup() && _popup.state == Popup::VISIBLE
 		 && !_graph.add_button_hovered()) {
 
 			_popup.state = Popup::OFF;
@@ -1168,6 +1202,7 @@ struct Sculpt::Main : Input_event_handler,
 		_launcher_listing_rom.sigh(_launcher_listing_handler);
 		_blueprint_rom       .sigh(_blueprint_handler);
 		_editor_saved_rom    .sigh(_editor_saved_handler);
+		_clicked_rom         .sigh(_clicked_handler);
 
 		/*
 		 * Generate initial configurations
@@ -1183,6 +1218,7 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy.handle_deploy();
 		_handle_pci_devices();
 		_handle_runtime_config();
+		_handle_clicked();
 
 		/*
 		 * Read static platform information

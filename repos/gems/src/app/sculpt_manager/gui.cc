@@ -35,10 +35,16 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 
 	void _handle_input()
 	{
-		_global_input_seq_number.value++;
-		_input_component.submit(_global_input_seq_number);
-
 		_connection.input()->for_each_event([&] (Input::Event ev) {
+
+			/*
+			 * Augment input stream with sequence numbers to correlate
+			 * clicks with hover reports.
+			 */
+			if (ev.key_press(Input::BTN_LEFT) || ev.key_release(Input::BTN_LEFT)) {
+				_global_input_seq_number.value++;
+				_input_component.submit(_global_input_seq_number);
+			}
 
 			/* handle event locally within the sculpt manager */
 			_event_handler.handle_input_event(ev);
