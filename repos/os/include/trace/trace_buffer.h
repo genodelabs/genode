@@ -79,8 +79,14 @@ class Trace_buffer
 				if (wrapped && entry.last()) {
 					wrapped = false;
 					entry = _buffer.first();
-					if (entry.last())
+					if (entry.last()) {
+						new_curr = entry;
 						break;
+					}
+				}
+
+				if (!entry.length()) {
+					continue;
 				}
 
 				if (!functor(entry))
