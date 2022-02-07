@@ -106,6 +106,8 @@ class Nitpicker::User_state
 		 */
 		View_owner *_last_clicked = nullptr;
 
+		Constructible<Input::Seq_number> _last_seq_number { };
+
 		/**
 		 * Number of clicks, used to detect whether a focus-relevant click
 		 * happened during '_handle_input_event'.

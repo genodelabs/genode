@@ -89,6 +89,9 @@ static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 
 void User_state::_handle_input_event(Input::Event ev)
 {
+	ev.handle_seq_number([&] (Input::Seq_number const &seq) {
+		_last_seq_number.construct(seq); });
+
 	/* transparently convert relative into absolute motion event */
 	ev.handle_relative_motion([&] (int x, int y) {
 
@@ -153,6 +156,8 @@ void User_state::_handle_input_event(Input::Event ev)
 
 		if (_mouse_button(keycode))
 			_clicked_count++;
+
+		_last_clicked = nullptr;
 
 		/* update focused session */
 		if (_mouse_button(keycode)
@@ -414,6 +419,9 @@ void User_state::report_focused_view_owner(Xml_generator &xml, bool active) cons
 
 void User_state::report_last_clicked_view_owner(Xml_generator &xml) const
 {
+	if (_last_seq_number.constructed())
+		xml.attribute("seq", _last_seq_number->value);
+
 	if (_last_clicked)
 		_last_clicked->report(xml);
 
