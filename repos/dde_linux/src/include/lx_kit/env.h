@@ -15,7 +15,6 @@
 #define _LX_KIT__ENV_H_
 
 #include <base/env.h>
-#include <platform_session/connection.h>
 #include <timer_session/connection.h>
 #include <lx_kit/console.h>
 #include <lx_kit/device.h>

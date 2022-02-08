@@ -36,6 +36,9 @@ extern int buses_init(void);
 extern int classes_init(void);
 extern int platform_bus_init(void);
 
+/* definition from kernel/main.c implemented architecture specific */
+extern void time_init(void);
+
 enum system_states system_state;
 
 static __initdata DECLARE_COMPLETION(kthreadd_done);
@@ -92,9 +95,7 @@ int lx_emul_init_task_function(void * dtb)
 	 * Here we do the minimum normally done start_kernel() of init/main.c
 	 */
 
-	/* calls from setup_arch of arch/arm64/kernel/setup.c */
-	early_init_dt_scan(dtb);
-	unflatten_device_tree();
+	lx_emul_setup_arch(dtb);
 
 	jump_label_init();
 	kmem_cache_init();
@@ -110,11 +111,7 @@ int lx_emul_init_task_function(void * dtb)
 	softirq_init();
 	timekeeping_init();
 
-	/* arch/arm64/kernel/time.c */
-	lx_emul_time_init(); /* replaces timer_probe() */
-	tick_setup_hrtimer_broadcast();
-	lpj_fine = 1000000 / HZ;
-	/* arch/arm64/kernel/time.c end */
+	time_init();
 
 	sched_clock_init();
 

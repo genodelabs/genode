@@ -23,7 +23,25 @@ int    pmd_swp_soft_dirty(pmd_t pmd);
 
 void __init pgtable_cache_init(void);
 
+#ifndef pgprot_decrypted
 #define pgprot_decrypted(prot) (prot)
+#endif
+
+#ifndef mm_pud_folded
+#define mm_pud_folded(mm)	__is_defined(__PAGETABLE_PUD_FOLDED)
+#endif
+
+#ifndef mm_pmd_folded
+#define mm_pmd_folded(mm)	__is_defined(__PAGETABLE_PMD_FOLDED)
+#endif
+
+#ifndef pud_offset
+static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
+{
+	return 0;
+}
+#define pud_offset pud_offset
+#endif
 
 pte_t pte_swp_clear_uffd_wp(pte_t pte);
 pte_t pte_swp_clear_soft_dirty(pte_t pte);
