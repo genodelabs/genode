@@ -115,11 +115,13 @@ proc run_boot_dir {binaries} {
 	# Build kernel and dynamic linker if needed
 	#
 	set kernel_arg ""
-	set ld_arg     ""
-	if {![file exists [run_dir]/genode/okl4]}      { set kernel_arg kernel/okl4 }
-	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     lib/ld/okl4 }
-	set targets "$kernel_arg $ld_arg"
+
+	if {![file exists [run_dir]/genode/okl4]} { set kernel_arg kernel/okl4 }
+
+	set targets "$kernel_arg"
+
 	if {[llength $targets]} { build $targets }
+
 	if {$kernel_arg != ""} { copy_file bin/okl4 [run_dir]/genode/okl4 }
 
 	build_core_image $binaries

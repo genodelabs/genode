@@ -8,8 +8,6 @@ proc binary_name_timer     { } { return "linux_timer_drv" }
 #
 proc run_boot_dir {binaries} {
 
-	if {![file exists [run_dir]/genode/ld.lib.so]} { build { lib/ld/linux } }
-
 	set missing_boot_modules { }
 	foreach binary $binaries {
 		set src_binary_path "[pwd]/bin/[kernel_specific_binary $binary]"
