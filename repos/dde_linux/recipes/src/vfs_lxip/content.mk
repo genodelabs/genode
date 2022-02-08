@@ -6,9 +6,10 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_linux)
 MIRROR_FROM_REP_DIR := $(LIB_MK) \
                        lib/import/import-lxip_include.mk \
                        include/lxip src/include/legacy src/lib/legacy/lx_kit \
+                       src/lib/lx_kit/spec \
                        $(foreach SPEC, \
                                  arm arm_64 arm_v6 arm_v7 x86 x86_32 x86_64, \
-                                 src/include/spec/$(SPEC)/legacy) \
+                                 src/include/spec/$(SPEC)) \
                        $(shell cd $(REP_DIR); find src/lib/lxip -type f) \
                        $(shell cd $(REP_DIR); find src/lib/vfs -type f)
 
