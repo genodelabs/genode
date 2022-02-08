@@ -7,7 +7,8 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_linux)
 MIRROR_FROM_REP_DIR := $(LIB_MK) \
                        lib/import/import-intel_fb_include.mk \
                        src/include src/lib/legacy/lx_kit \
-                       $(foreach SPEC,x86 x86_32 x86_64,src/include/spec/$(SPEC)/legacy) \
+                       src/lib/lx_kit/spec \
+                       $(foreach SPEC,x86 x86_32 x86_64,src/include/spec/$(SPEC)) \
                        $(shell cd $(REP_DIR); find src/drivers/framebuffer/intel -type f)
 
 MIRROR_FROM_PORT_DIR := $(shell cd $(PORT_DIR); find src/drivers/framebuffer/intel -type f | grep -v ".git")
