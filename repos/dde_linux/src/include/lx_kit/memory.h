@@ -15,6 +15,7 @@
 #define _LX_KIT__MEMORY_H_
 
 #include <base/allocator_avl.h>
+#include <base/attached_dataspace.h>
 #include <base/cache.h>
 #include <base/env.h>
 #include <base/heap.h>
