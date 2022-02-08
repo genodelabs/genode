@@ -13,3 +13,5 @@
 SHARED_LIB := yes
 
 LD_OPT += -T$(BASE_DIR)/src/lib/ldso/linker.ld
+
+LIBS += $(addprefix ld-,$(KERNEL))
