@@ -58,7 +58,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core ld.lib.so init test-ieee754 libc.lib.so libm.lib.so vfs.lib.so"
+build_boot_image "core ld.lib.so init test-ieee754 posix.lib.so libc.lib.so libm.lib.so vfs.lib.so"
 
 append qemu_args "-nographic "
 
