@@ -95,6 +95,7 @@ class Lwip::Nic_netif
 
 		Genode::Io_signal_handler<Nic_netif> _link_state_handler;
 		Genode::Io_signal_handler<Nic_netif> _rx_packet_handler;
+		Genode::Io_signal_handler<Nic_netif> _tx_ready_handler;
 
 		bool _dhcp { false };
 
@@ -167,6 +168,21 @@ class Lwip::Nic_netif
 			}
 		}
 
+		/**
+		 * Handle tx ack_avail and ready_to_submit signals
+		 */
+		void handle_tx_ready()
+		{
+			auto &tx = *_nic.tx();
+
+			/* flush acknowledgements */
+			while (tx.ack_avail())
+				tx.release_packet(tx.get_acked_packet());
+
+			/* notify subclass to resume pending transmissions */
+			status_callback();
+		}
+
 		void configure(Genode::Xml_node const &config)
 		{
 			_dhcp = config.attribute_value("dhcp", false);
@@ -232,7 +248,8 @@ class Lwip::Nic_netif
 			     BUF_SIZE, BUF_SIZE,
 			     config.attribute_value("label", Genode::String<160>("lwip")).string()),
 			_link_state_handler(env.ep(), *this, &Nic_netif::handle_link_state),
-			_rx_packet_handler( env.ep(), *this, &Nic_netif::handle_rx_packets)
+			_rx_packet_handler( env.ep(), *this, &Nic_netif::handle_rx_packets),
+			_tx_ready_handler(  env.ep(), *this, &Nic_netif::handle_tx_ready)
 		{
 			Genode::memset(&_netif, 0x00, sizeof(_netif));
 
@@ -307,6 +324,8 @@ class Lwip::Nic_netif
 			_nic.link_state_sigh(_link_state_handler);
 			_nic.rx_channel()->sigh_packet_avail(_rx_packet_handler);
 			_nic.rx_channel()->sigh_ready_to_ack(_rx_packet_handler);
+			_nic.tx_channel()->sigh_ready_to_submit(_tx_ready_handler);
+			_nic.tx_channel()->sigh_ack_avail      (_tx_ready_handler);
 
 			return ERR_OK;
 		}
