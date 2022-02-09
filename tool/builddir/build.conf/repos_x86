@@ -1,4 +1,9 @@
 #
+# Drivers for x86 PC
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/pc
+
+#
 # Drivers ported from the OpenBSD
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/dde_bsd
