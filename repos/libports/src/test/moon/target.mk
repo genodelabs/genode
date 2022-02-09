@@ -1,5 +1,5 @@
 TARGET = test-moon
-LIBS   = luacxx libc
+LIBS   = luacxx libc base
 SRC_CC = main.cc
 
 CC_CXX_WARN_STRICT =

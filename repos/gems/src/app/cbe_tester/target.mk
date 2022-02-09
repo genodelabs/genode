@@ -8,5 +8,6 @@ SRC_CC  += vfs_utilities.cc
 
 INC_DIR := $(PRG_DIR)
 LIBS    += base cbe_cxx cbe_init_cxx cbe_check_cxx cbe_dump_cxx vfs
+LIBS    += spark libsparkcrypto
 
 CC_CXX_WARN_STRICT_CONVERSION =

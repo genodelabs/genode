@@ -17,7 +17,7 @@ SRC_CC += HostServices/common/message.cpp services/services.cc
 LIBS  += base
 LIBS  += stdcxx
 LIBS  += libiconv
-LIBS  += qemu-usb
+LIBS  += qemu-usb libyuv
 LIBS  += mesa
 
 CC_OPT_main = -Wno-multistatement-macros
