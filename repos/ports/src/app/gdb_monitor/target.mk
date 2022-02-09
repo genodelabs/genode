@@ -13,7 +13,7 @@ INC_DIR += $(GDB_CONTRIB_DIR)/include \
            $(PRG_DIR)/gdbsupport \
            $(PRG_DIR)
 
-LIBS    =  stdcxx libc \
+LIBS    =  base stdcxx libc \
            gdbserver_platform gdbserver_libc_support
 
 # libiberty
