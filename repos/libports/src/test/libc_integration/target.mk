@@ -3,6 +3,7 @@ TARGET := test-libc_integration
 LIBS   += libc
 LIBS   += posix
 LIBS   += stdcxx
+LIBS   += base
 LIBS   += vfs
 LIBS   += vfs_pipe
 

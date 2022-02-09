@@ -25,7 +25,7 @@ install_config {
 		<default caps="100"/>
 		<start name="test1">
 			<binary name="test-ieee754"/>
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="2096K"/>
 			<config>
 				<vfs> <dir name="dev"><log/></dir></vfs>
 				<libc stdout="/dev/log"/>
@@ -33,7 +33,7 @@ install_config {
 		</start>
 		<start name="test2">
 			<binary name="test-ieee754"/>
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="2096K"/>
 			<config>
 				<vfs> <dir name="dev"><log/></dir></vfs>
 				<libc stdout="/dev/log"/>
@@ -41,7 +41,7 @@ install_config {
 		</start>
 		<start name="test3">
 			<binary name="test-ieee754"/>
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="2096K"/>
 			<config>
 				<vfs> <dir name="dev"><log/></dir></vfs>
 				<libc stdout="/dev/log"/>
@@ -49,7 +49,7 @@ install_config {
 		</start>
 		<start name="test4">
 			<binary name="test-ieee754"/>
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="2096K"/>
 			<config>
 				<vfs> <dir name="dev"><log/></dir></vfs>
 				<libc stdout="/dev/log"/>
@@ -58,7 +58,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core ld.lib.so init test-ieee754 libc.lib.so libm.lib.so vfs.lib.so"
+build_boot_image "core ld.lib.so init test-ieee754 posix.lib.so libc.lib.so libm.lib.so vfs.lib.so"
 
 append qemu_args "-nographic "
 
