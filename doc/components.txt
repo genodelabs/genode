@@ -343,10 +343,6 @@ Separate components
   Provides each file contained in a tar file obtained via Genode's ROM session
   as separate ROM session.
 
-:_os/src/server/iso9660/_:
-  Provides each file of an ISO9660 file system accessed via a block session as
-  separate ROM session.
-
 :_os/src/server/lx_fs/_:
   A file system server that makes the file system of a Linux base platform
   available to Genode.
