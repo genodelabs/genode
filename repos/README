@@ -103,6 +103,10 @@ but build upon of each other:
   The repository contains a server that uses a rump kernel to provide
   various NetBSD file systems to Genode.
 
+:'pc':
+  This source-code repository hosts device drivers that are specific for PC
+  platforms. It depends on the 'dde_linux' repository.
+
 :'ports':
 
   This source-code repository hosts ports of 3rd-party applications to
