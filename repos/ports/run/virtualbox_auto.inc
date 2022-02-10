@@ -39,7 +39,7 @@ if {$use_vms > 1} {
 }
 
 if {$use_usb} {
-	import_from_depot [depot_user]/src/usb_host_drv \
+	import_from_depot [depot_user]/src/legacy_usb_host_drv \
 	                  [depot_user]/src/usb_hid_drv
 }
 
@@ -350,7 +350,7 @@ append_if [expr $use_usb] config {
 	</start>
 
 	<start name="usb_drv" caps="200">
-		<binary name="x86_pc_usb_host_drv"/>
+		<binary name="legacy_pc_usb_host_drv"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
