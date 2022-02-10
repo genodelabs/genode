@@ -23,10 +23,32 @@
 	and x0, x0, #0b11111111
 .endm
 
+/**
+ * Disable MMU for EL1 and EL2 if applicable.
+ */
+.macro _mmu_disable
+	mrs  x8, CurrentEL
+	lsr  x8, x8, #2
+	cmp  x8, #0x2
+	b.lo 1f
+
+	mrs x8, sctlr_el2
+	bic x8, x8, #(1 << 0)
+	msr sctlr_el2, x8
+	isb
+1:
+	mrs x8, sctlr_el1
+	bic x8, x8, #(1 << 0)
+	msr sctlr_el1, x8
+	isb
+.endm
+
 .section ".text.crt0"
 
 	.global _start
 	_start:
+
+	_mmu_disable
 
 	/**
 	 * Hack for Qemu, which starts all cpus at once
@@ -66,6 +88,7 @@
 	.global _crt0_start_secondary
 	_crt0_start_secondary:
 
+	_mmu_disable
 
 	/****************
 	 ** Enable FPU **
