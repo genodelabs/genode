@@ -7,9 +7,9 @@ proc have_platform_drv {} {
 # Return name of the USB driver binary
 #
 proc usb_host_drv_binary { } {
-	if {[have_board rpi]}             { return rpi_usb_host_drv       }
-	if {[have_board imx6q_sabrelite]} { return imx6q_sabrelite_usb_host_drv }
-	if {[have_board pc]}              { return x86_pc_usb_host_drv    }
+	if {[have_board rpi]}             { return legacy_rpi_usb_host_drv       }
+	if {[have_board imx6q_sabrelite]} { return legacy_imx6q_sabrelite_usb_host_drv }
+	if {[have_board pc]}              { return legacy_pc_usb_host_drv    }
 	return no_usb_drv_available
 }
 

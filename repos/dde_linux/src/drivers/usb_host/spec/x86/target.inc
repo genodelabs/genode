@@ -1,6 +1,6 @@
 include $(REP_DIR)/src/drivers/usb_host/target.inc
 
-TARGET   = x86_pc_usb_host_drv
+TARGET   = legacy_pc_usb_host_drv
 
 INC_DIR += $(REP_DIR)/src_drivers/usb_host/spec/x86
 INC_DIR += $(REP_DIR)/src/include/spec/x86
