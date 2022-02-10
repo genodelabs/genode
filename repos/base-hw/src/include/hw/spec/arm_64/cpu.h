@@ -141,7 +141,12 @@ struct Hw::Arm_64_cpu
 	SYSTEM_REGISTER(64, Mair_el1, mair_el1);
 	SYSTEM_REGISTER(64, Mair_el2, mair_el2);
 
-	SYSTEM_REGISTER(64, Mpidr, mpidr_el1);
+	SYSTEM_REGISTER(64, Mpidr, mpidr_el1,
+		struct Aff0 : Bitfield<0,  8> {};
+		struct Aff1 : Bitfield<8,  8> {};
+		struct Aff2 : Bitfield<16, 8> {};
+		struct MT   : Bitfield<24, 1> {};
+	);
 
 	SYSTEM_REGISTER(32, Pmcr_el0, pmcr_el0);
 	SYSTEM_REGISTER(32, Pmcntenset_el0, pmcntenset_el0);
@@ -255,6 +260,14 @@ struct Hw::Arm_64_cpu
 	using Cntp_ctl  = Cntp_ctl_el0;
 	using Cntpct    = Cntpct_el0;
 	using Cntp_tval = Cntp_tval_el0;
+
+	static inline unsigned current_core_id()
+	{
+		Mpidr::access_t mpidr = Mpidr::read();
+		if (Mpidr::MT::get(mpidr))
+			return (unsigned)Mpidr::Aff1::get(mpidr);
+		return (unsigned)Mpidr::Aff0::get(mpidr);
+	}
 
 	static inline void wait_for_xchg(volatile int * addr,
 	                                 int new_value,

@@ -138,11 +138,8 @@ static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr,
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
-	static volatile bool primary_cpu = true;
-	bool primary = primary_cpu;
-	if (primary) primary_cpu = false;
-
-	unsigned cpu_id = (Cpu::Mpidr::read() & 0xff);
+	unsigned const cpu_id  { Cpu::current_core_id() };
+	bool     const primary { cpu_id == 0 };
 
 	Cpu::Ttbr::access_t ttbr =
 		Cpu::Ttbr::Baddr::masked((Genode::addr_t)core_pd->table_base);

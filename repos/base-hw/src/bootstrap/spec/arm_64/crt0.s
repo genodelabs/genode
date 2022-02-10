@@ -16,6 +16,10 @@
  */
 .macro _cpu_number
 	mrs x0, mpidr_el1
+	and x8, x0, #(1<<24) /* MT bit */
+	cbz x8, 1f
+	lsr x0, x0, #8
+1:
 	and x0, x0, #0b11111111
 .endm
 
