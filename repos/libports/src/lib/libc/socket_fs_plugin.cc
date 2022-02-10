@@ -43,7 +43,6 @@
 #include <internal/init.h>
 #include <internal/suspend.h>
 #include <internal/pthread.h>
-#include <internal/unconfirmed.h>
 
 
 namespace Libc {
@@ -604,12 +603,11 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 		return Errno(EMFILE);
 	}
 
-	auto _accept_fd = make_unconfirmed([&] { file_descriptor_allocator()->free(accept_fd); });
-
 	if (addr && addrlen) {
 		Socket_fs::Remote_functor func(*accept_context, false);
 		int ret = read_sockaddr_in(func, (sockaddr_in *)addr, addrlen);
 		if (ret == -1) {
+			file_descriptor_allocator()->free(accept_fd);
 			Libc::Allocator alloc { };
 			destroy(alloc, accept_context);
 			return ret;
@@ -619,7 +617,6 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 	/* inherit the O_NONBLOCK flag if set */
 	accept_context->fd_flags(listen_context->fd_flags());
 
-	_accept_fd.confirm();
 	return accept_fd->libc_fd;
 }
 
