@@ -198,8 +198,6 @@ append config {
 
 	<default caps="100"/>
 
-	} [platform_drv_config] {
-
 	<start name="timer" priority="0">
 		<resource name="RAM" quantum="1M"/>
 		<resource name="CPU" quantum="5"/>
