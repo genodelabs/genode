@@ -1,0 +1,108 @@
+The pc_wifi_drv component is a port of the Linux mac802.11 stack, including
+the iwlwifi driver as well as libnl and wpa_supplicant, to Genode.
+
+To start the component the following configuration snippet can be used:
+
+!<start name="pc_wifi_drv" caps="250">
+!  <resource name="RAM" quantum="32M"/>
+!  <provides><service name="Nic"/></provides>
+!  <config>
+!    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
+!    <vfs>
+!      <dir name="dev"> <log/> <null/> <rtc/> <wifi/>
+!      <jitterentropy name="random"/>
+!      <jitterentropy name="urandom"/>
+!      </dir>
+!    </vfs>
+!  </config>
+!  <route>
+!    <service name="Rtc"> <any-child /> </service>
+!    <any-service> <parent/> <any-child /> </any-service>
+!  </route>
+!</start
+
+The driver will request access to the ROM module 'wifi_config' to
+connect to a network:
+
+!<wifi_config connected_scan_interval="30" scan_interval="10" rfkill="no">
+!  <network ssid="Foobar" protection="WPA2" passphrase="allyourbase"/>
+!</wifi_config>
+
+To temporarily prevent any radio activity, the 'rfkill' attribute
+can be set to 'true'.
+
+If the network is protected by, e.g., WPA/WPA2, the protection type, either
+'WPA' or 'WPA2' as well as the the passphrase have to be specified.
+The 'bssid' attribute can be used to select a specifc accesspoint within a
+network. Of all attributes only the 'ssid' attribute is mandatory, all others
+are optional and should only be used when needed.
+
+The configuration may contain more than one network. In This case the driver
+will try to select the best one it gets a response from. To prevent it
+from automatically joining the network the 'auto_connect' attribute must be
+set to 'false'; the default value is 'true'. If the 'explicit_scan' attribute
+is set, the driver will pro-actively scan for a hidden network with the given
+SSID:
+
+!<wifi_config connected_scan_interval="30" scan_interval="10">
+!  <network ssid="Zero" protection="WPA2" passphrase="allyourbase"/>
+!  <network ssid="Skynet" protection="WPA" passphrase="12345678"
+!           explicit_scan="true" auto_connect="false"/>
+!</wifi_config>
+
+By default, the driver scans for available networks only when not
+connected. This can be changed with the 'connected_scan_interval'
+attribute, which specifies the interval for connected scans in
+seconds and directly influences any roaming decision, i.e., select
+a better fit accesspoint for the configured network.
+
+Also, the driver can be switched to verbose logging during runtime
+by setting the 'verbose' or 'verbose_state' attribute to 'true'.
+
+The wifi_drv creates two distinct reports to communicate its state and
+information about the wireless infrastructure to other components. The
+first one is a list of all available accesspoints. The following examplary
+report shows its general structure:
+
+!<accesspoints>
+!  <accesspoint ssid="skynet" bssid="00:01:02:03:04:05" quality="40"/>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" protection="WPA2"/>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:07" quality="10" protection="WPA2"/>
+!</accesspoints>
+
+Each accesspoint node has attributes that contain the SSID and the BSSID
+of the accesspoint as well as the link quality (signal strength). These
+attributes are mandatory. If the network is protected, the node will also
+have an attribute describing the type of protection in addition.
+
+The second report provides information about the state of the connection
+to the currently connected accesspoint:
+
+!<state>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" freq="2418" state="connected"/>
+!</state>
+
+Valid state values are 'connected', 'disconnected', 'connecting'. Depending
+on the state, there are additional attributes that can be checked. In case
+of an authentication error, e.g. the passphrase is wrong, the 'auth_failure'
+attribute will be set to 'true'. The 'rfkilled' attribute is set to 'true'
+if a disconnect was triggered by disabling the radio activity via setting
+the 'rfkill' attribute.
+
+By subscribing to both reports and providing the required 'wifi_config' ROM
+module, a component is able control the wireless driver.
+
+Currently only WPA/WPA2 protection using a passphrase is supported and the the
+SSID is copied verbatim. At the moment, there is no way to express or escape
+non alphanumeric characters.
+
+On certain cards, e.g. Intel Wireless 6200 ABG, it may be necessary to disable
+the 11n mode. This can be achieved by setting the 'use_11n' attribute in
+the 'wifi_config' node to 'no'.
+
+The driver optionally reports the following information under the
+label "devices" if requested in the config as depicted.
+
+! <config> <report mac_address="true"/> </config>
+
+! <devices> <nic mac_address="02:00:00:00:00:01"/> </devices>

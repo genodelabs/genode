@@ -1,0 +1,29 @@
+{
+	global:
+
+		/* needed by vfs_wlan */
+		*Lx_kit*initialize*;
+
+		/* initialize function */
+		_*wifi_init*;
+		/* Wifi::Socket_call interface */
+		*Socket_call*;
+		/* Wifi::Socket_call instance */
+		socket_call;
+		/* rfkill interface */
+		_*wifi_*_rfkill*;
+		_*wifi_kick_*;
+
+		/* interface for libnl/wpa_driver_nl82011 */
+		wifi_if*;
+
+		/* used by libnl's time() */
+		jiffies;
+
+		/* for general debugging purposes */
+		lx_backtrace;
+
+	local:
+
+		*;
+};

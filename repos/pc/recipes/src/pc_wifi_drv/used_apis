@@ -1,0 +1,12 @@
+base
+genode_c_api
+libc
+openssl
+os
+pc_linux
+nic_session
+platform_session
+report_session
+timer_session
+uplink_session
+vfs
