@@ -18,6 +18,8 @@
 #include <asm/processor.h>
 #include <lx_emul/task.h>
 #include <linux/sched/task.h>
+#include <linux/cred.h>
+#include <linux/sched/signal.h>
 
 /*
  * We accept that we transfer the 4KiB task_struct object via stack in
@@ -30,7 +32,22 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 {
 	static int pid_counter = FIRST_PID;
 
-	struct task_struct * task = kmalloc(sizeof(struct task_struct), GFP_KERNEL);
+	struct cred * cred;
+	struct task_struct * task;
+	struct signal_struct *signal;
+
+	cred = kzalloc(sizeof (struct cred), GFP_KERNEL);
+	if (!cred)
+		return -1;
+
+	signal = kzalloc(sizeof(struct signal_struct), GFP_KERNEL);
+	if (!signal)
+		goto err_signal;
+
+	task = kmalloc(sizeof(struct task_struct), GFP_KERNEL);
+	if (!task)
+		goto err_task;
+
 	*task = (struct task_struct) {
 	.__state         = 0,
 	.usage           = REFCOUNT_INIT(2),
@@ -55,8 +72,10 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 	.pid             = pid_counter++,
 	.pending         = {
 		.list   = LIST_HEAD_INIT(task->pending.list),
-		.signal = {{0}}
-	}};
+		.signal = {{0}} },
+	.cred            = cred,
+	.signal          = signal,
+	};
 
 #ifndef CONFIG_X86
 	task->thread_info.preempt_count = 0;
@@ -64,6 +83,12 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 
 	lx_emul_task_create(task, "kthread", task->pid, fn, arg);
 	return task->pid;
+
+err_task:
+	kfree(signal);
+err_signal:
+	kfree(cred);
+	return -1;
 }
 
 #pragma GCC diagnostic pop

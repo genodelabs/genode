@@ -131,6 +131,9 @@ int lx_emul_init_task_function(void * dtb)
 }
 
 
+static struct cred _init_task_cred;
+
+
 struct task_struct init_task = {
 	.__state         = 0,
 	.usage           = REFCOUNT_INIT(2),
@@ -157,5 +160,6 @@ struct task_struct init_task = {
 		.signal = {{0}}
 	},
 	.blocked         = {{0}},
+	.cred            = &_init_task_cred,
 };
 void * lx_emul_init_task_struct = &init_task;
