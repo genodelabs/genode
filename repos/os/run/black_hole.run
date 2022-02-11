@@ -1,0 +1,76 @@
+create_boot_directory
+
+build { core init timer server/black_hole test/black_hole }
+
+append config {
+
+<config>
+
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<start name="timer" caps="100">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="black_hole" caps="100">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Event"/>
+			<service name="Capture"/>
+			<service name="Audio_in"/>
+			<service name="Audio_out"/>
+		</provides>
+		<config>
+			<event/>
+			<capture/>
+			<audio_in/>
+			<audio_out/>
+		</config>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="ROM">   <parent/> </service>
+			<service name="PD">    <parent/> </service>
+			<service name="LOG">   <parent/> </service>
+			<service name="CPU">   <parent/> </service>
+		</route>
+	</start>
+
+	<start name="test-black_hole" caps="100">
+		<resource name="RAM" quantum="10M"/>
+		<route>
+			<service name="Event">     <child name="black_hole"/> </service>
+			<service name="Capture">   <child name="black_hole"/> </service>
+			<service name="Audio_in">  <child name="black_hole"/> </service>
+			<service name="Audio_out"> <child name="black_hole"/> </service>
+			<service name="ROM">       <parent/> </service>
+			<service name="PD">        <parent/> </service>
+			<service name="LOG">       <parent/> </service>
+			<service name="CPU">       <parent/> </service>
+		</route>
+	</start>
+
+</config> }
+
+install_config $config
+
+build_boot_image { core init timer black_hole test-black_hole }
+
+append qemu_args " -nographic "
+
+run_genode_until "Finished.*\n" 30
