@@ -1,0 +1,26 @@
+#
+# Linux kernel configuration
+#
+
+# kernel fundamentals
+LX_ENABLE += TTY SERIAL_EARLYCON SERIAL_OF_PLATFORM PRINTK HAS_IOMEM
+
+# initrd support
+LX_ENABLE += BINFMT_ELF BINFMT_SCRIPT BLK_DEV_INITRD
+
+# UART device
+LX_ENABLE += SERIAL_8250 SERIAL_8250_CONSOLE
+
+# PCI support
+LX_ENABLE += PCI
+
+# USB host-controller support
+LX_ENABLE += USB_SUPPORT USB USB_ARCH_HAS_HCD USB_XHCI_HCD USB_EHCI_HCD USB_OHCI_HCD
+
+# mandatory fs support
+LX_ENABLE += PROC_FS SYSFS
+
+LX_DISABLE += CC_HAS_ASM_GOTO
+
+# slim down kernel by removing superfluous drivers
+LX_DISABLE += HID HID_GENERIC USB_HID VGA_CONSOLE DUMMY_CONSOLE NLS VGA_ARB DEBUG_LIST
