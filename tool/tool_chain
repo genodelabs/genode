@@ -214,7 +214,7 @@ BINUTILS_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG)
 LANGUAGES := $(filter-out gdb, $(ENABLE_FEATURES))
 LANGUAGES := $(shell echo "${LANGUAGES}" | sed -e 's/ /,/g')
 
-ifeq ($(filter ada,$(LANGUAGES)),)
+ifeq ($(filter ada,$(ENABLE_FEATURES)),)
 ALI2DEP_INSTALLED_BINARY =
 endif
 
