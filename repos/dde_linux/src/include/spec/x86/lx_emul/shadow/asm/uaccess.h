@@ -15,4 +15,7 @@
 #define get_user(x, ptr) ({  (x)   = *(ptr); 0; })
 #define put_user(x, ptr) ({ *(ptr) =  (x);   0; })
 
+#undef __put_user
+#define __put_user(x, ptr) ({ *(ptr) =  (x);   0; })
+
 #endif
