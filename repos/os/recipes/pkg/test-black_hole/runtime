@@ -1,0 +1,69 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="10" />
+		<log meaning="succeeded">Finished</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-black_hole"/>
+		<rom label="black_hole"/>
+	</content>
+
+	<config>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<start name="black_hole" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="Event"/>
+				<service name="Capture"/>
+				<service name="Audio_in"/>
+				<service name="Audio_out"/>
+			</provides>
+			<config>
+				<event/>
+				<capture/>
+				<audio_in/>
+				<audio_out/>
+			</config>
+			<route>
+				<service name="Timer"> <parent/> </service>
+				<service name="ROM">   <parent/> </service>
+				<service name="PD">    <parent/> </service>
+				<service name="LOG">   <parent/> </service>
+				<service name="CPU">   <parent/> </service>
+			</route>
+		</start>
+
+		<start name="test-black_hole" caps="100">
+			<resource name="RAM" quantum="10M"/>
+			<route>
+				<service name="Event">     <child name="black_hole"/> </service>
+				<service name="Capture">   <child name="black_hole"/> </service>
+				<service name="Audio_in">  <child name="black_hole"/> </service>
+				<service name="Audio_out"> <child name="black_hole"/> </service>
+				<service name="ROM">       <parent/> </service>
+				<service name="PD">        <parent/> </service>
+				<service name="LOG">       <parent/> </service>
+				<service name="CPU">       <parent/> </service>
+			</route>
+		</start>
+
+	</config>
+
+</runtime>
