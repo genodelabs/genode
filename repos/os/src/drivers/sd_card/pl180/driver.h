@@ -118,19 +118,6 @@ class Sd_card::Driver : public  Block::Driver,
 		size_t          const _block_size  = 512;
 		Block::sector_t const _block_count = 0x20000000 / _block_size;
 
-		Dataspace_capability _io_mem_ds(Platform::Connection &platform)
-		{
-			using Device = Platform::Device_interface;
-
-			Capability<Device> device_cap = platform.acquire_device();
-
-			Device::Range range { };
-			Io_mem_session_client io_mem {
-				device_cap.call<Device::Rpc_io_mem>(1, range, UNCACHED) };
-
-			return io_mem.dataspace();
-		}
-
 	public:
 
 		Driver(Env &env, Platform::Connection & platform);
