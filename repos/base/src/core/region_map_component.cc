@@ -213,7 +213,7 @@ int Rm_client::pager(Ipc_pager &pager)
 		 * Check if dataspace is compatible with page-fault type
 		 */
 		if (pf_type == Region_map::State::WRITE_FAULT &&
-		    (!region->write() || !dsc->writable())) {
+		    (!region->write() || !dsc->writeable())) {
 
 			print_page_fault("attempted write at read-only memory",
 			                 pf_addr, pf_ip, pf_type, *this);
@@ -346,7 +346,7 @@ Mapping Region_map_component::create_map_item(Region_map_component *,
 	                 .io_mem         = dataspace.io_mem(),
 	                 .dma_buffer     = region.dma(),
 	                 .write_combined = dataspace.cacheability() == WRITE_COMBINED,
-	                 .writeable      = region.write() && dataspace.writable(),
+	                 .writeable      = region.write() && dataspace.writeable(),
 	                 .executable     = region.executable() };
 }
 

@@ -73,7 +73,7 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 				{
 					.base  = guest_phys,
 					.size  = attribute.size,
-					.write = dsc.writable() && attribute.writeable,
+					.write = dsc.writeable() && attribute.writeable,
 					.exec  = attribute.executable,
 					.off   = (off_t)attribute.offset,
 					.dma   = false,

@@ -25,8 +25,8 @@ struct Genode::Dataspace_client : Rpc_client<Dataspace>
 	explicit Dataspace_client(Dataspace_capability ds)
 	: Rpc_client<Dataspace>(ds) { }
 
-	size_t size()     override { return call<Rpc_size>();     }
-	bool   writable() override { return call<Rpc_writable>(); }
+	size_t size()      override { return call<Rpc_size>();      }
+	bool   writeable() override { return call<Rpc_writeable>(); }
 };
 
 #endif /* _INCLUDE__DATASPACE__CLIENT_H_ */

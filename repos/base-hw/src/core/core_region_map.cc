@@ -67,7 +67,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 
 		/* map the dataspace's physical pages to corresponding virtual addresses */
 		unsigned num_pages = (unsigned)(page_rounded_size >> get_page_size_log2());
-		Page_flags const flags { (writeable && ds.writable()) ? RW : RO,
+		Page_flags const flags { (writeable && ds.writeable()) ? RW : RO,
 		                         NO_EXEC, KERN, GLOBAL,
 		                         ds.io_mem() ? DEVICE : RAM,
 		                         ds.cacheability() };

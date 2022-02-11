@@ -61,7 +61,7 @@ struct File_system::Connection : Genode::Connection<Session>, Session_client
 	 *                         transmission buffer
 	 * \param label            session label
 	 * \param root             root directory of session
-	 * \param writeable        session is writable
+	 * \param writeable        session is writeable
 	 * \param tx_buf_size      size of transmission buffer in bytes
 	 */
 	Connection(Genode::Env             &env,

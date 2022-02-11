@@ -98,7 +98,7 @@ class Uart::Driver : private Genode::Attached_io_mem_dataspace,
 		/**
 		 * Register offsets
 		 *
-		 * Registers are read/writable unless explicitly stated.
+		 * Registers are read/writeable unless explicitly stated.
 		 */
 		enum Register {
 			UARTDR    = 0x000,  /* data */

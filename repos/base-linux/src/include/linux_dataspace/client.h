@@ -32,8 +32,8 @@ struct Genode::Linux_dataspace_client : Rpc_client<Linux_dataspace>
 	 ** Generic dataspace interface **
 	 *********************************/
 
-	size_t size()     override { return call<Rpc_size>();     }
-	bool   writable() override { return call<Rpc_writable>(); }
+	size_t size()      override { return call<Rpc_size>();      }
+	bool   writeable() override { return call<Rpc_writeable>(); }
 
 
 	/****************************************

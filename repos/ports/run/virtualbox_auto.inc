@@ -72,9 +72,9 @@ append_platform_drv_build_components
 build $build_components
 
 if {$use_rumpfs && !$use_ram_fs} {
-	set rump_writable true
+	set rump_writeable true
 } else {
-	set rump_writable false
+	set rump_writeable false
 }
 
 set config {
@@ -162,7 +162,7 @@ append_if [expr $use_rumpfs] config {
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
 			<policy label_prefix="overlay_from_disk" root="/ram" writeable="no"/>}
 append_if [expr $use_rumpfs] config {
-			<default-policy root="/" writeable="} $rump_writable {"/>
+			<default-policy root="/" writeable="} $rump_writeable {"/>
 		</config>
 		<route>
 			<any-service><child name="part_block"/> <parent/><any-child/></any-service>

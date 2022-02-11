@@ -885,7 +885,7 @@ File system
 
 A file-system service offers the storage and retrieval of data organized in
 a hierarchical directory structure. Access to a file system can be restricted
-to be read only. The distinction between read-only and read-writable does
+to be read only. The distinction between read-only and read-writeable does
 not exist per file but for the entire file-system resource.
 
 Of course, many use cases call for finer-grained access control. This is
@@ -927,7 +927,7 @@ Block device
 ~~~~~~~~~~~~
 
 A block-device resource allows for the block-level storage and retrieval
-of data whereas a block-device can be read-only or read-writable. The base
+of data whereas a block-device can be read-only or read-writeable. The base
 system's built-in block service hands out the devices listed at
 _/report/drivers/block_devices_ according to the label of the client's session.
 The label must correspond to the name of the block device. Typically, the

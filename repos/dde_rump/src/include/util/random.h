@@ -1,5 +1,5 @@
-/**
- * \brief  Overwritable backend-random methods
+/*
+ * \brief  Overwriteable backend-random methods
  * \author Sebastian Sumpf
  * \date   2015-02-13
  */

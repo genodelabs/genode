@@ -39,8 +39,8 @@ namespace Genode {
 			addr_t const _phys_addr       = 0;  /* address of dataspace in physical memory */
 			addr_t       _core_local_addr = 0;  /* address of core-local mapping           */
 			size_t const _size            = 0;  /* size of dataspace in bytes              */
-			bool   const _io_mem   = false;     /* dataspace is I/O mem, not to be touched */
-			bool   const _writable = false;     /* false if dataspace is read-only         */
+			bool   const _io_mem    = false;    /* dataspace is I/O mem, not to be touched */
+			bool   const _writeable = false;    /* false if dataspace is read-only         */
 
 			/*
 			 * Access memory cached, write-combined, or uncached respectively
@@ -79,12 +79,12 @@ namespace Genode {
 			 * This constructor is used by RAM and ROM dataspaces.
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
-			                    Cache cache, bool writable,
+			                    Cache cache, bool writeable,
 			                    Dataspace_owner *owner)
 			:
 				_phys_addr(core_local_addr), _core_local_addr(core_local_addr),
 				_size(round_page(size)), _io_mem(false),
-				_writable(writable), _cache(cache),
+				_writeable(writeable), _cache(cache),
 				_owner(owner), _managed(false) { }
 
 			/**
@@ -99,10 +99,10 @@ namespace Genode {
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
 			                    addr_t phys_addr, Cache cache,
-			                    bool writable, Dataspace_owner *owner)
+			                    bool writeable, Dataspace_owner *owner)
 			:
 				_phys_addr(phys_addr), _core_local_addr(core_local_addr),
-				_size(size), _io_mem(true), _writable(writable),
+				_size(size), _io_mem(true), _writeable(writeable),
 				_cache(cache), _owner(owner), _managed(false) { }
 
 			/**
@@ -156,8 +156,8 @@ namespace Genode {
 			 ** Dataspace interface **
 			 *************************/
 
-			size_t size()     override { return _size; }
-			bool   writable() override { return _writable; }
+			size_t size()      override { return _size; }
+			bool   writeable() override { return _writeable; }
 	};
 }
 

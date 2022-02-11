@@ -257,7 +257,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 	Flexpage page = flex.page();
 	while (page.valid()) {
 		Nova::Rights const map_rights (true,
-		                               dsc.writable() && attribute.writeable,
+		                               dsc.writeable() && attribute.writeable,
 		                               attribute.executable);
 		Nova::Mem_crd const mem(page.addr >> 12, page.log2_order - 12,
 		                        map_rights);

@@ -47,7 +47,7 @@ class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
 		size_t const      _size;      /* size of dataspace in bytes   */
 		addr_t const      _addr;      /* meaningless on linux         */
 		Native_capability _cap;       /* capability / file descriptor */
-		bool   const      _writable;  /* false if read-only           */
+		bool   const      _writeable; /* false if read-only           */
 
 		/*
 		 * Holds the dataspace owner if a distinction between owner and
@@ -74,10 +74,10 @@ class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
 		/**
 		 * Constructor
 		 */
-		Dataspace_component(size_t size, addr_t addr, Cache, bool writable,
+		Dataspace_component(size_t size, addr_t addr, Cache, bool writeable,
 		                    Dataspace_owner * owner)
 		:
-			_size(size), _addr(addr), _cap(), _writable(writable), _owner(owner)
+			_size(size), _addr(addr), _cap(), _writeable(writeable), _owner(owner)
 		{ }
 
 		/**
@@ -85,7 +85,7 @@ class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
 		 */
 		Dataspace_component()
 		:
-			_size(0), _addr(0), _cap(), _writable(false), _owner(nullptr)
+			_size(0), _addr(0), _cap(), _writeable(false), _owner(nullptr)
 		{ }
 
 		/**
@@ -93,7 +93,7 @@ class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
 		 * reasons and should not be used.
 		 */
 		Dataspace_component(size_t size, addr_t, addr_t phys_addr,
-		                    Cache, bool writable, Dataspace_owner *_owner);
+		                    Cache, bool writeable, Dataspace_owner *_owner);
 
 		/**
 		 * This constructor is especially used for ROM dataspaces
@@ -127,8 +127,8 @@ class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
 		 ** Dataspace interface **
 		 *************************/
 
-		size_t size()     override { return _size; }
-		bool   writable() override { return _writable; }
+		size_t size()      override { return _size; }
+		bool   writeable() override { return _writeable; }
 
 
 		/****************************************

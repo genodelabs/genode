@@ -67,15 +67,15 @@ Dataspace_component::Dataspace_component(const char *args)
 	_size(_file_size()),
 	_addr(0),
 	_cap(_fd_to_cap(lx_open(_fname.buf, O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR))),
-	_writable(false),
+	_writeable(false),
 	_owner(0)
 { }
 
 
 Dataspace_component::Dataspace_component(size_t size, addr_t, addr_t phys_addr,
-                                         Cache, bool writable, Dataspace_owner *_owner)
+                                         Cache, bool writeable, Dataspace_owner *_owner)
 :
-	_size(size), _addr(phys_addr), _cap(), _writable(writable), _owner(_owner)
+	_size(size), _addr(phys_addr), _cap(), _writeable(writeable), _owner(_owner)
 {
     _fname.buf[0] = 0;
 }

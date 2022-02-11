@@ -129,12 +129,12 @@ void *Region_map_mmap::_map_local(Dataspace_capability ds,
                                   bool                 overmap,
                                   bool                 writeable)
 {
-	int  const  fd        = _dataspace_fd(ds);
-	bool const  writable  = _dataspace_writable(ds) && writeable;
+	writeable = _dataspace_writeable(ds) && writeable;
 
+	int  const  fd        = _dataspace_fd(ds);
 	int  const  flags     = MAP_SHARED | (overmap ? MAP_FIXED : 0);
 	int  const  prot      = PROT_READ
-	                      | (writable   ? PROT_WRITE : 0)
+	                      | (writeable  ? PROT_WRITE : 0)
 	                      | (executable ? PROT_EXEC  : 0);
 	void * const addr_in  = use_local_addr ? (void*)local_addr : 0;
 	void * const addr_out = lx_mmap(addr_in, size, prot, flags, fd, offset);

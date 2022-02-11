@@ -96,7 +96,7 @@ class Lx_fs::Session_component : private Session_resources,
 		Genode::Env                 &_env;
 		Directory                   &_root;
 		Id_space<File_system::Node>  _open_node_registry { };
-		bool                         _writable;
+		bool                         _writeable;
 		Absolute_path const          _root_dir;
 		Signal_handler               _process_packet_dispatcher;
 		Notifier                    &_notifier;
@@ -258,14 +258,14 @@ class Lx_fs::Session_component : private Session_resources,
 		                  Genode::Cap_quota    cap_quota,
 		                  size_t               tx_buf_size,
 		                  char const          *root_dir,
-		                  bool                 writable,
+		                  bool                 writeable,
 		                  Notifier            &notifier)
 		:
 			Session_resources { env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size },
 			Session_rpc_object {_packet_ds.cap(), env.rm(), env.ep().rpc_ep() },
 			_env { env },
 			_root { *new (&_alloc) Directory { _alloc, root_dir, false } },
-			_writable { writable },
+			_writeable { writeable },
 			_root_dir { root_dir },
 			_process_packet_dispatcher { env.ep(), *this, &Session_component::_process_packets },
 			_notifier { notifier }
@@ -328,7 +328,7 @@ class Lx_fs::Session_component : private Session_resources,
 
 				Node &dir = open_node.node();
 
-				if (!_writable)
+				if (!_writeable)
 					if (create || (mode != STAT_ONLY && mode != READ_ONLY))
 						throw Permission_denied();
 
@@ -367,7 +367,7 @@ class Lx_fs::Session_component : private Session_resources,
 			/* skip leading '/' */
 			path_str++;
 
-			if (!_writable && create)
+			if (!_writeable && create)
 				throw Permission_denied();
 
 			if (!path.valid_string())
@@ -451,7 +451,7 @@ class Lx_fs::Session_component : private Session_resources,
 			if (!valid_name(name.string()))
 				throw Invalid_name();
 
-			if (!_writable)
+			if (!_writeable)
 				throw Permission_denied();
 
 			auto unlink_fn = [&] (Open_node &open_node) {
@@ -500,7 +500,7 @@ class Lx_fs::Session_component : private Session_resources,
 
 		void truncate(File_handle file_handle, file_size_t size) override
 		{
-			if (!_writable)
+			if (!_writeable)
 				throw Permission_denied();
 
 			auto truncate_fn = [&] (Open_node &open_node) {

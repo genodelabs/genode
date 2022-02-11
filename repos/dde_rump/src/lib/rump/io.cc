@@ -113,7 +113,7 @@ class Backend
 
 		uint64_t block_count() const { return _info.block_count; }
 		size_t   block_size()  const { return _info.block_size; }
-		bool     writable()    const { return _info.writeable; }
+		bool     writeable()   const { return _info.writeable; }
 
 		void sync()
 		{
@@ -173,8 +173,8 @@ int rumpuser_open(const char *name, int mode, int *fdp)
 	if (!(mode & RUMPUSER_OPEN_BIO || Genode::strcmp(GENODE_BLOCK_SESSION, name)))
 		return ENXIO;
 
-	/* check for writable */
-	if ((mode & RUMPUSER_OPEN_ACCMODE) && !backend().writable())
+	/* check for writeable */
+	if ((mode & RUMPUSER_OPEN_ACCMODE) && !backend().writeable())
 		return EROFS;
 
 	*fdp = GENODE_FD;

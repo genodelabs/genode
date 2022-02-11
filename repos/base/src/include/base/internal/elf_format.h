@@ -233,7 +233,7 @@ enum {
  */
 enum {
 	PF_X = (1 << 0),   /* segment is executable */
-	PF_W = (1 << 1),   /* segment is writable   */
+	PF_W = (1 << 1),   /* segment is writeable  */
 	PF_R = (1 << 2),   /* segment is readable   */
 };
 
