@@ -69,7 +69,7 @@ append config {
 
 install_config $config
 
-build_boot_image { core init timer black_hole test-black_hole }
+build_boot_image { core ld.lib.so init timer black_hole test-black_hole }
 
 append qemu_args " -nographic "
 
