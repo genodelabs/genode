@@ -49,16 +49,18 @@ class Block::Session_component_base
 
 		Driver_factory          &_driver_factory;
 		Driver                  &_driver;
-		Ram_dataspace_capability _rq_ds;
+		Driver::Dma_buffer       _rq;
 
 		Session_component_base(Driver_factory &factory, size_t tx_buf_size)
-		: _driver_factory(factory),
-		  _driver(*factory.create()),
-		  _rq_ds(_driver.alloc_dma_buffer(tx_buf_size, UNCACHED)) {}
+		:
+			_driver_factory(factory),
+			_driver(*factory.create()),
+			_rq(_driver.alloc_dma_buffer(tx_buf_size, UNCACHED))
+		{ }
 
 		~Session_component_base()
 		{
-			_driver.free_dma_buffer(_rq_ds);
+			_driver.free_dma_buffer(_rq.ds);
 			_driver_factory.destroy(&_driver);
 		}
 };
@@ -211,8 +213,8 @@ class Block::Session_component : public Block::Session_component_base,
 		                  size_t              buf_size,
 		                  bool                writeable)
 		: Session_component_base(driver_factory, buf_size),
-		  Driver_session(rm, _rq_ds, ep.rpc_ep()),
-		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
+		  Driver_session(rm, _rq.ds, ep.rpc_ep()),
+		  _rq_phys(_rq.dma_addr),
 		  _sink_ack(ep, *this, &Session_component::_signal),
 		  _sink_submit(ep, *this, &Session_component::_signal),
 		  _req_queue_full(false),

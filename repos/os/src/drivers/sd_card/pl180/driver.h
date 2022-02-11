@@ -128,6 +128,16 @@ class Sd_card::Driver : public  Block::Driver,
 		 ** Block-driver **
 		 ******************/
 
+		Dma_buffer alloc_dma_buffer(size_t size, Cache cache) override
+		{
+			Ram_dataspace_capability ds =
+				_platform.retry_with_upgrade(Ram_quota{4096}, Cap_quota{2},
+					[&] () { return _platform.alloc_dma_buffer(size, cache); });
+
+			return { .ds       = ds,
+			         .dma_addr = _platform.dma_addr(ds) };
+		}
+
 		Block::Session::Info info() const override
 		{
 			return { .block_size  = _block_size,

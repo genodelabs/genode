@@ -113,6 +113,11 @@ class Lx_block_driver : public Block::Driver
 		 ** Block::Driver interface **
 		 *****************************/
 
+		Dma_buffer alloc_dma_buffer(Genode::size_t size, Genode::Cache) override
+		{
+			return { .ds = _env.ram().alloc(size), .dma_addr = 0 };
+		}
+
 		Block::Session::Info info() const override { return _info; }
 
 		void read(Block::sector_t           block_number,

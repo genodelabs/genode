@@ -220,7 +220,7 @@ class Sd_card::Driver : public  Driver_base,
 		                                          &Driver::_handle_irq };
 		Platform::Device::Irq   _irq            { *this };
 		Card_info               _card_info      { _init() };
-		Adma2::Table            _adma2_table    { _env.ram(), _env.rm() };
+		Adma2::Table            _adma2_table    { _platform };
 
 		static bool _supported_host_version(Hostver::access_t hostver);
 		static void _watermark_level(Wml::access_t &wml);
@@ -294,8 +294,15 @@ class Sd_card::Driver : public  Driver_base,
 
 		bool dma_enabled() override { return true; }
 
-		Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override {
-			return _env.ram().alloc(size, cache); }
+		Dma_buffer alloc_dma_buffer(size_t size, Cache cache) override
+		{
+			Ram_dataspace_capability ds =
+				_platform.retry_with_upgrade(Ram_quota{4096}, Cap_quota{2},
+					[&] () { return _platform.alloc_dma_buffer(size, cache); });
+
+			return { .ds       = ds,
+			         .dma_addr = _platform.dma_addr(ds) };
+		}
 };
 
 #endif /* _SRC__DRIVERS__SD_CARD__SPEC__IMX__DRIVER_H_ */

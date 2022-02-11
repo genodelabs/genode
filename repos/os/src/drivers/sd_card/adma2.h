@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/register.h>
-#include <base/attached_ram_dataspace.h>
+#include <platform_session/dma_buffer.h>
 
 namespace Adma2
 {
@@ -52,6 +52,7 @@ struct Adma2::Desc : Register<64>
 	struct Address : Bitfield<32, 32> { };
 };
 
+
 /**
  * Descriptor table
  */
@@ -62,9 +63,8 @@ class Adma2::Table
 		static size_t constexpr _max_desc = 1024;
 		static size_t constexpr _ds_size  = _max_desc * sizeof(Desc::access_t);
 
-		Attached_ram_dataspace _ds;
+		Platform::Dma_buffer   _ds;
 		Desc::access_t * const _base_virt;
-		addr_t const           _base_phys;
 
 		/*
 		 * Noncopyable
@@ -74,7 +74,7 @@ class Adma2::Table
 
 	public:
 
-		Table(Ram_allocator &ram, Region_map &rm);
+		Table(Platform::Connection &platform);
 
 		/**
 		 * Marshal descriptors according to block request
@@ -91,7 +91,7 @@ class Adma2::Table
 		 * Accessors
 		 */
 
-		addr_t base_phys() const { return _base_phys; }
+		addr_t base_dma() const { return _ds.dma_addr(); }
 };
 
 #endif /* _ADMA2_H_ */
