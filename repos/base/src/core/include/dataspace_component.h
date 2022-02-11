@@ -120,6 +120,8 @@ namespace Genode {
 			addr_t core_local_addr() const { return _core_local_addr; }
 			bool   io_mem()          const { return _io_mem; }
 			Cache  cacheability()    const { return _cache; }
+			addr_t phys_addr()       const { return _phys_addr; }
+			bool   managed()         const { return _managed; }
 
 			/**
 			 * Return dataspace base address to be used for map operations
@@ -149,15 +151,13 @@ namespace Genode {
 
 			List<Rm_region> &regions() { return _regions; }
 
+
 			/*************************
 			 ** Dataspace interface **
 			 *************************/
 
-			size_t size()      override { return _size; }
-			addr_t phys_addr() override { return _phys_addr; }
-			bool   writable()  override { return _writable; }
-
-			bool managed() { return _managed; }
+			size_t size()     override { return _size; }
+			bool   writable() override { return _writable; }
 	};
 }
 

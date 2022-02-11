@@ -134,8 +134,6 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 
 		size_t size() override { return _size; }
 
-		addr_t phys_addr() override { return 0; }
-
 		bool writable() override { return true; }
 
 		/**

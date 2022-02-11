@@ -30,11 +30,6 @@ struct Genode::Dataspace : Interface
 	virtual size_t size() = 0;
 
 	/**
-	 * Request base address in physical address space
-	 */
-	virtual addr_t phys_addr() = 0;
-
-	/**
 	 * Return true if dataspace is writable
 	 */
 	virtual bool writable() = 0;
@@ -44,11 +39,10 @@ struct Genode::Dataspace : Interface
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_size,      size_t, size);
-	GENODE_RPC(Rpc_phys_addr, addr_t, phys_addr);
-	GENODE_RPC(Rpc_writable,  bool,   writable);
+	GENODE_RPC(Rpc_size,     size_t, size);
+	GENODE_RPC(Rpc_writable, bool,   writable);
 
-	GENODE_RPC_INTERFACE(Rpc_size, Rpc_phys_addr, Rpc_writable);
+	GENODE_RPC_INTERFACE(Rpc_size, Rpc_writable);
 };
 
 #endif /* _INCLUDE__DATASPACE__DATASPACE_H_ */

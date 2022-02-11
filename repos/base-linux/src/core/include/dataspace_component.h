@@ -120,14 +120,15 @@ class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
 		 */
 		void detach_from_rm_sessions() { }
 
+		addr_t phys_addr() const { return _addr; }
+
 
 		/*************************
 		 ** Dataspace interface **
 		 *************************/
 
-		size_t size()      override { return _size; }
-		addr_t phys_addr() override { return _addr; }
-		bool   writable()  override { return _writable; }
+		size_t size()     override { return _size; }
+		bool   writable() override { return _writable; }
 
 
 		/****************************************
