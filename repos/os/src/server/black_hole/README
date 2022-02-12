@@ -8,10 +8,12 @@ in the configuration of the component:
 * Audio_out
 * Capture
 * Event
+* Nic
 
 <config>
 	<audio_in/>
 	<audio_out/>
 	<capture/>
 	<event/>
+	<nic/>
 </config>

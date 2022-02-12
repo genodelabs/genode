@@ -5,6 +5,7 @@
 		<audio_out/>
 		<capture/>
 		<event/>
+		<nic/>
 	</provides>
 
 	<config>
@@ -12,6 +13,7 @@
 		<audio_out/>
 		<capture/>
 		<event/>
+		<nic/>
 	</config>
 
 	<content>

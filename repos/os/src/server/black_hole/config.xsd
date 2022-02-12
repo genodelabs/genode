@@ -4,6 +4,7 @@
 	<xs:element name="config">
 		<xs:complexType>
 			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="nic"/>
 				<xs:element name="event"/>
 				<xs:element name="capture"/>
 				<xs:element name="audio_in"/>

@@ -5,3 +5,4 @@ audio_in_session
 audio_out_session
 event_session
 capture_session
+nic_session
