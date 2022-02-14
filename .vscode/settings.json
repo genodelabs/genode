@@ -25,5 +25,14 @@
         "system_error": "cpp",
         "thread": "cpp",
         "tuple": "cpp"
+    },
+    "files.exclude": {
+        "repos/base-okl4/**": true,
+        "repos/base-fiasco/**": true,
+        "repos/base-foc/**": true,
+        "repos/base-nova/**": true,
+        "repos/base-pistachio/**": true,
+        "repos/base-foc/**": true,
+        "repos/base-linux/**": true
     }
 }
