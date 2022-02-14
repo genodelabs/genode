@@ -51,15 +51,21 @@ struct Sculpt::Managed_config
 	Signal_handler<Managed_config> _manual_config_handler {
 		_env.ep(), *this, &Managed_config::_handle_manual_config };
 
-	void _handle_manual_config()
+	/**
+	 * Update manual config, decide between manual or managed mode of operation
+	 */
+	void _update_manual_config_rom()
 	{
 		_manual_config_rom.update();
 
-		Xml_node const config = _manual_config_rom.xml();
+		_mode = _manual_config_rom.xml().has_type("empty") ? MANAGED : MANUAL;
+	}
 
-		_mode = config.has_type("empty") ? MANAGED : MANUAL;
+	void _handle_manual_config()
+	{
+		_update_manual_config_rom();
 
-		(_obj.*_handle)(config);
+		(_obj.*_handle)(_manual_config_rom.xml());
 	}
 
 	/**
@@ -93,6 +99,9 @@ struct Sculpt::Managed_config
 		_config(_env, xml_node_name.string(), Label(rom_name, "_config").string())
 	{
 		_manual_config_rom.sigh(_manual_config_handler);
+
+		/* determine initial '_mode' */
+		_update_manual_config_rom();
 	}
 };
 
