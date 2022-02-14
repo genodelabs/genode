@@ -128,7 +128,6 @@ if {$wrong_version} {
 }
 
 # netperf configuration
-set packet_size 1024
 set netperf_tests "TCP_STREAM TCP_MAERTS"
 
 proc socket_fs_plugin {} {
@@ -468,34 +467,40 @@ sleep 3
 foreach netperf_test $netperf_tests {
 	puts "\n---------------------------- $netperf_test -----------------------"
 
-	spawn netperf-$version -4 -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- $packet_size $force_ports
+	spawn netperf-$version -4 -H $ip_addr -P 1 -v 2 -f m -t $netperf_test -c -C -- $force_ports \
+	-k THROUGHPUT,THROUGHPUT_UNITS,LOCAL_TRANSPORT_RETRANS,MEAN_LATENCY,REMOTE_SEND_CALLS,REMOTE_RECV_CALLS,ELAPSED_TIME
 	set netperf_id $spawn_id
 
 	set spawn_id_list [list $netperf_id $serial_id]
 
 	# reset output, so that we get on the second run not the result of the first
 	set output ""
-	run_genode_until "Segment" 120 $spawn_id_list
+	run_genode_until "ELAPSED_TIME=.*\n" 120 $spawn_id_list
+
+	set units "Mbit/s"
 
 	# get throughput from netperf output
-	set throughput [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $output]
-	set throughput [regexp -all -inline {[0-9]+\.[0-9]+} $throughput]
+	regexp {THROUGHPUT=([\d\.]+)} $output dummy throughput
 
-	# calculate packets per second rate
-	set all_bytes [regexp -all -inline {([0-9]+[ ]+){5}} $output]
-	set all_bytes [lindex $all_bytes 0 4]
+	# get elapsed time from netperf output
+	regexp {ELAPSED_TIME=([\d\.]+)} $output dummy elapsed_time
 
-	set elapsed_time [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+} $output]
-	set elapsed_time [lindex $elapsed_time 0 3]
-	set packets_second [expr $all_bytes / $packet_size / $elapsed_time]
+	# get send calls from netperf output
+	regexp {REMOTE_SEND_CALLS=([\d]+)} $output dummy send_calls
 
-	puts "\ncalculation: overall bytes / size per packet / time = packets per second"
-	puts -nonewline "             $all_bytes Bytes / $packet_size Bytes / $elapsed_time s = "
-	puts "[format %8.0f $packets_second] packets/s\n"
+	# get recv calls from netperf output
+	regexp {REMOTE_RECV_CALLS=([\d]+)} $output dummy recv_calls
+
+	set sends_second [expr $send_calls / $elapsed_time]
+	set recvs_second [expr $recv_calls / $elapsed_time]
+
+	puts ""
+	puts "[format %8.0f $sends_second] send()/s"
+	puts "[format %8.0f $recvs_second] recv()/s"
 
 	# format output parseable for post proccessing scripts
 	puts -nonewline "! PERF: $netperf_test"
 	if {$use_nic_bridge} { puts -nonewline "_bridge" }
 	if {$use_usb_driver} { puts -nonewline "_xhci"   }
-	puts "              [lindex $throughput 1] MBit/s ok"
+	puts "              $throughput $units ok"
 }
