@@ -83,7 +83,7 @@ install_config {
 	</parent-provides>
 	<default caps="100"/>
 
-	<start name="platform_drv">
+	<start name="platform_drv" managing_system="yes">
 		<binary name="} [platform_drv] {"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Platform"/></provides>
