@@ -343,7 +343,11 @@ proc create_tar_from_depot_binaries { archive_path args } {
 
 	check_for_missing_depot_archives
 
-	eval "exec tar cf $archive_path -C [depot_dir] [lsort -unique $content]"
+	if {[llength $args] > 0} {
+		eval "exec tar cf $archive_path -C [depot_dir] [lsort -unique $content]"
+	} else {
+		eval "exec tar cf $archive_path -T /dev/null"
+	}
 }
 
 
