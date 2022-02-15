@@ -29,6 +29,7 @@ namespace Vfs {
 class Vfs::Uplink_file_system : public Vfs::Single_file_system
 {
 	public:
+
 		class Uplink_vfs_handle;
 
 		using Vfs_handle = Uplink_vfs_handle;
@@ -44,6 +45,7 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
                                                    public Genode::Uplink_client_base
 {
 	private:
+
 		using Read_result  = File_io_service::Read_result;
 		using Write_result = File_io_service::Write_result;
 

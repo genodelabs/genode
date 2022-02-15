@@ -1,4 +1,15 @@
-/* tap device loopback test using FreeBSD API */
+/*
+ * \brief  tap device loopback test using FreeBSD API
+ * \author Johannes Schlatow
+ * \date   2022-01-26
+ */
+
+/*
+ * Copyright (C) 2022 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
 
 #include <sys/types.h>
 #include <sys/stat.h>

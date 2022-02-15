@@ -28,6 +28,7 @@ namespace Genode {
 class Genode::Uplink_client_base : Noncopyable
 {
 	public:
+
 		using Label = String<64>;
 
 	protected:

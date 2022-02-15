@@ -1,8 +1,5 @@
 TARGET = test-libc_vfs_tap
 
-LIBS := base
-LIBS += libc
-LIBS += posix
-LIBS += vfs
+LIBS := posix
 
 SRC_C := main.c

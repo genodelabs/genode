@@ -30,6 +30,7 @@ namespace Vfs {
 class Vfs::Nic_file_system : public Vfs::Single_file_system
 {
 	public:
+
 		class Nic_vfs_handle;
 
 		using Vfs_handle = Nic_vfs_handle;
@@ -44,9 +45,11 @@ class Vfs::Nic_file_system : public Vfs::Single_file_system
 class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 {
 	public:
+
 		using Label = String<64>;
 
 	private:
+
 		using Read_result  = File_io_service::Read_result;
 		using Write_result = File_io_service::Write_result;
 

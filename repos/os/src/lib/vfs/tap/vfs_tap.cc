@@ -42,6 +42,7 @@ namespace Vfs {
 class Vfs::Mac_file_system : public Value_file_system<Net::Mac_address>
 {
 	public:
+
 		Mac_file_system(Name const & name, Net::Mac_address const & mac)
 		: Value_file_system(name, mac)
 		{ }
@@ -99,10 +100,9 @@ Genode::size_t Vfs::ascii_to(char const *s, Uplink_mode &mode)
  * Currently, it is only used for triggering the info fs to read the
  * mac address from the device.
  */
-struct Vfs::Tap_file_system::Device_update_handler
+struct Vfs::Tap_file_system::Device_update_handler : Interface
 {
 	virtual void device_state_changed() = 0;
-	virtual ~Device_update_handler() = 0;
 };
 
 
