@@ -26,6 +26,7 @@
 #include "capture.h"
 #include "event.h"
 #include "nic.h"
+#include "uplink.h"
 
 
 /***************
@@ -45,6 +46,7 @@ struct Black_hole::Main
 	Genode::Constructible<Capture::Root>   capture_root   { };
 	Genode::Constructible<Event_root>      event_root     { };
 	Genode::Constructible<Nic_root>        nic_root       { };
+	Genode::Constructible<Uplink_root>     uplink_root    { };
 
 	Main(Genode::Env &env) : env(env)
 	{
@@ -72,6 +74,11 @@ struct Black_hole::Main
 		if (_config_rom.xml().has_sub_node("nic")) {
 			nic_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*nic_root));
+		}
+
+		if (_config_rom.xml().has_sub_node("uplink")) {
+			uplink_root.construct(env, heap);
+			env.parent().announce(env.ep().manage(*uplink_root));
 		}
 	}
 };

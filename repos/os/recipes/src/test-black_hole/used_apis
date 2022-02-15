@@ -6,3 +6,4 @@ audio_out_session
 event_session
 capture_session
 nic_session
+uplink_session

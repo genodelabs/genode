@@ -6,6 +6,7 @@
 		<capture/>
 		<event/>
 		<nic/>
+		<uplink/>
 	</provides>
 
 	<config>
@@ -14,6 +15,7 @@
 		<capture/>
 		<event/>
 		<nic/>
+		<uplink/>
 	</config>
 
 	<content>

@@ -30,6 +30,7 @@
 		<start name="black_hole" caps="100">
 			<resource name="RAM" quantum="1M"/>
 			<provides>
+				<service name="Uplink"/>
 				<service name="Nic"/>
 				<service name="Event"/>
 				<service name="Capture"/>
@@ -37,6 +38,7 @@
 				<service name="Audio_out"/>
 			</provides>
 			<config>
+				<uplink/>
 				<nic/>
 				<event/>
 				<capture/>
@@ -55,6 +57,7 @@
 		<start name="test-black_hole" caps="100">
 			<resource name="RAM" quantum="10M"/>
 			<route>
+				<service name="Uplink">    <child name="black_hole"/> </service>
 				<service name="Nic">       <child name="black_hole"/> </service>
 				<service name="Event">     <child name="black_hole"/> </service>
 				<service name="Capture">   <child name="black_hole"/> </service>

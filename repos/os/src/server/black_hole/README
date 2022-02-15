@@ -9,6 +9,7 @@ in the configuration of the component:
 * Capture
 * Event
 * Nic
+* Uplink
 
 <config>
 	<audio_in/>
@@ -16,4 +17,5 @@ in the configuration of the component:
 	<capture/>
 	<event/>
 	<nic/>
+	<uplink/>
 </config>
