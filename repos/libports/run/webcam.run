@@ -1,3 +1,5 @@
+assert_spec x86
+
 set build_components { }
 
 # fuji4
@@ -25,7 +27,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/nitpicker \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/rom_reporter \
-                  [depot_user]/src/legacy_usb_host_drv \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/pc_usb_host_drv \
                   [depot_user]/src/vesa_drv \
                   [depot_user]/src/test-capture \
                   [depot_user]/pkg/usb_webcam
@@ -66,12 +69,11 @@ append config {
 	</start>
 
 	<start name="usb_drv" priority="0" caps="200">
-		<binary name="legacy_pc_usb_host_drv"/>
+		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="16M"/>
 		<!-- <resource name="CPU" quantum="10"/> -->
 		<provides><service name="Usb"/></provides>
-		<config uhci="yes" ehci="yes" xhci="yes" bios_handoff="no">
-			<report devices="no"/>
+		<config bios_handoff="no">
 			<policy label_suffix="usb_webcam -> usb_device"
 			        vendor_id="} [libuvc_vendor_id] {" product_id="} [libuvc_product_id] {"/>
 		</config>

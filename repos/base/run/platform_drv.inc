@@ -9,7 +9,7 @@ proc have_platform_drv {} {
 proc usb_host_drv_binary { } {
 	if {[have_board rpi]}             { return legacy_rpi_usb_host_drv       }
 	if {[have_board imx6q_sabrelite]} { return legacy_imx6q_sabrelite_usb_host_drv }
-	if {[have_board pc]}              { return legacy_pc_usb_host_drv    }
+	if {[have_board pc]}              { return pc_usb_host_drv }
 	return no_usb_drv_available
 }
 
@@ -41,8 +41,8 @@ proc acpi_drv_name { } {
 
 proc platform_drv_build_components {} {
 	set drv_build_components ""
-	lappend_if [have_platform_drv] drv_build_components drivers/platform
 	if {[have_board pc]} {
+		lappend drv_build_components drivers/platform/legacy/x86
 		lappend drv_build_components server/report_rom
 		if {[acpi_drv_name] eq "acpi_drv"} {
 			lappend drv_build_components drivers/acpi

@@ -77,7 +77,7 @@ append config {
 		<binary name="} [usb_host_drv_binary] {"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Usb"/></provides>
-		<config uhci="yes" ehci="yes" xhci="yes" bios_handoff="yes">
+		<config bios_handoff="yes">
 			<report devices="yes"/>
 			<policy label="test-smartcard -> usb_device"
 			        vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>

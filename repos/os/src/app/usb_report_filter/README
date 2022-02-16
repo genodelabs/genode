@@ -59,12 +59,9 @@ following USB driver configuration:
 
 !<start name="usb_drv">
 ![...]
-!  <config uhci="yes" ehci="yes" xhci="yes">
-!    <hid/>
-!    <raw>
-!      <report devices="yes"/>
-!      <policy label="vbox -> usb-1-3" vendor_id="0x1b1c" product_id="0x1a09" bus="0x0001" device="0x0003"/>
-!    </raw>
+!  <config>
+!    <report devices="yes"/>
+!    <policy label="vbox -> usb-1-3" vendor_id="0x1b1c" product_id="0x1a09" bus="0x0001" device="0x0003"/>
 !  </config>
 !</start>
 

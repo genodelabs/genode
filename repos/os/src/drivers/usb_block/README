@@ -29,7 +29,7 @@ driver:
 !<start name="usb_drv">
 !  <resource name="RAM" quantum="12M"/>
 !  <provides><service name="Usb"/></provides>
-!  <config uhci="yes" ehci="yes" xhci="yes">
+!  <config>
 !    <raw>
 !        <policy label="usb_block_drv -> usb_stick" vendor_id="0x13fe" product_id="0x5200"/>
 !    </raw>

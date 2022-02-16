@@ -21,7 +21,7 @@ if {![have_include "power_on/qemu"]} {
 
 set build_components {
 	core init timer
-	drivers/usb_host
+	drivers/usb_host/pc
 	drivers/usb_hid
 	server/event_dump
 	server/dynamic_rom
@@ -72,10 +72,10 @@ append config {
 	</start>
 
 	<start name="usb_drv" caps="150">
-		<binary name="} [usb_host_drv_binary] {"/>
+		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="Usb"/> </provides>
-		<config uhci="no" ohci="no" ehci="no" xhci="yes" bios_handoff="yes">
+		<config bios_handoff="yes">
 			<report devices="yes"/>
 			<policy label_prefix="usb_hid_drv" class="0x3"/>
 		</config>
@@ -154,9 +154,8 @@ install_config $config
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer event_dump dynamic_rom
-	usb_hid_drv
+	usb_hid_drv pc_usb_host_drv
 }
-append boot_modules [usb_host_drv_binary]
 
 append_platform_drv_boot_modules
 

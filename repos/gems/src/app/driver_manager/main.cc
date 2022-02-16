@@ -712,14 +712,13 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 {
 	Reporter::Xml_generator xml(usb_drv_config, [&] () {
 
-		xml.attribute("uhci", true);
-		xml.attribute("ehci", true);
-		xml.attribute("ohci", _use_ohci);
-		xml.attribute("xhci", true);
 		xml.attribute("capslock_led", "rom");
 		xml.attribute("numlock_led",  "rom");
 
-		xml.node("report", [&] () { xml.attribute("devices", true); });
+		xml.node("report", [&] () {
+			xml.attribute("config",  true);
+			xml.attribute("devices", true);
+		});
 
 		/* incorporate user-managed policy */
 		policy.with_raw_content([&] (char const *start, size_t length) {

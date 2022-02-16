@@ -283,6 +283,8 @@ run_genode_until {\[init -\> event_dump\] Input event #11.*\n} 40 [output_spawn_
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 
+unify_output { dev_info:} ""
+unify_output { usb [0-9\-]+:} ""
 unify_output { number [0-9]+} ""
 unify_output {(?n)on usb-usbbus.*$} ""
 unify_output {(?n)using .*$} ""
@@ -299,10 +301,10 @@ compare_output_to {
 [init -> event_dump] Input event #3	REL_MOTION -1+0	key count: 1
 [init -> event_dump] Input event #4	REL_MOTION +0+1	key count: 1
 [init -> event_dump] Input event #5	RELEASE BTN_LEFT	key count: 0
-[init -> usb_drv] dev_info: USB disconnect, device
-[init -> usb_drv] dev_info: new full-speed USB device
-[init -> usb_hid_drv] dev_info: input: USB HID v1.11 Keyboard [HID 03eb:204d]
-[init -> usb_hid_drv] dev_info: input: USB HID v1.11 Mouse [HID 03eb:204d]
+[init -> usb_drv] USB disconnect, device
+[init -> usb_drv] new full-speed USB device
+[init -> usb_hid_drv] input: USB HID v1.11 Keyboard [HID 03eb:204d]
+[init -> usb_hid_drv] input: USB HID v1.11 Mouse [HID 03eb:204d]
 [init -> event_dump] Input event #6	PRESS KEY_X 65534	key count: 1
 [init -> event_dump] Input event #7	RELEASE KEY_X	key count: 0
 [init -> event_dump] Input event #8	PRESS BTN_LEFT 65534	key count: 1

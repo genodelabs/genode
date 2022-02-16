@@ -39,7 +39,7 @@ if {$use_vms > 1} {
 }
 
 if {$use_usb} {
-	import_from_depot [depot_user]/src/legacy_usb_host_drv \
+	import_from_depot [depot_user]/src/pc_usb_host_drv \
 	                  [depot_user]/src/usb_hid_drv
 }
 
@@ -280,7 +280,7 @@ append_if [expr $use_usb] config {
 				<ram/>
 				<import>
 					<inline name="usb_drv.config">
-<config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
+<config>
 	<report devices="yes"/>
 	<policy label_prefix="usb_hid_drv" class="0x3"/>
 </config>
@@ -350,7 +350,7 @@ append_if [expr $use_usb] config {
 	</start>
 
 	<start name="usb_drv" caps="200">
-		<binary name="legacy_pc_usb_host_drv"/>
+		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>

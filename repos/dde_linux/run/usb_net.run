@@ -71,7 +71,6 @@ append_if [have_spec x86] config {
 append config {
 		</config>
 		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

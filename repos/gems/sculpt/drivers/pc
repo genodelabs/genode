@@ -133,7 +133,7 @@
 	</start>
 
 	<start name="usb_drv" caps="200">
-		<binary name="legacy_pc_usb_host_drv"/>
+		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
