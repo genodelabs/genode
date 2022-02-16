@@ -156,7 +156,7 @@ class Root : public Root_component<genode_usb_session>
 		Attached_rom_dataspace    _config   { _env, "config"  };
 		Signal_handler<Root>      _config_handler { _env.ep(), *this,
 		                                            &Root::_announce_service };
-		Reporter                  _reporter { _env, "devices" };
+		Constructible<Reporter>   _reporter { };
 		Constructible<Device>     _devices[MAX_DEVICES];
 		List<List_element<genode_usb_session>> _sessions {};
 		Id_allocator              _id_alloc {};
@@ -587,8 +587,11 @@ void ::Root::_report()
 {
 	using Value = String<64>;
 
-	_reporter.enabled(true);
-	Reporter::Xml_generator xml(_reporter, [&] () {
+	if (!_reporter.constructed())
+		return;
+
+	_reporter->enabled(true);
+	Reporter::Xml_generator xml(*_reporter, [&] () {
 		_for_each_device([&] (Device & d) {
 			xml.node("device", [&] {
 				xml.attribute("label",      d.label());
@@ -613,11 +616,23 @@ void ::Root::_announce_service()
 	 */
 	_config.update();
 
+	/*
+	 * Check for report policy, and resp. con-/destruct device reporter
+	 */
+	_config.xml().with_sub_node("report", [&] (Xml_node node) {
+		if (node.attribute_value("devices", false)) {
+			if (!_reporter.constructed())
+				_reporter.construct(_env, "devices");
+		} else {
+			if (_reporter.constructed())
+				_reporter.destruct();
+		}
+	});
+
 	if (_announced)
 		return;
 
 	if (_config.xml().type() == "config") {
-		log(_config.xml());
 		_env.parent().announce(_env.ep().manage(*this));
 		_announced = true;
 	}
