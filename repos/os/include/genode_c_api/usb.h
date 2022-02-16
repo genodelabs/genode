@@ -222,6 +222,8 @@ void genode_usb_ack_request(genode_usb_session_handle_t session_handle,
 
 void genode_usb_notify_peers(void);
 
+void genode_usb_handle_empty_sessions(void);
+
 #ifdef __cplusplus
 }
 #endif

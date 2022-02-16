@@ -107,6 +107,11 @@ class genode_usb_session : public Usb::Session_rpc_object
 		 */
 		void notify();
 
+		/*
+		 * Acknowledge all remaining requests in the packet stream
+		 */
+		void flush_packet_stream();
+
 
 		/***************************
 		 ** USB session interface **
@@ -228,6 +233,11 @@ class Root : public Root_component<genode_usb_session>
 		 */
 		template <typename FUNC>
 		void session(genode_usb_session_handle_t id, FUNC const & fn);
+
+		/*
+		 * Acknowledge requests from sessions without device
+		 */
+		void handle_empty_sessions();
 };
 
 
@@ -245,6 +255,22 @@ void genode_usb_session::notify()
 {
 	Signal_transmitter state_changed { _sigh_state_cap };
 	state_changed.submit();
+}
+
+
+void genode_usb_session::flush_packet_stream()
+{
+	/* ack packets in flight */
+	for (unsigned idx = 0; idx < MAX_PACKETS_IN_FLY; idx++) {
+		if (!packets[idx].constructed())
+			continue;
+		_ack(Usb::Packet_descriptor::NO_DEVICE_ERROR, *packets[idx]);
+		packets[idx].destruct();
+	}
+
+	/* ack all packets in request stream */
+	while (sink()->packet_avail() && sink()->ack_slots_free())
+		_ack(Usb::Packet_descriptor::NO_DEVICE_ERROR, sink()->get_packet());
 }
 
 
@@ -634,8 +660,10 @@ void ::Root::discontinue_device(genode_usb_bus_num_t bus,
 		    _devices[idx]->dev != dev)
 			continue;
 
-		if (_devices[idx]->usb_session)
+		if (_devices[idx]->usb_session) {
 			_devices[idx]->usb_session->notify();
+			_devices[idx]->usb_session->flush_packet_stream();
+		}
 
 		_devices[idx].destruct();
 		_report();
@@ -679,6 +707,18 @@ bool ::Root::device_associated(genode_usb_session   * session,
 		}
 	});
 	return ret;
+}
+
+
+void ::Root::handle_empty_sessions()
+{
+	_for_each_session([&] (genode_usb_session & s) {
+		bool associated = false;
+		_for_each_device([&] (Device & d) {
+			if (d.usb_session == &s) associated = true; });
+		if (!associated)
+			s.flush_packet_stream();
+	});
 }
 
 
@@ -766,3 +806,12 @@ extern "C" void genode_usb_ack_request(genode_usb_session_handle_t session_id,
 
 
 extern "C" void genode_usb_notify_peers() { }
+
+
+extern "C" void genode_usb_handle_empty_sessions()
+{
+	if (!_usb_root)
+		return;
+
+	_usb_root->handle_empty_sessions();
+}

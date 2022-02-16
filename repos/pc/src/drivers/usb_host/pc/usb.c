@@ -473,6 +473,7 @@ static int usb_poll_sessions(void * data)
 		usb_for_each_dev(&work_done, poll_usb_device);
 		if (work_done)
 			continue;
+		genode_usb_handle_empty_sessions();
 		lx_emul_task_schedule(true);
 	}
 
