@@ -66,6 +66,7 @@ export LIB_DEP_FILE     ?= var/libdeps
 export ECHO             ?= echo -e
 export CONTRIB_DIR
 export BOARD
+export KERNEL
 
 #
 # Convert user-defined directories to absolute directories
