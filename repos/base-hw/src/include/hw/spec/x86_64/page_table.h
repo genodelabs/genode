@@ -680,7 +680,7 @@ class Hw::Pml4_table
 			_range_op(vo, 0, size, Remove_func(alloc));
 		}
 
-		bool lookup_translation(addr_t const, addr_t &, Allocator &)
+		bool lookup_rw_translation(addr_t const, addr_t &, Allocator &)
 		{
 			Genode::raw(__func__, " not implemented yet");
 			return false;

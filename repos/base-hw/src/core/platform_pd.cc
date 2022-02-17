@@ -70,14 +70,14 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 }
 
 
-bool Hw::Address_space::lookup_translation(addr_t const virt, addr_t & phys)
+bool Hw::Address_space::lookup_rw_translation(addr_t const virt, addr_t & phys)
 {
 	/** FIXME: for the time-being we use it without lock,
 	 * because it is used directly by the kernel when cache_coherent_region
 	 * gets called. In future it would be better that core provides an API
 	 * for it, and does the lookup with the hold lock
 	 */
-	return _tt.lookup_translation(virt, phys, _tt_alloc);
+	return _tt.lookup_rw_translation(virt, phys, _tt_alloc);
 }
 
 
