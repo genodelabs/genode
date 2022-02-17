@@ -124,6 +124,8 @@ class Genode::Trace::Buffer
 
 			public:
 
+				Entry() : _entry(0) { };
+
 				size_t      length() const { return _entry->len; }
 				char const *data()   const { return _entry->data; }
 

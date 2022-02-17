@@ -76,8 +76,10 @@ class Trace_buffer
 			/* iterate over all entries that were not processed yet */
 			for (; wrapped || !entry.last(); entry = _buffer.next(entry)) {
 				/* if buffer wrapped, we pass the last entry once and continue at first entry */
+				bool applied_wrap = false;
 				if (wrapped && entry.last()) {
 					wrapped = false;
+					applied_wrap = true;
 					entry = _buffer.first();
 					if (entry.last()) {
 						new_curr = entry;
@@ -89,8 +91,11 @@ class Trace_buffer
 					continue;
 				}
 
-				if (!functor(entry))
+				if (!functor(entry)) {
+					if (applied_wrap)
+						new_curr = Trace::Buffer::Entry();
 					break;
+				}
 
 				new_curr = entry;
 			}
