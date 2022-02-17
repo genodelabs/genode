@@ -19,7 +19,6 @@
 
 /* base includes */
 #include <util/register.h>
-#include <kernel/interface_support.h>
 #include <cpu/cpu_state.h>
 
 /* base-hw internal includes */

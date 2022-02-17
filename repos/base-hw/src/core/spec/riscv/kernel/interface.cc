@@ -82,7 +82,7 @@ extern Genode::addr_t _kernel_entry;
  ** Kernel calls **
  ******************/
 
-Call_ret Kernel::call64(Call_arg arg_0)
+Call_ret_64 Kernel::call64(Call_arg arg_0)
 {
 	CALL_1_FILL_ARG_REGS
 	asm volatile(CALL_1_SWI : "ra");
