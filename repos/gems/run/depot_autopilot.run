@@ -720,6 +720,7 @@ set default_test_pkgs {
 	test-tls
 	test-token
 	test-trace
+	test-trace_buffer
 	test-trace_logger
 	test-utf8
 	test-vfs_block
