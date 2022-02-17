@@ -132,15 +132,6 @@ Session_component::acquire_device(Platform::Session::Device_name const &name)
 {
 	Capability<Platform::Device_interface> cap;
 
-	/* Search for existing, aquired device session */
-	_device_registry.for_each([&] (Device_component & dc) {
-		if (dc.device() == name)
-			cap = dc.cap();
-	});
-
-	if (cap.valid())
-		return cap;
-
 	_devices.for_each([&] (Device & dev)
 	{
 		if (dev.name() != name || !matches(dev))
@@ -159,13 +150,6 @@ Genode::Capability<Platform::Device_interface>
 Session_component::acquire_single_device()
 {
 	Capability<Platform::Device_interface> cap;
-
-	/* Search for existing, aquired device session */
-	_device_registry.for_each([&] (Device_component & dc) {
-		cap = dc.cap(); });
-
-	if (cap.valid())
-		return cap;
 
 	_devices.for_each([&] (Device & dev) {
 		if (matches(dev) && !dev.owner().valid())
