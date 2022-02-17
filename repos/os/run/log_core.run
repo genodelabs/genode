@@ -45,7 +45,7 @@ append config {
 
 	<start name="file_terminal">
 		<binary name="file_terminal"/>
-		<resource name="RAM" quantum="2096K"/>
+		<resource name="RAM" quantum="3M"/>
 		<provides> <service name="Terminal"/> </provides>
 		<config>
 			<default-policy filename="log" />
