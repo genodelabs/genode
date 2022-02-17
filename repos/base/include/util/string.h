@@ -513,15 +513,6 @@ namespace Genode {
 
 
 	/**
-	 * Check for end of quotation
-	 *
-	 * Checks if next character is non-backslashed quotation mark.
-	 */
-	inline bool end_of_quote(const char *s) {
-		return s[0] != '\\' && s[1] == '\"'; }
-
-
-	/**
 	 * Unpack quoted string
 	 *
 	 * \param src   source string including the quotation marks ("...")
@@ -536,6 +527,9 @@ namespace Genode {
 			return ~0UL;
 
 		src++;
+
+		auto end_of_quote = [] (const char *s) {
+			return s[0] != '\\' && s[1] == '\"'; };
 
 		size_t i = 0;
 		for (; *src && !end_of_quote(src - 1) && (i < dst_len - 1); i++) {

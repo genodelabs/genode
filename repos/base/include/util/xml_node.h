@@ -35,13 +35,17 @@ class Genode::Xml_attribute
 {
 	private:
 
-		/**
-		 * Scanner policy that accepts hyphens in identifiers
-		 */
-		struct Scanner_policy_xml_identifier {
-			static bool identifier_char(char c, unsigned i) {
+		struct Scanner_policy_xml_identifier
+		{
+			static bool identifier_char(char c, unsigned i)
+			{
+				/* accepts hyphens in identifiers */
 				return is_letter(c) || c == '_' || c == ':'
-				    || (i && (c == '-' || c == '.' || is_digit(c))); } };
+				    || (i && (c == '-' || c == '.' || is_digit(c)));
+			}
+
+			static bool end_of_quote(const char *s) { return s[1] == '\"'; }
+		};
 
 		/**
 		 * Define tokenizer that matches XML tags (with hyphens) as identifiers

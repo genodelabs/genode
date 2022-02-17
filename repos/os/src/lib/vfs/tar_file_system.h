@@ -287,14 +287,6 @@ class Vfs::Tar_file_system : public File_system
 		}
 	};
 
-	struct Scanner_policy_path_element
-	{
-		static bool identifier_char(char c, unsigned /* i */)
-		{
-			return (c != '/') && (c != 0);
-		}
-	};
-
 
 	typedef Genode::Token<Scanner_policy_path_element> Path_element_token;
 

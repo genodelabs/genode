@@ -72,17 +72,7 @@ void Libc::Kernel::reset_malloc_heap()
 
 void Libc::Kernel::_init_file_descriptors()
 {
-	/**
-	 * path element token
-	 */
-	struct Scanner_policy_path_element
-	{
-		static bool identifier_char(char c, unsigned /* i */)
-		{
-			return (c != '/') && (c != 0);
-		}
-	};
-	typedef Genode::Token<Scanner_policy_path_element> Path_element_token;
+	typedef Genode::Token<Vfs::Scanner_policy_path_element> Path_element_token;
 
 	auto resolve_symlinks = [&] (Absolute_path next_iteration_working_path, Absolute_path &resolved_path)
 	{

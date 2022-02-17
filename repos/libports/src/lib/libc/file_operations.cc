@@ -96,19 +96,8 @@ static Absolute_path &cwd()
 	return _cwd_ptr->cwd();
 }
 
-/**
- * path element token
- */
 
-struct Scanner_policy_path_element
-{
-	static bool identifier_char(char c, unsigned /* i */)
-	{
-		return (c != '/') && (c != 0);
-	}
-};
-
-typedef Token<Scanner_policy_path_element> Path_element_token;
+typedef Token<Vfs::Scanner_policy_path_element> Path_element_token;
 
 
 /**

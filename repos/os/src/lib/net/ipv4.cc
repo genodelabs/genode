@@ -94,6 +94,9 @@ struct Scanner_policy_number
 {
 	static bool identifier_char(char c, unsigned) {
 		return Genode::is_digit(c) && c !='.'; }
+
+	static bool end_of_quote(const char *s) {
+		return s[0] != '\\' && s[1] == '\"'; }
 };
 
 

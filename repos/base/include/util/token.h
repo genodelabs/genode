@@ -40,6 +40,19 @@ struct Genode::Scanner_policy_identifier_with_underline
 	 */
 	static bool identifier_char(char c, unsigned i) {
 		return is_letter(c) || (c == '_') || (i && is_digit(c)); }
+
+	/**
+	 * Check for end of quotation
+	 *
+	 * Checks if next character is non-backslashed quotation mark.
+	 * The end of a quoted string is reached when encountering a '"'
+	 * character that is not preceded by a backslash.
+	 *
+	 * \param s  pointer to null-terminated string with at least one
+	 *           character
+	 */
+	static bool end_of_quote(const char *s) {
+		return s[0] != '\\' && s[1] == '\"'; }
 };
 
 
@@ -184,7 +197,7 @@ class Genode::Token
 			 * Hence, the upper bound of the index is max_len - 2.
 			 */
 			unsigned i = 0;
-			for (; i + 1 < max_len && !end_of_quote(&_start[i]); i++)
+			for (; i + 1 < max_len && !SCANNER_POLICY::end_of_quote(&_start[i]); i++)
 
 				/* string ends without final quotation mark? too bad! */
 				if (!_start[i]) return 0;

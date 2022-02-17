@@ -148,6 +148,10 @@ static const char *xml_test_comments =
 	"<visible-tag/>"
 	"</config>";
 
+/* backslash in attribute */
+static const char *xml_test_backslash =
+	"<config attr=\"\\\"/>";
+
 
 /******************
  ** Test program **
@@ -404,6 +408,12 @@ void Component::construct(Genode::Env &env)
 
 	log("-- Test parsing XML with comments --");
 	log_xml_info(xml_test_comments);
+
+	log("-- Test backslash as attribute value --");
+	{
+		Xml_node const node(xml_test_backslash);
+		log("attribute value: '", node.attribute_value("attr", String<10>()), "'\n");
+	}
 
 	log("-- Test exporting decoded content from XML node --");
 	test_decoded_content<~0UL>(env, 1, xml_test_comments, 8, 119);

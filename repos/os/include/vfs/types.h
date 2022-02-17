@@ -91,6 +91,19 @@ namespace Vfs {
 	};
 
 	typedef Genode::Path<MAX_PATH_LEN> Absolute_path;
+
+	struct Scanner_policy_path_element
+	{
+		static bool identifier_char(char c, unsigned /* i */)
+		{
+			return (c != '/') && (c != 0);
+		}
+
+		static bool end_of_quote(const char *s)
+		{
+			return s[0] != '\\' && s[1] == '\"';
+		}
+	};
 }
 
 #endif /* _INCLUDE__VFS__TYPES_H_ */
