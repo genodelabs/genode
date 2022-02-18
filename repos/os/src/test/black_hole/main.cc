@@ -47,28 +47,30 @@ class Test::Main
 		};
 
 		Env                               &_env;
-		Heap                               _heap                { _env.ram(), _env.rm() };
-		Event::Connection                  _event               { _env };
-		Capture::Connection                _capture             { _env };
-		Capture::Area                      _capture_screen_size { 1, 1 };
+		Heap                               _heap                    { _env.ram(), _env.rm() };
+		Event::Connection                  _event                   { _env };
+		Capture::Connection                _capture                 { _env };
+		Capture::Area                      _capture_screen_size     { 1, 1 };
 		Capture::Pixel                     _capture_pixels[1];
-		Surface<Capture::Pixel>            _capture_surface     { _capture_pixels, _capture_screen_size };
-		Capture::Connection::Screen        _capture_screen      { _capture, _env.rm(), _capture_screen_size };
-		Audio_in::Connection               _audio_in            { _env, "left" };
-		Audio_out::Connection              _audio_out           { _env, "left" };
-		Allocator_avl                      _nic_tx_blk_alloc    { &_heap };
-		Nic::Connection                    _nic                 { _env, &_nic_tx_blk_alloc, NIC_BUF_SIZE, NIC_BUF_SIZE };
-		Signal_handler<Main>               _nic_handler         { _env.ep(), *this, &Main::_handle_nic };
-		unsigned long                      _nic_pkt_count       { 0 };
-		Allocator_avl                      _uplink_tx_blk_alloc { &_heap };
-		Constructible<Uplink::Connection>  _uplink              { };
-		Signal_handler<Main>               _uplink_handler      { _env.ep(), *this, &Main::_handle_uplink };
-		unsigned long                      _uplink_pkt_count    { 0 };
+		Surface<Capture::Pixel>            _capture_surface         { _capture_pixels, _capture_screen_size };
+		Capture::Connection::Screen        _capture_screen          { _capture, _env.rm(), _capture_screen_size };
+		Audio_in::Connection               _audio_in                { _env, "left" };
+		Audio_out::Connection              _audio_out               { _env, "left" };
+		Allocator_avl                      _nic_tx_blk_alloc        { &_heap };
+		Nic::Connection                    _nic                     { _env, &_nic_tx_blk_alloc, NIC_BUF_SIZE, NIC_BUF_SIZE };
+		Signal_handler<Main>               _nic_handler             { _env.ep(), *this, &Main::_handle_nic };
+		unsigned long                      _nic_nr_of_sent_pkts     { 0 };
+		unsigned long                      _nic_nr_of_acked_pkts    { 0 };
+		Allocator_avl                      _uplink_tx_blk_alloc     { &_heap };
+		Constructible<Uplink::Connection>  _uplink                  { };
+		Signal_handler<Main>               _uplink_handler          { _env.ep(), *this, &Main::_handle_uplink };
+		unsigned long                      _uplink_nr_of_sent_pkts  { 0 };
+		unsigned long                      _uplink_nr_of_acked_pkts { 0 };
 
 		void _check_if_test_has_finished()
 		{
-			if (_nic_pkt_count    > 100 &&
-			    _uplink_pkt_count > 100) {
+			if (_nic_nr_of_acked_pkts    > 100 &&
+			    _uplink_nr_of_acked_pkts > 100) {
 
 				log("Finished");
 			}
@@ -108,7 +110,8 @@ class Test::Main
 					throw Uplink_packet_size_unexpected { };
 				}
 				_uplink->tx()->release_packet(pkt);
-				_uplink_pkt_count++;
+				_uplink_nr_of_sent_pkts--;
+				_uplink_nr_of_acked_pkts++;
 			}
 			_submit_uplink_pkts();
 			_check_if_test_has_finished();
@@ -116,11 +119,8 @@ class Test::Main
 
 		void _submit_uplink_pkts()
 		{
-			for (unsigned idx { 0 }; idx < 40; idx++) {
+			for (; _uplink_nr_of_sent_pkts < 40; _uplink_nr_of_sent_pkts++) {
 
-				if (idx == 10) {
-					_reconstruct_uplink();
-				}
 				if (!_uplink->tx()->ready_to_submit()) {
 					class Uplink_submit_queue_full { };
 					throw Uplink_submit_queue_full { };
@@ -153,7 +153,8 @@ class Test::Main
 					throw Nic_packet_size_unexpected { };
 				}
 				_nic.tx()->release_packet(pkt);
-				_nic_pkt_count++;
+				_nic_nr_of_sent_pkts--;
+				_nic_nr_of_acked_pkts++;
 			}
 			_submit_nic_pkts();
 			_check_if_test_has_finished();
@@ -161,7 +162,7 @@ class Test::Main
 
 		void _submit_nic_pkts()
 		{
-			for (unsigned idx { 0 }; idx < 40; idx++) {
+			for (; _nic_nr_of_sent_pkts < 40; _nic_nr_of_sent_pkts++) {
 
 				if (!_nic.tx()->ready_to_submit()) {
 					class Nic_submit_queue_full { };
