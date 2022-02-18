@@ -93,7 +93,11 @@ class Genode::Trace::Buffer
 			if (len == 0)
 				return;
 
-			_head_entry()->len = len;
+			/**
+			 * remember current length field so that we can write it after we set
+			 * the new head
+			 */
+			size_t *old_head_len = &_head_entry()->len;
 
 			/* advance head offset, wrap when reaching buffer boundary */
 			_head_offset += sizeof(_Entry) + len;
@@ -103,6 +107,8 @@ class Genode::Trace::Buffer
 			/* mark entry next to new entry with len 0 */
 			else if (_head_offset + sizeof(_Entry) <= _size)
 				_head_entry()->len = 0;
+
+			*old_head_len = len;
 		}
 
 		size_t wrapped() const { return _wrapped; }
