@@ -27,7 +27,7 @@ class Trace_buffer
 
 		Genode::Trace::Buffer        &_buffer;
 		Genode::Trace::Buffer::Entry  _curr          { _buffer.first() };
-		unsigned                      _wrapped_count { 0 };
+		unsigned long long            _lost_count { 0 };
 
 	public:
 
@@ -41,14 +41,11 @@ class Trace_buffer
 		{
 			using namespace Genode;
 
-			bool wrapped = _buffer.wrapped() != _wrapped_count;
-			if (wrapped) {
-				if ((_buffer.wrapped() - 1) != _wrapped_count) {
-					warning("buffer wrapped multiple times; you might want to raise buffer size; curr_count=",
-					        _buffer.wrapped(), " last_count=", _wrapped_count);
-					_curr = _buffer.first();
-				}
-				_wrapped_count = (unsigned)_buffer.wrapped();
+			bool lost = _buffer.lost_entries() != _lost_count;
+			if (lost) {
+				warning("lost ", _buffer.lost_entries() - _lost_count,
+				        ", entries; you might want to raise buffer size");
+				_lost_count = (unsigned)_buffer.lost_entries();
 			}
 
 			Trace::Buffer::Entry entry    { _curr };

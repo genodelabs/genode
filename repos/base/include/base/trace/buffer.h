@@ -64,8 +64,6 @@
  * case, however, occurs when the tail pointer resides at the very beginning
  * of the buffer. In this case, newly produced entries must be dropped.
  *
- * XXX: What follows is only a sketch of ideas that have not been implemented.
- *
  * Another approach is to split the buffer into two equal
  * partitions. The foreground partition is the one currently written so that
  * the background partition can be read without memory corruption. When the
@@ -79,13 +77,14 @@
  * overwrites the very first entry. This way the consumer is able to detect if
  * it lost some events.
  *
- * XXX
  * The consumer is also able to lock the foreground partition so that it does
  * not need to wait for the producer to fill it and switch partitions. Yet,
  * it must never lock both partitions as this would stall the producer. We
  * ensure this making the unlock-background-lock-foreground operation atomic.
  * In case the consumer crashed when a lock is held, the producer is still able
- * to use half of the buffer.
+ * to use half of the buffer. Care must be taken, however, to eliminate a race
+ * between the producer wrapping and the consumer switching to the foreground
+ * buffer.
  */
 
 /*
@@ -100,21 +99,29 @@
 
 #include <base/stdint.h>
 #include <cpu_session/cpu_session.h>
+#include <util/register.h>
 
-namespace Genode { namespace Trace { class Buffer; } }
+namespace Genode::Trace {
+	class Simple_buffer;
+
+	class Partitioned_buffer;
+
+	using Buffer = Partitioned_buffer;
+}
 
 
 /**
  * Buffer shared between CPU client thread and TRACE client
  */
-class Genode::Trace::Buffer
+class Genode::Trace::Simple_buffer
 {
 	private:
 
-		unsigned volatile _wrapped;      /* count of buffer wraps */
+		friend class Partitioned_buffer;
 
 		size_t            _head_offset;  /* in bytes, relative to 'entries' */
 		size_t            _size;         /* in bytes */
+		unsigned volatile _num_entries;  /* number of entries currently in buffer */
 
 		struct _Entry
 		{
@@ -134,21 +141,63 @@ class Genode::Trace::Buffer
 
 		_Entry _entries[0];
 
+		/*
+		 * The 'entries' member marks the beginning of the trace buffer
+		 * entries. No other member variables must follow.
+		 */
+
 		_Entry *_head_entry() { return (_Entry *)((addr_t)_entries + _head_offset); }
 
 		void _buffer_wrapped()
 		{
+			if (_num_entries == 1)
+				error("trace buffer is dangerously small");
+
+			_num_entries = 0;
 			_head_offset = 0;
-			_wrapped++;
 
 			/* mark first entry as head */
 			_head_entry()->mark(_Entry::HEAD);
 		}
 
-		/*
-		 * The 'entries' member marks the beginning of the trace buffer
-		 * entries. No other member variables must follow.
-		 */
+		template <typename WRAP_FUNC>
+		char *_reserve(size_t len, WRAP_FUNC && wrap)
+		{
+			if (_head_offset + sizeof(_Entry) + len <= _size)
+				return _head_entry()->data;
+
+			/* mark unused space as padding */
+			if (_head_offset + sizeof(_Entry) <= _size)
+				_head_entry()->mark(_Entry::PADDING);
+
+			return wrap();
+		}
+
+		template <typename WRAP_FUNC>
+		void _commit(size_t len, WRAP_FUNC && wrap)
+		{
+			/* omit empty entries */
+			if (len == 0)
+				return;
+
+			/**
+			 * remember current length field so that we can write it after we set
+			 * the new head
+			 */
+			size_t *old_head_len = &_head_entry()->len;
+			_num_entries++;
+
+			/* advance head offset, wrap when next entry does not fit into buffer */
+			_head_offset += sizeof(_Entry) + len;
+			if (_head_offset + sizeof(_Entry) > _size)
+				wrap();
+
+			/* mark entry next to new entry as head */
+			else if (_head_offset + sizeof(_Entry) <= _size)
+				_head_entry()->mark(_Entry::HEAD);
+
+			*old_head_len = len;
+		}
 
 	public:
 
@@ -165,48 +214,23 @@ class Genode::Trace::Buffer
 
 			_size = size - header_size;
 
-			_wrapped = 0;
+			/* mark first entry as head */
+			_head_entry()->mark(_Entry::HEAD);
+
+			_num_entries = 0;
 		}
 
 		char *reserve(size_t len)
 		{
-			if (_head_offset + sizeof(_Entry) + len <= _size)
-				return _head_entry()->data;
-
-			/* mark unused space as padding */
-			if (_head_offset + sizeof(_Entry) <= _size)
-				_head_entry()->mark(_Entry::PADDING);
-
-			_buffer_wrapped();
-
-			return _head_entry()->data;
-		}
-
-		void commit(size_t len)
-		{
-			/* omit empty entries */
-			if (len == 0)
-				return;
-
-			/**
-			 * remember current length field so that we can write it after we set
-			 * the new head
-			 */
-			size_t *old_head_len = &_head_entry()->len;
-
-			/* advance head offset, wrap when next entry does not fit into buffer */
-			_head_offset += sizeof(_Entry) + len;
-			if (_head_offset + sizeof(_Entry) > _size)
+			return _reserve(len, [&] () -> char* {
 				_buffer_wrapped();
 
-			/* mark entry next to new entry as head */
-			else if (_head_offset + sizeof(_Entry) <= _size)
-				_head_entry()->mark(_Entry::HEAD);
-
-			*old_head_len = len;
+				return _head_entry()->data;
+			});
 		}
 
-		size_t wrapped() const { return _wrapped; }
+		void commit(size_t len) {
+			return _commit(len, [&] () { _buffer_wrapped(); }); }
 
 
 		/********************************************
@@ -218,7 +242,7 @@ class Genode::Trace::Buffer
 			private:
 				_Entry const *_entry;
 
-				friend class Buffer;
+				friend class Simple_buffer;
 
 				Entry(_Entry const *entry) : _entry(entry) { }
 
@@ -264,6 +288,121 @@ class Genode::Trace::Buffer
 				return Entry(0);
 
 			return Entry((_Entry const *)((addr_t)entry.data() + entry.length()));
+		}
+};
+
+
+class Genode::Trace::Partitioned_buffer
+{
+	public:
+		using Entry = Simple_buffer::Entry;
+
+	private:
+		enum { PRIMARY = 0, SECONDARY = 1 };
+
+		/* place consumer and producer state into single word to make switches atomic */
+		struct State : Register<32>
+		{
+			struct Producer : Bitfield<0, 1> { };
+			struct Consumer : Bitfield<16,1> { };
+
+			static int toggle_consumer(int old) {
+				return Producer::masked(old) | Consumer::bits(~Consumer::get(old)); }
+
+			static int toggle_producer(int old) {
+				return Consumer::masked(old) | Producer::bits(~Producer::get(old)); }
+		};
+
+		/************
+		 ** Member **
+		 ************/
+
+		unsigned long long volatile _lost_entries;
+		unsigned           volatile _wrapped;
+		int                volatile _state;
+		int                volatile _consumer_lock;
+
+		size_t         _secondary_offset;
+		Simple_buffer  _primary[0];
+
+		/*
+		 * The '_primary' member marks the beginning of the trace buffers.
+		 * No other member variables must follow.
+		 */
+
+		Simple_buffer *_secondary() const {
+			return reinterpret_cast<Simple_buffer*>((addr_t)_primary + _secondary_offset); }
+
+		Simple_buffer &_producer()
+		{
+			if (State::Producer::get(_state) == PRIMARY)
+				return *_primary;
+
+			return *_secondary();
+		}
+
+		Simple_buffer const &_consumer() const
+		{
+			if (State::Consumer::get(_state) == PRIMARY)
+				return *_primary;
+
+			return *_secondary();
+		}
+
+		/**
+		 * Switch consumer's partition
+		 *
+		 * The consumer can always switch but must wait for the producer if the
+		 * latter is currently switching into the same partition.
+		 */
+		Simple_buffer const &_switch_consumer();
+
+		/**
+		 * Switch producer's partition
+		 *
+		 * The producer switches partitions only if the consumer is currently
+		 * in the same partition. Otherwise, it wraps and discards all entries
+		 * in the current partition.
+		 */
+		Simple_buffer &_switch_producer();
+
+	public:
+
+		/******************************************
+		 ** Functions called from the CPU client **
+		 ******************************************/
+
+		void init(size_t len);
+
+		char *reserve(size_t len);
+
+		void commit(size_t len);
+
+		/********************************************
+		 ** Functions called from the TRACE client **
+		 ********************************************/
+
+		unsigned wrapped() { return _wrapped; }
+
+		unsigned long long lost_entries() { return _lost_entries; }
+
+		Entry first() const { return _consumer().first(); }
+
+		/**
+		 * Return the entry that follows the given entry.
+		 * Automatically switches between the partitions if the end of the buffer
+		 * was reached. Stops at the head of the buffer.
+		 *
+		 * The reader must check before on a valid entry whether it is the head
+		 * of the buffer (not yet written).
+		 */
+		Entry next(Entry entry)
+		{
+			Entry e = _consumer().next(entry);
+			if (e.last())
+				return _switch_consumer().first();
+
+			return e;
 		}
 };
 

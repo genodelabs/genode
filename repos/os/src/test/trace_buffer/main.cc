@@ -51,9 +51,9 @@ struct Generator1
 	{
 		Entry const &current { *reinterpret_cast<const Entry*>(entry.data()) };
 		if (current.value != _next_value) {
-			if (print_error) {
+			if (print_error || current.value < _next_value)
 				error("expected entry: ", _next_value, ", but got: ", current);
-			}
+
 			return false;
 		}
 
@@ -61,10 +61,13 @@ struct Generator1
 		return true;
 	}
 
-	void value(Trace::Buffer::Entry const &entry) {
-		_next_value = reinterpret_cast<const Entry*>(entry.data())->value; }
-
 	void print(Output &out) const { Genode::print(out, "constant entry size"); }
+
+	void skip_lost(unsigned long long count)
+	{
+		for (; count; count--)
+			_next_value++;
+	}
 };
 
 
@@ -75,7 +78,7 @@ struct Generator2
 {
 	unsigned char  _next_value  { 1 };
 	size_t         _next_length { 10 };
-	size_t   const _max_length  { 200 };
+	size_t   const _max_length  { 60 };
 
 	struct Entry {
 		unsigned char value[0] { };
@@ -91,6 +94,8 @@ struct Generator2
 	{
 		_next_value++;
 		_next_length = (_next_length + 10) % (_max_length+1);
+		if (_next_length == 0)
+			_next_length = 10;
 	}
 
 	size_t generate(char *dst)
@@ -106,7 +111,7 @@ struct Generator2
 	{
 		Entry const &current { *reinterpret_cast<const Entry*>(entry.data()) };
 		if (current.value[0] != _next_value) {
-			if (print_error) {
+			if (print_error || current.value[0] < _next_value) {
 				error("expected entry: ", _next_value, ", but got: ", current);
 			}
 			return false;
@@ -131,10 +136,10 @@ struct Generator2
 		return true;
 	}
 
-	void value(Trace::Buffer::Entry const &entry)
+	void skip_lost(unsigned long long count)
 	{
-		_next_value  = reinterpret_cast<const Entry*>(entry.data())->value[0];
-		_next_length = entry.length();
+		for (; count; count--)
+			_next();
 	}
 
 	void print(Output &out) const { Genode::print(out, "variable entry size"); }
@@ -181,65 +186,85 @@ template <typename T>
 struct Trace_buffer_monitor
 {
 	Env               &env;
+	Trace::Buffer     &raw_buffer;
 	Trace_buffer       buffer;
 	unsigned           delay;
-	Timer::Connection  timer     { env };
-	T                  generator { };
+	unsigned long long lost_count     { 0 };
+	unsigned long long received_count { 0 };
+	Timer::Connection  timer          { env };
+	T                  generator      { };
 
 	struct Failed : Genode::Exception { };
 
 	Trace_buffer_monitor(Env &env, Trace::Buffer &buffer, unsigned delay)
 	: env(env),
-	  buffer(buffer),
+	  raw_buffer(buffer),
+	  buffer(raw_buffer),
 	  delay(delay)
 	{ }
 
-	void test_ok()
+	unsigned long long lost_entries()
 	{
-		bool done = false;
-
-		while (!done) {
-			buffer.for_each_new_entry([&] (Trace::Buffer::Entry &entry) {
-				if (!entry.length() || !entry.data() || entry.length() > generator.max_len()) {
-					error("Got invalid entry from for_each_new_entry()");
-					throw Failed();
-				}
-
-				if (!generator.validate(entry))
-					throw Failed();
-
-				done = true;
-
-				if (delay)
-					timer.usleep(delay);
-
-				return true;
-			});
+		if (lost_count != raw_buffer.lost_entries()) {
+			unsigned long long current_lost = raw_buffer.lost_entries() - lost_count;
+			lost_count += current_lost;
+			return current_lost;
 		}
+
+		return 0;
 	}
 
-	void test_lost()
-	{
-		/* read a single entry (which has unexpected value) and stop */
-		bool recalibrated = false;
+	unsigned long long consumed() { return received_count; }
 
-		while (!recalibrated) {
-			buffer.for_each_new_entry([&] (Trace::Buffer::Entry &entry) {
-				if (!entry.length() || !entry.data() || entry.length() > generator.max_len()) {
-					error("Got invalid entry from for_each_new_entry()");
+	bool _try_read(bool const lossy, unsigned long long &lost)
+	{
+		bool consumed = false;
+		buffer.for_each_new_entry([&] (Trace::Buffer::Entry &entry) {
+			if (!entry.length() || !entry.data() || entry.length() > generator.max_len()) {
+				error("Got invalid entry from for_each_new_entry()");
+				throw Failed();
+			}
+
+			consumed = true;
+
+			if (!generator.validate(entry, !lossy)) {
+				if (!lossy) throw Failed();
+
+				lost = lost_entries();
+				if (!lost) {
+					error("Lost entries unexpectedly.");
 					throw Failed();
 				}
 
-				if (generator.validate(entry, false))
-					throw Failed();
+				generator.skip_lost(lost);
 
-				/* reset generator value */
-				generator.value(entry);
-				recalibrated = true;
-
+				/* abort for_each, otherwise we'd never catch up with a faster producer */
 				return false;
-			});
-		}
+			}
+
+			received_count++;
+
+			if (delay)
+				timer.usleep(delay);
+
+			return true;
+		});
+
+		return consumed;
+	}
+
+	void consume(bool lossy)
+	{
+		unsigned long long lost { 0 };
+
+		while (!_try_read(lossy, lost));
+	}
+
+	void recalibrate()
+	{
+		unsigned long long lost { 0 };
+
+		while (!_try_read(true, lost) || !lost);
 	}
 };
 
@@ -248,13 +273,15 @@ template <typename T>
 class Test_tracing
 {
 	private:
+		using Monitor = Constructible<Trace_buffer_monitor<T>>;
+
 		size_t                   _trace_buffer_sz;
 		Attached_ram_dataspace   _buffer_ds;
 		Trace::Buffer           *_buffer       { _buffer_ds.local_addr<Trace::Buffer>() };
 		unsigned long long      *_canary       { (unsigned long long*)(_buffer_ds.local_addr<char>()
 		                                                               + _trace_buffer_sz) };
 		Test_thread<T>           _thread;
-		Trace_buffer_monitor<T>  _test_monitor;
+		Monitor                  _test_monitor { };
 
 		/*
 		 * Noncopyable
@@ -270,9 +297,11 @@ class Test_tracing
 		Test_tracing(Env &env, size_t buffer_sz, unsigned producer_delay, unsigned consumer_delay)
 		: _trace_buffer_sz   (buffer_sz),
 		  _buffer_ds   (env.ram(), env.rm(), _trace_buffer_sz + sizeof(_canary)),
-		  _thread      (env, *_buffer, producer_delay),
-		  _test_monitor(env, *_buffer, consumer_delay)
+		  _thread      (env, *_buffer, producer_delay)
 		{
+			/* determine whether lost entries are interpreted as error */
+			bool const lossy = consumer_delay >= producer_delay;
+
 			/**
 			 * The canary is placed right after the trace buffer. This allows us
 			 * to detect buffer overflows. By filling the canary with a bogus
@@ -281,32 +310,40 @@ class Test_tracing
 			*_canary = ~0ULL;
 			_buffer->init(_trace_buffer_sz);
 
-			log("running ", _test_monitor.generator, " test");
 			_thread.start();
+			_test_monitor.construct(env, *_buffer, consumer_delay);
+			log("running ", _test_monitor->generator, " test");
 
-			/* read until buffer wrapped once */
-			while (_buffer->wrapped() < 1)
-				_test_monitor.test_ok();
+			/* read until buffer wrapped a few times and we read 100 entries */
+			while (_buffer->wrapped() < 2 ||
+			       _test_monitor->consumed() < 50) {
+				_test_monitor->consume(lossy);
+			}
 
-			/* make sure to continue reading after buffer wrapped */
-			_test_monitor.test_ok();
+			/* sanity check if test configuration triggers overwriting during read */
+			if (lossy && !_buffer->lost_entries())
+				warning("Haven't lost any buffer entry during lossy test.");
 
-			/* wait for buffer to wrap twice */
-			size_t const wrapped = _buffer->wrapped();
-			while (_buffer->wrapped() < wrapped + 2);
+			/* intentionally induce overwriting  */
+			if (!lossy) {
+				/* wait for buffer overwriting unconsumed entries */
+				while (!_buffer->lost_entries());
 
-			/* read an unexpected value */
-			_test_monitor.test_lost();
+				/* read expecting lost entries*/
+				_test_monitor->recalibrate();
 
-			/* read some more expected entries */
-			_test_monitor.test_ok();
+				/* read some more expected entries */
+				_test_monitor->consume(false);
+			}
 
 			if (*_canary != ~0ULL) {
 				error("Buffer overflow, canary was overwritten with ", Hex(*_canary));
 				throw Overflow();
 			}
 
-			log(_test_monitor.generator, " test succeeded\n");
+			log(_test_monitor->generator, " test succeeded (",
+			      "read: ", _test_monitor->consumed(),
+			    ", lost: ", _buffer->lost_entries(), ")\n");
 		}
 };
 
@@ -320,19 +357,17 @@ struct Main
 	{
 		/* determine buffer size so that Generator1 entries fit perfectly */
 		enum { ENTRY_SIZE = sizeof(Trace::Buffer::Entry) + sizeof(Generator1::Entry) };
-		enum { BUFFER_SIZE = 32 * ENTRY_SIZE + sizeof(Trace::Buffer) };
+		enum { BUFFER_SIZE = 32 * ENTRY_SIZE + 2*sizeof(Trace::Buffer) };
 
 		/* consume as fast as possible */
 		test_1.construct(env, BUFFER_SIZE, 10000, 0);
 		test_1.destruct();
 
-		/* leave a word-sized padding at the end */
-		test_1.construct(env, BUFFER_SIZE+4, 10000, 0);
+		/* leave a word-sized padding at the end and make consumer slower than producer */
+		test_1.construct(env, BUFFER_SIZE+4, 5000, 10000);
 		test_1.destruct();
 
-		/* XXX also test with slower consumer than producer */
-
-		/* variable-size test */
+		/* variable-size test with fast consumer*/
 		test_2.construct(env, BUFFER_SIZE, 10000, 0);
 		test_2.destruct();
 
