@@ -70,6 +70,19 @@ extern "C" struct task_struct * lx_emul_task_get(int pid)
 }
 
 
+extern "C" int lx_emul_task_pid(struct task_struct * t)
+{
+	int ret = -1;
+
+	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task & task) {
+		if (t == task.lx_task())
+			ret = task.pid();
+	});
+
+	return ret;
+}
+
+
 extern "C" void lx_emul_task_name(struct task_struct * t, const char * name)
 {
 	Lx_kit::env().scheduler.task((void*)t).name(name);

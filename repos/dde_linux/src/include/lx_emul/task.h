@@ -26,6 +26,8 @@ struct task_struct * lx_emul_task_get_current(void);
 
 struct task_struct * lx_emul_task_get(int pid);
 
+int  lx_emul_task_pid(struct task_struct *task);
+
 void lx_emul_task_create(struct task_struct * task,
                          const char * name,
                          int pid,
