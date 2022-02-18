@@ -99,9 +99,9 @@ class Genode::Trace::Buffer
 			 */
 			size_t *old_head_len = &_head_entry()->len;
 
-			/* advance head offset, wrap when reaching buffer boundary */
+			/* advance head offset, wrap when next entry does not fit into buffer */
 			_head_offset += sizeof(_Entry) + len;
-			if (_head_offset == _size)
+			if (_head_offset + sizeof(_Entry) > _size)
 				_buffer_wrapped();
 
 			/* mark entry next to new entry with len 0 */
