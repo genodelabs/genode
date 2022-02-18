@@ -46,7 +46,8 @@ class Event_filter::Touch_click_source : public Source, Source::Filter
 			Input::Event ev = event;
 
 			/* forward original event */
-			destination.submit(ev);
+			if (!ev.touch_release())
+				destination.submit(ev);
 
 			/* supplement mouse click and absolute motion */
 			ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
@@ -74,6 +75,10 @@ class Event_filter::Touch_click_source : public Source, Source::Filter
 					_pressed = false;
 				}
 			});
+
+			/* forward original event */
+			if (ev.touch_release())
+				destination.submit(ev);
 		}
 
 	public:
