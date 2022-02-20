@@ -168,7 +168,7 @@ class Black_hole_test::Uplink_test
 
 		void _submit_pkts()
 		{
-			for (; _nr_of_sent_pkts < 40; _nr_of_sent_pkts++) {
+			for (; _nr_of_sent_pkts < 30; _nr_of_sent_pkts++) {
 
 				if (!_connection->tx()->ready_to_submit()) {
 					class Submit_queue_full { };
@@ -224,6 +224,9 @@ class Black_hole_test::Uplink_test
 				_nr_of_sent_pkts--;
 				_nr_of_acked_pkts++;
 			}
+			_submit_pkts();
+			_reconstruct_connection();
+			_nr_of_sent_pkts = 0;
 			_submit_pkts();
 		}
 
