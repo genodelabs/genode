@@ -131,6 +131,9 @@ CC_C_OPT += -Wno-packed-not-aligned
 CC_C_OPT += -Wno-discarded-qualifiers
 CC_C_OPT += -Wno-format
 
+# avoid link errors whenever the build config's CC_OLEVEL is set to -O0
+override CC_OLEVEL := -O2
+
 LX_SRC   = $(shell grep ".*\.c" $(PRG_DIR)/source.list)
 SRC_S   += $(shell grep ".*\.S" $(PRG_DIR)/source.list)
 SRC_C   += $(LX_SRC)
