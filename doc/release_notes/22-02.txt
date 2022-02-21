@@ -1,0 +1,1070 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 22.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+The 22.02 release is dominated by three topics, the tightening and
+restructuring of the code base, device-driver infrastructure, and the
+transition of Sculpt OS towards a versatile toolkit for building specialized
+operating-system appliances.
+
+Regarding the house-keeping of the code base, the release introduces a clean
+split between hardware-specific parts and the generic framework foundation.
+In particular, the various supported SoCs are now covered by distinct Git
+repositories shepherded by different maintainers, which improves the clarity
+of the code base and eases the addition of SoC support by 3rd parties. The
+framework foundation underwent a major spring cleanup including the tightening
+of several APIs and a raised default warning level. The changes are covered by
+Section [Base framework and OS-level infrastructure].
+
+The reorganization of the code base went hand-in-hand with intensive device
+driver work for several platforms (Section [Device drivers]). In particular,
+we started to apply our new method of porting Linux driver code to PC drivers
+such as our new USB host controller driver. The Intel GPU driver received
+welcome performance optimizations and became usable for guest operating
+systems running in VirtualBox 6. On the Pinephone, Genode has started
+interacting with the modem.
+
+From a functional perspective, the highlight of the release is the
+extension of Sculpt OS towards a highly customizable toolkit for building
+special-purpose operating systems defined at integration time
+(Section [Framework for special-purpose Sculpt-based operating systems]).
+This new level of flexibility cleared the path to running a bare-bones
+version of Sculpt OS on the Pinephone, or directly on a Linux kernel.
+
+
+Framework for special-purpose Sculpt-based operating systems
+############################################################
+
+[https://genode.org/download/sculpt - Sculpt OS] is Genode's flagship system
+scenario. Designed as general-purpose OS, it combines the framework with a
+custom administrative user interface, package management, and drivers for
+commodity PC hardware. It has ultimately enabled technical-minded users to use
+Genode as day-to-day OS. The appeal of Sculpt's architecture does not stop
+here though.
+
+As hinted by its name, the fundamental idea behind Sculpt OS is the
+interactive "sculpting" of the operating system to fit the individual user's
+needs. The starting point is a small generic system image, from which the user
+can grow a highly customized system. The original vision puts emphasis on
+interactivity, which is embodied by its interactive component graph.
+Over time, however, we recognized the potential of making the bare-bones
+Sculpt system image customizable as well, effectively turning Sculpt into a
+framework for building highly specialized - in addition to general-purpose -
+operating systems.
+
+
+Modularized Sculpt OS image creation
+------------------------------------
+
+The current release replaces the formerly fixed feature set of the Sculpt
+system image - defined by the sculpt.run script - by configuration fragments
+that can be easily mixed, matched, and extended. All customizable aspects of
+the Sculpt image can now be found at a new location - the _sculpt/_ directory -
+which can exist in any repository. The directory at
+[https://github.com/genodelabs/genode/tree/master/repos/gems/sculpt - repos/gems/sculpt/]
+serves as reference and contains all fragments of the regular Sculpt OS.
+For detailed explanation of mechanisms and terms (e.g., launcher) used
+below please refer to the
+[https://genode.org/documentation/articles/sculpt-21-10 - Sculpt documentation].
+
+The sculpt directory can host any number of _<name>-<board>.sculpt_ files,
+each specifying the ingredients to be incorporated into the Sculpt system
+image. The _<name>_ can be specified to the sculpt.run script. E.g., the
+following command refers to the _default-pc.sculpt_ file:
+
+! build/x86_64$ make run/sculpt KERNEL=nova BOARD=pc SCULPT=default
+
+If no 'SCULPT' argument is supplied, the value 'default' is used. Combined,
+the 'BOARD' and 'SCULPT' arguments refer to a .sculpt file. E.g., the
+_default-pc.sculpt_ file for the regular Sculpt OS looks as follows:
+
+! # configuration decisions
+! drivers: pc
+! system:  pc
+! gpu_drv: intel
+!
+! # supplemental depot content added to the system image
+! import: pkg/drivers_managed-pc pkg/wifi src/ipxe_nic_drv
+!
+! # selection of launcher-menu entries
+! launcher: vm_fs shared_fs usb_devices_rom
+!
+! # selection of accepted depot-package providers
+! depot: genodelabs cnuke alex-ab mstein nfeske cproc chelmuth jschlatow
+! depot: ssumpf skalk
+
+It refers to a selection of files found at various subdirectories named after
+their respective purpose. In particular, there exists one subdirectory for
+each file in Sculpt's config file system, like nitpicker, drivers... The
+.sculpt file selects the alternative to use by a simple tag-value notation.
+
+! drivers: pc
+
+The supported tags are as follows.
+
+*Optional* selection of /config files. If not specified, those files are
+omitted, which prompts Sculpt to manage those configurations automatically or
+via the administrative user interface:
+
+   Tag          | Purpose
+  ----------------------------------------------------
+   fonts        | font configuration
+  ----------------------------------------------------
+   nic_router   | virtual network routing
+  ----------------------------------------------------
+   event_filter | user-input parametrization
+  ----------------------------------------------------
+   wifi         | wireless network configuration
+  ----------------------------------------------------
+   runtime      | static runtime subsystem structure
+  ----------------------------------------------------
+   gpu_drv      | GPU driver configuration
+
+Selection of *mandatory* /config files. If not specified, the respective
+'default' alternative will be used.
+
+   Tag           | Purpose
+  ----------------------------------------------------
+   nitpicker     | GUI-server configuration
+  ----------------------------------------------------
+   deploy        | packages to deploy
+  ----------------------------------------------------
+   fb_drv        | framebuffer-driver configuration
+  ----------------------------------------------------
+   clipboard     | global clipboard rules
+  ----------------------------------------------------
+   drivers       | drivers subsystem structure
+  ----------------------------------------------------
+   numlock_remap | numlock-handling rules
+  ----------------------------------------------------
+   leitzentrale  | management subsystem structure
+  ----------------------------------------------------
+   usb           | USB-device policy
+  ----------------------------------------------------
+   system        | system state
+  ----------------------------------------------------
+   ram_fs        | RAM file-system configuration
+
+Note that almost no part of the Sculpt image is sacred. One can even replace
+structural aspects like the administrative user interface or the drivers
+subsystem.
+
+Furthermore, the .sculpt file supports the optional selection of supplemental
+content such as a set of launchers.
+
+! launcher: nano3d system_shell
+
+Another type of content are the set of blessed pubkey/download files used for
+installing and verifying software on target. This information is now located
+at the _sculpt/depot/_ subdirectory. As a welcome collateral effect of this
+change, depot keys can now be hosted in supplemental repositories independent
+from Genode's main repository.
+
+
+Including component packages in the Sculpt image
+------------------------------------------------
+
+Sculpt OS normally relies on network connectivity for installing and deploying
+components. With the new version, it has become possible to supply a depot
+with the system image. The depot content is assembled according to the 'pkg'
+attributes found in launcher files and the selected deploy config. The
+resulting depot is incorporated into the system image as 'depot.tar' archive.
+It can be supplied to the Sculpt system by mounting it into the RAM
+file-system as done by the 'ram_fs/depot' configuration for the RAM fs.
+
+
+Supplementing custom binaries directly to the Sculpt image
+----------------------------------------------------------
+
+It is possible to add additional boot modules to the system image. There
+are two options.
+
+! build: <list of targets>
+
+This tag instructs the sculpt.run script to build the specified targets
+directly using the Genode build system and add the created artifacts into the
+system image as boot modules. It thereby offers a convenient way for globally
+overriding any Sculpt component with a customized version freshly built by the
+Genode build system.
+
+! import: <list of depot src or pkg archives>
+
+This tag prompts the sculpt.run script to supply the specified depot-archive
+content as boot modules to the system image. This change eliminates the need
+for former board-specific _pkg/sculpt-<board>_ archives. The board-specific
+specializations can now be placed directly into the respective .sculpt files
+by using 'import:'.
+
+
+Optional logging to core's LOG service
+--------------------------------------
+
+To make the use of Sculpt as test bed during development more convenient,
+the log output of the drivers, leitzentrale, and runtime subsystems can be
+redirected to core using the optional 'LOG=core' argument on the command line.
+
+! build/x86_64$ make run/sculpt KERNEL=nova BOARD=pc SCULPT=default LOG=core
+
+
+Sculpt OS meets the Pinephone
+=============================
+
+Thanks to the greatly modularized new version of Sculpt OS, we have become
+able to run a minimalistic version of Sculpt on the Pinephone, as demonstrated
+in our recent presentation at FOSDEM.
+
+: <video preload="none" controls="controls">
+:    <source src="https://video.fosdem.org/2022/D.microkernel/nfeske.webm"
+:            type='video/webm; codecs="vp9, opus"' />
+: </video>
+
+:Genode meets the Pinephone:
+
+  [https://fosdem.org/2022/schedule/event/nfeske/]
+
+  _Microkernel developer room at FOSDEM, 2022-02-05_
+
+Despite lacking drivers for storage and network connectivity, we are already
+able to put together interesting interactive system images for the Pinephone.
+To make this possible, a few additional steps had to be taken though.
+
+First, we had to make Sculpt's administrative GUI able to respond to touch
+events. It formerly assumed that click/clack events are always preceded by
+hover reports that identify the clicked-on widgets. For touch events, however,
+the most up-to-date hover information referred to the previous "click" because
+there is no motion without touching. So the GUI tended to identify the wrong
+widgets as click targets. We solved the tracking of the freshness of hover
+information by interspersing sequence numbers into the event stream and
+reflecting those numbers in hover reports.
+
+Second, to allow textual input, we added a custom touch-screen keyboard
+specifically for bare-bones Sculpt scenarios where low complexity and small
+footprint are desired.
+
+
+Test-driving Sculpt OS on the Linux kernel
+==========================================
+
+As another showcase of the flexibility gained by the modularization of Sculpt,
+a bare bones Sculpt system can now be hosted directly on the Linux kernel as
+simple as:
+
+! build/x86_64$ make run/sculpt KERNEL=linux BOARD=linux
+
+Granted, this version is not generally useful, but it serves as a welcome
+accelerator of the development workflow and a convenient debugging aid. Since
+each component is a plain Linux process, it can be easily inspected via GDB.
+The turn-around time of placing an instrumentation in any component of Sculpt
+OS has been reduced from booting a machine to the almost instant restart of
+Sculpt under Linux.
+
+
+Modularized source-code organization
+####################################
+
+With the
+[https://genode.org/documentation/release-notes/21.11#A_little_kingdom_for_each_SoC_family - previous release],
+new decentralized repositories got introduced to simplify the maintenance and
+for improved clarity of what is needed to drive a single board or SoC. We
+started with repositories for the Allwinner A64 SoC, the Xilinx Zynq, and NXP
+i.MX-family of SoCs, as well as the RISC-V Qemu and MiG-V support. Initially
+those repositories were located at the storage of the developer in charge. Now,
+we've moved them centrally under the umbrella of the Genode Labs account at
+[https://github.com/genodelabs]. Thereby, they become easy to find, and the
+responsibility of Genode Labs for the repositories becomes intuitively clear.
+
+
+Raspberry Pi
+============
+
+Moreover, a further dedicated repository got established to combine all
+ingredients to drive Raspberry Pi boards. It is located at
+[https://github.com/genodelabs/genode-rpi]. Currently, it contains
+board support for Raspberry Pi 1 and 3 including platform, framebuffer, and
+SD-card drivers.
+
+When creating a new build-directory for ARMv6 or ARMv8, you'll have to
+uncomment the following line within the _etc/build.conf_ file:
+
+! #REPOSITORIES += $(GENODE_DIR)/repos/rpi
+
+Of course, you have to clone the genode-rpi repository to _repos/rpi_ of your
+Genode main repository in addition.
+
+
+PC drivers
+==========
+
+To foster consistence with the ARM and RISC-V universe, the x86-based PC got
+its own repository too. As this is the de-facto board most Genode developers
+work with, it is however already part of Genode's main repository under the
+path _repos/pc/_, and does not need to be cloned from a separate Git
+repository.
+
+However, if you use a pre-existing build-directory after updating to this
+release, you have to add the corresponding path to the 'REPOSITORIES'
+variable, before building for x86_32 or x86_64.
+
+Currently, the new repository contains the latest version of the USB host
+driver for PCs. Other drivers will follow in the upcoming releases.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Preventing implicit C++ type conversions by default
+===================================================
+
+Since version
+[https://genode.org/documentation/release-notes/18.02#Increased_default_warning_level - 18.02],
+Genode components are built with strict warnings (the combination
+of '-Werror' with '-Weffc++', '-Wall', and '-Wextra') enabled by default.
+Later, in version
+[https://genode.org/documentation/release-notes/19.02#Enforced__override__annotations - 19.02],
+we added '-Wsuggest-override' to the list, eliminating another class of
+uncertainties from the code base. With the current release, we further tighten
+our warning regime by enabling '-Wconversion' by default. The rationale behind
+this change and the practical ramifications are explained in the following
+dedicated article:
+
+:Let's make -Wconversion our new friend!:
+
+  [https://genodians.org/nfeske/2021-12-07-wconversion]
+
+In cases where an adaptation is unfeasible - in particular when warnings
+originate from 3rd-party libraries - the implicit type conversions can be
+selectively permitted by adding the following line to the corresponding build
+description file:
+
+! CC_CXX_WARN_STRICT_CONVERSION :=
+
+
+API changes
+===========
+
+Tracing
+~~~~~~~
+
+We removed the old 'Trace::Session::subject_info' RPC interface, which got
+superseded by the shared-memory-based 'for_each_trace_subject' interface in
+[https://genode.org/documentation/release-notes/20.05#Optimized_retrieval_of_TRACE_subject_information - version 20.05].
+
+
+Revised packet-stream utilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When Genode's packet-stream API for asynchronous bulk transfers between
+components was
+[https://genode.org/documentation/release-notes/9.11#Packet-stream_interface - originally introduced],
+components were predominately designed as programs using blocking I/O.
+This practice has been largely
+[https://genode.org/documentation/release-notes/16.05#The_great_API_renovation - replaced later]
+by the current notion of modelling components as state machines that handle
+I/O in an asynchronous fashion. The blocking semantics of the packet-stream
+mechanism are a relic from the early days of Genode.
+
+With the current release, we took the opportunity for simplification and
+removed the implicit blocking semantics from the packet stream. This way, we
+gain two benefits.
+
+First, the removal of blocking semantics - which in fact still rely on
+a deprecated interface - clears the way to general performance optimizations
+of Genode's signal-handling mechanism.
+
+Second, the resulting components become more deterministic. In modern
+components, I/O operations are not expected to block if implemented correctly.
+Since the packet stream happened to block implicitly, however, implementation
+bugs (like calling 'get_packet' without checking for 'packet_avail' before)
+may remain hidden. The removal of blocking semantics uncovers such
+deficiencies.
+
+Given this motivation, we replaced the implicit blocking semantics with
+an error message and the raising of an exception, both triggered on the
+attempt to invoke a formerly blocking operation. Note that this may
+deliberately break components that still (unknowingly) rely on the blocking
+semantics. A possible short-term fix for those components would be to add an
+explicit 'wait_and_dispatch_one_io_signal' loop before calling a (potentially)
+blocking function. But ultimately, such code would be subject for redesign.
+
+The possible exceptions are as follows:
+
+:'Packet_stream_source::Saturated_submit_queue':
+
+  Attempt to add a packet into a completely full submit queue.
+
+:'Packet_stream_source::Empty_ack_queue':
+
+  Attempt to retrieve packet from empty acknowledgement queue.
+
+:'Packet_stream_sink::Empty_submit_queue':
+
+  Attempt to take a packet from an empty submit queue.
+
+:'Packet_stream_sink::Saturated_ack_queue':
+
+  Attempt to add a packet to a filled-up acknowledgement queue.
+
+The adaptation of Genode's components to this change concerned mostly users of
+the block-session and file-system session interfaces. The other prominent
+users of the packet stream - the NIC and uplink sessions - were already
+operating wholly asynchronously.
+
+
+File-system session
+~~~~~~~~~~~~~~~~~~~
+
+As mentioned above, the file-system session interface is based on the
+packet-stream mechanism. This mechanism uses independent data-flow signals for
+the submit queue and the acknowledgement queue. In practice, the file-system
+session does not benefit from the distinction of both cases. In contrary, for
+common sequential request-response patterns, the amount of data-flow signals
+could potentially be reduced if the distinction wasn't there. To enable this
+optimization down the road, we consolidated the file-system session's
+data-flow signals into one handler at the server and one handler at the client
+side.
+
+This change alongside the removal of blocking semantics from the underlying
+packet-stream mechanism, prompted us to revisit several file-system-related
+components, in particular changing them to use Genode's flexible VFS
+infrastructure instead of plumbing with the file-system session directly.
+Notable components are the _usb_report_filter_ and _rom_to_file_.
+System scenarios using these components need to be updated by adding
+a VFS configuration as follows to the respective component.
+
+! <config>
+!   <vfs> <fs/> </vfs>
+! </config>
+
+
+NIC-packet allocation tweaks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The allocator for NIC packets (_os/include/nic/packet_allocator.h_) was
+improved in a way that the IP header of an Ethernet frame is now aligned to
+four bytes. This change was motivated by the fact that the "load four bytes"
+instruction on RISC-V will fail if the access is not four-byte aligned, but
+since the compiler does not know about the alignment of dynamic memory, it may
+generate a four-byte load on a two-byte-aligned address when processing IPv4
+addresses in the IP header.
+
+Note, the alignment tweak reduces the maximum usable packet size allocated
+from the 'Nic::Packet_allocator' to 'OFFSET_PACKET_SIZE', which is effectively
+2 bytes smaller than the former 'DEFAULT_PACKET_SIZE'.
+
+
+Input events
+~~~~~~~~~~~~
+
+We changed the type of 'Input::Touch_id' from 'int' to 'unsigned' because
+there is no sensible meaning for negative touch IDs.
+
+A new 'Input::Event::Seq_number' type allows for the propagation of sequence
+numbers as a means to validate the freshness of input handling. E.g., a
+menu-view-based application can augment artificial sequence numbers to the
+stream of motion events supplied to 'menu_view'. Menu view, in turn, can now
+report the latest received sequence number in its hover reports, thereby
+enabling the application to robustly correlate hover results with click
+positions.
+
+
+Cosmetic changes
+~~~~~~~~~~~~~~~~
+
+To foster consistent spelling throughout the code base,
+'Dataspace::writable' got renamed to 'Dataspace::writeable'.
+
+
+Removed interfaces
+~~~~~~~~~~~~~~~~~~
+
+We removed _gems/magic_ring_buffer.h_. Since its introduction four years ago,
+the utility remained largely unused.
+
+The 'Env::reinit' and 'Env::reinit_main_thread' could be removed now, with the
+transition away from the Noux runtime - the only user of those mechanisms -
+completed.
+
+The file-system read/write helpers of _file_system/util.h_ are from a time
+before the VFS API at _os/vfs.h_ was available. As they relied on the (now
+removed) blocking semantics of the packet-stream interface, the helpers have
+been removed.
+
+
+VFS plugin for network-packet access
+====================================
+
+In some situations, applications need raw access to a network device without a
+standard TCP/IP-stack in between. In the Genode realm, this is provided by the
+NIC and Uplink session interfaces. This release adds a VFS plugin to also
+establish a convenient interface to these sessions for POSIX applications. The
+plugin adheres to
+[https://www.freebsd.org/cgi/man.cgi?query=tap&sektion=4 - FreeBSD's tap interface]
+and follows along our
+[https://genode.org/documentation/release-notes/20.11#Streamlined_ioctl_handling_in_the_C_runtime___VFS - streamlined ioctl handling].
+
+The plugin is instantiated by adding a '<tap ...>' node to a component's VFS.
+By default, the plugin opens a NIC session that is typically routed to the NIC
+router. In this case, the MAC address is assigned by the NIC router.
+Furthermore, we can optionally add a label attribute to specify the session
+label by which the NIC router is able to distinguish multiple session requests
+from the same component.
+
+! <config>
+!    <vfs>
+!       <dir name="dev">
+!          <tap name="tap0" label="local" />
+!       </dir>
+!    </vfs>
+! </config>
+
+With this in place, we are able to write a simple client application:
+
+! #include <net/if.h>
+! #include <net/if_tap.h>
+!
+! #include <sys/ioctl.h>
+!
+! int main(int, char**)
+! {
+!    int fd = open("/dev/tap0", O_RDWR);
+!    if (fd == -1) {
+!       printf("Error: open(/dev/tap0) failed\n");
+!       return 1;
+!    }
+!
+!    /* get mac address */
+!    char mac[6];
+!    memset(mac, 0, sizeof(mac));
+!    if (ioctl(fd, SIOCGIFADDR, (void *)mac) < 0) {
+!       printf("Error: SIOCGIFADDR failed\n");
+!       return 1;
+!    }
+!
+!    /* read()/write() */
+!    /* [...] */
+!
+!    close(fd);
+! }
+
+As you can see, the usage is as easy as opening _/dev/tap0_ and performing
+read/write operations on the acquired file descriptor. Moreover, we are able
+to use the 'SIOCGIFADDR' I/O control operation to get the device's MAC
+address.
+
+Beyond that, we are able to instruct the plugin to open an uplink session
+instead, e.g., to develop a device driver. In this case, the MAC address must
+be set by the client, which is either done by specifying a 'mac' attribute as
+shown below or by using the 'SIOCSIFADDR' I/O control operation.
+
+! <config>
+!    <vfs>
+!       <dir name="dev">
+!          <!-- NIC session (default) -->
+!          <tap name="tap0" label="local" />
+!
+!          <!-- Uplink session -->
+!          <tap name="tap1" label="uplink"
+!                           mode="uplink_client"
+!                           mac="11:22:33:44:55:66" />
+!       </dir>
+!    </vfs>
+! </config>
+
+Under the hood, the plugin not only provides the device file _/dev/tap0_ but
+also a companion file system under _/dev/.tap0/_ for ioctl support.
+Currently, the plugin provides a read-only pseudo file "name" containing the
+device name and a "mac_addr" file containing the MAC address. The C runtime
+transparently translates the SIOCGIFADDR, SIOCSIFADDR and TAPGIFNAME I/O
+control requests into read/write operations to _/dev/.tap0/*_.
+
+[image vfs_tap]
+
+Note, that the FreeBSD interface differs from Linux' tap interface.
+On Linux, tap devices are created by opening _/dev/net/tun_ followed by a
+'TUNSETIFF' ioctl (providing the device name and mode). After that, the
+particular file descriptor can be used for reading/writing. When multiple
+devices are used, the process is done several times.
+If only a single tap device is needed, it is still possible to use the VFS
+plugin for _/dev/net/tun_ and just ignore the ioctl by creating an emulation
+header file _linux/if_tun.h_ with the following content:
+
+! #include <net/if_tap.h>
+! #define TUNSETIFF TAPGIFNAME
+! #define IFF_TAP   0
+! #define IFF_NO_PI 0
+
+The plugin's implementation is located at _repos/os/src/lib/vfs/tap/_.
+
+
+Black-hole server component
+===========================
+
+Sometimes you may want to run a certain Genode component, component sub-system,
+or package, but you're not interested in part of its interaction with the rest
+of the system. For instance, imagine having an info screen in the public that
+plays videos but without any sound. In this scenario you would need to
+instantiate a video player but such a component is likely to request also an
+audio-out session by default. If you don't serve this requirement, the player
+won't start its work but serving the requirement means integrating an audio
+stack (with a driver back-end), thereby adding superficial complexity for
+something that isn't used anyway. Furthermore, your target platform may even
+prevent serving certain session requests correctly (e.g., if there is no audio
+hardware in the example above).
+
+This is where the black-hole server-component comes in. It's a dummy back-end
+for the most common Genode services. Its goal is to make clients of a service
+think they are dealing with a real back-end but without the service-typical
+side effects to hardware or other components. For instance, the video player
+mentioned above can open its audio channel, send all of its audio data, and
+will receive acknowledgements. However, from there on, the audio data doesn't
+go anywhere - the black-hole server just drops it as soon as possible.
+
+So far, the black-hole server supports the services audio-out, audio-in,
+capture, event, NIC, and uplink. The server may provide them all together or
+only an individual subset depending on its configuration. Each service that
+shall be provided must be added as sub-tag to the component's configuration:
+
+! <config>
+!   <audio_in/> <audio_out/> <capture/> <event/> <nic/> <uplink/>
+! </config>
+
+The implementation of the black-hole server can be found at
+_repos/os/src/server/black_hole_. As a usage example, have a look at the
+corresponding test package 'repos/os/recipes/pkg/test-black_hole' that can be
+run like this:
+
+! make run/depot_autopilot TEST_PKGS=test-black_hole \
+!                          TEST_SRCS= \
+!                          KERNEL=nova BOARD=pc
+
+If you want to deploy the server in your Sculpt OS, you may use the package
+_repos/os/recipes/pkg/black_hole_.
+
+
+Moved or removed components
+===========================
+
+Our rework of the low-level framework interfaces - the platform session and
+file-system session in particular - led us to revisit all components affected
+by those changes. Whereas most components were updated, the following
+components have been removed:
+
+* An ancient (unused) version of the readline library. The 'bash' shell
+  carries its own version.
+
+* [https://github.com/genodelabs/genode/issues/4418 - ROM prefetcher]
+  that was originally used for reducing seek times of CD-ROMs.
+
+* [https://github.com/genodelabs/genode/issues/4405 - Outdated block components]
+  such as http_block (lacking SSL support), block_cache (unused), test/block
+  scenarios (superseded by block_tester and vfs_block).
+
+* Old [https://github.com/genodelabs/genode-world/issues/283 - OMAP4 and Exynos5]
+  platforms no longer covered by any automated tests.
+
+* Old [https://github.com/genodelabs/genode/issues/4400 - fs_log server]
+  substitutable by the combination of terminal_log and file_terminal.
+
+The following components were moved from the main Genode repository to the
+[https://github.com/genodelabs/genode-world - Genode World] repository as they
+receive only casual maintenance and testing by Genode Labs.
+
+* [https://github.com/genodelabs/genode/issues/4412 - Seoul VMM]
+  emulating a 32-bit PC.
+
+* [https://github.com/genodelabs/genode/issues/4413 - ISO9660]
+  ROM server used only by the testbed of the Seoul VMM.
+
+* An old port of [https://github.com/genodelabs/genode/issues/4414 - Lua].
+
+
+Device drivers
+##############
+
+Platform driver
+===============
+
+The platform API for ARM introduced in
+[https://genode.org/documentation/release-notes/20.05#New_platform_driver_for_the_ARM_universe - Genode release 20.05]
+has become the common platform API for all architectures. The original
+x86-only API variant is now deprecated. The APIs specific to i.MX53 and the
+Raspberry Pi got removed.
+
+The platform drivers for i.MX53 and Raspberry Pi got re-written to use the
+modern, generic Platform API. All drivers that used the old API were adapted
+accordingly. Special thanks go to Tomasz Gajewski, who worked very keen in his
+spare-time to re-write the platform driver for Raspberry Pi, adapt its
+framebuffer driver, and most notably tested repeatedly on all kinds of
+Raspberry-Pi hardware during the development cycle.
+
+DMA buffer utility
+------------------
+
+Analogously to the 'Platform::Device' utility introduced in
+[https://genode.org/documentation/release-notes/21.05#Platform_driver_on_ARM - release 21.05],
+a new helper class 'Platform::Dma_buffer' is available now. It simplifies the
+lifetime management of DMA-capable RAM dataspaces, which now need to be
+obtained via a privileged component like the platform driver - see
+[Restricting physical memory information to device drivers only] section for
+further references.
+
+The new utility is best described by the following short snippet:
+
+! #include <platform_session/dma_buffer.h>
+! ...
+!
+! void some_function(Env & env)
+! {
+!   Platform::Connection platform(env);
+!   Platform::Dma_buffer buffer(platform, 4096, CACHED);
+!
+!   log("DMA buffer is located virtually at ",                buffer.local_addr<void>());
+!   log("For DMA transfers you have to use the bus address ", buffer.dma_addr());
+!   log("The DMA buffer has the size of ",                    buffer.size());
+!
+!   ...
+! }
+
+The example shows how to obtain a cached, 4K-sized 'Dma_buffer', which is used
+to return its virtual memory address and the corresponding bus-address to
+program DMA transfers as well as its size.
+
+
+New Linux-device-driver environment for PC drivers
+==================================================
+
+With the good experiences in mind that we made during the enablement of
+various peripheral drivers for ARM SoCs using the new DDE Linux approach, it
+was obvious to apply the new method for the x86 drivers as well. The approach
+centers around having a vendor kernel for the given platform, with the vanilla
+Linux kernel (5.14.21) being the de-facto vendor kernel for x86.
+
+The first order of business was separating the architecture-specific parts of
+the DDE from the generic ones and implementing those back ends for x86. We
+followed the established pattern and introduced the architecture specific
+locations where this code resides. While doing so we complemented the DDE with
+support for PCI as in contrast to ARM this is the prominent transport protocol
+on x86. Information about the devices is managed via the PCI config space that
+reflects which resources, like memory-mapped I/O or I/O ports, are available.
+We therefore added an interface to the DDE to give a driver access to the
+config space in a mediated fashion - it only may access information strictly
+necessary for its operation of the device.
+
+As first target we ported the USB host-controller driver and replaced the
+existing driver with this new one in our testing infrastructure and allowed
+for more scrutinized testing. During that, a few shortcomings presented
+themselves. The Genode C-API for USB - used to interface the USB session with
+the kernel interface - was created in between changes to the USB session back
+end and did not contain all fixes that were made to the old USB
+host-controller driver after the C-API was created. We incorporated the
+missing changes. Additionally, Sculpt expects a certain behavior from the
+driver where it will report its configuration for the system to react upon.
+This feature was also missing.
+
+With that work done, the driver is in a good position to be used on a daily
+basis and to remove any remaining kinks and dents before the Sculpt release.
+
+As a fallback the old USB host-controller driver is still available and got
+renamed to 'legacy_pc_usb_host_drv'. At the moment the new driver lacks
+support for UHCI controllers and where necessary the legacy one can be used.
+Both drivers are interchangeable since the new driver follows the
+configuration conventions established by the legacy driver. The key difference
+here is that it is no longer possible to selectively disable or enable support
+for a specific USB host-controller interface (HCI) driver. The 'uhci', 'ohci',
+'ehci', and 'xhci' config attributes are no longer supported.
+
+The following '<start>' snippet shows the new driver configured for device
+reporting and BIOS handoff:
+
+!<start name="usb_host_drv">
+!  <binary name="pc_usb_host_drv"/>
+!  <resource name="RAM" quantum="10M"/>
+!  <provides> <service name="Usb"/> </provides>
+!  <config bios_handoff="yes">
+!     <report devices="yes"/>
+!  </config>
+!</start>
+
+
+GPU-driver improvements
+=======================
+
+The Intel-GPU multiplexer has greatly matured during the release cycle. With
+[https://genode.org/documentation/articles/sculpt-21-10#GPU - Sculpt OS version 21.10],
+the GPU multiplexer became an integral part of Sculpt OS and
+hardware-accelerated 3D support is now available for many Intel GPUs.
+
+
+Resource accounting
+-------------------
+
+On Genode, a multiplexer should never allocate resources like RAM or
+capabilities on behalf of a client (e.g., a 3D application). The client should
+transfer RAM and capabilities from its own quota to the multiplexer instead.
+Therefore, a 3D application using the Mesa library will transfer RAM and
+capabilities to the GPU driver upon a GPU session request. If the resources
+are not sufficient, the GPU driver in turn will reflect this situation back to
+the application.
+
+
+Performance optimizations
+-------------------------
+
+We improved the allocation strategy of graphics memory and also tried to
+minimize the number of RPC calls from the 3D application to the GPU
+multiplexer. Additionally, many operations such as mapping memory to the
+actual GPU through its page table are performed in a lazy fashion. The
+lifetime of a Mesa object and the assignment of resources to the GPU -
+including GPU address space management - is now completely handled by Mesa
+because Mesa caches resources internally and expects, at least in case of
+Intel, to have complete control. With these changes in place we were able to
+increase our
+[https://genodians.org/ssumpf/2021-10-25-glmark2 - glmark2] benchmark by up to
+50% for different GPU generations.
+
+
+OpenGL context support
+----------------------
+
+[https://www.khronos.org/opengl/wiki/OpenGL_Context - Contexts] are a mandatory
+feature of OpenGL and Genode's Mesa port lacked support for them up until now.
+On the GPU level, an OpenGL context requires its own set of GPU page tables,
+implying a disjunct address space. But OpenGL objects may also be shared
+between contexts and, therefore, address spaces.
+
+We implemented context support through multiple GPU sessions. Each OpenGL
+context owns a dedicated GPU session. Graphics memory can now be exported from
+one GPU session and imported into another, and thus, into another OpenGL
+context. We expanded Genode's GPU session interface with _import_ and _export_
+functions. Whereas a call to _export_ with a given ID will return a capability
+to the graphics memory belonging to the ID, a call to _import_ of another GPU
+session takes the exported capability and the designated ID for the buffer in
+the importing GPU session. Note that only the session that initially allocated
+the memory can also release it. Upon release, the memory will be revoked for
+all sessions that imported it.
+
+
+VFS plugin for GPU
+------------------
+
+Sometimes Mesa requires synchronization with the GPU multiplexer, for example,
+when waiting for a rendering call to finish. On GPU session level this
+behaviour is implemented through Genode signals. Because Mesa applications use
+pthreads, they cannot wait for Genode signals and synchronization has to be
+performed in a different manner, e.g., a VFS plugin where synchronous read
+operations can be performed on a file handle. This behaviour is implemented
+through the 'vfs_gpu' plugin. It exposes a _gpu_ file that can be opened by
+Mesa (for the above context support also multiple times). During open, the
+plugin will create a GPU session for the new file handle and register an
+internal I/O signal handler. Mesa can in turn call _read_ on the returned _fd_
+which will only return in case a signal from the GPU session has been received
+since the previous call to _read_.
+
+Each 3D application using Mesa requires a "/dev/gpu" node within its VFS
+configuration (example):
+
+! <config>
+!   <vfs>
+!    <dir name="dev">
+!      <gpu/> <log/>
+!    </dir>
+!   </vfs>
+! </config>
+
+
+Pinephone modem access
+======================
+
+On our way towards a Genode-based phone, we enabled the low-level access of
+the Quectel-EG25 modem as found in the Pinephone. This line of work is hosted
+in the [https://github.com/genodelabs/genode-allwinner - genode-allwinner]
+repository and consists of parts. First, the modem driver at
+_src/drivers/modem/pinephone/_ takes care of the powering and initialization
+of the modem. It works in tandem with the power and reset controls of the
+A64 platform driver and the GPIO controls of the PIO driver. The second part
+is a UART driver interfaced with the control channel of the modem. Once the
+modem is initialized, this channel allows for the issuing of AT commands as
+described in
+[https://wiki.pine64.org/wiki/File:Quectel_EC2x%26EG9x%26EG2x-G%26EM05_Series_AT_Commands_Manual_V2.0.pdf - Quectel documentation].
+
+A first example scenario is provided by the
+[https://github.com/genodelabs/genode-allwinner/blob/22.02/run/modem_pinephone.run modem_pinephone.run]
+script. It comprises the modem driver and two instances of the UART driver.
+One UART driver is connected to the modem's control channel whereas the other
+is connected to the default serial interface of the Pinephone. By bridging
+both drivers via a terminal-crosslink component, the scenario allows for
+the direct interaction with the modem over the Pinephone's serial channel,
+e.g., unlocking a SIM card or sending SMS messages via the 'AT+CMGS' command.
+
+
+Restricting physical memory information to device drivers only
+==============================================================
+
+To enable user-level device drivers to leverage DMA transactions for the
+direct transfer of data between devices and memory, Genode's low-level
+dataspace API offered a way for obtaining the physical address of a given
+RAM dataspace. With the proliferation of our modern platform driver and with
+drivers as the only kind of components in need for this information, the
+current release replaces the traditional 'Dataspace::phys_addr' interface with
+the new 'Platform::Session::dma_addr' interface, which is restricted to DMA
+buffers allocated via the specific platform session.
+
+Under the hood, the platform driver gets hold of this information from
+Genode's core via the new 'Pd_session::dma_addr' function. This interface is
+only available to the platform driver with the assigned "managing_system"
+role.
+
+Note that custom user-level device drivers need to be adjusted to this change.
+Look out for calls of 'Dataspace::phys_addr'. Those dataspaces need to be
+allocated via 'Platform::Session::alloc_dma_buffer' now. You may consider
+using the 'Dma_buffer' utility mentioned in Section [Platform driver].
+Also pay attention to the 'managing_system="yes"' attribute that needs
+to be present in the '<start>' node of the platform driver.
+
+
+Libraries and applications
+##########################
+
+Audio improvements and 3D acceleration for VirtualBox 6
+=======================================================
+
+VirtualBox 6 now also supports audio recording via the OSS VFS plugin,
+which got enhanced accordingly. While testing the audio features with
+VirtualBox, we noticed that the performance was not ideal, with noticeable
+interruptions in various situations. We finally could improve the
+performance by reducing the execution priority of the 'Vm_connection' and
+by adapting the interval of a watchdog timer in VirtualBox dynamically to
+ensure that the VirtualBox audio device model is executed in a timely
+manner.
+
+
+3D acceleration
+---------------
+
+VirtualBox 6 introduces the VMSVGA adapter, which emulates the VMWare
+Workstation graphics adapter with the VMWare SVGA 3D method. The supported
+OpenGL versions are up to 3.3 (core profile).
+
+With the current release, we have enabled the VMSVGA adapter (Linux) and
+VBoxSVGA (Windows) on Genode's version of VirtualBox. We achieved this by
+tying the model's _glX_ interface to the _EGL_ interface of Genode's Mesa
+library. This way it has become possible to offer hardware-accelerated GPU
+rendering on Intel GPUs to VirtualBox guest applications. The 3D acceleration
+can be enabled in the .vbox configuration file like follows.
+
+! <!-- 3D Linux -->
+! <Display controller="VMSVGA" VRAMSize="256" accelerate3D="true"/>
+! <!-- 3D Windows -->
+! <Display controller="VBoxSVGA" VRAMSize="128" accelerate3D="true"/>
+
+Because VirtualBox multiplexes 3D applications through OpenGL contexts, context
+support had to be added to our Mesa back-ends (Section [GPU-driver improvements]).
+
+
+Revised Boot2Java scenario
+==========================
+
+Genode's [https://genodians.org/ssumpf/2019-02-27-java-19-02 - Boot2Java]
+scenario that demonstrated an OpenJDK based network filter component featuring
+two NIC interfaces had been custom tailored to the i.MX6 SoloX system on a
+chip. This rare hardware made testing and reproducing the scenario hard for
+people outside Genode Labs.
+
+Therefore, we decided to revise Boot2Java by making it executable on Qemu's
+x86_64 platform. No additional changes to the scenario were made, which
+implies it still uses two NIC interfaces on Qemu and identical Java byte code.
+
+Additionally, we took advantage of Genode's new modular Sculpt image approach
+as described in Section
+[Framework for special-purpose Sculpt-based operating systems]. This gives the
+advantage that adjustments to other platforms or setups are easier to achieve.
+
+Because the scenario is executed by Qemu, everyone can test Boot2Java by
+running:
+
+! build/x86_64$ make KERNEL=nova BOARD=pc run/boot2java
+
+Note: The two NIC interfaces are forwarded to host ports 8080 and 8081, which
+can be inspected with any browser or command line tool by accessing
+
+! http://localhost:8080
+! http://localhost:8081
+
+
+Platforms
+#########
+
+Completed C and stdc++ support for the RISC-V architecture
+==========================================================
+
+We greatly enhanced Genode's RISC-V support by enabling the _libc_, _libm_, and
+_stdcxx_ libraries on RISC-V. This implies that many other generic libraries
+and components can now be built and executed on RISC-V (e.g., TCP/IP
+stacks, web server, or POSIX applications).
+
+The official Genode board-support repository for RISC-V has been moved to
+[https://github.com/genodelabs/genode-riscv].
+
+Additionally, we added RISC-V to our nightly testing and building
+infrastructure as well as support for Genode's _depot_autopilot_, which yields
+improved test coverage.
+
+
+Build system and tools
+######################
+
+Automated tracking of build artifacts
+=====================================
+
+In Genode run scripts, there is a close relation between the arguments for the
+'build' step and the arguments for the 'build_boot_image' step. The former is
+a list of build targets specified as locations within the source tree.
+The latter is usually a list of the binaries produced by the build step.
+However, as build results are not strictly named after their location in the
+source tree and one build target can even have multiple results, the relation
+between the arguments of both stages remains rather informal and must be
+managed manually.
+
+The manual curation of 'build_boot_image' arguments, however, can be error
+prone. E.g., when adding a 'build' argument, one may miss to also add the
+corresponding 'build_boot_image' argument. To relieve developers from this
+burden, we extended the 'run' tool with the new function 'build_artifacts',
+which returns a list of artifacts created by the 'build' step. The returned
+list can be directly supplied as argument to the 'build_boot_image' step.
+
+! build_boot_image [build_artifacts]
+
+Note that the list covers only program targets and shared libraries. Other
+artifacts created as side effects of custom rules are not covered. By default,
+the target's name is taken as the name of the corresponding build artifact.
+In special cases, e.g., if one target description file produces more than one
+binary, it is possible to explicitly define the build artifacts using the
+'BUILD_ARTIFACTS' variable.
+
+
+Streamlined shared-library handling
+===================================
+
+Up to now, executable binaries created directly in a build directory differed
+in subtle ways from the ones created as depot archive. In the former case, all
+transitive shared-library dependencies used to be included in the binary's
+link dependencies whereas the latter used to include only direct dependencies
+but no transitive dependencies. We have now adjusted the build system to keep
+transitive shared-library dependencies private in either case, improving the
+consistency of binaries created in a regular build directory and binaries
+created in depot archives.
+
+Note that this change may uncover missing library dependencies in build
+description files. E.g., whenever a target uses Genode's base API, it needs
+to explicitly state the dependency from the 'base' library now.
+
+! LIBS = base
+
+In the previous version, this dependency used to be implicit whenever linking
+any other library that depended on the base library.
