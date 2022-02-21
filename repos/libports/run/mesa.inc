@@ -157,7 +157,7 @@ set boot_modules {
 	egl.lib.so mesa.lib.so stdcxx.lib.so
 	expat.lib.so glapi.lib.so zlib.lib.so
 	core init ld.lib.so timer mesa_gpu-softpipe.lib.so
-	libdrm.lib.so
+	libdrm.lib.so vfs_gpu.lib.so
 }
 
 append_if $use_iris boot_modules {
