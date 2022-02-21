@@ -21,7 +21,7 @@ append config {
 append config [qt5_start_nodes]
 
 append config {
-	<start name="openglwindow" caps="200">
+	<start name="openglwindow" caps="250">
 		<resource name="RAM" quantum="80M"/>
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
