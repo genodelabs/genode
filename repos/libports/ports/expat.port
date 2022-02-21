@@ -1,9 +1,9 @@
 LICENSE   := MIT
 DOWNLOADS := expat.archive
-VERSION   := 2.4.1
+VERSION   := 2.4.6
 
 URL(expat) := http://sourceforge.net/projects/expat/files/expat/$(VERSION)/expat-$(VERSION).tar.gz
-SHA(expat) := a00ae8a6b96b63a3910ddc1100b1a7ef50dc26dceb65ced18ded31ab392f132b
+SHA(expat) := a0eb5af56b1c2ba812051c49bf3b4e5763293fe5394a0219df7208845c3efb8c
 DIR(expat) := src/lib/expat/contrib
 
 DIRS := include
