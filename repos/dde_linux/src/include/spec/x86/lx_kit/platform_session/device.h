@@ -18,6 +18,7 @@
 #include <base/attached_dataspace.h>
 #include <base/exception.h>
 #include <io_mem_session/client.h>
+#include <io_port_session/client.h>
 #include <irq_session/client.h>
 #include <platform_session/connection.h>
 #include <util/mmio.h>
@@ -39,6 +40,7 @@ class Platform::Device : Interface, Noncopyable
 		struct Range { addr_t start; size_t size; };
 
 		struct Mmio;
+		struct Io_port_range;
 		struct Irq;
 		struct Config_space;
 
@@ -101,6 +103,36 @@ class Platform::Device::Mmio : Range
 
 		template <typename T>
 		T *local_addr() { return reinterpret_cast<T *>(_local_addr()); }
+};
+
+
+class Platform::Device::Io_port_range : Noncopyable
+{
+	public:
+
+		struct Index { unsigned value; };
+
+	private:
+
+		Device &_device;
+		Index   _index;
+
+		Constructible<Io_port_session_client> _io_port { };
+
+	public:
+
+		Io_port_range(Device &device, Index index);
+
+		explicit Io_port_range(Device &device)
+		: _device { device }, _index { ~0u } { }
+
+		uint8_t  inb(uint16_t addr);
+		uint16_t inw(uint16_t addr);
+		uint32_t inl(uint16_t addr);
+
+		void outb(uint16_t addr, uint8_t  val);
+		void outw(uint16_t addr, uint16_t val);
+		void outl(uint16_t addr, uint32_t val);
 };
 
 

@@ -74,6 +74,22 @@ class Lx_kit::Device : List<Device>::Element
 			void handle();
 		};
 
+		struct Io_port : List<Io_port>::Element
+		{
+			using Index = Platform::Device::Io_port_range::Index;
+
+			Index    idx;
+			uint16_t addr;
+			uint16_t size;
+
+			Constructible<Platform::Device::Io_port_range> io_port {};
+
+			bool match(uint16_t addr);
+
+			Io_port(unsigned idx, uint16_t addr, uint16_t size)
+			: idx{idx}, addr(addr), size(size) {}
+		};
+
 		struct Clock : List<Clock>::Element
 		{
 			unsigned   idx;
@@ -92,14 +108,19 @@ class Lx_kit::Device : List<Device>::Element
 		Platform::Connection          & _platform;
 		Name                      const _name;
 		Type                      const _type;
-		List<Io_mem>                    _io_mems {};
-		List<Irq>                       _irqs    {};
-		List<Clock>                     _clocks  {};
-		Constructible<Platform::Device> _pdev    {};
+		List<Io_mem>                    _io_mems  {};
+		List<Io_port>                   _io_ports {};
+		List<Irq>                       _irqs     {};
+		List<Clock>                     _clocks   {};
+		Constructible<Platform::Device> _pdev     {};
 
 		template <typename FN>
 		void _for_each_io_mem(FN const & fn) {
 			for (Io_mem * i = _io_mems.first(); i; i = i->next()) fn(*i); }
+
+		template <typename FN>
+		void _for_each_io_port(FN const & fn) {
+			for (Io_port * i = _io_ports.first(); i; i = i->next()) fn(*i); }
 
 		template <typename FN>
 		void _for_each_irq(FN const & fn) {
@@ -125,6 +146,14 @@ class Lx_kit::Device : List<Device>::Element
 
 		bool   read_config(unsigned reg, unsigned len, unsigned *val);
 		bool   write_config(unsigned reg, unsigned len, unsigned  val);
+
+		bool     io_port(uint16_t addr);
+		uint8_t  io_port_inb(uint16_t addr);
+		uint16_t io_port_inw(uint16_t addr);
+		uint32_t io_port_inl(uint16_t addr);
+		void     io_port_outb(uint16_t addr, uint8_t  val);
+		void     io_port_outw(uint16_t addr, uint16_t val);
+		void     io_port_outl(uint16_t addr, uint32_t val);
 };
 
 
