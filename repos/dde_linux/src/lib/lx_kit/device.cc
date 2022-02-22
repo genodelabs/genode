@@ -27,6 +27,17 @@ bool Device::Io_mem::match(addr_t addr, size_t size)
 }
 
 
+/**********************
+ ** Device::Io_port **
+ **********************/
+
+bool Device::Io_port::match(uint16_t addr)
+{
+	return (this->addr <= addr) &&
+	       ((this->addr + this->size) >= addr);
+}
+
+
 /****************
  ** Device::Irq**
  ****************/
@@ -168,6 +179,110 @@ void Device::irq_ack(unsigned number)
 }
 
 
+bool Device::io_port(uint16_t addr)
+{
+	bool ret = false;
+	_for_each_io_port([&] (Io_port & io) {
+		if (io.match(addr))
+			ret = true;
+	});
+	return ret;
+}
+
+
+uint8_t Device::io_port_inb(uint16_t addr)
+{
+	uint8_t ret = 0;
+	_for_each_io_port([&] (Device::Io_port & io) {
+		if (!io.match(addr))
+			return;
+
+		if (!io.io_port.constructed())
+			io.io_port.construct(*_pdev, io.idx);
+
+		ret = io.io_port->inb(addr);
+	});
+
+	return ret;
+}
+
+
+uint16_t Device::io_port_inw(uint16_t addr)
+{
+	uint16_t ret = 0;
+	_for_each_io_port([&] (Device::Io_port & io) {
+		if (!io.match(addr))
+			return;
+
+		if (!io.io_port.constructed())
+			io.io_port.construct(*_pdev, io.idx);
+
+		ret = io.io_port->inw(addr);
+	});
+
+	return ret;
+}
+
+
+uint32_t Device::io_port_inl(uint16_t addr)
+{
+	uint32_t ret = 0;
+	_for_each_io_port([&] (Device::Io_port & io) {
+		if (!io.match(addr))
+			return;
+
+		if (!io.io_port.constructed())
+			io.io_port.construct(*_pdev, io.idx);
+
+		ret = io.io_port->inl(addr);
+	});
+
+	return ret;
+}
+
+
+void Device::io_port_outb(uint16_t addr, uint8_t val)
+{
+	_for_each_io_port([&] (Device::Io_port & io) {
+		if (!io.match(addr))
+			return;
+
+		if (!io.io_port.constructed())
+			io.io_port.construct(*_pdev, io.idx);
+
+		io.io_port->outb(addr, val);
+	});
+}
+
+
+void Device::io_port_outw(uint16_t addr, uint16_t val)
+{
+	_for_each_io_port([&] (Device::Io_port & io) {
+		if (!io.match(addr))
+			return;
+
+		if (!io.io_port.constructed())
+			io.io_port.construct(*_pdev, io.idx);
+
+		io.io_port->outw(addr, val);
+	});
+}
+
+
+void Device::io_port_outl(uint16_t addr, uint32_t val)
+{
+	_for_each_io_port([&] (Device::Io_port & io) {
+		if (!io.match(addr))
+			return;
+
+		if (!io.io_port.constructed())
+			io.io_port.construct(*_pdev, io.idx);
+
+		io.io_port->outl(addr, val);
+	});
+}
+
+
 void Device::enable()
 {
 	if (_pdev.constructed())
@@ -206,6 +321,13 @@ Device::Device(Entrypoint           & ep,
 		addr_t addr = node.attribute_value("phys_addr", 0UL);
 		size_t size = node.attribute_value("size",      0UL);
 		_io_mems.insert(new (heap) Io_mem(i++, addr, size));
+	});
+
+	i = 0;
+	xml.for_each_sub_node("io_port", [&] (Xml_node node) {
+		uint16_t addr = node.attribute_value<uint16_t>("phys_addr", 0U);
+		uint16_t size = node.attribute_value<uint16_t>("size",      0U);
+		_io_ports.insert(new (heap) Io_port(i++, addr, size));
 	});
 
 	i = 0;

@@ -229,6 +229,13 @@ static unsigned bar_size(Platform::Device const &dev,
 
 			val = node.attribute_value("size", 0u);
 		});
+
+		device.for_each_sub_node("io_port", [&] (Xml_node node) {
+			if (node.attribute_value("bar", 6u) != bar)
+				return;
+
+			val = node.attribute_value("size", 0u);
+		});
 	});
 
 	return val;
@@ -271,7 +278,7 @@ Platform::Device::Device(Connection &platform, Name name)
 unsigned Platform::Device::Config_space::read(unsigned char address,
                                               Access_size size)
 {
-	// 32bit BARs only for now
+	/* 32bit BARs only for now */
 	if (address >= 0x10 && address <= 0x24) {
 		unsigned const bar = (address - 0x10) / 4;
 		if (_device._bar_checked_for_size[bar]) {
@@ -286,9 +293,6 @@ unsigned Platform::Device::Config_space::read(unsigned char address,
 	if (address == 0x34)
 		return 0u;
 
-	if (address > 0x3f)
-		return 0u;
-
 	Legacy_platform::Device::Access_size const as = convert(size);
 	Legacy_platform::Device_client device { _device._device_cap };
 	return device.config_read(address, as);
@@ -299,7 +303,7 @@ void Platform::Device::Config_space::write(unsigned char address,
                                            unsigned value,
                                            Access_size size)
 {
-	// 32bit BARs only for now
+	/* 32bit BARs only for now */
 	if (address >= 0x10 && address <= 0x24) {
 		unsigned const bar = (address - 0x10) / 4;
 		if (value == 0xffffffffu)
@@ -307,8 +311,30 @@ void Platform::Device::Config_space::write(unsigned char address,
 		return;
 	}
 
-	if (address != 0x04)
+	/* reject writes to unknown addresses */
+	switch (address) {
+	case 0x04:
+		/*
+		 * Doing this multiple times induces multiple "assignment of PCI
+		 * device" diasgnostics currently.
+		 */
+		/* command register (value for enable io, memory, bus master) */
+		value = 7;
+		break;
+
+	/*
+	 * Write in [0x40,0xff] should be okay if there are is no capability
+	 * list (status register bit 4 + capability list pointer). Otherwise,
+	 * writes into capability-list entries should be rejected.
+	 */
+
+	case 0xc0: /* UHCI BIOS handoff (UHCI_USBLEGSUP) */ break;
+	case 0xc4: /* UHCI INTEL resume-enable (USBRES_INTEL) */ break;
+	case 0x60 ... 0x6f: /* EHCI BIOS handoff (just empiric, address not fixed) */ break;
+
+	default:
 		return;
+	}
 
 	Legacy_platform::Device::Access_size const as = convert(size);
 	Legacy_platform::Device_client device { _device._device_cap };
@@ -340,6 +366,53 @@ void *Platform::Device::Mmio::_local_addr()
 	}
 
 	return _attached_ds->local_addr<void*>();
+}
+
+
+Platform::Device::Io_port_range::Io_port_range(Device &device, Index index)
+:
+	_device { device },
+	_index  { index }
+{
+	Legacy_platform::Device_client client { _device._device_cap };
+
+	_io_port.construct(client.io_port((uint8_t)index.value));
+}
+
+
+unsigned char Platform::Device::Io_port_range::inb(uint16_t addr)
+{
+	return _io_port->inb(addr);
+}
+
+
+unsigned short Platform::Device::Io_port_range::inw(uint16_t addr)
+{
+	return _io_port->inw(addr);
+}
+
+
+unsigned int Platform::Device::Io_port_range::inl(uint16_t addr)
+{
+	return _io_port->inl(addr);
+}
+
+
+void Platform::Device::Io_port_range::outb(uint16_t addr, uint8_t val)
+{
+	return _io_port->outb(addr, val);
+}
+
+
+void Platform::Device::Io_port_range::outw(uint16_t addr, uint16_t val)
+{
+	return _io_port->outw(addr, val);
+}
+
+
+void Platform::Device::Io_port_range::outl(uint16_t addr, uint32_t val)
+{
+	return _io_port->outl(addr, val);
 }
 
 
