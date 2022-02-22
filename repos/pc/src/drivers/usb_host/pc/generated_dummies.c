@@ -325,14 +325,6 @@ int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * e
 }
 
 
-#include <asm-generic/logic_io.h>
-
-void memcpy_fromio(void * to,const volatile void __iomem * from,size_t n)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kernel.h>
 
 unsigned long long memparse(const char * ptr,char ** retptr)
@@ -676,3 +668,10 @@ void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
 	lx_emul_trace_and_stop(__func__);
 }
 
+
+#include <linux/slab.h>
+
+void kmem_cache_destroy(struct kmem_cache * s)
+{
+    lx_emul_trace_and_stop(__func__);
+}

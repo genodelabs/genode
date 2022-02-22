@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2022-01-13
+ * \date   2022-02-21
  */
 
 #pragma once
@@ -58,7 +58,6 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_init_reserve_notifier4",
 	"__initcall_pci_slot_init4",
 	"__initcall_misc_init4",
-	"__initcall_vga_arb_device_init4",
 	"__initcall_usb_common_init4",
 	"__initcall_usb_init4",
 	"__initcall_serio_init4",
@@ -135,6 +134,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_ehci_pci_init6",
 	"__initcall_ohci_hcd_mod_init6",
 	"__initcall_ohci_pci_init6",
+	"__initcall_uhci_hcd_init6",
 	"__initcall_xhci_hcd_init6",
 	"__initcall_xhci_pci_init6",
 	"__initcall_i8042_init6",

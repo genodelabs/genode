@@ -47,6 +47,7 @@ drivers/usb/host/ehci-pci.c
 drivers/usb/host/ohci-hcd.c
 drivers/usb/host/ohci-pci.c
 drivers/usb/host/pci-quirks.c
+drivers/usb/host/uhci-hcd.c
 drivers/usb/host/xhci-dbg.c
 drivers/usb/host/xhci-ext-caps.c
 drivers/usb/host/xhci-hub.c
