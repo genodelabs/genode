@@ -3,13 +3,16 @@
 
 using namespace Genode;
 
+enum { MAX_EVENT_SIZE = 256 };
+
 size_t max_event_size()
 {
-	return 0;
+	return MAX_EVENT_SIZE;
 }
 
 size_t log_output(char *dst, char const *log_message, size_t len)
 {
+	len = min(len, MAX_EVENT_SIZE);
 	memcpy(dst, (void*)log_message, len);
 	return len;
 }
