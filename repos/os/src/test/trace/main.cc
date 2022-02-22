@@ -20,6 +20,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/sleep.h>
+#include <trace/trace_buffer.h>
 
 using namespace Genode;
 
@@ -68,8 +69,8 @@ class Trace_buffer_monitor
 		char                  _buf[MAX_ENTRY_BUF];
 		Region_map           &_rm;
 		Trace::Subject_id     _id;
-		Trace::Buffer        *_buffer;
-		Trace::Buffer::Entry  _curr_entry;
+		Trace::Buffer        *_buffer_raw;
+		Trace_buffer          _buffer;
 
 		const char *_terminate_entry(Trace::Buffer::Entry const &entry)
 		{
@@ -85,37 +86,30 @@ class Trace_buffer_monitor
 		                     Trace::Subject_id     id,
 		                     Dataspace_capability  ds_cap)
 		:
-			_rm(rm), _id(id), _buffer(rm.attach(ds_cap)),
-			_curr_entry(_buffer->first())
+			_rm(rm), _id(id), _buffer_raw(rm.attach(ds_cap)),
+			_buffer(*_buffer_raw)
 		{
 			log("monitor "
 				"subject:", _id.id, " "
-				"buffer:",  Hex((addr_t)_buffer));
+				"buffer:",  Hex((addr_t)_buffer_raw));
 		}
 
 		~Trace_buffer_monitor()
 		{
-			if (_buffer) { _rm.detach(_buffer); }
+			if (_buffer_raw) { _rm.detach(_buffer_raw); }
 		}
 
 		Trace::Subject_id id() { return _id; };
 
 		void dump()
 		{
-			log("overflows: ", _buffer->wrapped());
 			log("read all remaining events");
-
-			for (; !_curr_entry.head(); _curr_entry = _buffer->next(_curr_entry)) {
-				if (_curr_entry.last())
-					_curr_entry = _buffer->first();
-
-				/* omit empty entries */
-				if (_curr_entry.empty())
-					continue;
-
-				char const * const data = _terminate_entry(_curr_entry);
+			_buffer.for_each_new_entry([&] (Trace::Buffer::Entry &entry) {
+				char const * const data = _terminate_entry(entry);
 				if (data) { log(data); }
-			}
+
+				return true;
+			});
 		}
 };
 
