@@ -13,6 +13,7 @@
 
 #include "sched.h"
 #include <base/allocator_avl.h>
+#include <base/registry.h>
 #include <block_session/connection.h>
 #include <rump/env.h>
 #include <rump_fs/fs.h>
@@ -20,6 +21,60 @@
 static const bool verbose = false;
 
 enum  { GENODE_FD = 64 };
+
+
+class Io_signal_blockade : public Genode::Io_signal_handler<Io_signal_blockade>
+{
+	private:
+
+		Genode::Entrypoint &_ep;
+
+		Genode::Thread const *_ep_thread_ptr;
+
+		bool _signal_handler_called { false };
+
+		typedef Genode::Registered_no_delete<Genode::Blockade> Registered_blockade;
+		Genode::Registry<Registered_blockade> _blockades;
+
+		void _handle_io_signal()
+		{
+			/* unblock the ep thread */
+			_signal_handler_called = true;
+
+			/* unblock non-ep threads */
+			_blockades.for_each([] (Genode::Blockade &blockade) {
+				blockade.wakeup();
+			});
+		}
+
+	public:
+
+		Io_signal_blockade(Entrypoint &ep)
+		: Io_signal_handler(ep, *this,
+		                    &Io_signal_blockade::_handle_io_signal),
+		  _ep(ep)
+		{
+			_ep_thread_ptr = Genode::Thread::myself();
+		}
+
+		void block_for_io()
+		{
+			if (Genode::Thread::myself() == _ep_thread_ptr) {
+
+				while (!_signal_handler_called)
+					_ep.wait_and_dispatch_one_io_signal();
+
+				_signal_handler_called = false;
+
+			} else {
+
+				Registered_blockade _blockade { _blockades };
+				_blockade.block();
+
+			}
+		}
+};
+
 
 /**
  * Block session connection
@@ -46,14 +101,14 @@ class Backend
 		Block::Connection<Job> _session {  Rump::env().env(), &_alloc };
 		Block::Session::Info   _info    { _session.info() };
 		Genode::Mutex          _session_mutex;
+		Io_signal_blockade     _io_signal_blockade { _ep };
 
-		bool _blocked_for_synchronous_io = false;
-
-		Genode::Io_signal_handler<Backend> _signal_handler {
-			_ep, *this, &Backend::_update_jobs };
+		int _blocked_for_synchronous_io = 0;
 
 		void _update_jobs()
 		{
+			Genode::Mutex::Guard guard(_session_mutex);
+
 			struct Update_jobs_policy
 			{
 				void produce_write_content(Job &job, Block::seek_off_t offset,
@@ -78,6 +133,17 @@ class Backend
 			_session.update_jobs(policy);
 		}
 
+		/*
+		 * This function can be called by multiple threads
+		 * (ep and 'pdaemon' have been observed so far in practice).
+		 * A non-ep thread cannot dispatch signals and needs to block
+		 * until the ep has processed the signal. Therefore it is
+		 * important that the ep has the chance to process the signal
+		 * even in the case that it calls this function while a non-ep
+		 * thread is already blocking here. For this reason the
+		 * '_session_mutex' cannot be held over the scope of the whole
+		 * function.
+		 */
 		bool _synchronous_io(void *ptr, Block::Operation const &operation)
 		{
 			Genode::Constructible<Job> job { };
@@ -85,20 +151,22 @@ class Backend
 			{
 				Genode::Mutex::Guard guard(_session_mutex);
 				job.construct(_session, ptr, operation);
-				_blocked_for_synchronous_io = true;
+				_blocked_for_synchronous_io++;
 			}
 
 			_update_jobs();
 
-			while (!job->completed())
-				_ep.wait_and_dispatch_one_io_signal();
+			while (!job->completed()) {
+				_io_signal_blockade.block_for_io();
+				_update_jobs();
+			}
 
 			bool const success = job->success;
 
 			{
 				Genode::Mutex::Guard guard(_session_mutex);
 				job.destruct();
-				_blocked_for_synchronous_io = false;
+				_blocked_for_synchronous_io--;
 			}
 
 			return success;
@@ -108,7 +176,7 @@ class Backend
 
 		Backend()
 		{
-			_session.sigh(_signal_handler);
+			_session.sigh(_io_signal_blockade);
 		}
 
 		uint64_t block_count() const { return _info.block_count; }
@@ -142,7 +210,7 @@ class Backend
 			return success;
 		}
 
-		bool blocked_for_io() const { return _blocked_for_synchronous_io; }
+		bool blocked_for_io() const { return _blocked_for_synchronous_io > 0; }
 };
 
 
