@@ -67,6 +67,18 @@ void wifi_set_rfkill(bool blocked)
 }
 
 
+extern "C" unsigned int wifi_ifindex(void)
+{
+	return 1;
+}
+
+
+extern "C" char const wifi_ifname(void)
+{
+	return "wlan0";
+}
+
+
 /**************************
  ** socketcall poll hack **
  **************************/
