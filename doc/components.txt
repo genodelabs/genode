@@ -440,6 +440,9 @@ implement the VFS-plugin interface. They can be combined with any application
 based on Genode's C runtime, with the VFS server, and with non-POSIX
 components that use the Genode's VFS library directly.
 
+:_os/src/lib/vfs/tap/_:
+  A VFS plugin that allows for packet-level access of a NIC or uplink session.
+
 :_gems/src/lib/vfs/trace/_:
   A VFS plugin that makes core's TRACE service accessible as a pseudo
   file system.
@@ -595,15 +598,11 @@ Package-management components
 Runtime environments
 ####################
 
-:_ports/src/app/seoul/_: Seoul is a virtual-machine monitor developed for
-  the use with the NOVA platform. It virtualizes 32bit x86 PC hardware
-  including various peripherals.
-
 :_os/src/server/loader/_: A service that allows the creation and destruction
   of Genode subsystems via a session interface. For further information,
   refer to _os/src/server/loader/README_.
 
-:_ports/src/virtualbox5/_: VirtualBox running on top of the NOVA hypervisor.
+:_ports/src/virtualbox6/_: VirtualBox running on top of the NOVA hypervisor.
 
 :_os/src/server/vmm/_: A virtual machine monitor that is based on
   hardware-assisted virtualization of ARM platforms. It is supported on
