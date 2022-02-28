@@ -106,7 +106,7 @@ append config {
 </config>}
 
 install_config $config
-build_boot_image { core ld.lib.so init timer sntp_client report_rom }
+build_boot_image { sntp_client report_rom }
 
 append qemu_args "  -nographic "
 append_qemu_nic_args
