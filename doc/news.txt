@@ -4,6 +4,45 @@
                                ===========
 
 
+Genode OS Framework release 22.02 | 2022-02-28
+##############################################
+
+| With Genode 22.02, 3D acceleration becomes available to guest operating
+| systems running in VirtualBox 6, Sculpt OS evolves into a versatile framework
+| for building special-purpose operating systems, and Genode starts to interact
+| with the modem of the Pinephone.
+
+The features mentioned above are merely the tip of the iceberg of version
+22.02. In fact, the majority of the development work during the release cycle
+was focused on topics beyond the visible surface, ranging from the
+reorganization of the code base for streamlining the targeting of new hardware,
+over the tightening of foundational framework APIs, to the raising of the
+default warning level used when building genuine Genode components. Over the
+course of this infrastructural work, almost no component was left unturned.
+
+Functionality-wise, improvements of the Genode-based Sculpt OS are at the
+center stage of the release. Originally pursued with the vision of a
+Genode-based general-purpose OS that is fit for day-to-day use on commodity PC
+hardware, the current release lifts the potential of Sculpt's architecture for
+the creation of special-purpose operating-system appliances. The gained
+flexibility took even us developers by surprise! Thanks to the new modular
+approach, we were able to demonstrate a bare-bones version of Sculpt OS on
+the Pinephone at FOSDEM, or accelerate our development workflow by routinely
+running Sculpt OS directly on the Linux kernel.
+
+The intensive device-driver-related developments of the previous releases
+continued as well. This time, we took our new approach for running Linux
+drivers in Genode to PC hardware, starting with a fresh port of the USB host
+controller driver. The Intel GPU driver received numerous performance
+improvements and can now even be combined with guest operating systems running
+in VirtualBox 6. Further notable driver-related improvements are the new
+ability to interact with the modem on the Pinephone and largely streamlined
+driver infrastructure for the Raspberry Pi.
+
+All the details of the new version can be found in the
+[https:/documentation/release-notes/22.02 - release documentation of version 22.02...]
+
+
 Road Map for 2022 | 2022-01-18
 ##############################
 
