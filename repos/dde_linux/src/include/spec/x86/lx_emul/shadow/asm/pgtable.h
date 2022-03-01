@@ -21,6 +21,10 @@
 
 #include <lx_emul/debug.h>
 
+#ifndef __ASSEMBLY__
+#include <asm/fpu/api.h>
+#endif
+
 static inline pte_t pte_mkwrite(pte_t pte) { return pte; }
 
 static inline bool __pkru_allows_pkey(u16 pkey, bool write)
