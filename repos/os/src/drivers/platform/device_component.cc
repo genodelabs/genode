@@ -81,6 +81,25 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 }
 
 
+Genode::Io_port_session_capability Device_component::io_port_range(unsigned idx)
+{
+	Io_port_session_capability cap;
+
+	_io_port_range_registry.for_each([&] (Io_port_range & ipr)
+	{
+		if (ipr.idx != idx)
+			return;
+
+		if (!ipr.io_port_range.constructed())
+			ipr.io_port_range.construct(_session.env(), ipr.addr, ipr.size);
+
+		cap = ipr.io_port_range->cap();
+	});
+
+	return cap;
+}
+
+
 Device_component::Device_component(Registry<Device_component> & registry,
                                    Driver::Session_component  & session,
                                    Driver::Device             & device)
@@ -109,7 +128,7 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			_cap_quota += Irq_session::CAP_QUOTA;
 			new (session.heap()) Irq(_irq_registry, idx, nr);
 		});
-	
+
 		device.for_each_io_mem([&] (unsigned idx, Range range)
 		{
 			session.ram_quota_guard().withdraw(Ram_quota{Io_mem_session::RAM_QUOTA});
@@ -117,6 +136,17 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
 			_cap_quota += Io_mem_session::CAP_QUOTA;
 			new (session.heap()) Io_mem(_io_mem_registry, idx, range);
+		});
+
+		device.for_each_io_port_range([&] (unsigned idx, uint16_t addr,
+		                                   uint16_t size)
+		{
+			session.ram_quota_guard().withdraw(Ram_quota{Io_port_session::RAM_QUOTA});
+			_ram_quota += Io_port_session::RAM_QUOTA;
+			session.cap_quota_guard().withdraw(Cap_quota{Io_port_session::CAP_QUOTA});
+			_cap_quota += Io_port_session::CAP_QUOTA;
+			new (session.heap()) Io_port_range(_io_port_range_registry,
+			                                   idx, addr, size);
 		});
 	} catch(...) {
 		_release_resources();

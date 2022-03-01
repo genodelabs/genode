@@ -35,6 +35,7 @@ namespace Driver {
 	class  Session_component;
 	struct Irq_update_policy;
 	struct Io_mem_update_policy;
+	struct Io_port_update_policy;
 	struct Property_update_policy;
 	struct Clock_update_policy;
 	struct Reset_domain_update_policy;
@@ -76,6 +77,15 @@ class Driver::Device : private List_model<Device>::Element
 			unsigned number;
 
 			Irq(unsigned number) : number(number) {}
+		};
+
+		struct Io_port_range : List_model<Io_port_range>::Element
+		{
+			uint16_t addr;
+			uint16_t size;
+
+			Io_port_range(uint16_t addr, uint16_t size)
+			: addr(addr), size(size) {}
 		};
 
 		struct Property : List_model<Property>::Element
@@ -149,6 +159,13 @@ class Driver::Device : private List_model<Device>::Element
 				fn(idx++, iomem.range); });
 		}
 
+		template <typename FN> void for_each_io_port_range(FN const & fn)
+		{
+			unsigned idx = 0;
+			_io_port_range_list.for_each([&] (Io_port_range const & ipr) {
+				fn(idx++, ipr.addr, ipr.size); });
+		}
+
 		void report(Xml_generator &, Session_component &);
 
 	protected:
@@ -160,15 +177,16 @@ class Driver::Device : private List_model<Device>::Element
 		friend class List_model<Device>;
 		friend class List<Device>;
 
-		Name                     _name;
-		Type                     _type;
-		Owner                    _owner {};
-		List_model<Io_mem>       _io_mem_list {};
-		List_model<Irq>          _irq_list {};
-		List_model<Property>     _property_list {};
-		List_model<Clock>        _clock_list {};
-		List_model<Power_domain> _power_domain_list {};
-		List_model<Reset_domain> _reset_domain_list {};
+		Name                      _name;
+		Type                      _type;
+		Owner                     _owner {};
+		List_model<Io_mem>        _io_mem_list {};
+		List_model<Irq>           _irq_list {};
+		List_model<Io_port_range> _io_port_range_list {};
+		List_model<Property>      _property_list {};
+		List_model<Clock>         _clock_list {};
+		List_model<Power_domain>  _power_domain_list {};
+		List_model<Reset_domain>  _reset_domain_list {};
 
 		/*
 		 * Noncopyable
@@ -286,6 +304,39 @@ struct Driver::Io_mem_update_policy : Genode::List_model<Device::Io_mem>::Update
 	static bool node_is_element(Genode::Xml_node node)
 	{
 		return node.has_type("io_mem");
+	}
+};
+
+
+struct Driver::Io_port_update_policy
+: Genode::List_model<Device::Io_port_range>::Update_policy
+{
+	Genode::Allocator & alloc;
+
+	Io_port_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
+
+	void destroy_element(Element & ipr) {
+		Genode::destroy(alloc, &ipr); }
+
+	Element & create_element(Genode::Xml_node node)
+	{
+		uint16_t addr = node.attribute_value<uint16_t>("address", 0);
+		uint16_t size = node.attribute_value<uint16_t>("size",    0);
+		return *(new (alloc) Element(addr, size));
+	}
+
+	void update_element(Element &, Genode::Xml_node) {}
+
+	static bool element_matches_xml_node(Element const & ipr, Genode::Xml_node node)
+	{
+		uint16_t addr = node.attribute_value<uint16_t>("address", 0);
+		uint16_t size = node.attribute_value<uint16_t>("size",    0);
+		return addr == ipr.addr && size == ipr.size;
+	}
+
+	static bool node_is_element(Genode::Xml_node node)
+	{
+		return node.has_type("io_port_range");
 	}
 };
 

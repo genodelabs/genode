@@ -16,6 +16,7 @@
 
 #include <base/registry.h>
 #include <base/rpc_server.h>
+#include <io_port_session/connection.h>
 #include <io_mem_session/connection.h>
 #include <irq_session/connection.h>
 #include <platform_session/device.h>
@@ -63,6 +64,22 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 				idx(idx), range(range) {}
 		};
 
+		struct Io_port_range : Registry<Io_port_range>::Element
+		{
+			unsigned                          idx;
+			uint16_t                          addr;
+			uint16_t                          size;
+			Constructible<Io_port_connection> io_port_range {};
+
+			Io_port_range(Registry<Io_port_range> & registry,
+			        unsigned            idx,
+			        uint16_t            addr,
+			        uint16_t            size)
+			:
+				Registry<Io_port_range>::Element(registry, *this),
+				idx(idx), addr(addr), size(size) {}
+		};
+
 		Device_component(Registry<Device_component> & registry,
 		                 Session_component          & session,
 		                 Driver::Device             & device);
@@ -76,8 +93,9 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		 ** Platform::Device RPC functions **
 		 ************************************/
 
-		Irq_session_capability    irq(unsigned);
-		Io_mem_session_capability io_mem(unsigned, Range &, Cache);
+		Irq_session_capability     irq(unsigned);
+		Io_mem_session_capability  io_mem(unsigned, Range &, Cache);
+		Io_port_session_capability io_port_range(unsigned);
 
 	private:
 
@@ -88,6 +106,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		Registry<Device_component>::Element _reg_elem;
 		Registry<Irq>                       _irq_registry {};
 		Registry<Io_mem>                    _io_mem_registry {};
+		Registry<Io_port_range>             _io_port_range_registry {};
 
 		void _release_resources();
 

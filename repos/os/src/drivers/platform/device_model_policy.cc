@@ -29,6 +29,11 @@ void Device_model::destroy_element(Device & device)
 	}
 
 	{
+		Io_port_update_policy policy(_heap);
+		device._io_port_range_list.destroy_all_elements(policy);
+	}
+
+	{
 		Property_update_policy policy(_heap);
 		device._property_list.destroy_all_elements(policy);
 	}
@@ -71,6 +76,11 @@ void Device_model::update_element(Device & device,
 	{
 		Io_mem_update_policy policy(_heap);
 		device._io_mem_list.update_from_xml(policy, node);
+	}
+
+	{
+		Io_port_update_policy policy(_heap);
+		device._io_port_range_list.update_from_xml(policy, node);
 	}
 
 	{
