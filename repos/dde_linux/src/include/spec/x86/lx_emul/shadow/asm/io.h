@@ -14,6 +14,10 @@
 
 #include <lx_emul/io_port.h>
 
+#ifndef page_to_phys
+#define page_to_phys(page)  ((dma_addr_t)page_to_pfn(page) << PAGE_SHIFT)
+#endif
+
 void __iomem *ioremap(resource_size_t offset, unsigned long size);
 void iounmap(volatile void __iomem *addr);
 
