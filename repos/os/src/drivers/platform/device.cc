@@ -122,6 +122,12 @@ void Driver::Device::report(Xml_generator & xml, Session_component & sc)
 				xml.attribute("number", irq.number);
 			});
 		});
+		_io_port_range_list.for_each([&] (Io_port_range & io_port_range) {
+			xml.node("io_port_range", [&] () {
+				xml.attribute("phys_addr", String<16>(Hex(io_port_range.addr)));
+				xml.attribute("size",      String<16>(Hex(io_port_range.size)));
+			});
+		});
 		_property_list.for_each([&] (Property & p) {
 			xml.node("property", [&] () {
 				xml.attribute("name",  p.name);

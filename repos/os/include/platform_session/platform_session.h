@@ -21,6 +21,7 @@
 #include <rom_session/capability.h>
 #include <irq_session/capability.h>
 #include <io_mem_session/capability.h>
+#include <io_port_session/capability.h>
 #include <session/session.h>
 
 namespace Platform {
@@ -42,8 +43,10 @@ struct Platform::Device_interface : Interface
 	GENODE_RPC(Rpc_irq, Irq_session_capability, irq, unsigned);
 	GENODE_RPC(Rpc_io_mem, Io_mem_session_capability, io_mem,
 	           unsigned, Range &, Cache);
+	GENODE_RPC(Rpc_io_port_range, Io_port_session_capability, io_port_range,
+	           unsigned);
 
-	GENODE_RPC_INTERFACE(Rpc_irq, Rpc_io_mem);
+	GENODE_RPC_INTERFACE(Rpc_irq, Rpc_io_mem, Rpc_io_port_range);
 };
 
 
