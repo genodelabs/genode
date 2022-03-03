@@ -60,7 +60,7 @@ class genode_usb_session : public Usb::Session_rpc_object
 		Constructible<Usb::Packet_descriptor> packets[MAX_PACKETS_IN_FLY] { };
 
 		::Root                         & _root;
-		Attached_dataspace             & _ds;
+		genode_shared_dataspace        * _ds;
 		Signal_context_capability        _sigh_state_cap {};
 		genode_usb_session_handle_t      _id;
 		Session_label const              _label;
@@ -68,12 +68,16 @@ class genode_usb_session : public Usb::Session_rpc_object
 
 		void _ack(int err, Usb::Packet_descriptor p);
 
+		/*
+		 * Non_copyable
+		 */
 		genode_usb_session(const genode_usb_session&);
+		genode_usb_session & operator=(const genode_usb_session&);
 
 	public:
 
 		genode_usb_session(::Root                    & root,
-		                   Attached_dataspace        & ds,
+		                   genode_shared_dataspace   * ds,
 		                   Env                       & env,
 		                   Signal_context_capability   cap,
 		                   genode_usb_session_handle_t id,
@@ -425,7 +429,8 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 
 	addr_t offset = (addr_t)sink()->packet_content(p) -
 	                (addr_t)sink()->ds_local_base();
-	void * addr   = (void*)((addr_t)_ds.local_addr<void>() + offset);
+	void * addr   = (void*)(genode_shared_dataspace_local_address(_ds)
+	                        + offset);
 
 	switch (p.type) {
 	case Packet_descriptor::STRING:
@@ -482,13 +487,14 @@ void genode_usb_session::handle_response(genode_usb_request_handle_t id,
 
 
 genode_usb_session::genode_usb_session(::Root                    & root,
-                                       Attached_dataspace        & ds,
+                                       genode_shared_dataspace   * ds,
                                        Env                       & env,
                                        Signal_context_capability   cap,
                                        genode_usb_session_handle_t id,
                                        Session_label const         label)
 :
-	Usb::Session_rpc_object(ds.cap(), env.ep().rpc_ep(), env.rm()),
+	Usb::Session_rpc_object(genode_shared_dataspace_capability(ds),
+	                        env.ep().rpc_ep(), env.rm()),
 	_root(root),
 	_ds(ds),
 	_id(id),
@@ -548,9 +554,8 @@ genode_usb_session * ::Root::_create_session(const char * args,
 		throw Insufficient_ram_quota();
 	}
 
-	Attached_dataspace & ds =
-	*static_cast<Attached_dataspace*>(_callbacks->alloc_fn(tx_buf_size));
-	genode_usb_session * ret = new (md_alloc())
+	genode_shared_dataspace * ds  = _callbacks->alloc_fn(tx_buf_size);
+	genode_usb_session      * ret = new (md_alloc())
 		genode_usb_session(*this, ds, _env, _sigh_cap, _id_alloc.alloc(), label);
 	_sessions.insert(&ret->_le);
 
@@ -576,11 +581,11 @@ void ::Root::_destroy_session(genode_usb_session * session)
 	});
 
 	genode_usb_session_handle_t id = session->_id;
-	Attached_dataspace & ds = session->_ds;
+	genode_shared_dataspace   * ds = session->_ds;
 	_sessions.remove(&session->_le);
 	Genode::destroy(md_alloc(), session);
 	_id_alloc.free((addr_t)id);
-	_callbacks->free_fn(genode_attached_dataspace_ptr(ds));
+	_callbacks->free_fn(ds);
 }
 
 

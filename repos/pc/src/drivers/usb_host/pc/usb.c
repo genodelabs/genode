@@ -15,11 +15,14 @@
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
 
+#include <lx_emul/shared_dma_buffer.h>
 #include <lx_emul/task.h>
 #include <lx_user/init.h>
 #include <lx_user/io.h>
 
-#include <usb.h>
+#include <genode_c_api/usb.h>
+
+struct usb_interface;
 
 struct usb_find_request {
 	genode_usb_bus_num_t bus;
@@ -153,8 +156,8 @@ static int endpoint_descriptor(genode_usb_bus_num_t bus,
 
 
 struct genode_usb_rpc_callbacks genode_usb_rpc_callbacks_obj = {
-	.alloc_fn        = genode_usb_allocate_peer_buffer,
-	.free_fn         = genode_usb_free_peer_buffer,
+	.alloc_fn        = lx_emul_shared_dma_buffer_allocate,
+	.free_fn         = lx_emul_shared_dma_buffer_free,
 	.cfg_desc_fn     = config_descriptor,
 	.alt_settings_fn = alt_settings,
 	.iface_desc_fn   = interface_descriptor,

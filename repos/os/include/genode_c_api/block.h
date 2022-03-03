@@ -30,18 +30,6 @@ extern "C" {
  ********************/
 
 /**
- * Callback called during peer session request to allocate dma-capable shared buffer
- */
-typedef struct genode_attached_dataspace * (*genode_block_alloc_peer_buffer_t)
-	(unsigned long size);
-
-/**
- * Callback called when closing peer session to free shared buffer
- */
-typedef void (*genode_block_free_peer_buffer_t)
-	(struct genode_attached_dataspace * ds);
-
-/**
  * Initialize block root component
  *
  * \param handler  signal handler to be installed at each block session
@@ -49,8 +37,8 @@ typedef void (*genode_block_free_peer_buffer_t)
 void genode_block_init(struct genode_env            *env,
                        struct genode_allocator      *alloc,
                        struct genode_signal_handler *handler,
-                       genode_block_alloc_peer_buffer_t,
-                       genode_block_free_peer_buffer_t);
+                       genode_shared_dataspace_alloc_attach_t,
+                       genode_shared_dataspace_free_t);
 
 
 /**************************************

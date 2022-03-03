@@ -4,10 +4,12 @@ REL_PRG_DIR := $(PRG_DIR)/../..
 
 TARGET  := pc_usb_host_drv
 LIBS    := base pc_lx_emul
-INC_DIR := $(REL_PRG_DIR)
+
+INC_DIR += $(REL_PRG_DIR)
 SRC_CC  += main.cc
 SRC_CC  += misc.cc
 SRC_CC  += time.cc
+SRC_CC  += lx_emul/shared_dma_buffer.cc
 SRC_C   += dummies.c
 SRC_C   += lx_emul.c
 SRC_C   += usb.c

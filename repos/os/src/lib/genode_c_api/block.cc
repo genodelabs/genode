@@ -24,55 +24,68 @@
 using namespace Genode;
 
 
-struct genode_block_session : Rpc_object<Block::Session>
+class genode_block_session : public Rpc_object<Block::Session>
 {
-	enum { MAX_REQUESTS = 32 };
+	private:
 
-	struct Request {
-		enum State { FREE, IN_FLY, DONE };
+		friend class Root;
 
-		State                state    { FREE };
-		genode_block_request dev_req  { GENODE_BLOCK_UNAVAIL, 0, 0, nullptr };
-		Block::Request       peer_req {};
-	};
+		enum { MAX_REQUESTS = 32 };
 
-	Attached_dataspace     & ds;
-	Block::Request_stream    rs;
-	Request                  requests[MAX_REQUESTS];
+		struct Request {
+			enum State { FREE, IN_FLY, DONE };
 
-	template <typename FUNC>
-	void first_request(Request::State state, FUNC const & fn)
-	{
-		for (unsigned idx = 0; idx < MAX_REQUESTS; idx++) {
-			if (requests[idx].state == state) {
-				fn(requests[idx]);
-				return;
+			State                state    { FREE };
+			genode_block_request dev_req  { GENODE_BLOCK_UNAVAIL,
+			                                0, 0, nullptr };
+			Block::Request       peer_req {};
+		};
+
+		genode_shared_dataspace * _ds;
+		Block::Request_stream     _rs;
+		Request                   _requests[MAX_REQUESTS];
+
+		template <typename FUNC>
+		void _first_request(Request::State state, FUNC const & fn)
+		{
+			for (unsigned idx = 0; idx < MAX_REQUESTS; idx++) {
+				if (_requests[idx].state == state) {
+					fn(_requests[idx]);
+					return;
+				}
 			}
 		}
-	}
 
-	template <typename FUNC>
-	void for_each_request(Request::State state, FUNC const & fn)
-	{
-		for (unsigned idx = 0; idx < MAX_REQUESTS; idx++) {
-			if (requests[idx].state == state)
-				fn(requests[idx]);
+		template <typename FUNC>
+		void _for_each_request(Request::State state, FUNC const & fn)
+		{
+			for (unsigned idx = 0; idx < MAX_REQUESTS; idx++) {
+				if (_requests[idx].state == state)
+					fn(_requests[idx]);
+			}
 		}
-	}
 
-	genode_block_session(Env                     & env,
-	                     Block::Session::Info      info,
-	                     Signal_context_capability cap,
-	                     size_t                    buffer_size);
+		/*
+		 * Non_copyable
+		 */
+		genode_block_session(const genode_block_session&);
+		genode_block_session & operator=(const genode_block_session&);
 
-	Info info() const override { return rs.info(); }
+	public:
 
-	Capability<Tx> tx_cap() override { return rs.tx_cap(); }
+		genode_block_session(Env                     & env,
+		                     Block::Session::Info      info,
+		                     Signal_context_capability cap,
+		                     size_t                    buffer_size);
 
-	genode_block_request * request();
-	void ack(genode_block_request * req, bool success);
+		Info info() const override { return _rs.info(); }
 
-	void notify_peers() { rs.wakeup_client_if_needed(); }
+		Capability<Tx> tx_cap() override { return _rs.tx_cap(); }
+
+		genode_block_request * request();
+		void ack(genode_block_request * req, bool success);
+
+		void notify_peers() { _rs.wakeup_client_if_needed(); }
 };
 
 
@@ -131,9 +144,9 @@ class Root : public Root_component<genode_block_session>
 };
 
 
-static ::Root                         * _block_root        = nullptr;
-static genode_block_alloc_peer_buffer_t _alloc_peer_buffer = nullptr;
-static genode_block_free_peer_buffer_t  _free_peer_buffer  = nullptr;
+static ::Root                               * _block_root        = nullptr;
+static genode_shared_dataspace_alloc_attach_t _alloc_peer_buffer = nullptr;
+static genode_shared_dataspace_free_t         _free_peer_buffer  = nullptr;
 
 
 genode_block_request * genode_block_session::request()
@@ -142,7 +155,7 @@ genode_block_request * genode_block_session::request()
 
 	genode_block_request * ret = nullptr;
 
-	rs.with_requests([&] (Block::Request request) {
+	_rs.with_requests([&] (Block::Request request) {
 
 		if (ret)
 			return Response::RETRY;
@@ -156,7 +169,7 @@ genode_block_request * genode_block_session::request()
 
 		Response response = Response::RETRY;
 
-		first_request(Request::FREE, [&] (Request & r) {
+		_first_request(Request::FREE, [&] (Request & r) {
 
 			r.state    = Request::IN_FLY;
 			r.peer_req = request;
@@ -178,8 +191,8 @@ genode_block_request * genode_block_session::request()
 
 			r.dev_req.blk_nr  = op.block_number;
 			r.dev_req.blk_cnt = op.count;
-			r.dev_req.addr    = (void*)((addr_t)ds.local_addr<void>()
-			                            + request.offset);
+			r.dev_req.addr    = (void*)
+				(genode_shared_dataspace_local_address(_ds) + request.offset);
 
 			ret = &r.dev_req;
 			response = Response::ACCEPTED;
@@ -194,14 +207,14 @@ genode_block_request * genode_block_session::request()
 
 void genode_block_session::ack(genode_block_request * req, bool success)
 {
-	for_each_request(Request::IN_FLY, [&] (Request & r) {
+	_for_each_request(Request::IN_FLY, [&] (Request & r) {
 		if (&r.dev_req == req)
 			r.state = Request::DONE;
 	});
 
 	/* Acknowledge any pending packets */
-	rs.try_acknowledge([&](Block::Request_stream::Ack & ack) {
-		first_request(Request::DONE, [&] (Request & r) {
+	_rs.try_acknowledge([&](Block::Request_stream::Ack & ack) {
+		_first_request(Request::DONE, [&] (Request & r) {
 			r.state = Request::FREE;
 			r.peer_req.success = success;
 			ack.submit(r.peer_req);
@@ -215,8 +228,8 @@ genode_block_session::genode_block_session(Env                     & env,
                                            Signal_context_capability cap,
                                            size_t                    buffer_size)
 :
-	ds(*static_cast<Attached_dataspace*>(_alloc_peer_buffer(buffer_size))),
-	rs(env.rm(), ds.cap(), env.ep(), cap, info) { }
+	_ds(_alloc_peer_buffer(buffer_size)),
+	_rs(env.rm(), genode_shared_dataspace_capability(_ds), env.ep(), cap, info) { }
 
 
 genode_block_session * ::Root::_create_session(const char * args,
@@ -262,9 +275,9 @@ void ::Root::_destroy_session(genode_block_session * session)
 			si.block_session = nullptr;
 	});
 
-	Attached_dataspace & ds = session->ds;
+	genode_shared_dataspace * ds = session->_ds;
 	Genode::destroy(md_alloc(), session);
-	_free_peer_buffer(genode_attached_dataspace_ptr(ds));
+	_free_peer_buffer(ds);
 }
 
 
@@ -344,11 +357,12 @@ void ::Root::notify_peers()
 	_env(env), _sigh_cap(cap) { }
 
 
-extern "C" void genode_block_init(genode_env            *env_ptr,
-                                  genode_allocator      *alloc_ptr,
-                                  genode_signal_handler *sigh_ptr,
-                                  genode_block_alloc_peer_buffer_t alloc_func,
-                                  genode_block_free_peer_buffer_t free_func)
+extern "C" void
+genode_block_init(genode_env                           * env_ptr,
+                  genode_allocator                     * alloc_ptr,
+                  genode_signal_handler                * sigh_ptr,
+                  genode_shared_dataspace_alloc_attach_t alloc_func,
+                  genode_shared_dataspace_free_t         free_func)
 {
 	static ::Root root(*static_cast<Env*>(env_ptr),
 	                   *static_cast<Allocator*>(alloc_ptr),

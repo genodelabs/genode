@@ -35,18 +35,6 @@ extern "C" {
  ********************/
 
 /**
- * Callback called during peer session request to allocate dma-capable shared buffer
- */
-typedef struct genode_attached_dataspace * (*genode_usb_alloc_peer_buffer_t)
-	(unsigned long size);
-
-/**
- * Callback called when closing peer session to free shared buffer
- */
-typedef void (*genode_usb_free_peer_buffer_t)
-	(struct genode_attached_dataspace * ds);
-
-/**
  * Callback to copy over config descriptor for given device
  */
 typedef unsigned (*genode_usb_rpc_config_desc_t)
@@ -81,13 +69,13 @@ typedef int (*genode_usb_rpc_endp_desc_t)
 	 unsigned alt, unsigned endp, void * buf, unsigned long buf_size);
 
 struct genode_usb_rpc_callbacks {
-	genode_usb_alloc_peer_buffer_t alloc_fn;
-	genode_usb_free_peer_buffer_t  free_fn;
-	genode_usb_rpc_config_desc_t   cfg_desc_fn;
-	genode_usb_rpc_alt_settings_t  alt_settings_fn;
-	genode_usb_rpc_iface_desc_t    iface_desc_fn;
-	genode_usb_rpc_iface_extra_t   iface_extra_fn;
-	genode_usb_rpc_endp_desc_t     endp_desc_fn;
+	genode_shared_dataspace_alloc_attach_t alloc_fn;
+	genode_shared_dataspace_free_t         free_fn;
+	genode_usb_rpc_config_desc_t           cfg_desc_fn;
+	genode_usb_rpc_alt_settings_t          alt_settings_fn;
+	genode_usb_rpc_iface_desc_t            iface_desc_fn;
+	genode_usb_rpc_iface_extra_t           iface_extra_fn;
+	genode_usb_rpc_endp_desc_t             endp_desc_fn;
 };
 
 /**
