@@ -265,9 +265,9 @@ if {[have_spec x86]} { append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args "  -usb  -usbdevice mouse -usbdevice keyboard"
-append qemu_args " -device usb-ehci,id=ehci"
-append xen_args  { usbdevice=\["mouse","keyboard"\] }
+append qemu_args " -device nec-usb-xhci,id=xhci"
+append qemu_args " -device usb-kbd,bus=xhci.0"
+append qemu_args " -device usb-mouse,bus=xhci.0"
 
 if { [have_include "power_on/qemu"] || ![get_cmd_switch --autopilot] } { run_genode_until forever }
 
