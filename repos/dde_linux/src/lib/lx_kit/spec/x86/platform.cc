@@ -295,8 +295,7 @@ unsigned Platform::Device::Config_space::read(unsigned char address,
 
 	Legacy_platform::Device::Access_size const as = convert(size);
 	Legacy_platform::Device_client device { _device._device_cap };
-	unsigned const v = device.config_read(address, as);
-	return v;
+	return device.config_read(address, as);
 }
 
 
@@ -312,12 +311,13 @@ void Platform::Device::Config_space::write(unsigned char address,
 		return;
 	}
 
-	if (address == 0x04)
+	/* disallow everything except command reg, and special caps for uhci */
+	if ((address != 4) && (address != 192) && (address != 196))
 		return;
 
-	// disallow _all_ other writes for now
-	if (address < 0x3f)
-		return;
+	/* Only allow writing the same value to command reg */
+	if (address == 4)
+		value = 7; /* enable io, memory, bus master */
 
 	Legacy_platform::Device::Access_size const as = convert(size);
 	Legacy_platform::Device_client device { _device._device_cap };
