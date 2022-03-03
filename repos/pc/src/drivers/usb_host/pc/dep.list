@@ -155,6 +155,11 @@ drivers/usb/host/ohci-mem.c
 drivers/usb/host/ohci-q.c
 drivers/usb/host/ohci.h
 drivers/usb/host/pci-quirks.h
+drivers/usb/host/uhci-debug.c
+drivers/usb/host/uhci-hcd.h
+drivers/usb/host/uhci-hub.c
+drivers/usb/host/uhci-pci.c
+drivers/usb/host/uhci-q.c
 drivers/usb/host/xhci-dbgcap.h
 drivers/usb/host/xhci-debugfs.h
 drivers/usb/host/xhci-ext-caps.h
