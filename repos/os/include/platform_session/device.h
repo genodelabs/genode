@@ -191,16 +191,16 @@ class Platform::Device::Io_port_range : Noncopyable
 		explicit Io_port_range(Device &device)
 		: Io_port_range(device, Index { 0 }) { }
 
-		uint8_t  inb(uint16_t off) { return _io_port_range.inb(off); };
-		uint16_t inw(uint16_t off) { return _io_port_range.inw(off); };
-		uint32_t inl(uint16_t off) { return _io_port_range.inl(off); };
+		uint8_t  inb(uint16_t addr) { return _io_port_range.inb(addr); };
+		uint16_t inw(uint16_t addr) { return _io_port_range.inw(addr); };
+		uint32_t inl(uint16_t addr) { return _io_port_range.inl(addr); };
 
-		void outb(uint16_t off, uint8_t  value) {
-			_io_port_range.outb(off, value); };
-		void outw(uint16_t off, uint16_t value) {
-			_io_port_range.outw(off, value); };
-		void outl(uint16_t off, uint32_t value) {
-			_io_port_range.outl(off, value); };
+		void outb(uint16_t addr, uint8_t  value) {
+			_io_port_range.outb(addr, value); };
+		void outw(uint16_t addr, uint16_t value) {
+			_io_port_range.outw(addr, value); };
+		void outl(uint16_t addr, uint32_t value) {
+			_io_port_range.outl(addr, value); };
 };
 
 #endif /* _INCLUDE__PLATFORM_SESSION__DEVICE_H_ */
