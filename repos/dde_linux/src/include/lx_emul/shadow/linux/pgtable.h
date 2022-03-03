@@ -23,6 +23,10 @@ int    pmd_swp_soft_dirty(pmd_t pmd);
 
 void __init pgtable_cache_init(void);
 
+#ifndef pgprot_device
+#define pgprot_device(prot)  (prot)
+#endif
+
 #ifndef pgprot_decrypted
 #define pgprot_decrypted(prot) (prot)
 #endif

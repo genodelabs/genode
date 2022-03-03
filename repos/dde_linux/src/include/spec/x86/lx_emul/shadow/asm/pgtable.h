@@ -32,10 +32,6 @@ extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
 
 #define ZERO_PAGE(vaddr) ((void)(vaddr),virt_to_page(empty_zero_page))
 
-#ifndef pgprot_device
-#define pgprot_device(prot)  (prot)
-#endif
-
 #ifdef CONFIG_X86_64
 static inline int p4d_none(p4d_t p4d)
 {

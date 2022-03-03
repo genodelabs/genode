@@ -66,10 +66,6 @@ static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_
 
 #define virt_addr_valid(kaddr) ((unsigned long)kaddr != 0UL)
 
-#ifndef page_to_phys
-#define page_to_phys(page)  ((dma_addr_t)page_to_pfn(page) << PAGE_SHIFT)
-#endif
-
 #endif /* __ASSEMBLY__ */
 
 #include <asm/memory_model.h>
