@@ -54,7 +54,7 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 Genode::size_t Dataspace_component::_file_size()
 {
 	uint64_t size = 0;
-	if (lx_stat_size(_fname.buf, &size) < 0)
+	if (lx_stat_size(_fname.buf, size) < 0)
 		throw Service_denied();
 
 	return size;
