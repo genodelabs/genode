@@ -30,4 +30,12 @@ void time_init(void)
 }
 
 
-void lx_emul_setup_arch(void *dtb) { }
+#include <asm/pgtable.h>
+
+unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
+
+void lx_emul_setup_arch(void *dtb)
+{
+	/* fill zero page */
+	memset(empty_zero_page, 0, PAGE_SIZE);
+}
