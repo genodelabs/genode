@@ -1,0 +1,14 @@
+
+# RUN virt_linux under Qemu (x86_64)
+
+qemu-system-x86_64 \
+  -no-kvm -m 512 \
+  -chardev stdio,id=virtiocon0 \
+  -device virtio-serial \
+  -device virtconsole,chardev=virtiocon0 \
+  -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
+  -net nic,model=virtio,netdev=net0 \
+  -kernel virt_linux/x86_64/arch/x86_64/boot/bzImage \
+  -initrd busybox/initramfs.cpio.gz \
+  -append "console=hvc0 ip=dhcp"
+
