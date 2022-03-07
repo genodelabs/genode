@@ -22,6 +22,7 @@
 
 namespace Platform {
 	struct Connection;
+	class Dma_buffer;
 
 	using namespace Genode;
 }
@@ -33,8 +34,8 @@ namespace Platform {
 
 struct Platform::Connection
 {
-	Env &_env;
-
+	Env                    &_env;
+	Region_map             &_rm { _env.rm() };
 	char                    _devices_node_buffer[4096u] { };
 	Constructible<Xml_node> _devices_node { };
 
@@ -74,6 +75,12 @@ struct Platform::Connection
 	void free_dma_buffer(Ram_dataspace_capability);
 
 	addr_t dma_addr(Ram_dataspace_capability);
+
+	template <typename FUNC>
+	auto retry_with_upgrade(Ram_quota ram, Cap_quota caps, FUNC func) -> decltype(func())
+	{
+		return _legacy_platform->retry_with_upgrade<FUNC>(ram, caps, func);
+	}
 };
 
 

@@ -13,9 +13,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <os/backtrace.h>
-#include <platform_session/connection.h>
-#include <util/touch.h>
 
 /* local includes */
 #include <lx_kit/memory.h>
@@ -23,35 +20,9 @@
 #include <lx_kit/byte_range.h>
 
 
-Genode::Attached_dataspace & Lx_kit::Mem_allocator::alloc_dataspace(size_t size)
+void Lx_kit::Mem_allocator::free_buffer(void * addr)
 {
-	Ram_dataspace_capability ds_cap;
-
-	try {
-		Ram_dataspace_capability ds_cap =
-			_platform.alloc_dma_buffer(align_addr(size, 12), _cache_attr);
-
-		Buffer & buffer = *new (_heap)
-			Buffer(_env.rm(), ds_cap, _platform.dma_addr(ds_cap));
-
-		/* map eager by touching all pages once */
-		for (size_t sz = 0; sz < buffer.size(); sz += 4096) {
-			touch_read((unsigned char const volatile*)(buffer.virt_addr() + sz)); }
-
-		_virt_to_dma.insert(buffer.virt_addr(), buffer);
-		_dma_to_virt.insert(buffer.dma_addr(), buffer);
-
-		return buffer.ds();
-	} catch (Out_of_caps) {
-		_platform.free_dma_buffer(ds_cap);
-		throw;
-	}
-}
-
-
-void Lx_kit::Mem_allocator::free_dataspace(void * addr)
-{
-	Buffer *buffer = nullptr;
+	Buffer * buffer = nullptr;
 
 	_virt_to_dma.apply(Buffer_info::Query_addr(addr),
 	                   [&] (Buffer_info const & info) {
@@ -59,7 +30,7 @@ void Lx_kit::Mem_allocator::free_dataspace(void * addr)
 	});
 
 	if (!buffer) {
-		warning(__func__, ": no buffer for addr: ", addr, " found");
+		warning(__func__, ": no memory buffer for addr: ", addr, " found");
 		return;
 	}
 
@@ -69,11 +40,7 @@ void Lx_kit::Mem_allocator::free_dataspace(void * addr)
 	_virt_to_dma.remove(Buffer_info::Query_addr(virt_addr));
 	_dma_to_virt.remove(Buffer_info::Query_addr(dma_addr));
 
-	Ram_dataspace_capability ds_cap = buffer->ram_ds_cap();
-
 	destroy(_heap, buffer);
-
-	_platform.free_dma_buffer(ds_cap);
 }
 
 
@@ -83,7 +50,7 @@ Genode::Dataspace_capability Lx_kit::Mem_allocator::attached_dataspace_cap(void 
 
 	_virt_to_dma.apply(Buffer_info::Query_addr(addr),
 	                   [&] (Buffer_info const & info) {
-		ret = info.buffer.ds().cap();
+		ret = info.buffer.cap();
 	});
 
 	return ret;
@@ -118,10 +85,9 @@ void * Lx_kit::Mem_allocator::alloc(size_t size, size_t align)
 			 * and physical addresses of a multi-page allocation are always
 			 * contiguous.
 			 */
-			Attached_dataspace & ds = alloc_dataspace(max(size + 1,
-			                                          min_buffer_size));
+			Buffer & buffer = alloc_buffer(max(size + 1, min_buffer_size));
 
-			_mem.add_range((addr_t)ds.local_addr<void>(), ds.size() - 1);
+			_mem.add_range(buffer.virt_addr(), buffer.size() - 1);
 
 			/* re-try allocation */
 			return _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
@@ -132,7 +98,6 @@ void * Lx_kit::Mem_allocator::alloc(size_t size, size_t align)
 
 				[&] (Range_allocator::Alloc_error) -> void * {
 					error("memory allocation failed for ", size, " align ", align);
-					backtrace();
 					return nullptr; }
 			);
 		}
@@ -198,6 +163,4 @@ Lx_kit::Mem_allocator::Mem_allocator(Genode::Env          & env,
                                      Heap                 & heap,
                                      Platform::Connection & platform,
                                      Cache                  cache_attr)
-:
-	_env(env), _heap(heap), _platform(platform),
-	_cache_attr(cache_attr), _mem(&heap) {}
+: _env(env), _heap(heap), _platform(platform), _cache_attr(cache_attr) {}

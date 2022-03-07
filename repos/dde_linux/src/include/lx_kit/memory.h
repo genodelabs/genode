@@ -15,14 +15,14 @@
 #define _LX_KIT__MEMORY_H_
 
 #include <base/allocator_avl.h>
-#include <base/attached_dataspace.h>
 #include <base/cache.h>
 #include <base/env.h>
 #include <base/heap.h>
 #include <lx_kit/byte_range.h>
 #include <lx_kit/map.h>
 
-namespace Platform { class Connection; };
+namespace Platform { class Connection; }
+
 namespace Lx_kit {
 	using namespace Genode;
 	class Mem_allocator;
@@ -31,32 +31,19 @@ namespace Lx_kit {
 
 class Lx_kit::Mem_allocator
 {
-	private:
+	public:
 
-		class Buffer
+		struct Buffer
 		{
-			private:
+			virtual ~Buffer() {}
 
-				Ram_dataspace_capability _ram_ds_cap;
-				Attached_dataspace       _ds;
-				addr_t             const _dma_addr;
-
-			public:
-
-				Buffer(Region_map             & rm,
-				       Ram_dataspace_capability cap,
-				       addr_t                   dma_addr)
-				: _ram_ds_cap(cap), _ds(rm, cap), _dma_addr(dma_addr) {}
-
-				size_t dma_addr()  const { return _dma_addr; }
-				size_t size()      const { return _ds.size(); }
-				size_t virt_addr() const {
-					return (addr_t) _ds.local_addr<void*>(); }
-
-				Attached_dataspace & ds() { return _ds; }
-
-				Ram_dataspace_capability ram_ds_cap() { return _ram_ds_cap; }
+			virtual size_t dma_addr()  const   = 0;
+			virtual size_t size()      const   = 0;
+			virtual size_t virt_addr() const   = 0;
+			virtual Dataspace_capability cap() = 0;
 		};
+
+	private:
 
 		struct Buffer_info
 		{
@@ -97,9 +84,9 @@ class Lx_kit::Mem_allocator
 		Heap                 & _heap;
 		Platform::Connection & _platform;
 		Cache                  _cache_attr;
-		Allocator_avl          _mem;
-		Map<Buffer_info>       _virt_to_dma { _heap };
-		Map<Buffer_info>       _dma_to_virt { _heap };
+		Allocator_avl          _mem         { &_heap };
+		Map<Buffer_info>       _virt_to_dma {  _heap };
+		Map<Buffer_info>       _dma_to_virt {  _heap };
 
 	public:
 
@@ -108,8 +95,8 @@ class Lx_kit::Mem_allocator
 		              Platform::Connection & platform,
 		              Cache                  cache_attr);
 
-		Attached_dataspace & alloc_dataspace(size_t size);
-		void                 free_dataspace(void *addr);
+		Buffer             & alloc_buffer(size_t size);
+		void                 free_buffer(void *addr);
 		Dataspace_capability attached_dataspace_cap(void *addr);
 
 		void * alloc(size_t size, size_t align);

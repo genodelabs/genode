@@ -11,43 +11,40 @@
  * version 2.
  */
 
-#include <base/attached_dataspace.h>
-
 #include <lx_kit/env.h>
-#include <lx_kit/memory.h>
+#include <lx_kit/dma_buffer.h>
 #include <lx_emul/page_virt.h>
 #include <lx_emul/shared_dma_buffer.h>
 
-struct genode_shared_dataspace : Genode::Attached_dataspace {};
+struct genode_shared_dataspace : Lx_kit::Dma_buffer {};
 
 
 extern "C" struct genode_shared_dataspace *
 lx_emul_shared_dma_buffer_allocate(unsigned long size)
 {
-	Genode::Attached_dataspace & ds =
-		Lx_kit::env().memory.alloc_dataspace(size);
+	Lx_kit::Mem_allocator::Buffer & b = Lx_kit::env().memory.alloc_buffer(size);
 
 	/*
 	 * We have to call virt_to_pages eagerly here,
 	 * to get contingous page objects registered
 	 */
-	lx_emul_virt_to_pages(ds.local_addr<void>(), size >> 12);
-	return static_cast<genode_shared_dataspace*>(&ds);
+	lx_emul_virt_to_pages((void*)b.virt_addr(), size >> 12);
+	return static_cast<genode_shared_dataspace*>(&b);
 }
 
 
 extern "C" void
 lx_emul_shared_dma_buffer_free(struct genode_shared_dataspace * ds)
 {
-	lx_emul_forget_pages(ds->local_addr<void>(), ds->size());
-	Lx_kit::env().memory.free_dataspace(ds->local_addr<void>());
+	lx_emul_forget_pages((void*)ds->virt_addr(), ds->size());
+	Lx_kit::env().memory.free_buffer((void*)ds->virt_addr());
 }
 
 
 Genode::addr_t
 genode_shared_dataspace_local_address(struct genode_shared_dataspace * ds)
 {
-	return (Genode::addr_t)ds->local_addr<void>();
+	return ds->virt_addr();
 }
 
 

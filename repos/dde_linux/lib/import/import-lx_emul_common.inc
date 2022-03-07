@@ -10,12 +10,8 @@ LD_OPT += --defsym=jiffies=jiffies_64
 #
 
 SRC_CC  += lx_emul/alloc.cc
-SRC_CC  += lx_emul/clock.cc
 SRC_CC  += lx_emul/debug.cc
 SRC_CC  += lx_emul/init.cc
-SRC_CC  += lx_emul/io_mem.cc
-SRC_CC  += lx_emul/io_port.cc
-SRC_CC  += lx_emul/irq.cc
 SRC_CC  += lx_emul/log.cc
 SRC_CC  += lx_emul/page_virt.cc
 SRC_CC  += lx_emul/task.cc
