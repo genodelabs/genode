@@ -80,6 +80,11 @@ class Platform::Dma_buffer : Noncopyable
 		 * Return DMA-buffer size in bytes
 		 */
 		size_t size() const { return _allocation.size; }
+
+		/**
+		 * Return DMA-buffer as dataspace capability
+		 */
+		Dataspace_capability cap() { return _ds.cap(); }
 };
 
 #endif /* _INCLUDE__PLATFORM_SESSION__DMA_BUFFER_H_ */
