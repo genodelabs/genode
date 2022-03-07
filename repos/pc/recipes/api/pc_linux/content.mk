@@ -9,7 +9,8 @@ MIRRORED_FROM_DDE_LINUX := src/lib/lx_emul \
                            src/include/spec/x86 \
                            src/include/spec/x86_32 \
                            src/include/spec/x86_64 \
-                           src/include/lx_kit
+                           src/include/lx_kit \
+                           lib/import/import-lx_emul_common.inc
 
 content: $(MIRRORED_FROM_DDE_LINUX)
 $(MIRRORED_FROM_DDE_LINUX):
