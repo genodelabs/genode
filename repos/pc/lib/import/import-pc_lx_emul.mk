@@ -167,7 +167,7 @@ CC_OPT_drivers/usb/host/xhci-trace += -I$(LX_SRC_DIR)/drivers/usb/host
 crc32table.h: gen_crc32table
 	./gen_crc32table > $@
 
-lib/crc32.c: crc32table.h
+lib/crc32.o: crc32table.h
 
 gen_crc32table: $(LX_SRC_DIR)/lib/gen_crc32table.c
 	$(HOST_CC) -I$(LX_GEN_DIR)/include $< -o $@
