@@ -35,6 +35,11 @@ struct Gpt::Writer
 	using sector_t = Block::sector_t;
 
 	Block::Connection<> &_block;
+	Entrypoint          &_ep;
+
+	Io_signal_handler<Writer> _block_sigh { _ep, *this, &Writer::_dummy_handler };
+
+	void _dummy_handler() { }
 
 	Block::Session::Info const _info        { _block.info() };
 	size_t               const _block_size  { _info.block_size };
@@ -120,7 +125,7 @@ struct Gpt::Writer
 			{
 				Block::sector_t const lba = primary
 				                          ? 1 : _pgpt.backup_lba;
-				Util::Block_io io(_block, _block_size, lba, 1);
+				Util::Block_io io(_block, _block_size, _ep, lba, 1);
 				memcpy(hdr, io.addr<Gpt::Header*>(), sizeof(Gpt::Header));
 
 				if (!hdr->valid(primary)) {
@@ -137,7 +142,7 @@ struct Gpt::Writer
 				Block::sector_t const lba   = hdr->gpe_lba;
 				size_t          const count = max_entries * hdr->gpe_size / _block_size;
 
-				Util::Block_io io(_block, _block_size, lba, count);
+				Util::Block_io io(_block, _block_size, _ep, lba, count);
 				size_t const len = count * _block_size;
 				memcpy(entries, io.addr<void const*>(), len);
 			}
@@ -171,7 +176,7 @@ struct Gpt::Writer
 		using namespace Util;
 
 		try {
-			Block_io clear(_block, _block_size, lba, blocks, true, zeros, _block_size);
+			Block_io clear(_block, _block_size, _ep, lba, blocks, true, zeros, _block_size);
 		} catch (Block_io::Io_error) { return false; }
 
 		return true;
@@ -196,18 +201,18 @@ struct Gpt::Writer
 
 		try {
 			/* PMBR */
-			Block_io clear_mbr(_block, _block_size, 0, 1, true, zeros, _block_size);
+			Block_io clear_mbr(_block, _block_size, _ep, 0, 1, true, zeros, _block_size);
 			size_t const blocks = 1 + (Gpt::ENTRIES_SIZE / _block_size);
 
 			/* PGPT */
 			for (size_t i = 0; i < blocks; i++) {
-				Block_io clear_lba(_block, _block_size, 1 + i, 1,
+				Block_io clear_lba(_block, _block_size, _ep, 1 + i, 1,
 				                   true, zeros, _block_size);
 			}
 
 			/* BGPT */
 			for (size_t i = 0; i < blocks; i++) {
-				Block_io clear_lba(_block, _block_size, (_block_count - 1) - i, 1,
+				Block_io clear_lba(_block, _block_size, _ep, (_block_count - 1) - i, 1,
 				                   true, zeros, _block_size);
 			}
 
@@ -298,7 +303,7 @@ struct Gpt::Writer
 		try {
 			Block::sector_t const hdr_lba = primary
 			                              ? 1 : _pgpt.backup_lba;
-			Block_io hdr_io(_block, _block_size, hdr_lba, 1, true,
+			Block_io hdr_io(_block, _block_size, _ep, hdr_lba, 1, true,
 			                &hdr, sizeof(Gpt::Header));
 
 			size_t const len    = hdr.gpe_num * hdr.gpe_size;
@@ -306,7 +311,7 @@ struct Gpt::Writer
 			Block::sector_t const entries_lba = primary
 			                                  ? hdr_lba + 1
 			                                  : _block_count - (blocks + 1);
-			Block_io entries_io(_block, _block_size, entries_lba, blocks, true,
+			Block_io entries_io(_block, _block_size, _ep, entries_lba, blocks, true,
 			                    entries, len);
 		} catch (Block_io::Io_error) { return false; }
 
@@ -323,7 +328,7 @@ struct Gpt::Writer
 	{
 		using namespace Util;
 		try {
-			Block_io pmbr(_block, _block_size, 0, 1, true, &_pmbr, sizeof(_pmbr));
+			Block_io pmbr(_block, _block_size, _ep, 0, 1, true, &_pmbr, sizeof(_pmbr));
 		} catch (Block_io::Io_error) {
 			return false;
 		}
@@ -648,12 +653,15 @@ struct Gpt::Writer
 	 *
 	 * \throw Io_error
 	 */
-	Writer(Block::Connection<> &block, Genode::Xml_node config) : _block(block)
+	Writer(Block::Connection<> &block, Entrypoint &ep, Genode::Xml_node config)
+	: _block(block), _ep(ep)
 	{
 		if (!_info.writeable) {
 			Genode::error("cannot write to Block session");
 			throw Io_error();
 		}
+
+		_block.sigh(_block_sigh);
 
 		/* initial config read in */
 		_handle_config(config);
@@ -747,7 +755,7 @@ struct Main
 		Genode::Xml_node const config = _config_rom.xml();
 
 		try {
-			_writer.construct(_block, config);
+			_writer.construct(_block, _env.ep(), config);
 		} catch (...) {
 			_env.parent().exit(1);
 			return;

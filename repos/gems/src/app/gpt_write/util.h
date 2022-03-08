@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/fixed_stdint.h>
+#include <base/entrypoint.h>
 #include <block_session/connection.h>
 #include <util/misc_math.h>
 #include <util/string.h>
@@ -128,7 +129,7 @@ struct Util::Block_io
 	 *
 	 * \throw Io_error
 	 */
-	Block_io(Block::Connection<> &block, size_t block_size,
+	Block_io(Block::Connection<> &block, size_t block_size, Entrypoint &ep,
 	         sector_t lba, size_t count,
 	         bool write = false, void const *data = nullptr, size_t len = 0)
 	:
@@ -148,6 +149,11 @@ struct Util::Block_io
 		}
 
 		_block.tx()->submit_packet(_p);
+
+		/* block for job completion */
+		while (!_block.tx()->ack_avail())
+			ep.wait_and_dispatch_one_io_signal();
+
 		_p = _block.tx()->get_acked_packet();
 		if (!_p.succeeded()) {
 			Genode::error("could not ", write ? "write" : "read",
