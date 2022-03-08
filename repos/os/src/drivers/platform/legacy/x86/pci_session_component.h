@@ -835,6 +835,9 @@ class Platform::Session_component : public Rpc_object<Session>
 			if (_env.pd().avail_ram().value < WATERMARK_RAM_QUOTA)
 				throw Out_of_ram();
 
+			if (!size)
+				return {};
+
 			Ram_dataspace_capability ram_cap = _env_ram.alloc(size, cache);
 			addr_t const dma_addr = _env.pd().dma_addr(ram_cap);
 
