@@ -12,10 +12,10 @@ SRC_CC  += time.cc
 SRC_CC  += lx_emul/shared_dma_buffer.cc
 SRC_C   += dummies.c
 SRC_C   += lx_emul.c
-SRC_C   += usb.c
 SRC_C   += $(notdir $(wildcard $(REL_PRG_DIR)/generated_dummies.c))
 SRC_C   += common_dummies.c
 SRC_C   += lx_emul/spec/x86/pci.c
+SRC_C   += lx_emul/usb.c
 
 vpath %.c $(REL_PRG_DIR)
 vpath %.cc $(REL_PRG_DIR)

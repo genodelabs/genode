@@ -155,7 +155,7 @@ static int endpoint_descriptor(genode_usb_bus_num_t bus,
 }
 
 
-struct genode_usb_rpc_callbacks genode_usb_rpc_callbacks_obj = {
+struct genode_usb_rpc_callbacks lx_emul_usb_rpc_callbacks = {
 	.alloc_fn        = lx_emul_shared_dma_buffer_allocate,
 	.free_fn         = lx_emul_shared_dma_buffer_free,
 	.cfg_desc_fn     = config_descriptor,
