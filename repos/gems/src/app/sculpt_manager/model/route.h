@@ -35,6 +35,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::CAPTURE:     return "capture";
 		case Service::Type::FILE_SYSTEM: return "file_system";
 		case Service::Type::NIC:         return "nic";
+		case Service::Type::UPLINK:      return "uplink";
 		case Service::Type::GUI:         return "gui";
 		case Service::Type::GPU:         return "gpu";
 		case Service::Type::RM:          return "rm";
@@ -65,6 +66,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::CAPTURE:     return "Capture";
 		case Service::Type::FILE_SYSTEM: return "File system";
 		case Service::Type::NIC:         return "Network";
+		case Service::Type::UPLINK:      return "Network uplink";
 		case Service::Type::GUI:         return "GUI";
 		case Service::Type::GPU:         return "GPU";
 		case Service::Type::RM:          return "Region maps";
