@@ -193,7 +193,7 @@ class Vfs_server::Session_component : private Session_resources,
 				{
 					drop_packet_from_submit_queue();
 					packet.succeeded(false);
-					_stream.acknowledge_packet(packet);
+					_stream.try_ack_packet(packet);
 
 					overall_progress      = true;
 					progress_in_iteration = true;
@@ -335,6 +335,9 @@ class Vfs_server::Session_component : private Session_resources,
 
 				overall_progress |= progress_in_iteration;
 			}
+
+			_stream.wakeup();
+
 			return overall_progress ? Process_packets_result::PROGRESS
 			                        : Process_packets_result::NONE;
 		}
