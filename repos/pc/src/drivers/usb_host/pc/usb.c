@@ -220,8 +220,13 @@ static genode_usb_request_ret_t
 handle_altsetting_request(unsigned iface, unsigned alt_setting, void * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
-	return (usb_set_interface(udev, iface, alt_setting)) ? NO_ERROR
-	                                                     : UNKNOWN_ERROR;
+	int const ret = usb_set_interface(udev, iface, alt_setting);
+
+	if (ret < 0)
+		printk("Alt setting request (iface=%u alt_setting=%u) failed with %d\n",
+		       iface, alt_setting, ret);
+
+	return (ret == 0) ? NO_ERROR : UNKNOWN_ERROR;
 }
 
 
