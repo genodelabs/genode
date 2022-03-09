@@ -11,7 +11,6 @@
  * version 2.
  */
 
-#include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/env.h>
 
@@ -19,6 +18,7 @@
 #include <lx_emul/usb.h>
 #include <lx_kit/env.h>
 #include <lx_kit/init.h>
+#include <lx_kit/initial_config.h>
 #include <lx_user/io.h>
 
 #include <genode_c_api/usb.h>
@@ -50,8 +50,6 @@ struct Main : private Entrypoint::Io_progress_handler
 	                                        &Main::handle_signal };
 	Sliced_heap            sliced_heap    { env.ram(), env.rm()  };
 
-	Attached_rom_dataspace config_rom { env, "config" };
-
 	/**
 	 * Entrypoint::Io_progress_handler
 	 */
@@ -68,7 +66,11 @@ struct Main : private Entrypoint::Io_progress_handler
 
 	Main(Env & env) : env(env)
 	{
-		_bios_handoff = config_rom.xml().attribute_value("bios_handoff", true);
+		{
+			Lx_kit::Initial_config config { env };
+
+			_bios_handoff = config.rom.xml().attribute_value("bios_handoff", true);
+		}
 
 		Lx_kit::initialize(env);
 
