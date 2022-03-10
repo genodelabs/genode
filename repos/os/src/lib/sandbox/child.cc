@@ -484,20 +484,16 @@ void Sandbox::Child::init(Pd_session &session, Pd_session_capability cap)
 
 void Sandbox::Child::init(Cpu_session &session, Cpu_session_capability cap)
 {
-	static size_t avail = Cpu_session::quota_lim_upscale(                    100, 100);
-	size_t const   need = Cpu_session::quota_lim_upscale(_resources.cpu_quota_pc, 100);
-	size_t need_adj = 0;
+	Cpu_quota const assigned  = _resources.assigned_cpu_quota;
+	Cpu_quota const effective = _effective_cpu_quota;
 
-	if (need > avail || avail == 0) {
-		warn_insuff_quota(Cpu_session::quota_lim_downscale(avail, 100));
-		need_adj = Cpu_session::quota_lim_upscale(100, 100);
-		avail    = 0;
-	} else {
-		need_adj = Cpu_session::quota_lim_upscale(need, avail);
-		avail   -= need;
-	}
+	if (assigned.percent > effective.percent)
+		warning(name(), ": configured CPU quota of ", assigned, " exceeds "
+		        "available quota, proceeding with a quota of ", effective);
+
 	session.ref_account(_env.cpu_session_cap());
-	_env.cpu().transfer_quota(cap, need_adj);
+
+	_cpu_quota_transfer.transfer_cpu_quota(cap, effective);
 }
 
 
@@ -743,6 +739,8 @@ Sandbox::Child::Child(Env                      &env,
                       Name_registry            &name_registry,
                       Ram_limit_accessor       &ram_limit_accessor,
                       Cap_limit_accessor       &cap_limit_accessor,
+                      Cpu_limit_accessor       &cpu_limit_accessor,
+                      Cpu_quota_transfer       &cpu_quota_transfer,
                       Prio_levels               prio_levels,
                       Affinity::Space const    &affinity_space,
                       Registry<Parent_service> &parent_services,
@@ -757,6 +755,8 @@ Sandbox::Child::Child(Env                      &env,
 	_default_caps_accessor(default_caps_accessor),
 	_ram_limit_accessor(ram_limit_accessor),
 	_cap_limit_accessor(cap_limit_accessor),
+	_cpu_limit_accessor(cpu_limit_accessor),
+	_cpu_quota_transfer(cpu_quota_transfer),
 	_name_registry(name_registry),
 	_heartbeat_enabled(start_node.has_sub_node("heartbeat")),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,

@@ -64,6 +64,12 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		typedef Resource_limit_accessor<Ram_quota> Ram_limit_accessor;
 		typedef Resource_limit_accessor<Cap_quota> Cap_limit_accessor;
+		typedef Resource_limit_accessor<Cpu_quota> Cpu_limit_accessor;
+
+		struct Cpu_quota_transfer : Interface
+		{
+			virtual void transfer_cpu_quota(Cpu_session_capability, Cpu_quota) = 0;
+		};
 
 		enum class Sample_state_result { CHANGED, UNCHANGED };
 
@@ -145,6 +151,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		Default_caps_accessor  &_default_caps_accessor;
 		Ram_limit_accessor     &_ram_limit_accessor;
 		Cap_limit_accessor     &_cap_limit_accessor;
+		Cpu_limit_accessor     &_cpu_limit_accessor;
+		Cpu_quota_transfer     &_cpu_quota_transfer;
 
 		Name_registry &_name_registry;
 
@@ -206,7 +214,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			Affinity  affinity;
 			Ram_quota assigned_ram_quota;
 			Cap_quota assigned_cap_quota;
-			size_t    cpu_quota_pc;
+			Cpu_quota assigned_cpu_quota;
 
 			Ram_quota effective_ram_quota() const
 			{
@@ -240,8 +248,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		                                     Affinity::Space const &affinity_space,
 		                                     Cap_quota default_cap_quota)
 		{
-			size_t          cpu_quota_pc   = 0;
-			Number_of_bytes ram_bytes      = 0;
+			unsigned cpu_percent = 0;
+			Number_of_bytes ram_bytes = 0;
 
 			size_t caps = start_node.attribute_value("caps", default_cap_quota.value);
 
@@ -250,17 +258,14 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 				typedef String<8> Name;
 				Name const name = rsc.attribute_value("name", Name());
 
-				if (name == "RAM") {
+				if (name == "RAM")
 					ram_bytes = rsc.attribute_value("quantum", ram_bytes);
-				}
 
-				if (name == "CPU") {
-					cpu_quota_pc = rsc.attribute_value("quantum", 0UL);
-				}
+				if (name == "CPU")
+					cpu_percent = rsc.attribute_value("quantum", 0U);
 
-				if (name == "CAP") {
+				if (name == "CAP")
 					caps = rsc.attribute_value("quantum", 0UL);
-				}
 			});
 
 			return Resources { log2(prio_levels.value),
@@ -269,7 +274,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			                            affinity_location_from_xml(affinity_space, start_node)),
 			                   Ram_quota { ram_bytes },
 			                   Cap_quota { caps },
-			                   cpu_quota_pc };
+			                   Cpu_quota { cpu_percent } };
 		}
 
 		Resources _resources;
@@ -341,6 +346,10 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 */
 		long const _prio_levels_log2 { _resources.prio_levels_log2 };
 		long const _priority         { _resources.priority };
+
+		Cpu_quota const _effective_cpu_quota {
+			min(_cpu_limit_accessor.resource_limit(Cpu_quota{}).percent,
+			    _resources.assigned_cpu_quota.percent) };
 
 		/**
 		 * If set to true, the child is allowed to do system management,
@@ -527,9 +536,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 *                            allocations on behalf of the child's
 		 *                            behavior.
 		 *
-		 * \param ram_limit           maximum amount of RAM to be consumed at
-		 *                            creation time.
-		 *
 		 * \param ram_limit_accessor  interface for querying the available
 		 *                            RAM, used for dynamic RAM balancing at
 		 *                            runtime.
@@ -547,6 +553,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		      Name_registry            &name_registry,
 		      Ram_limit_accessor       &ram_limit_accessor,
 		      Cap_limit_accessor       &cap_limit_accessor,
+		      Cpu_limit_accessor       &cpu_limit_accessor,
+		      Cpu_quota_transfer       &cpu_quota_transfer,
 		      Prio_levels               prio_levels,
 		      Affinity::Space const    &affinity_space,
 		      Registry<Parent_service> &parent_services,
@@ -564,6 +572,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		Ram_quota ram_quota() const { return _resources.assigned_ram_quota; }
 		Cap_quota cap_quota() const { return _resources.assigned_cap_quota; }
+		Cpu_quota cpu_quota() const { return _effective_cpu_quota; }
 
 		void try_start()
 		{

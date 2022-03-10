@@ -28,6 +28,13 @@ namespace Sandbox {
 
 	struct Prio_levels { long value; };
 
+	struct Cpu_quota
+	{
+		unsigned percent;
+
+		void print(Output &out) const { Genode::print(out, percent, "%"); }
+	};
+
 	typedef List<List_element<Child> > Child_list;
 
 	template <typename T>
