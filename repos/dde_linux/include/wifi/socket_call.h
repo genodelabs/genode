@@ -27,7 +27,11 @@ namespace Wifi {
 	 *     preprocessor macros.
 	 */
 
-	enum Flags { WIFI_F_NONE, WIFI_F_MSG_ERRQUEUE };
+	enum Flags {
+		WIFI_F_NONE         = 0,
+		WIFI_F_MSG_ERRQUEUE = 1,
+		WIFI_F_MSG_DONTWAIT = 2,
+	};
 	enum Sockopt_level { WIFI_SOL_SOCKET, WIFI_SOL_NETLINK };
 	enum Sockopt_name {
 		/* SOL_SOCKET */
