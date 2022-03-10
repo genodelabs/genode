@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Client connection to USB server
  * \author Sebastian Sumpf
  * \date   2014-12-08
@@ -35,7 +35,7 @@ struct Usb::Connection : Genode::Connection<Session>, Session_client
 		Genode::Connection<Session>(env,
 			session(env.parent(),
 			        "ram_quota=%ld, cap_quota=%ld, tx_buf_size=%ld, label=\"%s\"",
-			        4 * 4096 + tx_buf_size, CAP_QUOTA, tx_buf_size, label)),
+			        5 * 4096 + tx_buf_size, CAP_QUOTA, tx_buf_size, label)),
 		Session_client(cap(), *tx_block_alloc, env.rm(), sigh_state_changed)
 	{ }
 };
