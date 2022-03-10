@@ -21,6 +21,9 @@ include $(REP_DIR)/src/virt_linux/target.inc
 # filter for make output of kernel build system
 BUILD_OUTPUT_FILTER = 2>&1 | sed "s/^/      [Linux]  /"
 
+# do not confuse third-party sub-makes
+unexport .SHELLFLAGS
+
 kernel_config.tag:
 	$(MSG_CONFIG)Linux
 	$(VERBOSE)$(MAKE) -C $(LX_DIR) O=$(PWD) $(LX_MK_ARGS) tinyconfig $(BUILD_OUTPUT_FILTER)

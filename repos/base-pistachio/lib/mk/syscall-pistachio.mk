@@ -9,6 +9,9 @@ CC_WARN += -Wno-array-bounds -Wno-unused-but-set-variable \
            -Wno-parentheses -Wno-format -Wno-builtin-declaration-mismatch \
            -Wno-unused-function -Wno-pointer-compare
 
+# do not confuse third-party sub-makes
+unexport .SHELLFLAGS
+
 user_build.tag:
 	LIBGCCFLAGS="$(CC_MARCH)" \
 	LDFLAGS="$(addprefix $(LD_PREFIX),$(LD_MARCH)) -nostdlib" \

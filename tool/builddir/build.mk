@@ -41,6 +41,12 @@
 ##
 
 #
+# We initially enforce .SHELLFLAGS flags in case build.mk called recursively
+# (from tool/run) as SHELL will be reset to /bin/sh before setting up bash.
+#
+.SHELLFLAGS := -c
+
+#
 # Whenever using the 'run/%' rule and the run tool spawns this Makefile again
 # when encountering a 'build' step, the build.conf is included a second time,
 # with the content taken from the environment variable. We need to reset the
@@ -91,7 +97,17 @@ endif
 # standard shell is dash, which breaks colored output via its built-in echo
 # command.
 #
-export SHELL := $(shell sh -c "command -v bash")
+# SHELL is exported into the environment for tools used in rules
+# (like tool/run). Unfortunately, sub-make instances will reset SHELL to
+# /bin/sh if it is not explicitly provided on the command like (as we do
+# below). See GNU Make manual "5.3.2 Choosing the Shell" for further details.
+# .SHELLFLAGS is extended by option pipefail to make pipes fail if any pipe
+# element fails.
+#
+export SHELL       := $(shell sh -c "command -v bash")
+export .SHELLFLAGS := -o pipefail $(.SHELLFLAGS)
+
+MAKE := $(MAKE) SHELL=$(SHELL)
 
 #
 # Discharge variables evaluated by ccache mechanism that may be inherited when
@@ -267,7 +283,6 @@ traverse_target_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progr
 	    $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_prg.mk \
 	            REP_DIR=$$rep TARGET_MK=$$rep/src/$$target \
 	            BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
-	            SHELL=$(SHELL) \
 	            DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)" || result=false; \
 	    break; \
 	  done; \
@@ -282,7 +297,6 @@ traverse_lib_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress
 	$(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk \
 	        REP_DIR=$$rep LIB=$(LIB) \
 	        BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
-	        SHELL=$(SHELL) \
 	        DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)"; \
 	echo "all: $(LIB).lib" >> $(LIB_DEP_FILE); \
 
@@ -323,11 +337,12 @@ gen_deps_and_build_targets: $(INSTALL_DIR) $(DEBUG_DIR) $(LIB_DEP_FILE)
 	  echo "check_ports:"; \
 	  echo "endif"; \
 	  echo "") >> $(LIB_DEP_FILE)
-	@$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
+	$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
+
 
 .PHONY: again
 again: $(INSTALL_DIR) $(DEBUG_DIR)
-	@$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
+	$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
 
 #
 # Read tools configuration to obtain the cross-compiler prefix passed
@@ -433,7 +448,6 @@ clean_targets:
 					-f $(BASE_DIR)/mk/prg.mk \
 					BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
 					PRG_REL_DIR=$$d \
-					SHELL=$(SHELL) \
 					REP_DIR=$$r || \
 				true; \
 		done; \

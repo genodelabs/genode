@@ -37,7 +37,7 @@ CC_OPT += -DL4SYS_USE_UTCB_WRAP=1 -Wno-unused-function
 # build system will stuble over predefined variables, i.e., 'LIB'
 #
 $(L4_BUILD_DIR)/.kconfig:
-	$(VERBOSE_MK) set -o pipefail; \
+	$(VERBOSE_MK) \
 	     MAKEFLAGS= $(MAKE) $(VERBOSE_DIR) -C $(L4_SRC_DIR)/l4 \
 	     B=$(L4_BUILD_DIR) DROPSCONF_DEFCONFIG="$(L4_CONFIG)" \
 	     VERBOSE="$(VERBOSE)" CROSS_COMPILE="$(CROSS_DEV_PREFIX)" \

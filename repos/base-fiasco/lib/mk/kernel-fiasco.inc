@@ -10,20 +10,17 @@ KERNEL_CXXFLAGS = -std=gnu++98 -fno-delete-null-pointer-checks $(CXXWARN) \
                   -Wno-address-of-packed-member
 
 $(FIASCO_BUILD_DIR):
-	$(VERBOSE_MK) set -o pipefail; \
-	              MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $(FIASCO_SRC) BUILDDIR=$@ \
 	                                 $(KERNEL_BUILD_OUTPUT_FILTER)
 	$(VERBOSE)cp $(KERNEL_CONFIG) $@/globalconfig.out
-	$(VERBOSE_MK) set -o pipefail; \
-	              MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $@ oldconfig \
 	                                 $(KERNEL_BUILD_OUTPUT_FILTER)
 	$(VERBOSE)cp $(KERNEL_CONFIG) $@/globalconfig.out
 
 $(FIASCO): $(FIASCO_BUILD_DIR)
-	$(VERBOSE_MK) set -o pipefail; \
-	              MAKEFLAGS= CFLAGS="-std=gnu89 $(CWARN)" \
+	$(VERBOSE_MK) MAKEFLAGS= CFLAGS="-std=gnu89 $(CWARN)" \
 	              CXXFLAGS="$(KERNEL_CXXFLAGS)" \
 	              $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $(FIASCO_BUILD_DIR) \

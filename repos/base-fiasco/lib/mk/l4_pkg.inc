@@ -33,6 +33,9 @@ ifeq ($(VERBOSE),)
 L4_VERBOSE = V=1
 endif
 
+# do not confuse third-party sub-makes
+unexport .SHELLFLAGS
+
 #
 # Execute the rules in this file only at the second build stage when we know
 # about the complete build settings, e.g., 'CROSS_DEV_PREFIX'.
@@ -61,8 +64,7 @@ CXXWARN = $(WARN) -Wno-bool-compare -Wno-c++11-compat -Wno-class-memaccess
 # 'off64_t' type, which is used by bootstrap.
 #
 %.tag:
-	$(VERBOSE_MK) set -o pipefail; \
-	              MAKEFLAGS= CPPFLAGS="$(CC_MARCH)" \
+	$(VERBOSE_MK) MAKEFLAGS= CPPFLAGS="$(CC_MARCH)" \
 	              CFLAGS="$(CC_MARCH) -std=gnu89 $(CWARN)" \
 	              CXXFLAGS="$(CC_MARCH) -D_GNU_SOURCE -std=gnu++98 $(CXXWARN)" \
 	              ASFLAGS="$(CC_MARCH)" LDFLAGS="$(LD_MARCH)" \
