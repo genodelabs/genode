@@ -210,9 +210,13 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 	w_msg.msg_iov[0].iov_len  = len;
 	w_msg.msg_count           = len;
 
+	Flags wflags = Wifi::WIFI_F_NONE;
+	if (flags & MSG_DONTWAIT)
+		wflags = Wifi::WIFI_F_MSG_DONTWAIT;
+
 	/* FIXME convert to/from Sockaddr */
 	/* FIXME flags values */
-	int const err = socket_call.recvmsg(s, &w_msg, Wifi::WIFI_F_NONE);
+	int const err = socket_call.recvmsg(s, &w_msg, wflags);
 	if (err < 0) {
 		errno = -err;
 		return -1;
@@ -242,6 +246,9 @@ ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags)
 	if (flags & MSG_ERRQUEUE)
 		w_flags = Wifi::WIFI_F_MSG_ERRQUEUE;
 
+	if (flags & MSG_DONTWAIT)
+		w_flags = Wifi::WIFI_F_MSG_DONTWAIT;
+
 	Wifi::Msghdr w_msg;
 
 	w_msg.msg_name    = msg->msg_name;
@@ -258,7 +265,6 @@ ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags)
 	w_msg.msg_controllen = msg->msg_controllen;
 
 	int const err = socket_call.recvmsg(s, &w_msg, w_flags);
-
 	if (err < 0) {
 		errno = -err;
 		return -1;
@@ -498,9 +504,11 @@ static bool special_fd(int fd)
 	return (fd > 40 && fd < 60);
 }
 
+
 int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
 	Poll_socket_fd sockets[Wifi::MAX_POLL_SOCKETS];
+
 	unsigned num = 0;
 	int nready = 0;
 
