@@ -549,8 +549,8 @@ genode_usb_session * ::Root::_create_session(const char * args,
 		throw Insufficient_ram_quota();
 
 	if (tx_buf_size > ram_quota - session_size) {
-		error("Insufficient 'ram_quota',got ", ram_quota, " need ",
-		      tx_buf_size + session_size);
+		warning("Insufficient RAM quota, got ", ram_quota, " need ",
+		        tx_buf_size + session_size);
 		throw Insufficient_ram_quota();
 	}
 

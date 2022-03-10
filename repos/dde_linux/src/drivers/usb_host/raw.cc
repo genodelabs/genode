@@ -1246,8 +1246,8 @@ class Usb::Root : public Genode::Root_component<Session_component>
 					throw Insufficient_ram_quota();
 
 				if (tx_buf_size > ram_quota - session_size) {
-					error("Insufficient 'ram_quota',got ", ram_quota, " need ",
-					      tx_buf_size + session_size);
+					warning("Insufficient RAM quota, got ", ram_quota, " need ",
+					        tx_buf_size + session_size);
 					throw Insufficient_ram_quota();
 				}
 
