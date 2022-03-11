@@ -30,6 +30,7 @@
 		<start name="black_hole" caps="100">
 			<resource name="RAM" quantum="1M"/>
 			<provides>
+				<service name="ROM"/>
 				<service name="Uplink"/>
 				<service name="Nic"/>
 				<service name="Event"/>
@@ -38,6 +39,7 @@
 				<service name="Audio_out"/>
 			</provides>
 			<config>
+				<rom/>
 				<uplink/>
 				<nic/>
 				<event/>
@@ -57,16 +59,17 @@
 		<start name="test-black_hole" caps="100">
 			<resource name="RAM" quantum="10M"/>
 			<route>
-				<service name="Uplink">    <child name="black_hole"/> </service>
-				<service name="Nic">       <child name="black_hole"/> </service>
-				<service name="Event">     <child name="black_hole"/> </service>
-				<service name="Capture">   <child name="black_hole"/> </service>
-				<service name="Audio_in">  <child name="black_hole"/> </service>
-				<service name="Audio_out"> <child name="black_hole"/> </service>
-				<service name="ROM">       <parent/> </service>
-				<service name="PD">        <parent/> </service>
-				<service name="LOG">       <parent/> </service>
-				<service name="CPU">       <parent/> </service>
+				<service name="ROM" label="any_label"> <child name="black_hole"/> </service>
+				<service name="Uplink">                <child name="black_hole"/> </service>
+				<service name="Nic">                   <child name="black_hole"/> </service>
+				<service name="Event">                 <child name="black_hole"/> </service>
+				<service name="Capture">               <child name="black_hole"/> </service>
+				<service name="Audio_in">              <child name="black_hole"/> </service>
+				<service name="Audio_out">             <child name="black_hole"/> </service>
+				<service name="ROM" >                  <parent/> </service>
+				<service name="PD">                    <parent/> </service>
+				<service name="LOG">                   <parent/> </service>
+				<service name="CPU">                   <parent/> </service>
 			</route>
 		</start>
 

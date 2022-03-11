@@ -19,6 +19,8 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <util/reconstructible.h>
+#include <rom_session/connection.h>
+#include <base/attached_rom_dataspace.h>
 
 /* os includes */
 #include <event_session/connection.h>
@@ -38,6 +40,7 @@ namespace Black_hole_test {
 	class Uplink_test;
 	class Capture_test;
 	class Event_test;
+	class Rom_test;
 	class Main;
 }
 
@@ -295,6 +298,35 @@ class Black_hole_test::Event_test
 };
 
 
+class Black_hole_test::Rom_test
+{
+	private:
+
+		Env                    &_env;
+		Attached_rom_dataspace  _rom_ds   { _env, "any_label" };
+		bool                    _finished { false };
+
+	public:
+
+		Rom_test(Env &env)
+		:
+			_env { env }
+		{
+			String<16> const str { Cstring { _rom_ds.local_addr<char>() } };
+			if (str != "<empty/>") {
+				class Unexpected_rom_content { };
+				throw Unexpected_rom_content { };
+			}
+			_finished = true;
+		}
+
+		bool finished() const
+		{
+			return _finished;
+		}
+};
+
+
 class Black_hole_test::Main
 {
 	private:
@@ -308,6 +340,7 @@ class Black_hole_test::Main
 		Uplink_test            _uplink_test    { _env, _heap, _signal_handler };
 		Capture_test           _capture_test   { _env };
 		Event_test             _event_test     { _env };
+		Rom_test               _rom_test       { _env };
 
 		void _handle_signal()
 		{
@@ -321,7 +354,8 @@ class Black_hole_test::Main
 			if (_nic_test.finished() &&
 			    _uplink_test.finished() &&
 			    _capture_test.finished() &&
-			    _event_test.finished()) {
+			    _event_test.finished() &&
+			    _rom_test.finished()) {
 
 				log("Finished");
 			}

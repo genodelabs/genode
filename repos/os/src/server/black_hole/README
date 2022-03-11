@@ -10,6 +10,7 @@ in the configuration of the component:
 * Event
 * Nic
 * Uplink
+* ROM
 
 <config>
 	<audio_in/>
@@ -18,4 +19,5 @@ in the configuration of the component:
 	<event/>
 	<nic/>
 	<uplink/>
+	<rom/>
 </config>

@@ -7,6 +7,7 @@
 		<event/>
 		<nic/>
 		<uplink/>
+		<rom/>
 	</provides>
 
 	<config>
@@ -16,6 +17,7 @@
 		<event/>
 		<nic/>
 		<uplink/>
+		<rom/>
 	</config>
 
 	<content>

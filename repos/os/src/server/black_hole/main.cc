@@ -27,6 +27,7 @@
 #include "event.h"
 #include "nic.h"
 #include "uplink.h"
+#include "rom.h"
 
 
 /***************
@@ -47,6 +48,7 @@ struct Black_hole::Main
 	Genode::Constructible<Event_root>      event_root     { };
 	Genode::Constructible<Nic_root>        nic_root       { };
 	Genode::Constructible<Uplink_root>     uplink_root    { };
+	Genode::Constructible<Rom_root>        rom_root       { };
 
 	Main(Genode::Env &env) : env(env)
 	{
@@ -56,12 +58,10 @@ struct Black_hole::Main
 			audio_in_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*audio_in_root));
 		}
-
 		if (_config_rom.xml().has_sub_node("audio_out")) {
 			audio_out_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*audio_out_root));
 		}
-
 		if (_config_rom.xml().has_sub_node("capture")) {
 			capture_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*capture_root));
@@ -70,15 +70,17 @@ struct Black_hole::Main
 			event_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*event_root));
 		}
-
 		if (_config_rom.xml().has_sub_node("nic")) {
 			nic_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*nic_root));
 		}
-
 		if (_config_rom.xml().has_sub_node("uplink")) {
 			uplink_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*uplink_root));
+		}
+		if (_config_rom.xml().has_sub_node("rom")) {
+			rom_root.construct(env, heap);
+			env.parent().announce(env.ep().manage(*rom_root));
 		}
 	}
 };
