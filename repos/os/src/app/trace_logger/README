@@ -36,6 +36,7 @@ This is a short description of the tags and attributes:
 
 :config.verbose:
   Optional. Toggles wether the trace_logger shall log debugging information.
+  If enabled, even inactive trace subjects appear in the log.
 
 :config.session_ram:
   Optional. Amount of RAM donated to the trace session.

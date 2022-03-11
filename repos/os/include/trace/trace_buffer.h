@@ -26,7 +26,7 @@ class Trace_buffer
 	private:
 
 		Genode::Trace::Buffer        &_buffer;
-		Genode::Trace::Buffer::Entry  _curr          { _buffer.first() };
+		Genode::Trace::Buffer::Entry  _curr { _buffer.first() };
 		unsigned long long            _lost_count { 0 };
 
 	public:
@@ -48,7 +48,7 @@ class Trace_buffer
 				_lost_count = (unsigned)_buffer.lost_entries();
 			}
 
-			Trace::Buffer::Entry entry    { _curr };
+			Trace::Buffer::Entry entry { _curr };
 
 			/**
 			 * Iterate over all entries that were not processed yet.
@@ -59,6 +59,7 @@ class Trace_buffer
 			 * if the 'last' end of the buffer (highest address) was reached.
 			 */
 			for (; !entry.head(); entry = _buffer.next(entry)) {
+
 				/* continue at first entry if we hit the end of the buffer */
 				if (entry.last())
 					entry = _buffer.first();
@@ -76,8 +77,9 @@ class Trace_buffer
 			if (update) _curr = entry;
 		}
 
-		void * address()        const { return &_buffer; }
-};
+		void * address() const { return &_buffer; }
 
+		bool empty() const { return _curr.head(); }
+};
 
 #endif /* _TRACE__TRACE_BUFFER_H_ */

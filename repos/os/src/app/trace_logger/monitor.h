@@ -67,7 +67,9 @@ class Monitor : public Monitor_base,
 		        Genode::Trace::Subject_id          subject_id,
 		        Genode::Trace::Subject_info const &info);
 
-		void print(bool activity, bool affinity);
+		struct Level_of_detail { bool activity, affinity, active_only; };
+
+		void print(Level_of_detail);
 
 
 		/**************

@@ -150,7 +150,9 @@ class Main
 			log("");
 			log("--- Report ", _report_id++, " (", _num_monitors, "/", _num_subjects, " subjects) ---");
 			new_monitors.for_each([&] (Monitor &monitor) {
-				monitor.print(_activity, _affinity);
+				monitor.print(Monitor::Level_of_detail { .activity    =  _activity,
+				                                         .affinity    =  _affinity,
+				                                         .active_only = !_verbose });
 			});
 		}
 

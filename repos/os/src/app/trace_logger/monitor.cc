@@ -86,8 +86,13 @@ void Monitor::update_info(Trace::Subject_info const &info)
 }
 
 
-void Monitor::print(bool activity, bool affinity)
+void Monitor::print(Level_of_detail detail)
 {
+	/* skip output for a subject with no recent activity */
+	bool const inactive = (_recent_exec_time == 0) && _buffer.empty();
+	if (detail.active_only && inactive)
+		return;
+
 	/* print general subject information */
 	typedef Trace::Subject_info Subject_info;
 	Subject_info::State const state = _info.state();
@@ -98,13 +103,13 @@ void Monitor::print(bool activity, bool affinity)
 	          "\">");
 
 	/* print subjects activity if desired */
-	if (activity)
+	if (detail.activity)
 		log("   <activity total=\"",  _info.execution_time().thread_context,
 		              "\" recent=\"", _recent_exec_time,
 		              "\">");
 
 	/* print subjects affinity if desired */
-	if (affinity)
+	if (detail.affinity)
 		log("   <affinity xpos=\"", _info.affinity().xpos(),
 		              "\" ypos=\"", _info.affinity().ypos(),
 		              "\">");
@@ -139,7 +144,7 @@ void Monitor::print(bool activity, bool affinity)
 	if (printed_buf_entries)
 		log("   </buffer>");
 	else
-		log("   <buffer />");
+		log("   <buffer/>");
 	log("</subject>");
 }
 
