@@ -202,19 +202,6 @@ struct Test_tracing
 
 	Rom_dataspace_capability  policy_module_rom_ds { };
 
-	char const *state_name(Trace::Subject_info::State state)
-	{
-		switch (state) {
-		case Trace::Subject_info::INVALID:  return "INVALID";
-		case Trace::Subject_info::UNTRACED: return "UNTRACED";
-		case Trace::Subject_info::TRACED:   return "TRACED";
-		case Trace::Subject_info::FOREIGN:  return "FOREIGN";
-		case Trace::Subject_info::ERROR:    return "ERROR";
-		case Trace::Subject_info::DEAD:     return "DEAD";
-		}
-		return "undefined";
-	}
-
 	struct Failed : Genode::Exception { };
 
 	Test_tracing(Env &env) : env(env)
@@ -262,7 +249,7 @@ struct Test_tracing
 			log("ID:",      id.id,                    " "
 			    "label:\"", info.session_label(),   "\" "
 			    "name:\"",  info.thread_name(),     "\" "
-			    "state:",   state_name(info.state()), " "
+			    "state:",   Trace::Subject_info::state_name(info.state()), " "
 			    "policy:",  info.policy_id().id,      " "
 			    "thread context time:", info.execution_time().thread_context, " "
 			    "scheduling context time:", info.execution_time().scheduling_context, " ",
@@ -272,20 +259,20 @@ struct Test_tracing
 
 		trace.for_each_subject_info(print_info);
 
-		auto check_untraced = [this] (Trace::Subject_id id, Trace::Subject_info info) {
+		auto check_unattached = [this] (Trace::Subject_id id, Trace::Subject_info info) {
 
-			if (info.state() != Trace::Subject_info::UNTRACED)
-				error("Subject ", id.id, " is not UNTRACED");
+			if (info.state() != Trace::Subject_info::UNATTACHED)
+				error("Subject ", id.id, " is not UNATTACHED");
 		};
 
-		trace.for_each_subject_info(check_untraced);
+		trace.for_each_subject_info(check_unattached);
 
 		/* enable tracing for test-thread */
 		auto enable_tracing = [this, &env] (Trace::Subject_id id,
 		                                    Trace::Subject_info info) {
 
-			if (   info.session_label() != policy_label
-			    || info.thread_name()   != policy_thread) {
+			if (info.session_label() != policy_label
+			 || info.thread_name()   != policy_thread) {
 				return;
 			}
 

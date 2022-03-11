@@ -156,24 +156,29 @@ class Genode::Trace::Subject
 			if (!source.valid())
 				return Subject_info::DEAD;
 
-			if (source->enabled())
-				return source->owned_by(*this) ? Subject_info::TRACED
-				                               : Subject_info::FOREIGN;
 			if (source->error())
 				return Subject_info::ERROR;
 
-			return Subject_info::UNTRACED;
+			if (source->enabled() && !source->owned_by(*this))
+				return Subject_info::FOREIGN;
+
+			if (source->owned_by(*this))
+				return source->enabled() ? Subject_info::TRACED
+				                         : Subject_info::ATTACHED;
+
+			return Subject_info::UNATTACHED;
 		}
 
 		void _traceable_or_throw()
 		{
 			switch(_state()) {
-				case Subject_info::DEAD    : throw Source_is_dead();
-				case Subject_info::FOREIGN : throw Traced_by_other_session();
-				case Subject_info::ERROR   : throw Source_is_dead();
-				case Subject_info::INVALID : throw Nonexistent_subject();
-				case Subject_info::UNTRACED: return;
-				case Subject_info::TRACED  : return;
+				case Subject_info::DEAD       : throw Source_is_dead();
+				case Subject_info::FOREIGN    : throw Traced_by_other_session();
+				case Subject_info::ERROR      : throw Source_is_dead();
+				case Subject_info::INVALID    : throw Nonexistent_subject();
+				case Subject_info::UNATTACHED : return;
+				case Subject_info::ATTACHED   : return;
+				case Subject_info::TRACED     : return;
 			}
 		}
 
