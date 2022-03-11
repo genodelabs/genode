@@ -27,7 +27,7 @@ static bool const verbose_host     = false;
 static bool const verbose_warnings = false;
 Mutex _mutex;
 
-static void update_ep(USBDevice *);
+static void update_ep(USBDevice *, uint8_t, uint8_t);
 static bool claim_interfaces(USBDevice *dev);
 
 using Packet_alloc_failed = Usb::Session::Tx::Source::Packet_alloc_failed;
@@ -183,7 +183,7 @@ struct Completion : Usb::Completion
 			if (!claim_interfaces(dev))
 				p->status = USB_RET_IOERROR;
 		case Packet_type::ALT_SETTING:
-			update_ep(dev);
+			update_ep(dev, packet.interface.number, packet.interface.alt_setting);
 		case Packet_type::CTRL:
 			usb_generic_async_ctrl_complete(dev, p);
 			break;
@@ -687,26 +687,21 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		catch (Usb::Session::Device_not_found) { return; }
 
 		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
-			udev->altsetting[i] = usb_raw.alt_settings(i);
-		}
+			Usb::Interface_descriptor iface;
+			uint8_t const altsetting = udev->altsetting[i];
+			usb_raw.interface_descriptor(i, altsetting, &iface);
+			for (unsigned k = 0; k < iface.num_endpoints; k++) {
+				Usb::Endpoint_descriptor endp;
+				usb_raw.endpoint_descriptor(i, altsetting, k, &endp);
 
-		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
-			for (int j = 0; j < udev->altsetting[i]; j++) {
-				Usb::Interface_descriptor iface;
-				usb_raw.interface_descriptor(i, j, &iface);
-				for (unsigned k = 0; k < iface.num_endpoints; k++) {
-					Usb::Endpoint_descriptor endp;
-					usb_raw.endpoint_descriptor(i, j, k, &endp);
+				int const pid      = (endp.address & USB_DIR_IN) ? USB_TOKEN_IN : USB_TOKEN_OUT;
+				int const ep       = (endp.address & 0xf);
+				uint8_t const type = (endp.attributes & 0x3);
 
-					int const pid      = (endp.address & USB_DIR_IN) ? USB_TOKEN_IN : USB_TOKEN_OUT;
-					int const ep       = (endp.address & 0xf);
-					uint8_t const type = (endp.attributes & 0x3);
-
-					usb_ep_set_max_packet_size(udev, pid, ep, endp.max_packet_size);
-					usb_ep_set_type(udev, pid, ep, type);
-					usb_ep_set_ifnum(udev, pid, ep, i);
-					usb_ep_set_halted(udev, pid, ep, 0);
-				}
+				usb_ep_set_max_packet_size(udev, pid, ep, endp.max_packet_size);
+				usb_ep_set_type(udev, pid, ep, type);
+				usb_ep_set_ifnum(udev, pid, ep, i);
+				usb_ep_set_halted(udev, pid, ep, 0);
 			}
 		}
 	}
@@ -723,11 +718,12 @@ struct Usb_host_device : List<Usb_host_device>::Element
         OBJECT_CHECK(USBHostDevice, (obj), TYPE_USB_HOST_DEVICE)
 
 
-static void update_ep(USBDevice *udev)
+static void update_ep(USBDevice *udev, uint8_t interface, uint8_t altsetting)
 {
 	USBHostDevice     *d = USB_HOST_DEVICE(udev);
 	Usb_host_device *dev = (Usb_host_device *)d->data;
 
+	udev->altsetting[interface] = altsetting;
 	dev->update_ep(udev);
 }
 
