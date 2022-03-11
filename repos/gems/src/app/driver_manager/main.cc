@@ -712,8 +712,7 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 {
 	Reporter::Xml_generator xml(usb_drv_config, [&] () {
 
-		xml.attribute("capslock_led", "rom");
-		xml.attribute("numlock_led",  "rom");
+		xml.attribute("bios_handoff", true);
 
 		xml.node("report", [&] () {
 			xml.attribute("config",  true);
