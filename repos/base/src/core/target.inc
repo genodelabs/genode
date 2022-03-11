@@ -1,6 +1,8 @@
 TARGET   ?= core
 CORE_LIB ?= core.a
 
+BUILD_ARTIFACTS := $(CORE_LIB)
+
 $(TARGET):
 	@true
 
