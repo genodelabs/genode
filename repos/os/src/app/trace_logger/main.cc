@@ -89,46 +89,62 @@ class Main
 			Monitor_tree &new_monitors = _monitors_switch ? _monitors_0 : _monitors_1;
 			_monitors_switch = !_monitors_switch;
 
-			/* update available subject IDs and iterate over them */
-			_trace.for_each_subject_info([&] (Trace::Subject_id   const id,
-			                                  Trace::Subject_info const &info) {
+			/* call 'fn' for each trace subject of interest */
+			auto for_each_captured_subject = [&] (auto const &fn)
+			{
+				_trace.for_each_subject_info([&] (Trace::Subject_id   const  id,
+				                                  Trace::Subject_info const &info) {
+					/* skip dead subjects */
+					if (info.state() == Trace::Subject_info::DEAD)
+						return;
 
-				/* skip dead subjects */
-				if (info.state() == Trace::Subject_info::DEAD)
-					return;
+					with_matching_policy(info.session_label(), _config,
 
-				Session_label const label(info.session_label());
-				with_matching_policy(label, _config,
+						[&] (Xml_node const &policy) {
 
-					[&] (Xml_node const &policy) {
+							if (policy.has_attribute("thread"))
+								if (policy.attribute_value("thread", Thread_name()) != info.thread_name())
+									return;
 
-						if (policy.has_attribute("thread"))
-							if (policy.attribute_value("thread", Thread_name()) != info.thread_name())
-								return;
+							fn(id, info, policy);
+						},
+						[&] () { /* no policy matches */ }
+					);
+				});
+			};
 
-						try {
-							/* lookup monitor by subject ID */
-							Monitor &monitor = old_monitors.find_by_subject_id(id);
+			/* create monitors for new subject IDs */
+			for_each_captured_subject([&] (Trace::Subject_id   const  id,
+			                               Trace::Subject_info const &info,
+			                               Xml_node            const &policy) {
+				try {
+					Monitor &monitor = old_monitors.find_by_subject_id(id);
 
-							monitor.update_info(info);
+					/* move monitor from old to new tree */
+					old_monitors.remove(&monitor);
+					new_monitors.insert(&monitor);
+				}
+				catch (Monitor_tree::No_match) {
 
-							/* move monitor from old to new tree */
-							old_monitors.remove(&monitor);
-							new_monitors.insert(&monitor);
-
-						} catch (Monitor_tree::No_match) {
-
-							/* create monitor for subject in the new tree */
-							_new_monitor(new_monitors, id, info, policy);
-						}
-					},
-					[&] () { /* no policy matches */ }
-				);
+					/* create monitor for subject in the new tree */
+					_new_monitor(new_monitors, id, info, policy);
+				}
 			});
 
 			/* all monitors in the old tree are deprecated, destroy them */
 			while (Monitor *monitor = old_monitors.first())
 				_destroy_monitor(old_monitors, *monitor);
+
+			/* update monitors (with up-to-date trace state of new monitors) */
+			for_each_captured_subject([&] (Trace::Subject_id   const  id,
+			                               Trace::Subject_info const &info,
+			                               Xml_node            const &) {
+				try {
+					new_monitors.find_by_subject_id(id).update_info(info); }
+				catch (Monitor_tree::No_match) {
+					error("unexpectedly failed to look up monitor for subject ", id.id);
+				}
+			});
 
 			/* dump information of each monitor in the new tree */
 			log("");
