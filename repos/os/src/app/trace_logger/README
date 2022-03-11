@@ -18,8 +18,6 @@ policy.label:
 !         session_arg_buffer="4K"
 !         session_parent_levels="0"
 !         period_sec="5"
-!         activity="no"
-!         affinity="no"
 !         default_policy="null"
 !         default_buffer="4K">
 !
@@ -50,16 +48,10 @@ This is a short description of the tags and attributes:
 :config.period_sec:
   Optional. Length of processing/export interval in seconds.
 
-:config.activity:
-  Optional. Wether to export thread-activity information.
-
-:config.affinity:
-  Optional. Wether to export thread-affinity information.
-
 :config.default_policy:
   Optional. Name of tracing policy for subjects without individual config.
 
-:config.default_policy:
+:config.default_buffer:
   Optional. Size of tracing buffer for subjects without individual config.
 
 :config.policy:
@@ -96,4 +88,4 @@ Examples
 ~~~~~~~~
 
 An Example of how to use the trace_logger component can be found in the test
-script 'os/run/trace_logger.run'.
+package at 'os/recipes/pkg/test-trace_logger/'.

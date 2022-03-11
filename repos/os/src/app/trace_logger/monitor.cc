@@ -16,8 +16,51 @@
 
 /* Genode includes */
 #include <trace_session/connection.h>
+#include <util/formatted_output.h>
 
 using namespace Genode;
+
+
+/*******************************
+ ** Text-formatting utilities **
+ *******************************/
+
+struct Formatted_affinity
+{
+	Genode::Affinity::Location affinity;
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, "at (", affinity.xpos(),",", affinity.ypos(), ")");
+	}
+};
+
+
+struct Quoted_name
+{
+	Genode::String<100> const name;
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, "\"", name, "\"");
+	}
+};
+
+
+template <typename T>
+struct Conditional
+{
+	bool const _cond;
+	T    const &_arg;
+
+	Conditional(bool cond, T const &arg) : _cond(cond), _arg(arg) { }
+
+	void print(Output &out) const
+	{
+		if (_cond)
+			Genode::print(out, _arg);
+	}
+};
 
 
 /******************
@@ -58,16 +101,13 @@ Monitor &Monitor::find_by_subject_id(Trace::Subject_id const subject_id)
 }
 
 
-Monitor::Monitor(Trace::Connection         &trace,
-                 Region_map                &rm,
-                 Trace::Subject_id   const  subject_id,
-                 Trace::Subject_info const &info)
+Monitor::Monitor(Trace::Connection      &trace,
+                 Region_map             &rm,
+                 Trace::Subject_id const subject_id)
 :
 	Monitor_base(trace, rm, subject_id),
 	_subject_id(subject_id), _buffer(_buffer_raw)
-{
-	update_info(info);
-}
+{ }
 
 
 void Monitor::update_info(Trace::Subject_info const &info)
@@ -86,36 +126,40 @@ void Monitor::update_info(Trace::Subject_info const &info)
 }
 
 
-void Monitor::print(Level_of_detail detail)
+void Monitor::apply_formatting(Formatting &formatting) const
+{
+	auto expand = [] (unsigned &n, auto const &arg)
+	{
+		n = max(n, printed_length(arg));
+	};
+
+	typedef Trace::Subject_info Subject_info;
+
+	expand(formatting.thread_name, Quoted_name{_info.thread_name()});
+	expand(formatting.affinity,    Formatted_affinity{_info.affinity()});
+	expand(formatting.state,       Subject_info::state_name(_info.state()));
+	expand(formatting.total_cpu,   _info.execution_time().thread_context);
+	expand(formatting.recent_cpu,  _recent_exec_time);
+}
+
+
+void Monitor::print(Formatting fmt, Level_of_detail detail)
 {
 	/* skip output for a subject with no recent activity */
-	bool const inactive = (_recent_exec_time == 0) && _buffer.empty();
-	if (detail.active_only && inactive)
+	if (detail.active_only && !recently_active())
 		return;
 
 	/* print general subject information */
 	typedef Trace::Subject_info Subject_info;
 	Subject_info::State const state = _info.state();
-	log("<subject label=\"",  _info.session_label().string(),
-	          "\" thread=\"", _info.thread_name().string(),
-	          "\" id=\"",     _subject_id.id,
-	          "\" state=\"",  Subject_info::state_name(state),
-	          "\">");
-
-	/* print subjects activity if desired */
-	if (detail.activity)
-		log("   <activity total=\"",  _info.execution_time().thread_context,
-		              "\" recent=\"", _recent_exec_time,
-		              "\">");
-
-	/* print subjects affinity if desired */
-	if (detail.affinity)
-		log("   <affinity xpos=\"", _info.affinity().xpos(),
-		              "\" ypos=\"", _info.affinity().ypos(),
-		              "\">");
+	log(" Thread ", Left_aligned(fmt.thread_name, Quoted_name{_info.thread_name()}),
+	    " ",        Left_aligned(fmt.affinity, Formatted_affinity{_info.affinity()}),
+	    "  ",       Conditional(detail.state,
+	                            Left_aligned(fmt.state + 1, Subject_info::state_name(state))),
+	    "total:",   Left_aligned(fmt.total_cpu, _info.execution_time().thread_context), " "
+	    "recent:",  _recent_exec_time);
 
 	/* print all buffer entries that we haven't yet printed */
-	bool printed_buf_entries = false;
 	_buffer.for_each_new_entry([&] (Trace::Buffer::Entry entry) {
 
 		/* get readable data length and skip empty entries */
@@ -131,21 +175,10 @@ void Monitor::print(Level_of_detail detail)
 		if (_curr_entry_data[length - 1] == '\n')
 			_curr_entry_data[length - 1] = '\0';
 
-		/* print copied entry data out to log */
-		if (!printed_buf_entries) {
-			log("   <buffer>");
-			printed_buf_entries = true;
-		}
-		log(Cstring(_curr_entry_data));
+		log("  ", Cstring(_curr_entry_data));
 
 		return true;
 	});
-	/* print end tags */
-	if (printed_buf_entries)
-		log("   </buffer>");
-	else
-		log("   <buffer/>");
-	log("</subject>");
 }
 
 

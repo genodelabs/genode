@@ -1,6 +1,7 @@
 /*
  * \brief  Log information about trace subjects
  * \author Martin Stein
+ * \author Norman Feske
  * \date   2018-01-15
  */
 
@@ -20,9 +21,11 @@
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
+#include <base/registry.h>
 #include <os/session_policy.h>
 #include <timer_session/connection.h>
 #include <util/construct_at.h>
+#include <util/formatted_output.h>
 
 using namespace Genode;
 using Thread_name = String<40>;
@@ -32,40 +35,46 @@ class Main
 {
 	private:
 
-		enum { MAX_SUBJECTS                  = 512 };
-		enum { DEFAULT_PERIOD_SEC            = 5 };
-		enum { DEFAULT_BUFFER                = 1024 * 4 };
-		enum { DEFAULT_SESSION_ARG_BUFFER    = 1024 * 4 };
-		enum { DEFAULT_SESSION_RAM           = 1024 * 1024 };
-		enum { DEFAULT_SESSION_PARENT_LEVELS = 0 };
+		Env &_env;
 
-		Env                           &_env;
-		Timer::Connection              _timer               { _env };
-		Attached_rom_dataspace         _config_rom          { _env, "config" };
-		Xml_node                const  _config              { _config_rom.xml() };
-		Trace::Connection              _trace               { _env,
-		                                                      _config.attribute_value("session_ram", Number_of_bytes(DEFAULT_SESSION_RAM)),
-		                                                      _config.attribute_value("session_arg_buffer", Number_of_bytes(DEFAULT_SESSION_ARG_BUFFER)),
-		                                                      _config.attribute_value("session_parent_levels", (unsigned)DEFAULT_SESSION_PARENT_LEVELS) };
-		bool                    const  _affinity            { _config.attribute_value("affinity", false) };
-		bool                    const  _activity            { _config.attribute_value("activity", false) };
-		bool                    const  _verbose             { _config.attribute_value("verbose",  false) };
-		Microseconds            const  _period_us           { read_sec_attr(_config, "period_sec", DEFAULT_PERIOD_SEC) };
-		Number_of_bytes         const  _default_buf_sz      { _config.attribute_value("default_buffer", Number_of_bytes(DEFAULT_BUFFER)) };
-		Timer::Periodic_timeout<Main>  _period              { _timer, *this, &Main::_handle_period, _period_us };
-		Heap                           _heap                { _env.ram(), _env.rm() };
-		Monitor_tree                   _monitors_0          { };
-		Monitor_tree                   _monitors_1          { };
-		bool                           _monitors_switch     { false };
-		Policy_tree                    _policies            { };
-		Policy_name                    _default_policy_name { _config.attribute_value("default_policy", Policy_name("null")) };
-		Policy                         _default_policy      { _env, _trace, _default_policy_name };
-		unsigned long                  _report_id           { 0 };
-		unsigned long                  _num_subjects        { 0 };
-		unsigned long                  _num_monitors        { 0 };
-		Trace::Subject_id              _subjects[MAX_SUBJECTS];
+		Attached_rom_dataspace _config_rom { _env, "config" };
 
-		void _handle_period(Duration)
+		struct Config
+		{
+			size_t       session_ram;
+			size_t       session_arg_buffer;
+			unsigned     session_parent_levels;
+			bool         verbose;
+			Microseconds period_us;
+			size_t       default_buf_sz;
+			Policy_name  default_policy_name;
+
+			static Config from_xml(Xml_node const &);
+
+		} const _config { Config::from_xml(_config_rom.xml()) };
+
+		Trace::Connection _trace { _env,
+		                           _config.session_ram,
+		                           _config.session_arg_buffer,
+		                           _config.session_parent_levels };
+
+		Timer::Connection _timer { _env };
+
+		Timer::Periodic_timeout<Main> _period {
+			_timer, *this, &Main::_handle_period, _config.period_us };
+
+		Heap          _heap            { _env.ram(), _env.rm() };
+		Monitor_tree  _monitors_0      { };
+		Monitor_tree  _monitors_1      { };
+		bool          _monitors_switch { false };
+		Policy_tree   _policies        { };
+		Policy        _default_policy  { _env, _trace, _config.default_policy_name };
+		unsigned long _report_id       { 0 };
+
+		static void _print_monitors(Allocator &alloc, Monitor_tree const &,
+		                            Monitor::Level_of_detail);
+
+		void _update_monitors()
 		{
 			/*
 			 * Update monitors
@@ -98,7 +107,7 @@ class Main
 					if (info.state() == Trace::Subject_info::DEAD)
 						return;
 
-					with_matching_policy(info.session_label(), _config,
+					with_matching_policy(info.session_label(), _config_rom.xml(),
 
 						[&] (Xml_node const &policy) {
 
@@ -115,7 +124,7 @@ class Main
 
 			/* create monitors for new subject IDs */
 			for_each_captured_subject([&] (Trace::Subject_id   const  id,
-			                               Trace::Subject_info const &info,
+			                               Trace::Subject_info const &,
 			                               Xml_node            const &policy) {
 				try {
 					Monitor &monitor = old_monitors.find_by_subject_id(id);
@@ -127,7 +136,7 @@ class Main
 				catch (Monitor_tree::No_match) {
 
 					/* create monitor for subject in the new tree */
-					_new_monitor(new_monitors, id, info, policy);
+					_new_monitor(new_monitors, id, policy);
 				}
 			});
 
@@ -145,63 +154,171 @@ class Main
 					error("unexpectedly failed to look up monitor for subject ", id.id);
 				}
 			});
-
-			/* dump information of each monitor in the new tree */
-			log("");
-			log("--- Report ", _report_id++, " (", _num_monitors, "/", _num_subjects, " subjects) ---");
-			new_monitors.for_each([&] (Monitor &monitor) {
-				monitor.print(Monitor::Level_of_detail { .activity    =  _activity,
-				                                         .affinity    =  _affinity,
-				                                         .active_only = !_verbose });
-			});
 		}
 
 		void _destroy_monitor(Monitor_tree &monitors, Monitor &monitor)
 		{
-			if (_verbose)
+			if (_config.verbose)
 				log("destroy monitor: subject ", monitor.subject_id().id);
 
 			try { _trace.free(monitor.subject_id()); }
 			catch (Trace::Nonexistent_subject) { }
 			monitors.remove(&monitor);
 			destroy(_heap, &monitor);
-			_num_monitors--;
 		}
 
-		void _new_monitor(Monitor_tree              &monitors,
-		                  Trace::Subject_id   const  id,
-		                  Trace::Subject_info const &info,
-		                  Xml_node            const &session_policy)
+		void _new_monitor(Monitor_tree            &monitors,
+		                  Trace::Subject_id const  id,
+		                  Xml_node          const &session_policy)
 		{
+			auto warn_msg = [] (auto reason) {
+				warning("Cannot activate tracing: ", reason); };
+
 			try {
-				Number_of_bytes const buffer_sz   = session_policy.attribute_value("buffer", _default_buf_sz);
-				Policy_name     const policy_name = session_policy.attribute_value("policy", _default_policy_name);
+				Number_of_bytes const buffer_sz =
+					session_policy.attribute_value("buffer", _config.default_buf_sz);
+
+				Policy_name const policy_name =
+					session_policy.attribute_value("policy", _config.default_policy_name);
+
 				try {
 					_trace.trace(id.id, _policies.find_by_name(policy_name).id(), buffer_sz);
-				} catch (Policy_tree::No_match) {
+
+				}
+				catch (Policy_tree::No_match) {
 					Policy &policy = *new (_heap) Policy(_env, _trace, policy_name);
 					_policies.insert(policy);
 					_trace.trace(id.id, policy.id(), buffer_sz);
 				}
-				monitors.insert(new (_heap) Monitor(_trace, _env.rm(), id, info));
+				monitors.insert(new (_heap) Monitor(_trace, _env.rm(), id));
 			}
-			catch (Trace::Already_traced         ) { warning("Cannot activate tracing: Already_traced"         ); return; }
-			catch (Trace::Source_is_dead         ) { warning("Cannot activate tracing: Source_is_dead"         ); return; }
-			catch (Trace::Nonexistent_policy     ) { warning("Cannot activate tracing: Nonexistent_policy"     ); return; }
-			catch (Trace::Traced_by_other_session) { warning("Cannot activate tracing: Traced_by_other_session"); return; }
-			catch (Trace::Nonexistent_subject    ) { warning("Cannot activate tracing: Nonexistent_subject"    ); return; }
-			catch (Region_map::Invalid_dataspace ) { warning("Cannot activate tracing: Loading policy failed"  ); return; }
+			catch (Trace::Already_traced         ) { warn_msg("Already_traced"         ); return; }
+			catch (Trace::Source_is_dead         ) { warn_msg("Source_is_dead"         ); return; }
+			catch (Trace::Nonexistent_policy     ) { warn_msg("Nonexistent_policy"     ); return; }
+			catch (Trace::Traced_by_other_session) { warn_msg("Traced_by_other_session"); return; }
+			catch (Trace::Nonexistent_subject    ) { warn_msg("Nonexistent_subject"    ); return; }
+			catch (Region_map::Invalid_dataspace ) { warn_msg("Loading policy failed"  ); return; }
+		}
 
+		void _handle_period(Duration)
+		{
+			_update_monitors();
 
-			_num_monitors++;
-			if (_verbose)
-				log("new monitor: subject ", id.id);
+			Monitor_tree &monitors = _monitors_switch ? _monitors_1 : _monitors_0;
+
+			log("\nReport ", _report_id++, "\n");
+			Monitor::Level_of_detail const detail { .state       =  _config.verbose,
+			                                        .active_only = !_config.verbose };
+			_print_monitors(_heap, monitors, detail);
 		}
 
 	public:
 
-		Main(Env &env) : _env(env) { _policies.insert(_default_policy); }
+		Main(Env &env) : _env(env)
+		{
+			_policies.insert(_default_policy);
+
+			_update_monitors();
+		}
 };
+
+
+Main::Config Main::Config::from_xml(Xml_node const &config)
+{
+	return {
+		.session_ram           = config.attribute_value("session_ram",
+		                                                Number_of_bytes(1024*1024)),
+		.session_arg_buffer    = config.attribute_value("session_arg_buffer",
+		                                                Number_of_bytes(1024*4)),
+		.session_parent_levels = config.attribute_value("session_parent_levels", 0u),
+		.verbose               = config.attribute_value("verbose",  false),
+		.period_us             = read_sec_attr(config, "period_sec", 5),
+		.default_buf_sz        = config.attribute_value("default_buffer",
+		                                                Number_of_bytes(4*1024)),
+		.default_policy_name   = config.attribute_value("default_policy",
+		                                                Policy_name("null"))
+	};
+}
+
+
+void Main::_print_monitors(Allocator &alloc, Monitor_tree const &monitors,
+                           Monitor::Level_of_detail detail)
+{
+	struct Thread : Noncopyable, Interface
+	{
+		Monitor const &monitor;
+		Thread(Monitor const &monitor) : monitor(monitor) { }
+	};
+
+	struct Pd : Noncopyable, Interface
+	{
+		Session_label const label;
+		Registry<Registered<Thread> > threads { };
+		Pd(Session_label const &label) : label(label) { }
+
+		bool recently_active() const
+		{
+			bool result = false;
+			threads.for_each([&] (Thread const &thread) {
+				if (thread.monitor.recently_active())
+					result = true; });
+			return result;
+		}
+	};
+
+	Registry<Registered<Pd> > pds { };
+
+	auto with_pd = [&] (Session_label const &label, auto const &fn)
+	{
+		Pd *pd_ptr = nullptr;
+		pds.for_each([&] (Pd &pd) {
+			if (!pd_ptr && (pd.label == label))
+				pd_ptr = &pd; });
+
+		if (!pd_ptr)
+			pd_ptr = new (alloc) Registered<Pd>(pds, label);
+
+		fn(*pd_ptr);
+	};
+
+	monitors.for_each([&] (Monitor const &monitor) {
+		with_pd(monitor.info().session_label(), [&] (Pd &pd) {
+			new (alloc) Registered<Thread>(pd.threads, monitor); }); });
+
+	/* determine formatting */
+	Monitor::Formatting fmt { };
+	pds.for_each([&] (Pd const &pd) {
+		if (!detail.active_only || pd.recently_active())
+			pd.threads.for_each([&] (Thread const &thread) {
+				thread.monitor.apply_formatting(fmt); }); });
+
+	pds.for_each([&] (Pd const &pd) {
+
+		unsigned const state_width  = detail.state ? fmt.state + 1 : 0;
+		unsigned const table_width  = fmt.thread_name
+		                            + fmt.affinity
+		                            + state_width
+		                            + fmt.total_cpu
+		                            + fmt.recent_cpu
+		                            + 26;
+		unsigned const pd_width     = (unsigned)pd.label.length() + 6;
+		unsigned const excess_width = table_width - min(table_width, pd_width);
+
+		if (detail.active_only && !pd.recently_active())
+			return;
+
+		log("PD \"", pd.label, "\" ", Repeated(excess_width, Char('-')));
+		pd.threads.for_each([&] (Thread const &thread) {
+			const_cast<Monitor &>(thread.monitor).print(fmt, detail); });
+		log("");
+	});
+
+	pds.for_each([&] (Registered<Pd> &pd) {
+		pd.threads.for_each([&] (Registered<Thread> &thread) {
+			destroy(alloc, &thread); });
+		destroy(alloc, &pd);
+	});
+}
 
 
 void Component::construct(Env &env) { static Main main(env); }
