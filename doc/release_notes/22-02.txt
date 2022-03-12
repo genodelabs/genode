@@ -884,7 +884,7 @@ Pinephone modem access
 On our way towards a Genode-based phone, we enabled the low-level access of
 the Quectel-EG25 modem as found in the Pinephone. This line of work is hosted
 in the [https://github.com/genodelabs/genode-allwinner - genode-allwinner]
-repository and consists of parts. First, the modem driver at
+repository and consists of two parts. First, the modem driver at
 _src/drivers/modem/pinephone/_ takes care of the powering and initialization
 of the modem. It works in tandem with the power and reset controls of the
 A64 platform driver and the GPIO controls of the PIO driver. The second part
@@ -894,7 +894,7 @@ described in
 [https://wiki.pine64.org/wiki/File:Quectel_EC2x%26EG9x%26EG2x-G%26EM05_Series_AT_Commands_Manual_V2.0.pdf - Quectel documentation].
 
 A first example scenario is provided by the
-[https://github.com/genodelabs/genode-allwinner/blob/22.02/run/modem_pinephone.run modem_pinephone.run]
+[https://github.com/genodelabs/genode-allwinner/blob/22.02/run/modem_pinephone.run - modem_pinephone.run]
 script. It comprises the modem driver and two instances of the UART driver.
 One UART driver is connected to the modem's control channel whereas the other
 is connected to the default serial interface of the Pinephone. By bridging

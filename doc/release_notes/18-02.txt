@@ -219,8 +219,9 @@ Base framework and OS-level infrastructure
 Increased default warning level
 ===============================
 
-For building Genode components written in C++, the compiler flags -Wextra,
--Weffc++, and -Werror are now enabled in addition to -Wall by default.
+For building Genode components written in C++, the compiler
+flags -Wextra, -Weffc++, and -Werror are now enabled in addition
+to -Wall by default.
 
 If this strict warning level is inapplicable for a given component or
 library, it is possible to explicitly disable the strictness in the
