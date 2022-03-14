@@ -5,4 +5,5 @@ capture_session
 event_session
 nic_session
 uplink_session
+gpu_session
 os

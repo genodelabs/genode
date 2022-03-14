@@ -11,6 +11,7 @@ in the configuration of the component:
 * Nic
 * Uplink
 * ROM
+* Gpu
 
 <config>
 	<audio_in/>
@@ -20,4 +21,5 @@ in the configuration of the component:
 	<nic/>
 	<uplink/>
 	<rom/>
+	<gpu/>
 </config>

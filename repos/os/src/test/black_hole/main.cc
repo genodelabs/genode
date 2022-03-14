@@ -23,6 +23,7 @@
 #include <base/attached_rom_dataspace.h>
 
 /* os includes */
+#include <gpu_session/connection.h>
 #include <event_session/connection.h>
 #include <capture_session/connection.h>
 #include <audio_in_session/connection.h>
@@ -336,6 +337,7 @@ class Black_hole_test::Main
 		Signal_handler<Main>   _signal_handler { _env.ep(), *this, &Main::_handle_signal };
 		Audio_in::Connection   _audio_in       { _env, "left" };
 		Audio_out::Connection  _audio_out      { _env, "left" };
+		Gpu::Connection        _gpu            { _env };
 		Nic_test               _nic_test       { _env, _heap, _signal_handler };
 		Uplink_test            _uplink_test    { _env, _heap, _signal_handler };
 		Capture_test           _capture_test   { _env };

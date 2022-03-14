@@ -30,6 +30,7 @@
 		<start name="black_hole" caps="100">
 			<resource name="RAM" quantum="1M"/>
 			<provides>
+				<service name="Gpu"/>
 				<service name="ROM"/>
 				<service name="Uplink"/>
 				<service name="Nic"/>
@@ -39,6 +40,7 @@
 				<service name="Audio_out"/>
 			</provides>
 			<config>
+				<gpu/>
 				<rom/>
 				<uplink/>
 				<nic/>
@@ -56,9 +58,10 @@
 			</route>
 		</start>
 
-		<start name="test-black_hole" caps="100">
+		<start name="test-black_hole" caps="200">
 			<resource name="RAM" quantum="10M"/>
 			<route>
+				<service name="Gpu">                   <child name="black_hole"/> </service>
 				<service name="ROM" label="any_label"> <child name="black_hole"/> </service>
 				<service name="Uplink">                <child name="black_hole"/> </service>
 				<service name="Nic">                   <child name="black_hole"/> </service>

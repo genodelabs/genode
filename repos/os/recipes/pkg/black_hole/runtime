@@ -8,6 +8,7 @@
 		<nic/>
 		<uplink/>
 		<rom/>
+		<gpu/>
 	</provides>
 
 	<config>
@@ -18,6 +19,7 @@
 		<nic/>
 		<uplink/>
 		<rom/>
+		<gpu/>
 	</config>
 
 	<content>

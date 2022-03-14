@@ -28,6 +28,7 @@
 #include "nic.h"
 #include "uplink.h"
 #include "rom.h"
+#include "gpu.h"
 
 
 /***************
@@ -49,6 +50,7 @@ struct Black_hole::Main
 	Genode::Constructible<Nic_root>        nic_root       { };
 	Genode::Constructible<Uplink_root>     uplink_root    { };
 	Genode::Constructible<Rom_root>        rom_root       { };
+	Genode::Constructible<Gpu_root>        gpu_root       { };
 
 	Main(Genode::Env &env) : env(env)
 	{
@@ -81,6 +83,10 @@ struct Black_hole::Main
 		if (_config_rom.xml().has_sub_node("rom")) {
 			rom_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*rom_root));
+		}
+		if (_config_rom.xml().has_sub_node("gpu")) {
+			gpu_root.construct(env, heap);
+			env.parent().announce(env.ep().manage(*gpu_root));
 		}
 	}
 };
