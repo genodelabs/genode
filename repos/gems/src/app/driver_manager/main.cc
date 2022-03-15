@@ -164,7 +164,7 @@ struct Driver_manager::Intel_fb_driver : Device_driver
 		intel_gpu_driver.generate_start_node(xml);
 
 		xml.node("start", [&] () {
-			_gen_common_start_node_content(xml, "intel_fb_drv", "intel_fb_drv",
+			_gen_common_start_node_content(xml, "intel_fb_drv", "legacy_intel_fb_drv",
 			                               Ram_quota{42*1024*1024}, Cap_quota{800},
 			                               Priority{0}, version);
 			xml.node("heartbeat", [&] () { });

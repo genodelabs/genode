@@ -127,6 +127,7 @@ append config {
 			</start>
 
 			<start name="intel_fb_drv" caps="1000">
+				<binary name="legacy_intel_fb_drv"/>
 				<resource name="RAM" quantum="60M"/>
 				<route>
 					<service name="ROM" label="config">
@@ -165,7 +166,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer intel_fb_drv intel_fb_controller
+	core ld.lib.so init timer legacy_intel_fb_drv intel_fb_controller
 	test-framebuffer report_rom fs_rom vfs vfs.lib.so vfs_import.lib.so
 	top
 }
