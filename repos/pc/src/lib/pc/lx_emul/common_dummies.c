@@ -22,20 +22,6 @@ char __end_rodata[]   = {};
 
 int __preempt_count = 0;
 
-#include <linux/bitops.h>
-
-unsigned int __sw_hweight32(__u32 w)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-#include <linux/bitops.h>
-
-unsigned long __sw_hweight64(__u64 w)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
 
 #include <linux/prandom.h>
 
