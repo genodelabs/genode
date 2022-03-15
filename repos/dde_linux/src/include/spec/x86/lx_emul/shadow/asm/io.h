@@ -7,9 +7,13 @@
 #ifndef _ASM_X86_IO_H
 #define _ASM_X86_IO_H
 
+#define ARCH_HAS_IOREMAP_WC
+#define ARCH_HAS_IOREMAP_WT
+
 #include <linux/string.h>
 #include <linux/compiler.h>
 #include <asm/page.h>
+#include <asm/early_ioremap.h>
 #include <asm/pgtable_types.h>
 
 #include <lx_emul/io_port.h>
@@ -19,6 +23,7 @@
 #endif
 
 void __iomem *ioremap(resource_size_t offset, unsigned long size);
+void __iomem *ioremap_cache(resource_size_t offset, unsigned long size);
 void iounmap(volatile void __iomem *addr);
 
 #define inb lx_emul_io_port_inb
@@ -28,6 +33,9 @@ void iounmap(volatile void __iomem *addr);
 #define outb lx_emul_io_port_outb
 #define outw lx_emul_io_port_outw
 #define outl lx_emul_io_port_outl
+
+void __iomem *ioremap_wc(resource_size_t offset, unsigned long size);
+#define ioremap_wc ioremap_wc
 
 #include <asm-generic/io.h>
 
