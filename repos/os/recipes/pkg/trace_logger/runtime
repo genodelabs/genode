@@ -1,0 +1,23 @@
+<runtime ram="100M" caps="1000" binary="trace_logger">
+
+	<requires> <trace/> <timer/> </requires>
+
+	<content>
+		<rom label="trace_logger"/>
+		<rom label="null"/>
+		<rom label="rpc_name"/>
+	</content>
+
+	<config verbose="no"
+	        session_ram="90M"
+	        session_arg_buffer="1M"
+	        session_parent_levels="1"
+	        period_sec="10"
+	        default_policy="null"
+	        default_buffer="8K">
+
+		<policy label_prefix="init -> runtime -> "/>
+
+	</config>
+
+</runtime>

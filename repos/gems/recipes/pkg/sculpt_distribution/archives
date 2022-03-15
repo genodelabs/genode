@@ -20,4 +20,5 @@ _/pkg/qt5_textedit
 _/pkg/mesa_gpu-cpu
 _/pkg/usb_webcam
 _/pkg/test-capture
+_/pkg/trace_logger
 _/pkg/mixer
