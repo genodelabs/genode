@@ -1,3 +1,5 @@
+arch/x86/include/asm/acenv.h
+arch/x86/include/asm/acpi.h
 arch/x86/include/asm/alternative.h
 arch/x86/include/asm/apicdef.h
 arch/x86/include/asm/arch_hweight.h
@@ -36,6 +38,7 @@ arch/x86/include/asm/hw_irq.h
 arch/x86/include/asm/intel_ds.h
 arch/x86/include/asm/invpcid.h
 arch/x86/include/asm/io.h
+arch/x86/include/asm/iosf_mbi.h
 arch/x86/include/asm/irq.h
 arch/x86/include/asm/irq_vectors.h
 arch/x86/include/asm/irq_work.h
@@ -54,10 +57,15 @@ arch/x86/include/asm/memtype.h
 arch/x86/include/asm/mmu.h
 arch/x86/include/asm/mmu_context.h
 arch/x86/include/asm/module.h
+arch/x86/include/asm/mpspec.h
+arch/x86/include/asm/mpspec_def.h
 arch/x86/include/asm/msi.h
 arch/x86/include/asm/msr-index.h
 arch/x86/include/asm/msr.h
+arch/x86/include/asm/nmi.h
 arch/x86/include/asm/nops.h
+arch/x86/include/asm/numa.h
+arch/x86/include/asm/numa_32.h
 arch/x86/include/asm/orc_types.h
 arch/x86/include/asm/page_types.h
 arch/x86/include/asm/paravirt.h
@@ -206,6 +214,7 @@ include/asm-generic/compat.h
 include/asm-generic/delay.h
 include/asm-generic/early_ioremap.h
 include/asm-generic/error-injection.h
+include/asm-generic/export.h
 include/asm-generic/fixmap.h
 include/asm-generic/getorder.h
 include/asm-generic/int-ll64.h
@@ -330,6 +339,7 @@ include/linux/dmi.h
 include/linux/dqblk_qtree.h
 include/linux/dqblk_v1.h
 include/linux/dqblk_v2.h
+include/linux/dynamic_debug.h
 include/linux/dynamic_queue_limits.h
 include/linux/edd.h
 include/linux/elevator.h
