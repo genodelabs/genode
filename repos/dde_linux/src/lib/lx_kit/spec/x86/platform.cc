@@ -272,6 +272,9 @@ Platform::Device::Device(Connection &platform, Name name)
 		error(__func__, ": could not get device capability");
 		throw -1;
 	}
+
+	Legacy_platform::Device_client device(_device_cap);
+	_class_code = device.class_code() >> 8;
 }
 
 
@@ -311,29 +314,37 @@ void Platform::Device::Config_space::write(unsigned char address,
 		return;
 	}
 
-	/* reject writes to unknown addresses */
-	switch (address) {
-	case 0x04:
+	enum {
+		CLASS_CODE_USB         = 0xc03,
+	};
+
+	switch(_device._class_code) {
+	case CLASS_CODE_USB:
+		/* reject writes to unknown addresses */
+		switch (address) {
+		case 0x04:
+			/*
+			 * Doing this multiple times induces multiple "assignment of PCI
+			 * device" diasgnostics currently.
+			 */
+			/* command register (value for enable io, memory, bus master) */
+			value = 7;
+			break;
+
 		/*
-		 * Doing this multiple times induces multiple "assignment of PCI
-		 * device" diasgnostics currently.
+		 * Write in [0x40,0xff] should be okay if there are is no capability
+		 * list (status register bit 4 + capability list pointer). Otherwise,
+		 * writes into capability-list entries should be rejected.
 		 */
-		/* command register (value for enable io, memory, bus master) */
-		value = 7;
+
+		case 0xc0: /* UHCI BIOS handoff (UHCI_USBLEGSUP) */ break;
+		case 0xc4: /* UHCI INTEL resume-enable (USBRES_INTEL) */ break;
+		case 0x60 ... 0x6f: /* EHCI BIOS handoff (just empiric, address not fixed) */ break;
+
+		default:
+			return;
+		}
 		break;
-
-	/*
-	 * Write in [0x40,0xff] should be okay if there are is no capability
-	 * list (status register bit 4 + capability list pointer). Otherwise,
-	 * writes into capability-list entries should be rejected.
-	 */
-
-	case 0xc0: /* UHCI BIOS handoff (UHCI_USBLEGSUP) */ break;
-	case 0xc4: /* UHCI INTEL resume-enable (USBRES_INTEL) */ break;
-	case 0x60 ... 0x6f: /* EHCI BIOS handoff (just empiric, address not fixed) */ break;
-
-	default:
-		return;
 	}
 
 	Legacy_platform::Device::Access_size const as = convert(size);

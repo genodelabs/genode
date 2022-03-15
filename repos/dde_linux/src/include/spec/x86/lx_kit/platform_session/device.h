@@ -51,6 +51,7 @@ class Platform::Device : Interface, Noncopyable
 		Connection &_platform;
 		Legacy_platform::Device_capability _device_cap { };
 		Name _name { };
+		unsigned _class_code { };
 
 	public:
 
