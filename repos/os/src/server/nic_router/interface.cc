@@ -1591,6 +1591,9 @@ void Interface::_handle_eth(Ethernet_frame           &eth,
 			}
 			break;
 		}
+		case Ethernet_frame::Type::ARP: {
+				throw Drop_packet("Ignore ARP request on unconfigured interface");
+		}
 		default:
 
 			throw Bad_network_protocol();
