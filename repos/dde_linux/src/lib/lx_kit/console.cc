@@ -105,6 +105,12 @@ class Lx_kit::Format_command
 						break;
 					}
 
+				case 'h':
+
+					length = DEFAULT;
+					consumed++;
+					break;
+
 				case 'z':
 				case 'Z':
 
