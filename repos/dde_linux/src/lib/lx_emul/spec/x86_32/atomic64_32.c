@@ -23,3 +23,10 @@ s64 arch_atomic64_sub(s64 i, atomic64_t *v)
 	v->counter -= i;
 	return v->counter;
 }
+
+
+s64 arch_atomic64_fetch_add(s64 i, atomic64_t *v)
+{
+	v->counter += i;
+	return v->counter;
+}

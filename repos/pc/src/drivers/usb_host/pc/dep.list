@@ -187,6 +187,7 @@ include/acpi/platform/acgcc.h
 include/acpi/platform/acgccex.h
 include/acpi/platform/aclinux.h
 include/acpi/platform/aclinuxex.h
+include/asm-generic/asm-prototypes.h
 include/asm-generic/atomic-instrumented.h
 include/asm-generic/atomic-long.h
 include/asm-generic/barrier.h

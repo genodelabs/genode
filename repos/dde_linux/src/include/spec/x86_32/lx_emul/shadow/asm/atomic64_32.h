@@ -16,6 +16,8 @@ typedef struct {
     s64 __aligned(8) counter;
 } atomic64_t;
 
+#define ATOMIC64_INIT(val)	{ (val) }
+
 s64  arch_atomic64_add(s64 i, atomic64_t *v);
 s64  arch_atomic64_add_return(s64 i, atomic64_t *v);
 int  arch_atomic64_add_unless(atomic64_t *v, s64 a, s64 u);
