@@ -99,7 +99,7 @@ proc run_log { wait_for_re timeout_value } {
 		}
 		timeout     {
 			puts stderr "Boot process timed out"
-			close
+			close -i $output_spawn_id; wait
 			return false
 		}
 	}
