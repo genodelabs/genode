@@ -86,8 +86,12 @@ proc run_log { wait_for_re timeout_value } {
 	}
 	set exit_result 1
 
-	spawn /bin/sh -c "$amt_cmd"
-	set output_spawn_id $spawn_id
+	lassign [retry 30 "/bin/sh -c \"$amt_cmd\"" ".*session authentication" 0.5] retry_output output_spawn_id
+
+	if {$retry_output == ""} {
+		puts stderr "Aborting, AMT SOL not accessible"
+		return false
+	}
 
 	set kernel_msg [run_boot_string]
 
