@@ -380,6 +380,46 @@ proc kill_spawned {spawn_id} {
 
 
 ##
+# Exeute command line with retry and optional timeout per try
+#
+# \param retry       number of attempts before giving up
+# \param cmd         commane line to execute
+# \param success_re  output denoting successful attempt
+# \param to          timeout per attempt (optional)
+#
+# \return list { output of last attempt, spawn id }
+#
+# The output of each attempt is checked with the regular expression
+# 'success_re' and presumed successful on a match. The proc can also be used to
+# just execute one attempt with empty 'success_re' but a timeout.
+#
+proc retry { retry cmd success_re {to -1} } {
+	set success false
+	set output ""
+
+	while {$retry > 0} {
+		spawn {*}$cmd
+		sleep $to
+
+		expect {
+			-timeout 0
+			default  { close; wait }
+
+			-re $success_re {
+				set success true
+				set output $expect_out(buffer)
+			}
+		}
+
+		if {$success} { break }
+		incr retry -1
+	}
+
+	return [list $output $spawn_id]
+}
+
+
+##
 # Remove color information from output
 #
 proc filter_out_color_escape_sequences { } {
