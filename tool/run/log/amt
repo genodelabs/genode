@@ -1,9 +1,10 @@
 ##
 # Get output of the target machine via Intel AMT's SoL feature
 #
-# \param --amt-host       network address of target machine
-# \param --amt-password   AMT password for target machine
-# \param --amt-filter     Sanitize output by piping it through a filter
+# \param --log-amt-host       network address of target machine
+# \param --log-amt-password   AMT password for target machine
+# \param --log-amt-filter     Sanitize output by piping it through a filter
+# \param --log-amt-skip-test  Skip AMT SOL availability test
 #
 
 source [genode_dir]/tool/run/log.inc
@@ -27,6 +28,11 @@ proc log_amt_timeout { } {
 	return [get_cmd_arg_first --log-amt-timeout "30"]
 }
 
+proc log_amt_skip_test { } {
+	return [get_cmd_switch --log-amt-skip-test]
+}
+
+
 ##
 # Log output of the test machine using Intel's AMT
 #
@@ -41,19 +47,23 @@ proc run_log { wait_for_re timeout_value } {
 	set amt_tool [get_cmd_arg --amt-tool "wsman"]
 
 	# Check that SOL is correctly configured if wsman is available
-	if {[have_installed wsman] && $amt_tool=="wsman" } {
-		puts "Test for working AMT SOL redirection service ..."
-		set redir_state [exec wsman get http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [log_amt_host] -P 16992 -u admin -p [log_amt_password]]
-		set redir_state [regexp -inline {ListenerEnabled.*ListenerEnabled} $redir_state]
+	if {![log_amt_skip_test]} {
+		if {[have_installed wsman] && $amt_tool=="wsman" } {
+			puts "Test for working AMT SOL redirection service ..."
+			set redir_state [exec wsman get http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [log_amt_host] -P 16992 -u admin -p [log_amt_password]]
+			set redir_state [regexp -inline {ListenerEnabled.*ListenerEnabled} $redir_state]
 
-		if {![regexp {ListenerEnabled>true} $redir_state]} {
-			puts "  Warning: AMT_RedirectionService listener is disabled - serial output will not be available"
-			puts "           Use wsman to enable the listener service, e.g.:"
-			puts "  wsman put http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [log_amt_host] -P 16992 -u admin -p <your-intel-me-amt-password> -k ListenerEnabled=true"
-			puts ""
+			if {![regexp {ListenerEnabled>true} $redir_state]} {
+				puts "  Warning: AMT_RedirectionService listener is disabled - serial output will not be available"
+				puts "           Use wsman to enable the listener service, e.g.:"
+				puts "  wsman put http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [log_amt_host] -P 16992 -u admin -p <your-intel-me-amt-password> -k ListenerEnabled=true"
+				puts ""
+			}
+		} else {
+			puts " Warning: could not check AMT SOL redirection service because of missing wsman tool, --amt-tool==$amt_tool"
 		}
 	} else {
-		puts " Warning: could not check AMT SOL redirection service because of missing wsman tool, --amt-tool==$amt_tool"
+		puts "Skipping test for working AMT SOL redirection service"
 	}
 
 	#
