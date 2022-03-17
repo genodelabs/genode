@@ -266,8 +266,14 @@ class Platform::Session_component : public Rpc_object<Session>
 		Device_capability next_device(Device_capability prev_device,
 		                              unsigned, unsigned) override
 		{
+			if (!prev_device.valid())
+				return _bridge;
+
 			if (prev_device == _bridge)
 				return _device_component.cap();
+
+			if (prev_device == _device_component.cap())
+				return _resources.isa_bridge_cap();
 
 			return Device_capability();
 		}
