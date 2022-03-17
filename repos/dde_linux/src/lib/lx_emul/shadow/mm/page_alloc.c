@@ -46,6 +46,9 @@ void __free_pages(struct page * page, unsigned int order)
 	unsigned const num_pages = (1 << order);
 	void *   const virt_addr = page->virtual;
 
+	if (atomic_read(&page->_refcount) && !atomic_dec_and_test(&page->_refcount))
+		return;
+
 	for (i = 0; i < num_pages; i++)
 		lx_emul_disassociate_page_from_virt_addr(page[i].virtual);
 
@@ -65,6 +68,8 @@ struct page * __alloc_pages(gfp_t gfp, unsigned int order, int preferred_nid,
 
 	void const  *ptr  = lx_emul_mem_alloc_aligned(PAGE_SIZE*nr_pages, PAGE_SIZE);
 	struct page *page = lx_emul_virt_to_pages(ptr, nr_pages);
+
+	atomic_set(&page->_refcount, 1);
 
 	return page;
 }
