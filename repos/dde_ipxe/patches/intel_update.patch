@@ -474,7 +474,20 @@ index 7cb268ac..dad8941a 100644
  	netdev_nullify ( netdev );
  	netdev_put ( netdev );
   err_alloc:
-@@ -855,7 +1010,7 @@ static struct pci_device_id intel_nics[] = {
+@@ -847,6 +1002,12 @@ static struct pci_device_id intel_nics[] = {
+ 	PCI_ROM ( 0x8086, 0x043a, "dh8900cc-f", "DH8900CC Fiber", 0 ),
+ 	PCI_ROM ( 0x8086, 0x043c, "dh8900cc-b", "DH8900CC Backplane", 0 ),
+ 	PCI_ROM ( 0x8086, 0x0440, "dh8900cc-s", "DH8900CC SFP", 0 ),
++	PCI_ROM ( 0x8086, 0x0d4c, "i219lm-11", "I219-LM (11)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x0d4d, "i219v-11", "I219-V (11)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x0d4e, "i219lm-10", "I219-LM (10)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x0d4f, "i219v-10", "I219-V (10)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x0d53, "i219lm-12", "I219-LM (12)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x0d55, "i219v-12", "I219-V (12)", INTEL_I219 ),
+ 	PCI_ROM ( 0x8086, 0x1000, "82542-f", "82542 (Fiber)", 0 ),
+ 	PCI_ROM ( 0x8086, 0x1001, "82543gc-f", "82543GC (Fiber)", 0 ),
+ 	PCI_ROM ( 0x8086, 0x1004, "82543gc", "82543GC (Copper)", 0 ),
+@@ -855,7 +1016,7 @@ static struct pci_device_id intel_nics[] = {
  	PCI_ROM ( 0x8086, 0x100c, "82544gc", "82544GC (Copper)", 0 ),
  	PCI_ROM ( 0x8086, 0x100d, "82544gc-l", "82544GC (LOM)", 0 ),
  	PCI_ROM ( 0x8086, 0x100e, "82540em", "82540EM", 0 ),
@@ -483,7 +496,7 @@ index 7cb268ac..dad8941a 100644
  	PCI_ROM ( 0x8086, 0x1010, "82546eb", "82546EB (Copper)", 0 ),
  	PCI_ROM ( 0x8086, 0x1011, "82545em-f", "82545EM (Fiber)", 0 ),
  	PCI_ROM ( 0x8086, 0x1012, "82546eb-f", "82546EB (Fiber)", 0 ),
-@@ -872,11 +1027,11 @@ static struct pci_device_id intel_nics[] = {
+@@ -872,11 +1033,11 @@ static struct pci_device_id intel_nics[] = {
  	PCI_ROM ( 0x8086, 0x1026, "82545gm", "82545GM", 0 ),
  	PCI_ROM ( 0x8086, 0x1027, "82545gm-1", "82545GM", 0 ),
  	PCI_ROM ( 0x8086, 0x1028, "82545gm-2", "82545GM", 0 ),
@@ -500,7 +513,7 @@ index 7cb268ac..dad8941a 100644
  	PCI_ROM ( 0x8086, 0x105e, "82571eb", "82571EB", 0 ),
  	PCI_ROM ( 0x8086, 0x105f, "82571eb-1", "82571EB", 0 ),
  	PCI_ROM ( 0x8086, 0x1060, "82571eb-2", "82571EB", 0 ),
-@@ -909,11 +1064,11 @@ static struct pci_device_id intel_nics[] = {
+@@ -909,11 +1070,11 @@ static struct pci_device_id intel_nics[] = {
  	PCI_ROM ( 0x8086, 0x10bc, "82571eb", "82571EB (Copper)", 0 ),
  	PCI_ROM ( 0x8086, 0x10bd, "82566dm-2", "82566DM-2", 0 ),
  	PCI_ROM ( 0x8086, 0x10bf, "82567lf", "82567LF", 0 ),
@@ -517,7 +530,7 @@ index 7cb268ac..dad8941a 100644
  	PCI_ROM ( 0x8086, 0x10c9, "82576", "82576", 0 ),
  	PCI_ROM ( 0x8086, 0x10cb, "82567v", "82567V", 0 ),
  	PCI_ROM ( 0x8086, 0x10cc, "82567lm-2", "82567LM-2", 0 ),
-@@ -936,8 +1091,8 @@ static struct pci_device_id intel_nics[] = {
+@@ -936,8 +1097,8 @@ static struct pci_device_id intel_nics[] = {
  	PCI_ROM ( 0x8086, 0x10f0, "82578dc", "82578DC", 0 ),
  	PCI_ROM ( 0x8086, 0x10f5, "82567lm", "82567LM", 0 ),
  	PCI_ROM ( 0x8086, 0x10f6, "82574l", "82574L", 0 ),
@@ -528,7 +541,7 @@ index 7cb268ac..dad8941a 100644
  	PCI_ROM ( 0x8086, 0x1503, "82579v", "82579V", 0 ),
  	PCI_ROM ( 0x8086, 0x150a, "82576ns", "82576NS", 0 ),
  	PCI_ROM ( 0x8086, 0x150c, "82583v", "82583V", 0 ),
-@@ -950,24 +1105,40 @@ static struct pci_device_id intel_nics[] = {
+@@ -950,24 +1111,46 @@ static struct pci_device_id intel_nics[] = {
  	PCI_ROM ( 0x8086, 0x1518, "82576ns", "82576NS SerDes", 0 ),
  	PCI_ROM ( 0x8086, 0x1521, "i350", "I350", 0 ),
  	PCI_ROM ( 0x8086, 0x1522, "i350-f", "I350 Fiber", 0 ),
@@ -552,8 +565,8 @@ index 7cb268ac..dad8941a 100644
 -	PCI_ROM ( 0x8086, 0x1570, "i219v", "I219V", 0 ),
 +	PCI_ROM ( 0x8086, 0x153a, "i217lm", "I217-LM", INTEL_NO_PHY_RST ),
 +	PCI_ROM ( 0x8086, 0x153b, "i217v", "I217-V", 0 ),
-+	PCI_ROM ( 0x8086, 0x1559, "i218v", "I218-V", 0),
-+	PCI_ROM ( 0x8086, 0x155a, "i218lm", "I218-LM", 0),
++	PCI_ROM ( 0x8086, 0x1559, "i218v", "I218-V", INTEL_NO_PHY_RST ),
++	PCI_ROM ( 0x8086, 0x155a, "i218lm", "I218-LM", INTEL_NO_PHY_RST ),
 +	PCI_ROM ( 0x8086, 0x156f, "i219lm", "I219-LM", INTEL_I219 ),
 +	PCI_ROM ( 0x8086, 0x1570, "i219v", "I219-V", INTEL_I219 ),
  	PCI_ROM ( 0x8086, 0x157b, "i210-2", "I210", 0 ),
@@ -576,6 +589,12 @@ index 7cb268ac..dad8941a 100644
 +	PCI_ROM ( 0x8086, 0x15e1, "i219lm-9", "I219-LM (9)", INTEL_I219 ),
 +	PCI_ROM ( 0x8086, 0x15e2, "i219v-9", "I219-V (9)", INTEL_I219 ),
 +	PCI_ROM ( 0x8086, 0x15e3, "i219lm-5", "I219-LM (5)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x15f4, "i219lm-15", "I219-LM (15)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x15f5, "i219v-15", "I219-V (15)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x15f9, "i219lm-14", "I219-LM (14)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x15fa, "i219v-14", "I219-V (14)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x15fb, "i219lm-13", "I219-LM (13)", INTEL_I219 ),
++	PCI_ROM ( 0x8086, 0x15fc, "i219v-13", "I219-V (13)", INTEL_I219 ),
 +	PCI_ROM ( 0x8086, 0x1f41, "i354", "I354", INTEL_NO_ASDE ),
  	PCI_ROM ( 0x8086, 0x294c, "82566dc-2", "82566DC-2", 0 ),
  	PCI_ROM ( 0x8086, 0x2e6e, "cemedia", "CE Media Processor", 0 ),
