@@ -23,6 +23,7 @@ SRC_C   += lx_emul/shadow/kernel/sched/sched.c
 SRC_C   += lx_emul/shadow/lib/devres.c
 SRC_C   += lx_emul/shadow/lib/smp_processor_id.c
 SRC_C   += lx_emul/shadow/mm/memblock.c
+SRC_C   += lx_emul/shadow/mm/page_alloc.c
 SRC_CC  += lx_emul/pci_config_space.cc
 SRC_CC  += lx_emul/pci_init.cc
 SRC_CC  += lx_kit/device.cc
