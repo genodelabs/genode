@@ -64,6 +64,12 @@ GEN_ARCH  := arm
 SPEC_ARCH := arm_64
 endif
 
+ifneq ($(SHARED_LIB),)
+TARGET_SOURCE_LIST := $(TARGET_LIB_DIR)/spec/$(SPEC_ARCH)/source.list
+else
+TARGET_SOURCE_LIST := $(PRG_DIR)/source.list
+endif
+
 SHADOW_INC_DIR      := $(DDE_LINUX_DIR)/src/include/lx_emul/shadow
 GEN_SHADOW_INC_DIR  := $(DDE_LINUX_DIR)/src/include/spec/$(GEN_ARCH)/lx_emul/shadow
 SPEC_SHADOW_INC_DIR := $(DDE_LINUX_DIR)/src/include/spec/$(SPEC_ARCH)/lx_emul/shadow
@@ -117,15 +123,15 @@ CC_C_OPT += -Wno-format
 # avoid link errors whenever the build config's CC_OLEVEL is set to -O0
 override CC_OLEVEL := -O2
 
-LX_SRC   = $(shell grep ".*\.c" $(PRG_DIR)/source.list)
-SRC_S   += $(shell grep ".*\.S" $(PRG_DIR)/source.list)
+LX_SRC   = $(shell grep ".*\.c" $(TARGET_SOURCE_LIST))
+SRC_S   += $(shell grep ".*\.S" $(TARGET_SOURCE_LIST))
 SRC_C   += $(LX_SRC)
 
 vpath %.c $(LX_SRC_DIR)
 vpath %.S $(LX_SRC_DIR)
 vpath %.S $(LX_GEN_DIR)
 
-CUSTOM_TARGET_DEPS += $(PRG_DIR)/source.list
+CUSTOM_TARGET_DEPS += $(TARGET_SOURCE_LIST)
 
 # Define per-compilation-unit CC_OPT defines needed by MODULE* macros in Linux
 define CC_OPT_LX_RULES =
