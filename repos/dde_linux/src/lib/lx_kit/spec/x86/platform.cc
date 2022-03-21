@@ -353,11 +353,28 @@ void *Platform::Device::Mmio::_local_addr()
 	if (!_attached_ds.constructed()) {
 		Legacy_platform::Device_client device { _device._device_cap };
 
-		uint8_t const id =
-			device.phys_bar_to_virt((uint8_t)_index.value);
+		Cache cache = Cache::UNCACHED;
+
+		{
+			uint8_t phys_bar_id = 0;
+
+			/* convert virtual bar id into phys bar id */
+			for (unsigned virt_id = 0, i = 0; i < 6; i++) {
+				auto const type = device.resource(i).type();
+				if (type == Legacy_platform::Device::Resource::Type::MEMORY) {
+					virt_id ++;
+					phys_bar_id = uint8_t(i);
+				}
+				if (virt_id > _index.value)
+					break;
+			}
+
+			if (device.resource(phys_bar_id).prefetchable())
+				cache = Cache::WRITE_COMBINED;
+		}
 
 		Io_mem_session_capability io_mem_cap =
-			device.io_mem(id);
+			device.io_mem(uint8_t(_index.value), cache);
 
 		Io_mem_session_client io_mem_client(io_mem_cap);
 
