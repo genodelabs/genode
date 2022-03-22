@@ -166,14 +166,6 @@ int dma_mmap_attrs(struct device * dev,struct vm_area_struct * vma,void * cpu_ad
 }
 
 
-#include <linux/dmapool.h>
-
-void dma_pool_destroy(struct dma_pool * pool)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)

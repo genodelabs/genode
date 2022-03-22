@@ -84,6 +84,12 @@ struct dma_pool * dma_pool_create(const char * name,
 }
 
 
+void dma_pool_destroy(struct dma_pool * pool)
+{
+	kfree(pool);
+}
+
+
 void dma_pool_free(struct dma_pool * pool,void * vaddr,dma_addr_t dma)
 {
 	lx_emul_mem_free(vaddr);
