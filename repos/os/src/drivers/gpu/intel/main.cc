@@ -1506,35 +1506,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 		struct Resource_guard
 		{
-			/*
-			 * Estimations that work well enough with the current
-			 * test-cases.
-			 */
-			Cap_quota const map_buffer_cap_amount       {    2 };
-			Ram_quota const map_buffer_ram_amount       { 1024 };
-			Cap_quota const map_buffer_ppgtt_cap_amount {    2 };
-			Ram_quota const map_buffer_ppgtt_ram_amount { 4096 };
-			Cap_quota const alloc_buffer_cap_amount     {    4 };
-
-			struct Reservation
-			{
-				Cap_quota_guard::Reservation _cap_reserve;
-				Ram_quota_guard::Reservation _ram_reserve;
-
-				Reservation(Cap_quota_guard &cap, Cap_quota cap_amount,
-				            Ram_quota_guard &ram, Ram_quota ram_amount)
-				:
-					_cap_reserve { cap, cap_amount },
-					_ram_reserve { ram, ram_amount }
-				{ }
-
-				void acknowledge()
-				{
-					_cap_reserve.acknowledge();
-					_ram_reserve.acknowledge();
-				}
-			};
-
 			Cap_quota_guard &_cap_quota_guard;
 			Ram_quota_guard &_ram_quota_guard;
 
@@ -1544,40 +1515,23 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				_ram_quota_guard { ram }
 			{ }
 
-			Reservation map_buffer()
+			/* worst case */
+			bool avail_caps() { return _cap_quota_guard.have_avail(Cap_quota { 4 }); }
+
+			/* size + possible heap allocations */
+			bool avail_ram(size_t size = 0) {
+				return _ram_quota_guard.have_avail(Ram_quota { size + 2*1024*1024 }); }
+
+			void withdraw(size_t caps, size_t ram)
 			{
-				return Reservation { _cap_quota_guard, map_buffer_cap_amount,
-				                     _ram_quota_guard, map_buffer_ram_amount };
+				_cap_quota_guard.withdraw(Cap_quota { caps });
+				_ram_quota_guard.withdraw(Ram_quota { ram });
 			}
 
-			void unmap_buffer()
+			void replenish(size_t caps, size_t ram)
 			{
-				_cap_quota_guard.replenish(map_buffer_cap_amount);
-				_ram_quota_guard.replenish(map_buffer_ram_amount);
-			}
-
-			Reservation map_buffer_ppgtt()
-			{
-				return Reservation { _cap_quota_guard, map_buffer_ppgtt_cap_amount,
-				                     _ram_quota_guard, map_buffer_ppgtt_ram_amount };
-			}
-
-			void unmap_buffer_ppgtt()
-			{
-				_cap_quota_guard.replenish(map_buffer_ppgtt_cap_amount);
-				_ram_quota_guard.replenish(map_buffer_ppgtt_ram_amount);
-			}
-
-			Reservation alloc_buffer(Ram_quota ram_amount)
-			{
-				return Reservation { _cap_quota_guard, alloc_buffer_cap_amount,
-				                     _ram_quota_guard, ram_amount };
-			}
-
-			void free_buffer(Ram_quota ram_amount)
-			{
-				_cap_quota_guard.replenish(alloc_buffer_cap_amount);
-				_ram_quota_guard.replenish(ram_amount);
+				_cap_quota_guard.replenish(Cap_quota { caps });
+				_ram_quota_guard.replenish(Ram_quota { ram });
 			}
 		};
 
@@ -1678,7 +1632,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		{
 			if (buffer_local.ppgtt_va_valid) {
 				_vgpu.rcs_unmap_ppgtt(buffer_local.ppgtt_va, buffer_local.size);
-				_resource_guard.unmap_buffer_ppgtt();
 			}
 
 			destroy(&_heap, &buffer_local);
@@ -1721,7 +1674,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 					if (buffer.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
 						_device.unmap_buffer(_heap, buffer.map);
-						_resource_guard.unmap_buffer();
 					}
 
 					if (buffer.fenced != Buffer::INVALID_FENCE) {
@@ -1729,7 +1681,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 						_vgpu.active_fences--;
 					}
 
-					_resource_guard.free_buffer(Ram_quota { buffer.size });
 					_env.ep().dissolve(buffer);
 					_device.free_buffer(_heap, buffer.ds_cap);
 					return true;
@@ -1815,50 +1766,39 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		Genode::Dataspace_capability alloc_buffer(Gpu::Buffer_id id,
 		                                          Genode::size_t size) override
 		{
-			/*
-			 * XXX allocator overhead is not
-			 *     included, mapping costs are not included and we throw at
-			 *     different locations...
-			 *
-			 *     => better construct Buffer object as whole
-			 */
-
 			/* roundup to next page size */
-			size = ((size + 0xffful) & ~0xffful);
+			size = align_addr(size, 12);
+
+			if (_resource_guard.avail_caps() == false)
+				throw Gpu::Session::Out_of_caps();
+
+			if (_resource_guard.avail_ram(size) == false)
+				throw Gpu::Session::Out_of_ram();
+
+			size_t caps_before = _env.pd().used_caps().value;
+			size_t ram_before  = _env.pd().used_ram().value;
+
+			Ram_dataspace_capability ds_cap = _device.alloc_buffer(_heap, size);
+			addr_t phys_addr = _device.dma_addr(ds_cap);
+			Buffer *buffer = new (&_heap) Buffer(ds_cap, phys_addr, _session_cap);
+			_env.ep().manage(*buffer);
 
 			try {
-				Resource_guard::Reservation reserve =
-					_resource_guard.alloc_buffer(Ram_quota { size });
-
-				Genode::Ram_dataspace_capability ds_cap =
-					_device.alloc_buffer(_heap, size);
-				Genode::addr_t phys_addr = _device.dma_addr(ds_cap);
-
-				Buffer *buffer = new (&_heap) Buffer(ds_cap, phys_addr, _session_cap);
-				_env.ep().manage(*buffer);
-				try {
-					new (&_heap) Buffer_local(buffer->cap(), size, _buffer_space, id);
-				} catch (Id_space<Buffer_local>::Conflicting_id) {
-					_env.ep().dissolve(*buffer);
-					destroy(&_heap, buffer);
-					_device.free_buffer(_heap, ds_cap);
-					throw Gpu::Session_component::Conflicting_id();
-				}
-
-				reserve.acknowledge();
-				return ds_cap;
-			} catch (Igd::Device::Out_of_caps) {
-				throw Gpu::Session_component::Out_of_caps();
-			} catch (Igd::Device::Out_of_ram) {
-				throw Gpu::Session_component::Out_of_ram();
-
-			} catch (Cap_quota_guard::Limit_exceeded) {
-				throw Gpu::Session_component::Out_of_caps();
-			} catch (Ram_quota_guard::Limit_exceeded) {
-				throw Gpu::Session_component::Out_of_ram();
+				new (&_heap) Buffer_local(buffer->cap(), size, _buffer_space, id);
+			} catch (Id_space<Buffer_local>::Conflicting_id) {
+				_env.ep().dissolve(*buffer);
+				destroy(&_heap, buffer);
+				_device.free_buffer(_heap, ds_cap);
+				throw Gpu::Session_component::Conflicting_id();
 			}
 
-			return Genode::Dataspace_capability();
+			size_t caps_after = _env.pd().used_caps().value;
+			size_t ram_after  = _env.pd().used_ram().value;
+
+			_resource_guard.withdraw(caps_after - caps_before,
+			                         ram_after - ram_before);
+
+			return ds_cap;
 		}
 
 		void free_buffer(Gpu::Buffer_id id) override
@@ -1877,7 +1817,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					size_t const size = buffer.size;
 					_env.ep().dissolve(buffer);
 					_device.free_buffer(_heap, buffer.ds_cap);
-					_resource_guard.free_buffer(Ram_quota { size });
+					_resource_guard.replenish(1, size);
 					return true;
 				});
 
@@ -1937,28 +1877,29 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					Genode::error("buffer already mapped");
 					return false;
 				}
-
-				try {
-					Resource_guard::Reservation reserve = _resource_guard.map_buffer();
-
-					Igd::Ggtt::Mapping const &map =
-						_device.map_buffer(_heap, buffer.ds_cap, aperture);
-					buffer.map.cap    = map.cap;
-					buffer.map.offset = map.offset;
-					map_cap           = buffer.map.cap;
-
-					reserve.acknowledge();
-					return false;
-				} catch (Cap_quota_guard::Limit_exceeded) {
+				/* GGTT mappings only require the heap */
+				if (_resource_guard.avail_caps() == false)
 					throw Gpu::Session::Out_of_caps();
-				} catch (Ram_quota_guard::Limit_exceeded) {
+
+				if (_resource_guard.avail_ram() == false)
 					throw Gpu::Session::Out_of_ram();
-				} catch (Igd::Device::Out_of_caps) {
-					throw Gpu::Session::Out_of_caps();
-				} catch (Igd::Device::Out_of_ram) {
-					throw Gpu::Session::Out_of_ram();
-				}
+
+				size_t caps_before = _env.pd().used_caps().value;
+				size_t ram_before  = _env.pd().used_ram().value;
+
+				Igd::Ggtt::Mapping const &map =
+					_device.map_buffer(_heap, buffer.ds_cap, aperture);
+				buffer.map.cap    = map.cap;
+				buffer.map.offset = map.offset;
+				map_cap           = buffer.map.cap;
+
+				size_t caps_after = _env.pd().used_caps().value;
+				size_t ram_after  = _env.pd().used_ram().value;
+				_resource_guard.withdraw(caps_after - caps_before,
+				                         ram_after - ram_before);
+				return true;
 			};
+
 			_apply_buffer_local(id, [&] (Buffer_local &buffer_local) {
 				_apply_buffer(buffer_local, lookup_and_map); });
 
@@ -1987,7 +1928,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				buffer.map.offset = Igd::Ggtt::Mapping::INVALID_OFFSET;
 				unmapped = true;
 
-				_resource_guard.unmap_buffer();
 				return false;
 			};
 
@@ -1999,13 +1939,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 		bool map_buffer_ppgtt(Gpu::Buffer_id id, Gpu::addr_t va) override
 		{
-			enum {
-				ALLOC_FAILED_RAM,
-				ALLOC_FAILED_CAPS,
-				MAP_FAILED,
-				OK
-			} result = MAP_FAILED;
-
 			auto lookup_and_map = [&] (Buffer_local &buffer_local) {
 
 				if (buffer_local.ppgtt_va_valid) {
@@ -2022,44 +1955,29 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					return;
 				}
 
-				try {
-					Resource_guard::Reservation reserve = _resource_guard.map_buffer_ppgtt();
-
-					_vgpu.rcs_map_ppgtt(va, phys_addr, buffer_local.size);
-					buffer_local.ppgtt_va = va;
-					buffer_local.ppgtt_va_valid = true;
-					result = OK;
-
-					reserve.acknowledge();
-				} catch (Cap_quota_guard::Limit_exceeded) {
-					result = ALLOC_FAILED_CAPS;
-					return;
-				} catch (Ram_quota_guard::Limit_exceeded) {
-					result = ALLOC_FAILED_RAM;
-					return;
-				} catch (Igd::Device::Out_of_caps) {
-					result = ALLOC_FAILED_CAPS;
-					return;
-				} catch (Igd::Device::Out_of_ram) {
-					result = ALLOC_FAILED_RAM;
-					return;
-				} catch (...) {
-					/* double inseration where the addresses do not match up */
-					Genode::error("could not map buffer object (", Genode::Hex(va), ") into PPGTT");
-					result = MAP_FAILED;
-					return;
-				}
+				_vgpu.rcs_map_ppgtt(va, phys_addr, buffer_local.size);
+				buffer_local.ppgtt_va = va;
+				buffer_local.ppgtt_va_valid = true;
 			};
+
+			if (_resource_guard.avail_caps() == false)
+				throw Gpu::Session::Out_of_caps();
+
+			if (_resource_guard.avail_ram() == false)
+				throw Gpu::Session::Out_of_ram();
+
+			size_t caps_before = _env.pd().used_caps().value;
+			size_t ram_before  = _env.pd().used_ram().value;
+
 			_apply_buffer_local(id, lookup_and_map);
 
-			switch (result) {
-			case ALLOC_FAILED_CAPS: throw Gpu::Session::Out_of_caps();
-			case ALLOC_FAILED_RAM:  throw Gpu::Session::Out_of_ram();
-			case MAP_FAILED:        throw Gpu::Session::Mapping_buffer_failed();
-			case OK: return true;
-			default:
-				return false;
-			}
+			size_t caps_after = _env.pd().used_caps().value;
+			size_t ram_after  = _env.pd().used_ram().value;
+
+			_resource_guard.withdraw(caps_after - caps_before,
+			                         ram_after - ram_before);
+
+			return true;
 		}
 
 		void unmap_buffer_ppgtt(Gpu::Buffer_id id,
@@ -2079,8 +1997,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 				_vgpu.rcs_unmap_ppgtt(va, buffer_local.size);
 				buffer_local.ppgtt_va_valid = false;
-
-				_resource_guard.unmap_buffer_ppgtt();
 			};
 			_apply_buffer_local(id, lookup_and_unmap);
 		}
