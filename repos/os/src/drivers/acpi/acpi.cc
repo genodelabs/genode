@@ -1221,7 +1221,7 @@ class Element : private List<Element>::Element
 
 
 /**
- * Locate and parse PCI tables we are looking for
+ * Locate and parse ACPI tables we are looking for
  */
 class Acpi_table
 {
@@ -1290,12 +1290,12 @@ class Acpi_table
 		}
 
 		template <typename T>
-		void _parse_tables(Genode::Allocator &alloc, T * entries, uint32_t count)
+		void _parse_tables(Genode::Allocator &alloc, T * entries, uint32_t const count)
 		{
 			/* search for SSDT and DSDT tables */
 			for (uint32_t i = 0; i < count; i++) {
 				uint32_t dsdt = 0;
-				{
+				try {
 					Table_wrapper table(_memory, entries[i]);
 
 					if (!table.valid()) {
@@ -1349,24 +1349,26 @@ class Acpi_table
 
 						table.parse_dmar(alloc);
 					}
-				}
+				} catch (Acpi::Memory::Unsupported_range &) { }
 
 				if (!dsdt)
 					continue;
 
-				Table_wrapper table(_memory, dsdt);
+				try {
+					Table_wrapper table(_memory, dsdt);
 
-				if (!table.valid()) {
-					Genode::error("ignoring table '", table.name(),
-					              "' - checksum error");
-					continue;
-				}
-				if (table.is_searched()) {
-					if (verbose)
-						Genode::log("Found dsdt ", table.name());
+					if (!table.valid()) {
+						Genode::error("ignoring table '", table.name(),
+						              "' - checksum error");
+						continue;
+					}
+					if (table.is_searched()) {
+						if (verbose)
+							Genode::log("Found dsdt ", table.name());
 
-					Element::parse(alloc, table.table());
-				}
+						Element::parse(alloc, table.table());
+					}
+				} catch (Acpi::Memory::Unsupported_range &) { }
 			}
 
 		}

@@ -129,7 +129,7 @@ class Acpi::Memory
 
 			/* check that physical region fits into supported range */
 			if (!_io_region->contains(loop_region)) {
-				error("acpi table out of range - ", loop_region, " not in ", *_io_region);
+				warning("acpi table out of range - ", loop_region, " not in ", *_io_region);
 				throw Unsupported_range();
 			}
 
