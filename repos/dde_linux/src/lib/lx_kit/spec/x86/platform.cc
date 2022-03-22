@@ -50,36 +50,48 @@ static void scan_resources(Legacy_platform::Device &device,
 static Str create_device_node(Xml_generator &xml,
                               Legacy_platform::Device &device)
 {
-	struct {
-		char const    *key;
-		unsigned char  value;
-	} bdf[3] = {
-		{ .key = "bus",  .value = 0u },
-		{ .key = "dev",  .value = 0u },
-		{ .key = "func", .value = 0u },
-	};
-	device.bus_address(&bdf[0].value, &bdf[1].value, &bdf[2].value);
+	using namespace Genode;
 
 	/* start arbitrarily and count up */
 	static unsigned char irq = 8;
 
-	using namespace Genode;
+	/* start arbitrarily at the dev 1 for the first device */
+	static unsigned char bdf[3] = { 0, 1, 0 };
+
+	/* start arbitrarily at 1 GiB */
+	static unsigned long mmio_phys_addr = 0x40000000;
+
+	unsigned char pbdf[3];
+	device.bus_address(&pbdf[0], &pbdf[1], &pbdf[2]);
+
+	/*
+	 * The host-bridge is only required by the Intel framebuffer
+	 * driver and has to be located at 00:00.0. For every other
+	 * type of device we simply count upwards.
+	 */
+	unsigned char vbdf[3] = { 0, 0, 0 };
+	unsigned const class_code = device.class_code() >> 8;
+	if (class_code != 0x600 /* host-bridge */) {
+		vbdf[0] = bdf[0]; vbdf[1] = bdf[1]; vbdf[2] = bdf[2];
+		bdf[1]++;
+	}
+
+	log("override physical BDF ",
+	    Hex(pbdf[0], Hex::OMIT_PREFIX), ":",
+	    Hex(pbdf[1], Hex::OMIT_PREFIX), ".",
+	    Hex(pbdf[2], Hex::OMIT_PREFIX), " -> ",
+	    Hex(vbdf[0], Hex::OMIT_PREFIX), ":",
+	    Hex(vbdf[1], Hex::OMIT_PREFIX), ".",
+	    Hex(vbdf[2], Hex::OMIT_PREFIX));
 
 	Str name = to_string("pci-",
-	                     Hex(bdf[0].value, Hex::OMIT_PREFIX), ":",
-	                     Hex(bdf[1].value, Hex::OMIT_PREFIX), ".",
-	                     Hex(bdf[2].value, Hex::OMIT_PREFIX));
+	                     Hex(vbdf[0], Hex::OMIT_PREFIX), ":",
+	                     Hex(vbdf[1], Hex::OMIT_PREFIX), ".",
+	                     Hex(vbdf[2], Hex::OMIT_PREFIX));
 
 	xml.node("device", [&] () {
 		xml.attribute("name", name);
 		xml.attribute("type", "pci");
-
-		for (auto i : bdf) {
-			xml.node("property", [&] () {
-				xml.attribute("name",  i.key);
-				xml.attribute("value", to_string(i.value));
-			});
-		}
 
 		xml.node("irq", [&] () {
 			xml.attribute("number", irq++);
@@ -89,11 +101,17 @@ static Str create_device_node(Xml_generator &xml,
 
 		scan_resources(device, [&] (unsigned id, R const &r) {
 
-			xml.node(r.type() == R::MEMORY ? "io_mem" : "io_port", [&] () {
-				xml.attribute("phys_addr", to_string(Hex(r.base())));
+			bool const memory = r.type() == R::MEMORY;
+
+			xml.node(memory ? "io_mem" : "io_port", [&] () {
+				xml.attribute("phys_addr",
+				              to_string(Hex(memory ? mmio_phys_addr : r.bar())));
 				xml.attribute("size",      to_string(Hex(r.size())));
 				xml.attribute("bar",       id);
 			});
+
+			if (memory)
+				mmio_phys_addr += align_addr(r.size(), 12);
 		});
 	});
 
@@ -242,6 +260,35 @@ static unsigned bar_size(Platform::Device const &dev,
 }
 
 
+static unsigned bar_address(Platform::Device const &dev,
+                            Xml_node const &devices, unsigned bar)
+{
+	if (bar > 6)
+		return 0;
+
+	using namespace Genode;
+
+	unsigned val = 0;
+	apply(dev, devices, [&] (Xml_node device) {
+		device.for_each_sub_node("io_mem", [&] (Xml_node node) {
+			if (node.attribute_value("bar", 6u) != bar)
+				return;
+
+			val = node.attribute_value("phys_addr", 0u);
+		});
+
+		device.for_each_sub_node("io_port", [&] (Xml_node node) {
+			if (node.attribute_value("bar", 6u) != bar)
+				return;
+
+			val = node.attribute_value("phys_addr", 0u);
+		});
+	});
+
+	return val;
+}
+
+
 static unsigned char irq_line(Platform::Device const &dev,
                               Xml_node const &devices)
 {
@@ -288,6 +335,8 @@ unsigned Platform::Device::Config_space::read(unsigned char address,
 			_device._bar_checked_for_size[bar] = 0;
 			return bar_size(_device, *_device._platform._devices_node, bar);
 		}
+
+		return bar_address(_device, *_device._platform._devices_node, bar);
 	}
 
 	if (address == 0x3c)
