@@ -6,6 +6,8 @@ TARGET  := pc_intel_fb_drv
 LIBS    := base pc_lx_emul blit
 
 INC_DIR += $(REL_PRG_DIR)
+INC_DIR += $(REL_PRG_DIR)/shadow
+
 SRC_CC  += main.cc
 SRC_CC  += misc.cc
 SRC_CC  += time.cc
