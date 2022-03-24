@@ -339,6 +339,14 @@ unsigned Platform::Device::Config_space::read(unsigned char address,
 		return bar_address(_device, *_device._platform._devices_node, bar);
 	}
 
+	/*
+	 * If any PCI device reports 0 as interrupt PIN, drivers may try to force
+	 * MSI setup (e.g., xhci). So, we clamp the interrupt PIN to 1 to let
+	 * drivers finish initialization and don't bother the platform driver.
+	 */
+	if (address == 0x3d)
+		return 0x01;
+
 	if (address == 0x3c)
 		return irq_line(_device, *_device._platform._devices_node);
 
