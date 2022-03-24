@@ -293,37 +293,49 @@ class Platform::Session_component : public Rpc_object<Session>
 		typedef String<32> Alias_name;
 
 		/*
-		 * List of aliases for PCI Class/Subclas/Prog I/F triple used
-		 * by xml config for this platform driver
+		 * List of aliases for PCI base class, sub class, and
+		 * programming interface triples supported in XML config
 		 */
-		unsigned class_subclass_prog(Alias_name const &name)
+		bool valid_alias(Alias_name const &name, unsigned const class_code = ~0U)
 		{
-			static struct {
-				const char * alias;
-				uint8_t pci_class, pci_subclass, pci_progif;
+			/* wildcard 0xff matches all codes */
+			auto wildcard = [] (uint8_t v) { return v == 0xff; };
+
+			static struct Alias {
+				const char *name;
+				uint8_t b, s, p; /* base class, sub class, progif */
 			} const aliases [] = {
-				{ "AHCI"     , 0x1, 0x06, 0x0},
-				{ "ALL"      , 0x0, 0x00, 0x0},
-				{ "AUDIO"    , 0x4, 0x01, 0x0},
-				{ "ETHERNET" , 0x2, 0x00, 0x0},
-				{ "HDAUDIO"  , 0x4, 0x03, 0x0},
-				{ "NVME"     , 0x1, 0x08, 0x2},
-				{ "USB"      , 0xc, 0x03, 0x0},
-				{ "VGA"      , 0x3, 0x00, 0x0},
-				{ "WIFI"     , 0x2, 0x80, 0x0},
-				{ "ISABRIDGE", 0x6, 0x01, 0x0}
+				{ "ALL"      , 0xff, 0xff, 0xff},
+				{ "AHCI"     , 0x01, 0x06, 0xff},
+				{ "AUDIO"    , 0x04, 0x01, 0xff},
+				{ "ETHERNET" , 0x02, 0x00, 0xff},
+				{ "HDAUDIO"  , 0x04, 0x03, 0xff},
+				{ "ISABRIDGE", 0x06, 0x01, 0xff},
+				{ "NVME"     , 0x01, 0x08, 0x02},
+				{ "USB"      , 0x0c, 0x03, 0x00}, /* UHCI */
+				{ "USB"      , 0x0c, 0x03, 0x10}, /* OHCI */
+				{ "USB"      , 0x0c, 0x03, 0x20}, /* EHCI */
+				{ "USB"      , 0x0c, 0x03, 0x30}, /* XHCI */
+				{ "USB4"     , 0x0c, 0x03, 0x40}, /* USB4 NHI/Thunderbolt */
+				{ "VGA"      , 0x03, 0x00, 0x00},
+				{ "WIFI"     , 0x02, 0x80, 0xff},
 			};
 
-			for (unsigned i = 0; i < sizeof(aliases) / sizeof(aliases[0]); i++) {
-				if (name != aliases[i].alias)
+			uint8_t const b = (class_code >> 16) & 0xff;
+			uint8_t const s = (class_code >>  8) & 0xff;
+			uint8_t const p =  class_code        & 0xff;
+
+			for (Alias const &alias : aliases) {
+				if (name != alias.name)
 					continue;
 
-				return 0U | aliases[i].pci_class << 16 |
-				       aliases[i].pci_subclass << 8 |
-				       aliases[i].pci_progif;
+				if ((wildcard(b) || wildcard(alias.b) || b == alias.b)
+				 && (wildcard(s) || wildcard(alias.s) || s == alias.s)
+				 && (wildcard(p) || wildcard(alias.p) || p == alias.p))
+					return true;
 			}
 
-			return ~0U;
+			return false;
 		}
 
 		/**
@@ -394,11 +406,8 @@ class Platform::Session_component : public Rpc_object<Session>
 
 					/* enforce restriction based upon classes */
 					auto alias = node.attribute_value("class", Alias_name());
-					unsigned const class_sub_prog = class_subclass_prog(alias);
 
-					enum { DONT_CHECK_PROGIF = 8 };
-					/* if class/subclass don't match - deny */
-					if (class_sub_prog && (class_sub_prog ^ class_code) >> DONT_CHECK_PROGIF)
+					if (!valid_alias(alias, class_code))
 						return;
 
 					/* if this bdf is used by some policy - deny */
@@ -543,7 +552,7 @@ class Platform::Session_component : public Rpc_object<Session>
 
 					Alias_name const alias = node.attribute_value("class", Alias_name());
 
-					if (class_subclass_prog(alias) >= INVALID_CLASS) {
+					if (!valid_alias(alias)) {
 						error("'", _label, "' - invalid 'class' ",
 						      "attribute '", alias, "'");
 						throw Service_denied();

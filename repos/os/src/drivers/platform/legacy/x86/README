@@ -133,21 +133,23 @@ that drivers may start to operate with the platform driver.
 Supported PCI class aliases
 ---------------------------
 
-The following class names are supported which corresponds to the
-specified PCI class(C), subclass(S) and programming interface(P):
+The following class names are supported which correspond to the
+specified PCI base class (B), sub class (S) and programming interface
+(P) combinations. ('-' matches all devices in the category)
 
-alias       C    S   P
-**********************
-ALL       0x0 0x00 0x0
-AHCI      0x1 0x06 0x0
-AUDIO     0x4 0x01 0x0
-ETHERNET  0x2 0x00 0x0
-HDAUDIO   0x4 0x03 0x0
-NVME      0x1 0x08 0x2
-USB       0xc 0x03 0x0
-VGA       0x3 0x00 0x0
-WIFI      0x2 0x80 0x0
-ISABRIDGE 0x6 0x01 0x0
+alias       B   S   P
+
+ALL         -   -   -
+AHCI       01  06   -
+AUDIO      04  01   -
+ETHERNET   02  00   -
+HDAUDIO    04  03   -
+ISABRIDGE  06  01   -
+NVME       01  08  02
+USB        0c  03  00 10 20 30
+USB4       0c  03  40
+VGA        03  00  00
+WIFI       02  80   -
 
 
 Supported non PCI devices
