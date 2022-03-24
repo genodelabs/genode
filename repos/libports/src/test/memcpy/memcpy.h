@@ -16,11 +16,19 @@ void memcpy_test(void * dst = nullptr, void * src = nullptr,
 	void * const from_buf = src ? src : malloc(size);
 	void * const to_buf   = dst ? dst : malloc(size);
 
+	/**
+	 * initialising the buffer (with any value) is necessary to
+	 * a) circumvent copy-on-write optimisation on linux and
+	 * b) all pages are already allocated and mapped
+	 */
+	memset(from_buf, 0, size);
+	memset(to_buf,   0, size);
+
 	Test test;
 	test.start();
 
 	for (unsigned i = 0; i < ITERATION; i++)
-		test.copy(to_buf, from_buf, BUF_SIZE);
+		test.copy(to_buf, from_buf, size);
 
 	test.finished();
 

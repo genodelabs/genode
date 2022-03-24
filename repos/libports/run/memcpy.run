@@ -72,7 +72,14 @@ exit 0
 # Linux baseline measurements
 #
 
-# Raspberry Pi 1
-# bytewise memcpy: copied 8388608 KiB in 93390210 usecs (87   MiB/sec)
-# libc memcpy:     copied 8388608 KiB in 6238602  usecs (1313 MiB/sec)
-# libc memset:     copied 8388608 KiB in 6023324  usecs (1360 MiB/sec)
+# Zynq-7000 @ 666MHz (L2 prefetching enabled, offset=0)
+# Genode memcpy:   copied 8388608 KiB in 27362177 usecs (299 MiB/sec)
+# bytewise memcpy: copied 8388608 KiB in 43882888 usecs (186 MiB/sec)
+# libc memcpy:     copied 8388608 KiB in 28702066 usecs (285 MiB/sec)
+# libc memset:     copied 8388608 KiB in 4033019 usecs (2031 MiB/sec)
+
+# Zynq-7000 @ 666MHz (L2 prefetching enabled, offset=4)
+# Genode memcpy:   copied 8388608 KiB in 14985454 usecs (546 MiB/sec)
+# bytewise memcpy: copied 8388608 KiB in 39478781 usecs (207 MiB/sec)
+# libc memcpy:     copied 8388608 KiB in 28792091 usecs (284 MiB/sec)
+# libc memset:     copied 8388608 KiB in 4041102 usecs (2027 MiB/sec)
