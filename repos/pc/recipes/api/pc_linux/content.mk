@@ -83,6 +83,7 @@ LX_FILES += Kbuild \
             scripts/Makefile.extrawarn \
             scripts/Makefile.host \
             scripts/Makefile.lib \
+            scripts/asn1_compiler.c \
             scripts/as-version.sh \
             scripts/atomic/check-atomics.sh \
             scripts/basic/Makefile \
@@ -91,6 +92,7 @@ LX_FILES += Kbuild \
             scripts/checksyscalls.sh \
             scripts/config \
             scripts/dtc \
+            scripts/extract-cert.c \
             scripts/gcc-goto.sh \
             scripts/kconfig/merge_config.sh \
             scripts/ld-version.sh \
@@ -105,6 +107,10 @@ LX_FILES += Kbuild \
             scripts/syscalltbl.sh \
             tools/include/tools \
             tools/objtool
+
+# needed for src/asn1_compiler.c
+LX_FILES += include/linux/asn1.h \
+            include/linux/asn1_ber_bytecode.h
 
 LX_SCRIPTS_KCONFIG_FILES := $(notdir $(wildcard $(LX_ABS_DIR)/scripts/kconfig/*.c)) \
                             $(notdir $(wildcard $(LX_ABS_DIR)/scripts/kconfig/*.h)) \
