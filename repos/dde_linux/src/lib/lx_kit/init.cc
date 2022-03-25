@@ -58,5 +58,4 @@ void Lx_kit::Pci_fixup_calls::execute(struct pci_dev *pci_dev)
 void Lx_kit::initialize(Genode::Env & env)
 {
 	Lx_kit::env(&env);
-	env.exec_static_constructors();
 }

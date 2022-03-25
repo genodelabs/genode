@@ -73,6 +73,7 @@ struct Main : private Entrypoint::Io_progress_handler
 		}
 
 		Lx_kit::initialize(env);
+		env.exec_static_constructors();
 
 		genode_usb_init(genode_env_ptr(env),
 		                genode_allocator_ptr(sliced_heap),
