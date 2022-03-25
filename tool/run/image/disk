@@ -27,13 +27,11 @@ proc run_image { {unused ""} } {
 	set size_header [expr [regsub {\s.*} [exec du -b  [run_dir].header] {}]]
 	set size_run    [expr [regsub {\s.*} [exec du -skL [run_dir]] {}]]
 
-	# try to compensate ext2 overhead in disk size
-	set ext2_overhead 768
-
 	if {[image_disk_size] > 0} {
 		set disk_size_kb [expr [image_disk_size] * 1024]
 	} else {
-		set disk_size_kb [expr ($size_run + $ext2_overhead) / 32 * 32]
+		# set disk size to 1.5 times the run folder size; will be shrinked later
+		set disk_size_kb [expr ($size_run * 3 / 2) / 32 * 32]
 	}
 
 	# setup partition with content
@@ -52,6 +50,13 @@ proc run_image { {unused ""} } {
 		} else {
 			exec [installed_command e2cp] $file [run_dir].partition:$filename
 		}
+	}
+
+	if {[image_disk_size] == 0} {
+		# resize image to only needed size and get size of resized image
+		exec resize2fs -M [run_dir].partition 2>/dev/null
+		set disk_size_b [expr [regsub {\s.*} [exec wc -c [run_dir].partition] {}]]
+		set disk_size_kb [expr $disk_size_b / 1024]
 	}
 
 	# calculate start/end sector of content partition

@@ -17,6 +17,7 @@
 
 #define boot_cpu_has(bit) 0
 #define static_cpu_has(bit) boot_cpu_has(bit)
+#define static_cpu_has_bug(bit) static_cpu_has((bit))
 #define cpu_has(value, bit) ( (void)value, 0 )
 
 #endif /* defined(__KERNEL__) && !defined(__ASSEMBLY__) */
