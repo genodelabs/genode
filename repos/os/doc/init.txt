@@ -213,7 +213,7 @@ child is routed to the timer service started at the first-level init instance.
 !     </route>
 !   </start>
 ! </config>
-The services ROM, RAM, CPU, RM, and PD are required by the second-level
+The services ROM, CPU, RM, and PD are required by the second-level
 init instance to create the timer-test component.
 
 As illustrated by this example, the use of the nested configuration feature

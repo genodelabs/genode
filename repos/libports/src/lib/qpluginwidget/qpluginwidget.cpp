@@ -41,7 +41,6 @@ const char *config = " \
         <service name=\"CPU\"/> \
         <service name=\"LOG\"/> \
         <service name=\"PD\"/> \
-        <service name=\"RAM\"/> \
         <service name=\"RM\"/> \
         <service name=\"ROM\"/> \
         <service name=\"Timer\"/> \
