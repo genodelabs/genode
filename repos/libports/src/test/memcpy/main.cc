@@ -58,11 +58,21 @@ void Libc::Component::construct(Libc::Env &env)
 {
 	log("Memcpy testsuite started");
 
-	memcpy_test<Bytewise_test>();
-	memcpy_test<Genode_cpy_test>();
+	/* Alloc dataspaces to control page alignment */
+	Genode::Attached_ram_dataspace cached_ds1(env.ram(), env.rm(),
+	                                          BUF_SIZE, Genode::CACHED);
+	Genode::Attached_ram_dataspace cached_ds2(env.ram(), env.rm(),
+	                                          BUF_SIZE+4096, Genode::CACHED);
+
+	memcpy_test<Bytewise_test>  (cached_ds1.local_addr<void>(), cached_ds2.local_addr<void>(), BUF_SIZE);
+	memcpy_test<Genode_cpy_test>(cached_ds1.local_addr<void>(), cached_ds2.local_addr<void>(), BUF_SIZE);
 	memcpy_test<Genode_set_test>();
-	memcpy_test<Libc_cpy_test>();
+	memcpy_test<Libc_cpy_test>  (cached_ds1.local_addr<void>(), cached_ds2.local_addr<void>(), BUF_SIZE);
 	memcpy_test<Libc_set_test>();
+
+	/* offset src by one page so that src and dst have different cache indices */
+	memcpy_test<Genode_cpy_test>(                        cached_ds1.local_addr<void>(),
+	                             (void*)((Genode::addr_t)cached_ds2.local_addr<void>()+4096), BUF_SIZE);
 
 	Genode::Attached_ram_dataspace uncached_ds(env.ram(), env.rm(),
 	                                           BUF_SIZE, Genode::UNCACHED);
