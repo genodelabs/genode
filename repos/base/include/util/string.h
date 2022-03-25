@@ -246,7 +246,47 @@ namespace Genode {
 	 __attribute((optimize("no-tree-loop-distribute-patterns")))
 	inline void *memset(void *dst, uint8_t i, size_t size)
 	{
-		while (size--) ((uint8_t *)dst)[size] = i;
+		typedef unsigned long word_t;
+
+		enum {
+			LEN  = sizeof(word_t),
+			MASK = LEN-1
+		};
+
+		size_t d_align = (size_t)dst & MASK;
+		uint8_t* d = (uint8_t*)dst;
+
+		/* write until word aligned */
+		for (; d_align && d_align < LEN && size;
+		       d_align++, size--, d++)
+			*d = i;
+
+		word_t word = i;
+		word |= word << 8;
+		word |= word << 16;
+		if (LEN == 8)
+			word |= (word << 16) << 16;
+
+		/* write 8-word chunks (likely matches cache line size) */
+		for (; size >= 8*LEN; size -= 8*LEN, d += 8*LEN) {
+			((word_t *)d)[0] = word;
+			((word_t *)d)[1] = word;
+			((word_t *)d)[2] = word;
+			((word_t *)d)[3] = word;
+			((word_t *)d)[4] = word;
+			((word_t *)d)[5] = word;
+			((word_t *)d)[6] = word;
+			((word_t *)d)[7] = word;
+		}
+
+		/* write remaining words */
+		for (; size >= LEN; size -= LEN, d += LEN)
+			((word_t *)d)[0] = word;
+
+		/* write remaining bytes */
+		for (; size; size--, d++)
+			*d = i;
+
 		return dst;
 	}
 
