@@ -1,0 +1,8 @@
+set test_imports "[depot_user]/src/test-vfs_capture \
+                 [depot_user]/src/vfs_capture"
+
+set test_binary "test-vfs_capture"
+
+set test_vfs_config { <vfs><dir name="dev"><capture/></dir></vfs> }
+
+source ${genode_dir}/repos/libports/run/webcam.inc
