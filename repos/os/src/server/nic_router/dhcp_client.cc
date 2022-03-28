@@ -136,6 +136,8 @@ void Dhcp_client::handle_dhcp_reply(Dhcp_packet &dhcp)
 			break;
 
 		case State::REQUEST:
+		case State::RENEW:
+		case State::REBIND:
 			{
 				if (msg_type != Message_type::ACK) {
 					throw Drop_packet("DHCP client expects an acknowledgement");
@@ -145,16 +147,6 @@ void Dhcp_client::handle_dhcp_reply(Dhcp_packet &dhcp)
 				_domain().ip_config_from_dhcp_ack(dhcp);
 				break;
 			}
-		case State::RENEW:
-		case State::REBIND:
-
-			if (msg_type != Message_type::ACK) {
-				throw Drop_packet("DHCP client expects an acknowledgement");
-			}
-			_set_state(State::BOUND, _rerequest_timeout(1));
-			_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
-			break;
-
 		default: throw Drop_packet("DHCP client doesn't expect a packet");
 		}
 	}
