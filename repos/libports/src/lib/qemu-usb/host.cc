@@ -871,6 +871,12 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
 	packet.control.index        = index;
 	packet.control.value        = value;
 
+	/*
+	 * Send usb ctrl transfers with one second timeout as some devices (e.g.,
+	 * smartcard readers) do not response to certain control transfers.
+	 */
+	packet.control.timeout = 1000; /* ms */
+
 	Completion *c = dynamic_cast<Completion *>(packet.completion);
 	c->p        = p;
 	c->dev      = udev;
