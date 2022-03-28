@@ -73,6 +73,11 @@ class Net::Dhcp_client
 		Nic                                  &_nic;
 		Dhcp_client_handler                  &_handler;
 
+		void
+		_handle_dhcp_reply_in_request_state(Dhcp_packet::Message_type  msg_type,
+		                                    Dhcp_packet               &dhcp,
+		                                    char const                *request_state);
+
 		void _handle_dhcp_reply(Dhcp_packet &dhcp);
 
 		void _handle_timeout(Genode::Duration);

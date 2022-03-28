@@ -58,7 +58,7 @@ append config {
 						<domain name="downlink" interface="10.2.3.1/24">
 
 							<dhcp-server ip_first="10.2.3.2"
-										 ip_last="10.2.3.2">
+							             ip_last="10.2.3.2">
 
 								<dns-server ip="1.2.3.4"/>
 								<dns-server ip="2.3.4.5"/>
@@ -82,7 +82,7 @@ append config {
 						<domain name="downlink" interface="10.2.3.1/24">
 
 							<dhcp-server ip_first="10.2.3.2"
-										 ip_last="10.2.3.2">
+							             ip_last="10.2.3.2">
 
 								<dns-server ip="4.5.6.7"/>
 								<dns-server ip="5.6.7.8"/>
@@ -94,10 +94,10 @@ append config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="2000"/>
+				<sleep milliseconds="4000"/>
 				<inline>
 
-					<config verbose="yes">
+					<config>
 
 						<policy label="nic_router_2 -> " domain="downlink"/>
 
@@ -199,6 +199,7 @@ append_if [expr ![nic_router_2_managed]] config {
 
 				<dhcp-server ip_first="10.0.3.2"
 				             ip_last="10.0.3.2"
+				             ip_lease_time_sec="6"
 				             dns_config_from="uplink"/>
 
 			</domain>
@@ -280,7 +281,9 @@ build_boot_image $boot_modules
 append qemu_args " -nographic "
 append_qemu_nic_args
 
-append done_string ".*DHCP request completed:.*\n"
+if {[nic_router_2_managed]} {
+
+append done_string ".*Event 1, DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
 append done_string ".*  Router: 10.0.3.1.*\n"
@@ -288,28 +291,23 @@ append done_string ".*  DNS server #1: 1.2.3.4.*\n"
 append done_string ".*  DNS server #2: 2.3.4.5.*\n"
 append done_string ".*  DNS server #3: 3.4.5.6.*\n"
 append done_string ".*  DNS domain name: genode.org.*\n"
-append done_string ".*DHCP request completed:.*\n"
+append done_string ".*Event 2, DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
 append done_string ".*  Router: 10.0.3.1.*\n"
 append done_string ".*  DNS server #1: 4.5.6.7.*\n"
 append done_string ".*  DNS server #2: 5.6.7.8.*\n"
-append done_string ".*DHCP request completed:.*\n"
+append done_string ".*Event 3, DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
 append done_string ".*  Router: 10.0.3.1.*\n"
 append done_string ".*  DNS server #1: 6.7.8.9.*\n"
-append done_string ".*DHCP request completed:.*\n"
+append done_string ".*Event 4, DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
 append done_string ".*  Router: 10.0.3.1.*\n"
 append done_string ".*  DNS domain name: genodians.org.*\n"
-append done_string ".*DHCP request completed:.*\n"
-append done_string ".*  IP lease time: 3600 seconds.*\n"
-append done_string ".*  Interface: 10.0.3.2/24.*\n"
-append done_string ".*  Router: 10.0.3.1.*\n"
-append done_string ".*  DNS domain name: genodians.org.*\n"
-append done_string ".*DHCP request completed:.*\n"
+append done_string ".*Event 5, DHCP request completed:.*\n"
 append done_string ".*  IP lease time: 3600 seconds.*\n"
 append done_string ".*  Interface: 10.0.3.2/24.*\n"
 append done_string ".*  Router: 10.0.3.1.*\n"
@@ -317,5 +315,53 @@ append done_string ".*  DNS server #1: 1.2.3.4.*\n"
 append done_string ".*  DNS server #2: 2.3.4.5.*\n"
 append done_string ".*  DNS server #3: 3.4.5.6.*\n"
 append done_string ".*  DNS domain name: genode.org.*\n"
+
+} else {
+
+append done_string ".*Event 1, DHCP request completed:.*\n"
+append done_string ".*  IP lease time: 6 seconds.*\n"
+append done_string ".*  Interface: 10.0.3.2/24.*\n"
+append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS server #1: 1.2.3.4.*\n"
+append done_string ".*  DNS server #2: 2.3.4.5.*\n"
+append done_string ".*  DNS server #3: 3.4.5.6.*\n"
+append done_string ".*  DNS domain name: genode.org.*\n"
+append done_string ".*Event 2, DHCP request completed:.*\n"
+append done_string ".*  IP lease time: 6 seconds.*\n"
+append done_string ".*  Interface: 10.0.3.2/24.*\n"
+append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS server #1: 4.5.6.7.*\n"
+append done_string ".*  DNS server #2: 5.6.7.8.*\n"
+append done_string ".*Event 3, DHCP renew completed:.*\n"
+append done_string ".*  IP lease time: 6 seconds.*\n"
+append done_string ".*  Interface: 10.0.3.2/24.*\n"
+append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS server #1: 4.5.6.7.*\n"
+append done_string ".*  DNS server #2: 5.6.7.8.*\n"
+append done_string ".*Event 4, DHCP request completed:.*\n"
+append done_string ".*  IP lease time: 6 seconds.*\n"
+append done_string ".*  Interface: 10.0.3.2/24.*\n"
+append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS server #1: 6.7.8.9.*\n"
+append done_string ".*Event 5, DHCP request completed:.*\n"
+append done_string ".*  IP lease time: 6 seconds.*\n"
+append done_string ".*  Interface: 10.0.3.2/24.*\n"
+append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS domain name: genodians.org.*\n"
+append done_string ".*Event 6, DHCP request completed:.*\n"
+append done_string ".*  IP lease time: 6 seconds.*\n"
+append done_string ".*  Interface: 10.0.3.2/24.*\n"
+append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS domain name: genodians.org.*\n"
+append done_string ".*Event 7, DHCP request completed:.*\n"
+append done_string ".*  IP lease time: 6 seconds.*\n"
+append done_string ".*  Interface: 10.0.3.2/24.*\n"
+append done_string ".*  Router: 10.0.3.1.*\n"
+append done_string ".*  DNS server #1: 1.2.3.4.*\n"
+append done_string ".*  DNS server #2: 2.3.4.5.*\n"
+append done_string ".*  DNS server #3: 3.4.5.6.*\n"
+append done_string ".*  DNS domain name: genode.org.*\n"
+
+}
 
 run_genode_until $done_string 30
