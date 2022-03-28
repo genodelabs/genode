@@ -1,6 +1,6 @@
-_/src/wifi_drv
+_/src/legacy_wifi_drv
 _/src/openssl
 _/src/vfs
 _/src/vfs_jitterentropy
 _/src/libc
-_/raw/wifi_firmware
+_/raw/legacy_wifi_firmware

@@ -1,14 +1,14 @@
-LIB_MK := $(addprefix lib/mk/,libnl.inc libnl_include.mk iwl_firmware.mk wifi.inc \
-                              wifi_include.mk) \
+LIB_MK := $(addprefix lib/mk/,libnl.inc libnl_include.mk iwl_firmware.mk legacy_wifi.inc \
+                              legacy_wifi_include.mk) \
           $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/libnl.mk) \
           $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/lx_kit_setjmp.mk) \
-          $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/wifi.mk) \
+          $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/legacy_wifi.mk) \
           $(addprefix lib/mk/spec/x86/,wpa_driver_nl80211.mk wpa_supplicant.mk)
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_linux)
 
 MIRROR_FROM_REP_DIR := $(LIB_MK) \
-                       lib/import/import-wifi_include.mk \
+                       lib/import/import-legacy_wifi_include.mk \
                        lib/import/import-libnl_include.mk \
                        lib/import/import-libnl.mk \
                        include/wifi src/include/legacy src/lib/legacy/lx_kit \
@@ -17,7 +17,7 @@ MIRROR_FROM_REP_DIR := $(LIB_MK) \
                                  src/include/spec/$(SPEC)) \
                        $(shell cd $(REP_DIR); find src/drivers/wifi -type f) \
                        $(shell cd $(REP_DIR); find src/lib/libnl -type f) \
-                       $(shell cd $(REP_DIR); find src/lib/wifi -type f) \
+                       $(shell cd $(REP_DIR); find src/lib/legacy/wifi -type f) \
                        $(shell cd $(REP_DIR); find src/lib/wpa_driver_nl80211 -type f) \
                        $(shell cd $(REP_DIR); find src/lib/wpa_supplicant -type f)
 

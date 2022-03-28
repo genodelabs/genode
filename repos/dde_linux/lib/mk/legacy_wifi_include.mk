@@ -1,7 +1,7 @@
 ifeq ($(called_from_lib_mk),yes)
 
 WIFI_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/wifi
-LX_EMUL_H        := $(REP_DIR)/src/lib/wifi/include/lx_emul.h
+LX_EMUL_H        := $(REP_DIR)/src/lib/legacy/wifi/include/lx_emul.h
 
 #
 # Determine the header files included by the contrib code. For each

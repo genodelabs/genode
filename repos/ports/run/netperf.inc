@@ -155,10 +155,10 @@ append_if $use_usb_driver   packages " [depot_user]/src/platform_drv      "
 append_if $use_wifi_driver  packages " [depot_user]/src/fs_rom            "
 append_if $use_wifi_driver  packages " [depot_user]/src/vfs_import        "
 append_if $use_wifi_driver  packages " [depot_user]/src/report_rom        "
-append_if $use_wifi_driver  packages " [depot_user]/src/wifi_drv          "
+append_if $use_wifi_driver  packages " [depot_user]/src/legacy_wifi_drv   "
 append_if $use_wifi_driver  packages " [depot_user]/src/openssl           "
 append_if $use_wifi_driver  packages " [depot_user]/src/vfs_jitterentropy "
-append_if $use_wifi_driver  packages " [depot_user]/raw/wifi_firmware     "
+append_if $use_wifi_driver  packages " [depot_user]/raw/legacy_wifi_firmware "
 
 import_from_depot $packages
 
@@ -244,7 +244,7 @@ append  config { </wifi_config>
 	</start>
 
 	<start name="nic_drv" caps="300">
-		<binary name="wifi_drv"/>
+		<binary name="legacy_pc_wifi_drv"/>
 		<resource name="RAM" quantum="32M"/>
 		<config>
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>

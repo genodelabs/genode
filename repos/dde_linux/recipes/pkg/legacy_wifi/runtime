@@ -1,4 +1,4 @@
-<runtime ram="32M" caps="300" binary="wifi_drv">
+<runtime ram="32M" caps="300" binary="legacy_pc_wifi_drv">
 
 	<requires> <rom label="wifi_config"/> </requires>
 
@@ -14,13 +14,13 @@
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="wifi_drv"/>
+		<rom label="legacy_pc_wifi_drv"/>
 		<rom label="libcrypto.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
 		<rom label="vfs_jitterentropy.lib.so"/>
 		<rom label="libssl.lib.so"/>
-		<rom label="wifi.lib.so"/>
+		<rom label="legacy_wifi.lib.so"/>
 		<rom label="wpa_driver_nl80211.lib.so"/>
 		<rom label="wpa_supplicant.lib.so"/>
 		<rom label="vfs.lib.so"/>

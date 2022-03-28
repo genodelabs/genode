@@ -1,4 +1,4 @@
-LIB_DIR          := $(REP_DIR)/src/lib/wifi
+LIB_DIR          := $(REP_DIR)/src/lib/legacy/wifi
 LIB_INC_DIR      := $(LIB_DIR)/include
 
 WIFI_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/wifi
@@ -8,10 +8,10 @@ WIFI_DIR         := $(WIFI_CONTRIB_DIR)/net
 SHARED_LIB = yes
 
 #
-# wifi_include *must* be the first library, otherwise the include
+# legacy_wifi_include *must* be the first library, otherwise the include
 # order is wrong
 #
-LIBS  += wifi_include lx_kit_setjmp nic_driver
+LIBS  += legacy_wifi_include lx_kit_setjmp nic_driver
 
 LD_OPT += --version-script=$(LIB_DIR)/symbol.map
 

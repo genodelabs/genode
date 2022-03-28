@@ -203,6 +203,7 @@ append config {
 	</start>
 
 	<start name="wifi_drv" caps="220">
+		<binary name="legacy_pc_wifi_drv"/>
 		<resource name="RAM" quantum="28M"/>
 		<config ld_verbose="yes">
 			<report mac_address="true"/>
@@ -255,8 +256,8 @@ set boot_modules {
 	vfs_jitterentropy.lib.so
 	libc.lib.so vfs.lib.so libcrypto.lib.so libssl.lib.so
 	wpa_driver_nl80211.lib.so wpa_supplicant.lib.so
-	wifi.lib.so
-	wifi_drv
+	legacy_wifi.lib.so
+	legacy_pc_wifi_drv
 	nic_router
 
 	test-lwip_httpsrv

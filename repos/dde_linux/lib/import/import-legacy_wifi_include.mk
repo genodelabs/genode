@@ -1,5 +1,5 @@
 WIFI_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/wifi
-SRC_DIR          := $(REP_DIR)/src/lib/wifi
+SRC_DIR          := $(REP_DIR)/src/lib/legacy/wifi
 
 # architecture-dependent includes
 ifeq ($(filter-out $(SPECS),x86),)
@@ -24,4 +24,4 @@ INC_DIR += $(ARCH_SRC_INC_DIR)
 INC_DIR += $(WIFI_CONTRIB_DIR)/include \
            $(WIFI_CONTRIB_DIR)/include/uapi \
            $(WIFI_CONTRIB_DIR)/drivers/net/wireless/iwlwifi
-INC_DIR += $(LIB_CACHE_DIR)/wifi_include/include/include/include
+INC_DIR += $(LIB_CACHE_DIR)/legacy_wifi_include/include/include/include

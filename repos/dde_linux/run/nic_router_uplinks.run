@@ -84,7 +84,8 @@ append config {
 	</start>
 
 	<start name="wifi_drv" caps="300" priority="-1">
-		<resource name="RAM" quantum="24M"/>
+		<binary name="legacy_pc_wifi_drv"/>
+		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="no">
 			<vfs>
 				<dir name="dev"> <log/> <rtc/> <null/>
@@ -390,8 +391,8 @@ append boot_modules { libcrypto.lib.so }
 append boot_modules { libssl.lib.so }
 append boot_modules { wpa_driver_nl80211.lib.so }
 append boot_modules { wpa_supplicant.lib.so }
-append boot_modules { wifi.lib.so }
-append boot_modules { wifi_drv }
+append boot_modules { legacy_wifi.lib.so }
+append boot_modules { legacy_pc_wifi_drv }
 append boot_modules { core }
 append boot_modules { nic_router }
 append boot_modules { ld.lib.so }
