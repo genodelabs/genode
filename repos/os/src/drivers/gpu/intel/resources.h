@@ -64,7 +64,7 @@ class Igd::Resources : Genode::Noncopyable
 		/* mmio + ggtt */
 		Platform::Device::Resource               _gttmmadr { };
 		Io_mem_dataspace_capability              _gttmmadr_ds { };
-		Genode::Constructible<Io_mem_connection> _gttmmadr_io { };
+		Genode::Io_mem_session_capability        _gttmmadr_io { };
 		addr_t                                   _gttmmadr_local { 0 };
 
 		Genode::Constructible<Igd::Mmio> _mmio { };
@@ -89,7 +89,7 @@ class Igd::Resources : Genode::Noncopyable
 
 		Platform::Device::Resource               _gmadr { };
 		Io_mem_dataspace_capability              _gmadr_ds { };
-		Genode::Constructible<Io_mem_connection> _gmadr_io { };
+		Genode::Io_mem_session_capability        _gmadr_io { };
 		Genode::Region_map_client                _gmadr_rm { _rm_connection.create(APERTURE_RESERVED) };
 
 
@@ -241,14 +241,25 @@ class Igd::Resources : Genode::Noncopyable
 
 			_gpu_client.construct(_gpu_cap);
 
-			_gttmmadr = _gpu_client->resource(0);
-			_gttmmadr_io.construct(_env, _gttmmadr.base(), _gttmmadr.size());
-			_gttmmadr_ds = _gttmmadr_io->dataspace();
+			/*
+			 * The intel display driver (as client of this gpu driver)
+			 * uses the platform.io_mem() cap interface to obtain the io_mem
+			 * capabilities. The need for directly handling with the physical
+			 * io_mem addresses is not desired and the legacy path. So dummy
+			 * addresses are used here just as placeholder for implementing
+			 * the platform.resource() RPC interface.
+			 */
 
-			_gmadr = _gpu_client->resource(2);
-			_gmadr_io.construct(_env, _gmadr.base(), _gmadr.size(), true);
-			_gmadr_ds = _gmadr_io->dataspace();
+			_gttmmadr_io = _gpu_client->io_mem(0);
+			_gttmmadr_ds = Genode::Io_mem_session_client(_gttmmadr_io).dataspace();
+			_gttmmadr    = Platform::Device::Resource(1u << 30 /* dummy */,
+			                                          Genode::Dataspace_client(_gttmmadr_ds).size());
+
+			_gmadr_io = _gpu_client->io_mem(1, Genode::Cache::WRITE_COMBINED);
+			_gmadr_ds = Genode::Io_mem_session_client(_gmadr_io).dataspace();
 			_gmadr_rm.attach_at(_gmadr_ds, 0, APERTURE_RESERVED);
+			_gmadr = Platform::Device::Resource(1u << 29 /* dummy */,
+			                                    Genode::Dataspace_client(_gmadr_ds).size());
 
 			_enable_pci_bus_master();
 
