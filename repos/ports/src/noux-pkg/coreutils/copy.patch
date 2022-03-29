@@ -1,0 +1,17 @@
++++ src/noux-pkg/coreutils/src/cp-hash.c	2022-03-29 13:07:18.106248000 +0200
+@@ -99,6 +99,7 @@ forget_created (ino_t ino, dev_t dev)
+ extern char *
+ src_to_dest_lookup (ino_t ino, dev_t dev)
+ {
++  return NULL;
+   struct Src_to_dest ent;
+   struct Src_to_dest const *e;
+   ent.st_ino = ino;
+@@ -114,6 +115,7 @@ src_to_dest_lookup (ino_t ino, dev_t dev
+ extern char *
+ remember_copied (const char *name, ino_t ino, dev_t dev)
+ {
++  return NULL;
+   struct Src_to_dest *ent;
+   struct Src_to_dest *ent_from_table;
+ 
