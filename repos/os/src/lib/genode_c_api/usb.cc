@@ -602,6 +602,40 @@ void ::Root::_report()
 				xml.attribute("bus",        Value(Hex(d.bus)));
 				xml.attribute("dev",        Value(Hex(d.dev)));
 				xml.attribute("class",      Value(Hex(d.cla)));
+
+				Usb::Device_descriptor device_descr { };
+				Usb::Config_descriptor config_descr { };
+
+				if (!_callbacks->cfg_desc_fn(d.bus, d.dev,
+				                             (void*) &device_descr,
+				                             &config_descr))
+					return;
+
+				for (unsigned idx = 0; idx < config_descr.num_interfaces; idx++) {
+
+					int const num_altsetting = _callbacks->alt_settings_fn(d.bus, d.dev, idx);
+					if (num_altsetting < 0)
+						continue;
+
+					for (int adx = 0; adx < num_altsetting; adx++) {
+
+						int active = false;
+						Usb::Interface_descriptor iface_desc { };
+						if (_callbacks->iface_desc_fn(d.bus, d.dev, idx, adx,
+						                              (void*) &iface_desc,
+						                              sizeof (Usb::Interface_descriptor),
+						                              &active))
+							continue;
+
+						if (!active)
+							continue;
+
+						xml.node("interface", [&] {
+							xml.attribute("class", Value(Hex(iface_desc.iclass)));
+							xml.attribute("protocol", Value(Hex(iface_desc.iprotocol)));
+						});
+					}
+				}
 			});
 		});
 	});
