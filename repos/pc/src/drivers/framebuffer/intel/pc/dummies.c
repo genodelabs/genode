@@ -711,3 +711,55 @@ void i915_gem_object_release_mmap_offset(struct drm_i915_gem_object * obj)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <net/net_namespace.h>
+
+struct net init_net;
+
+
+#include <linux/skbuff.h>
+
+void kfree_skb(struct sk_buff * skb)
+{
+	if (!skb)
+		return;
+
+	lx_emul_trace(__func__);
+	printk("%s:%d: leaking skb: %p\n", __func__, __LINE__, skb);
+}
+
+
+#include <net/net_namespace.h>
+
+int register_pernet_subsys(struct pernet_operations * ops)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/firmware.h>
+
+void release_firmware(const struct firmware * fw)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/firmware.h>
+
+int request_firmware(const struct firmware ** firmware_p,const char * name,struct device * device)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}
+
+
+#include <linux/firmware.h>
+
+int request_firmware_direct(const struct firmware ** firmware_p,const char * name,struct device * device)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}

@@ -1,14 +1,12 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-03-04
+ * \date   2022-03-29
  */
 
 #include <lx_emul.h>
 
-
 #include "i915_drv.h"
-
 
 #include <linux/proc_fs.h>
 
@@ -21,6 +19,14 @@ void * PDE_DATA(const struct inode * inode)
 #include <linux/ratelimit_types.h>
 
 int ___ratelimit(struct ratelimit_state * rs,const char * func)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/skbuff.h>
+
+struct sk_buff * __alloc_skb(unsigned int size,gfp_t gfp_mask,int flags,int node)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -44,6 +50,14 @@ int __cond_resched_lock(spinlock_t * lock)
 
 extern void __i915_gpu_coredump_free(struct kref * error_ref);
 void __i915_gpu_coredump_free(struct kref * error_ref)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/netlink.h>
+
+struct sock * __netlink_kernel_create(struct net * net,int unit,struct module * module,struct netlink_kernel_cfg * cfg)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -419,6 +433,14 @@ void dma_resv_prune(struct dma_resv * resv)
 #include <linux/dma-mapping.h>
 
 void dma_unmap_page_attrs(struct device * dev,dma_addr_t addr,size_t size,enum dma_data_direction dir,unsigned long attrs)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/netlink.h>
+
+void do_trace_netlink_extack(const char * msg)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1567,6 +1589,46 @@ void memunmap(void * addr)
 }
 
 
+#include <net/netlink.h>
+
+int netlink_rcv_skb(struct sk_buff * skb,int (* cb)(struct sk_buff *,struct nlmsghdr *,struct netlink_ext_ack *))
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/netlink.h>
+
+int netlink_broadcast(struct sock * ssk,struct sk_buff * skb,u32 portid,u32 group,gfp_t allocation)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/netlink.h>
+
+int netlink_has_listeners(struct sock * sk,unsigned int group)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/netlink.h>
+
+void netlink_kernel_release(struct sock * sk)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/netlink.h>
+
+bool netlink_ns_capable(const struct sk_buff * skb,struct user_namespace * user_ns,int cap)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/irq.h>
 
 struct irq_chip no_irq_chip;
@@ -1891,6 +1953,30 @@ void show_state_filter(unsigned int state_filter)
 #include <linux/fs.h>
 
 void simple_release_fs(struct vfsmount ** mount,int * count)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/skbuff.h>
+
+struct sk_buff * skb_copy_expand(const struct sk_buff * skb,int newheadroom,int newtailroom,gfp_t gfp_mask)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/skbuff.h>
+
+void * skb_pull(struct sk_buff * skb,unsigned int len)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/skbuff.h>
+
+void * skb_put(struct sk_buff * skb,unsigned int len)
 {
 	lx_emul_trace_and_stop(__func__);
 }
