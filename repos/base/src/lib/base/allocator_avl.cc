@@ -172,9 +172,10 @@ void Allocator_avl_base::_cut_from_block(Block &b, addr_t addr, size_t size, Two
 
 
 template <typename FN>
-void Allocator_avl_base::_revert_block_ranges(FN const &any_block_fn)
+bool Allocator_avl_base::_revert_block_ranges(FN const &any_block_fn)
 {
-	for (bool loop = true; loop; ) {
+	size_t blocks = 0;
+	for (bool loop = true; loop; blocks++) {
 
 		Block *block_ptr = any_block_fn();
 		if (!block_ptr)
@@ -188,12 +189,14 @@ void Allocator_avl_base::_revert_block_ranges(FN const &any_block_fn)
 					loop = false; /* give up on OUT_OF_RAM or OUT_OF_CAPS */
 			});
 	}
+
+	return blocks > 0;
 }
 
 
-void Allocator_avl_base::_revert_unused_ranges()
+bool Allocator_avl_base::_revert_unused_ranges()
 {
-	_revert_block_ranges([&] () {
+	return _revert_block_ranges([&] () {
 		return _find_any_unused_block(_addr_tree.first()); });
 }
 

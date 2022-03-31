@@ -208,7 +208,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		void _cut_from_block(Block &b, addr_t cut_addr, size_t cut_size, Two_blocks);
 
 		template <typename ANY_BLOCK_FN>
-		void _revert_block_ranges(ANY_BLOCK_FN const &);
+		bool _revert_block_ranges(ANY_BLOCK_FN const &);
 
 		template <typename SEARCH_FN>
 		Alloc_result _allocate(size_t, unsigned, Range, SEARCH_FN const &);
@@ -225,7 +225,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 * from the meta-data allocator.
 		 */
 		void _revert_allocations_and_ranges();
-		void _revert_unused_ranges();
+		bool _revert_unused_ranges();
 
 		/**
 		 * Find block by specified address
@@ -354,7 +354,15 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 		~Allocator_avl_tpl()
 		{
 			_revert_unused_ranges();
-			_metadata.free_empty_blocks();
+
+			/*
+			 * The release of empty blocks may add unused ranges (formerly used
+			 * by metadata). Thus, we loop until all empty blocks are freed and
+			 * no additional unused ranges appear.
+			 */
+			do {
+				_metadata.free_empty_blocks();
+			} while (_revert_unused_ranges());
 			_revert_allocations_and_ranges();
 		}
 
