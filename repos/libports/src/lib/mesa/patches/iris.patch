@@ -5,7 +5,7 @@
  		return "etnaviv";
  	}
 +	if (fd == 43) {
-+		return "iris";
++		return strdup("iris");
 +	}
     char *driver;
  
