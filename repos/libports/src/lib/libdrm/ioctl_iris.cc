@@ -1247,6 +1247,21 @@ class Drm_call
 				Genode::warning("syncobject 0 not reserved");
 		}
 
+		~Drm_call()
+		{
+			while(_buffer_space.apply_any<Buffer>([&] (Buffer &buffer) {
+				_free_buffer(buffer.id());
+			}));
+
+			while (_context_space.apply_any<Drm::Context>([&] (Drm::Context &context) {
+				Libc::close(context.fd());
+				destroy(_heap, &context);
+			}));
+
+			while (_sync_objects.apply_any<Sync_obj>([&] (Sync_obj &obj) {
+				destroy(_heap, &obj); }));
+		}
+
 		int lseek(int fd, off_t offset, int whence)
 		{
 			if (fd != prime_fd || offset || whence != SEEK_END)
