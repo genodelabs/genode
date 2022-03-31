@@ -138,7 +138,8 @@ void Platform::Device_component::config_write(unsigned char address,
 	}
 
 	/* assign device to device_pd */
-	if (address == Device_config::PCI_CMD_REG &&
+	if (!_device_assigned &&
+	    address == Device_config::PCI_CMD_REG &&
 	    (value & Device_config::PCI_CMD_DMA)) {
 
 		try { _session.assign_device(this); }
@@ -147,6 +148,7 @@ void Platform::Device_component::config_write(unsigned char address,
 		catch (...) {
 			error("assignment to device failed");
 		}
+		_device_assigned = true;
 		_device_used = true;
 	}
 

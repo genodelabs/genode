@@ -60,6 +60,7 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 		Irq_session_component       *_irq_session = nullptr;
 		unsigned short               _irq_line;
 		bool                         _device_used { false };
+		bool                         _device_assigned { false };
 		Allocator                   &_global_heap;
 
 		class Io_mem : public  Io_mem_connection,
