@@ -266,10 +266,12 @@ _extract_function = $(call _assert,\
 # because it requires a specific automake version on the host.
 #
 # We rename the rule target to discharge this magic and keep using the
-# provided 'Makefile.in'.
+# provided 'Makefile.in'. A similar quirk is required for 'aclocal.m4'.
 #
+_DISCHARGE_PATTERN  =  /Makefile\.in:.*Makefile\.am/s/^/IGNORE-/
+_DISCHARGE_PATTERN += ;/(ACLOCAL_M4):.*am__aclocal_m4_deps)/s/^/IGNORE-/
 _discharge_automake = ( find $(DIR) -name "Makefile.in" |\
-                        xargs -r sed -i "/Makefile\.in:.*Makefile\.am/s/^/IGNORE-/" )
+                        xargs -r sed -i "$(_DISCHARGE_PATTERN)" )
 
 %.archive: %.file
 	@$(MSG_EXTRACT)"$(ARCHIVE) ($*)"
