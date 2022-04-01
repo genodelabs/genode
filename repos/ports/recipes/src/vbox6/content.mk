@@ -12,9 +12,8 @@ $(MIRROR_FROM_REP_DIR):
 content: disable_assertions
 
 disable_assertions: $(MIRROR_FROM_REP_DIR)
-	#TODO
-	#rm lib/mk/virtualbox6-debug.inc
-	#touch lib/mk/virtualbox6-debug.inc
+	rm lib/mk/virtualbox6-debug.inc
+	touch lib/mk/virtualbox6-debug.inc
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/virtualbox6)
 
