@@ -102,6 +102,19 @@ INC_DIR += $(LX_GEN_DIR)/arch/$(LX_ARCH)/include/generated/uapi
 INC_DIR += $(LX_SRC_DIR)/include/uapi
 INC_DIR += $(LX_GEN_DIR)/include/generated/uapi
 
+ifeq ($(filter-out $(SPECS),arm_v7),)
+CC_DEF  += -D__LINUX_ARM_ARCH__=7
+endif
+
+ifeq ($(filter-out $(SPECS),arm_v6),)
+CC_DEF  += -D__LINUX_ARM_ARCH__=6
+endif
+
+ifeq ($(filter-out $(SPECS),arm),)
+# needed definitions of some arm assembler macros
+CC_DEF += -include asm/unified.h
+endif
+
 CC_DEF   += -include $(LX_SRC_DIR)/include/linux/kconfig.h
 CC_DEF   += -include $(LX_SRC_DIR)/include/linux/compiler_types.h
 CC_DEF   += -D__KERNEL__ -DCONFIG_CC_HAS_K_CONSTRAINT=1
