@@ -1553,6 +1553,9 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			addr_t phys_addr { 0 };
 			size_t size { 0 };
 
+			bool   caps_used { false };
+			size_t ram_used { 0 };
+
 			Buffer(Ram_dataspace_capability ds_cap, Genode::addr_t phys_addr,
 			       Session_capability  owner_cap)
 			:
@@ -1775,8 +1778,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			if (_resource_guard.avail_ram(size) == false)
 				throw Gpu::Session::Out_of_ram();
 
-			size_t caps_before = _env.pd().used_caps().value;
-			size_t ram_before  = _env.pd().used_ram().value;
+			size_t caps_before = _env.pd().avail_caps().value;
+			size_t ram_before  = _env.pd().avail_ram().value;
 
 			Ram_dataspace_capability ds_cap = _device.alloc_buffer(_heap, size);
 			addr_t phys_addr = _device.dma_addr(ds_cap);
@@ -1792,11 +1795,14 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				throw Gpu::Session_component::Conflicting_id();
 			}
 
-			size_t caps_after = _env.pd().used_caps().value;
-			size_t ram_after  = _env.pd().used_ram().value;
+			size_t caps_after = _env.pd().avail_caps().value;
+			size_t ram_after  = _env.pd().avail_ram().value;
 
-			_resource_guard.withdraw(caps_after - caps_before,
-			                         ram_after - ram_before);
+			/* limit to buffer size */
+			buffer->ram_used = min(ram_before - ram_after, size);
+			buffer->caps_used = (caps_before - caps_after) > 0;
+
+			_resource_guard.withdraw(caps_before - caps_after, buffer->ram_used);
 
 			return ds_cap;
 		}
@@ -1814,10 +1820,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 						/* XXX throw */
 						return false;
 					}
-					size_t const size = buffer.size;
 					_env.ep().dissolve(buffer);
 					_device.free_buffer(_heap, buffer.ds_cap);
-					_resource_guard.replenish(1, size);
+					_resource_guard.replenish(buffer.caps_used ? 1 : 0,
+					                          buffer.ram_used);
 					return true;
 				});
 
@@ -1884,8 +1890,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				if (_resource_guard.avail_ram() == false)
 					throw Gpu::Session::Out_of_ram();
 
-				size_t caps_before = _env.pd().used_caps().value;
-				size_t ram_before  = _env.pd().used_ram().value;
+				size_t caps_before = _env.pd().avail_caps().value;
+				size_t ram_before  = _env.pd().avail_ram().value;
 
 				Igd::Ggtt::Mapping const &map =
 					_device.map_buffer(_heap, buffer.ds_cap, aperture);
@@ -1893,10 +1899,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				buffer.map.offset = map.offset;
 				map_cap           = buffer.map.cap;
 
-				size_t caps_after = _env.pd().used_caps().value;
-				size_t ram_after  = _env.pd().used_ram().value;
-				_resource_guard.withdraw(caps_after - caps_before,
-				                         ram_after - ram_before);
+				size_t caps_after = _env.pd().avail_caps().value;
+				size_t ram_after  = _env.pd().avail_ram().value;
+				_resource_guard.withdraw(caps_before - caps_after,
+				                         ram_before - ram_after);
 				return true;
 			};
 
@@ -1966,16 +1972,16 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			if (_resource_guard.avail_ram() == false)
 				throw Gpu::Session::Out_of_ram();
 
-			size_t caps_before = _env.pd().used_caps().value;
-			size_t ram_before  = _env.pd().used_ram().value;
+			size_t caps_before = _env.pd().avail_caps().value;
+			size_t ram_before  = _env.pd().avail_ram().value;
 
 			_apply_buffer_local(id, lookup_and_map);
 
-			size_t caps_after = _env.pd().used_caps().value;
-			size_t ram_after  = _env.pd().used_ram().value;
+			size_t caps_after = _env.pd().avail_caps().value;
+			size_t ram_after  = _env.pd().avail_ram().value;
 
-			_resource_guard.withdraw(caps_after - caps_before,
-			                         ram_after - ram_before);
+			_resource_guard.withdraw(caps_before - caps_after,
+			                         ram_before - ram_after);
 
 			return true;
 		}
