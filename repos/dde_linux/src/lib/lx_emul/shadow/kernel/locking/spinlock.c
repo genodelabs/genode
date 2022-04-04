@@ -19,13 +19,15 @@
 #include <lx_emul/debug.h>
 #include <lx_emul/task.h>
 
+#include <lx_emul/arch_spinlock.h>
+
 void __lockfunc _raw_spin_lock(raw_spinlock_t * lock)
 {
-	if (atomic_read(&lock->raw_lock.val)) {
+	if (atomic_read(SPINLOCK_VALUE_PTR(lock))) {
 		printk("Error: spinlock contention!");
 		lx_emul_trace_and_stop(__func__);
 	}
-	atomic_set(&lock->raw_lock.val, 1);
+	atomic_set(SPINLOCK_VALUE_PTR(lock), 1);
 }
 
 
@@ -40,7 +42,7 @@ unsigned long __lockfunc _raw_spin_lock_irqsave(raw_spinlock_t * lock)
 
 void __lockfunc _raw_spin_unlock(raw_spinlock_t * lock)
 {
-	atomic_set(&lock->raw_lock.val, 0);
+	atomic_set(SPINLOCK_VALUE_PTR(lock), 0);
 }
 
 
@@ -67,7 +69,7 @@ void __lockfunc _raw_spin_unlock_irq(raw_spinlock_t * lock)
 int __lockfunc _raw_spin_trylock(raw_spinlock_t * lock)
 {
 
-	if (atomic_read(&lock->raw_lock.val))
+	if (atomic_read(SPINLOCK_VALUE_PTR(lock)))
 		return 0;
 
 	_raw_spin_lock(lock);
@@ -77,15 +79,15 @@ int __lockfunc _raw_spin_trylock(raw_spinlock_t * lock)
 
 void __lockfunc _raw_write_lock(rwlock_t * lock)
 {
-	if (lock->raw_lock.wlocked) {
+	if (RWLOCK_VALUE(lock)) {
 		printk("Error: rwlock contention!");
 		lx_emul_trace_and_stop(__func__);
 	}
-	lock->raw_lock.wlocked = 1;
+	RWLOCK_VALUE(lock) = 1;
 }
 
 
 void __lockfunc _raw_write_unlock(rwlock_t * lock)
 {
-	lock->raw_lock.wlocked = 0;
+	RWLOCK_VALUE(lock) = 0;
 }
