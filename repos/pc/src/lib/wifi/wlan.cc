@@ -28,19 +28,46 @@
 /* local includes */
 #include "lx_user.h"
 
-
 using namespace Genode;
 
 
+extern "C" int  lx_emul_rfkill_get_any(void);
+extern "C" void lx_emul_rfkill_switch_all(int blocked);
+
+static Genode::Signal_context_capability _rfkill_sigh_cap;
+
 bool wifi_get_rfkill(void)
 {
-	return false;
+	if (!rfkill_task_struct_ptr)
+		return false;
+
+	lx_emul_task_unblock(rfkill_task_struct_ptr);
+	Lx_kit::env().scheduler.schedule();
+
+	return lx_emul_rfkill_get_any();
 }
 
 
 void wifi_set_rfkill(bool blocked)
 {
-	(void)blocked;
+	if (!rfkill_task_struct_ptr)
+		return;
+
+	lx_emul_rfkill_switch_all(blocked);
+
+	lx_emul_task_unblock(rfkill_task_struct_ptr);
+	Lx_kit::env().scheduler.schedule();
+
+	/*
+	 * We have to open the device again after unblocking
+	 * as otherwise we will get ENETDOWN. So unblock the uplink
+	 * task _afterwards_ because there we call * 'dev_open()'
+	 * unconditionally and that will bring the netdevice UP again.
+	 */
+	lx_emul_task_unblock(uplink_task_struct_ptr);
+	Lx_kit::env().scheduler.schedule();
+
+	Genode::Signal_transmitter(_rfkill_sigh_cap).submit();
 }
 
 
@@ -56,9 +83,6 @@ extern "C" char const *wifi_ifname(void)
 	/* TODO replace with actual qyery */
 	return "wlan0";
 }
-
-
-extern "C" struct task_struct *uplink_task_struct_ptr;
 
 struct Wlan
 {
@@ -90,15 +114,19 @@ struct Wlan
 Genode::Blockade *wpa_blockade;
 
 
-void wifi_init(Genode::Env                       &env,
-               Genode::Blockade                  &blockade,
-               bool                               disable_11n,
-               Genode::Signal_context_capability  rfkill)
+void wifi_init(Genode::Env      &env,
+               Genode::Blockade &blockade,
+               bool              disable_11n)
 {
 	(void)disable_11n;
-	(void)rfkill;
 
 	wpa_blockade = &blockade;
 
 	static Wlan wlan(env);
+}
+
+
+void wifi_set_rfkill_sigh(Genode::Signal_context_capability cap)
+{
+	_rfkill_sigh_cap = cap;
 }

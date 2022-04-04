@@ -510,3 +510,77 @@ void page_frag_free(void * addr)
 
 	__free_pages(page, 0ul);
 }
+
+
+#include <linux/miscdevice.h>
+
+int misc_register(struct miscdevice *misc)
+{
+	return 0;
+}
+
+void misc_deregister(struct miscdevice *misc)
+{
+}
+
+
+/* rfkill support */
+
+#include <linux/rfkill.h>
+#include <net/rfkill/rfkill.h>
+
+int __init rfkill_handler_init(void)
+{
+	return 0;
+}
+
+static struct
+{
+	int rfkilled;
+	int blocked;
+} _rfkill_state;
+
+
+struct task_struct *rfkill_task_struct_ptr;
+
+
+int lx_emul_rfkill_get_any(void)
+{
+	return _rfkill_state.rfkilled;
+}
+
+
+void lx_emul_rfkill_switch_all(int blocked)
+{
+	_rfkill_state.blocked = blocked;
+}
+
+
+static int rfkill_task_function(void *arg)
+{
+	(void)arg;
+
+	for (;;) {
+
+		bool rfkilled = !!rfkill_get_global_sw_state(RFKILL_TYPE_WLAN);
+
+		if (rfkilled != _rfkill_state.blocked)
+			rfkill_switch_all(RFKILL_TYPE_WLAN, !!_rfkill_state.blocked);
+
+		_rfkill_state.rfkilled = rfkilled;
+
+		lx_emul_task_schedule(true);
+	}
+
+	return 0;
+}
+
+
+void rfkill_init(void)
+{
+	pid_t pid;
+
+	pid = kernel_thread(rfkill_task_function, NULL, CLONE_FS | CLONE_FILES);
+
+	rfkill_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
+}

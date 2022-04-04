@@ -23,6 +23,9 @@ void uplink_init(void);
 extern struct task_struct *socketcall_task_struct_ptr;
 void socketcall_init(void);
 
+extern struct task_struct *rfkill_task_struct_ptr;
+void rfkill_init(void);
+
 #ifdef __cplusplus
 }
 #endif

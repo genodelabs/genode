@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2022-05-03
+ * \date   2022-05-13
  */
 
 #pragma once
@@ -103,6 +103,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_fib_notifier_init4",
 	"__initcall_ethnl_init4",
 	"__initcall_ieee80211_init4",
+	"__initcall_rfkill_init4",
 	"__initcall_pci_subsys_init4",
 	"__initcall_nmi_warning_debugfs5",
 	"__initcall_hpet_late_init5",

@@ -85,10 +85,9 @@ void wifi_notify_event(void)
 
 
 /* exported by wifi.lib.so */
-extern void wifi_init(Genode::Env&,
-                      Genode::Blockade&,
-                      bool,
-                      Genode::Signal_context_capability);
+extern void wifi_init(Genode::Env&, Genode::Blockade&, bool);
+extern void wifi_set_rfkill_sigh(Genode::Signal_context_capability);
+
 
 struct Main
 {
@@ -103,8 +102,7 @@ struct Main
 	{
 		_wpa.construct(env, _wpa_startup_blockade);
 
-		wifi_init(env, _wpa_startup_blockade, false,
-		          Genode::Signal_context_capability());
+		wifi_init(env, _wpa_startup_blockade, false);
 	}
 };
 
@@ -132,6 +130,7 @@ void *wifi_get_buffer(void)
 
 		_main->_frontend.construct(_main->env);
 		_wifi_frontend = &*_main->_frontend;
+		wifi_set_rfkill_sigh(_wifi_frontend->rfkill_sigh());
 	});
 
 	return &_wifi_frontend->msg_buffer();

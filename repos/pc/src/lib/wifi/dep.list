@@ -154,6 +154,7 @@ include/linux/ip.h
 include/linux/ipv6_route.h
 include/linux/kcov.h
 include/linux/leds.h
+include/linux/miscdevice.h
 include/linux/mpls.h
 include/linux/netfilter.h
 include/linux/netfilter_ingress.h
@@ -309,6 +310,7 @@ net/mac80211/wme.h
 net/mac80211/wpa.h
 net/netlink/af_netlink.h
 net/packet/internal.h
+net/rfkill/rfkill.h
 net/wireless/core.h
 net/wireless/debugfs.h
 net/wireless/nl80211.h

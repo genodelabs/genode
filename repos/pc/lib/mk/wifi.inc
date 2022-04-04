@@ -32,6 +32,11 @@ CC_C_OPT += -I$(LX_SRC_DIR)/include/linux
 
 CC_C_OPT += -Wno-address-of-packed-member
 
+# need net/rfkill/rfkill.h
+CC_OPT_lx_emul += -I$(LX_SRC_DIR)
+
+CC_C_OPT += -DCONFIG_RFKILL_INPUT
+
 #CC_OPT += -DCONFIG_IWLWIFI_DEBUG
 
 
