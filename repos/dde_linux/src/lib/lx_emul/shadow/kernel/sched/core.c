@@ -118,13 +118,13 @@ asmlinkage __visible void __sched schedule(void)
 
 void preempt_count_add(int val)
 {
-	current_thread_info()->preempt.count += val;
+	__preempt_count_add(val);
 }
 
 
 void preempt_count_sub(int val)
 {
-	current_thread_info()->preempt.count -= val;
+	__preempt_count_sub(val);
 }
 
 #endif /* CONFIG_DEBUG_PREEMPT */
