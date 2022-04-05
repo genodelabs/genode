@@ -135,10 +135,7 @@ class Net::Interface : private Interface_list::Element
 
 		Packet_stream_sink                   &_sink;
 		Packet_stream_source                 &_source;
-		Signal_handler                        _sink_ack;
-		Signal_handler                        _sink_submit;
-		Signal_handler                        _source_ack;
-		Signal_handler                        _source_submit;
+		Signal_handler                        _pkt_stream_signal_handler;
 		Mac_address                    const  _router_mac;
 		Mac_address                    const  _mac;
 		Reference<Configuration>              _config;
@@ -357,15 +354,7 @@ class Net::Interface : private Interface_list::Element
 
 		bool link_state() const;
 
-
-		/***********************************
-		 ** Packet-stream signal handlers **
-		 ***********************************/
-
-		void _ready_to_submit();
-		void _ack_avail() { }
-		void _ready_to_ack();
-		void _packet_avail() { }
+		void _handle_pkt_stream_signal();
 
 	public:
 
@@ -456,20 +445,17 @@ class Net::Interface : private Interface_list::Element
 		 ** Accessors **
 		 ***************/
 
-		Configuration    const &config()     const { return _config(); }
-		Domain                 &domain()           { return _domain(); }
-		Mac_address      const &router_mac() const { return _router_mac; }
-		Mac_address      const &mac()        const { return _mac; }
-		Arp_waiter_list        &own_arp_waiters()  { return _own_arp_waiters; }
-		Signal_handler         &sink_ack()         { return _sink_ack; }
-		Signal_handler         &sink_submit()      { return _sink_submit; }
-		Signal_handler         &source_ack()       { return _source_ack; }
-		Signal_handler         &source_submit()    { return _source_submit; }
-		Interface_link_stats   &udp_stats()        { return _udp_stats; }
-		Interface_link_stats   &tcp_stats()        { return _tcp_stats; }
-		Interface_link_stats   &icmp_stats()       { return _icmp_stats; }
-		Interface_object_stats &arp_stats()        { return _arp_stats; }
-		Interface_object_stats &dhcp_stats()       { return _dhcp_stats; }
+		Configuration       const &config()                    const { return _config(); }
+		Domain                    &domain()                          { return _domain(); }
+		Mac_address         const &router_mac()                const { return _router_mac; }
+		Mac_address         const &mac()                       const { return _mac; }
+		Arp_waiter_list           &own_arp_waiters()                 { return _own_arp_waiters; }
+		Signal_context_capability  pkt_stream_signal_handler() const { return _pkt_stream_signal_handler; }
+		Interface_link_stats      &udp_stats()                       { return _udp_stats; }
+		Interface_link_stats      &tcp_stats()                       { return _tcp_stats; }
+		Interface_link_stats      &icmp_stats()                      { return _icmp_stats; }
+		Interface_object_stats    &arp_stats()                       { return _arp_stats; }
+		Interface_object_stats    &dhcp_stats()                      { return _dhcp_stats; }
 };
 
 #endif /* _INTERFACE_H_ */

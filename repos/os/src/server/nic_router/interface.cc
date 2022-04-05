@@ -1480,21 +1480,42 @@ void Interface::_handle_pkt()
 }
 
 
-void Interface::_ready_to_submit()
+void Interface::_handle_pkt_stream_signal()
 {
+	/*
+	 * Release all sent packets that were already acknowledged by the counter
+	 * side. Doing this first frees packet-stream memory which facilitates
+	 * sending new packets in the subsequent steps of this handler.
+	 */
+	while (_source.ack_avail()) {
+		_source.release_packet(_source.get_acked_packet());
+	}
+
+	/*
+	 * Handle packets received from the counter side. If the user configured
+	 * a limit for the number of packets to be handled at once, this limit gets
+	 * applied. If there is no such limit, received packets are handled until
+	 * none is left.
+	 */
 	unsigned long const max_pkts = _config().max_packets_per_signal();
 	if (max_pkts) {
 		for (unsigned long i = 0; _sink.packet_avail(); i++) {
 
 			if (i >= max_pkts) {
-				Signal_transmitter(_sink_submit).submit();
+
+				/*
+				 * Ensure that this handler is called again in order to handle
+				 * the packets left unhandled due to the configured limit.
+				 */
+				Signal_transmitter(_pkt_stream_signal_handler).submit();
 				break;
 			}
 			_handle_pkt();
 		}
 	} else {
 		while (_sink.packet_avail()) {
-			_handle_pkt(); }
+			_handle_pkt();
+		}
 	}
 }
 
@@ -1514,13 +1535,6 @@ void Interface::_continue_handle_eth(Domain            const &domain,
 		}
 	}
 	_ack_packet(pkt);
-}
-
-
-void Interface::_ready_to_ack()
-{
-	while (_source.ack_avail()) {
-		_source.release_packet(_source.get_acked_packet()); }
 }
 
 
@@ -1761,19 +1775,16 @@ Interface::Interface(Genode::Entrypoint     &ep,
                      Packet_stream_source   &source,
                      Interface_policy       &policy)
 :
-	_sink               { sink },
-	_source             { source },
-	_sink_ack           { ep, *this, &Interface::_ack_avail },
-	_sink_submit        { ep, *this, &Interface::_ready_to_submit },
-	_source_ack         { ep, *this, &Interface::_ready_to_ack },
-	_source_submit      { ep, *this, &Interface::_packet_avail },
-	_router_mac         { router_mac },
-	_mac                { mac },
-	_config             { config },
-	_policy             { policy },
-	_timer              { timer },
-	_alloc              { alloc },
-	_interfaces         { interfaces }
+	_sink                      { sink },
+	_source                    { source },
+	_pkt_stream_signal_handler { ep, *this, &Interface::_handle_pkt_stream_signal },
+	_router_mac                { router_mac },
+	_mac                       { mac },
+	_config                    { config },
+	_policy                    { policy },
+	_timer                     { timer },
+	_alloc                     { alloc },
+	_interfaces                { interfaces }
 {
 	_interfaces.insert(this);
 }

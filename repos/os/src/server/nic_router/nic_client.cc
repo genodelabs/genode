@@ -162,10 +162,8 @@ Net::Nic_client_interface::Nic_client_interface(Env                 &env,
 	                              *this }
 {
 	/* install packet stream signal handlers */
-	rx_channel()->sigh_ready_to_ack   (_interface.sink_ack());
-	rx_channel()->sigh_packet_avail   (_interface.sink_submit());
-	tx_channel()->sigh_ack_avail      (_interface.source_ack());
-	tx_channel()->sigh_ready_to_submit(_interface.source_submit());
+	rx_channel()->sigh_packet_avail(_interface.pkt_stream_signal_handler());
+	tx_channel()->sigh_ack_avail   (_interface.pkt_stream_signal_handler());
 
 	/* initialize link state handling */
 	Nic::Connection::link_state_sigh(_session_link_state_handler);

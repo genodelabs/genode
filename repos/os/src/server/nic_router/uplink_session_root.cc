@@ -101,10 +101,9 @@ Net::Uplink_session_component::Uplink_session_component(Session_env             
 {
 	_interface.attach_to_domain();
 
-	_tx.sigh_ready_to_ack   (_interface.sink_ack());
-	_tx.sigh_packet_avail   (_interface.sink_submit());
-	_rx.sigh_ack_avail      (_interface.source_ack());
-	_rx.sigh_ready_to_submit(_interface.source_submit());
+	/* install packet stream signal handlers */
+	_tx.sigh_packet_avail(_interface.pkt_stream_signal_handler());
+	_rx.sigh_ack_avail   (_interface.pkt_stream_signal_handler());
 }
 
 
