@@ -75,28 +75,31 @@ class Platform::Device_pd
 								                                 executable,
 								                                 writeable); },
 							[&] () {
-								enum { UPGRADE_CAP_QUOTA = 2 };
-								Cap_quota const caps { UPGRADE_CAP_QUOTA };
-								_cap_guard.withdraw(caps);
-								_env.pd().transfer_quota(_pd.rpc_cap(), caps);
+								upgrade_caps();
 							}
 						);
 					},
 					[&] () {
-						enum { UPGRADE_RAM_QUOTA = 4096 };
-						Ram_quota const ram { UPGRADE_RAM_QUOTA };
-						_ram_guard.withdraw(ram);
-						_env.pd().transfer_quota(_pd.rpc_cap(), ram);
+						upgrade_ram();
 					}
 				);
 			}
 
-			Local_addr attach_at(Dataspace_capability ds,
-			                     addr_t local_addr,
-			                     size_t size = 0,
-			                     off_t offset = 0) {
-				return attach(ds, size, offset, true, local_addr); };
+			void upgrade_ram()
+			{
+				enum { UPGRADE_RAM_QUOTA = 4096 };
+				Ram_quota const ram { UPGRADE_RAM_QUOTA };
+				_ram_guard.withdraw(ram);
+				_env.pd().transfer_quota(_pd.rpc_cap(), ram);
+			}
 
+			void upgrade_caps()
+			{
+				enum { UPGRADE_CAP_QUOTA = 2 };
+				Cap_quota const caps { UPGRADE_CAP_QUOTA };
+				_cap_guard.withdraw(caps);
+				_env.pd().transfer_quota(_pd.rpc_cap(), caps);
+			}
 		} _address_space;
 
 	public:

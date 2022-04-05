@@ -31,28 +31,40 @@ void Platform::Device_pd::attach_dma_mem(Dataspace_capability ds_cap,
 
 	addr_t page = ~0UL;
 
-
 	using Attach_dma_error = Pd_session::Attach_dma_error;
 
-	_pd.attach_dma(ds_cap, dma_addr).with_result(
+	bool retry = false;
 
-		[&] (Pd_session::Attach_dma_ok) {
+	do {
+		_pd.attach_dma(ds_cap, dma_addr).with_result(
 
-			page = dma_addr;
+			[&] (Pd_session::Attach_dma_ok) {
 
-			/* trigger eager mapping of memory */
-			_pd.map(page, size);
-		},
-		[&] (Attach_dma_error e) {
-			switch (e) {
-			case Attach_dma_error::OUT_OF_RAM:  throw Out_of_ram();
-			case Attach_dma_error::OUT_OF_CAPS: throw Out_of_caps();
-			case Attach_dma_error::DENIED:
-				warning("Pd_session::attach_dma denied");
 				page = dma_addr;
-				break;
+
+				/* trigger eager mapping of memory */
+				_pd.map(page, size);
+				retry = false;
+			},
+			[&] (Attach_dma_error e) {
+				switch (e) {
+				case Attach_dma_error::OUT_OF_RAM:
+					_address_space.upgrade_ram();
+					retry = true;
+					break;
+				case Attach_dma_error::OUT_OF_CAPS:
+					_address_space.upgrade_caps();
+					retry = true;
+					break;
+				case Attach_dma_error::DENIED:
+					warning("Pd_session::attach_dma denied");
+					page = dma_addr;
+					retry = false;
+					break;
+				}
 			}
-		});
+		);
+	} while (retry);
 
 	/* sanity check */
 	if ((page == ~0UL) || (page != dma_addr)) {
