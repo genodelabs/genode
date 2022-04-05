@@ -77,9 +77,10 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 	.signal          = signal,
 	};
 
-#ifndef CONFIG_X86
+#ifdef CONFIG_ARM_64
 	task->thread_info.preempt_count = 0;
 #endif
+	task->stack = kmalloc(sizeof(struct thread_info), THREADINFO_GFP);
 
 	lx_emul_task_create(task, "kthread", task->pid, fn, arg);
 	return task->pid;

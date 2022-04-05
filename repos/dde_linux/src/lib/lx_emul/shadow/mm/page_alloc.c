@@ -13,6 +13,8 @@
 
 #include <linux/gfp.h>
 #include <linux/version.h>
+#include <lx_emul/alloc.h>
+#include <lx_emul/debug.h>
 #include <lx_emul/page_virt.h>
 
 unsigned long __alloc_pages_bulk(gfp_t gfp,int preferred_nid,
