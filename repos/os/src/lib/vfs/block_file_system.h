@@ -96,14 +96,12 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 					Block::Packet_descriptor::Opcode op;
 					op = write ? Block::Packet_descriptor::WRITE : Block::Packet_descriptor::READ;
 
-					file_size packet_size  = bulk ? sz : _block_size;
-					file_size packet_count = bulk ? (sz / _block_size) : 1;
+					size_t packet_count = bulk ? (size_t)(sz / _block_size) : 1;
 
 					Block::Packet_descriptor packet;
 
 					/* sanity check */
 					if (packet_count > _block_buffer_count) {
-						packet_size  = _block_buffer_count * _block_size;
 						packet_count = _block_buffer_count;
 					}
 
@@ -111,7 +109,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						try {
 							Mutex::Guard guard(_mutex);
 
-							packet = _block.alloc_packet((size_t)packet_size);
+							packet = _block.alloc_packet(packet_count * _block_size);
 							break;
 						} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
 
@@ -119,17 +117,16 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 								_ep.wait_and_dispatch_one_io_signal();
 
 							if (packet_count > 1) {
-								packet_size  /= 2;
 								packet_count /= 2;
 							}
 						}
 					}
 					Mutex::Guard guard(_mutex);
 
-					Block::Packet_descriptor p(packet, op, nr, (size_t)packet_count);
+					Block::Packet_descriptor p(packet, op, nr, packet_count);
 
 					if (write)
-						Genode::memcpy(_tx_source->packet_content(p), buf, (size_t)packet_size);
+						Genode::memcpy(_tx_source->packet_content(p), buf, packet_count * _block_size);
 
 					_tx_source->submit_packet(p);
 
@@ -144,10 +141,10 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 					}
 
 					if (!write)
-						Genode::memcpy(buf, _tx_source->packet_content(p), (size_t)packet_size);
+						Genode::memcpy(buf, _tx_source->packet_content(p), packet_count * _block_size);
 
 					_tx_source->release_packet(p);
-					return packet_size;
+					return packet_count * _block_size;
 				}
 
 			public:
