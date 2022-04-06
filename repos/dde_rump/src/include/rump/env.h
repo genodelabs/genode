@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,6 +19,7 @@
 #include <base/heap.h>
 #include <util/reconstructible.h>
 #include <rump/timed_semaphore.h>
+#include <timer_session/connection.h>
 
 namespace Rump {
 	class Env;
@@ -32,19 +33,21 @@ class Rump::Env
 {
 	private:
 
-		Genode::Env                   &_env;
-		Timeout_entrypoint             _timeout_ep { _env };
-		Genode::Heap                   _heap { _env.ram(), _env.rm() };
-		Genode::Attached_rom_dataspace _config { _env, "config" };
+		Genode::Env                    &_env;
+		Genode::Heap                    _heap      { _env.ram(), _env.rm() };
+		Genode::Attached_rom_dataspace  _config    { _env, "config" };
+		Genode::Thread const           *_ep_thread { Genode::Thread::myself() };
+		Timer::Connection               _timer     { _env };
 
 	public:
 
 		Env(Genode::Env &env);
 
 		Genode::Env                    &env()        { return _env; }
-		Timeout_entrypoint             &timeout_ep() { return _timeout_ep; }
 		Genode::Heap                   &heap()       { return _heap; }
 		Genode::Attached_rom_dataspace &config_rom() { return _config; }
+		Genode::Thread const           *ep_thread()  { return _ep_thread; }
+		Timer::Connection              &timer()      { return _timer; }
 };
 
 /**

@@ -4,7 +4,7 @@ SHARED_LIB = yes
 LIBS      += rump_include
 
 CC_OPT += -DLIBRUMPUSER
-SRC_CC  = dummies.cc hypercall.cc bootstrap.cc io.cc sync.cc env.cc alarm.cc
+SRC_CC  = dummies.cc hypercall.cc bootstrap.cc io.cc sync.cc env.cc
 
 CC_C_OPT += -DHAVE_PROP_DICTIONARY_T
 SRC_C     = __main.c \
