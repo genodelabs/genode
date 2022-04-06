@@ -84,7 +84,7 @@
 			</start>
 
 			<start name="nitpicker" caps="200">
-				<resource name="RAM" quantum="10M"/>
+				<resource name="RAM" quantum="14M"/>
 				<resource name="CPU" quantum="40"/>
 				<provides>
 					<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
@@ -172,7 +172,7 @@
 
 			<start name="decorator" caps="350">
 				<binary name="themed_decorator"/>
-				<resource name="RAM" quantum="10M"/>
+				<resource name="RAM" quantum="12M"/>
 				<resource name="CPU" quantum="20"/>
 				<config>
 					<libc/>
