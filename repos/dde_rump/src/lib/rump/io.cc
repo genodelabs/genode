@@ -49,28 +49,37 @@ class Io_signal_blockade : public Genode::Io_signal_handler<Io_signal_blockade>
 
 	public:
 
-		Io_signal_blockade(Entrypoint &ep)
+		Io_signal_blockade(Genode::Entrypoint &ep,
+		                   Genode::Thread const *ep_thread)
 		: Io_signal_handler(ep, *this,
 		                    &Io_signal_blockade::_handle_io_signal),
-		  _ep(ep)
-		{
-			_ep_thread_ptr = Genode::Thread::myself();
-		}
+		  _ep(ep),
+		  _ep_thread_ptr(ep_thread) { }
 
-		void block_for_io()
+		template <typename FUNC>
+		void block_for_io(FUNC const &should_block)
 		{
 			if (Genode::Thread::myself() == _ep_thread_ptr) {
 
-				while (!_signal_handler_called)
-					_ep.wait_and_dispatch_one_io_signal();
+				while (should_block()) {
+
+					while (!_signal_handler_called)
+						_ep.wait_and_dispatch_one_io_signal();
+
+					_signal_handler_called = false;
+				}
 
 				_signal_handler_called = false;
 
 			} else {
 
-				Registered_blockade _blockade { _blockades };
-				_blockade.block();
+				while (should_block()) {
 
+					Registered_blockade _blockade { _blockades };
+
+					if (should_block())
+						_blockade.block();
+				}
 			}
 		}
 };
@@ -101,7 +110,8 @@ class Backend
 		Block::Connection<Job> _session {  Rump::env().env(), &_alloc };
 		Block::Session::Info   _info    { _session.info() };
 		Genode::Mutex          _session_mutex;
-		Io_signal_blockade     _io_signal_blockade { _ep };
+		Io_signal_blockade     _io_signal_blockade { _ep,
+		                                             Genode::Thread::myself() };
 
 		int _blocked_for_synchronous_io = 0;
 
@@ -154,12 +164,10 @@ class Backend
 				_blocked_for_synchronous_io++;
 			}
 
-			_update_jobs();
-
-			while (!job->completed()) {
-				_io_signal_blockade.block_for_io();
+			_io_signal_blockade.block_for_io([&]() {
 				_update_jobs();
-			}
+				return !job->completed();
+			});
 
 			bool const success = job->success;
 
