@@ -375,7 +375,14 @@ void intel_vgpu_detect(struct drm_i915_private * dev_priv)
 
 void call_rcu(struct rcu_head * head, rcu_callback_t func)
 {
+	enum { KVFREE_RCU_OFFSET = 4096 };
+
 	lx_emul_trace(__func__);
+
+	if (func < (rcu_callback_t)KVFREE_RCU_OFFSET) {
+		kvfree((void*)head - (unsigned long)func);
+		return;
+	}
 
 	func(head);
 }

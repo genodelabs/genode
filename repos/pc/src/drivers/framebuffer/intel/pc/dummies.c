@@ -763,3 +763,15 @@ int request_firmware_direct(const struct firmware ** firmware_p,const char * nam
 	lx_emul_trace(__func__);
 	return -1;
 }
+
+
+int ___ratelimit(struct ratelimit_state * rs, const char * func)
+{
+	/*
+	 * from lib/ratelimit.c:
+	 * " 0 means callbacks will be suppressed.
+	 *   1 means go ahead and do it. "
+	 */
+	lx_emul_trace(__func__);
+	return 1;
+}

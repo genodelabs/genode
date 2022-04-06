@@ -135,7 +135,7 @@ static bool reconfigure(void * data)
 		unsigned err = 0;
 		struct drm_fb_helper_surface_size sizes = {};
 
-		sizes.surface_depth  = 32;
+		sizes.surface_depth  = 24;
 		sizes.surface_bpp    = 32;
 		sizes.fb_width       = mode_preferred.hdisplay;
 		sizes.fb_height      = mode_preferred.vdisplay;
@@ -335,6 +335,16 @@ void lx_user_init(void)
 
 static int genode_fb_client_hotplug(struct drm_client_dev *client)
 {
+	/*
+	 * Set deferred_setup to execute codepath of drm_fb_helper_hotplug_event()
+	 * on next connector state change that does not drop modes, which are
+	 * above the current framebuffer resolution. It is required if the
+	 * connected display at runtime is larger than the ones attached already
+	 * during boot. Without this quirk, not all modes are reported on displays
+	 * connected after boot.
+	 */
+	i915_fb()->deferred_setup = true;
+
 	lx_emul_i915_hotplug_connector(client);
 	return 0;
 }
@@ -353,7 +363,7 @@ void lx_emul_i915_report(void * lx_data, void * genode_data)
 	drm_client_for_each_connector_iter(connector, &conn_iter) {
 		lx_emul_i915_report_connector(connector, genode_data,
 		                              connector->name,
-		                              !!connector->encoder /* connected */,
+		                              connector->status != connector_status_disconnected,
 		                              get_brightness(connector, INVALID_BRIGHTNESS));
 	}
 	drm_connector_list_iter_end(&conn_iter);

@@ -16,14 +16,6 @@ void * PDE_DATA(const struct inode * inode)
 }
 
 
-#include <linux/ratelimit_types.h>
-
-int ___ratelimit(struct ratelimit_state * rs,const char * func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/skbuff.h>
 
 struct sk_buff * __alloc_skb(unsigned int size,gfp_t gfp_mask,int flags,int node)
