@@ -1352,6 +1352,10 @@ struct Wifi::Frontend
 	bool _connected_event    { false };
 	bool _disconnected_event { false };
 	bool _disconnected_fail  { false };
+	bool _was_connected      { false };
+
+	enum { MAX_REAUTH_ATTEMPTS = 1 };
+	unsigned _reauth_attempts { 0 };
 
 	enum { MAX_ATTEMPTS = 3, };
 	unsigned _scan_attempts { 0 };
@@ -1360,12 +1364,26 @@ struct Wifi::Frontend
 
 	void _handle_connection_events(char const *msg)
 	{
+		_connected_event    = false;
+		_disconnected_event = false;
+		_disconnected_fail  = false;
+
 		bool const connected    = check_recv_msg(msg, recv_table[Rmi::CONNECTED]);
 		bool const disconnected = check_recv_msg(msg, recv_table[Rmi::DISCONNECTED]);
 		bool const auth_failed  = disconnected && _auth_failure(msg);
 
 		State state = connected ? State::CONNECTED : State::DISCONNECTED;
 		Accesspoint::Bssid const &bssid = _extract_bssid(msg, state);
+
+		/* simplistic heuristic to ignore re-authentication requests */
+		if (_connected_ap.bssid.valid() && auth_failed) {
+			if (_reauth_attempts < MAX_ATTEMPTS) {
+				Genode::log("ignore deauth from: ", _connected_ap.bssid);
+				_reauth_attempts++;
+				return;
+			}
+		}
+		_reauth_attempts = 0;
 
 		/*
 		 * Always reset the "global" connection state first
