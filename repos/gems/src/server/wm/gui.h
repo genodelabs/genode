@@ -451,6 +451,15 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 		{
 			_apply_view_config();
 		}
+
+		void hide()
+		{
+			if (!_real_handle.valid())
+				return;
+
+			_real_gui.destroy_view(_real_handle);
+			_real_handle = { };
+		}
 };
 
 
@@ -827,6 +836,13 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			for (Child_view *v = _child_views.first(); v; v = v->next())
 				if (v->belongs_to_win_id(id))
 					v->update_child_stacking();
+		}
+
+		void hide_content_child_views(Window_registry::Id id)
+		{
+			for (Child_view *v = _child_views.first(); v; v = v->next())
+				if (v->belongs_to_win_id(id))
+					v->hide();
 		}
 
 		void content_geometry(Window_registry::Id id, Rect rect)
@@ -1417,6 +1433,16 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 			 */
 			for (Session_component *s = _sessions.first(); s; s = s->next())
 				s->update_stacking_order_of_children(id);
+		}
+
+		void hide_content_child_views(Window_registry::Id id) override
+		{
+			/*
+			 * Destroy physical views for the child views belonging to the
+			 * specified id.
+			 */
+			for (Session_component *s = _sessions.first(); s; s = s->next())
+				s->hide_content_child_views(id);
 		}
 
 		void content_geometry(Window_registry::Id id, Rect rect) override
