@@ -667,7 +667,7 @@ class Vfs::Rump_file_system : public File_system
 		void close(Vfs_handle *vfs_handle) override
 		{
 			if (Rump_vfs_file_handle *handle =
-				static_cast<Rump_vfs_file_handle *>(vfs_handle))
+				dynamic_cast<Rump_vfs_file_handle *>(vfs_handle))
 			{
 				_file_handles.remove(handle);
 				if (handle->modifying())
@@ -676,13 +676,13 @@ class Vfs::Rump_file_system : public File_system
 			}
 			else
 			if (Rump_vfs_dir_handle *handle =
-				static_cast<Rump_vfs_dir_handle *>(vfs_handle))
+				dynamic_cast<Rump_vfs_dir_handle *>(vfs_handle))
 			{
 				destroy(vfs_handle->alloc(), handle);
 			}
 			else
 			if (Rump_vfs_symlink_handle *handle =
-				static_cast<Rump_vfs_symlink_handle *>(vfs_handle))
+				dynamic_cast<Rump_vfs_symlink_handle *>(vfs_handle))
 			{
 				destroy(vfs_handle->alloc(), handle);
 			}
