@@ -590,10 +590,16 @@ class Vfs_server::Session_component : private Session_resources,
 				throw Out_of_caps();
 			}
 
-			Node &node = *new (_alloc)
-				Watch_node(_node_space, path_str, *vfs_handle, *this);
+			try {
+				Node &node = *new (_alloc)
+					Watch_node(_node_space, path_str, *vfs_handle, *this);
 
-			return Watch_handle { node.id().value };
+				return Watch_handle { node.id().value };
+			}
+			catch (...) {
+				vfs_handle->close();
+				throw;
+			}
 		}
 
 		void close(Node_handle handle) override
