@@ -758,11 +758,15 @@ class Vfs::Rump_file_system : public File_system
 			if (fd < 0)
 				return WATCH_ERR_UNACCESSIBLE;
 
-			auto *watch_handle = new (alloc)
-				Rump_watch_handle(*this, alloc, fd);
-			_watchers.insert(watch_handle);
-			*handle = watch_handle;
-			return WATCH_OK;
+			try {
+				auto *watch_handle = new (alloc)
+					Rump_watch_handle(*this, alloc, fd);
+				_watchers.insert(watch_handle);
+				*handle = watch_handle;
+				return WATCH_OK;
+			}
+			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_watch_handle *vfs_handle) override
