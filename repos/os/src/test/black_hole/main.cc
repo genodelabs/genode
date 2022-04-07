@@ -25,6 +25,7 @@
 /* os includes */
 #include <gpu_session/connection.h>
 #include <event_session/connection.h>
+#include <usb_session/connection.h>
 #include <capture_session/connection.h>
 #include <audio_in_session/connection.h>
 #include <audio_out_session/connection.h>
@@ -41,6 +42,7 @@ namespace Black_hole_test {
 	class Uplink_test;
 	class Capture_test;
 	class Event_test;
+	class Usb_test;
 	class Rom_test;
 	class Main;
 }
@@ -328,6 +330,41 @@ class Black_hole_test::Rom_test
 };
 
 
+class Black_hole_test::Usb_test
+{
+	private:
+
+		Env           &_env;
+		Allocator_avl  _alloc;
+		bool           _finished  { false };
+
+	public:
+
+		Usb_test(Env  &env,
+		         Heap &heap)
+		:
+			_env   { env },
+			_alloc { &heap }
+		{
+			try {
+				Usb::Connection connection { _env, &_alloc };
+				class Session_request_succeeded { };
+				throw Session_request_succeeded { };
+
+			} catch (Service_denied) {
+
+				_finished = true;
+			}
+		}
+
+		bool finished() const
+		{
+			return _finished;
+		}
+};
+
+
+
 class Black_hole_test::Main
 {
 	private:
@@ -342,6 +379,7 @@ class Black_hole_test::Main
 		Uplink_test            _uplink_test    { _env, _heap, _signal_handler };
 		Capture_test           _capture_test   { _env };
 		Event_test             _event_test     { _env };
+		Usb_test               _usb_test       { _env, _heap };
 		Rom_test               _rom_test       { _env };
 
 		void _handle_signal()
@@ -357,6 +395,7 @@ class Black_hole_test::Main
 			    _uplink_test.finished() &&
 			    _capture_test.finished() &&
 			    _event_test.finished() &&
+			    _usb_test.finished() &&
 			    _rom_test.finished()) {
 
 				log("Finished");

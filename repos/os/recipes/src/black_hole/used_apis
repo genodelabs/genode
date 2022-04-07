@@ -6,4 +6,5 @@ event_session
 nic_session
 uplink_session
 gpu_session
+usb_session
 os

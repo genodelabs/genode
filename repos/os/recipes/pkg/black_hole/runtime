@@ -9,6 +9,7 @@
 		<uplink/>
 		<rom/>
 		<gpu/>
+		<usb/>
 	</provides>
 
 	<config>
@@ -20,6 +21,7 @@
 		<uplink/>
 		<rom/>
 		<gpu/>
+		<usb/>
 	</config>
 
 	<content>

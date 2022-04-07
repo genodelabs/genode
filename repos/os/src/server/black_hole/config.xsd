@@ -4,6 +4,7 @@
 	<xs:element name="config">
 		<xs:complexType>
 			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="usb"/>
 				<xs:element name="gpu"/>
 				<xs:element name="rom"/>
 				<xs:element name="uplink"/>

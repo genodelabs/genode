@@ -30,6 +30,7 @@
 		<start name="black_hole" caps="100">
 			<resource name="RAM" quantum="1M"/>
 			<provides>
+				<service name="Usb"/>
 				<service name="Gpu"/>
 				<service name="ROM"/>
 				<service name="Uplink"/>
@@ -40,6 +41,7 @@
 				<service name="Audio_out"/>
 			</provides>
 			<config>
+				<usb/>
 				<gpu/>
 				<rom/>
 				<uplink/>
@@ -61,6 +63,7 @@
 		<start name="test-black_hole" caps="200">
 			<resource name="RAM" quantum="10M"/>
 			<route>
+				<service name="Usb">                   <child name="black_hole"/> </service>
 				<service name="Gpu">                   <child name="black_hole"/> </service>
 				<service name="ROM" label="any_label"> <child name="black_hole"/> </service>
 				<service name="Uplink">                <child name="black_hole"/> </service>
