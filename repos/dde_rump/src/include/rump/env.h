@@ -38,6 +38,7 @@ class Rump::Env
 		Genode::Attached_rom_dataspace  _config    { _env, "config" };
 		Genode::Thread const           *_ep_thread { Genode::Thread::myself() };
 		Timer::Connection               _timer     { _env };
+		Timed_semaphore                 _sleep_sem { _env, _ep_thread, _timer };
 
 	public:
 
@@ -48,6 +49,7 @@ class Rump::Env
 		Genode::Attached_rom_dataspace &config_rom() { return _config; }
 		Genode::Thread const           *ep_thread()  { return _ep_thread; }
 		Timer::Connection              &timer()      { return _timer; }
+		Timed_semaphore                &sleep_sem()  { return _sleep_sem; }
 };
 
 /**
