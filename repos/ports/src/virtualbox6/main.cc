@@ -210,7 +210,9 @@ struct Main : Event_handler
 
 	Signal_handler<Main> _capslock_handler { _env.ep(), *this, &Main::_handle_capslock };
 
-	void _handle_capslock();
+	void _handle_capslock() { Libc::with_libc([&] { _sync_capslock(); }); }
+
+	void _sync_capslock();
 
 	struct Capslock
 	{
@@ -238,6 +240,9 @@ struct Main : Event_handler
 
 		bool update_from_rom()
 		{
+			if (mode != Mode::ROM)
+				return false;
+
 			_rom->update();
 
 			bool const rom = _rom->xml().attribute_value("enabled", _guest);
@@ -245,14 +250,11 @@ struct Main : Event_handler
 			bool trigger = false;
 
 			/*
-			 * If guest didn't respond with led change last time, we have to
-			 * trigger CapsLock change - mainly assuming that guest don't use the
-			 * led to externalize its internal state.
+			 * Trigger CapsLock change whenever the ROM state changes. This
+			 * helps with guests that do not use the keyboard led to indicate
+			 * the CapsLock state.
 			 */
-			if (rom != _host && _host != _guest)
-				trigger = true;
-
-			if (rom != _guest)
+			if (rom != _host || rom != _guest)
 				trigger = true;
 
 			/* remember last seen host capslock state */
@@ -361,6 +363,7 @@ struct Main : Event_handler
 		event_types.push_back(VBoxEventType_OnMousePointerShapeChanged);
 		event_types.push_back(VBoxEventType_OnKeyboardLedsChanged);
 		event_types.push_back(VBoxEventType_OnStateChanged);
+		event_types.push_back(VBoxEventType_OnAdditionsStateChanged);
 
 		ievent_source->RegisterListener(listener, ComSafeArrayAsInParam(event_types), true);
 	}
@@ -377,13 +380,12 @@ struct Main : Event_handler
 };
 
 
-void Main::_handle_capslock()
+/* must be called in Libc::with_libc() context */
+void Main::_sync_capslock()
 {
 	if (_capslock.update_from_rom()) {
-		Libc::with_libc([&] {
-			_input_adapter.handle_input_event(Input::Event { Input::Press   { Input::KEY_CAPSLOCK } });
-			_input_adapter.handle_input_event(Input::Event { Input::Release { Input::KEY_CAPSLOCK } });
-		});
+		_input_adapter.handle_input_event(Input::Event { Input::Press   { Input::KEY_CAPSLOCK } });
+		_input_adapter.handle_input_event(Input::Event { Input::Release { Input::KEY_CAPSLOCK } });
 	}
 }
 
@@ -470,10 +472,18 @@ void Main::handle_vbox_event(VBoxEventType_T ev_type, IEvent &ev)
 
 	case VBoxEventType_OnKeyboardLedsChanged:
 		{
+			/*
+			 * Use CapsLock LED as indicator for guest assumption about the
+			 * state and optionally resync to host state. This is required
+			 * because the guest may try to switch CapsLock (off) on its own,
+			 * e.g. during startup.
+			 */
+
 			ComPtr<IKeyboardLedsChangedEvent> led_ev = &ev;
 			BOOL capslock;
 			led_ev->COMGETTER(CapsLock)(&capslock);
 			_capslock.update_guest(!!capslock);
+			_sync_capslock();
 		} break;
 
 	case VBoxEventType_OnStateChanged:
@@ -485,6 +495,27 @@ void Main::handle_vbox_event(VBoxEventType_T ev_type, IEvent &ev)
 			if (machineState == MachineState_PoweredOff)
 				_power_down_machine();
 
+		} break;
+
+	case VBoxEventType_OnAdditionsStateChanged:
+		{
+			/*
+			 * Try to sync initial CapsLock state when starting a guest OS.
+			 * Usually this is only a problem when CapsLock is already on
+			 * during startup, because the guest will assume it's off or
+			 * deliberately clear the CapsLock state during boot.
+			 *
+			 * Ideally this should only be done once, after the guest is ready
+			 * to process the CapsLock key but before it's ready for login. The
+			 * OnAdditionsStateChanged event will fire a few times during boot,
+			 * but maybe not when we really need it to. Maybe there is a better
+			 * event to listen to, once the guest additions are fulling
+			 * working, like VBoxEventType_OnGuestSessionRegistered.
+			 *
+			 * For a list of "VBoxEventType_..." events see
+			 * virtualbox6_sdk/sdk/bindings/xpcom/include/VirtualBox_XPCOM.h
+			 */
+			_sync_capslock();
 		} break;
 
 	default: /* ignore other events */ break;
