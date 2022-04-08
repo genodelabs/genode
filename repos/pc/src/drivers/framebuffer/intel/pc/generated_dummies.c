@@ -2198,3 +2198,16 @@ void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
 	lx_emul_trace_and_stop(__func__);
 }
 
+
+void intel_dsb_reg_write(const struct intel_crtc_state *crtc_state,
+			 i915_reg_t reg, u32 val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+void intel_dsb_indexed_reg_write(const struct intel_crtc_state *crtc_state,
+				 i915_reg_t reg, u32 val)
+{
+	lx_emul_trace_and_stop(__func__);
+}

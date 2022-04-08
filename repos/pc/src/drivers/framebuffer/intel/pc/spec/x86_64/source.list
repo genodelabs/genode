@@ -100,7 +100,6 @@ drivers/gpu/drm/i915/display/intel_dp_link_training.c
 drivers/gpu/drm/i915/display/intel_dpll.c
 drivers/gpu/drm/i915/display/intel_dpll_mgr.c
 drivers/gpu/drm/i915/display/intel_dp_mst.c
-drivers/gpu/drm/i915/display/intel_dsb.c
 drivers/gpu/drm/i915/display/intel_dsi.c
 drivers/gpu/drm/i915/display/intel_dsi_vbt.c
 drivers/gpu/drm/i915/display/intel_fb.c

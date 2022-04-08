@@ -775,3 +775,22 @@ int ___ratelimit(struct ratelimit_state * rs, const char * func)
 	lx_emul_trace(__func__);
 	return 1;
 }
+
+
+void intel_dsb_prepare(struct intel_crtc_state *crtc_state)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_dsb_cleanup(struct intel_crtc_state *crtc_state)
+{
+	lx_emul_trace(__func__);
+}
+
+
+
+void intel_dsb_commit(const struct intel_crtc_state *crtc_state)
+{
+	lx_emul_trace(__func__);
+}
