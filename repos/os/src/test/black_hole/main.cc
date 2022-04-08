@@ -33,6 +33,7 @@
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
 #include <input/keycodes.h>
+#include <timer_session/connection.h>
 
 using namespace Genode;
 
@@ -60,8 +61,8 @@ class Black_hole_test::Nic_test
 		Env                       &_env;
 		Allocator                 &_alloc;
 		Signal_context_capability  _sigh;
-		Allocator_avl              _tx_blk_alloc     { &_alloc };
-		Nic::Connection            _connection       { _env, &_tx_blk_alloc, BUF_SIZE, BUF_SIZE };
+		Nic::Packet_allocator      _packet_alloc     { &_alloc };
+		Nic::Connection            _connection       { _env, &_packet_alloc, BUF_SIZE, BUF_SIZE };
 		unsigned long              _nr_of_sent_pkts  { 0 };
 		unsigned long              _nr_of_acked_pkts { 0 };
 
@@ -151,25 +152,35 @@ class Black_hole_test::Uplink_test
 			PKT_SIZE = 100,
 		};
 
-		Env                               &_env;
-		Allocator                         &_alloc;
-		Signal_context_capability          _sigh;
-		Allocator_avl                      _tx_blk_alloc     { &_alloc };
-		Constructible<Uplink::Connection>  _connection       { };
-		unsigned long                      _nr_of_sent_pkts  { 0 };
-		unsigned long                      _nr_of_acked_pkts { 0 };
+		Env                                  &_env;
+		Allocator                            &_alloc;
+		Timer::Connection                    &_timer;
+		Signal_context_capability             _sigh;
+		Timer::Periodic_timeout<Uplink_test>  _timeout                  { _timer, *this, &Uplink_test::_execute_link_down_up_step, Microseconds { 1000000 } };
+		Constructible<Nic::Packet_allocator>  _packet_alloc             { };
+		Constructible<Uplink::Connection>     _connection               { };
+		unsigned long                         _nr_of_sent_pkts          { 0 };
+		unsigned long                         _nr_of_acked_pkts         { 0 };
+		unsigned long                         _nr_of_link_down_up_steps { 0 };
 
-		void _reconstruct_connection()
+		void _execute_link_down_up_step(Duration)
 		{
 			_connection.destruct();
+			_packet_alloc.destruct();
+			_nr_of_sent_pkts = 0;
+
+			_packet_alloc.construct(&_alloc);
 			_connection.construct(
-				_env, &_tx_blk_alloc, BUF_SIZE,
+				_env, &(*_packet_alloc), BUF_SIZE,
 				BUF_SIZE, Net::Mac_address { 2 });
 
 			_connection->tx_channel()->sigh_ready_to_submit(_sigh);
 			_connection->tx_channel()->sigh_ack_avail(_sigh);
 			_connection->rx_channel()->sigh_ready_to_ack(_sigh);
 			_connection->rx_channel()->sigh_packet_avail(_sigh);
+			_submit_pkts();
+
+			_nr_of_link_down_up_steps++;
 		}
 
 		void _submit_pkts()
@@ -194,15 +205,14 @@ class Black_hole_test::Uplink_test
 
 		Uplink_test(Env                       &env,
 		            Allocator                 &alloc,
+		            Timer::Connection         &timer,
 		            Signal_context_capability  sigh)
 		:
 			_env   { env },
 			_alloc { alloc },
+			_timer { timer },
 			_sigh  { sigh }
-		{
-			_reconstruct_connection();
-			_submit_pkts();
-		}
+		{ }
 
 		void handle_signal()
 		{
@@ -231,14 +241,13 @@ class Black_hole_test::Uplink_test
 				_nr_of_acked_pkts++;
 			}
 			_submit_pkts();
-			_reconstruct_connection();
-			_nr_of_sent_pkts = 0;
-			_submit_pkts();
 		}
 
 		bool finished() const
 		{
-			return _nr_of_acked_pkts > 100;
+			return
+				_nr_of_acked_pkts > 200 &&
+				_nr_of_link_down_up_steps > 2;
 		}
 };
 
@@ -363,13 +372,14 @@ class Black_hole_test::Main
 	private:
 
 		Env                   &_env;
+		Timer::Connection      _timer          { _env };
 		Heap                   _heap           { _env.ram(), _env.rm() };
 		Signal_handler<Main>   _signal_handler { _env.ep(), *this, &Main::_handle_signal };
 		Audio_in::Connection   _audio_in       { _env, "left" };
 		Audio_out::Connection  _audio_out      { _env, "left" };
 		Gpu::Connection        _gpu            { _env };
 		Nic_test               _nic_test       { _env, _heap, _signal_handler };
-		Uplink_test            _uplink_test    { _env, _heap, _signal_handler };
+		Uplink_test            _uplink_test    { _env, _heap, _timer, _signal_handler };
 		Capture_test           _capture_test   { _env };
 		Event_test             _event_test     { _env };
 		Usb_test               _usb_test       { _env, _heap };

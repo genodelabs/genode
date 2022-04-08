@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="10" />
+		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">Finished</log>
 	</events>
 
@@ -76,6 +76,7 @@
 				<service name="PD">                    <parent/> </service>
 				<service name="LOG">                   <parent/> </service>
 				<service name="CPU">                   <parent/> </service>
+				<service name="Timer">                 <parent/> </service>
 			</route>
 		</start>
 
