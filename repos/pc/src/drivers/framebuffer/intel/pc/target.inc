@@ -18,6 +18,7 @@ SRC_C   += $(notdir $(wildcard $(REL_PRG_DIR)/generated_dummies.c))
 SRC_C   += fb.c
 SRC_C   += lx_user.c
 SRC_C   += gem.c
+SRC_C   += timeout.c
 SRC_C   += common_dummies.c
 SRC_C   += lx_emul/spec/x86/pci.c
 SRC_C   += lx_emul/shadow/mm/page_alloc.c
@@ -37,6 +38,12 @@ endif
 INC_DIR    += $(LX_SRC_DIR)/drivers/gpu/drm/i915
 
 CC_C_OPT += -Wno-unused-label
+
+#
+# Original symbol is renamed to __real_* and references to original symbol
+# are replaced by __wrap_*. Used to shadow schedule_timeout, see timeout.c
+#
+LD_OPT += --wrap=schedule_timeout
 
 #
 # Genode C-API backends
