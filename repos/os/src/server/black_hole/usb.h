@@ -34,6 +34,13 @@ class Black_hole::Usb_session : public Usb::Session_rpc_object
 {
 	public:
 
+		Usb_session(Ram_dataspace_capability  tx_ds,
+		            Entrypoint               &ep,
+		            Region_map               &rm)
+		:
+			Session_rpc_object { tx_ds, ep.rpc_ep(), rm }
+		{ }
+
 		void sigh_state_change(Signal_context_capability /* sigh */) override { }
 
 		bool plugged() override { return false; }
@@ -70,17 +77,23 @@ class Black_hole::Usb_root : public Root_component<Usb_session>
 
 	protected:
 
-		Usb_session *_create_session(char const * /* args */) override
+		Usb_session *_create_session(char const *args) override
 		{
-			/*
-			 * FIXME
-			 *
-			 * Currently, we're fine with a service that is routable but
-			 * not usable. In the long term, this exception should be removed
-			 * and a session object should be returned that can be used as if
-			 * it was a real USB session.
-			 */
-			throw Service_denied { };
+			size_t const ram_quota {
+				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0) };
+
+			size_t const tx_buf_size {
+				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0) };
+
+			size_t const session_size {
+				max<size_t>(4096, sizeof(Usb_session)) };
+
+			if (ram_quota < session_size + tx_buf_size) {
+				throw Insufficient_ram_quota { };
+			}
+			Ram_dataspace_capability tx_ds { _env.ram().alloc(tx_buf_size) };
+			return new (md_alloc())
+				Usb_session { tx_ds, _env.ep(), _env.rm() };
 		}
 
 	public:

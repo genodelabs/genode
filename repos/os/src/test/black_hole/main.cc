@@ -5,7 +5,7 @@
  *
  * FIXME
  *
- * Accessing the Audio_in and Audio_out connections is yet missing.
+ * Accessing the Audio_in, Audio_out and Usb connections is yet missing.
  */
 
 /*
@@ -334,9 +334,10 @@ class Black_hole_test::Usb_test
 {
 	private:
 
-		Env           &_env;
-		Allocator_avl  _alloc;
-		bool           _finished  { false };
+		Env             &_env;
+		Allocator_avl    _alloc;
+		Usb::Connection  _connection { _env, &_alloc };
+		bool             _finished   { false };
 
 	public:
 
@@ -346,15 +347,7 @@ class Black_hole_test::Usb_test
 			_env   { env },
 			_alloc { &heap }
 		{
-			try {
-				Usb::Connection connection { _env, &_alloc };
-				class Session_request_succeeded { };
-				throw Session_request_succeeded { };
-
-			} catch (Service_denied) {
-
-				_finished = true;
-			}
+			_finished = true;
 		}
 
 		bool finished() const

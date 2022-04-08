@@ -25,7 +25,3 @@ in the configuration of the component:
 	<gpu/>
 	<usb/>
 </config>
-
-Be aware, that the USB service is merely announced but always throws a
-Service_denied exception when trying to request a session. This is considered
-a temporary solution.
