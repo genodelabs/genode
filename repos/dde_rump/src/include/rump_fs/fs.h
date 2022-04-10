@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -34,7 +34,7 @@ void rump_io_backend_init();
 /**
  * Sync I/O back-end with underlying Genode subsystems
  */
-void rump_io_backend_sync();
+extern "C" void rump_io_backend_sync();
 
 /**
  * Return true if an I/O backend-request is pending

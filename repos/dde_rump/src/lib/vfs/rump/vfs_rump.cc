@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2018 Genode Labs GmbH
+ * Copyright (C) 2014-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,7 +18,6 @@
 #include <rump_fs/fs.h>
 #include <vfs/file_system_factory.h>
 #include <vfs/vfs_handle.h>
-#include <timer_session/connection.h>
 #include <os/path.h>
 
 extern "C" {
@@ -846,19 +845,10 @@ class Vfs::Rump_file_system : public File_system
 
 class Rump_factory : public Vfs::File_system_factory
 {
-	private:
-
-		Timer::Connection                       _timer;
-		Genode::Io_signal_handler<Rump_factory> _sync_handler;
-
-		void _sync() { _rump_sync(); }
-
 	public:
 
 		Rump_factory(Genode::Env &env, Genode::Allocator &alloc,
 		             Genode::Xml_node config)
-		: _timer(env, "rump-sync"),
-		  _sync_handler(env.ep(), *this, &Rump_factory::_sync)
 		{
 			Rump::construct_env(env);
 
@@ -892,12 +882,6 @@ class Rump_factory : public Vfs::File_system_factory
 				rlim.rlim_cur = rlim.rlim_max;
 				rump_sys_setrlimit(RLIMIT_NOFILE, &rlim);
 			}
-
-			/* start syncing */
-			enum { TEN_SEC = 10*1000*1000 };
-			_timer.sigh(_sync_handler);
-			_timer.trigger_periodic(TEN_SEC);
-
 		}
 
 		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override

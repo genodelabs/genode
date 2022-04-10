@@ -14,4 +14,4 @@ URL(libc) := https://github.com/justincormack/netbsd-src/trunk/src/common/lib/li
 REV(libc) := HEAD
 DIR(libc) := src/lib/libc
 
-PATCHES := patches/rump.patch patches/aarch64.patch
+PATCHES := patches/rump.patch patches/aarch64.patch patches/sync.patch

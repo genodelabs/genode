@@ -1,0 +1,25 @@
+diff --git a/src/sys/rump/librump/rumpkern/rump.c b/src/sys/rump/librump/rumpkern/rump.c
+index 24466eb..031906e 100644
+--- src/lib/dde_rump/src/sys/rump/librump/rumpkern/rump.c
++++ src/lib/dde_rump/src/sys/rump/librump/rumpkern/rump.c
+@@ -209,6 +209,8 @@ RUMP_COMPONENT(RUMP_COMPONENT_POSTINIT)
+ }
+ #endif
+ 
++void genode_sync_thread(void *);
++
+ int
+ rump_init(void)
+ {
+@@ -468,6 +470,11 @@ rump_init(void)
+ 	rump_consdev_init();
+ 	rump_lwproc_switch(NULL);
+ 
++	/* start the Genode sync thread */
++	if (kthread_create(PRI_IOFLUSH, KTHREAD_MPSAFE, NULL,
++	    genode_sync_thread, NULL, NULL, "genode_sync_thread") != 0)
++			panic("Genode syncer thread create failed");
++
+ 	/* release cpu */
+ 	rump_unschedule();
+ 

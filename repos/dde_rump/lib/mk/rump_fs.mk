@@ -54,6 +54,7 @@ SRC_NOLINK += bufq_disksort.c compat.c devnull.c genfs_vfsops.c \
               bufq_readprio.c devnodes.c genfs_rename.c kern_module_vfs.c rumpblk.c \
               rumpvfs_syscalls.c subr_kobj_vfs.c vfs_bio.c vfs_getcwd.c \
               vfs_lookup.c vfs_syscalls_50.c vfs_vnops.c
+SRC_NOLINK += sync_thread.c
 
 
 INC_DIR += $(RUMP_PORT_DIR)/src/sys/rump/librump/rumpkern/opt
@@ -67,6 +68,7 @@ vpath %.c $(RUMP_PORT_DIR)/src/sys/miscfs/syncfs
 vpath %.c $(RUMP_PORT_DIR)/src/sys/ufs/mfs
 vpath %.c $(RUMP_PORT_DIR)/src/sys/ufs/ufs
 vpath %.c $(RUMP_PORT_DIR)/src/sys/uvm
+vpath %.c $(REP_DIR)/src/lib/rump
 
 
 #
