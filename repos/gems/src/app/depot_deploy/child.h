@@ -488,6 +488,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 					_gen_provides_sub_node(xml, service, "uplink",      "Uplink");
 					_gen_provides_sub_node(xml, service, "gui",         "Gui");
 					_gen_provides_sub_node(xml, service, "gpu",         "Gpu");
+					_gen_provides_sub_node(xml, service, "usb",         "Usb");
 					_gen_provides_sub_node(xml, service, "report",      "Report");
 					_gen_provides_sub_node(xml, service, "rom",         "ROM");
 					_gen_provides_sub_node(xml, service, "terminal",    "Terminal");
