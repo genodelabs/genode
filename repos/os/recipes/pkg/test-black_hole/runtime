@@ -28,7 +28,7 @@
 		</parent-provides>
 
 		<start name="black_hole" caps="100">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="1280K"/>
 			<provides>
 				<service name="Usb"/>
 				<service name="Gpu"/>
