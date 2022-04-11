@@ -114,8 +114,9 @@ static const struct irq_domain_ops dde_irqchip_data_domain_ops = {
 
 
 static const struct of_device_id dde_of_match[] = {
-	{ .compatible = "arm,gic-v3",  .data = (const void *) 4 },
-	{ .compatible = "arm,gic-400", .data = (const void *) 4 },
+	{ .compatible = "arm,gic-v3",        .data = (const void *) 4 },
+	{ .compatible = "arm,cortex-a9-gic", .data = (const void *) 4 },
+	{ .compatible = "arm,gic-400",       .data = (const void *) 4 },
 	{ /* END */ }
 };
 
@@ -158,8 +159,9 @@ void lx_emul_register_of_irqchip_initcall(char const *compat, void *fn)
 }
 
 
-IRQCHIP_DECLARE(dde_gic_v3,  "arm,gic-v3",  dde_irqchip_init);
-IRQCHIP_DECLARE(dde_gic_400, "arm,gic-400", dde_irqchip_init);
+IRQCHIP_DECLARE(dde_gic_v3,  "arm,gic-v3",        dde_irqchip_init);
+IRQCHIP_DECLARE(dde_gic_a9,  "arm,cortex-a9-gic", dde_irqchip_init);
+IRQCHIP_DECLARE(dde_gic_400, "arm,gic-400",       dde_irqchip_init);
 
 
 int lx_emul_irq_task_function(void * data)
