@@ -1797,7 +1797,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("buffer",     "1M");
 	});
 
-	xml.node("heartbeat", [&] () { xml.attribute("rate_ms", 1000); });
+	xml.node("heartbeat", [&] () { xml.attribute("rate_ms", 2000); });
 
 	xml.node("parent-provides", [&] () {
 		gen_parent_service<Rom_session>(xml);
