@@ -149,7 +149,7 @@ struct Usb::Block_driver : Usb::Completion
 	Usb::Connection       usb { env, &alloc,
 		get_label<128>(config.xml()).string(), 2 * (1<<20), state_change_dispatcher };
 	Usb::Device           device;
-	Signal_handler<Main> &wake_up_handler;
+	Signal_handler<Main> &block_request_handler;
 
 	/*
 	 * Reporter
@@ -651,7 +651,11 @@ struct Usb::Block_driver : Usb::Completion
 		request->block_request.success = success;
 		request->completed             = true;
 
-		wake_up_handler.dispatch(0);
+		/*
+		 * An I/O operation completed, thus trigger block-request handling on
+		 * component service level.
+		 */
+		block_request_handler.local_submit();
 	}
 
 	/**
@@ -789,10 +793,10 @@ struct Usb::Block_driver : Usb::Completion
 	 */
 	Block_driver(Env &env, Allocator &alloc,
 	             Genode::Signal_context_capability sigh,
-	             Signal_handler<Main> &wake_up_handler)
+	             Signal_handler<Main> &block_request_handler)
 	:
 		env(env), ep(env.ep()), announce_sigh(sigh), alloc(&alloc),
-		device(&alloc, usb, ep), wake_up_handler(wake_up_handler)
+		device(&alloc, usb, ep), block_request_handler(block_request_handler)
 	{
 		parse_config(config.xml());
 		reporter.enabled(true);
@@ -915,7 +919,7 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 	Signal_handler<Main> announce_dispatcher {
 		env.ep(), *this, &Usb::Main::announce };
 
-	Io_signal_handler<Main>  request_handler {
+	Signal_handler<Main>  request_handler {
 		env.ep(), *this, &Main::handle_requests };
 
 	Block_driver driver { env, heap, announce_dispatcher, request_handler };
