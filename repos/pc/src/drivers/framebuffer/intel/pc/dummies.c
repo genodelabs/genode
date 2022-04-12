@@ -97,6 +97,12 @@ void kernfs_get(struct kernfs_node * kn)
 }
 
 
+void kernfs_put(struct kernfs_node * kn)
+{
+	lx_emul_trace(__func__);
+}
+
+
 int software_node_notify(struct device * dev,unsigned long action)
 {
 	lx_emul_trace(__func__);
@@ -176,6 +182,70 @@ int sysfs_create_groups(struct kobject * kobj,const struct attribute_group ** gr
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+
+void sysfs_remove_link(struct kobject * kobj,const char * name)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void sysfs_remove_groups(struct kobject * kobj,const struct attribute_group ** groups)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void sysfs_remove_dir(struct kobject * kobj)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void sysfs_remove_bin_file(struct kobject * kobj,const struct bin_attribute * attr)
+{
+	lx_emul_trace(__func__);
+}
+
+
+bool sysfs_remove_file_self(struct kobject * kobj,const struct attribute * attr)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+void sysfs_remove_files(struct kobject * kobj,const struct attribute * const * ptr)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void sysfs_delete_link(struct kobject * kobj,struct kobject * targ,const char * name)
+{
+	lx_emul_trace(__func__);
+}
+
+
+int sysfs_emit(char * buf,const char * fmt,...)
+{
+	lx_emul_trace(__func__);
+	return PAGE_SIZE;
+}
+
+
+int sysfs_emit_at(char * buf, int at, const char * fmt,...)
+{
+	lx_emul_trace(__func__);
+	return at > PAGE_SIZE ? PAGE_SIZE : PAGE_SIZE - at;
+}
+
+
+void sysfs_notify(struct kobject * kobj,const char * dir,const char * attr)
+{
+	lx_emul_trace(__func__);
+}
+
 
 
 void intel_engines_add_sysfs(struct drm_i915_private * i915)

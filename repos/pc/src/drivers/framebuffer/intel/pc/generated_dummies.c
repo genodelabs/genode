@@ -1517,14 +1517,6 @@ void kernel_fpu_end(void)
 struct kobject *kernel_kobj;
 
 
-#include <linux/kernfs.h>
-
-void kernfs_put(struct kernfs_node * kn)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/fs.h>
 
 void kill_anon_super(struct super_block * sb)
@@ -2019,86 +2011,6 @@ void synchronize_rcu(void)
 #include <linux/srcutiny.h>
 
 void synchronize_srcu(struct srcu_struct * ssp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_delete_link(struct kobject * kobj,struct kobject * targ,const char * name)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-int sysfs_emit(char * buf,const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-int sysfs_emit_at(char * buf,int at,const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_notify(struct kobject * kobj,const char * dir,const char * attr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_remove_bin_file(struct kobject * kobj,const struct bin_attribute * attr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_remove_dir(struct kobject * kobj)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-bool sysfs_remove_file_self(struct kobject * kobj,const struct attribute * attr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_remove_files(struct kobject * kobj,const struct attribute * const * ptr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_remove_groups(struct kobject * kobj,const struct attribute_group ** groups)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_remove_link(struct kobject * kobj,const char * name)
 {
 	lx_emul_trace_and_stop(__func__);
 }
