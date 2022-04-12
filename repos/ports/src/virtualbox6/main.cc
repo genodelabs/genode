@@ -149,10 +149,19 @@ struct Main : Event_handler
 			attempt([&] () { return createObject(); },
 			        "failed to create Machine object");
 
-			attempt([&] () { return (*this)->initFromSettings(virtualbox,
-			                                                  vbox_file_path.utf8,
-			                                                  nullptr); },
-			        "failed to init machine from settings");
+			HRESULT const rc =  (*this)->initFromSettings(virtualbox,
+			                                              vbox_file_path.utf8,
+			                                              nullptr);
+			if (FAILED(rc)) {
+				Genode::error("failed to init machine from settings");
+				/*
+				 * Use keeper to retrieve current error message
+				 */
+				ErrorInfoKeeper eik;
+				Bstr const &text = eik.getText();
+				Genode::log(Utf8Str(text.raw()).c_str());
+				throw Fatal();
+			}
 
 			/*
 			 * Add the machine to the VirtualBox::allMachines list
