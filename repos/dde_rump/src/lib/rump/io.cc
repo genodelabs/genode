@@ -121,16 +121,16 @@ class Backend
 
 			struct Update_jobs_policy
 			{
-				void produce_write_content(Job &job, Block::seek_off_t offset,
+				void produce_write_content(Job &job, off_t offset,
 				                           char *dst, size_t length)
 				{
-					Genode::memcpy(dst, job.ptr, length);
+					Genode::memcpy(dst, (char const *)job.ptr + offset, length);
 				}
 
-				void consume_read_result(Job &job, Block::seek_off_t offset,
+				void consume_read_result(Job &job, off_t offset,
 				                         char const *src, size_t length)
 				{
-					Genode::memcpy(job.ptr, src, length);
+					Genode::memcpy((char *)job.ptr + offset, src, length);
 				}
 
 				void completed(Job &job, bool success)
