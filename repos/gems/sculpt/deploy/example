@@ -18,11 +18,11 @@
 
 	<start name="wm" pkg="wm">
 		<route>
-			<service name="ROM"    label_last="clipboard"> <parent label="clipboard"/> </service>
-			<service name="Report" label_last="clipboard"> <parent label="clipboard"/> </service>
-			<service name="Report" label_last="shape">     <parent label="shape"/>     </service>
-			<service name="Gui"    label="focus">          <parent label="focus"/>     </service>
-			<service name="Gui">                           <parent/>                   </service>
+			<service name="ROM"    label_last="clipboard"> <parent/>               </service>
+			<service name="Report" label_last="clipboard"> <parent/>               </service>
+			<service name="Report" label_last="shape">     <parent label="shape"/> </service>
+			<service name="Gui"    label="focus">          <parent label="focus"/> </service>
+			<service name="Gui">                           <parent/>               </service>
 		</route>
 	</start>
 
