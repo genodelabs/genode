@@ -134,6 +134,12 @@ void lx_emul_register_of_clk_initcall(char const *compat, void *fn)
 
 
 /*
+ * private kernel/time header needed for internal functions
+ * used in lx_emul_force_jiffies_update
+ */
+#include <../kernel/time/tick-internal.h>
+
+/*
  * The functions lx_emul_force_jiffies_update, lx_clockevents_program_event
  * and lx_clockevents_program_event implemented here are stripped down
  * versions of the Linux internal time handling code, when clock is used in
@@ -152,11 +158,6 @@ void lx_emul_register_of_clk_initcall(char const *compat, void *fn)
  * Without current jiffies, the programmed timeouts are too short, which leads
  * to timeouts firing too early.
  */
-
-
-/* kernel/time/timekeeping.h */
-extern int  timekeeping_valid_for_hres(void);
-extern void do_timer(unsigned long ticks);
 
 
 /**
@@ -187,12 +188,6 @@ static int lx_clockevents_program_event(struct clock_event_device *dev,
 	return 0;
 }
 
-
-/*
- * private kernel/time header needed for internal functions
- * used in lx_emul_force_jiffies_update
- */
-#include <../kernel/time/tick-internal.h>
 
 /**
  * based on kernel/time/tick-common.c tick_handle_periodic()
