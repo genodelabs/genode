@@ -101,18 +101,18 @@ extern "C" {
 		{
 			struct Update_jobs_policy
 			{
-				void produce_write_content(Job &job, Block::seek_off_t offset,
+				void produce_write_content(Job &job, off_t offset,
 				                           char *dst, size_t length)
 				{
 					Write_job &write_job = static_cast<Write_job &>(job);
-					memcpy(dst, write_job.src_ptr, length);
+					memcpy(dst, write_job.src_ptr + offset, length);
 				}
 
-				void consume_read_result(Job &job, Block::seek_off_t offset,
+				void consume_read_result(Job &job, off_t offset,
 				                         char const *src, size_t length)
 				{
 					Read_job &read_job = static_cast<Read_job &>(job);
-					memcpy(read_job.dst_ptr, src, length);
+					memcpy(read_job.dst_ptr + offset, src, length);
 				}
 
 				void completed(Job &, bool success) { }
