@@ -48,7 +48,7 @@
         <Port slot="0" enabled="false" IOBase="0x378" IRQ="7"/>
         <Port slot="1" enabled="false" IOBase="0x378" IRQ="7"/>
       </LPT>
-      <AudioAdapter controller="HDA" driver="OSS" enabled="false"/>
+      <AudioAdapter controller="HDA" driver="OSS" enabled="false" enabledIn="false" enabledOut="false"/>
       <RTC localOrUTC="UTC"/>
       <SharedFolders>
         <SharedFolder name="shared" hostPath="/shared" writable="true" autoMount="true"/>
