@@ -262,7 +262,7 @@ class Vmm::Virtio_block_device
 		                           char *dst, size_t length)
 		{
 			size_t sz = Genode::min(length,job.size());
-			memcpy(dst, job.address(), sz);
+			memcpy(dst, (char const *)job.address() + offset, sz);
 			job.written_to_descriptor(sz);
 		}
 
@@ -270,7 +270,7 @@ class Vmm::Virtio_block_device
 		                         char const *src, size_t length)
 		{
 			size_t sz = Genode::min(length,job.size());
-			memcpy(job.address(), src, sz);
+			memcpy((char *)job.address() + offset, src, sz);
 		}
 
 		void completed(Job &job, bool success)
