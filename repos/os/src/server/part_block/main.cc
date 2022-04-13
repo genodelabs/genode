@@ -396,19 +396,16 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		 ** Update_jobs_policy **
 		 ************************/
 
-		void consume_read_result(Job &job, seek_off_t,
-		                         char const *src, size_t length)
+		void consume_read_result(Job &job, off_t offset, char const *src, size_t length)
 		{
 			if (!_sessions[job.number]) return;
 
-			memcpy((void *)(job.addr + job.offset), src, length);
-			job.offset += length;
+			memcpy((void *)(job.addr + offset), src, length);
 		}
 
-		void produce_write_content(Job &job, seek_off_t, char *dst, size_t length)
+		void produce_write_content(Job &job, off_t offset, char *dst, size_t length)
 		{
-			memcpy(dst, (void *)(job.addr + job.offset), length);
-			job.offset += length;
+			memcpy(dst, (void *)(job.addr + offset), length);
 		}
 
 		void completed(Job &job, bool success)
