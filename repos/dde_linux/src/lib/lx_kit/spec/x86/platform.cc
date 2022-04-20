@@ -103,15 +103,22 @@ static Str create_device_node(Xml_generator &xml,
 
 			bool const memory = r.type() == R::MEMORY;
 
-			xml.node(memory ? "io_mem" : "io_port", [&] () {
-				xml.attribute("phys_addr",
-				              to_string(Hex(memory ? mmio_phys_addr : r.bar())));
-				xml.attribute("size",      to_string(Hex(r.size())));
-				xml.attribute("bar",       id);
-			});
+			if (memory) {
+				xml.node("io_mem",  [&] () {
+					xml.attribute("phys_addr", to_string(Hex(mmio_phys_addr)));
+					xml.attribute("size",      to_string(Hex(r.size())));
+					xml.attribute("bar",       id);
+				});
 
-			if (memory)
 				mmio_phys_addr += align_addr(r.size(), 12);
+			} else {
+
+				xml.node("io_port", [&] () {
+					xml.attribute("phys_addr", to_string(Hex(r.bar())));
+					xml.attribute("size",      to_string(Hex(r.size())));
+					xml.attribute("bar",       id);
+				});
+			}
 		});
 	});
 
@@ -439,6 +446,9 @@ void *Platform::Device::Mmio::_local_addr()
 
 			if (device.resource(phys_bar_id).prefetchable())
 				cache = Cache::WRITE_COMBINED;
+
+			auto const r = device.resource(phys_bar_id);
+			Range::start = (r.base() & 0xfffu);
 		}
 
 		Io_mem_session_capability io_mem_cap =
@@ -450,7 +460,7 @@ void *Platform::Device::Mmio::_local_addr()
 		                       io_mem_client.dataspace());
 	}
 
-	return _attached_ds->local_addr<void*>();
+	return (void*)(_attached_ds->local_addr<char>() + Range::start);
 }
 
 
