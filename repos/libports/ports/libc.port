@@ -4,7 +4,7 @@ DOWNLOADS = libc.archive
 
 D = src/lib/libc
 
-URL(libc) = http://ftp.freebsd.org/pub/FreeBSD/releases/amd64/12.0-RELEASE/src.txz
+URL(libc) = http://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/amd64/12.0-RELEASE/src.txz
 SHA(libc) = 0da393ac2174168a71c1c527d1453e07372295187d05c288250800cb152a889b
 DIR(libc) = $(D)
 
