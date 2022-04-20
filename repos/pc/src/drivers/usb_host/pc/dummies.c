@@ -564,3 +564,13 @@ int usb_acpi_set_power_state(struct usb_device *hdev, int index, bool enable)
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+
+#include <linux/printk.h>
+
+int __printk_ratelimit(const char * func)
+{
+	lx_emul_trace(__func__);
+	/* suppress */
+	return 0;
+}

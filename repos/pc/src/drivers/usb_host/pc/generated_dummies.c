@@ -55,14 +55,6 @@ unsigned long __get_free_pages(gfp_t gfp_mask,unsigned int order)
 }
 
 
-#include <linux/printk.h>
-
-int __printk_ratelimit(const char * func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/cred.h>
 
 void __put_cred(struct cred * cred)
