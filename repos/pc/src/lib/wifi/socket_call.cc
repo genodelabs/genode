@@ -439,7 +439,6 @@ class Lx::Socket
 
 			case Call::NONE: [[fallthrough]];/* ignore silently */
 			default:
-				_call.err = -1;
 				break;
 			}
 
