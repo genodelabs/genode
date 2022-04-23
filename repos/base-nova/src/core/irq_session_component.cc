@@ -107,6 +107,11 @@ void Irq_object::sigh(Signal_context_capability cap)
 	if (!_sigh_cap.valid() && !cap.valid())
 		return;
 
+	if (_sigh_cap.valid() && _sigh_cap == cap) {
+		/* avoid useless overhead, e.g. with IOMMUs enabled */
+		return;
+	}
+
 	if ((_sigh_cap.valid() && !cap.valid())) {
 		deassociate(irq_sel());
 		_sigh_cap = Signal_context_capability();
