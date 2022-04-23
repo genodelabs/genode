@@ -85,14 +85,15 @@ static uint8_t _with_kernel_quota_upgrade(addr_t const pd_target,
 
 Trace::Source::Info Vm_session_component::Vcpu::trace_source_info() const
 {
+	uint64_t ec_time = 0;
 	uint64_t sc_time = 0;
 
-	uint8_t res = Nova::sc_ctrl(sc_sel(), sc_time);
+	uint8_t res = Nova::sc_ec_time(sc_sel(), ec_sel(), sc_time, ec_time);
 	if (res != Nova::NOVA_OK)
-		warning("sc_ctrl failed res=", res);
+		warning("vCPU sc_ec_time failed res=", res);
 
 	return { _label, String<5>("vCPU"),
-	         Trace::Execution_time(sc_time, sc_time,
+	         Trace::Execution_time(ec_time, sc_time,
 	                               Nova::Qpd::DEFAULT_QUANTUM, _priority),
 	         _location };
 }

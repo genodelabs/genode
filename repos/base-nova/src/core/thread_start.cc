@@ -127,10 +127,14 @@ void Thread::start()
 		 */
 		Info trace_source_info() const override
 		{
-			uint64_t sc_time = 0;
+			uint64_t ec_time = 0;
+
+			uint8_t res = Nova::ec_time(thread.native_thread().ec_sel, ec_time);
+			if (res != Nova::NOVA_OK)
+				warning("ec_time for core thread failed res=", res);
 
 			return { Session_label("core"), thread.name(),
-			         Trace::Execution_time(sc_time, sc_time), thread._affinity };
+			         Trace::Execution_time(ec_time, 0), thread._affinity };
 		}
 
 		Core_trace_source(Trace::Source_registry &registry, Thread &t)

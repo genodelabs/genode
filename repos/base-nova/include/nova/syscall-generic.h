@@ -242,6 +242,14 @@ namespace Nova {
 		EC_DONATE_SC = 2U,
 		EC_RESCHEDULE = 3U,
 		EC_MIGRATE = 4U,
+		EC_TIME = 5U,
+	};
+
+	enum Sc_op {
+		SC_TIME_IDLE   = 0,
+		SC_TIME_CROSS  = 1,
+		SC_TIME_KILLED = 2,
+		SC_EC_TIME     = 3,
 	};
 
 	/**

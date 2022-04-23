@@ -391,23 +391,6 @@ Platform::Platform()
 	              Obj_crd(sc_idle_base, log2cpu), true))
 		nova_die();
 
-	/* test reading out idle SCs */
-	bool sc_init = true;
-	for (unsigned i = 0; i < hip.cpu_max(); i++) {
-
-		if (!hip.is_cpu_enabled(i))
-			continue;
-
-		uint64_t n_time;
-		uint8_t res = Nova::sc_ctrl(sc_idle_base + i, n_time);
-		if (res != Nova::NOVA_OK) {
-			sc_init = false;
-			error(i, " ", res, " ", n_time, " - failed");
-		}
-	}
-	if (!sc_init)
-		nova_die();
-
 	/* configure virtual address spaces */
 #ifdef __x86_64__
 	_vm_size = 0x7fffc0000000UL - _vm_base;
@@ -865,19 +848,30 @@ Platform::Platform()
 			Info trace_source_info() const override
 			{
 				uint64_t sc_time = 0;
+				uint64_t ec_time = 0;
+				uint8_t  res = 0;
 
-				enum SYSCALL_OP { IDLE_SC = 0, CROSS_SC = 1,
-				                  KILLED_SC = 2 };
-				uint8_t syscall_op =  (name == "cross")  ? CROSS_SC :
-				                     ((name == "killed") ? KILLED_SC : IDLE_SC);
+				if (name == "killed") {
+					res = Nova::sc_ec_time(sc_sel, sc_sel,
+					                       sc_time, ec_time);
+				} else {
+					auto syscall_op = (name == "cross")
+					                ? Sc_op::SC_TIME_CROSS
+					                : Sc_op::SC_TIME_IDLE;
 
-				uint8_t res = Nova::sc_ctrl(sc_sel, sc_time, syscall_op);
+					res = Nova::sc_ctrl(sc_sel, sc_time,
+					                    syscall_op);
+
+					if (syscall_op == Sc_op::SC_TIME_IDLE)
+						ec_time = sc_time;
+				}
+
 				if (res != Nova::NOVA_OK)
-					warning("sc_ctrl on idle SC cap, op=", syscall_op,
+					warning("sc_ctrl on ", name, " failed"
 					        ", res=", res);
 
 				return { Session_label("kernel"), Trace::Thread_name(name),
-				         Trace::Execution_time(sc_time, sc_time), affinity };
+				         Trace::Execution_time(ec_time, sc_time), affinity };
 			}
 
 			Trace_source(Trace::Source_registry &registry,
@@ -920,16 +914,26 @@ Platform::Platform()
 		 */
 		Info trace_source_info() const override
 		{
+			uint64_t ec_time = 0;
 			uint64_t sc_time = 0;
 
 			if (name == "root") {
-				uint8_t res = Nova::sc_ctrl(ec_sc_sel + 1, sc_time);
+				uint8_t res = Nova::sc_ec_time(ec_sc_sel + 1,
+				                               ec_sc_sel,
+				                               sc_time,
+				                               ec_time);
 				if (res != Nova::NOVA_OK)
-					warning("sc_ctrl for ", name, " thread failed res=", res);
+					warning("sc_ec_time for root failed "
+					        "res=", res);
+			} else {
+				uint8_t res = Nova::ec_time(ec_sc_sel, ec_time);
+				if (res != Nova::NOVA_OK)
+					warning("ec_time for", name, " thread "
+					        "failed res=", res);
 			}
 
 			return { Session_label("core"), name,
-			         Trace::Execution_time(sc_time, sc_time), location };
+			         Trace::Execution_time(ec_time, sc_time), location };
 		}
 
 		Core_trace_source(Trace::Source_registry &registry,
