@@ -24,6 +24,8 @@ void lx_emul_register_initcall(int (*initcall)(void), const char * name);
 
 void lx_emul_start_kernel(void * dtb);
 
+void lx_emul_execute_kernel_until(int (*condition)(void));
+
 void lx_emul_setup_arch(void * dtb);
 
 int  lx_emul_init_task_function(void * dtb);
