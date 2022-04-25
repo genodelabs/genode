@@ -11,9 +11,15 @@
  * version 2.
  */
 
+#define KBUILD_MODNAME "genode_usb_driver"
+
+#include <linux/kernel.h>
+#include <linux/errno.h>
+#include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
+#include <linux/mutex.h>
 
 #include <lx_emul/shared_dma_buffer.h>
 #include <lx_emul/task.h>
@@ -29,6 +35,37 @@ struct usb_find_request {
 	genode_usb_dev_num_t dev;
 	struct usb_device  * ret;
 };
+
+
+struct usb_iface_urbs {
+	struct usb_anchor submitted;
+	int               in_delete;
+};
+
+
+static int usb_drv_probe(struct usb_interface *interface,
+                         const struct usb_device_id *id) {
+	return -ENODEV; }
+
+
+static void usb_drv_disconnect(struct usb_interface *iface)
+{
+	struct usb_iface_urbs * urbs = usb_get_intfdata(iface);
+	if (urbs) {
+		urbs->in_delete = 1;
+		usb_kill_anchored_urbs(&urbs->submitted);
+		kfree(urbs);
+	}
+}
+
+
+static struct usb_driver usb_drv = {
+	.name       = "genode",
+	.probe      = usb_drv_probe,
+	.disconnect = usb_drv_disconnect,
+	.supports_autosuspend = 0,
+};
+
 
 static int check_usb_device(struct usb_device *usb_dev, void * data)
 {
@@ -155,6 +192,133 @@ static int endpoint_descriptor(genode_usb_bus_num_t bus,
 }
 
 
+typedef enum usb_rpc_call_type {
+	CLAIM,
+	RELEASE_IF,
+	RELEASE_ALL
+} usb_rpc_call_type_t;
+
+struct usb_rpc_call_args {
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
+	unsigned             iface_num;
+	usb_rpc_call_type_t  call;
+	int                  ret;
+};
+
+
+static struct usb_rpc_call_args usb_rpc_args;
+static struct task_struct     * usb_rpc_task;
+
+
+static int claim_iface(struct usb_interface * iface)
+{
+	struct usb_iface_urbs *urbs = (struct usb_iface_urbs*)
+		kmalloc(sizeof(struct usb_iface_urbs), GFP_KERNEL);
+	init_usb_anchor(&urbs->submitted);
+	urbs->in_delete = 0;
+	return usb_driver_claim_interface(&usb_drv, iface, urbs);
+
+}
+
+
+static void release_iface(struct usb_interface * iface)
+{
+	usb_driver_release_interface(&usb_drv, iface);
+}
+
+
+static int usb_rpc_call(void * data)
+{
+	struct usb_device    * udev;
+	struct usb_interface * iface;
+	unsigned i, num;
+	int ret;
+
+	for (;;) {
+		lx_emul_task_schedule(true);
+
+		udev = find_usb_device(usb_rpc_args.bus, usb_rpc_args.dev);
+		if (!udev) {
+			usb_rpc_args.ret = -1;
+			continue;
+		}
+
+		if (usb_rpc_args.call == RELEASE_ALL) {
+			i   = 0;
+			num = udev->actconfig->desc.bNumInterfaces;
+		} else {
+			i   = usb_rpc_args.iface_num;
+			num = i;
+		}
+
+		ret = 0;
+		for (; i < num; i++) {
+			iface = usb_ifnum_to_if(udev, i);
+			if (!iface) {
+				ret = -2;
+				continue;
+			}
+
+			if (usb_rpc_args.call == CLAIM)
+				ret = claim_iface(iface);
+			else
+				release_iface(iface);
+		}
+		usb_rpc_args.ret = ret;
+	}
+	return 0;
+}
+
+
+static int usb_rpc_finished(void)
+{
+	return (usb_rpc_args.ret <= 0);
+}
+
+
+static int claim(genode_usb_bus_num_t bus,
+                 genode_usb_dev_num_t dev,
+                 unsigned             iface_num)
+{
+	usb_rpc_args.ret  = 1;
+	usb_rpc_args.call = CLAIM;
+	usb_rpc_args.bus  = bus;
+	usb_rpc_args.dev  = dev;
+	usb_rpc_args.iface_num = iface_num;
+	lx_emul_task_unblock(usb_rpc_task);
+	lx_emul_execute_kernel_until(&usb_rpc_finished);
+	return usb_rpc_args.ret;
+}
+
+
+static int release(genode_usb_bus_num_t bus,
+                   genode_usb_dev_num_t dev,
+                   unsigned             iface_num)
+{
+	usb_rpc_args.ret  = 1;
+	usb_rpc_args.call = RELEASE_IF;
+	usb_rpc_args.bus  = bus;
+	usb_rpc_args.dev  = dev;
+	usb_rpc_args.iface_num = iface_num;
+	lx_emul_task_unblock(usb_rpc_task);
+	lx_emul_execute_kernel_until(&usb_rpc_finished);
+	return usb_rpc_args.ret;
+}
+
+
+static void release_all(genode_usb_bus_num_t bus,
+                        genode_usb_dev_num_t dev)
+{
+	usb_rpc_args.ret  = 1;
+	usb_rpc_args.call = RELEASE_ALL;
+	usb_rpc_args.bus  = bus;
+	usb_rpc_args.dev  = dev;
+	lx_emul_task_unblock(usb_rpc_task);
+	lx_emul_execute_kernel_until(&usb_rpc_finished);
+}
+
+
 struct genode_usb_rpc_callbacks lx_emul_usb_rpc_callbacks = {
 	.alloc_fn        = lx_emul_shared_dma_buffer_allocate,
 	.free_fn         = lx_emul_shared_dma_buffer_free,
@@ -163,6 +327,9 @@ struct genode_usb_rpc_callbacks lx_emul_usb_rpc_callbacks = {
 	.iface_desc_fn   = interface_descriptor,
 	.iface_extra_fn  = interface_extra,
 	.endp_desc_fn    = endpoint_descriptor,
+	.claim_fn        = claim,
+	.release_fn      = release,
+	.release_all_fn  = release_all,
 };
 
 
@@ -284,8 +451,30 @@ handle_transfer_response(struct genode_usb_request_transfer * req,
 }
 
 
+static struct usb_interface * usb_get_iface_from_urb(struct urb * urb)
+{
+	unsigned i, j;
+	struct usb_host_endpoint * ep = usb_pipe_endpoint(urb->dev, urb->pipe);
+
+	for (i = 0; i < urb->dev->actconfig->desc.bNumInterfaces; i++) {
+		struct usb_interface * iface = urb->dev->actconfig->interface[i];
+		if (!iface || !iface->cur_altsetting)
+			continue;
+		for (j = 0; j < iface->cur_altsetting->desc.bNumEndpoints; j++) {
+			if (&iface->cur_altsetting->endpoint[j] != ep)
+				continue;
+			return iface;
+		}
+	}
+	return NULL;
+}
+
+
 static void async_complete(struct urb *urb)
 {
+	struct usb_interface * iface;
+	struct usb_iface_urbs * urbs;
+
 	unsigned long handle = (unsigned long)urb->context;
 	genode_usb_session_handle_t session =
 		(genode_usb_session_handle_t) (handle >> 16);
@@ -294,8 +483,13 @@ static void async_complete(struct urb *urb)
 
 	genode_usb_ack_request(session, request,
 	                       handle_transfer_response, (void*)urb);
-	usb_free_urb(urb);
-	lx_user_handle_io();
+
+	iface = usb_get_iface_from_urb(urb);
+	urbs  = usb_get_intfdata(iface);
+	if (!urbs->in_delete) {
+		usb_free_urb(urb);
+		lx_user_handle_io();
+	}
 }
 
 
@@ -425,6 +619,13 @@ handle_transfer_request(struct genode_usb_request_transfer * req,
 	};
 
 	if (!err) {
+		struct usb_iface_urbs * urbs;
+		struct usb_interface * iface = usb_get_iface_from_urb(urb);
+		if (!usb_interface_claimed(iface))
+			claim_iface(iface);
+		urbs = usb_get_intfdata(iface);
+		usb_anchor_urb(urb, &urbs->submitted);
+
 		err = usb_submit_urb(urb, GFP_KERNEL);
 
 		if (!err)
@@ -503,6 +704,8 @@ void lx_user_init(void)
 {
 	int pid = kernel_thread(usb_poll_sessions, NULL, CLONE_FS | CLONE_FILES);
 	lx_user_task = find_task_by_pid_ns(pid, NULL);;
+	pid = kernel_thread(usb_rpc_call, NULL, CLONE_FS | CLONE_FILES);
+	usb_rpc_task = find_task_by_pid_ns(pid, NULL);
 }
 
 
@@ -571,6 +774,11 @@ struct notifier_block usb_nb =
 
 static int usbnet_init(void)
 {
+	int err;
+
+	if ((err = usb_register(&usb_drv)))
+		return err;
+
 	usb_register_notify(&usb_nb);
 	return 0;
 }
