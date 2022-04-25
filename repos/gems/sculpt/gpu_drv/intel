@@ -8,4 +8,5 @@
 	<device vendor="0x8086" device="0x5917" generation="9" platform="kabylake" description="UHD Graphics 620 (Kaby Lake, Gen9p5)"/>
 	<device vendor="0x8086" device="0x591b" generation="9" platform="kabylake" description="HD Graphics 630 (Kaby Lake, Gen9p5)"/>
 	<device vendor="0x8086" device="0x3ea0" generation="9" platform="whiskeylake" description="UHD Graphics 620 (Whiskey Lake, Gen9p5)"/>
+	<device vendor="0x8086" device="0x9a49" generation="12" platform="tigerlake" description="Iris Xe Graphics (Tiger Lake, Xe)"/>
 </config>
