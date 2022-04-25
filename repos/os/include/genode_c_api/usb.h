@@ -68,6 +68,24 @@ typedef int (*genode_usb_rpc_endp_desc_t)
 	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx,
 	 unsigned alt, unsigned endp, void * buf, unsigned long buf_size);
 
+/**
+ * Callback to claim a given interface
+ */
+typedef int (*genode_usb_rpc_claim_t)
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned iface);
+
+/**
+ * Callback to release a given interface
+ */
+typedef int (*genode_usb_rpc_release_t)
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned iface);
+
+/**
+ * Callback to release all interfaces
+ */
+typedef void (*genode_usb_rpc_release_all_t)
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev);
+
 struct genode_usb_rpc_callbacks {
 	genode_shared_dataspace_alloc_attach_t alloc_fn;
 	genode_shared_dataspace_free_t         free_fn;
@@ -76,6 +94,9 @@ struct genode_usb_rpc_callbacks {
 	genode_usb_rpc_iface_desc_t            iface_desc_fn;
 	genode_usb_rpc_iface_extra_t           iface_extra_fn;
 	genode_usb_rpc_endp_desc_t             endp_desc_fn;
+	genode_usb_rpc_claim_t                 claim_fn;
+	genode_usb_rpc_release_t               release_fn;
+	genode_usb_rpc_release_all_t           release_all_fn;
 };
 
 /**

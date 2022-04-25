@@ -376,15 +376,27 @@ void genode_usb_session::endpoint_descriptor(unsigned interface_num,
 }
 
 
-void genode_usb_session::claim_interface(unsigned)
+void genode_usb_session::claim_interface(unsigned iface)
 {
-	warning(__func__, " gets ignored!");
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
+	if (!_root.device_associated(this, bus, dev))
+		throw Device_not_found();
+
+	if (_callbacks->claim_fn(bus, dev, iface))
+		throw Interface_not_found();
 }
 
 
-void genode_usb_session::release_interface(unsigned)
+void genode_usb_session::release_interface(unsigned iface)
 {
-	warning(__func__, " gets ignored!");
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
+	if (!_root.device_associated(this, bus, dev))
+		throw Device_not_found();
+
+	if (_callbacks->release_fn(bus, dev, iface))
+		throw Interface_not_found();
 }
 
 
@@ -576,8 +588,10 @@ genode_usb_session * ::Root::_create_session(const char * args,
 void ::Root::_destroy_session(genode_usb_session * session)
 {
 	_for_each_device([&] (Device & d) {
-		if (d.usb_session == session)
+		if (d.usb_session == session) {
+			_callbacks->release_all_fn(d.bus, d.dev);
 			d.usb_session = nullptr;
+		}
 	});
 
 	genode_usb_session_handle_t id = session->_id;
