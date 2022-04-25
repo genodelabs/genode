@@ -133,6 +133,14 @@ int sysfs_create_link(struct kobject * kobj,struct kobject * target,const char *
 
 #include <linux/sysfs.h>
 
+void sysfs_delete_link(struct kobject * kobj,struct kobject * targ,const char * name)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/sysfs.h>
+
 void sysfs_remove_link(struct kobject * kobj,const char * name)
 {
 	lx_emul_trace(__func__);
