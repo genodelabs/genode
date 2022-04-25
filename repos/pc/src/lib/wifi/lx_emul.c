@@ -266,6 +266,16 @@ struct kmem_cache * kmem_cache_create_usercopy(const char * name,
 }
 
 
+void kmem_cache_free_bulk(struct kmem_cache *s, size_t size, void **p)
+{
+	size_t i;
+
+	for (i = 0; i < size; i++) {
+		kmem_cache_free(s, p[i]);
+	}
+}
+
+
 #include <linux/fs.h>
 
 int register_filesystem(struct file_system_type * fs)
