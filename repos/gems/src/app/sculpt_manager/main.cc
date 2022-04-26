@@ -114,6 +114,8 @@ struct Sculpt::Main : Input_event_handler,
 								if (px > 0.0)
 									_font_size_px = px; }); } }); } }); });
 
+		_font_size_px = max(_font_size_px, _min_font_size_px);
+
 		_handle_gui_mode();
 
 		/* visibility of fonts section of settings dialog may have changed */
@@ -382,6 +384,8 @@ struct Sculpt::Main : Input_event_handler,
 	 ************/
 
 	Settings _settings { };
+
+	double const _min_font_size_px = 6.0;
 
 	double _font_size_px = 14;
 
@@ -1482,14 +1486,14 @@ void Sculpt::Main::_handle_gui_mode()
 
 		_font_size_px = (double)mode.area.h() / 60.0;
 
+		if (_settings.font_size == Settings::Font_size::SMALL) _font_size_px *= 0.85;
+		if (_settings.font_size == Settings::Font_size::LARGE) _font_size_px *= 1.35;
+
 		/*
 		 * Limit lower bound of font size. Otherwise, the glyph rendering
 		 * may suffer from division-by-zero problems.
 		 */
-		_font_size_px = max(_font_size_px, 2.0);
-
-		if (_settings.font_size == Settings::Font_size::SMALL) _font_size_px *= 0.85;
-		if (_settings.font_size == Settings::Font_size::LARGE) _font_size_px *= 1.35;
+		_font_size_px = max(_font_size_px, _min_font_size_px);
 
 		_fonts_config.generate([&] (Xml_generator &xml) {
 			xml.attribute("copy",  true);
