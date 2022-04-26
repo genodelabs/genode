@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 21.10
+                      Sculpt Operating System 22.04
                       =============================
 
 
@@ -58,7 +58,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at
-[https://genode.org/documentation/sculpt-21-10.pdf].
+[https://genode.org/documentation/sculpt-22-04.pdf].
 
 
 Hardware requirements and preparations
@@ -68,7 +68,7 @@ Sculpt should be compatible with recent Intel-based PC hardware featuring
 Intel graphics, E1000 networking, Intel wireless, and AHCI/NVMe.
 
 It is tested best on laptops of the Lenovo X and T series (X220, X250, X260,
-T430, T460, T470). For experimenting with Sculpt, we recommend getting a
+T430, T460, T470, T490). For experimenting with Sculpt, we recommend getting a
 refurbished version of one of these. You may also find the unofficial hardware
 compatibility list [https://usr.sysret.de/jws/genode/hcl.html] helpful for
 finding Genode-compatible hardware.
@@ -347,6 +347,13 @@ For inspiration, please follow the postings at
 
   [https://genodians.org/m-stein/2021-05-17-introducing-the-file-vault]
 
+:Network connectivity via LTE:
+
+  The article describes several ways of using Genode's LTE modem driver
+  as network uplink.
+
+  [https://genodians.org/jschlatow/2021-07-21-mobile-network]
+
 
 Base system
 ###########
@@ -478,7 +485,7 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 21.10 features a command-line
+Alternatively to the "Files" tab, Sculpt 22.04 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
 "Inspect" appears, which hosts the command-line interface
@@ -726,6 +733,8 @@ as options.
    Hardware virtualization  | 'VM'           | virtualization hardware
   ----------------------------------------------------------------------------
    Network                  | 'Nic'          |
+  ----------------------------------------------------------------------------
+   Network uplink           | 'Uplink'       |
   ----------------------------------------------------------------------------
    Protection domain        | 'PD'           | system PD service
   ----------------------------------------------------------------------------
@@ -1049,8 +1058,8 @@ a PD service is able to exercise full control over each component that uses
 the service.
 
 
-Network
-~~~~~~~
+Network and uplink
+~~~~~~~~~~~~~~~~~~
 
 Network services provide an interface for sending and receiving network
 packets. Sculpt's Leitzentrale conveniently manages drivers for wireless (wifi
@@ -1059,6 +1068,10 @@ component (nic router). So you usually see the NIC router as an option. The
 NIC router multiplexes the network access among multiple network applications.
 By default, it acts as a virtual NAT router, handing out a distinct IP address
 to each client.
+
+An uplink server is a connection point of a network driver, which supplies
+the driver with network packets to send, and accepts incoming packets received
+by the driver. In most situations, the NIC router provides this service.
 
 
 Terminal, audio input, and audio output
@@ -1142,6 +1155,30 @@ components. The dialog presents four options:
   such as long-running computations. By assigning the background priority to
   such components, they won't impede the user's perception of the
   responsiveness of the system.
+
+
+Service-level sandboxing
+========================
+
+In order to deploy any component, all resources requested by the component must
+be assigned to appropriate services. For example, when adding a web browser,
+the browser's request for audio-in/out session must be satisfied, which is
+natural when consuming multimedia content. However, in other situations, we
+may deliberately want to isolate the web browser from the audio hardware,
+forcibly preventing the browser from producing any noise or tapping the
+microphone.
+
+This is where the so-called "black hole" component enters the picture,
+which can readily be deployed from the package _genodelabs_ -> _Tools_ ->
+_black hole_. The black-hole component provides pseudo services for most
+resources mentioned in the previous section, including audio, networking,
+video capture, USB, and ROM. Hence, the resource requirements of an untrusted
+component can be satisfied without exposing a real resource. This is
+especially useful for deploying highly flexible components like VirtualBox,
+which supports many host-guest integration features, most of which are
+desired only in a few scenarios. For example, to shield a virtual machine from
+the network, the "Network" resource of the VirtualBox instance can simply
+be assigned to the "black hole".
 
 
 Runtime management
@@ -1374,18 +1411,22 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-21.10 sculpt-21.10
+  ! git checkout -b sculpt-22.04 sculpt-22.04
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2021-10-14
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2022-04-27
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
 
 # Download all ingredients for the Sculpt boot image
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt-pc/2021-10-14
+  ! ./tool/depot/download \
+  !    genodelabs/pkg/x86_64/sculpt/2022-04-27 \
+  !    genodelabs/pkg/x86_64/drivers_managed-pc/2022-04-27 \
+  !    genodelabs/pkg/x86_64/wifi/2022-04-27 \
+  !    genodelabs/bin/x86_64/ipxe_nic_drv/2022-04-27
 
 # Create a build directory
 
@@ -1422,7 +1463,7 @@ Reproducing the system from source
 ==================================
 
 Section [Building the boot image] presents the creation of the boot image
-from pre-built packages. You may want to build those packages from source,
+from pre-built packages. You may prefer to build those packages from source,
 in particular for customizing the system.
 
 Before building the packages, various ports of 3rd-party software need to
@@ -1433,78 +1474,69 @@ be prepared. The following command prepares all of them at once:
 !      dde_bsd dde_ipxe dde_linux dde_rump e2fsprogs-lib \
 !      expat freetype gnupg grub2 jitterentropy jpeg \
 !      libarchive libc libdrm libgcrypt libiconv libpng \
-!      libsparkcrypto libssh libusb libuvc libyuv mesa \
-!      ncurses nova openssl qemu-usb qoost qt5 stb \
-!      stdcxx ttf-bitstream-vera vim virtualbox5 \
-!      virtualbox6 x86emu xz zlib
+!      libsparkcrypto libssh libusb libuvc libyuv linux \
+!      linux-firmware mesa ncurses nova openssl qemu-usb \
+!      qoost qt5 stb stdcxx ttf-bitstream-vera vim \
+!      virtualbox5 virtualbox6 x86emu xz zlib
 
-To be able to compile components that are dependent on the QT5-library, the
+To be able to compile components that are dependent on the Qt5-library, the
 corresponding toolchain needs to be installed in addition to the base Genode
 toolchain. You can build and install it by using the following commands:
 
 ! <GENODE-DIR>/tool/tool_chain_qt5 build
 ! <GENODE-DIR>/tool/tool_chain_qt5 install
 
-The ingredients of the boot image are subsumed by the 'pkg/sculpt-pc' package.
-The default set of software installed by the update runtime is defined by
-the 'pkg/sculpt-installation' package. You can find the depot recipes for
-these packages at _repos/gems/recipes/pkg/_.
-
-The _repos/gems/run/sculpt.run_ script can be executed to build a boot image.
-By default, the boot image refers to 'genodelabs/pkg/sculpt-pc' and to
-'genodelabs/pkg/sculpt-installation' for the runtime-installed software. You
-may want to install your version of these packages instead by changing the
-package provider from 'genodelabs' to '<YOU>' by adding the line
+The ingredients of the boot image are defined by the _sculpt/default-pc.sculpt_
+file located in the _repos/gems/_ repository. The default set of software
+installable at runtime is subsumed by the 'pkg/sculpt_distribution' and
+'pkg/sculpt_distribution-pc' packages. You can find the depot recipes for these
+packages at _repos/gems/recipes/pkg/_. You may want to create your version of
+these packages by changing the package provider from 'genodelabs' to '<YOU>' by
+adding the line
 
 ! RUN_OPT += --depot-user <YOU>
 
 to your _<build-dir>/etc/build.conf_.
 
-To build the packages for the boot image:
+To build the boot image including all required depot packages, it's best to
+instruct the build system to manage the versioning and updating of the depot
+content automatically by enabling the following line in your _build.conf_
+file.
+
+! RUN_OPT += --depot-auto-update
+
+With these precautions taken, the execution of the _sculpt.run_ script - as
+described in Section [Building the boot image] - implicitly builds all required
+binary packages from source.
+
+The 'sculpt_distribution' and 'sculpt_distribution-pc' packages can be
+created independently from the _sculpt.run_ script by using the 'depot/create'
+tool manually.
 
 ! <GENODE-DIR>/tool/depot/create \
 !      UPDATE_VERSIONS=1 FORCE=1 REBUILD= \
-!      <YOU>/pkg/x86_64/sculpt-pc \
-!      <YOU>/bin/x86_64/base-nova
+!      <YOU>/pkg/x86_64/sculpt_distribution \
+!      <YOU>/pkg/x86_64/sculpt_distribution-pc
 
 The 'FORCE=1' argument ensures that source archives are re-created and
-checked for the consistency with their versions. If the source code of any
-of the archives changed, the 'UPDATE_VERSIONS=1' argument automatically
+checked for the consistency with their versions. Whenever the source code of any
+of the archives changes, the 'UPDATE_VERSIONS=1' argument automatically
 updates its version. Please don't forget to commit the updated 'hash'
 files. The empty 'REBUILD=' argument limits the creation of binary packages
 to those that do not yet exist in binary form. If not specified, the
 command would recompile all packages each time. You may further add '-j<N>'
 to parallelize the build process where '<N>' is the level of parallelism.
 
-Alternatively to managing the depot manually, you may choose to let the build
-system manage the versioning and updating of the depot content automatically
-by enabling the following line in your _build.conf_ file. This slows down
-the build time a bit but ensures that the depot content is consistent with
-your source tree at all times.
-
-! RUN_OPT += --depot-auto-update
-
-Building the 'sculpt-installation' package works analogously to the 'sculpt-pc'
-package.
-
-! <GENODE-DIR>/tool/depot/create \
-!      UPDATE_VERSIONS=1 FORCE=1 REBUILD= \
-!      <YOU>/pkg/x86_64/sculpt-installation
-
-To make the 'sculpt-installation' available for download from within the
-boot image, you must publish it. This involves the archiving, signing,
-and uploading of the content. The former two steps are covered by the
-_tool/depot/publish_ tool, which expects one to specify a concrete version.
-The current version of the 'sculpt-installation' can be obtained via
-
-! cat <GENODE-DIR>/repos/gems/recipes/pkg/sculpt-installation/hash
-
-The first part is the version. The second part is the content hash of the
-version. For more information about working with the depot tool, refer to
+To make the created packages available for download from within the running
+Sculpt system, you must publish them. This involves the archiving, signing, and
+uploading of the content. The former two steps are covered by the
+_tool/depot/publish_current_ tool. For more information about working with the
+depot tool, refer to
 [https://genode.org/documentation/developer-resources/package_management].
 
-The launchers integrated in the boot image are defined at
-_gems/run/sculpt/launcher/_. Each file contains a node with a mandatory pkg
+The launchers integrated in the boot image are defined in
+_gems/sculpt/default-pc.sculpt_ and the accompanied files at
+_gems/sculpt/launcher/_. Each launcher contains a node with a mandatory 'pkg'
 attribute. If the attribute value contains one or more '/' characters, it is
 assumed to be a complete pkg path of the form '<USER>/pkg/<NAME>/<VERSION>'.
 Otherwise it is assumed to be just the pkg name and is replaced by the current
