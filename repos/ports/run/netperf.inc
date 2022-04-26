@@ -305,7 +305,7 @@ append  config { </wifi_config>
 	<start name="nic_drv" caps="200">
 		<binary name="usb_net_drv"/>
 		<resource name="RAM" quantum="20M"/>
-		<config mode="uplink_client" mac="02:00:00:00:01:01" />
+		<config mac="02:00:00:00:01:01" />
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>
 			<any-service> <parent/> <any-child/> </any-service>

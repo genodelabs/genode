@@ -195,9 +195,6 @@ Driver::Driver(Genode::Env &env) : env(env)
 {
 	Genode::log("--- USB net driver ---");
 
-	if (mode == Genode::Nic_driver_mode::NIC_SERVER) {
-		root.construct(env, heap);
-	}
 	Lx_kit::construct_env(env);
 	Lx::scheduler(&env);
 	Lx::malloc_init(env, heap);
