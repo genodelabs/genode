@@ -1,4 +1,4 @@
-The VFS TAP plugin offers access to Genode's Uplink or Nic session by providing
+The VFS TAP plugin offers access to Genode's Uplink by providing
 a special file system. It exposes a data file that reflects a _/dev/tap0_
 file. The support of I/O control operations is provided in form of a structured
 'info' file located in the directory named after the data file, e.g.
@@ -18,11 +18,9 @@ presents all files:
 When mounting the tap file system, the following optional attributes may
 be provided:
 
-  * :mode:   If set to "uplink_client", the plugin will open an Uplink session
-             instead of a Nic session.
   * :label:  Sets the session label of the Uplink/Nic session. If not provided,
              an empty label is used.
-  * :mac:    Sets the default mac address when mode="uplink_client".
+  * :mac:    Sets the default mac address.
 
 The following config snippet illustrates its configuration:
 

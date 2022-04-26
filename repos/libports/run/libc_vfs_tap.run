@@ -65,7 +65,7 @@ append config {
 			<vfs>
 				<dir name="dev">
 					<log/>
-					<tap name="tap0" mac="02:02:00:00:00:20" mode="uplink_client"/>
+					<tap name="tap0" mac="02:02:00:00:00:20"/>
 				</dir>
 			</vfs>
 		</config>

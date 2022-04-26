@@ -17,9 +17,6 @@
 /* Genode includes */
 #include <base/allocator.h>
 
-/* NIC driver includes */
-#include <drivers/nic/mode.h>
-
 /* local includes */
 #include <legacy/lx_kit/scheduler.h>
 
