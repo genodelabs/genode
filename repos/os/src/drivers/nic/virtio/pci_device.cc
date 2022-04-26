@@ -17,9 +17,6 @@
 #include <legacy/x86/platform_session/connection.h>
 #include <virtio/pci_device.h>
 
-/* NIC driver includes */
-#include <drivers/nic/mode.h>
-
 /* local includes */
 #include "component.h"
 
@@ -32,14 +29,14 @@ struct Virtio_pci_nic::Main
 {
 	struct Device_not_found : Genode::Exception { };
 
-	Genode::Env                                  &env;
-	Genode::Heap                                  heap             { env.ram(), env.rm() };
-	Platform::Connection                          pci              { env };
-	Platform::Device_client                       platform_device;
-	Virtio::Device                                virtio_device    { env, platform_device };
-	Attached_rom_dataspace                        config_rom       { env, "config" };
-	Genode::Constructible<Virtio_nic::Root>       root             { };
-	Genode::Constructible<Genode::Uplink_client>  uplink_client    { };
+	Genode::Env             & env;
+	Genode::Heap              heap            { env.ram(), env.rm() };
+	Platform::Connection      pci             { env };
+	Platform::Device_client   platform_device;
+	Virtio::Device            virtio_device   { env, platform_device };
+	Attached_rom_dataspace    config_rom      { env, "config" };
+	Virtio_nic::Uplink_client uplink_client   { env, heap, virtio_device,
+	                                            pci, config_rom.xml() };
 
 	Platform::Device_capability find_platform_device()
 	{
@@ -52,30 +49,10 @@ struct Virtio_pci_nic::Main
 	}
 
 	Main(Env &env)
-	try : env(env), platform_device(find_platform_device())
+	: env(env), platform_device(find_platform_device())
 	{
 		log("--- VirtIO PCI driver started ---");
-
-		Nic_driver_mode const mode {
-			read_nic_driver_mode(config_rom.xml()) };
-
-		switch (mode) {
-		case Nic_driver_mode::NIC_SERVER:
-
-			root.construct(env, heap, virtio_device, pci, config_rom);
-
-			env.parent().announce(env.ep().manage(*root));
-			break;
-
-		case Nic_driver_mode::UPLINK_CLIENT:
-
-			uplink_client.construct(
-				env, heap, virtio_device, pci, config_rom.xml());
-
-			break;
-		}
 	}
-	catch (...) { env.parent().exit(-1); }
 };
 
 

@@ -17,8 +17,7 @@
 #include <base/heap.h>
 #include <base/log.h>
 #include <base/signal.h>
-#include <nic/component.h>
-#include <root/component.h>
+#include <nic_session/nic_session.h>
 #include <util/misc_math.h>
 #include <util/register.h>
 #include <virtio/queue.h>
@@ -30,9 +29,8 @@
 namespace Virtio_nic {
 	using namespace Genode;
 	struct Main;
-	class Root;
-	class Session_component;
 	class Device;
+	class Uplink_client;
 }
 
 
@@ -422,205 +420,8 @@ class Virtio_nic::Device : Noncopyable
 };
 
 
-class Virtio_nic::Session_component : public Nic::Session_component,
-                                      public Device
-{
-	private:
-
-		typedef Genode::Signal_handler<Session_component> Signal_handler;
-
-		Signal_handler _irq_handler;
-		bool           _link_up = false;
-
-		void _handle_irq()
-		{
-			drv_handle_irq([&] () {
-
-				_receive();
-
-			}, [&] () {
-
-			 	if (link_state() == _link_up) {
-					return;
-				}
-				_link_up = !_link_up;
-				if (verbose())
-					log("Link status changed: ",
-					    (_link_up ? "on-line" : "off-line"));
-
-				_link_state_changed();
-			});
-		}
-
-		bool _send()
-		{
-			if (!_tx.sink()->ready_to_ack())
-				return false;
-
-			if (!_tx.sink()->packet_avail())
-				return false;
-
-			auto packet = _tx.sink()->get_packet();
-			if (!packet.size() || !_tx.sink()->packet_valid(packet)) {
-				warning("Invalid tx packet");
-				return true;
-			}
-
-			if (link_state()) {
-				char  const *data = _tx.sink()->packet_content(packet);
-				if (!tx_vq_write_pkt(data, packet.size())) {
-					warning("Failed to push packet into tx VirtIO queue!");
-					return false;
-				}
-			}
-
-			_tx.sink()->acknowledge_packet(packet);
-			return true;
-		}
-
-		void _receive()
-		{
-			rx_vq_read_pkt(
-				[&] (Virtio_net_header const &,
-				     char              const *data,
-				     size_t                   size)
-			{
-				if (!_rx.source()->ready_to_submit()) {
-					Genode::warning("Not ready to submit!");
-					return false;
-				}
-
-				try {
-					auto p = _rx.source()->alloc_packet(size);
-					char *dst = _rx.source()->packet_content(p);
-					Genode::memcpy(dst, data, size);
-					_rx.source()->submit_packet(p);
-				} catch (Session::Rx::Source::Packet_alloc_failed) {
-					Genode::warning("Packet alloc failed!");
-					return false;
-				}
-
-				return true;
-			});
-		}
-
-		void _handle_packet_stream() override
-		{
-			while (_rx.source()->ack_avail())
-				_rx.source()->release_packet(_rx.source()->get_acked_packet());
-
-			rx_vq_ack_pkts();
-
-			bool sent_packets = false;
-			while (_send())
-				sent_packets = true;
-
-			if (sent_packets) {
-				_finish_sent_packets();
-			}
-		}
-
-	public:
-
-		bool link_state() override
-		{
-			return read_link_state();
-		}
-
-		Nic::Mac_address mac_address() override
-		{
-			return read_mac_address();
-		}
-
-		Session_component(Genode::Env             &env,
-		                  Genode::Allocator       &rx_block_md_alloc,
-		                  Virtio::Device          &device,
-		                  Platform::Connection    &plat,
-		                  Genode::Xml_node  const &xml,
-		                  Genode::size_t    const  tx_buf_size,
-		                  Genode::size_t    const  rx_buf_size)
-		:
-			Nic::Session_component { tx_buf_size, rx_buf_size, Genode::CACHED,
-			                         rx_block_md_alloc, env },
-			Device                 { env, device, plat, xml },
-			_irq_handler           { env.ep(), *this, &Session_component::_handle_irq },
-			_link_up               { link_state() }
-		{
-			Virtio_nic::Device::init(_irq_handler);
-			_link_state_changed();
-			if (verbose())
-				Genode::log("Mac address: ", mac_address());
-		}
-};
-
-
-class Virtio_nic::Root : public Genode::Root_component<Session_component, Genode::Single_client>
-{
-	private:
-
-		struct Device_not_found   : Genode::Exception { };
-
-		/*
-		 * Noncopyable
-		 */
-		Root(Root const &) = delete;
-		Root &operator = (Root const &) = delete;
-
-		Genode::Env            &_env;
-		Virtio::Device         &_device;
-		Platform::Connection   &_plat;
-		Attached_rom_dataspace &_config_rom;
-
-		Session_component *_create_session(const char *args) override
-		{
-			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
-			size_t rx_buf_size = Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
-
-			/*
-			 * Check if donated ram quota suffices for both communication
-			 * buffers and check for overflow
-			 */
-			if (tx_buf_size + rx_buf_size < tx_buf_size ||
-			    tx_buf_size + rx_buf_size > ram_quota) {
-				error("insufficient 'ram_quota', got ", ram_quota, ", "
-				      "need ", tx_buf_size + rx_buf_size);
-				throw Genode::Insufficient_ram_quota();
-			}
-
-			try {
-				return new (md_alloc()) Session_component(
-					_env, *md_alloc(), _device, _plat, _config_rom.xml(),
-					tx_buf_size, rx_buf_size);
-			} catch (...) { throw Service_denied(); }
-		}
-
-	public:
-
-		Root(Env                    &env,
-		     Allocator              &md_alloc,
-		     Virtio::Device         &device,
-		     Platform::Connection   &plat,
-		     Attached_rom_dataspace &config_rom)
-		:
-			Root_component<Session_component,
-			               Genode::Single_client> { env.ep(), md_alloc },
-			_env                                  { env },
-			_device                               { device },
-			_plat                                 { plat },
-			_config_rom                           { config_rom }
-		{ }
-};
-
-
-namespace Genode {
-
-	class Uplink_client;
-}
-
-
-class Genode::Uplink_client : public Virtio_nic::Device,
-                              public Uplink_client_base
+class Virtio_nic::Uplink_client : public Virtio_nic::Device,
+                                  public Uplink_client_base
 {
 	private:
 
