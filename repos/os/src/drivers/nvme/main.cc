@@ -1649,6 +1649,9 @@ class Nvme::Driver : Genode::Noncopyable
 				return Response::RETRY;
 			}
 
+			if (!Genode::aligned(request.offset, Nvme::MPS_LOG2))
+				return Response::REJECTED;
+
 			switch (request.operation.type) {
 			case Block::Operation::Type::INVALID:
 				return Response::REJECTED;
