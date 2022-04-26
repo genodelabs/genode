@@ -134,7 +134,7 @@ struct Util::Block_io
 	         bool write = false, void const *data = nullptr, size_t len = 0)
 	:
 		_block(block),
-		_p(_block.tx()->alloc_packet(block_size * count),
+		_p(_block.alloc_packet(block_size * count),
 		   write ? Packet_descriptor::WRITE
 		         : Packet_descriptor::READ, lba, count)
 	{
@@ -146,6 +146,7 @@ struct Util::Block_io
 				Genode::error("invalid data for write");
 				throw Io_error();
 			}
+
 		}
 
 		_block.tx()->submit_packet(_p);
