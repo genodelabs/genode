@@ -3,7 +3,7 @@ assert_spec x86_64
 set use_net 0
 set use_overlay 0
 set use_serial 1
-set use_top 1
+set use_top 0
 
 create_boot_directory
 
@@ -22,6 +22,11 @@ lappend depot_archives [depot_user]/src/report_rom
 lappend depot_archives [depot_user]/src/vfs_import
 lappend depot_archives [depot_user]/src/vfs_pipe
 lappend depot_archives [depot_user]/src/vfs_oss
+lappend depot_archives [depot_user]/src/mesa
+lappend depot_archives [depot_user]/src/expat
+lappend depot_archives [depot_user]/src/libdrm
+lappend depot_archives [depot_user]/src/libyuv
+lappend depot_archives [depot_user]/src/vfs_gpu
 
 lappend_if [expr $use_net] depot_archives [depot_user]/src/ipxe_nic_drv
 lappend_if [expr $use_net] depot_archives [depot_user]/src/nic_router
@@ -77,7 +82,6 @@ append config {
 	<start name="drivers" caps="1500" managing_system="yes" priority="-1">
 		<binary name="init"/>
 		<resource name="RAM" quantum="64M"/>
-		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
@@ -211,6 +215,7 @@ append config {
 			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
 			<service name="ROM"    label_last="clipboard"> <child name="clipboard"/> </service>
 			<service name="Report" label_last="clipboard"> <child name="clipboard"/> </service>
+			<service name="Report" label_last="shape">  <child name="pointer"/> </service>
 			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -225,7 +230,7 @@ append config {
 			</libc>
 			<vfs>
 				<dir name="dev">
-					<log/> <rtc/> <null/> <zero/> <oss name="dsp"/>
+					<log/> <rtc/> <null/> <zero/>
 				</dir>
 				<dir name="pipe"> <pipe/> </dir>}
 
@@ -260,22 +265,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-
-	<start name="audio_drv" priority="-1">
-		<binary name="pci_audio_drv"/>
-		<resource name="RAM" quantum="9M"/>
-		<provides>
-			<service name="Audio_out"/>
-			<service name="Audio_in"/>
-		</provides>
-		<config recording="yes">
-			<mixer field="outputs.master" value="255"/>
-			<mixer field="record.adc-0:1_source" value="sel2"/>
-			<mixer field="record.adc-0:1" value="255"/>
-		</config>
-	</start>
-</config>
-}
+</config>}
 
 install_config $config
 
@@ -298,7 +288,7 @@ close $fd
 set boot_modules {
 	rtc_drv
 	virtualbox6 libc.lib.so vfs.lib.so libm.lib.so libiconv.lib.so stdcxx.lib.so
-	qemu-usb.lib.so libyuv.lib.so jpeg.lib.so
+	qemu-usb.lib.so virtualbox6-shaderlib.lib.so
 	fb_drv.config test.iso virtualbox6.vbox
 }
 
