@@ -121,7 +121,9 @@ PKG_CONFIG_OK = $(call check_nonempty_f,$(shell which pkg-config),\
 #
 CURSES_OK = $(call check_equal_f,\
               $(shell pkg-config --exists ncurses && echo ok),ok,\
-              Need to have 'libncurses' installed.)
+              $(call check_equal_f,\
+                $(shell pkg-config --exists ncursesw && echo ok),ok,\
+                Need to have 'libncurses' installed.))
 
 #
 # Check if 'texinfo' is installed
