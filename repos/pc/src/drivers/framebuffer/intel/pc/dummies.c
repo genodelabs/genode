@@ -605,13 +605,14 @@ void cpu_latency_qos_update_request(struct pm_qos_request *req, s32 new_value)
 
 bool cpu_latency_qos_request_active(struct pm_qos_request *req)
 {
-	lx_emul_trace_and_stop(__func__);
+	lx_emul_trace(__func__);
+	return false;
 }
 
 
 void cpu_latency_qos_remove_request(struct pm_qos_request *req)
 {
-	lx_emul_trace_and_stop(__func__);
+	lx_emul_trace(__func__);
 }
 
 
