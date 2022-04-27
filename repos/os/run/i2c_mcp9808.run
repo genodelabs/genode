@@ -1,4 +1,3 @@
-
 assert_spec arm_v8a
 
 create_boot_directory
@@ -7,18 +6,14 @@ import_from_depot [depot_user]/src/[base_src]
 import_from_depot [depot_user]/src/init
 import_from_depot [depot_user]/src/platform_drv
 
-set build_components {
+build {
 	core
 	timer
 	drivers/i2c
 	test/i2c_mcp9808
 }
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-build $build_components
-
-set config  {
+install_config {
 	<config>
 	<parent-provides>
 			<service name="ROM"/>
@@ -49,16 +44,6 @@ set config  {
 				<service name="Regulator"/>
 			</provides>
 			<config>
-
-				<device name="i2c2">
-					<!-- I2C ctl register -->
-					<io_mem address="0x30a30000" size="0x10000"/>
-
-					<irq number="68"/>
-					<clock  name="i2c2_clk_root"
-					        driver_name="i2c2_root_clk" parent="system_pll3_clk"/>
-					<clock  name="i2c2_gate"/>
-				</device>
 
 				<policy label_prefix="imx8q_evk_i2c_drv"> <device name="i2c2"/> </policy>
 
@@ -92,15 +77,12 @@ set config  {
 	</config>
 }
 
-install_config $config
-
-set boot_modules {
+file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
+build_boot_image {
 	core
 	timer
 	imx8q_evk_i2c_drv
 	i2c_mcp9808
 }
-
-build_boot_image $boot_modules
 
 run_genode_until forever

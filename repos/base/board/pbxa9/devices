@@ -1,0 +1,25 @@
+<devices>
+	<device name="sp810_syscon0" type="arm,sp810">
+		<io_mem address="0x10001000" size="0x1000"/>
+	</device>
+
+	<device name="clcd" type="arm,pl111">
+		<io_mem address="0x10020000" size="0x1000"/>
+	</device>
+
+	<device name="mmc0" type="arm,pl18x">
+		<io_mem address="0x10005000" size="0x1000"/>
+	</device>
+
+	<device name="pl050" type="arm,pl050">
+		<io_mem address="0x10006000" size="0x1000"/>
+		<io_mem address="0x10007000" size="0x1000"/>
+		<irq    number="52"/>
+		<irq    number="53"/>
+	</device>
+
+	<device name="ethernet" type="smsc,lan9118">
+		<io_mem address="0x4e000000" size="0x1000"/>
+		<irq    number="60"/>
+	</device>
+</devices>

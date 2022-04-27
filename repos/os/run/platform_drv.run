@@ -46,6 +46,8 @@ install_config {
 				<import>
 					<inline name="config"><config><default-policy/></config>
 					</inline>
+					<inline name="devices"><devices/>
+					</inline>
 				</import>
 			</vfs>
 			<policy label="fs_report -> "     root="/" writeable="yes"/>
@@ -78,6 +80,7 @@ install_config {
 		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="ROM" label="config"> <child name="report_fs_rom"/> </service>
+			<service name="ROM" label="devices"><child name="report_fs_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -85,7 +88,10 @@ install_config {
 	<start name="test-platform_drv">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="Report">   <child name="fs_report" label="config"/> </service>
+			<service name="Report" label="config">
+				<child name="fs_report" label="config"/> </service>
+			<service name="Report" label="devices">
+				<child name="fs_report" label="devices"/> </service>
 			<service name="Platform"> <child name="platform_drv"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>

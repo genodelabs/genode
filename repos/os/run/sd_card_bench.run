@@ -26,45 +26,6 @@ proc sd_card_drv {} {
 	exit 0;
 }
 
-proc platform_drv {} {
-	return platform_drv
-}
-
-proc device {} {
-	if {[have_board pbxa9]} {
-		return {
-			<device name="card" type="arm,pl18x">
-				<io_mem address="0x10005000" size="0x1000"/>
-			</device>
-		}
-	}
-	if {[have_board imx6q_sabrelite]} {
-		return {
-			<device name="card" type="fsl,imx6q-usdhc">
-				<io_mem address="0x0219c000" size="0x4000"/>
-				<irq    number="57"/>
-			</device>
-		}
-	}
-	if {[have_board imx53_qsb] || [have_board imx53_qsb_tz]} {
-		return {
-			<device name="card" type="fsl,imx53-esdhc">
-				<io_mem address="0x50004000" size="0x4000"/>
-				<irq    number="1"/>
-			</device>
-		}
-	}
-	if {[have_board rpi]} {
-		return {
-			<device name="card" type="brcm,bcm2835-sdhci">
-				<io_mem address="0x20300000" size="0x100"/>
-			</device>
-		}
-	}
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0;
-}
-
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
@@ -84,11 +45,10 @@ install_config {
 	<default caps="100"/>
 
 	<start name="platform_drv" managing_system="yes">
-		<binary name="} [platform_drv] {"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Platform"/></provides>
-		<config>} [device] {
-			<policy label="sd_card_drv -> "> <device name="card"/> </policy>
+		<config>
+			<policy label="sd_card_drv -> "> <device name="mmc0"/> </policy>
 		</config>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
@@ -116,6 +76,7 @@ install_config {
 
 </config> }
 
+file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
 build { drivers/sd_card }
 build_boot_image [sd_card_drv]
 

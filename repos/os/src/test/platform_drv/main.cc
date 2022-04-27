@@ -56,7 +56,8 @@ struct Main
 	};
 
 	Env      & env;
-	Reporter   config_reporter { env, "config" };
+	Reporter   config_reporter { env, "config"  };
+	Reporter   device_reporter { env, "devices" };
 
 	Reconstructible<Platform::Connection> platform { env };
 	Constructible<Platform::Connection>   platform_2 { };
@@ -72,36 +73,39 @@ struct Main
 	{
 		state++;
 
-		Reporter::Xml_generator xml(config_reporter, [&] ()
+		Reporter::Xml_generator devs(device_reporter, [&] ()
 		{
 			for (unsigned idx = 0; idx < total; idx++) {
-				xml.node("device", [&]
+				devs.node("device", [&]
 				{
-					xml.attribute("name", idx);
-					xml.attribute("type", "dummy-device");
-					xml.node("io_mem", [&]
+					devs.attribute("name", idx);
+					devs.attribute("type", "dummy-device");
+					devs.node("io_mem", [&]
 					{
-						xml.attribute("address",
+						devs.attribute("address",
 						              String<16>(Hex(iomem_base + idx*0x1000UL)));
-						xml.attribute("size", String<16>(Hex(0x1000UL)));
+						devs.attribute("size", String<16>(Hex(0x1000UL)));
 					});
-					xml.node("irq", [&]
+					devs.node("irq", [&]
 					{
-						xml.attribute("number", irq_base + idx);
+						devs.attribute("number", irq_base + idx);
 					});
 				});
 			}
+		});
 
-			xml.node("policy", [&]
+		Reporter::Xml_generator cfg(config_reporter, [&] ()
+		{
+			cfg.node("policy", [&]
 			{
-				xml.attribute("label", "test-platform_drv -> ");
-				xml.attribute("info", true);
-				xml.attribute("version", state);
+				cfg.attribute("label", "test-platform_drv -> ");
+				cfg.attribute("info", true);
+				cfg.attribute("version", state);
 
 				for (unsigned idx = 0; idx < assigned; idx++) {
-					xml.node("device", [&]
+					cfg.node("device", [&]
 					{
-						xml.attribute("name", idx);
+						cfg.attribute("name", idx);
 					});
 				};
 			});
@@ -221,6 +225,7 @@ struct Main
 	{
 		platform->sigh(device_rom_handler);
 		config_reporter.enabled(true);
+		device_reporter.enabled(true);
 		step();
 	}
 };

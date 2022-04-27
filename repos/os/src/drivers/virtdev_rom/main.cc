@@ -1,5 +1,5 @@
 /*
- * \brief  Virt Qemu device config generator for ARM platform driver
+ * \brief  Virt Qemu device ROM generator for platform driver
  * \author Piotr Tworek
  * \date   2020-07-01
  */
@@ -137,9 +137,8 @@ struct Virtdev_rom::Main
 	void _probe_devices()
 	{
 		Attached_dataspace ds(_env.rm(), _ds);
-		Attached_rom_dataspace config { _env, "config" };
 
-		Xml_generator xml(ds.local_addr<char>(), ds.size(), "config", [&] ()
+		Xml_generator xml(ds.local_addr<char>(), ds.size(), "devices", [&] ()
 		{
 			uint8_t device_type_idx[Device::Id::MAX_VAL] = { 0 };
 
@@ -148,7 +147,7 @@ struct Virtdev_rom::Main
 				Device device { _env, BASE_ADDRESS + idx * DEVICE_SIZE, DEVICE_SIZE };
 
 				if (device.read<Device::Magic>() != VIRTIO_MMIO_MAGIC) {
-					warning("Found non VirrtIO MMIO device @ ", addr);
+					warning("Found non VirtIO MMIO device @ ", addr);
 					continue;
 				}
 
@@ -171,10 +170,6 @@ struct Virtdev_rom::Main
 					});
 				});
 			}
-
-			config.xml().with_raw_content([&] (char const *txt, size_t sz) {
-				xml.append(txt, sz);
-			});
 		});
 	}
 

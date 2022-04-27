@@ -1,5 +1,5 @@
 /*
- * \brief  Platform driver for ARM
+ * \brief  Platform driver
  * \author Stefan Kalkowski
  * \date   2020-04-12
  */
@@ -18,31 +18,35 @@ namespace Driver { struct Main; };
 
 struct Driver::Main
 {
-	void update_config();
+	void update();
 
 	Env                  & env;
-	Heap                   heap           { env.ram(), env.rm() };
-	Sliced_heap            sliced_heap    { env.ram(), env.rm() };
-	Attached_rom_dataspace config         { env, "config"       };
-	Device_model           devices        { heap                };
-	Signal_handler<Main>   config_handler { env.ep(), *this,
-	                                      &Main::update_config };
-	Driver::Root           root           { env, sliced_heap, config, devices };
+	Heap                   heap        { env.ram(), env.rm() };
+	Sliced_heap            sliced_heap { env.ram(), env.rm() };
+	Attached_rom_dataspace config_rom  { env, "config"       };
+	Attached_rom_dataspace devices_rom { env, "devices"      };
+	Device_model           devices     { heap                };
+	Signal_handler<Main>   handler     { env.ep(), *this,
+	                                     &Main::update       };
+	Driver::Root           root        { env, sliced_heap,
+	                                     config_rom, devices };
 
 	Main(Genode::Env & e)
 	: env(e)
 	{
-		devices.update(config.xml());
-		config.sigh(config_handler);
+		update();
+		config_rom.sigh(handler);
+		devices_rom.sigh(handler);
 		env.parent().announce(env.ep().manage(root));
 	}
 };
 
 
-void Driver::Main::update_config()
+void Driver::Main::update()
 {
-	config.update();
-	devices.update(config.xml());
+	config_rom.update();
+	devices_rom.update();
+	devices.update(devices_rom.xml());
 	root.update_policy();
 }
 
