@@ -170,6 +170,9 @@ struct Usb::Block_driver : Usb::Completion
 	uint8_t active_interface = 0;
 	uint8_t active_lun       = 0;
 
+	enum { INVALID_ALT_SETTING = 256 };
+	uint16_t active_alt_setting = 0;
+
 	uint32_t active_tag = 0;
 	uint32_t new_tag() { return ++active_tag % 0xffffffu; }
 
@@ -430,6 +433,43 @@ struct Usb::Block_driver : Usb::Completion
 			ISUBCLASS_SCSI      = 6,
 			IPROTO_BULK_ONLY    = 80
 		};
+
+		/*
+		 * Devices following the USB Attached SCSI specification
+		 * normally expose the bulk-only transport in interface 0 alt 0
+		 * and the UAS endpoints in interface 0 alt 1.
+		 *
+		 * The default interface and thereby 'iface.current()', however,
+		 * might point to the interface 0 alt 1 for such devices.
+		 *
+		 * In case the alternate setting was not explicitly configured
+		 * we look for the first bulk-only setting.
+		 */
+
+		if (active_alt_setting == INVALID_ALT_SETTING) {
+
+			/* cap value in case there is no bulk-only */
+			active_alt_setting = 0;
+
+			for (unsigned i = 0; i < iface.alternate_count(); i++) {
+				Alternate_interface &aif = iface.alternate_interface(i);
+				if (aif.iclass == ICLASS_MASS_STORAGE
+				    && aif.isubclass == ISUBCLASS_SCSI
+				    && aif.iprotocol == IPROTO_BULK_ONLY) {
+
+					active_alt_setting = i;
+
+					Genode::log("Use probed alternate setting ",
+					            active_alt_setting, " for interface ",
+					            active_interface);
+					break;
+				}
+			}
+		}
+
+		Alternate_interface &aif =
+			iface.alternate_interface((uint8_t)active_alt_setting);
+		iface.set_alternate_interface(aif);
 
 		Alternate_interface &alt_iface = iface.current();
 
@@ -782,6 +822,10 @@ struct Usb::Block_driver : Usb::Completion
 		active_lun       = node.attribute_value("lun",          0UL);
 		reset_device     = node.attribute_value("reset_device", false);
 		verbose_scsi     = node.attribute_value("verbose_scsi", false);
+
+		active_alt_setting =
+			node.attribute_value("alt_setting",
+			                     (unsigned long)INVALID_ALT_SETTING);
 	}
 
 	/**
