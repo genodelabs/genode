@@ -208,17 +208,21 @@ struct Completion : Usb::Completion
  */
 struct Dev_info
 {
+	Session_label const label;
+
 	uint32_t const vendor, product;
 	uint16_t const bus, dev;
 
-	Dev_info(uint16_t bus, uint16_t dev, uint32_t vendor, uint32_t product)
+	Dev_info(Session_label label, uint16_t bus, uint16_t dev,
+	         uint32_t vendor, uint32_t product)
 	:
-		vendor(vendor), product(product), bus(bus), dev(dev)
+		label(label), vendor(vendor), product(product), bus(bus), dev(dev)
 	{ }
 
 	void print(Output &out) const
 	{
-		Genode::print(out, Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
+		Genode::print(out, label, " ",
+		              Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
 		              Hex(dev, Hex::OMIT_PREFIX, Hex::PAD), " (",
 		              "vendor=",  Hex(vendor, Hex::OMIT_PREFIX), ", ",
 		              "product=", Hex(product, Hex::OMIT_PREFIX), ")");
@@ -231,6 +235,9 @@ struct Dev_info
 
 		if (vendor && product)
 			return vendor != other.vendor || product != other.product;
+
+		if (label.length() && other.label.length())
+			return label != other.label;
 
 		return true;
 	}
@@ -305,12 +312,10 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		return result;
 	}
 
-	Usb_host_device(Entrypoint &ep, Allocator &alloc,
-	                Env &env, char const *label,
-	                Dev_info info)
+	Usb_host_device(Entrypoint &ep, Allocator &alloc, Env &env, Dev_info info)
 	:
-		label(label), _alloc(alloc),
-		usb_raw(env, &_usb_alloc, label, 6*1024*1024, state_dispatcher),
+		_alloc(alloc),
+		usb_raw(env, &_usb_alloc, info.label.string(), 6*1024*1024, state_dispatcher),
 		info(info), _ep(ep)
 	{
 		usb_raw.tx_channel()->sigh_ack_avail(ack_avail_dispatcher);
@@ -997,20 +1002,18 @@ struct Usb_devices : List<Usb_host_device>
 		Xml_node devices_node(_devices_rom.local_addr<char>(), _devices_rom.size());
 		devices_node.for_each_sub_node("device", [&] (Xml_node const &node) {
 
-			unsigned product = node.attribute_value<unsigned>("product_id", 0);
-			unsigned vendor  = node.attribute_value<unsigned>("vendor_id", 0);
-			unsigned bus     = node.attribute_value<unsigned>("bus", 0);
-			unsigned dev     = node.attribute_value<unsigned>("dev", 0);
+			auto const product  = node.attribute_value("product_id", 0u);
+			auto const vendor   = node.attribute_value("vendor_id", 0u);
+			auto const bus      = node.attribute_value("bus", 0u);
+			auto const dev      = node.attribute_value("dev", 0u);
+			Session_label label = node.attribute_value("label", String<160>());
 
-			Dev_info const dev_info(bus, dev, vendor, product);
+			Dev_info const dev_info(label, bus, dev, vendor, product);
 
 			if (!node.has_attribute("label")) {
 				error("no label found for device ", dev_info);
 				return;
 			}
-
-			typedef String<128> Label;
-			Label const label = node.attribute_value("label", Label());
 
 			/* ignore if already created */
 			bool exists = false;
@@ -1027,8 +1030,7 @@ struct Usb_devices : List<Usb_host_device>
 
 			try {
 				Usb_host_device *new_device = new (_alloc)
-					Usb_host_device(_ep, _alloc, _env, label.string(),
-					                dev_info);
+					Usb_host_device(_ep, _alloc, _env, dev_info);
 
 				insert(new_device);
 
