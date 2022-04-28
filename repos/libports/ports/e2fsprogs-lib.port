@@ -4,7 +4,7 @@ DOWNLOADS := e2fsprogs.git
 
 E2FSPROGS_DIR := src/lib/e2fsprogs
 
-URL(e2fsprogs) := http://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git
+URL(e2fsprogs) := https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git
 REV(e2fsprogs) := v$(VERSION)
 DIR(e2fsprogs) := $(E2FSPROGS_DIR)
 
