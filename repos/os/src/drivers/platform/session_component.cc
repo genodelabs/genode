@@ -104,7 +104,7 @@ void Session_component::produce_xml(Xml_generator &xml)
 		xml.attribute("version", _version);
 
 	_devices.for_each([&] (Device & dev) {
-		if (matches(dev)) dev.report(xml, *this); });
+		if (matches(dev)) dev.report(xml, _devices); });
 }
 
 

@@ -96,6 +96,12 @@ struct Main
 
 		Reporter::Xml_generator cfg(config_reporter, [&] ()
 		{
+			cfg.node("report", [&]
+			{
+				cfg.attribute("devices", true);
+				cfg.attribute("config",  true);
+			});
+
 			cfg.node("policy", [&]
 			{
 				cfg.attribute("label", "test-platform_drv -> ");

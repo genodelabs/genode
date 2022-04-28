@@ -16,6 +16,7 @@
 
 #include <base/allocator.h>
 #include <base/heap.h>
+#include <os/reporter.h>
 #include <platform_session/device.h>
 #include <util/list.h>
 #include <util/list_model.h>
@@ -166,12 +167,12 @@ class Driver::Device : private List_model<Device>::Element
 				fn(idx++, ipr.addr, ipr.size); });
 		}
 
-		void report(Xml_generator &, Session_component &);
+		void report(Xml_generator &, Device_model &);
 
 	protected:
 
 		virtual void _report_platform_specifics(Xml_generator &,
-		                                        Session_component &) {}
+		                                        Device_model  &) {}
 
 		friend class Driver::Device_model;
 		friend class List_model<Device>;
@@ -202,6 +203,7 @@ class Driver::Device_model :
 	private:
 
 		Heap             & _heap;
+		Reporter         & _reporter;
 		List_model<Device> _model  { };
 		Clocks             _clocks { };
 		Resets             _resets { };
@@ -209,12 +211,11 @@ class Driver::Device_model :
 
 	public:
 
-		void update(Xml_node const & node) {
-			_model.update_from_xml(*this, node);
-		}
+		void update_report();
+		void update(Xml_node const & node);
 
-		Device_model(Heap & heap)
-		: _heap(heap) { }
+		Device_model(Heap & heap, Reporter & reporter)
+		: _heap(heap), _reporter(reporter) { }
 
 		~Device_model() {
 			_model.destroy_all_elements(*this); }

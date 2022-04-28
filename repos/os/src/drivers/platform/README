@@ -1,0 +1,64 @@
+This directory contains the implementation of Genode's platform driver.
+
+Behavior
+--------
+
+Per client a policy must be configured that states which client can
+access certain devices to form a virtual bus per client. The client may
+iterate through the virtual bus using the devices_rom() function of
+the platform_session interface to discover all available devices of the virtual
+bus. When identified a specific device its device capability can be obtained
+via its unique name. Simple device drivers that drive exactly one device do
+not need the devices ROM, but can simply obtain their device capability via
+the acquire_single_device() function of the platform session interface.
+
+With the device capability the resources of the devices can be obtained, e.g.
+io_port, io_mem and irq of the platform_device interface.
+
+Policy usage
+------------
+
+A policy may contain several nodes describing several devices.
+
+!<start name="platform_drv" managing_system="yes">
+! <resource name="RAM" quantum="8M"/>
+! ...
+! <config>
+!  <policy label_prefix="usb_drv" info="yes">
+!   <device name="ehci"/>
+!   <device name="uhci"/>
+!  </policy>
+! </config>
+! ...
+
+The managing_system attribute is evaluated by init. If set to "yes" it
+permits a component, the platform driver, to restrict the allocation of memory to
+specific physical RAM ranges. The platform driver uses this feature to ensure that
+the allocation of DMA capable memory consider several restrictions. For
+example, some drivers, as the UHCI controller, requires a
+physical memory address below 4G. Another example is that on 32bit hosts
+physical to virtual identical mappings of DMA memory for the device_pd
+(required when IOMMU is used) must be below the kernel memory boundary (3G).
+On some systems, e.g., base-hw kernel on certain ARM platforms, it allows the
+platform driver to call system management firmware via kernel syscalls.
+
+The 'info' attribute in a policy node describe, whether the client gets
+permission to access a devices ROM containing detailed information about
+the devices of its virtual bus.
+
+Report facilities
+-----------------
+
+The configuration of the platform driver supports different levels of reports.
+By default the platform driver does not report anything. But when adding a
+report node:
+
+! <config>
+!  <report devices="yes" config="yes"
+!   ...
+! </config>
+
+it is possible to enable either a devices and/or config report. The first will
+open up a Report session to dynamically report all accessible devices and its
+state. Whereby the second report states the currently active configuration of
+the platform driver.

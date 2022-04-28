@@ -79,11 +79,15 @@ void Driver::Device::acquire(Session_component & sc)
 	});
 
 	sc.update_devices_rom();
+	sc.devices().update_report();
 }
 
 
 void Driver::Device::release(Session_component & sc)
 {
+	if (!(_owner == sc))
+		return;
+
 	_reset_domain_list.for_each([&] (Reset_domain & r)
 	{
 		sc.devices().resets().apply(r.name, [&] (Driver::Reset &reset) {
@@ -102,15 +106,18 @@ void Driver::Device::release(Session_component & sc)
 			clock.disable(); });
 	});
 
-	if (_owner == sc) _owner = Owner();
+	_owner = Owner();
+	sc.update_devices_rom();
+	sc.devices().update_report();
 }
 
 
-void Driver::Device::report(Xml_generator & xml, Session_component & sc)
+void Driver::Device::report(Xml_generator & xml, Device_model & devices)
 {
 	xml.node("device", [&] () {
 		xml.attribute("name", name());
 		xml.attribute("type", type());
+		xml.attribute("used", _owner.valid());
 		_io_mem_list.for_each([&] (Io_mem & io_mem) {
 			xml.node("io_mem", [&] () {
 				xml.attribute("phys_addr", String<16>(Hex(io_mem.range.start)));
@@ -135,7 +142,7 @@ void Driver::Device::report(Xml_generator & xml, Session_component & sc)
 			});
 		});
 		_clock_list.for_each([&] (Clock &c) {
-			sc.devices().clocks().apply(c.name, [&] (Driver::Clock &clock) {
+			devices.clocks().apply(c.name, [&] (Driver::Clock &clock) {
 				xml.node("clock", [&] () {
 					xml.attribute("rate", clock.rate().value);
 					xml.attribute("name", c.driver_name);
@@ -143,7 +150,7 @@ void Driver::Device::report(Xml_generator & xml, Session_component & sc)
 			});
 		});
 
-		_report_platform_specifics(xml, sc);
+		_report_platform_specifics(xml, devices);
 	});
 }
 
@@ -156,4 +163,22 @@ Driver::Device::~Device()
 {
 	if (_owner.valid()) {
 		error("Device to be destroyed, still obtained by session"); }
+}
+
+
+void Driver::Device_model::update_report()
+{
+	if (_reporter.enabled()) {
+		Reporter::Xml_generator xml(_reporter, [&] () {
+			for_each([&] (Device & device) {
+				device.report(xml, *this); });
+		});
+	}
+}
+
+
+void Driver::Device_model::update(Xml_node const & node)
+{
+	_model.update_from_xml(*this, node);
+	update_report();
 }
