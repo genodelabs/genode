@@ -4,6 +4,52 @@
                                ===========
 
 
+Sculpt OS release 22.04 | 2022-04-28
+####################################
+
+| Sculpt OS version 22.04 introduces the concept of service-level sandboxing
+| and features completely new drivers for wireless, graphics, and USB.
+
+On the user-visible surface, the new version of Sculpt OS looks and feels
+familiar to users of the previous version. Under the hood, however, at the
+nitty-gritty hardware-support level, it features completely revamped device
+drivers for Intel wireless, Intel graphics, and USB.
+
+In a major surgery, the new drivers got transplanted from the Linux kernel
+version 5.14.21 using Genode's unique
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - DDE]
+approach.
+In contrast to Linux where the drivers are part of the almighty operating-system
+kernel, Sculpt OS hosts each of the drivers in a dedicated sandbox as plain
+user-level component. So Sculpt users can enjoy the broad hardware support
+of up-to-date Linux drivers without ultimately trusting those staggeringly
+complex driver stacks.
+
+Closely related, the support of hardware-accelerated graphics that we
+introduced with the previous version
+[https://genode.org/news/sculpt-os-release-21.10 - 21.10]
+received substantial optimization and stabilization. With the new version,
+Sculpt users can not only run native OpenGL applications but can even go as far
+as using hardware-accelerated graphics via guest operating systems hosted
+within VirtualBox on top of Sculpt.
+
+Being a component-based operating system following the principle of least
+privilege, Sculpt OS gives users ultimate control over the system resources
+exposed to each component. The new version equips the user with additional
+means to exercise control over the deployed software: A new optional
+component called black hole can now be used as placeholder for various system
+resources when deploying an application. For example, a virtual machine can
+be shielded from the network by connecting its network traffic to the black
+hole. This also works for audio, video capturing, USB, and other commonly used
+system resources. As this mechanism works at the level of individual services,
+the documentation refers to it as _service-level sandboxing_, resembling a
+poster-child for the natural power of capability-based security.
+
+Sculpt OS 22.04 is available as ready-to-use system image at the
+[https://genode.org/download/sculpt - Sculpt download page] and is accompanied
+with updated [https://genode.org/documentation/articles/sculpt-22-04 - documentation].
+
+
 Genode OS Framework release 22.02 | 2022-02-28
 ##############################################
 
