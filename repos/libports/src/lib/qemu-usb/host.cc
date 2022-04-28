@@ -210,32 +210,15 @@ struct Dev_info
 {
 	Session_label const label;
 
-	uint32_t const vendor, product;
-	uint16_t const bus, dev;
-
-	Dev_info(Session_label label, uint16_t bus, uint16_t dev,
-	         uint32_t vendor, uint32_t product)
-	:
-		label(label), vendor(vendor), product(product), bus(bus), dev(dev)
-	{ }
+	Dev_info(Session_label &label) : label(label) { }
 
 	void print(Output &out) const
 	{
-		Genode::print(out, label, " ",
-		              Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
-		              Hex(dev, Hex::OMIT_PREFIX, Hex::PAD), " (",
-		              "vendor=",  Hex(vendor, Hex::OMIT_PREFIX), ", ",
-		              "product=", Hex(product, Hex::OMIT_PREFIX), ")");
+		Genode::print(out, label);
 	}
 
 	bool operator != (Dev_info const &other) const
 	{
-		if (bus && dev)
-			return bus != other.bus || dev != other.dev;
-
-		if (vendor && product)
-			return vendor != other.vendor || product != other.product;
-
 		if (label.length() && other.label.length())
 			return label != other.label;
 
@@ -1002,13 +985,9 @@ struct Usb_devices : List<Usb_host_device>
 		Xml_node devices_node(_devices_rom.local_addr<char>(), _devices_rom.size());
 		devices_node.for_each_sub_node("device", [&] (Xml_node const &node) {
 
-			auto const product  = node.attribute_value("product_id", 0u);
-			auto const vendor   = node.attribute_value("vendor_id", 0u);
-			auto const bus      = node.attribute_value("bus", 0u);
-			auto const dev      = node.attribute_value("dev", 0u);
 			Session_label label = node.attribute_value("label", String<160>());
 
-			Dev_info const dev_info(label, bus, dev, vendor, product);
+			Dev_info const dev_info(label);
 
 			if (!node.has_attribute("label")) {
 				error("no label found for device ", dev_info);
