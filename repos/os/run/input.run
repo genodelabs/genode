@@ -6,9 +6,7 @@ assert_spec x86
 
 set build_components { core init timer server/dynamic_rom server/event_dump }
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
+lappend_if [have_board pc]    build_components drivers/platform
 lappend_if [have_board pc]    build_components drivers/ps2
 lappend_if [have_board linux] build_components drivers/framebuffer/sdl
 lappend_if [have_board linux] build_components server/nitpicker
@@ -50,9 +48,24 @@ append config {
 		</route>
 	</start>}
 
-append_platform_drv_config
-
 append_if [have_board pc] config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Platform"/></provides>
+		<route>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+		</route>
+		<config>
+			<policy label="ps2_drv -> "> <device name="ps2"/> </policy>
+		</config>
+	</start>
+
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="2M"/>
 		<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"
@@ -151,12 +164,11 @@ install_config $config
 #
 
 # generic modules
+file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
 set boot_modules { core ld.lib.so init timer dynamic_rom event_dump }
 
-# platform-specific modules
-append_platform_drv_boot_modules
-
 lappend_if [have_board pc]    boot_modules ps2_drv
+lappend_if [have_board pc]    boot_modules platform_drv
 lappend_if [have_board linux] boot_modules fb_sdl
 lappend_if [have_board linux] boot_modules nitpicker
 

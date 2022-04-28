@@ -14,7 +14,7 @@
 #ifndef _DRIVERS__INPUT__SPEC__PS2__X86__I8042_H_
 #define _DRIVERS__INPUT__SPEC__PS2__X86__I8042_H_
 
-#include <io_port_session/client.h>
+#include <platform_session/device.h>
 #include <os/ring_buffer.h>
 
 #include "serial_interface.h"
@@ -179,8 +179,8 @@ class I8042
 
 	private:
 
-		Genode::Io_port_session_client _data_port;  /* data port */
-		Genode::Io_port_session_client _stat_port;  /* status/command port */
+		Platform::Device::Io_port_range _data_port;  /* data port */
+		Platform::Device::Io_port_range _stat_port;  /* status/command port */
 
 		bool _kbd_xlate = false;  /* translation mode to scan-code set 1 */
 
@@ -266,11 +266,10 @@ class I8042
 		/**
 		 * Constructor
 		 */
-		I8042(Genode::Io_port_session_capability cap_data,
-		      Genode::Io_port_session_capability cap_status)
+		I8042(Platform::Device & device)
 		:
-			_data_port(cap_data),
-			_stat_port(cap_status),
+			_data_port(device, {0}),
+			_stat_port(device, {1}),
 			_kbd_interface(*this, false),
 			_aux_interface(*this, true)
 		{

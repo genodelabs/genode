@@ -1,0 +1,13 @@
+<devices>
+	<device name="ps2">
+		<irq number="1"/>
+		<irq number="12"/>
+		<io_port_range address="0x60" size="1"/>
+		<io_port_range address="0x64" size="1"/>
+	</device>
+
+	<device name="pit">
+		<irq number="0"/>
+		<io_port_range address="0x40" size="4"/>
+	</device>
+</devices>
