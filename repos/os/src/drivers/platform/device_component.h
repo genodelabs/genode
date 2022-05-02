@@ -40,14 +40,24 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		{
 			unsigned                      idx;
 			unsigned                      number;
+			Device::Irq::Type             type;
+			Irq_session::Polarity         polarity;
+			Irq_session::Trigger          mode;
+			addr_t                        pci_config_addr;
 			Constructible<Irq_connection> irq {};
 
-			Irq(Registry<Irq> & registry,
-			    unsigned        idx,
-			    unsigned        number)
+			Irq(Registry<Irq>       & registry,
+			    unsigned              idx,
+			    unsigned              number,
+			    Device::Irq::Type     type,
+			    Irq_session::Polarity polarity,
+			    Irq_session::Trigger  mode,
+			    addr_t                pci_config_addr)
 			:
 				Registry<Irq>::Element(registry, *this),
-				idx(idx), number(number) {}
+				idx(idx), number(number), type(type),
+				polarity(polarity), mode(mode),
+				pci_config_addr(pci_config_addr) {}
 		};
 
 		struct Io_mem : Registry<Io_mem>::Element

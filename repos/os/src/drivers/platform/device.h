@@ -75,7 +75,12 @@ class Driver::Device : private List_model<Device>::Element
 
 		struct Irq : List_model<Irq>::Element
 		{
-			unsigned number;
+			enum Type { LEGACY, MSI, MSIX };
+
+			unsigned              number;
+			Type                  type     { LEGACY                          };
+			Irq_session::Polarity polarity { Irq_session::POLARITY_UNCHANGED };
+			Irq_session::Trigger  mode     { Irq_session::TRIGGER_UNCHANGED  };
 
 			Irq(unsigned number) : number(number) {}
 		};
@@ -150,7 +155,7 @@ class Driver::Device : private List_model<Device>::Element
 		{
 			unsigned idx = 0;
 			_irq_list.for_each([&] (Irq const & irq) {
-				fn(idx++, irq.number); });
+				fn(idx++, irq.number, irq.type, irq.polarity, irq.mode, 0); });
 		}
 
 		template <typename FN> void for_each_io_mem(FN const & fn)
@@ -258,8 +263,22 @@ struct Driver::Irq_update_policy : Genode::List_model<Device::Irq>::Update_polic
 
 	Element & create_element(Genode::Xml_node node)
 	{
-		unsigned number = node.attribute_value<unsigned>("number", 0);
-		return *(new (alloc) Element(number));
+		unsigned  number = node.attribute_value<unsigned>("number", 0);
+		Element & elem   = *(new (alloc) Element(number));
+
+		String<16> polarity = node.attribute_value("polarity", String<16>());
+		String<16> mode     = node.attribute_value("mode",     String<16>());
+		String<16> type     = node.attribute_value("type",     String<16>());
+		if (polarity.valid())
+			elem.polarity = (polarity == "high") ? Irq_session::POLARITY_HIGH
+			                                     : Irq_session::POLARITY_LOW;
+		if (mode.valid())
+			elem.mode = (mode == "edge") ? Irq_session::TRIGGER_EDGE
+			                             : Irq_session::TRIGGER_LEVEL;
+		if (type.valid())
+			elem.type = (type == "msi-x") ? Element::MSIX : Element::MSI;
+
+		return elem;
 	}
 
 	void update_element(Element &, Genode::Xml_node) {}

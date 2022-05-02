@@ -71,8 +71,21 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 		if (irq.idx != idx)
 			return;
 
-		if (!irq.irq.constructed())
-			irq.irq.construct(_session.env(), irq.number);
+		if (!irq.irq.constructed()) {
+
+			/*
+			 * Unfortunately, we have to deliver the PCI config space address
+			 * to the IRQ session for working MSI(-x) on NOVA. It is used
+			 * for IOMMU configuration as some kind of access control
+			 *
+			 * Once, the IOMMU support is solved kernel-independent, this
+			 * attribute has to be removed from the IRQs
+			 */
+			addr_t pci_cfg_addr = (irq.type != Device::Irq::LEGACY)
+				? irq.pci_config_addr : 0;
+			irq.irq.construct(_session.env(), irq.number, irq.mode, irq.polarity,
+			                  pci_cfg_addr);
+		}
 
 		cap = irq.irq->cap();
 	});
@@ -120,13 +133,19 @@ Device_component::Device_component(Registry<Device_component> & registry,
 	 */
 
 	try {
-		device.for_each_irq([&] (unsigned idx, unsigned nr)
+		device.for_each_irq([&] (unsigned              idx,
+		                         unsigned              nr,
+		                         Device::Irq::Type     type,
+		                         Irq_session::Polarity polarity,
+		                         Irq_session::Trigger  mode,
+		                         addr_t                pci_cfg_addr)
 		{
 			session.ram_quota_guard().withdraw(Ram_quota{Irq_session::RAM_QUOTA});
 			_ram_quota += Irq_session::RAM_QUOTA;
 			session.cap_quota_guard().withdraw(Cap_quota{Irq_session::CAP_QUOTA});
 			_cap_quota += Irq_session::CAP_QUOTA;
-			new (session.heap()) Irq(_irq_registry, idx, nr);
+			new (session.heap()) Irq(_irq_registry, idx, nr, type,
+			                         polarity, mode, pci_cfg_addr);
 		});
 
 		device.for_each_io_mem([&] (unsigned idx, Range range)
