@@ -1,0 +1,152 @@
+assert_spec x86_64
+
+set build_components {
+	driver/i2c_hid/pc
+	server/event_dump
+}
+
+build $build_components
+
+create_boot_directory
+
+import_from_depot \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/report_rom \
+	[depot_user]/src/init \
+	[depot_user]/src/acpi \
+	[depot_user]/src/pci_decode \
+	[depot_user]/src/platform \
+	[depot_user]/src/dynamic_rom \
+	[depot_user]/src/cpu_burner \
+	[depot_user]/pkg/pc_i2c_hid
+
+append config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="CPU"/>
+		<service name="ROM"/>
+		<service name="IO_MEM"/>
+		<service name="IRQ"/>
+		<service name="RM"/>
+	</parent-provides>
+
+	<default caps="100" ram="1M"/>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer" priority="0">
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="drivers_reports">
+		<binary name="report_rom"/>
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config verbose="no">
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
+
+	<start name="acpi" caps="350" ram="6M">
+		<route>
+			<service name="Report"> <child name="drivers_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<route>
+			<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
+			<service name="Report"> <child name="drivers_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="platform" caps="400" ram="4M" managing_system="yes">
+		<provides>
+			<service name="Platform"/>
+		</provides>
+		<config>
+			<report devices="yes"/>
+			<policy label_prefix="pc_i2c_hid" info="yes">
+				<device name="00:15.3" type="pci"/>
+				<device name="INT34C5" type="acpi"/>
+			</policy>
+		</config>
+		<route>
+			<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
+			<service name="Report"> <child name="drivers_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+<!--
+	<start name="cpu_burner">
+		<config percent="90"/>
+	</start>
+-->
+	<start name="pc_i2c_hid_config">
+		<binary name="dynamic_rom"/>
+		<provides> <service name="ROM"/> </provides>
+		<config>
+			<rom name="config">
+				<inline>
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="Event"/>
+		<service name="Timer"/>
+		<service name="Platform"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> </any-service>
+	</default-route>
+	<start name="pc_i2c_hid" caps="120" ram="8M">
+		<config ld_verbose="yes" info="Fujtisu U7411 (SYNAPTICS)"/>
+		<!--
+		<config ld_verbose="yes" gpio_pin="266" bus_addr="21" hid_addr="1"  info="Fujtisu U7511 (ELAN)"/>
+		<config ld_verbose="yes" gpio_pin="174" bus_addr="44" hid_addr="32" info="Fujtisu U7412 (SYNAPTICS)"/>
+		<config ld_verbose="yes" gpio_pin="174" bus_addr="44" hid_addr="32" info="Fujtisu U7413 (SYNAPTICS)"/>
+		<config ld_verbose="yes" gpio_pin="3"   bus_addr="44" hid_addr="32" info="Framework Gen12/Gen13"/>
+		-->
+	</start>
+</config>
+				</inline>
+				<sleep milliseconds="6000"/>
+				<inline/>
+				<sleep milliseconds="1000"/>
+			</rom>
+		</config>
+	</start>
+	<start name="pc_i2c_hid" caps="500" ram="10M" priority="-1">
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <child name="pc_i2c_hid_config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="event_dump" ram="1M">
+		<provides> <service name="Event"/> </provides>
+	</start>
+</config>
+}
+
+install_config $config
+
+build_boot_image [build_artifacts]
+
+run_genode_until forever
+
+# vi: set ft=tcl :

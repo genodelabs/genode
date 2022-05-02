@@ -1,0 +1,23 @@
+This driver support I2C HID devices connected to Intel Tigerlake/Alderlake
+LPSS I2C controllers.
+
+Configuration
+-------------
+
+Some properties of the used device must be configured via '<config>'
+attributes as the default configuration is tailored to Fujitsu LIFEBOOK
+U7411 with Synaptics touchpad.
+
+:gpio_pin: Touchpads are connected to a GPIO pin in interrupt mode to
+  request input-event handling.
+
+:bus_addr: The I2C bus address of the concrete controllers differs among
+  touchpad manufacturers and can be adjusted via this attribute.
+
+:hid_addr: The I2C register address of the HID descriptor is reflected via
+  ACPI device-specific methods (which are not supported yet) and can be
+  explicitly configured with this attribute.
+
+The default configuration is like follows.
+
+! <config gpio_pin="266" bus_addr="44" hid_addr="32"/>

@@ -1,0 +1,11 @@
+runtime | ram: 8M | caps: 120 | binary: pc_i2c_hid
++ requires
+  + event
+  + platform
+  + rm
+  + timer
++ config
++ content
+  + rom ld.lib.so
+  + rom pc_i2c_hid
+-
