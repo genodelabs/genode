@@ -60,7 +60,6 @@ struct Main
 	Reporter   device_reporter { env, "devices" };
 
 	Reconstructible<Platform::Connection> platform { env };
-	Constructible<Platform::Connection>   platform_2 { };
 
 	Signal_handler<Main> device_rom_handler { env.ep(), *this,
 	                                          &Main::handle_device_update };
@@ -193,14 +192,6 @@ struct Main
 			next_step(1, 1, 0x40000100, 32);
 			return;
 		case 6:
-			start_driver(0);
-			platform_2.construct(env);
-			devices[1].construct(*platform_2, Platform::Device::Name(0));
-			stop_driver(1);
-			platform_2.destruct();
-			next_step(4, 4, 0x40000100, 32);
-			return;
-		case 7:
 			{
 				Platform::Device dev (*platform, Platform::Device::Type({"dummy-device"}));
 				if (dev._cap.valid()) log("Found next valid device of dummy type");

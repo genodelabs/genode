@@ -88,7 +88,7 @@ install_config {
 		<config verbose="no"/>
 	</start>
 
-	<start name="platform_drv">
+	<start name="platform_drv" managing_system="yes">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
@@ -166,25 +166,6 @@ set good_string {
 [init -> test-platform_drv] 	<device name="0" type="dummy-device" used="false">
 [init -> test-platform_drv] 		<io_mem phys_addr="0x40000100" size="0x1000"/>
 [init -> test-platform_drv] 		<irq number="32"/>
-[init -> test-platform_drv] 	</device>
-[init -> test-platform_drv] </devices>
-[init -> test-platform_drv] Error: Device 0 not valid!
-[init -> test-platform_drv] <devices version="7">
-[init -> test-platform_drv] 	<device name="0" type="dummy-device" used="true">
-[init -> test-platform_drv] 		<io_mem phys_addr="0x40000100" size="0x1000"/>
-[init -> test-platform_drv] 		<irq number="32"/>
-[init -> test-platform_drv] 	</device>
-[init -> test-platform_drv] 	<device name="1" type="dummy-device" used="false">
-[init -> test-platform_drv] 		<io_mem phys_addr="0x40001100" size="0x1000"/>
-[init -> test-platform_drv] 		<irq number="33"/>
-[init -> test-platform_drv] 	</device>
-[init -> test-platform_drv] 	<device name="2" type="dummy-device" used="false">
-[init -> test-platform_drv] 		<io_mem phys_addr="0x40002100" size="0x1000"/>
-[init -> test-platform_drv] 		<irq number="34"/>
-[init -> test-platform_drv] 	</device>
-[init -> test-platform_drv] 	<device name="3" type="dummy-device" used="false">
-[init -> test-platform_drv] 		<io_mem phys_addr="0x40003100" size="0x1000"/>
-[init -> test-platform_drv] 		<irq number="35"/>
 [init -> test-platform_drv] 	</device>
 [init -> test-platform_drv] </devices>
 [init -> test-platform_drv] Found next valid device of dummy type

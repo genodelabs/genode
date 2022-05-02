@@ -46,7 +46,7 @@ class Platform::Dma_buffer : Noncopyable
 
 		} _allocation;
 
-		Attached_dataspace _ds { _allocation.platform._rm, _allocation.cap };
+		Attached_dataspace _ds { _allocation.platform._env.rm(), _allocation.cap };
 
 	public:
 

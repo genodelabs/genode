@@ -42,9 +42,10 @@ physical to virtual identical mappings of DMA memory for the device_pd
 On some systems, e.g., base-hw kernel on certain ARM platforms, it allows the
 platform driver to call system management firmware via kernel syscalls.
 
-The 'info' attribute in a policy node describe, whether the client gets
-permission to access a devices ROM containing detailed information about
-the devices of its virtual bus.
+The 'info' attribute in a policy node describe, whether the client's devices
+ROM will contain detailed information about physical resources of the devices
+of its virtual bus. This is only useful when using ported legacy drivers, which
+operate with global names of physical resources.
 
 Report facilities
 -----------------

@@ -112,7 +112,8 @@ void Driver::Device::release(Session_component & sc)
 }
 
 
-void Driver::Device::report(Xml_generator & xml, Device_model & devices)
+void Driver::Device::report(Xml_generator & xml, Device_model & devices,
+                            bool info)
 {
 	xml.node("device", [&] () {
 		xml.attribute("name", name());
@@ -120,17 +121,23 @@ void Driver::Device::report(Xml_generator & xml, Device_model & devices)
 		xml.attribute("used", _owner.valid());
 		_io_mem_list.for_each([&] (Io_mem & io_mem) {
 			xml.node("io_mem", [&] () {
+				if (!info)
+					return;
 				xml.attribute("phys_addr", String<16>(Hex(io_mem.range.start)));
 				xml.attribute("size",      String<16>(Hex(io_mem.range.size)));
 			});
 		});
 		_irq_list.for_each([&] (Irq & irq) {
 			xml.node("irq", [&] () {
+				if (!info)
+					return;
 				xml.attribute("number", irq.number);
 			});
 		});
 		_io_port_range_list.for_each([&] (Io_port_range & io_port_range) {
 			xml.node("io_port_range", [&] () {
+				if (!info)
+					return;
 				xml.attribute("phys_addr", String<16>(Hex(io_port_range.addr)));
 				xml.attribute("size",      String<16>(Hex(io_port_range.size)));
 			});
@@ -171,7 +178,7 @@ void Driver::Device_model::update_report()
 	if (_reporter.enabled()) {
 		Reporter::Xml_generator xml(_reporter, [&] () {
 			for_each([&] (Device & device) {
-				device.report(xml, *this); });
+				device.report(xml, *this, true); });
 		});
 	}
 }

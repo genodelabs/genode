@@ -167,7 +167,7 @@ class Driver::Device : private List_model<Device>::Element
 				fn(idx++, ipr.addr, ipr.size); });
 		}
 
-		void report(Xml_generator &, Device_model &);
+		void report(Xml_generator &, Device_model &, bool);
 
 	protected:
 

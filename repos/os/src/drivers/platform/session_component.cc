@@ -97,14 +97,11 @@ void Session_component::update_policy(bool info, Policy_version version)
 
 void Session_component::produce_xml(Xml_generator &xml)
 {
-	if (!_info)
-		return;
-
 	if (_version.valid())
 		xml.attribute("version", _version);
 
 	_devices.for_each([&] (Device & dev) {
-		if (matches(dev)) dev.report(xml, _devices); });
+		if (matches(dev)) dev.report(xml, _devices, _info); });
 }
 
 
