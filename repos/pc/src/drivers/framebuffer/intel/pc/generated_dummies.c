@@ -1,12 +1,11 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-03-29
+ * \date   2022-05-06
  */
 
 #include <lx_emul.h>
 
-#include "i915_drv.h"
 
 #include <linux/proc_fs.h>
 
@@ -87,14 +86,6 @@ void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
 }
 
 
-#include <linux/interrupt.h>
-
-void __tasklet_schedule(struct tasklet_struct * t)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/fs.h>
 
 void __unregister_chrdev(unsigned int major,unsigned int baseminor,unsigned int count,const char * name)
@@ -130,6 +121,13 @@ bool _drm_lease_held(struct drm_file * file_priv,int id)
 #include <linux/mm.h>
 
 atomic_long_t _totalram_pages;
+
+
+extern void ack_bad_irq(unsigned int irq);
+void ack_bad_irq(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <acpi/acpi_bus.h>
@@ -407,24 +405,8 @@ void dma_buf_unmap_attachment(struct dma_buf_attachment * attach,struct sg_table
 }
 
 
-#include <linux/dma-mapping.h>
-
-dma_addr_t dma_map_page_attrs(struct device * dev,struct page * page,size_t offset,size_t size,enum dma_data_direction dir,unsigned long attrs)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern void dma_resv_prune(struct dma_resv * resv);
 void dma_resv_prune(struct dma_resv * resv)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/dma-mapping.h>
-
-void dma_unmap_page_attrs(struct device * dev,dma_addr_t addr,size_t size,enum dma_data_direction dir,unsigned long attrs)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1224,14 +1206,23 @@ struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magi
 }
 
 
-#include <linux/utsname.h>
-
-struct user_namespace init_user_ns;
-
-
 #include <linux/init.h>
 
 bool initcall_debug;
+
+
+extern void intel_dsb_indexed_reg_write(const struct intel_crtc_state * crtc_state,i915_reg_t reg,u32 val);
+void intel_dsb_indexed_reg_write(const struct intel_crtc_state * crtc_state,i915_reg_t reg,u32 val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_dsb_reg_write(const struct intel_crtc_state * crtc_state,i915_reg_t reg,u32 val);
+void intel_dsb_reg_write(const struct intel_crtc_state * crtc_state,i915_reg_t reg,u32 val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 extern int intel_dsi_dcs_init_backlight_funcs(struct intel_connector * intel_connector);
@@ -1459,24 +1450,9 @@ long __sched io_schedule_timeout(long timeout)
 }
 
 
-#include <asm-generic/logic_io.h>
-
-void iounmap(volatile void __iomem * addr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/fs.h>
 
 void iput(struct inode * inode)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern bool irq_wait_for_poll(struct irq_desc * desc);
-bool irq_wait_for_poll(struct irq_desc * desc)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1573,14 +1549,6 @@ void memunmap(void * addr)
 }
 
 
-#include <net/netlink.h>
-
-int netlink_rcv_skb(struct sk_buff * skb,int (* cb)(struct sk_buff *,struct nlmsghdr *,struct netlink_ext_ack *))
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/netlink.h>
 
 int netlink_broadcast(struct sock * ssk,struct sk_buff * skb,u32 portid,u32 group,gfp_t allocation)
@@ -1608,6 +1576,14 @@ void netlink_kernel_release(struct sock * sk)
 #include <linux/netlink.h>
 
 bool netlink_ns_capable(const struct sk_buff * skb,struct user_namespace * user_ns,int cap)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <net/netlink.h>
+
+int netlink_rcv_skb(struct sk_buff * skb,int (* cb)(struct sk_buff *,struct nlmsghdr *,struct netlink_ext_ack *))
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1694,27 +1670,6 @@ void pci_assign_unassigned_bus_resources(struct pci_bus * bus)
 
 extern unsigned long pci_cardbus_resource_alignment(struct resource * res);
 unsigned long pci_cardbus_resource_alignment(struct resource * res)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int pci_dev_specific_acs_enabled(struct pci_dev * dev,u16 acs_flags);
-int pci_dev_specific_acs_enabled(struct pci_dev * dev,u16 acs_flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int pci_dev_specific_disable_acs_redir(struct pci_dev * dev);
-int pci_dev_specific_disable_acs_redir(struct pci_dev * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int pci_dev_specific_enable_acs(struct pci_dev * dev);
-int pci_dev_specific_enable_acs(struct pci_dev * dev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1879,14 +1834,6 @@ void seq_puts(struct seq_file * m,const char * s)
 }
 
 
-#include <linux/seq_file.h>
-
-void seq_vprintf(struct seq_file * m,const char * f,va_list args)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/mm.h>
 
 int set_page_dirty(struct page * page)
@@ -1929,14 +1876,6 @@ void show_mem(unsigned int filter,nodemask_t * nodemask)
 #include <linux/sched/debug.h>
 
 void show_state_filter(unsigned int state_filter)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fs.h>
-
-void simple_release_fs(struct vfsmount ** mount,int * count)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -2081,14 +2020,6 @@ void unregister_irq_proc(unsigned int irq,struct irq_desc * desc)
 
 #include <linux/vmalloc.h>
 
-void vfree(const void * addr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/vmalloc.h>
-
 void * vmap(struct page ** pages,unsigned int count,unsigned long flags,pgprot_t prot)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -2110,16 +2041,3 @@ void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
 	lx_emul_trace_and_stop(__func__);
 }
 
-
-void intel_dsb_reg_write(const struct intel_crtc_state *crtc_state,
-			 i915_reg_t reg, u32 val)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-void intel_dsb_indexed_reg_write(const struct intel_crtc_state *crtc_state,
-				 i915_reg_t reg, u32 val)
-{
-	lx_emul_trace_and_stop(__func__);
-}

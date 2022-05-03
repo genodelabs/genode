@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-02-28
+ * \date   2022-05-06
  */
 
 #include <lx_emul.h>
@@ -42,14 +42,6 @@ int __ethtool_get_link_ksettings(struct net_device * dev,struct ethtool_link_kse
 #include <linux/file.h>
 
 unsigned long __fdget(unsigned int fd)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/gfp.h>
-
-unsigned long __get_free_pages(gfp_t gfp_mask,unsigned int order)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -169,14 +161,6 @@ int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 #include <linux/file.h>
 
 struct file * alloc_file_pseudo(struct inode * inode,struct vfsmount * mnt,const char * name,int flags,const struct file_operations * fops)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/msi.h>
-
-struct msi_desc * alloc_msi_entry(struct device * dev,int nvec,const struct irq_affinity_desc * affinity)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -395,14 +379,6 @@ struct flow_dissector flow_keys_basic_dissector;
 #include <linux/file.h>
 
 void fput(struct file * file)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/msi.h>
-
-void free_msi_entry(struct msi_desc * entry)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -692,22 +668,6 @@ unsigned long long memparse(const char * ptr,char ** retptr)
 }
 
 
-#include <linux/msi.h>
-
-int msi_domain_alloc_irqs(struct irq_domain * domain,struct device * dev,int nvec)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/msi.h>
-
-void msi_domain_free_irqs(struct irq_domain * domain,struct device * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/neighbour.h>
 
 const struct nla_policy nda_policy[] = {};
@@ -729,6 +689,14 @@ struct irq_chip no_irq_chip;
 #include <linux/fs.h>
 
 loff_t no_llseek(struct file * file,loff_t offset,int whence)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq.h>
+
+void note_interrupt(struct irq_desc * desc,irqreturn_t action_ret)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1207,46 +1175,6 @@ void synchronize_srcu(struct srcu_struct * ssp)
 
 #include <linux/sysfs.h>
 
-void sysfs_delete_link(struct kobject * kobj,struct kobject * targ,const char * name)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-int sysfs_emit(char * buf,const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-int sysfs_emit_at(char * buf,int at,const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-bool sysfs_remove_file_self(struct kobject * kobj,const struct attribute * attr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_remove_group(struct kobject * kobj,const struct attribute_group * grp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
 int sysfs_rename_dir_ns(struct kobject * kobj,const char * new_name,const void * new_ns)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -1272,6 +1200,14 @@ struct callback_head * task_work_cancel(struct task_struct * task,task_work_func
 #include <linux/interrupt.h>
 
 void tasklet_kill(struct tasklet_struct * t)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/vt_kern.h>
+
+void unblank_screen(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }

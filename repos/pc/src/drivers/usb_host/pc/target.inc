@@ -8,7 +8,6 @@ LIBS    := base pc_lx_emul
 INC_DIR += $(REL_PRG_DIR)
 SRC_CC  += main.cc
 SRC_CC  += misc.cc
-SRC_CC  += time.cc
 SRC_CC  += lx_emul/shared_dma_buffer.cc
 SRC_C   += dummies.c
 SRC_C   += lx_emul.c
@@ -16,6 +15,11 @@ SRC_C   += $(notdir $(wildcard $(REL_PRG_DIR)/generated_dummies.c))
 SRC_C   += common_dummies.c
 SRC_C   += lx_emul/spec/x86/pci.c
 SRC_C   += lx_emul/usb.c
+SRC_C   += lx_emul/shadow/drivers/char/random.c
+
+SRC_C   += lx_emul/shadow/lib/kobject_uevent.c
+vpath %.c  $(REP_DIR)/src/lib/pc
+vpath %.cc $(REP_DIR)/src/lib/pc
 
 vpath %.c $(REL_PRG_DIR)
 vpath %.cc $(REL_PRG_DIR)

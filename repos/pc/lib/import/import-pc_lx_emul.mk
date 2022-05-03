@@ -31,3 +31,32 @@ SRC_CC  += lx_emul/pci_init.cc
 SRC_CC  += lx_kit/device.cc
 SRC_CC  += lx_kit/memory_dma.cc
 SRC_CC  += lx_kit/spec/x86/platform.cc
+
+SRC_C   += lx_emul/shadow/fs/sysfs/dir.c
+SRC_C   += lx_emul/shadow/fs/sysfs/file.c
+SRC_C   += lx_emul/shadow/fs/sysfs/group.c
+SRC_C   += lx_emul/shadow/fs/sysfs/symlink.c
+
+#
+# Replacing implementations that could be merged into DDE Linux.
+#
+SRC_C   += lx_emul/mapping.c
+SRC_C   += lx_emul/page_alloc.c
+SRC_C   += lx_emul/sched_core.c
+SRC_C   += lx_emul/slab_common.c
+SRC_C   += lx_emul/softirq.c
+SRC_C   += lx_emul/vmalloc.c
+
+SRC_C   += lx_emul/shadow/fs/libfs.c
+SRC_C   += lx_emul/shadow/kernel/rcu/tiny.c
+SRC_C   += lx_emul/shadow/lib/logic_iomem.c
+
+SRC_C   += lx_emul/shadow/drivers/acpi/bus.c
+SRC_C   += lx_emul/shadow/drivers/acpi/device_sysfs.c
+SRC_C   += lx_emul/shadow/drivers/acpi/glue.c
+SRC_C   += lx_emul/shadow/drivers/acpi/property.c
+SRC_C   += lx_emul/shadow/drivers/acpi/scan.c
+SRC_C   += lx_emul/shadow/drivers/acpi/utils.c
+
+# not needed by intel fb
+SRC_C   += lx_emul/shadow/mm/dmapool.c

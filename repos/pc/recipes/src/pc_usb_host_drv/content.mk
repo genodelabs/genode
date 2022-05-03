@@ -1,5 +1,6 @@
 MIRROR_FROM_REP_DIR := src/drivers/usb_host/pc \
-                       src/lib/pc/lx_emul
+                       src/lib/pc/lx_emul \
+                       src/include
 MIRROR_FROM_OS_DIR  := src/lib/genode_c_api/usb.cc
 
 content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_OS_DIR)

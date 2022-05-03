@@ -1,26 +1,10 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-02-03
+ * \date   2022-05-06
  */
 
 #include <lx_emul.h>
-
-
-#include <linux/bitops.h>
-
-unsigned int __sw_hweight32(unsigned int w)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/bitops.h>
-
-unsigned long __sw_hweight64(__u64 w)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/proc_fs.h>
@@ -42,14 +26,6 @@ int ___ratelimit(struct ratelimit_state * rs,const char * func)
 #include <linux/clk-provider.h>
 
 const char * __clk_get_name(const struct clk * clk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/gfp.h>
-
-unsigned long __get_free_pages(gfp_t gfp_mask,unsigned int order)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -169,14 +145,6 @@ asmlinkage __visible void dump_stack(void)
 #include <linux/capability.h>
 
 bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/gfp.h>
-
-void free_pages(unsigned long addr,unsigned int order)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -309,6 +277,14 @@ int kill_pid_usb_asyncio(int sig,int errno,sigval_t addr,struct pid * pid,const 
 }
 
 
+#include <linux/slab.h>
+
+void kmem_cache_destroy(struct kmem_cache * s)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/kobject.h>
 
 int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
@@ -333,13 +309,6 @@ unsigned long long memparse(const char * ptr,char ** retptr)
 }
 
 
-extern void native_io_delay(void);
-void native_io_delay(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/irq.h>
 
 struct irq_chip no_irq_chip;
@@ -356,6 +325,14 @@ loff_t no_seek_end_llseek(struct file * file,loff_t offset,int whence)
 #include <linux/fs.h>
 
 loff_t noop_llseek(struct file * file,loff_t offset,int whence)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq.h>
+
+void note_interrupt(struct irq_desc * desc,irqreturn_t action_ret)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -524,14 +501,6 @@ int remap_pfn_range(struct vm_area_struct * vma,unsigned long addr,unsigned long
 }
 
 
-#include <linux/sched.h>
-
-void sched_set_fifo(struct task_struct * p)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/seq_file.h>
 
 void seq_printf(struct seq_file * m,const char * f,...)
@@ -572,46 +541,6 @@ int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned
 #include <linux/srcutiny.h>
 
 void synchronize_srcu(struct srcu_struct * ssp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-int sysfs_emit(char * buf,const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-int sysfs_emit_at(char * buf,int at,const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_notify(struct kobject * kobj,const char * dir,const char * attr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-bool sysfs_remove_file_self(struct kobject * kobj,const struct attribute * attr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sysfs.h>
-
-void sysfs_remove_group(struct kobject * kobj,const struct attribute_group * grp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -660,10 +589,3 @@ void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
 	lx_emul_trace_and_stop(__func__);
 }
 
-
-#include <linux/slab.h>
-
-void kmem_cache_destroy(struct kmem_cache * s)
-{
-    lx_emul_trace_and_stop(__func__);
-}

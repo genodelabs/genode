@@ -7,6 +7,7 @@ LIB_MK := $(addprefix lib/mk/,wifi_firmware.mk wifi.inc vfs_wifi.mk) \
 
 MIRROR_FROM_REP_DIR := src/drivers/wifi/pc \
                        src/lib/pc/lx_emul \
+                       src/include \
                        $(LIB_MK) \
                        $(shell cd $(REP_DIR); find src/drivers/wifi -type f) \
                        $(shell cd $(REP_DIR); find src/lib/wifi -type f) \

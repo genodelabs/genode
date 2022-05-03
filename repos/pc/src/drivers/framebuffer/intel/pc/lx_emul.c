@@ -24,20 +24,7 @@
 #include <drm/drm_managed.h>
 
 
-/* support for arch/x86/lib/delay.c, normally defined in init/main.c */
-unsigned long loops_per_jiffy = (1<<12);
-
-
 struct dma_fence_ops const i915_fence_ops;
-
-/* early_identify_cpu() in linux sets this up normally, used by drm_cache */
-struct cpuinfo_x86 boot_cpu_data =
-{
-	.x86_clflush_size    = (sizeof(void*) == 8) ? 64 : 32,
-	.x86_cache_alignment = (sizeof(void*) == 8) ? 64 : 32,
-	.x86_phys_bits       = (sizeof(void*) == 8) ? 36 : 32,
-	.x86_virt_bits       = (sizeof(void*) == 8) ? 48 : 32
-};
 
 /* Bits allowed in normal kernel mappings: */
 pteval_t __default_kernel_pte_mask __read_mostly = ~0;
@@ -50,52 +37,6 @@ void intel_wopcm_init_early(struct intel_wopcm * wopcm)
 {
 	wait_bit_init();
 	lx_emul_trace(__func__);
-}
-
-
-void * kmalloc_order(size_t size,gfp_t flags, unsigned int order)
-{
-	lx_emul_trace(__func__);
-	return kmalloc(size, flags);
-}
-
-
-int simple_pin_fs(struct file_system_type *type, struct vfsmount ** mount, int * count)
-{
-	lx_emul_trace(__func__);
-
-	if (!mount)
-		return -EFAULT;
-
-	if (!*mount)
-		*mount = kzalloc(sizeof(struct vfsmount), GFP_KERNEL);
-
-	if (!*mount)
-		return -ENOMEM;
-
-	if (count)
-		++*count;
-
-	return 0;
-}
-
-
-struct inode * alloc_anon_inode(struct super_block * s)
-{
-	lx_emul_trace(__func__);
-
-	return kzalloc(sizeof(struct inode), GFP_KERNEL);
-}
-
-
-struct proc_dir_entry { char dummy [512]; };
-
-struct proc_dir_entry * proc_create_seq_private(const char * name,umode_t mode,struct proc_dir_entry * parent,const struct seq_operations * ops,unsigned int state_size,void * data)
-{
-	static struct proc_dir_entry ret;
-
-	lx_emul_trace(__func__);
-	return &ret;
 }
 
 
@@ -119,19 +60,6 @@ void si_meminfo(struct sysinfo * val)
 
 
 
-void __iomem * ioremap(resource_size_t phys_addr, unsigned long size)
-{
-	return lx_emul_io_mem_map(phys_addr, size);
-}
-
-
-int dma_supported(struct device * dev, u64 mask)
-{
-	lx_emul_trace(__func__);
-	return 1;
-}
-
-
 void yield()
 {
 	lx_emul_task_schedule(false /* no block */);
@@ -148,19 +76,6 @@ int fb_get_options(const char * name,char ** option)
 	*option = "";
 
 	return 0;
-}
-
-
-void ack_bad_irq(unsigned int irq)
-{
-	lx_emul_trace(__func__);
-}
-
-
-bool pat_enabled(void)
-{
-	lx_emul_trace(__func__);
-	return true;
 }
 
 
@@ -286,27 +201,6 @@ bool is_swiotlb_active(void)
 #endif
 
 
-/* linux/mm/page_alloc.c */
-unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
-{
-	struct page *page = alloc_pages(gfp_mask & ~__GFP_HIGHMEM, order);
-
-	if (!page)
-		return 0;
-
-	return (unsigned long) page_address(page);
-}
-
-
-/* linux/mm/page_alloc.c */
-void free_pages(unsigned long addr, unsigned int order)
-{
-	if (addr != 0) {
-		__free_pages(virt_to_page((void *)addr), order);
-	}
-}
-
-
 void intel_gt_init_early(struct intel_gt * gt, struct drm_i915_private * i915)
 {
 	gt->i915 = i915;
@@ -343,13 +237,6 @@ void intel_rps_mark_interactive(struct intel_rps * rps, bool interactive)
 }
 
 
-bool is_vmalloc_addr(const void * addr)
-{
-	lx_emul_trace(__func__);
-	return false;
-}
-
-
 void * memremap(resource_size_t offset, size_t size, unsigned long flags)
 {
 	lx_emul_trace(__func__);
@@ -370,19 +257,4 @@ void intel_vgpu_detect(struct drm_i915_private * dev_priv)
 	info->ppgtt_type = INTEL_PPGTT_NONE;
 
 	printk("disabling PPGTT to avoid GPU code paths\n");
-}
-
-
-void call_rcu(struct rcu_head * head, rcu_callback_t func)
-{
-	enum { KVFREE_RCU_OFFSET = 4096 };
-
-	lx_emul_trace(__func__);
-
-	if (func < (rcu_callback_t)KVFREE_RCU_OFFSET) {
-		kvfree((void*)head - (unsigned long)func);
-		return;
-	}
-
-	func(head);
 }

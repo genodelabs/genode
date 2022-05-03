@@ -46,3 +46,336 @@ const struct trace_print_flags pageflag_names[] = { {0,NULL}};
 #include <linux/kernel_stat.h>
 
 struct kernel_stat kstat;
+
+#include <linux/delay.h>
+
+/* support for arch/x86/lib/delay.c, normally defined in init/main.c */
+unsigned long loops_per_jiffy = (1<<12);
+
+
+#include <asm/processor.h>
+
+/*
+ * Early_identify_cpu() in linux sets this up normally, used by drm_cache
+ * as well as arch/x86/lib/delay.c.
+ */
+struct cpuinfo_x86 boot_cpu_data =
+{
+    .x86_clflush_size    = (sizeof(void*) == 8) ? 64 : 32,
+    .x86_cache_alignment = (sizeof(void*) == 8) ? 64 : 32,
+    .x86_phys_bits       = (sizeof(void*) == 8) ? 36 : 32,
+    .x86_virt_bits       = (sizeof(void*) == 8) ? 48 : 32
+};
+
+unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)];
+
+
+#include <linux/delay.h>
+
+unsigned long lpj_fine = 0;
+
+
+/*
+ * Generate_dummies.c will otherwise pull in <linux/rcutree.h>
+ * that clashes with rcutiny.h.
+ */
+void rcu_barrier(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/cpuhotplug.h>
+
+int __cpuhp_setup_state(enum cpuhp_state state,const char * name,bool invoke,int (* startup)(unsigned int cpu),int (* teardown)(unsigned int cpu),bool multi_instance)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/timekeeper_internal.h>
+
+void update_vsyscall(struct timekeeper * tk)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/clocksource.h>
+
+void clocksource_arch_init(struct clocksource * cs)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/sched/signal.h>
+
+void ignore_signals(struct task_struct * t)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/sched/loadavg.h>
+
+void calc_global_load(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/kernel_stat.h>
+
+void account_process_tick(struct task_struct * p,int user_tick)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/rcupdate.h>
+
+void rcu_sched_clock_irq(int user)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/kernfs.h>
+
+void kernfs_get(struct kernfs_node * kn)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void kernfs_put(struct kernfs_node * kn)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/random.h>
+
+int add_random_ready_callback(struct random_ready_callback * rdy)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void add_device_randomness(const void * buf,unsigned int size)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/random.h>
+
+void add_interrupt_randomness(int irq,int irq_flags)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern bool irq_wait_for_poll(struct irq_desc * desc);
+bool irq_wait_for_poll(struct irq_desc * desc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/fs.h>
+
+int __register_chrdev(unsigned int major,unsigned int baseminor,unsigned int count,const char * name,const struct file_operations * fops)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+int register_chrdev_region(dev_t from,unsigned count,const char * name)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern void register_handler_proc(unsigned int irq,struct irqaction * action);
+void register_handler_proc(unsigned int irq,struct irqaction * action)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void register_irq_proc(unsigned int irq,struct irq_desc * desc);
+void register_irq_proc(unsigned int irq,struct irq_desc * desc)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/cdev.h>
+
+void cdev_init(struct cdev * cdev,const struct file_operations * fops)
+{
+	lx_emul_trace(__func__);
+}
+
+
+int cdev_add(struct cdev * p,dev_t dev,unsigned count)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void cdev_del(struct cdev * p)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/proc_fs.h>
+
+struct proc_dir_entry { int dummy; };
+
+struct proc_dir_entry * proc_create_seq_private(const char * name,umode_t mode,struct proc_dir_entry * parent,const struct seq_operations * ops,unsigned int state_size,void * data)
+{
+	static struct proc_dir_entry ret;
+	lx_emul_trace(__func__);
+	return &ret;
+}
+
+
+struct proc_dir_entry * proc_create_net_data(const char * name,umode_t mode,struct proc_dir_entry * parent,const struct seq_operations * ops,unsigned int state_size,void * data)
+{
+	static struct proc_dir_entry _proc_dir_entry;
+	lx_emul_trace(__func__);
+	return &_proc_dir_entry;
+}
+
+
+#include <linux/utsname.h>
+#include <linux/user_namespace.h>
+
+struct user_namespace init_user_ns;
+struct uts_namespace init_uts_ns;
+
+
+/*
+ * linux/seq_file.h depends on user_namespace being defined, add
+ * all dummies pulling in this header below here
+ */
+
+
+#include <linux/seq_file.h>
+
+void seq_vprintf(struct seq_file * m,const char * f,va_list args)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/property.h>
+
+int software_node_notify(struct device * dev,unsigned long action)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern void pci_allocate_vc_save_buffers(struct pci_dev * dev);
+void pci_allocate_vc_save_buffers(struct pci_dev * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void pci_vpd_init(struct pci_dev * dev);
+void pci_vpd_init(struct pci_dev * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern int pci_proc_attach_device(struct pci_dev * dev);
+int pci_proc_attach_device(struct pci_dev * dev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/kernel.h>
+
+bool parse_option_str(const char * str,const char * option)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+#include <linux/pci.h>
+
+void pci_fixup_device(enum pci_fixup_pass pass,struct pci_dev * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+int pci_disable_link_state(struct pci_dev * pdev,int state)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern int pci_dev_specific_acs_enabled(struct pci_dev * dev,u16 acs_flags);
+int pci_dev_specific_acs_enabled(struct pci_dev * dev,u16 acs_flags)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern int pci_dev_specific_disable_acs_redir(struct pci_dev * dev);
+int pci_dev_specific_disable_acs_redir(struct pci_dev * dev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern int pci_dev_specific_enable_acs(struct pci_dev * dev);
+int pci_dev_specific_enable_acs(struct pci_dev * dev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern int pci_dev_specific_reset(struct pci_dev * dev,int probe);
+int pci_dev_specific_reset(struct pci_dev * dev,int probe)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+int pci_acpi_program_hp_params(struct pci_dev *dev)
+{
+    lx_emul_trace(__func__);
+    return -ENODEV;
+}
+
+
+extern bool pat_enabled(void);
+bool pat_enabled(void)
+{
+	/* used for mmap WC check */
+	lx_emul_trace(__func__);
+	return true;
+}

@@ -1,5 +1,6 @@
 MIRROR_FROM_REP_DIR := src/drivers/framebuffer/intel/pc \
-                       src/lib/pc/lx_emul
+                       src/lib/pc/lx_emul \
+                       src/include
 
 content: $(MIRROR_FROM_REP_DIR)
 
