@@ -48,12 +48,13 @@ proc writeable { } {
 #
 set build_components {
 	core init timer
+	server/report_rom
+	app/pci_decode
+	drivers/acpi
+	drivers/platform
 	drivers/nvme
 	app/block_tester
 }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
 
 build $build_components
 
@@ -89,13 +90,69 @@ append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
+	</start>
 
-append_platform_drv_config
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
 
-append config {
-	<start name="nvme_drv">
+	<start name="acpi_drv" caps="350">
 		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report">             <child name="report_rom"/> </service>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Platform"/>
+		</provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="Timer">   <parent/> </service>
+		</route>
+		<config>
+			<report devices="yes"/>
+			<policy label="nvme_drv -> " info="yes"> <pci class="NVME"/> </policy>
+		</config>
+	</start>
+
+	<start name="nvme_drv">
+		<resource name="RAM" quantum="8M"/>
 		<provides> <service name="Block"/> </provides>
 		<config>
 			<policy label_prefix="block_tester" writeable="} [writeable] {"/>
@@ -192,10 +249,9 @@ install_config $config
 
 set boot_modules {
 	core init timer nvme_drv
+	pci_decode platform_drv report_rom acpi_drv
 	ld.lib.so block_tester
 }
-
-append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
