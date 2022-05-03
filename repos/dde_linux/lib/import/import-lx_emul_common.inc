@@ -135,7 +135,7 @@ CUSTOM_TARGET_DEPS += $(TARGET_SOURCE_LIST)
 
 # Define per-compilation-unit CC_OPT defines needed by MODULE* macros in Linux
 define CC_OPT_LX_RULES =
-CC_OPT_$(1) = -DKBUILD_MODFILE='"$(1)"' -DKBUILD_BASENAME='"$(notdir $(1))"' -DKBUILD_MODNAME='"$(notdir $(1))"'
+CC_OPT_$(1) += -DKBUILD_MODFILE='"$(1)"' -DKBUILD_BASENAME='"$(notdir $(1))"' -DKBUILD_MODNAME='"$(notdir $(1))"'
 endef
 
 $(foreach file,$(LX_SRC),$(eval $(call CC_OPT_LX_RULES,$(file:%.c=%))))
