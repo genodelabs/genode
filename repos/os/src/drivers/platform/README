@@ -47,6 +47,21 @@ ROM will contain detailed information about physical resources of the devices
 of its virtual bus. This is only useful when using ported legacy drivers, which
 operate with global names of physical resources.
 
+Policy for PCI devices
+----------------------
+
+Policies for PCI devices do not necessarily need to state the name of
+the device, but can either state a class of devices, or a vendor/device
+pair of identifiers inside a pci sub-node:
+
+! <config>
+! <policy label="usb_drv -> ">
+!   <pci class="USB"/>
+! </policy>
+! <policy label="nvme_drv -> ">
+!   <pci vendor_id="0x1987" device_id="0x5007"/>
+! </policy>
+
 Report facilities
 -----------------
 

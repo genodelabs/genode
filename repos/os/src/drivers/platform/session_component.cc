@@ -14,6 +14,7 @@
 #include <dataspace/client.h>
 
 #include <device.h>
+#include <pci.h>
 #include <session_component.h>
 
 using Driver::Session_component;
@@ -54,6 +55,12 @@ bool Session_component::matches(Device & dev) const
 
 	try {
 		Session_policy const policy { label(), _config.xml() };
+
+		/* check PCI devices */
+		if (pci_device_matches(policy, dev))
+			return true;
+
+		/* check for dedicated device name */
 		policy.for_each_sub_node("device", [&] (Xml_node node) {
 			if (dev.name() == node.attribute_value("name", Device::Name()))
 				ret = true;
@@ -112,6 +119,9 @@ Driver::Device_model & Session_component::devices() { return _devices; }
 
 
 Genode::Heap & Session_component::heap() { return _md_alloc; }
+
+
+Driver::Device_pd & Session_component::device_pd() { return _device_pd; }
 
 
 void Session_component::update_devices_rom()
@@ -175,7 +185,9 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 	if (!ram_cap.valid()) return ram_cap;
 
 	try {
-		new (heap()) Dma_buffer(_buffer_registry, ram_cap);
+		Dma_buffer & buf =
+			*(new (heap()) Dma_buffer(_buffer_registry, ram_cap));
+		_device_pd.attach_dma_mem(ram_cap, _env.pd().dma_addr(buf.cap));
 	} catch (Out_of_ram)  {
 		_env_ram.free(ram_cap);
 		throw;

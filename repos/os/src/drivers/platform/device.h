@@ -11,12 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_H_
-#define _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_H_
+#ifndef _SRC__DRIVERS__PLATFORM__DEVICE_H_
+#define _SRC__DRIVERS__PLATFORM__DEVICE_H_
 
 #include <base/allocator.h>
 #include <base/heap.h>
 #include <os/reporter.h>
+#include <pci/types.h>
 #include <platform_session/device.h>
 #include <util/list.h>
 #include <util/list_model.h>
@@ -41,6 +42,7 @@ namespace Driver {
 	struct Clock_update_policy;
 	struct Reset_domain_update_policy;
 	struct Power_domain_update_policy;
+	struct Pci_config_update_policy;
 }
 
 
@@ -141,6 +143,36 @@ class Driver::Device : private List_model<Device>::Element
 			Reset_domain(Name name) : name(name) {}
 		};
 
+		struct Pci_config : List_model<Pci_config>::Element
+		{
+			addr_t        addr;
+			Pci::bus_t    bus_num;
+			Pci::dev_t    dev_num;
+			Pci::func_t   func_num;
+			Pci::vendor_t vendor_id;
+			Pci::device_t device_id;
+			Pci::class_t  class_code;
+			bool          bridge;
+
+			Pci_config(addr_t        addr,
+			           Pci::bus_t    bus_num,
+			           Pci::dev_t    dev_num,
+			           Pci::func_t   func_num,
+			           Pci::vendor_t vendor_id,
+			           Pci::device_t device_id,
+			           Pci::class_t  class_code,
+			           bool          bridge)
+			:
+				addr(addr),
+				bus_num(bus_num),
+				dev_num(dev_num),
+				func_num(func_num),
+				vendor_id(vendor_id),
+				device_id(device_id),
+				class_code(class_code),
+				bridge(bridge) {}
+		};
+
 		Device(Name name, Type type);
 		virtual ~Device();
 
@@ -155,7 +187,7 @@ class Driver::Device : private List_model<Device>::Element
 		{
 			unsigned idx = 0;
 			_irq_list.for_each([&] (Irq const & irq) {
-				fn(idx++, irq.number, irq.type, irq.polarity, irq.mode, 0); });
+				fn(idx++, irq.number, irq.type, irq.polarity, irq.mode); });
 		}
 
 		template <typename FN> void for_each_io_mem(FN const & fn)
@@ -170,6 +202,23 @@ class Driver::Device : private List_model<Device>::Element
 			unsigned idx = 0;
 			_io_port_range_list.for_each([&] (Io_port_range const & ipr) {
 				fn(idx++, ipr.addr, ipr.size); });
+		}
+
+		template <typename FN> void for_pci_config(FN const & fn)
+		{
+			/*
+			 * we allow only one PCI config per device,
+			 * even if more were declared
+			 */
+			bool found = false;
+			_pci_config_list.for_each([&] (Pci_config const & cfg) {
+				if (found) {
+					warning("Only one pci-config is supported per device!");
+					return;
+				}
+				found = true;
+				fn(cfg);
+			});
 		}
 
 		void report(Xml_generator &, Device_model &, bool);
@@ -193,6 +242,7 @@ class Driver::Device : private List_model<Device>::Element
 		List_model<Clock>         _clock_list {};
 		List_model<Power_domain>  _power_domain_list {};
 		List_model<Reset_domain>  _reset_domain_list {};
+		List_model<Pci_config>    _pci_config_list {};
 
 		/*
 		 * Noncopyable
@@ -487,4 +537,48 @@ struct Driver::Reset_domain_update_policy
 	}
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_H_ */
+
+struct Driver::Pci_config_update_policy
+: Genode::List_model<Device::Pci_config>::Update_policy
+{
+	Genode::Allocator & alloc;
+
+	Pci_config_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
+
+	void destroy_element(Element & pd) {
+		Genode::destroy(alloc, &pd); }
+
+	Element & create_element(Genode::Xml_node node)
+	{
+		using namespace Pci;
+
+		addr_t   addr       = node.attribute_value("address", ~0UL);
+		bus_t    bus_num    = node.attribute_value<bus_t>("bus", 0);
+		dev_t    dev_num    = node.attribute_value<dev_t>("device", 0);
+		func_t   func_num   = node.attribute_value<func_t>("function", 0);
+		vendor_t vendor_id  = node.attribute_value<vendor_t>("vendor_id",
+		                                                     0xffff);
+		device_t device_id  = node.attribute_value<device_t>("device_id",
+		                                                     0xffff);
+		class_t  class_code = node.attribute_value<class_t>("class", 0xff);
+		bool     bridge     = node.attribute_value("bridge", false);
+
+		return *(new (alloc) Element(addr, bus_num, dev_num, func_num,
+		                             vendor_id, device_id, class_code, bridge));
+	}
+
+	void update_element(Element &, Genode::Xml_node) {}
+
+	static bool element_matches_xml_node(Element const & e, Genode::Xml_node node)
+	{
+		addr_t addr = node.attribute_value("address", ~0UL);
+		return addr == e.addr;
+	}
+
+	static bool node_is_element(Genode::Xml_node node)
+	{
+		return node.has_type("pci-config");
+	}
+};
+
+#endif /* _SRC__DRIVERS__PLATFORM__DEVICE_H_ */

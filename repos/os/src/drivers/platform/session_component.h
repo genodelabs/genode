@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__SPEC__ARM__SESSION_COMPONENT_H_
-#define _SRC__DRIVERS__PLATFORM__SPEC__ARM__SESSION_COMPONENT_H_
+#ifndef _SRC__DRIVERS__PLATFORM__SESSION_COMPONENT_H_
+#define _SRC__DRIVERS__PLATFORM__SESSION_COMPONENT_H_
 
 #include <base/attached_rom_dataspace.h>
 #include <base/env.h>
@@ -25,6 +25,7 @@
 #include <platform_session/platform_session.h>
 
 #include <device_component.h>
+#include <device_pd.h>
 
 namespace Driver {
 	class Session_component;
@@ -58,6 +59,7 @@ class Driver::Session_component
 		Env          & env();
 		Heap         & heap();
 		Device_model & devices();
+		Device_pd    & device_pd();
 
 		bool matches(Device &) const;
 		void update_devices_rom();
@@ -110,6 +112,9 @@ class Driver::Session_component
 		                                          _env.rm(), *this    };
 		bool                       _info;
 		Policy_version             _version;
+		Device_pd                  _device_pd { _env,
+		                                        _ram_quota_guard(),
+		                                        _cap_quota_guard() };
 
 		Device_capability _acquire(Device & device);
 		void              _release_device(Device_component & dc);
@@ -129,4 +134,4 @@ class Driver::Session_component
 		void produce_xml(Xml_generator &xml) override;
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__SPEC__ARM__SESSION_COMPONENT_H_ */
+#endif /* _SRC__DRIVERS__PLATFORM__SESSION_COMPONENT_H_ */

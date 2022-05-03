@@ -53,6 +53,11 @@ void Device_model::destroy_element(Device & device)
 		device._reset_domain_list.destroy_all_elements(policy);
 	}
 
+	{
+		Pci_config_update_policy policy(_heap);
+		device._pci_config_list.destroy_all_elements(policy);
+	}
+
 	Genode::destroy(_heap, &device);
 }
 
@@ -101,5 +106,10 @@ void Device_model::update_element(Device & device,
 	{
 		Reset_domain_update_policy policy(_heap);
 		device._reset_domain_list.update_from_xml(policy, node);
+	}
+
+	{
+		Pci_config_update_policy policy(_heap);
+		device._pci_config_list.update_from_xml(policy, node);
 	}
 }

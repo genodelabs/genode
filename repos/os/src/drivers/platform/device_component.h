@@ -43,7 +43,6 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 			Device::Irq::Type             type;
 			Irq_session::Polarity         polarity;
 			Irq_session::Trigger          mode;
-			addr_t                        pci_config_addr;
 			Constructible<Irq_connection> irq {};
 
 			Irq(Registry<Irq>       & registry,
@@ -51,13 +50,11 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 			    unsigned              number,
 			    Device::Irq::Type     type,
 			    Irq_session::Polarity polarity,
-			    Irq_session::Trigger  mode,
-			    addr_t                pci_config_addr)
+			    Irq_session::Trigger  mode)
 			:
 				Registry<Irq>::Element(registry, *this),
 				idx(idx), number(number), type(type),
-				polarity(polarity), mode(mode),
-				pci_config_addr(pci_config_addr) {}
+				polarity(polarity), mode(mode) {}
 		};
 
 		struct Io_mem : Registry<Io_mem>::Element
@@ -90,6 +87,13 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 				idx(idx), addr(addr), size(size) {}
 		};
 
+		struct Pci_config
+		{
+			addr_t addr;
+
+			Pci_config(addr_t addr) : addr(addr) {}
+		};
+
 		Device_component(Registry<Device_component> & registry,
 		                 Session_component          & session,
 		                 Driver::Device             & device);
@@ -117,6 +121,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		Registry<Irq>                       _irq_registry {};
 		Registry<Io_mem>                    _io_mem_registry {};
 		Registry<Io_port_range>             _io_port_range_registry {};
+		Constructible<Pci_config>           _pci_config {};
 
 		void _release_resources();
 

@@ -12,6 +12,7 @@
  */
 
 #include <device.h>
+#include <pci.h>
 #include <device_component.h>
 #include <session_component.h>
 
@@ -78,6 +79,7 @@ void Driver::Device::acquire(Session_component & sc)
 		}
 	});
 
+	pci_enable(sc.env(), sc.device_pd(), *this);
 	sc.update_devices_rom();
 	sc.devices().update_report();
 }
@@ -87,6 +89,8 @@ void Driver::Device::release(Session_component & sc)
 {
 	if (!(_owner == sc))
 		return;
+
+	pci_disable(sc.env(), *this);
 
 	_reset_domain_list.for_each([&] (Reset_domain & r)
 	{
@@ -154,6 +158,13 @@ void Driver::Device::report(Xml_generator & xml, Device_model & devices,
 					xml.attribute("rate", clock.rate().value);
 					xml.attribute("name", c.driver_name);
 				});
+			});
+		});
+		_pci_config_list.for_each([&] (Pci_config &pci) {
+			xml.node("pci-config", [&] () {
+				xml.attribute("vendor_id", String<16>(Hex(pci.vendor_id)));
+				xml.attribute("device_id", String<16>(Hex(pci.device_id)));
+				xml.attribute("class",     String<16>(Hex(pci.class_code)));
 			});
 		});
 

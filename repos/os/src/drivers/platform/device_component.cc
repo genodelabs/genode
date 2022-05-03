@@ -13,6 +13,7 @@
 
 #include <device.h>
 #include <device_component.h>
+#include <pci.h>
 #include <session_component.h>
 
 using Driver::Device_component;
@@ -72,19 +73,17 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 			return;
 
 		if (!irq.irq.constructed()) {
-
-			/*
-			 * Unfortunately, we have to deliver the PCI config space address
-			 * to the IRQ session for working MSI(-x) on NOVA. It is used
-			 * for IOMMU configuration as some kind of access control
-			 *
-			 * Once, the IOMMU support is solved kernel-independent, this
-			 * attribute has to be removed from the IRQs
-			 */
-			addr_t pci_cfg_addr = (irq.type != Device::Irq::LEGACY)
-				? irq.pci_config_addr : 0;
+			addr_t pci_cfg_addr = 0;
+			if (irq.type != Device::Irq::LEGACY) {
+				if (_pci_config.constructed()) pci_cfg_addr = _pci_config->addr;
+				else
+					error("MSI(-x) detected for device without pci-config!");
+			}
 			irq.irq.construct(_session.env(), irq.number, irq.mode, irq.polarity,
 			                  pci_cfg_addr);
+			Irq_session::Info info = irq.irq->info();
+			if (info.type == Irq_session::Info::MSI)
+				pci_msi_enable(_session.env(), pci_cfg_addr, info);
 		}
 
 		cap = irq.irq->cap();
@@ -137,15 +136,13 @@ Device_component::Device_component(Registry<Device_component> & registry,
 		                         unsigned              nr,
 		                         Device::Irq::Type     type,
 		                         Irq_session::Polarity polarity,
-		                         Irq_session::Trigger  mode,
-		                         addr_t                pci_cfg_addr)
+		                         Irq_session::Trigger  mode)
 		{
 			session.ram_quota_guard().withdraw(Ram_quota{Irq_session::RAM_QUOTA});
 			_ram_quota += Irq_session::RAM_QUOTA;
 			session.cap_quota_guard().withdraw(Cap_quota{Irq_session::CAP_QUOTA});
 			_cap_quota += Irq_session::CAP_QUOTA;
-			new (session.heap()) Irq(_irq_registry, idx, nr, type,
-			                         polarity, mode, pci_cfg_addr);
+			new (session.heap()) Irq(_irq_registry, idx, nr, type, polarity, mode);
 		});
 
 		device.for_each_io_mem([&] (unsigned idx, Range range)
@@ -166,6 +163,15 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			_cap_quota += Io_port_session::CAP_QUOTA;
 			new (session.heap()) Io_port_range(_io_port_range_registry,
 			                                   idx, addr, size);
+		});
+
+		device.for_pci_config([&] (Device::Pci_config const & cfg)
+		{
+			session.ram_quota_guard().withdraw(Ram_quota{Io_mem_session::RAM_QUOTA});
+			_ram_quota += Io_mem_session::RAM_QUOTA;
+			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
+			_cap_quota += Io_mem_session::CAP_QUOTA;
+			_pci_config.construct(cfg.addr);
 		});
 	} catch(...) {
 		_release_resources();
