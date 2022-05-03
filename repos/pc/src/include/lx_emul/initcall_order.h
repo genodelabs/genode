@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2022-03-28
+ * \date   2022-05-03
  */
 
 #pragma once
@@ -91,6 +91,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_pnp_init4",
 	"__initcall_misc_init4",
 	"__initcall_dma_buf_init4",
+	"__initcall_phy_init4",
 	"__initcall_usb_common_init4",
 	"__initcall_usb_init4",
 	"__initcall_serio_init4",
@@ -198,9 +199,19 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_cacheinfo_sysfs_init6",
 	"__initcall_net_olddevs_init6",
 	"__initcall_blackhole_netdev_init6",
+	"__initcall_phy_module_init6",
+	"__initcall_fixed_mdio_bus_init6",
 	"__initcall_iwl_drv_init6",
 	"__initcall_iwl_init6",
 	"__initcall_iwl_mvm_init6",
+	"__initcall_asix_driver_init6",
+	"__initcall_ax88179_178a_driver_init6",
+	"__initcall_cdc_driver_init6",
+	"__initcall_net1080_driver_init6",
+	"__initcall_cdc_subset_driver_init6",
+	"__initcall_zaurus_driver_init6",
+	"__initcall_usbnet_init6",
+	"__initcall_cdc_ncm_driver_init6",
 	"__initcall_ehci_hcd_init6",
 	"__initcall_ehci_pci_init6",
 	"__initcall_ohci_hcd_mod_init6",
@@ -216,6 +227,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_thermal_throttle_init_device6",
 	"__initcall_pmc_atom_init6",
 	"__initcall_sock_diag_init6",
+	"__initcall_packet_init6",
 	"__initcall_hpet_insert_resource7",
 	"__initcall_update_mp_table7",
 	"__initcall_lapic_insert_resource7",

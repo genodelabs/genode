@@ -9,6 +9,8 @@ LX_GEN_DIR := $(LIB_CACHE_DIR)/pc_linux_generated
 
 include $(call select_from_repositories,lib/import/import-lx_emul_common.inc)
 
+INC_DIR += $(REP_DIR)/src/include
+
 # Handle specific source requirements
 CC_OPT_drivers/usb/host/xhci-trace += -I$(LX_SRC_DIR)/drivers/usb/host
 
