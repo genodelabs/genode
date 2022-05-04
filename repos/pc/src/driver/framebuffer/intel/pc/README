@@ -3,61 +3,21 @@ This driver is for Intel i915 compatible graphic cards.
 Default behaviour
 ~~~~~~~~~~~~~~~~~
 
-When no configuration is provided to the driver, it will switch on all devices
-connected to the graphics card. It will use the highest resolution as
-provided by the BIOS or EDID information from the display devices for each
-connector. The virtual resolution delivered to the client is the maximum in
-width and height of the active connectors.
+When no configuration is provided to the driver, it will enable all connectors
+with attached displays and allocate for each display a discrete framebuffer.
+It will use the highest resolution as provided by the BIOS or EDID information.
+For each connector a separate Capture connection will be requested labeled
+according to the connector name.  When newly connected displays are detected
+by the driver, the new connectors are enabled and another Capture session
+labeled according to the connector will be requested.
 
-When newly connected devices are detected by the hardware, the new connectors
-are enabled, probed, and again the highest resolution across all active
-connectors will be chosen. By default, the current config of the driver will
-be re-read and re-applied. This behaviour can be disabled by
+By default, on hotplug of a display, the current config of the driver will be
+re-parsed and re-applied.  This behaviour can be disabled by
 
 ! <config apply_on_hotplug="no"/>
 
 Configuration
 ~~~~~~~~~~~~~
-
-Each of the connectors can be configured explicitly in terms of resolution and
-whether it should be enabled or not. This looks like the following:
-
-! <config>
-!   <connector name="eDP-1" width="1920" height="1080" hz="60" brightness="75" enabled="true"/>
-!   <connector name="DP-1"  mode_id="2" enabled="true"/>
-! </config>
-
-The resolution can be configured exactly by the reported mode_id or by
-the width/height/hz attributes. In the latter case the driver will take the
-first matching mode out of multiple matching modes potentially.
-
-When the configuration changes during runtime, the driver will adapt to it. In
-this case, it will also change the current virtual resolution to the maximum of
-the configured resolutions in width and height, and it will inform its client
-about the change in resolution.
-
-The brightness value is in percent and takes effect only if supported by
-the hardware.
-
-The maximal physical resolution can be enforced by:
-
-! <config max_width="2560" max_height="1440">
-! </config>
-
-The virtual resolution can be enforced by:
-
-! <config force_width="1024" force_height="768">
-! </config>
-
-The amount of memory used by the driver for the accounting of its available
-buffer space is set by:
-
-! <config max_framebuffer_memory="64M">
-! </config>
-
-The default and minimal value is '64M' and suffices for resolutions of at
-least '3840x2160'. How much actual memory is used depends on the configured
-resolution.
 
 To present all available connectors and their possible resolutions to the user,
 the driver is able to deliver a corresponding report, which can be enabled
@@ -89,5 +49,78 @@ in millimeter per connector and if available, also per mode. The values can
 be used as input to DPI calculations. The currently used mode of the connector
 is tagged in the report explicitly.
 
-The brightness attribute is reported only if the hardware supports it.
+Each of the connectors can be configured a specific mode and
+whether it should be enabled or not. This looks like the following:
 
+! <config>
+!   <connector name="eDP-1" enabled="true" width="1920" height="1080" hz="60" brightness="75"/>
+!   <connector name="DP-1"  enabled="true" mode_id="2"/>
+! </config>
+
+The resolution can be configured exactly by the reported mode_id or by
+the width/height/hz attributes. In the latter case the driver will take the
+first matching mode out of multiple matching modes potentially.
+
+The brightness value is in percent and takes effect only if supported by
+the hardware.
+
+The maximal physical resolution across all connectors can be restricted by:
+
+! <config max_width="2560" max_height="1440">
+! </config>
+
+Note: All larger modes still will be reported, but are marked as unusable
+      by an additional attribute 'unavailable' set to true.
+
+The amount of memory used by the driver for the accounting of its available
+buffer space is set by:
+
+! <config max_framebuffer_memory="64M">
+! </config>
+
+The default and minimal value is '64M' and suffices for resolutions of at
+least '3840x2160'. How much actual memory is used depends on the configured
+resolution.
+
+
+Non-discrete usage of connectors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mirrored usage of connectors can be achieved by moving those connectors into
+a sub node called 'merge' of the configuration. For all those connectors,
+exactly one and the same framebuffer will be used internally by the driver.
+The driver will allocate the framebuffer large enough to accommodate all
+non-discrete connectors. If some of the modes of the connectors are smaller,
+than only a subset of the content will be visible on those displays.
+
+! <connectors>
+!
+!   <connector name="eDP-1" ...> <!-- discrete, not mirrored -->
+!      ...
+!   </connector>
+!   <connector name="DP-1" ...> <!.. discrete, not mirrored -->
+!      ...
+!   </connector>
+!
+!   <merge name="mirror">
+!     <connector name="HDMI-A-1" ...>
+!        ...
+!     </connector>
+!     <connector name="VGA--1" ...>
+!        ...
+!     </connector>
+!   </merge>
+! </connectors>
+
+Note: If connectors are configured as non-discrete, they will also be
+      reported inside a separate 'merge' node.
+
+Additionally, the virtual resolution for non-discrete connectors may be
+restricted via:
+
+! <merge name="mirror" width="1024" height="768">
+! ...
+! </merge>
+
+Thereby, the driver will open a Genode capture session to the
+GUI multiplexer with this limited dimension.

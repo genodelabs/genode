@@ -15,7 +15,6 @@ SRC_C   += dummies.c
 SRC_C   += pci.c
 SRC_C   += lx_emul.c
 SRC_C   += $(notdir $(wildcard $(REL_PRG_DIR)/generated_dummies.c))
-SRC_C   += fb.c
 SRC_C   += lx_user.c
 SRC_C   += gem.c
 SRC_C   += lx_emul/common_dummies.c

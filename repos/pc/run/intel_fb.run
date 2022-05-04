@@ -68,7 +68,12 @@ append config {
 	</default-route>
 	<default caps="100"/>
 
-	<start name="report_rom" caps="100">
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="report_rom" caps="100" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="ROM" />
@@ -87,7 +92,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="acpi" caps="250">
+	<start name="acpi" caps="250" priority="-1">
 		<resource name="RAM" quantum="6M"/>
 		<route>
 			<service name="IO_MEM"> <parent/> </service>
@@ -100,7 +105,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
+	<start name="pci_decode" caps="350" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="Report">
@@ -116,7 +121,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
@@ -143,14 +148,20 @@ append config {
 				<pci class="USB"/>
 			</policy>
 		</config>
-	</start>
+	</start>}
 
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
+append_if $use_top config {
+	<start name="top" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<config period_ms="40000"/>
+		<route>
+			<service name="TRACE"> <parent label=""/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
 
-	<start name="init_dynamic" caps="10000">
+append config {
+	<start name="init_dynamic" caps="10000" priority="-2">
 		<binary name="init"/>
 		<resource name="RAM" quantum="1000M"/>
 		<route>
@@ -181,16 +192,6 @@ append config {
 			<default caps="100"/>
 			<report init_ram="yes" child_ram="yes" delay_ms="10000"/>}
 
-append_if $use_top config {
-			<start name="top">
-				<resource name="RAM" quantum="2M"/>
-				<config period_ms="40000"/>
-				<route>
-					<service name="TRACE"> <parent label=""/> </service>
-					<any-service> <parent/> <any-child/> </any-service>
-				</route>
-			</start>}
-
 append config {
 			<start name="report_rom" priority="-1">
 				<resource name="RAM" quantum="2M"/>
@@ -219,6 +220,13 @@ append config {
 							<inline name="fb.config">
 <config ld_verbose="yes" apply_on_hotplug="} $apply_on_hotplug {">
 	<report connectors="yes"/>
+	<merge name="mirror">
+		<!-- all connectors in merge node gets mirrored -->
+<!--
+		<connector name="DP-1"/>
+		<connector name="HDMI-A-1"/>
+-->
+	</merge>
 </config>
 							</inline>
 						</import>
@@ -266,7 +274,7 @@ append_if $use_gpu config {
 append config {
 			<start name="intel_fb" caps="1000">
 				<binary name="pc_intel_fb"/>
-				<resource name="RAM" quantum="90M"/>
+				<resource name="RAM" quantum="128M"/>
 				<route>}
 
 append_if $use_gpu config {
@@ -276,6 +284,18 @@ append config {
 					<service name="ROM" label="config">
 						<child name="config_rom" label="fb.config"/> </service>
 					<service name="Report"> <child name="report_rom"/> </service>
+
+					<service name="Capture" label="eDP-1"> <child name="test-framebuffer-eDP-1"/> </service>
+					<service name="Capture" label="HDMI-A-1"> <child name="test-framebuffer-HDMI-A-1"/> </service>
+					<service name="Capture" label="HDMI-A-2"> <child name="test-framebuffer-HDMI-A-2"/> </service>
+					<service name="Capture" label="HDMI-A-3"> <child name="test-framebuffer-HDMI-A-3"/> </service>
+					<service name="Capture" label="DP-1"> <child name="test-framebuffer-DP-1"/> </service>
+					<service name="Capture" label="DP-2"> <child name="test-framebuffer-DP-2"/> </service>
+					<service name="Capture" label="DP-3"> <child name="test-framebuffer-DP-3"/> </service>
+					<service name="Capture" label="DP-4"> <child name="test-framebuffer-DP-4"/> </service>
+					<service name="Capture" label="VGA-1"> <child name="test-framebuffer-VGA-1"/> </service>
+					<service name="Capture" label="mirror"> <child name="test-framebuffer-mirror"/> </service>
+
 					<any-service> <parent/> <any-child /> </any-service>
 				</route>
 			</start>}
@@ -309,7 +329,62 @@ append_if $use_fb_controller config {
 			</start>}
 
 append config {
-			<start name="test-framebuffer" priority="-1">
+			<start name="test-framebuffer-eDP-1" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-HDMI-A-1" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-HDMI-A-2" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-HDMI-A-3" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-DP-1" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-DP-2" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-DP-3" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-DP-4" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-VGA-1" priority="-1">
+				<binary name="test-framebuffer"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides> <service name="Capture"/> </provides>
+				<config/>
+			</start>
+			<start name="test-framebuffer-mirror" priority="-1">
+				<binary name="test-framebuffer"/>
 				<resource name="RAM" quantum="10M"/>
 				<provides> <service name="Capture"/> </provides>
 				<config/>

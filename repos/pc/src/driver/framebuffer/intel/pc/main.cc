@@ -20,7 +20,6 @@
 
 /* emulation includes */
 #include <lx_emul/init.h>
-#include <lx_emul/fb.h>
 #include <lx_emul/task.h>
 #include <lx_kit/env.h>
 #include <lx_kit/init.h>
@@ -45,6 +44,7 @@ struct Framebuffer::Driver
 	using Attached_rom_system = Constructible<Attached_rom_dataspace>;
 
 	Env                    &env;
+	Heap                    heap     { env.ram(), env.rm() };
 	Attached_rom_dataspace  config   { env, "config" };
 	Attached_rom_system     system   { };
 	Expanding_reporter      reporter { env, "connectors", "connectors" };
@@ -61,67 +61,88 @@ struct Framebuffer::Driver
 	bool                    disable_all         { false };
 	bool                    disable_report_once { false };
 
-	class Fb
-	{
-		private:
+	Capture::Connection::Label merge_label { "mirror" };
 
-			Capture::Connection         _capture;
-			Capture::Area const         _size;
-			Capture::Area const         _size_phys;
-			Capture::Connection::Screen _captured_screen;
-			void                      * _base;
+	struct Connector {
+		using Space = Id_space<Connector>;
+		using Id    = Space::Id;
 
-			/*
-			 * Non_copyable
-			 */
-			Fb(const Fb&);
-			Fb & operator=(const Fb&);
+		Space::Element id_element;
 
-		public:
+		Connector(Space &space, Id id) : id_element(*this, space, id) { }
 
-			bool paint()
-			{
-				using Pixel = Capture::Pixel;
+		addr_t        base      { };
+		Capture::Area size      { };
+		Capture::Area size_phys { };
+		Capture::Area size_mm   { };
 
-				bool dirty = false;
-
-				_captured_screen.with_texture([&] (Texture<Pixel> const &texture) {
-
-					auto const affected = _capture.capture_at(Capture::Point(0, 0));
-
-					affected.for_each_rect([&] (Capture::Rect const rect) {
-
-						Surface<Pixel> surface((Pixel*)_base, _size_phys);
-
-						surface.clip(rect);
-
-						Blit_painter::paint(surface, texture, Capture::Point(0, 0));
-
-						dirty = true;
-					});
-				});
-
-				return dirty;
-			}
-
-			Fb(Env & env, void * base, Capture::Area size,
-			   Capture::Area size_phys)
-			:
-				_capture(env),
-				_size(size),
-				_size_phys(size_phys),
-				_captured_screen(_capture, env.rm(), { .px = _size, .mm = { } }),
-				_base(base) {}
-
-			bool same_setup(void * base, Capture::Area &size,
-			                Capture::Area &size_phys)
-			{
-				return ((base == _base) && (size == _size) &&
-				        (size_phys == _size_phys));
-			}
+		Constructible<Capture::Connection>         capture { };
+		Constructible<Capture::Connection::Screen> screen  { };
 	};
 
-	Constructible<Fb> fb {};
+	Connector::Space ids { };
+
+	bool capture(Connector::Space &ids, Connector::Id const &id)
+	{
+		using Pixel = Capture::Pixel;
+
+		bool dirty = false;
+
+		ids.apply<Connector>(id, [&](Connector &connector) {
+
+			if (!connector.capture.constructed() ||
+			    !connector.screen.constructed())
+				return;
+
+			connector.screen->with_texture([&] (Texture<Pixel> const &texture) {
+
+				auto const affected = connector.capture->capture_at({ 0, 0});
+
+				affected.for_each_rect([&] (Capture::Rect const rect) {
+
+					Surface<Pixel> surface((Pixel*)connector.base,
+					                       connector.size_phys);
+
+					surface.clip(rect);
+					Blit_painter::paint(surface, texture, Capture::Point(0, 0));
+
+					dirty = true;
+				});
+			});
+		}, [&](){ /* unknown connector id */ });
+
+		return dirty;
+	}
+
+	bool update(Connector &conn, addr_t const base,
+	            Capture::Area &size, Capture::Area &size_phys,
+	            Capture::Area const mm,
+	            auto const &label)
+	{
+		bool same = (base      == conn.base) &&
+		            (size      == conn.size) &&
+		            (size_phys == conn.size_phys) &&
+		            (mm        == conn.size_mm);
+
+		if (same)
+			return same;
+
+		conn.base      = base;
+		conn.size      = size;
+		conn.size_phys = size_phys;
+		conn.size_mm   = mm;
+
+		if (conn.size.valid()) {
+			Capture::Connection::Screen::Attr attr = { .px = conn.size, .mm = conn.size_mm };
+			conn.capture.construct(env, label);
+			conn.screen .construct(*conn.capture, env.rm(), attr);
+		} else {
+			conn.screen .destruct();
+			conn.capture.destruct();
+		}
+
+		return same;
+	}
 
 	void config_update();
 	void system_update();
@@ -178,8 +199,7 @@ struct Framebuffer::Driver
 		return apply_config;
 	}
 
-	template <typename T>
-	void with_max_enforcement(T const &fn) const
+	void with_max_enforcement(auto const &fn) const
 	{
 		unsigned max_width  = config.xml().attribute_value("max_width", 0u);
 		unsigned max_height = config.xml().attribute_value("max_height",0u);
@@ -188,11 +208,10 @@ struct Framebuffer::Driver
 			fn(max_width, max_height);
 	}
 
-	template <typename T>
-	void with_force(T const &fn) const
+	void with_force(auto const &node, auto const &fn) const
 	{
-		unsigned force_width  = config.xml().attribute_value("force_width",  0u);
-		unsigned force_height = config.xml().attribute_value("force_height", 0u);
+		unsigned force_width  = node.attribute_value("width",  0u);
+		unsigned force_height = node.attribute_value("height", 0u);
 
 		if (force_width && force_height)
 			fn(force_width, force_height);
@@ -246,6 +265,11 @@ void Framebuffer::Driver::config_update()
 
 	if (!config.valid() || !lx_user_task)
 		return;
+
+	config.xml().with_optional_sub_node("merge", [&](auto const &node) {
+		if (node.has_attribute("name"))
+			merge_label = node.attribute_value("name", String<160>(merge_label));
+	});
 
 	if (config.xml().attribute_value("system", false)) {
 		system.construct(Lx_kit::env().env, "system");
@@ -310,12 +334,18 @@ void Framebuffer::Driver::generate_report()
 				xml.attribute("max_height", height);
 			});
 
-			with_force([&](unsigned width, unsigned height) {
-				xml.attribute("force_width",  width);
-				xml.attribute("force_height", height);
-			});
+			lx_emul_i915_report_discrete(&xml);
 
-			lx_emul_i915_report(&xml);
+			xml.node("merge", [&] () {
+				node.with_optional_sub_node("merge", [&](auto const &merge) {
+					with_force(merge, [&](unsigned width, unsigned height) {
+						xml.attribute("width",  width);
+						xml.attribute("height", height);
+					});
+				});
+
+				lx_emul_i915_report_non_discrete(&xml);
+			});
 		});
 	});
 
@@ -326,36 +356,58 @@ void Framebuffer::Driver::generate_report()
 void Framebuffer::Driver::lookup_config(char const * const name,
                                         struct genode_mode &mode)
 {
+	bool mirror_node = false;
+
 	/* default settings, possibly overridden by explicit configuration below */
 	mode.enabled    = !disable_all;
-	mode.brightness = 70 /* percent */;
+	mode.brightness = 70; /* percent */
+	mode.mirror     = false;
 
 	if (!config.valid() || disable_all)
 		return;
 
-	/* iterate independently of force* ever to get brightness and hz */
-	config.xml().for_each_sub_node("connector", [&] (Xml_node &node) {
+	auto for_each_node = [&](auto const &node, bool const mirror){
 		using Name = String<32>;
 		Name const con_policy = node.attribute_value("name", Name());
 		if (con_policy != name)
 			return;
 
+		mode.mirror  = mirror;
 		mode.enabled = node.attribute_value("enabled", true);
+
 		if (!mode.enabled)
 			return;
 
+		mode.width      = node.attribute_value("width"  , 0U);
+		mode.height     = node.attribute_value("height" , 0U);
+		mode.hz         = node.attribute_value("hz"     , 0U);
+		mode.id         = node.attribute_value("mode_id", 0U);
 		mode.brightness = node.attribute_value("brightness",
 		                                       unsigned(MAX_BRIGHTNESS + 1));
+	};
 
-		mode.width  = node.attribute_value("width",  0U);
-		mode.height = node.attribute_value("height", 0U);
-		mode.hz     = node.attribute_value("hz", 0U);
-		mode.id     = node.attribute_value("mode_id", 0U);
+	/* lookup config of discrete connectors */
+	config.xml().for_each_sub_node("connector", [&] (Xml_node const &conn) {
+		for_each_node(conn, false);
 	});
 
-	with_force([&](unsigned const width, unsigned const height) {
-		mode.force_width  = width;
-		mode.force_height = height;
+	/* lookup config of mirrored connectors */
+	config.xml().for_each_sub_node("merge", [&] (Xml_node const &merge) {
+		if (mirror_node) {
+			error("only one mirror node supported");
+			return;
+		}
+
+		merge.for_each_sub_node("connector", [&] (Xml_node const &conn) {
+			for_each_node(conn, true);
+		});
+
+		with_force(merge, [&](unsigned const width, unsigned const height) {
+			mode.force_width  = width;
+			mode.force_height = height;
+		});
+
+		mirror_node = true;
 	});
 
 	with_max_enforcement([&](unsigned const width, unsigned const height) {
@@ -372,41 +424,72 @@ unsigned long long driver_max_framebuffer_memory(void)
 }
 
 
-/**
- * Can be called already as side-effect of `lx_emul_start_kernel`,
- * that's why the Driver object needs to be constructed already here.
- */
-extern "C" void lx_emul_framebuffer_ready(void * base, unsigned long,
-                                          unsigned xres, unsigned yres,
-                                          unsigned phys_width,
-                                          unsigned phys_height)
+void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
+                                    char const * const conn_name,
+                                    void * const base,
+                                    unsigned long,
+                                    unsigned const xres,
+                                    unsigned const yres,
+                                    unsigned const phys_width,
+                                    unsigned const phys_height,
+                                    unsigned const mm_width,
+                                    unsigned const mm_height)
 {
 	auto &env = Lx_kit::env().env;
 	auto &drv = driver(env);
-	auto &fb  = drv.fb;
 
-	Capture::Area area(xres, yres);
-	Capture::Area area_phys(phys_width, phys_height);
+	using namespace Genode;
 
-	if (fb.constructed()) {
-		if (fb->same_setup(base, area, area_phys))
+	typedef Framebuffer::Driver::Connector Connector;
+
+	auto const id = Connector::Id { connector_id };
+
+	/* allocate new id for new connector */
+	drv.ids.apply<Connector>(id, [&](Connector &) { /* known id */ }, [&](){
+		/* ignore unused connector - don't need a object for it */
+		if (!base)
 			return;
 
-		fb.destruct();
-	}
+		new (drv.heap) Connector (drv.ids, id);
+	});
 
-	/* clear artefacts */
-	if (area != area_phys)
-		Genode::memset(base, 0, area_phys.count() * 4);
+	drv.ids.apply<Connector>(id, [&](Connector &conn) {
 
-	fb.construct(env, base, area, area_phys);
+		Capture::Area area     (xres, yres);
+		Capture::Area area_phys(phys_width, phys_height);
 
-	Genode::log("framebuffer reconstructed - virtual=", xres, "x", yres,
-	            " physical=", phys_width, "x", phys_height);
+		auto const prev_size = conn.size;
+
+		auto label = !conn_name
+		           ? Capture::Connection::Label(conn.id_element)
+		           : Capture::Connection::Label(conn_name) == "mirror_capture"
+		             ? drv.merge_label
+		             : Capture::Connection::Label(conn_name);
+
+		bool const same = drv.update(conn, Genode::addr_t(base), area,
+		                             area_phys, { mm_width, mm_height}, label);
+
+		if (same)
+			return;
+
+		/* clear artefacts */
+		if (base && (area != area_phys))
+			Genode::memset(base, 0, area_phys.count() * 4);
+
+		if (conn.size.valid())
+			log("setup - framebuffer ",
+			    " - connector id=", conn.id_element.id().value,
+			    ", virtual=", xres, "x", yres,
+			    ", physical=", phys_width, "x", phys_height);
+		else
+			log("free  - framebuffer ",
+			    " - connector id=", conn.id_element.id().value,
+			    ", ", prev_size);
+	}, [](){ /* unknown id */ });
 }
 
 
-extern "C" void lx_emul_i915_hotplug_connector()
+void lx_emul_i915_hotplug_connector()
 {
 	Genode::Env &env = Lx_kit::env().env;
 	driver(env).generate_report();
@@ -422,8 +505,8 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
 
 	xml.node("connector", [&] ()
 	{
-		xml.attribute("name", name);
 		xml.attribute("connected", !!connected);
+		xml.attribute("name", name);
 		if (width_mm)
 			xml.attribute("width_mm" , width_mm);
 		if (height_mm)
@@ -466,14 +549,13 @@ void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *mode)
 }
 
 
-int lx_emul_i915_blit()
+int lx_emul_i915_blit(unsigned connector_id)
 {
 	auto &drv = driver(Lx_kit::env().env);
 
-	if (!drv.fb.constructed())
-		return false;
+	auto const id = Framebuffer::Driver::Connector::Id { connector_id };
 
-	return drv.fb->paint();
+	return drv.capture(drv.ids, id);
 }
 
 
