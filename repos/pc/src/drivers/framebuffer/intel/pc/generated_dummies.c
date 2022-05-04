@@ -151,6 +151,14 @@ int acpi_dev_get_resources(struct acpi_device * adev,struct list_head * list,int
 }
 
 
+#include <linux/acpi.h>
+
+int acpi_dev_gpio_irq_wake_get_by(struct acpi_device * adev,const char * name,int index,bool * wake_capable)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <acpi/acpi_bus.h>
 
 bool acpi_dev_present(const char * hid,const char * uid,s64 hrv)
@@ -311,6 +319,22 @@ int device_create_managed_software_node(struct device * dev,const struct propert
 #include <linux/property.h>
 
 void device_remove_software_node(struct device * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+struct gpio_desc * __must_check devm_gpiod_get(struct device * dev,const char * con_id,enum gpiod_flags flags)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+struct gpio_desc * __must_check devm_gpiod_get_index(struct device * dev,const char * con_id,unsigned int idx,enum gpiod_flags flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -511,6 +535,78 @@ void gen6_gt_irq_handler(struct intel_gt * gt,u32 gt_iir)
 
 extern void gen6_rps_irq_handler(struct intel_rps * rps,u32 pm_iir);
 void gen6_rps_irq_handler(struct intel_rps * rps,u32 pm_iir)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/machine.h>
+
+void gpiod_add_lookup_table(struct gpiod_lookup_table * table)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+int gpiod_direction_output(struct gpio_desc * desc,int value)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+struct gpio_desc * __must_check gpiod_get(struct device * dev,const char * con_id,enum gpiod_flags flags)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+int gpiod_get_direction(struct gpio_desc * desc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+int gpiod_get_value_cansleep(const struct gpio_desc * desc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+void gpiod_put(struct gpio_desc * desc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/machine.h>
+
+void gpiod_remove_lookup_table(struct gpiod_lookup_table * table)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+void gpiod_set_value(struct gpio_desc * desc,int value)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gpio/consumer.h>
+
+void gpiod_set_value_cansleep(struct gpio_desc * desc,int value)
 {
 	lx_emul_trace_and_stop(__func__);
 }

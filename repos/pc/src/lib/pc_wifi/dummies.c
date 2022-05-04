@@ -576,3 +576,69 @@ int software_node_notify(struct device * dev,unsigned long action)
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+
+#include <linux/leds.h>
+
+int led_trigger_register(struct led_trigger * trig)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void led_trigger_event(struct led_trigger * trig,enum led_brightness brightness)
+{
+	lx_emul_trace(__func__);
+}
+
+
+
+extern void ieee80211_alloc_led_names(struct ieee80211_local * local);
+void ieee80211_alloc_led_names(struct ieee80211_local * local)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void ieee80211_led_assoc(struct ieee80211_local * local,bool associated);
+void ieee80211_led_assoc(struct ieee80211_local * local,bool associated)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void ieee80211_led_init(struct ieee80211_local * local);
+void ieee80211_led_init(struct ieee80211_local * local)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void ieee80211_led_radio(struct ieee80211_local * local,bool enabled);
+void ieee80211_led_radio(struct ieee80211_local * local,bool enabled)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void ieee80211_mod_tpt_led_trig(struct ieee80211_local * local,unsigned int types_on,unsigned int types_off);
+void ieee80211_mod_tpt_led_trig(struct ieee80211_local * local,unsigned int types_on,unsigned int types_off)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern int iwl_mvm_leds_init(struct iwl_mvm * mvm);
+int iwl_mvm_leds_init(struct iwl_mvm * mvm)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern void iwl_mvm_leds_sync(struct iwl_mvm * mvm);
+void iwl_mvm_leds_sync(struct iwl_mvm * mvm)
+{
+	lx_emul_trace(__func__);
+}

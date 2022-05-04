@@ -398,3 +398,11 @@ int software_node_notify(struct device * dev,unsigned long action)
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+#include <linux/gpio/consumer.h>
+
+struct gpio_desc * devm_gpiod_get_optional(struct device * dev, const char * con_id, enum gpiod_flags flags)
+{
+	lx_emul_trace(__func__);
+	return NULL;
+}

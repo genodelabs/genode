@@ -193,6 +193,7 @@ include/asm-generic/error-injection.h
 include/asm-generic/export.h
 include/asm-generic/fixmap.h
 include/asm-generic/getorder.h
+include/asm-generic/gpio.h
 include/asm-generic/int-ll64.h
 include/asm-generic/io.h
 include/asm-generic/ioctl.h
