@@ -1,0 +1,13 @@
+This timeout triggered under very high load on Genode.
+
+--- src/linux/sound/hda/core/controller.c
++++ src/linux/sound/hda/core/controller.c
+@@ -319,7 +319,7 @@ static int snd_hdac_bus_get_response_rirb(struct hdac_bus *bus,
+ 	bool warned = false;
+ 
+ 	init_wait_entry(&wait, 0);
+-	timeout = jiffies + msecs_to_jiffies(1000);
++	timeout = jiffies + msecs_to_jiffies(5000);
+ 
+ 	for (loopcounter = 0;; loopcounter++) {
+ 		scoped_guard(spinlock_irq, &bus->reg_lock) {

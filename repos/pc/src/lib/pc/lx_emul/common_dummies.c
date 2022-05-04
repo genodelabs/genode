@@ -390,7 +390,8 @@ struct srcu_struct;
 extern int __srcu_read_lock(struct srcu_struct * ssp);
 int __srcu_read_lock(struct srcu_struct * ssp)
 {
-	lx_emul_trace_and_stop(__func__);
+	lx_emul_trace(__func__);
+	return 0;
 }
 
 

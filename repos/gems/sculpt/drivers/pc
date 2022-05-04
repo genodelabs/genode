@@ -111,7 +111,7 @@ config
     | + pci | class: WIFI
     + policy | label_suffix: -> nic               | info: yes
     | + pci | class: ETHERNET
-    + policy | label_suffix: -> audio
+    + policy | label_suffix: -> audio             | info: yes
     | + pci | class: AUDIO
     | + pci | class: HDAUDIO
     + policy | label: acpica

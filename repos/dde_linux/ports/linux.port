@@ -24,6 +24,10 @@ PATCH_FILES := \
                iwlwifi_limit_rx_bufs.patch \
                i915_memcpy_32bit.patch \
                i915_meteorlake.patch \
-               i915_dsb.patch
+               i915_dsb.patch \
+               audio_distinguish_irq.patch \
+               audio_hda_bus_repsonse.patch \
+               audio_hp_jack_event_sleep.patch \
+               audio_sof_timeouts.patch
 
 PATCHES += $(addprefix patches/,$(PATCH_FILES))

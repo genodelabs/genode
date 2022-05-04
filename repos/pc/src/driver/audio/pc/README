@@ -1,0 +1,167 @@
+The 'pc_audio' is a port of the Linux HDA/SOF audio driver.
+
+The driver exposes the mixer controls for all channels and devices in
+its 'mixer' report that shares the format with the driver's configuration.
+Using Sound Open Firmware (SOF) requires having the appropriate firmware
+files as well as the Non-HDAudio-Link-Table (NHLT) in place.
+
+At the moment the driver will always try to drive a compatible device
+with SOF and only uses the regular HDA driver on systems where no DMIC
+is available.
+
+
+Testing
+=======
+
+The simplest way to test the driver is by executing the 'pc_audio.run'
+run-script found in 'repos/pc/run':
+
+! make KERNEL=nova BOARD=pc run/pc_audio
+
+The run-script is configured in a way that all devices and mixer controls
+are reported because it already contains the configuration profiles for a
+variety of different systems but no profile is selected by default. Use
+the 'profile' attribute in the 'config' node to choose the appriopriate
+configuration profile for your system or follow the Configuration section
+ In case there is none and create one yourself by inspecting the reports.
+
+By default the run-script routes the microphone input to the Play session
+and thus acts as a monitor.
+
+
+Configuration
+=============
+
+The driver is configured by setting the appriopriate mixer controls and
+audio devices. Since these can differ between varying systems the settings
+are organized in profiles.
+
+A profile contains a 'routing' node that specifies which devices should
+be used for external/internal playback and external/internal recording.
+It also contains the mixer controls that are managed by the driver for
+switching between external/internal playback and recording automatically
+(see Jack handling for more information).
+
+
+Devices
+~~~~~~~
+
+In order to obtain a complete list of all devices encountered by the
+driver enable
+
+! config | report_devices: true
+
+in the configuration node of the audio driver.
+
+The most common devices are 'pcm0C0D0c' (recording) and 'pcmC0D0p'
+(playback). Furthermore there is atleast on additionally recording
+device in systems where SOF is used. Typically this is 'pcmC0D6c'
+and presents the internal DMIC device. Older SOF devices call this
+device 'DMIC' while newer ones 'DMIC Raw'.
+
+
+Mixer controls
+~~~~~~~~~~~~~~
+
+The 'profile' node of the driver takes 'control' nodes as configuration inputs
+which can be configured at runtime. There are three types of controls: integer,
+boolean, and enumeration:
+
+* Example for Integer:
+
+! control Headphone Playback Volume | id: 0 | channel: 0 | type: int | value: 87 | min: 0 | max: 87
+! control Headphone Playback Volume | id: 0 | channel: 1 | type: int | value: 87 | min: 0 | max: 87
+
+This lets you configure the volume of the headphone playback for the left (0)
+and right (1) channel. "min" and "max" indicate the supported range of the
+"value" argument.
+
+* Example for Boolean:
+
+! control Headphone Playback Switch | id: 1 | channel: 0 | type: bool | value: true
+! control Headphone Playback Switch | id: 1 | channel: 1 | type: bool | value: true
+
+Boolean values are usually switches to turn on/off playback or recording. In
+this example both playback channels of the headphone are enabled.
+
+* Example for Enumeration:
+
+! control Input Source  | id: 10 | type: enum | selected: 0
+! + value Headset Mic   | id: 0
+! + value Headphone Mic | id: 1
+! -
+
+Enumeration controls let's you select from 2 or more values (value-nodes).
+Here the headset microphone is selected by the "selected" attribute.
+
+The most common mixer controls can be found in the 'pc_audio.run' script.
+In order to obtain a complete list of all controls enable
+
+! config | report_mixer: true
+
+in the configuration node of the audio driver.
+
+
+Jack handling
+~~~~~~~~~~~~~
+
+When plugging, for example, a headset into the audio jack the driver will
+automatically mute the speaker and the internal microphone (DMIC0) and unmute
+the headphones and the headset microphone (default). If this behavior is not
+desired, the following configuration options can be used:
+
+! config | speaker_priority: external | mic_priority: internal
+
+
+The example above configures the case when a headset is inserted: In this
+example the headset's speaker will be enabled, the headset's microphone will be
+disabled, and the internal microphone will be enabled. The priority implies
+wnich device will be used in case internal and external are present (default is
+external).
+
+The microphone jack state changes additionally require that PCM devices
+have to be switched because the headset microphone and the internal microphone
+are two different PCM devices (pcmC0D0c, pcmC0D6c) - while the headphone and the
+internal speaker share the same device (pcmC0D0p).
+
+
+Firmware
+========
+
+Sound open firmware (SOF)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The driver requires SOF image to be loaded during initialization.
+Therefore, we provide a sof port.
+
+! ./tool/port/prepare sof
+
+will download the firmware. While the downloaded archive contains firmware for
+all HDA devices, we only extract Tigerlake files here.
+
+The files required for Tigerlake are:
+
+! contrib/sof-<hash>/firmware/sof-tplg-v2.2.4/sof-hda-generic-2ch.tplg
+! contrib/sof-<hash>/firmware/sof-v2.2.4/intel-signed/sof-tgl.ri
+
+When using a run script you can either copy the files to '<build-dir>/bin' and
+adjust the 'boot_modules' accordingly or import a depot package.
+
+! import_from_depot [depot_user]/raw/sof_firmware
+
+
+ACPI
+~~~~
+
+The drivers requires the NHLT (Non-HDAudio-Link) table in order to find the
+internal microphone (DMIC). This table is provided by the platform driver
+in case such a table was discovered during system bring-up.
+
+
+Known issues
+============
+
+* When inserting the headset too slowly the microphone will generate noise
+  instead of recording proper audio. This issue is not related to the driver but
+  seems to be caused either by SOF or the hardware. The same can also be
+  experienced on regular Linux distributions.

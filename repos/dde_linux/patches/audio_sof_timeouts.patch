@@ -1,0 +1,27 @@
+These patch increases various timeouts that were encountered
+during high system-load as well as during the startup phase
+of the driver on a loaded system.
+
+--- src/linux/sound/soc/sof/core.c
++++ src/linux/sound/soc/sof/core.c
+@@ -61,7 +61,7 @@ MODULE_PARM_DESC(boot_timeout,
+ #endif
+ 
+ /* SOF defaults if not provided by the platform in ms */
+-#define TIMEOUT_DEFAULT_IPC_MS  500
++#define TIMEOUT_DEFAULT_IPC_MS  2000
+ #define TIMEOUT_DEFAULT_BOOT_MS 2000
+ 
+ /**
+--- src/linux/sound/soc/sof/intel/hda.h
++++ src/linux/sound/soc/sof/intel/hda.h
+@@ -282,7 +282,7 @@
+ #define HDA_DSP_RESET_TIMEOUT_US	50000
+ #define HDA_DSP_BASEFW_TIMEOUT_US       3000000
+ #define HDA_DSP_INIT_TIMEOUT_US	500000
+-#define HDA_DSP_CTRL_RESET_TIMEOUT		100
++#define HDA_DSP_CTRL_RESET_TIMEOUT		500
+ #define HDA_DSP_WAIT_TIMEOUT		500	/* 500 msec */
+ #define HDA_DSP_REG_POLL_INTERVAL_US		500	/* 0.5 msec */
+ #define HDA_DSP_REG_POLL_RETRY_COUNT		50
+

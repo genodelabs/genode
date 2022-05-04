@@ -116,6 +116,41 @@ if {false} {
 	close $fd
 }
 
+# example to amend rootfs with SOF images
+if {false} {
+
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof/sof-adl.ri
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof/sof-cml.ri
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof/sof-cnl.ri
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof/sof-rpl.ri
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof/sof-tgl.ri
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof-tplg/sof-hda-generic-2ch.tplg
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof-ace-tplg/sof-hda-generic-2ch.tplg
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof-ipc4/arl/sof-arl.ri
+	exec tar -C [run_dir]/genode -xf [run_dir]/../../../bin/sof_firmware.tar intel/sof-ipc4/mtl/sof-mtl.ri
+
+	set fd [open $cpio_desc a]
+	puts $fd "dir  /lib          0755 0 0"
+	puts $fd "dir  /lib/firmware 0755 0 0"
+	puts $fd "dir  /lib/firmware/intel 0755 0 0"
+	puts $fd "dir  /lib/firmware/intel/sof 0755 0 0"
+	puts $fd "dir  /lib/firmware/intel/sof-ace-tplg 0755 0 0"
+	puts $fd "dir  /lib/firmware/intel/sof-ipc4 0755 0 0"
+	puts $fd "dir  /lib/firmware/intel/sof-ipc4/arl 0755 0 0"
+	puts $fd "dir  /lib/firmware/intel/sof-ipc4/mtl 0755 0 0"
+	puts $fd "dir  /lib/firmware/intel/sof-tplg 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof/sof-adl.ri [run_dir]/genode/intel/sof/sof-adl.ri 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof/sof-cml.ri [run_dir]/genode/intel/sof/sof-cml.ri 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof/sof-cnl.ri [run_dir]/genode/intel/sof/sof-cnl.ri 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof/sof-rpl.ri [run_dir]/genode/intel/sof/sof-rpl.ri 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof/sof-tgl.ri [run_dir]/genode/intel/sof/sof-tgl.ri 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof-tplg/sof-hda-generic-2ch.tplg [run_dir]/genode/intel/sof-tplg/sof-hda-generic-2ch.tplg 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof-ipc4/arl/sof-arl.ri [run_dir]/genode/intel/sof-ipc4/arl/sof-arl.ri 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof-ipc4/mlt/sof-mtl.ri [run_dir]/genode/intel/sof-ipc4/mtl/sof-mtl.ri 0755 0 0"
+	puts $fd "file /lib/firmware/intel/sof-ace-tplg/sof-hda-generic-2ch.tplg [run_dir]/genode/intel/sof-ace-tplg/sof-hda-generic-2ch.tplg 0755 0 0"
+	close $fd
+}
+
 set boot_script [_boot_script]
 
 

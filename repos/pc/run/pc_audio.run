@@ -1,0 +1,304 @@
+assert_spec x86_64
+
+assert {![have_include power_on/qemu]}
+assert {![have_spec linux]}
+
+#
+# Add sample file that is played in addition to the mic <-> speaker
+# loop testing record capabilities.
+#
+proc play_sample_file { } { return 1 }
+
+create_boot_directory
+import_from_depot \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/report_rom \
+	[depot_user]/src/init \
+	[depot_user]/src/acpi \
+	[depot_user]/src/pci_decode \
+	[depot_user]/src/platform \
+	[depot_user]/src/record_play_mixer \
+	[depot_user]/src/vfs \
+	[depot_user]/src/pc_audio \
+	[depot_user]/raw/sof_firmware
+
+build { driver/audio/pc test/audio_play }
+
+append config {
+config | prio_levels: 2
+
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+
++ default | caps: 200 | ram: 1M
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ start timer | priority: 0
+  + provides | + service Timer
+
++ start drivers_reports
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label: pci_decode -> system | report: acpi -> acpi
+    + policy | label: platform -> devices  | report: pci_decode -> devices
+
++ start acpi | caps: 350 | ram: 6M
+  + route
+    + service Report | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
+
++ start pci_decode | caps: 350
+  + route
+    + service ROM    | label: system | + child drivers_reports
+    + service Report                 | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
+
++ start platform | caps: 400 | ram: 4M | managing_system: yes
+  + provides | + service Platform
+  + config
+    + report | devices: yes
+    + policy | label_prefix: pc_audio | info: yes
+      + device NHLT
+      + pci | class: AUDIO
+      + pci | class: HDAUDIO
+  + route
+    + service ROM    | label: devices | + child drivers_reports
+    + service Report                  | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
+
++ start mixer_report_rom
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+    + default-policy | report: audio_drv -> mixer
+
++ start mixer | priority: -1 | ram: 2M
+  + binary record_play_mixer
+  + provides
+    + service Record
+    + service Play
+  + config | jitter_ms: 10
+    + mix left
+      + play | label_suffix: -> mic_left | volume: 1.0
+      + play | label_suffix: -> left     | volume: 0.5
+    + mix right
+      + play | label_suffix: -> mic_right | volume: 1.0
+      + play | label_suffix: -> right     | volume: 0.5
+    + policy | label_suffix: left  | record: left  | volume: 1.0
+    + policy | label_suffix: right | record: right | volume: 1.0
+  + route
+    + service Report | + child mixer_report_rom
+    + service Timer  | + child timer
+    + any-service
+      + parent
+
++ start pc_audio | priority: -1 | ram: 10M
+  + config | report_mixer: yes | report_devices: yes | speaker_priority: external | mic_priority: external
+           | . profile: u7411
+    + vfs
+      + dir firmware | + tar sof_firmware.tar
+    + profile s937 | . HDA
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D0c | mic_headset: pcmC0D0c
+                | speaker_external_id: 1 | speaker_internal_id: 3
+                | mic_external_id:     7 | mic_internal_id:     7
+      + control Headphone Playback Volume | id:  0 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Headphone Playback Volume | id:  0 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Loopback Mixing           | id:  4 | type: enum | selected: 0
+      + control Auto-Mute Mode            | id:  5 | type: enum | selected: 0
+      + control Capture Volume            | id:  6 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  6 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Master Playback Volume    | id:  9 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Switch    | id: 10 | channel: 0 | type: bool | value: true
+    + profile s938 | . HDA
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D0c | mic_headset: pcmC0D0c
+                | speaker_external_id: 1 | speaker_internal_id: 3
+                | mic_external_id:     7 | mic_internal_id:     7
+      + control Headphone Playback Volume | id:  0 | channel: 0 | type: int  | value: 40 | min: 0 | max: 87
+      + control Headphone Playback Volume | id:  0 | channel: 1 | type: int  | value: 40 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Loopback Mixing           | id:  4 | type: enum | selected: 0
+      + control Auto-Mute Mode            | id:  5 | type: enum | selected: 0
+      + control Capture Volume            | id:  6 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  6 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Master Playback Volume    | id:  9 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Switch    | id: 10 | channel: 0 | type: bool | value: true
+    + profile u7411 | . SOF Tiger Lake
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D6c | mic_headset: pcmC0D0c
+                | speaker_external_id:  1 | speaker_internal_id:  3
+                | mic_external_id:     13 | mic_internal_id:     30
+      + control Headphone Playback Volume | id:  0 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Headphone Playback Volume | id:  0 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Loopback Mixing           | id:  4              | type: enum | selected: 0
+      + control Auto-Mute Mode            | id:  9              | type: enum | selected: 0
+      + control Input Source              | id: 10              | type: enum | selected: 0
+      + control Input Source              | id: 11              | type: enum | selected: 0
+      + control Capture Volume            | id: 12 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id: 12 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id: 14 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id: 14 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Master Playback Volume    | id: 18 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Switch    | id: 19 | channel: 0 | type: bool | value: true
+      + control Dmic0 Capture Volume      | id: 29 | channel: 0 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic0 Capture Volume      | id: 29 | channel: 1 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic1 2nd Capture Volume  | id: 32 | channel: 0 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic1 2nd Capture Volume  | id: 32 | channel: 1 | type: int  | value: 70 | min: 0 | max: 70
+    + profile u7412 | . SOF Alder Lake
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D6c | mic_headset: pcmC0D0c
+                | speaker_external_id: 1 | speaker_internal_id:  3
+                | mic_external_id:     8 | mic_internal_id:     25
+      + control Headphone Playback Volume | id:  0 | channel: 0 | type: int  | value: 40 | min: 0 | max: 87
+      + control Headphone Playback Volume | id:  0 | channel: 1 | type: int  | value: 40 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Auto-Mute Mode            | id:  4              | type: enum | selected: 0
+      + control Input Source              | id:  5              | type: enum | selected: 0
+      + control Input Source              | id:  6              | type: enum | selected: 0
+      + control Capture Volume            | id:  7 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  7 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  9 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  9 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Master Playback Volume    | id: 13 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Switch    | id: 14 | channel: 0 | type: bool | value: true
+      + control Dmic0 Capture Volume      | id: 24 | channel: 0 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic0 Capture Volume      | id: 24 | channel: 1 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic1 2nd Capture Volume  | id: 27 | channel: 0 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic1 2nd Capture Volume  | id: 27 | channel: 1 | type: int  | value: 70 | min: 0 | max: 70
+    + profile u7413 | . SOF Raptor Lake (same as Alder Lake)
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D6c | mic_headset: pcmC0D0c
+                | speaker_external_id: 1 | speaker_internal_id:  3
+                | mic_external_id:     8 | mic_internal_id:     25
+      + control Headphone Playback Volume | id:  0 | channel: 0 | type: int  | value: 40 | min: 0 | max: 87
+      + control Headphone Playback Volume | id:  0 | channel: 1 | type: int  | value: 40 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Auto-Mute Mode            | id:  4              | type: enum | selected: 0
+      + control Input Source              | id:  5              | type: enum | selected: 0
+      + control Input Source              | id:  6              | type: enum | selected: 0
+      + control Capture Volume            | id:  7 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  7 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  9 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  9 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Master Playback Volume    | id: 13 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Switch    | id: 14 | channel: 0 | type: bool | value: true
+      + control Dmic0 Capture Volume      | id: 24 | channel: 0 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic0 Capture Volume      | id: 24 | channel: 1 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic1 2nd Capture Volume  | id: 27 | channel: 0 | type: int  | value: 70 | min: 0 | max: 70
+      + control Dmic1 2nd Capture Volume  | id: 27 | channel: 1 | type: int  | value: 70 | min: 0 | max: 70
+    + profile ds57u | . HDA
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D0c | mic_headset: pcmC0D0c
+                | speaker_external_id: 1 | mic_external_id: 6
+      + control Master Playback Volume    | id:  0 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Volume    | id:  0 | channel: 1 | type: int  | value: 60 | min: 0 | max: 87
+      + control Loopback Mixing           | id:  2              | type: enum | selected: 0
+      + control Capture Volume            | id:  5 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  5 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+    + profile t490 | . HDA
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D0c | mic_headset: pcmC0D0c
+                | speaker_external_id: 1 | speaker_internal_id: 3
+                | mic_external_id:     6 | mic_internal_id:     6
+      + control Headphone Playback Volume | id:  0 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Headphone Playback Volume | id:  0 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Auto-Mute Mode            | id:  4              | type: enum | selected: 0
+      + control Capture Volume            | id:  5 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  5 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Master Playback Volume    | id:  9 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Switch    | id: 10 | channel: 0 | type: bool | value: true
+    + profile x280 | . HDA
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D0c | mic_headset: pcmC0D0c
+                | speaker_external_id: 1 | speaker_internal_id: 3
+                | mic_external_id:     6 | mic_internal_id:     6
+      + control Headphone Playback Volume | id:  0 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Headphone Playback Volume | id:  0 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Auto-Mute Mode            | id:  4              | type: enum | selected: 0
+      + control Capture Volume            | id:  5 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  5 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Master Playback Volume    | id:  9 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Switch    | id: 10 | channel: 0 | type: bool | value: true
+    + profile zbook8 | . SOF Arrow Lake
+      + routing | playback: pcmC0D0p | mic_internal: pcmC0D6c | mic_headset: pcmC0D0c
+                | speaker_external_id: 1 | speaker_internal_id:  3
+                | mic_external_id:     8 | mic_internal_id:     32
+      + control Headphone Playback Volume | id:  0 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Headphone Playback Volume | id:  0 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 0 | type: int  | value: 87 | min: 0 | max: 87
+      + control Speaker Playback Volume   | id:  2 | channel: 1 | type: int  | value: 87 | min: 0 | max: 87
+      + control Auto-Mute Mode            | id:  4              | type: enum | selected: 0
+      + control Input Source              | id:  5              | type: enum | selected: 0
+      + control Input Source              | id:  6              | type: enum | selected: 0
+      + control Capture Volume            | id:  7 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  7 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  9 | channel: 0 | type: int  | value: 63 | min: 0 | max: 63
+      + control Capture Volume            | id:  9 | channel: 1 | type: int  | value: 63 | min: 0 | max: 63
+      + control Master Playback Volume    | id: 13 | channel: 0 | type: int  | value: 60 | min: 0 | max: 87
+      + control Master Playback Switch    | id: 14 | channel: 0 | type: bool | value: true
+  + route
+    + service Report | + child mixer_report_rom
+    + any-service
+      + parent
+      + any-child}
+
+append_if [play_sample_file] config {
++ start test-audio_play | ram: 8M
+  + config | sample_path: sample.f32
+  | + vfs | + rom sample.f32
+  + route
+    + any-service
+      + parent
+      + any-child}
+
+append config {
+-}
+
+install_config $config
+
+set boot_modules [build_artifacts]
+
+#
+# Get sample file
+#
+
+if {![file exists bin/sample.f32] && [play_sample_file]} {
+	puts ""
+	puts "The sample file is missing. Please take a look at"
+	puts "repos/dde_bsd/README, create 'sample.f32' and put"
+	puts "the file into './bin' directory."
+	puts ""
+	exit 1
+}
+
+lappend_if [play_sample_file] boot_modules sample.f32
+
+build_boot_image $boot_modules
+
+run_genode_until forever

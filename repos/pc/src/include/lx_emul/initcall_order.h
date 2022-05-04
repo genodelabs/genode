@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2026-02-09
+ * \date   2026-02-27
  */
 
 #pragma once
@@ -349,6 +349,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_alc880_driver_init6",
 	"__initcall_alc882_driver_init6",
 	"__initcall_generic_driver_init6",
+	"__initcall_azx_driver_init6",
 	"__initcall_sock_diag_init6",
 	"__initcall_packet_init6",
 	"__initcall_kernel_do_mounts_initrd_sysctls_init7",

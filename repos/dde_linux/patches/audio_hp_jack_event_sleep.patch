@@ -1,0 +1,16 @@
+On Fuji-U7xxx the jack-plug events are received very early (jack half plugged).
+When the plug is inserted too slowly, the headset-microphone recording might
+start before the plug is in place, leading to permanent random noise. This patch
+does not fix but reduces the problem by waiting 1s before starting the
+recording.
+
+--- src/linux/sound/hda/codecs/realtek/realtek.c
++++ src/linux/sound/hda/codecs/realtek/realtek.c
+@@ -2109,6 +2109,7 @@ static void alc_update_headset_mode_hook(struct hda_codec *codec,
+ void alc_update_headset_jack_cb(struct hda_codec *codec,
+ 				struct hda_jack_callback *jack)
+ {
++	msleep(1000);
+ 	snd_hda_gen_hp_automute(codec, jack);
+ 	alc_update_headset_mode(codec);
+ }
