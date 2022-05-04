@@ -25,6 +25,10 @@
 #include <asm/fpu/api.h>
 #endif
 
+#ifndef pgprot_noncached
+#define pgprot_noncached(prot)	(prot)
+#endif
+
 static inline pte_t pte_mkwrite(pte_t pte) { return pte; }
 
 static inline bool __pkru_allows_pkey(u16 pkey, bool write)
