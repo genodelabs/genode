@@ -34,6 +34,14 @@ struct Platform::Pci::Bdf
 		             .function =  bdf       & 0x07u };
 	}
 
+	static Bdf from_xml(Xml_node node)
+	{
+		return Bdf { .bus      = node.attribute_value("bus",      0U),
+		             .device   = node.attribute_value("device",   0U),
+		             .function = node.attribute_value("function", 0U) };
+	}
+
+
 	uint16_t value() const {
 		return ((bus & 0xff) << 8) | ((device & 0x1f) << 3) | (function & 7); }
 
@@ -43,8 +51,8 @@ struct Platform::Pci::Bdf
 	void print(Output &out) const
 	{
 		using Genode::print;
-		print(out, Hex(bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
-		      ":", Hex(device, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
+		print(out, Hex((uint8_t)bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
+		      ":", Hex((uint8_t)device, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
 		      ".", Hex(function, Hex::Prefix::OMIT_PREFIX));
 	}
 };

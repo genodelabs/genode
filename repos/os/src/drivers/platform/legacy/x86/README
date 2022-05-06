@@ -151,6 +151,20 @@ USB4       0c  03  40
 VGA        03  00  00
 WIFI       02  80   -
 
+Fixups for insufficient PCI BAR configuration
+---------------------------------------------
+
+If PCI devices happen to miss complete configuration after boot, the
+platform driver supports <pci-fixup> nodes for concrete devices
+(specified by bus-device-functions tuples). As depicted below, the
+<bar> node instructs the platform driver to remap BAR id 0 to address
+0x4017002000, which amends the BIOS configuration and is stringently
+required for BARs with address 0.
+
+!<pci-fixup bus="0" device="0x15" function="3">
+!  <bar id="0" address="0x4017002000"/>
+!</pci-fixup>
+
 
 Supported non PCI devices
 -------------------------

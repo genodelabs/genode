@@ -69,6 +69,7 @@ class Platform::Pci::Resource
 
 	bool valid()    const { return !!_bar[0]; } /* no base address -> invalid */
 	bool mem()      const { return Bar::mem(_bar[0]); }
+	bool mem64()    const { return mem() && Bar::mem64(_bar[0]); }
 	uint64_t base() const { return mem() ? Bar::mem_address(_bar[0], _bar[1])
 	                                     : Bar::port_address(_bar[0]); }
 	uint64_t size() const { return _size; }
@@ -85,6 +86,9 @@ class Platform::Pci::Resource
 	void print(Output &out) const
 	{
 		Genode::print(out, Hex_range(base(), size()));
+		Genode::print(out, " (");
+		Genode::print(out, valid() ? mem() ? Bar::mem64(_bar[0]) ? "MEM64" : "MEM" : "IO" : "invalid");
+		Genode::print(out, ")");
 	}
 };
 
@@ -115,7 +119,7 @@ namespace Platform {
 
 			Platform::Pci::Resource _resource[Device::NUM_RESOURCES];
 
-			bool _resource_id_is_valid(int resource_id)
+			bool _resource_id_is_valid(int resource_id) const
 			{
 				/*
 				 * The maximum number of PCI resources depends on the
@@ -153,11 +157,14 @@ namespace Platform {
 				};
 			};
 
-			struct Device_bars {
+			struct Device_bars
+			{
 				Pci::Bdf bdf;
+
 				uint32_t bar_addr[Device::NUM_RESOURCES] { };
 
-				bool all_invalid() const {
+				bool all_invalid() const
+				{
 					for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 						if (bar_addr[i] != 0 && bar_addr[i] != ~0U)
 							return false;
@@ -219,26 +226,30 @@ namespace Platform {
 					/* index of base-address register in configuration space */
 					unsigned const bar_idx = 0x10 + 4 * i;
 
-					/* read base-address register value */
-					unsigned const bar_value =
-						pci_config->read(bdf, bar_idx, Device::ACCESS_32BIT);
+					/* First, save initial base-address register value. */
+					unsigned const bar_value = pci_config->read(bdf, bar_idx, Device::ACCESS_32BIT);
+
+					/*
+					 * Second, determine resource size (and validity) by writing
+					 * a magic value (all bits set) to the base-address
+					 * register. In response, the device clears a number of
+					 * lowest-significant bits corresponding to the resource
+					 * size.
+					 */
+					pci_config->write(bdf, bar_idx, ~0, Device::ACCESS_32BIT);
+					unsigned const bar_size = pci_config->read(bdf, bar_idx, Device::ACCESS_32BIT);
 
 					/* skip invalid resource BARs */
-					if (bar_value == ~0U || bar_value == 0U) {
+					if (bar_value == ~0U || bar_size == 0U) {
 						_resource[i] = Resource();
 						++i;
 						continue;
 					}
 
 					/*
-					 * Determine resource size by writing a magic value (all
-					 * bits set) to the base-address register. In response, the
-					 * device clears a number of lowest-significant bits
-					 * corresponding to the resource size. Finally, we write
-					 * back the bar-address value as assigned by the BIOS.
+					 * Finally, we write back the bar-address value as assigned
+					 * by the BIOS.
 					 */
-					pci_config->write(bdf, bar_idx, ~0, Device::ACCESS_32BIT);
-					unsigned const bar_size = pci_config->read(bdf, bar_idx, Device::ACCESS_32BIT);
 					pci_config->write(bdf, bar_idx, bar_value, Device::ACCESS_32BIT);
 
 					if (!Resource::Bar::mem64(bar_value)) {
@@ -298,6 +309,58 @@ namespace Platform {
 					return Platform::Pci::Resource();
 
 				return _resource[resource_id];
+			}
+
+			void remap_resource(Config_access &config, int const id,
+			                    uint64_t const base_address)
+			{
+				if (!_resource_id_is_valid(id))
+					return;
+
+				using Pci::Resource;
+
+				Resource &res = _resource[id];
+
+				log(*this, " remap BAR", id, " ", res, " to ", Hex(base_address));
+
+				struct Resource_params { uint32_t bar; uint32_t size; };
+
+				auto update_bar = [&] (int const id, uint32_t const address) {
+					unsigned const off = 0x10 + 4 * id;
+
+					config.write(_bdf, off, ~0U, Device::ACCESS_32BIT);
+
+					uint32_t const size = config.read(_bdf, off, Device::ACCESS_32BIT);
+
+					config.write(_bdf, off, address, Device::ACCESS_32BIT);
+
+					return Resource_params {
+						.bar  = config.read(_bdf, off, Device::ACCESS_32BIT),
+						.size = size
+					};
+				};
+
+				Resource_params const bar0 = update_bar(id, base_address & 0xffffffff);
+
+				if (!res.mem64()) {
+					res = Resource(bar0.bar, bar0.size);
+					return;
+				}
+
+				Resource_params const bar1 = update_bar(id + 1, (base_address >> 32) & 0xffffffff);
+
+				res = Resource(bar0.bar, bar0.size, bar1.bar, bar1.size);
+			}
+
+			template <typename FN> void for_each_resource(FN const &fn) const
+			{
+				for (unsigned r = 0; r < Device::NUM_RESOURCES; r++) {
+					if (!_resource_id_is_valid(r))
+						break;
+
+					if (_resource[r].valid())
+						fn(r, _resource[r]);
+				}
 			}
 
 			/**

@@ -71,8 +71,8 @@ class Platform::Rmrr : public List<Platform::Rmrr>::Element
 {
 	public:
 
-		class Bdf : public List<Bdf>::Element {
-
+		class Bdf : public List<Bdf>::Element
+		{
 			private:
 
 				uint8_t _bus, _dev, _func;
@@ -137,8 +137,8 @@ class Platform::Pci_buses
 
 		Bit_array<Device_config::MAX_BUSES> _valid { };
 
-		void scan_bus(Config_access &, Allocator &, Device_bars_pool &,
-		              unsigned char bus = 0);
+		void _scan_bus(Config_access &, Allocator &, Device_bars_pool &,
+		               unsigned char bus, Xml_node const &config);
 
 		bool _bus_valid(int bus)
 		{
@@ -152,10 +152,11 @@ class Platform::Pci_buses
 
 		Pci_buses(Allocator &heap,
 		          Attached_io_mem_dataspace &pciconf,
-		          Device_bars_pool &devices_bars)
+		          Device_bars_pool &devices_bars,
+		          Xml_node const &config_node)
 		{
 			Config_access c(pciconf);
-			scan_bus(c, heap, devices_bars);
+			_scan_bus(c, heap, devices_bars, 0 /* root bus */, config_node);
 		}
 
 		/**
@@ -365,13 +366,6 @@ class Platform::Session_component : public Rpc_object<Session>
 			    && node.has_attribute("function");
 		}
 
-		static Pci::Bdf _bdf_from_xml(Xml_node node)
-		{
-			return Pci::Bdf { .bus      = node.attribute_value("bus",      0U),
-			                  .device   = node.attribute_value("device",   0U),
-			                  .function = node.attribute_value("function", 0U) };
-		}
-
 		static bool _bdf_attributes_in_valid_range(Xml_node const &node)
 		{
 			return _bdf_exactly_specified(node)
@@ -382,7 +376,7 @@ class Platform::Session_component : public Rpc_object<Session>
 
 		static bool _bdf_matches(Xml_node const &node, Pci::Bdf const &bdf)
 		{
-			return _bdf_from_xml(node) == bdf;
+			return Pci::Bdf::from_xml(node) == bdf;
 		}
 
 		/**
@@ -586,7 +580,7 @@ class Platform::Session_component : public Rpc_object<Session>
 						throw Service_denied();
 					}
 
-					Pci::Bdf const bdf = _bdf_from_xml(node);
+					Pci::Bdf const bdf = Pci::Bdf::from_xml(node);
 
 					enum { DOUBLET = false };
 					if (find_dev_in_policy(bdf, DOUBLET)) {
@@ -1067,7 +1061,7 @@ class Platform::Root : public Root_component<Session_component>
 			/* try surviving wrong ACPI ECAM/MMCONF table information */
 			while (true) {
 				try {
-					_buses.construct(_heap, *_pci_confspace, _devices_bars);
+					_buses.construct(_heap, *_pci_confspace, _devices_bars, _config.xml());
 					/* construction and scan succeeded */
 					break;
 				} catch (Platform::Config_access::Invalid_mmio_access) {

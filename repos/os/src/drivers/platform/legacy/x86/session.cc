@@ -38,10 +38,11 @@ unsigned short Platform::bridge_bdf(unsigned char bus)
 	return Platform::Bridge::root_bridge_bdf;
 }
 
-void Platform::Pci_buses::scan_bus(Config_access &config_access,
-                                   Allocator &heap,
-                                   Device_bars_pool &devices_bars,
-                                   unsigned char bus)
+void Platform::Pci_buses::_scan_bus(Config_access &config_access,
+                                    Allocator &heap,
+                                    Device_bars_pool &devices_bars,
+                                    unsigned char bus,
+                                    Xml_node const &config_node)
 {
 	for (unsigned dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
 		for (unsigned fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
@@ -51,12 +52,40 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 			/* read config space */
 			Device_config config(bdf, &config_access);
 
+			if (!config.valid())
+				continue;
+
+			/* apply fixups to BAR memory resources */
+			config.for_each_resource([&] (int const id, Platform::Pci::Resource const res)
+			{
+				uint64_t remap_address = 0;
+				config_node.for_each_sub_node("pci-fixup", [&] (Xml_node node) {
+					if (!node.has_attribute("bus")
+					 || !node.has_attribute("device")
+					 || !node.has_attribute("function")
+					 || !(bdf == Pci::Bdf::from_xml(node)))
+						return;
+
+					node.for_each_sub_node("bar", [&] (Xml_node node) {
+						if (node.attribute_value("id", (long)-1) == id)
+							remap_address = node.attribute_value("address", (uint64_t)0);
+					});
+				});
+
+				if (remap_address) {
+					config.remap_resource(config_access, id, 0x4017002000);
+					return;
+				}
+
+				if (!res.base() && res.mem())
+					warning(bdf, " BAR", id, " ", res,
+					        " has invalid base address - consider <pci-fixup>");
+			});
+
 			/* remember Device BARs required after power off and/or reset */
-			if (config.valid()) {
-				Device_config::Device_bars bars = config.save_bars();
-				if (!bars.all_invalid())
-					new (heap) Registered<Device_config::Device_bars>(devices_bars, bars);
-			}
+			Device_config::Device_bars bars = config.save_bars();
+			if (!bars.all_invalid())
+				new (heap) Registered<Device_config::Device_bars>(devices_bars, bars);
 
 			/*
 			 * Switch off PCI bus master DMA for some classes of devices,
@@ -84,9 +113,6 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 					config.disable_bus_master_dma(config_access);
 				}
 			}
-
-			if (!config.valid())
-				continue;
 
 			/*
 			 * There is at least one device on the current bus, so
@@ -123,7 +149,7 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 				    Hex(sec_bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
 				    ":00.0", !enabled ? " enabled" : "");
 
-				scan_bus(config_access, heap, devices_bars, sec_bus);
+				_scan_bus(config_access, heap, devices_bars, sec_bus, config_node);
 			}
 		}
 	}
