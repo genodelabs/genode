@@ -133,6 +133,19 @@ Genode::addr_t Lx_kit::Mem_allocator::virt_addr(void * dma_addr)
 }
 
 
+Genode::addr_t Lx_kit::Mem_allocator::virt_region_start(void * virt_addr)
+{
+	addr_t ret = 0UL;
+
+	_virt_to_dma.apply(Buffer_info::Query_addr(virt_addr),
+	                   [&] (Buffer_info const & info) {
+		ret = info.buffer.virt_addr();
+	});
+
+	return ret;
+}
+
+
 bool Lx_kit::Mem_allocator::free(const void * ptr)
 {
 	if (!_mem.valid_addr((addr_t)ptr))
