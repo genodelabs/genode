@@ -102,6 +102,7 @@ class Lx_kit::Mem_allocator
 		void * alloc(size_t size, size_t align);
 		addr_t dma_addr(void * addr);
 		addr_t virt_addr(void * dma_addr);
+		addr_t virt_region_start(void * virt_addr);
 		size_t size(const void * ptr);
 		bool   free(const void * ptr);
 };
