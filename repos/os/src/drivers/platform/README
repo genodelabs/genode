@@ -1,5 +1,22 @@
 This directory contains the implementation of Genode's platform driver.
 
+Devices ROM
+-----------
+
+The platform driver knows which devices exist, as well as what resources
+they need by parsing XML information from a devices ROM. This ROM might be
+a boot module written by a system integrator, or is dynamically produced
+after investigating ACPI and PCI(*) information. The devices ROM name can be
+defined by setting the "devices_rom" attribute in the config of the
+platform driver:
+
+! <config devices_rom="my_devices">
+!   ...
+! </config>
+
+If the attribute isn't set, the platform driver asks for a ROM called
+"devices" by default.
+
 Behavior
 --------
 

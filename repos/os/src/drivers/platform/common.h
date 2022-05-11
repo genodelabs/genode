@@ -20,7 +20,8 @@ class Driver::Common
 	private:
 
 		Env                    & _env;
-		Attached_rom_dataspace   _devices_rom  { _env, "devices"          };
+		String<64>               _rom_name;
+		Attached_rom_dataspace   _devices_rom  { _env, _rom_name.string() };
 		Reporter                 _cfg_reporter { _env, "config"           };
 		Reporter                 _dev_reporter { _env, "devices"          };
 		Heap                     _heap         { _env.ram(), _env.rm()    };
@@ -82,6 +83,8 @@ Driver::Common::Common(Genode::Env            & env,
                        Attached_rom_dataspace & config_rom)
 :
 	_env(env),
+	_rom_name(config_rom.xml().attribute_value("devices_rom",
+	                                           String<64>("devices"))),
 	_root(_env, _sliced_heap, config_rom, _devices)
 {
 	_handle_devices();
