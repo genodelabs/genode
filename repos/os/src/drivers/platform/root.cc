@@ -67,9 +67,9 @@ void Driver::Root::_upgrade_session(Session_component * sc, const char * args)
 }
 
 
-Driver::Root::Root(Env                    & env,
-                   Sliced_heap            & sliced_heap,
-                   Attached_rom_dataspace & config,
-                   Device_model           & devices)
+Driver::Root::Root(Env                          & env,
+                   Sliced_heap                  & sliced_heap,
+                   Attached_rom_dataspace const & config,
+                   Device_model                 & devices)
 : Root_component<Session_component>(env.ep(), sliced_heap),
   _env(env), _config(config), _devices(devices) { }

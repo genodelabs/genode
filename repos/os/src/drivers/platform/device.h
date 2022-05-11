@@ -257,19 +257,21 @@ class Driver::Device_model :
 {
 	private:
 
-		Heap             & _heap;
-		Reporter         & _reporter;
-		List_model<Device> _model  { };
-		Clocks             _clocks { };
-		Resets             _resets { };
-		Powers             _powers { };
+		Heap               & _heap;
+		List_model<Device>   _model  { };
+		Clocks               _clocks { };
+		Resets               _resets { };
+		Powers               _powers { };
+
+		Constructible<Expanding_reporter> & _reporter;
 
 	public:
 
 		void update_report();
 		void update(Xml_node const & node);
 
-		Device_model(Heap & heap, Reporter & reporter)
+		Device_model(Heap & heap,
+		             Constructible<Expanding_reporter> & reporter)
 		: _heap(heap), _reporter(reporter) { }
 
 		~Device_model() {

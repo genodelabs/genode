@@ -5,7 +5,7 @@ Devices ROM
 
 The platform driver knows which devices exist, as well as what resources
 they need by parsing XML information from a devices ROM. This ROM might be
-a boot module written by a system integrator, or is dynamically produced
+a boot module, written by a system integrator, or is dynamically produced
 after investigating ACPI and PCI(*) information. The devices ROM name can be
 defined by setting the "devices_rom" attribute in the config of the
 platform driver:
@@ -20,11 +20,11 @@ If the attribute isn't set, the platform driver asks for a ROM called
 Behavior
 --------
 
-Per client a policy must be configured that states which client can
+Per client a policy must be configured that states, which client can
 access certain devices to form a virtual bus per client. The client may
 iterate through the virtual bus using the devices_rom() function of
 the platform_session interface to discover all available devices of the virtual
-bus. When identified a specific device its device capability can be obtained
+bus. When identified a specific device, its device capability can be obtained
 via its unique name. Simple device drivers that drive exactly one device do
 not need the devices ROM, but can simply obtain their device capability via
 the acquire_single_device() function of the platform session interface.
@@ -48,20 +48,20 @@ A policy may contain several nodes describing several devices.
 ! </config>
 ! ...
 
-The managing_system attribute is evaluated by init. If set to "yes" it
+The managing_system attribute is evaluated by init. If set to "yes", it
 permits a component, the platform driver, to restrict the allocation of memory to
 specific physical RAM ranges. The platform driver uses this feature to ensure that
 the allocation of DMA capable memory consider several restrictions. For
 example, some drivers, as the UHCI controller, requires a
-physical memory address below 4G. Another example is that on 32bit hosts
-physical to virtual identical mappings of DMA memory for the device_pd
+physical memory address below 4G. Another example is: on 32bit hosts
+physical to virtual identical mappings of DMA memory for the device PD
 (required when IOMMU is used) must be below the kernel memory boundary (3G).
 On some systems, e.g., base-hw kernel on certain ARM platforms, it allows the
 platform driver to call system management firmware via kernel syscalls.
 
 The 'info' attribute in a policy node describe, whether the client's devices
 ROM will contain detailed information about physical resources of the devices
-of its virtual bus. This is only useful when using ported legacy drivers, which
+of its virtual bus. This is only useful, when using ported legacy drivers, which
 operate with global names of physical resources.
 
 Policy for PCI devices
@@ -87,11 +87,11 @@ By default the platform driver does not report anything. But when adding a
 report node:
 
 ! <config>
-!  <report devices="yes" config="yes"
+!  <report devices="yes" config="yes"/>
 !   ...
 ! </config>
 
 it is possible to enable either a devices and/or config report. The first will
-open up a Report session to dynamically report all accessible devices and its
+open up a Report session to dynamically report all accessible devices, and its
 state. Whereby the second report states the currently active configuration of
 the platform driver.

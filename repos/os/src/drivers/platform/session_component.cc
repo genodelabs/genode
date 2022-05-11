@@ -225,15 +225,15 @@ Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 }
 
 
-Session_component::Session_component(Env                    & env,
-                                     Attached_rom_dataspace & config,
-                                     Device_model           & devices,
-                                     Session_registry       & registry,
-                                     Label          const   & label,
-                                     Resources      const   & resources,
-                                     Diag           const   & diag,
-                                     bool           const     info,
-                                     Policy_version const     version)
+Session_component::Session_component(Env                          & env,
+                                     Attached_rom_dataspace const & config,
+                                     Device_model                 & devices,
+                                     Session_registry             & registry,
+                                     Label          const         & label,
+                                     Resources      const         & resources,
+                                     Diag           const         & diag,
+                                     bool           const           info,
+                                     Policy_version const           version)
 :
 	Session_object<Platform::Session>(env.ep(), resources, label, diag),
 	Session_registry::Element(registry, *this),

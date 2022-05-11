@@ -44,15 +44,15 @@ class Driver::Session_component
 		using Session_registry = Registry<Session_component>;
 		using Policy_version   = String<64>;
 
-		Session_component(Env                    & env,
-		                  Attached_rom_dataspace & config,
-		                  Device_model           & devices,
-		                  Session_registry       & registry,
-		                  Label            const & label,
-		                  Resources        const & resources,
-		                  Diag             const & diag,
-		                  bool             const   info,
-		                  Policy_version   const   version);
+		Session_component(Env                          & env,
+		                  Attached_rom_dataspace const & config,
+		                  Device_model                 & devices,
+		                  Session_registry             & registry,
+		                  Label            const       & label,
+		                  Resources        const       & resources,
+		                  Diag             const       & diag,
+		                  bool             const         info,
+		                  Policy_version   const         version);
 
 		~Session_component();
 
@@ -98,23 +98,23 @@ class Driver::Session_component
 			: Registry<Dma_buffer>::Element(registry, *this), cap(cap) {}
 		};
 
-		Env                      & _env;
-		Attached_rom_dataspace   & _config;
-		Device_model             & _devices;
-		Device::Owner              _owner_id    { *this };
-		Constrained_ram_allocator  _env_ram     { _env.pd(),
-		                                          _ram_quota_guard(),
-		                                          _cap_quota_guard()  };
-		Heap                       _md_alloc    { _env_ram, _env.rm() };
-		Registry<Device_component> _device_registry { };
-		Registry<Dma_buffer>       _buffer_registry { };
-		Dynamic_rom_session        _rom_session { _env.ep(), _env.ram(),
-		                                          _env.rm(), *this    };
-		bool                       _info;
-		Policy_version             _version;
-		Device_pd                  _device_pd { _env,
-		                                        _ram_quota_guard(),
-		                                        _cap_quota_guard() };
+		Env                          & _env;
+		Attached_rom_dataspace const & _config;
+		Device_model                 & _devices;
+		Device::Owner                  _owner_id    { *this };
+		Constrained_ram_allocator      _env_ram     { _env.pd(),
+		                                              _ram_quota_guard(),
+		                                              _cap_quota_guard()  };
+		Heap                           _md_alloc    { _env_ram, _env.rm() };
+		Registry<Device_component>     _device_registry { };
+		Registry<Dma_buffer>           _buffer_registry { };
+		Dynamic_rom_session            _rom_session { _env.ep(), _env.ram(),
+		                                              _env.rm(), *this    };
+		bool                           _info;
+		Policy_version                 _version;
+		Device_pd                      _device_pd { _env,
+		                                            _ram_quota_guard(),
+		                                            _cap_quota_guard() };
 
 		Device_capability _acquire(Device & device);
 		void              _release_device(Device_component & dc);

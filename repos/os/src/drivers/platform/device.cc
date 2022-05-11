@@ -186,12 +186,11 @@ Driver::Device::~Device()
 
 void Driver::Device_model::update_report()
 {
-	if (_reporter.enabled()) {
-		Reporter::Xml_generator xml(_reporter, [&] () {
+	if (_reporter.constructed())
+		_reporter->generate([&] (Xml_generator & xml) {
 			for_each([&] (Device & device) {
 				device.report(xml, *this, true); });
 		});
-	}
 }
 
 

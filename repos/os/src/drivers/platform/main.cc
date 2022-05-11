@@ -29,8 +29,8 @@ struct Driver::Main
 	Main(Genode::Env & e)
 	: _env(e)
 	{
-		_handle_config();
 		_config_rom.sigh(_config_handler);
+		_handle_config();
 		_common.announce_service();
 	}
 };

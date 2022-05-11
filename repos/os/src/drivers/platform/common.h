@@ -22,14 +22,15 @@ class Driver::Common
 		Env                    & _env;
 		String<64>               _rom_name;
 		Attached_rom_dataspace   _devices_rom  { _env, _rom_name.string() };
-		Reporter                 _cfg_reporter { _env, "config"           };
-		Reporter                 _dev_reporter { _env, "devices"          };
 		Heap                     _heap         { _env.ram(), _env.rm()    };
 		Sliced_heap              _sliced_heap  { _env.ram(), _env.rm()    };
 		Device_model             _devices      { _heap, _dev_reporter     };
 		Signal_handler<Common>   _dev_handler  { _env.ep(), *this,
 		                                         &Common::_handle_devices };
 		Driver::Root             _root;
+
+		Constructible<Expanding_reporter> _cfg_reporter { };
+		Constructible<Expanding_reporter> _dev_reporter { };
 
 		void _handle_devices();
 
@@ -41,8 +42,8 @@ class Driver::Common
 		void handle_config(Xml_node config);
 		void announce_service();
 
-		Common(Genode::Env            & env,
-		       Attached_rom_dataspace & config_rom);
+		Common(Genode::Env                  & env,
+		       Attached_rom_dataspace const & config_rom);
 };
 
 
@@ -57,19 +58,20 @@ void Driver::Common::_handle_devices()
 void Driver::Common::handle_config(Xml_node config)
 {
 	config.for_each_sub_node("report", [&] (Xml_node const node) {
-		_dev_reporter.enabled(node.attribute_value("devices", false));
-		_cfg_reporter.enabled(node.attribute_value("config",  false));
+		_dev_reporter.conditional(node.attribute_value("devices", false),
+		                          _env, "devices", "devices");
+		_cfg_reporter.conditional(node.attribute_value("config", false),
+		                          _env, "config", "config");
 	});
 
 	_root.update_policy();
 
-	if (_cfg_reporter.enabled()) {
-		Reporter::Xml_generator xml(_cfg_reporter, [&] () {
+	if (_cfg_reporter.constructed())
+		_cfg_reporter->generate([&] (Xml_generator & xml) {
 			config.with_raw_content([&] (char const *src, size_t len) {
 				xml.append(src, len);
 			});
 		});
-	}
 }
 
 
@@ -79,14 +81,14 @@ void Driver::Common::announce_service()
 }
 
 
-Driver::Common::Common(Genode::Env            & env,
-                       Attached_rom_dataspace & config_rom)
+Driver::Common::Common(Genode::Env                  & env,
+                       Attached_rom_dataspace const & config_rom)
 :
 	_env(env),
 	_rom_name(config_rom.xml().attribute_value("devices_rom",
 	                                           String<64>("devices"))),
 	_root(_env, _sliced_heap, config_rom, _devices)
 {
-	_handle_devices();
 	_devices_rom.sigh(_dev_handler);
+	_handle_devices();
 }
