@@ -33,6 +33,7 @@ namespace Driver {
 	using namespace Genode;
 
 	class  Device;
+	struct Device_reporter;
 	struct Device_model;
 	class  Session_component;
 	struct Irq_update_policy;
@@ -173,38 +174,38 @@ class Driver::Device : private List_model<Device>::Element
 				bridge(bridge) {}
 		};
 
-		Device(Name name, Type type);
+		Device(Device_model & model, Name name, Type type);
 		virtual ~Device();
 
-		Name  name() const;
-		Type  type() const;
+		Name  name()  const;
+		Type  type()  const;
 		Owner owner() const;
 
 		virtual void acquire(Session_component &);
 		virtual void release(Session_component &);
 
-		template <typename FN> void for_each_irq(FN const & fn)
+		template <typename FN> void for_each_irq(FN const & fn) const
 		{
 			unsigned idx = 0;
 			_irq_list.for_each([&] (Irq const & irq) {
 				fn(idx++, irq.number, irq.type, irq.polarity, irq.mode); });
 		}
 
-		template <typename FN> void for_each_io_mem(FN const & fn)
+		template <typename FN> void for_each_io_mem(FN const & fn) const
 		{
 			unsigned idx = 0;
 			_io_mem_list.for_each([&] (Io_mem const & iomem) {
 				fn(idx++, iomem.range); });
 		}
 
-		template <typename FN> void for_each_io_port_range(FN const & fn)
+		template <typename FN> void for_each_io_port_range(FN const & fn) const
 		{
 			unsigned idx = 0;
 			_io_port_range_list.for_each([&] (Io_port_range const & ipr) {
 				fn(idx++, ipr.addr, ipr.size); });
 		}
 
-		template <typename FN> void for_pci_config(FN const & fn)
+		template <typename FN> void for_pci_config(FN const & fn) const
 		{
 			/*
 			 * we allow only one PCI config per device,
@@ -221,19 +222,17 @@ class Driver::Device : private List_model<Device>::Element
 			});
 		}
 
-		void report(Xml_generator &, Device_model &, bool);
+		void generate(Xml_generator &, bool) const;
 
 	protected:
-
-		virtual void _report_platform_specifics(Xml_generator &,
-		                                        Device_model  &) {}
 
 		friend class Driver::Device_model;
 		friend class List_model<Device>;
 		friend class List<Device>;
 
-		Name                      _name;
-		Type                      _type;
+		Device_model            & _model;
+		Name                const _name;
+		Type                const _type;
 		Owner                     _owner {};
 		List_model<Io_mem>        _io_mem_list {};
 		List_model<Irq>           _irq_list {};
@@ -252,26 +251,34 @@ class Driver::Device : private List_model<Device>::Element
 };
 
 
+struct Driver::Device_reporter
+{
+	virtual ~Device_reporter() {}
+
+	virtual void update_report() = 0;
+};
+
+
 class Driver::Device_model :
 	public List_model<Device>::Update_policy
 {
 	private:
 
 		Heap               & _heap;
+		Device_reporter    & _reporter;
 		List_model<Device>   _model  { };
 		Clocks               _clocks { };
 		Resets               _resets { };
 		Powers               _powers { };
 
-		Constructible<Expanding_reporter> & _reporter;
-
 	public:
 
-		void update_report();
+		void generate(Xml_generator & xml) const;
 		void update(Xml_node const & node);
+		void device_status_changed();
 
 		Device_model(Heap & heap,
-		             Constructible<Expanding_reporter> & reporter)
+		             Device_reporter & reporter)
 		: _heap(heap), _reporter(reporter) { }
 
 		~Device_model() {
@@ -279,6 +286,9 @@ class Driver::Device_model :
 
 		template <typename FN>
 		void for_each(FN const & fn) { _model.for_each(fn); }
+
+		template <typename FN>
+		void for_each(FN const & fn) const { _model.for_each(fn); }
 
 
 		/***********************

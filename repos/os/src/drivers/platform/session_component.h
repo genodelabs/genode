@@ -56,12 +56,11 @@ class Driver::Session_component
 
 		~Session_component();
 
-		Env          & env();
-		Heap         & heap();
-		Device_model & devices();
-		Device_pd    & device_pd();
+		Env       & env();
+		Heap      & heap();
+		Device_pd & device_pd();
 
-		bool matches(Device &) const;
+		bool matches(Device const &) const;
 		void update_devices_rom();
 
 		Ram_quota_guard & ram_quota_guard() { return _ram_quota_guard(); }

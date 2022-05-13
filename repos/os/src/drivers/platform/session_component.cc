@@ -49,7 +49,7 @@ void Session_component::_free_dma_buffer(Dma_buffer & buf)
 }
 
 
-bool Session_component::matches(Device & dev) const
+bool Session_component::matches(Device const & dev) const
 {
 	bool ret = false;
 
@@ -80,7 +80,7 @@ void Session_component::update_policy(bool info, Policy_version version)
 
 	_device_registry.for_each([&] (Device_component & dc) {
 		Device_state state = AWAY;
-		_devices.for_each([&] (Device & dev) {
+		_devices.for_each([&] (Device const & dev) {
 			if (dev.name() != dc.device())
 				return;
 			state = (dev.owner() == _owner_id) ? UNCHANGED : CHANGED;
@@ -107,15 +107,12 @@ void Session_component::produce_xml(Xml_generator &xml)
 	if (_version.valid())
 		xml.attribute("version", _version);
 
-	_devices.for_each([&] (Device & dev) {
-		if (matches(dev)) dev.report(xml, _devices, _info); });
+	_devices.for_each([&] (Device const & dev) {
+		if (matches(dev)) dev.generate(xml, _info); });
 }
 
 
 Genode::Env & Session_component::env() { return _env; }
-
-
-Driver::Device_model & Session_component::devices() { return _devices; }
 
 
 Genode::Heap & Session_component::heap() { return _md_alloc; }
@@ -217,7 +214,7 @@ Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 	if (!ram_cap.valid())
 		return ret;
 
-	_buffer_registry.for_each([&] (Dma_buffer & buf) {
+	_buffer_registry.for_each([&] (Dma_buffer const & buf) {
 		if (buf.cap.local_name() == ram_cap.local_name())
 			ret = _env.pd().dma_addr(buf.cap); });
 

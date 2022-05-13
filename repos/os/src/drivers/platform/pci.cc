@@ -24,14 +24,14 @@ using namespace Pci;
 
 struct Config_helper
 {
-	Driver::Device                   & _dev;
+	Driver::Device             const & _dev;
 	Driver::Device::Pci_config const & _cfg;
 
 	Attached_io_mem_dataspace _io_mem;
 	Config                    _config { (addr_t)_io_mem.local_addr<void>() };
 
 	Config_helper(Env                              & env,
-	              Driver::Device                   & dev,
+	              Driver::Device             const & dev,
 	              Driver::Device::Pci_config const & cfg)
 	: _dev(dev), _cfg(cfg), _io_mem(env, cfg.addr, 0x1000) { }
 
@@ -70,21 +70,23 @@ struct Config_helper
 };
 
 
-void Driver::pci_enable(Env & env, Device_pd & pd, Device & dev)
+void Driver::pci_enable(Env & env, Device_pd & pd, Device const & dev)
 {
 	dev.for_pci_config([&] (Device::Pci_config const & pc) {
 		Config_helper(env, dev, pc).enable(pd); });
 }
 
 
-void Driver::pci_disable(Env & env, Device & dev)
+void Driver::pci_disable(Env & env, Device const & dev)
 {
 	dev.for_pci_config([&] (Device::Pci_config const & pc) {
 		Config_helper(env, dev, pc).disable(); });
 }
 
 
-void Driver::pci_msi_enable(Env & env, addr_t cfg_space, Irq_session::Info info)
+void Driver::pci_msi_enable(Env                   & env,
+                            addr_t                  cfg_space,
+                            Irq_session::Info const info)
 {
 	Attached_io_mem_dataspace io_mem { env, cfg_space, 0x1000 };
 	Config config { (addr_t)io_mem.local_addr<void>() };
@@ -140,7 +142,8 @@ pci_class_code_alias(uint32_t class_code)
 }
 
 
-bool Driver::pci_device_matches(Session_policy const & policy, Device & dev)
+bool Driver::pci_device_matches(Session_policy const & policy,
+                                Device         const & dev)
 {
 	bool ret = false;
 
@@ -153,7 +156,7 @@ bool Driver::pci_device_matches(Session_policy const & policy, Device & dev)
 		vendor_t   vendor_id  = node.attribute_value<vendor_t>("vendor_id", 0);
 		device_t   device_id  = node.attribute_value<device_t>("device_id", 0);
 
-		dev.for_pci_config([&] (Device::Pci_config cfg)
+		dev.for_pci_config([&] (Device::Pci_config const cfg)
 		{
 			if ((pci_class_code_alias(cfg.class_code) == class_code) ||
 			    (vendor_id == cfg.vendor_id && device_id == cfg.device_id))

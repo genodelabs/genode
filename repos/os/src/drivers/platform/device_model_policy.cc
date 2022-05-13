@@ -66,7 +66,7 @@ Device & Device_model::create_element(Genode::Xml_node node)
 {
 	Device::Name name = node.attribute_value("name", Device::Name());
 	Device::Type type = node.attribute_value("type", Device::Type());
-	return *(new (_heap) Device(name, type));
+	return *(new (_heap) Device(*this, name, type));
 }
 
 

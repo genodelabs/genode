@@ -15,7 +15,7 @@
 
 namespace Driver { class Common; };
 
-class Driver::Common
+class Driver::Common : Device_reporter
 {
 	private:
 
@@ -24,7 +24,7 @@ class Driver::Common
 		Attached_rom_dataspace   _devices_rom  { _env, _rom_name.string() };
 		Heap                     _heap         { _env.ram(), _env.rm()    };
 		Sliced_heap              _sliced_heap  { _env.ram(), _env.rm()    };
-		Device_model             _devices      { _heap, _dev_reporter     };
+		Device_model             _devices      { _heap, *this             };
 		Signal_handler<Common>   _dev_handler  { _env.ep(), *this,
 		                                         &Common::_handle_devices };
 		Driver::Root             _root;
@@ -36,14 +36,21 @@ class Driver::Common
 
 	public:
 
+		Common(Genode::Env                  & env,
+		       Attached_rom_dataspace const & config_rom);
+
 		Heap         & heap()    { return _heap;    }
 		Device_model & devices() { return _devices; }
 
-		void handle_config(Xml_node config);
 		void announce_service();
+		void handle_config(Xml_node config);
 
-		Common(Genode::Env                  & env,
-		       Attached_rom_dataspace const & config_rom);
+
+		/*********************
+		 ** Device_reporter **
+		 *********************/
+
+		void update_report() override;
 };
 
 
@@ -51,7 +58,16 @@ void Driver::Common::_handle_devices()
 {
 	_devices_rom.update();
 	_devices.update(_devices_rom.xml());
+	update_report();
 	_root.update_policy();
+}
+
+
+void Driver::Common::update_report()
+{
+	if (_dev_reporter.constructed())
+		_dev_reporter->generate([&] (Xml_generator & xml) {
+			_devices.generate(xml); });
 }
 
 

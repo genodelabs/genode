@@ -37,7 +37,7 @@ void Driver::Device::acquire(Session_component & sc)
 	_power_domain_list.for_each([&] (Power_domain & p) {
 
 		bool ok = false;
-		sc.devices().powers().apply(p.name, [&] (Driver::Power &power) {
+		_model.powers().apply(p.name, [&] (Driver::Power &power) {
 			power.on();
 			ok = true;
 		});
@@ -49,7 +49,7 @@ void Driver::Device::acquire(Session_component & sc)
 	_reset_domain_list.for_each([&] (Reset_domain & r) {
 
 		bool ok = false;
-		sc.devices().resets().apply(r.name, [&] (Driver::Reset &reset) {
+		_model.resets().apply(r.name, [&] (Driver::Reset &reset) {
 			reset.deassert();
 			ok = true;
 		});
@@ -61,7 +61,7 @@ void Driver::Device::acquire(Session_component & sc)
 	_clock_list.for_each([&] (Clock &c) {
 
 		bool ok = false;
-		sc.devices().clocks().apply(c.name, [&] (Driver::Clock &clock) {
+		_model.clocks().apply(c.name, [&] (Driver::Clock &clock) {
 
 			if (c.parent.valid())
 				clock.parent(c.parent);
@@ -81,7 +81,7 @@ void Driver::Device::acquire(Session_component & sc)
 
 	pci_enable(sc.env(), sc.device_pd(), *this);
 	sc.update_devices_rom();
-	sc.devices().update_report();
+	_model.device_status_changed();
 }
 
 
@@ -94,36 +94,35 @@ void Driver::Device::release(Session_component & sc)
 
 	_reset_domain_list.for_each([&] (Reset_domain & r)
 	{
-		sc.devices().resets().apply(r.name, [&] (Driver::Reset &reset) {
+		_model.resets().apply(r.name, [&] (Driver::Reset &reset) {
 			reset.assert(); });
 	});
 
 	_power_domain_list.for_each([&] (Power_domain & p)
 	{
-		sc.devices().powers().apply(p.name, [&] (Driver::Power &power) {
+		_model.powers().apply(p.name, [&] (Driver::Power &power) {
 			power.off(); });
 	});
 
 	_clock_list.for_each([&] (Clock & c)
 	{
-		sc.devices().clocks().apply(c.name, [&] (Driver::Clock &clock) {
+		_model.clocks().apply(c.name, [&] (Driver::Clock &clock) {
 			clock.disable(); });
 	});
 
 	_owner = Owner();
 	sc.update_devices_rom();
-	sc.devices().update_report();
+	_model.device_status_changed();
 }
 
 
-void Driver::Device::report(Xml_generator & xml, Device_model & devices,
-                            bool info)
+void Driver::Device::generate(Xml_generator & xml, bool info) const
 {
 	xml.node("device", [&] () {
 		xml.attribute("name", name());
 		xml.attribute("type", type());
 		xml.attribute("used", _owner.valid());
-		_io_mem_list.for_each([&] (Io_mem & io_mem) {
+		_io_mem_list.for_each([&] (Io_mem const & io_mem) {
 			xml.node("io_mem", [&] () {
 				if (!info)
 					return;
@@ -131,14 +130,14 @@ void Driver::Device::report(Xml_generator & xml, Device_model & devices,
 				xml.attribute("size",      String<16>(Hex(io_mem.range.size)));
 			});
 		});
-		_irq_list.for_each([&] (Irq & irq) {
+		_irq_list.for_each([&] (Irq const & irq) {
 			xml.node("irq", [&] () {
 				if (!info)
 					return;
 				xml.attribute("number", irq.number);
 			});
 		});
-		_io_port_range_list.for_each([&] (Io_port_range & io_port_range) {
+		_io_port_range_list.for_each([&] (Io_port_range const & io_port_range) {
 			xml.node("io_port_range", [&] () {
 				if (!info)
 					return;
@@ -146,35 +145,33 @@ void Driver::Device::report(Xml_generator & xml, Device_model & devices,
 				xml.attribute("size",      String<16>(Hex(io_port_range.size)));
 			});
 		});
-		_property_list.for_each([&] (Property & p) {
+		_property_list.for_each([&] (Property const & p) {
 			xml.node("property", [&] () {
 				xml.attribute("name",  p.name);
 				xml.attribute("value", p.value);
 			});
 		});
-		_clock_list.for_each([&] (Clock &c) {
-			devices.clocks().apply(c.name, [&] (Driver::Clock &clock) {
+		_clock_list.for_each([&] (Clock const & c) {
+			_model.clocks().apply(c.name, [&] (Driver::Clock &clock) {
 				xml.node("clock", [&] () {
 					xml.attribute("rate", clock.rate().value);
 					xml.attribute("name", c.driver_name);
 				});
 			});
 		});
-		_pci_config_list.for_each([&] (Pci_config &pci) {
+		_pci_config_list.for_each([&] (Pci_config const & pci) {
 			xml.node("pci-config", [&] () {
 				xml.attribute("vendor_id", String<16>(Hex(pci.vendor_id)));
 				xml.attribute("device_id", String<16>(Hex(pci.device_id)));
 				xml.attribute("class",     String<16>(Hex(pci.class_code)));
 			});
 		});
-
-		_report_platform_specifics(xml, devices);
 	});
 }
 
 
-Driver::Device::Device(Name name, Type type)
-: _name(name), _type(type) { }
+Driver::Device::Device(Device_model & model, Name name, Type type)
+: _model(model), _name(name), _type(type) { }
 
 
 Driver::Device::~Device()
@@ -184,18 +181,20 @@ Driver::Device::~Device()
 }
 
 
-void Driver::Device_model::update_report()
+void Driver::Device_model::device_status_changed()
 {
-	if (_reporter.constructed())
-		_reporter->generate([&] (Xml_generator & xml) {
-			for_each([&] (Device & device) {
-				device.report(xml, *this, true); });
-		});
+	_reporter.update_report();
+};
+
+
+void Driver::Device_model::generate(Xml_generator & xml) const
+{
+	for_each([&] (Device const & device) {
+		device.generate(xml, true); });
 }
 
 
 void Driver::Device_model::update(Xml_node const & node)
 {
 	_model.update_from_xml(*this, node);
-	update_report();
 }
