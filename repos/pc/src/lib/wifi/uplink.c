@@ -12,6 +12,8 @@
  * version 2.
  */
 
+#include "lx_user.h"
+
 #include <linux/kthread.h>
 #include <linux/netdevice.h>
 #include <lx_user/init.h>

@@ -13,26 +13,25 @@
 
 /* DDE Linux includes */
 #include "lx_socket_call.h"
+#include "lx_user.h"
 
 /* kernel includes */
 #include <linux/socket.h>
 #include <linux/net.h>
 #include <net/sock.h>
 
-
-struct task_struct *lx_socket_call_task;
-void *lx_socket_call_task_args;
-extern int run_lx_socket_call_task(void *p);
-
+struct task_struct *socketcall_task_struct_ptr;
+extern int socketcall_task_function(void *p);
 
 extern struct net init_net;
 
-void lx_user_init(void)
+
+void socketcall_init(void)
 {
-	int pid = kernel_thread(run_lx_socket_call_task,
-	                        lx_socket_call_task_args,
+	int pid = kernel_thread(socketcall_task_function,
+	                        NULL,
 	                        CLONE_FS | CLONE_FILES);
-	lx_socket_call_task = find_task_by_pid_ns(pid, NULL);
+	socketcall_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
 }
 
 

@@ -22,6 +22,7 @@
 #include <lx_kit/env.h>
 
 /* local includes */
+#include "lx_user.h"
 #include "lx_socket_call.h"
 #include "libc_errno.h"
 
@@ -127,10 +128,6 @@ static int convert_errno_from_linux(int linux_errno)
 
 
 static_assert((unsigned)Wifi::Msghdr::MAX_IOV_LEN == (unsigned)MAX_IOV_LEN);
-
-
-extern "C" struct task_struct *lx_socket_call_task;
-extern "C" void               *lx_socket_call_task_args;
 
 
 
@@ -410,7 +407,7 @@ class Lx::Socket
 
 		void _handle()
 		{
-			lx_emul_task_unblock(lx_socket_call_task);
+			lx_emul_task_unblock(socketcall_task_struct_ptr);
 			Lx_kit::env().scheduler.schedule();
 		}
 
@@ -466,14 +463,12 @@ static Lx::Socket *_socket;
 
 
 extern Genode::Blockade *wpa_blockade;
-extern "C" void uplink_init(void);
 
-extern "C" int run_lx_socket_call_task(void *)
+extern "C" int socketcall_task_function(void *)
 {
 	static Lx::Socket inst(Lx_kit::env().env.ep());
 	_socket = &inst;
 
-	uplink_init();
 	wpa_blockade->wakeup();
 
 	while (true) {
@@ -490,7 +485,7 @@ void wifi_kick_socketcall()
 	/* ignore silently, the function might be called to before init */
 	if (!_socket) { return; }
 
-	lx_emul_task_unblock(lx_socket_call_task);
+	lx_emul_task_unblock(socketcall_task_struct_ptr);
 	Lx_kit::env().scheduler.schedule();
 }
 

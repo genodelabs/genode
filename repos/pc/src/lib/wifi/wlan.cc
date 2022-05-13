@@ -25,8 +25,8 @@
 #include <lx_kit/init.h>
 #include <lx_user/io.h>
 
-
-extern "C" void lx_user_handle_io(void) { }
+/* local includes */
+#include "lx_user.h"
 
 
 using namespace Genode;
