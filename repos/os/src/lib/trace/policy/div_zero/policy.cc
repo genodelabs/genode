@@ -18,6 +18,10 @@ size_t max_event_size()
 	return MAX_EVENT_SIZE;
 }
 
+size_t trace_eth_packet(char *, char const *, bool, char *, size_t)
+{
+	return 0;
+}
 
 size_t checkpoint(char *dst, char const *, unsigned long, void *, unsigned char)
 {

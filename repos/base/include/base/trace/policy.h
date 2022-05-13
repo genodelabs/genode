@@ -32,6 +32,7 @@ namespace Genode {
 struct Genode::Trace::Policy_module
 {
 	size_t (*max_event_size)   ();
+	size_t (*trace_eth_packet) (char *, char const *, bool, char *, size_t);
 	size_t (*checkpoint)       (char *, char const *, unsigned long, void *, unsigned char);
 	size_t (*log_output)       (char *, char const *, size_t);
 	size_t (*rpc_call)         (char *, char const *, Msgbuf_base const &);

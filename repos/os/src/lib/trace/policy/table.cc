@@ -19,6 +19,7 @@ extern "C" {
 	Genode::Trace::Policy_module policy_jump_table =
 	{
 		max_event_size,
+		trace_eth_packet,
 		checkpoint,
 		log_output,
 		rpc_call,
