@@ -115,11 +115,8 @@ Genode::Blockade *wpa_blockade;
 
 
 void wifi_init(Genode::Env      &env,
-               Genode::Blockade &blockade,
-               bool              disable_11n)
+               Genode::Blockade &blockade)
 {
-	(void)disable_11n;
-
 	wpa_blockade = &blockade;
 
 	static Wlan wlan(env);

@@ -365,7 +365,6 @@ struct Wifi::Frontend
 
 	bool _verbose       { false };
 	bool _verbose_state { false };
-	bool _use_11n       { true };
 
 	bool _deferred_config_update { false };
 	bool _single_autoconnect     { false };
@@ -383,9 +382,6 @@ struct Wifi::Frontend
 
 		_verbose       = config.attribute_value("verbose",       _verbose);
 		_verbose_state = config.attribute_value("verbose_state", _verbose_state);
-
-		/* only evaluated at start-up */
-		_use_11n = config.attribute_value("use_11n", _use_11n);
 
 		Genode::uint64_t connected_scan_interval =
 			Util::check_time(config.attribute_value("connected_scan_interval",
@@ -1620,11 +1616,6 @@ struct Wifi::Frontend
 		/* kick-off initial scanning */
 		_handle_scan_timer();
 	}
-
-	/**
-	 *  Return if 11n operation is enabled
-	 */
-	bool use_11n() const { return _use_11n; }
 
 	/**
 	 * Get RFKILL signal capability
