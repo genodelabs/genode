@@ -27,7 +27,7 @@ driver work for several platforms (Section [Device drivers]). In particular,
 we started to apply our new method of porting Linux driver code to PC drivers
 such as our new USB host controller driver. The Intel GPU driver received
 welcome performance optimizations and became usable for guest operating
-systems running in VirtualBox 6. On the Pinephone, Genode has started
+systems running in VirtualBox 6. On the PinePhone, Genode has started
 interacting with the modem.
 
 From a functional perspective, the highlight of the release is the
@@ -35,7 +35,7 @@ extension of Sculpt OS towards a highly customizable toolkit for building
 special-purpose operating systems defined at integration time
 (Section [Framework for special-purpose Sculpt-based operating systems]).
 This new level of flexibility cleared the path to running a bare-bones
-version of Sculpt OS on the Pinephone, or directly on a Linux kernel.
+version of Sculpt OS on the PinePhone, or directly on a Linux kernel.
 
 
 Framework for special-purpose Sculpt-based operating systems
@@ -212,11 +212,11 @@ redirected to core using the optional 'LOG=core' argument on the command line.
 ! build/x86_64$ make run/sculpt KERNEL=nova BOARD=pc SCULPT=default LOG=core
 
 
-Sculpt OS meets the Pinephone
+Sculpt OS meets the PinePhone
 =============================
 
 Thanks to the greatly modularized new version of Sculpt OS, we have become
-able to run a minimalistic version of Sculpt on the Pinephone, as demonstrated
+able to run a minimalistic version of Sculpt on the PinePhone, as demonstrated
 in our recent presentation at FOSDEM.
 
 : <video preload="none" controls="controls">
@@ -224,14 +224,14 @@ in our recent presentation at FOSDEM.
 :            type='video/webm; codecs="vp9, opus"' />
 : </video>
 
-:Genode meets the Pinephone:
+:Genode meets the PinePhone:
 
   [https://fosdem.org/2022/schedule/event/nfeske/]
 
   _Microkernel developer room at FOSDEM, 2022-02-05_
 
 Despite lacking drivers for storage and network connectivity, we are already
-able to put together interesting interactive system images for the Pinephone.
+able to put together interesting interactive system images for the PinePhone.
 To make this possible, a few additional steps had to be taken though.
 
 First, we had to make Sculpt's administrative GUI able to respond to touch
@@ -878,11 +878,11 @@ configuration (example):
 ! </config>
 
 
-Pinephone modem access
+PinePhone modem access
 ======================
 
 On our way towards a Genode-based phone, we enabled the low-level access of
-the Quectel-EG25 modem as found in the Pinephone. This line of work is hosted
+the Quectel-EG25 modem as found in the PinePhone. This line of work is hosted
 in the [https://github.com/genodelabs/genode-allwinner - genode-allwinner]
 repository and consists of two parts. First, the modem driver at
 _src/drivers/modem/pinephone/_ takes care of the powering and initialization
@@ -897,9 +897,9 @@ A first example scenario is provided by the
 [https://github.com/genodelabs/genode-allwinner/blob/22.02/run/modem_pinephone.run - modem_pinephone.run]
 script. It comprises the modem driver and two instances of the UART driver.
 One UART driver is connected to the modem's control channel whereas the other
-is connected to the default serial interface of the Pinephone. By bridging
+is connected to the default serial interface of the PinePhone. By bridging
 both drivers via a terminal-crosslink component, the scenario allows for
-the direct interaction with the modem over the Pinephone's serial channel,
+the direct interaction with the modem over the PinePhone's serial channel,
 e.g., unlocking a SIM card or sending SMS messages via the 'AT+CMGS' command.
 
 

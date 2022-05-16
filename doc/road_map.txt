@@ -35,7 +35,7 @@ for Genode with very little friction. On the way, we created new methodology
 and tooling, as well as extensive documentation in the form of the "Genode
 Platforms" document. Thanks to the new drivers ported from the Linux kernel,
 we were able to witness interactive Genode scenarios becoming alive on the
-Pinephone by the end of the year.
+PinePhone by the end of the year.
 
 The third major topic was the growing sophistication of Genode-native
 workloads, with the media features of the Chromium-based browser on 64-bit ARM
@@ -66,22 +66,22 @@ outcome, which will hopefully propel Genode to new heights in 2022.
 2022 - Mobile Usability
 #######################
 
-After having enabled the first interactive Genode scenarios on the Pinephone
-last year, we plan to take Genode on the Pinephone to a level where we can
+After having enabled the first interactive Genode scenarios on the PinePhone
+last year, we plan to take Genode on the PinePhone to a level where we can
 routinely use it for advanced applications, in particular video chat. This
 vision confronts us with a multitude of hard technical nuts to crack such as
 power efficiency, UI latency, quality-of-service of audio processing, drivers
 for multi-media devices, WebRTC performance, and usability. This grand theme
-will not only address the Pinephone specifically. The efficiency gains will
+will not only address the PinePhone specifically. The efficiency gains will
 benefit all Genode use cases large and small.
 
-Our theme of the Genode-based video chat on the Pinephone fuels several
+Our theme of the Genode-based video chat on the PinePhone fuels several
 ambitions in closely related areas. In particular, we aspire using WireGuard
 to secure private communication, and experiment with the operation of
 hardware-based trust anchors as the basis for encrypted storage and
 communication.
 
-Besides the Pinephone, we will steadily nurture the quality and scope of
+Besides the PinePhone, we will steadily nurture the quality and scope of
 driver support on PC hardware, which remains the primary platform for the
 day-to-day use of Sculpt OS. So you can expect us to keep up with recent
 generations of Intel-based hardware. In this area, we plan to make IOMMU
@@ -102,7 +102,7 @@ February - Release 22.02
 
 * OpenGL in VirtualBox 6
 * Sculpt OS as tool kit for special-purpose OS images
-* Pinephone
+* PinePhone
   * Modem access
   * Touch-screen compatibility of Sculpt OS
 
@@ -115,13 +115,13 @@ May - Release 22.05
 * WireGuard VPN
 * Updated drivers for PC hardware (Wifi, Intel framebuffer, USB)
 * New tracing tool with support for CTF and PCAP
-* Pinephone telephony
+* PinePhone telephony
 
 
 August - Release 22.08
 ======================
 
-* Pinephone
+* PinePhone
   * Morph browser
   * Media record and playback capabilities
 * FPGA-powered DMA protection for the Zynq-7000 SoC
@@ -132,7 +132,7 @@ August - Release 22.08
 November - Release 22.11
 ========================
 
-* Pinephone
+* PinePhone
   * WebRTC-based video chat
   * Power management
 * Base mechanism for suspend-resume on PC hardware

@@ -147,7 +147,7 @@ system. The boot time of Sculpt OS has always been relatively quick compared
 to commodity operating systems. E.g., on a 5-years old laptop like a Lenovo
 x260, the system used to boot in about 5 seconds to the graphical user
 interface. However, with the anticipation of Sculpt OS on lower-end platforms
-like the Pinephone and with the vision of instant-on systems, we wondered
+like the PinePhone and with the vision of instant-on systems, we wondered
 about the potential for improvement.
 
 While gathering a CPU-load profile of the boot process using the top tool, we

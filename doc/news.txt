@@ -56,7 +56,7 @@ Genode OS Framework release 22.02 | 2022-02-28
 | With Genode 22.02, 3D acceleration becomes available to guest operating
 | systems running in VirtualBox 6, Sculpt OS evolves into a versatile framework
 | for building special-purpose operating systems, and Genode starts to interact
-| with the modem of the Pinephone.
+| with the modem of the PinePhone.
 
 The features mentioned above are merely the tip of the iceberg of version
 22.02. In fact, the majority of the development work during the release cycle
@@ -73,7 +73,7 @@ hardware, the current release lifts the potential of Sculpt's architecture for
 the creation of special-purpose operating-system appliances. The gained
 flexibility took even us developers by surprise! Thanks to the new modular
 approach, we were able to demonstrate a bare-bones version of Sculpt OS on
-the Pinephone at FOSDEM, or accelerate our development workflow by routinely
+the PinePhone at FOSDEM, or accelerate our development workflow by routinely
 running Sculpt OS directly on the Linux kernel.
 
 The intensive device-driver-related developments of the previous releases
@@ -82,7 +82,7 @@ drivers in Genode to PC hardware, starting with a fresh port of the USB host
 controller driver. The Intel GPU driver received numerous performance
 improvements and can now even be combined with guest operating systems running
 in VirtualBox 6. Further notable driver-related improvements are the new
-ability to interact with the modem on the Pinephone and largely streamlined
+ability to interact with the modem on the PinePhone and largely streamlined
 driver infrastructure for the Raspberry Pi.
 
 All the details of the new version can be found in the
@@ -98,12 +98,12 @@ Road Map for 2022 | 2022-01-18
 Following Genode's major technical breakthroughs in the areas of reusing Linux
 drivers, hardware-accelerated graphics, and the native execution of Chromium
 during 2021, we will pursue _mobile usability_ as overarching theme in 2022.
-Specifically, we aspire the routine use of Genode on the Pinephone as a
+Specifically, we aspire the routine use of Genode on the PinePhone as a
 platform for video chat, using WireGuard to protect the communications.
 
 This vision motivates a large variety of challenging technical topics.
 To name a few, we have to squeeze good performance out of the
-resource-constrained Pinephone hardware, focus on UI latency and the quality
+resource-constrained PinePhone hardware, focus on UI latency and the quality
 of service of audio streaming, come up with a somewhat usable touch-based
 user interface, and get to the guts of power management.
 
@@ -122,7 +122,7 @@ Genode OS Framework release 21.11 | 2021-11-30
 ##############################################
 
 | Genode 21.11 puts the spotlight on device drivers. Interactive Genode
-| scenarios come to the Pinephone, hardware-accelerated graphics becomes
+| scenarios come to the PinePhone, hardware-accelerated graphics becomes
 | available on Intel Gen9+ and Vivante GPUs, and Xilnx Zynq receives
 | new love.
 
@@ -130,7 +130,7 @@ The previous release presented our new take on porting drivers from Linux, and
 the architectural integration of hardware-accelerated graphics in Genode-based
 systems. The just released version 21.11 is the continuation of both topics.
 Thanks to our streamlined approach for transplanting Linux drivers to Genode, we
-were able to reuse the Pinephone's Linux drivers for the display and
+were able to reuse the PinePhone's Linux drivers for the display and
 touchscreen without modification. But, in contrast to running those drivers in
 the Linux kernel, we are walking on new ground by confining each driver in a
 separate sandbox.
@@ -211,7 +211,7 @@ Genode OS Framework release 21.08 | 2021-08-31
 ##############################################
 
 | The highlights of Genode 21.08 are revamped GPU support as well as new
-| drivers for the Pinephone and MNT-Reform laptop based on a new streamlined
+| drivers for the PinePhone and MNT-Reform laptop based on a new streamlined
 | approach for porting Linux kernel code. Further topics range from VirtualBox
 | improvements, over media playback in the native web browser, to LTE
 | connectivity in Sculpt OS.
@@ -224,7 +224,7 @@ Linux to Genode used to be a time-intensive affair, which forced a narrow
 focus on very few SoCs on us. With the streamlined porting approach introduced
 with the new release, we become able to dramatically reduce the costs,
 creating the prospect of a much broader hardware support. The first success
-stories of the new way of porting are added graphics drivers for the Pinephone
+stories of the new way of porting are added graphics drivers for the PinePhone
 and the MNT-Reform laptop, a network driver for the Pine-A64-LTS board, and an
 SD-card driver for the MNT-Reform.
 
@@ -356,7 +356,7 @@ Genode OS Framework release 21.02 | 2021-02-25
 | support for the Pine-A64-LTS board, and revived work on RISC-V.
 
 Many topics of the current release draw a connection to our overarching goal
-to use Genode on the Pinephone by the end of the year. Besides the obvious
+to use Genode on the PinePhone by the end of the year. Besides the obvious
 steps of enabling the hardware - starting with the Pine-A64-LTS board - the
 release introduces mobile-data connectivity as a Genode feature, and changes
 the network-driver architecture in anticipation of dynamic power-management
@@ -380,7 +380,7 @@ For the full story, please refer to the
 Road Map for 2021 | 2021-01-15
 ##############################
 
-| In 2021, we plan to bring Genode to the Pinephone, advance the framework's
+| In 2021, we plan to bring Genode to the PinePhone, advance the framework's
 | GPU support, and focus on development workflows.
 
 During the annual road-map discussion on Genode's public
@@ -388,13 +388,13 @@ During the annual road-map discussion on Genode's public
 the following hot topics for this year emerged.
 
 First and most inspiring for many Genode developers, we aspire to have
-Genode running on the Pinephone with basic feature-phone functionality by the
+Genode running on the PinePhone with basic feature-phone functionality by the
 end of the year. Since this will involve substantial device-driver-related
 developments, the team will take this line of work as an opportunity to
 advance the tooling and workflows for carrying out such tasks. This, in turn,
 will hopefully ease the on-boarding of new driver developers in the future.
 
-Closely related to the Pinephone scenario, the project will make optimizations
+Closely related to the PinePhone scenario, the project will make optimizations
 a top priority this year. The opportunities are plenty, ranging from
 micro-optimizations, over API refinements, to architectural changes if
 needed.

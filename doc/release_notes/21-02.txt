@@ -21,7 +21,7 @@ disrupting network-application stacks.
 
 Second, the release features the infrastructure needed for mobile-data
 communication over LTE, which is a prerequisite for our ambition to use Genode
-on the Pinephone. Section [LTE modem stack] gives insights into the involved
+on the PinePhone. Section [LTE modem stack] gives insights into the involved
 components and the architecture.
 
 Third, we are happy to feature the initial version of VirtualBox 6 for
@@ -518,7 +518,7 @@ Pine-A64-LTS single board computer
 ==================================
 
 Our [https://genode.org/about/road-map - road map] envisions
-the use of Genode on the Pinephone by the end of the year. As a first stepping
+the use of Genode on the PinePhone by the end of the year. As a first stepping
 stone, the current release adds basic board support for the
 [https://pine64.com/product-category/pine-a64-ltslong-term-supply/ - Pine-A64-LTS]
 single-board computer. We take this line of work as a welcome opportunity to
