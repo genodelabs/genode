@@ -142,8 +142,15 @@ struct Pci::Config : Genode::Mmio
 
 	struct Capability_pointer : Register<0x34, 8> {};
 
-	struct Irq_line : Register<0x3c, 8> {};
-	struct Irq_pin  : Register<0x3d, 8> {};
+	struct Irq_line : Register<0x3c, 8>
+	{
+		enum { UNKNOWN = 0xff };
+	};
+
+	struct Irq_pin  : Register<0x3d, 8>
+	{
+		enum { NO_INT = 0, INTA, INTB, INTC, INTD };
+	};
 
 
 	/**********************
@@ -418,6 +425,9 @@ struct Pci::Config : Genode::Mmio
 	Genode::Constructible<Pci_express_capability>              pci_e_cap   {};
 	Genode::Constructible<Advanced_error_reporting_capability> adv_err_cap {};
 
+	Base_address bar0 { base() + BASE_ADDRESS_0       };
+	Base_address bar1 { base() + BASE_ADDRESS_0 + 0x4 };
+
 	void clear_errors() {
 		if (adv_err_cap.constructed()) adv_err_cap->clear(); }
 
@@ -522,6 +532,11 @@ struct Pci::Config_type0 : Pci::Config
 	struct Expansion_rom_base_addr : Register<0x30, 32> {};
 
 	using Pci::Config::Config;
+
+	Base_address bar2 { base() + BASE_ADDRESS_0 + 0x8  };
+	Base_address bar3 { base() + BASE_ADDRESS_0 + 0xc  };
+	Base_address bar4 { base() + BASE_ADDRESS_0 + 0x10 };
+	Base_address bar5 { base() + BASE_ADDRESS_0 + 0x14 };
 };
 
 
@@ -536,7 +551,8 @@ struct Pci::Config_type1 : Pci::Config
 
 	struct Io_base_limit : Register<0x1c, 16> {};
 
-	struct Memory_base_limit : Register<0x20, 32> {};
+	struct Memory_base  : Register<0x20, 16> {};
+	struct Memory_limit : Register<0x22, 16> {};
 
 	struct Prefetchable_memory_base : Register<0x24, 32> {};
 	struct Prefetchable_memory_base_upper : Register<0x28, 32> {};
