@@ -1434,11 +1434,12 @@ a free download at [https://genode.org].
 
 # Configure the build directory by editing _build/x86_64/etc/build.conf_.
   Most importantly, enable the 'gems' source-code repository where the Sculpt
-  scenario resides. In addition, the 'libports', 'ports', 'dde_linux' and
-  'dde_ipxe' repository are needed as well. Second, change the default
-  configuration of the 'QEMU_RUN_OPT' variable to 'image/disk' instead of
-  'image/iso'. This way, the build process will produce a valid disk image
-  with a GPT partition table instead of a legacy ISO image.
+  scenario resides. In addition, the 'libports', 'ports', 'pc', 'dde_linux',
+  'dde_rump', and 'dde_ipxe' repositories are needed as well.
+  Second, change the default configuration of the 'QEMU_RUN_OPT' variable to
+  'image/disk' instead of 'image/iso'. This way, the build process will
+  produce a valid disk image with a GPT partition table instead of a legacy
+  ISO image.
 
 # Prepare GRUB 2, which is needed for booting from the disk image
 
