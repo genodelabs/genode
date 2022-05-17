@@ -10,7 +10,7 @@ LD_OPT += --version-script=$(LIB_DIR)/symbol.map
 SRC_CC += dummies.cc ioctl.cc
 SRC_CC += rfkill_genode.cc
 
-WS_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/app/wpa_supplicant
+WS_CONTRIB_DIR := $(call select_from_ports,wpa_supplicant)/src/app/wpa_supplicant
 
 # l2_packet
 SRC_C   += src/l2_packet/l2_packet_linux.c

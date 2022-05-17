@@ -1,7 +1,7 @@
 LICENSE     := GPLv2
 VERSION     := 2
 DOWNLOADS   := intel_fb.archive lxip.archive \
-               fec.archive wpa_supplicant.git \
+               fec.archive \
                usb_host.archive dwc_otg_host.git usb_hid.archive \
                usb_modem.archive usb_net.archive
 
@@ -98,16 +98,8 @@ TAR_OPT(fec) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSIO
 HASH_INPUT   += $(REP_DIR)/fec.list
 
 #
-# wpa_supplicant sources
-#
-URL(wpa_supplicant) := git://w1.fi/srv/git/hostap.git
-REV(wpa_supplicant) := 25bd4e7beb582509596fe60cb3591e1299f3121b
-DIR(wpa_supplicant) := src/app/wpa_supplicant
-
-#
 # Patches
 #
-PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wpa*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*.patch)))
@@ -126,9 +118,6 @@ PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
-
-# WPA supplicant
-PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}
 
 # USB HOST
 USB_HOST_OPT = -p1 -d$(SRC_DIR_USB_HOST)

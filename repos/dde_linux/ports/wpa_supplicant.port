@@ -1,0 +1,20 @@
+LICENSE     := BSD-3-Clause
+VERSION     := git
+DOWNLOADS   := wpa_supplicant.git
+
+#
+# wpa_supplicant sources
+#
+URL(wpa_supplicant) := git://w1.fi/srv/git/hostap.git
+REV(wpa_supplicant) := 25bd4e7beb582509596fe60cb3591e1299f3121b
+DIR(wpa_supplicant) := src/app/wpa_supplicant
+
+#
+# Patches
+#
+PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wpa*.patch)))
+
+# WPA supplicant
+PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}
+
+# vi: set ft=make :
