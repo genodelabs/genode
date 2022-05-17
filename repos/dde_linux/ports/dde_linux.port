@@ -1,8 +1,8 @@
 LICENSE     := GPLv2
 VERSION     := 2
 DOWNLOADS   := intel_fb.archive lxip.archive \
-               wifi.archive fec.archive libnl.archive wpa_supplicant.git \
-               fw.archive usb_host.archive dwc_otg_host.git usb_hid.archive \
+               fec.archive libnl.archive wpa_supplicant.git \
+               usb_host.archive dwc_otg_host.git usb_hid.archive \
                usb_modem.archive usb_net.archive
 
 #
@@ -76,17 +76,6 @@ TAR_OPT(intel_fb) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(V
 HASH_INPUT        += $(REP_DIR)/intel_fb.list
 
 #
-# mac80211 stack, iwlwifi sources
-#
-SRC_DIR_WIFI  := src/lib/wifi
-VERSION_WIFI  := 4.16.3
-URL(wifi)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
-SHA(wifi)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(wifi)     := $(SRC_DIR_WIFI)
-TAR_OPT(wifi) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_WIFI)/g' $(REP_DIR)/wifi.list)
-HASH_INPUT    += $(REP_DIR)/wifi.list
-
-#
 # IP stack sources
 #
 SRC_DIR_LXIP  := src/lib/lxip
@@ -123,19 +112,10 @@ REV(wpa_supplicant) := 25bd4e7beb582509596fe60cb3591e1299f3121b
 DIR(wpa_supplicant) := src/app/wpa_supplicant
 
 #
-# Firmware images
-#
-FW_REV  := 73f503c65139f368e6155eed8c74d006a2f0219d
-URL(fw) := https://github.com/cnuke/dde_linux_firmware/archive/$(FW_REV).tar.gz
-SHA(fw) := d5a61cb07384a828560b8f869e4e899cb723d462646a48b45c398514bb246925
-DIR(fw) := firmware
-
-#
 # Patches
 #
 PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wpa*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/libnl*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wifi*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*.patch)))
@@ -154,12 +134,6 @@ PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
-
-# WIFI
-WIFI_OPT = -p1 -d$(SRC_DIR_WIFI)
-PATCH_OPT(patches/wifi.patch)        := $(WIFI_OPT)
-PATCH_OPT(patches/wifi_mem.patch)    := $(WIFI_OPT)
-PATCH_OPT(patches/wifi_rfkill.patch) := $(WIFI_OPT)
 
 # libnl
 PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
