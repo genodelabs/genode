@@ -28,11 +28,12 @@ endef
 
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
 
-PUBLIC_DIR ?= $(GENODE_DIR)/public
+PUBLIC_DIR     ?= $(GENODE_DIR)/public
+DEPOT_TOOL_DIR ?= $(GENODE_DIR)/tool/depot
 
 XZ_THREADS ?= 1
 
-include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+include $(DEPOT_TOOL_DIR)/mk/front_end.inc
 
 
 #
@@ -40,7 +41,9 @@ include $(GENODE_DIR)/tool/depot/mk/front_end.inc
 #
 
 ifneq ($(MAKECMDGOALS),)
-DEPENDENCIES_CMD    := $(GENODE_DIR)/tool/depot/dependencies DEPOT_DIR="$(DEPOT_DIR)" $(MAKECMDGOALS)
+DEPENDENCIES_CMD := $(DEPOT_TOOL_DIR)/dependencies DEPOT_DIR="$(DEPOT_DIR)" \
+                                                   DEPOT_TOOL_DIR="$(DEPOT_TOOL_DIR)" \
+                                                   $(MAKECMDGOALS)
 DEPENDENCIES_RESULT := $(shell $(DEPENDENCIES_CMD) 2> /dev/null || true)
 endif
 
@@ -85,7 +88,7 @@ index_missing_error:
 # Generate compressed and signed archives and index files
 #
 
-include $(GENODE_DIR)/tool/depot/mk/gpg.inc
+include $(DEPOT_TOOL_DIR)/mk/gpg.inc
 
 MISSING_PUBKEY_FILES := $(sort \
                            $(foreach A,$(ARCHIVES),\

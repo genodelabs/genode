@@ -18,15 +18,16 @@ endef
 
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
 
-PUBLIC_DIR ?= $(GENODE_DIR)/public
+PUBLIC_DIR     ?= $(GENODE_DIR)/public
+DEPOT_TOOL_DIR ?= $(GENODE_DIR)/tool/depot
 
-include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+include $(DEPOT_TOOL_DIR)/mk/front_end.inc
 
 # sanitize arguments
 ARGS := $(subst ..,__,$(MAKECMDGOALS))
 
-DEPENDENCIES_CMD = $(GENODE_DIR)/tool/depot/dependencies $(ARGS)
-DOWNLOAD_CMD     = $(GENODE_DIR)/tool/depot/mk/downloader VERBOSE=$(VERBOSE)
+DEPENDENCIES_CMD = $(DEPOT_TOOL_DIR)/dependencies $(ARGS)
+DOWNLOAD_CMD     = $(DEPOT_TOOL_DIR)/mk/downloader VERBOSE=$(VERBOSE)
 
 .PHONY: download
 download:

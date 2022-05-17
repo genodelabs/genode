@@ -8,9 +8,10 @@
 
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
 
-REMOTE_DIR ?= $(GENODE_DIR)/remote
-PUBLIC_DIR ?= $(GENODE_DIR)/public
-DEPOT_DIR  ?= $(GENODE_DIR)/depot
+REMOTE_DIR     ?= $(GENODE_DIR)/remote
+PUBLIC_DIR     ?= $(GENODE_DIR)/public
+DEPOT_DIR      ?= $(GENODE_DIR)/depot
+DEPOT_TOOL_DIR ?= $(GENODE_DIR)/tool/depot
 
 define HELP_MESSAGE
 
@@ -22,7 +23,7 @@ define HELP_MESSAGE
 
 endef
 
-include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+include $(DEPOT_TOOL_DIR)/mk/front_end.inc
 
 TARGETS := $(addprefix $(DEPOT_DIR)/,$(MAKECMDGOALS))
 
@@ -37,7 +38,7 @@ TARGETS := $(addprefix $(DEPOT_DIR)/,$(MAKECMDGOALS))
 
 ARCHIVES := $(MAKECMDGOALS)
 
-include $(GENODE_DIR)/tool/depot/mk/gpg.inc
+include $(DEPOT_TOOL_DIR)/mk/gpg.inc
 
 $(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tar.xz $(PUBLIC_DIR)/%.tar.xz.sig
 	$(VERBOSE)pubkey_file=$(call pubkey_path,$*); \
