@@ -257,6 +257,9 @@ class Genode::Trace::Simple_buffer
 				size_t      length() const { return _entry->len; }
 				char const *data()   const { return _entry->data; }
 
+				template <typename T>
+				T const    &object() const { return *reinterpret_cast<const T*>(data()); }
+
 				/* return whether entry is valid, i.e. length field is present */
 				bool last()     const { return _entry == 0; }
 
