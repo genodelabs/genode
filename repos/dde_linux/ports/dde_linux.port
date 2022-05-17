@@ -1,7 +1,7 @@
 LICENSE     := GPLv2
 VERSION     := 2
 DOWNLOADS   := intel_fb.archive lxip.archive \
-               fec.archive libnl.archive wpa_supplicant.git \
+               fec.archive wpa_supplicant.git \
                usb_host.archive dwc_otg_host.git usb_hid.archive \
                usb_modem.archive usb_net.archive
 
@@ -98,13 +98,6 @@ TAR_OPT(fec) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSIO
 HASH_INPUT   += $(REP_DIR)/fec.list
 
 #
-# libnl sources
-#
-URL(libnl) := https://github.com/thom311/libnl/releases/download/libnl3_2_25/libnl-3.2.25.tar.gz
-SHA(libnl) := 8beb7590674957b931de6b7f81c530b85dc7c1ad8fbda015398bc1e8d1ce8ec5
-DIR(libnl) := src/lib/libnl
-
-#
 # wpa_supplicant sources
 #
 URL(wpa_supplicant) := git://w1.fi/srv/git/hostap.git
@@ -115,7 +108,6 @@ DIR(wpa_supplicant) := src/app/wpa_supplicant
 # Patches
 #
 PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wpa*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/libnl*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*.patch)))
@@ -134,9 +126,6 @@ PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
-
-# libnl
-PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
 
 # WPA supplicant
 PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}

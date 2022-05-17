@@ -1,6 +1,6 @@
 ifeq ($(called_from_lib_mk),yes)
 
-LIBNL_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/libnl
+LIBNL_CONTRIB_DIR := $(call select_from_ports,libnl)/src/lib/libnl
 LIBNL_EMUL_H      := $(REP_DIR)/src/lib/libnl/include/libnl_emul.h
 
 #

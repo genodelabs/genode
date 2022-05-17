@@ -1,4 +1,4 @@
-NL_CONTRIB_INC_DIR := $(call select_from_ports,dde_linux)/src/lib/libnl
+NL_CONTRIB_INC_DIR := $(call select_from_ports,libnl)/src/lib/libnl
 INC_DIR += $(NL_CONTRIB_INC_DIR)/include
 
 LIBNL_INC_DIR = $(REP_DIR)/src/lib/libnl/include

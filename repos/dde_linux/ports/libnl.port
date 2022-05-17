@@ -1,0 +1,21 @@
+LICENSE     := LGPL-2.1-only
+VERSION     := 3.2.25
+DOWNLOADS   := libnl.archive 
+
+#
+# libnl sources
+#
+BASE_URL   := https://github.com/thom311/libnl/releases/download
+URL(libnl) := $(BASE_URL)/libnl$(subst .,_,$(VERSION))/libnl-$(VERSION).tar.gz
+SHA(libnl) := 8beb7590674957b931de6b7f81c530b85dc7c1ad8fbda015398bc1e8d1ce8ec5
+DIR(libnl) := src/lib/libnl
+
+#
+# Patches
+#
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/libnl*.patch)))
+
+# libnl
+PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
+
+# vi: set ft=make :
