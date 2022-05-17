@@ -101,10 +101,18 @@ ARCHIVES(src) := $(sort ${ARCHIVES(src)}\
 #
 # Extend ARCHIVES(api) with the APIs used by ARCHIVES(src)
 #
-
+# The 'used_apis' file can contain fully specified entries or shortcuts.
+# A fully specified entry has the form '<user>/api/<name>/version'.
+# A shortcut has the form '<name>/version'. In this case, the '<user>' is
+# implicitely equal to the depot user of the src archive.
+#
 _used_apis = $(call file_content,$(call used_apis_file,$1))
 
-src_api_archives = $(addprefix $(call archive_user,$1)/api/,$(call _used_apis,$1))
+api_full_specified = $(call path_element,4,$1)
+
+src_api_archives = $(foreach A,$(call _used_apis,$1),\
+                      $(if $(call api_full_specified,$A),\
+                         $A,$(addprefix $(call archive_user,$1)/api/,$A)))
 
 ARCHIVES(api) := $(sort ${ARCHIVES(api)} $(foreach A,${ARCHIVES(src)},\
                                             $(call src_api_archives,$A)))
