@@ -20,6 +20,8 @@
 # XXX remove this line when the tool has stabilized
 STRICT_HASH ?= no
 
+PORTS_TOOL_DIR ?= $(GENODE_DIR)/tool/ports
+
 #
 # Utility to check if a python module is installed
 #
@@ -45,7 +47,7 @@ _prefer = $(if $1,$1,$2)
 #
 # Include common definitions
 #
-include $(GENODE_DIR)/tool/ports/mk/common.inc
+include $(PORTS_TOOL_DIR)/mk/common.inc
 
 #
 # Include definitions provided by the port description file
@@ -87,7 +89,7 @@ _dirs: $(DOWNLOADS)
 ## Generate the HASH file
 ##
 
-include $(GENODE_DIR)/tool/ports/mk/hash.inc
+include $(PORTS_TOOL_DIR)/mk/hash.inc
 
 
 ##
