@@ -1,21 +1,20 @@
 #!/usr/bin/make -f
 
 #
-# \brief  Simulate the download of files by copying content from a directory
+# \brief  Download, verify, and extract depot archives
 # \author Norman Feske
 # \date   2017-03-23
 #
 
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
 
-REMOTE_DIR     ?= $(GENODE_DIR)/remote
 PUBLIC_DIR     ?= $(GENODE_DIR)/public
 DEPOT_DIR      ?= $(GENODE_DIR)/depot
 DEPOT_TOOL_DIR ?= $(GENODE_DIR)/tool/depot
 
 define HELP_MESSAGE
 
-  Simulate the download of files by copying content from a directory
+  Download, verify, and extract depot archives
 
   usage:
 
