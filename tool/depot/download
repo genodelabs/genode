@@ -34,7 +34,7 @@ download:
 	$(VERBOSE)\
 	while true; do \
 		if $(DEPENDENCIES_CMD) > /dev/null 2> /dev/null; then break; fi; \
-		missing_deps=`$(DEPENDENCIES_CMD) 2> /dev/null | sed -n "/^ /s/ *//p"`; \
+		missing_deps=`$(MAKE) -f $(DEPENDENCIES_CMD) 2> /dev/null | sed -n "/^ /s/ *//p"`; \
 		$(DOWNLOAD_CMD) $$missing_deps || break; \
 	done;
 
