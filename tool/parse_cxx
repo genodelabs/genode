@@ -325,7 +325,7 @@ foreach keyword {
 	static_cast reinterpret_cast dynamic_cast
 	using namespace class struct union enum template
 	const inline static virtual friend explicit
-	volatile case default operator new throw
+	volatile case default operator new throw alignas
 	try catch continue sizeof asm override typename constexpr
 	GENODE_RPC GENODE_RPC_THROW
 	GENODE_RPC_INTERFACE GENODE_RPC_INTERFACE_INHERIT
@@ -397,6 +397,8 @@ extract assign         {=}    {content block parenblk tplargs}
 
 extract attribute {__attribute__\s*§parenblk\d+°} {content block parenblk}
 
+extract alignas {§keyalignas\d+°\s*§parenblk\d+°} {content block parenblk}
+
 # extract identifiers
 extract identifier {([\w_][\w\d_]*)+(?=[^°]*(§|$))} {content parenblk block tplargs}
 
@@ -432,8 +434,8 @@ extract classdecl  {§keyclass\d+°\s*§identifier\d+°\s*;}  {content block}
 extract structdecl {§keystruct\d+°\s*§identifier\d+°\s*;} {content block}
 
 # extract classes
-extract class   {(§mlcomment\d+° *\n[ \t]*)?§keyclass\d+°\s*§identifier\d+°[^;]*;}  {content block}
-extract struct  {(§mlcomment\d+° *\n[ \t]*)?§keystruct\d+°\s*§identifier\d+°[^;]*;} {content block}
+extract class   {(§mlcomment\d+° *\n[ \t]*)?§keyclass\d+°\s*(§alignas\d+°\s*)?§identifier\d+°[^;]*;}  {content block}
+extract struct  {(§mlcomment\d+° *\n[ \t]*)?§keystruct\d+°\s*(§alignas\d+°\s*)?§identifier\d+°[^;]*;} {content block}
 extract union   {(§mlcomment\d+° *\n[ \t]*)?§keyunion\d+°\s*§identifier\d+°[^;]*;}  {content block}
 extract enum    {(§mlcomment\d+° *\n[ \t]*)?§keyenum\d+°\s*[^;]*;}                  {content block}
 
@@ -601,7 +603,7 @@ extract identifier {\s*§keyunsigned\d+°} typedef
 extract vardecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*(§funcptr\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
 
 # extract variable declarations (type + any number of comma-separated variables + optional tailing comment)
-extract vardecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§(modifier|keyconst)\d+°\s*)*(§(identifier|array)\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?(§block\d+°)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
+extract vardecl {(§alignas\d+°\s*)?(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§(modifier|keyconst)\d+°\s*)*(§(identifier|array)\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?(§block\d+°)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
 
 # extract commented variable declaration
 extract commentedvardecl {§vardecl\d+°\s*§m?lcomment\d+°(\s*§lcomment\d°)*} {content classblock block}
