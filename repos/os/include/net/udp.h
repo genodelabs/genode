@@ -72,6 +72,15 @@ class Net::Udp_packet
 			return *Genode::construct_at<T>(_data);
 		}
 
+		template <typename SIZE_GUARD>
+		void memcpy_to_data(void const     *src_base,
+		                    Genode::size_t  src_size,
+		                    SIZE_GUARD     &size_guard)
+		{
+			size_guard.consume_head(src_size);
+			Genode::memcpy(_data, src_base, src_size);
+		}
+
 		void update_checksum(Ipv4_address ip_src,
 		                     Ipv4_address ip_dst);
 
@@ -88,9 +97,11 @@ class Net::Udp_packet
 		Genode::uint16_t length()   const { return host_to_big_endian(_length);   }
 		Genode::uint16_t checksum() const { return host_to_big_endian(_checksum); }
 
-		void length(Genode::uint16_t v) { _length = host_to_big_endian(v); }
-		void src_port(Port p)           { _src_port = host_to_big_endian(p.value); }
-		void dst_port(Port p)           { _dst_port = host_to_big_endian(p.value); }
+		void length(Genode::uint16_t v)              { _length = host_to_big_endian(v); }
+		void src_port(Port p)                        { _src_port = host_to_big_endian(p.value); }
+		void dst_port(Port p)                        { _dst_port = host_to_big_endian(p.value); }
+		void src_port_big_endian(Genode::uint16_t v) { _src_port = v; }
+		void dst_port_big_endian(Genode::uint16_t v) { _dst_port = v; }
 
 
 		/*********
