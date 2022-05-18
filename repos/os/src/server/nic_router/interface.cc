@@ -1756,6 +1756,12 @@ void Interface::_handle_eth(void              *const  eth_base,
 				if (local_domain.verbose_packets()) {
 					log("[", local_domain, "] rcv ", eth); }
 
+				if (local_domain.trace_packets())
+					Genode::Trace::Ethernet_packet(local_domain.name().string(),
+					                               Genode::Trace::Ethernet_packet::Direction::RECV,
+					                               eth_base,
+					                               size_guard.total_size());
+
 				/* try to handle ethernet frame */
 				try { _handle_eth(eth, size_guard, pkt, local_domain); }
 				catch (Free_resources_and_retry_handle_eth) {
@@ -1871,6 +1877,13 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
 		}
 		catch (Size_guard::Exceeded) { log("[", local_domain, "] snd ?"); }
 	}
+
+	if (local_domain.trace_packets())
+		Genode::Trace::Ethernet_packet(local_domain.name().string(),
+		                               Genode::Trace::Ethernet_packet::Direction::SENT,
+		                               pkt_base,
+		                               pkt_size);
+
 	_source.try_submit_packet(pkt);
 }
 

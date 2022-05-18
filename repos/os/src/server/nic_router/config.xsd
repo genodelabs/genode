@@ -171,6 +171,7 @@
 						<xs:attribute name="gateway"             type="Ipv4_address" />
 						<xs:attribute name="verbose_packets"     type="Boolean" />
 						<xs:attribute name="verbose_packet_drop" type="Boolean" />
+						<xs:attribute name="trace_packets"       type="Boolean" />
 						<xs:attribute name="label"               type="Session_label" />
 						<xs:attribute name="icmp_echo_server"    type="Boolean" />
 						<xs:attribute name="use_arp"             type="Boolean" />
@@ -182,6 +183,7 @@
 			<xs:attribute name="verbose"                        type="Boolean" />
 			<xs:attribute name="verbose_packets"                type="Boolean" />
 			<xs:attribute name="verbose_packet_drop"            type="Boolean" />
+			<xs:attribute name="trace_packets"                  type="Boolean" />
 			<xs:attribute name="verbose_domain_state"           type="Boolean" />
 			<xs:attribute name="dhcp_discover_timeout_sec"      type="Seconds" />
 			<xs:attribute name="dhcp_request_timeout_sec"       type="Seconds" />

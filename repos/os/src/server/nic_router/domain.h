@@ -142,6 +142,7 @@ class Net::Domain : public Domain_base,
 		Genode::size_t                        _rx_bytes             { 0 };
 		bool                            const _verbose_packets;
 		bool                            const _verbose_packet_drop;
+		bool                            const _trace_packets;
 		bool                            const _icmp_echo_server;
 		bool                            const _use_arp;
 		Genode::Session_label           const _label;
@@ -236,6 +237,7 @@ class Net::Domain : public Domain_base,
 
 		bool                         verbose_packets()     const { return _verbose_packets; }
 		bool                         verbose_packet_drop() const { return _verbose_packet_drop; }
+		bool                         trace_packets()       const { return _trace_packets; }
 		bool                         icmp_echo_server()    const { return _icmp_echo_server; }
 		bool                         use_arp()             const { return _use_arp; }
 		Genode::Session_label const &label()               const { return _label; }

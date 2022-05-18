@@ -196,6 +196,8 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	                                            config.verbose_packets()) },
 	_verbose_packet_drop { node.attribute_value("verbose_packet_drop",
 	                                            config.verbose_packet_drop()) },
+	_trace_packets       { node.attribute_value("trace_packets",
+	                                            config.trace_packets()) },
 	_icmp_echo_server    { node.attribute_value("icmp_echo_server",
 	                                            config.icmp_echo_server()) },
 	_use_arp             { _node.attribute_value("use_arp", true) },

@@ -743,7 +743,7 @@ Whether to log router decisions and optional hints.
 
 ! <config verbose_packets="no" ... >
 !     <domain verbose_packets="no" ... />
-! <config/>
+! </config>
 
 Whether to log most important protocol header fields of each packet that is
 received or sent (ETH, IPv4, ARP, UDP, TCP, DHCP, ICMP). The <config> value
@@ -751,7 +751,7 @@ affects all domains without a <domain> local value.
 
 ! <config verbose_packet_drop="no" ... >
 !     <domain verbose_packet_drop="no" ... />
-! <config/>
+! </config>
 
 Whether to log each packet drop and the rational behind it. The <config> value
 affects all domains without a <domain> local value.
@@ -760,6 +760,28 @@ affects all domains without a <domain> local value.
 
 Whether to log most important changes in the state of a domain (number of
 interfaces assigned, current IPv4 config).
+
+
+Tracing
+~~~~~~~
+
+You can use Genode's TRACE service to capture all packets that traverse the
+router. This requires a monitor component such as the trace-recorder component
+that provides and activates a corresponding trace buffer and trace policy.
+More precisely, packet tracing is realised via the 'trace_eth_packet()' hook
+that needs to be implemented by the trace policy. Note that packet tracing must
+also be enabled in the router configuration.
+
+This is how you can configure whether to trace packets (default values shown):
+
+! <config trace_packets="no">
+!     <domain trace_packets="no" ... />
+! </config>
+
+If enabled, 'trace_eth_packet()' is called for every packet received or sent by
+the router. The attribute in the <domain> tag applies only for packets
+received and sent by that domain. The attribute in the <config> tag sets the
+default value for all <domain> tags without a local setting.
 
 
 Other configuration attributes

@@ -39,6 +39,7 @@ class Net::Configuration
 		bool                 const  _verbose_packets;
 		bool                 const  _verbose_packet_drop;
 		bool                 const  _verbose_domain_state;
+		bool                 const  _trace_packets;
 		bool                 const  _icmp_echo_server;
 		Icmp_packet::Code    const  _icmp_type_3_code_on_fragm_ipv4;
 		Genode::Microseconds const  _dhcp_discover_timeout;
@@ -92,6 +93,7 @@ class Net::Configuration
 		bool                  verbose_packets()                const { return _verbose_packets; }
 		bool                  verbose_packet_drop()            const { return _verbose_packet_drop; }
 		bool                  verbose_domain_state()           const { return _verbose_domain_state; }
+		bool                  trace_packets()                  const { return _trace_packets; }
 		bool                  icmp_echo_server()               const { return _icmp_echo_server; }
 		Icmp_packet::Code     icmp_type_3_code_on_fragm_ipv4() const { return _icmp_type_3_code_on_fragm_ipv4; }
 		Genode::Microseconds  dhcp_discover_timeout()          const { return _dhcp_discover_timeout; }
