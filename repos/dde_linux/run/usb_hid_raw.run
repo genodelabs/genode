@@ -49,85 +49,25 @@ if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
 }
 
 if { [get_cmd_switch --autopilot] &&
-    ![have_board rpi] &&
-    ![have_spec x86] &&
+    ![have_board pc]              &&
+    ![have_board rpi]             &&
+    ![have_board imx8q_evk]       &&
     ![have_board imx6q_sabrelite]} {
 	puts "Run script does not support autopilot mode on this platform"
 	exit 0
 }
 
-proc platform_drv_config_non_x86 {} {
-	if {[have_board imx6q_sabrelite]} {
-		return {
-			<device name="mxs_phy" type="fsl,imx6q-usbphy">
-				<io_mem address="0x020ca000" size="0xfff"/>
-				<irq    number="77"/>
-				<property name="fsl,anatop" value="0xdeaddead"/>
-			</device>
-			<device name="usbmisc_imx" type="fsl,imx6q-usbmisc">
-				<io_mem address="0x02184800" size="0x1ff"/>
-			</device>
-			<device name="imx_usb" type="fsl,imx6q-usb">
-				<io_mem address="0x02184200" size="0x1ff"/>
-				<irq    number="72"/>
-				<property  name="fsl,usbmisc" value="usbmisc_imx"/>
-				<property  name="dr_mode"     value="host"/>
-			</device>
-			<policy label="usb_drv -> " info="yes">
-				<device name="mxs_phy"/>
-				<device name="usbmisc_imx"/>
-				<device name="imx_usb"/>
-			</policy>
-		}
-	}
-	if {[have_board rpi]} {
-		return {
-			<device name="mbox" type="broadcom-mbox">
-				<io_mem address="0x2000b800" size="0x1000"/>
-			</device>
-			<device name="dwc_otg" type="brcm,bcm2835-usb">
-				<io_mem       address="0x20980000" size="0x10000"/>
-				<irq          number="9"/>
-				<power-domain name="usb"/>
-			</device>
-			<policy label="usb_drv -> " info="yes"> <device name="dwc_otg"/> </policy>
-		}
-	}
-	return ""
-}
-
-proc platform_drv_binary_non_x86 {} {
-	if {[have_board imx6q_sabrelite]} { return platform_drv         }
-	if {[have_board rpi]}             { return rpi_platform_drv }
-	return no_platform_drv_available
-}
-
-#
-# Build
-#
-
-set build_components {
-	core init timer
-	drivers/usb_host
-	drivers/usb_hid
-	server/event_dump
-	server/dynamic_rom
-	server/report_rom
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-if { [have_spec x86] } { append_platform_drv_build_components
-} else                 { append build_components  { drivers/platform }
-}
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/usb_hid_drv \
+                  [depot_user]/src/init
 
-#
-# Generate config
-#
+build { server/event_dump }
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -143,31 +83,7 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
-}
 
-if { [have_spec x86] } { append_platform_drv_config
-} else {
-append config "<start name=\"[platform_drv_binary_non_x86]\" managing_system=\"yes\">"
-append config {
-		<resource name="RAM" quantum="1M"/>
-		<provides>
-			<service name="Platform"/>
-			<service name="Rpi_mbox"/>
-		</provides>
-		<config>
-}
-append config "[platform_drv_config_non_x86]"
-append config {
-		</config>
-		<route>
-			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-}
-}
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -176,22 +92,24 @@ append config {
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="no">
-			<default-policy report="usb_drv -> devices"/>
-		</config>
-	</start>
-
-	<start name="usb_drv" caps="150">
-		<binary name="} [usb_host_drv_binary] {"/>
-		<resource name="RAM" quantum="12M"/>
-		<provides> <service name="Usb"/> </provides>
-		<config bios_handoff="yes">
-			<report devices="yes"/>
-			<policy label_prefix="usb_hid_drv" class="0x3"/>
+		<config>
+			<default-policy report="usb_drv -> usb_drv -> devices"/>
 		</config>
 		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="usb_drv" caps="1500" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="Usb"/> </provides>
+		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -204,7 +122,9 @@ append config {
 			<service name="ROM" label="scrlock">  <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="report"> <child name="report_rom"/> </service>
 			<service name="Event"> <child name="event_dump"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Usb">   <child name="usb_drv"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -247,23 +167,18 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
 #
-# Boot modules
+# Define USB host controller config
 #
+set fd [open [run_dir]/genode/usb_host_drv.config w]
+puts $fd {
+<config bios_handoff="yes">
+	<report devices="yes"/>
+	<policy label_prefix="usb_hid_drv" class="0x3"/>
+</config>}
+close $fd
 
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer usb_hid_drv event_dump dynamic_rom report_rom
-}
-
-append boot_modules " [usb_host_drv_binary] "
-
-if {[have_spec x86]} { append_platform_drv_boot_modules
-} else { append boot_modules " [platform_drv_binary_non_x86] " }
-
-build_boot_image $boot_modules
+build_boot_image { event_dump }
 
 append qemu_args " -device nec-usb-xhci,id=xhci"
 append qemu_args " -device usb-kbd,bus=xhci.0"
@@ -283,14 +198,8 @@ run_genode_until {\[init -\> event_dump\] Input event #11.*\n} 40 [output_spawn_
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 
-unify_output { dev_info:} ""
-unify_output { usb [0-9\-]+:} ""
-unify_output { number [0-9]+} ""
 unify_output {(?n)on usb-usbbus.*$} ""
-unify_output {(?n)using .*$} ""
-unify_output {(?n)^.*__wait_event.*$} ""
-unify_output {(?n)^.*Failed to submit URB.*$} ""
-unify_output {(?n)^.*dev_warn.*$} ""
+unify_output {(?n)^\[init -\> usb_drv.*} ""
 filter_out_color_escape_sequences
 trim_lines
 
@@ -301,10 +210,8 @@ compare_output_to {
 [init -> event_dump] Input event #3	REL_MOTION -1+0	key count: 1
 [init -> event_dump] Input event #4	REL_MOTION +0+1	key count: 1
 [init -> event_dump] Input event #5	RELEASE BTN_LEFT	key count: 0
-[init -> usb_drv] USB disconnect, device
-[init -> usb_drv] new full-speed USB device
-[init -> usb_hid_drv] input: USB HID v1.11 Keyboard [HID 03eb:204d]
-[init -> usb_hid_drv] input: USB HID v1.11 Mouse [HID 03eb:204d]
+[init -> usb_hid_drv] dev_info: input: USB HID v1.11 Keyboard [HID 03eb:204d]
+[init -> usb_hid_drv] dev_info: input: USB HID v1.11 Mouse [HID 03eb:204d]
 [init -> event_dump] Input event #6	PRESS KEY_X 65534	key count: 1
 [init -> event_dump] Input event #7	RELEASE KEY_X	key count: 0
 [init -> event_dump] Input event #8	PRESS BTN_LEFT 65534	key count: 1

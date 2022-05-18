@@ -12,28 +12,15 @@ if {[have_include power_on/qemu]} {
 	set usb_raw_device $::env(USB_RAW_DEVICE)
 }
 
-#
-# Build
-#
-set build_components {
-	core init timer
-	drivers/usb_host
-	server/usb_terminal
-	test/terminal_echo
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/init
 
-#
-# Generate config
-#
+build { server/usb_terminal test/terminal_echo }
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -48,50 +35,57 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="usb_drv" caps="120">
-		<binary name="} [usb_host_drv_binary] {"/>
-		<resource name="RAM" quantum="32M"/>
-		<provides><service name="Usb"/></provides>
-		<config>
-			<policy label="usb_terminal -> usb_serial" vendor_id="0x67b" product_id="0x2303"/>
-		</config>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Report"/>
+		          <service name="ROM"/></provides>
+		<config verbose="yes"/>
 	</start>
+
+	<start name="usb_drv" caps="1500" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="Usb"/> </provides>
+		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<service name="Report">  <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
 	<start name="usb_terminal">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Terminal"/></provides>
 	</start>
+
 	<start name="test-terminal_echo">
 		<resource name="RAM" quantum="2M"/>
 	</start>
 </config>}
 
-install_config $config
-
 #
-# Boot modules
+# Define USB host controller config
 #
+set fd [open [run_dir]/genode/usb_host_drv.config w]
+puts $fd {
+<config bios_handoff="yes">
+	<report devices="yes"/>
+	<policy label="usb_terminal -> usb_serial" vendor_id="0x403" product_id="0x6001"/>
+</config>}
+close $fd
 
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer test-terminal_echo
-	usb_terminal
-}
-append boot_modules [usb_host_drv_binary]
+build_boot_image { test-terminal_echo usb_terminal }
 
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
-
-append qemu_args "  -nographic -usb  -usbdevice host:$usb_raw_device -nographic"
-
+append qemu_args " -chardev socket,path=$usb_raw_device,id=ser "
+append qemu_args " -device nec-usb-xhci,id=xhci -device usb-serial,bus=xhci.0,chardev=ser -nographic"
 
 run_genode_until forever

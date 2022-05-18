@@ -7,31 +7,18 @@
 # hardware only, though it should execute but not do anything on other hardware
 #
 
-#
-# Build
-#
-
-set build_components {
-	core init timer
-	drivers/usb_host
-	drivers/usb_net
-	test/lwip/http_srv
-	lib/vfs/lwip
-	server/nic_router
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/src/usb_net_drv \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/init
+build { test/lwip/http_srv }
 
-#
-# Generate config
-#
-
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -46,32 +33,22 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>}
+	<default caps="200"/>
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="usb_drv" caps="120"> }
-append config "<binary name=\"[usb_host_drv_binary]\"/>"
-append config {
-		<resource name="RAM" quantum="12M"/>
+	<start name="usb_drv" caps="1500" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
-		<config bios_handoff="yes">}
-append_if [have_board arndale] config {
-			<policy label_prefix="usb_net_drv" vendor_id="0x0b95" product_id="0x772a"/> }
-append_if [have_board rpi] config {
-			<policy label_prefix="usb_net_drv" vendor_id="0x0424" product_id="0xec00"/> }
-append_if [have_spec x86] config {
-			<policy label_prefix="usb_net_drv" vendor_id="0x0b95" product_id="0x1790"/> }
-append config {
-		</config>
 		<route>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -129,24 +106,20 @@ append config {
 </config>
 }
 
-install_config $config
-
 #
-# Boot modules
+# Define USB host controller config
 #
+set config {<config bios_handoff="yes">}
+append_if [have_board rpi] config {
+	<policy label_prefix="usb_net_drv" vendor_id="0x0424" product_id="0xec00"/> }
+append_if [have_spec x86] config {
+	<policy label_prefix="usb_net_drv" vendor_id="0x0b95" product_id="0x1790"/> }
+append config {</config>}
+set fd [open [run_dir]/genode/usb_host_drv.config w]
+puts $fd $config
+close $fd
 
-# generic modules
-set boot_modules {
-	core init timer usb_net_drv
-	ld.lib.so libc.lib.so vfs.lib.so vfs_lwip.lib.so test-lwip_httpsrv
-	nic_router
-}
-
-append boot_modules [usb_host_drv_binary]
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image { test-lwip_httpsrv }
 
 append qemu_args "  -nographic"
 

@@ -15,30 +15,17 @@ if {![have_include "power_on/qemu"]} {
 	exit 0
 }
 
-#
-# Build
-#
-
-set build_components {
-	core init timer
-	drivers/usb_host/pc
-	drivers/usb_hid
-	server/event_dump
-	server/dynamic_rom
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/usb_hid_drv \
+                  [depot_user]/src/init
 
-#
-# Generate config
-#
+build { server/event_dump }
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -53,11 +40,8 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -67,29 +51,20 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
-			<default-policy report="usb_drv -> devices"/>
+			<default-policy report="usb_drv -> usb_drv -> devices"/>
 		</config>
 	</start>
 
-	<start name="usb_drv" caps="150">
-		<binary name="pc_usb_host_drv"/>
-		<resource name="RAM" quantum="12M"/>
+	<start name="usb_drv" caps="1500" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
-		<config bios_handoff="yes">
-			<report devices="yes"/>
-			<policy label_prefix="usb_hid_drv" class="0x3"/>
-		</config>
 		<route>
-			<service name="ROM">      <parent/>    </service>
-			<service name="CPU">      <parent/>    </service>
-			<service name="PD">       <parent/>    </service>
-			<service name="IO_PORT">  <parent/>    </service>
-			<service name="IO_MEM">   <parent/>    </service>
-			<service name="LOG">      <parent/>    </service>
-			<service name="RM">       <parent/>    </service>
-			<service name="Platform"> <any-child/> </service>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
 			<service name="Timer">    <child name="timer"/> </service>
 			<service name="Report">   <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -145,21 +120,18 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
 #
-# Boot modules
+# Define USB host controller config
 #
+set fd [open [run_dir]/genode/usb_host_drv.config w]
+puts $fd {
+<config bios_handoff="yes">
+	<report devices="yes"/>
+	<policy label_prefix="usb_hid_drv" class="0x3"/>
+</config>}
+close $fd
 
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer event_dump dynamic_rom
-	usb_hid_drv pc_usb_host_drv
-}
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image { event_dump }
 
 append qemu_args " -device nec-usb-xhci,id=xhci -device usb-kbd,bus=xhci.0 -nographic"
 

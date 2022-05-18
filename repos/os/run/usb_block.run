@@ -1,29 +1,15 @@
 set use_qemu [have_include "power_on/qemu"]
 
-#
-# Build
-#
-
-set build_components {
-	core init timer
-	drivers/usb_host
-	drivers/usb_block
-	server/report_rom
-	app/block_tester
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/usb_block_drv \
+                  [depot_user]/src/init
 
-#
-# Generate config
-#
+build { app/block_tester }
 
-set config {
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -39,55 +25,34 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
-			<default-policy report="usb_drv -> devices"/>
+			<default-policy report="usb_drv -> usb_drv -> devices"/>
 		</config>
 	</start>
-	<start name="usb_drv" caps="120"> }
-append config "<binary name=\"[usb_host_drv_binary]\"/>"
-append config {
-		<resource name="RAM" quantum="12M"/>
+
+	<start name="usb_drv" caps="1500" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
-		<config>
-			<report devices="no"/>}
-append_if [expr !$use_qemu] config  {
-			<!--
-				The order is important because only the first policy is
-				picked up - an entry may be moved to the front to test the
-				corresponding device.
-			 -->
-			<!-- zte open c needs interface="3" -->
-			<default-policy vendor_id="0x19d2" product_id="0x1350"/>
-			<!-- kingston -->
-			<default-policy vendor_id="0x0951" product_id="0x1666"/>
-			<!-- voyager gt stick -->
-			<default-policy vendor_id="0x1b1c" product_id="0x1a09"/>
-			<!-- usb3 hdd adapter -->
-			<default-policy vendor_id="0x174c" product_id="0x5106"/>
-			<!-- lenovo disc -->
-			<default-policy vendor_id="0x0984" product_id="0x0066"/>
-}
-append_if $use_qemu config {
-			<default-policy bus="0x001" dev="0x002"/> }
-append config {
-		</config>
 		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
+
 	<start name="usb_block_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Block"/> </provides>
@@ -98,6 +63,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 	<start name="block_tester">
 		<resource name="RAM" quantum="64M" />
 		<config verbose="no" report="no" log="yes" stop_on_error="no">
@@ -115,23 +81,13 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
 #
-# Boot modules
+# Define USB host controller config
 #
-
-# generic modules
-set boot_modules {
-	core init timer report_rom usb_block_drv block_tester
-	ld.lib.so
-}
-
-append boot_modules [usb_host_drv_binary]
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+set fd [open [run_dir]/genode/usb_host_drv.config w]
+puts $fd { <config> <default-policy class="0x8"/> </config> }
+close $fd
+build_boot_image { block_tester }
 
 #
 # Execute test case
@@ -146,7 +102,7 @@ if {$use_qemu} {
 #
 # Qemu opts for EHCI
 #
-append qemu_args "  -nographic -M pc -boot order=d "
+append qemu_args " -nographic -M pc -boot order=d "
 append qemu_args " -drive if=none,id=disk,file=$disk_image,format=raw "
 append qemu_args " -device usb-ehci,id=ehci -device usb-storage,bus=ehci.0,drive=disk "
 
