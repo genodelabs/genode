@@ -44,12 +44,18 @@ ifeq ($(filter-out $(SPECS),x86_32),)
 LX_ARCH   := x86
 GEN_ARCH  := x86
 SPEC_ARCH := x86_32
+
+# temporarily add the following include path for x86 platform_session wrapper
+INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/x86/lx_kit
 endif
 
 ifeq ($(filter-out $(SPECS),x86_64),)
 LX_ARCH   := x86
 GEN_ARCH  := x86
 SPEC_ARCH := x86_64
+
+# temporarily add the following include path for x86 platform_session wrapper
+INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/x86/lx_kit
 endif
 
 ifeq ($(filter-out $(SPECS),arm),)
@@ -70,20 +76,17 @@ else
 TARGET_SOURCE_LIST := $(PRG_DIR)/source.list
 endif
 
-SHADOW_INC_DIR      := $(DDE_LINUX_DIR)/src/include/lx_emul/shadow
-GEN_SHADOW_INC_DIR  := $(DDE_LINUX_DIR)/src/include/spec/$(GEN_ARCH)/lx_emul/shadow
-SPEC_SHADOW_INC_DIR := $(DDE_LINUX_DIR)/src/include/spec/$(SPEC_ARCH)/lx_emul/shadow
+SHADOW_INC_DIR      := $(DDE_LINUX_DIR)/src/include/lx_emul/shadow/include
+SPEC_SHADOW_INC_DIR := $(DDE_LINUX_DIR)/src/include/lx_emul/shadow/arch/$(LX_ARCH)/include
 
 SRC_C   += lx_emul/spec/$(GEN_ARCH)/irqchip.c
 SRC_C   += lx_emul/spec/$(GEN_ARCH)/start.c
 SRC_S   += lx_kit/spec/$(SPEC_ARCH)/setjmp.S
 
-INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/$(GEN_ARCH)/lx_kit
 INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/$(SPEC_ARCH)
 INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/x86
 INC_DIR += $(DDE_LINUX_DIR)/src/include
 INC_DIR += $(SPEC_SHADOW_INC_DIR)
-INC_DIR += $(GEN_SHADOW_INC_DIR)
 INC_DIR += $(SHADOW_INC_DIR)
 
 vpath % $(DDE_LINUX_DIR)/src/lib
@@ -185,9 +188,6 @@ gen_crc32table: $(LX_SRC_DIR)/lib/gen_crc32table.c
 
 GLOBAL_DEPS += $(wildcard $(addsuffix /linux/*.h,$(SHADOW_INC_DIR))) \
                $(wildcard $(addsuffix /asm/*.h,$(SHADOW_INC_DIR)))
-
-GLOBAL_DEPS += $(wildcard $(addsuffix /linux/*.h,$(GEN_SHADOW_INC_DIR))) \
-               $(wildcard $(addsuffix /asm/*.h,$(GEN_SHADOW_INC_DIR)))
 
 GLOBAL_DEPS += $(wildcard $(addsuffix /linux/*.h,$(SPEC_SHADOW_INC_DIR))) \
                $(wildcard $(addsuffix /asm/*.h,$(SPEC_SHADOW_INC_DIR)))

@@ -13,6 +13,7 @@
 
 #include <lx_emul.h>
 #include <lx_emul/io_mem.h>
+#include <lx_emul/page_virt.h>
 
 #include <linux/dma-fence.h>
 #include <linux/fs.h>
