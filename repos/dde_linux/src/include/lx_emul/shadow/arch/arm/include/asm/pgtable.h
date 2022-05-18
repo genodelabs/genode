@@ -22,6 +22,9 @@
 
 #ifndef __ASSEMBLY__
 
+extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
+#define ZERO_PAGE(vaddr) ((void)(vaddr),virt_to_page(empty_zero_page))
+
 pte_t pte_mkwrite(pte_t pte);
 
 int pte_none(pte_t pte);
