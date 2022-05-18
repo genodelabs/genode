@@ -14,7 +14,19 @@
 /* app/wireguard includes */
 #include <lx_emul.h>
 
+/* dde_linux/src/include/lx_emul */
 #include <lx_emul/random.h>
+
+
+#include <net/icmp.h>
+
+void __icmp_send(struct sk_buff * skb_in,int type,int code,__be32 info,const struct ip_options * opt)
+{
+	printk("Warning: sending ICMP not supported\n");
+	kfree_skb(skb_in);
+}
+
+
 #include <linux/random.h>
 
 void get_random_bytes(void * buf,int nbytes)

@@ -89,8 +89,11 @@ Peer_update_policy::Peer_update_policy(Allocator                  &alloc,
 
 void Config_model::Peer_update_policy::destroy_element(Element &peer)
 {
-	_callbacks.remove_peer(
-		_listen_port, peer._endpoint_ip.addr, peer._endpoint_port);
+	uint8_t public_key[WG_KEY_LEN];
+	if (!key_from_base64(public_key, peer._public_key_b64.string())) {
+		error("Invalid public key!");
+	}
+	_callbacks.remove_peer(public_key);
 
 	destroy(_alloc, &peer);
 }

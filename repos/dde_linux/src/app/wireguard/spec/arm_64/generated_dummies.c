@@ -39,14 +39,6 @@ unsigned long __get_free_pages(gfp_t gfp_mask,unsigned int order)
 }
 
 
-#include <net/icmp.h>
-
-void __icmp_send(struct sk_buff * skb_in,int type,int code,__be32 info,const struct ip_options * opt)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/ipv6.h>
 
 int __ipv6_addr_type(const struct in6_addr * addr)
@@ -66,14 +58,6 @@ struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,int size,irq_
 #include <linux/irqdomain.h>
 
 struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number_t hwirq,unsigned int * irq)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/netdevice.h>
-
-void __netif_napi_del(struct napi_struct * napi)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -432,14 +416,6 @@ void migrate_disable(void)
 #include <linux/preempt.h>
 
 void migrate_enable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/netdevice.h>
-
-void napi_disable(struct napi_struct * n)
 {
 	lx_emul_trace_and_stop(__func__);
 }

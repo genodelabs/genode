@@ -39,9 +39,9 @@ typedef void (*genode_wg_config_add_peer_t) (
 	genode_wg_u8_t const        allowed_ip_prefix
 );
 
-typedef void (*genode_wg_config_rm_peer_t)
-	(genode_wg_u16_t listen_port, genode_wg_u8_t const endpoint_ip[4],
-	 genode_wg_u16_t endpoint_port);
+typedef void (*genode_wg_config_rm_peer_t) (
+	genode_wg_u8_t const *const pub_key
+);
 
 
 struct genode_wg_config_callbacks
