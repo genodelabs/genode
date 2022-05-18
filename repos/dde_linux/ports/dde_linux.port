@@ -1,6 +1,6 @@
 LICENSE     := GPLv2
 VERSION     := 2
-DOWNLOADS   := intel_fb.archive lxip.archive \
+DOWNLOADS   := lxip.archive \
                fec.archive \
                usb_host.archive dwc_otg_host.git usb_hid.archive \
                usb_modem.archive usb_net.archive
@@ -65,17 +65,6 @@ DIR(dwc_otg_host) := $(SRC_DIR_USB_HOST)/drivers/usb/host
 
 
 #
-# Intel framebuffer driver
-#
-SRC_DIR_INTEL_FB  := src/drivers/framebuffer/intel
-VERSION_INTEL_FB  := 4.16.3
-URL(intel_fb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_INTEL_FB).tar.xz
-SHA(intel_fb)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(intel_fb)     := $(SRC_DIR_INTEL_FB)
-TAR_OPT(intel_fb) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_INTEL_FB)/g' $(REP_DIR)/intel_fb.list)
-HASH_INPUT        += $(REP_DIR)/intel_fb.list
-
-#
 # IP stack sources
 #
 SRC_DIR_LXIP  := src/lib/lxip
@@ -101,11 +90,9 @@ HASH_INPUT   += $(REP_DIR)/fec.list
 # Patches
 #
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_modem*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/fec_*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_hid*.patch)))
 
@@ -142,14 +129,6 @@ PATCH_OPT(patches/usb_net_skbuff_cast.patch) := $(USB_NET_OPT)
 # USB MODEM
 USB_MODEM_OPT = -p1 -d$(SRC_DIR_USB_MODEM)
 PATCH_OPT(patches/usb_modem_skbuff_cast.patch) := $(USB_MODEM_OPT)
-
-# INTEL FB
-PATCH_OPT(patches/intel_fb_backlight.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
-PATCH_OPT(patches/intel_fb_drm.patch)       := -p1 -d$(SRC_DIR_INTEL_FB)
-PATCH_OPT(patches/intel_fb_early.patch)     := -p1 -d$(SRC_DIR_INTEL_FB)
-# drop it when https://bugs.freedesktop.org/show_bug.cgi?id=107125 gets fixed
-PATCH_OPT(patches/intel_fb_hotplug.patch)   := -p1 -d$(SRC_DIR_INTEL_FB)
-PATCH_OPT(patches/intel_fb_aperture_de_irq.patch):= -p1 -d$(SRC_DIR_INTEL_FB)
 
 # Freescale NIC
 PATCH_OPT(patches/fec_skbuff_cast.patch) := -p1 -d$(SRC_DIR_FEC)
