@@ -347,11 +347,46 @@ _genode_wg_config_add_peer(genode_wg_u16_t              listen_port,
 
 
 static void
-_genode_wg_config_rm_peer(genode_wg_u16_t      listen_port,
-                          genode_wg_u8_t const endpoint_ip[4],
-                          genode_wg_u16_t      endpoint_port)
+_genode_wg_config_rm_peer(genode_wg_u8_t const *const pub_key)
 {
-	printk("%s not yet implemented\n", __func__);
+
+	struct genode_wg_nlattr_ifname ifname;
+	struct genode_wg_nlattr_peers peers;
+	struct nlattr *attrs[__WGDEVICE_A_LAST];
+	struct genl_info info;
+	struct genode_wg_nlattr_peer *peer = &peers.peer_0;
+
+	ifname.data[0] = '\0';
+	ifname.header.nla_len = sizeof(ifname);
+
+	memset(&peers, 0, sizeof(peers));
+
+	peers.header.nla_type = WGDEVICE_A_PEERS | NLA_F_NESTED;
+	peers.header.nla_len = sizeof(peers);
+
+	peer->header.nla_len = sizeof(*peer);
+	peer->header.nla_type |= NLA_F_NESTED;
+
+	peer->public_key.header.nla_type = WGPEER_A_PUBLIC_KEY;
+	peer->public_key.header.nla_len = sizeof(peer->public_key);
+	memcpy(peer->public_key.data, pub_key, sizeof(peer->public_key.data));
+
+	peer->endpoint.header.nla_type = WGPEER_A_ENDPOINT;
+	peer->endpoint.header.nla_len = sizeof(peer->endpoint);
+
+	peer->flags.header.nla_type = WGPEER_A_FLAGS;
+	peer->flags.header.nla_len = sizeof(peer->flags);
+	peer->flags.data = WGPEER_F_REMOVE_ME;
+
+	peer->allowedips.header.nla_len = sizeof(peer->allowedips);
+	peer->allowedips.header.nla_type = WGPEER_A_ALLOWEDIPS | NLA_F_NESTED;
+
+	memset(attrs, 0, sizeof(attrs));
+	attrs[WGDEVICE_A_IFNAME] = &ifname.header;
+	attrs[WGDEVICE_A_PEERS]  = &peers.header;
+
+	info.attrs = attrs;
+	_genode_wg_set_device(&info);
 }
 
 
