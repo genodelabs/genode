@@ -95,3 +95,4 @@ vm_stress_vbox5-debian32
 vm_stress_vbox5-debian64
 vmm_arm
 vmm_x86
+wg_fetchurl

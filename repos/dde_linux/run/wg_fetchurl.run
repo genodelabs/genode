@@ -1,0 +1,419 @@
+#
+# FetchURL downloading a file from a LightTPD server through a Wireguard VPN
+#
+# By default, the file is an short inline HTML file at lighttpd and downloaded
+# into RAM in fetchurl. However, when the test is run with base-linux,
+# lighttpd uses a file created by the host filled filled with zeroes and of
+# customizable size and fetchurl downloads into the host FS, so the test can
+# then check the MD5 sum of the file.
+#
+
+if {[expr ![have_spec arm_64] && ![have_spec x86_64]]} {
+	puts "Run script is not supported on this platform."
+	exit 0
+}
+
+if {[have_spec linux]} {
+	set linux 1
+	set not_linux 0
+} else {
+	set linux 0
+	set not_linux 1
+}
+
+#
+# Note that in the not_linux case, the file size is rounded
+# down to a multiple of 100.
+#
+set file_size_in_bytes 1000000
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/libc \
+                  [depot_user]/src/libssh \
+                  [depot_user]/src/lighttpd \
+                  [depot_user]/src/openssl \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/zlib
+
+append config {
+
+<config>
+
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<start name="timer" caps="100">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="report" caps="100">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start> }
+
+append_if $linux config {
+
+	<start name="lx_fs" ld="no" caps="1000">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<policy label_prefix="fetchurl" root="/fetchurl_fs/" writeable="yes"/>
+			<policy label_prefix="lighttpd" root="/lighttpd_fs/" writeable="yes"/>
+		</config>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start> }
+
+append config {
+
+	<start name="fetchurl" caps="300">
+		<resource name="RAM" quantum="50M"/>
+		<config>
+			<report progress="yes"/>
+			<vfs>
+				<dir name="dev">
+					<log/> <null/>
+					<inline name="rtc">2019-07-04 12:00</inline>
+					<inline name="random">01234567890123456789</inline>
+				</dir>
+				<dir name="socket">
+					<lwip dhcp="yes"/>
+				</dir>
+				<dir name="vm"> }
+
+append_if $linux config {
+
+					<fs/> }
+
+append_if $not_linux config {
+
+					<ram/> }
+
+append config {
+
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
+			<fetch url="10.0.9.2" path="/vm/index.html" retry="3"/>
+		</config>
+		<route>
+			<service name="File_system"> <child name="lx_fs"/> </service>
+			<service name="Report">      <child name="report"/> </service>
+			<service name="Timer">       <child name="timer"/> </service>
+			<service name="Nic">         <child name="nic_router"/> </service>
+			<service name="ROM">         <parent/> </service>
+			<service name="PD">          <parent/> </service>
+			<service name="CPU">         <parent/> </service>
+			<service name="LOG">         <parent/> </service>
+		</route>
+	</start>
+
+	<start name="peer1_wireguard" caps="200">
+		<binary name="wireguard"/>
+		<resource name="RAM" quantum="10M"/>
+		<config private_key="0CtU34qsl97IGiYKSO4tMaF/SJvy04zzeQkhZEbZSk0="
+		        listen_port="49001">
+
+			<peer public_key="GrvyALPZ3PQ2AWM+ovxJqnxSqKpmTyqUui5jH+C8I0E="
+			      endpoint_ip="10.1.2.1"
+			      endpoint_port="49002"
+			      allowed_ip="10.0.9.2/32" />
+
+		</config>
+		<route>
+			<service name="Timer">  <child name="timer"/> </service>
+			<service name="Nic">    <child name="nic_router"/> </service>
+			<service name="Uplink"> <child name="nic_router"/> </service>
+			<service name="ROM">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config>
+
+			<policy label="peer1_wireguard -> nic_session"    domain="peer1_outer_downlink"/>
+			<policy label="peer1_wireguard -> uplink_session" domain="peer1_inner_uplink"/>
+			<policy label="fetchurl -> lwip"                  domain="peer1_inner_downlink"/>
+			<policy label="peer2_wireguard -> nic_session"    domain="peer2_outer_downlink"/>
+			<policy label="peer2_wireguard -> uplink_session" domain="peer2_inner_uplink"/>
+			<policy label="lighttpd -> lwip"                  domain="peer2_inner_downlink"/>
+
+			<domain name="peer1_outer_downlink" interface="10.1.2.1/24">
+				<dhcp-server ip_first="10.1.2.2" ip_last="10.1.2.2"/>
+				<udp-forward port="49002" domain="peer2_outer_downlink" to="10.0.3.2"/>
+			</domain>
+
+			<domain name="peer1_inner_uplink" interface="10.0.9.1/24" use_arp="no" >
+				<nat domain="peer1_inner_downlink" tcp-ports="1000"/>
+			</domain>
+
+			<domain name="peer1_inner_downlink" interface="10.1.3.1/24">
+				<dhcp-server ip_first="10.1.3.2" ip_last="10.1.3.2"/>
+				<tcp dst="10.0.9.2/24">
+					<permit port="80" domain="peer1_inner_uplink"/>
+				</tcp>
+			</domain>
+
+			<domain name="peer2_outer_downlink" interface="10.0.3.1/24">
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
+			</domain>
+
+			<domain name="peer2_inner_uplink" interface="10.0.9.2/24" use_arp="no">
+				<tcp-forward port="80" domain="peer2_inner_downlink" to="10.0.5.2"/>
+			</domain>
+
+			<domain name="peer2_inner_downlink" interface="10.0.5.1/24">
+				<dhcp-server ip_first="10.0.5.2" ip_last="10.0.5.2"/>
+			</domain>
+
+		</config>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="ROM">   <parent/> </service>
+			<service name="PD">    <parent/> </service>
+			<service name="CPU">   <parent/> </service>
+			<service name="LOG">   <parent/> </service>
+		</route>
+	</start>
+
+	<start name="peer2_wireguard" caps="200">
+		<binary name="wireguard"/>
+		<resource name="RAM" quantum="10M"/>
+		<config private_key="8GRSQZMgG1uuvz4APIBqrDmiLj8L886r++hzixjjHFc="
+		        listen_port="49002">
+
+			<peer public_key="r1Gslnm82X8NaijsWzPoSFzDZGl2tTJoPa+EJL4gYQw="
+			      allowed_ip="10.0.9.1/32" />
+
+		</config>
+		<route>
+			<service name="Timer">    <child name="timer"/> </service>
+			<service name="Nic">      <child name="nic_router"/> </service>
+			<service name="Uplink">   <child name="nic_router"/> </service>
+			<service name="ROM">      <parent/> </service>
+			<service name="PD">       <parent/> </service>
+			<service name="CPU">      <parent/> </service>
+			<service name="LOG">      <parent/> </service>
+		</route>
+	</start>
+
+	<start name="lighttpd" caps="200">
+		<resource name="RAM" quantum="50M" />
+		<config>
+			<arg value="lighttpd" />
+			<arg value="-f" />
+			<arg value="/etc/lighttpd/lighttpd.conf" />
+			<arg value="-D" />
+			<vfs>
+				<dir name="dev">
+					<log/> <null/>
+					<inline name="rtc">2000-01-01 00:00</inline>
+					<inline name="random">0123456789012345678901234567890123456789</inline>
+				</dir>
+				<dir name="socket"> <lwip dhcp="yes"/> </dir>
+				<dir name="etc">
+					<dir name="lighttpd">
+						<inline name="lighttpd.conf">
+# lighttpd configuration
+server.port            = 80
+server.document-root   = "/website"
+server.event-handler   = "select"
+server.network-backend = "write"
+server.upload-dirs     = ( "/tmp" )
+server.modules         = ("mod_openssl")
+index-file.names     = (
+  "index.xhtml", "index.html", "index.htm"
+)
+mimetype.assign      = (
+  ".html"         =>      "text/html",
+  ".htm"          =>      "text/html"
+)
+$SERVER["socket"] == ":443" {
+	ssl.engine  = "enable"
+	ssl.pemfile = "/etc/lighttpd/example.pem"
+}
+						</inline>
+						<inline name="example.pem">
+-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4KHUZjDRew89c
+wDlYPz9XFigcMDnDlHzdg2ByrGZIOUNYC5LH1QUK0TDbPP45Xx455niA0QY85dMQ
+4DQx0Qk6+TDpVD3F2MYQgbIX6YkX9kgqX+jiHgsNzRD4KamNYmfUY+dJhlZEXWAF
+uNSnRLvg4EH72AVKLLKiruGwkisW/AYU6dNE8iFOYL8Q75bBUADiQSDdD8vkpeXg
+1NqxNyHPR6YRbA+vqcK0kbC8btKR9wG6m99OhTR4x3M87vtFFLNtJNEf54fYxi+L
+1rljSqHbaXD+XJsVKgX+UlI1ZlYW4KqlMciMemkBp0CovCxLfsbMmkXAW2RONpkm
++sdO3CXFAgMBAAECggEAIKv00nqAVAuzP0ZPJivaZe3lYdLgfKVcXcRQGSgi4U9f
+dkBfYxqU0W15mHvCspUAfM85s8jhrW4suwK739axJ4hMOCkc6Hvj78vCt+FT1C96
+cCIh4/PmjCVEjHJ/xTifKRwsTWwK5AgY4AsBl0dneabvremOTrGNY7VZDwVvpZz1
+qXkSNjQ63tZKj9cESO5ceGLzuBAG6JDDpqJM5fmdsQ36/QVz9Gogr8bXEWFM1TOo
+lWVAPB/l6nqKurfMv+5th354+owv9CGKxqLBE1fujwE2VogBz7mkR/rnABOPU5ev
+wQVLXoUkO2bI8Uvc28lChaiG6ihfdmNCmwoi56HFRQKBgQDj0WoIxiY7H42KV7Hh
+uQZv/0aoQyjXuqJ7Vq0HdxOAxZr0GpSYgo3MTZWooI2AnAstPHXo0BsQr+XVijWm
+xiDxMM4p9nrBzjEIHwyDaf62Pz/6lIPdenynLiEIOUbocJ3r0/3tCrY3U7fgjzYY
+f9PZmXKEOOKdbVPyXG0OIJ/ADwKBgQDO8GkCdVGy/YB0X7ntqcBG0xgmDnKRmYpQ
+X7Tb377AT2lzvftxaRVrx+UXtvFdy4xdrxjqHJCgOHT/fsAfjJlo7v1+KhTvE0pt
+jCdJPLbzXJRwaISaeEaMJ/N8Vv/j2/YuoS5M5vh4NlWeO16HtF7N9V9cMEZ5iRW1
+9G/eWgOo6wKBgQCY6rn3xblnuhgxogd+ccmGZ50v2FST6WyiyV0/Q4hNyVXnP+g6
+LneriPBJzertRtChvpGOghGIs+jb2veESD1YZ+Aafp2LdTGoN98YXo9gGTiCpCmX
+Al6lgOsfMAMOhnkaEKPC9ou0u3cTPk2bSEIVL1CUu/IwpW/RoIR7FR7ltQKBgQDA
+RAmsqQfhPzqL5SzALclhhFuZcC7uLDOf/WvyJW37C000pjzp3/JxE2Y8pFKZDLc7
+i6WgTi3pTssVXtRt+5nFLtcC02Jjxg6OvXr6xphMf6XC0rjxM/KH4c6Npd9V+1Y9
+eK+l76rHNeRSgWKQvvqebO3On2O7I6yyQ4t0kTl5RQKBgQCbX1cTtNmNr6HNleXL
+zfclKESSYy57uq3fQxhRrEE2ZNbemLOxEuoBCFYoMwpZEjC1GZyICrM7o5673/Ih
+I0oZerUBmt2l8noZCQoITEa97bCbp2vIdHYnCf/H3Nf2qM329fc00kAmm7vUVRgM
+4BqXnuFcAOuY68sgp9JArzK+EQ==
+-----END PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIDazCCAlOgAwIBAgIUYPOYXijLmMjjlgRCGHuZeyP0iPEwDQYJKoZIhvcNAQEL
+BQAwRTELMAkGA1UEBhMCREUxEzARBgNVBAgMClNvbWUtU3RhdGUxDTALBgNVBAoM
+BFRlc3QxEjAQBgNVBAMMCTEwLjAuMi41NTAeFw0yMDA1MTQxNDQ0MzlaFw00NzA5
+MzAxNDQ0MzlaMEUxCzAJBgNVBAYTAkRFMRMwEQYDVQQIDApTb21lLVN0YXRlMQ0w
+CwYDVQQKDARUZXN0MRIwEAYDVQQDDAkxMC4wLjIuNTUwggEiMA0GCSqGSIb3DQEB
+AQUAA4IBDwAwggEKAoIBAQC4KHUZjDRew89cwDlYPz9XFigcMDnDlHzdg2ByrGZI
+OUNYC5LH1QUK0TDbPP45Xx455niA0QY85dMQ4DQx0Qk6+TDpVD3F2MYQgbIX6YkX
+9kgqX+jiHgsNzRD4KamNYmfUY+dJhlZEXWAFuNSnRLvg4EH72AVKLLKiruGwkisW
+/AYU6dNE8iFOYL8Q75bBUADiQSDdD8vkpeXg1NqxNyHPR6YRbA+vqcK0kbC8btKR
+9wG6m99OhTR4x3M87vtFFLNtJNEf54fYxi+L1rljSqHbaXD+XJsVKgX+UlI1ZlYW
+4KqlMciMemkBp0CovCxLfsbMmkXAW2RONpkm+sdO3CXFAgMBAAGjUzBRMB0GA1Ud
+DgQWBBQvSHuosL/SDn/8sKl0dpyPeFvOfjAfBgNVHSMEGDAWgBQvSHuosL/SDn/8
+sKl0dpyPeFvOfjAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQBR
+sGYEuRwIU/tmAmTbniptItN9VE0NNj9QeKh+hKQ9cHvhxmlBlf5b7Vb2JaRZdy88
+kRIFKiNkyjgQVg+5KuEIcg17mHSal7zG+jIZ3c1bIpVCM4AjUe7EXl8LM4+dJ5sX
+Bwpd34tUk2edOiT8R/dU7uesxCdeIQ2FfvKyrXca73nj+UTvFGXUk/9mWY8KAaYc
+F/PWBhiZhJD4/dkUHJnrVtjpcqW2Io8bFmrMq2vfqQv+W2FZGCsHgXkAZO2E0jyQ
+5eOrwzgWRtMc5PvoGvqQfefseaLs0fvSQdcPqfv88Eqk5NGTOCIW8/KEsBwFJuwa
+EpA5DBBklj8UE2CdONvN
+-----END CERTIFICATE-----
+						</inline>
+					</dir>
+				</dir>
+				<dir name="website"> }
+
+append_if $linux config {
+
+					<fs/> }
+
+if {$not_linux} {
+
+	append config {<inline name="index.html">}
+	for {set i 0} {$i < $file_size_in_bytes} {incr i 64} {
+
+		# append 100 bytes of "0"
+		append config {0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000}
+	}
+	append config {</inline>}
+}
+
+append config {
+
+				</dir>
+				<dir name="tmp"> <ram/> </dir>
+			</vfs>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+			      rtc="/dev/rtc" rng="/dev/random" socket="/socket"/>
+		</config>
+
+		<route>
+			<service name="File_system"> <child name="lx_fs"/> </service>
+			<service name="Nic">         <child name="nic_router"/> </service>
+			<service name="Timer">       <child name="timer"/> </service>
+			<service name="ROM">         <parent/> </service>
+			<service name="PD">          <parent/> </service>
+			<service name="CPU">         <parent/> </service>
+			<service name="LOG">         <parent/> </service>
+		</route>
+
+	</start>
+
+</config>
+}
+
+install_config $config
+
+append targets {
+	core init timer server/nic_router app/wireguard server/report_rom
+	app/fetchurl }
+
+append boot_modules {
+	core init timer nic_router wireguard fetchurl report_rom curl.lib.so
+	ld.lib.so }
+
+if $linux {
+
+	append targets { server/lx_fs }
+	append boot_modules { lx_fs }
+
+	# create the lx_fs root of fetchurl where it will store the downloaded file
+	proc lx_fs_root {} { return [run_dir]/genode }
+	exec rm -rf [lx_fs_root]/fetchurl_fs
+	exec mkdir -p [lx_fs_root]/fetchurl_fs
+
+	# create the lx_fs root of lighttpd and the downloadable file inside it
+	exec rm -rf [lx_fs_root]/lighttpd_fs
+	exec mkdir -p [lx_fs_root]/lighttpd_fs
+	exec head -c $file_size_in_bytes /dev/zero > [lx_fs_root]/lighttpd_fs/index.html
+}
+
+build $targets
+
+build_boot_image $boot_modules
+
+append qemu_args "-nographic "
+
+# run the scenario till fetchurl succeeded to download the file
+run_genode_until "fetchurl. exited with exit value 0.*\n" 60
+
+if {$linux} {
+
+	# check that the md5 sum of the downloaded file is correct
+	set lighttpd_index_md5 [exec md5sum [lx_fs_root]/lighttpd_fs/index.html]
+	set fetchurl_index_md5 [exec md5sum [lx_fs_root]/fetchurl_fs/index.html]
+
+	puts ""
+	puts $lighttpd_index_md5
+	puts $fetchurl_index_md5
+	puts "MD5SUM of transferred files is correct"
+
+	if {[string compare -length 32 $lighttpd_index_md5 $fetchurl_index_md5]} {
+		puts ""
+		puts "Error: MD5SUM of transferred files is incorrect"
+		puts ""
+		exit -1
+	}
+}
