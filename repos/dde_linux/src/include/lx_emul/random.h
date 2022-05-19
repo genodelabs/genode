@@ -11,8 +11,7 @@
  * the lx_emul randomness functions has known statistical problems (see
  * https://en.wikipedia.org/wiki/Xoroshiro128%2B#Statistical_Quality).
  * Furthermore, the integration of Xoroshir128+ with the lx_emul code was not
- * reviewed/audited for its security-related properties, so far, and has the
- * known deficiency of seeding the PRNG only once during initialization. Thus,
+ * reviewed/audited for its security-related properties, so far. Thus,
  * we strongly advise against the use of the lx_emul randomness functions for
  * security-critical purposes.
  */
