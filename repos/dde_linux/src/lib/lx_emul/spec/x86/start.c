@@ -32,11 +32,11 @@ void time_init(void)
 
 #include <asm/pgtable.h>
 
+/*
+ * Note that empty_zero_page lands in the BSS section and is therefore
+ * automatically zeroed at program startup.
+ */
 unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
 __attribute__((aligned(PAGE_SIZE)));
 
-void lx_emul_setup_arch(void *dtb)
-{
-	/* fill zero page */
-	memset(empty_zero_page, 0, PAGE_SIZE);
-}
+void lx_emul_setup_arch(void *dtb) { }
