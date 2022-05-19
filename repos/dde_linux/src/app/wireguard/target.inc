@@ -13,9 +13,10 @@ SRC_CC   += ipv4_config.cc
 SRC_CC   += irq.cc
 SRC_CC   += main.cc
 SRC_CC   += nic_connection.cc
-SRC_CC   += random.cc
+SRC_CC   += lx_emul/random.cc
 SRC_CC   += uplink_connection.cc
 
 vpath %.cc $(GEN_DIR)
+vpath %.cc $(REP_DIR)/src/lib
 
 CC_CXX_WARN_STRICT_CONVERSION =

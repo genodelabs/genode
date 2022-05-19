@@ -1,10 +1,11 @@
 base
 genode_c_api
+jitterentropy
 libc
+nic_session
 openssl
 os
 pc_linux
-nic_session
 platform_session
 report_session
 timer_session

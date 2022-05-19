@@ -28,9 +28,6 @@ void lx_backtrace(void);
 
 void lx_emul_time_udelay(unsigned long usec);
 
-void         lx_emul_get_random_bytes(void *buf, unsigned long nbytes);
-unsigned int lx_emul_get_random_u32(void);
-
 int  lx_emul_rfkill_get_any(void);
 void lx_emul_rfkill_switch_all(int blocked);
 

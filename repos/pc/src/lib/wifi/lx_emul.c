@@ -14,6 +14,7 @@
 #include <lx_emul.h>
 #include <linux/slab.h>
 
+#include <lx_emul/random.h>
 #include <lx_emul/alloc.h>
 #include <lx_emul/io_mem.h>
 
@@ -442,7 +443,7 @@ void __put_page(struct page * page)
 
 u32 get_random_u32(void)
 {
-	return lx_emul_get_random_u32();
+	return lx_emul_gen_random_uint();
 }
 
 
@@ -451,7 +452,7 @@ int __must_check get_random_bytes_arch(void *buf, int nbytes)
 	if (nbytes < 0)
 		return -1;
 
-	lx_emul_get_random_bytes(buf, (unsigned long)nbytes);
+	lx_emul_gen_random_bytes(buf, (unsigned long)nbytes);
 	return 0;
 }
 
@@ -467,13 +468,13 @@ void get_random_bytes(void *buf, int nbytes)
 
 void prandom_bytes(void *buf, size_t bytes)
 {
-	lx_emul_get_random_bytes(buf, bytes);
+	lx_emul_gen_random_bytes(buf, bytes);
 }
 
 
 u32 prandom_u32(void)
 {
-	return lx_emul_get_random_u32();
+	return lx_emul_gen_random_uint();
 }
 
 
