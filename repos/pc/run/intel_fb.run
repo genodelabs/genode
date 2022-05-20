@@ -68,6 +68,9 @@ append config {
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Platform"> <child name="platform_drv" label="intel_fb_drv"/> </service>
+			<service name="ROM" label="intel_fb_drv -> intel_opregion">
+				<child name="acpi_report_rom" label="intel_fb_drv -> intel_opregion"/>
+			</service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config prio_levels="2">
