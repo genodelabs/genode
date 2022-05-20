@@ -1,5 +1,5 @@
 /*
- * \brief  Packet header and context types
+ * \brief  Packet header
  * \author Johannes Schlatow
  * \date   2021-08-04
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CTF__PACKET_TYPES_H_
-#define _CTF__PACKET_TYPES_H_
+#ifndef _CTF__PACKET_HEADER_H_
+#define _CTF__PACKET_HEADER_H_
 
 #include <base/trace/types.h>
 #include <ctf/timestamp.h>
@@ -130,4 +130,4 @@ struct Ctf::Packet_header
 
 } __attribute__((packed));
 
-#endif /* _CTF__PACKET_TYPES_H_ */
+#endif /* _CTF__PACKET_HEADER_H_ */
