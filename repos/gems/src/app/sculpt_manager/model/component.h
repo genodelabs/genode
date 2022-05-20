@@ -16,6 +16,7 @@
 
 #include <types.h>
 #include <model/route.h>
+#include <depot/archive.h>
 
 namespace Sculpt { struct Component; }
 
