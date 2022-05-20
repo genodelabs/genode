@@ -1,6 +1,7 @@
 /*
  * \brief  PCI device configuration
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2008-01-29
  */
 
@@ -292,12 +293,12 @@ namespace Platform {
 			/**
 			 * Return true if device is a PCI bridge
 			 */
-			bool pci_bridge() { return _header_type == HEADER_PCI_TO_PCI; }
+			bool pci_bridge() const { return _header_type == HEADER_PCI_TO_PCI; }
 
 			/**
 			 * Return true if device is valid
 			 */
-			bool valid() { return _vendor_id != INVALID_VENDOR; }
+			bool valid() const { return _vendor_id != INVALID_VENDOR; }
 
 			/**
 			 * Return resource description by resource ID

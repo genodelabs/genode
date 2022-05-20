@@ -167,7 +167,7 @@ class Platform::Irq_component : public Platform::Irq_proxy
 void Platform::Irq_session_component::ack_irq()
 {
 	if (msi()) {
-		_irq_conn->ack_irq();
+		_msi_conn->ack_irq();
 		return;
 	}
 
@@ -186,7 +186,9 @@ void Platform::Irq_session_component::ack_irq()
 Platform::Irq_session_component::Irq_session_component(unsigned   irq,
                                                        addr_t     pci_config_space,
                                                        Env       &env,
-                                                       Allocator &heap)
+                                                       Allocator &heap,
+                                                       Irq_session::Trigger  trigger,
+                                                       Irq_session::Polarity polarity)
 :
 	_gsi(irq)
 {
@@ -197,11 +199,11 @@ Platform::Irq_session_component::Irq_session_component(unsigned   irq,
 			try {
 				using namespace Genode;
 
-				_irq_conn.construct(env, msi, Irq_session::TRIGGER_UNCHANGED,
+				_msi_conn.construct(env, msi, Irq_session::TRIGGER_UNCHANGED,
 				                    Irq_session::POLARITY_UNCHANGED,
 				                    pci_config_space);
 
-				_msi_info = _irq_conn->info();
+				_msi_info = _msi_conn->info();
 				if (_msi_info.type == Irq_session::Info::Type::MSI) {
 					_gsi = msi;
 					return;
@@ -215,9 +217,6 @@ Platform::Irq_session_component::Irq_session_component(unsigned   irq,
 	/* invalid irq number for pci_devices */
 	if (_gsi >= INVALID_IRQ)
 		return;
-
-	Irq_session::Trigger  trigger;
-	Irq_session::Polarity polarity;
 
 	_gsi = Platform::Irq_override::irq_override(_gsi, trigger, polarity);
 	if (_gsi != irq || trigger != Irq_session::TRIGGER_UNCHANGED ||
@@ -241,7 +240,7 @@ Platform::Irq_session_component::Irq_session_component(unsigned   irq,
 Platform::Irq_session_component::~Irq_session_component()
 {
 	if (msi()) {
-		_irq_conn->sigh(Signal_context_capability());
+		_msi_conn->sigh(Signal_context_capability());
 
 		irq_alloc.free_msi(_gsi);
 		return;
@@ -258,9 +257,9 @@ Platform::Irq_session_component::~Irq_session_component()
 
 void Platform::Irq_session_component::sigh(Signal_context_capability sigh)
 {
-	if (_irq_conn.constructed()) {
+	if (_msi_conn.constructed()) {
 		/* register signal handler for msi directly at parent */
-		_irq_conn->sigh(sigh);
+		_msi_conn->sigh(sigh);
 		return;
 	}
 

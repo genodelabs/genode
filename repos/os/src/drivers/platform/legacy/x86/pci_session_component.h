@@ -1,6 +1,7 @@
 /*
  * \brief  Platform session component
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2008-01-28
  */
 
@@ -218,7 +219,7 @@ class Platform::Session_component : public Rpc_object<Session>
 		Session_label        const _label;
 		List<Device_component>     _device_list { };
 		Platform::Pci_buses       &_pci_bus;
-		Heap                      &_global_heap;
+		Allocator                 &_global_heap;
 		Pci::Config::Delayer      &_delayer;
 		Device_bars_pool          &_devices_bars;
 		bool const                 _iommu;
@@ -349,8 +350,8 @@ class Platform::Session_component : public Rpc_object<Session>
 			try {
 				policy.for_each_sub_node("device", [&] (Xml_node dev) {
 
-					/* enforce restriction based on name name */
-					if (dev.attribute_value("name", String<10>()) == name)
+					/* enforce restriction based on name */
+					if (dev.attribute_value("name", Device_name_string()) == name)
 						/* found identical match - permit access */
 						throw true;
 				});
@@ -424,8 +425,7 @@ class Platform::Session_component : public Rpc_object<Session>
 				_config.xml().for_each_sub_node("policy", [&] (Xml_node policy) {
 					policy.for_each_sub_node("device", [&] (Xml_node device) {
 
-						typedef String<10> Name;
-						if (device.attribute_value("name", Name()) == dev_name) {
+						if (device.attribute_value("name", Device_name_string()) == dev_name) {
 
 							if (once)
 								throw true;
@@ -474,7 +474,7 @@ class Platform::Session_component : public Rpc_object<Session>
 		                  Attached_io_mem_dataspace &pciconf,
 		                  addr_t                     pciconf_base,
 		                  Platform::Pci_buses       &buses,
-		                  Heap                      &global_heap,
+		                  Allocator                 &global_heap,
 		                  Pci::Config::Delayer      &delayer,
 		                  Device_bars_pool          &devices_bars,
 		                  char               const *args,
@@ -521,8 +521,8 @@ class Platform::Session_component : public Rpc_object<Session>
 					throw Service_denied();
 				}
 
-				typedef String<16> Name;
-				Name const name = device_node.attribute_value("name", Name());
+				Device_name_string const name =
+					device_node.attribute_value("name", Device_name_string());
 
 				enum { DOUBLET = false };
 				if (find_dev_in_policy(name.string(), DOUBLET)) {
@@ -610,7 +610,7 @@ class Platform::Session_component : public Rpc_object<Session>
 			_device_list.first()->for_each_device([&](auto const &dev) {
 
 				/* Non PCI devices */
-				if (!dev.device_config().valid()) {
+				if (!dev.pci_device()) {
 					if (!permit_device(dev.name().string()))
 						result = false;
 
@@ -777,7 +777,7 @@ class Platform::Session_component : public Rpc_object<Session>
 				if (!device)
 					return;
 
-				if (device->device_config().valid()) {
+				if (device->pci_device()) {
 					if (bdf_in_use.get(device->device_config().bdf().value(), 1))
 						bdf_in_use.clear(device->device_config().bdf().value(), 1);
 				}
@@ -877,6 +877,7 @@ class Platform::Session_component : public Rpc_object<Session>
 			return _env.pd().dma_addr(ram_cap);
 		}
 
+		/* non-PCI devices */
 		Device_capability device(Device_name const &name) override;
 };
 
@@ -886,13 +887,12 @@ class Platform::Root : public Root_component<Session_component>
 	private:
 
 		Env                    &_env;
+		Allocator              &_heap;
 		Attached_rom_dataspace &_config;
 
 		Constructible<Attached_io_mem_dataspace> _pci_confspace { };
 		addr_t                                   _pci_confspace_base = 0;
 		Constructible<Expanding_reporter>        _pci_reporter { };
-
-		Heap _heap { _env.ram(), _env.rm() };
 
 		Device_bars_pool _devices_bars { };
 
@@ -1123,11 +1123,12 @@ class Platform::Root : public Root_component<Session_component>
 		 * \param md_alloc  meta-data allocator for allocating PCI-session
 		 *                  components and PCI-device components
 		 */
-		Root(Env &env, Allocator &md_alloc, Attached_rom_dataspace &config,
+		Root(Env &env, Allocator &heap, Allocator &md_alloc, Attached_rom_dataspace &config,
 		     char const *acpi_rom, bool acpi_platform, bool msi_platform)
 		:
 			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env),
+			_heap(heap),
 			_config(config),
 			_msi_platform(msi_platform)
 		{

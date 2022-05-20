@@ -182,3 +182,26 @@ The driver provides for the PS2 and PIT device the IO_PORT and IRQ resources.
 !  </policy>
 ! </config>
 !</start>
+
+Also, known ACPI device resources can be statically configured on
+startup like follows.
+
+!<config>
+!  <policy label_prefix="driver">
+!    <device name="INT34C5"/>
+!    <device name="ACPI0000"/>
+!  </policy>
+!
+!  <device hid="INT34C5" type="acpi">
+!    <irq number="14" mode="level" polarity="low"/>
+!    <io_mem address="0xfd690000" size="0x1000"/>
+!    <io_mem address="0xfd6a0000" size="0x1000"/>
+!    <io_mem address="0xfd6d0000" size="0x1000"/>
+!    <io_mem address="0xfd6e0000" size="0x1000"/>
+!  </device>
+!  <device name="ACPI0000" type="acpi">
+!    <irq  number="99"/>
+!    <io_mem        address="0xfc000000" size="0x100000"/>
+!    <io_port_range address="0x4000"     size="4"/>
+!  </device>
+!</config>

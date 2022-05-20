@@ -1,6 +1,7 @@
 /*
  * \brief  PCI-device interface
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2008-01-28
  */
 
@@ -80,10 +81,10 @@ struct Platform::Device : Platform::Abstract_device
 			{
 				/*
 				 * Mask out the resource-description bits of the base
-				 * address register. I/O resources use the lowest 3
+				 * address register. I/O resources use the lowest 2
 				 * bits, memory resources use the lowest 4 bits.
 				 */
-				return _bar & ((type() == IO) ? ~7 : ~15);
+				return _bar & ((type() == IO) ? ~3 : ~15);
 			}
 
 			/**
