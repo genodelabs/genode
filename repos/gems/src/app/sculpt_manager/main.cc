@@ -691,7 +691,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		bool need_generate_dialog = false;
 
-		if (ev.key_press(Input::BTN_LEFT)) {
+		if (ev.key_press(Input::BTN_LEFT) || ev.touch()) {
 			_clicked_seq_number.construct(_global_input_seq_number);
 			_try_handle_click();
 		}

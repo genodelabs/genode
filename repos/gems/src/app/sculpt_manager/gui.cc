@@ -41,7 +41,10 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 			 * Augment input stream with sequence numbers to correlate
 			 * clicks with hover reports.
 			 */
-			if (ev.key_press(Input::BTN_LEFT) || ev.key_release(Input::BTN_LEFT)) {
+			bool const advance_seq_number = ev.key_press(Input::BTN_LEFT)
+			                             || ev.key_release(Input::BTN_LEFT)
+			                             || ev.touch();
+			if (advance_seq_number) {
 				_global_input_seq_number.value++;
 				_input_component.submit(_global_input_seq_number);
 			}
