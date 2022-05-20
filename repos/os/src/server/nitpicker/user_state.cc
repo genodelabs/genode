@@ -108,6 +108,10 @@ void User_state::_handle_input_event(Input::Event ev)
 	ev.handle_absolute_motion([&] (int x, int y) {
 		_pointer_pos = Point(x, y); });
 
+	/* let pointer position correspond to most recent touch position */
+	ev.handle_touch([&] (Input::Touch_id, float x, float y) {
+		_pointer_pos = Point((int)x, (int)y); });
+
 	/* count keys */
 	if (ev.press()) _key_cnt++;
 	if (ev.release() && (_key_cnt > 0)) _key_cnt--;
@@ -125,7 +129,7 @@ void User_state::_handle_input_event(Input::Event ev)
 		_key_array.pressed(key, false);
 	});
 
-	if (ev.absolute_motion() || ev.relative_motion()) {
+	if (ev.absolute_motion() || ev.relative_motion() || ev.touch()) {
 		update_hover();
 
 		if (_key_cnt > 0) {
