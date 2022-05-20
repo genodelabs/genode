@@ -265,6 +265,10 @@ static int usb_rpc_call(void * data)
 			else
 				release_iface(iface);
 		}
+
+		if (usb_rpc_args.call == RELEASE_ALL)
+			usb_reset_device(udev);
+
 		usb_rpc_args.ret = ret;
 	}
 	return 0;
@@ -456,6 +460,9 @@ static struct usb_interface * usb_get_iface_from_urb(struct urb * urb)
 	unsigned i, j;
 	struct usb_host_endpoint * ep = usb_pipe_endpoint(urb->dev, urb->pipe);
 
+	if (!ep || !urb->dev || !urb->dev->actconfig)
+		return NULL;
+
 	for (i = 0; i < urb->dev->actconfig->desc.bNumInterfaces; i++) {
 		struct usb_interface * iface = urb->dev->actconfig->interface[i];
 		if (!iface || !iface->cur_altsetting)
@@ -473,7 +480,7 @@ static struct usb_interface * usb_get_iface_from_urb(struct urb * urb)
 static void async_complete(struct urb *urb)
 {
 	struct usb_interface * iface;
-	struct usb_iface_urbs * urbs;
+	struct usb_iface_urbs * urbs = NULL;
 
 	unsigned long handle = (unsigned long)urb->context;
 	genode_usb_session_handle_t session =
@@ -485,8 +492,9 @@ static void async_complete(struct urb *urb)
 	                       handle_transfer_response, (void*)urb);
 
 	iface = usb_get_iface_from_urb(urb);
-	urbs  = usb_get_intfdata(iface);
-	if (!urbs->in_delete) {
+	if (iface)
+		urbs = usb_get_intfdata(iface);
+	if (!urbs || !urbs->in_delete) {
 		usb_free_urb(urb);
 		lx_user_handle_io();
 	}
@@ -621,6 +629,11 @@ handle_transfer_request(struct genode_usb_request_transfer * req,
 	if (!err) {
 		struct usb_iface_urbs * urbs;
 		struct usb_interface * iface = usb_get_iface_from_urb(urb);
+		if (!iface) {
+			usb_free_urb(urb);
+			return NO_DEVICE_ERROR;
+		}
+
 		if (!usb_interface_claimed(iface))
 			claim_iface(iface);
 		urbs = usb_get_intfdata(iface);
