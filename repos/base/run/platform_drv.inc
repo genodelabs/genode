@@ -188,6 +188,7 @@ proc platform_drv_config {} {
 			<service name="Report" />
 		</provides>
 		<config>
+			<policy label="intel_fb_drv -> intel_opregion" report="acpi_drv -> intel_opregion"/>
 			<policy label="smbios_decoder -> smbios_table" report="acpi_drv -> smbios_table"/>
 			<policy label="platform_drv -> acpi"           report="acpi_drv -> acpi"/>}
 

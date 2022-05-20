@@ -215,6 +215,9 @@ void intel_gt_init_early(struct intel_gt * gt, struct drm_i915_private * i915)
 	init_llist_head(&gt->watchdog.list);
 
 	lx_emul_trace(__func__);
+
+	/* disable panel self refresh (required for FUJITSU S937/S938) */
+	i915->params.enable_psr = 0;
 }
 
 
@@ -242,7 +245,7 @@ void * memremap(resource_size_t offset, size_t size, unsigned long flags)
 {
 	lx_emul_trace(__func__);
 
-	return NULL;
+	return intel_io_mem_map(offset, size);
 }
 
 
