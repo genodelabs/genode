@@ -324,18 +324,30 @@ void Menu_view::Main::_handle_input()
 		ev.handle_seq_number([&] (Input::Seq_number seq_number) {
 			_input_seq_number.update(seq_number); });
 
-		ev.handle_absolute_motion([&] (int x, int y) {
+		auto hover_at = [&] (int x, int y)
+		{
 			_dialog_hovered   = true;
 			_hovered_position = Point(x, y) - _position;
-		});
+		};
+
+		auto unhover = [&] ()
+		{
+			_dialog_hovered   = false;
+			_hovered_position = Point();
+		};
+
+		ev.handle_absolute_motion([&] (int x, int y) {
+			hover_at(x, y); });
+
+		ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
+			if (id.value == 0)
+				hover_at((int)x, (int)y); });
 
 		/*
 		 * Reset hover model when losing the focus
 		 */
-		if (ev.hover_leave()) {
-			_dialog_hovered   = false;
-			_hovered_position = Point();
-		}
+		if (ev.hover_leave())
+			unhover();
 	});
 
 	bool const hover_changed = orig_dialog_hovered   != _dialog_hovered
