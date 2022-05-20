@@ -552,6 +552,11 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 				ev = Input::Absolute_motion{p.x(), p.y()};
 			});
 
+			ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
+				ev = Input::Touch { .id = id,
+				                    .x  = x + (float)origin.x(),
+				                    .y  = y + (float)origin.y() }; });
+
 			return ev;
 		}
 
