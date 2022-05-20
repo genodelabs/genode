@@ -251,6 +251,9 @@ class Genode::Trace::Simple_buffer
 
 			public:
 
+				/* return invalid entry (checked by last()) */
+				static Entry invalid()     { return Entry(0); }
+
 				size_t      length() const { return _entry->len; }
 				char const *data()   const { return _entry->data; }
 
@@ -264,8 +267,18 @@ class Genode::Trace::Simple_buffer
 				bool head()     const { return !last() && _entry->head(); }
 		};
 
+		/* Return whether buffer has been initialized. */
+		bool initialized() const { return _size && _head_offset <= _size; }
+
 		/* Return the very first entry at the start of the buffer. */
-		Entry first() const { return Entry(_entries); }
+		Entry first() const
+		{
+			/* return invalid entry if buffer is uninitialised */
+			if (!initialized())
+				return Entry::invalid();
+
+			return Entry(_entries);
+		}
 
 		/**
 		 * Return the entry that follows the given entry.
@@ -278,14 +291,14 @@ class Genode::Trace::Simple_buffer
 		Entry next(Entry entry) const
 		{
 			if (entry.last() || entry._padding())
-				return Entry(0);
+				return Entry::invalid();
 
 			if (entry.head())
 				return entry;
 
 			addr_t const offset = (addr_t)entry.data() - (addr_t)_entries;
 			if (offset + entry.length() + sizeof(_Entry) > _size)
-				return Entry(0);
+				return Entry::invalid();
 
 			return Entry((_Entry const *)((addr_t)entry.data() + entry.length()));
 		}
@@ -382,11 +395,11 @@ class Genode::Trace::Partitioned_buffer
 		 ** Functions called from the TRACE client **
 		 ********************************************/
 
-		unsigned wrapped() { return _wrapped; }
+		unsigned           wrapped()      const { return _wrapped; }
+		unsigned long long lost_entries() const { return _lost_entries; }
 
-		unsigned long long lost_entries() { return _lost_entries; }
-
-		Entry first() const { return _consumer().first(); }
+		Entry first()       const { return _consumer().first(); }
+		bool  initialized() const { return _secondary_offset > 0 && _consumer().initialized(); }
 
 		/**
 		 * Return the entry that follows the given entry.

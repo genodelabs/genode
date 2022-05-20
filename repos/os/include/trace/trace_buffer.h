@@ -24,9 +24,10 @@
 class Trace_buffer
 {
 	private:
+		using Entry = Genode::Trace::Buffer::Entry;
 
 		Genode::Trace::Buffer        &_buffer;
-		Genode::Trace::Buffer::Entry  _curr { _buffer.first() };
+		Entry                         _curr { Entry::invalid() };
 		unsigned long long            _lost_count { 0 };
 
 	public:
@@ -41,6 +42,9 @@ class Trace_buffer
 		{
 			using namespace Genode;
 
+			if (!_buffer.initialized())
+				return;
+
 			bool lost = _buffer.lost_entries() != _lost_count;
 			if (lost) {
 				warning("lost ", _buffer.lost_entries() - _lost_count,
@@ -48,18 +52,17 @@ class Trace_buffer
 				_lost_count = (unsigned)_buffer.lost_entries();
 			}
 
-			Trace::Buffer::Entry entry { _curr };
+			Entry entry { _curr };
 
 			/**
 			 * Iterate over all entries that were not processed yet.
 			 *
 			 * A note on terminology: The head of the buffer marks the write
 			 * position. The first entry is the one that starts at the lowest
-			 * memory address. The next entry returns an invalid entry called
-			 * if the 'last' end of the buffer (highest address) was reached.
+			 * memory address. The next entry returns an invalid entry
+			 * if the 'last' entry of the buffer (highest address) was reached.
 			 */
 			for (; !entry.head(); entry = _buffer.next(entry)) {
-
 				/* continue at first entry if we hit the end of the buffer */
 				if (entry.last())
 					entry = _buffer.first();
