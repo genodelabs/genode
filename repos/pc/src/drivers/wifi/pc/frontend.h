@@ -563,7 +563,6 @@ struct Wifi::Frontend
 		REMOVE_NETWORK     = 0x40|NETWORK,
 		ENABLE_NETWORK     = 0x50|NETWORK,
 		DISABLE_NETWORK    = 0x60|NETWORK,
-		DISCONNECT_NETWORK = 0x70|NETWORK,
 		LIST_NETWORKS      = 0x80|NETWORK,
 
 		CONNECTING   = 0x00|CONNECT,
@@ -866,70 +865,42 @@ struct Wifi::Frontend
 		_submit_cmd(Cmd_str("ADD_NETWORK"));
 	}
 
-	void _network_enable()
+	void _network_enable(Accesspoint &ap)
 	{
 		if (_state != State::IDLE) {
 			Genode::warning("cannot enable network in non-idle state");
 			return;
 		}
 
-		if (_processed_ap) { return; }
-
-		_aps.for_each([&] (Accesspoint &ap) {
-			if (   !_processed_ap && ap.valid()
-			    && !ap.enabled && ap.auto_connect) {
-				_processed_ap = &ap;
-			}
-		});
-
-		if (!_processed_ap) {
-
-			return;
-		}
+		if (ap.enabled) { return; }
 
 		if (_verbose) {
-			Genode::log("Enable network: '", _processed_ap->ssid, "'");
+			Genode::log("Enable network: ", ap.id, " '", ap.ssid, "'");
 		}
+
+		ap.enabled = true;
 
 		_state_transition(_state, State::ENABLE_NETWORK);
-		_submit_cmd(Cmd_str("ENABLE_NETWORK ", _processed_ap->id));
+		_submit_cmd(Cmd_str("ENABLE_NETWORK ", ap.id));
 	}
 
-	void _network_disable()
+	void _network_disable(Accesspoint &ap)
 	{
 		if (_state != State::IDLE) {
 			Genode::warning("cannot enable network in non-idle state");
 			return;
 		}
 
-		if (_processed_ap) { return; }
-
-		_aps.for_each([&] (Accesspoint &ap) {
-			if (   !_processed_ap && ap.valid()
-			    && ap.enabled && ap.auto_connect) {
-				_processed_ap = &ap;
-			}
-		});
-
-		if (!_processed_ap) {
-			/* XXX move State transition somewhere more sane */
-			_state_transition(_state, State::IDLE);
-			_add_new_aps();
-			return;
-		}
+		if (!ap.enabled) { return; }
 
 		if (_verbose) {
-			Genode::log("Disable network: '", _processed_ap->ssid, "'");
+			Genode::log("Disable network: ", ap.id, " '", ap.ssid, "'");
 		}
 
-		_state_transition(_state, State::DISABLE_NETWORK);
-		_submit_cmd(Cmd_str("DISABLE_NETWORK ", _processed_ap->id));
-	}
+		ap.enabled = false;
 
-	void _network_disconnect()
-	{
-		_state_transition(_state, State::DISCONNECT_NETWORK);
-		_submit_cmd(Cmd_str("DISCONNECT"));
+		_state_transition(_state, State::DISABLE_NETWORK);
+		_submit_cmd(Cmd_str("DISABLE_NETWORK ", ap.id));
 	}
 
 	void _network_set_ssid(char const *msg)
@@ -1007,20 +978,25 @@ struct Wifi::Frontend
 			}
 			break;
 		case State::REMOVE_NETWORK:
+		{
 			_state_transition(_state, State::IDLE);
+
+			Accesspoint &ap = *_processed_ap;
+			/* reset processed AP as this is an end state */
+			_processed_ap = nullptr;
 
 			if (cmd_fail(msg)) {
 				Genode::error("could not remove network: ", msg);
 			} else {
-				_free_ap(*_processed_ap);
+				_free_ap(ap);
 
 				/* trigger the next round */
-				_processed_ap = nullptr;
 				_remove_stale_aps();
 
 				successfully = true;
 			}
 			break;
+		}
 		case State::FILL_NETWORK_SSID:
 			_state_transition(_state, State::IDLE);
 
@@ -1049,7 +1025,10 @@ struct Wifi::Frontend
 			}
 			break;
 		case State::FILL_NETWORK_PSK:
+		{
 			_state_transition(_state, State::IDLE);
+
+			Accesspoint &ap = *_processed_ap;
 
 			if (!cmd_successful(msg)) {
 				Genode::error("could not set passphrase for network: ", msg);
@@ -1059,43 +1038,46 @@ struct Wifi::Frontend
 				 * Disable network to trick wpa_supplicant into reloading
 				 * the settings.
 				 */
-				if (_processed_ap->update) {
-					_processed_ap->enabled = false;
-
-					_state_transition(_state, State::DISABLE_NETWORK);
-					_submit_cmd(Cmd_str("DISABLE_NETWORK ", _processed_ap->id));
+				if (ap.update) {
+					ap.enabled = true;
+					_network_disable(ap);
 				} else
 
-				if (_processed_ap->auto_connect) {
-
-					_state_transition(_state, State::ENABLE_NETWORK);
-					_submit_cmd(Cmd_str("ENABLE_NETWORK ", _processed_ap->id));
+				if (ap.auto_connect) {
+					_network_enable(ap);
 				} else {
 					/* trigger the next round */
-					_processed_ap = nullptr;
 					_add_new_aps();
 				}
 
 				successfully = true;
 			}
 			break;
+		}
 		case State::ENABLE_NETWORK:
+		{
 			_state_transition(_state, State::IDLE);
+
+			/* reset processed AP as this is an end state */
+			_processed_ap = nullptr;
 
 			if (!cmd_successful(msg)) {
 				Genode::error("could not enable network: ", msg);
 			} else {
-				_processed_ap->enabled = true;
-
 				/* trigger the next round */
-				_processed_ap = nullptr;
 				_add_new_aps();
 
 				successfully = true;
 			}
 			break;
+		}
 		case State::DISABLE_NETWORK:
+		{
 			_state_transition(_state, State::IDLE);
+
+			Accesspoint &ap = *_processed_ap;
+			/* reset processed AP as this is an end state */
+			_processed_ap = nullptr;
 
 			if (!cmd_successful(msg)) {
 				Genode::error("could not disable network: ", msg);
@@ -1105,35 +1087,18 @@ struct Wifi::Frontend
 				 * Updated settings are applied, enable the network
 				 * anew an try again.
 				 */
-				if (_processed_ap->update) {
-					_processed_ap->update = false;
+				if (ap.update) {
+					ap.update = false;
 
-					if (_processed_ap->auto_connect) {
-						_state_transition(_state, State::ENABLE_NETWORK);
-						_submit_cmd(Cmd_str("ENABLE_NETWORK ", _processed_ap->id));
+					if (ap.auto_connect) {
+						_network_enable(ap);
 					}
-				} else {
-
-					_processed_ap->enabled = false;
-
-					/* trigger the next round */
-					_processed_ap = nullptr;
-					_network_disable();
 				}
 
 				successfully = true;
 			}
 			break;
-		case State::DISCONNECT_NETWORK:
-			_state_transition(_state, State::IDLE);
-
-			if (!cmd_successful(msg)) {
-				Genode::error("could not disconnect from network: ", msg);
-			} else {
-				_network_disable();
-				successfully = true;
-			}
-			break;
+		}
 		case State::LIST_NETWORKS:
 			_state_transition(_state, State::IDLE);
 
@@ -1282,8 +1247,7 @@ struct Wifi::Frontend
 				Genode::error("cannot disabled failed network");
 			} else {
 				_processed_ap = p;
-				_state_transition(state, State::DISABLE_NETWORK);
-				_submit_cmd(Cmd_str("DISABLE_NETWORK ", p->id));
+				_network_disable(*_processed_ap);
 			}
 		} else
 
