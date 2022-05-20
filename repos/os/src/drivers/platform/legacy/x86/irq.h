@@ -42,18 +42,21 @@ class Platform::Irq_session_component : public  Rpc_object<Irq_session>,
 		Platform::Irq_sigh _irq_sigh { };
 		Irq_session::Info  _msi_info { };
 
-		Constructible<Irq_connection> _irq_conn { };
+		Constructible<Irq_connection> _msi_conn { };
 
 	public:
 
 		enum { INVALID_IRQ = 0xffU };
 
-		Irq_session_component(unsigned, addr_t, Env &, Allocator &heap);
+		Irq_session_component(unsigned, addr_t, Env &, Allocator &heap,
+		                      Trigger  trigger  = TRIGGER_UNCHANGED,
+		                      Polarity polarity = POLARITY_UNCHANGED);
+
 		~Irq_session_component();
 
 		bool msi()
 		{
-			return _irq_conn.constructed() &&
+			return _msi_conn.constructed() &&
 			       _msi_info.type == Irq_session::Info::Type::MSI;
 		}
 
@@ -136,9 +139,9 @@ class Platform::Irq_override : public List<Platform::Irq_override>::Element
 		Irq_session::Trigger  trigger()  const { return _trigger; }
 		Irq_session::Polarity polarity() const { return _polarity; }
 
-		static unsigned irq_override (unsigned irq,
-		                              Irq_session::Trigger &trigger,
-		                              Irq_session::Polarity &polarity)
+		static unsigned irq_override(unsigned irq,
+		                             Irq_session::Trigger &trigger,
+		                             Irq_session::Polarity &polarity)
 		{
 			for (Irq_override *i = list()->first(); i; i = i->next())
 				if (i->irq() == irq) {
@@ -147,8 +150,7 @@ class Platform::Irq_override : public List<Platform::Irq_override>::Element
 					return i->gsi();
 				}
 
-			trigger  = Irq_session::TRIGGER_UNCHANGED;
-			polarity = Irq_session::POLARITY_UNCHANGED;
+			/* trigger and polarity not touched in this case! */
 			return irq;
 		}
 };

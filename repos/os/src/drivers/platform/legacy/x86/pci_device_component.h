@@ -1,6 +1,7 @@
 /*
  * \brief  platform device component
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2008-01-28
  */
 
@@ -32,6 +33,8 @@
 namespace Platform {
 	class Device_component;
 	class Session_component;
+
+	typedef String<10> Device_name_string;
 
 	typedef Registry<Registered<Device_config::Device_bars> > Device_bars_pool;
 }
@@ -536,11 +539,14 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 				}
 			}
 
-			if (!_device_config.valid())
+			if (!pci_device())
 				return;
 
 			_power_off();
 		}
+
+		/* distinct non-PCI and PCI devices */
+		bool pci_device() const { return _device_config.valid(); }
 
 		/****************************************
 		 ** Methods used solely by pci session **
@@ -549,7 +555,7 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 		Device_config device_config() const { return _device_config; }
 		addr_t config_space() const { return _config_space; }
 
-		virtual String<5> name() const { return "PCI"; }
+		virtual Device_name_string name() const { return "PCI"; }
 
 		template <typename FUNC>
 		void for_each_device(FUNC const &fn) const
@@ -580,18 +586,14 @@ class Platform::Device_component : public  Rpc_object<Platform::Device>,
 
 		Resource resource(int resource_id) override
 		{
+			if (pci_device())
+				return _device_config.resource(resource_id).api_resource();
+
 			/* return invalid resource if device is invalid */
-			if (!_device_config.valid())
-				return Resource(0, 0);
-
-			return _device_config.resource(resource_id).api_resource();
+			return Resource(0, 0);
 		}
 
-		unsigned config_read(unsigned char address, Access_size size) override
-		{
-			return _device_config.read(_config_access, address, size,
-			                           _device_config.DONT_TRACK_ACCESS);
-		}
+		unsigned config_read(unsigned char address, Access_size size) override;
 
 		void config_write(unsigned char address, unsigned value,
 		                  Access_size size) override;

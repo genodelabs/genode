@@ -1,6 +1,8 @@
 /*
  * \brief  PCI device component implementation
  * \author Alexander Boettcher
+ * \author Christian Helmuth
+ * \date   2022-06-24
  */
 
 /*
@@ -102,10 +104,24 @@ Genode::Io_mem_session_capability Platform::Device_component::io_mem(uint8_t con
 	return Io_mem_session_capability();
 }
 
+
+unsigned Platform::Device_component::config_read(unsigned char address, Access_size size)
+{
+	if (pci_device())
+		return _device_config.read(_config_access, address, size,
+		                           _device_config.DONT_TRACK_ACCESS);
+
+	return ~0;
+}
+
+
 void Platform::Device_component::config_write(unsigned char address,
                                               unsigned value,
                                               Access_size size)
 {
+	if (!pci_device())
+		return;
+
 	/* white list of ports which we permit to write */
 	switch (address) {
 		case 0x40 ... 0xff:
@@ -164,7 +180,7 @@ Genode::Irq_session_capability Platform::Device_component::irq(uint8_t id)
 	if (_irq_session)
 		return _irq_session->cap();
 
-	if (!_device_config.valid()) {
+	if (!pci_device()) {
 		/* Non PCI devices */
 		_irq_session = construct_at<Irq_session_component>(_mem_irq_component,
 		                                                   _irq_line, ~0UL,
