@@ -66,7 +66,13 @@ Device drivers
 
 Device drivers usually reside in the _src/drivers/_ subdirectory of source-code
 repositories. The most predominant repositories hosting device drivers are
-'os', 'dde_ipxe', 'dde_linux'.
+'os', 'dde_ipxe', 'dde_linux', 'pc'. The main source tree is accompanied
+by a variety of optional source-code repositories, each hosting the support of
+a different SoC family such as NXP's i.MX, Allwinner, Xilinx Zynq, or RISC-V.
+
+:Repositories maintained by Genode Labs:
+
+  [https://github.com/orgs/genodelabs/repositories]
 
 
 Platform devices
@@ -138,12 +144,6 @@ capture-session and event-session interfaces respectively.
 :_os/src/drivers/framebuffer/pl11x/_:
   Driver for the PL110/PL111 LCD display.
 
-:_os/src/drivers/framebuffer/imx53/_:
-  Driver for LCD output on i.MX53 SoCs.
-
-:_os/src/drivers/framebuffer/rpi/_:
-  Driver for the HDMI output of the Raspberry Pi.
-
 :_os/src/drivers/framebuffer/sdl/_:
   Serves as both framebuffer and input driver on Linux using libSDL. This
   driver is only usable on the Linux base platform.
@@ -151,11 +151,11 @@ capture-session and event-session interfaces respectively.
 :_os/src/drivers/gpu/intel/_:
   An experimental Intel Graphics GPU multiplexer for Broadwell and newer.
 
-:_dde_linux/src/drivers/framebuffer/intel/_:
+:_pc/src/drivers/framebuffer/intel/_:
   Framebuffer driver for Intel i915 compatible graphic cards based on
   the Linux Intel KMS driver.
 
-:_dde_linux/src/drivers/usb_host/_:
+:_pc/src/drivers/usb_host/_:
   USB host-controller driver that provides an USB session interface to
   USB drivers.
 
@@ -205,16 +205,13 @@ Block drivers
 All block drivers implement the block-session interface defined at
 _os/include/block_session/_.
 
-:_os/src/drivers/sd_card/spec/pl180/_:
+:_os/src/drivers/sd_card/pl180/_:
   Driver for SD-cards connected via the PL180 device as found on the PBX-A9
   platform.
 
-:_os/src/drivers/sd_card/spec/imx53/_:
+:_os/src/drivers/sd_card/imx53/_:
   Driver for SD-cards connected to the Freescale i.MX53 platform like the
   Quick Start Board or the USB armory device.
-
-:_os/src/drivers/sd_card/spec/rpi/_:
-  Driver for SD-cards connected to the Raspberry Pi.
 
 :_os/src/drivers/ahci/_:
   Driver for SATA disks and CD-ROMs on x86 PCs.
@@ -237,7 +234,7 @@ defined at _os/include/nic_session/_.
   Driver that uses a Linux tap device as back end. It is only useful on the
   Linux base platform.
 
-:_os/src/drivers/nic/spec/lan9118/_:
+:_os/src/drivers/nic/lan9118/_:
   Native device driver for the LAN9118 network adaptor as featured on the
   PBX-A9 platform.
 
@@ -245,8 +242,8 @@ defined at _os/include/nic_session/_.
   Device drivers ported from the iPXE project. Supported devices are Intel
   E1000 and pcnet32.
 
-:_dde_linux/src/drivers/wifi/_:
-  The wifi_drv component is a port of the Linux mac802.11 stack, including the
+:_pc/src/drivers/wifi/_:
+  The wifi driver component is a port of the Linux mac802.11 stack, including the
   iwlwifi driver. It enables the use of Intel Wireless 6xxx and 7xxx cards.
 
 :_dde_linux/src/drivers/usb_net/_:
@@ -254,16 +251,6 @@ defined at _os/include/nic_session/_.
 
 :_dde_linux/src/drivers/nic/fec/_:
   Driver for ethernet NICs of the i.MX SoC family.
-
-
-General-purpose I/O drivers
-===========================
-
-:_os/src/drivers/gpio/spec/imx53/_:
-  Driver for accessing the GPIO pins of i.MX53 platforms.
-
-:_os/src/drivers/gpio/spec/rpi/_:
-  Driver for accessing the GPIO pins of Raspberry Pi platforms.
 
 
 Resource multiplexers
@@ -431,6 +418,9 @@ Separate components
 :_os/src/server/black_hole/_:
   Mockup implementation of Genode session interfaces.
 
+:_dde_linux/src/app/wireguard/_:
+  Port of the Linux implementation of the WireGuard VPN as Genode component.
+
 
 VFS plugins
 ===========
@@ -472,6 +462,9 @@ components that use the Genode's VFS library directly.
 
 :_libports/src/lib/vfs/fatfs/_:
   A VFS plugin that allows for the mounting of FAT-formatted block devices.
+
+:_os/src/lib/vfs/tap/_:
+  A VFS plugin for the interaction with raw network packets.
 
 :_dde_rump/src/lib/vfs/rump/_:
   A VFS plugin that enables the use of NetBSD's file-system drivers such
