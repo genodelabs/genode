@@ -13,7 +13,8 @@ DIR_CONTENT(include/jitterentropy) := $(addprefix src/lib/jitterentropy/,\
                                                   jitterentropy.h)
 
 PATCHES   := src/lib/jitterentropy/jitterentropy_h.patch \
-             src/lib/jitterentropy/jitterentropy_delta_compare.patch
+             src/lib/jitterentropy/jitterentropy_delta_compare.patch \
+             src/lib/jitterentropy/jitterentropy_memcpy.patch
 PATCH_OPT := -p1 -d src/lib/jitterentropy
 
 #
