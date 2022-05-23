@@ -1,5 +1,5 @@
 #
-# For documentation see $(REP_DIR)/lib/mk/wireguard.inc .
+# For documentation see $(REP_DIR)/lib/mk/wireguard_lx_inc_dirs.inc .
 #
 
 PRG_DIR := $(REP_DIR)/src/app/wireguard/spec/arm_64
@@ -20,4 +20,5 @@ arch/arm64/crypto/poly1305-core.S:
 
 CC_OPT_arch/arm64/crypto/poly1305-core += -Dpoly1305_init=poly1305_init_arm64
 
-include $(REP_DIR)/lib/mk/wireguard.inc
+include $(REP_DIR)/lib/mk/wireguard_lx_inc_dirs.inc
+

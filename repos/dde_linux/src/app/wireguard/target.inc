@@ -1,5 +1,5 @@
 TARGET    = wireguard
-LIBS     += base net jitterentropy wireguard
+LIBS     += base net jitterentropy wireguard_lx_inc_dirs
 GEN_DIR  := $(PRG_DIR)/../..
 INC_DIR  += $(GEN_DIR)
 INC_DIR  += $(REP_DIR)/src/include
