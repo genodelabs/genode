@@ -1,0 +1,775 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 22.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+The Genode release 22.05 stays true to this year's
+[https://genode.org/about/road-map - roadmap].
+According to the plan, we continue our tradition of revising the framework's
+documentation as part of the May release. Since last year, the Genode
+Foundations book is accompanied with the Genode Platforms document that
+covers low-level topics. The second revision has just doubled in size
+(Section [Updated and new documentation]).
+
+Functionality-wise, the added support for WireGuard-based virtual private
+networks is certainly the flagship feature of the release.
+Section [WireGuard] briefly introduces the new component while leaving
+in-depth information to a
+[https://genodians.org/m-stein/2022-05-26-wireguard-1 - dedicated article].
+
+Among the other topics of the release, our continued work on device drivers
+stands out. We managed to bring Genode's lineup of PC drivers ported from the
+Linux kernel up to the kernel version 5.14.21 using Genode's unique DDE-Linux
+porting approach.
+As described by Section [New generation of DDE-Linux-based PC drivers], this
+work comprises complex drivers like the wireless LAN stack including Intel's
+Wifi driver and the latest Intel display driver. At the framework's side, the
+modernization of Genode's platform driver for PC hardware is in full swing.
+Even though not yet used by default, the new driver has reached feature parity
+with the original PC-specific platform driver while sharing much of its code
+base with the growing number of ARM platform drivers such as the FPGA-aware
+platform-driver for Xilinx Zynq (Section [Xilinx Zynq]).
+
+Regarding the PinePhone, Genode 22.05 introduces the basic ability to issue
+and receive phone calls, which entails the proper routing of audio signals and
+controlling the LTE modem. Furthermore, in anticipation of implementing
+advanced energy-management strategies, the release features a custom developed
+firmware for the PinePhone's system-control processor. Both topics are
+outlined in Section [PinePhone] while further details and examples are given
+in dedicated articles.
+
+The release is wrapped up by usability improvements of the framework's
+light-weight event-tracing mechanism, low-level optimizations, and API
+refinements.
+
+
+WireGuard
+#########
+
+[https://www.wireguard.com/ - WireGuard] is a protocol for encrypted, virtual
+private networks (VPNs) with the goal of bringing ease-of-use and
+state-of-the-art network security together. Furthermore, it is designed to be
+implemented both light-weighted and highly performant at the same time. For
+years now, we were keen to support WireGuard as a native standard solution for
+peer-to-peer network encryption. With Genode 22.05, we could finally
+accomplish that goal.
+
+After we had considered various implementations as starting point, we chose to
+port the Linux kernel implementation of WireGuard using our modernized
+DDE-Linux tool set. The outcome is a user-land component that acts as client
+to one NIC session and one uplink session. At the uplink session, the
+WireGuard component plays the role of a VPN-internal network device that
+communicates plain-text with the VPN participants. At the NIC session,
+however, the component drives an encrypted UDP tunnel through the public
+network towards other WireGuard instances.
+
+In Genode, a WireGuard instance receives its parameters through the component
+configuration with the peer configuration being re-configurable:
+
+! <config private_key="0CtU34qsl97IGiYKSO4tMaF/SJvy04zzeQkhZEbZSk0="
+!         listen_port="49001">
+!
+!   <peer public_key="GrvyALPZ3PQ2AWM+ovxJqnxSqKpmTyqUui5jH+C8I0E="
+!         endpoint_ip="10.1.2.1"
+!         endpoint_port="49002"
+!         allowed_ip="10.0.9.2/32" />
+!
+! </config>
+
+A typical integration scenario would use two instances of Genode's NIC router.
+One router serves the public network side of WireGuard and connects to the
+internet via the device driver whereas the other router uses the private
+network side of WireGuard as uplink interface. In this scenario, there is no
+way around the WireGuard tunnel towards the Internet even when looking only at
+components and sessions. Alternatively, we could accomplish the same goal with
+only one router instance in contexts that allow us to trust in the integrity
+of the router's own security domains.
+
+[image wireguard_integration]
+  A typical integration scenario for WireGuard
+
+For more details on how to integrate and route WireGuard in Genode, you may
+refer to the new run scripts _wg_ping_inwards.run_, _wg_ping_outwards.run_,
+_wg_lighttpd.run_, and _wg_fetchurl.run_, which are located at
+_repos/dde_linux/run/_.
+
+Please be aware that this is the first official version of the WireGuard
+component. Although we are convinced of the quality of the underlying
+time-tested Linux implementation, we strongly recommend against basing
+security-critical scenarios on Genode's port before it had the time to mature
+through real-world testing as well.
+
+For the whole story behind the new WireGuard support in Genode, have a look at
+the following dedicated article at [https://genodians.org]:
+
+:Bringing WireGuard to Genode:
+
+  [https://genodians.org/m-stein/2022-05-26-wireguard-1]
+
+
+New generation of DDE-Linux-based PC drivers
+############################################
+
+With the
+[https://genode.org/documentation/release-notes/22.02#New_Linux-device-driver_environment_for_PC_drivers - previous release],
+we started to apply the
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - new DDE Linux approach]
+to Linux-based PC drivers.
+The first driver to be converted was the USB host-controller driver. In the
+current release, we finished up this line of work. By now, all remaining
+Linux-based PC drivers have been converted and updated. Those drivers now
+share the same kernel version 5.14.21. The ports and configuration reside in
+the _pc_ repository.
+
+Based on the groundwork laid by the USB host-controller driver, we started
+working on the Intel display and Intel wireless drivers. With the stumbling
+blocks already out of the way, namely the x86 support in DDE Linux, we could
+focus entirely on the intricacies of each driver.
+
+In case of the Intel display driver, we could eliminate all our patches to the
+kernel that we previously needed to manage the display connectors. Due to the
+update, we gained support for newer Intel Gen11 and Gen12 graphics generations
+as found in recent Intel CPUs. The old driver has been removed and the new
+driver is now called _pc_intel_fb_drv_. Its configuration, however, remained
+compatible and is documented in detail in the README of the driver.
+
+The Intel wireless driver also profited from the version update as it now
+supports 802.11ax capable devices. In particular, the driver was tested with
+Intel Wi-Fi6 AX201 cards. The driver's unique physique - where the component
+not only incorporates the driver but also the supporting user-land supplicant -
+required changes to the way the Linux emulation environment is initialized.
+We utilize a new VFS 'wifi' plugin that is executed during the component
+start-up to prepare the emulation environment.
+
+The following snippet shows how to configure the driver:
+
+!<start name="pc_wifi_drv" caps="250">
+!  <resource name="RAM" quantum="32M"/>
+!  <provides><service name="Nic"/></provides>
+!  <config>
+!    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
+!    <vfs>
+!      <dir name="dev">
+!        <log/> <null/> <rtc/> <wifi/>
+!        <jitterentropy name="random"/>
+!        <jitterentropy name="urandom"/>
+!      </dir>
+!    </vfs>
+!  </config>
+!  <route>
+!    <service name="Rtc"> <any-child /> </service>
+!    <any-service> <parent/> <any-child /> </any-service>
+!  </route>
+!</start
+
+Apart from the added VFS plugin, the configuration remained unchanged.
+So using the new driver is opaque to the user. The old driver was removed
+and the new driver is now called _pc_wifi_drv_. Instead of preparing the
+'dde_linux' port, the 'libnl' and 'wpa_supplicant' ports are now required for
+building the driver.
+
+! tool/ports/prepare libnl wpa_supplicant
+
+Additionally to both driver updates, we wrapped up working on the USB
+host-controller driver component by enabling the UHCI host-controller driver.
+Support for such controllers was omitted in the previous release and
+supporting the driver required us to add I/O port support to the 'lx_kit' for
+x86. With this remaining feature gap closed, the _legacy_pc_usb_host_drv_
+driver component has been removed in favour of the new one. Furthermore, the
+Genode C-API for USB glue code, which was initially copied from the i.MX8 USB
+host-controller driver, was consolidated and moved into the _dde_linux_
+repository where it now is referenced by all recent USB host-controller
+drivers.
+
+With all updated drivers in place, it was time to make inventory and
+de-duplicate the drivers since each driver accumulated redundant bits and
+pieces of code. This consolidation effort simplified things greatly. We moved
+most of the code shared by all drivers into a separate 'pc_lx_emul' library,
+which is the back bone of those ported drivers. Since not all of them require
+the same sophistication when it comes to the kernel API emulation, we followed
+the same modular pattern already established in the _dde_linux_ repository,
+which allows for mixing and matching of the available dummy implementations
+individually per driver.
+
+
+Updated and new documentation
+#############################
+
+Genode Platforms
+----------------
+
+The second revision of the "Genode Platforms" document condenses two years of
+practical work with enabling Genode on a new hardware platform, taking the
+PinePhone as concrete example. Compared to the first version published one
+year ago, the content has doubled. Among the new topics are
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-platforms-title.png">
+:   </a>
+:  </div>
+: </p>
+
+* Working with bare-bones Linux kernels,
+* Network driver based on DDE-Linux,
+* Display and touchscreen,
+* Clocks, resets, and power controls, and
+* Modem control and telephony.
+
+:Second revision of the Genode Platforms document:
+
+  [https://genode.org/documentation/genode-platforms-22-05.pdf]
+
+
+Genode Foundations
+------------------
+
+The "Genode Foundations" book received its annual update. It is available at
+the [https://genode.org] website as a PDF document and an online version.
+The most noteworthy additions and changes are:
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:  </div>
+: </p>
+
+* Revised under-the-hood section about the base-hw kernel,
+* Adaptation to changed repository structure (pc repository, SoC-specific
+  repositories),
+* Updated API documentation, and
+* Adjusted package-management description.
+
+: <div class="visualClear"><!-- --></div>
+
+To examine the changes in detail, please refer to the book's
+[https://github.com/nfeske/genode-manual/commits/master - revision history].
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Revised tracing facilities
+==========================
+
+Even though a light-weight event tracing mechanism has been with Genode since
+[https://genode.org/documentation/release-notes/13.08#Light-weight_event_tracing - version 13.08],
+in practice, this powerful tool remains sparingly used because it is arguable
+less convenient than plain old debug instrumentation.
+The trace-logger component introduced later in
+[https://genode.org/documentation/release-notes/18.02#New_trace-logging_component - version 18.02]
+tried to lower the barrier, but tracing remains being an underused feature.
+The current release brings a number of usability improvements that will
+hopefully make the tool more attractive for routine use.
+
+Concise human-oriented output format
+------------------------------------
+
+First, we changed the output format of the trace logger to become better
+suitable for human consumption, reducing syntactic noise and filtering out
+repetitive information. For example, when instrumenting the VFS server in
+Sculpt using the new GENODE_TRACE_TSC utility (see below), the trace logger
+now generates tabular output as follows.
+
+! Report 4
+!
+! PD "init -> runtime -> arch_vbox6 -> vbox -> " ----------------
+!  Thread "vCPU"           at (0,0)  total:12909024 recent:989229
+!  Thread "vCPU"           at (1,0)  total:5643234  recent:786437
+!
+! PD "init -> runtime -> ahci-0.fs" -----------------------------
+!  Thread "ahci-0.fs"      at (0,0)  total:910497   recent:6335
+!  Thread "ep"             at (0,0)  total:0        recent:0
+!   71919692932: TSC process_packets: 8005M (4998 calls, last 4932K)
+!   71921558516: TSC process_packets: 8006M (4999 calls, last 1596K)
+!   71922760220: TSC process_packets: 8007M (5000 calls, last 1006K)
+!   71929853586: TSC process_packets: 8009M (5001 calls, last 1840K)
+!   71931315246: TSC process_packets: 8011M (5002 calls, last 1253K)
+!   72127999920: TSC process_packets: 8016M (5003 calls, last 5606K)
+!   72129568198: TSC process_packets: 8018M (5004 calls, last 1345K)
+!   77161908178: TSC process_packets: 8029M (5005 calls, last 11349K)
+!   77643225736: TSC process_packets: 8029M (5006 calls, last 217K)
+!   89422100594: TSC process_packets: 8035M (5007 calls, last 5656K)
+!   89422123632: TSC process_packets: 8035M (5008 calls, last 1342)
+!  Thread "signal handler" at (0,0)  total:36329    recent:3001
+!  Thread "signal_proxy"   at (0,0)  total:51838    recent:13099
+!  Thread "pdaemon"        at (0,0)  total:97184    recent:332
+!  Thread "vdrain"         at (0,0)  total:1266     recent:286
+!  Thread "vrele"          at (0,0)  total:1904     recent:516
+!
+! PD "init -> runtime -> nic_drv" -------------------------------
+!  Thread "nic_drv"        at (0,0)  total:34044    recent:897
+!  Thread "signal handler" at (0,0)  total:369      recent:142
+!
+! ...
+
+Subjects that belong to the same protection domain are grouped together.
+The formerly optional affinity and activity options have been removed.
+These pieces of information are now unconditionally displayed. The trace
+entries belonging to a thread appear as slightly indented. Trace subjects with
+no activity do not produce any output. This way, the new version can be easily
+used to capture CPU usage of all threads over time, as a possible alternative
+to the top tool, which gives only momentarily sampled information.
+
+
+Straight-forward trace logging with Sculpt OS
+---------------------------------------------
+
+Second, we added the trace-logger utility to the default set of packages along
+with an optional launcher. With this change, only two steps are needed to use
+the tracing mechanism with the
+[https://genode.org/documentation/release-notes/22.02#Framework_for_special-purpose_Sculpt-based_operating_systems - modularized Sculpt]:
+
+# Add 'trace_logger' to the 'launcher:' list of the .sculpt file
+
+# Either manually select the 'trace_logger' from the '+' menu,
+  or add the following entry to the deploy configuration:
+
+  ! <start name="trace_logger"/>
+
+By default, the trace logger is configured to trace all threads executed in
+the runtime subsystem and to print a report every 10 seconds. This default
+policy can be refined in the launcher's '<config>' node. Note that the trace
+logger does not respond to configuration changes during runtime. Changes come
+into effect not before restarting the component.
+
+
+Capturing performance measurements as trace events
+--------------------------------------------------
+
+Finally, to leverage the high efficiency of the tracing mechanism for
+performance analysis, we complement the convenient
+[https://genodians.org/nfeske/2021-04-07-performance - GENODE_LOG_TSC]
+measurement device provided by _base/log.h_ with new versions that target the
+trace buffer. The new macros GENODE_TRACE_TSC and GENODE_TRACE_TSC_NAMED
+thereby simplify the capturing of highly accurate time-stamp-counter-based
+measurements for performance-critical code paths that prohibit the use of
+regular log messages.
+
+
+Memcpy and memset optimization
+==============================
+
+With the improving support for the Zynq-7000 SoC, it was time to collect a few
+basic performance metrics. For the purpose of evaluating memory throughput,
+there exists a test suite in _libports/run/memcpy.run_. It takes a couple of
+measurements for different memcpy and memset implementations. There also
+exists a Makefile in _libports/src/test/memcpy/linux_ to build a similar test
+suite for Linux that serves as a baseline. By comparing the results, we get an
+indicator of whether our board support is setting up the hardware correctly.
+Looking at the numbers for the Zynq-7000 SoC, however, we were puzzled about
+why we achieved significantly less memcpy throughput on Genode than on Linux.
+This eventually sparked an in-depth investigation of memcpy implementations
+and of the Cortex-A9's memory subsystem.
+
+As it turned out, the major difference was caused by our Linux tests hitting
+the kernel's copy-on-write optimization and, therefore, accidentally mimicking
+a memset scenario rather than a memcpy scenario. Nevertheless, in the
+debugging process, we were able to identify a few low-hanging fruits for
+general optimization of Genode's memset and memcpy implementations: Replacing
+the bytewise memset implementation with a wordwise memset yielded a speedup of
+~6 on Cortex-A9 (base-hw) and x86 (base-linux). Similarly, we achieved a
+memcpy speedup of ~3 on x86. On arm_v7, we also experimented with the
+preloading instruction (pld) and L2 prefetching. On Zynq-7000 (Cortex-A9), we
+gained a speedup of ~2-3 by tuning these parameters.
+
+
+Extended black-hole component
+=============================
+
+The black-hole component introduced in
+[https://genode.org/documentation/release-notes/22.02#Black-hole_server_component - version 22.02]
+provides pseudo services for commonly used session interfaces and is thereby
+able to satisfy the resource requirements of a component without handing out
+real resources. This is especially useful for deploying highly flexible
+subsystems like VirtualBox, which supports many host-guest integration
+features, most of which are desired only in a few scenarios. For example, to
+shield a virtual machine from the network, the NIC session requested by the
+VirtualBox instance can simply be assigned to the black-hole server while
+keeping the network configuration of the virtual machine untouched.
+
+The current release extends the black-hole component to cover ROM, GPU, and
+USB services in addition to the already supported NIC, uplink, audio, capture,
+and event services. The ROM service hands out a static '<empty/>' XML node.
+The USB and GPU services accept the creation of new sessions but respond in a
+denying way to any invocation of the session interfaces. The black-hole server
+is located at _os/src/server/black_hole/_.
+
+
+Refined low-level block I/O interfaces
+======================================
+
+In the original version of the 'Block::Connection::Job' API introduced in
+[https://genode.org/documentation/release-notes/19.05#Modernized_block-storage_interfaces - version 19.05],
+split read/write operations were rather difficult to accommodate and remained
+largely unsupported by clients of the block-session interface. In practice,
+this limitation was side-stepped by dimensioning the default I/O buffer sizes
+large enough to avoid splitting. The current release addresses this limitation
+by changing the meaning of the 'offset' parameter of the
+'produce_write_content' and 'consume_read_result' hook functions. The value
+used to reflect the absolute byte position. In the new version, it is relative
+to the job's operation.
+_This API change requires the adaptation of existing block-session clients._
+
+We adapted all block-session clients accordingly, including part_block,
+vfs/rump, vfs/fatfs, and Genode's ARM virtual machine monitor. Those
+components thereby became able to work with arbitrary block I/O buffer sizes.
+
+
+Improved touch-event support
+============================
+
+Until recently, Genode's GUI stack largely relied on the notion of an absolute
+pointer position. For targeting touch-screen devices, our initial approach
+was the translation of touch events to absolute motion events using the
+event-filter component
+([https://genode.org/documentation/release-notes/21.11#Event_filter_for_converting_touch_to_pointer_input - version 21.11]).
+
+However, the event types are subtly different, which creates uncertainties.
+Whereas a pointer has always a defined (most recent) position that can be used
+to infer a hovered UI element in any situation, touch input yields a valid
+position only while touching. Because both event types are different after all,
+the conversion of touch input to pointer motion can only be an intermediate
+solution. The current release enhances several components of Genode's GUI
+stack with the ability to handle touch events directly.
+
+In particular, the nitpicker GUI server has become able to take touch events
+into consideration for steering the keyboard focus and the routing of
+input-event sequences. The window-manager component (wm) has been enhanced to
+transform touch events similarly to motion events by using one virtual
+coordinate system per window. Finally, the menu-view component, which
+implements the rudimentary widget set as used by Sculpt OS' administrative
+user interface, evaluates touch events for generating hover reports now.
+Combined, these changes make the existing GUI stack fit for our anticipated
+touch-screen based usage scenarios such as the user interface for Genode on
+the PinePhone.
+
+
+Platform driver
+===============
+
+The architecture-independent platform driver that unified the platform API since
+[https://genode.org/documentation/release-notes/22.02#Platform_driver - release 22.02],
+still missed some features to replace the deprecated x86-specific variant.
+Most importantly, it was not aware of PCI devices and their special treatment.
+
+PCI decode component
+--------------------
+
+The platform driver is a central resource multiplexer in the system, and
+literally all device drivers depend on it. Therefore, it is crucial to keep it
+as simple as possible to minimize its code complexity. To facilitate
+PCI-device resource handling of the platform driver, we introduce a new
+component called _pci_decode_. It examines information delivered by the ACPI
+driver about the location of the PCI configuration spaces of PCI host bridges,
+as well as additional interrupt re-routing information, and finally probes for
+all available PCI devices, and their functions. Dependent on additional
+kernel-related facilities, e.g., whether the micro-kernel supports
+message-signaled interrupts, it finally publishes a report about all PCI
+devices and their related resources.
+
+An example report looks like the following:
+
+! <devices>
+!   <device name="00:02.0" type="pci">
+!     <pci-config    address="0xf8010000" bus="0x0" device="0x2" function="0x0"
+!                    vendor_id="0x8086" device_id="0x1616" class="0x30000"
+!                    bridge="no"/>
+!     <io_mem        address="0xf0000000" size="0x1000000"/>
+!     <io_mem        address="0xe0000000" size="0x10000000"/>
+!     <io_port_range address="0x3000"     size="0xffff0040"/>
+!     <irq type="msi" number="11"/>
+!   </device>
+! 
+!   ...
+! </devices>
+
+The device and resource description in this report is compatible with the
+device configuration patterns already used by the platform driver before.
+
+Devices ROM
+-----------
+
+To better cope with device information gathered at runtime, like the one
+provided by the PCI decoder, the platform driver no longer retrieves the device
+information from its configuration. Instead, it requests a devices ROM
+explicitly. The policy information about which devices are assigned to which
+client remains an integral part of the platform driver's configuration.
+The devices ROM is requested via the label "devices" by default. If one needs
+to name the ROM differently, one can state the label in the configuration:
+
+! <config devices_rom="config"/>
+
+Using the example above, the former behavior can be emulated. It prompts the
+platform driver to obtain both its policy configuration and device information
+from the same "config" ROM.
+
+Static device information for a specific SoC respectively board does now
+reside in the SoC-specific repositories within the _board/_ directory.
+For instance, the device information for the MNT Reform 2 resides in the
+genode-imx repository under _board/mnt_reform2/devices_. All scenarios and
+test-scripts can refer to this central file.
+
+Report facility
+---------------
+
+The platform driver can report its current view on devices as well as its
+configuration. An external management component might monitor this information
+to dynamically apply policies. With the following configuration switches, one
+can enable the reports "config" and "devices":
+
+! <config>
+!   <report devices="yes" config="yes"/>
+!   ...
+! </config>
+
+Interrupt configuration
+-----------------------
+
+The need for additional information to set up interrupts appropriately led to
+changes in the interrupt resource description consumed by the platform driver.
+It can now parse additional attributes, like mode, type, and polarity. It
+distinguishes "msi" and "legacy" as type, "high" and "low" as polarity,
+"level" and "edge" as mode. Dependent on the stated information in the devices
+ROM, the platform driver will open the IRQ session for the client accordingly.
+
+I/O ports
+---------
+
+A new resource type in the device description interpreted by the platform
+driver is the I/O port range. It looks like the following:
+
+! <devices>
+!   <device name="00:1f.2" type="pci">
+!     ...
+!     <io_port_range address="0x3080" size="0x8"/>
+!     ...
+!   </device>
+!   ...
+! </devices>
+
+The generic platform API's device interface got extended to deliver an IO_PORTS
+session capability for a given index. The index is dependent on which I/O port
+ranges are stated for a given device.
+
+The helper utility 'Platform::Device::Io_port_range' simplifies the usage of
+I/O ports by device driver clients. It can be found in
+_repos/os/include/platform_session/device.h_.
+
+DMA protection
+--------------
+
+The generic platform driver now uses device PDs and attaches all DMA buffers
+requested by a client to it. Moreover, it assigns PCI devices to the device PD
+too. On the NOVA kernel, this information is used to
+configure the IOMMU correspondingly.
+
+PCI device clients
+------------------
+
+The platform API and its utilities no longer differentiate between PCI and
+non-PCI devices. However, under the hood, the platform driver performs
+additional initialization steps once a PCI device gets acquired. Dependent on
+the resources assigned to the device, the platform driver enables I/O and
+memory access in the PCI configuration space of the device. Moreover, it
+enables bus-master access for DMA transfers.
+
+To assign PCI devices to a client, the policy rules in the platform driver can
+refer to it either by a device/vendor ID tuple, or by stating a PCI class.
+The PCI class names are the same supported by the previous x86-specific
+platform driver. Of course, one can still refer to any device via its unique
+name. Here is an example for a policy set:
+
+! <config>
+!   <policy label="usb_drv -> ">
+!     <pci class="USB"/>
+!   </policy>
+!   <policy label="nvme_drv -> ">
+!     <pci vendor_id="0x1987" device_id="0x5007"/>
+!   </policy>
+!   <policy label="ps2_drv -> ">
+!     <device name="ps2"/>
+!   </policy>
+! </config>
+
+Wait for platform device availability
+-------------------------------------
+
+Now that device information can be gathered dynamically at runtime it might
+happen that a client opens a session to the platform driver before the device
+becomes available. As long as a valid policy is defined for the client, the
+platform driver will establish the connection, but deliver an empty devices
+ROM to the client.
+
+To simplify the usage by device drivers, the utilities to acquire a device
+from the platform driver in 'Platform::Device' and 'Platform::Connection' will
+wait for the availability of the device. This is done by implicitly
+registering a signal handler for devices ROM updates at the platform driver
+when the acquisition failed, and waiting for ROM updates until the device is
+available.
+
+Any signal handler that was registered before gets lost in this case.
+The developer of a device driver shall register a devices ROM signal handler
+once its devices were acquired, or shall only acquire devices known to be
+available, after inspecting the devices ROM independently.
+
+
+Platforms
+#########
+
+PinePhone
+=========
+
+Telephony
+~~~~~~~~~
+
+The current release introduces the principle ability to issue and receive
+voice calls with the PinePhone. This work involved two topics. First, we had
+to tackle the integration, configuration, and operation of the LTE modem. The
+second piece of the puzzle was the configuration of the audio paths between
+the mic, the speaker, and the modem. Since the complexity of those topics
+would exceed the scope of the release documentation, the technical details are
+covered in a dedicated article.
+
+:Pine fun - Telephony _(Roger, Roger?)_:
+
+  [https://genodians.org/ssumpf/2022-05-09-telephony]
+
+[image pinephone_telephony]
+
+The image above illustrates a simple system exemplified by the
+[https://github.com/genodelabs/genode-allwinner/blob/master/run/modem_pinephone.run - modem_pinephone.run]
+script. It allows a terminal emulator on a host machine connected to the
+serial connector of the PinePhone to interact with the command interface of
+the modem, e.g., allowing the user to unlock the SIM card via the 'AT+CPIN'
+command, or to issue a call using the 'ATD' command.
+
+
+Custom system-control processor (SCP) firmware
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Battery lifetime is one of the most pressing concerns for mobile phones. While
+exploring the PinePhone hardware, we discovered early on that the key for
+sophisticated energy management lies in the so-called system control processor
+(SCP), which is a low-power companion microcontroller that complements the
+high-performance application processor. The SCP can remain active even if the
+device is visibly switched off.
+Surprisingly, even though its designated purpose is rather narrow, the SCP is
+a freely programmable general-purpose CPU (called AR100) with ultimate access
+to every corner of the SoC. It can control all peripherals including the
+modem, and access the entirety of physical memory.
+
+In contrast to most consumer devices, which operate their SCPs with
+proprietary firmware, the PinePhone gives users the freedom to use an
+open-source firmware called [https://github.com/crust-firmware/crust - Crust].
+Moreover, the Crust developers thoroughly documented their findings of the
+[https://linux-sunxi.org/AR100 - AR100 limitations] and its
+[https://linux-sunxi.org/AR100/HardwareSharing - interplay with the ARM CPU].
+
+Given that the Crust firmware was specifically developed to augment a
+Linux-based OS with suspend-resume functionality, its fixed-function feature
+set is rather constrained. For running Genode on the PinePhone, we'd like to
+move more freely, e.g., letting the SCP interact with the modem while the
+application processor is powered off. To break free from the limitations of a
+fixed-function feature set of an SCP firmware implemented in C, we explored
+the opportunity to deploy a minimal-complexity Forth interpreter as the basis
+for a custom SCP firmware. The story behind this line of development is
+covered by the following dedicated article:
+
+:Darling, I FORTHified my PinePhone!:
+
+  [https://genodians.org/nfeske/2022-03-29-pinephone-forth]
+
+
+Inter-communication between SCP and ARM
+---------------------------------------
+
+To enable a tight interplay of Genode with the SCP, we introduce a new
+[https://github.com/genodelabs/genode-allwinner/tree/master/include/scp_session - interface] and
+[https://github.com/genodelabs/genode-allwinner/tree/master/src/drivers/scp/a64 - driver]
+for supplying and invoking custom functionality to the SCP at runtime.
+The new "Scp" service allows clients to supply snippets of Forth code for
+execution at the SCP and retrieve the result. Both the program and the result
+are constrained to 1000 bytes. Hence, the loading of larger programs may need
+multiple subsequent 'Scp::Connection::execute' calls.
+
+As illustrated by the example
+[https://github.com/genodelabs/genode-allwinner/blob/master/run/a64_scp_drv.run - a64_scp_drv.run]
+script, the mechanism supports multiple clients. Since the SCP's state is
+global, however, all clients are expected to behave cooperatively. Given the
+SCP's ultimate power, SCP clients must be fully trusted anyway.
+
+As a nice tidbit for development, the PinePhone-specific SCP firmware features
+a break-in debug shell for interactive use over UART that can be activated by
+briefly connecting the INT and GND
+[https://wiki.pine64.org/index.php/PinePhone#Pogo_pins - pogo pins].
+Note that this interactive debugging facility works independently from the
+application processor. Hence, it can be invoked at any time, e.g., to inspect
+any hardware register while running a regular Linux distribution on the phone.
+
+
+NXP i.MX8
+=========
+
+Analogously to the PCI decoder introduced in Section [Platform driver], a
+component to retrieve PCI information on the i.MX 8MQ is part of this release.
+It reports all PCI devices found behind the PCI Express host controller(s)
+detected. In contrast to the PCI decoder, it has to initialize the PCI Express
+host controller first, and needs device resources from the platform driver to
+do so before. The component resides in the
+[https://github.com/genodelabs/genode-imx - genode-imx]
+repository and is called _imx8mq_pci_host_drv_.
+
+
+Xilinx Zynq
+===========
+
+For the Zynq-7000 SoCs, we focused on two main topics in this release. First,
+we leveraged the aforementioned improvements on the generic platform driver to
+handle the (dis)appearance of devices in consequence of FPGA reconfiguration.
+Second, we applied our new DDE Linux approach in order to port the SD-card
+driver.
+
+The platform driver for the Xilinx Zynq is now available in the
+[https://github.com/genodelabs/genode-zynq - genode-zynq] repository as
+_src/zynq_platform_drv_. The default devices ROMs are provided by the
+_raw/<board>-devices_ archives. In addition to the generic driver, it features
+the readout of clock frequencies. You can use _zynq_clocks.run_ to dump the
+frequencies of all clocks.
+
+Since the Xilinx Zynq comprises an FPGA that can be reconfigured at run time,
+we also need to handle the appearance and disappearance of devices. For this
+purpose, we added a driver manager that consumes the platform driver's devices
+report and launches respectively kills device drivers accordingly. This
+scenario is accompanied by the _pkg/drivers_fpga-zynq_ archive that assembles
+the _devices_ ROM for the platform driver depending on the FPGA's
+reconfiguration state. The figure below illustrates this scenario: The
+subsystem provided by the _pkg/drivers_fpga-zynq_ archive is a replacement for
+the platform driver. It consumes the _fpga.bit_ ROM that contains the FPGA's
+bitstream. Once the bitstream has been loaded, the _fpga_devices_ ROM is
+merged with the _devices_ ROM provided by the _raw/<board>-devices_ archive.
+The _policy_ ROM contains the config of the internal zynq_platform_driver
+(policies and reporting config). By enabling device reporting, the
+zynq_driver_manager is able to react upon device changes and updates the
+_init.config_ for a drivers subsystem accordingly. An example is available in
+_run/zynq_driver_manager.run_.
+
+[image zynq_driver_manager]
+
+As a prerequisite for porting the first driver for the Zynq following our new
+DDE Linux approach, we added a zynq_linux target that builds a stripped-down
+Linux kernel for the Xilinx Zynq. Although Xilinx provides its own vendor
+kernel, most drivers have been mainlined. To eliminate version mismatch
+issues, we therefore use our mainline Linux port from _repos/dde_linux_
+instead. With this foundation, we were able to port the SD card driver, which
+is now available as _src/zynq_sd_card_drv_.
