@@ -1,12 +1,12 @@
 #
 # This library is for avoiding clashes between Linux and Genode includes.
 # If we were to compile all the *.c files of this library directly with the
-# WireGuard target there would be only one INC_DIR applied to *.cc files as
-# well as to *.c files. Some Genode headers, however (e.g. 'net/udp.h' or
+# WireGuard library, there would be only one INC_DIR applied to *.cc files as
+# well as to *.c files. Some Genode headers, however, (e.g. 'net/udp.h' or
 # 'net/dhcp.h') exist with the same include identifier in both Linux and
 # Genode, and we would have the problem that we want the Linux variant in *.c
 # files and the Genode variant in *.cc files. Therefore, we create two
-# dedicated INC_DIR settings (that of the library and that of the target).
+# dedicated INC_DIR settings through separate libraries.
 #
 
 GEN_PRG_DIR := $(PRG_DIR)/../..
