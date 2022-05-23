@@ -13,8 +13,8 @@ the project's official website:
   [https://genode.org/documentation/general-overview]
 
 The current implementation can be compiled for 8 different kernels: Linux,
-L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, seL4, and a custom
-kernel for running Genode directly on ARM-based hardware. Whereas the Linux
+L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, seL4, and a custom "hw"
+microkernel for running Genode without a 3rd-party kernel. Whereas the Linux
 version serves us as development vehicle and enables us to rapidly develop the
 generic parts of the system, the actual target platforms of the framework are
 microkernels. There is no "perfect" microkernel - and neither should there be
@@ -83,6 +83,17 @@ The source tree is composed of the following subdirectories:
 
   Directory used by Genode's package-management tools. It contains the public
   keys and download locations of software providers.
+
+
+Additional hardware support
+###########################
+
+The framework supports a variety of hardware platforms such as different ARM
+SoC families via supplemental repositories.
+
+:Repositories maintained by Genode Labs:
+
+  [https://github.com/orgs/genodelabs/repositories]
 
 
 Additional community-maintained components
