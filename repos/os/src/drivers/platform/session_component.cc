@@ -177,7 +177,11 @@ void Session_component::release_device(Capability<Platform::Device_interface> de
 Genode::Ram_dataspace_capability
 Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 {
-	Ram_dataspace_capability ram_cap = _env_ram.alloc(size, cache);
+	Ram_dataspace_capability ram_cap { };
+
+	try {
+		ram_cap = _env_ram.alloc(size, cache);
+	} catch (Ram_allocator::Denied) { }
 
 	if (!ram_cap.valid()) return ram_cap;
 
