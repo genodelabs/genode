@@ -317,7 +317,7 @@ _genode_wg_config_add_peer(genode_wg_u16_t              listen_port,
 
 	peer->flags.header.nla_type = WGPEER_A_FLAGS;
 	peer->flags.header.nla_len = sizeof(peer->flags);
-	peer->flags.data = 2; /* I don't know what this value means */
+	peer->flags.data = WGPEER_F_REPLACE_ALLOWEDIPS;
 
 	peer->allowedips.header.nla_len = sizeof(peer->allowedips);
 	peer->allowedips.header.nla_type = WGPEER_A_ALLOWEDIPS | NLA_F_NESTED;
