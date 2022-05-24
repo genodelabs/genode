@@ -2,6 +2,7 @@
  * \brief  Lx_kit format string backend
  * \author Stefan Kalkowski
  * \author Sebastian Sumpf
+ * \author Christian Helmuth
  * \date   2021-03-17
  *
  * Greatly inspired by the former DDE Linux Lx_kit implementation.
@@ -205,6 +206,21 @@ void Lx_kit::Console::_out_string(const char *str)
 		while (*str) _out_char(*str++);
 	else
 		_flush();
+}
+
+
+void Lx_kit::Console::print_string(const char *str)
+{
+	if (!str) {
+		_out_string("<null string>");
+		return;
+	}
+
+	/* strip potential control characters for log level */
+	if (*str == 1)
+		str += 2;
+
+	_out_string(str);
 }
 
 
