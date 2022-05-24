@@ -58,7 +58,7 @@ Platform::Client  & Acpica::platform()
 		instance->cap.construct(Genode::reinterpret_cap_cast<Platform::Session>(
 			instance->env.session(instance->announce_for_acpica,
 			                      instance->id_space_element.id(),
-			                      "ram_quota=36K", Genode::Affinity())));
+			                      "ram_quota=48K", Genode::Affinity())));
 
 		instance->platform.construct(*instance->cap);
 	}
