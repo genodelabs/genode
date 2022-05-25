@@ -4,6 +4,43 @@
                                ===========
 
 
+Genode SoC porting guide | 2022-05-25
+#####################################
+
+| In the second revision of the Genode Platform document, Genode Labs shares
+| its former in-house expertise about moving Genode to new hardware devices.
+
+If you ever wondered how to make sense of highly-complex ARM SoCs without
+accurate public documentation, what it takes to bring a modern microkernel
+from one SoC to another, how to transplant and re-animate individual Linux
+kernel subsystems into sandboxed user-level components, or how to craft a
+custom bare-bones operating system out of Genode's components, the new
+revision of the Genode Platforms document is for you.
+
+[https://genode.org/documentation/genode-platforms-22-05.pdf - Genode Platforms 22.05] (PDF)
+
+During the past two years, Genode developer Norman Feske captured his
+practical experience with enabling Genode on a new hardware platform, namely
+the PinePhone.
+
+The process starts with basics like executing tiny bits of custom code, and
+continues with the porting of the microkernel, creating work flows for testing
+and packaging, and bringing up the Genode user land.
+
+With those fundamentals covered, the main part is concerned with the
+complexities of driving the device hardware of modern SoCs, ranging from
+low-level pin controls, over networking, up to driving sophisticated devices
+like the display and touch screen. For the latter, the ability of reusing
+device drivers from the Linux kernel plays a crucial role. Hence, the guide
+presents Genode's practical methodology and tooling behind the black art of
+transplanting and reanimating unmodified Linux kernel code into Genode
+components. Along the way, there are countless little tips and tricks that
+help to turn low-level grunt work into a fun and worthwhile experience.
+
+The document closes with a glimpse at real-world scenarios, culminating in
+the setup the modem and the routing of audio signals to issue voice calls.
+
+
 Sculpt OS release 22.04 | 2022-04-28
 ####################################
 
