@@ -33,19 +33,35 @@ Config_model::Config_model(Genode::Allocator &alloc)
 void Config_model::update(genode_wg_config_callbacks &callbacks,
                           Xml_node                    node)
 {
-	if (!_config.constructed()) {
+	Key_base64 const private_key_b64 {
+		node.attribute_value("private_key", Key_base64 { }) };
 
-		_config.construct(
-			node.attribute_value("private_key", Key_base64 { }),
-			node.attribute_value("listen_port", (uint16_t)0U),
-			node.attribute_value("interface", Ipv4_address_prefix { }));
+	uint16_t const listen_port {
+		node.attribute_value("listen_port", (uint16_t)0U) };
+
+	Ipv4_address_prefix const interface {
+		node.attribute_value("interface", Ipv4_address_prefix { }) };
+
+	if (_config.constructed()) {
+
+		if (_config->private_key_b64() != private_key_b64 ||
+		    _config->listen_port()     != listen_port ||
+		    _config->interface()       != interface)
+		{
+			class Invalid_reconfiguration_attempt { };
+			throw Invalid_reconfiguration_attempt { };
+		}
+
+	} else {
 
 		uint8_t private_key[WG_KEY_LEN];
-		if (!_config->private_key_b64().valid() ||
-			!key_from_base64(private_key, _config->private_key_b64().string())) {
+		if (!private_key_b64.valid() ||
+		    !key_from_base64(private_key, private_key_b64.string())) {
 
-			error("Invalid private key!");
+			class Invalid_private_key { };
+			throw Invalid_private_key { };
 		}
+		_config.construct(private_key_b64, listen_port, interface);
 		callbacks.add_device(_config->listen_port(), private_key);
 	}
 	Peer_update_policy policy { _alloc, callbacks, _config->listen_port() };
@@ -91,7 +107,9 @@ void Config_model::Peer_update_policy::destroy_element(Element &peer)
 {
 	uint8_t public_key[WG_KEY_LEN];
 	if (!key_from_base64(public_key, peer._public_key_b64.string())) {
-		error("Invalid public key!");
+
+		class Invalid_public_key { };
+		throw Invalid_public_key { };
 	}
 	_callbacks.remove_peer(public_key);
 
@@ -111,10 +129,13 @@ Config_model::Peer_update_policy::create_element(Xml_node node)
 	if (!public_key_b64.valid() ||
 	    !key_from_base64(public_key, public_key_b64.string())) {
 
-		error("Invalid public key!");
+		class Invalid_public_key { };
+		throw Invalid_public_key { };
 	}
 	if (!allowed_ip.valid()) {
-		error("Invalid allowed ip!");
+
+		class Invalid_allowed_ip { };
+		throw Invalid_allowed_ip { };
 	}
 	_callbacks.add_peer(
 		_listen_port, endpoint_ip.addr, endpoint_port, public_key,
