@@ -252,8 +252,8 @@ class Audio_out::Stream
 		{
 			if (full())
 				throw Alloc_failed();
-
 			unsigned pos = _tail;
+
 			_tail = (_tail + 1) % QUEUE_SIZE;
 
 			Packet *p = get(pos);
@@ -267,7 +267,7 @@ class Audio_out::Stream
 		 *
 		 * This means that allocation will start at current queue position.
 		 */
-		void reset() { _tail = (_pos + 1) % QUEUE_SIZE; }
+		void reset() { _tail = _pos; }
 
 
 		/**
