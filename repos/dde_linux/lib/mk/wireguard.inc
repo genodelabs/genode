@@ -18,5 +18,3 @@ SRC_CC += uplink_connection.cc
 
 vpath %.cc $(REP_DIR)/src/app/wireguard
 vpath %.cc $(REP_DIR)/src/lib
-
-CC_CXX_WARN_STRICT_CONVERSION =
