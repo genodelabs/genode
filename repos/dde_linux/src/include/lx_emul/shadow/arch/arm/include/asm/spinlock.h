@@ -25,7 +25,7 @@
 
 static inline int arch_spin_is_locked(arch_spinlock_t *lock)
 {
-	return (atomic_read(&lock->slock)) ? 1 : 0;
+	return (lock->slock) ? 1 : 0;
 }
 
 
@@ -35,13 +35,13 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 		printk("Error: spinlock contention!");
 		lx_emul_trace_and_stop(__func__);
 	}
-	atomic_set(&lock->slock, 1);
+	lock->slock = 1;
 }
 
 
 static inline void arch_spin_unlock(arch_spinlock_t *lock)
 {
-	atomic_set(&lock->slock, 0);
+	lock->slock = 0;
 }
 
 
