@@ -243,6 +243,8 @@ exec -ignorestderr \
      --specs "$specs" \
      --board "$board_var" \
      --repositories "$repositories" \
+     --depot-dir [depot_dir] \
+     --depot-user [depot_user] \
      --cross-dev-prefix "[cross_dev_prefix]" \
      --include boot_dir/nova \
      --include image/iso \
