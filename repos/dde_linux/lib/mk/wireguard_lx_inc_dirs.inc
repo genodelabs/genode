@@ -38,37 +38,32 @@ vpath lx_kit/memory.cc $(GEN_PRG_DIR)
 #
 # Some local files include linux headers that expect the KBUILD_* symbols to
 # be defined. However, the lx_emul mechanism for adding the definitions doesn't
-# apply to these local files, which is why we have to add them manually.
+# apply to these files, which is why we have to do it manually.
 #
 
-CC_OPT_wireguard += -DKBUILD_MODFILE='"wireguard"' \
-                    -DKBUILD_BASENAME='"wireguard"' \
-                    -DKBUILD_MODNAME='"wireguard"'
+WG_KBUILD_DEFS := -DKBUILD_MODFILE='"wireguard"' \
+                  -DKBUILD_BASENAME='"wireguard"' \
+                  -DKBUILD_MODNAME='"wireguard"'
 
-CC_OPT_lx_emul += -DKBUILD_MODFILE='"lx_emul"' \
-                  -DKBUILD_BASENAME='"lx_emul"' \
-                  -DKBUILD_MODNAME='"lx_emul"'
+CC_OPT_wireguard += $(WG_KBUILD_DEFS)
+CC_OPT_lx_emul   += $(WG_KBUILD_DEFS)
 
 #
 # The lx_emul Makefiles have a generic mechanism for defining the
-# KBUILD_MODNAME for each Linux unit to be the filename of that unit
-# (without suffix). However, some WireGuard units expect
-# KBUILD_MODNAME to be the same for all WireGuard units.
-# Therefore, we do a pattern substition on the CC_OPT_* variables of
-# those units, changing their KBUILD_MODNAME def to "wireguard".
+# KBUILD_MODFILE, KBUILD_BASENAME, and KBUILD_MODNAME for each Linux
+# compilation unit to be unique. However, some WireGuard units expect
+# KBUILD_MODNAME to be the same for all WireGuard units. Therefore, we
+# let a target-specific variable override the CC_OPT_* variable for those
+# units.
 #
 
-OBJECTS_TO_FIX_MODNAME_DEFS_FOR := \
+OBJECTS_TO_FIX_CC_OPT_FOR := \
 	drivers/net/wireguard/device.o \
 	drivers/net/wireguard/netlink.o
 
-define FIX_MODNAME_DEF =
-CC_OPT_$(1) = $(patsubst -DKBUILD_MODNAME='"%"',-DKBUILD_MODNAME='"wireguard"',$(CC_OPT_$(1)))
+define FIX_OBJECT_CC_OPT =
+$(1): override CC_OPT_$(1:%.o=%) = $(WG_KBUILD_DEFS)
 endef
 
-.PHONY: fix_modname_defs
-fix_modname_defs:
-	$(foreach file,$(OBJECTS_TO_FIX_MODNAME_DEFS_FOR), \
-		$(eval $(call FIX_MODNAME_DEF,$(file:%.o=%))))
-
-$(OBJECTS_TO_FIX_MODNAME_DEFS_FOR): fix_modname_defs
+$(foreach OBJECT,$(OBJECTS_TO_FIX_CC_OPT_FOR), \
+	$(eval $(call FIX_OBJECT_CC_OPT,$(OBJECT))))
