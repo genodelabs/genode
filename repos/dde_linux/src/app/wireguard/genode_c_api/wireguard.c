@@ -175,7 +175,17 @@ void genode_wg_genl_family(struct genl_family * family)
 
 struct net_device * genode_wg_net_device(void)
 {
+	/*
+	 * We disable this warning because GCC complained about possible alignment
+	 * issues when returning a reference to the packed member as naturally
+	 * aligned pointer (for some reason only on arm_v8a). However, we know
+	 * that the member is aligned to NETDEV_ALIGN and that the warning is
+	 * therefor unnecessary.
+	 */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 	return &_genode_wg_net_dev.public_data;
+#pragma GCC diagnostic pop
 }
 
 void genode_wg_udp_tunnel_sock_cfg(struct udp_tunnel_sock_cfg * cfg)
@@ -229,7 +239,8 @@ _genode_wg_config_add_dev(genode_wg_u16_t              listen_port,
 	_genode_wg_net_dev.public_data.rtnl_link_ops = _genode_wg_rtnl_link_ops;
 	_genode_wg_net_dev.pcpu_refcnt = 0;
 	genode_wg_arch_net_dev_init(
-		&_genode_wg_net_dev.public_data, &_genode_wg_net_dev.pcpu_refcnt);
+		genode_wg_net_device(), &_genode_wg_net_dev.pcpu_refcnt);
+
 
 	_genode_wg_sk_buff.sk = &_genode_wg_sock;
 	_genode_wg_sock.sk_user_data = &_genode_wg_net_dev.private_data;
@@ -265,7 +276,7 @@ _genode_wg_config_add_dev(genode_wg_u16_t              listen_port,
 
 	/* trigger execution of 'wg_open' */
 	_genode_wg_net_dev.public_data.netdev_ops->ndo_open(
-		&_genode_wg_net_dev.public_data);
+		genode_wg_net_device());
 }
 
 
@@ -487,12 +498,12 @@ void lx_user_init(void)
 	skb_init();
 
 	/* trigger execution of 'wg_setup' */
-	_genode_wg_rtnl_link_ops->setup(&_genode_wg_net_dev.public_data);
+	_genode_wg_rtnl_link_ops->setup(genode_wg_net_device());
 
 	/* trigger execution of 'wg_newlink' */
 	_genode_wg_rtnl_link_ops->newlink(
 		&_genode_wg_src_net,
-		&_genode_wg_net_dev.public_data,
+		genode_wg_net_device(),
 		 _genode_wg_tb,
 		 _genode_wg_data,
 		&_genode_wg_extack);
