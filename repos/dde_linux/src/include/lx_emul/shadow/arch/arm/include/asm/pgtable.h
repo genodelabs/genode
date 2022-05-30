@@ -18,7 +18,8 @@
 #include <asm/proc-fns.h>
 #include <asm-generic/pgtable-nopud.h>
 #include <asm-generic/pgtable_uffd.h>
-#include <asm/pgtable-nommu.h>
+
+#define PGDIR_SHIFT 21
 
 #ifndef __ASSEMBLY__
 
