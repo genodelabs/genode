@@ -4,6 +4,51 @@
                                ===========
 
 
+Genode OS Framework release 22.05 | 2022-05-31
+##############################################
+
+| The highlights of Genode 22.05 are the new support for WireGuard virtual
+| private networks and a fresh lineup of PC device drivers. Further topics are
+| basic telephony with the PinePhone and dynamic device management on Xilinx
+| Zynq.
+
+Version 22.05 closely adheres the goals as set forth in our
+[https://genode.org/about/road-map - roadmap].
+In particular, the envisioned support of WireGuard VPNs came to fruition
+in the form of a dedicated VPN component based on the Linux implementation of
+the WireGuard protocol. Thanks to this component, the network access of Genode
+systems like [https://genode.org/download/sculpt - Sculpt OS] can now be
+protected using state-of-the-art VPN security.
+
+The second prominent topic is the new lineup of PC device drivers, which had
+been developed using Genode's novel Linux device-driver environment that
+allows the reuse of Linux kernel subsystems as individually sandboxed Genode
+components. The work comprises complex drivers like the wireless LAN stack
+including Intel's Wifi driver and the latest Intel display driver. The
+revamped drivers not only bring the modern feature set of the respective Linux
+5.14.21 subsystems to Genode, but they also validate the efficiency of the new
+porting approach.
+
+The vision of a Genode-based smartphone appears as a recurring topic throughout
+the year, with the current release not being an exception. Three achievements
+stand out. First, Genode gained the principle ability to issue and receive
+voice calls with the PinePhone. Second, in anticipation of sophisticated
+energy-management, the release introduces a Genode-specific custom firmware
+for the PinePhone's system-control processor. And third, it is accompanied
+with the second revision of the
+[https://genode.org/documentation/genode-platforms-22-05.pdf - Genode Platforms]
+document that covers the porting process of Genode to a mobile platform in a
+tutorial of over 200 pages.
+
+Besides those prominent topics, the release comes with numerous framework
+improvements, reaching from a forthcoming new PC platform driver, over
+performance optimizations and usability refinements, to dynamic device
+management on FPGA-based Xilinx Zynq devices.
+
+Discover these and more topics of the new version in the official
+[https:/documentation/release-notes/22.05 - release documentation of version 22.05...]
+
+
 Genode SoC porting guide | 2022-05-25
 #####################################
 
