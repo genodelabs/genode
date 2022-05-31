@@ -292,21 +292,14 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 			size_t tx_buf_size =
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
-			/* delete ram quota by the memory needed for the session */
-			size_t session_size = max((size_t)4096,
-			                          sizeof(Session_component)
-			                          + sizeof(Allocator_avl));
-			if (ram_quota < session_size)
-				throw Insufficient_ram_quota();
-
 			/*
 			 * Check if donated ram quota suffices for both
 			 * communication buffers. Also check both sizes separately
 			 * to handle a possible overflow of the sum of both sizes.
 			 */
-			if (tx_buf_size > ram_quota - session_size) {
+			if (tx_buf_size > ram_quota) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
-				     tx_buf_size + session_size);
+				     tx_buf_size);
 				throw Insufficient_ram_quota();
 			}
 

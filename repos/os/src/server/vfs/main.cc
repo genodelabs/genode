@@ -876,13 +876,9 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			if (!tx_buf_size)
 				throw Service_denied();
 
-			size_t session_size =
-				max((size_t)4096, sizeof(Session_component)) +
-				tx_buf_size;
-
-			if (session_size > ram_quota) {
+			if (tx_buf_size > ram_quota) {
 				error("insufficient 'ram_quota' from '", label, "' "
-				      "got ", ram_quota, ", need ", session_size);
+				      "got ", ram_quota, ", need ", tx_buf_size);
 				throw Insufficient_ram_quota();
 			}
 

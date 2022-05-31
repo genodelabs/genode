@@ -230,13 +230,9 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 			size_t const buffer_size =
 				Arg_string::find_arg(args, "buffer_size").aligned_size();
 
-			size_t session_size =
-				max((size_t)4096, sizeof(Session_component)) +
-				buffer_size;
-
-			if (session_size > ram_quota) {
+			if (buffer_size > ram_quota) {
 				error("insufficient 'ram_quota' from '", label, "' "
-				      "got ", ram_quota, ", need ", session_size);
+				      "got ", ram_quota, ", need ", buffer_size);
 				throw Insufficient_ram_quota();
 			}
 

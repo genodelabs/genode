@@ -1240,14 +1240,9 @@ class Usb::Root : public Genode::Root_component<Session_component>
 				unsigned long dev     = policy.attribute_value<unsigned long>("dev", 0);
 				unsigned long class_  = policy.attribute_value<unsigned long>("class", 0);
 
-				/* check session quota */
-				size_t session_size = max<size_t>(4096, sizeof(Session_component));
-				if (ram_quota < session_size)
-					throw Insufficient_ram_quota();
-
-				if (tx_buf_size > ram_quota - session_size) {
+				if (tx_buf_size > ram_quota) {
 					warning("Insufficient RAM quota, got ", ram_quota, " need ",
-					        tx_buf_size + session_size);
+					        tx_buf_size);
 					throw Insufficient_ram_quota();
 				}
 

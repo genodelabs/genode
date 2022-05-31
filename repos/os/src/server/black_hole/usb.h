@@ -85,10 +85,7 @@ class Black_hole::Usb_root : public Root_component<Usb_session>
 			size_t const tx_buf_size {
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0) };
 
-			size_t const session_size {
-				max<size_t>(4096, sizeof(Usb_session)) };
-
-			if (ram_quota < session_size + tx_buf_size) {
+			if (ram_quota < tx_buf_size) {
 				throw Insufficient_ram_quota { };
 			}
 			Ram_dataspace_capability tx_ds { _env.ram().alloc(tx_buf_size) };
