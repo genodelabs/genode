@@ -107,17 +107,6 @@ class Capture::Root : public Capture::Root_component
 		{
 			using namespace Genode;
 
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-
-			size_t session_size = align_addr(sizeof(Session_component), 12);
-
-			if ((ram_quota < session_size)) {
-				Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
-				              "need ", session_size);
-				throw Insufficient_ram_quota();
-			}
-
 			Session_component *session = new (md_alloc())
 				Session_component(_env,
 				                  session_resources_from_args(args),
@@ -125,7 +114,6 @@ class Capture::Root : public Capture::Root_component
 				                  session_diag_from_args(args));
 
 			return session;
-
 		}
 
 		void _upgrade_session(Session_component *s, const char *args) override

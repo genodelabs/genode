@@ -134,21 +134,15 @@ Session_component *Net::Root::_create_session(char const *args)
 		size_t const rx_buf_size =
 			Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
 
-		size_t const session_size =
-			max((size_t)4096, sizeof(Session_component));
-
-		if (ram_quota.value < session_size) {
-			throw Insufficient_ram_quota(); }
-
-		if (tx_buf_size               > ram_quota.value - session_size ||
-		    rx_buf_size               > ram_quota.value - session_size ||
-		    tx_buf_size + rx_buf_size > ram_quota.value - session_size)
+		if (tx_buf_size               > ram_quota.value ||
+		    rx_buf_size               > ram_quota.value ||
+		    tx_buf_size + rx_buf_size > ram_quota.value)
 		{
 			error("insufficient 'ram_quota' for session creation");
 			throw Insufficient_ram_quota();
 		}
 		return new (md_alloc())
-			Session_component(Ram_quota{ram_quota.value - session_size},
+			Session_component(Ram_quota{ram_quota.value},
 			                  cap_quota, tx_buf_size, rx_buf_size, _config, _timer,
 			                  _curr_time, _env);
 	}

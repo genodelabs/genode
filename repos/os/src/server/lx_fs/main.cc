@@ -618,13 +618,11 @@ class Lx_fs::Root : public Root_component<Session_component>
 			}
 
 			/*
-			 * Check if donated ram quota suffices for session data,
-			 * and communication buffer.
+			 * Check if donated ram quota suffices for communication buffer.
 			 */
-			size_t session_size = sizeof(Session_component) + tx_buf_size;
-			if (max((size_t)4096, session_size) > ram_quota) {
+			if (tx_buf_size > ram_quota) {
 				Genode::error("insufficient 'ram_quota', "
-				              "got ", ram_quota, ", need ", session_size);
+				              "got ", ram_quota, ", need ", tx_buf_size);
 				throw Insufficient_ram_quota();
 			}
 

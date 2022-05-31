@@ -83,19 +83,14 @@ class Black_hole::Nic_root : public Root_component<Nic_session>
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 			size_t rx_buf_size = Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
 
-			/* deplete ram quota by the memory needed for the session structure */
-			size_t session_size = max(4096UL, (size_t)sizeof(Nic_session));
-			if (ram_quota < session_size)
-				throw Insufficient_ram_quota();
-
 			/*
 			 * Check if donated ram quota suffices for both communication
 			 * buffers and check for overflow
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
-			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
+			    tx_buf_size + rx_buf_size > ram_quota) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", "
-				      "need ", tx_buf_size + rx_buf_size + session_size);
+				      "need ", tx_buf_size + rx_buf_size);
 				throw Insufficient_ram_quota();
 			}
 

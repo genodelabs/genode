@@ -121,10 +121,7 @@ struct Report::Root : Genode::Root_component<Session_component>
 			size_t const buffer_size =
 				Arg_string::find_arg(args, "buffer_size").aligned_size();
 
-			size_t const session_size =
-				max(sizeof(Session_component), 4096U) + buffer_size;
-
-			if (ram_quota < session_size) {
+			if (ram_quota < buffer_size) {
 				Genode::error("insufficient ram donation from ", label.string());
 				throw Insufficient_ram_quota();
 			}
