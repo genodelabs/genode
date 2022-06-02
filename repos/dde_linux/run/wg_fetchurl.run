@@ -61,12 +61,14 @@ append config {
 			<service name="PD">  <parent/> </service>
 			<service name="CPU"> <parent/> </service>
 			<service name="LOG"> <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service> <!-- sel4/x86 -->
+			<service name="IRQ">     <parent/> </service> <!-- sel4/x86 -->
 		</route>
 	</start>
 
 	<start name="report" caps="100">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<route>
 			<service name="ROM"> <parent/> </service>
