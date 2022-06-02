@@ -853,8 +853,19 @@ exec sed -i "/config/s/arch=\"\"/arch=\"[depot_spec]\"/" [initial_config_file de
 ## Depot content integrated in the Sculpt image
 ##
 
-create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
+proc create_depot_archive { } {
+	global ::env
+
+	if {![info exists ::env(DEPOT)]} {
+		create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                {*}[pkg_archive_paths [referenced_pkg_values]]
+	} else {
+		puts "Do not forget to publish:"
+		puts [pkg_archive_paths [referenced_pkg_values]]
+	}
+}
+
+create_depot_archive
 
 
 #
