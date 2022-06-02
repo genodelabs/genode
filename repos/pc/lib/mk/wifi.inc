@@ -47,7 +47,7 @@ vpath %.cc $(REP_DIR)/src/lib/pc
 vpath %.c $(TARGET_LIB_DIR)
 vpath %.cc $(TARGET_LIB_DIR)
 
-CUSTOM_TARGET_DEPS += $(TARGET_LIB_DIR)/symbol.map
+$(LIB).lib.so: $(TARGET_LIB_DIR)/symbol.map
 
 #
 # Genode C-API backends
