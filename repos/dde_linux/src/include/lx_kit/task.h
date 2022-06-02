@@ -73,6 +73,7 @@ class Lx_kit::Task : public Genode::List<Lx_kit::Task>::Element
 		Name   name()     const;
 		void * lx_task()  const;
 		int    pid()      const;
+		void * stack()    const;
 
 		void block();
 		void unblock();

@@ -50,6 +50,9 @@ Task::Type Task::type() const { return _type; }
 void * Task::lx_task() const { return _lx_task; }
 
 
+void * Task::stack() const { return _stack; }
+
+
 int Task::pid() const { return _pid; }
 
 

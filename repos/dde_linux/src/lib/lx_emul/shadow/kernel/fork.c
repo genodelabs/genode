@@ -77,13 +77,22 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 	.signal          = signal,
 	};
 
+#ifndef CONFIG_THREAD_INFO_IN_TASK
+	/* On arm, the 'thread_info' is hidden behind 'task->stack', we must
+	 * therefore initialise the member before calling 'task_thread_info()'. */
 	task->stack = kmalloc(sizeof(struct thread_info), THREADINFO_GFP);
+#endif
 
 #ifndef CONFIG_X86
 	task_thread_info(task)->preempt_count = 0;
 #endif
 
 	lx_emul_task_create(task, "kthread", task->pid, fn, arg);
+
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+	task->stack = lx_emul_task_stack(task);
+#endif
+
 	return task->pid;
 
 err_task:
