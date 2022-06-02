@@ -61,6 +61,7 @@ append config {
 			<service name="PD">  <parent/> </service>
 			<service name="CPU"> <parent/> </service>
 			<service name="LOG"> <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
 		</route>
 	</start>
 
