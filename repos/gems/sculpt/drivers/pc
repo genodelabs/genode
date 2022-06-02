@@ -52,6 +52,7 @@
 			<policy label="rom_reporter -> usb_devices"     report="usb_drv -> devices"/>
 			<policy label="rom_reporter -> dynamic_state"   report="dynamic -> state"/>
 			<policy label="usb_hid_drv -> report"           report="usb_drv -> devices"/>
+			<policy label="dynamic -> intel_fb_drv -> intel_opregion"  report="acpi_drv -> intel_opregion"/>
 		</config>
 	</start>
 
@@ -83,6 +84,7 @@
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report" label="acpi"> <child name="report_rom"/> </service>
+			<service name="Report" label="intel_opregion"> <child name="report_rom"/> </service>
 			<service name="Report" label="smbios_table"> <parent label="smbios_table"/> </service>
 			<service name="IO_MEM"> <parent/> </service>
 			<service name="LOG">    <parent/> </service>
@@ -248,6 +250,7 @@
 			<service name="Report"> <parent/> </service>
 			<service name="Usb"> <child name="usb_drv"/> </service>
 			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<service name="ROM" label="intel_fb_drv -> intel_opregion"> <child name="report_rom"/> </service>
 			<service name="LOG">     <parent/> </service>
 			<service name="PD">      <parent/> </service>
 			<service name="RM">      <parent/> </service>
