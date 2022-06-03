@@ -9,3 +9,14 @@
      }
  
   leave:
+--- src/app/gnupg/common/iobuf.c.orig
++++ src/app/gnupg/common/iobuf.c
+@@ -62,7 +62,7 @@
+ /* The size of the internal buffers.
+    NOTE: If you change this value you MUST also adjust the regression
+    test "armored_key_8192" in armor.test! */
+-#define IOBUF_BUFFER_SIZE  8192
++#define IOBUF_BUFFER_SIZE  65536
+ 
+ /* To avoid a potential DoS with compression packets we better limit
+    the number of filters in a chain.  */
