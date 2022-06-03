@@ -1,0 +1,194 @@
+assert_spec linux
+
+# check that babeltrace2 is present
+set babeltrace_missing [catch {
+	spawn babeltrace2 -V
+	expect {
+		{Babeltrace 2.*}  { }
+		eof { return }
+		timeout { return }
+	}
+}]
+
+if {$babeltrace_missing} {
+	puts "\nPlease install babeltrace2 on your host system."
+	exit 1;
+}
+
+# check that python-pcapng is present
+set python_pcapng_missing [catch {
+	spawn -noecho sh -c "echo \"import pcapng\" | python"
+	expect {
+		{No module}  { return }
+		{not found}  { return }
+		eof { }
+	}
+}]
+
+if {$python_pcapng_missing} {
+	puts "\nPlease install python-pcapng on your host system."
+	exit 1;
+}
+
+build { app/ping server/lx_fs }
+
+create_boot_directory
+
+import_from_depot \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/init \
+	[depot_user]/src/libc \
+	[depot_user]/src/nic_router \
+	[depot_user]/src/report_rom \
+	[depot_user]/src/vfs \
+	[depot_user]/src/linux_rtc_drv \
+	[depot_user]/src/trace_recorder \
+	[depot_user]/raw/trace_recorder \
+	[depot_user]/src/trace_recorder_policy \
+	[depot_user]/src/dynamic_rom
+
+install_config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="TRACE"/>
+		</parent-provides>
+
+		<default-route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="linux_rtc_drv" ld="no">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Rtc"/> </provides>
+		</start>
+
+		<start name="lx_fs" ld="no">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<default-policy root="/fs" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="nic_router">
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="Nic"/>
+				<service name="Uplink"/>
+			</provides>
+			<config icmp_echo_server="yes" trace_packets="yes">
+				<default-policy domain="default"/>
+
+				<domain name="default" interface="10.0.4.1/24">
+					<dhcp-server ip_first="10.0.4.2" ip_last="10.0.4.10"/>
+				</domain>
+			</config>
+		</start>
+
+		<start name="ping">
+			<resource name="RAM" quantum="10M"/>
+			<config dst_ip="10.0.4.1" period_sec="1" count="10" verbose="yes"/>
+		</start>
+
+		<!-- using dynamic_rom to delay enabling of trace_recorder -->
+		<start name="dynamic_rom">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="ROM"/></provides>
+			<config>
+				<rom name="config">
+					<inline>
+						<config/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<config period_ms="3000" enable="yes">
+							<vfs> <fs/> </vfs>
+							<policy label_suffix="nic_router" thread="ep" policy="ctf0_pcapng">
+								<pcapng/>
+								<ctf/>
+							</policy>
+							<policy label_suffix="ping" thread="ep" policy="ctf0">
+								<ctf/>
+							</policy>
+						</config>
+					</inline>
+					<sleep milliseconds="2000"/>
+					<inline>
+						<config/>
+					</inline>
+					<sleep milliseconds="10000"/>
+				</rom>
+			</config>
+		</start>
+
+		<start name="trace_recorder" caps="200">
+			<resource name="RAM" quantum="16M"/>
+			<route>
+				<service name="File_system"> <child name="lx_fs"/> </service>
+				<service name="ROM" label="config"> <child name="dynamic_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+}
+
+exec rm -rf bin/fs
+exec mkdir -p bin/fs
+
+build_boot_image { lx_fs
+                   fs
+                   ping }
+
+append qemu_args " -nographic "
+
+run_genode_until {Enabled ctf writer for init -> ping -> ep} 20
+set spawn_id [output_spawn_id]
+run_genode_until {.*child "ping" exited with exit value 0.*} 60 $spawn_id
+
+#######################
+# validate CTF output #
+#######################
+
+set ctf_path [exec find bin/fs -type d -name nic_router]
+exec test -s $ctf_path/ep
+
+# check generated trace by reading CTF trace as fast as possible using a dummy output
+exec babeltrace2 $ctf_path --output-format=dummy
+
+
+##########################
+# validate PCAPNG output #
+##########################
+
+# create python script for pcapng parsing
+set fd [open [run_dir]/genode/check_pcapng.py "w"]
+puts $fd {
+import sys
+import pcapng
+
+with open(sys.argv[1], "rb") as fp:
+   scanner = pcapng.FileScanner(fp)
+   for block in pcapng.FileScanner(fp):
+       pass
+}
+close $fd
+
+set pcap_file [exec find bin/fs -name nic_router.pcapng]
+exec test -s $pcap_file
+
+# check generated trace by python script
+exec python [run_dir]/genode/check_pcapng.py $pcap_file

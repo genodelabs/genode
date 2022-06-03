@@ -13,6 +13,7 @@
 		<rom label="vfs.lib.so"/>
 		<rom label="ctf0"/>
 		<rom label="pcapng"/>
+		<rom label="ctf0_pcapng"/>
 		<rom label="metadata"/>
 	</content>
 
