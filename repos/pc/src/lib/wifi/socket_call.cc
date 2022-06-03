@@ -237,6 +237,8 @@ class Lx::Socket
 		Genode::Signal_transmitter         _sender { };
 		Genode::Signal_handler<Lx::Socket> _dispatcher;
 
+		Genode::Signal_handler<Lx::Socket> _dispatcher_blockade;
+
 		struct socket *_sock_poll_table[Wifi::MAX_POLL_SOCKETS] { };
 
 		struct socket *_call_socket()
@@ -411,11 +413,17 @@ class Lx::Socket
 			Lx_kit::env().scheduler.schedule();
 		}
 
+		void _handle_blockade()
+		{
+			_block.up();
+		}
+
 	public:
 
 		Socket(Genode::Entrypoint &ep)
 		:
-			_dispatcher(ep, *this, &Lx::Socket::_handle)
+			_dispatcher(ep, *this, &Lx::Socket::_handle),
+			_dispatcher_blockade(ep, *this, &Lx::Socket::_handle_blockade)
 		{
 			_sender.context(_dispatcher);
 		}
@@ -448,7 +456,7 @@ class Lx::Socket
 
 			_call.opcode = Call::NONE;
 
-			if (old != Call::NONE) { _block.up(); }
+			if (old != Call::NONE) { _dispatcher_blockade.local_submit(); }
 		}
 
 		void submit_and_block()
