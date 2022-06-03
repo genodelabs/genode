@@ -405,7 +405,7 @@ class Platform::Session_component : public Rpc_object<Session>
 						return;
 
 					/* if this bdf is used by some policy - deny */
-					if (find_dev_in_policy(bdf))
+					if (alias != "ALL" && find_dev_in_policy(bdf))
 						return;
 
 					throw true;
