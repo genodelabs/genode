@@ -28,7 +28,6 @@ struct Acpica::Env
 	Genode::Allocator &heap;
 
 	Wait_acpi_ready const wait_acpi_ready;
-	bool use_platform_drv;
 
 	Genode::Parent::Service_name announce_for_acpica {
 		wait_acpi_ready.enabled ? "Acpi" : Platform::Session::service_name() };
@@ -44,8 +43,7 @@ struct Acpica::Env
 	Env(Genode::Env &env, Genode::Allocator &heap,
 	    Wait_acpi_ready wait_acpi_ready)
 	:
-		env(env), heap(heap), wait_acpi_ready(wait_acpi_ready),
-		use_platform_drv(!wait_acpi_ready.enabled)
+		env(env), heap(heap), wait_acpi_ready(wait_acpi_ready)
 	{ }
 };
 
@@ -60,14 +58,12 @@ Platform::Client  & Acpica::platform()
 		instance->cap.construct(Genode::reinterpret_cap_cast<Platform::Session>(
 			instance->env.session(instance->announce_for_acpica,
 			                      instance->id_space_element.id(),
-			                      "ram_quota=36K", Genode::Affinity())));
+			                      "ram_quota=48K", Genode::Affinity())));
 
 		instance->platform.construct(*instance->cap);
 	}
 	return *instance->platform;
 }
-bool Acpica::platform_drv() { return instance->use_platform_drv; }
-void Acpica::use_platform_drv() { instance->use_platform_drv = true; }
 
 
 void Acpica::init(Genode::Env &env, Genode::Allocator &heap,
