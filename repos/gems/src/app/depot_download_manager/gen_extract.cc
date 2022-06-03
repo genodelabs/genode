@@ -35,13 +35,16 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 		xml.node("vfs", [&] () {
 			xml.node("dir", [&] () {
 				xml.attribute("name", "public");
-				xml.node("fs", [&] () { xml.attribute("label", "public"); });
+				xml.node("fs", [&] () {
+					xml.attribute("buffer_size", 144u << 10);
+					 xml.attribute("label", "public"); });
 			});
 			xml.node("dir", [&] () {
 				xml.attribute("name", "depot");
 				xml.node("dir", [&] () {
 					xml.attribute("name", user);
 					xml.node("fs", [&] () {
+						xml.attribute("buffer_size", 144u << 10);
 						xml.attribute("label", user_path); });
 				});
 			});
