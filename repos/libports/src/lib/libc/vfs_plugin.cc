@@ -101,7 +101,7 @@ static Libc::Plugin_context *vfs_context(Vfs::Vfs_handle *vfs_handle)
 static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src,
                                          struct stat *dst)
 {
-	enum { FS_BLOCK_SIZE = 4096 };
+	enum { FS_BLOCK_SIZE = 4096 * 16 };
 
 	unsigned const readable_bits   = S_IRUSR,
 	               writeable_bits  = S_IWUSR,
