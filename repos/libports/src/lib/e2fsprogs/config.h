@@ -1,5 +1,4 @@
 #define ENABLE_HTREE 1
-#define ENABLE_NLS 1
 #define HAVE_ALLOCA 1
 #define HAVE_ASPRINTF 1
 #define HAVE_DECL_FEOF_UNLOCKED 1
