@@ -12,33 +12,6 @@ CC_DEF += -DLOCALEDIR=\"/share/locale\"
 CC_DEF += -DLIBDIR=\"/lib\"
 CC_DEF += -DLOCALE_ALIAS_PATH=\"/share/locale\"
 
-SRC_C_intl := \
-              intl/bindtextdom.c \
-              intl/dcgettext.c \
-              intl/dgettext.c \
-              intl/gettext.c \
-              intl/finddomain.c \
-              intl/loadmsgcat.c \
-              intl/localealias.c \
-              intl/textdomain.c \
-              intl/l10nflist.c \
-              intl/dcigettext.c \
-              intl/explodename.c \
-              intl/dcngettext.c \
-              intl/dngettext.c \
-              intl/ngettext.c \
-              intl/plural.c \
-              intl/plural-exp.c \
-              intl/localcharset.c \
-              intl/relocatable.c \
-              intl/log.c \
-              intl/localename.c \
-              intl/printf.c \
-              intl/osdep.c \
-              intl/intl-compat.c
-INC_DIR_intl := $(E2FSPROGS_DIR)/intl $(REP_DIR)/src/lib/e2fsprogs/intl
-CC_OPT_intl/dcigettext += -DSTATIC=
-
 SRC_C_libblkid := \
                   lib/blkid/cache.c \
                   lib/blkid/devname.c \
@@ -63,6 +36,7 @@ SRC_C_libcom_err := \
 INC_DIR_libcom_err := $(E2FSPROGS_DIR)/lib/et
 
 SRC_C_libe2p := \
+                lib/e2p/encoding.c \
                 lib/e2p/feature.c \
                 lib/e2p/fgetflags.c \
                 lib/e2p/fgetversion.c \
@@ -90,6 +64,7 @@ SRC_C_libext2fs := \
                    lib/ext2fs/alloc_sb.c \
                    lib/ext2fs/alloc_stats.c \
                    lib/ext2fs/alloc_tables.c \
+                   lib/ext2fs/atexit.c \
                    lib/ext2fs/badblocks.c \
                    lib/ext2fs/bb_compat.c \
                    lib/ext2fs/bb_inode.c \
@@ -115,21 +90,25 @@ SRC_C_libext2fs := \
                    lib/ext2fs/ext2_err.c \
                    lib/ext2fs/ext_attr.c \
                    lib/ext2fs/extent.c \
+                   lib/ext2fs/fallocate.c \
                    lib/ext2fs/fileio.c \
                    lib/ext2fs/finddev.c \
                    lib/ext2fs/flushb.c \
                    lib/ext2fs/freefs.c \
                    lib/ext2fs/gen_bitmap.c \
                    lib/ext2fs/gen_bitmap64.c \
+                   lib/ext2fs/get_num_dirs.c \
                    lib/ext2fs/get_pathname.c \
                    lib/ext2fs/getsectsize.c \
                    lib/ext2fs/getsize.c \
+                   lib/ext2fs/hashmap.c \
                    lib/ext2fs/i_block.c \
                    lib/ext2fs/icount.c \
                    lib/ext2fs/imager.c \
                    lib/ext2fs/ind_block.c \
                    lib/ext2fs/initialize.c \
                    lib/ext2fs/inline.c \
+                   lib/ext2fs/inline_data.c \
                    lib/ext2fs/inode.c \
                    lib/ext2fs/inode_io.c \
                    lib/ext2fs/io_manager.c \
@@ -143,6 +122,7 @@ SRC_C_libext2fs := \
                    lib/ext2fs/namei.c \
                    lib/ext2fs/native.c \
                    lib/ext2fs/newdir.c \
+                   lib/ext2fs/nls_utf8.c \
                    lib/ext2fs/openfs.c \
                    lib/ext2fs/progress.c \
                    lib/ext2fs/punch.c \
@@ -152,6 +132,8 @@ SRC_C_libext2fs := \
                    lib/ext2fs/read_bb_file.c \
                    lib/ext2fs/res_gdt.c \
                    lib/ext2fs/rw_bitmaps.c \
+                   lib/ext2fs/sha512.c \
+                   lib/ext2fs/sparse_io.c \
                    lib/ext2fs/swapfs.c \
                    lib/ext2fs/symlink.c \
                    lib/ext2fs/tdb.c \
@@ -164,13 +146,17 @@ SRC_C_libext2fs := \
                    lib/ext2fs/write_bb_file.c
 INC_DIR_libext2fs := $(E2FSPROGS_DIR)/lib/ext2fs $(REP_DIR)/src/lib/e2fsprogs/lib/ext2fs
 
-SRC_C_libquota := \
-                  lib/quota/mkquota.c \
-                  lib/quota/quotaio.c \
-                  lib/quota/quotaio_v2.c \
-                  lib/quota/quotaio_tree.c \
-                  e2fsck/dict.c
-INC_DIR_libquota := $(E2FSPROGS_DIR)/lib/quota
+SRC_C_libsupport := \
+                  lib/support/dict.c \
+                  lib/support/mkquota.c \
+                  lib/support/plausible.c \
+                  lib/support/parse_qtype.c \
+                  lib/support/prof_err.c \
+                  lib/support/profile.c \
+                  lib/support/quotaio.c \
+                  lib/support/quotaio_tree.c \
+                  lib/support/quotaio_v2.c
+INC_DIR_libsupport := $(E2FSPROGS_DIR)/lib/support
 
 SRC_C_libuuid := \
                  lib/uuid/clear.c \
@@ -186,23 +172,22 @@ SRC_C_libuuid := \
 INC_DIR_libuuid := $(E2FSPROGS_DIR)/lib/uuid
 
 SRC_C := \
-         $(SRC_C_intl) \
          $(SRC_C_libblkid) \
          $(SRC_C_libcom_err) \
          $(SRC_C_libe2p) \
          $(SRC_C_libext2fs) \
-         $(SRC_C_libquota) \
-         $(SRC_C_libuuid)
+         $(SRC_C_libsupport) \
+         $(SRC_C_libuuid) \
+         dummies.c
 
 INC_DIR += $(E2FSPROGS_DIR)/lib
 INC_DIR += $(REP_DIR)/src/lib/e2fsprogs
 INC_DIR += $(REP_DIR)/src/lib/e2fsprogs/lib
-INC_DIR += $(INC_DIR_intl)
 INC_DIR += $(INC_DIR_libblkid)
 INC_DIR += $(INC_DIR_libcom_err)
 INC_DIR += $(INC_DIR_libe2p)
 INC_DIR += $(INC_DIR_libext2fs)
-INC_DIR += $(INC_DIR_libquota)
+INC_DIR += $(INC_DIR_libsupport)
 INC_DIR += $(INC_DIR_libuuid)
 
 
@@ -210,6 +195,7 @@ CC_DEF += -D__BSD_VISIBLE
 CC_DEF += -DHAVE_CONFIG_H
 
 vpath %.c $(E2FSPROGS_DIR)
+vpath %.c $(REP_DIR)/src/lib/e2fsprogs
 
 #
 # Generate header files

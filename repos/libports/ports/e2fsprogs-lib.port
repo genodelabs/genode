@@ -1,5 +1,5 @@
 LICENSE   := GPLv2
-VERSION   := 1.42.9
+VERSION   := 1.46.5
 DOWNLOADS := e2fsprogs.git
 
 E2FSPROGS_DIR := src/lib/e2fsprogs
@@ -24,25 +24,14 @@ DIR_CONTENT($(INCLUDE_DIR)) := \
 
 BLKID_HEADER      := $(INCLUDE_DIR)/blkid/blkid.h
 EXT2FS_HEADER     := $(INCLUDE_DIR)/ext2fs/ext2_types.h
-INTL_HEADER       := $(INCLUDE_DIR)/libgnuintl.h
 UUID_HEADER       := $(INCLUDE_DIR)/uuid/uuid.h
 DEFAULT_PROFILE_C := $(addsuffix /misc/default_profile.c, $(E2FSPROGS_DIR))
 
 _dirs: \
 	$(BLKID_HEADER)  \
 	$(EXT2FS_HEADER) \
-	$(INTL_HEADER)   \
 	$(UUID_HEADER)   \
 	$(DEFAULT_PROFILE_C)
-
-$(INTL_HEADER):
-	@$(MSG_GENERATE)$(notdir $@)
-	$(VERBOSE)sed -e 's,@''HAVE_POSIX_PRINTF''@,1,g' \
-	              -e 's,@''HAVE_ASPRINTF''@,1,g' \
-	              -e 's,@''HAVE_SNPRINTF''@,1,g' \
-	              -e 's,@''HAVE_WPRINTF''@,0,g' \
-	              < $(E2FSPROGS_DIR)/intl/libgnuintl.h.in > $@
-	$(VERBOSE)ln -sf $(notdir $@) $(dir $@)/libintl.h
 
 $(BLKID_HEADER):
 	@$(MSG_GENERATE)$(notdir $@)
@@ -69,7 +58,7 @@ $(EXT2FS_HEADER):
 	$(VERBOSE)sed -e 's,@''E2FSPROGS_VERSION''@,$(VERSION),g' \
 		      < $(E2FSPROGS_DIR)/lib/ext2fs/ext2_err.et.in \
 		      > $(E2FSPROGS_DIR)/lib/ext2fs/ext2_err.et && \
-	for file in lib/ext2fs/ext2_err e2fsck/prof_err; do \
+	for file in lib/ext2fs/ext2_err lib/support/prof_err; do \
 		$(MSG_GENERATE)$${file}.h && \
 		gawk -f $(E2FSPROGS_DIR)/lib/et/et_h.awk \
 		                  "outfile=$(E2FSPROGS_DIR)/$${file}.h" \

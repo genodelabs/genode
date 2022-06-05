@@ -16,7 +16,7 @@ src/lib/e2fsprogs:
 	cp -a $(REP_DIR)/src/lib/e2fsprogs/* $@
 
 LICENSE:
-	cp $(PORT_DIR)/src/lib/e2fsprogs/COPYING $@
+	cp $(PORT_DIR)/src/lib/e2fsprogs/NOTICE $@
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
