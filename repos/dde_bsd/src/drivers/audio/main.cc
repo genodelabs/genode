@@ -142,6 +142,7 @@ class Audio_out::Out
 
 			} else {
 				_play_silence();
+				return;
 			}
 
 			_advance_position(p_left, p_right);
