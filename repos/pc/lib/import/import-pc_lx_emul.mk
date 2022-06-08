@@ -65,9 +65,11 @@ SRC_C   += lx_emul/shadow/fs/sysfs/symlink.c
 #
 SRC_C   += lx_emul/shadow/lib/logic_iomem.c
 
+ifneq ($(DDE_LINUX_ACPI),1)
 SRC_C   += lx_emul/shadow/drivers/acpi/bus.c
 SRC_C   += lx_emul/shadow/drivers/acpi/device_sysfs.c
 SRC_C   += lx_emul/shadow/drivers/acpi/glue.c
 SRC_C   += lx_emul/shadow/drivers/acpi/property.c
 SRC_C   += lx_emul/shadow/drivers/acpi/scan.c
 SRC_C   += lx_emul/shadow/drivers/acpi/utils.c
+endif
