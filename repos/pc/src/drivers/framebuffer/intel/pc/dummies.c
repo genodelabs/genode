@@ -785,3 +785,38 @@ int software_node_notify(struct device * dev,unsigned long action)
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+
+#include <linux/pinctrl/devinfo.h>
+
+int pinctrl_bind_pins(struct device * dev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/pinctrl/devinfo.h>
+
+int pinctrl_init_done(struct device * dev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/pinctrl/consumer.h>
+
+struct pinctrl * devm_pinctrl_get(struct device * dev)
+{
+	lx_emul_trace(__func__);
+	return (struct pinctrl*)ERR_PTR(-ENODEV);
+}
+
+
+#include <linux/pinctrl/consumer.h>
+
+void devm_pinctrl_put(struct pinctrl * p)
+{
+	lx_emul_trace(__func__);
+}

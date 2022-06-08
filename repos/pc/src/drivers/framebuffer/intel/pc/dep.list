@@ -376,6 +376,7 @@ include/linux/anon_inodes.h
 include/linux/average.h
 include/linux/backlight.h
 include/linux/circ_buf.h
+include/linux/clkdev.h
 include/linux/dma-buf.h
 include/linux/dma-fence-array.h
 include/linux/dma-fence-chain.h

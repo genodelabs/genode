@@ -614,70 +614,6 @@ void gpiod_set_value_cansleep(struct gpio_desc * desc,int value)
 
 #include <linux/i2c.h>
 
-s32 i2c_smbus_read_block_data(const struct i2c_client * client,u8 command,u8 * values)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/i2c.h>
-
-s32 i2c_smbus_read_byte(const struct i2c_client * client)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/i2c.h>
-
-s32 i2c_smbus_read_byte_data(const struct i2c_client * client,u8 command)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/i2c.h>
-
-s32 i2c_smbus_read_word_data(const struct i2c_client * client,u8 command)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/i2c.h>
-
-s32 i2c_smbus_write_block_data(const struct i2c_client * client,u8 command,u8 length,const u8 * values)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/i2c.h>
-
-s32 i2c_smbus_write_byte(const struct i2c_client * client,u8 value)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/i2c.h>
-
-s32 i2c_smbus_write_byte_data(const struct i2c_client * client,u8 command,u8 value)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/i2c.h>
-
-s32 i2c_smbus_write_word_data(const struct i2c_client * client,u8 command,u16 value)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/i2c.h>
-
 s32 i2c_smbus_xfer(struct i2c_adapter * adapter,u16 addr,unsigned short flags,char read_write,u8 command,int protocol,union i2c_smbus_data * data)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -1836,6 +1772,38 @@ void pci_unmap_rom(struct pci_dev * pdev,void __iomem * rom)
 #include <linux/pci.h>
 
 int pci_write_config_byte(const struct pci_dev * dev,int where,u8 val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pinctrl/consumer.h>
+
+struct pinctrl_state * pinctrl_lookup_state(struct pinctrl * p,const char * name)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pinctrl/machine.h>
+
+int pinctrl_register_mappings(const struct pinctrl_map * maps,unsigned num_maps)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pinctrl/consumer.h>
+
+int pinctrl_select_state(struct pinctrl * p,struct pinctrl_state * state)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pinctrl/machine.h>
+
+void pinctrl_unregister_mappings(const struct pinctrl_map * map)
 {
 	lx_emul_trace_and_stop(__func__);
 }
