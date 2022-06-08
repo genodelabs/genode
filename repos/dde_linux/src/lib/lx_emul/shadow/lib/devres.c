@@ -1,6 +1,7 @@
 /*
  * \brief  Replaces lib/devres.c
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2021-03-16
  */
 
@@ -23,6 +24,13 @@ void __iomem *devm_ioremap_resource(struct device *dev,
 
 void __iomem *devm_ioremap(struct device *dev, resource_size_t offset,
                            resource_size_t size)
+{
+	return lx_emul_io_mem_map(offset, size);
+}
+
+
+void __iomem * devm_ioremap_uc(struct device *dev, resource_size_t offset,
+                               resource_size_t size)
 {
 	return lx_emul_io_mem_map(offset, size);
 }
