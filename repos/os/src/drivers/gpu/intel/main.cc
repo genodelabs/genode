@@ -1516,7 +1516,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			{ }
 
 			/* worst case */
-			bool avail_caps() { return _cap_quota_guard.have_avail(Cap_quota { 4 }); }
+			bool avail_caps() { return _cap_quota_guard.have_avail(Cap_quota { 5 }); }
 
 			/* size + possible heap allocations */
 			bool avail_ram(size_t size = 0) {
