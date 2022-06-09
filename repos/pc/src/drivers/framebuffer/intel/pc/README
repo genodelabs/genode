@@ -4,14 +4,17 @@ Default behaviour
 ~~~~~~~~~~~~~~~~~
 
 When no configuration is provided to the driver, it will switch on all devices
-connected to the graphics card. It will use the best resolution as
+connected to the graphics card. It will use the highest resolution as
 provided by the BIOS or EDID information from the display devices for each
 connector. The virtual resolution delivered to the client is the maximum in
-width and height of the different connectors. The framebuffer memory is
-directly exported to the client of the driver. When newly connected devices are
-detected by the hardware, the new connectors are enabled, probed, and again the
-'best' resolution will be chosen for the device. Nevertheless, it won't have an
-effect on the virtual resolution.
+width and height of the active connectors.
+
+When newly connected devices are detected by the hardware, the new connectors
+are enabled, probed, and again the highest resolution across all active
+connectors will be chosen. By default, the current config of the driver will
+be re-read and re-applied. This behaviour can be disabled by
+
+! <config apply_on_hotplug="no"/>
 
 Configuration
 ~~~~~~~~~~~~~

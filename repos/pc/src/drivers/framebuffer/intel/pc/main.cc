@@ -123,6 +123,18 @@ struct Framebuffer::Driver
 		timer.sigh(timer_handler);
 		timer.trigger_periodic(20*1000);
 	}
+
+	void report_updated()
+	{
+		bool apply_config = true;
+
+		if (config.valid())
+			apply_config = config.xml().attribute_value("apply_on_hotplug", apply_config);
+
+		/* trigger re-read config on connector change */
+		if (apply_config)
+			Genode::Signal_transmitter(config_handler).submit();
+	}
 };
 
 
@@ -270,8 +282,7 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
 		lx_emul_i915_iterate_modes(lx_data, &xml);
 	});
 
-	/* re-read config on connector change */
-	Genode::Signal_transmitter(driver(Lx_kit::env().env).config_handler).submit();
+	driver(Lx_kit::env().env).report_updated();
 }
 
 

@@ -103,7 +103,7 @@ void Framebuffer_controller::_update_fb_config(Xml_node const &report)
 		static char buf[4096];
 
 		Xml_generator xml(buf, sizeof(buf), "config", [&] {
-//			xml.attribute("poll", "5000");
+			xml.attribute("apply_on_hotplug", "no");
 			xml.node("report", [&] {
 				xml.attribute("connectors", "yes");
 			});
