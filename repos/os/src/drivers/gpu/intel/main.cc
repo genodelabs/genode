@@ -1524,8 +1524,17 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			void withdraw(size_t caps, size_t ram)
 			{
-				_cap_quota_guard.withdraw(Cap_quota { caps });
-				_ram_quota_guard.withdraw(Ram_quota { ram });
+				try {
+					_cap_quota_guard.withdraw(Cap_quota { caps });
+					_ram_quota_guard.withdraw(Ram_quota { ram });
+				} catch (... /* intentional catch-all */) {
+					/*
+					 * At this point something in the accounting went wrong
+					 * and as quick-fix let the client abort rather than the
+					 * multiplexer.
+					 */
+					throw Service_denied();
+				}
 			}
 
 			void replenish(size_t caps, size_t ram)
