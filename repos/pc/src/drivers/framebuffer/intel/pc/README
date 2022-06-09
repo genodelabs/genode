@@ -20,8 +20,13 @@ Each of the connectors can be configured explicitly in terms of resolution and
 whether it should be enabled or not. This looks like the following:
 
 ! <config>
-!   <connector name="LVDS-11" width="1280" height="800" hz="60" brightness="75" enabled="true"/>
+!   <connector name="eDP-1" width="1920" height="1080" hz="60" brightness="75" enabled="true"/>
+!   <connector name="DP-1"  mode_id="2" enabled="true"/>
 ! </config>
+
+The resolution can be configured exactly by the reported mode_id or by
+the width/height/hz attributes. In the latter case the driver will take the
+first matching mode out of multiple matching modes potentially.
 
 When the configuration changes during runtime, the driver will adapt to it. In
 this case, it will also change the current virtual resolution to the maximum of
@@ -47,12 +52,18 @@ in the configuration as follows:
 The exported report has the following format:
 
 ! <connectors>
-!   <connector name="LVDS-11" connected="1" brightness="50">
-!     <mode width="1280" height="800" hz="60"/>
+!   <connector name="eDP-1" connected="true" brightness="50">
+!     <mode width="1920" height="1080" hz="60" mode_id="1" preferred="true"/>
+!     ...
+!   </connector>
+!   <connector name="DP-1" connected="true">
+!     <mode width="1920" height="1200" hz="60" mode_id="1" preferred="true"/>
+!     <mode width="1920" height="1080" hz="60" mode_id="2"/>
+!     <mode width="1280" height="1024" hz="60" mode_id="3"/>
+!     <mode width="1024" height="768"  hz="60" mode_id="4"/>
 !     ...
 !   </connector>
 !   <connector name="HDMI-A-1" connected="false"/>
-!   <connector name="DP-1" connected="false"/>
 ! </connectors>
 
 The brightness attribute is reported only if the hardware supports it.
