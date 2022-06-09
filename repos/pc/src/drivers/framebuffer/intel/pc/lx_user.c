@@ -50,7 +50,25 @@ static void preferred_mode(struct drm_display_mode *prefer)
 		/* check for connector configuration on Genode side */
 		lx_emul_i915_connector_config(connector->name, &conf_mode);
 
-		if (!conf_mode.enabled || !conf_mode.width || !conf_mode.height)
+		if (!conf_mode.enabled)
+			continue;
+
+		if (conf_mode.id) {
+			unsigned mode_id = 0;
+			list_for_each_entry(mode, &connector->modes, head) {
+				mode_id ++;
+
+				if (!mode || conf_mode.id != mode_id)
+					continue;
+
+				conf_mode.width  = mode->hdisplay;
+				conf_mode.height = mode->vdisplay;
+
+				break;
+			}
+		}
+
+		if (!conf_mode.width || !conf_mode.height)
 			continue;
 
 		if (conf_mode.width * conf_mode.height > prefer->hdisplay * prefer->vdisplay) {
@@ -154,6 +172,10 @@ static bool reconfigure(void * data)
 
 	/* data is adjusted if virtual resolution is not same size as physical fb */
 	report_fb_info = *i915_fb()->fbdev;
+	if (mode_preferred.hdisplay && mode_preferred.vdisplay) {
+		report_fb_info.var.xres_virtual = mode_preferred.hdisplay;
+		report_fb_info.var.yres_virtual = mode_preferred.vdisplay;
+	}
 
 	drm_client_for_each_modeset(mode_set, &(i915_fb()->client)) {
 		struct drm_display_mode *mode_match = NULL;
@@ -182,7 +204,10 @@ static bool reconfigure(void * data)
 				continue;
 
 			/* use mode id if configured and matches exactly */
-			if (conf_mode.id && (conf_mode.id == mode_id)) {
+			if (conf_mode.id) {
+				if (conf_mode.id != mode_id)
+					continue;
+
 				mode_match = mode;
 				break;
 			}
@@ -225,16 +250,9 @@ static bool reconfigure(void * data)
 			if (!mode_match) {
 				/* use first mode */
 				mode_match = mode;
-				/* set up preferred resolution as virtual, if nothing is enforced */
-				if (!conf_mode.preferred &&
-					mode_preferred.hdisplay &&
-					mode_preferred.vdisplay) {
-					conf_mode.preferred = 1;
-					conf_mode.width  = mode_preferred.hdisplay;
-					conf_mode.height = mode_preferred.vdisplay;
-				}
-				no_match = mode->hdisplay != conf_mode.width ||
-				           mode->vdisplay != conf_mode.height;
+
+				if (conf_mode.enabled)
+					no_match = true;
 			}
 
 			if (mode_match != mode)
@@ -267,12 +285,6 @@ static bool reconfigure(void * data)
 					retry = true;
 				else {
 					report_fb = true;
-
-					/* report forced resolution */
-					if (conf_mode.preferred) {
-						report_fb_info.var.xres_virtual = conf_mode.width;
-						report_fb_info.var.yres_virtual = conf_mode.height;
-					}
 				}
 			}
 

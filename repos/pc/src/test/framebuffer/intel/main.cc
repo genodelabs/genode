@@ -79,7 +79,7 @@ void Framebuffer_controller::_update_connector_config(Xml_generator & xml,
 			w = mode.attribute_value<unsigned long>("width", 0);
 			h = mode.attribute_value<unsigned long>("height", 0);
 			z = mode.attribute_value<unsigned long>("hz", 0);
-			if (w >= width) {
+			if (w * h >= width * height) {
 				width = w;
 				height = h;
 				if (z > hz)
