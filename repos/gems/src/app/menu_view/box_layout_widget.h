@@ -56,6 +56,10 @@ struct Menu_view::Box_layout_widget : Widget
 
 			w.position(position);
 
+			/* don't account space for zero-sized child widgets */
+			if (child_min_size.count() == 0)
+				return;
+
 			if (_direction == VERTICAL) {
 				unsigned const next_top_margin = w.next() ? w.next()->margin.top : 0;
 				unsigned const dy = child_min_size.h() - min(w.margin.bottom, next_top_margin);
@@ -65,6 +69,7 @@ struct Menu_view::Box_layout_widget : Widget
 				unsigned const dx = child_min_size.w() - min(w.margin.right, next_left_margin);
 				position = position + Point(dx, 0);
 			}
+
 			_count++;
 		});
 
@@ -99,7 +104,10 @@ struct Menu_view::Box_layout_widget : Widget
 				w.position(w.geometry().p1() + Point(consumed_fp >> 8, 0));
 				w.size(Area(w.min_size().w() + padding_pixels, geometry().h()));
 			}
-			consumed_fp = next_consumed_fp;
+
+			/* don't account space for zero-sized child widgets */
+			if (w.min_size().count())
+				consumed_fp = next_consumed_fp;
 		});
 	}
 
