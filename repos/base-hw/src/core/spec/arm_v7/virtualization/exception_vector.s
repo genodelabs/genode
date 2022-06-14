@@ -15,7 +15,7 @@
 	push  { r0 }
 	mrc   p15, 4, r0, c1, c1, 0 /* read HCR register */
 	tst   r0, #1                /* check VM bit      */
-	beq   _host_to_vm
+	beq   _from_host
 	mov   r0, #\exception_type
 	b     _vm_to_host
 .endm /* _vm_exit */
@@ -47,10 +47,27 @@ _vt_dab_entry: _vm_exit 5
 _vt_irq_entry: _vm_exit 6
 _vt_trp_entry: _vm_exit 8
 
-_host_to_vm:
+_from_host:
+	pop   { r0 }
+	cmp   r0, #0
+	beq   _to_vm
+	cmp   r0, #1
+	beq   _invalidate_tlb
+	eret
+
+
+_invalidate_tlb:
+	push  { r3, r4 }
+	mrrc  p15, 6, r3, r4, c2    /* save  VTTBR   */
+	mcrr  p15, 6, r1, r2, c2    /* write VTTBR   */
+	mcr   p15, 0, r0, c8, c3, 0 /* TLBIALLIS     */
+	mcrr  p15, 6, r3, r4, c2    /* restore VTTBR */
+	eret
+
+_to_vm:
 	push  { r1 }
-	ldr   r0, [sp, #1*4]
-	add   r0, r0, #13*4
+	push  { r2 }
+	add   r0, r1, #13*4
 	ldmia r0!, { r1-r5 }
 	msr   sp_usr,    r1
 	mov   lr,        r2
@@ -114,6 +131,7 @@ _host_to_vm:
 	ldr   r0, [sp, #1*4]
 	ldmia r0, {r0-r12}            /* load vm's r0-r12   */
 	eret
+
 
 _vm_to_host:
 	push  { r0 }                  /* push cpu excep.    */
@@ -218,6 +236,7 @@ _vm_to_host:
 
 
 /* host kernel must jump to this point to switch to a vm */
-.global hypervisor_enter_vm
-hypervisor_enter_vm:
+.global hypervisor_call
+hypervisor_call:
 	hvc   #0
+	bx    lr
