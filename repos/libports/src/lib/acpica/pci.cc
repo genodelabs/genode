@@ -130,7 +130,8 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 	dump_error(__func__, pcidev, reg, width);
 
-	return AE_ERROR;
+	*value = ~0U;
+	return AE_OK;
 }
 
 ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
@@ -184,5 +185,5 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 	dump_error(__func__, pcidev, reg, width);
 
-	return AE_ERROR;
+	return AE_OK;
 }
