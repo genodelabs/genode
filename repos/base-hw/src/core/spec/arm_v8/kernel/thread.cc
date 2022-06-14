@@ -75,9 +75,13 @@ void Thread::exception(Cpu & cpu)
 void Kernel::Thread::Tlb_invalidation::execute() { };
 
 
-bool Kernel::Pd::invalidate_tlb(Cpu &, addr_t addr, size_t size)
+bool Kernel::Pd::invalidate_tlb(Cpu & cpu, addr_t addr, size_t size)
 {
 	using namespace Genode;
+
+	/* only apply to the active cpu */
+	if (cpu.id() != Cpu::executing_id())
+		return false;
 
 	/**
 	 * The kernel part of the address space is mapped as global
