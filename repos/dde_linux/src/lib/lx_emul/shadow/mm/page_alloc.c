@@ -12,6 +12,7 @@
  */
 
 #include <linux/gfp.h>
+#include <linux/mm.h>
 #include <linux/version.h>
 #include <lx_emul/alloc.h>
 #include <lx_emul/debug.h>
@@ -65,7 +66,7 @@ void __free_pages(struct page * page, unsigned int order)
 
 void free_pages_exact(void *virt_addr, size_t size)
 {
-	lx_free_pages(virt_to_page(virt_addr), size/PAGE_SIZE);
+	lx_free_pages(virt_to_page(virt_addr), PAGE_ALIGN(size) / PAGE_SIZE);
 }
 
 
@@ -93,5 +94,5 @@ struct page * __alloc_pages(gfp_t gfp, unsigned int order, int preferred_nid,
 
 void *alloc_pages_exact(size_t size, gfp_t gfp_mask)
 {
-	return lx_alloc_pages(size/PAGE_SIZE)->virtual;
+	return lx_alloc_pages(PAGE_ALIGN(size) / PAGE_SIZE)->virtual;
 }
