@@ -41,37 +41,6 @@ struct Bdf
 	}
 };
 
-static void dump_read(char const * const func, ACPI_PCI_ID *pcidev,
-                      UINT32 reg, UINT64 value, UINT32 width)
-{
-	using namespace Genode;
-
-	log(func, ": ", Bdf(pcidev->Bus, pcidev->Device, pcidev->Function), " "
-	    "reg=", Hex(reg, Hex::PREFIX, Hex::PAD), " "
-	    "width=", width, width < 10 ? " " : "", " -> "
-	    "value=", Genode::Hex(value));
-}
-
-static void dump_write(char const * const func, ACPI_PCI_ID *pcidev,
-                       UINT32 reg, UINT64 value, UINT32 width)
-{
-	using namespace Genode;
-
-	warning(func, ": ", Bdf(pcidev->Bus, pcidev->Device, pcidev->Function), " "
-	        "reg=", Hex(reg, Hex::PREFIX, Hex::PAD), " "
-	        "width=", width, width < 10 ? " " : "", " -> "
-	        "value=", Genode::Hex(value));
-}
-
-static void dump_error(char const * const func, ACPI_PCI_ID *pcidev,
-                       UINT32 reg, UINT32 width)
-{
-	error(func, " unknown device - segment=", pcidev->Segment, " ",
-	      "bdf=",   Bdf(pcidev->Bus, pcidev->Device, pcidev->Function), " ",
-	      "reg=",   Genode::Hex(reg), " "
-	      "width=", Genode::Hex(width));
-}
-
 
 /*************************
  * Acpica PCI OS backend *
@@ -117,8 +86,6 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 			*value = client.config_read(reg, access_size);
 
-			dump_read(__func__, pcidev, reg, *value, width);
-
 			Acpica::platform().release_device(client.rpc_cap());
 			return AE_OK;
 		}
@@ -127,8 +94,6 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 		Acpica::platform().release_device(client.rpc_cap());
 	}
-
-	dump_error(__func__, pcidev, reg, width);
 
 	*value = ~0U;
 	return AE_OK;
@@ -172,8 +137,6 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 				                " out of supported config space range ",
 				                " -> wrong location will be written");
 
-			dump_write(__func__, pcidev, reg, value, width);
-
 			Acpica::platform().release_device(client.rpc_cap());
 			return AE_OK;
 		}
@@ -182,8 +145,6 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 		Acpica::platform().release_device(client.rpc_cap());
 	}
-
-	dump_error(__func__, pcidev, reg, width);
 
 	return AE_OK;
 }
