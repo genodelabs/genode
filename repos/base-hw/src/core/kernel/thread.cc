@@ -369,7 +369,7 @@ void Thread::_call_restart_thread()
 
 	Thread &thread = *thread_ptr;
 
-	if (!_core && (&pd() != &thread.pd())) {
+	if (_type == USER && (&pd() != &thread.pd())) {
 		raw(*this, ": failed to lookup thread ", (unsigned)user_arg_1(),
 		        " to restart it");
 		_die();
@@ -793,7 +793,7 @@ void Thread::_call()
 	case call_id_pause_vm():                 _call_pause_vm(); return;
 	default:
 		/* check wether this is a core thread */
-		if (!_core) {
+		if (_type != CORE) {
 			Genode::raw(*this, ": not entitled to do kernel call");
 			_die();
 			return;
@@ -805,7 +805,7 @@ void Thread::_call()
 		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
 		                  _core_pd, (unsigned) user_arg_2(),
 		                  (unsigned) _core_to_kernel_quota(user_arg_3()),
-		                  (char const *) user_arg_4());
+		                  (char const *) user_arg_4(), USER);
 		return;
 	case call_id_new_core_thread():
 		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
@@ -857,7 +857,7 @@ void Thread::_mmu_exception()
 		return;
 	}
 
-	if (_core)
+	if (_type != USER)
 		Genode::raw(*this, " raised a fault, which should never happen ",
 		            _fault);
 
@@ -874,7 +874,7 @@ Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
                unsigned                    const  priority,
                unsigned                    const  quota,
                char                 const *const  label,
-               bool                               core)
+               Type                               type)
 :
 	Kernel::Object       { *this },
 	Cpu_job              { priority, quota },
@@ -885,8 +885,8 @@ Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
 	_ipc_node            { *this },
 	_state               { AWAITS_START },
 	_label               { label },
-	_core                { core },
-	regs                 { core }
+	_type                { type },
+	regs                 { type != USER }
 { }
 
 
