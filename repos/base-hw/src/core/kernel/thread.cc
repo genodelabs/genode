@@ -329,6 +329,23 @@ void Thread::_call_start_thread()
 	/* join protection domain */
 	thread._pd = (Pd *) user_arg_3();
 	thread._ipc_init(*(Native_utcb *)user_arg_4(), *this);
+
+	/*
+	 * Sanity check core threads!
+	 *
+	 * Currently, the model assumes that there is only one core
+	 * entrypoint, which serves requests, and which can destroy
+	 * threads and pds. If this changes, we have to inform all
+	 * cpus about pd destructions to remove their page-tables
+	 * from the hardware in case that a core-thread running with
+	 * that same pd is currently active. Therefore, warn if the
+	 * semantic changes, and additional core threads are started
+	 * across cpu cores.
+	 */
+	if (thread._pd == &_core_pd && cpu.id() != _cpu_pool.primary_cpu().id())
+	        Genode::raw("Error: do not start core threads"
+	                    " on CPU cores different than boot cpu");
+
 	thread._become_active();
 }
 
@@ -444,6 +461,18 @@ void Thread::_call_delete_thread()
 	 */
 	_destroy.construct(*this, to_delete);
 	to_delete->_cpu->trigger_ip_interrupt();
+}
+
+
+void Thread::_call_delete_pd()
+{
+	Genode::Kernel_object<Pd> & pd =
+		*(Genode::Kernel_object<Pd>*)user_arg_1();
+
+	if (_cpu->active(pd->mmu_regs))
+		_cpu->switch_to(_core_pd.mmu_regs);
+
+	_call_delete<Pd>();
 }
 
 
@@ -822,7 +851,7 @@ void Thread::_call()
 		              *(Genode::Platform_pd *) user_arg_3(),
 		              _addr_space_id_alloc);
 		return;
-	case call_id_delete_pd():              _call_delete<Pd>(); return;
+	case call_id_delete_pd():              _call_delete_pd(); return;
 	case call_id_new_signal_receiver():    _call_new<Signal_receiver>(); return;
 	case call_id_new_signal_context():
 		_call_new<Signal_context>(*(Signal_receiver*) user_arg_2(), user_arg_3());

@@ -53,22 +53,16 @@ Mmu_context::~Mmu_context()
 }
 
 
+bool Genode::Cpu::active(Mmu_context & context)
+{
+	return Satp::read() == context.satp;
+}
+
+
 void Genode::Cpu::switch_to(Mmu_context & context)
 {
-	/*
-	 * The sstatus register defines to which privilege level
-	 * the machin returns when doing an exception return
-	 */
-	bool user = Satp::Asid::get(context.satp);
-	Sstatus::access_t v = Sstatus::read();
-	Sstatus::Spp::set(v, user ? 0 : 1);
-	Sstatus::write(v);
-
-	/* change the translation table when necessary */
-	if (user) {
-		Satp::write(context.satp);
-		sfence();
-	}
+	Satp::write(context.satp);
+	sfence();
 }
 
 

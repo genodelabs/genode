@@ -87,24 +87,25 @@ void Arm_cpu::mmu_fault_status(Fsr::access_t fsr, Thread_fault & fault)
 }
 
 
-void Arm_cpu::switch_to(Arm_cpu::Context&, Arm_cpu::Mmu_context & o)
+bool Arm_cpu::active(Arm_cpu::Mmu_context & ctx)
 {
-	if (o.cidr == 0) return;
+	return (Cidr::read() == ctx.cidr);
+}
 
-	Cidr::access_t cidr = Cidr::read();
-	if (cidr != o.cidr) {
-		/**
-		 * First switch to global mappings only to prevent
-		 * that wrong branch predicts result due to ASID
-		 * and Page-Table not being in sync (see ARM RM B 3.10.4)
-		 */
-		Cidr::write(0);
-		Cpu::synchronization_barrier();
-		Ttbr0::write(o.ttbr0);
-		Cpu::synchronization_barrier();
-		Cidr::write(o.cidr);
-		Cpu::synchronization_barrier();
-	}
+
+void Arm_cpu::switch_to(Arm_cpu::Mmu_context & ctx)
+{
+	/**
+	 * First switch to global mappings only to prevent
+	 * that wrong branch predicts result due to ASID
+	 * and Page-Table not being in sync (see ARM RM B 3.10.4)
+	 */
+	Cidr::write(0);
+	Cpu::synchronization_barrier();
+	Ttbr0::write(ctx.ttbr0);
+	Cpu::synchronization_barrier();
+	Cidr::write(ctx.cidr);
+	Cpu::synchronization_barrier();
 }
 
 

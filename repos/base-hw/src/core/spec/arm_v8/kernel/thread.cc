@@ -108,7 +108,9 @@ bool Kernel::Pd::invalidate_tlb(Cpu &, addr_t addr, size_t size)
 
 void Thread::proceed(Cpu & cpu)
 {
-	cpu.switch_to(*regs, pd().mmu_regs);
+	if (!cpu.active(pd().mmu_regs) && type() != CORE)
+		cpu.switch_to(pd().mmu_regs);
+
 	kernel_to_user_context_switch((static_cast<Cpu::Context*>(&*regs)),
 	                              (void*)cpu.stack_start());
 }

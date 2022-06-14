@@ -126,7 +126,10 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		 *
 		 * \param context  next CPU context
 		 */
-		void switch_to(Context & context, Mmu_context &mmu_context);
+		void switch_to(Context & context);
+
+		bool active(Mmu_context &mmu_context);
+		void switch_to(Mmu_context &mmu_context);
 
 		static void mmu_fault(Context & regs, Kernel::Thread_fault & fault);
 

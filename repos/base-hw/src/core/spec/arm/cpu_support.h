@@ -104,7 +104,8 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		else      Tlbiall::write(0);
 	}
 
-	void switch_to(Context&, Mmu_context & o);
+	bool active(Mmu_context &);
+	void switch_to(Mmu_context &);
 
 	static void mmu_fault(Context & c, Kernel::Thread_fault & fault);
 	static void mmu_fault_status(Fsr::access_t fsr,
