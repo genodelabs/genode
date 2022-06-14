@@ -234,6 +234,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		void _call_restart_thread();
 		void _call_yield_thread();
 		void _call_delete_thread();
+		void _call_delete_pd();
 		void _call_await_request_msg();
 		void _call_send_request_msg();
 		void _call_send_reply_msg();

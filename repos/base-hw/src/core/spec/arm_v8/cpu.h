@@ -99,7 +99,8 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 				return Ttbr::Asid::get(ttbr) & 0xffff; }
 	};
 
-	void switch_to(Context&, Mmu_context &);
+	bool active(Mmu_context &);
+	void switch_to(Mmu_context &);
 
 	static void mmu_fault(Context &, Kernel::Thread_fault &);
 

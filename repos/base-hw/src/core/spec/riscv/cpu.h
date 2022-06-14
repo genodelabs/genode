@@ -97,6 +97,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 
 		static void invalidate_tlb_by_pid(unsigned const /* pid */) { sfence(); }
 
+		bool active(Mmu_context & context);
 		void switch_to(Mmu_context & context);
 		static void mmu_fault(Context & c, Kernel::Thread_fault & f);
 

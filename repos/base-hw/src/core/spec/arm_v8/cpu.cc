@@ -26,12 +26,15 @@ Genode::Cpu::Context::Context(bool privileged)
 }
 
 
-void Genode::Cpu::switch_to(Context&, Mmu_context & mmu_context)
+bool Genode::Cpu::active(Mmu_context & mmu_context)
 {
-	if (mmu_context.id() == 0) return;
+	return (mmu_context.id() == Ttbr::Asid::get(Ttbr0_el1::read()));
+}
 
-	if (mmu_context.id() != Ttbr::Asid::get(Ttbr0_el1::read()))
-		Ttbr0_el1::write(mmu_context.ttbr);
+
+void Genode::Cpu::switch_to(Mmu_context & mmu_context)
+{
+	Ttbr0_el1::write(mmu_context.ttbr);
 }
 
 

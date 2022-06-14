@@ -67,7 +67,8 @@ void Kernel::Thread::Tlb_invalidation::execute() { };
 
 void Thread::proceed(Cpu & cpu)
 {
-	cpu.switch_to(*regs, pd().mmu_regs);
+	if (!cpu.active(pd().mmu_regs) && type() != CORE)
+		cpu.switch_to(pd().mmu_regs);
 
 	regs->cpu_exception = cpu.stack_start();
 	kernel_to_user_context_switch((static_cast<Cpu::Context*>(&*regs)),
