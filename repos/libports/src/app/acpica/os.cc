@@ -389,9 +389,6 @@ void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
 		/* Generate report for platform driver */
 		Acpica::generate_report(env, bridge);
 	}
-
-	/* Tell PCI backend to use platform_drv for PCI device access from now on */
-	Acpica::use_platform_drv();
 }
 
 
