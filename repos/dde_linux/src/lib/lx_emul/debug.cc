@@ -1,6 +1,7 @@
 /*
  * \brief  Lx_emul backend for Linux kernel' debug functions
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2021-03-16
  */
 
@@ -17,10 +18,10 @@
 
 #include <lx_emul/debug.h>
 
+using namespace Genode;
+
 extern "C" void lx_emul_trace_and_stop(const char * func)
 {
-	using namespace Genode;
-
 	error("Function ", func, " not implemented yet!");
 	log("Backtrace follows:");
 	backtrace();
@@ -30,3 +31,9 @@ extern "C" void lx_emul_trace_and_stop(const char * func)
 
 
 extern "C" void lx_emul_trace(const char *) {}
+
+
+extern "C" void lx_emul_backtrace()
+{
+	backtrace();
+}
