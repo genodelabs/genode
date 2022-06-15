@@ -483,7 +483,7 @@ void *page_frag_alloc_align(struct page_frag_cache *nc,
 
 	/* see page_frag_free */
 	if (order > 0)
-		printk("%s: alloc might leak memory: fragsz: %u PAGE_SIZE: %u "
+		printk("%s: alloc might leak memory: fragsz: %u PAGE_SIZE: %lu "
 		       "order: %u page: %p addr: %p\n", __func__, fragsz, PAGE_SIZE, order, page, page->virtual);
 
 	return page->virtual;

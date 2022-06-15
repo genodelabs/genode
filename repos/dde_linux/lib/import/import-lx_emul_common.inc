@@ -133,7 +133,6 @@ CC_C_OPT += -Wno-restrict -Wno-maybe-uninitialized -Werror=date-time
 CC_C_OPT += -Werror=incompatible-pointer-types -Werror=designated-init
 CC_C_OPT += -Wno-packed-not-aligned
 CC_C_OPT += -Wno-discarded-qualifiers
-CC_C_OPT += -Wno-format
 
 # avoid link errors whenever the build config's CC_OLEVEL is set to -O0
 override CC_OLEVEL := -O2
