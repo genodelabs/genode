@@ -28,8 +28,6 @@ unsigned long long lx_emul_time_counter(void);
 
 void lx_emul_time_handle(void);
 
-void lx_emul_force_jiffies_update(void);
-
 #ifdef __cplusplus
 }
 #endif
