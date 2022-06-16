@@ -853,10 +853,27 @@ exec sed -i "/config/s/arch=\"\"/arch=\"[depot_spec]\"/" [initial_config_file de
 ## Depot content integrated in the Sculpt image
 ##
 
+##
+# Return which kind of depot archive is wanted 'tar' or 'omit'
+#
+proc depot_archive { } {
+
+	global ::env
+
+	set archive "tar"
+	if {[info exists ::env(DEPOT)]} {
+		set archive "$::env(DEPOT)" }
+
+	if {$archive != "omit" && $archive != "tar"} {
+		puts stderr "Error: invalid value of DEPOT=$archive variable!" }
+
+	return $archive
+}
+
 proc create_depot_archive { } {
 	global ::env
 
-	if {![info exists ::env(DEPOT)]} {
+	if {[depot_archive] == "tar"} {
 		create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                {*}[pkg_archive_paths [referenced_pkg_values]]
 	} else {
