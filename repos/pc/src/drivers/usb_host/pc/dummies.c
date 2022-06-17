@@ -82,3 +82,27 @@ int __printk_ratelimit(const char * func)
 	/* suppress */
 	return 0;
 }
+
+
+void calc_load_nohz_start(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void calc_load_nohz_stop(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void account_idle_ticks(unsigned long ticks)
+{
+	lx_emul_trace(__func__);
+}
+
+
+bool irq_work_needs_cpu(void)
+{
+	return false;
+}

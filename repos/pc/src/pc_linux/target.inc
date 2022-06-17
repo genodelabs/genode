@@ -5,6 +5,9 @@
 # kernel fundamentals
 LX_ENABLE += TTY SERIAL_EARLYCON SERIAL_OF_PLATFORM PRINTK HAS_IOMEM
 
+# support disabling ticking during idle
+LX_ENABLE  += NO_HZ_IDLE
+
 # initrd support
 LX_ENABLE += BINFMT_ELF BINFMT_SCRIPT BLK_DEV_INITRD
 

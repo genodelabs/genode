@@ -229,6 +229,8 @@ kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
 kernel/time/tick-common.c
+kernel/time/tick-oneshot.c
+kernel/time/tick-sched.c
 kernel/time/time.c
 kernel/time/timeconv.c
 kernel/time/timecounter.c
