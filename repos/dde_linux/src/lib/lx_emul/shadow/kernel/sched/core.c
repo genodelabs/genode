@@ -64,6 +64,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 		lx_emul_task_unblock(p);
 
 	p->__state = TASK_RUNNING;
+
 	return 1;
 }
 

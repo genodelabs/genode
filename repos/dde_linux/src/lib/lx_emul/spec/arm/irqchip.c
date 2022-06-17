@@ -17,6 +17,7 @@
 #include <linux/of_irq.h>
 #include <linux/slab.h>
 #include <linux/irqchip.h>
+#include <linux/tick.h>
 #include <../kernel/irq/internals.h>
 
 static int dde_irq_set_wake(struct irq_data *d, unsigned int on)
@@ -173,6 +174,9 @@ int lx_emul_irq_task_function(void * data)
 
 		if (!dde_irq_domain)
 			continue;
+
+		/* check restarting ticking which may stopped in idle task */
+		tick_nohz_idle_restart_tick();
 
 		irq_enter();
 

@@ -13,6 +13,7 @@
 
 #include <linux/interrupt.h>
 #include <linux/bottom_half.h>
+#include <linux/tick.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/irq.h>

@@ -100,3 +100,11 @@ extern "C" void * lx_emul_task_stack(struct task_struct const * t)
 
 	return ret;
 }
+
+
+extern "C" char lx_emul_task_another_runnable()
+{
+	Lx_kit::Task & task = Lx_kit::env().scheduler.current();
+
+	return Lx_kit::env().scheduler.another_runnable(&task);
+}

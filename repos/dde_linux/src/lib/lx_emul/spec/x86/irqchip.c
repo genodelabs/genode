@@ -15,6 +15,7 @@
 #include <lx_emul/irq.h>
 #include <linux/irq.h>
 #include <linux/irqchip.h>
+#include <linux/tick.h>
 #include <../kernel/irq/internals.h>
 
 
@@ -45,6 +46,9 @@ int lx_emul_irq_task_function(void * data)
 
 	for (;;) {
 		lx_emul_task_schedule(true);
+
+		/* check restarting ticking which may stopped in idle task */
+		tick_nohz_idle_restart_tick();
 
 		irq_enter();
 

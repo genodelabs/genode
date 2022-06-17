@@ -44,6 +44,8 @@ void lx_emul_task_name(struct task_struct * task, const char * name);
 
 void *lx_emul_task_stack(struct task_struct const * task);
 
+char lx_emul_task_another_runnable(void);
+
 #ifdef __cplusplus
 }
 #endif
