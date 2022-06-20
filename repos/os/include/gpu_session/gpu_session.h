@@ -197,7 +197,14 @@ struct Gpu::Session : public Genode::Session
 	 *
 	 * \param id  buffer id
 	 */
-	virtual void unmap_buffer_ppgtt(Buffer_id id, Gpu::addr_t) = 0;
+	virtual void unmap_buffer_ppgtt(Buffer_id id, Gpu::addr_t va) = 0;
+
+	/**
+	 * Get virtual address of buffer in the PPGTT
+	 *
+	 * \param id  buffer id to be associated with the buffer
+	 */
+	virtual Gpu::addr_t query_buffer_ppgtt(Buffer_id) = 0;
 
 	/**
 	 * Set tiling for buffer
@@ -237,6 +244,7 @@ struct Gpu::Session : public Genode::Session
 	                 Gpu::Buffer_id, Gpu::addr_t);
 	GENODE_RPC(Rpc_unmap_buffer_ppgtt, void, unmap_buffer_ppgtt,
 	           Gpu::Buffer_id, Gpu::addr_t);
+	GENODE_RPC(Rpc_query_buffer_ppgtt, Gpu::addr_t, query_buffer_ppgtt, Gpu::Buffer_id);
 	GENODE_RPC(Rpc_set_tiling, bool, set_tiling,
 	           Gpu::Buffer_id, unsigned);
 
@@ -244,7 +252,7 @@ struct Gpu::Session : public Genode::Session
 	                     Rpc_complete, Rpc_completion_sigh, Rpc_alloc_buffer,
 	                     Rpc_free_buffer, Rpc_export_buffer, Rpc_import_buffer,
 	                     Rpc_map_buffer, Rpc_unmap_buffer,
-	                     Rpc_map_buffer_ppgtt, Rpc_unmap_buffer_ppgtt,
+	                     Rpc_map_buffer_ppgtt, Rpc_unmap_buffer_ppgtt, Rpc_query_buffer_ppgtt,
 	                     Rpc_set_tiling);
 };
 

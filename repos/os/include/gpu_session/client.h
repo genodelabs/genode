@@ -76,6 +76,9 @@ class Gpu::Session_client : public Genode::Rpc_client<Session>
 		void unmap_buffer_ppgtt(Buffer_id id, Gpu::addr_t va) override {
 			call<Rpc_unmap_buffer_ppgtt>(id, va); }
 
+		Gpu::addr_t query_buffer_ppgtt(Gpu::Buffer_id id) override {
+			return call<Rpc_query_buffer_ppgtt>(id); }
+
 		bool set_tiling(Buffer_id id, unsigned mode) override {
 			return call<Rpc_set_tiling>(id, mode); }
 };
