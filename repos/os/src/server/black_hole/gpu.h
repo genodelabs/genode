@@ -113,6 +113,11 @@ class Black_hole::Gpu_session : public Session_object<Gpu::Session>
 		                        Gpu::addr_t /* va */) override
 		{ }
 
+		Gpu::addr_t query_buffer_ppgtt(Buffer_id /* id */) override
+		{
+			return (Gpu::addr_t)-1;
+		}
+
 		bool set_tiling(Buffer_id      /* id */,
 		                uint32_t const /* mode */) override
 		{
