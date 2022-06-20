@@ -34,7 +34,7 @@ void Acpi::Intel_opregion::generate_report(Genode::Env &env,
 
 		/* copy io_mem to ram dataspace and preserve offset */
 		memcpy(mem_local + phys_addr_offset, io_mem.local_addr<char>(),
-		       memory_size);
+		       region_size);
 
 		Dataspace_client report_ds(report_mem.cap());
 
