@@ -126,7 +126,7 @@ class Menu_view::Style_database
 
 			Style_database const &_style_database;
 
-			Cached_font::Limit _font_cache_limit { 256*1024 };
+			Cached_font::Limit _font_cache_limit { 1024*1024 };
 			Vfs_font           _vfs_font;
 			Cached_font        _cached_font;
 
