@@ -36,19 +36,18 @@ extern "C" void lx_emul_rfkill_switch_all(int blocked);
 
 static Genode::Signal_context_capability _rfkill_sigh_cap;
 
-bool wifi_get_rfkill(void)
+
+bool _wifi_get_rfkill(void)
 {
-	if (!rfkill_task_struct_ptr)
-		return false;
-
-	lx_emul_task_unblock(rfkill_task_struct_ptr);
-	Lx_kit::env().scheduler.schedule();
-
+	/*
+	 * It is safe to call this from non EP threads as we
+	 * only query a variable.
+	 */
 	return lx_emul_rfkill_get_any();
 }
 
 
-void wifi_set_rfkill(bool blocked)
+void _wifi_set_rfkill(bool blocked)
 {
 	if (!rfkill_task_struct_ptr)
 		return;
@@ -68,6 +67,12 @@ void wifi_set_rfkill(bool blocked)
 	Lx_kit::env().scheduler.schedule();
 
 	Genode::Signal_transmitter(_rfkill_sigh_cap).submit();
+}
+
+
+bool wifi_get_rfkill(void)
+{
+	return _wifi_get_rfkill();
 }
 
 

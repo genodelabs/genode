@@ -62,6 +62,9 @@
 /* declare manually as it is a internal hack^Winterface */
 extern void wifi_kick_socketcall();
 
+extern bool _wifi_get_rfkill(void);
+extern bool _wifi_set_rfkill(bool);
+
 
 namespace Wifi {
 	struct Frontend;
@@ -343,7 +346,7 @@ struct Wifi::Frontend
 
 	void _handle_rfkill()
 	{
-		_rfkilled = wifi_get_rfkill();
+		_rfkilled = _wifi_get_rfkill();
 
 		/* re-enable scan timer */
 		if (!_rfkilled) {
@@ -407,7 +410,7 @@ struct Wifi::Frontend
 		 */
 		if (config.has_attribute("rfkill")) {
 			bool const blocked = config.attribute_value("rfkill", false);
-			wifi_set_rfkill(blocked);
+			_wifi_set_rfkill(blocked);
 
 			/*
 			 * In case we get blocked set rfkilled immediately to prevent

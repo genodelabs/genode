@@ -205,15 +205,23 @@ struct netdev_event_notification
 };
 
 
+/* needed for RFKILL state update */
+extern struct task_struct *rfkill_task_struct_ptr;
+
+
 static int uplink_netdev_event(struct notifier_block *this,
                                unsigned long event, void *ptr)
 {
 	/*
 	 * For now we ignore what kind of event occurred and simply
-	 * unblock the uplink task.
+	 * unblock the uplink and rfkill task.
 	 */
+
 	if (uplink_task_struct_ptr)
 		lx_emul_task_unblock(uplink_task_struct_ptr);
+
+	if (rfkill_task_struct_ptr)
+		lx_emul_task_unblock(rfkill_task_struct_ptr);
 
 	return NOTIFY_DONE;
 }
