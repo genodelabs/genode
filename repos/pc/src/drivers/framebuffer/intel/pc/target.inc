@@ -3,7 +3,7 @@ REQUIRES := x86
 REL_PRG_DIR := $(PRG_DIR)/../..
 
 TARGET  := pc_intel_fb_drv
-LIBS    := base pc_lx_emul blit
+LIBS    := base pc_lx_emul blit jitterentropy
 
 INC_DIR += $(REL_PRG_DIR)
 INC_DIR += $(REL_PRG_DIR)/shadow
@@ -22,7 +22,6 @@ SRC_C   += timeout.c
 SRC_C   += lx_emul/common_dummies.c
 SRC_C   += lx_emul/spec/x86/pci.c
 SRC_C   += lx_emul/shadow/mm/page_alloc.c
-SRC_C   += lx_emul/shadow/drivers/char/random.c
 
 vpath %.c $(REL_PRG_DIR)
 vpath %.cc $(REL_PRG_DIR)

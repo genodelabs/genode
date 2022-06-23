@@ -1,6 +1,7 @@
 /**
  * \brief  Dummy definitions of lx_emul
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2022-01-10
  */
 
@@ -48,9 +49,7 @@ int wait_for_random_bytes(void)
 
 u32 get_random_u32(void)
 {
-	u8 buf[4];
-	lx_emul_gen_random_bytes(buf, sizeof(buf));
-	return *((u32*)&buf);
+	return lx_emul_gen_random_uint();
 }
 
 
@@ -58,18 +57,16 @@ u32 get_random_u32(void)
 
 u32 prandom_u32(void)
 {
-	u8 buf[4];
-	lx_emul_gen_random_bytes(buf, sizeof(buf));
-	return *((u32*)&buf);
+	return lx_emul_gen_random_uint();
 }
 
 
 #include <linux/random.h>
 
-int __must_check get_random_bytes_arch(void * buf,int nbytes)
+int __must_check get_random_bytes_arch(void * buf, int nbytes)
 {
 	lx_emul_gen_random_bytes(buf, nbytes);
-	return 0;
+	return nbytes;
 }
 
 

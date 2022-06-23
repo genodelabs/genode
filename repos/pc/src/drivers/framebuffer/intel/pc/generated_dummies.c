@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-05-06
+ * \date   2022-06-24
  */
 
 #include <lx_emul.h>
@@ -615,22 +615,6 @@ void gen6_rps_irq_handler(struct intel_rps * rps,u32 pm_iir)
 #include <linux/kernel.h>
 
 int get_option(char ** str,int * pint)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/random.h>
-
-u32 get_random_u32(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/random.h>
-
-u64 get_random_u64(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }

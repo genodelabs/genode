@@ -18,6 +18,7 @@ SRC_CC  += lx_emul/clock.cc
 SRC_CC  += lx_emul/io_mem.cc
 SRC_CC  += lx_emul/io_port.cc
 SRC_CC  += lx_emul/irq.cc
+SRC_CC  += lx_emul/random.cc
 SRC_C   += lx_emul/shadow/kernel/dma/mapping.c
 SRC_C   += lx_emul/shadow/kernel/irq/spurious.c
 SRC_C   += lx_emul/shadow/kernel/rcu/tree.c
@@ -51,6 +52,7 @@ SRC_C   += lx_emul/shadow/fs/libfs.c
 SRC_C   += lx_emul/shadow/kernel/rcu/tiny.c
 SRC_C   += lx_emul/shadow/lib/logic_iomem.c
 
+SRC_C   += lx_emul/shadow/drivers/char/random.c
 SRC_C   += lx_emul/shadow/drivers/acpi/bus.c
 SRC_C   += lx_emul/shadow/drivers/acpi/device_sysfs.c
 SRC_C   += lx_emul/shadow/drivers/acpi/glue.c

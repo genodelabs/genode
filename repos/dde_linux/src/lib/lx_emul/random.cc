@@ -3,6 +3,7 @@
  * \author Josef Soentgen
  * \author Stefan Kalkowski
  * \author Martin Stein
+ * \author Christian Helmuth
  * \date   2022-05-19
  *
  * :Warning:
@@ -219,4 +220,10 @@ void lx_emul_gen_random_bytes(void          *dst,
 unsigned int lx_emul_gen_random_uint()
 {
 	return (unsigned int)xoroshiro().get_u64();
+}
+
+
+unsigned long long lx_emul_gen_random_u64()
+{
+	return xoroshiro().get_u64();
 }
