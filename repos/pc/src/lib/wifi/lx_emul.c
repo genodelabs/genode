@@ -455,31 +455,6 @@ void __put_page(struct page * page)
 }
 
 
-#include <linux/random.h>
-
-u32 get_random_u32(void)
-{
-	return lx_emul_gen_random_uint();
-}
-
-
-int __must_check get_random_bytes_arch(void *buf, int nbytes)
-{
-	if (nbytes < 0)
-		return -1;
-
-	lx_emul_gen_random_bytes(buf, (unsigned long)nbytes);
-	return 0;
-}
-
-
-void get_random_bytes(void *buf, int nbytes)
-{
-	int const err = get_random_bytes_arch(buf, nbytes);
-	(void)err;
-}
-
-
 #include <linux/prandom.h>
 
 void prandom_bytes(void *buf, size_t bytes)

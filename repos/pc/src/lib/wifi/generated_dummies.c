@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-05-06
+ * \date   2022-06-24
  */
 
 #include <lx_emul.h>
@@ -576,11 +576,6 @@ bool is_software_node(const struct fwnode_handle * fwnode)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-#include <linux/jiffies.h>
-
-unsigned long volatile __cacheline_aligned_in_smp __jiffy_arch_data jiffies;
 
 
 #include <linux/kobject.h>
