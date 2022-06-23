@@ -333,7 +333,7 @@ struct Wifi::Frontend
 
 	/* remaining stuff */
 
-	Msg_buffer _msg { };
+	Msg_buffer &_msg;
 
 	Genode::Blockade _notify_blockade { };
 
@@ -1537,9 +1537,10 @@ struct Wifi::Frontend
 	/**
 	 * Constructor
 	 */
-	Frontend(Genode::Env &env)
+	Frontend(Genode::Env &env, Msg_buffer &msg_buffer)
 	:
 		_ap_allocator(env.ram(), env.rm()),
+		_msg(msg_buffer),
 		_rfkill_handler(env.ep(), *this, &Wifi::Frontend::_handle_rfkill),
 		_config_rom(env, "wifi_config"),
 		_config_sigh(env.ep(), *this, &Wifi::Frontend::_handle_config_update),
@@ -1622,13 +1623,6 @@ struct Wifi::Frontend
 	 * Used by the wpa_supplicant to wait for the front end.
 	 */
 	void block_for_processing() { _notify_lock_lock(); }
-
-	/**
-	 * Return shared memory message buffer
-	 *
-	 * Used for communication between front end and wpa_supplicant.
-	 */
-	Msg_buffer &msg_buffer() { return _msg; }
 };
 
 #endif /* _WIFI_FRONTEND_H_ */

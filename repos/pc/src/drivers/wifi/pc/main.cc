@@ -28,7 +28,7 @@
 
 using namespace Genode;
 
-
+static Msg_buffer      _wifi_msg_buffer;
 static Wifi::Frontend *_wifi_frontend = nullptr;
 
 
@@ -100,6 +100,10 @@ struct Main
 
 	Main(Genode::Env &env) : env(env)
 	{
+		_frontend.construct(env, _wifi_msg_buffer);
+		_wifi_frontend = &*_frontend;
+		wifi_set_rfkill_sigh(_wifi_frontend->rfkill_sigh());
+
 		_wpa.construct(env, _wpa_startup_blockade);
 
 		wifi_init(env, _wpa_startup_blockade);
@@ -116,24 +120,7 @@ static Main *_main;
  */
 void *wifi_get_buffer(void)
 {
-	/*
-	 * XXX creating the front end at this point is merely a hack
-	 *     to post-pone its creation
-	 */
-	if (_wifi_frontend)
-		return &_wifi_frontend->msg_buffer();
-
-	Libc::with_libc([&] () {
-
-		if (_main->_frontend.constructed())
-			return;
-
-		_main->_frontend.construct(_main->env);
-		_wifi_frontend = &*_main->_frontend;
-		wifi_set_rfkill_sigh(_wifi_frontend->rfkill_sigh());
-	});
-
-	return &_wifi_frontend->msg_buffer();
+	return &_wifi_msg_buffer;
 }
 
 
