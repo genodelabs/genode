@@ -547,6 +547,10 @@ struct task_struct *rfkill_task_struct_ptr;
 
 int lx_emul_rfkill_get_any(void)
 {
+	/*
+	 * Since this function may also be called from non EPs
+	 * _do not_ execute _any_ kernel code.
+	 */
 	return _rfkill_state.rfkilled;
 }
 

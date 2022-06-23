@@ -21,6 +21,5 @@ namespace Wifi {
 }
 
 bool wifi_get_rfkill(void);
-void wifi_set_rfkill(bool);
 
 #endif /* _WIFI__RFKILL_H_ */
