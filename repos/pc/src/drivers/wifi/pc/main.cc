@@ -110,8 +110,6 @@ struct Main
 	}
 };
 
-static Main *_main;
-
 
 /**
  * Return shared-memory message buffer
@@ -126,8 +124,5 @@ void *wifi_get_buffer(void)
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	Libc::with_libc([&] () {
-		static Main server(env);
-		_main = &server;
-	});
+	static Main server(env);
 }
