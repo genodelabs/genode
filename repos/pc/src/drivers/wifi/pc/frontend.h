@@ -1581,6 +1581,9 @@ struct Wifi::Frontend
 		/* read in list of APs */
 		_config_update(false);
 
+		/* get initial RFKILL state */
+		_handle_rfkill();
+
 		/* kick-off initial scanning */
 		_handle_scan_timer();
 	}
