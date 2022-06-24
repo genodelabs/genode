@@ -48,15 +48,7 @@ static int usb_drv_probe(struct usb_interface *interface,
 	return -ENODEV; }
 
 
-static void usb_drv_disconnect(struct usb_interface *iface)
-{
-	struct usb_iface_urbs * urbs = usb_get_intfdata(iface);
-	if (urbs) {
-		urbs->in_delete = 1;
-		usb_kill_anchored_urbs(&urbs->submitted);
-		kfree(urbs);
-	}
-}
+static void usb_drv_disconnect(struct usb_interface *iface) { }
 
 
 static struct usb_driver usb_drv = {
@@ -213,12 +205,7 @@ static struct task_struct     * usb_rpc_task;
 
 static int claim_iface(struct usb_interface * iface)
 {
-	struct usb_iface_urbs *urbs = (struct usb_iface_urbs*)
-		kmalloc(sizeof(struct usb_iface_urbs), GFP_KERNEL);
-	init_usb_anchor(&urbs->submitted);
-	urbs->in_delete = 0;
-	return usb_driver_claim_interface(&usb_drv, iface, urbs);
-
+	return usb_driver_claim_interface(&usb_drv, iface, NULL);
 }
 
 
@@ -266,8 +253,13 @@ static int usb_rpc_call(void * data)
 				release_iface(iface);
 		}
 
-		if (usb_rpc_args.call == RELEASE_ALL)
+		if (usb_rpc_args.call == RELEASE_ALL) {
+			struct usb_iface_urbs * urbs = dev_get_drvdata(&udev->dev);
+			urbs->in_delete = 1;
+			usb_kill_anchored_urbs(&urbs->submitted);
+			urbs->in_delete = 0;
 			usb_reset_device(udev);
+		}
 
 		usb_rpc_args.ret = ret;
 	}
@@ -338,39 +330,6 @@ struct genode_usb_rpc_callbacks lx_emul_usb_rpc_callbacks = {
 
 
 static genode_usb_request_ret_t
-handle_ctrl_request(struct genode_usb_request_control * req,
-                    void * buf, unsigned long size, void * data)
-{
-	struct usb_device * udev = (struct usb_device *) data;
-
-	int pipe = (req->request_type & 0x80)
-		? usb_rcvctrlpipe(udev, 0) : usb_sndctrlpipe(udev, 0);
-
-	int err = usb_control_msg(udev, pipe, req->request, req->request_type,
-	                          req->value, req->index, buf, size, req->timeout);
-
-	if (err >= 0) {
-		req->actual_size = err;
-		return NO_ERROR;
-	}
-
-	req->actual_size = 0;
-
-	switch (err) {
-		case -ENOENT:    return INTERFACE_OR_ENDPOINT_ERROR;
-		case -ENODEV:    return NO_DEVICE_ERROR;
-		case -ESHUTDOWN: return NO_DEVICE_ERROR;
-		case -EPROTO:    return PROTOCOL_ERROR;
-		case -EILSEQ:    return PROTOCOL_ERROR;
-		case -EPIPE:     return STALL_ERROR;
-		case -ETIMEDOUT: return TIMEOUT_ERROR;
-	}
-
-	return UNKNOWN_ERROR;
-}
-
-
-static genode_usb_request_ret_t
 handle_string_request(struct genode_usb_request_string * req,
                       void * buf, unsigned long size, void * data)
 {
@@ -426,26 +385,53 @@ handle_flush_request(unsigned char ep, void * data)
 	return NO_ERROR;
 }
 
+enum Timer_state { TIMER_OFF, TIMER_ACTIVE, TIMER_TRIGGERED };
+
+struct usb_urb_context
+{
+	genode_usb_session_handle_t session;
+	genode_usb_request_handle_t request;
+	struct urb                * urb;
+	struct timer_list           timeo;
+	enum Timer_state            timer_state;
+};
+
 
 static genode_usb_request_ret_t
-handle_transfer_response(struct genode_usb_request_transfer * req,
+handle_transfer_response(struct genode_usb_request_urb req,
                          void * data)
 {
-	struct urb * urb = (struct urb *) data;
-
+	struct usb_urb_context * context = (struct usb_urb_context *) data;
+	struct urb * urb = context->urb;
+	struct genode_usb_request_control * ctrl =
+		genode_usb_get_request_control(&req);
+	struct genode_usb_request_transfer * transfer =
+		genode_usb_get_request_transfer(&req);
 	int i;
 
 	if (urb->status == 0) {
-		req->actual_size = urb->actual_length;
+		if (ctrl)
+			ctrl->actual_size = urb->actual_length;
+		if (transfer) {
+			transfer->actual_size = urb->actual_length;
 
-		if (usb_pipein(urb->pipe))
-			for (i = 0; i < urb->number_of_packets; i++)
-				req->actual_packet_size[i] = urb->iso_frame_desc[i].actual_length;
-
+			if (usb_pipein(urb->pipe))
+				for (i = 0; i < urb->number_of_packets; i++)
+					transfer->actual_packet_size[i] =
+						urb->iso_frame_desc[i].actual_length;
+		}
 		return NO_ERROR;
 	}
 
+	if (ctrl)
+		ctrl->actual_size = 0;
+
+	if (context->timer_state == TIMER_TRIGGERED)
+		return TIMEOUT_ERROR;
+
 	switch (urb->status) {
+		case -ENOENT:    return INTERFACE_OR_ENDPOINT_ERROR;
+		case -ENODEV:    return NO_DEVICE_ERROR;
 		case -ESHUTDOWN: return NO_DEVICE_ERROR;
 		case -EPROTO:    return PROTOCOL_ERROR;
 		case -EILSEQ:    return PROTOCOL_ERROR;
@@ -455,55 +441,83 @@ handle_transfer_response(struct genode_usb_request_transfer * req,
 }
 
 
-static struct usb_interface * usb_get_iface_from_urb(struct urb * urb)
+static void usb_free_complete_urb(struct urb * urb)
 {
-	unsigned i, j;
-	struct usb_host_endpoint * ep = usb_pipe_endpoint(urb->dev, urb->pipe);
-
-	if (!ep || !urb->dev || !urb->dev->actconfig)
-		return NULL;
-
-	for (i = 0; i < urb->dev->actconfig->desc.bNumInterfaces; i++) {
-		struct usb_interface * iface = urb->dev->actconfig->interface[i];
-		if (!iface || !iface->cur_altsetting)
-			continue;
-		for (j = 0; j < iface->cur_altsetting->desc.bNumEndpoints; j++) {
-			if (&iface->cur_altsetting->endpoint[j] != ep)
-				continue;
-			return iface;
-		}
+	if (!urb)
+		return;
+	if (urb->setup_packet)
+		kfree(urb->setup_packet);
+	if (urb->context) {
+		struct usb_urb_context * context =
+			(struct usb_urb_context *) urb->context;
+		if (context->timer_state != TIMER_OFF)
+			del_timer_sync(&context->timeo);
+		kfree(context);
 	}
-	return NULL;
+	usb_free_urb(urb);
 }
 
 
 static void async_complete(struct urb *urb)
 {
-	struct usb_interface * iface;
-	struct usb_iface_urbs * urbs = NULL;
+	struct usb_iface_urbs * urbs = dev_get_drvdata(&urb->dev->dev);
 
-	unsigned long handle = (unsigned long)urb->context;
-	genode_usb_session_handle_t session =
-		(genode_usb_session_handle_t) (handle >> 16);
-	genode_usb_request_handle_t request =
-		(genode_usb_request_handle_t) (handle & 0xffff);
+	struct usb_urb_context * context =
+		(struct usb_urb_context*) urb->context;
 
-	genode_usb_ack_request(session, request,
-	                       handle_transfer_response, (void*)urb);
+	genode_usb_ack_request(context->session, context->request,
+	                       handle_transfer_response, (void*)context);
 
-	iface = usb_get_iface_from_urb(urb);
-	if (iface)
-		urbs = usb_get_intfdata(iface);
 	if (!urbs || !urbs->in_delete) {
-		usb_free_urb(urb);
+		usb_free_complete_urb(urb);
 		lx_user_handle_io();
 	}
 }
 
 
+static void urb_timeout(struct timer_list *t)
+{
+	struct usb_urb_context * context = from_timer(context, t, timeo);
+	context->timer_state = TIMER_TRIGGERED;
+	usb_kill_urb(context->urb);
+}
+
+
+static int fill_ctrl_urb(struct usb_device                 * udev,
+                         struct genode_usb_request_control * req,
+                         void                              * handle,
+                         void                              * buf,
+                         unsigned long                       size,
+                         int                                 read,
+                         struct urb                       ** urb)
+{
+	int pipe = read ? usb_rcvctrlpipe(udev, 0) : usb_sndctrlpipe(udev, 0);
+	struct usb_ctrlrequest * ucr =
+		kmalloc(sizeof(struct usb_ctrlrequest), GFP_NOIO);
+
+	*urb = usb_alloc_urb(0, GFP_KERNEL);
+
+	if (!ucr || !*urb) {
+		if (ucr)     kfree(ucr);
+		if (*urb)    usb_free_urb(*urb);
+		return -ENOMEM;
+	}
+
+	ucr->bRequestType = req->request_type;
+	ucr->bRequest     = req->request;
+	ucr->wValue       = cpu_to_le16(req->value);
+	ucr->wIndex       = cpu_to_le16(req->index);
+	ucr->wLength      = cpu_to_le16(size);
+
+	usb_fill_control_urb(*urb, udev, pipe, (unsigned char*)ucr, buf, size,
+	                     async_complete, handle);
+	return 0;
+}
+
+
 static int fill_bulk_urb(struct usb_device                  * udev,
                          struct genode_usb_request_transfer * req,
-                         unsigned long                        handle,
+                         void                               * handle,
                          void                               * buf,
                          unsigned long                        size,
                          int                                  read,
@@ -516,15 +530,14 @@ static int fill_bulk_urb(struct usb_device                  * udev,
 	if (!*urb)
 		return -ENOMEM;
 
-	usb_fill_bulk_urb(*urb, udev, pipe, buf, size,
-	                  async_complete, (void*)handle);
+	usb_fill_bulk_urb(*urb, udev, pipe, buf, size, async_complete, handle);
 	return 0;
 }
 
 
 static int fill_irq_urb(struct usb_device                  * udev,
                         struct genode_usb_request_transfer * req,
-                        unsigned long                        handle,
+                        void                               * handle,
                         void                               * buf,
                         unsigned long                        size,
                         int                                  read,
@@ -551,14 +564,14 @@ static int fill_irq_urb(struct usb_device                  * udev,
 		polling_interval = req->polling_interval;
 
 	usb_fill_int_urb(*urb, udev, pipe, buf, size,
-	                 async_complete, (void*)handle, polling_interval);
+	                 async_complete, handle, polling_interval);
 	return 0;
 }
 
 
 static int fill_isoc_urb(struct usb_device                  * udev,
                          struct genode_usb_request_transfer * req,
-                         unsigned long                        handle,
+                         void                               * handle,
                          void                               * buf,
                          unsigned long                        size,
                          int                                  read,
@@ -584,7 +597,7 @@ static int fill_isoc_urb(struct usb_device                  * udev,
 	(*urb)->transfer_buffer_length = size;
 	(*urb)->number_of_packets      = req->number_of_packets;
 	(*urb)->interval               = 1 << min(15, ep->desc.bInterval - 1);
-	(*urb)->context                = (void *)handle;
+	(*urb)->context                = handle;
 	(*urb)->transfer_flags         = URB_ISO_ASAP | (read ? URB_DIR_IN : URB_DIR_OUT);
 	(*urb)->complete               = async_complete;
 
@@ -599,54 +612,71 @@ static int fill_isoc_urb(struct usb_device                  * udev,
 
 
 static genode_usb_request_ret_t
-handle_transfer_request(struct genode_usb_request_transfer * req,
-                        genode_usb_transfer_type_t           type,
-                        genode_usb_session_handle_t          session_handle,
-                        genode_usb_request_handle_t          request_handle,
-                        void * buf, unsigned long size, void * data)
+handle_urb_request(struct genode_usb_request_urb req,
+                   genode_usb_session_handle_t   session_handle,
+                   genode_usb_request_handle_t   request_handle,
+                   void * buf, unsigned long size, void * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
+	struct usb_iface_urbs * urbs = dev_get_drvdata(&udev->dev);
+	struct genode_usb_request_control * ctrl =
+		genode_usb_get_request_control(&req);
+	struct genode_usb_request_transfer * transfer =
+		genode_usb_get_request_transfer(&req);
+
 	int err  = 0;
-	int read = (req->ep & 0x80);
-	unsigned long handle = session_handle << 16 | request_handle;
+	int read = transfer ? (transfer->ep & 0x80) : 0;
 	struct urb * urb;
 
-	switch (type) {
+	struct usb_urb_context * context =
+		kmalloc(sizeof(struct usb_urb_context), GFP_NOIO);
+	if (!context)
+		return MEMORY_ERROR;
+
+	context->session = session_handle;
+	context->request = request_handle;
+
+	switch (req.type) {
+	case CTRL:
+		err = fill_ctrl_urb(udev, ctrl, context, buf, size,
+		                    (ctrl->request_type & 0x80), &urb);
+		break;
 	case BULK:
-		err = fill_bulk_urb(udev, req, handle, buf, size, read, &urb);
+		err = fill_bulk_urb(udev, transfer, context, buf, size, read, &urb);
 		break;
 	case IRQ:
-		err = fill_irq_urb(udev, req, handle, buf, size, read, &urb);
+		err = fill_irq_urb(udev, transfer, context, buf, size, read, &urb);
 		break;
 	case ISOC:
-		err = fill_isoc_urb(udev, req, handle, buf, size, read, &urb);
+		err = fill_isoc_urb(udev, transfer, context, buf, size, read, &urb);
 		break;
 	default:
 		printk("Unknown USB transfer request!\n");
 		return UNKNOWN_ERROR;
 	};
 
-	if (!err) {
-		struct usb_iface_urbs * urbs;
-		struct usb_interface * iface = usb_get_iface_from_urb(urb);
-		if (!iface) {
-			usb_free_urb(urb);
-			return NO_DEVICE_ERROR;
-		}
+	if (err)
+		goto free_context;
 
-		if (!usb_interface_claimed(iface))
-			claim_iface(iface);
-		urbs = usb_get_intfdata(iface);
-		usb_anchor_urb(urb, &urbs->submitted);
+	context->urb = urb;
+	usb_anchor_urb(urb, &urbs->submitted);
+	err = usb_submit_urb(urb, GFP_KERNEL);
+	if (err)
+		goto free_urb;
 
-		err = usb_submit_urb(urb, GFP_KERNEL);
-
-		if (!err)
-			return NO_ERROR;
-
-		usb_free_urb(urb);
+	if (ctrl && ctrl->timeout) {
+		context->timer_state = TIMER_ACTIVE;
+		timer_setup(&context->timeo, urb_timeout, 0);
+		mod_timer(&context->timeo, jiffies + msecs_to_jiffies(ctrl->timeout));
 	}
 
+	return 0;
+
+ free_urb:
+	usb_unanchor_urb(urb);
+	usb_free_complete_urb(urb);
+ free_context:
+	kfree(context);
 	switch (err) {
 		case -ENOENT:    return INTERFACE_OR_ENDPOINT_ERROR;
 		case -ENODEV:    return NO_DEVICE_ERROR;
@@ -659,8 +689,7 @@ handle_transfer_request(struct genode_usb_request_transfer * req,
 
 
 static struct genode_usb_request_callbacks request_callbacks = {
-	.control_fn    = handle_ctrl_request,
-	.transfer_fn   = handle_transfer_request,
+	.urb_fn        = handle_urb_request,
 	.string_fn     = handle_string_request,
 	.altsetting_fn = handle_altsetting_request,
 	.config_fn     = handle_config_request,
@@ -744,6 +773,12 @@ static int raw_notify(struct notifier_block *nb, unsigned long action, void *dat
 			 */
 			unsigned long class;
 			unsigned i;
+			struct usb_iface_urbs *urbs = (struct usb_iface_urbs*)
+				kmalloc(sizeof(struct usb_iface_urbs), GFP_KERNEL);
+			init_usb_anchor(&urbs->submitted);
+			urbs->in_delete = 0;
+			dev_set_drvdata(&udev->dev, urbs);
+
 
 			for (i = 0; i < udev->actconfig->desc.bNumInterfaces; i++) {
 				struct usb_interface * iface = udev->actconfig->interface[i];
@@ -764,7 +799,14 @@ static int raw_notify(struct notifier_block *nb, unsigned long action, void *dat
 
 		case USB_DEVICE_REMOVE:
 		{
+			struct usb_iface_urbs * urbs = dev_get_drvdata(&udev->dev);
+			urbs->in_delete = 1;
+			usb_kill_anchored_urbs(&urbs->submitted);
+			kfree(urbs);
+
+
 			genode_usb_discontinue_device(udev->bus->busnum, udev->devnum);
+
 			break;
 		}
 
