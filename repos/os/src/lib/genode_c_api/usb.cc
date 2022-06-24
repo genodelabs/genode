@@ -450,23 +450,20 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 		                   addr, p.size(), data), p);
 		break;
 	case Packet_descriptor::CTRL:
-		_ack(req.control_fn((genode_usb_request_control*)&p.control,
-		                   addr, p.size(), data), p);
+		packets[idx].construct(p);
+		req.urb_fn({ CTRL, &p.control }, _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::BULK:
 		packets[idx].construct(p);
-		req.transfer_fn((genode_usb_request_transfer*)&p.transfer, BULK,
-		                _id, idx, addr, p.size(), data);
+		req.urb_fn({ BULK, &p.transfer }, _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::IRQ:
 		packets[idx].construct(p);
-		req.transfer_fn((genode_usb_request_transfer*)&p.transfer, IRQ,
-		                _id, idx, addr, p.size(), data);
+		req.urb_fn({ IRQ, &p.transfer }, _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::ISOC:
 		packets[idx].construct(p);
-		req.transfer_fn((genode_usb_request_transfer*)&p.transfer, ISOC,
-		                _id, idx, addr, p.size(), data);
+		req.urb_fn({ ISOC, &p.transfer }, _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::ALT_SETTING:
 		_ack(req.altsetting_fn(p.interface.number,
@@ -491,9 +488,25 @@ void genode_usb_session::handle_response(genode_usb_request_handle_t id,
                                          genode_usb_response_t       callback,
                                          void                      * callback_data)
 {
-	Usb::Packet_descriptor p = *packets[id];
-	_ack(callback((genode_usb_request_transfer*)&p.transfer,
-	              callback_data), p);
+	using Packet_descriptor = Usb::Packet_descriptor;
+
+	Packet_descriptor p = *packets[id];
+	switch (p.type) {
+	case Packet_descriptor::CTRL:
+		_ack(callback({ CTRL, &p.control }, callback_data), p);
+		break;
+	case Packet_descriptor::BULK:
+		_ack(callback({ BULK, &p.transfer }, callback_data), p);
+		break;
+	case Packet_descriptor::IRQ:
+		_ack(callback({ IRQ, &p.transfer }, callback_data), p);
+		break;
+	case Packet_descriptor::ISOC:
+		_ack(callback({ ISOC, &p.transfer }, callback_data), p);
+		break;
+	default:
+		error("Invalid packet descriptor for asynchronous response");
+	};
 	packets[id].destruct();
 }
 
