@@ -589,16 +589,19 @@ void Interface::_nat_link_and_pass(Ethernet_frame        &eth,
 {
 	try {
 		Pointer<Port_allocator_guard> remote_port_alloc;
-		try {
-			Nat_rule &nat = remote_domain.nat_rules().find_by_domain(local_domain);
-			if(_config().verbose()) {
-				log("[", local_domain, "] using NAT rule: ", nat); }
+		remote_domain.nat_rules().find_by_domain(
+			local_domain,
+			[&] /* handle_match */ (Nat_rule &nat)
+			{
+				if(_config().verbose()) {
+					log("[", local_domain, "] using NAT rule: ", nat); }
 
-			_src_port(prot, prot_base, nat.port_alloc(prot).alloc());
-			ip.src(remote_domain.ip_config().interface().address);
-			remote_port_alloc = nat.port_alloc(prot);
-		}
-		catch (Nat_rule_tree::No_match) { }
+				_src_port(prot, prot_base, nat.port_alloc(prot).alloc());
+				ip.src(remote_domain.ip_config().interface().address);
+				remote_port_alloc = nat.port_alloc(prot);
+			},
+			[&] /* no_match */ () { }
+		);
 		Link_side_id const remote_id = { ip.dst(), _dst_port(prot, prot_base),
 		                                 ip.src(), _src_port(prot, prot_base) };
 		_new_link(prot, local_id, remote_port_alloc, remote_domain, remote_id);
@@ -1869,14 +1872,28 @@ void Interface::_update_link_check_nat(Link        &link,
 			_dismiss_link_log(link, "NAT IP");
 			throw Dismiss_link();
 		}
-		Nat_rule &nat = new_srv_dom.nat_rules().find_by_domain(cln_dom);
-		Port_allocator_guard &remote_port_alloc = nat.port_alloc(prot);
-		remote_port_alloc.alloc(link.server().dst_port());
-		remote_port_alloc_ptr = remote_port_alloc;
-		link.handle_config(cln_dom, new_srv_dom, remote_port_alloc_ptr, _config());
-		return;
+		bool done { false };
+		new_srv_dom.nat_rules().find_by_domain(
+			cln_dom,
+			[&] /* handle_match */ (Nat_rule &nat)
+			{
+				Port_allocator_guard &remote_port_alloc = nat.port_alloc(prot);
+				remote_port_alloc.alloc(link.server().dst_port());
+				remote_port_alloc_ptr = remote_port_alloc;
+				link.handle_config(
+					cln_dom, new_srv_dom, remote_port_alloc_ptr, _config());
+
+				done = true;
+			},
+			[&] /* handle_no_match */ ()
+			{
+				_dismiss_link_log(link, "no NAT rule");
+			}
+		);
+		if (done) {
+			return;
+		}
 	}
-	catch (Nat_rule_tree::No_match)              { _dismiss_link_log(link, "no NAT rule"); }
 	catch (Port_allocator::Allocation_conflict)  { _dismiss_link_log(link, "no NAT-port"); }
 	catch (Port_allocator_guard::Out_of_indices) { _dismiss_link_log(link, "no NAT-port quota"); }
 	throw Dismiss_link();
