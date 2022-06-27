@@ -1260,25 +1260,32 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 		/* try to route via forward rules */
 		if (local_id.dst_ip == local_intf.address) {
-			try {
-				Forward_rule const &rule =
-					_forward_rules(local_domain, prot).find_by_port(local_id.dst_port);
 
-				if(_config().verbose()) {
-					log("[", local_domain, "] using forward rule: ",
-					    l3_protocol_name(prot), " ", rule);
-				}
-				Domain &remote_domain = rule.domain();
-				_adapt_eth(eth, rule.to_ip(), pkt, remote_domain);
-				ip.dst(rule.to_ip());
-				if (!(rule.to_port() == Port(0))) {
-					_dst_port(prot, prot_base, rule.to_port());
-				}
-				_nat_link_and_pass(eth, size_guard, ip, prot, prot_base,
-				                   prot_size, local_id, local_domain, remote_domain);
+			_forward_rules(local_domain, prot).find_by_port(
+				local_id.dst_port,
+				[&] /* handle_match */ (Forward_rule const &rule)
+				{
+					if(_config().verbose()) {
+						log("[", local_domain, "] using forward rule: ",
+						    l3_protocol_name(prot), " ", rule);
+					}
+					Domain &remote_domain = rule.domain();
+					_adapt_eth(eth, rule.to_ip(), pkt, remote_domain);
+					ip.dst(rule.to_ip());
+					if (!(rule.to_port() == Port(0))) {
+						_dst_port(prot, prot_base, rule.to_port());
+					}
+					_nat_link_and_pass(
+						eth, size_guard, ip, prot, prot_base, prot_size,
+						local_id, local_domain, remote_domain);
+
+					done = true;
+				},
+				[&] /* handle_no_match */ () { }
+			);
+			if (done) {
 				return;
 			}
-			catch (Forward_rule_tree::No_match) { }
 		}
 		/* try to route via transport and permit rules */
 		try {
@@ -1884,68 +1891,71 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
                                       Domain      &cln_dom)
 {
 	links(prot).for_each([&] (Link &link) {
+
 		try {
 			/* try to find forward rule that matches the server port */
-			Forward_rule const &rule =
-				_forward_rules(cln_dom, prot).
-					find_by_port(link.client().dst_port());
-
-			/* if destination IP of forwarding changed, dismiss link */
-			if (rule.to_ip() != link.server().src_ip()) {
-				_dismiss_link_log(link, "other forward-rule to");
-				throw Dismiss_link();
-			}
-			/*
-			 * If destination port of forwarding was set and then was
-			 * modified or unset, dismiss link
-			 */
-			if (!(link.server().src_port() == link.client().dst_port())) {
-				if (!(rule.to_port() == link.server().src_port())) {
-					_dismiss_link_log(link, "other forward-rule to_port");
-					throw Dismiss_link();
-				}
-			}
-			/*
-			 * If destination port of forwarding was not set and then was
-			 * set, dismiss link
-			 */
-			else {
-				if (!(rule.to_port() == link.server().src_port()) &&
-				    !(rule.to_port() == Port(0)))
+			_forward_rules(cln_dom, prot).find_by_port(
+				link.client().dst_port(),
+				[&] /* handle_match */ (Forward_rule const &rule)
 				{
-					_dismiss_link_log(link, "new forward-rule to_port");
-					throw Dismiss_link();
-				}
-			}
-			_update_link_check_nat(link, rule.domain(), prot, cln_dom);
-			return;
-		}
-		catch (Forward_rule_tree::No_match) {
-			try {
-				/* try to find transport rule that matches the server IP */
-				bool done { false };
-				_transport_rules(cln_dom, prot).find_longest_prefix_match(
-					link.client().dst_ip(),
-					[&] /* handle_match */ (Transport_rule const &transport_rule)
-					{
-						/* try to find permit rule that matches the server port */
-						Permit_rule const &permit_rule =
-							transport_rule.permit_rule(link.client().dst_port());
-
-						_update_link_check_nat(link, permit_rule.domain(), prot, cln_dom);
-						done = true;
-					},
-					[&] /* handle_no_match */ ()
-					{
-						_dismiss_link_log(link, "no transport/forward rule");
+					/* if destination IP of forwarding changed, dismiss link */
+					if (rule.to_ip() != link.server().src_ip()) {
+						_dismiss_link_log(link, "other forward-rule to");
+						throw Dismiss_link();
 					}
-				);
-				if (done) {
+					/*
+					 * If destination port of forwarding was set and then was
+					 * modified or unset, dismiss link
+					 */
+					if (!(link.server().src_port() == link.client().dst_port())) {
+						if (!(rule.to_port() == link.server().src_port())) {
+							_dismiss_link_log(link, "other forward-rule to_port");
+							throw Dismiss_link();
+						}
+					}
+					/*
+					 * If destination port of forwarding was not set and then was
+					 * set, dismiss link
+					 */
+					else {
+						if (!(rule.to_port() == link.server().src_port()) &&
+						    !(rule.to_port() == Port(0)))
+						{
+							_dismiss_link_log(link, "new forward-rule to_port");
+							throw Dismiss_link();
+						}
+					}
+					_update_link_check_nat(link, rule.domain(), prot, cln_dom);
 					return;
+				},
+				[&] /* handle_no_match */ () {
+					try {
+						/* try to find transport rule that matches the server IP */
+						bool done { false };
+						_transport_rules(cln_dom, prot).find_longest_prefix_match(
+							link.client().dst_ip(),
+							[&] /* handle_match */ (Transport_rule const &transport_rule)
+							{
+								/* try to find permit rule that matches the server port */
+								Permit_rule const &permit_rule =
+									transport_rule.permit_rule(link.client().dst_port());
+
+								_update_link_check_nat(link, permit_rule.domain(), prot, cln_dom);
+								done = true;
+							},
+							[&] /* handle_no_match */ ()
+							{
+								_dismiss_link_log(link, "no transport/forward rule");
+							}
+						);
+						if (done) {
+							return;
+						}
+					}
+					catch (Permit_single_rule_tree::No_match) { _dismiss_link_log(link, "no permit rule"); }
+					catch (Dismiss_link)                      { }
 				}
-			}
-			catch (Permit_single_rule_tree::No_match) { _dismiss_link_log(link, "no permit rule"); }
-			catch (Dismiss_link)                      { }
+			);
 		}
 		catch (Dismiss_link) { }
 		_destroy_link(link);

@@ -55,31 +55,3 @@ Forward_rule::Forward_rule(Domain_tree &domains, Xml_node const node)
 	if (_port == Port(0) || !_to_ip.valid() || dynamic_port(_port)) {
 		throw Invalid(); }
 }
-
-
-Forward_rule const &Forward_rule::find_by_port(Port const port) const
-{
-	if (port == _port) {
-		return *this; }
-
-	Forward_rule *const rule =
-		Avl_node<Forward_rule>::child(port.value > _port.value);
-
-	if (!rule) {
-		throw Forward_rule_tree::No_match(); }
-
-	return rule->find_by_port(port);
-}
-
-
-/***********************
- ** Forward_rule_tree **
- ***********************/
-
-Forward_rule const &Forward_rule_tree::find_by_port(Port const port) const
-{
-	if (!first()) {
-		throw No_match(); }
-
-	return first()->find_by_port(port);
-}
