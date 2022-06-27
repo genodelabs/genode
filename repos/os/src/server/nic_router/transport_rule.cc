@@ -84,11 +84,3 @@ Transport_rule::~Transport_rule()
 	try { destroy(_alloc, &_permit_any_rule()); }
 	catch (Pointer<Permit_any_rule>::Invalid) { }
 }
-
-
-Permit_rule const &Transport_rule::permit_rule(Port const port) const
-{
-	try { return _permit_any_rule(); }
-	catch (Pointer<Permit_any_rule>::Invalid) { }
-	return _permit_single_rules.find_by_port(port);
-}

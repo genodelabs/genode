@@ -1288,34 +1288,30 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 			}
 		}
 		/* try to route via transport and permit rules */
-		try {
-			_transport_rules(local_domain, prot).find_longest_prefix_match(
-				local_id.dst_ip,
-				[&] /* handle_match */ (Transport_rule const &transport_rule)
-				{
-					Permit_rule const &permit_rule =
-						transport_rule.permit_rule(local_id.dst_port);
+		_transport_rules(local_domain, prot).find_best_match(
+			local_id.dst_ip,
+			local_id.dst_port,
+			[&] /* handle_match */ (Transport_rule const &transport_rule,
+			                        Permit_rule    const &permit_rule)
+			{
+				if(_config().verbose()) {
+					log("[", local_domain, "] using ",
+					    l3_protocol_name(prot), " rule: ",
+					    transport_rule, " ", permit_rule);
+				}
+				Domain &remote_domain = permit_rule.domain();
+				_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
+				_nat_link_and_pass(
+					eth, size_guard, ip, prot, prot_base, prot_size,
+					local_id, local_domain, remote_domain);
 
-					if(_config().verbose()) {
-						log("[", local_domain, "] using ",
-						    l3_protocol_name(prot), " rule: ", transport_rule,
-						    " ", permit_rule);
-					}
-					Domain &remote_domain = permit_rule.domain();
-					_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
-					_nat_link_and_pass(
-						eth, size_guard, ip, prot, prot_base, prot_size,
-						local_id, local_domain, remote_domain);
-
-					done = true;
-				},
-				[&] /* handle_no_match */ () { }
-			);
-			if (done) {
-				return;
-			}
+				done = true;
+			},
+			[&] /* handle_no_match */ () { }
+		);
+		if (done) {
+			return;
 		}
-		catch (Permit_single_rule_tree::No_match) { }
 	}
 	catch (Interface::Bad_transport_protocol) { }
 
@@ -1932,28 +1928,25 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
 					try {
 						/* try to find transport rule that matches the server IP */
 						bool done { false };
-						_transport_rules(cln_dom, prot).find_longest_prefix_match(
+						_transport_rules(cln_dom, prot).find_best_match(
 							link.client().dst_ip(),
-							[&] /* handle_match */ (Transport_rule const &transport_rule)
+							link.client().dst_port(),
+							[&] /* handle_match */ (Transport_rule const &,
+							                        Permit_rule    const &permit_rule)
 							{
-								/* try to find permit rule that matches the server port */
-								Permit_rule const &permit_rule =
-									transport_rule.permit_rule(link.client().dst_port());
-
 								_update_link_check_nat(link, permit_rule.domain(), prot, cln_dom);
 								done = true;
 							},
 							[&] /* handle_no_match */ ()
 							{
-								_dismiss_link_log(link, "no transport/forward rule");
+								_dismiss_link_log(link, "no matching transport/permit/forward rule");
 							}
 						);
 						if (done) {
 							return;
 						}
 					}
-					catch (Permit_single_rule_tree::No_match) { _dismiss_link_log(link, "no permit rule"); }
-					catch (Dismiss_link)                      { }
+					catch (Dismiss_link) { }
 				}
 			);
 		}
