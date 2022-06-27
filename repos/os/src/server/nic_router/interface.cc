@@ -978,29 +978,37 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
 	                                ip.dst(), _dst_port(prot, prot_base) };
 
 	/* try to route via existing ICMP links */
-	try {
-		Link_side const &local_side = local_domain.links(prot).find_by_id(local_id);
-		Link &link = local_side.link();
-		bool const client = local_side.is_client();
-		Link_side &remote_side = client ? link.server() : link.client();
-		Domain &remote_domain = remote_side.domain();
-		if (_config().verbose()) {
-			log("[", local_domain, "] using ", l3_protocol_name(prot),
-			    " link: ", link);
-		}
-		_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
-		ip.src(remote_side.dst_ip());
-		ip.dst(remote_side.src_ip());
-		_src_port(prot, prot_base, remote_side.dst_port());
-		_dst_port(prot, prot_base, remote_side.src_port());
+	bool done { false };
+	local_domain.links(prot).find_by_id(
+		local_id,
+		[&] /* handle_match */ (Link_side const &local_side)
+		{
+			Link &link = local_side.link();
+			bool const client = local_side.is_client();
+			Link_side &remote_side = client ? link.server() : link.client();
+			Domain &remote_domain = remote_side.domain();
+			if (_config().verbose()) {
+				log("[", local_domain, "] using ", l3_protocol_name(prot),
+				    " link: ", link);
+			}
+			_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+			ip.src(remote_side.dst_ip());
+			ip.dst(remote_side.src_ip());
+			_src_port(prot, prot_base, remote_side.dst_port());
+			_dst_port(prot, prot_base, remote_side.src_port());
 
-		remote_domain.interfaces().for_each([&] (Interface &interface) {
-			interface._pass_prot(eth, size_guard, ip, prot, prot_base, prot_size);
-		});
-		_link_packet(prot, prot_base, link, client);
+			remote_domain.interfaces().for_each([&] (Interface &interface) {
+				interface._pass_prot(
+					eth, size_guard, ip, prot, prot_base, prot_size);
+			});
+			_link_packet(prot, prot_base, link, client);
+			done = true;
+		},
+		[&] /* handle_no_match */ () { }
+	);
+	if (done) {
 		return;
 	}
-	catch (Link_side_tree::No_match) { }
 
 	/* try to route via ICMP rules */
 	try {
@@ -1041,48 +1049,54 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
 	void        *const embed_prot_base = _prot_base(embed_prot, size_guard, embed_ip);
 	Link_side_id const local_id = { embed_ip.dst(), _dst_port(embed_prot, embed_prot_base),
 	                                embed_ip.src(), _src_port(embed_prot, embed_prot_base) };
-	try {
-		/* lookup a link state that matches the embedded transport packet */
-		Link_side const &local_side = local_domain.links(embed_prot).find_by_id(local_id);
-		Link &link = local_side.link();
-		bool const client = local_side.is_client();
-		Link_side &remote_side = client ? link.server() : link.client();
-		Domain &remote_domain = remote_side.domain();
 
-		/* print out that the link is used */
-		if (_config().verbose()) {
-			log("[", local_domain, "] using ", l3_protocol_name(embed_prot),
-			    " link: ", link);
+	/* lookup a link state that matches the embedded transport packet */
+	local_domain.links(embed_prot).find_by_id(
+		local_id,
+		[&] /* handle_match */ (Link_side const &local_side)
+		{
+			Link &link = local_side.link();
+			bool const client = local_side.is_client();
+			Link_side &remote_side = client ? link.server() : link.client();
+			Domain &remote_domain = remote_side.domain();
+
+			/* print out that the link is used */
+			if (_config().verbose()) {
+				log("[", local_domain, "] using ",
+				    l3_protocol_name(embed_prot), " link: ", link);
+			}
+			/* adapt source and destination of Ethernet frame and IP packet */
+			_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+			if (remote_side.dst_ip() == remote_domain.ip_config().interface().address) {
+				ip.src(remote_side.dst_ip());
+			}
+			ip.dst(remote_side.src_ip());
+
+			/* adapt source and destination of embedded IP and transport packet */
+			embed_ip.src(remote_side.src_ip());
+			embed_ip.dst(remote_side.dst_ip());
+			_src_port(embed_prot, embed_prot_base, remote_side.src_port());
+			_dst_port(embed_prot, embed_prot_base, remote_side.dst_port());
+
+			/* update checksum of both IP headers and the ICMP header */
+			embed_ip.update_checksum();
+			icmp.update_checksum(icmp_sz - sizeof(Icmp_packet));
+			ip.update_checksum();
+
+			/* send adapted packet to all interfaces of remote domain */
+			remote_domain.interfaces().for_each([&] (Interface &interface) {
+				interface.send(eth, size_guard);
+			});
+			/* refresh link only if the error is not about an ICMP query */
+			if (embed_prot != L3_protocol::ICMP) {
+				_link_packet(embed_prot, embed_prot_base, link, client); }
+		},
+		[&] /* handle_no_match */ ()
+		{
+			throw Drop_packet("no link that matches packet embedded in "
+			                  "ICMP error");
 		}
-		/* adapt source and destination of Ethernet frame and IP packet */
-		_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
-		if (remote_side.dst_ip() == remote_domain.ip_config().interface().address) {
-			ip.src(remote_side.dst_ip());
-		}
-		ip.dst(remote_side.src_ip());
-
-		/* adapt source and destination of embedded IP and transport packet */
-		embed_ip.src(remote_side.src_ip());
-		embed_ip.dst(remote_side.dst_ip());
-		_src_port(embed_prot, embed_prot_base, remote_side.src_port());
-		_dst_port(embed_prot, embed_prot_base, remote_side.dst_port());
-
-		/* update checksum of both IP headers and the ICMP header */
-		embed_ip.update_checksum();
-		icmp.update_checksum(icmp_sz - sizeof(Icmp_packet));
-		ip.update_checksum();
-
-		/* send adapted packet to all interfaces of remote domain */
-		remote_domain.interfaces().for_each([&] (Interface &interface) {
-			interface.send(eth, size_guard);
-		});
-		/* refresh link only if the error is not about an ICMP query */
-		if (embed_prot != L3_protocol::ICMP) {
-			_link_packet(embed_prot, embed_prot_base, link, client); }
-	}
-	/* drop packet if there is no matching link */
-	catch (Link_side_tree::No_match) {
-		throw Drop_packet("no link that matches packet embedded in ICMP error"); }
+	);
 }
 
 
@@ -1206,29 +1220,39 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		                                ip.dst(), _dst_port(prot, prot_base) };
 
 		/* try to route via existing UDP/TCP links */
-		try {
-			Link_side const &local_side = local_domain.links(prot).find_by_id(local_id);
-			Link &link = local_side.link();
-			bool const client = local_side.is_client();
-			Link_side &remote_side = client ? link.server() : link.client();
-			Domain &remote_domain = remote_side.domain();
-			if (_config().verbose()) {
-				log("[", local_domain, "] using ", l3_protocol_name(prot),
-				    " link: ", link);
-			}
-			_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
-			ip.src(remote_side.dst_ip());
-			ip.dst(remote_side.src_ip());
-			_src_port(prot, prot_base, remote_side.dst_port());
-			_dst_port(prot, prot_base, remote_side.src_port());
+		bool done { false };
+		local_domain.links(prot).find_by_id(
+			local_id,
+			[&] /* handle_match */ (Link_side const &local_side)
+			{
+				Link &link = local_side.link();
+				bool const client = local_side.is_client();
+				Link_side &remote_side =
+					client ? link.server() : link.client();
 
-			remote_domain.interfaces().for_each([&] (Interface &interface) {
-				interface._pass_prot(eth, size_guard, ip, prot, prot_base, prot_size);
-			});
-			_link_packet(prot, prot_base, link, client);
+				Domain &remote_domain = remote_side.domain();
+				if (_config().verbose()) {
+					log("[", local_domain, "] using ", l3_protocol_name(prot),
+					    " link: ", link);
+				}
+				_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+				ip.src(remote_side.dst_ip());
+				ip.dst(remote_side.src_ip());
+				_src_port(prot, prot_base, remote_side.dst_port());
+				_dst_port(prot, prot_base, remote_side.src_port());
+
+				remote_domain.interfaces().for_each([&] (Interface &interface) {
+					interface._pass_prot(
+						eth, size_guard, ip, prot, prot_base, prot_size);
+				});
+				_link_packet(prot, prot_base, link, client);
+				done = true;
+			},
+			[&] /* handle_no_match */ () { }
+		);
+		if (done) {
 			return;
 		}
-		catch (Link_side_tree::No_match) { }
 
 		/* try to route via forward rules */
 		if (local_id.dst_ip == local_intf.address) {
