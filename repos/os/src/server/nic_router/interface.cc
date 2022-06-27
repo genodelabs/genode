@@ -1011,21 +1011,25 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
 	}
 
 	/* try to route via ICMP rules */
-	try {
-		Ip_rule const &rule =
-			local_domain.icmp_rules().longest_prefix_match(ip.dst());
+	local_domain.icmp_rules().find_longest_prefix_match(
+		ip.dst(),
+		[&] /* handle_match */ (Ip_rule const &rule)
+		{
+			if(_config().verbose()) {
+				log("[", local_domain, "] using ICMP rule: ", rule); }
 
-		if(_config().verbose()) {
-			log("[", local_domain, "] using ICMP rule: ", rule); }
+			Domain &remote_domain = rule.domain();
+			_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
+			_nat_link_and_pass(eth, size_guard, ip, prot, prot_base, prot_size,
+			                   local_id, local_domain, remote_domain);
 
-		Domain &remote_domain = rule.domain();
-		_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
-		_nat_link_and_pass(eth, size_guard, ip, prot, prot_base, prot_size,
-		                   local_id, local_domain, remote_domain);
-
+			done = true;
+		},
+		[&] /* handle_no_match */ () { }
+	);
+	if (done) {
 		return;
 	}
-	catch (Ip_rule_list::No_match) { }
 
 	throw Bad_transport_protocol();
 }
@@ -1166,6 +1170,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	}
 
 	/* try to route via transport layer rules */
+	bool done { false };
 	try {
 		L3_protocol  const prot      = ip.protocol();
 		size_t       const prot_size = size_guard.unconsumed();
@@ -1220,7 +1225,6 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		                                ip.dst(), _dst_port(prot, prot_base) };
 
 		/* try to route via existing UDP/TCP links */
-		bool done { false };
 		local_domain.links(prot).find_by_id(
 			local_id,
 			[&] /* handle_match */ (Link_side const &local_side)
@@ -1278,44 +1282,58 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		}
 		/* try to route via transport and permit rules */
 		try {
-			Transport_rule const &transport_rule =
-				_transport_rules(local_domain, prot).longest_prefix_match(local_id.dst_ip);
+			_transport_rules(local_domain, prot).find_longest_prefix_match(
+				local_id.dst_ip,
+				[&] /* handle_match */ (Transport_rule const &transport_rule)
+				{
+					Permit_rule const &permit_rule =
+						transport_rule.permit_rule(local_id.dst_port);
 
-			Permit_rule const &permit_rule =
-				transport_rule.permit_rule(local_id.dst_port);
+					if(_config().verbose()) {
+						log("[", local_domain, "] using ",
+						    l3_protocol_name(prot), " rule: ", transport_rule,
+						    " ", permit_rule);
+					}
+					Domain &remote_domain = permit_rule.domain();
+					_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
+					_nat_link_and_pass(
+						eth, size_guard, ip, prot, prot_base, prot_size,
+						local_id, local_domain, remote_domain);
 
-			if(_config().verbose()) {
-				log("[", local_domain, "] using ", l3_protocol_name(prot),
-				    " rule: ", transport_rule, " ", permit_rule);
+					done = true;
+				},
+				[&] /* handle_no_match */ () { }
+			);
+			if (done) {
+				return;
 			}
-			Domain &remote_domain = permit_rule.domain();
-			_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
-			_nat_link_and_pass(eth, size_guard, ip, prot, prot_base, prot_size,
-			                   local_id, local_domain, remote_domain);
-			return;
 		}
-		catch (Transport_rule_list::No_match) { }
 		catch (Permit_single_rule_tree::No_match) { }
 	}
 	catch (Interface::Bad_transport_protocol) { }
 
 	/* try to route via IP rules */
-	try {
-		Ip_rule const &rule =
-			local_domain.ip_rules().longest_prefix_match(ip.dst());
+	local_domain.ip_rules().find_longest_prefix_match(
+		ip.dst(),
+		[&] /* handle_match */ (Ip_rule const &rule)
+		{
+			if(_config().verbose()) {
+				log("[", local_domain, "] using IP rule: ", rule); }
 
-		if(_config().verbose()) {
-			log("[", local_domain, "] using IP rule: ", rule); }
-
-		Domain &remote_domain = rule.domain();
-		_adapt_eth(eth, ip.dst(), pkt, remote_domain);
-		remote_domain.interfaces().for_each([&] (Interface &interface) {
-			interface._pass_ip(eth, size_guard, ip);
-		});
-
+			Domain &remote_domain = rule.domain();
+			_adapt_eth(eth, ip.dst(), pkt, remote_domain);
+			remote_domain.interfaces().for_each(
+				[&] (Interface &interface) {
+					interface._pass_ip(eth, size_guard, ip);
+				}
+			);
+			done = true;
+		},
+		[&] /* handle_no_match */ () { }
+	);
+	if (done) {
 		return;
 	}
-	catch (Ip_rule_list::No_match) { }
 
 	/* give up and drop packet */
 	_send_icmp_dst_unreachable(local_intf, eth, ip,
@@ -1905,18 +1923,27 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
 		catch (Forward_rule_tree::No_match) {
 			try {
 				/* try to find transport rule that matches the server IP */
-				Transport_rule const &transport_rule =
-					_transport_rules(cln_dom, prot).
-						longest_prefix_match(link.client().dst_ip());
+				bool done { false };
+				_transport_rules(cln_dom, prot).find_longest_prefix_match(
+					link.client().dst_ip(),
+					[&] /* handle_match */ (Transport_rule const &transport_rule)
+					{
+						/* try to find permit rule that matches the server port */
+						Permit_rule const &permit_rule =
+							transport_rule.permit_rule(link.client().dst_port());
 
-				/* try to find permit rule that matches the server port */
-				Permit_rule const &permit_rule =
-					transport_rule.permit_rule(link.client().dst_port());
-
-				_update_link_check_nat(link, permit_rule.domain(), prot, cln_dom);
-				return;
+						_update_link_check_nat(link, permit_rule.domain(), prot, cln_dom);
+						done = true;
+					},
+					[&] /* handle_no_match */ ()
+					{
+						_dismiss_link_log(link, "no transport/forward rule");
+					}
+				);
+				if (done) {
+					return;
+				}
 			}
-			catch (Transport_rule_list::No_match)     { _dismiss_link_log(link, "no transport/forward rule"); }
 			catch (Permit_single_rule_tree::No_match) { _dismiss_link_log(link, "no permit rule"); }
 			catch (Dismiss_link)                      { }
 		}
@@ -1931,13 +1958,23 @@ void Interface::_update_icmp_links(Domain &cln_dom)
 	L3_protocol const prot = L3_protocol::ICMP;
 	links(prot).for_each([&] (Link &link) {
 		try {
-			Ip_rule const &rule = cln_dom.icmp_rules().
-				longest_prefix_match(link.client().dst_ip());
-
-			_update_link_check_nat(link, rule.domain(), prot, cln_dom);
-			return;
+			bool done { false };
+			cln_dom.icmp_rules().find_longest_prefix_match(
+				link.client().dst_ip(),
+				[&] /* handle_match */ (Ip_rule const &rule)
+				{
+					_update_link_check_nat(link, rule.domain(), prot, cln_dom);
+					done = true;
+				},
+				[&] /* handle_no_match */ ()
+				{
+					_dismiss_link_log(link, "no ICMP rule");
+				}
+			);
+			if (done) {
+				return;
+			}
 		}
-		catch (Ip_rule_list::No_match) { _dismiss_link_log(link, "no ICMP rule"); }
 		catch (Dismiss_link) { }
 		_destroy_link(link);
 	});
