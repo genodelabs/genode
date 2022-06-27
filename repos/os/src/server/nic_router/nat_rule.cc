@@ -57,30 +57,6 @@ Nat_rule::Nat_rule(Domain_tree    &domains,
 { }
 
 
-Nat_rule &Nat_rule::find_by_domain(Domain &domain)
-{
-	if (&domain == &_domain) {
-		return *this; }
-
-	bool const side = (addr_t)&domain > (addr_t)&_domain;
-	Nat_rule *const rule = Avl_node<Nat_rule>::child(side);
-	if (!rule) {
-		throw Nat_rule_tree::No_match(); }
-
-	return rule->find_by_domain(domain);
-}
-
-
-Nat_rule &Nat_rule_tree::find_by_domain(Domain &domain)
-{
-	Nat_rule *const rule = first();
-	if (!rule) {
-		throw No_match(); }
-
-	return rule->find_by_domain(domain);
-}
-
-
 void Nat_rule::print(Output &output) const
 {
 	Genode::print(output, "domain ", _domain,

@@ -59,6 +59,35 @@ class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 
 		Nat_rule &find_by_domain(Domain &domain);
 
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void find_by_domain(Domain                &domain,
+		                    HANDLE_MATCH_FN    &&  handle_match,
+		                    HANDLE_NO_MATCH_FN &&  handle_no_match)
+		{
+			if (&domain != &_domain) {
+
+				Nat_rule *const rule_ptr {
+					Avl_node<Nat_rule>::child(
+						(Genode::addr_t)&domain > (Genode::addr_t)&_domain) };
+
+				if (rule_ptr != nullptr) {
+
+					rule_ptr->find_by_domain(
+						domain, handle_match, handle_no_match);
+
+				} else {
+
+					handle_no_match();
+				}
+
+			} else {
+
+				handle_match(*this);
+			}
+		}
+
 		Port_allocator_guard &port_alloc(L3_protocol const prot);
 
 
@@ -89,9 +118,22 @@ class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 
 struct Net::Nat_rule_tree : Avl_tree<Nat_rule>
 {
-	struct No_match : Genode::Exception { };
+	template <typename HANDLE_MATCH_FN,
+	          typename HANDLE_NO_MATCH_FN>
 
-	Nat_rule &find_by_domain(Domain &domain);
+	void find_by_domain(Domain                &domain,
+	                    HANDLE_MATCH_FN    &&  handle_match,
+	                    HANDLE_NO_MATCH_FN &&  handle_no_match)
+	{
+		if (first() != nullptr) {
+
+			first()->find_by_domain(domain, handle_match, handle_no_match);
+
+		} else {
+
+			handle_no_match();
+		}
+	}
 };
 
 #endif /* _NAT_RULE_H_ */
