@@ -112,7 +112,33 @@ class Net::Permit_single_rule : public  Permit_rule,
 		Permit_single_rule(Domain_tree            &domains,
 		                   Genode::Xml_node const  node);
 
-		Permit_single_rule const &find_by_port(Port const port) const;
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void find_by_port(Port            const port,
+		                  HANDLE_MATCH_FN    && handle_match,
+		                  HANDLE_NO_MATCH_FN && handle_no_match) const
+		{
+			if (port.value != _port.value) {
+
+				Permit_single_rule *const rule_ptr {
+					Avl_node<Permit_single_rule>::child(
+						port.value > _port.value) };
+
+				if (rule_ptr != nullptr) {
+
+					rule_ptr->find_by_port(
+						port, handle_match, handle_no_match);
+
+				} else {
+
+					handle_no_match();
+				}
+			} else {
+
+				handle_match(*this);
+			}
+		}
 
 
 		/*********
@@ -141,8 +167,6 @@ struct Net::Permit_single_rule_tree : private Avl_tree<Permit_single_rule>
 {
 	friend class Transport_rule;
 
-	struct No_match : Genode::Exception { };
-
 	void insert(Permit_single_rule *rule)
 	{
 		Genode::Avl_tree<Permit_single_rule>::insert(rule);
@@ -150,7 +174,22 @@ struct Net::Permit_single_rule_tree : private Avl_tree<Permit_single_rule>
 
 	using Genode::Avl_tree<Permit_single_rule>::first;
 
-	Permit_single_rule const &find_by_port(Port const port) const;
+	template <typename HANDLE_MATCH_FN,
+	          typename HANDLE_NO_MATCH_FN>
+
+	void find_by_port(Port            const port,
+	                  HANDLE_MATCH_FN    && handle_match,
+	                  HANDLE_NO_MATCH_FN && handle_no_match) const
+	{
+		if (first() != nullptr) {
+
+			first()->find_by_port(port, handle_match, handle_no_match);
+
+		} else {
+
+			handle_no_match();
+		}
+	}
 };
 
 #endif /* _PERMIT_RULE_H_ */
