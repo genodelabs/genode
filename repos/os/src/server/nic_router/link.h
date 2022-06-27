@@ -78,7 +78,7 @@ struct Net::Link_side_id
 	 ** Standard operators **
 	 ************************/
 
-	bool operator == (Link_side_id const &id) const;
+	bool operator != (Link_side_id const &id) const;
 
 	bool operator > (Link_side_id const &id) const;
 }
@@ -101,7 +101,33 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 		          Link_side_id const &id,
 		          Link               &link);
 
-		Link_side const &find_by_id(Link_side_id const &id) const;
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void find_by_id(Link_side_id    const &id,
+		                HANDLE_MATCH_FN    &&  handle_match,
+		                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+		{
+			if (id != _id) {
+
+				Link_side *const link_side_ptr {
+					Avl_node<Link_side>::child(id > _id) };
+
+				if (link_side_ptr != nullptr) {
+
+					link_side_ptr->find_by_id(
+						id, handle_match, handle_no_match);
+
+				} else {
+
+					handle_no_match();
+				}
+
+			} else {
+
+				handle_match(*this);
+			}
+		}
 
 		bool is_client() const;
 
@@ -135,9 +161,22 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 
 struct Net::Link_side_tree : Genode::Avl_tree<Link_side>
 {
-	struct No_match : Genode::Exception { };
+	template <typename HANDLE_MATCH_FN,
+	          typename HANDLE_NO_MATCH_FN>
 
-	Link_side const &find_by_id(Link_side_id const &id) const;
+	void find_by_id(Link_side_id    const &id,
+	                HANDLE_MATCH_FN    &&  handle_match,
+	                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+	{
+		if (first() != nullptr) {
+
+			first()->find_by_id(id, handle_match, handle_no_match);
+
+		} else {
+
+			handle_no_match();
+		}
+	}
 };
 
 
