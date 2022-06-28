@@ -1065,6 +1065,13 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 			Socket_fs::Context(proto, handle_fd);
 	} catch (New_socket_failed) { return Errno(ENFILE); }
 
+	if (context) {
+		int flags = 0;
+		if (type & SOCK_NONBLOCK) flags |= O_NONBLOCK;
+		if (type & SOCK_CLOEXEC)  flags |= O_CLOEXEC;
+		context->fd_flags(flags);
+	}
+
 	File_descriptor *fd = file_descriptor_allocator()->alloc(&plugin(), context);
 	if (!fd) {
 		Libc::Allocator alloc { };
