@@ -204,8 +204,9 @@ void Main::parse_pci_config_spaces(Xml_node & xml)
 			addr_t const base  = xml.attribute_value("base",   0UL);
 			size_t const count = xml.attribute_value("count",  0UL);
 
-			bus_t const bus_off   = (bus_t) (start / FUNCTION_PER_BUS_MAX);
-			bus_t const bus_count = (bus_t) (count / FUNCTION_PER_BUS_MAX);
+			bus_t const bus_off  = (bus_t) (start / FUNCTION_PER_BUS_MAX);
+			bus_t const last_bus = (bus_t)
+				(max(1UL, (count / FUNCTION_PER_BUS_MAX)) - 1);
 
 			if (host_bridge_num++) {
 				error("We do not support multiple host bridges by now!");
@@ -213,14 +214,16 @@ void Main::parse_pci_config_spaces(Xml_node & xml)
 			}
 
 			new (heap) Bridge(bridge_registry, { bus_off, 0, 0 },
-			                  bus_off, bus_count);
+			                  bus_off, last_bus);
 
 			pci_config_ds.construct(env, base, count * FUNCTION_CONFIG_SPACE_SIZE);
 
-			for (bus_t bus = 0; bus < bus_count; bus++)
+			bus_t bus = 0;
+			do
 				parse_pci_bus((bus_t)bus, bus_off,
 				              (addr_t)pci_config_ds->local_addr<void>(),
 				              base, generator);
+			while (bus++ < last_bus);
 
 			pci_config_ds.destruct();
 		});
