@@ -37,19 +37,6 @@ bool Arp_cache_entry::_higher(Ipv4_address const &ip) const
 }
 
 
-Arp_cache_entry const &
-Arp_cache_entry::find_by_ip(Ipv4_address const &ip) const
-{
-	if (ip == _ip) {
-		return *this; }
-
-	Arp_cache_entry const *const entry = child(_higher(ip));
-	if (!entry) {
-		throw Arp_cache::No_match(); }
-
-	return entry->find_by_ip(ip);
-}
-
 void Arp_cache_entry::print(Output &output) const
 {
 	Genode::print(output, _ip, " > ", _mac);
@@ -76,15 +63,6 @@ void Arp_cache::new_entry(Ipv4_address const &ip, Mac_address const &mac)
 	} else {
 		_curr = 0;
 	};
-}
-
-
-Arp_cache_entry const &Arp_cache::find_by_ip(Ipv4_address const &ip) const
-{
-	if (!first()) {
-		throw No_match(); }
-
-	return first()->find_by_ip(ip);
 }
 
 

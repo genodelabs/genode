@@ -42,7 +42,33 @@ class Net::Arp_cache_entry : public Genode::Avl_node<Arp_cache_entry>
 
 		Arp_cache_entry(Ipv4_address const &ip, Mac_address const &mac);
 
-		Arp_cache_entry const &find_by_ip(Ipv4_address const &ip) const;
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void find_by_ip(Ipv4_address    const &ip,
+		                HANDLE_MATCH_FN    &&  handle_match,
+		                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+		{
+			if (ip != _ip) {
+
+				Arp_cache_entry *const entry_ptr {
+					Avl_node<Arp_cache_entry>::child(
+						_higher(ip)) };
+
+				if (entry_ptr != nullptr) {
+
+					entry_ptr->find_by_ip(
+						ip, handle_match, handle_no_match);
+
+				} else {
+
+					handle_no_match();
+				}
+			} else {
+
+				handle_match(*this);
+			}
+		}
 
 
 		/**************
@@ -83,15 +109,28 @@ class Net::Arp_cache : public Genode::Avl_tree<Arp_cache_entry>
 
 	public:
 
-		struct No_match : Genode::Exception { };
-
 		Arp_cache(Domain const &domain) : _domain(domain) { }
 
 		void new_entry(Ipv4_address const &ip, Mac_address const &mac);
 
 		void destroy_entries_with_mac(Mac_address const &mac);
 
-		Arp_cache_entry const &find_by_ip(Ipv4_address const &ip) const;
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void find_by_ip(Ipv4_address    const &ip,
+		                HANDLE_MATCH_FN    &&  handle_match,
+		                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+		{
+			if (first() != nullptr) {
+
+				first()->find_by_ip(ip, handle_match, handle_no_match);
+
+			} else {
+
+				handle_no_match();
+			}
+		}
 
 		void destroy_all_entries();
 };

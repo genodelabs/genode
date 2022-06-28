@@ -558,18 +558,25 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
 	if (remote_domain.use_arp()) {
 
 		Ipv4_address const &hop_ip = remote_domain.next_hop(dst_ip);
-		try { eth.dst(remote_domain.arp_cache().find_by_ip(hop_ip).mac()); }
-		catch (Arp_cache::No_match) {
-			remote_domain.interfaces().for_each([&] (Interface &interface) {
-				interface._broadcast_arp_request(remote_ip_cfg.interface().address,
-				                                 hop_ip);
-			});
-			try { new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt }; }
-			catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(); }
-			catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(); }
-			throw Packet_postponed();
-		}
-
+		remote_domain.arp_cache().find_by_ip(
+			hop_ip,
+			[&] /* handle_match */ (Arp_cache_entry const &entry)
+			{
+				eth.dst(entry.mac());
+			},
+			[&] /* handle_no_match */ ()
+			{
+				remote_domain.interfaces().for_each([&] (Interface &interface)
+				{
+					interface._broadcast_arp_request(
+						remote_ip_cfg.interface().address, hop_ip);
+				});
+				try { new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt }; }
+				catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(); }
+				catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(); }
+				throw Packet_postponed();
+			}
+		);
 	}
 }
 
@@ -1416,29 +1423,32 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
                                   Arp_packet     &arp,
                                   Domain         &local_domain)
 {
-	try {
-		/* check wether a matching ARP cache entry already exists */
-		local_domain.arp_cache().find_by_ip(arp.src_ip());
-		if (_config().verbose()) {
-			log("[", local_domain, "] ARP entry already exists"); }
-	}
-	catch (Arp_cache::No_match) {
-
-		/* by now, no matching ARP cache entry exists, so create one */
-		Ipv4_address const ip = arp.src_ip();
-		local_domain.arp_cache().new_entry(ip, arp.src_mac());
-
-		/* continue handling of packets that waited for the entry */
-		for (Arp_waiter_list_element *waiter_le = local_domain.foreign_arp_waiters().first();
-		     waiter_le; )
+	local_domain.arp_cache().find_by_ip(
+		arp.src_ip(),
+		[&] /* handle_match */ (Arp_cache_entry const &)
 		{
-			Arp_waiter &waiter = *waiter_le->object();
-			waiter_le = waiter_le->next();
-			if (ip != waiter.ip()) { continue; }
-			waiter.src()._continue_handle_eth(local_domain, waiter.packet());
-			destroy(waiter.src()._alloc, &waiter);
+			/* check wether a matching ARP cache entry already exists */
+			if (_config().verbose()) {
+				log("[", local_domain, "] ARP entry already exists"); }
+		},
+		[&] /* handle_no_match */ ()
+		{
+			/* by now, no matching ARP cache entry exists, so create one */
+			Ipv4_address const ip = arp.src_ip();
+			local_domain.arp_cache().new_entry(ip, arp.src_mac());
+
+			/* continue handling of packets that waited for the entry */
+			for (Arp_waiter_list_element *waiter_le = local_domain.foreign_arp_waiters().first();
+			     waiter_le; )
+			{
+				Arp_waiter &waiter = *waiter_le->object();
+				waiter_le = waiter_le->next();
+				if (ip != waiter.ip()) { continue; }
+				waiter.src()._continue_handle_eth(local_domain, waiter.packet());
+				destroy(waiter.src()._alloc, &waiter);
+			}
 		}
-	}
+	);
 	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface();
 	if (local_intf.prefix_matches(arp.dst_ip()) &&
 	    arp.dst_ip() != local_intf.address)
