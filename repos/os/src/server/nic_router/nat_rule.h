@@ -43,9 +43,6 @@ class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 		Port_allocator_guard  _udp_port_alloc;
 		Port_allocator_guard  _icmp_port_alloc;
 
-		static Domain &_find_domain(Domain_tree            &domains,
-		                            Genode::Xml_node const  node);
-
 	public:
 
 		struct Invalid : Genode::Exception { };

@@ -45,9 +45,6 @@ class Net::Forward_rule : public Genode::Avl_node<Forward_rule>
 		Port         const  _to_port;
 		Domain             &_domain;
 
-		static Domain &_find_domain(Domain_tree            &domains,
-		                            Genode::Xml_node const  node);
-
 	public:
 
 		struct Invalid : Genode::Exception { };

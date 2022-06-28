@@ -33,9 +33,6 @@ class Net::Ip_rule : public Direct_rule<Ip_rule>
 
 		Domain &_domain;
 
-		static Domain &_find_domain(Domain_tree            &domains,
-		                            Genode::Xml_node const  node);
-
 	public:
 
 		Ip_rule(Domain_tree &domains, Genode::Xml_node const node);
