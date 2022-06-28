@@ -12,6 +12,7 @@
  */
 
 #include <linux/types.h>
+#include <linux/time64.h> /* KTIME_MAX */
 
 extern void __rcu_read_lock(void);
 void __rcu_read_lock(void) { }
@@ -22,5 +23,7 @@ void __rcu_read_unlock(void) { }
 
 int rcu_needs_cpu(u64 basemono, u64 *nextevt)
 {
+	if (nextevt)
+		*nextevt = KTIME_MAX;
 	return 0;
 }
