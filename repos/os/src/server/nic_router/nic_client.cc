@@ -59,28 +59,33 @@ Net::Nic_client::Nic_client(Xml_node    const &node,
 	_alloc          { alloc },
 	_config         { config }
 {
-	/* if an interface with this label already exists, reuse it */
-	try {
-		Nic_client &old_nic_client = old_nic_clients.find_by_name(label());
-		Nic_client_interface &interface = old_nic_client._interface();
-		old_nic_client._interface = Pointer<Nic_client_interface>();
-		interface.domain_name(domain());
-		_interface = interface;
-	}
-	/* if not, create a new one */
-	catch (Nic_client_tree::No_match) {
-		if (config.verbose()) {
-			log("[", domain(), "] create NIC client: ", *this); }
+	old_nic_clients.find_by_name(
+		label(),
+		[&] /* handle_match */ (Nic_client &old_nic_client)
+		{
+			/* reuse existing interface */
+			Nic_client_interface &interface = old_nic_client._interface();
+			old_nic_client._interface = Pointer<Nic_client_interface>();
+			interface.domain_name(domain());
+			_interface = interface;
+		},
+		[&] /* handle_no_match */ ()
+		{
+			/* create a new interface */
+			if (config.verbose()) {
+				log("[", domain(), "] create NIC client: ", *this); }
 
-		try {
-			_interface = *new (_alloc)
-				Nic_client_interface { env, timer, alloc, interfaces, config,
-				                       domain(), label() };
+			try {
+				_interface = *new (_alloc)
+					Nic_client_interface {
+						env, timer, alloc, interfaces, config, domain(),
+						label() };
+			}
+			catch (Insufficient_ram_quota) { _invalid("NIC session RAM quota"); }
+			catch (Insufficient_cap_quota) { _invalid("NIC session CAP quota"); }
+			catch (Service_denied)         { _invalid("NIC session denied"); }
 		}
-		catch (Insufficient_ram_quota) { _invalid("NIC session RAM quota"); }
-		catch (Insufficient_cap_quota) { _invalid("NIC session CAP quota"); }
-		catch (Service_denied)         { _invalid("NIC session denied"); }
-	}
+	);
 }
 
 

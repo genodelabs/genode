@@ -206,8 +206,7 @@ Pointer<Domain> Dhcp_server::_init_dns_config_from(Genode::Xml_node const  node,
 	if (dns_config_from == Domain_name()) {
 		return Pointer<Domain>();
 	}
-	try { return domains.find_by_name(dns_config_from); }
-	catch (Domain_tree::No_match) { throw Invalid(); }
+	return domains.deprecated_find_by_name<Invalid>(dns_config_from);
 }
 
 

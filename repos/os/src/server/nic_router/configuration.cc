@@ -131,11 +131,14 @@ Configuration::Configuration(Env               &env,
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {
 		try {
 			Domain &domain = *new (_alloc) Domain(*this, node, _alloc);
-			try { _domains.insert(domain); }
-			catch (Domain_tree::Name_not_unique exception) {
-				_invalid_domain(domain,           "name not unique");
-				_invalid_domain(exception.object, "name not unique");
-			}
+			_domains.insert(
+				domain,
+				[&] /* handle_name_not_unique */ (Domain &other_domain)
+				{
+					_invalid_domain(domain,       "name not unique");
+					_invalid_domain(other_domain, "name not unique");
+				}
+			);
 		}
 		catch (Domain::Invalid) { }
 	});
@@ -200,11 +203,14 @@ Configuration::Configuration(Env               &env,
 				Nic_client { node, alloc, old_config._nic_clients, env, timer,
 				             interfaces, *this };
 
-			try { _nic_clients.insert(nic_client); }
-			catch (Nic_client_tree::Name_not_unique exception) {
-				_invalid_nic_client(nic_client,       "label not unique");
-				_invalid_nic_client(exception.object, "label not unique");
-			}
+			_nic_clients.insert(
+				nic_client,
+				[&] /* handle_name_not_unique */ (Nic_client &other_nic_client)
+				{
+					_invalid_nic_client(nic_client,       "label not unique");
+					_invalid_nic_client(other_nic_client, "label not unique");
+				}
+			);
 		}
 		catch (Nic_client::Invalid) { }
 	});

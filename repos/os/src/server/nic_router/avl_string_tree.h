@@ -33,29 +33,65 @@ class Net::Avl_string_tree : public Genode::Avl_tree<Genode::Avl_string_base>
 		using Node = Genode::Avl_string_base;
 		using Tree = Genode::Avl_tree<Genode::Avl_string_base>;
 
-		OBJECT &_find_by_name(char const *name)
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void _node_find_by_name(Node                  &node,
+		                        char            const *name_ptr,
+		                        HANDLE_MATCH_FN    &&  handle_match,
+		                        HANDLE_NO_MATCH_FN &&  handle_no_match)
 		{
-			if (!first()) {
-				throw No_match(); }
+			int const name_diff {
+				Genode::strcmp(name_ptr, node.name()) };
 
-			Node *node = first()->find_by_name(name);
-			if (!node) {
-				throw No_match(); }
+			if (name_diff != 0) {
 
-			return *static_cast<OBJECT *>(node);
+				Node *child_ptr { node.child(name_diff > 0) };
+
+				if (child_ptr != nullptr) {
+
+					_node_find_by_name(
+						*child_ptr, name_ptr, handle_match, handle_no_match);
+
+				} else {
+
+					handle_no_match();
+				}
+			} else {
+
+				handle_match(*static_cast<OBJECT *>(&node));
+			}
+		}
+
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void _find_by_name(char            const *name_ptr,
+		                   HANDLE_MATCH_FN    &&  handle_match,
+		                   HANDLE_NO_MATCH_FN &&  handle_no_match)
+		{
+			if (first() != nullptr) {
+
+				_node_find_by_name(
+					*first(), name_ptr, handle_match, handle_no_match);
+
+			} else {
+
+				handle_no_match();
+			}
 		}
 
 	public:
 
-		struct No_match        : Genode::Exception { };
-		struct Name_not_unique : Genode::Exception
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void find_by_name(NAME            const &name,
+		                  HANDLE_MATCH_FN    &&  handle_match,
+		                  HANDLE_NO_MATCH_FN &&  handle_no_match)
 		{
-			OBJECT &object;
-
-			Name_not_unique(OBJECT &object) : object(object) { }
-		};
-
-		OBJECT &find_by_name(NAME const &name) { return _find_by_name(name.string()); }
+			_find_by_name(name.string(), handle_match, handle_no_match);
+		}
 
 		template <typename FUNCTOR>
 		void for_each(FUNCTOR && functor) const {
@@ -81,10 +117,19 @@ class Net::Avl_string_tree : public Genode::Avl_tree<Genode::Avl_string_base>
 			}
 		}
 
-		void insert(OBJECT &object)
+		template <typename HANDLE_NAME_NOT_UNIQUE_FN>
+
+		void insert(OBJECT                       &obj,
+		            HANDLE_NAME_NOT_UNIQUE_FN &&  handle_name_not_unique)
 		{
-			try { throw Name_not_unique(_find_by_name(static_cast<Node *>(&object)->name())); }
-			catch (No_match) { Tree::insert(&object); }
+			_find_by_name(
+				static_cast<Node *>(&obj)->name(),
+				[&] /* handle_match */ (OBJECT &other_obj)
+				{
+					handle_name_not_unique(other_obj);
+				},
+				[&] /* handle_no_match */ () { Tree::insert(&obj); }
+			);
 		}
 
 		void remove(OBJECT &object) { Tree::remove(&object); }

@@ -390,19 +390,20 @@ void Interface::_update_domain_object(Domain &new_domain) {
 
 void Interface::attach_to_domain()
 {
-	try {
-		Domain &domain =
-			_config().domains().find_by_name(_policy.determine_domain_name());
+	_config().domains().find_by_name(
+		_policy.determine_domain_name(),
+		[&] /* handle_match */ (Domain &domain)
+		{
+			_attach_to_domain_raw(domain);
 
-		_attach_to_domain_raw(domain);
-
-		/* construct DHCP client if the new domain needs it */
-		if (domain.ip_config_dynamic()) {
-			_dhcp_client.construct(_timer, *this);
-		}
-		attach_to_domain_finish();
-	}
-	catch (Domain_tree::No_match) { }
+			/* construct DHCP client if the new domain needs it */
+			if (domain.ip_config_dynamic()) {
+				_dhcp_client.construct(_timer, *this);
+			}
+			attach_to_domain_finish();
+		},
+		[&] /* handle_no_match */ () { }
+	);
 }
 
 
@@ -2056,34 +2057,37 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 
 void Interface::_update_own_arp_waiters(Domain &domain)
 {
-	bool const verbose = _config().verbose();
-	_own_arp_waiters.for_each([&] (Arp_waiter_list_element &le) {
-		Arp_waiter &arp_waiter = *le.object();
-		try {
-			Domain &dst = _config().domains().find_by_name(arp_waiter.dst().name());
-			if (dst.ip_config() != arp_waiter.dst().ip_config()) {
-				if (verbose) {
-					log("[", domain, "] dismiss ARP waiter: ", arp_waiter,
-					    " (IP config changed)");
+	bool const verbose { _config().verbose() };
+	_own_arp_waiters.for_each([&] (Arp_waiter_list_element &le)
+	{
+		Arp_waiter &arp_waiter { *le.object() };
+		bool dismiss_arp_waiter { true };
+		_config().domains().find_by_name(
+			arp_waiter.dst().name(),
+			[&] /* handle_match */ (Domain &dst)
+			{
+				/* dismiss ARP waiter if IP config of target domain changed */
+				if (dst.ip_config() != arp_waiter.dst().ip_config()) {
+					return;
 				}
-				throw Dismiss_arp_waiter();
+				/* keep ARP waiter */
+				arp_waiter.handle_config(dst);
+				if (verbose) {
+					log("[", domain, "] update ARP waiter: ", arp_waiter);
+				}
+				dismiss_arp_waiter = false;
+			},
+			[&] /* handle_no_match */ ()
+			{
+				/* dismiss ARP waiter as the target domain disappeared */
 			}
-			/* keep ARP waiter */
-			arp_waiter.handle_config(dst);
+		);
+		if (dismiss_arp_waiter) {
 			if (verbose) {
-				log("[", domain, "] update ARP waiter: ", arp_waiter);
+				log("[", domain, "] dismiss ARP waiter: ", arp_waiter);
 			}
-			return;
+			cancel_arp_waiting(*_own_arp_waiters.first()->object());
 		}
-		/* dismiss ARP waiter */
-		catch (Domain_tree::No_match) {
-			if (verbose) {
-				log("[", domain, "] dismiss ARP waiter: ", arp_waiter,
-				    " (domain disappeared)");
-			}
-		}
-		catch (Dismiss_arp_waiter) { }
-		cancel_arp_waiting(*_own_arp_waiters.first()->object());
 	});
 }
 
@@ -2107,11 +2111,15 @@ void Interface::handle_config_1(Configuration &config)
 			return; }
 
 		/* interface stays with its domain, so, try to reuse IP config */
-		Domain &new_domain = config.domains().find_by_name(new_domain_name);
-		new_domain.try_reuse_ip_config(old_domain);
-		return;
+		config.domains().find_by_name(
+			new_domain_name,
+			[&] /* handle_match */ (Domain &new_domain)
+			{
+				new_domain.try_reuse_ip_config(old_domain);
+			},
+			[&] /* handle_no_match */ () { }
+		);
 	}
-	catch (Domain_tree::No_match) { }
 	catch (Pointer<Domain>::Invalid) { }
 }
 
@@ -2135,66 +2143,70 @@ void Interface::handle_config_2()
 	Domain_name const &new_domain_name = _policy.determine_domain_name();
 	try {
 		Domain &old_domain = domain();
-		try {
-			Domain &new_domain = _config().domains().find_by_name(new_domain_name);
+		_config().domains().find_by_name(
+			new_domain_name,
+			[&] /* handle_match */ (Domain &new_domain)
+			{
+				/* if the domains differ, detach completely from the domain */
+				if (old_domain.name() != new_domain_name) {
 
-			/* if the domains differ, detach completely from the domain */
-			if (old_domain.name() != new_domain_name) {
+					_detach_from_domain();
+					_attach_to_domain_raw(new_domain);
 
+					/* destruct and construct DHCP client if required */
+					if (old_domain.ip_config_dynamic()) {
+						_dhcp_client.destruct();
+					}
+					if (new_domain.ip_config_dynamic()) {
+						_dhcp_client.construct(_timer, *this);
+					}
+					return;
+				}
+				_update_domain_object(new_domain);
+
+				/* destruct or construct DHCP client if IP-config type changes */
+				if (old_domain.ip_config_dynamic() &&
+				    !new_domain.ip_config_dynamic())
+				{
+					_dhcp_client.destruct();
+				}
+				if (!old_domain.ip_config_dynamic() &&
+				    new_domain.ip_config_dynamic())
+				{
+					_dhcp_client.construct(_timer, *this);
+				}
+
+				/* remember that the interface stays attached to the same domain */
+				_update_domain.construct(old_domain, new_domain);
+			},
+			[&] /* handle_no_match */ ()
+			{
+				/* the interface no longer has a domain */
 				_detach_from_domain();
-				_attach_to_domain_raw(new_domain);
 
-				/* destruct and construct DHCP client if required */
+				/* destruct DHCP client if it was constructed */
 				if (old_domain.ip_config_dynamic()) {
 					_dhcp_client.destruct();
 				}
-				if (new_domain.ip_config_dynamic()) {
-					_dhcp_client.construct(_timer, *this);
-				}
-				return;
 			}
-			_update_domain_object(new_domain);
-
-			/* destruct or construct DHCP client if IP-config type changes */
-			if (old_domain.ip_config_dynamic() &&
-			    !new_domain.ip_config_dynamic())
-			{
-				_dhcp_client.destruct();
-			}
-			if (!old_domain.ip_config_dynamic() &&
-			    new_domain.ip_config_dynamic())
-			{
-				_dhcp_client.construct(_timer, *this);
-			}
-
-			/* remember that the interface stays attached to the same domain */
-			_update_domain.construct(old_domain, new_domain);
-			return;
-		}
-		catch (Domain_tree::No_match) {
-
-			/* the interface no longer has a domain */
-			_detach_from_domain();
-
-			/* destruct DHCP client if it was constructed */
-			if (old_domain.ip_config_dynamic()) {
-				_dhcp_client.destruct();
-			}
-		}
+		);
 	}
 	catch (Pointer<Domain>::Invalid) {
 
 		/* the interface had no domain but now it may get one */
-		try {
-			Domain &new_domain = _config().domains().find_by_name(new_domain_name);
-			_attach_to_domain_raw(new_domain);
+		_config().domains().find_by_name(
+			new_domain_name,
+			[&] /* handle_match */ (Domain &new_domain)
+			{
+				_attach_to_domain_raw(new_domain);
 
-			/* construct DHCP client if the new domain needs it */
-			if (new_domain.ip_config_dynamic()) {
-				_dhcp_client.construct(_timer, *this);
-			}
-		}
-		catch (Domain_tree::No_match) { }
+				/* construct DHCP client if the new domain needs it */
+				if (new_domain.ip_config_dynamic()) {
+					_dhcp_client.construct(_timer, *this);
+				}
+			},
+			[&] /* handle_no_match */ () { }
+		);
 	}
 }
 

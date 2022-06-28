@@ -71,7 +71,31 @@ struct Net::Domain_link_stats : Domain_object_stats
 };
 
 
-class Net::Domain_tree : public Avl_string_tree<Domain, Domain_name> { };
+class Net::Domain_tree : public Avl_string_tree<Domain, Domain_name>
+{
+	public:
+
+		template <typename NO_MATCH_EXCEPTION>
+		Domain &deprecated_find_by_name(Domain_name const &name)
+		{
+			Domain *dom_ptr { nullptr };
+			find_by_name(
+				name,
+				[&] /* handle_match */ (Domain &dom) { dom_ptr = &dom; },
+				[&] /* handle_no_match */ () { throw NO_MATCH_EXCEPTION { }; }
+			);
+			return *dom_ptr;
+		}
+
+		template <typename NO_MATCH_EXCEPTION>
+		Domain &deprecated_find_by_domain_attr(Genode::Xml_node const &node)
+		{
+			Domain_name const name {
+				node.attribute_value("domain", Domain_name { }) };
+
+			return deprecated_find_by_name<NO_MATCH_EXCEPTION>(name);
+		}
+};
 
 
 class Net::Domain_base

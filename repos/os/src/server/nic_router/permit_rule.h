@@ -70,11 +70,6 @@ struct Net::Permit_rule : public Genode::Interface
 
 struct Net::Permit_any_rule : Permit_rule
 {
-	private:
-
-		static Domain &_find_domain(Domain_tree            &domains,
-		                            Genode::Xml_node const  node);
-
 	public:
 
 		struct Invalid : Genode::Exception { };
@@ -101,9 +96,6 @@ class Net::Permit_single_rule : public  Permit_rule,
 	private:
 
 		Port const _port;
-
-		static Domain &_find_domain(Domain_tree            &domains,
-		                            Genode::Xml_node const  node);
 
 	public:
 
