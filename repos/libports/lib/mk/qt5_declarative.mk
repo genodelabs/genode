@@ -4,6 +4,26 @@ QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5Network libQt5Sql libQt5Test libQt5Wi
 
 LIBS = libc libm mesa stdcxx $(QT5_PORT_LIBS)
 
+INSTALL_LIBS = lib/libQt5Qml.lib.so \
+               lib/libQt5Quick.lib.so \
+               lib/libQt5QuickParticles.lib.so \
+               lib/libQt5QuickShapes.lib.so \
+               lib/libQt5QuickTest.lib.so \
+               lib/libQt5QuickWidgets.lib.so \
+               qml/Qt/labs/folderlistmodel/libqmlfolderlistmodelplugin.lib.so \
+               qml/Qt/labs/qmlmodels/liblabsmodelsplugin.lib.so \
+               qml/Qt/labs/settings/libqmlsettingsplugin.lib.so \
+               qml/Qt/labs/wavefrontmesh/libqmlwavefrontmeshplugin.lib.so \
+               qml/QtQml/Models.2/libmodelsplugin.lib.so \
+               qml/QtQml/StateMachine/libqtqmlstatemachine.lib.so \
+               qml/QtQuick.2/libqtquick2plugin.lib.so \
+               qml/QtQuick/Layouts/libqquicklayoutsplugin.lib.so \
+               qml/QtQuick/LocalStorage/libqmllocalstorageplugin.lib.so \
+               qml/QtQuick/Particles.2/libparticlesplugin.lib.so \
+               qml/QtQuick/Shapes/libqmlshapesplugin.lib.so \
+               qml/QtQuick/Window.2/libwindowplugin.lib.so \
+               qml/QtTest/libqmltestplugin.lib.so
+
 built.tag: qmake_prepared.tag
 
 	@#
@@ -32,51 +52,15 @@ built.tag: qmake_prepared.tag
 	$(VERBOSE)ln -sf .$(CURDIR)/qmake_root install/qt
 
 	@#
-	@# create stripped versions
+	@# strip libs and create symlinks in 'bin' and 'debug' directories
 	@#
 
-	$(VERBOSE)cd $(CURDIR)/install/qt/lib && \
-		$(STRIP) libQt5Qml.lib.so -o libQt5Qml.lib.so.stripped && \
-		$(STRIP) libQt5Quick.lib.so -o libQt5Quick.lib.so.stripped && \
-		$(STRIP) libQt5QuickWidgets.lib.so -o libQt5QuickWidgets.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/Qt/labs/folderlistmodel && \
-		$(STRIP) libqmlfolderlistmodelplugin.lib.so -o libqmlfolderlistmodelplugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick.2 && \
-		$(STRIP) libqtquick2plugin.lib.so -o libqtquick2plugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Layouts && \
-		$(STRIP) libqquicklayoutsplugin.lib.so -o libqquicklayoutsplugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Window.2 && \
-		$(STRIP) libwindowplugin.lib.so -o libwindowplugin.lib.so.stripped
-
-	@#
-	@# create symlinks in 'bin' directory
-	@#
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Qml.lib.so.stripped $(PWD)/bin/libQt5Qml.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Quick.lib.so.stripped $(PWD)/bin/libQt5Quick.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickWidgets.lib.so.stripped $(PWD)/bin/libQt5QuickWidgets.lib.so
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/folderlistmodel/libqmlfolderlistmodelplugin.lib.so.stripped $(PWD)/bin/libqmlfolderlistmodelplugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick.2/libqtquick2plugin.lib.so.stripped $(PWD)/bin/libqtquick2plugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Layouts/libqquicklayoutsplugin.lib.so.stripped $(PWD)/bin/libqquicklayoutsplugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Window.2/libwindowplugin.lib.so.stripped $(PWD)/bin/libwindowplugin.lib.so
-
-	@#
-	@# create symlinks in 'debug' directory
-	@#
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Qml.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Quick.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickWidgets.lib.so $(PWD)/debug/
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/folderlistmodel/libqmlfolderlistmodelplugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick.2/libqtquick2plugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Layouts/libqquicklayoutsplugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Window.2/libwindowplugin.lib.so $(PWD)/debug/
+	for LIB in $(INSTALL_LIBS); do \
+		cd $(CURDIR)/install/qt/$$(dirname $${LIB}) && \
+			$(STRIP) $$(basename $${LIB}) -o $$(basename $${LIB}).stripped; \
+		ln -sf $(CURDIR)/install/qt/$${LIB}.stripped $(PWD)/bin/$$(basename $${LIB}); \
+		ln -sf $(CURDIR)/install/qt/$${LIB} $(PWD)/debug/; \
+	done
 
 	@#
 	@# create tar archives
