@@ -21,6 +21,7 @@ SRC_C   += gem.c
 SRC_C   += timeout.c
 SRC_C   += lx_emul/common_dummies.c
 SRC_C   += lx_emul/spec/x86/pci.c
+SRC_C   += lx_emul/shadow/kernel/softirq.c
 SRC_C   += lx_emul/shadow/mm/page_alloc.c
 
 vpath %.c $(REL_PRG_DIR)
