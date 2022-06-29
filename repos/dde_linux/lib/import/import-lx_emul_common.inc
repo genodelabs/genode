@@ -26,7 +26,6 @@ SRC_C   += lx_emul/shadow/kernel/fork.c
 SRC_C   += lx_emul/shadow/kernel/pid.c
 SRC_C   += lx_emul/shadow/kernel/printk/printk.c
 SRC_C   += lx_emul/shadow/kernel/sched/core.c
-SRC_C   += lx_emul/shadow/kernel/softirq.c
 SRC_C   += lx_emul/shadow/mm/percpu.c
 SRC_C   += lx_emul/shadow/mm/slab_common.c
 SRC_C   += lx_emul/shadow/mm/slub.c

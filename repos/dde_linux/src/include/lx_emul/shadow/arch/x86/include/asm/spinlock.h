@@ -32,7 +32,7 @@ static inline int arch_spin_is_locked(arch_spinlock_t *lock)
 static inline void arch_spin_lock(arch_spinlock_t *lock)
 {
 	if (arch_spin_is_locked(lock)) {
-		printk("Error: spinlock contention!");
+		printk("Error: spinlock contention!\n");
 		lx_emul_trace_and_stop(__func__);
 	}
 	atomic_set(&lock->val, 1);
