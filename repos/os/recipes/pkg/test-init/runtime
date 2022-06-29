@@ -5,6 +5,7 @@
 	<events>
 		<timeout meaning="failed" sec="330" />
 		<log meaning="succeeded">child "test-init" exited with exit value 0</log>
+		<log meaning="failed">list model not empty at destruction time</log>
 	</events>
 
 	<content>
