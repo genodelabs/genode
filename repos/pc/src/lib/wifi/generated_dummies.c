@@ -562,14 +562,6 @@ void iov_iter_revert(struct iov_iter * i,size_t unroll)
 }
 
 
-#include <linux/fs.h>
-
-void iput(struct inode * inode)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/irq_work.h>
 
 void irq_work_tick(void)

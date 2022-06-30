@@ -118,17 +118,33 @@ struct vfsmount * kern_mount(struct file_system_type * type)
 
 struct inode * new_inode_pseudo(struct super_block * sb)
 {
-    const struct super_operations *ops = sb->s_op;
-    struct inode *inode;
+	const struct super_operations *ops = sb->s_op;
+	struct inode *inode;
 
-    if (ops->alloc_inode) {
-        inode = ops->alloc_inode(sb);
-	}
+	if (ops->alloc_inode)
+		inode = ops->alloc_inode(sb);
 
 	if (!inode)
 		return (struct inode*)ERR_PTR(-ENOMEM);
 
+	if (!inode->free_inode)
+		inode->free_inode = ops->free_inode;
+
 	return inode;
+}
+
+
+void iput(struct inode * inode)
+{
+	if (!inode)
+		return;
+
+	if (atomic_read(&inode->i_count)
+	    && !atomic_dec_and_test(&inode->i_count))
+		return;
+
+	if (inode->free_inode)
+		inode->free_inode(inode);
 }
 
 
