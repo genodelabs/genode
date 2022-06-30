@@ -18,20 +18,6 @@
 #include <lx_emul/alloc.h>
 #include <lx_emul/io_mem.h>
 
-
-#include <asm-generic/delay.h>
-#include <linux/delay.h>
-
-void __const_udelay(unsigned long xloops)
-{
-       unsigned long usecs = xloops / 0x10C7UL;
-       if (usecs < 100)
-               lx_emul_time_udelay(usecs);
-       else
-               usleep_range(usecs, usecs * 10);
-}
-
-
 #include <linux/slab.h>
 
 struct kmem_cache * kmem_cache_create_usercopy(const char * name,

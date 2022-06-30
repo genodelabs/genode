@@ -26,7 +26,6 @@ unsigned long long sched_clock(void)
 void time_init(void)
 {
 	lx_emul_time_init(); /* replaces timer_probe() */
-	lpj_fine = 1000000 / HZ;
 }
 
 

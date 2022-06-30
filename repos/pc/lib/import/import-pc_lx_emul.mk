@@ -47,6 +47,7 @@ SRC_C   += lx_emul/sched_core.c
 SRC_C   += lx_emul/slab_common.c
 SRC_C   += lx_emul/softirq.c
 SRC_C   += lx_emul/vmalloc.c
+SRC_C   += lx_emul/delay.c
 
 SRC_C   += lx_emul/shadow/fs/libfs.c
 SRC_C   += lx_emul/shadow/kernel/rcu/tiny.c

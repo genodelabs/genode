@@ -47,11 +47,6 @@ const struct trace_print_flags pageflag_names[] = { {0,NULL}};
 
 struct kernel_stat kstat;
 
-#include <linux/delay.h>
-
-/* support for arch/x86/lib/delay.c, normally defined in init/main.c */
-unsigned long loops_per_jiffy = (1<<12);
-
 
 #include <asm/processor.h>
 
@@ -68,11 +63,6 @@ struct cpuinfo_x86 boot_cpu_data =
 };
 
 unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)];
-
-
-#include <linux/delay.h>
-
-unsigned long lpj_fine = 0;
 
 
 /*

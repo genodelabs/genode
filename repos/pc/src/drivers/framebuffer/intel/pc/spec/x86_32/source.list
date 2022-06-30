@@ -1,4 +1,3 @@
-arch/x86/lib/delay.c
 arch/x86/lib/hweight.S
 arch/x86/pci/legacy.c
 arch/x86/platform/intel/iosf_mbi.c
