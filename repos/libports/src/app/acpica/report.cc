@@ -16,20 +16,11 @@
 #include "util.h"
 #include "bridge.h"
 
+using namespace Acpica;
+
 using Genode::Reporter;
 
 extern void AcpiGenodeFreeIOMem(ACPI_PHYSICAL_ADDRESS const phys, ACPI_SIZE const size);
-
-template <typename H, typename S, typename F, typename FSIZE>
-void for_each_element(H const head, S *, F const &fn, FSIZE const &fn_size)
-{
-	for(S const * e = reinterpret_cast<S const * const>(head + 1);
-	    e < reinterpret_cast<S const *>(reinterpret_cast<char const *>(head) + head->Header.Length);
-	    e = reinterpret_cast<S const *>(reinterpret_cast<char const *>(e) + fn_size(e)))
-	{
-		fn(e);
-	}
-}
 
 static void add_madt(ACPI_TABLE_MADT const * const madt,
                      Reporter::Xml_generator &xml)

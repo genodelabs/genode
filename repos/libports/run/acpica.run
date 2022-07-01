@@ -72,8 +72,8 @@ set config {
 		</start>}
 
 append_if [expr !$use_acpica_as_acpi_drv] config {
-		<start name="acpica" caps="150">
-			<resource name="RAM" quantum="5M"/>
+		<start name="acpica" caps="200">
+			<resource name="RAM" quantum="8M"/>
 			<config ld_verbose="yes" reset="no" poweroff="no" report="yes" acpi_ready="yes">
 			</config>
 			<route>
@@ -178,9 +178,9 @@ append config {
 				<map acpi="ec"      value="25"        to_key="KEY_VENDOR"/>
 				<map acpi="ec"      value="20"        to_key="KEY_BRIGHTNESSUP"/>
 				<map acpi="ec"      value="21"        to_key="KEY_BRIGHTNESSDOWN"/>
-				<map acpi="fixed"   value="0"         to_key="KEY_POWER"  as="PRESS_RELEASE"/>
-				<map acpi="lid"     value="CLOSED"    to_key="KEY_SLEEP"  as="PRESS"/>
-				<map acpi="lid"     value="OPEN"      to_key="KEY_SLEEP"  as="RELEASE"/>
+				<map acpi="fixed"   value="0"         to_key="KEY_POWER" as="PRESS_RELEASE"/>
+				<map acpi="lid"     value="CLOSED"    to_key="KEY_SLEEP" as="PRESS_RELEASE"/>
+				<map acpi="lid"     value="OPEN"      to_key="KEY_SLEEP" as="PRESS_RELEASE"/>
 				<map acpi="ac"      value="ONLINE"    to_key="KEY_WAKEUP"/>
 				<map acpi="ac"      value="OFFLINE"   to_key="KEY_SLEEP"/>
 				<map acpi="battery" value="0"         to_key="KEY_BATTERY"/>
@@ -225,4 +225,30 @@ build_boot_image $boot_modules
 
 append qemu_args "-nographic "
 
-run_genode_until {\[init -\> acpi.*SCI IRQ:.*\n} 30
+if {![have_include "power_on/qemu"]} {
+	run_genode_until {\[init -\> acpi.*SCI IRQ:.*\n} 30
+	exit 0
+}
+
+run_genode_until {.*PS2 uses IRQ, vector 0xc.*} 30
+
+set spawn_id $qemu_spawn_id
+
+sleep 1
+
+# send Ctrl-a+c to enter Qemu's monitor mode
+send "\x01\x63"
+
+# wait for monitor to become ready
+run_genode_until {(qemu)} 20 $spawn_id
+
+
+for {set i 0} {$i < 3} {incr i} {
+
+	sleep 1
+	send "system_powerdown\n"
+	run_genode_until {.*key count: 0.*} 3 $spawn_id
+}
+
+puts "\nTest succeeded\n"
+exit 0
