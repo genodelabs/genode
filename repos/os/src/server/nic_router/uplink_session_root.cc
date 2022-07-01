@@ -104,6 +104,12 @@ Net::Uplink_session_component::Uplink_session_component(Session_env             
 	/* install packet stream signal handlers */
 	_tx.sigh_packet_avail(_interface.pkt_stream_signal_handler());
 	_rx.sigh_ack_avail   (_interface.pkt_stream_signal_handler());
+
+	/*
+	 * We do not install ready_to_submit because submission is only triggered by
+	 * incoming packets (and dropped if the submit queue is full).
+	 * The ack queue should never be full otherwise we'll be leaking packets.
+	 */
 }
 
 

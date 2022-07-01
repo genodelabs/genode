@@ -1538,7 +1538,7 @@ void Interface::_handle_pkt_stream_signal()
 	 * sending new packets in the subsequent steps of this handler.
 	 */
 	while (_source.ack_avail()) {
-		_source.release_packet(_source.get_acked_packet());
+		_source.release_packet(_source.try_get_acked_packet());
 	}
 
 	/*
@@ -1567,6 +1567,23 @@ void Interface::_handle_pkt_stream_signal()
 			_handle_pkt();
 		}
 	}
+
+	/*
+	 * Since we use the try_*() variants of the packet-stream API, we
+	 * haven't emitted any packet_avail, ack_avail, ready_to_submit or
+	 * ready_to_ack signal up to now. We've removed packets from our sink's
+	 * submit queue and might have forwarded it to any interface. We may have
+	 * also removed acks from our sink's ack queue.
+	 *
+	 * We therefore wakeup all sources and our sink. Note that the packet-stream
+	 * API takes care of emitting only the signals that are actually needed.
+	 */
+	_config().domains().for_each([&] (Domain &domain) {
+		domain.interfaces().for_each([&] (Interface &interface) {
+			interface.wakeup_source();
+		});
+	});
+	wakeup_sink();
 }
 
 
@@ -1810,7 +1827,7 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
 		}
 		catch (Size_guard::Exceeded) { log("[", local_domain, "] snd ?"); }
 	}
-	_source.submit_packet(pkt);
+	_source.try_submit_packet(pkt);
 }
 
 
@@ -2132,6 +2149,13 @@ void Interface::_failed_to_send_packet_link()
 }
 
 
+void Interface::_failed_to_send_packet_submit()
+{
+	if (_config().verbose()) {
+		log("[", _domain(), "] failed to send packet (queue full)"); }
+}
+
+
 void Interface::_failed_to_send_packet_alloc()
 {
 	if (_config().verbose()) {
@@ -2254,14 +2278,13 @@ void Interface::handle_config_3()
 
 void Interface::_ack_packet(Packet_descriptor const &pkt)
 {
-	if (!_sink.ready_to_ack()) {
+	if (!_sink.try_ack_packet(pkt)) {
 		if (_config().verbose()) {
 			log("[", _domain(), "] leak packet (sink not ready to "
 			    "acknowledge)");
 		}
 		return;
 	}
-	_sink.acknowledge_packet(pkt);
 }
 
 

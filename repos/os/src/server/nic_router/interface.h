@@ -345,6 +345,8 @@ class Net::Interface : private Interface_list::Element
 
 		void _failed_to_send_packet_link();
 
+		void _failed_to_send_packet_submit();
+
 		void _failed_to_send_packet_alloc();
 
 		void _send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf,
@@ -392,6 +394,10 @@ class Net::Interface : private Interface_list::Element
 		{
 			if (!link_state()) {
 				_failed_to_send_packet_link();
+				return;
+			}
+			if (!_source.ready_to_submit()) {
+				_failed_to_send_packet_submit();
 				return;
 			}
 			try {
@@ -456,6 +462,8 @@ class Net::Interface : private Interface_list::Element
 		Interface_link_stats      &icmp_stats()                      { return _icmp_stats; }
 		Interface_object_stats    &arp_stats()                       { return _arp_stats; }
 		Interface_object_stats    &dhcp_stats()                      { return _dhcp_stats; }
+		void                       wakeup_source()                   { _source.wakeup(); }
+		void                       wakeup_sink()                     { _sink.wakeup(); }
 };
 
 #endif /* _INTERFACE_H_ */
