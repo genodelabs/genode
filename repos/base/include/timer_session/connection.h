@@ -117,6 +117,8 @@ class Timer::One_shot_timeout : private Genode::Noncopyable,
 		void discard() { _timeout.discard(); }
 
 		bool scheduled() { return _timeout.scheduled(); }
+
+		Microseconds deadline() const { return _timeout.deadline(); }
 };
 
 

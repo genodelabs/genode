@@ -42,6 +42,7 @@
 #include <reference.h>
 #include <pointer.h>
 #include <l3_protocol.h>
+#include <lazy_one_shot_timeout.h>
 
 namespace Net {
 
@@ -187,7 +188,7 @@ class Net::Link : public Link_list::Element
 		Reference<Configuration>       _config;
 		Interface                     &_client_interface;
 		Pointer<Port_allocator_guard>  _server_port_alloc;
-		Timer::One_shot_timeout<Link>  _dissolve_timeout;
+		Lazy_one_shot_timeout<Link>    _dissolve_timeout;
 		Genode::Microseconds           _dissolve_timeout_us;
 		L3_protocol             const  _protocol;
 		Link_side                      _client;
