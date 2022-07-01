@@ -772,11 +772,12 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 * Wake up the packet sink if needed
 		 *
 		 * This method assumes that the same signal handler is used for
-		 * the submit transmitter and the ack receiver.
+		 * the submit transmitter and the ack receiver. The ack receiver is not
+		 * signalled if the submit transmitter was already signalled.
 		 */
 		void wakeup()
 		{
-			/* submit only one signal */
+			/* submit only one signal, prefer submit transmitter over ack receiver */
 			_submit_transmitter.tx_wakeup() || _ack_receiver.rx_wakeup();
 		}
 
@@ -930,12 +931,13 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		 * Wake up the packet source if needed
 		 *
 		 * This method assumes that the same signal handler is used for
-		 * the submit receiver and the ack transmitter.
+		 * the submit receiver and the ack transmitter. The submit receiver
+		 * is not signalled if the ack transmitter was already signalled.
 		 */
 		void wakeup()
 		{
-			/* submit only one signal */
-			_submit_receiver.rx_wakeup() || _ack_transmitter.tx_wakeup();
+			/* submit only one signal, prefer ack_avail signal over ready_to_submit */
+			_ack_transmitter.tx_wakeup() || _submit_receiver.rx_wakeup();
 		}
 
 		/**
