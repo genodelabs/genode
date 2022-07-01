@@ -402,11 +402,11 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t cpu,
 	                          mword_t &msi_addr, mword_t &msi_data,
-	                          mword_t si = ~0UL)
+	                          mword_t si = ~0UL, Gsi_flags flags = Gsi_flags())
 	{
 		msi_addr = dev;
 		msi_data = cpu;
-		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, msi_addr, msi_data, si);
+		return syscall_5(NOVA_ASSIGN_GSI, flags.value(), sm, msi_addr, msi_data, si);
 	}
 }
 #endif /* _INCLUDE__SPEC__64BIT__NOVA__SYSCALLS_H_ */

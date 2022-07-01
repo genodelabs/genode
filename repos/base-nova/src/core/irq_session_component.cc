@@ -18,6 +18,7 @@
 
 /* core includes */
 #include <irq_root.h>
+#include <irq_args.h>
 #include <platform.h>
 
 /* NOVA includes */
@@ -27,13 +28,12 @@
 using namespace Genode;
 
 
-static bool irq_ctrl(Genode::addr_t irq_sel,
-                     Genode::addr_t &msi_addr, Genode::addr_t &msi_data,
-                     Genode::addr_t sig_sel, Genode::addr_t virt_addr = 0)
+static bool irq_ctrl(addr_t irq_sel, addr_t &msi_addr, addr_t &msi_data,
+                     addr_t sig_sel, Nova::Gsi_flags flags, addr_t virt_addr)
 {
 	/* assign IRQ to CPU && request msi data to be used by driver */
 	uint8_t res = Nova::assign_gsi(irq_sel, virt_addr, boot_cpu(),
-	                               msi_addr, msi_data, sig_sel);
+	                               msi_addr, msi_data, sig_sel, flags);
 
 	if (res != Nova::NOVA_OK)
 		error("setting up MSI failed - error ", res);
@@ -46,30 +46,28 @@ static bool irq_ctrl(Genode::addr_t irq_sel,
 }
 
 
-static bool associate(Genode::addr_t irq_sel,
-                      Genode::addr_t &msi_addr, Genode::addr_t &msi_data,
-                      Genode::Signal_context_capability sig_cap,
-                      Genode::addr_t virt_addr = 0)
-{
-	return irq_ctrl(irq_sel, msi_addr, msi_data, sig_cap.local_name(),
-	                virt_addr);
-}
-
-
-static void deassociate(Genode::addr_t irq_sel)
+static bool associate_gsi(addr_t irq_sel, Signal_context_capability sig_cap,
+                          Nova::Gsi_flags gsi_flags)
 {
 	addr_t dummy1 = 0, dummy2 = 0;
 
-	if (!irq_ctrl(irq_sel, dummy1, dummy2, irq_sel))
+	return irq_ctrl(irq_sel, dummy1, dummy2, sig_cap.local_name(), gsi_flags, 0);
+}
+
+
+static void deassociate(addr_t irq_sel)
+{
+	addr_t dummy1 = 0, dummy2 = 0;
+
+	if (!irq_ctrl(irq_sel, dummy1, dummy2, irq_sel, Nova::Gsi_flags(), 0))
 		warning("Irq could not be de-associated");
 }
 
 
-static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
-                Genode::addr_t &msi_addr, Genode::addr_t &msi_data,
-                Genode::Signal_context_capability sig_cap)
+static bool associate_msi(addr_t irq_sel, addr_t phys_mem, addr_t &msi_addr,
+                          addr_t &msi_data, Signal_context_capability sig_cap)
 {
-	return  platform().region_alloc().alloc_aligned(4096, 12).convert<bool>(
+	return platform().region_alloc().alloc_aligned(4096, 12).convert<bool>(
 
 		[&] (void *virt_ptr) {
 
@@ -89,7 +87,7 @@ static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
 			}
 
 			/* try to assign MSI to device */
-			bool res = associate(irq_sel, msi_addr, msi_data, sig_cap, virt_addr);
+			bool res = irq_ctrl(irq_sel, msi_addr, msi_data, sig_cap.local_name(), Nova::Gsi_flags(), virt_addr);
 
 			unmap_local(Nova::Mem_crd(virt_addr >> 12, 0, Rights(true, true, true)));
 			platform().region_alloc().free(virt_ptr, 4096);
@@ -118,11 +116,12 @@ void Irq_object::sigh(Signal_context_capability cap)
 		return;
 	}
 
+	/* associate GSI or MSI to device belonging to device_phys */
 	bool ok = false;
 	if (_device_phys)
-		ok = msi(irq_sel(), _device_phys, _msi_addr, _msi_data, cap);
+		ok = associate_msi(irq_sel(), _device_phys, _msi_addr, _msi_data, cap);
 	else
-	    ok = associate(irq_sel(), _msi_addr, _msi_data, cap);
+		ok = associate_gsi(irq_sel(), cap, _gsi_flags);
 
 	if (!ok) {
 		deassociate(irq_sel());
@@ -141,7 +140,7 @@ void Irq_object::ack_irq()
 }
 
 
-void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
+void Irq_object::start(unsigned irq, addr_t const device_phys, Irq_args const &irq_args)
 {
 	/* map IRQ SM cap from kernel to core at irq_sel selector */
 	using Nova::Obj_crd;
@@ -158,12 +157,29 @@ void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
 		throw Service_denied();
 	}
 
+	/* initialize GSI IRQ flags */
+	auto gsi_flags = [] (Irq_args const &args) {
+		if (args.trigger() == Irq_session::TRIGGER_UNCHANGED
+		 || args.polarity() == Irq_session::POLARITY_UNCHANGED)
+			return Nova::Gsi_flags();
+
+		if (args.trigger() == Irq_session::TRIGGER_EDGE)
+			return Nova::Gsi_flags(Nova::Gsi_flags::EDGE);
+
+		if (args.polarity() == Irq_session::POLARITY_HIGH)
+			return Nova::Gsi_flags(Nova::Gsi_flags::HIGH);
+		else
+			return Nova::Gsi_flags(Nova::Gsi_flags::LOW);
+	};
+
+	_gsi_flags = gsi_flags(irq_args);
+
 	/* associate GSI or MSI to device belonging to device_phys */
 	bool ok = false;
 	if (device_phys)
-		ok = msi(irq_sel(), device_phys, _msi_addr, _msi_data, _sigh_cap);
+		ok = associate_msi(irq_sel(), device_phys, _msi_addr, _msi_data, _sigh_cap);
 	else
-		ok = associate(irq_sel(), _msi_addr, _msi_data, _sigh_cap);
+		ok = associate_gsi(irq_sel(), _sigh_cap, _gsi_flags);
 
 	if (!ok)
 		throw Service_denied();
@@ -212,7 +228,9 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 :
 	_irq_number(~0U), _irq_alloc(irq_alloc), _irq_object()
 {
-	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
+	Irq_args const irq_args(args);
+
+	long irq_number = irq_args.irq_number();
 	long device_phys = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (device_phys) {
 
@@ -232,7 +250,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 
 	_irq_number = (unsigned)irq_number;
 
-	_irq_object.start(_irq_number, device_phys);
+	_irq_object.start(_irq_number, device_phys, irq_args);
 }
 
 
@@ -241,7 +259,7 @@ Irq_session_component::~Irq_session_component()
 	if (_irq_number == ~0U)
 		return;
 
-	Genode::addr_t free_irq = _irq_number;
+	addr_t free_irq = _irq_number;
 	_irq_alloc.free((void *)free_irq);
 }
 
@@ -252,13 +270,13 @@ void Irq_session_component::ack_irq()
 }
 
 
-void Irq_session_component::sigh(Genode::Signal_context_capability cap)
+void Irq_session_component::sigh(Signal_context_capability cap)
 {
 	_irq_object.sigh(cap);
 }
 
 
-Genode::Irq_session::Info Irq_session_component::info()
+Irq_session::Info Irq_session_component::info()
 {
 	if (!_irq_object.msi_address() || !_irq_object.msi_value())
 		return { .type = Info::Type::INVALID, .address = 0, .value = 0 };

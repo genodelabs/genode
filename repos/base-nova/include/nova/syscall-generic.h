@@ -257,6 +257,30 @@ namespace Nova {
 	 */
 	enum Pd_op { TRANSFER_QUOTA = 0U, PD_DEBUG = 2U };
 
+	class Gsi_flags
+	{
+		private:
+
+			uint8_t _value { 0 };
+
+		public:
+
+			enum Mode { HIGH, LOW, EDGE };
+
+			Gsi_flags() { }
+
+			Gsi_flags(Mode m)
+			{
+				switch (m) {
+				case HIGH: _value = 0b110; break; /* level-high */
+				case LOW:  _value = 0b111; break; /* level-low */
+				case EDGE: _value = 0b100; break; /* edge-triggered */
+				}
+			}
+
+			uint8_t value() const { return _value; }
+	};
+
 
 	class Descriptor
 	{
