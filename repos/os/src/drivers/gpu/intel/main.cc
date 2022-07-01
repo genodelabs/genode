@@ -56,7 +56,7 @@ namespace Igd {
 
 struct Igd::Device_info
 {
-	enum Platform { UNKNOWN, BROADWELL, SKYLAKE, KABYLAKE, WHISKEYLAKE };
+	enum Platform { UNKNOWN, BROADWELL, SKYLAKE, KABYLAKE, WHISKEYLAKE, TIGERLAKE };
 	enum Stepping { A0, B0, C0, D0, D1, E0, F0, G0 };
 
 	uint16_t    id;
@@ -89,23 +89,52 @@ struct Igd::Device
 	 ** PCI **
 	 *********/
 
-	struct Pci_backend_alloc : Utils::Backend_alloc
+	struct Pci_backend_alloc : Utils::Backend_alloc, Ram_allocator
 	{
+		Env                  &_env;
 		Platform::Connection &_pci;
 
-		Pci_backend_alloc(Platform::Connection &pci) : _pci(pci) { }
+		Pci_backend_alloc(Env &env, Platform::Connection &pci)
+		: _env(env), _pci(pci) { }
 
 		Ram_dataspace_capability alloc(size_t size) override
 		{
-			return _pci.retry_with_upgrade(Genode::Ram_quota{PAGE_SIZE},
-			                               Genode::Cap_quota{8}, [&] () {
-				return _pci.alloc_dma_buffer(size, Genode::UNCACHED); });
+			enum {
+				UPGRADE_RAM      = 8 * PAGE_SIZE,
+				UPGRADE_CAPS     = 2,
+				UPGRADE_ATTEMPTS = ~0U
+			};
+
+			return retry<Genode::Out_of_ram>(
+				[&] () {
+					return retry<Genode::Out_of_caps>(
+						[&] () { return _pci.Client::alloc_dma_buffer(size, UNCACHED); },
+						[&] ()
+						{
+							if (_env.pd().avail_caps().value < UPGRADE_CAPS) {
+								warning("alloc dma buffer: out if caps");
+								throw Gpu::Session::Out_of_caps();
+							}
+
+							_pci.upgrade_caps(UPGRADE_CAPS);
+						},
+						UPGRADE_ATTEMPTS);
+				},
+				[&] ()
+				{
+					if (_env.pd().avail_ram().value < size) {
+						warning("alloc dma buffer: out of ram");
+						throw Gpu::Session::Out_of_ram();
+					}
+					_pci.upgrade_ram(size);
+				},
+				UPGRADE_ATTEMPTS);
 		}
 
 		void free(Ram_dataspace_capability cap) override
 		{
 			if (!cap.valid()) {
-				Genode::error("could not free, capability invalid");
+				error("could not free, capability invalid");
 				return;
 			}
 
@@ -117,15 +146,28 @@ struct Igd::Device
 			return _pci.dma_addr(ds_cap);
 		}
 
-	} _pci_backend_alloc { _platform };
+		/**
+		 * RAM allocator interface
+		 */
 
+		size_t dataspace_size(Ram_dataspace_capability) const override { return 0; }
 
-	Device_info                    _info          { };
-	Gpu::Info_intel::Revision      _revision      { };
-	Gpu::Info_intel::Slice_mask    _slice_mask    { };
-	Gpu::Info_intel::Subslice_mask _subslice_mask { };
-	Gpu::Info_intel::Eu_total      _eus           { };
-	Gpu::Info_intel::Subslices     _subslices     { };
+		Alloc_result try_alloc(size_t size, Cache) override
+		{
+			return alloc(size);
+		}
+
+	} _pci_backend_alloc { _env, _platform };
+
+	Device_info                      _info          { };
+	Gpu::Info_intel::Revision        _revision      { };
+	Gpu::Info_intel::Slice_mask      _slice_mask    { };
+	Gpu::Info_intel::Subslice_mask   _subslice_mask { };
+	Gpu::Info_intel::Eu_total        _eus           { };
+	Gpu::Info_intel::Subslices       _subslices     { };
+	Gpu::Info_intel::Topology        _topology      { };
+	Gpu::Info_intel::Clock_frequency _clock_frequency { };
+
 
 	bool _supported(Xml_node & supported,
 	                uint16_t   dev_id,
@@ -147,10 +189,10 @@ struct Igd::Device
 				return;
 
 			struct Igd::Device_info const info {
-				.id          = device,
-				.generation  = generation,
-				.platform    = platform_type(platform),
-				.features    = 0
+				.id                    = device,
+				.generation            = generation,
+				.platform              = platform_type(platform),
+				.features              = 0,
 			};
 
 			if (info.platform == Igd::Device_info::Platform::UNKNOWN)
@@ -158,7 +200,8 @@ struct Igd::Device
 
 			if (info.id == dev_id) {
 				_info = info;
-				_revision.value = rev_id;
+				_revision.value        = rev_id;
+				_clock_frequency.value = _mmio.clock_frequency(generation);
 
 				found = true;
 				return;
@@ -178,13 +221,14 @@ struct Igd::Device
 			return Igd::Device_info::Platform::KABYLAKE;
 		if (platform == "whiskeylake")
 			return Igd::Device_info::Platform::WHISKEYLAKE;
+		if (platform == "tigerlake")
+			return Igd::Device_info::Platform::TIGERLAKE;
 		return Igd::Device_info::UNKNOWN;
 	}
 
 	/**********
 	 ** GGTT **
 	 **********/
-
 
 	size_t _ggtt_size()
 	{
@@ -575,7 +619,9 @@ struct Igd::Device
 			                        _device._slice_mask,
 			                        _device._subslice_mask,
 			                        _device._eus,
-			                        _device._subslices);
+			                        _device._subslices,
+			                        _device._clock_frequency,
+			                        _device._topology);
 		}
 
 		~Vgpu()
@@ -622,7 +668,9 @@ struct Igd::Device
 			                  + ((_device.generation().value == 9) ? 6 : 0)
 			                  + ((_device.generation().value == 8) ? 20 : 22) /* epilog + w/a */
 			                  + (dc_flush_wa ? 12 : 0);
-			if (!el.ring_avail(need)) { el.ring_reset_and_fill_zero(); }
+
+			if (!el.ring_avail(need))
+				el.ring_reset_and_fill_zero();
 
 			/* save old tail */
 			Ring_buffer::Index const tail = el.ring_tail();
@@ -888,6 +936,23 @@ struct Igd::Device
 		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[0]);
 	}
 
+	void _submit_execlist_gen12(Engine<Rcs_context> &engine)
+	{
+		if (_mmio.read<Igd::Mmio::GEN12_EXECLIST_STATUS_RSCUNIT::Execution_queue_invalid>() == 0)
+			return;
+
+		Execlist &el = *engine.execlist;
+
+		_mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(el.elem0().low(), 0);
+		_mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(el.elem0().high(), 1);
+
+		for (unsigned i = 2; i < 16; i++)
+			_mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(0, i);
+
+		/* load SQ to EQ */
+		_mmio.write<Igd::Mmio::GEN12_EXECLIST_CONTROL_RSCUNIT::Load>(1);
+	}
+
 	Vgpu *_unschedule_current_vgpu()
 	{
 		Vgpu *result = nullptr;
@@ -916,7 +981,10 @@ struct Igd::Device
 
 		_mmio.flush_gfx_tlb();
 
-		_submit_execlist(rcs);
+		if (_info.generation < 11)
+			_submit_execlist(rcs);
+		else
+			_submit_execlist_gen12(rcs);
 
 		_active_vgpu = gpu;
 		_timer.trigger_once(WATCHDOG_TIMEOUT);
@@ -925,11 +993,6 @@ struct Igd::Device
 	/**********
 	 ** INTR **
 	 **********/
-
-	void _clear_rcs_iir(Mmio::GT_0_INTERRUPT_IIR::access_t const v)
-	{
-		_mmio.write_post<Mmio::GT_0_INTERRUPT_IIR>(v);
-	}
 
 	/**
 	 * \return true, if Vgpu is done and has not further work
@@ -989,7 +1052,8 @@ struct Igd::Device
 		if (!_active_vgpu) { return; }
 
 		Genode::error("watchdog triggered: engine stuck,"
-		              " vGPU=", _active_vgpu->id());
+		              " vGPU=", _active_vgpu->id(), " IRQ: ",
+		              Hex(_mmio.read_irq_vector(_info.generation)));
 		_mmio.dump();
 		_mmio.error_dump();
 		_mmio.fault_dump();
@@ -1021,7 +1085,7 @@ struct Igd::Device
 		_mmio.reset(_info.generation);
 		_mmio.clear_errors();
 		_mmio.init();
-		_mmio.enable_intr();
+		_mmio.enable_intr(_info.generation);
 	}
 
 	/**
@@ -1085,12 +1149,55 @@ struct Igd::Device
 
 			_init_eu_total(3, SUBSLICE_MAX, 8);
 		} else
+		if (_info.generation == 12) {
+			_init_topology_gen12();
+		} else
 			Genode::error("unsupported platform ", (int)_info.platform);
 
 		/* apply generation specific workarounds */
 		apply_workarounds(_mmio, _info.generation);
 
 		_timer.sigh(_watchdog_timeout_sigh);
+	}
+
+	void _init_topology_gen12()
+	{
+		/* NOTE: This needs to be different for DG2 and Xe_HP */
+		_topology.max_slices           = 1;
+		_topology.max_subslices        = 6;
+		_topology.max_eus_per_subslice = 16;
+		_topology.ss_stride = 1; /* roundup(6/8) */
+		_topology.eu_stride = 2; /* 16/8 */
+
+		/* NOTE: 1 for >=12.5 */
+		_topology.slice_mask = _mmio.read<Igd::Mmio::MIRROR_GT_SLICE_EN::Enabled>();
+		if (_topology.slice_mask > 1)
+			error("topology: slices > 1");
+
+		uint32_t dss_en = _mmio.read<Igd::Mmio::MIRROR_GT_DSS_ENABLE>();
+		memcpy(_topology.subslice_mask, &dss_en, sizeof(dss_en));
+
+		/* Gen12 uses dual-subslices */
+		uint8_t eu_en_fuse = ~_mmio.read<Igd::Mmio::MIRROR_EU_DISABLE0::Disabled>();
+		uint16_t eu_en { 0 };
+		for (unsigned i = 0; i < _topology.max_eus_per_subslice / 2; i++) {
+			if (eu_en_fuse & (1u << i)) {
+				_eus.value += 2;
+				eu_en |= (3u << (i * 2));
+			}
+		}
+
+		for (unsigned i = 0; i < _topology.max_subslices; i++) {
+			if (_topology.has_subslice(0, i)) {
+				_subslices.value++;
+				unsigned offset = _topology.eu_idx(0, i);
+				for (unsigned j = 0; j < _topology.eu_stride; j++) {
+					_topology.eu_mask[offset + j] = (eu_en >> (8 * j)) & 0xff;
+				}
+			}
+		}
+
+		_topology.valid = true;
 	}
 
 	void _clock_gating()
@@ -1382,22 +1489,24 @@ struct Igd::Device
 		_clear_fence(id);
 	}
 
-	unsigned handle_irq()
+	bool handle_irq()
 	{
-		Mmio::MASTER_INT_CTL::access_t master = _mmio.read<Mmio::MASTER_INT_CTL>();
+		bool display_irq = _mmio.display_irq(_info.generation);
 
 		/* handle render interrupts only */
-		if (Mmio::MASTER_INT_CTL::Render_interrupts_pending::get(master) == 0)
-			return master;
+		if (_mmio.render_irq(_info.generation) == false)
+			return display_irq;
 
-		_mmio.disable_master_irq();
+		_mmio.disable_master_irq(_info.generation);
 
-		Mmio::GT_0_INTERRUPT_IIR::access_t const v = _mmio.read<Mmio::GT_0_INTERRUPT_IIR>();
+		Mmio::GEN12_RENDER_INTR_VEC::access_t const v = _mmio.read_irq_vector(_info.generation);
 
-		bool const ctx_switch    = Mmio::GT_0_INTERRUPT_IIR::Cs_ctx_switch_interrupt::get(v);
-		bool const user_complete = Mmio::GT_0_INTERRUPT_IIR::Cs_mi_user_interrupt::get(v);
+		bool const ctx_switch    = Mmio::GEN12_RENDER_INTR_VEC::Cs_ctx_switch_interrupt::get(v);
+		bool const user_complete = Mmio::GEN12_RENDER_INTR_VEC::Cs_mi_user_interrupt::get(v);
 
-		if (v) { _clear_rcs_iir(v); }
+		if (v) {
+			_mmio.clear_render_irq(_info.generation, v);
+	}
 
 		Vgpu *notify_gpu = nullptr;
 		if (user_complete) {
@@ -1428,10 +1537,10 @@ struct Igd::Device
 			}
 		}
 
-		return master;
+		return display_irq;
 	}
 
-	void enable_master_irq() { _mmio.enable_master_irq(); }
+	void enable_master_irq() { _mmio.enable_master_irq(_info.generation); }
 
 	private:
 
@@ -1465,10 +1574,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		Genode::Env              &_env;
 		Genode::Region_map       &_rm;
 		Constrained_ram_allocator _ram;
-		Heap                      _heap { _ram, _rm };
+		Igd::Device              &_device;
+		Heap                      _heap { _device._pci_backend_alloc, _rm };
 		Capability<Gpu::Session>  _session_cap { cap() };
 
-		Igd::Device       &_device;
 		Igd::Device::Vgpu  _vgpu;
 
 		struct Resource_guard
@@ -1483,24 +1592,38 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			{ }
 
 			/* worst case */
-			bool avail_caps() { return _cap_quota_guard.have_avail(Cap_quota { 5 }); }
+			bool avail_caps() { return _cap_quota_guard.have_avail(Cap_quota { 15 }); }
 
-			/* size + possible heap allocations */
+			/* size + possible heap allocations  + possible page table allocation +
+			 * + 16KB for 'ep.manage' + unkown overhead */
 			bool avail_ram(size_t size = 0) {
-				return _ram_quota_guard.have_avail(Ram_quota { size + 2*1024*1024 }); }
+				return _ram_quota_guard.have_avail(Ram_quota { size + 2*1024*1024+4096 +
+				                                               1024*1024 + 16*1024 + 1024*1024}); }
 
-			void withdraw(size_t caps, size_t ram)
+			void withdraw(size_t caps_old, size_t caps_new,
+			              size_t ram_old, size_t ram_new)
 			{
+				size_t caps = caps_old > caps_new ? caps_old - caps_new : 0;
+				size_t ram  = ram_old > ram_new ? ram_old - ram_new : 0;
+
 				try {
 					_cap_quota_guard.withdraw(Cap_quota { caps });
 					_ram_quota_guard.withdraw(Ram_quota { ram });
-				} catch (... /* intentional catch-all */) {
+				} catch (Genode::Out_of_caps) {
 					/*
 					 * At this point something in the accounting went wrong
 					 * and as quick-fix let the client abort rather than the
 					 * multiplexer.
 					 */
-					throw Service_denied();
+					Genode::error("Quota guard out of caps! from ", __builtin_return_address(0));
+					throw Gpu::Session::Out_of_caps();
+				} catch (Genode::Out_of_ram) {
+					Genode::error("Quota guard out of ram! from ", __builtin_return_address(0));
+					Genode::error("guard ram: ", _ram_quota_guard.avail().value, " requested: ", ram);
+					throw Gpu::Session::Out_of_ram();
+				} catch (...) {
+					Genode::error("Unknown exception in 'Resourcd_guard::withdraw'");
+					throw;
 				}
 			}
 
@@ -1600,9 +1723,13 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		void _apply_buffer_local(Gpu::Buffer_id id, FN const &fn)
 		{
 			Buffer_local::Id_space::Id local_id { .value = id.value };
-			_buffer_space.apply<Buffer_local>(local_id, [&] (Buffer_local &buffer) {
-				fn(buffer);
-			});
+			try {
+				_buffer_space.apply<Buffer_local>(local_id, [&] (Buffer_local &buffer) {
+					fn(buffer);
+				});
+			} catch (Buffer_local::Id_space::Unknown_id) {
+				error("Unknown id: ", id.value);
+			}
 		}
 
 		Genode::uint64_t seqno { 0 };
@@ -1758,8 +1885,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			size_t ram_before  = _env.pd().avail_ram().value;
 
 			Ram_dataspace_capability ds_cap = _device.alloc_buffer(_heap, size);
-			addr_t phys_addr = _device.dma_addr(ds_cap);
-			Buffer *buffer = new (&_heap) Buffer(ds_cap, phys_addr, _session_cap);
+			addr_t phys_addr                = _device.dma_addr(ds_cap);
+			Buffer *buffer                  = new (&_heap) Buffer(ds_cap, phys_addr, _session_cap);
 			_env.ep().manage(*buffer);
 
 			try {
@@ -1768,17 +1895,17 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				_env.ep().dissolve(*buffer);
 				destroy(&_heap, buffer);
 				_device.free_buffer(_heap, ds_cap);
-				throw Gpu::Session_component::Conflicting_id();
+				return Dataspace_capability();
 			}
 
 			size_t caps_after = _env.pd().avail_caps().value;
 			size_t ram_after  = _env.pd().avail_ram().value;
 
-			/* limit to buffer size */
-			buffer->ram_used = min(ram_before - ram_after, size);
-			buffer->caps_used = (caps_before - caps_after) > 0;
+			/* limit to buffer size for replenish */
+			buffer->ram_used  = min(ram_before > ram_after ? ram_before - ram_after : 0, size);
+			buffer->caps_used = caps_before > caps_after ? true  : false;
 
-			_resource_guard.withdraw(caps_before - caps_after, buffer->ram_used);
+			_resource_guard.withdraw(caps_before, caps_after, ram_before, ram_after);
 
 			return ds_cap;
 		}
@@ -1877,8 +2004,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 				size_t caps_after = _env.pd().avail_caps().value;
 				size_t ram_after  = _env.pd().avail_ram().value;
-				_resource_guard.withdraw(caps_before - caps_after,
-				                         ram_before - ram_after);
+				_resource_guard.withdraw(caps_before, caps_after,
+				                         ram_before , ram_after);
 				return true;
 			};
 
@@ -1956,8 +2083,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			size_t caps_after = _env.pd().avail_caps().value;
 			size_t ram_after  = _env.pd().avail_ram().value;
 
-			_resource_guard.withdraw(caps_before - caps_after,
-			                         ram_before - ram_after);
+			_resource_guard.withdraw(caps_before, caps_after,
+			                         ram_before, ram_after);
 
 			return true;
 		}
@@ -2081,7 +2208,7 @@ class Gpu::Root : public Gpu::Root_component
 				using namespace Genode;
 
 				return new (md_alloc())
-					Session_component(_env, _env.ep(), _env.ram(), _env.rm(),
+					Session_component(_env, _env.ep(), _device->_pci_backend_alloc, _env.rm(),
 					                  resources,
 					                  session_label_from_args(args),
 					                  session_diag_from_args(args),
@@ -2198,9 +2325,9 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 	void handle_irq()
 	{
-		unsigned master = 0;
+		bool display_irq = false;
 		if (_igd_device.constructed())
-			master = _igd_device->handle_irq();
+			display_irq = _igd_device->handle_irq();
 		/* GPU not present forward all IRQs to platform client */
 		else {
 			_platform_root.handle_irq();
@@ -2211,10 +2338,9 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 		 * GPU present check for display engine related IRQs before calling platform
 		 * client
 		 */
-		using Master = Igd::Mmio::MASTER_INT_CTL;
-		if (Master::De_interrupts_pending::get(master) &&
-		    (_platform_root.handle_irq()))
+		if (display_irq && _platform_root.handle_irq()) {
 			return;
+		}
 
 		ack_irq();
 	}

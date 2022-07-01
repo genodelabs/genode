@@ -73,9 +73,9 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 			try {
 				ds = _backend.alloc(alloc_size);
 			}
-			catch (Genode::Out_of_ram)  { return Alloc_error::OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
-			catch (...)                 { return Alloc_error::DENIED; }
+			catch (Gpu::Session::Out_of_ram)  { throw; }
+			catch (Gpu::Session::Out_of_caps) { throw; }
+			catch (...) { return Alloc_error::DENIED; }
 
 			Alloc_error alloc_error = Alloc_error::DENIED;
 

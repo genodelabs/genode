@@ -194,6 +194,66 @@ class Igd::Mmio : public Platform::Device::Mmio
 		struct GT_3_INTERRUPT_IIR : GT_3_INTERRUPT<0x44338> { };
 		struct GT_3_INTERRUPT_IER : GT_3_INTERRUPT<0x4433C> { };
 
+		/**
+		 * GEN11+ interrupt registers
+		 * IHD-OS-TGL-Vol 2c-12.21 part1 p. 1039 ff.
+		 */
+		struct GEN12_GFX_MSTR_INTR : Register<0x190010, 32>
+		{
+			struct Master_interrupt_enable : Bitfield<31, 1> { };
+			struct Display                 : Bitfield<16, 1> { };
+			struct Gt_dw_1                 : Bitfield< 1, 1> { };
+			struct Gt_dw_0                 : Bitfield< 0, 1> { };
+		};
+
+		/* p. 1089 */
+		struct GEN12_GT_INTR_DW0 : Register<0x190018, 32>
+		{
+			struct Rcs0 : Bitfield<0, 1> { };
+		};
+
+		/* p. 1091 */
+		struct GEN12_INTR_IDENTITY_REG0 : Register<0x190060, 32>
+		{
+			struct Valid            : Bitfield<31, 1> { };
+			struct Engine_interrupt : Bitfield<0, 16> { };
+		};
+
+		/*
+		 * p. 1092
+		 *
+		 * Select engine ID to read INTR_IDENTITY from, use only one bit at a time,
+		 * layout is as INTR_DW0 register
+		 */
+		struct GEN12_INTR_IIR_SELECTOR0 : Register<0x190070, 32, true>
+		{
+			struct Rcs0 : Bitfield<0, 1> { };
+		};
+
+		/* p. 1077 */
+		struct GEN12_RENDER_COPY_INTR_ENABLE : Register<0x190030, 32>
+		{
+			struct Render_enable : Bitfield<16, 16> { };
+			struct Copy_enable   : Bitfield< 0, 16> { };
+		};
+
+		/*
+		 * IHD-OS-TGL-Vol 2d-12.21 p. 818 ff
+		 */
+		struct GEN12_RENDER_INTR_VEC : Genode::Register<16>
+		{
+			struct Catastrophic_error           : Bitfield<15, 1> { };
+			struct Eu_restart                   : Bitfield<14, 1> { };
+			struct Context_stall                : Bitfield<13, 1> { };
+			struct Cs_wait_on_semaphore         : Bitfield<11, 1> { };
+			struct Cs_ctx_switch_interrupt      : Bitfield< 8, 1> { };
+			struct Legacy_page_fault_error      : Bitfield< 7, 1> { };
+			struct Cs_watchdog_counter_expired  : Bitfield< 6, 1> { };
+			struct Cs_pipe_control_notify       : Bitfield< 4, 1> { };
+			struct Cs_error_interrupt           : Bitfield< 3, 1> { };
+			struct Cs_mi_user_interrupt         : Bitfield< 0, 1> { };
+		};
+
 		/**************************
 		 ** Page-table registers **
 		 **************************/
@@ -697,6 +757,36 @@ class Igd::Mmio : public Platform::Device::Mmio
 		struct ELEM_DESCRIPTOR2 : Register<0x4404, 32> { };
 
 		/**
+		 * GEN9+ GPM unit lx 5.15
+		 */
+		struct CTC_MODE : Register<0xa26c, 32>
+		{
+			struct Source_divide_logic : Bitfield<0, 1> { };
+		};
+
+		/**
+		 * GEN8+ RPM unit
+		 */
+		struct RPM_CONFIG0 : Register<0x0d00, 32>
+		{
+			struct Ctc_shift               : Bitfield<1, 2> { };
+			struct Crystal_clock_frequency : Bitfield<3, 3> { };
+
+			static uint32_t clock_frequency(Crystal_clock_frequency::access_t freq)
+			{
+				switch (freq) {
+				case 0: return 24'000'000;
+				case 1: return 19'200'000;
+				case 2: return 38'400'000;
+				case 3: return 25'000'000;
+				default:
+					Genode::error("Unknown crystal clock frequency: ", freq);
+					return 0;
+				}
+			}
+		};
+
+		/**
 		 * Forcewake for GEN9 & GEN10, lx 5.13
 		 */
 		struct FORCEWAKE_GT_GEN9     : Register<0x0a188, 32> {
@@ -824,6 +914,28 @@ class Igd::Mmio : public Platform::Device::Mmio
 		struct EU_DISABLE : Register_array<0x9134, 32, 12, 8> { };
 
 		/*
+		 * IHD-OS-TGL-Vol 2c-12.21 part2 p. 81
+		 */
+		struct MIRROR_EU_DISABLE0 : Register<0x9134, 32>
+		{
+			struct Disabled : Bitfield<0, 8> { };
+		};
+
+		/*
+		 * IHD-OS-TGL-Vol 2c-12.2 part 2 p.98
+		 */
+		struct MIRROR_GT_SLICE_EN : Register<0x9138, 32>
+		{
+			struct Enabled : Bitfield<0, 8> { };
+		};
+
+		/*
+		 * IHD-OS-TGL-Vol 2c-12.21 part2 p.97
+		 */
+		struct MIRROR_GT_DSS_ENABLE : Register<0x913c, 32> { };
+
+
+		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 611 ff.
 		 */
 		struct FENCE_REG : Register_array<0x100000, 64, NUM_FENCES, 64>
@@ -835,6 +947,7 @@ class Igd::Mmio : public Platform::Device::Mmio
 			struct Fence_valid       : Bitfield< 0,  1> { };
 		};
 
+
 		/*
 		 * IHD-OS-BDW-Vol 12-11.15 p. 5
 		 */
@@ -845,6 +958,7 @@ class Igd::Mmio : public Platform::Device::Mmio
 		 ** EXECLIST registers **
 		 ************************/
 
+		/* GEN8-11 */
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 435
 		 */
@@ -894,6 +1008,34 @@ class Igd::Mmio : public Platform::Device::Mmio
 		struct EXECLIST_SUBMITPORT_VECSUNIT : EXECLIST_SUBMITPORT_BASE<0x1A000> { };
 		struct EXECLIST_SUBMITPORT_VCSUNIT1 : EXECLIST_SUBMITPORT_BASE<0x1C000> { };
 		struct EXECLIST_SUBMITPORT_BSCUNIT  : EXECLIST_SUBMITPORT_BASE<0x22000> { };
+
+		/* GEN12 */
+		template <long int BASE>
+		struct GEN12_EXECLIST_STATUS_BASE : Register<BASE + 0x234, 64>
+		{
+			using B = Register<BASE + 0x234, 64>;
+			struct Execution_queue_invalid : B::template Bitfield<0, 1> { };
+		};
+
+		struct GEN12_EXECLIST_STATUS_RSCUNIT  : GEN12_EXECLIST_STATUS_BASE<0x02000> { };
+
+		/*
+		 * IHD-OS-TGL-Vol 2c-12.21 p. 896
+		 */
+		struct GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT : Register_array<0x2510, 32, 16, 32> { };
+
+		/*
+		 * IHD-OS-TGL-Vol 2c-12.21 p.891
+		 */
+		template <long int BASE>
+		struct GEN12_EXECLIST_CONTROL_BASE : Register<BASE + 0x550, 32>
+		{
+			using B = Register<BASE + 0x550, 32>;
+			/* load submission queue into exec queue */
+			struct Load : B::template Bitfield<0, 1> { };
+		};
+
+		struct GEN12_EXECLIST_CONTROL_RSCUNIT : GEN12_EXECLIST_CONTROL_BASE<0x02000> { };
 
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 266 ff.
@@ -1023,7 +1165,6 @@ class Igd::Mmio : public Platform::Device::Mmio
 			using namespace Genode;
 
 			while (read<typename REG_ACK::Kernel>()) {
-				log(__func__, " ", __LINE__, " wait ", Hex(read<REG_ACK>()));
 				_delayer.usleep(500 * 1000);
 
 				_fw_enable_wa<REG, REG_ACK>();
@@ -1048,7 +1189,6 @@ class Igd::Mmio : public Platform::Device::Mmio
 			using namespace Genode;
 
 			while (read<typename REG_ACK::Fallback_kernel>()) {
-				log(__func__, " ", __LINE__, " wait ", Hex(read<REG_ACK>()));
 				_delayer.usleep(500 * 1000);
 			}
 
@@ -1059,12 +1199,7 @@ class Igd::Mmio : public Platform::Device::Mmio
 
 			_delayer.usleep(100 * 1000);
 
-			log(__func__, " ", __LINE__, " ",
-			    Genode::Hex(read<REG>()), " ",
-			    Genode::Hex(read<REG_ACK>()));
-
 			while (!(read<typename REG_ACK::Fallback_kernel>())) {
-				log(__func__, " ", __LINE__, " wait ", Hex(read<REG_ACK>()));
 				_delayer.usleep(500 * 1000);
 			}
 
@@ -1092,8 +1227,6 @@ class Igd::Mmio : public Platform::Device::Mmio
 			write<REG>(v);
 
 			while (read<typename REG_ACK::Kernel>()) {
-				Genode::log(__func__, " ", __LINE__, " wait ",
-				            Genode::Hex(read<REG_ACK>()));
 				_delayer.usleep(500 * 1000);
 			}
 		}
@@ -1117,6 +1250,12 @@ class Igd::Mmio : public Platform::Device::Mmio
 			write_post<HWSTAM>(0xffffffff);
 
 			/* TODO DE intr handling (p. 363) */
+		}
+
+		void _intr_reset_gen12()
+		{
+			write<GEN12_GFX_MSTR_INTR::Master_interrupt_enable>(0);
+			write_post<HWSTAM>(0xffffffff);
 		}
 
 		/**
@@ -1199,6 +1338,16 @@ class Igd::Mmio : public Platform::Device::Mmio
 
 			/* finally enable interrupts */
 			write_post<MASTER_INT_CTL::Master_interrupt_enable>(1);
+		}
+
+		void _intr_enable_gen12()
+		{
+			GEN12_RENDER_INTR_VEC::access_t vec { 0 };
+			GEN12_RENDER_INTR_VEC::Cs_mi_user_interrupt::set(vec, 1);
+			GEN12_RENDER_INTR_VEC::Cs_ctx_switch_interrupt::set(vec, 1);
+			write<GEN12_RENDER_COPY_INTR_ENABLE::Render_enable>(vec);
+			write_post<HWSTAM>(~vec);
+			write<GEN12_GFX_MSTR_INTR::Master_interrupt_enable>(1);
 		}
 
 		/**
@@ -1421,6 +1570,31 @@ class Igd::Mmio : public Platform::Device::Mmio
 			write<GFX_MODE>(v);
 		}
 
+		uint32_t _clock_frequency_gen12()
+		{
+			uint32_t freq { 0 };
+
+			/* TIMESTAMP_OVERRIDE when source divide logic */
+			if (read<CTC_MODE::Source_divide_logic>()) {
+				Genode::error("clock frequency: source divide not implemented");
+			}
+			/* RMP_CONFIG when crystal logic */
+			else {
+				freq = RPM_CONFIG0::clock_frequency(
+					read<RPM_CONFIG0::Crystal_clock_frequency>());
+
+				Genode::log("clock frequency: ", freq, " Hz from crystal logic");
+
+				/*
+				 * Shift by Ctc_shift for lowest timestamp counter because counter may
+				 * not increment at every cycle
+				 */
+				freq >>= 3 - read<RPM_CONFIG0::Ctc_shift>();
+			}
+
+			return freq;
+		}
+
 	public:
 
 		Mmio(Platform::Device & device, Genode::Env & env)
@@ -1433,6 +1607,15 @@ class Igd::Mmio : public Platform::Device::Mmio
 			(void)read<T>();
 		}
 
+
+		uint32_t clock_frequency(unsigned const generation)
+		{
+			if (generation >= 11)
+				return _clock_frequency_gen12();
+
+			return 0;
+		}
+
 		void forcewake_gen8_enable() { _fw_enable(FORCEWAKE_ID_RENDER); }
 		void forcewake_gen8_disable() { _fw_disable(FORCEWAKE_ID_RENDER); }
 
@@ -1440,12 +1623,12 @@ class Igd::Mmio : public Platform::Device::Mmio
 		{
 			_fw_enable_gt();
 			_fw_enable_render();
-			_fw_enable_media();
+			//_fw_enable_media();
 		}
 
 		void forcewake_gen9_disable()
 		{
-			_fw_disable_media();
+			//_fw_disable_media();
 			_fw_disable_render();
 			_fw_disable_gt();
 		}
@@ -1457,6 +1640,7 @@ class Igd::Mmio : public Platform::Device::Mmio
 				forcewake_gen8_enable();
 				return;
 			case 9:
+			case 12:
 				forcewake_gen9_enable();
 				return;
 			default:
@@ -1470,7 +1654,8 @@ class Igd::Mmio : public Platform::Device::Mmio
 			case 8:
 				forcewake_gen8_disable();
 				return;
-			case 9:
+			case 9: [[fallthrough]];
+			case 12:
 				forcewake_gen9_disable();
 				return;
 			default:
@@ -1486,7 +1671,10 @@ class Igd::Mmio : public Platform::Device::Mmio
 				return;
 			case 9:
 				reset_gen9();
-				return;
+				break;
+			case 12:
+				reset_gen12();
+				break;;
 			default:
 				Genode::error(__func__, " unsupported generation ", generation);
 			}
@@ -1516,28 +1704,100 @@ class Igd::Mmio : public Platform::Device::Mmio
 			_set_page_attributes();
 		}
 
+		void reset_gen12()
+		{
+			_intr_reset_gen12();
+			_fw_reset_gen9();
+			forcewake_gen9_enable();
+			_reset_device();
+			_reset_fences();
+
+			_disable_nde_handshake();
+			_set_page_attributes();
+		}
+
 		void init()
 		{
 			_disable_rps();
 			_enable_execlist();
 		}
 
-		void enable_intr()
-		{
+		void enable_intr(unsigned const generation)
+		{	
 			write<Igd::Mmio::RCS_EMR>(0xffffff00);
 
-			_intr_enable();
+			if (generation < 11)
+				_intr_enable();
+			else
+				_intr_enable_gen12();
 		}
 
-		void disable_master_irq()
+		void disable_master_irq(unsigned const generation)
 		{
-			write_post<Igd::Mmio::MASTER_INT_CTL::Master_interrupt_enable>(0);
+			if (generation < 11)
+				write_post<Igd::Mmio::MASTER_INT_CTL::Master_interrupt_enable>(0);
+			else
+				write<GEN12_GFX_MSTR_INTR::Master_interrupt_enable>(0);
 		}
 
-		void enable_master_irq()
+		void enable_master_irq(unsigned const generation)
 		{
-			write_post<Igd::Mmio::MASTER_INT_CTL::Master_interrupt_enable>(1);
+			if (generation < 11)
+				write_post<Igd::Mmio::MASTER_INT_CTL::Master_interrupt_enable>(1);
+			else
+				write<GEN12_GFX_MSTR_INTR::Master_interrupt_enable>(1);
 		}
+
+		bool render_irq(unsigned const generation)
+		{
+			if (generation < 11)
+				return read<MASTER_INT_CTL::Render_interrupts_pending>() == 1;
+			else {
+				if (read<GEN12_GFX_MSTR_INTR::Gt_dw_0>() == 1 &&
+				    read<GEN12_GT_INTR_DW0::Rcs0>() == 1)
+					return true;
+			}
+			return false;
+		}
+
+		GEN12_RENDER_INTR_VEC::access_t read_irq_vector(unsigned const generation)
+		{
+			GEN12_RENDER_INTR_VEC::access_t vec = 0;
+			if (generation < 11) {
+				vec = read<GT_0_INTERRUPT_IIR>();
+			} else {
+				write<GEN12_INTR_IIR_SELECTOR0::Rcs0>(1);
+
+				try {
+					wait_for(Attempts(50), Microseconds(500), _delayer,
+					         GEN12_INTR_IDENTITY_REG0::Valid::Equal(1));
+				} catch (Polling_timeout) {
+					Genode::error(__func__, " IRQ vector not valid");
+					return vec;
+				}
+				vec = read<GEN12_INTR_IDENTITY_REG0::Engine_interrupt>();
+				write<GEN12_INTR_IDENTITY_REG0::Valid>(1);
+			}
+
+			return vec;
+		};
+
+		void clear_render_irq(unsigned const generation, Genode::uint16_t v)
+		{
+			if (generation < 11)
+				write_post<GT_0_INTERRUPT_IIR>(v);
+			else
+				write<GEN12_GT_INTR_DW0::Rcs0>(1);
+		}
+
+		bool display_irq(unsigned const generation)
+		{
+			if (generation < 11)
+				return read<MASTER_INT_CTL::De_interrupts_pending>() != 0;
+			else
+				return read<GEN12_GFX_MSTR_INTR::Display>() == 1;
+		}
+
 
 		void flush_gfx_tlb() { _gfx_flush_cntl(); }
 
