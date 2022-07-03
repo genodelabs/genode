@@ -20,8 +20,13 @@ SRC_C += drivers/net/usb/cdc_ether.c
 SRC_C += drivers/net/usb/rndis_host.c
 SRC_C += drivers/net/usb/smsc95xx.c
 SRC_C += drivers/net/usb/usbnet.c
+SRC_C += fs/nls/nls_base.c
+SRC_C += lib/ctype.c
+SRC_C += lib/hexdump.c
 SRC_C += net/core/skbuff.c
 SRC_C += net/ethernet/eth.c
+
+CC_OPT += -Wno-address-of-packed-member
 
 CC_C_OPT += -Wno-comment -Wno-int-conversion -Wno-incompatible-pointer-types \
             -Wno-unused-variable -Wno-pointer-sign -Wno-uninitialized \

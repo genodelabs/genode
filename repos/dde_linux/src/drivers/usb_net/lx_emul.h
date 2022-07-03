@@ -120,6 +120,8 @@ int    dev_set_drvdata(struct device *dev, void *data);
 #define pr_notice(fmt, ...)     printk(KERN_NOTICE fmt, ##__VA_ARGS__)
 #define pr_emerg(fmt, ...)      printk(KERN_INFO fmt,   ##__VA_ARGS__)
 
+#define try_then_request_module(x, mod...) (x)
+
 struct bus_type
 {
 	int (*match)(struct device *dev, struct device_driver *drv);
@@ -190,6 +192,7 @@ const char *dev_name(const struct device *dev);
 struct __una_u16 { u16 x; } __attribute__((packed));
 struct __una_u32 { u32 x; } __attribute__((packed));
 
+#define get_unaligned(ptr) (*ptr)
 u16 get_unaligned_le16(const void *p);
 u32  get_unaligned_le32(const void *p);
 
@@ -534,6 +537,12 @@ const void *of_get_mac_address(struct device_node *np);
 u16 bitrev16(u16 in);
 u16 crc16(u16 crc, const u8 *buffer, size_t len);
 int hex2bin(u8 *dst, const char *src, size_t count);
+char *hex_byte_pack(char *buf, u8 byte);
+
+#define hex_asc_upper_lo(x)	hex_asc_upper[((x) & 0x0f)]
+#define hex_asc_lo(x)	hex_asc[((x) & 0x0f)]
+#define hex_asc_hi(x)	hex_asc[((x) & 0xf0) >> 4]
+
 
 #define this_cpu_ptr(ptr) ptr
 
@@ -918,6 +927,7 @@ void *kmap_atomic(struct page *page);
 void kunmap_atomic(void *addr);
 
 #define CONFIG_LOCKDEP 1
+#define CONFIG_NLS_DEFAULT "iso8859-1"
 
 struct partial_page
 {

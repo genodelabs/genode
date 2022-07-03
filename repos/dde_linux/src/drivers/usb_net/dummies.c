@@ -27,14 +27,6 @@ u16 bitrev16(u16 in)
 	return -1;
 }
 
-struct usb_cdc_parsed_header;
-struct usb_interface;
-int cdc_parse_cdc_header(struct usb_cdc_parsed_header *hdr, struct usb_interface *intf, u8 *buffer, int buflen)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 u16 crc16(u16 crc, const u8 *buffer, size_t len)
 {
 	TRACE_AND_STOP;
@@ -53,22 +45,10 @@ __wsum csum_partial(const void *buff, int len, __wsum sum)
 	return -1;
 }
 
-void * dev_get_drvdata(const struct device *dev)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
 int device_set_wakeup_enable(struct device *dev, bool enable)
 {
 	TRACE_AND_STOP;
 	return -1;
-}
-
-struct sk_buff;
-void dev_kfree_skb_any(struct sk_buff *skb)
-{
-	TRACE_AND_STOP;
 }
 
 void dst_release(struct dst_entry *dst)
@@ -95,11 +75,6 @@ bool file_ns_capable(const struct file *file, struct user_namespace *ns, int cap
 	return -1;
 }
 
-void free_netdev(struct net_device * ndev)
-{
-	TRACE_AND_STOP;
-}
-
 void free_uid(struct user_struct * user)
 {
 	TRACE_AND_STOP;
@@ -124,12 +99,6 @@ bool gfpflags_allow_blocking(const gfp_t gfp_flags)
 }
 
 bool gfp_pfmemalloc_allowed(gfp_t gfp_flags)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int hex2bin(u8 *dst, const char *src, size_t count)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -255,11 +224,6 @@ void read_unlock_bh(rwlock_t * l)
 	TRACE_AND_STOP;
 }
 
-void unregister_netdev(struct net_device * dev)
-{
-	TRACE_AND_STOP;
-}
-
 void secpath_reset(struct sk_buff * skb)
 {
 	TRACE;
@@ -267,7 +231,7 @@ void secpath_reset(struct sk_buff * skb)
 
 void __set_current_state(int state)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 void sg_init_table(struct scatterlist *sg, unsigned int arg)
@@ -318,7 +282,7 @@ size_t strlcpy(char *dest, const char *src, size_t size)
 
 void tasklet_kill(struct tasklet_struct *t)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 void trace_consume_skb(struct sk_buff *skb)
@@ -351,25 +315,23 @@ int usb_clear_halt(struct usb_device *dev, int pipe)
 }
 
 struct usb_driver;
-int usb_driver_claim_interface(struct usb_driver *driver, struct usb_interface *iface, void *priv)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
+struct usb_interface;
 void usb_driver_release_interface(struct usb_driver *driver, struct usb_interface *iface)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
+
+
+/* only called to kill interrupt urb in usbnet.c */
+struct urb;
+void usb_kill_urb(struct urb *urb)
+{
+	TRACE;
+}
+
 
 struct usb_anchor;
 struct urb *usb_get_from_anchor(struct usb_anchor *anchor)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
-struct urb *usb_get_urb(struct urb *urb)
 {
 	TRACE_AND_STOP;
 	return NULL;
@@ -383,13 +345,7 @@ int usb_interrupt_msg(struct usb_device *usb_dev, unsigned int pipe, void *data,
 
 void usb_scuttle_anchored_urbs(struct usb_anchor *anchor)
 {
-	TRACE_AND_STOP;
-}
-
-int usb_string(struct usb_device *dev, int index, char *buf, size_t size)
-{
-	TRACE_AND_STOP;
-	return -1;
+	TRACE;
 }
 
 ktime_t ktime_get_real(void)
@@ -419,28 +375,19 @@ void put_page(struct page *page)
 	TRACE_AND_STOP;
 }
 
-struct usb_interface *usb_ifnum_to_if(const struct usb_device *dev, unsigned ifnum)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
-void usb_kill_urb(struct urb *urb)
-{
-	TRACE_AND_STOP;
-}
-
-int usb_set_interface(struct usb_device *dev, int ifnum, int alternate)
+int usb_unlink_urb(struct urb *urb)
 {
 	TRACE;
 	return 0;
 }
 
-int usb_unlink_urb(struct urb *urb)
+
+struct urb *usb_get_urb(struct urb *urb)
 {
-	TRACE_AND_STOP;
-	return -1;
+	TRACE;
+	return NULL;
 }
+
 
 void usleep_range(unsigned long min, unsigned long max)
 {
