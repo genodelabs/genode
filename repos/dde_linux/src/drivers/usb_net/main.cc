@@ -39,15 +39,22 @@ void Driver::Device::scan_altsettings(usb_interface * iface,
 	if (iface_desc.active)
 		iface->cur_altsetting = &iface->altsetting[alt_idx];
 
+	Usb::Interface_extra iface_extra;
+	if (usb.interface_extra(iface_idx, alt_idx, &iface_extra)) {
+		iface->altsetting[alt_idx].extra = (unsigned char *)kzalloc(iface_extra.length, 0);
+		Genode::memcpy(iface->altsetting[alt_idx].extra, iface_extra.data,
+		               iface_extra.length);
+		iface->altsetting[alt_idx].extralen = iface_extra.length;
+	}
 
 	iface->altsetting[alt_idx].endpoint = (usb_host_endpoint*)
 		kzalloc(sizeof(usb_host_endpoint)*iface->altsetting[alt_idx].desc.bNumEndpoints, GFP_KERNEL);
 
 	for (unsigned i = 0; i < iface->altsetting[alt_idx].desc.bNumEndpoints; i++) {
-		Usb::Endpoint_descriptor ep_desc;
-		usb.endpoint_descriptor(iface_idx, alt_idx, i, &ep_desc);
+		Usb::Endpoint_descriptor ep_desc[7];
+		usb.endpoint_descriptor(iface_idx, alt_idx, i, ep_desc);
 		Genode::memcpy(&iface->altsetting[alt_idx].endpoint[i].desc,
-		               &ep_desc, sizeof(usb_endpoint_descriptor));
+		               ep_desc, sizeof(usb_endpoint_descriptor));
 		int epnum = usb_endpoint_num(&iface->altsetting[alt_idx].endpoint[i].desc);
 		if (usb_endpoint_dir_out(&iface->altsetting[alt_idx].endpoint[i].desc))
 			udev->ep_out[epnum] = &iface->altsetting[alt_idx].endpoint[i];
@@ -70,11 +77,7 @@ void Driver::Device::scan_interfaces(unsigned iface_idx)
 	for (unsigned i = 0; i < iface->num_altsetting; i++)
 		scan_altsettings(iface, iface_idx, i);
 
-	struct usb_device_id id;
-	probe_interface(iface, &id);
 	udev->config->interface[iface_idx] = iface;
-
-	driver.activate_network_session();
 };
 
 
@@ -101,6 +104,17 @@ void Driver::Device::register_device()
 
 	for (unsigned i = 0; i < config_desc.num_interfaces; i++)
 		scan_interfaces(i);
+
+	udev->actconfig = udev->config;
+	udev->config->desc.bNumInterfaces = config_desc.num_interfaces;
+
+	/* probe */
+	for (unsigned i = 0; i < config_desc.num_interfaces; i++) {
+		struct usb_device_id id;
+		probe_interface(udev->config->interface[i], &id);
+	}
+
+	driver.activate_network_session();
 }
 
 

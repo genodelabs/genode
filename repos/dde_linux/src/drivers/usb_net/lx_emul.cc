@@ -30,6 +30,8 @@
 #include <legacy/lx_emul/extern_c_begin.h>
 
 #include <linux/mii.h>
+#include <linux/usb/usbnet.h>
+
 
 static int usb_match_device(struct usb_device *dev,
                             const struct usb_device_id *id)
@@ -203,12 +205,6 @@ Genode::Ram_dataspace_capability Lx::backend_alloc(Genode::addr_t size,
 }
 
 
-Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability)
-{
-	return 0;
-}
-
-
 int usb_register_driver(struct usb_driver * driver, struct module *, const char *)
 {
 	INIT_LIST_HEAD(&driver->dynids.list);
@@ -217,25 +213,66 @@ int usb_register_driver(struct usb_driver * driver, struct module *, const char 
 }
 
 
+Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability)
+{
+	return 0;
+}
+
+
+int usb_driver_claim_interface(struct usb_driver *driver, struct usb_interface *iface, void *priv)
+{
+	usb_device      *udev = interface_to_usbdev(iface);
+	Usb::Connection *usb = reinterpret_cast<Usb::Connection *>(udev->bus->controller);
+	try {
+		usb->claim_interface(iface->cur_altsetting->desc.bInterfaceNumber);
+	} catch (...) {
+		return -1;
+	}
+	return 0;
+}
+
+
+int usb_set_interface(struct usb_device *udev, int ifnum, int alternate)
+{
+	Usb::Connection *usb = reinterpret_cast<Usb::Connection *>(udev->bus->controller);
+	Driver::Sync_packet packet { *usb };
+	packet.alt_setting(ifnum, alternate);
+	usb_interface *iface = udev->config->interface[ifnum];
+	iface->cur_altsetting = &iface->altsetting[alternate];
+
+	return 0;
+}
+
 void Driver::Device::probe_interface(usb_interface * iface, usb_device_id * id)
 {
 	using Le = Genode::List_element<Lx_driver>;
 	for (Le *le = Lx_driver::list().first(); le; le = le->next()) {
 		usb_device_id * id = le->object()->match(iface);
-		if (id && le->object()->probe(iface, id)) return;
+
+		if (id) {
+			int ret = le->object()->probe(iface, id);
+			if (ret == 0) return;
+		}
 	}
 }
 
 
 void Driver::Device::remove_interface(usb_interface * iface)
 {
-	to_usb_driver(iface->dev.driver)->disconnect(iface);
+	/* we might not drive this interface */
+	if (iface->dev.driver) {
+		usbnet *dev =(usbnet* )usb_get_intfdata(iface);
+		usbnet_link_change(dev, 0, 0);
+		to_usb_driver(iface->dev.driver)->disconnect(iface);
+	}
+
 	for (unsigned i = 0; i < iface->num_altsetting; i++) {
 		if (iface->altsetting[i].extra)
 			kfree(iface->altsetting[i].extra);
 		kfree(iface->altsetting[i].endpoint);
-		kfree(iface->altsetting);
 	}
+
+	kfree(iface->altsetting);
 	kfree(iface);
 }
 
@@ -350,6 +387,16 @@ struct net_device *alloc_etherdev(int sizeof_priv)
 }
 
 
+void free_netdev(struct net_device * ndev)
+{
+	if (!ndev) return;
+
+	kfree(ndev->priv);
+	kfree(ndev->dev_addr);
+	kfree(ndev);
+}
+
+
 void *__alloc_percpu(size_t size, size_t align)
 {
 	return kmalloc(size, 0);
@@ -379,14 +426,23 @@ int register_netdev(struct net_device *dev)
 	dev->state |= 1 << __LINK_STATE_START;
 
 	int err = dev->netdev_ops->ndo_open(dev);
+
 	if (err) return err;
 
 	if (dev->netdev_ops->ndo_set_rx_mode)
 		dev->netdev_ops->ndo_set_rx_mode(dev);
-
 	single_net_device = dev;
 	return 0;
 };
+
+
+void unregister_netdev(struct net_device * dev)
+{
+	if (dev->netdev_ops->ndo_stop)
+		dev->netdev_ops->ndo_stop(dev);
+
+	single_net_device = NULL;
+}
 
 
 net_device *
@@ -428,6 +484,12 @@ int dev_set_drvdata(struct device *dev, void *data)
 {
 	dev->driver_data = data;
 	return 0;
+}
+
+
+void * dev_get_drvdata(const struct device *dev)
+{
+	return dev->driver_data;
 }
 
 
@@ -484,6 +546,11 @@ int netif_rx(struct sk_buff * skb)
 	return NET_RX_SUCCESS;
 }
 
+
+void dev_kfree_skb_any(struct sk_buff *skb)
+{
+	dev_kfree_skb(skb);
+}
 
 int is_valid_ether_addr(const u8 * a)
 {
@@ -551,3 +618,5 @@ void page_frag_free(void *addr)
 	Lx::Malloc::dma().free_large(page->addr);
 	kfree(page);
 }
+
+
