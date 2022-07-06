@@ -139,10 +139,12 @@ class Urb : public Usb::Completion
 				}
 			}
 
-			if (_urb.complete) _urb.complete(&_urb);
-
 			_completed = true;
+
+			if (_urb.complete) _urb.complete(&_urb);
 		}
+
+		bool completed() const { return _completed; }
 };
 
 
