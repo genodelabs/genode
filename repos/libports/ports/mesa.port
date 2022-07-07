@@ -23,15 +23,17 @@ PATCHES       := src/lib/mesa/patches/bitset_redefined.patch \
                  src/lib/mesa/patches/lseek.patch \
                  src/lib/mesa/patches/mesa.patch \
                  src/lib/mesa/patches/os_mmap.patch \
-                 src/lib/mesa/patches/softpipe_cache.patch
+                 src/lib/mesa/patches/softpipe_cache.patch \
+                 src/lib/mesa/patches/lima.patch \
+                 src/lib/mesa/patches/sync_wait.patch
 
 PATCH_OPT     := -p1
 
 #
 # Generated Mesa sources
 #
-URL(generated) = https://github.com/ssumpf/mesa_generated.git
-REV(generated) = 396d4b08cbcff941126640e6d3e3d2a5f807d527
+URL(generated) = https://github.com/cnuke/mesa_generated.git
+REV(generated) = c3954da3f66d6cb961421f03c09d589faade1784
 DIR(generated) = generated
 
 #
@@ -110,7 +112,8 @@ generated_files = $(GEN_TARGET)/src/compiler/glsl/float64_glsl.h \
                   $(GEN_TARGET)/src/intel/genxml/genX_bits.h \
                   $(GEN_TARGET)/src/intel/genxml/genX_xml.h \
                   $(GEN_TARGET)/src/intel/isl/isl_format_layout.c \
-                  $(GEN_TARGET)/src/intel/perf/gen_perf_metrics.h
+                  $(GEN_TARGET)/src/intel/perf/gen_perf_metrics.h \
+                  $(GEN_TARGET)/src/gallium/drivers/lima/lima_nir_algebraic.c
 
 #
 # Print message and create directory
@@ -344,6 +347,11 @@ $(GEN_TARGET)/src/intel/perf/gen_perf_metrics.h:
 	                    $(SRC)/src/intel/perf/oa-sklgt3.xml \
 	                    $(SRC)/src/intel/perf/oa-sklgt4.xml \
 	                    $(SRC)/src/intel/perf/oa-tgl.xml
+
+$(GEN_TARGET)/src/gallium/drivers/lima/lima_nir_algebraic.c:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/gallium/drivers/lima/ir/lima_nir_algebraic.py \
+	                     -p $(SRC)/src/compiler/nir/ > $@
 
 CMD(glcpp-lex.c)    = glcpp-lex.l
 CMD(glsl_lexer.cpp) = glsl_lexer.ll

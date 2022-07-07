@@ -232,6 +232,7 @@ SRC_C += compiler/glsl/glcpp/pp.c \
          compiler/nir/nir_lower_drawpixels.c \
          compiler/nir/nir_lower_flatshade.c \
          compiler/nir/nir_lower_flrp.c \
+         compiler/nir/nir_lower_fragcoord_wtrans.c \
          compiler/nir/nir_lower_frexp.c \
          compiler/nir/nir_lower_global_vars_to_local.c \
          compiler/nir/nir_lower_goto_ifs.c \
@@ -253,6 +254,7 @@ SRC_C += compiler/glsl/glcpp/pp.c \
          compiler/nir/nir_lower_patch_vertices.c \
          compiler/nir/nir_lower_phis_to_scalar.c \
          compiler/nir/nir_lower_pntc_ytransform.c \
+         compiler/nir/nir_lower_point_size.c \
          compiler/nir/nir_lower_point_size_mov.c \
          compiler/nir/nir_lower_regs_to_ssa.c \
          compiler/nir/nir_lower_returns.c \
@@ -268,6 +270,7 @@ SRC_C += compiler/glsl/glcpp/pp.c \
          compiler/nir/nir_lower_variable_initializers.c \
          compiler/nir/nir_lower_vars_to_ssa.c \
          compiler/nir/nir_lower_vec_to_movs.c \
+         compiler/nir/nir_lower_viewport_transform.c \
          compiler/nir/nir_lower_wpos_ytransform.c \
          compiler/nir/nir_metadata.c \
          compiler/nir/nir_move_vec_src_uses_to_dest.c \
@@ -448,6 +451,7 @@ SRC_C += compiler/glsl/glcpp/pp.c \
          gallium/auxiliary/util/u_sampler.c \
          gallium/auxiliary/util/u_screen.c \
          gallium/auxiliary/util/u_simple_shaders.c \
+         gallium/auxiliary/util/u_split_draw.c \
          gallium/auxiliary/util/u_surface.c \
          gallium/auxiliary/util/u_tests.c \
          gallium/auxiliary/util/u_texture.c \
