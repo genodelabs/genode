@@ -1,10 +1,13 @@
 SHARED_LIB := yes
 LIBS       += libdrm
 
-LIBS += etnaviv
+CC_OPT += -DHAVE_UINT128
 
-CC_OPT += -DGALLIUM_ETNAVIV \
-          -DHAVE_UINT128
+LIBS   += etnaviv
+CC_OPT += -DGALLIUM_ETNAVIV
+
+LIBS   += lima
+CC_OPT += -DGALLIUM_LIMA
 
 include $(REP_DIR)/lib/mk/mesa.inc
 

@@ -8,7 +8,8 @@ MIRROR_FROM_REP_DIR := lib/mk/libdrm.mk \
                        src/lib/libdrm/ioctl_dummy.cc \
                        src/lib/libdrm/ioctl_iris.cc \
                        src/lib/libdrm/ioctl_etnaviv.cc \
-                       src/lib/libdrm/ioctl_dispatch.cc
+                       src/lib/libdrm/ioctl_dispatch.cc \
+                       src/lib/libdrm/ioctl_lima.cc
 
 content: $(MIRROR_FROM_REP_DIR) src/lib/libdrm/target.mk
 

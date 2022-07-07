@@ -16,7 +16,7 @@
 #define _INCLUDE__LIBDRM__IOCTL_DISPATCH_H_
 
 namespace Libdrm {
-	enum Driver { INVALID, ETNAVIV };
+	enum Driver { INVALID, ETNAVIV, LIMA };
 }; /* namespace Libdrm */
 
 void drm_init(Libdrm::Driver);

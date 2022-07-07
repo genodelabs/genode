@@ -33,6 +33,14 @@ extern int   etnaviv_drm_ioctl(unsigned long, void *);
 extern void *etnaviv_drm_mmap(off_t, size_t);
 extern int   etnaviv_drm_munmap(void *);
 
+/* lima driver */
+
+extern void  lima_drm_init();
+extern int   lima_drm_ioctl(unsigned long, void *);
+extern void *lima_drm_mmap(off_t, size_t);
+extern int   lima_drm_munmap(void *);
+extern int   lima_drm_poll(int);
+
 
 static Libdrm::Driver drm_backend_type = Libdrm::Driver::INVALID;
 
@@ -46,6 +54,10 @@ void drm_init(Libdrm::Driver driver)
 	case Libdrm::Driver::ETNAVIV:
 		etnaviv_drm_init();
 		drm_backend_type = Libdrm::Driver::ETNAVIV;
+		break;
+	case Libdrm::Driver::LIMA:
+		lima_drm_init();
+		drm_backend_type = Libdrm::Driver::LIMA;
 		break;
 	default:
 		Genode::error(__func__, ": unknown back end, abort");
@@ -61,6 +73,7 @@ extern "C" int genode_ioctl(int /* fd */, unsigned long request, void *arg)
 {
 	switch (drm_backend_type) {
 	case Libdrm::Driver::ETNAVIV: return etnaviv_drm_ioctl(request, arg);
+	case Libdrm::Driver::LIMA:    return lima_drm_ioctl(request, arg);
 	default:          return -1;
 	}
 }
@@ -79,6 +92,7 @@ extern "C" void *drm_mmap(void *addr, size_t length, int prot, int flags,
 
 	switch (drm_backend_type) {
 	case Libdrm::Driver::ETNAVIV: return etnaviv_drm_mmap(offset, length);
+	case Libdrm::Driver::LIMA:    return lima_drm_mmap(offset, length);
 	default:          return NULL;
 	}
 }
@@ -93,6 +107,24 @@ extern "C" int drm_munmap(void *addr, size_t length)
 
 	switch (drm_backend_type) {
 	case Libdrm::Driver::ETNAVIV: return etnaviv_drm_munmap(addr);
+	case Libdrm::Driver::LIMA:    return lima_drm_munmap(addr);
+	default:          return -1;
+	}
+}
+
+
+extern "C" int drm_poll(struct pollfd *fds, nfds_t nfds, int timeout)
+{
+	(void)timeout;
+
+	if (nfds > 1) {
+		Genode::error(__func__, ": cannot handle more the 1 pollfd");
+		return -1;
+	}
+
+	switch (drm_backend_type) {
+	case Libdrm::Driver::ETNAVIV: return -1;
+	case Libdrm::Driver::LIMA:    return lima_drm_poll(fds[0].fd);
 	default:          return -1;
 	}
 }
