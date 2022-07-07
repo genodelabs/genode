@@ -210,7 +210,7 @@ class Net::Link : public Link_list::Element
 		     Pointer<Port_allocator_guard>        srv_port_alloc,
 		     Domain                              &srv_domain,
 		     Link_side_id                  const &srv_id,
-		     Timer::Connection                   &timer,
+		     Cached_timer                        &timer,
 		     Configuration                       &config,
 		     L3_protocol                   const  protocol,
 		     Genode::Microseconds          const  dissolve_timeout,
@@ -274,7 +274,7 @@ class Net::Tcp_link : public Link
 		         Pointer<Port_allocator_guard>  srv_port_alloc,
 		         Domain                        &srv_domain,
 		         Link_side_id            const &srv_id,
-		         Timer::Connection             &timer,
+		         Cached_timer                  &timer,
 		         Configuration                 &config,
 		         L3_protocol             const  protocol,
 		         Interface_link_stats          &stats);
@@ -292,7 +292,7 @@ struct Net::Udp_link : Link
 	         Pointer<Port_allocator_guard>  srv_port_alloc,
 	         Domain                        &srv_domain,
 	         Link_side_id            const &srv_id,
-	         Timer::Connection             &timer,
+	         Cached_timer                  &timer,
 	         Configuration                 &config,
 	         L3_protocol             const  protocol,
 	         Interface_link_stats          &stats);
@@ -310,7 +310,7 @@ struct Net::Icmp_link : Link
 	          Pointer<Port_allocator_guard>  srv_port_alloc,
 	          Domain                        &srv_domain,
 	          Link_side_id            const &srv_id,
-	          Timer::Connection             &timer,
+	          Cached_timer                  &timer,
 	          Configuration                 &config,
 	          L3_protocol             const  protocol,
 	          Interface_link_stats          &stats);

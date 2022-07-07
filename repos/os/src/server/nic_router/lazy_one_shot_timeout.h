@@ -23,8 +23,8 @@
 #ifndef _LAZY_ONE_SHOT_TIMEOUT_H_
 #define _LAZY_ONE_SHOT_TIMEOUT_H_
 
-/* Genode includes */
-#include <timer_session/connection.h>
+/* local includes */
+#include <cached_timer.h>
 
 namespace Net {
 
@@ -45,7 +45,7 @@ class Net::Lazy_one_shot_timeout
 		using uint64_t         = Genode::uint64_t;
 		using Handler_method   = void (HANDLER::*)(Duration);
 
-		Timer::Connection    &_timer;
+		Cached_timer         &_timer;
 		HANDLER              &_object;
 		Handler_method const  _method;
 		uint64_t       const  _tolerance_us;
@@ -53,6 +53,8 @@ class Net::Lazy_one_shot_timeout
 
 		void _handle_timeout(Duration curr_time)
 		{
+			_timer.cached_time(curr_time);
+
 			/*
 			 * If the postponed deadline is set and more than tolerance
 			 * microseconds in the future, skip calling the user handler and
@@ -83,10 +85,10 @@ class Net::Lazy_one_shot_timeout
 		using One_shot_timeout::discard;
 		using One_shot_timeout::scheduled;
 
-		Lazy_one_shot_timeout(Timer::Connection &timer,
-		                      HANDLER           &object,
-		                      Handler_method     method,
-		                      Microseconds       tolerance)
+		Lazy_one_shot_timeout(Cached_timer   &timer,
+		                      HANDLER        &object,
+		                      Handler_method  method,
+		                      Microseconds    tolerance)
 		:
 			One_shot_timeout { timer, *this,
 			                   &Lazy_one_shot_timeout<HANDLER>::_handle_timeout },
@@ -123,7 +125,7 @@ class Net::Lazy_one_shot_timeout
 				return;
 			}
 			uint64_t const curr_time_us {
-				_timer.curr_time().trunc_to_plain_us().value };
+				_timer.cached_time().trunc_to_plain_us().value };
 
 			uint64_t const new_deadline_us {
 				duration.value <= ~(uint64_t)0 - curr_time_us ?

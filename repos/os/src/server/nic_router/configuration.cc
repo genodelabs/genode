@@ -105,7 +105,7 @@ Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Xml_node const &node) const
 Configuration::Configuration(Env               &env,
                              Xml_node    const  node,
                              Allocator         &alloc,
-                             Timer::Connection &timer,
+                             Cached_timer      &timer,
                              Configuration     &old_config,
                              Quota       const &shared_quota,
                              Interface_list    &interfaces)

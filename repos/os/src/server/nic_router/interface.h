@@ -140,7 +140,7 @@ class Net::Interface : private Interface_list::Element
 		Mac_address                    const  _mac;
 		Reference<Configuration>              _config;
 		Interface_policy                     &_policy;
-		Timer::Connection                    &_timer;
+		Cached_timer                         &_timer;
 		Genode::Allocator                    &_alloc;
 		Pointer<Domain>                       _domain                    { };
 		Arp_waiter_list                       _own_arp_waiters           { };
@@ -375,7 +375,7 @@ class Net::Interface : private Interface_list::Element
 		};
 
 		Interface(Genode::Entrypoint     &ep,
-		          Timer::Connection      &timer,
+		          Cached_timer           &timer,
 		          Mac_address      const  router_mac,
 		          Genode::Allocator      &alloc,
 		          Mac_address      const  mac,

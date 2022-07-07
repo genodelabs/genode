@@ -228,7 +228,7 @@ bool Dhcp_server::ready() const
 Dhcp_allocation::Dhcp_allocation(Interface      &interface,
                              Ipv4_address const &ip,
                              Mac_address  const &mac,
-                             Timer::Connection  &timer,
+                             Cached_timer       &timer,
                              Microseconds        lifetime)
 :
 	_interface(interface), _ip(ip), _mac(mac),

@@ -14,8 +14,10 @@
 #ifndef _DHCP_CLIENT_H_
 #define _DHCP_CLIENT_H_
 
+/* local includes */
+#include <cached_timer.h>
+
 /* Genode includes */
-#include <timer_session/connection.h>
 #include <net/dhcp.h>
 
 namespace Net {
@@ -60,7 +62,7 @@ class Net::Dhcp_client
 
 	public:
 
-		Dhcp_client(Timer::Connection &timer,
+		Dhcp_client(Cached_timer      &timer,
 		            Interface         &interface);
 
 		void handle_dhcp_reply(Dhcp_packet &dhcp);

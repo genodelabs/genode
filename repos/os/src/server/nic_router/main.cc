@@ -21,6 +21,7 @@
 #include <nic_session_root.h>
 #include <uplink_session_root.h>
 #include <configuration.h>
+#include <cached_timer.h>
 
 using namespace Net;
 using namespace Genode;
@@ -35,7 +36,7 @@ class Net::Main
 		Genode::Env                    &_env;
 		Quota                           _shared_quota        { };
 		Interface_list                  _interfaces          { };
-		Timer::Connection               _timer               { _env };
+		Cached_timer                    _timer               { _env };
 		Genode::Heap                    _heap                { &_env.ram(), &_env.rm() };
 		Genode::Attached_rom_dataspace  _config_rom          { _env, "config" };
 		Reference<Configuration>        _config              { *new (_heap) Configuration { _config_rom.xml(), _heap } };

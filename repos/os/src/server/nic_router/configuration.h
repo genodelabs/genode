@@ -71,7 +71,7 @@ class Net::Configuration
 		Configuration(Genode::Env            &env,
 		              Genode::Xml_node const  node,
 		              Genode::Allocator      &alloc,
-		              Timer::Connection      &timer,
+		              Cached_timer           &timer,
 		              Configuration          &old_config,
 		              Quota            const &shared_quota,
 		              Interface_list         &interfaces);

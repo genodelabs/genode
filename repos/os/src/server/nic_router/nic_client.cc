@@ -50,7 +50,7 @@ Net::Nic_client::Nic_client(Xml_node    const &node,
                             Allocator         &alloc,
                             Nic_client_tree   &old_nic_clients,
                             Env               &env,
-                            Timer::Connection &timer,
+                            Cached_timer      &timer,
                             Interface_list    &interfaces,
                             Configuration     &config)
 :
@@ -150,7 +150,7 @@ bool Net::Nic_client_interface_base::interface_link_state() const
  **************************/
 
 Net::Nic_client_interface::Nic_client_interface(Env                 &env,
-                                                Timer::Connection   &timer,
+                                                Cached_timer        &timer,
                                                 Genode::Allocator   &alloc,
                                                 Interface_list      &interfaces,
                                                 Configuration       &config,

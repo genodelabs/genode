@@ -1532,6 +1532,8 @@ void Interface::_handle_pkt()
 
 void Interface::_handle_pkt_stream_signal()
 {
+	_timer.update_cached_time();
+
 	/*
 	 * Release all sent packets that were already acknowledged by the counter
 	 * side. Doing this first frees packet-stream memory which facilitates
@@ -1832,7 +1834,7 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
 
 
 Interface::Interface(Genode::Entrypoint     &ep,
-                     Timer::Connection      &timer,
+                     Cached_timer           &timer,
                      Mac_address      const  router_mac,
                      Genode::Allocator      &alloc,
                      Mac_address      const  mac,

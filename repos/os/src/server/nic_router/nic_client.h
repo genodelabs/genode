@@ -85,7 +85,7 @@ class Net::Nic_client : public  Nic_client_base,
 		           Genode::Allocator      &alloc,
 		           Nic_client_tree        &old_nic_clients,
 		           Genode::Env            &env,
-		           Timer::Connection      &timer,
+		           Cached_timer           &timer,
 		           Interface_list         &interfaces,
 		           Configuration          &config);
 
@@ -160,7 +160,7 @@ class Net::Nic_client_interface : public Nic_client_interface_base,
 	public:
 
 		Nic_client_interface(Genode::Env                 &env,
-		                     Timer::Connection           &timer,
+		                     Cached_timer                &timer,
 		                     Genode::Allocator           &alloc,
 		                     Interface_list              &interfaces,
 		                     Configuration               &config,

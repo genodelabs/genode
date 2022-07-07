@@ -54,7 +54,7 @@ Configuration &Dhcp_client::_config() { return _domain().config(); };
 Domain &Dhcp_client::_domain() { return _interface.domain(); }
 
 
-Dhcp_client::Dhcp_client(Timer::Connection &timer,
+Dhcp_client::Dhcp_client(Cached_timer      &timer,
                          Interface         &interface)
 :
 	_interface(interface),
