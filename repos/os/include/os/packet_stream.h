@@ -444,13 +444,13 @@ class Genode::Packet_descriptor_receiver
 			return packet;
 		}
 
-		bool rx_wakeup()
+		bool rx_wakeup(bool omit_signal)
 		{
 			Genode::Mutex::Guard mutex_guard(_rx_queue_mutex);
 
 			bool signal_submitted = false;
 
-			if (_rx_wakeup_needed) {
+			if (_rx_wakeup_needed && !omit_signal) {
 				_tx_ready.submit();
 				signal_submitted = true;
 			}
@@ -778,7 +778,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		void wakeup()
 		{
 			/* submit only one signal, prefer submit transmitter over ack receiver */
-			_submit_transmitter.tx_wakeup() || _ack_receiver.rx_wakeup();
+			_ack_receiver.rx_wakeup(_submit_transmitter.tx_wakeup());
 		}
 
 		/**
@@ -937,7 +937,7 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		void wakeup()
 		{
 			/* submit only one signal, prefer ack_avail signal over ready_to_submit */
-			_ack_transmitter.tx_wakeup() || _submit_receiver.rx_wakeup();
+			_submit_receiver.rx_wakeup(_ack_transmitter.tx_wakeup());
 		}
 
 		/**
