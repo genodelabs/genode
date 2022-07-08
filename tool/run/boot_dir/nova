@@ -47,7 +47,7 @@ proc run_boot_dir {binaries} {
 	if {$ld_arg     != ""} { copy_file bin/ld-nova.lib.so [run_dir]/genode/ld.lib.so }
 
 	#
-	# Collect contents of the ISO image
+	# Collect contents of the boot image
 	#
 	build_core_image $binaries
 
@@ -177,7 +177,7 @@ proc run_boot_dir {binaries} {
 	}
 
 	if {[have_include "load/ipxe"]} {
-		create_ipxe_iso_config
+		create_ipxe_config
 		update_ipxe_boot_dir
 		create_symlink_for_iso
 	}

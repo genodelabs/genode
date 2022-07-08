@@ -25,6 +25,18 @@ proc load_ipxe_base_dir { } { return [get_cmd_arg --load-ipxe-base-dir ""] }
 proc load_ipxe_boot_dir { } { return [get_cmd_arg --load-ipxe-boot-dir ""] }
 
 
+proc image_extension { } {
+	if {[have_include "image/iso"]} {
+		return "iso"
+	} elseif {[have_include "image/uefi"]} {
+		return "img"
+	} else {
+		puts "Warning, iPXE requires ISO or UEFI image."
+		exit -1
+	}
+}
+
+
 ##
 # Install files needed to boot via iPXE
 #
@@ -38,7 +50,7 @@ proc install_bender_to_run_dir { } {
 # Create symlink for ISO image in current run directory.
 #
 proc create_symlink_for_iso { } {
-	exec ln -sfn [pwd]/[run_dir].iso [pwd]/[run_dir]/[run_name].iso
+	exec ln -sfn [pwd]/[run_dir].[image_extension] [pwd]/[run_dir]/[run_name].[image_extension]
 }
 
 ##
@@ -49,21 +61,19 @@ proc update_ipxe_boot_dir { } {
 }
 
 ##
-# Create iPXE config file which directly boots an ISO file.
+# Create iPXE config file which directly boots an image file.
 #
-proc create_ipxe_iso_config { } {
-	if {[have_include "image/iso"]} {
-		set fh [open "[run_dir]/boot.cfg" "WRONLY CREAT TRUNC"]
-		puts $fh "#!ipxe"
-		puts $fh "sanboot [run_name].iso || goto failed"
-		puts $fh ""
-		puts $fh ":failed"
-		puts $fh "echo Booting failed, dropping to shell"
-		puts $fh "shell"
-		puts $fh "boot"
-		close $fh
-	} else {
-		puts "Warning, iPXE requires ISO image."
-		exit -1
-	}
+# Note, the sanboot URI works relative to the script path and honors the former
+# protocol too (which must be http:// not tftp://)
+#
+proc create_ipxe_config { } {
+	set fh [open "[run_dir]/boot.cfg" "WRONLY CREAT TRUNC"]
+	puts $fh "#!ipxe"
+	puts $fh "sanboot [run_name].[image_extension] || goto failed"
+	puts $fh ""
+	puts $fh ":failed"
+	puts $fh "echo Booting failed, dropping to shell"
+	puts $fh "shell"
+	puts $fh "boot"
+	close $fh
 }
