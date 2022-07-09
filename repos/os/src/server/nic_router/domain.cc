@@ -364,8 +364,11 @@ void Domain::detach_interface(Interface &interface)
 {
 	_interfaces.remove(&interface);
 	_interface_cnt--;
-	if (!_interface_cnt && _ip_config_dynamic) {
-		discard_ip_config();
+	if (!_interface_cnt) {
+		_arp_cache.destroy_all_entries();
+		if (_ip_config_dynamic) {
+			discard_ip_config();
+		}
 	}
 	if (_config.verbose_domain_state()) {
 		log("[", *this, "] NIC sessions: ", _interface_cnt);
