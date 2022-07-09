@@ -92,6 +92,8 @@ class Net::Arp_cache : public Genode::Avl_tree<Arp_cache_entry>
 		void destroy_entries_with_mac(Mac_address const &mac);
 
 		Arp_cache_entry const &find_by_ip(Ipv4_address const &ip) const;
+
+		void destroy_all_entries();
 };
 
 #endif /* _ARP_CACHE_H_ */

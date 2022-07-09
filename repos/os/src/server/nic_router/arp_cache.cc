@@ -105,3 +105,17 @@ void Arp_cache::destroy_entries_with_mac(Mac_address const &mac)
 		} catch (Arp_cache_entry_slot::Deref_unconstructed_object) { }
 	}
 }
+
+
+void Arp_cache::destroy_all_entries()
+{
+	if (_domain.config().verbose()) {
+		log("[", _domain, "] destroy all ARP entries");
+	}
+	while (Arp_cache_entry *entry = first()) {
+		remove(entry);
+	}
+	for (unsigned curr = 0; curr < NR_OF_ENTRIES; curr++) {
+		_entries[curr].destruct();
+	}
+}

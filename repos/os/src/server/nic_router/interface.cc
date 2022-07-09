@@ -930,6 +930,7 @@ void Interface::handle_interface_link_state()
 					throw Keep_ip_config(); }
 			});
 			domain_.discard_ip_config();
+			domain_.arp_cache().destroy_all_entries();
 		}
 	}
 	catch (Pointer<Domain>::Invalid) { }
