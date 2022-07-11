@@ -465,7 +465,7 @@ void prandom_bytes(void *buf, size_t bytes)
 
 u32 prandom_u32(void)
 {
-	return lx_emul_gen_random_uint();
+	return lx_emul_gen_random_u32();
 }
 
 

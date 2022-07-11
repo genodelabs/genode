@@ -217,13 +217,13 @@ void lx_emul_gen_random_bytes(void          *dst,
 }
 
 
-unsigned int lx_emul_gen_random_uint()
+genode_uint32_t lx_emul_gen_random_u32()
 {
-	return (unsigned int)xoroshiro().get_u64();
+	return (genode_uint32_t)xoroshiro().get_u64();
 }
 
 
-unsigned long long lx_emul_gen_random_u64()
+genode_uint64_t lx_emul_gen_random_u64()
 {
-	return xoroshiro().get_u64();
+	return (genode_uint64_t)xoroshiro().get_u64();
 }
