@@ -26,7 +26,7 @@ void add_input_randomness(unsigned int type,unsigned int code,unsigned int value
 
 u32 get_random_u32(void)
 {
-	return lx_emul_gen_random_uint();
+	return lx_emul_gen_random_u32();
 }
 
 

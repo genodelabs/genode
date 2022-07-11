@@ -27,6 +27,8 @@
 #ifndef _LX_EMUL__RANDOM_H_
 #define _LX_EMUL__RANDOM_H_
 
+#include <base/fixed_stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,8 +43,8 @@ void lx_emul_gen_random_bytes(void          *dst,
 /**
  * Return a random unsigned integer value.
  */
-unsigned int lx_emul_gen_random_uint(void);
-unsigned long long lx_emul_gen_random_u64(void);
+genode_uint32_t lx_emul_gen_random_u32(void);
+genode_uint64_t lx_emul_gen_random_u64(void);
 
 #ifdef __cplusplus
 }
