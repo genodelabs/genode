@@ -459,13 +459,13 @@ void __put_page(struct page * page)
 
 void prandom_bytes(void *buf, size_t bytes)
 {
-	lx_emul_gen_random_bytes(buf, bytes);
+	lx_emul_random_gen_bytes(buf, bytes);
 }
 
 
 u32 prandom_u32(void)
 {
-	return lx_emul_gen_random_u32();
+	return lx_emul_random_gen_u32();
 }
 
 

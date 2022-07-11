@@ -26,13 +26,13 @@ void add_input_randomness(unsigned int type,unsigned int code,unsigned int value
 
 u32 get_random_u32(void)
 {
-	return lx_emul_gen_random_u32();
+	return lx_emul_random_gen_u32();
 }
 
 
 u64 get_random_u64(void)
 {
-	return lx_emul_gen_random_u64();
+	return lx_emul_random_gen_u64();
 }
 
 
@@ -41,7 +41,7 @@ int __must_check get_random_bytes_arch(void *buf, int nbytes)
 	if (nbytes < 0)
 		return -1;
 
-	lx_emul_gen_random_bytes(buf, nbytes);
+	lx_emul_random_gen_bytes(buf, nbytes);
 	return nbytes;
 }
 

@@ -37,14 +37,14 @@ extern "C" {
  * Write a certain number of consecutive, random byte values beginning at
  * a given address.
  */
-void lx_emul_gen_random_bytes(void          *dst,
+void lx_emul_random_gen_bytes(void          *dst,
                               unsigned long  nr_of_bytes);
 
 /**
  * Return a random unsigned integer value.
  */
-genode_uint32_t lx_emul_gen_random_u32(void);
-genode_uint64_t lx_emul_gen_random_u64(void);
+genode_uint32_t lx_emul_random_gen_u32(void);
+genode_uint64_t lx_emul_random_gen_u64(void);
 
 #ifdef __cplusplus
 }

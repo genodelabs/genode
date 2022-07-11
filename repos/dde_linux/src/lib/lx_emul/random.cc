@@ -190,12 +190,12 @@ static Xoroshiro_128_plus_reseeding &xoroshiro()
 }
 
 
-void lx_emul_gen_random_bytes(void          *dst,
+void lx_emul_random_gen_bytes(void          *dst,
                               unsigned long  nr_of_bytes)
 {
 	/* validate arguments */
 	if (dst == nullptr || nr_of_bytes == 0) {
-		error("lx_emul_gen_random_bytes called with invalid args!");
+		error(__func__, " called with invalid args!");
 		return;
 	}
 	/* fill up the destination with random 64-bit values as far as possible */
@@ -217,13 +217,13 @@ void lx_emul_gen_random_bytes(void          *dst,
 }
 
 
-genode_uint32_t lx_emul_gen_random_u32()
+genode_uint32_t lx_emul_random_gen_u32()
 {
 	return (genode_uint32_t)xoroshiro().get_u64();
 }
 
 
-genode_uint64_t lx_emul_gen_random_u64()
+genode_uint64_t lx_emul_random_gen_u64()
 {
 	return (genode_uint64_t)xoroshiro().get_u64();
 }
