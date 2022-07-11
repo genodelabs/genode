@@ -20,8 +20,8 @@ code respectively the download source of binaries are described below.
   The changes are available from
   https://github.com/alex-ab/morbo.git.
 
-  git branch intel_hwp
-  git commit 84be1183b066e9ba78c874713db4e68a5c3393fa
+  git branch genode_bender
+  git commit 7909dd0b56c66400bfb9c1c4abf70d2c593b4902
 
 :'pulsar':
 
