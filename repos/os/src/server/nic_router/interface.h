@@ -276,16 +276,13 @@ class Net::Interface : private Interface_list::Element
 		                       Size_guard     &size_guard,
 		                       Domain         &local_domain);
 
-		void _pass_prot(Ethernet_frame         &eth,
-		                Size_guard             &size_guard,
-		                Ipv4_packet            &ip,
-		                L3_protocol      const  prot,
-		                void            *const  prot_base,
-		                Genode::size_t   const  prot_size);
-
-		void _pass_ip(Ethernet_frame       &eth,
-		              Size_guard           &size_guard,
-		              Ipv4_packet          &ip);
+		void _pass_prot_to_domain(Domain                &domain,
+		                          Ethernet_frame        &eth,
+		                          Size_guard            &size_guard,
+		                          Ipv4_packet           &ip,
+		                          L3_protocol     const  prot,
+		                          void           *const  prot_base,
+		                          Genode::size_t  const  prot_size);
 
 		void _handle_pkt();
 
