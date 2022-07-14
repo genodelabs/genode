@@ -1326,7 +1326,6 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 			Domain &remote_domain = rule.domain();
 			_adapt_eth(eth, ip.dst(), pkt, remote_domain);
-			ip.update_checksum();
 			remote_domain.interfaces().for_each([&] (Interface &interface) {
 				interface.send(eth, size_guard);
 			});
