@@ -2016,6 +2016,23 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			_apply_buffer_local(id, lookup_and_unmap);
 		}
 
+		Gpu::addr_t query_buffer_ppgtt(Gpu::Buffer_id id) override
+		{
+			Gpu::addr_t result = (Gpu::addr_t)-1;
+
+			auto lookup_va = [&] (Buffer_local &buffer_local) {
+
+				if (!buffer_local.ppgtt_va_valid) {
+					Genode::error("buffer not mapped");
+					return;
+				}
+
+				result = buffer_local.ppgtt_va;
+			};
+			_apply_buffer_local(id, lookup_va);
+			return result;
+		}
+
 		bool set_tiling(Gpu::Buffer_id id,
 		                Genode::uint32_t const mode) override
 		{

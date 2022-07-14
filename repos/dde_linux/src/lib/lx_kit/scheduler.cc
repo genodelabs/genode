@@ -127,3 +127,20 @@ void Scheduler::schedule()
 	/* clear current as no task is running */
 	_current = nullptr;
 }
+
+
+bool Scheduler::another_runnable(Task * skip)
+{
+	for (Task * t = _present_list.first(); t; t = t->next()) {
+
+		if (!t->runnable())
+			continue;
+
+		if (skip && t == skip)
+			continue;
+
+		return true;
+	};
+
+	return false;
+}

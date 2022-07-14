@@ -49,8 +49,8 @@ The '<output>' node can contain the following sub nodes:
   as attribute value.
 
 :'<node>':
-  Adds a sub_node with the specified 'type'. The content of <node> is evaluated
-  to generate the content of the added sub_node.
+  Adds a sub node with the specified 'type'. The content of <node> is evaluated
+  to generate the content of the added sub node.
 
 
 Conditions

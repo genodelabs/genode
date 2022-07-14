@@ -64,6 +64,10 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 		lx_emul_task_unblock(p);
 
 	p->__state = TASK_RUNNING;
+
+	/* check restarting ticking which may stopped in idle task */
+	tick_nohz_idle_restart_tick();
+
 	return 1;
 }
 
