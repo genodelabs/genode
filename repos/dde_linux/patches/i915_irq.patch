@@ -1,0 +1,14 @@
+diff --git a/drivers/gpu/drm/i915/i915_irq.c b/drivers/gpu/drm/i915/i915_irq.c
+index c3816f5..c692ddb 100644
+--- a/drivers/gpu/drm/i915/i915_irq.c
++++ b/drivers/gpu/drm/i915/i915_irq.c
+@@ -1337,7 +1337,8 @@ static void flip_done_handler(struct drm_i915_private *i915,
+
+ 	crtc_state->event = NULL;
+
+-	drm_crtc_send_vblank_event(&crtc->base, e);
++	if (e)
++		drm_crtc_send_vblank_event(&crtc->base, e);
+
+ 	spin_unlock_irqrestore(&dev->event_lock, irqflags);
+ }

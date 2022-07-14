@@ -5,3 +5,13 @@ DOWNLOADS := linux.archive
 URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$(VERSION).tar.xz
 SHA(linux) := f41a259cb2002dd2e3286524b2bb4e803f4f982992d092706ecea613584023b3
 DIR(linux) := src/linux
+
+#
+# Patches
+#
+PATCHES += $(addprefix patches/,$(notdir $(REP_DIR)/patches/i915_irq.patch))
+PATCHES += $(addprefix patches/,$(notdir $(REP_DIR)/patches/xhci_abort_ring.patch))
+
+# i915
+PATCH_OPT(patches/i915_irq.patch) := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/xhci_abort_ring.patch) := -p1 -d${DIR(linux)}
