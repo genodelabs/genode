@@ -21,6 +21,8 @@
 #include <gpu/info_etnaviv.h>
 #include <util/string.h>
 
+#include <vfs_gpu.h>
+
 extern "C" {
 #include <errno.h>
 #include <fcntl.h>
@@ -320,14 +322,14 @@ class Gpu::Call
 		Call(Call const &) = delete;
 		Call &operator=(Call const &) = delete;
 
-		Genode::Env  &_env;
+		Genode::Env  &_env { *vfs_gpu_env() };
 		Genode::Heap  _heap { _env.ram(), _env.rm() };
 
 		/*****************
 		 ** Gpu session **
 		 *****************/
 
-		Gpu::Connection _gpu_session;
+		Gpu::Connection _gpu_session { _env };
 		Gpu::Info_etnaviv const &_gpu_info {
 			*_gpu_session.attached_info<Gpu::Info_etnaviv>() };
 
@@ -629,10 +631,7 @@ class Gpu::Call
 
 	public:
 
-		Call(Env &env)
-		:
-			_env         { env },
-			_gpu_session { _env }
+		Call()
 		{
 			try {
 				_exec_buffer.construct(_gpu_session,
@@ -677,9 +676,16 @@ class Gpu::Call
 static Genode::Constructible<Gpu::Call> _drm;
 
 
-void drm_init(Genode::Env &env)
+void drm_init()
 {
-	_drm.construct(env);
+	struct ::stat buf;
+	if (stat("/dev/gpu", &buf) < 0) {
+		Genode::error("'/dev/gpu' not accessible: ",
+				          "try configure '<gpu>' in 'dev' directory of VFS'");
+		return;
+	}
+
+	_drm.construct();
 }
 
 
