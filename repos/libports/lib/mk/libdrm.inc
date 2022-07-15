@@ -2,9 +2,11 @@ LIB_DIR := $(REP_DIR)/src/lib/libdrm
 
 # include before to shadow libdrm_macros.h
 INC_DIR += $(LIB_DIR)/include
+INC_DIR += $(REP_DIR)/src/lib/libdrm
 
 LIBDRM_PORT_DIR := $(call select_from_ports,libdrm)/src/lib/libdrm
 
+REP_INC_DIR += include/libdrm
 REP_INC_DIR += include/drm
 
 LIBS        := libc

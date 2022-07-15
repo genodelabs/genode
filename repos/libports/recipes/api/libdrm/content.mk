@@ -19,6 +19,8 @@ include:
 	cp -r $(PORT_DIR)/src/lib/libdrm/intel/*.h $@/intel
 	mkdir -p $@/etnaviv
 	cp -r $(PORT_DIR)/src/lib/libdrm/etnaviv/*.h $@/etnaviv
+	mkdir -p $@/libdrm
+	cp $(REP_DIR)/include/libdrm/ioctl_dispatch.h $@/libdrm
 
 content: LICENSE
 
