@@ -961,9 +961,13 @@ void Interface::_send_icmp_echo_reply(Ethernet_frame &eth,
 	icmp.type(Icmp_packet::Type::ECHO_REPLY);
 	icmp.code(Icmp_packet::Code::ECHO_REPLY);
 
-	/* update checksums and send */
+	/*
+	 * Update checksums and send
+	 *
+	 * Skip updating the IPv4 checksum because we have only swapped SRC and
+	 * DST and these changes cancel each other out in checksum calculation.
+	 */
 	icmp.update_checksum(icmp_sz - sizeof(Icmp_packet));
-	ip.update_checksum();
 	send(eth, size_guard);
 }
 
