@@ -52,6 +52,35 @@ namespace Net {
 	                            Ipv4_packet::Protocol  ip_prot,
 	                            Ipv4_address          &ip_src,
 	                            Ipv4_address          &ip_dst);
+
+	/**
+	 * Accumulating modifier for incremental updates of internet checksums
+	 */
+	class Internet_checksum_diff
+	{
+		private:
+
+			signed long _value { 0 };
+
+		public:
+
+			/**
+			 * Update modifier according to a data update in the target region
+			 *
+			 * PRECONDITIONS
+			 *
+			 * * The pointers must refer to data that is at an offset inside
+			 *   the checksum'd region that is a multiple of 2 bytes (16 bits).
+			 */
+			void add_up_diff(Packed_uint16 const *new_data_ptr,
+			                 Packed_uint16 const *old_data_ptr,
+			                 Genode::size_t       data_sz);
+
+			/**
+			 * Return the given checksum with this modifier applied
+			 */
+			Genode::uint16_t apply_to(signed long sum) const;
+	};
 }
 
 #endif /* _NET__INTERNET_CHECKSUM_H_ */

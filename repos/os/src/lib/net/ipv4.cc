@@ -156,3 +156,23 @@ size_t Ipv4_packet::size(size_t max_size) const
 	size_t const stated_size = total_length();
 	return stated_size < max_size ? stated_size : max_size;
 }
+
+
+void Ipv4_packet::src(Ipv4_address v, Internet_checksum_diff &icd)
+{
+	icd.add_up_diff((Packed_uint16 *)&v.addr[0], (Packed_uint16 *)&_src[0], 4);
+	src(v);
+}
+
+
+void Ipv4_packet::dst(Ipv4_address v, Internet_checksum_diff &icd)
+{
+	icd.add_up_diff((Packed_uint16 *)&v.addr[0], (Packed_uint16 *)&_dst[0], 4);
+	dst(v);
+}
+
+
+void Ipv4_packet::update_checksum(Internet_checksum_diff const &icd)
+{
+	_checksum = icd.apply_to(_checksum);
+}

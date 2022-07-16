@@ -29,6 +29,14 @@ struct Packed_uint8
 } __attribute__((packed));
 
 
+static void fold_checksum_to_16_bits(signed long &sum)
+{
+	while (addr_t const remainder = sum >> 16) {
+		sum = (sum & 0xffff) + remainder;
+	}
+}
+
+
 static uint16_t checksum_of_raw_data(Packed_uint16 const *data_ptr,
                                      size_t               data_sz,
                                      signed long          sum)
@@ -42,9 +50,7 @@ static uint16_t checksum_of_raw_data(Packed_uint16 const *data_ptr,
 	if (data_sz > 0) {
 		sum += ((Packed_uint8 const *)data_ptr)->value;
 	}
-	/* fold sum to 16-bit value */
-	while (addr_t const sum_rsh = sum >> 16)
-		sum = (sum & 0xffff) + sum_rsh;
+	fold_checksum_to_16_bits(sum);
 
 	/* return one's complement */
 	return (uint16_t)(~sum);
@@ -83,4 +89,35 @@ uint16_t Net::internet_checksum_pseudo_ip(Packed_uint16   const *data_ptr,
 
 	/* add up data bytes */
 	return checksum_of_raw_data(data_ptr, data_sz, sum);
+}
+
+
+/****************************
+ ** Internet_checksum_diff **
+ ****************************/
+
+void Internet_checksum_diff::add_up_diff(Packed_uint16 const *new_data_ptr,
+                                         Packed_uint16 const *old_data_ptr,
+                                         size_t               data_sz)
+{
+	/* add up byte differences in pairs */
+	signed long diff { 0 };
+	for (; data_sz > 1; data_sz -= sizeof(Packed_uint16)) {
+		diff += old_data_ptr->value - new_data_ptr->value;
+		old_data_ptr++;
+		new_data_ptr++;
+	}
+	/* add difference of left-over byte, if any */
+	if (data_sz > 0) {
+		diff += *(uint8_t *)old_data_ptr - *(uint8_t *)new_data_ptr;
+	}
+	_value += diff;
+}
+
+
+uint16_t Internet_checksum_diff::apply_to(signed long sum) const
+{
+	sum += _value;
+	fold_checksum_to_16_bits(sum);
+	return (uint16_t)sum;
 }

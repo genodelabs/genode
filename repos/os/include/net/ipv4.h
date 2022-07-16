@@ -27,8 +27,10 @@
 namespace Genode { class Output; }
 
 namespace Net {
+
 	enum { IPV4_ADDR_LEN = 4 };
 
+	class Internet_checksum_diff;
 	class Ipv4_address;
 	class Ipv4_packet;
 
@@ -93,6 +95,8 @@ class Net::Ipv4_packet
 		static Ipv4_address ip_from_string(const char *ip);
 
 		void update_checksum();
+
+		void update_checksum(Internet_checksum_diff const &icd);
 
 		bool checksum_error() const;
 
@@ -236,6 +240,9 @@ class Net::Ipv4_packet
 			Offset_6_u16::More_fragments::set(be, v);
 			_offset_6_u16 = host_to_big_endian(be);
 		}
+
+		void src(Ipv4_address v, Internet_checksum_diff &icd);
+		void dst(Ipv4_address v, Internet_checksum_diff &icd);
 
 
 		/*********
