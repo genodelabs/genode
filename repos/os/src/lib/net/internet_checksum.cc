@@ -31,7 +31,7 @@ struct Packed_uint8
 
 static uint16_t checksum_of_raw_data(Packed_uint16 const *data_ptr,
                                      size_t               data_sz,
-                                     addr_t               sum)
+                                     signed long          sum)
 {
 	/* add up bytes in pairs */
 	for (; data_sz > 1; data_sz -= sizeof(Packed_uint16)) {
@@ -77,7 +77,7 @@ uint16_t Net::internet_checksum_pseudo_ip(Packed_uint16   const *data_ptr,
 	 * |  4 bytes   |  4 bytes   |   1 byte   |  1 byte  |  2 bytes   |
 	 *  --------------------------------------------------------------
 	 */
-	addr_t sum = host_to_big_endian((uint16_t)ip_prot) + ip_data_sz_be;
+	signed long sum { host_to_big_endian((uint16_t)ip_prot) + ip_data_sz_be };
 	for (size_t i = 0; i < Ipv4_packet::ADDR_LEN; i += 2)
 		sum += *(uint16_t*)&ip_src.addr[i] + *(uint16_t*)&ip_dst.addr[i];
 
