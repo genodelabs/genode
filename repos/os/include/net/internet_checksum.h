@@ -42,16 +42,16 @@ namespace Net {
 
 	} __attribute__((packed));
 
-	Genode::uint16_t internet_checksum(Packed_uint16 const *addr,
-	                                   Genode::size_t       size,
-	                                   Genode::addr_t       init_sum = 0);
+	Genode::uint16_t internet_checksum(Packed_uint16 const *data_ptr,
+	                                   Genode::size_t       data_sz);
 
-	Genode::uint16_t internet_checksum_pseudo_ip(Packed_uint16 const   *addr,
-	                                             Genode::size_t         size,
-	                                             Genode::uint16_t       size_be,
-	                                             Ipv4_packet::Protocol  ip_prot,
-	                                             Ipv4_address          &ip_src,
-	                                             Ipv4_address          &ip_dst);
+	Genode::uint16_t
+	internet_checksum_pseudo_ip(Packed_uint16 const   *data_ptr,
+	                            Genode::size_t         data_sz,
+	                            Genode::uint16_t       ip_data_sz_be,
+	                            Ipv4_packet::Protocol  ip_prot,
+	                            Ipv4_address          &ip_src,
+	                            Ipv4_address          &ip_dst);
 }
 
 #endif /* _NET__INTERNET_CHECKSUM_H_ */
