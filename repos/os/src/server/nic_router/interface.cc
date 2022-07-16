@@ -1293,9 +1293,13 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	}
 	catch (Ip_rule_list::No_match) { }
 
-	/* give up and drop packet */
-	_send_icmp_dst_unreachable(local_intf, eth, ip,
-	                           Icmp_packet::Code::DST_NET_UNREACHABLE);
+	Ipv4_address_prefix const multicast_range(Ipv4_packet::ip_from_string("224.0.0.0"), 4);
+
+	/* give up and drop packet, only send icmp package if no multicast packet */
+	if(!(multicast_range.prefix_matches(ip.dst())))
+		_send_icmp_dst_unreachable(local_intf, eth, ip,
+		                           Icmp_packet::Code::DST_NET_UNREACHABLE);
+
 	if (_config().verbose()) {
 		log("[", local_domain, "] unroutable packet"); }
 }

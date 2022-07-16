@@ -101,3 +101,9 @@ Ipv4_address_prefix::Ipv4_address_prefix(Ipv4_address address,
 	for (Genode::uint8_t mask = 1 << 7; rest & mask; mask >>= 1)
 		prefix++;
 }
+
+Ipv4_address_prefix::Ipv4_address_prefix(Ipv4_address address,
+                                         Genode::uint8_t prefix)
+:
+	address(address), prefix(prefix)
+{ }
