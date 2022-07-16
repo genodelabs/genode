@@ -56,6 +56,8 @@ struct Net::Ipv4_address : Network_address<IPV4_ADDR_LEN, '.', false>
 
 	bool is_in_range(Ipv4_address const &first,
 	                 Ipv4_address const &last) const;
+
+	bool is_multicast() const;
 }
 __attribute__((packed));
 

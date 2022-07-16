@@ -41,6 +41,12 @@ void Net::Ipv4_packet::print(Genode::Output &output) const
 }
 
 
+bool Ipv4_address::is_multicast() const
+{
+	return (addr[0] & 0xf0) == 0b11100000;
+}
+
+
 bool Ipv4_address::is_in_range(Ipv4_address const &first,
                                Ipv4_address const &last) const
 {

@@ -1391,9 +1391,21 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		return;
 	}
 
-	/* give up and drop packet */
-	_send_icmp_dst_unreachable(local_intf, eth, ip,
-	                           Icmp_packet::Code::DST_NET_UNREACHABLE);
+	/*
+	 * Give up and drop packet. According to RFC 1812 section 4.3.2.7, an ICMP
+	 * "Destination Unreachable" is sent as response only if the dropped
+	 * packet fullfills certain properties.
+	 *
+	 * FIXME
+	 *
+	 * There are some properties required by the RFC that are not yet checked
+	 * at this point.
+	 */
+	if(not ip.dst().is_multicast()) {
+
+		_send_icmp_dst_unreachable(local_intf, eth, ip,
+		                           Icmp_packet::Code::DST_NET_UNREACHABLE);
+	}
 	if (_config().verbose()) {
 		log("[", local_domain, "] unroutable packet"); }
 }
