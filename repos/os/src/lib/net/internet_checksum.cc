@@ -96,6 +96,12 @@ uint16_t Net::internet_checksum_pseudo_ip(Packed_uint16   const *data_ptr,
  ** Internet_checksum_diff **
  ****************************/
 
+void Internet_checksum_diff::add_up_diff(Internet_checksum_diff const &icd)
+{
+	_value += icd._value;
+}
+
+
 void Internet_checksum_diff::add_up_diff(Packed_uint16 const *new_data_ptr,
                                          Packed_uint16 const *old_data_ptr,
                                          size_t               data_sz)

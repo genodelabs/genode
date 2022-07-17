@@ -176,3 +176,15 @@ void Ipv4_packet::update_checksum(Internet_checksum_diff const &icd)
 {
 	_checksum = icd.apply_to(_checksum);
 }
+
+
+void
+Ipv4_packet::update_checksum(Internet_checksum_diff const &icd,
+                             Internet_checksum_diff       &caused_icd)
+{
+	uint16_t const new_checksum { icd.apply_to(_checksum) };
+	caused_icd.add_up_diff(
+		(Packed_uint16 *)&new_checksum, (Packed_uint16 *)&_checksum, 2);
+
+	_checksum = new_checksum;
+}

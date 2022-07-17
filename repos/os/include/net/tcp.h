@@ -72,6 +72,8 @@ class Net::Tcp_packet
 		                     Ipv4_address ip_dst,
 		                     size_t       tcp_size);
 
+		void update_checksum(Internet_checksum_diff const &icd);
+
 
 		/***************
 		 ** Accessors **
@@ -98,6 +100,9 @@ class Net::Tcp_packet
 
 		void src_port(Port p) { _src_port = host_to_big_endian(p.value); }
 		void dst_port(Port p) { _dst_port = host_to_big_endian(p.value); }
+
+		void src_port(Port p, Internet_checksum_diff &icd);
+		void dst_port(Port p, Internet_checksum_diff &icd);
 
 
 		/*********

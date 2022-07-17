@@ -77,6 +77,11 @@ namespace Net {
 			                 Genode::size_t       data_sz);
 
 			/**
+			 * Update this modifier by adding up another modifier
+			 */
+			void add_up_diff(Internet_checksum_diff const &icd);
+
+			/**
 			 * Return the given checksum with this modifier applied
 			 */
 			Genode::uint16_t apply_to(signed long sum) const;

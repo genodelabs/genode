@@ -84,6 +84,8 @@ class Net::Udp_packet
 		void update_checksum(Ipv4_address ip_src,
 		                     Ipv4_address ip_dst);
 
+		void update_checksum(Internet_checksum_diff const &icd);
+
 		bool checksum_error(Ipv4_address ip_src,
 		                    Ipv4_address ip_dst) const;
 
@@ -102,6 +104,9 @@ class Net::Udp_packet
 		void dst_port(Port p)                        { _dst_port = host_to_big_endian(p.value); }
 		void src_port_big_endian(Genode::uint16_t v) { _src_port = v; }
 		void dst_port_big_endian(Genode::uint16_t v) { _dst_port = v; }
+
+		void src_port(Port p, Internet_checksum_diff &icd);
+		void dst_port(Port p, Internet_checksum_diff &icd);
 
 
 		/*********

@@ -34,7 +34,33 @@ void Icmp_packet::update_checksum(size_t data_sz)
 }
 
 
+void Icmp_packet::update_checksum(Internet_checksum_diff const &icd)
+{
+	_checksum = icd.apply_to(_checksum);
+}
+
+
 bool Icmp_packet::checksum_error(size_t data_sz) const
 {
 	return internet_checksum((Packed_uint16 *)this, sizeof(Icmp_packet) + data_sz);
+}
+
+
+void Icmp_packet::query_id(uint16_t v, Internet_checksum_diff &icd)
+{
+	uint16_t const v_be { host_to_big_endian(v) };
+	icd.add_up_diff((
+		Packed_uint16 *)&v_be, (Packed_uint16 *)&_rest_of_header_u16[0], 2);
+
+	_rest_of_header_u16[0] = v_be;
+}
+
+
+void Icmp_packet::type_and_code(Type t, Code c, Internet_checksum_diff &icd)
+{
+	uint16_t const old_type_and_code { *(uint16_t*)this };
+	type(t);
+	code(c);
+	icd.add_up_diff(
+		(Packed_uint16 *)&_type, (Packed_uint16 *)&old_type_and_code, 2);
 }
