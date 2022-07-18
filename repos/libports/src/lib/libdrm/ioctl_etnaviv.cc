@@ -600,17 +600,24 @@ class Etnaviv::Call
 
 		int _drm_version(drm_version &version)
 		{
-			static char buffer[1] = { '\0' };
-
 			version.version_major = 1;
 			version.version_minor = 3;
 			version.version_patchlevel = 0;
-			version.name_len = 0;
-			version.name = buffer;
-			version.date_len = 0;
-			version.date = buffer;
-			version.desc_len = 0;
-			version.desc = buffer;
+
+			/**
+			 * Libdrm probes the length by calling version twice
+			 * and the second time strings are allocated.
+			 */
+
+			version.name_len = 1;
+			if (version.name)
+				version.name[0] = '\0';
+			version.date_len = 1;
+			if (version.date)
+				version.date[0] = '\0';
+			version.desc_len = 1;
+			if (version.desc)
+				version.desc[0] = '\0';
 
 			return 0;
 		}
