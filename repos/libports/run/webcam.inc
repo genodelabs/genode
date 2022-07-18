@@ -40,7 +40,7 @@ build $build_components
 
 
 append config {
-<config verbose="yes" prio_levels="4">
+<config verbose="no" prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -110,33 +110,38 @@ append config {
 		</route>
 	</start>
 
-	<start name="} $test_binary {" priority="-1">
-		<resource name="RAM" quantum="8M"/>
-		<config period_ms="20" width="640" height="480"> }
-append config $test_vfs_config
-append config {
-			<view xpos="100" ypos="100"/> <!--view xpos="800" ypos="600"/-->
-		</config>
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<service name="Capture"> <child name="webcam"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="dynamic-webcam">
+	<start name="test_config" priority="-1">
 		<binary name="dynamic_rom"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="ROM"/> </provides>
 		<config verbose="yes">
-			<rom name="capture">
+			<rom name="config">
 				<inline>
-					<capture enabled="true"/>
+					<config verbose="no">
+						<parent-provides>
+							<service name="ROM"/>
+							<service name="PD"/>
+							<service name="CPU"/>
+							<service name="LOG"/>
+							<service name="Timer"/>
+							<service name="Gui"/>
+							<service name="Capture"/>
+						</parent-provides>
+						<start name="} $test_binary {" caps="100">
+							<resource name="RAM" quantum="8M"/>
+							<config period_ms="20" width="640" height="480"> }
+append config $test_vfs_config
+append config {
+								<view xpos="100" ypos="100"/> <!--view xpos="800" ypos="600"/-->
+							</config>
+							<route>
+								<any-service> <parent/> </any-service>
+							</route>
+						</start>
+					</config>
 				</inline>
-				<sleep milliseconds="8000"/>
-				<inline>
-					<capture enabled="no"/>
-				</inline>
+				<sleep milliseconds="7000"/>
+				<inline/>
 				<sleep milliseconds="3000"/>
 			</rom>
 		</config>
@@ -146,20 +151,21 @@ append config {
 		</route>
 	</start>
 
-	<start name="rom_reporter">
-		<resource name="RAM" quantum="1MB"/>
-		<provides> <service name="Report"/> </provides>
-		<config>
-			<rom label="capture"/>
-		</config>
+	<start name="test-capture" priority="-1" caps="200">
+		<binary name="init"/>
+		<resource name="RAM" quantum="16M"/>
 		<route>
-			<service name="ROM" label="capture"> <child name="dynamic-webcam"/> </service>
-			<service name="Report"> <child name="webcam" label="capture"/> </service>
-			<any-service> <parent /> </any-service>
+			<service name="ROM" label="config">
+				<child name="test_config" label="config"/>
+			</service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
+			<service name="Capture"> <child name="webcam"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="webcam" caps="800" priority="-1">
+	<start name="webcam" priority="-1" caps="800">
 		<binary name="init"/>
 		<resource name="RAM" quantum="64MB"/>
 		<route>
