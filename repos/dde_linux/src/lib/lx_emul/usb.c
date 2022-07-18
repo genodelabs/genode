@@ -236,7 +236,7 @@ static int usb_rpc_call(void * data)
 			num = udev->actconfig->desc.bNumInterfaces;
 		} else {
 			i   = usb_rpc_args.iface_num;
-			num = i;
+			num = i + 1;
 		}
 
 		ret = 0;
