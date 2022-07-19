@@ -1,6 +1,7 @@
 arch/x86/include/asm/acenv.h
 arch/x86/include/asm/acpi.h
 arch/x86/include/asm/alternative.h
+arch/x86/include/asm/apic.h
 arch/x86/include/asm/apicdef.h
 arch/x86/include/asm/arch_hweight.h
 arch/x86/include/asm/asm.h
@@ -39,6 +40,7 @@ arch/x86/include/asm/hw_irq.h
 arch/x86/include/asm/intel_ds.h
 arch/x86/include/asm/invpcid.h
 arch/x86/include/asm/irq.h
+arch/x86/include/asm/irq_stack.h
 arch/x86/include/asm/irq_vectors.h
 arch/x86/include/asm/irq_work.h
 arch/x86/include/asm/irqdomain.h
@@ -91,6 +93,8 @@ arch/x86/include/asm/shmparam.h
 arch/x86/include/asm/signal.h
 arch/x86/include/asm/smap.h
 arch/x86/include/asm/smp.h
+arch/x86/include/asm/softirq_stack.h
+arch/x86/include/asm/spinlock_types.h
 arch/x86/include/asm/stacktrace.h
 arch/x86/include/asm/static_call.h
 arch/x86/include/asm/string.h
@@ -140,6 +144,7 @@ arch/x86/include/uapi/asm/signal.h
 arch/x86/include/uapi/asm/stat.h
 arch/x86/include/uapi/asm/swab.h
 arch/x86/include/uapi/asm/unistd.h
+arch/x86/include/uapi/asm/vsyscall.h
 drivers/base/base.h
 drivers/base/power/power.h
 drivers/base/trace.h
@@ -186,6 +191,7 @@ include/asm-generic/bug.h
 include/asm-generic/cacheflush.h
 include/asm-generic/compat.h
 include/asm-generic/delay.h
+include/asm-generic/div64.h
 include/asm-generic/early_ioremap.h
 include/asm-generic/error-injection.h
 include/asm-generic/fixmap.h
@@ -207,10 +213,13 @@ include/asm-generic/pci.h
 include/asm-generic/pci_iomap.h
 include/asm-generic/percpu.h
 include/asm-generic/pgtable-nop4d.h
+include/asm-generic/qrwlock_types.h
+include/asm-generic/qspinlock_types.h
 include/asm-generic/resource.h
 include/asm-generic/rwonce.h
 include/asm-generic/sections.h
 include/asm-generic/set_memory.h
+include/asm-generic/softirq_stack.h
 include/asm-generic/termios.h
 include/asm-generic/tlb.h
 include/asm-generic/topology.h
@@ -560,6 +569,7 @@ include/linux/ratelimit_types.h
 include/linux/rbtree.h
 include/linux/rbtree_augmented.h
 include/linux/rbtree_latch.h
+include/linux/rcu_node_tree.h
 include/linux/rcu_segcblist.h
 include/linux/rcu_sync.h
 include/linux/rculist.h
@@ -567,7 +577,7 @@ include/linux/rculist_bl.h
 include/linux/rculist_nulls.h
 include/linux/rcupdate.h
 include/linux/rcupdate_wait.h
-include/linux/rcutiny.h
+include/linux/rcutree.h
 include/linux/rcuwait.h
 include/linux/reboot.h
 include/linux/refcount.h
@@ -579,6 +589,7 @@ include/linux/ring_buffer.h
 include/linux/rtc.h
 include/linux/rtnetlink.h
 include/linux/rwlock.h
+include/linux/rwlock_api_smp.h
 include/linux/rwlock_types.h
 include/linux/rwsem.h
 include/linux/sbitmap.h
@@ -602,6 +613,7 @@ include/linux/sched/nohz.h
 include/linux/sched/numa_balancing.h
 include/linux/sched/prio.h
 include/linux/sched/rt.h
+include/linux/sched/sd_flags.h
 include/linux/sched/signal.h
 include/linux/sched/smt.h
 include/linux/sched/stat.h
@@ -640,13 +652,11 @@ include/linux/socket.h
 include/linux/sockptr.h
 include/linux/sort.h
 include/linux/spinlock.h
-include/linux/spinlock_api_up.h
+include/linux/spinlock_api_smp.h
 include/linux/spinlock_types.h
-include/linux/spinlock_types_up.h
-include/linux/spinlock_up.h
 include/linux/splice.h
 include/linux/srcu.h
-include/linux/srcutiny.h
+include/linux/srcutree.h
 include/linux/stackdepot.h
 include/linux/stacktrace.h
 include/linux/stat.h

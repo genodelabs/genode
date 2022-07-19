@@ -40,7 +40,6 @@ CC_C_OPT += -DCONFIG_RFKILL_INPUT
 #CC_OPT += -DCONFIG_IWLWIFI_DEBUG
 
 
-SRC_C   += lx_emul/shadow/kernel/softirq.c
 SRC_C   += lx_emul/shadow/lib/kobject_uevent.c
 vpath %.c  $(REP_DIR)/src/lib/pc
 vpath %.cc $(REP_DIR)/src/lib/pc

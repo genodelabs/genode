@@ -283,14 +283,6 @@ int dev_ioctl(struct net * net,unsigned int cmd,struct ifreq * ifr,bool * need_c
 }
 
 
-#include <linux/interrupt.h>
-
-asmlinkage __visible void do_softirq(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/dst.h>
 
 void dst_release(struct dst_entry * dst)
@@ -650,6 +642,22 @@ int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
 #include <linux/kernel.h>
 
 unsigned long long memparse(const char * ptr,char ** retptr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/preempt.h>
+
+void migrate_disable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/preempt.h>
+
+void migrate_enable(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1110,17 +1118,17 @@ int smp_call_function_single(int cpu,void (* func)(void * info),void * info,int 
 }
 
 
-#include <linux/sock_diag.h>
+#include <linux/smp.h>
 
-void sock_diag_broadcast_destroy(struct sock * sk)
+int smp_call_function_single_async(int cpu,struct __call_single_data * csd)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/srcutiny.h>
+#include <linux/sock_diag.h>
 
-void srcu_drive_gp(struct work_struct * wp)
+void sock_diag_broadcast_destroy(struct sock * sk)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1152,14 +1160,6 @@ int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned
 int suppress_printk;
 
 
-#include <linux/srcutiny.h>
-
-void synchronize_srcu(struct srcu_struct * ssp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/sysfs.h>
 
 int sysfs_rename_dir_ns(struct kobject * kobj,const char * new_name,const void * new_ns)
@@ -1179,14 +1179,6 @@ int sysfs_rename_link_ns(struct kobject * kobj,struct kobject * targ,const char 
 #include <linux/task_work.h>
 
 struct callback_head * task_work_cancel(struct task_struct * task,task_work_func_t func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/interrupt.h>
-
-void tasklet_kill(struct tasklet_struct * t)
 {
 	lx_emul_trace_and_stop(__func__);
 }

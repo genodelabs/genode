@@ -11,6 +11,7 @@
 
 #undef call_on_stack
 #undef ASM_CALL_ARG0
+#undef do_softirq_own_stack
 
 #define call_on_stack(stack, func, asm_call, argconstr...)		\
 {									\
@@ -35,5 +36,10 @@
 
 #define ASM_CALL_ARG0							\
 	"call *%P[__func]				\n"
+
+#define do_softirq_own_stack()						\
+{									\
+	__do_softirq(); \
+}
 
 #endif /* _LX_EMUL__SHADOW__ARCH__X89__INCLUDE__ASM__IRQ_STACK_H_ */

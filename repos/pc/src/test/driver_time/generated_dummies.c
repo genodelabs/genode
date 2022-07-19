@@ -23,6 +23,14 @@ const char * __clk_get_name(const struct clk * clk)
 }
 
 
+#include <linux/srcu.h>
+
+void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 int printk_deferred(const char * fmt,...)
@@ -81,22 +89,6 @@ void ack_bad_irq(unsigned int irq)
 #include <linux/kobject.h>
 
 int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/srcutiny.h>
-
-void synchronize_srcu(struct srcu_struct * ssp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/srcu.h>
-
-void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -200,14 +192,6 @@ struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magi
 #include <linux/smp.h>
 
 int smp_call_function_single(int cpu,void (* func)(void * info),void * info,int wait)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/srcutiny.h>
-
-void srcu_drive_gp(struct work_struct * wp)
 {
 	lx_emul_trace_and_stop(__func__);
 }

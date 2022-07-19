@@ -69,3 +69,11 @@ void register_syscore_ops(struct syscore_ops * ops)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <linux/prandom.h>
+
+u32 prandom_u32(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}

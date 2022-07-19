@@ -36,7 +36,6 @@ int acpi_disabled = 0;
 
 void intel_wopcm_init_early(struct intel_wopcm * wopcm)
 {
-	wait_bit_init();
 	lx_emul_trace(__func__);
 }
 

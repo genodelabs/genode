@@ -106,3 +106,11 @@ bool irq_work_needs_cpu(void)
 {
 	return false;
 }
+
+
+#include <linux/prandom.h>
+
+u32 prandom_u32(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}

@@ -517,14 +517,6 @@ int smp_call_function_single(int cpu,void (* func)(void * info),void * info,int 
 }
 
 
-#include <linux/srcutiny.h>
-
-void srcu_drive_gp(struct work_struct * wp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
@@ -533,14 +525,6 @@ bool static_key_initialized;
 #include <linux/string_helpers.h>
 
 int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned int flags,const char * only)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/srcutiny.h>
-
-void synchronize_srcu(struct srcu_struct * ssp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -588,4 +572,3 @@ void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-

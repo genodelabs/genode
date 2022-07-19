@@ -302,14 +302,6 @@ int task_work_add(struct task_struct * task,struct callback_head * work,enum tas
 }
 
 
-#include <linux/interrupt.h>
-
-void __raise_softirq_irqoff(unsigned int nr)
-{
-    raise_softirq(nr);
-}
-
-
 #include <linux/slab.h>
 
 void kfree_sensitive(const void *p)
@@ -565,4 +557,20 @@ void rfkill_init(void)
 	pid = kernel_thread(rfkill_task_function, NULL, CLONE_FS | CLONE_FILES);
 
 	rfkill_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
+}
+
+
+#ifdef CONFIG_X86_32
+s64 arch_atomic64_add_return(s64 i, atomic64_t *v)
+{
+	v->counter += i;
+	return v->counter;
+}
+#endif
+
+
+void kvfree_call_rcu(struct rcu_head * head,rcu_callback_t func)
+{
+	void *ptr = (void *) head - (unsigned long) func;
+	kvfree(ptr);
 }

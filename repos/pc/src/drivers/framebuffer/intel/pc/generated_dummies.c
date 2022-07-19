@@ -1509,6 +1509,14 @@ void kmsg_dump(enum kmsg_dump_reason reason)
 }
 
 
+#include <linux/rcutree.h>
+
+void kvfree_call_rcu(struct rcu_head * head,rcu_callback_t func)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/swap.h>
 
 void mark_page_accessed(struct page * page)
@@ -1897,14 +1905,6 @@ int smp_call_function_single(int cpu,void (* func)(void * info),void * info,int 
 }
 
 
-#include <linux/srcutiny.h>
-
-void srcu_drive_gp(struct work_struct * wp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
@@ -1926,14 +1926,6 @@ int suppress_printk;
 #include <linux/rcupdate.h>
 
 void synchronize_rcu(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/srcutiny.h>
-
-void synchronize_srcu(struct srcu_struct * ssp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -2024,4 +2016,3 @@ void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-

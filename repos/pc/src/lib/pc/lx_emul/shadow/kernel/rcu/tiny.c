@@ -12,6 +12,7 @@
  */
 
 
+#include <linux/mm.h>
 #include <linux/rcupdate.h>
 
 void call_rcu(struct rcu_head * head,rcu_callback_t func)

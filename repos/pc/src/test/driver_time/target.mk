@@ -11,7 +11,6 @@ SRC_C   += generated_dummies.c
 SRC_C   += lx_emul/common_dummies.c
 SRC_C   += lx_emul/shadow/lib/kobject_uevent.c
 SRC_C   += lx_emul/shadow/drivers/char/random.c
-SRC_C   += lx_emul/shadow/kernel/softirq.c
 
 vpath %.c  $(REP_DIR)/src/lib/pc
 vpath %.cc $(REP_DIR)/src/lib/pc

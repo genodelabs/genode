@@ -141,7 +141,10 @@ LX_FILES += arch/x86/include/asm/boot.h \
             arch/x86/include/asm/pgtable_64.h \
             arch/x86/include/asm/pgtable-invert.h \
             arch/x86/include/asm/pkru.h \
+            arch/x86/include/asm/qrwlock.h \
+            arch/x86/include/asm/qspinlock.h \
             arch/x86/include/asm/sigframe.h \
+            arch/x86/include/asm/spinlock.h \
             arch/x86/include/asm/suspend.h \
             arch/x86/include/asm/suspend_32.h \
             arch/x86/include/asm/suspend_64.h \
@@ -159,6 +162,7 @@ LX_FILES += arch/x86/include/asm/boot.h \
             include/asm-generic/pgtable_uffd.h \
             include/asm-generic/pgtable-nopmd.h \
             include/asm-generic/pgtable-nopud.h \
+            include/asm-generic/qrwlock.h \
             include/asm-generic/qspinlock.h \
             include/linux/arm-smccc.h \
             include/linux/arm_sdei.h \

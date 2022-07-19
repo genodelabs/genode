@@ -29,6 +29,7 @@ kernel/sched/swait.c
 kernel/sched/wait.c
 kernel/sched/wait_bit.c
 kernel/smpboot.c
+kernel/softirq.c
 kernel/time/clockevents.c
 kernel/time/clocksource.c
 kernel/time/hrtimer.c

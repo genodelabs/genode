@@ -62,6 +62,7 @@ kernel/irq/chip.c
 kernel/irq/devres.c
 kernel/irq/handle.c
 kernel/irq/irqdesc.c
+kernel/irq/irqdomain.c
 kernel/irq/manage.c
 kernel/irq/resend.c
 kernel/kthread.c
@@ -75,12 +76,15 @@ kernel/sched/clock.c
 kernel/sched/completion.c
 kernel/sched/swait.c
 kernel/sched/wait.c
+kernel/sched/wait_bit.c
 kernel/smpboot.c
+kernel/softirq.c
 kernel/time/clockevents.c
 kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
+kernel/time/tick-broadcast.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
 kernel/time/tick-sched.c

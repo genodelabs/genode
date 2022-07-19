@@ -40,7 +40,6 @@ const guid_t pci_acpi_dsm_guid =
 
 void register_syscore_ops(struct syscore_ops * ops)
 {
-	wait_bit_init();
 	lx_emul_trace(__func__);
 }
 
@@ -550,4 +549,24 @@ void account_idle_ticks(unsigned long ticks)
 bool irq_work_needs_cpu(void)
 {
 	return false;
+}
+
+
+#include <asm/smp.h>
+
+struct smp_ops smp_ops = { };
+EXPORT_SYMBOL_GPL(smp_ops);
+
+
+#include <linux/prandom.h>
+
+u32 prandom_u32(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+int wbinvd_on_all_cpus(void)
+{
+	lx_emul_trace(__func__);
 }
