@@ -36,12 +36,6 @@ unsigned long __lockfunc _raw_spin_lock_irqsave(raw_spinlock_t * lock)
 }
 
 
-void __lockfunc _raw_spin_unlock(raw_spinlock_t * lock)
-{
-	arch_spin_unlock(&lock->raw_lock);
-}
-
-
 void __lockfunc _raw_spin_unlock_irqrestore(raw_spinlock_t * lock,
                                             unsigned long flags)
 {
@@ -53,12 +47,6 @@ void __lockfunc _raw_spin_unlock_irqrestore(raw_spinlock_t * lock,
 void __lockfunc _raw_spin_lock_irq(raw_spinlock_t * lock)
 {
 	_raw_spin_lock_irqsave(lock);
-}
-
-
-void __lockfunc _raw_spin_unlock_irq(raw_spinlock_t * lock)
-{
-	_raw_spin_unlock_irqrestore(lock, 0);
 }
 
 
@@ -74,7 +62,21 @@ void __lockfunc _raw_write_lock(rwlock_t * lock)
 }
 
 
+#ifndef CONFIG_X86
+void __lockfunc __raw_spin_unlock(raw_spinlock_t * lock)
+{
+	arch_spin_unlock(&lock->raw_lock);
+}
+
+
+void __lockfunc _raw_spin_unlock_irq(raw_spinlock_t * lock)
+{
+	_raw_spin_unlock_irqrestore(lock, 0);
+}
+
+
 void __lockfunc _raw_write_unlock(rwlock_t * lock)
 {
 	arch_write_unlock(&(lock)->raw_lock);
 }
+#endif

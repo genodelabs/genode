@@ -53,5 +53,7 @@ static inline int pud_none(pud_t pud)
 
 #endif
 
+#define pmd_page(pmd) NULL
+
 #endif /*_ASM__X86__PGTABLE_H */
 
