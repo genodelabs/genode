@@ -283,3 +283,10 @@ __wsum csum_partial(const void * buff,int len,__wsum sum)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux//wait_bit.h>
+void __init wait_bit_init(void)
+{
+	lx_emul_trace(__func__);
+}
