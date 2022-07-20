@@ -793,7 +793,7 @@ this can lead to starvation of the other interfaces. Thus, the maximum number
 of packets handled per signal is limited by default. This limit can be
 configured as follows (default value shown):
 
-! <config max_packets_per_signal="32">
+! <config max_packets_per_signal="150">
 
 When set to zero, the limit is deactivated, meaning that the router always
 handles all available packets of an interface.

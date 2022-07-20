@@ -111,7 +111,7 @@ Configuration::Configuration(Env               &env,
                              Interface_list    &interfaces)
 :
 	_alloc                          { alloc },
-	_max_packets_per_signal         { node.attribute_value("max_packets_per_signal",    (unsigned long)32) },
+	_max_packets_per_signal         { node.attribute_value("max_packets_per_signal",    (unsigned long)150) },
 	_verbose                        { node.attribute_value("verbose",                   false) },
 	_verbose_packets                { node.attribute_value("verbose_packets",           false) },
 	_verbose_packet_drop            { node.attribute_value("verbose_packet_drop",       false) },
