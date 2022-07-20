@@ -275,6 +275,40 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vcpu(CPUM
 }
 
 
+/*
+ * Based on hmR0VmxImportGuestIntrState()
+ */
+static void handle_intr_state(PVMCPUCC pVCpu, CPUMCTX &ctx, Vcpu_state &state)
+{
+	auto const interrupt_state = state.intr_state.value();
+
+	if (!interrupt_state /* VMX_VMCS_GUEST_INT_STATE_NONE */) {
+		if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS))
+			VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS);
+		CPUMSetGuestNmiBlocking(pVCpu, false);
+	} else {
+		if (interrupt_state & (VMX_VMCS_GUEST_INT_STATE_BLOCK_MOVSS |
+		                       VMX_VMCS_GUEST_INT_STATE_BLOCK_STI))
+			EMSetInhibitInterruptsPC(pVCpu, ctx.rip);
+		else if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS))
+			VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS);
+
+		bool const block_nmi = RT_BOOL(interrupt_state &
+		                               VMX_VMCS_GUEST_INT_STATE_BLOCK_NMI);
+		CPUMSetGuestNmiBlocking(pVCpu, block_nmi);
+	}
+
+	/* prepare clearing blocking MOV SS or STI bits for next VM-entry */
+	if (interrupt_state & (VMX_VMCS_GUEST_INT_STATE_BLOCK_MOVSS |
+	                       VMX_VMCS_GUEST_INT_STATE_BLOCK_STI)) {
+		state.intr_state.charge(state.intr_state.value() &
+		                        ~unsigned(VMX_VMCS_GUEST_INT_STATE_BLOCK_MOVSS |
+		                                   VMX_VMCS_GUEST_INT_STATE_BLOCK_STI));
+		state.actv_state.charge(VMX_VMCS_GUEST_ACTIVITY_ACTIVE);
+	}
+}
+
+
 template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vbox(CPUMCTX &ctx)
 {
 	Vcpu_state const &state { _vcpu.state() };
@@ -359,23 +393,12 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vbox(CPUM
 	_cached_state.ctrl_primary   = state.ctrl_primary.value();
 	_cached_state.ctrl_secondary = state.ctrl_secondary.value();
 
-	/* clear blocking by MOV SS or STI bits */
-	if (_vcpu.state().intr_state.value() & 3) {
-		_vcpu.state().intr_state.charge(state.intr_state.value() & ~3U);
-		_vcpu.state().actv_state.charge(VMX_VMCS_GUEST_ACTIVITY_ACTIVE);
-	}
+	/* handle guest interrupt state */
+	handle_intr_state(pVCpu, ctx, _vcpu.state());
 
 	VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_TO_R3);
 
 	_vmcpu.cpum.s.fUseFlags |= CPUM_USED_FPU_GUEST;
-
-	if (state.intr_state.value() != VMX_VMCS_GUEST_INT_STATE_NONE) {
-		Assert(state.intr_state.value() == VMX_VMCS_GUEST_INT_STATE_BLOCK_STI ||
-		       state.intr_state.value() == VMX_VMCS_GUEST_INT_STATE_BLOCK_MOVSS);
-		EMSetInhibitInterruptsPC(pVCpu, ctx.rip);
-	} else {
-		VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS);
-	}
 
 	APICSetTpr(pVCpu, tpr);
 
@@ -500,12 +523,6 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_paused()
 
 		Assert(state.flags.value() & X86_EFL_IF);
 
-		if (state.intr_state.value() != VMX_VMCS_GUEST_INT_STATE_NONE)
-			Genode::log("intr state ", Genode::Hex(state.intr_state.value()),
-			            " ", Genode::Hex(state.intr_state.value() & 0xf));
-
-		Assert(state.intr_state.value() == VMX_VMCS_GUEST_INT_STATE_NONE);
-
 		/*
 		 * We got a pause exit during IRQ injection and the guest is ready for
 		 * IRQ injection. So, just continue running the vCPU.
@@ -544,7 +561,6 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_irq_window(
 
 	PVMCPU pVCpu = &_vmcpu;
 
-	Assert(state.intr_state.value() == VMX_VMCS_GUEST_INT_STATE_NONE);
 	Assert(state.flags.value() & X86_EFL_IF);
 	Assert(!VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS));
 	Assert(!VMX_EXIT_INT_INFO_IS_VALID(state.inj_info.value()));
@@ -588,34 +604,68 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_irq_window(
 	Assert(TRPMHasTrap(pVCpu));
 
 	/* interrupt can be dispatched */
-	uint8_t     u8Vector;
-	TRPMEVENT   enmType;
-	SVMEVENT    Event;
-	uint32_t    u32ErrorCode;
-	RTGCUINT    cr2;
-
-	Event.u = 0;
+	uint8_t   u8Vector   { };
+	TRPMEVENT event_type { TRPM_HARDWARE_INT };
+	SVMEVENT  event      { };
+	uint32_t  errorcode  { };
+	RTGCUINT  cr2        { };
 
 	/* If a new event is pending, then dispatch it now. */
-	int rc = TRPMQueryTrapAll(pVCpu, &u8Vector, &enmType, &u32ErrorCode, &cr2, 0, 0);
+	int rc = TRPMQueryTrapAll(pVCpu, &u8Vector, &event_type, &errorcode, &cr2, 0, 0);
 	AssertRC(rc);
-	Assert(enmType == TRPM_HARDWARE_INT);
-	Assert(u8Vector != X86_XCPT_NMI);
+	if (rc != VINF_SUCCESS) {
+		Genode::warning("no trap available");
+		return RUNNING;
+	}
+
+	/* based upon hmR0SvmTrpmTrapToPendingEvent */
+	switch (event_type) {
+	case TRPM_TRAP:
+		event.n.u1Valid  = 1;
+		event.n.u8Vector = u8Vector;
+
+		switch (u8Vector) {
+			case X86_XCPT_NMI:
+				event.n.u3Type = SVM_EVENT_NMI;
+
+				static_assert(SVM_EVENT_NMI == VMX_ENTRY_INT_INFO_TYPE_NMI,
+				              "SVM vs VMX mismatch");
+				break;
+			default:
+				Genode::error("unsupported injection case - "
+				              "TRPM_TRAP, vector=", u8Vector);
+				Assert(!"unsupported injection case");
+				return PAUSED;
+		}
+		break;
+	case TRPM_HARDWARE_INT:
+		event.n.u1Valid  = 1;
+		event.n.u8Vector = u8Vector;
+		event.n.u3Type   = SVM_EVENT_EXTERNAL_IRQ;
+
+		static_assert(VMX_ENTRY_INT_INFO_TYPE_EXT_INT == SVM_EVENT_EXTERNAL_IRQ,
+		              "SVM vs VMX mismatch");
+
+		break;
+	case TRPM_SOFTWARE_INT:
+		event.n.u1Valid  = 1;
+		event.n.u8Vector = u8Vector;
+		event.n.u3Type = SVM_EVENT_SOFTWARE_INT;
+
+		static_assert(VMX_ENTRY_INT_INFO_TYPE_SW_INT == SVM_EVENT_SOFTWARE_INT,
+		              "SVM vs VMX mismatch");
+	default:
+		Genode::error("unsupported injection case");
+		Assert(!"unsupported injection case");
+		return PAUSED;
+	}
 
 	/* Clear the pending trap. */
 	rc = TRPMResetTrap(pVCpu);
 	AssertRC(rc);
 
-	Event.n.u8Vector = u8Vector;
-	Event.n.u1Valid  = 1;
-	Event.n.u32ErrorCode = u32ErrorCode;
-
-	Assert(VMX_ENTRY_INT_INFO_TYPE_EXT_INT == SVM_EVENT_EXTERNAL_IRQ);
-
-	Event.n.u3Type = VMX_ENTRY_INT_INFO_TYPE_EXT_INT;
-
-	state.inj_info.charge(Event.u);
-	state.inj_error.charge(Event.n.u32ErrorCode);
+	state.inj_info.charge(event.u);
+	state.inj_error.charge(errorcode);
 
 	return RUNNING;
 }
@@ -748,6 +798,10 @@ template <typename T> VBOXSTRICTRC Sup::Vcpu_impl<T>::run()
 
 	/* track guest mode changes - see VMM/VMMAll/IEMAllCImpl.cpp.h */
 	PGMChangeMode(pVCpu, ctx.cr0, ctx.cr4, ctx.msrEFER);
+
+	/* avoid assertion in EMHandleRCTmpl.h, normally set by SVMRO/VMXR0 */
+	if (TRPMHasTrap(pVCpu))
+		return VINF_EM_RAW_INJECT_TRPM_EVENT;
 
 	/* evaluated in VMM/include/EMHandleRCTmpl.h */
 	return rc;
