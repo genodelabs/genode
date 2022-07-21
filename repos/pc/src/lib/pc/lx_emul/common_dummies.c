@@ -43,11 +43,6 @@ const struct trace_print_flags vmaflag_names[]  = { {0,NULL}};
 const struct trace_print_flags pageflag_names[] = { {0,NULL}};
 
 
-#include <linux/kernel_stat.h>
-
-struct kernel_stat kstat;
-
-
 #include <asm/processor.h>
 
 /*
@@ -371,13 +366,6 @@ bool pat_enabled(void)
 }
 
 
-#include <linux/cpumask.h>
-
-atomic_t __num_online_cpus = ATOMIC_INIT(1);
-
-unsigned long __per_cpu_offset[NR_CPUS] = { 0UL };
-
-
 struct srcu_struct;
 extern int __srcu_read_lock(struct srcu_struct * ssp);
 int __srcu_read_lock(struct srcu_struct * ssp)
@@ -402,78 +390,6 @@ void cpu_hotplug_enable(void)
 }
 
 
-#include <linux/cpumask.h>
-
-unsigned int cpumask_next(int n,const struct cpumask * srcp)
-{
-	lx_emul_trace(__func__);
-	return n + 1;
-}
-
-
-#include <linux/cpumask.h>
-
-int cpumask_next_and(int n,const struct cpumask * src1p,const struct cpumask * src2p)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sched.h>
-
-void do_set_cpus_allowed(struct task_struct * p,const struct cpumask * new_mask)
-{
-	lx_emul_trace(__func__);
-}
-
-
-#include <linux/sched/isolation.h>
-
-const struct cpumask * housekeeping_cpumask(enum hk_flags flags)
-{
-	static struct cpumask ret;
-	lx_emul_trace(__func__);
-	return &ret;
-}
-
-
-#include <linux/sched/isolation.h>
-
-bool housekeeping_enabled(enum hk_flags flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/cpumask.h>
-
-unsigned int nr_cpu_ids = 1;
-
-
-#include <linux/rcutree.h>
-
-noinstr void rcu_irq_enter(void)
-{
-	lx_emul_trace(__func__);
-}
-
-
-#include <linux/rcutree.h>
-
-void noinstr rcu_irq_exit(void)
-{
-	lx_emul_trace(__func__);
-}
-
-
-#include <linux/rcutree.h>
-
-void rcu_softirq_qs(void)
-{
-	lx_emul_trace(__func__);
-}
-
-
 extern void synchronize_srcu(struct srcu_struct * ssp);
 void synchronize_srcu(struct srcu_struct * ssp)
 {
@@ -481,29 +397,10 @@ void synchronize_srcu(struct srcu_struct * ssp)
 }
 
 
-int cpu_number = 0;
-
 #ifdef CONFIG_X86_64
 DEFINE_PER_CPU(void *, hardirq_stack_ptr);
 #endif
 DEFINE_PER_CPU(bool, hardirq_stack_inuse);
-
-
-#include <linux/interrupt.h>
-
-DEFINE_PER_CPU_SHARED_ALIGNED(irq_cpustat_t, irq_stat);
-EXPORT_PER_CPU_SYMBOL(irq_stat);
-
-
-extern void rcu_read_unlock_strict(void);
-void rcu_read_unlock_strict(void)
-{
-	lx_emul_trace(__func__);
-}
-
-
-DEFINE_PER_CPU_READ_MOSTLY(unsigned long, this_cpu_off) = 0;
-EXPORT_PER_CPU_SYMBOL(this_cpu_off);
 
 
 #include <asm/processor.h>
@@ -512,33 +409,3 @@ DEFINE_PER_CPU_READ_MOSTLY(struct cpuinfo_x86, cpu_info);
 EXPORT_PER_CPU_SYMBOL(cpu_info);
 
 
-#include <linux/sched/nohz.h>
-
-void wake_up_nohz_cpu(int cpu)
-{
-	lx_emul_trace(__func__);
-}
-
-
-#include <linux/sched/nohz.h>
-
-void nohz_balance_enter_idle(int cpu)
-{
-	lx_emul_trace(__func__);
-}
-
-
-#include <linux/vmstat.h>
-
-void quiet_vmstat(void)
-{
-	lx_emul_trace(__func__);
-}
-
-
-extern int idle_cpu(int cpu);
-int idle_cpu(int cpu)
-{
-	lx_emul_trace(__func__);
-	return 1;
-}

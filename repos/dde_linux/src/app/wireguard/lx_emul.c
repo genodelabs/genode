@@ -276,26 +276,6 @@ struct rtable * ip_route_output_flow(struct net * net,struct flowi4 * flp4,const
 }
 
 
-#include <linux/sched.h>
-
-int __cond_resched(void)
-{
-	if (should_resched(0)) {
-		schedule();
-		return 1;
-	}
-	return 0;
-}
-
-
-#include <linux/rcupdate.h>
-
-void call_rcu(struct rcu_head * head,rcu_callback_t func)
-{
-	func(head);
-}
-
-
 #include <linux/slab.h>
 
 void kfree_sensitive(const void * p)
@@ -383,3 +363,9 @@ bool __do_once_start(bool * done,unsigned long * flags)
 {
 	return !*done;
 }
+
+
+#ifdef CONFIG_X86_64
+DEFINE_PER_CPU(void *, hardirq_stack_ptr);
+#endif
+DEFINE_PER_CPU(bool, hardirq_stack_inuse);

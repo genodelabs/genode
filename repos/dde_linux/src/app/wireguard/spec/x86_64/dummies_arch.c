@@ -24,3 +24,4 @@ void clocksource_arch_init(struct clocksource * cs)
 
 
 struct cpuinfo_x86 boot_cpu_data __read_mostly;
+

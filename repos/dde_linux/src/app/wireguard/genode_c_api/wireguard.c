@@ -220,10 +220,6 @@ _genode_wg_set_device(struct genl_info *info)
 }
 
 
-void genode_wg_arch_net_dev_init(struct net_device *net_dev,
-                                 int               *pcpu_refcnt);
-
-
 static void
 _genode_wg_config_add_dev(genode_wg_u16_t              listen_port,
                           const genode_wg_u8_t * const priv_key)
@@ -237,10 +233,8 @@ _genode_wg_config_add_dev(genode_wg_u16_t              listen_port,
 
 	/* prepare environment for the execution of 'wg_set_device' */
 	_genode_wg_net_dev.public_data.rtnl_link_ops = _genode_wg_rtnl_link_ops;
+	_genode_wg_net_dev.public_data.pcpu_refcnt = &_genode_wg_net_dev.pcpu_refcnt;
 	_genode_wg_net_dev.pcpu_refcnt = 0;
-	genode_wg_arch_net_dev_init(
-		genode_wg_net_device(), &_genode_wg_net_dev.pcpu_refcnt);
-
 
 	_genode_wg_sk_buff.sk = &_genode_wg_sock;
 	_genode_wg_sock.sk_user_data = &_genode_wg_net_dev.private_data;

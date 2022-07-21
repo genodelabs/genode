@@ -29,11 +29,6 @@ bool cpu_have_feature(unsigned int num)
 
 u64 vabits_actual;
 
-void rcu_read_unlock_strict(void)
-{
-	lx_emul_trace(__func__);
-}
-
 unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -82,32 +77,9 @@ void __init generic_sched_clock_init(void)
 	lx_emul_trace(__func__);
 }
 
-#include <linux/sched.h>
-
-void do_set_cpus_allowed(struct task_struct * p,const struct cpumask * new_mask)
-{
-	lx_emul_trace(__func__);
-}
-
-
 #include <linux/of.h>
 
 void __init of_core_init(void)
 {
 	lx_emul_trace(__func__);
-}
-
-#include <linux/stop_machine.h>
-
-int stop_machine(cpu_stop_fn_t fn,void * data,const struct cpumask * cpus)
-{
-	return (*fn)(data);
-}
-
-
-#include <linux/rcutree.h>
-
-void kvfree(const void * addr)
-{
-	lx_emul_trace_and_stop(__func__);
 }

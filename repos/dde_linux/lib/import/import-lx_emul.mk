@@ -9,4 +9,4 @@ LX_GEN_DIR := $(LIB_CACHE_DIR)/virt_linux_generated
 
 -include $(call select_from_repositories,lib/import/import-lx_emul_common.inc)
 
-SRC_CC  += lx_kit/memory_non_dma.cc
+SRC_CC += lx_kit/memory_non_dma.cc

@@ -285,8 +285,9 @@ __wsum csum_partial(const void * buff,int len,__wsum sum)
 }
 
 
-#include <linux//wait_bit.h>
-void __init wait_bit_init(void)
+#include <linux/rcutree.h>
+
+void kvfree(const void * addr)
 {
-	lx_emul_trace(__func__);
+	lx_emul_trace_and_stop(__func__);
 }

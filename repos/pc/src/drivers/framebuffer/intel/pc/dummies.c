@@ -528,30 +528,6 @@ void intel_dsb_commit(const struct intel_crtc_state *crtc_state)
 }
 
 
-void calc_load_nohz_start(void)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void calc_load_nohz_stop(void)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void account_idle_ticks(unsigned long ticks)
-{
-	lx_emul_trace(__func__);
-}
-
-
-bool irq_work_needs_cpu(void)
-{
-	return false;
-}
-
-
 #include <asm/smp.h>
 
 struct smp_ops smp_ops = { };

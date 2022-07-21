@@ -17,6 +17,7 @@ arch/x86/include/asm/cmpxchg.h
 arch/x86/include/asm/compat.h
 arch/x86/include/asm/cpu_entry_area.h
 arch/x86/include/asm/cpufeatures.h
+arch/x86/include/asm/cpu.h
 arch/x86/include/asm/cpumask.h
 arch/x86/include/asm/delay.h
 arch/x86/include/asm/desc.h
@@ -239,6 +240,7 @@ include/linux/atomic.h
 include/linux/audit.h
 include/linux/auxvec.h
 include/linux/backing-dev-defs.h
+include/linux/bcd.h
 include/linux/binfmts.h
 include/linux/bio.h
 include/linux/bit_spinlock.h

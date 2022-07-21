@@ -17,12 +17,10 @@ SRC_C += dummies_arch.c
 SRC_C += lx_emul.c
 SRC_C += wireguard.c
 SRC_C += genode_c_api_arch.c
-SRC_C += softirq.c
 
 vpath wireguard.c $(GEN_PRG_DIR)/genode_c_api
 vpath %.c         $(PRG_DIR)
 vpath %.c         $(GEN_PRG_DIR)
-vpath softirq.c   $(REP_DIR)/src/lib/lx_emul/shadow/kernel
 
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(GEN_PRG_DIR)

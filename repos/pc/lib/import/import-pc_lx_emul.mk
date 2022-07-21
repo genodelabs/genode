@@ -21,10 +21,6 @@ SRC_CC  += lx_emul/irq.cc
 SRC_CC  += lx_emul/random.cc
 SRC_C   += lx_emul/shadow/kernel/dma/mapping.c
 SRC_C   += lx_emul/shadow/kernel/irq/spurious.c
-SRC_C   += lx_emul/shadow/kernel/locking/spinlock.c
-SRC_C   += lx_emul/shadow/kernel/rcu/tree.c
-SRC_C   += lx_emul/shadow/kernel/sched/sched.c
-SRC_C   += lx_emul/shadow/kernel/stop_machine.c
 SRC_C   += lx_emul/shadow/lib/devres.c
 SRC_C   += lx_emul/shadow/lib/smp_processor_id.c
 SRC_C   += lx_emul/shadow/mm/memblock.c
@@ -51,7 +47,6 @@ SRC_C   += lx_emul/vmalloc.c
 SRC_C   += lx_emul/delay.c
 
 SRC_C   += lx_emul/shadow/fs/libfs.c
-SRC_C   += lx_emul/shadow/kernel/rcu/tiny.c
 SRC_C   += lx_emul/shadow/lib/logic_iomem.c
 
 SRC_C   += lx_emul/shadow/drivers/char/random.c

@@ -22,6 +22,7 @@
 #include <linux/sched/stat.h>
 #include <linux/sched/nohz.h>
 #include <linux/version.h>
+#include <linux/kernel_stat.h>
 
 #include <lx_emul/debug.h>
 #include <lx_emul/task.h>
@@ -42,6 +43,10 @@ typedef long          wait_task_inactive_match_state_t;
 typedef unsigned int  nr_iowait_cpu_return_t;
 typedef unsigned int  wait_task_inactive_match_state_t;
 #endif
+
+
+DEFINE_PER_CPU(struct kernel_stat, kstat);
+EXPORT_PER_CPU_SYMBOL(kstat);
 
 
 void set_user_nice(struct task_struct * p, long nice)
@@ -183,7 +188,6 @@ int wake_up_state(struct task_struct * p, unsigned int state)
 
 
 #ifdef CONFIG_SMP
-
 unsigned long wait_task_inactive(struct task_struct * p,
                                  wait_task_inactive_match_state_t match_state)
 {
@@ -206,15 +210,20 @@ int set_cpus_allowed_ptr(struct task_struct * p,
 }
 
 
-#ifdef CONFIG_NO_HZ_COMMON
+void do_set_cpus_allowed(struct task_struct * p,
+                         const struct cpumask * new_mask) { }
 
+
+#ifdef CONFIG_NO_HZ_COMMON
 int get_nohz_timer_target(void)
 {
 	return 0;
 }
 
-#endif
-#endif
+
+void wake_up_nohz_cpu(int cpu) { }
+#endif /* CONFIG_NO_HZ_COMMON */
+#endif /* CONFIG_SMP */
 
 
 static bool __wake_q_add(struct wake_q_head *head, struct task_struct *task)
@@ -252,4 +261,10 @@ void wake_up_q(struct wake_q_head *head)
 		wake_up_process(task);
 		put_task_struct(task);
 	}
+}
+
+
+int idle_cpu(int cpu)
+{
+	return 1;
 }

@@ -46,45 +46,43 @@ LX_ABS_DIR := $(addsuffix /$(LX_REL_DIR),$(PORT_DIR))
 # ingredients needed for creating a Linux build directory / generated headers
 LX_FILES += Kbuild \
             Makefile \
+            arch/arm64/Makefile \
+            arch/arm64/boot/dts \
+            arch/arm64/configs \
+            arch/arm64/crypto/poly1305-armv8.pl \
+            arch/arm64/include \
+            arch/arm64/kernel/asm-offsets.c \
+            arch/arm64/kernel/vdso/Makefile \
+            arch/arm64/kernel/vdso/gen_vdso_offsets.sh \
+            arch/arm64/kernel/vdso/note.S \
+            arch/arm64/kernel/vdso/sigreturn.S \
+            arch/arm64/kernel/vdso/vdso.lds.S \
+            arch/arm64/kernel/vdso/vgettimeofday.c \
+            arch/arm64/tools/Makefile \
+            arch/arm64/tools/cpucaps \
+            arch/arm64/tools/gen-cpucaps.awk \
             arch/x86/Makefile \
             arch/x86/Makefile_32.cpu \
             arch/x86/configs \
             arch/x86/entry/syscalls/Makefile \
             arch/x86/entry/syscalls/syscall_32.tbl \
             arch/x86/entry/syscalls/syscall_64.tbl \
-            arch/x86/include/asm/Kbuild \
-            arch/x86/include/asm/atomic64_32.h \
-            arch/x86/include/asm/cmpxchg_32.h \
-            arch/x86/include/asm/string.h \
-            arch/x86/include/asm/string_32.h \
-            arch/x86/include/asm/string_64.h \
-            arch/x86/include/uapi/asm/Kbuild \
-            arch/x86/include/uapi/asm/posix_types.h \
-            arch/x86/include/uapi/asm/posix_types_32.h \
-            arch/x86/include/uapi/asm/posix_types_64.h \
+            arch/x86/include \
+            arch/x86/kernel/asm-offsets.c \
+            arch/x86/kernel/asm-offsets_64.c \
             arch/x86/tools/Makefile \
             arch/x86/tools/relocs.c \
             arch/x86/tools/relocs.h \
             arch/x86/tools/relocs_32.c \
             arch/x86/tools/relocs_64.c \
             arch/x86/tools/relocs_common.c \
-            arch/arm64/Makefile \
-            arch/arm64/configs \
-            arch/arm64/boot/dts \
-            arch/arm64/include/asm/Kbuild \
-            arch/arm64/include/uapi/asm/Kbuild \
-            arch/arm64/tools/Makefile \
-            arch/arm64/tools/gen-cpucaps.awk \
-            arch/arm64/tools/cpucaps \
-            include/asm-generic/bitops/fls64.h \
-            include/asm-generic/Kbuild \
-            include/linux/compiler-version.h \
-            include/linux/kbuild.h \
-            include/linux/license.h \
-            include/uapi/Kbuild \
-            include/uapi/asm-generic/Kbuild \
+            include \
+            kernel/bounds.c \
             kernel/configs/tiny-base.config \
             kernel/configs/tiny.config \
+            kernel/time/timeconst.bc \
+            lib/vdso/Makefile \
+            lib/vdso/gettimeofday.c \
             scripts/Kbuild.include \
             scripts/Makefile \
             scripts/Makefile.asm-generic \
@@ -93,8 +91,8 @@ LX_FILES += Kbuild \
             scripts/Makefile.extrawarn \
             scripts/Makefile.host \
             scripts/Makefile.lib \
-            scripts/asn1_compiler.c \
             scripts/as-version.sh \
+            scripts/asn1_compiler.c \
             scripts/atomic/check-atomics.sh \
             scripts/basic/Makefile \
             scripts/basic/fixdep.c \
@@ -124,23 +122,6 @@ LX_SCRIPTS_KCONFIG_FILES := $(notdir $(wildcard $(LX_ABS_DIR)/scripts/kconfig/*.
 LX_FILES += $(addprefix scripts/kconfig/,$(LX_SCRIPTS_KCONFIG_FILES)) \
 
 LX_FILES += $(shell cd $(LX_ABS_DIR); find -name "Kconfig*" -printf "%P\n")
-
-# needed for generated/asm-offsets.h
-LX_FILES += arch/x86/kernel/asm-offsets.c \
-            arch/x86/kernel/asm-offsets_64.c \
-            kernel/bounds.c \
-            kernel/time/timeconst.bc \
-            arch/arm64/kernel/vdso/vgettimeofday.c \
-            arch/arm64/kernel/vdso/note.S \
-            arch/arm64/kernel/vdso/vdso.lds.S \
-            arch/arm64/kernel/asm-offsets.c \
-            arch/arm64/kernel/vdso/Makefile \
-            lib/vdso/Makefile \
-            arch/arm64/kernel/vdso/sigreturn.S \
-            lib/vdso/gettimeofday.c \
-            include/vdso/datapage.h \
-            arch/arm64/kernel/vdso/gen_vdso_offsets.sh \
-            arch/arm64/crypto/poly1305-armv8.pl \
 
 # add content listed in the repository's source.list or dep.list files
 LX_FILE_LISTS := $(shell find -H $(REP_DIR) -name dep.list -or -name source.list)

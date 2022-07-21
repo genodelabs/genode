@@ -18,17 +18,29 @@ SRC_CC  += lx_emul/task.cc
 SRC_CC  += lx_emul/time.cc
 
 SRC_C   += lx_emul/clocksource.c
-SRC_C   += lx_emul/start.c
 SRC_C   += lx_emul/shadow/fs/exec.c
 SRC_C   += lx_emul/shadow/kernel/cpu.c
 SRC_C   += lx_emul/shadow/kernel/exit.c
 SRC_C   += lx_emul/shadow/kernel/fork.c
+SRC_C   += lx_emul/shadow/kernel/irq_work.c
+SRC_C   += lx_emul/shadow/kernel/locking/spinlock.c
 SRC_C   += lx_emul/shadow/kernel/pid.c
 SRC_C   += lx_emul/shadow/kernel/printk/printk.c
+SRC_C   += lx_emul/shadow/kernel/rcu/tree.c
+SRC_C   += lx_emul/shadow/kernel/sched/cputime.c
 SRC_C   += lx_emul/shadow/kernel/sched/core.c
+SRC_C   += lx_emul/shadow/kernel/sched/fair.c
+SRC_C   += lx_emul/shadow/kernel/sched/isolation.c
+SRC_C   += lx_emul/shadow/kernel/sched/loadavg.c
+SRC_C   += lx_emul/shadow/kernel/sched/sched.c
+SRC_C   += lx_emul/shadow/kernel/smp.c
+SRC_C   += lx_emul/shadow/kernel/stop_machine.c
+SRC_C   += lx_emul/shadow/lib/cpumask.c
 SRC_C   += lx_emul/shadow/mm/percpu.c
 SRC_C   += lx_emul/shadow/mm/slab_common.c
 SRC_C   += lx_emul/shadow/mm/slub.c
+SRC_C   += lx_emul/shadow/mm/vmstat.c
+SRC_C   += lx_emul/start.c
 SRC_C   += lx_emul/virt_to_page.c
 
 SRC_CC  += lx_kit/console.cc
@@ -44,6 +56,9 @@ LX_ARCH   := x86
 GEN_ARCH  := x86
 SPEC_ARCH := x86_32
 
+SRC_C += lx_emul/shadow/arch/x86/kernel/irq.c
+SRC_C += lx_emul/shadow/arch/x86/kernel/setup_percpu.c
+
 # temporarily add the following include path for x86 platform_session wrapper
 INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/x86/lx_kit
 endif
@@ -52,6 +67,9 @@ ifeq ($(filter-out $(SPECS),x86_64),)
 LX_ARCH   := x86
 GEN_ARCH  := x86
 SPEC_ARCH := x86_64
+
+SRC_C += lx_emul/shadow/arch/x86/kernel/irq.c
+SRC_C += lx_emul/shadow/arch/x86/kernel/setup_percpu.c
 
 # temporarily add the following include path for x86 platform_session wrapper
 INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/x86/lx_kit

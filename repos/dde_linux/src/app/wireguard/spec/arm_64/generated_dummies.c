@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-05-04
+ * \date   2022-07-21
  */
 
 #include <lx_emul.h>
@@ -139,6 +139,11 @@ void flush_dcache_page(struct page * page)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/interrupt.h>
+
+bool force_irqthreads;
 
 
 #include <linux/netdevice.h>
@@ -498,25 +503,17 @@ int printk_deferred(const char * fmt,...)
 }
 
 
-#include <asm-generic/qrwlock.h>
+#include <linux/rcutree.h>
 
-void queued_read_lock_slowpath(struct qrwlock * lock)
+void rcu_irq_enter_irqson(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <asm-generic/qspinlock.h>
+#include <linux/rcutree.h>
 
-void queued_spin_lock_slowpath(struct qspinlock * lock,u32 val)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <asm-generic/qrwlock.h>
-
-void queued_write_lock_slowpath(struct qrwlock * lock)
+void rcu_irq_exit_irqson(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
