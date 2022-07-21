@@ -639,6 +639,10 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		class Saturated_submit_queue : Exception { };
 		class Empty_ack_queue        : Exception { };
 
+		enum class Alloc_packet_error { FAILED };
+
+		using Alloc_packet_result = Attempt<Packet_descriptor, Alloc_packet_error>;
+
 		/**
 		 * Constructor
 		 *
@@ -724,6 +728,29 @@ class Genode::Packet_stream_source : private Packet_stream_base
 
 				[&] (Allocator::Alloc_error) -> Packet_descriptor {
 					throw Packet_alloc_failed(); });
+		}
+
+		/**
+		 * Allocate packet without throwing exceptions
+		 *
+		 * \param size   size of packet in bytes
+		 * \param align  alignment of packet as log2 value, default is 1 byte
+		 * \return       an Attempt object that either contains an error or a
+		 *               packet descriptor with an assigned range within the
+		 *               bulk buffer shared between source and sink
+		 */
+		Alloc_packet_result alloc_packet_attempt(Genode::size_t size, unsigned align = PACKET_ALIGNMENT)
+		{
+			if (size == 0)
+				return Packet_descriptor(0, 0);
+
+			return _packet_alloc.alloc_aligned(size, align).convert<Alloc_packet_result>(
+
+				[&] (void *base) {
+					return Packet_descriptor((Genode::off_t)base, size); },
+
+				[&] (Allocator::Alloc_error) {
+					return Alloc_packet_error::FAILED; });
 		}
 
 		/**

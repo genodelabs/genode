@@ -307,10 +307,6 @@ class Net::Interface : private Interface_list::Element
 
 		void _ack_packet(Packet_descriptor const &pkt);
 
-		void _send_alloc_pkt(Genode::Packet_descriptor   &pkt,
-		                     void                      * &pkt_base,
-		                     Genode::size_t               pkt_size);
-
 		void _send_submit_pkt(Genode::Packet_descriptor   &pkt,
 		                      void                      * &pkt_base,
 		                      Genode::size_t               pkt_size);
@@ -402,18 +398,19 @@ class Net::Interface : private Interface_list::Element
 				_failed_to_send_packet_submit();
 				return;
 			}
-			try {
-				Packet_descriptor  pkt;
-				void              *pkt_base;
-
-				_send_alloc_pkt(pkt, pkt_base, pkt_size);
-				Size_guard size_guard(pkt_size);
-				write_to_pkt(pkt_base, size_guard);
-				_send_submit_pkt(pkt, pkt_base, pkt_size);
-			}
-			catch (Packet_stream_source::Packet_alloc_failed) {
-				_failed_to_send_packet_alloc();
-			}
+			_source.alloc_packet_attempt(pkt_size).with_result(
+				[&] (Packet_descriptor pkt)
+				{
+					void *pkt_base { _source.packet_content(pkt) };
+					Size_guard size_guard(pkt_size);
+					write_to_pkt(pkt_base, size_guard);
+					_send_submit_pkt(pkt, pkt_base, pkt_size);
+				},
+				[&] (Packet_stream_source::Alloc_packet_error)
+				{
+					_failed_to_send_packet_alloc();
+				}
+			);
 		}
 
 		void send(Ethernet_frame &eth,

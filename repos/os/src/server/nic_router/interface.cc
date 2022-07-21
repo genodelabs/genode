@@ -1850,15 +1850,6 @@ void Interface::send(Ethernet_frame &eth,
 }
 
 
-void Interface::_send_alloc_pkt(Packet_descriptor &pkt,
-                                void            * &pkt_base,
-                                size_t             pkt_size)
-{
-	pkt      = _source.alloc_packet(pkt_size);
-	pkt_base = _source.packet_content(pkt);
-}
-
-
 void Interface::_send_submit_pkt(Packet_descriptor &pkt,
                                  void            * &pkt_base,
                                  size_t             pkt_size)
