@@ -41,6 +41,13 @@ static inline void * _alloc_stack(const char * name)
 }
 
 
+static inline void _free_stack(void *addr)
+{
+	Genode::Thread * th = Genode::Thread::myself();
+	th->free_secondary_stack(addr);
+}
+
+
 Task::State Task::state() const { return _state; }
 
 
@@ -152,4 +159,8 @@ Task::Task(int       (* func)(void*),
 }
 
 
-Task::~Task() { _scheduler.remove(*this); }
+Task::~Task()
+{
+	_scheduler.remove(*this);
+	_free_stack(_stack);
+}
