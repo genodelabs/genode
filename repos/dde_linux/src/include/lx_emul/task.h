@@ -46,6 +46,8 @@ void *lx_emul_task_stack(struct task_struct const * task);
 
 char lx_emul_task_another_runnable(void);
 
+void  lx_emul_task_mark_for_removal(struct task_struct const * task);
+
 #ifdef __cplusplus
 }
 #endif

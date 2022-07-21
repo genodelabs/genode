@@ -16,6 +16,7 @@
 #include <linux/rcuwait.h>
 
 #include <lx_emul/debug.h>
+#include <lx_emul/task.h>
 
 
 int rcuwait_wake_up(struct rcuwait * w)
@@ -38,6 +39,9 @@ void __noreturn do_exit(long code)
 		complete(tsk->vfork_done);
 
 	current->flags |= PF_NOFREEZE;
+
+	lx_emul_task_mark_for_removal(tsk);
+
 	schedule();
 	BUG();
 }

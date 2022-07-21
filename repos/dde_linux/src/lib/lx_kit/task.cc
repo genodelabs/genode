@@ -27,6 +27,7 @@ bool Task::runnable() const
 	case INIT:    return true;
 	case RUNNING: return true;
 	case BLOCKED: return false;
+	case DESTROY: return false;
 	}
 	error("Invalid task state?!");
 	return false;
@@ -136,6 +137,18 @@ void Task::block_and_schedule()
 {
 	block();
 	schedule();
+}
+
+
+void Task::mark_for_destruction()
+{
+	_state = DESTROY;
+}
+
+
+bool Task::destroy() const
+{
+	return _state == DESTROY;
 }
 
 

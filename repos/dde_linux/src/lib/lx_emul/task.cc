@@ -108,3 +108,9 @@ extern "C" char lx_emul_task_another_runnable()
 
 	return Lx_kit::env().scheduler.another_runnable(&task);
 }
+
+
+extern "C" void lx_emul_task_mark_for_removal(struct task_struct const *t)
+{
+	Lx_kit::env().scheduler.task((void*)t).mark_for_destruction();
+}

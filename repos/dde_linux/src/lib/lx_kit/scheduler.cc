@@ -21,7 +21,7 @@
 #include <base/thread.h>
 #include <os/backtrace.h>
 
-#include <lx_kit/scheduler.h>
+#include <lx_kit/env.h>
 #include <lx_kit/task.h>
 
 using namespace Genode;
@@ -118,6 +118,17 @@ void Scheduler::schedule()
 
 		/* update jiffies before running task */
 		//Lx::timer_update_jiffies();
+
+		for (Task * t = _present_list.first(); t; ) {
+
+			Task *tmp = t;
+			t = t->next();
+
+			if (!tmp->destroy())
+				continue;
+
+			Genode::destroy(Lx_kit::env().heap, tmp);
+		}
 
 		for (Task * t = _present_list.first(); t; t = t->next()) {
 
