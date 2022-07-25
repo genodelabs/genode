@@ -117,7 +117,7 @@ void Device_pd::assign_pci(Io_mem_dataspace_capability const io_mem_cap,
 
 	/* try to assign pci device to this protection domain */
 	if (!_pd.assign_pci(addr, Pci::Bdf::rid(bdf)))
-		error("Assignment of PCI device ", bdf, " to device PD failed!");
+		log("Assignment of PCI device ", bdf, " to device PD failed, no IOMMU?!");
 
 	/* we don't need the mapping anymore */
 	_address_space.detach(addr);
