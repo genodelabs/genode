@@ -19,6 +19,7 @@ gdb_monitor
 hello
 ieee754
 init_smp
+intel_fb
 libc_integration
 libc_vfs_fs_ext2
 libc_vfs_fs_fat

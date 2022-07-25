@@ -1,3 +1,15 @@
+assert_spec x86_64
+
+if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
+	puts "Run script does not support autopilot mode on Qemu"
+	exit 0
+}
+
+if {[get_cmd_switch --autopilot] && [have_board linux]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+
 #
 # Build
 #
@@ -59,7 +71,7 @@ append config {
 	<start name="report_rom" priority="0">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report" /> <service name="ROM" /> </provides>
-		<config verbose="yes"/>
+		<config verbose="no"/>
 	</start>
 
 	<start name="init_dynamic" caps="10000">
@@ -218,4 +230,8 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-run_genode_until forever
+if { [get_cmd_switch --autopilot] } {
+	run_genode_until {\[init -\> init_dynamic -\> intel_fb_drv\] HDMI-A-2:  enable.*} 30
+} else {
+	run_genode_until forever
+}
