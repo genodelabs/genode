@@ -70,18 +70,12 @@ struct Main
 void Main::parse_pci_function(Bdf             bdf,
                               Config        & cfg,
                               addr_t          cfg_phys_base,
-                              Xml_generator & generator)
+                              Xml_generator & gen)
 {
 	cfg.scan();
 
-	Config::Vendor::access_t vendor = cfg.read<Config::Vendor>();
-	Config::Device::access_t device = cfg.read<Config::Device>();
-	Config::Header_type::Type::access_t type =
-		cfg.read<Config::Header_type::Type>();
-	Config::Class_code_rev_id::Class_code::access_t dclass =
-		cfg.read<Config::Class_code_rev_id::Class_code>();
-
-	if (type) {
+	/* check for bridges */
+	if (cfg.read<Config::Header_type::Type>()) {
 		for_bridge(bdf.bus, [&] (Bridge & parent) {
 			Config_type1 bcfg(cfg.base());
 			new (heap) Bridge(parent.sub_bridges, bdf,
@@ -94,34 +88,52 @@ void Main::parse_pci_function(Bdf             bdf,
 	bool      msi_x   = cfg.msi_x_cap.constructed();
 	irq_pin_t irq_pin = cfg.read<Config::Irq_pin>();
 
-	generator.node("device", [&]
+	gen.node("device", [&]
 	{
-		generator.attribute("name", Bdf::string(bdf));
-		generator.attribute("type", "pci");
+		auto string = [&] (uint64_t v) { return String<16>(Hex(v)); };
 
-		generator.node("pci-config", [&]
+		gen.attribute("name", Bdf::string(bdf));
+		gen.attribute("type", "pci");
+
+		gen.node("pci-config", [&]
 		{
-		generator.attribute("address",   String<16>(Hex(cfg_phys_base)));
-		generator.attribute("bus",       String<16>(Hex(bdf.bus)));
-		generator.attribute("device",    String<16>(Hex(bdf.dev)));
-		generator.attribute("function",  String<16>(Hex(bdf.fn)));
-		generator.attribute("vendor_id", String<16>(Hex(vendor)));
-		generator.attribute("device_id", String<16>(Hex(device)));
-		generator.attribute("class",     String<16>(Hex(dclass)));
-		generator.attribute("bridge",    cfg.bridge() ? "yes" : "no");
+			using C  = Config;
+			using C0 = Config_type0;
+			using Cc = Config::Class_code_rev_id;
+
+			gen.attribute("address",       string(cfg_phys_base));
+			gen.attribute("bus",           string(bdf.bus));
+			gen.attribute("device",        string(bdf.dev));
+			gen.attribute("function",      string(bdf.fn));
+			gen.attribute("vendor_id",     string(cfg.read<C::Vendor>()));
+			gen.attribute("device_id",     string(cfg.read<C::Device>()));
+			gen.attribute("class",         string(cfg.read<Cc::Class_code>()));
+			gen.attribute("revision",      string(cfg.read<Cc::Revision>()));
+			gen.attribute("bridge",        cfg.bridge() ? "yes" : "no");
+			if (!cfg.bridge()) {
+				C0 cfg0(cfg.base());
+				gen.attribute("sub_vendor_id",
+				              string(cfg0.read<C0::Subsystem_vendor>()));
+				gen.attribute("sub_device_id",
+				              string(cfg0.read<C0::Subsystem_device>()));
+			}
 		});
 
-		cfg.for_each_bar([&] (uint64_t addr, size_t size) {
-			generator.node("io_mem", [&]
+		cfg.for_each_bar([&] (uint64_t addr, size_t size, unsigned bar) {
+			gen.node("io_mem", [&]
 			{
-				generator.attribute("address", String<16>(Hex(addr)));
-				generator.attribute("size",    String<16>(Hex(size)));
+				gen.attribute("pci_bar", bar);
+				gen.attribute("address", string(addr));
+				gen.attribute("size",    string(size));
 			});
-		}, [&] (uint64_t addr, size_t size) {
-			generator.node("io_port_range", [&]
+		}, [&] (uint64_t addr, size_t size, unsigned bar) {
+			gen.node("io_port_range", [&]
 			{
-				generator.attribute("address", String<16>(Hex(addr)));
-				generator.attribute("size",    String<16>(Hex(size)));
+				gen.attribute("pci_bar", bar);
+				gen.attribute("address", string(addr));
+
+				/* on x86 I/O ports can be in range 0-64KB only */
+				gen.attribute("size", string(size & 0xffff));
 			});
 		});
 
@@ -130,17 +142,17 @@ void Main::parse_pci_function(Bdf             bdf,
 		if (!irq_pin)
 			return;
 
-		generator.node("irq", [&]
+		gen.node("irq", [&]
 		{
 			if (msi_capable && msi_x) {
-				generator.attribute("type", "msi-x");
-				generator.attribute("number", msi_number++);
+				gen.attribute("type", "msi-x");
+				gen.attribute("number", msi_number++);
 				return;
 			}
 			
 			if (msi_capable && msi) {
-				generator.attribute("type", "msi");
-				generator.attribute("number", msi_number++);
+				gen.attribute("type", "msi");
+				gen.attribute("number", msi_number++);
 				return;
 			}
 
@@ -152,9 +164,9 @@ void Main::parse_pci_function(Bdf             bdf,
 			});
 
 			irq_override_list.for_each([&] (Irq_override & io) {
-				io.generate(generator, irq); });
+				io.generate(gen, irq); });
 
-			generator.attribute("number", irq);
+			gen.attribute("number", irq);
 		});
 	});
 }

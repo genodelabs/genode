@@ -73,18 +73,18 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 
 		struct Io_port_range : Registry<Io_port_range>::Element
 		{
+			using Range = Device::Io_port_range::Range;
+
 			unsigned                          idx;
-			uint16_t                          addr;
-			uint16_t                          size;
+			Range                             range;
 			Constructible<Io_port_connection> io_port_range {};
 
 			Io_port_range(Registry<Io_port_range> & registry,
-			        unsigned            idx,
-			        uint16_t            addr,
-			        uint16_t            size)
+			              unsigned                  idx,
+			              Range                     range)
 			:
 				Registry<Io_port_range>::Element(registry, *this),
-				idx(idx), addr(addr), size(size) {}
+				idx(idx), range(range) {}
 		};
 
 		struct Pci_config

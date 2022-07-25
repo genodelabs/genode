@@ -124,6 +124,8 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 		xml.attribute("used", _owner.valid());
 		_io_mem_list.for_each([&] (Io_mem const & io_mem) {
 			xml.node("io_mem", [&] () {
+				if (io_mem.bar.valid())
+					xml.attribute("pci_bar", io_mem.bar.number);
 				if (!info)
 					return;
 				xml.attribute("phys_addr", String<16>(Hex(io_mem.range.start)));
@@ -137,12 +139,14 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 				xml.attribute("number", irq.number);
 			});
 		});
-		_io_port_range_list.for_each([&] (Io_port_range const & io_port_range) {
+		_io_port_range_list.for_each([&] (Io_port_range const & iop) {
 			xml.node("io_port_range", [&] () {
+				if (iop.bar.valid())
+					xml.attribute("pci_bar", iop.bar.number);
 				if (!info)
 					return;
-				xml.attribute("phys_addr", String<16>(Hex(io_port_range.addr)));
-				xml.attribute("size",      String<16>(Hex(io_port_range.size)));
+				xml.attribute("phys_addr", String<16>(Hex(iop.range.addr)));
+				xml.attribute("size",      String<16>(Hex(iop.range.size)));
 			});
 		});
 		_property_list.for_each([&] (Property const & p) {
@@ -164,6 +168,9 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 				xml.attribute("vendor_id", String<16>(Hex(pci.vendor_id)));
 				xml.attribute("device_id", String<16>(Hex(pci.device_id)));
 				xml.attribute("class",     String<16>(Hex(pci.class_code)));
+				xml.attribute("revision",  String<16>(Hex(pci.revision)));
+				xml.attribute("sub_vendor_id", String<16>(Hex(pci.sub_vendor_id)));
+				xml.attribute("sub_device_id", String<16>(Hex(pci.sub_device_id)));
 			});
 		});
 	});

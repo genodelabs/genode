@@ -53,7 +53,15 @@ class Driver::Device : private List_model<Device>::Element
 
 		using Name  = Genode::String<64>;
 		using Type  = Genode::String<64>;
-		using Range = Platform::Device_interface::Range;
+
+		struct Pci_bar
+		{
+			enum { INVALID = 255 };
+
+			unsigned char number { INVALID };
+
+			bool valid() const { return number < INVALID; }
+		};
 
 		struct Owner
 		{
@@ -71,9 +79,13 @@ class Driver::Device : private List_model<Device>::Element
 
 		struct Io_mem : List_model<Io_mem>::Element
 		{
-			Range range;
+			using Range = Platform::Device_interface::Range;
 
-			Io_mem(Range range) : range(range) {}
+			Pci_bar bar;
+			Range   range;
+
+			Io_mem(Pci_bar bar, Range range)
+			: bar(bar), range(range) {}
 		};
 
 		struct Irq : List_model<Irq>::Element
@@ -90,11 +102,13 @@ class Driver::Device : private List_model<Device>::Element
 
 		struct Io_port_range : List_model<Io_port_range>::Element
 		{
-			uint16_t addr;
-			uint16_t size;
+			struct Range { uint16_t addr; uint16_t size; };
 
-			Io_port_range(uint16_t addr, uint16_t size)
-			: addr(addr), size(size) {}
+			Pci_bar  bar;
+			Range    range;
+
+			Io_port_range(Pci_bar bar, Range range)
+			: bar(bar), range(range) {}
 		};
 
 		struct Property : List_model<Property>::Element
@@ -153,6 +167,9 @@ class Driver::Device : private List_model<Device>::Element
 			Pci::vendor_t vendor_id;
 			Pci::device_t device_id;
 			Pci::class_t  class_code;
+			Pci::rev_t    revision;
+			Pci::vendor_t sub_vendor_id;
+			Pci::device_t sub_device_id;
 			bool          bridge;
 
 			Pci_config(addr_t        addr,
@@ -162,6 +179,9 @@ class Driver::Device : private List_model<Device>::Element
 			           Pci::vendor_t vendor_id,
 			           Pci::device_t device_id,
 			           Pci::class_t  class_code,
+			           Pci::rev_t    revision,
+			           Pci::vendor_t sub_vendor_id,
+			           Pci::device_t sub_device_id,
 			           bool          bridge)
 			:
 				addr(addr),
@@ -171,6 +191,9 @@ class Driver::Device : private List_model<Device>::Element
 				vendor_id(vendor_id),
 				device_id(device_id),
 				class_code(class_code),
+				revision(revision),
+				sub_vendor_id(sub_vendor_id),
+				sub_device_id(sub_device_id),
 				bridge(bridge) {}
 		};
 
@@ -202,7 +225,7 @@ class Driver::Device : private List_model<Device>::Element
 		{
 			unsigned idx = 0;
 			_io_port_range_list.for_each([&] (Io_port_range const & ipr) {
-				fn(idx++, ipr.addr, ipr.size); });
+				fn(idx++, ipr.range); });
 		}
 
 		template <typename FN> void for_pci_config(FN const & fn) const
@@ -360,6 +383,9 @@ struct Driver::Irq_update_policy : Genode::List_model<Device::Irq>::Update_polic
 
 struct Driver::Io_mem_update_policy : Genode::List_model<Device::Io_mem>::Update_policy
 {
+	using Range = Device::Io_mem::Range;
+	using Bar   = Device::Pci_bar;
+
 	Genode::Allocator & alloc;
 
 	Io_mem_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
@@ -369,17 +395,18 @@ struct Driver::Io_mem_update_policy : Genode::List_model<Device::Io_mem>::Update
 
 	Element & create_element(Genode::Xml_node node)
 	{
-		Device::Range range { node.attribute_value<Genode::addr_t>("address", 0),
-		                      node.attribute_value<Genode::size_t>("size",    0) };
-		return *(new (alloc) Element(range));
+		Bar bar { node.attribute_value<uint8_t>("pci_bar", Bar::INVALID) };
+		Range range { node.attribute_value<Genode::addr_t>("address", 0),
+		              node.attribute_value<Genode::size_t>("size",    0) };
+		return *(new (alloc) Element(bar, range));
 	}
 
 	void update_element(Element &, Genode::Xml_node) {}
 
 	static bool element_matches_xml_node(Element const & iomem, Genode::Xml_node node)
 	{
-		Device::Range range { node.attribute_value<Genode::addr_t>("address", 0),
-		                      node.attribute_value<Genode::size_t>("size",    0) };
+		Range range { node.attribute_value<Genode::addr_t>("address", 0),
+		              node.attribute_value<Genode::size_t>("size",    0) };
 		return (range.start == iomem.range.start) && (range.size == iomem.range.size);
 	}
 
@@ -393,6 +420,9 @@ struct Driver::Io_mem_update_policy : Genode::List_model<Device::Io_mem>::Update
 struct Driver::Io_port_update_policy
 : Genode::List_model<Device::Io_port_range>::Update_policy
 {
+	using Range = Device::Io_port_range::Range;
+	using Bar   = Device::Pci_bar;
+
 	Genode::Allocator & alloc;
 
 	Io_port_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
@@ -402,18 +432,19 @@ struct Driver::Io_port_update_policy
 
 	Element & create_element(Genode::Xml_node node)
 	{
-		uint16_t addr = node.attribute_value<uint16_t>("address", 0);
-		uint16_t size = node.attribute_value<uint16_t>("size",    0);
-		return *(new (alloc) Element(addr, size));
+		Bar bar { node.attribute_value<uint8_t>("pci_bar", Bar::INVALID) };
+		Range range { node.attribute_value<uint16_t>("address", 0),
+		              node.attribute_value<uint16_t>("size",    0) };
+		return *(new (alloc) Element(bar, range));
 	}
 
 	void update_element(Element &, Genode::Xml_node) {}
 
 	static bool element_matches_xml_node(Element const & ipr, Genode::Xml_node node)
 	{
-		uint16_t addr = node.attribute_value<uint16_t>("address", 0);
-		uint16_t size = node.attribute_value<uint16_t>("size",    0);
-		return addr == ipr.addr && size == ipr.size;
+		Range range { node.attribute_value<uint16_t>("address", 0),
+		              node.attribute_value<uint16_t>("size",    0) };
+		return range.addr == ipr.range.addr && range.size == ipr.range.size;
 	}
 
 	static bool node_is_element(Genode::Xml_node node)
@@ -573,10 +604,16 @@ struct Driver::Pci_config_update_policy
 		device_t device_id  = node.attribute_value<device_t>("device_id",
 		                                                     0xffff);
 		class_t  class_code = node.attribute_value<class_t>("class", 0xff);
+		rev_t    rev        = node.attribute_value<rev_t>("revision", 0xff);
+		vendor_t sub_v_id   = node.attribute_value<vendor_t>("sub_vendor_id",
+		                                                     0xffff);
+		device_t sub_d_id   = node.attribute_value<device_t>("sub_device_id",
+		                                                     0xffff);
 		bool     bridge     = node.attribute_value("bridge", false);
 
 		return *(new (alloc) Element(addr, bus_num, dev_num, func_num,
-		                             vendor_id, device_id, class_code, bridge));
+		                             vendor_id, device_id, class_code,
+		                             rev, sub_v_id, sub_d_id, bridge));
 	}
 
 	void update_element(Element &, Genode::Xml_node) {}

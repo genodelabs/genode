@@ -64,6 +64,7 @@ struct Pci::Config : Genode::Mmio
 
 	struct Class_code_rev_id : Register<0x8, 32>
 	{
+		struct Revision   : Bitfield<0, 8> {};
 		struct Class_code : Bitfield<8, 24> {};
 	};
 
@@ -522,10 +523,10 @@ struct Pci::Config : Genode::Mmio
 			if (!reg0.valid())
 				continue;
 			if (reg0.memory()) {
+				memory(reg0.addr(), reg0.size(), i);
 				if (reg0.bit64()) i++;
-				memory(reg0.addr(), reg0.size());
 			} else
-				io(reg0.addr(), reg0.size());
+				io(reg0.addr(), reg0.size(), i);
 		}
 	};
 };
@@ -541,6 +542,9 @@ struct Pci::Config_type0 : Pci::Config
 	Base_address bar3 { base() + BASE_ADDRESS_0 + 0xc  };
 	Base_address bar4 { base() + BASE_ADDRESS_0 + 0x10 };
 	Base_address bar5 { base() + BASE_ADDRESS_0 + 0x14 };
+
+	struct Subsystem_vendor : Register<0x2c, 16> { };
+	struct Subsystem_device : Register<0x2e, 16> { };
 };
 
 

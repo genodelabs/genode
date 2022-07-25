@@ -103,7 +103,8 @@ Genode::Io_port_session_capability Device_component::io_port_range(unsigned idx)
 			return;
 
 		if (!ipr.io_port_range.constructed())
-			ipr.io_port_range.construct(_session.env(), ipr.addr, ipr.size);
+			ipr.io_port_range.construct(_session.env(), ipr.range.addr,
+			                            ipr.range.size);
 
 		cap = ipr.io_port_range->cap();
 	});
@@ -154,15 +155,13 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			new (session.heap()) Io_mem(_io_mem_registry, idx, range);
 		});
 
-		device.for_each_io_port_range([&] (unsigned idx, uint16_t addr,
-		                                   uint16_t size)
+		device.for_each_io_port_range([&] (unsigned idx, Io_port_range::Range range)
 		{
 			session.ram_quota_guard().withdraw(Ram_quota{Io_port_session::RAM_QUOTA});
 			_ram_quota += Io_port_session::RAM_QUOTA;
 			session.cap_quota_guard().withdraw(Cap_quota{Io_port_session::CAP_QUOTA});
 			_cap_quota += Io_port_session::CAP_QUOTA;
-			new (session.heap()) Io_port_range(_io_port_range_registry,
-			                                   idx, addr, size);
+			new (session.heap()) Io_port_range(_io_port_range_registry, idx, range);
 		});
 
 		device.for_pci_config([&] (Device::Pci_config const & cfg)

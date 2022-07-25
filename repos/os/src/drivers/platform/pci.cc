@@ -47,12 +47,13 @@ struct Config_helper
 		Config::Command::Bus_master_enable::set(cmd, 1);
 
 		/* enable memory space when I/O mem is defined */
-		_dev.for_each_io_mem([&] (unsigned, Driver::Device::Range) {
+		_dev.for_each_io_mem([&] (unsigned, Driver::Device::Io_mem::Range) {
 			Config::Command::Memory_space_enable::set(cmd, 1); });
 
 		/* enable i/o space when I/O ports are defined */
-		_dev.for_each_io_port_range([&] (unsigned, uint16_t, uint16_t) {
-			Config::Command::Io_space_enable::set(cmd, 1); });
+		_dev.for_each_io_port_range(
+			[&] (unsigned, Driver::Device::Io_port_range::Range) {
+				Config::Command::Io_space_enable::set(cmd, 1); });
 
 		_config.write<Config::Command>(cmd);
 	}

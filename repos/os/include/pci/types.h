@@ -15,6 +15,7 @@
 #define __INCLUDE__PCI__TYPES_H__
 
 #include <base/stdint.h>
+#include <util/register.h>
 #include <util/string.h>
 
 namespace Pci {
@@ -41,6 +42,7 @@ namespace Pci {
 	using vendor_t   = Genode::uint16_t;
 	using device_t   = Genode::uint16_t;
 	using class_t    = Genode::uint32_t;
+	using rev_t      = Genode::uint8_t;
 }
 
 
