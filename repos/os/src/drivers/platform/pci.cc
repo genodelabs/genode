@@ -18,9 +18,11 @@
 #include <device.h>
 #include <device_pd.h>
 #include <pci.h>
+#include <pci_uhci.h>
 
 using namespace Genode;
 using namespace Pci;
+
 
 struct Config_helper
 {
@@ -56,6 +58,9 @@ struct Config_helper
 				Config::Command::Io_space_enable::set(cmd, 1); });
 
 		_config.write<Config::Command>(cmd);
+
+		/* apply different PCI quirks, bios handover etc. */
+		Driver::pci_uhci_quirks(_cfg, _config.base());
 	}
 
 	void disable()
