@@ -129,8 +129,12 @@ struct Pci::Config : Genode::Mmio
 
 		Genode::uint64_t addr()
 		{
-			return (bit64() ? ((Genode::uint64_t)read<Upper_bits>()<<32) : 0UL)
-			       | Bar_32bit::Memory_base::masked(read<Bar_32bit>());
+			if (memory())
+				return (bit64()
+					? ((Genode::uint64_t)read<Upper_bits>()<<32) : 0UL)
+					| Bar_32bit::Memory_base::masked(read<Bar_32bit>());
+			else
+				return Bar_32bit::Io_base::masked(read<Bar_32bit>());
 		}
 	};
 
