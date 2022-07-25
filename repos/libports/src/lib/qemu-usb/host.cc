@@ -790,7 +790,8 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 		return;
 	default:
 		error("not supported data request");
-		break;
+		p->status = USB_RET_NAK;
+		return;
 	}
 
 	try {
