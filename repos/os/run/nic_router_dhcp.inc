@@ -72,7 +72,7 @@ append config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="2000"/>
+				<sleep milliseconds="4000"/>
 				<inline>
 
 					<config>
@@ -364,4 +364,4 @@ append done_string ".*  DNS domain name: genode.org.*\n"
 
 }
 
-run_genode_until $done_string 30
+run_genode_until $done_string 35
