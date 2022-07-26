@@ -174,6 +174,30 @@ static unsigned scan_pci(void)
 	return NO_DEVICE_FOUND;
 }
 
+/**
+ * Helper for pulling packets from RX queue.
+ *
+ * Must be called within dde_lock.
+ */
+int process_rx_data()
+{
+	struct io_buffer *iobuf;
+
+	int received = 0;
+
+	while ((iobuf = netdev_rx_dequeue(net_dev))) {
+		dde_lock_leave();
+		if (rx_callback) {
+			rx_callback(1, iobuf->data, iob_len(iobuf));
+			received++;
+		}
+		dde_lock_enter();
+		free_iob(iobuf);
+	}
+
+	return received;
+}
+
 
 /**
  * IRQ handler registered at DDE
@@ -190,17 +214,7 @@ static void irq_handler(void *p)
 	for (unsigned retry = 0; (retry < 2) && !processed_rx_data; retry++) {
 		/* poll the device for packets and also link-state changes */
 		netdev_poll(net_dev);
-
-		struct io_buffer *iobuf;
-		while ((iobuf = netdev_rx_dequeue(net_dev))) {
-			dde_lock_leave();
-			if (rx_callback) {
-				rx_callback(1, iobuf->data, iob_len(iobuf));
-				processed_rx_data = 1;
-			}
-			dde_lock_enter();
-			free_iob(iobuf);
-		}
+		processed_rx_data = process_rx_data();
 	}
 
 	dde_lock_leave();
@@ -282,6 +296,7 @@ int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packet_len)
 
 	netdev_poll(net_dev);
 	netdev_tx(net_dev, iob_disown(iobuf));
+	process_rx_data();
 
 	dde_lock_leave();
 	return 0;
