@@ -28,14 +28,6 @@ void __printk_safe_exit(void)
 }
 
 
-#include <linux/sched/task.h>
-
-void __put_task_struct(struct task_struct * tsk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/uaccess.h>
 
 unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)

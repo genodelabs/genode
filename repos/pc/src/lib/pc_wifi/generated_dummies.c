@@ -52,14 +52,6 @@ void __put_cred(struct cred * cred)
 }
 
 
-#include <linux/sched/task.h>
-
-void __put_task_struct(struct task_struct * tsk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/scm.h>
 
 void __scm_destroy(struct scm_cookie * scm)

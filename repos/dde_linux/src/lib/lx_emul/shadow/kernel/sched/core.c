@@ -94,12 +94,19 @@ int default_wake_function(wait_queue_entry_t *curr,
 
 static void __schedule(void)
 {
+	int block;
+
 	if (preempt_count()) {
 		printk("schedule: unexpected preempt_count=%d\n", preempt_count());
 		lx_emul_trace_and_stop("abort");
 	}
 
-	lx_emul_task_schedule(current->__state != TASK_RUNNING);
+	block = current->__state != TASK_RUNNING;
+
+	if (current->__state == TASK_DEAD)
+		put_task_struct(current);
+
+	lx_emul_task_schedule(block);
 }
 
 #include "../kernel/workqueue_internal.h"

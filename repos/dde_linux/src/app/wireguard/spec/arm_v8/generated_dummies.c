@@ -65,14 +65,6 @@ void __printk_safe_exit(void)
 }
 
 
-#include <linux/sched/task.h>
-
-void __put_task_struct(struct task_struct * tsk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/gso.h>
 
 struct sk_buff * __skb_gso_segment(struct sk_buff * skb,netdev_features_t features,bool tx_path)

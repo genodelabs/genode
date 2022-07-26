@@ -59,14 +59,6 @@ void __printk_safe_exit(void)
 }
 
 
-#include <linux/sched/task.h>
-
-void __put_task_struct(struct task_struct * tsk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/mm.h>
 
 void __show_mem(unsigned int filter,nodemask_t * nodemask,int max_zone_idx)
