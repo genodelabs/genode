@@ -1682,7 +1682,41 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 		if (!argp) return { true, EINVAL };
 
-		/* dummy implementation */
+		int mask = *(int *)argp;
+
+		if (((fd->flags & O_ACCMODE) == O_RDONLY) ||
+		    ((fd->flags & O_ACCMODE) == O_RDWR)) {
+
+			char enable_input_string[2];
+
+			::snprintf(enable_input_string, sizeof(enable_input_string),
+			           "%u", (mask & PCM_ENABLE_INPUT) ? 1 : 0);
+
+			Absolute_path enable_input_path = ioctl_dir(*fd);
+			enable_input_path.append_element("enable_input");
+			File_descriptor *enable_input_fd = open(enable_input_path.base(), O_WRONLY);
+			if (!enable_input_fd)
+				return { true, ENOTSUP };
+			write(enable_input_fd, enable_input_string, sizeof(enable_input_string));
+			close(enable_input_fd);
+		}
+
+		if (((fd->flags & O_ACCMODE) == O_WRONLY) ||
+		    ((fd->flags & O_ACCMODE) == O_RDWR)) {
+
+			char enable_output_string[2];
+
+			::snprintf(enable_output_string, sizeof(enable_output_string),
+			           "%u", (mask & PCM_ENABLE_OUTPUT) ? 1 : 0);
+
+			Absolute_path enable_output_path = ioctl_dir(*fd);
+			enable_output_path.append_element("enable_output");
+			File_descriptor *enable_output_fd = open(enable_output_path.base(), O_WRONLY);
+			if (!enable_output_fd)
+				return { true, ENOTSUP };
+			write(enable_output_fd, enable_output_string, sizeof(enable_output_string));
+			close(enable_output_fd);
+		}
 
 		handled = true;
 

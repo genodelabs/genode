@@ -193,6 +193,9 @@ struct Vfs::Oss_file_system::Audio
 		Audio(Audio const &);
 		Audio &operator = (Audio const &);
 
+		bool _audio_out_enabled { true };
+		bool _audio_in_enabled  { true };
+
 		bool _audio_out_started { false };
 		bool _audio_in_started  { false };
 
@@ -207,6 +210,23 @@ struct Vfs::Oss_file_system::Audio
 
 		size_t _read_sample_offset  { 0 };
 		size_t _write_sample_offset { 0 };
+
+		void _start_input()
+		{
+			if (!_audio_in_started && _audio_in_enabled) {
+				_in->start();
+				_audio_in_started = true;
+			}
+		}
+
+		void _start_output()
+		{
+			if (!_audio_out_started && _audio_out_enabled) {
+				_out[0]->start();
+				_out[1]->start();
+				_audio_out_started = true;
+			}
+		}
 
 	public:
 
@@ -299,6 +319,28 @@ struct Vfs::Oss_file_system::Audio
 				_audio_out_started = false;
 				_info.optr_fifo_samples = 0;
 				update_info_ofrag_avail_from_optr_fifo_samples();
+			}
+		}
+
+		void enable_input(bool enable)
+		{
+			if (enable) {
+				_audio_in_enabled = true;
+				_start_input();
+			} else {
+				halt_input();
+				_audio_in_enabled = false;
+			}
+		}
+
+		void enable_output(bool enable)
+		{
+			if (enable) {
+				_audio_out_enabled = true;
+				_start_output();
+			} else {
+				halt_output();
+				_audio_out_enabled = false;
 			}
 		}
 
@@ -404,10 +446,7 @@ struct Vfs::Oss_file_system::Audio
 		{
 			out_size = 0;
 
-			if (!_audio_in_started) {
-				_in->start();
-				_audio_in_started = true;
-			}
+			_start_input();
 
 			if (_info.ifrag_bytes == 0) {
 				/* block */
@@ -493,11 +532,7 @@ struct Vfs::Oss_file_system::Audio
 				return false;
 			}
 
-			if (!_audio_out_started) {
-				_audio_out_started = true;
-				_out[0]->start();
-				_out[1]->start();
-			}
+			_start_output();
 
 			unsigned stream_samples_written = 0;
 
@@ -756,6 +791,8 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 	Readonly_value_file_system<long long> _optr_samples_fs      { "optr_samples", 0LL };
 	Readonly_value_file_system<unsigned>  _optr_fifo_samples_fs { "optr_fifo_samples", 0U };
 	Value_file_system<unsigned>           _play_underruns_fs    { "play_underruns", 0U };
+	Value_file_system<unsigned>           _enable_input_fs      { "enable_input", 1U };
+	Value_file_system<unsigned>           _enable_output_fs     { "enable_output", 1U };
 
 	/* WO files */
 	Value_file_system<unsigned>           _halt_input_fs        { "halt_input", 0U };
@@ -772,6 +809,18 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 	Readonly_value_file_system<Audio::Info, 512> _info_fs { "info", _info };
 
 	Audio _audio { _env.env(), _info, _info_fs };
+
+	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _enable_input_handler {
+		_enable_input_fs, "/enable_input",
+		_env.alloc(),
+		*this,
+		&Vfs::Oss_file_system::Local_factory::_enable_input_changed };
+
+	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _enable_output_handler {
+		_enable_output_fs, "/enable_output",
+		_env.alloc(),
+		*this,
+		&Vfs::Oss_file_system::Local_factory::_enable_output_changed };
 
 	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _halt_input_handler {
 		_halt_input_fs, "/halt_input",
@@ -828,6 +877,18 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 	/********************
 	 ** Watch handlers **
 	 ********************/
+
+	void _enable_input_changed()
+	{
+		bool enable = (bool)_enable_input_fs.value();
+		_audio.enable_input(enable);
+	}
+
+	void _enable_output_changed()
+	{
+		bool enable = (bool)_enable_output_fs.value();
+		_audio.enable_output(enable);
+	}
 
 	void _halt_input_changed()
 	{
@@ -988,6 +1049,14 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 
 		if (node.has_type(Value_file_system<unsigned>::type_name())) {
 
+			if (_enable_input_fs.matches(node)) {
+				return &_enable_input_fs;
+			}
+
+			if (_enable_output_fs.matches(node)) {
+				return &_enable_output_fs;
+			}
+
 			if (_halt_input_fs.matches(node)) {
 				return &_halt_input_fs;
 			}
@@ -1058,6 +1127,14 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 
 					xml.node("readonly_value", [&] {
 						xml.attribute("name", "format");
+					});
+
+					xml.node("value", [&] {
+						xml.attribute("name", "enable_input");
+					});
+
+					xml.node("value", [&] {
+						xml.attribute("name", "enable_output");
 					});
 
 					xml.node("value", [&] {
