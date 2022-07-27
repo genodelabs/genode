@@ -24,7 +24,7 @@ Genode::Capability<Platform::Device_interface>
 Session_component::_acquire(Device & device)
 {
 	Device_component * dc = new (heap())
-		Device_component(_device_registry, *this, device);
+		Device_component(_device_registry, _env, *this, device);
 	device.acquire(*this);
 	return _env.ep().rpc_ep().manage(dc);
 };
@@ -110,9 +110,6 @@ void Session_component::produce_xml(Xml_generator &xml)
 	_devices.for_each([&] (Device const & dev) {
 		if (matches(dev)) dev.generate(xml, _info); });
 }
-
-
-Genode::Env & Session_component::env() { return _env; }
 
 
 Genode::Heap & Session_component::heap() { return _md_alloc; }

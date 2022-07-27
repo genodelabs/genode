@@ -49,7 +49,7 @@ Device_component::io_mem(unsigned idx, Range &range, Cache cache)
 			return;
 
 		if (!iomem.io_mem.constructed())
-			iomem.io_mem.construct(_session.env(),
+			iomem.io_mem.construct(_env,
 			                       iomem.range.start,
 			                       iomem.range.size,
 			                       cache == WRITE_COMBINED);
@@ -79,11 +79,11 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 				else
 					error("MSI(-x) detected for device without pci-config!");
 			}
-			irq.irq.construct(_session.env(), irq.number, irq.mode, irq.polarity,
+			irq.irq.construct(_env, irq.number, irq.mode, irq.polarity,
 			                  pci_cfg_addr);
 			Irq_session::Info info = irq.irq->info();
 			if (info.type == Irq_session::Info::MSI)
-				pci_msi_enable(_session.env(), pci_cfg_addr, info);
+				pci_msi_enable(_env, pci_cfg_addr, info);
 		}
 
 		cap = irq.irq->cap();
@@ -103,7 +103,7 @@ Genode::Io_port_session_capability Device_component::io_port_range(unsigned idx)
 			return;
 
 		if (!ipr.io_port_range.constructed())
-			ipr.io_port_range.construct(_session.env(), ipr.range.addr,
+			ipr.io_port_range.construct(_env, ipr.range.addr,
 			                            ipr.range.size);
 
 		cap = ipr.io_port_range->cap();
@@ -114,9 +114,14 @@ Genode::Io_port_session_capability Device_component::io_port_range(unsigned idx)
 
 
 Device_component::Device_component(Registry<Device_component> & registry,
+                                   Env                        & env,
                                    Driver::Session_component  & session,
                                    Driver::Device             & device)
-: _session(session), _device(device.name()), _reg_elem(registry, *this)
+:
+	_env(env),
+	_session(session),
+	_device(device.name()),
+	_reg_elem(registry, *this)
 {
 	session.cap_quota_guard().withdraw(Cap_quota{1});
 	_cap_quota += 1;

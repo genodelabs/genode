@@ -56,7 +56,6 @@ class Driver::Session_component
 
 		~Session_component();
 
-		Env       & env();
 		Heap      & heap();
 		Device_pd & device_pd();
 

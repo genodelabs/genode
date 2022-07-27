@@ -79,7 +79,7 @@ void Driver::Device::acquire(Session_component & sc)
 		}
 	});
 
-	pci_enable(sc.env(), sc.device_pd(), *this);
+	pci_enable(_env, sc.device_pd(), *this);
 	sc.update_devices_rom();
 	_model.device_status_changed();
 }
@@ -90,7 +90,7 @@ void Driver::Device::release(Session_component & sc)
 	if (!(_owner == sc))
 		return;
 
-	pci_disable(sc.env(), *this);
+	pci_disable(_env, *this);
 
 	_reset_domain_list.for_each([&] (Reset_domain & r)
 	{
@@ -171,14 +171,15 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 				xml.attribute("revision",  String<16>(Hex(pci.revision)));
 				xml.attribute("sub_vendor_id", String<16>(Hex(pci.sub_vendor_id)));
 				xml.attribute("sub_device_id", String<16>(Hex(pci.sub_device_id)));
+				pci_device_specific_info(*this, _env, _model, xml);
 			});
 		});
 	});
 }
 
 
-Driver::Device::Device(Device_model & model, Name name, Type type)
-: _model(model), _name(name), _type(type) { }
+Driver::Device::Device(Env & env, Device_model & model, Name name, Type type)
+: _env(env), _model(model), _name(name), _type(type) { }
 
 
 Driver::Device::~Device()

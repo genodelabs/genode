@@ -28,6 +28,10 @@ namespace Driver {
 	                    Genode::Irq_session::Info const info);
 	bool pci_device_matches(Genode::Session_policy const & policy,
 	                        Device const & dev);
+	void pci_device_specific_info(Device const  & dev,
+	                              Env           & env,
+	                              Device_model  & model,
+	                              Xml_generator & xml);
 }
 
 #endif /* _SRC__DRIVERS__PLATFORM__PCI_H_ */

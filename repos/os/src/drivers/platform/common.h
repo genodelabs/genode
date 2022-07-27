@@ -24,7 +24,7 @@ class Driver::Common : Device_reporter
 		Attached_rom_dataspace   _devices_rom  { _env, _rom_name.string() };
 		Heap                     _heap         { _env.ram(), _env.rm()    };
 		Sliced_heap              _sliced_heap  { _env.ram(), _env.rm()    };
-		Device_model             _devices      { _heap, *this             };
+		Device_model             _devices      { _env, _heap, *this       };
 		Signal_handler<Common>   _dev_handler  { _env.ep(), *this,
 		                                         &Common::_handle_devices };
 		Driver::Root             _root;

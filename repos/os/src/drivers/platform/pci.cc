@@ -19,6 +19,7 @@
 #include <device_pd.h>
 #include <pci.h>
 #include <pci_uhci.h>
+#include <pci_intel_graphics.h>
 
 using namespace Genode;
 using namespace Pci;
@@ -171,4 +172,14 @@ bool Driver::pci_device_matches(Session_policy const & policy,
 	});
 
 	return ret;
+}
+
+
+void Driver::pci_device_specific_info(Device const  & dev,
+                                      Env           & env,
+                                      Device_model  & model,
+                                      Xml_generator & xml)
+{
+	dev.for_pci_config([&] (Device::Pci_config const cfg) {
+		Driver::pci_intel_graphics_info(cfg, env, model, xml); });
 }

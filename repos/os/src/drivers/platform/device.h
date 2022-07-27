@@ -197,7 +197,7 @@ class Driver::Device : private List_model<Device>::Element
 				bridge(bridge) {}
 		};
 
-		Device(Device_model & model, Name name, Type type);
+		Device(Env & env, Device_model & model, Name name, Type type);
 		virtual ~Device();
 
 		Name  name()  const;
@@ -253,6 +253,7 @@ class Driver::Device : private List_model<Device>::Element
 		friend class List_model<Device>;
 		friend class List<Device>;
 
+		Env                     & _env;
 		Device_model            & _model;
 		Name                const _name;
 		Type                const _type;
@@ -287,6 +288,7 @@ class Driver::Device_model :
 {
 	private:
 
+		Env                & _env;
 		Heap               & _heap;
 		Device_reporter    & _reporter;
 		List_model<Device>   _model  { };
@@ -300,9 +302,10 @@ class Driver::Device_model :
 		void update(Xml_node const & node);
 		void device_status_changed();
 
-		Device_model(Heap & heap,
+		Device_model(Env             & env,
+		             Heap            & heap,
 		             Device_reporter & reporter)
-		: _heap(heap), _reporter(reporter) { }
+		: _env(env), _heap(heap), _reporter(reporter) { }
 
 		~Device_model() {
 			_model.destroy_all_elements(*this); }
