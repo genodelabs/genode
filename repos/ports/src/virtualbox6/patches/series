@@ -9,3 +9,4 @@ rttimer.patch
 devsvga.patch
 shaderlib.patch
 svga.patch
+audio.patch

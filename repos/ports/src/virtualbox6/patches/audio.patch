@@ -1,0 +1,27 @@
+diff --git a/src/virtualbox6/src/VBox/Devices/Audio/DrvHostAudioOss.cpp b/src/virtualbox6/src/VBox/Devices/Audio/DrvHostAudioOss.cpp
+index d67f2bb..ea99bee 100644
+--- a/src/virtualbox6/src/VBox/Devices/Audio/DrvHostAudioOss.cpp
++++ b/src/virtualbox6/src/VBox/Devices/Audio/DrvHostAudioOss.cpp
+@@ -836,6 +836,13 @@ static DECLCALLBACK(uint32_t) drvHstAudOssHA_StreamGetReadable(PPDMIHOSTAUDIO pI
+         AssertMsgStmt(cbRet <= cbBuf, ("fragsize*fragments: %d, cbBuf=%#x\n", cbRet, cbBuf), 0);
+     }
+
++    /*
++     * On Genode the 'SNDCTL_DSP_SETTRIGGER' command should have started
++     * the recording. If no recording data arrives because of some error
++     * on the path (for example a crashed driver), the 'read()' call in
++     * the following section would block the VM, which is not desired.
++     */
++#if 0
+     /*
+      * HACK ALERT! To force the stream to start recording, we read a frame
+      *             here if we get back that there are zero bytes available
+@@ -854,7 +861,7 @@ static DECLCALLBACK(uint32_t) drvHstAudOssHA_StreamGetReadable(PPDMIHOSTAUDIO pI
+         RT_NOREF(cbRead);
+         LogFunc(("Dummy read for '%s' returns %zd (errno=%d)\n", pStreamOSS->Cfg.szName, cbRead, errno));
+     }
+-
++#endif
+     Log4Func(("returns %#x (%u) [cbBuf=%#x]\n", cbRet, cbRet, cbBuf));
+     return cbRet;
+ }
