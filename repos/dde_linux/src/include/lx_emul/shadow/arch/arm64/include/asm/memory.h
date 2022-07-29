@@ -18,6 +18,7 @@
 
 #include <asm/page-def.h>
 #include <linux/sizes.h>
+#include <linux/pfn.h>
 #include <lx_emul/debug.h>
 #include <lx_emul/alloc.h>
 #include <lx_emul/page_virt.h>
@@ -60,5 +61,17 @@ static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_
 #define PCI_IO_START 0
 
 #endif /* __ASSEMBLY__ */
+
+/*
+ * Normally included from <asm-generic/memory_model.h> and
+ * implemented via PHYS_PFN()
+ */
+#define __phys_to_pfn(paddr) PHYS_PFN(paddr)
+
+/*
+ * Normally included from <asm-generic/memory_model.h> and
+ * implemented via PFN_PHYS()
+ */
+#define   __pfn_to_phys(pfn) PFN_PHYS(pfn)
 
 #endif /* __ASM_MEMORY_H */
