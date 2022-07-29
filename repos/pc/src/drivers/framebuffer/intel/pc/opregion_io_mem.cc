@@ -21,6 +21,7 @@
 #include <rm_session/connection.h>
 #include <rom_session/connection.h>
 
+#include <lx_emul.h>
 
 extern "C" void * intel_io_mem_map(unsigned long const phys,
                                    unsigned long const size)
@@ -51,12 +52,16 @@ extern "C" void * intel_io_mem_map(unsigned long const phys,
 		}
 	}
 
-	if ((opregion_start <= phys) &&
-	    (phys + size <= opregion_start + opregion_size)) {
+	/*
+	 * we have to substract the pseudo physical address
+	 * we returned when reading the ASLS from config space
+	 */
+	addr_t offset = phys - OPREGION_PSEUDO_PHYS_ADDR;
+	if ((offset + size) <= opregion_size) {
 
 		try {
 			auto ptr = ((addr_t)rom_opregion->local_addr<void>())
-			           + (phys - opregion_start) + (phys & 0xffful);
+			           + offset + (opregion_start & 0xffful);
 			return (void *)ptr;
 		} catch (...) {
 			error("Intel opregion lookup failed");

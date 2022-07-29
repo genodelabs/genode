@@ -2,6 +2,10 @@
 # Content hosted in the dde_linux repository
 #
 
+content: include/pci
+include/pci:
+	mkdir -p $(dir $@); cp -r $(GENODE_DIR)/repos/os/$@ $(dir $@)
+
 MIRRORED_FROM_DDE_LINUX := src/lib/lx_emul \
                            src/lib/lx_kit \
                            src/include/lx_emul \

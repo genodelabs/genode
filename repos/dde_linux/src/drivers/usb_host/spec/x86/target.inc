@@ -14,7 +14,6 @@ SRC_C   += usb/host/uhci-hcd.c
 SRC_C   += usb/host/xhci-pci.c
 
 SRC_CC  += lx_kit/mapped_io_mem_range.cc
-SRC_CC  += lx_kit/pci.cc
 
 SRC_CC  += spec/x86/platform.cc
 

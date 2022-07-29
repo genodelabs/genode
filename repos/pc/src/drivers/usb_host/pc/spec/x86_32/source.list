@@ -1,5 +1,4 @@
 arch/x86/lib/hweight.S
-arch/x86/pci/legacy.c
 drivers/base/bus.c
 drivers/base/class.c
 drivers/base/component.c
@@ -10,18 +9,7 @@ drivers/base/driver.c
 drivers/base/platform.c
 drivers/base/property.c
 drivers/clk/clk-devres.c
-drivers/pci/access.c
-drivers/pci/bus.c
-drivers/pci/host-bridge.c
-drivers/pci/msi.c
 drivers/pci/pci-driver.c
-drivers/pci/pci-sysfs.c
-drivers/pci/pci.c
-drivers/pci/probe.c
-drivers/pci/rom.c
-drivers/pci/search.c
-drivers/pci/setup-res.c
-drivers/pci/slot.c
 drivers/usb/common/common.c
 drivers/usb/common/debug.c
 drivers/usb/core/buffer.c
@@ -110,7 +98,6 @@ lib/kobject.c
 lib/kstrtox.c
 lib/list_sort.c
 lib/math/div64.c
-lib/pci_iomap.c
 lib/radix-tree.c
 lib/rbtree.c
 lib/scatterlist.c

@@ -9,21 +9,21 @@ INC_DIR += $(REL_PRG_DIR)
 INC_DIR += $(REL_PRG_DIR)/shadow
 
 SRC_CC  += main.cc
-SRC_CC  += misc.cc
 SRC_CC  += emul.cc
 SRC_CC  += time.cc
 SRC_CC  += opregion_io_mem.cc
 SRC_C   += dummies.c
+SRC_C   += pci.c
 SRC_C   += lx_emul.c
 SRC_C   += $(notdir $(wildcard $(REL_PRG_DIR)/generated_dummies.c))
 SRC_C   += fb.c
 SRC_C   += lx_user.c
 SRC_C   += gem.c
 SRC_C   += lx_emul/common_dummies.c
-SRC_C   += lx_emul/spec/x86/pci.c
 SRC_C   += lx_emul/shadow/mm/page_alloc.c
+SRC_C   += lx_emul/shadow/drivers/char/random.c
 
-vpath %.c $(REL_PRG_DIR)
+vpath %.c  $(REL_PRG_DIR)
 vpath %.cc $(REL_PRG_DIR)
 
 vpath %.c  $(REP_DIR)/src/lib/pc

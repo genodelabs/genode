@@ -65,6 +65,9 @@ assert_spec x86
 
 set build_components {
 	core init timer
+	app/pci_decode
+	drivers/acpi
+	drivers/platform
 	drivers/rtc
 	drivers/wifi/pc
 	server/report_rom
@@ -75,9 +78,6 @@ set build_components {
 	lib/vfs_jitterentropy
 	lib/vfs_lwip
 }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
 
 build $build_components
 
@@ -106,6 +106,73 @@ append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="report_rom" caps="70">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="ROM" />
+			<service name="Report" />
+		</provides>
+		<config verbose="yes">
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+		<route>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="acpi_drv" caps="250">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="system">
+				<child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+		</route>
+		<config>
+			<policy label_prefix="wifi_drv" info="yes">
+				<pci class="WIFI"/>
+			</policy>
+		</config>
 	</start>
 
 	<start name="rtc_drv">
@@ -227,11 +294,6 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-}
-
-append_platform_drv_config
-
-append config {
 </config>
 }
 
@@ -267,14 +329,12 @@ set boot_modules {
 	wpa_driver_nl80211.lib.so wpa_supplicant.lib.so
 	pc_wifi_drv wifi.lib.so vfs_wifi.lib.so
 	nic_router
-
+	platform_drv acpi_drv pci_decode
 	test-lwip_httpsrv
 	vfs_lwip.lib.so
 }
 
 append boot_modules $firmware_modules
-
-append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

@@ -19,6 +19,9 @@ set use_top 0
 
 set build_components {
 	core init timer
+	drivers/acpi
+	drivers/platform
+	app/pci_decode
 	drivers/framebuffer/intel/pc
 	test/framebuffer
 	server/report_rom
@@ -30,9 +33,6 @@ set build_components {
 
 append_if $use_gpu build_components { drivers/gpu/intel }
 append_if $use_top build_components { app/top }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
 
 build $build_components
 
@@ -58,20 +58,84 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
+	<start name="report_rom" caps="70">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="ROM" />
+			<service name="Report" />
+		</provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="intel_fb_drv -> intel_opregion" report="acpi_drv -> intel_opregion"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+		<route>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
 
-append config {
+	<start name="acpi_drv" caps="250">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="system">
+				<child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+		</route>
+		<config>
+			<policy label_prefix="intel_fb_drv" info="yes">
+				<pci class="VGA"/>
+				<pci class="ISABRIDGE"/>
+			</policy>
+			<policy label_prefix="intel_gpu_drv" info="yes">
+				<pci class="VGA"/>
+				<pci class="ISABRIDGE"/>
+			</policy>
+		</config>
+	</start>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>
-
-	<start name="report_rom" priority="0">
-		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Report" /> <service name="ROM" /> </provides>
-		<config verbose="no"/>
 	</start>
 
 	<start name="init_dynamic" caps="10000">
@@ -81,7 +145,7 @@ append config {
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Platform"> <child name="platform_drv" label="intel_fb_drv"/> </service>
 			<service name="ROM" label="intel_fb_drv -> intel_opregion">
-				<child name="acpi_report_rom" label="intel_fb_drv -> intel_opregion"/>
+				<child name="report_rom" label="intel_fb_drv -> intel_opregion"/>
 			</service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -221,12 +285,11 @@ install_config $config
 set boot_modules {
 	core ld.lib.so init timer pc_intel_fb_drv intel_fb_controller
 	test-framebuffer report_rom fs_rom vfs vfs.lib.so vfs_import.lib.so
+	platform_drv acpi_drv pci_decode
 }
 
 append_if $use_gpu boot_modules { intel_gpu_drv }
 append_if $use_top boot_modules { top }
-
-append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 

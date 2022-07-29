@@ -2,7 +2,6 @@ arch/x86/lib/hweight.S
 arch/x86/lib/memcpy_64.S
 arch/x86/lib/memmove_64.S
 arch/x86/lib/memset_64.S
-arch/x86/pci/legacy.c
 arch/x86/platform/intel/iosf_mbi.c
 drivers/base/bus.c
 drivers/base/class.c
@@ -186,19 +185,7 @@ drivers/i2c/algos/i2c-algo-bit.c
 drivers/i2c/i2c-boardinfo.c
 drivers/i2c/i2c-core-acpi.c
 drivers/i2c/i2c-core-base.c
-drivers/pci/access.c
-drivers/pci/bus.c
-drivers/pci/host-bridge.c
-drivers/pci/msi.c
 drivers/pci/pci-driver.c
-drivers/pci/pci-label.c
-drivers/pci/pci-sysfs.c
-drivers/pci/pci.c
-drivers/pci/probe.c
-drivers/pci/rom.c
-drivers/pci/search.c
-drivers/pci/setup-res.c
-drivers/pci/slot.c
 drivers/video/backlight/backlight.c
 drivers/video/fbdev/core/fb_notify.c
 drivers/video/fbdev/core/fbcmap.c
@@ -259,7 +246,6 @@ lib/kobject_uevent.c
 lib/kstrtox.c
 lib/list_sort.c
 lib/llist.c
-lib/pci_iomap.c
 lib/radix-tree.c
 lib/rbtree.c
 lib/refcount.c

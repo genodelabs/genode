@@ -547,3 +547,33 @@ int wbinvd_on_all_cpus(void)
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+
+void srcu_drive_gp(struct work_struct *wp);
+void srcu_drive_gp(struct work_struct *wp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+int pci_bus_read_config_byte(struct pci_bus *bus, unsigned int devfn,
+                             int where, u8 *val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+int pci_bus_read_config_word(struct pci_bus *bus, unsigned int devfn,
+                             int where, u16 *val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+int pci_bus_write_config_byte(struct pci_bus *bus, unsigned int devfn,
+                              int where, u8 val)
+{
+	lx_emul_trace_and_stop(__func__);
+}

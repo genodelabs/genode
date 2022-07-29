@@ -574,3 +574,33 @@ void kvfree_call_rcu(struct rcu_head * head,rcu_callback_t func)
 	void *ptr = (void *) head - (unsigned long) func;
 	kvfree(ptr);
 }
+
+
+#include <linux/pci.h>
+#include <uapi/linux/pci_regs.h>
+
+int pci_write_config_byte(const struct pci_dev * dev,int where,u8 val)
+{
+	enum { PCI_CFG_RETRY_TIMEOUT = 0x41 };
+
+	switch (where) {
+		/*
+		 * iwlwifi: "We disable the RETRY_TIMEOUT register (0x41) to keep
+		 *           PCI Tx retries from interfering with C3 CPU state"
+		 */
+		case PCI_CFG_RETRY_TIMEOUT:
+			return 0;
+	};
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+int pci_read_config_word(const struct pci_dev * dev,int where,u16 * val)
+{
+	switch (where) {
+		case PCI_COMMAND:
+			*val = PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY | PCI_COMMAND_IO;
+			return 0;
+	};
+	lx_emul_trace_and_stop(__func__);
+}

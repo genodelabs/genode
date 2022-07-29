@@ -29,3 +29,22 @@ void emul_free_shmem_file_buffer(void *addr)
 {
 	Lx_kit::env().memory.free_buffer(addr);
 }
+
+
+unsigned short emul_intel_gmch_control_reg()
+{
+	using namespace Genode;
+
+	unsigned short ret = 0;
+	Lx_kit::env().devices.with_xml([&] (Xml_node node) {
+		node.for_each_sub_node("device", [&] (Xml_node node) {
+			node.for_each_sub_node("pci-config", [&] (Xml_node node) {
+				unsigned short gmch =
+					node.attribute_value<unsigned short>("intel_gmch_control", 0U);
+				if (gmch) ret = gmch;
+			});
+		});
+	});
+
+	return ret;
+}

@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-05-06
+ * \date   2022-09-27
  */
 
 #include <lx_emul.h>
@@ -23,6 +23,14 @@ const char * __clk_get_name(const struct clk * clk)
 }
 
 
+#include <linux/sched/task.h>
+
+void __put_task_struct(struct task_struct * tsk)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/srcu.h>
 
 void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
@@ -31,49 +39,9 @@ void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
 }
 
 
-#include <linux/printk.h>
+#include <linux/uaccess.h>
 
-int printk_deferred(const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irq_work.h>
-
-void irq_work_tick(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-asmlinkage __visible void dump_stack(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sched.h>
-
-int io_schedule_prepare(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sched.h>
-
-void io_schedule_finish(int token)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sched.h>
-
-long io_schedule_timeout(long timeout)
+unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -88,15 +56,47 @@ void ack_bad_irq(unsigned int irq)
 
 #include <linux/kobject.h>
 
-int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
+int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/kobject.h>
+#include <linux/printk.h>
 
-int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
+asmlinkage __visible void dump_stack(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/capability.h>
+
+bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/property.h>
+
+void fwnode_remove_software_node(struct fwnode_handle * fwnode)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/kernel.h>
+
+int get_option(char ** str,int * pint)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pseudo_fs.h>
+
+struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magic)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -107,9 +107,36 @@ int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 bool initcall_debug;
 
 
-#include <linux/irq.h>
+#include <linux/sched.h>
 
-struct irq_chip no_irq_chip;
+void io_schedule_finish(int token)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched.h>
+
+int io_schedule_prepare(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+void irq_work_tick(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/property.h>
+
+bool is_software_node(const struct fwnode_handle * fwnode)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/kobject.h>
@@ -125,49 +152,30 @@ void kill_anon_super(struct super_block * sb)
 }
 
 
-#include <linux/property.h>
+#include <linux/kobject.h>
 
-bool is_software_node(const struct fwnode_handle * fwnode)
+int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/property.h>
+#include <linux/irq.h>
 
-void fwnode_remove_software_node(struct fwnode_handle * fwnode)
+struct irq_chip no_irq_chip;
+
+
+#include <linux/irq.h>
+
+void note_interrupt(struct irq_desc * desc,irqreturn_t action_ret)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/sched/task.h>
+#include <linux/printk.h>
 
-void __put_task_struct(struct task_struct * tsk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kernel.h>
-
-int get_option(char ** str,int * pint)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sched/wake_q.h>
-
-void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/capability.h>
-
-bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap)
+int printk_deferred(const char * fmt,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -181,25 +189,9 @@ void seq_printf(struct seq_file * m,const char * f,...)
 }
 
 
-#include <linux/pseudo_fs.h>
-
-struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magic)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/smp.h>
 
-int smp_call_function_single(int cpu,void (* func)(void * info),void * info,int wait)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/uaccess.h>
-
-unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
+int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -216,3 +208,12 @@ int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/sched/wake_q.h>
+
+void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+

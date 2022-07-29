@@ -34,7 +34,7 @@ bool Device::Io_mem::match(addr_t addr, size_t size)
 bool Device::Io_port::match(uint16_t addr)
 {
 	return (this->addr <= addr) &&
-	       ((this->addr + this->size) >= addr);
+	       ((this->addr + this->size) > addr);
 }
 
 
@@ -67,9 +67,9 @@ const char * Device::compatible()
 }
 
 
-const char * Device::name()
+Device::Name Device::name()
 {
-	return _name.string();
+	return _name;
 }
 
 
@@ -102,7 +102,7 @@ clk * Device::clock(unsigned idx)
 bool Device::io_mem(addr_t phys_addr, size_t size)
 {
 	bool ret = false;
-	_for_each_io_mem([&] (Io_mem & io) {
+	for_each_io_mem([&] (Io_mem & io) {
 		if (io.match(phys_addr, size))
 			ret = true;
 	});
@@ -113,7 +113,7 @@ bool Device::io_mem(addr_t phys_addr, size_t size)
 void * Device::io_mem_local_addr(addr_t phys_addr, size_t size)
 {
 	void * ret = nullptr;
-	_for_each_io_mem([&] (Io_mem & io) {
+	for_each_io_mem([&] (Io_mem & io) {
 		if (!io.match(phys_addr, size))
 			return;
 
@@ -132,7 +132,7 @@ bool Device::irq_unmask(unsigned number)
 {
 	bool ret = false;
 
-	_for_each_irq([&] (Irq & irq) {
+	for_each_irq([&] (Irq & irq) {
 		if (irq.number != number)
 			return;
 
@@ -156,7 +156,7 @@ void Device::irq_mask(unsigned number)
 	if (!_pdev.constructed())
 		return;
 
-	_for_each_irq([&] (Irq & irq) {
+	for_each_irq([&] (Irq & irq) {
 		if (irq.number != number)
 			return;
 		irq.session.destruct();
@@ -170,7 +170,7 @@ void Device::irq_ack(unsigned number)
 	if (!_pdev.constructed())
 		return;
 
-	_for_each_irq([&] (Irq & irq) {
+	for_each_irq([&] (Irq & irq) {
 		if (irq.number != number || !irq.session.constructed())
 			return;
 		irq.session->ack();
@@ -181,7 +181,7 @@ void Device::irq_ack(unsigned number)
 bool Device::io_port(uint16_t addr)
 {
 	bool ret = false;
-	_for_each_io_port([&] (Io_port & io) {
+	for_each_io_port([&] (Io_port & io) {
 		if (io.match(addr))
 			ret = true;
 	});
@@ -192,7 +192,7 @@ bool Device::io_port(uint16_t addr)
 uint8_t Device::io_port_inb(uint16_t addr)
 {
 	uint8_t ret = 0;
-	_for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port & io) {
 		if (!io.match(addr))
 			return;
 
@@ -209,7 +209,7 @@ uint8_t Device::io_port_inb(uint16_t addr)
 uint16_t Device::io_port_inw(uint16_t addr)
 {
 	uint16_t ret = 0;
-	_for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port & io) {
 		if (!io.match(addr))
 			return;
 
@@ -226,7 +226,7 @@ uint16_t Device::io_port_inw(uint16_t addr)
 uint32_t Device::io_port_inl(uint16_t addr)
 {
 	uint32_t ret = 0;
-	_for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port & io) {
 		if (!io.match(addr))
 			return;
 
@@ -242,7 +242,7 @@ uint32_t Device::io_port_inl(uint16_t addr)
 
 void Device::io_port_outb(uint16_t addr, uint8_t val)
 {
-	_for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port & io) {
 		if (!io.match(addr))
 			return;
 
@@ -256,7 +256,7 @@ void Device::io_port_outb(uint16_t addr, uint8_t val)
 
 void Device::io_port_outw(uint16_t addr, uint16_t val)
 {
-	_for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port & io) {
 		if (!io.match(addr))
 			return;
 
@@ -270,7 +270,7 @@ void Device::io_port_outw(uint16_t addr, uint16_t val)
 
 void Device::io_port_outl(uint16_t addr, uint32_t val)
 {
-	_for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port & io) {
 		if (!io.match(addr))
 			return;
 
@@ -317,16 +317,18 @@ Device::Device(Entrypoint           & ep,
 {
 	unsigned i = 0;
 	xml.for_each_sub_node("io_mem", [&] (Xml_node node) {
-		addr_t addr = node.attribute_value("phys_addr", 0UL);
-		size_t size = node.attribute_value("size",      0UL);
-		_io_mems.insert(new (heap) Io_mem(i++, addr, size));
+		addr_t   addr = node.attribute_value("phys_addr", 0UL);
+		size_t   size = node.attribute_value("size",      0UL);
+		unsigned bar  = node.attribute_value("pci_bar",   0U);
+		_io_mems.insert(new (heap) Io_mem(i++, addr, size, bar));
 	});
 
 	i = 0;
-	xml.for_each_sub_node("io_port", [&] (Xml_node node) {
+	xml.for_each_sub_node("io_port_range", [&] (Xml_node node) {
 		uint16_t addr = node.attribute_value<uint16_t>("phys_addr", 0U);
 		uint16_t size = node.attribute_value<uint16_t>("size",      0U);
-		_io_ports.insert(new (heap) Io_port(i++, addr, size));
+		unsigned bar  = node.attribute_value("pci_bar",             0U);
+		_io_ports.insert(new (heap) Io_port(i++, addr, size, bar));
 	});
 
 	i = 0;
@@ -338,6 +340,17 @@ Device::Device(Entrypoint           & ep,
 	xml.for_each_sub_node("clock", [&] (Xml_node node) {
 		Device::Name name = node.attribute_value("name", Device::Name());
 		_clocks.insert(new (heap) Device::Clock(i++, name));
+	});
+
+	xml.for_each_sub_node("pci-config",  [&] (Xml_node node) {
+		using namespace Pci;
+		_pci_config.construct(Pci_config{
+			node.attribute_value<vendor_t>("vendor_id", 0xffff),
+			node.attribute_value<device_t>("device_id", 0xffff),
+			node.attribute_value<class_t>("class", 0xff),
+			node.attribute_value<rev_t>("revision", 0xff),
+			node.attribute_value<vendor_t>("sub_vendor_id", 0xffff),
+			node.attribute_value<device_t>("sub_device_id", 0xffff)});
 	});
 }
 
@@ -352,9 +365,26 @@ Device_list::Device_list(Entrypoint           & ep,
 :
 	_platform(platform)
 {
-	_platform.with_xml([&] (Xml_node & xml) {
-		xml.for_each_sub_node("device", [&] (Xml_node node) {
-			insert(new (heap) Device(ep, _platform, node, heap));
+	bool initialized = false;
+	Constructible<Io_signal_handler<Device_list>> handler {};
+
+	while (!initialized) {
+		_platform.update();
+		_platform.with_xml([&] (Xml_node & xml) {
+			if (!xml.num_sub_nodes()) {
+				if (!handler.constructed()) {
+					handler.construct(ep, *this, &Device_list::_handle_signal);
+					_platform.sigh(*handler);
+				}
+				ep.wait_and_dispatch_one_io_signal();
+			} else {
+				_platform.sigh(Signal_context_capability());
+				handler.destruct();
+				xml.for_each_sub_node("device", [&] (Xml_node node) {
+					insert(new (heap) Device(ep, _platform, node, heap));
+				});
+				initialized = true;
+			}
 		});
-	});
+	}
 }

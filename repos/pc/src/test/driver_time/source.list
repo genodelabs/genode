@@ -7,6 +7,7 @@ drivers/base/devres.c
 drivers/base/driver.c
 drivers/base/platform.c
 drivers/base/property.c
+drivers/pci/pci-driver.c
 kernel/async.c
 kernel/irq/chip.c
 kernel/irq/devres.c

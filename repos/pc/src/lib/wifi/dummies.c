@@ -244,6 +244,39 @@ bool pciehp_is_native(struct pci_dev *bridge)
 }
 
 
+void pci_lock_rescan_remove(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void pci_unlock_rescan_remove(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+bool pci_pme_capable(struct pci_dev *dev, pci_power_t state)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+int pcie_capability_read_word(struct pci_dev *dev, int pos, u16 *val)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}
+
+
+u16 pci_find_ext_capability(struct pci_dev *dev, int cap)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
 #include <linux/thermal.h>
 
 struct thermal_cooling_device *thermal_cooling_device_register(const char *s,

@@ -40,6 +40,15 @@ int ___ratelimit(struct ratelimit_state * rs, const char * func)
 	return 1;
 }
 
+
+#include <linux/sched.h>
+
+long io_schedule_timeout(long timeout)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 void register_syscore_ops(struct syscore_ops * ops)
 {
 	lx_emul_trace(__func__);

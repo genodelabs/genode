@@ -28,20 +28,15 @@ struct dma_fence_work_ops;
 
 void lx_emul_time_udelay(unsigned long usec);
 
-/* shadow/asm/io.h */
-void lx_emul_io_port_outb(unsigned char  value, unsigned short port);
-void lx_emul_io_port_outw(unsigned short value, unsigned short port);
-void lx_emul_io_port_outl(unsigned int   value, unsigned short port);
-
-unsigned char  lx_emul_io_port_inb(unsigned short port);
-unsigned short lx_emul_io_port_inw(unsigned short port);
-unsigned int   lx_emul_io_port_inl(unsigned short port);
-
 void *emul_alloc_shmem_file_buffer(unsigned long);
 
 void * intel_io_mem_map(unsigned long offset, unsigned long size);
 
 #include "lx_i915.h"
+
+unsigned short emul_intel_gmch_control_reg(void);
+
+enum { OPREGION_PSEUDO_PHYS_ADDR = 0xffffefff };
 
 #ifdef __cplusplus
 }

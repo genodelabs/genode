@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-05-06
+ * \date   2022-07-29
  */
 
 #include <lx_emul.h>
@@ -301,14 +301,6 @@ int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * e
 }
 
 
-#include <linux/kernel.h>
-
-unsigned long long memparse(const char * ptr,char ** retptr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/irq.h>
 
 struct irq_chip no_irq_chip;
@@ -348,7 +340,7 @@ int param_set_copystring(const char * val,const struct kernel_param * kp)
 
 #include <linux/pci.h>
 
-void pci_assign_unassigned_bridge_resources(struct pci_dev * bridge)
+void pci_clear_mwi(struct pci_dev * dev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -356,14 +348,7 @@ void pci_assign_unassigned_bridge_resources(struct pci_dev * bridge)
 
 #include <linux/pci.h>
 
-void pci_assign_unassigned_bus_resources(struct pci_bus * bus)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern unsigned long pci_cardbus_resource_alignment(struct resource * res);
-unsigned long pci_cardbus_resource_alignment(struct resource * res)
+struct pci_dev * pci_get_slot(struct pci_bus * bus,unsigned int devfn)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -371,11 +356,7 @@ unsigned long pci_cardbus_resource_alignment(struct resource * res)
 
 #include <linux/pci.h>
 
-unsigned int pci_flags;
-
-
-extern int pci_idt_bus_quirk(struct pci_bus * bus,int devfn,u32 * l,int timeout);
-int pci_idt_bus_quirk(struct pci_bus * bus,int devfn,u32 * l,int timeout)
+int pci_set_power_state(struct pci_dev * dev,pci_power_t state)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -383,71 +364,7 @@ int pci_idt_bus_quirk(struct pci_bus * bus,int devfn,u32 * l,int timeout)
 
 #include <linux/pci.h>
 
-int pci_mmap_resource_range(struct pci_dev * pdev,int bar,struct vm_area_struct * vma,enum pci_mmap_state mmap_state,int write_combine)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void __init pci_realloc_get_opt(char * str);
-void __init pci_realloc_get_opt(char * str)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void pci_restore_vc_state(struct pci_dev * dev);
-void pci_restore_vc_state(struct pci_dev * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int pci_save_vc_state(struct pci_dev * dev);
-int pci_save_vc_state(struct pci_dev * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/pci.h>
-
-void pci_stop_and_remove_bus_device_locked(struct pci_dev * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void pci_vpd_release(struct pci_dev * dev);
-void pci_vpd_release(struct pci_dev * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern unsigned int pcibios_assign_all_busses(void);
-unsigned int pcibios_assign_all_busses(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void pcie_aspm_init_link_state(struct pci_dev * pdev);
-void pcie_aspm_init_link_state(struct pci_dev * pdev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void pcie_aspm_pm_state_change(struct pci_dev * pdev);
-void pcie_aspm_pm_state_change(struct pci_dev * pdev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void pcie_aspm_powersave_config_link(struct pci_dev * pdev);
-void pcie_aspm_powersave_config_link(struct pci_dev * pdev)
+int pci_write_config_dword(const struct pci_dev * dev,int where,u32 val)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -464,14 +381,6 @@ int printk_deferred(const char * fmt,...)
 #include <linux/pid.h>
 
 void put_pid(struct pid * pid)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/pci.h>
-
-int raw_pci_read(unsigned int domain,unsigned int bus,unsigned int devfn,int reg,int len,u32 * val)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -511,7 +420,7 @@ void seq_printf(struct seq_file * m,const char * f,...)
 
 #include <linux/smp.h>
 
-int smp_call_function_single(int cpu,void (* func)(void * info),void * info,int wait)
+int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -572,3 +481,4 @@ void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+

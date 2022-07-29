@@ -58,9 +58,6 @@ SPEC_ARCH := x86_32
 
 SRC_C += lx_emul/shadow/arch/x86/kernel/irq.c
 SRC_C += lx_emul/shadow/arch/x86/kernel/setup_percpu.c
-
-# temporarily add the following include path for x86 platform_session wrapper
-INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/x86/lx_kit
 endif
 
 ifeq ($(filter-out $(SPECS),x86_64),)
@@ -70,9 +67,6 @@ SPEC_ARCH := x86_64
 
 SRC_C += lx_emul/shadow/arch/x86/kernel/irq.c
 SRC_C += lx_emul/shadow/arch/x86/kernel/setup_percpu.c
-
-# temporarily add the following include path for x86 platform_session wrapper
-INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/x86/lx_kit
 endif
 
 ifeq ($(filter-out $(SPECS),arm),)

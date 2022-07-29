@@ -1,5 +1,4 @@
 arch/x86/lib/hweight.S
-arch/x86/pci/legacy.c
 certs/common.c
 crypto/acompress.c
 crypto/aead.c
@@ -117,18 +116,7 @@ drivers/net/wireless/intel/iwlwifi/pcie/trans.c
 drivers/net/wireless/intel/iwlwifi/pcie/tx-gen2.c
 drivers/net/wireless/intel/iwlwifi/pcie/tx.c
 drivers/net/wireless/intel/iwlwifi/queue/tx.c
-drivers/pci/access.c
-drivers/pci/bus.c
-drivers/pci/host-bridge.c
-drivers/pci/msi.c
 drivers/pci/pci-driver.c
-drivers/pci/pci-sysfs.c
-drivers/pci/pci.c
-drivers/pci/probe.c
-drivers/pci/rom.c
-drivers/pci/search.c
-drivers/pci/setup-res.c
-drivers/pci/slot.c
 fs/nls/nls_base.c
 kernel/irq/chip.c
 kernel/irq/devres.c
@@ -186,7 +174,6 @@ lib/kobject.c
 lib/kstrtox.c
 lib/list_sort.c
 lib/nlattr.c
-lib/pci_iomap.c
 lib/radix-tree.c
 lib/rbtree.c
 lib/refcount.c
