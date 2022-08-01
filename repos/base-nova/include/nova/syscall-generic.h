@@ -56,7 +56,7 @@ namespace Nova {
 		NOVA_CREATE_PT  = 0x5,
 		NOVA_CREATE_SM  = 0x6,
 		NOVA_REVOKE     = 0x7,
-		NOVA_LOOKUP     = 0x8,
+		NOVA_MISC       = 0x8, /* lookup, delegate, acpi_suspend */
 		NOVA_EC_CTRL    = 0x9,
 		NOVA_SC_CTRL    = 0xa,
 		NOVA_PT_CTRL    = 0xb,

@@ -405,7 +405,7 @@ namespace Nova {
 	inline uint8_t lookup(Crd &crd)
 	{
 		mword_t crd_r;
-		uint8_t res = syscall_1(NOVA_LOOKUP, 0, 0, crd.value(), &crd_r);
+		uint8_t res = syscall_1(NOVA_MISC, 0, 0, crd.value(), &crd_r);
 		crd = Crd(crd_r);
 		return res;
 	}
@@ -414,7 +414,15 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t delegate(mword_t pd_snd, mword_t pd_dst, Crd crd_dst)
 	{
-		return syscall_2(NOVA_LOOKUP, 1, pd_snd, crd_dst.value(), pd_dst);
+		return syscall_2(NOVA_MISC, 1, pd_snd, crd_dst.value(), pd_dst);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t acpi_suspend(mword_t sm_auth_acpi, mword_t sleep_state_a,
+	                            mword_t sleep_state_b)
+	{
+		return syscall_2(NOVA_MISC, 2, sm_auth_acpi, sleep_state_a, sleep_state_b);
 	}
 
 
