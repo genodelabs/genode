@@ -687,11 +687,18 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 		dhcp_opts.append_option<Dhcp_packet::Subnet_mask>(local_intf.subnet_mask());
 		dhcp_opts.append_option<Dhcp_packet::Router_ipv4>(local_intf.address);
 
-		dhcp_opts.append_dns_server([&] (Dhcp_options::Dns_server_data &data) {
-			dhcp_srv.for_each_dns_server_ip([&] (Ipv4_address const &addr) {
-				data.append_address(addr);
-			});
-		});
+		if (not dhcp_srv.dns_servers_empty()) {
+
+			dhcp_opts.append_dns_server(
+				[&] (Dhcp_options::Dns_server_data &data)
+				{
+					dhcp_srv.for_each_dns_server_ip(
+						[&] (Ipv4_address const &addr)
+						{
+							data.append_address(addr);
+						});
+				});
+		}
 		dhcp_srv.dns_domain_name().with_string(
 			[&] (Dns_domain_name::String const &str)
 		{

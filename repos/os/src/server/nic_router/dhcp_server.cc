@@ -78,6 +78,16 @@ void Dhcp_server_base::_invalid(Domain const &domain,
  ** Dhcp_server **
  *****************/
 
+bool Dhcp_server::dns_servers_empty() const
+{
+	if (_dns_config_from.valid()) {
+
+		return _resolve_dns_config_from().dns_servers_empty();
+	}
+	return _dns_servers.empty();
+}
+
+
 Dhcp_server::Dhcp_server(Xml_node            const  node,
                          Domain                    &domain,
                          Allocator                 &alloc,

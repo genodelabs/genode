@@ -125,6 +125,8 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 			}
 		}
 
+		bool dns_servers_empty() const;
+
 		Dns_domain_name const &dns_domain_name() const
 		{
 			if (_dns_config_from.valid()) {
