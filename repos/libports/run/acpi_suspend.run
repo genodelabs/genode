@@ -1,0 +1,381 @@
+#
+#  Test to trigger periodically ACPI suspend and resume and periodically
+#  trying to restart graphic driver.
+#
+#  The pc_intel_fb_drv is restarting on X201 successfully after resume.
+#  On Qemu the restart of vesa_fb_drv after resume does not work up to now.
+#
+#  Intel AMT SOL most the time does not work after resume.
+#  PCMCIA Serial card worked reliable on X201 after resume.
+#
+
+assert_spec x86
+assert_spec nova
+
+# non Intel machines has no GPU support, e.g. Qemu and AMD
+set board_non_intel [expr [have_include "power_on/qemu"]]
+
+if {$board_non_intel} {
+	set fb_platform_service "platform_drv"
+} else {
+	set fb_platform_service "intel_gpu_drv"
+}
+
+
+proc display_config { } {
+	global board_non_intel
+
+	if {$board_non_intel} {
+		return {
+			<start name="fb_drv" caps="1000">
+				<binary name="vesa_fb_drv"/>
+			<!--
+				<binary name="boot_fb_drv"/>
+			 -->
+				<resource name="RAM" quantum="60M"/>
+				<config ld_verbose="yes" width="1024" height="768">
+					<report connectors="yes"/>
+				</config>
+			</start>}
+	}
+
+	return {
+		<start name="fb_drv" caps="1000">
+			<binary name="pc_intel_fb_drv"/>
+			<resource name="RAM" quantum="60M"/>
+			<config ld_verbose="yes" width="1024" height="768">
+				<report connectors="yes"/>
+			</config>
+		</start>}
+}
+
+proc gpu_config { } {
+	global board_non_intel
+
+	if {$board_non_intel} return
+
+	return {
+		<start name="intel_gpu_drv" caps="2000" priority="-2">
+			<resource name="RAM" quantum="40M"/>
+			<provides>
+				<service name="Gpu"/>
+				<service name="Platform"/>
+			</provides>
+			<config>
+				<device vendor="0x8086" device="0x1606" generation="8" platform="broadwell" description="HD Graphics (BDW GT1 ULT)"/>
+				<device vendor="0x8086" device="0x1616" generation="8" platform="broadwell" description="HD Graphics 5500 (BDW GT2 ULT)"/>
+				<device vendor="0x8086" device="0x1622" generation="8" platform="broadwell" description="Iris Pro Graphics 6200 (BDW GT3e)"/>
+				<device vendor="0x8086" device="0x1916" generation="9" platform="skylake"  description="HD Graphics 520 (Skylake, Gen9)"/>
+				<device vendor="0x8086" device="0x191b" generation="9" platform="skylake"  description="HD Graphics 530 (Skylake, Gen9)"/>
+				<device vendor="0x8086" device="0x5916" generation="9" platform="kabylake" description="HD Graphics 620 (Kaby Lake, Gen9p5)"/>
+				<device vendor="0x8086" device="0x5917" generation="9" platform="kabylake" description="UHD Graphics 620 (Kaby Lake, Gen9p5)"/>
+				<device vendor="0x8086" device="0x591b" generation="9" platform="kabylake" description="HD Graphics 630 (Kaby Lake, Gen9p5)"/>
+				<device vendor="0x8086" device="0x3ea0" generation="9" platform="whiskeylake" description="UHD Graphics 620 (Whiskey Lake, Gen9p5)"/>
+			</config>
+			<route>
+				<service name="Platform">
+					<child name="platform_drv" label="fb_drv"/>
+				</service>
+				<any-service> <parent /> <any-child/> </any-service>
+			</route>
+		</start>}
+}
+
+
+set build_components {
+	core timer init
+	server/report_rom
+	server/dynamic_rom
+	server/rom_filter
+	drivers/acpi
+	drivers/platform
+	drivers/framebuffer/intel/pc
+	drivers/framebuffer/vesa
+	drivers/framebuffer/boot
+	drivers/gpu/intel
+	app/acpica
+	app/pci_decode
+	test/framebuffer
+	test/suspend
+}
+
+build $build_components
+
+create_boot_directory
+
+set config ""
+append config {
+	<config verbose="yes" prio_levels="4">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<start name="timer" caps="100" priority="0">
+			<resource name="CPU" quantum="10"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="drivers_reports" caps="100" priority="-1">
+			<binary name="report_rom"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="Report"/>
+				<service name="ROM"/>
+			</provides>
+			<config verbose="no">
+				<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
+				<policy label="pci_decode -> system" report="acpi_drv -> acpi"/>
+				<policy label="rom_filter -> pci_devices" report="pci_decode -> devices"/>
+				<policy label="test-suspend -> sleep_states" report="acpica -> sleep_states"/>
+				<policy label="fb_drv -> intel_opregion" report="acpi_drv -> intel_opregion"/>
+			</config>
+		</start>
+
+		<start name="acpi_drv" caps="350" priority="-1">
+			<resource name="RAM" quantum="5M"/>
+			<config report="yes"/>
+			<route>
+				<service name="Report"> <child name="drivers_reports"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="pci_decode" caps="350" priority="-1">
+			<resource name="RAM" quantum="1M"/>
+			<route>
+				<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
+				<service name="Report"> <child name="drivers_reports"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="rom_filter" caps="70" priority="-1">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="ROM"/> </provides>
+			<config buffer="32K">
+				<input name="devices"/>
+				<input name="pci_devices"/>
+				<output node="devices">
+					<input name="devices"     skip_toplevel="yes"/>
+					<input name="pci_devices" skip_toplevel="yes"/>
+				</output>
+			</config>
+			<route>
+				<service name="ROM" label="pci_devices"> <child name="drivers_reports"/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="platform_drv" caps="200" managing_system="yes" priority="-1">
+			<binary name="pc_platform_drv"/>
+			<resource name="RAM" quantum="3M"/>
+			<provides>
+				<service name="Platform"/>
+			</provides>
+			<config system="yes">
+				<report devices="yes"/>
+				<policy label_prefix="fb_drv" info="yes">
+					<pci class="VGA"/>
+					<pci class="ISABRIDGE"/>
+				</policy>
+				<policy label_prefix="acpica">
+				</policy>
+			</config>
+			<route>
+				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
+				<service name="ROM" label="acpi"> <child name="drivers_reports"/> </service>
+				<service name="ROM" label="devices"> <child name="rom_filter"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="acpica" caps="200" priority="-2">
+			<resource name="RAM" quantum="8M"/>
+			<config ld_verbose="yes" sleep="yes" reset="no" poweroff="no" report="yes" acpi_ready="no">
+			</config>
+			<route>
+				<service name="Platform"> <child name="platform_drv"/> </service>
+				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	} [gpu_config] {
+
+		<start name="drivers_init" caps="10000" priority="-2">
+			<binary name="init"/>
+			<resource name="RAM" quantum="128M"/>
+			<route>
+				<service name="Report">
+					<child name="drivers_reports"/>
+				</service>
+				<service name="Platform">
+					<child name="} $fb_platform_service {" label="fb_drv"/>
+				</service>
+				<service name="ROM" label="fb_drv -> intel_opregion">
+					<child name="drivers_reports" label="fb_drv -> intel_opregion"/>
+				</service>
+				<service name="ROM" label="config">
+					<child name="dynamic_rom"/>
+				</service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="dynamic_rom" caps="100" priority="-1">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/></provides>
+			<config verbose="yes">
+				<rom name="system">
+					<inline description="system normal">
+						<system state="online"/>
+					</inline>
+					<sleep milliseconds="20000"/>
+					<inline description="prepare suspending">
+						<system state="s3_prepare"/>
+					</inline>
+					<sleep milliseconds="4000"/>
+					<inline description="suspend system">
+						<system state="suspend"/>
+					</inline>
+					<sleep milliseconds="4000"/>
+					<inline description="resume system">
+						<system state="s3_resume"/>
+					</inline>
+					<sleep milliseconds="4000"/>
+				</rom>
+				<rom name="config">
+					<inline description="iteration 1">
+
+			<config prio_levels="1">
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="IO_MEM"/>
+					<service name="IO_PORT"/>
+					<service name="PD"/>
+					<service name="RM"/>
+					<service name="CPU"/>
+					<service name="LOG"/>
+					<service name="Platform"/>
+					<service name="Report"/>
+					<service name="Timer"/>
+				</parent-provides>
+				<default-route>
+					<any-service> <parent/> <any-child/> </any-service>
+				</default-route>
+
+	} [display_config] {
+
+				<start name="test-framebuffer" caps="100">
+					<resource name="RAM" quantum="10M"/>
+					<provides> <service name="Capture"/> </provides>
+					<config/>
+				</start>
+			</config>
+
+					</inline>
+					<sleep milliseconds="15000"/>
+					<inline description="iteration 2">
+
+			<config/>
+					</inline>
+					<sleep milliseconds="2000"/>
+				</rom>
+			</config>
+		</start>
+
+		<start name="test-suspend" managing_system="yes" caps="120" priority="-2">
+			<resource name="RAM" quantum="4M"/>
+			<config/>
+			<route>
+				<service name="ROM" label="system">
+					<child name="dynamic_rom"/>
+				</service>
+				<service name="ROM" label="sleep_states">
+					<child name="drivers_reports"/>
+				</service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+}
+
+install_config $config
+
+# non PCI devices for platform_drv, e.g. ps2/pit
+file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
+
+set boot_modules {
+	core ld.lib.so init timer
+	report_rom dynamic_rom rom_filter
+	acpi_drv pc_platform_drv pci_decode
+	pc_intel_fb_drv test-framebuffer vesa_fb_drv intel_gpu_drv boot_fb_drv
+	acpica
+	test-suspend
+}
+
+build_boot_image $boot_modules
+
+# qemu machine model q35 and multiple CPUs don't work with NOVA kernel
+#
+# src/lapic.cpp Acpi::delay(2) spins on PM_TMR forever
+# 
+# According to qemu monitor "info mtree",
+#
+# address-space: I/O
+#  0000000000000000-000000000000ffff (prio 0, i/o): io
+#    ...
+#    0000000000000600-000000000000067f (prio 0, i/o): ich9-pm
+#      0000000000000600-0000000000000603 (prio 0, i/o): acpi-evt
+#      0000000000000604-0000000000000605 (prio 0, i/o): acpi-cnt
+#      0000000000000608-000000000000060b (prio 0, i/o): acpi-tmr
+#      0000000000000620-000000000000062f (prio 0, i/o): acpi-gpe0
+#      0000000000000630-0000000000000637 (prio 0, i/o): acpi-smi
+#      0000000000000660-000000000000067f (prio 0, i/o): sm-tco
+#
+# address-space: I/O
+#  0000000000000000-000000000000ffff (prio 0, i/o): io
+#      0000000000000000-0000000000000003 (prio 0, i/o): acpi-evt
+#      0000000000000004-0000000000000005 (prio 0, i/o): acpi-cnt
+#      0000000000000008-000000000000000b (prio 0, i/o): acpi-tmr
+#      0000000000000020-000000000000002f (prio 0, i/o): acpi-gpe0
+#      0000000000000030-0000000000000037 (prio 0, i/o): acpi-smi
+#      0000000000000060-000000000000007f (prio 0, i/o): sm-tco
+#
+# the "ich9-pm" device behind/attached on a LPC PCI device
+#
+# ./hw/isa/lpc_ich9.c
+# ./hw/acpi/ich9.c:    memory_region_init(&pm->io, OBJECT(lpc_pci), "ich9-pm", ICH9_PMIO_SIZE)
+#
+# is not at the right i/o space right location anymore. It seems that the
+# parent of ich9-pm stays disabled ...
+#
+# Further debugging shows:
+#
+# qemu/roms/seabios/src/resume.c         s3_resume -> pci_resume
+# qemu/roms/seabios/src/fw/pciinit.c     pci_resume
+#
+# In pci_resume the mmcfg and q35 and ich9-pm for PCIe is tried to be
+# re-enabled, but actually the calls never hit in Qemu.
+# It seems that mch_mmconfig_setup should use I/O PCI access in order to
+# enable MMIO PCI MMCFG access.
+#
+append qemu_args "-smp 1"
+
+run_genode_until forever
