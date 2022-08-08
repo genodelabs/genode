@@ -366,6 +366,17 @@ static genode_usb_request_ret_t
 handle_config_request(unsigned cfg_idx, void * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
+
+	if (udev && udev->actconfig
+	 && udev->actconfig->desc.bConfigurationValue == cfg_idx) {
+		/*
+		 * Skip SET_CONFIGURATION requests if the device already has the
+		 * selected config as active config. This workaround prevents issues
+		 * with Linux guests in vbox and SDC-reader passthrough.
+		 */
+		return NO_ERROR;
+	}
+
 	return (usb_set_configuration(udev, cfg_idx)) ? UNKNOWN_ERROR : NO_ERROR;
 }
 
