@@ -1,6 +1,6 @@
-REP_INC_DIR += src/bootstrap/board/virt_qemu
+REP_INC_DIR += src/bootstrap/board/virt_qemu_arm_v7a
 
-SRC_CC  += bootstrap/board/virt_qemu/platform.cc
+SRC_CC  += bootstrap/board/virt_qemu_arm_v7a/platform.cc
 SRC_CC  += bootstrap/spec/arm/arm_v7_cpu.cc
 SRC_CC  += bootstrap/spec/arm/cortex_a15_cpu.cc
 SRC_CC  += bootstrap/spec/arm/gicv2.cc

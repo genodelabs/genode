@@ -7,7 +7,8 @@
 assert_spec hw
 
 if { ![have_board imx7d_sabre] && ![have_board imx8q_evk] &&
-     ![have_board virt_qemu]} {
+     ![have_board virt_qemu_arm_v7a] &&
+     ![have_board virt_qemu_arm_v8a]} {
 	puts "Run script is not supported on this platform"
 	exit 0
 }

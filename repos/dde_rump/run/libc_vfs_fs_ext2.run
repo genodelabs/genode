@@ -1,4 +1,4 @@
-if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
+if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	puts "Autopilot mode is not supported on this platform."
 	exit 0
 }

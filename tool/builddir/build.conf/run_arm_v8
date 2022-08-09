@@ -8,9 +8,9 @@ QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu
 #BOARD ?= rpi3
 
 # local variable for run-tool arguments that depend on the used board
-BOARD_RUN_OPT(linux)     := --include power_on/linux --include log/linux
-BOARD_RUN_OPT(rpi3)      := $(QEMU_RUN_OPT)
-BOARD_RUN_OPT(virt_qemu) := $(QEMU_RUN_OPT)
+BOARD_RUN_OPT(linux)             := --include power_on/linux --include log/linux
+BOARD_RUN_OPT(rpi3)              := $(QEMU_RUN_OPT)
+BOARD_RUN_OPT(virt_qemu_arm_v8a) := $(QEMU_RUN_OPT)
 
 ##
 ## Qemu arguments, effective when using the run tool's 'power_on/qemu' back end

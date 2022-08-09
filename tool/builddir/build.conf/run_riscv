@@ -5,7 +5,7 @@ QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu
 KERNEL ?= hw
 
 # board to use (riscv_qemu)
-BOARD  ?= riscv_qemu
+BOARD  ?= virt_qemu_riscv
 
 # local variable for run-tool arguments that depend on the used board
-BOARD_RUN_OPT(riscv_qemu) = $(QEMU_RUN_OPT)
+BOARD_RUN_OPT(virt_qemu_riscv) = $(QEMU_RUN_OPT)

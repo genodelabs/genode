@@ -1,4 +1,4 @@
-REP_INC_DIR += src/core/board/virt_qemu
+REP_INC_DIR += src/core/board/virt_qemu_arm_v7a
 REP_INC_DIR += src/core/spec/arm/virtualization
 
 # add C++ sources

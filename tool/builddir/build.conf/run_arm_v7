@@ -5,13 +5,13 @@ QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu
 #KERNEL ?= hw
 
 # board to use (imx53_qsb, imx53_qsb_tz, imx6q_sabrelite, imx7d_sabre,
-#               nit6_solox, pbxa9, usb_armory, virt_qemu, wand_quad,
+#               nit6_solox, pbxa9, usb_armory, virt_qemu_arm_v7a, wand_quad,
 #               or zynq_qemu)
 #BOARD ?= pbxa9
 
 # local variable for run-tool arguments that depend on the used board
-BOARD_RUN_OPT(pbxa9)     = $(QEMU_RUN_OPT)
-BOARD_RUN_OPT(virt_qemu) = $(QEMU_RUN_OPT)
+BOARD_RUN_OPT(pbxa9)             = $(QEMU_RUN_OPT)
+BOARD_RUN_OPT(virt_qemu_arm_v7a) = $(QEMU_RUN_OPT)
 
 ##
 ## Qemu arguments, effective when using the run tool's 'power_on/qemu' back end
