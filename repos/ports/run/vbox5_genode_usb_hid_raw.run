@@ -213,12 +213,15 @@ append config {
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="vm_genode_usb_hid_raw.vbox" vm_name="TestVM" xhci="yes">
 			<vfs>
-				<dir name="dev"> <log/> <terminal/> </dir>
+				<dir name="dev">
+					<log/> <terminal/>
+					<inline name="rtc">2022-08-10 00:01</inline>
+				</dir>
 				<dir name="pipe"> <pipe/> </dir>
 				<rom name="vm_genode_usb_hid_raw.vbox" />
 				<rom name="usb_hid_raw.iso" />
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 		</config>
 		<route>
 			<service name="Report"><child name="report_rom" /></service>
