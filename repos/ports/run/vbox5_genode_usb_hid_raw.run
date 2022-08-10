@@ -239,6 +239,11 @@ puts "--- executing the 'usb_hid_raw' run script to generate the 'usb_hid_raw.is
 global specs
 global repositories
 
+set depot_auto_update ""
+if {[get_cmd_switch --depot-auto-update]} {
+	set depot_auto_update "--depot-auto-update"
+}
+
 exec -ignorestderr \
      $::argv0 \
      --genode-dir [genode_dir] \
@@ -248,6 +253,7 @@ exec -ignorestderr \
      --repositories "$repositories" \
      --depot-dir [depot_dir] \
      --depot-user [depot_user] \
+     $depot_auto_update \
      --cross-dev-prefix "[cross_dev_prefix]" \
      --include boot_dir/nova \
      --include image/iso \
