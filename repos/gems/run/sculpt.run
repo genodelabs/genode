@@ -389,6 +389,8 @@ install_config {
 				<child name="config_fs_rom" label="system"/> </service>
 			<service name="ROM" label_last="modem.config">
 				<child name="config_fs_rom" label="managed/modem"/> </service>
+			<service name="ROM" label_last="audio.config">
+				<child name="config_fs_rom" label="managed/audio"/> </service>
 			<service name="ROM" label_last="numlock">  <child name="report_rom"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
