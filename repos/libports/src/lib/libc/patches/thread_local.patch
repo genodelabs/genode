@@ -21,3 +21,23 @@
  #endif /* __STDC_VERSION__ || __STDC_VERSION__ < 201112L */
  
  /*
+--- src/lib/libc/lib/libc/stdlib/cxa_thread_atexit_impl.c.orig	2022-08-16 17:53:26.334343226 +0200
++++ src/lib/libc/lib/libc/stdlib/cxa_thread_atexit_impl.c	2022-08-17 13:37:34.445860493 +0200
+@@ -105,12 +105,17 @@
+ {
+ 	struct dl_phdr_info phdr_info;
+ 
++/* XXX this unload detection mechanism does not work on Genode */
++#if 0
+ 	if (_rtld_addr_phdr(dtor->dso, &phdr_info) &&
+ 	    __elf_phdr_match_addr(&phdr_info, dtor->func))
++#endif
+ 		dtor->func(dtor->obj);
++#if 0
+ 	else
+ 		fprintf(stderr, "__cxa_thread_call_dtors: dtr %p from "
+ 		    "unloaded dso, skipping\n", (void *)(dtor->func));
++#endif
+ }
+ 
+ static void

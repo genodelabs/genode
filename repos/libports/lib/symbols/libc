@@ -1294,6 +1294,7 @@ __cxa_guard_release T
 __cxa_init_primary_exception T
 __cxa_pure_virtual T
 __cxa_rethrow T
+__cxa_thread_atexit T
 __cxa_throw T
 __cxa_throw_bad_array_length T
 __cxa_throw_bad_array_new_length T

@@ -1153,6 +1153,46 @@ static void test_tls()
 }
 
 
+static bool thread_local_destructor_called = false;
+
+
+struct Thread_local
+{
+	int x = 0;
+
+	~Thread_local()
+	{
+		thread_local_destructor_called = true;
+	}
+};
+
+
+static thread_local Thread_local thread_local_var;
+
+
+static void *thread_local_test_func(void *)
+{
+	/* must access the variable to have the destructor called */
+	thread_local_var.x = 1;
+	return nullptr;
+}
+
+
+static void test_thread_local_destructor()
+{
+	pthread_t t;
+	void *retval;
+
+	pthread_create(&t, 0, thread_local_test_func, nullptr);
+	pthread_join(t, &retval);
+
+	if (!thread_local_destructor_called) {
+		Genode::error("thread_local destructor was not called");
+		exit(-1);
+	}
+}
+
+
 int main(int argc, char **argv)
 {
 	printf("--- pthread test ---\n");
@@ -1171,6 +1211,7 @@ int main(int argc, char **argv)
 	test_cond();
 	test_cleanup();
 	test_tls();
+	test_thread_local_destructor();
 
 	printf("--- returning from main ---\n");
 	return 0;
