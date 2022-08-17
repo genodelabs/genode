@@ -459,20 +459,21 @@ namespace Genode {
 
 
 	/**
-	 * Read signed long value from string
+	 * Read signed value from string
 	 *
 	 * \return number of consumed characters
 	 */
-	inline size_t ascii_to(const char *s, long &result)
+	template <typename T>
+	inline size_t ascii_to_signed(const char *s, T &result)
 	{
-		int i = 0;
+		size_t i = 0;
 
 		/* read sign */
 		int sign = (*s == '-') ? -1 : 1;
 
 		if (*s == '-' || *s == '+') { s++; i++; }
 
-		unsigned long value = 0;
+		T value = 0;
 
 		size_t const j = ascii_to_unsigned(s, value, 0);
 
@@ -481,6 +482,28 @@ namespace Genode {
 
 		result = sign*value;
 		return i + j;
+	}
+
+
+	/**
+	 * Read signed long value from string
+	 *
+	 * \return number of consumed characters
+	 */
+	inline size_t ascii_to(const char *s, long &result)
+	{
+		return ascii_to_signed<long>(s, result);
+	}
+
+
+	/**
+	 * Read signed integer value from string
+	 *
+	 * \return number of consumed characters
+	 */
+	inline size_t ascii_to(const char *s, int &result)
+	{
+		return ascii_to_signed<int>(s, result);
 	}
 
 
