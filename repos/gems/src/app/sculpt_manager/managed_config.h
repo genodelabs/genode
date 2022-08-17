@@ -68,6 +68,12 @@ struct Sculpt::Managed_config
 		(_obj.*_handle)(_manual_config_rom.xml());
 	}
 
+	template <typename FN>
+	void with_manual_config(FN const &fn) const
+	{
+		fn(_manual_config_rom.xml());
+	}
+
 	/**
 	 * \return true if manually-managed configuration could be used
 	 */

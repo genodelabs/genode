@@ -47,8 +47,6 @@ struct Sculpt::Network : Network_dialog::Action
 	Nic_target _nic_target { };
 	Nic_state  _nic_state  { };
 
-	bool _nic_router_config_up_to_date = false;
-
 	Wpa_passphrase wpa_passphrase { };
 
 	unsigned _nic_drv_version = 0;
@@ -135,11 +133,7 @@ struct Sculpt::Network : Network_dialog::Action
 			wifi_disconnect();
 	}
 
-	void reattempt_nic_router_config()
-	{
-		if (_nic_target.nic_router_needed() && !_nic_router_config_up_to_date)
-			_generate_nic_router_config();
-	}
+	void _update_nic_target_from_config(Xml_node const &);
 
 	/**
 	 * Network_dialog::Action interface
@@ -235,14 +229,21 @@ struct Sculpt::Network : Network_dialog::Action
 		_runtime_config_generator(runtime_config_generator),
 		_runtime_info(runtime_info), _pci_info(pci_info)
 	{
-		_generate_nic_router_config();
-
 		/*
 		 * Subscribe to reports
 		 */
 		_wlan_accesspoints_rom.sigh(_wlan_accesspoints_handler);
 		_wlan_state_rom       .sigh(_wlan_state_handler);
 		_nic_router_state_rom .sigh(_nic_router_state_handler);
+
+		/*
+		 * Evaluate and forward initial manually managed config
+		 */
+		_nic_router_config.with_manual_config([&] (Xml_node const &config) {
+			_update_nic_target_from_config(config); });
+
+		if (_nic_target.manual())
+			_generate_nic_router_config();
 	}
 };
 

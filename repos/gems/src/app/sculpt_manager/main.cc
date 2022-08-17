@@ -1765,12 +1765,6 @@ void Sculpt::Main::_handle_runtime_state()
 		}
 	});
 
-	/*
-	 * Re-attempt NIC-router configuration as the uplink may have become
-	 * available in the meantime.
-	 */
-	_network.reattempt_nic_router_config();
-
 	if (_deploy.update_child_conditions()) {
 		reconfigure_runtime = true;
 		regenerate_dialog   = true;

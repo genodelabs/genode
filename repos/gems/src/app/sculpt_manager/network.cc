@@ -56,16 +56,6 @@ void Sculpt::Network::handle_key_press(Codepoint code)
 
 void Sculpt::Network::_generate_nic_router_config()
 {
-	if ((_nic_target.wired() && !_runtime_info.present_in_runtime("nic_drv"))
-	 || (_nic_target.wifi()  && !_runtime_info.present_in_runtime("wifi_drv"))) {
-
-		/* defer NIC router reconfiguration until the needed uplink is present */
-		_nic_router_config_up_to_date = false;
-		return;
-	}
-
-	_nic_router_config_up_to_date = true;
-
 	if (_nic_router_config.try_generate_manually_managed())
 		return;
 
@@ -164,50 +154,43 @@ void Sculpt::Network::_handle_nic_router_state()
 }
 
 
-void Sculpt::Network::_handle_nic_router_config(Xml_node config)
+void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
 {
-	Nic_target::Type target = _nic_target.managed_type;
-
 	_nic_target.policy = config.has_type("empty")
 	                   ? Nic_target::MANAGED : Nic_target::MANUAL;
 
-	if (_nic_target.manual()) {
-
-		/* obtain uplink information from configuration */
-		target = Nic_target::LOCAL;
-
+	/* obtain uplink information from configuration */
+	auto nic_target_from_config = [] (Xml_node const &config)
+	{
 		if (!config.has_sub_node("domain"))
-			target = Nic_target::OFF;
+			return Nic_target::OFF;
 
-		struct Break : Exception { };
-		try {
-			config.for_each_sub_node("domain", [&] (Xml_node domain) {
+		Nic_target::Type result = Nic_target::LOCAL;
 
-				/* skip domains that are not called "uplink" */
-				if (domain.attribute_value("name", String<16>()) != "uplink")
-					return;
+		config.for_each_sub_node("policy", [&] (Xml_node uplink) {
 
-				config.for_each_sub_node("policy", [&] (Xml_node uplink) {
+			/* skip uplinks not assigned to a domain called "uplink" */
+			if (uplink.attribute_value("domain", String<16>()) != "uplink")
+				return;
 
-					/* skip uplinks not assigned to a domain called "uplink" */
-					if (uplink.attribute_value("domain", String<16>()) != "uplink")
-						return;
+			if (uplink.attribute_value("label", String<16>()) == "nic_drv -> ")
+				result = Nic_target::WIRED;
 
-					if (uplink.attribute_value("label", String<16>()) == "nic_drv -> ") {
-						target = Nic_target::WIRED;
-						throw Break();
-					}
-					if (uplink.attribute_value("label", String<16>()) == "wifi_drv -> ") {
-						target = Nic_target::WIFI;
-						throw Break();
-					}
-				});
-			});
-		} catch (Break) { }
-		_nic_target.manual_type = target;
-	}
+			if (uplink.attribute_value("label", String<16>()) == "wifi_drv -> ")
+				result = Nic_target::WIFI;
+		});
+		return result;
+	};
 
-	nic_target(target);
+	if (_nic_target.manual())
+		_nic_target.manual_type = nic_target_from_config(config);
+}
+
+
+
+void Sculpt::Network::_handle_nic_router_config(Xml_node config)
+{
+	_update_nic_target_from_config(config);
 	_generate_nic_router_config();
 	_runtime_config_generator.generate_runtime_config();
 	_menu_view.generate();
@@ -241,11 +224,9 @@ void Sculpt::Network::gen_runtime_start_nodes(Xml_generator &xml) const
 		break;
 
 	case Nic_target::OFF:
-
 		break;
 
 	case Nic_target::UNDEFINED:
-
 		break;
 	}
 }
