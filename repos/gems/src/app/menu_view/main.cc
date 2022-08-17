@@ -255,14 +255,10 @@ void Menu_view::Main::_handle_dialog_update()
 {
 	_styles.flush_outdated_styles();
 
-	try {
-		Xml_node const config = _config.xml();
+	Xml_node const config = _config.xml();
 
-		_position = Decorator::point_attribute(config);
-
-		_configured_size = Area(config.attribute_value("width",  0U),
-		                        config.attribute_value("height", 0U));
-	} catch (...) { }
+	_position        = Point::from_xml(config);
+	_configured_size = Area ::from_xml(config);
 
 	_dialog_rom.update();
 

@@ -17,7 +17,6 @@
 #include <base/attached_rom_dataspace.h>
 #include <gui_session/connection.h>
 #include <util/misc_math.h>
-#include <decorator/xml_utils.h>
 #include <nitpicker_gfx/box_painter.h>
 #include <nitpicker_gfx/texture_painter.h>
 #include <base/attached_dataspace.h>
@@ -262,7 +261,7 @@ void Backdrop::Main::_apply_image(Xml_node operation)
 	                        : anchor.vertical == Anchor::HIGH   ? v_gap
 	                        : 0;
 
-	Point const offset = Decorator::point_attribute(operation);
+	Point const offset = Point::from_xml(operation);
 
 	Point const pos = Point(anchored_xpos, anchored_ypos) + offset;
 

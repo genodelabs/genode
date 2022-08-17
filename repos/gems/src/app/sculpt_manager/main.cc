@@ -1289,9 +1289,7 @@ void Sculpt::Main::_handle_window_layout()
 	_window_list.update();
 	Xml_node const window_list = _window_list.xml();
 
-	auto win_size = [&] (Xml_node win) {
-		return Area(win.attribute_value("width",  0U),
-		            win.attribute_value("height", 0U)); };
+	auto win_size = [&] (Xml_node win) { return Area::from_xml(win); };
 
 	unsigned panel_height = 0;
 	_with_window(window_list, panel_view_label, [&] (Xml_node win) {

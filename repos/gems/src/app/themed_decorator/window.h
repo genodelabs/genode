@@ -511,7 +511,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			_motion          = _config.motion(_title);
 
 			Rect const old_geometry = geometry();
-			Rect const new_geometry = rect_attribute(window_node);
+			Rect const new_geometry = Rect::from_xml(window_node);
 
 			geometry(new_geometry);
 

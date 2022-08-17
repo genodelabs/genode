@@ -202,7 +202,7 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 	/*
 	 * Detect geometry changes
 	 */
-	Rect new_geometry = rect_attribute(window_node);
+	Rect new_geometry = Rect::from_xml(window_node);
 	if (new_geometry.p1() != geometry().p1()
 	 || new_geometry.p2() != geometry().p2()) {
 

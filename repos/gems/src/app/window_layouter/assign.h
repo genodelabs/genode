@@ -81,8 +81,8 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			_maximized    = assign.attribute_value("maximized", false);
 			_xpos_any     = assign.attribute_value("xpos", String<20>()) == "any";
 			_ypos_any     = assign.attribute_value("ypos", String<20>()) == "any";
-			_pos          = point_attribute(assign);
-			_size         = area_attribute(assign);
+			_pos          = Point::from_xml(assign);
+			_size         = Area::from_xml(assign);
 		}
 
 		/*

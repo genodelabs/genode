@@ -149,8 +149,8 @@ Decorator::Theme::Margins Decorator::Theme::decor_margins() const
 Decorator::Rect Decorator::Theme::title_geometry() const
 {
 	static Genode::Xml_node node = metadata(_alloc);
-	static Rect rect = node.has_sub_node("title") 
-	                 ? rect_attribute(node.sub_node("title"))
+	static Rect rect = node.has_sub_node("title")
+	                 ? Rect::from_xml(node.sub_node("title"))
 	                 : Rect(Point(0, 0), Area(0, 0));
 	return rect;
 }
@@ -168,7 +168,7 @@ element_geometry(Genode::Ram_allocator &ram, Genode::Region_map &rm,
 	if (!node.has_sub_node(sub_node_type))
 		return Rect(Point(0, 0), Area(0, 0));
 
-	return Rect(point_attribute(node.sub_node(sub_node_type)),
+	return Rect(Point::from_xml(node.sub_node(sub_node_type)),
 	            texture_by_id(ram, rm, alloc, texture_id).size());
 }
 

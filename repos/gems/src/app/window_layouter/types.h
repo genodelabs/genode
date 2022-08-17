@@ -15,19 +15,15 @@
 #define _TYPES_H_
 
 /* Genode includes */
-#include <decorator/types.h>
-#include <decorator/xml_utils.h>
+#include <os/surface.h>
 
 namespace Window_layouter {
 
 	using namespace Genode;
 
-	typedef Decorator::Point Point;
-	typedef Decorator::Area  Area;
-	typedef Decorator::Rect  Rect;
-
-	using Decorator::area_attribute;
-	using Decorator::point_attribute;
+	typedef Surface_base::Point Point;
+	typedef Surface_base::Area  Area;
+	typedef Surface_base::Rect  Rect;
 
 	struct Window_id
 	{
