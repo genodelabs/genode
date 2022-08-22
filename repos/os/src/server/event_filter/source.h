@@ -48,7 +48,8 @@ class Event_filter::Source
 			    || node.type() == "button-scroll"
 			    || node.type() == "accelerate"
 			    || node.type() == "log"
-			    || node.type() == "touch-click";
+			    || node.type() == "touch-click"
+			    || node.type() == "touch-key";
 
 			return false;
 		}
