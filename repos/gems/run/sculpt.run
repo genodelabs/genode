@@ -717,9 +717,14 @@ puts $fd "<query/>"
 close $fd
 
 foreach config { fonts wifi runtime event_filter } {
-	set from [ingredient_path $config default]
-	check_xml_syntax $from
-	file copy $from [managed_config_path $config] }
+	set ingredient [single_ingredient $config "default"]
+	if {$ingredient != ""} {
+		set from [ingredient_path $config $ingredient]
+		set to   [managed_config_path $config]
+		check_xml_syntax $from
+		copy_file $from $to
+	}
+}
 
 copy_file [file join [initial_config_dir] fb_drv] [managed_config_path fb_drv]
 
