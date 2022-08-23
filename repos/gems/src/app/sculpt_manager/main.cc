@@ -362,7 +362,6 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy._handle_managed_deploy();
 	}
 
-
 	Deploy _deploy { _env, _heap, _child_states, _runtime_state, *this, *this, *this,
 	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
 
@@ -521,6 +520,7 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_runtime_state();
 
 	Attached_rom_dataspace const _platform { _env, "platform_info" };
+
 
 	/****************************************
 	 ** Cached model of the runtime config **

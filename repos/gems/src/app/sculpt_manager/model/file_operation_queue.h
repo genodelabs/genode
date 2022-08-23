@@ -15,6 +15,7 @@
 #define _MODEL__FILE_OPERATION_QUEUE_H_
 
 #include <base/registry.h>
+#include <util/xml_generator.h>
 #include <types.h>
 
 namespace Sculpt { struct File_operation_queue; }
