@@ -6,7 +6,7 @@
 # QT5_PORT_LIBS:        Qt5 libraries used from port (for example libQt5Core)
 #
 
-QT_TOOLS_DIR = /usr/local/genode/qt5/20.08
+QT_TOOLS_DIR = /usr/local/genode/qt5/22.08
 QMAKE        = $(QT_TOOLS_DIR)/bin/qmake
 
 ifeq ($(filter-out $(SPECS),arm),)
@@ -161,6 +161,9 @@ qmake_root/lib/%.lib.a: qmake_root/lib
 qmake_root/mkspecs: qmake_root
 	$(VERBOSE)mkdir -p $@
 	$(VERBOSE)ln -sf $(QT_API_DIR)/mkspecs/* $@/
+	$(VERBOSE)rm -f $@/modules
+	$(VERBOSE)mkdir $@/modules
+	$(VERBOSE)ln -snf $(QT_API_DIR)/mkspecs/modules/* $@/modules/
 	$(VERBOSE)ln -sf $(QMAKE_PLATFORM)/qconfig.pri $@/
 	$(VERBOSE)ln -sf $(QMAKE_PLATFORM)/qmodule.pri $@/
 

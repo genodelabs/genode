@@ -1,8 +1,8 @@
 LICENSE := GPL
-VERSION := 5.13.2
+VERSION := 5.15.2
 
 DOWNLOADS := qt5.git
 
 URL(qt5) := https://github.com/cproc/qt5.git
-REV(qt5) := issue4541
+REV(qt5) := issue4589
 DIR(qt5) := src/lib/qt5

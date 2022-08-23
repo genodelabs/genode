@@ -1,15 +1,20 @@
 LICENSE := GPL
-VERSION := 5.13.2
+VERSION := 5.15.2
 
-QTBASE  := qtbase-everywhere-src-${VERSION}
-QTTOOLS := qttools-everywhere-src-${VERSION}
+QTBASE        := qtbase-everywhere-src-${VERSION}
+QTDECLARATIVE := qtdeclarative-everywhere-src-${VERSION}
+QTTOOLS       := qttools-everywhere-src-${VERSION}
 
-DOWNLOADS := ${QTBASE}.archive $(QTTOOLS).archive
+DOWNLOADS := ${QTBASE}.archive $(QTDECLARATIVE).archive $(QTTOOLS).archive
 
-URL(${QTBASE}) := https://download.qt.io/archive/qt/5.13/$(VERSION)/submodules/$(QTBASE).tar.xz
-SHA(${QTBASE}) := 26b6b686d66a7ad28eaca349e55e2894e5a735f3831e45f2049e93b1daa92121
+URL(${QTBASE}) := https://download.qt.io/archive/qt/5.15/$(VERSION)/submodules/$(QTBASE).tar.xz
+SHA(${QTBASE}) := 909fad2591ee367993a75d7e2ea50ad4db332f05e1c38dd7a5a274e156a4e0f8
 DIR(${QTBASE}) := src/lib/qtbase
 
-URL(${QTTOOLS}) := https://download.qt.io/archive/qt/5.13/$(VERSION)/submodules/$(QTTOOLS).tar.xz
-SHA(${QTTOOLS}) := 919a2713b6d2d7873a09ad85bd93cf4282606e5bf84d5884250f665a253ec06e
+URL(${QTDECLARATIVE}) := https://download.qt.io/archive/qt/5.15/$(VERSION)/submodules/$(QTDECLARATIVE).tar.xz
+SHA(${QTDECLARATIVE}) := c600d09716940f75d684f61c5bdaced797f623a86db1627da599027f6c635651
+DIR(${QTDECLARATIVE}) := src/lib/qtdeclarative
+
+URL(${QTTOOLS}) := https://download.qt.io/archive/qt/5.15/$(VERSION)/submodules/$(QTTOOLS).tar.xz
+SHA(${QTTOOLS}) := c189d0ce1ff7c739db9a3ace52ac3e24cb8fd6dbf234e49f075249b38f43c1cc
 DIR(${QTTOOLS}) := src/lib/qttools

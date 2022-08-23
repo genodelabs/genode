@@ -23,7 +23,7 @@ append config {
 append config [qt5_start_nodes]
 
 append config {
-	<start name="samegame" caps="250">
+	<start name="samegame" caps="350">
 		<resource name="RAM" quantum="128M"/>
 		<config>
 			<vfs>

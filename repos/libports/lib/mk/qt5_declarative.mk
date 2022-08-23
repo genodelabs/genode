@@ -5,17 +5,22 @@ QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5Network libQt5Sql libQt5Test libQt5Wi
 LIBS = libc libm mesa stdcxx $(QT5_PORT_LIBS)
 
 INSTALL_LIBS = lib/libQt5Qml.lib.so \
+               lib/libQt5QmlModels.lib.so \
+               lib/libQt5QmlWorkerScript.lib.so \
                lib/libQt5Quick.lib.so \
                lib/libQt5QuickParticles.lib.so \
                lib/libQt5QuickShapes.lib.so \
                lib/libQt5QuickTest.lib.so \
                lib/libQt5QuickWidgets.lib.so \
+               qml/Qt/labs/animation/liblabsanimationplugin.lib.so \
                qml/Qt/labs/folderlistmodel/libqmlfolderlistmodelplugin.lib.so \
                qml/Qt/labs/qmlmodels/liblabsmodelsplugin.lib.so \
                qml/Qt/labs/settings/libqmlsettingsplugin.lib.so \
                qml/Qt/labs/wavefrontmesh/libqmlwavefrontmeshplugin.lib.so \
                qml/QtQml/Models.2/libmodelsplugin.lib.so \
                qml/QtQml/StateMachine/libqtqmlstatemachine.lib.so \
+               qml/QtQml/WorkerScript.2/libworkerscriptplugin.lib.so \
+               qml/QtQml/libqmlplugin.lib.so \
                qml/QtQuick.2/libqtquick2plugin.lib.so \
                qml/QtQuick/Layouts/libqquicklayoutsplugin.lib.so \
                qml/QtQuick/LocalStorage/libqmllocalstorageplugin.lib.so \
@@ -35,6 +40,7 @@ built.tag: qmake_prepared.tag
 		$(QT_DIR)/qtdeclarative/qtdeclarative.pro \
 		-- \
 		-no-feature-qml-devtools \
+		-no-feature-qml-jit \
 		$(QT5_OUTPUT_FILTER)
 
 	@#
