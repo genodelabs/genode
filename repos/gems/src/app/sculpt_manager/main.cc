@@ -53,6 +53,7 @@ struct Sculpt::Main : Input_event_handler,
                       Dialog::Generator,
                       Runtime_config_generator,
                       Storage::Target_user,
+                      Network::Action,
                       Graph::Action,
                       Panel_dialog::Action,
                       Popup_dialog::Action,
@@ -179,7 +180,7 @@ struct Sculpt::Main : Input_event_handler,
 				_pci_info.wifi_present = true;
 		});
 
-		_network.update_view();
+		update_network_dialog();
 	}
 
 
@@ -213,8 +214,20 @@ struct Sculpt::Main : Input_event_handler,
 		generate_runtime_config();
 	}
 
+	Network _network { _env, _heap, *this, _child_states, *this, _runtime_state, _pci_info };
 
-	Network _network { _env, _heap, _child_states, *this, *this, _runtime_state, _pci_info };
+	Menu_view _network_menu_view { _env, _child_states, _network.dialog, "network_view",
+	                               Ram_quota{4*1024*1024}, Cap_quota{150},
+	                               "network_dialog", "network_view_hover",
+	                               *this };
+
+	/**
+	 * Network::Action interface
+	 */
+	void update_network_dialog() override
+	{
+		_network_menu_view.generate();
+	}
 
 
 	/************
@@ -637,9 +650,9 @@ struct Sculpt::Main : Input_event_handler,
 			_settings_menu_view.generate();
 			_clicked_seq_number.destruct();
 		}
-		else if (_network.dialog_hovered(seq)) {
+		else if (_network_menu_view.hovered(seq)) {
 			_network.dialog.click(_network);
-			_network.update_view();
+			_network_menu_view.generate();
 			_clicked_seq_number.destruct();
 		}
 		else if (_file_browser_menu_view.hovered(seq)) {
@@ -1541,7 +1554,7 @@ void Sculpt::Main::_handle_gui_mode()
 	_panel_menu_view.min_width = _screen_size.w();
 	unsigned const menu_width = max((unsigned)(_font_size_px*21.0), 320u);
 	_main_menu_view.min_width = menu_width;
-	_network.min_dialog_width(menu_width);
+	_network_menu_view.min_width = menu_width;
 
 	/* font size may has changed, propagate fonts config of runtime view */
 	generate_runtime_config();
@@ -1830,7 +1843,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	_panel_menu_view.gen_start_node(xml);
 	_main_menu_view.gen_start_node(xml);
 	_settings_menu_view.gen_start_node(xml);
-	_network._menu_view.gen_start_node(xml);
+	_network_menu_view.gen_start_node(xml);
 	_popup_menu_view.gen_start_node(xml);
 	_file_browser_menu_view.gen_start_node(xml);
 
