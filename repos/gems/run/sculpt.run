@@ -236,6 +236,8 @@ install_config {
 		<config verbose="no">
 			<policy label="leitzentrale_config -> leitzentrale"
 			        report="global_keys_handler -> leitzentrale"/>
+			<policy label="leitzentrale -> manager -> leitzentrale"
+			        report="global_keys_handler -> leitzentrale"/>
 			<policy label="pointer -> hover" report="nitpicker -> hover"/>
 			<policy label="pointer -> xray"
 			        report="global_keys_handler -> leitzentrale"/>
@@ -548,6 +550,8 @@ install_config {
 			<service name="ROM" label_prefix="config -> ">
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label="manager -> nitpicker_hover">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="manager -> leitzentrale">
 				<child name="report_rom"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="Gui"> <child name="nitpicker"/> </service>
