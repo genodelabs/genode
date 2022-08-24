@@ -80,8 +80,9 @@ void Sculpt::Network::_generate_nic_router_config()
 
 		bool uplink_exists = true;
 		switch (_nic_target.type()) {
-		case Nic_target::WIRED: _generate_nic_router_uplink(xml, "nic_drv -> "); break;
-		case Nic_target::WIFI:  _generate_nic_router_uplink(xml, "wifi_drv -> ");  break;
+		case Nic_target::WIRED: _generate_nic_router_uplink(xml, "nic_drv -> ");  break;
+		case Nic_target::WIFI:  _generate_nic_router_uplink(xml, "wifi_drv -> "); break;
+		case Nic_target::MODEM: _generate_nic_router_uplink(xml, "usb_net -> ");  break;
 		default: uplink_exists = false;
 		}
 		gen_named_node(xml, "domain", "default", [&] () {
@@ -90,7 +91,7 @@ void Sculpt::Network::_generate_nic_router_config()
 			xml.node("dhcp-server", [&] () {
 				xml.attribute("ip_first", "10.0.1.2");
 				xml.attribute("ip_last",  "10.0.1.200");
-				if (_nic_target.type() != Nic_target::LOCAL) {
+				if (_nic_target.type() != Nic_target::DISCONNECTED) {
 					xml.attribute("dns_config_from", "uplink"); }
 			});
 
@@ -165,7 +166,7 @@ void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
 		if (!config.has_sub_node("domain"))
 			return Nic_target::OFF;
 
-		Nic_target::Type result = Nic_target::LOCAL;
+		Nic_target::Type result = Nic_target::DISCONNECTED;
 
 		config.for_each_sub_node("policy", [&] (Xml_node uplink) {
 
@@ -178,6 +179,9 @@ void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
 
 			if (uplink.attribute_value("label", String<16>()) == "wifi_drv -> ")
 				result = Nic_target::WIFI;
+
+			if (uplink.attribute_value("label", String<16>()) == "usb_net -> ")
+				result = Nic_target::MODEM;
 		});
 		return result;
 	};
@@ -218,7 +222,16 @@ void Sculpt::Network::gen_runtime_start_nodes(Xml_generator &xml) const
 		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
 		break;
 
-	case Nic_target::LOCAL:
+	case Nic_target::MODEM:
+
+		xml.node("start", [&] () {
+			xml.attribute("version", _usb_net_version);
+			gen_usb_net_start_content(xml);
+		});
+		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
+		break;
+
+	case Nic_target::DISCONNECTED:
 
 		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
 		break;

@@ -20,7 +20,9 @@ namespace Sculpt { struct Pci_info; }
 
 struct Sculpt::Pci_info
 {
-	bool wifi_present = false;
+	bool wifi_present  = false;
+	bool lan_present   = false;
+	bool modem_present = false;
 };
 
 #endif /* _MODEL__PCI_INFO_H_ */

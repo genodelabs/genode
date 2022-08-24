@@ -55,8 +55,9 @@ struct Sculpt::Network : Network_dialog::Action
 
 	Wpa_passphrase wpa_passphrase { };
 
-	unsigned _nic_drv_version = 0;
+	unsigned _nic_drv_version  = 0;
 	unsigned _wifi_drv_version = 0;
+	unsigned _usb_net_version  = 0;
 
 	Attached_rom_dataspace _wlan_accesspoints_rom {
 		_env, "report -> runtime/wifi_drv/accesspoints" };
@@ -174,15 +175,9 @@ struct Sculpt::Network : Network_dialog::Action
 		});
 	}
 
-	void restart_nic_drv_on_next_runtime_cfg()
-	{
-		_nic_drv_version++;
-	}
-
-	void restart_wifi_drv_on_next_runtime_cfg()
-	{
-		_wifi_drv_version++;
-	}
+	void restart_nic_drv_on_next_runtime_cfg()  { _nic_drv_version++; }
+	void restart_wifi_drv_on_next_runtime_cfg() { _wifi_drv_version++; }
+	void restart_usb_net_on_next_runtime_cfg()  { _usb_net_version++; }
 
 	void wifi_disconnect() override
 	{

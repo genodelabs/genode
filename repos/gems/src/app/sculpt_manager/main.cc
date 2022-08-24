@@ -171,7 +171,9 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_pci_devices()
 	{
 		_pci_devices.update();
-		_pci_info.wifi_present = false;
+		_pci_info.wifi_present  = false;
+		_pci_info.lan_present   = true;
+		_pci_info.modem_present = false;
 
 		_pci_devices.xml().for_each_sub_node("device", [&] (Xml_node device) {
 
@@ -797,6 +799,11 @@ struct Sculpt::Main : Input_event_handler,
 		} else if (name == "wifi_drv") {
 
 			_network.restart_wifi_drv_on_next_runtime_cfg();
+			generate_runtime_config();
+
+		} else if (name == "usb_net") {
+
+			_network.restart_usb_net_on_next_runtime_cfg();
 			generate_runtime_config();
 
 		} else {
