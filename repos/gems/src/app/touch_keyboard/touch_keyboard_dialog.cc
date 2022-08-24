@@ -48,6 +48,8 @@ void Dialog::produce_xml(Xml_generator &xml)
 					xml.node("label", [&] () {
 						xml.attribute("name", "label");
 						xml.attribute("text", key.label);
+						if (key.small)
+							xml.attribute("font", "annotation/regular");
 					});
 				});
 			});

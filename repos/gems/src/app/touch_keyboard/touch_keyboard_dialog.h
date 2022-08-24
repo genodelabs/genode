@@ -68,6 +68,8 @@ struct Touch_keyboard::Dialog : private Dynamic_rom_session::Xml_producer
 
 			unsigned min_ex = 0;
 
+			bool small = false;
+
 			Key(Id id) : _id(id) { }
 
 			bool matches(Xml_node const &node) const { return _id == id_attr(node); }
@@ -80,6 +82,7 @@ struct Touch_keyboard::Dialog : private Dynamic_rom_session::Xml_producer
 				emit   = { };
 				map    = key.attribute_value("map", Map());
 				min_ex = key.attribute_value("min_ex", 0U);
+				small  = key.attribute_value("small", false);
 
 				if (key.has_attribute("char")) {
 					label = key.attribute_value("char", Label());

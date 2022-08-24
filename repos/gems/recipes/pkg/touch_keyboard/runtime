@@ -1,4 +1,4 @@
-<runtime ram="12M" caps="350" binary="init">
+<runtime ram="18M" caps="400" binary="init">
 
 	<requires>
 		<gui/>
@@ -20,9 +20,9 @@
 			<service name="Event"/>
 		</parent-provides>
 
-		<start name="touch_keyboard" caps="250">
+		<start name="touch_keyboard" caps="300">
 			<binary name="touch_keyboard"/>
-			<resource name="RAM" quantum="8M"/>
+			<resource name="RAM" quantum="14M"/>
 			<config min_width="720" min_height="480"/>
 			<route>
 				<service name="ROM" label="layout">
