@@ -46,6 +46,10 @@ struct Sculpt::Menu_view : Noncopyable
 
 	Signal_handler<Menu_view> _hover_handler;
 
+	bool const _opaque;
+
+	Color const _background_color;
+
 	bool _hovered = false;
 
 	Constructible<Input::Seq_number> _seq_number { };
@@ -57,11 +61,15 @@ struct Sculpt::Menu_view : Noncopyable
 
 	void _gen_start_node_content(Xml_generator &) const;
 
+	enum class Alpha { OPAQUE, ALPHA };
+
 	Menu_view(Env &, Registry<Child_state> &registry,
 	          Dialog &, Start_name const &, Ram_quota, Cap_quota,
 	          Session_label const &dialog_report_name,
 	          Session_label const &hover_rom_name,
-	          Hover_update_handler &);
+	          Hover_update_handler &,
+	          Alpha alpha = Alpha::ALPHA,
+	          Color background = Color { 127, 127, 127, 255 });
 
 	void generate();
 

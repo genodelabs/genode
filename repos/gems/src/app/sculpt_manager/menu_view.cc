@@ -59,14 +59,16 @@ Menu_view::Menu_view(Env &env, Registry<Child_state> &registry,
                      Ram_quota ram_quota, Cap_quota cap_quota,
                      Session_label const &dialog_report_name,
                      Session_label const &hover_rom_name,
-                     Hover_update_handler &hover_update_handler)
+                     Hover_update_handler &hover_update_handler,
+                     Alpha alpha, Color background_color)
 :
 	_dialog(dialog),
 	_hover_update_handler(hover_update_handler),
 	_child_state(registry, name, Priority::LEITZENTRALE, ram_quota, cap_quota),
 	_dialog_reporter(env, "dialog", dialog_report_name.string()),
 	_hover_rom(env, hover_rom_name.string()),
-	_hover_handler(env.ep(), *this, &Menu_view::_handle_hover)
+	_hover_handler(env.ep(), *this, &Menu_view::_handle_hover),
+	_opaque(alpha == Alpha::OPAQUE), _background_color(background_color)
 {
 	_hover_rom.sigh(_hover_handler);
 
@@ -108,6 +110,9 @@ void Menu_view::_gen_start_node_content(Xml_generator &xml) const
 	xml.node("config", [&] () {
 		if (min_width)  xml.attribute("width",  min_width);
 		if (min_height) xml.attribute("height", min_height);
+		if (_opaque)    xml.attribute("opaque", "yes");
+
+		xml.attribute("background", String<20>(_background_color));
 
 		xml.node("libc", [&] () { xml.attribute("stderr", "/dev/log"); });
 		xml.node("report", [&] () { xml.attribute("hover", "yes"); });
