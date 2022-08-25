@@ -48,41 +48,49 @@ struct Gui_buffer
 
 	Framebuffer::Mode const mode;
 
+	bool const use_alpha;
+
+	Pixel_rgb888 reset_color { 127, 127, 127, 255 };
+
 	/**
 	 * Return dataspace capability for virtual framebuffer
 	 */
 	Genode::Dataspace_capability _ds_cap(Gui::Connection &gui)
 	{
 		/* setup virtual framebuffer mode */
-		gui.buffer(mode, true);
+		gui.buffer(mode, use_alpha);
 
 		return gui.framebuffer()->dataspace();
 	}
 
 	Genode::Attached_dataspace fb_ds { rm, _ds_cap(gui) };
 
-	Genode::size_t pixel_surface_num_bytes() const
+	size_t pixel_surface_num_bytes() const
 	{
 		return size().count()*sizeof(Pixel_rgb888);
 	}
 
-	Genode::size_t alpha_surface_num_bytes() const
+	size_t alpha_surface_num_bytes() const
 	{
-		return size().count();
+		return use_alpha ? size().count() : 0;
 	}
 
 	Ram_ds pixel_surface_ds { ram, rm, pixel_surface_num_bytes() };
 	Ram_ds alpha_surface_ds { ram, rm, alpha_surface_num_bytes() };
 
+	enum class Alpha { OPAQUE, ALPHA };
+
 	/**
 	 * Constructor
 	 */
 	Gui_buffer(Gui::Connection &gui, Area size,
-	           Genode::Ram_allocator &ram, Genode::Region_map &rm)
+	           Genode::Ram_allocator &ram, Genode::Region_map &rm,
+	           Alpha alpha = Alpha::ALPHA)
 	:
 		ram(ram), rm(rm), gui(gui),
 		mode({ .area = { Genode::max(1U, size.w()),
-		                 Genode::max(1U, size.h()) } })
+		                 Genode::max(1U, size.h()) } }),
+		use_alpha(alpha == Alpha::ALPHA)
 	{
 		reset_surface();
 	}
@@ -93,33 +101,48 @@ struct Gui_buffer
 	Area size() const { return mode.area; }
 
 	template <typename FN>
-	void apply_to_surface(FN const &fn)
+	void with_alpha_surface(FN const &fn)
+	{
+		Area const alpha_size = use_alpha ? size() : Area(0, 0);
+		Alpha_surface alpha(alpha_surface_ds.local_addr<Pixel_alpha8>(), alpha_size);
+		fn(alpha);
+	}
+
+	template <typename FN>
+	void with_pixel_surface(FN const &fn)
 	{
 		Pixel_surface pixel(pixel_surface_ds.local_addr<Pixel_rgb888>(), size());
-		Alpha_surface alpha(alpha_surface_ds.local_addr<Pixel_alpha8>(), size());
-		fn(pixel, alpha);
+		fn(pixel);
+	}
+
+	template <typename FN>
+	void apply_to_surface(FN const &fn)
+	{
+		with_alpha_surface([&] (Alpha_surface &alpha) {
+			with_pixel_surface([&] (Pixel_surface &pixel) {
+				fn(pixel, alpha); }); });
 	}
 
 	void reset_surface()
 	{
-		Pixel_surface pixel(pixel_surface_ds.local_addr<Pixel_rgb888>(), size());
-		Alpha_surface alpha(alpha_surface_ds.local_addr<Pixel_alpha8>(), size());
+		if (use_alpha)
+			with_alpha_surface([&] (Alpha_surface &alpha) {
+				Genode::memset(alpha.addr(), 0, alpha_surface_num_bytes()); });
 
-		Genode::size_t const num_pixels = size().count();
-		Genode::memset(alpha.addr(), 0, num_pixels);
+		with_pixel_surface([&] (Pixel_surface &pixel) {
 
-		/*
-		 * Initialize color buffer with 50% gray
-		 *
-		 * We do not use black to limit the bleeding of black into antialiased
-		 * drawing operations applied onto an initially transparent background.
-		 */
-		Pixel_rgb888 *dst = pixel.addr();
+			/*
+			 * Initialize color buffer with 50% gray
+			 *
+			 * We do not use black to limit the bleeding of black into antialiased
+			 * drawing operations applied onto an initially transparent background.
+			 */
+			Pixel_rgb888 *dst = pixel.addr();
+			Pixel_rgb888 const color = reset_color;
 
-		Pixel_rgb888 const gray(127, 127, 127, 255);
-
-		for (size_t n = num_pixels; n; n--)
-			*dst++ = gray;
+			for (size_t n = size().count(); n; n--)
+				*dst++ = color;
+		});
 	}
 
 	template <typename DST_PT, typename SRC_PT>
@@ -136,6 +159,9 @@ struct Gui_buffer
 
 	void _update_input_mask()
 	{
+		if (!use_alpha)
+			return;
+
 		size_t const num_pixels = size().count();
 
 		unsigned char * const alpha_base = fb_ds.local_addr<unsigned char>()
@@ -159,26 +185,31 @@ struct Gui_buffer
 
 	void flush_surface()
 	{
-		/* represent back buffer as texture */
-		Genode::Texture<Pixel_rgb888>
-			pixel_texture(pixel_surface_ds.local_addr<Pixel_rgb888>(),
-			              nullptr, size());
-
-		Genode::Texture<Pixel_alpha8>
-			alpha_texture(alpha_surface_ds.local_addr<Pixel_alpha8>(),
-			              nullptr, size());
-
 		// XXX track dirty rectangles
 		Rect const clip_rect(Genode::Surface_base::Point(0, 0), size());
 
-		Pixel_rgb888 *pixel_base = fb_ds.local_addr<Pixel_rgb888>();
-		Pixel_alpha8 *alpha_base = fb_ds.local_addr<Pixel_alpha8>()
-		                         + mode.bytes_per_pixel()*size().count();
+		{
+			/* represent back buffer as texture */
+			Genode::Texture<Pixel_rgb888>
+				pixel_texture(pixel_surface_ds.local_addr<Pixel_rgb888>(),
+				              nullptr, size());
+			Pixel_rgb888 *pixel_base = fb_ds.local_addr<Pixel_rgb888>();
 
-		_convert_back_to_front(pixel_base, pixel_texture, clip_rect);
-		_convert_back_to_front(alpha_base, alpha_texture, clip_rect);
+			_convert_back_to_front(pixel_base, pixel_texture, clip_rect);
+		}
 
-		_update_input_mask();
+		if (use_alpha) {
+			Genode::Texture<Pixel_alpha8>
+				alpha_texture(alpha_surface_ds.local_addr<Pixel_alpha8>(),
+				              nullptr, size());
+
+			Pixel_alpha8 *alpha_base = fb_ds.local_addr<Pixel_alpha8>()
+			                         + mode.bytes_per_pixel()*size().count();
+
+			_convert_back_to_front(alpha_base, alpha_texture, clip_rect);
+
+			_update_input_mask();
+		}
 	}
 };
 

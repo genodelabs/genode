@@ -41,6 +41,11 @@ struct Menu_view::Main
 
 	Constructible<Gui_buffer> _buffer { };
 
+	/**
+	 * Alpha surface used when operating in opaque mode
+	 */
+	Surface<Pixel_alpha8> _no_alpha { nullptr, Area(0,0) };
+
 	Gui::Session::View_handle _view_handle = _gui.create_view();
 
 	/**
@@ -127,6 +132,10 @@ struct Menu_view::Main
 	Attached_rom_dataspace _dialog_rom { _env, "dialog" };
 
 	Attached_dataspace _input_ds { _env.rm(), _gui.input()->dataspace() };
+
+	bool _opaque = false;
+
+	Color _background_color { };
 
 	Widget::Hovered _last_reported_hovered { };
 
@@ -296,14 +305,20 @@ void Menu_view::Main::_handle_config()
 {
 	_config.update();
 
+	Xml_node const config = _config.xml();
+
 	try {
-		_hover_reporter.enabled(_config.xml().sub_node("report")
-		                                     .attribute_value("hover", false));
+		_hover_reporter.enabled(config.sub_node("report")
+		                              .attribute_value("hover", false));
 	} catch (...) {
 		_hover_reporter.enabled(false);
 	}
 
-	_config.xml().with_sub_node("vfs", [&] (Xml_node const &vfs_node) {
+	_opaque = config.attribute_value("opaque", false);
+
+	_background_color = config.attribute_value("background", Color(127, 127, 127, 255));
+
+	config.with_sub_node("vfs", [&] (Xml_node const &vfs_node) {
 		_vfs_env.root_dir().apply_config(vfs_node); });
 
 	_handle_dialog_update();
@@ -389,10 +404,17 @@ void Menu_view::Main::_handle_frame_timer()
 		bool const size_increased = (max_size.w() > buffer_w)
 		                         || (max_size.h() > buffer_h);
 
-		if (!_buffer.constructed() || size_increased)
-			_buffer.construct(_gui, max_size, _env.ram(), _env.rm());
-		else
+		if (!_buffer.constructed() || size_increased) {
+			_buffer.construct(_gui, max_size, _env.ram(), _env.rm(),
+			                  _opaque ? Gui_buffer::Alpha::OPAQUE
+			                          : Gui_buffer::Alpha::ALPHA);
+			_buffer->reset_color = { _background_color.r,
+			                         _background_color.g,
+			                         _background_color.b,
+			                         _background_color.a };
+		} else {
 			_buffer->reset_surface();
+		}
 
 		_root_widget.position(Point(0, 0));
 
@@ -400,7 +422,7 @@ void Menu_view::Main::_handle_frame_timer()
 		//     don't perform a full dialog update
 		_buffer->apply_to_surface([&] (Surface<Pixel_rgb888> &pixel,
 		                               Surface<Pixel_alpha8> &alpha) {
-			_root_widget.draw(pixel, alpha, Point(0, 0));
+			_root_widget.draw(pixel, _opaque ? _no_alpha : alpha, Point(0, 0));
 		});
 
 		_buffer->flush_surface();

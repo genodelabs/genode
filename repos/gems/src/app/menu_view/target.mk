@@ -3,6 +3,8 @@ SRC_CC   = main.cc
 LIBS     = base libc libm vfs libpng zlib blit file
 INC_DIR += $(PRG_DIR)
 
+CC_OLEVEL := -O3
+
 CUSTOM_TARGET_DEPS += menu_view_styles.tar
 
 BUILD_ARTIFACTS := $(TARGET) menu_view_styles.tar
