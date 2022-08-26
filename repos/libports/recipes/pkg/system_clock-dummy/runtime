@@ -1,0 +1,51 @@
+<runtime ram="4M" caps="300" binary="init">
+
+	<provides> <rtc/> </provides>
+
+	<requires> <timer/> </requires>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="init"/>
+		<rom label="dummy_rtc_drv"/>
+		<rom label="system_rtc"/>
+	</content>
+
+	<config>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default caps="100"/>
+
+		<service name="Rtc">
+			<default-policy> <child name="system_rtc"/> </default-policy> </service>
+
+		<start name="dummy_rtc_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Rtc"/> </provides>
+			<config year="2021" month="10" day="14" hour="10" minute="0" second="0"/>
+			<route>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="system_rtc">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Rtc"/> </provides>
+			<config/>
+			<route>
+				<service name="Rtc"> <child name="dummy_rtc_drv"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+	</config>
+
+</runtime>
