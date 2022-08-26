@@ -1,0 +1,866 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 22.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+The overarching topic of version 22.08 is the emerging phone version of the
+Genode-based Sculpt OS, targeting the PinePhone. The immense breadth and depth
+of this line of work presented in Section [Genode coming to the phone]
+touches topics as diverse as telephony, mobile-data connectivity, a custom
+user interface, a mobile web browser, the GPU, SD-card access, USB, and audio
+control.
+
+With the growing sophistication of Genode-based systems, performance
+optimizations come more and more into focus. Aided by the new tools introduced
+in Section [Enhanced tooling for system tracing], we were able to profoundly
+improve the network performance of Genode's user-level network routing
+component. Speaking of optimizations, the current release reduces the CPU
+overhead of our Linux device-driver environment
+(Section [Linux-device-driver environment (DDE Linux)]) and
+improves the responsiveness of GUIs based on Genode's menu-view component
+(Section [Menu-view performance]).
+
+Further topics of the new version reach from our forthcoming platform-driver
+consolidation across PC and ARM-based devices, over the use of USB smart
+cards, to new VirtIO drivers on RISC-V.
+
+
+Genode coming to the phone
+##########################
+
+Our [https://genode.org/about/road-map - road map] for this year states the
+goal of reaching a useful base line of functionality of Genode on the
+PinePhone. This entails the principle ability to use the device as a phone -
+receiving and issuing voice calls - and a mobile internet browser. Once
+reached, this base line of functionality will allow us to routinely use Genode
+on the device ("eating our own dog food"), experience pain points, guide
+optimization efforts towards user-visible areas that matter, and faithfully
+evaluate non-functional aspects like battery lifetime with real-world work
+loads under realistic conditions.
+
+For the Genode-based phone, we pursue the combination of a minimally-complex
+trustworthy base system with a generally untrusted Web browser as application
+runtime. The feature set of the base system corresponds to the bare-bones
+[https://genode.org/download/sculpt - Sculpt OS] extended with appliance-like
+feature-phone functionality. Thanks to Sculpt's rigid component-based
+structure and the overall low complexity, it promises high reliability and
+security. The application runtime is hosted on top of the base system without
+tainting the assurance of the base system. In contrast to the appliance-like
+and rather static feature set of the base system, the application runtime
+anticipates a great variety of modern-day application scenarios, universally
+expected commodity user-interface paradigms, and fast-paced software updates.
+E.g., we aspire the use of WebRTC-based video conferencing via Jitsi as one
+reference scenario.
+
+Since we succeeded in bringing the Chromium web engine - the base technology
+of most modern web browsers - to life as a
+[https://genodians.org/nfeske/2022-01-27-browser-odyssey - native Genode component],
+users of Sculpt OS are able to use a fully featured web browser without
+relying on virtualization. With the use case of the browser on a mobile phone
+in sight, we already ensured that the browser would work on 64-bit ARM
+hardware. However, whereas we could showcase the technical feasibility of
+Chromium on Genode, the practical usability eventually depends on a suitable
+mobile user experience, which was largely disregarded by the desktop-oriented
+Falkon browser that we enabled on Genode.
+
+
+Assessment
+----------
+
+Fortunately, we discovered the Morph web browser while experimenting with
+[https://xnux.eu/p-boot-demo/ - various Linux distributions] on the PinePhone.
+Among the various alternatives to Android, the Ubuntu Touch UI - alongside
+Sailfish OS - stood out for its refined user experience, subjectively.
+The unobtrusive Morph browser as used by default on Ubuntu Touch left a
+particularly good impression on us. To our delight, we found that this
+browser relies on Qt5 and the Chromium web engine as its foundation, both of
+which we already had enabled on Genode. Out of this observation grew the idea
+of reusing the Morph browser as application runtime on our Genode-based phone.
+But we had to consider several risks.
+
+First, would the heaviness of Chromium overwhelm the rather resource-constrained
+PinePhone hardware when executed on Genode? In contrast to Linux, Genode's
+POSIX environment is less sophisticated and - most importantly - does not
+provide the over-provisioning of memory resources. The latter could be a show
+stopper.
+
+Second, the build mechanics of the browser deviate from the beaten track we
+covered so far, specifically the use of QMake. The Morph browser
+unconditionally depends on CMake as build tool. Even though we gathered
+[https://genodians.org/nfeske/2019-11-25-goa - early experiences], with using
+CMake for building Genode executables, we did not attempt using CMake for
+complex Qt5 applications targeting Genode so far.
+
+Finally, we discovered a so-called Ubuntu-Touch-UI toolkit as an
+additional dependency over Qt5. It presumably extends Qt5's QML with
+custom user-interface widgets for mobile user interfaces. In contrast
+to the multi-platform Qt5 framework, Ubuntu Touch generally targets
+Linux only, which raised a number of concerns with respect to hidden
+assumptions on the underlying platform. For example, the expectation
+of a certain service manager, the direct use of the Linux kernel interface,
+or accidentally complex library dependencies.
+
+
+Methodology
+===========
+
+As practiced during our work with bringing the Chromium-based Falkon web
+browser to Genode, we took several intermediate steps to mitigate technical
+risks as far as possible.
+
+Pruning dependencies
+--------------------
+
+The first step was building the Morph browser from source for its regular
+designated target platform, namely Linux. This step allowed us to validate the
+functionality of the browser built from source as opposed to merely testing a
+binary package. During this process, we learned about the mandatory dependence
+on CMake as build tool. We also identified the following library dependencies
+as sources of uncertainty.
+
+*Ubuntu-UI toolkit* is a collection of QML widgets for smartphone apps.
+It is built via QMake and comes with its own set of dependencies.
+We were specifically concerned by QtSystemInfo, QtOrganizer, D-Bus, and
+gettext. Genode has no meaningful equivalent to any of these dependencies.
+The *Ubuntu Themes* dependency comprises graphical assets, used on Ubuntu
+Touch. *Ubuntu-UI extras* extends Qt's feature set by functionality like the
+'TabsBar' QML-Widget introduces additional transitive dependencies
+such as the [https://www.cups.org/ - CUPS printing system] or
+the [https://exiv2.org/ - Exiv2] image metadata library.
+
+Further dependencies worth noting are QNetworkInterface, QtConcurrent, QtDBus,
+QtSystemInfo, unity-action-api, and D-Bus. Those libraries do not exist in
+Genode and may even raise conceptual problems. For example, the D-Bus
+inter-component mechanism on Linux is not in line with Genode's
+capability-based inter-component communication.
+
+With the first manually built executable of Morph created on Linux, we could
+repeatedly remove dependencies piece by piece and validate the functioning of
+the browser after each step. We ultimately reached a point where most of the
+library dependencies could be cut off while the core functionality of the
+browser - the ability to view web pages - stayed intact. The resulting
+minimized version of the Morph browser thereby served as starting point for
+the subsequent porting work to Genode.
+
+Re-targeting to Genode
+----------------------
+
+To stay as close as possible to the original browser, we decided to reuse the
+browser's build system by tweaking the CMake build tool such that the project
+could be cross compiled for Genode, similar to the approach we successfully
+employed for QMake in the past. At first, we targeted Genode/Linux on x86,
+which is still close to the browser's natural environment. Once the first
+version of the browser came to life, we immediately cross-validated the result
+on the 64-bit ARM architecture as this is our primary target. Subsequently, we
+moved away from Linux by moving the browser over to NOVA (on Sculpt) on PC
+hardware as well as our custom base-hw microkernel in order to target the
+actual PinePhone.
+
+[image touch_ui]
+  Ubuntu-Touch UI gallery demo running on Genode
+
+The methodology mirrored in large parts the approach we took for the original
+porting of the Chromium web engine, but it was a much smoother experience
+given that all road blocks we encountered during our Chromium work are solved
+problems by now. Image [touch_ui] shows the browser's underlying
+user-interface tool kit in action, running directly on Genode. Image [morph]
+shows the Morph browser hosted in Genode's window system.
+
+[image morph]
+  Morph browser running on Genode
+
+
+Unexpected caveats
+==================
+
+However, the smooth ride of re-targeting the browser to Genode ended once
+we discovered the extremely poor interactive performance of the browser
+running on Genode. This is in contrast to our prior experience with the
+Chromium-based Falkon browser which achieved comparable performance to Linux.
+
+The performance degradation originated from the Ubuntu-UI toolkit, which
+has a hard dependency on OpenGL despite being built atop the Qt5 framework.
+In several instances, the Ubuntu-UI toolkit accesses the OpenGL context
+directly, which is handled by a software fallback implementation in the
+Mesa library. We found the removal of those offending accesses infeasible
+because this change would cause several widgets appearing incomplete.
+To attain the visual completeness of the user interface, we also had to
+enhance the Genode-specific back end of Qt (QPA). However, even though
+we achieved correctly looking results, the performance of Mesa3D without
+GPU acceleration made the user interface practically unusable, even on
+powerful PC hardware, not speaking of the resource-constrained PinePhone.
+We came to the conclusion that the Morph browser's hard dependency
+on hardware-accelerated graphics cannot be worked around. This realization,
+in turn, spawned the line of work reported in
+Section [Hardware-accelerated graphics].
+
+As another - but arguably much less dramatic - caveat, we found the touch user
+interface behaving strangely in some situations when running on Genode. The
+reason turned out to be a disparity of Genode's notion of touch-release events
+from the expectations of Qt. Whereas Genode's input-event interface does not
+report a positional value of a touch-release event, Qt expects a positional
+value that corresponds to the original touch event. Fortunately, once this
+disparity had been identified, we could easily emulate the expected behavior
+locally in Genode's QPA plugin.
+
+
+Hardware-accelerated graphics
+=============================
+
+As mentioned above, we were taken by surprise by the hard dependency of the
+Morph browser on GPU-accelerated graphics. Even though we have explored the
+principle use of a GPU on an ARM-based platform before, our prior line of work
+was targeting the Vivante GPU of the NXP i.MX8 SoC, which is different from
+the Mali-400 GPU as present in the PinePhone's A64 SoC. Originally, we did not
+plan to deal with the PinePhone's GPU at the current stage. But the
+requirement of the Morph browser abruptly changed our priorities.
+
+As a rapid experiment, we took the challenge to port the Lima driver for the
+Mali-400 GPU from Linux to Genode and combine it with the matching user-level
+driver code of the Mesa library. Even though this experiment was pursued on
+short notice and risky, it was at least a tangible straw. To our delight,
+however, the first functional rapid prototype came to life after merely two
+weeks of work, which is almost an order of magnitude faster than our past
+efforts. The reason of this success is many-fold. First, our recently
+established methodology and tooling for porting Linux device drivers - as
+described in our comprehensive
+[https://genode.org/documentation/genode-platforms-22-05.pdf - Porting Guide] -
+streamlines the formerly labor-intensive grunt work. Second, we greatly
+benefited from our practical experience with GPUs accumulated over the past
+few years. And third, even though the Mali-400 is different from the Vivante
+GPU, the integration into the Linux GPU stack follows very similar patterns,
+unlike Intel GPUs. So we found our existing knowledge largely applicable.
+
+[image glmark2]
+  GLMark2 reference application using the GPU
+
+Following the initial rapid prototype, we successively refined this work to
+the point where the GPU driver became usable for the Morph browser on the
+PinePhone. Thanks to the added driver, the interactive performance got boosted
+to an acceptable level.
+
+
+Mobile data connectivity
+========================
+
+It goes without saying that a web browser requires network connectivity,
+which is a topic we had left unaddressed on the PinePhone until now.
+However, given our
+[https://genode.org/documentation/release-notes/22.05#Telephony - recent line]
+of modem-related work in the context of telephony, we foresaw a low-complexity
+solution to attain mobile data connectivity.
+
+Today's LTE modems offer
+[https://genodians.org/ssumpf/2020-12-04-mbim - QMI or MBIM] protocol support
+in order to configure and handle mobile data connections. Both protocols are
+in binary format and require a separate USB device (called Wireless Mobile
+Communication Device). For Genode, this would mean to add support for this
+device to USB while additionally the QMI or MBIM library would have to be
+ported and adjusted to Genode. For the
+[https://www.quectel.com/product/lte-eg25-g - Quectel EG25 modem]
+in the PinePhone, we found a much simpler solution to handle mobile data
+connections. The modem can be configured to emulate a USB Ethernet device
+([https://en.wikipedia.org/wiki/Ethernet_over_USB - ECM device]).
+In this operational mode, the modem will automatically connect to the carrier
+and register itself as USB Ethernet device at the PinePhone's USB host
+controller. Genode can thereby access the device through the USB networking
+and CDC Ethernet drivers. The modem also offers a DHCP server and will hand
+out a local IP address upon a DHCP request to Genode. Internally the modem
+will use [https://en.wikipedia.org/wiki/Network_address_translation - NAT] in
+order to translate IP requests from Genode to the address received from the
+carrier.
+
+As a prerequisite to conduct this solution, we had to enable a USB
+host-controller driver for the PinePhone. Of course, we took advantage of our
+modern DDE Linux porting approach for this work, which allowed to attain a
+functional USB driver in merely two weeks. This driver must be combined with
+our existing USB Ethernet driver (usb_net) that we swiftly extended to support
+ECM based devices.
+
+With this driver infrastructure in place, the USB network device of the modem
+appears as uplink to Genode's NIC router. The NIC router, in turn,
+successfully obtains a local IP address that is network-translated by the
+modem. At the carrier side, IP network connectivity can be established by
+issuing AT-protocol commands over UART. So the first prototype of the
+low-level network connectivity worked as anticipated. With this practical way
+of keeping the complexity of binary configuration protocols out of the loop,
+we can maintain the low-complexity implementation of telephony and SIM
+configuration via the UART control channel while regarding IP connectivity -
+and the unavoidable complexity of USB - as an entirely complementary feature.
+
+
+Phone flavor of Sculpt OS
+=========================
+
+Seeing the various puzzle pieces of the Morph browser scenario - GPU
+acceleration, data connectivity, the browser itself - coming together, it was
+time for the integration of those pieces into an overall system. The natural
+basis of such a Genode-based system is
+[https://genode.org/download/sculpt - Sculpt OS],
+which complements Genode with universally expected operating-system features
+such as interactive system configuration as well as the installation and
+deployment of software packages.
+
+Sculpt OS was originally designed for PC-based use cases. Its administrative
+user interface is largely mouse and keyboard driven, and network connectivity
+is usually attained by a wired or wireless LAN connection. Although we
+presented a first version of
+[https://fosdem.org/2022/schedule/event/nfeske/ - Sculpt OS on the PinePhone]
+earlier this year, the call for a touch-oriented user interface is more than
+obvious. Hence, we went forward with creating a phone-specific variant
+of Sculpt. Similar to the original Sculpt OS, the system consists of two
+largely isolated domains, the administrative domain called Leitzentrale and
+the domain of user-installed components called desktop. The user can switch
+between both domains at any time using a secure attention key or gesture.
+On the phone, the Leitzentrale domain plays the role of a feature-phone
+appliance that provides the most fundamental device functionality such
+as the interaction with the SIM card, power control, telephony, network
+configuration, storage management, and software installation. We approached
+the concept of the user interface from a clean slate striving for simplicity.
+
+[image sim_pin]
+  Emerging mobile-phone flavor of Sculpt OS
+
+As the first use case, we addressed telephony, displaying incoming calls,
+presenting the options for accepting/rejecting calls, and initiating calls
+using a dial pad. By modelling these scenarios, we could validate the
+user-interface concept of the evolving phone version of Sculpt's Leitzentrale.
+
+
+User interaction with the SIM card
+==================================
+
+The administrative user interface mentioned above must be matched by the
+underlying middleware that talks to the modem. Remember that our
+[https://genode.org/documentation/release-notes/22.05#Telephony - original]
+telephony scenario relied on the manual use of the modem's AT commands.
+We ultimately have to control the modem's control channel by software using an
+AT protocol stack. To bridge this gap with the lowest complexity possible, we
+created a simple AT protocol implementation that is specifically designed for
+Genode's state-driven component model.
+The modem driver - hosting the AT protocol driver - accepts a configuration
+that expresses the desired state (as opposed to desired actions). For example,
+a configuration may look as simple as follows.
+
+! <config speaker="yes" pin="1234">
+!   <call number="+49123123123"/>
+! </config>
+
+The AT protocol implementation takes this configuration and the current modem
+state as the basis for determining a sequence of modem commands needed to
+attain the desired state. For example, if the modem is not powered, the driver
+steps through the powering sequence. Or in case the SIM PIN is required, the
+driver supplies the corresponding command to supply the configured PIN.
+
+To allow interactive usage, the driver supports dynamic reconfiguration.
+E.g., to cancel the outbound call of the example above, the configuration
+would be updated with the '<call>' node removed. Given this approach, an
+interactive user interface comes down to generating such simple
+configurations.
+
+Vice versa, the driver exports the modem's state as a state report, which is
+updated whenever the modem state changes. E.g., an incoming call is reflected
+to the consumer of this state report with all information relevant for an
+interactive user interface. For example, the state report entails the power
+state, PIN state, and call states (incoming, outbound, alerting, rejected).
+This design nicely hides the peculiarities of the AT protocol from Genode's
+component interfaces.
+
+At the current stage, with less than 1000 lines of code, the AT protocol
+implementation suffices for basic telephony needs, supporting the interaction
+with the SIM card, managing call states, initiating calls, and driving the
+modem power up and down. It also takes care of establishing the modem
+configuration needed for USB ECM networking.
+
+
+Current state
+=============
+
+The current version of the phone variant of Sculpt OS is able to control the
+power state of the modem, interact with the SIM card (PIN entry), initiate
+phone calls via a dial pad, pick up inbound calls, establish mobile-data
+network connectivity, and deploy a preconfigured application scenario.
+The interactive switching between the base system and the application runtime
+can be triggered at any time by touching the left border of the touch screen.
+
+[image sculpt_pinephone]
+  The runtime graph of the base system (left) reveals the relationships of the
+  Morph browser with other components (right).
+
+This flavor of Sculpt OS evolves in the
+[https://github.com/nfeske/genode-allwinner - genode-allwinner] repository,
+specifically within the _sculpt/_ and _src/app/phone_manager/_ directories.
+The latter asserts the role of Sculpt's _gems/src/app/sculpt_manager_.
+We invite seasoned developers - especially those who are following the
+[https://genodians.org/nfeske/index - Pine-fun article series] - to experiment
+with the new phone variant. It can be built via the following command:
+
+| built/arm_v8a$ make run/sculpt KERNEL=hw BOARD=pinephone SCULPT=phone
+
+For a broader audience, we plan to provide a ready-to-use SD-card image for
+the PinePhone in tandem with the next release of Sculpt OS.
+
+
+Enhanced tooling for system tracing
+###################################
+
+Since release 13.08, Genode features a
+[https://genode.org/documentation/release-notes/13.08#Light-weight_event_tracing - light-weight event-tracing facility]
+that comes in form of core's TRACE service. Up to now, it has merely been used
+for capturing textual trace messages. The two prominent monitor components are
+the
+[https://genode.org/documentation/release-notes/18.02#New_trace-logging_component - trace_logger]
+and the
+[https://genode.org/documentation/release-notes/19.08#Tracing - VFS plugin]
+
+The trace recorder is a new monitor component that is designed for binary trace
+formats. Currently, it supports the Common Trace Format (CTF) and pcapng.
+CTF is a compact and scalable format for storing event traces. It is supported
+by [https://www.eclipse.org/tracecompass/ - TraceCompass], an Eclipse-based
+tool for trace analysis and visualization. Pcapng is a packet-capture format
+used by Wireshark.
+
+In order to support capturing network packets, we added a 'trace_eth_packet()'
+method to Genode's trace-policy API and equipped the NIC router with a
+'trace_packets' option to control packet capturing on domain level. For manual
+instrumentation of components, we also added a 'checkpoint()' method to the
+trace-policy API.
+
+For more details, please refer to the following Genodians article.
+
+:Identifying network-throughput bottlenecks with trace recording:
+
+  [https://genodians.org/jschlatow/2022-08-29-trace-recorder]
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Networking optimizations
+========================
+
+With the new trace recorder at hand, we took an effort in optimizing Genode's
+network throughput. First, we implemented a benchmark component called
+"nic_perf" that sends and/or receives an infinite stream of UDP packets in
+order to stimulate the involved networking components in separation. As a
+consequence of its central role, we particularly focused on the NIC router as
+a starting point.
+
+As a base line, we took two 'nic_perf' components: one as a sender and the other
+as a receiver. By taking any copying or packet inspection out of the loop, we
+could verify that the packet-stream interface holds up to our expectations with
+respect to attainable throughput. However, as soon as we put a NIC router in
+between, the throughput dropped to approx. 10% of our base line. On older
+ThinkPads, this meant sub-gigabit throughput and on a Cortex-A9 @ 666MHz we
+barely jumped over the 100Mbit mark.
+
+Since we were not able to explain the substantial decrease in packet throughput,
+we investigated with the help of the trace recorder and 'GENODE_LOG_TSC'.
+As it turned out, the NIC router spent most of its time with exception handling
+during routing-rule lookup, which is done for every packet. Since there are
+multiple types of rules, a lookup takes place for every rule type. If no rule
+was found for particular type, an exception was thrown and caught, which
+turned out to be incredibly expensive. We therefore eliminated exceptions from
+common-case code paths, more precisely from rule lookup, from ARP-cache
+lookup, and from packet allocation. The result impressed us with a tripled
+throughput.
+
+Another bottleneck that we identified were frequent 'trigger_once' and
+'elapsed_ms' RPCs. Given that the NIC router only maintains very
+coarse-grained timeouts, such frequent RPCs to the timer seemed finical.
+Sparing the details, we were able to significantly reduce the number of
+these RPCs by relaxing the precision of the NIC router's time keeping.
+
+Along the way, we identified a few more, minor, tweaks:
+
+* We increased the default value of 'max_packets_per_signal' from 32 to 150.
+  This value determines the maximum number of packets that are consumed from an
+  interface at once.
+* We eliminated eager packet-stream signalling from the NIC router to improve
+  batch processing of packets. With this change, packet-stream signals are only
+  emitted once the NIC router processed all available or
+  'max_packets_per_signal' packets.
+* We implemented incremental checksum update for UDP/TCP according to RFC1071.
+* We discovered and fixed a few corner cases in the packet-stream interface
+  with respect to the signalling.
+* We fixed allocation errors in the 'ipxe_nic_drv' that popped up during high
+  TX load.
+
+In the end, we attained a ~5x speed up (exact values depending on the hardware)
+for the NIC router.
+
+
+Event-filter improvements for touch devices
+===========================================
+
+The phone variant of Sculpt OS calls for a way to trigger certain low-level
+buttons or keys using the touch screen. In particular, the switch between the
+administrative user interface and the runtime system must be possible at any
+time. On the [https://genode.org/download/sculpt - PC version], this switch
+is triggered by pressing F12, which is remapped to KEY_DASHBOARD. Even though
+a physical button could be used on the phone in principle, there are three
+arguments in favor of a virtual key. First, there are only three physical
+buttons available (volume +/- and power) on the PinePhone. Remapping one of
+those buttons to KEY_DASHBOARD deprives the button of its original purpose.
+Second, the force needed for pressing a physical button may impede the
+ergonomics of the device depending on how often the switch is needed. And
+third, the physical buttons require a driver. When enabling a new device, this
+barrier can be nicely sidestepped by a virtual key.
+
+Given this rationale, we extended Genode's event-filter component with a new
+'<touch-key>' filter type. Once added to the filter chain, it triggers an
+artificial key tap (a press event followed by a release event) whenever the
+user touches a preconfigured area on the touch screen. The filter node can
+host any number of '<tap>' sub nodes. Each sub node must define a rectangular
+area - using the attributes 'xpos', 'ypos', 'width', and 'height' - and the
+name of the tapped key as 'key' attribute.
+
+! <touch-key>
+!     <tap xpos="0" ypos="400" width="25" height="600" key="KEY_DASHBOARD"/>
+!     ...
+! </touch-key>
+
+The example above repurposes the 25 left-most pixels of the touch screen as
+dashboard key. When touched, a pair of press and release events is fired at
+once.
+
+
+Menu-view performance
+=====================
+
+The administrative user interface of Sculpt OS is based on Genode's custom
+menu-view component, which renders and updates graphical dialogs based on
+high-level XML descriptions. Up to now, the component operated on Genode's
+GUI-session interface with alpha-channel support. However, the alpha channel
+noticeably impedes the software-rendering performance on lower-end devices
+like the PinePhone. In the latter case, we'd prefer to trade the nice-looking
+alpha blending for a better UI responsiveness.
+
+We have now enhanced the menu-view component with two new optional
+configuration attributes 'opaque' and 'background'. Setting 'opaque' to "yes"
+suppresses the use of the alpha channel at the GUI session. This improves the
+drawing performance by 20% on the PinePhone. The 'background' attribute can be
+specified to define the reset color of the GUI buffer. It alleviates the need
+to create a frame widget for the top level, significantly reducing the costs
+for drawing the background pixels.
+
+Finally, we found that the use of GCC's optimization level -O3 instead of the
+default level -O2 increases the drawing performance on the PinePhone by 30%.
+Combined, those optimizations result in an acceptable user experience of
+Sculpt's administrative user interface on the PinePhone.
+
+
+Device drivers
+##############
+
+USB networking via Ethernet control model (ECM)
+===============================================
+
+To implement mobile data connectivity on the PinePhone
+(Section [Mobile data connectivity]), we added USB host-controller support
+(EHCI) for the Allwinner A64 SoC to Genode by porting the corresponding
+host-controller driver from Linux using our DDE approach. Since our existing
+USB-over-Ethernet
+[https://github.com/genodelabs/genode/tree/master/repos/dde_linux/src/drivers/usb_net - driver]
+on Genode lacked support for the Ethernet Control Model, which is provided by
+the modem, we added support for ECM as well.
+
+
+GPU and Mesa driver for Mali-400
+================================
+
+As mentioned in Section [Genode coming to the phone], we enabled the principle
+ability to use the Mali-400 GPU of the PinePhone under Genode. This support
+entails two parts. The first part is the low-level driver code called Lima
+that normally resides in the Linux kernel. This component provides a GPU
+session interface. We transplanted the driver code to a dedicated Genode
+component, which is hosted at the
+[https://github.com/genodelabs/genode-allwinner - genode-allwinner] repository.
+The second part is the user-level Mesa3D driver stack - hosted at the libports
+repository - that is linked local to the application and uses the GPU session
+to access the GPU.
+
+The combination of both parts was successfully tested on the PinePhone and
+the Pine-A64-LTS V1.2 board. Given that the primary motivation for this
+line of work was our ambition to run the Morph web browser, we disregarded the
+multiplexing of the GPU for now. The GPU driver currently supports only one
+client at a time.
+
+
+SD-card driver for the PinePhone
+================================
+
+In anticipation of running Sculpt OS on the PinePhone, we ported the Linux
+SD/MMC-card driver to Genode. The driver - hosted at the
+[https://github.com/genodelabs/genode-allwinner - genode-allwinner] repository -
+was successfully tested with the PinePhone and Pine-A64LTS V1.2 board. For the
+moment, only SD cards (no eMMC) are supported.
+The provided _a64_sd_card_drv.run_ script illustrates the integration and use
+of the driver.
+
+
+Linux-device-driver environment (DDE Linux)
+===========================================
+
+Tickless idle operation
+-----------------------
+
+The DDE-Linux emulation library and thereby all ported drivers now support
+the NO_HZ_IDLE Linux kernel configuration option, which disables periodic
+timer ticks when ported drivers are idle. With this option, energy and up to
+3% CPU time per driver can be preserved, which becomes significant especially
+if multiple ported drivers are in use in sophisticated scenarios like Sculpt
+OS.
+
+Consistent use of SMP configuration
+-----------------------------------
+
+All kernel threads in the Linux device driver ports are currently mapped to one
+and the same native Genode thread, using cooperative scheduling within the
+emulation environment. Intuitively, it does not make much sense to address
+multi-processing support provided by the original Linux kernel code.
+Nonetheless, the drivers that we ported are normally used in the context of
+SMP-aware Linux kernel configurations only. To not leave the well tested and
+beaten track, we decided to switch on SMP support in all kernel configurations
+we use as porting base.
+
+This especially applies to the Linux drivers within the _repos/pc_
+sub-directory, and the WireGuard port. Other driver ports already used SMP
+support in their configuration.
+
+As a side effect, we removed the insufficient emulation of so called "softirqs"
+formerly used by the non-SMP driver ports, and replaced them with the original
+implementation.
+
+
+Forthcoming platform-driver modernization
+=========================================
+
+During the past year, we switched from board-specific platform driver APIs
+step-by-step to one generic interface. But PC-related drivers still depend on
+the legacy x86-specific platform driver and API, especially to the PCI-related
+part of it.
+
+To finalize the unification and modernization of the platform driver and its
+API, there were still some pieces missing, which we added with the current
+release.
+
+While trying to switch PC-related Linux device driver ports to the new API, we
+recognized that some drivers depend on additional information of the PCI
+configuration space that were not exported so far. Namely, the fields for
+sub-vendor, sub-product, and revision IDs were needed. Moreover, some ported
+drivers use hard-coded indices of PCI base-address registers (BAR) to refer to
+I/O resources of the device.
+
+Therefore, we extended the pci_decode tool to export this additional
+information, and to annotate I/O port ranges and memory attributes with the
+corresponding BAR index. The generic platform driver parses this additional
+information from a given devices ROM, and exports it to the corresponding
+clients accordingly. The correlation between I/O resources and BAR indices is
+only unveiled to clients where the platform driver's policy states that
+physical information has to be provided, like in this example:
+
+! <config>
+!   <policy label="usb_drv -> " info="yes">
+!     <pci class="USB"/>
+!   </policy>
+!   ...
+! </config>
+
+UHCI-specific platform extensions
+---------------------------------
+
+Some device-specific registers are only present within the PCI configuration
+space. For instance UHCI controllers in the PC architecture provide a special
+legacy support register only accessible via the PCI configuration space. This
+register is used to hand over the USB hardware from the BIOS to the operating
+system.
+
+We did not want to pollute the platform API with a lot of device specific
+tweaks nor provide unlimited access to the PCI configuration space to a
+driver. Therefore, we implement the hand-over of the UHCI PCI device in the
+platform driver if available. Moreover, we handle the Intel-specific resume
+register whenever a session to the corresponding UHCI controller is opened.
+
+Intel GPU information from Host Bridge
+--------------------------------------
+
+Some information needed by Intel GPU and framebuffer drivers is derived from
+the Intel Graphics and Controller HUB (GMCH) respectively its control
+register. It is used to calculate the GPU's Global Translation Table (GTT),
+and the stolen memory sizes. Again we do not want to give access to the whole
+configuration space of this sensitive device to either the GPU or the
+framebuffer driver. Instead, the platform driver now detects Intel PCI graphic
+cards, and exports the information found within the GMCH control register to
+the corresponding client as part of the platform session's devices ROM.
+
+Transition of PC drivers
+------------------------
+
+Although there is everything in place now to switch the remaining PC-drivers
+to the generic platform driver and its API, we decided to do this step after
+the current release. This way, we have time to stress-test the drivers during
+our daily use of Genode, the remaining transitional work is planned for the
+upcoming Sculpt OS release instead.
+
+
+Libraries and applications
+##########################
+
+Qt5 and Morph browser
+=====================
+
+As mentioned in Section [Genode coming to the phone], we had to improve
+Genode's Qt support to get the Morph browser to work. This work includes
+added support for building Qt projects with CMake, the addition of missing Qt
+modules like QtGraphicalEffects, and improving the OpenGL support of the QPA
+plugin. The latter was needed for the Ubuntu UI Toolkit to display its widgets
+correctly. Note that this change implies that QtQuick applications now use
+OpenGL by default instead of the QtQuick software rendering fallback back end.
+This can improve the experience when an accelerated GPU driver is available
+but can also slow down a QtQuick application if only the Mesa software driver
+('softpipe') is available on the target platform. In that case, it is possible
+to enforce the use of the software QtQuick renderer by setting the following
+environment variable in the configuration of the application:
+
+! <env key="QT_QUICK_BACKEND" value="software"/>
+
+When we tried to use the free public Jitsi server at [https://meet.jit.si] with
+our ported web browsers, we noticed that our QtWebEngine Chromium version was
+too old and caused issues like a non-working join button and failed WebRTC
+connections. For this reason, we updated our Qt port to the latest version with
+QtWebEngine support on FreeBSD, which at this time is version 5.15.2.
+
+To use this new version, it is necessary to update the Qt5 host tools with the
+'tool/tool_chain_qt5' script.
+
+We also updated the Falkon web browser to the latest version 3.2.0.
+
+Up-to-date Sculpt packages of both the Falkon and Morph browsers for x86_64 are
+available in the 'cproc' depot.
+
+
+USB smart cards via PKCS#11
+===========================
+
+With this release, Genode gains support for accessing USB smart-card devices
+via PKCS#11. This is achieved through a port of the OpenSC PKCS#11 tool that is
+now available as package for the Sculpt OS. A quick look into the features and
+integration of the tool is possible using the new _pkcs11_tool_ run script
+hosted in the [https://github.com/genodelabs/genode-world - genode-world]
+repository. For a more detailed guide to the tool, you may read the
+corresponding Genodians article.
+
+:USB smart cards via PKCS#11:
+
+  [https://genodians.org/m-stein/2022-08-18-pkcs11-tool-1]
+
+
+Sculpt OS improvements
+======================
+
+In addition to the major developments described in
+Section [Genode coming to the phone], Sculpt OS has received several minor
+refinements.
+
+When integrating a
+[https://genode.org/documentation/release-notes/22.02#Framework_for_special-purpose_Sculpt-based_operating_systems - Sculpt-based appliance]
+with a predefined deploy configuration, the _sculpt.run_ script automatically
+adds the required software packages as tar archive to the boot image. However,
+for complex scenarios, it is sometimes desirable to keep the boot image small
+and fetch the packages at runtime over the network. To support such use cases,
+we added the new run-script argument 'DEPOT' with the possible values 'tar'
+(default) and 'omit'. If the latter is specified, the deployed software
+packages are excluded from the boot image and the run script merely prints the
+versions of the required packages. This information can conveniently be used
+as input for publishing the packages.
+
+We added two new packages 'part_block' and 'ext2_fs' that simplify the access
+of multiple block devices and partitions in manually curated deploy
+configurations. The part_block package can be used in Sculpt's
+_/config/deploy_ as follows.
+
+! <start name="nvme-0.part_block" pkg="part_block">
+!   <route>
+!     <service name="Block">
+!       <parent label="nvme-0"/>
+!     </service>
+!     <service name="Report" label="partitions">
+!       <parent/>
+!     </service>
+!   </route>
+! </start>
+
+It can be combined with the 'ext2_fs' package to access the files stored on a
+particular partition.
+
+! <start name="nvme-0.4.fs" pkg="ext2_fs">
+!   <route>
+!     <service name="Block">
+!       <child name="nvme-0.part_block" label="4"/>
+!     </service>
+!     <service name="RM">
+!       <parent/>
+!     </service>
+!   </route>
+! </start>
+
+
+Platforms
+#########
+
+Qemu virtual platform
+=====================
+
+Because more and more architectures on Genode now support VirtIO drivers on
+Qemu (ARMv7, ARMv8, and RISC-V), the generic board name "virt_qemu" did not
+suffice for keeping a clean distinction between the separate architecture
+requirements. Therefore, we decided to make the board name architecture
+specific. The following board names are now supported on base-hw:
+"virt_qemu_arm_v7a", "virt_qemu_arm_v8a", and "virt_qemu_riscv".
+The "virt_qemu" board name was removed.
+
+
+RISC-V
+======
+
+As suggested above Genode's RISC-V support got extended by VirtIO drivers.
+This includes a block driver, a networking driver, keyboard and mouse handling
+as well as basic framebuffer support. This way, it has become possible to test
+interactive and networking scenarios on Genode's RISC-V version using Qemu.
+
+This work was contributed by Piotr Tworek. Thanks a lot!
+
+
+Allwinner A64
+=============
+
+In the
+[https://genode.org/documentation/release-notes/22.05#Custom_system-control_processor__SCP__firmware - previous release],
+we introduced our custom firmware for the PinePhone's system-control processor
+(SCP). We have now generalized the firmware to cover also the Pine-A64-LTS
+board. By establishing our custom SCP firmware as a base line for all A64-based
+boards, we can make our A64 platform driver depend on the SCP for accessing the
+PMIC (power management chip) instead of driving the RSB and PMIC by itself.
+
+
+Build system and tools
+######################
+
+In this release, we improve support for booting Genode/Sculpt on UEFI
+platforms in several aspects. First, the Bender tool gains a more robust
+UEFI-boot detection mechanism while retrieving serial-device parameters. Also,
+the GRUB boot loader was updated to version 2.06 and now keeps lower RAM
+untouched from internal memory allocations, which prevents nasty surprises on
+booting some UEFI devices. And last, our [https://ipxe.org/ - iPXE-based] boot
+option received support for UEFI images when using the following run-tool
+configuration.
+
+! RUN_OPT += --include image/uefi
+! RUN_OPT += --include load/ipxe
+
