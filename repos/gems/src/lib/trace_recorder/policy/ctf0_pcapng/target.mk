@@ -1,4 +1,4 @@
-TARGET = ctf0_pcapng
+TARGET = ctf0_pcapng_policy
 
 TARGET_POLICY = ctf0_pcapng
 
