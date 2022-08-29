@@ -27,7 +27,7 @@ namespace Pcapng {
 	using namespace Trace_recorder;
 
 	using Genode::Directory;
-	using Genode::New_file;
+	using Genode::Append_file;
 
 	using Buffer = Write_buffer<32*1024>;
 
@@ -42,7 +42,7 @@ class Pcapng::Writer : public Trace_recorder::Writer_base
 		Interface_registry         &_interface_registry;
 		Buffer                     &_buffer;
 		Timestamp_calibrator const &_ts_calibrator;
-		Constructible<New_file>     _dst_file      { };
+		Constructible<Append_file>  _dst_file      { };
 		Directory::Path             _file_path     { };
 		bool                        _empty_section { false };
 

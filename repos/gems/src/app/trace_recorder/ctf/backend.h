@@ -27,7 +27,7 @@ namespace Ctf {
 	using namespace Trace_recorder;
 
 	using Genode::Directory;
-	using Genode::New_file;
+	using Genode::Append_file;
 
 	using Buffer = Write_buffer<32*1024>;
 
@@ -39,9 +39,9 @@ namespace Ctf {
 class Ctf::Writer : public Trace_recorder::Writer_base
 {
 	private:
-		Buffer                  &_packet_buffer;
-		Constructible<New_file>  _dst_file      { };
-		Directory::Path          _file_path     { };
+		Buffer                     &_packet_buffer;
+		Constructible<Append_file>  _dst_file      { };
+		Directory::Path             _file_path     { };
 
 	public:
 		Writer(Genode::Registry<Writer_base> &registry, Buffer &packet_buffer)

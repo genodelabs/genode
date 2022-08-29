@@ -62,12 +62,12 @@ class Pcapng::Write_buffer
 			return Append_ok();
 		}
 
-		void write_to_file(Genode::New_file &dst, Directory::Path const &path)
+		void write_to_file(Genode::Append_file &dst, Directory::Path const &path)
 		{
 			if (_total_length == 0)
 				return;
 
-			if (dst.append(_buffer, _total_length) != New_file::Append_result::OK)
+			if (dst.append(_buffer, _total_length) != Append_file::Append_result::OK)
 				error("Write error for ", path);
 
 			clear();

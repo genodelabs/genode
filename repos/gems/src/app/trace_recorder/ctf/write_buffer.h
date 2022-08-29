@@ -64,12 +64,12 @@ class Ctf::Write_buffer
 			});
 		}
 
-		void write_to_file(Genode::New_file &dst, Genode::Directory::Path const &path)
+		void write_to_file(Genode::Append_file &dst, Genode::Directory::Path const &path)
 		{
 			if (_header().empty())
 				return;
 
-			if (dst.append(_buffer, _header().total_length_bytes()) != New_file::Append_result::OK)
+			if (dst.append(_buffer, _header().total_length_bytes()) != Append_file::Append_result::OK)
 				error("Write error for ", path);
 
 			_header().reset();

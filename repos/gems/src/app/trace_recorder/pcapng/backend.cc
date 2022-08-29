@@ -35,14 +35,14 @@ void Writer::start_iteration(Directory             &root,
 
 	/* append to file */
 	try {
-		_dst_file.construct(root, _file_path, true);
+		_dst_file.construct(root, _file_path);
 
 		_interface_registry.clear();
 		_buffer.clear();
 		_buffer.append<Section_header_block>();
 		_empty_section = true;
 	}
-	catch (New_file::Create_failed)  {
+	catch (Append_file::Create_failed)  {
 		error("Could not create file."); }
 }
 

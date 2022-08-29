@@ -23,12 +23,12 @@ void Writer::start_iteration(Directory             &root,
 	_file_path = Directory::join(path, info.thread_name());
 
 	try {
-		_dst_file.construct(root, _file_path, true);
+		_dst_file.construct(root, _file_path);
 
 		/* initialise packet header */
 		_packet_buffer.init_header(info);
 	}
-	catch (New_file::Create_failed)  {
+	catch (Append_file::Create_failed)  {
 		error("Could not create file."); }
 }
 
