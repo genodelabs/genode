@@ -297,6 +297,7 @@ struct Object_pool
 		for (unsigned i = USB_FIRST_FREE; i < MAX; i++) {
 			if (used[i] == false) {
 				used[i] = true;
+				memset(&obj[i], 0, sizeof(obj[i]));
 				return &obj[i];
 			}
 		}

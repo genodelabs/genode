@@ -28,7 +28,8 @@ static bool const verbose_warnings = false;
 Mutex _mutex;
 
 static void update_ep(USBDevice *, uint8_t, uint8_t);
-static bool claim_interfaces(USBDevice *dev);
+static bool claim_interfaces(USBDevice *);
+static void reset_alt_settings(USBDevice *);
 
 using Packet_alloc_failed = Usb::Session::Tx::Source::Packet_alloc_failed;
 using Packet_type         = Usb::Packet_descriptor::Type;
@@ -182,8 +183,15 @@ struct Completion : Usb::Completion
 		case Packet_type::CONFIG:
 			if (!claim_interfaces(dev))
 				p->status = USB_RET_IOERROR;
+			else
+				reset_alt_settings(dev);
+
+			usb_generic_async_ctrl_complete(dev, p);
+			break;
 		case Packet_type::ALT_SETTING:
 			update_ep(dev, packet.interface.number, packet.interface.alt_setting);
+			usb_generic_async_ctrl_complete(dev, p);
+			break;
 		case Packet_type::CTRL:
 			usb_generic_async_ctrl_complete(dev, p);
 			break;
@@ -664,6 +672,22 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		}
 	}
 
+
+	void reset_alt_settings(USBDevice *udev)
+	{
+		/* retrieve device speed */
+		Usb::Config_descriptor cdescr;
+		Usb::Device_descriptor ddescr;
+
+		try { usb_raw.config_descriptor(&ddescr, &cdescr); }
+		catch (Usb::Session::Device_not_found) { return; }
+
+		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
+			udev->altsetting[i] = usb_raw.alt_settings(i);
+		}
+	}
+
+
 	void update_ep(USBDevice *udev)
 	{
 		usb_ep_reset(udev);
@@ -707,6 +731,15 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 #define USB_HOST_DEVICE(obj) \
         OBJECT_CHECK(USBHostDevice, (obj), TYPE_USB_HOST_DEVICE)
+
+
+static void reset_alt_settings(USBDevice *udev)
+{
+	USBHostDevice     *d = USB_HOST_DEVICE(udev);
+	Usb_host_device *dev = (Usb_host_device *)d->data;
+
+	dev->reset_alt_settings(udev);
+}
 
 
 static void update_ep(USBDevice *udev, uint8_t interface, uint8_t altsetting)
