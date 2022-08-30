@@ -129,7 +129,7 @@ static int interface_descriptor(genode_usb_bus_num_t bus,
 {
 	struct usb_interface * iface = interface(bus, dev, index);
 
-	if (!iface)
+	if (!iface || setting >= iface->num_altsetting)
 		return -1;
 
 	memcpy(buf, &iface->altsetting[setting].desc,
@@ -148,7 +148,7 @@ static int interface_extra(genode_usb_bus_num_t bus,
 	struct usb_interface * iface = interface(bus, dev, index);
 	unsigned long len;
 
-	if (!iface)
+	if (!iface || setting >= iface->num_altsetting)
 		return -1;
 
 	len = min((unsigned long)iface->altsetting[setting].extralen, size);
@@ -173,9 +173,13 @@ static int endpoint_descriptor(genode_usb_bus_num_t bus,
 	if (!iface)
 		return -2;
 
+	if (setting >= iface->num_altsetting ||
+	    endp    >= iface->altsetting[setting].desc.bNumEndpoints)
+		return -3;
+
 	ep = &iface->altsetting[setting].endpoint[endp];
 	if (!ep)
-		return -3;
+		return -4;
 
 	memcpy(buf, &ep->desc,
 	       min(sizeof(struct usb_endpoint_descriptor), size));
