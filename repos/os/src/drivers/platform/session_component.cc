@@ -153,7 +153,7 @@ Session_component::acquire_single_device()
 	Capability<Platform::Device_interface> cap;
 
 	_devices.for_each([&] (Device & dev) {
-		if (matches(dev) && !dev.owner().valid())
+		if (!cap.valid() && matches(dev) && !dev.owner().valid())
 			cap = _acquire(dev); });
 
 	return cap;
