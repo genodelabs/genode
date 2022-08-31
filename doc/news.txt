@@ -4,6 +4,37 @@
                                ===========
 
 
+Genode OS Framework release 22.08 | 2022-08-31
+##############################################
+
+| The overarching theme of Genode 22.08 is the emerging phone variant of
+| Sculpt OS, touching topics as diverse as USB ECM, Mali-400 GPU, SD-card
+| access, telephony, mobile-data connectivity, the Morph web browser, and a
+| custom user interface. Among the further highlights are new tracing tools,
+| improved network performance USB smart-card support, and VirtIO drivers for
+| RISC-V.
+
+The vision of a Genode-based smart phone is certainly our most ambitious
+undertaking since we created Sculpt OS for the PC. Over the past two years, we
+relentlessly pursued this vision while targeting the PinePhone hardware.
+The scope of work reaches from custom firmware for the system-control
+processor, over kernel development, a staggering variety of device drivers, to
+the user-interface and application level. With Genode 22.08, those efforts
+culminate in a first complete system - a phone variant of Sculpt OS. The
+[https://genode.org/documentation/release-notes/22.08 - release documentation]
+tells the story behind this line of work in great detail.
+
+Beside phone-related topics, the new release features new tooling for
+gathering and analyzing system traces that allow for holistic performance
+studies covering the interplay between components. One particular success
+story of the new trace recorder is a profoundly improved network performance.
+Further highlights are the support for USB smart cards via PKCS#11, VirtIO
+drivers for RISC-V, and the update of Qt5 to version 5.15.2.
+
+For the complete picture, please enjoy the official
+[https:/documentation/release-notes/22.08 - release documentation of version 22.08...]
+
+
 Genode OS Framework release 22.05 | 2022-05-31
 ##############################################
 
