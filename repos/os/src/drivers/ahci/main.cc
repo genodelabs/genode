@@ -55,39 +55,30 @@ class Ahci::Driver : Noncopyable
 
 		struct Timer_delayer : Mmio::Delayer, Timer::Connection
 		{
-			Timer_delayer(Env &env)
-			: Timer::Connection(env) { }
+			using Timer::Connection::Connection;
 
 			void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
 		} _delayer { _env };
 
-		Hba  _hba { _env, _delayer };
+		Signal_handler<Driver> _handler { _env.ep(), *this, &Driver::handle_irq };
+
+		Platform::Connection _plat   { _env };
+		Platform::Device     _device { _plat };
+		Hba                  _hba    { _device, _handler, _plat };
 
 		Constructible<Ata::Protocol>   _ata[MAX_PORTS];
 		Constructible<Atapi::Protocol> _atapi[MAX_PORTS];
 		Constructible<Port>            _ports[MAX_PORTS];
 
-		Signal_handler<Driver> _irq { _env.ep(), *this, &Driver::handle_irq };
-		bool                   _enable_atapi;
-
-		void _info()
-		{
-			log("version: "
-			    "major=", Hex(_hba.read<Hba::Version::Major>()), " "
-			    "minor=", Hex(_hba.read<Hba::Version::Minor>()));
-			log("command slots: ", _hba.command_slots());
-			log("native command queuing: ", _hba.ncq() ? "yes" : "no");
-			log("64-bit support: ", _hba.supports_64bit() ? "yes" : "no");
-		}
+		bool _enable_atapi;
 
 		void _scan_ports(Region_map &rm)
 		{
-			log("number of ports: ", _hba.port_count(), " pi: ",
-			    Hex(_hba.read<Hba::Pi>()));
+			log("number of ports: ", _hba.port_count());
 
 			for (unsigned index = 0; index < MAX_PORTS; index++) {
 
-				Port_base port(index, _hba);
+				Port_base port(index, _plat, _hba, _delayer);
 
 				if (port.implemented() == false)
 					continue;
@@ -96,7 +87,8 @@ class Ahci::Driver : Noncopyable
 				if (port.ata()) {
 					try {
 						_ata[index].construct();
-						_ports[index].construct(*_ata[index], rm, _hba, index);
+						_ports[index].construct(*_ata[index], rm, _plat,
+						                        _hba, _delayer, index);
 						enabled = true;
 					} catch (...) { }
 
@@ -104,7 +96,8 @@ class Ahci::Driver : Noncopyable
 				} else if (port.atapi() && _enable_atapi) {
 					try {
 						_atapi[index].construct();
-						_ports[index].construct(*_atapi[index], rm, _hba, index);
+						_ports[index].construct(*_atapi[index], rm, _plat,
+						                        _hba, _delayer, index);
 						enabled = true;
 					} catch (...) { }
 
@@ -121,14 +114,6 @@ class Ahci::Driver : Noncopyable
 		Driver(Env &env, Dispatch &dispatch, bool support_atapi)
 		: _env(env), _dispatch(dispatch), _enable_atapi(support_atapi)
 		{
-			_info();
-
-			/* register irq handler */
-			_hba.sigh_irq(_irq);
-
-			/* initialize HBA (IRQs, memory) */
-			_hba.init();
-
 			/* search for devices */
 			_scan_ports(env.rm());
 		}
@@ -138,22 +123,15 @@ class Ahci::Driver : Noncopyable
 		 */
 		void handle_irq()
 		{
-			unsigned port_list = _hba.read<Hba::Is>();
-			while (port_list) {
-				unsigned port = log2(port_list);
-				port_list    &= ~(1U << port);
-
-				/* ack irq */
+			_hba.handle_irq([&] (unsigned port) {
 				if (_ports[port].constructed())
 					_ports[port]->handle_irq();
 
 				/* handle (pending) requests */
 				_dispatch.session(port);
-			}
-
-			/* clear status register */
-			_hba.ack_irq();
+			});
 		}
+
 		Port &port(Session_label const &label, Session_policy const &policy)
 		{
 			/* try read device port number attribute */

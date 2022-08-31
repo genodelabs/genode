@@ -93,21 +93,21 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 				[&] {
 
 					_start_unit(port);
-					port.wait_for_any(port.hba.delayer(),
+					port.wait_for_any(port.delayer,
 					                  Port::Is::Dss::Equal(1), Port::Is::Pss::Equal(1),
 					                  Port::Is::Dhrs::Equal(1));
 					port.ack_irq();
 
 					/* read sense */
 					_read_sense(port);
-					port.wait_for_any(port.hba.delayer(),
+					port.wait_for_any(port.delayer,
 					                  Port::Is::Dss::Equal(1), Port::Is::Pss::Equal(1),
 					                  Port::Is::Dhrs::Equal(1));
 					port.ack_irq();
 
 						/* test unit ready */
 					_test_unit_ready(port);
-					port.wait_for(port.hba.delayer(), Port::Is::Dhrs::Equal(1));
+					port.wait_for(port.delayer, Port::Is::Dhrs::Equal(1));
 					port.ack_irq();
 
 					Device_fis f(port.fis_base);
@@ -116,7 +116,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 						throw Port::Polling_timeout();
 
 					_read_capacity(port);
-					port.wait_for_any(port.hba.delayer(),
+					port.wait_for_any(port.delayer,
 					                  Port::Is::Dss::Equal(1), Port::Is::Pss::Equal(1),
 					                  Port::Is::Dhrs::Equal(1));
 					port.ack_irq();

@@ -1,35 +1,25 @@
 assert_spec x86
 
-set mke2fs [installed_command mke2fs]
-set dd     [installed_command dd]
-
-#
-# Build
-#
-set build_components {
+create_boot_directory
+build {
 	core init timer
+	drivers/platform
+	drivers/acpi
 	drivers/ahci
+	app/pci_decode
 	server/report_rom
 	app/block_tester
 }
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 #
 # Build EXT2-file-system image
 #
+set mke2fs [installed_command mke2fs]
+set dd     [installed_command dd]
 catch { exec $dd if=/dev/zero of=bin/ext2.raw bs=1M count=16 }
 catch { exec $mke2fs -F bin/ext2.raw }
 
-create_boot_directory
-
-#
-# Generate config
-#
-set config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -45,20 +35,78 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
+	</start>
 
-append_platform_drv_config
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
 
-append config {
+	<start name="acpi_drv" caps="350">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report">             <child name="report_rom"/> </service>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Platform"/>
+		</provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="Timer">   <parent/> </service>
+		</route>
+		<config>
+			<report devices="yes"/>
+			<policy label="ahci_drv -> "> <pci class="AHCI"/> </policy>
+		</config>
+	</start>
+
 	<start name="ahci_report_rom">
 		<binary name="report_rom"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
+
 	<start name="ahci_drv">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
@@ -72,6 +120,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 	<start name="test-ahci">
 		<binary name="block_tester" />
 		<resource name="RAM" quantum="50M" />
@@ -86,6 +135,7 @@ append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
+
 	<start name="test-ahci-atapi">
 		<binary name="block_tester" />
 		<resource name="RAM" quantum="50M" />
@@ -101,16 +151,13 @@ append config {
 	</start>
 </config> }
 
-install_config $config
-
 #
 # Boot modules
 #
-set boot_modules { core ld.lib.so init timer ahci_drv report_rom block_tester }
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image {
+	core ld.lib.so init timer
+	pci_decode platform_drv report_rom acpi_drv
+	ahci_drv report_rom block_tester }
 
 append qemu_args " -nographic -device ahci,id=ahci -boot d "
 append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none             -device ide-hd,drive=disk,bus=ahci.0 "
