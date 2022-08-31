@@ -99,7 +99,7 @@ proc core_link_address { } { return "0x03000000" }
 
 
 proc elfweaver {} {
-	if { ![file exists tool/okl4/elfweaver] } { build LIB=tools }
+	if { ![file exists tool/okl4/elfweaver] } { build lib/tools }
 	return tool/okl4/elfweaver
 }
 

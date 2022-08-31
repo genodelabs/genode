@@ -119,8 +119,9 @@ warn_unsatisfied_requirements: generate_lib_rule_for_defect_library
 	@$(ECHO) "Skip library $(LIB) because it requires $(DARK_COL)$(UNSATISFIED_REQUIREMENTS)$(DEFAULT_COL)"
 
 generate_lib_rule_for_defect_library:
-	@echo "INVALID_DEPS += $(LIB)" >> $(LIB_DEP_FILE)
-	@echo "" >> $(LIB_DEP_FILE)
+	@(echo "INVALID_DEPS += $(LIB)"; \
+	  echo "$(LIB).lib:"; \
+	  echo "") >> $(LIB_DEP_FILE)
 
 LIBS_TO_VISIT = $(filter-out $(LIBS_READY),$(LIBS))
 
