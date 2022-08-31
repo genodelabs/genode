@@ -23,6 +23,7 @@
 
 #include <lx_emul/shared_dma_buffer.h>
 #include <lx_emul/task.h>
+#include <lx_emul/time.h>
 #include <lx_user/init.h>
 #include <lx_user/io.h>
 
@@ -677,6 +678,7 @@ handle_urb_request(struct genode_usb_request_urb req,
 	if (ctrl && ctrl->timeout) {
 		context->timer_state = TIMER_ACTIVE;
 		timer_setup(&context->timeo, urb_timeout, 0);
+		lx_emul_force_jiffies_update();
 		mod_timer(&context->timeo, jiffies + msecs_to_jiffies(ctrl->timeout));
 	}
 
