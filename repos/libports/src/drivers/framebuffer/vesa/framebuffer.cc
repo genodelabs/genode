@@ -16,7 +16,6 @@
 #include <base/log.h>
 #include <base/allocator.h>
 #include <io_mem_session/connection.h>
-#include <legacy/x86/platform_session/connection.h>
 
 /* local includes */
 #include "framebuffer.h"
@@ -263,16 +262,6 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height, unsigned mode)
 void Framebuffer::init(Genode::Env &env, Genode::Allocator &heap)
 {
 	local_init_genode_env(env, heap);
-
-	{
-		/*
-		 * Wait until Acpi/Pci driver initialization is done to avoid
-		 * potentially concurrent access by this driver and the Acpi/Pci driver
-		 * to the graphics device, i.e., to the PCI config space.
-		 */
-		Platform::Connection sync(env);
-	}
-
 	hw_emul_init(env);
 	X86emu::init(env, heap);
 }
