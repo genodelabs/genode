@@ -12,5 +12,5 @@ content:
 	sed -i "s/BOARD.*unknown/BOARD := linux/" lib/mk/core-linux.inc
 	sed -i "s/ld-linux/ld/"                   src/lib/ld/linux/target.mk
 	sed -i "s/linux_timer_drv/timer/"         src/timer/linux/target.mk
-	rm -rf src/lib/initramfs
+	rm -rf src/initramfs
 
