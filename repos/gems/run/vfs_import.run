@@ -3,7 +3,7 @@ if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	exit 0
 }
 
-build { app/sequence server/vfs lib/vfs/import test/libc }
+build { app/sequence server/vfs lib/vfs_import test/libc }
 
 create_boot_directory
 

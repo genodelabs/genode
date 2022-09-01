@@ -9,7 +9,6 @@ src/lib/libarchive:
 	mkdir -p $@
 	cp -r $(PORT_DIR)/src/lib/libarchive/* $@
 	cp $(REP_DIR)/src/lib/libarchive/* $@
-	echo "LIBS = libarchive" > $@/target.mk
 
 lib/mk/libarchive.mk:
 	$(mirror_from_rep_dir)

@@ -26,8 +26,8 @@ set build_components {
 	core init timer
 	drivers/usb_host
 	test/smartcard
-	lib/vfs/libusb
-	lib/vfs/pipe
+	lib/vfs_libusb
+	lib/vfs_pipe
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc

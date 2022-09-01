@@ -1,6 +1,6 @@
 proc append_socket_fs_build_components { } {
 	global build_components
-	append build_components { lib/vfs/lwip }
+	append build_components { lib/vfs_lwip }
 }
 
 proc socket_fs_plugin {} { return lwip }

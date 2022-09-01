@@ -10,7 +10,6 @@ src/lib/ffi:
 	mkdir -p $@
 	cp -r $(PORT_DIR)/src/lib/ffi/* $@
 	cp -r $(REP_DIR)/src/lib/ffi/* $@
-	echo "LIBS = ffi" > $@/target.mk
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)

@@ -33,7 +33,7 @@ append build_components {
 
 	app/cbe_init_trust_anchor
 	app/cbe_init
-	lib/vfs/cbe_trust_anchor
+	lib/vfs_cbe_trust_anchor
 }
 
 build $build_components

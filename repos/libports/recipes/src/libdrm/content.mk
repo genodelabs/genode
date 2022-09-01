@@ -11,14 +11,10 @@ MIRROR_FROM_REP_DIR := lib/mk/libdrm.mk \
                        src/lib/libdrm/ioctl_dispatch.cc \
                        src/lib/libdrm/ioctl_lima.cc
 
-content: $(MIRROR_FROM_REP_DIR) src/lib/libdrm/target.mk
+content: $(MIRROR_FROM_REP_DIR)
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
-
-src/lib/libdrm/target.mk:
-	mkdir -p $(dir $@)
-	echo "LIBS = libdrm" > $@
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libdrm)
 

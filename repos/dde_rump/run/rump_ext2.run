@@ -20,8 +20,8 @@ set build_components {
 	core init timer
 	server/vfs_block
 	server/vfs
-	lib/vfs/rump
-	lib/vfs/import
+	lib/vfs_rump
+	lib/vfs_import
 	test/libc_vfs
 }
 

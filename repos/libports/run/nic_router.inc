@@ -5,7 +5,7 @@ if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 
 set targets "core init timer server/nic_router server/nic_bridge
              test/lwip/http_srv test/lwip/http_clnt test/lwip/udp
-             server/nic_loopback lib/vfs/lwip "
+             server/nic_loopback lib/vfs_lwip "
 
 proc client_bin { prot } {
 	if {$prot == "udp"}  { return "test-lwip-udp-client" }

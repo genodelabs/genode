@@ -71,9 +71,9 @@ set build_components {
 	server/dynamic_rom
 	server/nic_router
 	test/lwip/http_srv
-	lib/vfs/wifi
-	lib/vfs/jitterentropy
-	lib/vfs/lwip
+	lib/vfs_wifi
+	lib/vfs_jitterentropy
+	lib/vfs_lwip
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc

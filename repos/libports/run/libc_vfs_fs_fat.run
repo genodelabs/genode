@@ -6,7 +6,7 @@ if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 set mkfs_cmd   [installed_command mkfs.vfat]
 set mkfs_opts  "-F32 -nlibc_vfs"
 
-set test_build_components lib/vfs/fatfs
+set test_build_components lib/vfs_fatfs
 set test_vfs_config "<fatfs/>"
 set test_boot_modules vfs_fatfs.lib.so
 

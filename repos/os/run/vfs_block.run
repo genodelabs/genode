@@ -6,7 +6,7 @@ set build_components {
 	server/vfs
 	server/vfs_block
 	app/block_tester
-	lib/vfs/import
+	lib/vfs_import
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc

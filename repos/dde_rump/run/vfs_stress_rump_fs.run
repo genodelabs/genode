@@ -15,8 +15,8 @@ set build_components {
 	test/vfs_stress
 	server/vfs
 	server/vfs_block
-	lib/vfs/rump
-	lib/vfs/import
+	lib/vfs_rump
+	lib/vfs_import
 }
 
 build $build_components

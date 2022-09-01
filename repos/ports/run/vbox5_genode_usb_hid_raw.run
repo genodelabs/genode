@@ -19,7 +19,7 @@ set build_components {
 	drivers/usb_host
 	server/log_terminal
 	server/fs_rom
-	server/vfs lib/vfs/import
+	server/vfs lib/vfs_import
 	server/report_rom
 	app/usb_report_filter
 	virtualbox5

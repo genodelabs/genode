@@ -8,11 +8,6 @@ content: $(MIRROR_FROM_REP_DIR)
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
-content: src/lib/curl/target.mk
-
-src/lib/curl/target.mk: src/lib/curl
-	echo "LIBS += curl" > $@
-
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/curl)
 
 content: src/lib/curl

@@ -78,7 +78,7 @@ set pkgs "$binutils $gcc"
 foreach pkg $pkgs {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
 
-lappend build_components "lib/vfs/pipe"
+lappend build_components "lib/vfs_pipe"
 lappend build_components "server/vfs"
 
 build $build_components

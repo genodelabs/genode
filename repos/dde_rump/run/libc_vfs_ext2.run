@@ -1,7 +1,7 @@
 set mkfs_cmd  [installed_command mke2fs]
 set mkfs_opts "-F"
 
-set test_build_components "lib/vfs/rump"
+set test_build_components "lib/vfs_rump"
 
 set test_vfs_config "<rump fs=\"ext2fs\" ram=\"7M\" writeable=\"yes\"/>"
 

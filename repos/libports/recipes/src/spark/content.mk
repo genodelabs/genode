@@ -71,9 +71,3 @@ content: $(MIRROR_FROM_REP_DIR)
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
-
-content: src/lib/spark/target.mk
-
-src/lib/spark/target.mk:
-	mkdir -p $(dir $@)
-	echo "LIBS = spark" > $@

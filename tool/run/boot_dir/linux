@@ -10,11 +10,18 @@ proc run_boot_dir {binaries} {
 
 	set missing_boot_modules { }
 	foreach binary $binaries {
+
 		set src_binary_path "[pwd]/bin/[kernel_specific_binary $binary]"
+
+		set dst_binary "[kernel_specific_binary $binary]"
+		if {$dst_binary == "core-linux"}      { set dst_binary "core" }
+		if {$dst_binary == "ld-linux.lib.so"} { set dst_binary "ld.lib.so" }
+		if {$dst_binary == "linux_timer_drv"} { set dst_binary "timer" }
+
 		if {[file exists $src_binary_path]} {
-			exec ln -sf $src_binary_path [run_dir]/genode/$binary
+			exec ln -sf $src_binary_path [run_dir]/genode/$dst_binary
 		} else {
-			lappend missing_boot_modules [kernel_specific_binary $binary]
+			lappend missing_boot_modules $binary
 		}
 	}
 	if {[llength $missing_boot_modules]} {

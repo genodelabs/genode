@@ -30,7 +30,7 @@ build {
 	core init timer
 	drivers/nic
 	test/lwip/http_srv
-	lib/vfs/lwip
+	lib/vfs_lwip
 	server/nic_router
 	server/report_rom
 }

@@ -5,8 +5,8 @@ set build_components {
 	core init timer
 	app/rom_logger
 	app/rom_to_file
-	lib/vfs/fatfs
-	lib/vfs/import
+	lib/vfs_fatfs
+	lib/vfs_import
 	server/dynamic_rom
 	server/fs_rom
 	server/vfs_block

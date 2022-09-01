@@ -34,12 +34,12 @@ build {
 	timer
 	init
 	server/lx_fs
-	lib/vfs/cbe
-	lib/vfs/cbe_crypto/aes_cbc
-	lib/vfs/cbe_crypto/memcopy
-	lib/vfs/cbe_trust_anchor
-	lib/vfs/import
-	lib/vfs/pipe
+	lib/vfs_cbe
+	lib/vfs_cbe_crypto_aes_cbc
+	lib/vfs_cbe_crypto_memcopy
+	lib/vfs_cbe_trust_anchor
+	lib/vfs_import
+	lib/vfs_pipe
 	test/vfs_stress
 	test/libc
 	server/log_terminal

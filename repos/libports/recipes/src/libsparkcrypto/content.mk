@@ -79,9 +79,3 @@ content: LICENSE
 
 LICENSE:
 	echo "BSD-3-Clause-Attribution, see libsparkcrypto/README.rst" > $@
-
-content: src/lib/libsparkcrypto/target.mk
-
-src/lib/libsparkcrypto/target.mk:
-	mkdir -p $(dir $@)
-	echo "LIBS = libsparkcrypto" > $@

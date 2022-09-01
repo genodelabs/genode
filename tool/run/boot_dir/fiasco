@@ -21,7 +21,7 @@ proc run_boot_dir {binaries} {
 	set kernel_arg ""
 	set ld_arg     ""
 	if {![file exists [run_dir]/genode/fiasco]}    { set kernel_arg "kernel/fiasco" }
-	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     "lib/ld/fiasco" }
+	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     "lib/ld-fiasco" }
 	set targets "$kernel_arg $ld_arg"
 
 	if {[llength $targets]} { build $targets }

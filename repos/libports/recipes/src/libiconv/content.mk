@@ -17,7 +17,6 @@ src/lib/libiconv:
 	mkdir -p $@
 	cp -r $(PORT_DIR)/src/lib/libiconv/* $@
 	cp -r $(REP_DIR)/src/lib/libiconv/private $@
-	echo "LIBS = libiconv" > $@/target.mk
 
 content: LICENSE
 

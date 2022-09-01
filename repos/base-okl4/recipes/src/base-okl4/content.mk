@@ -19,8 +19,7 @@ src/kernel/okl4: src/kernel
 
 content:
 	for spec in x86_32; do \
-	  mv lib/mk/spec/$$spec/ld-okl4.mk   lib/mk/spec/$$spec/ld.mk; \
+	  mv lib/mk/spec/$$spec/ld-okl4.mk lib/mk/spec/$$spec/ld.mk; \
 	  done;
-	sed -i "s/ld-okl4/ld/"          src/lib/ld/okl4/target.mk
 	sed -i "s/pit_timer_drv/timer/" src/timer/pit/target.inc
 

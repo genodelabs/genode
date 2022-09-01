@@ -55,10 +55,10 @@ append build_components {
 	server/report_rom
 	server/lx_fs
 	server/lx_block
-	lib/vfs/cbe_crypto/aes_cbc
-	lib/vfs/cbe_trust_anchor
-	lib/vfs/import
-	lib/vfs/jitterentropy
+	lib/vfs_cbe_crypto_aes_cbc
+	lib/vfs_cbe_trust_anchor
+	lib/vfs_import
+	lib/vfs_jitterentropy
 }
 
 build $build_components

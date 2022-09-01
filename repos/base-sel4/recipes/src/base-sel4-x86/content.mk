@@ -26,7 +26,6 @@ content:
 	for spec in x86_32 x86_64 arm; do \
 	  mv lib/mk/spec/$$spec/ld-sel4.mk lib/mk/spec/$$spec/ld.mk; \
 	  done;
-	sed -i "s/ld-sel4/ld/"          src/lib/ld/sel4/target.mk
 	sed -i "s/pit_timer_drv/timer/" src/timer/pit/target.inc
 	find lib/mk/spec -name kernel-sel4-*.mk -o -name syscall-sel4-*.mk |\
 		grep -v "sel4-pc.mk" | xargs rm -rf

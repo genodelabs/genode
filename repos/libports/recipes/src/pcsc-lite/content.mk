@@ -43,18 +43,6 @@ content: $(MIRROR_FROM_REP_DIR)
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
-content: src/lib/pcsc-lite/target.mk
-
-src/lib/pcsc-lite/target.mk:
-	mkdir -p $(dir $@)
-	echo "LIBS = pcsc-lite" > $@
-
-content: src/lib/ccid/target.mk
-
-src/lib/ccid/target.mk:
-	mkdir -p $(dir $@)
-	echo "LIBS = ccid" > $@
-
 content: LICENSE
 
 LICENSE:

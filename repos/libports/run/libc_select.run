@@ -1,7 +1,7 @@
 set build_components {
 	core init timer server/terminal_crosslink
 	test/libc_select test/libc_counter
-	lib/vfs/pipe
+	lib/vfs_pipe
 }
 
 build $build_components

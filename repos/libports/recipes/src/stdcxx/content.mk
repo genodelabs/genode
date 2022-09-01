@@ -4,13 +4,10 @@ MIRROR_FROM_REP_DIR := lib/mk/stdcxx-c++98.mk \
 
 MIRROR_FROM_PORT_DIR := src/lib/stdcxx
 
-content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_PORT_DIR) src/lib/stdcxx/target.mk
+content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_PORT_DIR)
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
-
-src/lib/stdcxx/target.mk: $(MIRROR_FROM_PORT_DIR)
-	echo "LIBS = stdcxx" > $@
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/stdcxx)
 

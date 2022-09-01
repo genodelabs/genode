@@ -24,7 +24,7 @@ set build_components {
 	server/report_rom
 	server/vfs
 	server/fs_rom
-	lib/vfs/import
+	lib/vfs_import
 }
 
 

@@ -57,7 +57,7 @@ lappend_if [expr $use_vbox5]  build_components virtualbox5
 lappend_if [expr $use_ps2]    build_components drivers/ps2
 lappend_if [expr $use_usb]    build_components app/usb_report_filter
 lappend_if [have_spec x86]    build_components drivers/rtc
-lappend_if [expr $use_ram_fs || $use_usb] build_components lib/vfs/import
+lappend_if [expr $use_ram_fs || $use_usb] build_components lib/vfs_import
 lappend_if [expr $use_cpu_load] build_components app/trace_subject_reporter
 lappend_if [expr $use_cpu_load] build_components app/cpu_load_display
 lappend_if [expr $use_cpu_load] build_components app/top

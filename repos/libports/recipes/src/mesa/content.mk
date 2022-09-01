@@ -31,14 +31,10 @@ MIRROR_FROM_REP_DIR := \
                        lib/mk/spec/x86_64/mesa.mk \
                        src/lib/mesa
 
-content: $(MIRROR_FROM_REP_DIR) src/lib/mesa/target.mk
+content: $(MIRROR_FROM_REP_DIR)
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
-
-src/lib/mesa/target.mk:
-	mkdir -p $(dir $@)
-	echo "LIBS = mesa" > $@
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/mesa)
 

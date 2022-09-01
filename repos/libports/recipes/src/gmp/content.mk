@@ -59,7 +59,6 @@ src/lib/gmp:
 	mkdir -p $@
 	cp -r $(PORT_SRC_DIR)/* $@
 	cp -r $(REP_DIR)/src/lib/gmp/* $@
-	echo "LIBS = gmp" > $@/target.mk
 
 LICENSE:
 	cp $(PORT_SRC_DIR)/COPYING $@

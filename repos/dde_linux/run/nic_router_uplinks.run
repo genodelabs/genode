@@ -30,8 +30,8 @@ append build_components { server/nic_router }
 append build_components { server/dynamic_rom }
 append build_components { server/report_rom }
 append build_components { drivers/wifi/pc }
-append build_components { lib/vfs/wifi }
-append build_components { lib/vfs/jitterentropy }
+append build_components { lib/vfs_wifi }
+append build_components { lib/vfs_jitterentropy }
 append build_components { drivers/rtc }
 append build_components { drivers/nic }
 append build_components { app/ping }

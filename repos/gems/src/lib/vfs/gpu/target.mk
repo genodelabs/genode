@@ -1,3 +1,0 @@
-LIBS = vfs_gpu
-
-BUILD_ARTIFACTS :=

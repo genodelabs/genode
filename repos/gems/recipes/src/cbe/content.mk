@@ -57,7 +57,7 @@ MIRROR_FROM_REP_DIR := \
 
 CBE_DIR := $(call port_dir,$(REP_DIR)/ports/cbe)
 
-content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_CBE_DIR) LICENSE src/lib/cbe/target.mk
+content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_CBE_DIR) LICENSE
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
@@ -65,11 +65,6 @@ $(MIRROR_FROM_REP_DIR):
 $(MIRROR_FROM_CBE_DIR):
 	mkdir -p $(dir $@)
 	cp -r $(CBE_DIR)/$@ $(dir $@)
-
-src/lib/cbe/target.mk:
-	mkdir -p $(dir $@)
-	echo "REQUIRES += x86_64" > $@
-	echo "LIBS += $(BUILD_LIBS)" >> $@
 
 LICENSE:
 	cp $(GENODE_DIR)/LICENSE $@

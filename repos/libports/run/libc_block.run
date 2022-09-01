@@ -8,7 +8,7 @@ create_boot_directory
 build {
 	core init timer
 	server/vfs_block
-	lib/vfs/import
+	lib/vfs_import
 	test/libc_block
 }
 

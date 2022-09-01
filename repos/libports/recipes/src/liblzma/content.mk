@@ -8,7 +8,6 @@ include:
 src/lib/liblzma:
 	mkdir -p $@
 	cp $(REP_DIR)/src/lib/liblzma/config.h $@
-	echo "LIBS = liblzma" > $@/target.mk
 
 src/xz:
 	mkdir -p $@

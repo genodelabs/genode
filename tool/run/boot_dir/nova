@@ -37,7 +37,7 @@ proc run_boot_dir {binaries} {
 	set ld_arg     ""
 	if {![file exists [run_dir]/genode/hypervisor]}  { set kernel_arg kernel }
 	if {![file exists [run_dir]/genode/core-nova.a]} { set core_arg   core/nova }
-	if {![file exists [run_dir]/genode/ld.lib.so]}   { set ld_arg     lib/ld/nova }
+	if {![file exists [run_dir]/genode/ld.lib.so]}   { set ld_arg     lib/ld-nova }
 
 	set targets "$kernel_arg $core_arg $ld_arg"
 	if {[llength $targets]} { build $targets }

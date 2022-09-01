@@ -33,7 +33,7 @@ proc run_boot_dir {binaries} {
 	set kernel_arg ""
 	set ld_arg     ""
 	if {![file exists [run_dir]/genode/sel4]}      { set kernel_arg "kernel/sel4" }
-	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     "lib/ld/sel4" }
+	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     "lib/ld-sel4" }
 	set targets "$kernel_arg $ld_arg"
 
 	if {[llength $targets]} { build $targets }
