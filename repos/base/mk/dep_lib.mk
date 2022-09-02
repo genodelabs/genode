@@ -82,14 +82,19 @@ include $(BASE_DIR)/mk/base-libs.mk
 include $(LIB_MK)
 
 ifdef SHARED_LIB
-LIBS += ldso_so_support
+BUILD_ARTIFACTS ?= $(LIB).lib.so
+endif
 
 # record creation of shared library build artifact
 append_artifact_to_progress_log:
-	@echo -e "\n# Build artifact $(LIB).lib.so\n" >> $(LIB_PROGRESS_LOG)
+	@( $(foreach A,$(BUILD_ARTIFACTS),\
+	      echo -e "\n# Build artifact $A\n";) true \
+	) >> $(LIB_PROGRESS_LOG)
 append_lib_to_progress_log: append_artifact_to_progress_log
-endif
 
+ifdef SHARED_LIB
+LIBS += ldso_so_support
+endif
 
 #
 # Hide archive dependencies of shared libraries from users of the shared
