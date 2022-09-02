@@ -749,6 +749,16 @@ proc copy_file {src dst} {
 proc copy_genode_binaries_to_run_dir { binaries } {
 
 	foreach binary $binaries {
+
+		#
+		# Normalize kernel-specific file names, needed when a run script passes
+		# [build_artifacts] to the build_boot_image command. The build artfact
+		# fetched from the progress.log has the kernel-specific name.
+		#
+		foreach name { "timer" "core" "ld.lib.so" } {
+			if {$binary == [kernel_specific_binary $name silent]} {
+				set binary $name } }
+
 		copy_file bin/[kernel_specific_binary $binary] [run_dir]/genode/$binary
 	}
 }
