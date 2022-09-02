@@ -22,14 +22,16 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/env.h>
+#include <base/heap.h>
+#include <base/registry.h>
 #include <base/log.h>
 #include <base/slab.h>
 #include <dataspace/client.h>
 #include <io_mem_session/connection.h>
 #include <io_port_session/connection.h>
 #include <irq_session/connection.h>
-#include <legacy/x86/platform_device/client.h>
-#include <legacy/x86/platform_session/connection.h>
+#include <platform_session/device.h>
+#include <platform_session/dma_buffer.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 #include <timer_session/connection.h>
@@ -43,8 +45,8 @@
 /* DDE support includes */
 #include <dde_ipxe/support.h>
 
+using namespace Genode;
 
-static Genode::Entrypoint *_global_ep;
 static Genode::Env        *_global_env;
 static Genode::Allocator  *_global_alloc;
 
@@ -52,7 +54,6 @@ static Genode::Allocator  *_global_alloc;
 void dde_support_init(Genode::Env &env, Genode::Allocator &alloc)
 {
 	_global_env   = &env;
-	_global_ep    = &env.ep();
 	_global_alloc = &alloc;
 }
 
@@ -142,145 +143,118 @@ extern "C" void dde_mdelay(unsigned long msecs)
  ** PCI handling **
  ******************/
 
+struct Range { addr_t start; size_t size; };
+
+using Io_mem  = Platform::Device::Mmio;
+using Io_port = Platform::Device::Io_port_range;
+
 struct Pci_driver
 {
-	enum {
-		PCI_BASE_CLASS_NETWORK = 0x02,
-		CLASS_MASK             = 0xff0000,
-		CLASS_NETWORK          = PCI_BASE_CLASS_NETWORK << 16
-	};
+	enum { BACKING_STORE_SIZE = 1024 * 1024 };
 
-	Genode::Region_map &_rm;
+	Env                  & _env;
+	Heap                   _heap    { _env.ram(), _env.rm() };
+	Platform::Connection   _pci     { _env };
+	Platform::Device       _dev     { _pci };
+	Platform::Device::Irq  _irq     { _dev };
+	Platform::Dma_buffer   _dma     { _pci, BACKING_STORE_SIZE, CACHED };
+	Constructible<Io_mem>  _mmio    {};
+	Constructible<Io_port> _io_port {};
 
-	Platform::Connection        _pci;
-	Platform::Device_capability _cap;
-	Platform::Device_capability _last_cap;
+	Io_signal_handler<Pci_driver> _io_handler { _env.ep(), *this,
+	                                            &Pci_driver::_irq_handle };
 
-	struct Region
+	typedef void (*irq_handler)(void*);
+	irq_handler   _irq_handler { nullptr };
+	void        * _irq_data    { nullptr };
+
+	String<16>       _name;
+	dde_pci_device_t _pci_info;
+
+	void _device_handle() {} /* just ignore changes here */
+
+	void _irq_handle()
 	{
-		Genode::addr_t base;
-		Genode::addr_t mapped_base;
-	} _region;
-
-	template <typename T>
-	Platform::Device::Access_size _access_size(T t)
-	{
-		switch (sizeof(T)) {
-		case 1:  return Platform::Device::ACCESS_8BIT;
-		case 2:  return Platform::Device::ACCESS_16BIT;
-		default: return Platform::Device::ACCESS_32BIT;
-		}
+		if (_irq_handler) _irq_handler(_irq_data);
+		_irq.ack();
 	}
 
-	void _bus_address(int *bus, int *dev, int *fun)
+	Pci_driver(Genode::Env &env) : _env(env)
 	{
-		Platform::Device_client client(_cap);
-		unsigned char b, d, f;
-		client.bus_address(&b, &d, &f);
+		_pci.update();
+		_pci.with_xml([&] (Xml_node node) {
+			node.with_optional_sub_node("device", [&] (Xml_node node)
+			{
+				node.with_optional_sub_node("pci-config", [&] (Xml_node node)
+				{
+					_name = node.attribute_value("name", String<16>());
+					_pci_info.vendor     = node.attribute_value("vendor_id", 0U);
+					_pci_info.device     = node.attribute_value("device_id", 0U);
+					_pci_info.class_code = node.attribute_value("class", 0U);
+					_pci_info.revision   = node.attribute_value("revision", 0U);
+					_pci_info.name       = _name.string();
+				});
 
-		*bus = b;
-		*dev = d;
-		*fun = f;
+				node.with_optional_sub_node("io_mem", [&] (Xml_node node)
+				{
+					_mmio.construct(_dev);
+					_pci_info.io_mem_addr = (addr_t)_mmio->local_addr<void>();
+				});
+
+				node.with_optional_sub_node("io_port", [&] (Xml_node node)
+				{
+					_io_port.construct(_dev);
+					_pci_info.io_port_start = 0x10;
+				});
+			});
+		});
+
+		_irq.sigh(_io_handler);
 	}
-
-
-	Pci_driver(Genode::Env &env, Genode::Region_map &rm)
-	: _rm(rm), _pci(env) { }
 
 	template <typename T>
 	void config_read(unsigned int devfn, T *val)
 	{
-		Platform::Device_client client(_cap);
-		*val = client.config_read(devfn, _access_size(*val));
+		switch (devfn) {
+		case 0x4:  /* CMD  */
+			*val = 0x7;
+			return;
+		default:
+			*val = 0;
+		};
 	}
 
 	template <typename T>
-	void config_write(unsigned int devfn, T val)
-	{
-		Platform::Device_client client(_cap);
+	void config_write(unsigned int devfn, T val) { }
 
-		_pci.with_upgrade([&] () {
-			client.config_write(devfn, val, _access_size(val)); });
+	dde_pci_device_t device() { return _pci_info; }
+
+	Range dma() {
+		return { (addr_t)_dma.local_addr<void>(), BACKING_STORE_SIZE }; }
+
+	Genode::addr_t virt_to_dma(Genode::addr_t virt) {
+		return virt - (addr_t)_dma.local_addr<void>() + _dma.dma_addr(); }
+
+	void irq(irq_handler handler, void * data)
+	{
+		_irq_handler = handler;
+		_irq_data    = data;
 	}
 
-	int first_device(int *bus, int *dev, int *fun)
-	{
-		_cap = _pci.with_upgrade([&] () {
-			return _pci.first_device(CLASS_NETWORK, CLASS_MASK); });
-
-		if (!_cap.valid())
-			return -1;
-
-		_bus_address(bus, dev, fun);
-		return 0;
-	}
-
-	int next_device(int *bus, int *dev, int *fun)
-	{
-		int result = -1;
-
-		_last_cap = _cap;
-		_cap = _pci.with_upgrade([&] () {
-			return _pci.next_device(_cap, CLASS_NETWORK, CLASS_MASK); });
-
-		if (_cap.valid()) {
-			_bus_address(bus, dev, fun);
-			result = 0;
-		}
-
-		if (_last_cap.valid())
-			_pci.release_device(_last_cap);
-
-		return result;
-	}
-
-	Genode::addr_t alloc_dma_memory(Genode::size_t size)
-	{
-		try {
-			using namespace Genode;
-
-			size_t donate = size;
-
-			Ram_dataspace_capability ram_cap =
-				retry<Out_of_ram>(
-					[&] () {
-						return retry<Out_of_caps>(
-							[&] () { return _pci.alloc_dma_buffer(size, UNCACHED); },
-							[&] () { _pci.upgrade_caps(2); });
-					},
-					[&] () {
-						_pci.upgrade_ram(donate);
-						donate = donate * 2 > size ? 4096 : donate * 2;
-					});
-
-			_region.mapped_base = _rm.attach(ram_cap);
-			_region.base = _pci.dma_addr(ram_cap);
-
-			return _region.mapped_base;
-		} catch (...) {
-			Genode::error("failed to allocate dma memory");
-			return 0;
-		}
-	}
-
-	Genode::addr_t virt_to_phys(Genode::addr_t virt) {
-		return virt - _region.mapped_base + _region.base; }
+	template <typename FN>
+	void with_io_port(FN const & fn) {
+		if (_io_port.constructed()) fn(*_io_port); }
 };
 
 
 static Pci_driver& pci_drv()
 {
-	static Pci_driver _pci_drv { *_global_env , _global_env->rm() };
+	static Pci_driver _pci_drv { *_global_env };
 	return _pci_drv;
 }
 
 
-extern "C" int dde_pci_first_device(int *bus, int *dev, int *fun) {
-	return pci_drv().first_device(bus, dev, fun); }
-
-
-extern "C" int dde_pci_next_device(int *bus, int *dev, int *fun) {
-	return pci_drv().next_device(bus, dev, fun); }
+extern "C" dde_pci_device_t dde_pci_device() { return pci_drv().device(); }
 
 
 extern "C" void dde_pci_readb(int pos, dde_uint8_t *val) {
@@ -311,59 +285,13 @@ extern "C" void dde_pci_writel(int pos, dde_uint32_t val) {
  ** Interrupt handling **
  ************************/
 
-struct Irq_handler
-{
-	Genode::Irq_session_client           irq;
-	Genode::Signal_handler<Irq_handler>  dispatcher;
-
-	typedef void (*irq_handler)(void*);
-
-	irq_handler  handler;
-	void        *priv;
-
-	void handle()
-	{
-		handler(priv);
-		irq.ack_irq();
-	}
-
-	Irq_handler(Genode::Entrypoint &ep, Genode::Irq_session_capability cap,
-	            irq_handler handler, void *priv)
-	:
-		irq(cap), dispatcher(ep, *this, &Irq_handler::handle),
-		handler(handler), priv(priv)
-	{
-		irq.sigh(dispatcher);
-
-		/* intial ack so that we will receive IRQ signals */
-		irq.ack_irq();
-	}
-};
-
-
-extern "C" int dde_interrupt_attach(void(*handler)(void *), void *priv)
-{
-	static Genode::Constructible<Irq_handler> _irq_handler;
-
-	if (_irq_handler.constructed()) {
-		Genode::error("Irq_handler already registered");
-		return -1;
-	}
-
-	try {
-		Platform::Device_client device(pci_drv()._cap);
-		_irq_handler.construct(*_global_ep, device.irq(0), handler, priv);
-	} catch (...) { return -1; }
-
-	return 0;
-}
+extern "C" void dde_interrupt_attach(void(*handler)(void *), void *priv) {
+	pci_drv().irq(handler, priv); }
 
 
 /***************************************************
  ** Support for aligned and DMA memory allocation **
  ***************************************************/
-
-enum { BACKING_STORE_SIZE = 1024 * 1024 };
 
 struct Backing_store
 {
@@ -371,9 +299,8 @@ struct Backing_store
 
 	Backing_store (Genode::Allocator &alloc) : _avl(&alloc)
 	{
-		Genode::addr_t base = pci_drv().alloc_dma_memory(BACKING_STORE_SIZE);
-		/* add to allocator */
-		_avl.add_range(base, BACKING_STORE_SIZE);
+		Range r = pci_drv().dma();
+		_avl.add_range(r.start, r.size);
 	}
 };
 
@@ -407,55 +334,43 @@ extern "C" void dde_dma_free(void *p, dde_size_t size) {
 
 
 extern "C" dde_addr_t dde_dma_get_physaddr(void *virt) {
-	return pci_drv().virt_to_phys((Genode::addr_t)virt); }
+	return pci_drv().virt_to_dma((Genode::addr_t)virt); }
 
 
 /**************
  ** I/O port **
  **************/
 
-static Genode::Constructible<Genode::Io_port_session_client> & io_port()
+extern "C" dde_uint8_t dde_inb(dde_addr_t port)
 {
-	static Genode::Constructible<Genode::Io_port_session_client> _io_port;
-	return _io_port;
+	dde_uint8_t v;
+	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inb(port); });
+	return v;
 }
 
-
-extern "C" void dde_request_io(dde_uint8_t virt_bar_ioport)
+extern "C" dde_uint16_t dde_inw(dde_addr_t port)
 {
-	using namespace Genode;
-
-	if (io_port().constructed()) { io_port().destruct(); }
-
-	Platform::Device_client device(pci_drv()._cap);
-	Io_port_session_capability cap = device.io_port(virt_bar_ioport);
-
-	io_port().construct(cap);
+	dde_uint16_t v;
+	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inw(port); });
+	return v;
 }
 
-
-extern "C" dde_uint8_t dde_inb(dde_addr_t port) {
-	return io_port()->inb(port); }
-
-
-extern "C" dde_uint16_t dde_inw(dde_addr_t port) {
-	return io_port()->inw(port); }
-
-
-extern "C" dde_uint32_t dde_inl(dde_addr_t port) {
-	return io_port()->inl(port); }
+extern "C" dde_uint32_t dde_inl(dde_addr_t port)
+{
+	dde_uint32_t v;
+	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inl(port); });
+	return v;
+}
 
 
 extern "C" void dde_outb(dde_addr_t port, dde_uint8_t data) {
-	io_port()->outb(port, data); }
-
+	pci_drv().with_io_port([&] (Io_port & iop) { iop.outb(port, data); }); }
 
 extern "C" void dde_outw(dde_addr_t port, dde_uint16_t data) {
-	io_port()->outw(port, data); }
-
+	pci_drv().with_io_port([&] (Io_port & iop) { iop.outw(port, data); }); }
 
 extern "C" void dde_outl(dde_addr_t port, dde_uint32_t data) {
-	io_port()->outl(port, data); }
+	pci_drv().with_io_port([&] (Io_port & iop) { iop.outl(port, data); }); }
 
 
 /**********************
@@ -671,74 +586,15 @@ extern "C" void dde_slab_free(void *p) {
  ** I/O memory **
  ****************/
 
-struct Io_memory
-{
-	Genode::Io_mem_session_client       _mem;
-	Genode::Io_mem_dataspace_capability _mem_ds;
-
-	Genode::addr_t                      _vaddr;
-
-	Io_memory(Genode::Region_map &rm,
-	          Genode::addr_t base, Genode::Io_mem_session_capability cap)
-	:
-		_mem(cap),
-		_mem_ds(_mem.dataspace())
-	{
-		if (!_mem_ds.valid())
-			throw Genode::Exception();
-
-		_vaddr = rm.attach(_mem_ds);
-		_vaddr |= base & 0xfff;
-	}
-
-	Genode::addr_t vaddr() const { return _vaddr; }
-};
-
-
-static Genode::Constructible<Io_memory> & io_mem()
-{
-	static Genode::Constructible<Io_memory> _io_mem;
-	return _io_mem;
-}
-
-
 extern "C" int dde_request_iomem(dde_addr_t start, dde_addr_t *vaddr)
 {
-	if (io_mem().constructed()) {
-		Genode::error("Io_memory already requested");
-		return -1;
-	}
-
-	Platform::Device_client device(pci_drv()._cap);
-	Genode::Io_mem_session_capability cap;
-
-	Genode::uint8_t virt_iomem_bar = 0;
-	for (unsigned i = 0; i < Platform::Device::NUM_RESOURCES; i++) {
-		Platform::Device::Resource res = device.resource(i);
-		if (res.type() == Platform::Device::Resource::MEMORY) {
-			if (res.base() == start) {
-				cap = device.io_mem(virt_iomem_bar);
-				break;
-			}
-			virt_iomem_bar ++;
-		}
-	}
-
-	if (!cap.valid()) { return -1; }
-
-	try {
-		io_mem().construct(_global_env->rm(), start, cap);
-	} catch (...) { return -1; }
-
-	*vaddr = io_mem()->vaddr();
+	/*
+	 * We just return the virtual address as physical one,
+	 * because io_mem address announced was already a virtual one
+	 */
+	*vaddr = start;
 	return 0;
 }
 
 
-extern "C" int dde_release_iomem(dde_addr_t start, dde_size_t size)
-{
-	try {
-		io_mem().destruct();
-		return 0;
-	} catch (...) { return -1; }
-}
+extern "C" int dde_release_iomem(dde_addr_t start, dde_size_t size) { return 0; }

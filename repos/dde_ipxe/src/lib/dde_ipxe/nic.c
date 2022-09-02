@@ -54,34 +54,6 @@ static struct pci_driver *pci_drivers[] = {
 	&tg3_pci_driver
 };
 
-/**
- * Update BARs of PCI device
- */
-static void pci_read_bases(struct pci_device *pci_dev)
-{
-	uint32_t bar;
-	int reg;
-	uint8_t virt_bar_ioport = 0;
-
-	for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
-		pci_read_config_dword(pci_dev, reg, &bar);
-		if (bar & PCI_BASE_ADDRESS_SPACE_IO) {
-			if (!pci_dev->ioaddr) {
-				pci_dev->ioaddr = bar & PCI_BASE_ADDRESS_IO_MASK;
-
-				dde_request_io(virt_bar_ioport);
-			}
-			virt_bar_ioport ++;
-		} else {
-			if (!pci_dev->membase)
-				pci_dev->membase = bar & PCI_BASE_ADDRESS_MEM_MASK;
-			/* Skip next BAR if 64-bit */
-			if (bar & PCI_BASE_ADDRESS_MEM_TYPE_64)
-				reg += 4;
-		}
-	}
-}
-
 
 /**
  * Probe one PCI device
@@ -125,52 +97,34 @@ enum { NO_DEVICE_FOUND = ~0U };
  */
 static unsigned scan_pci(void)
 {
-	int ret, bus = 0, dev = 0, fun = 0; 
-	for (ret = dde_pci_first_device(&bus, &dev, &fun);
-	     ret == 0;
-	     ret = dde_pci_next_device(&bus, &dev, &fun)) {
+	dde_pci_device_t dev = dde_pci_device();
+	struct pci_device *pci_dev = zalloc(sizeof(*pci_dev));
 
-		dde_uint32_t class_code;
-		dde_pci_readl(PCI_CLASS_REVISION, &class_code);
-		class_code >>= 8;
-		if (PCI_BASE_CLASS(class_code) != PCI_BASE_CLASS_NETWORK)
-			continue;
+	LOG("Found: %s %04x:%04x (rev %02x)",
+	    dev.name, dev.vendor, dev.device, dev.revision);
 
-		dde_uint16_t vendor, device;
-		dde_pci_readw(PCI_VENDOR_ID, &vendor);
-		dde_pci_readw(PCI_DEVICE_ID, &device);
-		dde_uint8_t rev, irq;
-		dde_pci_readb(PCI_REVISION_ID, &rev);
-		dde_pci_readb(PCI_INTERRUPT_LINE, &irq);
-		LOG("Found: " FMT_BUSDEVFN " %04x:%04x (rev %02x) IRQ %02x",
-		            bus, dev, fun, vendor, device, rev, irq);
+	pci_dev->busdevfn = PCI_BUSDEVFN(0, 1, 0);
+	pci_dev->vendor   = dev.vendor;
+	pci_dev->device   = dev.device;
+	pci_dev->class    = dev.class_code;
+	pci_dev->membase  = dev.io_mem_addr;
+	pci_dev->ioaddr   = dev.io_port_start;
+	pci_dev->irq      = 32;
 
-		struct pci_device *pci_dev = zalloc(sizeof(*pci_dev));
+	pci_dev->dev.desc.bus_type = BUS_TYPE_PCI;
+	pci_dev->dev.desc.location = pci_dev->busdevfn;
+	pci_dev->dev.desc.vendor   = pci_dev->vendor;
+	pci_dev->dev.desc.device   = pci_dev->device;
+	pci_dev->dev.desc.class    = pci_dev->class;
+	pci_dev->dev.desc.ioaddr   = pci_dev->ioaddr;
+	pci_dev->dev.desc.irq      = pci_dev->irq;
 
-		pci_dev->busdevfn = PCI_BUSDEVFN(bus, dev, fun);
-		pci_dev->vendor   = vendor;
-		pci_dev->device   = device;
-		pci_dev->class    = class_code;
-		pci_dev->irq      = irq;
+	/* we found our device -> break loop */
+	if (!probe_pci_device(pci_dev))
+		return pci_dev->dev.desc.location;
 
-		pci_read_bases(pci_dev);
-
-		pci_dev->dev.desc.bus_type = BUS_TYPE_PCI;
-		pci_dev->dev.desc.location = pci_dev->busdevfn;
-		pci_dev->dev.desc.vendor   = pci_dev->vendor;
-		pci_dev->dev.desc.device   = pci_dev->device;
-		pci_dev->dev.desc.class    = pci_dev->class;
-		pci_dev->dev.desc.ioaddr   = pci_dev->ioaddr;
-		pci_dev->dev.desc.irq      = pci_dev->irq;
-
-		/* we found our device -> break loop */
-		if (!probe_pci_device(pci_dev))
-			return pci_dev->dev.desc.location;
-
-		/* free device if no driver was found */
-		free(pci_dev);
-	}
-
+	/* free device if no driver was found */
+	free(pci_dev);
 	return NO_DEVICE_FOUND;
 }
 
@@ -348,11 +302,7 @@ int dde_ipxe_nic_init()
 	}
 
 	/* initialize IRQ handler */
-	int err = dde_interrupt_attach(irq_handler, 0);
-	if (err) {
-		LOG("attaching to IRQ %02x failed", net_dev->dev->desc.irq);
-		return 0;
-	}
+	dde_interrupt_attach(irq_handler, 0);
 	netdev_irq(net_dev, 1);
 
 	dde_lock_leave();
