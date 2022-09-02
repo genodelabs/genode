@@ -81,9 +81,12 @@ struct Depot_deploy::Main
 			if (prio_levels.value)
 				xml.attribute("prio_levels", prio_levels.value);
 
-			Xml_node static_config = config.sub_node("static");
-			static_config.with_raw_content([&] (char const *start, size_t length) {
-				xml.append(start, length); });
+			config.with_sub_node("static",
+				[&] (Xml_node static_config) {
+					static_config.with_raw_content([&] (char const *start, size_t length) {
+						xml.append(start, length); });
+				},
+				[&] () { warning("config lacks <static> node"); });
 
 			config.with_optional_sub_node("report", [&] (Xml_node const &report) {
 
@@ -127,10 +130,14 @@ struct Depot_deploy::Main
 				});
 			});
 
-			Child::Depot_rom_server const parent { };
-			_children.gen_start_nodes(xml, config.sub_node("common_routes"),
-			                          prio_levels, Affinity::Space(1, 1),
-			                          parent, parent);
+			config.with_sub_node("common_routes",
+				[&] (Xml_node node) {
+					Child::Depot_rom_server const parent { };
+					_children.gen_start_nodes(xml, node,
+					                          prio_levels, Affinity::Space(1, 1),
+					                          parent, parent);
+				},
+				[&] () { warning("config lacks <common_routes> node"); });
 		});
 
 		/* update query for blueprints of all unconfigured start nodes */
