@@ -181,8 +181,10 @@ void Libc::Kernel::_init_file_descriptors()
 			Absolute_path const path { resolve_absolute_path(attr_value) };
 
 			struct stat out_stat { };
-			if (_vfs.stat_from_kernel(path.string(), &out_stat) != 0)
+			if (_vfs.stat_from_kernel(path.string(), &out_stat) != 0) {
+				warning("failed to call 'stat' on ", path);
 				return;
+			}
 
 			File_descriptor *fd =
 				_vfs.open_from_kernel(path.string(), flags, libc_fd);
@@ -218,7 +220,7 @@ void Libc::Kernel::_init_file_descriptors()
 				_vfs.lseek_from_kernel(fd, seek);
 
 		} catch (Symlink_resolve_error) {
-			warning("failed to resolve ", attr_value);
+			warning("failed to resolve path for ", attr_value);
 			return;
 		}
 	};
