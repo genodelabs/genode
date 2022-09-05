@@ -18,14 +18,14 @@ code respectively the download source of binaries are described below.
   configured via commandline.
 
   The changes are available from
-  https://github.com/alex-ab/morbo.git.
+  https://github.com/m-stein/morbo.git.
 
   git branch genode_bender
-  git commit 7909dd0b56c66400bfb9c1c4abf70d2c593b4902
+  git commit 3645d67dc0643b8aab008eb76a8e056636e5edee
 
 :'pulsar':
 
-  The 'pulsar' tool was obtained in binary form from 
+  The 'pulsar' tool was obtained in binary form from
   http://os.inf.tu-dresden.de/~us15/pulsar.
 
 :'unzip'
