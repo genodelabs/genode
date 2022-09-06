@@ -46,6 +46,24 @@ struct Device {
 };
 
 
+class Session_id
+{
+	private:
+
+		genode_usb_session_handle_t const _id;
+		unsigned                          _ref_cnt { 0 };
+
+	public:
+
+		Session_id(genode_usb_session_handle_t id) : _id(id) {}
+
+		genode_usb_session_handle_t id() { return _id; }
+
+		void inc()  { _ref_cnt++; }
+		void dec()  { _ref_cnt--; }
+		bool used() { return _ref_cnt; }
+};
+
 class Root;
 
 
@@ -62,7 +80,7 @@ class genode_usb_session : public Usb::Session_rpc_object
 		::Root                         & _root;
 		genode_shared_dataspace        * _ds;
 		Signal_context_capability        _sigh_state_cap {};
-		genode_usb_session_handle_t      _id;
+		Session_id                     & _id;
 		Session_label const              _label;
 		List_element<genode_usb_session> _le { this };
 
@@ -79,8 +97,8 @@ class genode_usb_session : public Usb::Session_rpc_object
 		genode_usb_session(::Root                    & root,
 		                   genode_shared_dataspace   * ds,
 		                   Env                       & env,
+		                   Session_id                & id,
 		                   Signal_context_capability   cap,
-		                   genode_usb_session_handle_t id,
 		                   Session_label               label);
 
 		virtual ~genode_usb_session() {}
@@ -143,17 +161,7 @@ class Root : public Root_component<genode_usb_session>
 {
 	private:
 
-		enum { MAX_DEVICES = 32 };
-
-		struct Id_allocator : Bit_allocator<16>
-		{
-			genode_usb_session_handle_t alloc()
-			{
-				/* we can downcast here, because we only use 16 bits */
-				return (genode_usb_session_handle_t)
-					Bit_allocator<16>::alloc();
-			}
-		};
+		enum { MAX_DEVICES = 32, MAX_SESSIONS = MAX_DEVICES };
 
 		Env                     & _env;
 		Signal_context_capability _sigh_cap;
@@ -161,8 +169,8 @@ class Root : public Root_component<genode_usb_session>
 		Signal_handler<Root>      _config_handler { _env.ep(), *this,
 		                                            &Root::_announce_service };
 		Reporter                  _config_reporter { _env, "config"  };
+		Constructible<Session_id> _session_ids[MAX_SESSIONS];
 		Constructible<Device>     _devices[MAX_DEVICES];
-		Id_allocator              _id_alloc {};
 		bool                      _announced { false };
 
 		Constructible<Expanding_reporter>      _device_reporter {};
@@ -244,6 +252,8 @@ class Root : public Root_component<genode_usb_session>
 		 * Acknowledge requests from sessions without device
 		 */
 		void handle_empty_sessions();
+
+		void decrement_session_id(genode_usb_session_handle_t id);
 };
 
 
@@ -446,37 +456,39 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 	                        + offset);
 
 	packets[idx].construct(p);
+	_id.inc(); /* increment the session ids usage */
 
 	switch (p.type) {
 	case Packet_descriptor::STRING:
 		req.string_fn((genode_usb_request_string*)&p.string,
-		              _id, idx, addr, p.size(), data);
+		              _id.id(), idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::CTRL:
-		req.urb_fn({ CTRL, &p.control }, _id, idx, addr, p.size(), data);
+		req.urb_fn({ CTRL, &p.control }, _id.id(), idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::BULK:
-		req.urb_fn({ BULK, &p.transfer }, _id, idx, addr, p.size(), data);
+		req.urb_fn({ BULK, &p.transfer }, _id.id(), idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::IRQ:
-		req.urb_fn({ IRQ, &p.transfer }, _id, idx, addr, p.size(), data);
+		req.urb_fn({ IRQ, &p.transfer }, _id.id(), idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::ISOC:
-		req.urb_fn({ ISOC, &p.transfer }, _id, idx, addr, p.size(), data);
+		req.urb_fn({ ISOC, &p.transfer }, _id.id(), idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::ALT_SETTING:
 		req.altsetting_fn(p.interface.number, p.interface.alt_setting,
-		                  _id, idx, data);
+		                  _id.id(), idx, data);
 		break;
 	case Packet_descriptor::CONFIG:
-		req.config_fn(p.number, _id, idx, data);
+		req.config_fn(p.number, _id.id(), idx, data);
 		break;
 	case Packet_descriptor::RELEASE_IF:
 		warning("Release interface gets ignored!");
+		_id.dec();
 		packets[idx].destruct();
 		break;
 	case Packet_descriptor::FLUSH_TRANSFERS:
-		req.flush_fn(p.number, _id, idx, data);
+		req.flush_fn(p.number, _id.id(), idx, data);
 		break;
 	};
 
@@ -514,8 +526,8 @@ void genode_usb_session::handle_response(genode_usb_request_handle_t id,
 genode_usb_session::genode_usb_session(::Root                    & root,
                                        genode_shared_dataspace   * ds,
                                        Env                       & env,
+                                       Session_id                & id,
                                        Signal_context_capability   cap,
-                                       genode_usb_session_handle_t id,
                                        Session_label const         label)
 :
 	Usb::Session_rpc_object(genode_shared_dataspace_capability(ds),
@@ -526,6 +538,8 @@ genode_usb_session::genode_usb_session(::Root                    & root,
 	_label(label)
 {
 	_tx.sigh_packet_avail(cap);
+
+	id.inc();
 }
 
 
@@ -574,9 +588,18 @@ genode_usb_session * ::Root::_create_session(const char * args,
 		throw Insufficient_ram_quota();
 	}
 
+	unsigned i = 0;
+	for (; i < MAX_SESSIONS; i++)
+		if (!_session_ids[i]->used())
+			break;
+	if (i >= MAX_SESSIONS) {
+		warning("Maximum of sessions reached!");
+		throw Service_denied();
+	}
+
 	genode_shared_dataspace * ds  = _callbacks->alloc_fn(tx_buf_size);
 	genode_usb_session      * ret = new (md_alloc())
-		genode_usb_session(*this, ds, _env, _sigh_cap, _id_alloc.alloc(), label);
+		genode_usb_session(*this, ds, _env, *_session_ids[i], _sigh_cap, label);
 	_sessions.insert(&ret->_le);
 
 	if (!ret) throw Service_denied();
@@ -602,11 +625,10 @@ void ::Root::_destroy_session(genode_usb_session * session)
 		}
 	});
 
-	genode_usb_session_handle_t id = session->_id;
+	session->_id.dec();
 	genode_shared_dataspace   * ds = session->_ds;
 	_sessions.remove(&session->_le);
 	Genode::destroy(md_alloc(), session);
-	_id_alloc.free((addr_t)id);
 	_callbacks->free_fn(ds);
 }
 
@@ -765,7 +787,7 @@ genode_usb_session_handle_t ::Root::session(genode_usb_bus_num_t bus,
 			session = d.usb_session;
 	});
 
-	return session ? session->_id : 0;
+	return session ? session->_id.id() : 0;
 }
 
 
@@ -775,7 +797,7 @@ void ::Root::session(genode_usb_session_handle_t id, FUNC const & fn)
 	genode_usb_session * session = nullptr;
 
 	_for_each_session([&] (genode_usb_session & s) {
-		if (s._id == id) session = &s;
+		if (s._id.id() == id) session = &s;
 	});
 
 	/*
@@ -816,13 +838,22 @@ void ::Root::handle_empty_sessions()
 }
 
 
+void ::Root::decrement_session_id(genode_usb_session_handle_t id)
+{
+	if (id > 0 && id <= MAX_SESSIONS)
+		_session_ids[id-1]->dec();
+}
+
+
 ::Root::Root(Env & env, Allocator & alloc, Signal_context_capability cap)
 :
 	Root_component<genode_usb_session>(env.ep(), alloc),
 	_env(env), _sigh_cap(cap)
 {
 	/* Reserve id zero which is invalid */
-	_id_alloc.alloc();
+	for (unsigned i = 0; i < MAX_SESSIONS; i++)
+		_session_ids[i].construct((genode_usb_session_handle_t)(i+1));
+
 	_config.sigh(_config_handler);
 }
 
@@ -896,6 +927,8 @@ extern "C" void genode_usb_ack_request(genode_usb_session_handle_t session_id,
 
 	_usb_root->session(session_id, [&] (genode_usb_session & session) {
 		session.handle_response(request_id, callback, callback_data); });
+
+	_usb_root->decrement_session_id(session_id);
 }
 
 
