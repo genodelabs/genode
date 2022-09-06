@@ -125,9 +125,17 @@ SRC_CORE += $(notdir $(wildcard $(BASE_HW_DIR)/src/core/*.cc)) \
             $(addprefix board/,$(BOARD)) \
             version.inc target.inc include hw kernel
 
-LIB_MK := base-hw-common.mk base-hw.mk bootstrap-hw.inc core-hw.inc \
-          timeout-hw.mk cxx.mk base.inc base-common.inc startup.inc \
-          $(addprefix spec/,${call selected_content,LIB_MK_SPECS})
+# names of the lib/mk/ files to consider for inclusion in the src archive
+LIB_MK_FILES := base-common.inc base-hw-common.mk \
+                base.inc base-hw.mk \
+                bootstrap-hw.inc bootstrap-hw-$(BOARD).inc bootstrap-hw-$(BOARD).mk \
+                core-hw.inc core-hw-$(BOARD).inc core-hw-$(BOARD).mk \
+                startup.inc startup-hw.mk \
+                timeout-hw.mk cxx.mk ld-hw.mk syscall-hw.mk
+
+LIB_MK_DIRS := lib/mk $(addprefix lib/mk/spec/,${call selected_content,LIB_MK_SPECS})
+
+CONTENT += $(foreach D,$(LIB_MK_DIRS),$(addprefix $D/,$(LIB_MK_FILES)))
 
 CONTENT += $(addprefix src/timer/,$(SRC_TIMER)) \
            $(addprefix src/include/hw/,$(SRC_INCLUDE_HW)) \
