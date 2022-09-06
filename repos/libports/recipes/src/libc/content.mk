@@ -8,7 +8,7 @@ src/lib/libc:
 	cp -r $(LIBC_PORT_DIR)/src/lib/libc/* $@
 	cp -r $(REP_DIR)/src/lib/libc/* $@
 
-include/libc-plugin include/libc/sys/ucontext.h:
+include/libc-plugin:
 	$(mirror_from_rep_dir)
 
 lib/mk:
