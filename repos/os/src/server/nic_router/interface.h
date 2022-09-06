@@ -24,7 +24,6 @@
 #include <report.h>
 
 /* Genode includes */
-#include <nic_session/nic_session.h>
 #include <net/dhcp.h>
 #include <net/icmp.h>
 
@@ -32,10 +31,22 @@ namespace Genode { class Xml_generator; }
 
 namespace Net {
 
-	using Packet_descriptor    = ::Nic::Packet_descriptor;
-	using Packet_stream_sink   = ::Nic::Packet_stream_sink< ::Nic::Session::Policy>;
-	using Packet_stream_source = ::Nic::Packet_stream_source< ::Nic::Session::Policy>;
-	using Domain_name          = Genode::String<160>;
+	enum { PKT_STREAM_QUEUE_SIZE = 1024 };
+
+	/*
+	 * In order to be compliant to both the Uplink and the Nic packet stream
+	 * types, we use the more base types from the Genode namespace here and
+	 * combine them with the same parameters as in the Uplink and Nic
+	 * namespaces. I.e., we assume the Uplink and Nic packet stream types to
+	 * be factually the same although they are logically independent from each
+	 * other.
+	 */
+	using Packet_descriptor    = Genode::Packet_descriptor;
+	using Packet_stream_policy = Genode::Packet_stream_policy<Packet_descriptor, PKT_STREAM_QUEUE_SIZE, PKT_STREAM_QUEUE_SIZE, char>;
+	using Packet_stream_sink   = Genode::Packet_stream_sink<Packet_stream_policy>;
+	using Packet_stream_source = Genode::Packet_stream_source<Packet_stream_policy>;
+
+	using Domain_name = Genode::String<160>;
 	class Ipv4_config;
 	class Forward_rule_tree;
 	class Transport_rule_list;
