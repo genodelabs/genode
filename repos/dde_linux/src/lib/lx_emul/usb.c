@@ -333,10 +333,22 @@ struct genode_usb_rpc_callbacks lx_emul_usb_rpc_callbacks = {
 
 
 static genode_usb_request_ret_t
+handle_return_code(struct genode_usb_request_urb req, void * data)
+{
+	return (genode_usb_request_ret_t)data;
+};
+
+
+static void
 handle_string_request(struct genode_usb_request_string * req,
-                      void * buf, unsigned long size, void * data)
+                      genode_usb_session_handle_t        session,
+                      genode_usb_request_handle_t        request,
+                      void                             * buf,
+                      unsigned long                      size,
+                      void                             * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
+	genode_usb_request_ret_t ret = UNKNOWN_ERROR;
 
 	int length = usb_string(udev, req->index, buf, size);
 	if (length < 0) {
@@ -345,58 +357,73 @@ handle_string_request(struct genode_usb_request_string * req,
 	} else {
 		/* returned length is in bytes (char) */
 		req->length = length / 2;
-		return NO_ERROR;
+		ret = NO_ERROR;
 	}
 
-	return UNKNOWN_ERROR;
+	genode_usb_ack_request(session, request, handle_return_code, (void*)ret);
 }
 
 
-static genode_usb_request_ret_t
-handle_altsetting_request(unsigned iface, unsigned alt_setting, void * data)
+static void
+handle_altsetting_request(unsigned                    iface,
+                          unsigned                    alt_setting,
+                          genode_usb_session_handle_t session,
+                          genode_usb_request_handle_t request,
+                          void                      * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
-	int const ret = usb_set_interface(udev, iface, alt_setting);
+	genode_usb_request_ret_t ret = NO_ERROR;
 
-	if (ret < 0)
-		printk("Alt setting request (iface=%u alt_setting=%u) failed with %d\n",
-		       iface, alt_setting, ret);
-
-	return (ret == 0) ? NO_ERROR : UNKNOWN_ERROR;
-}
-
-
-static genode_usb_request_ret_t
-handle_config_request(unsigned cfg_idx, void * data)
-{
-	struct usb_device * udev = (struct usb_device *) data;
-
-	if (udev && udev->actconfig
-	 && udev->actconfig->desc.bConfigurationValue == cfg_idx) {
-		/*
-		 * Skip SET_CONFIGURATION requests if the device already has the
-		 * selected config as active config. This workaround prevents issues
-		 * with Linux guests in vbox and SDC-reader passthrough.
-		 */
-		return NO_ERROR;
+	if (usb_set_interface(udev, iface, alt_setting)) {
+		ret = UNKNOWN_ERROR;
+		printk("Alt setting request (iface=%u alt_setting=%u) failed\n",
+		       iface, alt_setting);
 	}
 
-	return (usb_set_configuration(udev, cfg_idx)) ? UNKNOWN_ERROR : NO_ERROR;
+	genode_usb_ack_request(session, request, handle_return_code, (void*)ret);
 }
 
 
-static genode_usb_request_ret_t
-handle_flush_request(unsigned char ep, void * data)
+static void
+handle_config_request(unsigned                    cfg_idx,
+                      genode_usb_session_handle_t session,
+                      genode_usb_request_handle_t request,
+                      void                      * data)
+{
+	struct usb_device * udev = (struct usb_device *) data;
+	genode_usb_request_ret_t ret = NO_ERROR;
+
+	/*
+	 * Skip SET_CONFIGURATION requests if the device already has the
+	 * selected config as active config. This workaround prevents issues
+	 * with Linux guests in vbox and SDC-reader passthrough.
+	 */
+	if (!(udev && udev->actconfig &&
+	      udev->actconfig->desc.bConfigurationValue == cfg_idx))
+		ret = (usb_set_configuration(udev, cfg_idx)) ? UNKNOWN_ERROR : NO_ERROR;
+
+	genode_usb_ack_request(session, request, handle_return_code, (void*)ret);
+}
+
+
+static void
+handle_flush_request(unsigned char               ep,
+                     genode_usb_session_handle_t session,
+                     genode_usb_request_handle_t request,
+                     void                      * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
 	struct usb_host_endpoint * endpoint =
 		ep & USB_DIR_IN ? udev->ep_in[ep & 0xf]
 		                : udev->ep_out[ep & 0xf];
-	if (!endpoint)
-		return INTERFACE_OR_ENDPOINT_ERROR;
+	genode_usb_request_ret_t ret = NO_ERROR;
 
-	usb_hcd_flush_endpoint(udev, endpoint);
-	return NO_ERROR;
+	if (!endpoint)
+		ret = INTERFACE_OR_ENDPOINT_ERROR;
+	else
+		usb_hcd_flush_endpoint(udev, endpoint);
+
+	genode_usb_ack_request(session, request, handle_return_code, (void*)ret);
 }
 
 enum Timer_state { TIMER_OFF, TIMER_ACTIVE, TIMER_TRIGGERED };
@@ -625,7 +652,7 @@ static int fill_isoc_urb(struct usb_device                  * udev,
 }
 
 
-static genode_usb_request_ret_t
+static void
 handle_urb_request(struct genode_usb_request_urb req,
                    genode_usb_session_handle_t   session_handle,
                    genode_usb_request_handle_t   request_handle,
@@ -637,6 +664,7 @@ handle_urb_request(struct genode_usb_request_urb req,
 		genode_usb_get_request_control(&req);
 	struct genode_usb_request_transfer * transfer =
 		genode_usb_get_request_transfer(&req);
+	genode_usb_request_ret_t ret = UNKNOWN_ERROR;
 
 	int err  = 0;
 	int read = transfer ? (transfer->ep & 0x80) : 0;
@@ -644,8 +672,10 @@ handle_urb_request(struct genode_usb_request_urb req,
 
 	struct usb_urb_context * context =
 		kmalloc(sizeof(struct usb_urb_context), GFP_NOIO);
-	if (!context)
-		return MEMORY_ERROR;
+	if (!context) {
+		ret = MEMORY_ERROR;
+		goto error;
+	}
 
 	context->session = session_handle;
 	context->request = request_handle;
@@ -666,7 +696,7 @@ handle_urb_request(struct genode_usb_request_urb req,
 		break;
 	default:
 		printk("Unknown USB transfer request!\n");
-		return UNKNOWN_ERROR;
+		goto error;
 	};
 
 	if (err)
@@ -684,7 +714,7 @@ handle_urb_request(struct genode_usb_request_urb req,
 		mod_timer(&context->timeo, jiffies + msecs_to_jiffies(ctrl->timeout));
 	}
 
-	return 0;
+	return;
 
  free_urb:
 	usb_unanchor_urb(urb);
@@ -692,13 +722,15 @@ handle_urb_request(struct genode_usb_request_urb req,
  free_context:
 	kfree(context);
 	switch (err) {
-		case -ENOENT:    return INTERFACE_OR_ENDPOINT_ERROR;
-		case -ENODEV:    return NO_DEVICE_ERROR;
-		case -ESHUTDOWN: return NO_DEVICE_ERROR;
-		case -ENOSPC:    return STALL_ERROR;
-		case -ENOMEM:    return MEMORY_ERROR;
+		case -ENOENT:    ret = INTERFACE_OR_ENDPOINT_ERROR; break;
+		case -ENODEV:    ret = NO_DEVICE_ERROR; break;
+		case -ESHUTDOWN: ret = NO_DEVICE_ERROR; break;
+		case -ENOSPC:    ret = STALL_ERROR; break;
+		case -ENOMEM:    ret = MEMORY_ERROR; break;
 	}
-	return UNKNOWN_ERROR;
+ error:
+	genode_usb_ack_request(context->session, context->request,
+	                       handle_return_code, (void*)ret);
 }
 
 

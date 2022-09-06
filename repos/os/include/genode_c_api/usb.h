@@ -159,7 +159,7 @@ struct genode_usb_request_transfer
 	unsigned long actual_packet_size[MAX_PACKETS];
 };
 
-enum Urb_type { CTRL, BULK, IRQ, ISOC };
+enum Urb_type { CTRL, BULK, IRQ, ISOC, NONE };
 typedef enum Urb_type genode_usb_urb_t;
 
 struct genode_usb_request_urb
@@ -193,7 +193,7 @@ enum Request_return_error {
 };
 typedef enum Request_return_error genode_usb_request_ret_t;
 
-typedef genode_usb_request_ret_t (*genode_usb_req_urb_t)
+typedef void (*genode_usb_req_urb_t)
 	(struct genode_usb_request_urb req,
 	 genode_usb_session_handle_t   session_handle,
 	 genode_usb_request_handle_t   request_handle,
@@ -201,20 +201,31 @@ typedef genode_usb_request_ret_t (*genode_usb_req_urb_t)
 	 unsigned long                 payload_size,
 	 void                        * opaque_data);
 
-typedef genode_usb_request_ret_t (*genode_usb_req_string_t)
+typedef void (*genode_usb_req_string_t)
 	(struct genode_usb_request_string * req,
+	 genode_usb_session_handle_t        session_handle,
+	 genode_usb_request_handle_t        request_handle,
 	 void                             * payload,
 	 unsigned long                      payload_size,
 	 void                             * opaque_data);
 
-typedef genode_usb_request_ret_t (*genode_usb_req_altsetting_t)
-	(unsigned iface, unsigned alt_setting, void * opaque_data);
+typedef void (*genode_usb_req_altsetting_t)
+	(unsigned iface, unsigned alt_setting,
+	 genode_usb_session_handle_t session_handle,
+	 genode_usb_request_handle_t request_handle,
+	 void * opaque_data);
 
-typedef genode_usb_request_ret_t (*genode_usb_req_config_t)
-	(unsigned config_idx, void * opaque_data);
+typedef void (*genode_usb_req_config_t)
+	(unsigned config_idx,
+	 genode_usb_session_handle_t session_handle,
+	 genode_usb_request_handle_t request_handle,
+	 void * opaque_data);
 
-typedef genode_usb_request_ret_t (*genode_usb_req_flush_t)
-	(unsigned char ep, void * opaque_data);
+typedef void (*genode_usb_req_flush_t)
+	(unsigned char ep,
+	 genode_usb_session_handle_t session_handle,
+	 genode_usb_request_handle_t request_handle,
+	 void * opaque_data);
 
 typedef genode_usb_request_ret_t (*genode_usb_response_t)
 	(struct genode_usb_request_urb req,

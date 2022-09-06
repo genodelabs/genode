@@ -445,39 +445,38 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 	void * addr   = (void*)(genode_shared_dataspace_local_address(_ds)
 	                        + offset);
 
+	packets[idx].construct(p);
+
 	switch (p.type) {
 	case Packet_descriptor::STRING:
-		_ack(req.string_fn((genode_usb_request_string*)&p.string,
-		                   addr, p.size(), data), p);
+		req.string_fn((genode_usb_request_string*)&p.string,
+		              _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::CTRL:
-		packets[idx].construct(p);
 		req.urb_fn({ CTRL, &p.control }, _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::BULK:
-		packets[idx].construct(p);
 		req.urb_fn({ BULK, &p.transfer }, _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::IRQ:
-		packets[idx].construct(p);
 		req.urb_fn({ IRQ, &p.transfer }, _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::ISOC:
-		packets[idx].construct(p);
 		req.urb_fn({ ISOC, &p.transfer }, _id, idx, addr, p.size(), data);
 		break;
 	case Packet_descriptor::ALT_SETTING:
-		_ack(req.altsetting_fn(p.interface.number,
-		                      p.interface.alt_setting, data), p);
+		req.altsetting_fn(p.interface.number, p.interface.alt_setting,
+		                  _id, idx, data);
 		break;
 	case Packet_descriptor::CONFIG:
-		_ack(req.config_fn(p.number, data), p);
+		req.config_fn(p.number, _id, idx, data);
 		break;
 	case Packet_descriptor::RELEASE_IF:
 		warning("Release interface gets ignored!");
+		packets[idx].destruct();
 		break;
 	case Packet_descriptor::FLUSH_TRANSFERS:
-		_ack(req.flush_fn(p.number, data), p);
+		req.flush_fn(p.number, _id, idx, data);
 		break;
 	};
 
@@ -506,7 +505,7 @@ void genode_usb_session::handle_response(genode_usb_request_handle_t id,
 		_ack(callback({ ISOC, &p.transfer }, callback_data), p);
 		break;
 	default:
-		error("Invalid packet descriptor for asynchronous response");
+		_ack(callback({ NONE, nullptr }, callback_data), p);
 	};
 	packets[id].destruct();
 }
@@ -773,9 +772,19 @@ genode_usb_session_handle_t ::Root::session(genode_usb_bus_num_t bus,
 template <typename FUNC>
 void ::Root::session(genode_usb_session_handle_t id, FUNC const & fn)
 {
+	genode_usb_session * session = nullptr;
+
 	_for_each_session([&] (genode_usb_session & s) {
-		if (s._id == id) fn(s);
+		if (s._id == id) session = &s;
 	});
+
+	/*
+	 * We've to execute the functor outside the session iteration,
+	 * because the functor might block and the actual session
+	 * can be destroyed in the meantime, which will lead to
+	 * a corrupted next() pointer.
+	 */
+	if (session) fn(*session);
 }
 
 
