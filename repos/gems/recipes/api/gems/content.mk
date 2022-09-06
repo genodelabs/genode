@@ -1,6 +1,6 @@
-content: include/gems src/lib/file lib/mk/file.mk LICENSE
+content: include/gems LICENSE
 
-include/gems src/lib/file lib/mk/file.mk:
+include/gems:
 	$(mirror_from_rep_dir)
 
 LICENSE:
