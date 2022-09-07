@@ -545,4 +545,5 @@ u32 prandom_u32(void)
 int wbinvd_on_all_cpus(void)
 {
 	lx_emul_trace(__func__);
+	return 0;
 }
