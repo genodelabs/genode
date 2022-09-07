@@ -720,10 +720,10 @@ information on that, refer to [Behavior regarding the NIC-session link state].
 
 'link_state_triggers'
 
-A boolean value that controls whether to enforce sending a report each time the
-state that is controlled through the 'link_state' attribute of the <report> tag
-changes. I.e., whenever the real link state of any interface at the router has
-changed.
+A boolean value that controls whether to enforce sending a report whenever the
+real link state (see description of the 'link_state' attribute) of any
+interface at the router has changed. Note that whenever an interface is created
+or destroyed this is considered a change of its real link state.
 
 'interval_sec'
 

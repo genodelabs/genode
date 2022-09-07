@@ -1923,6 +1923,8 @@ Interface::Interface(Genode::Entrypoint     &ep,
 	_interfaces                { interfaces }
 {
 	_interfaces.insert(this);
+	try { _config().report().handle_interface_link_state(); }
+	catch (Pointer<Report>::Invalid) { }
 }
 
 
@@ -2375,6 +2377,8 @@ void Interface::cancel_arp_waiting(Arp_waiter &waiter)
 
 Interface::~Interface()
 {
+	try { _config().report().handle_interface_link_state(); }
+	catch (Pointer<Report>::Invalid) { }
 	_detach_from_domain();
 	_interfaces.remove(this);
 }
