@@ -1,8 +1,10 @@
 ##
 # Load files needed by the scenario via iPXE/HTTP
 #
-# \param --load-ipxe-base-dir    base directory of iPXE/HTTP server
-# \param --load-ipxe-boot-dir    boot directory relative to HTTP base
+# \param --load-ipxe-base-dir       base directory of iPXE/HTTP server
+# \param --load-ipxe-boot-dir       boot directory relative to HTTP base
+# \param --load-ipxe-lighttpd       run lighttpd automatically
+# \param --load-ipxe-lighttpd-port  TCP port to run lighttpd on
 #
 
 source [genode_dir]/tool/run/load.inc
@@ -23,6 +25,12 @@ proc load_ipxe_base_dir { } { return [get_cmd_arg --load-ipxe-base-dir ""] }
 
 
 proc load_ipxe_boot_dir { } { return [get_cmd_arg --load-ipxe-boot-dir ""] }
+
+
+proc load_ipxe_lighttpd { } { return [get_cmd_switch --load-ipxe-lighttpd] }
+
+
+proc load_ipxe_lighttpd_port { } { return [get_cmd_arg --load-ipxe-lighttpd-port 8080] }
 
 
 proc image_extension { } {
@@ -76,4 +84,30 @@ proc create_ipxe_config { } {
 	puts $fh "shell"
 	puts $fh "boot"
 	close $fh
+
+	if {![load_ipxe_lighttpd]} { return }
+
+	set conf_file [file normalize [run_dir]/lighttpd.conf]
+
+	set fh [open "$conf_file" "WRONLY CREAT TRUNC"]
+	puts $fh "server.port          = [load_ipxe_lighttpd_port]"
+	puts $fh "server.document-root = \"[file normalize [run_dir]]\""
+	puts $fh "server.errorlog      = \"/dev/null\""
+	close $fh
+
+	global lighttpd_spawn_id
+	spawn lighttpd -f $conf_file -D
+	set lighttpd_spawn_id $spawn_id
+}
+
+
+# Override the exit procedure
+rename exit load_ipxe_real_exit
+proc exit {{status 0}} {
+	if {[load_ipxe_lighttpd]} {
+		global lighttpd_spawn_id
+		kill_spawned $lighttpd_spawn_id
+	}
+
+	load_ipxe_real_exit $status
 }
