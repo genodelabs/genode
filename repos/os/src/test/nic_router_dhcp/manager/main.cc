@@ -107,11 +107,17 @@ void Local::Main::_handle_router_state()
 			domain_node.for_each_sub_node(
 				"dns",
 				[&] (Xml_node const &dns_node)
-			{
-
-				dns_servers.insert_as_tail(
-					*new (_heap) Dns_server(dns_node.attribute_value("ip", Ipv4_address { })));
-			});
+				{
+					Dns_server::construct(
+						_heap, dns_node.attribute_value("ip", Ipv4_address { }),
+						[&] /* handle_success */ (Dns_server &server)
+						{
+							dns_servers.insert_as_tail(server);
+						},
+						[&] /* handle_failure */ () { }
+					);
+				}
+			);
 
 			/*
 			 * If the new list of DNS servers differs from the stored list,
@@ -122,8 +128,14 @@ void Local::Main::_handle_router_state()
 
 				_dns_servers.destroy_each(_heap);
 				dns_servers.for_each([&] (Dns_server const &dns_server) {
-					_dns_servers.insert_as_tail(
-						*new (_heap) Dns_server(dns_server.ip()));
+					Dns_server::construct(
+						_heap, dns_server.ip(),
+						[&] /* handle_success */ (Dns_server &server)
+						{
+							_dns_servers.insert_as_tail(server);
+						},
+						[&] /* handle_failure */ () { }
+					);
 				});
 				_router_config_outdated = true;
 			}

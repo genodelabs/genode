@@ -30,11 +30,7 @@ using namespace Genode;
 Dns_server::Dns_server(Ipv4_address const &ip)
 :
 	_ip { ip }
-{
-	if (!_ip.valid()) {
-		throw Invalid { };
-	}
-}
+{ }
 
 
 bool Dns_server::equal_to(Dns_server const &server) const

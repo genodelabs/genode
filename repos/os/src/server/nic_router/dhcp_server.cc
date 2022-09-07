@@ -34,14 +34,17 @@ Dhcp_server_base::Dhcp_server_base(Xml_node const &node,
 {
 	node.for_each_sub_node("dns-server", [&] (Xml_node const &sub_node) {
 
-		try {
-			_dns_servers.insert_as_tail(*new (alloc)
-				Dns_server(sub_node.attribute_value("ip", Ipv4_address())));
-
-		} catch (Dns_server::Invalid) {
-
-			_invalid(domain, "invalid DNS server entry");
-		}
+		Dns_server::construct(
+			alloc, sub_node.attribute_value("ip", Ipv4_address { }),
+			[&] /* handle_success */ (Dns_server &server)
+			{
+				_dns_servers.insert_as_tail(server);
+			},
+			[&] /* handle_failure */ ()
+			{
+				_invalid(domain, "invalid DNS server entry");
+			}
+		);
 	});
 	node.with_optional_sub_node("dns-domain", [&] (Xml_node const &sub_node) {
 		xml_node_with_attribute(sub_node, "name", [&] (Xml_attribute const &attr) {

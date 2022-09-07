@@ -48,8 +48,14 @@ Ipv4_config::Ipv4_config(Ipv4_config const &ip_config,
 	_gateway    { ip_config._gateway }
 {
 	ip_config.for_each_dns_server([&] (Dns_server const &dns_server) {
-		_dns_servers.insert_as_tail(
-			*new (alloc) Dns_server(dns_server.ip()));
+		Dns_server::construct(
+			alloc, dns_server.ip(),
+			[&] /* handle_success */ (Dns_server &server)
+			{
+				_dns_servers.insert_as_tail(server);
+			},
+			[&] /* handle_failure */ () { }
+		);
 	});
 	_dns_domain_name.set_to(ip_config.dns_domain_name());
 }
@@ -69,7 +75,14 @@ Ipv4_config::Ipv4_config(Dhcp_packet  &dhcp_ack,
 			dhcp_ack.option<Dhcp_packet::Dns_server>() };
 
 		dns_server.for_each_address([&] (Ipv4_address const &addr) {
-			_dns_servers.insert_as_tail(*new (alloc) Dns_server(addr));
+			Dns_server::construct(
+				alloc, addr,
+				[&] /* handle_success */ (Dns_server &server)
+				{
+					_dns_servers.insert_as_tail(server);
+				},
+				[&] /* handle_failure */ () { }
+			);
 		});
 	}
 	catch (Dhcp_packet::Option_not_found) { }
