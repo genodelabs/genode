@@ -38,11 +38,14 @@ class Net::Main
 		Interface_list                  _interfaces          { };
 		Cached_timer                    _timer               { _env };
 		Genode::Heap                    _heap                { &_env.ram(), &_env.rm() };
+		Signal_handler<Main>            _report_handler      { _env.ep(), *this, &Main::_handle_report };
 		Genode::Attached_rom_dataspace  _config_rom          { _env, "config" };
 		Reference<Configuration>        _config              { *new (_heap) Configuration { _config_rom.xml(), _heap } };
 		Signal_handler<Main>            _config_handler      { _env.ep(), *this, &Main::_handle_config };
 		Nic_session_root                _nic_session_root    { _env, _timer, _heap, _config(), _shared_quota, _interfaces };
 		Uplink_session_root             _uplink_session_root { _env, _timer, _heap, _config(), _shared_quota, _interfaces };
+
+		void _handle_report();
 
 		void _handle_config();
 
@@ -65,6 +68,14 @@ class Net::Main
 };
 
 
+void Main::_handle_report()
+{
+	try { _config().report().generate(); }
+	catch (Pointer<Report>::Invalid) { }
+	
+}
+
+
 Net::Main::Main(Env &env) : _env(env)
 {
 	_config_rom.sigh(_config_handler);
@@ -76,13 +87,12 @@ Net::Main::Main(Env &env) : _env(env)
 
 void Net::Main::_handle_config()
 {
-	_config().stop_reporting();
-
 	_config_rom.update();
 	Configuration &old_config = _config();
 	Configuration &new_config = *new (_heap)
-		Configuration(_env, _config_rom.xml(), _heap, _timer, old_config,
-		              _shared_quota, _interfaces);
+		Configuration {
+			_env, _config_rom.xml(), _heap, _report_handler, _timer,
+			old_config, _shared_quota, _interfaces };
 
 	_nic_session_root.handle_config(new_config);
 	_uplink_session_root.handle_config(new_config);
@@ -92,8 +102,6 @@ void Net::Main::_handle_config()
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_3(); });
 
 	destroy(_heap, &old_config);
-
-	_config().start_reporting();
 }
 
 

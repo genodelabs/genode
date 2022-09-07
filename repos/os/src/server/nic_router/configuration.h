@@ -66,22 +66,19 @@ class Net::Configuration
 
 	public:
 
-		Configuration(Genode::Xml_node const  node,
-		              Genode::Allocator      &alloc);
+		Configuration(Genode::Xml_node  const  node,
+		              Genode::Allocator       &alloc);
 
-		Configuration(Genode::Env            &env,
-		              Genode::Xml_node const  node,
-		              Genode::Allocator      &alloc,
-		              Cached_timer           &timer,
-		              Configuration          &old_config,
-		              Quota            const &shared_quota,
-		              Interface_list         &interfaces);
+		Configuration(Genode::Env                             &env,
+		              Genode::Xml_node                  const  node,
+		              Genode::Allocator                       &alloc,
+		              Genode::Signal_context_capability const &report_signal_cap,
+		              Cached_timer                            &timer,
+		              Configuration                           &old_config,
+		              Quota                             const &shared_quota,
+		              Interface_list                          &interfaces);
 
 		~Configuration();
-
-		void stop_reporting();
-
-		void start_reporting();
 
 
 		/***************

@@ -59,26 +59,28 @@ class Net::Report
 		Genode::Reporter                &_reporter;
 		Domain_tree                     &_domains;
 		Timer::Periodic_timeout<Report>  _timeout;
+		Genode::Signal_transmitter       _signal_transmitter;
 
 		void _handle_report_timeout(Genode::Duration);
-
-		void _report();
 
 	public:
 
 		struct Empty : Genode::Exception { };
 
-		Report(bool             const &verbose,
-		       Genode::Xml_node const  node,
-		       Cached_timer           &timer,
-		       Domain_tree            &domains,
-		       Quota            const &shared_quota,
-		       Genode::Pd_session     &pd,
-		       Genode::Reporter       &reporter);
+		Report(bool                              const &verbose,
+		       Genode::Xml_node                  const  node,
+		       Cached_timer                            &timer,
+		       Domain_tree                             &domains,
+		       Quota                             const &shared_quota,
+		       Genode::Pd_session                      &pd,
+		       Genode::Reporter                        &reporter,
+		       Genode::Signal_context_capability const &signal_cap);
 
 		void handle_config();
 
 		void handle_interface_link_state();
+
+		void generate();
 
 
 		/***************

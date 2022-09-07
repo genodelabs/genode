@@ -103,13 +103,14 @@ Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Xml_node const &node) const
 }
 
 
-Configuration::Configuration(Env               &env,
-                             Xml_node    const  node,
-                             Allocator         &alloc,
-                             Cached_timer      &timer,
-                             Configuration     &old_config,
-                             Quota       const &shared_quota,
-                             Interface_list    &interfaces)
+Configuration::Configuration(Env                             &env,
+                             Xml_node                  const  node,
+                             Allocator                       &alloc,
+                             Signal_context_capability const &report_signal_cap,
+                             Cached_timer                    &timer,
+                             Configuration                   &old_config,
+                             Quota                     const &shared_quota,
+                             Interface_list                  &interfaces)
 :
 	_alloc                          { alloc },
 	_max_packets_per_signal         { node.attribute_value("max_packets_per_signal",    (unsigned long)150) },
@@ -193,8 +194,9 @@ Configuration::Configuration(Env               &env,
 		}
 		/* create report generator */
 		_report = *new (_alloc)
-			Report(_verbose, report_node, timer, _domains, shared_quota,
-			       env.pd(), _reporter());
+			Report {
+				_verbose, report_node, timer, _domains, shared_quota, env.pd(),
+				_reporter(), report_signal_cap };
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
 
@@ -221,24 +223,6 @@ Configuration::Configuration(Env               &env,
 	 * re-used are not re-attached to the new domains.
 	 */
 	old_config._nic_clients.destroy_each(_alloc);
-}
-
-
-void Configuration::stop_reporting()
-{
-	if (!_reporter.valid()) {
-		return;
-	}
-	_reporter().enabled(false);
-}
-
-
-void Configuration::start_reporting()
-{
-	if (!_reporter.valid()) {
-		return;
-	}
-	_reporter().enabled(true);
 }
 
 
