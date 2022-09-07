@@ -121,14 +121,9 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
 
 void Cpu::schedule(Job * const job)
 {
-	if (_id == executing_id())
-		_scheduler.ready(job->share());
-	else {
-		_scheduler.ready_check(job->share());
-
-		if (_scheduler.need_to_schedule())
-			trigger_ip_interrupt();
-	}
+	_scheduler.ready(job->share());
+	if (_id != executing_id() && _scheduler.need_to_schedule())
+		trigger_ip_interrupt();
 }
 
 

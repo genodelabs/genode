@@ -191,44 +191,16 @@ void Cpu_scheduler::update(time_t time)
 }
 
 
-void Cpu_scheduler::ready_check(Share &s1)
-{
-	assert(_head);
-
-	ready(s1);
-
-	if (_need_to_schedule)
-		return;
-
-	Share * s2 = _head;
-	if (!s1._claim) {
-		_need_to_schedule = s2 == &_idle;
-	} else if (!_head_claims) {
-		_need_to_schedule = true;
-	} else if (s1._prio != s2->_prio) {
-		_need_to_schedule = s1._prio > s2->_prio;
-	} else {
-		for (
-			; s2 && s2 != &s1;
-			s2 =
-				Double_list<Cpu_share>::next(&s2->_claim_item) != nullptr ?
-					&Double_list<Cpu_share>::next(&s2->_claim_item)->payload() :
-					nullptr) ;
-
-		_need_to_schedule = !s2;
-	}
-}
-
-
 void Cpu_scheduler::ready(Share &s)
 {
 	assert(!s._ready && &s != &_idle);
 
-	_need_to_schedule = true;
-
 	s._ready = 1;
 	s._fill = _fill;
 	_fills.insert_tail(&s._fill_item);
+
+	if (_head == &_idle)
+		_need_to_schedule = true;
 
 	if (!s._quota)
 		return;
@@ -239,6 +211,28 @@ void Cpu_scheduler::ready(Share &s)
 		_rcl[s._prio].insert_head(&s._claim_item);
 	else
 		_rcl[s._prio].insert_tail(&s._claim_item);
+
+	/*
+	 * Check whether we need to re-schedule
+	 */
+	if (_need_to_schedule)
+		return;
+
+	/* current head has no quota left */
+	if (!_head_claims) {
+		_need_to_schedule = true;
+		return;
+	}
+
+	/* if current head has different priority */
+	if (s._prio != _head->_prio) {
+		_need_to_schedule = s._prio > _head->_prio;
+		return;
+	}
+
+	/* if current head has same priority, the ready share gets active */
+	if (s._claim)
+		_need_to_schedule = true;
 }
 
 
@@ -246,7 +240,8 @@ void Cpu_scheduler::unready(Share &s)
 {
 	assert(s._ready && &s != &_idle);
 
-	_need_to_schedule = true;
+	if (&s == _head)
+		_need_to_schedule = true;
 
 	s._ready = 0;
 	_fills.remove(&s._fill_item);
@@ -270,29 +265,21 @@ void Cpu_scheduler::remove(Share &s)
 {
 	assert(&s != &_idle);
 
-	_need_to_schedule = true;
+	if (s._ready) unready(s);
 
 	if (&s == _head)
 		_head = nullptr;
 
-	if (s._ready)
-		_fills.remove(&s._fill_item);
-
 	if (!s._quota)
 		return;
 
-	if (s._ready)
-		_rcl[s._prio].remove(&s._claim_item);
-	else
-		_ucl[s._prio].remove(&s._claim_item);
+	_ucl[s._prio].remove(&s._claim_item);
 }
 
 
 void Cpu_scheduler::insert(Share &s)
 {
 	assert(!s._ready);
-
-	_need_to_schedule = true;
 
 	if (!s._quota)
 		return;
