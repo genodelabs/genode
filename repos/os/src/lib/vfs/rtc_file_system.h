@@ -27,8 +27,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 {
 	private:
 
-		/* "1970-01-01 00:00\n" */
-		enum { TIMESTAMP_LEN = 17 };
+		/* "1970-01-01 00:00:00\n" */
+		enum { TIMESTAMP_LEN = 20 };
 
 		class Rtc_vfs_handle : public Single_vfs_handle
 		{
@@ -49,7 +49,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 				 * Read the current time from the Rtc session
 				 *
 				 * On each read the current time is queried and afterwards formated
-				 * as '%Y-%m-%d %H:%M\n'.
+				 * as '%Y-%m-%d %H:%M:%S\n' resp. '%F %T\n'.
 				 */
 				Read_result read(char *dst, file_size count,
 				                 file_size &out_count) override
@@ -63,8 +63,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 					char buf[TIMESTAMP_LEN+1];
 					char *b = buf;
-					Genode::size_t n = Genode::snprintf(buf, sizeof(buf), "%04u-%02u-%02u %02u:%02u\n",
-					                                    ts.year, ts.month, ts.day, ts.hour, ts.minute);
+					Genode::size_t n = Genode::snprintf(buf, sizeof(buf), "%04u-%02u-%02u %02u:%02u:%02u\n",
+					                                    ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second);
 					n -= (size_t)seek();
 					b += seek();
 

@@ -89,10 +89,9 @@ set config {
 install_config $config
 
 set build_components { test/system_rtc test/libc_rtc }
-set boot_components  { test-system_rtc test-libc_rtc }
 
 build            $build_components
-build_boot_image $boot_components
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic  "
 
