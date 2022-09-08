@@ -38,4 +38,4 @@ clean_policy:
 	$(VERBOSE)$(RM) ../*.o ../*.d *.o *.d $(TARGET_POLICY).elf \
 		$(BUILD_BASE_DIR)/bin/$(TARGET_POLICY)
 
-vpath table.cc $(REP_DIR)/src/lib/trace_recorder/policy
+vpath table.cc $(REP_DIR)/src/trace_recorder/policy
