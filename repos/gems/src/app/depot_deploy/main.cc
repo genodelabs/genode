@@ -85,7 +85,7 @@ struct Depot_deploy::Main
 			static_config.with_raw_content([&] (char const *start, size_t length) {
 				xml.append(start, length); });
 
-			config.with_sub_node("report", [&] (Xml_node const &report) {
+			config.with_optional_sub_node("report", [&] (Xml_node const &report) {
 
 				auto copy_bool_attribute = [&] (char const* name) {
 					if (report.has_attribute(name)) {
@@ -120,7 +120,7 @@ struct Depot_deploy::Main
 				});
 			});
 
-			config.with_sub_node("heartbeat", [&] (Xml_node const &heartbeat) {
+			config.with_optional_sub_node("heartbeat", [&] (Xml_node const &heartbeat) {
 				size_t const rate_ms = heartbeat.attribute_value("rate_ms", 2000UL);
 				xml.node("heartbeat", [&] () {
 					xml.attribute("rate_ms", rate_ms);

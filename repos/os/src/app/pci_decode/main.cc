@@ -266,7 +266,7 @@ void Main::sys_rom_update()
 Main::Main(Env & env) : env(env)
 {
 	sys_rom.sigh(sys_rom_handler);
-	platform_info.xml().with_sub_node("kernel", [&] (Xml_node xml)
+	platform_info.xml().with_optional_sub_node("kernel", [&] (Xml_node xml)
 	{
 		apic_capable = xml.attribute_value("acpi", false);
 		msi_capable  = xml.attribute_value("msi",  false);

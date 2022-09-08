@@ -409,13 +409,13 @@ void Depot_download_manager::Main::_handle_query_result()
 		Archive::User user { };
 
 		if (missing_index_files)
-			index.with_sub_node("missing", [&] (Xml_node missing) {
+			index.with_optional_sub_node("missing", [&] (Xml_node missing) {
 				user = missing.attribute_value("user", Archive::User()); });
 
 		if (user.valid())
 			return user;
 
-		dependencies.with_sub_node("missing", [&] (Xml_node missing) {
+		dependencies.with_optional_sub_node("missing", [&] (Xml_node missing) {
 			user = Archive::user(missing.attribute_value("path", Archive::Path())); });
 
 		if (!user.valid())

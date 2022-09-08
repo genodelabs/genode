@@ -281,7 +281,7 @@ struct Sculpt::File_browser_dialog : Noncopyable, Dialog
 					unsigned cnt = 0;
 
 					_state.with_query_result([&] (Xml_node node) {
-						node.with_sub_node("dir", [&] (Xml_node listing) {
+						node.with_optional_sub_node("dir", [&] (Xml_node listing) {
 
 							if (_state.path != "/")
 								_gen_back_entry(xml);

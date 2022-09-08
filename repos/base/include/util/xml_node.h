@@ -846,10 +846,25 @@ class Genode::Xml_node
 		 * If no matching sub node exists, the functor is not called.
 		 */
 		template <typename FN>
-		void with_sub_node(char const *type, FN const &fn) const
+		void with_optional_sub_node(char const *type, FN const &fn) const
 		{
 			if (has_sub_node(type))
 				fn(sub_node(type));
+		}
+
+		/**
+		 * Apply functor 'fn' to first sub node of specified type
+		 *
+		 * The functor is called with the sub node as argument.
+		 * If no matching sub node exists, the functor 'fn_nexists' is called.
+		 */
+		template <typename FN, typename FN_NEXISTS>
+		void with_sub_node(char const *type, FN const &fn, FN_NEXISTS const &fn_nexists) const
+		{
+			if (has_sub_node(type))
+				fn(sub_node(type));
+			else
+				fn_nexists();
 		}
 
 		/**

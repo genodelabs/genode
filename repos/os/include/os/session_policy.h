@@ -193,7 +193,7 @@ void Genode::with_matching_policy(String<N>   const &label,
 
 	/* fall back to default policy if no match exists */
 	if (best_match.has_type("none"))
-		policies.with_sub_node("default-policy", [&] (Xml_node const &policy) {
+		policies.with_optional_sub_node("default-policy", [&] (Xml_node const &policy) {
 			best_match = policy; });
 
 	if (best_match.has_type("none"))

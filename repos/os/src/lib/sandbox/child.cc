@@ -66,8 +66,8 @@ Sandbox::Child::apply_config(Xml_node start_node)
 		 * The <route> node may affect the availability or unavailability
 		 * of dependencies.
 		 */
-		start_node.with_sub_node("route", [&] (Xml_node const &route) {
-			_start_node->xml().with_sub_node("route", [&] (Xml_node const &orig) {
+		start_node.with_optional_sub_node("route", [&] (Xml_node const &route) {
+			_start_node->xml().with_optional_sub_node("route", [&] (Xml_node const &orig) {
 				if (route.differs_from(orig)) {
 					_construct_route_model_from_start_node(start_node);
 					_uncertain_dependencies = true; } }); });

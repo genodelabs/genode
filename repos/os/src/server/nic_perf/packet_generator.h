@@ -74,7 +74,7 @@ class Nic_perf::Packet_generator
 			_enable   = false;
 			_state    = MUTED;
 
-			config.with_sub_node("tx", [&] (Xml_node node) {
+			config.with_optional_sub_node("tx", [&] (Xml_node node) {
 				_mtu      = node.attribute_value("mtu",      _mtu);
 				_dst_ip   = node.attribute_value("to",       _dst_ip);
 				_dst_port = node.attribute_value("udp_port", _dst_port);

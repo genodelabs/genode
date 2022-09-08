@@ -68,7 +68,7 @@ class Linker::Config : Noncopyable
 		template <typename FN>
 		void for_each_library(FN const &fn) const
 		{
-			_config.with_sub_node("ld", [&] (Xml_node ld) {
+			_config.with_optional_sub_node("ld", [&] (Xml_node ld) {
 
 				ld.for_each_sub_node("library", [&] (Xml_node lib) {
 

@@ -131,7 +131,7 @@ void Local::Main::_handle_router_state()
 
 			/* read out new DNS domain name */
 			Dns_domain_name dns_domain_name { _heap };
-			domain_node.with_sub_node("dns-domain", [&] (Xml_node const &sub_node) {
+			domain_node.with_optional_sub_node("dns-domain", [&] (Xml_node const &sub_node) {
 				xml_node_with_attribute(sub_node, "name", [&] (Xml_attribute const &attr) {
 					dns_domain_name.set_to(attr);
 				});

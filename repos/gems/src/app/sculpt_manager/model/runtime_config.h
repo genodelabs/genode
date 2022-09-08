@@ -47,13 +47,13 @@ class Sculpt::Runtime_config
 		static Start_name _to_name(Xml_node node)
 		{
 			Start_name result { };
-			node.with_sub_node("child", [&] (Xml_node child) {
+			node.with_optional_sub_node("child", [&] (Xml_node child) {
 				result = child.attribute_value("name", Start_name()); });
 
 			if (result.valid())
 				return result;
 
-			node.with_sub_node("parent", [&] (Xml_node parent) {
+			node.with_optional_sub_node("parent", [&] (Xml_node parent) {
 
 				Service::Type_name const service =
 					node.attribute_value("name", Service::Type_name());
@@ -143,8 +143,8 @@ class Sculpt::Runtime_config
 		static Start_name _primary_dependency(Xml_node const start)
 		{
 			Start_name result { };
-			start.with_sub_node("route", [&] (Xml_node route) {
-				route.with_sub_node("service", [&] (Xml_node service) {
+			start.with_optional_sub_node("route", [&] (Xml_node route) {
+				route.with_optional_sub_node("service", [&] (Xml_node service) {
 					result = _to_name(service); }); });
 
 			return result;
@@ -291,14 +291,14 @@ class Sculpt::Runtime_config
 					{
 						Dep::Update_policy policy { _alloc };
 
-						node.with_sub_node("route", [&] (Xml_node route) {
+						node.with_optional_sub_node("route", [&] (Xml_node route) {
 							elem.deps.update_from_xml(policy, route); });
 					}
 
 					{
 						Child_service::Update_policy policy { elem.name, _alloc };
 
-						node.with_sub_node("provides", [&] (Xml_node provides) {
+						node.with_optional_sub_node("provides", [&] (Xml_node provides) {
 							elem._child_services.update_from_xml(policy,
 							                                     provides); });
 					}

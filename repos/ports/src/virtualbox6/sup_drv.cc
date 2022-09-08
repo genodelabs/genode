@@ -24,8 +24,8 @@ Sup::Cpu_freq_khz Sup::Drv::_cpu_freq_khz_from_rom()
 {
 	unsigned khz = 0;
 
-	_platform_info_rom.xml().with_sub_node("hardware", [&] (Xml_node const &node) {
-		node.with_sub_node("tsc", [&] (Xml_node const &node) {
+	_platform_info_rom.xml().with_optional_sub_node("hardware", [&] (Xml_node const &node) {
+		node.with_optional_sub_node("tsc", [&] (Xml_node const &node) {
 			khz = node.attribute_value("freq_khz", khz); });
 	});
 
@@ -42,8 +42,8 @@ Sup::Drv::Cpu_virt Sup::Drv::_cpu_virt_from_rom()
 {
 	Cpu_virt virt = Cpu_virt::NONE;
 
-	_platform_info_rom.xml().with_sub_node("hardware", [&] (Xml_node const &node) {
-		node.with_sub_node("features", [&] (Xml_node const &node) {
+	_platform_info_rom.xml().with_optional_sub_node("hardware", [&] (Xml_node const &node) {
+		node.with_optional_sub_node("features", [&] (Xml_node const &node) {
 			if (node.attribute_value("vmx", false))
 				virt = Cpu_virt::VMX;
 			else if (node.attribute_value("svm", false))

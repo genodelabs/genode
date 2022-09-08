@@ -541,7 +541,7 @@ bool Main::cbe_control_file_yields_state_idle(Xml_node const &fs_query_listing,
 {
 	bool result { false };
 	bool done   { false };
-	fs_query_listing.with_sub_node("dir", [&] (Xml_node const &node_0) {
+	fs_query_listing.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
 		node_0.for_each_sub_node("file", [&] (Xml_node const &node_1) {
 			if (done) {
 				return;
@@ -631,8 +631,8 @@ Main::State_string Main::_state_to_string(State state)
 Main::State Main::_state_from_fs_query_listing(Xml_node const &node)
 {
 	State state { State::INVALID };
-	node.with_sub_node("dir", [&] (Xml_node const &node_0) {
-		node_0.with_sub_node("file", [&] (Xml_node const &node_1) {
+	node.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
+		node_0.with_optional_sub_node("file", [&] (Xml_node const &node_1) {
 			if (_has_name(node_1, "state")) {
 				state = _state_from_string(
 					node_1.decoded_content<State_string>());
@@ -817,7 +817,7 @@ void Main::_handle_snapshots_fs_query_listing(Xml_node const &node)
 	case State::CONTROLS_SECURITY_USER_PASSPHRASE:
 	{
 		bool update_dialog { false };
-		node.with_sub_node("dir", [&] (Xml_node const &node_0) {
+		node.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
 
 			_snapshots.for_each([&] (Snapshot const &snap)
 			{
@@ -931,8 +931,8 @@ void Main::_handle_client_fs_fs_query_listing(Xml_node const &node)
 	switch (_state) {
 	case State::STARTUP_DETERMINE_CLIENT_FS_SIZE:
 
-		node.with_sub_node("dir", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("file", [&] (Xml_node const &node_1) {
+		node.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("file", [&] (Xml_node const &node_1) {
 
 				if (_has_name(node_1, "data")) {
 
@@ -957,8 +957,8 @@ void Main::_handle_client_fs_fs_query_listing(Xml_node const &node)
 		switch (_resizing_state) {
 		case Resizing_state::DETERMINE_CLIENT_FS_SIZE:
 
-			node.with_sub_node("dir", [&] (Xml_node const &node_0) {
-				node_0.with_sub_node("file", [&] (Xml_node const &node_1) {
+			node.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
+				node_0.with_optional_sub_node("file", [&] (Xml_node const &node_1) {
 
 					if (_has_name(node_1, "data")) {
 
@@ -1010,8 +1010,8 @@ void Main::_handle_image_fs_query_listing(Xml_node const &node)
 	case State::CONTROLS_SECURITY_USER_PASSPHRASE:
 	{
 		size_t size { 0 };
-		node.with_sub_node("dir", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("file", [&] (Xml_node const &node_1) {
+		node.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("file", [&] (Xml_node const &node_1) {
 				if (_has_name(node_1, "cbe.img")) {
 					size = node_1.attribute_value("size", (size_t)0);
 				}
@@ -1063,7 +1063,7 @@ _child_nr_of_provided_sessions(Xml_node    const &sandbox_state,
 
 		if (child.attribute_value("name", String<128> { }) == child_state.start_name()) {
 
-			child.with_sub_node("provided", [&] (Xml_node const &provided) {
+			child.with_optional_sub_node("provided", [&] (Xml_node const &provided) {
 				provided.for_each_sub_node("session", [&] (Xml_node const &session) {
 
 					if (session.attribute_value("service", String<64> { }) == service_name) {
@@ -3507,24 +3507,24 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Setup_obtain_params_hover const prev_hover { _setup_obtain_params_hover };
 		Setup_obtain_params_hover       next_hover { Setup_obtain_params_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
 
-					node_2.with_sub_node("float", [&] (Xml_node const &node_3) {
+					node_2.with_optional_sub_node("float", [&] (Xml_node const &node_3) {
 						if (_has_name(node_3, "ok")) {
 							next_hover = Setup_obtain_params_hover::START_BUTTON;
 						}
 					});
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("frame", [&] (Xml_node const &node_4) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("frame", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Passphrase")) {
 								next_hover = Setup_obtain_params_hover::PASSPHRASE_INPUT;
 							}
 						});
-						node_3.with_sub_node("float", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("button", [&] (Xml_node const &node_5) {
+						node_3.with_optional_sub_node("float", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("button", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Show Hide")) {
 									next_hover = Setup_obtain_params_hover::PASSPHRASE_SHOW_HIDE_BUTTON;
@@ -3532,7 +3532,7 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							});
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
 
 						if (_has_name(node_3, "Client FS Size")) {
 							next_hover = Setup_obtain_params_hover::CLIENT_FS_SIZE_INPUT;
@@ -3556,24 +3556,24 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Setup_obtain_params_hover const prev_hover { _setup_obtain_params_hover };
 		Setup_obtain_params_hover       next_hover { Setup_obtain_params_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
 
-					node_2.with_sub_node("float", [&] (Xml_node const &node_3) {
+					node_2.with_optional_sub_node("float", [&] (Xml_node const &node_3) {
 						if (_has_name(node_3, "ok")) {
 							next_hover = Setup_obtain_params_hover::START_BUTTON;
 						}
 					});
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("frame", [&] (Xml_node const &node_4) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("frame", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Passphrase")) {
 								next_hover = Setup_obtain_params_hover::PASSPHRASE_INPUT;
 							}
 						});
-						node_3.with_sub_node("float", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("button", [&] (Xml_node const &node_5) {
+						node_3.with_optional_sub_node("float", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("button", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Show Hide")) {
 									next_hover = Setup_obtain_params_hover::PASSPHRASE_SHOW_HIDE_BUTTON;
@@ -3596,11 +3596,11 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Controls_root_hover const prev_hover { _controls_root_hover };
 		Controls_root_hover       next_hover { Controls_root_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -3609,9 +3609,9 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("vbox", [&] (Xml_node const &node_5) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("vbox", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Snapshots")) {
 
@@ -3646,11 +3646,11 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Snapshot_pointer const prev_snapshots_hover { _snapshots_hover };
 		Snapshot_pointer       next_snapshots_hover { };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -3658,20 +3658,20 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("vbox", [&] (Xml_node const &node_5) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("vbox", [&] (Xml_node const &node_5) {
 
 								if (_snapshots_select.valid()) {
 
-									node_5.with_sub_node("hbox", [&] (Xml_node const &node_6) {
+									node_5.with_optional_sub_node("hbox", [&] (Xml_node const &node_6) {
 
 										if (_has_name(node_6, "Leave")) {
 
 											next_hover = Controls_snapshots_hover::GENERATION_LEAVE_BUTTON;
 										}
 									});
-									node_5.with_sub_node("button", [&] (Xml_node const &node_6) {
+									node_5.with_optional_sub_node("button", [&] (Xml_node const &node_6) {
 
 										if (_has_name(node_6, "Discard")) {
 
@@ -3681,18 +3681,18 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 
 								} else {
 
-									node_5.with_sub_node("hbox", [&] (Xml_node const &node_6) {
+									node_5.with_optional_sub_node("hbox", [&] (Xml_node const &node_6) {
 
 										if (_has_name(node_6, "Leave")) {
 
 											next_hover = Controls_snapshots_hover::LEAVE_BUTTON;
 										}
 									});
-									node_5.with_sub_node("vbox", [&] (Xml_node const &node_6) {
+									node_5.with_optional_sub_node("vbox", [&] (Xml_node const &node_6) {
 
 										if (_has_name(node_6, "Generations")) {
 
-											node_6.with_sub_node("float", [&] (Xml_node const &node_7) {
+											node_6.with_optional_sub_node("float", [&] (Xml_node const &node_7) {
 
 												Generation const generation {
 													node_7.attribute_value(
@@ -3710,7 +3710,7 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 											});
 										}
 									});
-									node_5.with_sub_node("button", [&] (Xml_node const &node_6) {
+									node_5.with_optional_sub_node("button", [&] (Xml_node const &node_6) {
 
 										if (_has_name(node_6, "Create")) {
 
@@ -3741,11 +3741,11 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Dimensions_hover const prev_hover { _dimensions_hover };
 		Dimensions_hover       next_hover { Dimensions_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -3753,16 +3753,16 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("hbox", [&] (Xml_node const &node_5) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("hbox", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Leave")) {
 
 									next_hover = Dimensions_hover::LEAVE_BUTTON;
 								}
 							});
-							node_4.with_sub_node("vbox", [&] (Xml_node const &node_5) {
+							node_4.with_optional_sub_node("vbox", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Expand Client FS")) {
 
@@ -3793,11 +3793,11 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Expand_client_fs_hover const prev_hover { _expand_client_fs_hover };
 		Expand_client_fs_hover       next_hover { Expand_client_fs_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -3806,24 +3806,24 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("vbox", [&] (Xml_node const &node_5) {
-								node_5.with_sub_node("hbox", [&] (Xml_node const &node_6) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("vbox", [&] (Xml_node const &node_5) {
+								node_5.with_optional_sub_node("hbox", [&] (Xml_node const &node_6) {
 
 									if (_has_name(node_6, "Leave")) {
 
 										next_hover = Expand_client_fs_hover::LEAVE_BUTTON;
 									}
 								});
-								node_5.with_sub_node("float", [&] (Xml_node const &node_6) {
+								node_5.with_optional_sub_node("float", [&] (Xml_node const &node_6) {
 
 									if (_has_name(node_6, "Start")) {
 
 										next_hover = Expand_client_fs_hover::START_BUTTON;
 									}
 								});
-								node_5.with_sub_node("frame", [&] (Xml_node const &node_6) {
+								node_5.with_optional_sub_node("frame", [&] (Xml_node const &node_6) {
 
 									if (_has_name(node_6, "Contingent")) {
 
@@ -3848,12 +3848,12 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Expand_snapshot_buf_hover const prev_hover { _expand_snapshot_buf_hover };
 		Expand_snapshot_buf_hover       next_hover { Expand_snapshot_buf_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
 
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -3862,25 +3862,25 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("vbox", [&] (Xml_node const &node_5) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("vbox", [&] (Xml_node const &node_5) {
 
-								node_5.with_sub_node("hbox", [&] (Xml_node const &node_6) {
+								node_5.with_optional_sub_node("hbox", [&] (Xml_node const &node_6) {
 
 									if (_has_name(node_6, "Leave")) {
 
 										next_hover = Expand_snapshot_buf_hover::LEAVE_BUTTON;
 									}
 								});
-								node_5.with_sub_node("float", [&] (Xml_node const &node_6) {
+								node_5.with_optional_sub_node("float", [&] (Xml_node const &node_6) {
 
 									if (_has_name(node_6, "Start")) {
 
 										next_hover = Expand_snapshot_buf_hover::START_BUTTON;
 									}
 								});
-								node_5.with_sub_node("frame", [&] (Xml_node const &node_6) {
+								node_5.with_optional_sub_node("frame", [&] (Xml_node const &node_6) {
 
 									if (_has_name(node_6, "Contingent")) {
 
@@ -3905,11 +3905,11 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Controls_security_hover const prev_hover { _controls_security_hover };
 		Controls_security_hover       next_hover { Controls_security_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -3918,16 +3918,16 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("hbox", [&] (Xml_node const &node_5) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("hbox", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Leave")) {
 
 									next_hover = Controls_security_hover::SECURITY_EXPAND_BUTTON;
 								}
 							});
-							node_4.with_sub_node("vbox", [&] (Xml_node const &node_5) {
+							node_4.with_optional_sub_node("vbox", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Block Encryption Key")) {
 
@@ -3959,11 +3959,11 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Controls_security_block_encryption_key_hover const prev_hover { _controls_security_block_encryption_key_hover };
 		Controls_security_block_encryption_key_hover       next_hover { Controls_security_block_encryption_key_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -3972,16 +3972,16 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("button", [&] (Xml_node const &node_5) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("button", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Rekey")) {
 
 									next_hover = Controls_security_block_encryption_key_hover::REPLACE_BUTTON;
 								}
 							});
-							node_4.with_sub_node("hbox", [&] (Xml_node const &node_5) {
+							node_4.with_optional_sub_node("hbox", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Leave")) {
 
@@ -4005,11 +4005,11 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Controls_security_master_key_hover const prev_hover { _controls_security_master_key_hover };
 		Controls_security_master_key_hover       next_hover { Controls_security_master_key_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -4018,9 +4018,9 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("hbox", [&] (Xml_node const &node_5) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("hbox", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Leave")) {
 
@@ -4044,11 +4044,11 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 		Controls_security_user_passphrase_hover const prev_hover { _controls_security_user_passphrase_hover };
 		Controls_security_user_passphrase_hover       next_hover { Controls_security_user_passphrase_hover::NONE };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &node_0) {
-			node_0.with_sub_node("frame", [&] (Xml_node const &node_1) {
-				node_1.with_sub_node("vbox", [&] (Xml_node const &node_2) {
-					node_2.with_sub_node("hbox", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("button", [&] (Xml_node const &node_4) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &node_0) {
+			node_0.with_optional_sub_node("frame", [&] (Xml_node const &node_1) {
+				node_1.with_optional_sub_node("vbox", [&] (Xml_node const &node_2) {
+					node_2.with_optional_sub_node("hbox", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("button", [&] (Xml_node const &node_4) {
 
 							if (_has_name(node_4, "Shut down")) {
 
@@ -4057,9 +4057,9 @@ void File_vault::Main::_handle_hover(Xml_node const &node)
 							}
 						});
 					});
-					node_2.with_sub_node("frame", [&] (Xml_node const &node_3) {
-						node_3.with_sub_node("vbox", [&] (Xml_node const &node_4) {
-							node_4.with_sub_node("hbox", [&] (Xml_node const &node_5) {
+					node_2.with_optional_sub_node("frame", [&] (Xml_node const &node_3) {
+						node_3.with_optional_sub_node("vbox", [&] (Xml_node const &node_4) {
+							node_4.with_optional_sub_node("hbox", [&] (Xml_node const &node_5) {
 
 								if (_has_name(node_5, "Leave")) {
 

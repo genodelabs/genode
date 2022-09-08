@@ -631,8 +631,8 @@ void Dialog::handle_hover(Xml_node const &hover)
 
 			_hovered_position.construct(max_x, y);
 
-			node.with_sub_node("float", [&] (Xml_node node) {
-				node.with_sub_node("label", [&] (Xml_node node) {
+			node.with_optional_sub_node("float", [&] (Xml_node node) {
+				node.with_optional_sub_node("label", [&] (Xml_node node) {
 
 					Line::Index const x {
 						node.attribute_value("at", max_x.value) };
@@ -654,14 +654,14 @@ void Dialog::handle_hover(Xml_node const &hover)
 
 	_text_hovered = false;
 
-	hover.with_sub_node("frame", [&] (Xml_node node) {
-		node.with_sub_node("button", [&] (Xml_node node) {
+	hover.with_optional_sub_node("frame", [&] (Xml_node node) {
+		node.with_optional_sub_node("button", [&] (Xml_node node) {
 
 			_text_hovered = true;
 
-			node.with_sub_node("float", [&] (Xml_node node) {
-				node.with_sub_node("vbox", [&] (Xml_node node) {
-					node.with_sub_node("hbox", [&] (Xml_node node) {
+			node.with_optional_sub_node("float", [&] (Xml_node node) {
+				node.with_optional_sub_node("vbox", [&] (Xml_node node) {
+					node.with_optional_sub_node("hbox", [&] (Xml_node node) {
 						with_hovered_line(node); }); }); }); }); });
 
 	if (hover_changed || position_changed || (_text_hovered != orig_text_hovered))

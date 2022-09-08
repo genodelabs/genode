@@ -67,12 +67,12 @@ struct Sculpt::Component : Noncopyable
 			if (path != pkg.attribute_value("path", Path()))
 				return;
 
-			pkg.with_sub_node("runtime", [&] (Xml_node runtime) {
+			pkg.with_optional_sub_node("runtime", [&] (Xml_node runtime) {
 
 				ram  = runtime.attribute_value("ram", Number_of_bytes());
 				caps = runtime.attribute_value("caps", 0UL);
 
-				runtime.with_sub_node("requires", [&] (Xml_node requires) {
+				runtime.with_optional_sub_node("requires", [&] (Xml_node requires) {
 					routes.update_from_xml(_route_update_policy, requires); });
 			});
 

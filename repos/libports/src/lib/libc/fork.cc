@@ -140,7 +140,7 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node config)
 		xml.attribute("pid", _pid);
 
 		typedef String<Vfs::MAX_PATH_LEN> Path;
-		config.with_sub_node("libc", [&] (Xml_node node) {
+		config.with_optional_sub_node("libc", [&] (Xml_node node) {
 			if (node.has_attribute("rtc"))
 				xml.attribute("rtc", node.attribute_value("rtc", Path()));
 			if (node.has_attribute("pipe"))

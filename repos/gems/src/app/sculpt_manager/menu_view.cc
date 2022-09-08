@@ -35,7 +35,7 @@ void Menu_view::_handle_hover()
 		_seq_number.construct(seq);
 	}
 
-	hover.with_sub_node("dialog", [&] (Xml_node hover) {
+	hover.with_optional_sub_node("dialog", [&] (Xml_node hover) {
 		_hovered = true;
 		hover_result = _dialog.hover(hover);
 	});

@@ -104,7 +104,7 @@ Qemu::Controller *Qemu::usb_init(Timer_queue &tq, Pci_device &pci,
 	_type_init_xhci_pci_register_types();
 	_type_init_usb_host_register_types(&ep, &alloc, &env);
 
-	config.with_sub_node("webcam", [&] (Genode::Xml_node const &node) {
+	config.with_optional_sub_node("webcam", [&] (Genode::Xml_node const &node) {
 		_type_init_host_webcam_register_types(env, node);
 	});
 

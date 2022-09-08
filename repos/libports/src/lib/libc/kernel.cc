@@ -47,7 +47,7 @@ size_t Libc::Kernel::_user_stack_size()
 {
 	size_t size = Component::stack_size();
 
-	_libc_env.libc_config().with_sub_node("stack", [&] (Xml_node stack) {
+	_libc_env.libc_config().with_optional_sub_node("stack", [&] (Xml_node stack) {
 		size = stack.attribute_value("size", Number_of_bytes(0)); });
 
 	return size;

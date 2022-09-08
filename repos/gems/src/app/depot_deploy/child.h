@@ -428,11 +428,11 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			Affinity::Location location { };
 
 			if (affinity_from_launcher)
-				launcher_xml.with_sub_node("affinity", [&] (Xml_node node) {
+				launcher_xml.with_optional_sub_node("affinity", [&] (Xml_node node) {
 					location = Affinity::Location::from_xml(affinity_space, node); });
 
 			if (affinity_from_start)
-				start_xml.with_sub_node("affinity", [&] (Xml_node node) {
+				start_xml.with_optional_sub_node("affinity", [&] (Xml_node node) {
 					location = Affinity::Location::from_xml(affinity_space, node); });
 
 			xml.node("affinity", [&] () {

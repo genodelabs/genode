@@ -87,8 +87,8 @@ struct Test::Monitor
 	{
 		size_t result = 0;
 
-		_init_state.xml().with_sub_node("child", [&] (Xml_node const &child) {
-			child.with_sub_node("ram", [&] (Xml_node const &ram) {
+		_init_state.xml().with_optional_sub_node("child", [&] (Xml_node const &child) {
+			child.with_optional_sub_node("ram", [&] (Xml_node const &ram) {
 				result = ram.attribute_value(attr, Number_of_bytes(0)); }); });
 
 		return result;

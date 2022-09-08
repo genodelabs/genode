@@ -71,8 +71,8 @@ void Libc::init_file_operations(Cwd &cwd,
 {
 	_cwd_ptr = &cwd;
 
-	config_accessor.config().with_sub_node("libc", [&] (Xml_node libc) {
-		libc.with_sub_node("mmap", [&] (Xml_node mmap) {
+	config_accessor.config().with_optional_sub_node("libc", [&] (Xml_node libc) {
+		libc.with_optional_sub_node("mmap", [&] (Xml_node mmap) {
 			_mmap_align_log2 = mmap.attribute_value("align_log2",
 			                                        (unsigned int)PAGE_SHIFT);
 		});

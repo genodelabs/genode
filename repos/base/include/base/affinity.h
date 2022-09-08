@@ -189,10 +189,10 @@ class Genode::Affinity
 			Affinity::Space    space    { };
 			Affinity::Location location { };
 
-			node.with_sub_node("affinity", [&] (Xml_node const &node) {
-				node.with_sub_node("space", [&] (Xml_node const &node) {
+			node.with_optional_sub_node("affinity", [&] (Xml_node const &node) {
+				node.with_optional_sub_node("space", [&] (Xml_node const &node) {
 					space = Space::from_xml(node); });
-				node.with_sub_node("location", [&] (Xml_node const &node) {
+				node.with_optional_sub_node("location", [&] (Xml_node const &node) {
 					location = Location::from_xml(space, node); });
 			});
 

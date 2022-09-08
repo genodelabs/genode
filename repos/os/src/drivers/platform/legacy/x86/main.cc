@@ -77,7 +77,7 @@ struct Platform::Main
 
 			try {
 				Attached_rom_dataspace info { _env, "platform_info" };
-				info.xml().with_sub_node("kernel", [&] (Xml_node const &node) {
+				info.xml().with_optional_sub_node("kernel", [&] (Xml_node const &node) {
 					acpi_platform = node.attribute_value("acpi", acpi_platform);
 					msi_platform  = node.attribute_value("msi" , msi_platform);
 				});
@@ -188,7 +188,7 @@ void Platform::Main::_attempt_acpi_reset()
 	if (!acpi_rom.constructed())
 		return;
 
-	acpi_rom->xml().with_sub_node("reset", [&] (Xml_node reset) {
+	acpi_rom->xml().with_optional_sub_node("reset", [&] (Xml_node reset) {
 
 		uint16_t const io_port = reset.attribute_value("io_port", (uint16_t)0);
 		uint8_t  const value   = reset.attribute_value("value",   (uint8_t)0);

@@ -145,7 +145,7 @@ class Libc::Vfs_plugin final : public Plugin
 		static bool _init_pipe_configured(Xml_node config)
 		{
 			bool result = false;
-			config.with_sub_node("libc", [&] (Xml_node libc_node) {
+			config.with_optional_sub_node("libc", [&] (Xml_node libc_node) {
 				result = libc_node.has_attribute("pipe"); });
 			return result;
 		}

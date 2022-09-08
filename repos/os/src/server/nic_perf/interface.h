@@ -107,16 +107,18 @@ class Nic_perf::Interface
 
 			_dhcp_client.destruct();
 
-			config.with_sub_node("interface", [&] (Xml_node node) {
-				_ip             = node.attribute_value("ip", _ip);
-				_dhcp_client_ip = node.attribute_value("dhcp_client_ip", _dhcp_client_ip);
+			config.with_sub_node("interface",
+				[&] (Xml_node node) {
+					_ip             = node.attribute_value("ip", _ip);
+					_dhcp_client_ip = node.attribute_value("dhcp_client_ip", _dhcp_client_ip);
 
-				if (_mac_from_policy)
-					_mac         = node.attribute_value("mac", _mac);
-			});
+					if (_mac_from_policy)
+						_mac         = node.attribute_value("mac", _mac);
+				},
 
-			if (_ip == Ipv4_address())
-				_dhcp_client.construct(_timer, *this);
+				/* node does not exist */
+				[&] () { _dhcp_client.construct(_timer, *this); }
+			);
 		}
 
 		Session_label const &label()        const { return _label; }

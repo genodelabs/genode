@@ -90,7 +90,7 @@ struct Touch_keyboard::Main : Sandbox::Local_service_base::Wakeup,
 	{
 		Input::Seq_number hover_seq { node.attribute_value("seq_number", 0U) };
 
-		node.with_sub_node("dialog", [&] (Xml_node const &dialog) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
 			_dialog.handle_hover(hover_seq, dialog); });
 	}
 

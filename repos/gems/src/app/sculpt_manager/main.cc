@@ -1247,7 +1247,7 @@ struct Sculpt::Main : Input_event_handler,
 		/*
 		 * Read static platform information
 		 */
-		_platform.xml().with_sub_node("affinity-space", [&] (Xml_node const &node) {
+		_platform.xml().with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
 			_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
 			                                  node.attribute_value("height", 1U));
 		});

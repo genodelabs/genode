@@ -318,7 +318,7 @@ void Menu_view::Main::_handle_config()
 
 	_background_color = config.attribute_value("background", Color(127, 127, 127, 255));
 
-	config.with_sub_node("vfs", [&] (Xml_node const &vfs_node) {
+	config.with_optional_sub_node("vfs", [&] (Xml_node const &vfs_node) {
 		_vfs_env.root_dir().apply_config(vfs_node); });
 
 	_handle_dialog_update();

@@ -702,7 +702,7 @@ void ::Root::_announce_service()
 	/*
 	 * Check for report policy, and resp. con-/destruct device reporter
 	 */
-	_config.xml().with_sub_node("report", [&] (Xml_node node) {
+	_config.xml().with_optional_sub_node("report", [&] (Xml_node node) {
 		_device_reporter.conditional(node.attribute_value("devices", false),
 		                             _env, "devices", "devices" );
 

@@ -37,7 +37,7 @@ class Cbe_init::Configuration
 
 		Configuration (Genode::Xml_node const &node)
 		{
-			node.with_sub_node("virtual-block-device",
+			node.with_optional_sub_node("virtual-block-device",
 			                   [&] (Genode::Xml_node const &vbd)
 			{
 				_vbd_nr_of_lvls =
@@ -47,7 +47,7 @@ class Cbe_init::Configuration
 				_vbd_nr_of_leafs =
 					vbd.attribute_value("nr_of_leafs", (Genode::uint64_t)0);
 			});
-			node.with_sub_node("free-tree",
+			node.with_optional_sub_node("free-tree",
 			                   [&] (Genode::Xml_node const &ft)
 			{
 				_ft_nr_of_lvls =

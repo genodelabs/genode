@@ -211,7 +211,7 @@ struct Terminal::Main : Character_consumer
 		_fb_mode = _gui.mode();
 
 		/* apply initial size from config, if provided */
-		_config.xml().with_sub_node("initial", [&] (Xml_node const &initial) {
+		_config.xml().with_optional_sub_node("initial", [&] (Xml_node const &initial) {
 			_fb_mode.area = Area(initial.attribute_value("width",  _fb_mode.area.w()),
 			                     initial.attribute_value("height", _fb_mode.area.h()));
 		});

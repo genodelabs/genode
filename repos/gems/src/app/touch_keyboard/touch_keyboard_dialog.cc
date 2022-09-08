@@ -105,10 +105,10 @@ void Dialog::handle_hover(Input::Seq_number seq, Xml_node const &dialog)
 	Row::Id hovered_row_id { };
 	Key::Id hovered_key_id { };
 
-	dialog.with_sub_node("frame", [&] (Xml_node const &frame) {
-		frame.with_sub_node("vbox", [&] (Xml_node const &vbox) {
-			vbox.with_sub_node("hbox", [&] (Xml_node const &hbox) {
-				hbox.with_sub_node("vbox", [&] (Xml_node const &button) {
+	dialog.with_optional_sub_node("frame", [&] (Xml_node const &frame) {
+		frame.with_optional_sub_node("vbox", [&] (Xml_node const &vbox) {
+			vbox.with_optional_sub_node("hbox", [&] (Xml_node const &hbox) {
+				hbox.with_optional_sub_node("vbox", [&] (Xml_node const &button) {
 					hovered_row_id = hbox  .attribute_value("name", Row::Id());
 					hovered_key_id = button.attribute_value("name", Key::Id());
 				});

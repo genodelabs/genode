@@ -126,13 +126,11 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		{
 			_route_model.destruct();
 
-			start.with_sub_node("route", [&] (Xml_node const &route) {
-				_route_model.construct(_alloc, route); });
-
-			if (_route_model.constructed())
-				return;
-
-			_route_model.construct(_alloc, _default_route_accessor.default_route());
+			start.with_sub_node("route",
+				[&] (Xml_node const &route) {
+					_route_model.construct(_alloc, route); },
+				[&] () {
+					_route_model.construct(_alloc, _default_route_accessor.default_route()); });
 		}
 
 		/*

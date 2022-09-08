@@ -68,7 +68,7 @@ struct Sculpt::File_browser_state : Noncopyable
 	{
 		unsigned cnt = 0;
 		with_query_result([&] (Xml_node node) {
-			node.with_sub_node("dir", [&] (Xml_node listing) {
+			node.with_optional_sub_node("dir", [&] (Xml_node listing) {
 				listing.for_each_sub_node([&] (Xml_node entry) {
 					if (Index(cnt++) == index)
 						fn(entry); }); }); });

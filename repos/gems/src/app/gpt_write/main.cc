@@ -762,7 +762,7 @@ struct Main
 		}
 
 		bool success = false;
-		config.with_sub_node("actions", [&] (Genode::Xml_node actions) {
+		config.with_optional_sub_node("actions", [&] (Genode::Xml_node actions) {
 			success = _writer->execute_actions(actions); });
 
 		_env.parent().exit(success ? 0 : 1);
