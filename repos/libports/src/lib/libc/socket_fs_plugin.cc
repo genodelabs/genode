@@ -846,18 +846,19 @@ extern "C" ssize_t socket_fs_recvmsg(int libc_fd, msghdr *msg, int flags)
 	size_t numberOfBytes = 0;
 	char *data = nullptr;
 	size_t length = 0;
-	size_t i;
 	char *buffer;
 	ssize_t res;
 	size_t amount;
 	socklen_t client_address_len;
 
 	/* iterate over all msg_iov to get the number of bytes that have to be read. */
-	for (i = 0; i < msg->msg_iovlen; i++) {
+	for (int i = 0; i < msg->msg_iovlen; i++) {
 		numberOfBytes += msg->msg_iov[i].iov_len;
-		/* As an optimization, we set the initial values of DATA and LEN
-			from the first non-empty iovec. This kicks-in in the case
-			where the whole packet fits into the first iovec buffer. */
+		/*
+		 * As an optimization, we set the initial values of DATA and LEN from
+		 * the first non-empty iovec. This kicks-in in the case where the whole
+		 * packet fits into the first iovec buffer.
+		 */
 		if (data == nullptr && msg->msg_iov[i].iov_len > 0) {
 			data = (char*)msg->msg_iov[i].iov_base;
 			length = msg->msg_iov[i].iov_len;
@@ -895,7 +896,7 @@ extern "C" ssize_t socket_fs_recvmsg(int libc_fd, msghdr *msg, int flags)
 	} else {
 		amount = length;
 		buffer = data;
-		for (i = 0; i < msg->msg_iovlen; i++) {
+		for (int i = 0; i < msg->msg_iovlen; i++) {
 #define min(a, b)        ((a) > (b) ? (b) : (a))
 			size_t copy = min (msg->msg_iov[i].iov_len, amount);
 			::memcpy (msg->msg_iov[i].iov_base, buffer, copy);
