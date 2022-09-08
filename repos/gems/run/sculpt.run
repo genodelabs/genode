@@ -803,12 +803,40 @@ proc pkg_archive_paths { values } {
 }
 
 
+##
+# Return which kind of depot archive is wanted: 'tar', 'omit', or 'list'
+#
+# tar  - includes the depot content referenced by the deploy configuration as
+#        tar archive named 'depot.tar'
+#
+# omit - skips the evaluation of the deploy configuration
+#
+# list - outputs the list of packages needed for the deployment, which can
+#        taken as input for manually publishing those packages
+#
+proc depot_archive { } {
+
+	global ::env
+
+	set archive "tar"
+	if {[info exists ::env(DEPOT)]} {
+		set archive "$::env(DEPOT)" }
+
+	if {$archive != "omit" && $archive != "tar" && $archive != "list"} {
+		puts stderr "Error: invalid value of DEPOT=$archive variable!" }
+
+	return $archive
+}
+
+
 #
 # Trigger the creation / updating of referenced depot content
 #
 # This step may update pkg versions if '--depot-auto-update' is enabled.
 #
-_collect_from_depot [pkg_archive_paths [referenced_pkg_values]]
+if {[depot_archive] == "tar" || [depot_archive] == "list"} {
+	_collect_from_depot [pkg_archive_paths [referenced_pkg_values]]
+}
 
 
 #
@@ -866,30 +894,13 @@ exec sed -i "/config/s/arch=\"\"/arch=\"[depot_spec]\"/" [initial_config_file de
 ## Depot content integrated in the Sculpt image
 ##
 
-##
-# Return which kind of depot archive is wanted 'tar' or 'omit'
-#
-proc depot_archive { } {
-
-	global ::env
-
-	set archive "tar"
-	if {[info exists ::env(DEPOT)]} {
-		set archive "$::env(DEPOT)" }
-
-	if {$archive != "omit" && $archive != "tar"} {
-		puts stderr "Error: invalid value of DEPOT=$archive variable!" }
-
-	return $archive
-}
-
 proc create_depot_archive { } {
-	global ::env
 
 	if {[depot_archive] == "tar"} {
 		create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                {*}[pkg_archive_paths [referenced_pkg_values]]
-	} else {
+
+	} elseif {[depot_archive] == "list"} {
 		puts "Do not forget to publish:"
 		puts [pkg_archive_paths [referenced_pkg_values]]
 	}
