@@ -44,16 +44,17 @@ struct Pci::Config : Genode::Mmio
 
 	struct Command : Register<0x4, 16>
 	{
-		struct Io_space_enable         : Bitfield<0,  1> {};
-		struct Memory_space_enable     : Bitfield<1,  1> {};
-		struct Bus_master_enable       : Bitfield<2,  1> {};
-		struct Special_cycle_enable    : Bitfield<3,  1> {};
-		struct Memory_write_invalidate : Bitfield<4,  1> {};
-		struct Vga_palette_snoop       : Bitfield<5,  1> {};
-		struct Parity_error_response   : Bitfield<6,  1> {};
-		struct Idsel                   : Bitfield<7,  1> {};
-		struct Serror_enable           : Bitfield<8,  1> {};
-		struct Interrupt_enable        : Bitfield<10, 1> {};
+		struct Io_space_enable          : Bitfield<0,  1> {};
+		struct Memory_space_enable      : Bitfield<1,  1> {};
+		struct Bus_master_enable        : Bitfield<2,  1> {};
+		struct Special_cycle_enable     : Bitfield<3,  1> {};
+		struct Memory_write_invalidate  : Bitfield<4,  1> {};
+		struct Vga_palette_snoop        : Bitfield<5,  1> {};
+		struct Parity_error_response    : Bitfield<6,  1> {};
+		struct Idsel                    : Bitfield<7,  1> {};
+		struct Serror_enable            : Bitfield<8,  1> {};
+		struct Fast_back_to_back_enable : Bitfield<9,  1> {};
+		struct Interrupt_enable         : Bitfield<10, 1> {};
 	};
 
 	struct Status : Register<0x6, 16>

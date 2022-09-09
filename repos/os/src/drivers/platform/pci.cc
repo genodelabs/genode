@@ -20,6 +20,7 @@
 #include <pci.h>
 #include <pci_uhci.h>
 #include <pci_intel_graphics.h>
+#include <pci_hd_audio.h>
 
 using namespace Genode;
 using namespace Pci;
@@ -62,6 +63,7 @@ struct Config_helper
 
 		/* apply different PCI quirks, bios handover etc. */
 		Driver::pci_uhci_quirks(_cfg, _config.base());
+		Driver::pci_hd_audio_quirks(_cfg, _config);
 	}
 
 	void disable()
