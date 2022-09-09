@@ -42,6 +42,26 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 		                                     irq, trigger, polarity, device_config_phys)),
 		Irq_session_client(cap())
 	{ }
+
+	/**
+	 * Constructor for label-based configuration (used by pin driver)
+	 *
+	 * \param label    session label
+	 */
+	Irq_connection(Env        &env,
+	               char const *label)
+	:
+		Connection<Irq_session>(env, session(env.parent(),
+		                                     "ram_quota=%u, cap_quota=%u, "
+		                                     "irq_number=%u, irq_trigger=%u, "
+		                                     "irq_polarity=%u, device_config_phys=0x%lx, "
+		                                     "label=\"%s\"",
+		                                     RAM_QUOTA, CAP_QUOTA, 0,
+		                                     Irq_session::TRIGGER_UNCHANGED,
+		                                     Irq_session::POLARITY_UNCHANGED,
+		                                     0, label)),
+		Irq_session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__IRQ_SESSION__CONNECTION_H_ */
