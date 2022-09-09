@@ -616,7 +616,6 @@ void Audio::init_driver(Genode::Env &env, Genode::Allocator &alloc,
                         Genode::Signal_context_capability announce_sigh)
 {
 	Bsd::mem_init(env, alloc);
-	Bsd::irq_init(env.ep(), alloc);
 	Bsd::timer_init(env);
 
 	static Task bsd_task(env, alloc, config, announce_sigh);

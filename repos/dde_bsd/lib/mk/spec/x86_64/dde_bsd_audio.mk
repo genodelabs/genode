@@ -1,6 +1,6 @@
 INC_DIR += $(LIB_INC_DIR)/spec/x86_64 $(LIB_INC_DIR)/spec/x86
 
-include $(REP_DIR)/lib/mk/dde_bsd_audio.inc
+include $(REP_DIR)/lib/mk/dde_bsd_audio_pci.inc
 
 vpath %.S $(LIB_DIR)/spec/x86_64
 

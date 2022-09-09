@@ -40,8 +40,6 @@ short pv[] = { -1, PCI_BUS_PARENT };
 struct cfdata cfdata[] = {
 	{&audio_ca,  &audio_cd,  0, 0, 0, 0, pv+0, 0, 0},
 	{&azalia_ca, &azalia_cd, 0, 0, 0, 0, pv+1, 0, 0},
-	{&eap_ca,    &eap_cd,    0, 0, 0, 0, pv+1, 0, 0},
-	{&auich_ca,  &auich_cd,  0, 0, 0, 0, pv+1, 0, 0},
 };
 
 

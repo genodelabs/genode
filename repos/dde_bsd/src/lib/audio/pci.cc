@@ -16,162 +16,130 @@
 #include <base/log.h>
 #include <base/object_pool.h>
 #include <dataspace/client.h>
-#include <io_port_session/connection.h>
-#include <io_mem_session/connection.h>
-#include <legacy/x86/platform_session/connection.h>
-#include <legacy/x86/platform_device/client.h>
+#include <platform_session/device.h>
+#include <platform_session/dma_buffer.h>
 #include <util/retry.h>
 
 /* local includes */
+#include <audio/audio.h>
 #include <bsd.h>
 #include <bsd_emul.h>
+#include <scheduler.h>
 
 #include <extern_c_begin.h>
 # include <dev/pci/pcidevs.h>
 #include <extern_c_end.h>
 
+static constexpr bool debug = false;
 
 extern "C" int probe_cfdata(struct pci_attach_args *);
 
+static void run_irq(void *args);
+
 namespace {
 
-class Pci_driver : public Bsd::Bus_driver
+class Pci_driver
 {
-	public:
-
-		enum Pci_config { IRQ = 0x3c, CMD = 0x4,
-		                  CMD_IO = 0x1, CMD_MEMORY = 0x2, CMD_MASTER = 0x4 };
-
 	private:
 
-		Genode::Env       &_env;
-		Genode::Allocator &_alloc;
+		enum { DMA_SIZE = 1024 * 1024 };
+
+		Genode::Env          & _env;
+		Platform::Connection   _pci    { _env };
+		Platform::Dma_buffer   _buffer { _pci, DMA_SIZE, Genode::UNCACHED };
+		Genode::Allocator_avl  _alloc;
+
+		struct Device
+		{
+			Platform::Device       dev;
+			Platform::Device::Irq  irq;
+			Platform::Device::Mmio mmio;
+
+			Device(Platform::Connection &pci,
+			       Platform::Device::Name const &name)
+			: dev { pci, name }, irq { dev }, mmio { dev }
+			{ }
+		};
+
+		Genode::Constructible<Device> _device { };
+
+		uint16_t _vendor_id     { 0U };
+		uint16_t _device_id     { 0U };
+		uint32_t _class_code    { 0U };
+		uint16_t _sub_vendor_id { 0U };
+		uint16_t _sub_device_id { 0U };
+
+		typedef int (*intrh_t)(void*);
+
+		intrh_t   _irq_func { nullptr };
+		void    * _irq_arg  { nullptr };
+		Bsd::Task _irq_task { run_irq, this, "irq", Bsd::Task::PRIORITY_3,
+		                      Bsd::scheduler(), 1024 * sizeof(long) };
+
+		Genode::Io_signal_handler<Pci_driver> _irq_handler { _env.ep(), *this,
+		                                                     &Pci_driver::_irq_handle };
 
 		struct pci_attach_args _pa { 0, 0, 0, 0, 0 };
 
-		Platform::Connection        _pci { _env };
-		Platform::Device_capability _cap;
-
-		Genode::Io_port_connection *_io_port { nullptr };
-
-		/**
-		 * The Dma_region_manager provides memory used for DMA
-		 * and manages its mappings.
-		 */
-		struct Dma_region_manager : public Genode::Allocator_avl
+		void _irq_handle()
 		{
-			Genode::Env &env;
+			_irq_task.unblock();
+			Bsd::scheduler().schedule();
+		}
 
-			enum { BACKING_STORE_SIZE = 1024 * 1024 };
+		Genode::addr_t _buffer_base() {
+			return (Genode::addr_t)_buffer.local_addr<char>(); }
 
-			Genode::addr_t base;
-			Genode::addr_t mapped_base;
+		void _handle_device_list() { /* intentionally left empty */ }
 
-			bool _dma_initialized { false };
+		void _wait_for_device_list(Genode::Entrypoint &ep,
+		                                  Platform::Connection &pci)
+		{
+			using namespace Genode;
+			Constructible<Io_signal_handler<Pci_driver>> handler { };
 
-			Pci_driver &_drv;
-
-			Dma_region_manager(Genode::Env       &env,
-			                   Genode::Allocator &alloc,
-			                   Pci_driver &drv)
-			: Genode::Allocator_avl(&alloc), env(env), _drv(drv) { }
-
-			Genode::addr_t alloc(Genode::size_t size, unsigned align)
-			{
-				using namespace Genode;
-
-				if (!_dma_initialized) {
-					try {
-						Ram_dataspace_capability cap = _drv._alloc_dma_memory(BACKING_STORE_SIZE);
-						mapped_base = (addr_t)env.rm().attach(cap);
-						base        = _drv._dma_addr(cap);
-
-						Allocator_avl::add_range(mapped_base, BACKING_STORE_SIZE);
-					} catch (...) {
-						Genode::error("alloc DMA memory failed");
-						return 0;
+			bool device_list = false;
+			while (!device_list) {
+				pci.update();
+				pci.with_xml([&] (Xml_node & xml) {
+					if (xml.num_sub_nodes()) {
+						pci.sigh(Signal_context_capability());
+						if (handler.constructed())
+							handler.destruct();
+						device_list = true;
+						return;
 					}
-					_dma_initialized = true;
-				}
 
-				return Allocator_avl::alloc_aligned(size, align).convert<Genode::addr_t>(
-					[&] (void *ptr)   { return (addr_t)ptr; },
-					[&] (Alloc_error) { return 0UL; });
-			}
+					if (!handler.constructed()) {
+						handler.construct(ep, *this,
+						                  &Pci_driver::_handle_device_list);
+						pci.sigh(*handler);
+					}
 
-			void free(Genode::addr_t virt, Genode::size_t size) {
-				Genode::Allocator_avl::free((void*)virt, size); }
-
-			Genode::addr_t virt_to_phys(Genode::addr_t virt) {
-				return virt - mapped_base + base; }
-
-			Genode::addr_t phys_to_virt(Genode::addr_t phys) {
-				return phys - base + mapped_base; }
-
-		} _dma_region_manager;
-
-		/**
-		 * Scan pci bus for sound devices
-		 */
-		Platform::Device_capability _scan_pci(Platform::Device_capability const &prev)
-		{
-			Platform::Device_capability cap;
-			/* shift values for Pci interface used by Genode */
-			cap = _pci.with_upgrade([&] () {
-				return _pci.next_device(prev,
-				                        PCI_CLASS_MULTIMEDIA << 16,
-				                        PCI_CLASS_MASK << 16); });
-			
-			if (prev.valid())
-				_pci.release_device(prev);
-			return cap;
-		}
-
-		/**
-		 * Allocate DMA memory from the PCI driver
-		 */
-		Genode::Ram_dataspace_capability _alloc_dma_memory(Genode::size_t size)
-		{
-			size_t donate = size;
-
-			return Genode::retry<Genode::Out_of_ram>(
-				[&] () {
-					return Genode::retry<Genode::Out_of_caps>(
-						[&] () { return _pci.alloc_dma_buffer(size, Genode::UNCACHED); },
-						[&] () { _pci.upgrade_caps(2); });
-				},
-				[&] () {
-					_pci.upgrade_ram(donate);
-					donate = donate * 2 > size ? 4096 : donate * 2;
+					ep.wait_and_dispatch_one_io_signal();
 				});
-		}
-
-		/**
-		 * Get physical address for DMA dataspace
-		 */
-		Genode::addr_t _dma_addr(Genode::Ram_dataspace_capability ds_cap)
-		{
-			return _pci.dma_addr(ds_cap);
+			}
 		}
 
 	public:
 
-		Pci_driver(Genode::Env &env, Genode::Allocator &alloc)
+		Pci_driver(Genode::Env &env, Genode::Allocator & alloc)
 		:
-			_env(env), _alloc(alloc),
-			_dma_region_manager(_env, _alloc, *this)
-		{ }
+			_env(env), _alloc(&alloc)
+		{
+			_alloc.add_range(_buffer_base(), DMA_SIZE);
 
-		Genode::Env &env() { return _env; }
+			/* will "block" until device list becomes available */
+			_wait_for_device_list(_env.ep(), _pci);
+		}
 
-		Genode::Allocator &alloc() { return _alloc; }
-
-		Platform::Device_capability cap() { return _cap; }
-
-		Platform::Connection &pci() { return _pci; }
+		uint16_t sub_device_id() { return _sub_device_id; }
+		uint16_t sub_vendor_id() { return _sub_vendor_id; }
 
 		int probe()
 		{
+			using namespace Genode;
+
 			_pci.upgrade_ram(8*1024);
 
 			/*
@@ -183,148 +151,129 @@ class Pci_driver : public Bsd::Bus_driver
 			_pa.pa_dmat = (bus_dma_tag_t)this;
 			_pa.pa_pc   = (pci_chipset_tag_t)this;
 
-			int found = 0;
-			while ((_cap = _scan_pci(_cap)).valid()) {
-				Platform::Device_client device(_cap);
+			bool found = false;
+			_pci.update();
+			_pci.with_xml([&] (Xml_node node) {
+				node.for_each_sub_node("device", [&] (Xml_node node)
+				{
+					if (found) return;
 
-				uint8_t bus, dev, func;
-				device.bus_address(&bus, &dev, &func);
+					String<16> name = node.attribute_value("name", String<16>());
 
-				if ((device.device_id() == PCI_PRODUCT_INTEL_CORE4G_HDA_2) ||
-				    (device.vendor_id() == PCI_VENDOR_INTEL &&
-				     bus == 0 && dev == 3 && func == 0)) {
-					Genode::warning("ignore ", (unsigned)bus, ":", (unsigned)dev, ":",
-					                (unsigned)func, ", not supported HDMI/DP HDA device");
-					continue;
-				}
+					node.with_optional_sub_node("pci-config", [&] (Xml_node node)
+					{
+						_vendor_id      = node.attribute_value("vendor_id", 0U);
+						_device_id      = node.attribute_value("device_id", 0U);
+						_class_code     = node.attribute_value("class", 0U);
+						_sub_vendor_id  = node.attribute_value("sub_vendor_id", 0U);
+						_sub_device_id  = node.attribute_value("sub_device_id", 0U);
 
-				/* we do the shifting to match OpenBSD's assumptions */
-				_pa.pa_tag   = 0x80000000UL | (bus << 16) | (dev << 11) | (func << 8);
-				_pa.pa_class = device.class_code() << 8;
-				_pa.pa_id    = device.vendor_id() | device.device_id() << 16;
+						if ((_device_id == PCI_PRODUCT_INTEL_CORE4G_HDA_2) ||
+						    (_vendor_id == PCI_VENDOR_INTEL && name == "00:03.0")) {
+							warning("ignore ", name,
+							        ", not supported HDMI/DP HDA device");
+							return;
+						}
 
-				if (probe_cfdata(&_pa)) {
-					found++;
-					break;
-				}
-			}
+						/* we only construct the first useable device we find */
+						_device.construct(_pci, name);
+						_device->irq.sigh(_irq_handler);
 
-			return found;
+						/* we do the shifting to match OpenBSD's assumptions */
+						_pa.pa_tag   = 0x80000000UL;
+						_pa.pa_class = _class_code << 8;
+						_pa.pa_id    = _vendor_id | _device_id << 16;
+
+						if (probe_cfdata(&_pa))
+							found = true;
+					});
+				});
+			});
+
+			return found ? 1 : 0;
 		}
 
-		/**************************
-		 ** Bus_driver interface **
-		 **************************/
+		void irq_handler(intrh_t handler, void * arg)
+		{
+			_irq_func = handler;
+			_irq_arg  = arg;
+		}
 
-		Genode::Irq_session_capability irq_session() override {
-			return Platform::Device_client(_cap).irq(0); }
+		void handle_irq()
+		{
+			_irq_func(_irq_arg);
+			_device->irq.ack();
+		}
 
-		Genode::addr_t alloc(Genode::size_t size, int align) override {
-			return _dma_region_manager.alloc(size, align); }
 
-		void free(Genode::addr_t virt, Genode::size_t size) override {
-			_dma_region_manager.free(virt, size); }
+		/*********************
+		 ** Mmio management **
+		 *********************/
 
-		Genode::addr_t virt_to_phys(Genode::addr_t virt) override {
-			return _dma_region_manager.virt_to_phys(virt); }
+		Genode::addr_t mmio_base() { return _device->mmio.base(); }
+		Genode::size_t mmio_size() { return _device->mmio.size(); }
 
-		Genode::addr_t phys_to_virt(Genode::addr_t phys) override {
-			return _dma_region_manager.phys_to_virt(phys); }
+		template <typename T>
+		T read(Genode::size_t offset) {
+			return *(volatile T*)(_device->mmio.base() + offset); }
+
+		template <typename T>
+		void write(Genode::size_t offset, T value) {
+			*(volatile T*)(_device->mmio.base() + offset) = value; }
+
+
+		/********************
+		 ** DMA management **
+		 ********************/
+
+		Genode::addr_t alloc(Genode::size_t size, unsigned align)
+		{
+			using namespace Genode;
+
+			return _alloc.alloc_aligned(size, align).convert<Genode::addr_t>(
+				[&] (void *ptr)                  { return (addr_t)ptr; },
+				[&] (Allocator_avl::Alloc_error) { return 0UL; });
+		}
+
+		void free(Genode::addr_t virt, Genode::size_t size) {
+			_alloc.free((void*)virt, size); }
+
+		Genode::addr_t virt_to_phys(Genode::addr_t virt) {
+			return virt - _buffer_base() + _buffer.dma_addr(); }
+
+		Genode::addr_t phys_to_virt(Genode::addr_t phys) {
+			return phys - _buffer.dma_addr() + _buffer_base(); }
 };
 
 
 /**********************
- ** Bus space helper **
+ ** dev/pci/pcivar.h **
  **********************/
 
-struct Bus_space
+extern "C" int pci_intr_map(struct pci_attach_args *pa, pci_intr_handle_t *ih) {
+	return 0; }
+
+
+extern "C" void *pci_intr_establish(pci_chipset_tag_t pc, pci_intr_handle_t ih,
+                                    int ipl, int (*intrh)(void *), void *intarg,
+                                    const char *intrstr)
 {
-	virtual unsigned read_1(unsigned long address) = 0;
-	virtual unsigned read_2(unsigned long address) = 0;
-	virtual unsigned read_4(unsigned long address) = 0;
-
-	virtual void write_1(unsigned long address, unsigned char  value) = 0;
-	virtual void write_2(unsigned long address, unsigned short value) = 0;
-	virtual void write_4(unsigned long address, unsigned int   value) = 0;
-};
-
-
-/*********************
- ** I/O port helper **
- *********************/
-
-struct Io_port : public Bus_space
-{
-	Genode::Io_port_session_client _io;
-	Genode::addr_t                 _base;
-
-	Io_port(Genode::addr_t base, Genode::Io_port_session_capability cap)
-	: _io(cap), _base(base) { }
-
-	unsigned read_1(unsigned long address) {
-		return _io.inb(_base + address); }
-
-	unsigned read_2(unsigned long address) {
-		return _io.inw(_base + address); }
-
-	unsigned read_4(unsigned long address) {
-		return _io.inl(_base + address); }
-
-	void write_1(unsigned long address, unsigned char value) {
-		_io.outb(_base + address, value); }
-
-	void write_2(unsigned long address, unsigned short value) {
-		_io.outw(_base + address, value); }
-
-	void write_4(unsigned long address, unsigned int value) {
-		_io.outl(_base + address, value); }
-};
-
-
-/***********************
- ** I/O memory helper **
- ***********************/
-
-struct Io_memory : public Bus_space
-{
-	Genode::Io_mem_session_client       _mem;
-	Genode::Io_mem_dataspace_capability _mem_ds;
-	Genode::addr_t                      _vaddr;
-
-	Io_memory(Genode::Region_map                &rm,
-	          Genode::addr_t                     base,
-	          Genode::Io_mem_session_capability  cap)
-	:
-		_mem(cap),
-		_mem_ds(_mem.dataspace())
-	{
-		if (!_mem_ds.valid())
-			throw Genode::Exception();
-
-		_vaddr = rm.attach(_mem_ds);
-		_vaddr |= base & 0xfff;
-	}
-
-	unsigned read_1(unsigned long address) {
-		return *(volatile unsigned char*)(_vaddr + address); }
-
-	unsigned read_2(unsigned long address) {
-		return *(volatile unsigned short*)(_vaddr + address); }
-
-	unsigned read_4(unsigned long address) {
-		return *(volatile unsigned int*)(_vaddr + address); }
-
-	void write_1(unsigned long address, unsigned char value) {
-		*(volatile unsigned char*)(_vaddr + address) = value; }
-
-	void write_2(unsigned long address, unsigned short value) {
-		*(volatile unsigned short*)(_vaddr + address) = value; }
-
-	void write_4(unsigned long address, unsigned int value) {
-		*(volatile unsigned int*)(_vaddr + address) = value; }
-};
+	Pci_driver * drv = (Pci_driver*) pc;
+	drv->irq_handler(intrh, intarg);
+	return drv;
+}
 
 } /* anonymous namespace */
+
+static void run_irq(void *args)
+{
+	Pci_driver & pci_drv = *(Pci_driver*)args;
+
+	while (true) {
+		Bsd::scheduler().current()->block_and_schedule();
+		pci_drv.handle_irq();
+	}
+}
 
 
 int Bsd::probe_drivers(Genode::Env &env, Genode::Allocator &alloc)
@@ -362,57 +311,19 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 	/* calculate BAR from given register */
 	int r = (reg - 0x10) / 4;
 
-	Pci_driver *drv = (Pci_driver*)pa->pa_pc;
-
-	Platform::Device_capability cap = drv->cap();
-	Platform::Device_client device(cap);
-	Platform::Device::Resource res = device.resource(r);
-
-	switch (res.type()) {
-	case Platform::Device::Resource::IO:
-		{
-			Io_port *iop = new (&drv->alloc())
-			                   Io_port(res.base(), device.io_port(r));
-			*tagp = (Genode::addr_t) iop;
-			break;
-		}
-	case Platform::Device::Resource::MEMORY:
-		{
-			Io_memory *iom = new (&drv->alloc())
-			                     Io_memory(drv->env().rm(), res.base(), device.io_mem(r));
-			*tagp = (Genode::addr_t) iom;
-			break;
-		}
-	case Platform::Device::Resource::INVALID:
-		{
-			Genode::error("PCI resource type invalid");
-			return -1;
-		}
+	if (r) {
+		Genode::error("MAP BAR ", r, " not implemented yet");
+		return -1;
 	}
 
-	*handlep = res.base();
+	Pci_driver *drv = (Pci_driver*)pa->pa_pc;
+	*tagp    = (Genode::addr_t)drv;
+	*handlep = drv->mmio_base();
 
 	if (basep != 0)
-		*basep = res.base();
+		*basep = drv->mmio_base();
 	if (sizep != 0)
-		*sizep = maxsize > 0 && res.size() > maxsize ? maxsize : res.size();
-
-	/* enable bus master and I/O or memory bits */
-	uint16_t cmd = device.config_read(Pci_driver::CMD, Platform::Device::ACCESS_16BIT);
-	if (res.type() == Platform::Device::Resource::IO) {
-		cmd &= ~Pci_driver:: CMD_MEMORY;
-		cmd |= Pci_driver::CMD_IO;
-	} else {
-		cmd &= ~Pci_driver::CMD_IO;
-		cmd |= Pci_driver::CMD_MEMORY;
-	}
-
-	cmd |= Pci_driver::CMD_MASTER;
-
-	drv->pci().with_upgrade([&] () {
-		device.config_write(Pci_driver::CMD, cmd, Platform::Device::ACCESS_16BIT);
-	});
-
+		*sizep = maxsize > 0 && drv->mmio_size() > maxsize ? maxsize : drv->mmio_size();
 	return 0;
 }
 
@@ -424,17 +335,25 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 extern "C" pcireg_t pci_conf_read(pci_chipset_tag_t pc, pcitag_t tag, int reg)
 {
 	Pci_driver *drv = (Pci_driver *)pc;
-	Platform::Device_client device(drv->cap());
-	return device.config_read(reg, Platform::Device::ACCESS_32BIT);
+
+	switch (reg) {
+	case 0x4:  return 0x207; /* command register */
+	case 0x10: return drv->mmio_base();
+	case 0x2c: return drv->sub_device_id() << 16 | drv->sub_vendor_id();
+	default:
+		if (debug)
+			Genode::warning("Ignore reading of PCI config space @ ", reg);
+	};
+	return 0;
 }
 
 
 extern "C" void pci_conf_write(pci_chipset_tag_t pc, pcitag_t tag, int reg,
                                pcireg_t val)
 {
-	Pci_driver *drv = (Pci_driver *)pc;
-	Platform::Device_client device(drv->cap());
-	return device.config_write(reg, val, Platform::Device::ACCESS_32BIT);
+	if (debug)
+		Genode::warning("Ignore writing of PCI config space @ ",
+		                reg, " val=", val);
 }
 
 
@@ -446,8 +365,7 @@ extern "C" u_int8_t bus_space_read_1(bus_space_tag_t space,
                                      bus_space_handle_t handle,
                                      bus_size_t offset)
 {
-	Bus_space *bus = (Bus_space*)space;
-	return bus->read_1(offset);
+	return ((Pci_driver*)space)->read<Genode::uint8_t>(offset);
 }
 
 
@@ -455,8 +373,7 @@ extern "C" u_int16_t bus_space_read_2(bus_space_tag_t space,
                                       bus_space_handle_t handle,
                                       bus_size_t offset)
 {
-	Bus_space *bus = (Bus_space*)space;
-	return bus->read_2(offset);
+	return ((Pci_driver*)space)->read<Genode::uint16_t>(offset);
 }
 
 
@@ -464,8 +381,7 @@ extern "C" u_int32_t bus_space_read_4(bus_space_tag_t space,
                                       bus_space_handle_t handle,
                                       bus_size_t offset)
 {
-	Bus_space *bus = (Bus_space*)space;
-	return bus->read_4(offset);
+	return ((Pci_driver*)space)->read<Genode::uint32_t>(offset);
 }
 
 
@@ -473,8 +389,7 @@ extern "C" void bus_space_write_1(bus_space_tag_t space,
                                   bus_space_handle_t handle,
                                   bus_size_t offset, u_int8_t value)
 {
-	Bus_space *bus = (Bus_space*)space;
-	bus->write_1(offset, value);
+	((Pci_driver*)space)->write(offset, value);
 }
 
 
@@ -482,8 +397,7 @@ extern "C" void bus_space_write_2(bus_space_tag_t space,
                                   bus_space_handle_t handle,
                                   bus_size_t offset, u_int16_t value)
 {
-	Bus_space *bus = (Bus_space*)space;
-	bus->write_2(offset, value);
+	((Pci_driver*)space)->write(offset, value);
 }
 
 
@@ -491,8 +405,7 @@ extern "C" void bus_space_write_4(bus_space_tag_t space,
                                   bus_space_handle_t handle,
                                   bus_size_t offset, u_int32_t value)
 {
-	Bus_space *bus = (Bus_space*)space;
-	bus->write_4(offset, value);
+	((Pci_driver*)space)->write(offset, value);
 }
 
 
@@ -520,7 +433,7 @@ extern "C" void bus_dmamap_destroy(bus_dma_tag_t tag, bus_dmamap_t map) {
 extern "C" int bus_dmamap_load(bus_dma_tag_t tag, bus_dmamap_t dmam, void *buf,
                         bus_size_t buflen, struct proc *p, int flags)
 {
-	Bsd::Bus_driver *drv = (Bsd::Bus_driver *)tag;
+	Pci_driver * drv = (Pci_driver*) tag;
 
 	Genode::addr_t virt      = (Genode::addr_t)buf;
 	dmam->dm_segs[0].ds_addr = drv->virt_to_phys(virt);
@@ -540,7 +453,7 @@ extern "C" int bus_dmamem_alloc(bus_dma_tag_t tag, bus_size_t size, bus_size_t a
                                 bus_size_t boundary, bus_dma_segment_t *segs, int nsegs,
                                 int *rsegs, int flags)
 {
-	Bsd::Bus_driver *drv = (Bsd::Bus_driver *)tag;
+	Pci_driver * drv = (Pci_driver*) tag;
 
 	Genode::addr_t virt = drv->alloc(size, Genode::log2(alignment));
 	if (virt == 0)
@@ -556,7 +469,7 @@ extern "C" int bus_dmamem_alloc(bus_dma_tag_t tag, bus_size_t size, bus_size_t a
 
 extern "C" void bus_dmamem_free(bus_dma_tag_t tag, bus_dma_segment_t *segs, int nsegs)
 {
-	Bsd::Bus_driver *drv = (Bsd::Bus_driver *)tag;
+	Pci_driver * drv = (Pci_driver*) tag;
 
 	for (int i = 0; i < nsegs; i++) {
 		Genode::addr_t phys = (Genode::addr_t)segs[i].ds_addr;
@@ -575,7 +488,7 @@ extern "C" int bus_dmamem_map(bus_dma_tag_t tag, bus_dma_segment_t *segs, int ns
 		return -1;
 	}
 
-	Bsd::Bus_driver *drv = (Bsd::Bus_driver *)tag;
+	Pci_driver * drv = (Pci_driver*) tag;
 
 	Genode::addr_t phys = (Genode::addr_t)segs[0].ds_addr;
 	Genode::addr_t virt = drv->phys_to_virt(phys);

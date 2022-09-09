@@ -13,7 +13,7 @@ INC_DIR += $(AUDIO_CONTRIB_DIR)
 
 LIBS += dde_bsd_audio_include
 
-SRC_CC += dummies.cc driver.cc irq.cc mem.cc misc.cc scheduler.cc timer.cc
+SRC_CC += dummies.cc driver.cc mem.cc misc.cc scheduler.cc timer.cc
 SRC_C += bsd_emul.c
 SRC_S += setjmp.S
 
