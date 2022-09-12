@@ -474,6 +474,13 @@ struct File_system::Session : public Genode::Session
 	virtual void move(Dir_handle, Name const &from,
 	                  Dir_handle, Name const &to) = 0;
 
+	/**
+	 * Return number of directory entries
+	 *
+	 * \throw Invalid_handle     the directory handle is invalid
+	 */
+	virtual unsigned num_entries(Dir_handle) = 0;
+
 
 	/*******************
 	 ** RPC interface **
@@ -525,12 +532,14 @@ struct File_system::Session : public Genode::Session
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed, Permission_denied, Unavailable),
 	                 Dir_handle, Name const &, Dir_handle, Name const &);
+	GENODE_RPC_THROW(Rpc_num_entries, unsigned, num_entries,
+	                 GENODE_TYPE_LIST(Invalid_handle),
+	                 Dir_handle);
 
 	GENODE_RPC_INTERFACE(Rpc_tx_cap,
-	                     Rpc_file, Rpc_symlink, Rpc_dir,
-	                     Rpc_node, Rpc_watch,
+	                     Rpc_file, Rpc_symlink, Rpc_dir, Rpc_node, Rpc_watch,
 	                     Rpc_close, Rpc_status, Rpc_control, Rpc_unlink,
-	                     Rpc_truncate, Rpc_move);
+	                     Rpc_truncate, Rpc_move, Rpc_num_entries);
 };
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__FILE_SYSTEM_SESSION_H_ */

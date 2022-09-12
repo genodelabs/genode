@@ -112,6 +112,11 @@ class File_system::Session_client : public Genode::Rpc_client<Session>
 		{
 			call<Rpc_move>(from_dir, from_name, to_dir, to_name);
 		}
+
+		unsigned num_entries(Dir_handle dir) override
+		{
+			return call<Rpc_num_entries>(dir);
+		}
 };
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__CLIENT_H_ */

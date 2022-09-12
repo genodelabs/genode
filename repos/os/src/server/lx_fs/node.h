@@ -74,6 +74,8 @@ class Lx_fs::Node : public File_system::Node_base
 
 		virtual Status status() = 0;
 
+		virtual unsigned num_entries() { return 0; }
+
 		/*
 		 * File functionality
 		 */

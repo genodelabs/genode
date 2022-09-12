@@ -660,8 +660,6 @@ class Vfs_server::Session_component : private Session_resources,
 				{
 					switch (vfs_stat.type) {
 					case Vfs::Node_type::DIRECTORY:
-						return _vfs.num_dirent(node.path()) * sizeof(Directory_entry);
-
 					case Vfs::Node_type::SYMLINK:
 						return 0ULL;
 
@@ -686,6 +684,12 @@ class Vfs_server::Session_component : private Session_resources,
 			});
 
 			return fs_stat;
+		}
+
+		unsigned num_entries(Dir_handle dir_handle) override
+		{
+			return _apply(dir_handle, [&] (Directory &dir) {
+				return (unsigned)_vfs.num_dirent(dir.path()); });
 		}
 
 		void unlink(Dir_handle dir_handle, Name const &name) override

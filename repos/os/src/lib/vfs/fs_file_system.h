@@ -754,13 +754,11 @@ class Vfs::Fs_file_system : public File_system
 				path = "/";
 
 			try {
-				::File_system::Node_handle node = _fs.node(path);
-				Fs_handle_guard node_guard(*this, _fs, node,
+				::File_system::Dir_handle dir = _fs.dir(path, false);
+				Fs_handle_guard node_guard(*this, _fs, dir,
 				                           _handle_space, _fs);
 
-				::File_system::Status status = _fs.status(node);
-
-				return status.size / sizeof(::File_system::Directory_entry);
+				return _fs.num_entries(dir);
 			}
 			catch (...) { }
 			return 0;
