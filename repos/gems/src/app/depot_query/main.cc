@@ -18,7 +18,6 @@
 #include <os/reporter.h>
 #include <os/vfs.h>
 #include <depot/archive.h>
-#include <gems/lru_cache.h>
 
 /* fs_query includes */
 #include <for_each_subdir_name.h>
@@ -31,9 +30,6 @@ namespace Depot_query {
 
 	struct Recursion_limit;
 	struct Dependencies;
-	class  Stat_cache;
-	struct Rom_query;
-	class  Cached_rom_query;
 	struct Main;
 }
 
@@ -155,172 +151,7 @@ class Depot_query::Dependencies
 };
 
 
-class Depot_query::Stat_cache
-{
-	private:
-
-		struct Key
-		{
-			struct Value
-			{
-				Archive::Path path;
-
-				bool operator > (Value const &other) const
-				{
-					return strcmp(path.string(), other.path.string()) > 0;
-				}
-
-				bool operator == (Value const &other) const
-				{
-					return path == other.path;
-				}
-
-			} value;
-		};
-
-		struct Result { bool file_exists; };
-
-		typedef Lru_cache<Key, Result> Cache;
-
-		Cache::Size const _size;
-
-		Cache _cache;
-
-		Directory const &_dir;
-
-	public:
-
-		Stat_cache(Directory const &dir, Allocator &alloc, Xml_node const config)
-		:
-			_size({.value = config.attribute_value("stat_cache", Number_of_bytes(64*1024))
-			              / Cache::element_size()}),
-			_cache(alloc, _size),
-			_dir(dir)
-		{ }
-
-		bool file_exists(Archive::Path const path)
-		{
-			/* don't cache the state of the 'local' depot user */
-			if (Archive::user(path) == "local")
-				return _dir.file_exists(path);
-
-			bool result = false;
-
-			auto hit_fn  = [&] (Result const &cached_result)
-			{
-				result = cached_result.file_exists;
-			};
-
-			auto miss_fn = [&] (Cache::Missing_element &missing_element)
-			{
-				Result const stat_result { _dir.file_exists(path) };
-
-				/*
-				 * Don't cache negative results because files may appear
-				 * during installation. Later queries may find files absent
-				 * from earlier queries.
-				 */
-				if (stat_result.file_exists)
-					missing_element.construct(stat_result);
-			};
-
-			Key const key { .value = { .path = path } };
-			(void)_cache.try_apply(key, hit_fn, miss_fn);
-
-			return result;
-		}
-};
-
-
-struct Depot_query::Rom_query : Interface
-{
-	/**
-	 * Look up ROM module 'rom_label' in the archives referenced by 'pkg_path'
-	 *
-	 * \throw Directory::Nonexistent_directory
-	 * \throw Directory::Nonexistent_file
-	 * \throw File::Truncated_during_read
-	 * \throw Recursion_limit::Reached
-	 */
-	virtual Archive::Path find_rom_in_pkg(Directory::Path const &pkg_path,
-	                                      Rom_label       const &rom_label,
-	                                      Recursion_limit        recursion_limit) = 0;
-};
-
-
-class Depot_query::Cached_rom_query : public Rom_query
-{
-	private:
-
-		struct Key
-		{
-			struct Value
-			{
-				Archive::Path pkg;
-				Rom_label     rom;
-
-				bool operator > (Value const &other) const
-				{
-					return strcmp(pkg.string(), other.pkg.string()) > 0
-					    && strcmp(rom.string(), other.rom.string()) > 0;
-				}
-
-				bool operator == (Value const &other) const
-				{
-					return pkg == other.pkg && rom == other.rom;
-				}
-
-			} value;
-		};
-
-		typedef Lru_cache<Key, Archive::Path> Cache;
-
-		Cache::Size const _size;
-
-		Cache mutable _cache;
-
-		Rom_query &_rom_query;
-
-	public:
-
-		Cached_rom_query(Rom_query &rom_query, Allocator &alloc, Xml_node const config)
-		:
-			_size({.value = config.attribute_value("rom_query_cache", Number_of_bytes(64*1024))
-			              / Cache::element_size() }),
-			_cache(alloc, _size),
-			_rom_query(rom_query)
-		{ }
-
-		Archive::Path find_rom_in_pkg(Directory::Path const &pkg_path,
-		                              Rom_label       const &rom_label,
-		                              Recursion_limit        recursion_limit) override
-		{
-			/* don't cache the state of the 'local' depot user */
-			if (Archive::user(pkg_path) == "local")
-				return _rom_query.find_rom_in_pkg(pkg_path, rom_label, recursion_limit);
-
-			Archive::Path result { };
-
-			auto hit_fn  = [&] (Archive::Path const &path) { result = path; };
-
-			auto miss_fn = [&] (Cache::Missing_element &missing_element)
-			{
-				Archive::Path const path =
-					_rom_query.find_rom_in_pkg(pkg_path, rom_label, recursion_limit);
-
-				if (path.valid())
-					missing_element.construct(path);
-			};
-
-			Key const key { .value = { .pkg = pkg_path, .rom = rom_label } };
-			(void)_cache.try_apply(key, hit_fn, miss_fn);
-
-			return result;
-		}
-};
-
-
-struct Depot_query::Main : private Rom_query
+struct Depot_query::Main
 {
 	Env &_env;
 
@@ -333,8 +164,6 @@ struct Depot_query::Main : private Rom_query
 	Root_directory _root { _env, _heap, _config.xml().sub_node("vfs") };
 
 	Directory _depot_dir { _root, "depot" };
-
-	Stat_cache _depot_stat_cache { _depot_dir, _heap, _config.xml() };
 
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
@@ -364,6 +193,11 @@ struct Depot_query::Main : private Rom_query
 	typedef String<32> Version;
 
 	Architecture _architecture  { };
+
+	bool _file_exists(Directory::Path const &path)
+	{
+		return _depot_dir.file_exists(path);
+	}
 
 	template <typename FN>
 	void _with_file_content(Directory::Path const &path, char const *name, FN const &fn)
@@ -399,13 +233,7 @@ struct Depot_query::Main : private Rom_query
 		});
 	}
 
-	Cached_rom_query _cached_rom_query { *this, _heap, _config.xml() };
-
-	/**
-	 * Rom_query interface
-	 */
-	Archive::Path find_rom_in_pkg(Directory::Path const &, Rom_label const &,
-	                              Recursion_limit) override;
+	Archive::Path _find_rom_in_pkg(Directory::Path const &, Rom_label const &, Recursion_limit);
 
 	void _gen_rom_path_nodes(Xml_generator &, Xml_node const &,
 	                         Archive::Path const &, Xml_node const &);
@@ -449,8 +277,13 @@ struct Depot_query::Main : private Rom_query
 		_construct_if(query.has_sub_node("scan"),
 		              _scan_reporter, _env, "scan", "scan");
 
+		/*
+		 * Use 64 KiB as initial report size to avoid the repetitive querying
+		 * when successively expanding the reporter.
+		 */
 		_construct_if(query.has_sub_node("blueprint"),
-		              _blueprint_reporter, _env, "blueprint", "blueprint");
+		              _blueprint_reporter, _env, "blueprint", "blueprint",
+		              Expanding_reporter::Initial_buffer_size { 64*1024 });
 
 		_construct_if(query.has_sub_node("dependencies"),
 		              _dependencies_reporter, _env, "dependencies", "dependencies");
@@ -535,9 +368,9 @@ struct Depot_query::Main : private Rom_query
 
 
 Depot_query::Archive::Path
-Depot_query::Main::find_rom_in_pkg(Directory::Path const &pkg_path,
-                                   Rom_label       const &rom_label,
-                                   Recursion_limit        recursion_limit)
+Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
+                                    Rom_label       const &rom_label,
+                                    Recursion_limit        recursion_limit)
 {
 	/*
 	 * \throw Directory::Nonexistent_directory
@@ -566,7 +399,7 @@ Depot_query::Main::find_rom_in_pkg(Directory::Path const &pkg_path,
 					         Archive::name(archive_path),    "/",
 					         Archive::version(archive_path), "/", rom_label);
 
-				if (_depot_stat_cache.file_exists(rom_path))
+				if (_file_exists(rom_path))
 					result = rom_path;
 			}
 			break;
@@ -578,7 +411,7 @@ Depot_query::Main::find_rom_in_pkg(Directory::Path const &pkg_path,
 					         Archive::name(archive_path),    "/",
 					         Archive::version(archive_path), "/", rom_label);
 
-				if (_depot_stat_cache.file_exists(rom_path))
+				if (_file_exists(rom_path))
 					result = rom_path;
 			}
 			break;
@@ -586,7 +419,7 @@ Depot_query::Main::find_rom_in_pkg(Directory::Path const &pkg_path,
 		case Archive::PKG:
 
 			Archive::Path const result_from_pkg =
-				_cached_rom_query.find_rom_in_pkg(archive_path, rom_label, recursion_limit);
+				_find_rom_in_pkg(archive_path, rom_label, recursion_limit);
 
 			if (result_from_pkg.valid())
 				result = result_from_pkg;
@@ -627,7 +460,7 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
 			}
 
 			Archive::Path const rom_path =
-				_cached_rom_query.find_rom_in_pkg(pkg_path, label, Recursion_limit{8});
+				_find_rom_in_pkg(pkg_path, label, Recursion_limit{8});
 
 			if (rom_path.valid()) {
 				xml.node("rom", [&] () {
