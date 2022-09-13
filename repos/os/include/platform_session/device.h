@@ -117,6 +117,8 @@ class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio
 
 		template <typename T>
 		T *local_addr() { return reinterpret_cast<T *>(_local_addr()); }
+
+		Dataspace_capability cap() { return Attached_dataspace::cap(); }
 };
 
 
