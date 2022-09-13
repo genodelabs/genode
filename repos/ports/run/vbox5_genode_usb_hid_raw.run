@@ -322,10 +322,10 @@ compare_output_to {
 [init -> log_terminal] [init -> event_dump] Input event #4	REL_MOTION +0+1	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #5	RELEASE BTN_LEFT	key count: 0
 [init -> usb_drv] USB disconnect, device
-[init -> log_terminal] [init -> usb_drv] USB disconnect, device
+[init -> log_terminal] [init -> usb_drv -> usb_drv] USB disconnect, device
 [init -> usb_drv] new full-speed USB device
-[init -> virtualbox] Attach USB device (vendor=3eb, product=204d)
-[init -> log_terminal] [init -> usb_drv] new full-speed USB device
+[init -> virtualbox] Attach USB device usb-2-8
+[init -> log_terminal] [init -> usb_drv -> usb_drv] new full-speed USB device
 [init -> log_terminal] [init -> usb_hid_drv] input: USB HID v1.11 Keyboard [HID 03eb:204d]
 [init -> log_terminal] [init -> usb_hid_drv] input: USB HID v1.11 Mouse [HID 03eb:204d]
 [init -> log_terminal] [init -> event_dump] Input event #6	PRESS KEY_X 65534	key count: 1
