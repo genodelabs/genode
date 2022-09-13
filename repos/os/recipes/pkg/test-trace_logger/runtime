@@ -105,7 +105,7 @@
 
 		<start name="cpu_burner.1">
 			<binary name="cpu_burner"/>
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="1280K"/>
 			<route>
 				<service name="ROM" label="config">
 					<child name="dynamic_rom" label="cpu_burner1.config"/> </service>
@@ -115,7 +115,7 @@
 
 		<start name="cpu_burner.2">
 			<binary name="cpu_burner"/>
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="1280K"/>
 			<route>
 				<service name="ROM" label="config">
 					<child name="dynamic_rom" label="cpu_burner2.config"/> </service>
