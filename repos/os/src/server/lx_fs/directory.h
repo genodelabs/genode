@@ -112,6 +112,8 @@ class Lx_fs::Directory : public Node
 			closedir(_fd);
 		}
 
+		bool type_directory() const override { return true; }
+
 		void update_modification_time(Timestamp const time) override
 		{
 			struct timespec ts[2] = {

@@ -60,6 +60,8 @@ class Lx_fs::Node : public File_system::Node_base
 		uint64_t inode()   const { return _inode; }
 		char const *name() const { return _name; }
 
+		virtual bool type_directory() const { return false; }
+
 		/**
 		 * Assign name
 		 */
