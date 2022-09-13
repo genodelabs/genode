@@ -24,10 +24,8 @@
 #include <dataspace/client.h>
 #include <gpu_session/gpu_session.h>
 #include <gpu/info_intel.h>
-#include <io_mem_session/connection.h>
-#include <irq_session/connection.h>
-#include <legacy/x86/platform_device/client.h>
-#include <legacy/x86/platform_session/connection.h>
+#include <platform_session/dma_buffer.h>
+#include <platform_session/device.h>
 #include <root/component.h>
 #include <timer_session/connection.h>
 #include <util/fifo.h>
@@ -42,11 +40,9 @@
 #include <ggtt.h>
 #include <context.h>
 #include <context_descriptor.h>
-#include <resources.h>
 #include <platform_session.h>
 #include <ring_buffer.h>
 #include <workarounds.h>
-
 
 using namespace Genode;
 
@@ -78,17 +74,20 @@ struct Igd::Device
 	struct Out_of_ram            : Genode::Exception { };
 	struct Could_not_map_buffer  : Genode::Exception { };
 
-	Env       &_env;
-	Allocator &_md_alloc;
-
 	enum { WATCHDOG_TIMEOUT = 1*1000*1000, };
+
+	Env                    & _env;
+	Allocator              & _md_alloc;
+	Platform::Connection   & _platform;
+	Rm_connection          & _rm;
+	Igd::Mmio              & _mmio;
+	Platform::Device::Mmio & _gmadr;
+	uint8_t                  _gmch_ctl;
+	Timer::Connection        _timer { _env };
 
 	/*********
 	 ** PCI **
 	 *********/
-
-	Resources               &_resources;
-	Platform::Device_client &_device { _resources.gpu_client() };
 
 	struct Pci_backend_alloc : Utils::Backend_alloc
 	{
@@ -98,7 +97,8 @@ struct Igd::Device
 
 		Ram_dataspace_capability alloc(size_t size) override
 		{
-			return _pci.with_upgrade([&] () {
+			return _pci.retry_with_upgrade(Genode::Ram_quota{PAGE_SIZE},
+			                               Genode::Cap_quota{8}, [&] () {
 				return _pci.alloc_dma_buffer(size, Genode::UNCACHED); });
 		}
 
@@ -117,7 +117,7 @@ struct Igd::Device
 			return _pci.dma_addr(ds_cap);
 		}
 
-	} _pci_backend_alloc { _resources.platform() };
+	} _pci_backend_alloc { _platform };
 
 
 	Device_info                    _info          { };
@@ -127,41 +127,9 @@ struct Igd::Device
 	Gpu::Info_intel::Eu_total      _eus           { };
 	Gpu::Info_intel::Subslices     _subslices     { };
 
-	void _pci_info(String<64> const &descr) const
-	{
-		using namespace Genode;
-
-		uint16_t const vendor_id = _device.vendor_id();
-		uint16_t const device_id = _device.device_id();
-
-		uint8_t bus = 0, dev = 0, fun = 0;
-		_device.bus_address(&bus, &dev, &fun);
-
-		log("Found: '", descr, "' gen=", _info.generation,
-		    " rev=", _revision.value, " ",
-		    "[", Hex(vendor_id), ":", Hex(device_id), "] (",
-		    Hex(bus, Hex::OMIT_PREFIX), ":",
-		    Hex(dev, Hex::OMIT_PREFIX), ".",
-		    Hex(fun, Hex::OMIT_PREFIX), ")");
-
-		enum { PCI_NUM_RES = 6 };
-		for (int i = 0; i < PCI_NUM_RES; i++) {
-
-			using Resource = Platform::Device::Resource;
-
-			Resource const resource = _device.resource(i);
-
-			if (resource.type() == Resource::INVALID) { continue; }
-
-			log("  Resource ", i, " "
-			    "(", resource.type() == Resource::IO ? "I/O" : "MEM", "): "
-			    "base=", Genode::Hex(resource.base()), " "
-			    "size=", Genode::Hex(resource.size()), " ",
-			    (resource.prefetchable() ? "prefetchable" : ""));
-		}
-	}
-
-	bool _supported(Xml_node &supported)
+	bool _supported(Xml_node & supported,
+	                uint16_t   dev_id,
+	                uint8_t    rev_id)
 	{
 		bool found = false;
 
@@ -173,7 +141,7 @@ struct Igd::Device
 			uint16_t   const device     = node.attribute_value("device", 0U);
 			uint8_t    const generation = node.attribute_value("generation", 0U);
 			String<16> const platform   = node.attribute_value("platform", String<16>("unknown"));
-			String<64> const desc       = node.attribute_value("description", String<64>("unknown"));
+			//String<64> const desc       = node.attribute_value("description", String<64>("unknown"));
 
 			if (vendor != 0x8086 /* Intel */ || generation < 8)
 				return;
@@ -188,10 +156,9 @@ struct Igd::Device
 			if (info.platform == Igd::Device_info::Platform::UNKNOWN)
 				return;
 
-			if (info.id == _device.device_id()) {
+			if (info.id == dev_id) {
 				_info = info;
-				_revision.value = _resources.config_read<uint8_t>(8);
-				_pci_info(desc.string());
+				_revision.value = rev_id;
 
 				found = true;
 				return;
@@ -218,13 +185,40 @@ struct Igd::Device
 	 ** GGTT **
 	 **********/
 
-	Genode::Constructible<Igd::Ggtt> _ggtt { };
 
-	/**********
-	 ** MMIO **
-	 **********/
+	size_t _ggtt_size()
+	{
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1068
+		 */
+		struct MGGC_0_2_0_PCI : Genode::Register<16>
+		{
+			struct Graphics_mode_select               : Bitfield<8, 8> { };
+			struct Gtt_graphics_memory_size           : Bitfield<6, 2> { };
+			struct Versatile_acceleration_mode_enable : Bitfield<3, 1> { };
+			struct Igd_vga_disable                    : Bitfield<2, 1> { };
+			struct Ggc_lock                           : Bitfield<0, 1> { };
+		};
+		enum { PCI_GMCH_CTL = 0x50, };
+		MGGC_0_2_0_PCI::access_t v = _gmch_ctl;
 
-	Igd::Mmio &_mmio { _resources.mmio() };
+		{
+			log("MGGC_0_2_0_PCI");
+			log("  Graphics_mode_select:               ", Hex(MGGC_0_2_0_PCI::Graphics_mode_select::get(v)));
+			log("  Gtt_graphics_memory_size:           ", Hex(MGGC_0_2_0_PCI::Gtt_graphics_memory_size::get(v)));
+			log("  Versatile_acceleration_mode_enable: ", Hex(MGGC_0_2_0_PCI::Versatile_acceleration_mode_enable::get(v)));
+			log("  Igd_vga_disable:                    ", Hex(MGGC_0_2_0_PCI::Igd_vga_disable::get(v)));
+			log("  Ggc_lock:                           ", Hex(MGGC_0_2_0_PCI::Ggc_lock::get(v)));
+		}
+
+		return (1u << MGGC_0_2_0_PCI::Gtt_graphics_memory_size::get(v)) << 20;
+	}
+
+	addr_t _ggtt_base() const {
+		return _mmio.base() + (_mmio.size() / 2); }
+
+	Igd::Ggtt _ggtt { _platform, _mmio, _ggtt_base(),
+	                  _ggtt_size(), _gmadr.size(), APERTURE_RESERVED };
 
 	/************
 	 ** MEMORY **
@@ -250,14 +244,17 @@ struct Igd::Device
 
 	struct Ggtt_mmio_mapping : Ggtt::Mapping
 	{
-		Region_map_client _rm;
+		Region_map_client _rmc;
 
-		Ggtt_mmio_mapping(Resources &resources, Ggtt::Offset offset, size_t size)
+		Ggtt_mmio_mapping(Rm_connection      & rm,
+		                  Dataspace_capability cap,
+		                  Ggtt::Offset         offset,
+		                  size_t               size)
 		:
-			_rm(resources.rm().create(size))
+			_rmc(rm.create(size))
 		{
-			_rm.attach_at(resources.gmadr_ds(), 0, size, offset * PAGE_SIZE);
-			Ggtt::Mapping::cap    = _rm.dataspace();
+			_rmc.attach_at(cap, 0, size, offset * PAGE_SIZE);
+			Ggtt::Mapping::cap    = _rmc.dataspace();
 			Ggtt::Mapping::offset = offset;
 		}
 
@@ -280,10 +277,10 @@ struct Igd::Device
 		 */
 		Genode::Registered<Ggtt_mmio_mapping> *mem = new (&alloc)
 			Genode::Registered<Ggtt_mmio_mapping>(_ggtt_mmio_mapping_registry,
-			                                      _resources, offset, size);
+			                                      _rm, _gmadr.cap(), offset, size);
 		for (size_t i = 0; i < size; i += PAGE_SIZE) {
 			addr_t const pa = phys_addr + i;
-			_ggtt->insert_pte(pa, offset + (i / PAGE_SIZE));
+			_ggtt.insert_pte(pa, offset + (i / PAGE_SIZE));
 		}
 
 		return *mem;
@@ -296,7 +293,7 @@ struct Igd::Device
 		auto lookup_and_free = [&] (Ggtt_mmio_mapping &m) {
 			if (!(m.cap == cap)) { return; }
 
-			_ggtt->remove_pte_range(m.offset, num);
+			_ggtt.remove_pte_range(m.offset, num);
 			Genode::destroy(&alloc, &m);
 		};
 
@@ -420,7 +417,7 @@ struct Igd::Device
 		:
 			device(device),
 			alloc(alloc),
-			offset(device._ggtt->find_free(pages, true)),
+			offset(device._ggtt.find_free(pages, true)),
 			skip(skip_pages),
 			ram_ds(device, device._alloc_dataspace(pages * PAGE_SIZE)),
 			map(device, *this, alloc),
@@ -922,7 +919,7 @@ struct Igd::Device
 		_submit_execlist(rcs);
 
 		_active_vgpu = gpu;
-		_resources.timer().trigger_once(WATCHDOG_TIMEOUT);
+		_timer.trigger_once(WATCHDOG_TIMEOUT);
 	}
 
 	/**********
@@ -1030,56 +1027,28 @@ struct Igd::Device
 	/**
 	 * Constructor
 	 */
-	Device(Genode::Env                 &env,
-	       Genode::Allocator           &alloc,
-	       Resources                   &resources,
-	       Genode::Xml_node            &supported)
+	Device(Genode::Env            & env,
+	       Genode::Allocator      & alloc,
+	       Platform::Connection   & platform,
+	       Rm_connection          & rm,
+	       Igd::Mmio              & mmio,
+	       Platform::Device::Mmio & gmadr,
+	       Genode::Xml_node       & supported,
+	       uint16_t                 device_id,
+	       uint8_t                  revision,
+	       uint8_t                  gmch_ctl)
 	:
-		_env(env), _md_alloc(alloc), _resources(resources)
+		_env(env), _md_alloc(alloc), _platform(platform), _rm(rm),
+		_mmio(mmio), _gmadr(gmadr), _gmch_ctl(gmch_ctl)
 	{
 		using namespace Genode;
 
-		if (!_supported(supported)) { throw Unsupported_device(); }
+		if (!_supported(supported, device_id, revision))
+			throw Unsupported_device();
 
-		/*
-		 * IHD-OS-BDW-Vol 2c-11.15 p. 1068
-		 */
-		struct MGGC_0_2_0_PCI : Genode::Register<16>
-		{
-			struct Graphics_mode_select               : Bitfield<8, 8> { };
-			struct Gtt_graphics_memory_size           : Bitfield<6, 2> { };
-			struct Versatile_acceleration_mode_enable : Bitfield<3, 1> { };
-			struct Igd_vga_disable                    : Bitfield<2, 1> { };
-			struct Ggc_lock                           : Bitfield<0, 1> { };
-		};
-		enum { PCI_GMCH_CTL = 0x50, };
-		MGGC_0_2_0_PCI::access_t v = _resources.config_read<uint16_t>(PCI_GMCH_CTL);
+		_ggtt.dump();
 
-		{
-			log("MGGC_0_2_0_PCI");
-			log("  Graphics_mode_select:               ", Hex(MGGC_0_2_0_PCI::Graphics_mode_select::get(v)));
-			log("  Gtt_graphics_memory_size:           ", Hex(MGGC_0_2_0_PCI::Gtt_graphics_memory_size::get(v)));
-			log("  Versatile_acceleration_mode_enable: ", Hex(MGGC_0_2_0_PCI::Versatile_acceleration_mode_enable::get(v)));
-			log("  Igd_vga_disable:                    ", Hex(MGGC_0_2_0_PCI::Igd_vga_disable::get(v)));
-			log("  Ggc_lock:                           ", Hex(MGGC_0_2_0_PCI::Ggc_lock::get(v)));
-		}
-
-		/* map PCI resources */
-		addr_t gttmmadr_base = _resources.map_gttmmadr();
-
-		/* GGTT */
-		addr_t const scratch_page = _resources.scratch_page();
-
-		/* reserverd size for framebuffer */
-		size_t const aperture_reserved = resources.gmadr_platform_size();
-
-		size_t const ggtt_size = (1u << MGGC_0_2_0_PCI::Gtt_graphics_memory_size::get(v)) << 20;
-		addr_t const ggtt_base = gttmmadr_base + (_resources.gttmmadr_size() / 2);
-		size_t const gmadr_size = _resources.gmadr_size();
-		_ggtt.construct(_mmio, ggtt_base, ggtt_size, gmadr_size, scratch_page, aperture_reserved);
-		_ggtt->dump();
-
-		_vgpu_avail = (gmadr_size - aperture_reserved) / Vgpu::APERTURE_SIZE;
+		_vgpu_avail = (_gmadr.size() - APERTURE_RESERVED) / Vgpu::APERTURE_SIZE;
 
 		_device_reset_and_init();
 
@@ -1121,7 +1090,7 @@ struct Igd::Device
 		/* apply generation specific workarounds */
 		apply_workarounds(_mmio, _info.generation);
 
-		_resources.timer().sigh(_watchdog_timeout_sigh);
+		_timer.sigh(_watchdog_timeout_sigh);
 	}
 
 	void _clock_gating()
@@ -1363,7 +1332,7 @@ struct Igd::Device
 
 		size_t const size = Genode::Dataspace_client(cap).size();
 		size_t const num = size / PAGE_SIZE;
-		Ggtt::Offset const offset = _ggtt->find_free(num, aperture);
+		Ggtt::Offset const offset = _ggtt.find_free(num, aperture);
 		return map_dataspace_ggtt(guard, cap, offset);
 	}
 
@@ -1463,8 +1432,6 @@ struct Igd::Device
 	}
 
 	void enable_master_irq() { _mmio.enable_master_irq(); }
-
-	Resources &resources() { return _resources; }
 
 	private:
 
@@ -2146,31 +2113,31 @@ class Gpu::Root : public Gpu::Root_component
 };
 
 
-struct Main
+struct Initialization_failed : Genode::Exception { };
+
+
+struct Main : Irq_ack_handler, Gpu_reset_handler
 {
-	Genode::Env &_env;
+	Env                   & _env;
+	Sliced_heap             _root_heap      { _env.ram(), _env.rm()         };
+	Gpu::Root               _gpu_root       { _env, _root_heap              };
+	Attached_rom_dataspace  _config_rom     { _env, "config"                };
+	Heap                    _md_alloc       { _env.ram(), _env.rm()         };
+	Platform::Connection    _platform       { _env                          };
+	Platform::Device        _device         { _platform                     };
+	Platform::Device::Irq   _irq            { _device                       };
+	Igd::Mmio               _mmio           { _device, _env                 };
+	Platform::Device::Mmio  _gmadr          { _device, { 1 }                };
+	Rm_connection           _rm             { _env                          };
+	Io_signal_handler<Main> _irq_dispatcher { _env.ep(), *this,
+	                                          &Main::handle_irq             };
+	Signal_handler<Main>    _config_sigh    { _env.ep(), *this,
+	                                          &Main::_handle_config_update  };
 
-	/*********
-	 ** Gpu **
-	 *********/
+	Platform::Root _platform_root { _env, _md_alloc, _platform, *this, *this,
+	                                _mmio, _gmadr, _rm };
 
-	Genode::Sliced_heap            _root_heap  { _env.ram(), _env.rm() };
-	Gpu::Root                      _gpu_root   { _env, _root_heap };
-	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
-
-	Genode::Heap                       _device_md_alloc { _env.ram(), _env.rm() };
-	Genode::Constructible<Igd::Device> _device { };
-	Igd::Resources                     _gpu_resources { _env, _device_md_alloc,
-	                                                   *this, &Main::ack_irq };
-
-	Genode::Irq_session_client     _irq { _gpu_resources.gpu_client().irq(0) };
-	Genode::Signal_handler<Main>   _irq_dispatcher {
-		_env.ep(), *this, &Main::handle_irq };
-
-	Constructible<Platform::Root> _platform_root { };
-
-	Genode::Signal_handler<Main> _config_sigh {
-		_env.ep(), *this, &Main::_handle_config_update };
+	Genode::Constructible<Igd::Device> _igd_device { };
 
 	Main(Genode::Env &env)
 	:
@@ -2180,29 +2147,33 @@ struct Main
 
 		/* IRQ */
 		_irq.sigh(_irq_dispatcher);
-		_irq.ack_irq();
 
 		/* GPU */
 		_handle_config_update();
-
-		/* platform service */
-		_platform_root.construct(_env, _device_md_alloc, _gpu_resources);
 	}
 
-	void _handle_config_update()
+	void _create_device()
 	{
-		_config_rom.update();
+		uint16_t device_id;
+		uint8_t  revision;
+		uint8_t  gmch_ctl;
 
-		if (!_config_rom.valid()) { return; }
-
-		if (_device.constructed()) {
-			Genode::log("gpu device already initialized - ignore");
-			return;
-		}
+		_platform.update();
+		_platform.with_xml([&] (Xml_node node) {
+			node.with_optional_sub_node("device", [&] (Xml_node node) {
+				node.with_optional_sub_node("pci-config", [&] (Xml_node node) {
+					device_id = node.attribute_value("device_id", 0U);
+					revision  = node.attribute_value("revision",  0U);
+					gmch_ctl  = node.attribute_value("intel_gmch_control",  0U);
+				});
+			});
+		});
 
 		try {
-			_device.construct(_env, _device_md_alloc, _gpu_resources, _config_rom.xml());
-			_gpu_root.manage(*_device);
+			_igd_device.construct(_env, _md_alloc, _platform, _rm, _mmio,
+			                      _gmadr, _config_rom.xml(), device_id,
+			                      revision, gmch_ctl);
+			_gpu_root.manage(*_igd_device);
 			_env.parent().announce(_env.ep().manage(_gpu_root));
 		} catch (Igd::Device::Unsupported_device) {
 			Genode::warning("No supported Intel GPU detected - no GPU service");
@@ -2211,14 +2182,28 @@ struct Main
 		}
 	}
 
+	void _handle_config_update()
+	{
+		_config_rom.update();
+
+		if (!_config_rom.valid()) { return; }
+
+		if (_igd_device.constructed()) {
+			Genode::log("gpu device already initialized - ignore");
+			return;
+		}
+
+		_create_device();
+	}
+
 	void handle_irq()
 	{
 		unsigned master = 0;
-		if (_device.constructed())
-			master = _device->handle_irq();
+		if (_igd_device.constructed())
+			master = _igd_device->handle_irq();
 		/* GPU not present forward all IRQs to platform client */
 		else {
-			_platform_root->handle_irq();
+			_platform_root.handle_irq();
 			return;
 		}
 
@@ -2228,19 +2213,25 @@ struct Main
 		 */
 		using Master = Igd::Mmio::MASTER_INT_CTL;
 		if (Master::De_interrupts_pending::get(master) &&
-		    (_platform_root->handle_irq()))
+		    (_platform_root.handle_irq()))
 			return;
 
 		ack_irq();
 	}
 
-	void ack_irq()
+	void ack_irq() override
 	{
-		if (_device.constructed()) {
-			_device->enable_master_irq();
+		if (_igd_device.constructed()) {
+			_igd_device->enable_master_irq();
 		}
 
-		_irq.ack_irq();
+		_irq.ack();
+	}
+
+	void reset() override
+	{
+		addr_t const base = _mmio.base() + (_mmio.size() / 2);
+		Igd::Ggtt(_platform, _mmio, base, Igd::GTT_RESERVED, 0, 0);
 	}
 };
 
@@ -2250,7 +2241,7 @@ void Component::construct(Genode::Env &env)
 	static Constructible<Main> main;
 	try {
 		main.construct(env);
-	} catch (Igd::Resources::Initialization_failed) {
+	} catch (Initialization_failed) {
 		Genode::warning("Intel GPU resources not found.");
 		env.parent().exit(0);
 	}

@@ -16,19 +16,17 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <util/mmio.h>
+#include <platform_session/device.h>
+#include <timer_session/connection.h>
 
 /* local includes */
 #include <types.h>
 
 
-namespace Igd {
-
-	class Mmio;
-}
+namespace Igd { class Mmio; }
 
 
-class Igd::Mmio : public Genode::Mmio
+class Igd::Mmio : public Platform::Device::Mmio
 {
 	public:
 
@@ -936,7 +934,13 @@ class Igd::Mmio : public Genode::Mmio
 
 	private:
 
-		Mmio::Delayer &_delayer;
+		struct Timer_delayer : Genode::Mmio::Delayer
+		{
+			Timer::Connection _timer;
+			Timer_delayer(Genode::Env & env) : _timer(env) { }
+
+			void usleep(uint64_t us) override { _timer.usleep(us); }
+		} _delayer;
 
 		void _fw_reset_gen8()
 		{
@@ -1419,8 +1423,8 @@ class Igd::Mmio : public Genode::Mmio
 
 	public:
 
-		Mmio(Mmio::Delayer &delayer, addr_t const base)
-		: Genode::Mmio(base), _delayer(delayer) { }
+		Mmio(Platform::Device & device, Genode::Env & env)
+		: Platform::Device::Mmio(device, {0}), _delayer(env) { }
 
 		template <typename T>
 		void write_post(typename T::access_t const value)

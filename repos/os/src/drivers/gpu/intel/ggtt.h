@@ -21,10 +21,7 @@
 #include <mmio.h>
 
 
-namespace Igd {
-
-	struct Ggtt;
-}
+namespace Igd { struct Ggtt; }
 
 /*
  * Global Graphics Translation Table
@@ -56,6 +53,12 @@ class Igd::Ggtt
 		};
 
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Ggtt(Ggtt const &);
+		Ggtt &operator = (Ggtt const &);
 
 		/*
 		 * IHD-OS-BDW-Vol 5-11.15 p. 44
@@ -113,7 +116,8 @@ class Igd::Ggtt
 
 		uint64_t *_entries;
 
-		addr_t const _scratch_page;
+		Platform::Dma_buffer _scratch_page;
+
 		size_t const _aperture_size;
 		size_t const _aperture_entries;
 
@@ -133,6 +137,7 @@ class Igd::Ggtt
 		/**
 		 * Constructor
 		 *
+		 * \param platform       reference to Platform::Connection object
 		 * \param mmio           reference to Igd::Mmio object
 		 * \param base           virtual base address of GGTT start
 		 * \param size           size of GGTT in bytes
@@ -140,9 +145,8 @@ class Igd::Ggtt
 		 * \param scratch_page   physical address of the scratch page
 		 * \param fb_size        size of the framebuffer region in the GTT in bytes
 		 */
-		Ggtt(Igd::Mmio &mmio, addr_t base, size_t size,
-		     size_t aperture_size, addr_t scratch_page,
-		     size_t fb_size)
+		Ggtt(Platform::Connection & platform, Igd::Mmio &mmio,
+		     addr_t base, size_t size, size_t aperture_size, size_t fb_size)
 		:
 			_mmio(mmio),
 			_base(base),
@@ -150,7 +154,7 @@ class Igd::Ggtt
 			/* make the last entry/page unavailable */
 			_num_entries((_size / 8) - 1),
 			_entries((uint64_t*)_base),
-			_scratch_page(scratch_page),
+			_scratch_page(platform, PAGE_SIZE, Genode::UNCACHED),
 			_aperture_size(aperture_size),
 			_aperture_entries(_aperture_size / PAGE_SIZE)
 		{
@@ -160,7 +164,7 @@ class Igd::Ggtt
 				_space.set(i);
 			}
 			for (size_t i = fb_entries; i < _num_entries; i++) {
-				_insert_pte(_scratch_page, i);
+				_insert_pte(_scratch_page.dma_addr(), i);
 			}
 		}
 
@@ -197,7 +201,7 @@ class Igd::Ggtt
 			}
 
 			_space.clear(offset);
-			_insert_pte(_scratch_page, offset);
+			_insert_pte(_scratch_page.dma_addr(), offset);
 		}
 
 		/**
@@ -270,13 +274,6 @@ class Igd::Ggtt
 		 */
 		size_t entries() const { return _num_entries; }
 
-		/**
-		 * Get scratch page address
-		 *
-		 * \return physical address of the scratch page
-		 */
-		addr_t scratch_page() const { return _scratch_page; }
-
 		/*********************
 		 ** Debug interface **
 		 *********************/
@@ -290,7 +287,7 @@ class Igd::Ggtt
 			log("GGTT");
 			log("  vaddr:", Hex(_base), " size:", Hex(_size), " entries:", _num_entries,
 			    " used:", _space.used(), " aperture_size:", Hex(_aperture_size));
-			log("  scratch_page:", Hex(_scratch_page), " (PA)");
+			log("  scratch_page:", Hex(_scratch_page.dma_addr()), " (PA)");
 
 			if (!dump_entries) { return; }
 
