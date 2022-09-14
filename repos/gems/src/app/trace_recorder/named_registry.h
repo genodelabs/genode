@@ -22,12 +22,6 @@ namespace Trace_recorder {
 	using namespace Genode;
 
 	template <typename T> class Named_registry;
-
-	template <size_t N1, size_t N2>
-	static inline bool operator > (String<N1> const &s1, String<N2> const &s2)
-	{
-		return strcmp(s1.string(), s2.string()) > 0;
-	}
 }
 
 template <typename T>

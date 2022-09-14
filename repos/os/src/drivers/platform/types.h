@@ -20,12 +20,6 @@ namespace Driver {
 
 	using namespace Genode;
 
-	template <size_t N1, size_t N2>
-	static inline bool operator > (String<N1> const &s1, String<N2> const &s2)
-	{
-		return strcmp(s1.string(), s2.string()) > 0;
-	}
-
 	/**
 	 * Utility for switching clocks/resets/powers on/off depending on the
 	 * number of users
