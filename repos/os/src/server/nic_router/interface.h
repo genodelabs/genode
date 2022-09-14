@@ -103,9 +103,7 @@ struct Net::Interface_policy
 
 	virtual Genode::Session_label const &label() const = 0;
 
-	virtual void interface_ready() = 0;
-
-	virtual void interface_unready() = 0;
+	virtual void handle_domain_ready_state(bool) = 0;
 
 	virtual bool interface_link_state() const = 0;
 
@@ -367,6 +365,10 @@ class Net::Interface : private Interface_list::Element
 
 		void _handle_pkt_stream_signal();
 
+		void _reset_and_refetch_domain_ready_state();
+
+		void _refetch_domain_ready_state();
+
 	public:
 
 		struct Free_resources_and_retry_handle_eth : Genode::Exception { L3_protocol prot; Free_resources_and_retry_handle_eth(L3_protocol prot = (L3_protocol)0) : prot(prot) { } };
@@ -455,6 +457,8 @@ class Net::Interface : private Interface_list::Element
 		void handle_interface_link_state();
 
 		void report(Genode::Xml_generator &xml);
+
+		void handle_domain_ready_state(bool state);
 
 
 		/***************

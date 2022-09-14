@@ -127,21 +127,15 @@ Net::Nic_client_interface_base::
 { }
 
 
-void Net::Nic_client_interface_base::interface_unready()
+void Net::Nic_client_interface_base::handle_domain_ready_state(bool state)
 {
-	_interface_ready = false;
-};
-
-
-void Net::Nic_client_interface_base::interface_ready()
-{
-	_interface_ready = true;
-};
+	_domain_ready = state;
+}
 
 
 bool Net::Nic_client_interface_base::interface_link_state() const
 {
-	return _interface_ready && _session_link_state;
+	return _domain_ready && _session_link_state;
 }
 
 

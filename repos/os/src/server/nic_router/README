@@ -485,10 +485,32 @@ sub-tags. The attribute states the domain from whose IP config to take the DNS
 domain name and the list of DNS server addresses that shall be propagated. Note
 that the order of DNS server adresses is not altered thereby. This is useful in
 scenarios where these addresses must be obtained dynamically through the DHCP
-client of another domain. An implication of the 'dns_config_from' attribute is
-that the link state of all interfaces at the domain with the DHCP server
-becomes bound to the validity of the IP config of the domain that is stated in
-the attribute.
+client of another domain.
+
+There is an additional feature the router implements together with the
+'dns_config_from' functionality. If a domain has a DHCP server with a
+'dns_config_from' value that denominates another valid domain, the link state
+of all interfaces, where the router is a NIC session server, at the first
+domain becomes bound to the validity of the IP config of the second domain.
+
+One motivation for having this feature is to optimize the network boot-up time
+of application clients of the NIC router by preventing DHCP re-attempt
+timeouts. Such timeouts would occur because clients attempt DHCP as soon as
+their interface goes up and without the extra feature, the DHCP server would
+potentially not be ready yet.
+
+But this feature is not only an optimization. It also implies that whenever the
+domain denominated by 'dns_config_from' receives a new IP config with a new DNS
+configuration, application clients are poked via a link state "down-up"
+sequence to re-request DHCP and thereby update their DNS configuration. I.e. it
+enables dynamic DNS config propagation.
+
+However, please be aware this feature is limited to applications that connect
+directly and via a NIC session client to the NIC router. This is due to two
+technical limitations. First, the router can't control the link state at
+interfaces where he acts as NIC session client or Uplink session server. And
+second, the router can't ensure that link state changes reach the client if
+there are intermediate network components like a NIC bridge.
 
 The lifetime of an IP address assignment that was yet only offered to the
 client can be configured for all domains in the <config> tag of the router:

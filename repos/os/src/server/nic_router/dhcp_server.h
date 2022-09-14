@@ -105,7 +105,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		void free_ip(Domain       const &domain,
 		             Ipv4_address const &ip);
 
-		bool ready() const;
+		bool has_invalid_remote_dns_cfg() const;
 
 		template <typename FUNC>
 		void for_each_dns_server_ip(FUNC && functor) const

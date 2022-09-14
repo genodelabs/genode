@@ -223,6 +223,10 @@ class Net::Domain : public Domain_base,
 
 		void add_dropped_fragm_ipv4(unsigned long dropped_fragm_ipv4);
 
+		bool is_ready() const;
+
+		void update_ready_state();
+
 
 		/*********
 		 ** log **

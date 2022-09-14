@@ -223,14 +223,12 @@ Pointer<Domain> Dhcp_server::_init_dns_config_from(Genode::Xml_node const  node,
 }
 
 
-bool Dhcp_server::ready() const
+bool Dhcp_server::has_invalid_remote_dns_cfg() const
 {
-	if (!_dns_servers.empty()) {
-		return true;
+	if (_dns_config_from.valid()) {
+		return !_dns_config_from().ip_config().valid();
 	}
-	try { return _dns_config_from().ip_config().valid(); }
-	catch (Pointer<Domain>::Invalid) { }
-	return true;
+	return false;
 }
 
 

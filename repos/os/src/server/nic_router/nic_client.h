@@ -107,7 +107,7 @@ class Net::Nic_client_interface_base : public Interface_policy
 		Const_reference<Domain_name>  _domain_name;
 		Genode::Session_label  const  _label;
 		bool                   const &_session_link_state;
-		bool                          _interface_ready { false };
+		bool                          _domain_ready { false };
 
 
 		/***************************
@@ -117,8 +117,7 @@ class Net::Nic_client_interface_base : public Interface_policy
 		Domain_name determine_domain_name() const override { return _domain_name(); };
 		void handle_config(Configuration const &) override { }
 		Genode::Session_label const &label() const override { return _label; }
-		void interface_unready() override;
-		void interface_ready() override;
+		void handle_domain_ready_state(bool state) override;
 		bool interface_link_state() const override;
 
 	public:

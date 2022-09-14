@@ -52,7 +52,7 @@ Interface_policy::Interface_policy(Genode::Session_label const &label,
 	_config      { config },
 	_session_env { session_env }
 {
-	_session_link_state_transition(UP);
+	_session_link_state_transition(DOWN);
 }
 
 
@@ -86,70 +86,72 @@ Interface_policy::_session_link_state_transition(Transient_link_state tls)
 }
 
 
-void Net::Nic_session_component::Interface_policy::interface_unready()
+void Net::
+Nic_session_component::Interface_policy::handle_domain_ready_state(bool state)
 {
-	switch (_transient_link_state) {
-	case UP_ACKNOWLEDGED:
+	if (state) {
 
-		_session_link_state_transition(DOWN);
-		break;
+		switch (_transient_link_state) {
+		case DOWN_ACKNOWLEDGED:
 
-	case UP:
+			_session_link_state_transition(UP);
+			break;
 
-		_transient_link_state = UP_DOWN;
-		break;
+		case DOWN:
 
-	case DOWN_UP:
+			_transient_link_state = DOWN_UP;
+			break;
 
-		_transient_link_state = DOWN_UP_DOWN;
-		break;
+		case UP_DOWN:
 
-	case UP_DOWN:
+			_transient_link_state = UP_DOWN_UP;
+			break;
 
-		break;
+		case DOWN_UP:
 
-	case UP_DOWN_UP:
+			break;
 
-		_transient_link_state = UP_DOWN;
-		break;
+		case DOWN_UP_DOWN:
 
-	case DOWN_ACKNOWLEDGED: break;
-	case DOWN:              break;
-	case DOWN_UP_DOWN:      break;
-	}
-}
+			_transient_link_state = DOWN_UP;
+			break;
 
+		case UP_ACKNOWLEDGED: break;
+		case UP:              break;
+		case UP_DOWN_UP:      break;
+		}
 
-void Net::Nic_session_component::Interface_policy::interface_ready()
-{
-	switch (_transient_link_state) {
-	case DOWN_ACKNOWLEDGED:
+	} else {
 
-		_session_link_state_transition(UP);
-		break;
+		switch (_transient_link_state) {
+		case UP_ACKNOWLEDGED:
 
-	case DOWN:
+			_session_link_state_transition(DOWN);
+			break;
 
-		_transient_link_state = DOWN_UP;
-		break;
+		case UP:
 
-	case UP_DOWN:
+			_transient_link_state = UP_DOWN;
+			break;
 
-		_transient_link_state = UP_DOWN_UP;
-		break;
+		case DOWN_UP:
 
-	case DOWN_UP:
+			_transient_link_state = DOWN_UP_DOWN;
+			break;
 
-		break;
+		case UP_DOWN:
 
-	case DOWN_UP_DOWN:
+			break;
 
-		_transient_link_state = DOWN_UP;
-		break;
+		case UP_DOWN_UP:
 
-	case UP_ACKNOWLEDGED: break;
-	case UP:              break;
-	case UP_DOWN_UP:      break;
+			_transient_link_state = UP_DOWN;
+			break;
+
+		case DOWN_ACKNOWLEDGED: break;
+		case DOWN:              break;
+		case DOWN_UP_DOWN:      break;
+		}
 	}
 }
 

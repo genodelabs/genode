@@ -49,6 +49,26 @@ void Domain::_log_ip_config() const
 }
 
 
+bool Domain::is_ready() const
+{
+	if (_dhcp_server.valid()) {
+		if (_dhcp_server().has_invalid_remote_dns_cfg()) {
+			return false;
+		}
+	}
+	return true;
+}
+
+
+void Domain::update_ready_state()
+{
+	bool const ready { is_ready() };
+	_interfaces.for_each([&] (Interface &interface) {
+		interface.handle_domain_ready_state(ready);
+	});
+}
+
+
 void Domain::_prepare_reconstructing_ip_config()
 {
 	if (!_ip_config_dynamic) {
@@ -65,9 +85,7 @@ void Domain::_prepare_reconstructing_ip_config()
 			interface.detach_from_ip_config(*this);
 		});
 		_ip_config_dependents.for_each([&] (Domain &domain) {
-			domain._interfaces.for_each([&] (Interface &interface) {
-				interface.detach_from_remote_ip_config();
-			});
+			domain.update_ready_state();
 		});
 		/* dissolve foreign ARP waiters */
 		while (_foreign_arp_waiters.first()) {
@@ -88,9 +106,7 @@ void Domain::_finish_reconstructing_ip_config()
 			interface.attach_to_ip_config(*this, ip_config());
 		});
 		_ip_config_dependents.for_each([&] (Domain &domain) {
-			domain._interfaces.for_each([&] (Interface &interface) {
-				interface.attach_to_remote_ip_config();
-			});
+			domain.update_ready_state();
 		});
 	} else {
 		_interfaces.for_each([&] (Interface &interface) {
@@ -234,7 +250,7 @@ Domain::~Domain()
 Dhcp_server &Domain::dhcp_server()
 {
 	Dhcp_server &dhcp_server = _dhcp_server();
-	if (!dhcp_server.ready()) {
+	if (dhcp_server.has_invalid_remote_dns_cfg()) {
 		throw Pointer<Dhcp_server>::Invalid();
 	}
 	return dhcp_server;

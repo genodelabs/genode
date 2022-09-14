@@ -337,7 +337,7 @@ Interface::_transport_rules(Domain &local_domain, L3_protocol const prot) const
 void Interface::_attach_to_domain_raw(Domain &domain)
 {
 	_domain = domain;
-	_policy.interface_ready();
+	_refetch_domain_ready_state();
 	_interfaces.remove(this);
 	domain.attach_interface(*this);
 }
@@ -349,7 +349,7 @@ void Interface::_detach_from_domain_raw()
 	domain.detach_interface(*this);
 	_interfaces.insert(this);
 	_domain = Pointer<Domain>();
-	_policy.interface_unready();
+	_refetch_domain_ready_state();
 
 	domain.add_dropped_fragm_ipv4(_dropped_fragm_ipv4);
 	domain.tcp_stats().dissolve_interface(_tcp_stats);
@@ -367,7 +367,7 @@ void Interface::_update_domain_object(Domain &new_domain) {
 	old_domain.interface_updates_domain_object(*this);
 	_interfaces.insert(this);
 	_domain = Pointer<Domain>();
-	_policy.interface_unready();
+	_refetch_domain_ready_state();
 
 	old_domain.add_dropped_fragm_ipv4(_dropped_fragm_ipv4);
 	old_domain.tcp_stats().dissolve_interface(_tcp_stats);
@@ -378,7 +378,7 @@ void Interface::_update_domain_object(Domain &new_domain) {
 
 	/* attach raw */
 	_domain = new_domain;
-	_policy.interface_ready();
+	_refetch_domain_ready_state();
 	_interfaces.remove(this);
 	new_domain.attach_interface(*this);
 }
@@ -452,18 +452,26 @@ void Interface::detach_from_ip_config(Domain &domain)
 }
 
 
-void Interface::detach_from_remote_ip_config()
+void Interface::handle_domain_ready_state(bool state)
 {
-	/* only the DNS server address of the local DHCP server can be remote */
-	_policy.interface_unready();
-
+	_policy.handle_domain_ready_state(state);
 }
 
 
-void Interface::attach_to_remote_ip_config()
+void Interface::_refetch_domain_ready_state()
 {
-	/* only the DNS server address of the local DHCP server can be remote */
-	_policy.interface_ready();
+	if (_domain.valid()) {
+		handle_domain_ready_state(_domain().is_ready());
+	} else {
+		handle_domain_ready_state(false);
+	}
+}
+
+
+void Interface::_reset_and_refetch_domain_ready_state()
+{
+	_policy.handle_domain_ready_state(false);
+	_refetch_domain_ready_state();
 }
 
 
@@ -2138,8 +2146,7 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 		}
 	}
 	if (dhcp_clients_outdated) {
-		_policy.interface_unready();
-		_policy.interface_ready();
+		_reset_and_refetch_domain_ready_state();
 	}
 }
 

@@ -118,8 +118,7 @@ class Net::Nic_session_component : private Nic_session_component_base,
 				void handle_config(Configuration const &config) override { _config = config; }
 				Genode::Session_label const &label() const override { return _label; }
 				void report(Genode::Xml_generator &xml) const override { _session_env.report(xml); };
-				void interface_unready() override;
-				void interface_ready() override;
+				void handle_domain_ready_state(bool state) override;
 				bool interface_link_state() const override;
 		};
 
