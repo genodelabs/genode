@@ -17,6 +17,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <os/vfs.h>
+#include <util/dictionary.h>
 #include <depot/archive.h>
 
 /* fs_query includes */
@@ -28,10 +29,91 @@ namespace Depot_query {
 
 	typedef String<64> Rom_label;
 
+	struct Directory_cache;
 	struct Recursion_limit;
 	struct Dependencies;
 	struct Main;
 }
+
+
+struct Depot_query::Directory_cache : Noncopyable
+{
+	Allocator &_alloc;
+
+	using Name = Directory::Entry::Name;
+
+	struct Listing;
+	using Listings = Dictionary<Listing, Directory::Path>;
+
+	struct Listing : Listings::Element
+	{
+		Allocator &_alloc;
+
+		struct File;
+		using Files = Dictionary<File, Name>;
+
+		struct File : Files::Element
+		{
+			File(Files &files, Name const &name) : Files::Element(files, name) { }
+		};
+
+		Files _files { };
+
+		Listing(Listings &listings, Allocator &alloc, Directory &dir,
+		        Directory::Path const &path)
+		:
+			Listings::Element(listings, path), _alloc(alloc)
+		{
+			try {
+				Directory(dir, path).for_each_entry([&] (Directory::Entry const &entry) {
+					new (_alloc) File(_files, entry.name()); });
+			}
+			catch (Directory::Nonexistent_directory) {
+				warning("directory '", path, "' does not exist");
+			}
+		}
+
+		~Listing()
+		{
+			auto destroy_fn = [&] (File &f) { destroy(_alloc, &f); };
+
+			while (_files.with_any_element(destroy_fn));
+		}
+
+		bool file_exists(Name const &name) const { return _files.exists(name); }
+	};
+
+	Listings mutable _listings { };
+
+	Directory_cache(Allocator &alloc) : _alloc(alloc) { }
+
+	~Directory_cache()
+	{
+		auto destroy_fn = [&] (Listing &l) { destroy(_alloc, &l); };
+
+		while (_listings.with_any_element(destroy_fn));
+	}
+
+	bool file_exists(Directory &dir, Directory::Path const &path, Name const &name) const
+	{
+		bool listing_known = false;
+
+		bool const result =
+			_listings.with_element(path,
+				[&] /* match */ (Listing const &listing) {
+					listing_known = true;
+					return listing.file_exists(name);
+				},
+				[&] /* no_match */ { return false; });
+
+		if (listing_known)
+			return result;
+
+		Listing &new_listing = *new (_alloc) Listing(_listings, _alloc, dir, path);
+
+		return new_listing.file_exists(name);
+	}
+};
 
 
 class Depot_query::Recursion_limit : Noncopyable
@@ -165,6 +247,8 @@ struct Depot_query::Main
 
 	Directory _depot_dir { _root, "depot" };
 
+	Constructible<Directory_cache> _directory_cache { };
+
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
@@ -194,9 +278,14 @@ struct Depot_query::Main
 
 	Architecture _architecture  { };
 
-	bool _file_exists(Directory::Path const &path)
+	bool _file_exists(Directory::Path const &path, Rom_label const &file_name)
 	{
-		return _depot_dir.file_exists(path);
+		if (!_directory_cache.constructed()) {
+			error("directory cache is unexpectedly not constructed");
+			return false;
+		}
+
+		return _directory_cache->file_exists(_depot_dir, path, file_name);
 	}
 
 	template <typename FN>
@@ -252,6 +341,8 @@ struct Depot_query::Main
 		_config.update();
 
 		Xml_node const config = _config.xml();
+
+		_directory_cache.construct(_heap);
 
 		/*
 		 * Depending of the 'query' config attribute, we obtain the query
@@ -394,25 +485,25 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 		case Archive::SRC:
 			{
 				Archive::Path const
-					rom_path(Archive::user(archive_path),    "/bin/",
-					         _architecture,                  "/",
-					         Archive::name(archive_path),    "/",
-					         Archive::version(archive_path), "/", rom_label);
+					rom_path(Archive::user(archive_path), "/bin/",
+					         _architecture,               "/",
+					         Archive::name(archive_path), "/",
+					         Archive::version(archive_path));
 
-				if (_file_exists(rom_path))
-					result = rom_path;
+				if (_file_exists(rom_path, rom_label))
+					result = Archive::Path(rom_path, "/", rom_label);
 			}
 			break;
 
 		case Archive::RAW:
 			{
 				Archive::Path const
-					rom_path(Archive::user(archive_path),    "/raw/",
-					         Archive::name(archive_path),    "/",
-					         Archive::version(archive_path), "/", rom_label);
+					rom_path(Archive::user(archive_path), "/raw/",
+					         Archive::name(archive_path), "/",
+					         Archive::version(archive_path));
 
-				if (_file_exists(rom_path))
-					result = rom_path;
+				if (_file_exists(rom_path, rom_label))
+					result = Archive::Path(rom_path, "/", rom_label);
 			}
 			break;
 
