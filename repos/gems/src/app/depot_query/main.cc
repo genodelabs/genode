@@ -298,6 +298,7 @@ struct Depot_query::Main
 		}
 		catch (File_content::Nonexistent_file)   { }
 		catch (Directory::Nonexistent_directory) { }
+		catch (File::Truncated_during_read)      { }
 	}
 
 	/**
@@ -322,8 +323,7 @@ struct Depot_query::Main
 		});
 	}
 
-	Archive::Path _find_rom_in_pkg(Directory::Path const &, Rom_label const &, Recursion_limit);
-
+	Archive::Path _find_rom_in_pkg(File_content const &, Rom_label const &, Recursion_limit);
 	void _gen_rom_path_nodes(Xml_generator &, Xml_node const &,
 	                         Archive::Path const &, Xml_node const &);
 	void _gen_inherited_rom_path_nodes(Xml_generator &, Xml_node const &,
@@ -459,21 +459,10 @@ struct Depot_query::Main
 
 
 Depot_query::Archive::Path
-Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
+Depot_query::Main::_find_rom_in_pkg(File_content    const &archives,
                                     Rom_label       const &rom_label,
                                     Recursion_limit        recursion_limit)
 {
-	/*
-	 * \throw Directory::Nonexistent_directory
-	 */
-	Directory pkg_dir(_depot_dir, pkg_path);
-
-	/*
-	 * \throw Directory::Nonexistent_file
-	 * \throw File::Truncated_during_read
-	 */
-	File_content archives(_heap, pkg_dir, "archives", File_content::Limit{16*1024});
-
 	Archive::Path result;
 
 	archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
@@ -509,12 +498,14 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 
 		case Archive::PKG:
 
-			Archive::Path const result_from_pkg =
-				_find_rom_in_pkg(archive_path, rom_label, recursion_limit);
+			_with_file_content(archive_path, "archives", [&] (File_content const &archives) {
 
-			if (result_from_pkg.valid())
-				result = result_from_pkg;
+				Archive::Path const result_from_pkg =
+					_find_rom_in_pkg(archives, rom_label, recursion_limit);
 
+				if (result_from_pkg.valid())
+					result = result_from_pkg;
+			});
 			break;
 		}
 	});
@@ -527,43 +518,45 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
                                             Archive::Path const &pkg_path,
                                             Xml_node      const &runtime)
 {
-	runtime.for_each_sub_node("content", [&] (Xml_node content) {
-		content.for_each_sub_node([&] (Xml_node node) {
+	_with_file_content(pkg_path, "archives", [&] (File_content const &archives) {
+		runtime.for_each_sub_node("content", [&] (Xml_node content) {
+			content.for_each_sub_node([&] (Xml_node node) {
 
-			/* skip non-rom nodes */
-			if (!node.has_type("rom"))
-				return;
+				/* skip non-rom nodes */
+				if (!node.has_type("rom"))
+					return;
 
-			Rom_label const label = node.attribute_value("label", Rom_label());
+				Rom_label const label = node.attribute_value("label", Rom_label());
 
-			/* skip ROM that is provided by the environment */
-			bool provided_by_env = false;
-			env_xml.for_each_sub_node("rom", [&] (Xml_node node) {
-				if (node.attribute_value("label", Rom_label()) == label)
-					provided_by_env = true; });
+				/* skip ROM that is provided by the environment */
+				bool provided_by_env = false;
+				env_xml.for_each_sub_node("rom", [&] (Xml_node node) {
+					if (node.attribute_value("label", Rom_label()) == label)
+						provided_by_env = true; });
 
-			if (provided_by_env) {
-				xml.node("rom", [&] () {
-					xml.attribute("label", label);
-					xml.attribute("env", "yes");
-				});
-				return;
-			}
+				if (provided_by_env) {
+					xml.node("rom", [&] () {
+						xml.attribute("label", label);
+						xml.attribute("env", "yes");
+					});
+					return;
+				}
 
-			Archive::Path const rom_path =
-				_find_rom_in_pkg(pkg_path, label, Recursion_limit{8});
+				Archive::Path const rom_path =
+					_find_rom_in_pkg(archives, label, Recursion_limit{8});
 
-			if (rom_path.valid()) {
-				xml.node("rom", [&] () {
-					xml.attribute("label", label);
-					xml.attribute("path", rom_path);
-				});
+				if (rom_path.valid()) {
+					xml.node("rom", [&] () {
+						xml.attribute("label", label);
+						xml.attribute("path", rom_path);
+					});
 
-			} else {
+				} else {
 
-				xml.node("missing_rom", [&] () {
-					xml.attribute("label", label); });
-			}
+					xml.node("missing_rom", [&] () {
+						xml.attribute("label", label); });
+				}
+			});
 		});
 	});
 }
