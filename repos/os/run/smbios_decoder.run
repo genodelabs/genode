@@ -5,17 +5,10 @@ if {![have_board pc] || [expr ![have_spec nova] && ![have_spec hw]] } {
 	exit 0
 }
 
-set build_components { app/smbios_decoder core init timer server/report_rom }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-append_platform_drv_build_components
-
-build $build_components
-
+build { app/smbios_decoder core init timer drivers/acpi server/report_rom }
 create_boot_directory
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="CPU"/>
@@ -31,17 +24,34 @@ append config {
 		<service name="Report"> <child name="report_rom"/> </service>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>}
+	<default caps="200"/>
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
-	
+
+	<start name="acpi_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config>
+			<policy label="smbios_decoder -> smbios_table" report="acpi_drv -> smbios_table"/>
+		</config>
+	</start>
+
+	<start name="acpi_drv" caps="350">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Report"> <child name="acpi_report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
@@ -62,17 +72,11 @@ append config {
 </config>
 }
 
-install_config $config
-
-set boot_modules {
-	report_rom
+build_boot_image {
+	report_rom acpi_drv
 	core init timer ld.lib.so
 	smbios_decoder
 }
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
 
 append qemu_args " -nographic"
 
