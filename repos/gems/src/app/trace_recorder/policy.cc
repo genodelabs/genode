@@ -19,9 +19,9 @@ using namespace Genode;
 Trace_recorder::Policy::Policy(Env                &env,
                                Trace::Connection  &trace,
                                Policy::Name const &name,
-                               Policies           &registry)
+                               Policies           &policies)
 :
-	Policies::Element(registry, name),
+	Policies::Element(policies, name),
 	_env(env), _trace(trace), _rom(env, name.string())
 {
 		Dataspace_capability dst_ds = _trace.policy(_id);

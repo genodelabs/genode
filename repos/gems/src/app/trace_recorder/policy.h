@@ -14,10 +14,8 @@
 #ifndef _POLICY_H_
 #define _POLICY_H_
 
-/* local includes */
-#include <named_registry.h>
-
 /* Genode includes */
+#include <util/dictionary.h>
 #include <rom_session/connection.h>
 #include <trace_session/connection.h>
 #include <dataspace/client.h>
@@ -25,7 +23,8 @@
 namespace Trace_recorder {
 	class Policy;
 
-	using Policies    = Named_registry<Policy>;
+	using Policy_name = Genode::String<64>;
+	using Policies    = Genode::Dictionary<Policy, Policy_name>;
 }
 
 
@@ -35,7 +34,7 @@ namespace Trace_recorder {
 class Trace_recorder::Policy : Policies::Element
 {
 	private:
-		friend class Policies::Element;
+		friend class Genode::Dictionary<Policy, Policy_name>;
 		friend class Genode::Avl_node<Policy>;
 		friend class Genode::Avl_tree<Policy>;
 
@@ -48,14 +47,13 @@ class Trace_recorder::Policy : Policies::Element
 
 	public:
 
-		using Name = Policies::Element::Name;
+		using Name = Policy_name;
 		using Policies::Element::name;
-		using Policies::Element::Element;
 
 		Policy(Genode::Env               &env,
 		       Genode::Trace::Connection &trace,
 		       Name                const &name,
-		       Policies                  &registry);
+		       Policies                  &policies);
 
 
 		/***************

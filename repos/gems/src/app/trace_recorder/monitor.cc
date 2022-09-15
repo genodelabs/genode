@@ -104,11 +104,14 @@ void Trace_recorder::Monitor::start(Xml_node config)
 
 			/* find and assign policy; create/insert if not present */
 			Policy::Name  const policy_name = session_policy.attribute_value("policy", Policy::Name());
-			bool create = true;
-			_policies.apply(policy_name, [&] (Policy & policy) {
-				_trace.trace(id, policy.id(), buffer_sz);
-				create = false;
-			});
+			bool const create =
+				_policies.with_element(policy_name,
+					[&] /* match */ (Policy & policy) {
+						_trace.trace(id, policy.id(), buffer_sz);
+						return false;
+					},
+					[&] /* no_match */ { return true; }
+				);
 
 			/* create policy if it did not exist */
 			if (create) {
@@ -128,14 +131,17 @@ void Trace_recorder::Monitor::start(Xml_node config)
 
 			/* create and register writers at trace buffer */
 			session_policy.for_each_sub_node([&] (Xml_node & node) {
-				bool present = false;
-				_backends.apply(node.type(), [&] (Backend_base &backend) {
-					backend.create_writer(_alloc,
-					                      buffer.writers(),
-					                      _trace_directory->root(),
-					                      _trace_directory->subject_path(buffer.info()));
-					present = true;
-				});
+				bool const present =
+					_backends.with_element(node.type(),
+						[&] /* match */ (Backend_base &backend) {
+							backend.create_writer(_alloc,
+							                      buffer.writers(),
+							                      _trace_directory->root(),
+							                      _trace_directory->subject_path(buffer.info()));
+							return true;
+						},
+						[&] /* no_match */ { return false; }
+					);
 
 				if (!present)
 					error("No writer available for <", node.type(), "/>.");

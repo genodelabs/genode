@@ -14,32 +14,33 @@
 #ifndef _BACKEND_H_
 #define _BACKEND_H_
 
+/* Genode includes */
+#include <util/dictionary.h>
+
 /* local includes */
-#include <named_registry.h>
 #include <writer.h>
 
 namespace Trace_recorder {
 	class Backend_base;
 
-	using Backends     = Named_registry<Backend_base>;
+	using Backend_name = Genode::String<64>;
+	using Backends     = Genode::Dictionary<Backend_base, Backend_name>;
 }
 
 
 class Trace_recorder::Backend_base : Backends::Element
 {
 	protected:
-		friend class Backends::Element;
-		friend class Avl_node<Backend_base>;
-		friend class Avl_tree<Backend_base>;
+		friend class Genode::Dictionary<Backend_base, Backend_name>;
+		friend class Genode::Avl_node<Backend_base>;
+		friend class Genode::Avl_tree<Backend_base>;
 
 	public:
-
-		using Name = Backends::Element::Name;
+		using Name = Backend_name;
 		using Backends::Element::name;
-		using Backends::Element::Element;
 
-		Backend_base(Backends & registry, Name const &name)
-		: Backends::Element(registry, name)
+		Backend_base(Backends & backends, Name const &name)
+		: Backends::Element(backends, name)
 		{ }
 
 		virtual ~Backend_base() { }
