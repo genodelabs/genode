@@ -167,7 +167,7 @@ struct Cached_fs_rom::Transfer final
 			if (!_fs.tx()->ready_to_submit())
 				throw Packet_alloc_failed();
 
-			size_t chunk_size = (size_t)min(_size, _fs.tx()->bulk_buffer_size()/4);
+			size_t chunk_size = (size_t)min(_size, _fs.tx()->bulk_buffer_size()/2);
 			return _fs.tx()->alloc_packet(chunk_size);
 		}
 
@@ -280,7 +280,7 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 	Heap heap { env.pd(), env.rm() };
 
 	Allocator_avl           fs_tx_block_alloc { &heap };
-	File_system::Connection fs { env, fs_tx_block_alloc };
+	File_system::Connection fs { env, fs_tx_block_alloc, "", "/", false, 4*1024*1024 };
 
 	Session_requests_rom session_requests { env, *this };
 
