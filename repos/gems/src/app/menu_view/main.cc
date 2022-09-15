@@ -41,11 +41,6 @@ struct Menu_view::Main
 
 	Constructible<Gui_buffer> _buffer { };
 
-	/**
-	 * Alpha surface used when operating in opaque mode
-	 */
-	Surface<Pixel_alpha8> _no_alpha { nullptr, Area(0,0) };
-
 	Gui::Session::View_handle _view_handle = _gui.create_view();
 
 	/**
@@ -422,7 +417,7 @@ void Menu_view::Main::_handle_frame_timer()
 		//     don't perform a full dialog update
 		_buffer->apply_to_surface([&] (Surface<Pixel_rgb888> &pixel,
 		                               Surface<Pixel_alpha8> &alpha) {
-			_root_widget.draw(pixel, _opaque ? _no_alpha : alpha, Point(0, 0));
+			_root_widget.draw(pixel, alpha, Point(0, 0));
 		});
 
 		_buffer->flush_surface();
