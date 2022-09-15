@@ -123,6 +123,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		Registry<Irq>                       _irq_registry {};
 		Registry<Io_mem>                    _io_mem_registry {};
 		Registry<Io_port_range>             _io_port_range_registry {};
+		Registry<Io_mem>                    _reserved_mem_registry {};
 		Constructible<Pci_config>           _pci_config {};
 
 		void _release_resources();

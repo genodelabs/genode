@@ -44,6 +44,7 @@ namespace Driver {
 	struct Reset_domain_update_policy;
 	struct Power_domain_update_policy;
 	struct Pci_config_update_policy;
+	struct Reserved_memory_update_policy;
 }
 
 
@@ -197,6 +198,15 @@ class Driver::Device : private List_model<Device>::Element
 				bridge(bridge) {}
 		};
 
+		struct Reserved_memory : List_model<Reserved_memory>::Element
+		{
+			using Range = Platform::Device_interface::Range;
+
+			Range range;
+
+			Reserved_memory(Range range) : range(range) {}
+		};
+
 		Device(Env & env, Device_model & model, Name name, Type type);
 		virtual ~Device();
 
@@ -245,6 +255,14 @@ class Driver::Device : private List_model<Device>::Element
 			});
 		}
 
+		template <typename FN>
+		void for_each_reserved_memory(FN const & fn) const
+		{
+			unsigned idx = 0;
+			_reserved_mem_list.for_each([&] (Reserved_memory const & mem) {
+				fn(idx++, mem.range); });
+		}
+
 		void generate(Xml_generator &, bool) const;
 
 	protected:
@@ -253,19 +271,20 @@ class Driver::Device : private List_model<Device>::Element
 		friend class List_model<Device>;
 		friend class List<Device>;
 
-		Env                     & _env;
-		Device_model            & _model;
-		Name                const _name;
-		Type                const _type;
-		Owner                     _owner {};
-		List_model<Io_mem>        _io_mem_list {};
-		List_model<Irq>           _irq_list {};
-		List_model<Io_port_range> _io_port_range_list {};
-		List_model<Property>      _property_list {};
-		List_model<Clock>         _clock_list {};
-		List_model<Power_domain>  _power_domain_list {};
-		List_model<Reset_domain>  _reset_domain_list {};
-		List_model<Pci_config>    _pci_config_list {};
+		Env                       & _env;
+		Device_model              & _model;
+		Name                  const _name;
+		Type                  const _type;
+		Owner                       _owner {};
+		List_model<Io_mem>          _io_mem_list {};
+		List_model<Irq>             _irq_list {};
+		List_model<Io_port_range>   _io_port_range_list {};
+		List_model<Property>        _property_list {};
+		List_model<Clock>           _clock_list {};
+		List_model<Power_domain>    _power_domain_list {};
+		List_model<Reset_domain>    _reset_domain_list {};
+		List_model<Pci_config>      _pci_config_list {};
+		List_model<Reserved_memory> _reserved_mem_list {};
 
 		/*
 		 * Noncopyable
@@ -630,6 +649,41 @@ struct Driver::Pci_config_update_policy
 	static bool node_is_element(Genode::Xml_node node)
 	{
 		return node.has_type("pci-config");
+	}
+};
+
+
+struct Driver::Reserved_memory_update_policy
+: Genode::List_model<Device::Reserved_memory>::Update_policy
+{
+	Genode::Allocator & alloc;
+
+	Reserved_memory_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
+
+	void destroy_element(Element & pd) {
+		Genode::destroy(alloc, &pd); }
+
+	Element & create_element(Genode::Xml_node node)
+	{
+		using namespace Pci;
+
+		addr_t addr = node.attribute_value("address", 0UL);
+		size_t size = node.attribute_value("size",    0UL);
+		return *(new (alloc) Element({addr, size}));
+	}
+
+	void update_element(Element &, Genode::Xml_node) {}
+
+	static bool element_matches_xml_node(Element const & e, Genode::Xml_node node)
+	{
+		addr_t addr = node.attribute_value("address", 0UL);
+		size_t size = node.attribute_value("size",    0UL);
+		return addr == e.range.start && size == e.range.size;
+	}
+
+	static bool node_is_element(Genode::Xml_node node)
+	{
+		return node.has_type("reserved_memory");
 	}
 };
 

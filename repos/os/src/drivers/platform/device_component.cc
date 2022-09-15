@@ -27,6 +27,14 @@ void Driver::Device_component::_release_resources()
 	_irq_registry.for_each([&] (Irq & irq) {
 		destroy(_session.heap(), &irq); });
 
+	_io_port_range_registry.for_each([&] (Io_port_range & iop) {
+		destroy(_session.heap(), &iop); });
+
+	_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
+		destroy(_session.heap(), &iomem); });
+
+	if (_pci_config.constructed()) _pci_config.destruct();
+
 	_session.ram_quota_guard().replenish(Ram_quota{_ram_quota});
 	_session.cap_quota_guard().replenish(Cap_quota{_cap_quota});
 }
@@ -176,6 +184,20 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
 			_cap_quota += Io_mem_session::CAP_QUOTA;
 			_pci_config.construct(cfg.addr);
+		});
+
+		device.for_each_reserved_memory([&] (unsigned idx, Range range)
+		{
+			session.ram_quota_guard().withdraw(Ram_quota{Io_mem_session::RAM_QUOTA});
+			_ram_quota += Io_mem_session::RAM_QUOTA;
+			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
+			_cap_quota += Io_mem_session::CAP_QUOTA;
+			Io_mem & iomem = *(new (session.heap())
+				Io_mem(_reserved_mem_registry, idx, range));
+			iomem.io_mem.construct(_env, iomem.range.start,
+			                       iomem.range.size, false);
+			session.device_pd().attach_dma_mem(iomem.io_mem->dataspace(),
+			                                   iomem.range.start);
 		});
 	} catch(...) {
 		_release_resources();
