@@ -56,7 +56,7 @@ namespace Allocator {
 		private:
 
 			enum {
-				BLOCK_SIZE = 2 * 1024  * 1024,     /* 2 MB */
+				BLOCK_SIZE = 4 * 1024  * 1024,     /* bytes */
 				ELEMENTS   = VM_SIZE / BLOCK_SIZE, /* MAX number of dataspaces in VM */
 			};
 

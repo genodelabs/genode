@@ -152,11 +152,11 @@ append_if [have_spec nova] config {
 append_if [expr $use_rumpfs] config {
 	<start name="rump_fs" priority="-1" caps="200">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="32M"/>
+		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config ld_verbose="yes">
 			<vfs>
-				<rump fs="ext2fs" ram="28M"/>
+				<rump fs="ext2fs" ram="48M"/>
 			</vfs>}
 
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {

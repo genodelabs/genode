@@ -107,7 +107,15 @@ class Backend
 
 		Genode::Allocator_avl  _alloc   { &Rump::env().heap() };
 		Genode::Entrypoint    &_ep      {  Rump::env().env().ep() };
-		Block::Connection<Job> _session {  Rump::env().env(), &_alloc };
+
+		/*
+		 * The tx_buf_size is chosen such that one I/O request fits into the
+		 * I/O buffer at once. The size of NetBSD's I/O requests is bounded by
+		 * the definition of MAXPHYS. The 64 KiB are added to account for the
+		 * space needed for the submit/ack queues.
+		 */
+		Block::Connection<Job> _session {  Rump::env().env(), &_alloc,
+		                                   1024*1024 + 64*1024 };
 		Block::Session::Info   _info    { _session.info() };
 		Genode::Mutex          _session_mutex;
 		Io_signal_blockade     _io_signal_blockade { _ep,
