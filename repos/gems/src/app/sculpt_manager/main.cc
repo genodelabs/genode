@@ -176,10 +176,11 @@ struct Sculpt::Main : Input_event_handler,
 		_pci_info.modem_present = false;
 
 		_pci_devices.xml().for_each_sub_node("device", [&] (Xml_node device) {
-
-			/* detect Intel Wireless card */
-			if (device.attribute_value("class_code", 0UL) == 0x28000)
-				_pci_info.wifi_present = true;
+			device.with_optional_sub_node("pci-config", [&] (Xml_node pci) {
+				/* detect Intel Wireless card */
+				if (pci.attribute_value("class", 0UL) == 0x28000)
+					_pci_info.wifi_present = true;
+			});
 		});
 
 		update_network_dialog();

@@ -1,4 +1,5 @@
 _/src/platform_drv
+_/src/pci_decode
 _/src/acpi_drv
 _/src/ps2_drv
 _/src/pc_usb_host_drv
@@ -17,3 +18,4 @@ _/src/driver_manager
 _/src/rom_filter
 _/src/rom_reporter
 _/raw/drivers_managed-pc
+_/raw/pc-devices

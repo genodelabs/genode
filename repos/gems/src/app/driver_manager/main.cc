@@ -465,32 +465,34 @@ void Driver_manager::Main::_handle_pci_devices_update()
 	Boot_fb_driver::Mode const boot_fb_mode = _boot_fb_mode();
 
 	_pci_devices.xml().for_each_sub_node([&] (Xml_node device) {
+		device.with_optional_sub_node("pci-config", [&] (Xml_node pci) {
 
-		uint16_t const vendor_id  = (uint16_t)device.attribute_value("vendor_id",  0U);
-		uint16_t const class_code = (uint16_t)(device.attribute_value("class_code", 0U) >> 8);
+			uint16_t const vendor_id  = (uint16_t)pci.attribute_value("vendor_id",  0U);
+			uint16_t const class_code = (uint16_t)(pci.attribute_value("class", 0U) >> 8);
 
-		enum {
+			enum {
 			VENDOR_VBOX  = 0x80EEU,
 			VENDOR_INTEL = 0x8086U,
 			CLASS_VGA    = 0x300U,
 			CLASS_AHCI   = 0x106U,
 			CLASS_NVME   = 0x108U,
-		};
+			};
 
-		if (class_code == CLASS_VGA)
+			if (class_code == CLASS_VGA)
 			has_vga = true;
 
-		if (vendor_id == VENDOR_INTEL && class_code == CLASS_VGA)
+			if (vendor_id == VENDOR_INTEL && class_code == CLASS_VGA)
 			has_intel_graphics = true;
 
-		if (vendor_id == VENDOR_INTEL && class_code == CLASS_AHCI)
+			if (vendor_id == VENDOR_INTEL && class_code == CLASS_AHCI)
 			has_ahci = true;
 
-		if (vendor_id == VENDOR_VBOX)
-			_use_ohci = false;
+			if (vendor_id == VENDOR_VBOX)
+				_use_ohci = false;
 
-		if (class_code == CLASS_NVME)
-			has_nvme = true;
+			if (class_code == CLASS_NVME)
+				has_nvme = true;
+		});
 	});
 
 	if (!_intel_fb_driver.constructed() && has_intel_graphics) {
