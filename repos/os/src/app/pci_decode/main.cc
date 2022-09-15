@@ -19,6 +19,7 @@
 #include <os/reporter.h>
 
 #include <irq.h>
+#include <rmrr.h>
 #include <pci/config.h>
 
 using namespace Genode;
@@ -43,6 +44,7 @@ struct Main
 
 	List_model<Irq_routing>  irq_routing_list  {};
 	List_model<Irq_override> irq_override_list {};
+	List_model<Rmrr>         reserved_memory_list {};
 
 	Constructible<Attached_io_mem_dataspace> pci_config_ds {};
 
@@ -168,6 +170,15 @@ void Main::parse_pci_function(Bdf             bdf,
 
 			gen.attribute("number", irq);
 		});
+
+		reserved_memory_list.for_each([&] (Rmrr & rmrr) {
+			if (rmrr.bdf == bdf)
+				gen.node("reserved_memory", [&]
+				{
+					gen.attribute("address", rmrr.addr);
+					gen.attribute("size",    rmrr.size);
+				});
+		});
 	});
 }
 
@@ -257,6 +268,11 @@ void Main::sys_rom_update()
 	if (apic_capable) {
 		Irq_routing_policy policy(heap);
 		irq_routing_list.update_from_xml(policy, xml);
+	}
+
+	{
+		Rmrr_policy policy(heap);
+		reserved_memory_list.update_from_xml(policy, xml);
 	}
 
 	parse_pci_config_spaces(xml);
