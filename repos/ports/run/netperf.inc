@@ -140,48 +140,36 @@ create_boot_directory
 
 set packages "
 	[depot_user]/src/[base_src]
-	[depot_user]/pkg/[drivers_nic_pkg]
 	[depot_user]/src/init
 	[depot_user]/src/libc
 	[depot_user]/src/posix
+	[depot_user]/src/report_rom
 	[depot_user]/src/vfs
 	[depot_user]/src/nic_router
 "
-
-append_if [expr !$use_lxip] packages " [depot_user]/src/vfs_lwip          "
-append_if $use_lxip         packages " [depot_user]/src/vfs_lxip          "
-append_if $use_nic_bridge   packages " [depot_user]/src/nic_bridge        "
-append_if $use_usb_driver   packages " [depot_user]/src/platform_drv      "
-append_if $use_wifi_driver  packages " [depot_user]/src/fs_rom            "
-append_if $use_wifi_driver  packages " [depot_user]/src/vfs_import        "
-append_if $use_wifi_driver  packages " [depot_user]/src/report_rom        "
-append_if $use_wifi_driver  packages " [depot_user]/src/pc_wifi_drv       "
-append_if $use_wifi_driver  packages " [depot_user]/src/openssl           "
-append_if $use_wifi_driver  packages " [depot_user]/src/vfs_jitterentropy "
-append_if $use_wifi_driver  packages " [depot_user]/raw/wifi_firmware     "
+set use_nic_drv [expr !$use_usb_driver && !$use_wifi_driver]
+append_if $use_nic_drv      packages " [depot_user]/pkg/[drivers_nic_pkg]         "
+append_if [expr !$use_lxip] packages " [depot_user]/src/vfs_lwip                  "
+append_if $use_lxip         packages " [depot_user]/src/vfs_lxip                  "
+append_if $use_nic_bridge   packages " [depot_user]/src/nic_bridge                "
+append_if $use_usb_driver   packages " [depot_user]/pkg/test_usb_host_drv-[board] "
+append_if $use_usb_driver   packages " [depot_user]/src/usb_net_drv               "
+append_if $use_wifi_driver  packages " [depot_user]/src/fs_rom                    "
+append_if $use_wifi_driver  packages " [depot_user]/src/vfs_import                "
+append_if $use_wifi_driver  packages " [depot_user]/pkg/wifi                      "
+append_if $use_wifi_driver  packages " [depot_user]/src/acpi_drv                  "
+append_if $use_wifi_driver  packages " [depot_user]/src/pci_decode                "
+append_if $use_wifi_driver  packages " [depot_user]/src/platform_drv              "
 
 import_from_depot $packages
 
-set build_components { app/netperf }
-
-append_if $use_usb_driver build_components " drivers/usb_host "
-append_if $use_usb_driver build_components " drivers/usb_net  "
-
-build $build_components
+build { app/netperf }
 
 #
 # Generate config
 #
 
 set lx_ip_addr "10.0.2.55"
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-proc platform_drv_policy {} {
-	global use_wifi_driver
-	if { $use_wifi_driver } {
-		return {<policy label_prefix="nic_drv" msix="false"> <pci class="WIFI"/> </policy>}}
-	return {<policy label_prefix="usb_host_drv"> <pci class="USB"/> </policy>}
-}
 
 set config {
 <config verbose="yes" prio_levels="2">
@@ -206,12 +194,41 @@ set config {
 	</start> }
 
 if { $use_wifi_driver } {
-	append_platform_drv_config
 	append config {
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Report" /> <service name="ROM" /> </provides>
-		<config> <rom/> </config>
+	<start name="report_rom" caps="70">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="ROM" />
+			<service name="Report" />
+		</provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
+
+	<start name="acpi_drv" caps="250">
+		<resource name="RAM" quantum="4M"/>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<policy label_prefix="nic_drv" info="yes"> <pci class="WIFI"/> </policy>
+		</config>
 	</start>
 
 	<start name="config_fs">
@@ -269,36 +286,18 @@ append  config { </wifi_config>
 
 } elseif { $use_usb_driver } {
 
-	append_platform_drv_config
 	append config {
 
-	<start name="usb_host_drv" caps="130"> }
-
-	append config "<binary name=\"[usb_host_drv_binary]\"/>"
-	append config {
-
-		<resource name="RAM" quantum="12M"/>
+	<start name="usb_drv" caps="1500" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
-		<config bios_handoff="yes"> }
-
-	append_if [have_board arndale] config {
-
-			<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x772a"/> }
-
-	append_if [have_board rpi] config {
-
-			<policy label_prefix="nic_drv" vendor_id="0x0424" product_id="0xec00"/> }
-
-	append_if [have_spec x86] config {
-
-			<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x1790"/> }
-
-	append config {
-
-		</config>
 		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -431,11 +430,22 @@ append config {
 
 install_config $config
 
+#
+# Define USB host controller config
+#
+if { $use_usb_driver } {
+	set fd [open [run_dir]/genode/usb_host_drv.config w]
+	append usb_config {<config bios_handoff="yes">}
+	append_if [have_board rpi] usb_config {
+		<policy label_prefix="nic_drv" vendor_id="0x0424" product_id="0xec00"/> }
+	append_if [have_spec x86] usb_config {
+		<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x1790"/> }
+	append usb_config {</config>}
+	puts $fd $usb_config
+	close $fd
+}
+
 set boot_modules { netserver }
-
-append_if $use_usb_driver boot_modules " [usb_host_drv_binary] "
-append_if $use_usb_driver boot_modules " usb_net_drv  "
-
 build_boot_image $boot_modules
 
 #
