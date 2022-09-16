@@ -19,31 +19,22 @@ proc router_verbose_packets {} {
 proc router_verbose_domain_state {} {
 	return "yes" }
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-proc platform_drv_priority {} { return { priority="-1"} }
-
-append build_components { core }
-append build_components { init }
-append build_components { timer }
-append build_components { server/nic_router }
-append build_components { server/dynamic_rom }
-append build_components { server/report_rom }
-append build_components { drivers/wifi/pc }
-append build_components { lib/vfs_wifi }
-append build_components { lib/vfs_jitterentropy }
-append build_components { drivers/rtc }
-append build_components { drivers/nic }
-append build_components { app/ping }
-
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/wifi \
+                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/init \
+                  [depot_user]/src/ipxe_nic_drv \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/pci_decode \
+                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/rtc_drv
 
-append config {
+build { app/ping }
 
+install_config {
 <config prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
@@ -58,10 +49,45 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-append config {
+	<start name="report_rom" caps="70">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="ROM" />
+			<service name="Report" />
+		</provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
+
+	<start name="acpi_drv" caps="250">
+		<resource name="RAM" quantum="4M"/>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report">             <child name="report_rom"/> </service>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<policy label_prefix="wifi_drv" info="yes"> <pci class="WIFI"/> </policy>
+			<policy label_prefix="nic_drv"> <pci class="ETHERNET"/> </policy>
+		</config>
+	</start>
 
 	<start name="timer" priority="0">
 		<resource name="RAM" quantum="1M"/>
@@ -104,12 +130,6 @@ append config {
 			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>
-
-	<start name="report_rom" priority="-2">
-		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config/>
 	</start>
 
 	<start name="config_rom" priority="-2">
@@ -372,51 +392,7 @@ append config {
 </config>
 }
 
-install_config $config
-
-append boot_modules {
-	iwlwifi-1000-5.ucode
-	iwlwifi-3160-17.ucode
-	iwlwifi-3168-29.ucode
-	iwlwifi-5000-5.ucode
-	iwlwifi-6000-4.ucode
-	iwlwifi-6000g2a-6.ucode
-	iwlwifi-6000g2b-6.ucode
-	iwlwifi-7260-17.ucode
-	iwlwifi-7265-17.ucode
-	iwlwifi-7265D-29.ucode
-	iwlwifi-8000C-36.ucode
-	iwlwifi-8265-36.ucode
-	iwlwifi-9000-pu-b0-jf-b0-34.ucode
-	iwlwifi-9000-pu-b0-jf-b0-46.ucode
-	iwlwifi-QuZ-a0-hr-b0-63.ucode
-	regulatory.db
-	regulatory.db.p7s
-}
-
-append boot_modules { report_rom }
-append boot_modules { vfs_jitterentropy.lib.so }
-append boot_modules { libcrypto.lib.so }
-append boot_modules { libssl.lib.so }
-append boot_modules { wpa_driver_nl80211.lib.so }
-append boot_modules { wpa_supplicant.lib.so }
-append boot_modules { vfs_wifi.lib.so }
-append boot_modules { wifi.lib.so }
-append boot_modules { pc_wifi_drv }
-append boot_modules { core }
-append boot_modules { nic_router }
-append boot_modules { ld.lib.so }
-append boot_modules { init }
-append boot_modules { timer }
-append boot_modules { ping }
-append boot_modules { libc.lib.so }
-append boot_modules { dynamic_rom }
-append boot_modules { rtc_drv }
-append boot_modules { vfs.lib.so }
-append boot_modules { ipxe_nic_drv }
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image { ping }
 
 append done_string ".*router.config: change"
 append done_string ".*router.config: sleep 3001 milliseconds"
