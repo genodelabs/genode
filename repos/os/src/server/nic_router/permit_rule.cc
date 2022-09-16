@@ -32,7 +32,7 @@ void Permit_any_rule::print(Output &output) const
 }
 
 
-Permit_any_rule::Permit_any_rule(Domain_tree &domains, Xml_node const node)
+Permit_any_rule::Permit_any_rule(Domain_dict &domains, Xml_node const node)
 :
 	Permit_rule { domains.deprecated_find_by_domain_attr<Invalid>(node) }
 { }
@@ -55,7 +55,7 @@ void Permit_single_rule::print(Output &output) const
 }
 
 
-Permit_single_rule::Permit_single_rule(Domain_tree    &domains,
+Permit_single_rule::Permit_single_rule(Domain_dict    &domains,
                                        Xml_node const  node)
 :
 	Permit_rule { domains.deprecated_find_by_domain_attr<Invalid>(node) },

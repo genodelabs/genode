@@ -19,60 +19,31 @@
 #include <nic/packet_allocator.h>
 
 /* local includes */
-#include <avl_string_tree.h>
+#include <dictionary.h>
 #include <interface.h>
 #include <ipv4_address_prefix.h>
 
 namespace Net {
 
 	using Domain_name = Genode::String<160>;
-	class Nic_client_base;
 	class Nic_client;
-	class Nic_client_tree;
+	using Nic_client_dict = Dictionary<Nic_client, Genode::Session_label>;
 	class Nic_client_interface_base;
 	class Nic_client_interface;
 }
 
 
-class Net::Nic_client_tree
-:
-	public Avl_string_tree<Nic_client, Genode::Session_label>
-{ };
-
-
-class Net::Nic_client_base
+class Net::Nic_client : private Nic_client_dict::Element
 {
-	private:
-
-		Genode::Session_label const _label;
-		Domain_name           const _domain;
-
-	public:
-
-		Nic_client_base(Genode::Xml_node const &node);
-
-		virtual ~Nic_client_base() { }
-
-
-		/**************
-		 ** Acessors **
-		 **************/
-
-		Genode::Session_label const &label()  const { return _label; }
-		Domain_name           const &domain() const { return _domain; }
-};
-
-
-class Net::Nic_client : public  Nic_client_base,
-                        private Genode::Avl_string_base
-{
-	friend class Avl_string_tree<Nic_client, Genode::Session_label>;
-	friend class Genode::List<Nic_client>;
+	friend class Genode::Avl_tree<Nic_client>;
+	friend class Genode::Avl_node<Nic_client>;
+	friend class Genode::Dictionary<Nic_client, Genode::Session_label>;
 
 	private:
 
 		Genode::Allocator             &_alloc;
 		Configuration           const &_config;
+		Domain_name             const  _domain;
 		Pointer<Nic_client_interface>  _interface { };
 
 		void _invalid(char const *reason) const;
@@ -81,22 +52,25 @@ class Net::Nic_client : public  Nic_client_base,
 
 		struct Invalid : Genode::Exception { };
 
-		Nic_client(Genode::Xml_node const &node,
-		           Genode::Allocator      &alloc,
-		           Nic_client_tree        &old_nic_clients,
-		           Genode::Env            &env,
-		           Cached_timer           &timer,
-		           Interface_list         &interfaces,
-		           Configuration          &config);
+		Nic_client(Genode::Session_label const &label_arg,
+		           Domain_name           const &domain_arg,
+		           Genode::Allocator           &alloc,
+		           Nic_client_dict             &old_nic_clients,
+		           Nic_client_dict             &new_nic_clients,
+		           Genode::Env                 &env,
+		           Cached_timer                &timer,
+		           Interface_list              &interfaces,
+		           Configuration               &config);
 
 		~Nic_client();
 
 
-		/*********
-		 ** log **
-		 *********/
+		/**************
+		 ** Acessors **
+		 **************/
 
-		void print(Genode::Output &output) const;
+		Domain_name           const &domain() const { return _domain; }
+		Genode::Session_label const &label()  const { return Nic_client_dict::Element::name; }
 };
 
 

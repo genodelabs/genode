@@ -386,9 +386,9 @@ void Interface::_update_domain_object(Domain &new_domain) {
 
 void Interface::attach_to_domain()
 {
-	_config().domains().find_by_name(
+	_config().domains().with_element(
 		_policy.determine_domain_name(),
-		[&] /* handle_match */ (Domain &domain)
+		[&] /* match_fn */ (Domain &domain)
 		{
 			_attach_to_domain_raw(domain);
 
@@ -398,7 +398,7 @@ void Interface::attach_to_domain()
 			}
 			attach_to_domain_finish();
 		},
-		[&] /* handle_no_match */ () { }
+		[&] /* no_match_fn */ () { }
 	);
 }
 
@@ -2158,9 +2158,9 @@ void Interface::_update_own_arp_waiters(Domain &domain)
 	{
 		Arp_waiter &arp_waiter { *le.object() };
 		bool dismiss_arp_waiter { true };
-		_config().domains().find_by_name(
+		_config().domains().with_element(
 			arp_waiter.dst().name(),
-			[&] /* handle_match */ (Domain &dst)
+			[&] /* match_fn */ (Domain &dst)
 			{
 				/* dismiss ARP waiter if IP config of target domain changed */
 				if (dst.ip_config() != arp_waiter.dst().ip_config()) {
@@ -2173,7 +2173,7 @@ void Interface::_update_own_arp_waiters(Domain &domain)
 				}
 				dismiss_arp_waiter = false;
 			},
-			[&] /* handle_no_match */ ()
+			[&] /* no_match_fn */ ()
 			{
 				/* dismiss ARP waiter as the target domain disappeared */
 			}
@@ -2207,13 +2207,13 @@ void Interface::handle_config_1(Configuration &config)
 			return; }
 
 		/* interface stays with its domain, so, try to reuse IP config */
-		config.domains().find_by_name(
+		config.domains().with_element(
 			new_domain_name,
-			[&] /* handle_match */ (Domain &new_domain)
+			[&] /* match_fn */ (Domain &new_domain)
 			{
 				new_domain.try_reuse_ip_config(old_domain);
 			},
-			[&] /* handle_no_match */ () { }
+			[&] /* no_match_fn */ () { }
 		);
 	}
 	catch (Pointer<Domain>::Invalid) { }
@@ -2246,9 +2246,9 @@ void Interface::handle_config_2()
 	Domain_name const &new_domain_name = _policy.determine_domain_name();
 	try {
 		Domain &old_domain = domain();
-		_config().domains().find_by_name(
+		_config().domains().with_element(
 			new_domain_name,
-			[&] /* handle_match */ (Domain &new_domain)
+			[&] /* match_fn */ (Domain &new_domain)
 			{
 				/* if the domains differ, detach completely from the domain */
 				if (old_domain.name() != new_domain_name) {
@@ -2282,7 +2282,7 @@ void Interface::handle_config_2()
 				/* remember that the interface stays attached to the same domain */
 				_update_domain.construct(old_domain, new_domain);
 			},
-			[&] /* handle_no_match */ ()
+			[&] /* no_match_fn */ ()
 			{
 				/* the interface no longer has a domain */
 				_detach_from_domain();
@@ -2297,9 +2297,9 @@ void Interface::handle_config_2()
 	catch (Pointer<Domain>::Invalid) {
 
 		/* the interface had no domain but now it may get one */
-		_config().domains().find_by_name(
+		_config().domains().with_element(
 			new_domain_name,
-			[&] /* handle_match */ (Domain &new_domain)
+			[&] /* match_fn */ (Domain &new_domain)
 			{
 				_attach_to_domain_raw(new_domain);
 
@@ -2308,7 +2308,7 @@ void Interface::handle_config_2()
 					_dhcp_client.construct(_timer, *this);
 				}
 			},
-			[&] /* handle_no_match */ () { }
+			[&] /* no_match_fn */ () { }
 		);
 	}
 }

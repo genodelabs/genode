@@ -32,7 +32,7 @@ bool Nat_rule::higher(Nat_rule *rule)
 }
 
 
-Nat_rule::Nat_rule(Domain_tree    &domains,
+Nat_rule::Nat_rule(Domain_dict    &domains,
                    Port_allocator &tcp_port_alloc,
                    Port_allocator &udp_port_alloc,
                    Port_allocator &icmp_port_alloc,

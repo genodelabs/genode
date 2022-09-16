@@ -25,7 +25,7 @@
 #include <ipv4_config.h>
 #include <dhcp_server.h>
 #include <interface.h>
-#include <avl_string_tree.h>
+#include <dictionary.h>
 
 /* Genode includes */
 #include <util/reconstructible.h>
@@ -40,10 +40,9 @@ namespace Net {
 
 	class Interface;
 	class Configuration;
-	class Domain_base;
 	class Domain;
 	using Domain_name = Genode::String<160>;
-	class Domain_tree;
+	class Domain_dict;
 	class Domain_link_stats;
 	class Domain_object_stats;
 }
@@ -71,18 +70,18 @@ struct Net::Domain_link_stats : Domain_object_stats
 };
 
 
-class Net::Domain_tree : public Avl_string_tree<Domain, Domain_name>
+class Net::Domain_dict : public Dictionary<Domain, Domain_name>
 {
 	public:
 
 		template <typename NO_MATCH_EXCEPTION>
-		Domain &deprecated_find_by_name(Domain_name const &name)
+		Domain &deprecated_find_by_name(Domain_name const &domain_name)
 		{
 			Domain *dom_ptr { nullptr };
-			find_by_name(
-				name,
-				[&] /* handle_match */ (Domain &dom) { dom_ptr = &dom; },
-				[&] /* handle_no_match */ () { throw NO_MATCH_EXCEPTION { }; }
+			with_element(
+				domain_name,
+				[&] /* match_fn */ (Domain &dom) { dom_ptr = &dom; },
+				[&] /* no_match_fn */ () { throw NO_MATCH_EXCEPTION { }; }
 			);
 			return *dom_ptr;
 		}
@@ -90,27 +89,16 @@ class Net::Domain_tree : public Avl_string_tree<Domain, Domain_name>
 		template <typename NO_MATCH_EXCEPTION>
 		Domain &deprecated_find_by_domain_attr(Genode::Xml_node const &node)
 		{
-			Domain_name const name {
+			Domain_name const domain_name {
 				node.attribute_value("domain", Domain_name { }) };
 
-			return deprecated_find_by_name<NO_MATCH_EXCEPTION>(name);
+			return deprecated_find_by_name<NO_MATCH_EXCEPTION>(domain_name);
 		}
 };
 
 
-class Net::Domain_base
-{
-	protected:
-
-		Domain_name const _name;
-
-		Domain_base(Genode::Xml_node const node);
-};
-
-
-class Net::Domain : public Domain_base,
-                    public List<Domain>::Element,
-                    public Genode::Avl_string_base
+class Net::Domain : public List<Domain>::Element,
+                    public Domain_dict::Element
 {
 	private:
 
@@ -154,13 +142,13 @@ class Net::Domain : public Domain_base,
 		unsigned long                         _dropped_fragm_ipv4   { 0 };
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
-		                         Domain_tree            &domains,
+		                         Domain_dict            &domains,
 		                         Genode::Xml_node const  node,
 		                         char             const *type,
 		                         Forward_rule_tree      &rules);
 
 		void _read_transport_rules(Genode::Cstring  const &protocol,
-		                           Domain_tree            &domains,
+		                           Domain_dict            &domains,
 		                           Genode::Xml_node const  node,
 		                           char             const *type,
 		                           Transport_rule_list    &rules);
@@ -190,12 +178,14 @@ class Net::Domain : public Domain_base,
 		struct No_next_hop      : Genode::Exception { };
 
 		Domain(Configuration          &config,
-		       Genode::Xml_node const  node,
-		       Genode::Allocator      &alloc);
+		       Genode::Xml_node const &node,
+		       Domain_name      const &name,
+		       Genode::Allocator      &alloc,
+		       Domain_dict            &domain_dict);
 
 		~Domain();
 
-		void init(Domain_tree &domains);
+		void init(Domain_dict &domains);
 
 		void deinit();
 
@@ -247,7 +237,7 @@ class Net::Domain : public Domain_base,
 		Genode::Session_label const &label()               const { return _label; }
 		Ipv4_config           const &ip_config()           const { return *_ip_config; }
 		List<Domain>                &ip_config_dependents()      { return _ip_config_dependents; }
-		Domain_name           const &name()                const { return _name; }
+		Domain_name           const &name()                const { return Domain_dict::Element::name; }
 		Ip_rule_list                &ip_rules()                  { return _ip_rules; }
 		Forward_rule_tree           &tcp_forward_rules()         { return _tcp_forward_rules; }
 		Forward_rule_tree           &udp_forward_rules()         { return _udp_forward_rules; }

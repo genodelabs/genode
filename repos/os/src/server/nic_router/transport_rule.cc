@@ -25,7 +25,7 @@ using namespace Genode;
 
 
 Pointer<Permit_any_rule>
-Transport_rule::_read_permit_any_rule(Domain_tree    &domains,
+Transport_rule::_read_permit_any_rule(Domain_dict    &domains,
                                       Xml_node const  node,
                                       Allocator      &alloc)
 {
@@ -39,7 +39,7 @@ Transport_rule::_read_permit_any_rule(Domain_tree    &domains,
 }
 
 
-Transport_rule::Transport_rule(Domain_tree    &domains,
+Transport_rule::Transport_rule(Domain_dict    &domains,
                                Xml_node const  node,
                                Allocator      &alloc,
                                Cstring  const &protocol,

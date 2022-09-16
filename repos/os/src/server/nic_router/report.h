@@ -28,7 +28,7 @@ namespace Genode {
 
 namespace Net {
 
-	class Domain_tree;
+	class Domain_dict;
 	class Report;
 	class Quota;
 }
@@ -57,7 +57,7 @@ class Net::Report
 		Quota                     const &_shared_quota;
 		Genode::Pd_session              &_pd;
 		Genode::Reporter                &_reporter;
-		Domain_tree                     &_domains;
+		Domain_dict                     &_domains;
 		Timer::Periodic_timeout<Report>  _timeout;
 		Genode::Signal_transmitter       _signal_transmitter;
 
@@ -70,7 +70,7 @@ class Net::Report
 		Report(bool                              const &verbose,
 		       Genode::Xml_node                  const  node,
 		       Cached_timer                            &timer,
-		       Domain_tree                             &domains,
+		       Domain_dict                             &domains,
 		       Quota                             const &shared_quota,
 		       Genode::Pd_session                      &pd,
 		       Genode::Reporter                        &reporter,

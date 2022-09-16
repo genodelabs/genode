@@ -19,7 +19,7 @@ using namespace Net;
 using namespace Genode;
 
 
-Ip_rule::Ip_rule(Domain_tree &domains, Xml_node const node)
+Ip_rule::Ip_rule(Domain_dict &domains, Xml_node const node)
 :
 	Direct_rule { node },
 	_domain     { domains.deprecated_find_by_domain_attr<Invalid>(node) }

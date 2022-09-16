@@ -95,7 +95,7 @@ Dhcp_server::Dhcp_server(Xml_node            const  node,
                          Domain                    &domain,
                          Allocator                 &alloc,
                          Ipv4_address_prefix const &interface,
-                         Domain_tree               &domains)
+                         Domain_dict               &domains)
 :
 	Dhcp_server_base(node, domain, alloc),
 	_dns_config_from(_init_dns_config_from(node, domains)),
@@ -206,7 +206,7 @@ void Dhcp_server::free_ip(Domain       const &domain,
 
 
 Pointer<Domain> Dhcp_server::_init_dns_config_from(Genode::Xml_node const  node,
-                                                   Domain_tree            &domains)
+                                                   Domain_dict            &domains)
 {
 	if (!_dns_servers.empty() ||
 	    _dns_domain_name.valid()) {

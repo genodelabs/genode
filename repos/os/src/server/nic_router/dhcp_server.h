@@ -40,7 +40,7 @@ namespace Net {
 	/* forward declarations */
 	class Interface;
 	class Domain;
-	class Domain_tree;
+	class Domain_dict;
 }
 
 
@@ -81,7 +81,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		Genode::Microseconds _init_ip_lease_time(Genode::Xml_node const node);
 
 		Pointer<Domain> _init_dns_config_from(Genode::Xml_node const  node,
-		                                      Domain_tree            &domains);
+		                                      Domain_dict            &domains);
 
 		Ipv4_config const &_resolve_dns_config_from() const;
 
@@ -96,7 +96,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		            Domain                    &domain,
 		            Genode::Allocator         &alloc,
 		            Ipv4_address_prefix const &interface,
-		            Domain_tree               &domains);
+		            Domain_dict               &domains);
 
 		Ipv4_address alloc_ip();
 

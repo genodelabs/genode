@@ -25,7 +25,7 @@
 namespace Net {
 
 	class Domain;
-	class Domain_tree;
+	class Domain_dict;
 
 	class Port_allocator;
 	class Nat_rule_base;
@@ -47,7 +47,7 @@ class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 
 		struct Invalid : Genode::Exception { };
 
-		Nat_rule(Domain_tree            &domains,
+		Nat_rule(Domain_dict            &domains,
 		         Port_allocator         &tcp_port_alloc,
 		         Port_allocator         &udp_port_alloc,
 		         Port_allocator         &icmp_port_alloc,

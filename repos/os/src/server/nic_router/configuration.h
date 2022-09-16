@@ -51,15 +51,12 @@ class Net::Configuration
 		Genode::Microseconds const  _tcp_max_segm_lifetime;
 		Pointer<Report>             _report      { };
 		Pointer<Genode::Reporter>   _reporter    { };
-		Domain_tree                 _domains     { };
-		Nic_client_tree             _nic_clients { };
+		Domain_dict                 _domains     { };
+		Nic_client_dict             _nic_clients { };
 		Genode::Xml_node     const  _node;
 
 		Icmp_packet::Code
 		_init_icmp_type_3_code_on_fragm_ipv4(Genode::Xml_node const &node) const;
-
-		void _invalid_nic_client(Nic_client &nic_client,
-		                         char const *reason);
 
 		void _invalid_domain(Domain     &domain,
 		                     char const *reason);
@@ -100,7 +97,7 @@ class Net::Configuration
 		Genode::Microseconds  udp_idle_timeout()               const { return _udp_idle_timeout; }
 		Genode::Microseconds  tcp_idle_timeout()               const { return _tcp_idle_timeout; }
 		Genode::Microseconds  tcp_max_segm_lifetime()          const { return _tcp_max_segm_lifetime; }
-		Domain_tree          &domains()                              { return _domains; }
+		Domain_dict          &domains()                              { return _domains; }
 		Report               &report()                               { return _report(); }
 		Genode::Xml_node      node()                           const { return _node; }
 };

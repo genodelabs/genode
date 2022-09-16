@@ -22,17 +22,6 @@ using namespace Net;
 using namespace Genode;
 
 
-/*********************
- ** Nic_client_base **
- *********************/
-
-Net::Nic_client_base::Nic_client_base(Xml_node const &node)
-:
-	_label  { node.attribute_value("label",  Session_label::String()) },
-	_domain { node.attribute_value("domain", Domain_name()) }
-{ }
-
-
 /****************
  ** Nic_client **
  ****************/
@@ -40,26 +29,29 @@ Net::Nic_client_base::Nic_client_base(Xml_node const &node)
 void Nic_client::_invalid(char const *reason) const
 {
 	if (_config.verbose()) {
-		log("[", domain(), "] invalid NIC client: ", *this, " (", reason, ")"); }
-
+		log("[", domain(), "] invalid NIC client: ", label(),
+		    " (", reason, ")");
+	}
 	throw Invalid();
 }
 
 
-Net::Nic_client::Nic_client(Xml_node    const &node,
-                            Allocator         &alloc,
-                            Nic_client_tree   &old_nic_clients,
-                            Env               &env,
-                            Cached_timer      &timer,
-                            Interface_list    &interfaces,
-                            Configuration     &config)
+Net::Nic_client::Nic_client(Session_label const &label_arg,
+                            Domain_name   const &domain_arg,
+                            Allocator           &alloc,
+                            Nic_client_dict     &old_nic_clients,
+                            Nic_client_dict     &new_nic_clients,
+                            Env                 &env,
+                            Cached_timer        &timer,
+                            Interface_list      &interfaces,
+                            Configuration       &config)
 :
-	Nic_client_base { node },
-	Avl_string_base { label().string() },
-	_alloc          { alloc },
-	_config         { config }
+	Nic_client_dict::Element { new_nic_clients, label_arg },
+	_alloc                   { alloc },
+	_config                  { config },
+	_domain                  { domain_arg }
 {
-	old_nic_clients.find_by_name(
+	old_nic_clients.with_element(
 		label(),
 		[&] /* handle_match */ (Nic_client &old_nic_client)
 		{
@@ -73,7 +65,7 @@ Net::Nic_client::Nic_client(Xml_node    const &node,
 		{
 			/* create a new interface */
 			if (config.verbose()) {
-				log("[", domain(), "] create NIC client: ", *this); }
+				log("[", domain(), "] create NIC client: ", label()); }
 
 			try {
 				_interface = *new (_alloc)
@@ -95,20 +87,11 @@ Net::Nic_client::~Nic_client()
 	try {
 		Nic_client_interface &interface = _interface();
 		if (_config.verbose()) {
-			log("[", domain(), "] destroy NIC client: ", *this); }
+			log("[", domain(), "] destroy NIC client: ", label()); }
 
 		destroy(_alloc, &interface);
 	}
 	catch (Pointer<Nic_client_interface>::Invalid) { }
-}
-
-
-void Net::Nic_client::print(Output &output) const
-{
-	if (label() == Session_label()) {
-		Genode::print(output, "?"); }
-	else {
-		Genode::print(output, label()); }
 }
 
 

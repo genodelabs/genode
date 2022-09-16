@@ -26,16 +26,6 @@ using namespace Net;
 using namespace Genode;
 
 
-/*****************
- ** Domain_base **
- *****************/
-
-Domain_base::Domain_base(Xml_node const node)
-:
-	_name(node.attribute_value("name", Domain_name()))
-{ }
-
-
 /************
  ** Domain **
  ************/
@@ -148,7 +138,7 @@ void Domain::try_reuse_ip_config(Domain const &domain)
 
 
 void Domain::_read_forward_rules(Cstring  const    &protocol,
-                                 Domain_tree       &domains,
+                                 Domain_dict       &domains,
                                  Xml_node const     node,
                                  char     const    *type,
                                  Forward_rule_tree &rules)
@@ -174,7 +164,7 @@ void Domain::_invalid(char const *reason) const
 
 
 void Domain::_read_transport_rules(Cstring  const      &protocol,
-                                   Domain_tree         &domains,
+                                   Domain_dict         &domains,
                                    Xml_node const       node,
                                    char     const      *type,
                                    Transport_rule_list &rules)
@@ -193,17 +183,20 @@ void Domain::_read_transport_rules(Cstring  const      &protocol,
 
 void Domain::print(Output &output) const
 {
-	if (_name == Domain_name()) {
+	if (name() == Domain_name()) {
 		Genode::print(output, "?");
 	} else {
-		Genode::print(output, _name); }
+		Genode::print(output, name()); }
 }
 
 
-Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
+Domain::Domain(Configuration     &config,
+               Xml_node    const &node,
+               Domain_name const &name,
+               Allocator         &alloc,
+               Domain_dict       &domains)
 :
-	Domain_base          { node },
-	Avl_string_base      { Domain_base::_name.string() },
+	Domain_dict::Element { domains, name },
 	_config              { config },
 	_node                { node },
 	_alloc               { alloc },
@@ -222,7 +215,7 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 {
 	_log_ip_config();
 
-	if (_name == Domain_name()) {
+	if (Domain::name() == Domain_name()) {
 		_invalid("missing name attribute"); }
 
 	if (_config.verbose_domain_state()) {
@@ -257,7 +250,7 @@ Dhcp_server &Domain::dhcp_server()
 }
 
 
-void Domain::init(Domain_tree &domains)
+void Domain::init(Domain_dict &domains)
 {
 	/* read DHCP server configuration */
 	try {
@@ -404,7 +397,7 @@ void Domain::report(Xml_generator &xml)
 {
 	xml.node("domain", [&] () {
 		bool empty = true;
-		xml.attribute("name", _name);
+		xml.attribute("name", name());
 		if (_config.report().bytes()) {
 			xml.attribute("rx_bytes", _tx_bytes);
 			xml.attribute("tx_bytes", _rx_bytes);

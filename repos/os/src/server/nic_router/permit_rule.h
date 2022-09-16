@@ -31,7 +31,7 @@ namespace Net {
 
 	class Interface;
 	class Domain;
-	class Domain_tree;
+	class Domain_dict;
 
 	class Permit_rule;
 	class Permit_any_rule;
@@ -74,7 +74,7 @@ struct Net::Permit_any_rule : Permit_rule
 
 		struct Invalid : Genode::Exception { };
 
-		Permit_any_rule(Domain_tree &domains, Genode::Xml_node const node);
+		Permit_any_rule(Domain_dict &domains, Genode::Xml_node const node);
 
 
 		/*********
@@ -101,7 +101,7 @@ class Net::Permit_single_rule : public  Permit_rule,
 
 		struct Invalid : Genode::Exception { };
 
-		Permit_single_rule(Domain_tree            &domains,
+		Permit_single_rule(Domain_dict            &domains,
 		                   Genode::Xml_node const  node);
 
 		template <typename HANDLE_MATCH_FN,

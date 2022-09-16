@@ -27,7 +27,7 @@ namespace Genode { class Xml_node; }
 namespace Net {
 
 	class Domain;
-	class Domain_tree;
+	class Domain_dict;
 
 	class Forward_rule;
 	class Forward_rule_tree;
@@ -49,7 +49,7 @@ class Net::Forward_rule : public Genode::Avl_node<Forward_rule>
 
 		struct Invalid : Genode::Exception { };
 
-		Forward_rule(Domain_tree &domains, Genode::Xml_node const node);
+		Forward_rule(Domain_dict &domains, Genode::Xml_node const node);
 
 		template <typename HANDLE_MATCH_FN,
 		          typename HANDLE_NO_MATCH_FN>
