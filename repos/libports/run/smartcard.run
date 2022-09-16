@@ -22,26 +22,14 @@ proc smartcard_product_id {} { return "0x5116" }
 # Build
 #
 
-set build_components {
-	core init timer
-	drivers/usb_host
-	test/smartcard
-	lib/vfs_libusb
-	lib/vfs_pipe
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/init
+build { test/smartcard lib/vfs_libusb lib/vfs_pipe }
 
-#
-# Generate config
-#
-
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -56,35 +44,34 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="no">
-			<default-policy report="usb_drv -> devices"/>
-		</config>
-	</start>
-
-	<start name="usb_drv" caps="200">
-		<binary name="} [usb_host_drv_binary] {"/>
-		<resource name="RAM" quantum="16M"/>
-		<provides><service name="Usb"/></provides>
-		<config bios_handoff="yes">
-			<report devices="yes"/>
-			<policy label="test-smartcard -> usb_device"
-			        vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>
+		<config>
+			<default-policy report="usb_drv -> usb_drv -> devices"/>
 		</config>
 		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="usb_drv" caps="1500" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="Usb"/> </provides>
+		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -110,25 +97,24 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
 #
-# Boot modules
+# Define USB host controller config
 #
+append usb_config {
+<config bios_handoff="yes">
+	<report devices="yes"/>
+	<policy label="test-smartcard -> usb_device" vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>
+</config>}
+set fd [open [run_dir]/genode/usb_host_drv.config w]
+puts $fd $usb_config
+close $fd
 
-# generic modules
-set boot_modules {
-	core init timer test-smartcard
+build_boot_image {
+	test-smartcard
 	ld.lib.so pcsc-lite.lib.so ccid.lib.so libusb.lib.so
 	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
 	Info.plist vfs_libusb.lib.so vfs_pipe.lib.so
 }
-
-lappend boot_modules [usb_host_drv_binary]
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
 
 run_genode_until { Response: 62 0A 82 01 38 83 02 3F 00 8A 01 05 90 00} 30
 
