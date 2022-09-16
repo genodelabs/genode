@@ -13,37 +13,34 @@ if { [have_include "power_on/qemu"] || ![have_spec nova] || ![have_spec x86_64]}
 	exit 0
 }
 
-set build_components {
-	drivers/framebuffer
-	drivers/ps2
-	drivers/usb_host
-	server/log_terminal
-	server/fs_rom
-	server/vfs lib/vfs_import
-	server/report_rom
-	app/usb_report_filter
-	virtualbox5
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-# override defaults of platform_drv.inc
-proc platform_drv_priority {} { return { priority="-1"} }
-
-append_platform_drv_build_components
-
-build $build_components
+build { app/usb_report_filter }
 
 create_boot_directory
-
 import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/fs_rom \
                   [depot_user]/src/init \
+                  [depot_user]/src/jpeg \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libiconv \
+                  [depot_user]/src/libyuv \
+                  [depot_user]/src/log_terminal \
                   [depot_user]/src/nitpicker \
+                  [depot_user]/src/pc_usb_host_drv \
+                  [depot_user]/src/pci_decode \
+                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/ps2_drv \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/vbox5-nova \
+                  [depot_user]/src/vesa_drv \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_import \
                   [depot_user]/src/vfs_pipe \
-                  [depot_user]/src/jpeg
+                  [depot_user]/src/zlib
 
-
-set config {
+install_config {
 <config prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
@@ -58,20 +55,57 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="150"/>}
+	<default caps="150"/>
 
-append_platform_drv_config
+	<start name="report_rom" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<policy label="pci_decode -> system"                report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices"             report="pci_decode -> devices"/>
+			<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>
+			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
+			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
+			<policy label="virtualbox -> usb_devices"           report="usb_report_filter -> usb_devices"/>
+		</config>
+	</start>
 
-append config {
+	<start name="acpi_drv" caps="250">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="Report">              <child name="report_rom"/> </service>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<policy label_prefix="ps2_drv"> <device name="ps2"/> </policy>
+			<policy label_prefix="fb_drv"  info="yes"> <pci class="VGA"/>   </policy>
+			<policy label_prefix="usb_drv" info="yes"> <pci class="USB"/>   </policy>
+		</config>
+	</start>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>
-
-	<start name="ps2_drv" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-		<config/>
 	</start>
 
 	<start name="usb_config_fs" priority="-1">
@@ -134,9 +168,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="usb_drv" priority="-1"> }
-append config "<binary name=\"[usb_host_drv_binary]\"/>"
-append config {
+	<start name="usb_drv" priority="-1">
+		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
@@ -146,12 +179,6 @@ append config {
 				<child name="usb_config_rom" label="usb_drv.config"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>
-
-	<start name="fb_drv" priority="-1">
-		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="16M"/>
-		<config/>
 	</start>
 
 	<start name="nitpicker" priority="-1">
@@ -196,18 +223,6 @@ append config {
 		</provides>
 	</start>
 
-	<start name="report_rom" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config>
-			<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>
-			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
-			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
-			<policy label="virtualbox -> usb_devices"           report="usb_report_filter -> usb_devices"/>
-		</config>
-	</start>
-
 	<start name="virtualbox" caps="800" priority="-2">
 		<binary name="virtualbox5-nova"/>
 		<resource name="RAM" quantum="448M"/>
@@ -231,8 +246,6 @@ append config {
 	</start>
 </config>
 }
-
-install_config $config
 
 puts "--- executing the 'usb_hid_raw' run script to generate the 'usb_hid_raw.iso' image ---"
 
@@ -262,32 +275,7 @@ exec -ignorestderr \
 exec ln -sf ${genode_dir}/repos/ports/run/vm_genode_usb_hid_raw.vbox bin/
 exec ln -sf ../../usb_hid_raw.iso bin/
 
-set boot_modules {
-	core
-	init
-	timer
-	vesa_fb_drv
-	ps2_drv
-	log_terminal
-	usb_report_filter
-	fs_rom
-	vfs vfs.lib.so vfs_import.lib.so
-	report_rom
-	virtualbox5-nova
-	usb_hid_raw.iso
-	vm_genode_usb_hid_raw.vbox
-	ld.lib.so libc.lib.so libm.lib.so
-	libiconv.lib.so stdcxx.lib.so
-	qemu-usb.lib.so
-	libyuv.lib.so jpeg.lib.so
-}
-
-append boot_modules " [usb_host_drv_binary] "
-
-append_platform_drv_boot_modules
-
-
-build_boot_image $boot_modules
+build_boot_image { usb_report_filter usb_hid_raw.iso vm_genode_usb_hid_raw.vbox }
 
 if { ![get_cmd_switch --autopilot] } { run_genode_until forever }
 
