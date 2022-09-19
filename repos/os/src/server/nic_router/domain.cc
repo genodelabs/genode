@@ -49,7 +49,7 @@ void Domain::_log_ip_config() const
 }
 
 
-bool Domain::is_ready() const
+bool Domain::ready() const
 {
 	if (_dhcp_server.valid()) {
 		if (_dhcp_server().has_invalid_remote_dns_cfg()) {
@@ -62,9 +62,9 @@ bool Domain::is_ready() const
 
 void Domain::update_ready_state()
 {
-	bool const ready { is_ready() };
+	bool const rdy { ready() };
 	_interfaces.for_each([&] (Interface &interface) {
-		interface.handle_domain_ready_state(ready);
+		interface.handle_domain_ready_state(rdy);
 	});
 }
 

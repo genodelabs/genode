@@ -461,7 +461,7 @@ void Interface::handle_domain_ready_state(bool state)
 void Interface::_refetch_domain_ready_state()
 {
 	if (_domain.valid()) {
-		handle_domain_ready_state(_domain().is_ready());
+		handle_domain_ready_state(_domain().ready());
 	} else {
 		handle_domain_ready_state(false);
 	}
