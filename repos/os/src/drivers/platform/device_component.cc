@@ -159,7 +159,7 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			new (session.heap()) Irq(_irq_registry, idx, nr, type, polarity, mode);
 		});
 
-		device.for_each_io_mem([&] (unsigned idx, Range range)
+		device.for_each_io_mem([&] (unsigned idx, Range range, Device::Pci_bar)
 		{
 			session.ram_quota_guard().withdraw(Ram_quota{Io_mem_session::RAM_QUOTA});
 			_ram_quota += Io_mem_session::RAM_QUOTA;

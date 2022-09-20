@@ -228,7 +228,7 @@ class Driver::Device : private List_model<Device>::Element
 		{
 			unsigned idx = 0;
 			_io_mem_list.for_each([&] (Io_mem const & iomem) {
-				fn(idx++, iomem.range); });
+				fn(idx++, iomem.range, iomem.bar); });
 		}
 
 		template <typename FN> void for_each_io_port_range(FN const & fn) const

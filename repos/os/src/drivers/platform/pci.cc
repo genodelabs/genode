@@ -21,6 +21,7 @@
 #include <pci_uhci.h>
 #include <pci_intel_graphics.h>
 #include <pci_hd_audio.h>
+#include <pci_virtio.h>
 
 using namespace Genode;
 using namespace Pci;
@@ -51,7 +52,8 @@ struct Config_helper
 		Config::Command::Bus_master_enable::set(cmd, 1);
 
 		/* enable memory space when I/O mem is defined */
-		_dev.for_each_io_mem([&] (unsigned, Driver::Device::Io_mem::Range) {
+		_dev.for_each_io_mem([&] (unsigned, Driver::Device::Io_mem::Range,
+		                          Driver::Device::Pci_bar) {
 			Config::Command::Memory_space_enable::set(cmd, 1); });
 
 		/* enable i/o space when I/O ports are defined */
@@ -182,6 +184,9 @@ void Driver::pci_device_specific_info(Device const  & dev,
                                       Device_model  & model,
                                       Xml_generator & xml)
 {
-	dev.for_pci_config([&] (Device::Pci_config const cfg) {
-		Driver::pci_intel_graphics_info(cfg, env, model, xml); });
+	dev.for_pci_config([&] (Device::Pci_config const cfg)
+	{
+		Driver::pci_intel_graphics_info(cfg, env, model, xml);
+		Driver::pci_virtio_info(dev, cfg, env, xml);
+	});
 }
