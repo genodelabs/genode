@@ -115,6 +115,12 @@ SRC_LIB_BASE += $(notdir $(wildcard $(BASE_HW_DIR)/src/lib/base/*.cc)) \
                 $(notdir $(wildcard $(BASE_DIR)/src/lib/base/*.cc)) \
                 ${call selected_content,SRC_LIB_BASE_SPECS}
 
+SRC_LIB_TIMEOUT += duration.cc \
+                   hw/timer_connection_timestamp.cc \
+                   timeout.cc \
+                   timer_connection.cc \
+                   timer_connection_time.cc
+
 SRC_LIB_STARTUP += init_main_thread.cc _main.cc \
                    $(addprefix spec/,${call selected_content,SRC_LIB_STARTUP_SPECS})
 
@@ -142,6 +148,7 @@ CONTENT += $(addprefix src/timer/,$(SRC_TIMER)) \
            $(addprefix src/bootstrap/,$(SRC_BOOTSTRAP)) \
            $(addprefix lib/mk/,$(LIB_MK)) \
            $(addprefix src/lib/base/,$(SRC_LIB_BASE)) \
+           $(addprefix src/lib/timeout/,$(SRC_LIB_TIMEOUT)) \
            $(addprefix src/lib/startup/,$(SRC_LIB_STARTUP)) \
            $(addprefix src/core/,$(SRC_CORE)) \
            src/lib/hw src/lib/ld src/lib/cxx \
