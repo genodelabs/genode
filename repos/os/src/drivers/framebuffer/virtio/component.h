@@ -203,7 +203,7 @@ class Virtio_fb::Driver
 		Env                   &_env;
 		Platform::Connection  &_platform;
 		Virtio::Device        &_device;
-		Control_queue          _ctrl_vq { _env.rm(), _platform, 4, 512 };
+		Control_queue          _ctrl_vq { _platform, 4, 512 };
 		uint32_t const         _num_scanouts;
 		Signal_handler<Driver> _irq_handler { _env.ep(), *this, &Driver::_handle_irq };
 

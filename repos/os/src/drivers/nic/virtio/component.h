@@ -288,18 +288,17 @@ class Virtio_nic::Device : Noncopyable
 
 	public:
 
-		Device(Genode::Env             &env,
-		       Virtio::Device          &device,
+		Device(Virtio::Device          &device,
 		       Platform::Connection    &plat,
 		       Genode::Xml_node  const &xml)
 		try :
 			_verbose     { xml.attribute_value("verbose", false) },
 			_device      { device },
 			_hw_features { _init_hw_features(xml) },
-			_rx_vq       { env.rm(), plat,
+			_rx_vq       { plat,
 			               _vq_size(RX_VQ, xml, "rx_queue_size"),
 			               _buf_size(RX_VQ, xml, "rx_buffer_size") },
-			_tx_vq       { env.rm(), plat,
+			_tx_vq       { plat,
 			               _vq_size(TX_VQ, xml, "tx_queue_size"),
 			               _buf_size(TX_VQ, xml, "tx_buffer_size") }
 		{ }
@@ -496,7 +495,7 @@ class Virtio_nic::Uplink_client : public Virtio_nic::Device,
 		              Platform::Connection        &plat,
 		              Genode::Xml_node      const &xml)
 		:
-			Device             { env, device, plat, xml },
+			Device             { device, plat, xml },
 			Uplink_client_base { env, alloc, read_mac_address() },
 			_irq_handler       { env.ep(), *this, &Uplink_client::_handle_irq }
 		{

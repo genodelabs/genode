@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/heap.h>
-#include <legacy/x86/platform_session/connection.h>
+#include <platform_session/connection.h>
 #include <virtio/pci_device.h>
 
 /* local includes */
@@ -30,29 +30,15 @@ struct Virtio_pci_nic::Main
 	struct Device_not_found : Genode::Exception { };
 
 	Genode::Env             & env;
-	Genode::Heap              heap            { env.ram(), env.rm() };
-	Platform::Connection      pci             { env };
-	Platform::Device_client   platform_device;
-	Virtio::Device            virtio_device   { env, platform_device };
-	Attached_rom_dataspace    config_rom      { env, "config" };
+	Genode::Heap              heap            { env.ram(), env.rm()   };
+	Platform::Connection      pci             { env                   };
+	Virtio::Device            virtio_device   { env, pci              };
+	Attached_rom_dataspace    config_rom      { env, "config"         };
 	Virtio_nic::Uplink_client uplink_client   { env, heap, virtio_device,
 	                                            pci, config_rom.xml() };
 
-	Platform::Device_capability find_platform_device()
-	{
-		Platform::Device_capability device_cap;
-		pci.with_upgrade([&] () { device_cap = pci.first_device(); });
-
-		if (!device_cap.valid()) throw Device_not_found();
-
-		return device_cap;
-	}
-
-	Main(Env &env)
-	: env(env), platform_device(find_platform_device())
-	{
-		log("--- VirtIO PCI driver started ---");
-	}
+	Main(Env &env) : env(env) {
+		log("--- VirtIO PCI driver started ---"); }
 };
 
 

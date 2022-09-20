@@ -14,9 +14,8 @@
 #ifndef _INCLUDE__VIRTIO__QUEUE_H_
 #define _INCLUDE__VIRTIO__QUEUE_H_
 
-#include <base/attached_dataspace.h>
+#include <platform_session/dma_buffer.h>
 #include <base/stdint.h>
-#include <dataspace/client.h>
 #include <util/misc_math.h>
 
 namespace Virtio
@@ -138,7 +137,7 @@ class Virtio::Queue
 				Buffer_pool(Buffer_pool const &) = delete;
 				Buffer_pool &operator = (Buffer_pool const &) = delete;
 
-				Attached_dataspace   _ds;
+				Platform::Dma_buffer _ds;
 				uint16_t       const _buffer_count;
 				uint16_t       const _buffer_size;
 				addr_t         const _phys_base;
@@ -156,16 +155,14 @@ class Virtio::Queue
 				};
 
 				Buffer_pool(Platform::Connection & plat,
-				            Region_map           & rm,
 				            uint16_t         const buffer_count,
 				            uint16_t         const buffer_size)
 				:
-					_ds(rm, plat.alloc_dma_buffer(buffer_count *
-					                              align_natural(buffer_size),
-					                              CACHED)),
+					_ds(plat, buffer_count * align_natural(buffer_size),
+					    CACHED),
 					_buffer_count(buffer_count),
 					_buffer_size(buffer_size),
-					_phys_base(_dma_addr(plat, _ds.cap())) {}
+					_phys_base(_ds.dma_addr()) {}
 
 				const Buffer get(uint16_t descriptor_idx) const
 				{
@@ -211,7 +208,7 @@ class Virtio::Queue
 
 
 		uint16_t                    const _queue_size;
-		Attached_dataspace                _ds;
+		Platform::Dma_buffer              _ds;
 		Buffer_pool                       _buffers;
 		Avail            volatile * const _avail;
 		Used             volatile * const _used;
@@ -565,18 +562,16 @@ class Virtio::Queue
 			print(output, _queue_size);
 		}
 
-		Queue(Region_map           & rm,
-		      Platform::Connection & plat,
+		Queue(Platform::Connection & plat,
 		      uint16_t               queue_size,
 		      uint16_t               buffer_size)
 		: _queue_size(queue_size),
-		  _ds(rm, plat.alloc_dma_buffer(_ds_size(queue_size), UNCACHED)),
-		  _buffers(plat, rm, queue_size, _check_buffer_size(buffer_size)),
+		  _ds(plat, _ds_size(queue_size), UNCACHED),
+		  _buffers(plat, queue_size, _check_buffer_size(buffer_size)),
 		  _avail(_init_avail(_ds.local_addr<uint8_t>(), queue_size)),
 		  _used(_init_used(_ds.local_addr<uint8_t>(), queue_size)),
 		  _descriptors(_ds.local_addr<uint8_t>(), queue_size),
-		  _description(_init_description(queue_size,
-		                                 _dma_addr(plat, _ds.cap())))
+		  _description(_init_description(queue_size, _ds.dma_addr()))
 		{
 			_fill_descriptor_table();
 		}

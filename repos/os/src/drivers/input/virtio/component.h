@@ -137,10 +137,8 @@ class Virtio_input::Driver
 		Input::Absolute_motion  _abs_motion { -1, -1 };
 		Abs_config              _abs_config { { 0, 0 }, { 0, 0 }, 0, 0 };
 		Signal_handler<Driver>  _irq_handler {_env.ep(), *this, &Driver::_handle_irq};
-		Events_virtqueue        _events_vq { _env.rm(), _plat,
-		                                     QUEUE_SIZE, QUEUE_ELM_SIZE };
-		Status_virtqueue        _status_vq { _env.rm(), _plat,
-		                                     QUEUE_SIZE, QUEUE_ELM_SIZE };
+		Events_virtqueue        _events_vq { _plat, QUEUE_SIZE, QUEUE_ELM_SIZE };
+		Status_virtqueue        _status_vq { _plat, QUEUE_SIZE, QUEUE_ELM_SIZE };
 
 
 		void _handle_event(::Event::Session_client::Batch &batch, const Event &evt)
