@@ -55,6 +55,16 @@ void Thread::exception(Cpu & cpu)
 				            " ISS=", Cpu::Esr::Iss::get(esr),
 				            " ip=", (void*)regs->ip);
 			};
+			
+			/*
+			 * If the machine exception is caused by a non-privileged
+			 * component, mark it dead, and continue execution.
+			 */
+			if (regs->exception_type == Cpu::SYNC_LEVEL_EL0) {
+				Genode::raw("Will freeze thread ", *this);
+				_become_inactive(DEAD);
+				return;
+			}
 			break;
 		}
 	default:
