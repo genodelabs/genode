@@ -1,5 +1,5 @@
 TARGET   := acpica
-SRC_CC   := os.cc printf.cc
+SRC_CC   := os.cc printf.cc report.cc
 REQUIRES := x86
 LIBS     += base acpica
 

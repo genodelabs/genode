@@ -129,6 +129,8 @@ struct Acpica::Main
 		void                  *context;
 	} irq_handler;
 
+	Expanding_reporter report_sleep_states { env, "sleep_states", "sleep_states" };
+
 	void init_acpica();
 
 	Main(Env &env)
@@ -415,6 +417,11 @@ void Acpica::Main::init_acpica()
 		error("AcpiGetDevices (FUJ02E3) failed, status=", status);
 		return;
 	}
+
+	/* report S0-S5 support and the SLP_TYPa/b values to be used by kernel(s) */
+	report_sleep_states.generate([&] (auto &xml) {
+		Acpica::generate_suspend_report(xml);
+	});
 }
 
 

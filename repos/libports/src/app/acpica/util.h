@@ -17,15 +17,15 @@ extern "C" {
 #include "acpi.h"
 }
 
-class Bridge;
 
 namespace Acpica {
 	template<typename> class Buffer;
 	template<typename> class Callback;
-	void generate_report(Genode::Env &, Bridge *);
 
 	template <typename H, typename S, typename F, typename FSIZE>
 	void for_each_element(H const head, S *, F const &fn, FSIZE const &fn_size);
+
+	void generate_suspend_report(Genode::Reporter::Xml_generator &);
 }
 
 template <typename T>
