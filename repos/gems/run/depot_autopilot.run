@@ -771,10 +771,12 @@ if {[have_spec riscv]} {
 	set skip_test(gcov)                              true
 	set skip_test(test-libc_connect_lxip)            true
 	set skip_test(test-libc_connect_vfs_server_lxip) true
+	set skip_test(test-rm_fault_no_nox)              true
 	set skip_test(test-spark)                        true
 	set skip_test(test-spark_exception)              true
 	set skip_test(test-spark_secondary_stack)        true
 	set skip_test(test-tcp_bulk_lxip)                true
+	set skip_test(test-trace_logger)                 true
 	set skip_test(test-xml_generator)                true
 }
 
