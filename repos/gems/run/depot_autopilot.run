@@ -757,7 +757,7 @@ proc non_executable_supported { } {
 #
 set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
 set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]
-set skip_test(test-libc)            [expr [have_spec sel4] || [have_board rpi] || [expr [have_board pbxa9] && [have_spec foc]] || [have_board imx53_qsb_tz]]
+set skip_test(test-libc)            [expr [have_spec sel4] || [have_board rpi] || [have_board imx53_qsb_tz]]
 set skip_test(test-lx_block)        [expr ![have_board linux]]
 set skip_test(test-rm_fault)        [expr [have_board linux] || ![non_executable_supported]]
 set skip_test(test-rm_fault_no_nox) [expr [have_board linux] || ![skip_test test-rm_fault]]
@@ -767,6 +767,11 @@ set skip_test(test-spark_exception) [expr [have_spec arm]]
 set skip_test(test-tcp_bulk_lwip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
 set skip_test(test-tcp_bulk_lxip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
 
+if {[have_spec foc]} {
+	set skip_test(test-entrypoint)    [have_board pbxa9]
+	set skip_test(test-libc)          [have_board pbxa9]
+	set skip_test(test-tcp_bulk_lxip) [have_board pbxa9]
+}
 if {[have_spec riscv]} {
 	set skip_test(gcov)                              true
 	set skip_test(test-libc_connect_lxip)            true
