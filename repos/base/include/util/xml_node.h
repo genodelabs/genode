@@ -55,17 +55,16 @@ class Genode::Xml_attribute
 		struct Tokens
 		{
 			Token name;
-			Token value;
+			Token equals { name  .next().eat_whitespace() };
+			Token value  { equals.next().eat_whitespace() };
 
-			Tokens(Token t)
-			: name(t.eat_whitespace()), value(name.next().next()) { };
+			Tokens(Token t) : name(t.eat_whitespace()) { };
 
 			bool valid() const
 			{
-				bool const tag_present   = (name.type() == Token::IDENT);
-				bool const value_present = (name.next()[0] == '=' &&
-				                            value.type() == Token::STRING);
-				return tag_present && value_present;
+				return (name.type()  == Token::IDENT)
+				    && (equals[0]    == '=')
+				    && (value.type() == Token::STRING);
 			}
 		} _tokens;
 
@@ -103,7 +102,7 @@ class Genode::Xml_attribute
 		/**
 		 * Return token following the attribute declaration
 		 */
-		Token _next_token() const { return _tokens.name.next().next().next(); }
+		Token _next_token() const { return _tokens.value.next(); }
 
 	public:
 
@@ -355,7 +354,7 @@ class Genode::Xml_node
 				}
 
 				/**
-				 * Return true if tag as at least one attribute
+				 * Return true if tag has at least one attribute
 				 */
 				bool has_attribute() const { return Xml_attribute::_valid(_name.next()); }
 

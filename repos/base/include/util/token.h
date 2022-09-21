@@ -110,7 +110,7 @@ class Genode::Token
 		/**
 		 * Access single characters of token
 		 */
-		char operator [] (int idx)
+		char operator [] (int idx) const
 		{
 			return ((idx >= 0) && ((unsigned)idx < _len)) ? _start[idx] : 0;
 		}

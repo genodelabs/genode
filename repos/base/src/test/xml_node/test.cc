@@ -152,6 +152,10 @@ static const char *xml_test_comments =
 static const char *xml_test_backslash =
 	"<config attr=\"\\\"/>";
 
+/* withspace around attribute assignment character */
+static const char *xml_test_whitespace_assign =
+	"<config attr = \"123\"/>";
+
 
 /******************
  ** Test program **
@@ -412,6 +416,12 @@ void Component::construct(Genode::Env &env)
 	log("-- Test backslash as attribute value --");
 	{
 		Xml_node const node(xml_test_backslash);
+		log("attribute value: '", node.attribute_value("attr", String<10>()), "'\n");
+	}
+
+	log("-- Test whitespace around assignment character --");
+	{
+		Xml_node const node(xml_test_whitespace_assign);
 		log("attribute value: '", node.attribute_value("attr", String<10>()), "'\n");
 	}
 

@@ -99,6 +99,9 @@
 			[init -> test-xml_node] -- Test backslash as attribute value --
 			[init -> test-xml_node] attribute value: '\'
 			[init -> test-xml_node] 
+			[init -> test-xml_node] -- Test whitespace around assignment character --
+			[init -> test-xml_node] attribute value: '123'
+			[init -> test-xml_node] 
 			[init -> test-xml_node] -- Test exporting decoded content from XML node --
 			[init -> test-xml_node] step 1
 			[init -> test-xml_node] step 2
