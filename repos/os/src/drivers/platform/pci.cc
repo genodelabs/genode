@@ -136,6 +136,7 @@ pci_class_code_alias(uint32_t class_code)
 		{ "USB"      , 0x0c,     0x03,     0x10     }, /* OHCI */
 		{ "USB"      , 0x0c,     0x03,     0x20     }, /* EHCI */
 		{ "USB"      , 0x0c,     0x03,     0x30     }, /* XHCI */
+		{ "USB4"     , 0x0c,     0x03,     0x40     },
 		{ "VGA"      , 0x03,     0x00,     0x00     },
 		{ "AHCI"     , 0x01,     0x06,     WILDCARD },
 		{ "AUDIO"    , 0x04,     0x01,     WILDCARD },
