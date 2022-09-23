@@ -1,6 +1,6 @@
-JPEG     = jpeg-7
-JPEG_DIR = $(call select_from_ports,jpeg)/src/lib/jpeg
-LIBS    += libc
+JPEG      = jpeg-7
+JPEG_DIR := $(call select_from_ports,jpeg)/src/lib/jpeg
+LIBS     += libc
 
 # use our customized 'jconfig.h' file
 INC_DIR += $(REP_DIR)/include/jpeg

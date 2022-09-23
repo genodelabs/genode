@@ -1,4 +1,4 @@
-GDB_CONTRIB_DIR = $(call select_from_ports,gdb)/src/noux-pkg/gdb
+GDB_CONTRIB_DIR := $(call select_from_ports,gdb)/src/noux-pkg/gdb
 
 INC_DIR += $(REP_DIR)/src/lib/gdbserver_libc_support \
            $(REP_DIR)/src/lib/gdbserver_platform \

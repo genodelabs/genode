@@ -6,7 +6,7 @@ SRC_CC = component.cc
 CC_DEF  += -D_MAX_SS=FF_MAX_SS
 CC_WARN += -Wno-pointer-to-int-cast
 
-FATFS_PORT_DIR = $(call select_from_ports,fatfs)
+FATFS_PORT_DIR := $(call select_from_ports,fatfs)
 
 INC_DIR += $(FATFS_PORT_DIR)/include/fatfs
 

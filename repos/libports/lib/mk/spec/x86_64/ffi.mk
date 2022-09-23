@@ -2,7 +2,7 @@ SHARED_LIB = yes
 
 LIBS = libc
 
-FFI_PORT = $(call select_from_ports,ffi)/src/lib/ffi
+FFI_PORT := $(call select_from_ports,ffi)/src/lib/ffi
 
 INC_DIR = $(FFI_PORT)/include
 

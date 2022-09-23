@@ -1,6 +1,6 @@
 PWD = $(shell pwd)
 
-PKG_DIR = $(call select_from_ports,gcc)/src/noux-pkg/gcc
+PKG_DIR := $(call select_from_ports,gcc)/src/noux-pkg/gcc
 
 CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
                  --target=$(GCC_TARGET) \

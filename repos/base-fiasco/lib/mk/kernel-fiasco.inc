@@ -1,4 +1,4 @@
-L4_SRC_DIR = $(call select_from_ports,fiasco)/src/kernel/fiasco/fiasco/snapshot
+L4_SRC_DIR := $(call select_from_ports,fiasco)/src/kernel/fiasco/fiasco/snapshot
 
 FIASCO_BUILD_DIR = $(shell pwd)/build
 FIASCO           = $(FIASCO_BUILD_DIR)/fiasco

@@ -30,7 +30,9 @@ SRC_S = \
 	sha/asm/sha512-armv8.S \
 	# end of SRC_S
 
-vpath %.S $(call select_from_ports,openssl)/src/lib/openssl/crypto
+OPENSSL_DIR := $(call select_from_ports,openssl)
+
+vpath %.S $(OPENSSL_DIR)/src/lib/openssl/crypto
 
 ifeq ($(filter-out $(SPECS),neon),)
 	vpath armcap_genode.c $(REP_DIR)/src/lib/openssl/crypto/spec/neon

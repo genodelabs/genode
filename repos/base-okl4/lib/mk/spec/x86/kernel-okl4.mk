@@ -1,4 +1,4 @@
-OKL4_SRC_DIR   = $(call select_from_ports,okl4)/src/kernel/okl4
+OKL4_SRC_DIR  := $(call select_from_ports,okl4)/src/kernel/okl4
 
 CONFIG         = ARCH_IA32 \
                  CONFIG_ARCH_IA32=1 \

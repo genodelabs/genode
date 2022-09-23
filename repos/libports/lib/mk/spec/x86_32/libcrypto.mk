@@ -34,7 +34,9 @@ SRC_S = \
 	x86cpuid.s \
 	# end of SRC_S
 
-vpath %.s $(call select_from_ports,openssl)/src/lib/openssl/crypto
+OPENSSL_DIR := $(call select_from_ports,openssl)
+
+vpath %.s $(OPENSSL_DIR)/src/lib/openssl/crypto
 
 include $(REP_DIR)/lib/mk/libcrypto.inc
 

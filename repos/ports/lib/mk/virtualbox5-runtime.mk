@@ -1,10 +1,12 @@
 include $(REP_DIR)/lib/mk/virtualbox5-common.inc
 
+LIBICONV_DIR := $(call select_from_ports,libiconv)
+
 INC_DIR += $(VBOX_DIR)/Runtime/include
 
 INC_DIR += $(VIRTUALBOX_DIR)/src/libs/liblzf-3.4
 INC_DIR += $(VIRTUALBOX_DIR)/src/libs/zlib-1.2.8
-INC_DIR += $(call select_from_ports,libiconv)/include/iconv
+INC_DIR += $(LIBICONV_DIR)/include/iconv
 
 GENERIC_SRC_CC = $(notdir $(wildcard $(VBOX_DIR)/Runtime/generic/*.cpp))
 

@@ -1,7 +1,7 @@
 TARGET = test-pcg32
 LIBS = libpcg_random posix
 
-PCG_SRC_DIR = $(call select_from_ports,pcg-c)/src/lib/pcg-c
+PCG_SRC_DIR := $(call select_from_ports,pcg-c)/src/lib/pcg-c
 
 INC_DIR += $(PCG_SRC_DIR)/extras
 SRC_C = check-pcg32-global.c entropy.c

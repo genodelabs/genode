@@ -6,7 +6,7 @@
 # userland that comes with Fiasco.
 #
 
-L4_SRC_DIR    = $(call select_from_ports,fiasco)/src/kernel/fiasco/fiasco/snapshot
+L4_SRC_DIR   := $(call select_from_ports,fiasco)/src/kernel/fiasco/fiasco/snapshot
 L4_BUILD_DIR := $(shell pwd)
 
 #

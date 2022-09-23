@@ -1,7 +1,7 @@
 SHARED_LIB = yes
 
-YUV_PORT = $(call select_from_ports,libyuv)
-YUV_DIR  = $(YUV_PORT)/src/lib/libyuv
+YUV_PORT := $(call select_from_ports,libyuv)
+YUV_DIR   = $(YUV_PORT)/src/lib/libyuv
 
 LIBS = libc stdcxx jpeg
 

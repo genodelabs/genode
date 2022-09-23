@@ -24,9 +24,9 @@ ifeq ($(CONTRIB_DIR),)
 QT_DIR     = $(call select_from_repositories,src/lib/qt5)
 QT_API_DIR = $(call select_from_repositories,mkspecs)/..
 else
-QT_PORT_DIR = $(call select_from_ports,qt5)
-QT_DIR      = $(QT_PORT_DIR)/src/lib/qt5
-QT_API_DIR  = $(QT_DIR)/genode/api
+QT_PORT_DIR := $(call select_from_ports,qt5)
+QT_DIR       = $(QT_PORT_DIR)/src/lib/qt5
+QT_API_DIR   = $(QT_DIR)/genode/api
 endif
 
 ifneq ($(VERBOSE),)
@@ -96,7 +96,7 @@ GENODE_CMAKE_LFLAGS_SHLIB = \
 ifeq ($(CONTRIB_DIR),)
 GENODE_CMAKE_GL_INCDIRS = $(call select_from_repositories,include/GL)/..
 else
-GENODE_CMAKE_GL_INCDIRS = $(call select_from_ports,mesa)/include
+GENODE_CMAKE_GL_INCDIRS := $(call select_from_ports,mesa)/include
 endif
 
 GENODE_CMAKE_OPENGL_LIBS = $(CURDIR)/cmake_root/lib/mesa.lib.so

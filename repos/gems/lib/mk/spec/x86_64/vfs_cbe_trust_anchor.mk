@@ -1,4 +1,4 @@
-OPENSSL_DIR = $(call select_from_ports,openssl)
+OPENSSL_DIR := $(call select_from_ports,openssl)
 
 SRC_CC += vfs.cc
 SRC_CC += aes_256.cc
