@@ -17,8 +17,6 @@
 #include <domain.h>
 #include <configuration.h>
 
-enum { PKT_SIZE = 1024 };
-
 using namespace Genode;
 using namespace Net;
 using Message_type = Dhcp_packet::Message_type;
@@ -64,17 +62,20 @@ Dhcp_client::Dhcp_client(Cached_timer      &timer,
 
 void Dhcp_client::discover()
 {
+	enum { DISCOVER_PKT_SIZE = 309 };
 	_set_state(State::SELECT, _config().dhcp_discover_timeout());
 	_send(Message_type::DISCOVER, Ipv4_address(), Ipv4_address(),
-	      Ipv4_address());
+	      Ipv4_address(), DISCOVER_PKT_SIZE);
 }
 
 
 void Dhcp_client::_rerequest(State next_state)
 {
+	enum { REREQUEST_PKT_SIZE = 309 };
 	_set_state(next_state, _rerequest_timeout(2));
 	Ipv4_address const client_ip = _domain().ip_config().interface().address;
-	_send(Message_type::REQUEST, client_ip, Ipv4_address(), client_ip);
+	_send(Message_type::REQUEST, client_ip, Ipv4_address(), client_ip,
+	      REREQUEST_PKT_SIZE);
 }
 
 
@@ -129,10 +130,11 @@ void Dhcp_client::handle_dhcp_reply(Dhcp_packet &dhcp)
 			if (msg_type != Message_type::OFFER) {
 				throw Drop_packet("DHCP client expects an offer");
 			}
+			enum { REQUEST_PKT_SIZE = 321 };
 			_set_state(State::REQUEST, _config().dhcp_request_timeout());
 			_send(Message_type::REQUEST, Ipv4_address(),
 			      dhcp.option<Dhcp_packet::Server_ipv4>().value(),
-			      dhcp.yiaddr());
+			      dhcp.yiaddr(), REQUEST_PKT_SIZE);
 			break;
 
 		case State::REQUEST:
@@ -159,10 +161,11 @@ void Dhcp_client::handle_dhcp_reply(Dhcp_packet &dhcp)
 void Dhcp_client::_send(Message_type msg_type,
                         Ipv4_address client_ip,
                         Ipv4_address server_ip,
-                        Ipv4_address requested_ip)
+                        Ipv4_address requested_ip,
+                        size_t       pkt_size)
 {
 	Mac_address client_mac = _interface.router_mac();
-	_interface.send(PKT_SIZE, [&] (void *pkt_base, Size_guard &size_guard) {
+	_interface.send(pkt_size, [&] (void *pkt_base, Size_guard &size_guard) {
 
 		/* create ETH header of the request */
 		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
@@ -198,19 +201,20 @@ void Dhcp_client::_send(Message_type msg_type,
 		dhcp.default_magic_cookie();
 
 		/* append DHCP option fields to the request */
+		enum { MAX_PKT_SIZE = 1024 };
 		Dhcp_options dhcp_opts(dhcp, size_guard);
 		dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
 		switch (msg_type) {
 		case Message_type::DISCOVER:
 			append_param_req_list(dhcp_opts);
 			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
-			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
+			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(MAX_PKT_SIZE - dhcp_off);
 			break;
 
 		case Message_type::REQUEST:
 			append_param_req_list(dhcp_opts);
 			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
-			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
+			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(MAX_PKT_SIZE - dhcp_off);
 			if (_state == State::REQUEST) {
 				dhcp_opts.append_option<Dhcp_packet::Requested_addr>(requested_ip);
 				dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(server_ip);
