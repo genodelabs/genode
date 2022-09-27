@@ -94,8 +94,7 @@ void Driver::pci_intel_graphics_info(Device::Pci_config cfg,
 	struct Host_bridge : Mmio
 	{
 		struct Gen_old_gmch_control : Register<0x52, 16> {};
-		struct Gen_6_7_gmch_control : Register<0x50, 16> {};
-		struct Gen_gmch_control     : Register<0x52, 16> {};
+		struct Gen_gmch_control     : Register<0x50, 16> {};
 
 		using Mmio::Mmio;
 	};
@@ -113,8 +112,6 @@ void Driver::pci_intel_graphics_info(Device::Pci_config cfg,
 
 			if (gen < 6)
 				gmch = config.read<Host_bridge::Gen_old_gmch_control>();
-			else if (gen < 8)
-				gmch = config.read<Host_bridge::Gen_6_7_gmch_control>();
 			else
 				gmch = config.read<Host_bridge::Gen_gmch_control>();
 
