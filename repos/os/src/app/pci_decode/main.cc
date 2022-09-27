@@ -37,7 +37,12 @@ struct Main
 	Expanding_reporter     pci_reporter    { env, "devices", "devices" };
 	Registry<Bridge>       bridge_registry {}; /* contains host bridges */
 
-	unsigned msi_number { 0U };
+	/*
+	 * We count beginning from 1 not 0, because some clients (Linux drivers)
+	 * do not ignore the pseudo MSI number announced, but interpret zero as
+	 * invalid.
+	 */
+	unsigned msi_number { 1U };
 
 	bool apic_capable { false };
 	bool msi_capable  { false };
