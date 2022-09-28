@@ -239,6 +239,8 @@
 						<child name="config_fs_report" label="managed -> nic_router"/> </service>
 					<service name="Report" label="fb_drv_config">
 						<child name="config_fs_report" label="managed -> fb_drv"/> </service>
+					<service name="Report" label="system_config">
+						<child name="config_fs_report" label="managed -> system"/> </service>
 					<service name="Report" label="event_filter_config">
 						<child name="config_fs_report" label="managed -> event_filter"/> </service>
 					<service name="Report" label="installation_config">

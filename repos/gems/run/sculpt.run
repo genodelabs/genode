@@ -388,7 +388,7 @@ install_config {
 			<service name="ROM" label_last="usb_policy">
 				<child name="config_fs_rom" label="usb"/> </service>
 			<service name="ROM" label_last="system">
-				<child name="config_fs_rom" label="system"/> </service>
+				<child name="config_fs_rom" label="managed/system"/> </service>
 			<service name="ROM" label_last="modem.config">
 				<child name="config_fs_rom" label="managed/modem"/> </service>
 			<service name="ROM" label_last="audio.config">
@@ -720,7 +720,7 @@ set fd [open [managed_config_path depot_query] w]
 puts $fd "<query/>"
 close $fd
 
-foreach config { fonts wifi runtime event_filter } {
+foreach config { fonts wifi runtime event_filter system } {
 	set ingredient [single_ingredient $config "default"]
 	if {$ingredient != ""} {
 		set from [ingredient_path $config $ingredient]

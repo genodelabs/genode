@@ -91,6 +91,14 @@ struct Sculpt::Main : Input_event_handler,
 			handle_input_event(ev); });
 	}
 
+	Managed_config<Main> _system_config {
+		_env, "system", "system", *this, &Main::_handle_system_config };
+
+	void _handle_system_config(Xml_node)
+	{
+		_system_config.try_generate_manually_managed();
+	}
+
 	Signal_handler<Main> _gui_mode_handler {
 		_env.ep(), *this, &Main::_handle_gui_mode };
 
