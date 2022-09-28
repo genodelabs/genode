@@ -134,9 +134,7 @@ class Platform::Device_component : public Rpc_object<Device_interface,
 			return _irq.cap();
 		}
 
-		Io_mem_session_capability io_mem(unsigned idx,
-		                                 Range & range,
- 		                                 Cache /* ignore caching */)
+		Io_mem_session_capability io_mem(unsigned idx, Range & range)
 		{
 			range.start = 0;
 

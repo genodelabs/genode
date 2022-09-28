@@ -47,7 +47,7 @@ Driver::Session_component & Device_component::session() { return _session; }
 
 
 Genode::Io_mem_session_capability
-Device_component::io_mem(unsigned idx, Range &range, Cache cache)
+Device_component::io_mem(unsigned idx, Range &range)
 {
 	Io_mem_session_capability cap;
 
@@ -60,7 +60,7 @@ Device_component::io_mem(unsigned idx, Range &range, Cache cache)
 			iomem.io_mem.construct(_env,
 			                       iomem.range.start,
 			                       iomem.range.size,
-			                       cache == WRITE_COMBINED);
+			                       iomem.prefetchable);
 
 		range = iomem.range;
 		range.start &= 0xfff;
@@ -159,13 +159,14 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			new (session.heap()) Irq(_irq_registry, idx, nr, type, polarity, mode);
 		});
 
-		device.for_each_io_mem([&] (unsigned idx, Range range, Device::Pci_bar)
+		device.for_each_io_mem([&] (unsigned idx, Range range,
+		                            Device::Pci_bar, bool pf)
 		{
 			session.ram_quota_guard().withdraw(Ram_quota{Io_mem_session::RAM_QUOTA});
 			_ram_quota += Io_mem_session::RAM_QUOTA;
 			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
 			_cap_quota += Io_mem_session::CAP_QUOTA;
-			new (session.heap()) Io_mem(_io_mem_registry, idx, range);
+			new (session.heap()) Io_mem(_io_mem_registry, idx, range, pf);
 		});
 
 		device.for_each_io_port_range([&] (unsigned idx, Io_port_range::Range range)
@@ -193,7 +194,7 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
 			_cap_quota += Io_mem_session::CAP_QUOTA;
 			Io_mem & iomem = *(new (session.heap())
-				Io_mem(_reserved_mem_registry, idx, range));
+				Io_mem(_reserved_mem_registry, idx, range, false));
 			iomem.io_mem.construct(_env, iomem.range.start,
 			                       iomem.range.size, false);
 			session.device_pd().attach_dma_mem(iomem.io_mem->dataspace(),

@@ -84,9 +84,10 @@ class Driver::Device : private List_model<Device>::Element
 
 			Pci_bar bar;
 			Range   range;
+			bool    prefetchable;
 
-			Io_mem(Pci_bar bar, Range range)
-			: bar(bar), range(range) {}
+			Io_mem(Pci_bar bar, Range range, bool pf)
+			: bar(bar), range(range), prefetchable(pf) {}
 		};
 
 		struct Irq : List_model<Irq>::Element
@@ -228,7 +229,7 @@ class Driver::Device : private List_model<Device>::Element
 		{
 			unsigned idx = 0;
 			_io_mem_list.for_each([&] (Io_mem const & iomem) {
-				fn(idx++, iomem.range, iomem.bar); });
+				fn(idx++, iomem.range, iomem.bar, iomem.prefetchable); });
 		}
 
 		template <typename FN> void for_each_io_port_range(FN const & fn) const
@@ -420,7 +421,8 @@ struct Driver::Io_mem_update_policy : Genode::List_model<Device::Io_mem>::Update
 		Bar bar { node.attribute_value<uint8_t>("pci_bar", Bar::INVALID) };
 		Range range { node.attribute_value<Genode::addr_t>("address", 0),
 		              node.attribute_value<Genode::size_t>("size",    0) };
-		return *(new (alloc) Element(bar, range));
+		bool pf { node.attribute_value("prefetchable", false) };
+		return *(new (alloc) Element(bar, range, pf));
 	}
 
 	void update_element(Element &, Genode::Xml_node) {}

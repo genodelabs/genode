@@ -42,7 +42,7 @@ struct Platform::Device_interface : Interface
 
 	GENODE_RPC(Rpc_irq, Irq_session_capability, irq, unsigned);
 	GENODE_RPC(Rpc_io_mem, Io_mem_session_capability, io_mem,
-	           unsigned, Range &, Cache);
+	           unsigned, Range &);
 	GENODE_RPC(Rpc_io_port_range, Io_port_session_capability, io_port_range,
 	           unsigned);
 

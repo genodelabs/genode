@@ -53,7 +53,7 @@ struct Config_helper
 
 		/* enable memory space when I/O mem is defined */
 		_dev.for_each_io_mem([&] (unsigned, Driver::Device::Io_mem::Range,
-		                          Driver::Device::Pci_bar) {
+		                          Driver::Device::Pci_bar, bool) {
 			Config::Command::Memory_space_enable::set(cmd, 1); });
 
 		/* enable i/o space when I/O ports are defined */

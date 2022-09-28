@@ -116,7 +116,7 @@ void lx_platform_device_init()
 
 				Device_interface::Range range { };
 				Io_mem_session_client io_mem_client {
-					device_cap.call<Device_interface::Rpc_io_mem>(res_count, range, UNCACHED) };
+					device_cap.call<Device_interface::Rpc_io_mem>(res_count, range) };
 
 				Io_mem & iom = *new (Lx_kit::env().heap())
 					Io_mem(io_mem_client.dataspace(), range.start, range.size,

@@ -80,7 +80,7 @@ void Driver::pci_virtio_info(Device const     & dev,
 			unsigned idx = ~0U;
 			dev.for_each_io_mem([&] (unsigned i,
 			                         Driver::Device::Io_mem::Range,
-			                         Driver::Device::Pci_bar bar) {
+			                         Driver::Device::Pci_bar bar, bool) {
 				if (bar.number == cap.read<Capability::Bar>()) idx = i; });
 
 			xml.node("virtio_range", [&] () {

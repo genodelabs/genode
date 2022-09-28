@@ -61,14 +61,16 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		{
 			unsigned                         idx;
 			Range                            range;
+			bool                             prefetchable;
 			Constructible<Io_mem_connection> io_mem {};
 
 			Io_mem(Registry<Io_mem> & registry,
 			       unsigned           idx,
-			       Range              range)
+			       Range              range,
+			       bool               pf)
 			:
 				Registry<Io_mem>::Element(registry, *this),
-				idx(idx), range(range) {}
+				idx(idx), range(range), prefetchable(pf) {}
 		};
 
 		struct Io_port_range : Registry<Io_port_range>::Element
@@ -109,7 +111,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		 ************************************/
 
 		Irq_session_capability     irq(unsigned);
-		Io_mem_session_capability  io_mem(unsigned, Range &, Cache);
+		Io_mem_session_capability  io_mem(unsigned, Range &);
 		Io_port_session_capability io_port_range(unsigned);
 
 	private:
