@@ -96,6 +96,8 @@ struct Pci::Config : Genode::Mmio
 				enum { SIZE_32BIT = 0, SIZE_64BIT = 2 };
 			};
 
+			struct Memory_prefetchable : Bitfield<3,1> {};
+
 			struct Io_base     : Bitfield<2, 30> {};
 			struct Memory_base : Bitfield<7, 25> {};
 		};
@@ -122,6 +124,9 @@ struct Pci::Config : Genode::Mmio
 			return Bar_32bit::Memory_type::get(_conf) ==
 			       Bar_32bit::Memory_type::SIZE_64BIT;
 		}
+
+		bool prefetchable() {
+			return Bar_32bit::Memory_prefetchable::get(_conf); }
 
 		Genode::size_t size()
 		{
@@ -524,7 +529,7 @@ struct Pci::Config : Genode::Mmio
 			if (!reg0.valid())
 				continue;
 			if (reg0.memory()) {
-				memory(reg0.addr(), reg0.size(), i);
+				memory(reg0.addr(), reg0.size(), i, reg0.prefetchable());
 				if (reg0.bit64()) i++;
 			} else
 				io(reg0.addr(), reg0.size(), i);

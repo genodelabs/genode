@@ -126,12 +126,15 @@ void Main::parse_pci_function(Bdf             bdf,
 			}
 		});
 
-		cfg.for_each_bar([&] (uint64_t addr, size_t size, unsigned bar) {
+		cfg.for_each_bar([&] (uint64_t addr, size_t size,
+		                      unsigned bar, bool pf)
+		{
 			gen.node("io_mem", [&]
 			{
 				gen.attribute("pci_bar", bar);
 				gen.attribute("address", string(addr));
 				gen.attribute("size",    string(size));
+				if (pf) gen.attribute("prefetchable", true);
 			});
 		}, [&] (uint64_t addr, size_t size, unsigned bar) {
 			gen.node("io_port_range", [&]
