@@ -375,7 +375,7 @@ struct Pci::Config : Genode::Mmio
 
 	struct Pci_express_extended_capability : Genode::Mmio
 	{
-		struct Id : Register<0,16>
+		struct Id : Register<0x0, 16>
 		{
 			enum {
 				INVALID                  = 0x0,
@@ -388,7 +388,7 @@ struct Pci::Config : Genode::Mmio
 			};
 		};
 
-		struct Next_and_version : Register<16, 8>
+		struct Next_and_version : Register<0x2, 16>
 		{
 			struct Offset : Bitfield<4, 12> {};
 		};
@@ -462,19 +462,8 @@ struct Pci::Config : Genode::Mmio
 			case Pci_capability::Id::PCI_E:
 				pci_e_cap.construct(base()+off); break;
 
-			case Pci_capability::Id::AGP:
-			case Pci_capability::Id::VITAL_PRODUCT:
-			case Pci_capability::Id::SATA:
-			case Pci_capability::Id::VENDOR:
-			case Pci_capability::Id::ADVANCED:
-			case Pci_capability::Id::BRIDGE_SUB:
-			case Pci_capability::Id::DEBUG:
-				break;
-
 			default:
-				warning("Found unhandled capability ",
-				        cap.read<Pci_capability::Id>(),
-				        " at offset ", Hex(base()+off));
+				/* ignore unhandled capability */ ;
 			}
 			off = cap.read<Pci_capability::Pointer>();
 		}
@@ -491,15 +480,8 @@ struct Pci::Config : Genode::Mmio
 			case Pci_express_extended_capability::Id::ADVANCED_ERROR_REPORTING:
 				adv_err_cap.construct(base() + off); break;
 
-			case Pci_express_extended_capability::Id::VENDOR:
-			case Pci_express_extended_capability::Id::VIRTUAL_CHANNEL:
-			case Pci_express_extended_capability::Id::MULTI_ROOT_IO_VIRT:
-				break;
-
 			default:
-				warning("Found unhandled extended capability ",
-				        cap.read<Pci_express_extended_capability::Id>(),
-				        " at offset ", Hex(base()+off));
+				/* ignore unhandled extended capability */ ;
 			}
 			off = cap.read<Pci_express_extended_capability::Next_and_version::Offset>();
 		}
