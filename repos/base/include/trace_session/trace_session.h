@@ -65,12 +65,6 @@ struct Genode::Trace::Session : Genode::Session
 	virtual void trace(Subject_id, Policy_id, size_t buffer_size) = 0;
 
 	/**
-	 * Install a matching rule for automatically tracing new threads
-	 */
-	virtual void rule(Session_label const &, Thread_name const &,
-	                  Policy_id, size_t buffer_size) = 0;
-
-	/**
 	 * Pause generation of tracing data
 	 *
 	 * \throw Nonexistent_subject
@@ -124,10 +118,6 @@ struct Genode::Trace::Session : Genode::Session
 	                                  Nonexistent_policy,
 	                                  Traced_by_other_session),
 	                 Subject_id, Policy_id, size_t);
-	GENODE_RPC_THROW(Rpc_rule, void, rule,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
-	                 Session_label const &, Thread_name const &,
-	                 Policy_id, size_t);
 	GENODE_RPC_THROW(Rpc_pause, void, pause,
 	                 GENODE_TYPE_LIST(Nonexistent_subject), Subject_id);
 	GENODE_RPC_THROW(Rpc_resume, void, resume,
@@ -144,7 +134,7 @@ struct Genode::Trace::Session : Genode::Session
 	                 GENODE_TYPE_LIST(Nonexistent_subject), Subject_id);
 
 	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_alloc_policy, Rpc_policy,
-	                     Rpc_unload_policy, Rpc_trace, Rpc_rule, Rpc_pause,
+	                     Rpc_unload_policy, Rpc_trace, Rpc_pause,
 	                     Rpc_resume, Rpc_subjects, Rpc_buffer,
 	                     Rpc_free, Rpc_subject_infos);
 };

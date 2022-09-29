@@ -116,10 +116,6 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 		void trace(Subject_id s, Policy_id p, size_t buffer_size) override {
 			call<Rpc_trace>(s, p, buffer_size); }
 
-		void rule(Session_label const &label, Thread_name const &thread,
-		          Policy_id policy, size_t buffer_size) override {
-			call<Rpc_rule>(label, thread, policy, buffer_size); }
-
 		void pause(Subject_id subject) override {
 			call<Rpc_pause>(subject); }
 
