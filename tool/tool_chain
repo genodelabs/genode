@@ -93,28 +93,22 @@ VERBOSE     ?= @
 SUDO        ?= sudo
 
 #
-# Check if 'autoconf' is installed
+# Check if 'flex' is installed
 #
-# Required version is 2.69, but there is no versioned binary name on Ubuntu
-# right now like there has been for version 2.64.
+FLEX_OK = $(call check_nonempty_f,$(shell which flex),\
+	    Need to have 'flex' installed.)
+
 #
-AUTOCONF_VERSION =
+# Check if 'bison' is installed
+#
+BISON_OK = $(call check_nonempty_f,$(shell which bison),\
+            Need to have 'bison' installed.)
 
-AUTOCONF_VERSION_STRING = "autoconf (GNU Autoconf) $(AUTOCONF_VERSION)"
-ifeq ($(shell autoconf -V | grep $(AUTOCONF_VERSION_STRING)),)
-  ifeq ($(shell which autoconf$(AUTOCONF_VERSION)),)
-    ifneq ($(shell which autoconf-$(AUTOCONF_VERSION)),)
-      AUTOCONF = autoconf-$(AUTOCONF_VERSION)
-    endif
-  else
-    AUTOCONF = autoconf$(AUTOCONF_VERSION)
-  endif
-else
-  AUTOCONF = autoconf
-endif
-
-AUTOCONFINST_OK = $(call check_nonempty_f,$(AUTOCONF),\
-                    Need to have 'autoconf-$(AUTOCONF_VERSION)' installed.)
+#
+# Check if 'g++' is installed
+#
+GXX_OK = $(call check_nonempty_f,$(shell which g++),\
+            Need to have 'g++' installed.)
 
 #
 # Check if 'pkg-config' is installed
@@ -136,24 +130,6 @@ TEXINFO_OK = $(call check_nonempty_f,$(shell which texi2pdf),\
                Need to have 'texinfo' installed.)
 
 #
-# Check if 'wget' is installed
-#
-WGET_OK = $(call check_nonempty_f,$(shell which wget),\
-            Need to have 'wget' installed.)
-
-#
-# Check if 'autogen' is installed
-#
-AUTOGEN_OK = $(call check_nonempty_f,$(shell which autogen),\
-               Need to have 'autogen' installed.)
-
-#
-# Check if 'gpg' is installed
-#
-GPG_OK = $(call check_nonempty_f,$(shell which gpg),\
-           Need to have 'gpg' installed.)
-
-#
 # Check if 'libexpat' is installed
 #
 EXPAT_OK = $(call check_equal_f,\
@@ -170,8 +146,8 @@ HOST_GCC_VERSION := $(shell gcc -dumpfullversion -dumpversion)
 GNAT_OK = $(call check_equal_f,$(shell gnatmake --version | sed -n -e 's/GNATMAKE //p'),$(HOST_GCC_VERSION),\
             Need to have GNAT installed and the GNAT version must match the GCC version (found GCC $(HOST_GCC_VERSION)).)
 
-TOOLS_OK = $(AUTOCONF_OK) $(AUTOCONFINST_OK) $(PKG_CONFIG_OK) $(CURSES_OK) \
-           $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK) $(EXPAT_OK)
+TOOLS_OK = $(FLEX_OK) $(BISON_OK) $(GXX_OK) $(PKG_CONFIG_OK) $(CURSES_OK) \
+           $(TEXINFO_OK) $(EXPAT_OK)
 
 ifneq ($(filter ada,$(ENABLE_FEATURES)),)
 TOOLS_OK += $(GNAT_OK) $(GPRBUILD_OK)
@@ -338,11 +314,7 @@ ALI2DEP_INSTALLED_BINARY   ?= $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-a
 
 build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES) $(ALI2DEP_INSTALLED_BINARY)
 
-GCC_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gcc)/src/noux-pkg/gcc
-
-$(GCC_CONTRIB_DIR)/configure:
-	$(ECHO) "$(BRIGHT_COL)preparing gcc...$(DEFAULT_COL)"
-	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port gcc
+# prepare all ports first to detect more missing tools early
 
 BINUTILS_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current binutils)/src/noux-pkg/binutils
 
@@ -350,7 +322,29 @@ $(BINUTILS_CONTRIB_DIR)/configure:
 	$(ECHO) "$(BRIGHT_COL)preparing binutils...$(DEFAULT_COL)"
 	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port binutils
 
-$(BUILD_LOCATION)/bootstrap/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure
+PREPARED_BINUTILS = $(BINUTILS_CONTRIB_DIR)/configure
+
+GCC_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gcc)/src/noux-pkg/gcc
+
+$(GCC_CONTRIB_DIR)/configure:
+	$(ECHO) "$(BRIGHT_COL)preparing gcc...$(DEFAULT_COL)"
+	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port gcc
+
+PREPARED_GCC = $(GCC_CONTRIB_DIR)/configure
+
+GDB_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gdb)/src/noux-pkg/gdb
+
+$(GDB_CONTRIB_DIR)/configure:
+	$(ECHO) "$(BRIGHT_COL)preparing gdb...$(DEFAULT_COL)"
+	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port gdb
+
+PREPARED_GDB = $(GDB_CONTRIB_DIR)/configure
+
+PREPARED_PORTS = $(PREPARED_BINUTILS) $(PREPARED_GCC) $(PREPARED_GDB)
+
+# bootstrap binutils
+
+$(BUILD_LOCATION)/bootstrap/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure $(PREPARED_PORTS)
 	$(ECHO) "$(BRIGHT_COL)configuring bootstrap binutils...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); $(BINUTILS_CONTRIB_DIR)/configure $(BINUTILS_BOOTSTRAP_CONFIG)
@@ -365,21 +359,7 @@ $(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES): $(BINUTILS_BOOTSTRAP_BINARIES)
 		$(MAKE) -C $(BUILD_LOCATION)/bootstrap/binutils/$$i install-strip; done
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/bootstrap/binutils/libiberty install
 
-$(BUILD_LOCATION)/$(PLATFORM)/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure \
-                                     $(GCC_BOOTSTRAP_INSTALLED_BINARIES)
-	$(ECHO) "$(BRIGHT_COL)configuring binutils...$(DEFAULT_COL)"
-	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)cd $(dir $@); $(BINUTILS_CONTRIB_DIR)/configure $(BINUTILS_CONFIG)
-
-$(BINUTILS_BINARIES): $(BUILD_LOCATION)/$(PLATFORM)/binutils/Makefile
-	$(ECHO) "$(BRIGHT_COL)building binutils...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT) -j$(MAKE_JOBS)
-
-$(BINUTILS_INSTALLED_BINARIES): $(BINUTILS_BINARIES)
-	$(ECHO) "$(BRIGHT_COL)installing binutils...$(DEFAULT_COL)"
-	$(VERBOSE)for i in binutils gas ld intl opcodes; do \
-		$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/binutils/$$i install-strip $(MAKE_OPT); done
-	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/binutils/libiberty install $(MAKE_OPT)
+# bootstrap gcc
 
 $(BUILD_LOCATION)/bootstrap/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
                                           $(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES)
@@ -396,6 +376,26 @@ $(GCC_BOOTSTRAP_BINARIES): $(BUILD_LOCATION)/bootstrap/gcc/Makefile
 $(GCC_BOOTSTRAP_INSTALLED_BINARIES): $(GCC_BOOTSTRAP_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing bootstrap gcc...$(DEFAULT_COL)"
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/bootstrap/gcc $(GCC_INSTALL_RULE)
+
+# binutils
+
+$(BUILD_LOCATION)/$(PLATFORM)/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure \
+                                                 $(GCC_BOOTSTRAP_INSTALLED_BINARIES)
+	$(ECHO) "$(BRIGHT_COL)configuring binutils...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); $(BINUTILS_CONTRIB_DIR)/configure $(BINUTILS_CONFIG)
+
+$(BINUTILS_BINARIES): $(BUILD_LOCATION)/$(PLATFORM)/binutils/Makefile
+	$(ECHO) "$(BRIGHT_COL)building binutils...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT) -j$(MAKE_JOBS)
+
+$(BINUTILS_INSTALLED_BINARIES): $(BINUTILS_BINARIES)
+	$(ECHO) "$(BRIGHT_COL)installing binutils...$(DEFAULT_COL)"
+	$(VERBOSE)for i in binutils gas ld intl opcodes; do \
+		$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/binutils/$$i install-strip $(MAKE_OPT); done
+	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/binutils/libiberty install $(MAKE_OPT)
+
+# gcc
 
 $(BUILD_LOCATION)/$(PLATFORM)/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
                                             $(BINUTILS_INSTALLED_BINARIES)
@@ -418,11 +418,7 @@ $(GCC_INSTALLED_BINARIES): $(GCC_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing gcc...$(DEFAULT_COL)"
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/gcc $(GCC_INSTALL_RULE) $(GCC_MAKE_OPT)
 
-GDB_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gdb)/src/noux-pkg/gdb
-
-$(GDB_CONTRIB_DIR)/configure:
-	$(ECHO) "$(BRIGHT_COL)preparing gdb...$(DEFAULT_COL)"
-	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port gdb
+# gdb
 
 $(BUILD_LOCATION)/$(PLATFORM)/gdb/Makefile: $(GDB_CONTRIB_DIR)/configure
 	$(ECHO) "$(BRIGHT_COL)configuring gdb...$(DEFAULT_COL)"
@@ -439,6 +435,7 @@ $(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/gdb install $(MAKE_OPT) MAKEINFO=true
 	$(VEBOSE)strip $@
 
+# gprbuild
 
 $(BUILD_LOCATION)/bootstrap/gprbuild/Makefile:
 	$(ECHO) "$(BRIGHT_COL)preparing bootstrap gprbuild...$(DEFAULT_COL)"
@@ -453,6 +450,7 @@ $(GPRBUILD_BOOTSTRAP_INSTALLED_BINARIES): $(BUILD_LOCATION)/bootstrap/gprbuild/M
 	$(VERBOSE)cd $(dir $<); CC=$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gcc ./bootstrap.sh \
 	          --with-xmlada=./xmlada --with-kb=./gprconfig_kb --prefix=$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)
 
+# ali2dep
 
 $(BUILD_LOCATION)/ali2dep/build/build.gpr:
 	$(ECHO) "$(BRIGHT_COL)preparing ali2dep...$(DEFAULT_COL)"
