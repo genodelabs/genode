@@ -1,0 +1,48 @@
+diff --git a/dev/pci/azalia.h b/dev/pci/azalia.h
+index 8dd7641..2d3ce3a 100644
+--- a/dev/pci/azalia.h
++++ b/dev/pci/azalia.h
+@@ -516,6 +516,7 @@
+ #define AZ_QRK_WID_CLOSE_PCBEEP 0x00080000
++#define AZ_QRK_WID_HEADSET	0x00100000
+ #define AZ_QRK_ROUTE_SPKR2_DAC	0x01000000
+ #define AZ_QRK_DOLBY_ATMOS	0x02000000
+ 
+ /* memory-mapped types */
+ typedef struct {
+diff --git a/dev/pci/azalia_codec.c b/dev/pci/azalia_codec.c
+index 05d157b..8046b3b 100644
+--- a/dev/pci/azalia_codec.c
++++ b/dev/pci/azalia_codec.c
+@@ -100,6 +100,8 @@ azalia_codec_init_vtbl(codec_t *this)
+ 		break;
+ 	case 0x10ec0255:
+ 		this->name = "Realtek ALC255";
++		if (this->subid == 0x193e10cf)
++			this->qrks |= AZ_QRK_WID_HEADSET;
+ 		break;
+ 	case 0x10ec0256:
+ 		this->name = "Realtek ALC256";
+@@ -747,6 +749,9 @@ azalia_unsol_event(codec_t *this, int tag)
+ 			    CORB_GET_PIN_SENSE, 0, &result);
+ 			if (!err && (result & CORB_PS_PRESENCE))
+ 				vol = 1;
++			// switch microphone to mic2
++			if (!err)
++				notify_hp_sense(result & CORB_PS_PRESENCE);
+ 		}
+ 		if (err)
+ 			break;
+@@ -2702,6 +2707,12 @@ azalia_codec_widget_quirks(codec_t *this, nid_t nid)
+ 		    0x57d7, NULL);
+ 	}
+ 
++	if (this->qrks & AZ_QRK_WID_HEADSET && nid == 0x19) {
++		w->d.pin.config = 0x03a19120;
++		azalia_pin_config_ov(w, CORB_CD_DEVICE_MASK, CORB_CD_MICIN);
++		w->enable = 1;
++	}
++
+ 	return(0);
+ }
+ 

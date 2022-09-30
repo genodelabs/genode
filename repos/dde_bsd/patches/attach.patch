@@ -1,0 +1,14 @@
+To signal an successful attach attempt we set the ref counter
+of the parent, i.e., the dummy pci bus and check that in our
+'probe_cfdata' function.
+
+--- a/dev/pci/azalia.c
++++ b/dev/pci/azalia.c
+@@ -591,6 +591,7 @@
+ 
+ 	audio_attach_mi(&azalia_hw_if, sc, NULL, &sc->dev);
+ 
++	parent->dv_ref = 1;
+ 	return;
+ 
+ err_exit:

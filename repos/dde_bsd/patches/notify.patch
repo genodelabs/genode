@@ -1,19 +1,20 @@
-diff --git a/dev/audio.c b/dev/audio.c
-index 1271bc7..6535d10 100644
+Instead of implementing softintr handling add our notification
+functions directly.
+
 --- a/dev/audio.c
 +++ b/dev/audio.c
-@@ -411,6 +411,8 @@ audio_pintr(void *addr)
- 		}
- 		selwakeup(&sc->play.sel);
+@@ -572,6 +572,8 @@ audio_pintr(void *addr)
+ 		 */
+ 		softintr_schedule(sc->play.softintr);
  	}
 +
 +	notify_play();
  }
  
  /*
-@@ -486,6 +488,8 @@ audio_rintr(void *addr)
- 		}
- 		selwakeup(&sc->rec.sel);
+@@ -655,6 +657,8 @@ audio_rintr(void *addr)
+ 		 */
+ 		softintr_schedule(sc->rec.softintr);
  	}
 +
 +	notify_record();

@@ -156,6 +156,7 @@ class Pci_driver
 			_pci.with_xml([&] (Xml_node node) {
 				node.for_each_sub_node("device", [&] (Xml_node node)
 				{
+					/* only use the first successfully probed device */
 					if (found) return;
 
 					String<16> name = node.attribute_value("name", String<16>());
@@ -168,14 +169,9 @@ class Pci_driver
 						_sub_vendor_id  = node.attribute_value("sub_vendor_id", 0U);
 						_sub_device_id  = node.attribute_value("sub_device_id", 0U);
 
-						if ((_device_id == PCI_PRODUCT_INTEL_CORE4G_HDA_2) ||
-						    (_vendor_id == PCI_VENDOR_INTEL && name == "00:03.0")) {
-							warning("ignore ", name,
-							        ", not supported HDMI/DP HDA device");
-							return;
-						}
+						if (_device.constructed())
+							_device.destruct();
 
-						/* we only construct the first useable device we find */
 						_device.construct(_pci, name);
 						_device->irq.sigh(_irq_handler);
 
@@ -442,13 +438,6 @@ extern "C" int bus_dmamap_load(bus_dma_tag_t tag, bus_dmamap_t dmam, void *buf,
 }
 
 
-extern "C" void bus_dmamap_unload(bus_dma_tag_t, bus_dmamap_t)
-{
-	Genode::warning("not implemented, called from ",
-	                __builtin_return_address(0));
-}
-
-
 extern "C" int bus_dmamem_alloc(bus_dma_tag_t tag, bus_size_t size, bus_size_t alignment,
                                 bus_size_t boundary, bus_dma_segment_t *segs, int nsegs,
                                 int *rsegs, int flags)
@@ -495,17 +484,5 @@ extern "C" int bus_dmamem_map(bus_dma_tag_t tag, bus_dma_segment_t *segs, int ns
 
 	*kvap = (caddr_t)virt;
 
-	return 0;
-}
-
-
-extern "C" void bus_dmamem_unmap(bus_dma_tag_t, caddr_t, size_t) { }
-
-
-extern "C" paddr_t bus_dmamem_mmap(bus_dma_tag_t, bus_dma_segment_t *,
-                                   int, off_t, int, int)
-{
-	Genode::warning("not implemented, called from ",
-	                __builtin_return_address(0));
 	return 0;
 }
