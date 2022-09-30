@@ -38,23 +38,26 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 
 		struct Irq : Registry<Irq>::Element
 		{
-			unsigned                      idx;
-			unsigned                      number;
-			Device::Irq::Type             type;
-			Irq_session::Polarity         polarity;
-			Irq_session::Trigger          mode;
-			Constructible<Irq_connection> irq {};
+			unsigned                                idx;
+			unsigned                                number;
+			Device::Irq::Type                       type;
+			Irq_session::Polarity                   polarity;
+			Irq_session::Trigger                    mode;
+			bool                                    shared;
+			Constructible<Irq_connection>           irq {};
+			Constructible<Shared_interrupt_session> sirq {};
 
 			Irq(Registry<Irq>       & registry,
 			    unsigned              idx,
 			    unsigned              number,
 			    Device::Irq::Type     type,
 			    Irq_session::Polarity polarity,
-			    Irq_session::Trigger  mode)
+			    Irq_session::Trigger  mode,
+			    bool                  shared)
 			:
 				Registry<Irq>::Element(registry, *this),
 				idx(idx), number(number), type(type),
-				polarity(polarity), mode(mode) {}
+				polarity(polarity), mode(mode), shared(shared) {}
 		};
 
 		struct Io_mem : Registry<Io_mem>::Element
@@ -99,6 +102,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		Device_component(Registry<Device_component> & registry,
 		                 Env                        & env,
 		                 Session_component          & session,
+		                 Device_model               & model,
 		                 Driver::Device             & device);
 		~Device_component();
 
@@ -118,6 +122,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 
 		Env                               & _env;
 		Session_component                 & _session;
+		Device_model                      & _device_model;
 		Driver::Device::Name const          _device;
 		size_t                              _cap_quota { 0 };
 		size_t                              _ram_quota { 0 };

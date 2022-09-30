@@ -24,7 +24,7 @@ Genode::Capability<Platform::Device_interface>
 Session_component::_acquire(Device & device)
 {
 	Device_component * dc = new (heap())
-		Device_component(_device_registry, _env, *this, device);
+		Device_component(_device_registry, _env, *this, _devices, device);
 	device.acquire(*this);
 	return _env.ep().rpc_ep().manage(dc);
 };

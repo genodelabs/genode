@@ -24,6 +24,7 @@
 #include <util/reconstructible.h>
 #include <util/xml_generator.h>
 
+#include <shared_irq.h>
 #include <clock.h>
 #include <reset.h>
 #include <power.h>
@@ -98,6 +99,7 @@ class Driver::Device : private List_model<Device>::Element
 			Type                  type     { LEGACY                          };
 			Irq_session::Polarity polarity { Irq_session::POLARITY_UNCHANGED };
 			Irq_session::Trigger  mode     { Irq_session::TRIGGER_UNCHANGED  };
+			bool                  shared   { false                           };
 
 			Irq(unsigned number) : number(number) {}
 		};
@@ -222,7 +224,8 @@ class Driver::Device : private List_model<Device>::Element
 		{
 			unsigned idx = 0;
 			_irq_list.for_each([&] (Irq const & irq) {
-				fn(idx++, irq.number, irq.type, irq.polarity, irq.mode); });
+				fn(idx++, irq.number, irq.type, irq.polarity,
+				   irq.mode, irq.shared); });
 		}
 
 		template <typename FN> void for_each_io_mem(FN const & fn) const
@@ -308,13 +311,14 @@ class Driver::Device_model :
 {
 	private:
 
-		Env                & _env;
-		Heap               & _heap;
-		Device_reporter    & _reporter;
-		List_model<Device>   _model  { };
-		Clocks               _clocks { };
-		Resets               _resets { };
-		Powers               _powers { };
+		Env                      & _env;
+		Heap                     & _heap;
+		Device_reporter          & _reporter;
+		List_model<Device>         _model  { };
+		Registry<Shared_interrupt> _shared_irqs { };
+		Clocks                     _clocks { };
+		Resets                     _resets { };
+		Powers                     _powers { };
 
 	public:
 
@@ -335,6 +339,13 @@ class Driver::Device_model :
 
 		template <typename FN>
 		void for_each(FN const & fn) const { _model.for_each(fn); }
+
+		template <typename FN>
+		void with_shared_irq(unsigned number, FN const & fn)
+		{
+			_shared_irqs.for_each([&] (Shared_interrupt & sirq) {
+				if (sirq.number() == number) fn(sirq); });
+		}
 
 
 		/***********************

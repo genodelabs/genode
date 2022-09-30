@@ -11,6 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <util/bit_array.h>
+
 #include <device.h>
 #include <pci.h>
 #include <device_component.h>
@@ -137,6 +139,7 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 				if (!info)
 					return;
 				xml.attribute("number", irq.number);
+				if (irq.shared) xml.attribute("shared", true);
 			});
 		});
 		_io_port_range_list.for_each([&] (Io_port_range const & iop) {
@@ -205,6 +208,52 @@ void Driver::Device_model::generate(Xml_generator & xml) const
 void Driver::Device_model::update(Xml_node const & node)
 {
 	_model.update_from_xml(*this, node);
+
+	/*
+	 * Detect all shared interrupts
+	 */
+	enum { MAX_IRQ = 1024 };
+	Bit_array<MAX_IRQ> detected_irqs, shared_irqs;
+	for_each([&] (Device const & device) {
+		device._irq_list.for_each([&] (Device::Irq const & irq) {
+
+			if (irq.type != Device::Irq::LEGACY)
+				return;
+
+			if (detected_irqs.get(irq.number, 1)) {
+				if (!shared_irqs.get(irq.number, 1))
+					shared_irqs.set(irq.number, 1);
+			} else
+				detected_irqs.set(irq.number, 1);
+		});
+	});
+
+	/*
+	 * Mark all shared interrupts in the devices
+	 */
+	for_each([&] (Device & device) {
+		device._irq_list.for_each([&] (Device::Irq & irq) {
+
+			if (irq.type != Device::Irq::LEGACY)
+				return;
+
+			if (shared_irqs.get(irq.number, 1))
+				irq.shared = true;
+		});
+	});
+
+	/*
+	 * Create shared interrupt objects
+	 */
+	for (unsigned i = 0; i < MAX_IRQ; i++) {
+		if (!shared_irqs.get(i, 1))
+			continue;
+		bool found = false;
+		_shared_irqs.for_each([&] (Shared_interrupt & sirq) {
+			if (sirq.number() == i) found = true; });
+		if (!found)
+			new (_heap) Shared_interrupt(_shared_irqs, _env, i);
+	}
 
 	/*
 	 * Iterate over all devices and apply PCI quirks if necessary

@@ -15,6 +15,7 @@
 #include <device_component.h>
 #include <pci.h>
 #include <session_component.h>
+#include <shared_irq.h>
 
 using Driver::Device_component;
 
@@ -80,7 +81,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 		if (irq.idx != idx)
 			return;
 
-		if (!irq.irq.constructed()) {
+		if (!irq.shared && !irq.irq.constructed()) {
 			addr_t pci_cfg_addr = 0;
 			if (irq.type != Device::Irq::LEGACY) {
 				if (_pci_config.constructed()) pci_cfg_addr = _pci_config->addr;
@@ -94,7 +95,14 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 				pci_msi_enable(_env, pci_cfg_addr, info);
 		}
 
-		cap = irq.irq->cap();
+		if (irq.shared && !irq.sirq.constructed())
+			_device_model.with_shared_irq(irq.number,
+			                              [&] (Shared_interrupt & sirq) {
+				irq.sirq.construct(sirq, irq.mode, irq.polarity);
+				_env.ep().rpc_ep().manage(&*irq.sirq);
+			});
+
+		cap = irq.shared ? irq.sirq->cap() : irq.irq->cap();
 	});
 
 	return cap;
@@ -124,10 +132,12 @@ Genode::Io_port_session_capability Device_component::io_port_range(unsigned idx)
 Device_component::Device_component(Registry<Device_component> & registry,
                                    Env                        & env,
                                    Driver::Session_component  & session,
+                                   Driver::Device_model       & model,
                                    Driver::Device             & device)
 :
 	_env(env),
 	_session(session),
+	_device_model(model),
 	_device(device.name()),
 	_reg_elem(registry, *this)
 {
@@ -150,13 +160,15 @@ Device_component::Device_component(Registry<Device_component> & registry,
 		                         unsigned              nr,
 		                         Device::Irq::Type     type,
 		                         Irq_session::Polarity polarity,
-		                         Irq_session::Trigger  mode)
+		                         Irq_session::Trigger  mode,
+		                         bool                  shared)
 		{
 			session.ram_quota_guard().withdraw(Ram_quota{Irq_session::RAM_QUOTA});
 			_ram_quota += Irq_session::RAM_QUOTA;
 			session.cap_quota_guard().withdraw(Cap_quota{Irq_session::CAP_QUOTA});
 			_cap_quota += Irq_session::CAP_QUOTA;
-			new (session.heap()) Irq(_irq_registry, idx, nr, type, polarity, mode);
+			new (session.heap()) Irq(_irq_registry, idx, nr, type, polarity,
+			                         mode, shared);
 		});
 
 		device.for_each_io_mem([&] (unsigned idx, Range range,
