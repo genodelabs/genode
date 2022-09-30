@@ -38,6 +38,11 @@ void Driver::pci_hd_audio_quirks(Device::Pci_config cfg,
 			struct No_snoop : Bitfield<11,1> {};
 		};
 
+		struct Amd_device_control : Register<0x42, 8>
+		{
+			struct No_snoop : Bitfield<0, 3> {};
+		};
+
 		using Mmio::Mmio;
 	};
 
@@ -48,5 +53,8 @@ void Driver::pci_hd_audio_quirks(Device::Pci_config cfg,
 
 	if (cfg.vendor_id == 0x8086)
 		audio.write<Hdaudio::Intel_device_control::No_snoop>(0);
+
+	if (cfg.vendor_id == 0x1002 || cfg.vendor_id == 0x1022)
+		audio.write<Hdaudio::Amd_device_control::No_snoop>(2);
 }
 
