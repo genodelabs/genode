@@ -205,4 +205,11 @@ void Driver::Device_model::generate(Xml_generator & xml) const
 void Driver::Device_model::update(Xml_node const & node)
 {
 	_model.update_from_xml(*this, node);
+
+	/*
+	 * Iterate over all devices and apply PCI quirks if necessary
+	 */
+	for_each([&] (Device const & device) {
+		pci_apply_quirks(_env, device);
+	});
 }

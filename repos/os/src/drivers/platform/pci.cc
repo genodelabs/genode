@@ -19,6 +19,7 @@
 #include <device_pd.h>
 #include <pci.h>
 #include <pci_uhci.h>
+#include <pci_ehci.h>
 #include <pci_intel_graphics.h>
 #include <pci_hd_audio.h>
 #include <pci_virtio.h>
@@ -29,16 +30,17 @@ using namespace Pci;
 
 struct Config_helper
 {
+	Env                              & _env;
 	Driver::Device             const & _dev;
 	Driver::Device::Pci_config const & _cfg;
 
-	Attached_io_mem_dataspace _io_mem;
+	Attached_io_mem_dataspace _io_mem { _env, _cfg.addr, 0x1000            };
 	Config                    _config { (addr_t)_io_mem.local_addr<void>() };
 
 	Config_helper(Env                              & env,
 	              Driver::Device             const & dev,
 	              Driver::Device::Pci_config const & cfg)
-	: _dev(dev), _cfg(cfg), _io_mem(env, cfg.addr, 0x1000) { }
+	: _env(env), _dev(dev), _cfg(cfg) { }
 
 	void enable(Driver::Device_pd & pd)
 	{
@@ -62,10 +64,6 @@ struct Config_helper
 				Config::Command::Io_space_enable::set(cmd, 1); });
 
 		_config.write<Config::Command>(cmd);
-
-		/* apply different PCI quirks, bios handover etc. */
-		Driver::pci_uhci_quirks(_cfg, _config.base());
-		Driver::pci_hd_audio_quirks(_cfg, _config);
 	}
 
 	void disable()
@@ -77,6 +75,32 @@ struct Config_helper
 		Config::Command::Bus_master_enable::set(cmd, 0);
 		Config::Command::Interrupt_enable::set(cmd, 0);
 		_config.write<Config::Command>(cmd);
+	}
+
+	void apply_quirks()
+	{
+		Config::Command::access_t cmd =
+			_config.read<Config::Command>();
+		Config::Command::access_t cmd_old = cmd;
+
+		/* enable memory space when I/O mem is defined */
+		_dev.for_each_io_mem([&] (unsigned, Driver::Device::Io_mem::Range,
+		                          Driver::Device::Pci_bar, bool) {
+			Config::Command::Memory_space_enable::set(cmd, 1); });
+
+		/* enable i/o space when I/O ports are defined */
+		_dev.for_each_io_port_range(
+			[&] (unsigned, Driver::Device::Io_port_range::Range) {
+				Config::Command::Io_space_enable::set(cmd, 1); });
+
+		_config.write<Config::Command>(cmd);
+
+		/* apply different PCI quirks, bios handover etc. */
+		Driver::pci_uhci_quirks(_env, _dev, _cfg, _config.base());
+		Driver::pci_ehci_quirks(_env, _dev, _cfg, _config.base());
+		Driver::pci_hd_audio_quirks(_cfg, _config);
+
+		_config.write<Config::Command>(cmd_old);
 	}
 };
 
@@ -92,6 +116,13 @@ void Driver::pci_disable(Env & env, Device const & dev)
 {
 	dev.for_pci_config([&] (Device::Pci_config const & pc) {
 		Config_helper(env, dev, pc).disable(); });
+}
+
+
+void Driver::pci_apply_quirks(Env & env, Device const & dev)
+{
+	dev.for_pci_config([&] (Device::Pci_config const & pc) {
+		Config_helper(env, dev, pc).apply_quirks(); });
 }
 
 
