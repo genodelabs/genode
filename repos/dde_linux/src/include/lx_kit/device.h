@@ -65,11 +65,14 @@ class Lx_kit::Device : List<Device>::Element
 			Index                  idx;
 			unsigned               number;
 			Io_signal_handler<Irq> handler;
+			bool                   masked  { true  };
+			bool                   occured { false };
 
 			Constructible<Platform::Device::Irq> session {};
 
 			Irq(Entrypoint & ep, unsigned idx, unsigned number);
 
+			void _handle();
 			void handle();
 		};
 

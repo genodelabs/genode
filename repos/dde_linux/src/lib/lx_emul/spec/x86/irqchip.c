@@ -60,6 +60,7 @@ int lx_emul_irq_task_function(void * data)
 			          lx_emul_irq_last());
 		} else {
 			generic_handle_irq(irq);
+			lx_emul_irq_eoi(irq);
 		}
 
 		irq_exit();

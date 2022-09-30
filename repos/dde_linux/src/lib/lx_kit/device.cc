@@ -42,11 +42,22 @@ bool Device::Io_port::match(uint16_t addr)
  ** Device::Irq**
  ****************/
 
+void Device::Irq::_handle()
+{
+	handle();
+	env().scheduler.schedule();
+}
+
+
 void Device::Irq::handle()
 {
+	occured = true;
+
+	if (masked)
+		return;
+
 	env().last_irq = number;
 	env().scheduler.unblock_irq_handler();
-	env().scheduler.schedule();
 }
 
 
@@ -54,7 +65,7 @@ Device::Irq::Irq(Entrypoint & ep, unsigned idx, unsigned number)
 :
 	idx{idx},
 	number(number),
-	handler(ep, *this, &Irq::handle) { }
+	handler(ep, *this, &Irq::_handle) { }
 
 
 /************
@@ -139,12 +150,14 @@ bool Device::irq_unmask(unsigned number)
 		ret = true;
 		enable();
 
-		if (irq.session.constructed())
-			return;
+		if (!irq.session.constructed()) {
+			irq.session.construct(*_pdev, irq.idx);
+			irq.session->sigh_omit_initial_signal(irq.handler);
+			irq.session->ack();
+		}
 
-		irq.session.construct(*_pdev, irq.idx);
-		irq.session->sigh_omit_initial_signal(irq.handler);
-		irq.session->ack();
+		irq.masked = false;
+		if (irq.occured) irq.handle();
 	});
 
 	return ret;
@@ -157,10 +170,7 @@ void Device::irq_mask(unsigned number)
 		return;
 
 	for_each_irq([&] (Irq & irq) {
-		if (irq.number != number)
-			return;
-		irq.session.destruct();
-	});
+		if (irq.number == number) irq.masked = true; });
 
 }
 
@@ -171,8 +181,9 @@ void Device::irq_ack(unsigned number)
 		return;
 
 	for_each_irq([&] (Irq & irq) {
-		if (irq.number != number || !irq.session.constructed())
+		if (irq.number != number || !irq.occured || !irq.session.constructed())
 			return;
+		irq.occured = false;
 		irq.session->ack();
 	});
 }
