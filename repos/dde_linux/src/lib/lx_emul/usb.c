@@ -625,6 +625,8 @@ static int fill_isoc_urb(struct usb_device                  * udev,
 	struct usb_host_endpoint * ep =
 		req->ep & USB_DIR_IN ? udev->ep_in[req->ep & 0xf]
 		                     : udev->ep_out[req->ep & 0xf];
+	if (!ep)
+		return -ENOENT;
 
 	*urb = usb_alloc_urb(req->number_of_packets, GFP_KERNEL);
 	if (!*urb)
