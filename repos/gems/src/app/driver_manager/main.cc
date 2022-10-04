@@ -471,21 +471,21 @@ void Driver_manager::Main::_handle_pci_devices_update()
 			uint16_t const class_code = (uint16_t)(pci.attribute_value("class", 0U) >> 8);
 
 			enum {
-			VENDOR_VBOX  = 0x80EEU,
-			VENDOR_INTEL = 0x8086U,
-			CLASS_VGA    = 0x300U,
-			CLASS_AHCI   = 0x106U,
-			CLASS_NVME   = 0x108U,
+				VENDOR_VBOX  = 0x80EEU,
+				VENDOR_INTEL = 0x8086U,
+				CLASS_VGA    = 0x300U,
+				CLASS_AHCI   = 0x106U,
+				CLASS_NVME   = 0x108U,
 			};
 
 			if (class_code == CLASS_VGA)
-			has_vga = true;
+				has_vga = true;
 
 			if (vendor_id == VENDOR_INTEL && class_code == CLASS_VGA)
-			has_intel_graphics = true;
+				has_intel_graphics = true;
 
 			if (vendor_id == VENDOR_INTEL && class_code == CLASS_AHCI)
-			has_ahci = true;
+				has_ahci = true;
 
 			if (vendor_id == VENDOR_VBOX)
 				_use_ohci = false;
