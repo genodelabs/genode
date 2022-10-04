@@ -12,7 +12,6 @@
  */
 
 #include <base/log.h>
-#include <io_port_session/connection.h>
 
 #include "env.h"
 
@@ -51,49 +50,11 @@ ACPI_STATUS AcpiOsInitialize (void) { return AE_OK; }
 ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
                                         UINT64 *value, UINT32 width)
 {
-	Platform::Device_capability cap = Acpica::platform().first_device();
+	using namespace Genode;
 
-	while (cap.valid()) {
-		Platform::Device_client client(cap);
+	Bdf bdf(pcidev->Bus, pcidev->Device, pcidev->Function);
 
-		unsigned char bus, dev, fn;
-		client.bus_address(&bus, &dev, &fn);
-
-		if (pcidev->Bus == bus && pcidev->Device == dev &&
-		    pcidev->Function == fn) {
-
-			Platform::Device_client::Access_size access_size;
-			switch (width) {
-			case 8:
-				access_size = Platform::Device_client::Access_size::ACCESS_8BIT;
-				break;
-			case 16:
-				access_size = Platform::Device_client::Access_size::ACCESS_16BIT;
-				break;
-			case 32:
-				access_size = Platform::Device_client::Access_size::ACCESS_32BIT;
-				break;
-			default:
-				Genode::error(__func__, " : unsupported access size ", width);
-				Acpica::platform().release_device(client.rpc_cap());
-				return AE_ERROR;
-			};
-
-			if (reg >= 0x100)
-				Genode::warning(__func__, " ", Genode::Hex(reg),
-				                " out of supported config space range ",
-				                " -> wrong location will be read");
-
-			*value = client.config_read(reg, access_size);
-
-			Acpica::platform().release_device(client.rpc_cap());
-			return AE_OK;
-		}
-
-		cap = Acpica::platform().next_device(cap);
-
-		Acpica::platform().release_device(client.rpc_cap());
-	}
+	error(__func__, " ", bdf, " ", Hex(reg), " width=", width);
 
 	*value = ~0U;
 	return AE_OK;
@@ -102,49 +63,11 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
                                          UINT64 value, UINT32 width)
 {
-	Platform::Device_capability cap = Acpica::platform().first_device();
+	using namespace Genode;
 
-	while (cap.valid()) {
-		Platform::Device_client client(cap);
+	Bdf bdf(pcidev->Bus, pcidev->Device, pcidev->Function);
 
-		unsigned char bus, dev, fn;
-		client.bus_address(&bus, &dev, &fn);
-
-		if (pcidev->Bus == bus && pcidev->Device == dev &&
-		    pcidev->Function == fn) {
-
-			Platform::Device_client::Access_size access_size;
-			switch (width) {
-			case 8:
-				access_size = Platform::Device_client::Access_size::ACCESS_8BIT;
-				break;
-			case 16:
-				access_size = Platform::Device_client::Access_size::ACCESS_16BIT;
-				break;
-			case 32:
-				access_size = Platform::Device_client::Access_size::ACCESS_32BIT;
-				break;
-			default:
-				Genode::error(__func__, " : unsupported access size ", width);
-				Acpica::platform().release_device(client.rpc_cap());
-				return AE_ERROR;
-			};
-
-			client.config_write(reg, value, access_size);
-
-			if (reg >= 0x100)
-				Genode::warning(__func__, " ", Genode::Hex(reg),
-				                " out of supported config space range ",
-				                " -> wrong location will be written");
-
-			Acpica::platform().release_device(client.rpc_cap());
-			return AE_OK;
-		}
-
-		cap = Acpica::platform().next_device(cap);
-
-		Acpica::platform().release_device(client.rpc_cap());
-	}
+	error(__func__, " ", bdf, " ", Hex(reg), "=", Hex(value), " width=", width);
 
 	return AE_OK;
 }
