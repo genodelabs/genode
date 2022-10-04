@@ -83,7 +83,7 @@
 	</start>
 
 	<start name="acpi_drv" caps="350">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="7M"/>
 		<route>
 			<service name="Report" label="acpi"> <child name="report_rom"/> </service>
 			<service name="Report" label="intel_opregion"> <child name="report_rom"/> </service>
