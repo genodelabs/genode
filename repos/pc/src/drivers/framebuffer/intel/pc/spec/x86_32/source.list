@@ -59,6 +59,7 @@ drivers/gpu/drm/drm_print.c
 drivers/gpu/drm/drm_probe_helper.c
 drivers/gpu/drm/drm_property.c
 drivers/gpu/drm/drm_rect.c
+drivers/gpu/drm/drm_scdc_helper.c
 drivers/gpu/drm/drm_syncobj.c
 drivers/gpu/drm/drm_sysfs.c
 drivers/gpu/drm/drm_vblank.c

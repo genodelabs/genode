@@ -468,30 +468,6 @@ int drm_noop(struct drm_device * dev,void * data,struct drm_file * file_priv)
 }
 
 
-#include <drm/drm_scdc_helper.h>
-
-ssize_t drm_scdc_read(struct i2c_adapter * adapter,u8 offset,void * buffer,size_t size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <drm/drm_scdc_helper.h>
-
-bool drm_scdc_set_high_tmds_clock_ratio(struct i2c_adapter * adapter,bool set)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <drm/drm_scdc_helper.h>
-
-bool drm_scdc_set_scrambling(struct i2c_adapter * adapter,bool enable)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <drm/drm_writeback.h>
 
 void drm_writeback_cleanup_job(struct drm_writeback_job * job)
