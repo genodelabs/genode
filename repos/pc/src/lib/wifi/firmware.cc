@@ -45,6 +45,7 @@ Firmware_list fw_list[] = {
 
 	{ "iwlwifi-QuZ-a0-hr-b0-63.ucode", 1334804, nullptr },
 	{ "iwlwifi-QuZ-a0-hr-b0-64.ucode", 1334804, "iwlwifi-QuZ-a0-hr-b0-63.ucode" },
+	{ "iwlwifi-so-a0-hr-b0-64.ucode",  1427384, nullptr },
 };
 
 
