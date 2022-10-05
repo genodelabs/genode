@@ -1509,14 +1509,6 @@ void kmsg_dump(enum kmsg_dump_reason reason)
 }
 
 
-#include <linux/rcutree.h>
-
-void kvfree_call_rcu(struct rcu_head * head,rcu_callback_t func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/swap.h>
 
 void mark_page_accessed(struct page * page)

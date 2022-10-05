@@ -261,3 +261,14 @@ void intel_vgpu_detect(struct drm_i915_private * dev_priv)
 
 	printk("disabling PPGTT to avoid GPU code paths\n");
 }
+
+
+/*
+ * taken from src/lib/wifi/lx_emul.c
+ */
+void kvfree_call_rcu(struct rcu_head * head,rcu_callback_t func)
+{
+	void *ptr = (void *) head - (unsigned long) func;
+	kvfree(ptr);
+}
+
