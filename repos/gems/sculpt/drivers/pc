@@ -40,6 +40,7 @@
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<policy label="pci_decode -> system"            report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> acpi"            report="acpi_drv -> acpi"/>
 			<policy label="rom_filter -> pci_devices"       report="pci_decode -> devices"/>
 			<policy label="driver_manager -> pci_devices"   report="platform_drv -> devices"/>
 			<policy label="usb_drv -> config"               report="driver_manager -> usb_drv.config"/>
@@ -131,12 +132,13 @@
 	</start>
 
 	<start name="platform_drv" caps="400" managing_system="yes">
+		<binary name="pc_platform_drv"/>
 		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Platform"/>
-		</provides>
+		<provides> <service name="Platform"/> </provides>
 		<route>
+			<service name="ROM" label="system">  <parent label="system"/> </service>
 			<service name="ROM" label="devices"> <child name="rom_filter"/> </service>
+			<service name="ROM" label="acpi">    <child name="report_rom"/> </service>
 			<service name="Report" label="devices"> <child name="report_rom"/> </service>
 			<service name="IRQ">     <parent/> </service>
 			<service name="IO_MEM">  <parent/> </service>

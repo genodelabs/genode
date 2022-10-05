@@ -1,4 +1,4 @@
-_/src/platform_drv
+_/src/pc_platform_drv
 _/src/pci_decode
 _/src/acpi_drv
 _/src/ps2_drv
