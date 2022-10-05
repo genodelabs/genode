@@ -17,12 +17,13 @@ if {[have_spec linux]} {
 
 set build_components {
 	core init timer
+	drivers/acpi
+	drivers/platform
+	app/pci_decode
+	server/report_rom
 	drivers/audio
 	test/audio_in
 }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
 
 build $build_components
 
@@ -51,14 +52,67 @@ append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
+	</start>
 
-append_platform_drv_config
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
 
-append config {
+	<start name="acpi_drv" caps="350">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report">             <child name="report_rom"/> </service>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Platform"/>
+		</provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="Timer">   <parent/> </service>
+		</route>
+		<config>
+			<policy label="audio_drv -> "> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
+		</config>
+	</start>
+
 	<start name="audio_drv">
-		<binary name="} [audio_drv_binary] {"/>
-		<resource name="RAM" quantum="8M"/>
+		<binary name="pci_audio_drv"/>
+		<resource name="RAM" quantum="10M"/>
 		<provides>
 			<service name="Audio_out"/>
 			<service name="Audio_in"/>
@@ -83,12 +137,10 @@ install_config $config
 #
 
 set boot_modules {
-	core ld.lib.so init timer test-audio_in
+	core ld.lib.so init timer
+	platform_drv acpi_drv pci_decode report_rom
+	pci_audio_drv test-audio_in
 }
-
-append boot_modules [audio_drv_binary]
-
-append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
