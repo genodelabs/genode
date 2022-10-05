@@ -9,8 +9,8 @@ DIR(linux) := src/linux
 #
 # Patches
 #
-PATCHES += $(addprefix patches/,$(notdir $(REP_DIR)/patches/i915_irq.patch))
-PATCHES += $(addprefix patches/,$(notdir $(REP_DIR)/patches/xhci_abort_ring.patch))
+PATCH_FILES := i915_irq.patch i915_alderlake.patch xhci_abort_ring.patch
+PATCHES += $(addprefix patches/,$(PATCH_FILES))
 
 # i915
 PATCH_OPT(patches/i915_irq.patch) := -p1 -d${DIR(linux)}
