@@ -148,36 +148,48 @@ void Main::parse_pci_function(Bdf             bdf,
 		});
 
 
-		/* IRQ pins count from 1-4 (INTA-D), zero means no IRQ defined */
-		if (!irq_pin)
-			return;
+		/*
+		 * Only generate <irq> nodes if at least one of the following
+		 * options is operational.
+		 *
+		 * - An IRQ pin from 1-4 (INTA-D) specifies legacy IRQ or GSI can be
+		 *   used, zero means no IRQ defined.
+		 * - The used platform/kernel is MSI-capable and the device includes an
+		 *   MSI/MSI-X PCI capability.
+		 *
+		 * An <irq> node advertises (in decreasing priority) MSI-X, MSI, or
+		 * legacy/GSI exclusively.
+		 */
+		bool const supports_irq = irq_pin != 0;
+		bool const supports_msi = msi_capable && (msi_x || msi);
 
-		gen.node("irq", [&]
-		{
-			if (msi_capable && msi_x) {
-				gen.attribute("type", "msi-x");
-				gen.attribute("number", msi_number++);
-				return;
-			}
-			
-			if (msi_capable && msi) {
-				gen.attribute("type", "msi");
-				gen.attribute("number", msi_number++);
-				return;
-			}
+		if (supports_irq || supports_msi)
+			gen.node("irq", [&]
+			{
+				if (msi_capable && msi_x) {
+					gen.attribute("type", "msi-x");
+					gen.attribute("number", msi_number++);
+					return;
+				}
 
-			irq_line_t irq = cfg.read<Config::Irq_line>();
+				if (msi_capable && msi) {
+					gen.attribute("type", "msi");
+					gen.attribute("number", msi_number++);
+					return;
+				}
 
-			for_bridge(bdf.bus, [&] (Bridge & b) {
-				irq_routing_list.for_each([&] (Irq_routing & ir) {
-					ir.route(b, bdf.dev, irq_pin-1, irq); });
+				irq_line_t irq = cfg.read<Config::Irq_line>();
+
+				for_bridge(bdf.bus, [&] (Bridge & b) {
+					irq_routing_list.for_each([&] (Irq_routing & ir) {
+						ir.route(b, bdf.dev, irq_pin-1, irq); });
+				});
+
+				irq_override_list.for_each([&] (Irq_override & io) {
+					io.generate(gen, irq); });
+
+				gen.attribute("number", irq);
 			});
-
-			irq_override_list.for_each([&] (Irq_override & io) {
-				io.generate(gen, irq); });
-
-			gen.attribute("number", irq);
-		});
 
 		reserved_memory_list.for_each([&] (Rmrr & rmrr) {
 			if (rmrr.bdf == bdf)
