@@ -8,16 +8,13 @@ Behavior
 This driver only supports USB Mass Storage Bulk-Only devices that use the
 SCSI Block Commands set (direct-access). Devices using different command
 sets, e.g, SD/HC devices or some external disc drives will not work properly
-if at all. The driver will query the device and tries to use the first
-bulk-only interface it finds.
-
-The following configuration snippets demonstrates how to use the driver:
+if at all. The following configuration snippets demonstrates how to use the
+driver:
 
 !<start name="usb_block_drv">
 !  <resource name="RAM" quantum="4M"/>
 !  <provides> <service name="Block"/> </provides>
-!  <config label="usb_stick" report="yes" writeable="yes" interface="0"
-!          alt_setting="0" lun="0" reset_device="no" verbose_scsi="no"/>
+!  <config label="usb_stick" report="yes" writeable="yes" interface="0" lun="0" reset_device="no" verbose_scsi="no"/>
 !  <route>
 !   <service name="Usb"> <child name="usb_drv"/> </service>
 !   <any-service> <parent/> <any-child/> </any-service>
@@ -64,8 +61,7 @@ In addition to other attributes that can be used to configure sepecific aspects
 of the driver. The 'writeable' attribute denotes the permission of the Block
 session client to write to the USB device. Independent thereof the driver will
 query the device and will set the Block session operations accordingly. The
-'interface' specifies the USB interface the driver should use and 'alt_setting'
-allows for selecting the appropriate alternate setting. If the device
+'interface' specifies the USB interface the driver should use. If the device
 provides multiple SCSI devices the 'lun' attribute is used to select the right
 one. When 'reset_device' is enabled, a 'bulk-only mass storage reset' command
 is sent to the device at the beginning of the initialization step. This command
