@@ -246,6 +246,7 @@ struct Pci::Config : Genode::Mmio
 	{
 		struct Control : Register<0x2, 16>
 		{
+			struct Slots         : Bitfield<0,  10> {};
 			struct Size          : Bitfield<0,  11> {};
 			struct Function_mask : Bitfield<14, 1> {};
 			struct Enable        : Bitfield<15, 1> {};
@@ -265,6 +266,8 @@ struct Pci::Config : Genode::Mmio
 
 		struct Table_entry : Genode::Mmio
 		{
+			enum { SIZE = 16 };
+
 			struct Address_64_lower : Register<0x0, 32> { };
 			struct Address_64_upper : Register<0x4, 32> { };
 			struct Data             : Register<0x8, 32> { };
@@ -277,6 +280,22 @@ struct Pci::Config : Genode::Mmio
 		};
 
 		using Pci_capability::Pci_capability;
+
+		Genode::uint8_t bar() {
+			return (Genode::uint8_t) read<Table::Bar_index>(); }
+
+		Genode::size_t table_offset() {
+			return read<Table::Offset>() << 3; }
+
+		unsigned slots() { return read<Control::Slots>(); }
+
+		void enable()
+		{
+			Control::access_t ctrl = read<Control>();
+			Control::Function_mask::set(ctrl, 0);
+			Control::Enable::set(ctrl, 1);
+			write<Control>(ctrl);
+		}
 	};
 
 

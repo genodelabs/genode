@@ -17,6 +17,7 @@
 
 #include <device.h>
 #include <device_pd.h>
+#include <device_component.h>
 #include <pci.h>
 #include <pci_uhci.h>
 #include <pci_ehci.h>
@@ -127,15 +128,53 @@ void Driver::pci_apply_quirks(Env & env, Device const & dev)
 
 
 void Driver::pci_msi_enable(Env                   & env,
+                            Device_component      & dc,
                             addr_t                  cfg_space,
-                            Irq_session::Info const info)
+                            Irq_session::Info const info,
+                            Device::Irq::Type       type)
 {
 	Attached_io_mem_dataspace io_mem { env, cfg_space, 0x1000 };
 	Config config { (addr_t)io_mem.local_addr<void>() };
 	config.scan();
-	if (config.msi_cap.constructed())
+
+	if (type == Device::Irq::Type::MSIX && config.msi_x_cap.constructed()) {
+		try {
+			/* find the MSI-x table from the device's memory bars */
+			Platform::Device_interface::Range range;
+			unsigned idx = dc.io_mem_index({config.msi_x_cap->bar()});
+			Io_mem_session_client dsc(dc.io_mem(idx, range));
+			Attached_dataspace msix_table_ds(env.rm(), dsc.dataspace());
+			addr_t msix_table_start = (addr_t)msix_table_ds.local_addr<void>()
+			                          + config.msi_x_cap->table_offset();
+
+			/* disable all msi-x table entries beside the first one */
+			unsigned slots = config.msi_x_cap->slots();
+			for (unsigned i = 0; i < slots; i++) {
+				using Entry = Config::Msi_x_capability::Table_entry;
+				Entry e (msix_table_start + Entry::SIZE * i);
+				if (!i) {
+					uint32_t lower = info.address & 0xfffffffc;
+					uint32_t upper = sizeof(info.address) > 4 ?
+						(uint32_t)(info.address >> 32) : 0;
+					e.write<Entry::Address_64_lower>(lower);
+					e.write<Entry::Address_64_upper>(upper);
+					e.write<Entry::Data>((uint32_t)info.value);
+					e.write<Entry::Vector_control::Mask>(0);
+				} else
+					e.write<Entry::Vector_control::Mask>(1);
+			}
+
+			config.msi_x_cap->enable();
+		} catch(...) { error("Failed to setup MSI-x!"); }
+		return;
+	}
+
+	if (type == Device::Irq::Type::MSI &&  config.msi_cap.constructed()) {
 		config.msi_cap->enable(info.address, (uint16_t)info.value);
-	else error("Device does not support MSI(-x)!");
+		return;
+	}
+
+	error("Device does not support MSI(-x)!");
 }
 
 

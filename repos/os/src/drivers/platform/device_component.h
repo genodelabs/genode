@@ -62,18 +62,22 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 
 		struct Io_mem : Registry<Io_mem>::Element
 		{
+			using Pci_bar = Device::Pci_bar;
+
+			Pci_bar                          bar;
 			unsigned                         idx;
 			Range                            range;
 			bool                             prefetchable;
 			Constructible<Io_mem_connection> io_mem {};
 
 			Io_mem(Registry<Io_mem> & registry,
+			       Pci_bar            bar,
 			       unsigned           idx,
 			       Range              range,
 			       bool               pf)
 			:
 				Registry<Io_mem>::Element(registry, *this),
-				idx(idx), range(range), prefetchable(pf) {}
+				bar(bar), idx(idx), range(range), prefetchable(pf) {}
 		};
 
 		struct Io_port_range : Registry<Io_port_range>::Element
@@ -108,6 +112,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 
 		Driver::Device::Name device() const;
 		Session_component  & session();
+		unsigned io_mem_index(Device::Pci_bar bar);
 
 
 		/************************************
