@@ -51,6 +51,13 @@ class Driver::Power : Powers::Element, Interface
 
 		void on()  { _switch.use();   }
 		void off() { _switch.unuse(); }
+
+		struct Guard : Genode::Noncopyable
+		{
+			Power &_power;
+			Guard(Power &power) : _power(power) { _power.on(); }
+			~Guard() { _power.off(); }
+		};
 };
 
 #endif /* _POWER_H_ */

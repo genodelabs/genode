@@ -60,6 +60,13 @@ class Driver::Clock : Clocks::Element, Interface
 
 		void enable()  { _switch.use();   }
 		void disable() { _switch.unuse(); }
+
+		struct Guard : Genode::Noncopyable
+		{
+			Clock &_clock;
+			Guard(Clock &clock) : _clock(clock) { _clock.enable(); }
+			~Guard() { _clock.disable(); }
+		};
 };
 
 

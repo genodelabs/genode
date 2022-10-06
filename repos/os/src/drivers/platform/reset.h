@@ -51,6 +51,13 @@ class Driver::Reset : Resets::Element, Interface
 
 		void deassert() { _switch.use();   }
 		void assert()   { _switch.unuse(); }
+
+		struct Guard : Genode::Noncopyable
+		{
+			Reset &_reset;
+			Guard(Reset &reset) : _reset(reset) { _reset.deassert(); }
+			~Guard() { _reset.assert(); }
+		};
 };
 
 #endif /* _RESET_H_ */
