@@ -97,18 +97,22 @@ class Genode::Platform : public Genode::Platform_generic
 		static long irq(long const user_irq);
 
 		/**
-		 * Get MSI-related parameters from device PCI config space
+		 * Allocate MSI exception vector entry
 		 *
-		 * \param mmconf      PCI config space address of device
-		 * \param address     MSI address register value to use
-		 * \param data        MSI data register value to use
-		 * \param irq_number  IRQ to use
+		 * \param address  MSI address register value to use
+		 * \param data     MSI data register value to use
 		 *
-		 * \return  true if the device is MSI-capable, false if not
+		 * \return  true if the platform is MSI-capable, false if not
 		 */
-		static bool get_msi_params(const addr_t mmconf,
-		                           addr_t &address, addr_t &data,
-		                           unsigned &irq_number);
+		static bool alloc_msi_vector(addr_t &address, addr_t &data);
+
+		/**
+		 * Allocate MSI exception vector entry
+		 *
+		 * \param address  MSI address register value to free
+		 * \param data     MSI data register value to free
+		 */
+		static void free_msi_vector(addr_t address, addr_t data);
 
 		static addr_t core_phys_addr(addr_t virt);
 

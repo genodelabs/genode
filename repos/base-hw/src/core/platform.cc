@@ -161,6 +161,7 @@ void Platform::_init_platform_info()
 		xml.node("kernel", [&] () {
 			xml.attribute("name", "hw");
 			xml.attribute("acpi", true);
+			xml.attribute("msi",  true);
 		});
 		_init_additional_platform_info(xml);
 		xml.node("affinity-space", [&] () {
