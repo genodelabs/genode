@@ -160,14 +160,14 @@ void Main::parse_pci_function(Bdf             bdf,
 		if (supports_irq || supports_msi)
 			gen.node("irq", [&]
 			{
-				if (msi_capable && msi_x) {
-					gen.attribute("type", "msi-x");
+				if (msi_capable && msi) {
+					gen.attribute("type", "msi");
 					gen.attribute("number", msi_number++);
 					return;
 				}
 
-				if (msi_capable && msi) {
-					gen.attribute("type", "msi");
+				if (msi_capable && msi_x) {
+					gen.attribute("type", "msi-x");
 					gen.attribute("number", msi_number++);
 					return;
 				}
