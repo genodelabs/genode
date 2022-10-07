@@ -153,6 +153,27 @@ void Main::parse_pci_function(Bdf             bdf,
 			});
 		});
 
+		{
+			/* Apply GSI/MSI/MSI-X quirks based on vendor/device/class */
+			using Cc = Config::Class_code_rev_id;
+
+			bool const hdaudio = cfg.read<Cc::Class_code>() == 0x40300;
+			auto const vendor_id = cfg.read<Config::Vendor>();
+			auto const device_id = cfg.read<Config::Device>();
+
+			if (hdaudio && vendor_id == 0x1022 /* AMD */) {
+				/**
+				 * see dde_bsd driver dev/pci/azalia.c
+				 *
+				 * PCI_PRODUCT_AMD_17_HDA
+				 * PCI_PRODUCT_AMD_17_1X_HDA
+				 * PCI_PRODUCT_AMD_HUDSON2_HDA
+				 */
+				if (device_id == 0x1457 || device_id == 0x15e3 ||
+				    device_id == 0x780d)
+					msi = msi_x = false;
+			}
+		}
 
 		/*
 		 * Only generate <irq> nodes if at least one of the following
