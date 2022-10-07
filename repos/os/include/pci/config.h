@@ -104,34 +104,43 @@ struct Pci::Config : Genode::Mmio
 
 		struct Upper_bits : Register<0x4, 32> { };
 
-		Bar_32bit::access_t _conf { 0 };
+		Bar_32bit::access_t _conf_value { 0 };
 
-		Base_address(Genode::addr_t base) : Mmio(base)
+		Bar_32bit::access_t _conf()
 		{
-			Bar_32bit::access_t v = read<Bar_32bit>();
-			write<Bar_32bit>(0xffffffff);
-			_conf = read<Bar_32bit>();
-			write<Bar_32bit>(v);
+			/*
+			 * Initialize _conf_value on demand only to prevent read-write
+			 * operations on BARs of invalid devices at construction time.
+			 */
+			if (!_conf_value) {
+				Bar_32bit::access_t v = read<Bar_32bit>();
+				write<Bar_32bit>(0xffffffff);
+				_conf_value = read<Bar_32bit>();
+				write<Bar_32bit>(v);
+			}
+			return _conf_value;
 		}
 
-		bool valid() { return _conf != 0; }
+		Base_address(Genode::addr_t base) : Mmio(base) { }
+
+		bool valid() { return _conf() != 0; }
 
 		bool memory() {
-			return !Bar_32bit::Memory_space_indicator::get(_conf); }
+			return !Bar_32bit::Memory_space_indicator::get(_conf()); }
 
 		bool bit64()
 		{
-			return Bar_32bit::Memory_type::get(_conf) ==
+			return Bar_32bit::Memory_type::get(_conf()) ==
 			       Bar_32bit::Memory_type::SIZE_64BIT;
 		}
 
 		bool prefetchable() {
-			return Bar_32bit::Memory_prefetchable::get(_conf); }
+			return Bar_32bit::Memory_prefetchable::get(_conf()); }
 
 		Genode::size_t size()
 		{
-			return 1 + (memory() ? ~Bar_32bit::Memory_base::masked(_conf)
-			                     : ~Bar_32bit::Io_base::masked(_conf));
+			return 1 + (memory() ? ~Bar_32bit::Memory_base::masked(_conf())
+			                     : ~Bar_32bit::Io_base::masked(_conf()));
 		}
 
 		Genode::uint64_t addr()
