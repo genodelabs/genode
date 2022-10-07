@@ -82,6 +82,18 @@ void Main::parse_pci_function(Bdf             bdf,
 			new (heap) Bridge(parent.sub_bridges, bdf,
 			                  bcfg.secondary_bus_number(),
 			                  bcfg.subordinate_bus_number());
+
+			/* enable I/O spaces and DMA in bridges if not done already */
+			using Command = Pci::Config::Command;
+			Command::access_t command = bcfg.read<Command>();
+			if (Command::Io_space_enable::get(command)     == 0 ||
+			    Command::Memory_space_enable::get(command) == 0 ||
+			    Command::Bus_master_enable::get(command)   == 0) {
+				Command::Io_space_enable::set(command, 1);
+				Command::Memory_space_enable::set(command, 1);
+				Command::Bus_master_enable::set(command, 1);
+				bcfg.write<Command>(command);
+			}
 		});
 	}
 
