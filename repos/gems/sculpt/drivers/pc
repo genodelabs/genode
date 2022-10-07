@@ -42,15 +42,16 @@
 			<policy label="pci_decode -> system"            report="acpi_drv -> acpi"/>
 			<policy label="platform_drv -> acpi"            report="acpi_drv -> acpi"/>
 			<policy label="rom_filter -> pci_devices"       report="pci_decode -> devices"/>
-			<policy label="driver_manager -> pci_devices"   report="platform_drv -> devices"/>
 			<policy label="usb_drv -> config"               report="driver_manager -> usb_drv.config"/>
+			<policy label="dynamic -> config"               report="driver_manager -> init.config"/>
+			<policy label="driver_manager -> devices"       report="platform_drv -> devices"/>
 			<policy label="driver_manager -> usb_devices"   report="usb_drv -> devices"/>
 			<policy label="driver_manager -> dynamic_state" report="dynamic -> state"/>
-			<policy label="dynamic -> config"               report="driver_manager -> init.config"/>
 			<policy label="driver_manager -> ahci_ports"    report="dynamic -> ahci_ports"/>
 			<policy label="driver_manager -> nvme_ns"       report="dynamic -> nvme_ns"/>
 			<policy label="rom_reporter -> acpi"            report="acpi_drv -> acpi"/>
-			<policy label="rom_reporter -> pci_devices"     report="platform_drv -> devices"/>
+			<policy label="rom_reporter -> devices"         report="platform_drv -> devices"/>
+			<policy label="rom_reporter -> pci_devices"     report="pci_decode -> devices"/>
 			<policy label="rom_reporter -> usb_devices"     report="usb_drv -> devices"/>
 			<policy label="rom_reporter -> dynamic_state"   report="dynamic -> state"/>
 			<policy label="usb_hid_drv -> report"           report="usb_drv -> devices"/>
@@ -63,16 +64,19 @@
 		<config>
 			<rom label="acpi"/>
 			<rom label="pci_devices"/>
+			<rom label="devices"/>
 			<rom label="usb_devices"/>
 			<rom label="dynamic_state"/>
 		</config>
 		<route>
 			<service name="ROM"    label="acpi">          <child name="report_rom"/> </service>
 			<service name="ROM"    label="pci_devices">   <child name="report_rom"/> </service>
+			<service name="ROM"    label="devices">       <child name="report_rom"/> </service>
 			<service name="ROM"    label="usb_devices">   <child name="report_rom"/> </service>
 			<service name="ROM"    label="dynamic_state"> <child name="report_rom"/> </service>
 			<service name="Report" label="acpi">          <parent label="acpi"/>        </service>
 			<service name="Report" label="pci_devices">   <parent label="pci_devices"/> </service>
+			<service name="Report" label="devices">       <parent label="devices"/>     </service>
 			<service name="Report" label="usb_devices">   <parent label="usb_devices"/> </service>
 			<service name="Report" label="dynamic_state"> <parent label="dynamic -> state"/> </service>
 			<service name="LOG"> <parent/> </service>
@@ -256,7 +260,7 @@
 			<service name="Report" label="usb_drv.config"> <child name="report_rom"/> </service>
 			<service name="Report" label="block_devices"> <parent label="block_devices"/> </service>
 			<service name="ROM" label="usb_devices">   <child name="report_rom"/> </service>
-			<service name="ROM" label="pci_devices">   <child name="report_rom"/> </service>
+			<service name="ROM" label="devices">       <child name="report_rom"/> </service>
 			<service name="ROM" label="ahci_ports">    <child name="report_rom"/> </service>
 			<service name="ROM" label="nvme_ns">       <child name="report_rom"/> </service>
 			<service name="ROM" label="dynamic_state"> <child name="report_rom"/> </service>

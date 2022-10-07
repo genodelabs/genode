@@ -358,7 +358,7 @@ struct Driver_manager::Main : private Block_devices_generator
 	Attached_rom_dataspace _platform      { _env, "platform_info" };
 	Attached_rom_dataspace _usb_devices   { _env, "usb_devices"   };
 	Attached_rom_dataspace _usb_policy    { _env, "usb_policy"    };
-	Attached_rom_dataspace _pci_devices   { _env, "pci_devices"   };
+	Attached_rom_dataspace _devices       { _env, "devices"   };
 	Attached_rom_dataspace _ahci_ports    { _env, "ahci_ports"    };
 	Attached_rom_dataspace _nvme_ns       { _env, "nvme_ns"       };
 	Attached_rom_dataspace _dynamic_state { _env, "dynamic_state" };
@@ -384,10 +384,10 @@ struct Driver_manager::Main : private Block_devices_generator
 		return Boot_fb_driver::Mode();
 	}
 
-	void _handle_pci_devices_update();
+	void _handle_devices_update();
 
-	Signal_handler<Main> _pci_devices_update_handler {
-		_env.ep(), *this, &Main::_handle_pci_devices_update };
+	Signal_handler<Main> _devices_update_handler {
+		_env.ep(), *this, &Main::_handle_devices_update };
 
 	void _handle_usb_devices_update();
 
@@ -434,7 +434,7 @@ struct Driver_manager::Main : private Block_devices_generator
 		_usb_drv_config.enabled(true);
 		_block_devices.enabled(true);
 
-		_pci_devices  .sigh(_pci_devices_update_handler);
+		_devices      .sigh(_devices_update_handler);
 		_usb_policy   .sigh(_usb_policy_update_handler);
 		_ahci_ports   .sigh(_ahci_ports_update_handler);
 		_nvme_ns      .sigh(_nvme_ns_update_handler);
@@ -442,19 +442,19 @@ struct Driver_manager::Main : private Block_devices_generator
 
 		_generate_init_config(_init_config);
 
-		_handle_pci_devices_update();
+		_handle_devices_update();
 		_handle_ahci_ports_update();
 		_handle_nvme_ns_update();
 	}
 };
 
 
-void Driver_manager::Main::_handle_pci_devices_update()
+void Driver_manager::Main::_handle_devices_update()
 {
-	_pci_devices.update();
+	_devices.update();
 
 	/* decide about fb not before the first valid pci report is available */
-	if (!_pci_devices.valid())
+	if (!_devices.valid())
 		return;
 
 	bool has_vga            = false;
@@ -464,7 +464,7 @@ void Driver_manager::Main::_handle_pci_devices_update()
 
 	Boot_fb_driver::Mode const boot_fb_mode = _boot_fb_mode();
 
-	_pci_devices.xml().for_each_sub_node([&] (Xml_node device) {
+	_devices.xml().for_each_sub_node([&] (Xml_node device) {
 		device.with_optional_sub_node("pci-config", [&] (Xml_node pci) {
 
 			uint16_t const vendor_id  = (uint16_t)pci.attribute_value("vendor_id",  0U);
