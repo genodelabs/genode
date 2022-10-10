@@ -35,7 +35,6 @@
   <index name="Virtual machines" arch="x86_64">
     <pkg path="vbox6"             info="VBox6 for running Linux"/>
     <pkg path="vbox6-capture"     info="VBox6 + webcam support"/>
-    <pkg path="vbox5-nova-sculpt" info="VBox5 for running Linux (NOVA version)" />
   </index>
 
   <index name="Mesa 3D">
