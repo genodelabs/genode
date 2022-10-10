@@ -225,8 +225,8 @@ class Nic_client
 			_nic.rx_channel()->sigh_packet_avail(_rx_packet_avail_dispatcher);
 			_nic.rx_channel()->sigh_ready_to_ack(_rx_ready_to_ack_dispatcher);
 
-			/* set initial link-state */
-			_handle_link_state();
+			/* inform signal handler ep */
+			_link_state_dispatcher.local_submit();
 		}
 
 		Genode::Signal_context_capability dispatcher()   { return _destruct_dispatcher; }
