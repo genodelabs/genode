@@ -227,9 +227,10 @@ class Net::Interface : private Interface_list::Element
 		void _send_arp_reply(Ethernet_frame &request_eth,
 		                     Arp_packet     &request_arp);
 
-		void _handle_dhcp_request(Ethernet_frame &eth,
-		                          Dhcp_packet    &dhcp,
-		                          Domain         &local_domain);
+		void _handle_dhcp_request(Ethernet_frame            &eth,
+		                          Dhcp_packet               &dhcp,
+		                          Domain                    &local_domain,
+		                          Ipv4_address_prefix const &local_intf);
 
 		void _handle_ip(Ethernet_frame          &eth,
 		                Size_guard              &size_guard,

@@ -759,9 +759,10 @@ void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
 }
 
 
-void Interface::_handle_dhcp_request(Ethernet_frame &eth,
-                                     Dhcp_packet    &dhcp,
-                                     Domain         &local_domain)
+void Interface::_handle_dhcp_request(Ethernet_frame            &eth,
+                                     Dhcp_packet               &dhcp,
+                                     Domain                    &local_domain,
+                                     Ipv4_address_prefix const &local_intf)
 {
 	try {
 		/* try to get the DHCP server config of this interface */
@@ -775,9 +776,6 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 			/* look up existing DHCP configuration for client */
 			Dhcp_allocation &allocation =
 				_dhcp_allocations.find_by_mac(dhcp.client_mac());
-
-			Ipv4_address_prefix const &local_intf =
-				local_domain.ip_config().interface();
 
 			switch (msg_type) {
 			case Dhcp_packet::Message_type::DISCOVER:
@@ -861,7 +859,14 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 				_new_dhcp_allocation(eth, dhcp, dhcp_srv, local_domain);
 				return;
 
-			case Dhcp_packet::Message_type::REQUEST: throw Drop_packet("DHCP REQUEST from client without offered/acked IP");
+			case Dhcp_packet::Message_type::REQUEST:
+
+				_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
+				                 Ipv4_address { },
+				                 Dhcp_packet::Message_type::NAK,
+				                 dhcp.xid(), local_intf);
+				return;
+
 			case Dhcp_packet::Message_type::DECLINE: throw Drop_packet("DHCP DECLINE from client without offered/acked IP");
 			case Dhcp_packet::Message_type::RELEASE: throw Drop_packet("DHCP RELEASE from client without offered/acked IP");
 			case Dhcp_packet::Message_type::NAK:     throw Drop_packet("DHCP NAK from client");
@@ -1238,7 +1243,10 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 				switch (dhcp.op()) {
 				case Dhcp_packet::REQUEST:
 
-					try { _handle_dhcp_request(eth, dhcp, local_domain); }
+					try {
+						_handle_dhcp_request(
+							eth, dhcp, local_domain, local_intf);
+					}
 					catch (Pointer<Dhcp_server>::Invalid) {
 						throw Drop_packet("DHCP request while DHCP server inactive");
 					}
