@@ -39,6 +39,8 @@ namespace Pin {
 	{
 		using Pin::Root<Irq_session_component<ID>, Direction::IN>::Root;
 	};
+
+	enum class Level { LOW, HIGH, HIGH_IMPEDANCE };
 }
 
 
@@ -53,7 +55,7 @@ struct Pin::Driver : Interface
 	/**
 	 * Set pin state
 	 */
-	virtual void pin_state(ID, bool enabled) = 0;
+	virtual void pin_state(ID, Level) = 0;
 
 	/**
 	 * Return pin ID assigned to the specified session label
