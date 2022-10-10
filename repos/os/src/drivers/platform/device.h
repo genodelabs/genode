@@ -239,7 +239,7 @@ class Driver::Device : private List_model<Device>::Element
 		{
 			unsigned idx = 0;
 			_io_port_range_list.for_each([&] (Io_port_range const & ipr) {
-				fn(idx++, ipr.range); });
+				fn(idx++, ipr.range, ipr.bar); });
 		}
 
 		template <typename FN> void for_pci_config(FN const & fn) const

@@ -85,6 +85,7 @@ install_config {
 		</provides>
 		<route>
 			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
 			<service name="IRQ">     <parent/> </service>
 			<service name="IO_MEM">  <parent/> </service>
 			<service name="ROM">     <parent/> </service>

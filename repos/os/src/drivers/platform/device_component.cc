@@ -190,7 +190,8 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			new (session.heap()) Io_mem(_io_mem_registry, bar, idx, range, pf);
 		});
 
-		device.for_each_io_port_range([&] (unsigned idx, Io_port_range::Range range)
+		device.for_each_io_port_range([&] (unsigned idx, Io_port_range::Range range,
+		                                   Device::Pci_bar)
 		{
 			session.ram_quota_guard().withdraw(Ram_quota{Io_port_session::RAM_QUOTA});
 			_ram_quota += Io_port_session::RAM_QUOTA;

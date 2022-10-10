@@ -106,18 +106,23 @@ struct Pci::Config : Genode::Mmio
 
 		Bar_32bit::access_t _conf_value { 0 };
 
+		template <typename REG>
+		typename REG::access_t _get_and_set(typename REG::access_t value)
+		{
+			write<REG>(0xffffffff);
+			typename REG::access_t ret = read<REG>();
+			write<REG>(value);
+			return ret;
+		}
+
 		Bar_32bit::access_t _conf()
 		{
 			/*
 			 * Initialize _conf_value on demand only to prevent read-write
 			 * operations on BARs of invalid devices at construction time.
 			 */
-			if (!_conf_value) {
-				Bar_32bit::access_t v = read<Bar_32bit>();
-				write<Bar_32bit>(0xffffffff);
-				_conf_value = read<Bar_32bit>();
-				write<Bar_32bit>(v);
-			}
+			if (!_conf_value)
+				_conf_value = _get_and_set<Bar_32bit>(read<Bar_32bit>());
 			return _conf_value;
 		}
 
@@ -151,6 +156,19 @@ struct Pci::Config : Genode::Mmio
 					| Bar_32bit::Memory_base::masked(read<Bar_32bit>());
 			else
 				return Bar_32bit::Io_base::masked(read<Bar_32bit>());
+		}
+
+		void set(Genode::uint64_t v)
+		{
+			if (!valid() || v == addr())
+				return;
+
+			if (memory()) {
+				if (bit64())
+					_get_and_set<Upper_bits>((Upper_bits::access_t)(v >> 32));
+				_get_and_set<Bar_32bit>(Bar_32bit::Memory_base::masked(v & ~0U));
+			} else
+				_get_and_set<Bar_32bit>(Bar_32bit::Io_base::masked(v & ~0U));
 		}
 	};
 
@@ -204,14 +222,53 @@ struct Pci::Config : Genode::Mmio
 
 	struct Power_management_capability : Pci_capability
 	{
-		struct Capabilities   : Register<0x2, 16> {};
+		struct Capabilities : Register<0x2, 16> {};
+
 		struct Control_status : Register<0x4, 16>
 		{
-			struct Pme_status : Bitfield<15,1> {};
+			struct Power_state : Bitfield<0, 2>
+			{
+				enum { D0, D1, D2, D3 };
+			};
+
+			struct No_soft_reset : Bitfield<3, 1> {};
+			struct Pme_status    : Bitfield<15,1> {};
 		};
-		struct Data           : Register<0x7,  8> {};
+
+		struct Data : Register<0x7, 8> {};
 
 		using Pci_capability::Pci_capability;
+
+		bool power_on(Delayer & delayer)
+		{
+			using Reg = Control_status::Power_state;
+			if (read<Reg>() == Reg::D0)
+				return false;
+
+			write<Reg>(Reg::D0);
+
+			/*
+			 * PCI Express 4.3 - 5.3.1.4. D3 State
+			 *
+			 * "Unless Readiness Notifications mechanisms are used ..."
+			 * "a minimum recovery time following a D3 hot → D0 transition of"
+			 * "at least 10 ms ..."
+			 */
+			delayer.usleep(10'000);
+			return true;
+		}
+
+		void power_off()
+		{
+			using Reg = Control_status::Power_state;
+			if (read<Reg>() != Reg::D3) write<Reg>(Reg::D3);
+		}
+
+
+		bool soft_reset()
+		{
+			return !read<Control_status::No_soft_reset>();
+		}
 	};
 
 
@@ -310,11 +367,19 @@ struct Pci::Config : Genode::Mmio
 
 	struct Pci_express_capability : Pci_capability
 	{
-		struct Capabilities        : Register<0x2,  16> {};
-		struct Device_capabilities : Register<0x4,  32> {};
-		struct Device_control      : Register<0x8,  16> {};
+		struct Capabilities : Register<0x2, 16> {};
 
-		struct Device_status       : Register<0xa,  16>
+		struct Device_capabilities : Register<0x4,  32>
+		{
+			struct Function_level_reset : Bitfield<28,1> {};
+		};
+
+		struct Device_control : Register<0x8,  16>
+		{
+			struct Function_level_reset : Bitfield<15,1> {};
+		};
+
+		struct Device_status : Register<0xa,  16>
 		{
 			struct Correctable_error    : Bitfield<0, 1> {};
 			struct Non_fatal_error      : Bitfield<1, 1> {};
@@ -391,6 +456,17 @@ struct Pci::Config : Genode::Mmio
 		{
 			write<Link_status::Lbm_status>(1);
 			write<Link_control::Lbm_irq_enable>(1);
+		}
+
+		void reset(Delayer & delayer)
+		{
+			if (!read<Device_capabilities::Function_level_reset>())
+				return;
+			write<Device_control::Function_level_reset>(1);
+			try {
+				wait_for(Attempts(100), Microseconds(10000), delayer,
+				         Device_status::Transactions_pending::Equal(0));
+			} catch(Polling_timeout) { }
 		}
 	};
 
@@ -545,6 +621,29 @@ struct Pci::Config : Genode::Mmio
 				io(reg0.addr(), reg0.size(), i);
 		}
 	};
+
+	void set_bar_address(unsigned idx, Genode::uint64_t addr)
+	{
+		if (idx > 5 || (idx > 1 && bridge()))
+			return;
+
+		Base_address bar { base() + BASE_ADDRESS_0 + idx*0x4 };
+		bar.set(addr);
+	}
+
+	void power_on(Delayer & delayer)
+	{
+		if (!power_cap.constructed() || !power_cap->power_on(delayer))
+			return;
+
+		if (power_cap->soft_reset() && pci_e_cap.constructed())
+			pci_e_cap->reset(delayer);
+	}
+
+	void power_off()
+	{
+		if (power_cap.constructed()) power_cap->power_off();
+	}
 };
 
 

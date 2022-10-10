@@ -120,6 +120,7 @@ append config {
 			<service name="PD">      <parent/> </service>
 			<service name="CPU">     <parent/> </service>
 			<service name="LOG">     <parent/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
 		</route>
 		<config>
 			<policy label_prefix="intel_fb_drv" info="yes">

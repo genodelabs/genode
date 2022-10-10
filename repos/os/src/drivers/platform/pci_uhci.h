@@ -51,7 +51,8 @@ void Driver::pci_uhci_quirks(Env              & env,
 
 	/* find uhci controller i/o ports */
 	Device::Io_port_range::Range range { 0, 0 };
-	dev.for_each_io_port_range([&] (unsigned, Device::Io_port_range::Range r) {
+	dev.for_each_io_port_range([&] (unsigned, Device::Io_port_range::Range r,
+		                            Device::Pci_bar) {
 		if (!range.size) range = r; });
 
 	Io_port_connection io_ports(env, range.addr, range.size);

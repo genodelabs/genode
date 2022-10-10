@@ -12,6 +12,7 @@
  */
 
 #include <base/attached_io_mem_dataspace.h>
+#include <timer_session/connection.h>
 #include <pci/config.h>
 #include <util/reconstructible.h>
 
@@ -29,6 +30,20 @@ using namespace Genode;
 using namespace Pci;
 
 
+static Config::Delayer & delayer(Env & env)
+{
+	struct Delayer : Config::Delayer, Timer::Connection
+	{
+		using Timer::Connection::Connection;
+
+		void usleep(uint64_t us) override {
+			return Timer::Connection::usleep(us); }
+	};
+	static Delayer delayer(env);
+	return delayer;
+};
+
+
 struct Config_helper
 {
 	Env                              & _env;
@@ -41,12 +56,14 @@ struct Config_helper
 	Config_helper(Env                              & env,
 	              Driver::Device             const & dev,
 	              Driver::Device::Pci_config const & cfg)
-	: _env(env), _dev(dev), _cfg(cfg) { }
+	: _env(env), _dev(dev), _cfg(cfg) { _config.scan(); }
 
 	void enable(Driver::Device_pd & pd)
 	{
 		pd.assign_pci(_io_mem.cap(),
 		              { _cfg.bus_num, _cfg.dev_num, _cfg.func_num });
+
+		_config.power_on(delayer(_env));
 
 		Config::Command::access_t cmd =
 			_config.read<Config::Command>();
@@ -54,15 +71,24 @@ struct Config_helper
 		/* always allow DMA operations */
 		Config::Command::Bus_master_enable::set(cmd, 1);
 
-		/* enable memory space when I/O mem is defined */
-		_dev.for_each_io_mem([&] (unsigned, Driver::Device::Io_mem::Range,
-		                          Driver::Device::Pci_bar, bool) {
-			Config::Command::Memory_space_enable::set(cmd, 1); });
+		_dev.for_each_io_mem([&] (unsigned, Driver::Device::Io_mem::Range r,
+		                          Driver::Device::Pci_bar b, bool)
+		{
+			_config.set_bar_address(b.number, r.start);
 
-		/* enable i/o space when I/O ports are defined */
-		_dev.for_each_io_port_range(
-			[&] (unsigned, Driver::Device::Io_port_range::Range) {
-				Config::Command::Io_space_enable::set(cmd, 1); });
+			/* enable memory space when I/O mem is defined */
+			Config::Command::Memory_space_enable::set(cmd, 1);
+		});
+
+		_dev.for_each_io_port_range([&] (unsigned,
+		                                 Driver::Device::Io_port_range::Range r,
+		                                 Driver::Device::Pci_bar b)
+		{
+			_config.set_bar_address(b.number, r.addr);
+
+			/* enable i/o space when I/O ports are defined */
+			Config::Command::Io_space_enable::set(cmd, 1);
+		});
 
 		_config.write<Config::Command>(cmd);
 	}
@@ -76,6 +102,8 @@ struct Config_helper
 		Config::Command::Bus_master_enable::set(cmd, 0);
 		Config::Command::Interrupt_enable::set(cmd, 0);
 		_config.write<Config::Command>(cmd);
+
+		_config.power_off();
 	}
 
 	void apply_quirks()
@@ -91,7 +119,8 @@ struct Config_helper
 
 		/* enable i/o space when I/O ports are defined */
 		_dev.for_each_io_port_range(
-			[&] (unsigned, Driver::Device::Io_port_range::Range) {
+			[&] (unsigned, Driver::Device::Io_port_range::Range,
+			     Driver::Device::Pci_bar) {
 				Config::Command::Io_space_enable::set(cmd, 1); });
 
 		_config.write<Config::Command>(cmd);

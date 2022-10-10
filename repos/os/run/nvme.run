@@ -143,7 +143,7 @@ append config {
 			<service name="PD">      <parent/> </service>
 			<service name="CPU">     <parent/> </service>
 			<service name="LOG">     <parent/> </service>
-			<service name="Timer">   <parent/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
 		</route>
 		<config>
 			<report devices="yes"/>
