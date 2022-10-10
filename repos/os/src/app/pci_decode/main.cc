@@ -291,6 +291,9 @@ void Main::sys_rom_update()
 {
 	sys_rom.update();
 
+	if (!sys_rom.valid())
+		return;
+
 	Xml_node xml = sys_rom.xml();
 
 	if (apic_capable) {
@@ -320,6 +323,8 @@ Main::Main(Env & env) : env(env)
 		apic_capable = xml.attribute_value("acpi", false);
 		msi_capable  = xml.attribute_value("msi",  false);
 	});
+
+	sys_rom_update();
 }
 
 
