@@ -1,4 +1,4 @@
-<runtime ram="5M" caps="150" binary="acpica">
+<runtime ram="6M" caps="150" binary="acpica">
 
 	<requires>
 		<io_mem/>
