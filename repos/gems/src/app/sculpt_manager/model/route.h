@@ -49,6 +49,8 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::USB:         return "usb";
 		case Service::Type::RTC:         return "rtc";
 		case Service::Type::PLATFORM:    return "platform";
+		case Service::Type::PIN_STATE:   return "pin_state";
+		case Service::Type::PIN_CONTROL: return "pin_control";
 		case Service::Type::VM:          return "vm";
 		case Service::Type::PD:          return "pd";
 		case Service::Type::UNDEFINED:   break;
@@ -80,6 +82,8 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::USB:         return "USB";
 		case Service::Type::RTC:         return "Real-time clock";
 		case Service::Type::PLATFORM:    return "Device access";
+		case Service::Type::PIN_STATE:   return "GPIO pin state";
+		case Service::Type::PIN_CONTROL: return "GPIO pin control";
 		case Service::Type::VM:          return "Hardware-based virtualization";
 		case Service::Type::PD:          return "Protection domain";
 		case Service::Type::UNDEFINED:   break;

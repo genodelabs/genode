@@ -356,6 +356,8 @@ class Sculpt::Runtime_config
 				_pci_audio { _r, Type::PLATFORM,    "audio hardware",   "audio" },
 				_pci_acpi  { _r, Type::PLATFORM,    "ACPI",             "acpica" },
 				_hw_gpu    { _r, Type::PLATFORM,    "GPU hardware",     "gpu" },
+				_pin_state { _r, Type::PIN_STATE,   "GPIO pin state" },
+				_pin_ctrl  { _r, Type::PIN_CONTROL, "GPIO pin control" },
 				_trace     { _r, Type::TRACE,       "system-global tracing" },
 				_vm        { _r, Type::VM,          "virtualization hardware" },
 				_pd        { _r, Type::PD,          "system PD service" };

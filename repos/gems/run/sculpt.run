@@ -414,6 +414,8 @@ install_config {
 			<service name="Usb"/>
 			<service name="Platform"/>
 			<service name="Gpu"/>
+			<service name="Pin_state"/>
+			<service name="Pin_control"/>
 		</provides>
 	</start>
 
@@ -632,6 +634,8 @@ install_config {
 			<service name="Event"   label="leitzentrale"> <child name="leitzentrale"/> </service>
 			<service name="Capture" label="global">       <child name="nitpicker"/>    </service>
 			<service name="Capture" label="leitzentrale"> <child name="leitzentrale"/> </service>
+			<service name="Pin_state">   <child name="drivers"/> </service>
+			<service name="Pin_control"> <child name="drivers"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
