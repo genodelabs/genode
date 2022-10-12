@@ -34,7 +34,6 @@
 
   <index name="Virtual machines" arch="x86_64">
     <pkg path="vbox6"             info="VBox6 for running Linux"/>
-    <pkg path="vbox6-capture"     info="VBox6 + webcam support"/>
   </index>
 
   <index name="Mesa 3D">
