@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 22.04
+                      Sculpt Operating System 22.10
                       =============================
 
 
@@ -57,8 +57,8 @@ Your feedback is appreciated!
 
   [https://www.genode-labs.com]
 
-A printable PDF version of this document is available at
-[https://genode.org/documentation/sculpt-22-04.pdf].
+A printable PDF version of this document is available at the
+[https://genode.org/documentation/sculpt-22-10.pdf - Genode website].
 
 
 Hardware requirements and preparations
@@ -69,9 +69,9 @@ Intel graphics, E1000 networking, Intel wireless, and AHCI/NVMe.
 
 It is tested best on laptops of the Lenovo X and T series (X220, X250, X260,
 T430, T460, T470, T490). For experimenting with Sculpt, we recommend getting a
-refurbished version of one of these. You may also find the unofficial hardware
-compatibility list [https://usr.sysret.de/jws/genode/hcl.html] helpful for
-finding Genode-compatible hardware.
+refurbished version of one of these. You may also find the unofficial
+[https://usr.sysret.de/jws/genode/hcl.html - hardware compatibility list]
+helpful for finding Genode-compatible hardware.
 
 Sculpt has been tested with screen resolutions up to 2560 x 1440. Displays
 with a higher resolution are not expected to work. The sweet spot is a full-HD
@@ -485,7 +485,7 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 22.04 features a command-line
+Alternatively to the "Files" tab, Sculpt 22.10 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
 "Inspect" appears, which hosts the command-line interface
@@ -1402,7 +1402,7 @@ Building the boot image
 =======================
 
 The following steps assume that you have the Genode tool chain installed on a
-GNU/Linux system. For reference, Ubuntu 18.04 is known to work well. If you
+GNU/Linux system. For reference, Ubuntu LTS is known to work well. If you
 don't know your way around Genode's source tree yet, please consider the
 "Getting started" section of the Genode Foundations book that is available as
 a free download at [https://genode.org].
@@ -1411,11 +1411,11 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-22.04 sculpt-22.04
+  ! git checkout -b sculpt-22.10 sculpt-22.10
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2022-04-27
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2022-10-11
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
@@ -1423,10 +1423,10 @@ a free download at [https://genode.org].
 # Download all ingredients for the Sculpt boot image
 
   ! ./tool/depot/download \
-  !    genodelabs/pkg/x86_64/sculpt/2022-04-27 \
-  !    genodelabs/pkg/x86_64/drivers_managed-pc/2022-04-27 \
-  !    genodelabs/pkg/x86_64/wifi/2022-04-27 \
-  !    genodelabs/bin/x86_64/ipxe_nic_drv/2022-04-27
+  !    genodelabs/pkg/x86_64/sculpt/2022-10-13 \
+  !    genodelabs/pkg/x86_64/drivers_managed-pc/2022-10-11 \
+  !    genodelabs/pkg/x86_64/wifi/2022-10-11 \
+  !    genodelabs/bin/x86_64/ipxe_nic_drv/2022-10-11
 
 # Create a build directory
 
@@ -1474,11 +1474,11 @@ be prepared. The following command prepares all of them at once:
 !      acpica ada-runtime bash cbe coreutils curl \
 !      dde_bsd dde_ipxe dde_linux dde_rump e2fsprogs-lib \
 !      expat freetype gnupg grub2 jitterentropy jpeg \
-!      libarchive libc libdrm libgcrypt libiconv libpng \
-!      libsparkcrypto libssh libusb libuvc libyuv linux \
+!      libarchive libc libdrm libgcrypt libiconv libnl libpng \
+!      libsparkcrypto libssh libusb libyuv libuvc linux \
 !      linux-firmware mesa ncurses nova openssl qemu-usb \
 !      qoost qt5 stb stdcxx ttf-bitstream-vera vim \
-!      virtualbox5 virtualbox6 x86emu xz zlib
+!      virtualbox6 wpa_supplicant x86emu xz zlib
 
 To be able to compile components that are dependent on the Qt5-library, the
 corresponding toolchain needs to be installed in addition to the base Genode
@@ -1532,8 +1532,8 @@ To make the created packages available for download from within the running
 Sculpt system, you must publish them. This involves the archiving, signing, and
 uploading of the content. The former two steps are covered by the
 _tool/depot/publish_current_ tool. For more information about working with the
-depot tool, refer to
-[https://genode.org/documentation/developer-resources/package_management].
+depot tool, refer to the package-management
+[https://genode.org/documentation/developer-resources/package_management - documentation].
 
 The launchers integrated in the boot image are defined in
 _gems/sculpt/default-pc.sculpt_ and the accompanied files at
@@ -1549,13 +1549,9 @@ Updating the USB boot device from within VirtualBox
 
 The _/config/deploy_ example is prepared to assign USB storage
 devices directly to a running virtual machine. You may inspect the report
-_/report/drivers/usb_active_config_ to get a list of attached USB devices.
-Use Vim to copy the '<policy>' node of the selected device into the
-'<inline>' section within the _/config/launcher/usb_devices_rom_ file, and
-adjust the line as follows:
-
-* Replace the node type '<policy>' by '<device>', and
-* Rename the attribute 'label_suffix' to 'label'.
+_/report/drivers/usb_devices_ to get a list of attached USB devices.
+Use Vim to copy the '<device>' node of the selected device into the
+'<inline>' section within the _/config/launcher/usb_devices_rom_ file.
 
 The updated 'usb_devices' ROM prompts VirtualBox to open a USB session at
 the drivers subsystem. Hence, when saving the modified
@@ -1563,6 +1559,18 @@ _/config/launcher/usb_devices_rom_ file, the guest OS should detect a new USB
 device (check the output of 'dmesg'). You may now write a new version of the
 Sculpt ISO image to the device by following the steps described in Section
 [Building the boot image].
+
+Alternatively, to update a USB storage device that already has Sculpt OS
+installed to a new version built manually via the steps described in
+Section [Building the boot image], you may prefer to replace the files at the
+_boot/_ directory of the "GENODE" partition of the USB device by the content of
+the freshly built _var/run/sculpt/boot/_ directory as found in the build
+directory after executing the 'make run/sculpt' step.
+Make sure to copy the files 'hypervisor' (microkernel) and 'image.elf.gz'
+(system image of the Sculpt base system).
+By backing up your previous _boot/_ directory, you can conveniently roll back
+the Sculpt system to the previous version by restoring the original _boot/_
+content.
 
 
 Credits
@@ -1574,10 +1582,9 @@ operating-system technology designed and developed from scratch.
 :Genode OS Framework:
   [https://genode.org]
 
-That said, Genode is not developed in a vacuum. It rather stands on the
-shoulders of giants and greatly benefits from the free-software/open-source
-community. The following projects play a particularly important role for
-the Sculpt scenario.
+That said, Genode is not developed in a vacuum. It greatly benefits from the
+free-software/open-source community. The following projects play a particularly
+important role for Sculpt OS.
 
 :NOVA microhypervisor:
 
