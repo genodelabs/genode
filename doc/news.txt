@@ -4,6 +4,36 @@
                                ===========
 
 
+Sculpt OS release 22.10 | 2022-10-13
+####################################
+
+| Sculpt OS 22.10 is a maintenance release of our Genode-based
+| general-purpose OS. It imposes a new rigid regime to the management of
+| low-level devices, improves USB hotplug support, and comes with numerous
+| performance optimizations.
+
+The just released version 22.10 of the Sculpt operating system bears the fruit
+of our year-long effort to apply the rigidity of Genode's architecture to the
+management of PCI configuration and device interrupts. This sweeping change
+left no single device driver unturned. If we did our job right, you should not
+notice any visible difference from the previous Sculpt version.
+
+However, you should definitely _feel_ a difference when using the new version.
+We put several performance optimizations in place - from accelerated system
+startup, over increased network thoughput, to improved user-interface
+responsiveness. Moreover, we put much emphasis on stressing Sculpt's USB
+hotplug support, which includes the dynamic assignment and revocation of
+USB devices to and from virtual machines.
+
+With respect to available software, Sculpt users can enjoy an updated
+Chromium engine - via the Falkon or Morph web browsers - and an updated
+audio driver based on OpenBSD 7.1.
+
+Sculpt OS 22.10 is available as ready-to-use system image at the
+[https://genode.org/download/sculpt - Sculpt download page] along with
+updated [https://genode.org/documentation/articles/sculpt-22-10 - documentation].
+
+
 Genode OS Framework release 22.08 | 2022-08-31
 ##############################################
 
