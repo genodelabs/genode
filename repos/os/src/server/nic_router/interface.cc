@@ -155,21 +155,25 @@ static void _link_packet(L3_protocol  const  prot,
 }
 
 
-static void _l4_update_checksum(L3_protocol             const  prot,
-                                void                   *const  prot_base,
-                                Internet_checksum_diff  const &prot_icd)
+static void _update_checksum(L3_protocol   const prot,
+                             void         *const prot_base,
+                             size_t        const prot_size,
+                             Ipv4_address  const src,
+                             Ipv4_address  const dst,
+                             size_t        const ip_size)
 {
 	switch (prot) {
 	case L3_protocol::TCP:
-		((Tcp_packet *)prot_base)->update_checksum(prot_icd);
+		((Tcp_packet *)prot_base)->update_checksum(src, dst, prot_size);
 		return;
 	case L3_protocol::UDP:
-		((Udp_packet *)prot_base)->update_checksum(prot_icd);
+		((Udp_packet *)prot_base)->update_checksum(src, dst);
 		return;
 	case L3_protocol::ICMP:
 		{
 			Icmp_packet &icmp = *(Icmp_packet *)prot_base;
-			icmp.update_checksum(prot_icd);
+			icmp.update_checksum(ip_size - sizeof(Ipv4_packet) -
+			                               sizeof(Icmp_packet));
 			return;
 		}
 	default: throw Interface::Bad_transport_protocol(); }
@@ -186,15 +190,14 @@ static Port _dst_port(L3_protocol const prot, void *const prot_base)
 }
 
 
-static void _dst_port(L3_protocol      const  prot,
-                      void            *const  prot_base,
-                      Internet_checksum_diff &prot_icd,
-                      Port             const  port)
+static void _dst_port(L3_protocol  const prot,
+                      void        *const prot_base,
+                      Port         const port)
 {
 	switch (prot) {
-	case L3_protocol::TCP:  (*(Tcp_packet *)prot_base).dst_port(port, prot_icd);  return;
-	case L3_protocol::UDP:  (*(Udp_packet *)prot_base).dst_port(port, prot_icd);  return;
-	case L3_protocol::ICMP: (*(Icmp_packet *)prot_base).query_id(port.value, prot_icd); return;
+	case L3_protocol::TCP:  (*(Tcp_packet *)prot_base).dst_port(port);  return;
+	case L3_protocol::UDP:  (*(Udp_packet *)prot_base).dst_port(port);  return;
+	case L3_protocol::ICMP: (*(Icmp_packet *)prot_base).query_id(port.value); return;
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
@@ -209,15 +212,14 @@ static Port _src_port(L3_protocol const prot, void *const prot_base)
 }
 
 
-static void _src_port(L3_protocol       const prot,
-                      void             *const prot_base,
-                      Internet_checksum_diff &prot_icd,
-                      Port              const port)
+static void _src_port(L3_protocol  const prot,
+                      void        *const prot_base,
+                      Port         const port)
 {
 	switch (prot) {
-	case L3_protocol::TCP:  ((Tcp_packet *)prot_base)->src_port(port, prot_icd);        return;
-	case L3_protocol::UDP:  ((Udp_packet *)prot_base)->src_port(port, prot_icd);        return;
-	case L3_protocol::ICMP: ((Icmp_packet *)prot_base)->query_id(port.value, prot_icd); return;
+	case L3_protocol::TCP:  ((Tcp_packet *)prot_base)->src_port(port);        return;
+	case L3_protocol::UDP:  ((Udp_packet *)prot_base)->src_port(port);        return;
+	case L3_protocol::ICMP: ((Icmp_packet *)prot_base)->query_id(port.value); return;
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
@@ -299,9 +301,11 @@ void Interface::_pass_prot_to_domain(Domain                       &domain,
                                      Internet_checksum_diff const &ip_icd,
                                      L3_protocol            const  prot,
                                      void                  *const  prot_base,
-                                     Internet_checksum_diff const &prot_icd)
+                                     size_t                 const  prot_size)
 {
-	_l4_update_checksum(prot, prot_base, prot_icd);
+	_update_checksum(
+		prot, prot_base, prot_size, ip.src(), ip.dst(), ip.total_length());
+
 	ip.update_checksum(ip_icd);
 	domain.interfaces().for_each([&] (Interface &interface)
 	{
@@ -595,7 +599,7 @@ void Interface::_nat_link_and_pass(Ethernet_frame         &eth,
                                    Internet_checksum_diff &ip_icd,
                                    L3_protocol      const  prot,
                                    void            *const  prot_base,
-                                   Internet_checksum_diff &prot_icd,
+                                   size_t           const  prot_size,
                                    Link_side_id     const &local_id,
                                    Domain                 &local_domain,
                                    Domain                 &remote_domain)
@@ -609,13 +613,8 @@ void Interface::_nat_link_and_pass(Ethernet_frame         &eth,
 				if(_config().verbose()) {
 					log("[", local_domain, "] using NAT rule: ", nat); }
 
-				_src_port(prot, prot_base, prot_icd, nat.port_alloc(prot).alloc());
-				Internet_checksum_diff icd { };
-				ip.src(remote_domain.ip_config().interface().address, icd);
-				ip_icd.add_up_diff(icd);
-				if (prot == L3_protocol::TCP || prot == L3_protocol::UDP) {
-					prot_icd.add_up_diff(icd);
-				}
+				_src_port(prot, prot_base, nat.port_alloc(prot).alloc());
+				ip.src(remote_domain.ip_config().interface().address, ip_icd);
 				remote_port_alloc = nat.port_alloc(prot);
 			},
 			[&] /* no_match */ () { }
@@ -625,7 +624,7 @@ void Interface::_nat_link_and_pass(Ethernet_frame         &eth,
 		_new_link(prot, local_id, remote_port_alloc, remote_domain, remote_id);
 		_pass_prot_to_domain(
 			remote_domain, eth, size_guard, ip, ip_icd, prot, prot_base,
-			prot_icd);
+			prot_size);
 
 	} catch (Port_allocator_guard::Out_of_indices) {
 		switch (prot) {
@@ -973,11 +972,11 @@ void Interface::handle_interface_link_state()
 }
 
 
-void Interface::_send_icmp_echo_reply(Ethernet_frame         &eth,
-                                      Ipv4_packet            &ip,
-                                      Icmp_packet            &icmp,
-                                      Internet_checksum_diff &icmp_icd,
-                                      Size_guard             &size_guard)
+void Interface::_send_icmp_echo_reply(Ethernet_frame &eth,
+                                      Ipv4_packet    &ip,
+                                      Icmp_packet    &icmp,
+                                      size_t          icmp_sz,
+                                      Size_guard     &size_guard)
 {
 	/* adapt Ethernet header */
 	Mac_address const eth_src = eth.src();
@@ -990,9 +989,8 @@ void Interface::_send_icmp_echo_reply(Ethernet_frame         &eth,
 	ip.dst(ip_src);
 
 	/* adapt ICMP header */
-	icmp.type_and_code(Icmp_packet::Type::ECHO_REPLY,
-	                   Icmp_packet::Code::ECHO_REPLY,
-	                   icmp_icd);
+	icmp.type(Icmp_packet::Type::ECHO_REPLY);
+	icmp.code(Icmp_packet::Code::ECHO_REPLY);
 
 	/*
 	 * Update checksums and send
@@ -1000,7 +998,7 @@ void Interface::_send_icmp_echo_reply(Ethernet_frame         &eth,
 	 * Skip updating the IPv4 checksum because we have only swapped SRC and
 	 * DST and these changes cancel each other out in checksum calculation.
 	 */
-	icmp.update_checksum(icmp_icd);
+	icmp.update_checksum(icmp_sz - sizeof(Icmp_packet));
 	send(eth, size_guard);
 }
 
@@ -1012,7 +1010,7 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
                                    Packet_descriptor const &pkt,
                                    L3_protocol              prot,
                                    void                    *prot_base,
-                                   Internet_checksum_diff  &prot_icd,
+                                   size_t                   prot_size,
                                    Domain                  &local_domain)
 {
 	Link_side_id const local_id = { ip.src(), _src_port(prot, prot_base),
@@ -1033,18 +1031,13 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
 				    " link: ", link);
 			}
 			_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
-			Internet_checksum_diff icd { };
-			ip.src(remote_side.dst_ip(), icd);
-			ip.dst(remote_side.src_ip(), icd);
-			ip_icd.add_up_diff(icd);
-			if (prot == L3_protocol::TCP || prot == L3_protocol::UDP) {
-				prot_icd.add_up_diff(icd);
-			}
-			_src_port(prot, prot_base, prot_icd, remote_side.dst_port());
-			_dst_port(prot, prot_base, prot_icd, remote_side.src_port());
+			ip.src(remote_side.dst_ip(), ip_icd);
+			ip.dst(remote_side.src_ip(), ip_icd);
+			_src_port(prot, prot_base, remote_side.dst_port());
+			_dst_port(prot, prot_base, remote_side.src_port());
 			_pass_prot_to_domain(
 				remote_domain, eth, size_guard, ip, ip_icd, prot,
-				prot_base, prot_icd);
+				prot_base, prot_size);
 
 			_link_packet(prot, prot_base, link, client);
 			done = true;
@@ -1066,7 +1059,7 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
 			Domain &remote_domain = rule.domain();
 			_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
 			_nat_link_and_pass(eth, size_guard, ip, ip_icd, prot, prot_base,
-			                   prot_icd, local_id, local_domain,
+			                   prot_size, local_id, local_domain,
 			                   remote_domain);
 
 			done = true;
@@ -1088,7 +1081,7 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
                                    Packet_descriptor const &pkt,
                                    Domain                  &local_domain,
                                    Icmp_packet             &icmp,
-                                   Internet_checksum_diff  &icmp_icd)
+                                   size_t                   icmp_sz)
 {
 	Ipv4_packet            &embed_ip     { icmp.data<Ipv4_packet>(size_guard) };
 	Internet_checksum_diff  embed_ip_icd { };
@@ -1126,18 +1119,14 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
 			ip.dst(remote_side.src_ip(), ip_icd);
 
 			/* adapt source and destination of embedded IP and transport packet */
-			Internet_checksum_diff icd { };
-			embed_ip.src(remote_side.src_ip(), icd);
-			embed_ip.dst(remote_side.dst_ip(), icd);
-			embed_ip_icd.add_up_diff(icd);
-
-			_src_port(embed_prot, embed_prot_base, icd, remote_side.src_port());
-			_dst_port(embed_prot, embed_prot_base, icd, remote_side.dst_port());
+			embed_ip.src(remote_side.src_ip(), embed_ip_icd);
+			embed_ip.dst(remote_side.dst_ip(), embed_ip_icd);
+			_src_port(embed_prot, embed_prot_base, remote_side.src_port());
+			_dst_port(embed_prot, embed_prot_base, remote_side.dst_port());
 
 			/* update checksum of both IP headers and the ICMP header */
-			embed_ip.update_checksum(embed_ip_icd, icd);
-			icmp_icd.add_up_diff(icd);
-			icmp.update_checksum(icmp_icd);
+			embed_ip.update_checksum(embed_ip_icd);
+			icmp.update_checksum(icmp_sz - sizeof(Icmp_packet));
 			ip.update_checksum(ip_icd);
 
 			/* send adapted packet to all interfaces of remote domain */
@@ -1164,7 +1153,7 @@ void Interface::_handle_icmp(Ethernet_frame            &eth,
                              Packet_descriptor   const &pkt,
                              L3_protocol                prot,
                              void                      *prot_base,
-                             Internet_checksum_diff    &prot_icd,
+                             size_t                     prot_size,
                              Domain                    &local_domain,
                              Ipv4_address_prefix const &local_intf)
 {
@@ -1181,14 +1170,14 @@ void Interface::_handle_icmp(Ethernet_frame            &eth,
 		if(_config().verbose()) {
 			log("[", local_domain, "] act as ICMP Echo server"); }
 
-		_send_icmp_echo_reply(eth, ip, icmp, prot_icd, size_guard);
+		_send_icmp_echo_reply(eth, ip, icmp, prot_size, size_guard);
 		return;
 	}
 	/* try to act as ICMP router */
 	switch (icmp.type()) {
 	case Icmp_packet::Type::ECHO_REPLY:
-	case Icmp_packet::Type::ECHO_REQUEST:    _handle_icmp_query(eth, size_guard, ip, ip_icd, pkt, prot, prot_base, prot_icd, local_domain); break;
-	case Icmp_packet::Type::DST_UNREACHABLE: _handle_icmp_error(eth, size_guard, ip, ip_icd, pkt, local_domain, icmp, prot_icd); break;
+	case Icmp_packet::Type::ECHO_REQUEST:    _handle_icmp_query(eth, size_guard, ip, ip_icd, pkt, prot, prot_base, prot_size, local_domain); break;
+	case Icmp_packet::Type::DST_UNREACHABLE: _handle_icmp_error(eth, size_guard, ip, ip_icd, pkt, local_domain, icmp, prot_size); break;
 	default: Drop_packet("unhandled type in ICMP"); }
 }
 
@@ -1228,9 +1217,9 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	/* try to route via transport layer rules */
 	bool done { false };
 	try {
-		L3_protocol      const prot      { ip.protocol() };
-		void            *const prot_base { _prot_base(prot, size_guard, ip) };
-		Internet_checksum_diff prot_icd  { };
+		L3_protocol  const prot      = ip.protocol();
+		size_t       const prot_size = size_guard.unconsumed();
+		void        *const prot_base = _prot_base(prot, size_guard, ip);
 
 		/* try handling DHCP requests before trying any routing */
 		if (prot == L3_protocol::UDP) {
@@ -1276,7 +1265,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		}
 		else if (prot == L3_protocol::ICMP) {
 			_handle_icmp(eth, size_guard, ip, ip_icd, pkt, prot, prot_base,
-			             prot_icd, local_domain, local_intf);
+			             prot_size, local_domain, local_intf);
 			return;
 		}
 
@@ -1299,20 +1288,13 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 					    " link: ", link);
 				}
 				_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
-
-				Internet_checksum_diff icd { };
-				ip.src(remote_side.dst_ip(), icd);
-				ip.dst(remote_side.src_ip(), icd);
-				ip_icd.add_up_diff(icd);
-				if (prot == L3_protocol::TCP || prot == L3_protocol::UDP) {
-					prot_icd.add_up_diff(icd);
-				}
-				_src_port(prot, prot_base, prot_icd, remote_side.dst_port());
-				_dst_port(prot, prot_base, prot_icd, remote_side.src_port());
-
+				ip.src(remote_side.dst_ip(), ip_icd);
+				ip.dst(remote_side.src_ip(), ip_icd);
+				_src_port(prot, prot_base, remote_side.dst_port());
+				_dst_port(prot, prot_base, remote_side.src_port());
 				_pass_prot_to_domain(
 					remote_domain, eth, size_guard, ip, ip_icd, prot,
-					prot_base, prot_icd);
+					prot_base, prot_size);
 
 				_link_packet(prot, prot_base, link, client);
 				done = true;
@@ -1336,19 +1318,13 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 					}
 					Domain &remote_domain = rule.domain();
 					_adapt_eth(eth, rule.to_ip(), pkt, remote_domain);
-
-					Internet_checksum_diff icd { };
-					ip.dst(rule.to_ip(), icd);
-					ip_icd.add_up_diff(icd);
-					if (prot == L3_protocol::TCP || prot == L3_protocol::UDP) {
-						prot_icd.add_up_diff(icd);
-					}
+					ip.dst(rule.to_ip(), ip_icd);
 					if (!(rule.to_port() == Port(0))) {
-						_dst_port(prot, prot_base, prot_icd, rule.to_port());
+						_dst_port(prot, prot_base, rule.to_port());
 					}
 					_nat_link_and_pass(
 						eth, size_guard, ip, ip_icd, prot, prot_base,
-						prot_icd, local_id, local_domain, remote_domain);
+						prot_size, local_id, local_domain, remote_domain);
 
 					done = true;
 				},
@@ -1373,7 +1349,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 				Domain &remote_domain = permit_rule.domain();
 				_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
 				_nat_link_and_pass(
-					eth, size_guard, ip, ip_icd, prot, prot_base, prot_icd,
+					eth, size_guard, ip, ip_icd, prot, prot_base, prot_size,
 					local_id, local_domain, remote_domain);
 
 				done = true;

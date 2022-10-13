@@ -198,11 +198,11 @@ class Net::Interface : private Interface_list::Element
 		                      Genode::uint32_t                 xid,
 		                      Ipv4_address_prefix       const &local_intf);
 
-		void _send_icmp_echo_reply(Ethernet_frame         &eth,
-		                           Ipv4_packet            &ip,
-		                           Icmp_packet            &icmp,
-		                           Internet_checksum_diff &icmp_icd,
-		                           Size_guard             &size_guard);
+		void _send_icmp_echo_reply(Ethernet_frame &eth,
+		                           Ipv4_packet    &ip,
+		                           Icmp_packet    &icmp,
+		                           Genode::size_t  icmp_sz,
+		                           Size_guard     &size_guard);
 
 		Forward_rule_tree &_forward_rules(Domain            &local_domain,
 		                                  L3_protocol const  prot) const;
@@ -244,7 +244,7 @@ class Net::Interface : private Interface_list::Element
 		                        Packet_descriptor const &pkt,
 		                        L3_protocol              prot,
 		                        void                    *prot_base,
-		                        Internet_checksum_diff  &prot_icd,
+		                        Genode::size_t           prot_size,
 		                        Domain                  &local_domain);
 
 		void _handle_icmp_error(Ethernet_frame          &eth,
@@ -254,7 +254,7 @@ class Net::Interface : private Interface_list::Element
 		                        Packet_descriptor const &pkt,
 		                        Domain                  &local_domain,
 		                        Icmp_packet             &icmp,
-		                        Internet_checksum_diff  &icmp_icd);
+		                        Genode::size_t           icmp_sz);
 
 		void _handle_icmp(Ethernet_frame            &eth,
 		                  Size_guard                &size_guard,
@@ -263,7 +263,7 @@ class Net::Interface : private Interface_list::Element
 		                  Packet_descriptor   const &pkt,
 		                  L3_protocol                prot,
 		                  void                      *prot_base,
-		                  Internet_checksum_diff    &prot_icd,
+		                  Genode::size_t             prot_size,
 		                  Domain                    &local_domain,
 		                  Ipv4_address_prefix const &local_intf);
 
@@ -278,7 +278,7 @@ class Net::Interface : private Interface_list::Element
 		                        Internet_checksum_diff &ip_icd,
 		                        L3_protocol      const  prot,
 		                        void            *const  prot_base,
-		                        Internet_checksum_diff &prot_icd,
+		                        Genode::size_t   const  prot_size,
 		                        Link_side_id     const &local_id,
 		                        Domain                 &local_domain,
 		                        Domain                 &remote_domain);
@@ -297,7 +297,7 @@ class Net::Interface : private Interface_list::Element
 		                          Internet_checksum_diff const &ip_icd,
 		                          L3_protocol            const  prot,
 		                          void                  *const  prot_base,
-		                          Internet_checksum_diff const &prot_icd);
+		                          Genode::size_t         const  prot_size);
 
 		void _handle_pkt();
 
