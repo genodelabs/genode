@@ -184,7 +184,7 @@ set config {
 
 		<start name="acpica" caps="200">
 			<resource name="RAM" quantum="8M"/>
-			<config ld_verbose="yes" reset="yes" poweroff="yes" report="yes">
+			<config ld_verbose="yes" reset="yes" poweroff="yes" report="yes" report_period_ms="0">
 			</config>
 			<route>
 				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>

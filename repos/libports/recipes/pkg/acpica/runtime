@@ -1,4 +1,4 @@
-<runtime ram="6M" caps="150" binary="acpica">
+<runtime ram="6M" caps="200" binary="acpica">
 
 	<requires>
 		<io_mem/>
@@ -16,6 +16,6 @@
 		<rom label="acpica"/>
 	</content>
 
-	<config reset="yes" poweroff="yes" report="yes"/>
+	<config reset="yes" poweroff="yes" report="yes" report_period_ms="20000"/>
 
 </runtime>

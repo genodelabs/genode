@@ -80,10 +80,8 @@ class Ec : Acpica::Callback<Ec> {
 
 			State::access_t state = ec->ec_cmdsta->inb(ec->ec_port_cmdsta);
 
-			if (!State::Sci_evt::get(state)) {
-				Genode::error("unknown status ", Genode::Hex(state));
+			if (!State::Sci_evt::get(state))
 				return ACPI_REENABLE_GPE; /* gpe is acked and re-enabled */
-			}
 
 			ec->ec_cmdsta->outb(ec->ec_port_cmdsta, QR_EC);
 			do {

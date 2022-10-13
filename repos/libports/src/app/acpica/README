@@ -46,7 +46,7 @@ Excerpt of important parts of the acpica configuration
 !<start name="acpica">
 !  <!-- <binary name="debug-acpica"/> -->
 !  ...
-!  <config reset="no" poweroff="no" report="yes"/>
+!  <config reset="no" poweroff="no" report="yes" report_period_ms="2000"/>
 !  <route>
 !    <service name="ROM" label="system"> <child name="..."/> </service>
 !    <service name="Report"> <child name="..."/> </service>
