@@ -112,22 +112,33 @@ void User_state::_handle_input_event(Input::Event ev)
 	ev.handle_touch([&] (Input::Touch_id, float x, float y) {
 		_pointer_pos = Point((int)x, (int)y); });
 
+	/* track key states, drop double press/release events */
+	{
+		bool drop = false;
+
+		ev.handle_press([&] (Keycode key, Codepoint) {
+			if (_key_array.pressed(key)) {
+				warning("suspicious double press of ", Input::key_name(key));
+				drop = true;
+			}
+			_key_array.pressed(key, true);
+		});
+
+		ev.handle_release([&] (Keycode key) {
+			if (!_key_array.pressed(key)) {
+				warning("suspicious double release of ", Input::key_name(key));
+				drop = true;
+			}
+			_key_array.pressed(key, false);
+		});
+
+		if (drop)
+			return;
+	}
+
 	/* count keys */
 	if (ev.press()) _key_cnt++;
 	if (ev.release() && (_key_cnt > 0)) _key_cnt--;
-
-	/* track key states */
-	ev.handle_press([&] (Keycode key, Codepoint) {
-		if (_key_array.pressed(key))
-			Genode::warning("suspicious double press of ", Input::key_name(key));
-		_key_array.pressed(key, true);
-	});
-
-	ev.handle_release([&] (Keycode key) {
-		if (!_key_array.pressed(key))
-			Genode::warning("suspicious double release of ", Input::key_name(key));
-		_key_array.pressed(key, false);
-	});
 
 	if (ev.absolute_motion() || ev.relative_motion() || ev.touch()) {
 		update_hover();
