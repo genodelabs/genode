@@ -262,6 +262,7 @@ static int usb_rpc_call(void * data)
 			urbs->in_delete = 1;
 			usb_kill_anchored_urbs(&urbs->submitted);
 			urbs->in_delete = 0;
+			ret = usb_reset_configuration(udev);
 		}
 
 		usb_rpc_args.ret = ret;
