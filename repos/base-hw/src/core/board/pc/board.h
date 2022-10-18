@@ -16,6 +16,8 @@
 
 /* base-hw internal includes */
 #include <hw/spec/x86_64/pc_board.h>
+/* PC virtualization */
+#include <spec/x86_64/virtualization/board.h>
 
 /*
  * As long as Board::NR_OF_CPUS is used as constant within pic.h
