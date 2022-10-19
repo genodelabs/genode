@@ -104,8 +104,20 @@ struct Hw::X86_64_cpu
 		};
 	);
 
+	X86_64_MSR_REGISTER(Amd_vm_cr, 0xC0010114,
+		struct Svmdis : Bitfield< 4, 1> { }; /* SVM disabled */
+	);
+
+	X86_64_CPUID_REGISTER(Cpuid_0_ebx, 0, ebx);
+	X86_64_CPUID_REGISTER(Cpuid_0_ecx, 0, ecx);
+	X86_64_CPUID_REGISTER(Cpuid_0_edx, 0, edx);
+
 	X86_64_CPUID_REGISTER(Cpuid_1_edx, 1, edx,
 		struct Pat : Bitfield<16, 1> { };
+	);
+
+	X86_64_CPUID_REGISTER(Cpuid_80000001_ecx, 0x80000001, ecx,
+		struct Svm : Bitfield<2, 1> { };
 	);
 
 	Suspend_type suspend;

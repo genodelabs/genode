@@ -54,7 +54,7 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 	});
 	xml.node("hardware", [&] () {
 		xml.node("features", [&] () {
-			xml.attribute("svm", false);
+			xml.attribute("svm", Hw::Virtualization_support::has_svm());
 			xml.attribute("vmx", false);
 		});
 	});
