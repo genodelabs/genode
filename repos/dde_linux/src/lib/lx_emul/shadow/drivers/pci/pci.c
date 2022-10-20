@@ -24,6 +24,12 @@ int pci_set_mwi(struct pci_dev * dev)
 }
 
 
+int pci_try_set_mwi(struct pci_dev *dev)
+{
+	return pci_set_mwi(dev);
+}
+
+
 bool pci_dev_run_wake(struct pci_dev * dev)
 {
 	return false;
