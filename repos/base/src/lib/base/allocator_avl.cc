@@ -322,7 +322,7 @@ Allocator_avl_base::_allocate(size_t const size, unsigned align, Range range,
 			Block *b_ptr = _addr_tree.first();
 			b_ptr = b_ptr ? search_fn(*b_ptr) : 0;
 
-			if (!b_ptr) {
+			if (!b_ptr || b_ptr->used()) {
 				/* range conflict */
 				_md_alloc.free(two_blocks.b1_ptr, sizeof(Block));
 				_md_alloc.free(two_blocks.b2_ptr, sizeof(Block));
@@ -362,10 +362,6 @@ Allocator_avl_base::alloc_aligned(size_t size, unsigned align, Range range)
 Range_allocator::Alloc_result Allocator_avl_base::alloc_addr(size_t size, addr_t addr)
 {
 	/* check for integer overflow */
-	if (addr + size - 1 < addr)
-		return Alloc_error::DENIED;
-
-	/* check for range conflict */
 	if (!_sum_in_range(addr, size))
 		return Alloc_error::DENIED;
 
