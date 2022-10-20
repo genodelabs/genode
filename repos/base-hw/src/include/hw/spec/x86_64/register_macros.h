@@ -51,7 +51,7 @@
 	};
 
 #define X86_64_CPUID_REGISTER(name, id, reg, ...) \
-	struct name : Genode::Register<64> \
+	struct name : Genode::Register<32> \
 	{ \
 		static access_t read() \
 		{ \
