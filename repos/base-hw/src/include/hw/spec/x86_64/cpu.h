@@ -104,9 +104,30 @@ struct Hw::X86_64_cpu
 		};
 	);
 
+	X86_64_MSR_REGISTER(Amd_vm_syscvg, 0xC0010010,
+		struct Nested_paging : Bitfield< 0, 1> { }; /* Enable nested paging */
+		struct Sev : Bitfield< 1, 1> { }; /* Enable Secure Encrypted Virtualization */
+		struct Enc_state : Bitfield< 2, 1> { }; /* Enable Encrypted State for Secure Encrypted Virtualization */
+	);
+
 	X86_64_MSR_REGISTER(Amd_vm_cr, 0xC0010114,
 		struct Svmdis : Bitfield< 4, 1> { }; /* SVM disabled */
 	);
+
+	/* AMD host save physical address */
+	X86_64_MSR_REGISTER(Amd_vm_hsavepa, 0xC0010117);
+
+
+	X86_64_MSR_REGISTER(Ia32_efer, 0xC0000080,
+		struct Svme : Bitfield< 12, 1> { }; /* Secure Virtual Machine Enable */
+	);
+
+	/*
+	 * Auxiliary TSC register
+	 * For details, see Vol. 3B of the Intel SDM:
+	 * 17.17.2 IA32_TSC_AUX Register and RDTSCP Support
+	 */
+	X86_64_MSR_REGISTER(Ia32_tsc_aux, 0xc0000103);
 
 	X86_64_CPUID_REGISTER(Cpuid_0_ebx, 0, ebx);
 	X86_64_CPUID_REGISTER(Cpuid_0_ecx, 0, ecx);
@@ -114,6 +135,13 @@ struct Hw::X86_64_cpu
 
 	X86_64_CPUID_REGISTER(Cpuid_1_edx, 1, edx,
 		struct Pat : Bitfield<16, 1> { };
+	);
+
+	/* Number of address space identifiers (ASID) */
+	X86_64_CPUID_REGISTER(Amd_nasid, 0x8000000A, ebx);
+
+	X86_64_CPUID_REGISTER(Cpuid_8000000A_edx, 0x8000000A, edx,
+		struct Np : Bitfield<0, 1> { }; /* Nested paging */
 	);
 
 	X86_64_CPUID_REGISTER(Cpuid_80000001_ecx, 0x80000001, ecx,
