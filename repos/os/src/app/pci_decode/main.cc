@@ -34,7 +34,7 @@ struct Main
 	Attached_rom_dataspace sys_rom         { env, "system"             };
 	Signal_handler<Main>   sys_rom_handler { env.ep(), *this,
 	                                         &Main::sys_rom_update     };
-	Expanding_reporter     pci_reporter    { env, "devices", "devices" };
+	Expanding_reporter     pci_reporter    { env, "devices", "devices", { 32*1024 } };
 	Registry<Bridge>       bridge_registry {}; /* contains host bridges */
 
 	bool apic_capable { false };
