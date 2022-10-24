@@ -17,6 +17,7 @@
 
 #include <block/request_stream.h>
 #include <platform_session/device.h>
+#include <platform_session/dma_buffer.h>
 #include <os/reporter.h>
 #include <util/retry.h>
 #include <util/reconstructible.h>
@@ -522,6 +523,7 @@ struct Ahci::Port : private Port_base
 	using Port_base::index;
 	using Port_base::hba;
 	using Port_base::delayer;
+	using Port_base::plat;
 
 	struct Not_ready : Exception { };
 
@@ -529,9 +531,10 @@ struct Ahci::Port : private Port_base
 	Region_map  &rm;
 	unsigned     cmd_slots = hba.command_slots();
 
-	Ram_dataspace_capability device_ds      { };
-	Ram_dataspace_capability cmd_ds         { };
-	Ram_dataspace_capability device_info_ds { };
+	Platform::Dma_buffer device_dma { plat, 0x1000, CACHED };
+	Platform::Dma_buffer cmd_dma    { plat,
+		align_addr(cmd_slots * Command_table::size(), 12), CACHED };
+	Platform::Dma_buffer device_info_dma { plat, 0x1000, CACHED };
 
 	addr_t device_info_dma_addr = 0;
 
@@ -539,7 +542,9 @@ struct Ahci::Port : private Port_base
 	addr_t fis_base      = 0;
 	addr_t cmd_table     = 0;
 	addr_t device_info   = 0;
-	addr_t dma_base      = 0; /* physical address of DMA memory */
+
+	Constructible<Platform::Dma_buffer> dma_buffer { };
+	addr_t dma_base  = 0; /* physical address of DMA memory */
 
 	Port(Protocol &protocol, Region_map &rm, Platform::Connection & plat,
 	     Hba &hba, Mmio::Delayer &delayer, unsigned index)
@@ -570,23 +575,7 @@ struct Ahci::Port : private Port_base
 		}
 	}
 
-	virtual ~Port()
-	{
-		if (device_ds.valid()) {
-			rm.detach((void *)cmd_list);
-			plat.free_dma_buffer(device_ds);
-		}
-
-		if (cmd_ds.valid()) {
-			rm.detach((void *)cmd_table);
-			plat.free_dma_buffer(cmd_ds);
-		}
-
-		if (device_info_ds.valid()) {
-			rm.detach((void*)device_info);
-			plat.free_dma_buffer(device_info_ds);
-		}
-	}
+	virtual ~Port() { }
 
 	/**
 	 * Command list base (1K length naturally aligned)
@@ -880,11 +869,9 @@ struct Ahci::Port : private Port_base
 
 	void setup_memory()
 	{
-		device_ds  = plat.alloc_dma_buffer(0x1000, CACHED);
-
 		/* command list 1K */
-		addr_t phys = plat.dma_addr(device_ds);
-		cmd_list    = (addr_t)rm.attach(device_ds);
+		addr_t phys = device_dma.dma_addr();
+		cmd_list    = addr_t(device_dma.local_addr<addr_t>());
 		command_list_base(phys);
 
 		/* receive FIS base 256 byte */
@@ -899,10 +886,8 @@ struct Ahci::Port : private Port_base
 		fis_rcv_base(phys + 1024);
 
 		/* command table */
-		size_t cmd_size = align_addr(cmd_slots * Command_table::size(), 12);
-		cmd_ds          = plat.alloc_dma_buffer(cmd_size, CACHED);
-		cmd_table       = (addr_t)rm.attach(cmd_ds);
-		phys            = plat.dma_addr(cmd_ds);
+		cmd_table = addr_t(cmd_dma.local_addr<addr_t>());
+		phys      = cmd_dma.dma_addr();
 
 		/* set command table addresses in command list */
 		for (unsigned i = 0; i < cmd_slots; i++) {
@@ -911,9 +896,8 @@ struct Ahci::Port : private Port_base
 		}
 
 		/* dataspace for device info */
-		device_info_ds       = plat.alloc_dma_buffer(0x1000, CACHED);
-		device_info_dma_addr = plat.dma_addr(device_info_ds);
-		device_info          = rm.attach(device_info_ds);
+		device_info_dma_addr = device_info_dma.dma_addr();
+		device_info          = addr_t(device_info_dma.local_addr<addr_t>());
 	}
 
 	addr_t command_table_addr(unsigned slot)
@@ -951,19 +935,20 @@ struct Ahci::Port : private Port_base
 		return true;
 	}
 
-	Ram_dataspace_capability alloc_buffer(size_t size)
+	Dataspace_capability alloc_buffer(size_t size)
 	{
-		if (dma_base) return Ram_dataspace_capability();
+		if (dma_buffer.constructed()) return Dataspace_capability();
 
-		Ram_dataspace_capability dma = plat.alloc_dma_buffer(size, CACHED);
-		dma_base = plat.dma_addr(dma);
-		return dma;
+		dma_buffer.construct(plat, size, CACHED);
+		dma_base = dma_buffer->dma_addr();
+
+		return dma_buffer->cap();
 	}
 
-	void free_buffer(Ram_dataspace_capability ds)
+	void free_buffer()
 	{
-		dma_base = 0;
-		plat.free_dma_buffer(ds);
+		if (!dma_buffer.constructed()) return;
+		dma_buffer.destruct();
 	}
 
 	/**********************

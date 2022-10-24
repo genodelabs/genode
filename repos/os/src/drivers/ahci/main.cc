@@ -196,9 +196,9 @@ class Ahci::Driver : Noncopyable
 
 struct Ahci::Block_session_handler : Interface
 {
-	Env                     &env;
-	Port                    &port;
-	Ram_dataspace_capability ds;
+	Env                 &env;
+	Port                &port;
+	Dataspace_capability ds;
 
 	Signal_handler<Block_session_handler> request_handler
 	  { env.ep(), *this, &Block_session_handler::handle};
@@ -209,10 +209,10 @@ struct Ahci::Block_session_handler : Interface
 
 	~Block_session_handler()
 	{
-		port.free_buffer(ds);
+		port.free_buffer();
 	}
 
-	virtual void handle_requests()= 0;
+	virtual void handle_requests() = 0;
 
 	void handle()
 	{
