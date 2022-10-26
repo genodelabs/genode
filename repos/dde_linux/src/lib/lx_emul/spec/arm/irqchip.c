@@ -68,6 +68,12 @@ static int dde_domain_translate(struct irq_domain * d,
                                   unsigned long     * hwirq,
                                   unsigned int      * type)
 {
+	if (fwspec->param_count == 1) {
+		*hwirq = fwspec->param[0];
+		*type  = 0;
+		return 0;
+	}
+
 	if (is_of_node(fwspec->fwnode)) {
 		if (fwspec->param_count != 3 || fwspec->param[0] != 0)
 			return -EINVAL;
@@ -114,17 +120,9 @@ static const struct irq_domain_ops dde_irqchip_data_domain_ops = {
 };
 
 
-static const struct of_device_id dde_of_match[] = {
-	{ .compatible = "arm,gic-v3",        .data = (const void *) 4 },
-	{ .compatible = "arm,cortex-a9-gic", .data = (const void *) 4 },
-	{ .compatible = "arm,gic-400",       .data = (const void *) 4 },
-	{ /* END */ }
-};
-
 static struct irq_domain *dde_irq_domain;
 
-static int __init dde_irqchip_init(struct device_node *node,
-                                   struct device_node *parent)
+int lx_emul_irq_init(struct device_node *node, struct device_node *parent)
 {
 	dde_irq_domain = irq_domain_create_tree(&node->fwnode,
 	                                        &dde_irqchip_data_domain_ops, NULL);
@@ -160,9 +158,9 @@ void lx_emul_register_of_irqchip_initcall(char const *compat, void *fn)
 }
 
 
-IRQCHIP_DECLARE(dde_gic_v3,  "arm,gic-v3",        dde_irqchip_init);
-IRQCHIP_DECLARE(dde_gic_a9,  "arm,cortex-a9-gic", dde_irqchip_init);
-IRQCHIP_DECLARE(dde_gic_400, "arm,gic-400",       dde_irqchip_init);
+IRQCHIP_DECLARE(dde_gic_v3,  "arm,gic-v3",        lx_emul_irq_init);
+IRQCHIP_DECLARE(dde_gic_a9,  "arm,cortex-a9-gic", lx_emul_irq_init);
+IRQCHIP_DECLARE(dde_gic_400, "arm,gic-400",       lx_emul_irq_init);
 
 
 int lx_emul_irq_task_function(void * data)

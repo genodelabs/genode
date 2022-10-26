@@ -31,6 +31,12 @@ static void dde_irq_mask(struct irq_data *d)
 }
 
 
+int lx_emul_irq_init(struct device_node *node, struct device_node *parent)
+{
+	return 0;
+}
+
+
 struct irq_chip dde_irqchip_data_chip = {
 	.name           = "dde-irqs",
 	.irq_mask       = dde_irq_mask,
