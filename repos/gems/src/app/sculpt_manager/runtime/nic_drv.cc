@@ -35,6 +35,7 @@ void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 				xml.attribute("label", "nic"); }); });
 
 		gen_parent_rom_route(xml, "nic_drv");
+		gen_parent_rom_route(xml, "nic_drv.dtb");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);
