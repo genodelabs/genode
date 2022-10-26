@@ -140,6 +140,8 @@ void * kmem_cache_alloc_node(struct kmem_cache * s, gfp_t gfpflags, int node)
 
 #ifdef CONFIG_TRACING
 
+#ifdef CONFIG_NUMA
+
 void * kmem_cache_alloc_node_trace(struct kmem_cache * s,
                                    gfp_t gfpflags,
                                    int node,
@@ -148,6 +150,7 @@ void * kmem_cache_alloc_node_trace(struct kmem_cache * s,
 	return kmem_cache_alloc(s, gfpflags);
 }
 
+#endif /* CONFIG_NUMA */
 
 void * kmem_cache_alloc_trace(struct kmem_cache * s,
                               gfp_t               gfpflags,

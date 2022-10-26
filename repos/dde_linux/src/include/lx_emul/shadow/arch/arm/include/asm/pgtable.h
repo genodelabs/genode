@@ -41,6 +41,10 @@ int pte_write(pte_t ptr);
 #define __swp_entry(type, offset) ( lx_emul_trace_and_stop(__func__), (swp_entry_t) { 0 } )
 #define __swp_entry_to_pte(swp)	((pte_t) { (swp).val })
 
+#define pmd_page(pmd) NULL
+
+#define PAGE_KERNEL 0UL
+
 #endif /* !__ASSEMBLY__ */
 
 #endif /* __ASM_PGTABLE_H */

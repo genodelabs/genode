@@ -34,6 +34,19 @@
 
 #define virt_addr_valid(kaddr) (kaddr != NULL)
 
+#define arch_phys_to_idmap_offset 0ULL
+
+static inline unsigned long phys_to_idmap(phys_addr_t addr)
+{
+	return addr;
+}
+
+static inline phys_addr_t idmap_to_phys(unsigned long idmap)
+{
+	return (phys_addr_t)idmap;
+}
+
+
 #ifndef __virt_to_bus
 #define __virt_to_bus    __pa
 #define __bus_to_virt    __va
