@@ -91,10 +91,10 @@ class Vfs::Log_file_system : public Single_file_system
 					if (_line_pos > 0) _flush();
 				}
 
-				Read_result read(char *, file_size, file_size &out_count) override
+				Read_result read(char *, file_size, file_size &) override
 				{
-					out_count = 0;
-					return READ_OK;
+					/* block indefinitely - mimics stdout resp. stdin w/o input */
+					return READ_QUEUED;
 				}
 
 				Write_result write(char const *src, file_size count,
