@@ -2,7 +2,7 @@ include $(REP_DIR)/lib/mk/virtualbox6-common.inc
 
 LIBICONV_DIR := $(call select_from_ports,libiconv)
 
-ZLIB_DIR   = $(VIRTUALBOX_DIR)/src/libs/zlib-1.2.11
+ZLIB_DIR   = $(VIRTUALBOX_DIR)/src/libs/zlib-1.2.13
 LIBXML_DIR = $(VIRTUALBOX_DIR)/src/libs/libxml2-2.9.4
 
 INC_DIR += $(ZLIB_DIR)

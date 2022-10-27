@@ -295,7 +295,7 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
 }
 
 
-bool nemR3NativeCanExecuteGuest(PVM pVM, PVMCPU pVCpu)
+bool NEMR3CanExecuteGuest(PVM pVM, PVMCPU pVCpu)
 {
 	return true;
 }
@@ -364,7 +364,9 @@ static void update_pgm_large_page(PVM pVM, addr_t guest_addr, addr_t host_addr,
  *
  * PGMR3PhysRegisterRam() holds the PGM lock while calling.
  */
-int nemR3NativeNotifyPhysRamRegister(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb)
+int NEMR3NotifyPhysRamRegister(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb, void *pvR3,
+                               ::uint8_t *pu2State, ::uint32_t *puNemRange)
+
 {
 	/*
 	 * PGM notifies us about each RAM range configured, which means "Base RAM"
@@ -423,22 +425,39 @@ int nemR3NativeNotifyPhysMmioExMap(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb,
 }
 
 
-int nemR3NativeNotifyPhysMmioExUnmap(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb,
-                                     ::uint32_t fFlags)
+int NEMR3NotifyPhysMmioExMapEarly(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb, ::uint32_t fFlags,
+                                  void *pvRam, void *pvMmio2, ::uint8_t *pu2State, 
+                                  ::uint32_t *puNemRange)
+{
+	*pu2State = (fFlags & NEM_NOTIFY_PHYS_MMIO_EX_F_REPLACE) ? UINT8_MAX : NEM_WIN_PAGE_STATE_UNMAPPED;
+	return VINF_SUCCESS;
+}
+
+
+int NEMR3NotifyPhysMmioExMapLate(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb, ::uint32_t fFlags,
+                                 void *pvRam, void *pvMmio2, ::uint32_t *puNemRange)
 {
 	return VINF_SUCCESS;
 }
 
 
-int nemR3NativeNotifyPhysRomRegisterEarly(PVM pVM, RTGCPHYS GCPhys,
-                                          RTGCPHYS cb, ::uint32_t fFlags)
+int NEMR3NotifyPhysMmioExUnmap(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb, ::uint32_t fFlags,
+                               void *pvRam, void *pvMmio2, ::uint8_t *pu2State)
+{
+	if (pu2State) *pu2State = UINT8_MAX;
+	return VINF_SUCCESS;
+}
+
+
+int NEMR3NotifyPhysRomRegisterEarly(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb, void *pvPages,
+                                    ::uint32_t fFlags, ::uint8_t *pu2State)
 {
 	return VINF_SUCCESS;
 }
 
 
-int nemR3NativeNotifyPhysRomRegisterLate(PVM pVM, RTGCPHYS GCPhys,
-                                         RTGCPHYS cb, ::uint32_t fFlags)
+int NEMR3NotifyPhysRomRegisterLate(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb, void *pvPages,
+                                   ::uint32_t fFlags, ::uint8_t *pu2State)
 {
 	return VINF_SUCCESS;
 }
@@ -452,7 +471,7 @@ int nemR3NativeNotifyPhysRomRegisterLate(PVM pVM, RTGCPHYS GCPhys,
  * @param   pVCpu           The CPU the A20 state changed on.
  * @param   fEnabled        Whether it was enabled (true) or disabled.
  */
-void nemR3NativeNotifySetA20(PVMCPU pVCpu, bool fEnabled)
+void NEMR3NotifySetA20(PVMCPU pVCpu, bool fEnabled)
 {
 	PVM pVM = pVCpu->CTX_SUFF(pVM);
 
@@ -472,33 +491,21 @@ void nemR3NativeNotifySetA20(PVMCPU pVCpu, bool fEnabled)
 }
 
 
-void nemHCNativeNotifyHandlerPhysicalDeregister(PVMCC pVM, PGMPHYSHANDLERKIND enmKind,
-                                                RTGCPHYS GCPhys, RTGCPHYS cb,
-                                                int fRestoreAsRAM,
-                                                bool fRestoreAsRAM2)
+void NEMHCNotifyHandlerPhysicalDeregister(PVMCC pVM, PGMPHYSHANDLERKIND enmKind,
+                                          RTGCPHYS GCPhys, RTGCPHYS cb,
+                                          RTR3PTR pvMemR3, uint8_t *pu2State)
 {
 }
 
 
-void nemHCNativeNotifyHandlerPhysicalModify(PVMCC pVM, PGMPHYSHANDLERKIND enmKind,
+void NEMHCNativeNotifyHandlerPhysicalModify(PVMCC pVM, PGMPHYSHANDLERKIND enmKind,
                                             RTGCPHYS GCPhysOld, RTGCPHYS GCPhysNew,
                                             RTGCPHYS cb, bool fRestoreAsRAM) STOP
 
 
-int nemHCNativeNotifyPhysPageAllocated(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS HCPhys,
-                                       ::uint32_t fPageProt, PGMPAGETYPE enmType,
-                                       ::uint8_t *pu2State)
-{
-	nemHCNativeNotifyPhysPageProtChanged(pVM, GCPhys, HCPhys,
-	                                     fPageProt, enmType, pu2State);
-
-	return VINF_SUCCESS;
-}
-
-
-void nemHCNativeNotifyPhysPageProtChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS HCPhys,
-                                          ::uint32_t fPageProt, PGMPAGETYPE enmType,
-                                          ::uint8_t *pu2State)
+void NEMHCNotifyPhysPageProtChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS HCPhys,
+                                    RTR3PTR pvR3, ::uint32_t fPageProt,
+                                    PGMPAGETYPE enmType, ::uint8_t *pu2State)
 {
 	Sup::Nem::Protection const prot {
 		.readable   = (fPageProt & NEM_PAGE_PROT_READ) != 0,
@@ -517,10 +524,23 @@ void nemHCNativeNotifyPhysPageProtChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS H
 }
 
 
-void nemHCNativeNotifyPhysPageChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS HCPhysPrev,
-                                      RTHCPHYS HCPhysNew, ::uint32_t fPageProt,
-                                      PGMPAGETYPE enmType, ::uint8_t *pu2State)
+int nemHCNativeNotifyPhysPageAllocated(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS HCPhys,
+                                       ::uint32_t fPageProt, PGMPAGETYPE enmType,
+                                       ::uint8_t *pu2State)
 {
-	nemHCNativeNotifyPhysPageProtChanged(pVM, GCPhys, HCPhysNew, fPageProt, enmType, pu2State);
+	NEMHCNotifyPhysPageProtChanged(pVM, GCPhys, HCPhys, nullptr,
+	                               fPageProt, enmType, pu2State);
+
+	return VINF_SUCCESS;
+}
+
+
+void NEMHCNotifyPhysPageChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS HCPhysPrev,
+                                RTHCPHYS HCPhysNew, RTR3PTR pvNewR3,
+                                ::uint32_t fPageProt, PGMPAGETYPE enmType,
+                                ::uint8_t *pu2State)
+
+{
+	NEMHCNotifyPhysPageProtChanged(pVM, GCPhys, HCPhysNew, nullptr, fPageProt, enmType, pu2State);
 }
 

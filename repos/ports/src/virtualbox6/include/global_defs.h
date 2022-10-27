@@ -29,6 +29,9 @@
 
 extern "C" char const * vboxsvc_log_default_string();
 
+/* missing glibc function */
+extern "C" void *mempcpy(void *dest, const void *src, unsigned long n);
+
 #endif /* __cplusplus */
 
 #endif /* ___global_defs_h___ */

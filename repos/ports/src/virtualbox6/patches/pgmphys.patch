@@ -1,0 +1,13 @@
+diff --git a/src/virtualbox6/src/VBox/VMM/VMMR3/PGMPhys.cpp b/src/virtualbox6/src/VBox/VMM/VMMR3/PGMPhys.cpp
+index 778e309..c81d2c3 100644
+--- a/src/virtualbox6/src/VBox/VMM/VMMR3/PGMPhys.cpp
++++ b/src/virtualbox6/src/VBox/VMM/VMMR3/PGMPhys.cpp
+@@ -3163,7 +3163,7 @@ VMMR3_INT_DECL(int) PGMR3PhysMmio2Register(PVM pVM, PPDMDEVINS pDevIns, uint32_t
+         if (RT_SUCCESS(rc))
+         {
+             void   *pvPages   = NULL;
+-#if defined(VBOX_WITH_RAM_IN_KERNEL) && !defined(VBOX_WITH_LINEAR_HOST_PHYS_MEM)
++#if !defined(VBOX_WITH_LINEAR_HOST_PHYS_MEM)
+             RTR0PTR pvPagesR0 = NIL_RTR0PTR;
+ #endif
+ #ifdef VBOX_WITH_PGM_NEM_MODE

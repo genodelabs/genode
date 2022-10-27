@@ -1,17 +1,17 @@
 LICENSE         := GPLv2
-VERSION         := 6.1.26
+VERSION         := 6.1.44
 DOWNLOADS       := virtualbox.archive virtualbox_sdk.archive
 
-VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION).tar.bz2
-VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-145957.zip
+VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION)a.tar.bz2
+VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-156814.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/virtualbox6
-SHA(virtualbox) := 0212602eea878d6c9fd7f4a3e0182da3e4505f31d25f5539fb8f7b1fbe366195
+SHA(virtualbox) := 27dbf9c2a2183772d91e41d35d41cd7fa9e918c3fe0a2257c336b19a874f22eb
 
 URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
 DIR(virtualbox_sdk) := src/virtualbox6_sdk
-SHA(virtualbox_sdk) := c0b5fbd78d6e1ac7a4b33365eb173eb6508390e8c673241ccbbd002eb73a785c
+SHA(virtualbox_sdk) := 88a575326789c9c3e1880ed5b1cd32e9604e45a60b3b08a05491bdeff5be3e8d
 
 PATCHES_DIR := src/virtualbox6/patches
 PATCHES     := $(addprefix $(PATCHES_DIR)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR)/series))
@@ -140,7 +140,7 @@ VBOX_CONTENT += $(addprefix include/VBox/com/, $(VBOX_INC_COM))
 VBOX_CONTENT += include/VBox/HostServices/
 VBOX_CONTENT += include/VBox/GuestHost/
 
-VBOX_CONTENT += src/libs/zlib-1.2.11 src/libs/liblzf-3.4 src/libs/libxml2-2.9.4
+VBOX_CONTENT += src/libs/zlib-1.2.13 src/libs/liblzf-3.4 src/libs/libxml2-2.9.4
 VBOX_CONTENT += src/libs/xpcom18a4
 VBOX_CONTENT += include/VBox/vmm include/iprt Version.kmk
 VBOX_CONTENT += COPYING
@@ -148,7 +148,7 @@ VBOX_CONTENT += COPYING
 
 TAR_OPT(virtualbox) := \
 	--strip-components 1 \
-	$(addprefix $(VIRTUALBOX_TBZ2:.tar.bz2=)/,$(VBOX_CONTENT))
+	$(addprefix $(VIRTUALBOX_TBZ2:a.tar.bz2=)/,$(VBOX_CONTENT))
 
 UNZIP_OPT(virtualbox_sdk) := $(VIRTUALBOX_SDK_ZIP) "sdk/bindings/xpcom/include*" \#
 

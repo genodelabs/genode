@@ -55,6 +55,8 @@ SRC_CC += Main/src-client/USBDeviceImpl.cpp
 SRC_CC += Main/src-client/UsbWebcamInterface.cpp
 SRC_CC += Main/src-client/VMMDevInterface.cpp
 
+SRC_CC += GuestHost/DragAndDrop/DnDUtils.cpp
+
 #
 # Suppress warnings caused by using anonymous enum values in 'a ? b : c'
 # expressions.
