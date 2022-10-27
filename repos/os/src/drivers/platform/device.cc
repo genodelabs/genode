@@ -92,25 +92,27 @@ void Driver::Device::release(Session_component & sc)
 	if (!(_owner == sc))
 		return;
 
-	pci_disable(_env, *this);
+	if (!_leave_operational) {
+		pci_disable(_env, *this);
 
-	_reset_domain_list.for_each([&] (Reset_domain & r)
-	{
-		_model.resets().apply(r.name, [&] (Driver::Reset &reset) {
-			reset.assert(); });
-	});
+		_reset_domain_list.for_each([&] (Reset_domain & r)
+		{
+			_model.resets().apply(r.name, [&] (Driver::Reset &reset) {
+				reset.assert(); });
+		});
 
-	_power_domain_list.for_each([&] (Power_domain & p)
-	{
-		_model.powers().apply(p.name, [&] (Driver::Power &power) {
-			power.off(); });
-	});
+		_power_domain_list.for_each([&] (Power_domain & p)
+		{
+			_model.powers().apply(p.name, [&] (Driver::Power &power) {
+				power.off(); });
+		});
 
-	_clock_list.for_each([&] (Clock & c)
-	{
-		_model.clocks().apply(c.name, [&] (Driver::Clock &clock) {
-			clock.disable(); });
-	});
+		_clock_list.for_each([&] (Clock & c)
+		{
+			_model.clocks().apply(c.name, [&] (Driver::Clock &clock) {
+				clock.disable(); });
+		});
+	}
 
 	_owner = Owner();
 	sc.update_devices_rom();
@@ -181,8 +183,11 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 }
 
 
-Driver::Device::Device(Env & env, Device_model & model, Name name, Type type)
-: _env(env), _model(model), _name(name), _type(type) { }
+Driver::Device::Device(Env & env, Device_model & model, Name name, Type type,
+                       bool leave_operational)
+:
+	_env(env), _model(model), _name(name), _type(type),
+	_leave_operational(leave_operational) { }
 
 
 Driver::Device::~Device()

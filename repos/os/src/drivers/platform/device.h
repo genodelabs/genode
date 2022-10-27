@@ -210,7 +210,8 @@ class Driver::Device : private List_model<Device>::Element
 			Reserved_memory(Range range) : range(range) {}
 		};
 
-		Device(Env & env, Device_model & model, Name name, Type type);
+		Device(Env & env, Device_model & model, Name name, Type type,
+		       bool leave_operational);
 		virtual ~Device();
 
 		Name  name()  const;
@@ -279,6 +280,7 @@ class Driver::Device : private List_model<Device>::Element
 		Device_model              & _model;
 		Name                  const _name;
 		Type                  const _type;
+		bool                  const _leave_operational;
 		Owner                       _owner {};
 		List_model<Io_mem>          _io_mem_list {};
 		List_model<Irq>             _irq_list {};
