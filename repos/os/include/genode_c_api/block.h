@@ -21,8 +21,11 @@ struct genode_block_session; /* definition is private to the implementation */
 
 
 #ifdef __cplusplus
+
+void genode_block_apply_config(Genode::Xml_node const & config);
+
 extern "C" {
-#endif
+#endif /* __cplusplus */
 
 
 /********************
@@ -39,6 +42,7 @@ void genode_block_init(struct genode_env            *env,
                        struct genode_signal_handler *handler,
                        genode_shared_dataspace_alloc_attach_t,
                        genode_shared_dataspace_free_t);
+
 
 
 /**************************************

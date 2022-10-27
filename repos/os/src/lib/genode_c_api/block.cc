@@ -11,11 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/attached_dataspace.h>
-#include <base/attached_rom_dataspace.h>
 #include <base/env.h>
 #include <block/request_stream.h>
 #include <root/component.h>
+#include <os/buffered_xml.h>
 #include <os/reporter.h>
 #include <os/session_policy.h>
 
@@ -106,12 +105,13 @@ class Root : public Root_component<genode_block_session>
 			: name(name), info(info) {}
 		};
 
-		Env                       & _env;
-		Signal_context_capability   _sigh_cap;
-		Attached_rom_dataspace      _config   { _env, "config"        };
-		Reporter                    _reporter { _env, "block_devices" };
-		Constructible<Session_info> _sessions[MAX_BLOCK_DEVICES];
-		bool                        _announced { false };
+		Env                         & _env;
+		Signal_context_capability     _sigh_cap;
+		Constructible<Buffered_xml>   _config   { };
+		Reporter                      _reporter { _env, "block_devices" };
+		Constructible<Session_info>   _sessions[MAX_BLOCK_DEVICES];
+		bool                          _announced     { false };
+		bool                          _report_needed { false };
 
 		Root(const Root&);
 		Root & operator=(const Root&);
@@ -141,6 +141,7 @@ class Root : public Root_component<genode_block_session>
 		void discontinue_device(const char * name);
 		genode_block_session * session(const char * name);
 		void notify_peers();
+		void apply_config(Xml_node const &);
 };
 
 
@@ -235,8 +236,11 @@ genode_block_session::genode_block_session(Env                     & env,
 genode_block_session * ::Root::_create_session(const char * args,
                                                     Affinity const &)
 {
+	if (!_config.constructed())
+		throw Service_denied();
+
 	Session_label      const label = label_from_args(args);
-	Session_policy     const policy(label, _config.xml());
+	Session_policy     const policy(label, _config->xml());
 	Session_info::Name const device =
 		policy.attribute_value("device", Session_info::Name());
 
@@ -283,7 +287,7 @@ void ::Root::_destroy_session(genode_block_session * session)
 
 void ::Root::_report()
 {
-	if (!_config.xml().attribute_value("report", false))
+	if (!_report_needed)
 		return;
 
 	_reporter.enabled(true);
@@ -348,6 +352,13 @@ void ::Root::notify_peers()
 		if (si.block_session)
 			si.block_session->notify_peers();
 	});
+}
+
+
+void ::Root::apply_config(Xml_node const & config)
+{
+	_config.construct(*md_alloc(), config);
+	_report_needed = config.attribute_value("report", false);
 }
 
 
@@ -422,4 +433,10 @@ extern "C" void genode_block_ack_request(struct genode_block_session * session,
 extern "C" void genode_block_notify_peers()
 {
 	if (_block_root) _block_root->notify_peers();
+}
+
+
+void genode_block_apply_config(Xml_node const & config)
+{
+	if (_block_root) _block_root->apply_config(config);
 }
