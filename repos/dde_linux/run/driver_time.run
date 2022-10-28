@@ -2,7 +2,7 @@
 # Build
 #
 
-if {[expr ![have_spec x86_64]]} {
+if {[expr ![have_spec arm_64] && ![have_spec x86_64]]} {
 	puts "Run script is not supported on this platform."
 	exit 0
 }
@@ -11,7 +11,6 @@ set use_top 0
 
 set build_components {
 	core init timer
-	drivers/platform
 	test/driver_time
 }
 
@@ -44,14 +43,6 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Platform"/></provides>
-		<config>
-			<policy label="test-driver_time -> "> <device name="ps2"/> </policy>
-		</config>
-	</start>
-
 	<start name="test-driver_time" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 	</start>}
@@ -71,11 +62,9 @@ install_config $config
 # Boot modules
 #
 
-file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
-
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer platform_drv
+	core ld.lib.so init timer
 	test-driver_time
 }
 

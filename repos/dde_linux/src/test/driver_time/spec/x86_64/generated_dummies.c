@@ -1,18 +1,10 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-09-27
+ * \date   2023-02-24
  */
 
 #include <lx_emul.h>
-
-
-#include <linux/proc_fs.h>
-
-void * PDE_DATA(const struct inode * inode)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/clk-provider.h>
@@ -31,14 +23,6 @@ void __put_task_struct(struct task_struct * tsk)
 }
 
 
-#include <linux/srcu.h>
-
-void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/uaccess.h>
 
 unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
@@ -47,16 +31,22 @@ unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 }
 
 
-extern void ack_bad_irq(unsigned int irq);
-void ack_bad_irq(unsigned int irq)
+extern const char * _parse_integer_fixup_radix(const char * s,unsigned int * base);
+const char * _parse_integer_fixup_radix(const char * s,unsigned int * base)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/kobject.h>
+extern unsigned int _parse_integer_limit(const char * s,unsigned int base,unsigned long long * p,size_t max_chars);
+unsigned int _parse_integer_limit(const char * s,unsigned int base,unsigned long long * p,size_t max_chars)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
-int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
+
+extern void ack_bad_irq(unsigned int irq);
+void ack_bad_irq(unsigned int irq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -70,9 +60,14 @@ asmlinkage __visible void dump_stack(void)
 }
 
 
-#include <linux/capability.h>
+#include <linux/interrupt.h>
 
-bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap)
+bool force_irqthreads;
+
+
+#include <linux/property.h>
+
+unsigned int fwnode_count_parents(const struct fwnode_handle * fwnode)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -80,31 +75,39 @@ bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap
 
 #include <linux/property.h>
 
-void fwnode_remove_software_node(struct fwnode_handle * fwnode)
+const char * fwnode_get_name(const struct fwnode_handle * fwnode)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/kernel.h>
+#include <linux/property.h>
 
-int get_option(char ** str,int * pint)
+const char * fwnode_get_name_prefix(const struct fwnode_handle * fwnode)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/pseudo_fs.h>
+#include <linux/property.h>
 
-struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magic)
+struct fwnode_handle * fwnode_get_nth_parent(struct fwnode_handle * fwnode,unsigned int depth)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/init.h>
+#include <linux/property.h>
 
-bool initcall_debug;
+void fwnode_handle_put(struct fwnode_handle * fwnode)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/uuid.h>
+
+const u8 guid_index[16] = {};
 
 
 #include <linux/sched.h>
@@ -123,6 +126,30 @@ int io_schedule_prepare(void)
 }
 
 
+#include <linux/sched.h>
+
+long __sched io_schedule_timeout(long timeout)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/interrupt.h>
+
+int irq_can_set_affinity(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/interrupt.h>
+
+int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/irq_work.h>
 
 void irq_work_tick(void)
@@ -131,43 +158,17 @@ void irq_work_tick(void)
 }
 
 
-#include <linux/property.h>
+#include <linux/kstrtox.h>
 
-bool is_software_node(const struct fwnode_handle * fwnode)
+int kstrtoll(const char * s,unsigned int base,long long * res)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/kobject.h>
+#include <linux/prandom.h>
 
-struct kobject *kernel_kobj;
-
-
-#include <linux/fs.h>
-
-void kill_anon_super(struct super_block * sb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kobject.h>
-
-int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irq.h>
-
-struct irq_chip no_irq_chip;
-
-
-#include <linux/irq.h>
-
-void note_interrupt(struct irq_desc * desc,irqreturn_t action_ret)
+u32 prandom_u32(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -181,9 +182,9 @@ int printk_deferred(const char * fmt,...)
 }
 
 
-#include <linux/seq_file.h>
+#include <linux/siphash.h>
 
-void seq_printf(struct seq_file * m,const char * f,...)
+u64 siphash_1u64(const u64 first,const siphash_key_t * key)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -210,10 +211,7 @@ int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned
 }
 
 
-#include <linux/sched/wake_q.h>
+#include <linux/uuid.h>
 
-void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
-{
-	lx_emul_trace_and_stop(__func__);
-}
+const u8 uuid_index[16] = {};
 

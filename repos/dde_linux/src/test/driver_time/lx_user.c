@@ -16,7 +16,14 @@
 
 #include <linux/delay.h>
 
-#include "i915_drv.h" /* test wait_for() macro */
+#ifdef __x86_64__
+/* test wait_for() macro */
+#define CONFIG_DRM_I915_TIMESLICE_DURATION 1
+#define CONFIG_DRM_I915_PREEMPT_TIMEOUT    640
+#define CONFIG_DRM_I915_HEARTBEAT_INTERVAL 2500
+
+#include "i915_drv.h"
+#endif
 
 #include <lx_emul/time.h>
 
@@ -46,13 +53,13 @@ struct measure {
 \
 	m_lxemul.start  = lx_emul_time_counter(); \
 	m_jiffies.start = jiffies_64; \
-	m_rdtsc.start   = rdtsc(); \
+	m_rdtsc.start   = get_cycles(); \
 \
 	{ \
 		fn_test \
 	} \
 \
-	m_rdtsc.end   = rdtsc(); \
+	m_rdtsc.end   = get_cycles(); \
 	m_jiffies.end = jiffies_64; \
 	m_lxemul.end  = lx_emul_time_counter(); \
 \
@@ -120,7 +127,6 @@ static int timing_tests(void * data)
 {
 	DEFINE_WAIT(wait);
 	wait_queue_head_t wq;
-	int ret;
 	uint64_t const rdtsc_freq_mhz = tsc_freq_khz / 1000;
 
 	init_waitqueue_head(&wq);
@@ -145,6 +151,10 @@ static int timing_tests(void * data)
 		test_timing_no_ret  ("msleep(5000)            ->",
 			msleep(5000);
 		);
+
+#ifdef __x86_64__
+{
+		int ret = 0;
 
 		test_timing_with_ret("wait_for(cond,10ms) A   ->",
 			add_wait_queue(&wq, &wait);
@@ -251,6 +261,10 @@ static int timing_tests(void * data)
 			ret = wait_for((0), 50);
 			remove_wait_queue(&wq, &wait);
 		);
+}
+#else
+		printk("skip x86_64 wait_for() tests ...\n");
+#endif
 
 		/* audio driver test case -> sleeping too short or long is bad */
 		test_timing_no_ret  ("usleep_range(20,21)     ->",
