@@ -14,15 +14,19 @@
 #include <base/log.h>
 #include <cpu/cache.h>
 
+/* seL4 includes */
+#include <sel4/arch/syscalls.h>
+
+
 void Genode::cache_coherent(Genode::addr_t, Genode::size_t)
 {
-	error(__func__, " not implemented for this kernel!");
+	seL4_BenchmarkFlushCaches();
 }
 
 
 void Genode::cache_clean_invalidate_data(Genode::addr_t, Genode::size_t)
 {
-	error(__func__, " not implemented for this kernel!");
+	seL4_BenchmarkFlushCaches();
 }
 
 
