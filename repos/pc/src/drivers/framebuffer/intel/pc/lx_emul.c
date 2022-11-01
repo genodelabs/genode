@@ -17,6 +17,7 @@
 
 #include <linux/dma-fence.h>
 #include <linux/fs.h>
+#include <linux/intel-iommu.h>
 #include <linux/mm.h>
 #include <linux/slab.h>
 #include <linux/proc_fs.h>
@@ -31,7 +32,8 @@ struct dma_fence_ops const i915_fence_ops;
 pteval_t __default_kernel_pte_mask __read_mostly = ~0;
 
 
-int acpi_disabled = 0;
+int acpi_disabled          = 0;
+int intel_iommu_gfx_mapped = 0;
 
 
 void intel_wopcm_init_early(struct intel_wopcm * wopcm)
@@ -217,6 +219,15 @@ void intel_gt_init_early(struct intel_gt * gt, struct drm_i915_private * i915)
 
 	/* disable panel self refresh (required for FUJITSU S937/S938) */
 	i915->params.enable_psr = 0;
+
+	/*
+	 * Tells driver that IOMMU, e.g. VT-d, is on, so that scratch page
+	 * workaround is applied by Intel display driver:
+	 *
+	 * drivers/gpu/drm/i915/gt/intel_ggtt.c
+	 *  -> gen8_gmch_probe() -> intel_scanout_needs_vtd_wa(i915)
+	 */
+	intel_iommu_gfx_mapped = 1;
 }
 
 

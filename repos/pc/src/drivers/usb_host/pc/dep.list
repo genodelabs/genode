@@ -29,6 +29,7 @@ drivers/usb/host/xhci-ext-caps.h
 drivers/usb/host/xhci-pci.h
 drivers/usb/host/xhci-trace.h
 drivers/usb/host/xhci.h
+include/asm-generic/dma-mapping.h
 include/asm-generic/export.h
 include/linux/bcd.h
 include/linux/extcon.h

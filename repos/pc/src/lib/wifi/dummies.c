@@ -339,3 +339,18 @@ void synchronize_rcu_expedited(void)
 {
 	lx_emul_trace(__func__);
 }
+
+
+int pci_enable_msi(struct pci_dev *dev)
+{
+	lx_emul_trace(__func__);
+	return -ENOSYS;
+}
+
+
+int pci_enable_msix_range(struct pci_dev *dev, struct msix_entry *entries,
+                          int minvec, int maxvec)
+{
+	lx_emul_trace(__func__);
+	return -ENOSYS;
+}

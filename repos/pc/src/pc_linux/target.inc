@@ -15,7 +15,10 @@ LX_ENABLE += BINFMT_ELF BINFMT_SCRIPT BLK_DEV_INITRD
 LX_ENABLE += SERIAL_8250 SERIAL_8250_CONSOLE
 
 # PCI support
-LX_ENABLE += PCI
+LX_ENABLE += PCI PCI_MSI
+
+# IOMMU support (used by Intel fb to apply scanout scratch page workaround)
+LX_ENABLE += IOMMU_SUPPORT INTEL_IOMMU
 
 # ACPI support
 LX_ENABLE += ACPI
