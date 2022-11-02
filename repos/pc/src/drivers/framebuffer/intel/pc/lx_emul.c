@@ -44,13 +44,9 @@ void intel_wopcm_init_early(struct intel_wopcm * wopcm)
 
 void si_meminfo(struct sysinfo * val)
 {
-	/* 4M, ttm actually use only half - more or configurable XXX ? */
-	unsigned const ram_pages = 1024;
+	unsigned long long const ram_pages = emul_avail_ram() / PAGE_SIZE;
 
 	/* used by drivers/gpu/drm/ttm/ttm_device.c */
-
-	lx_emul_trace(__func__);
-
 	val->totalram  = ram_pages;
 	val->sharedram = 0;
 	val->freeram   = ram_pages;
@@ -58,6 +54,8 @@ void si_meminfo(struct sysinfo * val)
 	val->totalhigh = 0;
 	val->freehigh  = 0;
 	val->mem_unit  = PAGE_SIZE;
+
+	lx_emul_trace(__func__);
 }
 
 

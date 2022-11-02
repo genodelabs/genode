@@ -333,9 +333,6 @@ void i915_gem_driver_register(struct drm_i915_private * i915)
 
 void i915_gem_init_early(struct drm_i915_private *dev_priv)
 {
-	/* 4 * 4M XXX */
-	unsigned const ram_pages = 4 * 1024;
-
 	i915_gem_init__mm(dev_priv);
 /*
 	i915_gem_init__contexts(dev_priv);
@@ -345,7 +342,15 @@ void i915_gem_init_early(struct drm_i915_private *dev_priv)
 
 	spin_lock_init(&dev_priv->fb_tracking.lock);
 
-	totalram_pages_add(ram_pages);
+	/*
+	 * Used by resource_size() check in shmem_get_pages in
+	 * drivers/gpu/drm/i915/gem/i915_gem_shmem.c and initialized in
+	 * i915_gem_shmem_setup() using totalram_pages()
+	 *
+	 * The memory is managed by Genode, so we have just to provide a
+	 * value which is "big" enough truncated by the max available memory.
+	 */
+	totalram_pages_add(emul_avail_ram() / 4096);
 }
 
 

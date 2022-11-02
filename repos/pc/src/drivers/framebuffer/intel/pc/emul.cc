@@ -48,3 +48,9 @@ unsigned short emul_intel_gmch_control_reg()
 
 	return ret;
 }
+
+
+unsigned long long emul_avail_ram()
+{
+	return Lx_kit::env().env.pd().avail_ram().value;
+}

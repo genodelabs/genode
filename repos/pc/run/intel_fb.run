@@ -216,7 +216,7 @@ append config {
 
 append_if $use_gpu config {
 			<start name="intel_gpu_drv" caps="2000">
-				<resource name="RAM" quantum="40M"/>
+				<resource name="RAM" quantum="90M"/>
 				<provides>
 					<service name="Gpu"/>
 					<service name="Platform"/>
@@ -241,7 +241,7 @@ append_if $use_gpu config {
 append config {
 			<start name="intel_fb_drv" caps="1000">
 				<binary name="pc_intel_fb_drv"/>
-				<resource name="RAM" quantum="60M"/>
+				<resource name="RAM" quantum="90M"/>
 				<route>}
 
 append_if $use_gpu config {
