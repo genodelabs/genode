@@ -19,7 +19,7 @@ void Sculpt::Network::_generate_nic_router_uplink(Xml_generator &xml,
                                                   char    const *label)
 {
 	xml.node("policy", [&] () {
-		xml.attribute("label", label);
+		xml.attribute("label_prefix", label);
 		xml.attribute("domain", "uplink");
 	});
 	gen_named_node(xml, "domain", "uplink", [&] () {
