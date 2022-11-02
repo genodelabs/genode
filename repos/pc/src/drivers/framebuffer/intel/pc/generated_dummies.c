@@ -521,14 +521,6 @@ bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap
 }
 
 
-#include <linux/file.h>
-
-void fput(struct file * file)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/fb.h>
 
 void framebuffer_release(struct fb_info * info)

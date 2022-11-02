@@ -108,6 +108,9 @@ struct file *shmem_file_setup(char const *name, loff_t size,
 	struct shmem_file_buffer *private_data;
 	loff_t const nrpages = (size / PAGE_SIZE) + ((size % (PAGE_SIZE)) ? 1 : 0);
 
+	if (!size)
+		return (struct file*)ERR_PTR(-EINVAL);
+
 	f = kzalloc(sizeof (struct file), 0);
 	if (!f) {
 		return (struct file*)ERR_PTR(-ENOMEM);
@@ -162,6 +165,35 @@ err_mapping:
 err_inode:
 	kfree(f);
 	return (struct file*)ERR_PTR(-ENOMEM);
+}
+
+
+static void _free_file(struct file *file)
+{
+	struct inode *inode;
+	struct address_space *mapping;
+	struct shmem_file_buffer *private_data;
+
+	mapping      = file->f_mapping;
+	inode        = file->f_inode;
+	private_data = mapping->private_data;
+
+	lx_emul_forget_pages(private_data->addr, mapping->nrpages << 12);
+	emul_free_shmem_file_buffer(private_data->addr);
+
+	kfree(private_data);
+	kfree(mapping);
+	kfree(inode);
+	kfree(file->f_path.dentry);
+	kfree(file);
+}
+
+
+void fput(struct file *file)
+{
+	if (atomic_long_sub_and_test(1, &file->f_count)) {
+		_free_file(file);
+	}
 }
 
 

@@ -17,6 +17,8 @@
 struct genode_mode {
 	unsigned width;
 	unsigned height;
+	unsigned max_width;
+	unsigned max_height;
 	unsigned hz;
 	unsigned brightness;
 	unsigned enabled;

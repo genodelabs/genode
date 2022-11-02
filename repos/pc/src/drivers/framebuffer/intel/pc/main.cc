@@ -192,6 +192,8 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 
 	unsigned force_width  = config.xml().attribute_value("force_width",  0u);
 	unsigned force_height = config.xml().attribute_value("force_height", 0u);
+	unsigned max_width    = config.xml().attribute_value("max_width",    0u);
+	unsigned max_height   = config.xml().attribute_value("max_height",   0u);
 
 	/* iterate independently of force* ever to get brightness and hz */
 	config.xml().for_each_sub_node("connector", [&] (Xml_node &node) {
@@ -219,6 +221,11 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 		mode.width  = force_width;
 		mode.height = force_height;
 		mode.id     = 0;
+	}
+
+	if (max_width && max_height) {
+		mode.max_width  = max_width;
+		mode.max_height = max_height;
 	}
 }
 

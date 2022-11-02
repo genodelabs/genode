@@ -39,6 +39,11 @@ about the change in resolution.
 The brightness value is in percent and takes effect only if supported by
 the hardware.
 
+The maximal physical resolution can be enforced by:
+
+! <config max_width="2560" max_height="1440">
+! </config>
+
 The virtual resolution can be enforced by:
 
 ! <config force_width="1024" force_height="768">

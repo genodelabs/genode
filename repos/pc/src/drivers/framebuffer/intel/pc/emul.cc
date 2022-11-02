@@ -20,6 +20,9 @@
 
 void *emul_alloc_shmem_file_buffer(unsigned long size)
 {
+	if (!size)
+		return nullptr;
+
 	auto &buffer = Lx_kit::env().memory.alloc_buffer(size);
 	return reinterpret_cast<void *>(buffer.virt_addr());
 }

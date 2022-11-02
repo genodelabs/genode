@@ -16,6 +16,12 @@ if {[get_cmd_switch --autopilot] && [have_board linux]} {
 
 set use_gpu 1
 set use_top 0
+set use_fb_controller 0
+if {$use_fb_controller} {
+	set apply_on_hotplug "no"
+} else {
+	set apply_on_hotplug "yes"
+}
 
 set build_components {
 	core init timer
@@ -193,7 +199,7 @@ append config {
 						<ram/>
 						<import>
 							<inline name="fb_drv.config">
-<config ld_verbose="yes">
+<config ld_verbose="yes" apply_on_hotplug="} $apply_on_hotplug {">
 	<report connectors="yes"/>
 </config>
 							</inline>
@@ -253,11 +259,12 @@ append config {
 					<service name="Report"> <child name="report_rom"/> </service>
 					<any-service> <parent/> <any-child /> </any-service>
 				</route>
-			</start>
+			</start>}
 
+append_if $use_fb_controller {
 			<start name="intel_fb_controller" priority="-1">
 				<resource name="RAM" quantum="1M"/>
-				<config artifical_update_ms="0"> <!-- off -->
+				<config>
 					<vfs> <fs/> </vfs>
 				</config>
 				<route>
@@ -265,8 +272,9 @@ append config {
 					<service name="ROM" label="connectors"> <child name="report_rom"/> </service>
 					<any-service> <parent/> <any-child/> </any-service>
 				</route>
-			</start>
+			</start>}
 
+append config {
 			<start name="test-framebuffer" priority="-1">
 				<resource name="RAM" quantum="10M"/>
 				<provides> <service name="Capture"/> </provides>

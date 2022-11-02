@@ -36,7 +36,7 @@ static struct drm_fb_helper * i915_fb(void) { return &i915->fbdev->helper; }
 /*
  * Heuristic to calculate max resolution across all connectors
  */
-static void preferred_mode(struct drm_display_mode *prefer)
+static void preferred_mode(struct drm_display_mode *prefer, uint64_t smaller_as)
 {
 	struct drm_connector          *connector  = NULL;
 	struct drm_display_mode       *mode       = NULL;
@@ -68,6 +68,15 @@ static void preferred_mode(struct drm_display_mode *prefer)
 			}
 		}
 
+		/* maximal resolution enforcement */
+		if (conf_mode.max_width && conf_mode.max_height) {
+			if (conf_mode.max_width * conf_mode.height < smaller_as)
+				smaller_as = conf_mode.max_width * conf_mode.max_height + 1;
+
+			if (conf_mode.max_width * conf_mode.height < prefer->hdisplay * prefer->vdisplay)
+				continue;
+		}
+
 		if (!conf_mode.width || !conf_mode.height)
 			continue;
 
@@ -78,12 +87,21 @@ static void preferred_mode(struct drm_display_mode *prefer)
 	}
 	drm_connector_list_iter_end(&conn_iter);
 
-	/* if nothing was configured by Genode's config, apply heuristic */
+	/* too large check */
+	if (smaller_as <= (uint64_t)prefer->hdisplay * prefer->vdisplay) {
+		prefer->hdisplay = 0;
+		prefer->vdisplay = 0;
+	}
+
+	/* if too large or nothing configured by Genode's config */
 	if (!prefer->hdisplay || !prefer->vdisplay) {
 		drm_connector_list_iter_begin(i915_fb()->dev, &conn_iter);
 		drm_client_for_each_connector_iter(connector, &conn_iter) {
 			list_for_each_entry(mode, &connector->modes, head) {
 				if (!mode)
+					continue;
+
+				if (smaller_as <= (uint64_t)mode->hdisplay * mode->vdisplay)
 					continue;
 
 				if (mode->hdisplay * mode->vdisplay > prefer->hdisplay * prefer->vdisplay) {
@@ -134,6 +152,9 @@ static unsigned get_brightness(struct drm_connector * const connector,
 
 static bool reconfigure(void * data)
 {
+	static uint64_t width_smaller_as  = 100000;
+	static uint64_t height_smaller_as = 100000;
+
 	struct drm_display_mode *mode           = NULL;
 	struct drm_display_mode  mode_preferred = {};
 	struct drm_mode_set     *mode_set       = NULL;
@@ -147,7 +168,7 @@ static bool reconfigure(void * data)
 	BUG_ON(!i915_fb()->funcs);
 	BUG_ON(!i915_fb()->funcs->fb_probe);
 
-	preferred_mode(&mode_preferred);
+	preferred_mode(&mode_preferred, width_smaller_as * height_smaller_as);
 
 	if (mode_preferred.hdisplay && mode_preferred.vdisplay) {
 		unsigned err = 0;
@@ -161,10 +182,44 @@ static bool reconfigure(void * data)
 		sizes.surface_height = sizes.fb_height;
 
 		err = (*i915_fb()->funcs->fb_probe)(i915_fb(), &sizes);
-		/* i915_fb()->fb contains adjusted drm_frambuffer object */
+		/* i915_fb()->fb contains adjusted drm_framebuffer object */
 
-		if (err || !i915_fb()->fbdev)
-			printk("setting up framebuffer failed - error=%d\n", err);
+		if (err || !i915_fb()->fbdev) {
+			printk("setting up framebuffer of %ux%u failed - error=%d\n",
+			       mode_preferred.hdisplay, mode_preferred.vdisplay, err);
+
+			if (err == -ENOMEM) {
+				/*
+				 * roll back code for intelfb_create() in
+				 * drivers/gpu/drm/i915/display/intel_fbdev.c:
+				 *
+				 * vma = intel_pin_and_fence_fb_obj(&ifbdev->fb->base, false,
+				 *                                  &view, false, &flags);
+				 * if (IS_ERR(vma)) {
+				 *
+				 * If the partial allocation is not reverted, the next
+				 * i915_fb()->funcs->fb_probe (which calls intelfb_create)
+				 * will try the old resolution, which failed and fails again,
+				 * instead of using the new smaller resolution.
+				 */
+				struct intel_fbdev *ifbdev =
+					container_of(i915_fb(), struct intel_fbdev, helper);
+
+				if (ifbdev && ifbdev->fb) {
+					drm_framebuffer_put(&ifbdev->fb->base);
+					ifbdev->fb = NULL;
+				}
+
+				width_smaller_as  = mode_preferred.hdisplay;
+				height_smaller_as = mode_preferred.vdisplay;
+
+				retry = true;
+				return retry;
+			}
+		} else {
+			width_smaller_as  = 100000;
+			height_smaller_as = 100000;
+		}
 	}
 
 	if (!i915_fb()->fb)
@@ -201,6 +256,11 @@ static bool reconfigure(void * data)
 			mode_id ++;
 
 			if (!mode)
+				continue;
+
+			/* allocated framebuffer smaller than mode can't be used */
+			if (report_fb_info.var.xres * report_fb_info.var.yres <
+			    mode->vdisplay * mode->hdisplay)
 				continue;
 
 			/* use mode id if configured and matches exactly */
@@ -248,7 +308,13 @@ static bool reconfigure(void * data)
 
 			/* no matching mode ? */
 			if (!mode_match) {
-				/* use first mode */
+
+				/* allocated framebuffer smaller than mode can't be used */
+				if (report_fb_info.var.xres * report_fb_info.var.yres <
+				    mode->vdisplay * mode->hdisplay)
+					continue;
+
+				/* use first smaller mode */
 				mode_match = mode;
 
 				if (conf_mode.enabled)

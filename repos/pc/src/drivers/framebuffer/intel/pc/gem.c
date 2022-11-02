@@ -246,6 +246,16 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 {
 	int ret;
 
+	/* request & enforce max resolution if smaller than hardware limits */
+	struct genode_mode dummy_mode = { };
+	lx_emul_i915_connector_config("dummy", &dummy_mode);
+	if (dummy_mode.max_width && dummy_mode.max_height) {
+		if (dev_priv->drm.mode_config.max_width > dummy_mode.max_width)
+			dev_priv->drm.mode_config.max_width  = dummy_mode.max_width;
+		if (dev_priv->drm.mode_config.max_height > dummy_mode.max_height)
+			dev_priv->drm.mode_config.max_height = dummy_mode.max_height;
+	}
+
 	/* We need to fallback to 4K pages if host doesn't support huge gtt. */
 /*
 	if (intel_vgpu_active(dev_priv) && !intel_vgpu_has_huge_gtt(dev_priv))
