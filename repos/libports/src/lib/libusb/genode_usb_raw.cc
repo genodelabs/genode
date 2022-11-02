@@ -80,7 +80,7 @@ struct Usb_device
 			raw_config_descriptor = (char*)malloc(config_descriptor.total_length);
 
 			Usb::Packet_descriptor p =
-				usb_connection->source()->alloc_packet(config_descriptor.total_length);
+				usb_connection->alloc_packet(config_descriptor.total_length);
 
 			p.type                 = Usb::Packet_descriptor::CTRL;
 			p.control.request      = LIBUSB_REQUEST_GET_DESCRIPTOR;
@@ -121,7 +121,7 @@ struct Usb_device
 				return false;
 
 			Usb::Packet_descriptor p =
-				usb_connection->source()->alloc_packet(0);
+				usb_connection->alloc_packet(0);
 
 			p.type                  = Usb::Packet_descriptor::ALT_SETTING;
 			p.interface.number      = number;
@@ -521,7 +521,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			Usb::Packet_descriptor p;
 
 			try {
-				p = usb_device->usb_connection->source()->alloc_packet(setup->wLength);
+				p = usb_device->usb_connection->alloc_packet(setup->wLength);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 				return LIBUSB_ERROR_BUSY;
 			}
@@ -565,7 +565,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			Usb::Packet_descriptor p;
 			
 			try {
-				p = usb_device->usb_connection->source()->alloc_packet(transfer->length);
+				p = usb_device->usb_connection->alloc_packet(transfer->length);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 				return LIBUSB_ERROR_BUSY;
 			}
@@ -601,7 +601,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 
 			Usb::Packet_descriptor p;
 			try {
-				p = usb_device->usb_connection->source()->alloc_packet(total_length);
+				p = usb_device->usb_connection->alloc_packet(total_length);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 				return LIBUSB_ERROR_BUSY;
 			}

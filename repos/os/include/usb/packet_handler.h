@@ -94,7 +94,7 @@ class Usb::Packet_handler
 
 			while (true) {
 				try {
-					Packet_descriptor p = _connection.source()->alloc_packet(size);
+					Packet_descriptor p = _connection.alloc_packet(size);
 					return p;
 				} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 					/* block until some packets are freed */

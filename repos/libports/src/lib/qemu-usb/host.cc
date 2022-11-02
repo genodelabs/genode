@@ -534,7 +534,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			throw Packet_alloc_failed();
 		}
 
-		Usb::Packet_descriptor packet = usb_raw.source()->alloc_packet(length);
+		Usb::Packet_descriptor packet = usb_raw.alloc_packet(length);
 
 		if (!completion) {
 			packet.completion = nullptr;

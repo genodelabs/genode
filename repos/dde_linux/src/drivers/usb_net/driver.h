@@ -103,7 +103,7 @@ struct Driver
 		private:
 
 			Usb::Session_client  & _usb;
-			Usb::Packet_descriptor _packet { _usb.source()->alloc_packet(0) };
+			Usb::Packet_descriptor _packet { _usb.alloc_packet(0) };
 			completion             _comp;
 
 		public:

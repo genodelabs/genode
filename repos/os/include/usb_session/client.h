@@ -52,6 +52,20 @@ class Usb::Session_client : public Genode::Rpc_client<Session>
 				sigh_state_change(state_change);
 		}
 
+		/*
+		 * Helper utility to always allocate correctly aligned USB packets
+		 */
+		Packet_descriptor alloc_packet(Genode::size_t size)
+		{
+			/*
+			 * At least on ARM the minimal alignment for distinct
+			 * DMA-capable USB URBs shall meet a maximum cache-line
+			 * size of 128 bytes
+			 */
+			enum { URB_PAYLOAD_MIN_ALIGN_LOG2 = 7 };
+			return source()->alloc_packet(size, URB_PAYLOAD_MIN_ALIGN_LOG2);
+		}
+
 		/***************************
 		 ** USB session interface **
 		 ***************************/
