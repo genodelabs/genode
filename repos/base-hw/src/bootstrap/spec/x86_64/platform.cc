@@ -170,43 +170,37 @@ Bootstrap::Platform::Board::Board()
 		uint64_t const table_addr = acpi_rsdp.xsdt ? acpi_rsdp.xsdt : acpi_rsdp.rsdt;
 
 		if (table_addr) {
-			Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_addr);
+			auto rsdt_xsdt_lambda = [&](auto paddr_table) {
+				addr_t const table_virt_addr = paddr_table;
+				Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
+
+				if (!memcmp(table->signature, "FACP", 4)) {
+					info.acpi_fadt = addr_t(table);
+
+					auto mem_aligned = paddr_table & _align_mask(12);
+					auto mem_size    = align_addr(paddr_table + table->size, 12) - mem_aligned;
+					core_mmio.add({ mem_aligned, mem_size });
+				}
+
+				if (memcmp(table->signature, "APIC", 4))
+					return;
+
+				Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
+					if (e->type == Hw::Apic_madt::LAPIC) {
+						Hw::Apic_madt::Lapic lapic(e);
+
+						/* check if APIC is enabled in hardware */
+						if (lapic.valid())
+							cpus ++;
+					}
+				});
+			};
+
+			auto table = reinterpret_cast<Hw::Acpi_generic *>(table_addr);
 			if (!memcmp(table->signature, "RSDT", 4)) {
-				Hw::for_each_rsdt_entry(*table, [&](uint32_t paddr_table) {
-					addr_t const table_virt_addr = paddr_table;
-					Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
-
-					if (memcmp(table->signature, "APIC", 4))
-						return;
-
-					Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
-						if (e->type == Hw::Apic_madt::LAPIC) {
-							Hw::Apic_madt::Lapic lapic(e);
-
-							/* check if APIC is enabled in hardware */
-							if (lapic.valid())
-								cpus ++;
-						}
-					});
-				});
+				Hw::for_each_rsdt_entry(*table, rsdt_xsdt_lambda);
 			} else if (!memcmp(table->signature, "XSDT", 4)) {
-				Hw::for_each_xsdt_entry(*table, [&](uint64_t paddr_table) {
-					addr_t const table_virt_addr = paddr_table;
-					Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
-
-					if (memcmp(table->signature, "APIC", 4))
-						return;
-
-					Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
-						if (e->type == Hw::Apic_madt::LAPIC) {
-							Hw::Apic_madt::Lapic lapic(e);
-
-							/* check if APIC is enabled in hardware */
-							if (lapic.valid())
-								cpus ++;
-						}
-					});
-				});
+				Hw::for_each_xsdt_entry(*table, rsdt_xsdt_lambda);
 			}
 		}
 	}
