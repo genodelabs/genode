@@ -1,6 +1,8 @@
 /*
  * \brief  Replaces kernel/locking/spinlock.c
  * \author Stefan Kalkowski
+ * \author Johannes Schlatow
+ * \author Christian Helmuth
  * \date   2021-03-16
  *
  * We run single-core, cooperatively scheduled. We should never spin.
@@ -180,5 +182,25 @@ void __lockfunc _raw_write_lock_irq(rwlock_t * lock)
 void __lockfunc _raw_read_lock_bh(rwlock_t * lock)
 {
 	arch_read_lock(&(lock)->raw_lock);
+}
+#endif
+
+
+#ifndef CONFIG_INLINE_WRITE_LOCK_IRQSAVE
+unsigned long __lockfunc _raw_write_lock_irqsave(rwlock_t *lock)
+{
+	unsigned long flags;
+	local_irq_save(flags);
+	arch_write_lock(&(lock)->raw_lock);
+	return flags;
+}
+#endif
+
+
+#ifndef CONFIG_INLINE_WRITE_UNLOCK_IRQRESTORE
+void __lockfunc _raw_write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+{
+	arch_write_unlock(&(lock)->raw_lock);
+	local_irq_restore(flags);
 }
 #endif
