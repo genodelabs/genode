@@ -128,8 +128,9 @@ namespace Nova {
 		uint32_t const tsc_freq;    /* time-stamp counter frequency in kHz     */
 		uint32_t const bus_freq;    /* bus frequency in kHz                    */
 
-		bool has_feature_vmx() const { return feature_flags & (1 << 1); }
-		bool has_feature_svm() const { return feature_flags & (1 << 2); }
+		bool has_feature_iommu() const { return feature_flags & (1 << 0); }
+		bool has_feature_vmx()   const { return feature_flags & (1 << 1); }
+		bool has_feature_svm()   const { return feature_flags & (1 << 2); }
 
 		struct Cpu_desc {
 			uint8_t flags;

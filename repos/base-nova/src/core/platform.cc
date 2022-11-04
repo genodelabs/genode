@@ -685,6 +685,7 @@ Platform::Platform()
 					xml.attribute("name", "nova");
 					xml.attribute("acpi", true);
 					xml.attribute("msi" , true);
+					xml.attribute("iommu", hip.has_feature_iommu());
 				});
 				if (efi_sys_tab_phy) {
 					xml.node("efi-system-table", [&] () {
