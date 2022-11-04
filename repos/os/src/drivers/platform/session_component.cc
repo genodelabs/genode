@@ -44,6 +44,7 @@ void Session_component::_release_device(Device_component & dc)
 void Session_component::_free_dma_buffer(Dma_buffer & buf)
 {
 	Ram_dataspace_capability cap = buf.cap;
+	_device_pd.free_dma_mem(buf.dma_addr);
 	destroy(heap(), &buf);
 	_env_ram.free(cap);
 }
@@ -195,14 +196,25 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 
 	if (!ram_cap.valid()) return ram_cap;
 
+	Dma_buffer *buf { nullptr };
 	try {
-		Dma_buffer & buf =
-			*(new (heap()) Dma_buffer(_buffer_registry, ram_cap));
-		_device_pd.attach_dma_mem(ram_cap, _env.pd().dma_addr(buf.cap));
+			buf = new (heap()) Dma_buffer(_buffer_registry, ram_cap);
 	} catch (Out_of_ram)  {
 		_env_ram.free(ram_cap);
 		throw;
 	} catch (Out_of_caps) {
+		_env_ram.free(ram_cap);
+		throw;
+	}
+
+	try {
+		buf->dma_addr = _device_pd.attach_dma_mem(ram_cap, _env.pd().dma_addr(buf->cap), false);
+	} catch (Out_of_ram)  {
+		destroy(heap(), buf);
+		_env_ram.free(ram_cap);
+		throw;
+	} catch (Out_of_caps) {
+		destroy(heap(), buf);
 		_env_ram.free(ram_cap);
 		throw;
 	}
@@ -230,7 +242,7 @@ Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 
 	_buffer_registry.for_each([&] (Dma_buffer const & buf) {
 		if (buf.cap.local_name() == ram_cap.local_name())
-			ret = _env.pd().dma_addr(buf.cap); });
+			ret = buf.dma_addr; });
 
 	return ret;
 }
@@ -244,12 +256,14 @@ Session_component::Session_component(Env                          & env,
                                      Resources      const         & resources,
                                      Diag           const         & diag,
                                      bool           const           info,
-                                     Policy_version const           version)
+                                     Policy_version const           version,
+                                     bool           const           iommu)
 :
 	Session_object<Platform::Session>(env.ep(), resources, label, diag),
 	Session_registry::Element(registry, *this),
 	Dynamic_rom_session::Xml_producer("devices"),
-	_env(env), _config(config), _devices(devices), _info(info), _version(version)
+	_env(env), _config(config), _devices(devices), _info(info), _version(version),
+	_iommu(iommu)
 {
 	/*
 	 * FIXME: As the ROM session does not propagate Out_of_*

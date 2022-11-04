@@ -21,18 +21,20 @@ class Driver::Common : Device_reporter
 
 		Env                    & _env;
 		String<64>               _rom_name;
-		Attached_rom_dataspace   _devices_rom  { _env, _rom_name.string() };
-		Heap                     _heap         { _env.ram(), _env.rm()    };
-		Sliced_heap              _sliced_heap  { _env.ram(), _env.rm()    };
-		Device_model             _devices      { _env, _heap, *this       };
-		Signal_handler<Common>   _dev_handler  { _env.ep(), *this,
-		                                         &Common::_handle_devices };
+		Attached_rom_dataspace   _devices_rom   { _env, _rom_name.string() };
+		Attached_rom_dataspace   _platform_info { _env, "platform_info"    };
+		Heap                     _heap          { _env.ram(), _env.rm()    };
+		Sliced_heap              _sliced_heap   { _env.ram(), _env.rm()    };
+		Device_model             _devices       { _env, _heap, *this       };
+		Signal_handler<Common>   _dev_handler   { _env.ep(), *this,
+		                                          &Common::_handle_devices };
 		Driver::Root             _root;
 
 		Constructible<Expanding_reporter> _cfg_reporter { };
 		Constructible<Expanding_reporter> _dev_reporter { };
 
 		void _handle_devices();
+		bool _iommu();
 
 	public:
 
@@ -60,6 +62,16 @@ void Driver::Common::_handle_devices()
 	_devices.update(_devices_rom.xml());
 	update_report();
 	_root.update_policy();
+}
+
+
+bool Driver::Common::_iommu()
+{
+	bool iommu = false;
+	_platform_info.xml().with_optional_sub_node("kernel", [&] (Xml_node xml) {
+		iommu = xml.attribute_value("iommu", false); });
+
+	return iommu;
 }
 
 
@@ -103,7 +115,7 @@ Driver::Common::Common(Genode::Env                  & env,
 	_env(env),
 	_rom_name(config_rom.xml().attribute_value("devices_rom",
 	                                           String<64>("devices"))),
-	_root(_env, _sliced_heap, config_rom, _devices)
+	_root(_env, _sliced_heap, config_rom, _devices, _iommu())
 {
 	_devices_rom.sigh(_dev_handler);
 	_handle_devices();

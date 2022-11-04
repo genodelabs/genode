@@ -220,7 +220,7 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			iomem.io_mem.construct(_env, iomem.range.start,
 			                       iomem.range.size, false);
 			session.device_pd().attach_dma_mem(iomem.io_mem->dataspace(),
-			                                   iomem.range.start);
+			                                   iomem.range.start, true);
 		});
 	} catch(...) {
 		_release_resources();

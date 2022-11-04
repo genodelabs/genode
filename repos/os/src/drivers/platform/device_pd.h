@@ -15,6 +15,7 @@
 #define _SRC__DRIVERS__PLATFORM__DEVICE_PD_H_
 
 /* base */
+#include <base/allocator_avl.h>
 #include <base/env.h>
 #include <base/quota_guard.h>
 #include <region_map/client.h>
@@ -32,6 +33,8 @@ class Driver::Device_pd
 	private:
 
 		Pd_connection _pd;
+		Allocator_avl _dma_alloc;
+		bool const    _iommu;
 
 		/**
 		 * Custom handling of PD-session depletion during attach operations
@@ -70,13 +73,18 @@ class Driver::Device_pd
 			void upgrade_caps();
 		} _address_space;
 
+		addr_t _dma_addr(addr_t phys_addr, size_t size, bool const force_phys_addr);
+
 	public:
 
 		Device_pd(Env &env,
+		          Allocator &md_alloc,
 		          Ram_quota_guard &ram_guard,
-		          Cap_quota_guard &cap_guard);
+		          Cap_quota_guard &cap_guard,
+		          bool const iommu);
 
-		void attach_dma_mem(Dataspace_capability, addr_t dma_addr);
+		addr_t attach_dma_mem(Dataspace_capability, addr_t phys_addr, bool force_phys_addr);
+		void free_dma_mem(addr_t dma_addr);
 		void assign_pci(Io_mem_dataspace_capability const, Pci::Bdf const);
 };
 
