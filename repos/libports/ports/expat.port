@@ -1,10 +1,10 @@
 LICENSE   := MIT
 DOWNLOADS := expat.archive
-VERSION   := 2.4.9
+VERSION   := 2.5.0
 RELEASE   := R_$(subst .,_,$(VERSION))
 
 URL(expat) := https://github.com/libexpat/libexpat/releases/download/$(RELEASE)/expat-$(VERSION).tar.gz
-SHA(expat) := 4415710268555b32c4e5ab06a583bea9fec8ff89333b218b70b43d4ca10e38fa
+SHA(expat) := 6b902ab103843592be5e99504f846ec109c1abb692e85347587f237a4ffa1033
 DIR(expat) := src/lib/expat/contrib
 
 DIRS := include
