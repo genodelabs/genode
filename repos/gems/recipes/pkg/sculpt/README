@@ -1425,7 +1425,7 @@ a free download at [https://genode.org].
   ! ./tool/depot/download \
   !    genodelabs/pkg/x86_64/sculpt/2022-10-13 \
   !    genodelabs/pkg/x86_64/drivers_managed-pc/2022-10-11 \
-  !    genodelabs/pkg/x86_64/wifi/2022-10-11 \
+  !    genodelabs/pkg/x86_64/wifi/2022-10-13 \
   !    genodelabs/bin/x86_64/ipxe_nic_drv/2022-10-11
 
 # Create a build directory
