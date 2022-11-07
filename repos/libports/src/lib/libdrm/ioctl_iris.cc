@@ -536,6 +536,7 @@ class Drm_call
 		Genode::Env      &_env { *vfs_gpu_env() };
 		Genode::Heap      _heap { _env.ram(), _env.rm() };
 		Gpu::Connection   _gpu_session { _env };
+		Genode::Mutex     _drm_mutex { };
 
 		Gpu::Info_intel  const &_gpu_info {
 			*_gpu_session.attached_info<Gpu::Info_intel>() };
@@ -1363,6 +1364,8 @@ class Drm_call
 
 		int ioctl(unsigned long request, void *arg)
 		{
+			Genode::Mutex::Guard guard { _drm_mutex };
+
 			bool const device = device_ioctl(request);
 			return device ? _device_ioctl(device_number(request), arg)
 			              : _generic_ioctl(command_number(request), arg);
