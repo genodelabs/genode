@@ -164,7 +164,6 @@ struct Usb_device
 
 				if (!p.succeded || itransfer->flags & USBI_TRANSFER_CANCELLING) {
 					if (!p.succeded) {
-						Genode::error("USB transfer failed: ", (unsigned)p.type);
 						if (p.error == Usb::Packet_descriptor::NO_DEVICE_ERROR)
 							throw Device_has_vanished();
 					}
