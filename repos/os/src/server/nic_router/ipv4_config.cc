@@ -49,7 +49,27 @@ Ipv4_config::Ipv4_config(Ipv4_config const &ip_config,
 {
 	ip_config.for_each_dns_server([&] (Dns_server const &dns_server) {
 		Dns_server::construct(
-			alloc, dns_server.ip(),
+			_alloc, dns_server.ip(),
+			[&] /* handle_success */ (Dns_server &server)
+			{
+				_dns_servers.insert_as_tail(server);
+			},
+			[&] /* handle_failure */ () { }
+		);
+	});
+	_dns_domain_name.set_to(ip_config.dns_domain_name());
+}
+
+
+Ipv4_config::Ipv4_config(Ipv4_config const &ip_config)
+:
+	_alloc      { ip_config._alloc },
+	_interface  { ip_config._interface },
+	_gateway    { ip_config._gateway }
+{
+	ip_config.for_each_dns_server([&] (Dns_server const &dns_server) {
+		Dns_server::construct(
+			_alloc, dns_server.ip(),
 			[&] /* handle_success */ (Dns_server &server)
 			{
 				_dns_servers.insert_as_tail(server);

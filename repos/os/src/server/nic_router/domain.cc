@@ -118,8 +118,19 @@ void Domain::discard_ip_config()
 
 void Domain::ip_config_from_dhcp_ack(Dhcp_packet &dhcp_ack)
 {
+	/*
+	 * If the IP config didn't change (a common case on DHCP RENEW), prevent
+	 * detaching from the old config and attaching to the new one. Because this
+	 * would not only create unnecessary CPU overhead but also force all
+	 * clients at all interfaces that are listening to this config (via config
+	 * attribute 'dns_config_from') to restart their networking (re-do DHCP).
+	 */
+	Ipv4_config const new_ip_config { dhcp_ack, _alloc, *this };
+	if (*_ip_config == new_ip_config) {
+		return;
+	}
 	_reconstruct_ip_config([&] (Reconstructible<Ipv4_config> &ip_config) {
-		ip_config.construct(dhcp_ack, _alloc, *this); });
+		ip_config.construct(new_ip_config); });
 }
 
 

@@ -59,6 +59,8 @@ class Net::Ipv4_config
 		Ipv4_config(Ipv4_config const &ip_config,
 		            Genode::Allocator &alloc);
 
+		Ipv4_config(Ipv4_config const &ip_config);
+
 		Ipv4_config(Genode::Allocator &alloc);
 
 		~Ipv4_config();
@@ -69,6 +71,11 @@ class Net::Ipv4_config
 			       _gateway   != other._gateway               ||
 			       !_dns_servers.equal_to(other._dns_servers) ||
 			       !_dns_domain_name.equal_to(other._dns_domain_name);
+		}
+
+		bool operator == (Ipv4_config const &other) const
+		{
+			return !(*this != other);
 		}
 
 		template <typename FUNC>
