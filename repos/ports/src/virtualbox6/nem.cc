@@ -230,7 +230,10 @@ int nemR3NativeInitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 }
 
 
-int nemR3NativeTerm(PVM pVM) TRACE(VINF_SUCCESS)
+int nemR3NativeTerm(PVM pVM)
+{
+	return VINF_SUCCESS;
+}
 
 
 /**
@@ -248,7 +251,7 @@ void nemR3NativeReset(PVM pVM) TRACE()
  *                      reset.
  * @param   fInitIpi    Whether this is the INIT IPI or hot (un)plugging case.
  */
-void nemR3NativeResetCpu(PVMCPU pVCpu, bool fInitIpi) TRACE()
+void nemR3NativeResetCpu(PVMCPU pVCpu, bool fInitIpi) { }
 
 
 VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
