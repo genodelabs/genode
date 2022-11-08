@@ -276,7 +276,7 @@ append config {
 		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="yes">
 			<report mac_address="true"/>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/urandom"/>
 			<vfs>
 				<dir name="dev"> <log/> <null/> <rtc/>
 					<jitterentropy name="random"/>
