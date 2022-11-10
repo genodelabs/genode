@@ -793,9 +793,10 @@ class Drm_call
 				*value = _gpu_info.revision.value;
 				return 0;
 			case I915_PARAM_CS_TIMESTAMP_FREQUENCY:
-				if (verbose_ioctl)
+				*value = _gpu_info.clock_frequency.value;
+				if (verbose_ioctl && *value == 0)
 					Genode::error("I915_PARAM_CS_TIMESTAMP_FREQUENCY not supported");
-				return -1;
+				return *value ? 0 : -1;
 			case I915_PARAM_SLICE_MASK:
 				*value = _gpu_info.slice_mask.value;
 				return 0;
@@ -1023,15 +1024,61 @@ class Drm_call
 			return 0;
 		}
 
+
+		int _device_create_topology(void *arg)
+		{
+			auto topo = reinterpret_cast<drm_i915_query_topology_info *>(arg);
+
+			Gpu::Info_intel::Topology const &info = _gpu_info.topology;
+
+			size_t slice_length = sizeof(info.slice_mask);
+			size_t subslice_length = info.max_slices * info.ss_stride;
+			size_t eu_length = info.max_slices * info.max_subslices * info.eu_stride;
+
+			Genode::memset(topo, 0, sizeof(*topo));
+			topo->max_slices = info.max_slices;
+			topo->max_subslices = info.max_subslices;
+			topo->max_eus_per_subslice = info.max_eus_per_subslice;
+			topo->subslice_offset = slice_length;
+			topo->subslice_stride = info.ss_stride;
+			topo->eu_offset = slice_length + subslice_length;
+			topo->eu_stride = info.eu_stride;
+
+			Genode::memcpy(topo->data, &info.slice_mask, slice_length);
+			Genode::memcpy(topo->data + slice_length, info.subslice_mask,
+			               subslice_length);
+			Genode::memcpy(topo->data + slice_length + subslice_length,
+			               info.eu_mask, eu_length);
+
+			return 0;
+		}
+
 		int _device_query(void *arg)
 		{
 			auto const query = reinterpret_cast<drm_i915_query*>(arg);
 
-			if (verbose_ioctl)
-				Genode::error("device specific iocall DRM_I915_QUERY not supported"
-				              " - num_items=", query->num_items);
+			if (query->num_items != 1) {
+				if (verbose_ioctl)
+					Genode::error("device specific iocall DRM_I915_QUERY for num_items != 1 not supported"
+					              " - num_items=", query->num_items);
+				return -1;
+			}
 
-			return -1;
+			auto const item = reinterpret_cast<drm_i915_query_item *>(query->items_ptr);
+
+			if (item->query_id != DRM_I915_QUERY_TOPOLOGY_INFO || _gpu_info.topology.valid == false) {
+				if (verbose_ioctl)
+					Genode::error("device specific iocall DRM_I915_QUERY not supported for "
+					              " - query_id: ", Genode::Hex(item->query_id));
+				return -1;
+			}
+
+			if (!item->data_ptr) {
+				item->length = 1;
+				return 0;
+			}
+
+			return _device_create_topology((void *)item->data_ptr);
 		}
 
 		int _device_ioctl(unsigned cmd, void *arg)
@@ -1385,6 +1432,6 @@ extern "C" int genode_ioctl(int /* fd */, unsigned long request, void *arg)
 	if (verbose_ioctl) { dump_ioctl(request); }
 
 	int const ret = _call->ioctl(request, arg);
-	if (verbose_ioctl) { Genode::log("returned ", ret); }
+	if (verbose_ioctl) { Genode::log("returned ", ret, " from ", __builtin_return_address(0)); }
 	return ret;
 }
