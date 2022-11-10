@@ -335,6 +335,15 @@ struct Main : Event_handler
 
 		if (state != MachineState_Running) {
 			error("machine could not enter running state");
+
+			/* retrieve and print error information */
+			IVirtualBoxErrorInfo *info;
+			progress->COMGETTER(ErrorInfo)(&info);
+
+			PRUnichar *text = (PRUnichar *)malloc(4096);
+			info->GetText((PRUnichar **)&text);
+			Genode::log("Error: ", Utf8Str(text).c_str());
+
 			throw Fatal();
 		}
 	}
