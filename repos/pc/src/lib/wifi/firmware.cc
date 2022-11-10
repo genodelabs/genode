@@ -56,7 +56,8 @@ size_t fw_list_len = sizeof(fw_list) / sizeof(fw_list[0]);
  ** linux/firmware.h **
  **********************/
 
-extern "C" int lx_emul_request_firmware_nowait(const char *name, void **dest, size_t *result)
+extern "C" int lx_emul_request_firmware_nowait(const char *name, void **dest,
+                                               size_t *result, bool warn)
 {
 	if (!dest || !result)
 		return -1;
@@ -70,8 +71,10 @@ extern "C" int lx_emul_request_firmware_nowait(const char *name, void **dest, si
 		}
 	}
 
-	if (!fwl) {
-		Genode::error("firmware '", name, "' is not in the firmware white list");
+	if (!fwl ) {
+		if (warn)
+			Genode::error("firmware '", name, "' is not in the firmware white list");
+
 		return -1;
 	}
 

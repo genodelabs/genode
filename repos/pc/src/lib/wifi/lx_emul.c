@@ -157,7 +157,8 @@ static void request_firmware_work_func(struct work_struct *work)
 #endif
 
 
-extern int lx_emul_request_firmware_nowait(const char *name, void *dest, size_t *result);
+extern int lx_emul_request_firmware_nowait(const char *name, void *dest,
+                                           size_t *result, bool warn);
 extern void lx_emul_release_firmware(void const *data, size_t size);
 
 extern void rtnl_lock(void);
@@ -176,7 +177,7 @@ int request_firmware_nowait(struct module * module,
 #endif
 	bool reg_db;
 
-	if (lx_emul_request_firmware_nowait(name, &fw->data, &fw->size)) {
+	if (lx_emul_request_firmware_nowait(name, &fw->data, &fw->size, true)) {
 		kfree(fw);
 		return -1;
 	}
@@ -218,23 +219,30 @@ int request_firmware_nowait(struct module * module,
 }
 
 
-int request_firmware(const struct firmware ** firmware_p,
-                     const char * name, struct device * device)
+int request_firmware_common(const struct firmware **firmware_p,
+                            const char *name, struct device *device, bool warn)
 {
 	struct firmware *fw;
 
 	if (!*firmware_p)
 		return -1;
 
-	fw = kzalloc(sizeof (struct firmware), GFP_KERNEL);
+	fw = kzalloc(sizeof(struct firmware), GFP_KERNEL);
 
-	if (lx_emul_request_firmware_nowait(name, &fw->data, &fw->size)) {
+	if (lx_emul_request_firmware_nowait(name, &fw->data, &fw->size, warn)) {
 		kfree(fw);
 		return -1;
 	}
 
 	*firmware_p = fw;
 	return 0;
+}
+
+
+int request_firmware(const struct firmware ** firmware_p,
+                     const char * name, struct device * device)
+{
+	return request_firmware_common(firmware_p, name, device, true);
 }
 
 
@@ -245,13 +253,9 @@ void release_firmware(const struct firmware * fw)
 }
 
 
-/*
- * This function is only called when using newer WIFI6 devices to
- * load 'iwl-debug-yoyo.bin'. We simply deny the request.
- */
 int firmware_request_nowarn(const struct firmware ** firmware,const char * name,struct device * device)
 {
-	return -1;
+	return request_firmware_common(firmware, name, device, false);
 }
 
 
