@@ -264,6 +264,11 @@ static int timing_tests(void * data)
 		test_timing_no_ret  ("usleep_range(400,410) ->",
 			usleep_range(400, 410);
 		);
+
+		/* wifi driver use case -> iwl_trans_pcie_sw_reset */
+		test_timing_no_ret  ("usleep_range(5000,6000) ->",
+			usleep_range(5000, 6000);
+		);
 	}
 
 	return 0;
