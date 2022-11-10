@@ -26,8 +26,6 @@ struct Board::Timer
 
 	unsigned const ticks_per_ms;
 
-	Kernel::time_t last_time { 0 };
-
 	Timer(unsigned);
 };
 
