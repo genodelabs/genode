@@ -75,13 +75,13 @@ struct measure {
 	, \
 		if (rdtsc_freq_mhz) \
 			printk(text \
-			       " %6llu:%10llu:%10llu:%10llu:%8lld\n", \
+			       " %7llu:%10llu:%10llu:%10llu:%8lld\n", \
 			       m_jiffies.diff, jiffies_in_us, m_lxemul.diff, \
 			       m_rdtsc.diff / rdtsc_freq_mhz, \
 			       jiffies_in_us - m_lxemul.diff); \
 		else \
 			printk(text \
-			       " %6llu:%10llu:%10llu:%8lld\n", \
+			       " %7llu:%10llu:%10llu:%8lld\n", \
 			       m_jiffies.diff, jiffies_in_us, m_lxemul.diff, \
 			       jiffies_in_us - m_lxemul.diff); \
 	); \
@@ -97,7 +97,7 @@ struct measure {
 	, \
 		if (rdtsc_freq_mhz) \
 			printk(text \
-			       " %6llu:%10llu:%10llu:%10llu:%8lld " \
+			       " %7llu:%10llu:%10llu:%10llu:%8lld " \
 			       "ret=%d%s\n", \
 			       m_jiffies.diff, jiffies_in_us, m_lxemul.diff, \
 			       m_rdtsc.diff / rdtsc_freq_mhz, \
@@ -105,7 +105,7 @@ struct measure {
 			       ret, ret == -ETIMEDOUT ? " (ETIMEDOUT)" : ""); \
 		else \
 			printk(text \
-			       " %6llu:%10llu:%10llu:%8lld " \
+			       " %7llu:%10llu:%10llu:%8lld " \
 			       "ret=%d%s\n", \
 			       m_jiffies.diff, jiffies_in_us, m_lxemul.diff, \
 			       jiffies_in_us - m_lxemul.diff, \
@@ -127,44 +127,44 @@ static int timing_tests(void * data)
 
 	while (true) {
 		if (rdtsc_freq_mhz)
-			printk("test(parameters)      -> "
-			       "jiffies:jiff_us:lx_time_us:rdtsc_us:diff_jiff_lx_time "
+			printk("test(parameters)        -> "
+			       "jiffies:   jiff_us:lx_time_us:  rdtsc_us:diff_jiff_lx_time "
 			       "tsc=%lluMhz\n", rdtsc_freq_mhz);
 		else
-			printk("test(parameters)      -> "
-			       "jiffies:jiff_us:lx_time_us:diff_jiff_lx_time\n");
+			printk("test(parameters)        -> "
+			       "jiffies:   jiff_us:lx_time_us:diff_jiff_lx_time\n");
 
-		test_timing_no_ret  ("udelay(40)            ->",
+		test_timing_no_ret  ("udelay(40)              ->",
 			udelay(40);
 		);
 
-		test_timing_no_ret  ("ndelay(4000)          ->",
+		test_timing_no_ret  ("ndelay(4000)            ->",
 			ndelay(4000);
 		);
 
-		test_timing_no_ret  ("msleep(5000)          ->",
+		test_timing_no_ret  ("msleep(5000)            ->",
 			msleep(5000);
 		);
 
-		test_timing_with_ret("wait_for(cond,10ms) A ->",
+		test_timing_with_ret("wait_for(cond,10ms) A   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 10);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,5ms)  B ->",
+		test_timing_with_ret("wait_for(cond,5ms)  B   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 5);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,2ms)  C ->",
+		test_timing_with_ret("wait_for(cond,2ms)  C   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 2);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,10ms) D ->",
+		test_timing_with_ret("wait_for(cond,10ms) D   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 10);
 			remove_wait_queue(&wq, &wait);
@@ -180,88 +180,88 @@ static int timing_tests(void * data)
 		}
 
 		/* display driver test case -> waking up too early before irq triggered */
-		test_timing_with_ret("wait_for(cond,10ms) E ->",
+		test_timing_with_ret("wait_for(cond,10ms) E   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 10);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,5ms)  F ->",
+		test_timing_with_ret("wait_for(cond,5ms)  F   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 5);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,2ms)  G ->",
+		test_timing_with_ret("wait_for(cond,2ms)  G   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 2);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,10ms) H ->",
+		test_timing_with_ret("wait_for(cond,10ms) H   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 10);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,5000ms) ->",
+		test_timing_with_ret("wait_for(cond,5000ms)   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 5000);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,4000ms) ->",
+		test_timing_with_ret("wait_for(cond,4000ms)   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 4000);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,3000ms) ->",
+		test_timing_with_ret("wait_for(cond,3000ms)   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 3000);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,2000ms) ->",
+		test_timing_with_ret("wait_for(cond,2000ms)   ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 2000);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,500ms)  ->",
+		test_timing_with_ret("wait_for(cond,500ms)    ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 500);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,200ms)  ->",
+		test_timing_with_ret("wait_for(cond,200ms)    ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 200);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,100ms)  ->",
+		test_timing_with_ret("wait_for(cond,100ms)    ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 100);
 			remove_wait_queue(&wq, &wait);
 		);
 
-		test_timing_with_ret("wait_for(cond,50ms)   ->",
+		test_timing_with_ret("wait_for(cond,50ms)     ->",
 			add_wait_queue(&wq, &wait);
 			ret = wait_for((0), 50);
 			remove_wait_queue(&wq, &wait);
 		);
 
 		/* audio driver test case -> sleeping too short or long is bad */
-		test_timing_no_ret  ("usleep_range(20,21)   ->",
+		test_timing_no_ret  ("usleep_range(20,21)     ->",
 			usleep_range(20, 21);
 		);
 
-		test_timing_no_ret  ("usleep_range(40,41)   ->",
+		test_timing_no_ret  ("usleep_range(40,41)     ->",
 			usleep_range(40, 41);
 		);
 
-		test_timing_no_ret  ("usleep_range(400,410) ->",
+		test_timing_no_ret  ("usleep_range(400,410)   ->",
 			usleep_range(400, 410);
 		);
 
