@@ -17,6 +17,7 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <platform_session/device.h>
+#include <platform_session/dma_buffer.h>
 #include <timer_session/connection.h>
 #include <capture_session/connection.h>
 #include <blit/painter.h>
@@ -73,7 +74,7 @@ struct Pl11x_driver::Main
 	{
 		using Pixel = Capture::Pixel;
 
-		Surface<Pixel> surface(_fb_ds.local_addr<Pixel>(), _size);
+		Surface<Pixel> surface(_fb_dma.local_addr<Pixel>(), _size);
 
 		_captured_screen.apply_to_surface(surface);
 	}
@@ -90,11 +91,7 @@ struct Pl11x_driver::Main
 	Platform::Device         _sp810_dev { _platform, Type { "arm,sp810" } };
 	Platform::Device::Mmio  _lcd_io_mem { _pl11x_dev };
 	Platform::Device::Mmio  _sys_mem    { _sp810_dev };
-
-	Ram_dataspace_capability _fb_ds_cap  {
-		_platform.alloc_dma_buffer(FRAMEBUFFER_SIZE, UNCACHED) };
-
-	Attached_dataspace       _fb_ds      { _env.rm(), _fb_ds_cap };
+	Platform::Dma_buffer    _fb_dma     { _platform, FRAMEBUFFER_SIZE, UNCACHED };
 
 	void _init_device();
 
@@ -197,8 +194,7 @@ void Pl11x_driver::Main::_init_device()
 	reg_write(PL11X_REG_TIMING3, tim3);
 
 	/* set framebuffer address and ctrl register */
-	addr_t const fb_dma_base = (addr_t)_platform.dma_addr(_fb_ds_cap);
-	reg_write(PL11X_REG_UPBASE, fb_dma_base);
+	reg_write(PL11X_REG_UPBASE, _fb_dma.dma_addr());
 	reg_write(PL11X_REG_LPBASE, 0);
 	reg_write(PL11X_REG_IMSC,   0);
 	reg_write(PL11X_REG_CTRL,   ctrl);

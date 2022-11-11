@@ -14,7 +14,6 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <os/reporter.h>
-
 /* WARNING DO NOT COPY THIS !!! */
 /*
  * We make everything public from the platform device classes
@@ -24,6 +23,8 @@
 #include <platform_session/device.h>
 #undef  private
 /* WARNING DO NOT COPY THIS !!! */
+
+#include <platform_session/dma_buffer.h>
 
 using namespace Genode;
 
@@ -158,7 +159,7 @@ struct Main
 		case 3:
 			next_step(4, 4, 0x40000000, 32);
 			return;
-		case 4:
+		case 4: {
 			/* Instantiate and destroy all devices */
 			start_driver(0);
 			start_driver(1);
@@ -169,7 +170,7 @@ struct Main
 			stop_driver(2);
 			stop_driver(3);
 			/* allocate big DMA dataspace */
-			platform->alloc_dma_buffer(0x80000, UNCACHED);
+			Platform::Dma_buffer buffer { *platform, 0x80000, UNCACHED };
 			/* close the whole session */
 			platform.destruct();
 			platform.construct(env);
@@ -180,10 +181,10 @@ struct Main
 			start_driver(3);
 			/* repeatedly start and destroy device sessions to detect leakages */
 			for (unsigned idx = 0; idx < 1000; idx++) {
-				platform->free_dma_buffer(platform->alloc_dma_buffer(0x4000, UNCACHED));
+				Platform::Dma_buffer dma { *platform, 0x4000, UNCACHED };
 			}
 			next_step(0, 0, 0x40000000, 32);
-			return;
+			return; }
 		case 5:
 			stop_driver(0);
 			stop_driver(1);
