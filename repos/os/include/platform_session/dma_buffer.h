@@ -29,11 +29,8 @@ class Platform::Dma_buffer : Noncopyable
 			size_t const size;
 			Cache  const cache;
 
-			Ram_dataspace_capability _alloc()
-			{
-				return platform.retry_with_upgrade(Ram_quota{4096}, Cap_quota{2},
-					[&] () { return platform.alloc_dma_buffer(size, cache); });
-			}
+			Ram_dataspace_capability _alloc() {
+				return platform.alloc_dma_buffer(size, cache); }
 
 			Ram_dataspace_capability cap = _alloc();
 
