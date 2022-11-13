@@ -66,6 +66,8 @@ namespace Nvme {
 	struct Sqe_create_cq;
 	struct Sqe_create_sq;
 	struct Sqe_identify;
+	struct Sqe_get_feature;
+	struct Sqe_set_feature;
 	struct Sqe_io;
 
 	struct Queue;
@@ -131,6 +133,13 @@ namespace Nvme {
 		WRITE        = 0x01,
 		READ         = 0x02,
 		WRITE_ZEROS  = 0x08,
+	};
+
+	enum Feature_sel {
+		CURRENT   = 0b000,
+		DEFAULT   = 0b001,
+		SAVED     = 0b010,
+		SUPPORTED = 0b011,
 	};
 
 	struct Block_session_component;
@@ -329,6 +338,36 @@ struct Nvme::Sqe_identify : Nvme::Sqe
 	};
 
 	Sqe_identify(addr_t const base) : Sqe(base) { }
+};
+
+
+/*
+ * Get feature command
+ */
+struct Nvme::Sqe_get_feature : Nvme::Sqe
+{
+	struct Cdw10 : Register<0x28, 32>
+	{
+		struct Fid : Bitfield< 0, 8> { }; /* feature identifier */
+		struct Sel : Bitfield< 8, 2> { }; /* select which value is returned */
+	};
+
+	Sqe_get_feature(addr_t const base) : Sqe(base) { }
+};
+
+
+/*
+ * Set feature command
+ */
+struct Nvme::Sqe_set_feature : Nvme::Sqe
+{
+	struct Cdw10 : Register<0x28, 32>
+	{
+		struct Fid : Bitfield< 0, 8> { }; /* feature identifier */
+		struct Sv  : Bitfield<31, 1> { }; /* save */
+	};
+
+	Sqe_set_feature(addr_t const base) : Sqe(base) { }
 };
 
 
