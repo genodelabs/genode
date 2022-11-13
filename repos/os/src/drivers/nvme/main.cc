@@ -20,6 +20,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/log.h>
+#include <base/registry.h>
 #include <block/request_stream.h>
 #include <dataspace/client.h>
 #include <os/attached_mmio.h>
@@ -70,6 +71,8 @@ namespace Nvme {
 	struct Sqe_set_feature;
 	struct Sqe_io;
 
+	struct Set_hmb;
+
 	struct Queue;
 	struct Sq;
 	struct Cq;
@@ -96,6 +99,17 @@ namespace Nvme {
 		MAX_ADMIN_ENTRIES_MASK = MAX_ADMIN_ENTRIES - 1,
 		MPS_LOG2               = 12u,
 		MPS                    = 1u << MPS_LOG2,
+
+		/*
+		 * Setup the descriptor list in one page and use a chunk
+		 * size that covers the common amount of HMB well and
+		 * requires resonable sized mappings.
+		 */
+		HMB_LIST_SIZE          = 4096,
+		HMB_LIST_ENTRY_SIZE    = 16,
+		HMB_LIST_MAX_ENTRIES   = HMB_LIST_SIZE / HMB_LIST_ENTRY_SIZE,
+		HMB_CHUNK_SIZE         = (2u << 20),
+		HMB_CHUNK_UNITS        = HMB_CHUNK_SIZE / MPS,
 	};
 
 	enum {
@@ -133,6 +147,10 @@ namespace Nvme {
 		WRITE        = 0x01,
 		READ         = 0x02,
 		WRITE_ZEROS  = 0x08,
+	};
+
+	enum Feature_fid {
+		 HMB  = 0x0d,
 	};
 
 	enum Feature_sel {
@@ -180,6 +198,11 @@ struct Nvme::Identify_data : Genode::Mmio
 		struct Nsm  : Bitfield< 3, 1> { }; /* namespace management */
 		struct Vm   : Bitfield< 7, 1> { }; /* virtualization management */
 	};
+
+	/* optional host memory buffer */
+	struct Hmpre : Register<0x110, 32> { }; /* preferred size */
+	struct Hmmin : Register<0x114, 32> { }; /* minimum size */
+
 	struct Nn    : Register<0x204, 32> { }; /* number of namespaces */
 	struct Vwc   : Register<0x204,  8> { }; /* volatile write cache */
 
@@ -368,6 +391,65 @@ struct Nvme::Sqe_set_feature : Nvme::Sqe
 	};
 
 	Sqe_set_feature(addr_t const base) : Sqe(base) { }
+};
+
+
+struct Hmb_de : Genode::Mmio
+{
+	enum { SIZE = 16u };
+
+	struct Badd  : Register<0x00, 64> { };
+	struct Bsize : Register<0x08, 64> { };
+
+	Hmb_de(addr_t const base, addr_t const buffer, size_t units) : Genode::Mmio(base)
+	{
+		write<Badd>(buffer);
+		write<Bsize>(units);
+	}
+};
+
+
+struct Nvme::Set_hmb : Nvme::Sqe_set_feature
+{
+	struct Cdw11 : Register<0x2c, 32>
+	{
+		struct Ehm : Bitfield< 0, 1> { }; /* enable host memory buffer */
+		struct Mr  : Bitfield< 1, 1> { }; /* memory return */
+	};
+
+	struct Cdw12 : Register<0x30, 32>
+	{
+		struct Hsize : Bitfield<0, 32> { }; /* host memory buffer size (in MPS units) */
+	};
+
+	struct Cdw13 : Register<0x34, 32>
+	{
+		/* bits 3:0 should be zero */
+		struct Hmdlla : Bitfield<0, 32> { }; /* host memory descriptor list lower address */
+	};
+
+	struct Cdw14 : Register<0x38, 32>
+	{
+		struct Hmdlua : Bitfield<0, 32> { }; /* host memory descriptor list upper address */
+	};
+
+	struct Cdw15 : Register<0x3c, 32>
+	{
+		struct Hmdlec : Bitfield<0, 32> { }; /* host memory descriptor list entry count */
+	};
+
+	Set_hmb(addr_t const base, uint64_t const hmdl,
+	        size_t const units, uint32_t const entries)
+	:
+		Sqe_set_feature(base)
+	{
+		write<Sqe_set_feature::Cdw10::Fid>(Feature_fid::HMB);
+		write<Cdw11::Ehm>(1);
+		write<Cdw12::Hsize>(units);
+		write<Cdw13::Hmdlla>(hmdl);
+		write<Cdw14::Hmdlua>(hmdl >> 32u);
+		write<Cdw15::Hmdlec>(entries);
+	}
 };
 
 
@@ -700,6 +782,9 @@ class Nvme::Controller : Platform::Device,
 		Identify_data::Mn mn { };
 		Identify_data::Fr fr { };
 		size_t mdts { };
+
+		uint32_t hmpre { };
+		uint32_t hmmin { };
 	};
 
 	struct Nsinfo
@@ -756,9 +841,44 @@ class Nvme::Controller : Platform::Device,
 		QUERYNS_CID,
 		CREATE_IO_CQ_CID,
 		CREATE_IO_SQ_CID,
+		SET_HMB_CID,
 	};
 
 	Constructible<Platform::Dma_buffer> _nvme_query_ns[MAX_NS] { };
+
+	struct Hmb_chunk
+	{
+		Registry<Hmb_chunk>::Element _elem;
+
+		Platform::Dma_buffer dma_buffer;
+
+		Hmb_chunk(Registry<Hmb_chunk> &registry,
+		          Platform::Connection &platform, size_t size)
+		:
+			_elem { registry, *this },
+			dma_buffer { platform, size, UNCACHED }
+		{ }
+
+		virtual ~Hmb_chunk() { }
+	};
+
+	struct Hmb_chunk_registry : Registry<Hmb_chunk>
+	{
+		Allocator &_alloc;
+
+		Hmb_chunk_registry(Allocator &alloc)
+		: _alloc { alloc } { }
+
+		~Hmb_chunk_registry()
+		{
+			for_each([&] (Hmb_chunk &c) {
+				destroy(_alloc, &c); });
+		}
+	};
+
+	Heap                                 _hmb_alloc { _env.ram(), _env.rm() };
+	Constructible<Hmb_chunk_registry>    _hmb_chunk_registry { };
+	Constructible<Platform::Dma_buffer>  _hmb_descr_list_buffer { };
 
 	Info _info { };
 
@@ -1033,6 +1153,9 @@ class Nvme::Controller : Platform::Device,
 		_info.mn = _identify_data->mn;
 		_info.fr = _identify_data->fr;
 
+		_info.hmpre = _identify_data->read<Identify_data::Hmpre>();
+		_info.hmmin = _identify_data->read<Identify_data::Hmmin>();
+
 		/* limit maximum I/O request length */
 		uint8_t const mdts = _identify_data->read<Identify_data::Mdts>();
 		_mdts_bytes = !mdts ? (size_t)Nvme::MAX_IO_LEN
@@ -1044,6 +1167,106 @@ class Nvme::Controller : Platform::Device,
 		_max_io_entries      = Genode::min((uint16_t)Nvme::MAX_IO_ENTRIES,
 		                                   mqes);
 		_max_io_entries_mask = _max_io_entries - 1;
+	}
+
+	/*
+	 * Check units match at least hmmin and limit to hmpre or the
+	 * amount of memory we can cover with our list and chunk size.
+	 */
+	uint32_t _check_hmb_units(uint32_t units)
+	{
+		if (!units) {
+			if (_info.hmpre)
+				warning("HMB support available but not configured");
+			return 0;
+		}
+
+		units = align_addr(units, log2((unsigned)HMB_CHUNK_UNITS));
+
+		if (units < _info.hmmin) {
+			warning("HMB will not be enabled as configured size of ",
+			         Number_of_bytes(units * Nvme::MPS),
+			         " is less than minimal required amount of ",
+			         Number_of_bytes(_info.hmmin * Nvme::MPS));
+			return 0;
+		}
+
+		if (units > _info.hmpre)
+			units = _info.hmpre;
+
+		uint32_t const max_units = HMB_LIST_MAX_ENTRIES * HMB_CHUNK_UNITS;
+		if (units > max_units)
+			units = max_units;
+
+		if (units < _info.hmpre)
+			warning("HMB size of ",
+			         Number_of_bytes(units * Nvme::MPS),
+			         " is less than preferred amount of ",
+			         Number_of_bytes(_info.hmpre * Nvme::MPS));
+
+		return units;
+	}
+
+	/**
+	 * Setup host-memory-buffer
+	 *
+	 * \param size  size of the HMB in bytes
+	 */
+	void _setup_hmb(size_t size)
+	{
+		uint32_t units = _check_hmb_units(size / Nvme::MPS);
+		if (!units)
+			return;
+
+		size_t  const  bytes       = units * Nvme::MPS;
+		uint32_t const num_entries = bytes / HMB_CHUNK_SIZE;
+
+		try {
+			_hmb_descr_list_buffer.construct(_platform, HMB_LIST_SIZE, UNCACHED);
+		} catch (... /* intentional catch-all */) {
+			warning("could not allocate HMB descriptor list page");
+			return;
+		}
+
+		_hmb_chunk_registry.construct(_hmb_alloc);
+
+		addr_t list_base =
+			(addr_t)_hmb_descr_list_buffer->local_addr<addr_t>();
+		for (uint32_t i = 0; i < num_entries; i++) {
+			try {
+				Hmb_chunk *c =
+					new (_hmb_alloc) Hmb_chunk(*_hmb_chunk_registry,
+					                           _platform, HMB_CHUNK_SIZE);
+
+				Hmb_de e(list_base, c->dma_buffer.dma_addr(), HMB_CHUNK_UNITS);
+
+				list_base += Hmb_de::SIZE;
+			} catch (... /* intentional catch-all */) {
+				warning("could not allocate HMB chunk");
+
+				/* if one allocation fails we bail entirely */
+				_hmb_chunk_registry.destruct();
+				_hmb_descr_list_buffer.destruct();
+				return;
+			}
+
+		}
+
+		Set_hmb b(_admin_command(Opcode::SET_FEATURES, 0, SET_HMB_CID),
+		          _hmb_descr_list_buffer->dma_addr(), units, num_entries);
+
+		write<Admin_sdb::Sqt>(_admin_sq->tail);
+
+		if (!_wait_for_admin_cq(10, SET_HMB_CID)) {
+			warning("could not enable HMB");
+
+			_hmb_chunk_registry.destruct();
+			_hmb_descr_list_buffer.destruct();
+			return;
+		}
+
+		log("HMB enabled with ", Number_of_bytes(bytes), " in ",
+		    num_entries, " chunks of ", Number_of_bytes(HMB_CHUNK_SIZE));
 	}
 
 	/**
@@ -1170,6 +1393,14 @@ class Nvme::Controller : Platform::Device,
 		_identify();
 		_query_nslist();
 		_query_ns();
+	}
+
+	/**
+	 * Setup HMB
+	 */
+	void setup_hmb(size_t bytes)
+	{
+		_setup_hmb(bytes);
 	}
 
 	/**
@@ -1334,6 +1565,8 @@ class Nvme::Controller : Platform::Device,
 		log("nn:",   _identify_data->read<Identify_data::Nn>());
 		log("vwc:",  _identify_data->read<Identify_data::Vwc>());
 		log("mdts:", _identify_data->read<Identify_data::Mdts>());
+		log("hmpre:", _identify_data->read<Identify_data::Hmpre>());
+		log("hmmin:", _identify_data->read<Identify_data::Hmmin>());
 	}
 
 	void dump_nslist()
@@ -1391,6 +1624,8 @@ class Nvme::Driver : Genode::Noncopyable
 		bool _verbose_mem      { false };
 		bool _verbose_regs     { false };
 
+		size_t _hmb_size { 0 };
+
 		struct Io_error           : Genode::Exception { };
 		struct Request_congestion : Genode::Exception { };
 
@@ -1416,6 +1651,8 @@ class Nvme::Driver : Genode::Noncopyable
 			_verbose_io       = config.attribute_value("verbose_io",       _verbose_io);
 			_verbose_mem      = config.attribute_value("verbose_mem",      _verbose_mem);
 			_verbose_regs     = config.attribute_value("verbose_regs",     _verbose_regs);
+
+			_hmb_size = config.attribute_value("max_hmb_size", Genode::Number_of_bytes(0));
 		}
 
 		Genode::Signal_handler<Driver> _config_sigh {
@@ -1569,6 +1806,12 @@ class Nvme::Driver : Genode::Noncopyable
 				_nvme_ctrlr.dump_identify();
 				_nvme_ctrlr.dump_nslist();
 			}
+
+			/*
+			 * Setup HMB
+			 */
+			if (_nvme_ctrlr.info().hmpre)
+				_nvme_ctrlr.setup_hmb(_hmb_size);
 
 			/*
 			 * Setup I/O

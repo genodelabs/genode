@@ -151,10 +151,10 @@ append config {
 		</config>
 	</start>
 
-	<start name="nvme_drv">
-		<resource name="RAM" quantum="8M"/>
+	<start name="nvme_drv" caps="120">
+		<resource name="RAM" quantum="24M"/>
 		<provides> <service name="Block"/> </provides>
-		<config>
+		<config max_hmb_size="16M" verbose_regs="yes" verbose_identify="yes">
 			<policy label_prefix="block_tester" writeable="} [writeable] {"/>
 		</config>
 		<route>
