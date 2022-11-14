@@ -156,7 +156,7 @@
 		<config>
 			<report devices="yes"/>
 			<policy label_prefix="ps2_drv"> <device name="ps2"/> </policy>
-			<policy label_prefix="dynamic -> vesa_fb_drv"> <pci class="VGA"/>   </policy>
+			<policy label_prefix="dynamic -> vesa_fb_drv" info="yes"> <pci class="VGA"/> </policy>
 			<policy label_prefix="dynamic -> ahci_drv">    <pci class="AHCI"/>  </policy>
 			<policy label_prefix="dynamic -> nvme_drv" info="yes"> <pci class="NVME"/>  </policy>
 			<policy label_prefix="usb_drv" info="yes">     <pci class="USB"/>   </policy>
