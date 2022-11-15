@@ -1,12 +1,4 @@
-assert_spec x86
-
-set use_linux [have_spec linux]
-
-if {[get_cmd_switch --autopilot] && ![have_include "power_on/qemu"]} {
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0
-}
-
+assert_spec linux
 
 #
 # Check used commands
@@ -15,30 +7,14 @@ set dd     [installed_command dd]
 set sfdisk [installed_command sfdisk]
 set sgdisk [installed_command sgdisk]
 
-set drv0 "ahci_drv"
-set drv1 "ahci_drv"
-
-if { $use_linux } {
-	set drv0 "lx_block0"
-	set drv1 "lx_block1"
-}
-
-#
-# Build
-#
-set build_components {
+create_boot_directory
+build {
 	core init timer
-	drivers/ahci
 	server/lx_block
 	server/report_rom
 	app/block_tester
 	server/part_block
 }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
 
 proc create_disk_image {number} {
 	global dd
@@ -50,17 +26,12 @@ proc create_disk_image {number} {
 	if { $number == 0 } {
 		exec echo -e "2048 2097151 - -\n2099200 2095070 - -" | $sfdisk -f bin/block$number.raw
 	} else {
-		exec $sgdisk --clear bin/block$number.raw
-		exec $sgdisk -n1:2048:2099199 -n2:2099200:4194270 bin/block$number.raw
+		catch { exec $sgdisk --clear bin/block$number.raw }
+		catch { exec $sgdisk -n1:2048:2099199 -n2:2099200:4194270 bin/block$number.raw }
 	}
 }
 
-create_boot_directory
-
-#
-# Generate config
-#
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -80,37 +51,15 @@ append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
+	</start>
 
-append_platform_drv_config
-
-append config {
 	<start name="block_report_rom">
 		<binary name="report_rom"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
-}
 
-append_if [expr !$use_linux] config {
-	<start name="ahci_drv">
-		<resource name="RAM" quantum="10M" />
-		<provides><service name="Block" /></provides>
-		<config>
-			<report ports="yes"/>
-			<!-- CAUTION setting writeable! -->
-			<policy label_prefix="part_block0" device="0" writeable="yes"/>
-			<policy label_prefix="part_block1" device="1" writeable="yes"/>
-		</config>
-		<route>
-			<service name="Report"><child name="block_report_rom"/></service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>
-}
-
-append_if $use_linux config {
 	<start name="lx_block0" ld="no">
 		<binary name="lx_block"/>
 		<resource name="RAM" quantum="2G"/>
@@ -123,18 +72,14 @@ append_if $use_linux config {
 		<provides><service name="Block"/></provides>
 		<config file="block1.raw" block_size="512" writeable="yes"/>
 	</start>
-}
 
-append config {
 	<start name="part_block0">
 		<binary name="part_block"/>
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
-			<service name="Report"><child name="block_report_rom"/></service>}
-			append config "
-			<service name=\"Block\"><child name=\"$drv0\"/></service>"
-			append config {
+			<service name="Report"><child name="block_report_rom"/></service>
+			<service name="Block"><child name="lx_block0"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 		<config io_buffer="2M">
@@ -143,15 +88,14 @@ append config {
 			<policy label="test-part0 -> " partition="2" writeable="yes" />
 		</config>
 	</start>
+
 	<start name="part_block1">
 		<binary name="part_block"/>
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
-			<service name="Report"><child name="block_report_rom"/></service>}
-			append config "
-			<service name=\"Block\"><child name=\"$drv1\"/></service>"
-			append config {
+			<service name="Report"><child name="block_report_rom"/></service>
+			<service name="Block"><child name="lx_block1"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 		<config io_buffer="2M">
@@ -160,9 +104,7 @@ append config {
 			<policy label="test-part1 -> " partition="2" writeable="yes" />
 		</config>
 	</start>
-}
 
-append config {
 	<start name="test-part0">
 		<binary name="block_tester" />
 		<resource name="RAM" quantum="32M" />
@@ -176,9 +118,7 @@ append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
-}
 
-append config {
 	<start name="block_tester0">
 		<binary name="block_tester" />
 		<resource name="RAM" quantum="32M"/>
@@ -248,9 +188,7 @@ append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
-}
 
-append config {
 	<start name="test-part1">
 		<binary name="block_tester" />
 		<resource name="RAM" quantum="32M" />
@@ -264,9 +202,7 @@ append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
-}
 
-append config {
 	<start name="block_tester1">
 		<binary name="block_tester" />
 		<resource name="RAM" quantum="32M"/>
@@ -337,34 +273,14 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
 create_disk_image 0
 create_disk_image 1
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core init timer ahci_drv block_tester report_rom
+build_boot_image {
+	core init timer block_tester report_rom
 	ld.lib.so part_block
-}
-
-append_if $use_linux boot_modules {
 	block0.raw block1.raw lx_block
 }
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
-
-append qemu_args " -nographic -nographic"
-append qemu_args " -drive id=disk,file=bin/block0.raw,format=raw,if=none \
-                   -drive id=disk2,file=bin/block1.raw,format=raw,if=none \
-                   -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 \
-                   -device ide-hd,drive=disk2,bus=ahci.1 -boot d"
 
 run_genode_until {.*--- all tests finished ---.*\n} 360
 set serial_id [output_spawn_id]

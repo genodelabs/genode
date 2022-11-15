@@ -1,7 +1,5 @@
-#
-# Build
-#
-set build_components {
+create_boot_directory
+build {
 	core init timer
 	server/vfs
 	server/vfs_block
@@ -9,18 +7,7 @@ set build_components {
 	lib/vfs_import
 }
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
-
-create_boot_directory
-
-#
-# Generate config
-#
-append config {
+install_config {
 <config verbose="no">
 	<parent-provides>
 		<service name="ROM"/>
@@ -41,11 +28,7 @@ append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
-
-append_platform_drv_config
-
-append config {
+	</start>
 
 	<start name="vfs">
 		<resource name="RAM" quantum="38M"/>
@@ -122,19 +105,9 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
-#
-# Boot modules
-#
-
-set boot_modules {
+build_boot_image {
 	core init timer vfs vfs_block block_tester
 	ld.lib.so vfs.lib.so vfs_import.lib.so
 }
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
 
 run_genode_until {.*child "block_tester" exited with exit value 0.*\n} 60
