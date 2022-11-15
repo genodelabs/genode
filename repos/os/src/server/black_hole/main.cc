@@ -27,6 +27,7 @@
 #include "event.h"
 #include "nic.h"
 #include "uplink.h"
+#include "report.h"
 #include "rom.h"
 #include "gpu.h"
 #include "usb.h"
@@ -50,6 +51,7 @@ struct Black_hole::Main
 	Genode::Constructible<Event_root>      event_root     { };
 	Genode::Constructible<Nic_root>        nic_root       { };
 	Genode::Constructible<Uplink_root>     uplink_root    { };
+	Genode::Constructible<Report_root>     report_root    { };
 	Genode::Constructible<Rom_root>        rom_root       { };
 	Genode::Constructible<Gpu_root>        gpu_root       { };
 	Genode::Constructible<Usb_root>        usb_root       { };
@@ -85,6 +87,10 @@ struct Black_hole::Main
 		if (_config_rom.xml().has_sub_node("rom")) {
 			rom_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*rom_root));
+		}
+		if (_config_rom.xml().has_sub_node("report")) {
+			report_root.construct(env, heap);
+			env.parent().announce(env.ep().manage(*report_root));
 		}
 		if (_config_rom.xml().has_sub_node("gpu")) {
 			gpu_root.construct(env, heap);

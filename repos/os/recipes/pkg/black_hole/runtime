@@ -8,6 +8,7 @@
 		<nic/>
 		<uplink/>
 		<rom/>
+		<report/>
 		<gpu/>
 		<usb/>
 	</provides>
