@@ -1,0 +1,84 @@
+The vmm component implements a virtual-machine monitor that is able to
+drive Linux VMs on ARMv7 and ARMv8 using hardware-assisted virtualization.
+It uses the VM session for ARM, currently provided by the base-hw kernel only.
+It is limited to load Linux kernel binaries and an initram-filesystem only.
+
+The VMM produces a flattened device-tree blob (DTB) to the Linux guest OS
+that is derived from the configuration of the VMM.
+
+The following configuration attributes are evaluated:
+
+! <config kernel_rom="linux"
+!         initrd_rom="initrd"
+!         ram_size="512M"
+!         cpu_count="1"
+!         cpu_type="arm,cortex-a53"
+!         gic_version="3"
+!         bootargs="console=hvc0"/>
+
+Configuration attributes explained in more detail:
+
+:kernel_rom:
+  This attribute is optional. It denotes the ROM, which is requested as kernel
+  binary to be loaded. The default name requested will be "linux". Please note
+  that the Linux kernel image shouldn't be gzipped, because the VMM does not
+  deflate the image before loading.
+
+:initrd_rom:
+  This attribute is optional. It denotes the ROM, which is requested as initramfs
+  resp. initrd to be loaded. The default name requested will be "initrd".
+
+:ram_size:
+  This attribute is mandatory. It defines the size of the VM's memory.
+
+:cpu_count:
+  This attribute is mandatory. It defines the available number of virtual CPUs
+  for the VM. The virtual CPUs are getting assigned round-robin to the physical
+  CPUs available to the VMM.
+
+:cpu_type:
+  This attribute's default value is "arm,cortex-a15". If your underlying hardware
+  has a different one, you should use here the Linux-specific CPU compatible string
+  for the actual CPU of your board.
+
+:gic_version:
+  This attribute's default value is "2". If your underlying hardware uses a
+  different ARM Generic Interrupt Controller version, you should specify the
+  actual version here. The only versions allowed are 2 and 3. Other interrupt
+  controller models are not supported.
+
+:bootargs:
+  This attribute is mandatory. It defines the Linux kernel's cmdline. The default
+  value is "console=ttyAMA0"
+
+
+Virtio devices
+--------------
+
+In addition to the general configuration attributes, one can define several Virtio
+devices per VM. This is done by configuration sub-nodes, like:
+
+! <config ram_size="128M" cpu_count="1" ... >
+!
+!   <virtio_device name="hvc0" type="console"/>
+!   ...
+! </config>
+
+For each virtio_device node the following attributes need to be set:
+
+:name:
+  A unique name denoting the device.
+
+:type:
+  The Virtio type of device. One can decide in between "console", "net",
+  and "block". The "console" type gets mapped to a Genode Terminal session,
+  "net" is mapped to a Nic session, and "block" to a Block session.
+
+
+Additional devices
+------------------
+
+Apart from defined Virtio devices, as well as the defined CPUs and GIC version,
+the VMM always assigns a PL011 UART device to the VM, which gets connected to
+a Terminal session as backend. This Terminal session uses "earlycon" as
+last label.

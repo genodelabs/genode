@@ -188,14 +188,12 @@ void Cpu::Icc_sgi1r_el1::write(Genode::addr_t v)
 	unsigned target_list = v & 0xffff;
 	unsigned irq         = (v >> 24) & 0xf;
 
-	for (unsigned i = 0; i <= Vm::last_cpu(); i++) {
-		if (target_list & (1<<i)) {
-			vm.cpu(i, [&] (Cpu & cpu) {
-				cpu.gic().irq(irq).assert();
-				cpu.recall();
-			});
+	vm.for_each_cpu([&] (Cpu & cpu) {
+		if (target_list & (1<<cpu.cpu_id())) {
+			cpu.gic().irq(irq).assert();
+			cpu.recall();
 		}
-	}
+	});
 };
 
 

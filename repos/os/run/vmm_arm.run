@@ -26,6 +26,35 @@ import_from_depot [depot_user]/src/[base_src] \
 
 build { test/terminal_expect_send }
 
+proc vmm_config { } {
+
+	# for early printk add bootarg: earlycon=pl011,0x9000000
+
+	if {[have_spec arm]} {
+		return {
+		<config kernel_rom="linux" initrd_rom="initrd" ram_size="128M"
+		        cpu_count="1" cpu_type="arm,cortex-a15" gic_version="2"
+		        bootargs="rdinit=/bin/sh ip=dhcp console=hvc0">
+			<virtio_device name="hvc0" type="console"/>
+			<virtio_device name="eth0" type="net"/>
+			<virtio_device name="blk0" type="block"/>
+		</config>}
+	}
+
+	if {[have_spec arm_64]} {
+		return {
+		<config kernel_rom="linux" initrd_rom="initrd" ram_size="128M"
+		        cpu_count="4" cpu_type="arm,cortex-a53" gic_version="3"
+		        bootargs="rdinit=/bin/sh ip=dhcp console=hvc0">
+			<virtio_device name="hvc0" type="console"/>
+			<virtio_device name="eth0" type="net"/>
+			<virtio_device name="blk0" type="block"/>
+		</config>}
+	}
+
+	return unavailable
+}
+
 install_config {
 <config verbose="yes" prio_levels="2">
 	<parent-provides>
@@ -92,7 +121,7 @@ install_config {
 			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
 			<service name="Nic"> <child name="nic_drv"/> </service>
 			<any-service><parent/><any-child/></any-service>
-		</route>
+		</route>} [vmm_config] {
 	</start>
 
 	<start name="vm">
@@ -112,12 +141,7 @@ if { [have_spec arm] } {
 
 	if {![file exists bin/linux]} {
 		puts "Download linux kernel ..."
-			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-20.05/linux-arm32
-	}
-
-	if {![file exists bin/dtb]} {
-		puts "Download device tree blob ..."
-			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-21.02/dtb-arm32-virt
+			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-22.11/linux-virtio-arm32
 	}
 
 	if {![file exists bin/initrd]} {
@@ -126,22 +150,15 @@ if { [have_spec arm] } {
 	}
 
 #
-# To obtain the linux kernel, do the following steps:
-# 
-# wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.3.10.tar.xz
-# 
-# tar -xJf linux-5.3.10.tar.xz
-# cd linux-5.3.10
-# 
-# make O=../build-linux-aarch32 ARCH=arm CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-arm- defconfig
-# make O=../build-linux-aarch32 ARCH=arm CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-arm- -j32
-# 
-# copy ../build-linux-aarch32/arch/arm/boot/zImage to your build directory in 'bin/linux'
+# To build the linux kernel from scratch, do the following steps:
 #
+# wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.14.21.tar.xz
+# tar -xJf linux-5.14.21.tar.xz
+# cd linux-5.14.21
+# wget -O .config https://raw.githubusercontent.com/skalk/linux/66fb717e92b47512d8f686860a2c5e7329d01691/arch/arm/configs/virtio_only_defconfig
+# make ARCH=arm CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-arm-
 #
-# To get the dtb (device-tree-binary), you have to compile the file:
-# repos/os/src/server/vmm/spec/arm_v7/virt.dts with the dtc compiler:
-# dtc repos/os/src/server/vmm/spec/arm_v7/virt.dts > bin/dtb
+# copy arch/arm/boot/Image to your build directory in 'bin/linux'
 #
 #
 # To construct the initrd do the following:
@@ -169,12 +186,7 @@ if { [have_spec arm_64] } {
 
 	if {![file exists bin/linux]} {
 		puts "Download linux kernel ..."
-			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-20.02/linux-arm64
-	}
-
-	if {![file exists bin/dtb]} {
-		puts "Download device tree blob ..."
-			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-21.02/dtb-arm64-virt-smp
+			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-22.11/linux-virtio-arm64
 	}
 
 	if {![file exists bin/initrd]} {
@@ -183,22 +195,15 @@ if { [have_spec arm_64] } {
 	}
 
 #
-# To obtain the linux kernel, do the following steps:
-# 
-# wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.19.53.tar.xz
-# 
-# tar -xJf linux-4.19.53.tar.xz
-# cd linux-4.19.53
-# 
-# make O=../build-linux-aarch64 ARCH=arm64 CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-aarch64- defconfig
-# make O=../build-linux-aarch64 ARCH=arm64 CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-aarch64- -j32
-# 
-# copy ../build-linux-aarch64/arch/arm64/boot/Image to your build directory in 'bin/linux'
+# To build the linux kernel from scratch, do the following steps:
 #
+# wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.14.21.tar.xz
+# tar -xJf linux-5.14.21.tar.xz
+# cd linux-5.14.21
+# wget -O .config https://raw.githubusercontent.com/skalk/linux/66fb717e92b47512d8f686860a2c5e7329d01691/arch/arm64/configs/virtio_only_defconfig
+# make ARCH=arm64 CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-aarch64-
 #
-# To get the dtb (device-tree-binary), you have to compile the file:
-# repos/os/src/server/vmm/spec/arm_v8/virt.dts with the dtc compiler:
-# dtc repos/os/src/server/vmm/spec/arm_v8/virt.dts > bin/dtb
+# copy arch/arm64/boot/Image to your build directory in 'bin/linux'
 #
 #
 # To construct the initrd do the following:
@@ -227,7 +232,6 @@ exec [installed_command mkfs.vfat] bin/block.img
 build_boot_image {
 	test-terminal_expect_send
 	linux
-	dtb
 	initrd
 	block.img
 }
@@ -238,4 +242,4 @@ build_boot_image {
 append qemu_args " -nographic "
 
 run_genode_until "\[init -> vm\] .*resolv.conf.*" 220
-exec rm bin/linux bin/dtb bin/initrd bin/block.img
+exec rm bin/linux bin/initrd bin/block.img

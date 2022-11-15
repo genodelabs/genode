@@ -25,6 +25,7 @@
 
 namespace Vmm {
 	class  Virtio_split_queue;
+	class Virtio_device_base;
 	template <typename QUEUE, unsigned NUM> class Virtio_device;
 
 	using namespace Genode;
@@ -219,8 +220,16 @@ class Vmm::Virtio_split_queue
 };
 
 
+class Vmm::Virtio_device_base : public List<Virtio_device_base>::Element
+{
+	public:
+
+		virtual ~Virtio_device_base() {}
+};
+
+
 template <typename QUEUE, unsigned NUM>
-class Vmm::Virtio_device : public Vmm::Mmio_device
+class Vmm::Virtio_device : public Vmm::Mmio_device, public Virtio_device_base
 {
 	protected:
 

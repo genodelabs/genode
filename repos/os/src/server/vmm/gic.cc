@@ -207,7 +207,7 @@ Gic::Gicd_banked::Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus)
 		_rdist.construct(GICR_MMIO_START +
 		                 (cpu.cpu_id()*0x20000), 0x20000,
 		                 cpu.cpu_id(),
-		                 Vm::last_cpu() == cpu.cpu_id());
+		                 (_gic._cpu_cnt-1) == cpu.cpu_id());
 		bus.add(*_rdist);
 	}
 }
@@ -251,26 +251,27 @@ void Gic::Gicd_sgir::write(Address_range &, Cpu & cpu,
 	unsigned target_list = Target_list::get(value);
 	unsigned irq = Int_id::get(value);
 
-	for (unsigned i = 0; i <= Vm::last_cpu(); i++) {
+	cpu.vm().for_each_cpu([&] (Cpu & c) {
 		switch (type) {
 		case Target_filter::MYSELF:
-			if (i != cpu.cpu_id()) { continue; }
+			if (c.cpu_id() != cpu.cpu_id())
+				return;
 			break;
 		case Target_filter::ALL:
-			if (i == cpu.cpu_id()) { continue; }
+			if (c.cpu_id() == cpu.cpu_id())
+				return;
 			break;
 		case Target_filter::LIST:
-			if (!(target_list & (1<<i))) { continue; }
+			if (!(target_list & (1<<c.cpu_id())))
+				return;
 			break;
 		default:
-			continue;
+			return;
 		};
 
-		cpu.vm().cpu(i, [&] (Cpu & c) {
-			c.gic().irq(irq).assert();
-			if (cpu.cpu_id() != c.cpu_id()) { cpu.recall(); }
-		});
-	}
+		c.gic().irq(irq).assert();
+		if (cpu.cpu_id() != c.cpu_id()) { cpu.recall(); }
+	});
 }
 
 

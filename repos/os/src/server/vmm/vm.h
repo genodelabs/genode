@@ -15,6 +15,7 @@
 #define _SRC__SERVER__VMM__VM_H_
 
 #include <board.h>
+#include <config.h>
 #include <ram.h>
 #include <exception.h>
 #include <cpu.h>
@@ -28,42 +29,54 @@
 #include <base/attached_rom_dataspace.h>
 #include <vm_session/connection.h>
 
-namespace Vmm { class Vm; }
+namespace Vmm {
+	class Vm;
+	using namespace Genode;
+}
 
 class Vmm::Vm
 {
 	private:
 
-		using Ep = Genode::Entrypoint;
+		struct Cpu_entry : List<Cpu_entry>::Element
+		{
+			enum { STACK_SIZE = sizeof(unsigned long) * 2048, };
 
-		enum { STACK_SIZE = sizeof(unsigned long) * 2048, };
+			Constructible<Entrypoint> _ep {};
 
-		Genode::Env                  & _env;
-		Genode::Vm_connection          _vm         { _env           };
-		Genode::Attached_rom_dataspace _kernel_rom { _env, "linux"  };
-		Genode::Attached_rom_dataspace _dtb_rom    { _env, "dtb"    };
-		Genode::Attached_rom_dataspace _initrd_rom { _env, "initrd" };
-		Genode::Attached_ram_dataspace _vm_ram     { _env.ram(), _env.rm(),
-		                                             RAM_SIZE, Genode::CACHED };
-		Ram                            _ram        { RAM_START, RAM_SIZE,
-		                                             (Genode::addr_t)_vm_ram.local_addr<void>()};
-		Genode::Heap                   _heap       { _env.ram(), _env.rm() };
-		Mmio_bus                       _bus;
-		Gic                            _gic;
-		Genode::Constructible<Ep>      _eps[MAX_CPUS];
-		Genode::Constructible<Cpu>     _cpus[MAX_CPUS];
-		Pl011                          _uart;
-		Virtio_console                 _virtio_console;
-		Virtio_net                     _virtio_net;
-		Virtio_block_device            _virtio_block;
+			Entrypoint & ep(unsigned i, Vm & vm);
+			Cpu          cpu;
+
+			Cpu_entry(unsigned idx, Vm & vm);
+		};
+
+		Env                    & _env;
+		Heap                   & _heap;
+		Config                 & _config;
+		Vm_connection            _vm         { _env           };
+		Attached_rom_dataspace   _kernel_rom { _env, _config.kernel_name() };
+		Attached_rom_dataspace   _initrd_rom { _env, _config.initrd_name() };
+		Attached_ram_dataspace   _vm_ram     { _env.ram(), _env.rm(),
+		                                       _config.ram_size(), CACHED };
+		Ram                      _ram        { RAM_START, _config.ram_size(),
+		                                       (addr_t)_vm_ram.local_addr<void>()};
+		Mmio_bus                 _bus;
+		Gic                      _gic;
+		List<Cpu_entry>          _cpu_list;
+		List<Virtio_device_base> _device_list;
+		Pl011                    _uart;
+
+		addr_t _initrd_offset() const;
+		addr_t _dtb_offset()    const;
 
 		void _load_kernel();
-		void _load_dtb();
 		void _load_initrd();
+		void _load_dtb();
 
 	public:
 
-		Vm(Genode::Env & env);
+		Vm(Env & env, Heap & heap, Config & config);
+		~Vm();
 
 		Mmio_bus & bus() { return _bus; }
 		Cpu      & boot_cpu();
@@ -71,11 +84,16 @@ class Vmm::Vm
 		template <typename F>
 		void cpu(unsigned cpu, F func)
 		{
-			if (cpu >= MAX_CPUS) Genode::error("Cpu number out of bounds ");
-			else                 func(*_cpus[cpu]);
+			for (Cpu_entry * ce = _cpu_list.first(); ce; ce = ce->next())
+				if (ce->cpu.cpu_id() == cpu) func(ce->cpu);
 		}
 
-		static unsigned last_cpu() { return MAX_CPUS - 1; }
+		template <typename F>
+		void for_each_cpu(F func)
+		{
+			for (Cpu_entry * ce = _cpu_list.first(); ce; ce = ce->next())
+				func(ce->cpu);
+		}
 };
 
 #endif /* _SRC__SERVER__VMM__VM_H_ */
