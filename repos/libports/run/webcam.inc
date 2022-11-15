@@ -1,7 +1,5 @@
 assert_spec x86
 
-set build_components { }
-
 # fuji4
 proc libuvc_vendor_id {}  { return "0x04f2" }
 proc libuvc_product_id {} { return "0xb564" }
@@ -19,25 +17,22 @@ proc libuvc_product_id {} { return "0xb564" }
 #proc libuvc_product_id {} { return "0x58db" }
 
 
-
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/usb_webcam \
+                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/dynamic_rom \
                   [depot_user]/src/init \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/dynamic_rom \
-                  [depot_user]/src/rom_reporter \
-                  [depot_user]/src/report_rom \
                   [depot_user]/src/pc_usb_host_drv \
-                  [depot_user]/src/vesa_drv \
-                  [depot_user]/pkg/usb_webcam
+                  [depot_user]/src/pci_decode \
+                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/rom_reporter \
+                  [depot_user]/src/vesa_drv
 
 import_from_depot $test_imports
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-build $build_components
-
 
 append config {
 <config verbose="no" prio_levels="2">
@@ -56,17 +51,55 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
-}
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route>
 			<any-service> <parent/> </any-service>
 		</route>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
+
+	<start name="acpi_drv" caps="350">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report">             <child name="report_rom"/> </service>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Platform"/>
+		</provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<config>
+			<policy label="usb_drv -> " info="yes"> <pci class="USB"/> </policy>
+			<policy label="fb_drv -> "  info="yes"> <pci class="VGA"/> </policy>
+		</config>
 	</start>
 
 	<start name="usb_drv" priority="0" caps="200">
@@ -180,11 +213,7 @@ append config {
 
 install_config $config
 
-append_platform_drv_boot_modules
-
-append boot_modules { }
-
-build_boot_image $boot_modules
+build_boot_image { }
 
 append qemu_args { -usb -device usb-host,vendorid=[libuvc_vendor_id],productid=[libuvc_product_id] }
 
