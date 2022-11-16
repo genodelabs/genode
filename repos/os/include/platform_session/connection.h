@@ -139,6 +139,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 
 				Capability<Device_interface> cap;
 
+				update();
 				with_xml([&] (Xml_node & xml) {
 					xml.for_each_sub_node("device", [&] (Xml_node node) {
 
