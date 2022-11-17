@@ -1082,11 +1082,12 @@ class Nvme::Controller : Platform::Device,
 	/**
 	 * Clean interrupts
 	 */
-	void clear_intr()
-	{
-		write<Intmc>(1);
-		ack();
-	}
+	void clear_intr() { write<Intmc>(1); }
+
+	/**
+	 * Acknowledge interrupt
+	 */
+	void ack_irq() { Platform::Device::Irq::ack(); }
 
 	/*
 	 * Identify NVM system
@@ -1798,14 +1799,9 @@ class Nvme::Driver : Genode::Noncopyable
 			_submits_pending = true;
 		}
 
-		void mask_irq()
-		{
-			_nvme_ctrlr.mask_intr();
-		}
-
 		void ack_irq()
 		{
-			_nvme_ctrlr.clear_intr();
+			_nvme_ctrlr.ack_irq();
 		}
 
 		bool execute()
@@ -1869,7 +1865,6 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 
 	void _handle_irq()
 	{
-		_driver.mask_irq();
 		_handle_requests();
 		_driver.ack_irq();
 	}
