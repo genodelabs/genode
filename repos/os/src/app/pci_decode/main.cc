@@ -49,7 +49,7 @@ struct Main
 	void parse_pci_function(Bdf bdf, Config & cfg,
 	                        addr_t cfg_phys_base,
 	                        Xml_generator & generator, unsigned & msi);
-	void parse_pci_bus(bus_t bus, bus_t offset, addr_t base, addr_t phys_base,
+	void parse_pci_bus(bus_t bus, addr_t base, addr_t phys_base,
 	                   Xml_generator & generator, unsigned & msi);
 
 	void parse_irq_override_rules(Xml_node & xml);
@@ -231,7 +231,6 @@ void Main::parse_pci_function(Bdf             bdf,
 
 
 void Main::parse_pci_bus(bus_t           bus,
-                         bus_t           offset,
                          addr_t          base,
                          addr_t          phys_base,
                          Xml_generator & generator,
@@ -243,7 +242,7 @@ void Main::parse_pci_bus(bus_t           bus,
 		if (!cfg.valid())
 			return true;
 
-		parse_pci_function({(bus_t)(bus+offset), dev, fn}, cfg,
+		parse_pci_function({(bus_t)bus, dev, fn}, cfg,
 		                   config_phys_base, generator, msi_number);
 
 		return !(fn == 0 && !cfg.read<Config::Header_type::Multi_function>());
@@ -251,8 +250,7 @@ void Main::parse_pci_bus(bus_t           bus,
 
 	for (dev_t dev = 0; dev < DEVICES_PER_BUS_MAX; dev++) {
 		for (func_t fn = 0; fn < FUNCTION_PER_DEVICE_MAX; fn++) {
-			unsigned factor = (bus * DEVICES_PER_BUS_MAX + dev) *
-			                  FUNCTION_PER_DEVICE_MAX + fn;
+			unsigned factor = dev * FUNCTION_PER_DEVICE_MAX + fn;
 			addr_t config_base = base + factor * FUNCTION_CONFIG_SPACE_SIZE;
 			addr_t config_phys_base =
 				phys_base + factor * FUNCTION_CONFIG_SPACE_SIZE;
@@ -293,14 +291,16 @@ void Main::parse_pci_config_spaces(Xml_node & xml)
 			new (heap) Bridge(bridge_registry, { bus_off, 0, 0 },
 			                  bus_off, last_bus);
 
-			pci_config_ds.construct(env, base, count * FUNCTION_CONFIG_SPACE_SIZE);
-
 			bus_t bus = 0;
-			do
-				parse_pci_bus((bus_t)bus, bus_off,
+			do {
+				enum { BUS_SIZE = DEVICES_PER_BUS_MAX * FUNCTION_PER_DEVICE_MAX
+				                  * FUNCTION_CONFIG_SPACE_SIZE };
+				addr_t offset = base + bus * BUS_SIZE;
+				pci_config_ds.construct(env, offset, BUS_SIZE);
+				parse_pci_bus((bus_t)bus + bus_off,
 				              (addr_t)pci_config_ds->local_addr<void>(),
-				              base, generator, msi_number);
-			while (bus++ < last_bus);
+				              offset, generator, msi_number);
+			} while (bus++ < last_bus);
 
 			pci_config_ds.destruct();
 		});
