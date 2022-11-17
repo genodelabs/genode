@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2021 Genode Labs GmbH
+ * Copyright (C) 2014-2022 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -171,25 +171,14 @@ class Nic_client
 			destruct_blockade().wakeup();
 		}
 
-		void _tx_ack(bool block = false)
+		void _tx_ack()
 		{
 			/* check for acknowledgements */
-			while (_nic.tx()->ack_avail() || block) {
+			while (_nic.tx()->ack_avail()) {
 				Nic::Packet_descriptor acked_packet = _nic.tx()->get_acked_packet();
-				_nic.tx()->release_packet(acked_packet);
-				block = false;
-			}
-		}
-
-		Nic::Packet_descriptor _alloc_tx_packet(Genode::size_t len)
-		{
-			while (true) {
-				try {
-					Nic::Packet_descriptor packet = _nic.tx()->alloc_packet(len);
-					return packet;
-				} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
-					_tx_ack(true);
-				}
+				auto packet_allocated_len = Nic::Packet_descriptor(acked_packet.offset(),
+				                                                   Nic::Packet_allocator::OFFSET_PACKET_SIZE);
+				_nic.tx()->release_packet(packet_allocated_len);
 			}
 		}
 
@@ -247,18 +236,36 @@ class Nic_client
 		Genode::Signal_context_capability dispatcher()   { return _destruct_dispatcher; }
 		Nic::Mac_address                   mac_address() { return _nic.mac_address(); }
 
-		int send_packet(void *packet, uint32_t packet_len)
+		bool alloc_packet(Nic::Packet_descriptor &pkg, uint32_t packet_len)
+		{
+			auto const result = _nic.tx()->alloc_packet_attempt(packet_len);
+
+			return result.convert<bool>([&](auto &p) {
+				pkg = p;
+				return true;
+			}, [&] (auto &) {
+				return false;
+			});
+		}
+
+		int send_packet(Nic::Packet_descriptor const &tx_packet, void *packet, uint32_t packet_len)
 		{
 			if (!_link_up) { return VERR_NET_DOWN; }
 
-			Nic::Packet_descriptor tx_packet = _alloc_tx_packet(packet_len);
-
-			char *tx_content = _nic.tx()->packet_content(tx_packet);
-			Genode::memcpy(tx_content, packet, packet_len);
-
-			_nic.tx()->submit_packet(tx_packet);
+			/* check for acknowledgements */
 			_tx_ack();
 
+			if (tx_packet.size() < packet_len) {
+				RTLogPrintf("%s: packet too large\n", __func__);
+				_nic.tx()->release_packet(tx_packet);
+				return VINF_SUCCESS;
+			}
+
+			/* send it */
+			auto const tx_content = _nic.tx()->packet_content(tx_packet);
+			Genode::memcpy(tx_content, packet, packet_len);
+			auto tx_packet_actual_len = Nic::Packet_descriptor(tx_packet.offset(), packet_len);
+			_nic.tx()->submit_packet(tx_packet_actual_len);
 			return VINF_SUCCESS;
 		}
 };
@@ -288,6 +295,9 @@ static DECLCALLBACK(int) drvNicNetworkUp_BeginXmit(PPDMINETWORKUP pInterface, bo
 static DECLCALLBACK(int) drvNicNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, size_t cbMin,
                                                   PCPDMNETWORKGSO pGso, PPPDMSCATTERGATHER ppSgBuf)
 {
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
+	Nic_client *nic_client = pThis->nic_client;
+
 	/*
 	 * Allocate a scatter / gather buffer descriptor that is immediately
 	 * followed by the buffer space of its single segment.  The GSO context
@@ -317,6 +327,20 @@ static DECLCALLBACK(int) drvNicNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, siz
 	pSgBuf->aSegs[0].cbSeg = pSgBuf->cbAvailable;
 	pSgBuf->aSegs[0].pvSeg = pSgBuf + 1;
 
+	pSgBuf->pvAllocator = RTMemAllocZ(sizeof(Nic::Packet_descriptor));
+	if (!pSgBuf->pvAllocator) {
+		RTMemFree(pSgBuf);
+		return VERR_TRY_AGAIN;
+	}
+
+	if (!nic_client->alloc_packet(*(Nic::Packet_descriptor *)pSgBuf->pvAllocator,
+	                              Nic::Packet_allocator::OFFSET_PACKET_SIZE)) {
+		RTMemFree(pSgBuf->pvAllocator);
+		RTMemFree(pSgBuf);
+		/* VERR_ERR_MEMORY leads to assertion in E1000 ... try again is evaluated */
+		return VERR_TRY_AGAIN;
+	}
+
 	*ppSgBuf = pSgBuf;
 	return VINF_SUCCESS;
 }
@@ -331,6 +355,8 @@ static DECLCALLBACK(int) drvNicNetworkUp_FreeBuf(PPDMINETWORKUP pInterface, PPDM
 	{
 		Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
 		pSgBuf->fFlags = 0;
+		if (pSgBuf->pvAllocator)
+			RTMemFree(pSgBuf->pvAllocator);
 		RTMemFree(pSgBuf);
 	}
 	return VINF_SUCCESS;
@@ -348,6 +374,13 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
 	AssertPtr(pSgBuf);
 	Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
 
+	if (!pSgBuf->pvAllocator) {
+		RTLogPrintf("%s: error in packet allocation\n", __func__);
+		return VERR_GENERAL_FAILURE;
+	}
+
+	auto &packet = *(Nic::Packet_descriptor *)pSgBuf->pvAllocator;
+
 	int rc;
 	if (!pSgBuf->pvUser)
 	{
@@ -355,7 +388,7 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
 		      "%.*Rhxd\n", pSgBuf->aSegs[0].pvSeg, pSgBuf->cbUsed, pSgBuf->cbUsed,
 		      pSgBuf->aSegs[0].pvSeg));
 
-		rc = nic_client->send_packet(pSgBuf->aSegs[0].pvSeg, pSgBuf->cbUsed);
+		rc = nic_client->send_packet(packet, pSgBuf->aSegs[0].pvSeg, pSgBuf->cbUsed);
 	}
 	else
 	{
@@ -370,13 +403,15 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
 			uint32_t cbSegFrame;
 			void *pvSegFrame = PDMNetGsoCarveSegmentQD(pGso, (uint8_t *)pbFrame, pSgBuf->cbUsed,
 			                                           abHdrScratch, iSeg, cSegs, &cbSegFrame);
-			rc = nic_client->send_packet(pvSegFrame, cbSegFrame);
+			rc = nic_client->send_packet(packet, pvSegFrame, cbSegFrame);
 			if (RT_FAILURE(rc))
 				break;
 		}
 	}
 
 	pSgBuf->fFlags = 0;
+	if (pSgBuf->pvAllocator)
+		RTMemFree(pSgBuf->pvAllocator);
 	RTMemFree(pSgBuf);
 
 	AssertRC(rc);
