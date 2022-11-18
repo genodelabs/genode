@@ -24,7 +24,6 @@ import_from_depot [depot_user]/src/dynamic_rom \
                   [depot_user]/src/event_filter \
                   [depot_user]/src/pc_usb_host_drv \
                   [depot_user]/src/ps2_drv \
-                  [depot_user]/src/rom_filter \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/usb_hid_drv
 
@@ -57,9 +56,9 @@ set config {
 				<service name="ROM"/>
 			</provides>
 			<config verbose="no">
-				<policy label="pci_decode -> system" report="acpi_drv -> acpi"/>
-				<policy label="rom_filter -> pci_devices" report="pci_decode -> devices"/>
-				<policy label="usb_hid_drv -> report" report="usb_drv -> devices"/>
+				<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+				<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+				<policy label="usb_hid_drv -> report"   report="usb_drv -> devices"/>
 			</config>
 		</start>
 
@@ -80,26 +79,6 @@ set config {
 			</route>
 		</start>
 
-		<start name="rom_filter" caps="70">
-			<resource name="RAM" quantum="1M"/>
-			<provides> <service name="ROM"/> </provides>
-			<config buffer="32K">
-				<input name="devices"/>
-				<input name="pci_devices"/>
-				<output node="devices">
-					<input name="devices"     skip_toplevel="yes"/>
-					<input name="pci_devices" skip_toplevel="yes"/>
-				</output>
-			</config>
-			<route>
-				<service name="ROM" label="pci_devices"> <child name="drivers_reports"/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="PD">  <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-			</route>
-		</start>
-
 		<start name="platform_drv" caps="400" managing_system="yes">
 			<resource name="RAM" quantum="4M"/>
 			<provides>
@@ -111,7 +90,7 @@ set config {
 				<policy label_prefix="acpica"/>
 			</config>
 			<route>
-				<service name="ROM" label="devices"> <child name="rom_filter"/> </service>
+				<service name="ROM" label="devices"> <child name="report_rom"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>

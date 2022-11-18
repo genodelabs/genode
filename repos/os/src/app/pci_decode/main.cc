@@ -53,7 +53,8 @@ struct Main
 	                   Xml_generator & generator, unsigned & msi);
 
 	void parse_irq_override_rules(Xml_node & xml);
-	void parse_pci_config_spaces(Xml_node & xml);
+	void parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator);
+	void parse_acpi_device_info(Xml_generator & generator);
 	void sys_rom_update();
 
 	template <typename FN>
@@ -261,49 +262,90 @@ void Main::parse_pci_bus(bus_t           bus,
 }
 
 
-void Main::parse_pci_config_spaces(Xml_node & xml)
+/*
+ * By now, we do not have the necessary information about non-PCI devices
+ * available from the ACPI tables, therefore we hard-code typical devices
+ * we assume to be found in this function. In the future, this function
+ * shall interpret ACPI tables information.
+ */
+void Main::parse_acpi_device_info(Xml_generator & gen)
 {
-	pci_reporter.generate([&] (Xml_generator & generator)
+	/*
+	 * PS/2 device
+	 */
+	gen.node("device", [&]
 	{
-		/*
-		 * We count beginning from 1 not 0, because some clients (Linux drivers)
-		 * do not ignore the pseudo MSI number announced, but interpret zero as
-		 * invalid.
-		 */
-		unsigned msi_number      = 1;
-		unsigned host_bridge_num = 0;
-
-		xml.for_each_sub_node("bdf", [&] (Xml_node & xml)
+		gen.attribute("name", "ps2");
+		gen.node("irq", [&] { gen.attribute("number", 1U); });
+		gen.node("irq", [&] { gen.attribute("number", 12U); });
+		gen.node("io_port_range", [&]
 		{
-			addr_t const start = xml.attribute_value("start",  0UL);
-			addr_t const base  = xml.attribute_value("base",   0UL);
-			size_t const count = xml.attribute_value("count",  0UL);
-
-			bus_t const bus_off  = (bus_t) (start / FUNCTION_PER_BUS_MAX);
-			bus_t const last_bus = (bus_t)
-				(max(1UL, (count / FUNCTION_PER_BUS_MAX)) - 1);
-
-			if (host_bridge_num++) {
-				error("We do not support multiple host bridges by now!");
-				return;
-			}
-
-			new (heap) Bridge(bridge_registry, { bus_off, 0, 0 },
-			                  bus_off, last_bus);
-
-			bus_t bus = 0;
-			do {
-				enum { BUS_SIZE = DEVICES_PER_BUS_MAX * FUNCTION_PER_DEVICE_MAX
-				                  * FUNCTION_CONFIG_SPACE_SIZE };
-				addr_t offset = base + bus * BUS_SIZE;
-				pci_config_ds.construct(env, offset, BUS_SIZE);
-				parse_pci_bus((bus_t)bus + bus_off,
-				              (addr_t)pci_config_ds->local_addr<void>(),
-				              offset, generator, msi_number);
-			} while (bus++ < last_bus);
-
-			pci_config_ds.destruct();
+			gen.attribute("address", "0x60");
+			gen.attribute("size", 1U);
 		});
+		gen.node("io_port_range", [&]
+		{
+			gen.attribute("address", "0x64");
+			gen.attribute("size", 1U);
+		});
+	});
+
+	/*
+	 * PIT device
+	 */
+	gen.node("device", [&]
+	{
+		gen.attribute("name", "pit");
+		gen.node("irq", [&] { gen.attribute("number", 0U); });
+		gen.node("io_port_range", [&]
+		{
+			gen.attribute("address", "0x40");
+			gen.attribute("size", 4U);
+		});
+	});
+}
+
+
+void Main::parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator)
+{
+	/*
+	 * We count beginning from 1 not 0, because some clients (Linux drivers)
+	 * do not ignore the pseudo MSI number announced, but interpret zero as
+	 * invalid.
+	 */
+	unsigned msi_number      = 1;
+	unsigned host_bridge_num = 0;
+
+	xml.for_each_sub_node("bdf", [&] (Xml_node & xml)
+	{
+		addr_t const start = xml.attribute_value("start",  0UL);
+		addr_t const base  = xml.attribute_value("base",   0UL);
+		size_t const count = xml.attribute_value("count",  0UL);
+
+		bus_t const bus_off  = (bus_t) (start / FUNCTION_PER_BUS_MAX);
+		bus_t const last_bus = (bus_t)
+			(max(1UL, (count / FUNCTION_PER_BUS_MAX)) - 1);
+
+		if (host_bridge_num++) {
+			error("We do not support multiple host bridges by now!");
+			return;
+		}
+
+		new (heap) Bridge(bridge_registry, { bus_off, 0, 0 },
+		                  bus_off, last_bus);
+
+		bus_t bus = 0;
+		do {
+			enum { BUS_SIZE = DEVICES_PER_BUS_MAX * FUNCTION_PER_DEVICE_MAX
+			                  * FUNCTION_CONFIG_SPACE_SIZE };
+			addr_t offset = base + bus * BUS_SIZE;
+			pci_config_ds.construct(env, offset, BUS_SIZE);
+			parse_pci_bus((bus_t)bus + bus_off,
+			              (addr_t)pci_config_ds->local_addr<void>(),
+			              offset, generator, msi_number);
+		} while (bus++ < last_bus);
+
+		pci_config_ds.destruct();
 	});
 }
 
@@ -332,7 +374,11 @@ void Main::sys_rom_update()
 		reserved_memory_list.update_from_xml(policy, xml);
 	}
 
-	parse_pci_config_spaces(xml);
+	pci_reporter.generate([&] (Xml_generator & generator)
+	{
+		parse_acpi_device_info(generator);
+		parse_pci_config_spaces(xml, generator);
+	});
 }
 
 
