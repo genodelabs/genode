@@ -212,7 +212,7 @@ if { $use_wifi_driver } {
 	</start>
 
 	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

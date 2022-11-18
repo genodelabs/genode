@@ -132,7 +132,7 @@ append config {
 	</start>
 
 	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="ROM" label="system"> <child name="platform_reports"/> </service>
 			<service name="Report"> <child name="platform_reports"/> </service>
