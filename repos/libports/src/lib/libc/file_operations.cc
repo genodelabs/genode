@@ -721,6 +721,9 @@ extern "C" int stat(const char *path, struct stat *buf)
 
 extern "C" int symlink(const char *oldpath, const char *newpath)
 {
+	if (!oldpath || !newpath)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(newpath, resolved_path);
@@ -733,6 +736,9 @@ extern "C" int symlink(const char *oldpath, const char *newpath)
 
 extern "C" int unlink(const char *path)
 {
+	if (!path)
+		return Errno(EFAULT);
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(path, resolved_path);
