@@ -54,6 +54,10 @@ bool create_directories(Genode::String<N> const &path)
 		if (!end_of_elem && !end_of_path)
 			continue;
 
+		/* handle leading '/' */
+		if (end_of_elem && (sub_path_len == 0))
+			continue;
+
 		Genode::String<N> sub_path(Genode::Cstring(path.string(), sub_path_len));
 
 		/* create directory for sub path if it does not already exist */
