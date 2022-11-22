@@ -84,7 +84,8 @@ class genode_usb_session : public Usb::Session_rpc_object
 		Session_label const              _label;
 		List_element<genode_usb_session> _le { this };
 
-		void _ack(int err, Usb::Packet_descriptor p);
+		unsigned _packets_in_fly();
+		void     _ack(int err, Usb::Packet_descriptor p);
 
 		/*
 		 * Non_copyable
@@ -411,13 +412,26 @@ void genode_usb_session::release_interface(unsigned iface)
 }
 
 
+unsigned genode_usb_session::_packets_in_fly()
+{
+	unsigned ret = 0;
+	for (unsigned idx = 0; idx < MAX_PACKETS_IN_FLY; idx++)
+		if (packets[idx].constructed()) ret++;
+	return ret;
+}
+
+
 void genode_usb_session::_ack(int err, Usb::Packet_descriptor p)
 {
 	if (err == NO_ERROR)
 		p.succeded = true;
 	else
 		p.error = (Usb::Packet_descriptor::Error)err;
-	sink()->acknowledge_packet(p);
+	try {
+		sink()->acknowledge_packet(p);
+	} catch(...) {
+		warning("USB client's ack queue run full, looses packet ack!");
+	}
 }
 
 
@@ -439,15 +453,15 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 
 	/* get next packet from request stream */
 	while (true) {
-		if (!sink()->packet_avail() || !sink()->ack_slots_free())
+		if (!sink()->packet_avail() ||
+		    (sink()->ack_slots_free() <= _packets_in_fly()))
 			return false;
 
 		p = sink()->get_packet();
 		if (sink()->packet_valid(p))
 			break;
 
-		p.error = Packet_descriptor::PACKET_INVALID_ERROR;
-		sink()->acknowledge_packet(p);
+		_ack(Packet_descriptor::PACKET_INVALID_ERROR, p);
 	}
 
 	addr_t offset = (addr_t)sink()->packet_content(p) -
