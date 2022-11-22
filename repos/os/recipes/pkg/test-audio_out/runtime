@@ -1,0 +1,16 @@
+<runtime ram="16M" caps="150" binary="test-audio_out">
+
+	<requires>
+		<audio_out/>
+		<rom label="sample.raw"/>
+	</requires>
+
+	<config>
+		<filename>sample.raw</filename>
+	</config>
+
+	<content>
+		<rom label="test-audio_out"/>
+	</content>
+
+</runtime>
