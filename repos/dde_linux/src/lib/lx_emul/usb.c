@@ -521,7 +521,7 @@ static void urb_timeout(struct timer_list *t)
 {
 	struct usb_urb_context * context = from_timer(context, t, timeo);
 	context->timer_state = TIMER_TRIGGERED;
-	usb_kill_urb(context->urb);
+	usb_unlink_urb(context->urb);
 }
 
 
