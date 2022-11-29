@@ -90,6 +90,11 @@ Platform devices
   this simple ACPI parser traverses the ACPI tables and reports device-resource
   information (e.g., interrupt lines of PCI devices).
 
+:_os/src/app/pci_decode/_:
+  A component that reports the physical information about PCI devices after
+  parsing and initializing the PCI bus. The reported information is usually
+  consumed by the platform driver.
+
 :_os/src/app/smbios_decoder/_:
   A component that parses SMBIOS information on x86 platforms and makes the
   result available as a report.
@@ -148,8 +153,11 @@ capture-session and event-session interfaces respectively.
   Serves as both framebuffer and input driver on Linux using libSDL. This
   driver is only usable on the Linux base platform.
 
+:_os/src/drivers/framebuffer/virtio/_:
+  Driver for the Virtio virtual graphics device as supported by Qemu.
+
 :_os/src/drivers/gpu/intel/_:
-  An experimental Intel Graphics GPU multiplexer for Broadwell and newer.
+  An Intel Graphics GPU multiplexer for Broadwell and newer.
 
 :_pc/src/drivers/framebuffer/intel/_:
   Framebuffer driver for Intel i915 compatible graphic cards based on
@@ -248,9 +256,6 @@ defined at _os/include/nic_session/_.
 
 :_dde_linux/src/drivers/usb_net/_:
   USB network driver using the USB session interface.
-
-:_dde_linux/src/drivers/nic/fec/_:
-  Driver for ethernet NICs of the i.MX SoC family.
 
 
 Resource multiplexers
