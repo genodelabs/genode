@@ -10,6 +10,19 @@
 #
 proc image_uboot_use_no_gzip { } { return [get_cmd_switch --image-uboot-no-gzip] }
 
+##
+# Make gzip compression more aggressive
+#
+# Please refer to the comment in run/image/uboot.
+#
+proc image_uboot_gzip_opt { } {
+	if {[get_cmd_switch --image-uboot-gzip-best]} {
+		return "--best"
+	} else {
+		return "--fast"
+	}
+}
+
 
 ##
 # Build U-boot bootloader specific image.itb
@@ -34,7 +47,7 @@ proc run_image {elf_img} {
 
 	# compress ELF
 	if $use_gzip {
-		exec gzip --best --force $bin_img
+		exec gzip [image_uboot_gzip_opt] --force $bin_img
 		set bin_ext .gz
 		set compress_type gzip
 	}

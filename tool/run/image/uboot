@@ -12,11 +12,30 @@ proc image_uboot_use_no_gzip { } { return [get_cmd_switch --image-uboot-no-gzip]
 
 
 ##
+# Make gzip compression more aggressive
+#
+# Using this option reduces the image size by circa 10%. But it comes at the
+# cost of significantly slowing down the gzip step for large images (e.g., 6
+# seconds instead of 2 seconds for a image of 13 MiB). The option is suitable
+# when building a release. But for quick build-test cycles, it is best keep
+# it disabled.
+#
+proc image_uboot_gzip_opt { } {
+	if {[get_cmd_switch --image-uboot-gzip-best]} {
+		return "--best"
+	} else {
+		return "--fast"
+	}
+}
+
+
+##
 # Build U-boot bootloader specific uImage
 #
 # \param  elf_img   ELF binary to build uImage from
 #
 proc run_image {elf_img} {
+
 	# parse ELF entrypoint and load address
 	set entrypoint [exec [cross_dev_prefix]readelf -h $elf_img | \
 			grep "Entry point address: " | \
@@ -34,7 +53,7 @@ proc run_image {elf_img} {
 
 	# compress ELF
 	if $use_gzip {
-		exec gzip --best --force $bin_img
+		exec gzip [image_uboot_gzip_opt] --force $bin_img
 		set bin_ext .gz
 		set compress_type gzip
 	}
