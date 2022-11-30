@@ -400,7 +400,7 @@ We invite seasoned developers - especially those who are following the
 [https://genodians.org/nfeske/index - Pine-fun article series] - to experiment
 with the new phone variant. It can be built via the following command:
 
-! built/arm_v8a$ make run/sculpt KERNEL=hw BOARD=pinephone SCULPT=phone
+! build/arm_v8a$ make run/sculpt KERNEL=hw BOARD=pinephone SCULPT=phone
 
 For a broader audience, we plan to provide a ready-to-use SD-card image for
 the PinePhone in tandem with the next release of Sculpt OS.
