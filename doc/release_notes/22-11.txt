@@ -114,7 +114,7 @@ These changes are bundled into the new _drivers_fpga-zynq_ subsystem.
 The figure below illustrates how this subsystem is used as a replacement for
 the platform driver.
 
-[image zynq_driver_manager]
+[image zynq_driver_manager_22_11]
 
 Just as the standard platform driver, the subsystem expects a 'policy' and
 'devices' ROM. In addition, we must provide it with a _devices_manager.config_
