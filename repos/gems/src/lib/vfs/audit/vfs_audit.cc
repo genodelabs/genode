@@ -64,17 +64,21 @@ class Vfs_audit::File_system : public Vfs::File_system
 		} _audit_log;
 
 		template <typename... ARGS>
-		inline void _log(ARGS &&... args) { _audit_log.log(args...); }
+		void _log(ARGS &&... args) { _audit_log.log(args...); }
 
 		Vfs::File_system &_root_dir;
 
 		Absolute_path const _audit_path;
 
+		Absolute_path _expanded_path { }; /* buffer for 'leaf_path' return value */
+
 		/**
 		 * Expand a path to lay within the audit path
 		 */
-		inline Absolute_path _expand(char const *path) {
-			return Absolute_path(path+1, _audit_path.string()); }
+		Absolute_path _expand(char const *path)
+		{
+			return Absolute_path(path+1, _audit_path.string());
+		}
 
 		struct Handle final : Vfs_handle
 		{
@@ -208,10 +212,12 @@ class Vfs_audit::File_system : public Vfs::File_system
 			return _root_dir.directory(_expand(path).string());
 		}
 
-		const char* leaf_path(const char *path) override
+		char const *leaf_path(const char *path) override
 		{
-			return _root_dir.leaf_path(_expand(path).string());
+			_expanded_path = _expand(path);
+			return _root_dir.leaf_path(_expanded_path.string());
 		}
+
 
 		/**********************
 		 ** File I/O service **
@@ -223,13 +229,23 @@ class Vfs_audit::File_system : public Vfs::File_system
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);
 			h.sync_state();
-			return h.audit->fs().write(h.audit, buf, len, out);
+			Write_result const result = h.audit->fs().write(h.audit, buf, len, out);
+
+			if (result == WRITE_OK)
+				_log("wrote to ", h.path, " ", out, " / ", len);
+			else if (result == WRITE_ERR_WOULD_BLOCK || result == WRITE_ERR_AGAIN)
+				_log("write stalled for ", h.path);
+			else
+				_log("write failed for ", h.path);
+
+			return result;
 		}
 
 		bool queue_read(Vfs_handle *vfs_handle, file_size len) override
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);
 			h.sync_state();
+			_log(__func__, " ", h.path, " ", len);
 			return h.audit->fs().queue_read(h.audit, len);
 		}
 
@@ -239,7 +255,17 @@ class Vfs_audit::File_system : public Vfs::File_system
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);
 			h.sync_state();
-			return h.audit->fs().complete_read(h.audit, buf, len, out);
+
+			Read_result const result = h.audit->fs().complete_read(h.audit, buf, len, out);
+
+			if (result == READ_OK)
+				_log("completed read from ", h.path, " ", out);
+			else if (result == READ_QUEUED)
+				_log("read queued for ", h.path);
+			else
+				_log("read error for ", h.path);
+
+			return result;
 		}
 
 		bool read_ready(Vfs_handle *vfs_handle) override
@@ -272,12 +298,24 @@ class Vfs_audit::File_system : public Vfs::File_system
 			return h.audit->fs().register_read_ready_sigh(h.audit, sigh);
 		}
 
-		Sync_result complete_sync(Vfs_handle *vfs_handle) override
+		bool queue_sync(Vfs_handle *vfs_handle) override
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);
 			h.sync_state();
 			_log("sync ", h.path);
-			return h.audit->fs().complete_sync(h.audit);
+			return h.audit->fs().queue_sync(h.audit);
+		}
+
+		Sync_result complete_sync(Vfs_handle *vfs_handle) override
+		{
+			Handle &h = *static_cast<Handle*>(vfs_handle);
+			h.sync_state();
+
+			Sync_result const result = h.audit->fs().complete_sync(h.audit);
+			if (result == SYNC_OK)          _log("synced ", h.path);
+			if (result == SYNC_ERR_INVALID) _log("sync failed for ", h.path);
+
+			return result;
 		}
 };
 
