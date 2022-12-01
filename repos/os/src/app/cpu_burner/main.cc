@@ -119,7 +119,8 @@ struct Cpu_burner
 			_start_ms = _timer.elapsed_ms();
 		}
 
-		_timer.trigger_once(next_timer_ms*1000);
+		if (_percent < 100)
+			_timer.trigger_once(next_timer_ms*1000);
 	}
 
 	Signal_handler<Cpu_burner> _period_handler {
@@ -131,8 +132,6 @@ struct Cpu_burner
 		_handle_config();
 
 		_timer.sigh(_period_handler);
-		_timer.trigger_once(1000*1000);
-
 		Affinity::Space space = env.cpu().affinity_space();
 
 		for (unsigned i = 0; i < space.total(); i++) {
@@ -142,6 +141,11 @@ struct Cpu_burner
 
 			_threads.insert(&t->_list_element);
 		}
+
+		if (_percent < 100)
+			_timer.trigger_once(1000*1000);
+		else
+			_handle_period();
 	}
 };
 
