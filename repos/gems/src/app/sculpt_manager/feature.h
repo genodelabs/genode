@@ -28,7 +28,7 @@ struct Sculpt::Feature
 	static constexpr bool STORAGE_DIALOG_HOSTED_IN_GRAPH = true;
 
 	/* allow the browsing of file systems via the inspect view */
-	static constexpr bool INSPECT_VIEW = false;
+	static constexpr bool INSPECT_VIEW = true;
 };
 
 #endif /* _FEATURE_H_ */
