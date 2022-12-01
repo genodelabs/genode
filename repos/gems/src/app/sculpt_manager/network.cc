@@ -174,13 +174,13 @@ void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
 			if (uplink.attribute_value("domain", String<16>()) != "uplink")
 				return;
 
-			if (uplink.attribute_value("label", String<16>()) == "nic_drv -> ")
+			if (uplink.attribute_value("label_prefix", String<16>()) == "nic_drv -> ")
 				result = Nic_target::WIRED;
 
-			if (uplink.attribute_value("label", String<16>()) == "wifi_drv -> ")
+			if (uplink.attribute_value("label_prefix", String<16>()) == "wifi_drv -> ")
 				result = Nic_target::WIFI;
 
-			if (uplink.attribute_value("label", String<16>()) == "usb_net -> ")
+			if (uplink.attribute_value("label_prefix", String<16>()) == "usb_net -> ")
 				result = Nic_target::MODEM;
 		});
 		return result;
