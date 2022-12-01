@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2009-2017 Genode Labs GmbH
+ * Copyright (C) 2009-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -309,7 +309,7 @@ Platform::Platform()
 {
 	Hip const &hip = *(Hip *)__initial_sp;
 	/* check for right API version */
-	if (hip.api_version != 8)
+	if (hip.api_version != 9)
 		nova_die();
 
 	/* determine number of available CPUs */
@@ -732,9 +732,19 @@ Platform::Platform()
 						xml.attribute("freq_khz" , hip.tsc_freq);
 					});
 					xml.node("cpus", [&] () {
-						hip.for_each_enabled_cpu([&](Hip::Cpu_desc const &cpu, unsigned i) {
+						for_each_location([&](Affinity::Location &location) {
+							unsigned const kernel_cpu_id = Platform::kernel_cpu_id(location);
+							auto const cpu_ptr = hip.cpu_desc_of_cpu(kernel_cpu_id);
+
+							if (!cpu_ptr)
+								return;
+
+							auto const &cpu = *cpu_ptr;
+
 							xml.node("cpu", [&] () {
-								xml.attribute("id",       i);
+								xml.attribute("xpos",     location.xpos());
+								xml.attribute("ypos",     location.ypos());
+								xml.attribute("id",       kernel_cpu_id);
 								xml.attribute("package",  cpu.package);
 								xml.attribute("core",     cpu.core);
 								xml.attribute("thread",   cpu.thread);
@@ -743,6 +753,8 @@ Platform::Platform()
 								xml.attribute("stepping", String<5>(Hex(cpu.stepping)));
 								xml.attribute("platform", String<5>(Hex(cpu.platform)));
 								xml.attribute("patch",    String<12>(Hex(cpu.patch)));
+								if (cpu.p_core()) xml.attribute("cpu_type", "P");
+								if (cpu.e_core()) xml.attribute("cpu_type", "E");
 							});
 						});
 					});
@@ -780,11 +792,13 @@ Platform::Platform()
 			Genode::String<16> text ("failure");
 			if (cpu)
 				text = Genode::String<16>(cpu->package, ":",
-				                          cpu->core, ":", cpu->thread);
+				                          cpu->core, ":", cpu->thread,
+				                          cpu->e_core() ? " E" :
+				                          cpu->p_core() ? " P" : "");
 
 			log(" remap (", location.xpos(), "x", location.ypos(),") -> ",
-			    kernel_cpu_id, " - ", text, ") ",
-			    boot_cpu() == kernel_cpu_id ? "boot cpu" : "");
+			    kernel_cpu_id, " - ", text,
+			    boot_cpu() == kernel_cpu_id ? " boot cpu" : "");
 		});
 	}
 

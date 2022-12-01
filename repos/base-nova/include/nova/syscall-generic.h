@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (c) 2009 Genode Labs
+ * Copyright (c) 2009-2022 Genode Labs
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -144,6 +144,9 @@ namespace Nova {
 			uint8_t platform:3;
 			uint8_t reserved:1;
 			uint32_t patch;
+
+			bool p_core() const { return flags & 0x2; }
+			bool e_core() const { return flags & 0x4; }
 		} __attribute__((packed));
 
 		unsigned cpu_max() const {
@@ -176,38 +179,75 @@ namespace Nova {
 		/**
 		 * Map kernel cpu ids to virtual cpu ids.
 		 */
-		bool remap_cpu_ids(uint8_t *map_cpus, unsigned const boot_cpu) const {
+		bool remap_cpu_ids(uint16_t *map_cpus, unsigned const boot_cpu) const
+		{
 			unsigned const num_cpus = cpus();
 			unsigned cpu_i = 0;
 
 			/* assign boot cpu ever the virtual cpu id 0 */
 			Cpu_desc const * const boot = cpu_desc_of_cpu(boot_cpu);
-			if (!boot || !is_cpu_enabled(boot_cpu))
+			if (!boot || !is_cpu_enabled(boot_cpu) || boot->e_core())
 				return false;
 
 			map_cpus[cpu_i++] = (uint8_t)boot_cpu;
 			if (cpu_i >= num_cpus)
 				return true;
 
-			/* assign remaining cores and afterwards all threads to the ids */
-			for (uint8_t package = 0; package < 255; package++) {
-				for (uint8_t core = 0; core < 255; core++) {
-					for (uint8_t thread = 0; thread < 255; thread++) {
+			/* assign cores + SMT threads first and skip E-cores */
+			bool done = for_all_cpus([&](auto const &cpu, auto const kernel_cpu_id) {
+				if (kernel_cpu_id == boot_cpu)
+					return false;
+
+				/* handle normal or P-core */
+				if (cpu.e_core())
+					return false;
+
+				map_cpus[cpu_i++] = (uint8_t)kernel_cpu_id;
+				return (cpu_i >= num_cpus);
+			});
+
+			/* assign remaining E-cores */
+			if (!done) {
+				done = for_all_cpus([&](auto &cpu, auto &kernel_cpu_id) {
+						if (kernel_cpu_id == boot_cpu)
+							return false;
+
+						/* handle solely E-core */
+						if (!cpu.e_core())
+							return false;
+
+						map_cpus[cpu_i++] = (uint16_t)kernel_cpu_id;
+						return (cpu_i >= num_cpus);
+					});
+			}
+
+			return done;
+		}
+
+		/**
+		 * Iterate over all CPUs in a _ever_ _consistent_ order.
+		 */
+		template <typename FUNC>
+		bool for_all_cpus(FUNC const &func) const
+		{
+			for (uint16_t package = 0; package <= 255; package++) {
+				for (uint16_t core = 0; core <= 255; core++) {
+					for (uint16_t thread = 0; thread <= 255; thread++) {
 						for (unsigned i = 0; i < cpu_max(); i++) {
-							if (i == boot_cpu || !is_cpu_enabled(i))
+							if (!is_cpu_enabled(i))
 								continue;
 
-							Cpu_desc const * const c = cpu_desc_of_cpu(i);
-							if (!c)
+							auto const cpu = cpu_desc_of_cpu(i);
+							if (!cpu)
 								continue;
 
-							if (!(c->package == package && c->core == core &&
-							      c->thread == thread))
+							if (!(cpu->package == package && cpu->core == core &&
+							      cpu->thread == thread))
 								continue;
 
-							map_cpus[cpu_i++] = (uint8_t)i;
-							if (cpu_i >= num_cpus)
-								return true;
+							bool done = func(*cpu, i);
+							if (done)
+								return done;
 						}
 					}
 				}

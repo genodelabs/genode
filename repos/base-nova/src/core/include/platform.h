@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2009-2017 Genode Labs GmbH
+ * Copyright (C) 2009-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -49,7 +49,7 @@ namespace Genode {
 			Affinity::Space _cpus;
 
 			/* map of virtual cpu ids in Genode to kernel cpu ids */
-			uint8_t map_cpu_ids[MAX_SUPPORTED_CPUS];
+			uint16_t map_cpu_ids[MAX_SUPPORTED_CPUS];
 
 			addr_t _map_pages(addr_t phys_page, addr_t pages,
 			                  bool guard_page = false);
