@@ -1,7 +1,8 @@
 ##
-# Build U-boot bootloader specific uImage
+# Build U-boot bootloader specific uImage/image.itb
 #
 # \param --image-uboot-no-gzip   do not gzip the uImage
+# \param --image-uboot-fit       build image.itb FIT image
 #
 
 
@@ -9,6 +10,8 @@
 # Check if the uImage should be gzipped
 #
 proc image_uboot_use_no_gzip { } { return [get_cmd_switch --image-uboot-no-gzip] }
+
+proc image_uboot_use_fit { } { return [get_cmd_switch --image-uboot-fit] }
 
 
 ##
@@ -61,9 +64,16 @@ proc run_image {elf_img} {
 	set arch "arm"
 	if {[have_spec arm_64]} { set arch "arm64" }
 
-	# create uImage
-	set uboot_img [run_dir]/uImage
-	exec mkimage -A $arch -O linux -T kernel -C $compress_type -a $load_addr \
-	             -e $entrypoint -d $bin_img$bin_ext $uboot_img
+	if {[image_uboot_use_fit]} {
+		# create image.itb
+		set uboot_img [run_dir]/image.itb
+		exec mkimage -f auto -A $arch -O linux -T kernel -C $compress_type -a $load_addr \
+		             -e $entrypoint -d $bin_img$bin_ext $uboot_img
+	} else {
+		# create uImage
+		set uboot_img [run_dir]/uImage
+		exec mkimage -A $arch -O linux -T kernel -C $compress_type -a $load_addr \
+		             -e $entrypoint -d $bin_img$bin_ext $uboot_img
+	}
 	exec rm -rf $bin_img$bin_ext
 }
