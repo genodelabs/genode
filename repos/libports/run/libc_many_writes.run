@@ -1,0 +1,86 @@
+build {
+	core lib/ld init timer
+	lib/vfs lib/vfs_audit server/vfs
+	lib/libc lib/posix test/libc_many_writes
+}
+
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="128"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="ramfs">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<dir name="ram"> <ram/> </dir>
+				<dir name="audit"> <audit path="ram"/> </dir>
+			</vfs>
+			<default-policy root="/audit" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="fs">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<dir name="fs"> <fs/> </dir>
+				<dir name="audit"> <audit path="fs"/> </dir>
+			</vfs>
+			<default-policy root="/audit" writeable="yes"/>
+		</config>
+		<route>
+			<service name="File_system"> <child name="ramfs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="test-libc_many_writes" caps="1000">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<vfs>
+				<dir name="rw">  <fs/>  </dir>
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<arg value="test"/>
+		</config>
+		<route>
+			<service name="File_system"> <child name="fs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic  "
+
+run_genode_until "child .* exited with exit value 0.*\n" 20
+
