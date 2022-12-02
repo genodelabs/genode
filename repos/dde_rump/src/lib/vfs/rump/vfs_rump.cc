@@ -845,14 +845,28 @@ class Vfs::Rump_file_system : public File_system
 
 class Rump_factory : public Vfs::File_system_factory
 {
+	private:
+
+		struct Rump_fs_user : Rump_fs_user_wakeup
+		{
+			Vfs::Env::User &_vfs_user;
+
+			void wakeup_rump_fs_user() override { _vfs_user.wakeup_vfs_user(); }
+
+			Rump_fs_user(Vfs::Env::User &vfs_user) : _vfs_user(vfs_user) { }
+
+		} _rump_fs_user;
+
 	public:
 
 		Rump_factory(Genode::Env &env, Genode::Allocator &alloc,
-		             Genode::Xml_node config)
+		             Vfs::Env::User &vfs_user, Genode::Xml_node config)
+		:
+			_rump_fs_user(vfs_user)
 		{
 			Rump::construct_env(env);
 
-			rump_io_backend_init();
+			rump_io_backend_init(_rump_fs_user);
 
 			/* limit RAM consumption */
 			if (!config.has_attribute("ram")) {
@@ -897,7 +911,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 	{
 		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node node) override
 		{
-			static Rump_factory factory(env.env(), env.alloc(), node);
+			static Rump_factory factory(env.env(), env.alloc(), env.user(), node);
 			return factory.create(env, node);
 		}
 	};

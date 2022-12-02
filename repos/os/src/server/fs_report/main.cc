@@ -70,9 +70,9 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 {
 	private:
 
-		Genode::Entrypoint     &_ep;
-		Genode::Allocator      &_alloc;
-		Vfs::File_system       &_vfs;
+		Genode::Allocator &_alloc;
+		Vfs::Env::Io      &_io;
+		Vfs::File_system  &_vfs;
 
 		Attached_ram_dataspace _ds;
 		Path                   _path { };
@@ -108,10 +108,10 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 
 			/* sync file operations before close */
 			while (!handle->fs().queue_sync(handle))
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 
 			while (handle->fs().complete_sync(handle) == Vfs::File_io_service::SYNC_QUEUED)
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 
 			handle->close();
 		}
@@ -126,11 +126,12 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 
 		Session_component(Genode::Env                 &env,
 		                  Genode::Allocator           &alloc,
+		                  Vfs::Env::Io                &io,
 		                  Vfs::File_system            &vfs,
 		                  Genode::Session_label const &label,
 		                  size_t                       buffer_size)
 		:
-			_ep(env.ep()), _alloc(alloc), _vfs(vfs),
+			_alloc(alloc), _io(io), _vfs(vfs),
 			_ds(env.ram(), env.rm(), buffer_size),
 			_path(path_from_label<Path>(label.string()))
 		{
@@ -237,7 +238,8 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 			}
 
 			return new (md_alloc())
-				Session_component(_env, _heap, _vfs_env.root_dir(), label, buffer_size);
+				Session_component(_env, _heap, _vfs_env.io(), _vfs_env.root_dir(),
+				                  label, buffer_size);
 		}
 
 	public:

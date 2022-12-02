@@ -591,8 +591,10 @@ int Libc::Vfs_plugin::close_from_kernel(File_descriptor *fd)
 		/* XXX mtime not updated here */
 		Sync sync { *handle, Update_mtime::NO, _current_real_time };
 
-		while (!sync.complete())
+		while (!sync.complete()) {
+			Libc::Kernel::kernel().wakeup_remote_peers();
 			Libc::Kernel::kernel().libc_env().ep().wait_and_dispatch_one_io_signal();
+		}
 	}
 
 	handle->close();
@@ -837,8 +839,10 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 
 	Vfs::file_size out_count  = 0;
 	Result         out_result = Result::WRITE_OK;
+	bool const     nonblocking = (fd->flags & O_NONBLOCK);
 
-	if (fd->flags & O_NONBLOCK) {
+	if (nonblocking) {
+
 		monitor().monitor([&] {
 			try {
 				out_result = handle->fs().write(handle, (char const *)buf, count, out_count);
@@ -947,6 +951,11 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 
 	handle->advance_seek(out_count);
 	fd->modified = true;
+
+	/* notify remote peers once our VFS' local I/O buffers are saturated */
+	bool const nonblocking_write_stalled = nonblocking && count && !out_count;
+	if (nonblocking_write_stalled)
+		Libc::Kernel::kernel().wakeup_remote_peers();
 
 	return out_count;
 }

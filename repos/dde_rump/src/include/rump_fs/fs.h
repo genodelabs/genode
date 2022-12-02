@@ -13,6 +13,9 @@
 #ifndef _INCLUDE__RUMP_FS__FS_H_
 #define _INCLUDE__RUMP_FS__FS_H_
 
+#include <util/noncopyable.h>
+#include <util/interface.h>
+
 /**
  * File to upon the back-end will open a block session
  */
@@ -29,7 +32,13 @@
 #define GENODE_MOUNT_DIR     "/mnt"
 
 
-void rump_io_backend_init();
+struct Rump_fs_user_wakeup : Genode::Interface, Genode::Noncopyable
+{
+	virtual void wakeup_rump_fs_user() = 0;
+};
+
+
+void rump_io_backend_init(Rump_fs_user_wakeup &);
 
 /**
  * Sync I/O back-end with underlying Genode subsystems

@@ -117,7 +117,7 @@ struct Genode::Directory : Noncopyable, Interface
 
 		Vfs::File_system &_fs;
 
-		Entrypoint &_ep;
+		Vfs::Env::Io &_io;
 
 		Allocator &_alloc;
 
@@ -158,8 +158,9 @@ struct Genode::Directory : Noncopyable, Interface
 		 * \throw Open_failed
 		 */
 		Directory(Vfs::Env &vfs_env)
-		: _path(""), _fs(vfs_env.root_dir()),
-		  _ep(vfs_env.env().ep()), _alloc(vfs_env.alloc())
+		:
+			_path(""), _fs(vfs_env.root_dir()),
+			_io(vfs_env.io()), _alloc(vfs_env.alloc())
 		{
 			if (_fs.opendir("/", false, &_handle, _alloc) !=
 			    Vfs::Directory_service::OPENDIR_OK)
@@ -172,8 +173,9 @@ struct Genode::Directory : Noncopyable, Interface
 		 * \throw Nonexistent_directory
 		 */
 		Directory(Directory const &other, Path const &rel_path)
-		: _path(join(other._path, rel_path)), _fs(other._fs), _ep(other._ep),
-		  _alloc(other._alloc)
+		:
+			_path(join(other._path, rel_path)), _fs(other._fs), _io(other._io),
+			_alloc(other._alloc)
 		{
 			if (_fs.opendir(_path.string(), false, &_handle, _alloc) !=
 			    Vfs::Directory_service::OPENDIR_OK)
@@ -192,7 +194,7 @@ struct Genode::Directory : Noncopyable, Interface
 				_handle->seek(i * sizeof(entry._dirent));
 
 				while (!_handle->fs().queue_read(_handle, sizeof(entry._dirent)))
-					_ep.wait_and_dispatch_one_io_signal();
+					_io.progress();
 
 				Vfs::File_io_service::Read_result read_result;
 				Vfs::file_size                    out_count = 0;
@@ -207,7 +209,7 @@ struct Genode::Directory : Noncopyable, Interface
 					if (read_result != Vfs::File_io_service::READ_QUEUED)
 						break;
 
-					_ep.wait_and_dispatch_one_io_signal();
+					_io.progress();
 				}
 
 				if ((read_result != Vfs::File_io_service::READ_OK) ||
@@ -296,7 +298,7 @@ struct Genode::Directory : Noncopyable, Interface
 			Vfs::file_size count = sizeof(buf)-1;
 			Vfs::file_size out_count = 0;
 			while (!link_handle->fs().queue_read(link_handle, count)) {
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 			}
 
 			File_io_service::Read_result result;
@@ -308,7 +310,7 @@ struct Genode::Directory : Noncopyable, Interface
 				if (result != File_io_service::READ_QUEUED)
 					break;
 
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 			};
 
 			if (result != File_io_service::READ_OK)
@@ -395,7 +397,7 @@ class Genode::Readonly_file : public File
 
 		Vfs::Vfs_handle mutable *_handle = nullptr;
 
-		Genode::Entrypoint &_ep;
+		Vfs::Env::Io &_io;
 
 		void _open(Vfs::File_system &fs, Allocator &alloc, Path const path)
 		{
@@ -438,7 +440,8 @@ class Genode::Readonly_file : public File
 		 * \throw File::Open_failed
 		 */
 		Readonly_file(Directory const &dir, Path const &rel_path)
-		: _ep(_mutable(dir)._ep)
+		:
+			_io(_mutable(dir)._io)
 		{
 			_open(_mutable(dir)._fs, _mutable(dir)._alloc,
 			      Directory::join(dir._path, rel_path));
@@ -460,7 +463,7 @@ class Genode::Readonly_file : public File
 			_handle->seek(at.value);
 
 			while (!_handle->fs().queue_read(_handle, bytes))
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 
 			Vfs::File_io_service::Read_result result;
 
@@ -471,7 +474,7 @@ class Genode::Readonly_file : public File
 				if (result != Vfs::File_io_service::READ_QUEUED)
 					break;
 
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 			};
 
 			/*
@@ -714,10 +717,10 @@ class Genode::Writeable_file : Noncopyable
 			return *handle_ptr;
 		}
 
-		static void _sync(Vfs::Vfs_handle &handle, Entrypoint &ep)
+		static void _sync(Vfs::Vfs_handle &handle, Vfs::Env::Io &io)
 		{
 			while (handle.fs().queue_sync(&handle) == false)
-				ep.wait_and_dispatch_one_io_signal();
+				io.progress();
 
 			for (bool sync_done = false; !sync_done; ) {
 
@@ -737,11 +740,11 @@ class Genode::Writeable_file : Noncopyable
 				}
 
 				if (!sync_done)
-					ep.wait_and_dispatch_one_io_signal();
+					io.progress();
 			}
 		}
 
-		static Append_result _append(Vfs::Vfs_handle &handle, Entrypoint &ep,
+		static Append_result _append(Vfs::Vfs_handle &handle, Vfs::Env::Io &io,
 		                             char const *src, size_t size)
 		{
 			bool write_error = false;
@@ -783,7 +786,7 @@ class Genode::Writeable_file : Noncopyable
 					stalled = true; }
 
 				if (stalled)
-					ep.wait_and_dispatch_one_io_signal();
+					io.progress();
 			}
 			return write_error ? Append_result::WRITE_ERROR
 			                   : Append_result::OK;
@@ -798,7 +801,7 @@ class Genode::Append_file : public Writeable_file
 {
 	private:
 
-		Entrypoint       &_ep;
+		Vfs::Env::Io     &_io;
 		Vfs::Vfs_handle  &_handle;
 
 	public:
@@ -810,7 +813,7 @@ class Genode::Append_file : public Writeable_file
 		 */
 		Append_file(Directory &dir, Directory::Path const &path)
 		:
-			_ep(dir._ep),
+			_io(dir._io),
 			_handle(_init_handle(dir, path))
 		{
 			Vfs::Directory_service::Stat stat { };
@@ -820,12 +823,12 @@ class Genode::Append_file : public Writeable_file
 
 		~Append_file()
 		{
-			_sync(_handle, _ep);
+			_sync(_handle, _io);
 			_handle.ds().close(&_handle);
 		}
 
 		Append_result append(char const *src, size_t size) {
-			return _append(_handle, _ep, src, size); }
+			return _append(_handle, _io, src, size); }
 };
 
 
@@ -836,8 +839,8 @@ class Genode::New_file : public Writeable_file
 {
 	private:
 
-		Entrypoint       &_ep;
-		Vfs::Vfs_handle  &_handle;
+		Vfs::Env::Io    &_io;
+		Vfs::Vfs_handle &_handle;
 
 	public:
 
@@ -851,18 +854,20 @@ class Genode::New_file : public Writeable_file
 		 */
 		New_file(Directory &dir, Directory::Path const &path)
 		:
-			_ep(dir._ep),
+			_io(dir._io),
 			_handle(_init_handle(dir, path))
-		{ _handle.fs().ftruncate(&_handle, 0); }
+		{
+			_handle.fs().ftruncate(&_handle, 0);
+		}
 
 		~New_file()
 		{
-			_sync(_handle, _ep);
+			_sync(_handle, _io);
 			_handle.ds().close(&_handle);
 		}
 
 		Append_result append(char const *src, size_t size) {
-			return _append(_handle, _ep, src, size); }
+			return _append(_handle, _io, src, size); }
 };
 
 

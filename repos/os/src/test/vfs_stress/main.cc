@@ -280,7 +280,7 @@ struct Populate_test : public Stress_test
 
 struct Write_test : public Stress_test
 {
-	Genode::Entrypoint &_ep;
+	Vfs::Env::Io &_io;
 
 	void write(int depth)
 	{
@@ -304,7 +304,7 @@ struct Write_test : public Stress_test
 			handle->fs().queue_sync(handle);
 			while (handle->fs().complete_sync(handle) ==
 			       Vfs::File_io_service::SYNC_QUEUED)
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 			count += n;
 		}
 
@@ -328,8 +328,9 @@ struct Write_test : public Stress_test
 	}
 
 	Write_test(Vfs::File_system &vfs, Genode::Allocator &alloc,
-	           char const *parent, Genode::Entrypoint &ep)
-	: Stress_test(vfs, alloc, parent), _ep(ep)
+	           char const *parent, Vfs::Env::Io &io)
+	:
+		Stress_test(vfs, alloc, parent), _io(io)
 	{
 		size_t path_len = strlen(path.base());
 		try {
@@ -354,7 +355,7 @@ struct Write_test : public Stress_test
 
 struct Read_test : public Stress_test
 {
-	Genode::Entrypoint &_ep;
+	Vfs::Env::Io &_io;
 
 	void read(int depth)
 	{
@@ -381,7 +382,7 @@ struct Read_test : public Stress_test
 			while ((read_result =
 			        handle->fs().complete_read(handle, tmp, sizeof(tmp), n)) ==
 			       Vfs::File_io_service::READ_QUEUED)
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 
 			assert_read(read_result);
 
@@ -410,8 +411,9 @@ struct Read_test : public Stress_test
 	}
 
 	Read_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent,
-	          Genode::Entrypoint &ep)
-	: Stress_test(vfs, alloc, parent), _ep(ep)
+	          Vfs::Env::Io &io)
+	:
+		Stress_test(vfs, alloc, parent), _io(io)
 	{
 		size_t path_len = strlen(path.base());
 		try {
@@ -436,7 +438,7 @@ struct Read_test : public Stress_test
 
 struct Unlink_test : public Stress_test
 {
-	Genode::Entrypoint &_ep;
+	Vfs::Env::Io &_io;
 
 	void empty_dir(char const *path)
 	{
@@ -455,7 +457,7 @@ struct Unlink_test : public Stress_test
 			while (dir_handle->fs().complete_read(dir_handle, (char*)&dirent,
 			                                      sizeof(dirent), out_count) ==
 			       Vfs::File_io_service::READ_QUEUED)
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.progress();
 
 			subpath.append(dirent.name.buf);
 			switch (dirent.type) {
@@ -483,8 +485,9 @@ struct Unlink_test : public Stress_test
 	}
 
 	Unlink_test(Vfs::File_system &vfs, Genode::Allocator &alloc,
-	            char const *parent, Genode::Entrypoint &ep)
-	: Stress_test(vfs, alloc, parent), _ep(ep)
+	            char const *parent, Vfs::Env::Io &io)
+	:
+		Stress_test(vfs, alloc, parent), _io(io)
 	{
 		typedef Vfs::Directory_service::Unlink_result Result;
 		try {
@@ -537,11 +540,11 @@ void Component::construct(Genode::Env &env)
 	auto vfs_root_sync = [&] ()
 	{
 		while (!vfs_root_handle->fs().queue_sync(vfs_root_handle))
-			env.ep().wait_and_dispatch_one_io_signal();
+			vfs_env.io().progress();
 
 		while (vfs_root_handle->fs().complete_sync(vfs_root_handle) ==
 		       Vfs::File_io_service::SYNC_QUEUED)
-			env.ep().wait_and_dispatch_one_io_signal();
+			vfs_env.io().progress();
 	};
 
 	char path[Vfs::MAX_PATH_LEN];
@@ -624,7 +627,7 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Write_test test(vfs_root, heap, path, env.ep());
+			Write_test test(vfs_root, heap, path, vfs_env.io());
 			count += test.wait();
 
 		}
@@ -660,7 +663,7 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Read_test test(vfs_root, heap, path, env.ep());
+			Read_test test(vfs_root, heap, path, vfs_env.io());
 			count += test.wait();
 		}
 
@@ -696,7 +699,7 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Unlink_test test(vfs_root, heap, path, env.ep());
+			Unlink_test test(vfs_root, heap, path, vfs_env.io());
 			count += test.wait();
 
 		}

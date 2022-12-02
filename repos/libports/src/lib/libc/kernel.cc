@@ -404,6 +404,8 @@ void Libc::Kernel::handle_io_progress()
 		if (_execute_monitors_pending == Monitor::Pool::State::JOBS_PENDING)
 			_execute_monitors_pending = _monitors.execute_monitors();
 	}
+
+	wakeup_remote_peers();
 }
 
 

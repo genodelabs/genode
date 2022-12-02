@@ -33,13 +33,13 @@ class Vfs_import::Flush_guard
 {
 	private:
 
-		Genode::Entrypoint &_ep;
-		Vfs_handle         &_handle;
+		Vfs::Env::Io &_io;
+		Vfs_handle   &_handle;
 
 	public:
 
-		Flush_guard(Vfs::Env &env, Vfs_handle &handle)
-		: _ep(env.env().ep()), _handle(handle) { }
+		Flush_guard(Vfs::Env::Io &io, Vfs_handle &handle)
+		: _io(io), _handle(handle) { }
 
 		~Flush_guard()
 		{
@@ -48,7 +48,7 @@ class Vfs_import::Flush_guard
 				 && (_handle.fs().complete_sync(&_handle)
 				  == Vfs::File_io_service::SYNC_OK))
 					break;
-				_ep.wait_and_dispatch_one_io_signal();
+				_io.commit_and_wait();
 			}
 		}
 };
@@ -89,7 +89,7 @@ class Vfs_import::File_system : public Vfs::File_system
 
 			Vfs_handle::Guard guard(dst_handle);
 			{
-				Flush_guard flush(env, *dst_handle);
+				Flush_guard flush(env.io(), *dst_handle);
 
 				file_size count = target.length();
 				for (;;) {
@@ -142,7 +142,7 @@ class Vfs_import::File_system : public Vfs::File_system
 
 			char              buf[4096];
 			Vfs_handle::Guard guard { dst_handle };
-			Flush_guard       flush { env, *dst_handle };
+			Flush_guard       flush { env.io(), *dst_handle };
 			Readonly_file::At at    { };
 
 			while (true) {

@@ -1,6 +1,7 @@
 /*
  * \brief  Cross-plugin VFS environment
  * \author Emery Hemingway
+ * \author Norman Feske
  * \date   2018-04-04
  */
 
@@ -20,16 +21,21 @@
 
 namespace Vfs { struct Simple_env; }
 
-class Vfs::Simple_env : public Vfs::Env
+
+class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io
 {
 	private:
 
 		Genode::Env       &_env;
 		Genode::Allocator &_alloc;
 
-		Vfs::Global_file_system_factory _fs_factory { _alloc };
+		Global_file_system_factory _fs_factory { _alloc };
 
-		Vfs::Dir_file_system _root_dir;
+		Dir_file_system _root_dir;
+
+		using Deferred_wakeups = Remote_io::Deferred_wakeups;
+
+		Deferred_wakeups _deferred_wakeups { };
 
 	public:
 
@@ -45,9 +51,20 @@ class Vfs::Simple_env : public Vfs::Env
 			_root_dir.apply_config(config);
 		}
 
-		Genode::Env       &env()       override { return _env; }
-		Genode::Allocator &alloc()     override { return _alloc; }
-		Vfs::File_system  &root_dir()  override { return _root_dir; }
+		Genode::Env       &env()              override { return _env; }
+		Genode::Allocator &alloc()            override { return _alloc; }
+		Vfs::File_system  &root_dir()         override { return _root_dir; }
+		Deferred_wakeups  &deferred_wakeups() override { return _deferred_wakeups; }
+		Vfs::Env::Io      &io()               override { return *this; }
+
+		/**
+		 * Vfs::Env::Io interface
+		 */
+		void progress() override
+		{
+			_deferred_wakeups.trigger();
+			_env.ep().wait_and_dispatch_one_io_signal();
+		}
 };
 
 #endif /* _INCLUDE__VFS__SIMPLE_ENV_H_ */

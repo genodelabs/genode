@@ -483,6 +483,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 				while (main_blocked_in_monitor() || main_suspended_for_io()) {
 
+					wakeup_remote_peers();
+
 					/*
 					 * Block for one I/O signal and process all pending ones
 					 * before executing the monitor functions. This avoids
@@ -692,6 +694,16 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				throw Kernel_called_prior_initialization();
 
 			return *_kernel_ptr;
+		}
+
+
+		/******************************
+		 ** Vfs::Remote_io mechanism **
+		 ******************************/
+
+		void wakeup_remote_peers()
+		{
+			_libc_env.vfs_env().deferred_wakeups().trigger();
 		}
 };
 
