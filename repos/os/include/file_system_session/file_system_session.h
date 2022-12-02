@@ -317,7 +317,7 @@ struct File_system::Directory_entry
 
 struct File_system::Session : public Genode::Session
 {
-	enum { TX_QUEUE_SIZE = 16 };
+	enum { TX_QUEUE_SIZE = 32 };
 
 	typedef Genode::Packet_stream_policy<File_system::Packet_descriptor,
 	                                     TX_QUEUE_SIZE, TX_QUEUE_SIZE,
