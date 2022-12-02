@@ -183,7 +183,7 @@ class Vfs_server::Session_component : private Session_resources,
 
 				auto drop_packet_from_submit_queue = [&] ()
 				{
-					_stream.get_packet();
+					_stream.try_get_packet();
 
 					overall_progress      = true;
 					progress_in_iteration = true;
@@ -273,7 +273,7 @@ class Vfs_server::Session_component : private Session_resources,
 				}
 
 				if (node.acknowledgement_pending()) {
-					_stream.acknowledge_packet(node.dequeue_acknowledgement());
+					_stream.try_ack_packet(node.dequeue_acknowledgement());
 					progress = true;
 				}
 
