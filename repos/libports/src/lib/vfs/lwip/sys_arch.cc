@@ -38,7 +38,6 @@ namespace Lwip {
 	{
 		void check_timeouts(Genode::Duration)
 		{
-			Genode::Mutex::Guard guard { Lwip::mutex() };
 			sys_check_timeouts();
 		}
 
@@ -64,12 +63,6 @@ namespace Lwip {
 		sys_timer_ptr = &sys_timer;
 
 		lwip_init();
-	}
-
-	Genode::Mutex &mutex()
-	{
-		static Genode::Mutex _lwip_mutex;
-		return _lwip_mutex;
 	}
 }
 

@@ -19,8 +19,6 @@
 
 namespace Lwip {
 	void genode_init(Genode::Allocator &heap, ::Timer::Connection &timer);
-
-	Genode::Mutex &mutex();
 }
 
 #endif
