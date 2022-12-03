@@ -8,7 +8,7 @@ SIG(curl) := ${URL(curl)}.asc
 KEY(curl) := daniel@haxx.se
 DIR(curl) := src/lib/curl
 
-PATCHES   := src/lib/curl/curl_h.patch
+PATCHES   := $(addprefix src/lib/curl/,no_socketpair.patch max_write_size.patch)
 
 DIRS := include
 DIR_CONTENT(include) = src/lib/curl/include/curl

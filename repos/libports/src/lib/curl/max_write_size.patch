@@ -1,0 +1,12 @@
++++ src/lib/curl/include/curl/curl.h
+@@ -247,6 +247,10 @@
+ #define CURL_MAX_WRITE_SIZE 16384
+ #endif
+ 
++/* Genode: override the default to foster the batching of network packets */
++#undef  CURL_MAX_WRITE_SIZE
++#define CURL_MAX_WRITE_SIZE 262144
++
+ #ifndef CURL_MAX_HTTP_HEADER
+ /* The only reason to have a max limit for this is to avoid the risk of a bad
+    server feeding libcurl with a never-ending header that will cause reallocs
