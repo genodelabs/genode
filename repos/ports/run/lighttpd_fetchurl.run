@@ -1,0 +1,184 @@
+#
+# \brief  Download data via fetchurl from lighttpd over a virtual network
+# \author Norman Feske
+# \date   2022-12-03
+#
+
+if {[have_board virt_qemu_riscv]} {
+	puts "Run script is not supported on this platform (missing curl and libssh)."
+	exit 0
+}
+
+proc ip_stack      { } { return lwip }
+proc download_size { } { return "1M" }
+proc audit         { } { return 1 }
+
+build "lib/vfs_[ip_stack] lib/libc app/fetchurl lib/curl"
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libssh \
+                  [depot_user]/src/lighttpd \
+                  [depot_user]/src/fetchurl \
+                  [depot_user]/src/curl \
+                  [depot_user]/src/openssl \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_[ip_stack] \
+                  [depot_user]/src/vfs_audit \
+                  [depot_user]/src/zlib
+
+proc lighttpd_config { } {
+	return {
+		server.port            = 80
+		server.document-root   = "/website"
+		server.event-handler   = "select"
+		server.network-backend = "write"
+		server.upload-dirs     = ( "/tmp" )
+	}
+}
+
+proc socket_fs_plugin { } { return "<[ip_stack] dhcp=\"yes\"/>" }
+
+proc socket_path { } { if {[audit]} { return "/audit" } else { return "/socket" } }
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes">
+			<policy label_prefix="lighttpd" domain="server"/>
+			<policy label_prefix="fetchurl" domain="client"/>
+			<domain name="server" interface="10.0.3.1/24">
+				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
+			</domain>
+			<domain name="client" interface="10.0.4.1/24">
+				<dhcp-server ip_first="10.0.4.2" ip_last="10.0.4.2"/>
+				<tcp dst="10.0.3.2/0"> <permit-any domain="server"/> </tcp>
+			</domain>
+		</config>
+	</start>
+
+	<start name="lighttpd" caps="200">
+		<resource name="RAM" quantum="32M" />
+		<config>
+			<arg value="lighttpd" />
+			<arg value="-f" />
+			<arg value="/etc/lighttpd/lighttpd.conf" />
+			<arg value="-D" />
+			<vfs>
+				<dir name="dev">
+					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
+					<inline name="random">0123456789012345678901234567890123456789</inline>
+				</dir>
+				<dir name="socket"> } [socket_fs_plugin] { </dir>
+				<dir name="audit"> <audit path="socket"/> </dir>
+				<dir name="etc">
+					<dir name="lighttpd">
+						<inline name="lighttpd.conf">} [lighttpd_config] { </inline>
+					</dir>
+				</dir>
+				<dir name="website">
+					<zero size="} [download_size] {"/>
+				</dir>
+				<dir name="tmp"> <ram/> </dir>
+			</vfs>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+			      rtc="/dev/rtc" rng="/dev/random" socket="} [socket_path] {"/>
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_rom" caps="100">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
+	<start name="fetchurl" caps="500">
+		<resource name="RAM" quantum="32M"/>
+		<config>
+			<report delay_ms="1000" progress="yes"/>
+			<vfs>
+				<dir name="dev">
+					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
+					<inline name="random">01234567890123456789</inline>
+				</dir>
+				<dir name="socket"> } [socket_fs_plugin] { </dir>
+				<dir name="audit"> <audit path="socket"/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
+			      rng="/dev/random" socket="} [socket_path] {"/>
+			<fetch url="http://10.0.3.2/zero" path="/dev/null" retry="3"/>
+		</config>
+	</start>
+
+</config>}
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic "
+
+run_genode_until {.*server started.*} 10
+
+set download_start_time [clock milliseconds]
+
+run_genode_until {.*"fetchurl" exited with exit value 0.*\n.*} 60 [output_spawn_id]
+
+set download_end_time [clock milliseconds]
+
+set download_duration_ms [expr ($download_end_time - $download_start_time)]
+
+puts "\ntransferred [download_size] in $download_duration_ms ms"
+
+if {[audit]} {
+
+	# count switches between fetchurl and lighttpd based on the output of 'audit'
+	set previous_label   ""
+	set audit_messages   0
+	set context_switches 0
+	foreach line [split [strip_whitespace $output] "\n"] {
+		if {[regexp -- {(\[.*-> audit\]).*} $line match label]} {
+			incr audit_messages
+			if {$label != $previous_label} {
+				incr context_switches
+				set previous_label $label
+			}
+		}
+	}
+
+	puts "\n$audit_messages audit messages"
+	puts "\n$context_switches context switches between fetchurl and lighttpd"
+}

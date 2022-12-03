@@ -23,6 +23,7 @@ intel_fb
 libc_integration
 libc_vfs_fs_ext2
 libc_vfs_fs_fat
+lighttpd_fetchurl
 log_core
 lwip
 lx_fs_import
