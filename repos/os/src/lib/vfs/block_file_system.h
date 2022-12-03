@@ -49,13 +49,8 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 		Vfs::Env &_env;
 
-		/*
-		 * Serialize access to packet stream of the block session
-		 */
-		Mutex _mutex { };
-
-		char                 *_block_buffer;
-		unsigned              _block_buffer_count;
+		char     *_block_buffer;
+		unsigned  _block_buffer_count;
 
 		Block::Connection<>        &_block;
 		Block::Session::Info const &_info;
@@ -69,7 +64,6 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 				Genode::Entrypoint                &_ep;
 				Genode::Allocator                 &_alloc;
-				Mutex                             &_mutex;
 				char                              *_block_buffer;
 				unsigned                          &_block_buffer_count;
 				Block::Connection<>               &_block;
@@ -107,8 +101,6 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 					while (true) {
 						try {
-							Mutex::Guard guard(_mutex);
-
 							packet = _block.alloc_packet(packet_count * _block_size);
 							break;
 						} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
@@ -121,7 +113,6 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 							}
 						}
 					}
-					Mutex::Guard guard(_mutex);
 
 					Block::Packet_descriptor p(packet, op, nr, packet_count);
 
@@ -153,7 +144,6 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				                 File_io_service                   &fs,
 				                 Genode::Entrypoint                &ep,
 				                 Genode::Allocator                 &alloc,
-				                 Mutex                             &mutex,
 				                 char                              *block_buffer,
 				                 unsigned                          &block_buffer_count,
 				                 Block::Connection<>               &block,
@@ -165,7 +155,6 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 					Single_vfs_handle(ds, fs, alloc, 0),
 					_ep(ep),
 					_alloc(alloc),
-					_mutex(mutex),
 					_block_buffer(block_buffer),
 					_block_buffer_count(block_buffer_count),
 					_block(block),
@@ -397,7 +386,6 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				*out_handle = new (alloc) Block_vfs_handle(*this, *this,
 				                                           _env.env().ep(),
 				                                           alloc,
-				                                           _mutex,
 				                                           _block_buffer,
 				                                           _block_buffer_count,
 				                                           _block,

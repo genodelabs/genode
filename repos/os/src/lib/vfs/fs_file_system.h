@@ -28,15 +28,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 {
 	private:
 
-		/*
-		 * Mutex used to serialize the interaction with the packet stream of the
-		 * file-system session.
-		 *
-		 * XXX Once, we change the VFS file-system interface to use
-		 *     asynchronous read/write operations, we can possibly remove it.
-		 */
-		Mutex _mutex { };
-
 		Vfs::Env              &_env;
 		Genode::Allocator_avl  _fs_packet_alloc { &_env.alloc() };
 
@@ -622,12 +613,10 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 					Genode::warning("ack for unknown File_system handle ", id); }
 
 				if (packet.operation() == Packet_descriptor::WRITE) {
-					Mutex::Guard guard(_mutex);
 					source.release_packet(packet);
 				}
 
 				if (packet.operation() == Packet_descriptor::WRITE_TIMESTAMP) {
-					Mutex::Guard guard(_mutex);
 					source.release_packet(packet);
 				}
 			}
@@ -814,8 +803,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		Open_result open(char const *path, unsigned vfs_mode, Vfs_handle **out_handle,
 		                 Genode::Allocator& alloc) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
 
@@ -861,8 +848,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		Opendir_result opendir(char const *path, bool create,
 		                       Vfs_handle **out_handle, Allocator &alloc) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			Absolute_path dir_path(path);
 
 			try {
@@ -886,8 +871,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		Openlink_result openlink(char const *path, bool create,
 		                         Vfs_handle **out_handle, Allocator &alloc) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			/*
 			 * Canonicalize path (i.e., path must start with '/')
 			 */
@@ -926,8 +909,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 		void close(Vfs_handle *vfs_handle) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			Fs_vfs_handle *fs_handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 			if (fs_handle->enqueued())
 				_congested_handles.remove(*fs_handle);
@@ -988,8 +969,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		Write_result write(Vfs_handle *vfs_handle, char const *buf,
 		                   file_size buf_size, file_size &out_count) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			Fs_vfs_handle &handle = static_cast<Fs_vfs_handle &>(*vfs_handle);
 
 			out_count = _write(handle, buf, buf_size, handle.seek());
@@ -998,8 +977,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 		bool queue_read(Vfs_handle *vfs_handle, file_size count) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
 			bool result = handle->queue_read(count);
@@ -1011,8 +988,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		Read_result complete_read(Vfs_handle *vfs_handle, char *dst, file_size count,
 		                          file_size &out_count) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			out_count = 0;
 
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
@@ -1076,8 +1051,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 		bool queue_sync(Vfs_handle *vfs_handle) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
 			return handle->queue_sync();
@@ -1085,8 +1058,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 		Sync_result complete_sync(Vfs_handle *vfs_handle) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
 			return handle->complete_sync();
@@ -1094,8 +1065,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 		bool update_modification_timestamp(Vfs_handle *vfs_handle, Vfs::Timestamp time) override
 		{
-			Mutex::Guard guard(_mutex);
-
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
 			return handle->update_modification_timestamp(time);

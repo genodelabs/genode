@@ -484,19 +484,16 @@ class Vfs::Tar_file_system : public File_system
 
 	struct Num_dirent_cache
 	{
-		Mutex            mutex { };
-		Node            &root_node;
-		bool             valid;              /* true after first lookup */
-		char             key[256];           /* key used for lookup */
-		file_size        cached_num_dirent;  /* cached value */
+		Node     &root_node;
+		bool      valid;              /* true after first lookup */
+		char      key[256];           /* key used for lookup */
+		file_size cached_num_dirent;  /* cached value */
 
 		Num_dirent_cache(Node &root_node)
 		: root_node(root_node), valid(false), cached_num_dirent(0) { }
 
 		file_size num_dirent(char const *path)
 		{
-			Mutex::Guard guard(mutex);
-
 			/* check for cache miss */
 			if (!valid || strcmp(path, key) != 0) {
 				Node *node = root_node.lookup(path);
