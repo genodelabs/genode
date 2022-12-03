@@ -108,10 +108,10 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 
 			/* sync file operations before close */
 			while (!handle->fs().queue_sync(handle))
-				_io.progress();
+				_io.commit_and_wait();
 
 			while (handle->fs().complete_sync(handle) == Vfs::File_io_service::SYNC_QUEUED)
-				_io.progress();
+				_io.commit_and_wait();
 
 			handle->close();
 		}

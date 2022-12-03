@@ -188,20 +188,7 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 		Signal_transmitter(_config_handler).submit();
 	}
 
-	struct Vfs_env : Vfs::Env
-	{
-		Main &_main;
-
-		Vfs_env(Main &main) : _main(main) { }
-
-		Genode::Env      &env()      override { return _main._env; }
-		Allocator        &alloc()    override { return _main._heap; }
-		Vfs::File_system &root_dir() override { return _main._root_dir_fs; }
-
-	} _vfs_env { *this };
-
-	Vfs::Dir_file_system _root_dir_fs {
-		_vfs_env, _config.xml().sub_node("vfs"), _fs_factory };
+	Vfs::Simple_env _vfs_env { _env, _heap, _config.xml().sub_node("vfs") };
 
 	Directory _root_dir { _vfs_env };
 
@@ -229,7 +216,7 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 
 		Xml_node const config = _config.xml();
 
-		_root_dir_fs.apply_config(config.sub_node("vfs"));
+		_vfs_env.root_dir().apply_config(config.sub_node("vfs"));
 
 		_dirs.for_each([&] (Registered<Watched_directory> &dir) {
 			destroy(_heap, &dir); });

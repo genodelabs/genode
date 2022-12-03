@@ -703,7 +703,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		void wakeup_remote_peers()
 		{
-			_libc_env.vfs_env().deferred_wakeups().trigger();
+			_libc_env.vfs_env().io().commit();
 		}
 };
 

@@ -75,14 +75,25 @@ extern "C" {
 
 class Lwip::Nic_netif
 {
+	public:
+
+		struct Wakeup_scheduler : Genode::Noncopyable, Genode::Interface
+		{
+			virtual void schedule_nic_server_wakeup() = 0;
+		};
+
 	private:
+
+		Genode::Entrypoint &_ep;
+
+		Wakeup_scheduler &_wakeup_scheduler;
 
 		enum {
 			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
-			BUF_SIZE    = 128 * PACKET_SIZE,
+			BUF_SIZE    = 1024*PACKET_SIZE,
 		};
 
-		Genode::Tslab<Nic_netif_pbuf, 128*sizeof(Nic_netif_pbuf)> _pbuf_alloc;
+		Genode::Tslab<Nic_netif_pbuf, 1024*sizeof(Nic_netif_pbuf)> _pbuf_alloc;
 
 		Nic::Packet_allocator _nic_tx_alloc;
 		Nic::Connection _nic;
@@ -103,11 +114,17 @@ class Lwip::Nic_netif
 
 		void free_pbuf(Nic_netif_pbuf &pbuf)
 		{
-			if (!_nic.rx()->ready_to_ack()) {
-				Genode::error("Nic rx acknowledgement queue congested, blocking to  free pbuf");
+			bool msg_once = true;
+			while (!_nic.rx()->ready_to_ack()) {
+				if (msg_once)
+					Genode::error("Nic rx acknowledgement queue congested, blocking to  free pbuf");
+				msg_once = false;
+				_ep.wait_and_dispatch_one_io_signal();
 			}
 
-			_nic.rx()->acknowledge_packet(pbuf.packet);
+			_nic.rx()->try_ack_packet(pbuf.packet);
+			_wakeup_scheduler.schedule_nic_server_wakeup();
+
 			destroy(_pbuf_alloc, &pbuf);
 		}
 
@@ -144,9 +161,12 @@ class Lwip::Nic_netif
 		{
 			auto &rx = *_nic.rx();
 
+			bool progress = false;
+
 			while (rx.packet_avail() && rx.ready_to_ack()) {
 
-				Nic::Packet_descriptor packet = rx.get_packet();
+				Nic::Packet_descriptor packet = rx.try_get_packet();
+				progress = true;
 
 				Nic_netif_pbuf *nic_pbuf = new (_pbuf_alloc)
 					Nic_netif_pbuf(*this, packet);
@@ -165,6 +185,9 @@ class Lwip::Nic_netif
 					pbuf_free(p);
 				}
 			}
+
+			if (progress)
+				_wakeup_scheduler.schedule_nic_server_wakeup();
 		}
 
 		/**
@@ -174,12 +197,19 @@ class Lwip::Nic_netif
 		{
 			auto &tx = *_nic.tx();
 
+			bool progress = false;
+
 			/* flush acknowledgements */
-			while (tx.ack_avail())
-				tx.release_packet(tx.get_acked_packet());
+			while (tx.ack_avail()) {
+				tx.release_packet(tx.try_get_acked_packet());
+				progress = true;
+			}
 
 			/* notify subclass to resume pending transmissions */
 			status_callback();
+
+			if (progress)
+				_wakeup_scheduler.schedule_nic_server_wakeup();
 		}
 
 		void configure(Genode::Xml_node const &config)
@@ -240,8 +270,11 @@ class Lwip::Nic_netif
 
 		Nic_netif(Genode::Env &env,
 		          Genode::Allocator &alloc,
-		          Genode::Xml_node config)
+		          Genode::Xml_node config,
+		          Wakeup_scheduler &wakeup_scheduler)
 		:
+			_ep(env.ep()),
+			_wakeup_scheduler(wakeup_scheduler),
 			_pbuf_alloc(alloc), _nic_tx_alloc(&alloc),
 			_nic(env, &_nic_tx_alloc,
 			     BUF_SIZE, BUF_SIZE,
@@ -365,7 +398,8 @@ class Lwip::Nic_netif
 				dst += q->len;
 			}
 
-			tx.submit_packet(packet);
+			tx.try_submit_packet(packet);
+			_wakeup_scheduler.schedule_nic_server_wakeup();
 			LINK_STATS_INC(link.xmit);
 			return ERR_OK;
 		}
@@ -374,6 +408,15 @@ class Lwip::Nic_netif
 		{
 			return netif_is_up(&_netif) &&
 				!ip_addr_isany(&_netif.ip_addr);
+		}
+
+		/**
+		 * Trigger submission of deferred packet-stream signals
+		 */
+		void wakeup_nic_server()
+		{
+			_nic.rx()->wakeup();
+			_nic.tx()->wakeup();
 		}
 };
 

@@ -96,20 +96,7 @@ struct Menu_view::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	struct Vfs_env : Vfs::Env
-	{
-		Genode::Env      &_env;
-		Allocator        &_alloc;
-		Vfs::File_system &_vfs;
-
-		Vfs_env(Genode::Env &env, Allocator &alloc, Vfs::File_system &vfs)
-		: _env(env), _alloc(alloc), _vfs(vfs) { }
-
-		Genode::Env            &env()           override { return _env;   }
-		Allocator              &alloc()         override { return _alloc; }
-		Vfs::File_system       &root_dir()      override { return _vfs;   }
-
-	} _vfs_env;
+	Vfs::Env &_vfs_env;
 
 	Directory _root_dir   { _vfs_env };
 	Directory _fonts_dir  { _root_dir, "fonts" };
@@ -211,9 +198,9 @@ struct Menu_view::Main
 	 */
 	unsigned _frame_cnt = 0;
 
-	Main(Env &env, Vfs::File_system &libc_vfs)
+	Main(Env &env, Vfs::Env &libc_vfs_env)
 	:
-		_env(env), _vfs_env(_env, _heap, libc_vfs)
+		_env(env), _vfs_env(libc_vfs_env)
 	{
 		_dialog_rom.sigh(_dialog_update_handler);
 		_config.sigh(_config_handler);
@@ -470,6 +457,6 @@ extern "C" void _sigprocmask() { }
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	static Menu_view::Main main(env, env.vfs());
+	static Menu_view::Main main(env, env.vfs_env());
 }
 

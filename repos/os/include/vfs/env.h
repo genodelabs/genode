@@ -46,7 +46,17 @@ struct Vfs::Env : Interface
 	 */
 	struct Io : Interface, Genode::Noncopyable
 	{
-		virtual void progress() = 0;
+		/**
+		 * Trigger the deferred wakeup of remote peers
+		 */
+		virtual void commit() = 0;
+
+		/**
+		 * Wakeup remote peers and wait for I/O progress
+		 *
+		 * This method is intended for implementing synchronous I/O.
+		 */
+		virtual void commit_and_wait() = 0;
 	};
 
 	virtual Io &io() = 0;

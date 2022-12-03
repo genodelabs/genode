@@ -2526,6 +2526,7 @@ class Main
 					_execute_cbe(progress);
 				}
 			}
+			_vfs_env.io().commit();
 		}
 
 	public:

@@ -226,22 +226,20 @@ struct Block_session_component : Rpc_object<Block::Session>,
 	using Block::Request_stream::try_acknowledge;
 	using Block::Request_stream::wakeup_client_if_needed;
 
-	using Vfs_peers = Vfs::Remote_io::Deferred_wakeups;
-
 	Vfs_block::File &_file;
-	Vfs_peers       &_vfs_peers;
+	Vfs::Env::Io    &_io;
 
 	Block_session_component(Region_map                 &rm,
 	                        Entrypoint                 &ep,
 	                        Dataspace_capability        ds,
 	                        Signal_context_capability   sigh,
 	                        Vfs_block::File            &file,
-	                        Vfs_peers                  &vfs_peers)
+	                        Vfs::Env::Io               &io)
 	:
 		Request_stream { rm, ds, ep, sigh, file.block_info() },
-		_ep            { ep },
-		_file          { file },
-		_vfs_peers     { vfs_peers }
+		_ep   { ep },
+		_file { file },
+		_io   { io }
 	{
 		_ep.manage(*this);
 	}
@@ -308,7 +306,7 @@ struct Block_session_component : Rpc_object<Block::Session>,
 			}
 		}
 
-		_vfs_peers.trigger();
+		_io.commit();
 
 		wakeup_client_if_needed();
 	}
@@ -385,7 +383,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>
 			_block_session.construct(_env.rm(), _env.ep(),
 			                         _block_ds->cap(),
 			                         _request_handler, *_block_file,
-			                         _vfs_env.deferred_wakeups());
+			                         _vfs_env.io());
 
 			return _block_session->cap();
 		} catch (...) {

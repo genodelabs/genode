@@ -194,7 +194,7 @@ struct Genode::Directory : Noncopyable, Interface
 				_handle->seek(i * sizeof(entry._dirent));
 
 				while (!_handle->fs().queue_read(_handle, sizeof(entry._dirent)))
-					_io.progress();
+					_io.commit_and_wait();
 
 				Vfs::File_io_service::Read_result read_result;
 				Vfs::file_size                    out_count = 0;
@@ -209,7 +209,7 @@ struct Genode::Directory : Noncopyable, Interface
 					if (read_result != Vfs::File_io_service::READ_QUEUED)
 						break;
 
-					_io.progress();
+					_io.commit_and_wait();
 				}
 
 				if ((read_result != Vfs::File_io_service::READ_OK) ||
@@ -298,7 +298,7 @@ struct Genode::Directory : Noncopyable, Interface
 			Vfs::file_size count = sizeof(buf)-1;
 			Vfs::file_size out_count = 0;
 			while (!link_handle->fs().queue_read(link_handle, count)) {
-				_io.progress();
+				_io.commit_and_wait();
 			}
 
 			File_io_service::Read_result result;
@@ -310,7 +310,7 @@ struct Genode::Directory : Noncopyable, Interface
 				if (result != File_io_service::READ_QUEUED)
 					break;
 
-				_io.progress();
+				_io.commit_and_wait();
 			};
 
 			if (result != File_io_service::READ_OK)
@@ -463,7 +463,7 @@ class Genode::Readonly_file : public File
 			_handle->seek(at.value);
 
 			while (!_handle->fs().queue_read(_handle, bytes))
-				_io.progress();
+				_io.commit_and_wait();
 
 			Vfs::File_io_service::Read_result result;
 
@@ -474,7 +474,7 @@ class Genode::Readonly_file : public File
 				if (result != Vfs::File_io_service::READ_QUEUED)
 					break;
 
-				_io.progress();
+				_io.commit_and_wait();
 			};
 
 			/*
@@ -720,7 +720,7 @@ class Genode::Writeable_file : Noncopyable
 		static void _sync(Vfs::Vfs_handle &handle, Vfs::Env::Io &io)
 		{
 			while (handle.fs().queue_sync(&handle) == false)
-				io.progress();
+				io.commit_and_wait();
 
 			for (bool sync_done = false; !sync_done; ) {
 
@@ -740,7 +740,7 @@ class Genode::Writeable_file : Noncopyable
 				}
 
 				if (!sync_done)
-					io.progress();
+					io.commit_and_wait();
 			}
 		}
 
@@ -786,7 +786,7 @@ class Genode::Writeable_file : Noncopyable
 					stalled = true; }
 
 				if (stalled)
-					io.progress();
+					io.commit_and_wait();
 			}
 			return write_error ? Append_result::WRITE_ERROR
 			                   : Append_result::OK;

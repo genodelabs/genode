@@ -219,6 +219,8 @@ class Main
 				}
 				break;
 			}
+
+			_vfs_env.io().commit();
 		}
 
 		Io_response_handler _io_response_handler { _io_handler };

@@ -35,10 +35,10 @@ class Vfs_replay
 		Vfs_replay(const Vfs_replay&) = delete;
 		Vfs_replay& operator=(const Vfs_replay&) = delete;
 
-
 		Env &_env;
 
 		Vfs::File_system &_vfs;
+		Vfs::Env::Io     &_io;
 		Vfs::Vfs_handle  *_vfs_handle;
 
 		Attached_ram_dataspace _write_buffer;
@@ -421,6 +421,8 @@ class Vfs_replay
 			if (_finished) {
 				_env.parent().exit(failed ? 1 : 0);
 			}
+
+			_io.commit();
 		}
 
 		struct Io_response_handler : Vfs::Io_response_handler
@@ -441,11 +443,12 @@ class Vfs_replay
 
 	public:
 
-		Vfs_replay(Vfs::File_system &vfs, Env &env,
+		Vfs_replay(Env &env, Vfs::File_system &vfs, Vfs::Env::Io &io,
 		           Xml_node const & config)
 		:
 			_env { env },
 			_vfs { vfs },
+			_io  { io },
 			_vfs_handle { nullptr },
 			_write_buffer { _env.ram(), _env.rm(),
 			                config.attribute_value("write_buffer_size", 1u << 20) },
@@ -513,7 +516,7 @@ struct Main : private Genode::Entrypoint::Io_progress_handler
 	Genode::Signal_handler<Main> _reactivate_handler {
 		_env.ep(), *this, &Main::handle_io_progress };
 
-	Vfs_replay _replay { _vfs_env.root_dir(), _env, _config_rom.xml() };
+	Vfs_replay _replay { _env, _vfs_env.root_dir(), _vfs_env.io(), _config_rom.xml() };
 
 	Main(Genode::Env &env) : _env { env }
 	{

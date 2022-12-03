@@ -89,10 +89,7 @@ class Vfs_server::Session_component : private Session_resources,
 	private:
 
 		Vfs::File_system &_vfs;
-
-		using Deferred_wakeups = Vfs::Remote_io::Deferred_wakeups;
-
-		Deferred_wakeups &_deferred_wakeups;
+		Vfs::Env::Io     &_io;
 
 		Genode::Entrypoint &_ep;
 
@@ -197,7 +194,6 @@ class Vfs_server::Session_component : private Session_resources,
 				{
 					drop_packet_from_submit_queue();
 					packet.succeeded(false);
-					Genode::log("consume_and_ack_invalid_packet");
 					_stream.try_ack_packet(packet);
 
 					overall_progress      = true;
@@ -278,12 +274,7 @@ class Vfs_server::Session_component : private Session_resources,
 				}
 
 				if (node.acknowledgement_pending()) {
-					auto packet = node.dequeue_acknowledgement();
-
-					if (!packet.succeeded())
-						Genode::warning("_try_acknowledge_jobs failed packet");
-
-					_stream.try_ack_packet(packet);
+					_stream.try_ack_packet(node.dequeue_acknowledgement());
 					progress = true;
 				}
 
@@ -389,7 +380,7 @@ class Vfs_server::Session_component : private Session_resources,
 			if (progress == Process_packets_result::PROGRESS)
 				_io_progress_handler.handle_io_progress();
 
-			_deferred_wakeups.trigger();
+			_io.commit();
 		}
 
 		/**
@@ -454,7 +445,7 @@ class Vfs_server::Session_component : private Session_resources,
 		                  Genode::Cap_quota    cap_quota,
 		                  size_t               tx_buf_size,
 		                  Vfs::File_system    &vfs,
-		                  Deferred_wakeups    &deferred_wakeups,
+		                  Vfs::Env::Io        &io,
 		                  Session_queue       &active_sessions,
 		                  Io_progress_handler &io_progress_handler,
 		                  char          const *root_path,
@@ -463,7 +454,7 @@ class Vfs_server::Session_component : private Session_resources,
 			Session_resources(env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size),
 			Session_rpc_object(_packet_ds.cap(), env.rm(), env.ep().rpc_ep()),
 			_vfs(vfs),
-			_deferred_wakeups(deferred_wakeups),
+			_io(io),
 			_ep(env.ep()),
 			_io_progress_handler(io_progress_handler),
 			_active_sessions(active_sessions),
@@ -867,7 +858,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			if (yield)
 				Genode::Signal_transmitter(_reactivate_handler).submit();
 
-			_vfs_env.deferred_wakeups().trigger();
+			_vfs_env.io().commit();
 		}
 
 	protected:
@@ -952,7 +943,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 				                  Genode::Ram_quota{ram_quota},
 				                  Genode::Cap_quota{cap_quota},
 				                  tx_buf_size, _vfs_env.root_dir(),
-				                  _vfs_env.deferred_wakeups(),
+				                  _vfs_env.io(),
 				                  _active_sessions, *this,
 				                  session_root.base(), writeable);
 

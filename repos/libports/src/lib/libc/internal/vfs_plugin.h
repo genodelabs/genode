@@ -161,7 +161,7 @@ class Libc::Vfs_plugin final : public Plugin
 		           Xml_node                  config)
 		:
 			_alloc(alloc),
-			_root_fs(env.vfs()),
+			_root_fs(env.vfs_env().root_dir()),
 			_response_handler(handler),
 			_update_mtime(update_mtime),
 			_current_real_time(current_real_time),

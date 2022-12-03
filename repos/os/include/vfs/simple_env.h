@@ -60,7 +60,12 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io
 		/**
 		 * Vfs::Env::Io interface
 		 */
-		void progress() override
+		void commit() override { _deferred_wakeups.trigger(); }
+
+		/**
+		 * Vfs::Env::Io interface
+		 */
+		void commit_and_wait() override
 		{
 			_deferred_wakeups.trigger();
 			_env.ep().wait_and_dispatch_one_io_signal();

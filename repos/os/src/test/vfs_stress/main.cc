@@ -304,7 +304,7 @@ struct Write_test : public Stress_test
 			handle->fs().queue_sync(handle);
 			while (handle->fs().complete_sync(handle) ==
 			       Vfs::File_io_service::SYNC_QUEUED)
-				_io.progress();
+				_io.commit_and_wait();
 			count += n;
 		}
 
@@ -382,7 +382,7 @@ struct Read_test : public Stress_test
 			while ((read_result =
 			        handle->fs().complete_read(handle, tmp, sizeof(tmp), n)) ==
 			       Vfs::File_io_service::READ_QUEUED)
-				_io.progress();
+				_io.commit_and_wait();
 
 			assert_read(read_result);
 
@@ -457,7 +457,7 @@ struct Unlink_test : public Stress_test
 			while (dir_handle->fs().complete_read(dir_handle, (char*)&dirent,
 			                                      sizeof(dirent), out_count) ==
 			       Vfs::File_io_service::READ_QUEUED)
-				_io.progress();
+				_io.commit_and_wait();
 
 			subpath.append(dirent.name.buf);
 			switch (dirent.type) {
@@ -540,11 +540,11 @@ void Component::construct(Genode::Env &env)
 	auto vfs_root_sync = [&] ()
 	{
 		while (!vfs_root_handle->fs().queue_sync(vfs_root_handle))
-			vfs_env.io().progress();
+			vfs_env.io().commit_and_wait();
 
 		while (vfs_root_handle->fs().complete_sync(vfs_root_handle) ==
 		       Vfs::File_io_service::SYNC_QUEUED)
-			vfs_env.io().progress();
+			vfs_env.io().commit_and_wait();
 	};
 
 	char path[Vfs::MAX_PATH_LEN];

@@ -28,7 +28,7 @@
 
 namespace Libc { class Env; }
 
-namespace Vfs { struct File_system; }
+namespace Vfs { struct Env; }
 
 /**
  * Interface to be provided by the component implementation
@@ -49,9 +49,9 @@ class Libc::Env : public Genode::Env
 			func(_config_xml()); }
 
 		/**
-		 * Virtual File System configured for this component
+		 * Virtual file system configured for this component
 		 */
-		virtual Vfs::File_system &vfs() = 0;
+		virtual Vfs::Env &vfs_env() = 0;
 
 		/**
 		 * Libc configuration for this component

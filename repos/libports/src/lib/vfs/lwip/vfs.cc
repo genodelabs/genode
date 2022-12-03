@@ -1713,8 +1713,12 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 		/**
 		 * LwIP connection to Nic service
 		 */
-		struct Vfs_netif : Lwip::Nic_netif
+		struct Vfs_netif : Lwip::Nic_netif,
+		                   private Vfs::Remote_io,
+		                   private Lwip::Nic_netif::Wakeup_scheduler
 		{
+			Remote_io::Peer _peer;
+
 			Tcp_proto_dir tcp_dir;
 			Udp_proto_dir udp_dir;
 
@@ -1725,16 +1729,37 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 
 			Handle_queue  blocked_handles { };
 
-			Vfs_netif(Vfs::Env &vfs_env,
-			          Genode::Xml_node config)
-			: Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config),
-			  tcp_dir(vfs_env), udp_dir(vfs_env)
+			Vfs_netif(Vfs::Env &vfs_env, Genode::Xml_node config)
+			:
+				Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config, *this),
+				_peer(vfs_env.deferred_wakeups(), *this),
+				tcp_dir(vfs_env), udp_dir(vfs_env)
 			{ }
 
 			~Vfs_netif()
 			{
 				/* free the allocated qeueue elements */
 				status_callback();
+			}
+
+			/**
+			 * Lwip::Nic_netif::Wakeup_scheduler interface
+			 *
+			 * Called from Lwip::Nic_netif.
+			 */
+			void schedule_nic_server_wakeup() override
+			{
+				_peer.schedule_wakeup();
+			}
+
+			/**
+			 * Remote_io interface
+			 *
+			 * Called from VFS user when going idle.
+			 */
+			void wakeup_remote_peer() override
+			{
+				Lwip::Nic_netif::wakeup_nic_server();
 			}
 
 			void enqueue(Vfs_handle &handle)
@@ -1802,14 +1827,17 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 	public:
 
 		File_system(Vfs::Env &vfs_env, Genode::Xml_node config)
-		: _ep(vfs_env.env().ep()), _netif(vfs_env, config)
+		:
+			_ep(vfs_env.env().ep()), _netif(vfs_env, config)
 		{ }
 
 		/**
 		 * Reconfigure the LwIP Nic interface with the VFS config hook
 		 */
-		void apply_config(Genode::Xml_node const &node) override {
-			_netif.configure(node); }
+		void apply_config(Genode::Xml_node const &node) override
+		{
+			_netif.configure(node);
+		}
 
 
 		/*********************

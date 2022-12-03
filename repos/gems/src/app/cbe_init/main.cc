@@ -307,13 +307,12 @@ class Main
 				}
 			}
 			_blk.tx()->wakeup();
+			_vfs_env.io().commit();
 		}
 
 	public:
 
-		Main(Env &env)
-		:
-			_env          { env }
+		Main(Env &env) : _env { env }
 		{
 			if (_blk_ratio == 0) {
 				error("backend block size not supported");
