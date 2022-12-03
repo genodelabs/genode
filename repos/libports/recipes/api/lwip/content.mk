@@ -1,5 +1,5 @@
 MIRROR_FROM_REP_DIR := \
-	$(shell cd $(REP_DIR); find include/lwip src/lib/lwip -type f) \
+	$(shell cd $(REP_DIR); find src/lib/lwip -type f) \
 	lib/import/import-lwip.mk \
 	lib/mk/lwip.mk \
 

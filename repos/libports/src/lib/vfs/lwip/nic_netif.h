@@ -26,7 +26,7 @@
 #endif
 
 /* Genode includes */
-#include <lwip/genode_init.h>
+#include <lwip_genode_init.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 #include <base/log.h>

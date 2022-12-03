@@ -24,8 +24,8 @@
 #include <base/log.h>
 
 /* LwIP includes */
-#include <lwip/genode_init.h>
-#include <lwip/nic_netif.h>
+#include <lwip_genode_init.h>
+#include <nic_netif.h>
 
 namespace Lwip {
 extern "C" {

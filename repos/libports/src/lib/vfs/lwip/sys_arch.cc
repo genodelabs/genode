@@ -17,7 +17,7 @@
 #include <util/reconstructible.h>
 #include <base/sleep.h>
 
-#include <lwip/genode_init.h>
+#include <lwip_genode_init.h>
 
 extern "C" {
 /* LwIP includes */
