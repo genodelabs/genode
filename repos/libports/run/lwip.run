@@ -115,7 +115,7 @@ install_config {
 	</start>
 
 	<start name="test-lwip_httpsrv" caps="120" priority="-1">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="8M"/>
 		<config>
 			<vfs>
 				<dir name="dev">    <log/>             </dir>

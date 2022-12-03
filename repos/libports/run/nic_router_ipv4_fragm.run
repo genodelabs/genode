@@ -125,7 +125,7 @@ append config {
 	</start>
 
 	<start name="test-lwip-udp-server">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

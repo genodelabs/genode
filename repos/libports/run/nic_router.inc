@@ -21,7 +21,7 @@ proc client_config { name prot ip_addr gateway netmask nic srv_port srv_ip } {
 	append result {
 		<start name="} $name {" priority="-1">
 			<binary  name="} [client_bin $prot] {" />
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="8M"/>
 			<route>
 				<service name="Nic"> <child name="} $nic {"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
@@ -51,7 +51,7 @@ proc server_config { name prot ip_addr gateway netmask nic port } {
 	append result {
 		<start name="} $name {" priority="-1">
 			<binary  name="} [server_bin $prot] {" />
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="8M"/>
 			<route>
 				<service name="Nic"> <child name="} $nic {"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>

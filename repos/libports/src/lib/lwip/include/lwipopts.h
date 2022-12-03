@@ -36,13 +36,13 @@ extern "C" {
 #define LWIP_NETIF_LOOPBACK         1  /* Looping back to same address? */
 #define LWIP_STATS                  0  /* disable stating */
 #define LWIP_TCP_TIMESTAMPS         1
-#define TCP_LISTEN_BACKLOG              1
-#define TCP_MSS                         1460
-#define TCP_WND                     (32 * TCP_MSS)
-#define TCP_SND_BUF                 (32 * TCP_MSS)
-#define LWIP_WND_SCALE                  3
-#define TCP_RCV_SCALE                   2
-#define TCP_SND_QUEUELEN                ((8 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
+#define TCP_LISTEN_BACKLOG          1
+#define TCP_MSS                     1460
+#define TCP_WND                     (80 * TCP_MSS)
+#define TCP_SND_BUF                 (80 * TCP_MSS)
+#define LWIP_WND_SCALE              3
+#define TCP_RCV_SCALE               2
+#define TCP_SND_QUEUELEN            ((8 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
 
 #define LWIP_NETIF_STATUS_CALLBACK  1  /* callback function used for interface changes */
 #define LWIP_NETIF_LINK_CALLBACK    1  /* callback function used for link-state changes */
