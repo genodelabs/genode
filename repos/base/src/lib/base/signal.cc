@@ -117,6 +117,7 @@ namespace Genode {
 void Signal_context::local_submit()
 {
 	if (_receiver) {
+		Mutex::Guard guard(_mutex);
 		/* construct and locally submit signal object */
 		Signal::Data signal(this, 1);
 		_receiver->local_submit(signal);
@@ -261,7 +262,7 @@ Signal Signal_receiver::pending_signal()
 		_contexts.head(context._next);
 		context._pending     = false;
 		result               = context._curr_signal;
-		context._curr_signal = Signal::Data(0, 0);
+		context._curr_signal = Signal::Data();
 
 		Trace::Signal_received trace_event(context, result.num);
 		return true;

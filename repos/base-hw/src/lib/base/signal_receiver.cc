@@ -85,7 +85,7 @@ void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 	{
 		Mutex::Guard context_guard(c->_mutex);
 		c->_pending     = true;
-		c->_curr_signal = Signal::Data(nullptr, 0);
+		c->_curr_signal = Signal::Data();
 	}
 	Kernel::kill_signal_context(Capability_space::capid(c->_cap));
 }
@@ -166,7 +166,7 @@ Signal Signal_receiver::pending_signal()
 		_contexts.head(context._next);
 		context._pending     = false;
 		result               = context._curr_signal;
-		context._curr_signal = Signal::Data(0, 0);
+		context._curr_signal = Signal::Data();
 
 		Trace::Signal_received trace_event(context, result.num);
 		return true;
