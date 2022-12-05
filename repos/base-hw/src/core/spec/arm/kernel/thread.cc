@@ -26,6 +26,9 @@ using namespace Kernel;
 extern "C" void kernel_to_user_context_switch(Cpu::Context*, Cpu::Fpu_context*);
 
 
+void Thread::_call_suspend() { }
+
+
 void Thread::exception(Cpu & cpu)
 {
 	switch (regs->cpu_exception) {

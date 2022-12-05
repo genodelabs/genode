@@ -870,6 +870,7 @@ void Thread::_call()
 	case call_id_ack_irq():                _call_ack_irq(); return;
 	case call_id_new_obj():                _call_new_obj(); return;
 	case call_id_delete_obj():             _call_delete_obj(); return;
+	case call_id_suspend():                _call_suspend(); return;
 	default:
 		Genode::raw(*this, ": unknown kernel call");
 		_die();

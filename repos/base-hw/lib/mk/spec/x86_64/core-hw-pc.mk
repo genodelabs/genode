@@ -37,6 +37,10 @@ SRC_CC += spec/x86_64/platform_support_common.cc
 
 SRC_CC += spec/64bit/memory_map.cc
 
+PD_SESSION_SUPPORT_CC_PATH := \
+   $(call select_from_repositories,src/core/spec/x86_64/pd_session_support.cc)
+
+vpath pd_session_support.cc    $(dir $(PD_SESSION_SUPPORT_CC_PATH))
 vpath spec/64bit/memory_map.cc $(call select_from_repositories,src/lib/hw)
 
 # include less specific configuration

@@ -150,6 +150,12 @@ class Genode::Platform : public Genode::Platform_generic
 		size_t max_caps() const override { return Kernel::Pd::max_cap_ids; }
 
 		static addr_t core_main_thread_phys_utcb();
+
+		template <typename T>
+		static void apply_with_boot_info(T const &fn)
+		{
+			fn(_boot_info());
+		}
 };
 
 #endif /* _CORE__PLATFORM_H_ */
