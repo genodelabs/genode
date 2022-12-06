@@ -34,7 +34,7 @@ extern "C" Genode::addr_t __initial_bx;
 extern "C" Genode::addr_t bootstrap_stack;
 
 /* number of booted CPUs */
-extern "C" Genode::addr_t __cpus_booted;
+extern "C" Genode::addr_t volatile __cpus_booted;
 
 /* stack size per CPU */
 extern "C" Genode::addr_t const bootstrap_stack_size;
@@ -111,6 +111,31 @@ Bootstrap::Platform::Board::Board()
 			base  = get_page_size();
 			size -= get_page_size();
 		}
+
+		/* exclude AP boot code page from normal RAM allocator */
+		if (base <= AP_BOOT_CODE_PAGE && AP_BOOT_CODE_PAGE < base + size) {
+			if (AP_BOOT_CODE_PAGE - base)
+				early_ram_regions.add(Memory_region { base,
+				                                      AP_BOOT_CODE_PAGE - base });
+
+			size -= AP_BOOT_CODE_PAGE - base;
+			size -= (get_page_size() > size) ? size : get_page_size();
+			base  = AP_BOOT_CODE_PAGE + get_page_size();
+		}
+
+		/* skip partial 4k pages (seen with Qemu with ahci model enabled) */
+		if (!aligned(base, 12)) {
+			auto new_base = align_addr(base, 12);
+			size -= (new_base - base > size) ? size : new_base - base;
+			base  = new_base;
+		}
+
+		/* remove partial 4k pages */
+		if (!aligned(size, 12))
+			size -= size & 0xffful;
+
+		if (!size)
+			return;
 
 		if (base >= initial_map_max) {
 			late_ram_regions.add(Memory_region { base, size });
@@ -202,6 +227,10 @@ Bootstrap::Platform::Board::Board()
 				if (!memcmp(table->signature, "FACP", 4)) {
 					info.acpi_fadt = addr_t(table);
 
+					Hw::Acpi_fadt fadt(table);
+					Hw::Acpi_facs facs(fadt.facs());
+					facs.wakeup_vector(AP_BOOT_CODE_PAGE);
+
 					auto mem_aligned = paddr_table & _align_mask(12);
 					auto mem_size    = align_addr(paddr_table + table->size, 12) - mem_aligned;
 					core_mmio.add({ mem_aligned, mem_size });
@@ -237,11 +266,9 @@ Bootstrap::Platform::Board::Board()
 		cpus = !cpus ? 1 : max_cpus;
 	}
 
-	if (cpus > 1) {
-		/* copy 16 bit boot code for AP CPUs */
-		addr_t ap_code_size = (addr_t)&_start - (addr_t)&_ap;
-		memcpy((void *)AP_BOOT_CODE_PAGE, &_ap, ap_code_size);
-	}
+	/* copy 16 bit boot code for AP CPUs and for ACPI resume */
+	addr_t ap_code_size = (addr_t)&_start - (addr_t)&_ap;
+	memcpy((void *)AP_BOOT_CODE_PAGE, &_ap, ap_code_size);
 }
 
 
@@ -327,15 +354,19 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::IA32_apic_base::Lapic::set(lapic_msr);
 	Cpu::IA32_apic_base::write(lapic_msr);
 
-	/* skip the SMP when ACPI parsing did not reveal the number of CPUs */
-	if (board.cpus <= 1)
-		return (unsigned)cpu_id;
-
 	Lapic lapic(board.core_mmio.virt_addr(Hw::Cpu_memory_map::lapic_phys_base()));
 
 	/* enable local APIC if required */
 	if (!lapic.read<Lapic::Svr::APIC_enable>())
 		lapic.write<Lapic::Svr::APIC_enable>(true);
+
+	/* reset assembly counter (crt0.s) by last booted CPU, required for resume */
+	if (__cpus_booted >= board.cpus)
+		__cpus_booted = 0;
+
+	/* skip wakeup IPI for non SMP setups */
+	if (board.cpus <= 1)
+		return (unsigned)cpu_id;
 
 	if (!Cpu::IA32_apic_base::Bsp::get(lapic_msr))
 		/* AP - done */
