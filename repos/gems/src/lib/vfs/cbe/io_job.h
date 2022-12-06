@@ -152,33 +152,27 @@ namespace Vfs_cbe {
 				bool completed = false;
 				file_size out = 0;
 
-				Result result = Result::WRITE_ERR_INVALID;
-				try {
-					char const * const data =
-						reinterpret_cast<char const * const>(&io_data.item(_index));
-					result = _handle.fs().write(&_handle,
-					                            data + _current_offset,
-					                            _current_count, out);
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
-					return progress;
-				}
+				char const * const data =
+					reinterpret_cast<char const * const>(&io_data.item(_index));
 
-				if (   result == Result::WRITE_ERR_AGAIN
-				    || result == Result::WRITE_ERR_INTERRUPT
-				    || result == Result::WRITE_ERR_WOULD_BLOCK) {
+				Result const result =
+					_handle.fs().write(&_handle, data + _current_offset,
+					                   _current_count, out);
+				switch (result) {
+				case Result::WRITE_ERR_WOULD_BLOCK:
 					return progress;
-				} else
 
-				if (result == Result::WRITE_OK) {
+				case Result::WRITE_OK:
 					_current_offset += out;
 					_current_count  -= out;
 					_success = true;
-				} else
+					break;
 
-				if (   result == Result::WRITE_ERR_IO
-					|| result == Result::WRITE_ERR_INVALID) {
+				case Result::WRITE_ERR_IO:
+				case Result::WRITE_ERR_INVALID:
 					_success = false;
 					completed = true;
+					break;
 				}
 
 				if (_current_count == 0 || completed) {

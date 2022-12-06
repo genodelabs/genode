@@ -844,9 +844,7 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 	if (nonblocking) {
 
 		monitor().monitor([&] {
-			try {
-				out_result = handle->fs().write(handle, (char const *)buf, count, out_count);
-			} catch (Vfs::File_io_service::Insufficient_buffer) { }
+			out_result = handle->fs().write(handle, (char const *)buf, count, out_count);
 			return Fn::COMPLETE;
 		});
 	} else {
@@ -886,23 +884,21 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 				/* number of bytes written in one iteration */
 				Vfs::file_size partial_out_count = 0;
 
-				try {
-					char const * const src = (char const *)_buf + _offset;
+				char const * const src = (char const *)_buf + _offset;
+				_out_result = _handle->fs().write(_handle, src, _count, partial_out_count);
 
-					_out_result = _handle->fs().write(_handle, src, _count, partial_out_count);
-				} catch (Vfs::File_io_service::Insufficient_buffer) { return Fn::INCOMPLETE; }
+				if (_out_result == Result::WRITE_ERR_WOULD_BLOCK)
+					return Fn::INCOMPLETE;
 
-				if (_out_result != Result::WRITE_OK) {
+				if (_out_result != Result::WRITE_OK)
 					return Fn::COMPLETE;
-				}
 
 				/* increment byte count reported to caller */
 				_out_count += partial_out_count;
 
 				bool const write_complete = (partial_out_count == _count);
-				if (write_complete) {
+				if (write_complete)
 					return Fn::COMPLETE;
-				}
 
 				/*
 				 * If the write has not consumed all bytes, set up
@@ -941,11 +937,9 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 	Plugin::resume_all();
 
 	switch (out_result) {
-	case Result::WRITE_ERR_AGAIN:       return Errno(EAGAIN);
 	case Result::WRITE_ERR_WOULD_BLOCK: return Errno(EWOULDBLOCK);
 	case Result::WRITE_ERR_INVALID:     return Errno(EINVAL);
 	case Result::WRITE_ERR_IO:          return Errno(EIO);
-	case Result::WRITE_ERR_INTERRUPT:   return Errno(EINTR);
 	case Result::WRITE_OK:              break;
 	}
 
@@ -2283,12 +2277,15 @@ int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 
 			case Stage::WRITE:
 				{
-					try {
-						handle->fs().write(handle, target_path, count, out_count);
-					} catch (Vfs::File_io_service::Insufficient_buffer) {
+					typedef Vfs::File_io_service::Write_result Result;
+
+					Result result = handle->fs().write(handle, target_path,
+					                                   count, out_count);
+					if (result == Result::WRITE_ERR_WOULD_BLOCK)
 						return Fn::INCOMPLETE;
-					}
-				} stage = Stage::SYNC; [[fallthrough]];
+				}
+				stage = Stage::SYNC;
+				[[fallthrough]];
 
 			case Stage::SYNC:
 				{

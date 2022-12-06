@@ -393,22 +393,14 @@ class Vfs_block_io_job
 					reinterpret_cast<char *>(
 						&io_data.item(_cbe_req_io_buf_idx(_cbe_req))) };
 
-				Result result;
-				try {
-					result = _handle.fs().write(&_handle,
-					                            data + _nr_of_processed_bytes,
-					                            _nr_of_remaining_bytes,
-					                            nr_of_written_bytes);
+				Result const result =
+					_handle.fs().write(&_handle,
+					                   data + _nr_of_processed_bytes,
+					                   _nr_of_remaining_bytes,
+					                   nr_of_written_bytes);
 
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
-
-					return;
-				}
 				switch (result) {
-				case Result::WRITE_ERR_AGAIN:
-				case Result::WRITE_ERR_INTERRUPT:
 				case Result::WRITE_ERR_WOULD_BLOCK:
-
 					return;
 
 				case Result::WRITE_OK:

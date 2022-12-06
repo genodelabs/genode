@@ -188,6 +188,8 @@ struct Vfs::Oss_file_system::Audio
 			}
 		};
 
+		using Write_result = Vfs::File_io_service::Write_result;
+
 	private:
 
 		Audio(Audio const &);
@@ -509,14 +511,14 @@ struct Vfs::Oss_file_system::Audio
 			return true;
 		}
 
-		bool write(char const *buf, file_size buf_size, file_size &out_size)
+		Write_result write(char const *buf, file_size buf_size, file_size &out_size)
 		{
 			using namespace Genode;
 
 			out_size = 0;
 
 			if (_info.ofrag_bytes == 0)
-				throw Vfs::File_io_service::Insufficient_buffer();
+				return Write_result::WRITE_ERR_WOULD_BLOCK;
 
 			bool block_write = false;
 
@@ -527,10 +529,8 @@ struct Vfs::Oss_file_system::Audio
 
 			unsigned stream_samples_to_write = buf_size / CHANNELS / sizeof(int16_t);
 
-			if (stream_samples_to_write == 0) {
-				/* invalid argument */
-				return false;
-			}
+			if (stream_samples_to_write == 0)
+				return Write_result::WRITE_ERR_INVALID;
 
 			_start_output();
 
@@ -554,18 +554,18 @@ struct Vfs::Oss_file_system::Audio
 							_out[0]->stream()->reset();
 						}
 					}
-	            } else {
-	            	/*
-	            	 * Look up the previously allocated packet.
-	            	 * The tail pointer got incremented after allocation,
-	            	 * so we need to decrement by 1.
-	            	 */
-	            	unsigned const tail =
+				} else {
+					/*
+					 * Look up the previously allocated packet.
+					 * The tail pointer got incremented after allocation,
+					 * so we need to decrement by 1.
+					 */
+					unsigned const tail =
 						(_out[0]->stream()->tail() +
 						 Audio_out::QUEUE_SIZE - 1) %
 						Audio_out::QUEUE_SIZE;
 					lp = _out[0]->stream()->get(tail);
-	            }
+				}
 
 				unsigned const pos    = _out[0]->stream()->packet_position(lp);
 				Audio_out::Packet *rp = _out[1]->stream()->get(pos);
@@ -602,14 +602,15 @@ struct Vfs::Oss_file_system::Audio
 						/* update info */
 						update_info_ofrag_avail_from_optr_fifo_samples();
 
-						if (block_write) { throw Vfs::File_io_service::Insufficient_buffer(); }
+						if (block_write)
+							return Write_result::WRITE_ERR_WOULD_BLOCK;
 
-						return true;
+						return Write_result::WRITE_OK;
 					}
 				}
 			}
 
-			return true;
+			return Write_result::WRITE_OK;
 		}
 };
 
@@ -665,12 +666,13 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 			Write_result write(char const *buf, file_size buf_size,
 			                   file_size &out_count) override
 			{
-				try {
-					return _audio.write(buf, buf_size, out_count) ? WRITE_OK : WRITE_ERR_INVALID;
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
+				Write_result const result = _audio.write(buf, buf_size, out_count);
+
+				if (result == Write_result::WRITE_ERR_WOULD_BLOCK) {
 					blocked = true;
 					return WRITE_OK;
 				}
+				return result;
 			}
 
 			bool read_ready() override

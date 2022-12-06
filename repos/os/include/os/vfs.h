@@ -755,35 +755,28 @@ class Genode::Writeable_file : Noncopyable
 
 				bool stalled = false;
 
-				try {
-					Vfs::file_size out_count = 0;
+				Vfs::file_size out_count = 0;
 
-					using Write_result = Vfs::File_io_service::Write_result;
+				using Write_result = Vfs::File_io_service::Write_result;
 
-					switch (handle.fs().write(&handle, src, remaining_bytes,
-					                           out_count)) {
+				switch (handle.fs().write(&handle, src, remaining_bytes, out_count)) {
 
-					case Write_result::WRITE_ERR_AGAIN:
-					case Write_result::WRITE_ERR_WOULD_BLOCK:
-						stalled = true;
-						break;
+				case Write_result::WRITE_ERR_WOULD_BLOCK:
+					stalled = true;
+					break;
 
-					case Write_result::WRITE_ERR_INVALID:
-					case Write_result::WRITE_ERR_IO:
-					case Write_result::WRITE_ERR_INTERRUPT:
-						write_error = true;
-						break;
+				case Write_result::WRITE_ERR_INVALID:
+				case Write_result::WRITE_ERR_IO:
+					write_error = true;
+					break;
 
-					case Write_result::WRITE_OK:
-						out_count = min((Vfs::file_size)remaining_bytes, out_count);
-						remaining_bytes -= (size_t)out_count;
-						src             += out_count;
-						handle.advance_seek(out_count);
-						break;
-					};
-				}
-				catch (Vfs::File_io_service::Insufficient_buffer) {
-					stalled = true; }
+				case Write_result::WRITE_OK:
+					out_count = min((Vfs::file_size)remaining_bytes, out_count);
+					remaining_bytes -= (size_t)out_count;
+					src             += out_count;
+					handle.advance_seek(out_count);
+					break;
+				};
 
 				if (stalled)
 					io.commit_and_wait();

@@ -137,6 +137,7 @@ namespace Vfs_block {
 				_handle.seek(base_offset + current_offset);
 				state = State::IN_PROGRESS;
 				progress = true;
+
 			[[fallthrough]];
 			case State::IN_PROGRESS:
 			{
@@ -145,31 +146,24 @@ namespace Vfs_block {
 				bool completed = false;
 				file_size out = 0;
 
-				Result result = Result::WRITE_ERR_INVALID;
-				try {
-					result = _handle.fs().write(&_handle,
-					                            data + current_offset,
-					                            current_count, out);
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
+				Result result = _handle.fs().write(&_handle,
+				                                   data + current_offset,
+				                                   current_count, out);
+				switch (result) {
+				case Result::WRITE_ERR_WOULD_BLOCK:
 					return progress;
-				}
 
-				if (   result == Result::WRITE_ERR_AGAIN
-				    || result == Result::WRITE_ERR_INTERRUPT
-				    || result == Result::WRITE_ERR_WOULD_BLOCK) {
-					return progress;
-				} else
-
-				if (result == Result::WRITE_OK) {
+				case Result::WRITE_OK:
 					current_offset += out;
 					current_count  -= out;
 					success = true;
-				} else
+					break;
 
-				if (   result == Result::WRITE_ERR_IO
-					|| result == Result::WRITE_ERR_INVALID) {
+				case Result::WRITE_ERR_IO:
+				case Result::WRITE_ERR_INVALID:
 					success = false;
 					completed = true;
+					break;
 				}
 
 				if (current_count == 0 || completed) {

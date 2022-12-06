@@ -133,11 +133,9 @@ static inline void print(Genode::Output &output, Vfs::File_io_service::Write_res
 
 	switch (r) {
 		CASE_PRINT(WRITE_OK);
-		CASE_PRINT(WRITE_ERR_AGAIN);
 		CASE_PRINT(WRITE_ERR_WOULD_BLOCK);
 		CASE_PRINT(WRITE_ERR_INVALID);
 		CASE_PRINT(WRITE_ERR_IO);
-		CASE_PRINT(WRITE_ERR_INTERRUPT);
 	}
 
 #undef CASE_PRINT

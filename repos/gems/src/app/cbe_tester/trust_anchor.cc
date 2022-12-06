@@ -37,22 +37,12 @@ void Trust_anchor::_execute_write_read_operation(Vfs_handle        &file,
 	case Job_state::WRITE_IN_PROGRESS:
 	{
 		file_size nr_of_written_bytes { 0 };
-		Write_result result { Write_result::WRITE_ERR_INVALID };
-		try {
-			result =
-				file.fs().write(
-					&file, write_buf + _job.fl_offset,
-					_job.fl_size, nr_of_written_bytes);
-
-		} catch (Vfs::File_io_service::Insufficient_buffer) {
-
-			return;
-		}
+		Write_result const result =
+			file.fs().write(&file, write_buf + _job.fl_offset,
+			                _job.fl_size, nr_of_written_bytes);
 		switch (result) {
-		case Write_result::WRITE_ERR_AGAIN:
-		case Write_result::WRITE_ERR_INTERRUPT:
-		case Write_result::WRITE_ERR_WOULD_BLOCK:
 
+		case Write_result::WRITE_ERR_WOULD_BLOCK:
 			return;
 
 		case Write_result::WRITE_OK:
@@ -155,22 +145,14 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 	case Job_state::WRITE_IN_PROGRESS:
 	{
 		file_size nr_of_written_bytes { 0 };
-		Write_result result { Write_result::WRITE_ERR_INVALID };
-		try {
-			result =
-				file.fs().write(
-					&file, write_buf + _job.fl_offset,
-					_job.fl_size, nr_of_written_bytes);
+		Write_result const result =
+			file.fs().write(
+				&file, write_buf + _job.fl_offset,
+				_job.fl_size, nr_of_written_bytes);
 
-		} catch (Vfs::File_io_service::Insufficient_buffer) {
-
-			return;
-		}
 		switch (result) {
-		case Write_result::WRITE_ERR_AGAIN:
-		case Write_result::WRITE_ERR_INTERRUPT:
-		case Write_result::WRITE_ERR_WOULD_BLOCK:
 
+		case Write_result::WRITE_ERR_WOULD_BLOCK:
 			return;
 
 		case Write_result::WRITE_OK:

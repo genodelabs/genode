@@ -233,7 +233,7 @@ class Vfs_audit::File_system : public Vfs::File_system
 
 			if (result == WRITE_OK)
 				_log("wrote to ", h.path, " ", out, " / ", len);
-			else if (result == WRITE_ERR_WOULD_BLOCK || result == WRITE_ERR_AGAIN)
+			else if (result == WRITE_ERR_WOULD_BLOCK)
 				_log("write stalled for ", h.path);
 			else
 				_log("write failed for ", h.path);

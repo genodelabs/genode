@@ -30,16 +30,8 @@ struct Vfs::File_io_service : Interface
 	 ** Write **
 	 ***********/
 
-	/*
-	 * Exception, thrown when, for example, 'alloc_packet()' or
-	 * 'submit_packet()' failed in the VFS plugin. The caller can try again
-	 * after a previous VFS request is completed.
-	 */
-	struct Insufficient_buffer { };
-
-	enum Write_result { WRITE_ERR_AGAIN,     WRITE_ERR_WOULD_BLOCK,
-	                    WRITE_ERR_INVALID,   WRITE_ERR_IO,
-	                    WRITE_ERR_INTERRUPT, WRITE_OK };
+	enum Write_result { WRITE_ERR_WOULD_BLOCK, WRITE_ERR_INVALID,
+	                    WRITE_ERR_IO,          WRITE_OK };
 
 	virtual Write_result write(Vfs_handle *vfs_handle,
 	                           char const *buf, file_size buf_size,

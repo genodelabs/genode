@@ -2013,16 +2013,15 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
 		{
-			Write_result res = Write_result::WRITE_ERR_INVALID;
 			out_count = 0;
 
 			if ((vfs_handle->status_flags() & OPEN_MODE_ACCMODE) == OPEN_MODE_RDONLY)
 				return Write_result::WRITE_ERR_INVALID;
-			if (Lwip_handle *handle = dynamic_cast<Lwip_handle*>(vfs_handle)) {
-				res = handle->write(src, count, out_count);
-				if (res == WRITE_ERR_WOULD_BLOCK) throw Insufficient_buffer();
-			}
-			return res;
+
+			if (Lwip_handle *handle = dynamic_cast<Lwip_handle*>(vfs_handle))
+				return handle->write(src, count, out_count);
+
+			return Write_result::WRITE_ERR_INVALID;
 		}
 
 		Read_result complete_read(Vfs_handle *vfs_handle,

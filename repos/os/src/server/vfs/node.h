@@ -408,25 +408,20 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		                      seek_off_t write_pos)
 		{
 			file_size out_count = 0;
-			try {
-				_handle.seek(_initial_write_seek_offset + write_pos);
+			_handle.seek(_initial_write_seek_offset + write_pos);
 
-				switch (_handle.fs().write(&_handle, src_ptr, length, out_count)) {
-				case Write_result::WRITE_ERR_AGAIN:
-				case Write_result::WRITE_ERR_WOULD_BLOCK:
-					break;
+			switch (_handle.fs().write(&_handle, src_ptr, length, out_count)) {
+			case Write_result::WRITE_ERR_WOULD_BLOCK:
+				break;
 
-				case Write_result::WRITE_ERR_INVALID:
-				case Write_result::WRITE_ERR_IO:
-				case Write_result::WRITE_ERR_INTERRUPT:
-					_acknowledge_as_failure();
-					break;
+			case Write_result::WRITE_ERR_INVALID:
+			case Write_result::WRITE_ERR_IO:
+				_acknowledge_as_failure();
+				break;
 
-				case Write_result::WRITE_OK:
-					break;
-				}
+			case Write_result::WRITE_OK:
+				break;
 			}
-			catch (Vfs::File_io_service::Insufficient_buffer) { /* re-execute */ }
 
 			_modified = true;
 
@@ -452,14 +447,11 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 
 		void _execute_write_timestamp()
 		{
-			try {
-				_packet.with_timestamp([&] (::File_system::Timestamp const time) {
-					Vfs::Timestamp ts { .value = time.value };
-					_handle.fs().update_modification_timestamp(&_handle, ts);
-				});
-				_acknowledge_as_success(0);
-			}
-			catch (Vfs::File_io_service::Insufficient_buffer) { }
+			_packet.with_timestamp([&] (::File_system::Timestamp const time) {
+				Vfs::Timestamp ts { .value = time.value };
+				_handle.fs().update_modification_timestamp(&_handle, ts);
+			});
+			_acknowledge_as_success(0);
 
 			_modified = true;
 		}

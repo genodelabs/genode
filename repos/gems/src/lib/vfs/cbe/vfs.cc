@@ -1185,14 +1185,15 @@ class Vfs_cbe::Wrapper
 
 				file_size written = 0;
 				_add_key_handle->seek(0);
-				try {
+
+				using Write_result = Vfs::File_io_service::Write_result;
+
+				Write_result const result =
 					_add_key_handle->fs().write(_add_key_handle,
 					                            buffer, sizeof (buffer), written);
-					(void)written;
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
-					/* try again later */
-					break;
-				}
+
+				if (result == Write_result::WRITE_ERR_WOULD_BLOCK)
+					break; /* try again later */
 
 				/*
 				 * Instead of acknowledge the CBE's request before we write
@@ -1278,16 +1279,17 @@ class Vfs_cbe::Wrapper
 
 				file_size written = 0;
 				_remove_key_handle->seek(0);
-				try {
+
+				using Write_result = Vfs::File_io_service::Write_result;
+
+				Write_result const result =
 					_remove_key_handle->fs().write(_remove_key_handle,
 					                               (char const*)&key_id.value,
 					                               sizeof (key_id.value),
 					                               written);
-					(void)written;
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
-					/* try again later */
-					break;
-				}
+
+				if (result == Write_result::WRITE_ERR_WOULD_BLOCK)
+					break; /* try again later */
 
 				Crypto_file *cf = nullptr;
 				try {
@@ -1395,14 +1397,13 @@ class Vfs_cbe::Wrapper
 				case Crypto_job::State::IDLE:
 					break;
 				case Crypto_job::State::SUBMITTED:
-					try {
+					{
 						char const *data = nullptr;
 
 						if (op == Crypto_job::Operation::ENCRYPT) {
 							data = reinterpret_cast<char const*>(&plain.item(plain_index));
-						} else
-
-						if (op == Crypto_job::Operation::DECRYPT) {
+						}
+						else if (op == Crypto_job::Operation::DECRYPT) {
 							data = reinterpret_cast<char const*>(&cipher.item(cipher_index));
 						}
 
@@ -1413,16 +1414,14 @@ class Vfs_cbe::Wrapper
 
 						if (op == Crypto_job::Operation::ENCRYPT) {
 							cbe.crypto_cipher_data_requested(plain_index);
-						} else
-
-						if (op == Crypto_job::Operation::DECRYPT) {
+						}
+						else if (op == Crypto_job::Operation::DECRYPT) {
 							cbe.crypto_plain_data_requested(cipher_index);
 						}
 
 						state = Crypto_job::State::PENDING;
 						result.progress |= true;
-					} catch (Vfs::File_io_service::Insufficient_buffer) { }
-
+					}
 					[[fallthrough]];
 
 				case Crypto_job::State::PENDING:
@@ -1939,9 +1938,9 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				State state = _w.frontend_request().state;
 				if (state == State::NONE) {
 
-					if (!_w.client_request_acceptable()) {
-						throw Insufficient_buffer();
-					}
+					if (!_w.client_request_acceptable())
+						return Write_result::WRITE_ERR_WOULD_BLOCK;
+
 					using Op = Cbe::Request::Operation;
 
 					bool const accepted =
@@ -1956,7 +1955,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				if (   state == State::PENDING
 				    || state == State::IN_PROGRESS) {
 					_w.enqueue_handle(*this);
-					throw Insufficient_buffer();
+					return WRITE_ERR_WOULD_BLOCK;
 				}
 
 				if (state == State::COMPLETE) {

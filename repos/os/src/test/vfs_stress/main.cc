@@ -95,16 +95,12 @@ inline void assert_write(Vfs::File_io_service::Write_result r)
 	typedef Vfs::File_io_service::Write_result Result;
 	switch (r) {
 	case Result::WRITE_OK: return;
-	case Result::WRITE_ERR_AGAIN:
-		error("WRITE_ERR_AGAIN"); break;
 	case Result::WRITE_ERR_WOULD_BLOCK:
 		error("WRITE_ERR_WOULD_BLOCK"); break;
 	case Result::WRITE_ERR_INVALID:
 		error("WRITE_ERR_INVALID"); break;
 	case Result::WRITE_ERR_IO:
 		error("WRITE_ERR_IO"); break;
-	case Result::WRITE_ERR_INTERRUPT:
-		error("WRITE_ERR_INTERRUPT"); break;
 	}
 	throw Exception();
 }

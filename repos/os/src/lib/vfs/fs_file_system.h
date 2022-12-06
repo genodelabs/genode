@@ -504,8 +504,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			return read_num_bytes;
 		}
 
-		file_size _write(Fs_vfs_handle &handle,
-		                 const char *buf, file_size count, file_size seek_offset)
+		Write_result _write(Fs_vfs_handle &handle, file_size const seek_offset,
+		                    const char *buf, file_size count, file_size &out_count)
 		{
 			/*
 			 * TODO
@@ -524,7 +524,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			if (!source.ready_to_submit()) {
 				if (!handle.enqueued())
 					_congested_handles.enqueue(handle);
-				throw Insufficient_buffer();
+				return Write_result::WRITE_ERR_WOULD_BLOCK;
 			}
 
 			try {
@@ -537,15 +537,18 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				memcpy(source.packet_content(packet_in), buf, (size_t)count);
 
 				_submit_packet(packet_in);
-			} catch (::File_system::Session::Tx::Source::Packet_alloc_failed) {
+			}
+			catch (::File_system::Session::Tx::Source::Packet_alloc_failed) {
 				if (!handle.enqueued())
 					_congested_handles.enqueue(handle);
-				throw Insufficient_buffer();
-			} catch (...) {
-				Genode::error("unhandled exception");
-				return 0;
+				return Write_result::WRITE_ERR_WOULD_BLOCK;
 			}
-			return count;
+			catch (...) {
+				Genode::error("unhandled exception");
+				return Write_result::WRITE_ERR_IO;
+			}
+			out_count = count;
+			return Write_result::WRITE_OK;
 		}
 
 		void _handle_ack()
@@ -967,12 +970,11 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		 ********************************/
 
 		Write_result write(Vfs_handle *vfs_handle, char const *buf,
-		                   file_size buf_size, file_size &out_count) override
+		                   file_size count, file_size &out_count) override
 		{
 			Fs_vfs_handle &handle = static_cast<Fs_vfs_handle &>(*vfs_handle);
 
-			out_count = _write(handle, buf, buf_size, handle.seek());
-			return WRITE_OK;
+			return _write(handle, handle.seek(), buf, count, out_count);
 		}
 
 		bool queue_read(Vfs_handle *vfs_handle, file_size count) override

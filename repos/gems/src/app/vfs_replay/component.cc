@@ -248,30 +248,27 @@ class Vfs_replay
 				bool completed = false;
 				file_size out = 0;
 
-				Result result = Result::WRITE_ERR_INVALID;
-				try {
-					result = _vfs_handle->fs().write(_vfs_handle,
-					                                 _write_buffer.local_addr<char>(),
-					                                 request.current_count, out);
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
+				Result const result =
+					_vfs_handle->fs().write(_vfs_handle,
+					                        _write_buffer.local_addr<char>(),
+					                        request.current_count, out);
+				switch (result) {
+				case Result::WRITE_ERR_WOULD_BLOCK:
 					return progress;
-				}
-				if (   result == Result::WRITE_ERR_AGAIN
-				    || result == Result::WRITE_ERR_INTERRUPT
-				    || result == Result::WRITE_ERR_WOULD_BLOCK) {
-					return progress;
-				}
-				if (result == Result::WRITE_OK) {
+
+				case Result::WRITE_OK:
 					request.current_offset += out;
 					request.current_count  -= out;
 					request.success = true;
-				}
+					break;
 
-				if (   result == Result::WRITE_ERR_IO
-				    || result == Result::WRITE_ERR_INVALID) {
+				case Result::WRITE_ERR_IO:
+				case Result::WRITE_ERR_INVALID:
 					request.success = false;
 					completed = true;
+					break;
 				}
+
 				if (request.current_count == 0 || completed) {
 					request.state = Request::State::WRITE_COMPLETE;
 				} else {
