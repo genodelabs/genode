@@ -34,6 +34,9 @@ append build_components {
 	app/cbe_init_trust_anchor
 	app/cbe_init
 	lib/vfs_cbe_trust_anchor
+	lib/vfs_jitterentropy
+	lib/libc
+	lib/libcrypto
 }
 
 build $build_components
@@ -88,6 +91,7 @@ append config {
 				</dir>
 
 				<dir name="dev">
+					<jitterentropy/>
 					<cbe_trust_anchor name="cbe_trust_anchor"
 					                  storage_dir="/ta_storage"/>
 				</dir>
@@ -157,8 +161,8 @@ exec truncate -s [cbe_image_size_mb]M bin/[cbe_image_file]
 
 append boot_modules {
 	core init timer lx_block lx_fs sequence
-	vfs vfs.lib.so
-	ld.lib.so spark.lib.so libsparkcrypto.lib.so
+	vfs vfs.lib.so vfs_jitterentropy.lib.so
+	ld.lib.so spark.lib.so libsparkcrypto.lib.so libcrypto.lib.so libc.lib.so
 
 	cbe_init_trust_anchor
 	cbe_init cbe_init_cxx.lib.so
