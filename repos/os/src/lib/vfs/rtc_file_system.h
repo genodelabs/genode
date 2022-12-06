@@ -82,6 +82,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 				}
 
 				bool read_ready() override { return true; }
+
+				bool write_ready() const override { return false; }
 		};
 
 		typedef Genode::Registered<Vfs_watch_handle>      Registered_watch_handle;

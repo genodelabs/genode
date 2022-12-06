@@ -54,6 +54,8 @@ struct Vfs::Null_file_system : Single_file_system
 		}
 
 		bool read_ready() override { return false; }
+
+		bool write_ready() const override { return true; }
 	};
 
 	/*********************************
@@ -61,8 +63,8 @@ struct Vfs::Null_file_system : Single_file_system
 	 *********************************/
 
 	Open_result open(char const  *path, unsigned,
-		             Vfs_handle **out_handle,
-		             Allocator   &alloc) override
+	                 Vfs_handle **out_handle,
+	                 Allocator   &alloc) override
 	{
 		if (!_single_file(path))
 			return OPEN_ERR_UNACCESSIBLE;

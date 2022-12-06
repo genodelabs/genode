@@ -120,6 +120,8 @@ class Vfs::Vfs_handle
 		File_io_service   &fs() { return _fs; }
 		Allocator      &alloc() { return _alloc; }
 
+		File_io_service const &fs() const { return _fs; }
+
 		int status_flags() const { return _status_flags; }
 		void status_flags(int flags) { _status_flags = flags; }
 

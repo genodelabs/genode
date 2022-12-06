@@ -287,6 +287,9 @@ class Vfs_import::File_system : public Vfs::File_system
 		bool read_ready(Vfs_handle*) override {
 			return true; }
 
+		bool write_ready(Vfs_handle const &) const override {
+			return true; }
+
 		bool notify_read_ready(Vfs_handle*) override {
 			return false; }
 

@@ -779,6 +779,14 @@ class Fatfs::File_system : public Vfs::File_system
 
 		bool read_ready(Vfs_handle *) override { return true; }
 
+		bool write_ready(Vfs_handle const &) const override
+		{
+			/*
+			 * Wakeup from WRITE_ERR_WOULD_BLOCK not supported.
+			 */
+			return true;
+		}
+
 		/**
 		 * Notify other handles if this handle has modified its file.
 		 *

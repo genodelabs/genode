@@ -137,6 +137,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			bool read_ready() override {
 				return !_read_buffer.empty(); }
 
+			bool write_ready() const override { return true; }
+
 			bool notify_read_ready() override
 			{
 				notifying = true;

@@ -275,6 +275,12 @@ class Vfs_audit::File_system : public Vfs::File_system
 			return h.audit->fs().read_ready(h.audit);
 		}
 
+		bool write_ready(Vfs_handle const &vfs_handle) const override
+		{
+			Handle const &h = static_cast<Handle const &>(vfs_handle);
+			return h.audit->fs().write_ready(*h.audit);
+		}
+
 		bool notify_read_ready(Vfs_handle *vfs_handle) override
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);

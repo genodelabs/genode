@@ -86,6 +86,8 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 
 			bool read_ready() override { return true; }
 
+			bool write_ready() const override { return true; }
+
 			private:
 
 			Vfs_handle(Vfs_handle const &);

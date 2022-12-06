@@ -428,6 +428,8 @@ struct Lwip::Socket_dir : Lwip::Directory
 
 		virtual bool read_ready(Lwip_file_handle&) = 0;
 
+		virtual bool write_ready(Lwip_file_handle const &) const = 0;
+
 		/**
 		 * Notify handles waiting for this PCB / socket to be ready
 		 */
@@ -987,6 +989,11 @@ class Lwip::Udp_socket_dir final :
 			return result;
 		}
 
+		bool write_ready(Lwip_file_handle const &) const override
+		{
+			return true;
+		}
+
 		Write_result write(Lwip_file_handle &handle,
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
@@ -1453,6 +1460,30 @@ class Lwip::Tcp_socket_dir final :
 			return Read_result::READ_ERR_INVALID;
 		}
 
+		bool write_ready(Lwip_file_handle const &handle) const override
+		{
+			switch (handle.kind) {
+			case Lwip_file_handle::DATA:
+
+				return tcp_sndbuf(_pcb);
+
+			case Lwip_file_handle::PEEK:
+			case Lwip_file_handle::ACCEPT:
+			case Lwip_file_handle::PENDING:
+			case Lwip_file_handle::BIND:
+			case Lwip_file_handle::REMOTE:
+			case Lwip_file_handle::CONNECT:
+			case Lwip_file_handle::LOCATION:
+			case Lwip_file_handle::LOCAL:
+				return true;
+
+			case Lwip_file_handle::INVALID:
+			case Lwip_file_handle::LISTEN:
+				break;
+			}
+			return false;
+		}
+
 		Write_result write(Lwip_file_handle &handle,
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
@@ -1704,21 +1735,43 @@ void tcp_err_callback(void *arg, err_t)
  ** VFS file-system **
  *********************/
 
-class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
+class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
+                                private Vfs::Remote_io
 {
 	private:
 
 		Genode::Entrypoint &_ep;
 
+		struct Wakeup_scheduler : Lwip::Nic_netif::Wakeup_scheduler
+		{
+			Vfs::Env::User &_vfs_user;
+
+			Remote_io::Peer _peer;
+
+			/**
+			 * Lwip::Nic_netif::Wakeup_scheduler interface
+			 *
+			 * Called from Lwip::Nic_netif.
+			 */
+			void schedule_nic_server_wakeup() override
+			{
+				_vfs_user.wakeup_vfs_user();
+				_peer.schedule_wakeup();
+			}
+
+			Wakeup_scheduler(Vfs::Env &vfs_env, Remote_io &remote_io)
+			:
+				_vfs_user(vfs_env.user()),
+				_peer(vfs_env.deferred_wakeups(), remote_io)
+			{ }
+
+		} _wakeup_scheduler;
+
 		/**
 		 * LwIP connection to Nic service
 		 */
-		struct Vfs_netif : Lwip::Nic_netif,
-		                   private Vfs::Remote_io,
-		                   private Lwip::Nic_netif::Wakeup_scheduler
+		struct Vfs_netif : Lwip::Nic_netif
 		{
-			Remote_io::Peer _peer;
-
 			Tcp_proto_dir tcp_dir;
 			Udp_proto_dir udp_dir;
 
@@ -1729,10 +1782,11 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 
 			Handle_queue  blocked_handles { };
 
-			Vfs_netif(Vfs::Env &vfs_env, Genode::Xml_node config)
+			Vfs_netif(Vfs::Env &vfs_env, Genode::Xml_node config,
+			          Lwip::Nic_netif::Wakeup_scheduler &wakeup_scheduler)
 			:
-				Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config, *this),
-				_peer(vfs_env.deferred_wakeups(), *this),
+				Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config,
+				                wakeup_scheduler),
 				tcp_dir(vfs_env), udp_dir(vfs_env)
 			{ }
 
@@ -1740,26 +1794,6 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			{
 				/* free the allocated qeueue elements */
 				status_callback();
-			}
-
-			/**
-			 * Lwip::Nic_netif::Wakeup_scheduler interface
-			 *
-			 * Called from Lwip::Nic_netif.
-			 */
-			void schedule_nic_server_wakeup() override
-			{
-				_peer.schedule_wakeup();
-			}
-
-			/**
-			 * Remote_io interface
-			 *
-			 * Called from VFS user when going idle.
-			 */
-			void wakeup_remote_peer() override
-			{
-				Lwip::Nic_netif::wakeup_nic_server();
 			}
 
 			void enqueue(Vfs_handle &handle)
@@ -1797,8 +1831,17 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 					}
 				});
 			}
-
 		} _netif;
+
+		/**
+		 * Remote_io interface
+		 *
+		 * Called from VFS user when going idle.
+		 */
+		void wakeup_remote_peer() override
+		{
+			_netif.wakeup_nic_server();
+		}
 
 		/**
 		 * Walk a path to a protocol directory and apply procedure
@@ -1828,7 +1871,9 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 
 		File_system(Vfs::Env &vfs_env, Genode::Xml_node config)
 		:
-			_ep(vfs_env.env().ep()), _netif(vfs_env, config)
+			_ep(vfs_env.env().ep()),
+			_wakeup_scheduler(vfs_env, *this),
+			_netif(vfs_env, config, _wakeup_scheduler)
 		{ }
 
 		/**
@@ -1849,6 +1894,7 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			Genode::warning(__func__, " NOT_IMPLEMENTED");
 			return Read_result::READ_ERR_INVALID;
 		};
+
 
 		/***********************
 		 ** Directory_service **
@@ -2077,6 +2123,20 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			 * or a file with no associated socket
 			 */
 			return true;
+		}
+
+		bool write_ready(Vfs_handle const &vfs_handle) const override
+		{
+			if (_netif.tx_saturated())
+				return false;
+
+			Lwip_file_handle const *handle_ptr =
+				dynamic_cast<Lwip_file_handle const *>(&vfs_handle);
+
+			if (handle_ptr && handle_ptr->socket)
+				return handle_ptr->socket->write_ready(*handle_ptr);
+
+			return false;
 		}
 
 		bool notify_read_ready(Vfs_handle *vfs_handle) override

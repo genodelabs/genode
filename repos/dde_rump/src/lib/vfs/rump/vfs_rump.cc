@@ -809,6 +809,8 @@ class Vfs::Rump_file_system : public File_system
 
 		bool read_ready(Vfs_handle *) override { return true; }
 
+		bool write_ready(Vfs_handle const &) const override { return true; }
+
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) override
 		{
 			Rump_vfs_file_handle *handle =

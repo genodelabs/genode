@@ -88,6 +88,11 @@ class Libusb_file_system : public Vfs::Single_file_system
 					return READ_ERR_IO;
 				}
 
+				bool write_ready() const override
+				{
+					return true;
+				}
+
 				Write_result write(char const *src, Vfs::file_size count,
 				                   Vfs::file_size &out_count) override
 				{

@@ -48,6 +48,7 @@
 namespace Libc {
 	extern char const *config_socket();
 	bool read_ready_from_kernel(File_descriptor *);
+	bool write_ready_from_kernel(File_descriptor *);
 }
 
 
@@ -199,6 +200,14 @@ struct Libc::Socket_fs::Context : Plugin_context
 				return false;
 		}
 
+		bool _fd_write_ready(Fd type)
+		{
+			if (_fd[type].file)
+				return Libc::write_ready_from_kernel(_fd[type].file);
+			else
+				return false;
+		}
+
 	public:
 
 		Context(Proto proto, int handle_fd)
@@ -260,8 +269,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 			if (_state == CONNECTING)
 				return connect_read_ready();
 
-			/* XXX ask if "data" is writeable */
-			return true;
+			return _fd_write_ready(Fd::DATA);
 		}
 
 		/*
@@ -950,7 +958,13 @@ static ssize_t do_sendto(File_descriptor *fd,
 			break;
 
 		case Socket_fs::Context::Proto::TCP:
-			if (out_len == 0) return Errno(EAGAIN);
+
+			/*
+			 * Non-blocking write stalled
+			 */
+			if ((out_len == -1) && (errno == EAGAIN))
+				return Errno(EAGAIN);
+
 			/*
 			 * Write errors to TCP-data files are reflected as EPIPE, which
 			 * means the connection-mode socket is no longer connected. This
@@ -961,7 +975,8 @@ static ssize_t do_sendto(File_descriptor *fd,
 			 * TODO If the MSG_NOSIGNAL flag is not set, the SIGPIPE signal is
 			 * generated to the calling thread.
 			 */
-			if (out_len == -1) return Errno(EPIPE);
+			if (out_len == -1)
+				return Errno(EPIPE);
 			break;
 		}
 		return out_len;
@@ -1358,7 +1373,6 @@ int Socket_fs::Plugin::select(int nfds,
 			if (fd_in_writefds) {
 				try {
 					Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
-
 					if (context->write_ready()) {
 						FD_SET(fd, writefds);
 						++nready;

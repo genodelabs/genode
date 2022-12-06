@@ -338,6 +338,8 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				}
 
 				bool read_ready() override { return true; }
+
+				bool write_ready() const override { return true; }
 		};
 
 	public:

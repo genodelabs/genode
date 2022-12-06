@@ -290,6 +290,12 @@ struct Vfs::Oss_file_system::Audio
 			return _info.ifrag_bytes > 0;
 		}
 
+		bool write_ready() const
+		{
+			/* wakeup from WRITE_ERR_WOULD_BLOCK not yet supported */
+			return true;
+		}
+
 		void update_info_ofrag_avail_from_optr_fifo_samples()
 		{
 			_info.ofrag_bytes = (_info.ofrag_total * _info.ofrag_size) -
@@ -678,6 +684,11 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 			bool read_ready() override
 			{
 				return _audio.read_ready();
+			}
+
+			bool write_ready() const override
+			{
+				return _audio.write_ready();
 			}
 		};
 

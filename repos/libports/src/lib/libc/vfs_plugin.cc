@@ -221,6 +221,15 @@ namespace Libc {
 
 		return handle->fs().read_ready(handle);
 	}
+
+	bool write_ready_from_kernel(File_descriptor *fd)
+	{
+		Vfs::Vfs_handle const *handle = vfs_handle(fd);
+		if (!handle)
+			return false;
+
+		return handle->fs().write_ready(*handle);
+	}
 }
 
 
@@ -839,10 +848,8 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 
 	Vfs::file_size out_count  = 0;
 	Result         out_result = Result::WRITE_OK;
-	bool const     nonblocking = (fd->flags & O_NONBLOCK);
 
-	if (nonblocking) {
-
+	if (fd->flags & O_NONBLOCK) {
 		monitor().monitor([&] {
 			out_result = handle->fs().write(handle, (char const *)buf, count, out_count);
 			return Fn::COMPLETE;
@@ -945,11 +952,6 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 
 	handle->advance_seek(out_count);
 	fd->modified = true;
-
-	/* notify remote peers once our VFS' local I/O buffers are saturated */
-	bool const nonblocking_write_stalled = nonblocking && count && !out_count;
-	if (nonblocking_write_stalled)
-		Libc::Kernel::kernel().wakeup_remote_peers();
 
 	return out_count;
 }
@@ -2731,7 +2733,7 @@ int Libc::Vfs_plugin::select(int nfds,
 			}
 
 			if (fd_in_writefds) {
-				if (true /* XXX always writeable */) {
+				if (handle->fs().write_ready(*handle)) {
 					FD_SET(fd, writefds);
 					++nready;
 				}

@@ -39,6 +39,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 		::File_system::Connection _fs;
 
+		bool _write_would_block = false;
+
 		typedef Genode::Id_space<::File_system::Node> Handle_space;
 
 		Handle_space _handle_space { };
@@ -524,6 +526,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			if (!source.ready_to_submit()) {
 				if (!handle.enqueued())
 					_congested_handles.enqueue(handle);
+
+				_write_would_block = true;
 				return Write_result::WRITE_ERR_WOULD_BLOCK;
 			}
 
@@ -541,6 +545,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			catch (::File_system::Session::Tx::Source::Packet_alloc_failed) {
 				if (!handle.enqueued())
 					_congested_handles.enqueue(handle);
+
+				_write_would_block = true;
 				return Write_result::WRITE_ERR_WOULD_BLOCK;
 			}
 			catch (...) {
@@ -559,6 +565,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			while (source.ack_avail()) {
 
 				Packet_descriptor const packet = source.try_get_acked_packet();
+				_write_would_block = false;
 				_peer.schedule_wakeup();
 
 				Handle_space::Id const id(packet.handle());
@@ -1005,6 +1012,11 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
 			return handle->read_ready_state == Handle_state::Read_ready_state::READY;
+		}
+
+		bool write_ready(Vfs_handle const &) const override
+		{
+			return !_write_would_block;
 		}
 
 		bool notify_read_ready(Vfs_handle *vfs_handle) override

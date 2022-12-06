@@ -77,6 +77,7 @@ struct Vfs_pipe::Pipe_handle : Vfs::Vfs_handle, private Pipe_handle_registry_ele
 	                 file_size &out_count);
 
 	bool read_ready();
+	bool write_ready() const;
 	bool notify_read_ready();
 };
 
@@ -280,13 +281,21 @@ Vfs_pipe::Pipe_handle::read(char *buf,
 	return Pipe_handle::pipe.read(*this, buf, count, out_count); }
 
 
-bool
-Vfs_pipe::Pipe_handle::read_ready() {
+bool Vfs_pipe::Pipe_handle::read_ready() {
 	return !writer && !pipe.buffer.empty(); }
 
 
-bool
-Vfs_pipe::Pipe_handle::notify_read_ready()
+bool Vfs_pipe::Pipe_handle::write_ready() const
+{
+	/*
+	 * Unconditionally return true for the writer side because
+	 * WRITE_ERR_WOULD_BLOCK is not yet supported.
+	 */
+	return writer;
+}
+
+
+bool Vfs_pipe::Pipe_handle::notify_read_ready()
 {
 	if (!writer && !read_ready_elem.enqueued())
 		pipe.read_ready_waiters.enqueue(read_ready_elem);
@@ -594,6 +603,13 @@ class Vfs_pipe::File_system : public Vfs::File_system
 		{
 			if (Pipe_handle *handle = dynamic_cast<Pipe_handle*>(vfs_handle))
 				return handle->read_ready();
+			return true;
+		}
+
+		bool write_ready(Vfs_handle const &vfs_handle) const override
+		{
+			if (Pipe_handle const *handle = dynamic_cast<Pipe_handle const *>(&vfs_handle))
+				return handle->write_ready();
 			return true;
 		}
 

@@ -128,6 +128,8 @@ class Vfs::Log_file_system : public Single_file_system
 
 				bool read_ready() override { return false; }
 
+				bool write_ready() const override { return true; }
+
 				Sync_result sync() override
 				{
 					if (_line_pos > 0)

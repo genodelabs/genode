@@ -30,13 +30,13 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io, private Vfs::Env:
 		Genode::Allocator &_alloc;
 		Vfs::Env::User    &_user;
 
-		Global_file_system_factory _fs_factory { _alloc };
-
-		Dir_file_system _root_dir;
-
 		using Deferred_wakeups = Remote_io::Deferred_wakeups;
 
 		Deferred_wakeups _deferred_wakeups { };
+
+		Global_file_system_factory _fs_factory { _alloc };
+
+		Dir_file_system _root_dir;
 
 	public:
 

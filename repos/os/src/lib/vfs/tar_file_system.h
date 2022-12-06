@@ -776,6 +776,8 @@ class Vfs::Tar_file_system : public File_system
 		}
 
 		bool read_ready(Vfs_handle *) override { return true; }
+
+		bool write_ready(Vfs_handle const &) const override { return false; }
 };
 
 #endif /* _INCLUDE__VFS__TAR_FILE_SYSTEM_H_ */

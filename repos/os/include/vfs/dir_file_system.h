@@ -973,6 +973,14 @@ class Vfs::Dir_file_system : public File_system
 			return handle->fs().read_ready(handle);
 		}
 
+		bool write_ready(Vfs_handle const &handle) const override
+		{
+			if (&handle.fs() == this)
+				return false;
+
+			return handle.fs().write_ready(handle);
+		}
+
 		bool notify_read_ready(Vfs_handle *handle) override
 		{
 			if (&handle->fs() == this)

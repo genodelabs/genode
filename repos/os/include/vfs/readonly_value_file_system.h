@@ -73,6 +73,8 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return false; }
 		};
 
 		typedef Genode::String<200> Config;

@@ -50,6 +50,8 @@ class Vfs::Single_file_system : public File_system
 
 			virtual bool read_ready() = 0;
 
+			virtual bool write_ready() const = 0;
+
 			virtual bool notify_read_ready() { return true; }
 		};
 
@@ -131,6 +133,8 @@ class Vfs::Single_file_system : public File_system
 				}
 
 				bool read_ready() override { return true; }
+
+				bool write_ready() const override { return true; }
 		};
 
 		bool _root(const char *path)
@@ -286,6 +290,14 @@ class Vfs::Single_file_system : public File_system
 				return handle->read_ready();
 
 			return false;
+		}
+
+		bool write_ready(Vfs_handle const &vfs_handle) const override
+		{
+			Single_vfs_handle const &handle =
+				static_cast<Single_vfs_handle const &>(vfs_handle);
+
+			return handle.write_ready();
 		}
 
 		bool notify_read_ready(Vfs_handle *vfs_handle) override

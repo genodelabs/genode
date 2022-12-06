@@ -148,6 +148,8 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return false; }
 		};
 
 		Trace_buffer_file_system(Vfs::Env &env,

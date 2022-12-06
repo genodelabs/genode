@@ -1370,6 +1370,8 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -1476,6 +1478,8 @@ class Vfs_cbe_trust_anchor::Generate_key_file_system : public Vfs::Single_file_s
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return false; }
 		};
 
 	public:
@@ -1604,6 +1608,8 @@ class Vfs_cbe_trust_anchor::Encrypt_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -1731,6 +1737,8 @@ class Vfs_cbe_trust_anchor::Decrypt_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -1851,6 +1859,8 @@ class Vfs_cbe_trust_anchor::Initialize_file_system : public Vfs::Single_file_sys
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:

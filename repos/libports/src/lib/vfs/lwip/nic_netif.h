@@ -88,6 +88,8 @@ class Lwip::Nic_netif
 
 		Wakeup_scheduler &_wakeup_scheduler;
 
+		bool _tx_saturated = false;
+
 		enum {
 			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
 			BUF_SIZE    = 1024*PACKET_SIZE,
@@ -202,6 +204,7 @@ class Lwip::Nic_netif
 			/* flush acknowledgements */
 			while (tx.ack_avail()) {
 				tx.release_packet(tx.try_get_acked_packet());
+				_tx_saturated = false;
 				progress = true;
 			}
 
@@ -309,6 +312,8 @@ class Lwip::Nic_netif
 
 		Lwip::netif& lwip_netif() { return _netif; }
 
+		bool tx_saturated() const { return _tx_saturated; }
+
 		/**
 		* Status callback to override in subclass
 		 */
@@ -372,11 +377,14 @@ class Lwip::Nic_netif
 			auto &tx = *_nic.tx();
 
 			/* flush acknowledgements */
-			while (tx.ack_avail())
+			while (tx.ack_avail()) {
 				tx.release_packet(tx.get_acked_packet());
+				_tx_saturated = false;
+			}
 
 			if (!tx.ready_to_submit()) {
 				Genode::error("lwIP: Nic packet queue congested, cannot send packet");
+				_tx_saturated = true;
 				return ERR_WOULDBLOCK;
 			}
 
@@ -384,6 +392,7 @@ class Lwip::Nic_netif
 			try { packet = tx.alloc_packet(p->tot_len); }
 			catch (...) {
 				Genode::error("lwIP: Nic packet allocation failed, cannot send packet");
+				_tx_saturated = true;
 				return ERR_WOULDBLOCK;
 			}
 

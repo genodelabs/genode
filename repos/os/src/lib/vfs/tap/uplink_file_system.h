@@ -124,6 +124,12 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 		bool read_ready() override {
 			return _drv_link_state && _conn->rx()->packet_avail() && _conn->rx()->ready_to_ack(); }
 
+		bool write_ready() const override
+		{
+			/* wakeup from WRITE_ERR_WOULD_BLOCK not supported */
+			return _drv_link_state;
+		}
+
 		Read_result read(char *dst, file_size count,
 		                 file_size &out_count) override
 		{

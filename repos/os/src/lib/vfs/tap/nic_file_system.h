@@ -134,6 +134,12 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 		bool read_ready() override {
 			return _link_state && _nic.rx()->packet_avail() && _nic.rx()->ready_to_ack(); }
 
+		bool write_ready() const override
+		{
+			/* wakeup from WRITE_ERR_WOULD_BLOCK not supported */
+			return _link_state;
+		}
+
 		Read_result read(char *dst, file_size count,
 		                 file_size &out_count) override
 		{

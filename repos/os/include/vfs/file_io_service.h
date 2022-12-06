@@ -70,6 +70,11 @@ struct Vfs::File_io_service : Interface
 	virtual bool read_ready(Vfs_handle *) = 0;
 
 	/**
+	 * Return true if the handle might accept a write operation
+	 */
+	virtual bool write_ready(Vfs_handle const &) const = 0;
+
+	/**
 	 * Explicitly indicate interest in read-ready for a handle
 	 *
 	 * For example, the file-system-session plugin can then send READ_READY

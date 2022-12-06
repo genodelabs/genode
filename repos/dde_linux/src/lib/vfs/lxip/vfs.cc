@@ -2001,6 +2001,12 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return handle.read_ready();
 		}
 
+		bool write_ready(Vfs_handle const &vfs_handle) const override
+		{
+			/* wakeup from WRITE_ERR_WOULD_BLOCK not supported */
+			return true;
+		}
+
 		Sync_result complete_sync(Vfs_handle *vfs_handle)
 		{
 			Vfs::Lxip_vfs_handle *handle =

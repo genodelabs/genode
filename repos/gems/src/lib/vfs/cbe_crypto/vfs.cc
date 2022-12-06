@@ -124,6 +124,8 @@ class Vfs_cbe_crypto::Encrypt_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -256,6 +258,8 @@ class Vfs_cbe_crypto::Decrypt_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -893,6 +897,12 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 			return true;
 		}
 
+		bool write_ready(Vfs::Vfs_handle const &) const override
+		{
+			/* wakeup from WRITE_ERR_WOULD_BLOCK not supported */
+			return true;
+		}
+
 		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size ) override
 		{
 			return FTRUNCATE_OK;
@@ -997,6 +1007,8 @@ class Vfs_cbe_crypto::Management_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 		char const *_type_name;

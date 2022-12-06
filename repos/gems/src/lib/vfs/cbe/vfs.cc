@@ -2021,6 +2021,8 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 		Data_file_system(Wrapper &w, uint32_t snap_id)
@@ -2190,6 +2192,8 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -2373,6 +2377,8 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -2556,6 +2562,8 @@ class Vfs_cbe::Deinitialize_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -2692,6 +2700,8 @@ class Vfs_cbe::Create_snapshot_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -2790,6 +2800,8 @@ class Vfs_cbe::Discard_snapshot_file_system : public Vfs::Single_file_system
 			}
 
 			bool read_ready() override { return true; }
+
+			bool write_ready() const override { return true; }
 		};
 
 	public:
@@ -3148,7 +3160,6 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 			}
 
 			bool read_ready() override { return true; }
-
 		};
 
 		struct Dir_snap_vfs_handle : Vfs::Vfs_handle
@@ -3449,6 +3460,11 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 		bool read_ready(Vfs::Vfs_handle *) override
 		{
 			return true;
+		}
+
+		bool write_ready(Vfs::Vfs_handle const &) const override
+		{
+			return false;
 		}
 
 		Ftruncate_result ftruncate(Vfs::Vfs_handle *vfs_handle,
