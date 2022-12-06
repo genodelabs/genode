@@ -14,12 +14,35 @@
 /* Linux kit includes */
 #include <legacy/lx_kit/usb.h>
 
+static DECLARE_WAIT_QUEUE_HEAD(lx_emul_urb_wait);
+
+static int wait_for_free_urb(unsigned int timeout_jiffies)
+{
+	int ret = 0;
+
+	DECLARE_WAITQUEUE(wait, current);
+	add_wait_queue(&lx_emul_urb_wait, &wait);
+
+	ret = schedule_timeout(timeout_jiffies);
+
+	remove_wait_queue(&lx_emul_urb_wait, &wait);
+
+	return ret;
+}
+
+
 int usb_control_msg(struct usb_device *dev, unsigned int pipe,
                     __u8 request, __u8 requesttype, __u16 value,
                     __u16 index, void *data, __u16 size, int timeout)
 {
-	usb_ctrlrequest *dr = (usb_ctrlrequest*)
-		kmalloc(sizeof(usb_ctrlrequest), GFP_KERNEL);
+	Usb::Connection *usb;
+	Sync_ctrl_urb *scu;
+	urb *u;
+	usb_ctrlrequest *dr;
+	unsigned int timeout_jiffies;
+	int ret;
+
+	dr = (usb_ctrlrequest*)kmalloc(sizeof(usb_ctrlrequest), GFP_KERNEL);
 	if (!dr) return -ENOMEM;
 
 	dr->bRequestType = requesttype;
@@ -28,41 +51,59 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 	dr->wIndex       = cpu_to_le16(index);
 	dr->wLength      = cpu_to_le16(size);
 
-	urb * u = (urb*) usb_alloc_urb(0, GFP_KERNEL);
+	u = (urb*) usb_alloc_urb(0, GFP_KERNEL);
 	if (!u) {
-		kfree(dr);
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto err_urb;
 	}
 
-	Sync_ctrl_urb * scu = (Sync_ctrl_urb *)kzalloc(sizeof(Sync_ctrl_urb), GFP_KERNEL);
+	scu = (Sync_ctrl_urb *)kzalloc(sizeof(Sync_ctrl_urb), GFP_KERNEL);
 	if (!scu) {
-		usb_free_urb(u);
-		kfree(dr);
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto err_scu;
 	}
 
 	usb_fill_control_urb(u, dev, pipe, (unsigned char *)dr, data,
 	                     size, nullptr, nullptr);
 
 	if (!dev->bus || !dev->bus->controller) {
-		kfree(scu);
-		usb_free_urb(u);
-		kfree(dr);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto err_fill;
 	}
 
-	Genode::construct_at<Sync_ctrl_urb>(scu, *(Usb::Connection*)(dev->bus->controller), *u);
+	/*
+	 * If this function is called with a timeout of 0 to wait forever,
+	 * we wait in pieces of 10s each as 'schedule_timeout' might trigger
+	 * immediately otherwise. The intend to wait forever is reflected
+	 * back nonetheless when sending the urb.
+	 */
+	timeout_jiffies = timeout ? msecs_to_jiffies(timeout)
+	                          : msecs_to_jiffies(10000u);
 
-	scu->send(timeout);
+	usb = (Usb::Connection*)(dev->bus->controller);
+	for (;;) {
+		if (usb->source()->ready_to_submit(1))
+			try {
+				Genode::construct_at<Sync_ctrl_urb>(scu, *usb, *u);
+				break;
+			} catch (...) { }
+
+		timeout_jiffies = wait_for_free_urb(timeout_jiffies);
+		if (!timeout_jiffies && timeout) {
+			ret = -ETIMEDOUT;
+			goto err_fill;
+		}
+	}
+
+	scu->send(timeout ? jiffies_to_msecs(timeout_jiffies) : 0);
+
+	ret = u->status >= 0 ? u->actual_length : u->status;
+
+err_fill:
 	kfree(scu);
-
-	int ret;
-	if (u->status >= 0)
-		ret = u->actual_length;
-	else
-		ret = u->status;
-
+err_scu:
 	usb_free_urb(u);
+err_urb:
 	kfree(dr);
 	return ret;
 }
@@ -90,7 +131,16 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 	if (!u)
 		return 1;
 
-	Genode::construct_at<Urb>(u, *(Usb::Connection*)(urb->dev->bus->controller), *urb);
+	Usb::Connection &usb = *(Usb::Connection*)(urb->dev->bus->controller);
+	for (;;) {
+		if (usb.source()->ready_to_submit(1))
+			try {
+				Genode::construct_at<Urb>(u, usb, *urb);
+				break;
+			} catch (...) { }
+
+		(void)wait_for_free_urb(msecs_to_jiffies(10000u));
+	}
 
 	/*
 	 * Self-destruction of the 'Urb' object in its completion function
@@ -129,4 +179,6 @@ void usb_free_urb(struct urb *urb)
 	}
 
 	kfree(urb);
+
+	wake_up(&lx_emul_urb_wait);
 }
