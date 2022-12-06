@@ -1,0 +1,11 @@
+<runtime ram="100M" caps="1000" binary="top">
+
+	<requires> <trace/> <timer/> </requires>
+
+	<content>
+		<rom label="top"/>
+	</content>
+
+	<config period_ms="5000" sort_time="ec"/>
+
+</runtime>
