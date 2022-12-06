@@ -1,0 +1,9 @@
+<launcher pkg="top">
+
+	<route>
+		<service name="TRACE"> <parent/> </service>
+	</route>
+
+	<config period_ms="5000" sort_time="ec"/>
+
+</launcher>
