@@ -267,7 +267,7 @@ struct Vfs::Lxip_vfs_handle : Vfs::Vfs_handle
 	/**
 	 * Check if the file attached to this handle is ready to read
 	 */
-	virtual bool read_ready() = 0;
+	virtual bool read_ready() const = 0;
 
 	virtual Read_result   read(char *dst,
 	                           file_size count, file_size &out_count) = 0;
@@ -312,7 +312,7 @@ struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
 			file->handles.remove(&file_le);
 	}
 
-	bool read_ready() override {
+	bool read_ready() const override {
 		return (file) ? file->poll() : false; }
 
 	Read_result read(char *dst, file_size count, file_size &out_count) override
@@ -364,7 +364,7 @@ struct Vfs::Lxip_vfs_dir_handle final : Vfs::Lxip_vfs_handle
 	: Vfs::Lxip_vfs_handle(fs, alloc, status_flags),
 	  dir(dir) { }
 
-	bool read_ready() override { return true; }
+	bool read_ready() const override { return true; }
 
 	Read_result read(char *dst, file_size count, file_size &out_count) override
 	{
@@ -1202,7 +1202,7 @@ struct Vfs::Lxip_socket_handle final : Vfs::Lxip_vfs_handle
 			socket_dir(alloc, parent, sock)
 		{ }
 
-		bool read_ready() override { return true; }
+		bool read_ready() const override { return true; }
 
 		Read_result read(char *dst, file_size count, file_size &out_count) override
 		{
@@ -1994,10 +1994,11 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return false;
 		}
 
-		bool read_ready(Vfs_handle *vfs_handle) override
+		bool read_ready(Vfs_handle const &vfs_handle) const override
 		{
-			Lxip_vfs_handle &handle =
-				*static_cast<Lxip_vfs_handle *>(vfs_handle);
+			Lxip_vfs_handle const &handle =
+				static_cast<Lxip_vfs_handle const &>(vfs_handle);
+
 			return handle.read_ready();
 		}
 

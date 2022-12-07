@@ -79,8 +79,7 @@ struct Vfs_gpu::File_system : Single_file_system
 			return WRITE_ERR_IO;
 		}
 
-		bool read_ready() override { return _complete; }
-
+		bool read_ready()  const override { return _complete; }
 		bool write_ready() const override { return true; }
 
 		Id_space::Id id() const { return _elem.id(); }

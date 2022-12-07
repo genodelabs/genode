@@ -966,8 +966,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			return handle->node.complete_read(dst, count, handle->seek(), out_count);
 		}
 
-		bool read_ready(Vfs_handle *) override { return true; }
-
+		bool read_ready (Vfs_handle const &) const override { return true; }
 		bool write_ready(Vfs_handle const &) const override { return true; }
 
 		Ftruncate_result ftruncate(Vfs_handle * const vfs_handle, file_size len) override

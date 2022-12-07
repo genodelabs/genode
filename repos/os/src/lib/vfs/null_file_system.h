@@ -53,8 +53,7 @@ struct Vfs::Null_file_system : Single_file_system
 			return WRITE_OK;
 		}
 
-		bool read_ready() override { return false; }
-
+		bool read_ready()  const override { return false; }
 		bool write_ready() const override { return true; }
 	};
 

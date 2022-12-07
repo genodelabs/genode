@@ -131,8 +131,13 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 		 * Vfs_handle interface *
 		 ************************/
 
-		bool read_ready() override {
-			return _link_state && _nic.rx()->packet_avail() && _nic.rx()->ready_to_ack(); }
+		bool read_ready() const override
+		{
+			auto &nonconst_this = const_cast<Nic_vfs_handle &>(*this);
+			auto &rx = *nonconst_this._nic.rx();
+
+			return _link_state && rx.packet_avail() && rx.ready_to_ack();
+		}
 
 		bool write_ready() const override
 		{

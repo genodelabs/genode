@@ -53,8 +53,7 @@ class Vfs::Symlink_file_system : public Single_file_system
 			                   file_size&) override {
 				return WRITE_ERR_INVALID; }
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return false; }
 		};
 

@@ -77,9 +77,10 @@ class Libusb_file_system : public Vfs::Single_file_system
 					libusb_genode_usb_connection(&_usb_connection);
 				}
 
-				bool read_ready() override
+				bool read_ready() const override
 				{
-					return _usb_connection.source()->ack_avail();
+					auto &nonconst_this = const_cast<Libusb_vfs_handle &>(*this);
+					return nonconst_this._usb_connection.source()->ack_avail();
 				}
 
 				Read_result read(char *dst, Vfs::file_size count,

@@ -1369,8 +1369,7 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -1477,8 +1476,7 @@ class Vfs_cbe_trust_anchor::Generate_key_file_system : public Vfs::Single_file_s
 				return WRITE_ERR_IO;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return false; }
 		};
 
@@ -1607,8 +1605,7 @@ class Vfs_cbe_trust_anchor::Encrypt_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -1736,8 +1733,7 @@ class Vfs_cbe_trust_anchor::Decrypt_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -1858,8 +1854,7 @@ class Vfs_cbe_trust_anchor::Initialize_file_system : public Vfs::Single_file_sys
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 

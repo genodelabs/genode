@@ -777,7 +777,7 @@ class Fatfs::File_system : public Vfs::File_system
 				FTRUNCATE_OK : FTRUNCATE_ERR_NO_PERM;
 		}
 
-		bool read_ready(Vfs_handle *) override { return true; }
+		bool read_ready(Vfs_handle const &) const override { return true; }
 
 		bool write_ready(Vfs_handle const &) const override
 		{

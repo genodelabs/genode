@@ -351,7 +351,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		{
 			_read_ready_state = Read_ready_state::REQUESTED;
 
-			if (_handle.fs().read_ready(&_handle)) {
+			if (_handle.fs().read_ready(_handle)) {
 				/* if the handle is ready, send a packet back immediately */
 				read_ready_response();
 			} else {

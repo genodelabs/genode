@@ -426,8 +426,7 @@ struct Lwip::Socket_dir : Lwip::Directory
 		                           char const *src, file_size count,
 		                           file_size &out_count) = 0;
 
-		virtual bool read_ready(Lwip_file_handle&) = 0;
-
+		virtual bool read_ready (Lwip_file_handle const &) const = 0;
 		virtual bool write_ready(Lwip_file_handle const &) const = 0;
 
 		/**
@@ -891,7 +890,7 @@ class Lwip::Udp_socket_dir final :
 		 ** Socket_dir interface **
 		 **************************/
 
-		bool read_ready(Lwip_file_handle &handle) override
+		bool read_ready(Lwip_file_handle const &handle) const override
 		{
 			switch (handle.kind) {
 			case Lwip_file_handle::DATA:
@@ -1254,7 +1253,7 @@ class Lwip::Tcp_socket_dir final :
 		 ** Socket_dir interface **
 		 **************************/
 
-		bool read_ready(Lwip_file_handle &handle) override
+		bool read_ready(Lwip_file_handle const &handle) const override
 		{
 			switch (handle.kind) {
 			case Lwip_file_handle::DATA:
@@ -2111,12 +2110,13 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 			return false;
 		}
 
-		bool read_ready(Vfs_handle *vfs_handle) override
+		bool read_ready(Vfs_handle const &vfs_handle) const override
 		{
-			if (Lwip_file_handle *handle = dynamic_cast<Lwip_file_handle*>(vfs_handle)) {
-				if (handle->socket)
-					return handle->socket->read_ready(*handle);
-			}
+			Lwip_file_handle const * const handle_ptr =
+				dynamic_cast<Lwip_file_handle const *>(&vfs_handle);
+
+			if (handle_ptr && handle_ptr->socket)
+				return handle_ptr->socket->read_ready(*handle_ptr);
 
 			/*
 			 * in this case the polled file is a 'new_socket'

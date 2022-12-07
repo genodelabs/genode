@@ -284,7 +284,7 @@ class Vfs_import::File_system : public Vfs::File_system
 		                          file_size&) override {
 			return READ_ERR_INVALID; }
 
-		bool read_ready(Vfs_handle*) override {
+		bool read_ready(Vfs_handle const &) const override {
 			return true; }
 
 		bool write_ready(Vfs_handle const &) const override {

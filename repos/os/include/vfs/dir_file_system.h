@@ -965,12 +965,12 @@ class Vfs::Dir_file_system : public File_system
 			return FTRUNCATE_ERR_NO_PERM;
 		}
 
-		bool read_ready(Vfs_handle *handle) override
+		bool read_ready(Vfs_handle const &handle) const override
 		{
-			if (&handle->fs() == this)
+			if (&handle.fs() == this)
 				return true;
 
-			return handle->fs().read_ready(handle);
+			return handle.fs().read_ready(handle);
 		}
 
 		bool write_ready(Vfs_handle const &handle) const override

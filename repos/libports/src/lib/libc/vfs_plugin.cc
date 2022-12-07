@@ -219,7 +219,7 @@ namespace Libc {
 
 		handle->fs().notify_read_ready(handle);
 
-		return handle->fs().read_ready(handle);
+		return handle->fs().read_ready(*handle);
 	}
 
 	bool write_ready_from_kernel(File_descriptor *fd)
@@ -2721,7 +2721,7 @@ int Libc::Vfs_plugin::select(int nfds,
 			if (!handle) continue;
 
 			if (fd_in_readfds) {
-				if (handle->fs().read_ready(handle)) {
+				if (handle->fs().read_ready(*handle)) {
 					FD_SET(fd, readfds);
 					++nready;
 				} else {

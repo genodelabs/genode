@@ -953,11 +953,11 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			return result;
 		}
 
-		bool read_ready(Vfs_handle *vfs_handle) override
+		bool read_ready(Vfs_handle const &vfs_handle) const override
 		{
-			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
+			Fs_vfs_handle const &handle = static_cast<Fs_vfs_handle const &>(vfs_handle);
 
-			return handle->read_ready_state == Handle_state::Read_ready_state::READY;
+			return handle.read_ready_state == Handle_state::Read_ready_state::READY;
 		}
 
 		bool write_ready(Vfs_handle const &) const override

@@ -67,7 +67,7 @@ struct Vfs::File_io_service : Interface
 	/**
 	 * Return true if the handle has readable data
 	 */
-	virtual bool read_ready(Vfs_handle *) = 0;
+	virtual bool read_ready(Vfs_handle const &) const = 0;
 
 	/**
 	 * Return true if the handle might accept a write operation

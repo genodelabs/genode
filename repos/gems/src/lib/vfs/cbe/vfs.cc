@@ -2020,8 +2020,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				return SYNC_ERR_INVALID;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -2191,8 +2190,7 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -2376,8 +2374,7 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -2561,8 +2558,7 @@ class Vfs_cbe::Deinitialize_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -2699,8 +2695,7 @@ class Vfs_cbe::Create_snapshot_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -2799,8 +2794,7 @@ class Vfs_cbe::Discard_snapshot_file_system : public Vfs::Single_file_system
 				return WRITE_ERR_IO;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -3065,7 +3059,7 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 				return SYNC_OK;
 			}
 
-			virtual bool read_ready() = 0;
+			virtual bool read_ready() const = 0;
 		};
 
 
@@ -3159,7 +3153,7 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 				return WRITE_ERR_INVALID;
 			}
 
-			bool read_ready() override { return true; }
+			bool read_ready() const override { return true; }
 		};
 
 		struct Dir_snap_vfs_handle : Vfs::Vfs_handle
@@ -3457,7 +3451,7 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 			return READ_ERR_IO;
 		}
 
-		bool read_ready(Vfs::Vfs_handle *) override
+		bool read_ready(Vfs::Vfs_handle const &) const override
 		{
 			return true;
 		}

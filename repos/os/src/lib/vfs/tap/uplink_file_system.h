@@ -121,8 +121,13 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 		 * Vfs_handle interface *
 		 ************************/
 
-		bool read_ready() override {
-			return _drv_link_state && _conn->rx()->packet_avail() && _conn->rx()->ready_to_ack(); }
+		bool read_ready() const override
+		{
+			auto &nonconst_this = const_cast<Uplink_vfs_handle &>(*this);
+			auto &rx = *nonconst_this._conn->rx();
+
+			return _drv_link_state && rx.packet_avail() && rx.ready_to_ack();
+		}
 
 		bool write_ready() const override
 		{

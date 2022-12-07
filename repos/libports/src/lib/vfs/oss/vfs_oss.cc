@@ -285,7 +285,7 @@ struct Vfs::Oss_file_system::Audio
 			_in->overrun_sigh(sigh);
 		}
 
-		bool read_ready()
+		bool read_ready() const
 		{
 			return _info.ifrag_bytes > 0;
 		}
@@ -681,7 +681,7 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 				return result;
 			}
 
-			bool read_ready() override
+			bool read_ready() const override
 			{
 				return _audio.read_ready();
 			}

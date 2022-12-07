@@ -67,8 +67,7 @@ class Vfs_capture::Data_file_system : public Single_file_system
 				_capture(capture), _capture_ds(capture_ds)
 			{ }
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 
 			Read_result read(char *dst, file_size count,

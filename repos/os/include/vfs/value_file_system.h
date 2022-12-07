@@ -84,8 +84,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 
 			private:

@@ -76,7 +76,7 @@ struct Vfs_pipe::Pipe_handle : Vfs::Vfs_handle, private Pipe_handle_registry_ele
 	                 file_size count,
 	                 file_size &out_count);
 
-	bool read_ready();
+	bool read_ready()  const;
 	bool write_ready() const;
 	bool notify_read_ready();
 };
@@ -275,14 +275,16 @@ Vfs_pipe::Pipe_handle::write(const char *buf,
 
 
 Vfs_pipe::Read_result
-Vfs_pipe::Pipe_handle::read(char *buf,
-	                        file_size count,
-	                        file_size &out_count) {
-	return Pipe_handle::pipe.read(*this, buf, count, out_count); }
+Vfs_pipe::Pipe_handle::read(char *buf, file_size count, file_size &out_count)
+{
+	return Pipe_handle::pipe.read(*this, buf, count, out_count);
+}
 
 
-bool Vfs_pipe::Pipe_handle::read_ready() {
-	return !writer && !pipe.buffer.empty(); }
+bool Vfs_pipe::Pipe_handle::read_ready() const
+{
+	return !writer && !pipe.buffer.empty();
+}
 
 
 bool Vfs_pipe::Pipe_handle::write_ready() const
@@ -599,9 +601,9 @@ class Vfs_pipe::File_system : public Vfs::File_system
 			return READ_ERR_INVALID;
 		}
 
-		bool read_ready(Vfs_handle *vfs_handle) override
+		bool read_ready(Vfs_handle const &vfs_handle) const override
 		{
-			if (Pipe_handle *handle = dynamic_cast<Pipe_handle*>(vfs_handle))
+			if (Pipe_handle const *handle = dynamic_cast<Pipe_handle const *>(&vfs_handle))
 				return handle->read_ready();
 			return true;
 		}

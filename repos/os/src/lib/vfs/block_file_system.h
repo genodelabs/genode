@@ -337,8 +337,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 					return SYNC_OK;
 				}
 
-				bool read_ready() override { return true; }
-
+				bool read_ready()  const override { return true; }
 				bool write_ready() const override { return true; }
 		};
 

@@ -112,8 +112,7 @@ class Vfs::Rom_file_system : public Single_file_system
 					return WRITE_ERR_INVALID;
 				}
 
-				bool read_ready() override { return true; }
-
+				bool read_ready()  const override { return true; }
 				bool write_ready() const override { return false; }
 		};
 

@@ -123,8 +123,7 @@ class Vfs_cbe_crypto::Encrypt_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -257,8 +256,7 @@ class Vfs_cbe_crypto::Decrypt_file_system : public Vfs::Single_file_system
 				return WRITE_OK;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
@@ -512,7 +510,7 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 				return SYNC_OK;
 			}
 
-			virtual bool read_ready() = 0;
+			virtual bool read_ready() const = 0;
 		};
 
 
@@ -606,7 +604,7 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 				return WRITE_ERR_INVALID;
 			}
 
-			bool read_ready() override { return true; }
+			bool read_ready() const override { return true; }
 
 		};
 
@@ -892,7 +890,7 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 			return READ_ERR_IO;
 		}
 
-		bool read_ready(Vfs::Vfs_handle *) override
+		bool read_ready(Vfs::Vfs_handle const &) const override
 		{
 			return true;
 		}
@@ -1006,8 +1004,7 @@ class Vfs_cbe_crypto::Management_file_system : public Vfs::Single_file_system
 				return WRITE_ERR_IO;
 			}
 
-			bool read_ready() override { return true; }
-
+			bool read_ready()  const override { return true; }
 			bool write_ready() const override { return true; }
 		};
 
