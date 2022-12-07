@@ -22,12 +22,13 @@
 namespace Vfs { struct Simple_env; }
 
 
-class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io
+class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io, private Vfs::Env::User
 {
 	private:
 
 		Genode::Env       &_env;
 		Genode::Allocator &_alloc;
+		Vfs::Env::User    &_user;
 
 		Global_file_system_factory _fs_factory { _alloc };
 
@@ -41,9 +42,15 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io
 
 		Simple_env(Genode::Env       &env,
 		           Genode::Allocator &alloc,
-		           Genode::Xml_node   config)
+		           Genode::Xml_node   config,
+		           Vfs::Env::User    &user)
 		:
-			_env(env), _alloc(alloc), _root_dir(*this, config, _fs_factory)
+			_env(env), _alloc(alloc), _user(user), _root_dir(*this, config, _fs_factory)
+		{ }
+
+		Simple_env(Genode::Env &env, Genode::Allocator &alloc, Genode::Xml_node config)
+		:
+			Simple_env(env, alloc, config, *this)
 		{ }
 
 		void apply_config(Genode::Xml_node const &config)
@@ -56,6 +63,7 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io
 		Vfs::File_system  &root_dir()         override { return _root_dir; }
 		Deferred_wakeups  &deferred_wakeups() override { return _deferred_wakeups; }
 		Vfs::Env::Io      &io()               override { return *this; }
+		Vfs::Env::User    &user()             override { return _user; }
 
 		/**
 		 * Vfs::Env::Io interface
@@ -70,6 +78,14 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io
 			_deferred_wakeups.trigger();
 			_env.ep().wait_and_dispatch_one_io_signal();
 		}
+
+		/**
+		 * Vfs::Env::User interface
+		 *
+		 * Fallback implementation used if no 'user' is specified at
+		 * construction time.
+		 */
+		void wakeup_vfs_user() override { };
 };
 
 #endif /* _INCLUDE__VFS__SIMPLE_ENV_H_ */

@@ -60,6 +60,20 @@ struct Vfs::Env : Interface
 	};
 
 	virtual Io &io() = 0;
+
+	/**
+	 * Interface for notifying the VFS user about possible progress
+	 *
+	 * This interface allows VFS plugins to prompt the potential unblocking of
+	 * the VFS user, e.g., continuing a write operation that was stalled
+	 * because of a saturated I/O buffer.
+	 */
+	struct User : Interface, Genode::Noncopyable
+	{
+		virtual void wakeup_vfs_user() = 0;
+	};
+
+	virtual User &user() = 0;
 };
 
 #endif /* _INCLUDE__VFS__ENV_H_ */

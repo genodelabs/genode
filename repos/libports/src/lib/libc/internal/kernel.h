@@ -151,7 +151,24 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		 */
 		void reset_malloc_heap() override;
 
-		Env_implementation _libc_env { _env, _heap };
+		/* io_progress_handler marker */
+		bool _io_progressed = false;
+
+		struct Vfs_user : Vfs::Env::User
+		{
+			bool &_io_progressed;
+
+			Vfs_user(bool &io_progressed) : _io_progressed(io_progressed) { }
+
+			void wakeup_vfs_user() override
+			{
+				_io_progressed = true;
+			}
+		};
+
+		Vfs_user _vfs_user { _io_progressed };
+
+		Env_implementation _libc_env { _env, _heap, _vfs_user };
 
 		bool const _update_mtime = _libc_env.libc_config().attribute_value("update_mtime", true);
 
@@ -204,9 +221,6 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		jmp_buf _kernel_context;
 		jmp_buf _user_context;
 		bool    _valid_user_context          = false;
-
-		/* io_progress_handler marker */
-		bool _io_progressed { false };
 
 		Thread &_myself { *Thread::myself() };
 
