@@ -88,6 +88,9 @@ void Kernel::Thread::Tlb_invalidation::execute(Cpu &) { }
 void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
+void Cpu::Halt_job::proceed(Kernel::Cpu &) { }
+
+
 bool Kernel::Pd::invalidate_tlb(Cpu & cpu, addr_t addr, size_t size)
 {
 	using namespace Genode;

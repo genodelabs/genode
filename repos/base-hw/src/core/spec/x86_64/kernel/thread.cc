@@ -35,6 +35,9 @@ void Kernel::Thread::Tlb_invalidation::execute(Cpu &)
 void Kernel::Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
+void Kernel::Cpu::Halt_job::proceed(Kernel::Cpu &) { }
+
+
 void Kernel::Thread::_call_cache_coherent_region() { }
 
 

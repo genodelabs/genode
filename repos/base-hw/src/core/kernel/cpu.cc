@@ -145,6 +145,9 @@ Cpu_job & Cpu::schedule()
 	Job & old_job = scheduled_job();
 	old_job.exception(*this);
 
+	if (_state == SUSPEND || _state == HALT)
+		return _halt_job;
+
 	if (_scheduler.need_to_schedule()) {
 		_timer.process_timeouts();
 		_scheduler.update(_timer.time());

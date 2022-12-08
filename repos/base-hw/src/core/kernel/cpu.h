@@ -109,7 +109,20 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			            Pd                                &core_pd);
 		};
 
+		struct Halt_job : Job
+		{
+			Halt_job() : Job (0, 0) { }
 
+			void exception(Kernel::Cpu &) override { }
+
+			void proceed(Kernel::Cpu &) override;
+
+			Kernel::Cpu_job* helping_destination() override { return this; }
+		} _halt_job { };
+
+		enum State { RUN, HALT, SUSPEND };
+
+		State          _state { RUN };
 		unsigned const _id;
 		Board::Pic     _pic;
 		Timer          _timer;
@@ -125,6 +138,11 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		unsigned _fill() const  { return (unsigned)_timer.us_to_ticks(cpu_fill_us); }
 
 	public:
+
+		void next_state_halt()    { _state = HALT; };
+		void next_state_suspend() { _state = SUSPEND; };
+
+		State state() { return _state; }
 
 		enum { KERNEL_STACK_SIZE = 16 * 1024 * sizeof(Genode::addr_t) };
 
@@ -186,6 +204,12 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		 * Return CPU's idle thread object
 		 */
 		Kernel::Thread &idle_thread() { return _idle; }
+
+		void reinit_cpu()
+		{
+			_arch_init();
+			_state = RUN;
+		}
 };
 
 
@@ -212,6 +236,12 @@ class Kernel::Cpu_pool
 		                         Irq::Pool                          &user_irq_pool,
 		                         Pd                                 &core_pd,
 		                         Board::Global_interrupt_controller &global_irq_ctrl);
+
+		/**
+		 * Return whether CPU object is valid and is constructed.
+		 */
+		bool cpu_valid(unsigned const id) const {
+			return id < _nr_of_cpus && _cpus[id].constructed(); }
 
 		/**
 		 * Return object of CPU 'id'

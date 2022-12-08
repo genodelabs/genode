@@ -68,6 +68,9 @@ void Kernel::Thread::Tlb_invalidation::execute(Cpu &) { }
 void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
+void Cpu::Halt_job::proceed(Kernel::Cpu &) { }
+
+
 void Thread::proceed(Cpu & cpu)
 {
 	if (!cpu.active(pd().mmu_regs) && type() != CORE)

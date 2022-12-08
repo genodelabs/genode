@@ -134,6 +134,33 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		while (!instance_initialized) { }
 	}
 
+	if (Main::_instance->_cpu_pool.cpu_valid(Cpu::executing_id())) {
+		/* the CPU resumed since the cpu object is already valid */
+		{
+			Lock::Guard guard(Main::_instance->_data_lock);
+
+			if (kernel_initialized) {
+				nr_of_initialized_cpus = 0;
+				kernel_initialized     = false;
+			}
+
+			nr_of_initialized_cpus ++;
+
+			Main::_instance->_cpu_pool.cpu(Cpu::executing_id()).reinit_cpu();
+
+			if (nr_of_initialized_cpus == nr_of_cpus) {
+				kernel_initialized = true;
+				Genode::raw("kernel resumed");
+			}
+		}
+
+		while (!kernel_initialized) { }
+
+		Main::_instance->_handle_kernel_entry();
+		/* never reached */
+		return;
+	}
+
 	{
 		/**
 		 * Let each CPU initialize its corresponding CPU object in the

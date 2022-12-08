@@ -25,6 +25,9 @@ void Thread::Tlb_invalidation::execute(Cpu &) { }
 void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
+void Cpu::Halt_job::proceed(Kernel::Cpu &) { }
+
+
 void Thread::exception(Cpu & cpu)
 {
 	using Context = Genode::Cpu::Context;
