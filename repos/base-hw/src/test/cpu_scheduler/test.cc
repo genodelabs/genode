@@ -280,9 +280,10 @@ Cpu_scheduler_test::Main::Main(Env &env)
 	_scheduler.unready(_share(4));
 	_scheduler.ready(_share(1));
 	_update_head_and_check( 50, 830, 1,  10, __LINE__);
-	_update_head_and_check( 50, 840, 2,  20, __LINE__);
-	_update_head_and_check( 50, 860, 6, 100, __LINE__);
-	_update_head_and_check(100, 960, 3,  40, __LINE__);
+	_update_head_and_check( 50, 840, 1, 100, __LINE__);
+	_update_head_and_check( 50, 890, 1,  50, __LINE__);
+	_update_head_and_check(100, 940, 2,  20, __LINE__);
+	_update_head_and_check( 60, 960, 6,  40, __LINE__);
 	_update_head_and_check( 60,   0, 3, 110, __LINE__);
 
 
@@ -335,11 +336,11 @@ Cpu_scheduler_test::Main::Main(Env &env)
 	_update_head_and_check( 10, 770, 2, 160, __LINE__);
 
 	_scheduler.unready(_share(2));
-	_update_head_and_check( 40, 810, 1, 100, __LINE__);
+	_update_head_and_check( 40, 810, 4, 100, __LINE__);
 
 	_scheduler.ready(_share(3));
-	_update_head_and_check( 30, 840, 1,  70, __LINE__);
-	_update_head_and_check( 80, 910, 6,  90, __LINE__);
+	_update_head_and_check( 30, 840, 4,  70, __LINE__);
+	_update_head_and_check( 80, 910, 1,  90, __LINE__);
 
 	_scheduler.ready(_share(7));
 	_scheduler.ready(_share(8));
@@ -372,122 +373,105 @@ Cpu_scheduler_test::Main::Main(Env &env)
 	_update_head_and_check(200, 150, 2, 170, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 70, 220, 1, 100, __LINE__);
+	_update_head_and_check( 70, 220, 8, 100, __LINE__);
 
 	_scheduler.unready(_share(8));
 	_scheduler.yield();
-	_update_head_and_check( 40, 260, 2, 100, __LINE__);
+	_update_head_and_check( 40, 260, 1,  90, __LINE__);
 
 	_scheduler.unready(_share(1));
-	_update_head_and_check( 50, 310, 2,  50, __LINE__);
-	_update_head_and_check( 10, 320, 2,  40, __LINE__);
+	_update_head_and_check( 50, 310, 2, 100, __LINE__);
+	_update_head_and_check( 10, 320, 2,  90, __LINE__);
 
 	_set_share_ready_and_check(1, false, __LINE__);
-	_update_head_and_check(200, 360, 1, 100, __LINE__);
-	_update_head_and_check( 10, 370, 1,  90, __LINE__);
+	_update_head_and_check(200, 410, 1, 100, __LINE__);
+	_update_head_and_check( 10, 420, 1,  90, __LINE__);
 
 	_scheduler.unready(_share(1));
-	_update_head_and_check( 10, 380, 2, 100, __LINE__);
+	_update_head_and_check( 10, 430, 2, 100, __LINE__);
 
 	_set_share_ready_and_check(5, true, __LINE__);
-	_update_head_and_check( 10, 390, 5, 120, __LINE__);
+	_update_head_and_check( 10, 440, 5, 120, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 90, 480, 2,  90, __LINE__);
+	_update_head_and_check( 90, 530, 2,  90, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 10, 490, 5, 100, __LINE__);
+	_update_head_and_check( 10, 540, 5, 100, __LINE__);
 
 	_set_share_ready_and_check(7, true, __LINE__);
-	_update_head_and_check( 10, 500, 7, 180, __LINE__);
+	_update_head_and_check( 10, 550, 7, 180, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 10, 510, 5,  90, __LINE__);
+	_update_head_and_check( 10, 560, 5,  90, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 10, 520, 2, 100, __LINE__);
+	_update_head_and_check( 10, 570, 2, 100, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 10, 530, 7, 100, __LINE__);
+	_update_head_and_check( 10, 580, 7, 100, __LINE__);
 
 	_scheduler.unready(_share(5));
-	_update_head_and_check( 10, 540, 7,  90, __LINE__);
+	_update_head_and_check( 10, 590, 7,  90, __LINE__);
 
 	_scheduler.unready(_share(7));
-	_set_share_ready_and_check(5, false, __LINE__);
-	_update_head_and_check( 10, 550, 2, 100, __LINE__);
+	_set_share_ready_and_check(5, true, __LINE__);
+	_update_head_and_check( 10, 600, 2, 100, __LINE__);
 
 	_set_share_ready_and_check(7, false, __LINE__);
-	_update_head_and_check(200, 650, 5, 100, __LINE__);
+	_update_head_and_check(200, 700, 5, 100, __LINE__);
 
 	_scheduler.unready(_share(5));
 	_scheduler.unready(_share(7));
-	_update_head_and_check( 10, 660, 2, 100, __LINE__);
+	_update_head_and_check( 10, 710, 2, 100, __LINE__);
 
 	_scheduler.unready(_share(2));
-	_update_head_and_check( 10, 670, 0, 100, __LINE__);
-	_update_head_and_check( 10, 680, 0, 100, __LINE__);
-	_update_head_and_check(100, 780, 0, 100, __LINE__);
+	_update_head_and_check( 10, 720, 0, 100, __LINE__);
+	_update_head_and_check( 10, 730, 0, 100, __LINE__);
+	_update_head_and_check(100, 830, 0, 100, __LINE__);
 
 	_set_share_ready_and_check(9, true, __LINE__);
-	_update_head_and_check( 10, 790, 9, 100, __LINE__);
+	_update_head_and_check( 10, 840, 9, 100, __LINE__);
 
 	_set_share_ready_and_check(6, false, __LINE__);
-	_update_head_and_check( 20, 810, 9,  80, __LINE__);
+	_update_head_and_check( 20, 860, 9,  80, __LINE__);
 
 	_set_share_ready_and_check(8, false, __LINE__);
-	_update_head_and_check( 10, 820, 9,  70, __LINE__);
+	_update_head_and_check( 10, 870, 9,  70, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 10, 830, 6, 100, __LINE__);
+	_update_head_and_check( 10, 880, 6, 100, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 10, 840, 8, 100, __LINE__);
+	_update_head_and_check( 10, 890, 8, 100, __LINE__);
 
 	_set_share_ready_and_check(7, false, __LINE__);
 	_scheduler.yield();
-	_update_head_and_check( 20, 860, 9, 100, __LINE__);
+	_update_head_and_check( 20, 910, 9,  90, __LINE__);
 
 	_scheduler.unready(_share(8));
 	_scheduler.unready(_share(9));
-	_update_head_and_check( 10, 870, 6, 100, __LINE__);
+	_update_head_and_check( 10, 920, 6,  80, __LINE__);
 
 	_scheduler.unready(_share(6));
 	_scheduler.unready(_share(7));
-	_update_head_and_check( 10, 880, 0, 100, __LINE__);
+	_update_head_and_check( 10, 930, 0,  70, __LINE__);
 
 	_set_share_ready_and_check(4, true, __LINE__);
-	_update_head_and_check( 20, 900, 4,  90, __LINE__);
+	_update_head_and_check( 20, 950, 4,  50, __LINE__);
 
 	_set_share_ready_and_check(3, true, __LINE__);
-	_set_share_ready_and_check(1, false, __LINE__);
-	_update_head_and_check( 10, 910, 3,  90, __LINE__);
+	_set_share_ready_and_check(1, true, __LINE__);
+	_update_head_and_check( 10, 960, 3,  40, __LINE__);
 
 	_set_share_ready_and_check(5, false, __LINE__);
 	_scheduler.unready(_share(4));
-	_update_head_and_check( 10, 920, 3,  80, __LINE__);
+	_update_head_and_check( 10, 970, 3,  30, __LINE__);
 
 	_scheduler.unready(_share(3));
-	_update_head_and_check( 10, 930, 1,  70, __LINE__);
-
-	_set_share_ready_and_check(3, true, __LINE__);
-	_update_head_and_check( 10, 940, 3,  60, __LINE__);
-
-	_set_share_ready_and_check(4, false, __LINE__);
-	_update_head_and_check( 10, 950, 3,  50, __LINE__);
-
-	_scheduler.unready(_share(4));
-	_update_head_and_check( 10, 960, 3,  40, __LINE__);
-
-	_scheduler.unready(_share(3));
-	_set_share_ready_and_check(4, false, __LINE__);
-	_update_head_and_check( 10, 970, 4,  30, __LINE__);
-
-	_scheduler.unready(_share(4));
 	_update_head_and_check( 10, 980, 1,  20, __LINE__);
 
 	_set_share_ready_and_check(3, true, __LINE__);
-	_set_share_ready_and_check(4, true, __LINE__);
 	_update_head_and_check( 10, 990, 3,  10, __LINE__);
 
 	_scheduler.yield();
@@ -509,7 +493,7 @@ Cpu_scheduler_test::Main::Main(Env &env)
 	_update_head_and_check( 20,  80, 1, 210, __LINE__);
 
 	_scheduler.unready(_share(1));
-	_set_share_ready_and_check(9, false, __LINE__);
+	_set_share_ready_and_check(9, true, __LINE__);
 	_update_head_and_check( 40, 120, 9, 100, __LINE__);
 
 	_scheduler.ready(_share(5));
@@ -527,27 +511,27 @@ Cpu_scheduler_test::Main::Main(Env &env)
 	_destroy_share(5, __LINE__);
 	_set_share_ready_and_check(4, true, __LINE__);
 	_update_head_and_check( 10, 220, 4,  90, __LINE__);
-	_update_head_and_check(100, 310, 9,  10, __LINE__);
-	_update_head_and_check( 10, 320, 6, 100, __LINE__);
+	_update_head_and_check(100, 310, 4, 100, __LINE__);
+	_update_head_and_check( 10, 320, 4,  90, __LINE__);
 
 	_destroy_share(4, __LINE__);
-	_update_head_and_check(200, 420, 9, 100, __LINE__);
+	_update_head_and_check(200, 410, 9,  10, __LINE__);
 
 	_construct_share(5, __LINE__);
 	_scheduler.ready(_share(5));
-	_update_head_and_check( 10, 430, 5, 120, __LINE__);
+	_update_head_and_check( 10, 420, 5, 120, __LINE__);
 
 	_construct_share(4, __LINE__);
 	_scheduler.yield();
-	_update_head_and_check( 10, 440, 9,  90, __LINE__);
+	_update_head_and_check( 10, 430, 6, 100, __LINE__);
 
 	_set_share_ready_and_check(4, true, __LINE__);
 	_scheduler.yield();
-	_update_head_and_check( 50, 490, 4,  90, __LINE__);
+	_update_head_and_check( 50, 480, 4,  90, __LINE__);
 
 	_destroy_share(6, __LINE__);
 	_scheduler.yield();
-	_update_head_and_check( 10, 500, 5, 100, __LINE__);
+	_update_head_and_check( 20, 500, 5, 100, __LINE__);
 
 	_destroy_share(9, __LINE__);
 	_update_head_and_check(200, 600, 4, 100, __LINE__);
@@ -568,7 +552,7 @@ Cpu_scheduler_test::Main::Main(Env &env)
 	_update_head_and_check( 50, 900, 1, 100, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 60, 960, 5,  40, __LINE__);
+	_update_head_and_check( 60, 960, 8,  40, __LINE__);
 	_update_head_and_check(100,   0, 5, 120, __LINE__);
 
 
@@ -612,19 +596,19 @@ Cpu_scheduler_test::Main::Main(Env &env)
 
 	_scheduler.unready(_share(1));
 	_update_head_and_check(100, 270, 4,  90, __LINE__);
-	_update_head_and_check(100, 360, 5,  50, __LINE__);
+	_update_head_and_check(100, 360, 4, 100, __LINE__);
 
 	_scheduler.quota(_share(1), 110);
-	_update_head_and_check( 10, 370, 5,  40, __LINE__);
+	_update_head_and_check( 10, 370, 4,  90, __LINE__);
 
 	_scheduler.quota(_share(1), 120);
-	_update_head_and_check( 20, 390, 5,  20, __LINE__);
+	_update_head_and_check( 20, 390, 4,  70, __LINE__);
 
 	_scheduler.quota(_share(4), 210);
-	_update_head_and_check( 10, 400, 5,  10, __LINE__);
+	_update_head_and_check( 10, 400, 4,  60, __LINE__);
 
 	_scheduler.ready(_share(1));
-	_update_head_and_check( 20, 410, 1, 110, __LINE__);
+	_update_head_and_check( 10, 410, 1, 110, __LINE__);
 
 	_scheduler.quota(_share(1), 100);
 	_update_head_and_check( 30, 440, 1,  80, __LINE__);
@@ -649,39 +633,43 @@ Cpu_scheduler_test::Main::Main(Env &env)
 
 	_scheduler.unready(_share(2));
 	_scheduler.quota(_share(4), 80);
-	_update_head_and_check( 70, 630, 4, 100, __LINE__);
-	_update_head_and_check( 50, 680, 4,  50, __LINE__);
+	_update_head_and_check( 70, 630, 8, 100, __LINE__);
+	_update_head_and_check( 50, 680, 8,  50, __LINE__);
 
-	_scheduler.unready(_share(4));
-	_update_head_and_check( 10, 690, 6, 100, __LINE__);
+	_scheduler.unready(_share(8));
+	_update_head_and_check( 10, 690, 4,  50, __LINE__);
 
 	_construct_share(3, __LINE__);
-	_update_head_and_check( 30, 720, 6,  70, __LINE__);
+	_update_head_and_check( 30, 720, 4,  20, __LINE__);
 
 	_scheduler.quota(_share(3), 210);
 	_scheduler.yield();
-	_update_head_and_check( 20, 740, 9, 100, __LINE__);
+	_scheduler.unready(_share(4));
+	_update_head_and_check( 20, 740, 5,  90, __LINE__);
 
 	_scheduler.unready(_share(9));
 	_set_share_ready_and_check(4, false, __LINE__);
-	_update_head_and_check( 50, 790, 1, 100, __LINE__);
+	_update_head_and_check( 50, 790, 5,  40, __LINE__);
 
 	_set_share_ready_and_check(2, true, __LINE__);
-	_update_head_and_check(170, 890, 2,  50, __LINE__);
+	_update_head_and_check( 40, 830, 2,  50, __LINE__);
+	_update_head_and_check( 60, 880, 2, 100, __LINE__);
+	_update_head_and_check( 10, 890, 2,  90, __LINE__);
 
 	_scheduler.yield();
-	_set_share_ready_and_check(9, false, __LINE__);
-	_update_head_and_check( 60, 940, 5,  60, __LINE__);
+	_set_share_ready_and_check(9, true, __LINE__);
+	_update_head_and_check( 60, 950, 6,  50, __LINE__);
 
 	_scheduler.unready(_share(6));
-	_update_head_and_check( 20, 960, 5,  40, __LINE__);
+	_update_head_and_check( 20, 970, 1,  30, __LINE__);
 
 	_scheduler.yield();
-	_update_head_and_check( 10, 970, 8,  30, __LINE__);
+	_scheduler.ready(_share(8));
+	_update_head_and_check( 10, 980, 4,  20, __LINE__);
 
 	_scheduler.unready(_share(8));
 	_scheduler.yield();
-	_update_head_and_check( 10, 980, 4,  20, __LINE__);
+	_update_head_and_check( 10, 990, 5,  10, __LINE__);
 
 	_scheduler.yield();
 	_update_head_and_check( 20,   0, 9,  40, __LINE__);
@@ -704,8 +692,8 @@ Cpu_scheduler_test::Main::Main(Env &env)
 
 	_scheduler.yield();
 	_scheduler.quota(_share(8), 130);
-	_update_head_and_check( 40, 310, 2, 100, __LINE__);
-	_update_head_and_check(100, 410, 1, 100, __LINE__);
+	_update_head_and_check( 40, 310, 4, 100, __LINE__);
+	_update_head_and_check(100, 410, 9, 100, __LINE__);
 
 	_scheduler.quota(_share(3), 80);
 	_set_share_ready_and_check(3, true, __LINE__);
@@ -720,15 +708,16 @@ Cpu_scheduler_test::Main::Main(Env &env)
 	_scheduler.quota(_share(6), 50);
 	_update_head_and_check( 10, 580, 6,  50, __LINE__);
 	_update_head_and_check( 70, 630, 8,  20, __LINE__);
-	_update_head_and_check( 40, 650, 1,  40, __LINE__);
-	_update_head_and_check( 40, 690, 9, 100, __LINE__);
+	_update_head_and_check( 40, 650, 8, 100, __LINE__);
+	_update_head_and_check( 40, 690, 8,  60, __LINE__);
 
 	_destroy_share(6, __LINE__);
-	_update_head_and_check(200, 790, 5, 100, __LINE__);
+	_update_head_and_check(200, 750, 3, 100, __LINE__);
 
 	_destroy_share(3, __LINE__);
-	_update_head_and_check(100, 890, 4, 100, __LINE__);
-	_update_head_and_check(120, 990, 2,  10, __LINE__);
+	_update_head_and_check( 90, 840, 9,  40, __LINE__);
+	_update_head_and_check( 60, 880, 2, 100, __LINE__);
+	_update_head_and_check(120, 980, 1,  20, __LINE__);
 	_update_head_and_check( 80,   0, 9,  40, __LINE__);
 
 
