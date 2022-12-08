@@ -1,6 +1,7 @@
 /*
  * \brief  CPU-specific memcpy
  * \author Sebastian Sumpf
+ * \author Johanned Schlatow
  * \date   2012-08-02
  */
 
@@ -11,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__SPEC__X86__CPU__STRING_H_
-#define _INCLUDE__SPEC__X86__CPU__STRING_H_
+#ifndef _INCLUDE__CPU__STRING_H_
+#define _INCLUDE__CPU__STRING_H_
 
 namespace Genode {
 
@@ -58,4 +59,4 @@ namespace Genode {
 	}
 }
 
-#endif /* _INCLUDE__SPEC__X86__CPU__STRING_H_ */
+#endif /* _INCLUDE__CPU__STRING_H_ */
