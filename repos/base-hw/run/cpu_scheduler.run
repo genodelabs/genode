@@ -35,8 +35,8 @@ build_boot_image "core ld.lib.so init test-cpu_scheduler"
 append qemu_args "  -nographic"
 
 # execute the test in qemu if the targeted platform is supported
-run_genode_until "done.*\n" 10
+run_genode_until "child .test-cpu_scheduler. exited with exit value .*\n" 10
 
 # check the output
-grep_output {\[init -> test-cpu_scheduler\]}
-compare_output_to { [init -> test-cpu_scheduler] done }
+grep_output {child .test-cpu_scheduler. exited with exit value}
+compare_output_to { [init] child "test-cpu_scheduler" exited with exit value 0 }
