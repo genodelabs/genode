@@ -5,6 +5,7 @@ cpu_balancer
 cpu_bench
 cpu_quota
 cpu_sampler
+cpu_scheduler
 demo
 depot_autopilot
 depot_download
