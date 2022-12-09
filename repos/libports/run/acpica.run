@@ -90,7 +90,7 @@ set config {
 				<policy label_prefix="acpica"/>
 			</config>
 			<route>
-				<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+				<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
