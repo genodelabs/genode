@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2015-2018 Genode Labs GmbH
+ * Copyright (C) 2015-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -61,6 +61,31 @@ static Hw::Acpi_rsdp search_rsdp(addr_t area, addr_t area_size)
 
 	Hw::Acpi_rsdp invalid;
 	return invalid;
+}
+
+
+static Genode::uint8_t apic_id()
+{
+	X86_64_CPUID_REGISTER(Cpuid_1_ebx, 1, ebx,
+		struct Apic_id : Bitfield<24, 8> { };
+	);
+
+	return uint8_t(Cpuid_1_ebx::Apic_id::get(Cpuid_1_ebx::read()));
+}
+
+
+unsigned apic_to_cpu_id(Genode::uint8_t apic_id, Genode::uint8_t dense_id)
+{
+	static Genode::uint8_t cpu_id[256] { };
+	static bool            valid [256] { };
+
+	/* if apic_id is valid, return stored cpu_id and ignore new dense_id */
+	if (!valid[apic_id]) {
+		cpu_id[apic_id] = dense_id;
+		valid [apic_id] = true;
+	}
+
+	return cpu_id[apic_id];
 }
 
 
@@ -292,7 +317,10 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	addr_t const stack_base = reinterpret_cast<addr_t>(&bootstrap_stack);
 	addr_t const this_stack = reinterpret_cast<addr_t>(&stack_base);
-	addr_t const cpu_id     = (this_stack - stack_base) / bootstrap_stack_size;
+	addr_t const stack_id   = (this_stack - stack_base) / bootstrap_stack_size;
+
+	/* determine dense packed cpu_id based on apic_id */
+	auto const cpu_id = apic_to_cpu_id(apic_id(), uint8_t(stack_id));
 
 	/* we like to use local APIC */
 	Cpu::IA32_apic_base::access_t lapic_msr = Cpu::IA32_apic_base::read();
