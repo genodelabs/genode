@@ -17,6 +17,7 @@
 #include <virtio_net.h>
 #include <virtio_block.h>
 #include <virtio_gpu.h>
+#include <virtio_input.h>
 
 using Vmm::Vm;
 
@@ -124,10 +125,18 @@ Vm::Vm(Genode::Env & env, Heap & heap, Config & config)
 				                    _bus, _ram, env, heap));
 			return;
 		case Config::Virtio_device::GPU:
+			if (!_gui.constructed()) _gui.construct(env);
 			_device_list.insert(new (_heap)
 				Virtio_gpu_device(dev.name.string(), (uint64_t)dev.mmio_start,
 				                    dev.mmio_size, dev.irq, boot_cpu(),
-				                    _bus, _ram, env, heap, _vm_ram));
+				                    _bus, _ram, env, heap, _vm_ram, *_gui));
+			return;
+		case Config::Virtio_device::INPUT:
+			if (!_gui.constructed()) _gui.construct(env);
+			_device_list.insert(new (_heap)
+				Virtio_input_device(dev.name.string(), (uint64_t)dev.mmio_start,
+				                    dev.mmio_size, dev.irq, boot_cpu(),
+				                    _bus, _ram, env, heap, *_gui->input()));
 		default:
 			return;
 		};

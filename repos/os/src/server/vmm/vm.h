@@ -25,6 +25,7 @@
 
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
+#include <gui_session/connection.h>
 #include <vm_session/connection.h>
 
 namespace Vmm {
@@ -63,6 +64,8 @@ class Vmm::Vm
 		List<Cpu_entry>          _cpu_list;
 		List<Virtio_device_base> _device_list;
 		Pl011                    _uart;
+
+		Constructible<Gui::Connection> _gui {};
 
 		addr_t _initrd_offset() const;
 		addr_t _dtb_offset()    const;

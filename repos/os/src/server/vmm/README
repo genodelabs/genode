@@ -71,10 +71,9 @@ For each virtio_device node the following attributes need to be set:
 
 :type:
   The Virtio type of device. One can decide in between "console", "net", "gpu",
-  and "block". The "console" type gets mapped to a Genode Terminal session,
-  "net" is mapped to a Nic session, "gpu" is mapped to a Gui session,
-  and "block" to a Block session.
-
+  "input", and "block". The "console" type gets mapped to a Genode Terminal
+  session, "net" is mapped to a Nic session, "gpu" is mapped to a Gui session,
+  "input" to the event part of the Gui session, and "block" to a Block session.
 
 Additional devices
 ------------------
