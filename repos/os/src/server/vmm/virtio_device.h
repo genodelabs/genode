@@ -318,6 +318,13 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, public Virtio_device_base
 		Set _device_low  { *this, _queue_sel, "QueueDeviceLow",  Reg::WO, 0xa0 };
 		Set _device_high { *this, _queue_sel, "QueueDeviceHigh", Reg::WO, 0xa4 };
 
+		Reg _shm_id        { *this, "SHMSel",           Reg::WO, 0xac };
+		Reg _shm_len_low   { *this, "SHMLenLow",        Reg::RO, 0xb0, 0xffffffff };
+		Reg _shm_len_high  { *this, "SHMLenHigh",       Reg::RO, 0xb4, 0xffffffff };
+		Reg _shm_base_low  { *this, "SHMBaseLow",       Reg::RO, 0xb8, 0xffffffff };
+		Reg _shm_base_high { *this, "SHMBaseHigh",      Reg::RO, 0xbc, 0xffffffff };
+		Reg _config_gen    { *this, "ConfigGeneration", Reg::RW, 0xfc, 0 };
+
 
 		uint64_t _descriptor_area() const
 		{
@@ -432,6 +439,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, public Virtio_device_base
 		}
 
 		Genode::Mutex & mutex() { return _mutex; }
+		void config_has_changed() { _config_gen.set(_config_gen.get() + 1); }
 };
 
 #endif /* _VIRTIO_DEVICE_H_ */

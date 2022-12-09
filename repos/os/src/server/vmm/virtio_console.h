@@ -64,6 +64,23 @@ class Vmm::Virtio_console : public Virtio_device<Virtio_split_queue, 2>
 
 		enum Device_id { CONSOLE = 0x3 };
 
+		struct Config_area : Reg
+		{
+			Register read(Address_range & range,  Cpu&) override
+			{
+				switch (range.start) {
+				case 4:   return 1; /* maximum ports */
+				default: ;
+				}
+				return 0;
+			}
+
+			void write(Address_range & range,  Cpu&, Register v) override {}
+
+			Config_area(Virtio_console & console)
+			: Reg(console, "ConfigArea", Mmio_register::RW, 0x100, 12) { }
+		} _config_area { *this };
+
 	public:
 
 		Virtio_console(const char * const name,

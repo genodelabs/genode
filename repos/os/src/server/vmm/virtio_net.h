@@ -130,8 +130,10 @@ class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 				return mac.addr[range.start];
 			}
 
+			void write(Address_range & range,  Cpu&, Register v) override {}
+
 			Config_area(Virtio_net & device, Nic::Mac_address & mac)
-			: Reg(device, "ConfigArea", Mmio_register::RO, 0x100, 8),
+			: Reg(device, "ConfigArea", Mmio_register::RW, 0x100, 24),
 			  mac(mac)
 			{ }
 		} _config_area { *this, _mac };
