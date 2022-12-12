@@ -303,6 +303,14 @@ void Main::parse_acpi_device_info(Xml_generator & gen)
 			gen.attribute("size", 4U);
 		});
 	});
+
+	/*
+	 * ACPI device
+	 */
+	gen.node("device", [&]
+	{
+		gen.attribute("name", "acpi");
+	});
 }
 
 
