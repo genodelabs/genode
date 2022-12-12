@@ -195,6 +195,7 @@ append config {
 					<pci class="ISABRIDGE"/>
 				</policy>
 				<policy label_prefix="acpica">
+					<device name="acpi"/>
 				</policy>
 			</config>
 			<route>

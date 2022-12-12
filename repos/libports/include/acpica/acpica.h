@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -22,7 +22,6 @@ namespace Genode {
 namespace Acpica {
 
 	void init(Genode::Env &, Genode::Allocator &);
-	void use_platform_drv();
 }
 
 #endif /* _INCLUDE__ACPICA__ACPICA_H_ */

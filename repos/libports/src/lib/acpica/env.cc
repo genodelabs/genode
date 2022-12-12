@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <util/reconstructible.h>
 #include <acpica/acpica.h>
-#include <platform_session/connection.h>
+#include <platform_session/device.h>
 
 #include "env.h"
 
@@ -27,7 +27,8 @@ struct Acpica::Env
 	Genode::Env       &env;
 	Genode::Allocator &heap;
 
-	Genode::Constructible<Platform::Connection> platform;
+	Platform::Connection platform { env };
+	Platform::Device     device   { platform, "acpi" };
 
 	Env(Genode::Env &env, Genode::Allocator &heap) : env(env), heap(heap) { }
 };
@@ -37,18 +38,9 @@ static Genode::Constructible<Acpica::Env> instance;
 
 Genode::Allocator & Acpica::heap()     { return instance->heap; }
 Genode::Env       & Acpica::env()      { return instance->env; }
-Platform::Client  & Acpica::platform()
-{
-	if (!instance->platform.constructed())
-		instance->platform.construct(instance->env);
-
-	return *instance->platform;
-}
 
 
 void Acpica::init(Genode::Env &env, Genode::Allocator &heap)
 {
 	instance.construct(env, heap);
-
-	platform();
 }

@@ -10,6 +10,7 @@ if {
 set build_components {
 	core init timer
 	drivers/platform
+	drivers/acpi
 	server/event_dump
 	app/pci_decode
 	app/acpica
@@ -87,7 +88,7 @@ set config {
 			<config>
 				<policy label_prefix="ps2_drv"> <device name="ps2"/> </policy>
 				<policy label_prefix="usb_drv" info="yes"> <pci class="USB"/> </policy>
-				<policy label_prefix="acpica"/>
+				<policy label_prefix="acpica"> <device name="acpi"/> </policy>
 			</config>
 			<route>
 				<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
