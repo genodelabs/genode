@@ -196,43 +196,34 @@ void Cpu_scheduler::ready(Share &s)
 	assert(!s._ready && &s != &_idle);
 
 	s._ready = 1;
+	if (s._quota) {
+
+		_ucl[s._prio].remove(&s._claim_item);
+		if (s._claim) {
+
+			_rcl[s._prio].insert_head(&s._claim_item);
+			if (_head && _head_claims) {
+
+				if (s._prio >= _head->_prio) {
+
+					_need_to_schedule = true;
+				}
+			} else {
+
+				_need_to_schedule = true;
+			}
+		} else {
+
+			_rcl[s._prio].insert_tail(&s._claim_item);;
+		}
+	}
+
 	s._fill = _fill;
 	_fills.insert_tail(&s._fill_item);
+	if (!_head || _head == &_idle) {
 
-	if (_head == &_idle)
 		_need_to_schedule = true;
-
-	if (!s._quota)
-		return;
-
-	_ucl[s._prio].remove(&s._claim_item);
-
-	if (s._claim)
-		_rcl[s._prio].insert_head(&s._claim_item);
-	else
-		_rcl[s._prio].insert_tail(&s._claim_item);
-
-	/*
-	 * Check whether we need to re-schedule
-	 */
-	if (_need_to_schedule)
-		return;
-
-	/* current head has no quota left */
-	if (!_head_claims) {
-		_need_to_schedule = true;
-		return;
 	}
-
-	/* if current head has different priority */
-	if (s._prio != _head->_prio) {
-		_need_to_schedule = s._prio > _head->_prio;
-		return;
-	}
-
-	/* if current head has same priority, the ready share gets active */
-	if (s._claim)
-		_need_to_schedule = true;
 }
 
 
