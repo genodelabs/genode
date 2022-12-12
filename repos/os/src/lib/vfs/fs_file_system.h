@@ -452,60 +452,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 		Fs_vfs_handle_queue _congested_handles { };
 
-		file_size _read(Fs_vfs_handle &handle, void *buf,
-		                file_size const count, file_size const seek_offset)
-		{
-			::File_system::Session::Tx::Source &source = *_fs.tx();
-			using ::File_system::Packet_descriptor;
-
-			if (!source.ready_to_submit())
-				throw ::File_system::Session::Tx::Source::Saturated_submit_queue();
-
-			file_size const max_packet_size = source.bulk_buffer_size() / 2;
-			file_size const clipped_count = min(max_packet_size, count);
-
-			/* XXX check if alloc_packet() will succeed! */
-
-			Packet_descriptor const packet_in(source.alloc_packet((size_t)clipped_count),
-			                                  handle.file_handle(),
-			                                  Packet_descriptor::READ,
-			                                  (size_t)clipped_count,
-			                                  seek_offset);
-
-			/* wait until packet was acknowledged */
-			handle.queued_read_state = Handle_state::Queued_state::QUEUED;
-
-			_submit_packet(packet_in);
-
-			while (handle.queued_read_state != Handle_state::Queued_state::ACK)
-				_env.env().ep().wait_and_dispatch_one_io_signal();
-
-			/* obtain result packet descriptor with updated status info */
-			Packet_descriptor const packet_out = handle.queued_read_packet;
-
-			handle.queued_read_state  = Handle_state::Queued_state::IDLE;
-			handle.queued_read_packet = Packet_descriptor();
-
-			if (!packet_out.succeeded()) {
-				/* could be EOF or a real error */
-				try {
-					::File_system::Status status = _fs.status(handle.file_handle());
-					if (seek_offset < status.size)
-						Genode::warning("unexpected failure on file-system read");
-				}
-				catch (::File_system::Invalid_handle) { }
-				catch (::File_system::Unavailable)    { }
-			}
-
-			file_size const read_num_bytes = min((file_size)packet_out.length(), count);
-
-			memcpy(buf, source.packet_content(packet_out), (size_t)read_num_bytes);
-
-			source.release_packet(packet_out);
-
-			return read_num_bytes;
-		}
-
 		Write_result _write(Fs_vfs_handle &handle, file_size const seek_offset,
 		                    const char *buf, file_size count, file_size &out_count)
 		{
