@@ -1941,11 +1941,8 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 		break;
 	}
 
-	if (result.handled) {
-		if (result.error)
-			error("XXXXX error=", result.error, " request=", Hex(request), "/", (request==SNDCTL_DSP_RESET?"":"!"), "SNDCTL_DSP_RESET");
+	if (result.handled)
 		return result.error ? Errno(result.error) : 0;
-	}
 
 	return _legacy_ioctl(fd, request, argp);
 }
