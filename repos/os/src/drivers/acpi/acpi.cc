@@ -20,6 +20,7 @@
 /* base includes */
 #include <base/attached_io_mem_dataspace.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/registry.h>
 #include <util/misc_math.h>
 #include <util/mmio.h>
 
@@ -311,6 +312,7 @@ struct Fadt : Genode::Mmio
 	Fadt(addr_t mmio, size_t size) : Genode::Mmio(mmio), size(size) { }
 
 	struct Dsdt           : Register<0x28, 32> { };
+	struct Sci_int        : Register<0x2e, 16> { };
 	struct Features       : Register<0x70, 32> {
 		/* Table 5-35 Fixed ACPI Description Table Fixed Feature Flags */
 		struct Reset : Bitfield<10, 1> { };
@@ -326,6 +328,9 @@ struct Fadt : Genode::Mmio
 
 	bool dsdt_valid() {
 		 return size >= Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
+
+	bool sci_int_valid() {
+		 return size >= Sci_int::OFFSET + Sci_int::ACCESS_WIDTH / 8; }
 
 	bool io_reset_supported()
 	{
@@ -511,6 +516,21 @@ class Pci_config_space : public List<Pci_config_space>::Element
  */
 class Table_wrapper
 {
+	public:
+
+		struct Info : Registry<Info>::Element
+		{
+			String<5> name;
+			addr_t    addr;
+			size_t    size;
+
+			Info(Registry<Info> &registry,
+			     char const *name, addr_t addr, size_t size)
+			:
+				Registry<Info>::Element(registry, *this),
+				name(name), addr(addr), size(size) { }
+		};
+
 	private:
 
 		addr_t             _base;    /* table base address */
@@ -634,7 +654,8 @@ class Table_wrapper
 			Dmar_entry::list()->insert(new (&alloc) Dmar_entry(head->clone(alloc)));
 		}
 
-		Table_wrapper(Acpi::Memory &memory, addr_t base)
+		Table_wrapper(Acpi::Memory &memory, addr_t base,
+		              Registry<Info> &registry, Allocator &heap)
 		: _base(base), _table(0)
 		{
 			/* make table header accessible */
@@ -645,6 +666,8 @@ class Table_wrapper
 
 			memset(_name, 0, 5);
 			memcpy(_name, _table->signature, 4);
+
+			new (heap) Info(registry, name(), _base, _table->size);
 
 			if (verbose)
 				Genode::log("table mapped '", Genode::Cstring(_name), "' at ", _table, " "
@@ -1318,7 +1341,7 @@ class Acpi_table
 	private:
 
 		Genode::Env       &_env;
-		Genode::Allocator &_alloc;
+		Genode::Allocator &_heap;
 		Acpi::Memory       _memory;
 
 		struct Reset_info
@@ -1328,6 +1351,10 @@ class Acpi_table
 		};
 
 		Genode::Constructible<Reset_info> _reset_info { };
+		unsigned short                    _sci_int    { };
+		bool                              _sci_int_valid { };
+
+		Registry<Table_wrapper::Info> _table_registry { };
 
 		/* BIOS range to scan for RSDP */
 		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
@@ -1380,13 +1407,13 @@ class Acpi_table
 		}
 
 		template <typename T>
-		void _parse_tables(Genode::Allocator &alloc, T * entries, uint32_t const count)
+		void _parse_tables(T * entries, uint32_t const count)
 		{
 			/* search for SSDT and DSDT tables */
 			for (uint32_t i = 0; i < count; i++) {
 				uint32_t dsdt = 0;
 				try {
-					Table_wrapper table(_memory, entries[i]);
+					Table_wrapper table(_memory, entries[i], _table_registry, _heap);
 
 					if (!table.valid()) {
 						Genode::error("ignoring table '", table.name(),
@@ -1398,7 +1425,7 @@ class Acpi_table
 						log("Found IVRS");
 
 						Ivrs ivrs(reinterpret_cast<Genode::addr_t>(table->signature));
-						ivrs.parse(alloc);
+						ivrs.parse(_heap);
 					}
 
 					if (table.is_facp()) {
@@ -1414,6 +1441,10 @@ class Acpi_table
 							_reset_info.construct(Reset_info { .io_port = reset_io_port,
 							                                   .value   = reset_value });
 						}
+						if (fadt.sci_int_valid()) {
+							_sci_int = fadt.read<Fadt::Sci_int>();
+							_sci_int_valid = true;
+						}
 					}
 
 					if (table.is_searched()) {
@@ -1421,23 +1452,23 @@ class Acpi_table
 						if (verbose)
 							Genode::log("Found ", table.name());
 
-						Element::parse(alloc, table.table());
+						Element::parse(_heap, table.table());
 					}
 
 					if (table.is_madt()) {
 						Genode::log("Found MADT");
 
-						table.parse_madt(alloc);
+						table.parse_madt(_heap);
 					}
 					if (table.is_mcfg()) {
 						Genode::log("Found MCFG");
 
-						table.parse_mcfg(alloc);
+						table.parse_mcfg(_heap);
 					}
 					if (table.is_dmar()) {
 						Genode::log("Found DMAR");
 
-						table.parse_dmar(alloc);
+						table.parse_dmar(_heap);
 					}
 				} catch (Acpi::Memory::Unsupported_range &) { }
 
@@ -1445,7 +1476,7 @@ class Acpi_table
 					continue;
 
 				try {
-					Table_wrapper table(_memory, dsdt);
+					Table_wrapper table(_memory, dsdt, _table_registry, _heap);
 
 					if (!table.valid()) {
 						Genode::error("ignoring table '", table.name(),
@@ -1456,7 +1487,7 @@ class Acpi_table
 						if (verbose)
 							Genode::log("Found dsdt ", table.name());
 
-						Element::parse(alloc, table.table());
+						Element::parse(_heap, table.table());
 					}
 				} catch (Acpi::Memory::Unsupported_range &) { }
 			}
@@ -1465,8 +1496,8 @@ class Acpi_table
 
 	public:
 
-		Acpi_table(Genode::Env &env, Genode::Allocator &alloc)
-		: _env(env), _alloc(alloc), _memory(_env, _alloc)
+		Acpi_table(Genode::Env &env, Genode::Allocator &heap)
+		: _env(env), _heap(heap), _memory(_env, _heap)
 		{
 			addr_t rsdt = 0, xsdt = 0;
 			uint8_t acpi_revision = 0;
@@ -1514,39 +1545,58 @@ class Acpi_table
 
 			if (acpi_revision != 0 && xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
 				/* running 64bit and xsdt is valid */
-				Table_wrapper table(_memory, xsdt);
+				Table_wrapper table(_memory, xsdt, _table_registry, _heap);
 				if (!table.valid()) throw -1;
 
 				uint64_t * entries = reinterpret_cast<uint64_t *>(table.table() + 1);
-				_parse_tables(alloc, entries, table.entry_count(entries));
+				_parse_tables(entries, table.entry_count(entries));
 
 				Genode::log("XSDT ", *table.table());
 			} else {
 				/* running (32bit) or (64bit and xsdt isn't valid) */
-				Table_wrapper table(_memory, rsdt);
+				Table_wrapper table(_memory, rsdt, _table_registry, _heap);
 				if (!table.valid()) throw -1;
 
 				uint32_t * entries = reinterpret_cast<uint32_t *>(table.table() + 1);
-				_parse_tables(alloc, entries, table.entry_count(entries));
+				_parse_tables(entries, table.entry_count(entries));
 
 				Genode::log("RSDT ", *table.table());
 			}
 
 			/* free up memory of elements not of any use */
-			Element::clean_list(alloc);
+			Element::clean_list(_heap);
 
 			/* free up io memory */
 			_memory.free_io_memory();
 		}
 
-		void generate_reset_info(Xml_generator &xml) const
+		~Acpi_table()
 		{
+			_table_registry.for_each([&] (Table_wrapper::Info &info) {
+				destroy(_heap, &info);
+			});
+		}
+
+		void generate_info(Xml_generator &xml) const
+		{
+			if (_sci_int_valid)
+				xml.node("sci_int", [&] () { xml.attribute("irq", _sci_int); });
+
 			if (!_reset_info.constructed())
 				return;
 
 			xml.node("reset", [&] () {
 				xml.attribute("io_port", String<32>(Hex(_reset_info->io_port)));
 				xml.attribute("value",   _reset_info->value);
+			});
+
+			Registry<Table_wrapper::Info> const &reg = _table_registry;
+			reg.for_each([&] (Table_wrapper::Info const &info) {
+				xml.node("table", [&] {
+					xml.attribute("name", info.name);
+					xml.attribute("addr", String<20>(Hex(info.addr)));
+					xml.attribute("size", info.size);
+				});
 			});
 		}
 };
@@ -1570,7 +1620,7 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 
 	acpi.generate([&] (Genode::Xml_generator &xml) {
 
-		acpi_table.generate_reset_info(xml);
+		acpi_table.generate_info(xml);
 
 		if (root_bridge_bdf != INVALID_ROOT_BRIDGE) {
 			xml.node("root_bridge", [&] () {
