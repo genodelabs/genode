@@ -54,7 +54,7 @@ struct Main
 
 	void parse_irq_override_rules(Xml_node & xml);
 	void parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator);
-	void parse_acpi_device_info(Xml_generator & generator);
+	void parse_acpi_device_info(Xml_node const &xml, Xml_generator & generator);
 	void sys_rom_update();
 
 	template <typename FN>
@@ -262,13 +262,28 @@ void Main::parse_pci_bus(bus_t           bus,
 }
 
 
+static void parse_acpica_info(Xml_node const &xml, Xml_generator &gen)
+{
+	gen.node("device", [&] {
+		gen.attribute("name", "acpi");
+		gen.attribute("type", "acpi");
+
+		xml.with_optional_sub_node("sci_int", [&] (Xml_node xml) {
+			gen.node("irq", [&] {
+				gen.attribute("number", xml.attribute_value("irq", 0xff));
+			});
+		});
+	});
+}
+
+
 /*
  * By now, we do not have the necessary information about non-PCI devices
  * available from the ACPI tables, therefore we hard-code typical devices
  * we assume to be found in this function. In the future, this function
  * shall interpret ACPI tables information.
  */
-void Main::parse_acpi_device_info(Xml_generator & gen)
+void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 {
 	/*
 	 * PS/2 device
@@ -305,12 +320,10 @@ void Main::parse_acpi_device_info(Xml_generator & gen)
 	});
 
 	/*
-	 * ACPI device
+	 * ACPI device (if applicable)
 	 */
-	gen.node("device", [&]
-	{
-		gen.attribute("name", "acpi");
-	});
+	if (xml.has_sub_node("sci_int"))
+		parse_acpica_info(xml, gen);
 }
 
 
@@ -384,7 +397,7 @@ void Main::sys_rom_update()
 
 	pci_reporter.generate([&] (Xml_generator & generator)
 	{
-		parse_acpi_device_info(generator);
+		parse_acpi_device_info(xml, generator);
 		parse_pci_config_spaces(xml, generator);
 	});
 }
