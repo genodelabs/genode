@@ -1,3 +1,20 @@
+--- a/src/lib/mesa/src/gallium/drivers/lima/lima_fence.c
+--- b/src/lib/mesa/src/gallium/drivers/lima/lima_fence.c
+@@ -90,8 +93,14 @@ lima_fence_get_fd(struct pipe_screen *pscreen,
+ static void
+ lima_fence_destroy(struct pipe_fence_handle *fence)
+ {
++#if 0
++   /*
++    * On Genode the fd is not created by the libc
++    * (see ioctl_lima.cc).
++   */
+    if (fence->fd >= 0)
+       close(fence->fd);
++#endif
+    FREE(fence);
+ }
+ 
 --- a/src/lib/mesa/src/loader/loader.c
 --- b/src/lib/mesa/src/loader/loader.c
 @@ -473,6 +473,9 @@
