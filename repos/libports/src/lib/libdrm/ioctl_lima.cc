@@ -610,7 +610,6 @@ class Lima::Call
 
 			bool result = false;
 			auto free_ctx = [&] (Gpu_context &ctx) {
-				::close(ctx.fd);
 				Genode::destroy(_heap, &ctx);
 				result = true;
 			};
