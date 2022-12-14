@@ -769,7 +769,8 @@ class Lima::Call
 
 	public:
 
-		static constexpr int const SYNC_FD { 384 };
+		/* arbitrary start value out of the libc's FD alloc range */
+		static constexpr int const SYNC_FD { 10000 };
 
 		Call()
 		{
