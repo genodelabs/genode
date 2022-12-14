@@ -236,10 +236,11 @@ class Net::Link : public Link_list::Element
 		 ** Accessors **
 		 ***************/
 
-		Link_side     &client()         { return _client; }
-		Link_side     &server()         { return _server; }
-		Configuration &config()         { return _config(); }
-		L3_protocol    protocol() const { return _protocol; }
+		Link_side     &client()           { return _client; }
+		Link_side     &server()           { return _server; }
+		Configuration &config()           { return _config(); }
+		L3_protocol    protocol() const   { return _protocol; }
+		Interface     &client_interface() { return _client_interface; };
 };
 
 

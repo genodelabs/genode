@@ -82,6 +82,26 @@ void Domain::_prepare_reconstructing_ip_config()
 			Arp_waiter &waiter = *_foreign_arp_waiters.first()->object();
 			waiter.src().cancel_arp_waiting(waiter);
 		}
+		/*
+		 * Destroy all link states
+		 *
+		 * Strictly speaking, it is not necessary to destroy all link states,
+		 * only those that this domain applies NAT to. However, the Genode AVL
+		 * tree is not built for removing a selection of nodes and trying to do
+		 * it anyways is complicated. So, for now, we simply destroy all links.
+		 */
+		while (Link_side *link_side = _icmp_links.first()) {
+			Link &link { link_side->link() };
+			link.client_interface().destroy_link(link);
+		}
+		while (Link_side *link_side = _tcp_links.first()) {
+			Link &link { link_side->link() };
+			link.client_interface().destroy_link(link);
+		}
+		while (Link_side *link_side = _udp_links.first()) {
+			Link &link { link_side->link() };
+			link.client_interface().destroy_link(link);
+		}
 	}
 }
 
