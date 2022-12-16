@@ -35,74 +35,56 @@ class Kernel::Ipc_node
 		using Queue_item = Genode::Fifo_element<Ipc_node>;
 		using Queue      = Genode::Fifo<Queue_item>;
 
-		enum State
+		struct In
 		{
-			INACTIVE      = 1,
-			AWAIT_REPLY   = 2,
-			AWAIT_REQUEST = 3,
+			enum State { READY, WAIT, REPLY, REPLY_NO_SENDER, DESTRUCT };
+
+			State state { READY };
+			Queue queue { };
+
+			bool waiting() const
+			{
+				return state == WAIT;
+			}
+		};
+
+		struct Out
+		{
+			enum State { READY, SEND, SEND_HELPING, DESTRUCT };
+
+			State     state { READY   };
+			Ipc_node *node  { nullptr };
+
+			bool sending() const
+			{
+				return state == SEND_HELPING || state == SEND;
+			}
 		};
 
 		Thread     &_thread;
-		Queue_item  _request_queue_item { *this };
-		State       _state              { INACTIVE };
-		Ipc_node   *_caller             { nullptr };
-		Ipc_node   *_callee             { nullptr };
-		bool        _help               { false };
-		Queue       _request_queue      { };
+		Queue_item  _queue_item { *this };
+		Out         _out        { };
+		In          _in         { };
 
 		/**
-		 * Buffer next request from request queue in 'r' to handle it
+		 * Receive a message from another IPC node
 		 */
-		void _receive_request(Ipc_node &caller);
+		void _receive_from(Ipc_node &node);
 
 		/**
-		 * Receive a given reply if one is expected
+		 * Cancel an ongoing send operation
 		 */
-		void _receive_reply(Ipc_node &callee);
+		void _cancel_send();
 
 		/**
-		 * Insert 'r' into request queue, buffer it if we were waiting for it
+		 * Return wether this IPC node is helping another one
 		 */
-		void _announce_request(Ipc_node &node);
+		bool _helping() const;
 
 		/**
-		 * Cancel all requests in request queue
-		 */
-		void _cancel_request_queue();
-
-		/**
-		 * Cancel request in outgoing buffer
-		 */
-		void _cancel_outbuf_request();
-
-		/**
-		 * Cancel request in incoming buffer
-		 */
-		void _cancel_inbuf_request();
-
-		/**
-		 * A request 'r' in inbuf or request queue was cancelled by sender
-		 */
-		void _announced_request_cancelled(Ipc_node &node);
-
-		/**
-		 * The request in the outbuf was cancelled by receiver
-		 */
-		void _outbuf_request_cancelled();
-
-		/**
-		 * Return wether we are the source of a helping relationship
-		 */
-		bool _helps_outbuf_dst();
-
-		/**
-		 * Make the class noncopyable because it has pointer members
+		 * Noncopyable
 		 */
 		Ipc_node(const Ipc_node&) = delete;
-
-		/**
-		 * Make the class noncopyable because it has pointer members
-		 */
 		const Ipc_node& operator=(const Ipc_node&) = delete;
 
 	public:
@@ -120,11 +102,11 @@ class Kernel::Ipc_node
 		/**
 		 * Send a request and wait for the according reply
 		 *
-		 * \param callee    targeted IPC node
-		 * \param help      wether the request implies a helping relationship
+		 * \param node  targeted IPC node
+		 * \param help  wether the request implies a helping relationship
 		 */
-		bool can_send_request();
-		void send_request(Ipc_node &callee,
+		bool can_send_request() const;
+		void send_request(Ipc_node &node,
 		                  bool      help);
 
 		/**
@@ -137,15 +119,10 @@ class Kernel::Ipc_node
 		 */
 		template <typename F> void for_each_helper(F f)
 		{
-			/* if we have a helper in the receive buffer, call 'f' for it */
-			if (_caller && _caller->_help)
-				f(_caller->_thread);
-
-			/* call 'f' for each helper in our request queue */
-			_request_queue.for_each([f] (Queue_item &item) {
+			_in.queue.for_each([f] (Queue_item &item) {
 				Ipc_node &node { item.object() };
 
-				if (node._help)
+				if (node._helping())
 					f(node._thread);
 			});
 		}
@@ -155,7 +132,7 @@ class Kernel::Ipc_node
 		 *
 		 * \return  wether a request could be received already
 		 */
-		bool can_await_request();
+		bool can_await_request() const;
 		void await_request();
 
 		/**
@@ -168,7 +145,7 @@ class Kernel::Ipc_node
 		 */
 		void cancel_waiting();
 
-		bool awaits_request() const { return _state == AWAIT_REQUEST; }
+		bool awaits_request() const { return _in.waiting(); }
 };
 
 #endif /* _CORE__KERNEL__IPC_NODE_H_ */
