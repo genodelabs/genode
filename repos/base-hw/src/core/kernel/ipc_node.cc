@@ -63,13 +63,13 @@ bool Ipc_node::_helping() const
 }
 
 
-bool Ipc_node::can_send_request() const
+bool Ipc_node::ready_to_send() const
 {
 	return _out.state == Out::READY && !_in.waiting();
 }
 
 
-void Ipc_node::send_request(Ipc_node &node, bool help)
+void Ipc_node::send(Ipc_node &node, bool help)
 {
 	node._in.queue.enqueue(_queue_item);
 
@@ -82,19 +82,19 @@ void Ipc_node::send_request(Ipc_node &node, bool help)
 }
 
 
-Thread &Ipc_node::helping_sink()
+Thread &Ipc_node::helping_destination()
 {
-	return _helping() ? _out.node->helping_sink() : _thread;
+	return _helping() ? _out.node->helping_destination() : _thread;
 }
 
 
-bool Ipc_node::can_await_request() const
+bool Ipc_node::ready_to_wait() const
 {
 	return _in.state == In::READY;
 }
 
 
-void Ipc_node::await_request()
+void Ipc_node::wait()
 {
 	_in.state = In::WAIT;
 	_in.queue.head([&] (Queue_item &item) {
@@ -103,7 +103,7 @@ void Ipc_node::await_request()
 }
 
 
-void Ipc_node::send_reply()
+void Ipc_node::reply()
 {
 	if (_in.state == In::REPLY)
 		_in.queue.dequeue([&] (Queue_item &item) {

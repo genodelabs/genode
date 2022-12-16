@@ -418,9 +418,9 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 ** Cpu_job **
 		 *************/
 
-		void exception(Cpu & cpu) override;
-		void proceed(Cpu & cpu)   override;
-		Cpu_job * helping_sink()  override;
+		void exception(Cpu & cpu)       override;
+		void proceed(Cpu & cpu)         override;
+		Cpu_job * helping_destination() override;
 
 
 		/*************

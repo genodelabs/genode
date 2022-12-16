@@ -295,8 +295,8 @@ void Thread::_become_inactive(State const s)
 void Thread::_die() { _become_inactive(DEAD); }
 
 
-Cpu_job * Thread::helping_sink() {
-	return &_ipc_node.helping_sink(); }
+Cpu_job * Thread::helping_destination() {
+	return &_ipc_node.helping_destination(); }
 
 
 size_t Thread::_core_to_kernel_quota(size_t const quota) const
@@ -478,16 +478,16 @@ void Thread::_call_delete_pd()
 
 void Thread::_call_await_request_msg()
 {
-	if (_ipc_node.can_await_request()) {
+	if (_ipc_node.ready_to_wait()) {
 		_ipc_alloc_recv_caps((unsigned)user_arg_1());
-		_ipc_node.await_request();
-		if (_ipc_node.awaits_request()) {
+		_ipc_node.wait();
+		if (_ipc_node.waiting()) {
 			_become_inactive(AWAITS_IPC);
 		} else {
 			user_arg_0(0);
 		}
 	} else {
-		Genode::raw("IPC await request: bad state");
+		Genode::raw("IPC await request: bad state, will block");
 		_become_inactive(DEAD);
 	}
 }
@@ -539,12 +539,12 @@ void Thread::_call_send_request_msg()
 	bool const help = Cpu_job::_helping_possible(*dst);
 	oir = oir->find(dst->pd());
 
-	if (!_ipc_node.can_send_request()) {
+	if (!_ipc_node.ready_to_send()) {
 		Genode::raw("IPC send request: bad state");
 	} else {
 		_ipc_alloc_recv_caps((unsigned)user_arg_2());
 		_ipc_capid    = oir ? oir->capid() : cap_id_invalid();
-		_ipc_node.send_request(dst->_ipc_node, help);
+		_ipc_node.send(dst->_ipc_node, help);
 	}
 
 	_state = AWAITS_IPC;
@@ -554,7 +554,7 @@ void Thread::_call_send_request_msg()
 
 void Thread::_call_send_reply_msg()
 {
-	_ipc_node.send_reply();
+	_ipc_node.reply();
 	bool const await_request_msg = user_arg_2();
 	if (await_request_msg) { _call_await_request_msg(); }
 	else { user_arg_0(0); }

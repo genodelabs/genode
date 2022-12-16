@@ -89,30 +89,28 @@ class Kernel::Ipc_node
 
 	public:
 
-		/**
-		 * Destructor
-		 */
+		Ipc_node(Thread &thread);
+
 		~Ipc_node();
 
 		/**
-		 * Constructor
+		 * Return whether this IPC node is ready to send a message
 		 */
-		Ipc_node(Thread &thread);
+		bool ready_to_send() const;
 
 		/**
-		 * Send a request and wait for the according reply
+		 * Send a message and wait for the according reply
 		 *
 		 * \param node  targeted IPC node
 		 * \param help  wether the request implies a helping relationship
 		 */
-		bool can_send_request() const;
-		void send_request(Ipc_node &node,
-		                  bool      help);
+		void send(Ipc_node &node, bool help);
 
 		/**
-		 * Return root destination of the helping-relation tree we are in
+		 * Return final destination of the helping-chain
+		 * this IPC node is part of, or its own thread otherwise
 		 */
-		Thread &helping_sink();
+		Thread &helping_destination();
 
 		/**
 		 * Call function 'f' of type 'void (Ipc_node *)' for each helper
@@ -128,24 +126,31 @@ class Kernel::Ipc_node
 		}
 
 		/**
-		 * Wait until a request has arrived and load it for handling
+		 * Return whether this IPC node is ready to wait for messages
+		 */
+		bool ready_to_wait() const;
+
+		/**
+		 * Wait until a message has arrived, or handle it if one is available
 		 *
-		 * \return  wether a request could be received already
+		 * \return  wether a message could be received already
 		 */
-		bool can_await_request() const;
-		void await_request();
+		void wait();
 
 		/**
-		 * Reply to last request if there's any
+		 * Reply to last message if there's any
 		 */
-		void send_reply();
+		void reply();
 
 		/**
-		 * If IPC node waits, cancel '_outbuf' to stop waiting
+		 * If IPC node waits, cancel it
 		 */
 		void cancel_waiting();
 
-		bool awaits_request() const { return _in.waiting(); }
+		/**
+		 * Return whether this IPC node is waiting for messages
+		 */
+		bool waiting() const { return _in.waiting(); }
 };
 
 #endif /* _CORE__KERNEL__IPC_NODE_H_ */

@@ -88,7 +88,7 @@ class Kernel::Cpu_job : private Cpu_share
 		/**
 		 * Return which job currently uses our CPU-share
 		 */
-		virtual Cpu_job * helping_sink() = 0;
+		virtual Cpu_job * helping_destination() = 0;
 
 		/**
 		 * Construct a job with scheduling priority 'p' and time quota 'q'
