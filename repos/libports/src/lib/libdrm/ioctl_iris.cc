@@ -188,40 +188,6 @@ struct Gpu::Buffer
 
 	Constructible<Attached_dataspace> buffer_attached { };
 
-	Genode::Dataspace_capability map_cap    { };
-	Offset                       map_offset { 0 };
-
-	struct Tiling
-	{
-		bool     _valid;
-		uint32_t mode;
-		uint32_t stride;
-		uint32_t swizzle;
-
-		Tiling(uint32_t mode, uint32_t stride, uint32_t swizzle)
-		:
-			_valid  { true },
-			mode    { mode },
-			stride  { stride },
-			swizzle { swizzle }
-		{ }
-
-		Tiling()
-		:
-			_valid { false }, mode { 0 }, stride { 0 }, swizzle { 0 }
-		{ }
-
-		bool valid() const { return _valid; }
-	};
-
-	Tiling tiling { };
-
-	Gpu_virtual_address  gpu_vaddr { };
-	Gpu::Sequence_number seqno { };
-
-	bool                         gpu_vaddr_valid { false };
-	bool                         busy            { false };
-
 	Buffer(Gpu::Connection &gpu,
 	       Genode::size_t   size,
 	       Genode::Id_space<Buffer> &space)
@@ -583,57 +549,6 @@ class Drm_call
 
 		Genode::Id_space<Sync_obj> _sync_objects { };
 
-		Offset _map_buffer(Buffer &b)
-		{
-			Offset offset = 0;
-
-			if (b.map_cap.valid()) {
-				offset = b.map_offset;
-				return offset;
-			}
-
-			_gpu_op([&] () {
-				b.map_cap = _gpu_session.map_buffer(b.id(), true, Gpu::Mapping_attributes::rw());
-			});
-
-			// XXX attach might faile
-			b.map_offset = static_cast<Offset>(_env.rm().attach(b.map_cap));
-			offset       = b.map_offset;
-
-			_available_gtt_size -= b.size;
-
-			return offset;
-		}
-
-		Offset _map_buffer(Gpu::Buffer_id const id)
-		{
-			Offset offset = 0;
-			try {
-				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
-					offset = _map_buffer(b);
-				});
-			} catch (Genode::Id_space<Buffer>::Unknown_id) {
-				Genode::error(__func__, ": invalid handle ", id.value);
-				Genode::sleep_forever();
-			}
-			return offset;
-		}
-
-		void _unmap_buffer(Buffer &buffer)
-		{
-			if (!buffer.map_cap.valid())
-				return;
-
-			_env.rm().detach(buffer.map_offset);
-			buffer.map_offset = 0;
-
-			_gpu_session.unmap_buffer(buffer.id());
-
-			buffer.map_cap = Genode::Dataspace_capability();
-
-			_available_gtt_size += buffer.size;
-		}
-
 		template <typename FUNC>
 		void _alloc_buffer(uint64_t const size, FUNC const &fn)
 		{
@@ -652,9 +567,6 @@ class Drm_call
 		{
 			try {
 				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
-
-					/* callee checks for mappings */
-					_unmap_buffer(b);
 
 					_context_space.for_each<Drm::Context>([&] (Drm::Context &context) {
 						context.free_buffer(b.id()); });
@@ -903,33 +815,15 @@ class Drm_call
 
 		int _device_gem_set_tiling(void *arg)
 		{
-			auto      const p  = reinterpret_cast<drm_i915_gem_set_tiling*>(arg);
-			Gpu::Buffer_id const id { .value = p->handle };
-			uint32_t  const mode    = p->tiling_mode;
-			uint32_t  const stride  = p->stride;
-			uint32_t  const swizzle = p->swizzle_mode;
+			auto const p = reinterpret_cast<drm_i915_gem_set_tiling*>(arg);
+			uint32_t const mode = p->tiling_mode;
 
-			if (verbose_ioctl) {
-				Genode::error(__func__, ": ",
-				              "handle: ", id.value, " "
-				              "mode: ", mode, " "
-				              "stride: ", stride , " "
-				              "swizzle: ", swizzle);
+			if (mode != I915_TILING_NONE) {
+				Genode::error(__func__, " mode != I915_TILING_NONE (", mode, ") unsupported");
+				return 0;
 			}
 
-			bool ok = false;
-			try {
-				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
-
-					b.tiling = Gpu::Buffer::Tiling(mode, stride, swizzle);
-					ok = true;
-
-				});
-			} catch (Genode::Id_space<Buffer>::Unknown_id) {
-				Genode::error(__func__, ": invalid handle: ", id.value);
-			}
-
-			return ok ? 0 : -1;
+			return 0;
 		}
 
 		int _device_gem_sw_finish(void *)
@@ -1007,7 +901,7 @@ class Drm_call
 
 			try {
 				_buffer_space.apply<Buffer>(id, [&](Buffer const &b) {
-					p->busy = b.busy;
+					p->busy = false;
 				});
 				return 0;
 			} catch (Genode::Id_space<Buffer>::Unknown_id) {
@@ -1339,9 +1233,6 @@ class Drm_call
 					Genode::sleep_forever();
 					return;
 				}
-
-				if (b.map_cap.valid())
-					_unmap_buffer(b);
 
 				b.buffer_attached.destruct();
 				found = true;
