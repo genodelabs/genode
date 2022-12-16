@@ -488,7 +488,7 @@ void Thread::_call_await_request_msg()
 		}
 	} else {
 		Genode::raw("IPC await request: bad state");
-		user_arg_0(0);
+		_become_inactive(DEAD);
 	}
 }
 
@@ -533,7 +533,7 @@ void Thread::_call_send_request_msg()
 	if (!dst) {
 		Genode::raw(*this, ": cannot send to unknown recipient ",
 		                 (unsigned)user_arg_1());
-		_become_inactive(AWAITS_IPC);
+		_become_inactive(DEAD);
 		return;
 	}
 	bool const help = Cpu_job::_helping_possible(*dst);
