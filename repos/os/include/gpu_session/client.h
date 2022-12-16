@@ -40,47 +40,42 @@ class Gpu::Session_client : public Genode::Rpc_client<Session>
 		Genode::Dataspace_capability info_dataspace() const override {
 			return call<Rpc_info_dataspace>(); }
 
-		Gpu::Sequence_number exec_buffer(Buffer_id id,
-		                                 Genode::size_t size) override {
-			return call<Rpc_exec_buffer>(id, size); }
-
 		bool complete(Sequence_number seqno) override {
 			return call<Rpc_complete>(seqno); }
 
 		void completion_sigh(Genode::Signal_context_capability sigh) override {
 			call<Rpc_completion_sigh>(sigh); }
 
-		Genode::Dataspace_capability alloc_buffer(Buffer_id id, Genode::size_t size) override {
-			return call<Rpc_alloc_buffer>(id, size); }
+		Gpu::Sequence_number execute(Vram_id id, Genode::off_t offset) override {
+			return call<Rpc_execute>(id, offset); }
 
-		void free_buffer(Gpu::Buffer_id id) override {
-			call<Rpc_free_buffer>(id); }
+		Genode::Dataspace_capability alloc_vram(Vram_id id, Genode::size_t size) override {
+			return call<Rpc_alloc_vram>(id, size); }
 
-		Gpu::Buffer_capability export_buffer(Buffer_id id) override {
-			return call<Rpc_export_buffer>(id); }
+		void free_vram(Vram_id id) override {
+			call<Rpc_free_vram>(id); }
 
-		void import_buffer(Buffer_capability cap, Buffer_id id) override {
-			call<Rpc_import_buffer>(cap, id); }
+		Vram_capability export_vram(Vram_id id) override {
+			return call<Rpc_export_vram>(id); }
 
-		Genode::Dataspace_capability map_buffer(Buffer_id id,
-		                                        bool aperture,
-		                                        Mapping_attributes attrs) override {
-			return call<Rpc_map_buffer>(id, aperture, attrs); }
+		void import_vram(Vram_capability cap, Vram_id id) override {
+			call<Rpc_import_vram>(cap, id); }
 
-		void unmap_buffer(Buffer_id id) override {
-			call<Rpc_unmap_buffer>(id); }
+		Genode::Dataspace_capability map_cpu(Vram_id id, Mapping_attributes attrs) override {
+			return call<Rpc_map_cpu>(id, attrs); }
 
-		bool map_buffer_ppgtt(Buffer_id id, Gpu::addr_t va) override {
-			return call<Rpc_map_buffer_ppgtt>(id, va); }
+		void unmap_cpu(Vram_id id) override {
+			call<Rpc_unmap_cpu>(id); }
 
-		void unmap_buffer_ppgtt(Buffer_id id, Gpu::addr_t va) override {
-			call<Rpc_unmap_buffer_ppgtt>(id, va); }
+		bool map_gpu(Vram_id id, Genode::size_t size,
+		             Genode::off_t offset, Virtual_address va)  override {
+			return call<Rpc_map_gpu>(id, size, offset, va); }
 
-		Gpu::addr_t query_buffer_ppgtt(Gpu::Buffer_id id) override {
-			return call<Rpc_query_buffer_ppgtt>(id); }
+		void unmap_gpu(Vram_id id, Genode::off_t offset, Virtual_address va) override {
+			call<Rpc_unmap_gpu>(id, offset, va); }
 
-		bool set_tiling(Buffer_id id, unsigned mode) override {
-			return call<Rpc_set_tiling>(id, mode); }
+		bool set_tiling_gpu(Vram_id id, Genode::off_t offset, unsigned mode) override {
+			return call<Rpc_set_tiling_gpu>(id, offset, mode); }
 };
 
 #endif /* _INCLUDE__GPU_SESSION__CLIENT_H_ */

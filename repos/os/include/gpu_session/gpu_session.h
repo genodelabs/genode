@@ -1,11 +1,12 @@
 /*
  * \brief  Gpu session interface.
  * \author Josef Soentgen
+ * \author Sebastian Sumpf
  * \date   2017-04-28
  */
 
 /*
- * Copyright (C) 2017-2021 Genode Labs GmbH
+ * Copyright (C) 2017-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -21,9 +22,10 @@ namespace Gpu {
 
 	using addr_t = Genode::uint64_t;
 
-	struct Buffer;
-	using Buffer_id = Genode::Id_space<Buffer>::Id;
-	using Buffer_capability = Genode::Capability<Buffer>;
+	struct Vram;
+	using Vram_id_space   = Genode::Id_space<Vram>;
+	using Vram_id         = Vram_id_space::Id;
+	using Vram_capability = Genode::Capability<Vram>;
 
 	/*
 	 * Attributes for mapping a buffer
@@ -51,6 +53,7 @@ namespace Gpu {
 
 	struct Sequence_number;
 	struct Session;
+	struct Virtual_address;
 }
 
 /*
@@ -62,16 +65,23 @@ struct Gpu::Sequence_number
 };
 
 
+struct Gpu::Virtual_address
+{
+	Genode::uint64_t va;
+};
+
+
+
 /*
  * Gpu session interface
  */
 struct Gpu::Session : public Genode::Session
 {
-	struct Out_of_ram     : Genode::Exception { };
-	struct Out_of_caps    : Genode::Exception { };
-	struct Invalid_state  : Genode::Exception { };
-	struct Conflicting_id : Genode::Exception { };
-	struct Mapping_buffer_failed  : Genode::Exception { };
+	struct Out_of_ram           : Genode::Exception { };
+	struct Out_of_caps          : Genode::Exception { };
+	struct Invalid_state        : Genode::Exception { };
+	struct Conflicting_id       : Genode::Exception { };
+	struct Mapping_vram_failed  : Genode::Exception { };
 
 	enum { REQUIRED_QUOTA = 1024 * 1024, CAP_QUOTA = 32, };
 
@@ -89,23 +99,23 @@ struct Gpu::Session : public Genode::Session
 	virtual Genode::Dataspace_capability info_dataspace() const = 0;
 
 	/**
-	 * Execute commands from given buffer
+	 * Execute commands in vram
 	 *
-	 * \param id    buffer id
-	 * \param size  size of the batch buffer in bytes
+	 * \param id      vram id
+	 * \param offset  offset in vram to start execution
 	 *
-	 * \return execution buffer sequence number for complete checks
+	 * \return execution sequence number for complete checks
 	 *
-	 * \throw Invalid_state is thrown if the provided buffer is not valid, e.g not mapped
+	 * \throw Invalid_state is thrown if the provided vram is not valid, e.g not mapped
 	 */
-	virtual Gpu::Sequence_number exec_buffer(Buffer_id id, Genode::size_t size) = 0;
+	virtual Gpu::Sequence_number execute(Vram_id id, Genode::off_t offset) = 0;
 
 	/**
-	 * Check if execution buffer has been completed
+	 * Check if execution has been completed
 	 *
-	 * \param seqno  sequence number of the execution buffer
+	 * \param seqno  sequence number of the execution
 	 *
-	 * \return true if execution buffer has been finished, otherwise
+	 * \return true if execution has been finished, otherwise
 	 *         false is returned
 	 */
 	virtual bool complete(Sequence_number seqno) = 0;
@@ -119,141 +129,137 @@ struct Gpu::Session : public Genode::Session
 	virtual void completion_sigh(Genode::Signal_context_capability sigh) = 0;
 
 	/**
-	 * Allocate buffer dataspace
+	 * Allocate video ram
 	 *
-	 * \param id    buffer id to be associated with the buffer
-	 * \param size  size of buffer in bytes
+	 * \param id    id to be associated with the vram
+	 * \param size  size of memory in bytes
 	 *
 	 * \throw Out_of_ram
 	 * \throw Out_of_caps
 	 * \throw Conflicting_id
 	 */
-	virtual Genode::Dataspace_capability alloc_buffer(Buffer_id id, Genode::size_t size) = 0;
+	virtual Genode::Dataspace_capability alloc_vram(Vram_id id, Genode::size_t size) = 0;
 
 	/**
-	 * Free buffer dataspace
+	 * Free vram
 	 *
-	 * \param ds  dataspace capability for buffer
+	 * \param id  id of vram
 	 */
-	virtual void free_buffer(Buffer_id id) = 0;
+	virtual void free_vram(Vram_id id) = 0;
 
 	/**
-	 * Export buffer dataspace from GPU session
+	 * Export vram dataspace from GPU session
 	 *
-	 * \param id  buffer id of associated buffer
+	 * \param id  id of associated vram
+	 *
+	 * \return cability of exported vram
 	 */
-	virtual Buffer_capability export_buffer(Buffer_id id) = 0;
+	virtual Vram_capability export_vram(Vram_id id) = 0;
 
 	/**
-	 * Import buffer dataspace to GPU session
+	 * Import vram to GPU session
 	 *
-	 * \param cap  capability of buffer as retrieved bu 'export_buffer'
-	 * \param id   buffer id to be associated to this buffer in the session
+	 * \param cap  capability of vram as retrieved by 'exportvram'
+	 * \param id   vram id to be associated to this vram in the session
 	 *
 	 * \throw Conflicting_id
 	 * \throw Out_of_caps
 	 * \throw Out_of_ram
 	 * \throw Invalid_state  (cap is no longer valid)
 	 */
-	virtual void import_buffer(Buffer_capability cap, Buffer_id id) = 0;
+	virtual void import_vram(Vram_capability cap, Vram_id id) = 0;
 
 	/**
-	 * Map buffer
+	 * Map vram at CPU
 	 *
-	 * \param id        buffer id
-	 * \param aperture  if true create CPU accessible mapping through
-	 *                  GGTT window, otherwise create PPGTT mapping
+	 * \param id        id of vram
 	 * \param attrs     specify how the buffer is mapped
 	 *
-	 * \throw Mapping_buffer_failed
+	 * \throw Mapping_vram_failed
 	 * \throw Out_of_caps
 	 * \throw Out_of_ram
 	 */
-	virtual Genode::Dataspace_capability map_buffer(Buffer_id id,
-	                                                bool aperture,
-	                                                Mapping_attributes attrs) = 0;
+	virtual Genode::Dataspace_capability map_cpu(Vram_id id, Mapping_attributes attrs) = 0;
 
 	/**
-	 * Unmap buffer
+	 * Unmap vram
 	 *
-	 * \param id  buffer id
+	 * \param id  id of vram
 	 */
-	virtual void unmap_buffer(Buffer_id id) = 0;
+	virtual void unmap_cpu(Vram_id id) = 0;
 
 	/**
-	 * Map buffer in PPGTT
+	 * Map vram at GPU
 	 *
-	 * \param id  buffer id
-	 * \param va  virtual address
+	 * \param id    vram id
+	 * \param size  size of vram to be mapped
+	 * \pram offset offset in vram
+	 * \param va    GPU virtual address
 	 *
-	 * \throw Mapping_buffer_failed
+	 * \return true on success, false otherwise
+
+	 * \throw Mapping_vram_failed
 	 * \throw Out_of_caps
 	 * \throw Out_of_ram
 	 */
-	virtual bool map_buffer_ppgtt(Buffer_id id, Gpu::addr_t va) = 0;
+	virtual bool map_gpu(Vram_id id, Genode::size_t size,
+	                     Genode::off_t offset,
+	                     Virtual_address va) = 0;
 
 	/**
-	 * Unmap buffer
+	 * Unmap vram on GPU
 	 *
-	 * \param id  buffer id
+	 * \param id     vram id
+	 * \param offset offset in vram
+	 * \param va     GPU virtual address
 	 */
-	virtual void unmap_buffer_ppgtt(Buffer_id id, Gpu::addr_t va) = 0;
+	virtual void unmap_gpu(Vram_id id, Genode::off_t offset,
+	                       Virtual_address va) = 0;
 
 	/**
-	 * Get virtual address of buffer in the PPGTT
+	 * Set tiling for vram on GPU
 	 *
-	 * \param id  buffer id to be associated with the buffer
+	 * \param id     vram id
+	 * \param offset offset in vram
+	 * \param mode   tiling mode
 	 */
-	virtual Gpu::addr_t query_buffer_ppgtt(Buffer_id) = 0;
-
-	/**
-	 * Set tiling for buffer
-	 *
-	 * \param id    buffer id
-	 * \param mode  tiling mode
-	 */
-	virtual bool set_tiling(Buffer_id id, unsigned mode) = 0;
+	virtual bool set_tiling_gpu(Vram_id id, Genode::off_t offset, unsigned mode) = 0;
 
 	/*******************
 	 ** RPC interface **
 	 *******************/
 
 	GENODE_RPC(Rpc_info_dataspace, Genode::Dataspace_capability, info_dataspace);
-	GENODE_RPC_THROW(Rpc_exec_buffer, Gpu::Sequence_number, exec_buffer,
-	                 GENODE_TYPE_LIST(Invalid_state),
-	                 Gpu::Buffer_id, Genode::size_t);
 	GENODE_RPC(Rpc_complete, bool, complete,
 	           Gpu::Sequence_number);
 	GENODE_RPC(Rpc_completion_sigh, void, completion_sigh,
 	           Genode::Signal_context_capability);
-	GENODE_RPC_THROW(Rpc_alloc_buffer, Genode::Dataspace_capability, alloc_buffer,
+	GENODE_RPC_THROW(Rpc_execute, Gpu::Sequence_number, execute,
+	                 GENODE_TYPE_LIST(Invalid_state),
+	                 Gpu::Vram_id, Genode::off_t);
+	GENODE_RPC_THROW(Rpc_alloc_vram, Genode::Dataspace_capability, alloc_vram,
 	                 GENODE_TYPE_LIST(Out_of_caps, Out_of_ram),
-	                 Gpu::Buffer_id, Genode::size_t);
-	GENODE_RPC(Rpc_free_buffer, void, free_buffer, Gpu::Buffer_id);
-	GENODE_RPC(Rpc_export_buffer, Gpu::Buffer_capability, export_buffer, Gpu::Buffer_id);
-	GENODE_RPC_THROW(Rpc_import_buffer, void, import_buffer,
+	                 Gpu::Vram_id, Genode::size_t);
+	GENODE_RPC(Rpc_free_vram, void, free_vram, Gpu::Vram_id);
+	GENODE_RPC(Rpc_export_vram, Gpu::Vram_capability, export_vram, Gpu::Vram_id);
+	GENODE_RPC_THROW(Rpc_import_vram, void, import_vram,
 	                 GENODE_TYPE_LIST(Out_of_caps, Out_of_ram, Conflicting_id, Invalid_state),
-	                 Gpu::Buffer_capability, Gpu::Buffer_id);
-	GENODE_RPC_THROW(Rpc_map_buffer, Genode::Dataspace_capability, map_buffer,
-	                 GENODE_TYPE_LIST(Mapping_buffer_failed, Out_of_caps, Out_of_ram),
-	                 Gpu::Buffer_id, bool, Gpu::Mapping_attributes);
-	GENODE_RPC(Rpc_unmap_buffer, void, unmap_buffer,
-	           Gpu::Buffer_id);
-	GENODE_RPC_THROW(Rpc_map_buffer_ppgtt, bool, map_buffer_ppgtt,
-	                 GENODE_TYPE_LIST(Mapping_buffer_failed, Out_of_caps, Out_of_ram),
-	                 Gpu::Buffer_id, Gpu::addr_t);
-	GENODE_RPC(Rpc_unmap_buffer_ppgtt, void, unmap_buffer_ppgtt,
-	           Gpu::Buffer_id, Gpu::addr_t);
-	GENODE_RPC(Rpc_query_buffer_ppgtt, Gpu::addr_t, query_buffer_ppgtt, Gpu::Buffer_id);
-	GENODE_RPC(Rpc_set_tiling, bool, set_tiling,
-	           Gpu::Buffer_id, unsigned);
+	                 Gpu::Vram_capability, Gpu::Vram_id);
+	GENODE_RPC_THROW(Rpc_map_cpu, Genode::Dataspace_capability, map_cpu,
+	                 GENODE_TYPE_LIST(Mapping_vram_failed, Out_of_caps, Out_of_ram),
+	                 Gpu::Vram_id, Gpu::Mapping_attributes);
+	GENODE_RPC(Rpc_unmap_cpu, void, unmap_cpu,
+	           Gpu::Vram_id);
+	GENODE_RPC_THROW(Rpc_map_gpu, bool, map_gpu,
+	                 GENODE_TYPE_LIST(Mapping_vram_failed, Out_of_caps, Out_of_ram),
+	                 Gpu::Vram_id, Genode::size_t, Genode::off_t, Gpu::Virtual_address);
+	GENODE_RPC(Rpc_unmap_gpu, void, unmap_gpu,
+	           Gpu::Vram_id, Genode::off_t, Gpu::Virtual_address);
+	GENODE_RPC(Rpc_set_tiling_gpu, bool, set_tiling_gpu, Gpu::Vram_id, Genode::off_t, unsigned);
 
-	GENODE_RPC_INTERFACE(Rpc_info_dataspace, Rpc_exec_buffer,
-	                     Rpc_complete, Rpc_completion_sigh, Rpc_alloc_buffer,
-	                     Rpc_free_buffer, Rpc_export_buffer, Rpc_import_buffer,
-	                     Rpc_map_buffer, Rpc_unmap_buffer,
-	                     Rpc_map_buffer_ppgtt, Rpc_unmap_buffer_ppgtt, Rpc_query_buffer_ppgtt,
-	                     Rpc_set_tiling);
+	GENODE_RPC_INTERFACE(Rpc_info_dataspace, Rpc_complete, Rpc_completion_sigh, Rpc_execute,
+	                     Rpc_alloc_vram, Rpc_free_vram, Rpc_export_vram, Rpc_import_vram,
+	                     Rpc_map_cpu, Rpc_unmap_cpu, Rpc_map_gpu, Rpc_unmap_gpu, Rpc_set_tiling_gpu);
 };
 
 #endif /* _INCLUDE__GPU_SESSION__GPU_SESSION_H_ */
