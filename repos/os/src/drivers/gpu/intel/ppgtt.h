@@ -215,6 +215,13 @@ namespace Genode
 
 class Genode::Level_4_translation_table
 {
+	public:
+
+		class Misaligned {};
+		class Invalid_address {};
+		class Invalid_range {};
+		class Double_insertion {};
+
 	private:
 
 		static constexpr size_t PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
@@ -222,11 +229,6 @@ class Genode::Level_4_translation_table
 		static constexpr size_t MAX_ENTRIES    = 1UL << (SIZE_LOG2-PAGE_SIZE_LOG2);
 		static constexpr size_t PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2;
 		static constexpr size_t PAGE_MASK      = ~((1UL << PAGE_SIZE_LOG2) - 1);
-
-		class Misaligned {};
-		class Invalid_address {};
-		class Invalid_range {};
-		class Double_insertion {};
 
 		struct Descriptor : Common_descriptor
 		{

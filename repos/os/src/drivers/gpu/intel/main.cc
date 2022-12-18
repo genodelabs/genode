@@ -22,12 +22,12 @@
 #include <base/rpc_server.h>
 #include <base/session_object.h>
 #include <dataspace/client.h>
-#include <gpu_session/gpu_session.h>
 #include <gpu/info_intel.h>
 #include <platform_session/dma_buffer.h>
 #include <platform_session/device.h>
 #include <root/component.h>
 #include <timer_session/connection.h>
+#include <util/dictionary.h>
 #include <util/fifo.h>
 #include <util/mmio.h>
 #include <util/retry.h>
@@ -72,7 +72,7 @@ struct Igd::Device
 	struct Unsupported_device    : Genode::Exception { };
 	struct Out_of_caps           : Genode::Exception { };
 	struct Out_of_ram            : Genode::Exception { };
-	struct Could_not_map_buffer  : Genode::Exception { };
+	struct Could_not_map_vram    : Genode::Exception { };
 
 	enum { WATCHDOG_TIMEOUT = 1*1000*1000, };
 
@@ -112,7 +112,7 @@ struct Igd::Device
 						[&] ()
 						{
 							if (_env.pd().avail_caps().value < UPGRADE_CAPS) {
-								warning("alloc dma buffer: out if caps");
+								warning("alloc dma vram: out if caps");
 								throw Gpu::Session::Out_of_caps();
 							}
 
@@ -123,7 +123,7 @@ struct Igd::Device
 				[&] ()
 				{
 					if (_env.pd().avail_ram().value < size) {
-						warning("alloc dma buffer: out of ram");
+						warning("alloc dma vram: out of ram");
 						throw Gpu::Session::Out_of_ram();
 					}
 					_pci.upgrade_ram(size);
@@ -379,9 +379,9 @@ struct Igd::Device
 		void schedule(int port) { _scheduled = port; }
 		int scheduled() const { return _scheduled; }
 
-		/***************************
-		 ** Ring buffer interface **
-		 ***************************/
+		/*************************
+		 ** Ring vram interface **
+		 *************************/
 
 		void               ring_reset() { _ring.reset(); }
 		Ring_buffer::Index ring_tail() const { return _ring.tail(); }
@@ -652,7 +652,7 @@ struct Igd::Device
 				Gpu::Sequence_number { .value = _device.seqno() };
 		}
 
-		bool setup_ring_buffer(Gpu::addr_t const buffer_addr)
+		bool setup_ring_vram(Gpu::addr_t const vram_addr)
 		{
 			_current_seqno++;
 
@@ -664,7 +664,7 @@ struct Igd::Device
 			                                 Device_info::Stepping::A0,
 			                                 Device_info::Stepping::B0);
 
-			size_t const need = 4 /* batchbuffer cmd */ + 6 /* prolog */
+			size_t const need = 4 /* batchvram cmd */ + 6 /* prolog */
 			                  + ((_device.generation().value == 9) ? 6 : 0)
 			                  + ((_device.generation().value == 8) ? 20 : 22) /* epilog + w/a */
 			                  + (dc_flush_wa ? 12 : 0);
@@ -753,7 +753,7 @@ struct Igd::Device
 			/*
 			 * gen8_emit_bb_start_noarb, gen8 and render engine
 			 *
-			 * batch-buffer commands
+			 * batch-vram commands
 			 */
 			if (_device.generation().value == 8)
 			{
@@ -763,8 +763,8 @@ struct Igd::Device
 
 				cmd[0] = Mi_arb_on_off(false).value;
 				cmd[1] = mi.value;
-				cmd[2] = buffer_addr & 0xffffffff;
-				cmd[3] = (buffer_addr >> 32) & 0xffff;
+				cmd[2] = vram_addr & 0xffffffff;
+				cmd[3] = (vram_addr >> 32) & 0xffff;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
@@ -774,7 +774,7 @@ struct Igd::Device
 			/*
 			 * gen8_emit_bb_start, gen9
 			 *
-			 * batch-buffer commands
+			 * batch-vram commands
 			 */
 			if (_device.generation().value >= 9)
 			{
@@ -784,8 +784,8 @@ struct Igd::Device
 
 				cmd[0] = Mi_arb_on_off(true).value;
 				cmd[1] = mi.value;
-				cmd[2] = buffer_addr & 0xffffffff;
-				cmd[3] = (buffer_addr >> 32) & 0xffff;
+				cmd[2] = vram_addr & 0xffffffff;
+				cmd[3] = (vram_addr >> 32) & 0xffff;
 				cmd[4] = Mi_arb_on_off(false).value;
 				cmd[5] = Mi_noop().value;
 
@@ -1370,21 +1370,21 @@ struct Igd::Device
 		return result;
 	}
 
-	/*********************
-	 ** Buffer handling **
-	 *********************/
+	/*******************
+	 ** Vram handling **
+	 *******************/
 
 	/**
-	 * Allocate DMA buffer
+	 * Allocate DMA vram
 	 *
 	 * \param guard  resource allocator and guard
-	 * \param size   size of the DMA buffer
+	 * \param size   size of the DMA vram
 	 *
-	 * \return DMA buffer capability
+	 * \return DMA vram capability
 	 *
 	 * \throw Out_of_memory
 	 */
-	Genode::Ram_dataspace_capability alloc_buffer(Allocator &,
+	Genode::Ram_dataspace_capability alloc_vram(Allocator &,
 	                                              size_t const size)
 	{
 		return _pci_backend_alloc.alloc(size);
@@ -1392,7 +1392,7 @@ struct Igd::Device
 
 
 	/**
-	 * Get physical address for DMA buffer
+	 * Get physical address for DMA vram
 	 *
 	 * \param ds_cap  ram dataspace capability
 	 *
@@ -1404,12 +1404,12 @@ struct Igd::Device
 	}
 
 	/**
-	 * Free DMA buffer
+	 * Free DMA vram
 	 *
 	 * \param guard  resource allocator and guard
-	 * \param cap    DMA buffer capability
+	 * \param cap    DMA vram capability
 	 */
-	void free_buffer(Allocator &,
+	void free_vram(Allocator &,
 	                 Dataspace_capability const cap)
 	{
 		if (!cap.valid()) { return; }
@@ -1418,23 +1418,23 @@ struct Igd::Device
 	}
 
 	/**
-	 * Map DMA buffer in the GGTT
+	 * Map DMA vram in the GGTT
 	 *
 	 * \param guard     resource allocator and guard
-	 * \param cap       DMA buffer capability
+	 * \param cap       DMA vram capability
 	 * \param aperture  true if mapping should be accessible by CPU
 	 *
 	 * \return GGTT mapping
 	 *
-	 * \throw Could_not_map_buffer
+	 * \throw Could_not_map_vram
 	 */
-	Ggtt::Mapping const &map_buffer(Genode::Allocator &guard,
+	Ggtt::Mapping const &map_vram(Genode::Allocator &guard,
 	                                Genode::Ram_dataspace_capability cap,
 	                                bool aperture)
 	{
 		if (aperture == false) {
 			error("GGTT mapping outside aperture");
-			throw Could_not_map_buffer();
+			throw Could_not_map_vram();
 		}
 
 		size_t const size = Genode::Dataspace_client(cap).size();
@@ -1444,12 +1444,12 @@ struct Igd::Device
 	}
 
 	/**
-	 * Unmap DMA buffer from GGTT
+	 * Unmap DMA vram from GGTT
 	 *
 	 * \param guard    resource allocator and guard
 	 * \param mapping  GGTT mapping
 	 */
-	void unmap_buffer(Genode::Allocator &guard, Ggtt::Mapping mapping)
+	void unmap_vram(Genode::Allocator &guard, Ggtt::Mapping mapping)
 	{
 		unmap_dataspace_ggtt(guard, mapping.cap);
 	}
@@ -1561,7 +1561,7 @@ namespace Gpu {
 }
 
 
-struct Gpu::Buffer : Genode::Interface
+struct Gpu::Vram : Genode::Interface
 {
 	GENODE_RPC_INTERFACE();
 };
@@ -1637,9 +1637,9 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		Resource_guard _resource_guard { _cap_quota_guard(), _ram_quota_guard() };
 
 		/*
-		 * Buffer managed by session ep
+		 * Vram managed by session ep
 		 */
-		struct Buffer : Rpc_object<Gpu::Buffer>
+		struct Vram : Rpc_object<Gpu::Vram>
 		{
 			Ram_dataspace_capability ds_cap;
 			Session_capability       owner_cap;
@@ -1655,8 +1655,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			bool   caps_used { false };
 			size_t ram_used { 0 };
 
-			Buffer(Ram_dataspace_capability ds_cap, Genode::addr_t phys_addr,
-			       Session_capability  owner_cap)
+			Vram(Ram_dataspace_capability ds_cap, Genode::addr_t phys_addr,
+			     Session_capability  owner_cap)
 			:
 				ds_cap { ds_cap }, owner_cap { owner_cap },
 				phys_addr { phys_addr }
@@ -1672,75 +1672,95 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		};
 
 		/*
-		 * Buffer session/gpu-context local buffer
+		 * Vram session/gpu-context local vram
 		 */
-		struct Buffer_local
+		struct Vram_local
 		{
-			using Id_space = Genode::Id_space<Buffer_local>;
+			/* keep track of mappings of different offsets */
+			struct Mapping : Dictionary<Mapping, off_t>::Element
+			{
+				addr_t ppgtt_va { 0 };
+				size_t ppgtt_va_size { 0 };
 
-			Buffer_capability const buffer_cap;
-			size_t                  size;
-			Id_space::Element const elem;
+				Mapping(Dictionary<Mapping, off_t> &dict, off_t offset,
+				        addr_t ppgtt_va, size_t ppgtt_va_size)
+				:
+					Dictionary<Mapping, off_t>::Element(dict, offset),
+					ppgtt_va(ppgtt_va), ppgtt_va_size(ppgtt_va_size)
+				{  }
+			};
+
+			using Id_space = Genode::Id_space<Vram_local>;
+
+			Vram_capability      const vram_cap;
+			size_t                     size;
+			Id_space::Element    const elem;
+			Dictionary<Mapping, off_t> mappings { };
+
 			addr_t            ppgtt_va { 0 };
 			bool              ppgtt_va_valid { false };
 
-			Buffer_local(Buffer_capability buffer_cap, size_t size,
-			             Id_space &space, Buffer_id id)
-			: buffer_cap(buffer_cap), size(size),
+			Vram_local(Vram_capability vram_cap, size_t size,
+			             Id_space &space, Vram_id id)
+			: vram_cap(vram_cap), size(size),
 			  elem(*this, space, Id_space::Id { .value = id.value })
 			{ }
 		};
 
-		Id_space<Buffer_local> _buffer_space { };
+		Id_space<Vram_local> _vram_space { };
 
 		template <typename FN>
-		void _apply_buffer(Buffer_local &buffer_local, FN const &fn)
+		void _apply_vram(Vram_local &vram_local, FN const &fn)
 		{
-			Buffer *b = nullptr;
-			bool free = _env.ep().rpc_ep().apply(buffer_local.buffer_cap, [&] (Buffer *buffer) {
-				if (buffer) {
-					b = buffer;
-					return fn(*buffer);
+			Vram *v = nullptr;
+			bool free = _env.ep().rpc_ep().apply(vram_local.vram_cap, [&] (Vram *vram) {
+				if (vram) {
+					v = vram;
+					return fn(*vram);
 				}
 				return false;
 			});
 
-			if (b && free)
-				destroy(&_heap, b);
+			if (v && free)
+				destroy(&_heap, v);
 		}
 
-		bool _buffer_valid(Buffer_capability buffer_cap)
+		bool _vram_valid(Vram_capability vram_cap)
 		{
 			bool valid = false;
-			_env.ep().rpc_ep().apply(buffer_cap, [&] (Buffer *buffer) {
-				if (buffer) valid = true;
+			_env.ep().rpc_ep().apply(vram_cap, [&] (Vram *vram) {
+				if (vram) valid = true;
 			});
 
 			return valid;
 		}
 
 		template <typename FN>
-		void _apply_buffer_local(Gpu::Buffer_id id, FN const &fn)
+		void _apply_vram_local(Gpu::Vram_id id, FN const &fn)
 		{
-			Buffer_local::Id_space::Id local_id { .value = id.value };
+			Vram_local::Id_space::Id local_id { .value = id.value };
 			try {
-				_buffer_space.apply<Buffer_local>(local_id, [&] (Buffer_local &buffer) {
-					fn(buffer);
+				_vram_space.apply<Vram_local>(local_id, [&] (Vram_local &vram) {
+					fn(vram);
 				});
-			} catch (Buffer_local::Id_space::Unknown_id) {
+			} catch (Vram_local::Id_space::Unknown_id) {
 				error("Unknown id: ", id.value);
 			}
 		}
 
 		Genode::uint64_t seqno { 0 };
 
-		void _free_local_buffer(Buffer_local &buffer_local)
+		void _free_local_vram(Vram_local &vram_local)
 		{
-			if (buffer_local.ppgtt_va_valid) {
-				_vgpu.rcs_unmap_ppgtt(buffer_local.ppgtt_va, buffer_local.size);
-			}
+			vram_local.mappings.for_each([&] (Vram_local::Mapping const &mapping) {
+				_vgpu.rcs_unmap_ppgtt(mapping.ppgtt_va, mapping.ppgtt_va_size);
+			});
 
-			destroy(&_heap, &buffer_local);
+			while (vram_local.mappings.with_any_element([&] (Vram_local::Mapping &mapping) {
+				destroy(_heap, &mapping);
+			})) { }
+
+			destroy(&_heap, &vram_local);
 		}
 
 	public:
@@ -1772,31 +1792,31 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 		~Session_component()
 		{
-			auto lookup_and_free = [&] (Buffer_local &buffer_local) {
+			auto lookup_and_free = [&] (Vram_local &vram_local) {
 
-				_apply_buffer(buffer_local, [&](Buffer &buffer) {
+				_apply_vram(vram_local, [&](Vram &vram) {
 
-					if (buffer.owner(_session_cap) == false) return false;
+					if (vram.owner(_session_cap) == false) return false;
 
-					if (buffer.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
-						_device.unmap_buffer(_heap, buffer.map);
+					if (vram.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
+						_device.unmap_vram(_heap, vram.map);
 					}
 
-					if (buffer.fenced != Buffer::INVALID_FENCE) {
-						_device.clear_tiling(buffer.fenced);
+					if (vram.fenced != Vram::INVALID_FENCE) {
+						_device.clear_tiling(vram.fenced);
 						_vgpu.active_fences--;
 					}
 
-					_env.ep().dissolve(buffer);
-					_device.free_buffer(_heap, buffer.ds_cap);
+					_env.ep().dissolve(vram);
+					_device.free_vram(_heap, vram.ds_cap);
 					return true;
 				});
 
-				_free_local_buffer(buffer_local);
+				_free_local_vram(vram_local);
 			};
 
-			while(_buffer_space.apply_any<Buffer_local>(
-				[&] (Buffer_local &buffer_local) { lookup_and_free(buffer_local); }));
+			while(_vram_space.apply_any<Vram_local>(
+				[&] (Vram_local &vram_local) { lookup_and_free(vram_local); }));
 		}
 
 		/*********************************
@@ -1831,25 +1851,31 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			return _vgpu.info_dataspace();
 		}
 
-		Gpu::Sequence_number exec_buffer(Buffer_id id,
-		                                 Genode::size_t) override
+		Gpu::Sequence_number execute(Vram_id id, off_t offset) override
 		{
 			bool found = false;
 
-			_apply_buffer_local(id, [&] (Buffer_local &buffer_local) {
+			_apply_vram_local(id, [&] (Vram_local &vram_local) {
 
-				if (_buffer_valid(buffer_local.buffer_cap) == false) {
-					_free_local_buffer(buffer_local);
+				if (_vram_valid(vram_local.vram_cap) == false) {
+					_free_local_vram(vram_local);
 					return;
 				}
 
-				if (!buffer_local.ppgtt_va_valid) {
-					Genode::error("Invalid execbuffer");
+				addr_t ppgtt_va { 0 };
+
+				bool ppgtt_va_valid = vram_local.mappings.with_element(offset,
+					[&] (Vram_local::Mapping const &mapping) {
+						ppgtt_va = mapping.ppgtt_va; return true; },
+					[]() { return false; });
+
+				if (!ppgtt_va_valid) {
+					Genode::error("Invalid execvram");
 					Genode::Signal_transmitter(_vgpu.completion_sigh()).submit();
 					throw Gpu::Session::Invalid_state();
 				}
 
-				found = _vgpu.setup_ring_buffer(buffer_local.ppgtt_va);
+				found = _vgpu.setup_ring_vram(ppgtt_va);
 			});
 
 			if (!found)
@@ -1869,8 +1895,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			_vgpu.completion_sigh(sigh);
 		}
 
-		Genode::Dataspace_capability alloc_buffer(Gpu::Buffer_id id,
-		                                          Genode::size_t size) override
+		Genode::Dataspace_capability alloc_vram(Gpu::Vram_id id,
+		                                        Genode::size_t size) override
 		{
 			/* roundup to next page size */
 			size = align_addr(size, 12);
@@ -1884,80 +1910,80 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			size_t caps_before = _env.pd().avail_caps().value;
 			size_t ram_before  = _env.pd().avail_ram().value;
 
-			Ram_dataspace_capability ds_cap = _device.alloc_buffer(_heap, size);
+			Ram_dataspace_capability ds_cap = _device.alloc_vram(_heap, size);
 			addr_t phys_addr                = _device.dma_addr(ds_cap);
-			Buffer *buffer                  = new (&_heap) Buffer(ds_cap, phys_addr, _session_cap);
-			_env.ep().manage(*buffer);
+			Vram *vram                  = new (&_heap) Vram(ds_cap, phys_addr, _session_cap);
+			_env.ep().manage(*vram);
 
 			try {
-				new (&_heap) Buffer_local(buffer->cap(), size, _buffer_space, id);
-			} catch (Id_space<Buffer_local>::Conflicting_id) {
-				_env.ep().dissolve(*buffer);
-				destroy(&_heap, buffer);
-				_device.free_buffer(_heap, ds_cap);
+				new (&_heap) Vram_local(vram->cap(), size, _vram_space, id);
+			} catch (Id_space<Vram_local>::Conflicting_id) {
+				_env.ep().dissolve(*vram);
+				destroy(&_heap, vram);
+				_device.free_vram(_heap, ds_cap);
 				return Dataspace_capability();
 			}
 
 			size_t caps_after = _env.pd().avail_caps().value;
 			size_t ram_after  = _env.pd().avail_ram().value;
 
-			/* limit to buffer size for replenish */
-			buffer->ram_used  = min(ram_before > ram_after ? ram_before - ram_after : 0, size);
-			buffer->caps_used = caps_before > caps_after ? true  : false;
+			/* limit to vram size for replenish */
+			vram->ram_used  = min(ram_before > ram_after ? ram_before - ram_after : 0, size);
+			vram->caps_used = caps_before > caps_after ? true  : false;
 
 			_resource_guard.withdraw(caps_before, caps_after, ram_before, ram_after);
 
 			return ds_cap;
 		}
 
-		void free_buffer(Gpu::Buffer_id id) override
+		void free_vram(Gpu::Vram_id id) override
 		{
-			auto lookup_and_free = [&] (Buffer_local &buffer_local) {
+			auto lookup_and_free = [&] (Vram_local &vram_local) {
 
-				_apply_buffer(buffer_local, [&](Buffer &buffer) {
+				_apply_vram(vram_local, [&](Vram &vram) {
 
-					if (buffer.owner(_session_cap) == false) return false;
+					if (vram.owner(_session_cap) == false) return false;
 
-					if (buffer.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
-						Genode::error("cannot free mapped buffer");
+					if (vram.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
+						Genode::error("cannot free mapped vram");
 						/* XXX throw */
 						return false;
 					}
-					_env.ep().dissolve(buffer);
-					_device.free_buffer(_heap, buffer.ds_cap);
-					_resource_guard.replenish(buffer.caps_used ? 1 : 0,
-					                          buffer.ram_used);
+					_env.ep().dissolve(vram);
+					_device.free_vram(_heap, vram.ds_cap);
+					_resource_guard.replenish(vram.caps_used ? 1 : 0,
+					                          vram.ram_used);
 					return true;
 				});
 
-				_free_local_buffer(buffer_local);
+				_free_local_vram(vram_local);
 			};
 
-			_apply_buffer_local(id, lookup_and_free);
+			_apply_vram_local(id, lookup_and_free);
 		}
 
-		Buffer_capability export_buffer(Buffer_id id) override
+		Vram_capability export_vram(Vram_id id) override
 		{
-			Buffer_capability cap { };
-			_apply_buffer_local(id, [&] (Buffer_local &buffer_local) {
-				if (_buffer_valid(buffer_local.buffer_cap))
-					cap = buffer_local.buffer_cap;
+			Vram_capability cap { };
+			_apply_vram_local(id, [&] (Vram_local &vram_local) {
+				if (_vram_valid(vram_local.vram_cap))
+					cap = vram_local.vram_cap;
 			});
 			return cap;
 		}
 
-		void import_buffer(Buffer_capability cap, Buffer_id id) override
+		void import_vram(Vram_capability cap, Vram_id id) override
 		{
-			if (_buffer_valid(cap) == false)
+			if (_vram_valid(cap) == false)
 				throw Gpu::Session::Invalid_state();
 
 			try {
-				Buffer_local *buffer_local = new (_heap) Buffer_local(cap, 0, _buffer_space, id);
+				Vram_local *vram_local = new (_heap) Vram_local(cap, 0, _vram_space, id);
 
-				_apply_buffer(*buffer_local, [&](Buffer &buffer) {
-					buffer_local->size = buffer.size; return false; });
+				_apply_vram(*vram_local, [&](Vram &vram) {
+					vram_local->size = vram.size; return false; });
 
-			} catch (Id_space<Buffer_local>::Conflicting_id) {
+			} catch (Id_space<Vram_local>::Conflicting_id) {
 				throw Gpu::Session::Conflicting_id();
 			} catch (Cap_quota_guard::Limit_exceeded) {
 				throw Gpu::Session::Out_of_caps();
@@ -1966,107 +1992,50 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			}
 		}
 
-		Genode::Dataspace_capability map_buffer(Gpu::Buffer_id id,
-		                                        bool aperture,
-		                                        Gpu::Mapping_attributes attrs) override
+		Genode::Dataspace_capability map_cpu(Gpu::Vram_id,
+		                                     Gpu::Mapping_attributes) override
 		{
-			/* treat GGTT mapped buffers as rw */
-			if (!(attrs.readable && attrs.writeable))
-				return Genode::Dataspace_capability();
-
-			Genode::Dataspace_capability map_cap;
-
-			auto lookup_and_map = [&] (Buffer &buffer) {
-				if (buffer.owner(_session_cap) == false) {
-					Genode::error("GGTT mappings can only be done by buffer owner");
-					return false;
-				}
-
-				if (buffer.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
-					Genode::error("buffer already mapped");
-					return false;
-				}
-				/* GGTT mappings only require the heap */
-				if (_resource_guard.avail_caps() == false)
-					throw Gpu::Session::Out_of_caps();
-
-				if (_resource_guard.avail_ram() == false)
-					throw Gpu::Session::Out_of_ram();
-
-				size_t caps_before = _env.pd().avail_caps().value;
-				size_t ram_before  = _env.pd().avail_ram().value;
-
-				Igd::Ggtt::Mapping const &map =
-					_device.map_buffer(_heap, buffer.ds_cap, aperture);
-				buffer.map.cap    = map.cap;
-				buffer.map.offset = map.offset;
-				map_cap           = buffer.map.cap;
-
-				size_t caps_after = _env.pd().avail_caps().value;
-				size_t ram_after  = _env.pd().avail_ram().value;
-				_resource_guard.withdraw(caps_before, caps_after,
-				                         ram_before , ram_after);
-				return true;
-			};
-
-			_apply_buffer_local(id, [&] (Buffer_local &buffer_local) {
-				_apply_buffer(buffer_local, lookup_and_map); });
-
-			return map_cap;
+			error("map_cpu: called not implemented");
+			throw Mapping_vram_failed();
 		}
 
-		void unmap_buffer(Gpu::Buffer_id id) override
+		void unmap_cpu(Vram_id) override
 		{
-			bool unmapped = false;
-
-			auto lookup_and_unmap = [&] (Buffer &buffer) {
-
-				if (buffer.owner(_session_cap) == false) {
-					Genode::error("GGTT unmappings can only be done by buffer owner");
-					return false;
-				}
-
-				if (!buffer.map.cap.valid()) { return false; }
-
-				if (buffer.fenced != Buffer::INVALID_FENCE) {
-					_device.clear_tiling(buffer.fenced);
-					_vgpu.active_fences--;
-				}
-
-				_device.unmap_buffer(_heap, buffer.map);
-				buffer.map.offset = Igd::Ggtt::Mapping::INVALID_OFFSET;
-				unmapped = true;
-
-				return false;
-			};
-
-			_apply_buffer_local(id, [&](Buffer_local &buffer) {
-				_apply_buffer(buffer, lookup_and_unmap); });
-
-			if (!unmapped) { Genode::error("buffer not mapped"); }
+			error("unmap_cpu: called not implemented");
 		}
 
-		bool map_buffer_ppgtt(Gpu::Buffer_id id, Gpu::addr_t va) override
+		bool map_gpu(Vram_id id, size_t size, off_t offset, Gpu::Virtual_address va) override
 		{
-			auto lookup_and_map = [&] (Buffer_local &buffer_local) {
+			auto lookup_and_map = [&] (Vram_local &vram_local) {
 
-				if (buffer_local.ppgtt_va_valid) {
-					Genode::error("buffer already mapped");
+				if (vram_local.mappings.exists(offset)) {
+					Genode::error("vram already mapped at offset: ", Hex(offset));
 					return;
 				}
 
 				addr_t phys_addr = 0;
-				_apply_buffer(buffer_local, [&](Buffer &buffer) {
-					phys_addr = buffer.phys_addr; return false; });
+				_apply_vram(vram_local, [&](Vram &vram) {
+					phys_addr = vram.phys_addr; return false; });
 
 				if (phys_addr == 0) {
-					_free_local_buffer(buffer_local);
+					_free_local_vram(vram_local);
 					return;
 				}
 
-				_vgpu.rcs_map_ppgtt(va, phys_addr, buffer_local.size);
-				buffer_local.ppgtt_va = va;
-				buffer_local.ppgtt_va_valid = true;
+				try {
+				_vgpu.rcs_map_ppgtt(va.va, phys_addr + offset, size);
+				} catch (Level_4_translation_table::Double_insertion) {
+					error("PPGTT: Double insertion: va: ", Hex(va.va), " offset: ", Hex(offset),
+					      "size: ", Hex(size));
+					throw Mapping_vram_failed();
+				} catch(...) {
+					error("PPGTT: invalid address/range/alignment: va: ", Hex(va.va),
+					      " offset: ", Hex(offset),
+					      "size: ", Hex(size));
+					throw Mapping_vram_failed();
+				}
+
+				new (_heap) Vram_local::Mapping(vram_local.mappings, offset, va.va, size);
 			};
 
 			if (_resource_guard.avail_caps() == false)
@@ -2078,7 +2047,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			size_t caps_before = _env.pd().avail_caps().value;
 			size_t ram_before  = _env.pd().avail_ram().value;
 
-			_apply_buffer_local(id, lookup_and_map);
+			_apply_vram_local(id, lookup_and_map);
 
 			size_t caps_after = _env.pd().avail_caps().value;
 			size_t ram_after  = _env.pd().avail_ram().value;
@@ -2089,77 +2058,59 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			return true;
 		}
 
-		void unmap_buffer_ppgtt(Gpu::Buffer_id id,
-		                        Gpu::addr_t va) override
+		void unmap_gpu(Vram_id id, off_t offset, Gpu::Virtual_address va) override
 		{
-			auto lookup_and_unmap = [&] (Buffer_local &buffer_local) {
+			auto lookup_and_unmap = [&] (Vram_local &vram_local) {
 
-				if (!buffer_local.ppgtt_va_valid) {
-					Genode::error("buffer not mapped");
-					return;
-				}
+				vram_local.mappings.with_element(offset,
+					[&] (Vram_local::Mapping &mapping) {
 
-				if (buffer_local.ppgtt_va != va) {
-					Genode::error("buffer not mapped at ", Genode::Hex(va));
-					return;
-				}
-
-				_vgpu.rcs_unmap_ppgtt(va, buffer_local.size);
-				buffer_local.ppgtt_va_valid = false;
+						if (mapping.ppgtt_va != va.va) {
+							Genode::error("VRAM: not mapped at ", Hex(va.va), " offset: ", Hex(offset));
+							return;
+						}
+						_vgpu.rcs_unmap_ppgtt(va.va, mapping.ppgtt_va_size);
+						destroy(_heap, &mapping);
+					},
+					[&] () { error("VRAM: nothing mapped at offset ", Hex(offset)); }
+				);
 			};
-			_apply_buffer_local(id, lookup_and_unmap);
+			_apply_vram_local(id, lookup_and_unmap);
 		}
 
-		Gpu::addr_t query_buffer_ppgtt(Gpu::Buffer_id id) override
-		{
-			Gpu::addr_t result = (Gpu::addr_t)-1;
-
-			auto lookup_va = [&] (Buffer_local &buffer_local) {
-
-				if (!buffer_local.ppgtt_va_valid) {
-					Genode::error("buffer not mapped");
-					return;
-				}
-
-				result = buffer_local.ppgtt_va;
-			};
-			_apply_buffer_local(id, lookup_va);
-			return result;
-		}
-
-		bool set_tiling(Gpu::Buffer_id id,
-		                Genode::uint32_t const mode) override
+		bool set_tiling_gpu(Vram_id id, off_t offset,
+		                    unsigned mode) override
 		{
 			if (_vgpu.active_fences > Igd::Device::Vgpu::MAX_FENCES) {
 				Genode::error("no free fences left, already active: ", _vgpu.active_fences);
 				return false;
 			}
 
-			Buffer *b = nullptr;
-			auto lookup = [&] (Buffer &buffer) {
-				if (!buffer.map.cap.valid() || !buffer.owner(_session_cap)) { return false; }
-				b = &buffer;
+			Vram *v = nullptr;
+			auto lookup = [&] (Vram &vram) {
+				if (!vram.map.cap.valid() || !vram.owner(_session_cap)) { return false; }
+				v = &vram;
 				return false;
 			};
 
-			_apply_buffer_local(id, [&](Buffer_local &buffer_local) {
-				_apply_buffer(buffer_local, lookup);
+			_apply_vram_local(id, [&](Vram_local &vram_local) {
+				_apply_vram(vram_local, lookup);
 			});
 
-			if (b == nullptr) {
-				Genode::error("attempt to set tiling for non-mapped or non-owned buffer");
+			if (v == nullptr) {
+				Genode::error("attempt to set tiling for non-mapped or non-owned vram");
 				return false;
 			}
 
 			//XXX: support change of already fenced bo's fencing mode
-			if (b->fenced) return true;
+			if (v->fenced) return true;
 
-			Igd::size_t const size = b->size;
-			Genode::uint32_t const fenced = _device.set_tiling(b->map.offset, size, mode);
+			Igd::size_t const size = v->size;
+			Genode::uint32_t const fenced = _device.set_tiling(v->map.offset + offset, size, mode);
 
-			b->fenced = fenced;
-			if (fenced != Buffer::INVALID_FENCE) { _vgpu.active_fences++; }
-			return fenced != Buffer::INVALID_FENCE;
+			v->fenced = fenced;
+			if (fenced != Vram::INVALID_FENCE) { _vgpu.active_fences++; }
+			return fenced != Vram::INVALID_FENCE;
 		}
 };
 
