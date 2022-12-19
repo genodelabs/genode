@@ -264,11 +264,12 @@ build_boot_image $boot_modules
 
 append qemu_args "-nographic "
 
-run_genode_until {\[init -\> acpi.*SCI IRQ:.*\n} 30
-
 if {![have_include "power_on/qemu"]} {
+	run_genode_until forever
 	exit 0
 }
+
+run_genode_until {\[init -\> acpi_state.*\n} 30
 
 set spawn_id $qemu_spawn_id
 

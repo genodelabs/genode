@@ -11,15 +11,15 @@
  */
 
 #include <base/allocator_avl.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/log.h>
 #include <base/signal.h>
 #include <base/heap.h>
-#include <irq_session/connection.h>
 #include <io_port_session/connection.h>
 
-#include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
+#include <platform_session/device.h>
 #include <timer_session/connection.h>
 
 #include <util/reconstructible.h>
@@ -166,8 +166,11 @@ struct Acpica::Main
 
 	Attached_rom_dataspace config { env, "config" };
 
+	Platform::Connection  platform { env };
+	Platform::Device      device   { platform, "acpi" };
+	Platform::Device::Irq irq      { device, { 0 } };
+
 	Signal_handler<Acpica::Main>  sci_irq;
-	Constructible<Irq_connection> sci_conn;
 
 	Timer::Connection             timer { env };
 	Signal_handler<Acpica::Main>  timer_trigger { env.ep(), *this,
@@ -179,9 +182,6 @@ struct Acpica::Main
 	unsigned unchanged_state_max;
 
 	static struct Irq_handler {
-		UINT32                 irq;
-		Irq_session::Trigger   trigger;
-		Irq_session::Polarity  polarity;
 		ACPI_OSD_HANDLER       handler;
 		void                  *context;
 	} irq_handler;
@@ -214,24 +214,19 @@ struct Acpica::Main
 			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff,
 			                               enable_sleep);
 
+		if (periodic_ms) {
+			timer.sigh(timer_trigger);
+			timer.trigger_periodic(Microseconds(periodic_ms * 1000).value);
+		}
+
 		/* setup IRQ */
 		if (!irq_handler.handler) {
 			warning("no IRQ handling available");
 			return;
 		}
 
-		sci_conn.construct(env, irq_handler.irq, irq_handler.trigger, irq_handler.polarity);
-
-		log("SCI IRQ: ", irq_handler.irq, " (", irq_handler.trigger, "-",
-		    irq_handler.polarity, ")");
-
-		sci_conn->sigh(sci_irq);
-		sci_conn->ack_irq();
-
-		if (periodic_ms) {
-			timer.sigh(timer_trigger);
-			timer.trigger_periodic(Microseconds(periodic_ms * 1000).value);
-		}
+		irq.sigh_omit_initial_signal(sci_irq);
+		irq.ack();
 	}
 
 
@@ -254,7 +249,7 @@ struct Acpica::Main
 
 		UINT32 res = irq_handler.handler(irq_handler.context);
 
-		sci_conn->ack_irq();
+		irq.ack();
 
 		AcpiOsWaitEventsComplete();
 
@@ -331,63 +326,6 @@ void Acpica::Main::init_acpica()
 	if (status != AE_OK) {
 		error("AcpiLoadTables failed, status=", status);
 		return;
-	}
-
-	{
-		/*
-		 * ACPI Spec 2.1 General ACPI Terminology
-		 *
-		 * System Control Interrupt (SCI) A system interrupt used by hardware
-		 * to notify the OS of ACPI events. The SCI is an active, low,
-		 * shareable, level interrupt.
-		 */
-		irq_handler.irq      = AcpiGbl_FADT.SciInterrupt;
-		irq_handler.trigger  = Irq_session::TRIGGER_LEVEL;
-		irq_handler.polarity = Irq_session::POLARITY_LOW;
-
-		/* apply potential override in MADT */
-		ACPI_TABLE_MADT *madt = nullptr;
-
-		ACPI_STATUS status = AcpiGetTable(ACPI_STRING(ACPI_SIG_MADT), 0, (ACPI_TABLE_HEADER **)&madt);
-		if (status == AE_OK) {
-			for_each_element(madt, (ACPI_SUBTABLE_HEADER *) nullptr,
-			                 [&](ACPI_SUBTABLE_HEADER const * const s) {
-
-				if (s->Type != ACPI_MADT_TYPE_INTERRUPT_OVERRIDE)
-					return;
-
-				ACPI_MADT_INTERRUPT_OVERRIDE const * const irq =
-					reinterpret_cast<ACPI_MADT_INTERRUPT_OVERRIDE const * const>(s);
-
-				auto polarity_from_flags = [] (UINT16 flags) {
-					switch (flags & 0b11) {
-					case 0b01: return Irq_session::POLARITY_HIGH;
-					case 0b11: return Irq_session::POLARITY_LOW;
-					case 0b00:
-					default:
-						return Irq_session::POLARITY_UNCHANGED;
-					}
-				};
-
-				auto trigger_from_flags = [] (UINT16 flags) {
-					switch ((flags & 0b1100) >> 2) {
-					case 0b01: return Irq_session::TRIGGER_EDGE;
-					case 0b11: return Irq_session::TRIGGER_LEVEL;
-					case 0b00:
-					default:
-						return Irq_session::TRIGGER_UNCHANGED;
-					}
-				};
-
-				if (irq->SourceIrq == AcpiGbl_FADT.SciInterrupt) {
-					irq_handler.irq      = irq->GlobalIrq;
-					irq_handler.trigger  = trigger_from_flags(irq->IntiFlags);
-					irq_handler.polarity = polarity_from_flags(irq->IntiFlags);
-
-					AcpiGbl_FADT.SciInterrupt = irq->GlobalIrq;
-				}
-			}, [](ACPI_SUBTABLE_HEADER const * const s) { return s->Length; });
-		}
 	}
 
 	status = AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION);
@@ -490,12 +428,6 @@ struct Acpica::Main::Irq_handler Acpica::Main::irq_handler;
 ACPI_STATUS AcpiOsInstallInterruptHandler(UINT32 irq, ACPI_OSD_HANDLER handler,
                                           void *context)
 {
-	if (irq != Acpica::Main::irq_handler.irq) {
-		error("SCI interrupt is ", Acpica::Main::irq_handler.irq,
-		              " but library requested ", irq);
-		return AE_BAD_PARAMETER;
-	}
-
 	Acpica::Main::irq_handler.handler = handler;
 	Acpica::Main::irq_handler.context = context;
 	return AE_OK;
