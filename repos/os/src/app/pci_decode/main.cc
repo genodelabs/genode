@@ -85,7 +85,7 @@ struct Main
  *
  * XXX static fixup list should be replaced by dynamic mapping of BAR
  */
-static uint64_t fixup_bar_base_address(Bdf bdf, unsigned bar, uint64_t addr, size_t size)
+static uint64_t fixup_bar_base_address(Bdf bdf, unsigned bar, uint64_t addr, uint64_t size)
 {
 	auto base_address = addr;
 
@@ -96,7 +96,7 @@ static uint64_t fixup_bar_base_address(Bdf bdf, unsigned bar, uint64_t addr, siz
 	if (bdf == Bdf { 0, 0x15, 3 } && bar == 0) base_address = 0x4017002000;
 
 	if (addr != base_address)
-		log(bdf, " remap MEM BAR", bar, " ", Hex_range(addr, size), " to ", Hex(base_address));
+		log(bdf, " remap MEM BAR", bar, " ", Hex_range(addr, (size_t)size), " to ", Hex(base_address));
 
 	return base_address;
 }
@@ -181,7 +181,7 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 		{
 			addr = fixup_bar_base_address(bdf, bar, addr, size);
 			if (!addr)
-				warning(bdf, " MEM BAR", bar, " ", Hex_range(addr, size),
+				warning(bdf, " MEM BAR", bar, " ", Hex_range(addr, (size_t)size),
 				        " has invalid base address - consider pci-fixup in parse_pci_function()");
 			gen.node("io_mem", [&]
 			{
@@ -497,6 +497,41 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 				gen.attribute("type", "msi");
 				gen.attribute("number", msi_start++);
 			});
+		});
+	});
+
+	/*
+	 * Intel Tigerlake/Alderlake PCH Pinctrl/GPIO
+	 */
+	gen.node("device", [&]
+	{
+		gen.attribute("name", "INT34C5");
+		gen.attribute("type", "acpi");
+		gen.node("irq", [&]
+		{
+			gen.attribute("number", 14U);
+			gen.attribute("mode", "level");
+			gen.attribute("polarity", "low");
+		});
+		gen.node("io_mem", [&]
+		{
+			gen.attribute("address", "0xfd690000");
+			gen.attribute("size",    "0x1000");
+		});
+		gen.node("io_mem", [&]
+		{
+			gen.attribute("address", "0xfd6a0000");
+			gen.attribute("size",    "0x1000");
+		});
+		gen.node("io_mem", [&]
+		{
+			gen.attribute("address", "0xfd6d0000");
+			gen.attribute("size",    "0x1000");
+		});
+		gen.node("io_mem", [&]
+		{
+			gen.attribute("address", "0xfd6e0000");
+			gen.attribute("size",    "0x1000");
 		});
 	});
 }
