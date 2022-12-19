@@ -57,6 +57,10 @@ struct Genode::Cpu : Arm_cpu
 
 		return instruction_cache_line_size;
 	}
+
+	static inline size_t cache_line_size() {
+		return Genode::min(data_cache_line_size(),
+		                   instruction_cache_line_size()); }
 };
 
 #endif /* _CORE__SPEC__ARM_V6__CPU_H_ */

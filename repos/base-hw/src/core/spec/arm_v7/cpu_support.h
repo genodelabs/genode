@@ -79,6 +79,11 @@ struct Genode::Arm_v7_cpu : Arm_cpu
 
 		return instruction_cache_line_size;
 	}
+
+
+	static inline size_t cache_line_size() {
+		return Genode::min(data_cache_line_size(),
+		                   instruction_cache_line_size()); }
 };
 
 #endif /* _CORE__SPEC__ARM_V7__CPU_SUPPORT_H_ */
