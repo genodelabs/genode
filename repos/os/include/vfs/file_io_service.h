@@ -96,48 +96,6 @@ struct Vfs::File_io_service : Interface
 	virtual Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) = 0;
 
 
-	/***********
-	 ** Ioctl **
-	 ***********/
-
-	enum Ioctl_result { IOCTL_ERR_INVALID, IOCTL_ERR_NOTTY, IOCTL_OK };
-
-	enum Ioctl_opcode { IOCTL_OP_UNDEFINED, IOCTL_OP_TIOCGWINSZ,
-	                    IOCTL_OP_TIOCSETAF, IOCTL_OP_TIOCSETAW,
-	                    IOCTL_OP_FIONBIO,   IOCTL_OP_DIOCGMEDIASIZE };
-
-	enum Ioctl_value { IOCTL_VAL_NULL, IOCTL_VAL_ECHO, IOCTL_VAL_ECHONL };
-
-	typedef unsigned long Ioctl_arg;
-
-	struct Ioctl_out
-	{
-		union
-		{
-			/* if request was 'IOCTL_OP_TIOCGWINSZ' */
-			struct {
-				int rows;
-				int columns;
-			} tiocgwinsz;
-
-			/* if request was 'IOCTL_OP_DIOCGMEDIASIZE' */
-			struct {
-				/* disk size rounded up to sector size in bytes*/
-				file_size size;
-
-			} diocgmediasize;
-		};
-	};
-
-	virtual Ioctl_result ioctl(Vfs_handle *, Ioctl_opcode, Ioctl_arg, Ioctl_out &)
-	{
-		/*
-		 * This method is only needed in file systems which actually implement a
-		 * device and is therefore false by default.
-		 */
-		return IOCTL_ERR_INVALID;
-	}
-
 	virtual void register_read_ready_sigh(Vfs_handle *, Signal_context_capability)
 	{ }
 

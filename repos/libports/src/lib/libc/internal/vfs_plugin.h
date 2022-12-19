@@ -103,8 +103,6 @@ class Libc::Vfs_plugin final : public Plugin
 		 */
 		void _vfs_write_mtime(Vfs::Vfs_handle&);
 
-		int _legacy_ioctl(File_descriptor *, unsigned long, char *);
-
 		struct Ioctl_result
 		{
 			bool handled;
