@@ -544,6 +544,9 @@ class Trust_anchor
 
 		void _close_handle(Vfs::Vfs_handle **handle)
 		{
+			if (*handle == nullptr)
+				return;
+
 			(*handle)->close();
 			(*handle) = nullptr;
 		}
