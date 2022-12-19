@@ -14,6 +14,9 @@
 #ifndef _INCLUDE__SPEC__PC__VM_STATE_H_
 #define _INCLUDE__SPEC__PC__VM_STATE_H_
 
+/* x86 CPU state */
+#include <cpu/vcpu_state.h>
+
 namespace Genode {
 
 	/**
@@ -22,9 +25,7 @@ namespace Genode {
 	struct Vm_state;
 }
 
-
-struct Genode::Vm_state
-{
-};
+struct Genode::Vm_state : Genode::Vcpu_state
+{};
 
 #endif /* _INCLUDE__SPEC__PC__VM_STATE_H_ */
