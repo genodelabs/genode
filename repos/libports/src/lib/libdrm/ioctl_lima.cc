@@ -452,10 +452,12 @@ class Lima::Call
 			Buffer_id const id { .value = handle };
 
 			bool found = false;
-			_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
-				fn(b);
-				found = true;
-			});
+			try {
+				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
+					fn(b);
+					found = true;
+				});
+			} catch (Genode::Id_space<Buffer>::Unknown_id) { }
 
 			return found;
 		}
