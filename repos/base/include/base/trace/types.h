@@ -29,7 +29,6 @@ namespace Genode { namespace Trace {
 
 	struct Policy_too_large        : Exception { };
 	struct Nonexistent_subject     : Exception { };
-	struct Already_traced          : Exception { };
 	struct Source_is_dead          : Exception { };
 	struct Nonexistent_policy      : Exception { };
 	struct Traced_by_other_session : Exception { };

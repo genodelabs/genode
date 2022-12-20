@@ -96,18 +96,15 @@ class Genode::Trace::Subject
 				/**
 				 * Clone dataspace into newly allocated dataspace
 				 */
-				bool setup(Ram_allocator &ram, Region_map &local_rm,
+				void setup(Ram_allocator &ram, Region_map &local_rm,
 				           Dataspace_capability &from_ds, size_t size)
 				{
-					if (!from_ds.valid())
-						return false;
-
 					if (_size)
 						flush();
 
+					_ds      = ram.alloc(size); /* may throw */
 					_ram_ptr = &ram;
 					_size    = size;
-					_ds      = ram.alloc(_size);
 
 					/* copy content */
 					void *src = local_rm.attach(from_ds),
@@ -117,8 +114,6 @@ class Genode::Trace::Subject
 
 					local_rm.detach(src);
 					local_rm.detach(dst);
-
-					return true;
 				}
 
 				/**
@@ -146,7 +141,6 @@ class Genode::Trace::Subject
 		Ram_dataspace       _buffer { };
 		Ram_dataspace       _policy { };
 		Policy_id           _policy_id { };
-		size_t              _allocated_memory { 0 };
 
 		Subject_info::State _state()
 		{
@@ -217,9 +211,6 @@ class Genode::Trace::Subject
 		 */
 		bool has_source_id(unsigned id) const { return id == _source_id; }
 
-		size_t allocated_memory() const { return _allocated_memory; }
-		void   reset_allocated_memory() { _allocated_memory = 0; }
-
 		/**
 		 * Start tracing
 		 *
@@ -227,7 +218,6 @@ class Genode::Trace::Subject
 		 *
 		 * \throw Out_of_ram
 		 * \throw Out_of_caps
-		 * \throw Already_traced
 		 * \throw Source_is_dead
 		 * \throw Traced_by_other_session
 		 */
@@ -238,26 +228,31 @@ class Genode::Trace::Subject
 			/* check state and throw error in case subject is not traceable */
 			_traceable_or_throw();
 
-			_buffer.setup(ram, size);
-			if(!_policy.setup(ram, local_rm, policy_ds, policy_size))
-				throw Already_traced();
+			_buffer.setup(ram, size); /* may throw */
+
+			try {
+				_policy.setup(ram, local_rm, policy_ds, policy_size);
+			} catch (...) {
+				_buffer.flush();
+				throw;
+			}
 
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
-			if (!source->try_acquire(*this))
+			if (!source->try_acquire(*this)) {
+				_policy.flush();
+				_buffer.flush();
 				throw Traced_by_other_session();
+			}
 
 			_policy_id = policy_id;
-
-			_allocated_memory = policy_size + size;
 
 			source->trace(_policy.dataspace(), _buffer.dataspace());
 		}
 
 		void pause()
 		{
-			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
 			if (source.valid())
@@ -271,7 +266,6 @@ class Genode::Trace::Subject
 		 */
 		void resume()
 		{
-			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
 			if (!source.valid())
@@ -301,16 +295,16 @@ class Genode::Trace::Subject
 
 		Dataspace_capability buffer() const { return _buffer.dataspace(); }
 
-		size_t release()
+		void release()
 		{
-			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
 			/* source vanished */
 			if (!source.valid())
-				return 0;
+				return;
 
-			return _buffer.flush() + _policy.flush();
+			_buffer.flush();
+			_policy.flush();
 		}
 };
 
@@ -375,18 +369,14 @@ class Genode::Trace::Subject_registry
 
 		/**
 		 * Destroy subject, and release policy and trace buffers
-		 *
-		 * \return RAM resources released during destruction
 		 */
-		size_t _unsynchronized_destroy(Subject &s)
+		void _unsynchronized_destroy(Subject &s)
 		{
 			_entries.remove(&s);
 
-			size_t const released_ram = s.release();
+			s.release();
 
 			destroy(&_md_alloc, &s);
-
-			return released_ram;
 		};
 
 		/**
@@ -471,18 +461,13 @@ class Genode::Trace::Subject_registry
 
 		/**
 		 * Remove subject and release resources
-		 *
-		 * \return  RAM resources released as a side effect for removing the
-		 *          subject (i.e., if the subject held a trace buffer or
-		 *          policy dataspace). The value does not account for
-		 *          memory allocated from the metadata allocator.
 		 */
-		size_t release(Subject_id subject_id)
+		void release(Subject_id subject_id)
 		{
 			Mutex::Guard guard(_mutex);
 
 			Subject &subject = _unsynchronized_lookup_by_id(subject_id);
-			return _unsynchronized_destroy(subject);
+			_unsynchronized_destroy(subject);
 		}
 
 		Subject &lookup_by_id(Subject_id id)

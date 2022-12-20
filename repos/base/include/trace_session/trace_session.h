@@ -56,7 +56,6 @@ struct Genode::Trace::Session : Genode::Session
 	 *
 	 * \throw Out_of_ram
 	 * \throw Out_of_caps
-	 * \throw Already_traced
 	 * \throw Source_is_dead
 	 * \throw Nonexistent_policy
 	 * \throw Nonexistent_subject
@@ -113,7 +112,7 @@ struct Genode::Trace::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_unload_policy, void, unload_policy,
 	                 GENODE_TYPE_LIST(Nonexistent_policy), Policy_id);
 	GENODE_RPC_THROW(Rpc_trace, void, trace,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Already_traced,
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps,
 	                                  Source_is_dead, Nonexistent_subject,
 	                                  Nonexistent_policy,
 	                                  Traced_by_other_session),

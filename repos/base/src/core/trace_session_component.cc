@@ -59,21 +59,12 @@ Policy_id Session_component::alloc_policy(size_t size)
 	 */
 	Policy_id const id(++_policy_cnt);
 
-	Ram_quota const amount { size };
-
-	/*
-	 * \throw Out_of_ram
-	 */
-	withdraw(amount);
+	Ram_dataspace_capability ds_cap = _ram.alloc(size); /* may throw */
 
 	try {
-		Dataspace_capability ds_cap = _ram.alloc(size);
 		_policies.insert(*this, id, _policies_slab, ds_cap, size);
-
 	} catch (...) {
-
-		/* revert withdrawal or quota */
-		replenish(amount);
+		_ram.free(ds_cap);
 		throw;
 	}
 
@@ -89,7 +80,11 @@ Dataspace_capability Session_component::policy(Policy_id id)
 
 void Session_component::unload_policy(Policy_id id)
 {
-	_policies.remove(*this, id);
+	try {
+		Dataspace_capability ds_cap = _policies.dataspace(*this, id);
+		_policies.remove(*this, id);
+		_ram.free(static_cap_cast<Ram_dataspace>(ds_cap));
+	} catch (Nonexistent_policy) { }
 }
 
 
@@ -98,32 +93,10 @@ void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
 {
 	size_t const policy_size  = _policies.size(*this, policy_id);
 
-	Ram_quota const required_ram { buffer_size + policy_size };
-
 	Trace::Subject &subject = _subjects.lookup_by_id(subject_id);
 
-	/* revert quota from previous call to trace */
-	if (subject.allocated_memory()) {
-		replenish(Ram_quota{subject.allocated_memory()});
-		subject.reset_allocated_memory();
-	}
-
-	/*
-	 * Account RAM needed for trace buffer and policy buffer to the trace
-	 * session.
-	 *
-	 * \throw Out_of_ram
-	 */
-	withdraw(required_ram);
-
-	try {
-		subject.trace(policy_id, _policies.dataspace(*this, policy_id),
-		              policy_size, _ram, _local_rm, buffer_size);
-	} catch (...) {
-		/* revert withdrawal or quota */
-		replenish(required_ram);
-		throw;
-	}
+	subject.trace(policy_id, _policies.dataspace(*this, policy_id),
+	              policy_size, _ram, _local_rm, buffer_size);
 }
 
 
@@ -147,9 +120,7 @@ Dataspace_capability Session_component::buffer(Subject_id subject_id)
 
 void Session_component::free(Subject_id subject_id)
 {
-	Ram_quota const released_ram { _subjects.release(subject_id) };
-
-	replenish(released_ram);
+	_subjects.release(subject_id);
 }
 
 

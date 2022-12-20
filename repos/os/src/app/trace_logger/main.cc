@@ -192,7 +192,6 @@ class Main
 				}
 				monitors.insert(new (_heap) Monitor(_trace, _env.rm(), id));
 			}
-			catch (Trace::Already_traced         ) { warn_msg("Already_traced"         ); return; }
 			catch (Trace::Source_is_dead         ) { warn_msg("Source_is_dead"         ); return; }
 			catch (Trace::Nonexistent_policy     ) { warn_msg("Nonexistent_policy"     ); return; }
 			catch (Trace::Traced_by_other_session) { warn_msg("Traced_by_other_session"); return; }
