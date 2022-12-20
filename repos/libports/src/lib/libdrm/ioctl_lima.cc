@@ -273,57 +273,74 @@ class Lima::Call
 
 		struct Gpu_context
 		{
-			int const fd;
-			unsigned long const _gpu_id;
+			private:
 
-			Gpu::Connection &_gpu { *vfs_gpu_connection(_gpu_id) };
+				/*
+				 * Noncopyable
+				 */
+				Gpu_context(Gpu_context const &) = delete;
+				Gpu_context &operator=(Gpu_context const &) = delete;
 
-			using Id_space = Genode::Id_space<Gpu_context>;
-			Id_space::Element const _elem;
+				static int _open_gpu()
+				{
+					int const fd = ::open("/dev/gpu", 0);
+					if (fd < 0) {
+						Genode::error("Failed to open '/dev/gpu': ",
+						              "try configure '<gpu>' in 'dev' directory of VFS'");
+						throw Gpu::Session::Invalid_state();
+					}
+					return fd;
+				}
 
-			Gpu_context(int fd, unsigned long gpu,
-			            Genode::Id_space<Gpu_context> &space)
-			: fd { fd }, _gpu_id { gpu }, _elem { *this, space } { }
+				static unsigned long _stat_gpu(int fd)
+				{
+					struct ::stat buf;
+					if (::fstat(fd, &buf) < 0) {
+						Genode::error("Could not stat '/dev/gpu'");
+						::close(fd);
+						throw Gpu::Session::Invalid_state();
+					}
+					return buf.st_ino;
+				}
 
-			virtual ~Gpu_context()
-			{
-				::close(fd);
-			}
+				int           const _fd;
+				unsigned long const _id;
 
-			unsigned long id() const
-			{
-				return _elem.id().value;
-			}
+				Genode::Id_space<Gpu_context>::Element const _elem;
 
-			Gpu::Connection& gpu()
-			{
-				return _gpu;
-			}
+
+			public:
+
+				Gpu_context(Genode::Id_space<Gpu_context> &space)
+				:
+					_fd { _open_gpu() },
+					_id { _stat_gpu(_fd) },
+					_elem { *this, space }
+				{ }
+
+				~Gpu_context()
+				{
+					::close(_fd);
+				}
+
+				unsigned long id() const
+				{
+					return _elem.id().value;
+				}
+
+				Gpu::Connection& gpu()
+				{
+					return *vfs_gpu_connection(_id);
+				}
+
+				int fd() const
+				{
+					return _fd;
+				}
 		};
 
 		using Gpu_context_space = Genode::Id_space<Gpu_context>;
 		Gpu_context_space _gpu_context_space { };
-
-		Gpu_context &_create_ctx()
-		{
-			int const fd = ::open("/dev/gpu", 0);
-			if (fd < 0) {
-				Genode::error("Failed to open '/dev/gpu': ",
-				              "try configure '<gpu>' in 'dev' directory of VFS'");
-				throw Gpu::Session::Invalid_state();
-			}
-
-			struct ::stat buf;
-			if (::fstat(fd, &buf) < 0) {
-				Genode::error("Could not stat '/dev/gpu'");
-				::close(fd);
-				throw Gpu::Session::Invalid_state();
-			}
-			Gpu_context * context =
-				new (_heap) Gpu_context(fd, buf.st_ino, _gpu_context_space);
-
-			return *context;
-		}
 
 		struct Syncobj
 		{
@@ -371,47 +388,9 @@ class Lima::Call
 		};
 		Genode::Id_space<Syncobj> _syncobj_space { };
 
-		struct Gpu_session
-		{
-			int const fd;
-			unsigned long const id;
+		Gpu_context _main_ctx { _gpu_context_space };
 
-			Gpu_session(int fd, unsigned long id)
-			: fd { fd }, id { id } { }
-
-			virtual ~Gpu_session()
-			{
-				::close(fd);
-			}
-
-			Gpu::Connection &gpu()
-			{
-				return *vfs_gpu_connection(id);
-			}
-		};
-
-		Gpu_session _open_gpu()
-		{
-			int const fd = ::open("/dev/gpu", 0);
-			if (fd < 0) {
-				Genode::error("Failed to open '/dev/gpu': ",
-				              "try configure '<gpu>' in 'dev' directory of VFS'");
-				throw Gpu::Session::Invalid_state();
-			}
-
-			struct ::stat buf;
-			if (::fstat(fd, &buf) < 0) {
-				Genode::error("Could not stat '/dev/gpu'");
-				::close(fd);
-				throw Gpu::Session::Invalid_state();
-			}
-
-			return Gpu_session { fd, buf.st_ino };
-		}
-
-		Gpu_session _gpu_session { _open_gpu() };
-
-		Gpu::Connection &_gpu { _gpu_session.gpu() };
+		Gpu::Connection &_gpu { _main_ctx.gpu() };
 		Gpu::Info_lima const &_gpu_info {
 			*_gpu.attached_info<Gpu::Info_lima>() };
 
@@ -428,11 +407,11 @@ class Lima::Call
 		{
 			Buffer_id const id { .value = handle };
 			do {
-				if (_gpu.set_tiling_gpu(id, 0, op))
+				if (_main_ctx.gpu().set_tiling(id, 0, op))
 					break;
 
 				char buf;
-				(void)::read(_gpu_session.fd, &buf, sizeof(buf));
+				(void)::read(_main_ctx.fd(), &buf, sizeof(buf));
 			} while (true);
 		}
 
@@ -455,7 +434,7 @@ class Lima::Call
 							break;
 
 						char buf;
-						(void)::read(gc.fd, &buf, sizeof(buf));
+						(void)::read(gc.fd(), &buf, sizeof(buf));
 					} while (true);
 				};
 				_syncobj_space.apply<Syncobj>(syncobj_id, wait);
@@ -570,7 +549,7 @@ class Lima::Call
 
 		int _drm_lima_gem_submit(drm_lima_gem_submit &arg)
 		{
-			Gpu_context::Id_space::Id ctx_id { .value = arg.ctx };
+			Gpu_context_space::Id ctx_id { .value = arg.ctx };
 
 			Syncobj::Id_space::Id syncobj_id { .value = arg.out_sync };
 
@@ -634,9 +613,10 @@ class Lima::Call
 		int _drm_lima_ctx_create(drm_lima_ctx_create &arg)
 		{
 			try {
-				Gpu_context &ctx = _create_ctx();
+				Gpu_context * ctx =
+					new (_heap) Gpu_context(_gpu_context_space);
 
-				arg.id = ctx.id();
+				arg.id = ctx->id();
 				return 0;
 			} catch (... /* intentional catch-all ... */) {
 				/* ... as the lima GPU driver will not throw */
@@ -646,7 +626,7 @@ class Lima::Call
 
 		int _drm_lima_ctx_free(drm_lima_ctx_free &arg)
 		{
-			Gpu_context::Id_space::Id id { .value = arg.id };
+			Gpu_context_space::Id id { .value = arg.id };
 
 			bool result = false;
 			auto free_ctx = [&] (Gpu_context &ctx) {
