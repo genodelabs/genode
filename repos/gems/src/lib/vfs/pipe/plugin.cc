@@ -84,27 +84,28 @@ struct Vfs_pipe::Pipe_handle : Vfs::Vfs_handle, private Pipe_handle_registry_ele
 
 struct Vfs_pipe::Pipe
 {
-	Genode::Env &env;
+	Genode::Env       &env;
+	Vfs::Env::User    &vfs_user;
 	Genode::Allocator &alloc;
-	Pipe_space::Element space_elem;
-	Pipe_buffer buffer { };
+
+	Pipe_space::Element  space_elem;
+	Pipe_buffer          buffer { };
 	Pipe_handle_registry registry { };
-	Handle_fifo io_progress_waiters { };
+
 	Handle_fifo read_ready_waiters { };
+
 	unsigned num_writers = 0;
 	bool waiting_for_writers = true;
 
 	Genode::Io_signal_handler<Pipe> _read_notify_handler
 		{ env.ep(), *this, &Pipe::notify_read };
 
-	Genode::Io_signal_handler<Pipe> _write_notify_handler
-		{ env.ep(), *this, &Pipe::notify_write };
-
 	bool new_handle_active { true };
 
-	Pipe(Genode::Env &env, Genode::Allocator &alloc, Pipe_space &space)
+	Pipe(Genode::Env &env, Vfs::Env::User &vfs_user,
+	     Genode::Allocator &alloc, Pipe_space &space)
 	:
-		env(env), alloc(alloc), space_elem(*this, space)
+		env(env), vfs_user(vfs_user), alloc(alloc), space_elem(*this, space)
 	{ }
 
 	~Pipe() = default;
@@ -121,12 +122,6 @@ struct Vfs_pipe::Pipe
 			elem.object().read_ready_response(); });
 	}
 
-	void notify_write()
-	{
-		io_progress_waiters.dequeue_all([] (Handle_element &elem) {
-			elem.object().io_progress_response(); });
-	}
-
 	void submit_read_signal()
 	{
 		_read_notify_handler.local_submit();
@@ -134,7 +129,7 @@ struct Vfs_pipe::Pipe
 
 	void submit_write_signal()
 	{
-		_write_notify_handler.local_submit();
+		vfs_user.wakeup_vfs_user();
 	}
 
 	/**
@@ -161,8 +156,6 @@ struct Vfs_pipe::Pipe
 	 */
 	void remove(Pipe_handle &handle)
 	{
-		if (handle.io_progress_elem.enqueued())
-			io_progress_waiters.remove(handle.io_progress_elem);
 		if (handle.read_ready_elem.enqueued())
 			read_ready_waiters.remove(handle.read_ready_elem);
 	}
@@ -183,7 +176,6 @@ struct Vfs_pipe::Pipe
 					Genode::warning("flushing non-empty buffer. capacity=", buffer.avail_capacity());
 
 				buffer.reset();
-				io_progress_waiters.dequeue_all([] (Handle_element &/*elem*/) { });
 			}
 			*handle = new (alloc)
 				Pipe_handle(fs, alloc, Directory_service::OPEN_MODE_WRONLY, registry, *this);
@@ -205,12 +197,11 @@ struct Vfs_pipe::Pipe
 		return Open_result::OPEN_ERR_UNACCESSIBLE;
 	}
 
-	Write_result write(Pipe_handle &handle,
+	Write_result write(Pipe_handle &,
 	                   const char *buf, file_size count,
 	                   file_size &out_count)
 	{
 		file_size out = 0;
-		bool notify = buffer.empty();
 
 		if (buffer.avail_capacity() == 0) {
 			out_count = 0;
@@ -223,11 +214,9 @@ struct Vfs_pipe::Pipe
 		}
 
 		out_count = out;
-		if (out < count)
-			io_progress_waiters.enqueue(handle.io_progress_elem);
 
-		if (notify)
-			submit_read_signal();
+		if (out > 0)
+			vfs_user.wakeup_vfs_user();
 
 		return Write_result::WRITE_OK;
 	}
@@ -236,8 +225,6 @@ struct Vfs_pipe::Pipe
 	                 char *buf, file_size count,
 	                 file_size &out_count)
 	{
-		bool notify = buffer.avail_capacity() == 0;
-
 		file_size out = 0;
 		while (out < count && !buffer.empty()) {
 			*(buf++) = buffer.get();
@@ -245,7 +232,8 @@ struct Vfs_pipe::Pipe
 		}
 
 		out_count = out;
-		if (!out) {
+
+		if (out == 0) {
 
 			/* Send only EOF when at least one writer opened the pipe */
 			if ((num_writers == 0) && !waiting_for_writers)
@@ -255,8 +243,9 @@ struct Vfs_pipe::Pipe
 			return Read_result::READ_QUEUED;
 		}
 
-		if (notify)
-			submit_write_signal();
+		/* new pipe space may unblock the writer */
+		if (out > 0)
+			vfs_user.wakeup_vfs_user();
 
 		return Read_result::READ_OK;
 	}
@@ -309,14 +298,15 @@ struct Vfs_pipe::New_pipe_handle : Vfs::Vfs_handle
 {
 	Pipe &pipe;
 
-	New_pipe_handle(Vfs::File_system &fs,
-	                Genode::Env &env,
+	New_pipe_handle(Vfs::File_system  &fs,
+	                Genode::Env       &env,
+	                Vfs::Env::User    &vfs_user,
 	                Genode::Allocator &alloc,
-	                unsigned flags,
-	                Pipe_space &pipe_space)
+	                unsigned           flags,
+	                Pipe_space        &pipe_space)
 	:
 		Vfs::Vfs_handle(fs, fs, alloc, flags),
-		pipe(*(new (alloc) Pipe(env, alloc, pipe_space)))
+		pipe(*(new (alloc) Pipe(env, vfs_user, alloc, pipe_space)))
 	{ }
 
 	~New_pipe_handle()
@@ -677,7 +667,7 @@ class Vfs_pipe::Pipe_file_system : public Vfs_pipe::File_system
 				if ((OPEN_MODE_ACCMODE & mode) == OPEN_MODE_WRONLY)
 					return OPEN_ERR_NO_PERM;
 				*handle = new (alloc)
-					New_pipe_handle(*this, _env.env(), alloc, mode, _pipe_space);
+					New_pipe_handle(*this, _env.env(), _env.user(), alloc, mode, _pipe_space);
 				return OPEN_OK;
 			}
 
@@ -823,7 +813,7 @@ class Vfs_pipe::Fifo_file_system : public Vfs_pipe::File_system
 				Path const path { fifo.attribute_value("name", String<MAX_PATH_LEN>()) };
 
 				Pipe &pipe = *new (env.alloc())
-					Pipe(env.env(), env.alloc(), _pipe_space);
+					Pipe(env.env(), env.user(), env.alloc(), _pipe_space);
 				new (env.alloc())
 					Fifo_item(_items, path, pipe.space_elem.id());
 			});

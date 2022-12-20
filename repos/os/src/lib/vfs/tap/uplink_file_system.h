@@ -59,7 +59,7 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 
 			if (_blocked) {
 				_blocked = false;
-				io_progress_response();
+				_vfs_user.wakeup_vfs_user();
 			}
 
 			if (_notifying) {

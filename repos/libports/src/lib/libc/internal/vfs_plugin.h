@@ -84,14 +84,14 @@ class Libc::Vfs_plugin final : public Plugin
 			  reference_handle(reference_handle) { }
 		};
 
-		Genode::Allocator               &_alloc;
-		Vfs::File_system                &_root_fs;
-		Constructible<Genode::Directory> _root_dir { };
-		Vfs::Io_response_handler        &_response_handler;
-		Update_mtime               const _update_mtime;
-		Current_real_time               &_current_real_time;
-		bool                       const _pipe_configured;
-		Registry<Mmap_entry>             _mmap_registry;
+		Genode::Allocator                &_alloc;
+		Vfs::File_system                 &_root_fs;
+		Constructible<Genode::Directory>  _root_dir { };
+		Vfs::Read_ready_response_handler &_response_handler;
+		Update_mtime                const _update_mtime;
+		Current_real_time                &_current_real_time;
+		bool                        const _pipe_configured;
+		Registry<Mmap_entry>              _mmap_registry;
 
 		/**
 		 * Sync a handle
@@ -150,13 +150,13 @@ class Libc::Vfs_plugin final : public Plugin
 
 	public:
 
-		Vfs_plugin(Libc::Env                &env,
-		           Vfs::Env                 &vfs_env,
-		           Genode::Allocator        &alloc,
-		           Vfs::Io_response_handler &handler,
-		           Update_mtime              update_mtime,
-		           Current_real_time        &current_real_time,
-		           Xml_node                  config)
+		Vfs_plugin(Libc::Env                        &env,
+		           Vfs::Env                         &vfs_env,
+		           Genode::Allocator                &alloc,
+		           Vfs::Read_ready_response_handler &handler,
+		           Update_mtime                     update_mtime,
+		           Current_real_time               &current_real_time,
+		           Xml_node                         config)
 		:
 			_alloc(alloc),
 			_root_fs(env.vfs_env().root_dir()),

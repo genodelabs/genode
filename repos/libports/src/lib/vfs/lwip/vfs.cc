@@ -438,16 +438,6 @@ struct Lwip::Socket_dir : Lwip::Directory
 			read_ready_queue.dequeue_all([] (Lwip_file_handle::Fifo_element &elem) {
 				elem.object().read_ready_response(); });
 		}
-
-		/**
-		 * Notify handles blocked by operations on this PCB / socket
-		 */
-		void process_io()
-		{
-			/* invoke all handles waiting for IO progress */
-			io_progress_queue.dequeue_all([] (Lwip_file_handle::Fifo_element &elem) {
-				elem.object().io_progress_response(); });
-		}
 };
 
 
@@ -551,6 +541,7 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 
 		Genode::Allocator  &_alloc;
 		Genode::Entrypoint &_ep;
+		Vfs::Env::User     &_vfs_user;
 
 		Genode::List<SOCKET_DIR> _socket_dirs { };
 
@@ -562,8 +553,8 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 		friend class Tcp_socket_dir;
 		friend class Udp_socket_dir;
 
-		Protocol_dir_impl(Vfs::Env &vfs_env)
-		: _alloc(vfs_env.alloc()), _ep(vfs_env.env().ep()) { }
+		Protocol_dir_impl(Vfs::Env &env)
+		: _alloc(env.alloc()), _ep(env.env().ep()), _vfs_user(env.user()) { }
 
 		SOCKET_DIR *lookup(char const *name)
 		{
@@ -684,7 +675,7 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 			}
 
 			SOCKET_DIR *new_socket = new (alloc)
-				SOCKET_DIR(id, *this, alloc, _ep, pcb);
+				SOCKET_DIR(id, *this, alloc, _ep, _vfs_user, pcb);
 			_socket_dirs.insert(new_socket);
 			return *new_socket;
 		}
@@ -738,11 +729,9 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 			return Opendir_result::OPENDIR_ERR_LOOKUP_FAILED;
 		}
 
-		void notify()
+		void wakeup_vfs_user()
 		{
-			for (SOCKET_DIR *sd = _socket_dirs.first(); sd; sd = sd->next()) {
-				sd->process_io();
-			}
+			_vfs_user.wakeup_vfs_user();
 		}
 };
 
@@ -761,6 +750,8 @@ class Lwip::Udp_socket_dir final :
 	private Udp_socket_dir_list::Element
 {
 	private:
+
+		Vfs::Env::User &_vfs_user;
 
 		/*
 		  * Noncopyable
@@ -840,9 +831,12 @@ class Lwip::Udp_socket_dir final :
 		Udp_socket_dir(unsigned num, Udp_proto_dir &proto_dir,
 		               Genode::Allocator &alloc,
 		               Genode::Entrypoint &,
+		               Vfs::Env::User &vfs_user,
 		               udp_pcb *pcb)
-		: Socket_dir(num, alloc),
-		  _proto_dir(proto_dir), _pcb(pcb ? pcb : udp_new())
+		:
+			Socket_dir(num, alloc),
+			_vfs_user(vfs_user),
+			_proto_dir(proto_dir), _pcb(pcb ? pcb : udp_new())
 		{
 			ip_addr_set_zero(&_to_addr);
 
@@ -875,7 +869,7 @@ class Lwip::Udp_socket_dir final :
 				pbuf_free(buf);
 			}
 
-			process_io();
+			_vfs_user.wakeup_vfs_user();
 			process_read_ready();
 		}
 
@@ -1110,6 +1104,7 @@ class Lwip::Tcp_socket_dir final :
 
 		Tcp_proto_dir       &_proto_dir;
 		Genode::Entrypoint  &_ep;
+		Vfs::Env::User      &_vfs_user;
 
 		typedef Genode::List<Pcb_pending> Pcb_pending_list;
 
@@ -1141,9 +1136,12 @@ class Lwip::Tcp_socket_dir final :
 		Tcp_socket_dir(unsigned num, Tcp_proto_dir &proto_dir,
 		               Genode::Allocator &alloc,
 		               Genode::Entrypoint &ep,
+		               Vfs::Env::User &vfs_user,
 		               tcp_pcb *pcb)
-		: Socket_dir(num, alloc), _proto_dir(proto_dir),
-		  _ep(ep), _pcb(pcb ? pcb : tcp_new()), state(pcb ? READY : NEW)
+		:
+			Socket_dir(num, alloc), _proto_dir(proto_dir),
+			_ep(ep), _vfs_user(vfs_user),
+			_pcb(pcb ? pcb : tcp_new()), state(pcb ? READY : NEW)
 		{
 			/* 'this' will be the argument to LwIP callbacks */
 			tcp_arg(_pcb, this);
@@ -1189,7 +1187,7 @@ class Lwip::Tcp_socket_dir final :
 			tcp_arg(newpcb, elem);
 			tcp_recv(newpcb, tcp_delayed_recv_callback);
 
-			process_io();
+			_vfs_user.wakeup_vfs_user();
 			process_read_ready();
 			return ERR_OK;
 		}
@@ -1220,8 +1218,13 @@ class Lwip::Tcp_socket_dir final :
 			_pcb = NULL;
 
 			/* churn the application */
-			process_io();
+			wakeup_vfs_user();
 			process_read_ready();
+		}
+
+		void wakeup_vfs_user()
+		{
+			_vfs_user.wakeup_vfs_user();
 		}
 
 		/**
@@ -1627,7 +1630,7 @@ err_t tcp_connect_callback(void *arg, struct tcp_pcb *pcb, err_t)
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
 	socket_dir->state = Lwip::Tcp_socket_dir::READY;
 
-	socket_dir->process_io();
+	socket_dir->wakeup_vfs_user();
 	socket_dir->process_read_ready();
 	return ERR_OK;
 }
@@ -1662,7 +1665,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t)
 		socket_dir->recv(p);
 	}
 
-	socket_dir->process_io();
+	socket_dir->wakeup_vfs_user();
 	socket_dir->process_read_ready();
 	return ERR_OK;
 }
@@ -1705,7 +1708,7 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb *pcb, u16_t)
 	}
 
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
-	socket_dir->process_io();
+	socket_dir->wakeup_vfs_user();
 	return ERR_OK;
 }
 
@@ -1765,10 +1768,10 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 		 */
 		struct Vfs_netif : Lwip::Nic_netif
 		{
-			Vfs::Env::User &_vfs_user;
+			Vfs::Env &_vfs_env;
 
-			Tcp_proto_dir tcp_dir;
-			Udp_proto_dir udp_dir;
+			Tcp_proto_dir tcp_dir { _vfs_env };
+			Udp_proto_dir udp_dir { _vfs_env };
 
 			Nameserver_registry nameserver_handles { };
 
@@ -1780,8 +1783,7 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 			:
 				Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config,
 				                wakeup_scheduler),
-				_vfs_user(vfs_env.user()),
-				tcp_dir(vfs_env), udp_dir(vfs_env)
+				_vfs_env(vfs_env)
 			{ }
 
 			~Vfs_netif()
@@ -1795,10 +1797,7 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 			 */
 			void status_callback() override
 			{
-				tcp_dir.notify();
-				udp_dir.notify();
-
-				_vfs_user.wakeup_vfs_user();
+				_vfs_env.user().wakeup_vfs_user();
 			}
 
 		} _netif;

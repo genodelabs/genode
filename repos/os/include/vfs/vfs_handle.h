@@ -17,7 +17,7 @@
 #include <vfs/directory_service.h>
 
 namespace Vfs{
-	struct Io_response_handler;
+	struct Read_ready_response_handler;
 	struct Watch_response_handler;
 	class Vfs_handle;
 	class Vfs_watch_handle;
@@ -33,17 +33,12 @@ namespace Vfs{
  * These responses should be assumed to be called
  * during I/O signal dispatch.
  */
-struct Vfs::Io_response_handler : Genode::Interface
+struct Vfs::Read_ready_response_handler : Genode::Interface
 {
 	/**
 	 * Respond to a resource becoming readable
 	 */
 	virtual void read_ready_response() = 0;
-
-	/**
-	 * Respond to complete pending I/O
-	 */
-	virtual void io_progress_response() = 0;
 };
 
 
@@ -64,12 +59,13 @@ class Vfs::Vfs_handle
 {
 	private:
 
-		Directory_service   &_ds;
-		File_io_service     &_fs;
-		Genode::Allocator   &_alloc;
-		Io_response_handler *_handler = nullptr;
-		file_size            _seek = 0;
-		int                  _status_flags;
+		Directory_service &_ds;
+		File_io_service   &_fs;
+		Genode::Allocator &_alloc;
+		file_size          _seek = 0;
+		int                _status_flags;
+
+		Read_ready_response_handler *_handler_ptr = nullptr;
 
 		/*
 		 * Noncopyable
@@ -143,9 +139,9 @@ class Vfs::Vfs_handle
 		/**
 		 * Set response handler, unset with nullptr
 		 */
-		virtual void handler(Io_response_handler *handler)
+		virtual void handler(Read_ready_response_handler *handler_ptr)
 		{
-			_handler = handler;
+			_handler_ptr = handler_ptr;
 		}
 
 		/**
@@ -155,19 +151,13 @@ class Vfs::Vfs_handle
 		 */
 		template <typename FUNC>
 		void apply_handler(FUNC const &func) const {
-			if (_handler) func(*_handler); }
+			if (_handler_ptr) func(*_handler_ptr); }
 
 		/**
 		 * Notify application through response handler
 		 */
 		void read_ready_response() {
-			if (_handler) _handler->read_ready_response(); }
-
-		/**
-		 * Notify application through response handler
-		 */
-		void io_progress_response() {
-			if (_handler) _handler->io_progress_response(); }
+			if (_handler_ptr) _handler_ptr->read_ready_response(); }
 
 		/**
 		 * Close handle at backing file-system.

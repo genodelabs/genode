@@ -629,6 +629,7 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 		Data_file_system &operator = (Data_file_system const &);
 
 		Genode::Entrypoint &_ep;
+		Vfs::Env::User     &_vfs_user;
 		Audio              &_audio;
 
 		struct Oss_vfs_handle : public Single_vfs_handle
@@ -705,41 +706,29 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 
 		void _handle_audio_out_progress()
 		{
-			if (_audio.handle_out_progress()) {
-				/* at least one stream packet is available */
-				_handle_registry.for_each([this] (Registered_handle &handle) {
-					if (handle.blocked) {
-						handle.blocked = false;
-						handle.io_progress_response();
-					}
-				});
-			}
+			if (_audio.handle_out_progress())
+				_vfs_user.wakeup_vfs_user();
 		}
 
 		void _handle_audio_in_progress()
 		{
-			if (_audio.handle_in_progress()) {
-				/* at least one stream packet is available */
-				_handle_registry.for_each([this] (Registered_handle &handle) {
-					if (handle.blocked) {
-						handle.blocked = false;
-						handle.io_progress_response();
-					}
-				});
-			}
+			if (_audio.handle_in_progress())
+				_vfs_user.wakeup_vfs_user();
 		}
 
 	public:
 
 		Data_file_system(Genode::Entrypoint &ep,
+		                 Vfs::Env::User     &vfs_user,
 		                 Audio              &audio,
 		                 Name         const &name)
 		:
 			Single_file_system { Node_type::CONTINUOUS_FILE, name.string(),
 			                     Node_rwx::ro(), Genode::Xml_node("<data/>") },
 
-			_ep    { ep },
-			_audio { audio }
+			_ep       { ep },
+			_vfs_user { vfs_user },
+			_audio    { audio }
 		{
 			_audio.out_progress_sigh(_audio_out_progress_sigh);
 			_audio.in_progress_sigh(_audio_in_progress_sigh);
@@ -1008,7 +997,7 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		_label   { config.attribute_value("label", Label("")) },
 		_name    { name(config) },
 		_env     { env },
-		_data_fs { _env.env().ep(), _audio, name(config) }
+		_data_fs { _env.env().ep(), env.user(), _audio, name(config) }
 	{ }
 
 	Vfs::File_system *create(Vfs::Env&, Xml_node node) override

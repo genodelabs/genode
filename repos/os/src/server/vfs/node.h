@@ -228,7 +228,7 @@ class Vfs_server::Node : Node_space::Element, Node_queue::Element
  * Super-class for nodes that process read/write packets
  */
 class Vfs_server::Io_node : public Vfs_server::Node,
-                            public Vfs::Io_response_handler
+                            public Vfs::Read_ready_response_handler
 {
 	private:
 
@@ -498,11 +498,6 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 			if (_read_ready_state == Read_ready_state::REQUESTED)
 				_read_ready_state =  Read_ready_state::READY;
 		}
-
-		/**
-		 * Called by the VFS plugin of this handle
-		 */
-		void io_progress_response() override { }
 };
 
 

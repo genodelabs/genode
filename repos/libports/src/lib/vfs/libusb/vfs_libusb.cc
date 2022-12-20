@@ -37,6 +37,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 			private:
 
 				Genode::Env           &_env;
+				Vfs::Env::User        &_vfs_user;
 				Genode::Allocator_avl  _alloc_avl;
 				Usb::Connection        _usb_connection;
 
@@ -57,7 +58,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 
 				void _handle_ack_avail()
 				{
-					io_progress_response();
+					_vfs_user.wakeup_vfs_user();
 				}
 
 			public:
@@ -65,13 +66,15 @@ class Libusb_file_system : public Vfs::Single_file_system
 				Libusb_vfs_handle(Directory_service &ds,
 				                  File_io_service   &fs,
 				                  Genode::Allocator &alloc,
-				                  Genode::Env &env)
-				: Single_vfs_handle(ds, fs, alloc, 0),
-				  _env(env), _alloc_avl(&alloc),
-				  _usb_connection(_env, &_alloc_avl,
-				                  "usb_device",
-				                  1024*1024,
-				                  _state_changed_handler)
+				                  Genode::Env       &env,
+				                  Vfs::Env::User    &vfs_user)
+				:
+					Single_vfs_handle(ds, fs, alloc, 0),
+					_env(env), _vfs_user(vfs_user), _alloc_avl(&alloc),
+					_usb_connection(_env, &_alloc_avl,
+					                "usb_device",
+					                1024*1024,
+					                _state_changed_handler)
 				{
 					_usb_connection.tx_channel()->sigh_ack_avail(_ack_avail_handler);
 					libusb_genode_usb_connection(&_usb_connection);
@@ -127,7 +130,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 				return OPEN_ERR_UNACCESSIBLE;
 
 			*out_handle = new (alloc)
-				Libusb_vfs_handle(*this, *this, alloc, _env.env());
+				Libusb_vfs_handle(*this, *this, alloc, _env.env(), _env.user());
 			return OPEN_OK;
 		}
 

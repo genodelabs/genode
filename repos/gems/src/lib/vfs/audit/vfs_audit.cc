@@ -94,17 +94,11 @@ class Vfs_audit::File_system : public Vfs::File_system
 					audit->seek(Vfs_handle::seek());
 			}
 
-			Handle(Vfs_audit::File_system &fs,
-			       Genode::Allocator &alloc,
-			       int flags,
-			       char const *path)
-			: Vfs_handle(fs, fs, alloc, flags), path(path) { };
-
-			void handler(Io_response_handler *rh) override
-			{
-				Vfs_handle::handler(rh);
-				if (audit) audit->handler(rh);
-			}
+			Handle(Vfs_audit::File_system &fs, Genode::Allocator &alloc,
+			       int flags, char const *path)
+			:
+				Vfs_handle(fs, fs, alloc, flags), path(path)
+			{ };
 		};
 
 	public:
@@ -113,7 +107,7 @@ class Vfs_audit::File_system : public Vfs::File_system
 		:
 			_audit_log(env.env(), config.attribute_value("label", Genode::String<64>("audit")).string()),
 			_root_dir(env.root_dir()),
-		  	_audit_path(config.attribute_value(
+			_audit_path(config.attribute_value(
 				"path", Genode::String<Absolute_path::capacity()>()).string())
 		{ }
 

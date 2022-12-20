@@ -314,7 +314,7 @@ class Vfs::Dir_file_system : public File_system
 					vfs_handle.seek(index * sizeof(Dirent));
 
 					/* forward the response handler */
-					dir_vfs_handle->apply_handler([&] (Vfs::Io_response_handler &h) {
+					dir_vfs_handle->apply_handler([&] (Vfs::Read_ready_response_handler &h) {
 						vfs_handle.handler(&h); });
 
 					result = vfs_handle.fs().queue_read(&vfs_handle, sizeof(Dirent));
@@ -998,7 +998,7 @@ class Vfs::Dir_file_system : public File_system
 
 			auto f = [&result, dir_vfs_handle] (Dir_vfs_handle::Subdir_handle_element &e) {
 				/* forward the response handler */
-				dir_vfs_handle->apply_handler([&] (Io_response_handler &h) {
+				dir_vfs_handle->apply_handler([&] (Read_ready_response_handler &h) {
 					e.vfs_handle.handler(&h); });
 				e.synced = false;
 

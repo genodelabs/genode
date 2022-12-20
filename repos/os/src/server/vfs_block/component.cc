@@ -78,29 +78,13 @@ class Vfs_block::File
 
 		Constructible<Vfs_block::Job> _job { };
 
-		struct Io_response_handler : Vfs::Io_response_handler
-		{
-			Signal_context_capability sigh { };
-
-			void read_ready_response() override { }
-
-			void io_progress_response() override
-			{
-				if (sigh.valid()) {
-					Signal_transmitter(sigh).submit();
-				}
-			}
-		};
-		Io_response_handler _io_response_handler { };
-
 		Block::Session::Info _block_info { };
 
 	public:
 
-		File(Genode::Allocator         &alloc,
-		     Vfs::File_system          &vfs,
-		     Signal_context_capability  sigh,
-		     File_info           const &info)
+		File(Genode::Allocator &alloc,
+		     Vfs::File_system  &vfs,
+		     File_info   const &info)
 		:
 			_vfs        { vfs },
 			_vfs_handle { nullptr }
@@ -137,9 +121,6 @@ class Vfs_block::File
 				.align_log2  = log2(info.block_size),
 				.writeable   = info.writeable,
 			};
-
-			_io_response_handler.sigh = sigh;
-			_vfs_handle->handler(&_io_response_handler);
 		}
 
 		~File()
@@ -313,7 +294,8 @@ struct Block_session_component : Rpc_object<Block::Session>,
 };
 
 
-struct Main : Rpc_object<Typed_root<Block::Session>>
+struct Main : Rpc_object<Typed_root<Block::Session>>,
+              private Vfs::Env::User
 {
 	Env &_env;
 
@@ -324,7 +306,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>
 	Attached_rom_dataspace  _config_rom { _env, "config" };
 
 	Vfs::Simple_env _vfs_env { _env, _heap,
-		_config_rom.xml().sub_node("vfs") };
+		_config_rom.xml().sub_node("vfs"), *this };
 
 	Constructible<Attached_ram_dataspace>  _block_ds { };
 	Constructible<Vfs_block::File>         _block_file { };
@@ -339,6 +321,13 @@ struct Main : Rpc_object<Typed_root<Block::Session>>
 		_block_session->handle_request();
 	}
 
+	/*
+	 * Vfs::Env::User interface
+	 */
+	void wakeup_vfs_user() override
+	{
+		_request_handler.local_submit();
+	}
 
 	/*
 	 * Root interface
@@ -378,8 +367,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>
 
 		try {
 			_block_ds.construct(_env.ram(), _env.rm(), tx_buf_size);
-			_block_file.construct(_heap, _vfs_env.root_dir(),
-			                      _request_handler, file_info);
+			_block_file.construct(_heap, _vfs_env.root_dir(), file_info);
 			_block_session.construct(_env.rm(), _env.ep(),
 			                         _block_ds->cap(),
 			                         _request_handler, *_block_file,

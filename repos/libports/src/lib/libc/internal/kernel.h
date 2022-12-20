@@ -100,7 +100,7 @@ class Libc::Main_job : public Monitor::Job
  * secondary stack for the application task. Context switching uses
  * setjmp/longjmp.
  */
-struct Libc::Kernel final : Vfs::Io_response_handler,
+struct Libc::Kernel final : Vfs::Read_ready_response_handler,
                             Entrypoint::Io_progress_handler,
                             Reset_malloc_heap,
                             Resume,
@@ -681,12 +681,11 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		}
 
 
-		/****************************************
-		 ** Vfs::Io_response_handler interface **
-		 ****************************************/
+		/************************************************
+		 ** Vfs::Read_ready_response_handler interface **
+		 ************************************************/
 
 		void read_ready_response() override  { _io_progressed = true; }
-		void io_progress_response() override { _io_progressed = true; }
 
 
 		/**********************************************

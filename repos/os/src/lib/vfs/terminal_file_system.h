@@ -119,7 +119,6 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			bool const _raw;
 
 			bool notifying = false;
-			bool blocked   = false;
 
 			Terminal_vfs_handle(Terminal::Connection &terminal,
 			                    Vfs::Env::User       &vfs_user,
@@ -157,10 +156,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 					_fetch_data_from_terminal(_terminal, _read_buffer,
 					                          _interrupt_handler, _raw);
 
-				if (_read_buffer.empty()) {
-					blocked = true;
+				if (_read_buffer.empty())
 					return READ_QUEUED;
-				}
 
 				unsigned consumed = 0;
 				for (; consumed < count && !_read_buffer.empty(); consumed++)
@@ -206,11 +203,6 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			                          _raw);
 
 			_handle_registry.for_each([] (Registered_handle &handle) {
-				if (handle.blocked) {
-					handle.blocked = false;
-					handle.io_progress_response();
-				}
-
 				if (handle.notifying) {
 					handle.notifying = false;
 					handle.read_ready_response();

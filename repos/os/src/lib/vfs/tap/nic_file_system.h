@@ -82,7 +82,7 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 
 			if (_blocked) {
 				_blocked = false;
-				io_progress_response();
+				_vfs_user.wakeup_vfs_user();
 			}
 
 			if (_notifying) {

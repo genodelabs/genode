@@ -293,8 +293,7 @@ struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
 	typedef Genode::Fifo_element<Lxip_vfs_file_handle> Fifo_element;
 	typedef Genode::Fifo<Fifo_element> Fifo;
 
-	Fifo_element  read_ready_elem { *this };
-	Fifo_element io_progress_elem { *this };
+	Fifo_element read_ready_elem { *this };
 
 	char content_buffer[Lxip::MAX_DATA_LEN];
 
@@ -346,12 +345,6 @@ struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
 
 	virtual Sync_result sync() override {
 		return (file) ? file->sync() : Sync_result::SYNC_ERR_INVALID; }
-
-	void io_enqueue(Fifo &fifo)
-	{
-		if (!io_progress_elem.enqueued())
-			fifo.enqueue(io_progress_elem);
-	}
 };
 
 
@@ -379,26 +372,14 @@ struct Vfs::Lxip_vfs_dir_handle final : Vfs::Lxip_vfs_handle
 };
 
 
-/**
- * Queues of open handles to poll
- */
-static Vfs::Lxip_vfs_file_handle::Fifo *_io_progress_waiters_ptr;
+static Vfs::Env::User                  *_vfs_user_ptr;
 static Vfs::Lxip_vfs_file_handle::Fifo *_read_ready_waiters_ptr;
+
 
 static void poll_all()
 {
-	_io_progress_waiters_ptr->for_each(
-			[&] (Vfs::Lxip_vfs_file_handle::Fifo_element &elem) {
-		Vfs::Lxip_vfs_file_handle &handle = elem.object();
-		if (handle.file) {
-			if (handle.file->poll()) {
-				/* do not notify again until some I/O queues */
-				_io_progress_waiters_ptr->remove(elem);
-
-				handle.io_progress_response();
-			}
-		}
-	});
+	if (_vfs_user_ptr)
+		_vfs_user_ptr->wakeup_vfs_user();
 
 	_read_ready_waiters_ptr->for_each(
 			[&] (Vfs::Lxip_vfs_file_handle::Fifo_element &elem) {
@@ -513,10 +494,9 @@ class Vfs::Lxip_data_file final : public Vfs::Lxip_file
 			msghdr msg = create_msghdr(nullptr, 0, len, &iov);
 
 			Lxip::ssize_t ret = _sock.ops->recvmsg(&_sock, &msg, len, MSG_DONTWAIT);
-			if (ret == -EAGAIN) {
-				handle.io_enqueue(*_io_progress_waiters_ptr);
+			if (ret == -EAGAIN)
 				throw Would_block();
-			}
+
 			return ret;
 		}
 };
@@ -743,7 +723,6 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 			case Lxip::Io_result::LINUX_EINPROGRESS:
 				_connecting = true;
 				_write_err = 0;
-				handle.io_enqueue(*_io_progress_waiters_ptr);
 				return len;
 
 			case Lxip::Io_result::LINUX_EALREADY:
@@ -892,10 +871,9 @@ class Vfs::Lxip_remote_file final : public Vfs::Lxip_file
 					                           sizeof(handle.content_buffer), &iov);
 
 					int const res = _sock.ops->recvmsg(&_sock, &msg, 0, MSG_DONTWAIT|MSG_PEEK);
-					if (res == -EAGAIN) {
-						handle.io_enqueue(*_io_progress_waiters_ptr);
+					if (res == -EAGAIN)
 						throw Would_block();
-					}
+
 					if (res < 0) return -1;
 				}
 				break;
@@ -974,7 +952,6 @@ class Vfs::Lxip_accept_file final : public Vfs::Lxip_file
 				return Genode::strlen(dst);
 			}
 
-			handle.io_enqueue(*_io_progress_waiters_ptr);
 			throw Would_block();
 		}
 };
@@ -1928,10 +1905,8 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			Lxip_vfs_file_handle *file_handle =
 				dynamic_cast<Vfs::Lxip_vfs_file_handle*>(handle);
 
-			if (file_handle) {
-				_io_progress_waiters_ptr->remove(file_handle->io_progress_elem);
+			if (file_handle)
 				_read_ready_waiters_ptr->remove(file_handle->read_ready_elem);
-			}
 
 			Genode::destroy(handle->alloc(), handle);
 		}
@@ -2044,6 +2019,7 @@ struct Lxip_factory : Vfs::File_system_factory
 
 	Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
 	{
+		_vfs_user_ptr = &env.user();
 		static Init inst(env.env(), env.alloc());
 		return new (env.alloc()) Vfs::Lxip_file_system(env, config);
 	}
@@ -2052,11 +2028,9 @@ struct Lxip_factory : Vfs::File_system_factory
 
 extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	static Vfs::Lxip_vfs_file_handle::Fifo io_progress_waiters;
 	static Vfs::Lxip_vfs_file_handle::Fifo read_ready_waiters;
 
-	_io_progress_waiters_ptr = &io_progress_waiters;
-	_read_ready_waiters_ptr  = &read_ready_waiters;
+	_read_ready_waiters_ptr = &read_ready_waiters;
 
 	static Lxip_factory factory;
 	return &factory;

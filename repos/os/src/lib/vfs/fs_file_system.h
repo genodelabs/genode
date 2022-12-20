@@ -136,12 +136,10 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		struct Fs_vfs_handle : Vfs_handle,
 		                       private ::File_system::Node,
 		                       private Handle_space::Element,
-		                       private Fs_vfs_handle_queue::Element,
 		                       private Handle_state
 		{
 			friend Genode::Id_space<::File_system::Node>;
 			friend Fs_vfs_handle_queue;
-			using  Fs_vfs_handle_queue::Element::enqueued;
 
 			using Handle_state::queued_read_state;
 			using Handle_state::queued_read_packet;
@@ -450,18 +448,11 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			{ }
 		};
 
-		Fs_vfs_handle_queue _congested_handles { };
-
 		Write_result _write(Fs_vfs_handle &handle, file_size const seek_offset,
 		                    const char *buf, file_size count, file_size &out_count)
 		{
-			/*
-			 * TODO
-			 * a sustained write loop will congest the packet buffer,
-			 * perhaps acks should be processed before submission?
-			 *
-			 * _handle_ack();
-			 */
+			/* reclaim as much space in the packet stream as possible */
+			_handle_ack();
 
 			::File_system::Session::Tx::Source &source = *_fs.tx();
 			using ::File_system::Packet_descriptor;
@@ -470,9 +461,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			count = min(max_packet_size, count);
 
 			if (!source.ready_to_submit()) {
-				if (!handle.enqueued())
-					_congested_handles.enqueue(handle);
-
 				_write_would_block = true;
 				return Write_result::WRITE_ERR_WOULD_BLOCK;
 			}
@@ -489,9 +477,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				_submit_packet(packet_in);
 			}
 			catch (::File_system::Session::Tx::Source::Packet_alloc_failed) {
-				if (!handle.enqueued())
-					_congested_handles.enqueue(handle);
-
 				_write_would_block = true;
 				return Write_result::WRITE_ERR_WOULD_BLOCK;
 			}
@@ -508,6 +493,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			::File_system::Session::Tx::Source &source = *_fs.tx();
 			using ::File_system::Packet_descriptor;
 
+			bool any_ack_handled = false;
+
 			while (source.ack_avail()) {
 
 				Packet_descriptor const packet = source.try_get_acked_packet();
@@ -516,8 +503,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 				Handle_space::Id const id(packet.handle());
 
-				auto handle_read = [&] (Fs_vfs_handle &handle) {
-
+				auto handle_fn = [&] (Fs_vfs_handle &handle)
+				{
 					if (!packet.succeeded())
 						Genode::error("packet operation=", (int)packet.operation(), " failed");
 
@@ -530,29 +517,22 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 					case Packet_descriptor::READ:
 						handle.queued_read_packet = packet;
 						handle.queued_read_state  = Handle_state::Queued_state::ACK;
-						handle.io_progress_response();
 						break;
 
 					case Packet_descriptor::WRITE:
-						/*
-						 * Notify anyone who might have failed on
-						 * 'alloc_packet()'
-						 */
-						handle.io_progress_response();
+						source.release_packet(packet);
 						break;
 
 					case Packet_descriptor::SYNC:
 						handle.queued_sync_packet = packet;
 						handle.queued_sync_state  = Handle_state::Queued_state::ACK;
-						handle.io_progress_response();
 						break;
 
 					case Packet_descriptor::CONTENT_CHANGED:
-						/* previously handled */
 						break;
 
 					case Packet_descriptor::WRITE_TIMESTAMP:
-						/* previously handled */
+						source.release_packet(packet);
 						break;
 					}
 				};
@@ -562,34 +542,22 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 						_watch_handle_space.apply<Fs_vfs_watch_handle>(id, [&] (Fs_vfs_watch_handle &handle) {
 							handle.watch_response(); });
 					} else {
-						_handle_space.apply<Fs_vfs_handle>(id, handle_read);
+						_handle_space.apply<Fs_vfs_handle>(id, handle_fn);
 					}
 				}
 				catch (Handle_space::Unknown_id) {
 					Genode::warning("ack for unknown File_system handle ", id); }
 
-				if (packet.operation() == Packet_descriptor::WRITE) {
-					source.release_packet(packet);
-				}
-
-				if (packet.operation() == Packet_descriptor::WRITE_TIMESTAMP) {
-					source.release_packet(packet);
-				}
+				if (packet.succeeded())
+					any_ack_handled = true;
 			}
-		}
 
-		void _handle_signal()
-		{
-			_handle_ack();
-
-			_congested_handles.dequeue_all([] (Fs_vfs_handle &handle) {
-				handle.io_progress_response(); });
-
-			_env.user().wakeup_vfs_user();
+			if (any_ack_handled)
+				_env.user().wakeup_vfs_user();
 		}
 
 		Genode::Io_signal_handler<Fs_file_system> _signal_handler {
-			_env.env().ep(), *this, &Fs_file_system::_handle_signal };
+			_env.env().ep(), *this, &Fs_file_system::_handle_ack };
 
 		static size_t buffer_size(Genode::Xml_node const &config)
 		{
@@ -867,8 +835,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		void close(Vfs_handle *vfs_handle) override
 		{
 			Fs_vfs_handle *fs_handle = static_cast<Fs_vfs_handle *>(vfs_handle);
-			if (fs_handle->enqueued())
-				_congested_handles.remove(*fs_handle);
 
 			_fs.close(fs_handle->file_handle());
 			destroy(fs_handle->alloc(), fs_handle);
@@ -935,10 +901,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		{
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
-			bool result = handle->queue_read(count);
-			if (!result && !handle->enqueued())
-				_congested_handles.enqueue(*handle);
-			return result;
+			return handle->queue_read(count);
 		}
 
 		Read_result complete_read(Vfs_handle *vfs_handle, char *dst, file_size count,
@@ -948,10 +911,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
-			Read_result result = handle->complete_read(dst, count, out_count);
-			if (result == READ_QUEUED && !handle->enqueued())
-				_congested_handles.enqueue(*handle);
-			return result;
+			return handle->complete_read(dst, count, out_count);
 		}
 
 		bool read_ready(Vfs_handle const &vfs_handle) const override
