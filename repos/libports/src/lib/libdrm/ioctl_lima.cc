@@ -354,10 +354,9 @@ class Lima::Call
 			Gpu_context          *_gc    { nullptr };
 			Gpu::Sequence_number  _seqno { 0 };
 
-			using Id_space = Genode::Id_space<Syncobj>;
-			Id_space::Element const _elem;
+			Genode::Id_space<Syncobj>::Element const _elem;
 
-			Syncobj(Id_space &space)
+			Syncobj(Genode::Id_space<Syncobj> &space)
 			: _elem { *this, space } { }
 
 			unsigned long id() const
@@ -386,7 +385,8 @@ class Lima::Call
 				return _seqno;
 			}
 		};
-		Genode::Id_space<Syncobj> _syncobj_space { };
+		using Syncobj_space = Genode::Id_space<Syncobj>;
+		Syncobj_space _syncobj_space { };
 
 		Gpu_context _main_ctx { _gpu_context_space };
 
@@ -423,7 +423,7 @@ class Lima::Call
 			}
 
 			unsigned const handle = fd - SYNC_FD;
-			Syncobj::Id_space::Id syncobj_id { .value = handle };
+			Syncobj_space::Id syncobj_id { .value = handle };
 
 			try {
 				auto wait = [&] (Syncobj &sync_obj) {
@@ -551,7 +551,7 @@ class Lima::Call
 		{
 			Gpu_context_space::Id ctx_id { .value = arg.ctx };
 
-			Syncobj::Id_space::Id syncobj_id { .value = arg.out_sync };
+			Syncobj_space::Id syncobj_id { .value = arg.out_sync };
 
 			bool result = false;
 			_syncobj_space.apply<Syncobj>(syncobj_id, [&] (Syncobj &sync_obj) {
@@ -715,7 +715,7 @@ class Lima::Call
 
 		int _drm_syncobj_destroy(drm_syncobj_destroy &arg)
 		{
-			Syncobj::Id_space::Id id { .value = arg.handle };
+			Syncobj_space::Id id { .value = arg.handle };
 
 			bool result = false;
 			_syncobj_space.apply<Syncobj>(id, [&] (Syncobj &obj) {
