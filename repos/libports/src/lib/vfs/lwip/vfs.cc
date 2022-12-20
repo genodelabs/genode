@@ -475,25 +475,19 @@ Lwip::Lwip_file_handle::~Lwip_file_handle()
 Lwip::Read_result Lwip::Lwip_file_handle::read(char *dst, file_size count,
                                                file_size &out_count)
 {
-	Lwip::Read_result result = Read_result::READ_ERR_INVALID;
-	if (socket) {
-		result = socket->read(*this, dst, count, out_count);
-		if (result == Read_result::READ_QUEUED && !_io_progress_waiter.enqueued())
-			socket->io_progress_queue.enqueue(_io_progress_waiter);
-	}
-	return result;
+	if (!socket)
+		return Read_result::READ_ERR_INVALID;
+
+	return socket->read(*this, dst, count, out_count);
 }
 
 Lwip::Write_result Lwip::Lwip_file_handle::write(char const *src, file_size count,
-	                                             file_size &out_count)
+                                                 file_size &out_count)
 {
-	Write_result result = Write_result::WRITE_ERR_INVALID;
-	if (socket) {
-		result = socket->write(*this, src, count, out_count);
-		if (result == Write_result::WRITE_ERR_WOULD_BLOCK && !_io_progress_waiter.enqueued())
-			socket->io_progress_queue.enqueue(_io_progress_waiter);
-	}
-	return result;
+	if (!socket)
+		return Write_result::WRITE_ERR_INVALID;
+
+	return socket->write(*this, src, count, out_count);
 }
 
 bool Lwip::Lwip_file_handle::notify_read_ready()
@@ -1771,6 +1765,8 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 		 */
 		struct Vfs_netif : Lwip::Nic_netif
 		{
+			Vfs::Env::User &_vfs_user;
+
 			Tcp_proto_dir tcp_dir;
 			Udp_proto_dir udp_dir;
 
@@ -1779,13 +1775,12 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 			typedef Genode::Fifo_element<Vfs_handle> Handle_element;
 			typedef Genode::Fifo<Vfs_netif::Handle_element> Handle_queue;
 
-			Handle_queue  blocked_handles { };
-
 			Vfs_netif(Vfs::Env &vfs_env, Genode::Xml_node config,
 			          Lwip::Nic_netif::Wakeup_scheduler &wakeup_scheduler)
 			:
 				Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config,
 				                wakeup_scheduler),
+				_vfs_user(vfs_env.user()),
 				tcp_dir(vfs_env), udp_dir(vfs_env)
 			{ }
 
@@ -1793,14 +1788,6 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 			{
 				/* free the allocated qeueue elements */
 				status_callback();
-			}
-
-			void enqueue(Vfs_handle &handle)
-			{
-				Handle_element *elem = new (handle.alloc())
-					Handle_element(handle);
-
-				blocked_handles.enqueue(*elem);
 			}
 
 			/**
@@ -1811,25 +1798,9 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 				tcp_dir.notify();
 				udp_dir.notify();
 
-				nameserver_handles.for_each([&] (Lwip_nameserver_handle &h) {
-					h.io_progress_response(); });
-
-				blocked_handles.dequeue_all([] (Handle_element &elem) {
-					Vfs_handle &handle = elem.object();
-					destroy(elem.object().alloc(), &elem);
-					handle.io_progress_response();
-				});
+				_vfs_user.wakeup_vfs_user();
 			}
 
-			void drop(Vfs_handle &handle)
-			{
-				blocked_handles.for_each([&] (Handle_element &elem) {
-					if (&elem.object() == &handle) {
-						blocked_handles.remove(elem);
-						destroy(elem.object().alloc(), &elem);
-					}
-				});
-			}
 		} _netif;
 
 		/**
@@ -2028,9 +1999,6 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 		{
 			Socket_dir *socket = nullptr;
 
-			/* if the inteface is down this handle may be queued */
-			_netif.drop(*vfs_handle);
-
 			if (Lwip_handle *handle = dynamic_cast<Lwip_handle*>(vfs_handle)) {
 				if (Lwip_file_handle *file_handle = dynamic_cast<Lwip_file_handle*>(handle)) {
 					socket = file_handle->socket;
@@ -2094,7 +2062,7 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 		/**
 		 * All reads are unavailable while the network is down
 		 */
-		bool queue_read(Vfs_handle *vfs_handle, file_size) override
+		bool queue_read(Vfs_handle *, file_size) override
 		{
 			if (_netif.ready())
 				return true;
@@ -2106,7 +2074,6 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 				_read_blocked_warning_printed_once = true;
 			}
 
-			_netif.enqueue(*vfs_handle);
 			return false;
 		}
 
