@@ -31,12 +31,10 @@ CC_OPT          += -DCONFIG_MEMORY_DYN_MIN=0x1c00000 \
 CC_OPT_PIC      :=
 ifeq ($(filter-out $(SPECS),32bit),)
 override CC_MARCH = -m32
-CC_WARN         += -Wframe-larger-than=104
 CC_OPT          += -mpreferred-stack-boundary=2 -mregparm=3
 else
 ifeq ($(filter-out $(SPECS),64bit),)
 override CC_MARCH = -m64
-CC_WARN         += -Wframe-larger-than=256
 CC_OPT          += -mpreferred-stack-boundary=4 -mcmodel=kernel -mno-red-zone
 else
 $(error Unsupported environment)
