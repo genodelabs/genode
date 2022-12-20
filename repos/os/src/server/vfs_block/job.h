@@ -89,7 +89,6 @@ namespace Vfs_block {
 					                           data + current_offset,
 					                           current_count, out);
 				if (result == Result::READ_QUEUED
-				 || result == Result::READ_ERR_INTERRUPT
 				 || result == Result::READ_ERR_WOULD_BLOCK) {
 					return progress;
 				} else

@@ -1343,7 +1343,6 @@ class Vfs_cbe::Wrapper
 				using Result = Vfs::File_io_service::Read_result;
 				switch (r) {
 					case Result::READ_QUEUED:          [[fallthrough]];
-					case Result::READ_ERR_INTERRUPT:   [[fallthrough]];
 					case Result::READ_ERR_WOULD_BLOCK: return true;
 					default: break;
 				}

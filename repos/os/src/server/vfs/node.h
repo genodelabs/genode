@@ -392,7 +392,6 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 				break;
 
 			case Read_result::READ_ERR_WOULD_BLOCK:
-			case Read_result::READ_ERR_INTERRUPT:
 			case Read_result::READ_QUEUED:
 				break;
 			}

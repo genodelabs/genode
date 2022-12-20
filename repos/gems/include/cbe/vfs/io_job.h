@@ -117,7 +117,6 @@ namespace Util {
 					                           _data + _current_offset,
 					                           _current_count, out);
 				if (result == Result::READ_QUEUED
-				 || result == Result::READ_ERR_INTERRUPT
 				 || result == Result::READ_ERR_WOULD_BLOCK) {
 					return progress;
 				} else

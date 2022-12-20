@@ -92,7 +92,6 @@ void Trust_anchor::_execute_write_read_operation(Vfs_handle        &file,
 
 		switch (result) {
 		case Read_result::READ_QUEUED:
-		case Read_result::READ_ERR_INTERRUPT:
 		case Read_result::READ_ERR_WOULD_BLOCK:
 
 			return;
@@ -201,7 +200,6 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 
 		switch (result) {
 		case Read_result::READ_QUEUED:
-		case Read_result::READ_ERR_INTERRUPT:
 		case Read_result::READ_ERR_WOULD_BLOCK:
 
 			return;
@@ -264,7 +262,6 @@ void Trust_anchor::_execute_read_operation(Vfs_handle        &file,
 
 		switch (result) {
 		case Read_result::READ_QUEUED:
-		case Read_result::READ_ERR_INTERRUPT:
 		case Read_result::READ_ERR_WOULD_BLOCK:
 
 			return;

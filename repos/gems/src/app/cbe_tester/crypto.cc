@@ -240,7 +240,6 @@ void Crypto::_execute_decrypt_block(Job                  &job,
 
 		switch (result) {
 		case Read_result::READ_QUEUED:          return;
-		case Read_result::READ_ERR_INTERRUPT:   return;
 		case Read_result::READ_ERR_WOULD_BLOCK: return;
 		default: break;
 		}
@@ -305,7 +304,6 @@ void Crypto::_execute_encrypt_block(Job                  &job,
 
 		switch (result) {
 		case Read_result::READ_QUEUED:          return;
-		case Read_result::READ_ERR_INTERRUPT:   return;
 		case Read_result::READ_ERR_WOULD_BLOCK: return;
 		default: break;
 		}

@@ -152,7 +152,6 @@ static inline void print(Genode::Output &output, Vfs::File_io_service::Read_resu
 		CASE_PRINT(READ_ERR_WOULD_BLOCK);
 		CASE_PRINT(READ_ERR_INVALID);
 		CASE_PRINT(READ_ERR_IO);
-		CASE_PRINT(READ_ERR_INTERRUPT);
 		CASE_PRINT(READ_QUEUED);
 	}
 

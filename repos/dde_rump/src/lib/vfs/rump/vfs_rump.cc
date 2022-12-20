@@ -139,7 +139,7 @@ class Vfs::Rump_file_system : public File_system
 					case EWOULDBLOCK: return READ_ERR_WOULD_BLOCK;
 					case EINVAL:      return READ_ERR_INVALID;
 					case EIO:         return READ_ERR_IO;
-					case EINTR:       return READ_ERR_INTERRUPT;
+					case EINTR:       return READ_ERR_IO;
 					default:
 						Genode::error(__func__, ": unhandled rump error ", errno);
 						return READ_ERR_IO;

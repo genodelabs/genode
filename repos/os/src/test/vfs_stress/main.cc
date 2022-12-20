@@ -118,8 +118,6 @@ inline void assert_read(Vfs::File_io_service::Read_result r)
 		error("READ_ERR_INVALID"); break;
 	case Result::READ_ERR_IO:
 		error("READ_ERR_IO"); break;
-	case Result::READ_ERR_INTERRUPT:
-		error("READ_ERR_INTERRUPT"); break;
 	}
 	throw Exception();
 }

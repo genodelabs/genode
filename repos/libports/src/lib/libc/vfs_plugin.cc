@@ -1000,7 +1000,6 @@ ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
 	case Result::READ_ERR_WOULD_BLOCK: return Errno(EWOULDBLOCK);
 	case Result::READ_ERR_INVALID:     return Errno(EINVAL);
 	case Result::READ_ERR_IO:          return Errno(EIO);
-	case Result::READ_ERR_INTERRUPT:   return Errno(EINTR);
 	case Result::READ_OK:              break;
 
 	case Result::READ_QUEUED: /* handled above, so never reached */ break;
@@ -2219,8 +2218,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t bu
 				case Result::READ_ERR_WOULD_BLOCK: result_errno = EWOULDBLOCK; break;
 				case Result::READ_ERR_INVALID:     result_errno = EINVAL;      break;
 				case Result::READ_ERR_IO:          result_errno = EIO;         break;
-				case Result::READ_ERR_INTERRUPT:   result_errno = EINTR;       break;
-				case Result::READ_OK:          succeeded = true;        break;
+				case Result::READ_OK:              succeeded = true;           break;
 				};
 				handle->close();
 			} break;
