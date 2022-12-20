@@ -96,9 +96,6 @@ struct Vfs::File_io_service : Interface
 	virtual Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) = 0;
 
 
-	virtual void register_read_ready_sigh(Vfs_handle *, Signal_context_capability)
-	{ }
-
 	/**********
 	 ** Sync **
 	 **********/

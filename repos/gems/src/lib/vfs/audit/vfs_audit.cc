@@ -302,13 +302,6 @@ class Vfs_audit::File_system : public Vfs::File_system
 			return h.audit->fs().ftruncate(h.audit, len);
 		}
 
-		void register_read_ready_sigh(Vfs_handle *vfs_handle, Signal_context_capability sigh) override
-		{
-			Handle &h = *static_cast<Handle*>(vfs_handle);
-			h.sync_state();
-			return h.audit->fs().register_read_ready_sigh(h.audit, sigh);
-		}
-
 		bool queue_sync(Vfs_handle *vfs_handle) override
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);
