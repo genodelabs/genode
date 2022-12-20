@@ -88,10 +88,9 @@ namespace Vfs_block {
 					_handle.fs().complete_read(&_handle,
 					                           data + current_offset,
 					                           current_count, out);
-				if (   result == Result::READ_QUEUED
-				    || result == Result::READ_ERR_INTERRUPT
-				    || result == Result::READ_ERR_AGAIN
-				    || result == Result::READ_ERR_WOULD_BLOCK) {
+				if (result == Result::READ_QUEUED
+				 || result == Result::READ_ERR_INTERRUPT
+				 || result == Result::READ_ERR_WOULD_BLOCK) {
 					return progress;
 				} else
 

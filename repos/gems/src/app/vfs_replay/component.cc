@@ -180,10 +180,9 @@ class Vfs_replay
 					_vfs_handle->fs().complete_read(_vfs_handle,
 					                                _read_buffer.local_addr<char>(),
 					                                request.current_count, out);
-				if (   result == Result::READ_QUEUED
-				    || result == Result::READ_ERR_INTERRUPT
-				    || result == Result::READ_ERR_AGAIN
-				    || result == Result::READ_ERR_WOULD_BLOCK) {
+				if (result == Result::READ_QUEUED
+				 || result == Result::READ_ERR_INTERRUPT
+				 || result == Result::READ_ERR_WOULD_BLOCK) {
 					return progress;
 				}
 

@@ -313,7 +313,6 @@ class Vfs_block_io_job
 				switch (result) {
 				case Result::READ_QUEUED:
 				case Result::READ_ERR_INTERRUPT:
-				case Result::READ_ERR_AGAIN:
 				case Result::READ_ERR_WOULD_BLOCK:
 
 					return;

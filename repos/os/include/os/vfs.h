@@ -478,7 +478,7 @@ class Genode::Readonly_file : public File
 			};
 
 			/*
-			 * XXX handle READ_ERR_AGAIN, READ_ERR_WOULD_BLOCK, READ_QUEUED
+			 * XXX handle READ_ERR_WOULD_BLOCK, READ_QUEUED
 			 */
 
 			if (result != Vfs::File_io_service::READ_OK)

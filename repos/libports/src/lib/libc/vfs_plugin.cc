@@ -997,7 +997,6 @@ ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
 	Plugin::resume_all();
 
 	switch (out_result) {
-	case Result::READ_ERR_AGAIN:       return Errno(EAGAIN);
 	case Result::READ_ERR_WOULD_BLOCK: return Errno(EWOULDBLOCK);
 	case Result::READ_ERR_INVALID:     return Errno(EINVAL);
 	case Result::READ_ERR_IO:          return Errno(EIO);
@@ -2217,7 +2216,6 @@ ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t bu
 				switch (out_result) {
 				case Result::READ_QUEUED: return Fn::INCOMPLETE;;
 
-				case Result::READ_ERR_AGAIN:       result_errno = EAGAIN;      break;
 				case Result::READ_ERR_WOULD_BLOCK: result_errno = EWOULDBLOCK; break;
 				case Result::READ_ERR_INVALID:     result_errno = EINVAL;      break;
 				case Result::READ_ERR_IO:          result_errno = EIO;         break;

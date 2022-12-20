@@ -39,10 +39,9 @@ struct Vfs::File_io_service : Interface
 	 ** Read **
 	 **********/
 
-	enum Read_result { READ_ERR_AGAIN,     READ_ERR_WOULD_BLOCK,
-	                   READ_ERR_INVALID,   READ_ERR_IO,
-	                   READ_ERR_INTERRUPT, READ_QUEUED,
-	                   READ_OK };
+	enum Read_result { READ_ERR_WOULD_BLOCK, READ_ERR_INVALID,
+	                   READ_ERR_IO,          READ_ERR_INTERRUPT,
+	                   READ_QUEUED,          READ_OK };
 
 	/**
 	 * Queue read operation

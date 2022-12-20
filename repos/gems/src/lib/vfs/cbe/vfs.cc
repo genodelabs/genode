@@ -1344,7 +1344,6 @@ class Vfs_cbe::Wrapper
 				switch (r) {
 					case Result::READ_QUEUED:          [[fallthrough]];
 					case Result::READ_ERR_INTERRUPT:   [[fallthrough]];
-					case Result::READ_ERR_AGAIN:       [[fallthrough]];
 					case Result::READ_ERR_WOULD_BLOCK: return true;
 					default: break;
 				}
