@@ -18,8 +18,10 @@
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
 
-#include <hw/spec/x86_64/page_table.h>
 #include <cpu/vm_state_virtualization.h>
+#include <hw/spec/x86_64/page_table.h>
+#include <spec/x86_64/virtualization/svm.h>
+#include <cpu.h>
 
 namespace Board {
 
@@ -46,6 +48,10 @@ namespace Kernel {
 struct Board::Vcpu_context
 {
 	Vcpu_context(Kernel::Cpu & cpu);
+	void initialize_svm(Kernel::Cpu &cpu, void *table);
+
+	Vmcb              vmcb;
+	Genode::Align_at<Core::Cpu::Context> regs;
 };
 
 #endif /* _CORE__SPEC__PC__VIRTUALIZATION__BOARD_H_ */

@@ -20,6 +20,7 @@ SRC_S += spec/x86_64/exception_vector.s
 SRC_CC += kernel/cpu_mp.cc
 SRC_CC += kernel/vm_thread_on.cc
 SRC_CC += spec/x86_64/virtualization/kernel/vm.cc
+SRC_CC += spec/x86_64/virtualization/kernel/svm.cc
 SRC_CC += spec/x86_64/virtualization/vm_session_component.cc
 SRC_CC += vm_session_common.cc
 SRC_CC += vm_session_component.cc

@@ -14,19 +14,24 @@
 #include <base/log.h>
 #include <cpu/vm_state_virtualization.h>
 #include <util/mmio.h>
+#include <cpu/string.h>
 
 #include <hw/assert.h>
 #include <map_local.h>
 #include <platform_pd.h>
+#include <platform.h>
 #include <kernel/cpu.h>
 #include <kernel/vm.h>
 #include <kernel/main.h>
 
 #include <spec/x86_64/virtualization/hypervisor.h>
+#include <spec/x86_64/virtualization/svm.h>
+#include <hw/spec/x86_64/x86_64.h>
 
 using Genode::addr_t;
 using Kernel::Cpu;
 using Kernel::Vm;
+using Board::Vmcb;
 
 
 Vm::Vm(Irq::Pool              & user_irq_pool,
@@ -53,11 +58,19 @@ Vm::~Vm()
 }
 
 
+void Vm::proceed(Cpu &)
+{
+}
+
+
 void Vm::exception(Cpu &)
 {
 }
 
 
-void Vm::proceed(Cpu &)
+Board::Vcpu_context::Vcpu_context(Cpu &)
+:
+	vmcb(0),
+	regs(1)
 {
 }
