@@ -488,8 +488,8 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		Window_registry             &_window_registry;
 		Session_control_fn          &_session_control_fn;
-		Tslab<Top_level_view, 4000>  _top_level_view_alloc;
-		Tslab<Child_view, 4000>      _child_view_alloc;
+		Tslab<Top_level_view, 8000>  _top_level_view_alloc;
+		Tslab<Child_view, 6000>      _child_view_alloc;
 		List<Top_level_view>         _top_level_views { };
 		List<Child_view>             _child_views { };
 		Input::Session_component     _input_session { _env, _ram };
