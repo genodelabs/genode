@@ -396,6 +396,22 @@ class Lima::Call
 
 		Gpu::Vram_id_space _buffer_space { };
 
+		template <typename FN>
+		bool _apply_handle(uint32_t handle, FN const &fn)
+		{
+			Buffer_id const id { .value = handle };
+
+			bool found = false;
+			try {
+				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
+					fn(b);
+					found = true;
+				});
+			} catch (Genode::Id_space<Buffer>::Unknown_id) { }
+
+			return found;
+		}
+
 		/*
 		 * Play it safe, glmark2 apparently submits araound 110 KiB at
 		 * some point.
@@ -405,14 +421,15 @@ class Lima::Call
 
 		void _wait_for_mapping(uint32_t handle, unsigned op)
 		{
-			Buffer_id const id { .value = handle };
-			do {
-				if (_main_ctx.gpu().set_tiling(id, 0, op))
-					break;
+			(void)_apply_handle(handle, [&] (Buffer &b) {
+				do {
+					if (_main_ctx.gpu().set_tiling(b.id(), 0, op))
+						break;
 
-				char buf;
-				(void)::read(_main_ctx.fd(), &buf, sizeof(buf));
-			} while (true);
+					char buf;
+					(void)::read(_main_ctx.fd(), &buf, sizeof(buf));
+				} while (true);
+			});
 		}
 
 		int _wait_for_syncobj(int fd)
@@ -444,22 +461,6 @@ class Lima::Call
 			}
 
 			return 0;
-		}
-
-		template <typename FN>
-		bool _apply_handle(uint32_t handle, FN const &fn)
-		{
-			Buffer_id const id { .value = handle };
-
-			bool found = false;
-			try {
-				_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
-					fn(b);
-					found = true;
-				});
-			} catch (Genode::Id_space<Buffer>::Unknown_id) { }
-
-			return found;
 		}
 
 		Dataspace_capability _lookup_cap_from_handle(uint32_t handle)
