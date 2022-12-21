@@ -97,47 +97,6 @@ class Vfs_cbe::Wrapper
 		Vfs_handle            *_backend_handle { nullptr };
 		Constructible<Io_job>  _backend_job { };
 
-		friend struct Backend_io_response_handler;
-
-		struct Backend_io_response_handler : Vfs::Io_response_handler
-		{
-			Vfs_cbe::Wrapper &_wrapper;
-			Genode::Signal_context_capability _io_sigh;
-
-			Backend_io_response_handler(Vfs_cbe::Wrapper &wrapper,
-			                            Genode::Signal_context_capability io_sigh)
-			: _wrapper(wrapper), _io_sigh(io_sigh) { }
-
-			void read_ready_response() override { }
-
-			void io_progress_response() override
-			{
-				if (_io_sigh.valid()) {
-					Genode::Signal_transmitter(_io_sigh).submit();
-				}
-			}
-		};
-
-		Genode::Io_signal_handler<Wrapper> _io_handler {
-			_env.env().ep(), *this, &Wrapper::_handle_io };
-
-		void _handle_io()
-		{
-			_notify_backend_io_progress();
-		}
-
-		void _notify_backend_io_progress()
-		{
-			if (_enqueued_vfs_handle) {
-				_enqueued_vfs_handle->io_progress_response();
-			} else {
-				handle_frontend_request();
-				_io_progress_pending = true;
-			}
-		}
-
-		Backend_io_response_handler _backend_io_response_handler { *this, _io_handler };
-
 		Vfs_handle *_add_key_handle         { nullptr };
 		Vfs_handle *_remove_key_handle      { nullptr };
 
@@ -324,8 +283,6 @@ class Vfs_cbe::Wrapper
 				throw Could_not_open_block_backend();
 			}
 
-			_backend_handle->handler(&_backend_io_response_handler);
-
 			{
 				Genode::String<128> crypto_add_key_file {
 				_crypto_device.string(), "/add_key" };
@@ -355,8 +312,7 @@ class Vfs_cbe::Wrapper
 			}
 
 			_trust_anchor.construct(_env.root_dir(), _env.alloc(),
-			                        _trust_anchor_device.string(),
-			                        _io_handler);
+			                        _trust_anchor_device.string());
 
 			_cbe.construct();
 		}
@@ -552,25 +508,11 @@ class Vfs_cbe::Wrapper
 			return _frontend_request;
 		}
 
-		// XXX needs to be a list when snapshots are used
-		Vfs_handle *_enqueued_vfs_handle { nullptr };
-		bool        _io_progress_pending { false };
-
-		void enqueue_handle(Vfs_handle &handle)
-		{
-			_enqueued_vfs_handle = &handle;
-			if (_io_progress_pending) {
-				_enqueued_vfs_handle->io_progress_response();
-				_io_progress_pending = false;
-			}
-		}
-
 		void ack_frontend_request(Vfs_handle &handle)
 		{
 			// assert current state was *_COMPLETE
 			_frontend_request.state = Frontend_request::State::NONE;
 			_frontend_request.cbe_request = Cbe::Request { };
-			_enqueued_vfs_handle = nullptr;
 		}
 
 		bool submit_frontend_request(Vfs_handle              &handle,
@@ -1255,8 +1197,6 @@ class Vfs_cbe::Wrapper
 
 				/* set key id to make file valid */
 				cf->key_id = key_id_value;
-				cf->encrypt_handle->handler(&_backend_io_response_handler);
-				cf->decrypt_handle->handler(&_backend_io_response_handler);
 
 				request.success(true);
 				_cbe->crypto_add_key_completed(request);
@@ -1901,7 +1841,6 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 
 				if (   state == State::PENDING
 				    || state == State::IN_PROGRESS) {
-					_w.enqueue_handle(*this);
 					return READ_QUEUED;
 				}
 
@@ -1952,7 +1891,6 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 
 				if (   state == State::PENDING
 				    || state == State::IN_PROGRESS) {
-					_w.enqueue_handle(*this);
 					return WRITE_ERR_WOULD_BLOCK;
 				}
 
@@ -2001,7 +1939,6 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 
 				if (   state == State::PENDING
 				    || state == State::IN_PROGRESS) {
-					_w.enqueue_handle(*this);
 					return SYNC_QUEUED;
 				}
 

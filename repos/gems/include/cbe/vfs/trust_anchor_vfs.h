@@ -35,25 +35,6 @@ struct Util::Trust_anchor_vfs
 
 	Vfs::File_system &_vfs;
 
-	struct Io_response_handler : Vfs::Io_response_handler
-	{
-		Genode::Signal_context_capability _io_sigh;
-
-		Io_response_handler(Genode::Signal_context_capability io_sigh)
-		: _io_sigh(io_sigh) { }
-
-		void read_ready_response() override { }
-
-		void io_progress_response() override
-		{
-			if (_io_sigh.valid()) {
-				Genode::Signal_transmitter(_io_sigh).submit();
-			}
-		}
-	};
-
-	Io_response_handler _io_response_handler;
-
 	struct File
 	{
 		struct Could_not_open_file              : Genode::Exception { };
@@ -77,8 +58,7 @@ struct Util::Trust_anchor_vfs
 		File(Path          const &base_path,
 		     char          const *name,
 		     Vfs::File_system    &vfs,
-		     Genode::Allocator   &alloc,
-		     Io_response_handler &io_response_handler)
+		     Genode::Allocator   &alloc)
 		:
 			_vfs        { vfs },
 			_vfs_handle { nullptr }
@@ -96,8 +76,6 @@ struct Util::Trust_anchor_vfs
 				error("could not open '", file_path.string(), "'");
 				throw Could_not_open_file();
 			}
-
-			_vfs_handle->handler(&io_response_handler);
 		}
 
 		~File()
@@ -585,18 +563,16 @@ struct Util::Trust_anchor_vfs
 
 	Trust_anchor_vfs(Vfs::File_system  &vfs,
 	                 Genode::Allocator &alloc,
-	                 Path        const &path,
-	                 Genode::Signal_context_capability io_sigh)
+	                 Path        const &path)
 	:
-		_vfs                 { vfs },
-		_io_response_handler { io_sigh },
-		_ta_dir              { path }
+		_vfs    { vfs },
+		_ta_dir { path }
 	{
-		_init_file.construct(path, "initialize", _vfs, alloc, _io_response_handler);
-		_encrypt_file.construct(path, "encrypt", _vfs, alloc, _io_response_handler);
-		_decrypt_file.construct(path, "decrypt", _vfs, alloc, _io_response_handler);
-		_generate_key_file.construct(path, "generate_key", _vfs, alloc, _io_response_handler);
-		_last_hash_file.construct(path, "hashsum", _vfs, alloc, _io_response_handler);
+		_init_file.construct(path, "initialize", _vfs, alloc);
+		_encrypt_file.construct(path, "encrypt", _vfs, alloc);
+		_decrypt_file.construct(path, "decrypt", _vfs, alloc);
+		_generate_key_file.construct(path, "generate_key", _vfs, alloc);
+		_last_hash_file.construct(path, "hashsum", _vfs, alloc);
 	}
 
 	bool request_acceptable() const

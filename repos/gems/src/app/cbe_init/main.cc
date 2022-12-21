@@ -31,7 +31,7 @@ enum { VERBOSE = 0 };
 
 using namespace Genode;
 
-class Main
+class Main : Vfs::Env::User
 {
 	private:
 
@@ -52,8 +52,13 @@ class Main
 		Genode::size_t        _blk_ratio   {
 			Cbe::BLOCK_SIZE / _blk.info().block_size };
 
-		Vfs::Simple_env   _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs") };
+		Vfs::Simple_env   _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
 		Vfs::File_system &_vfs     { _vfs_env.root_dir() };
+
+		/**
+		 * Vfs::Env::User interface
+		 */
+		void wakeup_vfs_user() override { _blk_handler.local_submit(); }
 
 		static Util::Trust_anchor_vfs::Path _config_ta_dir(Xml_node const &node)
 		{
@@ -72,8 +77,7 @@ class Main
 		}
 
 		Util::Trust_anchor_vfs _trust_anchor {
-			_vfs, _vfs_env.alloc(), _config_ta_dir(_config_rom.xml()),
-			_blk_handler };
+			_vfs, _vfs_env.alloc(), _config_ta_dir(_config_rom.xml()) };
 
 		bool _execute_trust_anchor()
 		{
