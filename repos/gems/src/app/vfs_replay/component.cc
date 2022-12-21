@@ -420,22 +420,6 @@ class Vfs_replay
 			_io.commit();
 		}
 
-		struct Io_response_handler : Vfs::Io_response_handler
-		{
-			Genode::Signal_context_capability sigh { };
-
-			void read_ready_response() override { }
-
-			void io_progress_response() override
-			{
-				if (sigh.valid()) {
-					Genode::Signal_transmitter(sigh).submit();
-				}
-			}
-		};
-
-		Io_response_handler _io_response_handler { };
-
 	public:
 
 		Vfs_replay(Env &env, Vfs::File_system &vfs, Vfs::Env::Io &io,
@@ -456,8 +440,7 @@ class Vfs_replay
 			               _write_buffer.size());
 		}
 
-		void kick_off(Genode::Allocator &alloc, char const *file,
-		              Genode::Signal_context_capability sigh_cap)
+		void kick_off(Genode::Allocator &alloc, char const *file)
 		{
 			typedef Vfs::Directory_service::Open_result Open_result;
 
@@ -467,10 +450,6 @@ class Vfs_replay
 			if (res != Open_result::OPEN_OK) {
 				throw Genode::Exception();
 			}
-
-			_io_response_handler.sigh = sigh_cap;
-
-			_vfs_handle->handler(&_io_response_handler);
 
 			_current_request = {
 				.type           = Request::Type::INVALID,
@@ -499,19 +478,25 @@ class Vfs_replay
 };
 
 
-struct Main : private Genode::Entrypoint::Io_progress_handler
+struct Main : private Genode::Entrypoint::Io_progress_handler,
+              private Vfs::Env::User
 {
 	Genode::Env  &_env;
 	Genode::Heap  _heap { _env.ram(), _env.rm() };
 
 	Genode::Attached_rom_dataspace  _config_rom { _env, "config" };
 
-	Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs") };
+	Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
 
 	Genode::Signal_handler<Main> _reactivate_handler {
 		_env.ep(), *this, &Main::handle_io_progress };
 
 	Vfs_replay _replay { _env, _vfs_env.root_dir(), _vfs_env.io(), _config_rom.xml() };
+
+	/**
+	 * Vfs::Env::User interface
+	 */
+	void wakeup_vfs_user() override { _reactivate_handler.local_submit(); }
 
 	Main(Genode::Env &env) : _env { env }
 	{
@@ -525,7 +510,9 @@ struct Main : private Genode::Entrypoint::Io_progress_handler
 
 		_env.ep().register_io_progress_handler(*this);
 
-		_replay.kick_off(_heap, file_name.string(), _reactivate_handler);
+		_replay.kick_off(_heap, file_name.string());
+
+		handle_io_progress();
 	}
 
 	void handle_io_progress() override
