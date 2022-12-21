@@ -34,6 +34,7 @@ struct Util::Trust_anchor_vfs
 	using Path = Genode::Path<256>;
 
 	Vfs::File_system &_vfs;
+	Allocator        &_alloc;
 
 	struct File
 	{
@@ -121,22 +122,19 @@ struct Util::Trust_anchor_vfs
 		}
 	};
 
-	Util::Io_job::Buffer        _init_io_buffer { };
-	Genode::Constructible<File> _init_file { };
+	Path const _ta_dir;
 
-	Util::Io_job::Buffer        _encrypt_io_buffer { };
-	Genode::Constructible<File> _encrypt_file { };
+	Util::Io_job::Buffer _init_io_buffer         { };
+	Util::Io_job::Buffer _encrypt_io_buffer      { };
+	Util::Io_job::Buffer _decrypt_io_buffer      { };
+	Util::Io_job::Buffer _generate_key_io_buffer { };
+	Util::Io_job::Buffer _last_hash_io_buffer    { };
 
-	Util::Io_job::Buffer        _decrypt_io_buffer { };
-	Genode::Constructible<File> _decrypt_file { };
-
-	Util::Io_job::Buffer        _generate_key_io_buffer { };
-	Genode::Constructible<File> _generate_key_file { };
-
-	Util::Io_job::Buffer        _last_hash_io_buffer { };
-	Genode::Constructible<File> _last_hash_file { };
-
-	Path _ta_dir { };
+	File _init_file         { _ta_dir, "initialize",   _vfs, _alloc };
+	File _encrypt_file      { _ta_dir, "encrypt",      _vfs, _alloc };
+	File _decrypt_file      { _ta_dir, "decrypt",      _vfs, _alloc };
+	File _generate_key_file { _ta_dir, "generate_key", _vfs, _alloc };
+	File _last_hash_file    { _ta_dir, "hashsum",      _vfs, _alloc };
 
 	struct Job
 	{
@@ -242,7 +240,7 @@ struct Util::Trust_anchor_vfs
 			using Op = Util::Io_job::Operation;
 
 			Op const op = write ? Op::WRITE : Op::READ;
-			if (!_decrypt_file->submit_io_job(_decrypt_io_buffer, op)) {
+			if (!_decrypt_file.submit_io_job(_decrypt_io_buffer, op)) {
 				break;
 			}
 			job.state = Job::State::IN_PROGRESS;
@@ -250,17 +248,17 @@ struct Util::Trust_anchor_vfs
 		}
 		[[fallthrough]];
 		case Job::State::IN_PROGRESS:
-			if (!_decrypt_file->execute_io_job()) {
+			if (!_decrypt_file.execute_io_job()) {
 				break;
 			}
 
 			progress |= true;
 
-			completed_io_job = _decrypt_file->completed_io_job();
+			completed_io_job = _decrypt_file.completed_io_job();
 			if (!completed_io_job.completed) {
 				break;
 			}
-			_decrypt_file->drop_io_job();
+			_decrypt_file.drop_io_job();
 
 			/* setup second phase */
 			if (write) {
@@ -306,7 +304,7 @@ struct Util::Trust_anchor_vfs
 			using Op = Util::Io_job::Operation;
 
 			Op const op = write ? Op::WRITE : Op::READ;
-			if (!_encrypt_file->submit_io_job(_encrypt_io_buffer, op)) {
+			if (!_encrypt_file.submit_io_job(_encrypt_io_buffer, op)) {
 				break;
 			}
 			job.state = Job::State::IN_PROGRESS;
@@ -314,17 +312,17 @@ struct Util::Trust_anchor_vfs
 		}
 		[[fallthrough]];
 		case Job::State::IN_PROGRESS:
-			if (!_encrypt_file->execute_io_job()) {
+			if (!_encrypt_file.execute_io_job()) {
 				break;
 			}
 
 			progress |= true;
 
-			completed_io_job = _encrypt_file->completed_io_job();
+			completed_io_job = _encrypt_file.completed_io_job();
 			if (!completed_io_job.completed) {
 				break;
 			}
-			_encrypt_file->drop_io_job();
+			_encrypt_file.drop_io_job();
 
 			/* setup second phase */
 			if (write) {
@@ -366,25 +364,25 @@ struct Util::Trust_anchor_vfs
 
 		switch (job.state) {
 		case Job::State::PENDING:
-			if (!_generate_key_file->submit_io_job(_generate_key_io_buffer,
-			                                       Util::Io_job::Operation::READ)) {
+			if (!_generate_key_file.submit_io_job(_generate_key_io_buffer,
+			                                      Util::Io_job::Operation::READ)) {
 				break;
 			}
 			job.state = Job::State::IN_PROGRESS;
 			progress |= true;
 		[[fallthrough]];
 		case Job::State::IN_PROGRESS:
-			if (!_generate_key_file->execute_io_job()) {
+			if (!_generate_key_file.execute_io_job()) {
 				break;
 			}
 
 			progress |= true;
 
-			completed_io_job = _generate_key_file->completed_io_job();
+			completed_io_job = _generate_key_file.completed_io_job();
 			if (!completed_io_job.completed) {
 				break;
 			}
-			_generate_key_file->drop_io_job();
+			_generate_key_file.drop_io_job();
 
 			job.state   = Job::State::COMPLETE;
 			job.success = completed_io_job.success;
@@ -407,7 +405,7 @@ struct Util::Trust_anchor_vfs
 			using Op = Util::Io_job::Operation;
 
 			Op const op = write ? Op::WRITE : Op::READ;
-			if (!_init_file->submit_io_job(_init_io_buffer, op)) {
+			if (!_init_file.submit_io_job(_init_io_buffer, op)) {
 				break;
 			}
 			job.state = Job::State::IN_PROGRESS;
@@ -415,17 +413,17 @@ struct Util::Trust_anchor_vfs
 		}
 		[[fallthrough]];
 		case Job::State::IN_PROGRESS:
-			if (!_init_file->execute_io_job()) {
+			if (!_init_file.execute_io_job()) {
 				break;
 			}
 
 			progress |= true;
 
-			completed_io_job = _init_file->completed_io_job();
+			completed_io_job = _init_file.completed_io_job();
 			if (!completed_io_job.completed) {
 				break;
 			}
-			_init_file->drop_io_job();
+			_init_file.drop_io_job();
 
 			/* setup second phase */
 			if (write) {
@@ -467,25 +465,25 @@ struct Util::Trust_anchor_vfs
 
 		switch (job.state) {
 		case Job::State::PENDING:
-			if (!_last_hash_file->submit_io_job(_last_hash_io_buffer,
-			                                    Util::Io_job::Operation::READ)) {
+			if (!_last_hash_file.submit_io_job(_last_hash_io_buffer,
+			                                   Util::Io_job::Operation::READ)) {
 				break;
 			}
 			job.state = Job::State::IN_PROGRESS;
 			progress |= true;
 		[[fallthrough]];
 		case Job::State::IN_PROGRESS:
-			if (!_last_hash_file->execute_io_job()) {
+			if (!_last_hash_file.execute_io_job()) {
 				break;
 			}
 
 			progress |= true;
 
-			completed_io_job = _last_hash_file->completed_io_job();
+			completed_io_job = _last_hash_file.completed_io_job();
 			if (!completed_io_job.completed) {
 				break;
 			}
-			_last_hash_file->drop_io_job();
+			_last_hash_file.drop_io_job();
 
 			job.state   = Job::State::COMPLETE;
 			job.success = completed_io_job.success;
@@ -508,7 +506,7 @@ struct Util::Trust_anchor_vfs
 			using Op = Util::Io_job::Operation;
 
 			Op const op = write ? Op::WRITE : Op::READ;
-			if (!_last_hash_file->submit_io_job(_last_hash_io_buffer, op)) {
+			if (!_last_hash_file.submit_io_job(_last_hash_io_buffer, op)) {
 				break;
 			}
 			job.state = Job::State::IN_PROGRESS;
@@ -516,17 +514,17 @@ struct Util::Trust_anchor_vfs
 		}
 		[[fallthrough]];
 		case Job::State::IN_PROGRESS:
-			if (!_last_hash_file->execute_io_job()) {
+			if (!_last_hash_file.execute_io_job()) {
 				break;
 			}
 
 			progress |= true;
 
-			completed_io_job = _last_hash_file->completed_io_job();
+			completed_io_job = _last_hash_file.completed_io_job();
 			if (!completed_io_job.completed) {
 				break;
 			}
-			_last_hash_file->drop_io_job();
+			_last_hash_file.drop_io_job();
 
 			/* setup second phase */
 			if (write) {
@@ -565,15 +563,8 @@ struct Util::Trust_anchor_vfs
 	                 Genode::Allocator &alloc,
 	                 Path        const &path)
 	:
-		_vfs    { vfs },
-		_ta_dir { path }
-	{
-		_init_file.construct(path, "initialize", _vfs, alloc);
-		_encrypt_file.construct(path, "encrypt", _vfs, alloc);
-		_decrypt_file.construct(path, "decrypt", _vfs, alloc);
-		_generate_key_file.construct(path, "generate_key", _vfs, alloc);
-		_last_hash_file.construct(path, "hashsum", _vfs, alloc);
-	}
+		_vfs(vfs), _alloc(alloc), _ta_dir(path)
+	{ }
 
 	bool request_acceptable() const
 	{
