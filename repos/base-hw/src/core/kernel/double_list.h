@@ -75,6 +75,31 @@ class Kernel::Double_list
 			_tail = i;
 		}
 
+		void _to_head(Item * const i)
+		{
+			if (i == _head)
+				return;
+
+			_connect_neighbors(i);
+			i->_next = _head;
+			i->_prev = 0;
+			_head->_prev = i;
+			_head = i;
+		}
+
+		void _tail_to_head()
+		{
+			if (_tail == 0 || _tail == _head)
+				return;
+
+			_tail->_next = _head;
+			_head->_prev = _tail;
+			_tail = _tail->_prev;
+			_tail->_next = 0;
+			_head = _head->_prev;
+			_head->_prev = 0;
+		}
+
 	public:
 
 		/**
@@ -89,6 +114,14 @@ class Kernel::Double_list
 		{
 			if (i == _head) { head_to_tail(); }
 			else { _to_tail(i); }
+		}
+
+		void to_head(Item * const i)
+		{
+			if (i == _tail)
+				_tail_to_head();
+			else
+				_to_head(i);
 		}
 
 		/**

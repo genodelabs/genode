@@ -73,6 +73,17 @@ void Cpu_scheduler::_head_claimed(unsigned const r)
 		return;
 
 	_rcl[_head->_prio].to_tail(&_head->_claim_item);
+
+	/*
+	 * This is an optimization for the case that a prioritized scheduling
+	 * context needs sligtly more time during a round than granted via quota.
+	 * If this is the case, we move the scheduling context to the front of
+	 * the unprioritized schedule once its quota gets depleted and thereby
+	 * at least ensure that it does not have to wait for all unprioritized
+	 * scheduling contexts as well before being scheduled again.
+	 */
+	if (!_head_yields)
+		_fills.to_head(&_head->_fill_item);
 }
 
 
@@ -128,7 +139,6 @@ unsigned Cpu_scheduler::_trim_consumption(unsigned &q)
 	if (!_head_yields)
 		return _head_quota - q;
 
-	_head_yields = false;
 	return 0;
 }
 
@@ -178,6 +188,7 @@ void Cpu_scheduler::update(time_t time)
 		else
 			_head_filled(r);
 
+		_head_yields = false;
 		_consumed(duration);
 
 	} else if (_head_was_removed) {
