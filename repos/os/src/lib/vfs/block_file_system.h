@@ -438,7 +438,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 	Genode::Io_signal_handler<Local_factory> _block_signal_handler {
 		_env.env().ep(), *this, &Local_factory::_handle_block_signal };
 
-	void _handle_block_signal() { }
+	void _handle_block_signal() { _env.user().wakeup_vfs_user(); }
 
 	Data_file_system _data_fs;
 	

@@ -41,6 +41,7 @@ class Genode::Uplink_client_base : Noncopyable
 		enum { BUF_SIZE = Uplink::Session::QUEUE_SIZE * PKT_SIZE };
 
 		Env                                  &_env;
+		Vfs::Env::User                       &_vfs_user;
 		Allocator                            &_alloc;
 		Label                     const      &_label;
 		Net::Mac_address                      _drv_mac_addr;
@@ -63,6 +64,8 @@ class Genode::Uplink_client_base : Noncopyable
 
 			if (_custom_conn_rx_ready_to_ack_handler())
 				_custom_conn_rx_handle_ready_to_ack();
+
+			_vfs_user.wakeup_vfs_user();
 		}
 
 		void _conn_tx_handle_ack_avail()
@@ -72,6 +75,8 @@ class Genode::Uplink_client_base : Noncopyable
 
 			while (_conn->tx()->ack_avail()) {
 				_conn->tx()->release_packet(_conn->tx()->get_acked_packet()); }
+
+			_vfs_user.wakeup_vfs_user();
 		}
 
 		void _conn_rx_handle_packet_avail()
@@ -81,6 +86,8 @@ class Genode::Uplink_client_base : Noncopyable
 
 			if (_custom_conn_rx_packet_avail_handler())
 				_custom_conn_rx_handle_packet_avail();
+
+			_vfs_user.wakeup_vfs_user();
 		}
 
 
@@ -203,11 +210,13 @@ class Genode::Uplink_client_base : Noncopyable
 	public:
 
 		Uplink_client_base(Env                    &env,
+		                   Vfs::Env::User         &vfs_user,
 		                   Allocator              &alloc,
 		                   Net::Mac_address const &drv_mac_addr,
 		                   Label            const &label)
 		:
 			_env          { env },
+			_vfs_user     { vfs_user },
 			_alloc        { alloc },
 			_label        { label },
 			_drv_mac_addr { drv_mac_addr }

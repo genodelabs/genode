@@ -87,6 +87,7 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 	public:
 
 		Uplink_vfs_handle(Genode::Env            &env,
+		                  Vfs::Env::User         &vfs_user,
 		                  Allocator              &alloc,
 		                  Label            const &label,
 		                  Net::Mac_address const &mac,
@@ -94,7 +95,7 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 		                  File_io_service        &fs,
 		                  int                     flags)
 		: Single_vfs_handle  { ds, fs, alloc, flags },
-		  Uplink_client_base { env, alloc, mac, label }
+		  Uplink_client_base { env, vfs_user, alloc, mac, label }
 		{ _drv_handle_link_state(true); }
 
 		bool notify_read_ready() override

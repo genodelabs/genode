@@ -585,6 +585,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			_congested_handles.dequeue_all([] (Fs_vfs_handle &handle) {
 				handle.io_progress_response(); });
 
+			_env.user().wakeup_vfs_user();
 		}
 
 		Genode::Io_signal_handler<Fs_file_system> _signal_handler {

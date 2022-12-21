@@ -57,6 +57,7 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 		enum { BUF_SIZE = Uplink::Session::QUEUE_SIZE * PKT_SIZE };
 
 		Genode::Env          &_env;
+		Vfs::Env::User       &_vfs_user;
 		Nic::Packet_allocator _pkt_alloc;
 		Nic::Connection       _nic;
 		bool                  _link_state;
@@ -99,6 +100,7 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 	public:
 
 		Nic_vfs_handle(Genode::Env            &env,
+		               Vfs::Env::User         &vfs_user,
 		               Allocator              &alloc,
 		               Label            const &label,
 		               Net::Mac_address const &,
@@ -107,6 +109,7 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 		               int                     flags)
 		: Single_vfs_handle  { ds, fs, alloc, flags },
 		  _env(env),
+		  _vfs_user(vfs_user),
 		  _pkt_alloc(&alloc),
 		  _nic(_env, &_pkt_alloc, BUF_SIZE, BUF_SIZE, label.string()),
 		  _link_state(_nic.link_state())

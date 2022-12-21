@@ -124,12 +124,14 @@ class Vfs::Tap_file_system::Data_file_system : public FS
 		Label            const &_label;
 		Net::Mac_address const &_default_mac;
 		Genode::Env            &_env;
+		Vfs::Env::User         &_vfs_user;
 		Device_update_handler  &_device_update_handler;
 		Handle_registry         _handle_registry { };
 
 	public:
 
 		Data_file_system(Genode::Env            & env,
+		                 Vfs::Env::User         & vfs_user,
 		                 Name             const & name,
 		                 Label            const & label,
 		                 Net::Mac_address const & mac,
@@ -137,7 +139,7 @@ class Vfs::Tap_file_system::Data_file_system : public FS
 		:
 			FS(name.string()),
 			_name(name), _label(label), _default_mac(mac), _env(env),
-			_device_update_handler(handler)
+			_vfs_user(vfs_user), _device_update_handler(handler)
 		{ }
 
 		/* must only be called if handle has been opened */
@@ -170,7 +172,7 @@ class Vfs::Tap_file_system::Data_file_system : public FS
 		{
 			if (!FS::_single_file(path))
 				return Open_result::OPEN_ERR_UNACCESSIBLE;
-			
+
 			/* A tap device is exclusive open, thus return error if already opened. */
 			unsigned handles = 0;
 			_handle_registry.for_each([&handles] (Local_vfs_handle const &) {
@@ -180,8 +182,8 @@ class Vfs::Tap_file_system::Data_file_system : public FS
 
 			try {
 				*out_handle = new (alloc)
-					Registered_handle(_handle_registry, _env, alloc, _label.string(),
-					                  _default_mac, *this, *this, flags);
+					Registered_handle(_handle_registry, _env, _vfs_user, alloc,
+					                  _label.string(), _default_mac, *this, *this, flags);
 				_device_update_handler.device_state_changed();
 				return Open_result::OPEN_OK;
 			}
@@ -206,7 +208,8 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 	Net::Mac_address const _default_mac;
 	Vfs::Env              &_env;
 
-	Data_file_system<FS>   _data_fs { _env.env(), _name, _label, _default_mac, *this };
+	Data_file_system<FS>   _data_fs { _env.env(), _env.user(), _name, _label,
+	                                  _default_mac, *this };
 
 	struct Info
 	{

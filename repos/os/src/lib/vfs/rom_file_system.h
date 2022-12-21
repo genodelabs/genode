@@ -29,6 +29,8 @@ class Vfs::Rom_file_system : public Single_file_system
 
 		Genode::Env &_env;
 
+		Vfs::Env::User &_vfs_user;
+
 		typedef String<64> Label;
 
 		Label const _label;
@@ -125,6 +127,8 @@ class Vfs::Rom_file_system : public Single_file_system
 		{
 			_handle_registry.for_each([] (Registered_watch_handle &handle) {
 				handle.watch_response(); });
+
+			_vfs_user.wakeup_vfs_user();
 		}
 
 		Genode::Constructible<Genode::Io_signal_handler<Rom_file_system>>
@@ -137,7 +141,7 @@ class Vfs::Rom_file_system : public Single_file_system
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::ro(), config),
-			_env(env.env()),
+			_env(env.env()), _vfs_user(env.user()),
 
 			/* use 'label' attribute if present, fall back to 'name' if not */
 			_label(config.attribute_value("label",
