@@ -72,7 +72,6 @@ class Crypto
 		Genode::String<32> const  _path;
 		Vfs::Vfs_handle          &_add_key_handle;
 		Vfs::Vfs_handle          &_remove_key_handle;
-		Vfs_io_response_handler   _vfs_io_response_handler;
 		Key_directory             _key_dirs[2] { { }, { } };
 		Job                       _job         { };
 
@@ -92,9 +91,7 @@ class Crypto
 
 	public:
 
-		Crypto(Vfs::Env                          &env,
-		       Genode::Xml_node            const &crypto,
-		       Genode::Signal_context_capability  sigh);
+		Crypto(Vfs::Env &env, Genode::Xml_node const &crypto);
 
 		bool request_acceptable() const;
 

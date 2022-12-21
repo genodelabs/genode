@@ -18,26 +18,6 @@
 #include <vfs/vfs_handle.h>
 #include <vfs/simple_env.h>
 
-class Vfs_io_response_handler : public Vfs::Io_response_handler
-{
-	private:
-
-		Genode::Signal_context_capability const _sigh;
-
-	public:
-
-		Vfs_io_response_handler(Genode::Signal_context_capability sigh);
-
-
-		/******************************
-		 ** Vfs::Io_response_handler **
-		 ******************************/
-
-		void read_ready_response() override;
-
-		void io_progress_response() override;
-};
-
 
 Vfs::Vfs_handle &vfs_open(Vfs::Env                          &vfs_env,
                           Genode::String<128>                path,

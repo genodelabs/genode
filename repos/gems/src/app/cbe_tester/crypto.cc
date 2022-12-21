@@ -43,15 +43,12 @@ Crypto::Key_directory &Crypto::_lookup_key_dir(uint32_t key_id)
 }
 
 
-Crypto::Crypto(Vfs::Env                  &env,
-       Xml_node            const &crypto,
-       Signal_context_capability  sigh)
+Crypto::Crypto(Vfs::Env &env, Xml_node const &crypto)
 :
-	_env                     { env },
-	_path                    { crypto.attribute_value("path", String<32>()) },
-	_add_key_handle          { vfs_open_wo(env, { _path.string(), "/add_key" }) },
-	_remove_key_handle       { vfs_open_wo(env, { _path.string(), "/remove_key" }) },
-	_vfs_io_response_handler { sigh }
+	_env               { env },
+	_path              { crypto.attribute_value("path", String<32>()) },
+	_add_key_handle    { vfs_open_wo(env, { _path.string(), "/add_key" }) },
+	_remove_key_handle { vfs_open_wo(env, { _path.string(), "/remove_key" }) }
 { }
 
 
@@ -89,8 +86,6 @@ Crypto::Result Crypto::add_key(Key const &key)
 		_env, { _path.string(), "/keys/", key.id.value, "/decrypt" });
 
 	key_dir.key_id = key.id.value;
-	key_dir.encrypt_handle->handler(&_vfs_io_response_handler);
-	key_dir.decrypt_handle->handler(&_vfs_io_response_handler);
 	return Result::SUCCEEDED;
 }
 

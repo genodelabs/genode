@@ -297,20 +297,12 @@ void Trust_anchor::_execute_read_operation(Vfs_handle        &file,
 }
 
 
-Trust_anchor::Trust_anchor(Vfs::Env                  &vfs_env,
-                           Xml_node            const &xml_node,
-                           Signal_context_capability  sigh)
+Trust_anchor::Trust_anchor(Vfs::Env       &vfs_env,
+                           Xml_node const &xml_node)
 :
 	_vfs_env { vfs_env },
-	_handler { sigh },
 	_path    { xml_node.attribute_value("path", String<128>()) }
-{
-	_initialize_file.handler(&_handler);
-	_hashsum_file.handler(&_handler);
-	_generate_key_file.handler(&_handler);
-	_encrypt_file.handler(&_handler);
-	_decrypt_file.handler(&_handler);
-}
+{ }
 
 
 bool Trust_anchor::request_acceptable() const

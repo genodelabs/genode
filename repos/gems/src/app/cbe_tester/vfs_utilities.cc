@@ -18,25 +18,6 @@ using namespace Genode;
 using namespace Vfs;
 
 
-/*****************************
- ** Vfs_io_response_handler **
- *****************************/
-
-Vfs_io_response_handler::Vfs_io_response_handler(Genode::Signal_context_capability sigh)
-:
-	_sigh(sigh)
-{ }
-
-
-void Vfs_io_response_handler::read_ready_response() { }
-
-
-void Vfs_io_response_handler::io_progress_response()
-{
-	Signal_transmitter(_sigh).submit();
-}
-
-
 /**********************
  ** Global functions **
  **********************/
