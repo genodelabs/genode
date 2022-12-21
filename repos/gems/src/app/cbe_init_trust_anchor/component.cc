@@ -27,7 +27,7 @@
 
 using namespace Genode;
 
-class Main
+class Main : Vfs::Env::User
 {
 	public:
 
@@ -40,8 +40,9 @@ class Main
 
 		Attached_rom_dataspace _config_rom { _env, "config" };
 
-		Vfs::Simple_env   _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs") };
-		Vfs::File_system &_vfs     { _vfs_env.root_dir() };
+		Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
+
+		Vfs::File_system &_vfs { _vfs_env.root_dir() };
 
 		using Passphrase = Genode::String<32 + 1>;
 
@@ -58,23 +59,6 @@ class Main
 			}
 			return path;
 		}
-
-		struct Io_response_handler : Vfs::Io_response_handler
-		{
-			Genode::Signal_context_capability _io_sigh;
-
-			Io_response_handler(Genode::Signal_context_capability io_sigh)
-			: _io_sigh(io_sigh) { }
-
-			void read_ready_response() override { }
-
-			void io_progress_response() override
-			{
-				if (_io_sigh.valid()) {
-					Genode::Signal_transmitter(_io_sigh).submit();
-				}
-			}
-		};
 
 		enum class State { WRITE, READ, };
 		State _state { State::WRITE };
@@ -95,8 +79,6 @@ class Main
 			Vfs::File_system &_vfs;
 			Vfs::Vfs_handle  *_vfs_handle;
 
-			Io_response_handler &_io_response_handler;
-
 			Genode::Constructible<Util::Io_job> _io_job { };
 			Util::Io_job::Buffer                _io_buffer { };
 
@@ -105,12 +87,10 @@ class Main
 			File(char          const *base_path,
 				 char          const *name,
 				 Vfs::File_system    &vfs,
-				 Genode::Allocator   &alloc,
-				 Io_response_handler &io_response_handler)
+				 Genode::Allocator   &alloc)
 				:
 					_vfs        { vfs },
-					_vfs_handle { nullptr },
-					_io_response_handler { io_response_handler }
+					_vfs_handle { nullptr }
 			{
 				using Result = Vfs::Directory_service::Open_result;
 
@@ -125,8 +105,6 @@ class Main
 					error("could not open '", file_path.string(), "'");
 					throw Could_not_open_file();
 				}
-
-				_vfs_handle->handler(&io_response_handler);
 			}
 
 			~File()
@@ -146,8 +124,6 @@ class Main
 
 				_io_job.construct(*_vfs_handle, Util::Io_job::Operation::WRITE,
 				                  _io_buffer, 0);
-				
-				_io_response_handler.io_progress_response();
 			}
 
 			void queue_read()
@@ -159,8 +135,6 @@ class Main
 
 				_io_job.construct(*_vfs_handle, Util::Io_job::Operation::READ,
 				                  _io_buffer, 0);
-				
-				_io_response_handler.io_progress_response();
 			}
 
 			void execute()
@@ -223,7 +197,10 @@ class Main
 			_vfs_env.io().commit();
 		}
 
-		Io_response_handler _io_response_handler { _io_handler };
+		/**
+		 * Vfs::Env::User interface
+		 */
+		void wakeup_vfs_user() override { _io_handler.local_submit(); }
 
 	public:
 
@@ -243,11 +220,12 @@ class Main
 			String_path ta_dir = _config_ta_dir(_config_rom.xml());
 
 			_init_file.construct(ta_dir.string(), "initialize",
-			                     _vfs, _vfs_env.alloc(),
-			                     _io_response_handler);
+			                     _vfs, _vfs_env.alloc());
 
 			/* kick-off writing */
 			_init_file->write_passphrase(passphrase.string());
+
+			_handle_io();
 		}
 };
 
