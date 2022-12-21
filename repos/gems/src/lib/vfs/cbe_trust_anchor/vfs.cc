@@ -151,17 +151,17 @@ class Trust_anchor
 
 				_job_state = Job_state::COMPLETE;
 				_job_success = true;
-				[[fallthrough]];
+				return true;
 			}
 			case Job_state::COMPLETE:
-				return true;
-
-			case Job_state::IN_PROGRESS: [[fallthrough]];
-			case Job_state::NONE:        [[fallthrough]];
-			default:                     return false;
+			case Job_state::IN_PROGRESS:
+			case Job_state::NONE:
+			case Job_state::INIT_READ_JITTERENTROPY_PENDING:
+			case Job_state::INIT_READ_JITTERENTROPY_IN_PROGRESS:
+			case Job_state::FINAL_SYNC:
+				break;
 			}
 
-			/* never reached */
 			return false;
 		}
 
@@ -183,17 +183,17 @@ class Trust_anchor
 
 				_job_state = Job_state::COMPLETE;
 				_job_success = true;
-				[[fallthrough]];
+				return true;
 			}
 			case Job_state::COMPLETE:
-				return true;
-
-			case Job_state::IN_PROGRESS: [[fallthrough]];
-			case Job_state::NONE:        [[fallthrough]];
-			default:                     return false;
+			case Job_state::IN_PROGRESS:
+			case Job_state::NONE:
+			case Job_state::INIT_READ_JITTERENTROPY_PENDING:
+			case Job_state::INIT_READ_JITTERENTROPY_IN_PROGRESS:
+			case Job_state::FINAL_SYNC:
+				break;
 			}
 
-			/* never reached */
 			return false;
 		}
 
@@ -202,6 +202,7 @@ class Trust_anchor
 			bool progress = false;
 
 			switch (_job_state) {
+			case Job_state::INIT_READ_JITTERENTROPY_PENDING:
 			case Job_state::PENDING:
 			{
 				if (!_open_jitterentropy_file_and_queue_read()) {
@@ -212,6 +213,7 @@ class Trust_anchor
 			}
 			[[fallthrough]];
 
+			case Job_state::INIT_READ_JITTERENTROPY_IN_PROGRESS:
 			case Job_state::IN_PROGRESS:
 			{
 				if (!_read_jitterentropy_file_finished()) {
@@ -228,17 +230,15 @@ class Trust_anchor
 				_job_state = Job_state::COMPLETE;
 				_job_success = true;
 				progress = true;
+				break;
 			}
 
-			[[fallthrough]];
 			case Job_state::COMPLETE:
-				return true;
-
-			case Job_state::NONE:        [[fallthrough]];
-			default:                     break;
+			case Job_state::FINAL_SYNC:
+			case Job_state::NONE:
+				break;
 			}
 
-			/* never reached */
 			return progress;
 		}
 
@@ -484,18 +484,19 @@ class Trust_anchor
 				_job_success = true;
 
 				progress |= true;
-			[[fallthrough]];
-			case Job_state::COMPLETE:
 				break;
 
-			case Job_state::NONE: [[fallthrough]];
-			default:              break;
+			case Job_state::COMPLETE:
+			case Job_state::NONE:
+			case Job_state::INIT_READ_JITTERENTROPY_PENDING:
+			case Job_state::INIT_READ_JITTERENTROPY_IN_PROGRESS:
+				break;
 			}
 
 			return progress;
 		}
 
-		bool _execute()
+		bool _execute_one_step()
 		{
 			switch (_job) {
 			case Job::DECRYPT:     return _execute_decrypt();
@@ -512,35 +513,6 @@ class Trust_anchor
 			/* never reached */
 			return false;
 		}
-
-		friend struct Io_response_handler;
-
-		struct Io_response_handler : Vfs::Io_response_handler
-		{
-			Genode::Signal_context_capability _io_sigh;
-
-			Io_response_handler(Genode::Signal_context_capability io_sigh)
-			: _io_sigh(io_sigh) { }
-
-			void read_ready_response() override { }
-
-			void io_progress_response() override
-			{
-				if (_io_sigh.valid()) {
-					Genode::Signal_transmitter(_io_sigh).submit();
-				}
-			}
-		};
-
-		void _handle_io()
-		{
-			(void)_execute();
-		}
-
-		Genode::Io_signal_handler<Trust_anchor> _io_handler {
-			_vfs_env.env().ep(), *this, &Trust_anchor::_handle_io };
-
-		Io_response_handler _io_response_handler { _io_handler };
 
 		void _close_handle(Vfs::Vfs_handle **handle)
 		{
@@ -647,7 +619,6 @@ class Trust_anchor
 				return false;
 			}
 
-			_private_key_handle->handler(&_io_response_handler);
 			_private_key_io_job.construct(*_private_key_handle, Util::Io_job::Operation::READ,
 			                      _private_key_io_job_buffer, 0,
 			                      Util::Io_job::Partial_result::ALLOW);
@@ -676,7 +647,6 @@ class Trust_anchor
 				return false;
 			}
 
-			_jitterentropy_handle->handler(&_io_response_handler);
 			_jitterentropy_io_job.construct(*_jitterentropy_handle, Util::Io_job::Operation::READ,
 			                      _jitterentropy_io_job_buffer, 0,
 			                      Util::Io_job::Partial_result::ALLOW);
@@ -707,7 +677,6 @@ class Trust_anchor
 				return false;
 			}
 
-			_key_handle->handler(&_io_response_handler);
 			_key_io_job.construct(*_key_handle, Util::Io_job::Operation::READ,
 			                      _key_io_job_buffer, 0,
 			                      Util::Io_job::Partial_result::ALLOW);
@@ -795,7 +764,6 @@ class Trust_anchor
 				return false;
 			}
 
-			_key_handle->handler(&_io_response_handler);
 			_key_io_job.construct(*_key_handle, Util::Io_job::Operation::WRITE,
 			                      _key_io_job_buffer, 0);
 			if (_key_io_job->execute() && _key_io_job->completed()) {
@@ -840,7 +808,6 @@ class Trust_anchor
 				return false;
 			}
 
-			_hash_handle->handler(&_io_response_handler);
 			_hash_io_job.construct(*_hash_handle, Util::Io_job::Operation::READ,
 			                       _hash_io_job_buffer, 0,
 			                       Util::Io_job::Partial_result::ALLOW);
@@ -907,7 +874,6 @@ class Trust_anchor
 				return false;
 			}
 
-			_hash_handle->handler(&_io_response_handler);
 			_hash_io_job.construct(*_hash_handle, Util::Io_job::Operation::WRITE,
 			                      _hash_io_job_buffer, 0);
 
@@ -986,7 +952,7 @@ class Trust_anchor
 				if (_open_key_file_and_queue_read(_base_path)) {
 
 					while (!_read_key_file_finished()) {
-						_vfs_env.env().ep().wait_and_dispatch_one_io_signal();
+						_vfs_env.io().commit_and_wait();
 					}
 				}
 			}
@@ -1004,7 +970,12 @@ class Trust_anchor
 
 		bool execute()
 		{
-			return _execute();
+			bool result = false;
+
+			while (_execute_one_step() == true)
+				result = true;
+
+			return result;
 		}
 
 		bool queue_initialize(char const *src, size_t len)
@@ -1296,6 +1267,8 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 			Read_result read(char *src, file_size count,
 			                 file_size &out_count) override
 			{
+				_trust_anchor.execute();
+
 				if (_state == State::NONE) {
 					try {
 						bool const ok =
@@ -1352,6 +1325,8 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 			Write_result write(char const *src, file_size count,
 			                   file_size &out_count) override
 			{
+				_trust_anchor.execute();
+
 				if (_state != State::NONE) {
 					return WRITE_ERR_IO;
 				}
