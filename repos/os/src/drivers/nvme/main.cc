@@ -827,34 +827,68 @@ class Nvme::Controller : Platform::Device,
 	}
 
 	/**
-	 * Wait until admin command has finished
+	 * Wait until admin command has been finished
+	 *
+	 * In case the command was processed the 'fn' function is called
+	 * and it is up to the caller to determine the result. Otherwise
+	 * the 'to' function is called to denote the command was not
+	 * processed in the given amount of time.
+	 *
+	 * This method should only be used in an synchronous fashion as
+	 * batching admin commands could lead to out-of-order completions.
+	 *
+	 * \param num  number of attempts
+	 * \param cid  command identifier
+	 * \param fn   function called when the command has been finished
+	 * \param to   function called when the command has not been finished
+	 *             within the given number of attempts
+	 */
+	template <typename FN, typename TO>
+	void _wait_for_admin_cq(uint32_t num, uint16_t cid,
+	                        FN const &fn,
+	                        TO const &timeout)
+	{
+		for (uint32_t i = 0; i < num; i++) {
+			_delayer.usleep(100 * 1000);
+
+			Cqe b(_admin_cq->next());
+
+			if (b.read<Nvme::Cqe::Cid>() != cid)
+				continue;
+
+			_admin_cq->advance_head();
+
+			/* do not spend too much time here */
+			fn(b);
+
+			write<Admin_cdb::Cqh>(_admin_cq->head);
+			return;
+		}
+
+		timeout();
+	}
+
+	/**
+	 * Wait until admin command has been finished
+	 *
+	 * A timed-out and an unsuccessful command are treated as the same.
 	 *
 	 * \param num  number of attempts
 	 * \param cid  command identifier
 	 *
-	 * \return  returns true if attempt to wait was successfull, otherwise
+	 * \return  returns true if the command was successfull, otherwise
 	 *          false is returned
 	 */
 	bool _wait_for_admin_cq(uint32_t num, uint16_t cid)
 	{
 		bool success = false;
 
-		for (uint32_t i = 0; i < num; i++) {
-			_delayer.usleep(100 * 1000);
-
-			Cqe b(_admin_cq->next());
-
-			if (b.read<Nvme::Cqe::Cid>() != cid) {
-				continue;
-			}
-
-			_admin_cq->advance_head();
-
-			success = true;
-
-			write<Admin_cdb::Cqh>(_admin_cq->head);
-			break;
-		}
+		_wait_for_admin_cq(num, cid,
+			[&] (Cqe const &e) {
+				success = Cqe::succeeded(e);
+			},
+			[&] () { /* already false */ }
+		);
 
 		return success;
 	}
