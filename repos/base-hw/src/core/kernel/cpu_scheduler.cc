@@ -179,6 +179,13 @@ void Cpu_scheduler::update(time_t time)
 			_head_filled(r);
 
 		_consumed(duration);
+
+	} else if (_head_was_removed) {
+
+		_trim_consumption(duration);
+		_head_was_removed = false;
+		_head_yields = false;
+		_consumed(duration);
 	}
 
 	if (_claim_for_head())
@@ -258,8 +265,10 @@ void Cpu_scheduler::remove(Share &s)
 
 	if (s._ready) unready(s);
 
-	if (&s == _head)
+	if (&s == _head) {
 		_head = nullptr;
+		_head_was_removed = true;
+	}
 
 	if (!s._quota)
 		return;

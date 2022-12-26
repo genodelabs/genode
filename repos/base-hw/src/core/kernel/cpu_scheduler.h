@@ -120,6 +120,7 @@ class Kernel::Cpu_scheduler
 		unsigned                _head_quota  = 0;
 		bool                    _head_claims = false;
 		bool                    _head_yields = false;
+		bool                    _head_was_removed = false;
 		unsigned const          _quota;
 		unsigned                _residual;
 		unsigned const          _fill;
