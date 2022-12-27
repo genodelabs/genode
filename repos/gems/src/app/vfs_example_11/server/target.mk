@@ -1,3 +1,3 @@
 TARGET = vfs_example_11-server
-LIBS   = libc
+LIBS   = libc base
 SRC_CC = main.cc

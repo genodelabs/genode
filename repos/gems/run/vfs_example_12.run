@@ -86,7 +86,7 @@ install_config {
 </config>}
 
 build {
-	core init timer app/vfs_example_11 lib/vfs/lwip lib/vfs/lxip server/vfs }
+	core init timer app/vfs_example_11 lib/vfs_lwip lib/vfs_lxip server/vfs }
 
 build_boot_image {
 	core init timer vfs_example_11-client vfs_example_11-server vfs_lwip.lib.so
