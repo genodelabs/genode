@@ -1,0 +1,58 @@
+assert_spec linux
+
+build { core init timer server/lx_fs app/vfs_example_5 lib/vfs/import }
+
+create_boot_directory
+
+install_config {
+	<config>
+
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="IRQ"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="200"/>
+
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Timer"/> </provides>
+		</start>
+
+		<start name="lx_fs" caps="220" ld="no">
+			<resource name="RAM" quantum="8M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<policy label_prefix="vfs_example_5" root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="vfs_example_5">
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs>
+					<dir name="my_notes"> <fs/> </dir>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+
+	</config>
+}
+
+build_boot_image {
+	core init timer ld.lib.so lx_fs vfs_example_5 vfs_import.lib.so vfs.lib.so
+	libc.lib.so libm.lib.so posix.lib.so }
+
+append qemu_args " -nographic "
+
+run_genode_until "exited with exit value 0.*\n" 30

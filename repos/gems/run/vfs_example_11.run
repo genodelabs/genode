@@ -1,0 +1,79 @@
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="200"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="nic_router">
+		<resource name="RAM" quantum="10M"/>
+		<provides> <service name="Nic"/> <service name="Uplink"/> </provides>
+		<config>
+
+			<policy label_prefix="http_server" domain="servers"/>
+			<policy label_prefix="http_client" domain="clients"/>
+
+			<domain name="servers" interface="10.0.0.1/24"/>
+			<domain name="clients" interface="10.0.1.1/24">
+				<dhcp-server ip_first="10.0.1.2" ip_last="10.0.1.2"/>
+				<tcp dst="10.0.0.0/24"><permit port="80" domain="servers" /></tcp>
+			</domain>
+
+		</config>
+	</start>
+
+	<start name="http_server">
+		<binary name="vfs_example_11-server"/>
+		<resource name="RAM" quantum="28M"/>
+		<config port="80">
+			<vfs>
+				<dir name="socket">
+					<lxip ip_addr="10.0.0.2"
+					      netmask="255.255.255.0"
+					      gateway="10.0.0.1"/>
+				</dir>
+			</vfs>
+			<libc socket="/socket"/>
+		</config>
+	</start>
+
+	<start name="http_client">
+		<binary name="vfs_example_11-client"/>
+		<resource name="RAM" quantum="28M"/>
+		<config server_ip="10.0.0.2" server_port="80">
+			<vfs>
+				<dir name="socket"> <lwip dhcp="yes"/> </dir>
+			</vfs>
+			<libc socket="/socket"/>
+		</config>
+	</start>
+
+</config>}
+
+build {
+	core init timer app/vfs_example_11 lib/vfs/lwip lib/vfs/lxip }
+
+build_boot_image {
+	core init timer vfs_example_11-client vfs_example_11-server vfs_lwip.lib.so
+	vfs_lxip.lib.so lxip.lib.so libc.lib.so nic_router vfs.lib.so }
+
+append qemu_args " -nographic "
+
+run_genode_until {.*Client succeeded.*\n} 30

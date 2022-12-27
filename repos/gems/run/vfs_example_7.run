@@ -1,0 +1,67 @@
+create_boot_directory
+
+install_config {
+	<config>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="dynamic_rom">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/> </provides>
+			<config>
+				<rom name="greetings_rom">
+					<inline>Hello world!</inline>
+					<sleep milliseconds="360000000"/>
+				</rom>
+			</config>
+		</start>
+
+		<start name="vfs_example_4">
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs>
+					<dir name="friendly">
+						<rom name="greetings" label="greetings_rom"/>
+					</dir>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+			<route>
+				<service name="ROM" label="greetings_rom">
+					<child name="dynamic_rom"/>
+				</service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+}
+
+append qemu_args " -nographic "
+
+build { core init timer server/dynamic_rom app/vfs_example_4 }
+
+build_boot_image {
+	core ld.lib.so init timer vfs_example_4 dynamic_rom libc.lib.so
+	libm.lib.so vfs.lib.so posix.lib.so }
+
+run_genode_until "exited with exit value 0.*\n" 30

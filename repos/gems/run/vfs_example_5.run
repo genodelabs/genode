@@ -1,0 +1,43 @@
+create_boot_directory
+
+install_config {
+	<config>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="vfs_example_5">
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs>
+					<dir name="my_notes"> <ram/> </dir>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+
+	</config>
+}
+
+append qemu_args " -nographic "
+
+build { core init app/vfs_example_5 }
+
+build_boot_image {
+	core ld.lib.so init vfs_example_5 libc.lib.so libm.lib.so vfs.lib.so
+	posix.lib.so }
+
+run_genode_until "exited with exit value 0.*\n" 30
